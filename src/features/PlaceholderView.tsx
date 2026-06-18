@@ -1,9 +1,10 @@
 import Card from '@/components/Card';
 
 /**
- * Platzhalter für die iterativ zu portierenden Views (Phase 4, Spec §8):
- * Material/Bestellung, Baustellen, Einsatzplanung, Rechnungen, Buchhaltung.
- * Bewusst noch nicht gebaut — erst nach dem vertikalen Schnitt + KI-Moment.
+ * Platzhalter für noch nicht portierte Views. Aktuell nur noch die
+ * Benutzerverwaltung (nutzt in der Legacy das Secondary-App-Muster zum
+ * Anlegen von Auth-Konten; die Custom-Claims werden bereits von der Cloud
+ * Function syncUserClaims gesetzt). Bewusst als nächster Schritt offen.
  */
 export default function PlaceholderView({ title }: { title: string }) {
   return (
@@ -11,9 +12,8 @@ export default function PlaceholderView({ title }: { title: string }) {
       <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
       <Card>
         <p className="text-gray-600">
-          Dieser Bereich wird iterativ portiert (Phase 4). Datenmodell und
-          Geschäftslogik sind bereits in <code>docs/LEGACY-ANALYSIS.md</code> dokumentiert und in{' '}
-          <code>src/types</code> bzw. <code>src/lib</code> vorbereitet.
+          Dieser Bereich ist noch nicht portiert. Datenmodell und Sicherheits-Rules
+          (inkl. Custom-Claims-Sync) stehen bereits bereit.
         </p>
       </Card>
     </div>

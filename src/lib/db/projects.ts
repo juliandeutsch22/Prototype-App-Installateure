@@ -1,4 +1,5 @@
-import { where } from 'firebase/firestore';
+import { where, collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import type { Project } from '@/types';
 import { queryTenant, subscribeTenant, type WithId } from './core';
 
@@ -25,4 +26,18 @@ export function subscribeProjects(
   onError: (e: Error) => void,
 ) {
   return subscribeTenant<Project>(COLLECTION, companyId, cb, onError);
+}
+
+export type NewProject = Omit<Project, 'id' | 'companyId' | 'createdAt'>;
+
+export function createProject(companyId: string, p: NewProject) {
+  return addDoc(collection(db, COLLECTION), { ...p, companyId, createdAt: serverTimestamp() });
+}
+
+export function updateProject(id: string, data: Partial<Project>) {
+  return updateDoc(doc(db, COLLECTION, id), data);
+}
+
+export function deleteProject(id: string) {
+  return deleteDoc(doc(db, COLLECTION, id));
 }

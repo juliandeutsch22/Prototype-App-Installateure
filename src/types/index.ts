@@ -159,6 +159,22 @@ export interface TimeEntry {
   lastEditedAt?: number;
 }
 
+/** assignments/{id} — Einsatzplanung: ein Dokument pro (Datum × Projekt × Mitarbeiter). */
+export interface Assignment {
+  id: string;
+  companyId: string;
+  date: string; // 'YYYY-MM-DD'
+  projectNumber: string;
+  userId: string; // uid
+  userName?: string;
+  asHelper?: boolean;
+  comment?: string;
+  materials?: Array<{ matId: string; name: string; unit?: string; qty: number }>;
+  createdBy?: string;
+  pickedUpMaterials?: string[];
+  createdAt?: number;
+}
+
 /** invoices/{id} */
 export interface Invoice {
   id: string;

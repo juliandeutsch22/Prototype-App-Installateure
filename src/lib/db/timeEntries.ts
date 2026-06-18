@@ -37,3 +37,8 @@ export function createTimeEntry(companyId: string, entry: NewTimeEntry) {
 export function updateTimeEntry(id: string, data: Partial<TimeEntry>) {
   return updateInTenant(COLLECTION, id, data);
 }
+
+/** Einmaliges Laden aller Einträge des Mandanten (z. B. für Rechnungen). */
+export function listAllEntries(companyId: string) {
+  return queryTenant<TimeEntry>(COLLECTION, companyId);
+}

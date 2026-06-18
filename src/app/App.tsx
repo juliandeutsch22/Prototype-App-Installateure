@@ -6,6 +6,14 @@ import LoginPage from '@/features/auth/LoginPage';
 import DashboardView from '@/features/dashboard/DashboardView';
 import TimeView from '@/features/time/TimeView';
 import VoiceView from '@/features/voice/VoiceView';
+import OrderView from '@/features/orders/OrderView';
+import AdminOrdersView from '@/features/orders/AdminOrdersView';
+import AdminProjectsView from '@/features/projects/AdminProjectsView';
+import MyProjectsView from '@/features/projects/MyProjectsView';
+import AssignmentsView from '@/features/assignments/AssignmentsView';
+import MyScheduleView from '@/features/assignments/MyScheduleView';
+import InvoicesView from '@/features/invoices/InvoicesView';
+import AccountingView from '@/features/accounting/AccountingView';
 import PlaceholderView from '@/features/PlaceholderView';
 
 /**
@@ -55,21 +63,42 @@ function AppRoutes() {
           </RequireRole>
         }
       />
-      <Route path="/order" element={<PlaceholderView title="Material bestellen" />} />
-      <Route path="/my-schedule" element={<PlaceholderView title="Mein Einsatzplan" />} />
-      <Route path="/my-projects" element={<PlaceholderView title="Meine Baustellen" />} />
+      <Route
+        path="/order"
+        element={
+          <RequireRole roles={['Mitarbeiter', 'Verwaltung', 'Geschäftsführung', 'Administrator']}>
+            <OrderView />
+          </RequireRole>
+        }
+      />
+      <Route path="/my-schedule" element={<MyScheduleView />} />
+      <Route path="/my-projects" element={<MyProjectsView />} />
 
       {/* Verwaltung */}
       <Route
         path="/admin-projects"
         element={
           <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <PlaceholderView title="Baustellen" />
+            <AdminProjectsView />
           </RequireRole>
         }
       />
-      <Route path="/admin-orders" element={<PlaceholderView title="Bestellungen" />} />
-      <Route path="/assignments" element={<PlaceholderView title="Einsatzplanung" />} />
+      <Route
+        path="/admin-orders"
+        element={
+          <RequireRole roles={['Verwaltung', 'Geschäftsführung', 'Administrator']}>
+            <AdminOrdersView />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/assignments"
+        element={
+          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
+            <AssignmentsView />
+          </RequireRole>
+        }
+      />
       <Route
         path="/user-mgmt"
         element={
@@ -84,7 +113,7 @@ function AppRoutes() {
         path="/invoices"
         element={
           <RequireRole roles={['Buchhaltung', 'Geschäftsführung', 'Administrator']}>
-            <PlaceholderView title="Rechnungen" />
+            <InvoicesView />
           </RequireRole>
         }
       />
@@ -92,7 +121,7 @@ function AppRoutes() {
         path="/accounting"
         element={
           <RequireRole roles={['Buchhaltung', 'Geschäftsführung', 'Administrator']}>
-            <PlaceholderView title="Buchhaltung" />
+            <AccountingView />
           </RequireRole>
         }
       />

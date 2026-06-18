@@ -54,6 +54,12 @@ async function seedCompany({ companyId, name, brandColor, projects }) {
   }
 }
 
+async function seedMaterials(companyId, items) {
+  for (const m of items) {
+    await db.collection('materials').add({ companyId, ...m, createdAt: FieldValue.serverTimestamp() });
+  }
+}
+
 async function main() {
   // Firma A — Perl
   await seedCompany({
@@ -66,6 +72,12 @@ async function main() {
       { projectNumber: '2025-014', customerName: 'Hotel Alpenblick', address: 'Seeweg 7, Schladming', status: 'Pausiert' },
     ],
   });
+  await seedMaterials('perl', [
+    { name: 'Kupferrohr 15mm', category: 'Rohr', stock: 120, unit: 'm', purchasePrice: 4.5 },
+    { name: 'Flachdichtung 1/2"', category: 'Dichtung', stock: 340, unit: 'Stk', purchasePrice: 0.3 },
+    { name: 'Therme Junkers', category: 'Heizung', stock: 6, unit: 'Stk', purchasePrice: 980 },
+    { name: 'Eckventil', category: 'Sanitär', stock: 58, unit: 'Stk', purchasePrice: 3.2 },
+  ]);
   const perlUid = await makeUser({
     email: 'max@perl.at', password: 'demo1234', name: 'Max Mustermann',
     role: 'Mitarbeiter', companyId: 'perl',
