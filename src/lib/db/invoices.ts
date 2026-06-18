@@ -8,9 +8,14 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Invoice } from '@/types';
-import { subscribeTenant, createInTenant, type WithId } from './core';
+import { queryTenant, subscribeTenant, createInTenant, type WithId } from './core';
 
 const COLLECTION = 'invoices';
+
+/** Einmaliges Laden aller Rechnungen des Mandanten (z. B. Dashboard). */
+export function listInvoices(companyId: string) {
+  return queryTenant<Invoice>(COLLECTION, companyId);
+}
 
 export function subscribeInvoices(
   companyId: string,

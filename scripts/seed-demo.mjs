@@ -99,6 +99,21 @@ async function main() {
     });
   }
 
+  // Heutiger Einsatz für Max (Dashboard-Widget)
+  await db.collection('assignments').add({
+    companyId: 'perl', date: new Date().toISOString().slice(0, 10),
+    projectNumber: '2026-001', userId: perlUid, userName: 'Max Mustermann',
+    asHelper: false, comment: 'Therme einbauen', createdBy: perlUid,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  // Offene Bestellung für Max
+  await db.collection('materialOrders').add({
+    companyId: 'perl', materialId: '', materialName: 'Kupferrohr 15mm', quantity: 10,
+    note: 'für Müller', projectNumber: '2026-001', status: 'Offen', transactionType: 'order',
+    userId: perlUid, userName: 'Max Mustermann', source: 'manual',
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
   // Firma B — Mustermann (für Isolationsnachweis)
   await seedCompany({
     companyId: 'mustermann',
