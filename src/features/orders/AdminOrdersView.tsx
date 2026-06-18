@@ -46,6 +46,7 @@ export default function AdminOrdersView() {
     setBusyId(o.id);
     try {
       await updateOrderStatus(o.id, next);
+      toast.success(`Status: ${next}`);
     } finally {
       setBusyId(null);
     }

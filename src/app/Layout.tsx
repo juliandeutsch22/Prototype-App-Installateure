@@ -3,13 +3,14 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { navForRole } from './navigation';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 
-const linkClass = ({ isActive }: { isActive: boolean }) =>
-  `flex min-h-touch items-center rounded px-3 py-2 text-base font-medium transition ${
+const sideLink = ({ isActive }: { isActive: boolean }) =>
+  `flex min-h-touch min-w-0 items-center gap-3 rounded px-3 py-2 text-base font-medium transition ${
     isActive ? 'bg-brand text-brand-fg' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
   }`;
 
-/** App-Shell: Desktop-Sidebar; mobil Top-Bar + Tab-Bar (4 + „Mehr"-Drawer). */
+/** App-Shell: Desktop-Sidebar; mobil Top-Bar + Icon-Tab-Bar (4 + „Mehr"-Drawer). */
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, company, signOut } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -19,6 +20,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const brand = company?.name ?? 'Installateur-App';
   const primary = items.slice(0, 4);
   const hasMore = items.length > 4;
+  const moreActive = items.slice(4).some((i) => i.path === location.pathname);
 
   const BrandMark = (
     <div className="flex items-center gap-2">
@@ -40,8 +42,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="mb-4 px-1">{BrandMark}</div>
         <nav className="flex flex-col gap-1" aria-label="Hauptnavigation">
           {items.map((item) => (
-            <NavLink key={item.path} to={item.path} end={item.path === '/'} className={linkClass}>
-              {item.label}
+            <NavLink key={item.path} to={item.path} end={item.path === '/'} className={sideLink}>
+              <Icon name={item.icon} size={20} className="shrink-0" />
+              <span className="truncate">{item.label}</span>
             </NavLink>
           ))}
         </nav>
@@ -59,9 +62,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
 
-      {/* Mobile Tab-Bar */}
+      {/* Mobile Tab-Bar (Icons + Kurzlabel) */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label="Hauptnavigation"
       >
         {primary.map((item) => (
@@ -70,20 +73,25 @@ export default function Layout({ children }: { children: ReactNode }) {
             to={item.path}
             end={item.path === '/'}
             className={({ isActive }) =>
-              `flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium ${
+              `flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.7rem] font-medium ${
                 isActive ? 'text-brand' : 'text-ink-muted'
               }`
             }
           >
-            <span className="truncate px-1">{item.label}</span>
+            <Icon name={item.icon} size={22} />
+            <span className="max-w-full truncate px-0.5">{item.short}</span>
           </NavLink>
         ))}
         {hasMore && (
           <button
             onClick={() => setMoreOpen(true)}
-            className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium text-ink-muted"
+            aria-label="Weitere Bereiche"
+            className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.7rem] font-medium ${
+              moreActive ? 'text-brand' : 'text-ink-muted'
+            }`}
           >
-            Mehr
+            <Icon name="more" size={22} />
+            <span>Mehr</span>
           </button>
         )}
       </nav>
@@ -92,13 +100,21 @@ export default function Layout({ children }: { children: ReactNode }) {
       {moreOpen && (
         <div className="fixed inset-0 z-40 bg-ink/40 md:hidden" onClick={() => setMoreOpen(false)}>
           <div
-            className="absolute inset-x-0 bottom-0 rounded-t-lg bg-surface p-4"
+            className="absolute inset-x-0 bottom-0 rounded-t-lg bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
             <nav className="grid grid-cols-2 gap-2" aria-label="Weitere Bereiche">
               {items.map((item) => (
-                <NavLink key={item.path} to={item.path} end={item.path === '/'} onClick={() => setMoreOpen(false)} className={linkClass}>
-                  {item.label}
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.path === '/'}
+                  onClick={() => setMoreOpen(false)}
+                  className={sideLink}
+                >
+                  <Icon name={item.icon} size={20} className="shrink-0" />
+                  <span className="truncate">{item.label}</span>
                 </NavLink>
               ))}
             </nav>
