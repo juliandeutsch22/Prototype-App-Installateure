@@ -1,0 +1,34 @@
+# Dependencies
+node_modules
+functions/node_modules
+
+# Build output
+dist
+functions/lib
+*.tsbuildinfo
+# Von `tsc -b` aus vite.config.ts erzeugte Artefakte
+vite.config.js
+vite.config.d.ts
+
+# Environment / Secrets — NIE committen
+.env
+.env.local
+.env.*.local
+functions/.env
+functions/.env.local
+functions/.env.*.local
+!.env.example
+!functions/.env.example
+*.serviceaccount.json
+
+# Firebase
+.firebase
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+*.log

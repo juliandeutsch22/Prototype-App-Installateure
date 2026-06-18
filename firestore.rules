@@ -1,0 +1,136 @@
+rules_version = '2';
+
+// Mandantensichere Firestore Security Rules (Spec §7).
+//
+// Mechanismus: companyId und role stehen als CUSTOM CLAIMS im Auth-Token
+// (serverseitig per Cloud Function gesetzt, siehe functions/src/claims.ts).
+// Damit kann ein Nutzer ausschließlich Dokumente seiner eigenen companyId
+// lesen/schreiben — auch bei direkten Firestore-Anfragen unter Umgehung des UI.
+//
+// Akzeptanzkriterium (Spec §7): Firma B kann kein einziges Dokument von
+// Firma A lesen. Nachgewiesen durch firestore.rules.test.ts.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function tokenCompany() {
+      return request.auth.token.companyId;
+    }
+
+    function role() {
+      return request.auth.token.role;
+    }
+
+    // Daten gehören demselben Mandanten wie der Aufrufer (Lesen/Update/Delete).
+    function ownsExisting() {
+      return signedIn() && resource.data.companyId == tokenCompany();
+    }
+
+    // Neu geschriebene/aktualisierte Daten tragen die companyId des Aufrufers.
+    function ownsIncoming() {
+      return signedIn() && request.resource.data.companyId == tokenCompany();
+    }
+
+    function hasRole(roles) {
+      return signedIn() && role() in roles;
+    }
+
+    function isLeadership() {
+      return hasRole(['Geschäftsführung', 'Administrator']);
+    }
+
+    // companyId darf bei Updates nicht verändert werden.
+    function companyUnchanged() {
+      return request.resource.data.companyId == resource.data.companyId;
+    }
+
+    // --- companies: nur lesen für eigene Firma; Schreiben nur Leitung ---
+    match /companies/{companyId} {
+      allow read: if signedIn() && companyId == tokenCompany();
+      allow write: if isLeadership() && companyId == tokenCompany();
+    }
+
+    // --- users: lesen innerhalb der Firma; verwalten nur GF/Admin ---
+    match /users/{userId} {
+      allow read: if ownsExisting();
+      allow create: if isLeadership() && ownsIncoming();
+      allow update: if isLeadership() && ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow delete: if isLeadership() && ownsExisting();
+    }
+
+    // --- projects: lesen in der Firma; verwalten nur GF/Admin ---
+    match /projects/{id} {
+      allow read: if ownsExisting();
+      allow create: if isLeadership() && ownsIncoming();
+      allow update: if isLeadership() && ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow delete: if isLeadership() && ownsExisting();
+    }
+
+    // --- assignments: lesen in der Firma; planen nur GF/Admin ---
+    match /assignments/{id} {
+      allow read: if ownsExisting();
+      // Mitarbeiter dürfen pickedUpMaterials bestätigen (eigene Firma).
+      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow create, delete: if isLeadership() && (ownsIncoming() || ownsExisting());
+    }
+
+    // --- materials (Katalog): lesen in der Firma; pflegen GF/Verwaltung/Admin.
+    //     Lagerstand (stock) darf jeder der Firma per Transaktion ändern. ---
+    match /materials/{id} {
+      allow read: if ownsExisting();
+      allow create: if hasRole(['Verwaltung', 'Geschäftsführung', 'Administrator']) && ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow delete: if hasRole(['Verwaltung', 'Geschäftsführung', 'Administrator']) && ownsExisting();
+    }
+
+    // --- materialOrders: in der Firma anlegen/lesen; Status ändern erlaubt ---
+    match /materialOrders/{id} {
+      allow read: if ownsExisting();
+      allow create: if ownsIncoming()
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow delete: if isLeadership() && ownsExisting();
+    }
+
+    // --- timeEntries: eigene anlegen; fremde nur Buchhaltung/GF/Admin ---
+    match /timeEntries/{id} {
+      allow read: if ownsExisting();
+      allow create: if ownsIncoming()
+        && (request.resource.data.userId == request.auth.uid
+            || hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']));
+      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
+        && (resource.data.userId == request.auth.uid
+            || hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']));
+      allow delete: if ownsExisting()
+        && (resource.data.userId == request.auth.uid
+            || hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']));
+    }
+
+    // --- followUps (KI-Magic-Moment): lesen/schreiben in der Firma ---
+    match /followUps/{id} {
+      allow read: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow delete: if ownsExisting();
+    }
+
+    // --- invoices: nur GF/Buchhaltung/Admin ---
+    match /invoices/{id} {
+      allow read: if ownsExisting()
+        && hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']);
+      allow create: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']) && ownsIncoming();
+      allow update: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator'])
+        && ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow delete: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']) && ownsExisting();
+    }
+
+    // Standard: alles andere verboten.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
