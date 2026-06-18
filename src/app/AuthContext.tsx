@@ -11,7 +11,7 @@ import {
   signInWithEmailAndPassword,
   signOut as fbSignOut,
 } from 'firebase/auth';
-import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { applyBranding } from '@/lib/tenant';
 import type { CurrentUser, Company, Role } from '@/types';
@@ -29,13 +29,16 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 
 /**
  * Lädt das App-Profil (Rolle, companyId) zur Firebase-Auth-UID.
- * Die Legacy-App fragt `users` per `where('uid','==', ...)` ab — beibehalten.
+ *
+ * Wichtig: users-Dokumente sind per `uid` als Dokument-ID geschlüsselt
+ * (users/{uid}). Das ist nötig, damit der erste Profil-Load ein einzelnes
+ * `get` ist — eine Query `where('uid','==',...)` ohne companyId-Filter würde
+ * von firestore.rules abgelehnt (Mandanten-Constraint nicht erfüllbar).
  */
 async function loadProfile(uid: string, email: string): Promise<CurrentUser | null> {
-  const snap = await getDocs(query(collection(db, 'users'), where('uid', '==', uid)));
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  const data = d.data() as { name?: string; role?: Role; companyId?: string; email?: string };
+  const snap = await getDoc(doc(db, 'users', uid));
+  if (!snap.exists()) return null;
+  const data = snap.data() as { name?: string; role?: Role; companyId?: string; email?: string };
   if (!data.companyId || !data.role) return null;
   return {
     uid,
@@ -43,7 +46,7 @@ async function loadProfile(uid: string, email: string): Promise<CurrentUser | nu
     name: data.name ?? email,
     role: data.role,
     companyId: data.companyId,
-    docId: d.id,
+    docId: snap.id,
   };
 }
 
@@ -69,6 +72,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         return;
       }
+      // Während das Profil geladen wird, "loading" halten, damit der
+      // Auth-Guard nicht fälschlich auf /login zurückspringt.
+      setLoading(true);
       try {
         const profile = await loadProfile(fbUser.uid, fbUser.email ?? '');
         if (!profile) {

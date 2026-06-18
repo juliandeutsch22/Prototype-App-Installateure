@@ -1,16 +1,19 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { InputField } from '@/components/Field';
 import Button from '@/components/Button';
 
 export default function LoginPage() {
-  const { signIn, error: authError } = useAuth();
-  const navigate = useNavigate();
+  const { signIn, user, error: authError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Bereits angemeldet -> direkt ins Dashboard (der Auth-Guard übernimmt die
+  // Navigation; kein manuelles navigate() mit Timing-Risiko nötig).
+  if (user) return <Navigate to="/" replace />;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -18,10 +21,8 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await signIn(email, password);
-      navigate('/', { replace: true });
     } catch {
       setError('Anmeldung fehlgeschlagen. E-Mail oder Passwort prüfen.');
-    } finally {
       setSubmitting(false);
     }
   }

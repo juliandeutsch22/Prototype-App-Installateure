@@ -15,22 +15,25 @@ export interface NavItem {
  * Diese Liste steuert UI-Sichtbarkeit; die HARTE Durchsetzung erfolgt
  * zusätzlich serverseitig in firestore.rules (Spec §7).
  */
+const ALL: Role[] = ['Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator'];
+const LEAD: Role[] = ['Geschäftsführung', 'Administrator'];
+
 export const NAV: NavItem[] = [
-  { path: '/', label: 'Dashboard', roles: ['Mitarbeiter', 'Verwaltung', 'Buchhaltung'], group: 'Allgemein' },
+  { path: '/', label: 'Dashboard', roles: ALL, group: 'Allgemein' },
 
-  { path: '/time', label: 'Zeiterfassung', roles: ['Mitarbeiter', 'Verwaltung'], group: 'Außendienst' },
-  { path: '/voice', label: 'KI-Erfassung', roles: ['Mitarbeiter', 'Verwaltung'], group: 'Außendienst' },
-  { path: '/order', label: 'Material bestellen', roles: ['Mitarbeiter', 'Verwaltung'], group: 'Außendienst' },
-  { path: '/my-schedule', label: 'Mein Einsatzplan', roles: ['Mitarbeiter'], group: 'Außendienst' },
-  { path: '/my-projects', label: 'Meine Baustellen', roles: ['Mitarbeiter'], group: 'Außendienst' },
+  { path: '/time', label: 'Zeiterfassung', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst' },
+  { path: '/voice', label: 'KI-Erfassung', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst' },
+  { path: '/order', label: 'Material bestellen', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst' },
+  { path: '/my-schedule', label: 'Mein Einsatzplan', roles: ['Mitarbeiter', 'Administrator'], group: 'Außendienst' },
+  { path: '/my-projects', label: 'Meine Baustellen', roles: ['Mitarbeiter', 'Administrator'], group: 'Außendienst' },
 
-  { path: '/admin-projects', label: 'Baustellen', roles: ['Verwaltung'], group: 'Verwaltung' },
-  { path: '/admin-orders', label: 'Bestellungen', roles: ['Verwaltung'], group: 'Verwaltung' },
-  { path: '/assignments', label: 'Einsatzplanung', roles: ['Verwaltung'], group: 'Verwaltung' },
-  { path: '/user-mgmt', label: 'Benutzerverwaltung', roles: ['Verwaltung'], group: 'Verwaltung' },
+  { path: '/admin-projects', label: 'Baustellen', roles: LEAD, group: 'Verwaltung' },
+  { path: '/admin-orders', label: 'Bestellungen', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung' },
+  { path: '/assignments', label: 'Einsatzplanung', roles: LEAD, group: 'Verwaltung' },
+  { path: '/user-mgmt', label: 'Benutzerverwaltung', roles: LEAD, group: 'Verwaltung' },
 
-  { path: '/invoices', label: 'Rechnungen', roles: ['Verwaltung', 'Buchhaltung'], group: 'Buchhaltung' },
-  { path: '/accounting', label: 'Buchhaltung', roles: ['Buchhaltung'], group: 'Buchhaltung' },
+  { path: '/invoices', label: 'Rechnungen', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
+  { path: '/accounting', label: 'Mitarbeiterübersicht', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
 ];
 
 export function navForRole(role: Role): NavItem[] {

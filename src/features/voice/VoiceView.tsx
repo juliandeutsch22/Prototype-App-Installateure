@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { callVoiceExtract } from '@/lib/functions';
 import ConfirmationPanel from './ConfirmationPanel';
@@ -15,6 +15,25 @@ export default function VoiceView() {
   const [result, setResult] = useState<VoiceExtractResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Nur-Dev-Demo (?demo): zeigt die Bestätigungs-UI ohne echte Aufnahme/API.
+  // Wird im Produktions-Build wegoptimiert (import.meta.env.DEV).
+  useEffect(() => {
+    if (import.meta.env.DEV && new URLSearchParams(location.search).has('demo')) {
+      setResult({
+        transcript:
+          'fertig bei Müller, vier Stunden, zwei Flachdichtungen verbaut, Therme nächste Woche nochmal',
+        extraction: {
+          summary: 'Arbeiten bei Familie Müller abgeschlossen.',
+          time: { hours: 4, needsReview: false },
+          projectSpokenName: 'Müller',
+          materials: [{ name: 'Flachdichtung', qty: 2, needsReview: false }],
+          followUp: { title: 'Therme prüfen', dueWeek: 'nächste Woche' },
+        },
+        projectMatches: [{ projectNumber: '2026-001', customerName: 'Familie Müller' }],
+      });
+    }
+  }, []);
 
   async function handleStop() {
     setError(null);

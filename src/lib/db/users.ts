@@ -1,3 +1,5 @@
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import type { AppUser, Role } from '@/types';
 import { queryTenant } from './core';
 
@@ -44,7 +46,9 @@ export async function listUsers(companyId: string): Promise<AppUser[]> {
   return rows.map(normalize);
 }
 
-export async function getUserByUid(companyId: string, uid: string): Promise<AppUser | null> {
-  const rows = await listUsers(companyId);
-  return rows.find((u) => u.uid === uid) ?? null;
+export async function getUserByUid(_companyId: string, uid: string): Promise<AppUser | null> {
+  // users sind per uid geschlüsselt (users/{uid}) -> direktes get.
+  const snap = await getDoc(doc(db, COLLECTION, uid));
+  if (!snap.exists()) return null;
+  return normalize({ id: snap.id, ...(snap.data() as RawUser) });
 }
