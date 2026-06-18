@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
@@ -47,4 +47,17 @@ if (import.meta.env.VITE_USE_EMULATORS === 'true') {
 export function getSecondaryApp(name = 'secondary'): FirebaseApp {
   const existing = getApps().find((a) => a.name === name);
   return existing ?? initializeApp(firebaseConfig, name);
+}
+
+/**
+ * Auth-Instanz der Secondary-App (für Benutzeranlage). Bindet im Dev-Modus
+ * denselben Emulator an wie die Primär-Auth.
+ */
+export function getSecondaryAuth(): Auth {
+  const secAuth = getAuth(getSecondaryApp());
+  if (import.meta.env.VITE_USE_EMULATORS === 'true') {
+    // Mehrfaches connect ist idempotent (gleiche URL); Warnungen unterdrücken.
+    connectAuthEmulator(secAuth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  }
+  return secAuth;
 }

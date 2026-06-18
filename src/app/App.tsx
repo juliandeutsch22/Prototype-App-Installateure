@@ -14,7 +14,7 @@ import AssignmentsView from '@/features/assignments/AssignmentsView';
 import MyScheduleView from '@/features/assignments/MyScheduleView';
 import InvoicesView from '@/features/invoices/InvoicesView';
 import AccountingView from '@/features/accounting/AccountingView';
-import PlaceholderView from '@/features/PlaceholderView';
+import UserMgmtView from '@/features/users/UserMgmtView';
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
@@ -103,7 +103,7 @@ function AppRoutes() {
         path="/user-mgmt"
         element={
           <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <PlaceholderView title="Benutzerverwaltung" />
+            <UserMgmtView />
           </RequireRole>
         }
       />

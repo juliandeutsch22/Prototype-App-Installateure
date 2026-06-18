@@ -1,4 +1,4 @@
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Role } from '@/types';
 import { queryTenant } from './core';
@@ -51,4 +51,48 @@ export async function getUserByUid(_companyId: string, uid: string): Promise<App
   const snap = await getDoc(doc(db, COLLECTION, uid));
   if (!snap.exists()) return null;
   return normalize({ id: snap.id, ...(snap.data() as RawUser) });
+}
+
+/** Felder, die das Benutzerformular bearbeitet (camelCase im UI). */
+export interface UserProfileInput {
+  name: string;
+  email: string;
+  role: Role;
+  active: boolean;
+  weeklyTargetHours?: number;
+  workDays?: number[];
+  appStartDate?: string | null;
+  initialOvertime?: number;
+}
+
+/** Schreibt das users/{uid}-Dokument (Legacy-Feldnamen beibehalten). */
+function toRaw(companyId: string, uid: string, p: UserProfileInput) {
+  return {
+    uid,
+    companyId, // immer aus dem Auth-Kontext des Admins
+    name: p.name,
+    email: p.email,
+    role: p.role,
+    active: p.active,
+    weeklyTargetHours: p.weeklyTargetHours ?? 38.5,
+    work_days: p.workDays ?? [1, 2, 3, 4, 5],
+    app_start_date: p.appStartDate ?? null,
+    initial_overtime: p.initialOvertime ?? 0,
+  };
+}
+
+/** Legt das Firestore-Profil an (uid = Doc-ID). Die Cloud Function setzt Claims. */
+export function createUserDoc(companyId: string, uid: string, p: UserProfileInput) {
+  return setDoc(doc(db, COLLECTION, uid), toRaw(companyId, uid, p));
+}
+
+/** Aktualisiert Rolle/Stunden/Status; companyId bleibt unverändert. */
+export function updateUserDoc(uid: string, data: Partial<ReturnType<typeof toRaw>>) {
+  const { companyId: _ignore, ...rest } = data as { companyId?: string };
+  void _ignore;
+  return updateDoc(doc(db, COLLECTION, uid), rest);
+}
+
+export function deleteUserDoc(uid: string) {
+  return deleteDoc(doc(db, COLLECTION, uid));
 }
