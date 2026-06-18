@@ -38,6 +38,8 @@ export interface Company {
   name: string;
   brandColor?: string; // Hex, Primärfarbe
   brandForeground?: string; // Hex, Vordergrund auf Primärfarbe
+  accentColor?: string; // Hex, Akzent (z. B. Aktion/Hervorhebung)
+  accentForeground?: string; // Hex, Vordergrund auf Akzent
   logoUrl?: string;
   // Rechnungs-Stammdaten (ersetzen die hartkodierten "Perl"-Werte im PDF)
   addressLine?: string; // "Musterstraße 1 · 1010 Wien"

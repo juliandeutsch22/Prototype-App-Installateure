@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 
-/** Ladezustand — sichtbar, kein stiller Abbruch (vgl. Spec §11). */
+/** Ladezustand — sichtbar, kein stiller Abbruch. */
 export function LoadingState({ label = 'Wird geladen …' }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 p-8 text-gray-500" role="status">
+    <div className="flex items-center justify-center gap-3 p-8 text-ink-muted" role="status">
       <span
-        className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-brand"
+        className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-brand"
         aria-hidden="true"
       />
       <span>{label}</span>
@@ -13,16 +13,16 @@ export function LoadingState({ label = 'Wird geladen …' }: { label?: string })
   );
 }
 
-/** Fehlerzustand mit optionalem Retry. */
+/** Fehlerzustand: erklärt, was war und was zu tun ist. */
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800" role="alert">
-      <p className="font-medium">Etwas ist schiefgelaufen</p>
+    <div className="rounded border border-danger/30 bg-danger-bg p-4 text-danger" role="alert">
+      <p className="font-semibold">Das hat nicht geklappt</p>
       <p className="mt-1 text-sm">{message}</p>
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-3 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
+          className="mt-3 min-h-touch rounded bg-danger px-3 py-1.5 text-sm font-semibold text-white transition active:scale-[0.98]"
         >
           Erneut versuchen
         </button>
@@ -31,11 +31,12 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   );
 }
 
-/** Leerzustand. */
-export function EmptyState({ children }: { children: ReactNode }) {
+/** Leerzustand — eine Einladung zu handeln, keine leere weiße Fläche. */
+export function EmptyState({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-gray-500">
-      {children}
+    <div className="flex flex-col items-center gap-3 rounded border border-dashed border-line bg-surface-2 p-8 text-center text-ink-muted">
+      <p>{children}</p>
+      {action}
     </div>
   );
 }

@@ -20,9 +20,9 @@ export function RequireRole({ roles, children }: { roles: Role[]; children: Reac
   if (!roles.includes(user.role)) {
     return (
       <div className="mx-auto max-w-md p-8 text-center">
-        <h1 className="text-xl font-semibold text-gray-900">Kein Zugriff</h1>
-        <p className="mt-2 text-gray-600">
-          Ihre Rolle ({user.role}) hat keinen Zugriff auf diesen Bereich.
+        <h1 className="text-xl font-semibold text-ink">Kein Zugriff</h1>
+        <p className="mt-2 text-ink-muted">
+          Deine Rolle ({user.role}) hat keinen Zugriff auf diesen Bereich.
         </p>
       </div>
     );

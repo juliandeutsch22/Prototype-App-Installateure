@@ -5,23 +5,23 @@ import type { WithId } from '@/lib/db/core';
 import type { MaterialOrder } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import IconButton from '@/components/IconButton';
+import StatusBadge from '@/components/StatusBadge';
+import PageHeader from '@/components/PageHeader';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { List, ListRow } from '@/components/ListRow';
+import { useToast } from '@/components/Toast';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
-
-const STATUS_TONE: Record<MaterialOrder['status'], 'gray' | 'amber' | 'blue' | 'green'> = {
-  Offen: 'gray',
-  'In Bearbeitung': 'amber',
-  Abholbereit: 'blue',
-  Erledigt: 'green',
-};
 
 /** Material-Dashboard: Bestellungen abarbeiten, Status weiterschalten. */
 export default function AdminOrdersView() {
   const { user } = useAuth();
+  const toast = useToast();
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [toDelete, setToDelete] = useState<WithId<MaterialOrder> | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -56,52 +56,60 @@ export default function AdminOrdersView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Material-Dashboard</h1>
+      <PageHeader title="Material-Dashboard" subtitle="Bestellungen bearbeiten und Status weiterschalten" />
       <Card title="Bestellungen">
         {loading ? (
           <LoadingState />
         ) : error ? (
           <ErrorState message={error} />
         ) : openOrders.length === 0 ? (
-          <EmptyState>Keine Bestellungen.</EmptyState>
+          <EmptyState>Aktuell keine offenen Bestellungen.</EmptyState>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <List>
             {openOrders.map((o) => (
-              <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {o.materialName} <span className="font-mono">×{o.quantity}</span>
-                  </p>
-                  <p className="text-sm text-gray-500">
+              <ListRow
+                key={o.id}
+                title={
+                  <span>
+                    {o.materialName} <span className="font-mono text-ink-muted">×{o.quantity}</span>
+                  </span>
+                }
+                subtitle={
+                  <>
                     {o.userName}
                     {o.projectNumber && ` · ${o.projectNumber}`}
                     {o.note && ` · ${o.note}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge tone={STATUS_TONE[o.status]}>{o.status}</Badge>
-                  {o.status !== 'Erledigt' && (
-                    <Button
-                      variant="secondary"
-                      loading={busyId === o.id}
-                      onClick={() => advance(o)}
-                    >
-                      → {ORDER_STATUS_FLOW[ORDER_STATUS_FLOW.indexOf(o.status) + 1]}
-                    </Button>
-                  )}
-                  <button
-                    aria-label="Löschen"
-                    className="min-h-touch px-2 text-gray-400 hover:text-red-600"
-                    onClick={() => void deleteOrder(o.id)}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </li>
+                  </>
+                }
+              >
+                <StatusBadge status={o.status} />
+                {o.status !== 'Erledigt' && (
+                  <Button variant="secondary" loading={busyId === o.id} onClick={() => advance(o)}>
+                    → {ORDER_STATUS_FLOW[ORDER_STATUS_FLOW.indexOf(o.status) + 1]}
+                  </Button>
+                )}
+                <IconButton label="Bestellung löschen" tone="danger" onClick={() => setToDelete(o)}>
+                  ✕
+                </IconButton>
+              </ListRow>
             ))}
-          </ul>
+          </List>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title="Bestellung löschen?"
+        message={toDelete ? `${toDelete.materialName} ×${toDelete.quantity} wird entfernt.` : ''}
+        onCancel={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (toDelete) {
+            await deleteOrder(toDelete.id);
+            toast.success('Bestellung gelöscht');
+          }
+          setToDelete(null);
+        }}
+      />
     </div>
   );
 }

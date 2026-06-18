@@ -4,6 +4,8 @@ import { listAssignmentsForUser } from '@/lib/db/assignments';
 import type { Assignment } from '@/types';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
+import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
 
 /** Eigene Einsätze des aktuellen Monats, nach Datum gruppiert. */
@@ -29,7 +31,7 @@ export default function MyScheduleView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Mein Einsatzplan</h1>
+      <PageHeader title="Mein Einsatzplan" subtitle="Deine geplanten Einsätze diesen Monat" />
       <Card title={`Einsätze ${month}`}>
         {loading ? (
           <LoadingState />
@@ -38,20 +40,22 @@ export default function MyScheduleView() {
         ) : thisMonth.length === 0 ? (
           <EmptyState>Keine Einsätze in diesem Monat.</EmptyState>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <List>
             {thisMonth.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 py-2">
-                <div>
-                  <p className="font-medium text-gray-900">{a.date}</p>
-                  <p className="text-sm text-gray-500">
+              <ListRow
+                key={a.id}
+                title={a.date}
+                subtitle={
+                  <>
                     {a.projectNumber}
                     {a.comment && ` · ${a.comment}`}
-                  </p>
-                </div>
-                {a.asHelper && <Badge tone="amber">Helfer</Badge>}
-              </li>
+                  </>
+                }
+              >
+                {a.asHelper && <Badge tone="warning">Helfer</Badge>}
+              </ListRow>
             ))}
-          </ul>
+          </List>
         )}
       </Card>
     </div>

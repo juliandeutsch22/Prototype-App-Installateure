@@ -9,12 +9,17 @@ import type { Project, AppUser, Assignment } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
-import { InputField, SelectField } from '@/components/Field';
+import IconButton from '@/components/IconButton';
+import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
+import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState } from '@/components/States';
 
 /** Einsatzplanung: Datum + Projekt + Mitarbeiter -> speichern (delete-then-recreate). */
 export default function AssignmentsView() {
   const { user } = useAuth();
+  const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [date, setDate] = useState(todayStr());
@@ -60,8 +65,9 @@ export default function AssignmentsView() {
       setChecked({});
       setComment('');
       refreshDay();
+      toast.success('Einsatz gespeichert');
     } catch {
-      setError('Speichern fehlgeschlagen.');
+      setError('Der Einsatz konnte nicht gespeichert werden.');
     } finally {
       setSaving(false);
     }
@@ -71,10 +77,10 @@ export default function AssignmentsView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Einsatzplanung</h1>
+      <PageHeader title="Einsatzplanung" subtitle="Mitarbeiter einem Tag und einer Baustelle zuteilen" />
 
       <Card title="Einsatz planen">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <FormGrid>
           <InputField id="adate" label="Datum" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           <SelectField id="aproj" label="Baustelle" value={projectNumber} onChange={(e) => setProjectNumber(e.target.value)}>
             <option value="">— wählen —</option>
@@ -82,16 +88,18 @@ export default function AssignmentsView() {
               <option key={p.id} value={p.projectNumber}>{p.customerName} ({p.projectNumber})</option>
             ))}
           </SelectField>
-        </div>
+        </FormGrid>
         <fieldset className="mt-4">
-          <legend className="text-sm font-medium text-gray-700">Mitarbeiter</legend>
-          <div className="mt-2 flex flex-wrap gap-3">
+          <legend className="text-sm font-medium text-ink">Mitarbeiter</legend>
+          <div className="mt-1 flex flex-wrap gap-x-5">
             {users.map((u) => (
-              <label key={u.uid} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" className="h-5 w-5" checked={!!checked[u.uid]}
-                  onChange={(e) => setChecked((c) => ({ ...c, [u.uid]: e.target.checked }))} />
-                {u.name}
-              </label>
+              <CheckboxField
+                key={u.uid}
+                id={`assign-${u.uid}`}
+                label={u.name}
+                checked={!!checked[u.uid]}
+                onChange={(e) => setChecked((c) => ({ ...c, [u.uid]: e.target.checked }))}
+              />
             ))}
           </div>
         </fieldset>
@@ -108,21 +116,33 @@ export default function AssignmentsView() {
         {dayAssignments.length === 0 ? (
           <EmptyState>Keine Einsätze an diesem Tag.</EmptyState>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <List>
             {dayAssignments.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 py-2">
-                <div>
-                  <p className="font-medium text-gray-900">{a.userName}</p>
-                  <p className="text-sm text-gray-500">{a.projectNumber}{a.comment && ` · ${a.comment}`}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {a.asHelper && <Badge tone="amber">Helfer</Badge>}
-                  <button aria-label="Löschen" className="min-h-touch px-2 text-gray-400 hover:text-red-600"
-                    onClick={async () => { await deleteAssignment(a.id); refreshDay(); }}>✕</button>
-                </div>
-              </li>
+              <ListRow
+                key={a.id}
+                title={a.userName ?? ''}
+                subtitle={
+                  <>
+                    {a.projectNumber}
+                    {a.comment && ` · ${a.comment}`}
+                  </>
+                }
+              >
+                {a.asHelper && <Badge tone="warning">Helfer</Badge>}
+                <IconButton
+                  label="Einsatz löschen"
+                  tone="danger"
+                  onClick={async () => {
+                    await deleteAssignment(a.id);
+                    refreshDay();
+                    toast.success('Einsatz gelöscht');
+                  }}
+                >
+                  ✕
+                </IconButton>
+              </ListRow>
             ))}
-          </ul>
+          </List>
         )}
       </Card>
     </div>

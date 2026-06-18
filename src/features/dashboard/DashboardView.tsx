@@ -14,6 +14,7 @@ import type { AppUser, Assignment, MaterialOrder, TimeEntry } from '@/types';
 import Card from '@/components/Card';
 import Metric from '@/components/Metric';
 import Badge from '@/components/Badge';
+import PageHeader from '@/components/PageHeader';
 
 interface DashData {
   saldoH?: number;
@@ -91,19 +92,17 @@ export default function DashboardView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Willkommen, {user.name.split(' ')[0]}</h1>
-        <p className="text-gray-500">
-          {company?.name ?? 'Installateur-App'} · Rolle: {user.role}
-        </p>
-      </div>
+      <PageHeader
+        title={`Willkommen, ${user.name.split(' ')[0]}`}
+        subtitle={`${company?.name ?? 'Installateur-App'} · Rolle: ${user.role}`}
+      />
 
       {data.missingTime && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800" role="alert">
-          <p className="font-medium">Zeiterfassung fehlt</p>
+        <div className="rounded border border-warning/30 bg-warning-bg p-4 text-warning" role="alert">
+          <p className="font-semibold">Zeit fehlt</p>
           <p className="mt-1 text-sm">
-            Für den letzten Werktag ({lastWorkday(new Date())}) ist kein Eintrag erfasst.{' '}
-            <Link to="/time" className="font-medium underline">Jetzt nachtragen</Link>
+            Für den letzten Werktag ({lastWorkday(new Date())}) ist nichts gebucht.{' '}
+            <Link to="/time" className="font-semibold underline">Jetzt nachtragen</Link>
           </p>
         </div>
       )}
@@ -111,7 +110,11 @@ export default function DashboardView() {
       {/* Kennzahlen */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {data.hasSaldoConfig && (
-          <Metric label="Überstunden-Saldo" value={`${(data.saldoH ?? 0) > 0 ? '+' : ''}${data.saldoH} h`} />
+          <Metric
+            label="Überstunden-Saldo"
+            tone={(data.saldoH ?? 0) >= 0 ? 'success' : 'danger'}
+            value={`${(data.saldoH ?? 0) > 0 ? '+' : ''}${data.saldoH} h`}
+          />
         )}
         {data.ownOpenOrders !== undefined && (
           <Metric label="Offene Bestellungen" value={data.ownOpenOrders} hint="von dir" />
@@ -132,16 +135,16 @@ export default function DashboardView() {
         <Card title="Heutiger Einsatz">
           {data.todayAssignment ? (
             <div>
-              <p className="font-medium text-gray-900">
+              <p className="flex items-center gap-2 font-medium text-ink">
                 Baustelle {data.todayAssignment.projectNumber}
-                {data.todayAssignment.asHelper && <Badge tone="amber">Helfer</Badge>}
+                {data.todayAssignment.asHelper && <Badge tone="warning">Helfer</Badge>}
               </p>
               {data.todayAssignment.comment && (
-                <p className="text-sm text-gray-500">{data.todayAssignment.comment}</p>
+                <p className="mt-0.5 text-sm text-ink-muted">{data.todayAssignment.comment}</p>
               )}
             </div>
           ) : (
-            <p className="text-gray-500">Heute kein Einsatz geplant.</p>
+            <p className="text-ink-muted">Heute kein Einsatz geplant.</p>
           )}
         </Card>
       )}
@@ -152,7 +155,7 @@ export default function DashboardView() {
             <Link
               key={item.path}
               to={item.path}
-              className="flex min-h-touch items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-4 text-center font-medium text-gray-800 hover:border-brand hover:bg-white"
+              className="flex min-h-touch items-center justify-center rounded border border-line bg-surface-2 p-4 text-center font-medium text-ink transition hover:border-brand active:scale-[0.98]"
             >
               {item.label}
             </Link>
@@ -161,13 +164,13 @@ export default function DashboardView() {
       </Card>
 
       <Card title="KI-Erfassung">
-        <p className="mb-3 text-gray-600">
+        <p className="mb-3 text-ink-muted">
           Sprich 15 Sekunden — Zeit, Material und Folgetermin werden automatisch als
           bestätigbare Karten vorbereitet. Nichts wird ohne deine Bestätigung gespeichert.
         </p>
         <Link
           to="/voice"
-          className="inline-flex min-h-touch items-center rounded-lg bg-brand px-4 py-2 font-medium text-brand-fg hover:opacity-90"
+          className="inline-flex min-h-touch items-center rounded bg-brand px-4 py-2 font-semibold text-brand-fg transition hover:opacity-90 active:scale-[0.98]"
         >
           🎤 Spracherfassung starten
         </Link>

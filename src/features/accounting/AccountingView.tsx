@@ -7,6 +7,8 @@ import type { AppUser, TimeEntry } from '@/types';
 import { shouldShowOvertime } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
+import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
 
 /** Mitarbeiterübersicht: Überstunden-Saldo je Mitarbeiter (Buchhaltung/GF/Admin). */
@@ -33,7 +35,7 @@ export default function AccountingView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Mitarbeiterübersicht</h1>
+      <PageHeader title="Mitarbeiterübersicht" subtitle="Überstunden-Saldo je Mitarbeiter" />
       <Card title="Überstunden-Saldo">
         {loading ? (
           <LoadingState />
@@ -42,30 +44,24 @@ export default function AccountingView() {
         ) : relevant.length === 0 ? (
           <EmptyState>Keine Mitarbeiter mit Saldo-Konfiguration.</EmptyState>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <List>
             {relevant.map((u) => {
               const ownEntries = entries.filter((e) => e.userId === u.uid);
               const { saldoH, hasConfig } = calcOverallSaldo(u, ownEntries);
               return (
-                <li key={u.uid} className="flex items-center justify-between gap-3 py-3">
-                  <div>
-                    <p className="font-medium text-gray-900">{u.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {u.role} · {ownEntries.length} Einträge
-                    </p>
-                  </div>
+                <ListRow key={u.uid} title={u.name} subtitle={`${u.role} · ${ownEntries.length} Einträge`}>
                   {hasConfig ? (
-                    <Badge tone={saldoH >= 0 ? 'green' : 'red'}>
+                    <Badge tone={saldoH >= 0 ? 'success' : 'danger'}>
                       {saldoH > 0 ? '+' : ''}
                       {saldoH} h
                     </Badge>
                   ) : (
                     <Badge tone="gray">kein Startdatum</Badge>
                   )}
-                </li>
+                </ListRow>
               );
             })}
-          </ul>
+          </List>
         )}
       </Card>
     </div>

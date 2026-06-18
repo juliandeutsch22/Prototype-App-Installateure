@@ -2,10 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design-Tokens. Mandanten-themebar: brand/accent kommen aus
+ * companies/{companyId} (applyBranding setzt sie zur Laufzeit). Alle übrigen
+ * Rollen sind bewusst hochkontrastig (Sonnenlicht auf der Baustelle).
+ */
 :root {
-  /* Mandanten-Branding-Defaults; werden von applyBranding() überschrieben. */
-  --brand-color: #1d4ed8;
+  /* Marke (Defaults = Perl-Pilot; werden vom Theme überschrieben) */
+  --brand: #003366;
   --brand-fg: #ffffff;
+  --accent: #e2001a;
+  --accent-fg: #ffffff;
+
+  /* Flächen & Text */
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --surface-2: #f5f7fa;
+  --text: #0f172a;
+  --text-muted: #525b6a;
+  --border: #d3dae3;
+
+  /* Semantische Zustände (Text + Fläche) */
+  --success: #15803d;
+  --success-bg: #dcfce7;
+  --warning: #b45309;
+  --warning-bg: #fef3c7;
+  --danger: #b91c1c;
+  --danger-bg: #fee2e2;
+  --info: #1d4ed8;
+  --info-bg: #dbeafe;
+
+  /* Radius & Schatten */
+  --radius-sm: 0.375rem;
+  --radius: 0.625rem;
+  --radius-lg: 1rem;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.1), 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 25px rgba(15, 23, 42, 0.12);
 }
 
 html,
@@ -15,12 +48,27 @@ body,
 }
 
 body {
-  @apply bg-gray-50 text-gray-900 antialiased;
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Sichtbare Fokuszustände für Barrierearmut */
+/* Sichtbarer Tastatur-Fokus (Barrierearmut, Büro/Desktop) */
 :focus-visible {
-  outline: 2px solid var(--brand-color);
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Bewegung reduzieren, wenn vom System gewünscht */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

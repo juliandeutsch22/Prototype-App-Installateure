@@ -7,13 +7,16 @@ import type { WithId } from '@/lib/db/core';
 import type { Material, Project } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField } from '@/components/Field';
+import { useToast } from '@/components/Toast';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
 
 /** Material bestellen: Katalog -> Warenkorb -> Sammelbestellung (canOrder). */
 export default function OrderView() {
   const { user } = useAuth();
+  const toast = useToast();
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -23,7 +26,6 @@ export default function OrderView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -77,10 +79,9 @@ export default function OrderView() {
       );
       setCart({});
       setNote('');
-      setDone(true);
-      setTimeout(() => setDone(false), 3000);
+      toast.success('Bestellung aufgegeben');
     } catch {
-      setError('Bestellung fehlgeschlagen.');
+      setError('Die Bestellung konnte nicht aufgegeben werden.');
     } finally {
       setSaving(false);
     }
@@ -90,7 +91,7 @@ export default function OrderView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Material bestellen</h1>
+      <PageHeader title="Material bestellen" subtitle="Aus dem Katalog wählen und Sammelbestellung aufgeben" />
 
       <Card title="Bestelldetails">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -127,26 +128,24 @@ export default function OrderView() {
           ) : filtered.length === 0 ? (
             <EmptyState>Kein Material im Katalog.</EmptyState>
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <List>
               {filtered.map((m) => (
-                <li key={m.id} className="flex items-center justify-between gap-3 py-2">
-                  <div>
-                    <p className="font-medium text-gray-900">{m.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {m.category || 'ohne Kategorie'} · Lager: {m.stock ?? 0}
-                    </p>
-                  </div>
+                <ListRow
+                  key={m.id}
+                  title={m.name}
+                  subtitle={`${m.category || 'ohne Kategorie'} · Lager: ${m.stock ?? 0}`}
+                >
                   <input
                     type="number"
                     min="0"
                     aria-label={`Menge ${m.name}`}
-                    className="min-h-touch w-24 rounded-lg border border-gray-300 px-3 py-2"
+                    className="min-h-touch w-24 rounded border border-line px-3 py-2 text-ink focus:border-brand focus:ring-1 focus:ring-brand"
                     value={cart[m.id] || ''}
                     onChange={(e) => setQty(m.id, Number(e.target.value))}
                   />
-                </li>
+                </ListRow>
               ))}
-            </ul>
+            </List>
           )}
         </div>
       </Card>
@@ -157,14 +156,13 @@ export default function OrderView() {
         ) : (
           <ul className="mb-4 space-y-1">
             {cartItems.map(([id, qty]) => (
-              <li key={id} className="flex justify-between text-gray-800">
+              <li key={id} className="flex justify-between text-ink">
                 <span>{materials.find((m) => m.id === id)?.name}</span>
                 <span className="font-mono">×{qty}</span>
               </li>
             ))}
           </ul>
         )}
-        {done && <Badge tone="green">Bestellung aufgegeben</Badge>}
         <div className="mt-3">
           <Button onClick={submit} loading={saving} disabled={cartItems.length === 0}>
             Bestellung aufgeben

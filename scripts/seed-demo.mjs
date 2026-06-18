@@ -41,11 +41,13 @@ async function makeUser({ email, password, name, role, companyId }) {
   return user.uid;
 }
 
-async function seedCompany({ companyId, name, brandColor, projects }) {
+async function seedCompany({ companyId, name, brandColor, accentColor, projects }) {
   await db.collection('companies').doc(companyId).set({
     name,
     brandColor,
     brandForeground: '#ffffff',
+    accentColor: accentColor ?? '#e2001a',
+    accentForeground: '#ffffff',
     defaultVatRate: 0.2,
     createdAt: FieldValue.serverTimestamp(),
   });
@@ -65,7 +67,8 @@ async function main() {
   await seedCompany({
     companyId: 'perl',
     name: 'Perl Installationen GmbH',
-    brandColor: '#1d4ed8',
+    brandColor: '#003366',
+    accentColor: '#e2001a',
     projects: [
       { projectNumber: '2026-001', customerName: 'Familie Müller', address: 'Hauptstr. 1, Graz', status: 'Aktiv' },
       { projectNumber: '2026-002', customerName: 'Bäckerei Huber', address: 'Marktplatz 3, Graz', status: 'Aktiv' },

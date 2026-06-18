@@ -4,73 +4,110 @@ import { useAuth } from './AuthContext';
 import { navForRole } from './navigation';
 import Button from '@/components/Button';
 
-/** App-Shell: mobile-first mit ausklappbarer Navigation, Desktop mit Sidebar. */
+const linkClass = ({ isActive }: { isActive: boolean }) =>
+  `flex min-h-touch items-center rounded px-3 py-2 text-base font-medium transition ${
+    isActive ? 'bg-brand text-brand-fg' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
+  }`;
+
+/** App-Shell: Desktop-Sidebar; mobil Top-Bar + Tab-Bar (4 + „Mehr"-Drawer). */
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, company, signOut } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   if (!user) return <>{children}</>;
 
   const items = navForRole(user.role);
   const brand = company?.name ?? 'Installateur-App';
+  const primary = items.slice(0, 4);
+  const hasMore = items.length > 4;
 
-  const nav = (
-    <nav className="flex flex-col gap-1" aria-label="Hauptnavigation">
-      {items.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          end={item.path === '/'}
-          onClick={() => setOpen(false)}
-          className={({ isActive }) =>
-            `min-h-touch rounded-lg px-3 py-2 text-base font-medium ${
-              isActive ? 'bg-brand text-brand-fg' : 'text-gray-700 hover:bg-gray-100'
-            }`
-          }
-        >
-          {item.label}
-        </NavLink>
-      ))}
-    </nav>
+  const BrandMark = (
+    <div className="flex items-center gap-2">
+      {company?.logoUrl && <img src={company.logoUrl} alt="" className="h-8 w-8 rounded" />}
+      <span className="text-lg font-bold text-ink">{brand}</span>
+    </div>
   );
 
   return (
     <div className="flex min-h-full flex-col md:flex-row">
-      {/* Topbar (mobil) */}
-      <header className="flex items-center justify-between border-b bg-white p-3 md:hidden">
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="min-h-touch min-w-touch rounded-lg px-3 text-gray-700 hover:bg-gray-100"
-          aria-label="Navigation umschalten"
-          aria-expanded={open}
-        >
-          ☰
-        </button>
-        <span className="font-semibold">{brand}</span>
-        <span className="w-10" />
+      {/* Mobile Top-Bar */}
+      <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
+        {BrandMark}
+        <span className="text-sm text-ink-muted">{user.role}</span>
       </header>
 
-      {/* Sidebar */}
-      <aside
-        className={`${open ? 'block' : 'hidden'} border-b bg-white p-3 md:block md:w-64 md:shrink-0 md:border-b-0 md:border-r`}
-      >
-        <div className="mb-4 hidden items-center gap-2 md:flex">
-          {company?.logoUrl && <img src={company.logoUrl} alt="" className="h-8 w-8 rounded" />}
-          <span className="text-lg font-bold text-gray-900">{brand}</span>
-        </div>
-        {nav}
-        <div className="mt-4 border-t pt-4">
-          <p className="px-3 text-sm text-gray-600">{user.name}</p>
-          <p className="px-3 text-xs text-gray-400">{user.role}</p>
-          <Button variant="ghost" className="mt-2 w-full" onClick={() => void signOut()}>
+      {/* Desktop-Sidebar */}
+      <aside className="hidden border-r border-line bg-surface md:flex md:w-64 md:shrink-0 md:flex-col md:p-3">
+        <div className="mb-4 px-1">{BrandMark}</div>
+        <nav className="flex flex-col gap-1" aria-label="Hauptnavigation">
+          {items.map((item) => (
+            <NavLink key={item.path} to={item.path} end={item.path === '/'} className={linkClass}>
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="mt-auto border-t border-line pt-4">
+          <p className="px-3 text-sm font-medium text-ink">{user.name}</p>
+          <p className="px-3 text-xs text-ink-muted">{user.email}</p>
+          <Button variant="ghost" className="mt-2 w-full justify-start" onClick={() => void signOut()}>
             Abmelden
           </Button>
         </div>
       </aside>
 
       {/* Inhalt */}
-      <main className="flex-1 p-4 md:p-6">
+      <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6">
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
+
+      {/* Mobile Tab-Bar */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface md:hidden"
+        aria-label="Hauptnavigation"
+      >
+        {primary.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === '/'}
+            className={({ isActive }) =>
+              `flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium ${
+                isActive ? 'text-brand' : 'text-ink-muted'
+              }`
+            }
+          >
+            <span className="truncate px-1">{item.label}</span>
+          </NavLink>
+        ))}
+        {hasMore && (
+          <button
+            onClick={() => setMoreOpen(true)}
+            className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium text-ink-muted"
+          >
+            Mehr
+          </button>
+        )}
+      </nav>
+
+      {/* „Mehr"-Drawer (mobil) */}
+      {moreOpen && (
+        <div className="fixed inset-0 z-40 bg-ink/40 md:hidden" onClick={() => setMoreOpen(false)}>
+          <div
+            className="absolute inset-x-0 bottom-0 rounded-t-lg bg-surface p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <nav className="grid grid-cols-2 gap-2" aria-label="Weitere Bereiche">
+              {items.map((item) => (
+                <NavLink key={item.path} to={item.path} end={item.path === '/'} onClick={() => setMoreOpen(false)} className={linkClass}>
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+            <Button variant="secondary" className="mt-3 w-full" onClick={() => void signOut()}>
+              Abmelden
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

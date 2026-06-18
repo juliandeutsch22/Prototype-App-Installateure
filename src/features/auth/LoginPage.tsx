@@ -28,13 +28,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-gray-50 p-4">
+    <div className="flex min-h-full items-center justify-center bg-bg p-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+        className="w-full max-w-sm rounded-lg border border-line bg-surface p-6 shadow-lg"
       >
-        <h1 className="mb-1 text-2xl font-bold text-gray-900">Anmelden</h1>
-        <p className="mb-6 text-sm text-gray-500">Installateur-App</p>
+        <h1 className="mb-1 text-2xl font-bold text-ink">Anmelden</h1>
+        <p className="mb-6 text-sm text-ink-muted">Installateur-App</p>
 
         <div className="flex flex-col gap-4">
           <InputField
@@ -57,7 +57,7 @@ export default function LoginPage() {
           />
 
           {(error || authError) && (
-            <p className="rounded-md bg-red-50 p-2 text-sm text-red-700" role="alert">
+            <p className="rounded bg-danger-bg p-2 text-sm text-danger" role="alert">
               {error ?? authError}
             </p>
           )}

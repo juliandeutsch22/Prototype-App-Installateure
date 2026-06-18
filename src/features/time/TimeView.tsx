@@ -8,6 +8,8 @@ import type { TimeEntry, AppUser } from '@/types';
 import Card from '@/components/Card';
 import Metric from '@/components/Metric';
 import Badge from '@/components/Badge';
+import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
 import TimeForm from './TimeForm';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
 
@@ -64,12 +66,13 @@ export default function TimeView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Zeiterfassung</h1>
+      <PageHeader title="Zeiterfassung" subtitle="Deine gebuchten Zeiten und dein Saldo" />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Metric label="Einträge" value={entries.length} />
         <Metric
           label="Saldo"
+          tone={saldo?.hasConfig ? (saldo.saldoH >= 0 ? 'success' : 'danger') : 'default'}
           value={saldo?.hasConfig ? `${saldo.saldoH > 0 ? '+' : ''}${saldo.saldoH} h` : '—'}
           hint={saldo?.hasConfig ? 'Über-/Unterstunden' : 'Kein Startdatum konfiguriert'}
         />
@@ -96,30 +99,30 @@ export default function TimeView() {
           <div className="space-y-6">
             {byWeek.map(([week, rows]) => (
               <div key={week}>
-                <h3 className="mb-2 text-sm font-semibold text-gray-500">{week}</h3>
-                <ul className="divide-y divide-gray-100">
+                <h3 className="mb-1 text-sm font-semibold text-ink-muted">{week}</h3>
+                <List>
                   {rows.map((e) => (
-                    <li key={e.id} className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="font-medium text-gray-900">
+                    <ListRow
+                      key={e.id}
+                      title={
+                        <span>
                           {e.date}
                           {e.customerName && ` · ${e.customerName}`}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {e.status === 'Anwesend'
-                            ? `${e.startTime}–${e.endTime}`
-                            : e.status}
+                        </span>
+                      }
+                      subtitle={
+                        <>
+                          {e.status === 'Anwesend' ? `${e.startTime}–${e.endTime}` : e.status}
                           {e.comment && ` · ${e.comment}`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {e.source === 'voice' && <Badge tone="blue">KI</Badge>}
-                        {e.isHelper && <Badge tone="amber">Helfer</Badge>}
-                        <span className="font-mono text-gray-900">{fmtMin(calcWorkMin(e))}</span>
-                      </div>
-                    </li>
+                        </>
+                      }
+                    >
+                      {e.source === 'voice' && <Badge tone="info">KI</Badge>}
+                      {e.isHelper && <Badge tone="warning">Helfer</Badge>}
+                      <span className="font-mono font-medium text-ink">{fmtMin(calcWorkMin(e))}</span>
+                    </ListRow>
                   ))}
-                </ul>
+                </List>
               </div>
             ))}
           </div>

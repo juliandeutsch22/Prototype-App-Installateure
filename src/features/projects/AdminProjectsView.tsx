@@ -6,16 +6,21 @@ import type { WithId } from '@/lib/db/core';
 import type { Project, AppUser } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
-import { InputField, SelectField } from '@/components/Field';
+import IconButton from '@/components/IconButton';
+import StatusBadge from '@/components/StatusBadge';
+import PageHeader from '@/components/PageHeader';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { List, ListRow } from '@/components/ListRow';
+import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { useToast } from '@/components/Toast';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
 
-const STATUS_TONE = { Aktiv: 'green', Pausiert: 'amber', Abgeschlossen: 'gray' } as const;
 const empty = { projectNumber: '', customerName: '', address: '', status: 'Aktiv' as Project['status'] };
 
 /** Baustellen-Verwaltung: CRUD + Mitarbeiterzuordnung (GF/Admin). */
 export default function AdminProjectsView() {
   const { user } = useAuth();
+  const toast = useToast();
   const [projects, setProjects] = useState<WithId<Project>[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +29,7 @@ export default function AdminProjectsView() {
   const [form, setForm] = useState(empty);
   const [assigned, setAssigned] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -63,8 +69,9 @@ export default function AdminProjectsView() {
       if (editId) await updateProject(editId, data);
       else await createProject(user.companyId, data);
       reset();
+      toast.success(editId ? 'Baustelle gespeichert' : 'Baustelle angelegt');
     } catch {
-      setError('Speichern fehlgeschlagen.');
+      setError('Die Baustelle konnte nicht gespeichert werden.');
     } finally {
       setSaving(false);
     }
@@ -74,11 +81,11 @@ export default function AdminProjectsView() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Baustellen</h1>
+      <PageHeader title="Baustellen" subtitle="Projekte anlegen, bearbeiten und Mitarbeiter zuordnen" />
 
       <Card title={editId ? 'Baustelle bearbeiten' : 'Neue Baustelle'}>
         <form onSubmit={submit} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormGrid>
             <InputField id="pnr" label="Projektnummer" value={form.projectNumber}
               onChange={(e) => setForm({ ...form, projectNumber: e.target.value })} required />
             <InputField id="pcust" label="Kunde" value={form.customerName}
@@ -91,18 +98,20 @@ export default function AdminProjectsView() {
               <option>Pausiert</option>
               <option>Abgeschlossen</option>
             </SelectField>
-          </div>
+          </FormGrid>
           <fieldset>
-            <legend className="text-sm font-medium text-gray-700">Zugeordnete Mitarbeiter</legend>
-            <div className="mt-2 flex flex-wrap gap-3">
+            <legend className="text-sm font-medium text-ink">Zugeordnete Mitarbeiter</legend>
+            <div className="mt-1 flex flex-wrap gap-x-5">
               {users.map((u) => (
-                <label key={u.uid} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" className="h-5 w-5" checked={assigned.includes(u.uid)}
-                    onChange={(e) =>
-                      setAssigned((prev) => e.target.checked ? [...prev, u.uid] : prev.filter((x) => x !== u.uid))
-                    } />
-                  {u.name}
-                </label>
+                <CheckboxField
+                  key={u.uid}
+                  id={`proj-emp-${u.uid}`}
+                  label={u.name}
+                  checked={assigned.includes(u.uid)}
+                  onChange={(e) =>
+                    setAssigned((prev) => (e.target.checked ? [...prev, u.uid] : prev.filter((x) => x !== u.uid)))
+                  }
+                />
               ))}
             </div>
           </fieldset>
@@ -116,26 +125,43 @@ export default function AdminProjectsView() {
 
       <Card title="Alle Baustellen">
         {loading ? <LoadingState /> : projects.length === 0 ? (
-          <EmptyState>Noch keine Baustellen.</EmptyState>
+          <EmptyState>Noch keine Baustellen angelegt.</EmptyState>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <List>
             {projects.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 py-3">
-                <div>
-                  <p className="font-medium text-gray-900">{p.customerName} <span className="font-mono text-gray-500">({p.projectNumber})</span></p>
-                  <p className="text-sm text-gray-500">{p.address}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge tone={STATUS_TONE[p.status]}>{p.status}</Badge>
-                  <Button variant="ghost" onClick={() => startEdit(p)}>Bearbeiten</Button>
-                  <button aria-label="Löschen" className="min-h-touch px-2 text-gray-400 hover:text-red-600"
-                    onClick={() => void deleteProject(p.id)}>✕</button>
-                </div>
-              </li>
+              <ListRow
+                key={p.id}
+                title={
+                  <span>
+                    {p.customerName} <span className="font-mono text-ink-muted">({p.projectNumber})</span>
+                  </span>
+                }
+                subtitle={p.address}
+              >
+                <StatusBadge status={p.status} />
+                <Button variant="ghost" onClick={() => startEdit(p)}>Bearbeiten</Button>
+                <IconButton label="Baustelle löschen" tone="danger" onClick={() => setToDelete(p)}>
+                  ✕
+                </IconButton>
+              </ListRow>
             ))}
-          </ul>
+          </List>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title="Baustelle löschen?"
+        message={toDelete ? `${toDelete.customerName} (${toDelete.projectNumber}) wird entfernt.` : ''}
+        onCancel={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (toDelete) {
+            await deleteProject(toDelete.id);
+            toast.success('Baustelle gelöscht');
+          }
+          setToDelete(null);
+        }}
+      />
     </div>
   );
 }

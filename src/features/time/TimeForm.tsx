@@ -3,14 +3,16 @@ import { useAuth } from '@/app/AuthContext';
 import { listActiveProjects } from '@/lib/db/projects';
 import { createTimeEntry } from '@/lib/db/timeEntries';
 import { todayStr } from '@/lib/time';
-import { InputField, SelectField } from '@/components/Field';
+import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import Button from '@/components/Button';
 import { ErrorState } from '@/components/States';
+import { useToast } from '@/components/Toast';
 import type { Project, TimeEntry } from '@/types';
 
 /** Formular zur manuellen Zeiterfassung (portiert aus der Legacy-Zeitform). */
 export default function TimeForm({ onSaved }: { onSaved: () => void }) {
   const { user } = useAuth();
+  const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -54,8 +56,9 @@ export default function TimeForm({ onSaved }: { onSaved: () => void }) {
       });
       onSaved();
       setComment('');
+      toast.success('Zeit gebucht');
     } catch {
-      setError('Speichern fehlgeschlagen. Bitte erneut versuchen.');
+      setError('Die Zeit konnte nicht gebucht werden. Bitte erneut versuchen.');
     } finally {
       setSaving(false);
     }
@@ -63,7 +66,7 @@ export default function TimeForm({ onSaved }: { onSaved: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <FormGrid>
         <InputField
           id="date"
           label="Datum"
@@ -82,10 +85,10 @@ export default function TimeForm({ onSaved }: { onSaved: () => void }) {
           <option value="Krank">Krank</option>
           <option value="Urlaub">Urlaub</option>
         </SelectField>
-      </div>
+      </FormGrid>
 
       {status === 'Anwesend' && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <FormGrid cols={3}>
           <InputField
             id="startTime"
             label="Von"
@@ -108,7 +111,7 @@ export default function TimeForm({ onSaved }: { onSaved: () => void }) {
             value={breakDuration}
             onChange={(e) => setBreakDuration(e.target.value)}
           />
-        </div>
+        </FormGrid>
       )}
 
       <SelectField
@@ -132,20 +135,17 @@ export default function TimeForm({ onSaved }: { onSaved: () => void }) {
         onChange={(e) => setComment(e.target.value)}
       />
 
-      <label className="flex items-center gap-2 text-sm text-gray-700">
-        <input
-          type="checkbox"
-          checked={isHelper}
-          onChange={(e) => setIsHelper(e.target.checked)}
-          className="h-5 w-5"
-        />
-        Als Helfer verrechnet
-      </label>
+      <CheckboxField
+        id="isHelper"
+        label="Als Helfer verrechnet"
+        checked={isHelper}
+        onChange={(e) => setIsHelper(e.target.checked)}
+      />
 
       {error && <ErrorState message={error} />}
 
       <Button type="submit" loading={saving} className="w-full sm:w-auto">
-        Zeit erfassen
+        Zeit buchen
       </Button>
     </form>
   );

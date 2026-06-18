@@ -4,10 +4,12 @@ import { createTimeEntry } from '@/lib/db/timeEntries';
 import { createMaterialOrder } from '@/lib/db/materialOrders';
 import { createFollowUp } from '@/lib/db/followUps';
 import { todayStr } from '@/lib/time';
-import { InputField, SelectField } from '@/components/Field';
+import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
+import IconButton from '@/components/IconButton';
+import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import type { VoiceExtractResponse } from './types';
 
@@ -30,6 +32,7 @@ export default function ConfirmationPanel({
   onDone: () => void;
 }) {
   const { user } = useAuth();
+  const toast = useToast();
   const ext = result.extraction;
 
   // Editierbarer Zustand, vorbefüllt aus der Extraktion.
@@ -107,9 +110,10 @@ export default function ConfirmationPanel({
       }
 
       await Promise.all(writes);
+      toast.success('Gespeichert');
       onDone();
     } catch {
-      setError('Speichern fehlgeschlagen. Bitte erneut versuchen.');
+      setError('Das Speichern hat nicht geklappt. Bitte erneut versuchen.');
     } finally {
       setSaving(false);
     }
@@ -117,16 +121,16 @@ export default function ConfirmationPanel({
 
   return (
     <div className="space-y-4">
-      {/* Gesprochener Text — farblich mit den Karten verknüpft (Spec §9). */}
-      <Card className="border-l-4 border-l-brand">
-        <p className="text-sm text-gray-500">Erkannt</p>
-        <p className="italic text-gray-800">„{result.transcript}"</p>
+      {/* Gesprochener Text — farblich mit den Karten verknüpft (Akzentkante). */}
+      <Card className="border-l-4 border-l-accent">
+        <p className="text-sm font-medium text-accent">Erkannt</p>
+        <p className="mt-1 italic text-ink">„{result.transcript}"</p>
       </Card>
 
       {/* Projekt-Zuordnung */}
       <Card title="Baustelle">
         {result.projectMatches.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="mb-2 text-sm text-ink-muted">
             Kein eindeutiges Projekt zu „{ext.projectSpokenName || '—'}" gefunden — bitte wählen.
           </p>
         ) : null}
@@ -148,16 +152,13 @@ export default function ConfirmationPanel({
       {/* Zeit-Karte */}
       <Card>
         <div className="mb-2 flex items-center justify-between">
-          <label className="flex items-center gap-2 font-semibold text-gray-900">
-            <input
-              type="checkbox"
-              checked={includeTime}
-              onChange={(e) => setIncludeTime(e.target.checked)}
-              className="h-5 w-5"
-            />
-            Zeit
-          </label>
-          {ext.time.needsReview && <Badge tone="amber">bitte prüfen</Badge>}
+          <CheckboxField
+            id="vincludeTime"
+            label={<span className="font-semibold text-ink">Zeit</span>}
+            checked={includeTime}
+            onChange={(e) => setIncludeTime(e.target.checked)}
+          />
+          {ext.time.needsReview && <Badge tone="warning">bitte prüfen</Badge>}
         </div>
         {includeTime && (
           <InputField
@@ -175,7 +176,7 @@ export default function ConfirmationPanel({
       {/* Material-Karten */}
       <Card title="Material">
         {materials.length === 0 ? (
-          <p className="text-sm text-gray-500">Kein Material erkannt.</p>
+          <p className="text-sm text-ink-muted">Kein Material erkannt.</p>
         ) : (
           <ul className="space-y-3">
             {materials.map((m, i) => (
@@ -206,15 +207,14 @@ export default function ConfirmationPanel({
                     )
                   }
                 />
-                {m.needsReview && <Badge tone="amber">prüfen</Badge>}
-                <button
-                  type="button"
-                  aria-label="Entfernen"
-                  className="min-h-touch px-2 text-gray-400 hover:text-red-600"
+                {m.needsReview && <Badge tone="warning">prüfen</Badge>}
+                <IconButton
+                  label="Entfernen"
+                  tone="danger"
                   onClick={() => setMaterials((prev) => prev.filter((_, j) => j !== i))}
                 >
                   ✕
-                </button>
+                </IconButton>
               </li>
             ))}
           </ul>
@@ -223,15 +223,14 @@ export default function ConfirmationPanel({
 
       {/* Folgetermin-Karte */}
       <Card>
-        <label className="mb-2 flex items-center gap-2 font-semibold text-gray-900">
-          <input
-            type="checkbox"
+        <div className="mb-2">
+          <CheckboxField
+            id="vincludeFollowUp"
+            label={<span className="font-semibold text-ink">Folgetermin</span>}
             checked={includeFollowUp}
             onChange={(e) => setIncludeFollowUp(e.target.checked)}
-            className="h-5 w-5"
           />
-          Folgetermin
-        </label>
+        </div>
         {includeFollowUp && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <InputField
@@ -261,7 +260,7 @@ export default function ConfirmationPanel({
         </Button>
       </div>
       {ambiguousProject && (
-        <p className="text-sm text-amber-700">Bitte zuerst die Baustelle eindeutig wählen.</p>
+        <p className="text-sm text-warning">Bitte zuerst die Baustelle eindeutig wählen.</p>
       )}
     </div>
   );

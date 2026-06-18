@@ -2,17 +2,22 @@ import type { Company } from '@/types';
 
 /**
  * Wendet das Mandanten-Branding über CSS-Variablen an (vgl. Spec §7.3).
- * Ersetzt die früher hartkodierten "Perl"-Werte.
+ * Das Design-System liest diese Tokens — nichts ist kundenspezifisch
+ * hartkodiert. brand = Primärfarbe, accent = Aktions-/Hervorhebungsfarbe.
  */
-export function applyBranding(company: Pick<Company, 'brandColor' | 'brandForeground' | 'name'>) {
+export function applyBranding(
+  company: Pick<
+    Company,
+    'brandColor' | 'brandForeground' | 'accentColor' | 'accentForeground' | 'name'
+  >,
+) {
   const root = document.documentElement;
-  if (company.brandColor) {
-    root.style.setProperty('--brand-color', company.brandColor);
-  }
-  if (company.brandForeground) {
-    root.style.setProperty('--brand-fg', company.brandForeground);
-  }
-  if (company.name) {
-    document.title = company.name;
-  }
+  const set = (token: string, value?: string) => {
+    if (value) root.style.setProperty(token, value);
+  };
+  set('--brand', company.brandColor);
+  set('--brand-fg', company.brandForeground);
+  set('--accent', company.accentColor);
+  set('--accent-fg', company.accentForeground);
+  if (company.name) document.title = company.name;
 }

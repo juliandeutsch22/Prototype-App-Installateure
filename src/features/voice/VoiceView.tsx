@@ -3,6 +3,7 @@ import { useVoiceRecorder } from './useVoiceRecorder';
 import { callVoiceExtract } from '@/lib/functions';
 import ConfirmationPanel from './ConfirmationPanel';
 import Card from '@/components/Card';
+import PageHeader from '@/components/PageHeader';
 import { ErrorState } from '@/components/States';
 import type { VoiceExtractResponse } from './types';
 
@@ -60,13 +61,10 @@ export default function VoiceView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">KI-Erfassung</h1>
-        <p className="text-gray-500">
-          Sprich frei, z. B.: „fertig bei Müller, vier Stunden, zwei Flachdichtungen
-          verbaut, Therme nächste Woche nochmal".
-        </p>
-      </div>
+      <PageHeader
+        title="KI-Erfassung"
+        subtitle={'Sprich frei, z. B.: „fertig bei Müller, vier Stunden, zwei Flachdichtungen verbaut, Therme nächste Woche nochmal".'}
+      />
 
       {!result && (
         <Card>
@@ -75,20 +73,20 @@ export default function VoiceView() {
               onClick={state === 'recording' ? handleStop : start}
               disabled={busy}
               aria-label={state === 'recording' ? 'Aufnahme stoppen' : 'Aufnahme starten'}
-              className={`flex h-28 w-28 items-center justify-center rounded-full text-5xl text-white transition disabled:opacity-50 ${
-                state === 'recording' ? 'animate-pulse bg-red-600' : 'bg-brand'
+              className={`flex h-28 w-28 items-center justify-center rounded-full text-5xl text-white shadow-lg transition active:scale-95 disabled:opacity-50 ${
+                state === 'recording' ? 'animate-pulse bg-accent' : 'bg-brand'
               }`}
             >
               {state === 'recording' ? '■' : '🎤'}
             </button>
-            <p className="text-gray-600" role="status">
+            <p className="text-ink-muted" role="status">
               {busy
                 ? 'Wird verarbeitet …'
                 : state === 'recording'
                   ? 'Aufnahme läuft — zum Stoppen tippen'
                   : 'Zum Aufnehmen tippen'}
             </p>
-            <p className="max-w-md text-center text-xs text-gray-400">
+            <p className="max-w-md text-center text-xs text-ink-muted">
               Hinweis: Deine Sprache wird zur Verarbeitung an einen Dienst übertragen und
               nach der Auswertung nicht dauerhaft gespeichert (DSGVO).
             </p>
