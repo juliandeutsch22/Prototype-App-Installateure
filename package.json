@@ -11,6 +11,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "emulators": "firebase emulators:start",
+    "test": "vitest run",
     "rules:test": "vitest run --config vitest.rules.config.ts"
   },
   "dependencies": {

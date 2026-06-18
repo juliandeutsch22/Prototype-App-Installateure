@@ -32,3 +32,6 @@ ui-debug.log
 .vscode/*
 !.vscode/extensions.json
 *.log
+
+# Lokale Emulator-Secrets
+functions/.secret.local
