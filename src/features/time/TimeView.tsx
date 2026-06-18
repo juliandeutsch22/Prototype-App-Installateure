@@ -101,7 +101,16 @@ export default function TimeView() {
               <div key={week}>
                 <h3 className="mb-1 text-sm font-semibold text-ink-muted">{week}</h3>
                 <List>
-                  {rows.map((e) => (
+                  {rows.map((e) => {
+                    // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
+                    const timeLabel =
+                      e.status === 'Anwesend'
+                        ? e.startTime && e.endTime
+                          ? `${e.startTime}–${e.endTime}`
+                          : null
+                        : e.status;
+                    const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
+                    return (
                     <ListRow
                       key={e.id}
                       title={
@@ -110,18 +119,14 @@ export default function TimeView() {
                           {e.customerName && ` · ${e.customerName}`}
                         </span>
                       }
-                      subtitle={
-                        <>
-                          {e.status === 'Anwesend' ? `${e.startTime}–${e.endTime}` : e.status}
-                          {e.comment && ` · ${e.comment}`}
-                        </>
-                      }
+                      subtitle={subtitle || undefined}
                     >
                       {e.source === 'voice' && <Badge tone="info">KI</Badge>}
                       {e.isHelper && <Badge tone="warning">Helfer</Badge>}
                       <span className="font-mono font-medium text-ink">{fmtMin(calcWorkMin(e))}</span>
                     </ListRow>
-                  ))}
+                    );
+                  })}
                 </List>
               </div>
             ))}
