@@ -45,6 +45,18 @@ export function navForRole(role: Role): NavItem[] {
   return NAV.filter((item) => item.roles.includes(role));
 }
 
+/** Reihenfolge der Navigationsgruppen. */
+export const NAV_GROUPS = ['Allgemein', 'Außendienst', 'Verwaltung', 'Buchhaltung'] as const;
+
+/** Sichtbare Navigation, nach Gruppen gebündelt (für übersichtliche Sidebar). */
+export function navGroupsForRole(role: Role): { group: string; items: NavItem[] }[] {
+  const visible = navForRole(role);
+  return NAV_GROUPS.map((group) => ({
+    group,
+    items: visible.filter((i) => i.group === group),
+  })).filter((g) => g.items.length > 0);
+}
+
 export function canAccess(role: Role, path: string): boolean {
   const item = NAV.find((i) => i.path === path);
   return item ? item.roles.includes(role) : false;

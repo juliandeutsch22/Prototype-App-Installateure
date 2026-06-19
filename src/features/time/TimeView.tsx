@@ -69,15 +69,17 @@ export default function TimeView() {
       <PageHeader title="Zeiterfassung" subtitle="Deine gebuchten Zeiten und dein Saldo" />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Metric label="Einträge" value={entries.length} />
+        <Metric label="Einträge" icon="clipboard" value={entries.length} />
         <Metric
           label="Saldo"
+          icon="chart"
           tone={saldo?.hasConfig ? (saldo.saldoH >= 0 ? 'success' : 'danger') : 'default'}
           value={saldo?.hasConfig ? `${saldo.saldoH > 0 ? '+' : ''}${saldo.saldoH} h` : '—'}
           hint={saldo?.hasConfig ? 'Über-/Unterstunden' : 'Kein Startdatum konfiguriert'}
         />
         <Metric
           label="Diese Woche"
+          icon="clock"
           value={fmtMin(
             byWeek[0]?.[1].reduce((sum, e) => sum + calcWorkMin(e), 0) ?? 0,
           )}

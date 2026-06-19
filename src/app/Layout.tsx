@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { navForRole } from './navigation';
+import { navForRole, navGroupsForRole } from './navigation';
 import Button from '@/components/Button';
 import Icon from '@/components/Icon';
 
@@ -17,6 +17,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   if (!user) return <>{children}</>;
 
   const items = navForRole(user.role);
+  const groups = navGroupsForRole(user.role);
   const brand = company?.name ?? 'Installateur-App';
   const primary = items.slice(0, 4);
   const hasMore = items.length > 4;
@@ -40,12 +41,21 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Desktop-Sidebar */}
       <aside className="hidden border-r border-line bg-surface md:flex md:w-64 md:shrink-0 md:flex-col md:p-3">
         <div className="mb-4 px-1">{BrandMark}</div>
-        <nav className="flex flex-col gap-1" aria-label="Hauptnavigation">
-          {items.map((item) => (
-            <NavLink key={item.path} to={item.path} end={item.path === '/'} className={sideLink}>
-              <Icon name={item.icon} size={20} className="shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </NavLink>
+        <nav className="flex flex-col gap-4 overflow-y-auto" aria-label="Hauptnavigation">
+          {groups.map(({ group, items: groupItems }) => (
+            <div key={group} className="flex flex-col gap-0.5">
+              {group !== 'Allgemein' && (
+                <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  {group}
+                </p>
+              )}
+              {groupItems.map((item) => (
+                <NavLink key={item.path} to={item.path} end={item.path === '/'} className={sideLink}>
+                  <Icon name={item.icon} size={20} className="shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="mt-auto border-t border-line pt-4">
@@ -104,18 +114,29 @@ export default function Layout({ children }: { children: ReactNode }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
-            <nav className="grid grid-cols-2 gap-2" aria-label="Weitere Bereiche">
-              {items.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  end={item.path === '/'}
-                  onClick={() => setMoreOpen(false)}
-                  className={sideLink}
-                >
-                  <Icon name={item.icon} size={20} className="shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                </NavLink>
+            <nav className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto" aria-label="Weitere Bereiche">
+              {groups.map(({ group, items: groupItems }) => (
+                <div key={group}>
+                  {group !== 'Allgemein' && (
+                    <p className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      {group}
+                    </p>
+                  )}
+                  <div className="flex flex-col gap-0.5">
+                    {groupItems.map((item) => (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end={item.path === '/'}
+                        onClick={() => setMoreOpen(false)}
+                        className={sideLink}
+                      >
+                        <Icon name={item.icon} size={20} className="shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
               ))}
             </nav>
             <Button variant="secondary" className="mt-3 w-full" onClick={() => void signOut()}>

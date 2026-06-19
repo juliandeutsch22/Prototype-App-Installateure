@@ -15,6 +15,7 @@ import Card from '@/components/Card';
 import Metric from '@/components/Metric';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import Icon from '@/components/Icon';
 
 interface DashData {
   saldoH?: number;
@@ -107,28 +108,48 @@ export default function DashboardView() {
         </div>
       )}
 
+      {/* KI-Erfassung als prominente Primäraktion */}
+      <Link
+        to="/voice"
+        className="flex items-center gap-4 rounded-lg bg-brand p-4 text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.99]"
+      >
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15">
+          <Icon name="mic" size={26} />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-semibold">Spracherfassung starten</span>
+          <span className="block text-sm text-brand-fg/80">
+            15 Sekunden sprechen → Zeit, Material, Folgetermin als bestätigbare Karten
+          </span>
+        </span>
+      </Link>
+
       {/* Kennzahlen */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {data.hasSaldoConfig && (
-          <Metric
-            label="Überstunden-Saldo"
-            tone={(data.saldoH ?? 0) >= 0 ? 'success' : 'danger'}
-            value={`${(data.saldoH ?? 0) > 0 ? '+' : ''}${data.saldoH} h`}
-          />
-        )}
-        {data.ownOpenOrders !== undefined && (
-          <Metric label="Offene Bestellungen" value={data.ownOpenOrders} hint="von dir" />
-        )}
-        {data.companyOpenOrders !== undefined && (
-          <Metric label="Offene Bestellungen" value={data.companyOpenOrders} />
-        )}
-        {data.activeProjects !== undefined && (
-          <Metric label="Aktive Baustellen" value={data.activeProjects} />
-        )}
-        {data.openInvoices !== undefined && canInvoice(user.role) && (
-          <Metric label="Offene Rechnungen" value={data.openInvoices} />
-        )}
-      </div>
+      <section>
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-muted">Überblick</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {data.hasSaldoConfig && (
+            <Metric
+              label="Überstunden-Saldo"
+              icon="clock"
+              tone={(data.saldoH ?? 0) >= 0 ? 'success' : 'danger'}
+              value={`${(data.saldoH ?? 0) > 0 ? '+' : ''}${data.saldoH} h`}
+            />
+          )}
+          {data.ownOpenOrders !== undefined && (
+            <Metric label="Offene Bestellungen" icon="package" value={data.ownOpenOrders} hint="von dir" />
+          )}
+          {data.companyOpenOrders !== undefined && (
+            <Metric label="Offene Bestellungen" icon="package" value={data.companyOpenOrders} />
+          )}
+          {data.activeProjects !== undefined && (
+            <Metric label="Aktive Baustellen" icon="building" value={data.activeProjects} />
+          )}
+          {data.openInvoices !== undefined && canInvoice(user.role) && (
+            <Metric label="Offene Rechnungen" icon="receipt" value={data.openInvoices} />
+          )}
+        </div>
+      </section>
 
       {/* Heutiger Einsatz (Außendienst) */}
       {user.role === 'Mitarbeiter' && (
@@ -155,25 +176,13 @@ export default function DashboardView() {
             <Link
               key={item.path}
               to={item.path}
-              className="flex min-h-touch items-center justify-center rounded border border-line bg-surface-2 p-4 text-center font-medium text-ink transition hover:border-brand active:scale-[0.98]"
+              className="flex min-h-touch items-center gap-3 rounded border border-line bg-surface-2 px-4 py-3 font-medium text-ink transition hover:border-brand hover:bg-surface active:scale-[0.98]"
             >
-              {item.label}
+              <Icon name={item.icon} size={20} className="shrink-0 text-ink-muted" />
+              <span className="truncate">{item.label}</span>
             </Link>
           ))}
         </div>
-      </Card>
-
-      <Card title="KI-Erfassung">
-        <p className="mb-3 text-ink-muted">
-          Sprich 15 Sekunden — Zeit, Material und Folgetermin werden automatisch als
-          bestätigbare Karten vorbereitet. Nichts wird ohne deine Bestätigung gespeichert.
-        </p>
-        <Link
-          to="/voice"
-          className="inline-flex min-h-touch items-center rounded bg-brand px-4 py-2 font-semibold text-brand-fg transition hover:opacity-90 active:scale-[0.98]"
-        >
-          🎤 Spracherfassung starten
-        </Link>
       </Card>
     </div>
   );
