@@ -176,3 +176,144 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
   const saldoH = Math.round((initial + (istMin - sollMin) / 60) * 100) / 100;
   return { saldoH, hasConfig: true };
 }
+
+export interface MonthStats {
+  weeklyTarget: number;
+  yearlyVacation: number;
+  dailyTargetH: number;
+  workdaysInMonth: number;
+  holidaysInMonth: number;
+  requiredDays: number;
+  istMin: number;
+  sollMin: number;
+  saldoMin: number;
+  krankDays: number;
+  urlaubDays: number;
+  yearlyUrlaubDays: number;
+  urlaubRest: number;
+}
+
+/**
+ * Monatsauswertung eines Mitarbeiters (Legacy:3061-3111).
+ *
+ * ACHTUNG — bewusste Abweichung vom Gesamtsaldo (calcOverallSaldo):
+ * 1) Das Tagessoll ist hier `weeklyTarget / 5`, NICHT `/ workDays.length`.
+ * 2) Krank/Urlaub REDUZIEREN hier das Soll, statt zum Ist zu zählen.
+ * Beide Regeln stammen 1:1 aus dem Legacy und bestimmen die Zahlen, die
+ * Buchhaltung und Lohnverrechnung gewohnt sind — deshalb nicht "vereinheitlicht".
+ *
+ * @param monthEntries Einträge des Nutzers im gewählten Monat
+ * @param yearEntries  Einträge des Nutzers im gewählten Jahr (für den Resturlaub)
+ * @param month        0-basiert (0 = Jänner)
+ */
+export function calcMonthStats(
+  user: Pick<AppUser, 'weeklyTargetHours' | 'yearlyVacationDays' | 'workDays'>,
+  monthEntries: TimeEntry[],
+  yearEntries: TimeEntry[],
+  year: number,
+  month: number,
+): MonthStats {
+  const weeklyTarget = Number(user.weeklyTargetHours ?? 40) || 40;
+  const yearlyVacation = Number(user.yearlyVacationDays ?? 25) || 25;
+  const dailyTargetH = weeklyTarget / 5;
+
+  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  let workdaysInMonth = 0;
+  let holidaysInMonth = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    if (workDays.includes(dateObj.getDay())) {
+      if (isAustrianHoliday(dateObj)) holidaysInMonth++;
+      else workdaysInMonth++;
+    }
+  }
+
+  const krankDays = monthEntries.filter((e) => e.status === 'Krank').length;
+  const urlaubDays = monthEntries.filter((e) => e.status === 'Urlaub').length;
+  const istMin = monthEntries.reduce((s, e) => s + calcWorkMin(e), 0);
+
+  const requiredDays = Math.max(0, workdaysInMonth - krankDays - urlaubDays);
+  const sollMin = Math.round(requiredDays * dailyTargetH * 60);
+
+  const yearlyUrlaubDays = yearEntries.filter((e) => e.status === 'Urlaub').length;
+
+  return {
+    weeklyTarget,
+    yearlyVacation,
+    dailyTargetH,
+    workdaysInMonth,
+    holidaysInMonth,
+    requiredDays,
+    istMin,
+    sollMin,
+    saldoMin: istMin - sollMin,
+    krankDays,
+    urlaubDays,
+    yearlyUrlaubDays,
+    urlaubRest: yearlyVacation - yearlyUrlaubDays,
+  };
+}
+
+export type CompletenessStatus = 'complete' | 'today_only' | 'missing';
+
+export interface CompletenessResult {
+  status: CompletenessStatus;
+  missingCount: number;
+  missingDates: string[];
+}
+
+/**
+ * Vollständigkeitskontrolle je Mitarbeiter (Legacy:3139-3197). Da es keinen
+ * Freigabe-Workflow gibt, ist das die faktische Kontrollinstanz der
+ * Geschäftsführung: welcher Arbeitstag wurde nicht gebucht?
+ *
+ * Geprüft wird von Monatsanfang (bzw. appStartDate, falls später) bis GESTERN
+ * — heute zählt nicht als Versäumnis. Feiertage brauchen keinen Eintrag.
+ */
+export function calcCompleteness(
+  user: Pick<AppUser, 'workDays' | 'appStartDate'>,
+  monthEntries: TimeEntry[],
+  year: number,
+  month: number,
+): CompletenessResult {
+  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+
+  let checkStart = new Date(year, month, 1);
+  if (user.appStartDate) {
+    const sd = new Date(`${user.appStartDate}T00:00:00`);
+    if (sd > checkStart) checkStart = sd;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  const monthEnd = new Date(year, month + 1, 0);
+  const checkEnd = yesterday < monthEnd ? yesterday : monthEnd;
+
+  const bookedDates = new Set(monthEntries.map((e) => e.date));
+
+  const missingDates: string[] = [];
+  for (const cursor = new Date(checkStart); cursor <= checkEnd; cursor.setDate(cursor.getDate() + 1)) {
+    const ds = localDateStr(cursor);
+    if (workDays.includes(cursor.getDay()) && !isAustrianHoliday(cursor) && !bookedDates.has(ds)) {
+      missingDates.push(ds);
+    }
+  }
+
+  if (missingDates.length > 0) {
+    return { status: 'missing', missingCount: missingDates.length, missingDates };
+  }
+
+  // Alles Vergangene gedeckt — steht heute noch aus?
+  const todayOpen =
+    workDays.includes(today.getDay()) &&
+    !bookedDates.has(localDateStr(today)) &&
+    !isAustrianHoliday(today) &&
+    today.getFullYear() === year &&
+    today.getMonth() === month;
+
+  return { status: todayOpen ? 'today_only' : 'complete', missingCount: 0, missingDates: [] };
+}

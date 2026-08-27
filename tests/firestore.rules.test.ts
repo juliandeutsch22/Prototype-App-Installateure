@@ -167,4 +167,35 @@ describe('Schreibregeln', () => {
     const db = ctxA_employee().firestore();
     await assertFails(getDoc(doc(db, 'invoices', 'iA')));
   });
+
+  // Die Claims-Function übernimmt `role` ungeprüft ins Auth-Token. Ein
+  // Tippfehler würde den Nutzer dauerhaft aussperren, weil danach keine
+  // Rollenregel mehr greift — deshalb serverseitige Whitelist.
+  it('Administrator darf KEINEN Benutzer mit unbekannter Rolle anlegen', async () => {
+    const db = ctxA_admin().firestore();
+    await assertFails(
+      setDoc(doc(db, 'users', 'newUser'), {
+        companyId: 'companyA',
+        uid: 'newUser',
+        name: 'Tippfehler',
+        email: 'x@a.at',
+        role: 'Geschaeftsfuehrung', // ohne Umlaut = ungültig
+        active: true,
+      }),
+    );
+  });
+
+  it('Administrator darf einen Benutzer mit gültiger Rolle anlegen', async () => {
+    const db = ctxA_admin().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'users', 'newUser2'), {
+        companyId: 'companyA',
+        uid: 'newUser2',
+        name: 'Korrekt',
+        email: 'y@a.at',
+        role: 'Geschäftsführung',
+        active: true,
+      }),
+    );
+  });
 });

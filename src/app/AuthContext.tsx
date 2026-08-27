@@ -35,11 +35,28 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
  * `get` ist — eine Query `where('uid','==',...)` ohne companyId-Filter würde
  * von firestore.rules abgelehnt (Mandanten-Constraint nicht erfüllbar).
  */
+/** Deaktivierte Konten sollen sich nicht mehr anmelden können. */
+export class InactiveUserError extends Error {
+  constructor() {
+    super('Dieses Konto ist deaktiviert.');
+    this.name = 'InactiveUserError';
+  }
+}
+
 async function loadProfile(uid: string, email: string): Promise<CurrentUser | null> {
   const snap = await getDoc(doc(db, 'users', uid));
   if (!snap.exists()) return null;
-  const data = snap.data() as { name?: string; role?: Role; companyId?: string; email?: string };
+  const data = snap.data() as {
+    name?: string;
+    role?: Role;
+    companyId?: string;
+    email?: string;
+    active?: boolean;
+  };
   if (!data.companyId || !data.role) return null;
+  // Deaktivieren ist im Legacy der Ersatz fürs Löschen (Daten bleiben erhalten).
+  // Ohne diese Prüfung könnte sich ein ausgeschiedener Mitarbeiter weiter anmelden.
+  if (data.active === false) throw new InactiveUserError();
   return {
     uid,
     email: data.email ?? email,
@@ -91,7 +108,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (comp) applyBranding(comp);
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Profil konnte nicht geladen werden.');
+        if (e instanceof InactiveUserError) {
+          setError('Dieses Konto ist deaktiviert. Bitte an die Verwaltung wenden.');
+          await fbSignOut(auth);
+          setUser(null);
+          setCompany(null);
+        } else {
+          setError(e instanceof Error ? e.message : 'Profil konnte nicht geladen werden.');
+        }
       } finally {
         setLoading(false);
       }

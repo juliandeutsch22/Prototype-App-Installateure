@@ -8,8 +8,22 @@ import { listAssignmentsForUser } from '@/lib/db/assignments';
 import { listAllOrders } from '@/lib/db/materialOrders';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listInvoices } from '@/lib/db/invoices';
-import { calcOverallSaldo, lastWorkday, todayStr } from '@/lib/time';
-import { shouldShowOvertime, canProcessOrders, isGF, canInvoice } from '@/lib/permissions';
+import {
+  calcOverallSaldo,
+  lastWorkday,
+  todayStr,
+  isWeekend,
+  isAustrianHoliday,
+} from '@/lib/time';
+import {
+  shouldShowOvertime,
+  canProcessOrders,
+  isGF,
+  canInvoice,
+  canEditTime,
+} from '@/lib/permissions';
+import { listUsers } from '@/lib/db/users';
+import { listAllEntries } from '@/lib/db/timeEntries';
 import type { AppUser, Assignment, MaterialOrder, TimeEntry } from '@/types';
 import Card from '@/components/Card';
 import Metric from '@/components/Metric';
@@ -26,6 +40,8 @@ interface DashData {
   companyOpenOrders?: number;
   activeProjects?: number;
   openInvoices?: number;
+  /** Salden aller aktiven Mitarbeiter (nur Buchhaltung/GF/Admin). */
+  team?: { uid: string; name: string; saldoH: number; hasConfig: boolean }[];
 }
 
 /** Rollen-spezifisches Zuhause mit echten Kennzahlen (portiert aus Legacy-Dashboard). */
@@ -55,9 +71,13 @@ export default function DashboardView() {
         }
         const today = todayStr();
         out.todayAssignment = assignments.find((a) => a.date === today);
-        // Fehlende-Zeit-Warnung: kein Eintrag am letzten Werktag
-        const lwd = lastWorkday(new Date());
-        out.missingTime = !entries.some((e) => e.date === lwd);
+        // Fehlende-Zeit-Warnung: kein Eintrag am letzten Werktag. Am Wochenende
+        // und an Feiertagen unterdrückt — sonst mahnt die App am Sonntag
+        // (Legacy:5776-5780).
+        const now = new Date();
+        const todayIsOff = isWeekend(now) || isAustrianHoliday(now);
+        const lwd = lastWorkday(now);
+        out.missingTime = !todayIsOff && !entries.some((e) => e.date === lwd);
       }
 
       if (mgmt) {
@@ -79,6 +99,25 @@ export default function DashboardView() {
         out.ownOpenOrders = orders.filter(
           (o) => o.userId === user.uid && o.status !== 'Erledigt' && o.transactionType !== 'return',
         ).length;
+      }
+
+      // Team-Salden auf einen Blick (Legacy:5388-5465) — der schnellste
+      // Zugriff der Geschäftsführung auf den Stand aller Mitarbeiter.
+      if (canEditTime(user.role)) {
+        const [allUsers, allEntries] = await Promise.all([
+          listUsers(user.companyId),
+          listAllEntries(user.companyId),
+        ]);
+        out.team = allUsers
+          .filter((u) => shouldShowOvertime(u.role) && u.active !== false)
+          .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+          .map((u) => {
+            const { saldoH, hasConfig } = calcOverallSaldo(
+              u,
+              allEntries.filter((e) => e.userId === u.uid),
+            );
+            return { uid: u.uid, name: u.name, saldoH, hasConfig };
+          });
       }
 
       if (!cancelled) setData(out);
@@ -167,6 +206,34 @@ export default function DashboardView() {
           ) : (
             <p className="text-ink-muted">Heute kein Einsatz geplant.</p>
           )}
+        </Card>
+      )}
+
+      {/* Team-Salden (Buchhaltung/GF/Admin) */}
+      {data.team && data.team.length > 0 && (
+        <Card
+          title="Team-Salden"
+          action={
+            <Link to="/accounting" className="text-sm font-semibold text-brand underline">
+              Zur Monatsauswertung
+            </Link>
+          }
+        >
+          <ul className="divide-y divide-line">
+            {data.team.map((t) => (
+              <li key={t.uid} className="flex min-h-touch items-center justify-between gap-3 py-2">
+                <span className="truncate text-ink">{t.name}</span>
+                {t.hasConfig ? (
+                  <Badge tone={t.saldoH >= 0 ? 'success' : 'danger'}>
+                    {t.saldoH > 0 ? '+' : ''}
+                    {t.saldoH} h
+                  </Badge>
+                ) : (
+                  <Badge tone="gray">kein Startdatum</Badge>
+                )}
+              </li>
+            ))}
+          </ul>
         </Card>
       )}
 

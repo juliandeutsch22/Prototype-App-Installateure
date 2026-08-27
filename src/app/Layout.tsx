@@ -23,10 +23,16 @@ export default function Layout({ children }: { children: ReactNode }) {
   const hasMore = items.length > 4;
   const moreActive = items.slice(4).some((i) => i.path === location.pathname);
 
+  // Akzentbalken statt Logo-Platzhalter: greift die Markenfarbe des Mandanten
+  // auf (bei Perl das Rot des Logos), ohne die Bedienflächen einzufärben.
   const BrandMark = (
-    <div className="flex items-center gap-2">
-      {company?.logoUrl && <img src={company.logoUrl} alt="" className="h-8 w-8 rounded" />}
-      <span className="text-lg font-bold text-ink">{brand}</span>
+    <div className="flex items-center gap-2.5">
+      {company?.logoUrl ? (
+        <img src={company.logoUrl} alt="" className="h-8 w-8 shrink-0 rounded" />
+      ) : (
+        <span aria-hidden className="h-7 w-1.5 shrink-0 rounded-sm bg-accent" />
+      )}
+      <span className="text-lg font-bold leading-tight text-ink">{brand}</span>
     </div>
   );
 

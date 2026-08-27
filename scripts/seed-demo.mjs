@@ -33,7 +33,8 @@ async function makeUser({ email, password, name, role, companyId }) {
     email,
     role,
     active: true,
-    weeklyTargetHours: 38.5,
+    weeklyTargetHours: 40,
+    yearlyVacationDays: 25,
     work_days: [1, 2, 3, 4, 5],
     initial_overtime: 2,
     app_start_date: '2026-01-01',
@@ -88,6 +89,12 @@ async function main() {
   await makeUser({
     email: 'chefin@perl.at', password: 'demo1234', name: 'Petra Perl',
     role: 'Geschäftsführung', companyId: 'perl',
+  });
+  // Buchhaltung: muss die eigene Zeit buchen können (Krankenstand/Urlaub)
+  // und sieht zusätzlich die Monatsauswertung aller Mitarbeiter.
+  await makeUser({
+    email: 'buchhaltung@perl.at', password: 'demo1234', name: 'Bernd Buch',
+    role: 'Buchhaltung', companyId: 'perl',
   });
 
   // Beispiel-Zeiteinträge für Max (eine Woche)

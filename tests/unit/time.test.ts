@@ -6,6 +6,8 @@ import {
   isWeekend,
   getEasterDate,
   calcOverallSaldo,
+  calcMonthStats,
+  calcCompleteness,
   localDateStr,
 } from '@/lib/time';
 import type { AppUser, TimeEntry } from '@/types';
@@ -75,5 +77,83 @@ describe('calcOverallSaldo', () => {
   it('für GF/Admin (kein Soll/Ist): saldoH 0, hasConfig=false', () => {
     const r = calcOverallSaldo({ ...base, role: 'Geschäftsführung', appStartDate: '2026-01-01' }, []);
     expect(r).toEqual({ saldoH: 0, hasConfig: false });
+  });
+});
+
+// Juni 2025 als fester Referenzmonat (liegt sicher in der Vergangenheit):
+// 21 Werktage Mo-Fr, davon 2 Feiertage — Pfingstmontag (9.6.) und
+// Fronleichnam (19.6.) — bleiben 19 Solltage.
+const JUNE = { year: 2025, month: 5 };
+
+const staff = (over: Partial<AppUser> = {}): AppUser =>
+  ({
+    id: 'u1', companyId: 'c', uid: 'u1', name: 'Test', email: 't@x.at',
+    role: 'Mitarbeiter', active: true, weeklyTargetHours: 40,
+    yearlyVacationDays: 25, workDays: [1, 2, 3, 4, 5], appStartDate: '2025-01-01',
+    initialOvertime: 0, ...over,
+  }) as AppUser;
+
+describe('calcMonthStats', () => {
+  it('zieht Feiertage vom Monatssoll ab', () => {
+    const s = calcMonthStats(staff(), [], [], JUNE.year, JUNE.month);
+    expect(s.workdaysInMonth).toBe(19);
+    expect(s.holidaysInMonth).toBe(2);
+    expect(s.dailyTargetH).toBe(8); // 40 / 5 — hart 5, nicht workDays.length
+    expect(s.sollMin).toBe(19 * 8 * 60);
+  });
+
+  it('lässt Krank/Urlaub das Soll REDUZIEREN (abweichend vom Gesamtsaldo)', () => {
+    const month = [
+      entry({ date: '2025-06-02', status: 'Krank' }),
+      entry({ date: '2025-06-03', status: 'Urlaub' }),
+    ];
+    const s = calcMonthStats(staff(), month, month, JUNE.year, JUNE.month);
+    expect(s.krankDays).toBe(1);
+    expect(s.urlaubDays).toBe(1);
+    expect(s.requiredDays).toBe(17); // 19 − 1 − 1
+    expect(s.istMin).toBe(0); // Abwesenheit zählt hier NICHT zum Ist
+    expect(s.saldoMin).toBe(-17 * 8 * 60);
+  });
+
+  it('rechnet den Resturlaub über das ganze Jahr', () => {
+    const year = [
+      entry({ date: '2025-03-10', status: 'Urlaub' }),
+      entry({ date: '2025-06-03', status: 'Urlaub' }),
+    ];
+    const s = calcMonthStats(staff(), [year[1]], year, JUNE.year, JUNE.month);
+    expect(s.yearlyUrlaubDays).toBe(2);
+    expect(s.urlaubRest).toBe(23); // 25 − 2
+  });
+
+  it('berücksichtigt abweichende Arbeitstage beim Zählen, nicht beim Tagessoll', () => {
+    // 4-Tage-Woche: weniger Solltage, Tagessoll bleibt weeklyTarget/5.
+    const s = calcMonthStats(staff({ workDays: [1, 2, 3, 4] }), [], [], JUNE.year, JUNE.month);
+    expect(s.dailyTargetH).toBe(8);
+    expect(s.workdaysInMonth).toBeLessThan(19);
+  });
+});
+
+describe('calcCompleteness', () => {
+  it('meldet jeden ungebuchten Arbeitstag eines vergangenen Monats', () => {
+    const r = calcCompleteness(staff(), [], JUNE.year, JUNE.month);
+    expect(r.status).toBe('missing');
+    expect(r.missingCount).toBe(19); // Feiertage brauchen keinen Eintrag
+    expect(r.missingDates).not.toContain('2025-06-09'); // Pfingstmontag
+    expect(r.missingDates).toContain('2025-06-02');
+  });
+
+  it('ist vollständig, wenn jeder Arbeitstag gebucht ist', () => {
+    const all = calcCompleteness(staff(), [], JUNE.year, JUNE.month).missingDates
+      .map((d) => entry({ date: d }));
+    const r = calcCompleteness(staff(), all, JUNE.year, JUNE.month);
+    expect(r.status).toBe('complete');
+    expect(r.missingCount).toBe(0);
+  });
+
+  it('startet frühestens am appStartDate', () => {
+    // Eintritt zur Monatsmitte -> die Tage davor dürfen nicht als Versäumnis zählen.
+    const r = calcCompleteness(staff({ appStartDate: '2025-06-16' }), [], JUNE.year, JUNE.month);
+    expect(r.missingDates).not.toContain('2025-06-02');
+    expect(r.missingDates).toContain('2025-06-16');
   });
 });
