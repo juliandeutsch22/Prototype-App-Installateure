@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { subscribeProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
@@ -8,6 +8,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
+import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
@@ -15,7 +16,36 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import { useToast } from '@/components/Toast';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
 
-const empty = { projectNumber: '', customerName: '', address: '', status: 'Aktiv' as Project['status'] };
+const empty = {
+  projectNumber: '',
+  customerName: '',
+  address: '',
+  status: 'Aktiv' as Project['status'],
+  /** Kalkuliertes Stundenbudget — Grundlage der Ampel in der Projektauswertung. */
+  estimatedHours: '',
+  description: '',
+  startDate: '',
+  endDate: '',
+  contactName: '',
+  contactPhone: '',
+};
+
+type FormState = typeof empty;
+
+function formFromProject(p: WithId<Project>): FormState {
+  return {
+    projectNumber: p.projectNumber,
+    customerName: p.customerName,
+    address: p.address ?? '',
+    status: p.status,
+    estimatedHours: p.estimatedHours != null ? String(p.estimatedHours) : '',
+    description: p.description ?? '',
+    startDate: p.startDate ?? '',
+    endDate: p.endDate ?? '',
+    contactName: p.contactName ?? '',
+    contactPhone: p.contactPhone ?? '',
+  };
+}
 
 /** Baustellen-Verwaltung: CRUD + Mitarbeiterzuordnung (GF/Admin). */
 export default function AdminProjectsView() {
@@ -30,6 +60,7 @@ export default function AdminProjectsView() {
   const [assigned, setAssigned] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
+  const [filter, setFilter] = useState<'offen' | 'alle' | 'archiv'>('offen');
 
   useEffect(() => {
     if (!user) return;
@@ -50,8 +81,9 @@ export default function AdminProjectsView() {
 
   function startEdit(p: WithId<Project>) {
     setEditId(p.id);
-    setForm({ projectNumber: p.projectNumber, customerName: p.customerName, address: p.address ?? '', status: p.status });
+    setForm(formFromProject(p));
     setAssigned(p.assignedEmployees ?? []);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function reset() {
     setEditId(null);
@@ -65,7 +97,13 @@ export default function AdminProjectsView() {
     setSaving(true);
     setError(null);
     try {
-      const data = { ...form, assignedEmployees: assigned };
+      const data = {
+        ...form,
+        // Leeres Feld heißt "kein Budget" — dann bleibt die Ampel der
+        // Projektauswertung bewusst aus, statt 0 h anzunehmen.
+        estimatedHours: form.estimatedHours === '' ? undefined : Number(form.estimatedHours) || 0,
+        assignedEmployees: assigned,
+      };
       if (editId) await updateProject(editId, data);
       else await createProject(user.companyId, data);
       reset();
@@ -76,6 +114,21 @@ export default function AdminProjectsView() {
       setSaving(false);
     }
   }
+
+  // Neueste zuerst; ohne Sortierung ist die Reihenfolge von Firestore beliebig.
+  const sorted = useMemo(
+    () => [...projects].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
+    [projects],
+  );
+  const archivCount = useMemo(
+    () => projects.filter((p) => p.status === 'Abgeschlossen').length,
+    [projects],
+  );
+  const visible = useMemo(() => {
+    if (filter === 'alle') return sorted;
+    if (filter === 'archiv') return sorted.filter((p) => p.status === 'Abgeschlossen');
+    return sorted.filter((p) => p.status !== 'Abgeschlossen');
+  }, [sorted, filter]);
 
   if (!user) return null;
 
@@ -98,7 +151,21 @@ export default function AdminProjectsView() {
               <option>Pausiert</option>
               <option>Abgeschlossen</option>
             </SelectField>
+            <InputField id="phours" label="Stundenbudget (kalkuliert)" type="number" min="0" step="0.5"
+              placeholder="z. B. 40" value={form.estimatedHours}
+              onChange={(e) => setForm({ ...form, estimatedHours: e.target.value })} />
+            <InputField id="pstart" label="Beginn" type="date" value={form.startDate}
+              onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+            <InputField id="pend" label="Ende (geplant)" type="date" value={form.endDate}
+              onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+            {/* Der Monteur braucht vor Ort vor allem eine Telefonnummer. */}
+            <InputField id="pcontact" label="Ansprechpartner" value={form.contactName}
+              onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
+            <InputField id="pphone" label="Telefon Ansprechpartner" type="tel" value={form.contactPhone}
+              onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
           </FormGrid>
+          <InputField id="pdesc" label="Beschreibung / Auftragsumfang" value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <fieldset>
             <legend className="text-sm font-medium text-ink">Zugeordnete Mitarbeiter</legend>
             <div className="mt-1 flex flex-wrap gap-x-5">
@@ -123,28 +190,55 @@ export default function AdminProjectsView() {
         </form>
       </Card>
 
-      <Card title="Alle Baustellen">
-        {loading ? <LoadingState /> : projects.length === 0 ? (
-          <EmptyState>Noch keine Baustellen angelegt.</EmptyState>
+      <Card
+        title="Alle Baustellen"
+        action={
+          <SelectField id="pfilter" label="" className="py-1 text-sm" value={filter}
+            onChange={(e) => setFilter(e.target.value as typeof filter)}>
+            <option value="offen">Aktiv &amp; pausiert</option>
+            <option value="alle">Alle</option>
+            <option value="archiv">Archiv ({archivCount})</option>
+          </SelectField>
+        }
+      >
+        {loading ? <LoadingState /> : visible.length === 0 ? (
+          <EmptyState>
+            {projects.length === 0 ? 'Noch keine Baustellen angelegt.' : 'Keine Baustelle in dieser Auswahl.'}
+          </EmptyState>
         ) : (
           <List>
-            {projects.map((p) => (
-              <ListRow
-                key={p.id}
-                title={
-                  <span>
-                    {p.customerName} <span className="font-mono text-ink-muted">({p.projectNumber})</span>
-                  </span>
-                }
-                subtitle={p.address}
-              >
-                <StatusBadge status={p.status} />
-                <Button variant="ghost" onClick={() => startEdit(p)}>Bearbeiten</Button>
-                <IconButton label="Baustelle löschen" tone="danger" onClick={() => setToDelete(p)}>
-                  ✕
-                </IconButton>
-              </ListRow>
-            ))}
+            {visible.map((p) => {
+              const team = (p.assignedEmployees ?? [])
+                .map((uid) => users.find((u) => u.uid === uid)?.name)
+                .filter(Boolean);
+              return (
+                <ListRow
+                  key={p.id}
+                  title={
+                    <span>
+                      {p.customerName} <span className="font-mono text-ink-muted">({p.projectNumber})</span>
+                    </span>
+                  }
+                  subtitle={
+                    <>
+                      {p.address}
+                      {team.length > 0 && (
+                        <span className="mt-0.5 block text-xs text-ink-muted">
+                          Team: {team.join(', ')}
+                        </span>
+                      )}
+                    </>
+                  }
+                >
+                  {p.estimatedHours ? <Badge tone="gray">{p.estimatedHours} h Budget</Badge> : null}
+                  <StatusBadge status={p.status} />
+                  <Button variant="ghost" onClick={() => startEdit(p)}>Bearbeiten</Button>
+                  <IconButton label="Baustelle löschen" tone="danger" onClick={() => setToDelete(p)}>
+                    ✕
+                  </IconButton>
+                </ListRow>
+              );
+            })}
           </List>
         )}
       </Card>

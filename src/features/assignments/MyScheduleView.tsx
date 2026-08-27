@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listAssignmentsForUser } from '@/lib/db/assignments';
 import type { Assignment } from '@/types';
+import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -23,7 +24,9 @@ export default function MyScheduleView() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+  // Lokaler Monat, NICHT über toISOString: das rechnet in UTC und liefert am
+  // Monatsersten vor 02:00 Uhr (Sommerzeit) noch den Vormonat.
+  const month = todayStr().slice(0, 7); // YYYY-MM
   const thisMonth = useMemo(
     () => rows.filter((a) => a.date.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date)),
     [rows, month],

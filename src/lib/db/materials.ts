@@ -22,7 +22,13 @@ export function subscribeMaterials(
   return subscribeTenant<Material>(COLLECTION, companyId, cb, onError);
 }
 
-export type NewMaterial = Pick<Material, 'name' | 'category' | 'stock'>;
+export type NewMaterial = Pick<
+  Material,
+  'name' | 'category' | 'stock' | 'articleNumber' | 'unit' | 'purchasePrice'
+>;
+
+/** Ab diesem Bestand gilt Material als knapp (Legacy markiert das rot). */
+export const LOW_STOCK_THRESHOLD = 5;
 
 export function createMaterial(companyId: string, m: NewMaterial) {
   return addDoc(collection(db, COLLECTION), { ...m, companyId, createdAt: serverTimestamp() });

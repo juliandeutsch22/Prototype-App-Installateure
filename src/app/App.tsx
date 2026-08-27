@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { RequireAuth, RequireRole } from './guards';
+import ErrorBoundary from './ErrorBoundary';
 import Layout from './Layout';
 import LoginPage from '@/features/auth/LoginPage';
 import DashboardView from '@/features/dashboard/DashboardView';
@@ -31,7 +32,11 @@ export default function App() {
           element={
             <RequireAuth>
               <Layout>
-                <AppRoutes />
+                {/* Fehlergrenze INNERHALB des Layouts: schlägt eine Ansicht
+                    fehl, bleibt die Navigation bedienbar. */}
+                <ErrorBoundary>
+                  <AppRoutes />
+                </ErrorBoundary>
               </Layout>
             </RequireAuth>
           }

@@ -10,6 +10,10 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut as fbSignOut,
+  sendPasswordResetEmail,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -21,8 +25,10 @@ interface AuthState {
   company: Company | null;
   loading: boolean;
   error: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  /** `remember: false` meldet beim Schließen des Browsers ab (Gemeinschaftsgerät). */
+  signIn: (email: string, password: string, remember?: boolean) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -123,8 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, remember = true) => {
     setError(null);
+    // Auf einem geteilten Baustellen-Tablet soll die Sitzung mit dem Browser
+    // enden — deshalb ist die Dauer wählbar und nicht fest.
+    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, password);
   }, []);
 
@@ -132,8 +141,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fbSignOut(auth);
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, company, loading, error, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ user, company, loading, error, signIn, signOut, resetPassword }}
+    >
       {children}
     </AuthContext.Provider>
   );
