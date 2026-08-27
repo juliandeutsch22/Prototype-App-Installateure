@@ -18,8 +18,23 @@ import Card from '@/components/Card';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
+import Icon from '@/components/Icon';
+import ExportDialog from './ExportDialog';
 import { SelectField } from '@/components/Field';
+import { useToast } from '@/components/Toast';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import {
+  buildMonthCsv,
+  monthCsvFilename,
+  buildUserCsv,
+  userCsvFilename,
+  buildUserProjectCsv,
+  userProjectCsvFilename,
+  generateHoursPdf,
+  hoursPdfFilename,
+  downloadCsv,
+  entriesInRange,
+} from './export';
 
 const MONTHS = [
   'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -49,12 +64,15 @@ function daysOfMonth(year: number, month: number): string[] {
  * Ampel die eigentliche Kontrollinstanz der Geschäftsführung.
  */
 export default function AccountingView() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
+  const toast = useToast();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  /** Offener Zeitraum-Export für einen Mitarbeiter. */
+  const [exportFor, setExportFor] = useState<AppUser | null>(null);
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -105,6 +123,46 @@ export default function AccountingView() {
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
+  function exportMonthCsv() {
+    downloadCsv(buildMonthCsv(rows, year, month), monthCsvFilename(year, month));
+    toast.success('Monats-CSV heruntergeladen');
+  }
+
+  function exportUserCsv(u: AppUser) {
+    const r = rows.find((x) => x.user.uid === u.uid);
+    if (!r || r.monthEntries.length === 0) {
+      toast.error('Keine Einträge für diesen Monat.');
+      return;
+    }
+    downloadCsv(
+      buildUserCsv(u, r.monthEntries, r.stats, year, month),
+      userCsvFilename(u, year, month),
+    );
+    toast.success(`CSV für ${u.name} heruntergeladen`);
+  }
+
+  function exportPdf(u: AppUser, from: string, to: string) {
+    const range = entriesInRange(entries, u.uid, from, to);
+    if (range.length === 0) throw new Error('Keine Einträge im gewählten Zeitraum.');
+    const doc = generateHoursPdf({
+      company: company ?? ({ id: '', name: 'Firma' } as NonNullable<typeof company>),
+      user: u,
+      entries: range,
+      from,
+      to,
+    });
+    doc.save(hoursPdfFilename(u, from, to));
+    toast.success('Stundennachweis erstellt');
+  }
+
+  function exportProjectCsv(u: AppUser, from: string, to: string) {
+    const range = entriesInRange(entries, u.uid, from, to);
+    const withProject = range.filter((e) => e.status === 'Anwesend' && e.projectNumber);
+    if (withProject.length === 0) throw new Error('Keine Projekteinträge im gewählten Zeitraum.');
+    downloadCsv(buildUserProjectCsv(u, range, from, to), userProjectCsvFilename(u, from, to));
+    toast.success('Projektauswertung heruntergeladen');
+  }
+
   if (!user) return null;
 
   return (
@@ -127,7 +185,17 @@ export default function AccountingView() {
         </div>
       </Card>
 
-      <Card title={`${MONTHS[month]} ${year}`}>
+      <Card
+        title={`${MONTHS[month]} ${year}`}
+        action={
+          rows.length > 0 && (
+            <Button variant="secondary" onClick={exportMonthCsv}>
+              <Icon name="download" size={16} className="mr-1.5 shrink-0" />
+              Monats-CSV
+            </Button>
+          )
+        }
+      >
         {loading ? (
           <LoadingState />
         ) : error ? (
@@ -139,15 +207,24 @@ export default function AccountingView() {
             {rows.map(({ user: u, monthEntries, stats, completeness }) => {
               const open = expanded === u.uid;
               return (
-                <div key={u.uid} className="rounded border border-line">
+                <div
+                  key={u.uid}
+                  className="overflow-hidden rounded-lg border border-line shadow-sm transition-shadow hover:shadow-lg"
+                >
+                  {/* Aufgeklappt färbt sich der Kopf Perl-Blau — im Prototyp
+                      das Signal, welcher Mitarbeiter gerade geöffnet ist. */}
                   <button
                     type="button"
                     onClick={() => setExpanded(open ? null : u.uid)}
                     aria-expanded={open}
-                    className="flex min-h-touch w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-left"
+                    className={`flex min-h-touch w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-left transition-colors ${
+                      open ? 'bg-brand text-brand-fg' : 'bg-surface-2 hover:bg-line/40'
+                    }`}
                   >
                     <span className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-ink">{u.name}</span>
+                      <span className={`font-bold ${open ? 'text-brand-fg' : 'text-ink'}`}>
+                        {u.name}
+                      </span>
                       <Badge tone={STATUS_TONE[completeness.status]}>
                         {completeness.status === 'missing'
                           ? `${completeness.missingCount} Tage fehlen`
@@ -160,22 +237,38 @@ export default function AccountingView() {
                       </Badge>
                     </span>
                     <span className="flex items-center gap-3">
-                      <span className="font-mono text-sm text-ink-muted">
+                      <span
+                        className={`font-mono text-sm ${open ? 'text-brand-fg/80' : 'text-ink-muted'}`}
+                      >
                         {fmtMin(stats.istMin)} / {fmtMin(stats.sollMin)}
                       </span>
                       <Badge tone={stats.saldoMin >= 0 ? 'success' : 'danger'}>
                         {stats.saldoMin > 0 ? '+' : ''}
                         {fmtMin(stats.saldoMin)}
                       </Badge>
+                      <Icon
+                        name="chevron"
+                        size={18}
+                        className={`shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                      />
                     </span>
                   </button>
 
                   {open && (
                     <div className="border-t border-line px-4 py-3">
                       {completeness.missingCount > 0 && (
-                        <p className="mb-3 rounded border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
-                          Nicht gebucht: {completeness.missingDates.join(', ')}
-                        </p>
+                        <details className="mb-3 rounded-sm border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
+                          <summary className="cursor-pointer font-semibold">
+                            {completeness.missingCount === 1
+                              ? '1 Arbeitstag ohne Buchung'
+                              : `${completeness.missingCount} Arbeitstage ohne Buchung`}
+                          </summary>
+                          <p className="mt-1.5 leading-relaxed">
+                            {completeness.missingDates
+                              .map((d) => `${d.slice(8)}.${d.slice(5, 7)}.`)
+                              .join(' · ')}
+                          </p>
+                        </details>
                       )}
                       <div className="overflow-x-auto">
                         <table className="w-full min-w-[34rem] text-sm">
@@ -193,8 +286,15 @@ export default function AccountingView() {
                               const entry = monthEntries.find((e) => e.date === d);
                               const holiday = getAustrianHolidayName(new Date(`${d}T00:00:00`));
                               if (!entry && !holiday) return null;
+                              // Zeilenfarben wie im Prototyp: Feiertag blau,
+                              // Abwesenheit gelb — der Monat ist so überfliegbar.
+                              const rowTone = !entry
+                                ? 'bg-info-bg/60'
+                                : entry.status === 'Krank' || entry.status === 'Urlaub'
+                                  ? 'bg-warning-bg/50'
+                                  : '';
                               return (
-                                <tr key={d} className="border-b border-line/60">
+                                <tr key={d} className={`border-b border-line/60 ${rowTone}`}>
                                   <td className="py-1 pr-3 font-mono">{d.slice(8)}.{d.slice(5, 7)}.</td>
                                   <td className="py-1 pr-3">
                                     {entry ? entry.status : <span className="text-ink-muted">{holiday}</span>}
@@ -215,8 +315,11 @@ export default function AccountingView() {
                           <tfoot>
                             <tr className="font-medium">
                               <td className="pt-2" colSpan={4}>
-                                {monthEntries.length} Einträge · {stats.requiredDays} Solltage
-                                {stats.holidaysInMonth > 0 && ` · ${stats.holidaysInMonth} Feiertage`}
+                                {monthEntries.length === 1 ? '1 Eintrag' : `${monthEntries.length} Einträge`}
+                                {' · '}
+                                {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
+                                {stats.holidaysInMonth > 0 &&
+                                  ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
                               </td>
                               <td className="pt-2 text-right font-mono">{fmtMin(stats.istMin)}</td>
                             </tr>
@@ -224,16 +327,21 @@ export default function AccountingView() {
                         </table>
                       </div>
                       <p className="mt-2 text-sm text-ink-muted">
-                        Tagessoll {stats.dailyTargetH.toFixed(2)} h · Wochenstunden{' '}
-                        {stats.weeklyTarget} h
+                        Tagessoll {stats.dailyTargetH.toFixed(2).replace('.', ',')} h ·
+                        Wochenstunden {String(stats.weeklyTarget).replace('.', ',')} h
                       </p>
-                      <Button
-                        variant="ghost"
-                        className="mt-2"
-                        onClick={() => setExpanded(null)}
-                      >
-                        Einklappen
-                      </Button>
+                      <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                        <Button variant="secondary" onClick={() => exportUserCsv(u)}>
+                          <Icon name="download" size={16} className="mr-1.5 shrink-0" />
+                          Monat als CSV
+                        </Button>
+                        <Button variant="accent" onClick={() => setExportFor(u)}>
+                          Bericht für Zeitraum …
+                        </Button>
+                        <Button variant="ghost" onClick={() => setExpanded(null)}>
+                          Einklappen
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -242,6 +350,17 @@ export default function AccountingView() {
           </div>
         )}
       </Card>
+
+      {exportFor && (
+        <ExportDialog
+          user={exportFor}
+          year={year}
+          month={month}
+          onClose={() => setExportFor(null)}
+          onExportPdf={(from, to) => exportPdf(exportFor, from, to)}
+          onExportProjectCsv={(from, to) => exportProjectCsv(exportFor, from, to)}
+        />
+      )}
     </div>
   );
 }

@@ -37,13 +37,19 @@
   --info: #1d4ed8;
   --info-bg: #dbeafe;
 
-  /* Radius & Schatten */
-  --radius-sm: 0.375rem;
-  --radius: 0.625rem;
+  /* Radius & Schatten — Prototyp arbeitet mit deutlich weicheren Ecken
+   * (Karten 12–14px, Pillen 20px) und flachen Schatten, die erst beim
+   * Überfahren aufmachen. */
+  --radius-sm: 0.5rem;
+  --radius: 0.75rem;
   --radius-lg: 1rem;
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow: 0 1px 3px rgba(15, 23, 42, 0.1), 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-lg: 0 10px 25px rgba(15, 23, 42, 0.12);
+  --radius-pill: 20px;
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.1);
+
+  /* Akzentstreifen an Karten (Signatur des Prototyps) */
+  --accent-strip: 4px;
 }
 
 html,
@@ -61,11 +67,40 @@ body {
   font-family: Poppins, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Überschriften: enger gesetzt und fast schwarz — wie im Prototyp, wo sie
+ * damit deutlich fester wirken als der Fließtext. */
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.02em;
+  color: #0d1117;
+}
+
 /* Sichtbarer Tastatur-Fokus (Barrierearmut, Büro/Desktop) */
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+}
+
+/* Formularfelder bekommen den weichen blauen Fokusring des Prototyps
+ * zusätzlich zur Randfarbe. */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.15);
+}
+
+/* Abschnittsüberschrift im Kartenkopf: klein, fett, gesperrt, versal. */
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 /* Bewegung reduzieren, wenn vom System gewünscht */
@@ -78,4 +113,17 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Nur für Screenreader sichtbar. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

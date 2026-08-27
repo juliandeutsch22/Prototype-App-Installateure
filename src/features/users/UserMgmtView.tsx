@@ -12,7 +12,7 @@ import { todayStr } from '@/lib/time';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import Badge, { RoleBadge } from '@/components/Badge';
 import Metric from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -30,14 +30,6 @@ const WEEKDAYS: { value: number; label: string }[] = [
   { value: 6, label: 'Sa' },
   { value: 0, label: 'So' },
 ];
-
-const ROLE_TONE: Record<Role, 'info' | 'success' | 'warning' | 'gray'> = {
-  Mitarbeiter: 'info',
-  Verwaltung: 'success',
-  Buchhaltung: 'warning',
-  Geschäftsführung: 'gray',
-  Administrator: 'gray',
-};
 
 function emptyForm() {
   return {
@@ -308,7 +300,7 @@ export default function UserMgmtView() {
                 title={
                   <span className="flex flex-wrap items-center gap-2">
                     {u.name}
-                    <Badge tone={ROLE_TONE[u.role]}>{u.role}</Badge>
+                    <RoleBadge role={u.role} />
                     {u.active === false && <Badge tone="gray">inaktiv</Badge>}
                   </span>
                 }

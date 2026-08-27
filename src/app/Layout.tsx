@@ -4,10 +4,19 @@ import { useAuth } from './AuthContext';
 import { navForRole, navGroupsForRole } from './navigation';
 import Button from '@/components/Button';
 import Icon from '@/components/Icon';
+import Avatar from '@/components/Avatar';
 
+/**
+ * Aktiver Eintrag = roter Kantenmarker + blauer, fetter Text auf hellblauem
+ * Grund. Der Prototyp markiert bewusst über die Kante statt über eine volle
+ * Farbfläche (dort die rote Unterkante der Tabs) — das hält die Navigation
+ * ruhig und lässt Rot als Marker wirken statt als Fläche.
+ */
 const sideLink = ({ isActive }: { isActive: boolean }) =>
-  `flex min-h-touch min-w-0 items-center gap-3 rounded px-3 py-2 text-base font-medium transition ${
-    isActive ? 'bg-brand text-brand-fg' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
+  `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
+    isActive
+      ? 'border-l-accent bg-info-bg font-bold text-brand'
+      : 'border-l-transparent font-medium text-ink-muted hover:bg-surface-2 hover:text-ink'
   }`;
 
 /** App-Shell: Desktop-Sidebar; mobil Top-Bar + Icon-Tab-Bar (4 + „Mehr"-Drawer). */
@@ -39,9 +48,14 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-full flex-col md:flex-row">
       {/* Mobile Top-Bar */}
-      <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 md:hidden">
+      <header className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 md:hidden">
         {BrandMark}
-        <span className="text-sm text-ink-muted">{user.role}</span>
+        {/* Nur der Avatar: die Rolle steht bereits in der Seitenüberschrift und
+            würde hier den Firmennamen abschneiden. */}
+        <Avatar name={user.name} size={32} />
+        <span className="sr-only">
+          Angemeldet als {user.name}, {user.role}
+        </span>
       </header>
 
       {/* Desktop-Sidebar */}
@@ -65,8 +79,13 @@ export default function Layout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-auto border-t border-line pt-4">
-          <p className="px-3 text-sm font-medium text-ink">{user.name}</p>
-          <p className="px-3 text-xs text-ink-muted">{user.email}</p>
+          <div className="flex items-center gap-2.5 px-3">
+            <Avatar name={user.name} />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
+              <p className="truncate text-xs text-ink-muted">{user.role}</p>
+            </div>
+          </div>
           <Button variant="ghost" className="mt-2 w-full justify-start" onClick={() => void signOut()}>
             Abmelden
           </Button>
@@ -78,9 +97,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
 
-      {/* Mobile Tab-Bar (Icons + Kurzlabel) */}
+      {/* Mobile Tab-Bar — rote Oberkante als Markenband, aktives Icon in
+          hellblauer Pille (beides aus dem Prototyp). */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 flex border-t-2 border-t-accent bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
         aria-label="Hauptnavigation"
       >
         {primary.map((item) => (
@@ -89,24 +109,40 @@ export default function Layout({ children }: { children: ReactNode }) {
             to={item.path}
             end={item.path === '/'}
             className={({ isActive }) =>
-              `flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.7rem] font-medium ${
+              `flex min-h-touch flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[0.65rem] font-bold ${
                 isActive ? 'text-brand' : 'text-ink-muted'
               }`
             }
           >
-            <Icon name={item.icon} size={22} />
-            <span className="max-w-full truncate px-0.5">{item.short}</span>
+            {({ isActive }) => (
+              <>
+                <span
+                  className={`flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
+                    isActive ? 'bg-info-bg' : ''
+                  }`}
+                >
+                  <Icon name={item.icon} size={20} />
+                </span>
+                <span className="max-w-full truncate px-0.5">{item.short}</span>
+              </>
+            )}
           </NavLink>
         ))}
         {hasMore && (
           <button
             onClick={() => setMoreOpen(true)}
             aria-label="Weitere Bereiche"
-            className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.7rem] font-medium ${
+            className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[0.65rem] font-bold ${
               moreActive ? 'text-brand' : 'text-ink-muted'
             }`}
           >
-            <Icon name="more" size={22} />
+            <span
+              className={`flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
+                moreActive ? 'bg-info-bg' : ''
+              }`}
+            >
+              <Icon name="more" size={20} />
+            </span>
             <span>Mehr</span>
           </button>
         )}

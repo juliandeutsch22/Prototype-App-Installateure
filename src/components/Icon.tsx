@@ -11,7 +11,9 @@ export type IconName =
   | 'users'
   | 'receipt'
   | 'chart'
-  | 'more';
+  | 'more'
+  | 'chevron'
+  | 'download';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 const paths: Record<IconName, string> = {
@@ -29,6 +31,8 @@ const paths: Record<IconName, string> = {
   receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 8h6M9 12h6',
   chart: 'M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
+  chevron: 'm6 9 6 6 6-6',
+  download: 'M12 3v12m0 0 4-4m-4 4-4-4M4 19h16',
 };
 
 export default function Icon({
