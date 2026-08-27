@@ -29,8 +29,19 @@ export interface AssembledInvoice {
   entries: TimeEntry[]; // für optionalen Leistungsnachweis
 }
 
-function norm(n?: string) {
-  return (n ?? '').trim().toLowerCase();
+/**
+ * Vergleichsschlüssel für Projektnummern.
+ *
+ * Historisch stehen Nummern mal als `2024-001`, mal als `PR-2024-001` in den
+ * Daten. Ohne Angleichung des Präfixes finden ein Zeiteintrag und sein Projekt
+ * nicht zusammen — die Stunden fielen dann stillschweigend aus der Rechnung
+ * und der Umsatz wäre verloren, ohne dass es jemandem auffällt.
+ */
+export function norm(n?: string) {
+  return (n ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^pr-/, '');
 }
 
 /**
@@ -70,7 +81,9 @@ export function assembleInvoice(
   let matNetto = 0;
   for (const o of eligibleOrders) {
     const price = materials.find((m) => m.id === o.materialId)?.purchasePrice ?? 0;
-    matNetto += price * (1 + rates.materialMarkup) * (o.quantity || 0);
+    // Fehlende Menge als 1 werten, nicht als 0 — sonst fällt die Position
+    // kommentarlos aus der Rechnung.
+    matNetto += price * (1 + rates.materialMarkup) * (o.quantity || 1);
   }
 
   const positions: InvoicePosition[] = [];
@@ -79,7 +92,15 @@ export function assembleInvoice(
   if (helperH > 0)
     positions.push({ label: 'Helferstunden', qty: helperH, unit: 'h', unitPrice: rates.helper, netto: helperH * rates.helper });
   if (matNetto > 0)
-    positions.push({ label: 'Material (pauschal)', qty: 1, unit: 'pauschal', unitPrice: matNetto, netto: matNetto });
+    positions.push({
+      // Positionszahl und Aufschlag benennen — sonst ist für den Kunden nicht
+      // nachvollziehbar, was in der Materialpauschale steckt.
+      label: `Material (${eligibleOrders.length} Pos., inkl. ${Math.round(rates.materialMarkup * 100)} % Aufschlag)`,
+      qty: 1,
+      unit: 'pauschal',
+      unitPrice: matNetto,
+      netto: matNetto,
+    });
 
   const totalNetto = Math.round(positions.reduce((s, p) => s + p.netto, 0) * 100) / 100;
   const totalVat = Math.round(totalNetto * rates.vatRate * 100) / 100;

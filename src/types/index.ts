@@ -190,6 +190,17 @@ export interface Invoice {
   totalNetto: number;
   totalVat: number;
   totalBrutto: number;
+  /**
+   * Positionen zum Zeitpunkt der Rechnungslegung. Eine Rechnung ist ein
+   * Dokument, kein Blick auf die aktuellen Daten: würde man sie später aus
+   * den Zeiteinträgen neu berechnen, änderte sich eine bereits verschickte
+   * Rechnung, sobald jemand einen Eintrag korrigiert.
+   */
+  positions?: { label: string; qty: number; unit: string; unitPrice: number; netto: number }[];
+  /** Angewandter USt-Satz (0.2 = 20 %). */
+  vatRate?: number;
+  /** Anschrift der Baustelle zum Zeitpunkt der Rechnungslegung. */
+  address?: string;
   paymentStatus: 'Offen' | 'Überfällig' | 'Bezahlt' | 'Storniert';
   linkedEntries?: string[];
   linkedOrders?: string[];

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listActiveProjects } from '@/lib/db/projects';
 import { createTimeEntry, updateTimeEntry, DuplicateEntryError } from '@/lib/db/timeEntries';
@@ -31,6 +32,13 @@ interface Props {
 export default function TimeForm({ onSaved, entry, onCancel, existingDates, ownerRole }: Props) {
   const { user } = useAuth();
   const toast = useToast();
+  // Vorbelegung aus dem Einsatzplan ("Zeit erfassen" am geplanten Einsatz).
+  // Wichtig vor allem für asHelper: ein vergessener Haken führt zum falschen
+  // Stundensatz auf der Rechnung.
+  const prefill = (useLocation().state ?? null) as {
+    projectNumber?: string;
+    asHelper?: boolean;
+  } | null;
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -42,9 +50,9 @@ export default function TimeForm({ onSaved, entry, onCancel, existingDates, owne
   const [endTime, setEndTime] = useState(entry?.endTime || '16:00');
   const [breakDuration, setBreakDuration] = useState(String(entry?.breakDuration ?? 30));
   const [travelTime, setTravelTime] = useState(String(entry?.travelTime ?? 0));
-  const [projectNumber, setProjectNumber] = useState(entry?.projectNumber ?? '');
+  const [projectNumber, setProjectNumber] = useState(entry?.projectNumber ?? prefill?.projectNumber ?? '');
   const [comment, setComment] = useState(entry?.comment ?? '');
-  const [isHelper, setIsHelper] = useState(entry?.isHelper ?? false);
+  const [isHelper, setIsHelper] = useState(entry?.isHelper ?? prefill?.asHelper ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
   const [vehiclePlate, setVehiclePlate] = useState(entry?.vehiclePlate ?? '');
 

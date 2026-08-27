@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import Button from './Button';
 
 /**
@@ -12,6 +12,7 @@ export default function ConfirmDialog({
   confirmLabel = 'Löschen',
   onConfirm,
   onCancel,
+  children,
 }: {
   open: boolean;
   title: string;
@@ -19,6 +20,8 @@ export default function ConfirmDialog({
   confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Zusätzliche Eingaben, z. B. ein Grund für die Aktion. */
+  children?: ReactNode;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -42,6 +45,7 @@ export default function ConfirmDialog({
       >
         <h2 className="text-lg font-semibold text-ink">{title}</h2>
         {message && <p className="mt-2 text-sm text-ink-muted">{message}</p>}
+        {children && <div className="mt-4">{children}</div>}
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={onCancel} autoFocus>
             Abbrechen
