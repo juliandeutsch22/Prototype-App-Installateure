@@ -168,12 +168,20 @@ export default function TimeView() {
                           <span className="font-mono font-medium text-ink">
                             {fmtMin(calcWorkMin(e))}
                           </span>
-                          <Button variant="ghost" onClick={() => setEditing(e)}>
-                            Bearbeiten
-                          </Button>
-                          <Button variant="ghost" onClick={() => setToDelete(e)}>
-                            Löschen
-                          </Button>
+                          {/* Verrechnete Einträge sind Grundlage einer
+                              verschickten Rechnung und bleiben gesperrt. */}
+                          {e.isBilled ? (
+                            <Badge tone="gray">verrechnet</Badge>
+                          ) : (
+                            <>
+                              <Button variant="ghost" onClick={() => setEditing(e)}>
+                                Bearbeiten
+                              </Button>
+                              <Button variant="ghost" onClick={() => setToDelete(e)}>
+                                Löschen
+                              </Button>
+                            </>
+                          )}
                         </ListRow>
                       );
                     })}

@@ -8,6 +8,9 @@ import {
   calcOverallSaldo,
   calcMonthStats,
   calcCompleteness,
+  groupProjectHours,
+  calcBudgetState,
+  normProjectNumber,
   localDateStr,
 } from '@/lib/time';
 import type { AppUser, TimeEntry } from '@/types';
@@ -155,5 +158,56 @@ describe('calcCompleteness', () => {
     const r = calcCompleteness(staff({ appStartDate: '2025-06-16' }), [], JUNE.year, JUNE.month);
     expect(r.missingDates).not.toContain('2025-06-02');
     expect(r.missingDates).toContain('2025-06-16');
+  });
+});
+
+describe('Projektstunden und Budget', () => {
+  const pe = (over: Partial<TimeEntry> = {}): TimeEntry =>
+    entry({ projectNumber: '2025-001', startTime: '08:00', endTime: '16:00', breakDuration: 0, ...over });
+
+  it('führt Nummern mit und ohne PR-Präfix zusammen', () => {
+    expect(normProjectNumber('PR-2025-001')).toBe('2025-001');
+    const g = groupProjectHours([pe(), pe({ id: 'e2', projectNumber: 'PR-2025-001' })]);
+    expect(g).toHaveLength(1);
+    expect(g[0].fachMin).toBe(960); // 2 × 8 h
+  });
+
+  it('trennt Fach- von Helferzeit', () => {
+    const g = groupProjectHours([pe(), pe({ id: 'e2', isHelper: true })]);
+    expect(g[0].fachMin).toBe(480);
+    expect(g[0].helperMin).toBe(480);
+  });
+
+  it('lässt Abwesenheit und Einträge ohne Baustelle aus', () => {
+    expect(groupProjectHours([pe({ status: 'Urlaub' })])).toHaveLength(0);
+    expect(groupProjectHours([pe({ projectNumber: '' })])).toHaveLength(0);
+  });
+
+  it('ohne Budget gibt es keine Ampel statt einer falschen', () => {
+    const b = calcBudgetState(480, undefined);
+    expect(b.pct).toBeNull();
+    expect(b.tone).toBe('neutral');
+  });
+
+  it('ampelt grün, gelb ab 80 % und rot erst ÜBER dem Budget', () => {
+    expect(calcBudgetState(10 * 60, 20).tone).toBe('success'); // 50 %
+    expect(calcBudgetState(16 * 60, 20).tone).toBe('warning'); // 80 %
+    // Genau ausgeschöpft ist noch keine Überschreitung.
+    expect(calcBudgetState(20 * 60, 20).over).toBe(false);
+    expect(calcBudgetState(20 * 60, 20).tone).toBe('warning');
+    expect(calcBudgetState(21 * 60, 20).over).toBe(true);
+    expect(calcBudgetState(21 * 60, 20).tone).toBe('danger');
+  });
+
+  it('deckelt die Anzeige bei 100 %, meldet die Überschreitung aber', () => {
+    const b = calcBudgetState(40 * 60, 20); // 200 %
+    expect(b.pct).toBe(100);
+    expect(b.over).toBe(true);
+  });
+
+  it('rechnet Helferzeit NICHT gegen das Budget', () => {
+    // Helferstunden werden verrechnet, sind für die Kalkulation aber neutral.
+    const g = groupProjectHours([pe({ isHelper: true })]);
+    expect(calcBudgetState(g[0].fachMin, 8).pct).toBe(0);
   });
 });

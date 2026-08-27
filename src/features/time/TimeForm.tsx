@@ -10,7 +10,7 @@ import Button from '@/components/Button';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import type { WithId } from '@/lib/db/core';
-import type { Project, TimeEntry, Role } from '@/types';
+import type { AppUser, Project, TimeEntry, Role } from '@/types';
 
 interface Props {
   onSaved: () => void;
@@ -26,10 +26,22 @@ interface Props {
    * Projektzuordnung, sobald die Buchhaltung ihn korrigiert.
    */
   ownerRole?: Role;
+  /**
+   * Auswählbare Mitarbeiter. Gesetzt = Buchhaltung/GF erfasst FÜR jemanden;
+   * dann bestimmt die Auswahl, wem der Eintrag gehört.
+   */
+  staff?: AppUser[];
 }
 
 /** Formular zur manuellen Zeiterfassung (portiert aus der Legacy-Zeitform). */
-export default function TimeForm({ onSaved, entry, onCancel, existingDates, ownerRole }: Props) {
+export default function TimeForm({
+  onSaved,
+  entry,
+  onCancel,
+  existingDates,
+  ownerRole,
+  staff,
+}: Props) {
   const { user } = useAuth();
   const toast = useToast();
   // Vorbelegung aus dem Einsatzplan ("Zeit erfassen" am geplanten Einsatz).
@@ -55,10 +67,15 @@ export default function TimeForm({ onSaved, entry, onCancel, existingDates, owne
   const [isHelper, setIsHelper] = useState(entry?.isHelper ?? prefill?.asHelper ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
   const [vehiclePlate, setVehiclePlate] = useState(entry?.vehiclePlate ?? '');
+  /** Für wen wird gebucht (nur wenn `staff` gesetzt ist). */
+  const [targetUid, setTargetUid] = useState(entry?.userId ?? '');
 
   // Projekt-, Fahrzeug- und Helferfelder sind Außendienst-Sache. Verwaltung,
   // Buchhaltung und GF buchen nur Zeit (Legacy:2168-2172).
-  const effectiveRole = ownerRole ?? user?.role;
+  const target = staff?.find((u) => u.uid === targetUid);
+  // Beim Erfassen für jemand anderen zählt DESSEN Rolle für die
+  // Projektfelder — sonst bekäme ein Monteur-Eintrag keine Baustelle.
+  const effectiveRole = ownerRole ?? target?.role ?? user?.role;
   const canHaveProject = effectiveRole ? isMitarbeiter(effectiveRole) : false;
   const showWorkFields = status === 'Anwesend';
 
@@ -85,6 +102,15 @@ export default function TimeForm({ onSaved, entry, onCancel, existingDates, owne
       setError(
         `Für den ${date} existiert bereits ein Eintrag. Bitte den bestehenden Eintrag unter „Meine Einträge" bearbeiten.`,
       );
+      return;
+    }
+
+    if (entry?.isBilled) {
+      setError('Verrechnete Einträge können nicht geändert werden.');
+      return;
+    }
+    if (staff && !isEdit && !targetUid) {
+      setError('Bitte einen Mitarbeiter auswählen.');
       return;
     }
 
@@ -116,13 +142,19 @@ export default function TimeForm({ onSaved, entry, onCancel, existingDates, owne
         await updateTimeEntry(entry.id, { ...payload, ...audit });
         toast.success('Eintrag aktualisiert');
       } else {
+        // Beim Erfassen für jemand anderen gehört der Eintrag DEM Mitarbeiter,
+        // nicht dem Erfassenden — sonst stünde er im falschen Zeitkonto.
+        const owner = target ?? { uid: user.uid, name: user.name };
         await createTimeEntry(user.companyId, {
           ...payload,
-          userId: user.uid,
-          userName: user.name,
+          userId: owner.uid,
+          userName: owner.name,
           source: 'manual',
+          ...(target
+            ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
+            : {}),
         });
-        toast.success('Zeit gebucht');
+        toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht');
         setComment('');
       }
       onSaved();
@@ -139,8 +171,34 @@ export default function TimeForm({ onSaved, entry, onCancel, existingDates, owne
     }
   }
 
+  const billed = !!entry?.isBilled;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Bereits verrechnete Einträge sind die Grundlage einer verschickten
+          Rechnung — eine Änderung würde den Beleg nachträglich verfälschen. */}
+      {billed && (
+        <p className="rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning" role="alert">
+          Dieser Eintrag ist mit Rechnung {entry?.invoiceNumber || '—'} verrechnet und kann nicht
+          mehr geändert werden. Dafür muss zuerst die Rechnung storniert werden.
+        </p>
+      )}
+
+      {staff && !isEdit && (
+        <SelectField
+          id="targetUser"
+          label="Mitarbeiter"
+          value={targetUid}
+          onChange={(e) => setTargetUid(e.target.value)}
+          required
+        >
+          <option value="">— wählen —</option>
+          {staff.map((u) => (
+            <option key={u.uid} value={u.uid}>{u.name}</option>
+          ))}
+        </SelectField>
+      )}
+
       <FormGrid>
         <InputField
           id="date"
@@ -278,7 +336,7 @@ export default function TimeForm({ onSaved, entry, onCancel, existingDates, owne
       {error && <ErrorState message={error} />}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" loading={saving} disabled={alreadyBooked} className="w-full sm:w-auto">
+        <Button type="submit" loading={saving} disabled={alreadyBooked || billed} className="w-full sm:w-auto">
           {isEdit ? 'Änderungen speichern' : 'Zeit buchen'}
         </Button>
         {onCancel && (

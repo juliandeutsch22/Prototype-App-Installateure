@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listUsers } from '@/lib/db/users';
-import { subscribeAllEntries } from '@/lib/db/timeEntries';
+import { listAllProjects } from '@/lib/db/projects';
+import { subscribeAllEntries, deleteTimeEntry } from '@/lib/db/timeEntries';
 import {
   calcMonthStats,
   calcCompleteness,
@@ -12,7 +13,7 @@ import {
   type CompletenessStatus,
 } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { AppUser, TimeEntry } from '@/types';
+import type { AppUser, Project, TimeEntry } from '@/types';
 import { shouldShowOvertime } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
@@ -20,6 +21,9 @@ import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import Icon from '@/components/Icon';
 import ExportDialog from './ExportDialog';
+import ProjectSummary from './ProjectSummary';
+import TimeForm from '@/features/time/TimeForm';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { SelectField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
@@ -67,12 +71,17 @@ export default function AccountingView() {
   const { user, company } = useAuth();
   const toast = useToast();
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   /** Offener Zeitraum-Export für einen Mitarbeiter. */
   const [exportFor, setExportFor] = useState<AppUser | null>(null);
+  /** Erfassen fuer einen Mitarbeiter bzw. Korrigieren eines Eintrags. */
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
+  const [toDelete, setToDelete] = useState<WithId<TimeEntry> | null>(null);
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -81,6 +90,7 @@ export default function AccountingView() {
   useEffect(() => {
     if (!user) return;
     listUsers(user.companyId).then(setUsers).catch((e) => setError(e.message));
+    listAllProjects(user.companyId).then(setProjects).catch(() => undefined);
     const unsub = subscribeAllEntries(
       user.companyId,
       (rows) => {
@@ -185,15 +195,61 @@ export default function AccountingView() {
         </div>
       </Card>
 
+      {/* Zeiten für andere erfassen und korrigieren — z. B. wenn ein Monteur
+          krank ist oder sich vertippt hat. Die Rules erlauben das für
+          Buchhaltung/GF/Administrator. */}
+      {(creating || editing) && (
+        <Card
+          accent="accent"
+          title={
+            editing
+              ? `Eintrag von ${editing.userName ?? 'Mitarbeiter'} korrigieren`
+              : 'Zeit für einen Mitarbeiter erfassen'
+          }
+        >
+          {/* Ohne existingDates: der Zielmitarbeiter steht erst nach der
+              Auswahl fest — die Doppelbuchung fängt createTimeEntry ab. */}
+          <TimeForm
+            key={editing?.id ?? 'new-foreign'}
+            entry={editing ?? undefined}
+            staff={editing ? undefined : relevant}
+            ownerRole={
+              editing ? users.find((u) => u.uid === editing.userId)?.role : undefined
+            }
+            onSaved={() => {
+              setCreating(false);
+              setEditing(null);
+            }}
+            onCancel={() => {
+              setCreating(false);
+              setEditing(null);
+            }}
+          />
+        </Card>
+      )}
+
       <Card
         title={`${MONTHS[month]} ${year}`}
         action={
-          rows.length > 0 && (
-            <Button variant="secondary" onClick={exportMonthCsv}>
-              <Icon name="download" size={16} className="mr-1.5 shrink-0" />
-              Monats-CSV
-            </Button>
-          )
+          <span className="flex flex-wrap gap-2">
+            {!creating && !editing && (
+              <Button
+                variant="accent"
+                onClick={() => {
+                  setEditing(null);
+                  setCreating(true);
+                }}
+              >
+                Zeit erfassen
+              </Button>
+            )}
+            {rows.length > 0 && (
+              <Button variant="secondary" onClick={exportMonthCsv}>
+                <Icon name="download" size={16} className="mr-1.5 shrink-0" />
+                Monats-CSV
+              </Button>
+            )}
+          </span>
         }
       >
         {loading ? (
@@ -278,7 +334,10 @@ export default function AccountingView() {
                               <th className="py-1 pr-3 font-medium">Status</th>
                               <th className="py-1 pr-3 font-medium">Zeit</th>
                               <th className="py-1 pr-3 font-medium">Baustelle</th>
-                              <th className="py-1 text-right font-medium">Stunden</th>
+                              <th className="py-1 pr-3 text-right font-medium">Stunden</th>
+                              <th className="py-1 text-right font-medium">
+                                <span className="sr-only">Aktionen</span>
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -305,8 +364,30 @@ export default function AccountingView() {
                                       : '—'}
                                   </td>
                                   <td className="py-1 pr-3">{entry?.customerName ?? '—'}</td>
-                                  <td className="py-1 text-right font-mono">
+                                  <td className="py-1 pr-3 text-right font-mono">
                                     {entry ? fmtMin(calcWorkMin(entry)) : '—'}
+                                  </td>
+                                  <td className="py-1 text-right whitespace-nowrap">
+                                    {entry && (
+                                      entry.isBilled ? (
+                                        // Verrechnete Einträge sind Rechnungs-
+                                        // grundlage und bleiben unangetastet.
+                                        <Badge tone="gray">verrechnet</Badge>
+                                      ) : (
+                                        <>
+                                          <Button variant="ghost" onClick={() => {
+                                            setCreating(false);
+                                            setEditing(entry);
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                          }}>
+                                            Bearbeiten
+                                          </Button>
+                                          <Button variant="ghost" onClick={() => setToDelete(entry)}>
+                                            Löschen
+                                          </Button>
+                                        </>
+                                      )
+                                    )}
                                   </td>
                                 </tr>
                               );
@@ -314,7 +395,7 @@ export default function AccountingView() {
                           </tbody>
                           <tfoot>
                             <tr className="font-medium">
-                              <td className="pt-2" colSpan={4}>
+                              <td className="pt-2" colSpan={5}>
                                 {monthEntries.length === 1 ? '1 Eintrag' : `${monthEntries.length} Einträge`}
                                 {' · '}
                                 {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
@@ -350,6 +431,32 @@ export default function AccountingView() {
           </div>
         )}
       </Card>
+
+      {/* Deckungsbeitrags-Sicht: Ist gegen kalkuliertes Budget je Baustelle. */}
+      <ProjectSummary
+        entries={entries.filter((e) => e.date.startsWith(monthPrefix))}
+        projects={projects}
+        label={`${MONTHS[month]} ${year}`}
+      />
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title="Eintrag löschen?"
+        message={
+          toDelete
+            ? `Der Eintrag von ${toDelete.userName ?? 'Mitarbeiter'} vom ${toDelete.date} wird endgültig entfernt.`
+            : ''
+        }
+        onCancel={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (toDelete) {
+            if (editing?.id === toDelete.id) setEditing(null);
+            await deleteTimeEntry(toDelete.id);
+            toast.success('Eintrag gelöscht');
+          }
+          setToDelete(null);
+        }}
+      />
 
       {exportFor && (
         <ExportDialog

@@ -317,3 +317,67 @@ export function calcCompleteness(
 
   return { status: todayOpen ? 'today_only' : 'complete', missingCount: 0, missingDates: [] };
 }
+
+export interface ProjectHours {
+  projectNumber: string;
+  /** Facharbeiterminuten — nur diese zählen gegen das Budget. */
+  fachMin: number;
+  /** Helferminuten — kostenneutral für das Budget (Legacy:3684). */
+  helperMin: number;
+  entries: TimeEntry[];
+}
+
+/**
+ * Vergleichsschlüssel für Projektnummern: gleicht ein historisch gewachsenes
+ * `PR-`-Präfix an, damit `2025-001` und `PR-2025-001` dasselbe Projekt sind.
+ */
+export function normProjectNumber(nr?: string): string {
+  return (nr ?? '').trim().replace(/^PR-/i, '');
+}
+
+/**
+ * Gruppiert Zeiteinträge nach Baustelle und trennt Fach- von Helferzeit
+ * (Legacy:3510-3549). Nur Anwesenheit mit Projektbezug zählt.
+ */
+export function groupProjectHours(entries: TimeEntry[]): ProjectHours[] {
+  const map = new Map<string, ProjectHours>();
+  for (const e of entries) {
+    if (e.status !== 'Anwesend' || !e.projectNumber) continue;
+    const min = calcWorkMin(e);
+    if (min <= 0) continue;
+    const key = normProjectNumber(e.projectNumber);
+    const cur = map.get(key) ?? { projectNumber: key, fachMin: 0, helperMin: 0, entries: [] };
+    if (e.isHelper) cur.helperMin += min;
+    else cur.fachMin += min;
+    cur.entries.push(e);
+    map.set(key, cur);
+  }
+  return [...map.values()].sort((a, b) => a.projectNumber.localeCompare(b.projectNumber));
+}
+
+export interface BudgetState {
+  /** Ausschöpfung in Prozent, auf 100 gedeckelt; null ohne hinterlegtes Budget. */
+  pct: number | null;
+  /** true, sobald die Fachzeit das Budget ECHT überschreitet. */
+  over: boolean;
+  tone: 'success' | 'warning' | 'danger' | 'neutral';
+}
+
+/**
+ * Budget-Ampel einer Baustelle (Legacy:3597-3601).
+ * Genau 100 % gilt noch NICHT als Überschreitung — erst darüber wird es rot.
+ * Ohne hinterlegtes Budget gibt es bewusst keine Ampel statt einer falschen.
+ */
+export function calcBudgetState(fachMin: number, estimatedHours?: number): BudgetState {
+  if (!estimatedHours || estimatedHours <= 0) {
+    return { pct: null, over: false, tone: 'neutral' };
+  }
+  const usedH = fachMin / 60;
+  const raw = (usedH / estimatedHours) * 100;
+  const over = usedH > estimatedHours;
+  return {
+    pct: Math.min(Math.round(raw), 100),
+    over,
+    tone: over ? 'danger' : raw >= 80 ? 'warning' : 'success',
+  };
+}
