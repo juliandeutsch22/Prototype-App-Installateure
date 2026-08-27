@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { subscribeOwnEntries } from '@/lib/db/timeEntries';
+import { subscribeOwnEntries, deleteTimeEntry } from '@/lib/db/timeEntries';
 import { getUserByUid } from '@/lib/db/users';
 import { calcWorkMin, fmtMin, calcOverallSaldo, getISOWeek } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
@@ -8,10 +8,19 @@ import type { TimeEntry, AppUser } from '@/types';
 import Card from '@/components/Card';
 import Metric from '@/components/Metric';
 import Badge from '@/components/Badge';
+import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
+import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+
+/** Wochenschlüssel 'KW n / JJJJ' für ein Datum. */
+function weekKey(d: Date): string {
+  const { week, year } = getISOWeek(d);
+  return `KW ${week} / ${year}`;
+}
 
 /**
  * Zeiterfassung — der vertikale Schnitt (Spec §8, Phase 2): Mitarbeiter
@@ -19,10 +28,13 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/States';
  */
 export default function TimeView() {
   const { user } = useAuth();
+  const toast = useToast();
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
+  const [toDelete, setToDelete] = useState<WithId<TimeEntry> | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -48,18 +60,32 @@ export default function TimeView() {
     [profile, entries],
   );
 
+  /** Belegte Tage — Grundlage für die Doppelbuchungs-Warnung im Formular. */
+  const existingDates = useMemo(() => new Set(entries.map((e) => e.date)), [entries]);
+
   // Nach Woche gruppieren, neueste zuerst.
   const byWeek = useMemo(() => {
     const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
     const groups = new Map<string, WithId<TimeEntry>[]>();
     for (const e of sorted) {
-      const { week, year } = getISOWeek(new Date(`${e.date}T00:00:00`));
-      const key = `KW ${week} / ${year}`;
+      const key = weekKey(new Date(`${e.date}T00:00:00`));
       const list = groups.get(key) ?? [];
       list.push(e);
       groups.set(key, list);
     }
     return [...groups.entries()];
+  }, [entries]);
+
+  /**
+   * Summe der TATSÄCHLICH aktuellen Kalenderwoche. Vorher wurde die neueste
+   * Woche mit Einträgen genommen — nach einer buchungsfreien Woche zeigte die
+   * Kachel dadurch fremde Zahlen unter dem Label "Diese Woche".
+   */
+  const thisWeekMin = useMemo(() => {
+    const key = weekKey(new Date());
+    return entries
+      .filter((e) => weekKey(new Date(`${e.date}T00:00:00`)) === key)
+      .reduce((sum, e) => sum + calcWorkMin(e), 0);
   }, [entries]);
 
   if (!user) return null;
@@ -77,17 +103,17 @@ export default function TimeView() {
           value={saldo?.hasConfig ? `${saldo.saldoH > 0 ? '+' : ''}${saldo.saldoH} h` : '—'}
           hint={saldo?.hasConfig ? 'Über-/Unterstunden' : 'Kein Startdatum konfiguriert'}
         />
-        <Metric
-          label="Diese Woche"
-          icon="clock"
-          value={fmtMin(
-            byWeek[0]?.[1].reduce((sum, e) => sum + calcWorkMin(e), 0) ?? 0,
-          )}
-        />
+        <Metric label="Diese Woche" icon="clock" value={fmtMin(thisWeekMin)} />
       </div>
 
-      <Card title="Neuen Eintrag erfassen">
-        <TimeForm onSaved={() => undefined} />
+      <Card title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'}>
+        <TimeForm
+          key={editing?.id ?? 'new'}
+          entry={editing ?? undefined}
+          existingDates={existingDates}
+          onSaved={() => setEditing(null)}
+          onCancel={editing ? () => setEditing(null) : undefined}
+        />
       </Card>
 
       <Card title="Meine Einträge">
@@ -99,42 +125,80 @@ export default function TimeView() {
           <EmptyState>Noch keine Zeiteinträge erfasst.</EmptyState>
         ) : (
           <div className="space-y-6">
-            {byWeek.map(([week, rows]) => (
-              <div key={week}>
-                <h3 className="mb-1 text-sm font-semibold text-ink-muted">{week}</h3>
-                <List>
-                  {rows.map((e) => {
-                    // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
-                    const timeLabel =
-                      e.status === 'Anwesend'
-                        ? e.startTime && e.endTime
-                          ? `${e.startTime}–${e.endTime}`
-                          : null
-                        : e.status;
-                    const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
-                    return (
-                    <ListRow
-                      key={e.id}
-                      title={
-                        <span>
-                          {e.date}
-                          {e.customerName && ` · ${e.customerName}`}
-                        </span>
-                      }
-                      subtitle={subtitle || undefined}
-                    >
-                      {e.source === 'voice' && <Badge tone="info">KI</Badge>}
-                      {e.isHelper && <Badge tone="warning">Helfer</Badge>}
-                      <span className="font-mono font-medium text-ink">{fmtMin(calcWorkMin(e))}</span>
-                    </ListRow>
-                    );
-                  })}
-                </List>
-              </div>
-            ))}
+            {byWeek.map(([week, rows]) => {
+              const weekMin = rows.reduce((sum, e) => sum + calcWorkMin(e), 0);
+              return (
+                <div key={week}>
+                  <h3 className="mb-1 flex items-center justify-between text-sm font-semibold text-ink-muted">
+                    <span>{week}</span>
+                    <span className="font-mono">{fmtMin(weekMin)}</span>
+                  </h3>
+                  <List>
+                    {rows.map((e) => {
+                      // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
+                      const timeLabel =
+                        e.status === 'Anwesend'
+                          ? e.startTime && e.endTime
+                            ? `${e.startTime}–${e.endTime}`
+                            : null
+                          : e.status;
+                      const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
+                      return (
+                        <ListRow
+                          key={e.id}
+                          title={
+                            <span>
+                              {e.date}
+                              {e.customerName && ` · ${e.customerName}`}
+                            </span>
+                          }
+                          subtitle={
+                            <>
+                              {subtitle}
+                              {e.lastEditedBy && (
+                                <span className="mt-0.5 block text-xs text-ink-muted">
+                                  Bearbeitet von {e.lastEditedBy}
+                                </span>
+                              )}
+                            </>
+                          }
+                        >
+                          {e.source === 'voice' && <Badge tone="info">KI</Badge>}
+                          {e.isHelper && <Badge tone="warning">Helfer</Badge>}
+                          <span className="font-mono font-medium text-ink">
+                            {fmtMin(calcWorkMin(e))}
+                          </span>
+                          <Button variant="ghost" onClick={() => setEditing(e)}>
+                            Bearbeiten
+                          </Button>
+                          <Button variant="ghost" onClick={() => setToDelete(e)}>
+                            Löschen
+                          </Button>
+                        </ListRow>
+                      );
+                    })}
+                  </List>
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={!!toDelete}
+        title="Eintrag löschen?"
+        message={toDelete ? `Der Eintrag vom ${toDelete.date} wird endgültig entfernt.` : ''}
+        onCancel={() => setToDelete(null)}
+        onConfirm={async () => {
+          if (toDelete) {
+            if (editing?.id === toDelete.id) setEditing(null);
+            await deleteTimeEntry(toDelete.id);
+            toast.success('Eintrag gelöscht');
+          }
+          setToDelete(null);
+        }}
+      />
     </div>
   );
 }

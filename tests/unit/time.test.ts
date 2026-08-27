@@ -17,12 +17,24 @@ describe('calcWorkMin', () => {
   it('rechnet (Ende − Start − Pause) für Anwesend', () => {
     expect(calcWorkMin(entry({ startTime: '07:00', endTime: '16:30', breakDuration: 30 }))).toBe(540);
   });
-  it('nutzt explizite hours (Sprach-Einträge) vorrangig', () => {
+  it('nutzt explizite hours, wenn keine Zeitspanne gesetzt ist (Sprach-Einträge)', () => {
     expect(calcWorkMin(entry({ hours: 4 }))).toBe(240);
+  });
+  it('lässt eine nachgetragene Zeitspanne den KI-Wert überschreiben', () => {
+    // Sonst bliebe ein korrigierter Sprach-Eintrag stillschweigend beim alten Wert.
+    expect(
+      calcWorkMin(entry({ hours: 4, startTime: '07:00', endTime: '16:30', breakDuration: 30 })),
+    ).toBe(540);
   });
   it('ist 0 für Krank/Urlaub und für unvollständige Zeiten', () => {
     expect(calcWorkMin(entry({ status: 'Krank' }))).toBe(0);
     expect(calcWorkMin(entry({ status: 'Anwesend', startTime: '', endTime: '' }))).toBe(0);
+  });
+  it('ist 0 für Krank/Urlaub AUCH mit gesetztem hours', () => {
+    // Die Gutschrift für Abwesenheit passiert allein im Saldo (voller Solltag).
+    // Zählte calcWorkMin hier mit, stünde der Tag doppelt in der Wochensumme.
+    expect(calcWorkMin(entry({ status: 'Krank', hours: 8 }))).toBe(0);
+    expect(calcWorkMin(entry({ status: 'Urlaub', hours: 8 }))).toBe(0);
   });
   it('floort negative Werte auf 0', () => {
     expect(calcWorkMin(entry({ startTime: '10:00', endTime: '09:00', breakDuration: 0 }))).toBe(0);

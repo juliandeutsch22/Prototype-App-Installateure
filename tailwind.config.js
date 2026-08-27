@@ -39,6 +39,10 @@ export default {
         xl: ['1.375rem', { lineHeight: '1.8rem' }],
         '2xl': ['1.75rem', { lineHeight: '2.1rem' }],
       },
+      fontFamily: {
+        // Poppins self-gehostet (siehe main.tsx), System-Schriften als Fallback.
+        sans: ['Poppins', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+      },
       minHeight: { touch: '48px' },
       minWidth: { touch: '48px' },
     },

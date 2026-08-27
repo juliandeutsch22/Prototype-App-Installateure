@@ -48,6 +48,14 @@ service cloud.firestore {
       return request.resource.data.companyId == resource.data.companyId;
     }
 
+    // Gültige Rollen. syncUserClaims übernimmt den Wert ungeprüft als Custom
+    // Claim — ein Tippfehler ("Geschaeftsfuehrung") würde den Nutzer sonst
+    // dauerhaft aussperren, weil keine Regel mehr greift.
+    function validRole() {
+      return request.resource.data.role in
+        ['Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator'];
+    }
+
     // --- companies: nur lesen für eigene Firma; Schreiben nur Leitung ---
     match /companies/{companyId} {
       allow read: if signedIn() && companyId == tokenCompany();
@@ -57,8 +65,9 @@ service cloud.firestore {
     // --- users: lesen innerhalb der Firma; verwalten nur GF/Admin ---
     match /users/{userId} {
       allow read: if ownsExisting();
-      allow create: if isLeadership() && ownsIncoming();
-      allow update: if isLeadership() && ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow create: if isLeadership() && ownsIncoming() && validRole();
+      allow update: if isLeadership() && ownsExisting() && ownsIncoming()
+        && companyUnchanged() && validRole();
       allow delete: if isLeadership() && ownsExisting();
     }
 
@@ -93,7 +102,10 @@ service cloud.firestore {
       allow create: if ownsIncoming()
         && request.resource.data.userId == request.auth.uid;
       allow update: if ownsExisting() && ownsIncoming() && companyUnchanged();
-      allow delete: if isLeadership() && ownsExisting();
+      // Verwaltung pflegt das Material-Dashboard und darf dort löschen
+      // (Legacy:4980-4988) — vorher war das versehentlich nur der Leitung erlaubt.
+      allow delete: if hasRole(['Verwaltung', 'Geschäftsführung', 'Administrator'])
+        && ownsExisting();
     }
 
     // --- timeEntries: eigene anlegen; fremde nur Buchhaltung/GF/Admin ---

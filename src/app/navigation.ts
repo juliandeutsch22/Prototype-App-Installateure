@@ -26,11 +26,16 @@ const LEAD: Role[] = ['Geschäftsführung', 'Administrator'];
 export const NAV: NavItem[] = [
   { path: '/', label: 'Dashboard', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
 
-  { path: '/time', label: 'Zeiterfassung', short: 'Zeit', icon: 'clock', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst' },
-  { path: '/voice', label: 'KI-Erfassung', short: 'KI', icon: 'mic', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst' },
+  // Zeiterfassung + KI-Erfassung: JEDE Rolle muss die eigene Zeit buchen können
+  // (auch Buchhaltung: Krankenstand/Urlaub). Legacy setzt den Tab unbedingt,
+  // ohne Rollenprüfung (perl-installateur-web-app.html:1954).
+  { path: '/time', label: 'Zeiterfassung', short: 'Zeit', icon: 'clock', roles: ALL, group: 'Außendienst' },
+  { path: '/voice', label: 'KI-Erfassung', short: 'KI', icon: 'mic', roles: ALL, group: 'Außendienst' },
   { path: '/order', label: 'Material bestellen', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst' },
-  { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter', 'Administrator'], group: 'Außendienst' },
-  { path: '/my-projects', label: 'Meine Baustellen', short: 'Baustellen', icon: 'building', roles: ['Mitarbeiter', 'Administrator'], group: 'Außendienst' },
+  // Nur REINE Mitarbeiter — Admin/GF sehen alle Baustellen über die
+  // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
+  { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Außendienst' },
+  { path: '/my-projects', label: 'Meine Baustellen', short: 'Baustellen', icon: 'building', roles: ['Mitarbeiter'], group: 'Außendienst' },
 
   { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Verwaltung' },
   { path: '/admin-orders', label: 'Bestellungen', short: 'Bestellungen', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung' },

@@ -8,10 +8,15 @@
  * Rollen sind bewusst hochkontrastig (Sonnenlicht auf der Baustelle).
  */
 :root {
-  /* Marke (Defaults = Perl-Pilot; werden vom Theme überschrieben) */
+  /* Marke (Defaults = Perl-Pilot; werden vom Theme überschrieben).
+   * brand  = Perl-Blau aus dem Prototyp: trägt Navigation und Primäraktionen.
+   * accent = echtes Perl-Rot von perl.co.at (Logo/Headlines), bewusst SPARSAM
+   *   für Hervorhebungen — nicht für destruktive Aktionen. Dafür gibt es
+   *   --danger, das deutlich dunkler ist, damit "Marke" und "Achtung"
+   *   unterscheidbar bleiben. Kontrast #D51F26 auf Weiß = 5,19:1 (WCAG AA). */
   --brand: #003366;
   --brand-fg: #ffffff;
-  --accent: #e2001a;
+  --accent: #d51f26;
   --accent-fg: #ffffff;
 
   /* Flächen & Text */
@@ -51,7 +56,9 @@ body {
   background-color: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Poppins wie im Prototyp; System-Schriften als Fallback, falls die
+   * Webfont (schlechtes Netz) noch nicht geladen ist. */
+  font-family: Poppins, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Sichtbarer Tastatur-Fokus (Barrierearmut, Büro/Desktop) */

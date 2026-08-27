@@ -101,20 +101,27 @@ export function isoWeekLabel(date: Date): string {
 
 /**
  * Gearbeitete Minuten eines Eintrags.
- * - Sprach-/Direkteinträge mit explizitem `hours` haben Vorrang.
- * - sonst nur 'Anwesend' mit start+end: (end − start) − Pause, min. 0.
+ * - Nur 'Anwesend' liefert Arbeitszeit. Krank/Urlaub sind IMMER 0 — deren
+ *   Gutschrift passiert allein in calcOverallSaldo (voller Solltag), sonst
+ *   würde ein Krank-Eintrag mit `hours` doppelt zählen.
+ * - start+end hat Vorrang: (end − start) − Pause, min. 0 (wie Legacy:2374).
+ * - `hours` greift nur, wenn keine Zeitspanne da ist (Sprach-Einträge). So
+ *   überschreibt ein später nachgetragenes Von/Bis den KI-Wert.
  * - Wegzeit (travelTime) wird NICHT zu den Arbeitsminuten addiert (wie Legacy).
  */
 export function calcWorkMin(entry: Pick<TimeEntry, 'status' | 'startTime' | 'endTime' | 'breakDuration' | 'hours'>): number {
+  if (entry.status !== 'Anwesend') return 0;
+  if (entry.startTime && entry.endTime) {
+    const start = new Date(`1970-01-01T${entry.startTime}`);
+    const end = new Date(`1970-01-01T${entry.endTime}`);
+    const brk = Number(entry.breakDuration ?? 0) || 0;
+    const min = (end.getTime() - start.getTime()) / 60000 - brk;
+    return Math.max(0, min);
+  }
   if (typeof entry.hours === 'number' && !Number.isNaN(entry.hours)) {
     return Math.max(0, Math.round(entry.hours * 60));
   }
-  if (entry.status !== 'Anwesend' || !entry.startTime || !entry.endTime) return 0;
-  const start = new Date(`1970-01-01T${entry.startTime}`);
-  const end = new Date(`1970-01-01T${entry.endTime}`);
-  const brk = Number(entry.breakDuration ?? 0) || 0;
-  const min = (end.getTime() - start.getTime()) / 60000 - brk;
-  return Math.max(0, min);
+  return 0;
 }
 
 /** Minuten -> 'HH:MM'. */

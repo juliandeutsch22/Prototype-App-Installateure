@@ -10,7 +10,7 @@
 //   GOOGLE_APPLICATION_CREDENTIALS=./serviceAccount.json \
 //   COMPANY_ID=perl COMPANY_NAME="Perl Installationen GmbH" \
 //   ADMIN_EMAIL=chef@perl.at ADMIN_PASSWORD='EinSicheresPasswort!' \
-//   BRAND_COLOR=#003366 ACCENT_COLOR=#e2001a \
+//   BRAND_COLOR=#003366 ACCENT_COLOR=#d51f26 \
 //   node scripts/bootstrap-company.mjs
 //
 // Hinweis: Stelle sicher, dass FIRESTORE_EMULATOR_HOST/FIREBASE_AUTH_EMULATOR_HOST
@@ -27,7 +27,7 @@ const {
   ADMIN_PASSWORD,
   BRAND_COLOR = '#003366',
   BRAND_FG = '#ffffff',
-  ACCENT_COLOR = '#e2001a',
+  ACCENT_COLOR = '#d51f26',
   ACCENT_FG = '#ffffff',
 } = process.env;
 

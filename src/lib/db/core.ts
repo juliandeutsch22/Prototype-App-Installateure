@@ -5,6 +5,7 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
   onSnapshot,
@@ -81,6 +82,11 @@ export async function updateInTenant(
   const { companyId: _ignore, ...rest } = data;
   void _ignore;
   await updateDoc(doc(db, collectionName, id), { ...rest, updatedAt: serverTimestamp() });
+}
+
+/** Löscht ein Dokument. Die Mandantenprüfung erzwingen die firestore.rules. */
+export async function deleteInTenant(collectionName: string, id: string): Promise<void> {
+  await deleteDoc(doc(db, collectionName, id));
 }
 
 export { where, serverTimestamp };

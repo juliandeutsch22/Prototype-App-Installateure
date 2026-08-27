@@ -142,7 +142,8 @@ export interface TimeEntry {
   endTime?: string; // 'HH:MM'
   breakDuration?: number; // Minuten
   travelTime?: number; // Minuten (Wegzeit)
-  /** Direkt gesetzte Stunden (v. a. Sprach-Einträge). Hat Vorrang vor start/end. */
+  /** Direkt gesetzte Stunden (v. a. Sprach-Einträge). Greift nur, wenn keine
+   * Zeitspanne (start+end) gesetzt ist — siehe calcWorkMin. */
   hours?: number;
   customerName?: string;
   projectNumber?: string;

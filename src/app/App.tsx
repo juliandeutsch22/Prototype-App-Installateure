@@ -47,22 +47,10 @@ function AppRoutes() {
       <Route path="/" element={<DashboardView />} />
 
       {/* Außendienst */}
-      <Route
-        path="/time"
-        element={
-          <RequireRole roles={['Mitarbeiter', 'Verwaltung', 'Geschäftsführung', 'Administrator']}>
-            <TimeView />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/voice"
-        element={
-          <RequireRole roles={['Mitarbeiter', 'Verwaltung', 'Geschäftsführung', 'Administrator']}>
-            <VoiceView />
-          </RequireRole>
-        }
-      />
+      {/* Zeit- und KI-Erfassung stehen JEDER Rolle offen (auch Buchhaltung:
+          Krankenstand/Urlaub) — wie Legacy:1954, das den Tab ungeprüft setzt. */}
+      <Route path="/time" element={<TimeView />} />
+      <Route path="/voice" element={<VoiceView />} />
       <Route
         path="/order"
         element={
@@ -71,8 +59,24 @@ function AppRoutes() {
           </RequireRole>
         }
       />
-      <Route path="/my-schedule" element={<MyScheduleView />} />
-      <Route path="/my-projects" element={<MyProjectsView />} />
+      {/* Strikt nur reine Mitarbeiter (Legacy:1980) — GF/Admin nutzen die
+          Verwaltungssicht. Vorher fehlte hier jeder Schutz. */}
+      <Route
+        path="/my-schedule"
+        element={
+          <RequireRole roles={['Mitarbeiter']}>
+            <MyScheduleView />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/my-projects"
+        element={
+          <RequireRole roles={['Mitarbeiter']}>
+            <MyProjectsView />
+          </RequireRole>
+        }
+      />
 
       {/* Verwaltung */}
       <Route
