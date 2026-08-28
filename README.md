@@ -54,6 +54,62 @@ npm run emulators           # Firebase-Emulatoren (Auth/Firestore/Functions)
 Secrets der Functions in Produktion via Secret Manager:
 `firebase functions:secrets:set ANTHROPIC_API_KEY` (und `TRANSCRIPTION_API_KEY`).
 
+## Deployment
+
+`.github/workflows/deploy.yml` prüft jeden Pull Request und veröffentlicht
+jeden Push auf `main` automatisch auf Firebase Hosting — zusammen mit den
+Firestore-Regeln und -Indizes. Der Deploy hängt am Test-Job: ist Typprüfung,
+Lint, ein Unit- oder ein Rules-Test rot, geht nichts live.
+
+**Was NICHT automatisch deployed wird:** die Cloud Functions. Die brauchen den
+Blaze-Tarif und API-Secrets; ein versehentlicher Function-Deploy kann Kosten
+auslösen. Dafür weiterhin von Hand: `firebase deploy --only functions`.
+
+### Einmalig einzurichten
+
+**1. Dienstkonto anlegen** (Google Cloud Console → IAM & Verwaltung →
+Dienstkonten → Schlüssel erstellen → JSON). Rollen: *Firebase Hosting Admin*,
+*Cloud Datastore Owner* (für die Regeln) und *Firebase Rules Admin*.
+Bequemer geht es mit der CLI, die das Konto samt Rechten selbst anlegt:
+
+```bash
+firebase init hosting:github
+```
+
+**2. Repository-Secrets setzen** unter *Settings → Secrets and variables →
+Actions → New repository secret*:
+
+| Secret | Inhalt |
+| --- | --- |
+| `FIREBASE_SERVICE_ACCOUNT` | der komplette Inhalt der JSON-Schlüsseldatei |
+| `VITE_FIREBASE_API_KEY` | aus der Firebase Console → Projekteinstellungen |
+| `VITE_FIREBASE_AUTH_DOMAIN` | ebenda |
+| `VITE_FIREBASE_PROJECT_ID` | ebenda (dient zugleich als Deploy-Ziel) |
+| `VITE_FIREBASE_STORAGE_BUCKET` | ebenda |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | ebenda |
+| `VITE_FIREBASE_APP_ID` | ebenda |
+
+Optional als *Variable* (nicht Secret): `VITE_PORTAL_NAME` (Name über dem
+Anmeldebildschirm, Vorgabe „Perl Installationen") und `VITE_FUNCTIONS_REGION`
+(Vorgabe `europe-west3`).
+
+Die `VITE_FIREBASE_*`-Werte sind technisch nicht geheim — sie stehen ohnehin
+im ausgelieferten JavaScript, und Firebase schützt die Daten über die
+Security Rules, nicht über den Schlüssel. Sie liegen hier trotzdem als
+Secrets, damit alles an einer Stelle steht. **Die JSON-Schlüsseldatei ist
+dagegen echt geheim** und gehört niemals in einen Commit.
+
+### Ablauf
+
+- **Pull Request:** Typprüfung, Lint, 61 Unit-Tests, 21 Rules-Tests. Kein Deploy.
+- **Push auf `main`:** dieselben Prüfungen, danach Build und Deploy.
+- **Von Hand:** *Actions → „Test und Deploy" → Run workflow*.
+
+Fehlt ein Secret, bricht der Deploy mit einer Klartextmeldung ab, bevor
+irgendetwas veröffentlicht wird. Das ist Absicht: `npm run build` läuft auch
+ohne Konfiguration durch — die Lücke fiele sonst erst im Browser des Kunden
+auf, mit „Firebase-Konfiguration fehlt" auf weißer Seite.
+
 ## Mandantensicherheit (Spec §7)
 
 - `companyId` liegt auf **jedem** Dokument und wird serverseitig aus dem

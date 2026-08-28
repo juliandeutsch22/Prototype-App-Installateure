@@ -1,0 +1,144 @@
+name: Test und Deploy
+
+# Jeder Pull Request wird geprüft; deployed wird ausschließlich, was auf main
+# liegt. Der Deploy hängt am Job "test": ist auch nur eine Regel oder ein
+# Zeitberechnungs-Test rot, geht nichts live. Eine kaputte Zeiterfassung im
+# Betrieb kostet mehr, als ein paar Minuten CI je sparen.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Erlaubt einen Deploy von Hand über "Actions" > "Run workflow".
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Zwei gleichzeitige Deploys auf dieselbe Umgebung würden sich überholen.
+# Läuft schon einer, wartet der neue; PR-Prüfungen brechen dagegen ab, sobald
+# ein neuer Commit kommt.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  test:
+    name: Typen, Lint und Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # Der Firestore-Emulator ist ein Java-Programm. Ohne JDK laufen die
+      # Security-Rules-Tests nicht.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - run: npm ci
+
+      - name: Typprüfung
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit-Tests
+        run: npm test
+
+      # Beweist das Mandanten-Kriterium: Firma B kommt an kein Dokument von
+      # Firma A. Läuft gegen den Emulator, der nur für diesen Befehl startet.
+      - name: Security-Rules-Tests
+        run: npx --yes firebase-tools@15 emulators:exec --only firestore --project demo-ci "npm run rules:test"
+
+  deploy:
+    name: Auf Firebase Hosting veröffentlichen
+    needs: test
+    # Ausschließlich main geht live — auch bei einem Deploy von Hand. Sonst
+    # könnte ein halbfertiger Zweig versehentlich beim Kunden landen.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # Fehlt ein Wert, entsteht sonst ein Build, der erst im Browser des
+      # Kunden mit "Firebase-Konfiguration fehlt" abbricht. Lieber hier laut
+      # scheitern als still etwas Kaputtes veröffentlichen.
+      - name: Zugangsdaten vollständig?
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: |
+          missing=""
+          [ -n "$SERVICE_ACCOUNT" ] || missing="$missing FIREBASE_SERVICE_ACCOUNT"
+          [ -n "$API_KEY" ]         || missing="$missing VITE_FIREBASE_API_KEY"
+          [ -n "$PROJECT_ID" ]      || missing="$missing VITE_FIREBASE_PROJECT_ID"
+          [ -n "$APP_ID" ]          || missing="$missing VITE_FIREBASE_APP_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::Diese Repository-Secrets fehlen:$missing"
+            echo "Anzulegen unter: Settings > Secrets and variables > Actions > New repository secret."
+            echo "Siehe README, Abschnitt 'Deployment'."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      # Vite backt die Konfiguration beim Bauen in das Bundle. Sie muss also
+      # HIER stehen, nicht erst beim Deploy.
+      - name: Bauen
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FUNCTIONS_REGION: ${{ vars.VITE_FUNCTIONS_REGION || 'europe-west3' }}
+          VITE_PORTAL_NAME: ${{ vars.VITE_PORTAL_NAME || 'Perl Installationen' }}
+          # Im Produktivbuild niemals gegen die lokalen Emulatoren zeigen.
+          VITE_USE_EMULATORS: 'false'
+        run: npm run build
+
+      # Der Schlüssel landet außerhalb des Arbeitsverzeichnisses, damit er
+      # weder in den Build noch versehentlich in einen Commit gerät.
+      - name: Dienstkonto bereitstellen
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          chmod 600 "$RUNNER_TEMP/service-account.json"
+
+      # Hosting UND Firestore-Regeln zusammen: eine neue Oberfläche ohne die
+      # passenden Regeln wäre entweder gesperrt oder – schlimmer – offen.
+      # Indizes gehören dazu, sonst laufen Abfragen produktiv ins Leere, die
+      # lokal gegen den Emulator noch funktioniert haben.
+      - name: Deploy
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          npx --yes firebase-tools@15 deploy \
+            --only hosting,firestore:rules,firestore:indexes \
+            --project "$PROJECT_ID" \
+            --non-interactive \
+            --message "${GITHUB_SHA::7} von ${GITHUB_ACTOR}"
+
+      - name: Schlüssel entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/service-account.json"
