@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listAssignmentsForUser } from '@/lib/db/assignments';
-import { listProjectsForEmployee } from '@/lib/db/projects';
+import { listAllProjects } from '@/lib/db/projects';
 import type { Assignment, Project } from '@/types';
 import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
@@ -40,7 +40,10 @@ export default function MyScheduleView() {
 
   useEffect(() => {
     if (!user) return;
-    listProjectsForEmployee(user.companyId, user.uid).then(setProjects).catch(() => undefined);
+    // ALLE Baustellen der Firma: eingeplant zu sein heißt nicht, der
+    // Baustelle fest zugeordnet zu sein — sonst bliebe der Kundenname leer
+    // und Route/Anruf fehlten. Die Rules erlauben firmenweites Lesen.
+    listAllProjects(user.companyId).then(setProjects).catch(() => undefined);
     listAssignmentsForUser(user.companyId, user.uid)
       .then(setRows)
       .catch((e) => setError(e.message))
@@ -109,8 +112,14 @@ export default function MyScheduleView() {
                   </div>
 
                   <p className="mt-1 text-ink">
-                    {proj?.customerName ?? a.projectNumber}{' '}
-                    <span className="font-mono text-sm text-ink-muted">({a.projectNumber})</span>
+                    {proj?.customerName ?? a.projectNumber}
+                    {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname da ist —
+                        sonst stünde sie doppelt. */}
+                    {proj?.customerName && (
+                      <span className="ml-1 font-mono text-sm text-ink-muted">
+                        ({a.projectNumber})
+                      </span>
+                    )}
                   </p>
                   {a.comment && <p className="mt-0.5 text-sm text-ink-muted">{a.comment}</p>}
 

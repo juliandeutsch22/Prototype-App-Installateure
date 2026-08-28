@@ -16,6 +16,16 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState } from '@/components/States';
 
+/** 'YYYY-MM-DD' -> 'Fr., 28.08.2026'. */
+function fmtDay(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
 /** Auswahlzustand je Mitarbeiter: eingeplant und in welcher Rolle. */
 interface Pick {
   on: boolean;
@@ -216,7 +226,7 @@ export default function AssignmentsView() {
         </div>
       </Card>
 
-      <Card title={`Einsätze am ${date}`}>
+      <Card title={`Einsätze am ${fmtDay(date)}`}>
         {dayAssignments.length === 0 ? (
           <EmptyState>Keine Einsätze an diesem Tag.</EmptyState>
         ) : (
@@ -268,7 +278,7 @@ export default function AssignmentsView() {
         title="Einsatz löschen?"
         message={
           toDelete
-            ? `Der Einsatz von ${toDelete.userName} am ${toDelete.date} wird entfernt.`
+            ? `Der Einsatz von ${toDelete.userName} am ${fmtDay(toDelete.date)} wird entfernt.`
             : ''
         }
         onCancel={() => setToDelete(null)}
