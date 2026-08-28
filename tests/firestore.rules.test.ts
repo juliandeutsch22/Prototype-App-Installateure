@@ -185,6 +185,63 @@ describe('Schreibregeln', () => {
     );
   });
 
+  // Zeiteinträge enthalten Krankenstände und Urlaub — Gesundheitsdaten nach
+  // Art. 9 DSGVO. Ein Kollege darf sie nicht lesen können, auch nicht an der
+  // Oberfläche vorbei.
+  it('Mitarbeiter darf den Zeiteintrag eines KOLLEGEN nicht lesen', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'timeEntries', 'fremd'), {
+        companyId: 'companyA',
+        userId: 'userA2', // ein anderer Mitarbeiter derselben Firma
+        date: '2026-06-15',
+        status: 'Krank',
+      });
+    });
+    const db = ctxA_employee().firestore();
+    await assertFails(getDoc(doc(db, 'timeEntries', 'fremd')));
+  });
+
+  it('Mitarbeiter darf den EIGENEN Zeiteintrag lesen', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'timeEntries', 'eigen'), {
+        companyId: 'companyA',
+        userId: 'userA1',
+        date: '2026-06-15',
+        status: 'Anwesend',
+      });
+    });
+    const db = ctxA_employee().firestore();
+    await assertSucceeds(getDoc(doc(db, 'timeEntries', 'eigen')));
+  });
+
+  it('Buchhaltung darf fremde Zeiteinträge lesen (Lohnverrechnung)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'timeEntries', 'fuerBuch'), {
+        companyId: 'companyA',
+        userId: 'userA1',
+        date: '2026-06-15',
+        status: 'Krank',
+      });
+    });
+    const db = testEnv
+      .authenticatedContext('buchA', { companyId: 'companyA', role: 'Buchhaltung' })
+      .firestore();
+    await assertSucceeds(getDoc(doc(db, 'timeEntries', 'fuerBuch')));
+  });
+
+  it('Mitarbeiter darf die Bestellung eines Kollegen nicht lesen', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'materialOrders', 'fremdeBestellung'), {
+        companyId: 'companyA',
+        userId: 'userA2',
+        materialName: 'Therme',
+        quantity: 1,
+      });
+    });
+    const db = ctxA_employee().firestore();
+    await assertFails(getDoc(doc(db, 'materialOrders', 'fremdeBestellung')));
+  });
+
   it('Administrator darf einen Benutzer mit gültiger Rolle anlegen', async () => {
     const db = ctxA_admin().firestore();
     await assertSucceeds(

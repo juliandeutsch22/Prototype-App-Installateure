@@ -5,7 +5,7 @@ import { navForRole } from '@/app/navigation';
 import { getUserByUid } from '@/lib/db/users';
 import { listOwnEntries } from '@/lib/db/timeEntries';
 import { listAssignmentsForUser } from '@/lib/db/assignments';
-import { listAllOrders } from '@/lib/db/materialOrders';
+import { listAllOrders, listOwnOrders } from '@/lib/db/materialOrders';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listInvoices } from '@/lib/db/invoices';
 import {
@@ -95,9 +95,11 @@ export default function DashboardView() {
           (i) => i.paymentStatus === 'Offen' || i.paymentStatus === 'Überfällig',
         ).length;
       } else if (user.role === 'Mitarbeiter') {
-        const orders = await listAllOrders(user.companyId);
+        // Gezielt nur die eigenen Bestellungen: den ganzen Betrieb zu laden,
+        // um die eigenen zu zählen, ist unnötig und gibt fremde Daten preis.
+        const orders = await listOwnOrders(user.companyId, user.uid);
         out.ownOpenOrders = orders.filter(
-          (o) => o.userId === user.uid && o.status !== 'Erledigt' && o.transactionType !== 'return',
+          (o) => o.status !== 'Erledigt' && o.transactionType !== 'return',
         ).length;
       }
 

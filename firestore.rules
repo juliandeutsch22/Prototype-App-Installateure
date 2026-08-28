@@ -96,12 +96,21 @@ service cloud.firestore {
       allow delete: if hasRole(['Verwaltung', 'Geschäftsführung', 'Administrator']) && ownsExisting();
     }
 
-    // --- materialOrders: in der Firma anlegen/lesen; Status ändern erlaubt ---
+    // --- materialOrders: eigene anlegen/verfolgen; verwalten nur Verwaltung/Leitung ---
     match /materialOrders/{id} {
-      allow read: if ownsExisting();
+      // Eigene Bestellungen sehen alle; die Bestellungen des ganzen Betriebs
+      // nur, wer sie bearbeitet oder abrechnet.
+      allow read: if ownsExisting()
+        && (resource.data.userId == request.auth.uid
+            || hasRole(['Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator']));
       allow create: if ownsIncoming()
         && request.resource.data.userId == request.auth.uid;
-      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged();
+      // Der Besteller darf seine eigene Abholung bestätigen, sonst greift
+      // die Verwaltung. Vorher konnte jeder jede Bestellung ändern —
+      // inklusive des Verrechnet-Kennzeichens.
+      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
+        && (resource.data.userId == request.auth.uid
+            || hasRole(['Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator']));
       // Verwaltung pflegt das Material-Dashboard und darf dort löschen
       // (Legacy:4980-4988) — vorher war das versehentlich nur der Leitung erlaubt.
       allow delete: if hasRole(['Verwaltung', 'Geschäftsführung', 'Administrator'])
@@ -110,7 +119,14 @@ service cloud.firestore {
 
     // --- timeEntries: eigene anlegen; fremde nur Buchhaltung/GF/Admin ---
     match /timeEntries/{id} {
-      allow read: if ownsExisting();
+      // Lesen NUR die eigenen Einträge — plus Buchhaltung/GF/Admin.
+      // Zeiteinträge enthalten Krankenstände und Urlaub, also
+      // Gesundheitsdaten im Sinne von Art. 9 DSGVO. Ohne diese Grenze
+      // könnte jeder Monteur die Abwesenheiten aller Kollegen auslesen,
+      // auch direkt an der Oberfläche vorbei.
+      allow read: if ownsExisting()
+        && (resource.data.userId == request.auth.uid
+            || hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']));
       allow create: if ownsIncoming()
         && (request.resource.data.userId == request.auth.uid
             || hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']));

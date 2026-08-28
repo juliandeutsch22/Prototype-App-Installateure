@@ -109,3 +109,11 @@ export function deleteOrder(orderId: string) {
 export function listAllOrders(companyId: string) {
   return queryTenant<MaterialOrder>(COLLECTION, companyId);
 }
+
+/**
+ * Nur die eigenen Bestellungen. Für Zähler auf dem Dashboard — ein Monteur
+ * muss dafür nicht die Bestellungen aller Kollegen laden.
+ */
+export function listOwnOrders(companyId: string, uid: string) {
+  return queryTenant<MaterialOrder>(COLLECTION, companyId, where('userId', '==', uid));
+}
