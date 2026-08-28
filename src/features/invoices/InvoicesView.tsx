@@ -13,8 +13,6 @@ import {
 } from '@/lib/db/invoices';
 import { listAllProjects } from '@/lib/db/projects';
 import { listAllEntries } from '@/lib/db/timeEntries';
-import { listAllOrders } from '@/lib/db/materialOrders';
-import { listMaterials } from '@/lib/db/materials';
 import { assembleInvoice, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { downloadInvoicePdf } from './pdf';
 import { todayStr, localDateStr } from '@/lib/time';
@@ -53,7 +51,13 @@ export default function InvoicesView() {
   const [preview, setPreview] = useState<AssembledInvoice | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [appendDetail, setAppendDetail] = useState(true);
+  // Startwert sind die Sätze des Betriebs aus den Einstellungen; für den
+  // Einzelfall lassen sie sich hier noch abweichend setzen.
   const [rates, setRates] = useState({ ...INVOICE_DEFAULTS });
+
+  useEffect(() => {
+    if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
+  }, [company]);
 
   useEffect(() => {
     if (!user) return;
@@ -104,15 +108,11 @@ export default function InvoicesView() {
     setBusy(true);
     setError(null);
     try {
-      const [entries, orders, materials] = await Promise.all([
-        listAllEntries(user.companyId),
-        listAllOrders(user.companyId),
-        listMaterials(user.companyId),
-      ]);
-      const assembled = assembleInvoice(projectNumber, entries, orders, materials, rates);
+      const entries = await listAllEntries(user.companyId);
+      const assembled = assembleInvoice(projectNumber, entries, rates);
       if (assembled.positions.length === 0) {
         setPreview(null);
-        setError('Keine offenen, verrechenbaren Positionen für diese Baustelle.');
+        setError('Keine offenen, verrechenbaren Stunden für diese Baustelle.');
         return;
       }
       setPreview(assembled);
@@ -138,7 +138,6 @@ export default function InvoicesView() {
       // Belege ZUERST sperren: bricht es danach ab, ist schlimmstenfalls eine
       // Rechnung offen — nicht aber ein Beleg doppelt verrechenbar.
       await markBilled('timeEntries', preview.linkedEntries, invoiceNumber);
-      await markBilled('materialOrders', preview.linkedOrders, invoiceNumber);
 
       await createInvoice(user.companyId, {
         invoiceNumber,
@@ -253,7 +252,7 @@ export default function InvoicesView() {
 
         <details className="mt-4">
           <summary className="min-h-touch cursor-pointer text-sm font-medium text-brand underline">
-            Konditionen anpassen
+            Konditionen für diese Rechnung anpassen
           </summary>
           <div className="mt-3 rounded-sm border border-line bg-surface-2 p-4">
             <FormGrid cols={3}>
@@ -263,6 +262,16 @@ export default function InvoicesView() {
               <InputField id="r-helper" label="Helfer €/h" type="number" min="0" step="0.5"
                 value={String(rates.helper)}
                 onChange={(e) => setRates({ ...rates, helper: Number(e.target.value) || 0 })} />
+              <InputField id="r-night" label="Nachtzuschlag %" type="number" min="0" step="5"
+                value={String(Math.round(rates.nightSurcharge * 100))}
+                onChange={(e) =>
+                  setRates({ ...rates, nightSurcharge: (Number(e.target.value) || 0) / 100 })
+                } />
+              <InputField id="r-emergency" label="Notdienstzuschlag %" type="number" min="0" step="5"
+                value={String(Math.round(rates.emergencySurcharge * 100))}
+                onChange={(e) =>
+                  setRates({ ...rates, emergencySurcharge: (Number(e.target.value) || 0) / 100 })
+                } />
               <InputField id="r-due" label="Zahlungsziel (Tage)" type="number" min="0"
                 value={String(rates.dueDays)}
                 onChange={(e) => setRates({ ...rates, dueDays: Number(e.target.value) || 0 })} />
@@ -273,14 +282,10 @@ export default function InvoicesView() {
                 <option value="0.1">10 %</option>
                 <option value="0">0 % (Reverse Charge)</option>
               </SelectField>
-              <InputField id="r-markup" label="Material-Aufschlag %" type="number" min="0"
-                value={String(Math.round(rates.materialMarkup * 100))}
-                onChange={(e) =>
-                  setRates({ ...rates, materialMarkup: (Number(e.target.value) || 0) / 100 })
-                } />
             </FormGrid>
             <p className="mt-2 text-sm text-ink-muted">
-              Änderungen wirken erst beim erneuten Zusammenstellen.
+              Gilt nur für diese Rechnung und wirkt erst beim erneuten Zusammenstellen. Die
+              dauerhaften Sätze des Betriebs stehen in den Einstellungen.
             </p>
           </div>
         </details>
@@ -334,8 +339,8 @@ export default function InvoicesView() {
             <CheckboxField id="invdetail" label="Leistungsnachweis anhängen"
               checked={appendDetail} onChange={(e) => setAppendDetail(e.target.checked)} />
             <p className="text-sm text-ink-muted">
-              {preview.linkedEntries.length} Zeiteinträge und {preview.linkedOrders.length}{' '}
-              Materialposten werden als verrechnet gesperrt.
+              {preview.linkedEntries.length} Zeiteinträge werden als verrechnet gesperrt.
+              Material wird über diese App nicht verrechnet.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button onClick={confirmInvoice} loading={busy} disabled={numberTaken || !invoiceNumber}
@@ -438,7 +443,7 @@ export default function InvoicesView() {
         title="Rechnung stornieren?"
         message={
           toCancel
-            ? `${toCancel.invoiceNumber} wird storniert; die verknüpften Zeiten und Materialien werden wieder freigegeben.`
+            ? `${toCancel.invoiceNumber} wird storniert; die verknüpften Zeiteinträge werden wieder freigegeben.`
             : ''
         }
         confirmLabel="Stornieren"

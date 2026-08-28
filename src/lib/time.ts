@@ -114,9 +114,13 @@ export function calcWorkMin(entry: Pick<TimeEntry, 'status' | 'startTime' | 'end
   if (entry.startTime && entry.endTime) {
     const start = new Date(`1970-01-01T${entry.startTime}`);
     const end = new Date(`1970-01-01T${entry.endTime}`);
+    let span = (end.getTime() - start.getTime()) / 60000;
+    // Endzeit vor Startzeit heißt: der Einsatz ging über Mitternacht
+    // (Bereitschaft, Notdienst). Vorher ergab 22:00–06:00 glatt 0 Stunden —
+    // die Nacht war schlicht nicht bezahlt.
+    if (span < 0) span += 24 * 60;
     const brk = Number(entry.breakDuration ?? 0) || 0;
-    const min = (end.getTime() - start.getTime()) / 60000 - brk;
-    return Math.max(0, min);
+    return Math.max(0, span - brk);
   }
   if (typeof entry.hours === 'number' && !Number.isNaN(entry.hours)) {
     return Math.max(0, Math.round(entry.hours * 60));
@@ -196,11 +200,14 @@ export interface MonthStats {
 /**
  * Monatsauswertung eines Mitarbeiters (Legacy:3061-3111).
  *
- * ACHTUNG — bewusste Abweichung vom Gesamtsaldo (calcOverallSaldo):
- * 1) Das Tagessoll ist hier `weeklyTarget / 5`, NICHT `/ workDays.length`.
- * 2) Krank/Urlaub REDUZIEREN hier das Soll, statt zum Ist zu zählen.
- * Beide Regeln stammen 1:1 aus dem Legacy und bestimmen die Zahlen, die
- * Buchhaltung und Lohnverrechnung gewohnt sind — deshalb nicht "vereinheitlicht".
+ * Das Tagessoll ist `weeklyTarget / workDays.length` — dieselbe Regel wie im
+ * Gesamtsaldo (calcOverallSaldo). Der Prototyp teilte hier fest durch 5; bei
+ * Teilzeit wichen Mitarbeiter- und Buchhaltungssicht dadurch voneinander ab.
+ *
+ * Weiterhin legacy-treu: Krank und Urlaub REDUZIEREN hier das Soll, statt zum
+ * Ist zu zählen. Das ist die Darstellung, die die Lohnverrechnung erwartet —
+ * der Gesamtsaldo schreibt sie stattdessen als vollen Solltag gut. Beide Wege
+ * kommen auf dasselbe Ergebnis, zeigen es nur unterschiedlich auf.
  *
  * @param monthEntries Einträge des Nutzers im gewählten Monat
  * @param yearEntries  Einträge des Nutzers im gewählten Jahr (für den Resturlaub)
@@ -215,9 +222,13 @@ export function calcMonthStats(
 ): MonthStats {
   const weeklyTarget = Number(user.weeklyTargetHours ?? 40) || 40;
   const yearlyVacation = Number(user.yearlyVacationDays ?? 25) || 25;
-  const dailyTargetH = weeklyTarget / 5;
 
   const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+  // Tagessoll über die tatsächlichen Arbeitstage — identisch zu
+  // calcOverallSaldo. Der Prototyp teilte hier fest durch 5; bei einer
+  // 4-Tage-Woche (32 h) ergab das 6,4 h/Tag statt 8,0 h/Tag, und Mitarbeiter
+  // und Buchhaltung sahen für denselben Monat verschiedene Salden.
+  const dailyTargetH = weeklyTarget / workDays.length;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   let workdaysInMonth = 0;
   let holidaysInMonth = 0;

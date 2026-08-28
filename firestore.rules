@@ -56,10 +56,12 @@ service cloud.firestore {
         ['Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator'];
     }
 
-    // --- companies: nur lesen für eigene Firma; Schreiben nur Leitung ---
+    // --- companies: lesen für die eigene Firma; Stammdaten und Sätze
+    //     ändern nur die Leitung. Anlegen und Löschen bleiben dem Server
+    //     vorbehalten: ein Mandant darf sich nicht selbst entfernen. ---
     match /companies/{companyId} {
       allow read: if signedIn() && companyId == tokenCompany();
-      allow write: if isLeadership() && companyId == tokenCompany();
+      allow update: if isLeadership() && companyId == tokenCompany();
     }
 
     // --- users: lesen innerhalb der Firma; verwalten nur GF/Admin ---

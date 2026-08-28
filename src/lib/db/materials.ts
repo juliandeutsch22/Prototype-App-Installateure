@@ -20,14 +20,14 @@ export function subscribeMaterials(
 
 export type NewMaterial = Pick<
   Material,
-  'name' | 'category' | 'stock' | 'articleNumber' | 'unit' | 'purchasePrice'
+  'name' | 'category' | 'stock' | 'articleNumber' | 'unit'
 >;
 
 /** Ab diesem Bestand gilt Material als knapp (Legacy markiert das rot). */
 export const LOW_STOCK_THRESHOLD = 5;
 
 export function createMaterial(companyId: string, m: NewMaterial) {
-  // Siehe projects.ts: leere Optionalfelder (kein Einkaufspreis) dürfen
+  // Siehe projects.ts: leere Optionalfelder (etwa keine Artikelnummer) dürfen
   // das Anlegen nicht scheitern lassen.
   return createInTenant(COLLECTION, companyId, m);
 }

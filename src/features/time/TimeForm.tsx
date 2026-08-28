@@ -66,6 +66,11 @@ export default function TimeForm({
   const [comment, setComment] = useState(entry?.comment ?? '');
   const [isHelper, setIsHelper] = useState(entry?.isHelper ?? prefill?.asHelper ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
+  // Zuschläge werden bewusst gesetzt, nicht aus der Uhrzeit geraten: ob ein
+  // Einsatz als Nachtarbeit oder Notdienst gilt, entscheidet die Vereinbarung
+  // mit dem Kunden — nicht der Zeiger auf der Uhr.
+  const [isNightWork, setIsNightWork] = useState(entry?.isNightWork ?? false);
+  const [isEmergency, setIsEmergency] = useState(entry?.isEmergency ?? false);
   const [vehiclePlate, setVehiclePlate] = useState(entry?.vehiclePlate ?? '');
   /** Für wen wird gebucht (nur wenn `staff` gesetzt ist). */
   const [targetUid, setTargetUid] = useState(entry?.userId ?? '');
@@ -130,6 +135,8 @@ export default function TimeForm({
         helperName: canHaveProject ? helperName : '',
         comment,
         isHelper: canHaveProject ? isHelper : false,
+        isNightWork: canHaveProject && showWorkFields ? isNightWork : false,
+        isEmergency: canHaveProject && showWorkFields ? isEmergency : false,
       };
 
       if (isEdit) {
@@ -330,6 +337,26 @@ export default function TimeForm({
             value={helperName}
             onChange={(e) => setHelperName(e.target.value)}
           />
+
+          <fieldset className="rounded-sm border border-line bg-surface-2 p-3">
+            <legend className="px-1 section-label">Zuschläge</legend>
+            <CheckboxField
+              id="isNightWork"
+              label="Nachtarbeit"
+              checked={isNightWork}
+              onChange={(e) => setIsNightWork(e.target.checked)}
+            />
+            <CheckboxField
+              id="isEmergency"
+              label="Notdienst / Störungseinsatz"
+              checked={isEmergency}
+              onChange={(e) => setIsEmergency(e.target.checked)}
+            />
+            <p className="mt-1 text-sm text-ink-muted">
+              Nur ankreuzen, wenn der Zuschlag wirklich verrechnet wird. Die Höhe legt die
+              Geschäftsführung in den Einstellungen fest.
+            </p>
+          </fieldset>
         </>
       )}
 

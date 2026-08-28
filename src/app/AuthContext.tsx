@@ -17,6 +17,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { getCompany } from '@/lib/db/company';
 import { applyBranding } from '@/lib/tenant';
 import type { CurrentUser, Company, Role } from '@/types';
 
@@ -29,6 +30,8 @@ interface AuthState {
   signIn: (email: string, password: string, remember?: boolean) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  /** Lädt die Mandanten-Stammdaten neu — nach dem Speichern in den Einstellungen. */
+  reloadCompany: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -73,13 +76,6 @@ async function loadProfile(uid: string, email: string): Promise<CurrentUser | nu
   };
 }
 
-async function loadCompany(companyId: string): Promise<Company | null> {
-  const ref = doc(db, 'companies', companyId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...(snap.data() as Omit<Company, 'id'>) };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -109,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setCompany(null);
         } else {
           setUser(profile);
-          const comp = await loadCompany(profile.companyId);
+          const comp = await getCompany(profile.companyId);
           setCompany(comp);
           if (comp) applyBranding(comp);
         }
@@ -145,9 +141,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await sendPasswordResetEmail(auth, email);
   }, []);
 
+  // Die Stammdaten liegen bewusst nicht auf einem Live-Abo: sie ändern sich
+  // selten, und ein Abo auf `companies` hinge an jeder Sitzung. Nach dem
+  // Speichern in den Einstellungen wird stattdessen gezielt nachgeladen.
+  const reloadCompany = useCallback(async () => {
+    if (!user) return;
+    const comp = await getCompany(user.companyId);
+    setCompany(comp);
+    if (comp) applyBranding(comp);
+  }, [user]);
+
   return (
     <AuthContext.Provider
-      value={{ user, company, loading, error, signIn, signOut, resetPassword }}
+      value={{ user, company, loading, error, signIn, signOut, resetPassword, reloadCompany }}
     >
       {children}
     </AuthContext.Provider>

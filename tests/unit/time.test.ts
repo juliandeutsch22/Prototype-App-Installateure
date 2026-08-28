@@ -41,8 +41,18 @@ describe('calcWorkMin', () => {
     expect(calcWorkMin(entry({ status: 'Krank', hours: 8 }))).toBe(0);
     expect(calcWorkMin(entry({ status: 'Urlaub', hours: 8 }))).toBe(0);
   });
-  it('floort negative Werte auf 0', () => {
-    expect(calcWorkMin(entry({ startTime: '10:00', endTime: '09:00', breakDuration: 0 }))).toBe(0);
+  it('rechnet über Mitternacht (Notdienst/Bereitschaft)', () => {
+    // 22:00-06:00 ergab vorher 0 Stunden — die Nacht war schlicht unbezahlt.
+    expect(calcWorkMin(entry({ startTime: '22:00', endTime: '06:00', breakDuration: 0 }))).toBe(480);
+    expect(calcWorkMin(entry({ startTime: '20:00', endTime: '02:30', breakDuration: 30 }))).toBe(360);
+  });
+
+  it('behandelt gleiche Start- und Endzeit als 0, nicht als 24 Stunden', () => {
+    expect(calcWorkMin(entry({ startTime: '08:00', endTime: '08:00', breakDuration: 0 }))).toBe(0);
+  });
+
+  it('floort auf 0, wenn die Pause länger ist als die Arbeitszeit', () => {
+    expect(calcWorkMin(entry({ startTime: '08:00', endTime: '09:00', breakDuration: 120 }))).toBe(0);
   });
 });
 
@@ -101,7 +111,7 @@ describe('calcMonthStats', () => {
     const s = calcMonthStats(staff(), [], [], JUNE.year, JUNE.month);
     expect(s.workdaysInMonth).toBe(19);
     expect(s.holidaysInMonth).toBe(2);
-    expect(s.dailyTargetH).toBe(8); // 40 / 5 — hart 5, nicht workDays.length
+    expect(s.dailyTargetH).toBe(8); // 40 h / 5 Arbeitstage
     expect(s.sollMin).toBe(19 * 8 * 60);
   });
 
@@ -128,9 +138,11 @@ describe('calcMonthStats', () => {
     expect(s.urlaubRest).toBe(23); // 25 − 2
   });
 
-  it('berücksichtigt abweichende Arbeitstage beim Zählen, nicht beim Tagessoll', () => {
-    // 4-Tage-Woche: weniger Solltage, Tagessoll bleibt weeklyTarget/5.
-    const s = calcMonthStats(staff({ workDays: [1, 2, 3, 4] }), [], [], JUNE.year, JUNE.month);
+  it('rechnet Teilzeit gleich wie der Gesamtsaldo', () => {
+    // 4-Tage-Woche mit 32 h: 8,0 h/Tag — NICHT 32/5 = 6,4 h.
+    // Sonst sähen Mitarbeiter und Buchhaltung verschiedene Salden.
+    const teilzeit = staff({ workDays: [1, 2, 3, 4], weeklyTargetHours: 32 });
+    const s = calcMonthStats(teilzeit, [], [], JUNE.year, JUNE.month);
     expect(s.dailyTargetH).toBe(8);
     expect(s.workdaysInMonth).toBeLessThan(19);
   });

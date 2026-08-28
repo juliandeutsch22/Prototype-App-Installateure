@@ -8,7 +8,7 @@ import {
   assertSucceeds,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 /**
  * Beweist das Akzeptanzkriterium aus Spec §7: Mit Test-Accounts zweier Firmen
@@ -254,5 +254,36 @@ describe('Schreibregeln', () => {
         active: true,
       }),
     );
+  });
+});
+
+describe('Firmen-Stammdaten und Verrechnungssätze', () => {
+  it('Geschäftsführung darf die Sätze der eigenen Firma ändern', async () => {
+    const db = testEnv
+      .authenticatedContext('gfA', { companyId: 'companyA', role: 'Geschäftsführung' })
+      .firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'companies', 'companyA'), {
+        rates: { fach: 70, helper: 48, nightSurcharge: 0.6,
+                 emergencySurcharge: 0.8, vatRate: 0.2, dueDays: 14 },
+      }),
+    );
+  });
+
+  it('Mitarbeiter darf die Sätze NICHT ändern', async () => {
+    // Sonst könnte ein Monteur seinen eigenen Stundensatz hochsetzen.
+    const db = ctxA_employee().firestore();
+    await assertFails(updateDoc(doc(db, 'companies', 'companyA'), { rates: { fach: 999 } }));
+  });
+
+  it('Firma B darf die Sätze von Firma A NICHT ändern', async () => {
+    const db = ctxB_admin().firestore();
+    await assertFails(updateDoc(doc(db, 'companies', 'companyA'), { rates: { fach: 1 } }));
+  });
+
+  it('Auch die Leitung darf ihre Firma nicht löschen', async () => {
+    // Anlegen und Entfernen eines Mandanten bleibt dem Server vorbehalten.
+    const db = ctxA_admin().firestore();
+    await assertFails(deleteDoc(doc(db, 'companies', 'companyA')));
   });
 });

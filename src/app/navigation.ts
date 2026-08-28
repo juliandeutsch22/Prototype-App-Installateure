@@ -41,6 +41,9 @@ export const NAV: NavItem[] = [
   { path: '/admin-orders', label: 'Bestellungen', short: 'Bestellungen', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung' },
   { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Verwaltung' },
   { path: '/user-mgmt', label: 'Benutzerverwaltung', short: 'Benutzer', icon: 'users', roles: LEAD, group: 'Verwaltung' },
+  // Stundensätze und Zuschläge sind Geschäftsführungssache — sie bestimmen,
+  // was der Betrieb verrechnet.
+  { path: '/settings', label: 'Einstellungen', short: 'Sätze', icon: 'settings', roles: LEAD, group: 'Verwaltung' },
 
   { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
   { path: '/accounting', label: 'Mitarbeiterübersicht', short: 'Übersicht', icon: 'chart', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },

@@ -13,7 +13,8 @@ export type IconName =
   | 'chart'
   | 'more'
   | 'chevron'
-  | 'download';
+  | 'download'
+  | 'settings';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 const paths: Record<IconName, string> = {
@@ -33,6 +34,10 @@ const paths: Record<IconName, string> = {
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   chevron: 'm6 9 6 6 6-6',
   download: 'M12 3v12m0 0 4-4m-4 4-4-4M4 19h16',
+  // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
+  // und meint hier genau das, was der Screen tut — Werte einstellen.
+  settings:
+    'M4 7h10M18 7h2M18 7a2 2 0 1 1-4 0 2 2 0 0 1 4 0M4 12h4M12 12h8M12 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0M4 17h10M18 17h2M18 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
 };
 
 export default function Icon({

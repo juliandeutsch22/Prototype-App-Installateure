@@ -64,7 +64,9 @@ function row(values: unknown[]): string {
  * liest — ohne es werden Umlaute zerstört.
  */
 export function downloadCsv(content: string, filename: string): void {
-  const blob = new Blob([`﻿${content}`], { type: 'text/csv;charset=utf-8;' });
+  // BOM als \uFEFF-Escape statt als unsichtbares Zeichen im Quelltext: sonst
+  // sieht niemand, dass es da ist, und der nächste Editor frisst es.
+  const blob = new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

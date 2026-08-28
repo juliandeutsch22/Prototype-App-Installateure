@@ -16,6 +16,7 @@ import MyScheduleView from '@/features/assignments/MyScheduleView';
 import InvoicesView from '@/features/invoices/InvoicesView';
 import AccountingView from '@/features/accounting/AccountingView';
 import UserMgmtView from '@/features/users/UserMgmtView';
+import SettingsView from '@/features/settings/SettingsView';
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
@@ -113,6 +114,14 @@ function AppRoutes() {
         element={
           <RequireRole roles={['Geschäftsführung', 'Administrator']}>
             <UserMgmtView />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
+            <SettingsView />
           </RequireRole>
         }
       />

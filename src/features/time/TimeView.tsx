@@ -165,6 +165,8 @@ export default function TimeView() {
                         >
                           {e.source === 'voice' && <Badge tone="info">KI</Badge>}
                           {e.isHelper && <Badge tone="warning">Helfer</Badge>}
+                          {e.isEmergency && <Badge tone="danger">Notdienst</Badge>}
+                          {e.isNightWork && <Badge tone="info">Nacht</Badge>}
                           <span className="font-mono font-medium text-ink">
                             {fmtMin(calcWorkMin(e))}
                           </span>

@@ -33,7 +33,15 @@ interface CartLine {
   note: string;
 }
 
-const CART_KEY = 'perl_cart_v1';
+/**
+ * Warenkorb-Schlüssel je Mandant UND Nutzer. Mit einem festen Schlüssel sah
+ * auf einem geteilten Baustellen-Tablet der nächste Angemeldete den Korb
+ * seines Vorgängers — und bestellte ihn unter seinem Namen auf dessen
+ * Baustelle.
+ */
+function cartKey(companyId: string, uid: string) {
+  return `perl_cart_v2:${companyId}:${uid}`;
+}
 
 /** Material bestellen, eigene Bestellungen verfolgen, Retouren erfassen. */
 export default function OrderView() {
@@ -49,14 +57,7 @@ export default function OrderView() {
 
   // Warenkorb übersteht einen Reload — auf der Baustelle geht die Verbindung
   // oder die App schon mal verloren, bevor abgeschickt wurde.
-  const [cart, setCart] = useState<CartLine[]>(() => {
-    try {
-      const raw = localStorage.getItem(CART_KEY);
-      return raw ? (JSON.parse(raw) as CartLine[]) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [cart, setCart] = useState<CartLine[]>([]);
   const [projectNumber, setProjectNumber] = useState('');
   const [note, setNote] = useState('');
   const [search, setSearch] = useState('');
@@ -90,13 +91,25 @@ export default function OrderView() {
     };
   }, [user]);
 
+  // Korb des angemeldeten Nutzers laden, sobald er feststeht.
   useEffect(() => {
+    if (!user) return;
     try {
-      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+      const raw = localStorage.getItem(cartKey(user.companyId, user.uid));
+      setCart(raw ? (JSON.parse(raw) as CartLine[]) : []);
+    } catch {
+      setCart([]);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    try {
+      localStorage.setItem(cartKey(user.companyId, user.uid), JSON.stringify(cart));
     } catch {
       // Privater Modus o. Ä. — der Korb lebt dann nur im Speicher weiter.
     }
-  }, [cart]);
+  }, [cart, user]);
 
   const sortedMaterials = useMemo(
     () => [...materials].sort((a, b) => a.name.localeCompare(b.name, 'de')),
@@ -181,6 +194,13 @@ export default function OrderView() {
 
   async function submitReturn() {
     if (!user || !retMaterial) return;
+    // Ohne diese Prüfung ginge eine negative Menge als increment(-n) durch und
+    // eine Retoure würde den Lagerbestand VERRINGERN.
+    const qty = Math.floor(Number(retQty));
+    if (!Number.isFinite(qty) || qty < 1) {
+      setError('Bitte eine Menge von mindestens 1 angeben.');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -188,7 +208,7 @@ export default function OrderView() {
       await createReturn(user.companyId, {
         materialId: retMaterial,
         materialName: mat?.name ?? '',
-        quantity: Number(retQty) || 1,
+        quantity: qty,
         condition: retCondition,
         note: retReason,
         projectNumber: retProject,
@@ -222,7 +242,7 @@ export default function OrderView() {
     <div className="space-y-6">
       <PageHeader
         title="Material"
-        subtitle="Bestellen, eigene Bestellungen verfolgen und Rückgaben erfassen"
+        subtitle="Von der Baustelle bei der Projektleitung anfordern, Lieferung verfolgen und Rückgaben erfassen"
       />
 
       <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">

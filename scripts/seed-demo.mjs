@@ -77,10 +77,10 @@ async function main() {
     ],
   });
   await seedMaterials('perl', [
-    { name: 'Kupferrohr 15mm', category: 'Rohr', stock: 120, unit: 'm', purchasePrice: 4.5 },
-    { name: 'Flachdichtung 1/2"', category: 'Dichtung', stock: 340, unit: 'Stk', purchasePrice: 0.3 },
-    { name: 'Therme Junkers', category: 'Heizung', stock: 6, unit: 'Stk', purchasePrice: 980 },
-    { name: 'Eckventil', category: 'Sanitär', stock: 58, unit: 'Stk', purchasePrice: 3.2 },
+    { name: 'Kupferrohr 15mm', category: 'Rohr', stock: 120, unit: 'm' },
+    { name: 'Flachdichtung 1/2"', category: 'Dichtung', stock: 340, unit: 'Stk' },
+    { name: 'Therme Junkers', category: 'Heizung', stock: 6, unit: 'Stk' },
+    { name: 'Eckventil', category: 'Sanitär', stock: 58, unit: 'Stk' },
   ]);
   const perlUid = await makeUser({
     email: 'max@perl.at', password: 'demo1234', name: 'Max Mustermann',

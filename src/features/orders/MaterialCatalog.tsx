@@ -25,13 +25,15 @@ const empty = {
   stock: '0',
   articleNumber: '',
   unit: 'Stk',
-  purchasePrice: '',
 };
 
 /**
  * Materialkatalog (Verwaltung/GF). Ohne diese Pflege bleibt die Bestellansicht
- * für einen neuen Betrieb dauerhaft leer — der Katalog ist die Grundlage von
- * Bestellungen, Lagerbestand und Materialabrechnung.
+ * für einen neuen Betrieb dauerhaft leer.
+ *
+ * Bewusst OHNE Preise: Materialanforderungen sind hier interne Logistik —
+ * der Monteur sagt der Projektleitung, was er auf der Baustelle braucht.
+ * Die Verrechnung von Material läuft außerhalb dieser App.
  */
 export default function MaterialCatalog() {
   const { user } = useAuth();
@@ -83,7 +85,6 @@ export default function MaterialCatalog() {
       stock: String(m.stock ?? 0),
       articleNumber: m.articleNumber ?? '',
       unit: m.unit ?? 'Stk',
-      purchasePrice: m.purchasePrice != null ? String(m.purchasePrice) : '',
     });
   }
   function reset() {
@@ -103,7 +104,6 @@ export default function MaterialCatalog() {
         stock: Number(form.stock) || 0,
         articleNumber: form.articleNumber.trim(),
         unit: form.unit.trim() || 'Stk',
-        purchasePrice: form.purchasePrice === '' ? undefined : Number(form.purchasePrice) || 0,
       };
       if (editId) await updateMaterial(editId, data);
       else await createMaterial(user.companyId, data);
@@ -133,9 +133,6 @@ export default function MaterialCatalog() {
               onChange={(e) => setForm({ ...form, unit: e.target.value })} />
             <InputField id="mstock" label="Lagerbestand" type="number" min="0" value={form.stock}
               onChange={(e) => setForm({ ...form, stock: e.target.value })} required />
-            <InputField id="mprice" label="Einkaufspreis (€)" type="number" min="0" step="0.01"
-              value={form.purchasePrice}
-              onChange={(e) => setForm({ ...form, purchasePrice: e.target.value })} />
           </FormGrid>
           {error && <ErrorState message={error} />}
           <div className="flex flex-col gap-2 sm:flex-row">
