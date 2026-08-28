@@ -35,7 +35,11 @@ export default function Card({
       className={`overflow-hidden rounded-lg border border-line bg-surface shadow-sm transition-shadow hover:shadow-lg ${accentBorder[accent]} ${className}`}
     >
       {title && (
-        <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <header
+          // Auf schmalen Schirmen untereinander: sonst überlagern breite
+          // Aktionen (mehrere Knöpfe) den Titel.
+          className="flex flex-col items-start gap-2 border-b border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+        >
           {/* Kartentitel sind im Prototyp klein, fett und versal gesetzt —
               sie ordnen den Inhalt, ohne mit der Seitenüberschrift zu konkurrieren. */}
           <h2 className="section-label">{title}</h2>

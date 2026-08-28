@@ -190,7 +190,9 @@ export default function UserMgmtView() {
     <div className="space-y-6">
       <PageHeader title="Benutzerverwaltung" subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen" />
 
-      <div className="grid grid-cols-3 gap-4">
+      {/* Mobil zweispaltig: bei drei Spalten wurden längere Beschriftungen
+          wie "Im Außendienst" abgeschnitten. */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <Metric label="Benutzer" icon="users" value={stats.total} />
         <Metric label="Aktiv" icon="chart" value={stats.active} />
         <Metric label="Im Außendienst" icon="building" value={stats.field} />
