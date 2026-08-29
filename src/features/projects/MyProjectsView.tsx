@@ -1,14 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listProjectsForEmployee } from '@/lib/db/projects';
 import type { Project } from '@/types';
 import Card from '@/components/Card';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
-import { List, ListRow } from '@/components/ListRow';
+import Badge from '@/components/Badge';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
 
-/** Read-only Liste der Baustellen, denen der Mitarbeiter zugeordnet ist. */
+/** 'YYYY-MM-DD' -> '27.08.2026'; leer bleibt leer. */
+function fmt(d?: string): string {
+  if (!d) return '';
+  return new Date(`${d}T00:00:00`).toLocaleDateString('de-AT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+/**
+ * Baustellen des Mitarbeiters. Bewusst als Karten statt als Liste: vor Ort
+ * zählen Ansprechpartner, Telefonnummer und Route — die müssen groß und mit
+ * einem Daumen erreichbar sein.
+ */
 export default function MyProjectsView() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -23,35 +37,81 @@ export default function MyProjectsView() {
       .finally(() => setLoading(false));
   }, [user]);
 
+  // Abgeschlossene Baustellen gehören nicht in die Arbeitsliste.
+  const active = useMemo(
+    () => projects.filter((p) => p.status !== 'Abgeschlossen'),
+    [projects],
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader title="Meine Baustellen" subtitle="Baustellen, denen du zugeordnet bist" />
-      <Card>
-        {loading ? (
-          <LoadingState />
-        ) : error ? (
-          <ErrorState message={error} />
-        ) : projects.length === 0 ? (
-          <EmptyState>Dir sind aktuell keine Baustellen zugeordnet.</EmptyState>
-        ) : (
-          <List>
-            {projects.map((p) => (
-              <ListRow
-                key={p.id}
-                title={p.customerName}
-                subtitle={
-                  <>
-                    {p.projectNumber}
-                    {p.address && ` · ${p.address}`}
-                  </>
-                }
-              >
-                <StatusBadge status={p.status} />
-              </ListRow>
-            ))}
-          </List>
-        )}
-      </Card>
+
+      {loading ? (
+        <Card><LoadingState /></Card>
+      ) : error ? (
+        <Card><ErrorState message={error} /></Card>
+      ) : active.length === 0 ? (
+        <Card><EmptyState>Dir sind aktuell keine Baustellen zugeordnet.</EmptyState></Card>
+      ) : (
+        <div className="space-y-4">
+          {active.map((p) => (
+            <Card
+              key={p.id}
+              accent="brand"
+              title={p.customerName}
+              action={<StatusBadge status={p.status} />}
+            >
+              <p className="font-mono text-sm text-ink-muted">{p.projectNumber}</p>
+              {p.description && <p className="mt-2 text-ink">{p.description}</p>}
+
+              {(p.startDate || p.endDate) && (
+                <p className="mt-2 text-sm text-ink-muted">
+                  {fmt(p.startDate)}
+                  {p.endDate && ` – ${fmt(p.endDate)}`}
+                </p>
+              )}
+              {p.estimatedHours ? (
+                <p className="mt-2">
+                  <Badge tone="gray">{p.estimatedHours} h kalkuliert</Badge>
+                </p>
+              ) : null}
+
+              {/* Ansprechpartner: ohne Nummer steht der Monteur vor Ort ohne
+                  Kontakt da — deshalb wird ein fehlender Eintrag angemahnt. */}
+              <div className="mt-4 rounded-sm border border-line bg-surface-2 p-3">
+                <p className="section-label">Ansprechpartner</p>
+                {p.contactName || p.contactPhone ? (
+                  <div className="mt-1">
+                    {p.contactName && <p className="font-medium text-ink">{p.contactName}</p>}
+                    {p.contactPhone && (
+                      <a
+                        href={`tel:${p.contactPhone.replace(/[^\d+]/g, '')}`}
+                        className="mt-1 inline-flex min-h-touch items-center font-semibold text-brand underline"
+                      >
+                        {p.contactPhone}
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm text-warning">Kein Ansprechpartner hinterlegt.</p>
+                )}
+              </div>
+
+              {p.address && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex min-h-touch items-center justify-center gap-2 rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg"
+                >
+                  Route: {p.address}
+                </a>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

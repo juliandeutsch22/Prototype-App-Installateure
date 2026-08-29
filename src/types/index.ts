@@ -50,7 +50,32 @@ export interface Company {
   vatId?: string; // UID-Nummer, z. B. "ATU12345678"
   companyRegister?: string; // FN
   defaultVatRate?: number; // z. B. 0.20
+  /** Stundensätze und Zuschläge, gepflegt von der Geschäftsführung. */
+  rates?: InvoiceRates;
   createdAt?: number;
+}
+
+/**
+ * Verrechnungssätze eines Betriebs. Zuschläge sind ANTEILE des Stundensatzes
+ * (0.5 = +50 %), nicht eigene Sätze: eine Preiserhöhung beim Grundsatz wirkt
+ * damit automatisch auf alle Zuschläge, wie es Kollektivverträge vorgeben.
+ */
+export interface InvoiceRates {
+  /** Monteur / Facharbeiter, €/h */
+  fach: number;
+  /**
+   * Helfer, €/h. Gilt für Einsätze, die im Zeiteintrag als Helferarbeit
+   * gekennzeichnet sind — nicht für eine Person dauerhaft.
+   */
+  helper: number;
+  /** Zuschlag für Nachtarbeit, Anteil (0.5 = +50 %). */
+  nightSurcharge: number;
+  /** Zuschlag für Notdienst, Anteil (1 = +100 %). */
+  emergencySurcharge: number;
+  /** Umsatzsteuer, Anteil (0.2 = 20 %). */
+  vatRate: number;
+  /** Zahlungsziel in Tagen. */
+  dueDays: number;
 }
 
 /** users/{docId} — Auth-Verknüpfung über `uid`, nicht Doc-ID. */
@@ -98,7 +123,13 @@ export interface Project {
   createdAt?: number;
 }
 
-/** materials/{id} — Katalog. */
+/**
+ * materials/{id} — Katalog.
+ *
+ * Bewusst ohne Preis: Material wird über diese App nicht verrechnet. Der
+ * Katalog dient allein dazu, dass ein Monteur auf der Baustelle benennen kann,
+ * was ihm die Projektleitung bringen soll.
+ */
 export interface Material {
   id: string;
   companyId: string;
@@ -107,10 +138,14 @@ export interface Material {
   stock: number;
   articleNumber?: string;
   unit?: string;
-  purchasePrice?: number;
 }
 
-/** materialOrders/{id} — Bestellung oder Retoure. */
+/**
+ * materialOrders/{id} — Anforderung oder Retoure.
+ *
+ * Eine „Bestellung" ist hier eine interne Anforderung des Monteurs an die
+ * Projektleitung, keine Bestellung beim Lieferanten und kein Rechnungsposten.
+ */
 export interface MaterialOrder {
   id: string;
   companyId: string;
@@ -142,8 +177,13 @@ export interface TimeEntry {
   endTime?: string; // 'HH:MM'
   breakDuration?: number; // Minuten
   travelTime?: number; // Minuten (Wegzeit)
-  /** Direkt gesetzte Stunden (v. a. Sprach-Einträge). Hat Vorrang vor start/end. */
+  /** Direkt gesetzte Stunden (v. a. Sprach-Einträge). Greift nur, wenn keine
+   * Zeitspanne (start+end) gesetzt ist — siehe calcWorkMin. */
   hours?: number;
+  /** Nachtarbeit — wird bewusst manuell gesetzt, nicht aus der Uhrzeit geraten. */
+  isNightWork?: boolean;
+  /** Notdienst / Störungseinsatz außerhalb der regulären Zeit. */
+  isEmergency?: boolean;
   customerName?: string;
   projectNumber?: string;
   helperName?: string;
@@ -189,6 +229,17 @@ export interface Invoice {
   totalNetto: number;
   totalVat: number;
   totalBrutto: number;
+  /**
+   * Positionen zum Zeitpunkt der Rechnungslegung. Eine Rechnung ist ein
+   * Dokument, kein Blick auf die aktuellen Daten: würde man sie später aus
+   * den Zeiteinträgen neu berechnen, änderte sich eine bereits verschickte
+   * Rechnung, sobald jemand einen Eintrag korrigiert.
+   */
+  positions?: { label: string; qty: number; unit: string; unitPrice: number; netto: number }[];
+  /** Angewandter USt-Satz (0.2 = 20 %). */
+  vatRate?: number;
+  /** Anschrift der Baustelle zum Zeitpunkt der Rechnungslegung. */
+  address?: string;
   paymentStatus: 'Offen' | 'Überfällig' | 'Bezahlt' | 'Storniert';
   linkedEntries?: string[];
   linkedOrders?: string[];

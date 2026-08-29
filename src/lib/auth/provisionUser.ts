@@ -2,9 +2,28 @@ import { createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 
 import { auth, getSecondaryAuth } from '@/lib/firebase';
 import { createUserDoc, type UserProfileInput } from '@/lib/db/users';
 
-/** Zufälliges Initialpasswort (wird nie angezeigt; Nutzer setzt eigenes per Mail). */
-function generatePassword(): string {
-  return Math.random().toString(36).slice(-10) + 'A1!';
+const PW_ALPHABET = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+/**
+ * Zufälliges Initialpasswort. Bewusst über crypto.getRandomValues statt
+ * Math.random (nicht kryptografisch sicher und damit vorhersagbar).
+ * Verwechselbare Zeichen (0/O, 1/l/I) sind ausgelassen, weil das Passwort
+ * am Telefon durchgegeben werden kann, wenn die Mail nicht ankommt.
+ */
+function generatePassword(length = 12): string {
+  const bytes = new Uint32Array(length);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (const b of bytes) out += PW_ALPHABET[b % PW_ALPHABET.length];
+  return `${out}A1!`;
+}
+
+export interface ProvisionResult {
+  uid: string;
+  /** Initialpasswort — anzeigen, falls die Willkommens-Mail nicht ankommt. */
+  tempPassword: string;
+  /** false = Mailversand schlug fehl, Passwort muss weitergegeben werden. */
+  mailSent: boolean;
 }
 
 /**
@@ -16,7 +35,10 @@ function generatePassword(): string {
  *    (die Cloud Function syncUserClaims setzt daraufhin die Custom Claims).
  * 4) Passwort-Reset-/Willkommens-Mail senden (best effort).
  */
-export async function provisionUser(companyId: string, profile: UserProfileInput): Promise<string> {
+export async function provisionUser(
+  companyId: string,
+  profile: UserProfileInput,
+): Promise<ProvisionResult> {
   const secAuth = getSecondaryAuth();
   const tempPassword = generatePassword();
   const cred = await createUserWithEmailAndPassword(secAuth, profile.email, tempPassword);
@@ -25,10 +47,18 @@ export async function provisionUser(companyId: string, profile: UserProfileInput
 
   await createUserDoc(companyId, newUid, profile);
 
+  let mailSent = true;
   try {
     await sendPasswordResetEmail(auth, profile.email);
   } catch {
-    // Nicht kritisch (z. B. Emulator ohne Mailversand) — Anlage gilt als erfolgt.
+    // Nicht kritisch (z. B. Emulator ohne Mailversand) — Anlage gilt als erfolgt,
+    // das UI zeigt dann das Initialpasswort zur Weitergabe.
+    mailSent = false;
   }
-  return newUid;
+  return { uid: newUid, tempPassword, mailSent };
+}
+
+/** Passwort-Reset-Mail erneut senden (Legacy:8163-8177). */
+export function resendPasswordReset(email: string): Promise<void> {
+  return sendPasswordResetEmail(auth, email);
 }

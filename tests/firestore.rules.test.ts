@@ -8,7 +8,7 @@ import {
   assertSucceeds,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 /**
  * Beweist das Akzeptanzkriterium aus Spec §7: Mit Test-Accounts zweier Firmen
@@ -166,5 +166,124 @@ describe('Schreibregeln', () => {
     });
     const db = ctxA_employee().firestore();
     await assertFails(getDoc(doc(db, 'invoices', 'iA')));
+  });
+
+  // Die Claims-Function übernimmt `role` ungeprüft ins Auth-Token. Ein
+  // Tippfehler würde den Nutzer dauerhaft aussperren, weil danach keine
+  // Rollenregel mehr greift — deshalb serverseitige Whitelist.
+  it('Administrator darf KEINEN Benutzer mit unbekannter Rolle anlegen', async () => {
+    const db = ctxA_admin().firestore();
+    await assertFails(
+      setDoc(doc(db, 'users', 'newUser'), {
+        companyId: 'companyA',
+        uid: 'newUser',
+        name: 'Tippfehler',
+        email: 'x@a.at',
+        role: 'Geschaeftsfuehrung', // ohne Umlaut = ungültig
+        active: true,
+      }),
+    );
+  });
+
+  // Zeiteinträge enthalten Krankenstände und Urlaub — Gesundheitsdaten nach
+  // Art. 9 DSGVO. Ein Kollege darf sie nicht lesen können, auch nicht an der
+  // Oberfläche vorbei.
+  it('Mitarbeiter darf den Zeiteintrag eines KOLLEGEN nicht lesen', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'timeEntries', 'fremd'), {
+        companyId: 'companyA',
+        userId: 'userA2', // ein anderer Mitarbeiter derselben Firma
+        date: '2026-06-15',
+        status: 'Krank',
+      });
+    });
+    const db = ctxA_employee().firestore();
+    await assertFails(getDoc(doc(db, 'timeEntries', 'fremd')));
+  });
+
+  it('Mitarbeiter darf den EIGENEN Zeiteintrag lesen', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'timeEntries', 'eigen'), {
+        companyId: 'companyA',
+        userId: 'userA1',
+        date: '2026-06-15',
+        status: 'Anwesend',
+      });
+    });
+    const db = ctxA_employee().firestore();
+    await assertSucceeds(getDoc(doc(db, 'timeEntries', 'eigen')));
+  });
+
+  it('Buchhaltung darf fremde Zeiteinträge lesen (Lohnverrechnung)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'timeEntries', 'fuerBuch'), {
+        companyId: 'companyA',
+        userId: 'userA1',
+        date: '2026-06-15',
+        status: 'Krank',
+      });
+    });
+    const db = testEnv
+      .authenticatedContext('buchA', { companyId: 'companyA', role: 'Buchhaltung' })
+      .firestore();
+    await assertSucceeds(getDoc(doc(db, 'timeEntries', 'fuerBuch')));
+  });
+
+  it('Mitarbeiter darf die Bestellung eines Kollegen nicht lesen', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'materialOrders', 'fremdeBestellung'), {
+        companyId: 'companyA',
+        userId: 'userA2',
+        materialName: 'Therme',
+        quantity: 1,
+      });
+    });
+    const db = ctxA_employee().firestore();
+    await assertFails(getDoc(doc(db, 'materialOrders', 'fremdeBestellung')));
+  });
+
+  it('Administrator darf einen Benutzer mit gültiger Rolle anlegen', async () => {
+    const db = ctxA_admin().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'users', 'newUser2'), {
+        companyId: 'companyA',
+        uid: 'newUser2',
+        name: 'Korrekt',
+        email: 'y@a.at',
+        role: 'Geschäftsführung',
+        active: true,
+      }),
+    );
+  });
+});
+
+describe('Firmen-Stammdaten und Verrechnungssätze', () => {
+  it('Geschäftsführung darf die Sätze der eigenen Firma ändern', async () => {
+    const db = testEnv
+      .authenticatedContext('gfA', { companyId: 'companyA', role: 'Geschäftsführung' })
+      .firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'companies', 'companyA'), {
+        rates: { fach: 70, helper: 48, nightSurcharge: 0.6,
+                 emergencySurcharge: 0.8, vatRate: 0.2, dueDays: 14 },
+      }),
+    );
+  });
+
+  it('Mitarbeiter darf die Sätze NICHT ändern', async () => {
+    // Sonst könnte ein Monteur seinen eigenen Stundensatz hochsetzen.
+    const db = ctxA_employee().firestore();
+    await assertFails(updateDoc(doc(db, 'companies', 'companyA'), { rates: { fach: 999 } }));
+  });
+
+  it('Firma B darf die Sätze von Firma A NICHT ändern', async () => {
+    const db = ctxB_admin().firestore();
+    await assertFails(updateDoc(doc(db, 'companies', 'companyA'), { rates: { fach: 1 } }));
+  });
+
+  it('Auch die Leitung darf ihre Firma nicht löschen', async () => {
+    // Anlegen und Entfernen eines Mandanten bleibt dem Server vorbehalten.
+    const db = ctxA_admin().firestore();
+    await assertFails(deleteDoc(doc(db, 'companies', 'companyA')));
   });
 });

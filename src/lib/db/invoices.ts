@@ -8,7 +8,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Invoice } from '@/types';
-import { queryTenant, subscribeTenant, createInTenant, type WithId } from './core';
+import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from './core';
 
 const COLLECTION = 'invoices';
 
@@ -26,14 +26,43 @@ export function subscribeInvoices(
 }
 
 /** Nächste Rechnungsnummer RE-YYYY-NNNN aus bestehenden ableiten (max+1). */
+/**
+ * Nächste freie Rechnungsnummer im Format RE-JJJJ-NNNN.
+ *
+ * Startet bei 1001, sofern noch nichts existiert — läuft aber NICHT auf 1000
+ * hoch, wenn ein Betrieb bereits einen niedrigeren Nummernkreis nutzt: sonst
+ * entstünden Lücken in der fortlaufenden Nummerierung, die steuerlich
+ * begründet werden müssten.
+ */
 export function nextInvoiceNumber(existing: Invoice[]): string {
   const year = new Date().getFullYear();
-  let max = 1000;
+  let max = 0;
   for (const inv of existing) {
     const m = /(\d+)$/.exec(inv.invoiceNumber ?? '');
     if (m) max = Math.max(max, Number(m[1]));
   }
-  return `RE-${year}-${max + 1}`;
+  const next = max > 0 ? max + 1 : 1001;
+  return `RE-${year}-${String(next).padStart(4, '0')}`;
+}
+
+/** Prüft, ob eine Nummer bereits vergeben ist (Stornos zählen mit). */
+export function isInvoiceNumberTaken(existing: Invoice[], number: string, exceptId?: string) {
+  const n = number.trim().toLowerCase();
+  return existing.some((i) => i.invoiceNumber?.toLowerCase() === n && i.id !== exceptId);
+}
+
+/**
+ * Hebt einen Storno wieder auf. Ein Fehlstorno war sonst nur durch Löschen
+ * und vollständiges Neuerstellen zu heilen — inklusive neuer Nummer.
+ */
+export async function reactivateInvoice(inv: WithId<Invoice>) {
+  await updateInTenant(COLLECTION, inv.id, {
+    paymentStatus: 'Offen',
+    cancellationNote: null,
+    cancelledAt: null,
+  });
+  await markBilled('timeEntries', inv.linkedEntries ?? [], inv.invoiceNumber);
+  await markBilled('materialOrders', inv.linkedOrders ?? [], inv.invoiceNumber);
 }
 
 export type NewInvoice = Omit<Invoice, 'id' | 'companyId' | 'createdAt'>;

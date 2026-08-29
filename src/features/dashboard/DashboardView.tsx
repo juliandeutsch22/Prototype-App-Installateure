@@ -5,16 +5,31 @@ import { navForRole } from '@/app/navigation';
 import { getUserByUid } from '@/lib/db/users';
 import { listOwnEntries } from '@/lib/db/timeEntries';
 import { listAssignmentsForUser } from '@/lib/db/assignments';
-import { listAllOrders } from '@/lib/db/materialOrders';
+import { listAllOrders, listOwnOrders } from '@/lib/db/materialOrders';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listInvoices } from '@/lib/db/invoices';
-import { calcOverallSaldo, lastWorkday, todayStr } from '@/lib/time';
-import { shouldShowOvertime, canProcessOrders, isGF, canInvoice } from '@/lib/permissions';
+import {
+  calcOverallSaldo,
+  lastWorkday,
+  todayStr,
+  isWeekend,
+  isAustrianHoliday,
+} from '@/lib/time';
+import {
+  shouldShowOvertime,
+  canProcessOrders,
+  isGF,
+  canInvoice,
+  canEditTime,
+} from '@/lib/permissions';
+import { listUsers } from '@/lib/db/users';
+import { listAllEntries } from '@/lib/db/timeEntries';
 import type { AppUser, Assignment, MaterialOrder, TimeEntry } from '@/types';
 import Card from '@/components/Card';
 import Metric from '@/components/Metric';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import Icon from '@/components/Icon';
 
 interface DashData {
   saldoH?: number;
@@ -25,6 +40,8 @@ interface DashData {
   companyOpenOrders?: number;
   activeProjects?: number;
   openInvoices?: number;
+  /** Salden aller aktiven Mitarbeiter (nur Buchhaltung/GF/Admin). */
+  team?: { uid: string; name: string; saldoH: number; hasConfig: boolean }[];
 }
 
 /** Rollen-spezifisches Zuhause mit echten Kennzahlen (portiert aus Legacy-Dashboard). */
@@ -54,9 +71,13 @@ export default function DashboardView() {
         }
         const today = todayStr();
         out.todayAssignment = assignments.find((a) => a.date === today);
-        // Fehlende-Zeit-Warnung: kein Eintrag am letzten Werktag
-        const lwd = lastWorkday(new Date());
-        out.missingTime = !entries.some((e) => e.date === lwd);
+        // Fehlende-Zeit-Warnung: kein Eintrag am letzten Werktag. Am Wochenende
+        // und an Feiertagen unterdrückt — sonst mahnt die App am Sonntag
+        // (Legacy:5776-5780).
+        const now = new Date();
+        const todayIsOff = isWeekend(now) || isAustrianHoliday(now);
+        const lwd = lastWorkday(now);
+        out.missingTime = !todayIsOff && !entries.some((e) => e.date === lwd);
       }
 
       if (mgmt) {
@@ -74,10 +95,31 @@ export default function DashboardView() {
           (i) => i.paymentStatus === 'Offen' || i.paymentStatus === 'Überfällig',
         ).length;
       } else if (user.role === 'Mitarbeiter') {
-        const orders = await listAllOrders(user.companyId);
+        // Gezielt nur die eigenen Bestellungen: den ganzen Betrieb zu laden,
+        // um die eigenen zu zählen, ist unnötig und gibt fremde Daten preis.
+        const orders = await listOwnOrders(user.companyId, user.uid);
         out.ownOpenOrders = orders.filter(
-          (o) => o.userId === user.uid && o.status !== 'Erledigt' && o.transactionType !== 'return',
+          (o) => o.status !== 'Erledigt' && o.transactionType !== 'return',
         ).length;
+      }
+
+      // Team-Salden auf einen Blick (Legacy:5388-5465) — der schnellste
+      // Zugriff der Geschäftsführung auf den Stand aller Mitarbeiter.
+      if (canEditTime(user.role)) {
+        const [allUsers, allEntries] = await Promise.all([
+          listUsers(user.companyId),
+          listAllEntries(user.companyId),
+        ]);
+        out.team = allUsers
+          .filter((u) => shouldShowOvertime(u.role) && u.active !== false)
+          .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+          .map((u) => {
+            const { saldoH, hasConfig } = calcOverallSaldo(
+              u,
+              allEntries.filter((e) => e.userId === u.uid),
+            );
+            return { uid: u.uid, name: u.name, saldoH, hasConfig };
+          });
       }
 
       if (!cancelled) setData(out);
@@ -107,28 +149,48 @@ export default function DashboardView() {
         </div>
       )}
 
+      {/* KI-Erfassung als Primäraktion: mobil kompakter Button, ab sm volle Karte */}
+      <Link
+        to="/voice"
+        className="flex min-h-touch items-center gap-3 rounded-lg bg-brand px-4 py-3 text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.99] sm:gap-4"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 sm:h-12 sm:w-12">
+          <Icon name="mic" size={22} />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-semibold">Spracherfassung starten</span>
+          <span className="mt-0.5 hidden text-sm text-brand-fg/80 sm:block">
+            15 Sekunden sprechen → Zeit, Material, Folgetermin als bestätigbare Karten
+          </span>
+        </span>
+      </Link>
+
       {/* Kennzahlen */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {data.hasSaldoConfig && (
-          <Metric
-            label="Überstunden-Saldo"
-            tone={(data.saldoH ?? 0) >= 0 ? 'success' : 'danger'}
-            value={`${(data.saldoH ?? 0) > 0 ? '+' : ''}${data.saldoH} h`}
-          />
-        )}
-        {data.ownOpenOrders !== undefined && (
-          <Metric label="Offene Bestellungen" value={data.ownOpenOrders} hint="von dir" />
-        )}
-        {data.companyOpenOrders !== undefined && (
-          <Metric label="Offene Bestellungen" value={data.companyOpenOrders} />
-        )}
-        {data.activeProjects !== undefined && (
-          <Metric label="Aktive Baustellen" value={data.activeProjects} />
-        )}
-        {data.openInvoices !== undefined && canInvoice(user.role) && (
-          <Metric label="Offene Rechnungen" value={data.openInvoices} />
-        )}
-      </div>
+      <section>
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-muted">Überblick</h2>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {data.hasSaldoConfig && (
+            <Metric
+              label="Überstunden-Saldo"
+              icon="clock"
+              tone={(data.saldoH ?? 0) >= 0 ? 'success' : 'danger'}
+              value={`${(data.saldoH ?? 0) > 0 ? '+' : ''}${data.saldoH} h`}
+            />
+          )}
+          {data.ownOpenOrders !== undefined && (
+            <Metric label="Offene Bestellungen" icon="package" value={data.ownOpenOrders} hint="von dir" />
+          )}
+          {data.companyOpenOrders !== undefined && (
+            <Metric label="Offene Bestellungen" icon="package" value={data.companyOpenOrders} />
+          )}
+          {data.activeProjects !== undefined && (
+            <Metric label="Aktive Baustellen" icon="building" value={data.activeProjects} />
+          )}
+          {data.openInvoices !== undefined && canInvoice(user.role) && (
+            <Metric label="Offene Rechnungen" icon="receipt" value={data.openInvoices} />
+          )}
+        </div>
+      </section>
 
       {/* Heutiger Einsatz (Außendienst) */}
       {user.role === 'Mitarbeiter' && (
@@ -149,31 +211,47 @@ export default function DashboardView() {
         </Card>
       )}
 
+      {/* Team-Salden (Buchhaltung/GF/Admin) */}
+      {data.team && data.team.length > 0 && (
+        <Card
+          title="Team-Salden"
+          action={
+            <Link to="/accounting" className="text-sm font-semibold text-brand underline">
+              Zur Monatsauswertung
+            </Link>
+          }
+        >
+          <ul className="divide-y divide-line">
+            {data.team.map((t) => (
+              <li key={t.uid} className="flex min-h-touch items-center justify-between gap-3 py-2">
+                <span className="truncate text-ink">{t.name}</span>
+                {t.hasConfig ? (
+                  <Badge tone={t.saldoH >= 0 ? 'success' : 'danger'}>
+                    {t.saldoH > 0 ? '+' : ''}
+                    {t.saldoH} h
+                  </Badge>
+                ) : (
+                  <Badge tone="gray">kein Startdatum</Badge>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <Card title="Schnellzugriff">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {items.map((item) => (
             <Link
               key={item.path}
               to={item.path}
-              className="flex min-h-touch items-center justify-center rounded border border-line bg-surface-2 p-4 text-center font-medium text-ink transition hover:border-brand active:scale-[0.98]"
+              className="flex min-h-touch items-center gap-3 rounded border border-line bg-surface-2 px-4 py-3 font-medium text-ink transition hover:border-brand hover:bg-surface active:scale-[0.98]"
             >
-              {item.label}
+              <Icon name={item.icon} size={20} className="shrink-0 text-ink-muted" />
+              <span className="truncate">{item.label}</span>
             </Link>
           ))}
         </div>
-      </Card>
-
-      <Card title="KI-Erfassung">
-        <p className="mb-3 text-ink-muted">
-          Sprich 15 Sekunden — Zeit, Material und Folgetermin werden automatisch als
-          bestätigbare Karten vorbereitet. Nichts wird ohne deine Bestätigung gespeichert.
-        </p>
-        <Link
-          to="/voice"
-          className="inline-flex min-h-touch items-center rounded bg-brand px-4 py-2 font-semibold text-brand-fg transition hover:opacity-90 active:scale-[0.98]"
-        >
-          🎤 Spracherfassung starten
-        </Link>
       </Card>
     </div>
   );

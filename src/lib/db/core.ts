@@ -5,6 +5,7 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
   onSnapshot,
@@ -57,6 +58,20 @@ export function subscribeTenant<T>(
   );
 }
 
+/**
+ * Entfernt `undefined`-Werte. Firestore lehnt sie hart ab ("Unsupported field
+ * value: undefined") — ein leer gelassenes Optionalfeld (etwa eine Baustelle
+ * ohne Stundenbudget) hätte das Speichern sonst komplett scheitern lassen.
+ * `null` bleibt erhalten, denn das heißt "bewusst leer".
+ */
+function stripUndefined(data: DocumentData): DocumentData {
+  const out: DocumentData = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
 /** Schreibt ein neues Dokument; companyId + createdAt werden serverseitig-nah gesetzt. */
 export async function createInTenant(
   collectionName: string,
@@ -64,7 +79,7 @@ export async function createInTenant(
   data: DocumentData,
 ): Promise<string> {
   const ref = await addDoc(collection(db, collectionName), {
-    ...data,
+    ...stripUndefined(data),
     companyId, // immer aus dem Auth-Kontext, nie aus dem Payload
     createdAt: serverTimestamp(),
   });
@@ -80,7 +95,15 @@ export async function updateInTenant(
   // companyId niemals überschreiben
   const { companyId: _ignore, ...rest } = data;
   void _ignore;
-  await updateDoc(doc(db, collectionName, id), { ...rest, updatedAt: serverTimestamp() });
+  await updateDoc(doc(db, collectionName, id), {
+    ...stripUndefined(rest),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Löscht ein Dokument. Die Mandantenprüfung erzwingen die firestore.rules. */
+export async function deleteInTenant(collectionName: string, id: string): Promise<void> {
+  await deleteDoc(doc(db, collectionName, id));
 }
 
 export { where, serverTimestamp };

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { RequireAuth, RequireRole } from './guards';
+import ErrorBoundary from './ErrorBoundary';
 import Layout from './Layout';
 import LoginPage from '@/features/auth/LoginPage';
 import DashboardView from '@/features/dashboard/DashboardView';
@@ -15,6 +16,7 @@ import MyScheduleView from '@/features/assignments/MyScheduleView';
 import InvoicesView from '@/features/invoices/InvoicesView';
 import AccountingView from '@/features/accounting/AccountingView';
 import UserMgmtView from '@/features/users/UserMgmtView';
+import SettingsView from '@/features/settings/SettingsView';
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
@@ -31,7 +33,11 @@ export default function App() {
           element={
             <RequireAuth>
               <Layout>
-                <AppRoutes />
+                {/* Fehlergrenze INNERHALB des Layouts: schlägt eine Ansicht
+                    fehl, bleibt die Navigation bedienbar. */}
+                <ErrorBoundary>
+                  <AppRoutes />
+                </ErrorBoundary>
               </Layout>
             </RequireAuth>
           }
@@ -47,22 +53,10 @@ function AppRoutes() {
       <Route path="/" element={<DashboardView />} />
 
       {/* Außendienst */}
-      <Route
-        path="/time"
-        element={
-          <RequireRole roles={['Mitarbeiter', 'Verwaltung', 'Geschäftsführung', 'Administrator']}>
-            <TimeView />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/voice"
-        element={
-          <RequireRole roles={['Mitarbeiter', 'Verwaltung', 'Geschäftsführung', 'Administrator']}>
-            <VoiceView />
-          </RequireRole>
-        }
-      />
+      {/* Zeit- und KI-Erfassung stehen JEDER Rolle offen (auch Buchhaltung:
+          Krankenstand/Urlaub) — wie Legacy:1954, das den Tab ungeprüft setzt. */}
+      <Route path="/time" element={<TimeView />} />
+      <Route path="/voice" element={<VoiceView />} />
       <Route
         path="/order"
         element={
@@ -71,8 +65,24 @@ function AppRoutes() {
           </RequireRole>
         }
       />
-      <Route path="/my-schedule" element={<MyScheduleView />} />
-      <Route path="/my-projects" element={<MyProjectsView />} />
+      {/* Strikt nur reine Mitarbeiter (Legacy:1980) — GF/Admin nutzen die
+          Verwaltungssicht. Vorher fehlte hier jeder Schutz. */}
+      <Route
+        path="/my-schedule"
+        element={
+          <RequireRole roles={['Mitarbeiter']}>
+            <MyScheduleView />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/my-projects"
+        element={
+          <RequireRole roles={['Mitarbeiter']}>
+            <MyProjectsView />
+          </RequireRole>
+        }
+      />
 
       {/* Verwaltung */}
       <Route
@@ -104,6 +114,14 @@ function AppRoutes() {
         element={
           <RequireRole roles={['Geschäftsführung', 'Administrator']}>
             <UserMgmtView />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
+            <SettingsView />
           </RequireRole>
         }
       />

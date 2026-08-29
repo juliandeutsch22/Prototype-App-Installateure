@@ -10,9 +10,14 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signOut as fbSignOut,
+  sendPasswordResetEmail,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
+import { getCompany } from '@/lib/db/company';
 import { applyBranding } from '@/lib/tenant';
 import type { CurrentUser, Company, Role } from '@/types';
 
@@ -21,8 +26,12 @@ interface AuthState {
   company: Company | null;
   loading: boolean;
   error: string | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  /** `remember: false` meldet beim Schließen des Browsers ab (Gemeinschaftsgerät). */
+  signIn: (email: string, password: string, remember?: boolean) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  /** Lädt die Mandanten-Stammdaten neu — nach dem Speichern in den Einstellungen. */
+  reloadCompany: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -35,11 +44,28 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
  * `get` ist — eine Query `where('uid','==',...)` ohne companyId-Filter würde
  * von firestore.rules abgelehnt (Mandanten-Constraint nicht erfüllbar).
  */
+/** Deaktivierte Konten sollen sich nicht mehr anmelden können. */
+export class InactiveUserError extends Error {
+  constructor() {
+    super('Dieses Konto ist deaktiviert.');
+    this.name = 'InactiveUserError';
+  }
+}
+
 async function loadProfile(uid: string, email: string): Promise<CurrentUser | null> {
   const snap = await getDoc(doc(db, 'users', uid));
   if (!snap.exists()) return null;
-  const data = snap.data() as { name?: string; role?: Role; companyId?: string; email?: string };
+  const data = snap.data() as {
+    name?: string;
+    role?: Role;
+    companyId?: string;
+    email?: string;
+    active?: boolean;
+  };
   if (!data.companyId || !data.role) return null;
+  // Deaktivieren ist im Legacy der Ersatz fürs Löschen (Daten bleiben erhalten).
+  // Ohne diese Prüfung könnte sich ein ausgeschiedener Mitarbeiter weiter anmelden.
+  if (data.active === false) throw new InactiveUserError();
   return {
     uid,
     email: data.email ?? email,
@@ -48,13 +74,6 @@ async function loadProfile(uid: string, email: string): Promise<CurrentUser | nu
     companyId: data.companyId,
     docId: snap.id,
   };
-}
-
-async function loadCompany(companyId: string): Promise<Company | null> {
-  const ref = doc(db, 'companies', companyId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...(snap.data() as Omit<Company, 'id'>) };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -86,12 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setCompany(null);
         } else {
           setUser(profile);
-          const comp = await loadCompany(profile.companyId);
+          const comp = await getCompany(profile.companyId);
           setCompany(comp);
           if (comp) applyBranding(comp);
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Profil konnte nicht geladen werden.');
+        if (e instanceof InactiveUserError) {
+          setError('Dieses Konto ist deaktiviert. Bitte an die Verwaltung wenden.');
+          await fbSignOut(auth);
+          setUser(null);
+          setCompany(null);
+        } else {
+          setError(e instanceof Error ? e.message : 'Profil konnte nicht geladen werden.');
+        }
       } finally {
         setLoading(false);
       }
@@ -99,8 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, remember = true) => {
     setError(null);
+    // Auf einem geteilten Baustellen-Tablet soll die Sitzung mit dem Browser
+    // enden — deshalb ist die Dauer wählbar und nicht fest.
+    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, password);
   }, []);
 
@@ -108,8 +137,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fbSignOut(auth);
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  }, []);
+
+  // Die Stammdaten liegen bewusst nicht auf einem Live-Abo: sie ändern sich
+  // selten, und ein Abo auf `companies` hinge an jeder Sitzung. Nach dem
+  // Speichern in den Einstellungen wird stattdessen gezielt nachgeladen.
+  const reloadCompany = useCallback(async () => {
+    if (!user) return;
+    const comp = await getCompany(user.companyId);
+    setCompany(comp);
+    if (comp) applyBranding(comp);
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, company, loading, error, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{ user, company, loading, error, signIn, signOut, resetPassword, reloadCompany }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -1,16 +1,12 @@
 import {
-  collection,
   doc,
-  addDoc,
-  updateDoc,
   deleteDoc,
   runTransaction,
   increment,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Material } from '@/types';
-import { queryTenant, subscribeTenant, type WithId } from './core';
+import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from './core';
 
 const COLLECTION = 'materials';
 
@@ -22,14 +18,22 @@ export function subscribeMaterials(
   return subscribeTenant<Material>(COLLECTION, companyId, cb, onError);
 }
 
-export type NewMaterial = Pick<Material, 'name' | 'category' | 'stock'>;
+export type NewMaterial = Pick<
+  Material,
+  'name' | 'category' | 'stock' | 'articleNumber' | 'unit'
+>;
+
+/** Ab diesem Bestand gilt Material als knapp (Legacy markiert das rot). */
+export const LOW_STOCK_THRESHOLD = 5;
 
 export function createMaterial(companyId: string, m: NewMaterial) {
-  return addDoc(collection(db, COLLECTION), { ...m, companyId, createdAt: serverTimestamp() });
+  // Siehe projects.ts: leere Optionalfelder (etwa keine Artikelnummer) dürfen
+  // das Anlegen nicht scheitern lassen.
+  return createInTenant(COLLECTION, companyId, m);
 }
 
 export function updateMaterial(id: string, data: Partial<Material>) {
-  return updateDoc(doc(db, COLLECTION, id), data);
+  return updateInTenant(COLLECTION, id, data);
 }
 
 export function deleteMaterial(id: string) {

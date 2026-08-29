@@ -1,7 +1,7 @@
-import { where, collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { where, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Project } from '@/types';
-import { queryTenant, subscribeTenant, type WithId } from './core';
+import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from './core';
 
 const COLLECTION = 'projects';
 
@@ -31,11 +31,13 @@ export function subscribeProjects(
 export type NewProject = Omit<Project, 'id' | 'companyId' | 'createdAt'>;
 
 export function createProject(companyId: string, p: NewProject) {
-  return addDoc(collection(db, COLLECTION), { ...p, companyId, createdAt: serverTimestamp() });
+  // Über createInTenant, damit leere Optionalfelder (z. B. kein Budget)
+  // nicht als undefined bei Firestore landen und das Anlegen scheitern lassen.
+  return createInTenant(COLLECTION, companyId, p);
 }
 
 export function updateProject(id: string, data: Partial<Project>) {
-  return updateDoc(doc(db, COLLECTION, id), data);
+  return updateInTenant(COLLECTION, id, data);
 }
 
 export function deleteProject(id: string) {

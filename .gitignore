@@ -32,3 +32,10 @@ ui-debug.log
 .vscode/*
 !.vscode/extensions.json
 *.log
+
+# Lokale Emulator-Secrets
+functions/.secret.local
+
+# Service-Account-Schlüssel (Bootstrap/Produktion) — NIE committen
+serviceAccount*.json
+*serviceaccount*.json

@@ -33,7 +33,8 @@ async function makeUser({ email, password, name, role, companyId }) {
     email,
     role,
     active: true,
-    weeklyTargetHours: 38.5,
+    weeklyTargetHours: 40,
+    yearlyVacationDays: 25,
     work_days: [1, 2, 3, 4, 5],
     initial_overtime: 2,
     app_start_date: '2026-01-01',
@@ -46,7 +47,7 @@ async function seedCompany({ companyId, name, brandColor, accentColor, projects 
     name,
     brandColor,
     brandForeground: '#ffffff',
-    accentColor: accentColor ?? '#e2001a',
+    accentColor: accentColor ?? '#d51f26',
     accentForeground: '#ffffff',
     defaultVatRate: 0.2,
     createdAt: FieldValue.serverTimestamp(),
@@ -68,7 +69,7 @@ async function main() {
     companyId: 'perl',
     name: 'Perl Installationen GmbH',
     brandColor: '#003366',
-    accentColor: '#e2001a',
+    accentColor: '#d51f26',
     projects: [
       { projectNumber: '2026-001', customerName: 'Familie Müller', address: 'Hauptstr. 1, Graz', status: 'Aktiv' },
       { projectNumber: '2026-002', customerName: 'Bäckerei Huber', address: 'Marktplatz 3, Graz', status: 'Aktiv' },
@@ -76,10 +77,10 @@ async function main() {
     ],
   });
   await seedMaterials('perl', [
-    { name: 'Kupferrohr 15mm', category: 'Rohr', stock: 120, unit: 'm', purchasePrice: 4.5 },
-    { name: 'Flachdichtung 1/2"', category: 'Dichtung', stock: 340, unit: 'Stk', purchasePrice: 0.3 },
-    { name: 'Therme Junkers', category: 'Heizung', stock: 6, unit: 'Stk', purchasePrice: 980 },
-    { name: 'Eckventil', category: 'Sanitär', stock: 58, unit: 'Stk', purchasePrice: 3.2 },
+    { name: 'Kupferrohr 15mm', category: 'Rohr', stock: 120, unit: 'm' },
+    { name: 'Flachdichtung 1/2"', category: 'Dichtung', stock: 340, unit: 'Stk' },
+    { name: 'Therme Junkers', category: 'Heizung', stock: 6, unit: 'Stk' },
+    { name: 'Eckventil', category: 'Sanitär', stock: 58, unit: 'Stk' },
   ]);
   const perlUid = await makeUser({
     email: 'max@perl.at', password: 'demo1234', name: 'Max Mustermann',
@@ -88,6 +89,12 @@ async function main() {
   await makeUser({
     email: 'chefin@perl.at', password: 'demo1234', name: 'Petra Perl',
     role: 'Geschäftsführung', companyId: 'perl',
+  });
+  // Buchhaltung: muss die eigene Zeit buchen können (Krankenstand/Urlaub)
+  // und sieht zusätzlich die Monatsauswertung aller Mitarbeiter.
+  await makeUser({
+    email: 'buchhaltung@perl.at', password: 'demo1234', name: 'Bernd Buch',
+    role: 'Buchhaltung', companyId: 'perl',
   });
 
   // Beispiel-Zeiteinträge für Max (eine Woche)

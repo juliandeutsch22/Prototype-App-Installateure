@@ -3,6 +3,7 @@ import { defineSecret } from 'firebase-functions/params';
 import { getFirestore } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
 import Anthropic from '@anthropic-ai/sdk';
+import { EXTRACTION_SCHEMA, matchProjects, type ProjectCandidate } from './extractLogic.js';
 
 /**
  * KI-Magic-Moment (Spec §9): Audio -> Transkription -> strukturierte Extraktion.
@@ -26,56 +27,6 @@ interface ExtractRequest {
   audioBase64: string;
   mimeType: string;
 }
-
-interface ProjectCandidate {
-  projectNumber: string;
-  customerName: string;
-}
-
-// Striktes Zielschema (Spec §9): { hours, projectMatch, materials, followUp }.
-const EXTRACTION_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  properties: {
-    summary: { type: 'string', description: 'Ein-Satz-Zusammenfassung des Gesagten.' },
-    time: {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        hours: { type: 'number', description: 'Gearbeitete Stunden, 0 wenn unklar.' },
-        needsReview: { type: 'boolean', description: 'true, wenn unsicher.' },
-      },
-      required: ['hours', 'needsReview'],
-    },
-    projectSpokenName: {
-      type: 'string',
-      description: 'Genannter Baustellen-/Kundenname, "" wenn keiner genannt.',
-    },
-    materials: {
-      type: 'array',
-      items: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          name: { type: 'string' },
-          qty: { type: 'number' },
-          needsReview: { type: 'boolean' },
-        },
-        required: ['name', 'qty', 'needsReview'],
-      },
-    },
-    followUp: {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        title: { type: 'string', description: 'Folgetermin-Titel, "" wenn keiner.' },
-        dueWeek: { type: 'string', description: 'z. B. "nächste Woche", "" wenn unklar.' },
-      },
-      required: ['title', 'dueWeek'],
-    },
-  },
-  required: ['summary', 'time', 'projectSpokenName', 'materials', 'followUp'],
-} as const;
 
 async function transcribe(audioBase64: string, mimeType: string): Promise<string> {
   const buffer = Buffer.from(audioBase64, 'base64');
@@ -109,18 +60,6 @@ async function loadProjects(companyId: string): Promise<ProjectCandidate[]> {
     .map((d) => d.data() as { projectNumber?: string; customerName?: string; status?: string })
     .filter((p) => p.status === 'Aktiv' || p.status === 'Pausiert')
     .map((p) => ({ projectNumber: p.projectNumber ?? '', customerName: p.customerName ?? '' }));
-}
-
-/** Findet passende Projekte zum gesprochenen Namen (bei Mehrdeutigkeit alle). */
-function matchProjects(spoken: string, projects: ProjectCandidate[]): ProjectCandidate[] {
-  const norm = spoken.trim().toLowerCase();
-  if (!norm) return [];
-  return projects.filter(
-    (p) =>
-      p.customerName.toLowerCase().includes(norm) ||
-      norm.includes(p.customerName.toLowerCase()) ||
-      p.projectNumber.toLowerCase().includes(norm),
-  );
 }
 
 export const voiceExtract = onCall(

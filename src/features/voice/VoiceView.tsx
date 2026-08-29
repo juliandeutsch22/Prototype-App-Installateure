@@ -4,6 +4,7 @@ import { callVoiceExtract } from '@/lib/functions';
 import ConfirmationPanel from './ConfirmationPanel';
 import Card from '@/components/Card';
 import PageHeader from '@/components/PageHeader';
+import Icon from '@/components/Icon';
 import { ErrorState } from '@/components/States';
 import type { VoiceExtractResponse } from './types';
 
@@ -73,11 +74,16 @@ export default function VoiceView() {
               onClick={state === 'recording' ? handleStop : start}
               disabled={busy}
               aria-label={state === 'recording' ? 'Aufnahme stoppen' : 'Aufnahme starten'}
-              className={`flex h-28 w-28 items-center justify-center rounded-full text-5xl text-white shadow-lg transition active:scale-95 disabled:opacity-50 ${
+              className={`flex h-28 w-28 items-center justify-center rounded-full text-white shadow-lg transition active:scale-95 disabled:opacity-50 ${
                 state === 'recording' ? 'animate-pulse bg-accent' : 'bg-brand'
               }`}
             >
-              {state === 'recording' ? '■' : '🎤'}
+              {state === 'recording' ? (
+                // Stopp-Quadrat, damit der Zustand auch ohne Farbe erkennbar ist.
+                <span aria-hidden className="h-9 w-9 rounded-sm bg-white" />
+              ) : (
+                <Icon name="mic" size={48} aria-hidden />
+              )}
             </button>
             <p className="text-ink-muted" role="status">
               {busy
