@@ -140,6 +140,21 @@ export function fmtMin(m: number): string {
 export interface SaldoResult {
   saldoH: number;
   hasConfig: boolean;
+  /**
+   * Werktage seit dem Startdatum, an denen GAR NICHTS erfasst wurde.
+   *
+   * Jeder dieser Tage geht als volles Soll in den Saldo ein, ohne Ist —
+   * er drückt den Saldo also um einen ganzen Arbeitstag. Wer die App im
+   * August einführt und als Startdatum den 1. Jänner einträgt, bekommt so
+   * auf einen Schlag ein Minus von mehreren hundert Stunden. Rechnerisch
+   * richtig, in der Sache Unsinn: es wurde ja gearbeitet, nur eben nicht
+   * in dieser App erfasst.
+   *
+   * Die Zahl wird deshalb mitgegeben, damit die Oberfläche einen solchen
+   * Saldo als unvollständig kennzeichnen kann, statt ihn als Tatsache
+   * hinzustellen.
+   */
+  daysWithoutEntry: number;
 }
 
 /**
@@ -149,10 +164,12 @@ export interface SaldoResult {
  * voller Solltag. saldoH = initial + (Ist − Soll)/60.
  */
 export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResult {
-  if (!shouldShowOvertime(user.role)) return { saldoH: 0, hasConfig: false };
+  if (!shouldShowOvertime(user.role)) {
+    return { saldoH: 0, hasConfig: false, daysWithoutEntry: 0 };
+  }
 
   const initial = Number(user.initialOvertime ?? 0) || 0;
-  if (!user.appStartDate) return { saldoH: initial, hasConfig: false };
+  if (!user.appStartDate) return { saldoH: initial, hasConfig: false, daysWithoutEntry: 0 };
 
   const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
   const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
@@ -160,25 +177,29 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
 
   // Ist
   let istMin = 0;
+  const bookedDates = new Set<string>();
   for (const e of entries) {
     if (e.date < user.appStartDate) continue;
+    bookedDates.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
     else if (e.status === 'Krank' || e.status === 'Urlaub') istMin += dailyH * 60;
   }
 
   // Soll: appStartDate .. gestern (heute exklusive)
   let sollMin = 0;
+  let daysWithoutEntry = 0;
   const start = new Date(`${user.appStartDate}T00:00:00`);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   for (const d = new Date(start); d < today; d.setDate(d.getDate() + 1)) {
     if (workDays.includes(d.getDay()) && !isAustrianHoliday(d)) {
       sollMin += dailyH * 60;
+      if (!bookedDates.has(localDateStr(d))) daysWithoutEntry += 1;
     }
   }
 
   const saldoH = Math.round((initial + (istMin - sollMin) / 60) * 100) / 100;
-  return { saldoH, hasConfig: true };
+  return { saldoH, hasConfig: true, daysWithoutEntry };
 }
 
 export interface MonthStats {

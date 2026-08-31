@@ -1,0 +1,132 @@
+name: Cloud Functions deployen
+
+# Getrennt vom Hosting-Deploy, aus zwei Gründen:
+#
+#  1. Functions brauchen den Blaze-Tarif und können echte Kosten auslösen.
+#     Ein versehentlicher Deploy soll nicht bei jeder Änderung an der
+#     Oberfläche mitlaufen.
+#  2. voiceExtract hängt an API-Schlüsseln im Secret Manager. Fehlen die,
+#     scheitert der Functions-Deploy — im selben Lauf würde er das Hosting
+#     mit sich reißen, das damit nichts zu tun hat.
+#
+# Läuft deshalb nur, wenn sich wirklich etwas an den Functions geändert hat —
+# oder von Hand.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'functions/**'
+      - '.github/workflows/deploy-functions.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Zwei gleichzeitige Functions-Deploys auf dasselbe Projekt kollidieren.
+concurrency:
+  group: deploy-functions
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Functions bauen und veröffentlichen
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Zugangsdaten vorhanden?
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ] || [ -z "$PROJECT_ID" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT oder VITE_FIREBASE_PROJECT_ID fehlt."
+            exit 1
+          fi
+
+      - name: Abhängigkeiten
+        working-directory: functions
+        run: npm ci
+
+      # Übersetzen vor dem Deploy: ein Typfehler soll hier auffallen und
+      # nicht erst, wenn die halbe Auslieferung schon gelaufen ist.
+      - name: Übersetzen
+        working-directory: functions
+        run: npm run build
+
+      - name: Dienstkonto bereitstellen
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          chmod 600 "$RUNNER_TEMP/service-account.json"
+
+      # Firebase loest `defineSecret` schon beim ANALYSIEREN des Codes auf —
+      # unabhaengig davon, was `--only` spaeter deployt. Fehlt der Secret
+      # Manager oder eines der Secrets, scheitert deshalb der gesamte Deploy,
+      # auch der Berechtigungs-Trigger, der mit der KI nichts zu tun hat.
+      #
+      # Ein gestufter Deploy wurde versucht und verworfen: er kann dieses
+      # Problem grundsaetzlich nicht loesen. Statt es zu umgehen, wird hier
+      # klar gesagt, was fehlt.
+      - name: Secrets vorhanden?
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          fehlt=""
+          for s in ANTHROPIC_API_KEY TRANSCRIPTION_API_KEY; do
+            # :get liest nur die Metadaten, nie den Wert — so kann kein
+            # Schluessel in dieses Protokoll geraten.
+            if ! npx --yes firebase-tools@15 functions:secrets:get "$s" \
+                 --project "$PROJECT_ID" >/dev/null 2>&1; then
+              fehlt="$fehlt $s"
+            fi
+          done
+          if [ -n "$fehlt" ]; then
+            echo "::error::Diese Secrets fehlen oder der Secret Manager ist nicht aktiviert:$fehlt"
+            echo ""
+            echo "Beides ist noetig, BEVOR irgendeine Function deployt werden kann —"
+            echo "auch syncUserClaims. Grund: Firebase loest die Secret-Verweise im"
+            echo "Code schon beim Analysieren auf, nicht erst beim Deploy der"
+            echo "betroffenen Function."
+            echo ""
+            echo "1. Secret Manager API aktivieren:"
+            echo "   https://console.cloud.google.com/apis/library/secretmanager.googleapis.com"
+            echo "2. Beide Secrets anlegen (Platzhalter genuegt, solange die"
+            echo "   KI-Spracherfassung noch nicht genutzt wird):"
+            echo "   https://console.cloud.google.com/security/secret-manager"
+            echo ""
+            echo "Siehe README, Abschnitt 'Cloud Functions'."
+            exit 1
+          fi
+          echo "Beide Secrets sind hinterlegt."
+
+      - name: Deploy
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          # Kein --force: der Schalter würde Functions, die im Code fehlen,
+          # ohne Rückfrage aus der Produktion löschen. Steht eine Löschung an,
+          # soll der Deploy lieber scheitern und jemand hinsehen.
+          npx --yes firebase-tools@15 deploy \
+            --only functions \
+            --project "$PROJECT_ID" \
+            --non-interactive
+
+      - name: Schlüssel entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/service-account.json"
+
+      - name: Was jetzt gilt
+        run: |
+          echo "syncUserClaims setzt ab sofort companyId und Rolle für jeden"
+          echo "neu angelegten Benutzer. Bereits vorhandene Konten bekommen ihre"
+          echo "Berechtigungen erst beim nächsten Speichern in der"
+          echo "Benutzerverwaltung — einmal öffnen und speichern genügt."

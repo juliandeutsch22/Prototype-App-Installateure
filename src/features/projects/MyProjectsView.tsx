@@ -52,7 +52,7 @@ export default function MyProjectsView() {
       ) : error ? (
         <Card><ErrorState message={error} /></Card>
       ) : active.length === 0 ? (
-        <Card><EmptyState>Dir sind aktuell keine Baustellen zugeordnet.</EmptyState></Card>
+        <Card><EmptyState>Dir sind aktuell keine Baustellen zugeordnet. Die Einteilung macht die Projektleitung.</EmptyState></Card>
       ) : (
         <div className="space-y-4">
           {active.map((p) => (

@@ -17,6 +17,7 @@ import InvoicesView from '@/features/invoices/InvoicesView';
 import AccountingView from '@/features/accounting/AccountingView';
 import UserMgmtView from '@/features/users/UserMgmtView';
 import SettingsView from '@/features/settings/SettingsView';
+import NotificationSettings from '@/features/settings/NotificationSettings';
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
@@ -117,6 +118,10 @@ function AppRoutes() {
           </RequireRole>
         }
       />
+      {/* Persoenliche Benachrichtigungen: jede Rolle, kein RequireRole.
+          Was jemand aufs Telefon bekommt, entscheidet er selbst. */}
+      <Route path="/notifications" element={<NotificationSettings />} />
+
       <Route
         path="/settings"
         element={

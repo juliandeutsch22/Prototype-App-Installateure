@@ -85,11 +85,56 @@ describe('calcOverallSaldo', () => {
   };
   it('ohne Startdatum: nur Initialsaldo, hasConfig=false', () => {
     const r = calcOverallSaldo({ ...base, initialOvertime: 5 }, []);
-    expect(r).toEqual({ saldoH: 5, hasConfig: false });
+    expect(r).toEqual({ saldoH: 5, hasConfig: false, daysWithoutEntry: 0 });
   });
   it('für GF/Admin (kein Soll/Ist): saldoH 0, hasConfig=false', () => {
     const r = calcOverallSaldo({ ...base, role: 'Geschäftsführung', appStartDate: '2026-01-01' }, []);
-    expect(r).toEqual({ saldoH: 0, hasConfig: false });
+    expect(r).toEqual({ saldoH: 0, hasConfig: false, daysWithoutEntry: 0 });
+  });
+
+  it('meldet Werktage ohne jede Buchung', () => {
+    // Der Fall, der die Zahl überhaupt nötig macht: Startdatum weit in der
+    // Vergangenheit, aber nie etwas erfasst. Der Saldo ist dann rechnerisch
+    // stark negativ — und als Aussage über den Mitarbeiter wertlos.
+    const start = new Date();
+    start.setDate(start.getDate() - 30);
+    const iso = start.toISOString().slice(0, 10);
+
+    const r = calcOverallSaldo({ ...base, appStartDate: iso }, []);
+    expect(r.hasConfig).toBe(true);
+    expect(r.saldoH).toBeLessThan(0);
+    // Rund 30 Kalendertage, davon etwa 20 Werktage — die genaue Zahl hängt
+    // vom Wochentag und von Feiertagen ab.
+    expect(r.daysWithoutEntry).toBeGreaterThan(15);
+  });
+
+  it('zählt Tage MIT Buchung nicht als Lücke', () => {
+    const start = new Date();
+    start.setDate(start.getDate() - 3);
+    const iso = start.toISOString().slice(0, 10);
+    const entries: TimeEntry[] = [];
+    for (let i = 3; i >= 1; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      entries.push({
+        id: `e${i}`, companyId: 'c', userId: 'u', date: d.toISOString().slice(0, 10),
+        status: 'Anwesend', startTime: '07:00', endTime: '16:00', breakDuration: 60,
+      } as TimeEntry);
+    }
+    const r = calcOverallSaldo({ ...base, appStartDate: iso }, entries);
+    expect(r.daysWithoutEntry).toBe(0);
+  });
+
+  it('zählt auch Krank- und Urlaubstage als gebucht', () => {
+    // Sie sind kein Erfassungsloch: der Tag ist bekannt und geht mit vollem
+    // Soll ins Ist. Als Lücke gezählt würde die Warnung sinnlos aufleuchten.
+    const start = new Date();
+    start.setDate(start.getDate() - 1);
+    const iso = start.toISOString().slice(0, 10);
+    const r = calcOverallSaldo({ ...base, appStartDate: iso }, [
+      { id: 'e', companyId: 'c', userId: 'u', date: iso, status: 'Krank' } as TimeEntry,
+    ]);
+    expect(r.daysWithoutEntry).toBe(0);
   });
 });
 

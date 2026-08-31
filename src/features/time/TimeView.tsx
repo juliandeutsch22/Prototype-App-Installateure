@@ -14,7 +14,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
 /** Wochenschlüssel 'KW n / JJJJ' für ein Datum. */
 function weekKey(d: Date): string {
@@ -62,6 +62,18 @@ export default function TimeView() {
 
   /** Belegte Tage — Grundlage für die Doppelbuchungs-Warnung im Formular. */
   const existingDates = useMemo(() => new Set(entries.map((e) => e.date)), [entries]);
+
+  /**
+   * Jüngster Anwesenheitseintrag mit Zeitspanne — Vorlage für „wie zuletzt".
+   * Krank- und Urlaubstage taugen nicht als Vorlage, sie tragen keine Zeiten.
+   */
+  const lastEntry = useMemo(
+    () =>
+      [...entries]
+        .filter((e) => e.status === 'Anwesend' && e.startTime && e.endTime)
+        .sort((a, b) => b.date.localeCompare(a.date))[0],
+    [entries],
+  );
 
   // Nach Woche gruppieren, neueste zuerst.
   const byWeek = useMemo(() => {
@@ -111,6 +123,7 @@ export default function TimeView() {
           key={editing?.id ?? 'new'}
           entry={editing ?? undefined}
           existingDates={existingDates}
+          lastEntry={lastEntry}
           onSaved={() => setEditing(null)}
           onCancel={editing ? () => setEditing(null) : undefined}
         />
@@ -118,7 +131,7 @@ export default function TimeView() {
 
       <Card title="Meine Einträge">
         {loading ? (
-          <LoadingState />
+          <SkeletonList rows={5} />
         ) : error ? (
           <ErrorState message={error} />
         ) : entries.length === 0 ? (

@@ -121,6 +121,9 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          # Ohne diesen Schluessel laeuft die App normal, nur ohne Push —
+          # deshalb kein Abbruch in der Vorabpruefung, sondern optional.
+          VITE_FIREBASE_VAPID_KEY: ${{ secrets.VITE_FIREBASE_VAPID_KEY }}
           VITE_FUNCTIONS_REGION: ${{ vars.VITE_FUNCTIONS_REGION || 'europe-west3' }}
           VITE_PORTAL_NAME: ${{ vars.VITE_PORTAL_NAME || 'Perl Installationen' }}
           # Im Produktivbuild niemals gegen die lokalen Emulatoren zeigen.

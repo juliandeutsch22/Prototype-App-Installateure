@@ -24,7 +24,11 @@
   --surface: #ffffff;
   --surface-2: #f5f7fa;
   --text: #0f172a;
-  --text-muted: #525b6a;
+  /* Nebentext dunkler als üblich: gearbeitet wird draußen, im Sommer mit
+   * Sonne auf dem Display. Zuvor #525b6a — 6,86:1 auf Weiß und damit zwar
+   * AA-konform, auf dem grauen Grund aber nur 6,05:1. Jetzt über 7:1 (AAA)
+   * auf ALLEN drei Flächen: Weiß 8,41, surface-2 7,84, Grund 7,42. */
+  --text-muted: #454e5c;
   --border: #d3dae3;
 
   /* Semantische Zustände (Text + Fläche) */
@@ -101,6 +105,40 @@ textarea:focus {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+/*
+ * Ziffern mit fester Breite. Zahlen stehen hier in Spalten übereinander —
+ * Salden, Stunden, Beträge. In Proportionalschrift ist die 1 schmaler als
+ * die 8, dadurch wackelt die Spalte bei jeder Aktualisierung und beim
+ * Vergleichen zweier Zeilen rutschen die Kommastellen gegeneinander.
+ */
+.tnum,
+.font-mono,
+table td,
+table th {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Platzhalter beim Laden. Deutet die spätere Struktur an, statt die Fläche
+ * leer zu lassen — die App wirkt dadurch schneller, ohne schneller zu sein,
+ * und der Inhalt springt beim Eintreffen nicht mehr.
+ */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 /* Bewegung reduzieren, wenn vom System gewünscht */

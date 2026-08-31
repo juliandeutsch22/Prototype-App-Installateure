@@ -17,7 +17,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
 const empty = {
   name: '',
@@ -163,12 +163,24 @@ export default function MaterialCatalog() {
         />
         <div className="mt-4">
           {loading ? (
-            <LoadingState />
+            <SkeletonList rows={4} />
           ) : visible.length === 0 ? (
-            <EmptyState>
+            <EmptyState
+              action={
+                materials.length === 0 ? (
+                  <Button onClick={() => document.getElementById('mname')?.focus()}>
+                    Erstes Material anlegen
+                  </Button>
+                ) : (
+                  <Button variant="ghost" onClick={() => setSearch('')}>
+                    Suche zurücksetzen
+                  </Button>
+                )
+              }
+            >
               {materials.length === 0
-                ? 'Noch kein Material angelegt. Lege oben den ersten Katalogeintrag an.'
-                : 'Kein Material passt zur Suche.'}
+                ? 'Noch kein Material im Katalog. Was der Monteur anfordern kann, muss hier stehen.'
+                : `Kein Material passt zu „${search}".`}
             </EmptyState>
           ) : (
             <List>

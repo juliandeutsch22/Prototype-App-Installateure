@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_PORTAL_NAME: string;
   /** Logo vor der Anmeldung und als Vorgabe, wenn der Mandant keins hinterlegt hat. */
   readonly VITE_PORTAL_LOGO: string;
+  /** Web-Push-Zertifikat aus der Firebase Console (Cloud Messaging). */
+  readonly VITE_FIREBASE_VAPID_KEY: string;
 }
 
 interface ImportMeta {

@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { navForRole } from '@/app/navigation';
 import { getUserByUid } from '@/lib/db/users';
 import { listOwnEntries } from '@/lib/db/timeEntries';
 import { listAssignmentsForUser } from '@/lib/db/assignments';
@@ -14,6 +13,9 @@ import {
   todayStr,
   isWeekend,
   isAustrianHoliday,
+  groupProjectHours,
+  normProjectNumber,
+  calcBudgetState,
 } from '@/lib/time';
 import {
   shouldShowOvertime,
@@ -30,18 +32,39 @@ import Metric from '@/components/Metric';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import Icon from '@/components/Icon';
+import StatusBadge from '@/components/StatusBadge';
+
+const fmtEUR = (n: number) =>
+  `\u20ac ${new Intl.NumberFormat('de-AT', { maximumFractionDigits: 0 }).format(n)}`;
+
+/** Eine Baustelle, deren Stundenbudget knapp wird oder überschritten ist. */
+interface ProjectAlert {
+  projectNumber: string;
+  customerName: string;
+  pct: number | null;
+  over: boolean;
+  usedH: number;
+  estimatedHours: number;
+}
 
 interface DashData {
   saldoH?: number;
   hasSaldoConfig?: boolean;
+  /** Werktage ohne jede Buchung — macht den Saldo unvollständig. */
+  saldoGapDays?: number;
   todayAssignment?: Assignment;
+  /** Stammdaten der heutigen Baustelle: Adresse und Telefon zählen im Auto. */
+  todayProject?: { customerName: string; address?: string; contactName?: string; contactPhone?: string };
   missingTime?: boolean;
   ownOpenOrders?: number;
-  companyOpenOrders?: number;
-  activeProjects?: number;
-  openInvoices?: number;
+  /** Offene Anforderungen als Liste statt als Zahl — eine „7" sagt nicht, was zu tun ist. */
+  openOrders?: MaterialOrder[];
+  /** Nur Baustellen mit gelber oder roter Ampel. Grün braucht keine Aufmerksamkeit. */
+  projectAlerts?: ProjectAlert[];
+  /** Beträge statt Anzahl: „3 offene Rechnungen" ist ohne Summe wertlos. */
+  invoiceSums?: { open: number; overdue: number };
   /** Salden aller aktiven Mitarbeiter (nur Buchhaltung/GF/Admin). */
-  team?: { uid: string; name: string; saldoH: number; hasConfig: boolean }[];
+  team?: { uid: string; name: string; saldoH: number; hasConfig: boolean; gapDays: number }[];
 }
 
 /** Rollen-spezifisches Zuhause mit echten Kennzahlen (portiert aus Legacy-Dashboard). */
@@ -65,12 +88,29 @@ export default function DashboardView() {
             listAssignmentsForUser(user.companyId, user.uid),
           ]);
         if (profile) {
-          const { saldoH, hasConfig } = calcOverallSaldo(profile, entries);
+          const { saldoH, hasConfig, daysWithoutEntry } = calcOverallSaldo(profile, entries);
           out.saldoH = saldoH;
           out.hasSaldoConfig = hasConfig;
+          out.saldoGapDays = daysWithoutEntry;
         }
         const today = todayStr();
         out.todayAssignment = assignments.find((a) => a.date === today);
+        // Zur Zuweisung die Baustellen-Stammdaten holen: der Monteur sitzt im
+        // Auto und braucht Adresse und Telefonnummer, nicht die Projektnummer.
+        if (out.todayAssignment) {
+          const projects = await listActiveProjects(user.companyId);
+          const p = projects.find(
+            (x) => x.projectNumber === out.todayAssignment?.projectNumber,
+          );
+          if (p) {
+            out.todayProject = {
+              customerName: p.customerName,
+              address: p.address,
+              contactName: p.contactName,
+              contactPhone: p.contactPhone,
+            };
+          }
+        }
         // Fehlende-Zeit-Warnung: kein Eintrag am letzten Werktag. Am Wochenende
         // und an Feiertagen unterdrückt — sonst mahnt die App am Sonntag
         // (Legacy:5776-5780).
@@ -81,19 +121,51 @@ export default function DashboardView() {
       }
 
       if (mgmt) {
-        const [orders, projects, invoices]: [MaterialOrder[], unknown[], { paymentStatus: string }[]] =
-          await Promise.all([
-            listAllOrders(user.companyId),
-            listActiveProjects(user.companyId),
-            canInvoice(user.role) ? listInvoices(user.companyId) : Promise.resolve([]),
-          ]);
-        out.companyOpenOrders = orders.filter(
-          (o) => o.transactionType !== 'return' && o.status !== 'Erledigt',
-        ).length;
-        out.activeProjects = projects.length;
-        out.openInvoices = invoices.filter(
-          (i) => i.paymentStatus === 'Offen' || i.paymentStatus === 'Überfällig',
-        ).length;
+        const [orders, projects, invoices] = await Promise.all([
+          listAllOrders(user.companyId),
+          listActiveProjects(user.companyId),
+          canInvoice(user.role) ? listInvoices(user.companyId) : Promise.resolve([]),
+        ]);
+
+        // Anforderungen, die auf die Projektleitung warten — als Liste, damit
+        // man sieht WAS zu tun ist, nicht nur wie viel.
+        out.openOrders = orders
+          .filter((o) => o.transactionType !== 'return' && o.status !== 'Erledigt')
+          .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
+        if (canInvoice(user.role)) {
+          const sum = (s: string) =>
+            invoices
+              .filter((i) => i.paymentStatus === s)
+              .reduce((a, i) => a + (i.totalBrutto ?? 0), 0);
+          out.invoiceSums = { open: sum('Offen'), overdue: sum('Überfällig') };
+        }
+
+        // Projekt-Radar: nur Baustellen, deren Budget knapp wird oder gerissen
+        // ist. Eine grüne Baustelle braucht keinen Platz auf dem Dashboard.
+        if (isGF(user.role)) {
+          const allEntries = await listAllEntries(user.companyId);
+          const byProject = groupProjectHours(allEntries);
+          out.projectAlerts = projects
+            .map((p) => {
+              const hours = byProject.find(
+                (h) => h.projectNumber === normProjectNumber(p.projectNumber),
+              );
+              const fachMin = hours?.fachMin ?? 0;
+              const state = calcBudgetState(fachMin, p.estimatedHours);
+              return {
+                projectNumber: p.projectNumber,
+                customerName: p.customerName,
+                pct: state.pct,
+                over: state.over,
+                usedH: Math.round((fachMin / 60) * 10) / 10,
+                estimatedHours: p.estimatedHours ?? 0,
+                tone: state.tone,
+              };
+            })
+            .filter((p) => p.tone === 'warning' || p.tone === 'danger')
+            .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
+        }
       } else if (user.role === 'Mitarbeiter') {
         // Gezielt nur die eigenen Bestellungen: den ganzen Betrieb zu laden,
         // um die eigenen zu zählen, ist unnötig und gibt fremde Daten preis.
@@ -114,11 +186,11 @@ export default function DashboardView() {
           .filter((u) => shouldShowOvertime(u.role) && u.active !== false)
           .sort((a, b) => a.name.localeCompare(b.name, 'de'))
           .map((u) => {
-            const { saldoH, hasConfig } = calcOverallSaldo(
+            const { saldoH, hasConfig, daysWithoutEntry } = calcOverallSaldo(
               u,
               allEntries.filter((e) => e.userId === u.uid),
             );
-            return { uid: u.uid, name: u.name, saldoH, hasConfig };
+            return { uid: u.uid, name: u.name, saldoH, hasConfig, gapDays: daysWithoutEntry };
           });
       }
 
@@ -129,7 +201,20 @@ export default function DashboardView() {
     };
   }, [user, personal, mgmt]);
 
-  const items = useMemo(() => (user ? navForRole(user.role).filter((i) => i.path !== '/') : []), [user]);
+  // Grundregel gegen ein überladenes wie gegen ein leeres Dashboard: jede
+  // Karte erscheint nur mit Inhalt. Bleibt dann gar nichts übrig, steht dort
+  // eine ruhige Zeile statt einer Wand aus Nullen.
+  const nothingToShow =
+    !data.missingTime &&
+    !data.todayAssignment &&
+    !data.hasSaldoConfig &&
+    !data.projectAlerts?.length &&
+    !data.openOrders?.length &&
+    !data.team?.length &&
+    !data.ownOpenOrders &&
+    !data.invoiceSums?.open &&
+    !data.invoiceSums?.overdue;
+
   if (!user) return null;
 
   return (
@@ -165,48 +250,136 @@ export default function DashboardView() {
         </span>
       </Link>
 
-      {/* Kennzahlen */}
-      <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-muted">Überblick</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {/* Heutiger Einsatz — für den Monteur die wichtigste Information des
+          Tages, deshalb ganz oben und mit dem, was im Auto zählt: Adresse
+          und eine wählbare Telefonnummer. */}
+      {user.role === 'Mitarbeiter' && data.todayAssignment && (
+        <Card title="Heute" accent="brand">
+          <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-ink">
+            {data.todayProject?.customerName ?? `Baustelle ${data.todayAssignment.projectNumber}`}
+            {data.todayAssignment.asHelper && <Badge tone="warning">Helfer</Badge>}
+          </p>
+          <p className="text-sm text-ink-muted">{data.todayAssignment.projectNumber}</p>
+          {data.todayProject?.address && (
+            <p className="mt-2 text-ink">{data.todayProject.address}</p>
+          )}
+          {data.todayProject?.contactPhone && (
+            // tel:-Link statt abgetippter Nummer — ein Griff statt sieben.
+            <a
+              href={`tel:${data.todayProject.contactPhone.replace(/\s/g, '')}`}
+              className="mt-2 inline-flex min-h-touch items-center gap-2 font-semibold text-brand underline"
+            >
+              {data.todayProject.contactName ?? 'Ansprechpartner'}:{' '}
+              {data.todayProject.contactPhone}
+            </a>
+          )}
+          {data.todayAssignment.comment && (
+            <p className="mt-2 rounded-sm bg-surface-2 p-2 text-sm text-ink">
+              {data.todayAssignment.comment}
+            </p>
+          )}
+        </Card>
+      )}
+
+      {/* Kennzahlen. Jede Kachel erscheint nur, wenn sie für diese Rolle
+          etwas aussagt — leere Platzhalter machen ein Dashboard unruhig,
+          ohne etwas beizutragen. */}
+      {(data.hasSaldoConfig || data.ownOpenOrders !== undefined || data.invoiceSums) && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {data.hasSaldoConfig && (
             <Metric
-              label="Überstunden-Saldo"
+              label="Saldo"
               icon="clock"
-              tone={(data.saldoH ?? 0) >= 0 ? 'success' : 'danger'}
+              tone={
+                // Ein unvollständiger Saldo wird NICHT rot dargestellt: die
+                // Zahl ist dann kein Befund, sondern eine Datenlücke.
+                (data.saldoGapDays ?? 0) > 0
+                  ? 'warning'
+                  : (data.saldoH ?? 0) >= 0
+                    ? 'success'
+                    : 'danger'
+              }
               value={`${(data.saldoH ?? 0) > 0 ? '+' : ''}${data.saldoH} h`}
+              hint={
+                (data.saldoGapDays ?? 0) > 0
+                  ? `${data.saldoGapDays} Tage ohne Buchung — unvollständig`
+                  : undefined
+              }
             />
           )}
-          {data.ownOpenOrders !== undefined && (
-            <Metric label="Offene Bestellungen" icon="package" value={data.ownOpenOrders} hint="von dir" />
+          {data.ownOpenOrders !== undefined && data.ownOpenOrders > 0 && (
+            <Metric label="Material" icon="package" value={data.ownOpenOrders} hint="von dir angefordert" />
           )}
-          {data.companyOpenOrders !== undefined && (
-            <Metric label="Offene Bestellungen" icon="package" value={data.companyOpenOrders} />
+          {data.invoiceSums && data.invoiceSums.overdue > 0 && (
+            <Metric label="Überfällig" icon="receipt" tone="danger" value={fmtEUR(data.invoiceSums.overdue)} />
           )}
-          {data.activeProjects !== undefined && (
-            <Metric label="Aktive Baustellen" icon="building" value={data.activeProjects} />
-          )}
-          {data.openInvoices !== undefined && canInvoice(user.role) && (
-            <Metric label="Offene Rechnungen" icon="receipt" value={data.openInvoices} />
+          {data.invoiceSums && data.invoiceSums.open > 0 && (
+            <Metric label="Offene Rechnungen" icon="receipt" value={fmtEUR(data.invoiceSums.open)} />
           )}
         </div>
-      </section>
+      )}
 
-      {/* Heutiger Einsatz (Außendienst) */}
-      {user.role === 'Mitarbeiter' && (
-        <Card title="Heutiger Einsatz">
-          {data.todayAssignment ? (
-            <div>
-              <p className="flex items-center gap-2 font-medium text-ink">
-                Baustelle {data.todayAssignment.projectNumber}
-                {data.todayAssignment.asHelper && <Badge tone="warning">Helfer</Badge>}
-              </p>
-              {data.todayAssignment.comment && (
-                <p className="mt-0.5 text-sm text-ink-muted">{data.todayAssignment.comment}</p>
-              )}
-            </div>
-          ) : (
-            <p className="text-ink-muted">Heute kein Einsatz geplant.</p>
+      {/* Projekt-Radar: nur was aus dem Ruder läuft. Eine grüne Baustelle
+          steht hier bewusst nicht — sie braucht keine Entscheidung. */}
+      {data.projectAlerts && data.projectAlerts.length > 0 && (
+        <Card
+          title="Baustellen am Limit"
+          accent="warning"
+          action={
+            <Link to="/accounting" className="text-sm font-semibold text-brand underline">
+              Alle Baustellen
+            </Link>
+          }
+        >
+          <ul className="divide-y divide-line">
+            {data.projectAlerts.map((p) => (
+              <li key={p.projectNumber} className="flex min-h-touch items-center justify-between gap-3 py-2">
+                <span className="min-w-0">
+                  <span className="block truncate font-medium text-ink">{p.customerName}</span>
+                  <span className="block text-xs text-ink-muted">
+                    {p.usedH} von {p.estimatedHours} h · {p.projectNumber}
+                  </span>
+                </span>
+                <Badge tone={p.over ? 'danger' : 'warning'}>
+                  {p.over ? 'überschritten' : `${p.pct} %`}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Offene Materialanforderungen — als Liste, weil eine Zahl nicht sagt,
+          was der Monteur auf der Baustelle braucht. */}
+      {data.openOrders && data.openOrders.length > 0 && (
+        <Card
+          title={`Material angefordert (${data.openOrders.length})`}
+          accent="accent"
+          action={
+            <Link to="/admin-orders" className="text-sm font-semibold text-brand underline">
+              Bearbeiten
+            </Link>
+          }
+        >
+          <ul className="divide-y divide-line">
+            {data.openOrders.slice(0, 5).map((o) => (
+              <li key={o.id} className="flex min-h-touch items-center justify-between gap-3 py-2">
+                <span className="min-w-0">
+                  <span className="block truncate text-ink">
+                    {o.quantity}× {o.materialName}
+                  </span>
+                  <span className="block truncate text-xs text-ink-muted">
+                    {[o.userName, o.projectNumber].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+                <StatusBadge status={o.status} />
+              </li>
+            ))}
+          </ul>
+          {data.openOrders.length > 5 && (
+            <p className="mt-2 text-sm text-ink-muted">
+              und {data.openOrders.length - 5} weitere
+            </p>
           )}
         </Card>
       )}
@@ -224,9 +397,16 @@ export default function DashboardView() {
           <ul className="divide-y divide-line">
             {data.team.map((t) => (
               <li key={t.uid} className="flex min-h-touch items-center justify-between gap-3 py-2">
-                <span className="truncate text-ink">{t.name}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-ink">{t.name}</span>
+                  {t.gapDays > 0 && (
+                    <span className="block text-xs text-warning">
+                      {t.gapDays} Tage ohne Buchung
+                    </span>
+                  )}
+                </span>
                 {t.hasConfig ? (
-                  <Badge tone={t.saldoH >= 0 ? 'success' : 'danger'}>
+                  <Badge tone={t.gapDays > 0 ? 'warning' : t.saldoH >= 0 ? 'success' : 'danger'}>
                     {t.saldoH > 0 ? '+' : ''}
                     {t.saldoH} h
                   </Badge>
@@ -239,20 +419,16 @@ export default function DashboardView() {
         </Card>
       )}
 
-      <Card title="Schnellzugriff">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {items.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className="flex min-h-touch items-center gap-3 rounded border border-line bg-surface-2 px-4 py-3 font-medium text-ink transition hover:border-brand hover:bg-surface active:scale-[0.98]"
-            >
-              <Icon name={item.icon} size={20} className="shrink-0 text-ink-muted" />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          ))}
-        </div>
-      </Card>
+      {/* Ist nichts zu tun, sagt das Dashboard das in einer Zeile — statt
+          fünf leere Karten zu zeigen. */}
+      {nothingToShow && (
+        <Card>
+          <p className="text-ink-muted">
+            Nichts Offenes. {user.role === 'Mitarbeiter' ? 'Zeit buchen über die Leiste unten.' : ''}
+          </p>
+        </Card>
+      )}
+
     </div>
   );
 }

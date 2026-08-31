@@ -19,7 +19,12 @@ const EXPORTABLE = [
   'followUps',
 ] as const;
 
-export const exportCompanyData = onCall({ region: 'europe-west3' }, async (request) => {
+export const exportCompanyData = onCall(
+  // Ein DSGVO-Export wird ein paar Mal im Jahr angefordert, liest dabei aber
+  // den gesamten Mandanten. Eng begrenzen, damit wiederholtes Klicken nicht
+  // die halbe Datenbank mehrfach parallel liest.
+  { region: 'europe-west3', maxInstances: 3 },
+  async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Anmeldung erforderlich.');
   const companyId = request.auth.token.companyId as string | undefined;
   const role = request.auth.token.role as string | undefined;

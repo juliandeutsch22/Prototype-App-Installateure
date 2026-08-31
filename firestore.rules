@@ -73,6 +73,22 @@ service cloud.firestore {
       allow delete: if isLeadership() && ownsExisting();
     }
 
+    // --- userPrefs: streng das EIGENE Dokument ---
+    //
+    // Hier liegen Benachrichtigungs-Einstellungen und die Push-Tokens der
+    // Geräte. Ein fremder Token wäre ein Kanal auf ein fremdes Telefon,
+    // deshalb keine Firmen-Freigabe wie sonst: nur wer das Dokument ist,
+    // darf es lesen und schreiben. Die Cloud Function liest mit
+    // Admin-Rechten und ist von diesen Regeln ohnehin nicht betroffen.
+    match /userPrefs/{uid} {
+      allow read: if signedIn() && uid == request.auth.uid;
+      allow create: if signedIn() && uid == request.auth.uid && ownsIncoming()
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if signedIn() && uid == request.auth.uid && ownsExisting()
+        && ownsIncoming() && companyUnchanged();
+      allow delete: if false;
+    }
+
     // --- projects: lesen in der Firma; verwalten nur GF/Admin ---
     match /projects/{id} {
       allow read: if ownsExisting();

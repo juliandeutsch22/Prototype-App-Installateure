@@ -13,6 +13,52 @@ export function LoadingState({ label = 'Wird geladen …' }: { label?: string })
   );
 }
 
+/**
+ * Ladeplatzhalter in Listenform.
+ *
+ * Gegenüber dem Spinner hat er zwei Vorteile: die Fläche behält die Höhe,
+ * die der Inhalt gleich einnehmen wird — nichts springt beim Eintreffen —
+ * und die App wirkt schneller, weil schon eine Struktur dasteht.
+ *
+ * Für Screenreader bleibt es EINE Statusmeldung; die grauen Balken selbst
+ * sind bedeutungslos und deshalb versteckt.
+ */
+export function SkeletonList({ rows = 3 }: { rows?: number }) {
+  return (
+    <div role="status" aria-busy="true">
+      <span className="sr-only">Wird geladen …</span>
+      <div className="divide-y divide-line" aria-hidden="true">
+        {Array.from({ length: rows }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between gap-4 py-3">
+            <div className="min-w-0 flex-1 space-y-2">
+              {/* Zwei unterschiedlich lange Balken: eine Zeile Titel, eine
+                  Zeile Untertitel — so sieht jede Liste der App aus. */}
+              <div className="skeleton h-4" style={{ width: `${55 + ((i * 13) % 30)}%` }} />
+              <div className="skeleton h-3" style={{ width: `${30 + ((i * 17) % 25)}%` }} />
+            </div>
+            <div className="skeleton h-6 w-16 shrink-0" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Ladeplatzhalter für die Kennzahlen-Reihe. */
+export function SkeletonMetrics({ count = 3 }: { count?: number }) {
+  return (
+    <div role="status" aria-busy="true" className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <span className="sr-only">Wird geladen …</span>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="rounded-lg border border-line bg-surface p-4" aria-hidden="true">
+          <div className="skeleton h-3 w-24" />
+          <div className="skeleton mt-3 h-7 w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Fehlerzustand: erklärt, was war und was zu tun ist. */
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (

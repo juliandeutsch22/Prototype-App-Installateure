@@ -14,7 +14,8 @@ export type IconName =
   | 'more'
   | 'chevron'
   | 'download'
-  | 'settings';
+  | 'settings'
+  | 'bell';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 const paths: Record<IconName, string> = {
@@ -34,6 +35,7 @@ const paths: Record<IconName, string> = {
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   chevron: 'm6 9 6 6 6-6',
   download: 'M12 3v12m0 0 4-4m-4 4-4-4M4 19h16',
+  bell: 'M18 16v-5a6 6 0 1 0-12 0v5l-2 3h16l-2-3M10 22h4',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

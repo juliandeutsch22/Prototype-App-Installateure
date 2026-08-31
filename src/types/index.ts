@@ -105,6 +105,30 @@ export interface CurrentUser {
   docId: string;
 }
 
+/**
+ * userPrefs/{uid} — persönliche Einstellungen, vom Nutzer SELBST gepflegt.
+ *
+ * Bewusst nicht in `users`: dort darf nur die Geschäftsführung schreiben
+ * (Rolle, Wochensoll, Urlaubsanspruch sind nichts, was der Mitarbeiter selbst
+ * ändern soll). Seine Benachrichtigungen und die Geräte, auf denen er sie
+ * empfängt, gehören dagegen ihm.
+ */
+export interface UserPrefs {
+  id: string; // = uid
+  companyId: string;
+  userId: string;
+  /** Benachrichtigung, wenn eine neue Materialanforderung eingeht (Verwaltung/GF). */
+  notifyNewOrder?: boolean;
+  /** Benachrichtigung, wenn die eigene Anforderung abholbereit ist (Monteur). */
+  notifyOrderReady?: boolean;
+  /**
+   * Push-Token je Gerät. Ein Mensch hat Telefon und Rechner, beide sollen
+   * die Meldung bekommen; ein abgemeldetes Gerät wird wieder entfernt.
+   */
+  pushTokens?: string[];
+  updatedAt?: number;
+}
+
 /** projects/{id} — verknüpft über `projectNumber`. */
 export interface Project {
   id: string;

@@ -28,7 +28,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
@@ -369,7 +369,7 @@ export default function InvoicesView() {
         }
       >
         {loading ? (
-          <LoadingState />
+          <SkeletonList rows={4} />
         ) : visible.length === 0 ? (
           <EmptyState>
             {invoices.length === 0 ? 'Noch keine Rechnungen.' : 'Keine Rechnung in dieser Auswahl.'}

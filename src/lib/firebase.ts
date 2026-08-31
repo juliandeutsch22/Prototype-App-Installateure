@@ -1,6 +1,11 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  connectFirestoreEmulator,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 /**
@@ -28,7 +33,34 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 export const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+
+/**
+ * Firestore MIT lokalem Zwischenspeicher.
+ *
+ * Ohne den steht ein Monteur im Keller, im Rohbau oder in der Tiefgarage vor
+ * einer leeren App, und eine Buchung schlägt fehl statt nachgereicht zu
+ * werden. Für diese Zielgruppe ist fehlender Empfang kein Randfall, sondern
+ * Alltag. Mit dem Zwischenspeicher bleiben bereits geladene Daten lesbar und
+ * Schreibvorgänge gehen raus, sobald das Netz wieder da ist.
+ *
+ * `persistentMultipleTabManager` erlaubt mehrere offene Tabs — ohne ihn
+ * bekommt nur der erste Tab den Speicher und die übrigen laufen ohne.
+ *
+ * Fällt die Einrichtung aus (privates Fenster, Browser ohne IndexedDB,
+ * blockierte Website-Daten), läuft die App wie bisher rein online weiter:
+ * lieber ohne Zwischenspeicher als gar nicht.
+ */
+function createDb() {
+  try {
+    return initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    });
+  } catch {
+    return initializeFirestore(app, {});
+  }
+}
+
+export const db = createDb();
 export const functions = getFunctions(app, FUNCTIONS_REGION);
 
 // Im Dev-Modus optional gegen die lokalen Emulatoren laufen.
