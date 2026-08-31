@@ -306,11 +306,11 @@ export default function AdminProjectsView() {
                     <>
                       {p.address}
                       {team.length > 0 && (
-                        <span className="mt-0.5 block text-xs text-ink-muted">
+                        <span className="mt-1 block text-xs text-ink-muted">
                           Team: {team.join(', ')}
                         </span>
                       )}
-                      <span className="mt-0.5 block text-xs text-ink-muted">
+                      <span className="mt-1 block text-xs text-ink-muted">
                         {leitung.length > 0 ? (
                           <>Projektleitung: {leitung.join(', ')}</>
                         ) : (

@@ -65,10 +65,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Desktop-Sidebar */}
       <aside className="hidden border-r border-line bg-surface md:flex md:w-64 md:shrink-0 md:flex-col md:p-3">
-        <div className="mb-5 px-2 pt-1">{BrandMarkSidebar}</div>
+        <div className="mb-4 px-2 pt-1">{BrandMarkSidebar}</div>
         <nav className="flex flex-col gap-4 overflow-y-auto" aria-label="Hauptnavigation">
           {groups.map(({ group, items: groupItems }) => (
-            <div key={group} className="flex flex-col gap-0.5">
+            <div key={group} className="flex flex-col gap-1">
               {group !== 'Allgemein' && (
                 <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
                   {group}
@@ -84,7 +84,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <div className="mt-auto border-t border-line pt-4">
-          <div className="flex items-center gap-2.5 px-3">
+          <div className="flex items-center gap-3 px-3">
             <Avatar name={user.name} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
@@ -117,7 +117,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             to={item.path}
             end={item.path === '/'}
             className={({ isActive }) =>
-              `flex min-h-touch flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[0.65rem] font-bold ${
+              `flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.65rem] font-bold ${
                 isActive ? 'text-brand' : 'text-ink-muted'
               }`
             }
@@ -131,7 +131,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 >
                   <Icon name={item.icon} size={20} />
                 </span>
-                <span className="max-w-full truncate px-0.5">{item.short}</span>
+                <span className="max-w-full truncate px-1">{item.short}</span>
               </>
             )}
           </NavLink>
@@ -140,7 +140,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <button
             onClick={() => setMoreOpen(true)}
             aria-label="Weitere Bereiche"
-            className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[0.65rem] font-bold ${
+            className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.65rem] font-bold ${
               moreActive ? 'text-brand' : 'text-ink-muted'
             }`}
           >
@@ -166,7 +166,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   {group}
                 </p>
               )}
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col gap-1">
                 {groupItems.map((item) => (
                   <NavLink
                     key={item.path}
@@ -195,7 +195,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <p className="truncate text-sm text-ink-muted">{user.email}</p>
           </div>
         </div>
-        <div className="mt-4 flex flex-col gap-0.5 border-t border-line pt-3">
+        <div className="mt-4 flex flex-col gap-1 border-t border-line pt-3">
           <NavLink to="/notifications" onClick={() => setProfilOpen(false)} className={sideLink}>
             <Icon name="bell" size={20} className="shrink-0" />
             <span>Benachrichtigungen</span>

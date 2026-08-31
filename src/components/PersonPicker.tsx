@@ -83,14 +83,14 @@ export default function PersonPicker({
           {/* Die Ausgewählten zuerst und immer sichtbar: sonst muss man durch
               zwanzig Zeilen scrollen, um zu sehen, wen man gewählt hat. */}
           {gewaehlt.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               {gewaehlt.map((p) => (
                 <button
                   key={p.uid}
                   type="button"
                   onClick={() => umschalten(p.uid, false)}
                   aria-label={`${p.name} entfernen`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-info-bg px-2.5 py-1 text-sm font-medium text-brand hover:bg-info-bg/70"
+                  className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-info-bg px-3 py-1 text-sm font-medium text-brand hover:bg-info-bg/70"
                 >
                   {p.name}
                   <span aria-hidden="true" className="text-base leading-none">
@@ -137,7 +137,7 @@ export default function PersonPicker({
                       <div className="flex flex-wrap items-center justify-between gap-2 px-3">
                         <label
                           htmlFor={id}
-                          className="flex min-h-touch flex-1 cursor-pointer items-center gap-2.5 py-1"
+                          className="flex min-h-touch flex-1 cursor-pointer items-center gap-3 py-1"
                         >
                           <input
                             id={id}

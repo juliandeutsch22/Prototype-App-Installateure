@@ -43,10 +43,10 @@ export default function Metric({ label, value, hint, tone = 'default' }: MetricP
     // schrumpfen, und eine lange Zahl schiebt die Nachbarn aus der Reihe.
     <div className="min-w-0 flex-1 px-3 first:pl-0 last:pr-0">
       <p className="section-label truncate">{label}</p>
-      <p className={`tnum mt-0.5 truncate text-lg font-extrabold sm:text-2xl ${valueTone[tone]}`}>
+      <p className={`tnum mt-1 truncate text-lg font-extrabold sm:text-2xl ${valueTone[tone]}`}>
         {value}
       </p>
-      {hint && <p className="mt-0.5 text-xs leading-snug text-ink-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-xs leading-snug text-ink-muted">{hint}</p>}
     </div>
   );
 }

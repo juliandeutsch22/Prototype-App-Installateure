@@ -74,7 +74,7 @@ export default function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-lg bg-surface p-5 shadow-lg"
+        className="w-full max-w-sm rounded-lg bg-surface p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-lg font-semibold text-ink">
@@ -87,7 +87,7 @@ export default function ConfirmDialog({
             {error}
           </p>
         )}
-        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
             Abbrechen
           </Button>

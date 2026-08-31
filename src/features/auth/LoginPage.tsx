@@ -72,7 +72,7 @@ export default function LoginPage() {
             eigenen roten Kasten mit und steht deshalb ohne weitere Fassung
             darauf — Blau als Fläche, Rot als Marke, wie in der ganzen App.
             Vor der Anmeldung ist der Mandant unbekannt, also die Vorgabe. */}
-        <div className="border-b-[3px] border-b-accent bg-brand px-8 py-7 text-center">
+        <div className="border-b-[3px] border-b-accent bg-brand px-6 py-6 text-center">
           <BrandLogo height={52} ignoreCompany alt={PORTAL_NAME} className="mx-auto" />
           <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-brand-fg/85">
             Mitarbeiter-Portal
@@ -83,7 +83,7 @@ export default function LoginPage() {
           <h1 className="mb-1 text-lg font-bold text-ink">
             {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
           </h1>
-          <p className="mb-5 text-sm text-ink-muted">
+          <p className="mb-4 text-sm text-ink-muted">
             {resetMode
               ? 'E-Mail-Adresse eingeben — du bekommst einen Link zugeschickt.'
               : 'Mit den Zugangsdaten deines Betriebs anmelden.'}

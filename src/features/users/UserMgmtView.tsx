@@ -18,6 +18,7 @@ import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
+import RowMenu from '@/components/RowMenu';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -365,7 +366,7 @@ export default function UserMgmtView() {
             {suche ? `Niemand passt zu „${suche}".` : 'Kein Benutzer in dieser Auswahl.'}
           </EmptyState>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-4">
             {gruppen.map((g) => (
               <div key={g.rolle}>
                 <h3 className="section-label mb-1 flex items-center justify-between">
@@ -376,7 +377,6 @@ export default function UserMgmtView() {
             {g.leute.map((u) => (
               <ListRow
                 key={u.uid}
-                stackActions
                 title={
                   <span className="flex flex-wrap items-center gap-2">
                     {u.name}
@@ -394,13 +394,26 @@ export default function UserMgmtView() {
                   <span className="text-sm text-ink-muted">nur durch Administrator</span>
                 ) : (
                   <>
+                    {/* Sichtbar bleibt die taegliche Aktion. Passwort-Mail
+                        und Sperren sind selten und im Fall des Sperrens
+                        folgenreich — die gehoeren nicht unter den Daumen,
+                        der gerade durch die Liste wischt. */}
                     <Button variant="ghost" onClick={() => startEdit(u)}>Bearbeiten</Button>
-                    <Button variant="ghost" onClick={() => void sendReset(u)}>Passwort-Mail</Button>
-                    {u.uid !== user.uid && (
-                      <Button variant="ghost" onClick={() => setToToggle(u)}>
-                        {u.active === false ? 'Aktivieren' : 'Deaktivieren'}
-                      </Button>
-                    )}
+                    <RowMenu
+                      about={u.name}
+                      items={[
+                        { label: 'Passwort-Mail senden', onSelect: () => void sendReset(u) },
+                        ...(u.uid !== user.uid
+                          ? [
+                              {
+                                label: u.active === false ? 'Aktivieren' : 'Deaktivieren',
+                                onSelect: () => setToToggle(u),
+                                danger: u.active !== false,
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
                   </>
                 )}
               </ListRow>

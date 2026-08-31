@@ -19,7 +19,7 @@ export function RequireRole({ roles, children }: { roles: Role[]; children: Reac
   if (!user) return <Navigate to="/login" replace />;
   if (!roles.includes(user.role)) {
     return (
-      <div className="mx-auto max-w-md p-8 text-center">
+      <div className="mx-auto max-w-md p-6 text-center">
         <h1 className="text-xl font-semibold text-ink">Kein Zugriff</h1>
         <p className="mt-2 text-ink-muted">
           Deine Rolle ({user.role}) hat keinen Zugriff auf diesen Bereich.

@@ -162,7 +162,7 @@ export default function ProjectSummary({
                     {people.map((p) => (
                       <span
                         key={p.name}
-                        className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1 text-xs"
+                        className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1 text-xs"
                       >
                         <span className="font-semibold text-ink">{p.name}</span>
                         <span className="text-ink-muted">{h(p.fachMin)} h</span>
@@ -195,7 +195,7 @@ export default function ProjectSummary({
                               <td className="py-1 pr-3">
                                 {e.userName ?? '–'}
                                 {e.isHelper && (
-                                  <span className="ml-1.5">
+                                  <span className="ml-2">
                                     <Badge tone="warning">Helfer</Badge>
                                   </span>
                                 )}

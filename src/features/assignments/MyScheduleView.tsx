@@ -99,15 +99,15 @@ export default function MyScheduleView() {
               markLabel={(n) => `${n} ${n === 1 ? 'Einsatz' : 'Einsätze'}`}
             />
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-ink-muted">
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-2">
                 <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" />
                 Einsätze geplant
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-2">
                 <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand/25 ring-1 ring-brand" />
                 Heute
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-2">
                 <span className="inline-block h-2.5 w-5 rounded-sm bg-warning-bg shadow-[inset_0_2px_0_0_var(--warning)]" />
                 Feiertag (AT)
               </span>
@@ -147,7 +147,7 @@ export default function MyScheduleView() {
                         </div>
                         {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
                         {proj?.address && (
-                          <p className="mt-0.5 text-sm text-ink-muted">{proj.address}</p>
+                          <p className="mt-1 text-sm text-ink-muted">{proj.address}</p>
                         )}
 
                         <div className="mt-3 flex flex-wrap gap-2">

@@ -337,7 +337,7 @@ export default function DashboardView() {
         </span>
         <span className="min-w-0">
           <span className="block font-semibold">Spracherfassung starten</span>
-          <span className="mt-0.5 hidden text-sm text-brand-fg/80 sm:block">
+          <span className="mt-1 hidden text-sm text-brand-fg/80 sm:block">
             15 Sekunden sprechen → Zeit, Material, Folgetermin als bestätigbare Karten
           </span>
         </span>

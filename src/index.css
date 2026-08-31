@@ -98,6 +98,26 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.15);
 }
 
+/*
+ * ABSTÄNDE — verbindliche Skala: 1, 2, 3, 4, 6 (4/8/12/16/24 px).
+ *
+ * Vorher war alles im Umlauf, was Tailwind anbietet: 0.5, 1, 1.5, 2, 2.5, 3,
+ * 3.5, 4, 5, 6, 7, 8. Kein einziger Wert war falsch, aber zwei Karten
+ * nebeneinander atmeten unterschiedlich, und niemand konnte sagen, ob 10 px
+ * hier Absicht oder Zufall waren. Eine Skala mit fünf Stufen beantwortet die
+ * Frage vor dem Schreiben.
+ *
+ *   1  (4 px)  innerhalb eines Paares — Beschriftung über ihrem Wert
+ *   2  (8 px)  nebeneinanderstehende Kleinteile — Abzeichen, Symbole
+ *   3  (12 px) innerhalb einer Gruppe — Kartenkopf, Listenzeile
+ *   4  (16 px) zwischen Formularfeldern, Innenmaß der Karte
+ *   6  (24 px) zwischen Abschnitten einer Seite
+ *
+ * Gilt für p/px/py/pt/pb/pl/pr, m/mx/my/mt/mb/ml/mr, gap und space.
+ * Die wiederkehrenden Maße stehen in Card, ListRow und Field — dort ändern,
+ * nicht an der Aufrufstelle nachbessern.
+ */
+
 /* Abschnittsüberschrift im Kartenkopf: klein, fett, gesperrt, versal. */
 .section-label {
   font-size: 0.7rem;

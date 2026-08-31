@@ -325,7 +325,7 @@ export default function AccountingView() {
             )}
             {rows.length > 0 && (
               <Button variant="secondary" onClick={exportMonthCsv}>
-                <Icon name="download" size={16} className="mr-1.5 shrink-0" />
+                <Icon name="download" size={16} className="mr-2 shrink-0" />
                 Monats-CSV
               </Button>
             )}
@@ -481,7 +481,7 @@ export default function AccountingView() {
                               ? '1 Arbeitstag ohne Buchung'
                               : `${completeness.missingCount} Arbeitstage ohne Buchung`}
                           </summary>
-                          <p className="mt-1.5 leading-relaxed">
+                          <p className="mt-2 leading-relaxed">
                             {completeness.missingDates.map((d) => dayLabel(d)).join(' · ')}
                           </p>
                         </details>
@@ -553,12 +553,12 @@ export default function AccountingView() {
                             <table className="hidden w-full text-sm sm:table">
                               <thead>
                                 <tr className="border-b border-line text-left text-ink-muted">
-                                  <th className="py-1.5 pr-3 font-medium">Tag</th>
-                                  <th className="py-1.5 pr-3 font-medium">Status</th>
-                                  <th className="py-1.5 pr-3 font-medium">Zeit</th>
-                                  <th className="py-1.5 pr-3 font-medium">Baustelle</th>
-                                  <th className="py-1.5 pr-3 text-right font-medium">Stunden</th>
-                                  <th className="py-1.5 text-right font-medium">
+                                  <th className="py-2 pr-3 font-medium">Tag</th>
+                                  <th className="py-2 pr-3 font-medium">Status</th>
+                                  <th className="py-2 pr-3 font-medium">Zeit</th>
+                                  <th className="py-2 pr-3 font-medium">Baustelle</th>
+                                  <th className="py-2 pr-3 text-right font-medium">Stunden</th>
+                                  <th className="py-2 text-right font-medium">
                                     <span className="sr-only">Aktionen</span>
                                   </th>
                                 </tr>
@@ -566,18 +566,18 @@ export default function AccountingView() {
                               <tbody>
                                 {days.map((x) => (
                                   <tr key={x.d} className="border-b border-line/60">
-                                    <td className="tnum whitespace-nowrap py-1.5 pr-3 font-medium text-ink">
+                                    <td className="tnum whitespace-nowrap py-2 pr-3 font-medium text-ink">
                                       {dayLabel(x.d)}
                                     </td>
-                                    <td className="py-1.5 pr-3">{status(x)}</td>
-                                    <td className="tnum py-1.5 pr-3 text-ink-muted">
+                                    <td className="py-2 pr-3">{status(x)}</td>
+                                    <td className="tnum py-2 pr-3 text-ink-muted">
                                       {x.zeit ?? '—'}
                                     </td>
-                                    <td className="py-1.5 pr-3">{x.entry?.customerName ?? '—'}</td>
-                                    <td className="tnum py-1.5 pr-3 text-right font-medium">
+                                    <td className="py-2 pr-3">{x.entry?.customerName ?? '—'}</td>
+                                    <td className="tnum py-2 pr-3 text-right font-medium">
                                       {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
                                     </td>
-                                    <td className="py-1.5">
+                                    <td className="py-2">
                                       {/* Flex statt Inline: sonst sitzen die
                                           Knöpfe auf der Textgrundlinie und
                                           hängen sichtbar unter der Zeile. */}
@@ -640,7 +640,7 @@ export default function AccountingView() {
                       })()}
                       <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
                         <Button variant="secondary" onClick={() => exportUserCsv(u)}>
-                          <Icon name="download" size={16} className="mr-1.5 shrink-0" />
+                          <Icon name="download" size={16} className="mr-2 shrink-0" />
                           Monat als CSV
                         </Button>
                         <Button variant="accent" onClick={() => setExportFor(u)}>
