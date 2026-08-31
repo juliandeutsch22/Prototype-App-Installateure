@@ -62,6 +62,38 @@ function daysOfMonth(year: number, month: number): string[] {
   return Array.from({ length: last }, (_, i) => localDateStr(new Date(year, month, i + 1)));
 }
 
+const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
+/** '2026-08-03' -> 'Mo 03.08.' — der Wochentag macht den Monat lesbar. */
+function dayLabel(iso: string): string {
+  return `${WEEKDAYS[new Date(`${iso}T00:00:00`).getDay()]} ${iso.slice(8)}.${iso.slice(5, 7)}.`;
+}
+
+/**
+ * Kennzahl im aufgeklappten Bereich: Wert über Beschriftung.
+ *
+ * Bewusst keine `Metric`-Kachel — die trägt Rahmen und Symbol und wäre
+ * innerhalb einer bereits gerahmten Zeile eine Schachtel in der Schachtel.
+ * Hier zählt nur, dass jede Zahl ihren Namen bei sich hat: „101:00" allein
+ * sagt niemandem, ob das Ist, Soll oder Saldo ist.
+ */
+function Figure({
+  label,
+  value,
+  tone = '',
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <div>
+      <p className={`tnum text-lg font-bold leading-tight ${tone || 'text-ink'}`}>{value}</p>
+      <p className="text-xs text-ink-muted">{label}</p>
+    </div>
+  );
+}
+
 /**
  * Mitarbeiterübersicht (Buchhaltung/GF/Admin): Monatsauswertung je Mitarbeiter
  * mit Vollständigkeitskontrolle. Da es keinen Freigabe-Workflow gibt, ist die
@@ -264,38 +296,47 @@ export default function AccountingView() {
               return (
                 <div
                   key={u.uid}
-                  className="overflow-hidden rounded-lg border border-line shadow-sm transition-shadow hover:shadow-lg"
+                  className={`overflow-hidden rounded-lg border transition-colors ${
+                    open ? 'border-brand/40' : 'border-line'
+                  }`}
                 >
-                  {/* Aufgeklappt färbt sich der Kopf Perl-Blau — im Prototyp
-                      das Signal, welcher Mitarbeiter gerade geöffnet ist. */}
+                  {/* Der Kopf trägt nur noch, was den Mitarbeiter einordnet:
+                      Name, Ampel, Saldo. Krankheit, Urlaub und Resturlaub
+                      standen hier als vierte, fünfte, sechste Pille und
+                      ergaben eine Zeile, die man las statt überflog — sie
+                      stehen jetzt beschriftet im aufgeklappten Bereich.
+
+                      Der blaue Block beim Aufklappen ist ebenfalls weg. Er
+                      schrie lauter als der Inhalt, den er ankündigte; jetzt
+                      genügt der hellere Grund und die farbige Kante. */}
                   <button
                     type="button"
                     onClick={() => setExpanded(open ? null : u.uid)}
                     aria-expanded={open}
-                    className={`flex min-h-touch w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-left transition-colors ${
-                      open ? 'bg-brand text-brand-fg' : 'bg-surface-2 hover:bg-line/40'
+                    className={`flex min-h-touch w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
+                      open ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
                     }`}
                   >
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className={`font-bold ${open ? 'text-brand-fg' : 'text-ink'}`}>
-                        {u.name}
-                      </span>
-                      <Badge tone={STATUS_TONE[completeness.status]}>
-                        {completeness.status === 'missing'
-                          ? `${completeness.missingCount} Tage fehlen`
-                          : STATUS_LABEL[completeness.status]}
-                      </Badge>
-                      {stats.krankDays > 0 && <Badge tone="warning">{stats.krankDays}× krank</Badge>}
-                      {stats.urlaubDays > 0 && <Badge tone="info">{stats.urlaubDays}× Urlaub</Badge>}
-                      <Badge tone={stats.urlaubRest < 5 ? 'warning' : 'gray'}>
-                        Resturlaub {stats.urlaubRest}
-                      </Badge>
+                    <span className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className="font-bold text-ink">{u.name}</span>
+                      {/* „vollständig" braucht keine Pille — nur die Ausnahme
+                          verdient Aufmerksamkeit. */}
+                      {completeness.status !== 'complete' && (
+                        <Badge tone={STATUS_TONE[completeness.status]}>
+                          {completeness.status === 'missing'
+                            ? `${completeness.missingCount} Tage fehlen`
+                            : STATUS_LABEL[completeness.status]}
+                        </Badge>
+                      )}
                     </span>
-                    <span className="flex items-center gap-3">
-                      <span
-                        className={`tnum text-sm ${open ? 'text-brand-fg/80' : 'text-ink-muted'}`}
-                      >
-                        {fmtMin(stats.istMin)} / {fmtMin(stats.sollMin)}
+                    <span className="flex shrink-0 items-center gap-3">
+                      <span className="hidden text-right sm:block">
+                        <span className="tnum block text-sm font-semibold text-ink">
+                          {fmtMin(stats.istMin)}
+                        </span>
+                        <span className="tnum block text-xs text-ink-muted">
+                          von {fmtMin(stats.sollMin)}
+                        </span>
                       </span>
                       <Badge tone={stats.saldoMin >= 0 ? 'success' : 'danger'}>
                         {stats.saldoMin > 0 ? '+' : ''}
@@ -304,113 +345,212 @@ export default function AccountingView() {
                       <Icon
                         name="chevron"
                         size={18}
-                        className={`shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                        className={`shrink-0 text-ink-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
                       />
                     </span>
                   </button>
 
                   {open && (
-                    <div className="border-t border-line px-4 py-3">
+                    <div className="border-t border-line px-4 py-4">
+                      {/* Zuerst die Zahlen des Monats, dann erst die Tage.
+                          Wer eine Zeitkarte öffnet, will meist nur wissen,
+                          wie der Monat steht — nicht jeden einzelnen Tag. */}
+                      <div className="grid grid-cols-3 gap-x-4 gap-y-3 sm:grid-cols-6">
+                        <Figure label="Ist" value={fmtMin(stats.istMin)} />
+                        <Figure label="Soll" value={fmtMin(stats.sollMin)} />
+                        <Figure
+                          label="Saldo"
+                          value={`${stats.saldoMin > 0 ? '+' : ''}${fmtMin(stats.saldoMin)}`}
+                          tone={stats.saldoMin >= 0 ? 'text-success' : 'text-danger'}
+                        />
+                        <Figure
+                          label="Krank"
+                          value={`${stats.krankDays} ${stats.krankDays === 1 ? 'Tag' : 'Tage'}`}
+                          tone={stats.krankDays > 0 ? 'text-warning' : ''}
+                        />
+                        <Figure
+                          label="Urlaub"
+                          value={`${stats.urlaubDays} ${stats.urlaubDays === 1 ? 'Tag' : 'Tage'}`}
+                        />
+                        <Figure
+                          label="Resturlaub"
+                          value={`${stats.urlaubRest} ${stats.urlaubRest === 1 ? 'Tag' : 'Tage'}`}
+                          tone={stats.urlaubRest < 5 ? 'text-warning' : ''}
+                        />
+                      </div>
+                      <p className="mt-2 text-xs text-ink-muted">
+                        Tagessoll {stats.dailyTargetH.toFixed(2).replace('.', ',')} h ·
+                        Wochenstunden {String(stats.weeklyTarget).replace('.', ',')} h ·{' '}
+                        {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
+                        {stats.holidaysInMonth > 0 &&
+                          ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
+                      </p>
+
                       {completeness.missingCount > 0 && (
-                        <details className="mb-3 rounded-sm border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
+                        <details className="mt-4 rounded border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
                           <summary className="cursor-pointer font-semibold">
                             {completeness.missingCount === 1
                               ? '1 Arbeitstag ohne Buchung'
                               : `${completeness.missingCount} Arbeitstage ohne Buchung`}
                           </summary>
                           <p className="mt-1.5 leading-relaxed">
-                            {completeness.missingDates
-                              .map((d) => `${d.slice(8)}.${d.slice(5, 7)}.`)
-                              .join(' · ')}
+                            {completeness.missingDates.map((d) => dayLabel(d)).join(' · ')}
                           </p>
                         </details>
                       )}
-                      <div className="overflow-x-auto">
-                        <table className="w-full min-w-[34rem] text-sm">
-                          <thead>
-                            <tr className="border-b border-line text-left text-ink-muted">
-                              <th className="py-1 pr-3 font-medium">Tag</th>
-                              <th className="py-1 pr-3 font-medium">Status</th>
-                              <th className="py-1 pr-3 font-medium">Zeit</th>
-                              <th className="py-1 pr-3 font-medium">Baustelle</th>
-                              <th className="py-1 pr-3 text-right font-medium">Stunden</th>
-                              <th className="py-1 text-right font-medium">
-                                <span className="sr-only">Aktionen</span>
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {daysOfMonth(year, month).map((d) => {
-                              const entry = monthEntries.find((e) => e.date === d);
-                              const holiday = getAustrianHolidayName(new Date(`${d}T00:00:00`));
-                              if (!entry && !holiday) return null;
-                              // Zeilenfarben wie im Prototyp: Feiertag blau,
-                              // Abwesenheit gelb — der Monat ist so überfliegbar.
-                              const rowTone = !entry
-                                ? 'bg-info-bg/60'
-                                : entry.status === 'Krank' || entry.status === 'Urlaub'
-                                  ? 'bg-warning-bg/50'
-                                  : '';
-                              return (
-                                <tr key={d} className={`border-b border-line/60 ${rowTone}`}>
-                                  <td className="py-1 pr-3 tnum">{d.slice(8)}.{d.slice(5, 7)}.</td>
-                                  <td className="py-1 pr-3">
-                                    {entry ? entry.status : <span className="text-ink-muted">{holiday}</span>}
-                                  </td>
-                                  <td className="py-1 pr-3 tnum text-ink-muted">
-                                    {entry?.startTime && entry?.endTime
-                                      ? `${entry.startTime}–${entry.endTime}`
-                                      : '—'}
-                                  </td>
-                                  <td className="py-1 pr-3">{entry?.customerName ?? '—'}</td>
-                                  <td className="py-1 pr-3 text-right tnum">
-                                    {entry ? fmtMin(calcWorkMin(entry)) : '—'}
-                                  </td>
-                                  <td className="py-1 text-right whitespace-nowrap">
-                                    {entry && (
-                                      entry.isBilled ? (
-                                        // Verrechnete Einträge sind Rechnungs-
-                                        // grundlage und bleiben unangetastet.
-                                        <Badge tone="gray">verrechnet</Badge>
-                                      ) : (
-                                        <>
-                                          <Button variant="ghost" onClick={() => {
-                                            setCreating(false);
-                                            setEditing(entry);
-                                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                                          }}>
-                                            Bearbeiten
-                                          </Button>
-                                          <Button variant="ghost" onClick={() => setToDelete(entry)}>
-                                            Löschen
-                                          </Button>
-                                        </>
-                                      )
-                                    )}
-                                  </td>
+                      {(() => {
+                        // Einmal rechnen, zweimal darstellen: die Tabelle für
+                        // den Schreibtisch, die Liste fürs Telefon. Eine
+                        // sechsspaltige Tabelle war am Handy nicht zu retten —
+                        // entweder man wischte seitwärts oder die Knöpfe
+                        // wurden abgeschnitten.
+                        const days = daysOfMonth(year, month)
+                          .map((d) => {
+                            const entry = monthEntries.find((e) => e.date === d);
+                            const holiday = getAustrianHolidayName(new Date(`${d}T00:00:00`));
+                            if (!entry && !holiday) return null;
+                            return {
+                              d,
+                              entry,
+                              holiday,
+                              zeit:
+                                entry?.startTime && entry?.endTime
+                                  ? `${entry.startTime}–${entry.endTime}`
+                                  : null,
+                            };
+                          })
+                          .filter((x): x is NonNullable<typeof x> => x !== null);
+
+                        /* Abwesenheit und Feiertag als Pille statt als
+                           eingefärbte Zeile: die Tönung allein war für
+                           Farbenblinde kein Signal. */
+                        const status = (x: (typeof days)[number]) =>
+                          !x.entry ? (
+                            <Badge tone="info">{x.holiday}</Badge>
+                          ) : x.entry.status === 'Krank' ? (
+                            <Badge tone="warning">Krank</Badge>
+                          ) : x.entry.status === 'Urlaub' ? (
+                            <Badge tone="info">Urlaub</Badge>
+                          ) : (
+                            <span className="text-ink-muted">Anwesend</span>
+                          );
+
+                        const actions = (e: WithId<TimeEntry>) =>
+                          e.isBilled ? (
+                            // Verrechnete Einträge sind Rechnungsgrundlage
+                            // und bleiben unangetastet.
+                            <Badge tone="gray">verrechnet</Badge>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                onClick={() => {
+                                  setCreating(false);
+                                  setEditing(e);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                              >
+                                Bearbeiten
+                              </Button>
+                              <Button variant="ghost" onClick={() => setToDelete(e)}>
+                                Löschen
+                              </Button>
+                            </>
+                          );
+
+                        return (
+                          <div className="mt-4">
+                            <h4 className="section-label mb-1">Tagesnachweis</h4>
+
+                            <table className="hidden w-full text-sm sm:table">
+                              <thead>
+                                <tr className="border-b border-line text-left text-ink-muted">
+                                  <th className="py-1.5 pr-3 font-medium">Tag</th>
+                                  <th className="py-1.5 pr-3 font-medium">Status</th>
+                                  <th className="py-1.5 pr-3 font-medium">Zeit</th>
+                                  <th className="py-1.5 pr-3 font-medium">Baustelle</th>
+                                  <th className="py-1.5 pr-3 text-right font-medium">Stunden</th>
+                                  <th className="py-1.5 text-right font-medium">
+                                    <span className="sr-only">Aktionen</span>
+                                  </th>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                          <tfoot>
-                            <tr className="font-medium">
-                              <td className="pt-2" colSpan={5}>
-                                {monthEntries.length === 1 ? '1 Eintrag' : `${monthEntries.length} Einträge`}
-                                {' · '}
-                                {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
-                                {stats.holidaysInMonth > 0 &&
-                                  ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
-                              </td>
-                              <td className="pt-2 text-right tnum">{fmtMin(stats.istMin)}</td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                      </div>
-                      <p className="mt-2 text-sm text-ink-muted">
-                        Tagessoll {stats.dailyTargetH.toFixed(2).replace('.', ',')} h ·
-                        Wochenstunden {String(stats.weeklyTarget).replace('.', ',')} h
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                              </thead>
+                              <tbody>
+                                {days.map((x) => (
+                                  <tr key={x.d} className="border-b border-line/60">
+                                    <td className="tnum whitespace-nowrap py-1.5 pr-3 font-medium text-ink">
+                                      {dayLabel(x.d)}
+                                    </td>
+                                    <td className="py-1.5 pr-3">{status(x)}</td>
+                                    <td className="tnum py-1.5 pr-3 text-ink-muted">
+                                      {x.zeit ?? '—'}
+                                    </td>
+                                    <td className="py-1.5 pr-3">{x.entry?.customerName ?? '—'}</td>
+                                    <td className="tnum py-1.5 pr-3 text-right font-medium">
+                                      {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
+                                    </td>
+                                    <td className="py-1.5">
+                                      {/* Flex statt Inline: sonst sitzen die
+                                          Knöpfe auf der Textgrundlinie und
+                                          hängen sichtbar unter der Zeile. */}
+                                      <div className="flex items-center justify-end gap-1">
+                                        {x.entry && actions(x.entry)}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="font-semibold">
+                                  <td className="pt-2" colSpan={4}>
+                                    {monthEntries.length === 1
+                                      ? '1 Eintrag'
+                                      : `${monthEntries.length} Einträge`}
+                                  </td>
+                                  <td className="tnum pt-2 pr-3 text-right">
+                                    {fmtMin(stats.istMin)}
+                                  </td>
+                                  <td className="pt-2" />
+                                </tr>
+                              </tfoot>
+                            </table>
+
+                            <ul className="sm:hidden">
+                              {days.map((x) => (
+                                <li key={x.d} className="border-b border-line/60 py-2">
+                                  <div className="flex items-baseline justify-between gap-2">
+                                    <span className="tnum font-semibold text-ink">
+                                      {dayLabel(x.d)}
+                                    </span>
+                                    <span className="tnum font-semibold text-ink">
+                                      {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
+                                    {status(x)}
+                                    {x.zeit && <span className="tnum">{x.zeit}</span>}
+                                    {x.entry?.customerName && <span>{x.entry.customerName}</span>}
+                                  </div>
+                                  {x.entry && (
+                                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                                      {actions(x.entry)}
+                                    </div>
+                                  )}
+                                </li>
+                              ))}
+                              <li className="flex justify-between py-2 font-semibold">
+                                <span>
+                                  {monthEntries.length === 1
+                                    ? '1 Eintrag'
+                                    : `${monthEntries.length} Einträge`}
+                                </span>
+                                <span className="tnum">{fmtMin(stats.istMin)}</span>
+                              </li>
+                            </ul>
+                          </div>
+                        );
+                      })()}
+                      <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
                         <Button variant="secondary" onClick={() => exportUserCsv(u)}>
                           <Icon name="download" size={16} className="mr-1.5 shrink-0" />
                           Monat als CSV
