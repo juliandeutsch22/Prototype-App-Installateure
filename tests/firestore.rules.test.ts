@@ -287,3 +287,79 @@ describe('Firmen-Stammdaten und Verrechnungssätze', () => {
     await assertFails(deleteDoc(doc(db, 'companies', 'companyA')));
   });
 });
+
+describe('userPrefs — persönliche Einstellungen und Push-Tokens', () => {
+  it('darf das eigene Dokument anlegen und lesen', async () => {
+    const db = ctxA_employee().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'userPrefs', 'userA1'), {
+        companyId: 'companyA',
+        userId: 'userA1',
+        notifyOrderReady: true,
+        pushTokens: ['token-des-eigenen-telefons'],
+      }),
+    );
+    await assertSucceeds(getDoc(doc(db, 'userPrefs', 'userA1')));
+  });
+
+  it('darf das Dokument eines KOLLEGEN nicht lesen', async () => {
+    // Dort liegen Push-Tokens. Ein fremdes Token ist ein Kanal auf ein
+    // fremdes Telefon — das darf nicht einmal innerhalb der Firma offen sein.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'userPrefs', 'kollege'), {
+        companyId: 'companyA',
+        userId: 'kollege',
+        pushTokens: ['fremdes-token'],
+      });
+    });
+    const db = ctxA_employee().firestore();
+    await assertFails(getDoc(doc(db, 'userPrefs', 'kollege')));
+  });
+
+  it('darf sich kein Token in ein fremdes Dokument schreiben', async () => {
+    const db = ctxA_employee().firestore();
+    await assertFails(
+      setDoc(doc(db, 'userPrefs', 'kollege'), {
+        companyId: 'companyA',
+        userId: 'kollege',
+        pushTokens: ['untergeschobenes-token'],
+      }),
+    );
+  });
+
+  it('auch der Administrator kommt nicht an fremde Tokens', async () => {
+    // Bewusste Abweichung vom sonstigen Muster: bei userPrefs hilft die
+    // Leitungsrolle nicht weiter, hier zählt nur die eigene Identität.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'userPrefs', 'userA1'), {
+        companyId: 'companyA',
+        userId: 'userA1',
+        pushTokens: ['token'],
+      });
+    });
+    const db = ctxA_admin().firestore();
+    await assertFails(getDoc(doc(db, 'userPrefs', 'userA1')));
+  });
+
+  it('Firma B kommt nicht an Einstellungen aus Firma A', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'userPrefs', 'userA1'), {
+        companyId: 'companyA',
+        userId: 'userA1',
+      });
+    });
+    const db = ctxB_admin().firestore();
+    await assertFails(getDoc(doc(db, 'userPrefs', 'userA1')));
+  });
+
+  it('niemand darf Einstellungen loeschen', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'userPrefs', 'userA1'), {
+        companyId: 'companyA',
+        userId: 'userA1',
+      });
+    });
+    const db = ctxA_employee().firestore();
+    await assertFails(deleteDoc(doc(db, 'userPrefs', 'userA1')));
+  });
+});

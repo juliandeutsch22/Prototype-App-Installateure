@@ -47,6 +47,12 @@ export const NAV: NavItem[] = [
 
   { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
   { path: '/accounting', label: 'Mitarbeiterübersicht', short: 'Übersicht', icon: 'chart', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
+
+  // Persönliche Einstellungen, für jede Rolle. Steht bewusst ganz am ENDE
+  // der Liste: die mobile Tab-Bar zeigt die ersten vier Einträge, und dort
+  // gehören Zeiterfassung und Material hin, nicht die Meldungseinstellungen.
+  // In der Sidebar erscheint der Punkt über die Gruppe trotzdem oben.
+  { path: '/notifications', label: 'Benachrichtigungen', short: 'Meldungen', icon: 'bell', roles: ALL, group: 'Allgemein' },
 ];
 
 export function navForRole(role: Role): NavItem[] {
