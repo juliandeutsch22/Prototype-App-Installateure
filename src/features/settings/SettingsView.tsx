@@ -67,7 +67,7 @@ export default function SettingsView() {
       />
 
       <form onSubmit={submit} className="space-y-6">
-        <Card title="Stundensätze" accent="brand">
+        <Card title="Stundensätze">
           <FormGrid>
             <InputField
               id="r-fach"
@@ -95,7 +95,7 @@ export default function SettingsView() {
           </p>
         </Card>
 
-        <Card title="Zuschläge" accent="accent">
+        <Card title="Zuschläge">
           <FormGrid>
             <InputField
               id="r-night"
@@ -134,19 +134,19 @@ export default function SettingsView() {
               <tbody>
                 <tr className="border-b border-line/60">
                   <td className="py-1">Regulär</td>
-                  <td className="py-1 text-right font-mono">{fmtEUR(rates.fach)} €/h</td>
+                  <td className="py-1 text-right tnum">{fmtEUR(rates.fach)} €/h</td>
                 </tr>
                 <tr className="border-b border-line/60">
                   <td className="py-1">Nachtarbeit</td>
-                  <td className="py-1 text-right font-mono">{fmtEUR(nightFach)} €/h</td>
+                  <td className="py-1 text-right tnum">{fmtEUR(nightFach)} €/h</td>
                 </tr>
                 <tr className="border-b border-line/60">
                   <td className="py-1">Notdienst</td>
-                  <td className="py-1 text-right font-mono">{fmtEUR(emergencyFach)} €/h</td>
+                  <td className="py-1 text-right tnum">{fmtEUR(emergencyFach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="py-1">Notdienst in der Nacht</td>
-                  <td className="py-1 text-right font-mono">{fmtEUR(bothFach)} €/h</td>
+                  <td className="py-1 text-right tnum">{fmtEUR(bothFach)} €/h</td>
                 </tr>
               </tbody>
             </table>

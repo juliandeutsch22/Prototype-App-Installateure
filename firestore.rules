@@ -39,8 +39,26 @@ service cloud.firestore {
       return signedIn() && role() in roles;
     }
 
+    function isAdmin() {
+      return hasRole(['Administrator']);
+    }
+
+    // Leitung inklusive Projektleitung: plant Baustellen, verteilt Material,
+    // rechnet ab. Beim Zeitkonto gilt bewusst topLevel() statt dieser Rolle.
     function isLeadership() {
+      return hasRole(['Projektleiter', 'Geschäftsführung', 'Administrator']);
+    }
+
+    // Ohne Projektleitung — fuer alles rund um die Zeitkonten der Mitarbeiter.
+    // Krankenstaende sind Gesundheitsdaten nach Art. 9 DSGVO; sie bekommt nur,
+    // wer sie fuer seine Aufgabe braucht.
+    function isTopLevel() {
       return hasRole(['Geschäftsführung', 'Administrator']);
+    }
+
+    // Wer fremde Zeitkonten sehen und korrigieren darf.
+    function isBuchOrTop() {
+      return hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']);
     }
 
     // companyId darf bei Updates nicht verändert werden.
@@ -53,7 +71,8 @@ service cloud.firestore {
     // dauerhaft aussperren, weil keine Regel mehr greift.
     function validRole() {
       return request.resource.data.role in
-        ['Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator'];
+        ['Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Projektleiter',
+         'Geschäftsführung', 'Administrator'];
     }
 
     // --- companies: lesen für die eigene Firma; Stammdaten und Sätze
@@ -65,12 +84,24 @@ service cloud.firestore {
     }
 
     // --- users: lesen innerhalb der Firma; verwalten nur GF/Admin ---
+    // Wer die Rolle Administrator vergibt oder einem Administrator etwas
+    // wegnimmt, muss selbst Administrator sein. Sonst koennte sich eine
+    // Geschaeftsfuehrung zum Superuser machen oder den letzten Administrator
+    // entfernen — die Hierarchie waere wirkungslos.
+    function touchesAdmin() {
+      return request.resource.data.role == 'Administrator'
+        || (resource != null && resource.data.role == 'Administrator');
+    }
+
     match /users/{userId} {
       allow read: if ownsExisting();
-      allow create: if isLeadership() && ownsIncoming() && validRole();
+      allow create: if isLeadership() && ownsIncoming() && validRole()
+        && (request.resource.data.role != 'Administrator' || isAdmin());
       allow update: if isLeadership() && ownsExisting() && ownsIncoming()
-        && companyUnchanged() && validRole();
-      allow delete: if isLeadership() && ownsExisting();
+        && companyUnchanged() && validRole()
+        && (!touchesAdmin() || isAdmin());
+      allow delete: if isLeadership() && ownsExisting()
+        && (resource.data.role != 'Administrator' || isAdmin());
     }
 
     // --- userPrefs: streng das EIGENE Dokument ---
@@ -109,9 +140,9 @@ service cloud.firestore {
     //     Lagerstand (stock) darf jeder der Firma per Transaktion ändern. ---
     match /materials/{id} {
       allow read: if ownsExisting();
-      allow create: if hasRole(['Verwaltung', 'Geschäftsführung', 'Administrator']) && ownsIncoming();
+      allow create: if (hasRole(['Verwaltung']) || isLeadership()) && ownsIncoming();
       allow update: if ownsExisting() && ownsIncoming() && companyUnchanged();
-      allow delete: if hasRole(['Verwaltung', 'Geschäftsführung', 'Administrator']) && ownsExisting();
+      allow delete: if (hasRole(['Verwaltung']) || isLeadership()) && ownsExisting();
     }
 
     // --- materialOrders: eigene anlegen/verfolgen; verwalten nur Verwaltung/Leitung ---
@@ -120,7 +151,7 @@ service cloud.firestore {
       // nur, wer sie bearbeitet oder abrechnet.
       allow read: if ownsExisting()
         && (resource.data.userId == request.auth.uid
-            || hasRole(['Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator']));
+            || (hasRole(['Verwaltung', 'Buchhaltung']) || isLeadership()));
       allow create: if ownsIncoming()
         && request.resource.data.userId == request.auth.uid;
       // Der Besteller darf seine eigene Abholung bestätigen, sonst greift
@@ -128,10 +159,10 @@ service cloud.firestore {
       // inklusive des Verrechnet-Kennzeichens.
       allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
         && (resource.data.userId == request.auth.uid
-            || hasRole(['Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator']));
+            || (hasRole(['Verwaltung', 'Buchhaltung']) || isLeadership()));
       // Verwaltung pflegt das Material-Dashboard und darf dort löschen
       // (Legacy:4980-4988) — vorher war das versehentlich nur der Leitung erlaubt.
-      allow delete: if hasRole(['Verwaltung', 'Geschäftsführung', 'Administrator'])
+      allow delete: if (hasRole(['Verwaltung']) || isLeadership())
         && ownsExisting();
     }
 
@@ -144,16 +175,16 @@ service cloud.firestore {
       // auch direkt an der Oberfläche vorbei.
       allow read: if ownsExisting()
         && (resource.data.userId == request.auth.uid
-            || hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']));
+            || isBuchOrTop());
       allow create: if ownsIncoming()
         && (request.resource.data.userId == request.auth.uid
-            || hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']));
+            || isBuchOrTop());
       allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
         && (resource.data.userId == request.auth.uid
-            || hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']));
+            || isBuchOrTop());
       allow delete: if ownsExisting()
         && (resource.data.userId == request.auth.uid
-            || hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']));
+            || isBuchOrTop());
     }
 
     // --- followUps (KI-Magic-Moment): lesen/schreiben in der Firma ---

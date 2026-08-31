@@ -14,6 +14,8 @@ interface ImportMetaEnv {
   readonly VITE_PORTAL_LOGO: string;
   /** Web-Push-Zertifikat aus der Firebase Console (Cloud Messaging). */
   readonly VITE_FIREBASE_VAPID_KEY: string;
+  /** KI-Spracherfassung sichtbar schalten ("true"). */
+  readonly VITE_ENABLE_VOICE: string;
 }
 
 interface ImportMeta {

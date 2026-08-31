@@ -10,6 +10,7 @@ import {
 import { provisionUser, resendPasswordReset } from '@/lib/auth/provisionUser';
 import { todayStr } from '@/lib/time';
 import { ROLES, type AppUser, type Role } from '@/types';
+import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge, { RoleBadge } from '@/components/Badge';
@@ -205,7 +206,7 @@ export default function UserMgmtView() {
             Bitte {handoverPassword.name} dieses Startpasswort persönlich weitergeben. Es wird
             nur jetzt angezeigt:
           </p>
-          <p className="mt-2 select-all font-mono text-lg font-semibold">{handoverPassword.pw}</p>
+          <p className="mt-2 select-all tnum text-lg font-semibold">{handoverPassword.pw}</p>
           <Button variant="ghost" className="mt-2" onClick={() => setHandoverPassword(null)}>
             Verstanden
           </Button>
@@ -223,7 +224,13 @@ export default function UserMgmtView() {
               title={editing ? 'Die E-Mail-Adresse ist das Anmeldekonto und kann hier nicht geändert werden.' : undefined} />
             <SelectField id="urole" label="Rolle" value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
-              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              {/* Die Rolle Administrator vergibt nur ein Administrator.
+                  Sonst koennte sich eine Geschaeftsfuehrung selbst zum
+                  Superuser machen. Dieselbe Grenze steht in firestore.rules —
+                  hier wird sie nur sichtbar gemacht. */}
+              {ROLES.filter((r) => r !== 'Administrator' || canManageAdmins(user.role)).map(
+                (r) => <option key={r} value={r}>{r}</option>,
+              )}
             </SelectField>
             <SelectField id="uactive" label="Status" value={form.active ? 'aktiv' : 'inaktiv'}
               onChange={(e) => setForm({ ...form, active: e.target.value === 'aktiv' })}>
@@ -311,12 +318,21 @@ export default function UserMgmtView() {
                 }
                 subtitle={u.email}
               >
-                <Button variant="ghost" onClick={() => startEdit(u)}>Bearbeiten</Button>
-                <Button variant="ghost" onClick={() => void sendReset(u)}>Passwort-Mail</Button>
-                {u.uid !== user.uid && (
-                  <Button variant="ghost" onClick={() => setToToggle(u)}>
-                    {u.active === false ? 'Aktivieren' : 'Deaktivieren'}
-                  </Button>
+                {/* Ein Administrator laesst sich nur von einem Administrator
+                    anfassen — sonst koennte die Geschaeftsfuehrung den letzten
+                    Superuser deaktivieren und sich selbst aussperren. */}
+                {u.role === 'Administrator' && !canManageAdmins(user.role) ? (
+                  <span className="text-sm text-ink-muted">nur durch Administrator</span>
+                ) : (
+                  <>
+                    <Button variant="ghost" onClick={() => startEdit(u)}>Bearbeiten</Button>
+                    <Button variant="ghost" onClick={() => void sendReset(u)}>Passwort-Mail</Button>
+                    {u.uid !== user.uid && (
+                      <Button variant="ghost" onClick={() => setToToggle(u)}>
+                        {u.active === false ? 'Aktivieren' : 'Deaktivieren'}
+                      </Button>
+                    )}
+                  </>
                 )}
               </ListRow>
             ))}

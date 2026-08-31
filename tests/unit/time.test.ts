@@ -151,6 +151,40 @@ const staff = (over: Partial<AppUser> = {}): AppUser =>
     initialOvertime: 0, ...over,
   }) as AppUser;
 
+describe('calcMonthStats — Eintritt mitten im Zeitraum', () => {
+  it('zaehlt nur Tage AB dem Startdatum', () => {
+    // Eintritt am 16.06.2025. Vorher war der Mitarbeiter nicht im Betrieb;
+    // fuer diese Tage darf ihm kein Soll angelastet werden.
+    const s = calcMonthStats(
+      staff({ appStartDate: '2025-06-16' }), [], [], JUNE.year, JUNE.month,
+    );
+    // 16.6. bis 30.6.: 11 Werktage Mo-Fr, davon Fronleichnam (19.6.) ->
+    // 10 Solltage statt der 19 des ganzen Monats.
+    expect(s.workdaysInMonth).toBe(10);
+    expect(s.holidaysInMonth).toBe(1);
+    expect(s.sollMin).toBe(10 * 8 * 60);
+  });
+
+  it('verlangt fuer Monate VOR dem Eintritt gar nichts', () => {
+    // Der eigentliche Aerger: wer im Juni eintritt, sah fuer Jaenner bis Mai
+    // je ein volles Monatsminus - fuer Zeit, in der er nicht angestellt war.
+    const s = calcMonthStats(
+      staff({ appStartDate: '2025-06-16' }), [], [], 2025, 2, // Maerz
+    );
+    expect(s.workdaysInMonth).toBe(0);
+    expect(s.sollMin).toBe(0);
+    expect(s.saldoMin).toBe(0);
+  });
+
+  it('rechnet ohne Startdatum weiterhin den ganzen Monat', () => {
+    // Kein Startdatum heisst "gilt seit jeher" - das Verhalten bleibt.
+    const s = calcMonthStats(
+      staff({ appStartDate: null }), [], [], JUNE.year, JUNE.month,
+    );
+    expect(s.workdaysInMonth).toBe(19);
+  });
+});
+
 describe('calcMonthStats', () => {
   it('zieht Feiertage vom Monatssoll ab', () => {
     const s = calcMonthStats(staff(), [], [], JUNE.year, JUNE.month);

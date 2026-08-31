@@ -13,6 +13,18 @@ import { useToast } from '@/components/Toast';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, Role } from '@/types';
 
+/** Amtliches Praefix des Fuhrparks; im Feld steht nur der Rest. */
+const PLATE_PREFIX = 'WZ-';
+
+/**
+ * Entfernt ein eingetipptes Praefix wieder. Wer „WZ-12345A" aus der Zwischen-
+ * ablage einfuegt, soll nicht „WZ-WZ-12345A" bekommen — und der Bindestrich
+ * allein wird ebenso geschluckt.
+ */
+function stripPlatePrefix(v: string): string {
+  return v.toUpperCase().replace(/^\s*W\s*Z\s*-?\s*/, '').replace(/^-/, '');
+}
+
 interface Props {
   onSaved: () => void;
   /** Gesetzt = Bearbeiten statt Neuanlage. */
@@ -81,7 +93,7 @@ export default function TimeForm({
   // mit dem Kunden — nicht der Zeiger auf der Uhr.
   const [isNightWork, setIsNightWork] = useState(entry?.isNightWork ?? false);
   const [isEmergency, setIsEmergency] = useState(entry?.isEmergency ?? false);
-  const [vehiclePlate, setVehiclePlate] = useState(entry?.vehiclePlate ?? '');
+  const [vehiclePlate, setVehiclePlate] = useState(stripPlatePrefix(entry?.vehiclePlate ?? ''));
   /** Für wen wird gebucht (nur wenn `staff` gesetzt ist). */
   const [targetUid, setTargetUid] = useState(entry?.userId ?? '');
 
@@ -141,7 +153,9 @@ export default function TimeForm({
         travelTime: Number(travelTime) || 0,
         projectNumber: canHaveProject ? projectNumber : '',
         customerName: canHaveProject ? project?.customerName ?? '' : '',
-        vehiclePlate: canHaveProject ? vehiclePlate : '',
+        // Gespeichert wird IMMER mit Praefix, damit Exporte und die
+        // Fahrzeugsuche ein einheitliches Format vorfinden.
+        vehiclePlate: canHaveProject && vehiclePlate ? PLATE_PREFIX + vehiclePlate : '',
         helperName: canHaveProject ? helperName : '',
         comment,
         isHelper: canHaveProject ? isHelper : false,
@@ -214,7 +228,7 @@ export default function TimeForm({
             setBreakDuration(String(lastEntry.breakDuration ?? 30));
             if (canHaveProject) {
               setProjectNumber(lastEntry.projectNumber ?? '');
-              setVehiclePlate(lastEntry.vehiclePlate ?? '');
+              setVehiclePlate(stripPlatePrefix(lastEntry.vehiclePlate ?? ''));
               setIsHelper(!!lastEntry.isHelper);
             }
           }}
@@ -340,13 +354,30 @@ export default function TimeForm({
                   value={travelTime}
                   onChange={(e) => setTravelTime(e.target.value)}
                 />
-                <InputField
-                  id="vehiclePlate"
-                  label="Fahrzeug (Kennzeichen)"
-                  value={vehiclePlate}
-                  placeholder="WZ-..."
-                  onChange={(e) => setVehiclePlate(e.target.value.toUpperCase())}
-                />
+                {/* „WZ-" fest davor statt als Platzhalter: der Fuhrpark ist
+                    in Wiener Neustadt zugelassen, und getippt wurde es bisher
+                    mal mit, mal ohne Bindestrich, mal gar nicht. Dieselbe
+                    Lösung wie im Prototyp (Zeile 940). */}
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="vehiclePlate" className="text-sm font-medium text-ink">
+                    Fahrzeug (Kennzeichen)
+                  </label>
+                  <div className="flex">
+                    <span
+                      aria-hidden
+                      className="flex min-h-touch shrink-0 items-center rounded-l border border-r-0 border-line bg-surface-2 px-3 font-medium text-ink-muted"
+                    >
+                      WZ-
+                    </span>
+                    <input
+                      id="vehiclePlate"
+                      className="min-h-touch w-full rounded-r border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                      placeholder="12345A"
+                      value={vehiclePlate}
+                      onChange={(e) => setVehiclePlate(stripPlatePrefix(e.target.value))}
+                    />
+                  </div>
+                </div>
               </FormGrid>
             </>
           )}

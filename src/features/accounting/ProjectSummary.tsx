@@ -105,13 +105,13 @@ export default function ProjectSummary({
                       {r.project?.customerName ?? r.projectNumber}
                     </span>
                     <span
-                      className={`block font-mono text-sm ${isOpen ? 'text-brand-fg/80' : 'text-ink-muted'}`}
+                      className={`block tnum text-sm ${isOpen ? 'text-brand-fg/80' : 'text-ink-muted'}`}
                     >
                       {r.projectNumber}
                     </span>
                   </span>
                   <span className="flex items-center gap-2">
-                    <span className={`font-mono text-sm ${isOpen ? 'text-brand-fg' : 'text-ink'}`}>
+                    <span className={`tnum text-sm ${isOpen ? 'text-brand-fg' : 'text-ink'}`}>
                       {h(r.fachMin)} h
                       {r.project?.estimatedHours ? ` / ${r.project.estimatedHours} h` : ''}
                     </span>
@@ -191,7 +191,7 @@ export default function ProjectSummary({
                               key={e.id}
                               className={`border-b border-line/60 ${e.isHelper ? 'bg-warning-bg/40' : ''}`}
                             >
-                              <td className="py-1 pr-3 font-mono">{dayLabel(e.date)}</td>
+                              <td className="py-1 pr-3 tnum">{dayLabel(e.date)}</td>
                               <td className="py-1 pr-3">
                                 {e.userName ?? '–'}
                                 {e.isHelper && (
@@ -203,7 +203,7 @@ export default function ProjectSummary({
                               <td className="py-1 pr-3 text-ink-muted">
                                 {e.comment ? `„${e.comment}"` : '–'}
                               </td>
-                              <td className="py-1 text-right font-mono">
+                              <td className="py-1 text-right tnum">
                                 {fmtMin(calcWorkMin(e))}
                               </td>
                             </tr>

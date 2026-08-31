@@ -33,6 +33,7 @@ import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
+import { VOICE_ENABLED } from '@/lib/features';
 
 const fmtEUR = (n: number) =>
   `\u20ac ${new Intl.NumberFormat('de-AT', { maximumFractionDigits: 0 }).format(n)}`;
@@ -234,7 +235,9 @@ export default function DashboardView() {
         </div>
       )}
 
-      {/* KI-Erfassung als Primäraktion: mobil kompakter Button, ab sm volle Karte */}
+      {/* KI-Erfassung als Primäraktion: mobil kompakter Button, ab sm volle
+          Karte. Ausgeblendet, solange die Spracherfassung nicht scharf ist. */}
+      {VOICE_ENABLED && (
       <Link
         to="/voice"
         className="flex min-h-touch items-center gap-3 rounded-lg bg-brand px-4 py-3 text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.99] sm:gap-4"
@@ -249,12 +252,13 @@ export default function DashboardView() {
           </span>
         </span>
       </Link>
+      )}
 
       {/* Heutiger Einsatz — für den Monteur die wichtigste Information des
           Tages, deshalb ganz oben und mit dem, was im Auto zählt: Adresse
           und eine wählbare Telefonnummer. */}
       {user.role === 'Mitarbeiter' && data.todayAssignment && (
-        <Card title="Heute" accent="brand">
+        <Card title="Heute">
           <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-ink">
             {data.todayProject?.customerName ?? `Baustelle ${data.todayAssignment.projectNumber}`}
             {data.todayAssignment.asHelper && <Badge tone="warning">Helfer</Badge>}
@@ -324,7 +328,6 @@ export default function DashboardView() {
       {data.projectAlerts && data.projectAlerts.length > 0 && (
         <Card
           title="Baustellen am Limit"
-          accent="warning"
           action={
             <Link to="/accounting" className="text-sm font-semibold text-brand underline">
               Alle Baustellen
@@ -354,7 +357,6 @@ export default function DashboardView() {
       {data.openOrders && data.openOrders.length > 0 && (
         <Card
           title={`Material angefordert (${data.openOrders.length})`}
-          accent="accent"
           action={
             <Link to="/admin-orders" className="text-sm font-semibold text-brand underline">
               Bearbeiten

@@ -144,7 +144,7 @@ export default function TimeView() {
                 <div key={week}>
                   <h3 className="mb-1 flex items-center justify-between text-sm font-semibold text-ink-muted">
                     <span>{week}</span>
-                    <span className="font-mono">{fmtMin(weekMin)}</span>
+                    <span className="tnum">{fmtMin(weekMin)}</span>
                   </h3>
                   <List>
                     {rows.map((e) => {
@@ -180,7 +180,7 @@ export default function TimeView() {
                           {e.isHelper && <Badge tone="warning">Helfer</Badge>}
                           {e.isEmergency && <Badge tone="danger">Notdienst</Badge>}
                           {e.isNightWork && <Badge tone="info">Nacht</Badge>}
-                          <span className="font-mono font-medium text-ink">
+                          <span className="tnum font-medium text-ink">
                             {fmtMin(calcWorkMin(e))}
                           </span>
                           {/* Verrechnete Einträge sind Grundlage einer

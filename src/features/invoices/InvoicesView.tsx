@@ -230,7 +230,7 @@ export default function InvoicesView() {
         <Metric label="Bezahlt" icon="chart" tone="success" value={fmtEUR(stats.bezahlt)} />
       </div>
 
-      <Card title="Neue Rechnung aus Baustelle" accent="brand">
+      <Card title="Neue Rechnung aus Baustelle">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <SelectField id="invproj" label="Baustelle" className="sm:w-80" value={projectNumber}
             onChange={(e) => {
@@ -296,7 +296,7 @@ export default function InvoicesView() {
       {/* Vorschau vor dem Erzeugen: danach sind die Belege gesperrt und eine
           Korrektur ginge nur noch über Storno. */}
       {preview && (
-        <Card title="Vorschau" accent="accent">
+        <Card title="Vorschau">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[30rem] text-sm">
               <thead>
@@ -311,19 +311,19 @@ export default function InvoicesView() {
                 {preview.positions.map((p) => (
                   <tr key={p.label} className="border-b border-line/60">
                     <td className="py-1.5 pr-3">{p.label}</td>
-                    <td className="py-1.5 pr-3 text-right font-mono">{p.qty} {p.unit}</td>
-                    <td className="py-1.5 pr-3 text-right font-mono">{fmtEUR(p.unitPrice)}</td>
-                    <td className="py-1.5 text-right font-mono">{fmtEUR(p.netto)}</td>
+                    <td className="py-1.5 pr-3 text-right tnum">{p.qty} {p.unit}</td>
+                    <td className="py-1.5 pr-3 text-right tnum">{fmtEUR(p.unitPrice)}</td>
+                    <td className="py-1.5 text-right tnum">{fmtEUR(p.netto)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr><td colSpan={3} className="pt-2 text-right">Netto</td>
-                  <td className="pt-2 text-right font-mono">{fmtEUR(preview.totalNetto)}</td></tr>
+                  <td className="pt-2 text-right tnum">{fmtEUR(preview.totalNetto)}</td></tr>
                 <tr><td colSpan={3} className="text-right">USt. {Math.round(rates.vatRate * 100)} %</td>
-                  <td className="text-right font-mono">{fmtEUR(preview.totalVat)}</td></tr>
+                  <td className="text-right tnum">{fmtEUR(preview.totalVat)}</td></tr>
                 <tr className="font-bold"><td colSpan={3} className="text-right">Brutto</td>
-                  <td className="text-right font-mono">{fmtEUR(preview.totalBrutto)}</td></tr>
+                  <td className="text-right tnum">{fmtEUR(preview.totalBrutto)}</td></tr>
               </tfoot>
             </table>
           </div>

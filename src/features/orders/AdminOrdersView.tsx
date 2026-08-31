@@ -18,9 +18,8 @@ import { List, ListRow } from '@/components/ListRow';
 import { SelectField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
-import MaterialCatalog from './MaterialCatalog';
 
-type Tab = 'aktiv' | 'retouren' | 'archiv' | 'katalog';
+type Tab = 'aktiv' | 'retouren' | 'archiv';
 
 const CONDITION_LABEL: Record<string, string> = {
   neu: 'Neu / OVP',
@@ -99,14 +98,13 @@ export default function AdminOrdersView() {
     { key: 'aktiv', label: 'Offen', count: activeCount },
     { key: 'retouren', label: 'Retouren', count: returns.length },
     { key: 'archiv', label: 'Erledigt' },
-    { key: 'katalog', label: 'Katalog' },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Material-Dashboard"
-        subtitle="Bestellungen bearbeiten, Retouren sichten und den Katalog pflegen"
+        title="Anforderungen"
+        subtitle="Materialanforderungen der Monteure bearbeiten und Rückgaben sichten"
       />
 
       {/* Aktiver Reiter mit roter Unterkante — wie die Tabs im Prototyp. */}
@@ -129,9 +127,7 @@ export default function AdminOrdersView() {
         ))}
       </div>
 
-      {tab === 'katalog' ? (
-        <MaterialCatalog />
-      ) : (
+      {(
         <Card
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}
           action={
@@ -163,7 +159,7 @@ export default function AdminOrdersView() {
                   key={o.id}
                   title={
                     <span>
-                      {o.materialName} <span className="font-mono text-ink-muted">×{o.quantity}</span>
+                      {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
                     </span>
                   }
                   subtitle={

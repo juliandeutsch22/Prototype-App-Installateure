@@ -1,5 +1,6 @@
 import type { Role } from '@/types';
 import type { IconName } from '@/components/Icon';
+import { VOICE_ENABLED } from '@/lib/features';
 
 export interface NavItem {
   /** Routenpfad (relativ zu /). */
@@ -20,8 +21,14 @@ export interface NavItem {
  * Diese Liste steuert UI-Sichtbarkeit; die HARTE Durchsetzung erfolgt
  * zusätzlich serverseitig in firestore.rules (Spec §7).
  */
-const ALL: Role[] = ['Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator'];
-const LEAD: Role[] = ['Geschäftsführung', 'Administrator'];
+const ALL: Role[] = [
+  'Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Projektleiter',
+  'Geschäftsführung', 'Administrator',
+];
+/** Leitung inklusive Projektleitung — plant, verwaltet, rechnet ab. */
+const LEAD: Role[] = ['Projektleiter', 'Geschäftsführung', 'Administrator'];
+/** Ohne Projektleitung: alles rund um die Zeitkonten der Mitarbeiter. */
+const TOP: Role[] = ['Geschäftsführung', 'Administrator'];
 
 export const NAV: NavItem[] = [
   { path: '/', label: 'Dashboard', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
@@ -30,7 +37,6 @@ export const NAV: NavItem[] = [
   // (auch Buchhaltung: Krankenstand/Urlaub). Legacy setzt den Tab unbedingt,
   // ohne Rollenprüfung (perl-installateur-web-app.html:1954).
   { path: '/time', label: 'Zeiterfassung', short: 'Zeit', icon: 'clock', roles: ALL, group: 'Außendienst' },
-  { path: '/voice', label: 'KI-Erfassung', short: 'KI', icon: 'mic', roles: ALL, group: 'Außendienst' },
   { path: '/order', label: 'Material bestellen', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst' },
   // Nur REINE Mitarbeiter — Admin/GF sehen alle Baustellen über die
   // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
@@ -38,7 +44,8 @@ export const NAV: NavItem[] = [
   { path: '/my-projects', label: 'Meine Baustellen', short: 'Baustellen', icon: 'building', roles: ['Mitarbeiter'], group: 'Außendienst' },
 
   { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Verwaltung' },
-  { path: '/admin-orders', label: 'Bestellungen', short: 'Bestellungen', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung' },
+  { path: '/admin-orders', label: 'Anforderungen', short: 'Anforderungen', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung' },
+  { path: '/stock', label: 'Lager', short: 'Lager', icon: 'package', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung' },
   { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Verwaltung' },
   { path: '/user-mgmt', label: 'Benutzerverwaltung', short: 'Benutzer', icon: 'users', roles: LEAD, group: 'Verwaltung' },
   // Stundensätze und Zuschläge sind Geschäftsführungssache — sie bestimmen,
@@ -46,7 +53,10 @@ export const NAV: NavItem[] = [
   { path: '/settings', label: 'Einstellungen', short: 'Sätze', icon: 'settings', roles: LEAD, group: 'Verwaltung' },
 
   { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
-  { path: '/accounting', label: 'Mitarbeiterübersicht', short: 'Übersicht', icon: 'chart', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
+  // Zeitkonten: bewusst OHNE Projektleitung. Ueberstunden, Krankenstaende und
+  // Urlaub eines Monteurs gehen sie nichts an — Krankenstaende sind zudem
+  // Gesundheitsdaten nach Art. 9 DSGVO.
+  { path: '/accounting', label: 'Mitarbeiterübersicht', short: 'Übersicht', icon: 'chart', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung' },
 
   // Persönliche Einstellungen, für jede Rolle. Steht bewusst ganz am ENDE
   // der Liste: die mobile Tab-Bar zeigt die ersten vier Einträge, und dort
@@ -57,6 +67,18 @@ export const NAV: NavItem[] = [
 
 export function navForRole(role: Role): NavItem[] {
   return NAV.filter((item) => item.roles.includes(role));
+}
+
+/**
+ * Die KI-Erfassung haengt am Schalter. Sie steht bewusst NICHT in NAV,
+ * sondern wird nur bei Bedarf eingefuegt — so kann keine Ansicht sie
+ * versehentlich mitzeigen.
+ */
+if (VOICE_ENABLED) {
+  NAV.splice(2, 0, {
+    path: '/voice', label: 'KI-Erfassung', short: 'KI', icon: 'mic',
+    roles: ALL, group: 'Außendienst',
+  });
 }
 
 /** Reihenfolge der Navigationsgruppen. */

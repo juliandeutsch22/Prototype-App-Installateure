@@ -19,15 +19,6 @@ const valueTone: Record<Tone, string> = {
   brand: 'text-brand',
 };
 
-/** Farbstreifen links — im Prototyp trägt jede Kennzahl einen Zustandsstreifen. */
-const stripTone: Record<Tone, string> = {
-  default: 'border-l-brand',
-  success: 'border-l-success',
-  danger: 'border-l-accent',
-  warning: 'border-l-warning',
-  brand: 'border-l-brand',
-};
-
 const iconTone: Record<Tone, string> = {
   default: 'bg-surface-2 text-ink-muted',
   success: 'bg-success-bg text-success',
@@ -36,11 +27,17 @@ const iconTone: Record<Tone, string> = {
   brand: 'bg-info-bg text-brand',
 };
 
+/**
+ * Kennzahl-Kachel — bewusst dieselbe ruhige Hülle wie `Card`.
+ *
+ * Der farbige Balken links ist entfallen: er markierte am Ende jede Kachel
+ * und hob damit nichts mehr hervor. Der Ton lebt jetzt in der Zahl und im
+ * Symbol, wo er tatsächlich etwas aussagt. Auch der Schatten beim Überfahren
+ * ist weg — eine Kennzahl ist keine Schaltfläche.
+ */
 export default function Metric({ label, value, hint, icon, tone = 'default' }: MetricProps) {
   return (
-    <div
-      className={`rounded-lg border border-l-4 border-line bg-surface p-4 shadow-sm transition-shadow hover:shadow-lg ${stripTone[tone]}`}
-    >
+    <div className="rounded-lg border border-line bg-surface p-4">
       <div className="flex items-start justify-between gap-2">
         <p className="section-label">{label}</p>
         {icon && (

@@ -7,8 +7,10 @@ import LoginPage from '@/features/auth/LoginPage';
 import DashboardView from '@/features/dashboard/DashboardView';
 import TimeView from '@/features/time/TimeView';
 import VoiceView from '@/features/voice/VoiceView';
+import { VOICE_ENABLED } from '@/lib/features';
 import OrderView from '@/features/orders/OrderView';
 import AdminOrdersView from '@/features/orders/AdminOrdersView';
+import StockView from '@/features/orders/StockView';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
 import MyProjectsView from '@/features/projects/MyProjectsView';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
@@ -57,7 +59,13 @@ function AppRoutes() {
       {/* Zeit- und KI-Erfassung stehen JEDER Rolle offen (auch Buchhaltung:
           Krankenstand/Urlaub) — wie Legacy:1954, das den Tab ungeprüft setzt. */}
       <Route path="/time" element={<TimeView />} />
-      <Route path="/voice" element={<VoiceView />} />
+      {/* Ausgeblendet, nicht entfernt: ohne Schalter fuehrt /voice zurueck
+          aufs Dashboard, statt eine Ansicht zu zeigen, die ohne API-
+          Schluessel nur eine Fehlermeldung produzieren kann. */}
+      <Route
+        path="/voice"
+        element={VOICE_ENABLED ? <VoiceView /> : <Navigate to="/" replace />}
+      />
       <Route
         path="/order"
         element={
@@ -99,6 +107,16 @@ function AppRoutes() {
         element={
           <RequireRole roles={['Verwaltung', 'Geschäftsführung', 'Administrator']}>
             <AdminOrdersView />
+          </RequireRole>
+        }
+      />
+      {/* Lager: eigener Bereich statt versteckter Reiter unter Bestellungen.
+          Verwaltung und Leitung fuehren den Bestand. */}
+      <Route
+        path="/stock"
+        element={
+          <RequireRole roles={['Verwaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}>
+            <StockView />
           </RequireRole>
         }
       />
