@@ -63,6 +63,18 @@ export default function TimeView() {
   /** Belegte Tage — Grundlage für die Doppelbuchungs-Warnung im Formular. */
   const existingDates = useMemo(() => new Set(entries.map((e) => e.date)), [entries]);
 
+  /**
+   * Jüngster Anwesenheitseintrag mit Zeitspanne — Vorlage für „wie zuletzt".
+   * Krank- und Urlaubstage taugen nicht als Vorlage, sie tragen keine Zeiten.
+   */
+  const lastEntry = useMemo(
+    () =>
+      [...entries]
+        .filter((e) => e.status === 'Anwesend' && e.startTime && e.endTime)
+        .sort((a, b) => b.date.localeCompare(a.date))[0],
+    [entries],
+  );
+
   // Nach Woche gruppieren, neueste zuerst.
   const byWeek = useMemo(() => {
     const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
@@ -111,6 +123,7 @@ export default function TimeView() {
           key={editing?.id ?? 'new'}
           entry={editing ?? undefined}
           existingDates={existingDates}
+          lastEntry={lastEntry}
           onSaved={() => setEditing(null)}
           onCancel={editing ? () => setEditing(null) : undefined}
         />

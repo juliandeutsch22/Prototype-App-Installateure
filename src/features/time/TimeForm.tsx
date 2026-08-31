@@ -6,6 +6,7 @@ import { createTimeEntry, updateTimeEntry, DuplicateEntryError } from '@/lib/db/
 import { todayStr, getAustrianHolidayName } from '@/lib/time';
 import { isMitarbeiter } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
@@ -31,6 +32,14 @@ interface Props {
    * dann bestimmt die Auswahl, wem der Eintrag gehört.
    */
   staff?: AppUser[];
+  /**
+   * Zuletzt gebuchter Eintrag — Grundlage für „wie zuletzt".
+   *
+   * Ein Monteur bucht rund 220 Mal im Jahr fast immer dasselbe und tippt
+   * dabei jedes Mal Von, Bis, Pause und Baustelle neu. Mit Arbeitshandschuhen
+   * am Telefon zählt jeder gesparte Griff.
+   */
+  lastEntry?: TimeEntry;
 }
 
 /** Formular zur manuellen Zeiterfassung (portiert aus der Legacy-Zeitform). */
@@ -41,6 +50,7 @@ export default function TimeForm({
   existingDates,
   ownerRole,
   staff,
+  lastEntry,
 }: Props) {
   const { user } = useAuth();
   const toast = useToast();
@@ -189,6 +199,33 @@ export default function TimeForm({
           Dieser Eintrag ist mit Rechnung {entry?.invoiceNumber || '—'} verrechnet und kann nicht
           mehr geändert werden. Dafür muss zuerst die Rechnung storniert werden.
         </p>
+      )}
+
+      {/* Ein Griff statt sieben: übernimmt Zeiten, Pause und Baustelle vom
+          letzten Eintrag. Nur beim Neuanlegen — beim Bearbeiten würde der
+          Knopf die zu korrigierenden Werte gerade überschreiben. */}
+      {!isEdit && lastEntry && lastEntry.startTime && lastEntry.endTime && (
+        <button
+          type="button"
+          onClick={() => {
+            setStatus('Anwesend');
+            setStartTime(lastEntry.startTime ?? startTime);
+            setEndTime(lastEntry.endTime ?? endTime);
+            setBreakDuration(String(lastEntry.breakDuration ?? 30));
+            if (canHaveProject) {
+              setProjectNumber(lastEntry.projectNumber ?? '');
+              setVehiclePlate(lastEntry.vehiclePlate ?? '');
+              setIsHelper(!!lastEntry.isHelper);
+            }
+          }}
+          className="flex min-h-touch w-full items-center gap-2 rounded border border-dashed border-brand/40 bg-info-bg px-3 py-2 text-left text-sm font-medium text-brand transition hover:border-brand active:scale-[0.99]"
+        >
+          <Icon name="clock" size={18} className="shrink-0" />
+          <span className="min-w-0 truncate">
+            Wie zuletzt: {lastEntry.startTime}–{lastEntry.endTime}
+            {lastEntry.customerName ? ` · ${lastEntry.customerName}` : ''}
+          </span>
+        </button>
       )}
 
       {staff && !isEdit && (
