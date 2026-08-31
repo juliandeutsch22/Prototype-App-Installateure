@@ -54,6 +54,34 @@ npm run emulators           # Firebase-Emulatoren (Auth/Firestore/Functions)
 Secrets der Functions in Produktion via Secret Manager:
 `firebase functions:secrets:set ANTHROPIC_API_KEY` (und `TRANSCRIPTION_API_KEY`).
 
+## Ersteinrichtung eines Mandanten
+
+Benutzer legt normalerweise die Geschäftsführung in der App an. Beim
+allerersten Mal gibt es aber noch keine Geschäftsführung, die das dürfte —
+Henne und Ei. Diesen Ring durchbricht `.github/workflows/bootstrap.yml`
+genau einmal: *Actions → „Mandant einrichten (Erstzugang)" → Run workflow*,
+E-Mail, Name, Rolle und Betriebsname eintragen.
+
+Der Zugang wird **ohne Passwort** angelegt. Freigeschaltet wird er über
+„Passwort vergessen?" auf dem Anmeldebildschirm — so läuft kein Geheimnis
+durch ein Protokoll, das später jeder mit Repo-Zugriff lesen kann.
+
+Der Workflow ist mehrfach ausführbar: eine bestehende Firma wird nicht
+überschrieben, ein bestehendes Konto nur aktualisiert.
+
+**Vorher in der Firebase Console einzurichten** (sonst scheitert der Deploy
+mit Berechtigungsfehlern, die wie ein IAM-Problem aussehen):
+
+1. **Firestore Database** anlegen — Standort **`europe-west3`**. Der Standort
+   ist später *nicht* änderbar, und in den Zeiteinträgen stehen Krankenstände,
+   also Gesundheitsdaten nach Art. 9 DSGVO. Modus: Produktion.
+2. **Authentication** → Anmeldemethode **E-Mail/Passwort** aktivieren.
+3. **Hosting** → einmal starten.
+
+Das Dienstkonto braucht in der Google Cloud Console unter **IAM** (nicht auf
+der Seite „Dienstkonten", dort regelt der Reiter „Berechtigungen" etwas
+anderes) die Rollen **Firebase Admin** und **Service Usage Consumer**.
+
 ## Deployment
 
 `.github/workflows/deploy.yml` prüft jeden Pull Request und veröffentlicht
