@@ -89,6 +89,27 @@ jeden Push auf `main` automatisch auf Firebase Hosting — zusammen mit den
 Firestore-Regeln und -Indizes. Der Deploy hängt am Test-Job: ist Typprüfung,
 Lint, ein Unit- oder ein Rules-Test rot, geht nichts live.
 
+**Zwischenspeicherung.** `firebase.json` setzt die `Cache-Control`-Kopfzeilen
+selbst, weil die Voreinstellung von Firebase Hosting ein neues Deployment bis
+zu einer Stunde lang unsichtbar macht: der Browser hält die alte `index.html`
+und lädt damit auch das alte Bundle. Genau das ist passiert — eine behobene
+Anzeige war am Telefon noch immer kaputt zu sehen, obwohl der Deploy längst
+durch war. Jetzt gilt:
+
+| Pfad | Kopfzeile | Warum |
+| --- | --- | --- |
+| `**` | `no-cache` | Einstieg (`index.html`), Manifest, Service Worker: bei jedem Aufruf gegenprüfen |
+| `/assets/**` | `public, max-age=31536000, immutable` | Vite hängt einen Hash an jeden Dateinamen — eine geänderte Datei heißt anders und kann nie veraltet ausgeliefert werden |
+
+`no-cache` heißt nicht „gar nicht speichern", sondern „vor Benutzung
+rückfragen"; unverändert antwortet der Server mit 304 und schickt keine Daten.
+
+Die Reihenfolge ist nicht beliebig: **die letzte passende Regel gewinnt.**
+Gegen den Hosting-Emulator nachgemessen — mit `/assets/**` zuerst überschreibt
+das nachfolgende `**` sie wieder, und die gehashten Dateien landen ebenfalls
+bei `no-cache`. Deshalb steht die allgemeine Regel oben und die besondere
+unten.
+
 **Cloud Functions laufen über einen eigenen Workflow**
 (`.github/workflows/deploy-functions.yml`) — siehe unten. Sie brauchen den
 Blaze-Tarif und können Kosten auslösen, deshalb sollen sie nicht bei jeder
@@ -156,13 +177,40 @@ Der Workflow läuft bei Änderungen an `functions/**` und von Hand.
    *Secret Manager Secret Accessor*. Functions v2 baut Container und hängt an
    Eventarc — ohne diese Rollen bricht der Deploy mit Berechtigungsfehlern ab.
 
-5. **Für Push-Benachrichtigungen** in der Firebase Console unter *Cloud
+5. **Drei Rollen für die Google-eigenen Dienstkonten.** Das ist die
+   Voraussetzung, an der der Deploy zuletzt gescheitert ist:
+
+   ```
+   Failed to verify the project has the correct IAM bindings for a successful
+   deployment. We failed to modify the IAM policy for the project.
+   ```
+
+   Firebase möchte diese Bindungen selbst setzen, darf es aber nicht — das
+   verlangt *Project IAM Admin*, und die gehört einem Deploy-Dienstkonto
+   nicht in die Hand. Deshalb einmalig vom Projektinhaber setzen, unter
+   *IAM & Verwaltung → IAM → Zugriff erlauben*
+   (`PROJEKTNUMMER` steht in der Fehlermeldung und in den Projekteinstellungen):
+
+   | Hauptkonto | Rolle |
+   | --- | --- |
+   | `service-PROJEKTNUMMER@gcp-sa-pubsub.iam.gserviceaccount.com` | Service Account Token Creator |
+   | `PROJEKTNUMMER-compute@developer.gserviceaccount.com` | Cloud Run Invoker |
+   | `PROJEKTNUMMER-compute@developer.gserviceaccount.com` | Eventarc Event Receiver |
+
+   Diese Konten entstehen erst, wenn die zugehörigen APIs aktiviert sind
+   (Schritt 2). Sind sie in der Liste nicht zu sehen, oben
+   *Von Google bereitgestellte Rollenzuweisungen einschließen* ankreuzen.
+
+   Wer `gcloud` zur Hand hat, kann stattdessen die drei Befehle ausführen,
+   die der fehlgeschlagene Lauf im Protokoll ausgibt.
+
+6. **Für Push-Benachrichtigungen** in der Firebase Console unter *Cloud
    Messaging → Web-Push-Zertifikate* einen Schlüssel erzeugen und als
    Repository-Secret `VITE_FIREBASE_VAPID_KEY` hinterlegen. Fehlt er, läuft
    die App normal weiter und die Einstellungsseite sagt offen, dass der
    Dienst noch nicht eingerichtet ist.
 
-6. Für `voiceExtract` die echten Schlüssel eintragen — Transkription über
+7. Für `voiceExtract` die echten Schlüssel eintragen — Transkription über
    OpenAI Whisper, Extraktion über Claude. Beides US-Anbieter: für einen
    österreichischen Betrieb sind Auftragsverarbeitungsverträge und ein
    Hinweis an die Mitarbeiter nötig, weil Sprachaufnahmen den EU-Rahmen der
