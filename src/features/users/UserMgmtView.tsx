@@ -376,6 +376,7 @@ export default function UserMgmtView() {
             {g.leute.map((u) => (
               <ListRow
                 key={u.uid}
+                stackActions
                 title={
                   <span className="flex flex-wrap items-center gap-2">
                     {u.name}
