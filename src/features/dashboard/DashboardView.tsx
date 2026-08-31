@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { navForRole } from '@/app/navigation';
 import { getUserByUid } from '@/lib/db/users';
 import { listOwnEntries } from '@/lib/db/timeEntries';
 import { listAssignmentsForUser } from '@/lib/db/assignments';
@@ -202,8 +201,6 @@ export default function DashboardView() {
     };
   }, [user, personal, mgmt]);
 
-  const items = useMemo(() => (user ? navForRole(user.role).filter((i) => i.path !== '/') : []), [user]);
-
   // Grundregel gegen ein überladenes wie gegen ein leeres Dashboard: jede
   // Karte erscheint nur mit Inhalt. Bleibt dann gar nichts übrig, steht dort
   // eine ruhige Zeile statt einer Wand aus Nullen.
@@ -291,7 +288,7 @@ export default function DashboardView() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {data.hasSaldoConfig && (
             <Metric
-              label="Überstunden-Saldo"
+              label="Saldo"
               icon="clock"
               tone={
                 // Ein unvollständiger Saldo wird NICHT rot dargestellt: die
@@ -311,7 +308,7 @@ export default function DashboardView() {
             />
           )}
           {data.ownOpenOrders !== undefined && data.ownOpenOrders > 0 && (
-            <Metric label="Material unterwegs" icon="package" value={data.ownOpenOrders} hint="von dir angefordert" />
+            <Metric label="Material" icon="package" value={data.ownOpenOrders} hint="von dir angefordert" />
           )}
           {data.invoiceSums && data.invoiceSums.overdue > 0 && (
             <Metric label="Überfällig" icon="receipt" tone="danger" value={fmtEUR(data.invoiceSums.overdue)} />
@@ -432,22 +429,6 @@ export default function DashboardView() {
         </Card>
       )}
 
-      {/* Schnellzugriff NUR mobil: auf dem Desktop steht links die Sidebar
-          mit denselben Einträgen — die Kacheln wären reine Verdopplung. */}
-      <Card title="Schnellzugriff" className="md:hidden">
-        <div className="grid grid-cols-2 gap-3">
-          {items.slice(0, 4).map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className="flex min-h-touch items-center gap-2 rounded border border-line bg-surface-2 px-3 py-3 font-medium text-ink transition hover:border-brand hover:bg-surface active:scale-[0.98]"
-            >
-              <Icon name={item.icon} size={20} className="shrink-0 text-ink-muted" />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

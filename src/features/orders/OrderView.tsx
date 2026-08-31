@@ -150,7 +150,6 @@ export default function OrderView() {
         { materialId: m.id, materialName: m.name, quantity: qty, projectNumber, note },
       ];
     });
-    toast.success(`${m.name} ×${qty} im Warenkorb`);
   }
 
   async function submitCart() {
@@ -268,25 +267,21 @@ export default function OrderView() {
 
       {tab === 'bestellen' && (
         <>
-          <Card title="Für welche Baustelle?" accent="brand">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <SelectField id="oproject" label="Baustelle" value={projectNumber}
-                onChange={(e) => setProjectNumber(e.target.value)}>
-                <option value="">— keine —</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.projectNumber}>
-                    {p.customerName} ({p.projectNumber})
-                  </option>
-                ))}
-              </SelectField>
-              <InputField id="onote" label="Notiz" value={note}
-                onChange={(e) => setNote(e.target.value)} />
-            </div>
-            <p className="mt-2 text-sm text-ink-muted">
-              Auswahl gilt für alles, was du jetzt hinzufügst. Für eine andere Baustelle einfach
-              umstellen und weiter hinzufügen.
-            </p>
-          </Card>
+          {/* Eine Zeile statt einer eigenen Karte: vorher stand die
+              Baustellenauswahl wie eine Hürde vor dem Katalog und schob ihn
+              auf dem Telefon unter den Falz. Die Notiz ist in den Warenkorb
+              gewandert — sie gehört zum Absenden, nicht zum Suchen. */}
+          <div className="flex flex-wrap items-end gap-3">
+            <SelectField id="oproject" label="Für welche Baustelle?" className="min-w-[14rem] flex-1"
+              value={projectNumber} onChange={(e) => setProjectNumber(e.target.value)}>
+              <option value="">— keine —</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.projectNumber}>
+                  {p.customerName} ({p.projectNumber})
+                </option>
+              ))}
+            </SelectField>
+          </div>
 
           <Card title="Katalog">
             <InputField id="search" label="Suche"
@@ -329,11 +324,18 @@ export default function OrderView() {
             </div>
           </Card>
 
-          <Card title={`Warenkorb (${cart.length})`} accent={cart.length > 0 ? 'accent' : 'none'}>
+          <Card title={`Anforderung (${cart.length})`} accent={cart.length > 0 ? 'accent' : 'none'}>
             {cart.length === 0 ? (
-              <EmptyState>Noch nichts ausgewählt.</EmptyState>
+              <EmptyState>
+                Noch nichts ausgewählt. Im Katalog oben auf „+" tippen.
+              </EmptyState>
             ) : (
               <>
+                <div className="mb-4">
+                  <InputField id="onote" label="Notiz für die Projektleitung (optional)"
+                    placeholder="z. B. dringend, bis Freitag"
+                    value={note} onChange={(e) => setNote(e.target.value)} />
+                </div>
                 <List>
                   {cart.map((line, i) => (
                     <ListRow
@@ -507,6 +509,14 @@ export default function OrderView() {
 }
 
 /** Mengenfeld mit Hinzufügen-Knopf; hält seine Menge lokal. */
+/**
+ * Anfordern mit einem Griff.
+ *
+ * Vorher: Menge ins Zahlenfeld tippen, dann „Hinzufügen" — zwei Bedienungen
+ * je Artikel, auf dem Telefon mit Arbeitshandschuhen. Der Regelfall ist ein
+ * Stück, deshalb fügt „+" sofort eines hinzu; die Zahl daneben zählt hoch und
+ * lässt sich für größere Mengen weiter antippen.
+ */
 function QtyAdder({
   material,
   onAdd,
@@ -514,25 +524,23 @@ function QtyAdder({
   material: WithId<Material>;
   onAdd: (m: WithId<Material>, qty: number) => void;
 }) {
-  const [qty, setQty] = useState('1');
+  const [added, setAdded] = useState(0);
   return (
     <div className="flex items-center gap-2">
-      <input
-        type="number"
-        min="1"
-        aria-label={`Menge ${material.name}`}
-        className="min-h-touch w-20 rounded-sm border border-line px-3 py-2 text-ink"
-        value={qty}
-        onChange={(e) => setQty(e.target.value)}
-      />
+      {added > 0 && (
+        <span className="tnum text-sm font-bold text-brand" aria-live="polite">
+          ×{added}
+        </span>
+      )}
       <Button
-        variant="secondary"
+        variant={added > 0 ? 'primary' : 'secondary'}
+        aria-label={`${material.name} anfordern`}
         onClick={() => {
-          onAdd(material, Number(qty) || 0);
-          setQty('1');
+          onAdd(material, 1);
+          setAdded((n) => n + 1);
         }}
       >
-        Hinzufügen
+        {added > 0 ? 'noch eins' : '+ Anfordern'}
       </Button>
     </div>
   );
