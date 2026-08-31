@@ -1,0 +1,122 @@
+name: Cloud Functions deployen
+
+# Getrennt vom Hosting-Deploy, aus zwei Gründen:
+#
+#  1. Functions brauchen den Blaze-Tarif und können echte Kosten auslösen.
+#     Ein versehentlicher Deploy soll nicht bei jeder Änderung an der
+#     Oberfläche mitlaufen.
+#  2. voiceExtract hängt an API-Schlüsseln im Secret Manager. Fehlen die,
+#     würde ein gemeinsamer Deploy auch das Hosting mit reißen.
+#
+# Läuft deshalb nur, wenn sich wirklich etwas an den Functions geändert hat —
+# oder von Hand.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'functions/**'
+      - '.github/workflows/deploy-functions.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Zwei gleichzeitige Functions-Deploys auf dasselbe Projekt kollidieren.
+concurrency:
+  group: deploy-functions
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Functions bauen und veröffentlichen
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Zugangsdaten vorhanden?
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ] || [ -z "$PROJECT_ID" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT oder VITE_FIREBASE_PROJECT_ID fehlt."
+            exit 1
+          fi
+
+      - name: Abhängigkeiten
+        working-directory: functions
+        run: npm ci
+
+      # Übersetzen vor dem Deploy: ein Typfehler soll hier auffallen und
+      # nicht erst, wenn die halbe Auslieferung schon gelaufen ist.
+      - name: Übersetzen
+        working-directory: functions
+        run: npm run build
+
+      - name: Dienstkonto bereitstellen
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          chmod 600 "$RUNNER_TEMP/service-account.json"
+
+      # syncUserClaims und exportCompanyData laufen ohne fremde API-Schlüssel.
+      # voiceExtract nicht. Sind die Schlüssel noch nicht hinterlegt, wird die
+      # KI-Funktion ausgelassen, statt den ganzen Deploy scheitern zu lassen —
+      # der Berechtigungs-Trigger ist der dringende Teil, die Spracherfassung
+      # kann warten.
+      - name: Welche Functions sind deploybar?
+        id: scope
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          have_secrets=1
+          for s in ANTHROPIC_API_KEY TRANSCRIPTION_API_KEY; do
+            # Bewusst :get (Metadaten) statt :access (Klartextwert) — der
+            # Schlüssel selbst wird hier nicht gelesen und kann so auch nicht
+            # versehentlich in einem Protokoll landen.
+            if ! npx --yes firebase-tools@15 functions:secrets:get "$s" \
+                 --project "$PROJECT_ID" >/dev/null 2>&1; then
+              echo "$s: nicht hinterlegt oder für das Dienstkonto nicht sichtbar."
+              have_secrets=0
+            fi
+          done
+          if [ "$have_secrets" = "1" ]; then
+            echo "only=functions" >> "$GITHUB_OUTPUT"
+            echo "::notice::Alle Functions werden deployed, einschließlich der KI-Spracherfassung."
+          else
+            echo "only=functions:syncUserClaims,functions:exportCompanyData" >> "$GITHUB_OUTPUT"
+            echo "::warning::voiceExtract wird ausgelassen: ANTHROPIC_API_KEY und/oder TRANSCRIPTION_API_KEY fehlen im Secret Manager. Setzen mit: firebase functions:secrets:set ANTHROPIC_API_KEY"
+          fi
+
+      - name: Deploy
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          # Kein --force: der Schalter würde Functions, die im Code fehlen,
+          # ohne Rückfrage aus der Produktion löschen. Steht eine Löschung an,
+          # soll der Deploy lieber scheitern und jemand hinsehen.
+          npx --yes firebase-tools@15 deploy \
+            --only "${{ steps.scope.outputs.only }}" \
+            --project "$PROJECT_ID" \
+            --non-interactive
+
+      - name: Schlüssel entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/service-account.json"
+
+      - name: Was jetzt gilt
+        run: |
+          echo "Deployed: ${{ steps.scope.outputs.only }}"
+          echo ""
+          echo "syncUserClaims setzt ab sofort companyId und Rolle für jeden"
+          echo "neu angelegten Benutzer. Bereits vorhandene Konten bekommen ihre"
+          echo "Berechtigungen erst beim nächsten Speichern in der"
+          echo "Benutzerverwaltung — einmal öffnen und speichern genügt."

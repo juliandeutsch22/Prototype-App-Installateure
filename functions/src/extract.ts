@@ -68,6 +68,10 @@ export const voiceExtract = onCall(
     secrets: [ANTHROPIC_API_KEY, TRANSCRIPTION_API_KEY],
     memory: '512MiB',
     timeoutSeconds: 120,
+    // Härteste Kostenbremse der App: jeder Aufruf kostet Geld bei einem
+    // externen Anbieter. Fünf gleichzeitige Aufnahmen decken einen Betrieb
+    // dieser Größe ab; alles darüber wartet, statt die Rechnung zu treiben.
+    maxInstances: 5,
   },
   async (request) => {
     // Auth + Mandant aus dem Token (nie aus Client-Eingabe).

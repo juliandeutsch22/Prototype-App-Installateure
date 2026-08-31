@@ -89,9 +89,55 @@ jeden Push auf `main` automatisch auf Firebase Hosting — zusammen mit den
 Firestore-Regeln und -Indizes. Der Deploy hängt am Test-Job: ist Typprüfung,
 Lint, ein Unit- oder ein Rules-Test rot, geht nichts live.
 
-**Was NICHT automatisch deployed wird:** die Cloud Functions. Die brauchen den
-Blaze-Tarif und API-Secrets; ein versehentlicher Function-Deploy kann Kosten
-auslösen. Dafür weiterhin von Hand: `firebase deploy --only functions`.
+**Cloud Functions laufen über einen eigenen Workflow**
+(`.github/workflows/deploy-functions.yml`) — siehe unten. Sie brauchen den
+Blaze-Tarif und können Kosten auslösen, deshalb sollen sie nicht bei jeder
+Änderung an der Oberfläche mitlaufen.
+
+### Cloud Functions
+
+Drei Functions, alle in `europe-west3`:
+
+| Function | Zweck | Braucht API-Schlüssel |
+| --- | --- | --- |
+| `syncUserClaims` | setzt `companyId` + Rolle als Auth-Claims | nein |
+| `exportCompanyData` | DSGVO-Export je Mandant | nein |
+| `voiceExtract` | Sprache → strukturierte Einträge | **ja** |
+
+**`syncUserClaims` ist nicht optional.** Ohne diesen Trigger bekommt ein neu
+angelegter Benutzer keine Berechtigungen: er kommt durch die Anmeldung, sieht
+danach aber kein einziges Dokument. Die Benutzerverwaltung ist ohne ihn
+faktisch wirkungslos.
+
+Der Workflow läuft bei Änderungen an `functions/**` und von Hand. Fehlen die
+KI-Schlüssel im Secret Manager, wird `voiceExtract` ausgelassen statt den
+ganzen Deploy scheitern zu lassen — der Berechtigungs-Trigger ist der
+dringende Teil.
+
+**Voraussetzungen:**
+
+1. **Blaze-Tarif** (Pay-as-you-go) in der Firebase Console. Functions v2 gibt
+   es im kostenlosen Spark-Tarif nicht. Für einen Betrieb dieser Größe bleibt
+   der Verbrauch im Freikontingent; ein Budget-Alarm unter *Abrechnung →
+   Budgets und Warnungen* ist trotzdem zu empfehlen.
+2. **Zusätzliche IAM-Rollen** für das Dienstkonto, über die vom Hosting-Deploy
+   hinaus: *Cloud Functions Admin*, *Service Account User*, *Cloud Build
+   Editor*, *Artifact Registry Administrator*, *Eventarc Admin* und
+   *Secret Manager Secret Accessor*. Functions v2 baut Container und hängt an
+   Eventarc — ohne diese Rollen bricht der Deploy mit Berechtigungsfehlern ab.
+3. Für `voiceExtract` die Schlüssel setzen:
+   `firebase functions:secrets:set ANTHROPIC_API_KEY` und
+   `firebase functions:secrets:set TRANSCRIPTION_API_KEY`.
+
+**Kostenbremse:** jede Function hat ein `maxInstances`-Limit
+(`syncUserClaims` 10, `voiceExtract` 5, `exportCompanyData` 3). Ohne das
+könnte ein fehlerhafter Massenimport oder wiederholtes Klicken beliebig viele
+Instanzen hochziehen — bei `voiceExtract` mit Kosten bei einem externen
+Anbieter.
+
+**Nach dem ersten Deploy:** bestehende Konten bekommen ihre Claims erst beim
+nächsten Schreiben ihres `users`-Dokuments. Einmal in der Benutzerverwaltung
+öffnen und speichern genügt.
 
 ### Einmalig einzurichten
 

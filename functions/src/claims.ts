@@ -11,7 +11,10 @@ import { logger } from 'firebase-functions';
  * Region: europe-west3 (Frankfurt) für DSGVO (Spec §10).
  */
 export const syncUserClaims = onDocumentWritten(
-  { document: 'users/{userId}', region: 'europe-west3' },
+  // maxInstances als Kostenbremse: ein Betrieb dieser Größe schreibt am Tag
+  // eine Handvoll Nutzerdokumente. Ohne Obergrenze könnte ein fehlerhafter
+  // Massenimport beliebig viele Instanzen hochziehen und Kosten verursachen.
+  { document: 'users/{userId}', region: 'europe-west3', maxInstances: 10 },
   async (event) => {
     const after = event.data?.after;
     if (!after?.exists) return; // Dokument gelöscht: nichts zu tun
