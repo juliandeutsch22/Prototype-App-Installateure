@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import Icon, { type IconName } from './Icon';
 
 type Tone = 'default' | 'success' | 'danger' | 'warning' | 'brand';
 
@@ -7,7 +6,6 @@ interface MetricProps {
   label: string;
   value: ReactNode;
   hint?: string;
-  icon?: IconName;
   tone?: Tone;
 }
 
@@ -19,59 +17,36 @@ const valueTone: Record<Tone, string> = {
   brand: 'text-brand',
 };
 
-const iconTone: Record<Tone, string> = {
-  default: 'bg-surface-2 text-ink-muted',
-  success: 'bg-success-bg text-success',
-  danger: 'bg-danger-bg text-danger',
-  warning: 'bg-warning-bg text-warning',
-  brand: 'bg-info-bg text-brand',
-};
-
 /**
- * Kennzahl-Kachel — am Telefon eine Zeile, am Schreibtisch eine Kachel.
+ * Kennzahlen-Leiste am Kopf einer Ansicht.
  *
- * Gestapelt kostete jede Kachel gut 100 px Höhe. Drei davon füllten am
- * Telefon 340 px, also mehr als ein Drittel des Bildschirms, bevor der
- * eigentliche Inhalt begann: in der Zeiterfassung sah man vor dem Scrollen
- * kaum das Eingabeformular. Quer gelesen — Beschriftung links, Zahl rechts —
- * braucht dieselbe Aussage etwa die Hälfte.
+ * Die Zahlen standen bisher in eigenen Karten mit Rahmen, Polsterung und
+ * Symbolkreis. Auf dem Telefon stapelten sie sich dadurch untereinander und
+ * belegten mehr als ein Drittel des Bildschirms, bevor der eigentliche Inhalt
+ * begann. Und sie sind gar keine Karten: eine Karte umschliesst einen Bereich,
+ * den man betritt — hier stehen drei Zahlen zur Orientierung, mehr nicht.
  *
- * Umgesetzt über ein Raster statt über zwei Bauformen: so steht jeder Text
- * genau einmal im Dokument. Zweimal ausgeliefert und je nach Breite
- * ausgeblendet hätte bedeutet, dass eine Vorlesehilfe alles doppelt liest.
- *
- * Der farbige Balken links ist entfallen: er markierte am Ende jede Kachel
- * und hob damit nichts mehr hervor. Der Ton lebt in der Zahl und im Symbol.
+ * Jetzt eine Leiste ohne Rahmen, in EINER Reihe, durch dünne Striche getrennt.
+ * Die Symbole sind entfallen; sie trugen nichts bei, was die Beschriftung
+ * nicht schon sagte, und kosteten die Breite, die den Zahlen fehlte. Der Ton
+ * lebt weiter in der Farbe der Zahl.
  */
-export default function Metric({ label, value, hint, icon, tone = 'default' }: MetricProps) {
+export function MetricRow({ children }: { children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 rounded-lg border border-line bg-surface px-3 py-2.5 sm:items-stretch sm:p-4">
-      <p className="section-label col-start-1 row-start-1">{label}</p>
+    <div className="flex items-stretch divide-x divide-line">{children}</div>
+  );
+}
 
-      {/* Zweite Spalte: am Telefon steht dort die Zahl, am Schreibtisch das
-          Symbol. Deshalb behält das Raster beide Spalten in beiden Größen —
-          teilten sich Beschriftung und Symbol eine Zelle, liefe ein längerer
-          Text unter das Symbol. */}
-      <p
-        className={`tnum col-start-2 row-span-2 row-start-1 self-center whitespace-nowrap text-right text-xl font-extrabold sm:col-span-2 sm:col-start-1 sm:row-span-1 sm:row-start-2 sm:mt-1.5 sm:text-left sm:text-2xl ${valueTone[tone]}`}
-      >
+export default function Metric({ label, value, hint, tone = 'default' }: MetricProps) {
+  return (
+    // min-w-0 ist hier entscheidend: ohne das weigert sich die Spalte zu
+    // schrumpfen, und eine lange Zahl schiebt die Nachbarn aus der Reihe.
+    <div className="min-w-0 flex-1 px-3 first:pl-0 last:pr-0">
+      <p className="section-label truncate">{label}</p>
+      <p className={`tnum mt-0.5 truncate text-lg font-extrabold sm:text-2xl ${valueTone[tone]}`}>
         {value}
       </p>
-
-      {hint && (
-        <p className="col-start-1 row-start-2 text-xs text-ink-muted sm:col-span-2 sm:row-start-3 sm:mt-1">
-          {hint}
-        </p>
-      )}
-
-      {/* Am Telefon würde das Symbol nur Platz kosten, den die Zahl braucht. */}
-      {icon && (
-        <span
-          className={`hidden sm:col-start-2 sm:row-start-1 sm:flex sm:h-8 sm:w-8 sm:shrink-0 sm:items-center sm:justify-center sm:rounded-full ${iconTone[tone]}`}
-        >
-          <Icon name={icon} size={18} />
-        </span>
-      )}
+      {hint && <p className="mt-0.5 text-xs leading-snug text-ink-muted">{hint}</p>}
     </div>
   );
 }

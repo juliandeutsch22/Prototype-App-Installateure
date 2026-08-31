@@ -104,7 +104,7 @@ Fünf Functions, alle in `europe-west3`:
 | `notifyNewOrder` | Push an Verwaltung/Leitung bei neuer Anforderung | nein |
 | `notifyOrderReady` | Push an den Monteur, wenn Material bereitliegt | nein |
 | `exportCompanyData` | DSGVO-Export je Mandant | nein |
-| `voiceExtract` | Sprache → strukturierte Einträge | **ja** |
+| `voiceExtract` | Sprache → strukturierte Einträge | **ja** — wird nur mit `ENABLE_VOICE=true` deployt |
 
 **`syncUserClaims` ist nicht optional.** Ohne diesen Trigger bekommt ein neu
 angelegter Benutzer keine Berechtigungen: er kommt durch die Anmeldung, sieht
@@ -126,17 +126,29 @@ Der Workflow läuft bei Änderungen an `functions/**` und von Hand.
    `secretmanager`, jeweils unter
    `https://console.cloud.google.com/apis/library/<name>.googleapis.com`.
 
-3. **Beide Secrets anlegen — auch wenn die KI-Spracherfassung noch nicht
-   genutzt wird.** Das ist keine Schikane: `extract.ts` deklariert seine
-   Schlüssel per `defineSecret`, und Firebase löst das schon beim
-   **Analysieren** des Codes auf, unabhängig von `--only`. Fehlt eines,
-   scheitert der gesamte Deploy — auch `syncUserClaims`, das mit der KI
-   nichts zu tun hat.
+3. **Secrets nur für die KI-Spracherfassung.** Standardmäßig wird
+   `voiceExtract` gar nicht mitdeployt, und dann braucht der Deploy auch
+   keine Schlüssel.
 
-   `ANTHROPIC_API_KEY` und `TRANSCRIPTION_API_KEY` im Browser unter
-   *Sicherheit → Secret Manager* anlegen oder per
-   `firebase functions:secrets:set NAME`. Ein Platzhalterwert genügt,
-   solange die Spracherfassung nicht benutzt wird.
+   Das ist kein Zufall, sondern nötig: `extract.ts` deklariert seine
+   Schlüssel per `defineSecret`, und Firebase löst das schon beim
+   **Analysieren** des Codes auf, unabhängig von `--only`. Solange
+   `voiceExtract` statisch exportiert war, liess ein fehlendes Secret den
+   gesamten Deploy scheitern — auch den von `syncUserClaims`, ohne das kein
+   neuer Benutzer Berechtigungen bekommt. Ein abgeschaltetes Nebenfeature
+   blockierte damit die wichtigste Function der App.
+
+   Gelöst über eine generierte Einstiegsdatei (`functions/scripts/
+   voice-entry.mjs`, läuft als `prebuild`): `ENABLE_VOICE=true` beim Bauen
+   nimmt den Export hinein, sonst bleibt er draußen. Ein bedingter
+   *dynamischer* Import wäre der naheliegende Weg und funktioniert nicht —
+   die Analyse braucht statische Exporte und meldet sonst „Functions codebase
+   could not be analyzed successfully".
+
+   **Zum Einschalten:** `ANTHROPIC_API_KEY` und `TRANSCRIPTION_API_KEY` unter
+   *Sicherheit → Secret Manager* anlegen (oder
+   `firebase functions:secrets:set NAME`), dann den Workflow *Cloud Functions
+   deployen* von Hand starten und „KI-Spracherfassung mitdeployen" ankreuzen.
 
 4. **Zusätzliche IAM-Rollen** für das Dienstkonto, über die vom Hosting-Deploy
    hinaus: *Cloud Functions Admin*, *Service Account User*, *Cloud Build

@@ -109,3 +109,36 @@ blockiert den Betrieb, alle sind echt.
 | Rechnungsnummern | Werden aus dem Höchststand abgeleitet; zwei gleichzeitige Rechnungen können dieselbe Nummer bekommen |
 | Listen ohne Begrenzung | Zeiteinträge und Bestellungen werden vollständig geladen; nach einigen Jahren wird das langsam und teuer |
 | Zeiteintrag bearbeiten | Umgeht die Doppelbuchungsprüfung, die beim Anlegen greift |
+
+## Offen: Team-Salden auf der Startseite
+
+Die Startseite berechnet den Saldo jedes Mitarbeiters aus den ROHEN
+Zeiteinträgen — der Saldo läuft seit dem Eintrittsdatum, ist also
+naturgemäß unbegrenzt. Bei zwanzig Monteuren über drei Jahre sind das
+gut 13.000 Dokumente bei jedem Aufruf.
+
+Zwei Grenzen sind bereits gezogen und korrekt, helfen aber nur in
+bestimmten Fällen:
+
+- Das Projekt-Radar lädt gar nichts mehr, wenn keine aktive Baustelle ein
+  Stundenbudget hat. Wirksam für die Projektleitung; bei der
+  Geschäftsführung lädt der Team-Block ohnehin.
+- Die Team-Salden laden erst ab dem frühesten Eintrittsdatum. Wirksam,
+  sobald ein Betrieb Vorgeschichte hat, die vor der App liegt.
+
+Gegen die Emulatoren war KEIN Unterschied messbar (143,3 kB vorher wie
+nachher) — alle Testdaten liegen im laufenden Jahr, und beide Grenzen
+greifen dort nicht. Das ist ehrlich so festzuhalten, nicht als Erfolg zu
+verbuchen.
+
+Der eigentliche Fix ist ein GEPFLEGTER Zwischenstand statt einer
+Neuberechnung: ein Dokument je Mitarbeiter mit geleisteten Minuten und
+gebuchten Tagen, von einem Firestore-Trigger bei jedem Schreiben auf
+`timeEntries` fortgeschrieben. Die Startseite liest dann zwanzig kleine
+Dokumente statt dreizehntausend.
+
+Das ist bewusst NICHT nebenbei gemacht: es braucht einen Trigger, eine
+Nachberechnung für den Bestand und eine Antwort auf die Frage, was
+passiert, wenn der Zwischenstand einmal auseinanderläuft (Neuaufbau von
+Hand? Nächtlicher Abgleich?). Ein falscher Saldo, den niemand mehr
+gegenrechnen kann, ist schlimmer als ein langsamer richtiger.

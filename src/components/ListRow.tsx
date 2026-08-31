@@ -16,9 +16,15 @@ export function ListRow({
 }) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3">
-      {/* min-w-0 UND flex-1: ohne min-w-0 weigert sich ein Flex-Kind zu
-          schrumpfen, ein langer Kundenname sprengt dann die Zeile. */}
-      <div className="min-w-0 flex-1">
+      {/*
+        Untergrenze statt min-w-0. `flex-1` allein bedeutet flex-basis:0 — der
+        Titel durfte damit auf 33 px schrumpfen, waehrend die Knoepfe den Rest
+        beanspruchten. Der Name lief dann ueber seine Box und wurde ueber die
+        Knoepfe gemalt; genau das war am Telefon zu sehen. Mit einer
+        Mindestbreite passen Titel und Aktionen entweder nebeneinander, oder
+        die Aktionen rutschen sauber in die naechste Zeile.
+      */}
+      <div className="min-w-[9rem] flex-1">
         <div className="flex flex-wrap items-center gap-2 font-medium text-ink">{title}</div>
         {subtitle && <p className="mt-0.5 text-sm text-ink-muted">{subtitle}</p>}
       </div>
@@ -27,7 +33,12 @@ export function ListRow({
           weil die Karte overflow-hidden trägt, war „Deaktivieren" schlicht
           abgeschnitten — nicht scrollbar, sondern weg. */}
       {children && (
-        <div className="flex max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1">
+        // Knoepfe in einer Listenzeile sind Nebenhandlungen, keine
+        // Hauptaktionen: kleinere Schrift und schmalere Polsterung. Die
+        // Tasthoehe bleibt bei 44 px, also innerhalb dessen, was die
+        // Plattformrichtlinien verlangen. Symbolknoepfe sind ausgenommen,
+        // sonst schruempfte das Symbol mit.
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-x-1.5 gap-y-1 [&>button:not([data-icon])]:min-h-[2.75rem] [&>button:not([data-icon])]:px-2.5 [&>button:not([data-icon])]:text-sm">
           {children}
         </div>
       )}

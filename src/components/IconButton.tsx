@@ -21,11 +21,14 @@ export default function IconButton({
     default: 'text-ink-muted hover:bg-surface-2 hover:text-ink',
     danger: 'text-ink-muted hover:bg-danger-bg hover:text-danger',
   };
+  // `data-icon` ist das Kennzeichen fuer ListRow: Symbolknoepfe bekommen dort
+  // NICHT die kompakte Textbehandlung, sonst schruempfte das Symbol mit.
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
+      data-icon=""
       className={`inline-flex min-h-touch min-w-touch items-center justify-center rounded text-lg transition active:scale-95 ${tones[tone]} ${className}`}
       {...rest}
     >

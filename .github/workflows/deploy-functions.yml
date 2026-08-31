@@ -18,6 +18,14 @@ on:
       - 'functions/**'
       - '.github/workflows/deploy-functions.yml'
   workflow_dispatch:
+    inputs:
+      ki_erfassung:
+        description: >-
+          KI-Spracherfassung mitdeployen? Braucht die beiden API-Schlüssel im
+          Secret Manager. Solange die Erfassung in der App abgeschaltet ist,
+          hier "false" lassen.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -55,8 +63,14 @@ jobs:
 
       # Übersetzen vor dem Deploy: ein Typfehler soll hier auffallen und
       # nicht erst, wenn die halbe Auslieferung schon gelaufen ist.
+      # ENABLE_VOICE entscheidet, ob voiceExtract ueberhaupt exportiert wird
+      # (scripts/voice-entry.mjs laeuft als prebuild). Firebase loest
+      # `defineSecret` schon beim ANALYSIEREN auf, unabhaengig von `--only` —
+      # ein bedingter Deploy allein reicht deshalb nicht, der Export muss weg.
       - name: Übersetzen
         working-directory: functions
+        env:
+          ENABLE_VOICE: ${{ inputs.ki_erfassung && 'true' || 'false' }}
         run: npm run build
 
       - name: Dienstkonto bereitstellen
@@ -66,15 +80,17 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
           chmod 600 "$RUNNER_TEMP/service-account.json"
 
-      # Firebase loest `defineSecret` schon beim ANALYSIEREN des Codes auf —
-      # unabhaengig davon, was `--only` spaeter deployt. Fehlt der Secret
-      # Manager oder eines der Secrets, scheitert deshalb der gesamte Deploy,
-      # auch der Berechtigungs-Trigger, der mit der KI nichts zu tun hat.
+      # Nur wenn die KI-Erfassung wirklich mit soll. Ohne sie wird
+      # voiceExtract gar nicht erst exportiert (siehe functions/src/index.ts),
+      # und dann verlangt der Deploy auch keine Schluessel.
       #
-      # Ein gestufter Deploy wurde versucht und verworfen: er kann dieses
-      # Problem grundsaetzlich nicht loesen. Statt es zu umgehen, wird hier
-      # klar gesagt, was fehlt.
+      # Vorher stand diese Pruefung unbedingt davor und liess JEDEN
+      # Functions-Deploy scheitern — auch den von syncUserClaims, ohne das ein
+      # neu angelegter Benutzer keine Berechtigungen bekommt. Ein
+      # abgeschaltetes Nebenfeature blockierte damit die wichtigste Function
+      # der App.
       - name: Secrets vorhanden?
+        if: inputs.ki_erfassung
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
@@ -91,18 +107,12 @@ jobs:
           if [ -n "$fehlt" ]; then
             echo "::error::Diese Secrets fehlen oder der Secret Manager ist nicht aktiviert:$fehlt"
             echo ""
-            echo "Beides ist noetig, BEVOR irgendeine Function deployt werden kann —"
-            echo "auch syncUserClaims. Grund: Firebase loest die Secret-Verweise im"
-            echo "Code schon beim Analysieren auf, nicht erst beim Deploy der"
-            echo "betroffenen Function."
-            echo ""
             echo "1. Secret Manager API aktivieren:"
             echo "   https://console.cloud.google.com/apis/library/secretmanager.googleapis.com"
-            echo "2. Beide Secrets anlegen (Platzhalter genuegt, solange die"
-            echo "   KI-Spracherfassung noch nicht genutzt wird):"
+            echo "2. Beide Secrets anlegen:"
             echo "   https://console.cloud.google.com/security/secret-manager"
             echo ""
-            echo "Siehe README, Abschnitt 'Cloud Functions'."
+            echo "Oder den Lauf ohne KI-Erfassung starten — dann werden sie nicht gebraucht."
             exit 1
           fi
           echo "Beide Secrets sind hinterlegt."
@@ -119,6 +129,17 @@ jobs:
             --only functions \
             --project "$PROJECT_ID" \
             --non-interactive
+
+      - name: Was wurde deployt
+        run: |
+          if [ "${{ inputs.ki_erfassung }}" = "true" ]; then
+            echo "Mit KI-Spracherfassung (voiceExtract)."
+          else
+            echo "Ohne KI-Spracherfassung. syncUserClaims, exportCompanyData"
+            echo "und die beiden Benachrichtigungs-Trigger sind live."
+            echo "Zum Einschalten: diesen Workflow von Hand starten und"
+            echo "'KI-Spracherfassung mitdeployen' ankreuzen."
+          fi
 
       - name: Schlüssel entfernen
         if: always()

@@ -23,7 +23,7 @@ import type { WithId } from '@/lib/db/core';
 import type { Invoice, Project } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Metric from '@/components/Metric';
+import Metric, { MetricRow } from '@/components/Metric';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
@@ -359,12 +359,12 @@ export default function InvoicesView() {
     <div className="space-y-6">
       <PageHeader title="Rechnungen" subtitle="Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren" />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Metric label="Offen" icon="receipt" value={fmtEUR(stats.offen)} />
-        <Metric label="Überfällig" icon="clock" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'}
+      <MetricRow>
+        <Metric label="Offen" value={fmtEUR(stats.offen)} />
+        <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'}
           value={fmtEUR(stats.ueberfaellig)} />
-        <Metric label="Bezahlt" icon="chart" tone="success" value={fmtEUR(stats.bezahlt)} />
-      </div>
+        <Metric label="Bezahlt" tone="success" value={fmtEUR(stats.bezahlt)} />
+      </MetricRow>
 
       <Card title="Neue Rechnung aus Baustelle">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
