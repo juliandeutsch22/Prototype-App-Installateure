@@ -287,6 +287,16 @@ export interface Invoice {
    * Rechnung, sobald jemand einen Eintrag korrigiert.
    */
   positions?: { label: string; qty: number; unit: string; unitPrice: number; netto: number }[];
+  /** Summe der Positionen VOR Rabatt. Ohne sie liesse sich der Rabatt im
+   *  Nachhinein nicht mehr nachvollziehen. */
+  subtotalNetto?: number;
+  /**
+   * Gewaehrter Rabatt, wie er auf der Rechnung steht. `null` heisst
+   * ausdruecklich „kein Rabatt" — Firestore laesst undefined nicht zu.
+   */
+  discount?: InvoiceDiscount | null;
+  /** Der daraus errechnete Abzug in Euro — festgehalten, nicht neu gerechnet. */
+  discountAmount?: number;
   /** Angewandter USt-Satz (0.2 = 20 %). */
   vatRate?: number;
   /** Anschrift der Baustelle zum Zeitpunkt der Rechnungslegung. */
@@ -298,6 +308,21 @@ export interface Invoice {
   cancelledAt?: number | null;
   createdAt?: number;
   updatedAt?: number;
+}
+
+/**
+ * Rabatt auf eine Rechnung.
+ *
+ * Entweder ein Anteil ('percent', 5 = 5 %) oder ein fester Betrag in Euro.
+ * Beides zusammen gibt es bewusst nicht: zwei Rabatte auf derselben Rechnung
+ * sind fuer den Kunden nicht nachvollziehbar, und die Reihenfolge ihrer
+ * Anwendung waere Auslegungssache.
+ */
+export interface InvoiceDiscount {
+  mode: 'percent' | 'amount';
+  value: number;
+  /** Was auf der Rechnung steht, z. B. „Stammkundenrabatt". */
+  label?: string;
 }
 
 /** followUps/{id} — neuer optionaler Typ aus dem KI-Magic-Moment (Spec §6). */

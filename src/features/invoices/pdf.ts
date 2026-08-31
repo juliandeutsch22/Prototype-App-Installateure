@@ -1,5 +1,21 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { discountLabel } from './totals';
+
+/**
+ * '2026-09-14' -> '14.09.2026'.
+ *
+ * Auf einem Dokument, das der Kunde in die Hand bekommt, hat das
+ * ISO-Datum nichts verloren — es liest sich wie ein Systemauszug.
+ */
+function fmtDatum(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
 import type { Company, Project } from '@/types';
 import { INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { calcWorkMin } from '@/lib/time';
@@ -53,8 +69,8 @@ export function generateInvoicePdf(opts: {
 
   const rightX = 210 - margin;
   doc.text(`Rechnungsnummer: ${invoiceNumber}`, rightX, 50, { align: 'right' });
-  doc.text(`Rechnungsdatum: ${invoiceDate}`, rightX, 55, { align: 'right' });
-  doc.text(`Zahlungsziel: ${dueDate}`, rightX, 60, { align: 'right' });
+  doc.text(`Rechnungsdatum: ${fmtDatum(invoiceDate)}`, rightX, 55, { align: 'right' });
+  doc.text(`Zahlungsziel: ${fmtDatum(dueDate)}`, rightX, 60, { align: 'right' });
   doc.text(`Baustelle: ${project.projectNumber}`, rightX, 65, { align: 'right' });
 
   // Positionstabelle
@@ -68,7 +84,22 @@ export function generateInvoicePdf(opts: {
       fmtEUR(p.unitPrice),
       fmtEUR(p.netto),
     ]),
+    // Ein Rabatt gehoert auf die Rechnung, nicht in einen stillschweigend
+    // gekuerzten Nettobetrag: der Kunde muss sehen, was ihm nachgelassen
+    // wurde, und das Finanzamt, worauf die Steuer bemessen ist.
     foot: [
+      ...(assembled.discountAmount > 0 && assembled.discount
+        ? [
+            ['', '', '', 'Zwischensumme', fmtEUR(assembled.subtotalNetto)],
+            [
+              '',
+              '',
+              '',
+              discountLabel(assembled.discount),
+              `- ${fmtEUR(assembled.discountAmount)}`,
+            ],
+          ]
+        : []),
       ['', '', '', 'Netto', fmtEUR(assembled.totalNetto)],
       ['', '', '', `USt. ${Math.round(vatRate * 100)}%`, fmtEUR(assembled.totalVat)],
       ['', '', '', 'Brutto', fmtEUR(assembled.totalBrutto)],
@@ -85,7 +116,7 @@ export function generateInvoicePdf(opts: {
   // Betrag und Frist gehören in den Überweisungssatz — sonst muss der Kunde
   // sie sich aus der Tabelle zusammensuchen.
   doc.text(
-    `Bitte überweisen Sie ${fmtEUR(assembled.totalBrutto)} € bis ${dueDate}` +
+    `Bitte überweisen Sie ${fmtEUR(assembled.totalBrutto)} € bis ${fmtDatum(dueDate)}` +
       (company.iban ? ` auf IBAN ${company.iban}${company.bic ? ` / BIC ${company.bic}` : ''}` : '') +
       '.',
     margin,

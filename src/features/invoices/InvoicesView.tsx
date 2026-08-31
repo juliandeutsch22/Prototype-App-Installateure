@@ -16,7 +16,8 @@ import {
 } from '@/lib/db/invoices';
 import { listAllProjects } from '@/lib/db/projects';
 import { listAllEntries } from '@/lib/db/timeEntries';
-import { assembleInvoice, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
+import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
+import { discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice, Project } from '@/types';
@@ -62,6 +63,16 @@ export default function InvoicesView() {
    */
   const [suggestedNumber, setSuggestedNumber] = useState('');
   const [appendDetail, setAppendDetail] = useState(true);
+  /**
+   * Rabatt als Formularzustand: `value` bleibt Text, damit ein halb getipptes
+   * „1" nicht sofort als 1 % durchschlaegt und das Feld beim Weitertippen
+   * springt.
+   */
+  const [discount, setDiscount] = useState<{
+    mode: 'percent' | 'amount';
+    value: string;
+    label: string;
+  }>({ mode: 'percent', value: '', label: '' });
   // Startwert sind die Sätze des Betriebs aus den Einstellungen; für den
   // Einzelfall lassen sie sich hier noch abweichend setzen.
   const [rates, setRates] = useState({ ...INVOICE_DEFAULTS });
@@ -129,6 +140,54 @@ export default function InvoicesView() {
     }
   }, [invoices, preview, suggestedNumber, invoiceNumber]);
 
+  /** Der Rabatt in der Form, in der er gespeichert und gedruckt wird. */
+  const rabatt = useMemo(() => {
+    const v = Number(discount.value.replace(',', '.'));
+    if (!Number.isFinite(v) || v <= 0) return null;
+    return { mode: discount.mode, value: v, label: discount.label.trim() || undefined };
+  }, [discount]);
+
+  /**
+   * Positionen und Rabatt wirken sofort auf die Summen.
+   *
+   * Wer eine Menge aendert und erst nach dem Speichern sieht, was das kostet,
+   * rechnet im Kopf mit — und irrt sich.
+   */
+  useEffect(() => {
+    // Nur an Rabatt und Steuersatz gehaengt; die Positionen rechnen ihre
+    // eigenen Aenderungen bereits in setPos mit.
+    setPreview((p) => (p ? recalc(p, p.positions, rates.vatRate, rabatt) : p));
+  }, [rabatt, rates.vatRate]);
+
+  /** Eine Position aendern; die Summen ziehen sofort nach. */
+  function setPos(i: number, patch: Partial<InvoicePosition>) {
+    setPreview((p) => {
+      if (!p) return p;
+      const next = p.positions.map((x, k) => (k === i ? { ...x, ...patch } : x));
+      return recalc(p, next, rates.vatRate, rabatt);
+    });
+  }
+
+  function entfernePos(i: number) {
+    setPreview((p) =>
+      p ? recalc(p, p.positions.filter((_, k) => k !== i), rates.vatRate, rabatt) : p,
+    );
+  }
+
+  /** Eigene Zeile anlegen — leer oder als vorbereitete Pauschale. */
+  function neuePos(label = '', qty = 1, unit = 'Stk') {
+    setPreview((p) =>
+      p
+        ? recalc(
+            p,
+            [...p.positions, { label, qty, unit, unitPrice: 0, netto: 0 }],
+            rates.vatRate,
+            rabatt,
+          )
+        : p,
+    );
+  }
+
   /** Positionen zusammenstellen und zur Kontrolle anzeigen — noch nichts schreiben. */
   async function buildPreview() {
     if (!user || !projectNumber) return;
@@ -195,6 +254,11 @@ export default function InvoicesView() {
         dueDate,
         positions: preview.positions,
         vatRate: rates.vatRate,
+        subtotalNetto: preview.subtotalNetto,
+        // null statt undefined: Firestore laesst undefined nicht zu, und
+        // "kein Rabatt" soll als bewusster Wert im Dokument stehen.
+        discount: rabatt,
+        discountAmount: preview.discountAmount,
         totalNetto: preview.totalNetto,
         totalVat: preview.totalVat,
         totalBrutto: preview.totalBrutto,
@@ -223,6 +287,7 @@ export default function InvoicesView() {
 
       setPreview(null);
       setProjectNumber('');
+      setDiscount({ mode: 'percent', value: '', label: '' });
       toast.success(`Rechnung ${reserved} erstellt`);
     } catch (e) {
       // Die Nummernvergabe sagt genau, welche Nummer belegt ist und welche
@@ -259,6 +324,9 @@ export default function InvoicesView() {
       // Dokument exakt dem entspricht, was der Kunde erhalten hat.
       assembled: {
         positions: inv.positions,
+        subtotalNetto: inv.subtotalNetto ?? inv.totalNetto,
+        discount: inv.discount ?? null,
+        discountAmount: inv.discountAmount ?? 0,
         totalNetto: inv.totalNetto,
         totalVat: inv.totalVat,
         totalBrutto: inv.totalBrutto,
@@ -352,35 +420,161 @@ export default function InvoicesView() {
           Korrektur ginge nur noch über Storno. */}
       {preview && (
         <Card title="Vorschau">
+          {/* Positionen sind bearbeitbar, nicht nur ansehbar.
+              Eine Rechnung ist selten genau das, was die Zeiterfassung
+              hergibt: eine Anfahrt kommt dazu, eine Stunde wird dem Kunden
+              erlassen, ein Pauschalposten ersetzt drei Zeilen. Wer das nicht
+              hier tun kann, tut es danach von Hand in Word — und dann stimmt
+              die Rechnung im System nicht mehr mit der ueberein, die der
+              Kunde bekommen hat. */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[30rem] text-sm">
+            <table className="w-full min-w-[34rem] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-ink-muted">
                   <th className="py-1 pr-3 font-medium">Position</th>
                   <th className="py-1 pr-3 text-right font-medium">Menge</th>
+                  <th className="py-1 pr-3 font-medium">Einheit</th>
                   <th className="py-1 pr-3 text-right font-medium">EP</th>
-                  <th className="py-1 text-right font-medium">Netto</th>
+                  <th className="py-1 pr-3 text-right font-medium">Netto</th>
+                  <th className="py-1 text-right font-medium">
+                    <span className="sr-only">Entfernen</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {preview.positions.map((p) => (
-                  <tr key={p.label} className="border-b border-line/60">
-                    <td className="py-1.5 pr-3">{p.label}</td>
-                    <td className="py-1.5 pr-3 text-right tnum">{p.qty} {p.unit}</td>
-                    <td className="py-1.5 pr-3 text-right tnum">{fmtEUR(p.unitPrice)}</td>
-                    <td className="py-1.5 text-right tnum">{fmtEUR(p.netto)}</td>
+                {preview.positions.map((p, i) => (
+                  <tr key={i} className="border-b border-line/60">
+                    <td className="py-1.5 pr-3">
+                      <input
+                        aria-label={`Bezeichnung Position ${i + 1}`}
+                        className="min-h-touch w-full min-w-[10rem] rounded border border-line bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        value={p.label}
+                        onChange={(e) => setPos(i, { label: e.target.value })}
+                      />
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      <input
+                        aria-label={`Menge Position ${i + 1}`}
+                        type="number"
+                        min="0"
+                        step="0.25"
+                        className="tnum min-h-touch w-24 rounded border border-line bg-surface px-2 py-1 text-right text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        value={String(p.qty)}
+                        onChange={(e) => setPos(i, { qty: Number(e.target.value) || 0 })}
+                      />
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      <input
+                        aria-label={`Einheit Position ${i + 1}`}
+                        className="min-h-touch w-20 rounded border border-line bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        value={p.unit}
+                        onChange={(e) => setPos(i, { unit: e.target.value })}
+                      />
+                    </td>
+                    <td className="py-1.5 pr-3">
+                      <input
+                        aria-label={`Einzelpreis Position ${i + 1}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="tnum min-h-touch w-28 rounded border border-line bg-surface px-2 py-1 text-right text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        value={String(p.unitPrice)}
+                        onChange={(e) => setPos(i, { unitPrice: Number(e.target.value) || 0 })}
+                      />
+                    </td>
+                    <td className="tnum py-1.5 pr-3 text-right font-medium">{fmtEUR(p.netto)}</td>
+                    <td className="py-1.5 text-right">
+                      <IconButton
+                        label={`Position ${i + 1} entfernen`}
+                        tone="danger"
+                        onClick={() => entfernePos(i)}
+                      >
+                        ✕
+                      </IconButton>
+                    </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr><td colSpan={3} className="pt-2 text-right">Netto</td>
-                  <td className="pt-2 text-right tnum">{fmtEUR(preview.totalNetto)}</td></tr>
-                <tr><td colSpan={3} className="text-right">USt. {Math.round(rates.vatRate * 100)} %</td>
-                  <td className="text-right tnum">{fmtEUR(preview.totalVat)}</td></tr>
-                <tr className="font-bold"><td colSpan={3} className="text-right">Brutto</td>
-                  <td className="text-right tnum">{fmtEUR(preview.totalBrutto)}</td></tr>
+                <tr>
+                  <td colSpan={4} className="pt-2 text-right">
+                    {preview.discountAmount > 0 ? 'Zwischensumme' : 'Netto'}
+                  </td>
+                  <td className="tnum pt-2 pr-3 text-right">{fmtEUR(preview.subtotalNetto)}</td>
+                  <td />
+                </tr>
+                {preview.discountAmount > 0 && preview.discount && (
+                  <>
+                    <tr className="text-danger">
+                      <td colSpan={4} className="text-right">{discountLabel(preview.discount)}</td>
+                      <td className="tnum pr-3 text-right">−{fmtEUR(preview.discountAmount)}</td>
+                      <td />
+                    </tr>
+                    <tr>
+                      <td colSpan={4} className="text-right">Netto</td>
+                      <td className="tnum pr-3 text-right">{fmtEUR(preview.totalNetto)}</td>
+                      <td />
+                    </tr>
+                  </>
+                )}
+                <tr>
+                  <td colSpan={4} className="text-right">
+                    USt. {Math.round(rates.vatRate * 100)} %
+                  </td>
+                  <td className="tnum pr-3 text-right">{fmtEUR(preview.totalVat)}</td>
+                  <td />
+                </tr>
+                <tr className="font-bold">
+                  <td colSpan={4} className="text-right">Brutto</td>
+                  <td className="tnum pr-3 text-right">{fmtEUR(preview.totalBrutto)}</td>
+                  <td />
+                </tr>
               </tfoot>
             </table>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => neuePos()}>
+              Position hinzufügen
+            </Button>
+            <Button variant="ghost" onClick={() => neuePos('Anfahrt', 1, 'Pauschale')}>
+              Anfahrt
+            </Button>
+          </div>
+
+          {/* Rabatt auf das Netto, nicht auf das Brutto: die Umsatzsteuer
+              bemisst sich am tatsaechlich vereinbarten Entgelt. */}
+          <div className="mt-4 rounded border border-line bg-surface-2 p-4">
+            <FormGrid cols={3}>
+              <InputField
+                id="disc-label"
+                label="Rabatt — Bezeichnung"
+                placeholder="z. B. Stammkundenrabatt"
+                value={discount.label}
+                onChange={(e) => setDiscount({ ...discount, label: e.target.value })}
+              />
+              <SelectField
+                id="disc-mode"
+                label="Art"
+                value={discount.mode}
+                onChange={(e) =>
+                  setDiscount({ ...discount, mode: e.target.value as 'percent' | 'amount' })
+                }
+              >
+                <option value="percent">Prozent</option>
+                <option value="amount">Betrag (€)</option>
+              </SelectField>
+              <InputField
+                id="disc-value"
+                label={discount.mode === 'percent' ? 'Rabatt %' : 'Rabatt €'}
+                type="number"
+                min="0"
+                step={discount.mode === 'percent' ? '0.5' : '0.01'}
+                max={discount.mode === 'percent' ? '100' : undefined}
+                value={discount.value}
+                onChange={(e) => setDiscount({ ...discount, value: e.target.value })}
+              />
+            </FormGrid>
           </div>
 
           <div className="mt-4 space-y-3">
