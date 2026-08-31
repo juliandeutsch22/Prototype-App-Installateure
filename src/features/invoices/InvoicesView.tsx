@@ -17,7 +17,6 @@ import {
 import { listAllProjects } from '@/lib/db/projects';
 import { listAllEntries } from '@/lib/db/timeEntries';
 import { assembleInvoice, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
-import { downloadInvoicePdf } from './pdf';
 import { todayStr, localDateStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice, Project } from '@/types';
@@ -204,6 +203,9 @@ export default function InvoicesView() {
         linkedOrders: preview.linkedOrders,
       });
 
+      // jsPDF erst hier nachladen — es wiegt mehrere hundert Kilobyte und
+      // gehoert nicht ins Paket, das jeder Monteur beim Anmelden zieht.
+      const { downloadInvoicePdf } = await import('./pdf');
       downloadInvoicePdf({
         company,
         project: {
@@ -236,12 +238,13 @@ export default function InvoicesView() {
   }
 
   /** Eine bereits erstellte Rechnung erneut als PDF ausgeben. */
-  function redownload(inv: WithId<Invoice>) {
+  async function redownload(inv: WithId<Invoice>) {
     if (!company) return;
     if (!inv.positions?.length) {
       toast.error('Für diese Rechnung sind keine Positionen gespeichert.');
       return;
     }
+    const { downloadInvoicePdf } = await import('./pdf');
     downloadInvoicePdf({
       company,
       project: {

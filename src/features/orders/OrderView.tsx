@@ -20,6 +20,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
+import { writeWithOfflineNotice, queuedMessage } from '@/lib/offlineWrite';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
@@ -160,20 +161,27 @@ export default function OrderView() {
     // Promise.all bliebe nach einem Teilfehler unklar, was schon geschrieben ist,
     // und ein zweiter Versuch erzeugte Duplikate.
     const failed: CartLine[] = [];
+    // Ohne Empfang bestätigt der Server nichts; die Anforderung liegt dann im
+    // lokalen Zwischenspeicher und geht später raus. Das muss der Monteur
+    // erfahren, sonst tippt er sie im Keller ein zweites Mal.
+    let vorgemerkt = false;
     for (const line of cart) {
       try {
-        await createMaterialOrder(user.companyId, {
-          materialId: line.materialId,
-          materialName: line.materialName,
-          quantity: line.quantity,
-          note: line.note,
-          projectNumber: line.projectNumber,
-          status: 'Offen',
-          transactionType: 'order',
-          userId: user.uid,
-          userName: user.name,
-          source: 'manual',
-        });
+        const stand = await writeWithOfflineNotice(
+          createMaterialOrder(user.companyId, {
+            materialId: line.materialId,
+            materialName: line.materialName,
+            quantity: line.quantity,
+            note: line.note,
+            projectNumber: line.projectNumber,
+            status: 'Offen',
+            transactionType: 'order',
+            userId: user.uid,
+            userName: user.name,
+            source: 'manual',
+          }),
+        );
+        if (stand === 'queued') vorgemerkt = true;
       } catch {
         failed.push(line);
       }
@@ -182,7 +190,8 @@ export default function OrderView() {
     setSaving(false);
     if (failed.length === 0) {
       setNote('');
-      toast.success('Bestellung aufgegeben');
+      if (vorgemerkt) toast.info(queuedMessage('Anforderung aufgegeben'));
+      else toast.success('Bestellung aufgegeben');
       setTab('meine');
     } else {
       setError(

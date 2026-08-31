@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import Icon from '@/components/Icon';
 import Avatar from '@/components/Avatar';
 import BrandLogo from '@/components/BrandLogo';
+import OfflineBanner from '@/components/OfflineBanner';
 
 /**
  * Aktiver Eintrag = roter Kantenmarker + blauer, fetter Text auf hellblauem
@@ -89,8 +90,11 @@ export default function Layout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Inhalt */}
-      <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6">
-        <div className="mx-auto max-w-5xl">{children}</div>
+      <main className="flex-1 pb-24 md:pb-6">
+        {/* Ganz oben im Inhalt, nicht in der Kopfleiste: dort wäre er auf dem
+            Schreibtisch gar nicht zu sehen, wo es keine mobile Top-Bar gibt. */}
+        <OfflineBanner />
+        <div className="mx-auto max-w-5xl p-4 md:p-6">{children}</div>
       </main>
 
       {/* Mobile Tab-Bar — rote Oberkante als Markenband, aktives Icon in

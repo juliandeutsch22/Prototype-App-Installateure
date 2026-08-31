@@ -38,7 +38,6 @@ import {
   userCsvFilename,
   buildUserProjectCsv,
   userProjectCsvFilename,
-  generateHoursPdf,
   hoursPdfFilename,
   downloadCsv,
   entriesInRange,
@@ -206,6 +205,9 @@ export default function AccountingView() {
       to,
     );
     if (range.length === 0) throw new Error('Keine Einträge im gewählten Zeitraum.');
+    // Erst hier nachladen: jsPDF wiegt mehrere hundert Kilobyte und wird nur
+    // gebraucht, wenn wirklich jemand einen Nachweis erzeugt.
+    const { generateHoursPdf } = await import('./hoursPdf');
     const doc = generateHoursPdf({
       company: company ?? ({ id: '', name: 'Firma' } as NonNullable<typeof company>),
       user: u,
