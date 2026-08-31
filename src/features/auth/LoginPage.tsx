@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { InputField, CheckboxField } from '@/components/Field';
+import BrandLogo from '@/components/BrandLogo';
 import Button from '@/components/Button';
 
 /**
@@ -67,10 +68,13 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-full items-center justify-center bg-bg p-4">
       <div className="w-full max-w-sm overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
-        {/* Markenband: Perl-Blau mit roter Unterkante */}
+        {/* Markenband: Perl-Blau mit roter Unterkante. Das Logo bringt seinen
+            eigenen roten Kasten mit und steht deshalb ohne weitere Fassung
+            darauf — Blau als Fläche, Rot als Marke, wie in der ganzen App.
+            Vor der Anmeldung ist der Mandant unbekannt, also die Vorgabe. */}
         <div className="border-b-[3px] border-b-accent bg-brand px-8 py-7 text-center">
-          <p className="text-xl font-extrabold tracking-tight text-brand-fg">{PORTAL_NAME}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-brand-fg/85">
+          <BrandLogo height={52} ignoreCompany alt={PORTAL_NAME} className="mx-auto" />
+          <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-brand-fg/85">
             Mitarbeiter-Portal
           </p>
         </div>

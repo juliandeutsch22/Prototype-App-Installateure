@@ -9,6 +9,9 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_APP_ID: string;
   readonly VITE_FUNCTIONS_REGION: string;
   readonly VITE_USE_EMULATORS: string;
+  readonly VITE_PORTAL_NAME: string;
+  /** Logo vor der Anmeldung und als Vorgabe, wenn der Mandant keins hinterlegt hat. */
+  readonly VITE_PORTAL_LOGO: string;
 }
 
 interface ImportMeta {

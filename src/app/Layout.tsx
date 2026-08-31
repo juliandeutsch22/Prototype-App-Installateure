@@ -5,6 +5,7 @@ import { navForRole, navGroupsForRole } from './navigation';
 import Button from '@/components/Button';
 import Icon from '@/components/Icon';
 import Avatar from '@/components/Avatar';
+import BrandLogo from '@/components/BrandLogo';
 
 /**
  * Aktiver Eintrag = roter Kantenmarker + blauer, fetter Text auf hellblauem
@@ -21,35 +22,30 @@ const sideLink = ({ isActive }: { isActive: boolean }) =>
 
 /** App-Shell: Desktop-Sidebar; mobil Top-Bar + Icon-Tab-Bar (4 + „Mehr"-Drawer). */
 export default function Layout({ children }: { children: ReactNode }) {
-  const { user, company, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   if (!user) return <>{children}</>;
 
   const items = navForRole(user.role);
   const groups = navGroupsForRole(user.role);
-  const brand = company?.name ?? 'Installateur-App';
   const primary = items.slice(0, 4);
   const hasMore = items.length > 4;
   const moreActive = items.slice(4).some((i) => i.path === location.pathname);
 
-  // Akzentbalken statt Logo-Platzhalter: greift die Markenfarbe des Mandanten
-  // auf (bei Perl das Rot des Logos), ohne die Bedienflächen einzufärben.
-  const BrandMark = (
-    <div className="flex items-center gap-2.5">
-      {company?.logoUrl ? (
-        <img src={company.logoUrl} alt="" className="h-8 w-8 shrink-0 rounded" />
-      ) : (
-        <span aria-hidden className="h-7 w-1.5 shrink-0 rounded-sm bg-accent" />
-      )}
-      <span className="text-lg font-bold leading-tight text-ink">{brand}</span>
-    </div>
-  );
+  // Das Logo trägt den Firmennamen bereits als Schriftzug — ihn daneben noch
+  // einmal zu setzen wäre doppelt. Der Name bleibt als Alternativtext im Bild
+  // und damit für Screenreader erhalten.
+  //
+  // Unter etwa 36 px ist die Zeile „DAS BAD · DIE HEIZUNG" nicht mehr lesbar,
+  // deshalb in der Sidebar größer als in der schmalen mobilen Kopfleiste.
+  const BrandMarkMobile = <BrandLogo height={32} className="rounded-sm" />;
+  const BrandMarkSidebar = <BrandLogo height={40} className="rounded-sm" />;
 
   return (
     <div className="flex min-h-full flex-col md:flex-row">
       {/* Mobile Top-Bar */}
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 md:hidden">
-        {BrandMark}
+        {BrandMarkMobile}
         {/* Nur der Avatar: die Rolle steht bereits in der Seitenüberschrift und
             würde hier den Firmennamen abschneiden. */}
         <Avatar name={user.name} size={32} />
@@ -60,7 +56,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Desktop-Sidebar */}
       <aside className="hidden border-r border-line bg-surface md:flex md:w-64 md:shrink-0 md:flex-col md:p-3">
-        <div className="mb-4 px-1">{BrandMark}</div>
+        <div className="mb-5 px-2 pt-1">{BrandMarkSidebar}</div>
         <nav className="flex flex-col gap-4 overflow-y-auto" aria-label="Hauptnavigation">
           {groups.map(({ group, items: groupItems }) => (
             <div key={group} className="flex flex-col gap-0.5">
