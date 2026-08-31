@@ -48,6 +48,9 @@ export default function InvoicesView() {
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
   const [statusFilter, setStatusFilter] = useState<'alle' | Invoice['paymentStatus']>('alle');
+  const [rechnungSuche, setRechnungSuche] = useState('');
+  /** Anfangs sichtbare Rechnungen; der Rest kommt auf Wunsch. */
+  const [rechnungLimit, setRechnungLimit] = useState(50);
 
   // Entwurf
   const [projectNumber, setProjectNumber] = useState('');
@@ -112,10 +115,20 @@ export default function InvoicesView() {
     () => [...invoices].sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber)),
     [invoices],
   );
-  const visible = useMemo(
-    () => (statusFilter === 'alle' ? sorted : sorted.filter((i) => i.paymentStatus === statusFilter)),
-    [sorted, statusFilter],
-  );
+  const visible = useMemo(() => {
+    const nachStatus =
+      statusFilter === 'alle' ? sorted : sorted.filter((i) => i.paymentStatus === statusFilter);
+    // Nach ein paar Jahren stehen hier hunderte Rechnungen. Gesucht wird nach
+    // Nummer oder Kunde — beides steht in der Zeile, aber niemand scrollt
+    // dafuer durch drei Jahrgaenge.
+    const q = rechnungSuche.trim().toLowerCase();
+    if (!q) return nachStatus;
+    return nachStatus.filter((i) =>
+      [i.invoiceNumber, i.customerName, i.projectNumber].some((v) =>
+        v?.toLowerCase().includes(q),
+      ),
+    );
+  }, [sorted, statusFilter, rechnungSuche]);
   const stats = useMemo(() => {
     const sum = (s: Invoice['paymentStatus']) =>
       invoices.filter((i) => i.paymentStatus === s).reduce((a, i) => a + i.totalBrutto, 0);
@@ -605,7 +618,7 @@ export default function InvoicesView() {
       )}
 
       <Card
-        title="Alle Rechnungen"
+        title={`Alle Rechnungen (${visible.length})`}
         action={
           <SelectField id="invfilter" label="" className="py-1 text-sm" value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
@@ -617,15 +630,31 @@ export default function InvoicesView() {
           </SelectField>
         }
       >
+        {invoices.length >= 10 && (
+          <div className="mb-4">
+            <InputField
+              id="invsuche"
+              label="Suche"
+              type="search"
+              placeholder="Rechnungsnummer, Kunde oder Baustelle"
+              value={rechnungSuche}
+              onChange={(e) => setRechnungSuche(e.target.value)}
+            />
+          </div>
+        )}
         {loading ? (
           <SkeletonList rows={4} />
         ) : visible.length === 0 ? (
           <EmptyState>
-            {invoices.length === 0 ? 'Noch keine Rechnungen.' : 'Keine Rechnung in dieser Auswahl.'}
+            {invoices.length === 0
+              ? 'Noch keine Rechnungen.'
+              : rechnungSuche
+                ? `Keine Rechnung passt zu „${rechnungSuche}".`
+                : 'Keine Rechnung in dieser Auswahl.'}
           </EmptyState>
         ) : (
           <List>
-            {visible.map((inv) => (
+            {visible.slice(0, rechnungLimit).map((inv) => (
               <ListRow
                 key={inv.id}
                 title={`${inv.invoiceNumber} · ${inv.customerName}`}
@@ -684,6 +713,13 @@ export default function InvoicesView() {
               </ListRow>
             ))}
           </List>
+        )}
+        {visible.length > rechnungLimit && (
+          <div className="mt-4">
+            <Button variant="secondary" onClick={() => setRechnungLimit((n) => n + 50)}>
+              Weitere anzeigen ({visible.length - rechnungLimit})
+            </Button>
+          </div>
         )}
       </Card>
 

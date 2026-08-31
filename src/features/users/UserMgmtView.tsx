@@ -13,7 +13,7 @@ import { ROLES, type AppUser, type Role } from '@/types';
 import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge, { RoleBadge } from '@/components/Badge';
+import Badge from '@/components/Badge';
 import Metric from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -76,6 +76,8 @@ export default function UserMgmtView() {
   const [saving, setSaving] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [toToggle, setToToggle] = useState<AppUser | null>(null);
+  const [suche, setSuche] = useState('');
+  const [status, setStatus] = useState<'aktiv' | 'inaktiv' | 'alle'>('aktiv');
   /** Initialpasswort, falls die Willkommens-Mail nicht zugestellt werden konnte. */
   const [handoverPassword, setHandoverPassword] = useState<{ name: string; pw: string } | null>(null);
 
@@ -96,6 +98,33 @@ export default function UserMgmtView() {
     () => [...users].sort((a, b) => a.name.localeCompare(b.name, 'de')),
     [users],
   );
+
+  /**
+   * Suche, Statusfilter und Gruppierung nach Rolle.
+   *
+   * Fuenfundzwanzig Namen in einer Liste sind keine Uebersicht: wer die
+   * Buchhaltung sucht, liest zwanzig Monteure. Nach Rolle gruppiert steht
+   * jeder dort, wo man ihn vermutet, und deaktivierte Konten lassen sich
+   * ausblenden, statt zwischen den aktiven zu stehen.
+   */
+  const gefiltert = useMemo(() => {
+    const q = suche.trim().toLowerCase();
+    return sorted.filter(
+      (u) =>
+        (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
+        (status === 'alle' ||
+          (status === 'aktiv' ? u.active !== false : u.active === false)),
+    );
+  }, [sorted, suche, status]);
+
+  const gruppen = useMemo(
+    () =>
+      ROLES.map((r) => ({ rolle: r, leute: gefiltert.filter((u) => u.role === r) })).filter(
+        (g) => g.leute.length > 0,
+      ),
+    [gefiltert],
+  );
+  const inaktiv = useMemo(() => users.filter((u) => u.active === false).length, [users]);
   const stats = useMemo(
     () => ({
       total: users.length,
@@ -298,21 +327,60 @@ export default function UserMgmtView() {
         </form>
       </Card>
 
-      <Card title="Benutzer">
-        {loading ? <SkeletonList rows={4} /> : sorted.length === 0 ? (
+      <Card
+        title={`Benutzer (${gefiltert.length})`}
+        action={
+          <SelectField
+            id="usrstatus"
+            label=""
+            className="py-1 text-sm"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as typeof status)}
+          >
+            <option value="aktiv">Aktive</option>
+            <option value="inaktiv">Inaktive ({inaktiv})</option>
+            <option value="alle">Alle</option>
+          </SelectField>
+        }
+      >
+        {users.length >= 8 && (
+          <div className="mb-4">
+            <InputField
+              id="usrsuche"
+              label="Suche"
+              type="search"
+              placeholder="Name oder E-Mail"
+              value={suche}
+              onChange={(e) => setSuche(e.target.value)}
+            />
+          </div>
+        )}
+        {loading ? <SkeletonList rows={4} /> : users.length === 0 ? (
           <EmptyState>
             Noch keine Benutzer. Lege oben den ersten Mitarbeiter an — Name,
             E-Mail und Rolle genügen.
           </EmptyState>
+        ) : gefiltert.length === 0 ? (
+          <EmptyState>
+            {suche ? `Niemand passt zu „${suche}".` : 'Kein Benutzer in dieser Auswahl.'}
+          </EmptyState>
         ) : (
-          <List>
-            {sorted.map((u) => (
+          <div className="space-y-5">
+            {gruppen.map((g) => (
+              <div key={g.rolle}>
+                <h3 className="section-label mb-1 flex items-center justify-between">
+                  <span>{g.rolle}</span>
+                  <span className="tnum font-normal text-ink-muted">{g.leute.length}</span>
+                </h3>
+                <List>
+            {g.leute.map((u) => (
               <ListRow
                 key={u.uid}
                 title={
                   <span className="flex flex-wrap items-center gap-2">
                     {u.name}
-                    <RoleBadge role={u.role} />
+                    {/* Die Rolle steht bereits in der Gruppenueberschrift —
+                        sie an jeder Zeile zu wiederholen ist Laerm. */}
                     {u.active === false && <Badge tone="gray">inaktiv</Badge>}
                   </span>
                 }
@@ -336,7 +404,10 @@ export default function UserMgmtView() {
                 )}
               </ListRow>
             ))}
-          </List>
+                </List>
+              </div>
+            ))}
+          </div>
         )}
       </Card>
 

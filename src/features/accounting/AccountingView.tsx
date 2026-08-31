@@ -28,7 +28,7 @@ import ExportDialog from './ExportDialog';
 import ProjectSummary from './ProjectSummary';
 import TimeForm from '@/features/time/TimeForm';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { SelectField } from '@/components/Field';
+import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import {
@@ -111,6 +111,8 @@ export default function AccountingView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [suche, setSuche] = useState('');
+  const [nurLuecken, setNurLuecken] = useState(false);
   /** Offener Zeitraum-Export für einen Mitarbeiter. */
   const [exportFor, setExportFor] = useState<AppUser | null>(null);
   /** Erfassen fuer einen Mitarbeiter bzw. Korrigieren eines Eintrags. */
@@ -159,7 +161,7 @@ export default function AccountingView() {
   );
 
   const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
-  const rows = useMemo(
+  const alleRows = useMemo(
     () =>
       relevant.map((u) => {
         const own = entries.filter((e) => e.userId === u.uid);
@@ -175,15 +177,35 @@ export default function AccountingView() {
     [relevant, entries, monthPrefix, year, month],
   );
 
+  /**
+   * Suche und Filter. Bei zwanzig Monteuren ist die Liste sonst nur noch
+   * scrollbar: wer EINEN Mitarbeiter prüfen will, sucht ihn; wer den Monat
+   * abschliesst, will die mit Luecken sehen und nicht die anderen achtzehn.
+   */
+  const luecken = useMemo(
+    () => alleRows.filter((r) => r.completeness.missingCount > 0).length,
+    [alleRows],
+  );
+  const rows = useMemo(() => {
+    const q = suche.trim().toLowerCase();
+    return alleRows.filter(
+      (r) =>
+        (!q || r.user.name.toLowerCase().includes(q)) &&
+        (!nurLuecken || r.completeness.missingCount > 0),
+    );
+  }, [alleRows, suche, nurLuecken]);
+
   const yearOptions = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
   function exportMonthCsv() {
-    downloadCsv(buildMonthCsv(rows, year, month), monthCsvFilename(year, month));
+    // Bewusst alleRows: der Monatsexport ist ein Abschluss und darf nicht
+    // davon abhaengen, was gerade im Suchfeld steht.
+    downloadCsv(buildMonthCsv(alleRows, year, month), monthCsvFilename(year, month));
     toast.success('Monats-CSV heruntergeladen');
   }
 
   function exportUserCsv(u: AppUser) {
-    const r = rows.find((x) => x.user.uid === u.uid);
+    const r = alleRows.find((x) => x.user.uid === u.uid);
     if (!r || r.monthEntries.length === 0) {
       toast.error('Keine Einträge für diesen Monat.');
       return;
@@ -310,12 +332,39 @@ export default function AccountingView() {
           </span>
         }
       >
+        {alleRows.length >= 8 && (
+          <div className="mb-4 space-y-2">
+            <InputField
+              id="accsuche"
+              label="Mitarbeiter suchen"
+              type="search"
+              placeholder="Name"
+              value={suche}
+              onChange={(e) => setSuche(e.target.value)}
+            />
+            {/* Beim Monatsabschluss zaehlt genau eine Frage: bei wem fehlt
+                noch etwas? Ohne diesen Filter scrollt man durch zwanzig
+                vollstaendige Zeilen, um die zwei offenen zu finden. */}
+            <CheckboxField
+              id="accluecken"
+              label={`Nur mit fehlenden Tagen (${luecken} von ${alleRows.length})`}
+              checked={nurLuecken}
+              onChange={(e) => setNurLuecken(e.target.checked)}
+            />
+          </div>
+        )}
         {loading ? (
           <SkeletonList rows={4} />
         ) : error ? (
           <ErrorState message={error} />
         ) : rows.length === 0 ? (
-          <EmptyState>Keine aktiven Mitarbeiter mit Zeitkonto.</EmptyState>
+          <EmptyState>
+            {alleRows.length === 0
+              ? 'Keine aktiven Mitarbeiter mit Zeitkonto.'
+              : suche
+                ? `Kein Mitarbeiter passt zu „${suche}".`
+                : 'Alle Zeitkonten sind vollständig.'}
+          </EmptyState>
         ) : (
           <div className="space-y-3">
             {rows.map(({ user: u, monthEntries, stats, completeness }) => {
@@ -365,7 +414,19 @@ export default function AccountingView() {
                           von {fmtMin(stats.sollMin)}
                         </span>
                       </span>
-                      <Badge tone={stats.saldoMin >= 0 ? 'success' : 'danger'}>
+                      {/* Fehlen Buchungen, ist der Saldo eine Datenluecke und
+                          kein Befund ueber den Mitarbeiter. Rot behauptete das
+                          Gegenteil — und bei zwanzig Zeilen ergab das eine Wand
+                          aus Rot, in der die eine echte Unterstunde unterging. */}
+                      <Badge
+                        tone={
+                          completeness.missingCount > 0
+                            ? 'warning'
+                            : stats.saldoMin >= 0
+                              ? 'success'
+                              : 'danger'
+                        }
+                      >
                         {stats.saldoMin > 0 ? '+' : ''}
                         {fmtMin(stats.saldoMin)}
                       </Badge>
