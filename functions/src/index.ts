@@ -3,24 +3,25 @@ import { initializeApp } from 'firebase-admin/app';
 initializeApp();
 
 export { syncUserClaims } from './claims.js';
-export { voiceExtract } from './extract.js';
 export { exportCompanyData } from './export.js';
 export { notifyNewOrder, notifyOrderReady } from './notify.js';
 
 /*
- * Alle Functions werden hier statisch exportiert — auch voiceExtract, obwohl
- * es als einziges API-Schlüssel braucht.
+ * Die KI-Spracherfassung wird über eine GENERIERTE Datei eingebunden
+ * (scripts/voice-entry.mjs, läuft als prebuild).
  *
- * Ein bedingter Import wurde versucht und wieder verworfen: Firebase
- * analysiert diese Datei vor dem Deploy, und ein dynamischer Import mit
- * top-level await lässt sich dabei nicht auswerten ("Functions codebase
- * could not be analyzed successfully").
+ * Grund: `defineSecret` in extract.ts löst Firebase schon beim Analysieren
+ * des Codes auf, unabhängig von `--only`. Ein statischer Export von
+ * voiceExtract verlangt damit bei JEDEM Deploy die beiden API-Schlüssel im
+ * Secret Manager — auch beim Deploy von syncUserClaims, das mit der KI nichts
+ * zu tun hat. Und ohne syncUserClaims bekommt ein neu angelegter Benutzer
+ * keine Berechtigungen.
  *
- * Praktische Folge, die man kennen muss: `defineSecret` in extract.ts wird
- * schon beim Analysieren aufgelöst, unabhängig von `--only`. Fehlt der
- * Secret Manager oder eines der beiden Secrets, scheitert deshalb der
- * GESAMTE Deploy — auch syncUserClaims, das mit der KI nichts zu tun hat.
- * Die Secrets müssen also existieren, bevor überhaupt etwas deployt werden
- * kann; notfalls mit Platzhalterwert. Siehe README, Abschnitt Cloud
- * Functions.
+ * Ein bedingter dynamischer Import wurde versucht und verworfen: die Analyse
+ * scheitert daran ("Functions codebase could not be analyzed successfully").
+ * Sie braucht statische Exporte. Also entscheidet der Build.
+ *
+ * Einschalten: ENABLE_VOICE=true beim Bauen setzen (im Workflow als Eingabe),
+ * vorher die beiden Secrets anlegen. Siehe README, Abschnitt Cloud Functions.
  */
+export * from './voice-entry.js';

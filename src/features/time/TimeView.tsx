@@ -6,7 +6,7 @@ import { calcWorkMin, fmtMin, calcOverallSaldo, getISOWeek } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { TimeEntry, AppUser } from '@/types';
 import Card from '@/components/Card';
-import Metric from '@/components/Metric';
+import Metric, { MetricRow } from '@/components/Metric';
 import Badge from '@/components/Badge';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -106,15 +106,14 @@ export default function TimeView() {
     <div className="space-y-6">
       <PageHeader title="Zeiterfassung" subtitle="Deine gebuchten Zeiten und dein Saldo" />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Metric label="Einträge" icon="clipboard" value={entries.length} />
+      <MetricRow>
+        <Metric label="Einträge" value={entries.length} />
         {/* Dieselbe Zahl wie auf dem Dashboard — und deshalb auch mit
             demselben Vorbehalt. Ein Saldo aus Tagen, an denen gar nichts
             gebucht wurde, ist kein Befund über den Mitarbeiter, sondern eine
             Datenlücke; rot dargestellt behauptete er das Gegenteil. */}
         <Metric
           label="Saldo"
-          icon="chart"
           tone={
             !saldo?.hasConfig
               ? 'default'
@@ -133,8 +132,8 @@ export default function TimeView() {
                 : 'Über-/Unterstunden'
           }
         />
-        <Metric label="Diese Woche" icon="clock" value={fmtMin(thisWeekMin)} />
-      </div>
+        <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} />
+      </MetricRow>
 
       <Card title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'}>
         <TimeForm

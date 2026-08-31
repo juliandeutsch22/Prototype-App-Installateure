@@ -14,7 +14,7 @@ import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
-import Metric from '@/components/Metric';
+import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
@@ -222,11 +222,11 @@ export default function UserMgmtView() {
 
       {/* Mobil zweispaltig: bei drei Spalten wurden längere Beschriftungen
           wie "Im Außendienst" abgeschnitten. */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <Metric label="Benutzer" icon="users" value={stats.total} />
-        <Metric label="Aktiv" icon="chart" value={stats.active} />
-        <Metric label="Im Außendienst" icon="building" value={stats.field} />
-      </div>
+      <MetricRow>
+        <Metric label="Benutzer" value={stats.total} />
+        <Metric label="Aktiv" value={stats.active} />
+        <Metric label="Im Außendienst" value={stats.field} />
+      </MetricRow>
 
       {handoverPassword && (
         <div className="rounded border border-warning/30 bg-warning-bg p-4 text-warning" role="alert">

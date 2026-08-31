@@ -25,10 +25,10 @@ import {
   canEditTime,
 } from '@/lib/permissions';
 import { listUsers } from '@/lib/db/users';
-import { listAllEntries } from '@/lib/db/timeEntries';
+import { listAllEntries, listEntriesFrom } from '@/lib/db/timeEntries';
 import type { AppUser, Assignment, MaterialOrder, TimeEntry } from '@/types';
 import Card from '@/components/Card';
-import Metric from '@/components/Metric';
+import Metric, { MetricRow } from '@/components/Metric';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import Icon from '@/components/Icon';
@@ -188,7 +188,11 @@ export default function DashboardView() {
 
         // Projekt-Radar: nur Baustellen, deren Budget knapp wird oder gerissen
         // ist. Eine grüne Baustelle braucht keinen Platz auf dem Dashboard.
-        if (isGF(user.role)) {
+        // Das Radar vergleicht Ist gegen Budget. Hat keine aktive Baustelle
+        // ein Stundenbudget, gibt es nichts zu vergleichen — dann muss auch
+        // niemand die Zeiteintraege des Betriebs laden. Genau das passierte
+        // vorher bei jedem Aufruf der Startseite.
+        if (isGF(user.role) && projects.some((p) => (p.estimatedHours ?? 0) > 0)) {
           const allEntries = await zeiteintraege();
           const byProject = groupProjectHours(allEntries);
           out.projectAlerts = projects
@@ -232,12 +236,30 @@ export default function DashboardView() {
     const team = async () => {
       const out: DashData = {};
       if (canEditTime(user.role)) {
-        const [allUsers, allEntries] = await Promise.all([
-          listUsers(user.companyId),
-          zeiteintraege(),
-        ]);
-        out.team = allUsers
-          .filter((u) => shouldShowOvertime(u.role) && u.active !== false)
+        const allUsers = await listUsers(user.companyId);
+        const zeitkonten = allUsers.filter(
+          (u) => shouldShowOvertime(u.role) && u.active !== false,
+        );
+
+        /**
+         * Nur ab dem fruehesten Eintritt laden.
+         *
+         * calcOverallSaldo beginnt bei appStartDate und ignoriert alles
+         * davor; aeltere Eintraege zu holen ist reine Verschwendung. Hat das
+         * Radar die vollstaendige Liste ohnehin schon geholt, wird sie
+         * mitbenutzt statt ein zweites Mal abgefragt.
+         */
+        const fruehester = zeitkonten
+          .map((u) => u.appStartDate)
+          .filter((d): d is string => !!d)
+          .sort()[0];
+        const allEntries = alleEintraege
+          ? await alleEintraege
+          : fruehester
+            ? await listEntriesFrom(user.companyId, fruehester)
+            : await zeiteintraege();
+
+        out.team = zeitkonten
           .sort((a, b) => a.name.localeCompare(b.name, 'de'))
           .map((u) => {
             const { saldoH, hasConfig, daysWithoutEntry } = calcOverallSaldo(
@@ -362,7 +384,7 @@ export default function DashboardView() {
       {laden.persoenlich && zeigeSaldo && <SkeletonMetrics count={1} />}
       {(!laden.persoenlich || data.ownOpenOrders !== undefined || data.invoiceSums) &&
         (zeigeSaldo || data.ownOpenOrders !== undefined || data.invoiceSums) && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        <MetricRow>
           {/* Die Kachel erscheint fuer jeden mit Zeitkonto — auch ohne
               hinterlegtes Startdatum. Vorher verschwand sie in dem Fall
               kommentarlos, und der Mitarbeiter sah schlicht keinen Saldo,
@@ -371,7 +393,6 @@ export default function DashboardView() {
           {zeigeSaldo && (
             <Metric
               label="Saldo"
-              icon="clock"
               tone={
                 // Ein unvollständiger Saldo wird NICHT rot dargestellt: die
                 // Zahl ist dann kein Befund, sondern eine Datenlücke.
@@ -398,15 +419,15 @@ export default function DashboardView() {
             />
           )}
           {data.ownOpenOrders !== undefined && data.ownOpenOrders > 0 && (
-            <Metric label="Material" icon="package" value={data.ownOpenOrders} hint="von dir angefordert" />
+            <Metric label="Material" value={data.ownOpenOrders} hint="von dir angefordert" />
           )}
           {data.invoiceSums && data.invoiceSums.overdue > 0 && (
-            <Metric label="Überfällig" icon="receipt" tone="danger" value={fmtEUR(data.invoiceSums.overdue)} />
+            <Metric label="Überfällig" tone="danger" value={fmtEUR(data.invoiceSums.overdue)} />
           )}
           {data.invoiceSums && data.invoiceSums.open > 0 && (
-            <Metric label="Offene Rechnungen" icon="receipt" value={fmtEUR(data.invoiceSums.open)} />
+            <Metric label="Offene Rechnungen" value={fmtEUR(data.invoiceSums.open)} />
           )}
-        </div>
+        </MetricRow>
       )}
 
       {/* Projekt-Radar: nur was aus dem Ruder läuft. Eine grüne Baustelle

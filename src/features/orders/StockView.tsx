@@ -7,7 +7,7 @@ import type { Material, MaterialOrder } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
-import Metric from '@/components/Metric';
+import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
@@ -161,22 +161,20 @@ export default function StockView() {
         <MaterialCatalog />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <Metric label="Artikel" icon="package" value={materials.length} />
+          <MetricRow>
+            <Metric label="Artikel" value={materials.length} />
             <Metric
               label="Knapp"
-              icon="package"
               tone={lowCount > 0 ? 'warning' : 'success'}
               value={lowCount}
               hint={`ab ${LOW_STOCK_THRESHOLD} oder weniger`}
             />
             <Metric
               label="Reserviert"
-              icon="clipboard"
               value={[...reserved.values()].reduce((a, b) => a + b, 0)}
               hint="offen angefordert"
             />
-          </div>
+          </MetricRow>
 
           <Card title="Bestände">
             <InputField

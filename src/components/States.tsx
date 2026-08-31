@@ -47,20 +47,15 @@ export function SkeletonList({ rows = 3 }: { rows?: number }) {
 /** Ladeplatzhalter für die Kennzahlen-Reihe. */
 export function SkeletonMetrics({ count = 3 }: { count?: number }) {
   return (
-    <div role="status" aria-busy="true" className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+    // Form und Hoehe folgen der Kennzahlen-Leiste. Ein Platzhalter, der
+    // anders gebaut ist als sein Inhalt, laesst die Seite beim Eintreffen
+    // springen — genau das, was er verhindern soll.
+    <div role="status" aria-busy="true" className="flex items-stretch divide-x divide-line">
       <span className="sr-only">Wird geladen …</span>
-      {/* Die Hoehe folgt der Kachel: am Telefon eine Zeile, am Schreibtisch
-          gestapelt. Ein Platzhalter, der anders hoch ist als sein Inhalt,
-          laesst die Seite beim Eintreffen springen — genau das, was er
-          verhindern soll. */}
       {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2.5 sm:block sm:p-4"
-          aria-hidden="true"
-        >
-          <div className="skeleton h-3 w-24" />
-          <div className="skeleton h-6 w-16 sm:mt-3 sm:h-7" />
+        <div key={i} className="min-w-0 flex-1 px-3 first:pl-0 last:pr-0" aria-hidden="true">
+          <div className="skeleton h-3 w-20" />
+          <div className="skeleton mt-1.5 h-6 w-16 sm:h-8" />
         </div>
       ))}
     </div>

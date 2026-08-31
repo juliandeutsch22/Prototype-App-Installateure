@@ -81,6 +81,19 @@ export function listEntriesInRange(companyId: string, from: string, to: string) 
   );
 }
 
+/**
+ * Eintraege AB einem Datum, einmalig geladen.
+ *
+ * Fuer die Team-Salden auf der Startseite. `calcOverallSaldo` beginnt bei
+ * `appStartDate` und ignoriert alles davor — Eintraege aus der Zeit vor dem
+ * fruehesten Eintritt zu laden, ist also reine Verschwendung. Bei einem
+ * Betrieb, der die App im laufenden Jahr eingefuehrt hat, faellt damit die
+ * gesamte Vorgeschichte weg.
+ */
+export function listEntriesFrom(companyId: string, from: string) {
+  return queryTenant<TimeEntry>(COLLECTION, companyId, where('date', '>=', from));
+}
+
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'companyId' | 'createdAt'>;
 
 /**
