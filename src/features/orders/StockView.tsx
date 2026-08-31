@@ -1,0 +1,241 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/app/AuthContext';
+import { subscribeMaterials, adjustStock, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { subscribeAllOrders } from '@/lib/db/materialOrders';
+import type { WithId } from '@/lib/db/core';
+import type { Material, MaterialOrder } from '@/types';
+import Card from '@/components/Card';
+import Button from '@/components/Button';
+import Badge from '@/components/Badge';
+import Metric from '@/components/Metric';
+import PageHeader from '@/components/PageHeader';
+import { List, ListRow } from '@/components/ListRow';
+import { InputField } from '@/components/Field';
+import { useToast } from '@/components/Toast';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import MaterialCatalog from './MaterialCatalog';
+
+type Tab = 'bestand' | 'katalog';
+
+/**
+ * Lager — eigener Bereich statt versteckter vierter Reiter unter
+ * „Bestellungen".
+ *
+ * Dort hat ihn niemand vermutet, und das ist kein Wunder: Wer Bestand
+ * pflegen will, sucht nicht unter Bestellungen. Der Katalog ist derselbe
+ * geblieben; neu ist die Bestandsansicht davor, die zeigt, was knapp wird
+ * und wie viel bereits für offene Anforderungen reserviert ist.
+ */
+export default function StockView() {
+  const { user } = useAuth();
+  const toast = useToast();
+  const [tab, setTab] = useState<Tab>('bestand');
+  const [materials, setMaterials] = useState<WithId<Material>[]>([]);
+  const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsubM = subscribeMaterials(
+      user.companyId,
+      (rows) => {
+        setMaterials(rows);
+        setLoading(false);
+      },
+      (e) => {
+        setError(e.message);
+        setLoading(false);
+      },
+    );
+    const unsubO = subscribeAllOrders(user.companyId, setOrders, () => undefined);
+    return () => {
+      unsubM();
+      unsubO();
+    };
+  }, [user]);
+
+  /**
+   * Was ist zugesagt, aber noch nicht abgeholt?
+   *
+   * Der reine Lagerstand täuscht sonst: 20 Stück im Regal, von denen 18
+   * bereits drei Monteuren zugesagt sind, sind keine 20 verfügbaren Stück.
+   */
+  const reserved = useMemo(() => {
+    // Rückfall auf den Namen: nicht jede Anforderung trägt eine materialId.
+    // Der Altbestand kennt Positionen ohne Verweis (Prototyp: „nur wenn matId
+    // bekannt"), und auch eine per Sprache erfasste Zeile kann sie verlieren.
+    // Ohne diesen Weg zählte die Reservierung stillschweigend zu niedrig —
+    // eine falsche Zahl im Lager ist schlimmer als gar keine.
+    const byName = new Map<string, string>();
+    for (const m of materials) byName.set(m.name.trim().toLowerCase(), m.id);
+
+    const map = new Map<string, number>();
+    for (const o of orders) {
+      if (o.transactionType === 'return' || o.status === 'Erledigt') continue;
+      const id = o.materialId || byName.get((o.materialName ?? '').trim().toLowerCase());
+      if (!id) continue;
+      map.set(id, (map.get(id) ?? 0) + (o.quantity ?? 0));
+    }
+    return map;
+  }, [orders, materials]);
+
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return [...materials]
+      .map((m) => ({
+        ...m,
+        reserved: reserved.get(m.id) ?? 0,
+        free: (m.stock ?? 0) - (reserved.get(m.id) ?? 0),
+      }))
+      .filter((m) =>
+        q ? [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)) : true,
+      )
+      // Knappes zuerst — wer das Lager öffnet, will wissen, was fehlt.
+      .sort((a, b) => a.free - b.free || a.name.localeCompare(b.name, 'de'));
+  }, [materials, reserved, search]);
+
+  const lowCount = useMemo(
+    () => rows.filter((m) => m.free <= LOW_STOCK_THRESHOLD).length,
+    [rows],
+  );
+
+  /** Wareneingang oder Korrektur, atomar über increment. */
+  async function change(m: WithId<Material>, delta: number) {
+    setBusyId(m.id);
+    try {
+      await adjustStock(m.id, delta);
+    } catch {
+      setError('Der Bestand konnte nicht geändert werden.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function book(m: WithId<Material>) {
+    const eingabe = window.prompt(`Wareneingang für „${m.name}" — wie viele ${m.unit ?? 'Stk'}?`, '1');
+    if (eingabe === null) return;
+    const n = Math.floor(Number(eingabe.replace(',', '.')));
+    // Ohne diese Prüfung ginge eine negative oder krumme Zahl als
+    // increment() durch und der Wareneingang würde den Bestand senken.
+    if (!Number.isFinite(n) || n < 1) {
+      setError('Bitte eine ganze Menge von mindestens 1 angeben.');
+      return;
+    }
+    await change(m, n);
+    toast.success(`${n} ${m.unit ?? 'Stk'} ${m.name} eingebucht`);
+  }
+
+  if (!user) return null;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Lager" subtitle="Bestände führen und den Materialkatalog pflegen" />
+
+      <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+        {([
+          { key: 'bestand' as Tab, label: 'Bestand' },
+          { key: 'katalog' as Tab, label: 'Katalog' },
+        ]).map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex min-h-touch shrink-0 items-center gap-1.5 border-b-2 px-4 py-2 text-sm transition ${
+              tab === t.key
+                ? 'border-b-accent font-bold text-brand'
+                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {error && <ErrorState message={error} />}
+
+      {tab === 'katalog' ? (
+        <MaterialCatalog />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <Metric label="Artikel" icon="package" value={materials.length} />
+            <Metric
+              label="Knapp"
+              icon="package"
+              tone={lowCount > 0 ? 'warning' : 'success'}
+              value={lowCount}
+              hint={`ab ${LOW_STOCK_THRESHOLD} oder weniger`}
+            />
+            <Metric
+              label="Reserviert"
+              icon="clipboard"
+              value={[...reserved.values()].reduce((a, b) => a + b, 0)}
+              hint="offen angefordert"
+            />
+          </div>
+
+          <Card title="Bestände">
+            <InputField
+              id="stocksearch"
+              label="Suche"
+              placeholder="Bezeichnung, Kategorie oder Artikelnummer"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <div className="mt-4">
+              {loading ? (
+                <SkeletonList rows={5} />
+              ) : rows.length === 0 ? (
+                <EmptyState>
+                  {materials.length === 0
+                    ? 'Noch kein Material im Katalog. Der Reiter „Katalog" legt den ersten Eintrag an.'
+                    : `Kein Material passt zu „${search}".`}
+                </EmptyState>
+              ) : (
+                <List>
+                  {rows.map((m) => {
+                    const low = m.free <= LOW_STOCK_THRESHOLD;
+                    return (
+                      <ListRow
+                        key={m.id}
+                        title={m.name}
+                        subtitle={
+                          <>
+                            {m.category || 'ohne Kategorie'}
+                            {m.reserved > 0 && (
+                              <>
+                                {' · '}
+                                <span className="tnum">
+                                  {m.stock ?? 0} im Lager, {m.reserved} reserviert
+                                </span>
+                              </>
+                            )}
+                          </>
+                        }
+                      >
+                        <Badge tone={low ? 'warning' : 'gray'}>
+                          {m.free} {m.unit ?? 'Stk'} frei
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          loading={busyId === m.id}
+                          onClick={() => void book(m)}
+                        >
+                          Wareneingang
+                        </Button>
+                      </ListRow>
+                    );
+                  })}
+                </List>
+              )}
+            </div>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}

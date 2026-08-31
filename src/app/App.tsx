@@ -10,6 +10,7 @@ import VoiceView from '@/features/voice/VoiceView';
 import { VOICE_ENABLED } from '@/lib/features';
 import OrderView from '@/features/orders/OrderView';
 import AdminOrdersView from '@/features/orders/AdminOrdersView';
+import StockView from '@/features/orders/StockView';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
 import MyProjectsView from '@/features/projects/MyProjectsView';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
@@ -106,6 +107,16 @@ function AppRoutes() {
         element={
           <RequireRole roles={['Verwaltung', 'Geschäftsführung', 'Administrator']}>
             <AdminOrdersView />
+          </RequireRole>
+        }
+      />
+      {/* Lager: eigener Bereich statt versteckter Reiter unter Bestellungen.
+          Verwaltung und Leitung fuehren den Bestand. */}
+      <Route
+        path="/stock"
+        element={
+          <RequireRole roles={['Verwaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}>
+            <StockView />
           </RequireRole>
         }
       />
