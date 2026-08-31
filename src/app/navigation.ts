@@ -21,8 +21,14 @@ export interface NavItem {
  * Diese Liste steuert UI-Sichtbarkeit; die HARTE Durchsetzung erfolgt
  * zusätzlich serverseitig in firestore.rules (Spec §7).
  */
-const ALL: Role[] = ['Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Geschäftsführung', 'Administrator'];
-const LEAD: Role[] = ['Geschäftsführung', 'Administrator'];
+const ALL: Role[] = [
+  'Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Projektleiter',
+  'Geschäftsführung', 'Administrator',
+];
+/** Leitung inklusive Projektleitung — plant, verwaltet, rechnet ab. */
+const LEAD: Role[] = ['Projektleiter', 'Geschäftsführung', 'Administrator'];
+/** Ohne Projektleitung: alles rund um die Zeitkonten der Mitarbeiter. */
+const TOP: Role[] = ['Geschäftsführung', 'Administrator'];
 
 export const NAV: NavItem[] = [
   { path: '/', label: 'Dashboard', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
@@ -46,7 +52,10 @@ export const NAV: NavItem[] = [
   { path: '/settings', label: 'Einstellungen', short: 'Sätze', icon: 'settings', roles: LEAD, group: 'Verwaltung' },
 
   { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
-  { path: '/accounting', label: 'Mitarbeiterübersicht', short: 'Übersicht', icon: 'chart', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
+  // Zeitkonten: bewusst OHNE Projektleitung. Ueberstunden, Krankenstaende und
+  // Urlaub eines Monteurs gehen sie nichts an — Krankenstaende sind zudem
+  // Gesundheitsdaten nach Art. 9 DSGVO.
+  { path: '/accounting', label: 'Mitarbeiterübersicht', short: 'Übersicht', icon: 'chart', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung' },
 
   // Persönliche Einstellungen, für jede Rolle. Steht bewusst ganz am ENDE
   // der Liste: die mobile Tab-Bar zeigt die ersten vier Einträge, und dort

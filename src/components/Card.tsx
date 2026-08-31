@@ -1,44 +1,33 @@
 import type { ReactNode } from 'react';
 
-/** Farbstreifen links an der Karte — Signatur-Element der Perl-Oberfläche. */
-export type CardAccent = 'brand' | 'accent' | 'warning' | 'success' | 'none';
-
 interface CardProps {
   children: ReactNode;
   className?: string;
   title?: string;
   action?: ReactNode; // optionale Aktion rechts neben dem Titel
   footer?: ReactNode;
-  accent?: CardAccent;
 }
 
-const accentBorder: Record<CardAccent, string> = {
-  brand: 'border-l-4 border-l-brand',
-  accent: 'border-l-4 border-l-accent',
-  warning: 'border-l-4 border-l-warning',
-  success: 'border-l-4 border-l-success',
-  none: '',
-};
-
-export default function Card({
-  children,
-  className = '',
-  title,
-  action,
-  footer,
-  accent = 'none',
-}: CardProps) {
+/**
+ * Ruhige Karte: dünne Linie, flacher Schatten, kompaktes Innenmaß.
+ *
+ * Der farbige Balken links ist entfallen. Er war als Signatur gedacht,
+ * markierte am Ende aber fast jede Karte — und was überall steht, hebt
+ * nichts mehr hervor. Übrig blieb eine Oberfläche, die an jeder Kante
+ * etwas behauptet. Betont wird jetzt über Inhalt und Badge, nicht über
+ * Rahmenschmuck.
+ *
+ * Auch der Schatten beim Überfahren ist weg: Karten sind hier keine
+ * Schaltflächen, sie sollen nicht so tun.
+ */
+export default function Card({ children, className = '', title, action, footer }: CardProps) {
   return (
-    // hover: ist über future.hoverOnlyWhenSupported auf Zeigergeräte begrenzt,
-    // löst auf der Baustelle also keine klebrigen Zustände aus.
-    <section
-      className={`overflow-hidden rounded-lg border border-line bg-surface shadow-sm transition-shadow hover:shadow-lg ${accentBorder[accent]} ${className}`}
-    >
+    <section className={`overflow-hidden rounded-lg border border-line bg-surface ${className}`}>
       {title && (
         <header
           // Auf schmalen Schirmen untereinander: sonst überlagern breite
           // Aktionen (mehrere Knöpfe) den Titel.
-          className="flex flex-col items-start gap-2 border-b border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+          className="flex flex-col items-start gap-2 border-b border-line px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
         >
           {/* Kartentitel sind im Prototyp klein, fett und versal gesetzt —
               sie ordnen den Inhalt, ohne mit der Seitenüberschrift zu konkurrieren. */}
@@ -46,8 +35,8 @@ export default function Card({
           {action}
         </header>
       )}
-      <div className="p-4">{children}</div>
-      {footer && <footer className="border-t border-line px-4 py-3">{footer}</footer>}
+      <div className="px-4 py-3.5">{children}</div>
+      {footer && <footer className="border-t border-line px-4 py-2.5">{footer}</footer>}
     </section>
   );
 }

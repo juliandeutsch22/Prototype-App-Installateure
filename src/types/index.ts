@@ -18,6 +18,11 @@ export type Role =
   | 'Mitarbeiter'
   | 'Verwaltung'
   | 'Buchhaltung'
+  /**
+   * Projektleitung: wie die Geschäftsführung, aber ohne Einblick in die
+   * Zeitkonten der Mitarbeiter. Siehe lib/permissions.ts.
+   */
+  | 'Projektleiter'
   | 'Geschäftsführung'
   | 'Administrator';
 
@@ -25,6 +30,7 @@ export const ROLES: Role[] = [
   'Mitarbeiter',
   'Verwaltung',
   'Buchhaltung',
+  'Projektleiter',
   'Geschäftsführung',
   'Administrator',
 ];

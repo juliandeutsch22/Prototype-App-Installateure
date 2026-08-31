@@ -200,7 +200,6 @@ export default function AccountingView() {
           Buchhaltung/GF/Administrator. */}
       {(creating || editing) && (
         <Card
-          accent="accent"
           title={
             editing
               ? `Eintrag von ${editing.userName ?? 'Mitarbeiter'} korrigieren`
@@ -294,7 +293,7 @@ export default function AccountingView() {
                     </span>
                     <span className="flex items-center gap-3">
                       <span
-                        className={`font-mono text-sm ${open ? 'text-brand-fg/80' : 'text-ink-muted'}`}
+                        className={`tnum text-sm ${open ? 'text-brand-fg/80' : 'text-ink-muted'}`}
                       >
                         {fmtMin(stats.istMin)} / {fmtMin(stats.sollMin)}
                       </span>
@@ -354,17 +353,17 @@ export default function AccountingView() {
                                   : '';
                               return (
                                 <tr key={d} className={`border-b border-line/60 ${rowTone}`}>
-                                  <td className="py-1 pr-3 font-mono">{d.slice(8)}.{d.slice(5, 7)}.</td>
+                                  <td className="py-1 pr-3 tnum">{d.slice(8)}.{d.slice(5, 7)}.</td>
                                   <td className="py-1 pr-3">
                                     {entry ? entry.status : <span className="text-ink-muted">{holiday}</span>}
                                   </td>
-                                  <td className="py-1 pr-3 font-mono text-ink-muted">
+                                  <td className="py-1 pr-3 tnum text-ink-muted">
                                     {entry?.startTime && entry?.endTime
                                       ? `${entry.startTime}–${entry.endTime}`
                                       : '—'}
                                   </td>
                                   <td className="py-1 pr-3">{entry?.customerName ?? '—'}</td>
-                                  <td className="py-1 pr-3 text-right font-mono">
+                                  <td className="py-1 pr-3 text-right tnum">
                                     {entry ? fmtMin(calcWorkMin(entry)) : '—'}
                                   </td>
                                   <td className="py-1 text-right whitespace-nowrap">
@@ -402,7 +401,7 @@ export default function AccountingView() {
                                 {stats.holidaysInMonth > 0 &&
                                   ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
                               </td>
-                              <td className="pt-2 text-right font-mono">{fmtMin(stats.istMin)}</td>
+                              <td className="pt-2 text-right tnum">{fmtMin(stats.istMin)}</td>
                             </tr>
                           </tfoot>
                         </table>

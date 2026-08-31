@@ -324,7 +324,7 @@ export default function OrderView() {
             </div>
           </Card>
 
-          <Card title={`Anforderung (${cart.length})`} accent={cart.length > 0 ? 'accent' : 'none'}>
+          <Card title={`Anforderung (${cart.length})`}>
             {cart.length === 0 ? (
               <EmptyState>
                 Noch nichts ausgewählt. Im Katalog oben auf „+" tippen.
@@ -343,7 +343,7 @@ export default function OrderView() {
                       title={
                         <span>
                           {line.materialName}{' '}
-                          <span className="font-mono text-ink-muted">×{line.quantity}</span>
+                          <span className="tnum text-ink-muted">×{line.quantity}</span>
                         </span>
                       }
                       subtitle={
@@ -394,7 +394,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="font-mono text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[o.projectNumber, o.note].filter(Boolean).join(' · ')}
@@ -422,7 +422,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="font-mono text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[o.projectNumber, o.note].filter(Boolean).join(' · ')}
@@ -441,7 +441,7 @@ export default function OrderView() {
       )}
 
       {tab === 'retoure' && (
-        <Card title="Material zurückgeben" accent="brand">
+        <Card title="Material zurückgeben">
           <div className="space-y-4">
             <SelectField id="retmat" label="Material" value={retMaterial}
               onChange={(e) => setRetMaterial(e.target.value)} required>

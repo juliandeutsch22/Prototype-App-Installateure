@@ -58,11 +58,10 @@ export default function MyProjectsView() {
           {active.map((p) => (
             <Card
               key={p.id}
-              accent="brand"
               title={p.customerName}
               action={<StatusBadge status={p.status} />}
             >
-              <p className="font-mono text-sm text-ink-muted">{p.projectNumber}</p>
+              <p className="tnum text-sm text-ink-muted">{p.projectNumber}</p>
               {p.description && <p className="mt-2 text-ink">{p.description}</p>}
 
               {(p.startDate || p.endDate) && (

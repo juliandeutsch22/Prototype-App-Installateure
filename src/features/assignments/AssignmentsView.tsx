@@ -145,7 +145,7 @@ export default function AssignmentsView() {
     <div className="space-y-6">
       <PageHeader title="Einsatzplanung" subtitle="Mitarbeiter einem Tag und einer Baustelle zuteilen" />
 
-      <Card title="Einsatz planen" accent="brand">
+      <Card title="Einsatz planen">
         <FormGrid>
           <InputField id="adate" label="Datum" type="date" value={date}
             onChange={(e) => setDate(e.target.value)} />
@@ -240,7 +240,7 @@ export default function AssignmentsView() {
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2">
                     <span className="font-semibold text-ink">
                       {proj?.customerName ?? pn}{' '}
-                      <span className="font-mono text-sm text-ink-muted">({pn})</span>
+                      <span className="tnum text-sm text-ink-muted">({pn})</span>
                     </span>
                     <span className="flex gap-2">
                       <Badge tone="info">{fach} Facharbeiter</Badge>

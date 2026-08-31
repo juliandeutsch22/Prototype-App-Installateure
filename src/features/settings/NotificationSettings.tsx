@@ -123,7 +123,7 @@ export default function NotificationSettings() {
         subtitle="Was du bekommen möchtest — und auf welchem Gerät"
       />
 
-      <Card title="Wovon möchtest du erfahren?" accent="brand">
+      <Card title="Wovon möchtest du erfahren?">
         <div className="space-y-1">
           {zeigeNeueAnforderung && (
             <CheckboxField
@@ -156,7 +156,7 @@ export default function NotificationSettings() {
         </p>
       </Card>
 
-      <Card title="Dieses Gerät" accent={push === 'bereit' ? 'success' : 'none'}>
+      <Card title="Dieses Gerät">
         <p
           className={
             zustand.ton === 'ok'

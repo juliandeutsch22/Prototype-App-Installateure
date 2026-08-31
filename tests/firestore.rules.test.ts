@@ -33,6 +33,12 @@ function ctxA_employee() {
 function ctxA_admin() {
   return testEnv.authenticatedContext('adminA', { companyId: 'companyA', role: 'Administrator' });
 }
+function ctxA_gf() {
+  return testEnv.authenticatedContext('gfA', { companyId: 'companyA', role: 'Geschäftsführung' });
+}
+function ctxA_pl() {
+  return testEnv.authenticatedContext('plA', { companyId: 'companyA', role: 'Projektleiter' });
+}
 function ctxB_admin() {
   return testEnv.authenticatedContext('adminB', { companyId: 'companyB', role: 'Administrator' });
 }
@@ -361,5 +367,101 @@ describe('userPrefs — persönliche Einstellungen und Push-Tokens', () => {
     });
     const db = ctxA_employee().firestore();
     await assertFails(deleteDoc(doc(db, 'userPrefs', 'userA1')));
+  });
+});
+
+describe('Projektleitung — wie die Leitung, aber ohne Zeitkonten', () => {
+  it('darf Baustellen anlegen', async () => {
+    const db = ctxA_pl().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'projects', 'neu'), {
+        companyId: 'companyA', projectNumber: '2026-100',
+        customerName: 'Neu', status: 'Aktiv',
+      }),
+    );
+  });
+
+  it('darf Material pflegen', async () => {
+    const db = ctxA_pl().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'materials', 'm-neu'), {
+        companyId: 'companyA', name: 'Rohr', stock: 5,
+      }),
+    );
+  });
+
+  it('darf FREMDE Zeiteintraege NICHT lesen', async () => {
+    // Der einzige Unterschied zur Geschaeftsfuehrung. Ueberstunden,
+    // Krankenstaende und Urlaub eines Monteurs gehen die Projektleitung
+    // nichts an — Krankenstaende sind Gesundheitsdaten nach Art. 9 DSGVO.
+    const db = ctxA_pl().firestore();
+    await assertFails(getDoc(doc(db, 'timeEntries', 'tA')));
+  });
+
+  it('darf fremde Zeiteintraege auch nicht anlegen', async () => {
+    const db = ctxA_pl().firestore();
+    await assertFails(
+      setDoc(doc(db, 'timeEntries', 'fremd'), {
+        companyId: 'companyA', userId: 'userA1', date: '2026-07-01', status: 'Anwesend',
+      }),
+    );
+  });
+
+  it('darf die eigene Zeit sehr wohl buchen', async () => {
+    const db = ctxA_pl().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'timeEntries', 'eigen'), {
+        companyId: 'companyA', userId: 'plA', date: '2026-07-01', status: 'Anwesend',
+      }),
+    );
+  });
+});
+
+describe('Administratoren verwaltet nur ein Administrator', () => {
+  it('Geschaeftsfuehrung darf KEINEN Administrator anlegen', async () => {
+    // Sonst koennte sie sich selbst zum Superuser machen.
+    const db = ctxA_gf().firestore();
+    await assertFails(
+      setDoc(doc(db, 'users', 'neuerAdmin'), {
+        companyId: 'companyA', uid: 'neuerAdmin', name: 'X', email: 'x@a.at',
+        role: 'Administrator', active: true,
+      }),
+    );
+  });
+
+  it('Geschaeftsfuehrung darf einen bestehenden Administrator nicht aendern', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', 'adminDoc'), {
+        companyId: 'companyA', uid: 'adminDoc', name: 'Chef-Admin',
+        email: 'a@a.at', role: 'Administrator', active: true,
+      });
+    });
+    const db = ctxA_gf().firestore();
+    await assertFails(
+      setDoc(doc(db, 'users', 'adminDoc'), {
+        companyId: 'companyA', uid: 'adminDoc', name: 'Chef-Admin',
+        email: 'a@a.at', role: 'Mitarbeiter', active: true,
+      }),
+    );
+  });
+
+  it('Administrator darf einen Administrator anlegen', async () => {
+    const db = ctxA_admin().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'users', 'admin2'), {
+        companyId: 'companyA', uid: 'admin2', name: 'Zweiter', email: 'z@a.at',
+        role: 'Administrator', active: true,
+      }),
+    );
+  });
+
+  it('Geschaeftsfuehrung darf weiterhin normale Rollen vergeben', async () => {
+    const db = ctxA_gf().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'users', 'monteur'), {
+        companyId: 'companyA', uid: 'monteur', name: 'Monteur', email: 'm@a.at',
+        role: 'Projektleiter', active: true,
+      }),
+    );
   });
 });

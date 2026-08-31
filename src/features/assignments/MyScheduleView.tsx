@@ -116,7 +116,7 @@ export default function MyScheduleView() {
                     {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname da ist —
                         sonst stünde sie doppelt. */}
                     {proj?.customerName && (
-                      <span className="ml-1 font-mono text-sm text-ink-muted">
+                      <span className="ml-1 tnum text-sm text-ink-muted">
                         ({a.projectNumber})
                       </span>
                     )}

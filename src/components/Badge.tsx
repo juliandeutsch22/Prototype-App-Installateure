@@ -33,6 +33,7 @@ const roleTone: Record<Role, Tone> = {
   Mitarbeiter: 'info',
   Verwaltung: 'success',
   Buchhaltung: 'warning',
+  Projektleiter: 'brand',
   Geschäftsführung: 'violet',
   Administrator: 'dark',
 };

@@ -163,7 +163,7 @@ export default function AdminOrdersView() {
                   key={o.id}
                   title={
                     <span>
-                      {o.materialName} <span className="font-mono text-ink-muted">×{o.quantity}</span>
+                      {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
                     </span>
                   }
                   subtitle={

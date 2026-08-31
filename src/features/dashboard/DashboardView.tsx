@@ -258,7 +258,7 @@ export default function DashboardView() {
           Tages, deshalb ganz oben und mit dem, was im Auto zählt: Adresse
           und eine wählbare Telefonnummer. */}
       {user.role === 'Mitarbeiter' && data.todayAssignment && (
-        <Card title="Heute" accent="brand">
+        <Card title="Heute">
           <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-ink">
             {data.todayProject?.customerName ?? `Baustelle ${data.todayAssignment.projectNumber}`}
             {data.todayAssignment.asHelper && <Badge tone="warning">Helfer</Badge>}
@@ -328,7 +328,6 @@ export default function DashboardView() {
       {data.projectAlerts && data.projectAlerts.length > 0 && (
         <Card
           title="Baustellen am Limit"
-          accent="warning"
           action={
             <Link to="/accounting" className="text-sm font-semibold text-brand underline">
               Alle Baustellen
@@ -358,7 +357,6 @@ export default function DashboardView() {
       {data.openOrders && data.openOrders.length > 0 && (
         <Card
           title={`Material angefordert (${data.openOrders.length})`}
-          accent="accent"
           action={
             <Link to="/admin-orders" className="text-sm font-semibold text-brand underline">
               Bearbeiten
