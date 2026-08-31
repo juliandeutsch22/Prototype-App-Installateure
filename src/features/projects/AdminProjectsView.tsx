@@ -62,6 +62,30 @@ export default function AdminProjectsView() {
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
   const [filter, setFilter] = useState<'offen' | 'alle' | 'archiv'>('offen');
 
+  /**
+   * Auf eine Baustelle gehören Monteure, nicht Büro und nicht Leitung.
+   * Vorher stand hier die ungefilterte Nutzerliste — Administrator,
+   * Geschäftsführung und Buchhaltung erschienen als anhakbare Mitarbeiter.
+   * Die Einsatzplanung filtert längst so; hier war es schlicht vergessen.
+   * Deaktivierte Konten fallen ebenfalls raus, sonst ließe sich jemand
+   * einplanen, der sich gar nicht mehr anmelden kann.
+   */
+  const staff = useMemo(
+    () =>
+      users
+        .filter(
+          (u) =>
+            (u.role === 'Mitarbeiter' && u.active !== false) ||
+            // Wer bereits zugeordnet IST, bleibt sichtbar — auch wenn er
+            // inzwischen eine andere Rolle hat oder deaktiviert wurde.
+            // Sonst hinge er unsichtbar an der Baustelle und ließe sich
+            // nicht mehr abwählen.
+            assigned.includes(u.uid),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    [users, assigned],
+  );
+
   useEffect(() => {
     if (!user) return;
     listUsers(user.companyId).then(setUsers).catch(() => undefined);
@@ -169,7 +193,7 @@ export default function AdminProjectsView() {
           <fieldset>
             <legend className="text-sm font-medium text-ink">Zugeordnete Mitarbeiter</legend>
             <div className="mt-1 flex flex-wrap gap-x-5">
-              {users.map((u) => (
+              {staff.map((u) => (
                 <CheckboxField
                   key={u.uid}
                   id={`proj-emp-${u.uid}`}
