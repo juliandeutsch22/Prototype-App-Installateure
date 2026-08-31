@@ -6,7 +6,8 @@ name: Cloud Functions deployen
 #     Ein versehentlicher Deploy soll nicht bei jeder Änderung an der
 #     Oberfläche mitlaufen.
 #  2. voiceExtract hängt an API-Schlüsseln im Secret Manager. Fehlen die,
-#     würde ein gemeinsamer Deploy auch das Hosting mit reißen.
+#     scheitert der Functions-Deploy — im selben Lauf würde er das Hosting
+#     mit sich reißen, das damit nichts zu tun hat.
 #
 # Läuft deshalb nur, wenn sich wirklich etwas an den Functions geändert hat —
 # oder von Hand.
@@ -36,7 +37,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Zugangsdaten vorhanden?
         env:
@@ -65,35 +66,46 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
           chmod 600 "$RUNNER_TEMP/service-account.json"
 
-      # syncUserClaims und exportCompanyData laufen ohne fremde API-Schlüssel.
-      # voiceExtract nicht. Sind die Schlüssel noch nicht hinterlegt, wird die
-      # KI-Funktion ausgelassen, statt den ganzen Deploy scheitern zu lassen —
-      # der Berechtigungs-Trigger ist der dringende Teil, die Spracherfassung
-      # kann warten.
-      - name: Welche Functions sind deploybar?
-        id: scope
+      # Firebase loest `defineSecret` schon beim ANALYSIEREN des Codes auf —
+      # unabhaengig davon, was `--only` spaeter deployt. Fehlt der Secret
+      # Manager oder eines der Secrets, scheitert deshalb der gesamte Deploy,
+      # auch der Berechtigungs-Trigger, der mit der KI nichts zu tun hat.
+      #
+      # Ein gestufter Deploy wurde versucht und verworfen: er kann dieses
+      # Problem grundsaetzlich nicht loesen. Statt es zu umgehen, wird hier
+      # klar gesagt, was fehlt.
+      - name: Secrets vorhanden?
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
         run: |
-          have_secrets=1
+          fehlt=""
           for s in ANTHROPIC_API_KEY TRANSCRIPTION_API_KEY; do
-            # Bewusst :get (Metadaten) statt :access (Klartextwert) — der
-            # Schlüssel selbst wird hier nicht gelesen und kann so auch nicht
-            # versehentlich in einem Protokoll landen.
+            # :get liest nur die Metadaten, nie den Wert — so kann kein
+            # Schluessel in dieses Protokoll geraten.
             if ! npx --yes firebase-tools@15 functions:secrets:get "$s" \
                  --project "$PROJECT_ID" >/dev/null 2>&1; then
-              echo "$s: nicht hinterlegt oder für das Dienstkonto nicht sichtbar."
-              have_secrets=0
+              fehlt="$fehlt $s"
             fi
           done
-          if [ "$have_secrets" = "1" ]; then
-            echo "only=functions" >> "$GITHUB_OUTPUT"
-            echo "::notice::Alle Functions werden deployed, einschließlich der KI-Spracherfassung."
-          else
-            echo "only=functions:syncUserClaims,functions:exportCompanyData" >> "$GITHUB_OUTPUT"
-            echo "::warning::voiceExtract wird ausgelassen: ANTHROPIC_API_KEY und/oder TRANSCRIPTION_API_KEY fehlen im Secret Manager. Setzen mit: firebase functions:secrets:set ANTHROPIC_API_KEY"
+          if [ -n "$fehlt" ]; then
+            echo "::error::Diese Secrets fehlen oder der Secret Manager ist nicht aktiviert:$fehlt"
+            echo ""
+            echo "Beides ist noetig, BEVOR irgendeine Function deployt werden kann —"
+            echo "auch syncUserClaims. Grund: Firebase loest die Secret-Verweise im"
+            echo "Code schon beim Analysieren auf, nicht erst beim Deploy der"
+            echo "betroffenen Function."
+            echo ""
+            echo "1. Secret Manager API aktivieren:"
+            echo "   https://console.cloud.google.com/apis/library/secretmanager.googleapis.com"
+            echo "2. Beide Secrets anlegen (Platzhalter genuegt, solange die"
+            echo "   KI-Spracherfassung noch nicht genutzt wird):"
+            echo "   https://console.cloud.google.com/security/secret-manager"
+            echo ""
+            echo "Siehe README, Abschnitt 'Cloud Functions'."
+            exit 1
           fi
+          echo "Beide Secrets sind hinterlegt."
 
       - name: Deploy
         env:
@@ -104,7 +116,7 @@ jobs:
           # ohne Rückfrage aus der Produktion löschen. Steht eine Löschung an,
           # soll der Deploy lieber scheitern und jemand hinsehen.
           npx --yes firebase-tools@15 deploy \
-            --only "${{ steps.scope.outputs.only }}" \
+            --only functions \
             --project "$PROJECT_ID" \
             --non-interactive
 
@@ -114,8 +126,6 @@ jobs:
 
       - name: Was jetzt gilt
         run: |
-          echo "Deployed: ${{ steps.scope.outputs.only }}"
-          echo ""
           echo "syncUserClaims setzt ab sofort companyId und Rolle für jeden"
           echo "neu angelegten Benutzer. Bereits vorhandene Konten bekommen ihre"
           echo "Berechtigungen erst beim nächsten Speichern in der"

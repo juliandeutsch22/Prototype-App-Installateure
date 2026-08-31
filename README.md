@@ -96,11 +96,13 @@ Blaze-Tarif und können Kosten auslösen, deshalb sollen sie nicht bei jeder
 
 ### Cloud Functions
 
-Drei Functions, alle in `europe-west3`:
+Fünf Functions, alle in `europe-west3`:
 
 | Function | Zweck | Braucht API-Schlüssel |
 | --- | --- | --- |
 | `syncUserClaims` | setzt `companyId` + Rolle als Auth-Claims | nein |
+| `notifyNewOrder` | Push an Verwaltung/Leitung bei neuer Anforderung | nein |
+| `notifyOrderReady` | Push an den Monteur, wenn Material bereitliegt | nein |
 | `exportCompanyData` | DSGVO-Export je Mandant | nein |
 | `voiceExtract` | Sprache → strukturierte Einträge | **ja** |
 
@@ -109,10 +111,7 @@ angelegter Benutzer keine Berechtigungen: er kommt durch die Anmeldung, sieht
 danach aber kein einziges Dokument. Die Benutzerverwaltung ist ohne ihn
 faktisch wirkungslos.
 
-Der Workflow läuft bei Änderungen an `functions/**` und von Hand. Fehlen die
-KI-Schlüssel im Secret Manager, wird `voiceExtract` ausgelassen statt den
-ganzen Deploy scheitern zu lassen — der Berechtigungs-Trigger ist der
-dringende Teil.
+Der Workflow läuft bei Änderungen an `functions/**` und von Hand.
 
 **Voraussetzungen:**
 
@@ -120,20 +119,51 @@ dringende Teil.
    es im kostenlosen Spark-Tarif nicht. Für einen Betrieb dieser Größe bleibt
    der Verbrauch im Freikontingent; ein Budget-Alarm unter *Abrechnung →
    Budgets und Warnungen* ist trotzdem zu empfehlen.
-2. **Zusätzliche IAM-Rollen** für das Dienstkonto, über die vom Hosting-Deploy
+
+2. **Diese APIs aktivieren.** Das Dienstkonto darf sie benutzen, aber nicht
+   selbst einschalten — das muss der Projektinhaber im Browser tun:
+   `cloudfunctions`, `cloudbuild`, `artifactregistry`, `eventarc`, `run` und
+   `secretmanager`, jeweils unter
+   `https://console.cloud.google.com/apis/library/<name>.googleapis.com`.
+
+3. **Beide Secrets anlegen — auch wenn die KI-Spracherfassung noch nicht
+   genutzt wird.** Das ist keine Schikane: `extract.ts` deklariert seine
+   Schlüssel per `defineSecret`, und Firebase löst das schon beim
+   **Analysieren** des Codes auf, unabhängig von `--only`. Fehlt eines,
+   scheitert der gesamte Deploy — auch `syncUserClaims`, das mit der KI
+   nichts zu tun hat.
+
+   `ANTHROPIC_API_KEY` und `TRANSCRIPTION_API_KEY` im Browser unter
+   *Sicherheit → Secret Manager* anlegen oder per
+   `firebase functions:secrets:set NAME`. Ein Platzhalterwert genügt,
+   solange die Spracherfassung nicht benutzt wird.
+
+4. **Zusätzliche IAM-Rollen** für das Dienstkonto, über die vom Hosting-Deploy
    hinaus: *Cloud Functions Admin*, *Service Account User*, *Cloud Build
    Editor*, *Artifact Registry Administrator*, *Eventarc Admin* und
    *Secret Manager Secret Accessor*. Functions v2 baut Container und hängt an
    Eventarc — ohne diese Rollen bricht der Deploy mit Berechtigungsfehlern ab.
-3. Für `voiceExtract` die Schlüssel setzen:
-   `firebase functions:secrets:set ANTHROPIC_API_KEY` und
-   `firebase functions:secrets:set TRANSCRIPTION_API_KEY`.
+
+5. **Für Push-Benachrichtigungen** in der Firebase Console unter *Cloud
+   Messaging → Web-Push-Zertifikate* einen Schlüssel erzeugen und als
+   Repository-Secret `VITE_FIREBASE_VAPID_KEY` hinterlegen. Fehlt er, läuft
+   die App normal weiter und die Einstellungsseite sagt offen, dass der
+   Dienst noch nicht eingerichtet ist.
+
+6. Für `voiceExtract` die echten Schlüssel eintragen — Transkription über
+   OpenAI Whisper, Extraktion über Claude. Beides US-Anbieter: für einen
+   österreichischen Betrieb sind Auftragsverarbeitungsverträge und ein
+   Hinweis an die Mitarbeiter nötig, weil Sprachaufnahmen den EU-Rahmen der
+   übrigen App verlassen.
+
+**Laufzeit:** `nodejs22`. Node 20 wurde am 30.04.2026 abgekündigt und wird
+am 30.10.2026 abgeschaltet.
 
 **Kostenbremse:** jede Function hat ein `maxInstances`-Limit
-(`syncUserClaims` 10, `voiceExtract` 5, `exportCompanyData` 3). Ohne das
-könnte ein fehlerhafter Massenimport oder wiederholtes Klicken beliebig viele
-Instanzen hochziehen — bei `voiceExtract` mit Kosten bei einem externen
-Anbieter.
+(`syncUserClaims` und die beiden Benachrichtigungen 10, `voiceExtract` 5,
+`exportCompanyData` 3). Ohne das könnte ein fehlerhafter Massenimport oder
+wiederholtes Klicken beliebig viele Instanzen hochziehen — bei `voiceExtract`
+mit Kosten bei einem externen Anbieter.
 
 **Nach dem ersten Deploy:** bestehende Konten bekommen ihre Claims erst beim
 nächsten Schreiben ihres `users`-Dokuments. Einmal in der Benutzerverwaltung
