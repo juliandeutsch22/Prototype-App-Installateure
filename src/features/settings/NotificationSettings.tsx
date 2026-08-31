@@ -50,6 +50,7 @@ export default function NotificationSettings() {
   const toast = useToast();
   const [newOrder, setNewOrder] = useState(PREFS_DEFAULTS.notifyNewOrder ?? true);
   const [orderReady, setOrderReady] = useState(PREFS_DEFAULTS.notifyOrderReady ?? true);
+  const [urgent, setUrgent] = useState(PREFS_DEFAULTS.notifyUrgentDelivery ?? true);
   const [push, setPush] = useState<PushState>('aus');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +60,9 @@ export default function NotificationSettings() {
   // eines zutrifft, wäre Ballast.
   const zeigeNeueAnforderung = user ? canProcessOrders(user.role) || isGF(user.role) : false;
   const zeigeAbholbereit = user ? isMitarbeiter(user.role) : false;
+  // Eilzustellungen betreffen, wer eine Baustelle verantwortet — also die
+  // Projektleitung und die Geschaeftsfuehrung.
+  const zeigeEil = user ? isGF(user.role) : false;
 
   useEffect(() => {
     if (!user) return;
@@ -67,15 +71,21 @@ export default function NotificationSettings() {
         if (!p) return;
         setNewOrder(p.notifyNewOrder ?? true);
         setOrderReady(p.notifyOrderReady ?? true);
+        setUrgent(p.notifyUrgentDelivery ?? true);
       })
       .catch(() => undefined);
     getPushState().then(setPush).catch(() => undefined);
   }, [user]);
 
-  async function speichern(next: { notifyNewOrder: boolean; notifyOrderReady: boolean }) {
+  async function speichern(next: {
+    notifyNewOrder: boolean;
+    notifyOrderReady: boolean;
+    notifyUrgentDelivery: boolean;
+  }) {
     if (!user) return;
     setNewOrder(next.notifyNewOrder);
     setOrderReady(next.notifyOrderReady);
+    setUrgent(next.notifyUrgentDelivery);
     try {
       await savePrefs(user.companyId, user.uid, next);
     } catch {
@@ -131,7 +141,11 @@ export default function NotificationSettings() {
               label="Eine neue Materialanforderung geht ein"
               checked={newOrder}
               onChange={(e) =>
-                void speichern({ notifyNewOrder: e.target.checked, notifyOrderReady: orderReady })
+                void speichern({
+                  notifyNewOrder: e.target.checked,
+                  notifyOrderReady: orderReady,
+                  notifyUrgentDelivery: urgent,
+                })
               }
             />
           )}
@@ -141,11 +155,29 @@ export default function NotificationSettings() {
               label="Mein angefordertes Material ist abholbereit"
               checked={orderReady}
               onChange={(e) =>
-                void speichern({ notifyNewOrder: newOrder, notifyOrderReady: e.target.checked })
+                void speichern({
+                  notifyNewOrder: newOrder,
+                  notifyOrderReady: e.target.checked,
+                  notifyUrgentDelivery: urgent,
+                })
               }
             />
           )}
-          {!zeigeNeueAnforderung && !zeigeAbholbereit && (
+          {zeigeEil && (
+            <CheckboxField
+              id="n-urgent"
+              label="Eilzustellung für eine meiner Baustellen (bei Eingang und wenn abholbereit)"
+              checked={urgent}
+              onChange={(e) =>
+                void speichern({
+                  notifyNewOrder: newOrder,
+                  notifyOrderReady: orderReady,
+                  notifyUrgentDelivery: e.target.checked,
+                })
+              }
+            />
+          )}
+          {!zeigeNeueAnforderung && !zeigeAbholbereit && !zeigeEil && (
             <p className="text-ink-muted">
               Für deine Rolle gibt es derzeit keine Benachrichtigungen.
             </p>

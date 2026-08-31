@@ -128,6 +128,13 @@ export interface UserPrefs {
   /** Benachrichtigung, wenn die eigene Anforderung abholbereit ist (Monteur). */
   notifyOrderReady?: boolean;
   /**
+   * Benachrichtigung bei Eilzustellungen der eigenen Baustellen
+   * (Projektleitung). Eigener Schalter, weil das eine andere Dringlichkeit
+   * ist als die Sammelmeldung über neue Anforderungen: wer die abschaltet,
+   * will damit nicht auch den Eilfall verpassen.
+   */
+  notifyUrgentDelivery?: boolean;
+  /**
    * Push-Token je Gerät. Ein Mensch hat Telefon und Rechner, beide sollen
    * die Meldung bekommen; ein abgemeldetes Gerät wird wieder entfernt.
    */
@@ -150,6 +157,13 @@ export interface Project {
   contactName?: string;
   contactPhone?: string;
   assignedEmployees?: string[]; // Array von uids
+  /**
+   * Verantwortliche Projektleitung — eine oder mehrere. Sie bekommt die
+   * Meldungen zu Eilzustellungen dieser Baustelle, weil sie das Material auf
+   * dem Weg mitnehmen kann. Ohne Zuordnung gibt es für eine Eilbestellung
+   * niemanden zu benachrichtigen; die Oberfläche sagt das dann auch.
+   */
+  projectManagers?: string[]; // Array von uids
   createdAt?: number;
 }
 
@@ -185,6 +199,13 @@ export interface MaterialOrder {
   note?: string;
   projectNumber?: string;
   status: 'Offen' | 'In Bearbeitung' | 'Abholbereit' | 'Erledigt';
+  /**
+   * Eilzustellung: die Projektleitung der Baustelle wird sofort verständigt
+   * und noch einmal, sobald das Material abholbereit ist — sie fährt ohnehin
+   * hin und kann es mitnehmen. Setzt eine gewählte Baustelle voraus, denn
+   * ohne sie gibt es keine zuständige Projektleitung.
+   */
+  isUrgent?: boolean;
   transactionType: 'order' | 'return';
   condition?: string; // nur Retoure
   userId: string; // uid

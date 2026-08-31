@@ -14,6 +14,7 @@ import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField } from '@/components/Field';
+import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState } from '@/components/States';
 
@@ -239,45 +240,35 @@ export default function AssignmentsView() {
               </p>
             )}
 
-            <fieldset className="mt-4">
-              <legend className="text-sm font-medium text-ink">
-                Mitarbeiter {selectedCount > 0 && `(${selectedCount} ausgewählt)`}
-              </legend>
-              {staff.length === 0 ? (
-                <p className="mt-1 text-sm text-ink-muted">Keine aktiven Mitarbeiter vorhanden.</p>
-              ) : (
-                <div className="mt-2 space-y-1">
-                  {staff.map((u) => {
-                    const p = picks[u.uid] ?? { on: false, asHelper: false };
-                    return (
-                      <div
-                        key={u.uid}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-line px-3 py-1.5"
-                      >
-                        <CheckboxField
-                          id={`assign-${u.uid}`}
-                          label={u.name}
-                          checked={p.on}
-                          onChange={(e) =>
-                            setPicks((c) => ({ ...c, [u.uid]: { ...p, on: e.target.checked } }))
-                          }
-                        />
-                        {p.on && (
-                          <CheckboxField
-                            id={`helper-${u.uid}`}
-                            label="als Helfer"
-                            checked={p.asHelper}
-                            onChange={(e) =>
-                              setPicks((c) => ({ ...c, [u.uid]: { ...p, asHelper: e.target.checked } }))
-                            }
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </fieldset>
+            <div className="mt-4">
+              {/* Der Helfer-Haken haengt an der EINZELNEN Auswahl, deshalb als
+                  Zusatz je Zeile: ein vergessener Haken kostet den falschen
+                  Verrechnungssatz. */}
+              <PersonPicker
+                legend="Mitarbeiter"
+                idPrefix="assign"
+                people={staff.map((u) => ({ uid: u.uid, name: u.name }))}
+                selected={staff.filter((u) => picks[u.uid]?.on).map((u) => u.uid)}
+                onChange={(next) =>
+                  setPicks(() => {
+                    const out: Record<string, Pick> = {};
+                    for (const uid of next) out[uid] = { on: true, asHelper: !!picks[uid]?.asHelper };
+                    return out;
+                  })
+                }
+                emptyHint="Keine aktiven Mitarbeiter vorhanden."
+                renderExtra={(uid) => (
+                  <CheckboxField
+                    id={`helper-${uid}`}
+                    label="als Helfer"
+                    checked={!!picks[uid]?.asHelper}
+                    onChange={(e) =>
+                      setPicks((c) => ({ ...c, [uid]: { on: true, asHelper: e.target.checked } }))
+                    }
+                  />
+                )}
+              />
+            </div>
 
             <div className="mt-4">
               <InputField id="acomment" label="Kommentar / Aufgabe" value={comment}

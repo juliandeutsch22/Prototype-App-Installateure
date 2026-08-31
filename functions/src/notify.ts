@@ -6,9 +6,14 @@ import { logger } from 'firebase-functions';
 /**
  * Push-Benachrichtigungen rund um Materialanforderungen.
  *
- * Zwei Ereignisse, zwei Empfängerkreise:
+ * Drei Ereignisse:
  *  - neue Anforderung  -> Verwaltung, Geschäftsführung, Administrator
  *  - „Abholbereit"     -> der Monteur, der sie gestellt hat
+ *  - EILZUSTELLUNG     -> zusätzlich die Projektleitung der Baustelle, bei
+ *    beiden Ereignissen. Sie fährt ohnehin hin und kann das Material
+ *    mitnehmen; deshalb muss sie es früh wissen und noch einmal, wenn es
+ *    bereitliegt. Ohne zugeteilte Projektleitung gibt es niemanden zu
+ *    verständigen — die Baustellenverwaltung weist beim Anlegen darauf hin.
  *
  * Die Empfänger werden serverseitig aus dem MANDANTEN der Anforderung
  * bestimmt, nie aus Client-Eingabe. Wer nichts eingestellt hat, bekommt die
@@ -28,10 +33,14 @@ interface OrderDoc {
   userName?: string;
   status?: string;
   transactionType?: string;
+  isUrgent?: boolean;
 }
 
 /** Alle Gerätetokens der genannten Nutzer, sofern sie diese Meldung wollen. */
-async function tokensFor(uids: string[], pref: 'notifyNewOrder' | 'notifyOrderReady') {
+async function tokensFor(
+  uids: string[],
+  pref: 'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery',
+) {
   if (uids.length === 0) return [];
   const db = getFirestore();
   const tokens: string[] = [];
@@ -92,6 +101,26 @@ async function send(
   });
 }
 
+/**
+ * Die zugeteilte Projektleitung einer Baustelle.
+ *
+ * Verknüpft wird über die projectNumber, nicht über eine Dokument-ID — so
+ * hält es die ganze App (siehe types/index.ts). Zwei Gleichheitsfilter
+ * brauchen in Firestore keinen zusammengesetzten Index.
+ */
+async function projectManagersOf(companyId: string, projectNumber: string): Promise<string[]> {
+  const db = getFirestore();
+  const snap = await db
+    .collection('projects')
+    .where('companyId', '==', companyId)
+    .where('projectNumber', '==', projectNumber)
+    .limit(1)
+    .get();
+  if (snap.empty) return [];
+  const p = snap.docs[0].data() as { projectManagers?: string[] };
+  return p.projectManagers ?? [];
+}
+
 /** Neue Materialanforderung -> Verwaltung und Leitung. */
 export const notifyNewOrder = onDocumentCreated(
   { document: 'materialOrders/{id}', region: REGION, maxInstances: 10 },
@@ -127,6 +156,30 @@ export const notifyNewOrder = onDocumentCreated(
       // Meldungen kurz hintereinander bleibt eine im Sperrbildschirm stehen.
       tag: 'material-neu',
     });
+
+    // Eilzustellung: die Verantwortlichen der Baustelle zusätzlich, mit
+    // eigener Kennung. Eine Eilmeldung darf nicht von der Sammelmeldung für
+    // gewöhnliche Anforderungen verdrängt werden.
+    if (order.isUrgent && order.projectNumber) {
+      const leitung = (await projectManagersOf(order.companyId, order.projectNumber)).filter(
+        (uid) => uid !== order.userId,
+      );
+      if (leitung.length === 0) {
+        logger.info('Eilzustellung ohne zugeteilte Projektleitung', {
+          projectNumber: order.projectNumber,
+        });
+        return;
+      }
+      const eilTokens = await tokensFor(leitung, 'notifyUrgentDelivery');
+      await send(eilTokens, {
+        title: 'Eilzustellung angefordert',
+        body: `${menge}× ${order.materialName ?? 'Material'} für ${order.projectNumber}${
+          order.userName ? ` — ${order.userName}` : ''
+        }`,
+        link: '/admin-orders',
+        tag: `eil-neu-${event.params.id}`,
+      });
+    }
   },
 );
 
@@ -150,5 +203,21 @@ export const notifyOrderReady = onDocumentUpdated(
       link: '/order',
       tag: `material-bereit-${event.params.id}`,
     });
+
+    // Bei einer Eilzustellung erfährt es auch die Projektleitung — sie ist
+    // diejenige, die es mitnimmt. Der Besteller sitzt auf der Baustelle und
+    // kann ohnehin nicht selbst fahren.
+    if (after.isUrgent && after.projectNumber && after.companyId) {
+      const leitung = await projectManagersOf(after.companyId, after.projectNumber);
+      const eilTokens = await tokensFor(leitung, 'notifyUrgentDelivery');
+      await send(eilTokens, {
+        title: 'Eilzustellung abholbereit',
+        body: `${after.quantity ?? 1}× ${after.materialName ?? 'Material'} für ${
+          after.projectNumber
+        } liegt bereit`,
+        link: '/admin-orders',
+        tag: `eil-bereit-${event.params.id}`,
+      });
+    }
   },
 );

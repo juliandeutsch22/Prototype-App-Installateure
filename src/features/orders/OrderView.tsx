@@ -18,7 +18,7 @@ import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField } from '@/components/Field';
+import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { writeWithOfflineNotice, queuedMessage } from '@/lib/offlineWrite';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
@@ -32,6 +32,8 @@ interface CartLine {
   /** Baustelle und Notiz je Position — sonst landen Kosten auf der falschen Rechnung. */
   projectNumber: string;
   note: string;
+  /** Eilzustellung — nur mit gewählter Baustelle möglich. */
+  isUrgent?: boolean;
 }
 
 /**
@@ -61,6 +63,7 @@ export default function OrderView() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [projectNumber, setProjectNumber] = useState('');
   const [note, setNote] = useState('');
+  const [urgent, setUrgent] = useState(false);
   const [search, setSearch] = useState('');
   const [toPickUp, setToPickUp] = useState<WithId<MaterialOrder> | null>(null);
 
@@ -125,6 +128,17 @@ export default function OrderView() {
     );
   }, [sortedMaterials, search]);
 
+  /**
+   * Hat die gewaehlte Baustelle ueberhaupt jemanden, den eine Eilmeldung
+   * erreicht? Wenn nicht, sagt die Oberflaeche das VOR dem Absenden — sonst
+   * wartet der Monteur auf jemanden, der nie verstaendigt wurde.
+   */
+  const leitungDa = useMemo(() => {
+    if (!projectNumber) return false;
+    const p = projects.find((x) => x.projectNumber === projectNumber);
+    return (p?.projectManagers ?? []).length > 0;
+  }, [projects, projectNumber]);
+
   const activeOrders = useMemo(
     () => myOrders.filter((o) => o.status !== 'Erledigt' && o.transactionType !== 'return'),
     [myOrders],
@@ -139,7 +153,11 @@ export default function OrderView() {
     setCart((prev) => {
       // Gleiches Material auf derselben Baustelle wird zusammengefasst.
       const i = prev.findIndex(
-        (l) => l.materialId === m.id && l.projectNumber === projectNumber && l.note === note,
+        (l) =>
+          l.materialId === m.id &&
+          l.projectNumber === projectNumber &&
+          l.note === note &&
+          !!l.isUrgent === (urgent && !!projectNumber),
       );
       if (i >= 0) {
         const copy = [...prev];
@@ -148,7 +166,16 @@ export default function OrderView() {
       }
       return [
         ...prev,
-        { materialId: m.id, materialName: m.name, quantity: qty, projectNumber, note },
+        {
+          materialId: m.id,
+          materialName: m.name,
+          quantity: qty,
+          projectNumber,
+          note,
+          // Ohne Baustelle gibt es keine zustaendige Projektleitung, also
+          // auch keine Eilzustellung — der Haken wird dann nicht uebernommen.
+          isUrgent: urgent && !!projectNumber,
+        },
       ];
     });
   }
@@ -174,6 +201,7 @@ export default function OrderView() {
             quantity: line.quantity,
             note: line.note,
             projectNumber: line.projectNumber,
+            isUrgent: !!line.isUrgent,
             status: 'Offen',
             transactionType: 'order',
             userId: user.uid,
@@ -280,16 +308,39 @@ export default function OrderView() {
               Baustellenauswahl wie eine Hürde vor dem Katalog und schob ihn
               auf dem Telefon unter den Falz. Die Notiz ist in den Warenkorb
               gewandert — sie gehört zum Absenden, nicht zum Suchen. */}
-          <div className="flex flex-wrap items-end gap-3">
-            <SelectField id="oproject" label="Für welche Baustelle?" className="min-w-[14rem] flex-1"
-              value={projectNumber} onChange={(e) => setProjectNumber(e.target.value)}>
-              <option value="">— keine —</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.projectNumber}>
-                  {p.customerName} ({p.projectNumber})
-                </option>
-              ))}
-            </SelectField>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-end gap-3">
+              <SelectField id="oproject" label="Für welche Baustelle?" className="min-w-[14rem] flex-1"
+                value={projectNumber} onChange={(e) => setProjectNumber(e.target.value)}>
+                <option value="">— keine —</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.projectNumber}>
+                    {p.customerName} ({p.projectNumber})
+                  </option>
+                ))}
+              </SelectField>
+            </div>
+            {/* Direkt unter der Baustelle, weil er von ihr abhaengt: ohne
+                Baustelle gibt es keine zustaendige Projektleitung und damit
+                niemanden, den eine Eilmeldung erreichen koennte. */}
+            <CheckboxField
+              id="ourgent"
+              label="Eilzustellung — die Projektleitung der Baustelle wird sofort verständigt"
+              checked={urgent && !!projectNumber}
+              disabled={!projectNumber}
+              onChange={(e) => setUrgent(e.target.checked)}
+            />
+            {!projectNumber && (
+              <p className="text-sm text-ink-muted">
+                Für eine Eilzustellung zuerst die Baustelle wählen.
+              </p>
+            )}
+            {projectNumber && urgent && !leitungDa && (
+              <p className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+                Dieser Baustelle ist keine Projektleitung zugeteilt — die Eilmeldung erreicht
+                niemanden. Die Verwaltung bekommt die Anforderung trotzdem.
+              </p>
+            )}
           </div>
 
           <Card title="Katalog">
@@ -367,6 +418,7 @@ export default function OrderView() {
                           .join(' · ')
                       }
                     >
+                      {line.isUrgent && <Badge tone="danger">Eil</Badge>}
                       <IconButton
                         label={`${line.materialName} entfernen`}
                         tone="danger"
@@ -408,6 +460,7 @@ export default function OrderView() {
                     }
                     subtitle={[o.projectNumber, o.note].filter(Boolean).join(' · ')}
                   >
+                    {o.isUrgent && <Badge tone="danger">Eil</Badge>}
                     <StatusBadge status={o.status} />
                     {/* Der Abschluss zieht das Material vom Lager ab. */}
                     {o.status === 'Abholbereit' && (

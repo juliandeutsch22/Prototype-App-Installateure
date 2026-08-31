@@ -12,12 +12,19 @@ import type { UserPrefs } from '@/types';
 
 const COLLECTION = 'userPrefs';
 
+/** Die Meldungsarten, die jemand fuer sich ein- und ausschalten kann. */
+export type NotifyPrefs = Pick<
+  UserPrefs,
+  'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery'
+>;
+
 /** Vorgabe für jemanden, der noch nie etwas eingestellt hat. */
-export const PREFS_DEFAULTS: Pick<UserPrefs, 'notifyNewOrder' | 'notifyOrderReady'> = {
+export const PREFS_DEFAULTS: NotifyPrefs = {
   // Beide an: wer nichts einstellt, soll nichts verpassen. Abschalten ist
   // ein bewusster Schritt, Einschalten sollte keiner sein.
   notifyNewOrder: true,
   notifyOrderReady: true,
+  notifyUrgentDelivery: true,
 };
 
 export async function getPrefs(uid: string): Promise<UserPrefs | null> {
@@ -43,7 +50,7 @@ export function subscribePrefs(
 export async function savePrefs(
   companyId: string,
   uid: string,
-  prefs: Pick<UserPrefs, 'notifyNewOrder' | 'notifyOrderReady'>,
+  prefs: NotifyPrefs,
 ): Promise<void> {
   await setDoc(
     doc(db, COLLECTION, uid),
