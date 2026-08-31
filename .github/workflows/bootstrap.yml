@@ -1,0 +1,88 @@
+name: Mandant einrichten (Erstzugang)
+
+# Einrichtungswerkzeug, kein Teil des laufenden Betriebs: legt eine Firma und
+# den ersten Zugang an. Das geht NICHT über die App, weil dort schon eine
+# angemeldete Geschäftsführung nötig wäre, um Benutzer anzulegen — beim
+# allerersten Mal gibt es die noch nicht.
+#
+# Läuft ausschließlich von Hand. Wer es auslösen darf, entscheidet der
+# Repository-Zugriff: das Dienstkonto darf an der Datenbank vorbei schreiben.
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'E-Mail des Zugangs (Passwort wird danach über „Passwort vergessen?" gesetzt)'
+        required: true
+        type: string
+      name:
+        description: 'Name der Person'
+        required: true
+        type: string
+      role:
+        description: 'Rolle'
+        required: true
+        default: Administrator
+        type: choice
+        options: [Administrator, Geschäftsführung]
+      company_name:
+        description: 'Name des Betriebs'
+        required: true
+        default: Perl Installationen GmbH
+        type: string
+      company_id:
+        description: 'Kennung des Mandanten (kurz, klein, ohne Leerzeichen)'
+        required: true
+        default: perl
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Firma und Erstzugang anlegen
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Zugangsdaten vorhanden?
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ] || [ -z "$PROJECT_ID" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT oder VITE_FIREBASE_PROJECT_ID fehlt."
+            exit 1
+          fi
+
+      # Nur firebase-admin, ohne das ganze Projekt: dieses Skript braucht
+      # weder React noch die Testwerkzeuge.
+      - name: firebase-admin installieren
+        run: npm install --no-save --no-package-lock firebase-admin@12
+
+      - name: Dienstkonto bereitstellen
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          chmod 600 "$RUNNER_TEMP/service-account.json"
+
+      - name: Anlegen
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          ADMIN_EMAIL: ${{ inputs.email }}
+          ADMIN_NAME: ${{ inputs.name }}
+          ADMIN_ROLE: ${{ inputs.role }}
+          COMPANY_NAME: ${{ inputs.company_name }}
+          COMPANY_ID: ${{ inputs.company_id }}
+        run: node scripts/bootstrap-tenant.mjs
+
+      - name: Schlüssel entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/service-account.json"
