@@ -19,7 +19,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
 const WEEKDAYS: { value: number; label: string }[] = [
   { value: 1, label: 'Mo' },
@@ -292,8 +292,11 @@ export default function UserMgmtView() {
       </Card>
 
       <Card title="Benutzer">
-        {loading ? <LoadingState /> : sorted.length === 0 ? (
-          <EmptyState>Noch keine Benutzer.</EmptyState>
+        {loading ? <SkeletonList rows={4} /> : sorted.length === 0 ? (
+          <EmptyState>
+            Noch keine Benutzer. Lege oben den ersten Mitarbeiter an — Name,
+            E-Mail und Rolle genügen.
+          </EmptyState>
         ) : (
           <List>
             {sorted.map((u) => (

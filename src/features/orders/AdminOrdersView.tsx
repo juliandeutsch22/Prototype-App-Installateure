@@ -17,7 +17,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { SelectField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
 
 type Tab = 'aktiv' | 'retouren' | 'archiv' | 'katalog';
@@ -145,7 +145,7 @@ export default function AdminOrdersView() {
           }
         >
           {loading ? (
-            <LoadingState />
+            <SkeletonList rows={4} />
           ) : error ? (
             <ErrorState message={error} />
           ) : rows.length === 0 ? (

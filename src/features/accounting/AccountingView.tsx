@@ -26,7 +26,7 @@ import TimeForm from '@/features/time/TimeForm';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { SelectField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import {
   buildMonthCsv,
   monthCsvFilename,
@@ -253,7 +253,7 @@ export default function AccountingView() {
         }
       >
         {loading ? (
-          <LoadingState />
+          <SkeletonList rows={4} />
         ) : error ? (
           <ErrorState message={error} />
         ) : rows.length === 0 ? (

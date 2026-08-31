@@ -14,7 +14,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
 /** Wochenschlüssel 'KW n / JJJJ' für ein Datum. */
 function weekKey(d: Date): string {
@@ -131,7 +131,7 @@ export default function TimeView() {
 
       <Card title="Meine Einträge">
         {loading ? (
-          <LoadingState />
+          <SkeletonList rows={5} />
         ) : error ? (
           <ErrorState message={error} />
         ) : entries.length === 0 ? (

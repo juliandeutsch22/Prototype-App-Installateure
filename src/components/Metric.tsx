@@ -51,7 +51,7 @@ export default function Metric({ label, value, hint, icon, tone = 'default' }: M
           </span>
         )}
       </div>
-      <p className={`mt-1.5 text-2xl font-extrabold ${valueTone[tone]}`}>{value}</p>
+      <p className={`tnum mt-1.5 text-2xl font-extrabold ${valueTone[tone]}`}>{value}</p>
       {hint && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
     </div>
   );

@@ -14,7 +14,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
 const empty = {
   projectNumber: '',
@@ -225,7 +225,7 @@ export default function AdminProjectsView() {
           </SelectField>
         }
       >
-        {loading ? <LoadingState /> : visible.length === 0 ? (
+        {loading ? <SkeletonList rows={4} /> : visible.length === 0 ? (
           <EmptyState>
             {projects.length === 0 ? 'Noch keine Baustellen angelegt.' : 'Keine Baustelle in dieser Auswahl.'}
           </EmptyState>
