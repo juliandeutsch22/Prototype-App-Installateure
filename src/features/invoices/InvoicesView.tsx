@@ -29,7 +29,9 @@ import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
+import RowMenu from '@/components/RowMenu';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
@@ -390,6 +392,13 @@ export default function InvoicesView() {
           <summary className="min-h-touch cursor-pointer text-sm font-medium text-brand underline">
             Konditionen für diese Rechnung anpassen
           </summary>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-ink-muted">Nur für diese Rechnung</span>
+            <InfoHint about="die Konditionen dieser Rechnung">
+              Die Änderung gilt nur für diese Rechnung und wirkt erst beim erneuten
+              Zusammenstellen. Die dauerhaften Sätze des Betriebs stehen in den Einstellungen.
+            </InfoHint>
+          </div>
           <div className="mt-3 rounded-sm border border-line bg-surface-2 p-4">
             <FormGrid cols={3}>
               <InputField id="r-fach" label="Facharbeiter €/h" type="number" min="0" step="0.5"
@@ -419,10 +428,6 @@ export default function InvoicesView() {
                 <option value="0">0 % (Reverse Charge)</option>
               </SelectField>
             </FormGrid>
-            <p className="mt-2 text-sm text-ink-muted">
-              Gilt nur für diese Rechnung und wirkt erst beim erneuten Zusammenstellen. Die
-              dauerhaften Sätze des Betriebs stehen in den Einstellungen.
-            </p>
           </div>
         </details>
 
@@ -457,7 +462,7 @@ export default function InvoicesView() {
               <tbody>
                 {preview.positions.map((p, i) => (
                   <tr key={i} className="border-b border-line/60">
-                    <td className="py-1.5 pr-3">
+                    <td className="py-2 pr-3">
                       <input
                         aria-label={`Bezeichnung Position ${i + 1}`}
                         className="min-h-touch w-full min-w-[10rem] rounded border border-line bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
@@ -465,7 +470,7 @@ export default function InvoicesView() {
                         onChange={(e) => setPos(i, { label: e.target.value })}
                       />
                     </td>
-                    <td className="py-1.5 pr-3">
+                    <td className="py-2 pr-3">
                       <input
                         aria-label={`Menge Position ${i + 1}`}
                         type="number"
@@ -476,7 +481,7 @@ export default function InvoicesView() {
                         onChange={(e) => setPos(i, { qty: Number(e.target.value) || 0 })}
                       />
                     </td>
-                    <td className="py-1.5 pr-3">
+                    <td className="py-2 pr-3">
                       <input
                         aria-label={`Einheit Position ${i + 1}`}
                         className="min-h-touch w-20 rounded border border-line bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
@@ -484,7 +489,7 @@ export default function InvoicesView() {
                         onChange={(e) => setPos(i, { unit: e.target.value })}
                       />
                     </td>
-                    <td className="py-1.5 pr-3">
+                    <td className="py-2 pr-3">
                       <input
                         aria-label={`Einzelpreis Position ${i + 1}`}
                         type="number"
@@ -495,8 +500,8 @@ export default function InvoicesView() {
                         onChange={(e) => setPos(i, { unitPrice: Number(e.target.value) || 0 })}
                       />
                     </td>
-                    <td className="tnum py-1.5 pr-3 text-right font-medium">{fmtEUR(p.netto)}</td>
-                    <td className="py-1.5 text-right">
+                    <td className="tnum py-2 pr-3 text-right font-medium">{fmtEUR(p.netto)}</td>
+                    <td className="py-2 text-right">
                       <IconButton
                         label={`Position ${i + 1} entfernen`}
                         tone="danger"
@@ -662,54 +667,63 @@ export default function InvoicesView() {
                   <>
                     {inv.invoiceDate} · fällig {inv.dueDate} · {fmtEUR(inv.totalBrutto)}
                     {inv.cancellationNote && (
-                      <span className="mt-0.5 block text-xs text-ink-muted">
+                      <span className="mt-1 block text-xs text-ink-muted">
                         Storno: {inv.cancellationNote}
                       </span>
                     )}
                   </>
                 }
               >
+                {/* Der Status stand doppelt in der Zeile: einmal farbig als
+                    Abzeichen, einmal als Auswahlfeld daneben. Das Abzeichen
+                    bleibt — beim Durchsehen zaehlt die Farbe, nicht die
+                    Bedienung. Das Umstellen ist in das Menue gewandert, wo
+                    es als benannte Handlung steht statt als Klappliste, die
+                    auf dem Telefon ohnehin ein eigenes Rad oeffnet. */}
                 <StatusBadge status={inv.paymentStatus} />
-
-                {inv.paymentStatus !== 'Storniert' && (
-                  <SelectField id={`inv-st-${inv.id}`} label="" className="py-1 text-sm"
-                    value={inv.paymentStatus}
-                    onChange={async (e) => {
-                      await updateInvoiceStatus(inv.id, e.target.value as Invoice['paymentStatus']);
-                      toast.success('Status geändert');
-                    }}>
-                    <option value="Offen">Offen</option>
-                    <option value="Überfällig">Überfällig</option>
-                    <option value="Bezahlt">Bezahlt</option>
-                  </SelectField>
-                )}
-
-                <Button variant="ghost" onClick={() => redownload(inv)}>PDF</Button>
-
-                {inv.paymentStatus !== 'Storniert' ? (
-                  <Button variant="ghost" onClick={() => { setToCancel(inv); setCancelNote(''); }}>
-                    Stornieren
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      variant="ghost"
-                      onClick={async () => {
-                        await reactivateInvoice(inv);
-                        toast.success('Storno aufgehoben');
-                      }}
-                    >
-                      Reaktivieren
-                    </Button>
-                    <IconButton label={`${inv.invoiceNumber} löschen`} tone="danger"
-                      onClick={async () => {
-                        await deleteInvoice(inv.id);
-                        toast.success('Rechnung gelöscht');
-                      }}>
-                      ✕
-                    </IconButton>
-                  </>
-                )}
+                <RowMenu
+                  about={`Rechnung ${inv.invoiceNumber}`}
+                  items={[
+                    { label: 'PDF erneut laden', onSelect: () => void redownload(inv) },
+                    ...(inv.paymentStatus !== 'Storniert'
+                      ? [
+                          ...(['Offen', 'Überfällig', 'Bezahlt'] as const)
+                            .filter((s) => s !== inv.paymentStatus)
+                            .map((s) => ({
+                              label: `Auf „${s}" setzen`,
+                              onSelect: async () => {
+                                await updateInvoiceStatus(inv.id, s);
+                                toast.success('Status geändert');
+                              },
+                            })),
+                          {
+                            label: 'Stornieren',
+                            danger: true,
+                            onSelect: () => {
+                              setToCancel(inv);
+                              setCancelNote('');
+                            },
+                          },
+                        ]
+                      : [
+                          {
+                            label: 'Storno aufheben',
+                            onSelect: async () => {
+                              await reactivateInvoice(inv);
+                              toast.success('Storno aufgehoben');
+                            },
+                          },
+                          {
+                            label: 'Rechnung löschen',
+                            danger: true,
+                            onSelect: async () => {
+                              await deleteInvoice(inv.id);
+                              toast.success('Rechnung gelöscht');
+                            },
+                          },
+                        ]),
+                  ]}
+                />
               </ListRow>
             ))}
           </List>

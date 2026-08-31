@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 /** Ladezustand — sichtbar, kein stiller Abbruch. */
 export function LoadingState({ label = 'Wird geladen …' }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 p-8 text-ink-muted" role="status">
+    <div className="flex items-center justify-center gap-3 p-6 text-ink-muted" role="status">
       <span
         className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-brand"
         aria-hidden="true"
@@ -55,7 +55,7 @@ export function SkeletonMetrics({ count = 3 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="min-w-0 flex-1 px-3 first:pl-0 last:pr-0" aria-hidden="true">
           <div className="skeleton h-3 w-20" />
-          <div className="skeleton mt-1.5 h-6 w-16 sm:h-8" />
+          <div className="skeleton mt-2 h-6 w-16 sm:h-8" />
         </div>
       ))}
     </div>
@@ -71,7 +71,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
       {onRetry && (
         <button
           onClick={onRetry}
-          className="mt-3 min-h-touch rounded bg-danger px-3 py-1.5 text-sm font-semibold text-white transition active:scale-[0.98]"
+          className="mt-3 min-h-touch rounded bg-danger px-3 py-2 text-sm font-semibold text-white transition active:scale-[0.98]"
         >
           Erneut versuchen
         </button>
@@ -83,7 +83,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 /** Leerzustand — eine Einladung zu handeln, keine leere weiße Fläche. */
 export function EmptyState({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded border border-dashed border-line bg-surface-2 p-8 text-center text-ink-muted">
+    <div className="flex flex-col items-center gap-3 rounded border border-dashed border-line bg-surface-2 p-6 text-center text-ink-muted">
       <p>{children}</p>
       {action}
     </div>

@@ -9,6 +9,7 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import { ErrorState } from '@/components/States';
+import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { writeWithOfflineNotice, queuedMessage } from '@/lib/offlineWrite';
 import type { WithId } from '@/lib/db/core';
@@ -421,16 +422,18 @@ export default function TimeForm({
               checked={isNightWork}
               onChange={(e) => setIsNightWork(e.target.checked)}
             />
-            <CheckboxField
-              id="isEmergency"
-              label="Notdienst / Störungseinsatz"
-              checked={isEmergency}
-              onChange={(e) => setIsEmergency(e.target.checked)}
-            />
-            <p className="mt-1 text-sm text-ink-muted">
-              Nur ankreuzen, wenn der Zuschlag wirklich verrechnet wird. Die Höhe legt die
-              Geschäftsführung in den Einstellungen fest.
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <CheckboxField
+                id="isEmergency"
+                label="Notdienst / Störungseinsatz"
+                checked={isEmergency}
+                onChange={(e) => setIsEmergency(e.target.checked)}
+              />
+              <InfoHint about="Notdienst">
+                Nur ankreuzen, wenn der Zuschlag wirklich verrechnet wird. Die Höhe legt die
+                Geschäftsführung in den Einstellungen fest.
+              </InfoHint>
+            </div>
           </fieldset>
         </>
       )}

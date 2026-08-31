@@ -186,7 +186,7 @@ export default function TimeView() {
                             <>
                               {subtitle}
                               {e.lastEditedBy && (
-                                <span className="mt-0.5 block text-xs text-ink-muted">
+                                <span className="mt-1 block text-xs text-ink-muted">
                                   Bearbeitet von {e.lastEditedBy}
                                 </span>
                               )}

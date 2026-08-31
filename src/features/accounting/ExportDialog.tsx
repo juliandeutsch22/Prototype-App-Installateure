@@ -69,13 +69,13 @@ export default function ExportDialog({
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-lg bg-surface p-5 shadow-lg sm:max-w-md sm:rounded-lg"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-lg bg-surface p-4 shadow-lg sm:max-w-md sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="export-title" className="text-lg font-bold text-ink">
           Bericht exportieren
         </h2>
-        <p className="mt-0.5 text-sm text-ink-muted">{user.name}</p>
+        <p className="mt-1 text-sm text-ink-muted">{user.name}</p>
 
         <div className="mt-4">
           <FormGrid>
@@ -101,7 +101,7 @@ export default function ExportDialog({
           )}
         </div>
 
-        <div className="mt-5 flex flex-col gap-2">
+        <div className="mt-4 flex flex-col gap-2">
           <Button
             variant="accent"
             className="w-full justify-center"

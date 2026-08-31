@@ -172,7 +172,7 @@ export default function AdminOrdersView() {
             role="tab"
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`flex min-h-touch shrink-0 items-center gap-1.5 border-b-2 px-4 py-2 text-sm transition ${
+            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-4 py-2 text-sm transition ${
               tab === t.key
                 ? 'border-b-accent font-bold text-brand'
                 : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
@@ -224,7 +224,7 @@ export default function AdminOrdersView() {
                     : 'Aktuell keine offenen Bestellungen.'}
             </EmptyState>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {(tab === 'aktiv' ? aktivGruppen : tagesGruppen).map((g) => (
                 <div key={g.titel}>
                   {/* Ueberschrift je Gruppe: erst dadurch wird aus der Liste

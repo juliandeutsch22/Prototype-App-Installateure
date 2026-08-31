@@ -49,7 +49,7 @@ interface CheckboxFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
 /** Checkbox mit großem Touch-Ziel und einheitlichem Label. */
 export function CheckboxField({ label, id, className = '', ...rest }: CheckboxFieldProps) {
   return (
-    <label htmlFor={id} className="flex min-h-touch cursor-pointer items-center gap-2.5 text-base text-ink">
+    <label htmlFor={id} className="flex min-h-touch cursor-pointer items-center gap-3 text-base text-ink">
       <input id={id} type="checkbox" className={`h-5 w-5 rounded border-line accent-brand focus:ring-brand ${className}`} {...rest} />
       {label}
     </label>

@@ -7,6 +7,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { CheckboxField } from '@/components/Field';
+import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 
@@ -133,7 +134,10 @@ export default function NotificationSettings() {
         subtitle="Was du bekommen möchtest — und auf welchem Gerät"
       />
 
-      <Card title="Wovon möchtest du erfahren?">
+      <Card
+        title="Wovon möchtest du erfahren?"
+        hint="Die Auswahl gilt für dich auf allen Geräten und wird sofort gespeichert."
+      >
         <div className="space-y-1">
           {zeigeNeueAnforderung && (
             <CheckboxField
@@ -164,18 +168,24 @@ export default function NotificationSettings() {
             />
           )}
           {zeigeEil && (
-            <CheckboxField
-              id="n-urgent"
-              label="Eilzustellung für eine meiner Baustellen (bei Eingang und wenn abholbereit)"
-              checked={urgent}
-              onChange={(e) =>
-                void speichern({
-                  notifyNewOrder: newOrder,
-                  notifyOrderReady: orderReady,
-                  notifyUrgentDelivery: e.target.checked,
-                })
-              }
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <CheckboxField
+                id="n-urgent"
+                label="Eilzustellung für meine Baustellen"
+                checked={urgent}
+                onChange={(e) =>
+                  void speichern({
+                    notifyNewOrder: newOrder,
+                    notifyOrderReady: orderReady,
+                    notifyUrgentDelivery: e.target.checked,
+                  })
+                }
+              />
+              <InfoHint about="Eilzustellungen">
+                Zwei Meldungen je Anforderung: sobald sie eingeht, und noch einmal, sobald das
+                Material abholbereit ist.
+              </InfoHint>
+            </div>
           )}
           {!zeigeNeueAnforderung && !zeigeAbholbereit && !zeigeEil && (
             <p className="text-ink-muted">
@@ -183,12 +193,12 @@ export default function NotificationSettings() {
             </p>
           )}
         </div>
-        <p className="mt-3 text-sm text-ink-muted">
-          Die Auswahl gilt für dich auf allen Geräten und wird sofort gespeichert.
-        </p>
       </Card>
 
-      <Card title="Dieses Gerät">
+      <Card
+        title="Dieses Gerät"
+        hint="Jedes Gerät meldet sich einzeln an — Telefon und Rechner getrennt. Das ist Absicht: so entscheidest du, wo dich eine Meldung erreicht."
+      >
         <p
           className={
             zustand.ton === 'ok'
@@ -215,10 +225,6 @@ export default function NotificationSettings() {
           </div>
         )}
 
-        <p className="mt-3 text-sm text-ink-muted">
-          Jedes Gerät meldet sich einzeln an — Telefon und Rechner getrennt. Das ist Absicht:
-          so entscheidest du, wo dich eine Meldung erreicht.
-        </p>
 
         {error && (
           <div className="mt-3">

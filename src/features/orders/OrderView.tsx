@@ -19,6 +19,7 @@ import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, CheckboxField } from '@/components/Field';
+import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { writeWithOfflineNotice, queuedMessage } from '@/lib/offlineWrite';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
@@ -288,7 +289,7 @@ export default function OrderView() {
             role="tab"
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`flex min-h-touch shrink-0 items-center gap-1.5 border-b-2 px-4 py-2 text-sm transition ${
+            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-4 py-2 text-sm transition ${
               tab === t.key
                 ? 'border-b-accent font-bold text-brand'
                 : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
@@ -323,18 +324,28 @@ export default function OrderView() {
             {/* Direkt unter der Baustelle, weil er von ihr abhaengt: ohne
                 Baustelle gibt es keine zustaendige Projektleitung und damit
                 niemanden, den eine Eilmeldung erreichen koennte. */}
-            <CheckboxField
-              id="ourgent"
-              label="Eilzustellung — die Projektleitung der Baustelle wird sofort verständigt"
-              checked={urgent && !!projectNumber}
-              disabled={!projectNumber}
-              onChange={(e) => setUrgent(e.target.checked)}
-            />
-            {!projectNumber && (
-              <p className="text-sm text-ink-muted">
-                Für eine Eilzustellung zuerst die Baustelle wählen.
-              </p>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <CheckboxField
+                id="ourgent"
+                label="Eilzustellung"
+                checked={urgent && !!projectNumber}
+                disabled={!projectNumber}
+                onChange={(e) => setUrgent(e.target.checked)}
+              />
+              <InfoHint about="Eilzustellung">
+                Die Projektleitung der Baustelle wird sofort verständigt — bei der Anforderung
+                und noch einmal, sobald das Material abholbereit ist. So kann sie es auf dem
+                Weg mitnehmen.
+              </InfoHint>
+              {/* Bleibt sichtbar statt im „i" zu verschwinden: ein
+                  ausgegrautes Kaestchen ohne Begruendung ist eine Sackgasse,
+                  und die Zeile verschwindet, sobald eine Baustelle steht. */}
+              {!projectNumber && (
+                <p className="basis-full text-sm text-ink-muted">
+                  Dafür zuerst die Baustelle wählen.
+                </p>
+              )}
+            </div>
             {projectNumber && urgent && !leitungDa && (
               <p className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
                 Dieser Baustelle ist keine Projektleitung zugeteilt — die Eilmeldung erreicht
@@ -503,7 +514,10 @@ export default function OrderView() {
       )}
 
       {tab === 'retoure' && (
-        <Card title="Material zurückgeben">
+        <Card
+          title="Material zurückgeben"
+          hint="Nur unbenutztes Material in Originalverpackung wird dem Lagerbestand wieder gutgeschrieben. Gebrauchtes und defektes Material wird nur erfasst."
+        >
           <div className="space-y-4">
             <SelectField id="retmat" label="Material" value={retMaterial}
               onChange={(e) => setRetMaterial(e.target.value)} required>
@@ -533,10 +547,6 @@ export default function OrderView() {
             </SelectField>
             <InputField id="retreason" label="Grund / Notiz" value={retReason}
               onChange={(e) => setRetReason(e.target.value)} />
-            <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
-              Nur unbenutztes Material in Originalverpackung wird dem Lagerbestand wieder
-              gutgeschrieben. Gebrauchtes und defektes Material wird nur erfasst.
-            </p>
             <Button onClick={submitReturn} loading={saving} disabled={!retMaterial}
               className="w-full sm:w-auto">
               Retoure erfassen

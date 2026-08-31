@@ -67,7 +67,10 @@ export default function SettingsView() {
       />
 
       <form onSubmit={submit} className="space-y-6">
-        <Card title="Stundensätze">
+        <Card
+          title="Stundensätze"
+          hint="Der Helfersatz gilt für Einsätze, die im Zeiteintrag als Helferarbeit gebucht sind — er hängt am Einsatz, nicht dauerhaft an einer Person."
+        >
           <FormGrid>
             <InputField
               id="r-fach"
@@ -89,13 +92,12 @@ export default function SettingsView() {
             />
           </FormGrid>
 
-          <p className="mt-3 text-sm text-ink-muted">
-            Der Helfersatz gilt für Einsätze, die im Zeiteintrag als Helferarbeit gebucht sind —
-            er hängt am Einsatz, nicht dauerhaft an einer Person.
-          </p>
         </Card>
 
-        <Card title="Zuschläge">
+        <Card
+          title="Zuschläge"
+          hint="Zuschläge gelten als Aufschlag auf den Stundensatz. Nacht und Notdienst können zusammentreffen — dann addieren sich beide."
+        >
           <FormGrid>
             <InputField
               id="r-night"
@@ -119,10 +121,6 @@ export default function SettingsView() {
             />
           </FormGrid>
 
-          <p className="mt-3 text-sm text-ink-muted">
-            Zuschläge gelten als Aufschlag auf den Stundensatz. Nacht und Notdienst können
-            zusammentreffen — dann addieren sich beide.
-          </p>
 
           {/* Sofort sehen, was die Sätze bedeuten — Prozentwerte allein sind
               im Kundengespräch wenig greifbar. */}
@@ -153,7 +151,10 @@ export default function SettingsView() {
           </div>
         </Card>
 
-        <Card title="Rechnungsvorgaben">
+        <Card
+          title="Rechnungsvorgaben"
+          hint="Diese Werte sind die Vorgabe für neue Rechnungen. Beim Erstellen lassen sie sich für den Einzelfall noch anpassen."
+        >
           <FormGrid>
             <SelectField
               id="r-vat"
@@ -175,10 +176,6 @@ export default function SettingsView() {
               onChange={(e) => setRates({ ...rates, dueDays: num(e.target.value, 14) })}
             />
           </FormGrid>
-          <p className="mt-3 text-sm text-ink-muted">
-            Diese Werte sind die Vorgabe für neue Rechnungen. Beim Erstellen lassen sie sich
-            für den Einzelfall noch anpassen.
-          </p>
         </Card>
 
         {error && <ErrorState message={error} />}

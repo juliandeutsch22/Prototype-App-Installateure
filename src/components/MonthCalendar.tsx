@@ -60,7 +60,7 @@ export default function MonthCalendar({
 
   return (
     <div className="overflow-hidden rounded-lg border border-line bg-surface">
-      <div className="flex items-center justify-between border-b border-line px-2 py-1.5">
+      <div className="flex items-center justify-between border-b border-line px-2 py-2">
         <button
           type="button"
           onClick={() => onShiftMonth(-1)}
@@ -86,7 +86,7 @@ export default function MonthCalendar({
         {DOW.map((d, i) => (
           <div
             key={d}
-            className={`py-1.5 text-center text-xs font-bold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
+            className={`py-2 text-center text-xs font-bold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
           >
             {d}
           </div>
@@ -123,7 +123,7 @@ export default function MonthCalendar({
                 (holiday ? `, ${holiday}` : '') +
                 (count > 0 ? `, ${markLabel(count)}` : '')
               }
-              className={`flex min-h-[3.25rem] flex-col items-center gap-1 border-b border-r border-line/60 pt-1.5 transition-colors ${
+              className={`flex min-h-[3.25rem] flex-col items-center gap-1 border-b border-r border-line/60 pt-2 transition-colors ${
                 isSelected
                   ? 'bg-info-bg ring-2 ring-inset ring-brand'
                   : holiday
