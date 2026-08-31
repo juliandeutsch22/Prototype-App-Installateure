@@ -7,6 +7,7 @@ import Icon from '@/components/Icon';
 import Avatar from '@/components/Avatar';
 import BrandLogo from '@/components/BrandLogo';
 import OfflineBanner from '@/components/OfflineBanner';
+import BottomSheet from '@/components/BottomSheet';
 
 /**
  * Aktiver Eintrag = roter Kantenmarker + blauer, fetter Text auf hellblauem
@@ -25,6 +26,7 @@ const sideLink = ({ isActive }: { isActive: boolean }) =>
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [profilOpen, setProfilOpen] = useState(false);
   if (!user) return <>{children}</>;
 
   const items = navForRole(user.role);
@@ -47,12 +49,18 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Mobile Top-Bar */}
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 md:hidden">
         {BrandMarkMobile}
-        {/* Nur der Avatar: die Rolle steht bereits in der Seitenüberschrift und
-            würde hier den Firmennamen abschneiden. */}
-        <Avatar name={user.name} size={32} />
-        <span className="sr-only">
-          Angemeldet als {user.name}, {user.role}
-        </span>
+        {/* Der Avatar allein zeigt nur zwei Buchstaben. Auf einem
+            Baustellen-Tablet, an dem mehrere arbeiten, ist die Frage „wer bin
+            ich hier gerade?" real — und Initialen beantworten sie nicht. Ein
+            Tipp oeffnet Name, Rolle und Abmelden. */}
+        <button
+          type="button"
+          onClick={() => setProfilOpen(true)}
+          aria-label={`Angemeldet als ${user.name}, ${user.role} — Profil öffnen`}
+          className="flex min-h-touch min-w-touch items-center justify-center rounded-full"
+        >
+          <Avatar name={user.name} size={32} />
+        </button>
       </header>
 
       {/* Desktop-Sidebar */}
@@ -149,44 +157,62 @@ export default function Layout({ children }: { children: ReactNode }) {
       </nav>
 
       {/* „Mehr"-Drawer (mobil) */}
-      {moreOpen && (
-        <div className="fixed inset-0 z-40 bg-ink/40 md:hidden" onClick={() => setMoreOpen(false)}>
-          <div
-            className="absolute inset-x-0 bottom-0 rounded-t-lg bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
-            <nav className="flex max-h-[60vh] flex-col gap-3 overflow-y-auto" aria-label="Weitere Bereiche">
-              {groups.map(({ group, items: groupItems }) => (
-                <div key={group}>
-                  {group !== 'Allgemein' && (
-                    <p className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                      {group}
-                    </p>
-                  )}
-                  <div className="flex flex-col gap-0.5">
-                    {groupItems.map((item) => (
-                      <NavLink
-                        key={item.path}
-                        to={item.path}
-                        end={item.path === '/'}
-                        onClick={() => setMoreOpen(false)}
-                        className={sideLink}
-                      >
-                        <Icon name={item.icon} size={20} className="shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </nav>
-            <Button variant="secondary" className="mt-3 w-full" onClick={() => void signOut()}>
-              Abmelden
-            </Button>
+      <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} label="Weitere Bereiche">
+        <nav className="flex flex-col gap-3" aria-label="Weitere Bereiche">
+          {groups.map(({ group, items: groupItems }) => (
+            <div key={group}>
+              {group !== 'Allgemein' && (
+                <p className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                  {group}
+                </p>
+              )}
+              <div className="flex flex-col gap-0.5">
+                {groupItems.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    end={item.path === '/'}
+                    onClick={() => setMoreOpen(false)}
+                    className={sideLink}
+                  >
+                    <Icon name={item.icon} size={20} className="shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </BottomSheet>
+
+      {/* Profil hinter den Initialen (mobil) */}
+      <BottomSheet open={profilOpen} onClose={() => setProfilOpen(false)} label="Profil">
+        <div className="flex items-center gap-3 px-1">
+          <Avatar name={user.name} size={48} />
+          <div className="min-w-0">
+            <p className="truncate text-base font-bold text-ink">{user.name}</p>
+            <p className="truncate text-sm text-ink-muted">{user.role}</p>
+            <p className="truncate text-sm text-ink-muted">{user.email}</p>
           </div>
         </div>
-      )}
+        <div className="mt-4 flex flex-col gap-0.5 border-t border-line pt-3">
+          <NavLink to="/notifications" onClick={() => setProfilOpen(false)} className={sideLink}>
+            <Icon name="bell" size={20} className="shrink-0" />
+            <span>Benachrichtigungen</span>
+          </NavLink>
+        </div>
+        <Button
+          variant="secondary"
+          className="mt-3 w-full"
+          onClick={() => {
+            setProfilOpen(false);
+            void signOut();
+          }}
+        >
+          Abmelden
+        </Button>
+      </BottomSheet>
+
     </div>
   );
 }

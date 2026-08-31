@@ -33,6 +33,7 @@ import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
+import { LoadingState, SkeletonMetrics } from '@/components/States';
 import { VOICE_ENABLED } from '@/lib/features';
 import { byNewest } from '@/lib/timestamps';
 
@@ -73,15 +74,51 @@ interface DashData {
 export default function DashboardView() {
   const { user, company } = useAuth();
   const [data, setData] = useState<DashData>({});
+  /**
+   * Welche Bloecke noch unterwegs sind.
+   *
+   * Das Dashboard zeigte waehrend des Ladens schlicht nichts — keine Kachel,
+   * kein Hinweis, im Zweifel „Nichts Offenes". Auf einer langsamen Verbindung
+   * sah das aus, als fehle der Saldo, und genau so wurde es auch gemeldet.
+   * Ein Ladeplatzhalter sagt: die Zahl kommt noch.
+   */
+  const [laden, setLaden] = useState({ persoenlich: true, betrieblich: true, team: true });
   const personal = user ? shouldShowOvertime(user.role) : false;
   const mgmt = user ? canProcessOrders(user.role) || isGF(user.role) : false;
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    (async () => {
-      const out: DashData = {};
+    setLaden({ persoenlich: true, betrieblich: true, team: true });
 
+    /**
+     * Ergebnisse einzeln nachreichen, statt am Ende alles auf einmal.
+     *
+     * Vorher lief die ganze Ladefolge in EINEM await-Block und setzte den
+     * Zustand erst danach: das Dashboard blieb leer, bis auch die langsamste
+     * Abfrage zurueck war. Wer nur seinen Saldo sehen wollte, wartete auf die
+     * Rechnungssummen des Betriebs.
+     */
+    const reiche = (teil: Partial<DashData>) => {
+      if (!cancelled) setData((v) => ({ ...v, ...teil }));
+    };
+
+    /**
+     * Alle Zeiteintraege — genau EINMAL, auch wenn zwei Auswertungen sie
+     * brauchen. Vorher holte die Geschaeftsfuehrung sie doppelt: einmal fuer
+     * das Projekt-Radar und einmal fuer die Team-Salden. Bei zwanzig
+     * Monteuren ueber mehrere Jahre ist das die teuerste Abfrage der App,
+     * und sie lief zweimal nebeneinander.
+     */
+    let alleEintraege: Promise<TimeEntry[]> | null = null;
+    const zeiteintraege = () => {
+      alleEintraege ??= listAllEntries(user.companyId);
+      return alleEintraege;
+    };
+
+    /** Persoenliches: Saldo, heutiger Einsatz, fehlende Zeit. */
+    const persoenlich = async () => {
+      const out: DashData = {};
       if (personal || user.role === 'Mitarbeiter') {
         const [profile, entries, assignments]: [AppUser | null, TimeEntry[], Assignment[]] =
           await Promise.all([
@@ -121,7 +158,13 @@ export default function DashboardView() {
         const lwd = lastWorkday(now);
         out.missingTime = !todayIsOff && !entries.some((e) => e.date === lwd);
       }
+      reiche(out);
+      if (!cancelled) setLaden((v) => ({ ...v, persoenlich: false }));
+    };
 
+    /** Betriebliches: Anforderungen, Rechnungen, Projekt-Radar. */
+    const betrieblich = async () => {
+      const out: DashData = {};
       if (mgmt) {
         const [orders, projects, invoices] = await Promise.all([
           listAllOrders(user.companyId),
@@ -146,7 +189,7 @@ export default function DashboardView() {
         // Projekt-Radar: nur Baustellen, deren Budget knapp wird oder gerissen
         // ist. Eine grüne Baustelle braucht keinen Platz auf dem Dashboard.
         if (isGF(user.role)) {
-          const allEntries = await listAllEntries(user.companyId);
+          const allEntries = await zeiteintraege();
           const byProject = groupProjectHours(allEntries);
           out.projectAlerts = projects
             .map((p) => {
@@ -176,13 +219,22 @@ export default function DashboardView() {
           (o) => o.status !== 'Erledigt' && o.transactionType !== 'return',
         ).length;
       }
+      reiche(out);
+      if (!cancelled) setLaden((v) => ({ ...v, betrieblich: false }));
+    };
 
-      // Team-Salden auf einen Blick (Legacy:5388-5465) — der schnellste
-      // Zugriff der Geschäftsführung auf den Stand aller Mitarbeiter.
+    /**
+     * Team-Salden (Legacy:5388-5465) — der schnellste Zugriff der
+     * Geschaeftsfuehrung auf den Stand aller Mitarbeiter. Bewusst zuletzt
+     * nachgereicht: das ist die schwerste der drei Auswertungen, und sie darf
+     * die beiden anderen nicht aufhalten.
+     */
+    const team = async () => {
+      const out: DashData = {};
       if (canEditTime(user.role)) {
         const [allUsers, allEntries] = await Promise.all([
           listUsers(user.companyId),
-          listAllEntries(user.companyId),
+          zeiteintraege(),
         ]);
         out.team = allUsers
           .filter((u) => shouldShowOvertime(u.role) && u.active !== false)
@@ -195,9 +247,13 @@ export default function DashboardView() {
             return { uid: u.uid, name: u.name, saldoH, hasConfig, gapDays: daysWithoutEntry };
           });
       }
+      reiche(out);
+      if (!cancelled) setLaden((v) => ({ ...v, team: false }));
+    };
 
-      if (!cancelled) setData(out);
-    })().catch(() => undefined);
+    // Nebeneinander statt nacheinander. Faellt ein Teil aus, stehen die
+    // anderen trotzdem da — vorher riss ein Fehler das ganze Dashboard mit.
+    void Promise.allSettled([persoenlich(), betrieblich(), team()]);
     return () => {
       cancelled = true;
     };
@@ -206,10 +262,21 @@ export default function DashboardView() {
   // Grundregel gegen ein überladenes wie gegen ein leeres Dashboard: jede
   // Karte erscheint nur mit Inhalt. Bleibt dann gar nichts übrig, steht dort
   // eine ruhige Zeile statt einer Wand aus Nullen.
+  /**
+   * Wer ein Zeitkonto fuehrt, bekommt die Saldo-Kachel — unabhaengig davon,
+   * ob ein Startdatum hinterlegt ist. `hasSaldoConfig` sagt nur, OB gerechnet
+   * werden konnte; es als Sichtbarkeitsschalter zu verwenden war der Fehler.
+   */
+  const zeigeSaldo = personal;
+
+  // Waehrend noch geladen wird, ist „nichts Offenes" eine Behauptung, die
+  // sich gleich als falsch herausstellen kann.
+  const nochAmLaden = laden.persoenlich || laden.betrieblich || laden.team;
   const nothingToShow =
+    !nochAmLaden &&
     !data.missingTime &&
     !data.todayAssignment &&
-    !data.hasSaldoConfig &&
+    !zeigeSaldo &&
     !data.projectAlerts?.length &&
     !data.openOrders?.length &&
     !data.team?.length &&
@@ -289,26 +356,44 @@ export default function DashboardView() {
       {/* Kennzahlen. Jede Kachel erscheint nur, wenn sie für diese Rolle
           etwas aussagt — leere Platzhalter machen ein Dashboard unruhig,
           ohne etwas beizutragen. */}
-      {(data.hasSaldoConfig || data.ownOpenOrders !== undefined || data.invoiceSums) && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {data.hasSaldoConfig && (
+      {/* Solange die Zahlen unterwegs sind, steht dort ein Platzhalter in der
+          Hoehe, die der Inhalt gleich einnimmt — nichts springt beim
+          Eintreffen, und niemand haelt die Luecke fuer einen Fehler. */}
+      {laden.persoenlich && zeigeSaldo && <SkeletonMetrics count={1} />}
+      {(!laden.persoenlich || data.ownOpenOrders !== undefined || data.invoiceSums) &&
+        (zeigeSaldo || data.ownOpenOrders !== undefined || data.invoiceSums) && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+          {/* Die Kachel erscheint fuer jeden mit Zeitkonto — auch ohne
+              hinterlegtes Startdatum. Vorher verschwand sie in dem Fall
+              kommentarlos, und der Mitarbeiter sah schlicht keinen Saldo,
+              ohne zu erfahren warum. Die Zeiterfassung machte es laengst
+              richtig; hier fehlte es. */}
+          {zeigeSaldo && (
             <Metric
               label="Saldo"
               icon="clock"
               tone={
                 // Ein unvollständiger Saldo wird NICHT rot dargestellt: die
                 // Zahl ist dann kein Befund, sondern eine Datenlücke.
-                (data.saldoGapDays ?? 0) > 0
-                  ? 'warning'
-                  : (data.saldoH ?? 0) >= 0
-                    ? 'success'
-                    : 'danger'
+                !data.hasSaldoConfig
+                  ? 'default'
+                  : (data.saldoGapDays ?? 0) > 0
+                    ? 'warning'
+                    : (data.saldoH ?? 0) >= 0
+                      ? 'success'
+                      : 'danger'
               }
-              value={`${(data.saldoH ?? 0) > 0 ? '+' : ''}${data.saldoH} h`}
+              value={
+                data.hasSaldoConfig
+                  ? `${(data.saldoH ?? 0) > 0 ? '+' : ''}${data.saldoH} h`
+                  : '—'
+              }
               hint={
-                (data.saldoGapDays ?? 0) > 0
-                  ? `${data.saldoGapDays} Tage ohne Buchung — unvollständig`
-                  : undefined
+                !data.hasSaldoConfig
+                  ? 'Kein Startdatum hinterlegt'
+                  : (data.saldoGapDays ?? 0) > 0
+                    ? `${data.saldoGapDays} Tage ohne Buchung — unvollständig`
+                    : undefined
               }
             />
           )}
@@ -424,6 +509,12 @@ export default function DashboardView() {
 
       {/* Ist nichts zu tun, sagt das Dashboard das in einer Zeile — statt
           fünf leere Karten zu zeigen. */}
+      {nochAmLaden && !zeigeSaldo && (
+        <Card>
+          <LoadingState />
+        </Card>
+      )}
+
       {nothingToShow && (
         <Card>
           <p className="text-ink-muted">
