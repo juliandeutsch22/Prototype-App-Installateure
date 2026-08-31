@@ -128,6 +128,13 @@ export interface UserPrefs {
   /** Benachrichtigung, wenn die eigene Anforderung abholbereit ist (Monteur). */
   notifyOrderReady?: boolean;
   /**
+   * Benachrichtigung bei Eilzustellungen der eigenen Baustellen
+   * (Projektleitung). Eigener Schalter, weil das eine andere Dringlichkeit
+   * ist als die Sammelmeldung über neue Anforderungen: wer die abschaltet,
+   * will damit nicht auch den Eilfall verpassen.
+   */
+  notifyUrgentDelivery?: boolean;
+  /**
    * Push-Token je Gerät. Ein Mensch hat Telefon und Rechner, beide sollen
    * die Meldung bekommen; ein abgemeldetes Gerät wird wieder entfernt.
    */
@@ -150,6 +157,13 @@ export interface Project {
   contactName?: string;
   contactPhone?: string;
   assignedEmployees?: string[]; // Array von uids
+  /**
+   * Verantwortliche Projektleitung — eine oder mehrere. Sie bekommt die
+   * Meldungen zu Eilzustellungen dieser Baustelle, weil sie das Material auf
+   * dem Weg mitnehmen kann. Ohne Zuordnung gibt es für eine Eilbestellung
+   * niemanden zu benachrichtigen; die Oberfläche sagt das dann auch.
+   */
+  projectManagers?: string[]; // Array von uids
   createdAt?: number;
 }
 
@@ -185,6 +199,13 @@ export interface MaterialOrder {
   note?: string;
   projectNumber?: string;
   status: 'Offen' | 'In Bearbeitung' | 'Abholbereit' | 'Erledigt';
+  /**
+   * Eilzustellung: die Projektleitung der Baustelle wird sofort verständigt
+   * und noch einmal, sobald das Material abholbereit ist — sie fährt ohnehin
+   * hin und kann es mitnehmen. Setzt eine gewählte Baustelle voraus, denn
+   * ohne sie gibt es keine zuständige Projektleitung.
+   */
+  isUrgent?: boolean;
   transactionType: 'order' | 'return';
   condition?: string; // nur Retoure
   userId: string; // uid
@@ -266,6 +287,16 @@ export interface Invoice {
    * Rechnung, sobald jemand einen Eintrag korrigiert.
    */
   positions?: { label: string; qty: number; unit: string; unitPrice: number; netto: number }[];
+  /** Summe der Positionen VOR Rabatt. Ohne sie liesse sich der Rabatt im
+   *  Nachhinein nicht mehr nachvollziehen. */
+  subtotalNetto?: number;
+  /**
+   * Gewaehrter Rabatt, wie er auf der Rechnung steht. `null` heisst
+   * ausdruecklich „kein Rabatt" — Firestore laesst undefined nicht zu.
+   */
+  discount?: InvoiceDiscount | null;
+  /** Der daraus errechnete Abzug in Euro — festgehalten, nicht neu gerechnet. */
+  discountAmount?: number;
   /** Angewandter USt-Satz (0.2 = 20 %). */
   vatRate?: number;
   /** Anschrift der Baustelle zum Zeitpunkt der Rechnungslegung. */
@@ -277,6 +308,21 @@ export interface Invoice {
   cancelledAt?: number | null;
   createdAt?: number;
   updatedAt?: number;
+}
+
+/**
+ * Rabatt auf eine Rechnung.
+ *
+ * Entweder ein Anteil ('percent', 5 = 5 %) oder ein fester Betrag in Euro.
+ * Beides zusammen gibt es bewusst nicht: zwei Rabatte auf derselben Rechnung
+ * sind fuer den Kunden nicht nachvollziehbar, und die Reihenfolge ihrer
+ * Anwendung waere Auslegungssache.
+ */
+export interface InvoiceDiscount {
+  mode: 'percent' | 'amount';
+  value: number;
+  /** Was auf der Rechnung steht, z. B. „Stammkundenrabatt". */
+  label?: string;
 }
 
 /** followUps/{id} — neuer optionaler Typ aus dem KI-Magic-Moment (Spec §6). */

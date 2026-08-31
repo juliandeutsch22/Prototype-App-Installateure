@@ -34,6 +34,7 @@ import PageHeader from '@/components/PageHeader';
 import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
 import { VOICE_ENABLED } from '@/lib/features';
+import { byNewest } from '@/lib/timestamps';
 
 const fmtEUR = (n: number) =>
   `\u20ac ${new Intl.NumberFormat('de-AT', { maximumFractionDigits: 0 }).format(n)}`;
@@ -132,7 +133,7 @@ export default function DashboardView() {
         // man sieht WAS zu tun ist, nicht nur wie viel.
         out.openOrders = orders
           .filter((o) => o.transactionType !== 'return' && o.status !== 'Erledigt')
-          .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+          .sort((a, b) => byNewest(a, b));
 
         if (canInvoice(user.role)) {
           const sum = (s: string) =>

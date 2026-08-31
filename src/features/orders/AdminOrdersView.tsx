@@ -15,7 +15,9 @@ import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { SelectField } from '@/components/Field';
+import { InputField, SelectField } from '@/components/Field';
+import Button from '@/components/Button';
+import { byNewest, dayKey, dayHeading } from '@/lib/timestamps';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
@@ -38,6 +40,16 @@ export default function AdminOrdersView() {
   const [toDelete, setToDelete] = useState<WithId<MaterialOrder> | null>(null);
   const [tab, setTab] = useState<Tab>('aktiv');
   const [projectFilter, setProjectFilter] = useState('');
+  const [suche, setSuche] = useState('');
+  /**
+   * Wie viele erledigte Anforderungen gezeigt werden.
+   *
+   * Nach einem Jahr sind das mehrere hundert, und sie standen als eine
+   * einzige Liste untereinander. Wer darin etwas sucht, scrollt — und
+   * findet nichts. Jetzt: Tagesgruppen, ein Suchfeld und ein Anfang von
+   * fünfzig Zeilen, der sich erweitern lässt.
+   */
+  const [limit, setLimit] = useState(50);
   /** Bestätigung vor dem Abschluss — dabei wird das Lager reduziert. */
   const [toComplete, setToComplete] = useState<WithId<MaterialOrder> | null>(null);
 
@@ -72,8 +84,53 @@ export default function AdminOrdersView() {
         : tab === 'archiv'
           ? purchases.filter((o) => o.status === 'Erledigt')
           : purchases.filter((o) => o.status !== 'Erledigt');
-    return projectFilter ? base.filter((o) => o.projectNumber === projectFilter) : base;
-  }, [tab, purchases, returns, projectFilter]);
+    const nachProjekt = projectFilter
+      ? base.filter((o) => o.projectNumber === projectFilter)
+      : base;
+    const q = suche.trim().toLowerCase();
+    if (!q) return nachProjekt;
+    return nachProjekt.filter((o) =>
+      [o.materialName, o.userName, o.projectNumber, o.note].some((v) =>
+        v?.toLowerCase().includes(q),
+      ),
+    );
+  }, [tab, purchases, returns, projectFilter, suche]);
+
+  /**
+   * Offene Anforderungen nach Arbeitsschritt gruppiert, Eilfälle oben.
+   *
+   * Vorher lagen Offen, In Bearbeitung und Abholbereit in einer Liste — man
+   * musste jede Zeile lesen, um zu wissen, was als Nächstes zu tun ist. Und
+   * eine Eilzustellung ging zwischen zwanzig gewöhnlichen Zeilen unter,
+   * obwohl genau sie den Anlass zum Handeln gibt.
+   */
+  const aktivGruppen = useMemo(() => {
+    if (tab !== 'aktiv') return [];
+    const reihenfolge: MaterialOrder['status'][] = ['Offen', 'In Bearbeitung', 'Abholbereit'];
+    return reihenfolge
+      .map((status) => ({
+        titel: status,
+        zeilen: rows
+          .filter((o) => o.status === status)
+          // Eil zuerst, dann die ältesten: wer am längsten wartet, steht oben.
+          .sort((a, b) => Number(!!b.isUrgent) - Number(!!a.isUrgent) || byNewest(b, a)),
+      }))
+      .filter((g) => g.zeilen.length > 0);
+  }, [tab, rows]);
+
+  /** Erledigtes und Retouren nach Tag gruppiert, neueste zuerst. */
+  const tagesGruppen = useMemo(() => {
+    if (tab === 'aktiv') return [];
+    const sortiert = [...rows].sort(byNewest);
+    const map = new Map<string, WithId<MaterialOrder>[]>();
+    for (const o of sortiert.slice(0, limit)) {
+      const k = dayKey(o.createdAt);
+      const list = map.get(k) ?? [];
+      list.push(o);
+      map.set(k, list);
+    }
+    return [...map.entries()].map(([k, zeilen]) => ({ titel: dayHeading(k), zeilen }));
+  }, [tab, rows, limit]);
 
   const activeCount = purchases.filter((o) => o.status !== 'Erledigt').length;
 
@@ -140,69 +197,111 @@ export default function AdminOrdersView() {
             ) : undefined
           }
         >
+          {orders.length >= 10 && (
+            <div className="mb-4">
+              <InputField
+                id="osuche"
+                label="Suche"
+                type="search"
+                placeholder="Material, Besteller, Baustelle oder Notiz"
+                value={suche}
+                onChange={(e) => setSuche(e.target.value)}
+              />
+            </div>
+          )}
           {loading ? (
             <SkeletonList rows={4} />
           ) : error ? (
             <ErrorState message={error} />
           ) : rows.length === 0 ? (
             <EmptyState>
-              {tab === 'retouren'
-                ? 'Keine Retouren erfasst.'
-                : tab === 'archiv'
-                  ? 'Noch nichts erledigt.'
-                  : 'Aktuell keine offenen Bestellungen.'}
+              {suche
+                ? `Nichts passt zu „${suche}".`
+                : tab === 'retouren'
+                  ? 'Keine Retouren erfasst.'
+                  : tab === 'archiv'
+                    ? 'Noch nichts erledigt.'
+                    : 'Aktuell keine offenen Bestellungen.'}
             </EmptyState>
           ) : (
-            <List>
-              {rows.map((o) => (
-                <ListRow
-                  key={o.id}
-                  title={
-                    <span>
-                      {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
-                    </span>
-                  }
-                  subtitle={
-                    <>
-                      {o.userName}
-                      {o.projectNumber && ` · ${o.projectNumber}`}
-                      {o.condition && ` · ${CONDITION_LABEL[o.condition] ?? o.condition}`}
-                      {o.note && ` · ${o.note}`}
-                    </>
-                  }
-                >
-                  {o.transactionType === 'return' ? (
-                    <Badge tone="info">Retoure</Badge>
-                  ) : (
-                    <StatusBadge status={o.status} />
-                  )}
+            <div className="space-y-5">
+              {(tab === 'aktiv' ? aktivGruppen : tagesGruppen).map((g) => (
+                <div key={g.titel}>
+                  {/* Ueberschrift je Gruppe: erst dadurch wird aus der Liste
+                      eine Ordnung, die man ueberfliegen kann. */}
+                  <h3 className="section-label mb-1 flex items-center justify-between">
+                    <span>{g.titel}</span>
+                    <span className="tnum font-normal text-ink-muted">{g.zeilen.length}</span>
+                  </h3>
+                  <List>
+                    {g.zeilen.map((o) => (
+                      <ListRow
+                        key={o.id}
+                        title={
+                          <span>
+                            {o.materialName}{' '}
+                            <span className="tnum text-ink-muted">×{o.quantity}</span>
+                          </span>
+                        }
+                        subtitle={
+                          <>
+                            {o.userName}
+                            {o.projectNumber && ` · ${o.projectNumber}`}
+                            {o.condition && ` · ${CONDITION_LABEL[o.condition] ?? o.condition}`}
+                            {o.note && ` · ${o.note}`}
+                          </>
+                        }
+                      >
+                        {o.isUrgent && <Badge tone="danger">Eil</Badge>}
+                        {o.transactionType === 'return' ? (
+                          <Badge tone="info">Retoure</Badge>
+                        ) : (
+                          <StatusBadge status={o.status} />
+                        )}
 
-                  {/* Freie Statuswahl statt nur "einen Schritt vor": eine
-                      versehentlich abgeschlossene Bestellung war sonst nicht
-                      mehr zurückzuholen. */}
-                  {o.transactionType !== 'return' && (
-                    <SelectField
-                      id={`st-${o.id}`}
-                      label=""
-                      className="py-1 text-sm"
-                      value={o.status}
-                      disabled={busyId === o.id}
-                      onChange={(e) => {
-                        const next = e.target.value as MaterialOrder['status'];
-                        if (next === 'Erledigt') setToComplete(o);
-                        else void setStatus(o, next);
-                      }}
-                    >
-                      {ORDER_STATUS_FLOW.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </SelectField>
-                  )}
+                        {/* Freie Statuswahl statt nur "einen Schritt vor": eine
+                            versehentlich abgeschlossene Bestellung war sonst
+                            nicht mehr zurueckzuholen. */}
+                        {o.transactionType !== 'return' && (
+                          <SelectField
+                            id={`st-${o.id}`}
+                            label=""
+                            className="py-1 text-sm"
+                            value={o.status}
+                            disabled={busyId === o.id}
+                            onChange={(e) => {
+                              const next = e.target.value as MaterialOrder['status'];
+                              if (next === 'Erledigt') setToComplete(o);
+                              else void setStatus(o, next);
+                            }}
+                          >
+                            {ORDER_STATUS_FLOW.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </SelectField>
+                        )}
 
-                  <IconButton label={`${o.materialName} löschen`} tone="danger" onClick={() => setToDelete(o)}>
-                    ✕
-                  </IconButton>
-                </ListRow>
+                        <IconButton
+                          label={`${o.materialName} löschen`}
+                          tone="danger"
+                          onClick={() => setToDelete(o)}
+                        >
+                          ✕
+                        </IconButton>
+                      </ListRow>
+                    ))}
+                  </List>
+                </div>
               ))}
-            </List>
+
+              {tab !== 'aktiv' && rows.length > limit && (
+                <Button variant="secondary" onClick={() => setLimit((n) => n + 50)}>
+                  Weitere anzeigen ({rows.length - limit})
+                </Button>
+              )}
+            </div>
           )}
         </Card>
       )}
@@ -210,6 +309,8 @@ export default function AdminOrdersView() {
       <ConfirmDialog
         open={!!toComplete}
         title="Bestellung abschließen?"
+        confirmLabel="Abschließen"
+        confirmTone="primary"
         message={
           toComplete
             ? `„${toComplete.materialName}" ×${toComplete.quantity} wird als erledigt gebucht und vom Lagerbestand abgezogen.`

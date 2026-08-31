@@ -108,12 +108,30 @@ export default function TimeView() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Metric label="Einträge" icon="clipboard" value={entries.length} />
+        {/* Dieselbe Zahl wie auf dem Dashboard — und deshalb auch mit
+            demselben Vorbehalt. Ein Saldo aus Tagen, an denen gar nichts
+            gebucht wurde, ist kein Befund über den Mitarbeiter, sondern eine
+            Datenlücke; rot dargestellt behauptete er das Gegenteil. */}
         <Metric
           label="Saldo"
           icon="chart"
-          tone={saldo?.hasConfig ? (saldo.saldoH >= 0 ? 'success' : 'danger') : 'default'}
+          tone={
+            !saldo?.hasConfig
+              ? 'default'
+              : saldo.daysWithoutEntry > 0
+                ? 'warning'
+                : saldo.saldoH >= 0
+                  ? 'success'
+                  : 'danger'
+          }
           value={saldo?.hasConfig ? `${saldo.saldoH > 0 ? '+' : ''}${saldo.saldoH} h` : '—'}
-          hint={saldo?.hasConfig ? 'Über-/Unterstunden' : 'Kein Startdatum konfiguriert'}
+          hint={
+            !saldo?.hasConfig
+              ? 'Kein Startdatum konfiguriert'
+              : saldo.daysWithoutEntry > 0
+                ? `${saldo.daysWithoutEntry} Tage ohne Buchung — unvollständig`
+                : 'Über-/Unterstunden'
+          }
         />
         <Metric label="Diese Woche" icon="clock" value={fmtMin(thisWeekMin)} />
       </div>

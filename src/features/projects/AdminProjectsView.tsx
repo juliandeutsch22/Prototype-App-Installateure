@@ -3,6 +3,7 @@ import { useAuth } from '@/app/AuthContext';
 import { subscribeProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import type { WithId } from '@/lib/db/core';
+import { byNewest } from '@/lib/timestamps';
 import type { Project, AppUser } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -12,7 +13,8 @@ import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
+import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
@@ -58,9 +60,11 @@ export default function AdminProjectsView() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [assigned, setAssigned] = useState<string[]>([]);
+  const [managers, setManagers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
   const [filter, setFilter] = useState<'offen' | 'alle' | 'archiv'>('offen');
+  const [suche, setSuche] = useState('');
 
   /**
    * Auf eine Baustelle gehören Monteure, nicht Büro und nicht Leitung.
@@ -86,6 +90,23 @@ export default function AdminProjectsView() {
     [users, assigned],
   );
 
+  /**
+   * Verantwortliche Projektleitung. Die Geschaeftsfuehrung steht mit zur
+   * Wahl: in kleinen Betrieben faehrt sie selbst hinaus, und eine Baustelle
+   * ohne Zustaendigen kann keine Eilzustellung melden.
+   */
+  const leads = useMemo(
+    () =>
+      users
+        .filter(
+          (u) =>
+            ((u.role === 'Projektleiter' || u.role === 'Geschäftsführung') && u.active !== false) ||
+            managers.includes(u.uid),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    [users, managers],
+  );
+
   useEffect(() => {
     if (!user) return;
     listUsers(user.companyId).then(setUsers).catch(() => undefined);
@@ -107,12 +128,14 @@ export default function AdminProjectsView() {
     setEditId(p.id);
     setForm(formFromProject(p));
     setAssigned(p.assignedEmployees ?? []);
+    setManagers(p.projectManagers ?? []);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
   function reset() {
     setEditId(null);
     setForm(empty);
     setAssigned([]);
+    setManagers([]);
   }
 
   async function submit(e: FormEvent) {
@@ -127,6 +150,7 @@ export default function AdminProjectsView() {
         // Projektauswertung bewusst aus, statt 0 h anzunehmen.
         estimatedHours: form.estimatedHours === '' ? undefined : Number(form.estimatedHours) || 0,
         assignedEmployees: assigned,
+        projectManagers: managers,
       };
       if (editId) await updateProject(editId, data);
       else await createProject(user.companyId, data);
@@ -141,7 +165,7 @@ export default function AdminProjectsView() {
 
   // Neueste zuerst; ohne Sortierung ist die Reihenfolge von Firestore beliebig.
   const sorted = useMemo(
-    () => [...projects].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)),
+    () => [...projects].sort((a, b) => byNewest(a, b)),
     [projects],
   );
   const archivCount = useMemo(
@@ -149,10 +173,20 @@ export default function AdminProjectsView() {
     [projects],
   );
   const visible = useMemo(() => {
-    if (filter === 'alle') return sorted;
-    if (filter === 'archiv') return sorted.filter((p) => p.status === 'Abgeschlossen');
-    return sorted.filter((p) => p.status !== 'Abgeschlossen');
-  }, [sorted, filter]);
+    const nachStatus =
+      filter === 'alle'
+        ? sorted
+        : filter === 'archiv'
+          ? sorted.filter((p) => p.status === 'Abgeschlossen')
+          : sorted.filter((p) => p.status !== 'Abgeschlossen');
+    // Suche ueber Kunde, Nummer und Adresse: bei sechzig Baustellen ist die
+    // Liste sonst nur noch scrollbar, nicht mehr benutzbar.
+    const q = suche.trim().toLowerCase();
+    if (!q) return nachStatus;
+    return nachStatus.filter((p) =>
+      [p.customerName, p.projectNumber, p.address].some((v) => v?.toLowerCase().includes(q)),
+    );
+  }, [sorted, filter, suche]);
 
   if (!user) return null;
 
@@ -190,22 +224,30 @@ export default function AdminProjectsView() {
           </FormGrid>
           <InputField id="pdesc" label="Beschreibung / Auftragsumfang" value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <fieldset>
-            <legend className="text-sm font-medium text-ink">Zugeordnete Mitarbeiter</legend>
-            <div className="mt-1 flex flex-wrap gap-x-5">
-              {staff.map((u) => (
-                <CheckboxField
-                  key={u.uid}
-                  id={`proj-emp-${u.uid}`}
-                  label={u.name}
-                  checked={assigned.includes(u.uid)}
-                  onChange={(e) =>
-                    setAssigned((prev) => (e.target.checked ? [...prev, u.uid] : prev.filter((x) => x !== u.uid)))
-                  }
-                />
-              ))}
-            </div>
-          </fieldset>
+          <PersonPicker
+            legend="Zugeordnete Mitarbeiter"
+            idPrefix="proj-emp"
+            people={staff.map((u) => ({ uid: u.uid, name: u.name }))}
+            selected={assigned}
+            onChange={setAssigned}
+            emptyHint="Keine aktiven Monteure vorhanden."
+          />
+          <PersonPicker
+            legend="Verantwortliche Projektleitung"
+            idPrefix="proj-lead"
+            people={leads.map((u) => ({ uid: u.uid, name: u.name, hint: u.role }))}
+            selected={managers}
+            onChange={setManagers}
+            emptyHint="Keine Projektleitung angelegt."
+          />
+          {/* Ohne Zustaendige laeuft eine Eilbestellung ins Leere — das gehoert
+              beim Anlegen gesagt, nicht erst, wenn ein Monteur wartet. */}
+          {managers.length === 0 && (
+            <p className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+              Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
+              niemanden. Die Verwaltung wird weiterhin verständigt.
+            </p>
+          )}
           {error && <ErrorState message={error} />}
           <div className="flex gap-3">
             <Button type="submit" loading={saving}>{editId ? 'Speichern' : 'Anlegen'}</Button>
@@ -215,7 +257,7 @@ export default function AdminProjectsView() {
       </Card>
 
       <Card
-        title="Alle Baustellen"
+        title={`Alle Baustellen (${visible.length})`}
         action={
           <SelectField id="pfilter" label="" className="py-1 text-sm" value={filter}
             onChange={(e) => setFilter(e.target.value as typeof filter)}>
@@ -225,16 +267,33 @@ export default function AdminProjectsView() {
           </SelectField>
         }
       >
+        {projects.length >= 8 && (
+          <div className="mb-4">
+            <InputField
+              id="psuche"
+              label="Suche"
+              type="search"
+              placeholder="Kunde, Projektnummer oder Adresse"
+              value={suche}
+              onChange={(e) => setSuche(e.target.value)}
+            />
+          </div>
+        )}
         {loading ? <SkeletonList rows={4} /> : visible.length === 0 ? (
           <EmptyState>
-            {projects.length === 0 ? 'Noch keine Baustellen angelegt.' : 'Keine Baustelle in dieser Auswahl.'}
+            {projects.length === 0
+              ? 'Noch keine Baustellen angelegt.'
+              : suche
+                ? `Keine Baustelle passt zu „${suche}".`
+                : 'Keine Baustelle in dieser Auswahl.'}
           </EmptyState>
         ) : (
           <List>
             {visible.map((p) => {
-              const team = (p.assignedEmployees ?? [])
-                .map((uid) => users.find((u) => u.uid === uid)?.name)
-                .filter(Boolean);
+              const namen = (uids: string[]) =>
+                uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
+              const team = namen(p.assignedEmployees ?? []);
+              const leitung = namen(p.projectManagers ?? []);
               return (
                 <ListRow
                   key={p.id}
@@ -251,6 +310,13 @@ export default function AdminProjectsView() {
                           Team: {team.join(', ')}
                         </span>
                       )}
+                      <span className="mt-0.5 block text-xs text-ink-muted">
+                        {leitung.length > 0 ? (
+                          <>Projektleitung: {leitung.join(', ')}</>
+                        ) : (
+                          <span className="text-warning">Keine Projektleitung zugeteilt</span>
+                        )}
+                      </span>
                     </>
                   }
                 >

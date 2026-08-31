@@ -1,5 +1,8 @@
-import type { InvoiceRates, TimeEntry } from '@/types';
+import type { InvoiceDiscount, InvoiceRates, TimeEntry } from '@/types';
 import { calcWorkMin } from '@/lib/time';
+import { calcTotals, cent, positionNetto, type InvoicePosition } from './totals';
+
+export type { InvoicePosition } from './totals';
 
 /**
  * Ausgangswerte, solange ein Betrieb seine Sätze noch nicht gepflegt hat.
@@ -15,22 +18,36 @@ export const INVOICE_DEFAULTS: InvoiceRates = {
   dueDays: 14,
 };
 
-export interface InvoicePosition {
-  label: string;
-  qty: number;
-  unit: string;
-  unitPrice: number;
-  netto: number;
-}
-
 export interface AssembledInvoice {
   positions: InvoicePosition[];
+  /** Summe der Positionen vor Rabatt. */
+  subtotalNetto: number;
+  discount?: InvoiceDiscount | null;
+  discountAmount: number;
   totalNetto: number;
   totalVat: number;
   totalBrutto: number;
   linkedEntries: string[];
   linkedOrders: string[];
   entries: TimeEntry[]; // für optionalen Leistungsnachweis
+}
+
+/**
+ * Rechnet die Summen einer bearbeiteten Rechnung neu.
+ *
+ * Positionen sind seit der flexiblen Rechnung veraenderlich: Mengen und
+ * Preise lassen sich anpassen, eigene Zeilen hinzufuegen. Diese Funktion ist
+ * die EINE Stelle, an der aus Positionen und Rabatt die Summen entstehen —
+ * damit Vorschau, gespeicherte Rechnung und PDF nicht auseinanderlaufen.
+ */
+export function recalc(
+  base: AssembledInvoice,
+  positions: InvoicePosition[],
+  vatRate: number,
+  discount?: InvoiceDiscount | null,
+): AssembledInvoice {
+  const gerundet = positions.map((p) => ({ ...p, netto: positionNetto(p.qty, p.unitPrice) }));
+  return { ...base, positions: gerundet, discount: discount ?? null, ...calcTotals(gerundet, vatRate, discount) };
 }
 
 /**
@@ -125,25 +142,20 @@ export function assembleInvoice(
       1 +
       (b.night ? rates.nightSurcharge : 0) +
       (b.emergency ? rates.emergencySurcharge : 0);
-    const unitPrice = Math.round(baseRate * factor * 100) / 100;
+    const unitPrice = cent(baseRate * factor);
     positions.push({
       label: positionLabel(b, rates),
       qty: hours,
       unit: 'h',
       unitPrice,
-      netto: Math.round(hours * unitPrice * 100) / 100,
+      netto: positionNetto(hours, unitPrice),
     });
   }
 
-  const totalNetto = Math.round(positions.reduce((s, p) => s + p.netto, 0) * 100) / 100;
-  const totalVat = Math.round(totalNetto * rates.vatRate * 100) / 100;
-  const totalBrutto = Math.round((totalNetto + totalVat) * 100) / 100;
-
   return {
     positions,
-    totalNetto,
-    totalVat,
-    totalBrutto,
+    discount: null,
+    ...calcTotals(positions, rates.vatRate),
     linkedEntries: eligibleEntries.map((e) => e.id),
     linkedOrders: [],
     entries: eligibleEntries,

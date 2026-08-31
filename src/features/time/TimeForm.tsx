@@ -10,6 +10,7 @@ import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import { ErrorState } from '@/components/States';
 import { useToast } from '@/components/Toast';
+import { writeWithOfflineNotice, queuedMessage } from '@/lib/offlineWrite';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, Role } from '@/types';
 
@@ -170,22 +171,28 @@ export default function TimeForm({
           entry.userId !== user.uid
             ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
             : {};
-        await updateTimeEntry(entry.id, { ...payload, ...audit });
-        toast.success('Eintrag aktualisiert');
+        const stand = await writeWithOfflineNotice(
+          updateTimeEntry(entry.id, { ...payload, ...audit }),
+        );
+        if (stand === 'queued') toast.info(queuedMessage('Änderung übernommen'));
+        else toast.success('Eintrag aktualisiert');
       } else {
         // Beim Erfassen für jemand anderen gehört der Eintrag DEM Mitarbeiter,
         // nicht dem Erfassenden — sonst stünde er im falschen Zeitkonto.
         const owner = target ?? { uid: user.uid, name: user.name };
-        await createTimeEntry(user.companyId, {
-          ...payload,
-          userId: owner.uid,
-          userName: owner.name,
-          source: 'manual',
-          ...(target
-            ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
-            : {}),
-        });
-        toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht');
+        const stand = await writeWithOfflineNotice(
+          createTimeEntry(user.companyId, {
+            ...payload,
+            userId: owner.uid,
+            userName: owner.name,
+            source: 'manual',
+            ...(target
+              ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
+              : {}),
+          }),
+        );
+        if (stand === 'queued') toast.info(queuedMessage('Zeit gebucht'));
+        else toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht');
         setComment('');
       }
       onSaved();
