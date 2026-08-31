@@ -235,7 +235,7 @@ export interface MonthStats {
  * @param month        0-basiert (0 = Jänner)
  */
 export function calcMonthStats(
-  user: Pick<AppUser, 'weeklyTargetHours' | 'yearlyVacationDays' | 'workDays'>,
+  user: Pick<AppUser, 'weeklyTargetHours' | 'yearlyVacationDays' | 'workDays' | 'appStartDate'>,
   monthEntries: TimeEntry[],
   yearEntries: TimeEntry[],
   year: number,
@@ -255,6 +255,15 @@ export function calcMonthStats(
   let holidaysInMonth = 0;
   for (let d = 1; d <= daysInMonth; d++) {
     const dateObj = new Date(year, month, d);
+    // Tage VOR dem Startdatum zählen nicht.
+    //
+    // Vorher fehlte diese Grenze ganz: `appStartDate` wurde der Funktion nicht
+    // einmal übergeben. Ein am 15. eingetretener Mitarbeiter bekam damit das
+    // Soll des ganzen Monats aufgebürdet — und für jeden Monat davor, in dem
+    // er noch gar nicht im Betrieb war, ein volles Monatsminus. Der Saldo im
+    // Zeitkonto und der in der Monatsübersicht widersprachen sich dadurch,
+    // denn calcOverallSaldo respektiert das Startdatum seit jeher.
+    if (user.appStartDate && localDateStr(dateObj) < user.appStartDate) continue;
     if (workDays.includes(dateObj.getDay())) {
       if (isAustrianHoliday(dateObj)) holidaysInMonth++;
       else workdaysInMonth++;

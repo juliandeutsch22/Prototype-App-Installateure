@@ -1,5 +1,6 @@
 import type { Role } from '@/types';
 import type { IconName } from '@/components/Icon';
+import { VOICE_ENABLED } from '@/lib/features';
 
 export interface NavItem {
   /** Routenpfad (relativ zu /). */
@@ -30,7 +31,6 @@ export const NAV: NavItem[] = [
   // (auch Buchhaltung: Krankenstand/Urlaub). Legacy setzt den Tab unbedingt,
   // ohne Rollenprüfung (perl-installateur-web-app.html:1954).
   { path: '/time', label: 'Zeiterfassung', short: 'Zeit', icon: 'clock', roles: ALL, group: 'Außendienst' },
-  { path: '/voice', label: 'KI-Erfassung', short: 'KI', icon: 'mic', roles: ALL, group: 'Außendienst' },
   { path: '/order', label: 'Material bestellen', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst' },
   // Nur REINE Mitarbeiter — Admin/GF sehen alle Baustellen über die
   // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
@@ -57,6 +57,18 @@ export const NAV: NavItem[] = [
 
 export function navForRole(role: Role): NavItem[] {
   return NAV.filter((item) => item.roles.includes(role));
+}
+
+/**
+ * Die KI-Erfassung haengt am Schalter. Sie steht bewusst NICHT in NAV,
+ * sondern wird nur bei Bedarf eingefuegt — so kann keine Ansicht sie
+ * versehentlich mitzeigen.
+ */
+if (VOICE_ENABLED) {
+  NAV.splice(2, 0, {
+    path: '/voice', label: 'KI-Erfassung', short: 'KI', icon: 'mic',
+    roles: ALL, group: 'Außendienst',
+  });
 }
 
 /** Reihenfolge der Navigationsgruppen. */
