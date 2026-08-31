@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Assignment } from '@/types';
-import { queryTenant, type WithId } from './core';
+import { queryTenant, subscribeTenant, type WithId } from './core';
 
 const COLLECTION = 'assignments';
 
@@ -22,6 +22,35 @@ export function listAssignmentsForUser(companyId: string, uid: string) {
 /** Einsätze an einem Datum (Planungsansicht). */
 export function listAssignmentsForDate(companyId: string, date: string) {
   return queryTenant<Assignment>(COLLECTION, companyId, where('date', '==', date));
+}
+
+/**
+ * Alle Einsätze eines Monats, live.
+ *
+ * Der Kalender braucht den ganzen Monat auf einmal, sonst könnte er die
+ * belegten Tage nicht markieren. Der Bereichsfilter läuft über den
+ * Datums-STRING ('2026-08-01' … '2026-08-31'), was bei ISO-Datumsangaben
+ * derselben Länge zeichenweise dasselbe ist wie ein Datumsvergleich. Der
+ * zusammengesetzte Index (companyId, date) liegt bereits in
+ * firestore.indexes.json.
+ */
+export function subscribeAssignmentsForMonth(
+  companyId: string,
+  year: number,
+  month: number,
+  cb: (rows: WithId<Assignment>[]) => void,
+  onError: (e: Error) => void,
+): () => void {
+  const from = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const to = `${year}-${String(month + 1).padStart(2, '0')}-31`;
+  return subscribeTenant<Assignment>(
+    COLLECTION,
+    companyId,
+    cb,
+    onError,
+    where('date', '>=', from),
+    where('date', '<=', to),
+  );
 }
 
 export type AssignmentInput = Omit<Assignment, 'id' | 'companyId' | 'createdAt'>;
