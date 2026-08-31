@@ -3,9 +3,9 @@ import {
   query,
   where,
   getDocs,
-  addDoc,
   deleteDoc,
   doc,
+  writeBatch,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -59,6 +59,15 @@ export type AssignmentInput = Omit<Assignment, 'id' | 'companyId' | 'createdAt'>
  * Speichern = delete-then-recreate für das Paar (date, projectNumber)
  * (docs §4.4): alle bestehenden Einsätze dieses Paares löschen, dann je
  * gewähltem Mitarbeiter neu anlegen.
+ *
+ * Beides in EINEM Batch. Vorher waren es zwei getrennte Schritte: erst alle
+ * löschen, dann alle schreiben. Brach die Verbindung dazwischen ab — auf der
+ * Baustelle keine Seltenheit —, war der Tag für diese Baustelle leer, und
+ * niemand erfuhr davon. Ein Batch geht ganz durch oder gar nicht.
+ *
+ * Firestore erlaubt 500 Schreibvorgänge je Batch. Das reicht hier mit großem
+ * Abstand: Löschungen plus neue Einsätze bleiben in der Größenordnung der
+ * Belegschaft, nicht in Hunderten.
  */
 export async function saveAssignments(
   companyId: string,
@@ -74,12 +83,17 @@ export async function saveAssignments(
       where('projectNumber', '==', projectNumber),
     ),
   );
-  await Promise.all(existing.docs.map((d) => deleteDoc(d.ref)));
-  await Promise.all(
-    rows.map((r) =>
-      addDoc(collection(db, COLLECTION), { ...r, companyId, createdAt: serverTimestamp() }),
-    ),
-  );
+
+  const batch = writeBatch(db);
+  for (const d of existing.docs) batch.delete(d.ref);
+  for (const r of rows) {
+    batch.set(doc(collection(db, COLLECTION)), {
+      ...r,
+      companyId,
+      createdAt: serverTimestamp(),
+    });
+  }
+  await batch.commit();
 }
 
 export function deleteAssignment(id: string) {

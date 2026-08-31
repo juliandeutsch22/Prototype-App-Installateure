@@ -4,6 +4,9 @@ import {
   subscribeInvoices,
   nextInvoiceNumber,
   isInvoiceNumberTaken,
+  reserveInvoiceNumber,
+  highestInvoiceSeq,
+  invoiceSeqOf,
   createInvoice,
   updateInvoiceStatus,
   cancelInvoice,
@@ -50,6 +53,15 @@ export default function InvoicesView() {
   const [projectNumber, setProjectNumber] = useState('');
   const [preview, setPreview] = useState<AssembledInvoice | null>(null);
   const [invoiceNumber, setInvoiceNumber] = useState('');
+  /**
+   * Der zuletzt EINGESETZTE Vorschlag. Nur daran ist erkennbar, ob jemand die
+   * Nummer wirklich von Hand gesetzt hat. Ein beim Bestätigen frisch
+   * berechneter Vorschlag taugt dafür nicht: rechnet jemand parallel ab,
+   * wandert der Vorschlag weiter, und der unveränderte Wert im Feld sähe
+   * plötzlich wie eine Wunschnummer aus — die dann als vergeben abgelehnt
+   * würde.
+   */
+  const [suggestedNumber, setSuggestedNumber] = useState('');
   const [appendDetail, setAppendDetail] = useState(true);
   // Startwert sind die Sätze des Betriebs aus den Einstellungen; für den
   // Einzelfall lassen sie sich hier noch abweichend setzen.
@@ -102,6 +114,22 @@ export default function InvoicesView() {
 
   const numberTaken = invoiceNumber !== '' && isInvoiceNumberTaken(invoices, invoiceNumber);
 
+  /**
+   * Rechnet jemand parallel ab, ist der angezeigte Vorschlag im selben Moment
+   * überholt. Solange das Feld unangetastet ist, zieht es einfach nach —
+   * sonst stünde dort eine rote Meldung „bereits vergeben" über einer Nummer,
+   * die der Nutzer nie selbst gewählt hat, und der Knopf bliebe gesperrt.
+   */
+  useEffect(() => {
+    if (!preview || !suggestedNumber) return;
+    if (invoiceNumber.trim() !== suggestedNumber) return; // von Hand gesetzt
+    const aktuell = nextInvoiceNumber(invoices);
+    if (aktuell !== suggestedNumber) {
+      setSuggestedNumber(aktuell);
+      setInvoiceNumber(aktuell);
+    }
+  }, [invoices, preview, suggestedNumber, invoiceNumber]);
+
   /** Positionen zusammenstellen und zur Kontrolle anzeigen — noch nichts schreiben. */
   async function buildPreview() {
     if (!user || !projectNumber) return;
@@ -116,7 +144,9 @@ export default function InvoicesView() {
         return;
       }
       setPreview(assembled);
-      setInvoiceNumber(nextInvoiceNumber(invoices));
+      const vorschlag = nextInvoiceNumber(invoices);
+      setSuggestedNumber(vorschlag);
+      setInvoiceNumber(vorschlag);
     } catch {
       setError('Die Positionen konnten nicht geladen werden.');
     } finally {
@@ -135,12 +165,30 @@ export default function InvoicesView() {
       due.setDate(due.getDate() + rates.dueDays);
       const dueDate = localDateStr(due);
 
+      /**
+       * Nummer JETZT verbindlich ziehen, nicht schon beim Aufbau der Vorschau.
+       *
+       * Der Vorschlag im Feld stammt aus der Liste im Browser und kann
+       * veraltet sein, sobald jemand parallel abrechnet. Erst hier entscheidet
+       * eine Transaktion, und erst hier ist die Nummer verbraucht — bräche der
+       * Nutzer vorher ab, entstünde sonst eine Lücke im Nummernkreis.
+       *
+       * Weicht die Eingabe vom Vorschlag ab, hat jemand bewusst eine Nummer
+       * gesetzt; die geht mit als Wunsch in die Transaktion.
+       */
+      const typedSeq = invoiceSeqOf(invoiceNumber);
+      const vonHand = invoiceNumber.trim() !== suggestedNumber && typedSeq != null;
+      const reserved = await reserveInvoiceNumber(user.companyId, {
+        seedFrom: highestInvoiceSeq(invoices),
+        desired: vonHand ? typedSeq : undefined,
+      });
+
       // Belege ZUERST sperren: bricht es danach ab, ist schlimmstenfalls eine
       // Rechnung offen — nicht aber ein Beleg doppelt verrechenbar.
-      await markBilled('timeEntries', preview.linkedEntries, invoiceNumber);
+      await markBilled('timeEntries', preview.linkedEntries, reserved);
 
       await createInvoice(user.companyId, {
-        invoiceNumber,
+        invoiceNumber: reserved,
         projectNumber,
         customerName: project?.customerName ?? '–',
         address: project?.address ?? '',
@@ -163,7 +211,7 @@ export default function InvoicesView() {
           address: project?.address,
           projectNumber,
         },
-        invoiceNumber,
+        invoiceNumber: reserved,
         invoiceDate,
         dueDate,
         assembled: preview,
@@ -173,10 +221,14 @@ export default function InvoicesView() {
 
       setPreview(null);
       setProjectNumber('');
-      toast.success(`Rechnung ${invoiceNumber} erstellt`);
-    } catch {
+      toast.success(`Rechnung ${reserved} erstellt`);
+    } catch (e) {
+      // Die Nummernvergabe sagt genau, welche Nummer belegt ist und welche
+      // frei wäre — diese Auskunft ist mehr wert als ein Sammelsatz.
       setError(
-        'Die Rechnung konnte nicht vollständig erstellt werden. Bitte die Liste prüfen, bevor du es erneut versuchst.',
+        e instanceof Error && e.message.includes('bereits vergeben')
+          ? e.message
+          : 'Die Rechnung konnte nicht vollständig erstellt werden. Bitte die Liste prüfen, bevor du es erneut versuchst.',
       );
     } finally {
       setBusy(false);

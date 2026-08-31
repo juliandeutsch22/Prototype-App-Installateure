@@ -15,6 +15,12 @@ export default function ConfirmDialog({
   title,
   message,
   confirmLabel = 'Löschen',
+  /**
+   * Rot ist die Ausnahme, nicht die Regel. Eine Bestellung abzuschließen ist
+   * ein normaler Arbeitsschritt — steht dort ein roter Knopf, gewöhnt sich
+   * der Nutzer an Rot und übersieht es beim echten Löschen.
+   */
+  confirmTone = 'danger',
   onConfirm,
   onCancel,
   children,
@@ -23,6 +29,7 @@ export default function ConfirmDialog({
   title: string;
   message?: string;
   confirmLabel?: string;
+  confirmTone?: 'danger' | 'primary';
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
   /** Zusätzliche Eingaben, z. B. ein Grund für die Aktion. */
@@ -84,7 +91,7 @@ export default function ConfirmDialog({
           <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
             Abbrechen
           </Button>
-          <Button variant="danger" onClick={handleConfirm} loading={busy}>
+          <Button variant={confirmTone} onClick={handleConfirm} loading={busy}>
             {confirmLabel}
           </Button>
         </div>

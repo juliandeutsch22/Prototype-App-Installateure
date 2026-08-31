@@ -205,6 +205,36 @@ service cloud.firestore {
       allow delete: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']) && ownsExisting();
     }
 
+    // --- counters: fortlaufende Nummernkreise, einer je Firma ---
+    //
+    // Hier liegt der Rechnungszähler. Er darf nur steigen: eine Nummer, die
+    // einmal vergeben wurde, darf nie ein zweites Mal herauskommen, sonst
+    // trägt der Betrieb zwei Rechnungen mit derselben Nummer in den Büchern.
+    // Löschen ist deshalb ausgeschlossen — ein neu angelegter Zähler begänne
+    // wieder von vorne.
+    match /counters/{id} {
+      // Der Mandant steckt in der Dokument-ID, nicht (nur) im Feld. Das ist
+      // hier entscheidend: beim allerersten Zugriff existiert der Zähler noch
+      // nicht, `resource` ist null, und eine Prüfung auf
+      // resource.data.companyId würde die Regel scheitern lassen — der erste
+      // Rechnungslauf eines Betriebs wäre dauerhaft gesperrt.
+      function ownCounter() {
+        return signedIn() && id == tokenCompany() + '_invoices';
+      }
+      function billing() {
+        return hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']);
+      }
+
+      allow read: if ownCounter() && billing();
+      allow create: if ownCounter() && billing() && ownsIncoming()
+        && request.resource.data.lastSeq is int
+        && request.resource.data.lastSeq > 0;
+      allow update: if ownCounter() && billing() && ownsIncoming() && companyUnchanged()
+        && request.resource.data.lastSeq is int
+        && request.resource.data.lastSeq > resource.data.lastSeq;
+      allow delete: if false;
+    }
+
     // Standard: alles andere verboten.
     match /{document=**} {
       allow read, write: if false;

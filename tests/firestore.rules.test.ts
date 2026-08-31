@@ -465,3 +465,75 @@ describe('Administratoren verwaltet nur ein Administrator', () => {
     );
   });
 });
+
+describe('Rechnungszaehler — monoton und nur fuer Abrechnende', () => {
+  /**
+   * Der Zaehler ist die einzige Stelle, an der eine Rechnungsnummer entsteht.
+   * Faellt seine Monotonie, entstehen zwei Rechnungen mit derselben Nummer.
+   */
+  async function seedCounter(seq: number) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'counters', 'companyA_invoices'), {
+        companyId: 'companyA', lastSeq: seq, year: 2026,
+      });
+    });
+  }
+
+  it('Buchhaltung darf den Zaehler anlegen und hochzaehlen', async () => {
+    const db = testEnv
+      .authenticatedContext('buchA', { companyId: 'companyA', role: 'Buchhaltung' })
+      .firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'counters', 'companyA_invoices'), {
+        companyId: 'companyA', lastSeq: 1001, year: 2026,
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(db, 'counters', 'companyA_invoices'), {
+        companyId: 'companyA', lastSeq: 1002, year: 2026,
+      }),
+    );
+  });
+
+  it('der Zaehler darf NICHT zurueckgesetzt werden', async () => {
+    // Sonst kaeme eine bereits vergebene Nummer ein zweites Mal heraus.
+    await seedCounter(1005);
+    const db = ctxA_gf().firestore();
+    await assertFails(
+      setDoc(doc(db, 'counters', 'companyA_invoices'), {
+        companyId: 'companyA', lastSeq: 1004, year: 2026,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, 'counters', 'companyA_invoices'), {
+        companyId: 'companyA', lastSeq: 1005, year: 2026,
+      }),
+    );
+  });
+
+  it('der Zaehler darf nicht geloescht werden', async () => {
+    // Ein neu angelegter Zaehler begaenne wieder von vorne.
+    await seedCounter(1005);
+    await assertFails(deleteDoc(doc(ctxA_admin().firestore(), 'counters', 'companyA_invoices')));
+  });
+
+  it('ein Monteur kommt an den Zaehler nicht heran', async () => {
+    await seedCounter(1005);
+    const db = ctxA_employee().firestore();
+    await assertFails(getDoc(doc(db, 'counters', 'companyA_invoices')));
+    await assertFails(
+      setDoc(doc(db, 'counters', 'companyA_invoices'), {
+        companyId: 'companyA', lastSeq: 9999, year: 2026,
+      }),
+    );
+  });
+
+  it('eine fremde Firma kommt an den Zaehler nicht heran', async () => {
+    await seedCounter(1005);
+    const db = ctxB_admin().firestore();
+    await assertFails(getDoc(doc(db, 'counters', 'companyA_invoices')));
+    await assertFails(
+      updateDoc(doc(db, 'counters', 'companyA_invoices'), { lastSeq: 2000 }),
+    );
+  });
+});

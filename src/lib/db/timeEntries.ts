@@ -35,6 +35,52 @@ export function subscribeAllEntries(
   return subscribeTenant<TimeEntry>(COLLECTION, companyId, cb, onError);
 }
 
+/**
+ * Einträge eines Zeitraums, live — für die Mitarbeiterübersicht.
+ *
+ * Vorher lief dort `subscribeAllEntries`: alle Zeiteinträge des Betriebs seit
+ * Einführung, im Browser auf den Monat gefiltert. Bei zwanzig Monteuren sind
+ * das nach fünf Jahren über zwanzigtausend Dokumente je Seitenaufruf —
+ * langsam, und weil Firestore je gelesenem Dokument abrechnet, unnötig teuer.
+ *
+ * Der Zeitraum ist ein Jahr, nicht ein Monat: der Resturlaub zählt die
+ * Urlaubstage des ganzen Jahres, sonst stünde dort für jeden Monat der volle
+ * Anspruch. Der Vergleich läuft über den Datums-STRING, was bei ISO-Angaben
+ * gleicher Länge zeichenweise dasselbe ist wie ein Datumsvergleich.
+ */
+export function subscribeEntriesInRange(
+  companyId: string,
+  from: string,
+  to: string,
+  cb: (rows: WithId<TimeEntry>[]) => void,
+  onError: (e: Error) => void,
+) {
+  return subscribeTenant<TimeEntry>(
+    COLLECTION,
+    companyId,
+    cb,
+    onError,
+    where('date', '>=', from),
+    where('date', '<=', to),
+  );
+}
+
+/**
+ * Einträge eines Zeitraums, einmalig geladen.
+ *
+ * Für die Zeitraum-Exporte: die Ansicht hält nur das angezeigte Jahr, ein
+ * Stundennachweis darf aber über den Jahreswechsel gehen. Würde er aus der
+ * geladenen Liste gefiltert, fehlte der Dezember im PDF — ohne Hinweis.
+ */
+export function listEntriesInRange(companyId: string, from: string, to: string) {
+  return queryTenant<TimeEntry>(
+    COLLECTION,
+    companyId,
+    where('date', '>=', from),
+    where('date', '<=', to),
+  );
+}
+
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'companyId' | 'createdAt'>;
 
 /**

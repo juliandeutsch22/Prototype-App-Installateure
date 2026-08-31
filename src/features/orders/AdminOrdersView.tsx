@@ -210,6 +210,8 @@ export default function AdminOrdersView() {
       <ConfirmDialog
         open={!!toComplete}
         title="Bestellung abschließen?"
+        confirmLabel="Abschließen"
+        confirmTone="primary"
         message={
           toComplete
             ? `„${toComplete.materialName}" ×${toComplete.quantity} wird als erledigt gebucht und vom Lagerbestand abgezogen.`

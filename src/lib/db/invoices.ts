@@ -4,11 +4,25 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  runTransaction,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Invoice } from '@/types';
 import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from './core';
+import { decideInvoiceSeq, formatInvoiceNumber } from '@/lib/invoiceNumbers';
+
+// Die reinen Rechenregeln liegen in lib/invoiceNumbers — ohne Firestore und
+// damit ohne Emulator prüfbar. Hier durchgereicht, damit die Aufrufer wie
+// bisher aus einem Modul importieren.
+export {
+  nextInvoiceNumber,
+  isInvoiceNumberTaken,
+  highestInvoiceSeq,
+  invoiceSeqOf,
+  formatInvoiceNumber,
+  decideInvoiceSeq,
+} from '@/lib/invoiceNumbers';
 
 const COLLECTION = 'invoices';
 
@@ -25,30 +39,50 @@ export function subscribeInvoices(
   return subscribeTenant<Invoice>(COLLECTION, companyId, cb, onError);
 }
 
-/** Nächste Rechnungsnummer RE-YYYY-NNNN aus bestehenden ableiten (max+1). */
 /**
- * Nächste freie Rechnungsnummer im Format RE-JJJJ-NNNN.
+ * Reserviert eine Rechnungsnummer verbindlich, in einer Transaktion.
  *
- * Startet bei 1001, sofern noch nichts existiert — läuft aber NICHT auf 1000
- * hoch, wenn ein Betrieb bereits einen niedrigeren Nummernkreis nutzt: sonst
- * entstünden Lücken in der fortlaufenden Nummerierung, die steuerlich
- * begründet werden müssten.
+ * Vorher wurde die Nummer aus der Liste im Browser abgeleitet (max + 1).
+ * Rechneten Buchhaltung und Geschäftsführung im selben Moment ab, bekamen
+ * beide dieselbe Nummer — bei fortlaufender Nummerierung kein
+ * Schönheitsfehler, sondern ein Fall für den Steuerberater.
+ *
+ * Der Zähler liegt in `counters/{companyId}_invoices` und ist monoton: er
+ * geht nie zurück, auch nicht, wenn jemand von Hand eine höhere Nummer
+ * vergibt. `desired` bildet genau diesen Fall ab — ein Betrieb, der seinen
+ * bestehenden Nummernkreis fortführt. Eine bereits verbrauchte Nummer lehnt
+ * die Transaktion ab, statt sie ein zweites Mal auszugeben. Dieselbe Grenze
+ * steht in firestore.rules, damit sie auch am Client vorbei gilt.
+ *
+ * `seedFrom` ist die höchste Nummer aus den vorhandenen Rechnungen. Sie zählt
+ * nur beim allerersten Aufruf, wenn es den Zähler noch nicht gibt: ohne sie
+ * würde ein Betrieb mit Altbestand wieder bei 1001 anfangen.
  */
-export function nextInvoiceNumber(existing: Invoice[]): string {
+export async function reserveInvoiceNumber(
+  companyId: string,
+  opts: { seedFrom: number; desired?: number },
+): Promise<string> {
+  const ref = doc(db, 'counters', `${companyId}_invoices`);
   const year = new Date().getFullYear();
-  let max = 0;
-  for (const inv of existing) {
-    const m = /(\d+)$/.exec(inv.invoiceNumber ?? '');
-    if (m) max = Math.max(max, Number(m[1]));
-  }
-  const next = max > 0 ? max + 1 : 1001;
-  return `RE-${year}-${String(next).padStart(4, '0')}`;
-}
 
-/** Prüft, ob eine Nummer bereits vergeben ist (Stornos zählen mit). */
-export function isInvoiceNumberTaken(existing: Invoice[], number: string, exceptId?: string) {
-  const n = number.trim().toLowerCase();
-  return existing.some((i) => i.invoiceNumber?.toLowerCase() === n && i.id !== exceptId);
+  return runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    // Ohne Zähler zählt der Altbestand; ohne Altbestand ist gar nichts
+    // vergeben. Der Sprung auf 1001 passiert nur im zweiten Fall — ein
+    // Betrieb, der bei 500 steht, führt seinen Kreis bei 501 fort.
+    const last = snap.exists()
+      ? Number((snap.data() as { lastSeq?: number }).lastSeq ?? 0)
+      : Math.max(opts.seedFrom, 0);
+
+    const seq = decideInvoiceSeq(last, opts.desired, year);
+
+    tx.set(
+      ref,
+      { companyId, lastSeq: seq, year, updatedAt: serverTimestamp() },
+      { merge: true },
+    );
+    return formatInvoiceNumber(seq, year);
+  });
 }
 
 /**

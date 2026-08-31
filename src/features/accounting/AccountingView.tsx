@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listUsers } from '@/lib/db/users';
 import { listAllProjects } from '@/lib/db/projects';
-import { subscribeAllEntries, deleteTimeEntry } from '@/lib/db/timeEntries';
+import {
+  subscribeEntriesInRange,
+  listEntriesInRange,
+  deleteTimeEntry,
+} from '@/lib/db/timeEntries';
 import {
   calcMonthStats,
   calcCompleteness,
@@ -123,8 +127,18 @@ export default function AccountingView() {
     if (!user) return;
     listUsers(user.companyId).then(setUsers).catch((e) => setError(e.message));
     listAllProjects(user.companyId).then(setProjects).catch(() => undefined);
-    const unsub = subscribeAllEntries(
+  }, [user]);
+
+  // Nur das angezeigte Jahr, nicht die gesamte Betriebsgeschichte. Das Jahr
+  // (nicht der Monat) deshalb, weil der Resturlaub die Urlaubstage des ganzen
+  // Jahres zählt.
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    return subscribeEntriesInRange(
       user.companyId,
+      `${year}-01-01`,
+      `${year}-12-31`,
       (rows) => {
         setEntries(rows);
         setLoading(false);
@@ -134,8 +148,7 @@ export default function AccountingView() {
         setLoading(false);
       },
     );
-    return unsub;
-  }, [user]);
+  }, [user, year]);
 
   // Deaktivierte Mitarbeiter fallen aus der Auswertung (Legacy:5407).
   const relevant = useMemo(
@@ -183,8 +196,15 @@ export default function AccountingView() {
     toast.success(`CSV für ${u.name} heruntergeladen`);
   }
 
-  function exportPdf(u: AppUser, from: string, to: string) {
-    const range = entriesInRange(entries, u.uid, from, to);
+  async function exportPdf(u: AppUser, from: string, to: string) {
+    // Frisch aus der Datenbank statt aus der Ansicht: der gewählte Zeitraum
+    // kann über das geladene Jahr hinausreichen.
+    const range = entriesInRange(
+      await listEntriesInRange(user!.companyId, from, to),
+      u.uid,
+      from,
+      to,
+    );
     if (range.length === 0) throw new Error('Keine Einträge im gewählten Zeitraum.');
     const doc = generateHoursPdf({
       company: company ?? ({ id: '', name: 'Firma' } as NonNullable<typeof company>),
@@ -197,8 +217,13 @@ export default function AccountingView() {
     toast.success('Stundennachweis erstellt');
   }
 
-  function exportProjectCsv(u: AppUser, from: string, to: string) {
-    const range = entriesInRange(entries, u.uid, from, to);
+  async function exportProjectCsv(u: AppUser, from: string, to: string) {
+    const range = entriesInRange(
+      await listEntriesInRange(user!.companyId, from, to),
+      u.uid,
+      from,
+      to,
+    );
     const withProject = range.filter((e) => e.status === 'Anwesend' && e.projectNumber);
     if (withProject.length === 0) throw new Error('Keine Projekteinträge im gewählten Zeitraum.');
     downloadCsv(buildUserProjectCsv(u, range, from, to), userProjectCsvFilename(u, from, to));
