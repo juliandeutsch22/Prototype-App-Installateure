@@ -15,12 +15,22 @@ export function ListRow({
   children?: ReactNode; // rechte Seite (Status, Aktionen)
 }) {
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 py-3">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 font-medium text-ink">{title}</div>
+    <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3">
+      {/* min-w-0 UND flex-1: ohne min-w-0 weigert sich ein Flex-Kind zu
+          schrumpfen, ein langer Kundenname sprengt dann die Zeile. */}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2 font-medium text-ink">{title}</div>
         {subtitle && <p className="mt-0.5 text-sm text-ink-muted">{subtitle}</p>}
       </div>
-      {children && <div className="flex items-center gap-2">{children}</div>}
+      {/* Auch die Aktionen umbrechen. Vorher standen sie in einer starren
+          Reihe: drei Textknöpfe passen auf 390 px nicht nebeneinander, und
+          weil die Karte overflow-hidden trägt, war „Deaktivieren" schlicht
+          abgeschnitten — nicht scrollbar, sondern weg. */}
+      {children && (
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1">
+          {children}
+        </div>
+      )}
     </li>
   );
 }
