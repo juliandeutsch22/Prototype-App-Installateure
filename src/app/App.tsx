@@ -12,6 +12,7 @@ import OrderView from '@/features/orders/OrderView';
 import AdminOrdersView from '@/features/orders/AdminOrdersView';
 import StockView from '@/features/orders/StockView';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
+import CustomersView from '@/features/customers/CustomersView';
 import MyProjectsView from '@/features/projects/MyProjectsView';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
 import MyScheduleView from '@/features/assignments/MyScheduleView';
@@ -94,6 +95,16 @@ function AppRoutes() {
       />
 
       {/* Verwaltung */}
+      <Route
+        path="/customers"
+        element={
+          <RequireRole
+            roles={['Buchhaltung', 'Verwaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
+          >
+            <CustomersView />
+          </RequireRole>
+        }
+      />
       <Route
         path="/admin-projects"
         element={

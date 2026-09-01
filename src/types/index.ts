@@ -143,10 +143,58 @@ export interface UserPrefs {
 }
 
 /** projects/{id} — verknüpft über `projectNumber`. */
+/**
+ * Ein Kunde — wer beauftragt und wer bezahlt.
+ *
+ * Bis hierher gab es ihn nicht: der Kunde war ein Textfeld an der Baustelle
+ * und wurde bei jedem Auftrag neu getippt. Die Folgen sind strukturell, nicht
+ * kosmetisch — keine Kundenhistorie („was haben wir dort zuletzt gemacht?"),
+ * ein Tippfehler spaltet denselben Kunden in zwei, kein Wartungsvertrag, kein
+ * Mahnwesen auf Kundenebene. Für ein Gewerk, das von wiederkehrender
+ * Kundschaft lebt, ist das die teuerste Lücke.
+ *
+ * ABGRENZUNG ZUR BAUSTELLE, und die ist wichtig: Hier steht die
+ * RECHNUNGSadresse und der HAUPT-Ansprechpartner. Die Baustelle behält ihre
+ * eigene Adresse und ihren eigenen Ansprechpartner vor Ort — eine
+ * Hausverwaltung kann zwanzig Baustellen haben, und der Monteur fährt nicht
+ * zur Rechnungsadresse. Das ist keine Dopplung, sondern zweierlei.
+ */
+export interface Customer {
+  id: string;
+  companyId: string;
+  /** Firmenname oder „Familie Huber". */
+  name: string;
+  /** Rechnungsadresse — NICHT die Baustellenadresse. */
+  address?: string;
+  contactName?: string;
+  contactPhone?: string;
+  /** Für den späteren Versand von Handwerksscheinen und Rechnungen. */
+  email?: string;
+  /** UID-Nummer für Rechnungen an Unternehmen. */
+  vatId?: string;
+  notes?: string;
+  active?: boolean;
+  createdAt?: number;
+}
+
 export interface Project {
   id: string;
   companyId: string;
   projectNumber: string; // Geschäftsschlüssel, z. B. "2024-001"
+  /**
+   * Verknüpfter Kunde. Optional, weil Baustellen aus der Zeit vor den
+   * Kundenstammdaten keinen haben — sie tragen den Namen weiterhin nur als
+   * Text und lassen sich in der Kundenverwaltung nachträglich zuordnen.
+   */
+  customerId?: string;
+  /**
+   * Kundenname als Kopie.
+   *
+   * Bewusst redundant: die Baustellenlisten zeigen den Namen und sollen dafür
+   * nicht zusätzlich die Kundensammlung laden müssen. Wird ein Kunde
+   * umbenannt, ziehen die verknüpften Baustellen im selben Schreibvorgang
+   * nach — sonst liefen Anzeige und Stammdaten auseinander.
+   */
   customerName: string;
   address?: string;
   description?: string;

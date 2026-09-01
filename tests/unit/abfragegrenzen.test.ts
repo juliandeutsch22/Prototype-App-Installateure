@@ -59,6 +59,9 @@ const GRENZ_MUSTER = [
   /where\(\s*'paymentStatus'\s*,/,
   /where\(\s*'projectNumber'\s*,/,
   /where\(\s*'assignedEmployees'\s*,/,
+  // Eine `in`-Abfrage auf die Dokument-Id ist von Firestore selbst auf
+  // hoechstens 30 Werte begrenzt — enger geht es nicht.
+  /where\(\s*'__name__'\s*,\s*'in'/,
 ];
 
 interface Abfrage {

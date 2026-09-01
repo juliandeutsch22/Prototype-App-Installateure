@@ -187,6 +187,23 @@ service cloud.firestore {
             || isBuchOrTop());
     }
 
+    // --- customers: Kundenstammdaten ---
+    //
+    // Lesen darf das ganze Büro: die Buchhaltung braucht die Rechnungsadresse,
+    // die Verwaltung den Ansprechpartner. Auch der Monteur — er sieht auf
+    // seiner Baustelle ohnehin Namen und Telefonnummer und würde sonst nur
+    // eine leere Zeile vorfinden.
+    //
+    // Ändern darf nur die Leitung. Eine geänderte Rechnungsadresse landet auf
+    // der nächsten Rechnung; das ist keine Nebensächlichkeit.
+    match /customers/{id} {
+      allow read: if ownsExisting();
+      allow create: if isLeadership() && ownsIncoming();
+      allow update: if isLeadership() && ownsExisting() && ownsIncoming()
+        && companyUnchanged();
+      allow delete: if isLeadership() && ownsExisting();
+    }
+
     // --- monthlyStats / monthlyStatsMeta: verdichtete Zeitkonten ---
     //
     // NUR LESEN, und zwar unter derselben Grenze wie die Zeiteinträge selbst:
