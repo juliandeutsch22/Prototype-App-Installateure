@@ -2,10 +2,11 @@ import { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
+import { listApprovedVacationsInRange } from '@/lib/db/vacations';
 import { subscribeAssignmentsForMonth, saveAssignments, deleteAssignment } from '@/lib/db/assignments';
 import { todayStr, getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Project, AppUser, Assignment } from '@/types';
+import type { Project, AppUser, Assignment, Vacation } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -58,6 +59,7 @@ export default function AssignmentsView() {
   const [picks, setPicks] = useState<Record<string, Pick>>({});
   const [comment, setComment] = useState('');
   const [monthAssignments, setMonthAssignments] = useState<WithId<Assignment>[]>([]);
+  const [urlaube, setUrlaube] = useState<WithId<Vacation>[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Assignment> | null>(null);
@@ -67,6 +69,38 @@ export default function AssignmentsView() {
     listActiveProjects(user.companyId).then(setProjects).catch(() => undefined);
     listUsers(user.companyId).then(setUsers).catch(() => undefined);
   }, [user]);
+
+  /**
+   * Der genehmigte Urlaub des angezeigten Monats.
+   *
+   * ER GEHÖRT HIERHER, nicht in eine eigene Ansicht. Ein Urlaub, der erst am
+   * Einsatztag auffällt, ist doppelte Arbeit für alle: die Baustelle steht,
+   * jemand muss umplanen, und der Monteur bekommt einen Anruf im Urlaub. Wer
+   * einteilt, muss ihn sehen, bevor er den Haken setzt.
+   *
+   * Nur der GENEHMIGTE. Ein beantragter Urlaub ist noch keiner, und ihn hier
+   * schon als Abwesenheit zu zeigen hieße, die Entscheidung vorwegzunehmen.
+   */
+  useEffect(() => {
+    if (!user) return;
+    const letzter = new Date(cursor.year, cursor.month + 1, 0).getDate();
+    const prefix = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}`;
+    let verworfen = false;
+    listApprovedVacationsInRange(
+      user.companyId,
+      `${prefix}-01`,
+      `${prefix}-${String(letzter).padStart(2, '0')}`,
+    )
+      .then((rows) => {
+        if (!verworfen) setUrlaube(rows);
+      })
+      .catch(() => {
+        if (!verworfen) setUrlaube([]);
+      });
+    return () => {
+      verworfen = true;
+    };
+  }, [user, cursor.year, cursor.month]);
 
   /**
    * Der ganze Monat, live. Live ist hier kein Luxus: nach dem Speichern
@@ -153,7 +187,28 @@ export default function AssignmentsView() {
     return m;
   }, [dayAssignments, projectNumber, projects]);
 
+  /** Wer am GEWÄHLTEN Tag im genehmigten Urlaub ist — uid -> Name. */
+  const imUrlaub = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const v of urlaube) {
+      if (v.von <= date && v.bis >= date) m.set(v.userId, v.userName);
+    }
+    return m;
+  }, [urlaube, date]);
+
   const selectedCount = Object.values(picks).filter((p) => p.on).length;
+  /**
+   * Jemanden im Urlaub einzuteilen ist kein Fehler des Programms, sondern
+   * fast immer ein Versehen. Verboten wird es nicht — bei einem Notdienst
+   * holt man auch mal jemanden aus dem Urlaub — aber es steht dann dabei.
+   */
+  const verplanteUrlauber = useMemo(
+    () =>
+      Object.entries(picks)
+        .filter(([uid, p]) => p.on && imUrlaub.has(uid))
+        .map(([uid]) => imUrlaub.get(uid) as string),
+    [picks, imUrlaub],
+  );
   const existingForProject = dayAssignments.filter((a) => a.projectNumber === projectNumber);
   const holiday = getAustrianHolidayName(new Date(`${date}T00:00:00`));
   const weekend = isWeekend(new Date(`${date}T00:00:00`));
@@ -260,6 +315,17 @@ export default function AssignmentsView() {
             )}
 
             {/*
+              Wer an diesem Tag im Urlaub ist — VOR der Auswahlliste, nicht
+              hinterher. Diese Zeile ist der Grund, warum der Urlaub überhaupt
+              in dieser Ansicht auftaucht.
+            */}
+            {imUrlaub.size > 0 && (
+              <p className="mt-3 rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
+                <strong>Im Urlaub an diesem Tag:</strong> {[...imUrlaub.values()].join(', ')}
+              </p>
+            )}
+
+            {/*
               Ausdrücklich sagen, dass Mehrfach-Einteilung geht. Das Formular
               speichert je Paar aus Tag und Baustelle; wer das nicht weiß,
               vermutet hinter dem Speichern ein Überschreiben des ganzen Tages.
@@ -288,12 +354,16 @@ export default function AssignmentsView() {
                 idPrefix="assign"
                 people={staff.map((u) => {
                   const andere = schonVerplant.get(u.uid);
+                  // Der Urlaub zuerst: er ist der Grund, jemanden GAR NICHT
+                  // einzuteilen. Eine zweite Baustelle ist nur eine Warnung.
+                  const hinweise = [
+                    imUrlaub.has(u.uid) ? 'im Urlaub' : null,
+                    andere?.length ? `heute schon eingeteilt: ${andere.join(', ')}` : null,
+                  ].filter(Boolean);
                   return {
                     uid: u.uid,
                     name: u.name,
-                    hint: andere?.length
-                      ? `heute schon eingeteilt: ${andere.join(', ')}`
-                      : undefined,
+                    hint: hinweise.length > 0 ? hinweise.join(' · ') : undefined,
                   };
                 })}
                 selected={staff.filter((u) => picks[u.uid]?.on).map((u) => u.uid)}
@@ -328,6 +398,18 @@ export default function AssignmentsView() {
                 Einsatz speichern
               </Button>
             </div>
+            {/*
+              Nicht verbieten, sondern sagen. Bei einem Notdienst holt man auch
+              mal jemanden aus dem Urlaub; eine Sperre stünde dann im Weg. Ein
+              stilles Durchwinken wäre aber genauso falsch.
+            */}
+            {verplanteUrlauber.length > 0 && (
+              <p className="mt-2 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+                <strong>{verplanteUrlauber.join(', ')}</strong>{' '}
+                {verplanteUrlauber.length === 1 ? 'ist' : 'sind'} an diesem Tag im genehmigten
+                Urlaub. Das Einteilen geht trotzdem — gemeint ist es meistens nicht.
+              </p>
+            )}
           </Card>
 
           <Card title={`Einsätze am ${fmtDay(date)}`}>

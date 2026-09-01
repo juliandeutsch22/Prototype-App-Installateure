@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { RequireAuth, RequireRole } from './guards';
+import { ROLES } from '@/types';
 import ErrorBoundary from './ErrorBoundary';
 import Layout from './Layout';
 import LoginPage from '@/features/auth/LoginPage';
@@ -16,6 +17,7 @@ import CustomersView from '@/features/customers/CustomersView';
 import QuotesView from '@/features/quotes/QuotesView';
 import NachkalkulationView from '@/features/costing/NachkalkulationView';
 import WorkSheetView from '@/features/worksheets/WorkSheetView';
+import VacationsView from '@/features/vacations/VacationsView';
 import WorkSheetsListView from '@/features/worksheets/WorkSheetsListView';
 import MyProjectsView from '@/features/projects/MyProjectsView';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
@@ -86,6 +88,19 @@ function AppRoutes() {
         element={
           <RequireRole roles={['Mitarbeiter']}>
             <MyScheduleView />
+          </RequireRole>
+        }
+      />
+      {/*
+        Urlaub beantragen darf jede Rolle — auch Buchhaltung und Verwaltung
+        nehmen Urlaub. Wer entscheiden darf, entscheidet die Ansicht selbst
+        anhand der Rolle; die harte Grenze steht in firestore.rules.
+      */}
+      <Route
+        path="/vacations"
+        element={
+          <RequireRole roles={ROLES}>
+            <VacationsView />
           </RequireRole>
         }
       />

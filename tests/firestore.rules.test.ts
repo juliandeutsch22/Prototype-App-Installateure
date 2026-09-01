@@ -537,3 +537,111 @@ describe('Rechnungszaehler — monoton und nur fuer Abrechnende', () => {
     );
   });
 });
+
+/**
+ * Urlaubsanträge.
+ *
+ * Die entscheidende Grenze ist, WER GENEHMIGT. Stünde sie nur in der
+ * Oberfläche, könnte sich jeder Monteur seinen Urlaub per Konsole selbst
+ * genehmigen — und weil eine Genehmigung die Urlaubstage ins Zeitkonto
+ * schreibt, wäre das zugleich ein Weg, sich bezahlte Tage zu verschaffen.
+ */
+describe('Urlaub — beantragen darf jeder, entscheiden nicht', () => {
+  const ANTRAG = {
+    companyId: 'companyA',
+    userId: 'userA1',
+    userName: 'Monteur A',
+    von: '2026-07-06',
+    bis: '2026-07-10',
+    tage: 5,
+    status: 'Beantragt',
+  };
+
+  async function seedAntrag(extra: Record<string, unknown> = {}) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'vacations', 'uA'), { ...ANTRAG, ...extra });
+    });
+  }
+
+  it('ein Monteur stellt einen Antrag fuer sich selbst', async () => {
+    const db = ctxA_employee().firestore();
+    await assertSucceeds(setDoc(doc(db, 'vacations', 'neu1'), ANTRAG));
+  });
+
+  it('aber nicht fuer jemand anderen', async () => {
+    // Sonst koennte man einem Kollegen Urlaub eintragen, den er nie wollte.
+    const db = ctxA_employee().firestore();
+    await assertFails(
+      setDoc(doc(db, 'vacations', 'neu2'), { ...ANTRAG, userId: 'userA2' }),
+    );
+  });
+
+  it('und nicht gleich als genehmigt', async () => {
+    const db = ctxA_employee().firestore();
+    await assertFails(
+      setDoc(doc(db, 'vacations', 'neu3'), { ...ANTRAG, status: 'Genehmigt' }),
+    );
+  });
+
+  it('ein Monteur genehmigt seinen eigenen Urlaub NICHT', async () => {
+    /**
+     * Der Kern der ganzen Regel. Eine Genehmigung schreibt bezahlte Tage ins
+     * Zeitkonto — sie selbst zu setzen waere bare Muenze.
+     */
+    await seedAntrag();
+    const db = ctxA_employee().firestore();
+    await assertFails(updateDoc(doc(db, 'vacations', 'uA'), { status: 'Genehmigt' }));
+  });
+
+  it('ein Monteur darf seinen offenen Antrag noch aendern', async () => {
+    await seedAntrag();
+    const db = ctxA_employee().firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'vacations', 'uA'), { bis: '2026-07-09', tage: 4 }),
+    );
+  });
+
+  it('aber nicht mehr, nachdem entschieden wurde', async () => {
+    // Sonst waere „aendern" die Hintertuer zu einem laengeren Urlaub.
+    await seedAntrag({ status: 'Genehmigt' });
+    const db = ctxA_employee().firestore();
+    await assertFails(updateDoc(doc(db, 'vacations', 'uA'), { bis: '2026-07-31', tage: 20 }));
+  });
+
+  it('die Geschaeftsfuehrung genehmigt', async () => {
+    await seedAntrag();
+    const db = ctxA_gf().firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'vacations', 'uA'), {
+        status: 'Genehmigt',
+        entschiedenVonUid: 'gfA',
+      }),
+    );
+  });
+
+  it('die Projektleitung SIEHT den Urlaub, entscheidet aber nicht', async () => {
+    /**
+     * Sehen muss sie ihn: wer den Urlaub eines Monteurs beim Einteilen nicht
+     * sieht, plant ihn ein. Entscheiden ist Sache von Geschaeftsfuehrung,
+     * Administration und Buchhaltung.
+     */
+    await seedAntrag();
+    const db = ctxA_pl().firestore();
+    await assertSucceeds(getDoc(doc(db, 'vacations', 'uA')));
+    await assertFails(updateDoc(doc(db, 'vacations', 'uA'), { status: 'Genehmigt' }));
+  });
+
+  it('ein entschiedener Antrag wird nicht geloescht', async () => {
+    // Er ist der Nachweis, dass entschieden wurde. Zurueckgenommen wird ueber
+    // den Status „Storniert".
+    await seedAntrag({ status: 'Genehmigt' });
+    const db = ctxA_employee().firestore();
+    await assertFails(deleteDoc(doc(db, 'vacations', 'uA')));
+  });
+
+  it('eine fremde Firma sieht den Antrag nicht', async () => {
+    await seedAntrag();
+    const db = ctxB_admin().firestore();
+    await assertFails(getDoc(doc(db, 'vacations', 'uA')));
+  });
+});
