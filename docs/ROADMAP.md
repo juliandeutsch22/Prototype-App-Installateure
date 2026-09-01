@@ -86,6 +86,47 @@ Anspruch aus den Stammdaten (`yearlyVacationDays`) wird angezeigt, aber nicht
 erzwungen: ob jemand mehr nehmen darf, als ihm zusteht, ist eine Frage für den
 Betrieb und nicht für eine Sperre.
 
+### Nachgezogen: wer genehmigt, steht in den Einstellungen
+
+Die Rolle allein war als Antwort zu grob. In dem einen Betrieb entscheidet die
+Buchhaltung, im anderen ein Vorarbeiter, im dritten ausschließlich der Chef —
+das ist eine betriebliche Festlegung und keine Eigenschaft der Software. Die
+Geschäftsführung wählt die Personen jetzt unter **Einstellungen → „Wer Urlaub
+genehmigt"**.
+
+Zwei Regeln sind dabei nicht verhandelbar, und beide stehen aus demselben
+Grund fest:
+
+1. **Geschäftsführung und Administration können immer entscheiden.** Wären sie
+   abwählbar, könnte eine Fehleingabe den ganzen Betrieb aussperren — und
+   niemand könnte sie zurücknehmen, weil auch das Ändern der Liste ihnen
+   vorbehalten ist. Die Projektleitung darf die Liste ausdrücklich *nicht*
+   ändern: sonst trüge sie sich selbst ein und entschiede über die Urlaube
+   derer, die sie einteilt.
+2. **Ohne Festlegung bleibt es beim Ausgangszustand** (Buchhaltung plus
+   Leitung). Sonst hätte das Einführen dieser Einstellung bestehenden Betrieben
+   stillschweigend Rechte entzogen.
+
+**Was diese Einstellung erzwungen hat, und warum das gut war:** die Genehmigung
+lief bis dahin als Batch im Browser. Sie muss zwei Dinge tun — nachsehen, an
+welchen Tagen der Antragsteller schon gebucht hat, und dann fremde
+Zeiteinträge schreiben. Solange nur Buchhaltung und Leitung entschieden, fiel
+das nicht auf: sie dürfen beides ohnehin. Eine Bürokraft darf es nicht, denn
+Zeiteinträge tragen Kranken- und Urlaubstage und damit Gesundheitsdaten nach
+Art. 9 DSGVO.
+
+Der naheliegende Ausweg wäre gewesen, dieser Person das Lesen aller
+Zeiteinträge zu erlauben. Eine Datenschutzgrenze aufzumachen, weil sonst eine
+Funktion nicht läuft, ist die falsche Reihenfolge — dieselbe Überlegung wie
+beim Handwerksschein. Stattdessen entscheidet jetzt die Cloud Function
+`urlaubEntscheiden`; der Aufrufer schickt nur, WELCHER Antrag wie entschieden
+wird, und bekommt nichts zu sehen, was er nicht ohnehin sehen darf.
+
+Die Feiertags- und Arbeitstagsrechnung ist dafür nach `shared/feiertage.ts`
+gewandert — Browser und Function verwenden buchstäblich dieselbe Datei. Zwei
+Fassungen ergäben dieselbe Zahl, bis sie es eines Tages nicht mehr täten, und
+bemerkt würde es an einem Urlaubskonto, das nicht aufgeht.
+
 ## Erledigt: der Schein am Telefon — Warten ohne Ende, Unterschrift ohne Wirkung
 
 Direkt nach dem Ausrollen aus dem Betrieb gemeldet: der Schein ließ sich

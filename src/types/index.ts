@@ -77,6 +77,24 @@ export interface Company {
     /** Kosten je Helferstunde. */
     helper: number;
   };
+  /**
+   * Wer Urlaubsanträge entscheiden darf — uids, zusätzlich zur Leitung.
+   *
+   * Die Rolle allein reicht als Antwort nicht: in dem einen Betrieb entscheidet
+   * die Buchhaltung, im anderen ein Vorarbeiter, im dritten ausschließlich der
+   * Chef. Das ist eine betriebliche Festlegung und keine Eigenschaft der
+   * Software.
+   *
+   * NICHT GESETZT heißt: es bleibt beim Ausgangszustand — Buchhaltung,
+   * Geschäftsführung, Administration. Sonst hätte das Einführen dieses Feldes
+   * bestehenden Betrieben stillschweigend Rechte entzogen.
+   *
+   * Geschäftsführung und Administration können IMMER entscheiden und stehen
+   * deshalb nicht in dieser Liste. Wären sie abwählbar, könnte eine
+   * Fehleingabe den ganzen Betrieb aussperren — und niemand könnte sie
+   * zurücknehmen, weil auch das Ändern dieser Liste ihnen vorbehalten ist.
+   */
+  vacationApprovers?: string[];
   createdAt?: number;
 }
 

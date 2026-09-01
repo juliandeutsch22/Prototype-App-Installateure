@@ -43,6 +43,37 @@ export const canOrder = (r: Role) => isMitarbeiter(r) || isVerw(r) || isGF(r);
  */
 export const canEditTime = (r: Role) => isBuch(r) || isTopLevel(r);
 
+/**
+ * Wer einen Urlaubsantrag entscheiden darf.
+ *
+ * ANDERS ALS DIE ÜBRIGEN PRÄDIKATE HIER hängt das nicht allein an der Rolle,
+ * sondern an einer betrieblichen Festlegung: in dem einen Betrieb entscheidet
+ * die Buchhaltung, im anderen ein Vorarbeiter, im dritten nur der Chef. Die
+ * Geschäftsführung legt das in den Einstellungen fest.
+ *
+ * ZWEI REGELN, DIE NICHT VERHANDELBAR SIND:
+ *
+ *  1. Geschäftsführung und Administration können immer entscheiden. Wären sie
+ *     abwählbar, könnte eine Fehleingabe den ganzen Betrieb aussperren — und
+ *     niemand könnte sie zurücknehmen, weil auch das Ändern der Liste ihnen
+ *     vorbehalten ist.
+ *  2. Ohne Festlegung bleibt es beim Ausgangszustand (Buchhaltung plus
+ *     Leitung). Sonst hätte das Einführen dieser Einstellung bestehenden
+ *     Betrieben stillschweigend Rechte entzogen.
+ *
+ * Dieselbe Regel steht in firestore.rules — hier steuert sie die Oberfläche,
+ * dort wird sie durchgesetzt.
+ */
+export function darfUrlaubEntscheiden(
+  rolle: Role,
+  uid: string,
+  genehmiger: string[] | undefined,
+): boolean {
+  if (isTopLevel(rolle)) return true;
+  if (genehmiger && genehmiger.length > 0) return genehmiger.includes(uid);
+  return isBuch(rolle);
+}
+
 export const canManageProjects = (r: Role) => isGF(r);
 export const canManageUsers = (r: Role) => isGF(r);
 

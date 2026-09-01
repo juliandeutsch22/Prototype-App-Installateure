@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { urlaubsTage, werktageImZeitraum } from '@/lib/time';
+import { darfUrlaubEntscheiden } from '@/lib/permissions';
 
 /**
  * Urlaub wird in ARBEITSTAGEN verbraucht, nicht in Kalendertagen.
@@ -80,5 +81,49 @@ describe('Urlaubstage', () => {
       new Date('2026-10-30T00:00:00'),
     );
     expect(urlaubsTage(vollzeit, '2026-10-26', '2026-10-30')).toEqual(direkt);
+  });
+});
+
+/**
+ * Wer entscheiden darf, ist eine betriebliche Festlegung. Dieselbe Regel steht
+ * an drei Stellen — Oberfläche, firestore.rules und Cloud Function —, weil
+ * jede Stelle eine andere Aufgabe hat: anzeigen, verhindern, ausführen. Hier
+ * steht sie einmal als Funktion, damit sie sich nicht auseinanderentwickelt.
+ */
+describe('Wer Urlaub entscheiden darf', () => {
+  it('laesst Geschaeftsfuehrung und Administration IMMER entscheiden', () => {
+    /**
+     * Waeren sie abwaehlbar, koennte eine Fehleingabe den ganzen Betrieb
+     * aussperren — und niemand koennte sie zuruecknehmen, weil auch das
+     * Aendern der Liste ihnen vorbehalten ist.
+     */
+    expect(darfUrlaubEntscheiden('Geschäftsführung', 'chef', ['jemand'])).toBe(true);
+    expect(darfUrlaubEntscheiden('Administrator', 'admin', [])).toBe(true);
+  });
+
+  it('faellt ohne Festlegung auf die Buchhaltung zurueck', () => {
+    // Sonst haette das Einfuehren dieser Einstellung bestehenden Betrieben
+    // stillschweigend Rechte entzogen.
+    expect(darfUrlaubEntscheiden('Buchhaltung', 'buch', undefined)).toBe(true);
+    expect(darfUrlaubEntscheiden('Buchhaltung', 'buch', [])).toBe(true);
+  });
+
+  it('folgt der Festlegung, sobald es eine gibt', () => {
+    expect(darfUrlaubEntscheiden('Verwaltung', 'buero', ['buero'])).toBe(true);
+    // Die Liste ERSETZT den Ausgangszustand, sie ergaenzt ihn nicht.
+    expect(darfUrlaubEntscheiden('Buchhaltung', 'buch', ['buero'])).toBe(false);
+  });
+
+  it('laesst einen Monteur nie entscheiden — ausser er steht drauf', () => {
+    expect(darfUrlaubEntscheiden('Mitarbeiter', 'm1', undefined)).toBe(false);
+    expect(darfUrlaubEntscheiden('Mitarbeiter', 'm1', ['jemand'])).toBe(false);
+    // Ein Vorarbeiter, den die Geschaeftsfuehrung ausdruecklich eintraegt.
+    expect(darfUrlaubEntscheiden('Mitarbeiter', 'vorarbeiter', ['vorarbeiter'])).toBe(true);
+  });
+
+  it('laesst die Projektleitung nicht ungefragt entscheiden', () => {
+    // Sie teilt ein; ueber Urlaub entscheidet sie nur, wenn sie eingetragen ist.
+    expect(darfUrlaubEntscheiden('Projektleiter', 'pl', undefined)).toBe(false);
+    expect(darfUrlaubEntscheiden('Projektleiter', 'pl', ['pl'])).toBe(true);
   });
 });

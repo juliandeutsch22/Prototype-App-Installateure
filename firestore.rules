@@ -80,7 +80,40 @@ service cloud.firestore {
     //     vorbehalten: ein Mandant darf sich nicht selbst entfernen. ---
     match /companies/{companyId} {
       allow read: if signedIn() && companyId == tokenCompany();
-      allow update: if isLeadership() && companyId == tokenCompany();
+      // Die Liste der Urlaubs-Genehmigenden ist der Geschaeftsfuehrung
+      // vorbehalten. Duerfte die Projektleitung sie aendern, koennte sie sich
+      // selbst eintragen — und damit ueber die Urlaube derer entscheiden, die
+      // sie einteilt.
+      allow update: if isLeadership() && companyId == tokenCompany()
+        && (isTopLevel()
+            || !request.resource.data.diff(resource.data)
+                 .affectedKeys().hasAny(['vacationApprovers']));
+    }
+
+    /**
+     * Wer Urlaubsantraege entscheiden darf.
+     *
+     * Steht hier und nicht nur in der Oberflaeche: eine Genehmigung schreibt
+     * bezahlte Urlaubstage ins Zeitkonto. Wer sie setzen kann, verschafft sich
+     * Geld — das muss der Server entscheiden, nicht der Browser.
+     *
+     * Geschaeftsfuehrung und Administration koennen IMMER. Ohne Festlegung
+     * bleibt es beim Ausgangszustand, also zusaetzlich die Buchhaltung; sonst
+     * haette das Einfuehren dieser Einstellung bestehenden Betrieben
+     * stillschweigend Rechte entzogen.
+     */
+    function genehmigerListe() {
+      return exists(/databases/$(database)/documents/companies/$(tokenCompany()))
+        ? get(/databases/$(database)/documents/companies/$(tokenCompany()))
+            .data.get('vacationApprovers', [])
+        : [];
+    }
+
+    function darfUrlaubEntscheiden() {
+      return isTopLevel()
+        || (genehmigerListe().size() > 0
+              ? request.auth.uid in genehmigerListe()
+              : hasRole(['Buchhaltung']));
     }
 
     // --- users: lesen innerhalb der Firma; verwalten nur GF/Admin ---
@@ -300,7 +333,7 @@ service cloud.firestore {
 
       allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
         && (
-          isBuchOrTop()
+          darfUrlaubEntscheiden()
           // Der Antragsteller darf seinen offenen Antrag noch ändern — aber
           // nicht seinen Status. Sonst wäre „ändern" die Hintertür zu
           // „genehmigen".

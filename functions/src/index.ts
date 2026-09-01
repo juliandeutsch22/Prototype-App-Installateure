@@ -12,6 +12,7 @@ export {
 } from './monatsbilanz.js';
 export { scheinPruefsumme } from './scheinPruefsumme.js';
 export { scheinVorbereiten } from './scheinVorbereiten.js';
+export { urlaubEntscheiden } from './urlaubEntscheiden.js';
 
 /*
  * Die KI-Spracherfassung wird über eine GENERIERTE Datei eingebunden

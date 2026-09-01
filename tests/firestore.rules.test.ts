@@ -39,6 +39,12 @@ function ctxA_gf() {
 function ctxA_pl() {
   return testEnv.authenticatedContext('plA', { companyId: 'companyA', role: 'Projektleiter' });
 }
+function ctxA_buch() {
+  return testEnv.authenticatedContext('buchA', { companyId: 'companyA', role: 'Buchhaltung' });
+}
+function ctxA_verw() {
+  return testEnv.authenticatedContext('verwA', { companyId: 'companyA', role: 'Verwaltung' });
+}
 function ctxB_admin() {
   return testEnv.authenticatedContext('adminB', { companyId: 'companyB', role: 'Administrator' });
 }
@@ -643,5 +649,105 @@ describe('Urlaub — beantragen darf jeder, entscheiden nicht', () => {
     await seedAntrag();
     const db = ctxB_admin().firestore();
     await assertFails(getDoc(doc(db, 'vacations', 'uA')));
+  });
+});
+
+
+/**
+ * Wer Urlaub genehmigen darf, legt die Geschaeftsfuehrung in den Einstellungen
+ * fest. Eine Genehmigung schreibt bezahlte Urlaubstage ins Zeitkonto — wer sie
+ * aussprechen kann, entscheidet ueber Geld. Deshalb steht die Liste nicht nur
+ * in der Oberflaeche, sondern wird hier durchgesetzt.
+ */
+describe('Urlaub — Genehmigende sind einstellbar', () => {
+  const ANTRAG = {
+    companyId: 'companyA',
+    userId: 'userA1',
+    userName: 'Monteur A',
+    von: '2026-07-06',
+    bis: '2026-07-10',
+    tage: 5,
+    status: 'Beantragt',
+  };
+
+  async function seed(genehmiger?: string[]) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'vacations', 'uA'), ANTRAG);
+      await setDoc(doc(db, 'companies', 'companyA'), {
+        name: 'Firma A',
+        ...(genehmiger ? { vacationApprovers: genehmiger } : {}),
+      });
+    });
+  }
+
+  it('ohne Festlegung entscheidet die Buchhaltung wie bisher', async () => {
+    /**
+     * Wichtig fuer bestehende Betriebe: das Einfuehren dieser Einstellung darf
+     * niemandem stillschweigend Rechte entzogen haben.
+     */
+    await seed();
+    const db = ctxA_buch().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'vacations', 'uA'), { status: 'Genehmigt' }));
+  });
+
+  it('mit Festlegung entscheidet, wer daraufsteht — auch die Verwaltung', async () => {
+    await seed(['verwA']);
+    const db = ctxA_verw().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'vacations', 'uA'), { status: 'Genehmigt' }));
+  });
+
+  it('und die Buchhaltung dann NICHT mehr, wenn sie nicht daraufsteht', async () => {
+    // Die Liste ersetzt den Ausgangszustand, sie ergaenzt ihn nicht.
+    await seed(['verwA']);
+    const db = ctxA_buch().firestore();
+    await assertFails(updateDoc(doc(db, 'vacations', 'uA'), { status: 'Genehmigt' }));
+  });
+
+  it('die Geschaeftsfuehrung entscheidet IMMER, auch ausserhalb der Liste', async () => {
+    /**
+     * Waere sie abwaehlbar, koennte eine Fehleingabe den ganzen Betrieb
+     * aussperren — und niemand koennte sie zuruecknehmen, weil auch das
+     * Aendern der Liste der Leitung vorbehalten ist.
+     */
+    await seed(['verwA']);
+    const db = ctxA_gf().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'vacations', 'uA'), { status: 'Genehmigt' }));
+  });
+
+  it('ein Monteur kommt auch mit Liste nicht an die Genehmigung', async () => {
+    await seed(['verwA']);
+    const db = ctxA_employee().firestore();
+    await assertFails(updateDoc(doc(db, 'vacations', 'uA'), { status: 'Genehmigt' }));
+  });
+
+  it('die Liste aendert nur die Geschaeftsfuehrung', async () => {
+    await seed();
+    await assertSucceeds(
+      updateDoc(doc(ctxA_gf().firestore(), 'companies', 'companyA'), {
+        vacationApprovers: ['verwA'],
+      }),
+    );
+  });
+
+  it('die Projektleitung aendert die Liste NICHT', async () => {
+    /**
+     * Sonst koennte sie sich selbst eintragen — und damit ueber die Urlaube
+     * derer entscheiden, die sie einteilt.
+     */
+    await seed();
+    await assertFails(
+      updateDoc(doc(ctxA_pl().firestore(), 'companies', 'companyA'), {
+        vacationApprovers: ['plA'],
+      }),
+    );
+  });
+
+  it('die Projektleitung darf die uebrigen Firmendaten weiterhin aendern', async () => {
+    // Die neue Grenze gilt nur fuer dieses eine Feld.
+    await seed();
+    await assertSucceeds(
+      updateDoc(doc(ctxA_pl().firestore(), 'companies', 'companyA'), { addressLine: 'Neu 1' }),
+    );
   });
 });

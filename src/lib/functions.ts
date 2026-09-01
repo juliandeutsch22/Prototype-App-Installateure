@@ -21,6 +21,29 @@ export const callBilanzenNeuAufbauen = httpsCallable<
 >(functions, 'bilanzenNeuAufbauen');
 
 /**
+ * Entscheidet ueber einen Urlaubsantrag.
+ *
+ * Serverseitig, weil die Genehmigung fremde Zeiteintraege lesen UND schreiben
+ * muss: lesen, um bereits gebuchte Tage nicht zu ueberschreiben, schreiben,
+ * damit der genehmigte Urlaub im Zeitkonto steht. Beides darf ein
+ * Genehmigender nicht selbst — Zeiteintraege tragen Kranken- und Urlaubstage
+ * und damit Gesundheitsdaten nach Art. 9 DSGVO.
+ *
+ * Solange nur Buchhaltung und Leitung genehmigen durften, fiel das nicht auf.
+ * Sobald die Geschaeftsfuehrung frei festlegt, WER genehmigt, geht es nicht
+ * mehr — und die Grenze aufzumachen waere die falsche Reihenfolge.
+ */
+export const callUrlaubEntscheiden = httpsCallable<
+  {
+    vacationId: string;
+    entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
+    grund?: string;
+    entscheiderName?: string;
+  },
+  { status: string; angelegt: number; uebersprungen: number; entfernt: number }
+>(functions, 'urlaubEntscheiden');
+
+/**
  * Stellt die Positionen fuer einen Handwerksschein zusammen.
  *
  * Serverseitig, weil der Schein die Stunden der GANZEN Mannschaft eines Tages
