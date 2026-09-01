@@ -3,6 +3,11 @@
 Stand: 01.09.2026. Reihenfolge nach Nutzen für den Betrieb, nicht nach
 Aufwand. Was den Produktivbetrieb blockiert, steht oben.
 
+> **Diese Datei ist ein Änderungsprotokoll**, keine Übersicht: sie erzählt, was
+> wann warum gebaut wurde. Wer wissen will, *was es gibt, wer was darf und
+> worauf man sich verlassen kann*, findet das in
+> **[docs/FUNKTIONEN.md](./FUNKTIONEN.md)** — inklusive der Lücken.
+
 ---
 
 ## Fahrplan: was die App zu einer vollständigen Betriebslösung fehlt

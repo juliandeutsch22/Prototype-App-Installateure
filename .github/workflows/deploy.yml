@@ -56,9 +56,16 @@ jobs:
       - name: Unit-Tests
         run: npm test
 
-      # Beweist das Mandanten-Kriterium: Firma B kommt an kein Dokument von
-      # Firma A. Läuft gegen den Emulator, der nur für diesen Befehl startet.
-      - name: Security-Rules-Tests
+      # Zwei Fragen, ein Emulator, der nur für diesen Befehl startet:
+      #
+      #  1. Regeln — kommt Firma B an ein Dokument von Firma A? (Nein.)
+      #  2. Abfragen — läuft das, was die App tatsächlich absetzt, für die
+      #     Rolle, die es absetzt?
+      #
+      # Die zweite Frage beantwortet kein Komponententest: dort ist jeder
+      # Datenbankzugriff ersetzt, und eine Abfrage, die an den Regeln
+      # scheitert, sieht dann aus wie ein Erfolg mit leerem Ergebnis.
+      - name: Regeln und Abfragen gegen den Emulator
         run: npx --yes firebase-tools@15 emulators:exec --only firestore --project demo-ci "npm run rules:test"
 
   deploy:
