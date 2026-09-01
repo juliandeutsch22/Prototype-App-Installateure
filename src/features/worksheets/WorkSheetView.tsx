@@ -53,6 +53,17 @@ export default function WorkSheetView() {
   const [notizen, setNotizen] = useState('');
   const [laden, setLaden] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Fehler der VORAUSFÜLLUNG — getrennt von `error`.
+   *
+   * Er hält das Formular nicht auf: der Schein ist ein Beleg über Arbeit, die
+   * geleistet wurde, und der Kunde steht daneben. Dass die Stunden nicht
+   * automatisch eingetragen werden konnten, ist ärgerlich — aber kein Grund,
+   * das Unterschreiben zu verweigern.
+   */
+  const [vorfuellFehler, setVorfuellFehler] = useState<string | null>(null);
+  /** Hochzählen erzwingt einen neuen Anlauf der Vorausfüllung. */
+  const [versuch, setVersuch] = useState(0);
   const [speichert, setSpeichert] = useState(false);
 
   /** Unterschriften — erst wenn beide da sind, lässt sich einfrieren. */
@@ -119,24 +130,67 @@ export default function WorkSheetView() {
     if (!user || !projectNumber) {
       setZeiten([]);
       setMaterial([]);
+      setVorfuellFehler(null);
       return;
     }
+    let verworfen = false;
     setLaden(true);
     setError(null);
-    Promise.all([
-      // Serverseitig zusammengestellt: der Schein braucht die Stunden der
-      // GANZEN Mannschaft, und die darf ein Monteur nicht selbst lesen.
-      callScheinVorbereiten({ projectNumber, datum }),
-      listWorkSheetsForProject(user.companyId, projectNumber),
-    ])
-      .then(([{ data }, scheine]) => {
+    setVorfuellFehler(null);
+
+    /**
+     * Die Vorausfüllung bekommt eine FRIST.
+     *
+     * Sie läuft über eine Cloud Function, und die startet kalt schon einmal
+     * mehrere Sekunden. Im Keller mit einem Balken LTE kann sie beliebig
+     * lange brauchen — und tat das vorher hinter einem Kreisel ohne Ende und
+     * ohne Ausweg. Nach der Frist steht da, was los ist, mit einem Knopf zum
+     * Erneut-Versuchen.
+     */
+    const mitFrist = <T,>(p: Promise<T>, ms = 12000) =>
+      Promise.race([
+        p,
+        new Promise<never>((_, ab) => setTimeout(() => ab(new Error('Zeit abgelaufen')), ms)),
+      ]);
+
+    mitFrist(callScheinVorbereiten({ projectNumber, datum }))
+      .then(({ data }) => {
+        if (verworfen) return;
         setZeiten(data.zeiten);
         setMaterial(data.material);
-        setBestehende(scheine.filter((s) => s.datum === datum));
       })
-      .catch(() => setError('Zeiten und Material konnten nicht geladen werden.'))
-      .finally(() => setLaden(false));
-  }, [user, projectNumber, datum]);
+      .catch(() => {
+        if (verworfen) return;
+        setZeiten([]);
+        setMaterial([]);
+        setVorfuellFehler(
+          'Zeiten und Material konnten nicht geladen werden. Der Schein lässt sich trotzdem schreiben und unterschreiben.',
+        );
+      })
+      .finally(() => {
+        if (!verworfen) setLaden(false);
+      });
+
+    /**
+     * Die bestehenden Scheine laufen NEBENHER, nicht im selben `Promise.all`.
+     *
+     * Vorher hing das ganze Formular an beiden Abfragen: blieb eine hängen,
+     * blieb alles hängen. Diese hier ist nur ein Hinweis darauf, dass für
+     * denselben Tag schon ein Schein existiert — kein Grund, das Unterschreiben
+     * aufzuhalten.
+     */
+    listWorkSheetsForProject(user.companyId, projectNumber)
+      .then((scheine) => {
+        if (!verworfen) setBestehende(scheine.filter((s) => s.datum === datum));
+      })
+      .catch(() => {
+        if (!verworfen) setBestehende([]);
+      });
+
+    return () => {
+      verworfen = true;
+    };
+  }, [user, projectNumber, datum, versuch]);
 
   const gesamtMinuten = zeiten.reduce((s, z) => s + z.minuten, 0);
   /**
@@ -320,14 +374,28 @@ export default function WorkSheetView() {
         )}
       </Card>
 
-      {laden ? (
-        <Card>
-          <LoadingState />
-        </Card>
-      ) : projectNumber ? (
+      {projectNumber ? (
         <>
           <Card title={`Zeiten am ${datum} · ${fmtMin(gesamtMinuten)}`}>
-            {zeiten.length === 0 ? (
+            {/*
+              Der Ladezustand steckt jetzt IN dieser Karte, nicht davor. Vorher
+              verdeckte er das ganze Formular — auch die Unterschriften, die
+              mit der Vorausfüllung gar nichts zu tun haben. Wer vor Ort
+              wartet, wartete damit auf etwas, das er zum Unterschreiben nicht
+              braucht.
+            */}
+            {laden ? (
+              <LoadingState />
+            ) : vorfuellFehler ? (
+              <div className="rounded-sm border border-warning/30 bg-warning-bg px-3 py-2">
+                <p className="text-sm text-warning">{vorfuellFehler}</p>
+                <div className="mt-2">
+                  <Button variant="secondary" onClick={() => setVersuch((v) => v + 1)}>
+                    Erneut versuchen
+                  </Button>
+                </div>
+              </div>
+            ) : zeiten.length === 0 ? (
               <EmptyState>
                 Für diesen Tag ist auf dieser Baustelle keine Zeit gebucht. Ein Schein ohne
                 Stunden ergibt nur Sinn, wenn ausschließlich Material geliefert wurde.
@@ -355,7 +423,9 @@ export default function WorkSheetView() {
           </Card>
 
           <Card title={`Material (${material.length})`}>
-            {material.length === 0 ? (
+            {laden ? (
+              <LoadingState />
+            ) : material.length === 0 ? (
               <EmptyState>Kein Material für diese Baustelle angefordert.</EmptyState>
             ) : (
               <ul className="divide-y divide-line">
@@ -412,6 +482,19 @@ export default function WorkSheetView() {
               </div>
             </div>
 
+            {/*
+              Wenn die Vorausfuellung nicht durchkam, traegt der Schein KEINE
+              Stunden. Unterschreiben laesst er sich trotzdem — aber das muss
+              vorher dastehen, denn danach ist er eingefroren.
+            */}
+            {vorfuellFehler && (
+              <p className="mt-4 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+                <strong>Ohne Stunden und Material.</strong> Sie konnten nicht geladen werden, und
+                eingefroren wird genau das, was hier steht. Für einen Beleg über die Arbeitszeit
+                bitte oben erneut versuchen; als reine Bestätigung der Anwesenheit mit einer Notiz
+                ist der Schein auch so gültig.
+              </p>
+            )}
             <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
               Mit dem Unterschreiben wird der Schein <strong>eingefroren</strong>: Zeiten,
               Material und Notizen lassen sich danach nicht mehr ändern. Eine Korrektur läuft über

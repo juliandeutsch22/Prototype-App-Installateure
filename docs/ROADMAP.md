@@ -35,6 +35,48 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: der Schein am Telefon — Warten ohne Ende, Unterschrift ohne Wirkung
+
+Direkt nach dem Ausrollen aus dem Betrieb gemeldet: der Schein ließ sich
+anlegen, „lädt ewig", und das Unterschriftsfeld tat nichts. Zwei Fehler,
+derselbe Bautyp wie oben — etwas hatte keine Grenze und keinen Ausweg.
+
+**Das ewige Laden.** Die Vorausfüllung läuft über eine Cloud Function. Ein
+Kaltstart in `europe-west3` dauert schon ohne Zutun einige Sekunden; im Keller
+mit einem Balken LTE beliebig lange. Dahinter stand ein Kreisel **über dem
+ganzen Formular** — auch über den Unterschriften, die mit der Vorausfüllung
+nichts zu tun haben. Wer vor Ort wartete, wartete auf etwas, das er zum
+Unterschreiben gar nicht braucht.
+
+Behoben in drei Schritten, und der dritte ist der wichtige:
+
+1. Die Vorausfüllung bekommt eine **Frist** von zwölf Sekunden. Danach steht
+   da, was los ist, mit einem Knopf zum Erneut-Versuchen.
+2. Die Abfrage nach schon vorhandenen Scheinen läuft **nebenher** statt im
+   selben `Promise.all`. Sie ist ein Hinweis, kein Grund, das Formular
+   aufzuhalten.
+3. **Der Schein lässt sich auch ohne Vorausfüllung schreiben und
+   unterschreiben.** Er ist ein Beleg über Arbeit, die geleistet wurde, und der
+   Kunde steht daneben. Dass die Stunden nicht automatisch eintrudeln, ist
+   ärgerlich — aber kein Grund, den Monteur nach Hause zu schicken. Dass der
+   Schein dann ohne Stunden eingefroren wird, steht vorher dabei.
+
+**Die Unterschrift.** Zwei Ursachen:
+
+- `canvas.width` zu setzen **löscht** die Zeichenfläche — auch beim Schreiben
+  desselben Werts. Die Anpassung hing an `window.resize`, und dieses Ereignis
+  feuert auf iOS reihenweise, ohne dass sich am Feld etwas ändert: Adressleiste
+  ein- und ausblenden, Tastatur für das Namensfeld darüber, Drehen. Die
+  Unterschrift verschwand mitten im Zeichnen, während die App weiter behauptete,
+  es sei unterschrieben. Jetzt hängt die Anpassung am `ResizeObserver` des
+  Elements, greift nur bei einer **echten** Größenänderung und malt das
+  Gezeichnete danach zurück.
+- Ein kurzer Tipp zeichnete nichts — das Feld sah aus, als reagiere es nicht —
+  und meldete trotzdem ein Bild nach oben, nämlich ein leeres. Der Schein galt
+  damit als unterschrieben, obwohl nichts drinstand. Jetzt setzt schon der
+  Tipp einen sichtbaren Punkt, und gemeldet wird nur, wenn tatsächlich etwas
+  auf der Fläche steht.
+
 ## Erledigt: die Lücke zwischen zwei fertigen Funktionen
 
 Aus dem Betrieb gemeldet, mit Bildschirmfotos: im Handwerksschein war das
