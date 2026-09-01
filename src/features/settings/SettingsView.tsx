@@ -34,11 +34,21 @@ export default function SettingsView() {
   const [aufbauErgebnis, setAufbauErgebnis] = useState<string | null>(null);
   const toast = useToast();
   const [rates, setRates] = useState<InvoiceRates>(INVOICE_DEFAULTS);
+  /**
+   * Interne Kostensätze — was eine Stunde den BETRIEB kostet.
+   *
+   * Bewusst getrennt von den Verrechnungssätzen darüber. Wer beide
+   * verwechselt, bekommt in der Nachkalkulation eine Marge von null und hält
+   * sie für ein Ergebnis. Der Startwert liegt bei rund zwei Dritteln des
+   * Verrechnungssatzes — eine Hausnummer, die der Betrieb ersetzen muss.
+   */
+  const [costRates, setCostRates] = useState({ fach: 42, helper: 28 });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
+    if (company?.costRates) setCostRates({ ...company.costRates });
   }, [company]);
 
   async function submit(e: FormEvent) {
@@ -47,7 +57,7 @@ export default function SettingsView() {
     setSaving(true);
     setError(null);
     try {
-      await updateCompany(user.companyId, { rates });
+      await updateCompany(user.companyId, { rates, costRates });
       await reloadCompany();
       toast.success('Sätze gespeichert');
     } catch {
@@ -180,6 +190,46 @@ export default function SettingsView() {
               onChange={(e) => setRates({ ...rates, dueDays: num(e.target.value, 14) })}
             />
           </FormGrid>
+        </Card>
+
+        {/*
+          Kostensaetze — die andere Haelfte der Rechnung.
+
+          Oben steht, was der Kunde zahlt. Hier steht, was die Stunde den
+          Betrieb kostet: Lohn, Lohnnebenkosten und anteilige Gemeinkosten.
+          Ohne diese Zahl laesst sich nicht sagen, ob eine Baustelle etwas
+          verdient hat — und mit dem Verrechnungssatz an ihrer Stelle ergaebe
+          jede Baustelle glatt null.
+        */}
+        <Card title="Interne Kostensätze">
+          <p className="text-sm text-ink-muted">
+            Was eine Arbeitsstunde den Betrieb kostet — nicht, was sie dem Kunden verrechnet
+            wird. Grundlage der Nachkalkulation. Üblich sind Lohn plus Lohnnebenkosten plus ein
+            Anteil der Gemeinkosten.
+          </p>
+          <FormGrid>
+            <InputField
+              id="costfach"
+              label="Kosten Facharbeiterstunde (€)"
+              value={String(costRates.fach).replace('.', ',')}
+              onChange={(e) => setCostRates({ ...costRates, fach: num(e.target.value, 42) })}
+            />
+            <InputField
+              id="costhelper"
+              label="Kosten Helferstunde (€)"
+              value={String(costRates.helper).replace('.', ',')}
+              onChange={(e) => setCostRates({ ...costRates, helper: num(e.target.value, 28) })}
+            />
+          </FormGrid>
+          <p className="mt-3 tnum text-sm text-ink">
+            Deckungsbeitrag je Facharbeiterstunde:{' '}
+            <strong>{fmtEUR(rates.fach - costRates.fach)}</strong>
+            {rates.fach - costRates.fach <= 0 && (
+              <span className="ml-2 text-danger">
+                — der Verrechnungssatz liegt nicht über den Kosten.
+              </span>
+            )}
+          </p>
         </Card>
 
         {error && <ErrorState message={error} />}

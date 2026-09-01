@@ -21,10 +21,7 @@ Reihenfolge nach Wirkung je Aufwand:
    klären:* ob der Betrieb Barumsätze hat — dann wäre die
    Registrierkassenpflicht ein eigenes Thema.
 4. **Angebot und Vorkalkulation** — ERLEDIGT, siehe unten.
-5. **Nachkalkulation in Geld.** Die Ampel vergleicht Stunden gegen
-   Stundenbudget, nicht Kosten gegen Erlös. Ob eine Baustelle Geld verdient
-   hat, weiß heute niemand — und das ist die Zahl, die eine Geschäftsführung
-   eigentlich will.
+5. **Nachkalkulation in Geld** — ERLEDIGT, siehe unten.
 
 Weiter offen, aber nachrangig: Wartungsverträge und wiederkehrende Termine
 (die jährliche Thermenwartung ist planbare Auslastung), Urlaub als Antrag mit
@@ -69,6 +66,44 @@ Feldbeschriftungen sagen das jetzt auch.
 Geprüft: fünf Komponententests plus der vollständige Durchlauf im Browser
 gegen die Emulatoren — Vorschau, Übernahme, Kundenauswahl im
 Baustellenformular, Historie.
+
+## Erledigt: Nachkalkulation
+
+Die Budget-Ampel vergleicht Stunden gegen Stundenbudget: sie sagt, ob mehr
+gearbeitet wurde als geplant. Sie sagt nicht, ob etwas übrig geblieben ist.
+Eine Baustelle kann im Stundenbudget bleiben und trotzdem Verlust machen, wenn
+der Preis zu niedrig kalkuliert war.
+
+**Die entscheidende Unterscheidung:** `rates.fach` ist der
+VERRECHNUNGSSATZ — der Erlös. Was die Stunde den Betrieb KOSTET (Lohn,
+Lohnnebenkosten, anteilige Gemeinkosten) ist eine andere Zahl und liegt
+darunter. Deshalb gibt es jetzt getrennte `costRates` in den Einstellungen.
+Wer beide verwechselt, bekommt eine Marge von null und hält sie für ein
+Ergebnis. Die Einstellungen zeigen den Deckungsbeitrag je Stunde direkt an und
+warnen, wenn der Verrechnungssatz nicht über den Kosten liegt.
+
+**Der Erlös kommt bevorzugt aus den Rechnungen** — was tatsächlich verrechnet
+wurde, ist die belastbare Zahl. Erst wenn noch nicht abgerechnet ist, tritt
+das angenommene Angebot an seine Stelle, und die Ansicht schreibt dazu „noch
+nicht verrechnet". Stornierte Rechnungen zählen nicht.
+
+**Ohne bekannten Erlös steht „keine Aussage", nicht null Prozent.** Eine Null
+läse sich wie „nichts verdient" und wäre eine Behauptung über eine Baustelle,
+über die nichts bekannt ist.
+
+**Die Grenze steht unter den Zahlen, nicht im Kleingedruckten:** Es ist ein
+DECKUNGSBEITRAG, kein Gewinn. Materialkosten fehlen, weil die
+Materialanforderung in dieser App bewusst keinen Preis trägt. Eine Baustelle
+mit dünnem Deckungsbeitrag ist im Ergebnis vermutlich negativ — deshalb steht
+die Ampel schon unter zwanzig Prozent auf Gelb, obwohl die Zahl formal positiv
+ist.
+
+Nur für die Geschäftsführung: hier stehen Margen, und die Projektleitung sieht
+sie nicht.
+
+Geprüft: neun Tests plus der Durchlauf im Browser — der Zustand ohne
+Kostensätze, das Setzen (Deckungsbeitrag 23,00 € je Stunde bei 65 gegen 42),
+und alle drei Erlösquellen nebeneinander.
 
 ## Erledigt: Angebot und Vorkalkulation
 

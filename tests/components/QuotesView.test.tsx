@@ -21,11 +21,14 @@ const kunden: (Customer & { id: string })[] = [
   { id: 'k1', companyId: 'perl', name: 'Gemeinde Neudorf', address: 'Rathausplatz 1' },
 ];
 
-// Mit Parametern typisiert: sonst leitet TypeScript ein leeres Tupel ab und
-// der Zugriff auf `mock.calls[0][1]` scheitert erst im Build, nicht im Test.
-const createQuote = vi.fn(async (_companyId: string, _q: unknown) => 'q1');
-const createProject = vi.fn(async (_companyId: string, _p: unknown) => 'p1');
-const updateQuote = vi.fn(async (_id: string, _data: unknown) => undefined);
+/**
+ * Mit Parametern TYPISIERT, nicht benannt: sonst leitet TypeScript ein leeres
+ * Tupel ab und der Zugriff auf `mock.calls[0][1]` scheitert im Build. Die
+ * Signatur steht deshalb als Typ da, ohne unbenutzte Bezeichner.
+ */
+const createQuote = vi.fn<[string, unknown], Promise<string>>(async () => 'q1');
+const createProject = vi.fn<[string, unknown], Promise<string>>(async () => 'p1');
+const updateQuote = vi.fn<[string, unknown], Promise<void>>(async () => undefined);
 const angebote: (Quote & { id: string })[] = [];
 
 vi.mock('@/lib/db/quotes', () => ({

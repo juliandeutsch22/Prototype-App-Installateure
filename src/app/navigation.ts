@@ -60,6 +60,8 @@ export const NAV: NavItem[] = [
   // was der Betrieb verrechnet.
   { path: '/settings', label: 'Einstellungen', short: 'Sätze', icon: 'settings', roles: LEAD, group: 'Verwaltung' },
 
+  // Margen sind Geschaeftsfuehrungssache — die Projektleitung sieht sie nicht.
+  { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'chart', roles: TOP, group: 'Buchhaltung' },
   { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung' },
   // Zeitkonten: bewusst OHNE Projektleitung. Ueberstunden, Krankenstaende und
   // Urlaub eines Monteurs gehen sie nichts an — Krankenstaende sind zudem

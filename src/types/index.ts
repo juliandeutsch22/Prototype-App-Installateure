@@ -58,6 +58,25 @@ export interface Company {
   defaultVatRate?: number; // z. B. 0.20
   /** Stundensätze und Zuschläge, gepflegt von der Geschäftsführung. */
   rates?: InvoiceRates;
+  /**
+   * Was eine Arbeitsstunde den BETRIEB kostet — nicht, was sie dem Kunden
+   * verrechnet wird.
+   *
+   * Die Unterscheidung ist der ganze Punkt der Nachkalkulation. `rates.fach`
+   * ist der ERLÖS; die Kosten sind Lohn plus Lohnnebenkosten plus anteilige
+   * Gemeinkosten und liegen erfahrungsgemäß deutlich darunter. Wer beide
+   * verwechselt, bekommt eine Marge von null und hält sie für ein Ergebnis.
+   *
+   * Bewusst ein einziger Mischsatz je Qualifikation statt echter Personalkosten
+   * je Mitarbeiter: die Gehälter einzelner Monteure gehören nicht in eine
+   * Baustellenauswertung, die die Projektleitung ansieht.
+   */
+  costRates?: {
+    /** Kosten je Facharbeiterstunde. */
+    fach: number;
+    /** Kosten je Helferstunde. */
+    helper: number;
+  };
   createdAt?: number;
 }
 
