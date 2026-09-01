@@ -1,10 +1,12 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { subscribeRecentProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
+import { listCustomers } from '@/lib/db/customers';
 import type { WithId } from '@/lib/db/core';
 import { byNewest } from '@/lib/timestamps';
-import type { Project, AppUser } from '@/types';
+import type { Project, AppUser, Customer } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
@@ -21,6 +23,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
 const empty = {
   projectNumber: '',
+  customerId: '',
   customerName: '',
   address: '',
   status: 'Aktiv' as Project['status'],
@@ -38,6 +41,7 @@ type FormState = typeof empty;
 function formFromProject(p: WithId<Project>): FormState {
   return {
     projectNumber: p.projectNumber,
+    customerId: p.customerId ?? '',
     customerName: p.customerName,
     address: p.address ?? '',
     status: p.status,
@@ -64,6 +68,7 @@ export default function AdminProjectsView() {
   const toast = useToast();
   const [projects, setProjects] = useState<WithId<Project>[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [kunden, setKunden] = useState<(Customer & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -119,6 +124,7 @@ export default function AdminProjectsView() {
   useEffect(() => {
     if (!user) return;
     listUsers(user.companyId).then(setUsers).catch(() => undefined);
+    listCustomers(user.companyId).then(setKunden).catch(() => undefined);
     const unsub = subscribeRecentProjects(
       user.companyId,
       BAUSTELLEN_JE_SEITE,
@@ -209,9 +215,61 @@ export default function AdminProjectsView() {
           <FormGrid>
             <InputField id="pnr" label="Projektnummer" value={form.projectNumber}
               onChange={(e) => setForm({ ...form, projectNumber: e.target.value })} required />
-            <InputField id="pcust" label="Kunde" value={form.customerName}
-              onChange={(e) => setForm({ ...form, customerName: e.target.value })} required />
-            <InputField id="padr" label="Adresse" value={form.address}
+            {/*
+              Kunde AUSWÄHLEN statt tippen.
+              Vorher war das ein freies Textfeld, und zwei Schreibweisen
+              ergaben zwei Kunden — beide unvollständig. Ist ein Kunde noch
+              nicht angelegt, führt der Hinweis darunter direkt dorthin;
+              ihn hier nebenbei anzulegen würde die Stammdaten wieder
+              verwässern.
+            */}
+            <SelectField
+              id="pcust"
+              label="Kunde"
+              value={form.customerId}
+              onChange={(e) => {
+                const k = kunden.find((x) => x.id === e.target.value);
+                setForm({
+                  ...form,
+                  customerId: e.target.value,
+                  customerName: k?.name ?? form.customerName,
+                });
+              }}
+              required
+            >
+              <option value="">— wählen —</option>
+              {kunden.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.name}
+                </option>
+              ))}
+            </SelectField>
+            {/*
+              Altbestand: die Baustelle trägt einen Kundennamen, aber noch
+              keine Verknüpfung. Ohne diesen Hinweis stünde beim Bearbeiten
+              nur „— wählen —", und niemand wüsste, welcher Kunde gemeint war.
+            */}
+            {!form.customerId && form.customerName && (
+              <p className="text-sm text-warning sm:col-span-2">
+                Bisher als Text hinterlegt: „{form.customerName}". Bitte den passenden Kunden
+                wählen — oder in der{' '}
+                <Link to="/customers" className="font-semibold underline">
+                  Kundenverwaltung
+                </Link>{' '}
+                anlegen und die Baustellen übernehmen.
+              </p>
+            )}
+            {kunden.length === 0 && (
+              <p className="text-sm text-ink-muted sm:col-span-2">
+                Noch keine Kunden angelegt.{' '}
+                <Link to="/customers" className="font-semibold text-brand underline">
+                  Zur Kundenverwaltung
+                </Link>
+              </p>
+            )}
+            {/* Ausdrücklich die BAUSTELLENadresse: die Rechnungsadresse steht
+                beim Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
+            <InputField id="padr" label="Baustellenadresse" value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })} />
             <SelectField id="pstatus" label="Status" value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value as Project['status'] })}>
@@ -227,9 +285,9 @@ export default function AdminProjectsView() {
             <InputField id="pend" label="Ende (geplant)" type="date" value={form.endDate}
               onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
             {/* Der Monteur braucht vor Ort vor allem eine Telefonnummer. */}
-            <InputField id="pcontact" label="Ansprechpartner" value={form.contactName}
+            <InputField id="pcontact" label="Ansprechpartner vor Ort" value={form.contactName}
               onChange={(e) => setForm({ ...form, contactName: e.target.value })} />
-            <InputField id="pphone" label="Telefon Ansprechpartner" type="tel" value={form.contactPhone}
+            <InputField id="pphone" label="Telefon vor Ort" type="tel" value={form.contactPhone}
               onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
           </FormGrid>
           <InputField id="pdesc" label="Beschreibung / Auftragsumfang" value={form.description}

@@ -5,6 +5,76 @@ Aufwand. Was den Produktivbetrieb blockiert, steht oben.
 
 ---
 
+## Fahrplan: was die App zu einer vollständigen Betriebslösung fehlt
+
+Maßstab ist nicht die Zahl der Funktionen, sondern eine Prüffrage: **kommt das
+Büro ohne ein zweites System durch den Tag?** Heute nicht ganz — angeboten
+wird in Word oder Excel, und der Steuerberater bekommt PDFs, die jemand
+abtippt. Der Kreis ist an zwei Stellen offen.
+
+Reihenfolge nach Wirkung je Aufwand:
+
+1. **Kundenstammdaten** — ERLEDIGT, siehe unten.
+2. **Digitaler Handwerksschein** — der Unterschied zum Wettbewerb, zahlt sich
+   direkt in strittigen Regiestunden aus. Fahrplan weiter unten.
+3. **Buchhaltungs-Übergabe.** Heute: CSV für Stunden, PDF für Rechnungen. Der
+   Steuerberater braucht Rechnungen strukturiert mit Konten und Steuersätzen —
+   in Österreich meist BMD oder RZL. Ohne das tippt jemand jede Rechnung
+   erneut ab. *Vorab zu klären:* ob der Betrieb Barumsätze hat — dann wäre die
+   Registrierkassenpflicht ein eigenes Thema.
+4. **Angebot und Vorkalkulation.** Die Kette beginnt in der App bei der
+   Baustelle, in Wirklichkeit bei Anfrage → Angebot → Auftrag. Konkrete Folge
+   heute: die `estimatedHours`, gegen die die Budget-Ampel misst, tippt jemand
+   ein zweites Mal ab. Die Ampel misst gegen eine Zahl, der niemand traut.
+5. **Nachkalkulation in Geld.** Die Ampel vergleicht Stunden gegen
+   Stundenbudget, nicht Kosten gegen Erlös. Ob eine Baustelle Geld verdient
+   hat, weiß heute niemand — und das ist die Zahl, die eine Geschäftsführung
+   eigentlich will.
+
+Weiter offen, aber nachrangig: Wartungsverträge und wiederkehrende Termine
+(die jährliche Thermenwartung ist planbare Auslastung), Urlaub als Antrag mit
+Genehmigung statt als Tagesstatus, Prüfungen gegen das Arbeitszeitgesetz
+(Höchstarbeitszeit, Ruhezeiten — bei Notdiensten über Mitternacht kein
+akademischer Punkt), Fahrzeug- und Werkzeugverwaltung.
+
+**Was bewusst NICHT das Ziel ist:** Funktionsgleichstand mit einer dreißig
+Jahre alten Handwerkersoftware. Deren Büroseite ist mächtig, und ihre Monteure
+tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
+nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
+schon.
+
+## Erledigt: Kundenstammdaten
+
+Der Kunde war ein Textfeld an der Baustelle und wurde bei jedem Auftrag neu
+getippt. Jetzt eine eigene Sammlung `customers` mit Verknüpfung über
+`project.customerId`.
+
+**Die Abgrenzung ist der Kern des Modells und keine Dopplung:** Beim Kunden
+steht die RECHNUNGSadresse und der Haupt-Ansprechpartner, an der Baustelle die
+BAUSTELLENadresse und der Ansprechpartner VOR ORT. Eine Hausverwaltung hat
+zwanzig Baustellen, und der Monteur fährt nicht zur Rechnungsadresse. Die
+Feldbeschriftungen sagen das jetzt auch.
+
+- **Doppelgänger werden abgefangen.** „Hausverwaltung Nord" und
+  „hausverwaltung NORD " sind derselbe Kunde; das Anlegen weist darauf hin,
+  statt einen zweiten, halb gefüllten Datensatz zu erzeugen.
+- **Umbenennen zieht die Baustellen nach**, in EINEM Batch. Die Baustellen
+  tragen den Kundennamen als Kopie, damit ihre Listen nicht zusätzlich die
+  Kundensammlung laden müssen — ohne das Nachziehen liefen Anzeige und
+  Stammdaten nach der ersten Umbenennung auseinander.
+- **Löschen nur ohne Baustellen** — sonst blieben Baustellen zurück, die auf
+  einen Datensatz zeigen, den es nicht mehr gibt. Dieselbe Überlegung wie bei
+  den Benutzern.
+- **Übernahme der Altbestände mit Vorschau**, nicht als stiller
+  Hintergrundlauf: die Geschäftsführung sieht, wie viele Kunden aus wie vielen
+  Baustellen entstehen, bevor etwas geschrieben wird. Genau dort fällt auf,
+  dass „Huber" und „Fam. Huber" derselbe Kunde sind.
+- Adresse und Telefonnummer sind auch hier Handgriffe, keine Textfelder.
+
+Geprüft: fünf Komponententests plus der vollständige Durchlauf im Browser
+gegen die Emulatoren — Vorschau, Übernahme, Kundenauswahl im
+Baustellenformular, Historie.
+
 ## Digitaler Handwerksschein (Regiebericht) — Fahrplan
 
 **Bewertung: lohnt sich**, aber nicht wegen der Unterschrift. Der Wert liegt
