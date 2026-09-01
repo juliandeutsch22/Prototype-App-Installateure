@@ -466,6 +466,26 @@ export default function DashboardView() {
                   name={e.contactName}
                   className="mt-3"
                 />
+                {/*
+                  Der Schein entsteht am Ende genau dieses Einsatzes. Ihn hier
+                  anzubieten spart den Umweg ueber einen eigenen Bereich, in
+                  dem die Baustelle noch einmal gesucht werden muesste.
+                */}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    to="/time"
+                    state={{ projectNumber: e.projectNumber, asHelper: !!e.asHelper }}
+                    className="flex min-h-touch items-center rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg"
+                  >
+                    Zeit erfassen
+                  </Link>
+                  <Link
+                    to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
+                    className="flex min-h-touch items-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink"
+                  >
+                    Schein schreiben
+                  </Link>
+                </div>
               </div>
             ))}
           </div>

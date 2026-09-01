@@ -19,6 +19,7 @@ import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, CheckboxField } from '@/components/Field';
+import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { writeWithOfflineNotice, queuedMessage } from '@/lib/offlineWrite';
@@ -314,15 +315,22 @@ export default function OrderView() {
               gewandert — sie gehört zum Absenden, nicht zum Suchen. */}
           <div className="space-y-2">
             <div className="flex flex-wrap items-end gap-3">
-              <SelectField id="oproject" label="Für welche Baustelle?" className="min-w-[14rem] flex-1"
-                value={projectNumber} onChange={(e) => setProjectNumber(e.target.value)}>
-                <option value="">— keine —</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.projectNumber}>
-                    {p.customerName} ({p.projectNumber})
-                  </option>
-                ))}
-              </SelectField>
+              <div className="min-w-[14rem] flex-1">
+                <BaustellenSelect
+                  id="oproject"
+                  label="Für welche Baustelle?"
+                  companyId={user.companyId}
+                  value={projectNumber}
+                  onChange={(nr, p) => {
+                    setProjectNumber(nr);
+                    // Den Datensatz mit aufnehmen: die Warenkorbzeilen und die
+                    // Prüfung auf eine zuständige Projektleitung schlagen hier
+                    // nach. Ohne ihn stünde bei einer abgeschlossenen
+                    // Baustelle die nackte Nummer statt des Kundennamens.
+                    if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
+                  }}
+                />
+              </div>
             </div>
             {/* Direkt unter der Baustelle, weil er von ihr abhaengt: ohne
                 Baustelle gibt es keine zustaendige Projektleitung und damit

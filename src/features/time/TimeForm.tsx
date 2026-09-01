@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { listActiveProjects } from '@/lib/db/projects';
 import {
   createTimeEntry,
   updateTimeEntry,
@@ -11,6 +10,7 @@ import {
 import { todayStr, getAustrianHolidayName } from '@/lib/time';
 import { istAussendienst, canExtendTimeEntry } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import BaustellenSelect from '@/components/BaustellenSelect';
 import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import { ErrorState } from '@/components/States';
@@ -143,12 +143,13 @@ export default function TimeForm({
   const canHaveProject = aussendienst || (darfErweitern && erweitert);
   const showWorkFields = status === 'Anwesend';
 
-  useEffect(() => {
-    if (!user || !canHaveProject) return;
-    listActiveProjects(user.companyId)
-      .then(setProjects)
-      .catch(() => setError('Projekte konnten nicht geladen werden.'));
-  }, [user, canHaveProject]);
+  /**
+   * Die Baustellen laedt `BaustellenSelect` selbst — samt Lade-, Fehler- und
+   * Leerzustand. Hier bleibt nur der DATENSATZ der gewaehlten Baustelle
+   * liegen, weil der Kundenname als Kopie in den Zeiteintrag wandert. Ihn
+   * meldet die Auswahl mit; eine zweite Abfrage waere derselbe Netzverkehr
+   * noch einmal.
+   */
 
   // Live-Hinweise zum gewählten Datum (Legacy:2234-2269).
   const holidayName = useMemo(() => getAustrianHolidayName(new Date(`${date}T00:00:00`)), [date]);
@@ -460,22 +461,25 @@ export default function TimeForm({
             </div>
           )}
 
-          {canHaveProject && (
+          {canHaveProject && user && (
             <>
-              <SelectField
+              {/*
+                Dieselbe Auswahl wie ueberall: sie sagt, ob sie laedt, ob es
+                schiefging oder ob nichts angelegt ist. Und sie bietet
+                abgeschlossene Baustellen an, wenn keine mehr laeuft — eine
+                Stunde von letzter Woche wird auch dann noch nachgetragen,
+                wenn der Auftrag inzwischen abgeschlossen wurde.
+              */}
+              <BaustellenSelect
                 id="project"
-                label="Baustelle"
+                companyId={user.companyId}
                 value={projectNumber}
-                onChange={(e) => setProjectNumber(e.target.value)}
+                onChange={(nr, p) => {
+                  setProjectNumber(nr);
+                  if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
+                }}
                 required
-              >
-                <option value="">— bitte wählen —</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.projectNumber}>
-                    {p.customerName} ({p.projectNumber})
-                  </option>
-                ))}
-              </SelectField>
+              />
 
               <FormGrid>
                 <InputField

@@ -35,6 +35,65 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: die Lücke zwischen zwei fertigen Funktionen
+
+Aus dem Betrieb gemeldet, mit Bildschirmfotos: im Handwerksschein war das
+Auswahlfeld für die Baustelle leer, und in der Kundenakte stand „noch keine
+Baustelle zugeordnet", obwohl eine existierte. Beide Funktionen waren
+abgenommen, beide funktionierten für sich — und trotzdem kam der Benutzer
+nicht durch.
+
+**Die gemeinsame Ursache ist ein Muster, kein Einzelfall.** An beiden Stellen
+stand um die Abfrage ein `catch(() => undefined)`. Damit sahen vier
+verschiedene Lagen identisch aus:
+
+| Lage | Was der Benutzer sah | Was er hätte sehen müssen |
+|---|---|---|
+| lädt noch | leeres Feld | „lädt …" |
+| Abfrage schlug fehl | leeres Feld | die Fehlermeldung und ein zweiter Versuch |
+| keine *laufende* Baustelle | leeres Feld | der Gesamtbestand, mit Hinweis |
+| gar keine Baustelle | leeres Feld | „noch keine angelegt", plus der Weg dorthin |
+
+Ein leeres Auswahlfeld ist keine Antwort. Es ist die Abwesenheit einer
+Antwort, und der Benutzer kann daraus nichts ableiten — auch nicht, ob er
+selbst etwas falsch gemacht hat.
+
+**Behoben, nicht umgangen:**
+
+- `components/BaustellenSelect.tsx` — eine Auswahl für alle Stellen, die eine
+  Baustelle brauchen. Unterscheidet die vier Lagen oben. Ohne laufende
+  Baustelle weicht sie auf den Gesamtbestand aus (ein Schein wird auch für
+  eine gerade abgeschlossene Baustelle nachgereicht) und sagt, dass sie das
+  tut.
+- Eine per Link vorgegebene Baustelle wird gezielt nachgeladen, wenn sie nicht
+  in der Liste steht. Das war ein stiller Zweitfehler: der Schein hatte dann
+  zwar die Nummer, aber keinen Datensatz — und sein Abschluss-Knopf sah
+  anklickbar aus und tat beim Drücken nichts. Der Knopf hängt jetzt am
+  Datensatz, nicht an der Nummer, und nennt den Grund, wenn er gesperrt ist.
+- `db/customers.ts: listUnlinkedProjectsByName` — findet Baustellen, die den
+  Namen des Kunden tragen, aber auf keinen Kundendatensatz zeigen. Genau der
+  gemeldete Fall: ein von Hand angelegter Kunde, dessen Baustelle älter ist
+  als die Kundenstammdaten. Die Akte zeigt sie als Vorschlag mit einem Knopf
+  „Zuordnen" — sie nur anzuzeigen wäre wieder halb gewesen.
+  Der Namensabgleich ist exakt; das steht auch so in der Oberfläche, mit dem
+  Verweis auf die Übernahme, die nach vereinheitlichtem Schlüssel gruppiert.
+
+**Und der Grund, warum die Lücke überhaupt entstand:** der Schein war ein
+eigener Bereich ohne Anschluss. Seine erste Frage — „welche Baustelle?" —
+richtete sich an einen Monteur, der gerade von genau dieser Baustelle kommt.
+Jetzt stehen seine Einsätze des Tages oben als Knöpfe, bei einem einzigen wird
+vorausgewählt (bei zweien bewusst nicht: eine falsche Vorauswahl ist schlimmer
+als keine), und der Schein ist von dort erreichbar, wo er entsteht — aus dem
+Einsatzplan, von der Startseite und aus der Baustellenliste. Adresse und
+Telefonnummer der Baustelle stehen dabei, weil unterschrieben werden soll und
+dafür jemand vor Ort sein muss.
+
+**Die Lehre für alles Weitere:** eine Funktion ist nicht fertig, wenn sie für
+sich läuft, sondern wenn sie an dem Punkt erreichbar ist, an dem die Arbeit
+sie braucht — und wenn sie sagt, was los ist, statt leer zu bleiben.
+`catch(() => undefined)` um eine Abfrage, deren Ergebnis die Ansicht trägt,
+ist ab hier ein Fehler und keine Vorsichtsmaßnahme.
+
 ## Erledigt: Kundenstammdaten
 
 Der Kunde war ein Textfeld an der Baustelle und wurde bei jedem Auftrag neu

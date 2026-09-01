@@ -7,12 +7,14 @@ import {
   updateCustomer,
   deleteCustomer,
   listProjectsForCustomer,
+  listUnlinkedProjectsByName,
   assignProjectToCustomer,
   type NewCustomer,
 } from '@/lib/db/customers';
 import { listRecentProjects } from '@/lib/db/projects';
+import { listQuotesForCustomer } from '@/lib/db/quotes';
 import { isGF } from '@/lib/permissions';
-import type { Customer, Project } from '@/types';
+import type { Customer, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -37,10 +39,35 @@ const LEER: NewCustomer = {
   active: true,
 };
 
+const fmtEUR = (n: number) =>
+  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
+
 /** Namen für den Abgleich vereinheitlichen — Groß-/Kleinschreibung und Leerraum. */
 function schluessel(name: string): string {
   return name.trim().toLowerCase().replace(/\s+/g, ' ');
 }
+
+/**
+ * Die Akte eines Kunden: was der Betrieb für ihn tut und getan hat.
+ *
+ * `vorschlaege` ist der Teil, den es vorher nicht gab und dessen Fehlen die
+ * Ansicht unbrauchbar machte: Baustellen, die den Namen des Kunden tragen,
+ * aber noch auf keinen Kundendatensatz zeigen. Sie sind der Normalfall bei
+ * allem, was vor den Kundenstammdaten angelegt wurde — und bei jedem Kunden,
+ * den jemand von Hand nachträgt, während seine Baustelle längst existiert.
+ */
+type Akte =
+  | { zustand: 'laedt' }
+  | { zustand: 'fehler' }
+  | {
+      zustand: 'bereit';
+      zugeordnet: WithId<Project>[];
+      vorschlaege: WithId<Project>[];
+      angebote: WithId<Quote>[];
+    };
+
+/** Baustellen jüngste zuerst — die Nummer trägt das Jahr. */
+const nachNummer = (a: Project, b: Project) => b.projectNumber.localeCompare(a.projectNumber);
 
 /**
  * Kundenverwaltung.
@@ -63,9 +90,9 @@ export default function CustomersView() {
   const [bearbeitet, setBearbeitet] = useState<WithId<Customer> | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Customer> | null>(null);
-  /** Aufgeklappter Kunde samt seiner Baustellen. */
+  /** Aufgeklappter Kunde samt seiner Akte. */
   const [offen, setOffen] = useState<string | null>(null);
-  const [historie, setHistorie] = useState<WithId<Project>[]>([]);
+  const [akte, setAkte] = useState<Akte>({ zustand: 'laedt' });
 
   const darfAendern = user ? isGF(user.role) : false;
 
@@ -88,18 +115,47 @@ export default function CustomersView() {
     void laden();
   }, [laden]);
 
-  /** Die Baustellen des aufgeklappten Kunden — erst auf Anforderung geladen. */
+  /**
+   * Die Akte des aufgeklappten Kunden — erst auf Anforderung geladen.
+   *
+   * Drei Abfragen nebeneinander: die zugeordneten Baustellen, die namensgleich
+   * NICHT zugeordneten, und die Angebote. Der mittlere Teil ist der Grund für
+   * diese Überarbeitung — ohne ihn stand bei einem Kunden „noch keine
+   * Baustelle zugeordnet", während im Bestand eine mit genau seinem Namen lag.
+   *
+   * Ein Fehler wird angezeigt, nicht verschluckt: er sah vorher aus wie „es
+   * gibt nichts", und das ist eine andere Aussage.
+   */
+  const [zuordnenLaeuft, setZuordnenLaeuft] = useState<string | null>(null);
+
+  const akteLaden = useMemo(
+    () => async (kunde: WithId<Customer>) => {
+      if (!user) return;
+      setAkte({ zustand: 'laedt' });
+      try {
+        const [zugeordnet, namensgleich, angebote] = await Promise.all([
+          listProjectsForCustomer(user.companyId, kunde.id),
+          listUnlinkedProjectsByName(user.companyId, kunde.name),
+          listQuotesForCustomer(user.companyId, kunde.id),
+        ]);
+        setAkte({
+          zustand: 'bereit',
+          zugeordnet: [...zugeordnet].sort(nachNummer),
+          vorschlaege: [...namensgleich].sort(nachNummer),
+          angebote,
+        });
+      } catch {
+        setAkte({ zustand: 'fehler' });
+      }
+    },
+    [user],
+  );
+
   useEffect(() => {
-    if (!user || !offen) {
-      setHistorie([]);
-      return;
-    }
-    listProjectsForCustomer(user.companyId, offen)
-      .then((rows) =>
-        setHistorie([...rows].sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))),
-      )
-      .catch(() => setHistorie([]));
-  }, [user, offen]);
+    if (!user || !offen) return;
+    const kunde = kunden.find((k) => k.id === offen);
+    if (kunde) void akteLaden(kunde);
+  }, [user, offen, kunden, akteLaden]);
 
   const sichtbar = useMemo(() => {
     const q = suche.trim().toLowerCase();
@@ -402,22 +458,118 @@ export default function CustomersView() {
                     {offen === k.id && (
                       <span className="mt-2 block rounded border border-line p-2">
                         <span className="section-label block">Baustellen</span>
-                        {historie.length === 0 ? (
-                          <span className="mt-1 block text-sm text-ink-muted">
-                            Noch keine Baustelle zugeordnet.
+
+                        {akte.zustand === 'laedt' && (
+                          <span className="mt-1 block text-sm text-ink-muted">lädt …</span>
+                        )}
+
+                        {akte.zustand === 'fehler' && (
+                          <span className="mt-1 block text-sm text-danger">
+                            Die Baustellen konnten nicht geladen werden. Das heißt nicht, dass es
+                            keine gibt.
                           </span>
-                        ) : (
-                          <span className="mt-1 block space-y-1">
-                            {historie.map((p) => (
-                              <Link
-                                key={p.id}
-                                to="/admin-projects"
-                                className="block truncate text-sm text-brand underline"
-                              >
-                                {p.projectNumber} · {p.address ?? 'ohne Adresse'} ({p.status})
-                              </Link>
-                            ))}
-                          </span>
+                        )}
+
+                        {akte.zustand === 'bereit' && (
+                          <>
+                            {akte.zugeordnet.length === 0 ? (
+                              <span className="mt-1 block text-sm text-ink-muted">
+                                Noch keine Baustelle zugeordnet.
+                              </span>
+                            ) : (
+                              <span className="mt-1 block space-y-1">
+                                {akte.zugeordnet.map((p) => (
+                                  <Link
+                                    key={p.id}
+                                    to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
+                                    className="block truncate text-sm text-brand underline"
+                                  >
+                                    {p.projectNumber} · {p.address ?? 'ohne Adresse'} ({p.status})
+                                  </Link>
+                                ))}
+                              </span>
+                            )}
+
+                            {/*
+                              DER TEIL, DER VORHER FEHLTE. Eine Baustelle mit
+                              genau diesem Kundennamen, die auf keinen Kunden
+                              zeigt. Sie hier nur anzuzeigen wäre halb: der
+                              Knopf daneben stellt die Verbindung her.
+                            */}
+                            {akte.vorschlaege.length > 0 && (
+                              <span className="mt-3 block rounded border border-warning/40 bg-warning-bg p-2">
+                                <span className="block text-sm text-warning">
+                                  <strong>{akte.vorschlaege.length}</strong>{' '}
+                                  {akte.vorschlaege.length === 1
+                                    ? 'Baustelle trägt diesen Namen'
+                                    : 'Baustellen tragen diesen Namen'}
+                                  , {akte.vorschlaege.length === 1 ? 'ist' : 'sind'} aber noch
+                                  keinem Kunden zugeordnet.
+                                </span>
+                                <span className="mt-2 block space-y-1">
+                                  {akte.vorschlaege.map((p) => (
+                                    <span
+                                      key={p.id}
+                                      className="flex flex-wrap items-center justify-between gap-2"
+                                    >
+                                      <span className="truncate text-sm text-ink">
+                                        {p.projectNumber} · {p.address ?? 'ohne Adresse'}
+                                      </span>
+                                      {darfAendern && (
+                                        <Button
+                                          variant="secondary"
+                                          loading={zuordnenLaeuft === p.id}
+                                          onClick={async () => {
+                                            setZuordnenLaeuft(p.id);
+                                            try {
+                                              await assignProjectToCustomer(p.id, k.id, k.name);
+                                              toast.success('Baustelle zugeordnet');
+                                              await akteLaden(k);
+                                            } catch {
+                                              setError('Die Zuordnung ist fehlgeschlagen.');
+                                            } finally {
+                                              setZuordnenLaeuft(null);
+                                            }
+                                          }}
+                                        >
+                                          Zuordnen
+                                        </Button>
+                                      )}
+                                    </span>
+                                  ))}
+                                </span>
+                              </span>
+                            )}
+
+                            {/*
+                              Der Namensabgleich ist EXAKT. „Fam. Huber" und
+                              „Huber" findet er nicht — das gehört gesagt,
+                              sonst hält jemand das Ergebnis für vollständig.
+                            */}
+                            {akte.zugeordnet.length === 0 && akte.vorschlaege.length === 0 && (
+                              <span className="mt-1 block text-xs text-ink-muted">
+                                Gesucht wurde nach exakt „{k.name}". Bei abweichender Schreibweise
+                                hilft „Bestehende Baustellen übernehmen" weiter oben.
+                              </span>
+                            )}
+
+                            {akte.angebote.length > 0 && (
+                              <>
+                                <span className="section-label mt-3 block">Angebote</span>
+                                <span className="mt-1 block space-y-1">
+                                  {akte.angebote.map((q) => (
+                                    <Link
+                                      key={q.id}
+                                      to="/quotes"
+                                      className="block truncate text-sm text-brand underline"
+                                    >
+                                      {q.quoteNumber} · {fmtEUR(q.totalNetto)} netto ({q.status})
+                                    </Link>
+                                  ))}
+                                </span>
+                              </>
+                            )}
+                          </>
                         )}
                       </span>
                     )}

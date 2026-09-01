@@ -22,3 +22,17 @@ vi.mock('@/lib/firebase', () => ({
   db: {},
   functions: {},
 }));
+
+/**
+ * jsdom kann kein Canvas. Das Unterschriftenfeld holt sich einen 2D-Kontext
+ * und kommt ohne ihn auch zurecht — jsdom wirft dabei aber jedes Mal eine
+ * seitenlange „Not implemented"-Meldung auf stderr. Die Testausgabe wird
+ * dadurch unlesbar, und in einer unlesbaren Ausgabe übersieht man echte
+ * Fehler. Ein stiller Null-Kontext genügt.
+ *
+ * Nur wenn ein DOM da ist: dieselbe Vorbereitung läuft auch für die reinen
+ * Logiktests, und die haben kein `HTMLCanvasElement`.
+ */
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = (() => null) as HTMLCanvasElement['getContext'];
+}
