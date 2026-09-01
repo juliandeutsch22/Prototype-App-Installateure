@@ -187,6 +187,44 @@ service cloud.firestore {
             || isBuchOrTop());
     }
 
+    // --- workSheets: Handwerksscheine ---
+    //
+    // DIE UNVERAENDERBARKEIT STEHT HIER, nicht in der Oberflaeche. Ein Beleg,
+    // den der Kunde unterschrieben hat und den man danach im System aendern
+    // kann, ist wertlos: der Kunde hat etwas anderes unterschrieben, als im
+    // System steht, und niemand koennte den Unterschied nachweisen.
+    //
+    // Deshalb:
+    //   Entwurf         -> aenderbar
+    //   Unterschrieben  -> NUR NOCH der Uebergang nach „Storniert"
+    //   Storniert       -> gar nichts mehr
+    //
+    // Geloescht wird nie. Ein spurlos verschwundener Beleg waere schlimmer
+    // als ein falscher — der Storno bleibt sichtbar und traegt seinen Grund.
+    match /workSheets/{id} {
+      function istEntwurf() {
+        return resource.data.status == 'Entwurf';
+      }
+      function nurStorno() {
+        // Vom unterschriebenen Schein fuehrt genau ein Weg weg, und der
+        // aendert den Inhalt nicht.
+        return resource.data.status == 'Unterschrieben'
+          && request.resource.data.status == 'Storniert'
+          && request.resource.data.zeiten == resource.data.zeiten
+          && request.resource.data.material == resource.data.material
+          && request.resource.data.notizen == resource.data.notizen
+          && request.resource.data.unterschriften == resource.data.unterschriften;
+      }
+
+      allow read: if ownsExisting();
+      allow create: if ownsIncoming()
+        && request.resource.data.status == 'Entwurf'
+        && request.resource.data.erstelltVonUid == request.auth.uid;
+      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
+        && (istEntwurf() || (nurStorno() && isLeadership()));
+      allow delete: if false;
+    }
+
     // --- customers: Kundenstammdaten ---
     //
     // Lesen darf das ganze Büro: die Buchhaltung braucht die Rechnungsadresse,

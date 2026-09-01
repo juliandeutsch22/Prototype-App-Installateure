@@ -10,6 +10,8 @@ export {
   bilanzenNachtlauf,
   bilanzenNeuAufbauen,
 } from './monatsbilanz.js';
+export { scheinPruefsumme } from './scheinPruefsumme.js';
+export { scheinVorbereiten } from './scheinVorbereiten.js';
 
 /*
  * Die KI-Spracherfassung wird über eine GENERIERTE Datei eingebunden

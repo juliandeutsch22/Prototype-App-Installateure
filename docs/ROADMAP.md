@@ -15,8 +15,8 @@ abtippt. Der Kreis ist an zwei Stellen offen.
 Reihenfolge nach Wirkung je Aufwand:
 
 1. **Kundenstammdaten** — ERLEDIGT, siehe unten.
-2. **Digitaler Handwerksschein** — der Unterschied zum Wettbewerb, zahlt sich
-   direkt in strittigen Regiestunden aus. Fahrplan weiter unten.
+2. **Digitaler Handwerksschein** — Stufe 1 ERLEDIGT, siehe unten. Stufen 2
+   bis 4 (Fotos, Versand, Verbindung zur Rechnung) stehen im Fahrplan.
 3. **Buchhaltungs-Übergabe.** Heute: CSV für Stunden, PDF für Rechnungen. Der
    Steuerberater braucht Rechnungen strukturiert mit Konten und Steuersätzen —
    in Österreich meist BMD oder RZL. Ohne das tippt jemand jede Rechnung
@@ -74,6 +74,59 @@ Feldbeschriftungen sagen das jetzt auch.
 Geprüft: fünf Komponententests plus der vollständige Durchlauf im Browser
 gegen die Emulatoren — Vorschau, Übernahme, Kundenauswahl im
 Baustellenformular, Historie.
+
+## Erledigt: Handwerksschein Stufe 1
+
+Der Schein füllt sich aus Zeiten und Material der Baustelle, der Monteur
+ergänzt Notizen, Monteur und Kunde unterschreiben am Gerät — danach ist er
+eingefroren. PDF am Gerät, kein Mailversand.
+
+**Abrechnungsart an der Baustelle**, nicht am Zeiteintrag: entschieden wird
+das beim Auftrag, nicht täglich neu. Für den Monteur heißt das null
+zusätzliche Tipparbeit — und ein vergessener Haken kann nicht passieren, weil
+es keinen gibt. Auf einer Pauschalbaustelle sagt der Schein ausdrücklich, dass
+die Stunden keine Nachverrechnungsgrundlage sind.
+
+**Die Datenschutzgrenze war der interessanteste Teil.** Der Schein braucht die
+Stunden der GANZEN Mannschaft — der Kunde unterschreibt für alle, die dort
+waren. Ein Monteur darf die Zeiteinträge seiner Kollegen aber nicht lesen, weil
+darin Kranken- und Urlaubstage stehen (Art. 9 DSGVO). Der naheliegende Ausweg
+wäre gewesen, die Regel aufzuweichen; das hätte funktioniert und nebenbei
+jedem Monteur offengelegt, wer wann wo war. Eine Datenschutzgrenze
+aufzumachen, weil eine Ansicht sonst umständlich wird, ist die falsche
+Reihenfolge. Stattdessen stellt eine Cloud Function genau das zusammen, was auf
+den Schein gehört: Anwesenheitszeiten EINER Baustelle an EINEM Tag. Krank- und
+Urlaubstage sind darin per Definition nicht enthalten.
+
+**Unveränderbarkeit steht in den Rules, nicht in der Oberfläche.** Vom
+unterschriebenen Schein führt genau ein Weg weg — der Storno, und der lässt
+Zeiten, Material, Notizen und Unterschriften unangetastet. Gelöscht wird nie:
+ein spurlos verschwundener Beleg wäre schlimmer als ein falscher.
+
+**Die Prüfsumme ist der eigentliche Manipulationsschutz.** SHA-256 über den
+eingefrorenen Inhalt, serverseitig gerechnet — eine vom Client mitgelieferte
+Prüfsumme bewiese nichts. Die Kanonisierung schreibt die Felder in fester
+Reihenfolge auf, statt das Dokument zu serialisieren: sonst hinge der Wert an
+der zufälligen Feldreihenfolge und ein Neuberechnen ergäbe eine Abweichung,
+obwohl sich nichts geändert hat. Getrennt wird mit einem Zeichen, das in
+Freitext nicht vorkommt — mit einem Semikolon wäre eine Tätigkeit „A;B" von
+zwei Feldern nicht zu unterscheiden. Elf Tests halten das fest, darunter sieben,
+die je EINE Änderung am Inhalt vornehmen und eine andere Prüfsumme erwarten.
+
+**Kein PDF/A und kein qualifizierter Zeitstempel** — beides wurde geprüft und
+verworfen (Begründung unten). Das PDF nennt sich normales PDF und trägt die
+Prüfsumme im Fuß.
+
+**Offline gedacht:** Gerätezeit UND Serverzeit werden gespeichert. Eine im
+Keller erfasste Unterschrift synchronisiert später; die Serverzeit wäre dann
+die der Übertragung. Solange die Prüfsumme noch aussteht, sagt die Ansicht das
+ausdrücklich, statt die Zeile wegzulassen — eine fehlende Prüfsumme sieht
+sonst aus wie ein Fehler.
+
+Geprüft: elf Tests zur Prüfsumme plus der vollständige Durchlauf im Browser
+gegen die Emulatoren — Vorausfüllung (08:30 aus einer echten Buchung, Material
+aus einer Anforderung), Unterschrift auf beiden Feldern, Einfrieren,
+serverseitige Prüfsumme, PDF-Ausgabe.
 
 ## Digitaler Handwerksschein (Regiebericht) — Fahrplan
 
