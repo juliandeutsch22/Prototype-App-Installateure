@@ -42,6 +42,9 @@ export const NAV: NavItem[] = [
   // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
   { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Außendienst' },
   { path: '/my-projects', label: 'Meine Baustellen', short: 'Baustellen', icon: 'building', roles: ['Mitarbeiter'], group: 'Außendienst' },
+  // Der Schein gehoert in den Aussendienst: er entsteht vor Ort beim Kunden,
+  // nicht im Buero.
+  { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'clipboard', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Außendienst' },
 
   // Kunden VOR den Baustellen: der Kunde ist der Ausgangspunkt, die Baustelle
   // hängt an ihm. Auch die Buchhaltung braucht ihn — für die Rechnungsadresse.

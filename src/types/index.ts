@@ -159,6 +159,103 @@ export interface UserPrefs {
  * Hausverwaltung kann zwanzig Baustellen haben, und der Monteur fährt nicht
  * zur Rechnungsadresse. Das ist keine Dopplung, sondern zweierlei.
  */
+/**
+ * Ein Handwerksschein (Regie- oder Arbeitsschein).
+ *
+ * Der Beleg, den der Kunde auf der Baustelle unterschreibt. Regiestunden sind
+ * die am häufigsten bestrittene Rechnungsposition; ohne unterschriebenen
+ * Schein lässt sich eine Mehrstunde im Zweifel nicht durchsetzen.
+ *
+ * DIE ZENTRALE ENTSCHEIDUNG: Der Schein KOPIERT die Zeiten und das Material,
+ * er referenziert sie nicht. Die Buchhaltung kann einen Zeiteintrag
+ * nachträglich korrigieren — bei einer Referenz änderte sich damit
+ * rückwirkend, was der Kunde unterschrieben hat. Das ist das genaue Gegenteil
+ * der sonst geltenden Regel, hier aber zwingend: mit der Unterschrift wird
+ * der Inhalt festgeschrieben.
+ */
+export interface WorkSheet {
+  id: string;
+  companyId: string;
+  projectNumber: string;
+  customerId?: string;
+  customerName: string;
+  /** Baustellenadresse, zum Zeitpunkt der Unterschrift. */
+  address?: string;
+  /** Leistungsdatum (der Tag, über den der Schein geht). */
+  datum: string;
+  status: 'Entwurf' | 'Unterschrieben' | 'Storniert';
+  abrechnung: 'Regie' | 'Pauschal';
+  /** Die kopierten Positionen — nach der Unterschrift unveränderlich. */
+  zeiten: WorkSheetZeit[];
+  material: WorkSheetMaterial[];
+  notizen?: string;
+  erstelltVonUid: string;
+  erstelltVonName: string;
+  unterschriften?: {
+    monteur?: WorkSheetUnterschrift;
+    kunde?: WorkSheetUnterschrift;
+  };
+  /**
+   * SHA-256 über den eingefrorenen Inhalt, serverseitig gerechnet.
+   *
+   * Der eigentliche Manipulationsschutz. Ein qualifizierter Zeitstempel nach
+   * eIDAS käme von einem Vertrauensdiensteanbieter und kostet; für einen
+   * Rapportzettel ist er nicht nötig. Der Hash dagegen beweist, dass ein
+   * vorgelegtes PDF genau das ist, was unterschrieben wurde.
+   */
+  inhaltHash?: string;
+  /** Zeitpunkt des Einfrierens, vom SERVER. */
+  unterschriebenAm?: number;
+  stornoGrund?: string;
+  storniertVonName?: string;
+  createdAt?: number;
+}
+
+export interface WorkSheetZeit {
+  datum: string;
+  mitarbeiter: string;
+  von?: string;
+  bis?: string;
+  pauseMin?: number;
+  /** Gerechnete Arbeitszeit in Minuten — als Zahl kopiert, nicht neu gerechnet. */
+  minuten: number;
+  taetigkeit?: string;
+  helfer?: boolean;
+}
+
+export interface WorkSheetMaterial {
+  name: string;
+  menge: number;
+  einheit?: string;
+}
+
+/**
+ * Eine Unterschrift samt Umständen.
+ *
+ * BEWUSST OHNE biometrische Merkmale. Schreibgeschwindigkeit und Druckverlauf
+ * wären auf kapazitiven Touchscreens ohne Stift ohnehin überwiegend Fiktion —
+ * `PointerEvent.pressure` liefert dort konstant 1.0 — und rechtlich ein
+ * biometrisches Datum nach Art. 9 DSGVO mit Einwilligungspflicht. Der
+ * Streitfall ist praktisch nie eine gefälschte Unterschrift, sondern eine
+ * bestrittene Stundenzahl; dagegen hilft der eingefrorene Inhalt.
+ */
+export interface WorkSheetUnterschrift {
+  /** Name in Druckbuchstaben — ein Strich ohne zuordenbaren Namen ist wenig wert. */
+  name: string;
+  /** Das Unterschriftsbild als PNG-Data-URL (~10 KB). */
+  bild: string;
+  /**
+   * Zeit des GERÄTS bei der Unterschrift.
+   *
+   * Zusätzlich zur Serverzeit, und das ist kein Zierrat: Der Monteur steht im
+   * Keller ohne Empfang. Eine offline erfasste Unterschrift synchronisiert
+   * später, und die Serverzeit wäre dann die Zeit der Übertragung, nicht die
+   * der Unterschrift. Wer nur eine der beiden speichert, hat im Streitfall
+   * einen Zeitstempel, der die falsche Frage beantwortet.
+   */
+  geraetZeit: number;
+}
+
 export interface Customer {
   id: string;
   companyId: string;
@@ -199,6 +296,19 @@ export interface Project {
   address?: string;
   description?: string;
   status: 'Aktiv' | 'Pausiert' | 'Abgeschlossen';
+  /**
+   * Wie diese Baustelle abgerechnet wird.
+   *
+   * Steht an der Baustelle und nicht am einzelnen Zeiteintrag: entschieden
+   * wird das beim Auftrag, nicht täglich neu. Für den Monteur heißt das
+   * NULL zusätzliche Tipparbeit — und ein vergessener Haken kann nicht
+   * passieren, weil es keinen gibt.
+   *
+   * Der Handwerksschein braucht die Angabe: auf einer Regiebaustelle sind die
+   * bestätigten Stunden die Rechnungsgrundlage, auf einer Pauschalbaustelle
+   * belegt derselbe Schein nur, DASS gearbeitet wurde.
+   */
+  billingMode?: 'Regie' | 'Pauschal';
   estimatedHours?: number;
   startDate?: string;
   endDate?: string;

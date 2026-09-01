@@ -13,6 +13,8 @@ import AdminOrdersView from '@/features/orders/AdminOrdersView';
 import StockView from '@/features/orders/StockView';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
 import CustomersView from '@/features/customers/CustomersView';
+import WorkSheetView from '@/features/worksheets/WorkSheetView';
+import WorkSheetsListView from '@/features/worksheets/WorkSheetsListView';
 import MyProjectsView from '@/features/projects/MyProjectsView';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
 import MyScheduleView from '@/features/assignments/MyScheduleView';
@@ -95,6 +97,37 @@ function AppRoutes() {
       />
 
       {/* Verwaltung */}
+      {/*
+        Handwerksschein: erstellen darf jeder, der rausfaehrt — der Monteur
+        vor allem. Die Liste sieht zusaetzlich das Buero.
+      */}
+      <Route
+        path="/worksheet"
+        element={
+          <RequireRole
+            roles={['Mitarbeiter', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
+          >
+            <WorkSheetView />
+          </RequireRole>
+        }
+      />
+      <Route
+        path="/worksheets"
+        element={
+          <RequireRole
+            roles={[
+              'Mitarbeiter',
+              'Buchhaltung',
+              'Verwaltung',
+              'Projektleiter',
+              'Geschäftsführung',
+              'Administrator',
+            ]}
+          >
+            <WorkSheetsListView />
+          </RequireRole>
+        }
+      />
       <Route
         path="/customers"
         element={
