@@ -2,9 +2,14 @@ import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listActiveProjects } from '@/lib/db/projects';
-import { createTimeEntry, updateTimeEntry, DuplicateEntryError } from '@/lib/db/timeEntries';
+import {
+  createTimeEntry,
+  updateTimeEntry,
+  findEntryForDate,
+  DuplicateEntryError,
+} from '@/lib/db/timeEntries';
 import { todayStr, getAustrianHolidayName } from '@/lib/time';
-import { isMitarbeiter } from '@/lib/permissions';
+import { istAussendienst, canExtendTimeEntry } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import Icon from '@/components/Icon';
 import Button from '@/components/Button';
@@ -32,7 +37,13 @@ interface Props {
   /** Gesetzt = Bearbeiten statt Neuanlage. */
   entry?: WithId<TimeEntry>;
   onCancel?: () => void;
-  /** Bereits belegte Tage (YYYY-MM-DD) für die Doppelbuchungs-Warnung. */
+  /**
+   * Bereits belegte Tage (YYYY-MM-DD) für die Doppelbuchungs-Warnung.
+   *
+   * Nur noch eine Abkürzung für Tage, die die aufrufende Ansicht ohnehin
+   * geladen hat. Die verlässliche Prüfung fragt beim gewählten Datum direkt
+   * nach — siehe `belegt` weiter unten.
+   */
   existingDates?: Set<string>;
   /**
    * Rolle des Eintrags-EIGENTÜMERS. Steuert, ob Projekt-/Helferfelder gelten.
@@ -99,13 +110,37 @@ export default function TimeForm({
   /** Für wen wird gebucht (nur wenn `staff` gesetzt ist). */
   const [targetUid, setTargetUid] = useState(entry?.userId ?? '');
 
-  // Projekt-, Fahrzeug- und Helferfelder sind Außendienst-Sache. Verwaltung,
-  // Buchhaltung und GF buchen nur Zeit (Legacy:2168-2172).
   const target = staff?.find((u) => u.uid === targetUid);
   // Beim Erfassen für jemand anderen zählt DESSEN Rolle für die
   // Projektfelder — sonst bekäme ein Monteur-Eintrag keine Baustelle.
   const effectiveRole = ownerRole ?? target?.role ?? user?.role;
-  const canHaveProject = effectiveRole ? isMitarbeiter(effectiveRole) : false;
+
+  /**
+   * Die volle Erfassung — Baustelle, Wegzeit, Fahrzeug, Helfer, Zuschläge.
+   *
+   * Für den Monteur immer: das ist seine tägliche Arbeit. Für alle anderen
+   * ist das Formular schlank — Datum, Status, Von-Bis, Pause, Kommentar —
+   * denn Verwaltung und Buchhaltung fahren nicht raus, und jedes Feld, das
+   * nie ausgefüllt wird, ist eine Fehlerquelle.
+   *
+   * Geschäftsführung, Projektleitung und Administrator können die vollen
+   * Felder DAZUSCHALTEN. Springt jemand von ihnen für einen Notdienst ein,
+   * landete der Einsatz vorher ohne Baustelle und ohne Zuschlag in den Daten
+   * — er fehlte damit auf der Rechnung und im Budget der Baustelle, ohne dass
+   * es jemandem auffiel. Der Administrator wiederum bekam bisher IMMER das
+   * volle Formular, weil `isMitarbeiter` ihn als Superuser einschließt.
+   */
+  const aussendienst = effectiveRole ? istAussendienst(effectiveRole) : false;
+  const darfErweitern = effectiveRole ? canExtendTimeEntry(effectiveRole) : false;
+  const [erweitert, setErweitert] = useState(
+    // Beim Bearbeiten aufklappen, wenn der Eintrag erweiterte Angaben TRÄGT —
+    // sonst wären sie unsichtbar und würden beim Speichern stillschweigend
+    // gelöscht.
+    () =>
+      !!entry &&
+      !!(entry.projectNumber || entry.isEmergency || entry.isNightWork || entry.isHelper),
+  );
+  const canHaveProject = aussendienst || (darfErweitern && erweitert);
   const showWorkFields = status === 'Anwesend';
 
   useEffect(() => {
@@ -125,9 +160,52 @@ export default function TimeForm({
    * war — zwei Einträge am selben Tag, Saldo falsch, kein Hinweis. Der
    * eigene, unveränderte Tag zählt dabei natürlich nicht als Konflikt.
    */
+  /**
+   * Ist am gewaehlten Tag schon gebucht — nachgefragt statt vorgeladen.
+   *
+   * Vorher bekam das Formular die Menge ALLER belegten Tage uebergeben, und
+   * die Ansicht musste dafuer die gesamte Buchungsgeschichte des Mitarbeiters
+   * laden. Bei einem Fenster von ein paar Monaten waere die Warnung fuer
+   * jeden Tag ausserhalb stillschweigend ausgeblieben: das Formular haette
+   * gemeldet „frei", das Speichern waere dann an der serverseitigen Sperre
+   * gescheitert — mit einer Fehlermeldung statt einer Vorwarnung.
+   *
+   * Die gezielte Abfrage kostet ein Dokument und ist unabhaengig davon, wie
+   * lange jemand im Betrieb ist. `existingDates` bleibt als sofortige Antwort
+   * fuer die Tage, die die Ansicht ohnehin geladen hat.
+   */
+  const [belegtServer, setBelegtServer] = useState<boolean | null>(null);
+  const besitzerUid = targetUid || entry?.userId || user?.uid;
+  useEffect(() => {
+    if (!user || !besitzerUid || !date) return;
+    if (date === entry?.date) {
+      setBelegtServer(false);
+      return;
+    }
+    if (existingDates?.has(date)) {
+      setBelegtServer(true);
+      return;
+    }
+    let verworfen = false;
+    setBelegtServer(null);
+    findEntryForDate(user.companyId, besitzerUid, date, entry?.id)
+      .then((treffer) => {
+        if (!verworfen) setBelegtServer(!!treffer);
+      })
+      // Faellt die Abfrage aus, bleibt die serverseitige Sperre beim
+      // Speichern. Eine ausgebliebene VORwarnung darf das Formular nicht
+      // blockieren.
+      .catch(() => {
+        if (!verworfen) setBelegtServer(false);
+      });
+    return () => {
+      verworfen = true;
+    };
+  }, [user, besitzerUid, date, entry?.date, entry?.id, existingDates]);
+
   const alreadyBooked = useMemo(
-    () => !!existingDates?.has(date) && date !== entry?.date,
-    [existingDates, date, entry?.date],
+    () => belegtServer === true && date !== entry?.date,
+    [belegtServer, date, entry?.date],
   );
 
   async function handleSubmit(e: FormEvent) {
@@ -349,6 +427,38 @@ export default function TimeForm({
               required
             />
           </FormGrid>
+
+          {/*
+            Der Umschalter steht VOR den Feldern, die er ein- und ausblendet,
+            und nur dort, wo er etwas bewirkt. Ein Monteur sieht ihn nicht —
+            für ihn gibt es nichts umzuschalten.
+          */}
+          {darfErweitern && !aussendienst && (
+            <div className="rounded-sm border border-line bg-surface-2 p-3">
+              <CheckboxField
+                id="erweitert"
+                label="Erweiterte Erfassung (Baustelle, Wegzeit, Fahrzeug, Zuschläge)"
+                checked={erweitert}
+                onChange={(e) => setErweitert(e.target.checked)}
+              />
+              <p className="mt-1 text-sm text-ink-muted">
+                Für Notdienste und Einsätze auf der Baustelle. Ohne diese Angaben zählt die Zeit
+                nicht ins Baustellenbudget und erscheint auf keiner Rechnung.
+              </p>
+              {/*
+                Abschalten an einem Eintrag, der die Angaben TRÄGT, löscht sie
+                beim Speichern. Das ist die richtige Folge — aber nicht, wenn
+                es unbemerkt passiert: die Baustelle verlöre ihre Stunden und
+                die Rechnung eine Position, ohne dass jemand es merkt.
+              */}
+              {!erweitert && entry && (entry.projectNumber || entry.isEmergency || entry.isNightWork) && (
+                <p className="mt-2 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+                  Dieser Eintrag hat eine Baustelle oder Zuschläge hinterlegt. Speichern ohne
+                  erweiterte Erfassung entfernt sie.
+                </p>
+              )}
+            </div>
+          )}
 
           {canHaveProject && (
             <>

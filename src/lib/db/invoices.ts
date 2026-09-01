@@ -1,6 +1,9 @@
 import {
   collection,
   doc,
+  orderBy,
+  limit,
+  where,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -26,17 +29,46 @@ export {
 
 const COLLECTION = 'invoices';
 
-/** Einmaliges Laden aller Rechnungen des Mandanten (z. B. Dashboard). */
-export function listInvoices(companyId: string) {
-  return queryTenant<Invoice>(COLLECTION, companyId);
+/**
+ * Nur die UNBEZAHLTEN Rechnungen — fuer die Summen auf der Startseite.
+ *
+ * Die Startseite zeigt dort „offen" und „ueberfaellig". Bezahlte Rechnungen
+ * gehen in keine der beiden Summen ein, wurden aber trotzdem alle geladen:
+ * nach zehn Jahren die gesamte Rechnungshistorie des Betriebs, um zwei
+ * Zahlen zu bilden. Unbezahlte Rechnungen sind dagegen von Natur aus wenige
+ * — wird die Liste lang, hat der Betrieb ein anderes Problem als die
+ * Ladezeit.
+ */
+export function listUnpaidInvoices(companyId: string) {
+  return queryTenant<Invoice>(
+    COLLECTION,
+    companyId,
+    where('paymentStatus', 'in', ['Offen', 'Überfällig']),
+  );
 }
 
-export function subscribeInvoices(
+/**
+ * Die juengsten Rechnungen, live — mit ausdruecklicher Obergrenze.
+ *
+ * Die Rechnungsliste ist eine Arbeitsliste, kein Archiv: gearbeitet wird an
+ * dem, was zuletzt entstanden ist. Ohne Grenze abonnierte sie jede jemals
+ * geschriebene Rechnung. `max` laesst die Ansicht nachladen, wenn jemand
+ * weiter zurueck will.
+ */
+export function subscribeRecentInvoices(
   companyId: string,
+  max: number,
   cb: (rows: WithId<Invoice>[]) => void,
   onError: (e: Error) => void,
 ) {
-  return subscribeTenant<Invoice>(COLLECTION, companyId, cb, onError);
+  return subscribeTenant<Invoice>(
+    COLLECTION,
+    companyId,
+    cb,
+    onError,
+    orderBy('createdAt', 'desc'),
+    limit(max),
+  );
 }
 
 /**

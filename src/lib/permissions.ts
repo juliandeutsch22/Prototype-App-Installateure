@@ -58,6 +58,31 @@ export const canManageAdmins = (r: Role) => isAdmin(r);
 export const canInvoice = (r: Role) => isGF(r) || isBuch(r);
 export const canProcessOrders = (r: Role) => isVerw(r) || isGF(r);
 
+/**
+ * Wer im Außendienst arbeitet und deshalb IMMER die volle Zeiterfassung
+ * braucht: Baustelle, Wegzeit, Fahrzeug, Helfer, Zuschläge.
+ *
+ * Bewusst nur der Monteur. Der Administrator zählte hier bisher mit, weil
+ * `isMitarbeiter` ihn als Superuser einschließt — er bekam dadurch immer das
+ * volle Formular, obwohl er in aller Regel gar nicht rausfährt.
+ */
+export const istAussendienst = (r: Role) => r === 'Mitarbeiter';
+
+/**
+ * Wer die erweiterte Erfassung bei Bedarf DAZUSCHALTEN darf.
+ *
+ * Geschäftsführung, Projektleitung und Administrator buchen im Normalfall nur
+ * Zeit — Datum, Status, Von-Bis, Pause, Kommentar. Springt einer von ihnen
+ * aber für einen Notdienst ein, braucht er dieselben Felder wie ein Monteur,
+ * sonst landet der Einsatz ohne Baustelle und ohne Zuschlag in den Daten und
+ * fehlt auf der Rechnung.
+ *
+ * Verwaltung und Buchhaltung stehen bewusst NICHT hier: sie fahren nicht
+ * raus, und ein Feld, das nie gebraucht wird, ist eine Fehlerquelle.
+ */
+export const canExtendTimeEntry = (r: Role) =>
+  r === 'Geschäftsführung' || r === 'Projektleiter' || r === 'Administrator';
+
 /** Soll/Ist-Saldo gilt nur für diese Rollen (Leitung ausgenommen). */
 export const shouldShowOvertime = (r: Role) =>
   r === 'Mitarbeiter' || r === 'Verwaltung' || r === 'Buchhaltung';

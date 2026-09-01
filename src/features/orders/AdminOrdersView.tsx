@@ -30,6 +30,15 @@ const CONDITION_LABEL: Record<string, string> = {
 };
 
 /** Material-Dashboard: Bestellungen abarbeiten, Retouren sichten, Katalog pflegen. */
+/**
+ * Wie viele Anforderungen geladen werden.
+ *
+ * Ohne Grenze wurde jede Anforderung des Betriebs seit jeher abonniert, nur
+ * um die aktuellen zu zeigen. Bei zwanzig Monteuren kommen im Jahr mehrere
+ * tausend zusammen.
+ */
+const ANFORDERUNGEN_JE_SEITE = 200;
+
 export default function AdminOrdersView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -57,6 +66,7 @@ export default function AdminOrdersView() {
     if (!user) return;
     const unsub = subscribeAllOrders(
       user.companyId,
+      ANFORDERUNGEN_JE_SEITE,
       (rows) => {
         setOrders(rows);
         setLoading(false);

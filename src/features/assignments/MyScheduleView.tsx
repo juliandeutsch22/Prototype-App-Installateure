@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { listAssignmentsForUser } from '@/lib/db/assignments';
-import { listAllProjects } from '@/lib/db/projects';
+import {
+  listAssignmentsForUserInRange,
+  listUpcomingAssignments,
+} from '@/lib/db/assignments';
+import { listProjectsByNumbers } from '@/lib/db/projects';
 import type { Assignment, Project } from '@/types';
 import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
+import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
@@ -42,19 +46,66 @@ export default function MyScheduleView() {
     return { year: Number(y), month: Number(m) - 1 };
   });
 
-  useEffect(() => {
-    if (!user) return;
-    // ALLE Baustellen der Firma: eingeplant zu sein heißt nicht, der
-    // Baustelle fest zugeordnet zu sein — sonst bliebe der Kundenname leer
-    // und Route/Anruf fehlten. Die Rules erlauben firmenweites Lesen.
-    listAllProjects(user.companyId).then(setProjects).catch(() => undefined);
-    listAssignmentsForUser(user.companyId, user.uid)
-      .then(setRows)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [user]);
+  /** Die anstehenden Einsätze — „alle geplanten", unabhängig vom Kalender. */
+  const [naechste, setNaechste] = useState<Assignment[]>([]);
 
   const prefix = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}`;
+
+  /**
+   * Der ANGEZEIGTE Monat, nicht die ganze Einsatzgeschichte.
+   *
+   * Vorher wurde jeder Einsatz geladen, den dieser Monteur je hatte — nach
+   * zehn Jahren rund 2.200 Dokumente, um ein Monatsraster zu fuellen. Der
+   * Kalender zeigt immer genau einen Monat; mehr braucht er nicht.
+   */
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    const letzter = new Date(cursor.year, cursor.month + 1, 0).getDate();
+    listAssignmentsForUserInRange(
+      user.companyId,
+      user.uid,
+      `${prefix}-01`,
+      `${prefix}-${String(letzter).padStart(2, '0')}`,
+    )
+      .then(setRows)
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [user, prefix, cursor.year, cursor.month]);
+
+  /**
+   * Die anstehenden Einsätze ab heute — die Frage „wo muss ich als Nächstes
+   * hin?", die der Monatskalender allein nicht beantwortet: liegt der
+   * nächste Einsatz im Folgemonat, sieht man ihn im aktuellen Raster nicht.
+   */
+  useEffect(() => {
+    if (!user) return;
+    listUpcomingAssignments(user.companyId, user.uid, todayStr())
+      .then(setNaechste)
+      .catch(() => undefined);
+  }, [user]);
+
+  /**
+   * Baustellen-Stammdaten nur zu den Nummern, die tatsächlich vorkommen.
+   *
+   * Eingeplant zu sein heißt nicht, der Baustelle fest zugeordnet zu sein —
+   * ohne die Stammdaten bliebe der Kundenname leer und Route und Anruf
+   * fehlten. Vorher wurde dafür der gesamte Baustellenbestand des Betriebs
+   * geladen; jetzt nur die paar, die auf dem Schirm sind.
+   */
+  const nummern = useMemo(
+    () => [...new Set([...rows, ...naechste].map((a) => a.projectNumber))].sort(),
+    [rows, naechste],
+  );
+  const nummernSchluessel = nummern.join('|');
+  useEffect(() => {
+    if (!user || nummern.length === 0) return;
+    listProjectsByNumbers(user.companyId, nummern)
+      .then(setProjects)
+      .catch(() => undefined);
+    // Am Inhalt haengen, nicht an der Array-Identitaet.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, nummernSchluessel]);
 
   /** Einsätze je Tag des angezeigten Monats — die Zahlen im Kalender. */
   const marks = useMemo(() => {
@@ -146,9 +197,7 @@ export default function MyScheduleView() {
                           </span>
                         </div>
                         {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
-                        {proj?.address && (
-                          <p className="mt-1 text-sm text-ink-muted">{proj.address}</p>
-                        )}
+
 
                         <div className="mt-3 flex flex-wrap gap-2">
                           {/* Übernimmt Baustelle und Helfer-Rolle ins
@@ -161,29 +210,55 @@ export default function MyScheduleView() {
                           >
                             Zeit erfassen
                           </Link>
-                          {proj?.address && (
-                            <a
-                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(proj.address)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-medium text-ink"
-                            >
-                              Route
-                            </a>
-                          )}
-                          {proj?.contactPhone && (
-                            <a
-                              href={`tel:${proj.contactPhone.replace(/[^\d+]/g, '')}`}
-                              className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-medium text-ink"
-                            >
-                              Anrufen
-                            </a>
-                          )}
+                          <AdresseLink adresse={proj?.address} variante="knopf" />
+                          <TelefonLink
+                            nummer={proj?.contactPhone}
+                            name={proj?.contactName}
+                            variante="knopf"
+                          />
                         </div>
                       </div>
                     );
                   })}
                 </div>
+              )}
+            </Card>
+
+            {/*
+              Alle anstehenden Einsätze, unabhängig vom Kalendermonat.
+              Der Kalender zeigt immer genau einen Monat — liegt der nächste
+              Einsatz am Ersten des Folgemonats, war er im aktuellen Raster
+              schlicht nicht zu sehen, und die Ansicht behauptete damit, es
+              stünde nichts an.
+            */}
+            <Card title="Nächste Einsätze" className="mt-6">
+              {naechste.length === 0 ? (
+                <EmptyState>Zurzeit ist nichts eingeplant.</EmptyState>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {naechste.slice(0, 15).map((a) => {
+                    const proj = projects.find((p) => p.projectNumber === a.projectNumber);
+                    return (
+                      <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                        <span className="min-w-0">
+                          <span className="block truncate text-ink">
+                            {proj?.customerName ?? a.projectNumber}
+                          </span>
+                          <span className="block text-xs text-ink-muted">{fmtDay(a.date)}</span>
+                        </span>
+                        <span className="flex shrink-0 gap-2">
+                          {a.date === today && <Badge tone="danger">Heute</Badge>}
+                          {a.asHelper && <Badge tone="warning">Helfer</Badge>}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {naechste.length > 15 && (
+                <p className="mt-2 text-sm text-ink-muted">
+                  und {naechste.length - 15} weitere — im Kalender links nachschlagen.
+                </p>
               )}
             </Card>
           </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { subscribeProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects';
+import { subscribeRecentProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import type { WithId } from '@/lib/db/core';
 import { byNewest } from '@/lib/timestamps';
@@ -10,6 +10,7 @@ import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import Badge from '@/components/Badge';
+import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
@@ -50,6 +51,14 @@ function formFromProject(p: WithId<Project>): FormState {
 }
 
 /** Baustellen-Verwaltung: CRUD + Mitarbeiterzuordnung (GF/Admin). */
+/**
+ * Wie viele Baustellen die Verwaltungsliste laedt.
+ *
+ * Baustellen wachsen langsamer als Zeiteintraege, aber sie wachsen: bei
+ * zweihundert Auftraegen im Jahr sind es nach zehn Jahren zweitausend.
+ */
+const BAUSTELLEN_JE_SEITE = 300;
+
 export default function AdminProjectsView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -110,8 +119,9 @@ export default function AdminProjectsView() {
   useEffect(() => {
     if (!user) return;
     listUsers(user.companyId).then(setUsers).catch(() => undefined);
-    const unsub = subscribeProjects(
+    const unsub = subscribeRecentProjects(
       user.companyId,
+      BAUSTELLEN_JE_SEITE,
       (rows) => {
         setProjects(rows);
         setLoading(false);
@@ -304,7 +314,13 @@ export default function AdminProjectsView() {
                   }
                   subtitle={
                     <>
-                      {p.address}
+                      {/* Adresse und Nummer anklickbar: auch die Projektleitung
+                          faehrt raus und ruft an — hier stand beides bisher
+                          als toter Text. */}
+                      <span className="flex flex-wrap items-center gap-x-3">
+                        <AdresseLink adresse={p.address} />
+                        <TelefonLink nummer={p.contactPhone} name={p.contactName} />
+                      </span>
                       {team.length > 0 && (
                         <span className="mt-1 block text-xs text-ink-muted">
                           Team: {team.join(', ')}

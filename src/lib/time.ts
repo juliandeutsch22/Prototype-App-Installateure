@@ -312,6 +312,55 @@ export interface CompletenessResult {
  * Geprüft wird von Monatsanfang (bzw. appStartDate, falls später) bis GESTERN
  * — heute zählt nicht als Versäumnis. Feiertage brauchen keinen Eintrag.
  */
+/**
+ * Welche Werktage in einem Zeitraum ohne Buchung geblieben sind.
+ *
+ * Die eine Stelle, an der diese Frage beantwortet wird. Sie kommt an drei
+ * Orten vor — Startseite, Monatsauswertung, Team-Uebersicht — und jede eigene
+ * Fassung waere eine Gelegenheit, Feiertage, Teilzeit-Arbeitstage oder das
+ * Eintrittsdatum unterschiedlich zu behandeln. Dann widersprechen sich zwei
+ * Ansichten ueber denselben Mitarbeiter, und keine ist erkennbar die richtige.
+ *
+ * Gezaehlt wird nur bis GESTERN: der heutige Tag ist noch nicht vorbei, und
+ * ihn als Luecke zu melden hiesse, jeden Morgen jeden Mitarbeiter anzumahnen.
+ * Tage vor dem Eintritt zaehlen nicht, Feiertage und freie Wochentage auch
+ * nicht.
+ */
+export function offeneWerktage(
+  user: Pick<AppUser, 'workDays' | 'appStartDate'>,
+  entries: Pick<TimeEntry, 'date'>[],
+  von: Date,
+  bis: Date,
+): string[] {
+  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+
+  let start = new Date(von);
+  start.setHours(0, 0, 0, 0);
+  if (user.appStartDate) {
+    const eintritt = new Date(`${user.appStartDate}T00:00:00`);
+    if (eintritt > start) start = eintritt;
+  }
+
+  const heute = new Date();
+  heute.setHours(0, 0, 0, 0);
+  const gestern = new Date(heute);
+  gestern.setDate(heute.getDate() - 1);
+
+  const ende = new Date(bis);
+  ende.setHours(0, 0, 0, 0);
+  const schluss = gestern < ende ? gestern : ende;
+
+  const gebucht = new Set(entries.map((e) => e.date));
+  const offen: string[] = [];
+  for (const tag = new Date(start); tag <= schluss; tag.setDate(tag.getDate() + 1)) {
+    const ds = localDateStr(tag);
+    if (workDays.includes(tag.getDay()) && !isAustrianHoliday(tag) && !gebucht.has(ds)) {
+      offen.push(ds);
+    }
+  }
+  return offen;
+}
+
 export function calcCompleteness(
   user: Pick<AppUser, 'workDays' | 'appStartDate'>,
   monthEntries: TimeEntry[],
@@ -320,29 +369,18 @@ export function calcCompleteness(
 ): CompletenessResult {
   const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
 
-  let checkStart = new Date(year, month, 1);
-  if (user.appStartDate) {
-    const sd = new Date(`${user.appStartDate}T00:00:00`);
-    if (sd > checkStart) checkStart = sd;
-  }
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-
-  const monthEnd = new Date(year, month + 1, 0);
-  const checkEnd = yesterday < monthEnd ? yesterday : monthEnd;
 
   const bookedDates = new Set(monthEntries.map((e) => e.date));
 
-  const missingDates: string[] = [];
-  for (const cursor = new Date(checkStart); cursor <= checkEnd; cursor.setDate(cursor.getDate() + 1)) {
-    const ds = localDateStr(cursor);
-    if (workDays.includes(cursor.getDay()) && !isAustrianHoliday(cursor) && !bookedDates.has(ds)) {
-      missingDates.push(ds);
-    }
-  }
+  // Dieselbe Regel wie ueberall sonst, nur auf den Monat angewandt.
+  const missingDates = offeneWerktage(
+    user,
+    monthEntries,
+    new Date(year, month, 1),
+    new Date(year, month + 1, 0),
+  );
 
   if (missingDates.length > 0) {
     return { status: 'missing', missingCount: missingDates.length, missingDates };

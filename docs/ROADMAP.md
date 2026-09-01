@@ -77,6 +77,76 @@ KI-Erfassung eingeschaltet wird — nicht vorher.
 | Mikrofon | Läuft nach dem Abbrechen der Aufnahme weiter |
 | Listen ohne Begrenzung | Zeiteinträge werden weiterhin vollständig geladen. Rechnungen sind auf 50 mit „Weitere anzeigen" begrenzt, Bestellungen ebenso |
 
+## Skalierbarkeit: die Regel und die eine verbleibende Ausnahme
+
+**Die Regel: keine Abfrage ohne Grenze.** Zwölf Abfragen wuchsen unbegrenzt
+mit dem Bestand des Betriebs — sie luden alles und filterten im Browser ein
+paar Zeilen heraus. Gemessen mit 15.660 Zeiteinträgen stand die Startseite
+nach 29,7 Sekunden; nach der Begrenzung nach 3,6.
+
+Jede Abfrage braucht jetzt eine von drei Grenzen:
+
+1. **einen Zeitraum** — `where('date', '>=', …)`
+2. **eine feste Obergrenze** — `limit(n)`, mit „Ältere laden" in der Ansicht
+3. **einen Gleichheitsfilter auf eine kleine Menge** — Status, Baustellennummer
+
+| Abfrage | vorher | jetzt |
+| --- | --- | --- |
+| eigene Zeiteinträge | alles seit Eintritt | Fenster (Startseite 35 Tage, Zeitkonto 3 Monate) |
+| Zeiteinträge fürs Radar | alle des Betriebs | nur Baustellen mit Budget |
+| Zeiteinträge für eine Rechnung | alle des Betriebs | nur die eine Baustelle |
+| eigene Einsätze | alle jemals | Monat bzw. ab heute mit `limit` |
+| Rechnungen | alle jemals | die 50 jüngsten, nachladbar |
+| Materialanforderungen | alle jemals | nur offene, bzw. 200 jüngste |
+| Baustellen | alle, im Browser gefiltert | Statusfilter auf dem Server |
+| Baustellen für Namensauflösung | alle | nur die vorkommenden Nummern |
+
+**Die Bremse.** Einzeln repariert kommen solche Abfragen zurück: die
+unbegrenzte Variante ist kürzer, sie funktioniert im Test mit dreißig
+Datensätzen tadellos, und sie fällt erst nach Jahren auf — beim Kunden, der
+die App am längsten benutzt. `tests/unit/abfragegrenzen.test.ts` prüft
+deshalb die Datenschicht als Ganzes und nennt beim Fehlschlag die Funktion.
+Ausnahmen sind möglich, aber nur mit Begründung im Test — etwa die
+Belegschaft, die mit Einstellungen wächst und nicht mit der Zeit.
+
+### Die eine verbleibende Ausnahme: der persönliche Saldo
+
+Der Saldo läuft seit dem ersten Arbeitstag. Er ist die einzige Zahl, die
+wirklich jede Buchung braucht — ein Fenster würde ihn nicht langsamer machen,
+sondern **falsch**, und er steht auf dem Lohnzettel. Er ist deshalb bewusst
+unbegrenzt geblieben, aber auf die Zeit ab Eintritt eingeschränkt und von der
+Startseite verschwunden: dort steht jetzt, welche Tage fehlen — die Frage, auf
+die man handeln kann.
+
+Er wächst mit den DIENSTJAHREN EINER Person, nicht mit dem Betrieb: rund 220
+Buchungen im Jahr, nach zehn Jahren 2.200 Dokumente. Das ist die Größenordnung
+eines Seitenaufrufs, nicht die eines Betriebsbestands — aber es wächst weiter.
+
+**Der nächste Schritt** ist deshalb eine Monatsbilanz je Mitarbeiter: ein
+Dokument statt zweiundzwanzig, aus 2.640 werden 120. Drei
+Entwurfsentscheidungen sind dabei wesentlich:
+
+- **Neu berechnen statt hochzählen.** Firestore-Trigger laufen MINDESTENS
+  einmal, nicht GENAU einmal. Ein `+= delta` verzählt sich beim
+  Wiederholungslauf, unbemerkt und dauerhaft. Ein Trigger, der den betroffenen
+  Monat komplett neu rechnet (rund 20 Dokumente), ist von Natur aus
+  wiederholbar.
+- **Nur das Ist speichern, nie den Saldo.** Der Saldo hängt an Wochenstunden,
+  Arbeitstagen, Eintrittsdatum und Feiertagen. Ändert die Geschäftsführung
+  jemandes Wochenstunden, ändert sich rückwirkend jeder Tag; ein gespeicherter
+  Saldo wäre ab dem Moment falsch. Das Soll bleibt abgeleitet und kostet
+  nichts.
+- **Drift automatisch heilen.** Kein Knopf zum Neuaufbau, sondern Bausteine,
+  die klein genug sind, dass ein nächtlicher Lauf den laufenden und den
+  Vormonat einfach neu rechnet.
+
+Die Saldo-Rechnung liegt heute in `src/lib/time.ts` und damit im Client. Ein
+Server-Job braucht sie ebenfalls — sie zu KOPIEREN wäre der gefährlichste Teil
+der Übung: zwei Implementierungen derselben Zahl, und die geht auf den
+Lohnzettel. Der erste Schritt ist deshalb, sie an einen Ort zu legen, den
+beide Seiten benutzen können. In `TimeView` ist die Nahtstelle bereits
+markiert — dort wird genau ein Aufruf ersetzt.
+
 ## Startseite: was gemessen wurde und was noch offen ist
 
 **Gemessen, nicht geschaetzt.** Mit 20 Monteuren und drei Jahren Buchungen —

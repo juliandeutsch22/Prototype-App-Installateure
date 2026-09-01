@@ -3,6 +3,9 @@ import { useAuth } from '@/app/AuthContext';
 import { listProjectsForEmployee } from '@/lib/db/projects';
 import type { Project } from '@/types';
 import Card from '@/components/Card';
+import Icon from '@/components/Icon';
+import { TelefonLink } from '@/components/Kontakt';
+import { mapsUrl } from '@/lib/kontakt';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import Badge from '@/components/Badge';
@@ -83,27 +86,27 @@ export default function MyProjectsView() {
                 {p.contactName || p.contactPhone ? (
                   <div className="mt-1">
                     {p.contactName && <p className="font-medium text-ink">{p.contactName}</p>}
-                    {p.contactPhone && (
-                      <a
-                        href={`tel:${p.contactPhone.replace(/[^\d+]/g, '')}`}
-                        className="mt-1 inline-flex min-h-touch items-center font-semibold text-brand underline"
-                      >
-                        {p.contactPhone}
-                      </a>
-                    )}
+                    <TelefonLink
+                      nummer={p.contactPhone}
+                      name={p.contactName}
+                      className="mt-1"
+                    />
                   </div>
                 ) : (
                   <p className="mt-1 text-sm text-warning">Kein Ansprechpartner hinterlegt.</p>
                 )}
               </div>
 
+              {/* Die Route bleibt hier die Hauptaktion der Karte und
+                  behaelt deshalb die volle Breite und die Markenfarbe. */}
               {p.address && (
                 <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address)}`}
+                  href={mapsUrl(p.address)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 flex min-h-touch items-center justify-center gap-2 rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg"
                 >
+                  <Icon name="pin" size={18} aria-hidden />
                   Route: {p.address}
                 </a>
               )}

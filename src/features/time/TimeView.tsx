@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { subscribeOwnEntries, deleteTimeEntry } from '@/lib/db/timeEntries';
+import {
+  subscribeOwnEntriesInRange,
+  listOwnEntriesSince,
+  deleteTimeEntry,
+} from '@/lib/db/timeEntries';
 import { getUserByUid } from '@/lib/db/users';
-import { calcWorkMin, fmtMin, calcOverallSaldo, getISOWeek } from '@/lib/time';
+import { calcWorkMin, fmtMin, calcOverallSaldo, getISOWeek, localDateStr, todayStr } from '@/lib/time';
+import { shouldShowOvertime } from '@/lib/permissions';
 import type { WithId } from '@/lib/db/core';
 import type { TimeEntry, AppUser } from '@/types';
 import Card from '@/components/Card';
@@ -15,6 +20,9 @@ import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+
+/** Wie viele Monate die Liste zunaechst zurueckreicht. */
+const MONATE_JE_SEITE = 3;
 
 /** Wochenschlüssel 'KW n / JJJJ' für ein Datum. */
 function weekKey(d: Date): string {
@@ -29,20 +37,40 @@ function weekKey(d: Date): string {
 export default function TimeView() {
   const { user } = useAuth();
   const toast = useToast();
+  /** Die angezeigte Liste — nur das Fenster, nicht die ganze Geschichte. */
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
   const [toDelete, setToDelete] = useState<WithId<TimeEntry> | null>(null);
+  /** Wie viele Monate zurück die Liste reicht. */
+  const [monate, setMonate] = useState(MONATE_JE_SEITE);
 
   useEffect(() => {
     if (!user) return;
-    setLoading(true);
     getUserByUid(user.companyId, user.uid).then(setProfile).catch(() => undefined);
-    const unsub = subscribeOwnEntries(
+  }, [user]);
+
+  /**
+   * Die ANGEZEIGTEN Eintraege: ein Fenster von einigen Monaten, live.
+   *
+   * Vorher abonnierte diese Ansicht jede Buchung des Mitarbeiters seit
+   * Eintritt und hielt sie im Speicher, um die letzten Wochen darzustellen.
+   * Nach zehn Jahren sind das rund 2.200 Dokumente in einem dauerhaft
+   * offenen Abo, das bei jeder Aenderung nachlaedt.
+   */
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    const bis = todayStr();
+    const ab = new Date();
+    ab.setMonth(ab.getMonth() - monate);
+    return subscribeOwnEntriesInRange(
       user.companyId,
       user.uid,
+      localDateStr(ab),
+      bis,
       (rows) => {
         setEntries(rows);
         setLoading(false);
@@ -52,15 +80,44 @@ export default function TimeView() {
         setLoading(false);
       },
     );
-    return unsub;
-  }, [user]);
+  }, [user, monate]);
+
+  /**
+   * Der SALDO braucht als einzige Zahl wirklich alles seit Eintritt — er
+   * laeuft seit dem ersten Arbeitstag, und ein Fenster wuerde ihn schlicht
+   * falsch machen. Deshalb steht er hier getrennt von der Liste: einmalig
+   * geladen statt dauerhaft abonniert, und begrenzt auf die Zeit AB Eintritt
+   * statt auf den ganzen Bestand.
+   *
+   * Das ist die verbleibende Stelle, die mit den Dienstjahren waechst — die
+   * Monatsbilanzen (docs/ROADMAP.md) ersetzen genau diesen Aufruf.
+   */
+  const [saldoEintraege, setSaldoEintraege] = useState<WithId<TimeEntry>[]>([]);
+  useEffect(() => {
+    if (!user || !profile?.appStartDate) return;
+    let verworfen = false;
+    listOwnEntriesSince(user.companyId, user.uid, profile.appStartDate)
+      .then((rows) => {
+        if (!verworfen) setSaldoEintraege(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      verworfen = true;
+    };
+    // `entries` als Ausloeser: nach dem Buchen oder Loeschen muss der Saldo
+    // neu gerechnet werden, sonst steht dort bis zum Neuladen der alte Wert.
+  }, [user, profile?.appStartDate, entries]);
 
   const saldo = useMemo(
-    () => (profile ? calcOverallSaldo(profile, entries) : null),
-    [profile, entries],
+    () => (profile ? calcOverallSaldo(profile, saldoEintraege) : null),
+    [profile, saldoEintraege],
   );
 
-  /** Belegte Tage — Grundlage für die Doppelbuchungs-Warnung im Formular. */
+  /**
+   * Belegte Tage aus dem geladenen Fenster — die SOFORTIGE Antwort auf die
+   * Doppelbuchungs-Frage. Fuer Tage ausserhalb fragt das Formular gezielt
+   * beim Server nach.
+   */
   const existingDates = useMemo(() => new Set(entries.map((e) => e.date)), [entries]);
 
   /**
@@ -107,11 +164,23 @@ export default function TimeView() {
       <PageHeader title="Zeiterfassung" subtitle="Deine gebuchten Zeiten und dein Saldo" />
 
       <MetricRow>
-        <Metric label="Einträge" value={entries.length} />
+        <Metric
+          label="Einträge"
+          value={entries.length}
+          hint={`letzte ${monate} Monate`}
+        />
         {/* Dieselbe Zahl wie auf dem Dashboard — und deshalb auch mit
             demselben Vorbehalt. Ein Saldo aus Tagen, an denen gar nichts
             gebucht wurde, ist kein Befund über den Mitarbeiter, sondern eine
             Datenlücke; rot dargestellt behauptete er das Gegenteil. */}
+        {/*
+          Die Saldo-Kachel nur fuer Rollen, die ein Zeitkonto FUEHREN.
+          Geschaeftsfuehrung und Projektleitung haben kein Soll/Ist — bei
+          ihnen stand dort dauerhaft „—  Kein Startdatum konfiguriert", was
+          wie ein Einrichtungsfehler aussieht, den niemand beheben kann.
+          Buchen koennen sie trotzdem, etwa fuer einen Notdienst.
+        */}
+        {shouldShowOvertime(user.role) && (
         <Metric
           label="Saldo"
           tone={
@@ -132,6 +201,7 @@ export default function TimeView() {
                 : 'Über-/Unterstunden'
           }
         />
+        )}
         <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} />
       </MetricRow>
 
@@ -221,6 +291,21 @@ export default function TimeView() {
                 </div>
               );
             })}
+          </div>
+        )}
+        {/*
+          Nachladen weitet das ZEITFENSTER der Abfrage, statt mehr von einer
+          ohnehin vollstaendig geladenen Liste freizugeben. Der Saldo oben
+          bleibt davon unberuehrt — er rechnet immer ab Eintritt.
+        */}
+        {!loading && !error && (
+          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+            <Button variant="secondary" onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}>
+              Ältere Einträge laden
+            </Button>
+            <span className="text-sm text-ink-muted">
+              Angezeigt werden die letzten {monate} Monate.
+            </span>
           </div>
         )}
       </Card>

@@ -56,7 +56,9 @@ vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => [monteur]),
 }));
 vi.mock('@/lib/db/projects', () => ({
-  listAllProjects: vi.fn(async () => []),
+  // Die Ansicht laedt nur noch die Baustellen, die in den geladenen
+  // Buchungen VORKOMMEN — nicht mehr den gesamten Bestand.
+  listProjectsByNumbers: vi.fn(async () => []),
 }));
 vi.mock('@/lib/db/timeEntries', () => ({
   subscribeEntriesInRange: vi.fn(

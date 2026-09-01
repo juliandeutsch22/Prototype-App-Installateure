@@ -1,6 +1,7 @@
 import {
   where,
   orderBy,
+  limit,
   doc,
   getDoc,
   updateDoc,
@@ -15,18 +16,42 @@ import { queryTenant, subscribeTenant, createInTenant, type WithId } from './cor
 
 const COLLECTION = 'materialOrders';
 
+/**
+ * Eigene Anforderungen, neueste zuerst, mit Obergrenze.
+ *
+ * Ein Monteur fordert ueber die Jahre hunderte Male Material an. Angesehen
+ * wird davon, was gerade laeuft — die Anforderung von vorletztem Maerz
+ * interessiert niemanden mehr, wurde aber mitgeladen und im Speicher
+ * gehalten.
+ */
 export function subscribeOwnOrders(
   companyId: string,
   uid: string,
+  max: number,
   cb: (rows: WithId<MaterialOrder>[]) => void,
   onError: (e: Error) => void,
 ) {
-  return subscribeTenant<MaterialOrder>(COLLECTION, companyId, cb, onError, where('userId', '==', uid));
+  return subscribeTenant<MaterialOrder>(
+    COLLECTION,
+    companyId,
+    cb,
+    onError,
+    where('userId', '==', uid),
+    orderBy('createdAt', 'desc'),
+    limit(max),
+  );
 }
 
-/** Alle Bestellungen des Mandanten (Material-Dashboard), neueste zuerst. */
+/**
+ * Alle Anforderungen des Mandanten, neueste zuerst, mit Obergrenze.
+ *
+ * Die Sortierung war schon da, die Grenze fehlte — und ohne Grenze bringt
+ * eine Sortierung nichts: es wurde trotzdem jede Anforderung des Betriebs
+ * geladen, nur eben in der richtigen Reihenfolge.
+ */
 export function subscribeAllOrders(
   companyId: string,
+  max: number,
   cb: (rows: WithId<MaterialOrder>[]) => void,
   onError: (e: Error) => void,
 ) {
@@ -36,6 +61,7 @@ export function subscribeAllOrders(
     cb,
     onError,
     orderBy('createdAt', 'desc'),
+    limit(max),
   );
 }
 
@@ -168,15 +194,28 @@ export function deleteOrder(orderId: string) {
   return deleteDoc(doc(db, COLLECTION, orderId));
 }
 
-/** Einmaliges Laden aller Bestellungen des Mandanten (z. B. für Rechnungen). */
-export function listAllOrders(companyId: string) {
-  return queryTenant<MaterialOrder>(COLLECTION, companyId);
+/**
+ * Die OFFENEN Anforderungen des Betriebs — fuer die Startseite.
+ *
+ * Die Startseite zeigt, was auf die Projektleitung wartet. „Erledigt" wartet
+ * auf niemanden, wurde aber mitgeladen und erst im Browser weggefiltert:
+ * nach ein paar Jahren die gesamte Bestellhistorie, um eine kurze Liste zu
+ * zeigen. Offene Anforderungen sind von Natur aus wenige.
+ */
+export function listOpenOrders(companyId: string) {
+  return queryTenant<MaterialOrder>(
+    COLLECTION,
+    companyId,
+    where('status', 'in', ['Offen', 'In Bearbeitung', 'Abholbereit']),
+  );
 }
 
-/**
- * Nur die eigenen Bestellungen. Für Zähler auf dem Dashboard — ein Monteur
- * muss dafür nicht die Bestellungen aller Kollegen laden.
- */
-export function listOwnOrders(companyId: string, uid: string) {
-  return queryTenant<MaterialOrder>(COLLECTION, companyId, where('userId', '==', uid));
+/** Die offenen Anforderungen EINES Mitarbeiters, gleiche Begruendung. */
+export function listOwnOpenOrders(companyId: string, uid: string) {
+  return queryTenant<MaterialOrder>(
+    COLLECTION,
+    companyId,
+    where('userId', '==', uid),
+    where('status', 'in', ['Offen', 'In Bearbeitung', 'Abholbereit']),
+  );
 }

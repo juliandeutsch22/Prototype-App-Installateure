@@ -127,6 +127,31 @@ export default function AssignmentsView() {
     setComment(existing[0]?.comment ?? '');
   }, [projectNumber, dayAssignments]);
 
+  /**
+   * Wo steht diese Person an diesem Tag SCHON — auf anderen Baustellen?
+   *
+   * Mehrere Einsätze am selben Tag waren technisch immer möglich: gespeichert
+   * wird je Paar aus Tag und Baustelle, ein Mitarbeiter kann also in mehreren
+   * Paaren vorkommen. Nur SAH das niemand. Wer vormittags die eine Baustelle
+   * plant und nachmittags die andere, teilte denselben Monteur zweimal ein,
+   * ohne es zu merken — oder traute sich umgekehrt nicht, weil das Formular
+   * so aussah, als würde die zweite Einteilung die erste ersetzen.
+   *
+   * Die eigene Baustelle bleibt draußen: dass jemand auf der Baustelle steht,
+   * die man gerade plant, zeigt schon der gesetzte Haken.
+   */
+  const schonVerplant = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const a of dayAssignments) {
+      if (a.projectNumber === projectNumber) continue;
+      const proj = projects.find((p) => p.projectNumber === a.projectNumber);
+      const liste = m.get(a.userId) ?? [];
+      liste.push(proj?.customerName ?? a.projectNumber);
+      m.set(a.userId, liste);
+    }
+    return m;
+  }, [dayAssignments, projectNumber, projects]);
+
   const selectedCount = Object.values(picks).filter((p) => p.on).length;
   const existingForProject = dayAssignments.filter((a) => a.projectNumber === projectNumber);
   const holiday = getAustrianHolidayName(new Date(`${date}T00:00:00`));
@@ -233,6 +258,19 @@ export default function AssignmentsView() {
               </p>
             )}
 
+            {/*
+              Ausdrücklich sagen, dass Mehrfach-Einteilung geht. Das Formular
+              speichert je Paar aus Tag und Baustelle; wer das nicht weiß,
+              vermutet hinter dem Speichern ein Überschreiben des ganzen Tages.
+            */}
+            {projectNumber && schonVerplant.size > 0 && (
+              <p className="mt-3 rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
+                Einige Mitarbeiter sind heute bereits auf anderen Baustellen eingeteilt (siehe
+                Hinweis am Namen). Eine zusätzliche Einteilung ist möglich — die bestehende bleibt
+                bestehen.
+              </p>
+            )}
+
             {projectNumber && existingForProject.length > 0 && (
               <p className="mt-3 rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
                 Für diese Baustelle ist der Tag bereits geplant. Die Auswahl unten ist übernommen —
@@ -247,7 +285,16 @@ export default function AssignmentsView() {
               <PersonPicker
                 legend="Mitarbeiter"
                 idPrefix="assign"
-                people={staff.map((u) => ({ uid: u.uid, name: u.name }))}
+                people={staff.map((u) => {
+                  const andere = schonVerplant.get(u.uid);
+                  return {
+                    uid: u.uid,
+                    name: u.name,
+                    hint: andere?.length
+                      ? `heute schon eingeteilt: ${andere.join(', ')}`
+                      : undefined,
+                  };
+                })}
                 selected={staff.filter((u) => picks[u.uid]?.on).map((u) => u.uid)}
                 onChange={(next) =>
                   setPicks(() => {

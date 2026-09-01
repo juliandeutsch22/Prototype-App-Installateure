@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listUsers } from '@/lib/db/users';
-import { listAllProjects } from '@/lib/db/projects';
+import { listProjectsByNumbers } from '@/lib/db/projects';
 import {
   subscribeEntriesInRange,
   listEntriesInRange,
@@ -127,8 +127,34 @@ export default function AccountingView() {
   useEffect(() => {
     if (!user) return;
     listUsers(user.companyId).then(setUsers).catch((e) => setError(e.message));
-    listAllProjects(user.companyId).then(setProjects).catch(() => undefined);
   }, [user]);
+
+  /**
+   * Nur die Baustellen, die in den geladenen Buchungen VORKOMMEN.
+   *
+   * Gebraucht werden hier ausschliesslich Kundenname und Stundenbudget zu den
+   * Nummern, die ohnehin schon auf dem Schirm sind. Vorher wurde dafuer der
+   * gesamte Baustellenbestand des Betriebs geladen — nach zehn Jahren
+   * zweitausend Dokumente, um dreissig Namen nachzuschlagen. Die Menge haengt
+   * jetzt am angezeigten Zeitraum, nicht am Alter des Betriebs.
+   */
+  const projektNummern = useMemo(
+    () => [...new Set(entries.map((e) => e.projectNumber).filter(Boolean) as string[])],
+    [entries],
+  );
+  const nummernSchluessel = projektNummern.join('|');
+  useEffect(() => {
+    if (!user || projektNummern.length === 0) {
+      setProjects([]);
+      return;
+    }
+    listProjectsByNumbers(user.companyId, projektNummern)
+      .then(setProjects)
+      .catch(() => undefined);
+    // Am Inhalt haengen, nicht an der Array-Identitaet: sonst laedt jeder
+    // Renderdurchlauf neu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, nummernSchluessel]);
 
   // Nur das angezeigte Jahr, nicht die gesamte Betriebsgeschichte. Das Jahr
   // (nicht der Monat) deshalb, weil der Resturlaub die Urlaubstage des ganzen
