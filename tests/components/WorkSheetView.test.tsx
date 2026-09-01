@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Assignment, Project } from '@/types';
@@ -57,8 +58,9 @@ vi.mock('@/lib/db/workSheets', () => ({
   signWorkSheet: vi.fn(async () => undefined),
   listWorkSheetsForProject: vi.fn(async () => []),
 }));
+const callScheinVorbereiten = vi.fn(async () => ({ data: { zeiten: [], material: [] } }));
 vi.mock('@/lib/functions', () => ({
-  callScheinVorbereiten: vi.fn(async () => ({ data: { zeiten: [], material: [] } })),
+  callScheinVorbereiten: () => callScheinVorbereiten(),
 }));
 
 const authWert = {
@@ -95,6 +97,7 @@ function zeichne() {
 beforeEach(() => {
   listAssignmentsForUserInRange.mockClear().mockResolvedValue(einsaetze);
   listProjectsByNumbers.mockClear().mockResolvedValue(projekte);
+  callScheinVorbereiten.mockClear().mockResolvedValue({ data: { zeiten: [], material: [] } });
 });
 
 describe('Handwerksschein', () => {
@@ -134,6 +137,43 @@ describe('Handwerksschein', () => {
     );
   });
 
+  /**
+   * Aus dem Betrieb gemeldet: „es lädt ewig."
+   *
+   * Die Vorausfüllung läuft über eine Cloud Function. Scheitert sie — oder
+   * kommt sie im Keller mit einem Balken LTE nicht durch —, stand vorher ein
+   * Kreisel über dem ganzen Formular, ohne Ende und ohne Ausweg. Auch über den
+   * Unterschriften, die mit der Vorausfüllung nichts zu tun haben.
+   */
+  it('haelt das Unterschreiben nicht auf, wenn die Vorausfuellung scheitert', async () => {
+    callScheinVorbereiten.mockRejectedValue(new Error('deadline-exceeded'));
+    zeichne();
+
+    expect(
+      await screen.findByText(/Der Schein lässt sich trotzdem schreiben/),
+    ).toBeInTheDocument();
+    // Der Kern: der Beleg ist über Arbeit, die geleistet wurde, und der Kunde
+    // steht daneben. Unterschreiben muss gehen.
+    expect(
+      screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
+    // Und es steht dabei, dass der Schein dann ohne Stunden eingefroren wird.
+    expect(screen.getByText(/Ohne Stunden und Material/)).toBeInTheDocument();
+  });
+
+  it('laedt die Vorausfuellung auf Wunsch erneut', async () => {
+    const nutzer = userEvent.setup();
+    callScheinVorbereiten.mockRejectedValueOnce(new Error('deadline-exceeded'));
+    zeichne();
+    await screen.findByText(/Der Schein lässt sich trotzdem schreiben/);
+
+    await nutzer.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+
+    expect(await screen.findByText(/keine Zeit gebucht/)).toBeInTheDocument();
+    expect(callScheinVorbereiten).toHaveBeenCalledTimes(2);
+  });
+
   it('sperrt den Abschluss, solange Unterschriften fehlen', async () => {
     zeichne();
     await screen.findByLabelText('Baustelle');
@@ -141,6 +181,8 @@ describe('Handwerksschein', () => {
       screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
     ).toBeDisabled();
     // Und sagt, was genau fehlt — statt den Knopf kommentarlos zu sperren.
-    expect(screen.getByText(/Unterschrift Monteur/)).toBeInTheDocument();
+    expect(screen.getByText(/^Zum Abschließen fehlen:/)).toHaveTextContent(
+      'Unterschrift Monteur, Unterschrift Kunde, Name des Kunden',
+    );
   });
 });
