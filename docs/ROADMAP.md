@@ -77,35 +77,56 @@ KI-Erfassung eingeschaltet wird — nicht vorher.
 | Mikrofon | Läuft nach dem Abbrechen der Aufnahme weiter |
 | Listen ohne Begrenzung | Zeiteinträge werden weiterhin vollständig geladen. Rechnungen sind auf 50 mit „Weitere anzeigen" begrenzt, Bestellungen ebenso |
 
-## Offen: Team-Salden auf der Startseite
+## Startseite: was gemessen wurde und was noch offen ist
 
-Die Startseite berechnet den Saldo jedes Mitarbeiters aus den ROHEN
-Zeiteinträgen — der Saldo läuft seit dem Eintrittsdatum, ist also
-naturgemäß unbegrenzt. Bei zwanzig Monteuren über drei Jahre sind das
-gut 13.000 Dokumente bei jedem Aufruf.
+**Gemessen, nicht geschaetzt.** Mit 20 Monteuren und drei Jahren Buchungen —
+15.660 Zeiteintraege — gegen die Emulatoren:
 
-Zwei Grenzen sind bereits gezogen und korrekt, helfen aber nur in
-bestimmten Fällen:
+| | vorher | nachher |
+| --- | --- | --- |
+| Startseite steht nach | 29,7 s | 3,6 s |
 
-- Das Projekt-Radar lädt gar nichts mehr, wenn keine aktive Baustelle ein
-  Stundenbudget hat. Wirksam für die Projektleitung; bei der
-  Geschäftsführung lädt der Team-Block ohnehin.
-- Die Team-Salden laden erst ab dem frühesten Eintrittsdatum. Wirksam,
-  sobald ein Betrieb Vorgeschichte hat, die vor der App liegt.
+Zwei unbegrenzte Abfragen waren die Ursache, beide sind jetzt begrenzt:
 
-Gegen die Emulatoren war KEIN Unterschied messbar (143,3 kB vorher wie
-nachher) — alle Testdaten liegen im laufenden Jahr, und beide Grenzen
-greifen dort nicht. Das ist ehrlich so festzuhalten, nicht als Erfolg zu
-verbuchen.
+- **Team-Block**: las jeden Zeiteintrag seit dem fruehesten Eintritt, weil
+  der Saldo seit Eintritt laeuft. Zeigt jetzt den LAUFENDEN MONAT — rund 440
+  Dokumente, und das bleibt so, auch in zehn Jahren. Der Monat beantwortet
+  ausserdem die Frage besser, die hier gestellt wird: wer hat noch nicht
+  gebucht?
+- **Projekt-Radar**: las ebenfalls alle Eintraege des Betriebs. Laedt jetzt
+  nur die Eintraege der Baustellen MIT Budget. Abgeschlossene Baustellen
+  fallen weg, und die machen mit der Zeit den Grossteil aus.
 
-Der eigentliche Fix ist ein GEPFLEGTER Zwischenstand statt einer
-Neuberechnung: ein Dokument je Mitarbeiter mit geleisteten Minuten und
-gebuchten Tagen, von einem Firestore-Trigger bei jedem Schreiben auf
-`timeEntries` fortgeschrieben. Die Startseite liest dann zwanzig kleine
-Dokumente statt dreizehntausend.
+**Die Grenze des Radars, ehrlich benannt:** eine einzelne, lange laufende
+Baustelle mit vielen Stunden laedt weiterhin ihre gesamte Historie. Bei der
+ersten Messung lagen alle 15.660 Eintraege auf EINER aktiven Baustelle — dort
+brachte die Begrenzung nichts. Das ist unrealistisch (drei Jahre, eine
+Baustelle), aber es zeigt, wo die Loesung endet.
 
-Das ist bewusst NICHT nebenbei gemacht: es braucht einen Trigger, eine
-Nachberechnung für den Bestand und eine Antwort auf die Frage, was
-passiert, wenn der Zwischenstand einmal auseinanderläuft (Neuaufbau von
-Hand? Nächtlicher Abgleich?). Ein falscher Saldo, den niemand mehr
-gegenrechnen kann, ist schlimmer als ein langsamer richtiger.
+### Was noch fehlt: der Gesamtsaldo auf einen Blick
+
+Der Saldo SEIT EINTRITT steht jetzt nicht mehr auf der Startseite. Wird er
+dort vermisst, ist der naechste Schritt kein Nachladen, sondern ein
+gepflegter Stand. Drei Entwurfsentscheidungen, die dabei wesentlich sind:
+
+- **Neu berechnen statt hochzaehlen.** Firestore-Trigger laufen MINDESTENS
+  einmal, nicht GENAU einmal. Ein `+= delta` verzaehlt sich beim
+  Wiederholungslauf, unbemerkt und dauerhaft. Ein Trigger, der den
+  betroffenen Monat komplett neu rechnet (rund 20 Dokumente), ist von Natur
+  aus wiederholbar.
+- **Nur das Ist speichern, nie den Saldo.** Der Saldo haengt an
+  Wochenstunden, Arbeitstagen, Eintrittsdatum und Feiertagen. Aendert die
+  Geschaeftsfuehrung jemandes Wochenstunden, aendert sich rueckwirkend jeder
+  Tag; ein gespeicherter Saldo waere ab dem Moment falsch. Das Soll bleibt
+  abgeleitet und kostet nichts.
+- **Drift automatisch heilen.** Kein Knopf zum Neuaufbau, sondern Bausteine,
+  die klein genug sind, dass ein naechtlicher Lauf den laufenden und den
+  Vormonat einfach neu rechnet. Dann kann eine Abweichung hoechstens einen
+  Tag alt werden.
+
+Die Saldo-Rechnung liegt heute in `src/lib/time.ts` und damit im Client. Ein
+Server-Job braucht sie ebenfalls — sie zu KOPIEREN waere der gefaehrlichste
+Teil der Uebung: zwei Implementierungen derselben Zahl, und die geht auf den
+Lohnzettel. Der erste Schritt waere deshalb, sie an einen Ort zu legen, den
+beide Seiten benutzen koennen.
+
