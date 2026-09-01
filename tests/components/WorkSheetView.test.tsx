@@ -176,12 +176,20 @@ describe('Handwerksschein', () => {
 
   it('sperrt den Abschluss, solange Unterschriften fehlen', async () => {
     zeichne();
-    await screen.findByLabelText('Baustelle');
+    /**
+     * Auf die STAMMDATEN warten, nicht nur auf das Auswahlfeld.
+     *
+     * Das Feld steht sofort da; der Datensatz der Baustelle kommt eine Runde
+     * später. Dazwischen sagt das Formular zu Recht „Die Stammdaten der
+     * Baustelle werden noch geladen" — auf einem langsamen Läufer wurde genau
+     * dieser Zwischenstand geprüft.
+     */
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
     expect(
       screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
     ).toBeDisabled();
     // Und sagt, was genau fehlt — statt den Knopf kommentarlos zu sperren.
-    expect(screen.getByText(/^Zum Abschließen fehlen:/)).toHaveTextContent(
+    expect(await screen.findByText(/^Zum Abschließen fehlen:/)).toHaveTextContent(
       'Unterschrift Monteur, Unterschrift Kunde, Name des Kunden',
     );
   });
