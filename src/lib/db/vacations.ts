@@ -1,8 +1,6 @@
-import { where, orderBy, limit, doc, collection, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { AppUser, TimeEntry, Vacation } from '@/types';
-import { urlaubsTage } from '@/lib/time';
-import { queryTenant, createInTenant, updateInTenant, deleteInTenant, type WithId } from './core';
+import { where, orderBy, limit } from 'firebase/firestore';
+import type { Vacation } from '@/types';
+import { queryTenant, createInTenant, deleteInTenant, type WithId } from './core';
 
 /**
  * Urlaubsanträge.
@@ -21,7 +19,6 @@ import { queryTenant, createInTenant, updateInTenant, deleteInTenant, type WithI
  */
 
 const COLLECTION = 'vacations';
-const ZEITEN = 'timeEntries';
 
 /**
  * Die eigenen Anträge, jüngste zuerst.
@@ -92,107 +89,20 @@ export function deleteVacation(id: string) {
   return deleteInTenant(COLLECTION, id);
 }
 
-/** Ablehnen — mit Grund, ohne Nebenwirkung auf das Zeitkonto. */
-export function rejectVacation(
-  id: string,
-  entscheider: { uid: string; name: string },
-  grund: string,
-) {
-  return updateInTenant(COLLECTION, id, {
-    status: 'Abgelehnt',
-    entschiedenVonUid: entscheider.uid,
-    entschiedenVonName: entscheider.name,
-    entschiedenAm: Date.now(),
-    grund,
-  });
-}
-
 /**
- * Genehmigen — und dabei die Zeiteinträge anlegen.
+ * Entschieden wird SERVERSEITIG — siehe `lib/functions.ts:callUrlaubEntscheiden`.
  *
- * DAS IST DER EIGENTLICHE PUNKT DER GENEHMIGUNG. Ohne die Einträge wäre ein
- * genehmigter Urlaub für die Stundenrechnung unsichtbar: der Saldo zöge für
- * jeden Urlaubstag das Tagessoll ab, und die Startseite meldete zwei Wochen
- * lang „Zeit fehlt". Der Mitarbeiter müsste seinen genehmigten Urlaub also
- * ein zweites Mal von Hand eintragen — und genau das ist die Doppelarbeit,
- * die diese Funktion abschafft.
+ * Hier stand die Genehmigung ursprünglich als Batch im Browser. Das ging,
+ * solange nur Buchhaltung und Leitung entscheiden durften: sie dürfen fremde
+ * Zeiteinträge ohnehin lesen und schreiben. Sobald die Geschäftsführung frei
+ * festlegen kann, WER genehmigt — etwa eine Bürokraft —, ginge es nicht mehr.
+ * Der naheliegende Ausweg wäre gewesen, dieser Person das Lesen aller
+ * Zeiteinträge zu erlauben; Zeiteinträge tragen aber Kranken- und Urlaubstage
+ * und damit Gesundheitsdaten nach Art. 9 DSGVO.
  *
- * IN EINEM BATCH mit der Statusänderung: bricht die Verbindung dazwischen ab,
- * wäre der Urlaub sonst genehmigt und die Tage fehlten. Ein Batch fasst bis zu
- * 500 Schreibvorgänge; ein Urlaub mit mehr als 499 Arbeitstagen ist kein
- * Urlaub mehr.
- *
- * `belegteTage` sind Tage, an denen dieser Mitarbeiter schon gebucht hat. Sie
- * werden ÜBERSPRUNGEN, nicht überschrieben: eine bereits erfasste
- * Arbeitsleistung darf eine Genehmigung nicht stillschweigend wegwerfen. Wie
- * viele es waren, gibt die Funktion zurück, damit die Oberfläche es sagen
- * kann.
+ * Deshalb entscheidet der Server, und der Aufrufer bekommt nichts zu sehen,
+ * was er nicht ohnehin sehen darf. Dieselbe Überlegung wie beim
+ * Handwerksschein.
  */
-export async function approveVacation(
-  companyId: string,
-  antrag: WithId<Vacation>,
-  mitarbeiter: Pick<AppUser, 'workDays'>,
-  entscheider: { uid: string; name: string },
-  belegteTage: Set<string>,
-): Promise<{ angelegt: number; uebersprungen: number }> {
-  const tage = urlaubsTage(mitarbeiter, antrag.von, antrag.bis);
-  const offen = tage.filter((t) => !belegteTage.has(t));
-
-  const batch = writeBatch(db);
-  batch.update(doc(db, COLLECTION, antrag.id), {
-    status: 'Genehmigt',
-    entschiedenVonUid: entscheider.uid,
-    entschiedenVonName: entscheider.name,
-    entschiedenAm: Date.now(),
-    updatedAt: serverTimestamp(),
-  });
-
-  for (const datum of offen) {
-    const eintrag: Omit<TimeEntry, 'id'> = {
-      companyId,
-      date: datum,
-      status: 'Urlaub',
-      userId: antrag.userId,
-      userName: antrag.userName,
-      breakDuration: 0,
-      vacationId: antrag.id,
-      comment: 'Genehmigter Urlaub',
-    };
-    batch.set(doc(collection(db, ZEITEN)), { ...eintrag, createdAt: serverTimestamp() });
-  }
-
-  await batch.commit();
-  return { angelegt: offen.length, uebersprungen: tage.length - offen.length };
-}
-
-/**
- * Einen genehmigten Urlaub zurücknehmen — samt der erzeugten Zeiteinträge.
- *
- * Ohne das Aufräumen bliebe der Urlaub im Zeitkonto stehen, obwohl er
- * zurückgenommen wurde. Entfernt werden ausschließlich Einträge, die diese
- * Genehmigung angelegt hat (`vacationId`); ein von Hand gebuchter Urlaubstag
- * im selben Zeitraum bleibt unangetastet.
- */
-export async function cancelApprovedVacation(
-  antrag: WithId<Vacation>,
-  erzeugteEintraege: WithId<TimeEntry>[],
-  entscheider: { uid: string; name: string },
-  grund: string,
-) {
-  const batch = writeBatch(db);
-  batch.update(doc(db, COLLECTION, antrag.id), {
-    status: 'Storniert',
-    entschiedenVonUid: entscheider.uid,
-    entschiedenVonName: entscheider.name,
-    entschiedenAm: Date.now(),
-    grund,
-    updatedAt: serverTimestamp(),
-  });
-  for (const e of erzeugteEintraege) {
-    if (e.vacationId !== antrag.id) continue;
-    batch.delete(doc(db, ZEITEN, e.id));
-  }
-  await batch.commit();
-}
 
 export type { WithId };

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
-import type { AppUser, TimeEntry, Vacation } from '@/types';
+import type { AppUser, Vacation } from '@/types';
 
 /**
  * Urlaub war bisher ein Tagesstatus in der Zeiterfassung: jeder konnte ihn
@@ -16,7 +16,6 @@ import type { AppUser, TimeEntry, Vacation } from '@/types';
  */
 
 const antraege: (Vacation & { id: string })[] = [];
-const eintraege: (TimeEntry & { id: string })[] = [];
 
 const monteur: AppUser = {
   id: 'm1',
@@ -31,36 +30,43 @@ const monteur: AppUser = {
 
 /**
  * Mit Parametern TYPISIERT, nicht benannt: sonst leitet TypeScript ein leeres
- * Tupel ab und der Zugriff auf `mock.calls[0][4]` scheitert im Build.
+ * Tupel ab und der Zugriff auf `mock.calls[0][0]` scheitert im Build.
  */
 const createVacation = vi.fn<[string, unknown], Promise<string>>(async () => 'v-neu');
-const approveVacation = vi.fn<
-  [string, Vacation, AppUser, { uid: string; name: string }, Set<string>],
-  Promise<{ angelegt: number; uebersprungen: number }>
->(async () => ({ angelegt: 5, uebersprungen: 0 }));
-const rejectVacation = vi.fn<
-  [string, { uid: string; name: string }, string],
-  Promise<void>
->(async () => undefined);
+
+/**
+ * Entschieden wird SERVERSEITIG. Der Browser schickt nur, welcher Antrag wie
+ * entschieden wird — er darf die Zeiteinträge des Antragstellers weder lesen
+ * noch schreiben.
+ */
+const callUrlaubEntscheiden = vi.fn<
+  [
+    {
+      vacationId: string;
+      entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
+      grund?: string;
+      entscheiderName?: string;
+    },
+  ],
+  Promise<{ data: { status: string; angelegt: number; uebersprungen: number; entfernt: number } }>
+>(async () => ({ data: { status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 } }));
 
 vi.mock('@/lib/db/vacations', () => ({
   listOwnVacations: vi.fn(async () => antraege.filter((v) => v.userId === rolle.uid)),
   listOpenVacations: vi.fn(async () => antraege.filter((v) => v.status === 'Beantragt')),
   createVacation: (c: string, v: unknown) => createVacation(c, v),
   deleteVacation: vi.fn(async () => undefined),
-  approveVacation: (...a: unknown[]) =>
-    approveVacation(...(a as Parameters<typeof approveVacation>)),
-  rejectVacation: (...a: unknown[]) =>
-    rejectVacation(...(a as Parameters<typeof rejectVacation>)),
-  cancelApprovedVacation: vi.fn(async () => undefined),
+}));
+vi.mock('@/lib/functions', () => ({
+  callUrlaubEntscheiden: (a: unknown) =>
+    callUrlaubEntscheiden(...([a] as Parameters<typeof callUrlaubEntscheiden>)),
 }));
 vi.mock('@/lib/db/users', () => ({
-  listUsers: vi.fn(async () => [monteur]),
   getUserByUid: vi.fn(async () => monteur),
 }));
-vi.mock('@/lib/db/timeEntries', () => ({
-  listEntriesInRange: vi.fn(async () => eintraege),
-}));
+
+/** Wer die Genehmigenden sind — je Test umgestellt. */
+let genehmiger: string[] | undefined;
 
 /** Wer gerade angemeldet ist — je Test umgestellt. */
 let rolle = {
@@ -74,7 +80,7 @@ let rolle = {
 vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({
     user: rolle,
-    company: { id: 'perl', name: 'Perl Installationen' },
+    company: { id: 'perl', name: 'Perl Installationen', vacationApprovers: genehmiger },
     loading: false,
     error: null,
     signIn: vi.fn(),
@@ -104,10 +110,11 @@ async function datum(label: string, wert: string) {
 
 beforeEach(() => {
   createVacation.mockClear();
-  approveVacation.mockClear().mockResolvedValue({ angelegt: 5, uebersprungen: 0 });
-  rejectVacation.mockClear();
+  callUrlaubEntscheiden
+    .mockClear()
+    .mockResolvedValue({ data: { status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 } });
   antraege.length = 0;
-  eintraege.length = 0;
+  genehmiger = undefined;
   rolle = { ...rolle, uid: 'm1', name: 'Max Mustermann', role: 'Mitarbeiter', docId: 'm1' };
 });
 
@@ -225,7 +232,7 @@ describe('Urlaub genehmigen', () => {
     });
   });
 
-  it('traegt die Tage beim Genehmigen ins Zeitkonto ein', async () => {
+  it('laesst den SERVER entscheiden, nicht den Browser', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText('Max Mustermann');
@@ -233,28 +240,24 @@ describe('Urlaub genehmigen', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Genehmigen' }));
 
     /**
-     * DER EIGENTLICHE PUNKT. Ohne die Zeiteinträge wäre der Urlaub für die
-     * Stundenrechnung unsichtbar: der Saldo zöge für jeden Tag das Tagessoll
-     * ab, und die Startseite meldete eine Woche lang „Zeit fehlt".
+     * DER KERN. Die Genehmigung muss nachsehen, an welchen Tagen der
+     * Antragsteller schon gebucht hat, und dann fremde Zeiteinträge schreiben.
+     * Beides darf ein Genehmigender nicht selbst — Zeiteinträge tragen
+     * Kranken- und Urlaubstage und damit Gesundheitsdaten nach Art. 9 DSGVO.
+     * Der Browser schickt deshalb nur, WELCHER Antrag wie entschieden wird.
      */
-    expect(approveVacation).toHaveBeenCalled();
-    const [, antrag, mitarbeiter, entscheider] = approveVacation.mock.calls[0];
-    expect(antrag.id).toBe('v9');
-    // Die Arbeitstage des BETROFFENEN, nicht die des Genehmigenden: sonst
-    // bekaeme ein Teilzeitmitarbeiter fuenf Tage statt drei abgezogen.
-    expect(mitarbeiter.workDays).toEqual([1, 2, 3, 4, 5]);
-    expect(entscheider.name).toBe('Julian Deutsch');
+    expect(callUrlaubEntscheiden).toHaveBeenCalledWith({
+      vacationId: 'v9',
+      entscheidung: 'Genehmigt',
+      grund: undefined,
+      entscheiderName: 'Julian Deutsch',
+    });
   });
 
-  it('ueberschreibt bereits gebuchte Tage NICHT', async () => {
-    // An einem Tag des Zeitraums ist schon gearbeitet worden.
-    eintraege.push({
-      id: 'e1',
-      companyId: 'perl',
-      userId: 'm1',
-      date: '2026-07-08',
-      status: 'Anwesend',
-    } as TimeEntry & { id: string });
+  it('meldet zurueck, wenn Tage uebersprungen wurden', async () => {
+    callUrlaubEntscheiden.mockResolvedValue({
+      data: { status: 'Genehmigt', angelegt: 4, uebersprungen: 1, entfernt: 0 },
+    });
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText('Max Mustermann');
@@ -263,11 +266,10 @@ describe('Urlaub genehmigen', () => {
 
     /**
      * Eine erfasste Arbeitsleistung darf eine Genehmigung nicht stillschweigend
-     * wegwerfen. Der belegte Tag wird übersprungen — und das erfährt die
-     * Funktion über diese Menge.
+     * wegwerfen — und wenn ein Tag deshalb ausgelassen wurde, muss es jemand
+     * erfahren.
      */
-    const belegt = approveVacation.mock.calls[0][4];
-    expect(belegt.has('2026-07-08')).toBe(true);
+    expect(await screen.findByText(/1 übersprungen/)).toBeInTheDocument();
   });
 
   it('verlangt fuer eine Ablehnung einen Grund', async () => {
@@ -278,15 +280,71 @@ describe('Urlaub genehmigen', () => {
     await screen.findByText('Max Mustermann');
 
     await nutzer.click(screen.getByRole('button', { name: 'Ablehnen' }));
-    expect(rejectVacation).not.toHaveBeenCalled();
+    expect(callUrlaubEntscheiden).not.toHaveBeenCalled();
 
     // Und mit Grund geht es durch.
     vi.spyOn(window, 'prompt').mockReturnValueOnce('Baustelle Neudorf läuft an.');
     await nutzer.click(screen.getByRole('button', { name: 'Ablehnen' }));
-    expect(rejectVacation).toHaveBeenCalledWith(
-      'v9',
-      { uid: 'chef', name: 'Julian Deutsch' },
-      'Baustelle Neudorf läuft an.',
-    );
+    expect(callUrlaubEntscheiden).toHaveBeenCalledWith({
+      vacationId: 'v9',
+      entscheidung: 'Abgelehnt',
+      grund: 'Baustelle Neudorf läuft an.',
+      entscheiderName: 'Julian Deutsch',
+    });
+  });
+});
+
+/**
+ * Wer entscheiden darf, ist eine betriebliche Festlegung und keine
+ * Eigenschaft der Rolle. Die Oberflaeche muss ihr folgen — die harte Grenze
+ * steht in firestore.rules und in der Cloud Function.
+ */
+describe('Genehmigende aus den Einstellungen', () => {
+  beforeEach(() => {
+    antraege.push({
+      id: 'v9',
+      companyId: 'perl',
+      userId: 'm1',
+      userName: 'Max Mustermann',
+      von: '2026-07-06',
+      bis: '2026-07-10',
+      tage: 5,
+      status: 'Beantragt',
+    });
+  });
+
+  it('zeigt die Liste einer eingetragenen Verwaltungskraft', async () => {
+    rolle = { ...rolle, uid: 'buero', name: 'Frau Wagner', role: 'Verwaltung', docId: 'buero' };
+    genehmiger = ['buero'];
+    zeichne();
+    expect(await screen.findByText(/Offene Anträge/)).toBeInTheDocument();
+  });
+
+  it('zeigt sie NICHT, wenn dieselbe Person nicht daraufsteht', async () => {
+    rolle = { ...rolle, uid: 'buero', name: 'Frau Wagner', role: 'Verwaltung', docId: 'buero' };
+    genehmiger = ['jemand-anderer'];
+    zeichne();
+    await screen.findByLabelText('Von');
+    expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
+  });
+
+  it('nimmt der Buchhaltung die Liste, sobald jemand anderer bestimmt ist', async () => {
+    // Die Festlegung ERSETZT den Ausgangszustand, sie ergaenzt ihn nicht.
+    rolle = { ...rolle, uid: 'buch', name: 'Herr Bauer', role: 'Buchhaltung', docId: 'buch' };
+    genehmiger = ['buero'];
+    zeichne();
+    await screen.findByLabelText('Von');
+    expect(screen.queryByText(/Offene Anträge/)).not.toBeInTheDocument();
+  });
+
+  it('laesst die Geschaeftsfuehrung immer entscheiden', async () => {
+    /**
+     * Waere sie abwaehlbar, koennte eine Fehleingabe den ganzen Betrieb
+     * aussperren — und niemand koennte sie zuruecknehmen.
+     */
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    genehmiger = ['buero'];
+    zeichne();
+    expect(await screen.findByText(/Offene Anträge/)).toBeInTheDocument();
   });
 });

@@ -5,13 +5,10 @@ import {
   listOpenVacations,
   createVacation,
   deleteVacation,
-  approveVacation,
-  rejectVacation,
-  cancelApprovedVacation,
 } from '@/lib/db/vacations';
-import { listUsers, getUserByUid } from '@/lib/db/users';
-import { listEntriesInRange } from '@/lib/db/timeEntries';
-import { canEditTime } from '@/lib/permissions';
+import { getUserByUid } from '@/lib/db/users';
+import { callUrlaubEntscheiden } from '@/lib/functions';
+import { darfUrlaubEntscheiden } from '@/lib/permissions';
 import { todayStr, urlaubsTage } from '@/lib/time';
 import type { AppUser, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -66,15 +63,25 @@ const TON: Record<Vacation['status'], 'success' | 'warning' | 'danger' | 'gray'>
  *    selbst — dort, wo er stört, nicht hier.
  */
 export default function VacationsView() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
 
-  const darfEntscheiden = user ? canEditTime(user.role) : false;
+  /**
+   * Wer entscheiden darf, steht in den Einstellungen — nicht in der Rolle.
+   *
+   * In dem einen Betrieb entscheidet die Buchhaltung, im anderen ein
+   * Vorarbeiter, im dritten ausschließlich der Chef. Geschäftsführung und
+   * Administration können immer; ohne Festlegung bleibt es beim
+   * Ausgangszustand. Dieselbe Regel steht in firestore.rules und in der
+   * Cloud Function, die tatsächlich entscheidet.
+   */
+  const darfEntscheiden = user
+    ? darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers)
+    : false;
 
   const [eigene, setEigene] = useState<WithId<Vacation>[]>([]);
   const [offene, setOffene] = useState<WithId<Vacation>[]>([]);
   const [profil, setProfil] = useState<AppUser | null>(null);
-  const [team, setTeam] = useState<AppUser[]>([]);
   const [laden, setLaden] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
@@ -97,13 +104,9 @@ export default function VacationsView() {
         setEigene(meine);
         setProfil(profilDaten ?? null);
         if (darfEntscheiden) {
-          const [warten, alle] = await Promise.all([
-            listOpenVacations(user.companyId),
-            listUsers(user.companyId),
-          ]);
+          const warten = await listOpenVacations(user.companyId);
           // Ältester Antrag zuerst: wer am längsten wartet, wartet nicht noch länger.
           setOffene([...warten].sort((a, b) => a.von.localeCompare(b.von)));
-          setTeam(alle);
         }
       } catch {
         setError('Die Urlaubsanträge konnten nicht geladen werden.');
@@ -184,91 +187,78 @@ export default function VacationsView() {
     }
   }
 
-  async function genehmigen(antrag: WithId<Vacation>) {
+  /**
+   * Entscheiden — der Server tut es, nicht der Browser.
+   *
+   * Die Genehmigung muss nachsehen, an welchen Tagen der Antragsteller schon
+   * gebucht hat, und dann fremde Zeiteinträge schreiben. Beides darf ein
+   * Genehmigender nicht selbst: Zeiteinträge tragen Kranken- und Urlaubstage
+   * und damit Gesundheitsdaten nach Art. 9 DSGVO. Der Aufruf schickt deshalb
+   * nur, WELCHER Antrag wie entschieden wird.
+   */
+  async function entscheiden(
+    antrag: WithId<Vacation>,
+    entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert',
+    grund?: string,
+  ) {
     if (!user) return;
     setArbeitet(antrag.id);
     setError(null);
     try {
-      const mitarbeiter = team.find((u) => u.uid === antrag.userId);
-      /**
-       * Erst nachsehen, an welchen Tagen dieser Mitarbeiter schon gebucht hat.
-       *
-       * Ein bereits erfasster Arbeitstag darf von einer Genehmigung nicht
-       * stillschweigend überschrieben werden — das wäre eine gelöschte
-       * Arbeitsleistung, und niemand würde es merken.
-       */
-      const vorhandene = await listEntriesInRange(user.companyId, antrag.von, antrag.bis);
-      const belegt = new Set(
-        vorhandene.filter((e) => e.userId === antrag.userId).map((e) => e.date),
-      );
-      const { angelegt, uebersprungen } = await approveVacation(
-        user.companyId,
-        antrag,
-        mitarbeiter ?? {},
-        { uid: user.uid, name: user.name },
-        belegt,
-      );
-      toast.success(
-        uebersprungen > 0
-          ? `Genehmigt — ${angelegt} Tage eingetragen, ${uebersprungen} übersprungen (dort war schon gebucht)`
-          : `Genehmigt — ${angelegt} ${angelegt === 1 ? 'Tag' : 'Tage'} im Zeitkonto eingetragen`,
-      );
+      const { data } = await callUrlaubEntscheiden({
+        vacationId: antrag.id,
+        entscheidung,
+        grund,
+        entscheiderName: user.name,
+      });
+      if (entscheidung === 'Genehmigt') {
+        toast.success(
+          data.uebersprungen > 0
+            ? `Genehmigt — ${data.angelegt} Tage eingetragen, ${data.uebersprungen} übersprungen (dort war schon gebucht)`
+            : `Genehmigt — ${data.angelegt} ${data.angelegt === 1 ? 'Tag' : 'Tage'} im Zeitkonto eingetragen`,
+        );
+      } else if (entscheidung === 'Abgelehnt') {
+        toast.success('Antrag abgelehnt');
+      } else {
+        toast.success(
+          `Urlaub zurückgenommen — ${data.entfernt} ${data.entfernt === 1 ? 'Tag' : 'Tage'} aus dem Zeitkonto entfernt`,
+        );
+      }
       await laden_();
     } catch {
-      setError('Die Genehmigung ist fehlgeschlagen.');
+      setError(
+        entscheidung === 'Genehmigt'
+          ? 'Die Genehmigung ist fehlgeschlagen.'
+          : 'Die Entscheidung konnte nicht gespeichert werden.',
+      );
     } finally {
       setArbeitet(null);
     }
   }
 
   async function ablehnen(antrag: WithId<Vacation>) {
-    if (!user) return;
     // Pflichtgrund: eine Ablehnung ohne Begründung ist für den, der sie
-    // bekommt, nicht von Willkür zu unterscheiden.
+    // bekommt, nicht von Willkür zu unterscheiden. Der Server verlangt ihn
+    // ebenfalls — hier steht er nur früher.
     const grund = window.prompt(`Warum wird der Urlaub von ${antrag.userName} abgelehnt?`);
     if (grund === null) return;
     if (grund.trim().length < 3) {
       setError('Bitte einen Grund angeben.');
       return;
     }
-    setArbeitet(antrag.id);
-    try {
-      await rejectVacation(antrag.id, { uid: user.uid, name: user.name }, grund.trim());
-      toast.success('Antrag abgelehnt');
-      await laden_();
-    } catch {
-      setError('Die Ablehnung konnte nicht gespeichert werden.');
-    } finally {
-      setArbeitet(null);
-    }
+    await entscheiden(antrag, 'Abgelehnt', grund.trim());
   }
 
   async function zuruecknehmen(antrag: WithId<Vacation>) {
-    if (!user) return;
-    const grund = window.prompt(`Warum wird der genehmigte Urlaub von ${antrag.userName} zurückgenommen?`);
+    const grund = window.prompt(
+      `Warum wird der genehmigte Urlaub von ${antrag.userName} zurückgenommen?`,
+    );
     if (grund === null) return;
     if (grund.trim().length < 3) {
       setError('Bitte einen Grund angeben.');
       return;
     }
-    setArbeitet(antrag.id);
-    try {
-      // Die bei der Genehmigung erzeugten Zeiteinträge wieder einsammeln —
-      // sonst stünde der Urlaub weiter im Zeitkonto.
-      const imZeitraum = await listEntriesInRange(user.companyId, antrag.von, antrag.bis);
-      await cancelApprovedVacation(
-        antrag,
-        imZeitraum.filter((e) => e.vacationId === antrag.id),
-        { uid: user.uid, name: user.name },
-        grund.trim(),
-      );
-      toast.success('Urlaub zurückgenommen');
-      await laden_();
-    } catch {
-      setError('Die Rücknahme ist fehlgeschlagen.');
-    } finally {
-      setArbeitet(null);
-    }
+    await entscheiden(antrag, 'Storniert', grund.trim());
   }
 
   async function zurueckziehen(antrag: WithId<Vacation>) {
@@ -398,7 +388,7 @@ export default function VacationsView() {
                   >
                     <Button
                       loading={arbeitet === v.id}
-                      onClick={() => genehmigen(v)}
+                      onClick={() => entscheiden(v, 'Genehmigt')}
                     >
                       Genehmigen
                     </Button>

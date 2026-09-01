@@ -1,12 +1,15 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany } from '@/lib/db/company';
+import { listUsers } from '@/lib/db/users';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
-import type { InvoiceRates } from '@/types';
+import { isTopLevel } from '@/lib/permissions';
+import type { AppUser, InvoiceRates } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
+import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { callBilanzenNeuAufbauen } from '@/lib/functions';
@@ -46,10 +49,74 @@ export default function SettingsView() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Wer Urlaub genehmigen darf — eine betriebliche Festlegung, keine
+   * Eigenschaft der Software. In dem einen Betrieb entscheidet die
+   * Buchhaltung, im anderen ein Vorarbeiter, im dritten nur der Chef.
+   */
+  const [genehmiger, setGenehmiger] = useState<string[]>([]);
+  const [nutzer, setNutzer] = useState<AppUser[]>([]);
+  const [genehmigerSpeichert, setGenehmigerSpeichert] = useState(false);
+  const darfGenehmigerSetzen = user ? isTopLevel(user.role) : false;
+
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
     if (company?.costRates) setCostRates({ ...company.costRates });
+    setGenehmiger(company?.vacationApprovers ?? []);
   }, [company]);
+
+  useEffect(() => {
+    if (!user || !darfGenehmigerSetzen) return;
+    listUsers(user.companyId).then(setNutzer).catch(() => setNutzer([]));
+  }, [user, darfGenehmigerSetzen]);
+
+  /**
+   * Zur Auswahl stehen alle AKTIVEN ausser der Leitung.
+   *
+   * Geschaeftsfuehrung und Administration koennen ohnehin immer entscheiden
+   * und stehen deshalb nicht in der Liste. Waeren sie abwaehlbar, koennte eine
+   * Fehleingabe den ganzen Betrieb aussperren — und niemand koennte sie
+   * zuruecknehmen, weil auch das Aendern dieser Liste ihnen vorbehalten ist.
+   */
+  const auswaehlbar = useMemo(
+    () =>
+      nutzer
+        .filter(
+          (u) =>
+            u.active !== false &&
+            u.role !== 'Geschäftsführung' &&
+            u.role !== 'Administrator',
+        )
+        .sort((a, b) => a.name.localeCompare(b.name, 'de')),
+    [nutzer],
+  );
+
+  const immerDabei = useMemo(
+    () =>
+      nutzer
+        .filter(
+          (u) =>
+            u.active !== false &&
+            (u.role === 'Geschäftsführung' || u.role === 'Administrator'),
+        )
+        .map((u) => u.name),
+    [nutzer],
+  );
+
+  async function genehmigerSpeichern() {
+    if (!user) return;
+    setGenehmigerSpeichert(true);
+    setError(null);
+    try {
+      await updateCompany(user.companyId, { vacationApprovers: genehmiger });
+      await reloadCompany();
+      toast.success('Genehmigende gespeichert');
+    } catch {
+      setError('Die Genehmigenden konnten nicht gespeichert werden.');
+    } finally {
+      setGenehmigerSpeichert(false);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -265,6 +332,53 @@ export default function SettingsView() {
         Bis er gelaufen ist, rechnet das Zeitkonto weiter direkt aus den
         Buchungen. Langsamer, aber richtig — und niemals eine falsche Zahl.
       */}
+      {/*
+        Wer Urlaub genehmigt — der Geschaeftsfuehrung vorbehalten.
+        Duerfte die Projektleitung sie aendern, koennte sie sich selbst
+        eintragen und ueber die Urlaube derer entscheiden, die sie einteilt.
+        Dieselbe Grenze steht in firestore.rules.
+      */}
+      {darfGenehmigerSetzen && (
+        <Card title="Wer Urlaub genehmigt">
+          <p className="text-sm text-ink">
+            Über Urlaubsanträge entscheiden <strong>{immerDabei.join(', ') || 'Geschäftsführung und Administration'}</strong> immer
+            — das lässt sich nicht abwählen, sonst könnte eine Fehleingabe den ganzen Betrieb
+            aussperren. Hier kommen weitere Personen dazu.
+          </p>
+          <p className="mt-2 text-sm text-ink-muted">
+            Bleibt die Auswahl leer, entscheidet zusätzlich die <strong>Buchhaltung</strong> — so
+            war es, bevor es diese Einstellung gab.
+          </p>
+
+          <div className="mt-4">
+            <PersonPicker
+              legend="Zusätzlich genehmigungsberechtigt"
+              idPrefix="urlaubgen"
+              people={auswaehlbar.map((u) => ({ uid: u.uid, name: u.name, hint: u.role }))}
+              selected={genehmiger}
+              onChange={setGenehmiger}
+              emptyHint="Keine weiteren aktiven Benutzer vorhanden."
+            />
+          </div>
+
+          <p className="mt-3 text-sm text-ink-muted">
+            Eine Genehmigung trägt die Urlaubstage ins Zeitkonto ein. Wer sie aussprechen darf,
+            entscheidet damit über bezahlte Tage — die Auswahl gilt deshalb auch serverseitig,
+            nicht nur in der Oberfläche.
+          </p>
+
+          <div className="mt-4">
+            <Button
+              type="button"
+              loading={genehmigerSpeichert}
+              onClick={genehmigerSpeichern}
+            >
+              Genehmigende speichern
+            </Button>
+          </div>
+        </Card>
+      )}
+
       <Card title="Monatsbilanzen">
         <p className="text-sm text-ink">
           Verdichtet die Zeitbuchungen zu einer Bilanz je Mitarbeiter und Monat. Das Zeitkonto
