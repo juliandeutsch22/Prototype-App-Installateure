@@ -15,6 +15,9 @@ import {
   markBilled,
 } from '@/lib/db/invoices';
 import { listActiveProjects } from '@/lib/db/projects';
+import { listCustomers } from '@/lib/db/customers';
+import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
+import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { discountLabel, type InvoicePosition } from './totals';
@@ -93,6 +96,17 @@ export default function InvoicesView() {
    * Wer weiter zurueck muss, laedt nach.
    */
   const [grenze, setGrenze] = useState(RECHNUNGEN_JE_SEITE);
+  /** Buchhaltungs-Export: Zeitraum und Kundenstammdaten fuer die UID. */
+  const [kunden, setKunden] = useState<Awaited<ReturnType<typeof listCustomers>>>([]);
+  const [exportVon, setExportVon] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [exportBis, setExportBis] = useState(() => {
+    const d = new Date();
+    const letzter = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return `${letzter.getFullYear()}-${String(letzter.getMonth() + 1).padStart(2, '0')}-${String(letzter.getDate()).padStart(2, '0')}`;
+  });
 
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
@@ -104,6 +118,8 @@ export default function InvoicesView() {
     // fertig wurde. Vorher stand der gesamte Bestand im Auswahlfeld — nach
     // Jahren eine Liste, in der man die aktuelle Baustelle suchen muss.
     listActiveProjects(user.companyId).then(setProjects).catch(() => undefined);
+    // Fuer die UID-Nummer im Buchhaltungs-Export.
+    listCustomers(user.companyId).then(setKunden).catch(() => undefined);
     const unsub = subscribeRecentInvoices(
       user.companyId,
       grenze,
@@ -388,6 +404,82 @@ export default function InvoicesView() {
   return (
     <div className="space-y-6">
       <PageHeader title="Rechnungen" subtitle="Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren" />
+
+      {/*
+        Buchhaltungs-Export.
+
+        Bisher bekam der Steuerberater PDFs und tippte jede Rechnung ab —
+        Kosten, Zeit, und jede Abtipperei eine Gelegenheit fuer einen
+        Zahlendreher, ausgerechnet bei den Zahlen fuer die
+        Umsatzsteuervoranmeldung.
+      */}
+      <Card title="Buchhaltungs-Export">
+        <p className="text-sm text-ink-muted">
+          Rechnungsausgangsbuch als CSV — mit Nummer, Datum, Kunde, UID, Netto, USt und Brutto.
+          Importierbar in BMD, RZL und DATEV; die Zuordnung zu den Erlöskonten macht die Kanzlei
+          einmal beim Einrichten.
+        </p>
+        <FormGrid>
+          <InputField
+            id="expvon"
+            label="Von"
+            type="date"
+            value={exportVon}
+            onChange={(e) => setExportVon(e.target.value)}
+          />
+          <InputField
+            id="expbis"
+            label="Bis"
+            type="date"
+            value={exportBis}
+            onChange={(e) => setExportBis(e.target.value)}
+          />
+        </FormGrid>
+        {(() => {
+          const e = buildInvoiceCsv(invoices, kunden, exportVon, exportBis);
+          return (
+            <>
+              <p className="mt-3 text-sm text-ink">
+                {e.anzahl} {e.anzahl === 1 ? 'Rechnung' : 'Rechnungen'} · Netto{' '}
+                {fmtEUR(e.summeNetto)} · Brutto {fmtEUR(e.summeBrutto)}
+                <span className="block text-xs text-ink-muted">
+                  Stornierte Rechnungen sind enthalten, zählen aber nicht in die Summe.
+                </span>
+              </p>
+              {/*
+                Eine Luecke im Nummernkreis ist bei jeder Pruefung ein Befund:
+                entweder fehlt eine Rechnung, oder sie wurde geloescht statt
+                storniert. Das gehoert geklaert, BEVOR der Export in die
+                Kanzlei geht — nicht danach.
+              */}
+              {e.luecken.length > 0 && (
+                <p className="mt-3 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+                  <strong>Lücke im Nummernkreis:</strong> {e.luecken.join(', ')}. Entweder fehlt
+                  eine Rechnung, oder sie wurde gelöscht statt storniert. Das sollte vor der
+                  Übergabe an die Kanzlei geklärt sein.
+                </p>
+              )}
+              <div className="mt-4">
+                <Button
+                  variant="secondary"
+                  disabled={e.anzahl === 0}
+                  onClick={() => {
+                    downloadCsv(e.csv, invoiceCsvFilename(exportVon, exportBis));
+                    toast.success('Rechnungsausgangsbuch erzeugt');
+                  }}
+                >
+                  Als CSV herunterladen
+                </Button>
+              </div>
+              <p className="mt-2 text-xs text-ink-muted">
+                Das genaue Zielformat mit dem Steuerberater abstimmen. Ein geratenes BMD- oder
+                DATEV-Layout sähe importierbar aus und bucht im Zweifel auf falsche Konten —
+                deshalb hier ein dokumentiertes CSV mit allen Feldern, die beide brauchen.
+              </p>
+            </>
+          );
+        })()}
+      </Card>
 
       <MetricRow>
         <Metric label="Offen" value={fmtEUR(stats.offen)} />

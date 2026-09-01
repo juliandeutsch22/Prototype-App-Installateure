@@ -17,10 +17,8 @@ Reihenfolge nach Wirkung je Aufwand:
 1. **Kundenstammdaten** — ERLEDIGT, siehe unten.
 2. **Digitaler Handwerksschein** — Stufe 1 ERLEDIGT, siehe unten. Stufen 2
    bis 4 (Fotos, Versand, Verbindung zur Rechnung) stehen im Fahrplan.
-3. **Buchhaltungs-Übergabe.** Heute: CSV für Stunden, PDF für Rechnungen. Der
-   Steuerberater braucht Rechnungen strukturiert mit Konten und Steuersätzen —
-   in Österreich meist BMD oder RZL. Ohne das tippt jemand jede Rechnung
-   erneut ab. *Vorab zu klären:* ob der Betrieb Barumsätze hat — dann wäre die
+3. **Buchhaltungs-Übergabe** — ERLEDIGT, siehe unten. *Weiterhin vorab zu
+   klären:* ob der Betrieb Barumsätze hat — dann wäre die
    Registrierkassenpflicht ein eigenes Thema.
 4. **Angebot und Vorkalkulation.** Die Kette beginnt in der App bei der
    Baustelle, in Wirklichkeit bei Anfrage → Angebot → Auftrag. Konkrete Folge
@@ -74,6 +72,41 @@ Feldbeschriftungen sagen das jetzt auch.
 Geprüft: fünf Komponententests plus der vollständige Durchlauf im Browser
 gegen die Emulatoren — Vorschau, Übernahme, Kundenauswahl im
 Baustellenformular, Historie.
+
+## Erledigt: Buchhaltungs-Export (Rechnungsausgangsbuch)
+
+Der Steuerberater bekam PDFs und tippte jede Rechnung ab — Kosten, Zeit, und
+jede Abtipperei eine Gelegenheit für einen Zahlendreher, ausgerechnet bei den
+Zahlen für die Umsatzsteuervoranmeldung. Jetzt ein CSV mit Nummer, Datum,
+Kunde, UID, Baustelle, Netto, USt-Satz, USt-Betrag, Brutto, Zahlungsstatus und
+Storno.
+
+**Warum ein dokumentiertes CSV und kein BMD- oder DATEV-Format.** Beide haben
+feste Spaltenlayouts mit Konten- und Steuerschlüsseln, die sich nach dem
+Kontenplan der Kanzlei richten — welche Erlöskonten dieser Betrieb bebucht,
+weiß nur der Steuerberater. Ein geratenes Format wäre schlimmer als keins: es
+sieht importierbar aus und bucht auf die falschen Konten. Das CSV enthält alle
+Felder, die BMD, RZL und DATEV für einen Import brauchen; die Zuordnung macht
+die Kanzlei einmal beim Einrichten.
+
+**Stornierte Rechnungen gehen mit, zählen aber nicht in die Summe.** Sie
+wegzufiltern wäre der naheliegende Fehler: eine stornierte Rechnung ist kein
+Nichts, sondern ein Vorgang, der im Journal stehen muss — und ihr Fehlen
+erzeugt eine Lücke im Nummernkreis.
+
+**Die Lückenprüfung läuft mit.** Eine fehlende Nummer heißt: eine Rechnung
+fehlt, oder sie wurde gelöscht statt storniert. Beides gehört geklärt, BEVOR
+der Export die Kanzlei erreicht — die Ansicht sagt es vorher, nicht der Prüfer
+hinterher. Geprüft wird je Jahr getrennt, sonst wäre der Sprung von
+RE-2025-0087 auf RE-2026-0001 jedes Jahr ein Fehlalarm.
+
+**Die UID-Nummer kommt aus den Kundenstammdaten** — ein direkter Gewinn aus
+Punkt 1. Vor ihnen gab es sie im System schlicht nicht, und für Rechnungen an
+Unternehmen im EU-Ausland ist sie Pflichtangabe.
+
+Geprüft: zehn Tests plus der Durchlauf im Browser gegen die Emulatoren mit
+einer absichtlich fehlenden Nummer — die Lücke wurde gemeldet, die Summe
+schloss den Storno korrekt aus.
 
 ## Erledigt: Handwerksschein Stufe 1
 
