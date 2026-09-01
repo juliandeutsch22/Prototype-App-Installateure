@@ -135,7 +135,34 @@ export async function createTimeEntry(companyId: string, entry: NewTimeEntry) {
   return createInTenant(COLLECTION, companyId, entry);
 }
 
-export function updateTimeEntry(id: string, data: Partial<TimeEntry>) {
+/**
+ * Ändert einen Zeiteintrag — und blockt dabei dieselbe Doppelbuchung wie
+ * beim Anlegen.
+ *
+ * Die Prüfung fehlte hier: `createTimeEntry` liess keine zweite Buchung am
+ * selben Tag zu, das BEARBEITEN durfte ein Datum aber auf einen Tag
+ * schieben, an dem bereits gebucht war. Danach stehen zwei Einträge auf
+ * demselben Tag, der Überstunden-Saldo zählt beide, und niemand sieht es —
+ * die Zahl ist einfach falsch. Erreichbar war das für jeden Benutzer an
+ * jedem Tag.
+ *
+ * `owner` ist bewusst Pflicht und meint den EIGENTÜMER des Eintrags, nicht
+ * den Bearbeiter: korrigiert die Buchhaltung den Eintrag eines Monteurs,
+ * muss gegen dessen Tage geprüft werden, nicht gegen ihre eigenen.
+ *
+ * `exceptId` blendet den gerade bearbeiteten Eintrag aus — sonst meldete
+ * jede Änderung, die das Datum unangetastet lässt, einen Konflikt mit sich
+ * selbst.
+ */
+export async function updateTimeEntry(
+  id: string,
+  data: Partial<TimeEntry>,
+  owner: { companyId: string; userId: string },
+) {
+  if (data.date) {
+    const dupe = await findEntryForDate(owner.companyId, owner.userId, data.date, id);
+    if (dupe) throw new DuplicateEntryError(data.date);
+  }
   return updateInTenant(COLLECTION, id, data);
 }
 

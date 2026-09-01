@@ -117,9 +117,17 @@ export default function TimeForm({
 
   // Live-Hinweise zum gewählten Datum (Legacy:2234-2269).
   const holidayName = useMemo(() => getAustrianHolidayName(new Date(`${date}T00:00:00`)), [date]);
+  /**
+   * Ist der gewählte Tag schon belegt?
+   *
+   * Vorher galt die Prüfung nur beim Anlegen (`!isEdit`). Damit liess sich
+   * ein bestehender Eintrag auf einen Tag schieben, an dem bereits gebucht
+   * war — zwei Einträge am selben Tag, Saldo falsch, kein Hinweis. Der
+   * eigene, unveränderte Tag zählt dabei natürlich nicht als Konflikt.
+   */
   const alreadyBooked = useMemo(
-    () => !isEdit && !!existingDates?.has(date),
-    [existingDates, date, isEdit],
+    () => !!existingDates?.has(date) && date !== entry?.date,
+    [existingDates, date, entry?.date],
   );
 
   async function handleSubmit(e: FormEvent) {
@@ -173,7 +181,13 @@ export default function TimeForm({
             ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
             : {};
         const stand = await writeWithOfflineNotice(
-          updateTimeEntry(entry.id, { ...payload, ...audit }),
+          // Geprüft wird gegen die Tage des EIGENTÜMERS, nicht gegen die des
+          // Bearbeiters — die Buchhaltung korrigiert fremde Einträge.
+          updateTimeEntry(
+            entry.id,
+            { ...payload, ...audit },
+            { companyId: user.companyId, userId: entry.userId },
+          ),
         );
         if (stand === 'queued') toast.info(queuedMessage('Änderung übernommen'));
         else toast.success('Eintrag aktualisiert');
