@@ -453,14 +453,53 @@ export function pflichtTage(
   ende.setHours(0, 0, 0, 0);
   const schluss = gestern < ende ? gestern : ende;
 
+  return werktageImZeitraum(workDays, start, schluss);
+}
+
+/**
+ * Die Arbeitstage in einem Zeitraum — Wochenende und Feiertage heraus.
+ *
+ * Die gemeinsame Grundlage von zwei Rechnungen, die dieselbe Frage stellen und
+ * sie deshalb gleich beantworten müssen: „welche Tage zählen?"
+ *
+ *  - `pflichtTage` fragt es rückwärts: an welchen Tagen hätte gebucht werden
+ *    müssen.
+ *  - Der Urlaubsantrag fragt es vorwärts: wie viele Urlaubstage verbraucht
+ *    ein Zeitraum.
+ *
+ * Liefen beide auseinander, bekäme ein Monteur für eine Woche mit Feiertag
+ * fünf Tage abgezogen und hätte trotzdem einen Tag als „nicht gebucht" offen.
+ */
+export function werktageImZeitraum(
+  workDays: number[],
+  von: Date,
+  bis: Date,
+): string[] {
   const tage: string[] = [];
-  for (const tag = new Date(start); tag <= schluss; tag.setDate(tag.getDate() + 1)) {
-    // Regel 3.
+  const start = new Date(von);
+  start.setHours(0, 0, 0, 0);
+  const ende = new Date(bis);
+  ende.setHours(0, 0, 0, 0);
+  for (const tag = new Date(start); tag <= ende; tag.setDate(tag.getDate() + 1)) {
     if (workDays.includes(tag.getDay()) && !isAustrianHoliday(tag)) {
       tage.push(localDateStr(tag));
     }
   }
   return tage;
+}
+
+/** Arbeitstage zwischen zwei ISO-Daten — die Form, in der die Oberfläche fragt. */
+export function urlaubsTage(
+  user: Pick<AppUser, 'workDays'>,
+  vonIso: string,
+  bisIso: string,
+): string[] {
+  if (!vonIso || !bisIso) return [];
+  const von = new Date(`${vonIso}T00:00:00`);
+  const bis = new Date(`${bisIso}T00:00:00`);
+  if (Number.isNaN(von.getTime()) || Number.isNaN(bis.getTime()) || bis < von) return [];
+  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+  return werktageImZeitraum(workDays, von, bis);
 }
 
 /** Die Feiertage, die in denselben Zeitraum fallen — nur zur Anzeige. */

@@ -478,6 +478,61 @@ export interface TimeEntry {
   lastEditedBy?: string;
   lastEditedByUid?: string;
   lastEditedAt?: number;
+  /**
+   * Aus welchem genehmigten Urlaubsantrag dieser Eintrag entstanden ist.
+   *
+   * Nur bei `status === 'Urlaub'` gesetzt und nur bei Einträgen, die die
+   * Genehmigung automatisch angelegt hat. Wird ein Urlaub nachträglich
+   * storniert, sind daran genau die Tage zu finden, die wieder verschwinden
+   * müssen — ohne dass ein von Hand gebuchter Urlaubstag mit gelöscht wird.
+   */
+  vacationId?: string;
+}
+
+/**
+ * vacations/{id} — ein Urlaubsantrag.
+ *
+ * WARUM EIGENE SAMMLUNG UND NICHT NUR EIN TAGESSTATUS. „Urlaub" gab es schon
+ * als Status eines Zeiteintrags, und damit konnte sich jeder seinen Urlaub
+ * selbst eintragen — genehmigt war er deshalb nicht. Es fehlte das, worum es
+ * beim Urlaub eigentlich geht: ein Antrag, eine Entscheidung darüber, und für
+ * beide Seiten die Gewissheit, woran man ist.
+ *
+ * Der Zeiteintrag bleibt trotzdem die Grundlage der Stundenrechnung. Er wird
+ * bei der Genehmigung erzeugt — siehe `vacationId` oben. Damit rechnen Saldo,
+ * Monatsbilanz und Auswertung unverändert weiter, und ein genehmigter
+ * Urlaubstag taucht nicht als „Zeit fehlt" auf der Startseite auf.
+ */
+export interface Vacation {
+  id: string;
+  companyId: string;
+  userId: string; // uid des Antragstellers
+  /** Name als Kopie — die Genehmigungsliste soll nicht alle Nutzer laden. */
+  userName: string;
+  von: string; // 'YYYY-MM-DD'
+  bis: string; // 'YYYY-MM-DD', einschließlich
+  /**
+   * Arbeitstage im Zeitraum, zum Zeitpunkt des Antrags gerechnet.
+   *
+   * Als Kopie festgehalten, nicht bei jeder Anzeige neu ermittelt: ändert
+   * jemand später die Arbeitstage eines Mitarbeiters, soll ein bereits
+   * genehmigter Urlaub nicht rückwirkend anders lang werden.
+   */
+  tage: number;
+  status: 'Beantragt' | 'Genehmigt' | 'Abgelehnt' | 'Storniert';
+  /** Anmerkung des Antragstellers. */
+  notiz?: string;
+  entschiedenVonUid?: string;
+  entschiedenVonName?: string;
+  entschiedenAm?: number;
+  /**
+   * Begründung bei Ablehnung oder Storno.
+   *
+   * Pflicht in der Oberfläche: eine Ablehnung ohne Grund ist für den, der sie
+   * bekommt, nicht von Willkür zu unterscheiden.
+   */
+  grund?: string;
+  createdAt?: number;
 }
 
 /** assignments/{id} — Einsatzplanung: ein Dokument pro (Datum × Projekt × Mitarbeiter). */

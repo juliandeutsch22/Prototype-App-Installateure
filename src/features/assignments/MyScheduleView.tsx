@@ -6,7 +6,9 @@ import {
   listUpcomingAssignments,
 } from '@/lib/db/assignments';
 import { listProjectsByNumbers } from '@/lib/db/projects';
-import type { Assignment, Project } from '@/types';
+import { listOwnVacations } from '@/lib/db/vacations';
+import type { Assignment, Project, Vacation } from '@/types';
+import type { WithId } from '@/lib/db/core';
 import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
@@ -49,6 +51,17 @@ export default function MyScheduleView() {
   /** Die anstehenden Einsätze — „alle geplanten", unabhängig vom Kalender. */
   const [naechste, setNaechste] = useState<Assignment[]>([]);
 
+  /**
+   * Die eigenen Urlaubsanträge — beantragte MIT eingeschlossen.
+   *
+   * Anders als in der Einsatzplanung, die nur genehmigten Urlaub zeigt: dort
+   * geht es darum, wer sicher weg ist. Hier geht es um die Frage, die der
+   * Monteur tatsächlich stellt — „habe ich im Juli frei, und ist das schon
+   * entschieden?" Ein beantragter Urlaub gehört in diese Antwort, aber sichtbar
+   * als das, was er ist.
+   */
+  const [urlaube, setUrlaube] = useState<WithId<Vacation>[]>([]);
+
   const prefix = `${cursor.year}-${String(cursor.month + 1).padStart(2, '0')}`;
 
   /**
@@ -83,6 +96,9 @@ export default function MyScheduleView() {
     listUpcomingAssignments(user.companyId, user.uid, todayStr())
       .then(setNaechste)
       .catch(() => undefined);
+    listOwnVacations(user.companyId, user.uid)
+      .then(setUrlaube)
+      .catch(() => setUrlaube([]));
   }, [user]);
 
   /**
@@ -121,6 +137,27 @@ export default function MyScheduleView() {
     () => rows.filter((a) => a.date === selected),
     [rows, selected],
   );
+
+  /** Fällt der gewählte Tag in einen eigenen Urlaub — und ist er entschieden? */
+  const urlaubAmTag = useMemo(
+    () =>
+      urlaube.find(
+        (v) =>
+          (v.status === 'Genehmigt' || v.status === 'Beantragt') &&
+          v.von <= selected &&
+          v.bis >= selected,
+      ),
+    [urlaube, selected],
+  );
+
+  /** Die kommenden eigenen Urlaube — die Antwort auf „wann habe ich frei?". */
+  const kommendeUrlaube = useMemo(() => {
+    const heute = todayStr();
+    return urlaube
+      .filter((v) => (v.status === 'Genehmigt' || v.status === 'Beantragt') && v.bis >= heute)
+      .sort((a, b) => a.von.localeCompare(b.von))
+      .slice(0, 5);
+  }, [urlaube]);
 
   const today = todayStr();
 
@@ -167,6 +204,31 @@ export default function MyScheduleView() {
 
           <div className="lg:col-span-3">
             <Card title={`Einsätze am ${fmtDay(selected)}`}>
+              {/*
+                Der Urlaub steht ÜBER den Einsätzen: fällt beides auf denselben
+                Tag, ist das der Widerspruch, den man sofort sehen muss.
+              */}
+              {urlaubAmTag && (
+                <p
+                  className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
+                    urlaubAmTag.status === 'Genehmigt'
+                      ? 'border-success/30 bg-success-bg text-success'
+                      : 'border-warning/30 bg-warning-bg text-warning'
+                  }`}
+                >
+                  {urlaubAmTag.status === 'Genehmigt' ? (
+                    <>
+                      <strong>Urlaub</strong> — genehmigt
+                      {urlaubAmTag.entschiedenVonName ? ` von ${urlaubAmTag.entschiedenVonName}` : ''}.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Urlaub beantragt</strong> — noch nicht entschieden. Bitte noch nichts
+                      fix buchen.
+                    </>
+                  )}
+                </p>
+              )}
               {visible.length === 0 ? (
                 <EmptyState>
                   Kein Einsatz an diesem Tag. Die roten Zahlen im Kalender zeigen, an welchen
@@ -270,6 +332,42 @@ export default function MyScheduleView() {
                 <p className="mt-2 text-sm text-ink-muted">
                   und {naechste.length - 15} weitere — im Kalender links nachschlagen.
                 </p>
+              )}
+            </Card>
+
+            {/*
+              „Wann habe ich frei, und ist es schon entschieden?" — die zweite
+              Frage, mit der ein Monteur in diese Ansicht kommt. Sie hier zu
+              beantworten spart den Anruf im Büro.
+            */}
+            <Card
+              title="Mein Urlaub"
+              action={
+                <Link to="/vacations" className="text-sm font-semibold text-brand underline">
+                  Beantragen
+                </Link>
+              }
+            >
+              {kommendeUrlaube.length === 0 ? (
+                <EmptyState>Kein kommender Urlaub beantragt.</EmptyState>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {kommendeUrlaube.map((v) => (
+                    <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                      <span className="tnum text-ink">
+                        {v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="tnum text-xs text-ink-muted">
+                          {v.tage} {v.tage === 1 ? 'Tag' : 'Tage'}
+                        </span>
+                        <Badge tone={v.status === 'Genehmigt' ? 'success' : 'warning'}>
+                          {v.status}
+                        </Badge>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </Card>
           </div>

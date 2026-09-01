@@ -42,6 +42,10 @@ export const NAV: NavItem[] = [
   // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
   { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Außendienst' },
   { path: '/my-projects', label: 'Meine Baustellen', short: 'Baustellen', icon: 'building', roles: ['Mitarbeiter'], group: 'Außendienst' },
+  // Urlaub sieht JEDE Rolle: auch Buchhaltung und Verwaltung nehmen Urlaub,
+  // und beantragen muessen ihn alle. Wer entscheiden darf, sieht in derselben
+  // Ansicht zusaetzlich die offenen Antraege.
+  { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'calendar', roles: ALL, group: 'Außendienst' },
   // Der Schein gehoert in den Aussendienst: er entsteht vor Ort beim Kunden,
   // nicht im Buero.
   { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'clipboard', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Außendienst' },

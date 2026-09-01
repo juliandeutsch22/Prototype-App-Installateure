@@ -24,16 +24,67 @@ Reihenfolge nach Wirkung je Aufwand:
 5. **Nachkalkulation in Geld** — ERLEDIGT, siehe unten.
 
 Weiter offen, aber nachrangig: Wartungsverträge und wiederkehrende Termine
-(die jährliche Thermenwartung ist planbare Auslastung), Urlaub als Antrag mit
-Genehmigung statt als Tagesstatus, Prüfungen gegen das Arbeitszeitgesetz
-(Höchstarbeitszeit, Ruhezeiten — bei Notdiensten über Mitternacht kein
-akademischer Punkt), Fahrzeug- und Werkzeugverwaltung.
+(die jährliche Thermenwartung ist planbare Auslastung), Prüfungen gegen das
+Arbeitszeitgesetz (Höchstarbeitszeit, Ruhezeiten — bei Notdiensten über
+Mitternacht kein akademischer Punkt), Fahrzeug- und Werkzeugverwaltung.
+Urlaub als Antrag mit Genehmigung ist ERLEDIGT, siehe unten.
 
 **Was bewusst NICHT das Ziel ist:** Funktionsgleichstand mit einer dreißig
 Jahre alten Handwerkersoftware. Deren Büroseite ist mächtig, und ihre Monteure
 tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
+
+## Erledigt: Urlaub als Antrag mit Genehmigung
+
+Urlaub war ein **Tagesstatus** in der Zeiterfassung. Jeder konnte ihn sich
+selbst eintragen; genehmigt war er damit nicht, und niemand hatte den
+Überblick, wer wann weg ist. Es fehlte genau das, worum es beim Urlaub geht:
+ein Antrag, eine Entscheidung darüber, und für beide Seiten die Gewissheit,
+woran man ist.
+
+**Der Ablauf hat drei Beteiligte, und für alle drei muss er ehrlich sein:**
+
+| Wer | Sieht | Darf |
+|---|---|---|
+| Mitarbeiter, Monteur | die eigenen Anträge mit Stand und Begründung | beantragen, offene Anträge ändern oder zurückziehen |
+| Geschäftsführung, Administration, Buchhaltung | alle Anträge, plus wer im selben Zeitraum schon weg ist | genehmigen, begründet ablehnen, einen genehmigten Urlaub zurücknehmen |
+| Projektleitung | den genehmigten Urlaub in der Einsatzplanung | einteilen — aber nicht entscheiden |
+
+**Die Genehmigung schreibt die Tage ins Zeitkonto.** Das ist kein Beiwerk,
+sondern der Punkt: ohne die Zeiteinträge wäre ein genehmigter Urlaub für die
+Stundenrechnung unsichtbar. Der Saldo zöge für jeden Urlaubstag das Tagessoll
+ab, und die Startseite meldete zwei Wochen lang „Zeit fehlt" — der Mitarbeiter
+müsste seinen genehmigten Urlaub also ein zweites Mal von Hand eintragen. Die
+Einträge tragen die `vacationId`, damit eine Rücknahme genau sie wieder
+entfernt und keinen von Hand gebuchten Urlaubstag mit erwischt. Tage, an denen
+schon gebucht war, werden übersprungen statt überschrieben: eine erfasste
+Arbeitsleistung darf eine Genehmigung nicht stillschweigend wegwerfen.
+
+**Gerechnet wird in Arbeitstagen, mit derselben Funktion wie die Pflichttage.**
+`werktageImZeitraum` ist jetzt die gemeinsame Grundlage von zwei Rechnungen,
+die dieselbe Frage stellen: welche Tage zählen. Liefen sie auseinander, bekäme
+jemand für eine Woche mit Feiertag fünf Tage abgezogen und hätte trotzdem einen
+Tag als „nicht gebucht" offen. Die Woche um den Nationalfeiertag kostet vier
+Urlaubstage, nicht fünf.
+
+**Die harte Grenze steht in `firestore.rules`, nicht in der Oberfläche.** Ein
+Monteur, der seinen Antrag per Konsole auf „Genehmigt" setzt, verschafft sich
+bezahlte Tage — deshalb: anlegen nur für sich selbst und nur als „Beantragt",
+ändern nur solange offen und ohne den Status anzufassen, entscheiden nur
+Buchhaltung, Geschäftsführung, Administration. Entschiedene Anträge werden
+nicht gelöscht; sie sind der Nachweis, dass entschieden wurde.
+
+**Sichtbar wird der Urlaub dort, wo er stört:** in der Einsatzplanung steht er
+über der Mitarbeiterauswahl und als Hinweis an der einzelnen Person. Verboten
+wird das Einteilen nicht — bei einem Notdienst holt man auch mal jemanden aus
+dem Urlaub — aber es steht dann dabei.
+
+**Bewusst noch nicht dabei:** halbe Urlaubstage, Resturlaub aus dem Vorjahr,
+und eine Benachrichtigung an den Antragsteller, sobald entschieden wurde. Der
+Anspruch aus den Stammdaten (`yearlyVacationDays`) wird angezeigt, aber nicht
+erzwungen: ob jemand mehr nehmen darf, als ihm zusteht, ist eine Frage für den
+Betrieb und nicht für eine Sperre.
 
 ## Erledigt: der Schein am Telefon — Warten ohne Ende, Unterschrift ohne Wirkung
 

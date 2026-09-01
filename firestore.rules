@@ -260,6 +260,60 @@ service cloud.firestore {
       allow delete: if isLeadership() && ownsExisting();
     }
 
+    // --- vacations: Urlaubsanträge ---
+    //
+    // DIE ENTSCHEIDENDE GRENZE IST, WER GENEHMIGT. Stünde sie nur in der
+    // Oberfläche, könnte sich jeder Monteur seinen Urlaub per Konsole selbst
+    // genehmigen — und weil eine Genehmigung die Urlaubstage ins Zeitkonto
+    // schreibt, wäre das zugleich ein Weg, sich bezahlte Tage zu verschaffen.
+    //
+    // Deshalb:
+    //   anlegen        -> nur für SICH SELBST und nur als „Beantragt"
+    //   ändern (selbst) -> nur solange „Beantragt", und der Status bleibt es
+    //   entscheiden    -> nur Buchhaltung, Geschäftsführung, Administrator
+    //   löschen        -> nur der Antragsteller, und nur vor der Entscheidung
+    //
+    // GELESEN wird weiter, als es die Aufgabe verlangt: die eigenen Anträge
+    // immer, alle Anträge zusätzlich von der Leitung — auch von der
+    // Projektleitung, die zwar nicht entscheidet, aber einteilt. Wer den
+    // Urlaub eines Monteurs beim Planen nicht sieht, plant ihn ein. Ein
+    // Urlaubsantrag ist im Unterschied zum Krankenstand kein Gesundheitsdatum;
+    // die Grenze bei den Zeiteinträgen bleibt davon unberührt.
+    match /vacations/{id} {
+      function eigener() {
+        return resource.data.userId == request.auth.uid;
+      }
+      function eigenerNeu() {
+        return request.resource.data.userId == request.auth.uid;
+      }
+      function nochOffen() {
+        return resource.data.status == 'Beantragt';
+      }
+
+      allow read: if ownsExisting() && (eigener() || isLeadership() || isBuchOrTop());
+
+      allow create: if ownsIncoming()
+        && eigenerNeu()
+        && request.resource.data.status == 'Beantragt'
+        // Ein Antrag, der sich schon als entschieden ausgibt, ist keiner.
+        && !('entschiedenVonUid' in request.resource.data);
+
+      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
+        && (
+          isBuchOrTop()
+          // Der Antragsteller darf seinen offenen Antrag noch ändern — aber
+          // nicht seinen Status. Sonst wäre „ändern" die Hintertür zu
+          // „genehmigen".
+          || (eigener() && nochOffen()
+              && request.resource.data.status == 'Beantragt'
+              && request.resource.data.userId == resource.data.userId)
+        );
+
+      // Entschiedene Anträge bleiben stehen: sie sind der Nachweis, dass
+      // entschieden wurde. Zurückgenommen wird über den Status „Storniert".
+      allow delete: if ownsExisting() && eigener() && nochOffen();
+    }
+
     // --- monthlyStats / monthlyStatsMeta: verdichtete Zeitkonten ---
     //
     // NUR LESEN, und zwar unter derselben Grenze wie die Zeiteinträge selbst:
