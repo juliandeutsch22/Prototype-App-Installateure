@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Gemeinsame Rechenregeln fuer App und Cloud Functions.
+      '@shared': path.resolve(__dirname, './shared'),
     },
   },
   server: {

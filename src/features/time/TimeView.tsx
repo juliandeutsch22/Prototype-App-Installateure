@@ -6,8 +6,17 @@ import {
   deleteTimeEntry,
 } from '@/lib/db/timeEntries';
 import { getUserByUid } from '@/lib/db/users';
-import { calcWorkMin, fmtMin, calcOverallSaldo, getISOWeek, localDateStr, todayStr } from '@/lib/time';
+import {
+  calcWorkMin,
+  fmtMin,
+  calcOverallSaldo,
+  saldoAusBilanzen,
+  getISOWeek,
+  localDateStr,
+  todayStr,
+} from '@/lib/time';
 import { shouldShowOvertime } from '@/lib/permissions';
+import { bilanzMarker, listBilanzen, monatVon, type Monatsbilanz } from '@/lib/db/monatsbilanzen';
 import type { WithId } from '@/lib/db/core';
 import type { TimeEntry, AppUser } from '@/types';
 import Card from '@/components/Card';
@@ -83,24 +92,61 @@ export default function TimeView() {
   }, [user, monate]);
 
   /**
-   * Der SALDO braucht als einzige Zahl wirklich alles seit Eintritt — er
-   * laeuft seit dem ersten Arbeitstag, und ein Fenster wuerde ihn schlicht
-   * falsch machen. Deshalb steht er hier getrennt von der Liste: einmalig
-   * geladen statt dauerhaft abonniert, und begrenzt auf die Zeit AB Eintritt
-   * statt auf den ganzen Bestand.
+   * Der Saldo — aus MONATSBILANZEN, wenn sie nachweislich vollständig sind.
    *
-   * Das ist die verbleibende Stelle, die mit den Dienstjahren waechst — die
-   * Monatsbilanzen (docs/ROADMAP.md) ersetzen genau diesen Aufruf.
+   * Er läuft seit dem ersten Arbeitstag und braucht deshalb als einzige Zahl
+   * im Programm wirklich jede Buchung. Nach zehn Dienstjahren sind das rund
+   * 2.200 Dokumente bei jedem Aufruf. Die Bilanzen verdichten das auf eine
+   * Zeile je Monat: 120 statt 2.200.
+   *
+   * DER RÜCKFALL IST DIE EIGENTLICHE ARBEIT. Eine fehlende Bilanz ist von
+   * einem Monat ohne Buchungen nicht zu unterscheiden. Wer sie ungeprüft
+   * summiert, bekommt bei lückenhaftem Bestand einen zu niedrigen Saldo —
+   * ohne Fehlermeldung, ohne Hinweis, und die Zahl steht auf dem Lohnzettel.
+   *
+   * Deshalb wird nur gerechnet, wenn der Marker bestätigt, dass die Bilanzen
+   * ab dem Eintrittsmonat lückenlos vorliegen. Sonst: der alte, direkte Weg.
+   * Langsamer und richtig — in dieser Reihenfolge zu bewerten.
+   *
+   * Der LAUFENDE Monat kommt in beiden Fällen aus den echten Einträgen. Er
+   * ändert sich noch, und der Trigger braucht einen Augenblick; ein Monteur,
+   * der gerade gebucht hat und seinen Saldo unverändert sähe, würde zu Recht
+   * an der App zweifeln.
    */
   const [saldoEintraege, setSaldoEintraege] = useState<WithId<TimeEntry>[]>([]);
+  const [bilanzen, setBilanzen] = useState<Monatsbilanz[] | null>(null);
+  const [laufendeEintraege, setLaufendeEintraege] = useState<WithId<TimeEntry>[]>([]);
+
   useEffect(() => {
     if (!user || !profile?.appStartDate) return;
     let verworfen = false;
-    listOwnEntriesSince(user.companyId, user.uid, profile.appStartDate)
-      .then((rows) => {
-        if (!verworfen) setSaldoEintraege(rows);
-      })
-      .catch(() => undefined);
+    const eintritt = profile.appStartDate;
+
+    (async () => {
+      const marker = await bilanzMarker(user.companyId, user.uid).catch(() => null);
+      // Der Marker muss den Eintrittsmonat MITABDECKEN. Deckt er erst einen
+      // späteren ab, fehlt der Anfang — und damit wäre der Saldo zu niedrig.
+      const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt);
+
+      if (brauchbar) {
+        const jetzt = new Date();
+        const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
+        const [rows, laufend] = await Promise.all([
+          listBilanzen(user.companyId, user.uid, monatVon(eintritt)),
+          listOwnEntriesSince(user.companyId, user.uid, monatsErster),
+        ]);
+        if (verworfen) return;
+        setBilanzen(rows);
+        setLaufendeEintraege(laufend);
+        setSaldoEintraege([]);
+      } else {
+        const rows = await listOwnEntriesSince(user.companyId, user.uid, eintritt);
+        if (verworfen) return;
+        setBilanzen(null);
+        setSaldoEintraege(rows);
+      }
+    })().catch(() => undefined);
+
     return () => {
       verworfen = true;
     };
@@ -108,10 +154,12 @@ export default function TimeView() {
     // neu gerechnet werden, sonst steht dort bis zum Neuladen der alte Wert.
   }, [user, profile?.appStartDate, entries]);
 
-  const saldo = useMemo(
-    () => (profile ? calcOverallSaldo(profile, saldoEintraege) : null),
-    [profile, saldoEintraege],
-  );
+  const saldo = useMemo(() => {
+    if (!profile) return null;
+    return bilanzen
+      ? saldoAusBilanzen(profile, bilanzen, laufendeEintraege)
+      : calcOverallSaldo(profile, saldoEintraege);
+  }, [profile, bilanzen, laufendeEintraege, saldoEintraege]);
 
   /**
    * Belegte Tage aus dem geladenen Fenster — die SOFORTIGE Antwort auf die

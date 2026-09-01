@@ -187,6 +187,31 @@ service cloud.firestore {
             || isBuchOrTop());
     }
 
+    // --- monthlyStats / monthlyStatsMeta: verdichtete Zeitkonten ---
+    //
+    // NUR LESEN, und zwar unter derselben Grenze wie die Zeiteinträge selbst:
+    // die Bilanzen enthalten gezählte Krank- und Urlaubstage und damit
+    // Gesundheitsdaten im Sinne von Art. 9 DSGVO. Wer die Rohdaten nicht
+    // sehen darf, darf auch ihre Summe nicht sehen — sonst wäre die Grenze
+    // bei den Zeiteinträgen umgangen, indem man einen Schritt weiter rechts
+    // nachschaut.
+    //
+    // GESCHRIEBEN WIRD AUSSCHLIESSLICH SERVERSEITIG. Der Trigger läuft mit
+    // Admin-Rechten und ist an die Rules nicht gebunden; jedes Schreibrecht
+    // hier wäre eine Möglichkeit, den eigenen Stundensaldo zu setzen, ohne
+    // eine einzige Buchung anzufassen.
+    match /monthlyStats/{id} {
+      allow read: if ownsExisting()
+        && (resource.data.userId == request.auth.uid || isBuchOrTop());
+      allow write: if false;
+    }
+
+    match /monthlyStatsMeta/{id} {
+      allow read: if ownsExisting()
+        && (resource.data.userId == request.auth.uid || isBuchOrTop());
+      allow write: if false;
+    }
+
     // --- followUps (KI-Magic-Moment): lesen/schreiben in der Firma ---
     match /followUps/{id} {
       allow read: if ownsExisting();

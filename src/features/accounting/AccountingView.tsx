@@ -436,26 +436,43 @@ export default function AccountingView() {
                         <span className="tnum block text-sm font-semibold text-ink">
                           {fmtMin(stats.istMin)}
                         </span>
+                        {/*
+                          „von 176:00" im LAUFENDEN Monat las sich wie ein
+                          Monatsergebnis. Das Soll waechst aber mit jedem
+                          vergangenen Tag — deshalb sagt die Zeile jetzt, dass
+                          es ein Zwischenstand ist.
+                        */}
                         <span className="tnum block text-xs text-ink-muted">
                           von {fmtMin(stats.sollMin)}
+                          {stats.istLaufend && ' bisher'}
                         </span>
                       </span>
                       {/* Fehlen Buchungen, ist der Saldo eine Datenluecke und
                           kein Befund ueber den Mitarbeiter. Rot behauptete das
                           Gegenteil — und bei zwanzig Zeilen ergab das eine Wand
                           aus Rot, in der die eine echte Unterstunde unterging. */}
-                      <Badge
-                        tone={
-                          completeness.missingCount > 0
-                            ? 'warning'
-                            : stats.saldoMin >= 0
-                              ? 'success'
-                              : 'danger'
-                        }
-                      >
-                        {stats.saldoMin > 0 ? '+' : ''}
-                        {fmtMin(stats.saldoMin)}
-                      </Badge>
+                      {/*
+                        Ohne Eintrittsdatum ist der Saldo keine Null, sondern
+                        gar keine Aussage. Vorher stand dort ein sauberes
+                        00:00 — das sah aus wie ein gepflegter Datensatz und
+                        verbarg, dass die Stammdaten unvollstaendig sind.
+                      */}
+                      {!stats.hasConfig ? (
+                        <Badge tone="gray">kein Eintritt hinterlegt</Badge>
+                      ) : (
+                        <Badge
+                          tone={
+                            completeness.missingCount > 0
+                              ? 'warning'
+                              : stats.saldoMin >= 0
+                                ? 'success'
+                                : 'danger'
+                          }
+                        >
+                          {stats.saldoMin > 0 ? '+' : ''}
+                          {fmtMin(stats.saldoMin)}
+                        </Badge>
+                      )}
                       <Icon
                         name="chevron"
                         size={18}
@@ -499,6 +516,18 @@ export default function AccountingView() {
                         {stats.holidaysInMonth > 0 &&
                           ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
                       </p>
+                      {!stats.hasConfig ? (
+                        <p className="mt-2 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+                          Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
+                          sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,
+                          sondern keine Aussage. Nachtragen in der Benutzerverwaltung.
+                        </p>
+                      ) : stats.istLaufend ? (
+                        <p className="mt-2 text-xs text-ink-muted">
+                          Der Monat läuft noch: gezählt sind die Solltage bis gestern. Die Zahl
+                          wächst mit jedem Arbeitstag und ist erst nach Monatsende endgültig.
+                        </p>
+                      ) : null}
 
                       {completeness.missingCount > 0 && (
                         <details className="mt-4 rounded border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">

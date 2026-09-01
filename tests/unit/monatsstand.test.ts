@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { calcOverallSaldo, calcMonthStats, localDateStr } from '@/lib/time';
+import {
+  calcOverallSaldo,
+  calcMonthStats,
+  localDateStr,
+  isAustrianHoliday,
+} from '@/lib/time';
 import type { AppUser, TimeEntry } from '@/types';
 
 /**
@@ -71,17 +76,51 @@ describe('Monatsstand auf der Startseite', () => {
   });
 
   /**
-   * Die Gegenprobe, die den Fehler festhaelt: dieselbe Lage mit
-   * `calcMonthStats` gerechnet ergibt das Soll des GANZEN Monats. Die
-   * Funktion ist nicht kaputt — sie beantwortet eine andere Frage. Genau
-   * deshalb steht sie hier als Warnung.
+   * Frueher stand hier die Gegenprobe: `calcMonthStats` rechnete den GANZEN
+   * Monat und taugte deshalb nicht fuer den laufenden. Diese Warnung ist
+   * ueberholt — die Funktion fragt jetzt dieselbe Quelle wie alle anderen
+   * (`pflichtTage`) und hoert bei gestern auf.
+   *
+   * Der Test bleibt, aber mit umgekehrtem Vorzeichen: er haelt fest, dass
+   * beide Wege jetzt UEBEREINSTIMMEN. Genau ihr Auseinanderlaufen war der
+   * Fehler — „00:00 von 176:00" in der Monatsauswertung, waehrend die
+   * Startseite fuer denselben Mitarbeiter „0 h" zeigte.
    */
-  it('calcMonthStats rechnet den ganzen Monat — deshalb nicht fuer den laufenden', () => {
+  it('stimmt mit dem laufenden Monatsstand ueberein', () => {
     const heute = new Date();
     const user = { ...monteur, appStartDate: monatsStart() };
     const stats = calcMonthStats(user, [], [], heute.getFullYear(), heute.getMonth());
-    // Es setzt jeden Werktag des Monats an, nicht nur die vergangenen.
-    expect(stats.requiredDays).toBeGreaterThan(werktageBisGestern());
+
+    // Solltage bis gestern — dieselbe Zahl wie im Saldo.
+    expect(stats.requiredDays).toBe(werktageBisGestern());
+    // Und damit derselbe Saldo wie ueber calcOverallSaldo.
+    expect(stats.saldoMin / 60).toBeCloseTo(calcOverallSaldo(user, []).saldoH, 2);
+    // Der laufende Monat ist als solcher erkennbar.
+    expect(stats.istLaufend).toBe(true);
+  });
+
+  it('laesst einen ABGESCHLOSSENEN Monat unveraendert', () => {
+    /**
+     * Die Begrenzung auf gestern darf nur den laufenden Monat betreffen. Ein
+     * vergangener Monat liegt komplett in der Vergangenheit und muss weiter
+     * sein volles Soll tragen — sonst waere jede Lohnabrechnung zu niedrig.
+     */
+    const heute = new Date();
+    const vormonat = new Date(heute.getFullYear(), heute.getMonth() - 1, 1);
+    const user = { ...monteur, appStartDate: localDateStr(vormonat) };
+    const stats = calcMonthStats(
+      user, [], [], vormonat.getFullYear(), vormonat.getMonth(),
+    );
+
+    // Alle Werktage des Vormonats, ohne Feiertage.
+    let erwartet = 0;
+    const letzter = new Date(heute.getFullYear(), heute.getMonth(), 0).getDate();
+    for (let t = 1; t <= letzter; t++) {
+      const d = new Date(vormonat.getFullYear(), vormonat.getMonth(), t);
+      if (d.getDay() >= 1 && d.getDay() <= 5 && !isAustrianHoliday(d)) erwartet++;
+    }
+    expect(stats.workdaysInMonth).toBe(erwartet);
+    expect(stats.istLaufend).toBe(false);
   });
 
   it('rechnet gebuchte Zeit gegen das Soll der vergangenen Tage', () => {

@@ -39,3 +39,6 @@ functions/.secret.local
 # Service-Account-Schlüssel (Bootstrap/Produktion) — NIE committen
 serviceAccount*.json
 *serviceaccount*.json
+
+# Aus shared/ erzeugte Kopien — siehe functions/scripts/shared-uebernehmen.mjs
+functions/src/generated

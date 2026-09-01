@@ -176,12 +176,25 @@ describe('calcMonthStats — Eintritt mitten im Zeitraum', () => {
     expect(s.saldoMin).toBe(0);
   });
 
-  it('rechnet ohne Startdatum weiterhin den ganzen Monat', () => {
-    // Kein Startdatum heisst "gilt seit jeher" - das Verhalten bleibt.
+  it('behauptet ohne Startdatum gar kein Soll', () => {
+    /**
+     * Frueher stand hier die Annahme „kein Startdatum heisst: gilt seit
+     * jeher" — und genau die hat im Betrieb einen Fehler erzeugt: ein Nutzer
+     * ohne hinterlegten Eintritt bekam „25 Tage ohne Buchung" gemeldet, mit
+     * Datumsangaben aus einem Monat, in dem er noch gar nicht erfasst wurde.
+     *
+     * Ohne Eintritt ist nicht bekannt, ab wann jemand zu buchen hat. Jeder
+     * gemeldete Tag ist dann eine Unterstellung. `calcOverallSaldo` wusste
+     * das seit jeher und rechnete ohne Startdatum nicht; jetzt tun es alle
+     * drei Stellen. Die Ansicht sagt dazu „kein Eintritt hinterlegt" statt
+     * einer Zahl — sonst sieht die Luecke wie ein gepflegter Datensatz aus.
+     */
     const s = calcMonthStats(
       staff({ appStartDate: null }), [], [], JUNE.year, JUNE.month,
     );
-    expect(s.workdaysInMonth).toBe(19);
+    expect(s.workdaysInMonth).toBe(0);
+    expect(s.sollMin).toBe(0);
+    expect(s.hasConfig).toBe(false);
   });
 });
 

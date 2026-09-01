@@ -9,7 +9,10 @@ import path from 'node:path';
 // schicken, ohne dass er etwas davon hat.
 export default defineConfig({
   resolve: {
-    alias: { '@': path.resolve(__dirname, './src') },
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@shared': path.resolve(__dirname, './shared'),
+    },
   },
   test: {
     include: ['tests/unit/**/*.test.ts', 'tests/components/**/*.test.tsx'],
