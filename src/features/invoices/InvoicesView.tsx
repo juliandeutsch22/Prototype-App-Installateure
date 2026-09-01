@@ -34,6 +34,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import RowMenu from '@/components/RowMenu';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -490,19 +491,22 @@ export default function InvoicesView() {
 
       <Card title="Neue Rechnung aus Baustelle">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <SelectField id="invproj" label="Baustelle" className="sm:w-80" value={projectNumber}
-            onChange={(e) => {
-              setProjectNumber(e.target.value);
-              setPreview(null);
-              setError(null);
-            }}>
-            <option value="">— wählen —</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.projectNumber}>
-                {p.customerName} ({p.projectNumber})
-              </option>
-            ))}
-          </SelectField>
+          <div className="sm:w-80">
+            <BaustellenSelect
+              id="invproj"
+              companyId={user.companyId}
+              value={projectNumber}
+              onChange={(nr, p) => {
+                setProjectNumber(nr);
+                setPreview(null);
+                setError(null);
+                // Abgerechnet wird typischerweise NACH dem Abschluss der
+                // Baustelle. Sie muss deshalb auch dann auffindbar sein, wenn
+                // sie nicht mehr laeuft — und ihre Stammdaten mit ihr.
+                if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
+              }}
+            />
+          </div>
           <Button onClick={buildPreview} loading={busy && !preview} disabled={!projectNumber}>
             Positionen zusammenstellen
           </Button>

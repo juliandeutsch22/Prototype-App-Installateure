@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { listActiveProjects } from '@/lib/db/projects';
+import { listAssignmentsForUserInRange } from '@/lib/db/assignments';
+import { listProjectsByNumbers } from '@/lib/db/projects';
 import { callScheinVorbereiten } from '@/lib/functions';
 import {
   createWorkSheet,
@@ -17,7 +18,9 @@ import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import SignaturePad from '@/components/SignaturePad';
-import { InputField, SelectField } from '@/components/Field';
+import BaustellenSelect from '@/components/BaustellenSelect';
+import { AdresseLink, TelefonLink } from '@/components/Kontakt';
+import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, LoadingState } from '@/components/States';
 
@@ -42,7 +45,7 @@ export default function WorkSheetView() {
   const projektAusUrl = params.projectNumber ?? suchparameter.get('projekt') ?? '';
   const datumAusUrl = suchparameter.get('datum') ?? todayStr();
 
-  const [projekte, setProjekte] = useState<Project[]>([]);
+  const [projekt, setProjekt] = useState<WithId<Project> | undefined>();
   const [projectNumber, setProjectNumber] = useState(projektAusUrl);
   const [datum, setDatum] = useState(datumAusUrl);
   const [zeiten, setZeiten] = useState<WorkSheetZeit[]>([]);
@@ -60,15 +63,49 @@ export default function WorkSheetView() {
 
   const [bestehende, setBestehende] = useState<WithId<WorkSheet>[]>([]);
 
-  const projekt = useMemo(
-    () => projekte.find((p) => p.projectNumber === projectNumber),
-    [projekte, projectNumber],
-  );
+  /**
+   * Die eigenen Einsätze am gewählten Tag — der eigentliche Einstieg.
+   *
+   * EIN MONTEUR SUCHT SEINE BAUSTELLE NICHT IN EINER LISTE. Er war heute auf
+   * ein, zwei Baustellen, und für eine davon schreibt er den Schein. Die
+   * Auswahl über alle Baustellen des Betriebs ist der Umweg für den Fall, dass
+   * die Einteilung fehlt oder jemand aus dem Büro einen Schein nachträgt.
+   *
+   * Bei genau einem Einsatz wird vorausgewählt: dann ist die Frage, die das
+   * Auswahlfeld stellt, bereits beantwortet.
+   */
+  const [heutige, setHeutige] = useState<{ projectNumber: string; name: string }[]>([]);
 
   useEffect(() => {
     if (!user) return;
-    listActiveProjects(user.companyId).then(setProjekte).catch(() => undefined);
-  }, [user]);
+    let verworfen = false;
+    listAssignmentsForUserInRange(user.companyId, user.uid, datum, datum)
+      .then(async (einsaetze) => {
+        if (verworfen || einsaetze.length === 0) {
+          if (!verworfen) setHeutige([]);
+          return;
+        }
+        const nummern = [...new Set(einsaetze.map((a) => a.projectNumber))];
+        const stamm = await listProjectsByNumbers(user.companyId, nummern);
+        if (verworfen) return;
+        setHeutige(
+          nummern.map((nr) => ({
+            projectNumber: nr,
+            name: stamm.find((p) => p.projectNumber === nr)?.customerName ?? nr,
+          })),
+        );
+        // Nur vorauswählen, wenn nichts vorgegeben ist und die Lage eindeutig
+        // ist — eine falsche Vorauswahl wäre schlimmer als gar keine.
+        if (nummern.length === 1 && !projektAusUrl) setProjectNumber(nummern[0]);
+      })
+      .catch(() => setHeutige([]));
+    return () => {
+      verworfen = true;
+    };
+    // `projektAusUrl` ist beim ersten Zeichnen fix und gehört nicht ins
+    // Abhängigkeitsfeld: sonst liefe die Vorauswahl bei jeder Auswahl erneut.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, datum]);
 
   /**
    * Vorausfüllen aus Zeiten und Material der Baustelle.
@@ -102,7 +139,15 @@ export default function WorkSheetView() {
   }, [user, projectNumber, datum]);
 
   const gesamtMinuten = zeiten.reduce((s, z) => s + z.minuten, 0);
-  const bereit = !!projectNumber && !!monteurBild && !!kundeBild && kundeName.trim().length > 1;
+  /**
+   * Der Datensatz gehört in die Bedingung, nicht nur die Nummer.
+   *
+   * Vorher prüfte der Knopf auf die Nummer, das Speichern aber auf den
+   * Datensatz und brach ohne Meldung ab, wenn er fehlte. Ein Knopf, der
+   * anklickbar aussieht und nichts tut, ist schlimmer als ein gesperrter.
+   */
+  const bereit =
+    !!projekt && !!monteurBild && !!kundeBild && kundeName.trim().length > 1;
 
   async function unterschreibenUndEinfrieren() {
     if (!user || !projekt || !monteurBild || !kundeBild) return;
@@ -186,20 +231,49 @@ export default function WorkSheetView() {
       />
 
       <Card title="Baustelle und Tag">
-        <SelectField
+        {/*
+          Die eigenen Einsätze zuerst und als Knopf, nicht als Listeneintrag:
+          das ist am Telefon mit Handschuhen ein Ziel, das man trifft.
+        */}
+        {heutige.length > 0 && (
+          <div className="mb-4">
+            <span className="section-label block">Deine Einsätze an diesem Tag</span>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {heutige.map((e) => (
+                <button
+                  key={e.projectNumber}
+                  type="button"
+                  onClick={() => {
+                    // Den alten Datensatz mit weglegen: sonst zeigte die
+                    // Kontaktzeile für einen Wimpernschlag die vorige
+                    // Baustelle, und genau die ruft dann jemand an.
+                    setProjekt(undefined);
+                    setProjectNumber(e.projectNumber);
+                  }}
+                  className={`min-h-touch rounded border px-3 py-2 text-left text-sm ${
+                    projectNumber === e.projectNumber
+                      ? 'border-brand bg-brand text-brand-fg'
+                      : 'border-line bg-surface text-ink'
+                  }`}
+                >
+                  {e.name}
+                  <span className="tnum ml-1 opacity-70">({e.projectNumber})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <BaustellenSelect
           id="wsproj"
-          label="Baustelle"
+          companyId={user.companyId}
           value={projectNumber}
-          onChange={(e) => setProjectNumber(e.target.value)}
+          onChange={(nr, p) => {
+            setProjectNumber(nr);
+            setProjekt(p);
+          }}
           required
-        >
-          <option value="">— wählen —</option>
-          {projekte.map((p) => (
-            <option key={p.id} value={p.projectNumber}>
-              {p.customerName} ({p.projectNumber})
-            </option>
-          ))}
-        </SelectField>
+        />
         <div className="mt-4">
           <InputField
             id="wsdate"
@@ -210,12 +284,20 @@ export default function WorkSheetView() {
           />
         </div>
         {projekt && (
-          <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
-            {projekt.address}
+          <div className="mt-3 space-y-2">
+            {/*
+              Adresse und Nummer anklickbar: wer den Schein schreibt, steht vor
+              dem Haus oder sucht es noch — und braucht danach oft den Kunden
+              ans Telefon, weil unterschrieben werden soll.
+            */}
+            <span className="flex flex-wrap items-center gap-x-3 text-sm">
+              <AdresseLink adresse={projekt.address} />
+              <TelefonLink nummer={projekt.contactPhone} name={projekt.contactName} />
+            </span>
             <Badge tone={projekt.billingMode === 'Pauschal' ? 'gray' : 'info'}>
               {projekt.billingMode ?? 'Regie'}
             </Badge>
-          </p>
+          </div>
         )}
         {/*
           Auf einer Pauschalbaustelle belegt der Schein nur, DASS gearbeitet
@@ -351,7 +433,7 @@ export default function WorkSheetView() {
                 variant="secondary"
                 onClick={alsEntwurfSichern}
                 loading={speichert}
-                disabled={!projectNumber}
+                disabled={!projekt}
                 className="w-full sm:w-auto"
               >
                 Als Entwurf speichern
@@ -359,11 +441,15 @@ export default function WorkSheetView() {
             </div>
             {!bereit && projectNumber && (
               <p className="mt-2 text-sm text-ink-muted">
-                Zum Abschließen fehlen: {!monteurBild && 'Unterschrift Monteur'}
-                {!monteurBild && (!kundeBild || kundeName.trim().length < 2) && ', '}
-                {!kundeBild && 'Unterschrift Kunde'}
-                {!kundeBild && kundeName.trim().length < 2 && ', '}
-                {kundeName.trim().length < 2 && 'Name des Kunden'}
+                {!projekt
+                  ? 'Die Stammdaten der Baustelle werden noch geladen.'
+                  : `Zum Abschließen fehlen: ${[
+                      !monteurBild && 'Unterschrift Monteur',
+                      !kundeBild && 'Unterschrift Kunde',
+                      kundeName.trim().length < 2 && 'Name des Kunden',
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}`}
               </p>
             )}
           </Card>

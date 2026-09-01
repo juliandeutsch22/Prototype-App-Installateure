@@ -57,17 +57,38 @@ const projekteOhneKunde: (Project & { id: string })[] = [
 const createCustomer = vi.fn(async () => 'neu1');
 const assignProjectToCustomer = vi.fn(async () => undefined);
 
+/**
+ * Die Akte des aufgeklappten Kunden. `zugeordnet` bleibt leer, `namensgleich`
+ * enthält die Baustelle, die den Namen des Kunden trägt, aber auf keinen
+ * Kundendatensatz zeigt — der Fall, an dem die Ansicht vorher „noch keine
+ * Baustelle zugeordnet" meldete, obwohl eine dalag.
+ */
+const namensgleich: (Project & { id: string })[] = [
+  {
+    id: 'p9',
+    companyId: 'perl',
+    projectNumber: 'B-042',
+    customerName: 'Hausverwaltung Nord',
+    address: 'Ringstraße 3',
+    status: 'Aktiv',
+  },
+];
+const listUnlinkedProjectsByName = vi.fn(async () => namensgleich);
+const listProjectsForCustomer = vi.fn(async () => [] as (Project & { id: string })[]);
+
 vi.mock('@/lib/db/customers', () => ({
   listCustomers: vi.fn(async () => kunden),
   createCustomer: (...a: unknown[]) => createCustomer(...(a as [])),
   updateCustomer: vi.fn(async () => 0),
   deleteCustomer: vi.fn(async () => undefined),
-  listProjectsForCustomer: vi.fn(async () => []),
+  listProjectsForCustomer: () => listProjectsForCustomer(),
+  listUnlinkedProjectsByName: () => listUnlinkedProjectsByName(),
   assignProjectToCustomer: (...a: unknown[]) => assignProjectToCustomer(...(a as [])),
 }));
 vi.mock('@/lib/db/projects', () => ({
   listRecentProjects: vi.fn(async () => projekteOhneKunde),
 }));
+vi.mock('@/lib/db/quotes', () => ({ listQuotesForCustomer: vi.fn(async () => []) }));
 
 const authWert = {
   user: {
@@ -103,6 +124,8 @@ function zeichne() {
 beforeEach(() => {
   createCustomer.mockClear();
   assignProjectToCustomer.mockClear();
+  listUnlinkedProjectsByName.mockClear();
+  listProjectsForCustomer.mockClear();
 });
 
 describe('Kundenverwaltung', () => {
@@ -153,6 +176,54 @@ describe('Kundenverwaltung', () => {
     // Zwei Kunden angelegt, alle drei Baustellen zugeordnet.
     expect(createCustomer).toHaveBeenCalledTimes(2);
     expect(assignProjectToCustomer).toHaveBeenCalledTimes(3);
+  });
+
+  /**
+   * Der gemeldete Fehler: ein von Hand angelegter Kunde zeigte „noch keine
+   * Baustelle zugeordnet", während im Bestand eine mit genau seinem Namen lag.
+   * Sie hing nur als Text zusammen, nicht als Datensatz — und nichts in der
+   * Ansicht sagte das.
+   */
+  it('findet Baustellen, die nur ueber den Namen zusammenhaengen', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+
+    await nutzer.click(screen.getByRole('button', { name: 'Historie' }));
+
+    expect(await screen.findByText(/noch keinem Kunden zugeordnet/)).toBeInTheDocument();
+    expect(screen.getByText(/B-042/)).toBeInTheDocument();
+  });
+
+  it('stellt die Verbindung auf einen Klick her', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    await nutzer.click(screen.getByRole('button', { name: 'Historie' }));
+    await screen.findByText(/noch keinem Kunden zugeordnet/);
+
+    await nutzer.click(screen.getByRole('button', { name: 'Zuordnen' }));
+
+    // Die Baustelle bekommt Kunde UND Namen — der Name wandert als Kopie mit,
+    // weil die Baustellenlisten ihn zeigen, ohne die Kunden zu laden.
+    expect(assignProjectToCustomer).toHaveBeenCalledWith('p9', 'k1', 'Hausverwaltung Nord');
+  });
+
+  it('sagt beim Laden und beim Fehler, was los ist — statt „nichts da"', async () => {
+    listUnlinkedProjectsByName.mockRejectedValueOnce(new Error('offline'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+
+    await nutzer.click(screen.getByRole('button', { name: 'Historie' }));
+
+    /**
+     * „Es konnte nicht geladen werden" und „es gibt keine" sind verschiedene
+     * Aussagen. Sie gleich aussehen zu lassen war der Grund, warum der Fehler
+     * so lange unbemerkt blieb.
+     */
+    expect(await screen.findByText(/nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.queryByText('Noch keine Baustelle zugeordnet.')).not.toBeInTheDocument();
   });
 
   it('nennt die Rechnungsadresse beim Namen', () => {

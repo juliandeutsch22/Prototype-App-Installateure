@@ -63,6 +63,41 @@ export function listProjectsForCustomer(companyId: string, customerId: string, m
   );
 }
 
+/**
+ * Baustellen, die diesen Kundennamen tragen, aber auf keinen Kunden zeigen.
+ *
+ * DIESE ABFRAGE SCHLIESST DIE LÜCKE, an der die Kundenakte sonst leer bleibt.
+ * Ein Kunde, der von Hand angelegt wurde, hat keine Baustelle — auch dann
+ * nicht, wenn im Bestand drei Baustellen genau seinen Namen tragen. Sie sind
+ * nur eben als Text verknüpft, nicht als Datensatz. Ohne diesen Abgleich sagt
+ * die Akte „noch keine Baustelle zugeordnet", während daneben drei liegen,
+ * und der Benutzer hat keinen Anhaltspunkt, warum.
+ *
+ * Verglichen wird der Name EXAKT — Firestore kann nicht unscharf suchen. Für
+ * abweichende Schreibweisen („Huber" gegen „Fam. Huber") bleibt die Übernahme
+ * der Altbestände zuständig, die nach vereinheitlichtem Schlüssel gruppiert.
+ * Die Ansicht verweist darauf, statt hier eine Genauigkeit vorzutäuschen, die
+ * die Abfrage nicht hat.
+ */
+export async function listUnlinkedProjectsByName(
+  companyId: string,
+  customerName: string,
+  max = 50,
+) {
+  const name = customerName.trim();
+  if (!name) return [];
+  const treffer = await queryTenant<Project>(
+    PROJEKTE,
+    companyId,
+    where('customerName', '==', name),
+    limit(max),
+  );
+  // Der Zuordnungsfilter läuft im Browser: `customerId` fehlt bei genau den
+  // gesuchten Dokumenten ganz, und auf ein fehlendes Feld kann Firestore
+  // nicht abfragen.
+  return treffer.filter((p) => !p.customerId);
+}
+
 export type NewCustomer = Omit<Customer, 'id' | 'companyId' | 'createdAt'>;
 
 export function createCustomer(companyId: string, c: NewCustomer) {

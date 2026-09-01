@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { subscribeRecentProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects';
@@ -77,8 +77,20 @@ export default function AdminProjectsView() {
   const [managers, setManagers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
-  const [filter, setFilter] = useState<'offen' | 'alle' | 'archiv'>('offen');
-  const [suche, setSuche] = useState('');
+  /**
+   * Ein Tiefenlink auf eine Baustelle setzt Suche UND Filter.
+   *
+   * Der Filter gehört dazu: die Liste zeigt sonst nur offene Baustellen, und
+   * ein Link aus der Kundenakte auf einen abgeschlossenen Auftrag liefe ins
+   * Leere — mit der Suche im Feld und der Meldung, dass nichts passt. Genau
+   * die Art von Sackgasse, die wie ein Fehler aussieht.
+   */
+  const [suchparameter] = useSearchParams();
+  const gesuchteBaustelle = suchparameter.get('baustelle') ?? '';
+  const [filter, setFilter] = useState<'offen' | 'alle' | 'archiv'>(
+    gesuchteBaustelle ? 'alle' : 'offen',
+  );
+  const [suche, setSuche] = useState(gesuchteBaustelle);
 
   /**
    * Auf eine Baustelle gehören Monteure, nicht Büro und nicht Leitung.
@@ -396,6 +408,14 @@ export default function AdminProjectsView() {
                 >
                   {p.estimatedHours ? <Badge tone="gray">{p.estimatedHours} h Budget</Badge> : null}
                   <StatusBadge status={p.status} />
+                  {/* Nachtraeglich einen Schein schreiben — der Fall, in dem
+                      der Monteur ihn vor Ort vergessen hat. */}
+                  <Link
+                    to={`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`}
+                    className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                  >
+                    Schein
+                  </Link>
                   <Button variant="ghost" onClick={() => startEdit(p)}>Bearbeiten</Button>
                   <IconButton label="Baustelle löschen" tone="danger" onClick={() => setToDelete(p)}>
                     ✕

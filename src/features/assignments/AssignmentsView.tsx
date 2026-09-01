@@ -13,7 +13,8 @@ import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, SelectField, CheckboxField } from '@/components/Field';
+import { InputField, CheckboxField } from '@/components/Field';
+import BaustellenSelect from '@/components/BaustellenSelect';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState } from '@/components/States';
@@ -241,15 +242,15 @@ export default function AssignmentsView() {
 
         <div className="space-y-6 lg:col-span-3">
           <Card title={`Einsatz planen — ${fmtDay(date)}`}>
-            <SelectField id="aproj" label="Baustelle" value={projectNumber}
-              onChange={(e) => setProjectNumber(e.target.value)}>
-              <option value="">— wählen —</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.projectNumber}>
-                  {p.customerName} ({p.projectNumber})
-                </option>
-              ))}
-            </SelectField>
+            <BaustellenSelect
+              id="aproj"
+              companyId={user.companyId}
+              value={projectNumber}
+              onChange={(nr, p) => {
+                setProjectNumber(nr);
+                if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
+              }}
+            />
 
             {(holiday || weekend) && (
               <p className="mt-3 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">

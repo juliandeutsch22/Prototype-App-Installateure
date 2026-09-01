@@ -210,6 +210,17 @@ export default function MyScheduleView() {
                           >
                             Zeit erfassen
                           </Link>
+                          {/*
+                            Der Schein gehoert an den Einsatz, nicht in einen
+                            eigenen Bereich, in dem man die Baustelle erneut
+                            heraussuchen muss. Datum und Baustelle wandern mit.
+                          */}
+                          <Link
+                            to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
+                            className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-semibold text-ink"
+                          >
+                            Schein schreiben
+                          </Link>
                           <AdresseLink adresse={proj?.address} variante="knopf" />
                           <TelefonLink
                             nummer={proj?.contactPhone}
