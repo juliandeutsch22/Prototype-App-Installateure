@@ -94,6 +94,48 @@ export function listEntriesFrom(companyId: string, from: string) {
   return queryTenant<TimeEntry>(COLLECTION, companyId, where('date', '>=', from));
 }
 
+/**
+ * Eintraege zu bestimmten Baustellen — fuer das Projekt-Radar.
+ *
+ * Das Radar verglich Ist gegen Budget und holte sich dafuer JEDEN
+ * Zeiteintrag des Betriebs. Ein Budget laeuft ueber die Laufzeit der
+ * Baustelle, nicht ueber einen Zeitraum, also liess sich das nicht ueber das
+ * Datum begrenzen — wohl aber ueber die Baustelle. Abgeschlossene Baustellen
+ * fallen damit weg, und die machen nach ein paar Jahren den Grossteil aus.
+ *
+ * Je Baustelle eine Abfrage, nebeneinander. Zwei Gleichheitsfilter brauchen
+ * in Firestore keinen zusammengesetzten Index.
+ *
+ * Gesucht wird nach MEHREREN Schreibweisen: `normProjectNumber` entfernt ein
+ * fuehrendes „PR-", das aus Altbestaenden stammen kann. Eine Abfrage nur auf
+ * die blanke Nummer uebersaehe solche Eintraege stillschweigend — und eine zu
+ * niedrige Ist-Zeit zeigt eine gruene Ampel auf einer gerissenen Baustelle.
+ */
+export async function listEntriesForProjects(
+  companyId: string,
+  projectNumbers: string[],
+): Promise<WithId<TimeEntry>[]> {
+  const varianten = new Map<string, string[]>();
+  for (const roh of projectNumbers) {
+    const blank = (roh ?? '').trim().replace(/^PR-/i, '');
+    if (!blank) continue;
+    varianten.set(blank, [...new Set([roh.trim(), blank, `PR-${blank}`])]);
+  }
+  if (varianten.size === 0) return [];
+
+  const teile = await Promise.all(
+    [...varianten.values()].map((formen) =>
+      queryTenant<TimeEntry>(COLLECTION, companyId, where('projectNumber', 'in', formen)),
+    ),
+  );
+  // Dieselbe Baustelle kann nicht doppelt vorkommen, verschiedene Baustellen
+  // teilen keine Eintraege — trotzdem ueber die id entdoppeln, damit ein
+  // kuenftiger ueberlappender Aufruf nicht still doppelt zaehlt.
+  const nachId = new Map<string, WithId<TimeEntry>>();
+  for (const e of teile.flat()) nachId.set(e.id, e);
+  return [...nachId.values()];
+}
+
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'companyId' | 'createdAt'>;
 
 /**
