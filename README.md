@@ -141,11 +141,19 @@ Der Workflow läuft bei Änderungen an `functions/**` und von Hand.
    der Verbrauch im Freikontingent; ein Budget-Alarm unter *Abrechnung →
    Budgets und Warnungen* ist trotzdem zu empfehlen.
 
-2. **Diese APIs aktivieren.** Das Dienstkonto darf sie benutzen, aber nicht
-   selbst einschalten — das muss der Projektinhaber im Browser tun:
-   `cloudfunctions`, `cloudbuild`, `artifactregistry`, `eventarc`, `run` und
-   `secretmanager`, jeweils unter
+2. **Diese sieben APIs aktivieren.** Das Dienstkonto darf sie benutzen, aber
+   nicht selbst einschalten — das muss der Projektinhaber im Browser tun:
+   `cloudfunctions`, `cloudbuild`, `artifactregistry`, `eventarc`, `run`,
+   `secretmanager` und `cloudbilling`, jeweils unter
    `https://console.cloud.google.com/apis/library/<name>.googleapis.com`.
+
+   `cloudbilling` steht hier, weil der Deploy sie tatsächlich braucht und die
+   Liste sie zunächst nicht nannte: Firebase prüft vor dem Anlegen der
+   Functions, ob am Projekt ein Abrechnungskonto hängt — Functions v2 gibt es
+   nur im Blaze-Tarif. Ohne die API kann es das nicht prüfen und bricht mit
+   „Permissions denied enabling cloudbilling.googleapis.com" ab. Die Meldung
+   klingt nach einem Rechteproblem des Dienstkontos und ist keins: es darf
+   grundsätzlich keine APIs einschalten, und das soll auch so bleiben.
 
 3. **Secrets nur für die KI-Spracherfassung.** Standardmäßig wird
    `voiceExtract` gar nicht mitdeployt, und dann braucht der Deploy auch
