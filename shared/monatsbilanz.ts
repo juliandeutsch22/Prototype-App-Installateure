@@ -1,7 +1,14 @@
-import { calcWorkMin, type Zeitangaben } from './generated/arbeitszeit.js';
+import { calcWorkMin, type Zeitangaben } from './arbeitszeit';
 
 /**
  * Die Monatsbilanz — reine Rechnung, ohne Firebase.
+ *
+ * Liegt in `shared/`, weil beide Seiten sie brauchen: die Cloud Function
+ * SCHREIBT die Bilanzen, die App und ihre Tests rechnen dagegen. Zuerst stand
+ * sie unter `functions/src/` und die Tests importierten von dort — das lief
+ * lokal und scheiterte in der CI, weil die dorthin erzeugte Kopie von
+ * `arbeitszeit.ts` bewusst nicht eingecheckt ist und in einem frischen
+ * Checkout schlicht fehlt.
  *
  * WOFÜR. Der Stundensaldo läuft seit dem ersten Arbeitstag und braucht
  * deshalb als einzige Zahl im ganzen Programm wirklich JEDE Buchung. Bei rund

@@ -9,7 +9,7 @@ import {
   bilanzId,
   monatVon,
   type EintragDoc,
-} from './monatsbilanzLogik.js';
+} from './generated/monatsbilanz.js';
 
 /**
  * Monatsbilanzen: der Stundensaldo ohne die ganze Buchungsgeschichte.

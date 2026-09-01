@@ -4,7 +4,7 @@ import {
   bilanzAusEintraegen,
   betroffeneMonate,
   monatVon,
-} from '../../functions/src/monatsbilanzLogik';
+} from '@shared/monatsbilanz';
 import type { AppUser, TimeEntry } from '@/types';
 
 /**

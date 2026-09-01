@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -21,19 +21,26 @@ import { dirname, resolve } from 'node:path';
  */
 
 const hier = dirname(fileURLToPath(import.meta.url));
-const quelle = resolve(hier, '../../shared/arbeitszeit.ts');
+const quellOrdner = resolve(hier, '../../shared');
 const zielOrdner = resolve(hier, '../src/generated');
-const ziel = resolve(zielOrdner, 'arbeitszeit.ts');
 
 mkdirSync(zielOrdner, { recursive: true });
 
-const inhalt = readFileSync(quelle, 'utf8');
-writeFileSync(
-  ziel,
-  `// ERZEUGT — nicht bearbeiten. Quelle: shared/arbeitszeit.ts\n` +
-    `// Änderungen gehören in die Quelle; diese Datei wird bei jedem Build\n` +
-    `// überschrieben (functions/scripts/shared-uebernehmen.mjs).\n\n` +
-    inhalt,
-);
+// Innerhalb von shared/ importieren die Dateien einander relativ ('./arbeitszeit').
+// Unter NodeNext braucht das eine Endung — deshalb beim Kopieren ergaenzen.
+const dateien = readdirSync(quellOrdner).filter((f) => f.endsWith('.ts'));
+for (const datei of dateien) {
+  const inhalt = readFileSync(resolve(quellOrdner, datei), 'utf8').replace(
+    /from '\.\/([\w-]+)'/g,
+    "from './$1.js'",
+  );
+  writeFileSync(
+    resolve(zielOrdner, datei),
+    `// ERZEUGT — nicht bearbeiten. Quelle: shared/${datei}\n` +
+      `// Änderungen gehören in die Quelle; diese Datei wird bei jedem Build\n` +
+      `// überschrieben (functions/scripts/shared-uebernehmen.mjs).\n\n` +
+      inhalt,
+  );
+}
 
-console.log('shared/arbeitszeit.ts -> functions/src/generated/arbeitszeit.ts');
+console.log(`shared/ -> functions/src/generated/ (${dateien.join(', ')})`);
