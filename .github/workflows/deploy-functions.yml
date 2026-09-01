@@ -117,6 +117,37 @@ jobs:
           fi
           echo "Beide Secrets sind hinterlegt."
 
+      # Aufräumregel für die Container-Abbilder, EINMAL und ausdrücklich.
+      #
+      # Functions v2 legt für jede Version ein Container-Abbild in der
+      # Artifact Registry ab. Ohne Aufräumregel sammeln die sich an und kosten
+      # dauerhaft Geld. Der Deploy merkt das und will die Regel selbst
+      # anlegen — im Nicht-interaktiven Lauf kann er nicht fragen und bricht
+      # ab, MIT bereits erfolgreich veröffentlichten Functions und Exit-Code
+      # 1. Der Lauf ist dann rot, obwohl der Deploy geglückt ist.
+      #
+      # Der von Firebase vorgeschlagene Ausweg wäre `--force` am Deploy. Den
+      # gibt es hier bewusst nicht: er würde zugleich Functions, die im Code
+      # fehlen, ohne Rückfrage aus der Produktion löschen. Also die Regel
+      # vorher separat setzen — dort ist `--force` harmlos, es betrifft nur
+      # die Aufräumregel selbst.
+      #
+      # `continue-on-error`, weil der Schritt beim allerersten Lauf ins Leere
+      # greift: das Repository der Region entsteht erst mit dem ersten
+      # Deploy. Dann setzt ihn der nächste Lauf.
+      - name: Aufräumregel für Container-Abbilder
+        continue-on-error: true
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          npx --yes firebase-tools@15 functions:artifacts:setpolicy \
+            --project "$PROJECT_ID" \
+            --location europe-west3 \
+            --days 3 \
+            --force \
+            --non-interactive
+
       - name: Deploy
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
