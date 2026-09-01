@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
-  subscribeInvoices,
+  subscribeRecentInvoices,
   nextInvoiceNumber,
   isInvoiceNumberTaken,
   reserveInvoiceNumber,
@@ -14,8 +14,8 @@ import {
   deleteInvoice,
   markBilled,
 } from '@/lib/db/invoices';
-import { listAllProjects } from '@/lib/db/projects';
-import { listAllEntries } from '@/lib/db/timeEntries';
+import { listActiveProjects } from '@/lib/db/projects';
+import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr } from '@/lib/time';
@@ -39,6 +39,9 @@ const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
 /** Rechnungen: aus Baustelle erzeugen, Zahlung verfolgen, stornieren. */
+/** Wie viele Rechnungen die Liste zunaechst zeigt. */
+const RECHNUNGEN_JE_SEITE = 50;
+
 export default function InvoicesView() {
   const { user, company } = useAuth();
   const toast = useToast();
@@ -52,7 +55,6 @@ export default function InvoicesView() {
   const [statusFilter, setStatusFilter] = useState<'alle' | Invoice['paymentStatus']>('alle');
   const [rechnungSuche, setRechnungSuche] = useState('');
   /** Anfangs sichtbare Rechnungen; der Rest kommt auf Wunsch. */
-  const [rechnungLimit, setRechnungLimit] = useState(50);
 
   // Entwurf
   const [projectNumber, setProjectNumber] = useState('');
@@ -81,6 +83,16 @@ export default function InvoicesView() {
   // Startwert sind die Sätze des Betriebs aus den Einstellungen; für den
   // Einzelfall lassen sie sich hier noch abweichend setzen.
   const [rates, setRates] = useState({ ...INVOICE_DEFAULTS });
+  /**
+   * Wie weit die Liste zurueckreicht.
+   *
+   * Die Rechnungsliste ist eine Arbeitsliste: gearbeitet wird an dem, was
+   * zuletzt entstanden ist. Ohne Grenze abonnierte sie jede jemals
+   * geschriebene Rechnung — nach zehn Jahren die vollstaendige
+   * Rechnungshistorie, bei jedem Aufruf, um die letzten zwanzig zu zeigen.
+   * Wer weiter zurueck muss, laedt nach.
+   */
+  const [grenze, setGrenze] = useState(RECHNUNGEN_JE_SEITE);
 
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
@@ -88,9 +100,13 @@ export default function InvoicesView() {
 
   useEffect(() => {
     if (!user) return;
-    listAllProjects(user.companyId).then(setProjects).catch(() => undefined);
-    const unsub = subscribeInvoices(
+    // Nur laufende Baustellen: abgerechnet wird, was laeuft oder gerade
+    // fertig wurde. Vorher stand der gesamte Bestand im Auswahlfeld — nach
+    // Jahren eine Liste, in der man die aktuelle Baustelle suchen muss.
+    listActiveProjects(user.companyId).then(setProjects).catch(() => undefined);
+    const unsub = subscribeRecentInvoices(
       user.companyId,
+      grenze,
       (rows) => {
         setInvoices(rows);
         setLoading(false);
@@ -101,7 +117,7 @@ export default function InvoicesView() {
       },
     );
     return unsub;
-  }, [user]);
+  }, [user, grenze]);
 
   // Mahnwesen: offene Rechnungen mit überschrittener Frist automatisch auf
   // "Überfällig" setzen. Ohne das blieb der Status ungenutzt und der Betrieb
@@ -209,7 +225,19 @@ export default function InvoicesView() {
     setBusy(true);
     setError(null);
     try {
-      const entries = await listAllEntries(user.companyId);
+      /**
+       * Nur die Eintraege DIESER Baustelle.
+       *
+       * Vorher wurde jeder Zeiteintrag des Betriebs geladen, um eine einzige
+       * Baustelle abzurechnen — bei zwanzig Monteuren und drei Jahren rund
+       * 15.000 Dokumente fuer eine Rechnung ueber vielleicht vierzig
+       * Stunden. `listEntriesForProjects` sucht ausserdem nach mehreren
+       * Schreibweisen der Baustellennummer und findet damit auch Buchungen
+       * mit fuehrendem „PR-" aus Altbestaenden — dieselbe Angleichung, die
+       * `assembleInvoice` beim Filtern ohnehin vornimmt. Am Ergebnis der
+       * Rechnung aendert sich also nichts, nur an der Menge.
+       */
+      const entries = await listEntriesForProjects(user.companyId, [projectNumber]);
       const assembled = assembleInvoice(projectNumber, entries, rates);
       if (assembled.positions.length === 0) {
         setPreview(null);
@@ -659,7 +687,7 @@ export default function InvoicesView() {
           </EmptyState>
         ) : (
           <List>
-            {visible.slice(0, rechnungLimit).map((inv) => (
+            {visible.map((inv) => (
               <ListRow
                 key={inv.id}
                 title={`${inv.invoiceNumber} · ${inv.customerName}`}
@@ -728,11 +756,27 @@ export default function InvoicesView() {
             ))}
           </List>
         )}
-        {visible.length > rechnungLimit && (
-          <div className="mt-4">
-            <Button variant="secondary" onClick={() => setRechnungLimit((n) => n + 50)}>
-              Weitere anzeigen ({visible.length - rechnungLimit})
+        {/*
+          Nachladen heisst hier: die ABFRAGE ausweiten, nicht nur mehr vom
+          Geladenen zeigen. Vorher gab es an dieser Stelle schon einen Knopf,
+          der aber nur einen Ausschnitt der ohnehin vollstaendig geladenen
+          Liste freigab — die Datenmenge war dieselbe. Jetzt steuert er, wie
+          weit die Liste ueberhaupt zurueckreicht.
+
+          Der Hinweis daneben ist wichtig: Suche und Filter laufen im
+          Browser und damit nur ueber das Geladene. Ohne diesen Satz sucht
+          jemand eine alte Rechnungsnummer, findet nichts und schliesst
+          daraus, es gebe sie nicht.
+        */}
+        {invoices.length >= grenze && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button variant="secondary" onClick={() => setGrenze((n) => n + RECHNUNGEN_JE_SEITE)}>
+              Ältere Rechnungen laden
             </Button>
+            <span className="text-sm text-ink-muted">
+              Angezeigt werden die {grenze} jüngsten Rechnungen. Suche und Filter gelten für
+              diese.
+            </span>
           </div>
         )}
       </Card>

@@ -48,6 +48,9 @@ function cartKey(companyId: string, uid: string) {
 }
 
 /** Material bestellen, eigene Bestellungen verfolgen, Retouren erfassen. */
+/** Wie viele eigene Anforderungen geladen werden — angesehen wird das Laufende. */
+const EIGENE_ANFORDERUNGEN = 100;
+
 export default function OrderView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -89,7 +92,7 @@ export default function OrderView() {
         setLoading(false);
       },
     );
-    const unsubO = subscribeOwnOrders(user.companyId, user.uid, setMyOrders, () => undefined);
+    const unsubO = subscribeOwnOrders(user.companyId, user.uid, EIGENE_ANFORDERUNGEN, setMyOrders, () => undefined);
     return () => {
       unsubM();
       unsubO();

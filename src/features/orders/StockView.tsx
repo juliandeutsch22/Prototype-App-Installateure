@@ -26,6 +26,15 @@ type Tab = 'bestand' | 'katalog';
  * geblieben; neu ist die Bestandsansicht davor, die zeigt, was knapp wird
  * und wie viel bereits für offene Anforderungen reserviert ist.
  */
+/**
+ * Wie viele Anforderungen geladen werden.
+ *
+ * Ohne Grenze wurde jede Anforderung des Betriebs seit jeher abonniert, nur
+ * um die aktuellen zu zeigen. Bei zwanzig Monteuren kommen im Jahr mehrere
+ * tausend zusammen.
+ */
+const ANFORDERUNGEN_JE_SEITE = 200;
+
 export default function StockView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -50,7 +59,7 @@ export default function StockView() {
         setLoading(false);
       },
     );
-    const unsubO = subscribeAllOrders(user.companyId, setOrders, () => undefined);
+    const unsubO = subscribeAllOrders(user.companyId, ANFORDERUNGEN_JE_SEITE, setOrders, () => undefined);
     return () => {
       unsubM();
       unsubO();

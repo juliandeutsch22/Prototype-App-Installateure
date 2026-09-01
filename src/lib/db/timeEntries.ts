@@ -11,28 +11,48 @@ import {
 
 const COLLECTION = 'timeEntries';
 
-/** Eigene Einträge eines Mitarbeiters. */
-export function listOwnEntries(companyId: string, uid: string) {
-  return queryTenant<TimeEntry>(COLLECTION, companyId, where('userId', '==', uid));
+/**
+ * Eigene Eintraege AB einem Datum.
+ *
+ * Die Grenze ist nicht optional. Ohne sie las diese Abfrage jede Buchung
+ * eines Mitarbeiters seit Eintritt — nach zehn Jahren rund 2.200 Dokumente,
+ * bei JEDEM Aufruf der Startseite, und jedes Jahr mehr. Wer nur wissen will,
+ * ob gestern gebucht wurde, braucht davon keines aus dem Vorjahr.
+ */
+export function listOwnEntriesSince(companyId: string, uid: string, from: string) {
+  return queryTenant<TimeEntry>(
+    COLLECTION,
+    companyId,
+    where('userId', '==', uid),
+    where('date', '>=', from),
+  );
 }
 
-/** Live-Abo der eigenen Einträge. */
-export function subscribeOwnEntries(
+/**
+ * Live-Abo der eigenen Eintraege in einem Zeitraum.
+ *
+ * Vorher ohne Zeitraum: das Zeitkonto abonnierte die gesamte eigene
+ * Vorgeschichte und hielt sie im Speicher, nur um die letzten Wochen
+ * anzuzeigen. Ein Abo ist dabei teurer als ein einmaliges Laden — es bleibt
+ * offen und laedt bei jeder Aenderung nach.
+ */
+export function subscribeOwnEntriesInRange(
   companyId: string,
   uid: string,
+  from: string,
+  to: string,
   cb: (rows: WithId<TimeEntry>[]) => void,
   onError: (e: Error) => void,
 ) {
-  return subscribeTenant<TimeEntry>(COLLECTION, companyId, cb, onError, where('userId', '==', uid));
-}
-
-/** Alle Einträge des Mandanten (Buchhaltung/Verwaltung-Übersicht). */
-export function subscribeAllEntries(
-  companyId: string,
-  cb: (rows: WithId<TimeEntry>[]) => void,
-  onError: (e: Error) => void,
-) {
-  return subscribeTenant<TimeEntry>(COLLECTION, companyId, cb, onError);
+  return subscribeTenant<TimeEntry>(
+    COLLECTION,
+    companyId,
+    cb,
+    onError,
+    where('userId', '==', uid),
+    where('date', '>=', from),
+    where('date', '<=', to),
+  );
 }
 
 /**
@@ -79,19 +99,6 @@ export function listEntriesInRange(companyId: string, from: string, to: string) 
     where('date', '>=', from),
     where('date', '<=', to),
   );
-}
-
-/**
- * Eintraege AB einem Datum, einmalig geladen.
- *
- * Fuer die Team-Salden auf der Startseite. `calcOverallSaldo` beginnt bei
- * `appStartDate` und ignoriert alles davor — Eintraege aus der Zeit vor dem
- * fruehesten Eintritt zu laden, ist also reine Verschwendung. Bei einem
- * Betrieb, der die App im laufenden Jahr eingefuehrt hat, faellt damit die
- * gesamte Vorgeschichte weg.
- */
-export function listEntriesFrom(companyId: string, from: string) {
-  return queryTenant<TimeEntry>(COLLECTION, companyId, where('date', '>=', from));
 }
 
 /**
@@ -212,7 +219,3 @@ export function deleteTimeEntry(id: string) {
   return deleteInTenant(COLLECTION, id);
 }
 
-/** Einmaliges Laden aller Einträge des Mandanten (z. B. für Rechnungen). */
-export function listAllEntries(companyId: string) {
-  return queryTenant<TimeEntry>(COLLECTION, companyId);
-}

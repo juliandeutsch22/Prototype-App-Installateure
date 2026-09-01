@@ -7,6 +7,8 @@ import {
   doc,
   writeBatch,
   serverTimestamp,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Assignment } from '@/types';
@@ -14,14 +16,53 @@ import { queryTenant, subscribeTenant, type WithId } from './core';
 
 const COLLECTION = 'assignments';
 
-/** Einsätze eines Mitarbeiters (Client-seitig nach Monat filtern). */
-export function listAssignmentsForUser(companyId: string, uid: string) {
-  return queryTenant<Assignment>(COLLECTION, companyId, where('userId', '==', uid));
+/**
+ * Die anstehenden Einsaetze eines Mitarbeiters, ab einem Datum.
+ *
+ * Vorher ohne Grenze: jeder Einsatz, den dieser Mitarbeiter je hatte, nur um
+ * den von heute herauszufiltern. Ein Monteur hat rund 220 Einsaetze im Jahr
+ * — nach zehn Jahren 2.200 Dokumente fuer die Frage „wo muss ich heute hin?".
+ *
+ * Die Obergrenze steht auf einer Zahl, die keine echte Planung verdeckt:
+ * Baustellen werden Wochen im Voraus eingeteilt, nicht Jahre. Wird sie
+ * erreicht, fehlt hinten der am weitesten entfernte Einsatz — nicht der
+ * naechste, und darauf kommt es an.
+ */
+export function listUpcomingAssignments(
+  companyId: string,
+  uid: string,
+  from: string,
+  max = 200,
+) {
+  return queryTenant<Assignment>(
+    COLLECTION,
+    companyId,
+    where('userId', '==', uid),
+    where('date', '>=', from),
+    orderBy('date', 'asc'),
+    limit(max),
+  );
 }
 
 /** Einsätze an einem Datum (Planungsansicht). */
 export function listAssignmentsForDate(companyId: string, date: string) {
   return queryTenant<Assignment>(COLLECTION, companyId, where('date', '==', date));
+}
+
+/** Einsätze EINES Mitarbeiters in einem Zeitraum — der Monatskalender. */
+export function listAssignmentsForUserInRange(
+  companyId: string,
+  uid: string,
+  from: string,
+  to: string,
+) {
+  return queryTenant<Assignment>(
+    COLLECTION,
+    companyId,
+    where('userId', '==', uid),
+    where('date', '>=', from),
+    where('date', '<=', to),
+  );
 }
 
 /**
