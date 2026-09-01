@@ -185,24 +185,40 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
     else if (e.status === 'Krank' || e.status === 'Urlaub') istMin += dailyH * 60;
   }
 
-  // Soll: appStartDate .. gestern (heute exklusive)
-  let sollMin = 0;
-  let daysWithoutEntry = 0;
-  const start = new Date(`${user.appStartDate}T00:00:00`);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  for (const d = new Date(start); d < today; d.setDate(d.getDate() + 1)) {
-    if (workDays.includes(d.getDay()) && !isAustrianHoliday(d)) {
-      sollMin += dailyH * 60;
-      if (!bookedDates.has(localDateStr(d))) daysWithoutEntry += 1;
-    }
-  }
+  /**
+   * Soll und Lücken aus derselben Quelle wie überall sonst.
+   *
+   * Diese Schleife war die dritte Fassung derselben Regel. Sie war die
+   * richtige — ab Eintritt, höchstens bis gestern —, aber solange sie hier
+   * eigenständig stand, konnte eine der anderen beiden davon abweichen.
+   * Genau das war passiert.
+   */
+  const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
+  const sollMin = pflicht.length * dailyH * 60;
+  const daysWithoutEntry = pflicht.filter((d) => !bookedDates.has(d)).length;
 
   const saldoH = Math.round((initial + (istMin - sollMin) / 60) * 100) / 100;
   return { saldoH, hasConfig: true, daysWithoutEntry };
 }
 
 export interface MonthStats {
+  /**
+   * Ist für diesen Mitarbeiter überhaupt ein Eintritt hinterlegt?
+   *
+   * Ohne Eintrittsdatum ist kein Soll berechenbar — die Zahlen sind dann
+   * nicht „null Stunden Rückstand", sondern GAR KEINE AUSSAGE. Ohne diesen
+   * Unterschied zeigte die Ansicht ein sauberes 00:00 und sah damit aus wie
+   * ein gepflegter Datensatz.
+   */
+  hasConfig: boolean;
+  /**
+   * Läuft dieser Monat noch?
+   *
+   * Dann ist das Soll ein Zwischenstand, der jeden Tag wächst — und keine
+   * Monatsbilanz. Die Ansicht muss das sagen, sonst wird eine Zahl vom 10.
+   * für ein Monatsergebnis gehalten.
+   */
+  istLaufend: boolean;
   weeklyTarget: number;
   yearlyVacation: number;
   dailyTargetH: number;
@@ -250,25 +266,24 @@ export function calcMonthStats(
   // 4-Tage-Woche (32 h) ergab das 6,4 h/Tag statt 8,0 h/Tag, und Mitarbeiter
   // und Buchhaltung sahen für denselben Monat verschiedene Salden.
   const dailyTargetH = weeklyTarget / workDays.length;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  let workdaysInMonth = 0;
-  let holidaysInMonth = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateObj = new Date(year, month, d);
-    // Tage VOR dem Startdatum zählen nicht.
-    //
-    // Vorher fehlte diese Grenze ganz: `appStartDate` wurde der Funktion nicht
-    // einmal übergeben. Ein am 15. eingetretener Mitarbeiter bekam damit das
-    // Soll des ganzen Monats aufgebürdet — und für jeden Monat davor, in dem
-    // er noch gar nicht im Betrieb war, ein volles Monatsminus. Der Saldo im
-    // Zeitkonto und der in der Monatsübersicht widersprachen sich dadurch,
-    // denn calcOverallSaldo respektiert das Startdatum seit jeher.
-    if (user.appStartDate && localDateStr(dateObj) < user.appStartDate) continue;
-    if (workDays.includes(dateObj.getDay())) {
-      if (isAustrianHoliday(dateObj)) holidaysInMonth++;
-      else workdaysInMonth++;
-    }
-  }
+
+  /**
+   * Die Solltage kommen jetzt aus `pflichtTage` — derselben Quelle wie im
+   * Zeitkonto und in der Lückenprüfung.
+   *
+   * Hier stand die Rechnung vorher ein zweites Mal, und sie zählte den GANZEN
+   * Monat. Für einen abgeschlossenen Monat ist das richtig; für den laufenden
+   * stand dadurch „00:00 von 176:00 · −176:00" — das Monatssoll gegen die
+   * Stunden von zwei Tagen, als hätte jemand drei Wochen verschlafen, die
+   * noch gar nicht stattgefunden haben. Genau so im Betrieb gesehen.
+   *
+   * `pflichtTage` hört bei gestern auf. Ein vergangener Monat liegt komplett
+   * davor und ändert sich damit nicht — das halten die Tests fest.
+   */
+  const monatsStart = new Date(year, month, 1);
+  const monatsEnde = new Date(year, month + 1, 0);
+  const workdaysInMonth = pflichtTage(user, monatsStart, monatsEnde).length;
+  const holidaysInMonth = feiertageImZeitraum(user, monatsStart, monatsEnde);
 
   const krankDays = monthEntries.filter((e) => e.status === 'Krank').length;
   const urlaubDays = monthEntries.filter((e) => e.status === 'Urlaub').length;
@@ -279,7 +294,14 @@ export function calcMonthStats(
 
   const yearlyUrlaubDays = yearEntries.filter((e) => e.status === 'Urlaub').length;
 
+  // Laufend heißt: der letzte Tag des Monats liegt noch vor uns.
+  const heute = new Date();
+  heute.setHours(0, 0, 0, 0);
+  const istLaufend = monatsEnde >= heute;
+
   return {
+    hasConfig: !!user.appStartDate,
+    istLaufend,
     weeklyTarget,
     yearlyVacation,
     dailyTargetH,
@@ -313,34 +335,52 @@ export interface CompletenessResult {
  * — heute zählt nicht als Versäumnis. Feiertage brauchen keinen Eintrag.
  */
 /**
- * Welche Werktage in einem Zeitraum ohne Buchung geblieben sind.
+ * Die Tage eines Zeitraums, für die tatsächlich eine ARBEITSPFLICHT besteht.
  *
- * Die eine Stelle, an der diese Frage beantwortet wird. Sie kommt an drei
- * Orten vor — Startseite, Monatsauswertung, Team-Uebersicht — und jede eigene
- * Fassung waere eine Gelegenheit, Feiertage, Teilzeit-Arbeitstage oder das
- * Eintrittsdatum unterschiedlich zu behandeln. Dann widersprechen sich zwei
- * Ansichten ueber denselben Mitarbeiter, und keine ist erkennbar die richtige.
+ * Die eine Stelle, an der diese Frage beantwortet wird. Sie stand vorher
+ * dreimal im Code — in `calcOverallSaldo`, in `calcMonthStats` und in der
+ * Lückenprüfung — und alle drei antworteten unterschiedlich. Genau daraus
+ * entstanden zwei Fehler, die im Betrieb zu sehen waren:
  *
- * Gezaehlt wird nur bis GESTERN: der heutige Tag ist noch nicht vorbei, und
- * ihn als Luecke zu melden hiesse, jeden Morgen jeden Mitarbeiter anzumahnen.
- * Tage vor dem Eintritt zaehlen nicht, Feiertage und freie Wochentage auch
- * nicht.
+ *   „25 Tage ohne Buchung, Di., 25.08., …" bei einem Nutzer OHNE hinterlegtes
+ *   Eintrittsdatum. Ohne Eintritt ist nicht bekannt, ab wann jemand
+ *   überhaupt zu buchen hat — jeder gemeldete Tag davor ist eine
+ *   Unterstellung. `calcOverallSaldo` wusste das seit jeher und rechnete
+ *   ohne Startdatum gar nicht; die Lückenprüfung fing einfach am
+ *   Fensteranfang an.
+ *
+ *   „00:00 von 176:00 · −176:00" für den LAUFENDEN Monat. Das Monatssoll
+ *   des ganzen Monats gegen die Stunden von zwei Tagen gerechnet — als
+ *   hätte jemand drei Wochen verschlafen, die noch gar nicht stattgefunden
+ *   haben.
+ *
+ * Drei Regeln, ab jetzt an einer Stelle:
+ *
+ *   1. OHNE EINTRITTSDATUM keine Pflicht. Nicht „ab Fensteranfang", nicht
+ *      „ab Monatserstem" — gar keine. Eine Pflicht, deren Beginn niemand
+ *      kennt, lässt sich nicht behaupten.
+ *   2. NIE ÜBER GESTERN HINAUS. Der heutige Tag ist nicht vorbei, künftige
+ *      erst recht nicht. Für einen abgeschlossenen Monat ändert das nichts,
+ *      für den laufenden alles.
+ *   3. Feiertage und freie Wochentage zählen nicht — Teilzeit über
+ *      `workDays`, nicht über eine feste Fünf-Tage-Annahme.
  */
-export function offeneWerktage(
+export function pflichtTage(
   user: Pick<AppUser, 'workDays' | 'appStartDate'>,
-  entries: Pick<TimeEntry, 'date'>[],
   von: Date,
   bis: Date,
 ): string[] {
+  // Regel 1: ohne Eintritt keine Aussage.
+  if (!user.appStartDate) return [];
+
   const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
 
-  let start = new Date(von);
+  const start = new Date(von);
   start.setHours(0, 0, 0, 0);
-  if (user.appStartDate) {
-    const eintritt = new Date(`${user.appStartDate}T00:00:00`);
-    if (eintritt > start) start = eintritt;
-  }
+  const eintritt = new Date(`${user.appStartDate}T00:00:00`);
+  if (eintritt > start) start.setTime(eintritt.getTime());
 
+  // Regel 2: höchstens bis gestern.
   const heute = new Date();
   heute.setHours(0, 0, 0, 0);
   const gestern = new Date(heute);
@@ -350,15 +390,57 @@ export function offeneWerktage(
   ende.setHours(0, 0, 0, 0);
   const schluss = gestern < ende ? gestern : ende;
 
-  const gebucht = new Set(entries.map((e) => e.date));
-  const offen: string[] = [];
+  const tage: string[] = [];
   for (const tag = new Date(start); tag <= schluss; tag.setDate(tag.getDate() + 1)) {
-    const ds = localDateStr(tag);
-    if (workDays.includes(tag.getDay()) && !isAustrianHoliday(tag) && !gebucht.has(ds)) {
-      offen.push(ds);
+    // Regel 3.
+    if (workDays.includes(tag.getDay()) && !isAustrianHoliday(tag)) {
+      tage.push(localDateStr(tag));
     }
   }
-  return offen;
+  return tage;
+}
+
+/** Die Feiertage, die in denselben Zeitraum fallen — nur zur Anzeige. */
+export function feiertageImZeitraum(
+  user: Pick<AppUser, 'workDays' | 'appStartDate'>,
+  von: Date,
+  bis: Date,
+): number {
+  if (!user.appStartDate) return 0;
+  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+  const start = new Date(von);
+  start.setHours(0, 0, 0, 0);
+  const eintritt = new Date(`${user.appStartDate}T00:00:00`);
+  if (eintritt > start) start.setTime(eintritt.getTime());
+  const heute = new Date();
+  heute.setHours(0, 0, 0, 0);
+  const gestern = new Date(heute);
+  gestern.setDate(heute.getDate() - 1);
+  const ende = new Date(bis);
+  ende.setHours(0, 0, 0, 0);
+  const schluss = gestern < ende ? gestern : ende;
+
+  let n = 0;
+  for (const tag = new Date(start); tag <= schluss; tag.setDate(tag.getDate() + 1)) {
+    if (workDays.includes(tag.getDay()) && isAustrianHoliday(tag)) n++;
+  }
+  return n;
+}
+
+/**
+ * Welche Pflichttage ohne Buchung geblieben sind.
+ *
+ * Nur noch die Differenz aus `pflichtTage` und dem Gebuchten — die Regeln
+ * darüber, welcher Tag überhaupt zählt, stehen nicht mehr hier.
+ */
+export function offeneWerktage(
+  user: Pick<AppUser, 'workDays' | 'appStartDate'>,
+  entries: Pick<TimeEntry, 'date'>[],
+  von: Date,
+  bis: Date,
+): string[] {
+  const gebucht = new Set(entries.map((e) => e.date));
+  return pflichtTage(user, von, bis).filter((d) => !gebucht.has(d));
 }
 
 export function calcCompleteness(

@@ -94,6 +94,15 @@ interface DashData {
    * Auf der Startseite steht die Frage, die man handeln kann: was fehlt noch?
    */
   fehlendeTage?: string[];
+  /**
+   * Ist ueberhaupt ein Eintritt hinterlegt?
+   *
+   * Ohne ihn laesst sich nicht sagen, welche Tage fehlen — die Startseite
+   * schweigt dann. Fuer eine Rolle ohne Zeitkonto ist das richtig; fuer
+   * einen Monteur waere es eine verschluckte Datenluecke, und niemand
+   * erfuehre, warum die Warnung ausbleibt.
+   */
+  hatEintritt?: boolean;
   /** Die heutigen Einsätze — MEHRZAHL, ein Monteur kann an einem Tag auf zwei Baustellen sein. */
   heuteEigene?: EinsatzZeile[];
   ownOpenOrders?: number;
@@ -151,6 +160,7 @@ export default function DashboardView() {
         ]);
 
         if (profile) {
+          out.hatEintritt = !!profile.appStartDate;
           out.fehlendeTage = offeneWerktage(profile, entries, fenster, new Date());
         }
 
@@ -377,6 +387,21 @@ export default function DashboardView() {
         nichts gebucht ist. Die Datumsangaben ausgeschrieben, nicht nur
         gezaehlt — „3 Tage fehlen" zwingt zum Suchen, welche.
       */}
+      {/*
+        Kein Eintrittsdatum: ausdruecklich sagen statt schweigen. Nur fuer
+        Rollen, die ein Zeitkonto FUEHREN — die Geschaeftsfuehrung hat keines
+        und braucht den Hinweis nicht.
+      */}
+      {fuehrtZeitkonto && data.hatEintritt === false && (
+        <div className="rounded border border-info/30 bg-info-bg p-4 text-info">
+          <p className="font-semibold">Kein Eintrittsdatum hinterlegt</p>
+          <p className="mt-1 text-sm">
+            Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen und wie der Saldo
+            steht. Die Geschäftsführung kann es in der Benutzerverwaltung nachtragen.
+          </p>
+        </div>
+      )}
+
       {offeneTage.length > 0 && (
         <div className="rounded border border-warning/30 bg-warning-bg p-4 text-warning" role="alert">
           <p className="font-semibold">

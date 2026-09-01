@@ -133,19 +133,28 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
   it('rechnet die Tage VOR dem Eintritt nicht ins Soll', async () => {
     await oeffneMitarbeiter();
 
-    // Vom 17. bis 31. August liegen 11 Werktage (der 31. eingeschlossen),
-    // also 88 Stunden Soll — nicht die 168 des ganzen Monats.
+    /**
+     * Vom 17. bis GESTERN (30.8., ein Sonntag) liegen 10 Werktage, also 80
+     * Stunden Soll — nicht die 168 des ganzen Monats, und auch nicht die 88
+     * inklusive des heutigen 31.
+     *
+     * Der heutige Tag zaehlt nicht mit: er ist noch nicht vorbei. Diese
+     * Erwartung stand hier vorher auf 88:00 und hielt damit denselben Fehler
+     * im Kleinen fest, der im Betrieb als „00:00 von 176:00 · −176:00" am
+     * Monatsanfang auffiel.
+     */
     const soll = screen.getByText('Soll').previousElementSibling;
-    expect(soll).toHaveTextContent('88:00');
+    expect(soll).toHaveTextContent('80:00');
   });
 
   it('zeigt keinen Minus-Saldo, wenn ab Eintritt vollstaendig gebucht wurde', async () => {
     await oeffneMitarbeiter();
 
-    // 10 gebuchte Tage a 8 Stunden = 80 Stunden Ist. Offen ist allein der
-    // heutige 31., also -8:00 — und eben nicht -168:00.
+    // 10 gebuchte Tage a 8 Stunden = 80 Stunden Ist, und genau 80 Stunden
+    // Soll bis gestern. Der Saldo ist damit ausgeglichen — und eben nicht
+    // -168:00 und auch nicht -08:00 fuer den laufenden Tag.
     const saldo = screen.getByText('Saldo').previousElementSibling;
-    expect(saldo).toHaveTextContent('-08:00');
+    expect(saldo).toHaveTextContent('00:00');
   });
 
   it('fuehrt keinen Tag vor dem Eintritt als fehlende Buchung', async () => {
