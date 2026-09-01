@@ -5,6 +5,107 @@ Aufwand. Was den Produktivbetrieb blockiert, steht oben.
 
 ---
 
+## Digitaler Handwerksschein (Regiebericht) — Fahrplan
+
+**Bewertung: lohnt sich**, aber nicht wegen der Unterschrift. Der Wert liegt
+darin, dass die Kette ZEIT → SCHEIN → RECHNUNG geschlossen wird. Ein Schein,
+der nur ein PDF erzeugt und dann nirgends hinführt, ist digitalisiertes
+Papier. Regiestunden sind die am häufigsten bestrittene Rechnungsposition;
+Zeiten, Material, Baustellen und PDF-Erzeugung liegen bereits vor.
+
+### Offene Voraussetzung (blockiert Stufe 1)
+
+**Wie unterscheidet der Betrieb Regie- von Pauschalarbeit?** Steht das im
+Vertrag je Baustelle oder wird es je Einsatz entschieden? Davon hängt ab, ob
+es ein Feld an der Baustelle oder am Zeiteintrag wird. Ohne diese
+Unterscheidung weiß niemand, welche Stunden überhaupt auf den Schein gehören.
+*In Klärung.*
+
+### Bewusst NICHT umgesetzt: biometrische Touch-Daten
+
+Vorgeschlagen waren Schreibgeschwindigkeit und Druckverlauf. Drei Gründe
+dagegen:
+
+- **Technisch großteils Fiktion.** `PointerEvent.pressure` liefert auf
+  kapazitiven Touchscreens ohne Stift konstant 1.0 oder 0. Ein „Druckverlauf"
+  entsteht auf einem normalen Tablet nicht — das Feld sähe aus wie Beweis und
+  wäre keiner.
+- **Rechtlich teuer.** Zur Identifizierung erhobene Handschrift-Dynamik ist
+  biometrisches Datum nach Art. 9 DSGVO: ausdrückliche Einwilligung plus
+  Datenschutz-Folgenabschätzung. Beim Kunden an der Tür kaum wirksam
+  einzuholen — und bei Ablehnung dürfte er nicht unterschreiben.
+- **Nutzen gering.** Der Streitfall ist praktisch nie „die Unterschrift ist
+  gefälscht", sondern „so viele Stunden waren das nicht". Dagegen hilft der
+  eingefrorene INHALT, nicht die Strichdynamik.
+
+Unterschriftsbild plus Audit-Trail ergeben eine einfache elektronische
+Signatur, und die genügt für Rapport- und Arbeitsscheine.
+
+### Zwei Begriffe, präzisiert
+
+- **„Zeitstempel":** ein qualifizierter Zeitstempel nach eIDAS kommt von einem
+  Vertrauensdiensteanbieter und kostet. `serverTimestamp()` ist das nicht und
+  wird hier auch nicht so genannt. Was wirklich schützt und fast nichts
+  kostet: der **Hash des eingefrorenen Inhalts**. Damit lässt sich beweisen,
+  dass das vorgelegte PDF genau das ist, was unterschrieben wurde.
+- **„PDF/A":** verlangt eingebettete Schriften, XMP-Metadaten und einen
+  OutputIntent — mit jsPDF im Browser nicht seriös herstellbar. Es wird ein
+  normales PDF erzeugt und auch so genannt.
+
+### Die zentrale Architekturentscheidung
+
+**Der Schein KOPIERT die Zeiteinträge, er referenziert sie nicht.** Die
+Buchhaltung kann einen Zeiteintrag nachträglich korrigieren — bei einer
+Referenz änderte sich der unterschriebene Schein rückwirkend.
+
+Bemerkenswert im Kontrast zu den Monatsbilanzen: dort wird bewusst NICHT der
+abgeleitete Saldo gespeichert, weil er sich mit der Konfiguration ändern
+SOLL. Hier wird bewusst der volle Inhalt gespeichert, weil er sich nicht mehr
+ändern DARF. Dieselbe Frage, entgegengesetzte Antwort — der Unterschied ist,
+ob die Wahrheit veränderlich bleibt oder im Moment der Unterschrift
+festgeschrieben wird.
+
+Unveränderbarkeit ist in den Rules durchsetzbar: Änderung nur solange
+`status == 'entwurf'`, danach kein `update`, nie ein `delete`. Korrekturen
+ausschließlich über Nachtrags- oder Stornoschein — dasselbe Muster wie bei den
+Rechnungen.
+
+### Was in der ersten Skizze fehlte
+
+- **Offline.** Der Monteur steht im Keller. Eine offline erfasste Unterschrift
+  synchronisiert später; `serverTimestamp()` wäre dann die
+  Synchronisationszeit, nicht die Unterschriftszeit — genau die Beweiskraft
+  wäre dahin. Lösung: BEIDE Zeiten speichern, Gerätezeit und Serverzeit, und
+  eine Abweichung sichtbar machen. Offline zu sperren wäre untauglich, der
+  Keller ist der Normalfall.
+- **Name in Druckbuchstaben** neben der Unterschrift. Ein Strich ohne
+  zuordenbaren Namen ist wenig wert.
+- **GPS ortet den MITARBEITER.** Das ist Mitarbeiterüberwachung: abschaltbar
+  je Betrieb, nur zum Unterschrifts-Ereignis, nie laufend.
+- **IP-Adresse** ist im Mobilfunk die des Carrier-NAT und als Beweis nahezu
+  wertlos. Die Geräte-Kennung ist brauchbarer.
+
+### Stufen
+
+**Stufe 1 — der Schein.** Vorausfüllung aus Zeiten und Material, Notizen,
+Unterschrift von Monteur und Kunde, eingefrorener Schnappschuss,
+serverseitig gerechneter Hash, PDF am Gerät, Sichtbarkeit im Büro. Ersetzt den
+Papierschein vollständig. Die Unterschriftsbilder passen als PNG (~10 KB)
+direkt ins Dokument — **Stufe 1 braucht kein Firebase Storage**, das spart ein
+ganzes Subsystem.
+
+**Stufe 2 — Fotos.** Storage ist im Projekt bisher gar nicht eingerichtet:
+eigene Rules, clientseitige Komprimierung (Handyfotos sind 3–5 MB),
+Offline-Upload. Die teuerste Einzelposition — und die am wenigsten kritische.
+
+**Stufe 3 — automatischer Versand.** Mailanbieter, Function, Secrets. Dazu ein
+Fallback, weil der Kunde oft keine E-Mail-Adresse dabeihat: PDF direkt teilen
+oder QR-Code. Ans Büro geht es immer.
+
+**Stufe 4 — Verbindung zur Rechnung.** Die Rechnung verweist auf
+unterschriebene Scheine; die Buchhaltung sieht, welche Regiestunden gedeckt
+sind. Erst hier wird aus dem Schein Geld.
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft

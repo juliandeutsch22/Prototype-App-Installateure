@@ -117,7 +117,7 @@ Blaze-Tarif und können Kosten auslösen, deshalb sollen sie nicht bei jeder
 
 ### Cloud Functions
 
-Fünf Functions, alle in `europe-west3`:
+Acht Functions, alle in `europe-west3`:
 
 | Function | Zweck | Braucht API-Schlüssel |
 | --- | --- | --- |
@@ -126,6 +126,9 @@ Fünf Functions, alle in `europe-west3`:
 | `notifyOrderReady` | Push an den Monteur, wenn Material bereitliegt | nein |
 | `exportCompanyData` | DSGVO-Export je Mandant | nein |
 | `voiceExtract` | Sprache → strukturierte Einträge | **ja** — wird nur mit `ENABLE_VOICE=true` deployt |
+| `bilanzNachziehen` | schreibt die Monatsbilanz eines Mitarbeiters neu, sobald sich eine Buchung ändert | nein |
+| `bilanzenNachtlauf` | rechnet nachts den laufenden und den Vormonat neu (Selbstheilung) | nein — **braucht Cloud Scheduler** |
+| `bilanzenNeuAufbauen` | einmaliger Erstaufbau, aus den Einstellungen aufrufbar | nein |
 
 **`syncUserClaims` ist nicht optional.** Ohne diesen Trigger bekommt ein neu
 angelegter Benutzer keine Berechtigungen: er kommt durch die Anmeldung, sieht
@@ -141,11 +144,18 @@ Der Workflow läuft bei Änderungen an `functions/**` und von Hand.
    der Verbrauch im Freikontingent; ein Budget-Alarm unter *Abrechnung →
    Budgets und Warnungen* ist trotzdem zu empfehlen.
 
-2. **Diese sieben APIs aktivieren.** Das Dienstkonto darf sie benutzen, aber
+2. **Diese acht APIs aktivieren.** Das Dienstkonto darf sie benutzen, aber
    nicht selbst einschalten — das muss der Projektinhaber im Browser tun:
    `cloudfunctions`, `cloudbuild`, `artifactregistry`, `eventarc`, `run`,
-   `secretmanager` und `cloudbilling`, jeweils unter
+   `secretmanager`, `cloudbilling` und `cloudscheduler`, jeweils unter
    `https://console.cloud.google.com/apis/library/<name>.googleapis.com`.
+
+   `cloudscheduler` kam mit den Monatsbilanzen dazu: der nächtliche
+   Selbstheilungs-Lauf ist eine zeitgesteuerte Function. Fehlt die API,
+   scheitert der **gesamte** Functions-Deploy — auch der Bilanz-Trigger und
+   der Erstaufbau, die mit dem Zeitplan nichts zu tun haben. Genau so ist der
+   erste Deploy der Monatsbilanzen gescheitert. Der Workflow prüft das jetzt
+   vorab und nennt den Link, statt mitten im Deploy abzubrechen.
 
    `cloudbilling` steht hier, weil der Deploy sie tatsächlich braucht und die
    Liste sie zunächst nicht nannte: Firebase prüft vor dem Anlegen der
