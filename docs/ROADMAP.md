@@ -1,6 +1,6 @@
 # Roadmap
 
-Stand: 31.08.2026. Reihenfolge nach Nutzen für den Betrieb, nicht nach
+Stand: 01.09.2026. Reihenfolge nach Nutzen für den Betrieb, nicht nach
 Aufwand. Was den Produktivbetrieb blockiert, steht oben.
 
 ---
@@ -27,60 +27,26 @@ Mögliche Wege je nach System: **Datanorm** (Dateiformat für
 Artikelstammdaten, im Handwerk verbreitet), **IDS-Connect** (Online-Anbindung
 an den SHK-Großhandel) oder schlicht ein CSV-Import.
 
-**Unabhängig davon schon jetzt sinnvoll:** Der Materialkatalog ist heute als
-vierter Reiter unter „Bestellungen" versteckt. Niemand vermutet die
-Lagerverwaltung dort. Eigener Navigationspunkt, unabhängig von der
-Systemfrage.
+*(Der Materialkatalog hat inzwischen einen eigenen Navigationspunkt „Lager" —
+er hing vorher als vierter Reiter unter „Bestellungen", wo ihn niemand
+vermutet. Die Systemfrage bleibt davon unberührt.)*
 
 ---
 
-## Als Nächstes
+## Erledigt (Stand 01.09.2026)
 
-### Dashboard: von Zahlen zu Handlungen
+Hier standen bis zuletzt vier Punkte, die längst umgesetzt sind. Eine
+Roadmap, die Erledigtes als offen führt, schickt den Nächsten in die Irre —
+deshalb wandern sie hierher statt still zu verschwinden:
 
-Heute zeigt es Kennzahlen zum Anschauen („Aktive Baustellen: 3") und
-darunter einen Schnellzugriff, der auf dem Desktop die komplette Sidebar
-dupliziert. Ziel ist die eine Frage pro Rolle:
-
-| Rolle | Die Frage | Was hingehört |
-| --- | --- | --- |
-| Monteur | Wo muss ich heute hin? | Einsatz mit Adresse **und Telefonnummer**, fehlende Buchung |
-| Geschäftsführung | Läuft eine Baustelle aus dem Ruder? | Projekt-Radar, aber nur gelb/rot |
-| Buchhaltung | Was ist überfällig? | Rechnungen mit Betrag statt Anzahl |
-| Verwaltung | Was wartet auf mich? | Offene Materialanforderungen als Liste |
-
-Grundregel gegen beide Gefahren: **Was leer ist, verschwindet.** Karten nur
-mit Inhalt zeigen; ist nichts zu tun, eine ruhige Zeile statt fünf leerer
-Kacheln.
-
-### Überstundensaldo bei Einführung mitten im Jahr
-
-`calcOverallSaldo` rechnet das Soll für jeden Werktag ab `appStartDate` —
-auch für Tage, an denen nichts erfasst wurde. Wer die App im August einführt
-und als Startdatum den 1. Jänner einträgt, sieht sofort **−1300 Stunden** je
-Mitarbeiter.
-
-Die Zahl ist rechnerisch korrekt und in der Sache Unsinn. Sie steht an der
-prominentesten Stelle der App, und sie ist das Erste, was die
-Geschäftsführung sieht. Nötig: Startdatum per Vorgabe auf den Tag der
-Kontoanlage, plus ein Hinweis, wenn zwischen Startdatum und heute Tage ganz
-ohne Buchung liegen.
-
-### Offline-Betrieb
-
-Firestore läuft ohne aktivierte Persistenz. Im Keller, im Rohbau oder in der
-Tiefgarage steht der Monteur damit vor einer leeren App, und eine Buchung
-schlägt fehl statt sie nachzureichen. Für die Zielgruppe ist das kein
-Randfall, sondern Alltag.
-
-### Navigation und Beschriftungen
-
-- „Bestellungen" enthält den Materialkatalog — umbenennen oder trennen
-- Beschriftungen werden mobil abgeschnitten („Zeiterfassu…")
-- Zeiterfassung: Schnellwahl („wie gestern", „07:00–16:30") statt jedes Feld
-  einzeln zu tippen — mit Arbeitshandschuhen zählt jeder gesparte Griff
-
----
+- **Dashboard von Zahlen zu Handlungen** — je Rolle die eine Frage, leere
+  Karten verschwinden
+- **Überstundensaldo bei Einführung mitten im Jahr** — Tage ohne Buchung
+  werden gezählt und als Datenlücke ausgewiesen, orange statt rot
+- **Offline-Betrieb** — Firestore-Persistenz mit
+  `persistentMultipleTabManager`, Rückmeldung beim Speichern ohne Empfang
+- **Navigation** — das Lager hat einen eigenen Punkt statt eines versteckten
+  vierten Reiters unter „Bestellungen"; „wie zuletzt" in der Zeiterfassung
 
 ## Später
 
@@ -100,15 +66,16 @@ Randfall, sondern Alltag.
 Gefunden bei früheren Durchsichten, bisher nicht behoben. Keine davon
 blockiert den Betrieb, alle sind echt.
 
+Die drei Sprach-Punkte sind heute nicht erreichbar: `voiceExtract` wird nur
+mit `ENABLE_VOICE=true` deployt und ist aus. Sie werden fällig, BEVOR die
+KI-Erfassung eingeschaltet wird — nicht vorher.
+
 | Thema | Was passiert |
 | --- | --- |
 | Sprach-Erfassung, Teilschreibungen | Schlägt ein Schreibvorgang mitten in der Bestätigung fehl, bleibt ein halber Datensatz zurück |
 | Folgetermine | Werden erfasst und gespeichert, aber nirgends angezeigt |
 | Mikrofon | Läuft nach dem Abbrechen der Aufnahme weiter |
-| Einsatzplanung | Ändern löscht und legt neu an, ohne Transaktion — bricht es dazwischen ab, ist die Zuweisung weg |
-| Rechnungsnummern | Werden aus dem Höchststand abgeleitet; zwei gleichzeitige Rechnungen können dieselbe Nummer bekommen |
-| Listen ohne Begrenzung | Zeiteinträge und Bestellungen werden vollständig geladen; nach einigen Jahren wird das langsam und teuer |
-| Zeiteintrag bearbeiten | Umgeht die Doppelbuchungsprüfung, die beim Anlegen greift |
+| Listen ohne Begrenzung | Zeiteinträge werden weiterhin vollständig geladen. Rechnungen sind auf 50 mit „Weitere anzeigen" begrenzt, Bestellungen ebenso |
 
 ## Offen: Team-Salden auf der Startseite
 
