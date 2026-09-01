@@ -21,12 +21,13 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["./shared/*"]
     }
   },
   // Tests gehoeren dazu. Ohne sie in der Pruefung driftet ein Test still von
   // der Schnittstelle ab, die er prueft — er laeuft dann gruen gegen eine
   // Signatur, die es nicht mehr gibt.
-  "include": ["src", "tests", "vite-env.d.ts"],
+  "include": ["src", "shared", "tests", "vite-env.d.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

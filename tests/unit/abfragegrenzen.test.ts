@@ -52,6 +52,9 @@ const GRENZ_MUSTER = [
   /limit\(/,
   /where\(\s*'date'\s*,\s*'>=?'/,
   /where\(\s*'date'\s*,\s*'=='/,
+  // Monatsbilanzen sind ueber einen Monatsbereich begrenzt — dieselbe Art
+  // Grenze wie ein Datumsbereich, nur eine Stufe groeber.
+  /where\(\s*'monat'\s*,\s*'>=?'/,
   /where\(\s*'status'\s*,/,
   /where\(\s*'paymentStatus'\s*,/,
   /where\(\s*'projectNumber'\s*,/,

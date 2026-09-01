@@ -9,6 +9,7 @@ import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
+import { callBilanzenNeuAufbauen } from '@/lib/functions';
 
 const fmtEUR = (n: number) =>
   new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -28,6 +29,9 @@ function num(v: string, fallback: number): number {
  */
 export default function SettingsView() {
   const { user, company, reloadCompany } = useAuth();
+  /** Erstaufbau der Monatsbilanzen — Zustand des einmaligen Laufs. */
+  const [aufbauLaeuft, setAufbauLaeuft] = useState(false);
+  const [aufbauErgebnis, setAufbauErgebnis] = useState<string | null>(null);
   const toast = useToast();
   const [rates, setRates] = useState<InvoiceRates>(INVOICE_DEFAULTS);
   const [saving, setSaving] = useState(false);
@@ -194,6 +198,66 @@ export default function SettingsView() {
           </Button>
         </div>
       </form>
+
+      {/*
+        Monatsbilanzen — der einmalige Erstaufbau.
+
+        Der Stundensaldo läuft seit dem ersten Arbeitstag und braucht deshalb
+        als einzige Zahl im Programm wirklich jede Buchung; nach zehn
+        Dienstjahren sind das über zweitausend Dokumente bei jedem Aufruf des
+        Zeitkontos. Die Bilanzen verdichten das auf eine Zeile je Monat.
+
+        Bewusst ein Knopf und keine automatische Umstellung: der Lauf liest
+        einmal die gesamte Buchungsgeschichte — genau das, was danach
+        vermieden wird. Er gehört zu einem ruhigen Zeitpunkt angestoßen, nicht
+        beim ersten Seitenaufruf eines beliebigen Mitarbeiters.
+
+        Bis er gelaufen ist, rechnet das Zeitkonto weiter direkt aus den
+        Buchungen. Langsamer, aber richtig — und niemals eine falsche Zahl.
+      */}
+      <Card title="Monatsbilanzen">
+        <p className="text-sm text-ink">
+          Verdichtet die Zeitbuchungen zu einer Bilanz je Mitarbeiter und Monat. Das Zeitkonto
+          lädt danach ein Dokument je Monat statt aller Buchungen seit Eintritt — bei langer
+          Betriebszugehörigkeit der Unterschied zwischen ein paar hundert und ein paar tausend
+          Dokumenten.
+        </p>
+        <p className="mt-2 text-sm text-ink-muted">
+          Einmalig anzustoßen. Danach wird jede Bilanz bei jeder Buchung nachgezogen, und ein
+          nächtlicher Lauf gleicht Abweichungen von selbst aus. Solange der Aufbau nicht gelaufen
+          ist, rechnet das Zeitkonto wie bisher — die angezeigten Salden ändern sich durch den
+          Aufbau nicht.
+        </p>
+        {aufbauErgebnis && (
+          <p className="mt-3 rounded-sm border border-success/30 bg-success-bg px-3 py-2 text-sm text-success">
+            {aufbauErgebnis}
+          </p>
+        )}
+        <div className="mt-4">
+          <Button
+            type="button"
+            variant="secondary"
+            loading={aufbauLaeuft}
+            onClick={async () => {
+              setAufbauLaeuft(true);
+              setAufbauErgebnis(null);
+              try {
+                const { data } = await callBilanzenNeuAufbauen({});
+                setAufbauErgebnis(
+                  `${data.bilanzen} Bilanzen für ${data.mitarbeiter} Mitarbeiter aufgebaut.`,
+                );
+                toast.success('Monatsbilanzen aufgebaut');
+              } catch {
+                setError('Der Aufbau ist fehlgeschlagen. Bitte später erneut versuchen.');
+              } finally {
+                setAufbauLaeuft(false);
+              }
+            }}
+          >
+            Monatsbilanzen aufbauen
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }

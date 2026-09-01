@@ -1,5 +1,6 @@
 import type { AppUser, TimeEntry } from '@/types';
 import { shouldShowOvertime } from './permissions';
+import { calcWorkMin } from '@shared/arbeitszeit';
 
 /**
  * Zeit-, Feiertags- und Saldo-Logik — 1:1 aus der Legacy-App portiert
@@ -109,24 +110,19 @@ export function isoWeekLabel(date: Date): string {
  *   überschreibt ein später nachgetragenes Von/Bis den KI-Wert.
  * - Wegzeit (travelTime) wird NICHT zu den Arbeitsminuten addiert (wie Legacy).
  */
-export function calcWorkMin(entry: Pick<TimeEntry, 'status' | 'startTime' | 'endTime' | 'breakDuration' | 'hours'>): number {
-  if (entry.status !== 'Anwesend') return 0;
-  if (entry.startTime && entry.endTime) {
-    const start = new Date(`1970-01-01T${entry.startTime}`);
-    const end = new Date(`1970-01-01T${entry.endTime}`);
-    let span = (end.getTime() - start.getTime()) / 60000;
-    // Endzeit vor Startzeit heißt: der Einsatz ging über Mitternacht
-    // (Bereitschaft, Notdienst). Vorher ergab 22:00–06:00 glatt 0 Stunden —
-    // die Nacht war schlicht nicht bezahlt.
-    if (span < 0) span += 24 * 60;
-    const brk = Number(entry.breakDuration ?? 0) || 0;
-    return Math.max(0, span - brk);
-  }
-  if (typeof entry.hours === 'number' && !Number.isNaN(entry.hours)) {
-    return Math.max(0, Math.round(entry.hours * 60));
-  }
-  return 0;
-}
+/**
+ * Die Arbeitszeit eines Eintrags in Minuten.
+ *
+ * Die Formel steht in `shared/arbeitszeit.ts` und wird von den Cloud
+ * Functions genauso verwendet — die Monatsbilanzen rechnen serverseitig, die
+ * Anzeige hier. Zwei eigene Fassungen ergäben dieselbe Zahl, bis sie es eines
+ * Tages nicht mehr täten, und bemerkt würde es an einem Stundensaldo, der auf
+ * den Lohnzettel geht.
+ *
+ * Hier nur durchgereicht, damit die Aufrufer wie bisher aus `lib/time`
+ * importieren.
+ */
+export { calcWorkMin };
 
 /** Minuten -> 'HH:MM'. */
 export function fmtMin(m: number): string {
@@ -196,6 +192,73 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
   const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
   const sollMin = pflicht.length * dailyH * 60;
   const daysWithoutEntry = pflicht.filter((d) => !bookedDates.has(d)).length;
+
+  const saldoH = Math.round((initial + (istMin - sollMin) / 60) * 100) / 100;
+  return { saldoH, hasConfig: true, daysWithoutEntry };
+}
+
+/**
+ * Derselbe Saldo, gerechnet aus MONATSBILANZEN statt aus Einzelbuchungen.
+ *
+ * Das Ergebnis muss auf die Minute mit `calcOverallSaldo` übereinstimmen —
+ * es ist dieselbe Zahl, nur aus verdichteten Daten. Genau das prüft
+ * `tests/unit/monatsbilanz.test.ts` gegen zufällig erzeugte Monate: eine
+ * Abweichung wäre ein falscher Stundensaldo, und der geht auf den Lohnzettel.
+ *
+ * WAS AUS DEN BILANZEN KOMMT, ist ausschließlich das IST: gearbeitete
+ * Minuten, gezählte Krank- und Urlaubstage, die gebuchten Daten. Das SOLL
+ * wird hier abgeleitet — aus `pflichtTage`, derselben Quelle wie überall
+ * sonst. Deshalb wirkt eine geänderte Wochenstundenzahl auch rückwirkend
+ * richtig, ohne dass eine einzige Bilanz neu geschrieben werden müsste.
+ *
+ * Der laufende Monat wird NICHT aus der Bilanz gelesen, sondern aus den
+ * echten Einträgen: er ändert sich noch, und der Trigger braucht einen
+ * Augenblick. Ein Monteur, der gerade gebucht hat und seinen Saldo unverändert
+ * sähe, würde zu Recht an der App zweifeln.
+ */
+export function saldoAusBilanzen(
+  user: AppUser,
+  bilanzen: Array<{ monat: string; anwesendMin: number; krankTage: number; urlaubTage: number; tage: string[] }>,
+  laufenderMonat: TimeEntry[],
+): SaldoResult {
+  if (!shouldShowOvertime(user.role)) {
+    return { saldoH: 0, hasConfig: false, daysWithoutEntry: 0 };
+  }
+  const initial = Number(user.initialOvertime ?? 0) || 0;
+  if (!user.appStartDate) return { saldoH: initial, hasConfig: false, daysWithoutEntry: 0 };
+
+  const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
+  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+  const dailyH = weeklyH / workDays.length;
+
+  const jetzt = new Date();
+  const aktuellerMonat = `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, '0')}`;
+
+  let istMin = 0;
+  const gebucht = new Set<string>();
+
+  for (const b of bilanzen) {
+    // Der laufende Monat kommt aus den Einträgen, nicht aus der Bilanz.
+    if (b.monat >= aktuellerMonat) continue;
+    istMin += b.anwesendMin;
+    // Krank und Urlaub zählen als Tagessoll — bewertet ERST hier, mit der
+    // aktuellen Konfiguration. Gespeichert ist nur die Anzahl.
+    istMin += (b.krankTage + b.urlaubTage) * dailyH * 60;
+    for (const t of b.tage) {
+      if (t >= user.appStartDate) gebucht.add(t);
+    }
+  }
+
+  for (const e of laufenderMonat) {
+    if (e.date < user.appStartDate) continue;
+    gebucht.add(e.date);
+    if (e.status === 'Anwesend') istMin += calcWorkMin(e);
+    else if (e.status === 'Krank' || e.status === 'Urlaub') istMin += dailyH * 60;
+  }
+
+  const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
+  const sollMin = pflicht.length * dailyH * 60;
+  const daysWithoutEntry = pflicht.filter((d) => !gebucht.has(d)).length;
 
   const saldoH = Math.round((initial + (istMin - sollMin) / 60) * 100) / 100;
   return { saldoH, hasConfig: true, daysWithoutEntry };

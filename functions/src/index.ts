@@ -5,6 +5,11 @@ initializeApp();
 export { syncUserClaims } from './claims.js';
 export { exportCompanyData } from './export.js';
 export { notifyNewOrder, notifyOrderReady } from './notify.js';
+export {
+  bilanzNachziehen,
+  bilanzenNachtlauf,
+  bilanzenNeuAufbauen,
+} from './monatsbilanz.js';
 
 /*
  * Die KI-Spracherfassung wird über eine GENERIERTE Datei eingebunden

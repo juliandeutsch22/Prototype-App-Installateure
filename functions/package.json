@@ -10,7 +10,7 @@
     "build": "tsc",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions",
-    "prebuild": "node scripts/voice-entry.mjs"
+    "prebuild": "node scripts/shared-uebernehmen.mjs && node scripts/voice-entry.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",

@@ -109,43 +109,47 @@ deshalb die Datenschicht als Ganzes und nennt beim Fehlschlag die Funktion.
 Ausnahmen sind möglich, aber nur mit Begründung im Test — etwa die
 Belegschaft, die mit Einstellungen wächst und nicht mit der Zeit.
 
-### Die eine verbleibende Ausnahme: der persönliche Saldo
+### Erledigt: der persönliche Saldo ohne die ganze Historie
 
-Der Saldo läuft seit dem ersten Arbeitstag. Er ist die einzige Zahl, die
-wirklich jede Buchung braucht — ein Fenster würde ihn nicht langsamer machen,
-sondern **falsch**, und er steht auf dem Lohnzettel. Er ist deshalb bewusst
-unbegrenzt geblieben, aber auf die Zeit ab Eintritt eingeschränkt und von der
-Startseite verschwunden: dort steht jetzt, welche Tage fehlen — die Frage, auf
-die man handeln kann.
+Der Saldo läuft seit dem ersten Arbeitstag und war die einzige Zahl im
+Programm, die wirklich jede Buchung brauchte — nach zehn Dienstjahren rund
+2.200 Dokumente bei jedem Aufruf des Zeitkontos. Jetzt: **eine Bilanz je
+Mitarbeiter und Monat**, aus 2.640 Dokumenten werden 120.
 
-Er wächst mit den DIENSTJAHREN EINER Person, nicht mit dem Betrieb: rund 220
-Buchungen im Jahr, nach zehn Jahren 2.200 Dokumente. Das ist die Größenordnung
-eines Seitenaufrufs, nicht die eines Betriebsbestands — aber es wächst weiter.
+Umgesetzt wie im Entwurf beschrieben:
 
-**Der nächste Schritt** ist deshalb eine Monatsbilanz je Mitarbeiter: ein
-Dokument statt zweiundzwanzig, aus 2.640 werden 120. Drei
-Entwurfsentscheidungen sind dabei wesentlich:
+- **Neu berechnen statt hochzählen.** Der Trigger liest den betroffenen Monat
+  komplett neu (rund 20 Dokumente) und schreibt das Ergebnis. Firestore-Trigger
+  laufen mindestens einmal, nicht genau einmal — ein `+= delta` verzählte sich
+  beim Wiederholungslauf unbemerkt. Zweimal laufen ändert hier nichts.
+- **Nur das Ist gespeichert, nie der Saldo.** Gearbeitete Minuten, die ANZAHL
+  der Krank- und Urlaubstage, die gebuchten Daten. Das Soll bleibt abgeleitet;
+  ändert die Geschäftsführung jemandes Wochenstunden, stimmt der Saldo
+  rückwirkend, ohne dass eine einzige Bilanz neu geschrieben wird.
+- **Drift heilt von selbst.** Ein nächtlicher Lauf rechnet den laufenden und
+  den Vormonat neu. Eine Abweichung kann höchstens einen Tag alt werden.
+- **Eine Quelle für die Rechenformel.** `shared/arbeitszeit.ts` wird von der
+  App importiert und beim Build in die Functions kopiert. Die Kopie ist nicht
+  eingecheckt und wird jedes Mal neu geschrieben — sie kann nicht abweichen.
+  Zwei von Hand gepflegte Fassungen derselben Formel wären hier der
+  gefährlichste Fehler gewesen.
 
-- **Neu berechnen statt hochzählen.** Firestore-Trigger laufen MINDESTENS
-  einmal, nicht GENAU einmal. Ein `+= delta` verzählt sich beim
-  Wiederholungslauf, unbemerkt und dauerhaft. Ein Trigger, der den betroffenen
-  Monat komplett neu rechnet (rund 20 Dokumente), ist von Natur aus
-  wiederholbar.
-- **Nur das Ist speichern, nie den Saldo.** Der Saldo hängt an Wochenstunden,
-  Arbeitstagen, Eintrittsdatum und Feiertagen. Ändert die Geschäftsführung
-  jemandes Wochenstunden, ändert sich rückwirkend jeder Tag; ein gespeicherter
-  Saldo wäre ab dem Moment falsch. Das Soll bleibt abgeleitet und kostet
-  nichts.
-- **Drift automatisch heilen.** Kein Knopf zum Neuaufbau, sondern Bausteine,
-  die klein genug sind, dass ein nächtlicher Lauf den laufenden und den
-  Vormonat einfach neu rechnet.
+**Der Vollständigkeits-Marker ist der wichtigste Teil.** Eine fehlende Bilanz
+ist von einem Monat ohne Buchungen nicht zu unterscheiden. Ohne Prüfung
+ergäbe ein lückenhafter Bestand einen zu niedrigen Saldo — lautlos, und die
+Zahl steht auf dem Lohnzettel. Das Zeitkonto benutzt die Bilanzen deshalb nur,
+wenn ein Marker bestätigt, dass sie ab dem Eintrittsmonat lückenlos vorliegen.
+Sonst rechnet es direkt aus den Buchungen: langsamer und richtig.
 
-Die Saldo-Rechnung liegt heute in `src/lib/time.ts` und damit im Client. Ein
-Server-Job braucht sie ebenfalls — sie zu KOPIEREN wäre der gefährlichste Teil
-der Übung: zwei Implementierungen derselben Zahl, und die geht auf den
-Lohnzettel. Der erste Schritt ist deshalb, sie an einen Ort zu legen, den
-beide Seiten benutzen können. In `TimeView` ist die Nahtstelle bereits
-markiert — dort wird genau ein Aufruf ersetzt.
+Geprüft wird die eine Eigenschaft, auf die es ankommt: der Saldo aus Bilanzen
+muss auf die Minute dem aus Einzelbuchungen entsprechen — gegen fünfzehn
+zufällig erzeugte Verläufe mit Teilzeit, Eintritt zur Monatsmitte, Feiertagen,
+Krankentagen und Nachtschichten. Gegengeprüft: ein eingebauter Rechenfehler
+lässt den Test ausschlagen.
+
+Der Erstaufbau steht als Knopf in den Einstellungen. Er liest einmal die
+gesamte Buchungsgeschichte — genau das, was danach vermieden wird — und
+gehört deshalb zu einem ruhigen Zeitpunkt angestoßen.
 
 ## Startseite: was gemessen wurde und was noch offen ist
 
