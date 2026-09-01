@@ -13,6 +13,7 @@ import AdminOrdersView from '@/features/orders/AdminOrdersView';
 import StockView from '@/features/orders/StockView';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
 import CustomersView from '@/features/customers/CustomersView';
+import QuotesView from '@/features/quotes/QuotesView';
 import WorkSheetView from '@/features/worksheets/WorkSheetView';
 import WorkSheetsListView from '@/features/worksheets/WorkSheetsListView';
 import MyProjectsView from '@/features/projects/MyProjectsView';
@@ -125,6 +126,20 @@ function AppRoutes() {
             ]}
           >
             <WorkSheetsListView />
+          </RequireRole>
+        }
+      />
+      {/*
+        Angebote: kalkulieren ist Leitungssache, die Buchhaltung sieht mit —
+        ein angenommenes Angebot ist die Vorstufe der Rechnung.
+      */}
+      <Route
+        path="/quotes"
+        element={
+          <RequireRole
+            roles={['Buchhaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
+          >
+            <QuotesView />
           </RequireRole>
         }
       />

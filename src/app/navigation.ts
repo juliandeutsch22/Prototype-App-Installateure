@@ -48,6 +48,8 @@ export const NAV: NavItem[] = [
 
   // Kunden VOR den Baustellen: der Kunde ist der Ausgangspunkt, die Baustelle
   // hängt an ihm. Auch die Buchhaltung braucht ihn — für die Rechnungsadresse.
+  // Angebot vor Baustelle: so laeuft der Auftrag auch in Wirklichkeit.
+  { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Verwaltung' },
   { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'users', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Verwaltung' },
   { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Verwaltung' },
   { path: '/admin-orders', label: 'Anforderungen', short: 'Anforderungen', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung' },

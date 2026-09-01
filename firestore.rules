@@ -225,6 +225,24 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // --- quotes: Angebote ---
+    //
+    // Kalkulieren ist Leitungssache: hier stehen Preise, Margen und
+    // Stundenannahmen. Die Buchhaltung darf mitlesen — ein angenommenes
+    // Angebot ist die Vorstufe der Rechnung.
+    //
+    // Geloescht wird nur der Entwurf. Ein versendetes oder abgelehntes
+    // Angebot bleibt nachvollziehbar: was dem Kunden genannt wurde, gehoert
+    // nicht spurlos entfernt.
+    match /quotes/{id} {
+      allow read: if ownsExisting() && (isLeadership() || isBuchOrTop());
+      allow create: if isLeadership() && ownsIncoming();
+      allow update: if isLeadership() && ownsExisting() && ownsIncoming()
+        && companyUnchanged();
+      allow delete: if isLeadership() && ownsExisting()
+        && resource.data.status == 'Entwurf';
+    }
+
     // --- customers: Kundenstammdaten ---
     //
     // Lesen darf das ganze Büro: die Buchhaltung braucht die Rechnungsadresse,
@@ -298,20 +316,32 @@ service cloud.firestore {
       // nicht, `resource` ist null, und eine Prüfung auf
       // resource.data.companyId würde die Regel scheitern lassen — der erste
       // Rechnungslauf eines Betriebs wäre dauerhaft gesperrt.
+      // Zwei getrennte Nummernkreise, zwei Zaehler: Rechnungen und Angebote.
+      // Ein gemeinsamer Zaehler wuerde beide loechrig machen.
       function ownCounter() {
-        return signedIn() && id == tokenCompany() + '_invoices';
+        return signedIn()
+          && (id == tokenCompany() + '_invoices' || id == tokenCompany() + '_quotes');
       }
       function billing() {
         return hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']);
       }
+      // Angebote kalkuliert die Leitung — auch die Projektleitung, die sonst
+      // keine Rechnungen schreibt.
+      function darfZaehlen() {
+        return id == tokenCompany() + '_quotes' ? isLeadership() : billing();
+      }
 
-      allow read: if ownCounter() && billing();
-      allow create: if ownCounter() && billing() && ownsIncoming()
+      allow read: if ownCounter() && darfZaehlen();
+      allow create: if ownCounter() && darfZaehlen() && ownsIncoming()
         && request.resource.data.lastSeq is int
         && request.resource.data.lastSeq > 0;
-      allow update: if ownCounter() && billing() && ownsIncoming() && companyUnchanged()
+      allow update: if ownCounter() && darfZaehlen() && ownsIncoming() && companyUnchanged()
         && request.resource.data.lastSeq is int
-        && request.resource.data.lastSeq > resource.data.lastSeq;
+        // Der Angebotszaehler beginnt zum Jahreswechsel neu bei 1; der
+        // Rechnungskreis laeuft dagegen monoton weiter.
+        && (id == tokenCompany() + '_quotes'
+            ? request.resource.data.lastSeq > 0
+            : request.resource.data.lastSeq > resource.data.lastSeq);
       allow delete: if false;
     }
 

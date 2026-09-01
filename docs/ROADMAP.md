@@ -20,10 +20,7 @@ Reihenfolge nach Wirkung je Aufwand:
 3. **Buchhaltungs-Übergabe** — ERLEDIGT, siehe unten. *Weiterhin vorab zu
    klären:* ob der Betrieb Barumsätze hat — dann wäre die
    Registrierkassenpflicht ein eigenes Thema.
-4. **Angebot und Vorkalkulation.** Die Kette beginnt in der App bei der
-   Baustelle, in Wirklichkeit bei Anfrage → Angebot → Auftrag. Konkrete Folge
-   heute: die `estimatedHours`, gegen die die Budget-Ampel misst, tippt jemand
-   ein zweites Mal ab. Die Ampel misst gegen eine Zahl, der niemand traut.
+4. **Angebot und Vorkalkulation** — ERLEDIGT, siehe unten.
 5. **Nachkalkulation in Geld.** Die Ampel vergleicht Stunden gegen
    Stundenbudget, nicht Kosten gegen Erlös. Ob eine Baustelle Geld verdient
    hat, weiß heute niemand — und das ist die Zahl, die eine Geschäftsführung
@@ -72,6 +69,44 @@ Feldbeschriftungen sagen das jetzt auch.
 Geprüft: fünf Komponententests plus der vollständige Durchlauf im Browser
 gegen die Emulatoren — Vorschau, Übernahme, Kundenauswahl im
 Baustellenformular, Historie.
+
+## Erledigt: Angebot und Vorkalkulation
+
+Der fehlende Schritt vor der Baustelle. Bisher begann alles beim Auftrag, und
+die kalkulierten Stunden landeten von Hand abgetippt im Baustellenformular —
+die Budget-Ampel maß gegen eine Zahl ohne Herkunft.
+
+**Ein angenommenes Angebot legt die Baustelle an und bringt sein Stundenbudget
+mit.** Die Nummer bleibt zuordenbar: aus `AN-2026-0007` wird `B-2026-0007`.
+Erst damit bedeutet die Ampel etwas.
+
+**Der Haken „zählt als Arbeitszeit" ist wichtiger, als er aussieht.** Eine
+Anfahrtspauschale wird oft in Stunden angesetzt und ist trotzdem keine
+Arbeitszeit. Würde man einfach alle Stunden-Zeilen summieren, bekäme die
+Baustelle ein zu hohes Budget und die Ampel bliebe grün, während der Auftrag
+längst gerissen ist — ein Fehler, der Geld kostet und erst bei der
+Nachkalkulation auffällt. Im Test: 35 h statt 38 h.
+
+**Positionen und Summen benutzen dieselbe Rechnung wie die Rechnung selbst**
+(`calcTotals`, `positionNetto`, `cent`). Zwei getrennte Rechenwege hätten
+früher oder später zwei verschiedene Summen für dieselben Positionen ergeben —
+eine im Angebot, eine auf der Rechnung, und der Kunde hätte beide.
+
+**Eigener Nummernkreis mit eigenem Zähler**, in einer Transaktion gezogen.
+Zwei Personen, die gleichzeitig kalkulieren, bekämen sonst dieselbe Nummer.
+Der Angebotskreis beginnt zum Jahreswechsel neu bei 1; der Rechnungskreis
+läuft monoton weiter — die Rules unterscheiden das ausdrücklich.
+
+**Im Emulator gefunden:** die Rules erlaubten nur den Zähler `_invoices`. Der
+Angebotszähler war damit gesperrt und das Anlegen schlug fehl — sichtbar nur,
+weil gegen die echten Rules getestet wurde.
+
+Gelöscht wird nur der Entwurf. Ein versendetes oder abgelehntes Angebot bleibt
+nachvollziehbar: was dem Kunden genannt wurde, gehört nicht spurlos entfernt.
+
+Geprüft: drei Komponententests plus der vollständige Durchlauf im Browser —
+Kalkulation (€ 2.530 netto, 35 h), Anlegen, Annehmen, und die entstandene
+Baustelle mit `estimatedHours: 35` und verknüpftem Kunden.
 
 ## Erledigt: Buchhaltungs-Export (Rechnungsausgangsbuch)
 
