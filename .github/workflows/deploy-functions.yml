@@ -117,6 +117,52 @@ jobs:
           fi
           echo "Beide Secrets sind hinterlegt."
 
+      # Cloud Scheduler VORAB prüfen.
+      #
+      # Der nächtliche Lauf der Monatsbilanzen (`bilanzenNachtlauf`) ist eine
+      # zeitgesteuerte Function und verlangt cloudscheduler.googleapis.com.
+      # Fehlt die API, bricht Firebase MITTEN im Deploy ab — und zwar den
+      # ganzen: der Bilanz-Trigger und der Erstaufbau kommen dann ebenfalls
+      # nicht durch, obwohl sie mit dem Zeitplan nichts zu tun haben. Genau
+      # das ist beim ersten Deploy passiert, mit einer Meldung, die nur im
+      # Protokoll steht.
+      #
+      # Dieselbe Vorabprüfung wie bei den Secrets: lieber vorher klar sagen,
+      # was fehlt, als hinterher raten lassen.
+      - name: Cloud Scheduler vorhanden?
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        run: |
+          token="$(npx --yes google-auth-library-cli 2>/dev/null || true)"
+          # Ueber die Service-Usage-API nachsehen, ob die API aktiv ist.
+          zugriff="$(gcloud auth application-default print-access-token 2>/dev/null || true)"
+          if [ -z "$zugriff" ]; then
+            echo "Zustand liess sich nicht pruefen — der Deploy meldet es sonst selbst."
+            exit 0
+          fi
+          status="$(curl -s -H "Authorization: Bearer $zugriff" \
+            "https://serviceusage.googleapis.com/v1/projects/$PROJECT_ID/services/cloudscheduler.googleapis.com" \
+            | grep -o '"state": *"[A-Z]*"' | head -1)"
+          case "$status" in
+            *ENABLED*)
+              echo "Cloud Scheduler ist aktiviert."
+              ;;
+            *)
+              echo "::error::Cloud Scheduler ist im Projekt nicht aktiviert."
+              echo ""
+              echo "Der naechtliche Lauf der Monatsbilanzen braucht diese API."
+              echo "Ohne sie scheitert der GESAMTE Functions-Deploy, auch der"
+              echo "Bilanz-Trigger und der Erstaufbau."
+              echo ""
+              echo "Einmalig aktivieren:"
+              echo "  https://console.cloud.google.com/apis/library/cloudscheduler.googleapis.com?project=$PROJECT_ID"
+              echo ""
+              echo "Danach diesen Workflow erneut starten."
+              exit 1
+              ;;
+          esac
+
       # Aufräumregel für die Container-Abbilder, EINMAL und ausdrücklich.
       #
       # Functions v2 legt für jede Version ein Container-Abbild in der
