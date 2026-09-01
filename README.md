@@ -191,9 +191,24 @@ Der Workflow läuft bei Änderungen an `functions/**` und von Hand.
 
 4. **Zusätzliche IAM-Rollen** für das Dienstkonto, über die vom Hosting-Deploy
    hinaus: *Cloud Functions Admin*, *Service Account User*, *Cloud Build
-   Editor*, *Artifact Registry Administrator*, *Eventarc Admin* und
-   *Secret Manager Secret Accessor*. Functions v2 baut Container und hängt an
-   Eventarc — ohne diese Rollen bricht der Deploy mit Berechtigungsfehlern ab.
+   Editor*, *Artifact Registry Administrator*, *Eventarc Admin*,
+   *Secret Manager Secret Accessor* und ***Cloud Scheduler-Administrator***.
+   Functions v2 baut Container und hängt an Eventarc — ohne diese Rollen
+   bricht der Deploy mit Berechtigungsfehlern ab.
+
+   *Cloud Scheduler-Administrator* kam mit dem nächtlichen Lauf der
+   Monatsbilanzen dazu. Die aktivierte API allein genügt nicht: das
+   Dienstkonto muss den Zeitplan-Job auch anlegen und ändern dürfen. Fehlt
+   die Rolle, deployen alle übrigen Functions sauber und nur die
+   zeitgesteuerte scheitert mit
+
+   ```
+   403 … lacks IAM permission "cloudscheduler.jobs.update"
+   ```
+
+   Der Deploy meldet dann insgesamt einen Fehler, obwohl Trigger und
+   Callable bereits live sind — die Meldung ist also enger zu lesen, als sie
+   klingt.
 
 5. **Drei Rollen für die Google-eigenen Dienstkonten.** Das ist die
    Voraussetzung, an der der Deploy zuletzt gescheitert ist:
