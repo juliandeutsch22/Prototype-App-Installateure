@@ -58,6 +58,25 @@ export interface Company {
   defaultVatRate?: number; // z. B. 0.20
   /** Stundensätze und Zuschläge, gepflegt von der Geschäftsführung. */
   rates?: InvoiceRates;
+  /**
+   * Was eine Arbeitsstunde den BETRIEB kostet — nicht, was sie dem Kunden
+   * verrechnet wird.
+   *
+   * Die Unterscheidung ist der ganze Punkt der Nachkalkulation. `rates.fach`
+   * ist der ERLÖS; die Kosten sind Lohn plus Lohnnebenkosten plus anteilige
+   * Gemeinkosten und liegen erfahrungsgemäß deutlich darunter. Wer beide
+   * verwechselt, bekommt eine Marge von null und hält sie für ein Ergebnis.
+   *
+   * Bewusst ein einziger Mischsatz je Qualifikation statt echter Personalkosten
+   * je Mitarbeiter: die Gehälter einzelner Monteure gehören nicht in eine
+   * Baustellenauswertung, die die Projektleitung ansieht.
+   */
+  costRates?: {
+    /** Kosten je Facharbeiterstunde. */
+    fach: number;
+    /** Kosten je Helferstunde. */
+    helper: number;
+  };
   createdAt?: number;
 }
 
@@ -173,6 +192,57 @@ export interface UserPrefs {
  * der sonst geltenden Regel, hier aber zwingend: mit der Unterschrift wird
  * der Inhalt festgeschrieben.
  */
+/**
+ * Ein Angebot.
+ *
+ * Schließt die Kette nach vorne: Anfrage → Angebot → Auftrag → Baustelle.
+ * Ohne diesen Schritt beginnt alles bei der Baustelle, und die kalkulierten
+ * Stunden werden ein zweites Mal von Hand eingetippt — die Budget-Ampel misst
+ * dann gegen eine Zahl ohne Herkunft.
+ *
+ * Positionen und Summen haben bewusst dieselbe Form wie bei der Rechnung
+ * (`InvoicePosition`, `calcTotals`): ein Angebot ist rechnerisch dasselbe,
+ * nur nach vorne gerichtet. Zwei getrennte Rechenwege hätten früher oder
+ * später zwei verschiedene Summen für dieselben Positionen ergeben.
+ */
+export interface Quote {
+  id: string;
+  companyId: string;
+  /** 'AN-YYYY-NNNN' */
+  quoteNumber: string;
+  customerId?: string;
+  customerName: string;
+  /** Wo gearbeitet werden soll — noch keine Baustelle, die gibt es erst mit dem Auftrag. */
+  address?: string;
+  quoteDate: string;
+  /** Bindefrist. Ein Angebot ohne Ablauf bindet den Betrieb unbegrenzt an seine Preise. */
+  validUntil: string;
+  status: 'Entwurf' | 'Versendet' | 'Angenommen' | 'Abgelehnt';
+  positions: { label: string; qty: number; unit: string; unitPrice: number; netto: number }[];
+  discount?: InvoiceDiscount | null;
+  discountAmount?: number;
+  subtotalNetto: number;
+  totalNetto: number;
+  totalVat: number;
+  totalBrutto: number;
+  vatRate: number;
+  /**
+   * Die kalkulierten Facharbeiterstunden.
+   *
+   * Getrennt von den Positionen gehalten, weil genau diese Zahl beim
+   * Zuschlag als Stundenbudget in die Baustelle wandert — und damit zur
+   * Messlatte der Budget-Ampel wird. Aus den Positionen ließe sie sich zwar
+   * ableiten, aber nur solange niemand eine Position mit der Einheit „h"
+   * einfügt, die keine Arbeitszeit ist (Anfahrtspauschale etwa).
+   */
+  kalkulierteStunden: number;
+  notes?: string;
+  /** Bei Annahme: die Baustelle, die daraus entstanden ist. */
+  projectNumber?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 export interface WorkSheet {
   id: string;
   companyId: string;

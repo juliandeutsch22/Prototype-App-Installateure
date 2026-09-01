@@ -17,19 +17,11 @@ Reihenfolge nach Wirkung je Aufwand:
 1. **Kundenstammdaten** — ERLEDIGT, siehe unten.
 2. **Digitaler Handwerksschein** — Stufe 1 ERLEDIGT, siehe unten. Stufen 2
    bis 4 (Fotos, Versand, Verbindung zur Rechnung) stehen im Fahrplan.
-3. **Buchhaltungs-Übergabe.** Heute: CSV für Stunden, PDF für Rechnungen. Der
-   Steuerberater braucht Rechnungen strukturiert mit Konten und Steuersätzen —
-   in Österreich meist BMD oder RZL. Ohne das tippt jemand jede Rechnung
-   erneut ab. *Vorab zu klären:* ob der Betrieb Barumsätze hat — dann wäre die
+3. **Buchhaltungs-Übergabe** — ERLEDIGT, siehe unten. *Weiterhin vorab zu
+   klären:* ob der Betrieb Barumsätze hat — dann wäre die
    Registrierkassenpflicht ein eigenes Thema.
-4. **Angebot und Vorkalkulation.** Die Kette beginnt in der App bei der
-   Baustelle, in Wirklichkeit bei Anfrage → Angebot → Auftrag. Konkrete Folge
-   heute: die `estimatedHours`, gegen die die Budget-Ampel misst, tippt jemand
-   ein zweites Mal ab. Die Ampel misst gegen eine Zahl, der niemand traut.
-5. **Nachkalkulation in Geld.** Die Ampel vergleicht Stunden gegen
-   Stundenbudget, nicht Kosten gegen Erlös. Ob eine Baustelle Geld verdient
-   hat, weiß heute niemand — und das ist die Zahl, die eine Geschäftsführung
-   eigentlich will.
+4. **Angebot und Vorkalkulation** — ERLEDIGT, siehe unten.
+5. **Nachkalkulation in Geld** — ERLEDIGT, siehe unten.
 
 Weiter offen, aber nachrangig: Wartungsverträge und wiederkehrende Termine
 (die jährliche Thermenwartung ist planbare Auslastung), Urlaub als Antrag mit
@@ -74,6 +66,117 @@ Feldbeschriftungen sagen das jetzt auch.
 Geprüft: fünf Komponententests plus der vollständige Durchlauf im Browser
 gegen die Emulatoren — Vorschau, Übernahme, Kundenauswahl im
 Baustellenformular, Historie.
+
+## Erledigt: Nachkalkulation
+
+Die Budget-Ampel vergleicht Stunden gegen Stundenbudget: sie sagt, ob mehr
+gearbeitet wurde als geplant. Sie sagt nicht, ob etwas übrig geblieben ist.
+Eine Baustelle kann im Stundenbudget bleiben und trotzdem Verlust machen, wenn
+der Preis zu niedrig kalkuliert war.
+
+**Die entscheidende Unterscheidung:** `rates.fach` ist der
+VERRECHNUNGSSATZ — der Erlös. Was die Stunde den Betrieb KOSTET (Lohn,
+Lohnnebenkosten, anteilige Gemeinkosten) ist eine andere Zahl und liegt
+darunter. Deshalb gibt es jetzt getrennte `costRates` in den Einstellungen.
+Wer beide verwechselt, bekommt eine Marge von null und hält sie für ein
+Ergebnis. Die Einstellungen zeigen den Deckungsbeitrag je Stunde direkt an und
+warnen, wenn der Verrechnungssatz nicht über den Kosten liegt.
+
+**Der Erlös kommt bevorzugt aus den Rechnungen** — was tatsächlich verrechnet
+wurde, ist die belastbare Zahl. Erst wenn noch nicht abgerechnet ist, tritt
+das angenommene Angebot an seine Stelle, und die Ansicht schreibt dazu „noch
+nicht verrechnet". Stornierte Rechnungen zählen nicht.
+
+**Ohne bekannten Erlös steht „keine Aussage", nicht null Prozent.** Eine Null
+läse sich wie „nichts verdient" und wäre eine Behauptung über eine Baustelle,
+über die nichts bekannt ist.
+
+**Die Grenze steht unter den Zahlen, nicht im Kleingedruckten:** Es ist ein
+DECKUNGSBEITRAG, kein Gewinn. Materialkosten fehlen, weil die
+Materialanforderung in dieser App bewusst keinen Preis trägt. Eine Baustelle
+mit dünnem Deckungsbeitrag ist im Ergebnis vermutlich negativ — deshalb steht
+die Ampel schon unter zwanzig Prozent auf Gelb, obwohl die Zahl formal positiv
+ist.
+
+Nur für die Geschäftsführung: hier stehen Margen, und die Projektleitung sieht
+sie nicht.
+
+Geprüft: neun Tests plus der Durchlauf im Browser — der Zustand ohne
+Kostensätze, das Setzen (Deckungsbeitrag 23,00 € je Stunde bei 65 gegen 42),
+und alle drei Erlösquellen nebeneinander.
+
+## Erledigt: Angebot und Vorkalkulation
+
+Der fehlende Schritt vor der Baustelle. Bisher begann alles beim Auftrag, und
+die kalkulierten Stunden landeten von Hand abgetippt im Baustellenformular —
+die Budget-Ampel maß gegen eine Zahl ohne Herkunft.
+
+**Ein angenommenes Angebot legt die Baustelle an und bringt sein Stundenbudget
+mit.** Die Nummer bleibt zuordenbar: aus `AN-2026-0007` wird `B-2026-0007`.
+Erst damit bedeutet die Ampel etwas.
+
+**Der Haken „zählt als Arbeitszeit" ist wichtiger, als er aussieht.** Eine
+Anfahrtspauschale wird oft in Stunden angesetzt und ist trotzdem keine
+Arbeitszeit. Würde man einfach alle Stunden-Zeilen summieren, bekäme die
+Baustelle ein zu hohes Budget und die Ampel bliebe grün, während der Auftrag
+längst gerissen ist — ein Fehler, der Geld kostet und erst bei der
+Nachkalkulation auffällt. Im Test: 35 h statt 38 h.
+
+**Positionen und Summen benutzen dieselbe Rechnung wie die Rechnung selbst**
+(`calcTotals`, `positionNetto`, `cent`). Zwei getrennte Rechenwege hätten
+früher oder später zwei verschiedene Summen für dieselben Positionen ergeben —
+eine im Angebot, eine auf der Rechnung, und der Kunde hätte beide.
+
+**Eigener Nummernkreis mit eigenem Zähler**, in einer Transaktion gezogen.
+Zwei Personen, die gleichzeitig kalkulieren, bekämen sonst dieselbe Nummer.
+Der Angebotskreis beginnt zum Jahreswechsel neu bei 1; der Rechnungskreis
+läuft monoton weiter — die Rules unterscheiden das ausdrücklich.
+
+**Im Emulator gefunden:** die Rules erlaubten nur den Zähler `_invoices`. Der
+Angebotszähler war damit gesperrt und das Anlegen schlug fehl — sichtbar nur,
+weil gegen die echten Rules getestet wurde.
+
+Gelöscht wird nur der Entwurf. Ein versendetes oder abgelehntes Angebot bleibt
+nachvollziehbar: was dem Kunden genannt wurde, gehört nicht spurlos entfernt.
+
+Geprüft: drei Komponententests plus der vollständige Durchlauf im Browser —
+Kalkulation (€ 2.530 netto, 35 h), Anlegen, Annehmen, und die entstandene
+Baustelle mit `estimatedHours: 35` und verknüpftem Kunden.
+
+## Erledigt: Buchhaltungs-Export (Rechnungsausgangsbuch)
+
+Der Steuerberater bekam PDFs und tippte jede Rechnung ab — Kosten, Zeit, und
+jede Abtipperei eine Gelegenheit für einen Zahlendreher, ausgerechnet bei den
+Zahlen für die Umsatzsteuervoranmeldung. Jetzt ein CSV mit Nummer, Datum,
+Kunde, UID, Baustelle, Netto, USt-Satz, USt-Betrag, Brutto, Zahlungsstatus und
+Storno.
+
+**Warum ein dokumentiertes CSV und kein BMD- oder DATEV-Format.** Beide haben
+feste Spaltenlayouts mit Konten- und Steuerschlüsseln, die sich nach dem
+Kontenplan der Kanzlei richten — welche Erlöskonten dieser Betrieb bebucht,
+weiß nur der Steuerberater. Ein geratenes Format wäre schlimmer als keins: es
+sieht importierbar aus und bucht auf die falschen Konten. Das CSV enthält alle
+Felder, die BMD, RZL und DATEV für einen Import brauchen; die Zuordnung macht
+die Kanzlei einmal beim Einrichten.
+
+**Stornierte Rechnungen gehen mit, zählen aber nicht in die Summe.** Sie
+wegzufiltern wäre der naheliegende Fehler: eine stornierte Rechnung ist kein
+Nichts, sondern ein Vorgang, der im Journal stehen muss — und ihr Fehlen
+erzeugt eine Lücke im Nummernkreis.
+
+**Die Lückenprüfung läuft mit.** Eine fehlende Nummer heißt: eine Rechnung
+fehlt, oder sie wurde gelöscht statt storniert. Beides gehört geklärt, BEVOR
+der Export die Kanzlei erreicht — die Ansicht sagt es vorher, nicht der Prüfer
+hinterher. Geprüft wird je Jahr getrennt, sonst wäre der Sprung von
+RE-2025-0087 auf RE-2026-0001 jedes Jahr ein Fehlalarm.
+
+**Die UID-Nummer kommt aus den Kundenstammdaten** — ein direkter Gewinn aus
+Punkt 1. Vor ihnen gab es sie im System schlicht nicht, und für Rechnungen an
+Unternehmen im EU-Ausland ist sie Pflichtangabe.
+
+Geprüft: zehn Tests plus der Durchlauf im Browser gegen die Emulatoren mit
+einer absichtlich fehlenden Nummer — die Lücke wurde gemeldet, die Summe
+schloss den Storno korrekt aus.
 
 ## Erledigt: Handwerksschein Stufe 1
 
