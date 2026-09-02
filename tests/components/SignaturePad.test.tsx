@@ -35,6 +35,7 @@ interface Aufzeichnung {
 function canvasStellen(): Aufzeichnung {
   const auf: Aufzeichnung = { breiten: [], striche: 0 };
   const ctx = {
+    setTransform: vi.fn(),
     scale: vi.fn(),
     beginPath: vi.fn(),
     moveTo: vi.fn(),
@@ -116,7 +117,7 @@ describe('Unterschriftsfeld — der Finger', () => {
       feld.dispatchEvent(finger('touchend', 40, 30));
     });
 
-    expect(gemeldet).toHaveBeenCalledWith('data:image/png;base64,AAA');
+    expect(gemeldet).toHaveBeenCalledWith(true);
   });
 
   it('zeichnet WEITER, wenn der Browser die Zeigergeste abbricht', () => {
@@ -145,7 +146,7 @@ describe('Unterschriftsfeld — der Finger', () => {
     });
 
     expect(auf.striche).toBe(nachAbbruch + 8);
-    expect(gemeldet).toHaveBeenCalledWith('data:image/png;base64,AAA');
+    expect(gemeldet).toHaveBeenCalledWith(true);
   });
 
   it('haelt die Geste fest, damit die Seite nicht scrollt', () => {
@@ -216,7 +217,7 @@ describe('Unterschriftsfeld — Maus und Stift', () => {
     });
 
     expect(auf.striche).toBeGreaterThan(1);
-    expect(gemeldet).toHaveBeenCalledWith('data:image/png;base64,AAA');
+    expect(gemeldet).toHaveBeenCalledWith(true);
   });
 
   it('reisst nicht ab, wenn die Maus ueber den Feldrand geraet', () => {
@@ -313,7 +314,7 @@ describe('Unterschriftsfeld — die Flaeche', () => {
       screen.getByRole('button', { name: 'Neu zeichnen' }).click();
     });
 
-    expect(gemeldet).toHaveBeenCalledWith(null);
+    expect(gemeldet).toHaveBeenCalledWith(false);
     expect(screen.queryByRole('button', { name: 'Neu zeichnen' })).not.toBeInTheDocument();
   });
 });

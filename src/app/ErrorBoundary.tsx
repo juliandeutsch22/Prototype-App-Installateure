@@ -6,6 +6,8 @@ interface Props {
 }
 interface State {
   error: Error | null;
+  /** Ein Neuladen ist bereits ausgelöst — dann keine Fehlertafel zeigen. */
+  laedtNeu: boolean;
 }
 
 /**
@@ -24,10 +26,12 @@ export { istNachladeFehler } from '@/lib/nachladen';
  * keinen Hook.
  */
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null };
+  state: State = { error: null, laedtNeu: false };
 
   static getDerivedStateFromError(error: Error): State {
-    return { error };
+    // Ein Nachladefehler heilt gleich durch ein Neuladen. Bis dahin gehört
+    // hier KEINE Alarmtafel hin — sie wäre eine Sekunde später ohnehin weg.
+    return { error, laedtNeu: istNachladeFehler(error) };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -46,12 +50,39 @@ export default class ErrorBoundary extends Component<Props, State> {
      * Erkennen des Deploys bereits abgelegt hat — sie zeigt auf die Namen,
      * die es auf dem Server noch gibt.
      */
-    if (istNachladeFehler(error) && darfNeuLaden()) window.location.reload();
+    if (!istNachladeFehler(error)) return;
+    if (darfNeuLaden()) {
+      window.location.reload();
+      return;
+    }
+    /**
+     * Der Schleifenschutz hat gegriffen — es wurde eben schon einmal neu
+     * geladen und es hat nicht geholfen. JETZT gehört die Tafel hin: sonst
+     * stünde „wird neu geladen" für immer da, und niemand käme weiter.
+     */
+    this.setState({ laedtNeu: false });
   }
 
   render() {
-    const { error } = this.state;
+    const { error, laedtNeu } = this.state;
     if (!error) return this.props.children;
+
+    /**
+     * WÄHREND DES NEULADENS EIN RUHIGES BILD, KEIN ALARM.
+     *
+     * Aus dem Betrieb gemeldet: „die Meldung, dass etwas nicht geladen werden
+     * konnte, erscheint immer noch, wenn auch nur ganz kurz." Genau das war
+     * es — die volle Fehlertafel mit „Da ist etwas schiefgelaufen" blitzte
+     * auf, bevor das ausgelöste Neuladen griff. Der Vorgang ist harmlos, das
+     * Bild war es nicht.
+     */
+    if (laedtNeu) {
+      return (
+        <div className="flex min-h-full items-center justify-center p-6">
+          <p className="text-sm text-ink-muted">Neue Fassung wird geladen …</p>
+        </div>
+      );
+    }
 
     return (
       <div className="flex min-h-full items-center justify-center p-6">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listAssignmentsForUserInRange } from '@/lib/db/assignments';
@@ -17,7 +17,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
-import SignaturePad from '@/components/SignaturePad';
+import SignaturePad, { type SignaturePadHandle } from '@/components/SignaturePad';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { InputField } from '@/components/Field';
@@ -68,9 +68,19 @@ export default function WorkSheetView() {
 
   /** Unterschriften — erst wenn beide da sind, lässt sich einfrieren. */
   const [monteurName, setMonteurName] = useState(user?.name ?? '');
-  const [monteurBild, setMonteurBild] = useState<string | null>(null);
   const [kundeName, setKundeName] = useState('');
-  const [kundeBild, setKundeBild] = useState<string | null>(null);
+  /**
+   * Nur OB unterschrieben ist, nicht WOMIT.
+   *
+   * Vorher lag hier bei jedem Strichende ein frisch erzeugtes PNG von rund
+   * hundert Kilobyte — zwei Felder, jeder Strich, jedes Mal ein Neurendern
+   * dieser ganzen Ansicht. Das Bild wird jetzt genau einmal geholt: beim
+   * Einfrieren.
+   */
+  const [monteurGesetzt, setMonteurGesetzt] = useState(false);
+  const [kundeGesetzt, setKundeGesetzt] = useState(false);
+  const monteurFeld = useRef<SignaturePadHandle>(null);
+  const kundeFeld = useRef<SignaturePadHandle>(null);
 
   const [bestehende, setBestehende] = useState<WithId<WorkSheet>[]>([]);
 
@@ -201,10 +211,19 @@ export default function WorkSheetView() {
    * anklickbar aussieht und nichts tut, ist schlimmer als ein gesperrter.
    */
   const bereit =
-    !!projekt && !!monteurBild && !!kundeBild && kundeName.trim().length > 1;
+    !!projekt && monteurGesetzt && kundeGesetzt && kundeName.trim().length > 1;
 
   async function unterschreibenUndEinfrieren() {
-    if (!user || !projekt || !monteurBild || !kundeBild) return;
+    if (!user || !projekt) return;
+    // Die Bilder erst JETZT aus den Feldern holen — und beide, bevor
+    // irgendetwas geschrieben wird. Fehlt eines, wird gar nichts angelegt:
+    // ein Schein mit nur einer Unterschrift waere ein halber Beleg.
+    const monteurBild = monteurFeld.current?.bildLesen() ?? null;
+    const kundeBild = kundeFeld.current?.bildLesen() ?? null;
+    if (!monteurBild || !kundeBild) {
+      setError('Die Unterschriften konnten nicht gelesen werden. Bitte noch einmal zeichnen.');
+      return;
+    }
     setSpeichert(true);
     setError(null);
     try {
@@ -465,7 +484,11 @@ export default function WorkSheetView() {
                   onChange={(e) => setMonteurName(e.target.value)}
                 />
                 <div className="mt-2">
-                  <SignaturePad titel="Unterschrift Monteur" onChange={setMonteurBild} />
+                  <SignaturePad
+                    ref={monteurFeld}
+                    titel="Unterschrift Monteur"
+                    onChange={setMonteurGesetzt}
+                  />
                 </div>
               </div>
               <div>
@@ -477,7 +500,11 @@ export default function WorkSheetView() {
                   required
                 />
                 <div className="mt-2">
-                  <SignaturePad titel="Unterschrift Kunde" onChange={setKundeBild} />
+                  <SignaturePad
+                    ref={kundeFeld}
+                    titel="Unterschrift Kunde"
+                    onChange={setKundeGesetzt}
+                  />
                 </div>
               </div>
             </div>
@@ -527,8 +554,8 @@ export default function WorkSheetView() {
                 {!projekt
                   ? 'Die Stammdaten der Baustelle werden noch geladen.'
                   : `Zum Abschließen fehlen: ${[
-                      !monteurBild && 'Unterschrift Monteur',
-                      !kundeBild && 'Unterschrift Kunde',
+                      !monteurGesetzt && 'Unterschrift Monteur',
+                      !kundeGesetzt && 'Unterschrift Kunde',
                       kundeName.trim().length < 2 && 'Name des Kunden',
                     ]
                       .filter(Boolean)

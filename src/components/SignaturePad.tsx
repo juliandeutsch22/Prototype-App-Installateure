@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import Button from './Button';
 
 /**
@@ -7,225 +14,258 @@ import Button from './Button';
  * BEWUSST OHNE biometrische Erfassung. Schreibgeschwindigkeit und
  * Druckverlauf wären auf kapazitiven Touchscreens ohne Stift überwiegend
  * Fiktion — `PointerEvent.pressure` liefert dort konstant 1.0 — und
- * rechtlich ein biometrisches Datum nach Art. 9 DSGVO, das ausdrückliche
- * Einwilligung und eine Folgenabschätzung verlangt. Der Streitfall ist
- * praktisch nie „diese Unterschrift ist gefälscht", sondern „so viele Stunden
- * waren das nicht"; dagegen hilft der eingefrorene Inhalt, nicht die
- * Strichdynamik.
- *
- * Was bleibt, ist das Bild plus Name in Druckbuchstaben — eine einfache
- * elektronische Signatur, und die genügt für Rapport- und Arbeitsscheine.
+ * rechtlich ein biometrisches Datum nach Art. 9 DSGVO. Was bleibt, ist das
+ * Bild plus Name in Druckbuchstaben; das genügt für Arbeitsscheine.
  *
  *
- * WARUM DER FINGER ÜBER TOUCH-EREIGNISSE ZEICHNET UND NICHT ÜBER ZEIGER
- * ----------------------------------------------------------------------
- * Aus dem Betrieb zweimal gemeldet: am PC geht es, auf dem iPhone nicht.
+ * DIE STRICHE SIND DIE WAHRHEIT, DAS CANVAS IST NUR DIE ANSICHT
+ * -------------------------------------------------------------
+ * Dieses Feld ist dreimal aus dem Betrieb als „geht auf dem Handy nicht"
+ * gemeldet worden, zuletzt mit dem entscheidenden Hinweis: „einmal für einen
+ * Strich funktioniert, dann nie wieder."
  *
- * Nachgemessen in einem echten Browser mit echter Fingereingabe. Wenn der
- * Browser die Geste für sich beansprucht, schickt er ein `pointercancel` —
- * und danach kommt KEIN `pointermove` mehr. Die Zeigerspur war damit tot,
- * der Strich blieb ein Punkt, und das Feld sah aus, als reagiere es nicht.
+ * Alle bisherigen Anläufe haben am Eingabeweg geschraubt und dabei
+ * vorausgesetzt, dass die Zeichenfläche verlässlich ist. Sie ist es nicht.
+ * Ein `<canvas>` verliert seinen Inhalt bei jeder Größenänderung, iOS wirft
+ * seinen Speicher unter Druck weg, und wer den Inhalt über `toDataURL` rettet
+ * und zurückmalt, hängt seine Unterschrift an genau die Sache, die gerade
+ * kaputtgegangen ist.
  *
- * DER MESSWERT, AUF DEM DIESER UMBAU BERUHT: in derselben Geste kamen nach
- * dem Abbruch noch NEUN `touchmove` an. Die Berührungsspur läuft weiter, wenn
- * die Zeigerspur schon abgeräumt ist. Wer mit dem Finger unterschreibt, wird
- * deshalb über `touchstart`/`touchmove` bedient; Maus und Stift laufen
- * weiter über die Zeigerereignisse.
+ * Deshalb liegt der Strichverlauf jetzt als Liste von Punkten im Speicher.
+ * Das Canvas wird daraus gemalt und kann jederzeit verlorengehen — bei einer
+ * Größenänderung, beim Zurückkommen aus dem Hintergrund, wenn iOS aufräumt.
+ * `neuMalen()` stellt es aus den Punkten wieder her, in voller Schärfe statt
+ * als hochskaliertes Bild.
  *
- * Ebenfalls weg: `setPointerCapture`. Es sollte den Strich über den Feldrand
- * hinaus halten, ist aber genau der Aufruf, der auf WebKit im Verdacht steht,
- * den Abbruch überhaupt auszulösen. Für den Finger übernimmt die
- * Berührungsspur diese Aufgabe ohnehin: sie liefert bis zum Loslassen, auch
- * außerhalb des Feldes.
+ * KEIN `toDataURL` WÄHREND DES ZEICHNENS. Vorher entstand bei JEDEM
+ * Strichende ein rund hundert Kilobyte grosses PNG, wanderte als Zeichenkette
+ * in den Zustand der Elternansicht und löste dort ein Neurendern aus — zwei
+ * Felder, jeder Strich. Das ist die mit Abstand teuerste Operation des
+ * Formulars und der wahrscheinlichste Grund, warum ein Telefon nach dem
+ * ersten Strich aufgibt. Nach oben gemeldet wird jetzt nur noch, OB
+ * unterschrieben wurde; das Bild holt sich die Elternansicht einmal, beim
+ * Einfrieren.
  *
- * DIE LISTENER HÄNGEN NATIV AM ELEMENT, nicht über React. React hängt seine
- * Behandlung an die Wurzel und meldet `touchstart`/`touchmove` dort als
- * passiv an — in einem passiven Listener ist `preventDefault()` wirkungslos,
- * und ohne das scrollt die Seite, statt zu zeichnen.
+ * DIE LISTENER HÄNGEN AM LEBENDEN ELEMENT. Sie werden über die
+ * Element-Referenz angemeldet, nicht einmalig beim Aufbau: tauscht React den
+ * Knoten aus, wandern sie mit. Hängen sie am alten Knoten, ist das Feld
+ * stumm — und zwar dauerhaft, was genau wie „einmal ging es, dann nie wieder"
+ * aussieht.
+ *
+ * `preventDefault()` wirkt nur in einem NICHT-passiven Listener, und React
+ * meldet Berührungsereignisse an der Wurzel als passiv an. Ohne das scrollt
+ * die Seite unter dem Finger weg, statt dass er zeichnet — deshalb nativ.
  */
+
+export interface SignaturePadHandle {
+  /** Das fertige Bild — einmal beim Einfrieren, nicht bei jedem Strich. */
+  bildLesen: () => string | null;
+}
 
 interface Props {
   /** Wer unterschreibt — steht über dem Feld. */
   titel: string;
-  /** Wird bei jeder Änderung gemeldet: leer = noch nichts gezeichnet. */
-  onChange: (bild: string | null) => void;
+  /** Meldet, OB unterschrieben ist. Bewusst kein Bild: siehe oben. */
+  onChange: (hatUnterschrift: boolean) => void;
   disabled?: boolean;
 }
 
-export default function SignaturePad({ titel, onChange, disabled = false }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const zeichnet = useRef(false);
-  /**
-   * „Es steht etwas auf der Flaeche" — als Ref UND als Zustand.
-   *
-   * Der Zustand steuert die Anzeige, die Ref die Entscheidung in den
-   * Ereignisbehandlern. Sich dort auf den Zustand zu verlassen hiesse, sich
-   * darauf zu verlassen, dass React zwischen Beginn und Ende neu gezeichnet
-   * hat.
-   */
-  const gemalt = useRef(false);
+interface Punkt {
+  x: number;
+  y: number;
+}
+
+const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad(
+  { titel, onChange, disabled = false },
+  ref,
+) {
+  const [feld, setFeld] = useState<HTMLCanvasElement | null>(null);
   const [hatStriche, setHatStriche] = useState(false);
 
-  /** Zuletzt eingerichtete Zeichenflaeche in Geraetepixeln. */
+  /** Der Strichverlauf in CSS-Pixeln, relativ zur linken oberen Ecke. */
+  const striche = useRef<Punkt[][]>([]);
+  const zeichnet = useRef(false);
+  /**
+   * Wurde „ist unterschrieben" schon nach oben gemeldet?
+   *
+   * DAS MUSS EINE REFERENZ SEIN, KEIN ZUSTAND. Stand `hatStriche` in den
+   * Abhängigkeiten des Zeichen-Effekts, meldete der erste Strich die
+   * Unterschrift, löste ein Neurendern aus — und der Effekt lief mitten in
+   * der laufenden Geste erneut: Listener ab, Listener an, die restlichen
+   * Bewegungen verloren. Nachgemessen: der erste Strich hinterliess 42 statt
+   * 7500 Pixel. Auf einem Telefon sieht das aus wie „das Feld reagiert
+   * einmal und dann nicht mehr".
+   */
+  const gemeldet = useRef(false);
+  /** Zuletzt eingerichtete Fläche in Gerätepixeln. */
   const flaeche = useRef({ w: 0, h: 0 });
 
   /**
-   * Die aktuellen Aufrufparameter fuer die nativen Behandler.
+   * Die aktuellen Aufrufparameter für die nativen Behandler.
    *
-   * Sie haengen EINMAL am Element und sollen dort haengen bleiben. Laege
-   * `disabled` oder `onChange` in den Abhaengigkeiten, wuerde bei jeder
-   * Aenderung neu an- und abgemeldet — mitten in einer Unterschrift.
+   * Sie liegen in einer Referenz, damit das An- und Abmelden nicht bei jeder
+   * Änderung von `disabled` oder `onChange` erneut läuft — mitten in einer
+   * Unterschrift wäre das ein abgerissener Strich.
    */
   const stand = useRef({ disabled, onChange });
   stand.current = { disabled, onChange };
 
+  /** Stift, Linienbreite, Skalierung — nach jedem Setzen von `width` neu. */
+  const einrichten = useCallback((c: CanvasRenderingContext2D, dichte: number) => {
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.scale(dichte, dichte);
+    c.lineWidth = 2;
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.strokeStyle = '#111827';
+  }, []);
+
   /**
-   * Die Zeichenfläche an die tatsächliche Anzeigegröße anpassen.
+   * Alles aus den Punkten neu malen.
    *
-   * Ohne diese Umrechnung zeichnet der Finger neben dem Strich: das
-   * canvas-Element wird per CSS skaliert, seine Zeichenfläche aber nicht. Auf
-   * einem Telefon mit doppelter Pixeldichte liegt der Strich dann um den
-   * Faktor zwei daneben.
+   * Der einzige Weg, wie Inhalt auf die Fläche kommt — beim Zeichnen wie nach
+   * einem Verlust. Damit gibt es keinen Zustand, der nur im Canvas existiert
+   * und deshalb verlorengehen könnte.
+   */
+  const neuMalen = useCallback(() => {
+    if (!feld) return;
+    const c = feld.getContext('2d');
+    if (!c) return;
+    const dichte = flaeche.current.w > 0 ? flaeche.current.w / (feld.clientWidth || 1) : 1;
+    einrichten(c, dichte);
+    c.clearRect(0, 0, feld.clientWidth, feld.clientHeight);
+    for (const strich of striche.current) {
+      if (strich.length === 0) continue;
+      c.beginPath();
+      c.moveTo(strich[0].x, strich[0].y);
+      // Ein einzelner Tipp ist ein Punkt: Linie auf sich selbst, damit
+      // `lineCap: round` einen sichtbaren Kreis zeichnet.
+      if (strich.length === 1) c.lineTo(strich[0].x, strich[0].y);
+      else for (const p of strich.slice(1)) c.lineTo(p.x, p.y);
+      c.stroke();
+    }
+  }, [feld, einrichten]);
+
+  /**
+   * Die Fläche an die Anzeigegröße anpassen.
    *
-   * DER TEIL, DER AUF DEM TELEFON DIE UNTERSCHRIFT GEFRESSEN HAT: `canvas.width`
-   * zu setzen LÖSCHT die Zeichenfläche — auch dann, wenn man denselben Wert
-   * noch einmal hineinschreibt. Die alte Fassung hing an `window.resize`, und
-   * genau dieses Ereignis feuert auf iOS reihenweise, ohne dass sich am Feld
-   * etwas ändert: beim Ein- und Ausblenden der Adressleiste, beim Öffnen der
-   * Tastatur für das Namensfeld darüber, beim Drehen. Der Strich verschwand
-   * dann mitten im Unterschreiben, und `hatStriche` behauptete weiter, es sei
-   * unterschrieben.
-   *
-   * Deshalb: nur anpassen, wenn sich die Größe WIRKLICH geändert hat — und in
-   * diesem Fall das Gezeichnete vorher sichern und danach zurückmalen.
+   * `canvas.width` zu setzen LÖSCHT den Inhalt — auch beim gleichen Wert.
+   * Früher wurde er vorher als Bild gesichert und danach zurückgemalt; jetzt
+   * wird er einfach aus den Punkten neu gezeichnet. Das ist nicht nur
+   * einfacher, sondern auch schärfer: ein hochskaliertes Bild wird bei jeder
+   * Drehung des Telefons unschärfer, gezeichnete Linien nicht.
    */
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const einrichten = (ctx: CanvasRenderingContext2D, dichte: number) => {
-      ctx.scale(dichte, dichte);
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#111827';
-    };
+    if (!feld) return;
 
     const anpassen = () => {
-      const rect = canvas.getBoundingClientRect();
-      // Ein Feld ohne Ausdehnung hat keine brauchbare Zeichenflaeche. Das
-      // passiert waehrend des Aufbaus; der Beobachter meldet sich wieder,
-      // sobald es eine hat.
+      const rect = feld.getBoundingClientRect();
+      // Während des Aufbaus hat das Feld keine Ausdehnung; der Beobachter
+      // meldet sich wieder, sobald es eine hat.
       if (rect.width < 1 || rect.height < 1) return;
       const dichte = window.devicePixelRatio || 1;
       const w = Math.round(rect.width * dichte);
       const h = Math.round(rect.height * dichte);
       if (w === flaeche.current.w && h === flaeche.current.h) return;
-
-      // Das Gezeichnete retten, bevor die Flaeche neu gesetzt wird.
-      const alt = flaeche.current.w > 0 ? canvas.toDataURL('image/png') : null;
-      canvas.width = w;
-      canvas.height = h;
+      feld.width = w;
+      feld.height = h;
       flaeche.current = { w, h };
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      einrichten(ctx, dichte);
-      if (alt) {
-        const bild = new Image();
-        bild.onload = () => ctx.drawImage(bild, 0, 0, rect.width, rect.height);
-        bild.src = alt;
-      }
+      neuMalen();
     };
 
     anpassen();
-
-    // Am ELEMENT haengen, nicht am Fenster: nur eine echte Groessenaenderung
-    // des Feldes ist ein Grund, die Flaeche anzufassen.
     const beobachter =
       typeof ResizeObserver !== 'undefined' ? new ResizeObserver(anpassen) : null;
-    beobachter?.observe(canvas);
-    // Fuer Browser ohne ResizeObserver bleibt das Fenster als Notnagel; die
-    // Groessenpruefung oben macht den Aufruf dort folgenlos.
+    beobachter?.observe(feld);
     if (!beobachter) window.addEventListener('resize', anpassen);
+
+    /**
+     * Beim Zurückkommen neu malen — ohne Bedingung.
+     *
+     * iOS friert eine Startbildschirm-App ein und darf dabei den Speicher der
+     * Zeichenfläche wegwerfen. Sie ist danach leer, ohne dass ein Ereignis das
+     * meldet. Aus den Punkten neu zu malen kostet nichts und macht diesen Fall
+     * folgenlos.
+     */
+    const zurueck = () => {
+      if (document.visibilityState === 'visible') neuMalen();
+    };
+    document.addEventListener('visibilitychange', zurueck);
+    window.addEventListener('pageshow', zurueck);
+
     return () => {
       beobachter?.disconnect();
       if (!beobachter) window.removeEventListener('resize', anpassen);
+      document.removeEventListener('visibilitychange', zurueck);
+      window.removeEventListener('pageshow', zurueck);
     };
-  }, []);
+  }, [feld, neuMalen]);
 
   /**
-   * Zeichnen — eine Spur, gefuettert aus zwei Quellen.
+   * Zeichnen. Eine Spur, gefüttert aus zwei Quellen — Finger und Zeiger.
    *
-   * `beginnen`, `ziehen` und `beenden` wissen nicht, ob ein Finger oder eine
-   * Maus sie ruft. Sie bekommen nur Koordinaten in CSS-Pixeln.
+   * Die Abhängigkeit auf `feld` ist der Punkt: tauscht React den Knoten aus,
+   * läuft dieser Effekt erneut und die Listener hängen wieder am lebenden
+   * Element. Das war die Schwachstelle der vorherigen Fassung.
    */
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!feld) return;
 
-    const ctx = () => canvas.getContext('2d');
-
-    const ort = (p: { clientX: number; clientY: number }) => {
-      const rect = canvas.getBoundingClientRect();
+    const ort = (p: { clientX: number; clientY: number }): Punkt => {
+      const rect = feld.getBoundingClientRect();
       return { x: p.clientX - rect.left, y: p.clientY - rect.top };
     };
 
-    const merken = () => {
-      gemalt.current = true;
-      setHatStriche(true);
+    const strichZeichnen = () => {
+      const c = feld.getContext('2d');
+      const aktuell = striche.current[striche.current.length - 1];
+      if (!c || !aktuell || aktuell.length === 0) return;
+      c.beginPath();
+      if (aktuell.length === 1) {
+        c.moveTo(aktuell[0].x, aktuell[0].y);
+        c.lineTo(aktuell[0].x, aktuell[0].y);
+      } else {
+        const vor = aktuell[aktuell.length - 2];
+        const jetzt = aktuell[aktuell.length - 1];
+        c.moveTo(vor.x, vor.y);
+        c.lineTo(jetzt.x, jetzt.y);
+      }
+      c.stroke();
     };
 
     const beginnen = (p: { clientX: number; clientY: number }) => {
-      const c = ctx();
-      if (!c) return;
       zeichnet.current = true;
-      const { x, y } = ort(p);
-      c.beginPath();
-      c.moveTo(x, y);
-      /**
-       * Einen Punkt setzen und das sofort als „gezeichnet" merken.
-       *
-       * Ohne das gab ein kurzer Tipp keinerlei Rückmeldung — das Feld sah aus,
-       * als reagiere es nicht. Und schlimmer: das Ende meldete trotzdem ein
-       * Bild nach oben, nämlich ein leeres. Der Schein galt damit als
-       * unterschrieben, obwohl nichts drinstand.
-       */
-      c.lineTo(x, y);
-      c.stroke();
-      merken();
+      striche.current.push([ort(p)]);
+      strichZeichnen();
+      // Nur beim ERSTEN Strich neu rendern. Vorher lief das bei jeder
+      // Bewegung — sechzig Mal in der Sekunde, je Feld.
+      if (!gemeldet.current) {
+        gemeldet.current = true;
+        setHatStriche(true);
+        stand.current.onChange(true);
+      }
     };
 
     const ziehen = (p: { clientX: number; clientY: number }) => {
-      const c = ctx();
-      if (!c) return;
-      const { x, y } = ort(p);
-      c.lineTo(x, y);
-      c.stroke();
-      merken();
+      const aktuell = striche.current[striche.current.length - 1];
+      if (!aktuell) return;
+      aktuell.push(ort(p));
+      strichZeichnen();
     };
 
     /**
-     * Den Strich abschliessen und melden.
+     * Den Strich abschliessen.
      *
-     * `abgebrochen` unterscheidet das Loslassen vom Eingriff des Browsers.
-     * Gemeldet wird in beiden Faellen, denn was auf der Flaeche steht, steht
-     * dort — aber ein Abbruch beendet NUR diesen Strich. Die naechste
-     * Beruehrung zeichnet weiter, statt dass das Feld tot bleibt.
+     * Es wird NICHTS nach oben gemeldet — das ist beim ersten Strich schon
+     * geschehen, und das Bild holt sich die Elternansicht beim Einfrieren.
+     * Ein Abbruch durch den Browser beendet damit nur diesen einen Strich;
+     * der nächste Fingerkontakt zeichnet weiter.
      */
     const beenden = () => {
-      if (!zeichnet.current) return;
       zeichnet.current = false;
-      // Nur melden, wenn tatsaechlich etwas auf der Flaeche steht: ein leeres
-      // Bild waere eine Unterschrift, die keine ist.
-      if (!gemalt.current) return;
-      stand.current.onChange(canvas.toDataURL('image/png'));
     };
 
-    // --- Finger und Stift auf dem Glas -----------------------------------
-    //
-    // Das ist der Weg, der auf dem Telefon zaehlt. `preventDefault()` wirkt
-    // hier, weil der Listener nativ und nicht-passiv angemeldet ist — ueber
-    // React waere er passiv und die Seite wuerde scrollen statt zu zeichnen.
+    // --- Finger und Stift auf dem Glas ---
     const beruehrungBeginn = (e: TouchEvent) => {
       if (stand.current.disabled) return;
       const t = e.touches[0];
@@ -240,24 +280,11 @@ export default function SignaturePad({ titel, onChange, disabled = false }: Prop
       e.preventDefault();
       ziehen(t);
     };
-    const beruehrungEnde = () => beenden();
 
-    // --- Maus und Stift ---------------------------------------------------
-    //
-    // Getrennt gehalten, weil ein Telefon fuer dieselbe Geste ZUSAETZLICH
-    // Mausereignisse nachreicht. Das `preventDefault()` oben unterdrueckt
-    // sie; die Pruefung auf `zeichnet` faengt ab, was durchkommt.
-    const zeigerBeginn = (e: PointerEvent) => {
-      if (stand.current.disabled || e.pointerType === 'touch') return;
-      e.preventDefault();
-      beginnen(e);
-      // Fenster statt Feld: so reisst der Strich nicht ab, wenn die Maus
-      // kurz ueber den Rand geraet — dieselbe Aufgabe, die frueher
-      // `setPointerCapture` hatte, ohne dessen Nebenwirkungen.
-      window.addEventListener('pointermove', zeigerZug);
-      window.addEventListener('pointerup', zeigerEnde);
-      window.addEventListener('pointercancel', zeigerEnde);
-    };
+    // --- Maus und Stift ---
+    // Getrennt gehalten, weil ein Telefon für dieselbe Geste ZUSÄTZLICH
+    // Zeigerereignisse schickt. `pointerType === 'touch'` fliegt hier raus,
+    // sonst zeichnete jede Berührung doppelt.
     const zeigerZug = (e: PointerEvent) => {
       if (!zeichnet.current || stand.current.disabled) return;
       ziehen(e);
@@ -268,60 +295,99 @@ export default function SignaturePad({ titel, onChange, disabled = false }: Prop
       window.removeEventListener('pointercancel', zeigerEnde);
       beenden();
     };
+    const zeigerBeginn = (e: PointerEvent) => {
+      if (stand.current.disabled || e.pointerType === 'touch') return;
+      e.preventDefault();
+      beginnen(e);
+      // Am Fenster, nicht am Feld: so reisst der Strich nicht ab, wenn die
+      // Maus über den Rand gerät. Dieselbe Aufgabe hatte früher
+      // `setPointerCapture` — das aber auf WebKit im Verdacht steht, die
+      // Geste selbst abzubrechen.
+      window.addEventListener('pointermove', zeigerZug);
+      window.addEventListener('pointerup', zeigerEnde);
+      window.addEventListener('pointercancel', zeigerEnde);
+    };
 
     const nichtPassiv: AddEventListenerOptions = { passive: false };
-    canvas.addEventListener('touchstart', beruehrungBeginn, nichtPassiv);
-    canvas.addEventListener('touchmove', beruehrungZug, nichtPassiv);
-    canvas.addEventListener('touchend', beruehrungEnde);
-    canvas.addEventListener('touchcancel', beruehrungEnde);
-    canvas.addEventListener('pointerdown', zeigerBeginn);
+    feld.addEventListener('touchstart', beruehrungBeginn, nichtPassiv);
+    feld.addEventListener('touchmove', beruehrungZug, nichtPassiv);
+    feld.addEventListener('touchend', beenden);
+    feld.addEventListener('touchcancel', beenden);
+    feld.addEventListener('pointerdown', zeigerBeginn);
 
     return () => {
-      canvas.removeEventListener('touchstart', beruehrungBeginn, nichtPassiv);
-      canvas.removeEventListener('touchmove', beruehrungZug, nichtPassiv);
-      canvas.removeEventListener('touchend', beruehrungEnde);
-      canvas.removeEventListener('touchcancel', beruehrungEnde);
-      canvas.removeEventListener('pointerdown', zeigerBeginn);
+      feld.removeEventListener('touchstart', beruehrungBeginn, nichtPassiv);
+      feld.removeEventListener('touchmove', beruehrungZug, nichtPassiv);
+      feld.removeEventListener('touchend', beenden);
+      feld.removeEventListener('touchcancel', beenden);
+      feld.removeEventListener('pointerdown', zeigerBeginn);
       zeigerEnde();
     };
-  }, []);
+  }, [feld]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      bildLesen: () => {
+        if (!feld || striche.current.length === 0) return null;
+        // Vor dem Lesen neu malen: falls die Fläche zwischenzeitlich geleert
+        // wurde, stünde sonst eine leere Unterschrift auf dem Schein.
+        neuMalen();
+        return feld.toDataURL('image/png');
+      },
+    }),
+    [feld, neuMalen],
+  );
 
   const leeren = useCallback(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    gemalt.current = false;
+    striche.current = [];
+    gemeldet.current = false;
     setHatStriche(false);
-    onChange(null);
-  }, [onChange]);
+    neuMalen();
+    onChange(false);
+  }, [neuMalen, onChange]);
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      {/*
+        DER PLATZ IST IMMER DA, auch wenn der Knopf noch nicht sichtbar ist.
+        Erschien er erst beim ersten Strich, sprang das Feld in genau dem
+        Moment nach unten, in dem der Finger schon aufgesetzt hatte — der
+        Anfang der Unterschrift landete daneben oder ausserhalb. Nachgemessen:
+        der erste Strich hinterliess dadurch ein Drittel weniger als jeder
+        folgende. Ein Eingabefeld darf sich unter dem Finger nicht bewegen.
+      */}
+      <div className="flex min-h-touch items-center justify-between">
         <span className="section-label">{titel}</span>
-        {hatStriche && !disabled && (
-          <Button type="button" variant="ghost" onClick={leeren}>
-            Neu zeichnen
-          </Button>
-        )}
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={leeren}
+          className={hatStriche && !disabled ? undefined : 'invisible'}
+          tabIndex={hatStriche && !disabled ? undefined : -1}
+          aria-hidden={hatStriche && !disabled ? undefined : true}
+        >
+          Neu zeichnen
+        </Button>
       </div>
       <canvas
-        ref={canvasRef}
-        // `touch-none` steht zusaetzlich als Klasse da. Hier noch einmal fest
-        // am Element, weil das Feld ohne diese eine Eigenschaft NICHT
-        // funktioniert: im Probestand ohne sie brach der Browser die Geste
-        // nach dem ersten Zug ab. Eine Klasse kann ein Build verlieren, diese
-        // Zeile nicht.
+        ref={setFeld}
+        // `touch-none` steht zusätzlich als Klasse da. Hier noch einmal fest
+        // am Element: ohne diese eine Eigenschaft bricht der Browser die
+        // Geste nach dem ersten Zug ab, und eine Klasse kann ein Build
+        // verlieren.
         style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
         className={`mt-1 h-40 w-full touch-none select-none rounded border-2 border-dashed bg-surface ${
           disabled ? 'border-line opacity-60' : 'border-line'
         }`}
         aria-label={`${titel} — mit dem Finger oder einem Stift unterschreiben`}
       />
-      {!hatStriche && !disabled && (
-        <p className="mt-1 text-xs text-ink-muted">Mit dem Finger im Feld unterschreiben.</p>
-      )}
+      {/* Ebenfalls immer da — verschwände er, ruckte das Feld nach unten. */}
+      <p className={`mt-1 text-xs text-ink-muted ${hatStriche || disabled ? 'invisible' : ''}`}>
+        Mit dem Finger im Feld unterschreiben.
+      </p>
     </div>
   );
-}
+});
+
+export default SignaturePad;

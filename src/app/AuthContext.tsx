@@ -119,13 +119,13 @@ export class InactiveUserError extends Error {
   }
 }
 
-async function loadProfile(uid: string, email: string): Promise<CurrentUser | null> {
-  const ref = doc(db, 'users', uid);
-  // Antwortet das Netz nicht rechtzeitig, gilt der zuletzt gespeicherte
-  // Stand. Er ist besser als ein Ladebalken ohne Ende — und die harte Grenze
-  // steht ohnehin serverseitig: mit einem veralteten Profil kommt niemand an
-  // Daten, die ihm die Regeln verweigern.
-  const snap = await mitFristOder(getDoc(ref), () => getDocFromCache(ref), START_FRIST_MS);
+/** Ein Profil aus einem Schnappschuss — gleich, ob er vom Netz oder aus dem
+ *  Zwischenspeicher kommt. */
+function profilAus(
+  snap: { exists: () => boolean; id: string; data: () => unknown },
+  uid: string,
+  email: string,
+): CurrentUser | null {
   if (!snap.exists()) return null;
   const data = snap.data() as {
     name?: string;
@@ -148,6 +148,40 @@ async function loadProfile(uid: string, email: string): Promise<CurrentUser | nu
   };
 }
 
+/**
+ * Das Profil vom Server — mit Frist und Rückfall auf den Zwischenspeicher.
+ */
+async function profilVomServer(uid: string, email: string): Promise<CurrentUser | null> {
+  const ref = doc(db, 'users', uid);
+  const snap = await mitFristOder(getDoc(ref), () => getDocFromCache(ref), START_FRIST_MS);
+  return profilAus(snap, uid, email);
+}
+
+/**
+ * Das Profil aus dem lokalen Zwischenspeicher — ohne Netz, in Millisekunden.
+ *
+ * WARUM DAS ZUERST KOMMT. Vorher wartete der Start bis zu ACHT SEKUNDEN auf
+ * eine Antwort des Servers und sah erst DANN im Zwischenspeicher nach.
+ * Genau der lag aber schon die ganze Zeit bereit. Auf einer zähen Verbindung
+ * — Keller, Baustelle, Tiefgarage — war das die gesamte gefühlte Ladezeit,
+ * bei jedem einzelnen Start.
+ *
+ * Jetzt erscheint die App sofort mit dem letzten bekannten Stand und zieht
+ * den aktuellen im Hintergrund nach. Ein veraltetes Profil ist dabei
+ * ungefährlich: die harte Grenze steht serverseitig in den Regeln, und ein
+ * deaktiviertes Konto wird auch hier abgewiesen.
+ */
+async function profilAusSpeicher(uid: string, email: string): Promise<CurrentUser | null> {
+  try {
+    return profilAus(await getDocFromCache(doc(db, 'users', uid)), uid, email);
+  } catch (e) {
+    // Ein deaktiviertes Konto muss auch aus dem Speicher heraus greifen —
+    // sonst käme ein Ausgeschiedener offline noch einmal hinein.
+    if (e instanceof InactiveUserError) throw e;
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -166,6 +200,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Während das Profil geladen wird, "loading" halten, damit der
       // Auth-Guard nicht fälschlich auf /login zurückspringt.
       setLoading(true);
+
+      /**
+       * ERST ZEIGEN, WAS DA IST — DANN NACHZIEHEN.
+       *
+       * Der Zwischenspeicher antwortet in Millisekunden, das Netz im Keller
+       * in Sekunden. Wer sich gestern angemeldet hat, ist damit sofort drin;
+       * der aktuelle Stand kommt still hinterher. Erst bei der ALLERERSTEN
+       * Anmeldung auf einem Gerät gibt es nichts zu zeigen, und nur dann
+       * wartet man noch.
+       */
+      let sofortDa = false;
+      try {
+        const schnell = await profilAusSpeicher(fbUser.uid, fbUser.email ?? '');
+        if (schnell) {
+          setUser(schnell);
+          const firma = await firmaAusSpeicher(schnell.companyId).catch(() => null);
+          if (firma) {
+            setCompany(firma);
+            applyBranding(firma);
+          }
+          setLoading(false);
+          sofortDa = true;
+        }
+      } catch (e) {
+        if (e instanceof InactiveUserError) {
+          setError('Dieses Konto ist deaktiviert. Bitte an die Verwaltung wenden.');
+          await fbSignOut(auth);
+          setUser(null);
+          setCompany(null);
+          setLoading(false);
+          return;
+        }
+      }
+
       try {
         /**
          * Beide Abfragen GLEICHZEITIG, wenn die Firma schon bekannt ist.
@@ -176,7 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          */
         const gemerkt = gemerktesFirmenDokument(fbUser.uid);
         const [profile, firmaVorab] = await Promise.all([
-          loadProfile(fbUser.uid, fbUser.email ?? ''),
+          profilVomServer(fbUser.uid, fbUser.email ?? ''),
           gemerkt,
         ]);
 
@@ -209,11 +277,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await fbSignOut(auth);
           setUser(null);
           setCompany(null);
-        } else {
+        } else if (!sofortDa) {
           /**
            * Hierher führt vor allem ein Fall: erste Anmeldung auf diesem
            * Gerät, und das Netz antwortet nicht. Dann liegt auch nichts im
            * Zwischenspeicher, auf das man ausweichen könnte.
+           *
+           * `sofortDa` ist der Grund, warum diese Meldung fast nie mehr
+           * erscheint: wer schon einmal angemeldet war, ARBEITET bereits,
+           * während dieser Versuch noch läuft. Ihn dann mit einer Fehlertafel
+           * zu unterbrechen wäre falsch — er hat ja alles, was er braucht.
            *
            * Die Firebase-Meldung wäre hier englisch und technisch („Failed
            * to get document because the client is offline"). Sie sagt dem
