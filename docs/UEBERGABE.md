@@ -130,11 +130,11 @@ npm run dev          # Vite
 
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint, --max-warnings 0
-npm test             # 512 Tests ohne Emulator
+npm test             # 565 Tests ohne Emulator
 
 # Die Emulator-Tests brauchen einen laufenden Firestore-Emulator:
 npx firebase emulators:start --project demo-test --only firestore
-npm run rules:test   # 131 Tests gegen den Emulator
+npm run rules:test   # 137 Tests gegen den Emulator
 ```
 
 **Der Emulator braucht eine `--project`-Angabe**, sonst bricht er mit „No
@@ -191,6 +191,10 @@ Diese Liste ist teuer bezahlt. Wer sie liest, spart sich die Wiederholung.
 | **„Erneut versuchen" kann einen Nachladefehler nicht heilen.** | React merkt sich das abgelehnte Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz zu fragen. Nur ein echtes Neuladen hilft — die Fehlergrenze tut das jetzt selbst. |
 | **`where('feld', '!=', wert)` überspringt Dokumente OHNE das Feld.** | Der nächtliche Bilanzlauf fragte `where('active', '!=', false)` und übersprang damit stillschweigend jeden übernommenen Altbestand ohne `active`. Überall sonst heißt „kein Feld" aktiv. Filtern gehört in diesem Fall in den Code, nicht in die Abfrage. |
 | **Ein Pfadfilter im Workflow ist eine Aussage über Abhängigkeiten.** | `deploy-functions.yml` hörte nur auf `functions/**`. `shared/` wird beim Bauen dorthin kopiert, liegt aber daneben — eine Änderung ging damit ins Hosting und nicht in die Functions. |
+| **Eine Regel einzugrenzen heißt, jeden Schreibweg zu kennen — auch die unsichtbaren.** | Der Materialstamm wurde auf Verwaltung und Leitung eingegrenzt, mit der Begründung, gebucht werde ohnehin nur unter „Material → Lager". Falsch: der Monteur bewegt den Bestand beim Abholen und bei jeder Retoure, aus einer Transaktion heraus, die Anforderung UND Bestand zusammen schreibt. Der Bestandsteil scheiterte, also scheiterte alles — der Knopf tat nichts, ohne Meldung. Wo eine Rolle nur EIN Feld bewegen darf, ist `hasOnly(['feld'])` die Grenze, nicht die Rolle. |
+| **Ein grüner Regeltest kann den Irrtum mitschreiben, den er prüfen sollte.** | Zur Regel oben gehörte ein Test „der Monteur ändert den Bestand nicht". Er war grün und hat die falsche Annahme drei Wochen festgehalten. Ein Regeltest ist erst dann etwas wert, wenn die Annahme dahinter am ABLAUF geprüft wurde — nicht am Kommentar über der Regel. |
+| **Zwei Schreibvorgänge hintereinander sind kein Vorgang.** | Die Retoure schrieb erst den Beleg, dann die Gutschrift. Scheiterte die zweite, stand der Beleg da (mit `processed: true`) und der Bestand war nicht erhöht — die Meldung „konnte nicht erfasst werden" war eine Lüge, und der zweite Versuch legte einen zweiten Beleg an. Was zusammengehört, gehört in EINE Transaktion. |
+| **Ein Bestätigungsdialog ohne `confirmLabel` sagt „Löschen".** | Unter der Frage „Material abgeholt?" stand ein roter Löschen-Knopf. Wer das liest, tippt nicht darauf und meldet, die Abholung lasse sich nicht bestätigen. |
 | **Ein deaktiviertes Konto war nur im Browser deaktiviert.** | `firestore.rules` kannte `active` nicht, und `syncUserClaims` setzte die Claims unabhängig davon. Wer ausschied, behielt ein gültiges Konto und kam am UI vorbei an alles. Die Prüfung steht jetzt in `signedIn()`, plus gesperrtes Auth-Konto und widerrufene Token. |
 
 ---
@@ -267,7 +271,14 @@ Ehrlich und in der Reihenfolge, in der sie wehtun.
 
 Die vier wichtigsten sind seit dem 02.09.2026 abgedeckt: **Zeiterfassung**
 (meistbenutzt), **Rechnungen** (Geld), **Einsatzplanung** (löscht Daten),
-**Baustellen**. Bleiben **10 von 27** ohne eigenen Test — die kleineren.
+**Baustellen**. Danach der **Materialablauf** als ganzer Weg — anfordern,
+bearbeiten, Bestand führen. Bleiben **7 von 27** ohne eigenen Test — die
+kleineren.
+
+Der Materialablauf ist bewusst als ABLAUF geprüft worden und nicht Ansicht für
+Ansicht, und das hat sich sofort ausgezahlt: der Fehler, den er zutage
+gefördert hat, lag in keiner der drei Ansichten, sondern in der Regel darunter.
+Wer eine Ansicht allein prüft, sieht so etwas nie.
 
 **Die Einschränkung gilt unverändert:** in jedem dieser Tests ist jeder
 Datenbankzugriff ersetzt. Sie finden Bedienfehler und falsche Verdrahtung,

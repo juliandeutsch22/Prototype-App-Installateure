@@ -1,4 +1,5 @@
 import {
+  collection,
   where,
   orderBy,
   limit,
@@ -12,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { MaterialOrder } from '@/types';
-import { queryTenant, subscribeTenant, createInTenant, type WithId } from './core';
+import { queryTenant, subscribeTenant, createInTenant, stripUndefined, type WithId } from './core';
 
 const COLLECTION = 'materialOrders';
 
@@ -157,37 +158,61 @@ export async function updateOrderStatus(orderId: string, newStatus: MaterialOrde
   });
 }
 
-/** Retoure (docs §4.3): direkt 'Erledigt'; bei condition 'neu' Rückbuchung. */
+/**
+ * Retoure (docs §4.3): direkt 'Erledigt'; bei condition 'neu' Rückbuchung.
+ *
+ * BELEG UND GUTSCHRIFT IN EINEM SCHRITT. Vorher wurde erst der Beleg
+ * geschrieben und danach, in einem zweiten Vorgang, der Bestand
+ * gutgeschrieben. Scheiterte der zweite — kein Empfang, abgelaufene Regel —,
+ * dann stand der Beleg schon in der Datenbank, mit `processed: true`, und der
+ * Bestand war trotzdem nicht erhöht. Die Ansicht meldete daraufhin „Die
+ * Retoure konnte nicht erfasst werden", was schlicht nicht stimmte: erfasst
+ * war sie. Wer es daraufhin noch einmal versuchte, legte einen ZWEITEN Beleg
+ * an — und wenn diesmal beides klappte, standen zwei Retouren im Buch und
+ * eine Gutschrift im Lager.
+ *
+ * Die Suche nach dem Katalogeintrag läuft weiterhin VOR der Transaktion: eine
+ * Firestore-Transaktion darf einzelne Dokumente lesen, aber nicht suchen.
+ */
 export async function createReturn(
   companyId: string,
   ret: Omit<NewMaterialOrder, 'status' | 'transactionType'> & { condition: string },
 ) {
-  const id = await createMaterialOrder(companyId, {
+  const beleg = {
     ...ret,
-    status: 'Erledigt',
-    transactionType: 'return',
+    status: 'Erledigt' as const,
+    transactionType: 'return' as const,
     processed: true,
-  });
-  if (ret.condition === 'neu') {
-    // Auch hier über den Namen, wenn kein Verweis mitkam: eine Retoure, die
-    // nicht zurückgebucht wird, ist Material, das im Regal steht und in den
-    // Büchern fehlt.
-    const matId = await resolveMaterialId({
-      ...ret,
+  };
+
+  // Auch hier über den Namen, wenn kein Verweis mitkam: eine Retoure, die
+  // nicht zurückgebucht wird, ist Material, das im Regal steht und in den
+  // Büchern fehlt.
+  const matId =
+    ret.condition === 'neu'
+      ? await resolveMaterialId({ ...beleg, companyId, id: '' } as MaterialOrder)
+      : null;
+
+  const belegRef = doc(collection(db, COLLECTION));
+  await runTransaction(db, async (tx) => {
+    // Lesen VOR jedem Schreiben — Firestore lässt in einer Transaktion nach
+    // dem ersten Schreibvorgang keinen Lesevorgang mehr zu.
+    const matRef = matId ? doc(db, 'materials', matId) : null;
+    const matSnap = matRef ? await tx.get(matRef) : null;
+
+    tx.set(belegRef, {
+      ...stripUndefined(beleg),
       companyId,
-      id,
-      status: 'Erledigt',
-      transactionType: 'return',
-    } as MaterialOrder);
-    if (matId) {
-      const matRef = doc(db, 'materials', matId);
-      await runTransaction(db, async (tx) => {
-        const snap = await tx.get(matRef);
-        if (snap.exists()) tx.update(matRef, { stock: increment(ret.quantity || 0) });
-      });
+      createdAt: serverTimestamp(),
+      // Den tatsächlich gutgeschriebenen Katalogeintrag festhalten, damit
+      // eine spätere Auswertung die Namenssuche nicht wiederholen muss.
+      ...(matId && !beleg.materialId ? { materialId: matId } : {}),
+    });
+    if (matRef && matSnap?.exists()) {
+      tx.update(matRef, { stock: increment(ret.quantity || 0) });
     }
-  }
-  return id;
+  });
+  return belegRef.id;
 }
 
 export function deleteOrder(orderId: string) {
