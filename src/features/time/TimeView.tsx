@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
   subscribeOwnEntriesInRange,
@@ -28,7 +28,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
-import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
@@ -56,10 +56,25 @@ export default function TimeView() {
   /** Wie viele Monate zurück die Liste reicht. */
   const [monate, setMonate] = useState(MONATE_JE_SEITE);
 
-  useEffect(() => {
+  /**
+   * Das eigene Stammdatenblatt — Wochenstunden, Arbeitstage, Eintritt.
+   *
+   * DER FEHLSCHLAG DARF NICHT STUMM SEIN. Vorher stand hier
+   * `catch(() => undefined)`: blieb `profile` null, rechnete der Saldo nicht,
+   * und die Kachel zeigte „Kein Startdatum konfiguriert" — also einen
+   * Einrichtungsfehler, den niemand beheben kann, für ein Netzproblem. Der
+   * Monteur sieht dann eine Aussage über seine Stammdaten, wo eine über die
+   * Verbindung stehen müsste.
+   */
+  const [profilFehler, setProfilFehler] = useState(false);
+  const profilLaden = useCallback(() => {
     if (!user) return;
-    getUserByUid(user.companyId, user.uid).then(setProfile).catch(() => undefined);
+    setProfilFehler(false);
+    getUserByUid(user.companyId, user.uid)
+      .then(setProfile)
+      .catch(() => setProfilFehler(true));
   }, [user]);
+  useEffect(profilLaden, [profilLaden]);
 
   /**
    * Die ANGEZEIGTEN Eintraege: ein Fenster von einigen Monaten, live.
@@ -145,7 +160,9 @@ export default function TimeView() {
         setBilanzen(null);
         setSaldoEintraege(rows);
       }
-    })().catch(() => undefined);
+      // Auch hier keine Stille: der Saldo ist die Zahl, auf die es dem
+      // Monteur ankommt. Steht sie nicht, muss dastehen, warum.
+    })().catch(() => setProfilFehler(true));
 
     return () => {
       verworfen = true;
@@ -210,6 +227,8 @@ export default function TimeView() {
   return (
     <div className="space-y-6">
       <PageHeader title="Zeiterfassung" subtitle="Deine gebuchten Zeiten und dein Saldo" />
+
+      {profilFehler && <TeilFehler was="Dein Stammdatenblatt" onRetry={profilLaden} />}
 
       <MetricRow>
         <Metric

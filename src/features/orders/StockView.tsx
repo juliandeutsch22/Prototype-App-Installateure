@@ -12,7 +12,7 @@ import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
-import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
 
 type Tab = 'bestand' | 'katalog';
@@ -43,6 +43,8 @@ export default function StockView() {
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Ein Nebenladevorgang ist ausgefallen — der Bestand steht trotzdem. */
+  const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -59,7 +61,19 @@ export default function StockView() {
         setLoading(false);
       },
     );
-    const unsubO = subscribeAllOrders(user.companyId, ANFORDERUNGEN_JE_SEITE, setOrders, () => undefined);
+    /**
+     * Der Fehlerweg des Abos war `() => undefined`. Scheitert die Abfrage —
+     * etwa an den Regeln —, blieb die Liste der Anforderungen dauerhaft leer
+     * und sah aus wie „nichts angefordert". Das ist derselbe verschluckte
+     * Fehler, der beim Handwerksschein schon einmal als „leeres Auswahlfeld"
+     * gemeldet wurde.
+     */
+    const unsubO = subscribeAllOrders(
+      user.companyId,
+      ANFORDERUNGEN_JE_SEITE,
+      setOrders,
+      () => setNebenFehler('Die Anforderungen'),
+    );
     return () => {
       unsubM();
       unsubO();
@@ -142,6 +156,8 @@ export default function StockView() {
   return (
     <div className="space-y-6">
       <PageHeader title="Lager" subtitle="Bestände führen und den Materialkatalog pflegen" />
+
+      {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {([

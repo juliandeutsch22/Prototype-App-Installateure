@@ -20,7 +20,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
-import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 
 const empty = {
   projectNumber: '',
@@ -72,6 +72,8 @@ export default function AdminProjectsView() {
   const [kunden, setKunden] = useState<(Customer & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Ein Nebenladevorgang ist ausgefallen — die Baustellenliste steht trotzdem. */
+  const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [assigned, setAssigned] = useState<string[]>([]);
@@ -138,8 +140,10 @@ export default function AdminProjectsView() {
 
   useEffect(() => {
     if (!user) return;
-    listUsers(user.companyId).then(setUsers).catch(() => undefined);
-    listCustomers(user.companyId).then(setKunden).catch(() => undefined);
+    // Ohne Hinweis blieben Team- und Kundenauswahl einfach leer, und die
+    // Baustelle liesse sich anlegen — ohne Kunden, ohne Mannschaft.
+    listUsers(user.companyId).then(setUsers).catch(() => setNebenFehler('Die Belegschaft'));
+    listCustomers(user.companyId).then(setKunden).catch(() => setNebenFehler('Die Kunden'));
     const unsub = subscribeRecentProjects(
       user.companyId,
       BAUSTELLEN_JE_SEITE,
@@ -224,6 +228,8 @@ export default function AdminProjectsView() {
   return (
     <div className="space-y-6">
       <PageHeader title="Baustellen" subtitle="Projekte anlegen, bearbeiten und Mitarbeiter zuordnen" />
+
+      {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       <Card title={editId ? 'Baustelle bearbeiten' : 'Neue Baustelle'}>
         <form onSubmit={submit} className="space-y-4">

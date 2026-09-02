@@ -37,7 +37,7 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
-import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
@@ -53,6 +53,8 @@ export default function InvoicesView() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Ein Nebenladevorgang ist ausgefallen — die Rechnungsliste steht trotzdem. */
+  const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
@@ -118,9 +120,14 @@ export default function InvoicesView() {
     // Nur laufende Baustellen: abgerechnet wird, was laeuft oder gerade
     // fertig wurde. Vorher stand der gesamte Bestand im Auswahlfeld — nach
     // Jahren eine Liste, in der man die aktuelle Baustelle suchen muss.
-    listActiveProjects(user.companyId).then(setProjects).catch(() => undefined);
+    // Schlaegt eines davon fehl, bleibt das Auswahlfeld leer — und „keine
+    // Baustellen" sieht dann genauso aus wie „nicht geladen". Der Hinweis
+    // unterscheidet die beiden.
+    listActiveProjects(user.companyId)
+      .then(setProjects)
+      .catch(() => setNebenFehler('Die Baustellen'));
     // Fuer die UID-Nummer im Buchhaltungs-Export.
-    listCustomers(user.companyId).then(setKunden).catch(() => undefined);
+    listCustomers(user.companyId).then(setKunden).catch(() => setNebenFehler('Die Kunden'));
     const unsub = subscribeRecentInvoices(
       user.companyId,
       grenze,
@@ -143,6 +150,9 @@ export default function InvoicesView() {
     const today = todayStr();
     invoices
       .filter((i) => i.paymentStatus === 'Offen' && i.dueDate && i.dueDate < today)
+      // Hier ist Stille richtig: die Umstellung ist eine Nebenleistung, sie
+      // laeuft bei jedem Laden erneut und heilt sich damit selbst. Ein Hinweis
+      // je Rechnung waere Laerm ohne Handlungsmoeglichkeit.
       .forEach((i) => void updateInvoiceStatus(i.id, 'Überfällig').catch(() => undefined));
   }, [invoices]);
 
@@ -405,6 +415,8 @@ export default function InvoicesView() {
   return (
     <div className="space-y-6">
       <PageHeader title="Rechnungen" subtitle="Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren" />
+
+      {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       {/*
         Buchhaltungs-Export.

@@ -23,7 +23,7 @@ import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { writeWithOfflineNotice, queuedMessage } from '@/lib/offlineWrite';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
 
@@ -61,6 +61,8 @@ export default function OrderView() {
   const [myOrders, setMyOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Ein Nebenladevorgang ist ausgefallen — der Katalog steht trotzdem. */
+  const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Warenkorb übersteht einen Reload — auf der Baustelle geht die Verbindung
@@ -81,7 +83,11 @@ export default function OrderView() {
 
   useEffect(() => {
     if (!user) return;
-    listActiveProjects(user.companyId).then(setProjects).catch(() => undefined);
+    // Ohne Hinweis waere das Baustellenfeld leer, und der Monteur haelt seine
+    // Baustelle fuer nicht angelegt.
+    listActiveProjects(user.companyId)
+      .then(setProjects)
+      .catch(() => setNebenFehler('Die Baustellen'));
     const unsubM = subscribeMaterials(
       user.companyId,
       (rows) => {
@@ -93,7 +99,14 @@ export default function OrderView() {
         setLoading(false);
       },
     );
-    const unsubO = subscribeOwnOrders(user.companyId, user.uid, EIGENE_ANFORDERUNGEN, setMyOrders, () => undefined);
+    // Siehe StockView: ein stumm gescheitertes Abo sieht aus wie „nichts da".
+    const unsubO = subscribeOwnOrders(
+      user.companyId,
+      user.uid,
+      EIGENE_ANFORDERUNGEN,
+      setMyOrders,
+      () => setNebenFehler('Deine Anforderungen'),
+    );
     return () => {
       unsubM();
       unsubO();
@@ -285,6 +298,8 @@ export default function OrderView() {
         title="Material"
         subtitle="Von der Baustelle bei der Projektleitung anfordern, Lieferung verfolgen und Rückgaben erfassen"
       />
+
+      {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
