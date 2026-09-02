@@ -13,8 +13,29 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    /**
+     * Angemeldet UND nicht deaktiviert.
+     *
+     * DIE PRUEFUNG STEHT HIER UND NICHT JE SAMMLUNG. `signedIn()` liegt unter
+     * `ownsExisting()`, `ownsIncoming()` und `hasRole()` — also unter jeder
+     * Regel dieser Datei. Eine neue Sammlung kann die Sperre damit nicht
+     * vergessen.
+     *
+     * WOGEGEN SIE SCHUETZT. Deaktivieren war vorher eine Anzeigeeinstellung:
+     * geprueft wurde nur im Browser (`AuthContext.loadProfile`). Ein
+     * ausgeschiedener Mitarbeiter behielt ein gueltiges Konto mit gueltigen
+     * Claims und kam mit dem Firestore-SDK unveraendert an Kunden,
+     * Baustellen und Scheine. Die Function `syncUserClaims` sperrt zusaetzlich
+     * das Auth-Konto und widerruft die Token; dieser Claim ist der dritte
+     * Riegel und der einzige, der auch ein noch gueltiges Token stoppt.
+     *
+     * FEHLT DER CLAIM, GILT AKTIV. Bestehende Token tragen ihn nicht, und ein
+     * Deploy darf nicht den ganzen Betrieb aussperren, bis sich jeder neu
+     * angemeldet hat. Dieselbe Lesart wie in der App (`active !== false`).
+     */
     function signedIn() {
-      return request.auth != null;
+      return request.auth != null
+        && (!('active' in request.auth.token) || request.auth.token.active == true);
     }
 
     function tokenCompany() {
@@ -172,20 +193,39 @@ service cloud.firestore {
       allow delete: if isLeadership() && ownsExisting();
     }
 
-    // --- assignments: lesen in der Firma; planen nur GF/Admin ---
+    // --- assignments: lesen in der Firma; planen nur die Leitung ---
+    //
+    // AENDERN GEHOERTE FRUEHER JEDEM. Die Begruendung dafuer war, dass ein
+    // Mitarbeiter `pickedUpMaterials` bestaetigen koenne — dieses Feld kommt
+    // in der App aber an keiner Stelle vor, weder lesend noch schreibend. Die
+    // Regel stand also fuer eine Funktion offen, die es nicht gibt, waehrend
+    // sie tatsaechlich JEDES Feld freigab: `userId`, `date`, `projectNumber`.
+    // Ein Monteur konnte sich auf eine andere Baustelle setzen oder den
+    // Einsatz eines Kollegen verschieben.
+    //
+    // Kommt die Bestaetigung spaeter, gehoert sie als eigene Regel hierher —
+    // begrenzt auf das eine Feld und den eigenen Einsatz, nicht als Freigabe
+    // des ganzen Dokuments.
     match /assignments/{id} {
       allow read: if ownsExisting();
-      // Mitarbeiter dürfen pickedUpMaterials bestätigen (eigene Firma).
-      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged();
-      allow create, delete: if isLeadership() && (ownsIncoming() || ownsExisting());
+      allow create: if isLeadership() && ownsIncoming();
+      allow update: if isLeadership() && ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow delete: if isLeadership() && ownsExisting();
     }
 
-    // --- materials (Katalog): lesen in der Firma; pflegen GF/Verwaltung/Admin.
-    //     Lagerstand (stock) darf jeder der Firma per Transaktion ändern. ---
+    // --- materials (Katalog): lesen in der Firma; pflegen GF/Verwaltung/Admin ---
+    //
+    // Der Kommentar nahm frueher den Lagerstand aus („darf jeder per
+    // Transaktion aendern"), die Regel tat das aber nicht: sie gab das ganze
+    // Dokument frei, also auch Name, Artikelnummer und Kategorie. Der Stand
+    // wird ohnehin nur unter „Material -> Lager" gebucht (`adjustStock`), und
+    // dorthin kommt nur Verwaltung oder Leitung. Die Regel deckt sich jetzt
+    // mit dem, was die Oberflaeche anbietet.
     match /materials/{id} {
       allow read: if ownsExisting();
       allow create: if (hasRole(['Verwaltung']) || isLeadership()) && ownsIncoming();
-      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged();
+      allow update: if (hasRole(['Verwaltung']) || isLeadership())
+        && ownsExisting() && ownsIncoming() && companyUnchanged();
       allow delete: if (hasRole(['Verwaltung']) || isLeadership()) && ownsExisting();
     }
 
@@ -398,7 +438,16 @@ service cloud.firestore {
       allow create: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']) && ownsIncoming();
       allow update: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator'])
         && ownsExisting() && ownsIncoming() && companyUnchanged();
-      allow delete: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']) && ownsExisting();
+      // NUR DER STORNO IST LOESCHBAR. Vorher liess sich jede Rechnung
+      // entfernen — auch eine offene oder bezahlte. Das passte weder zur
+      // Oberflaeche (sie bietet „Loeschen" ausschliesslich beim Storno an)
+      // noch zum Umgang mit den uebrigen Belegen: ein unterschriebener
+      // Handwerksschein laesst sich gar nicht loeschen, und der Zaehler auch
+      // nicht. Ausgerechnet beim Beleg fuer das Finanzamt war die Grenze die
+      // weichste.
+      allow delete: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator'])
+        && ownsExisting()
+        && resource.data.paymentStatus == 'Storniert';
     }
 
     // --- counters: fortlaufende Nummernkreise, einer je Firma ---
@@ -433,12 +482,32 @@ service cloud.firestore {
       allow create: if ownCounter() && darfZaehlen() && ownsIncoming()
         && request.resource.data.lastSeq is int
         && request.resource.data.lastSeq > 0;
+      /**
+       * Beginnt hier ein neues Jahr?
+       *
+       * `get` mit Vorgabe, weil aeltere Zaehlerdokumente das Feld `year` noch
+       * nicht tragen — ein direkter Zugriff liesse die Regel dort scheitern.
+       */
+      function neuesJahr() {
+        return request.resource.data.get('year', 0) != resource.data.get('year', 0);
+      }
+
       allow update: if ownCounter() && darfZaehlen() && ownsIncoming() && companyUnchanged()
         && request.resource.data.lastSeq is int
-        // Der Angebotszaehler beginnt zum Jahreswechsel neu bei 1; der
-        // Rechnungskreis laeuft dagegen monoton weiter.
-        && (id == tokenCompany() + '_quotes'
-            ? request.resource.data.lastSeq > 0
+        /**
+         * Der Angebotszaehler beginnt zum Jahreswechsel neu bei 1; der
+         * Rechnungskreis laeuft dagegen monoton weiter.
+         *
+         * Vorher stand hier fuer Angebote nur `lastSeq > 0`. Das erlaubte
+         * jeden Wert — auch einen kleineren, auch mitten im Jahr. Damit war
+         * „Nummernkreise nur steigend" fuer Angebote gar nicht durchgesetzt,
+         * und zwei Kunden konnten dieselbe Angebotsnummer bekommen. Der Neu-
+         * beginn ist jetzt an den Jahreswechsel gebunden und auf genau 1
+         * festgelegt; innerhalb eines Jahres steigt der Zaehler wie der
+         * Rechnungskreis.
+         */
+        && (id == tokenCompany() + '_quotes' && neuesJahr()
+            ? request.resource.data.lastSeq == 1
             : request.resource.data.lastSeq > resource.data.lastSeq);
       allow delete: if false;
     }

@@ -578,9 +578,7 @@ export interface Assignment {
   userName?: string;
   asHelper?: boolean;
   comment?: string;
-  materials?: Array<{ matId: string; name: string; unit?: string; qty: number }>;
   createdBy?: string;
-  pickedUpMaterials?: string[];
   createdAt?: number;
 }
 
