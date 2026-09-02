@@ -87,6 +87,33 @@ service cloud.firestore {
       return request.resource.data.companyId == resource.data.companyId;
     }
 
+    /**
+     * Wird am Beleg das VERRECHNET-Kennzeichen angefasst?
+     *
+     * `isBilled` und `invoiceNumber` entscheiden, ob eine Stunde oder eine
+     * Materialposition je auf eine Rechnung kommt: die Rechnungsstellung
+     * sammelt nur, was NICHT verrechnet ist. Wer das Kennzeichen selbst
+     * setzen kann, nimmt seine eigene Arbeitszeit aus der Verrechnung —
+     * still, ohne Fehlermeldung, und niemandem faellt es auf, weil die Zeile
+     * im Zeitkonto ganz normal weitersteht.
+     *
+     * Die Grenze steht hier und nicht in der Oberflaeche: die Formulare
+     * schicken diese beiden Felder ueberhaupt nie mit. Genau deshalb kostet
+     * dieser Riegel keinen einzigen echten Arbeitsweg — geprueft am Emulator,
+     * nicht angenommen.
+     */
+    function aendertVerrechnung() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['isBilled', 'invoiceNumber']);
+    }
+
+    // Beim Anlegen gibt es kein `resource`, also kein diff: hier zaehlt der
+    // Wert selbst. Ein Beleg wird nie als bereits verrechnet geboren.
+    function legtVerrechnetAn() {
+      return request.resource.data.get('isBilled', false) == true
+        || request.resource.data.get('invoiceNumber', '') != '';
+    }
+
     // Gültige Rollen. syncUserClaims übernimmt den Wert ungeprüft als Custom
     // Claim — ein Tippfehler ("Geschaeftsfuehrung") würde den Nutzer sonst
     // dauerhaft aussperren, weil keine Regel mehr greift.
@@ -249,13 +276,20 @@ service cloud.firestore {
         && (resource.data.userId == request.auth.uid
             || (hasRole(['Verwaltung', 'Buchhaltung']) || isLeadership()));
       allow create: if ownsIncoming()
-        && request.resource.data.userId == request.auth.uid;
+        && request.resource.data.userId == request.auth.uid
+        && !legtVerrechnetAn();
       // Der Besteller darf seine eigene Abholung bestätigen, sonst greift
       // die Verwaltung. Vorher konnte jeder jede Bestellung ändern —
       // inklusive des Verrechnet-Kennzeichens.
+      //
+      // „Inklusive" stimmte nur zur Haelfte: FREMDE Bestellungen waren danach
+      // dicht, die EIGENE nicht. Der Besteller durfte an seiner Position
+      // weiterhin jedes Feld setzen, auch `isBilled` — und damit sein
+      // Material aus der Rechnung nehmen.
       allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
-        && (resource.data.userId == request.auth.uid
-            || (hasRole(['Verwaltung', 'Buchhaltung']) || isLeadership()));
+        && ((hasRole(['Verwaltung', 'Buchhaltung']) || isLeadership())
+            || (resource.data.userId == request.auth.uid
+                && !aendertVerrechnung()));
       // Verwaltung pflegt das Material-Dashboard und darf dort löschen
       // (Legacy:4980-4988) — vorher war das versehentlich nur der Leitung erlaubt.
       allow delete: if (hasRole(['Verwaltung']) || isLeadership())
@@ -272,12 +306,17 @@ service cloud.firestore {
       allow read: if ownsExisting()
         && (resource.data.userId == request.auth.uid
             || isBuchOrTop());
+      // Das Verrechnet-Kennzeichen gehoert der Buchhaltung, nicht dem
+      // Eigentuemer des Eintrags. Sonst nimmt sich ein Monteur seine eigenen
+      // Stunden aus der Rechnung — und der Kunde zahlt sie nie.
       allow create: if ownsIncoming()
-        && (request.resource.data.userId == request.auth.uid
-            || isBuchOrTop());
+        && (isBuchOrTop()
+            || (request.resource.data.userId == request.auth.uid
+                && !legtVerrechnetAn()));
       allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
-        && (resource.data.userId == request.auth.uid
-            || isBuchOrTop());
+        && (isBuchOrTop()
+            || (resource.data.userId == request.auth.uid
+                && !aendertVerrechnung()));
       allow delete: if ownsExisting()
         && (resource.data.userId == request.auth.uid
             || isBuchOrTop());

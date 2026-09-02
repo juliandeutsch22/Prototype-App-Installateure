@@ -1036,6 +1036,158 @@ describe('Einsatzplanung — planen darf nur die Leitung', () => {
 });
 
 /**
+ * Das Verrechnet-Kennzeichen — wem es gehört.
+ *
+ * `isBilled` und `invoiceNumber` entscheiden, ob eine Stunde oder eine
+ * Materialposition je auf eine Rechnung kommt: die Rechnungsstellung sammelt
+ * nur, was NICHT verrechnet ist. Wer das Kennzeichen selbst setzen kann,
+ * nimmt seine eigene Arbeitszeit aus der Verrechnung — still, ohne
+ * Fehlermeldung, und niemandem fällt es auf, weil die Zeile im Zeitkonto
+ * ganz normal weitersteht. Der Kunde zahlt sie nie.
+ *
+ * Gefunden beim Nachgehen des Materialstamm-Fundes: die Regel für FREMDE
+ * Belege war dicht, die für die EIGENEN nicht. Über die Oberfläche ist das
+ * nicht erreichbar — die Formulare schicken die beiden Felder überhaupt nie
+ * mit. Über das SDK schon, und der Server zählt.
+ *
+ * DIE ZWEITE HÄLFTE DIESES BLOCKS IST DIE WICHTIGERE: dass der Riegel keinen
+ * einzigen echten Arbeitsweg kostet. Genau diese Prüfung fehlte beim
+ * Materialstamm, und deshalb tat dort ein Knopf drei Wochen lang nichts.
+ */
+describe('Verrechnet-Kennzeichen — setzt nur, wer abrechnet', () => {
+  async function seedZeit() {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'timeEntries', 'zA'), {
+        companyId: 'companyA', userId: 'userA1', date: '2026-09-01',
+        status: 'Anwesend', startTime: '08:00', endTime: '16:30', breakDuration: 30,
+        projectNumber: '2026-042',
+      });
+    });
+  }
+
+  async function seedAnforderung() {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'materialOrders', 'aA'), {
+        companyId: 'companyA', userId: 'userA1', materialId: 'mA',
+        materialName: 'Kupferrohr 15mm', quantity: 2, status: 'Abholbereit',
+        transactionType: 'order',
+      });
+    });
+  }
+
+  it('der Monteur setzt es an seinem EIGENEN Zeiteintrag NICHT', async () => {
+    await seedZeit();
+    const db = ctxA_employee().firestore();
+    await assertFails(updateDoc(doc(db, 'timeEntries', 'zA'), { isBilled: true }));
+    await assertFails(updateDoc(doc(db, 'timeEntries', 'zA'), { invoiceNumber: 'RE-2026-0001' }));
+  });
+
+  it('der Monteur schmuggelt es nicht neben einer echten Korrektur mit', async () => {
+    // Die Stelle, an der eine Feldgrenze bricht: erlaubt man die Korrektur,
+    // geht das Kennzeichen daneben gleich mit durch.
+    await seedZeit();
+    await assertFails(
+      updateDoc(doc(ctxA_employee().firestore(), 'timeEntries', 'zA'), {
+        endTime: '17:00', isBilled: true,
+      }),
+    );
+  });
+
+  it('der Monteur legt keinen bereits verrechneten Eintrag an', async () => {
+    await assertFails(
+      setDoc(doc(ctxA_employee().firestore(), 'timeEntries', 'zNeu'), {
+        companyId: 'companyA', userId: 'userA1', date: '2026-09-02',
+        status: 'Anwesend', startTime: '08:00', endTime: '16:30', breakDuration: 30,
+        isBilled: true,
+      }),
+    );
+  });
+
+  it('der Monteur setzt es auch an seiner eigenen Anforderung NICHT', async () => {
+    await seedAnforderung();
+    await assertFails(
+      updateDoc(doc(ctxA_employee().firestore(), 'materialOrders', 'aA'), { isBilled: true }),
+    );
+  });
+
+  it('die Buchhaltung setzt es — sie stellt die Rechnung', async () => {
+    await seedZeit();
+    await seedAnforderung();
+    const db = ctxA_buch().firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'timeEntries', 'zA'), { isBilled: true, invoiceNumber: 'RE-2026-0001' }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(db, 'materialOrders', 'aA'), { isBilled: true, invoiceNumber: 'RE-2026-0001' }),
+    );
+  });
+
+  it('die Buchhaltung gibt einen Storno auch wieder frei', async () => {
+    // `releaseBilled` schreibt `isBilled: false` und eine leere Nummer.
+    await seedZeit();
+    await assertSucceeds(
+      updateDoc(doc(ctxA_buch().firestore(), 'timeEntries', 'zA'), {
+        isBilled: false, invoiceNumber: '',
+      }),
+    );
+  });
+
+  // --- und jetzt die Gegenprobe: was WEITER gehen muss --------------------
+
+  it('der Monteur korrigiert seine Zeit unverändert', async () => {
+    await seedZeit();
+    await assertSucceeds(
+      updateDoc(doc(ctxA_employee().firestore(), 'timeEntries', 'zA'), {
+        endTime: '17:00', breakDuration: 45, comment: 'länger geworden',
+      }),
+    );
+  });
+
+  it('der Monteur bucht weiterhin eine neue Zeit', async () => {
+    await assertSucceeds(
+      setDoc(doc(ctxA_employee().firestore(), 'timeEntries', 'zNeu2'), {
+        companyId: 'companyA', userId: 'userA1', date: '2026-09-03',
+        status: 'Anwesend', startTime: '07:00', endTime: '15:30', breakDuration: 30,
+        source: 'manual',
+      }),
+    );
+  });
+
+  it('der Monteur bestätigt weiterhin seine Abholung', async () => {
+    /**
+     * GENAU DER WEG, DER BEIM MATERIALSTAMM DREI WOCHEN LANG TOT WAR. Was
+     * „Abgeholt" schreibt: Status, das Verarbeitet-Kennzeichen, den
+     * aufgelösten Katalogeintrag und den Zeitstempel.
+     */
+    await seedAnforderung();
+    await assertSucceeds(
+      updateDoc(doc(ctxA_employee().firestore(), 'materialOrders', 'aA'), {
+        status: 'Erledigt', processed: true, materialId: 'mA', updatedAt: new Date(),
+      }),
+    );
+  });
+
+  it('der Monteur gibt weiterhin eine Anforderung auf', async () => {
+    await assertSucceeds(
+      setDoc(doc(ctxA_employee().firestore(), 'materialOrders', 'aNeu'), {
+        companyId: 'companyA', userId: 'userA1', materialId: 'mA',
+        materialName: 'Kupferrohr 15mm', quantity: 3, status: 'Offen',
+        transactionType: 'order',
+      }),
+    );
+  });
+
+  it('die Buchhaltung korrigiert einen fremden Eintrag weiterhin', async () => {
+    await seedZeit();
+    await assertSucceeds(
+      updateDoc(doc(ctxA_buch().firestore(), 'timeEntries', 'zA'), {
+        endTime: '17:00', lastEditedByUid: 'buchA',
+      }),
+    );
+  });
+});
+
+/**
  * Materialstamm — und die Trennung, die dabei wirklich gilt.
  *
  * DIE ERSTE FASSUNG DIESER REGEL WAR ZU ENG, und dieser Block hat den Irrtum
