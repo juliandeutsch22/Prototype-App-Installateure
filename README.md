@@ -317,7 +317,7 @@ dagegen echt geheim** und gehört niemals in einen Commit.
 
 ### Ablauf
 
-- **Pull Request:** Typprüfung, Lint, 61 Unit-Tests, 21 Rules-Tests. Kein Deploy.
+- **Pull Request:** Typprüfung, Lint, 460 Unit-Tests, 131 Rules-Tests. Kein Deploy.
 - **Push auf `main`:** dieselben Prüfungen, danach Build und Deploy.
 - **Von Hand:** *Actions → „Test und Deploy" → Run workflow*.
 
@@ -359,3 +359,6 @@ npm run rules:test      # in einem zweiten Terminal
 - Sprachdaten werden serverseitig verarbeitet und **nicht** dauerhaft gespeichert;
   im Aufnahme-Flow transparent gemacht.
 - Datenexport pro Mandant via Cloud Function `exportCompanyData` (nur GF/Admin).
+  Sie führt alle Sammlungen des Mandanten — **aber die App ruft sie nirgends
+  auf.** Ein Auskunftsersuchen liesse sich damit heute nur von Hand bedienen;
+  siehe `docs/UEBERGABE.md` §6.

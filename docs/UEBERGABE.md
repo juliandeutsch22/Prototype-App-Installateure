@@ -1,6 +1,6 @@
 # Übergabe
 
-Stand: 02.09.2026, Commit `47c1bce` auf `main`.
+Stand: 02.09.2026.
 
 **Wofür dieses Dokument da ist.** Es soll jemanden, der die App noch nie
 gesehen hat, in einer halben Stunde arbeitsfähig machen — und zwar so, dass er
@@ -76,7 +76,11 @@ tests/          siehe §6
 **Zwei Regeln, die durchgehalten wurden:**
 
 - Rohe Firestore-Aufrufe **nur** in `src/lib/db/`. Ein Test (`abfragegrenzen`)
-  erzwingt außerdem, dass dort **jede** Abfrage ein `limit()` hat.
+  erzwingt außerdem, dass dort jede Abfrage eine **Grenze** hat. Das ist
+  bewusst weiter gefasst als `limit()`: ein Zeitraum oder ein Gleichheitsfilter
+  auf eine von Natur aus kleine Menge zählt auch. Wer die Regel für „überall
+  ein `limit()`" hält, hält die Bremse für dichter, als sie ist — durch genau
+  diese Öffnung passt der Projekt-Radar, siehe §6.
 - Logik, die Browser und Server beide brauchen, liegt in `shared/` und wird
   kopiert — nicht abgeschrieben. Zwei Implementierungen derselben Zahl wären
   der gefährlichste Fehler dieses Projekts: sie geht auf den Lohnzettel.
@@ -126,11 +130,11 @@ npm run dev          # Vite
 
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint, --max-warnings 0
-npm test             # 409 Tests ohne Emulator
+npm test             # 460 Tests ohne Emulator
 
 # Die Emulator-Tests brauchen einen laufenden Firestore-Emulator:
 npx firebase emulators:start --project demo-test --only firestore
-npm run rules:test   # 111 Tests gegen den Emulator
+npm run rules:test   # 131 Tests gegen den Emulator
 ```
 
 **Der Emulator braucht eine `--project`-Angabe**, sonst bricht er mit „No
@@ -180,6 +184,11 @@ Diese Liste ist teuer bezahlt. Wer sie liest, spart sich die Wiederholung.
 | **iOS friert eine Startbildschirm-App ein, statt sie neu zu laden.** | Beim Zurückkommen ist der JavaScript-Zustand noch da, die Netzverbindungen nicht. Ein Browser-Tab am Schreibtisch wird stattdessen neu geladen — deshalb sieht man es dort nie. |
 | **Die Fassungsnummer eines Service Workers darf nicht aus dem Bundle kommen.** | Sie käme aus der ALTEN Fassung, der Worker meldete sich unter der alten Adresse an und erneuerte sich nie. Nur der Server weiß, ob es etwas Neues gibt — deshalb vergleicht der Worker die ausgelieferte `index.html` mit der gespeicherten. |
 | **Ein Service Worker darf beendet werden, sobald er geantwortet hat.** | Ohne `event.waitUntil` bricht die Hintergrundprüfung mitten im Laden ab — auf dem Telefon also fast immer, und der Deploy fällt nie auf. |
+| **Die alten Bausteine wegzuwerfen, sobald ein Deploy erkannt wird, bricht die laufende Seite.** | Sie ist noch die alte und fordert die alten Namen an — im Speicher gelöscht, auf dem Server nach dem Deploy nicht mehr vorhanden. Seit dem Code-Splitting lädt jede Ansicht erst beim Öffnen nach; wer auf „Später" tippt, bekommt danach eine Fehlermeldung statt der Ansicht. Aufgeräumt wird beim Übernehmen. |
+| **„Erneut versuchen" kann einen Nachladefehler nicht heilen.** | React merkt sich das abgelehnte Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz zu fragen. Nur ein echtes Neuladen hilft — die Fehlergrenze tut das jetzt selbst. |
+| **`where('feld', '!=', wert)` überspringt Dokumente OHNE das Feld.** | Der nächtliche Bilanzlauf fragte `where('active', '!=', false)` und übersprang damit stillschweigend jeden übernommenen Altbestand ohne `active`. Überall sonst heißt „kein Feld" aktiv. Filtern gehört in diesem Fall in den Code, nicht in die Abfrage. |
+| **Ein Pfadfilter im Workflow ist eine Aussage über Abhängigkeiten.** | `deploy-functions.yml` hörte nur auf `functions/**`. `shared/` wird beim Bauen dorthin kopiert, liegt aber daneben — eine Änderung ging damit ins Hosting und nicht in die Functions. |
+| **Ein deaktiviertes Konto war nur im Browser deaktiviert.** | `firestore.rules` kannte `active` nicht, und `syncUserClaims` setzte die Claims unabhängig davon. Wer ausschied, behielt ein gültiges Konto und kam am UI vorbei an alles. Die Prüfung steht jetzt in `signedIn()`, plus gesperrtes Auth-Konto und widerrufene Token. |
 
 ---
 
@@ -229,6 +238,15 @@ Sekunden auf den Zwischenspeicher aus, statt weiter zu warten. Schreibvorgänge
 sind ausgenommen — die nimmt Firestore lokal an und reicht sie nach, dort wäre
 eine Frist ein Rückschritt.
 
+**Zugang endet serverseitig, nicht in der Oberfläche.** `active` steht als
+Claim im Token und wird in `signedIn()` geprüft — also unter jeder Regel
+dieser Datei, damit eine neue Sammlung die Sperre nicht vergessen kann. Dazu
+sperrt `syncUserClaims` das Auth-Konto und widerruft die Token. Drei Riegel,
+weil jeder für sich eine Lücke lässt: die Kontosperre wirkt erst beim nächsten
+Anmelden, ein ausgestelltes Token liefe bis zu einer Stunde weiter, und der
+Claim greift auch dort. **Fehlt der Claim, gilt aktiv** — bestehende Token
+tragen ihn nicht, und ein Deploy darf nicht den ganzen Betrieb aussperren.
+
 **Der Service Worker fasst nur eigene Dateien an.** Firestore, Auth und die
 Cloud Functions gehen unberührt durch. Eine vorgehaltene Datenbankantwort wäre
 ein falscher Kontostand — und der Firestore-Client hat seinen eigenen,
@@ -270,7 +288,7 @@ Test sie je gestartet hat.
 |---|---|
 | **KI-Spracherfassung** (`/voice`, `voiceExtract`) | Vollständig gebaut, als Modul aus. Ohne Schlüssel führt sie nur in eine Fehlermeldung, und Sprachaufnahmen von Mitarbeitern gingen an US-Anbieter — das braucht vorher Auftragsverarbeitungsverträge. |
 | **Wiedervorlagen** (`followUps`) | Sammlung, Regeln und Abfragen existieren; geschrieben wird nur aus der KI-Erfassung. Also faktisch tot, solange die aus ist. |
-| **`exportCompanyData`** | Deployed, wird nirgends aufgerufen. Eine Datenausleitung, die niemand auslösen kann. |
+| **`exportCompanyData`** | Deployed und seit dem 02.09.2026 vollständig — vorher führte sie neun von sechzehn Sammlungen, ohne Kunden, Angebote, Scheine, Urlaube und Nummernkreise. Wird von der App weiterhin nirgends aufgerufen: eine Datenausleitung, die niemand auslösen kann. |
 
 ### Eine offene Produktfrage
 
@@ -304,7 +322,10 @@ In dieser Reihenfolge, mit Begründung.
 1. **Ansichtstests für die vier ungetesteten Kernansichten** — Zeiterfassung,
    Rechnungen, Einsatzplanung, Baustellen. Größte Lücke, klarster Nutzen.
 2. **Nächtliche Ausleitung aller Daten an einen zweiten Ort.** Technisch
-   klein (`exportCompanyData` existiert bereits und braucht einen Aufrufer),
+   klein (`exportCompanyData` liest seit dem 02.09.2026 wirklich alles und
+   braucht nur noch einen Aufrufer — sinnvollerweise ein `onSchedule`, das in
+   einen zweiten Speicherort schreibt, statt die Daten durch eine
+   Callable-Antwort zu zwängen),
    in der Wirkung das Wichtigste auf dieser Liste. Steht seit Längerem an.
 3. **Ende-zu-Ende-Test mit echtem Browser** für die zwei Wege, die schon
    einmal am Telefon gebrochen sind: Schein unterschreiben, Zeit buchen.
