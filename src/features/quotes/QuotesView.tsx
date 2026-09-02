@@ -15,6 +15,7 @@ import { todayStr, localDateStr } from '@/lib/time';
 import { isGF } from '@/lib/permissions';
 import type { Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
+import InfoHint from '@/components/InfoHint';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -386,9 +387,17 @@ export default function QuotesView() {
               Netto {fmtEUR(summen.totalNetto)} · USt {fmtEUR(summen.totalVat)} ·{' '}
               <strong>Brutto {fmtEUR(summen.totalBrutto)}</strong>
             </p>
-            <p className="mt-1 text-sm text-ink-muted">
-              Kalkulierte Arbeitszeit: <strong>{kalkulierteStunden} h</strong> — das wird das
-              Stundenbudget der Baustelle, sobald das Angebot angenommen ist.
+            {/*
+              Die Zahl bleibt sichtbar, die Erklärung dazu nicht: sie steht
+              beim ersten Angebot im Weg und beim fünfzigsten erst recht.
+            */}
+            <p className="mt-1 flex flex-wrap items-center text-sm text-ink-muted">
+              Kalkulierte Arbeitszeit: <strong className="ml-1">{kalkulierteStunden} h</strong>
+              <InfoHint about="kalkulierte Arbeitszeit">
+                Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
+                der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
+                geblieben ist — und die Nachkalkulation, was sie verdient hat.
+              </InfoHint>
             </p>
           </div>
 

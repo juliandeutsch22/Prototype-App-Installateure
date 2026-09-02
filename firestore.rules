@@ -75,19 +75,24 @@ service cloud.firestore {
          'Geschäftsführung', 'Administrator'];
     }
 
-    // --- companies: lesen für die eigene Firma; Stammdaten und Sätze
-    //     ändern nur die Leitung. Anlegen und Löschen bleiben dem Server
+    // --- companies: lesen für die eigene Firma; ändern nur Geschäftsführung
+    //     und Administrator. Anlegen und Löschen bleiben dem Server
     //     vorbehalten: ein Mandant darf sich nicht selbst entfernen. ---
+    //
+    // WARUM NICHT DIE PROJEKTLEITUNG. In diesem Dokument steht, was der
+    // Betrieb verrechnet (Stundensätze, Zuschläge), wer Urlaub genehmigt und
+    // welche Bereiche er überhaupt benutzt. Das sind drei Entscheidungen über
+    // den Betrieb, keine über eine Baustelle.
+    //
+    // Vorher durfte die Projektleitung hier alles ausser zwei ausgenommenen
+    // Feldern ändern — also auch den Stundensatz. Die Ausnahmeliste war der
+    // Beleg, dass die Grenze eine Stufe zu weit unten lag: sobald man einzelne
+    // Felder herausnehmen muss, gehört das ganze Dokument nicht in diese Hand.
+    // Der Reiter „Einstellungen" liess sie ohnehin nicht hinein — der Server
+    // aber schon, und der zählt.
     match /companies/{companyId} {
       allow read: if signedIn() && companyId == tokenCompany();
-      // Die Liste der Urlaubs-Genehmigenden ist der Geschaeftsfuehrung
-      // vorbehalten. Duerfte die Projektleitung sie aendern, koennte sie sich
-      // selbst eintragen — und damit ueber die Urlaube derer entscheiden, die
-      // sie einteilt.
-      allow update: if isLeadership() && companyId == tokenCompany()
-        && (isTopLevel()
-            || !request.resource.data.diff(resource.data)
-                 .affectedKeys().hasAny(['vacationApprovers']));
+      allow update: if isTopLevel() && companyId == tokenCompany();
     }
 
     /**
@@ -117,10 +122,16 @@ service cloud.firestore {
     }
 
     // --- users: lesen innerhalb der Firma; verwalten nur GF/Admin ---
+    //
+    // Der Kommentar sagte das schon immer, die Regel tat es nicht: sie liess
+    // `isLeadership()` zu, und darin steckt die Projektleitung. Sie haette
+    // damit Benutzer anlegen und Rollen vergeben koennen — also sich selbst
+    // hochstufen. Wer Rechte vergibt, vergibt sie auch an sich.
+    //
     // Wer die Rolle Administrator vergibt oder einem Administrator etwas
-    // wegnimmt, muss selbst Administrator sein. Sonst koennte sich eine
-    // Geschaeftsfuehrung zum Superuser machen oder den letzten Administrator
-    // entfernen — die Hierarchie waere wirkungslos.
+    // wegnimmt, muss zusaetzlich selbst Administrator sein. Sonst koennte sich
+    // eine Geschaeftsfuehrung zum Superuser machen oder den letzten
+    // Administrator entfernen — die Hierarchie waere wirkungslos.
     function touchesAdmin() {
       return request.resource.data.role == 'Administrator'
         || (resource != null && resource.data.role == 'Administrator');
@@ -128,12 +139,12 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if ownsExisting();
-      allow create: if isLeadership() && ownsIncoming() && validRole()
+      allow create: if isTopLevel() && ownsIncoming() && validRole()
         && (request.resource.data.role != 'Administrator' || isAdmin());
-      allow update: if isLeadership() && ownsExisting() && ownsIncoming()
+      allow update: if isTopLevel() && ownsExisting() && ownsIncoming()
         && companyUnchanged() && validRole()
         && (!touchesAdmin() || isAdmin());
-      allow delete: if isLeadership() && ownsExisting()
+      allow delete: if isTopLevel() && ownsExisting()
         && (resource.data.role != 'Administrator' || isAdmin());
     }
 

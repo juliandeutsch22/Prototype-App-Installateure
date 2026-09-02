@@ -1,14 +1,13 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
-import { RequireAuth, RequireRole } from './guards';
-import { ROLES } from '@/types';
+import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
 import ErrorBoundary from './ErrorBoundary';
+import Unterreiter from '@/components/Unterreiter';
 import Layout from './Layout';
 import LoginPage from '@/features/auth/LoginPage';
 import DashboardView from '@/features/dashboard/DashboardView';
 import TimeView from '@/features/time/TimeView';
 import VoiceView from '@/features/voice/VoiceView';
-import { VOICE_ENABLED } from '@/lib/features';
 import OrderView from '@/features/orders/OrderView';
 import AdminOrdersView from '@/features/orders/AdminOrdersView';
 import StockView from '@/features/orders/StockView';
@@ -18,6 +17,7 @@ import QuotesView from '@/features/quotes/QuotesView';
 import NachkalkulationView from '@/features/costing/NachkalkulationView';
 import WorkSheetView from '@/features/worksheets/WorkSheetView';
 import VacationsView from '@/features/vacations/VacationsView';
+import ModulesView from '@/features/modules/ModulesView';
 import WorkSheetsListView from '@/features/worksheets/WorkSheetsListView';
 import MyProjectsView from '@/features/projects/MyProjectsView';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
@@ -57,199 +57,147 @@ export default function App() {
   );
 }
 
+/**
+ * Wer wohin darf, steht NUR in `navigation.ts`.
+ *
+ * Hier stand es früher ein zweites Mal, als `RequireRole` je Route — und die
+ * beiden Listen waren bereits auseinandergelaufen: die Projektleitung sah
+ * fünf Reiter, die sie nicht betreten konnte. `RequireNav` liest Rolle UND
+ * Modul aus demselben Eintrag, aus dem auch der Reiter gebaut wird. Damit
+ * kann diese Sorte Sackgasse nicht mehr entstehen.
+ */
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<DashboardView />} />
+      <Route path="/" element={<RequireNav path="/"><DashboardView /></RequireNav>} />
 
       {/* Außendienst */}
       {/* Zeit- und KI-Erfassung stehen JEDER Rolle offen (auch Buchhaltung:
           Krankenstand/Urlaub) — wie Legacy:1954, das den Tab ungeprüft setzt. */}
-      <Route path="/time" element={<TimeView />} />
-      {/* Ausgeblendet, nicht entfernt: ohne Schalter fuehrt /voice zurueck
-          aufs Dashboard, statt eine Ansicht zu zeigen, die ohne API-
-          Schluessel nur eine Fehlermeldung produzieren kann. */}
+      <Route path="/time" element={<RequireNav path="/time"><TimeView /></RequireNav>} />
+      {/*
+        Die KI-Erfassung haengt nicht mehr am Umgebungsschalter, sondern am
+        Modul „ki" — und das ist nur waehlbar, wenn die Zugaenge hinterlegt
+        sind. Ein Sonderweg weniger.
+      */}
+      <Route path="/voice" element={<RequireNav path="/voice"><VoiceView /></RequireNav>} />
+      {/*
+        Material unter EINEM Reiter: anfordern, Anforderungen bearbeiten,
+        Bestand führen. Wer nur anfordert, sieht auch nur das — die
+        Unterseiten und ihre Rollen stehen in navigation.ts.
+      */}
       <Route
-        path="/voice"
-        element={VOICE_ENABLED ? <VoiceView /> : <Navigate to="/" replace />}
-      />
-      <Route
-        path="/order"
+        path="/material/*"
         element={
-          <RequireRole roles={['Mitarbeiter', 'Verwaltung', 'Geschäftsführung', 'Administrator']}>
-            <OrderView />
-          </RequireRole>
+          <RequireNav path="/material">
+            <Unterreiter
+              basis="/material"
+              elemente={{
+                anfordern: <OrderView />,
+                anforderungen: <AdminOrdersView />,
+                lager: <StockView />,
+              }}
+            />
+          </RequireNav>
         }
       />
       {/* Strikt nur reine Mitarbeiter (Legacy:1980) — GF/Admin nutzen die
-          Verwaltungssicht. Vorher fehlte hier jeder Schutz. */}
+          Verwaltungssicht. */}
       <Route
         path="/my-schedule"
-        element={
-          <RequireRole roles={['Mitarbeiter']}>
-            <MyScheduleView />
-          </RequireRole>
-        }
+        element={<RequireNav path="/my-schedule"><MyScheduleView /></RequireNav>}
       />
       {/*
         Urlaub beantragen darf jede Rolle — auch Buchhaltung und Verwaltung
         nehmen Urlaub. Wer entscheiden darf, entscheidet die Ansicht selbst
         anhand der Rolle; die harte Grenze steht in firestore.rules.
       */}
-      <Route
-        path="/vacations"
-        element={
-          <RequireRole roles={ROLES}>
-            <VacationsView />
-          </RequireRole>
-        }
-      />
+      <Route path="/vacations" element={<RequireNav path="/vacations"><VacationsView /></RequireNav>} />
       <Route
         path="/my-projects"
-        element={
-          <RequireRole roles={['Mitarbeiter']}>
-            <MyProjectsView />
-          </RequireRole>
-        }
+        element={<RequireNav path="/my-projects"><MyProjectsView /></RequireNav>}
       />
-
-      {/* Verwaltung */}
+      <Route
+        path="/worksheets"
+        element={<RequireNav path="/worksheets"><WorkSheetsListView /></RequireNav>}
+      />
       {/*
-        Handwerksschein: erstellen darf jeder, der rausfaehrt — der Monteur
-        vor allem. Die Liste sieht zusaetzlich das Buero.
+        Der EINZELNE Schein hat bewusst keinen Reiter: er wird immer aus der
+        Liste oder aus dem Einsatzplan heraus geöffnet, zu einem bestimmten
+        Tag. Deshalb steht die Rollenprüfung hier ausnahmsweise ausgeschrieben
+        — erstellen darf ihn, wer rausfährt.
       */}
       <Route
         path="/worksheet"
         element={
-          <RequireRole
-            roles={['Mitarbeiter', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
-          >
-            <WorkSheetView />
-          </RequireRole>
+          <RequireModul id="scheine">
+            <RequireRole
+              roles={['Mitarbeiter', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
+            >
+              <WorkSheetView />
+            </RequireRole>
+          </RequireModul>
         }
       />
-      <Route
-        path="/worksheets"
-        element={
-          <RequireRole
-            roles={[
-              'Mitarbeiter',
-              'Buchhaltung',
-              'Verwaltung',
-              'Projektleiter',
-              'Geschäftsführung',
-              'Administrator',
-            ]}
-          >
-            <WorkSheetsListView />
-          </RequireRole>
-        }
-      />
-      {/*
-        Angebote: kalkulieren ist Leitungssache, die Buchhaltung sieht mit —
-        ein angenommenes Angebot ist die Vorstufe der Rechnung.
-      */}
-      {/* Nachkalkulation zeigt Margen — nur Geschaeftsfuehrung und Admin. */}
-      <Route
-        path="/costing"
-        element={
-          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <NachkalkulationView />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/quotes"
-        element={
-          <RequireRole
-            roles={['Buchhaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
-          >
-            <QuotesView />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/customers"
-        element={
-          <RequireRole
-            roles={['Buchhaltung', 'Verwaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
-          >
-            <CustomersView />
-          </RequireRole>
-        }
-      />
+
+      {/* Verwaltung */}
+      <Route path="/costing" element={<RequireNav path="/costing"><NachkalkulationView /></RequireNav>} />
+      <Route path="/quotes" element={<RequireNav path="/quotes"><QuotesView /></RequireNav>} />
+      <Route path="/customers" element={<RequireNav path="/customers"><CustomersView /></RequireNav>} />
       <Route
         path="/admin-projects"
-        element={
-          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <AdminProjectsView />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/admin-orders"
-        element={
-          <RequireRole roles={['Verwaltung', 'Geschäftsführung', 'Administrator']}>
-            <AdminOrdersView />
-          </RequireRole>
-        }
-      />
-      {/* Lager: eigener Bereich statt versteckter Reiter unter Bestellungen.
-          Verwaltung und Leitung fuehren den Bestand. */}
-      <Route
-        path="/stock"
-        element={
-          <RequireRole roles={['Verwaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}>
-            <StockView />
-          </RequireRole>
-        }
+        element={<RequireNav path="/admin-projects"><AdminProjectsView /></RequireNav>}
       />
       <Route
         path="/assignments"
-        element={
-          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <AssignmentsView />
-          </RequireRole>
-        }
+        element={<RequireNav path="/assignments"><AssignmentsView /></RequireNav>}
       />
-      <Route
-        path="/user-mgmt"
-        element={
-          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <UserMgmtView />
-          </RequireRole>
-        }
-      />
-      {/* Persoenliche Benachrichtigungen: jede Rolle, kein RequireRole.
-          Was jemand aufs Telefon bekommt, entscheidet er selbst. */}
-      <Route path="/notifications" element={<NotificationSettings />} />
+      <Route path="/user-mgmt" element={<RequireNav path="/user-mgmt"><UserMgmtView /></RequireNav>} />
+      {/*
+        Einstellungen unter EINEM Reiter: die eigenen Meldungen (jede Rolle),
+        die Sätze des Betriebs und die Module (Geschäftsführung). Der Reiter
+        steht allen offen, weil die Meldungen jedem gehören — was enger ist,
+        steht als Rollenliste bei der Unterseite.
 
+        Die Module tragen bewusst KEIN Modul: wäre die Modulverwaltung selbst
+        abschaltbar, könnte man sich aussperren und nie wieder hineinkommen.
+      */}
       <Route
-        path="/settings"
+        path="/settings/*"
         element={
-          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <SettingsView />
-          </RequireRole>
+          <RequireNav path="/settings">
+            <Unterreiter
+              basis="/settings"
+              elemente={{
+                meldungen: <NotificationSettings />,
+                saetze: <SettingsView />,
+                module: <ModulesView />,
+              }}
+            />
+          </RequireNav>
         }
       />
 
       {/* Buchhaltung */}
-      <Route
-        path="/invoices"
-        element={
-          <RequireRole roles={['Buchhaltung', 'Geschäftsführung', 'Administrator']}>
-            <InvoicesView />
-          </RequireRole>
-        }
-      />
+      <Route path="/invoices" element={<RequireNav path="/invoices"><InvoicesView /></RequireNav>} />
       <Route
         path="/accounting"
-        element={
-          <RequireRole roles={['Buchhaltung', 'Geschäftsführung', 'Administrator']}>
-            <AccountingView />
-          </RequireRole>
-        }
+        element={<RequireNav path="/accounting"><AccountingView /></RequireNav>}
       />
+
+      {/*
+        Die alten Adressen bleiben erreichbar.
+        WARUM DAS NICHT VERZICHTBAR IST: In bereits zugestellten
+        Push-Meldungen stehen /admin-orders und /order. Wer eine alte Meldung
+        antippt, landete sonst kommentarlos auf der Startseite — und suchte
+        dann die Anforderung, die ihn eigentlich hergerufen hatte. Dasselbe
+        gilt für Lesezeichen im Büro.
+      */}
+      <Route path="/order" element={<Navigate to="/material/anfordern" replace />} />
+      <Route path="/admin-orders" element={<Navigate to="/material/anforderungen" replace />} />
+      <Route path="/stock" element={<Navigate to="/material/lager" replace />} />
+      <Route path="/notifications" element={<Navigate to="/settings/meldungen" replace />} />
+      <Route path="/modules" element={<Navigate to="/settings/module" replace />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

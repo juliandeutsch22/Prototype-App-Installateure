@@ -95,6 +95,21 @@ export interface Company {
    * zurücknehmen, weil auch das Ändern dieser Liste ihnen vorbehalten ist.
    */
   vacationApprovers?: string[];
+  /**
+   * Welche Bereiche der App dieser Betrieb benutzt.
+   *
+   * Gespeichert werden nur die ABWEICHUNGEN vom Standard; was fehlt, gilt wie
+   * in `lib/module.ts` festgelegt. Damit ändert sich für bestehende Betriebe
+   * nichts, solange niemand etwas umstellt — und ein später hinzukommendes
+   * Modul erscheint automatisch mit seinem Standard, statt bei allen zu
+   * fehlen.
+   *
+   * KEINE SICHERHEITSGRENZE. Ein abgeschaltetes Modul nimmt den Weg weg, nicht
+   * das Recht; wer als Buchhaltung Rechnungen anlegen darf, darf das
+   * weiterhin. Was serverseitig geschützt ist, ist dieses Feld selbst — sonst
+   * schaltete sich jeder frei, was er will.
+   */
+  modules?: Record<string, boolean>;
   createdAt?: number;
 }
 

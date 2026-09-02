@@ -187,7 +187,7 @@ describe('Was in der Meldung steht', () => {
   it('nennt Menge, Material, Besteller und Baustelle', () => {
     const m = textNeueAnforderung(order);
     expect(m.body).toBe('3× Kupferrohr 15 mm — Max Mustermann (2026-001)');
-    expect(m.link).toBe('/admin-orders');
+    expect(m.link).toBe('/material/anforderungen');
   });
 
   it('kommt ohne Baustelle und ohne Namen aus, statt „undefined" zu zeigen', () => {
@@ -209,7 +209,7 @@ describe('Was in der Meldung steht', () => {
 
   it('schickt den Monteur bei „abholbereit" in seine eigene Ansicht', () => {
     const m = textAbholbereit(order, 'a1');
-    expect(m.link).toBe('/order');
+    expect(m.link).toBe('/material/anfordern');
     expect(m.body).toBe('3× Kupferrohr 15 mm liegt bereit (2026-001)');
   });
 });
