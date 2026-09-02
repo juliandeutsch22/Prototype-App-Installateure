@@ -58,9 +58,37 @@ export function darfNeuLaden(): boolean {
  */
 export function istNachladeFehler(error: { name?: string; message?: string }): boolean {
   const text = `${error.name ?? ''} ${error.message ?? ''}`;
-  return /dynamically imported module|Importing a module script failed|error loading dynamically|ChunkLoadError|Loading chunk \S+ failed|valid JavaScript MIME type|Expected a JavaScript(?: | module )script|disallowed MIME type|failed to fetch dynamically/i.test(
-    text,
+  return (
+    /dynamically imported module|Importing a module script failed|error loading dynamically|ChunkLoadError|Loading chunk \S+ failed|valid JavaScript MIME type|Expected a JavaScript(?: | module )script|disallowed MIME type|failed to fetch dynamically/i.test(
+      text,
+    ) || istKaputterBaustein(text)
   );
+}
+
+/**
+ * Ein nachgeladener Baustein, der zwar ANKAM, aber leer ist.
+ *
+ * AUS DEM BETRIEB GEMELDET, und der Fehler war meiner. Auf dem Telefon stand:
+ *
+ *   undefined is not an object (evaluating 'e._result.default')
+ *
+ * `_result` ist Reacts Innenleben für eine nachgeladene Ansicht: dort liegt
+ * das fertige Modul, aus dem `default` geholt wird. Ist es `undefined`, hat
+ * das Nachladen zwar nicht mit einem Fehler geendet — geliefert wurde aber
+ * nichts Brauchbares.
+ *
+ * Das ist KEIN gewöhnlicher Programmfehler, sondern derselbe Fall wie ein
+ * gescheitertes Nachladen, nur in anderer Verkleidung. Und es ist der
+ * schlimmste: die Fehlertafel bot „Erneut versuchen" an, während React sich
+ * das kaputte Modul gemerkt hatte — der Knopf konnte nichts ausrichten, und
+ * die Ansicht war für den Rest der Sitzung unerreichbar. „Neuer Schein" ging
+ * damit gar nicht mehr.
+ *
+ * So erkannt, greift stattdessen das Neuladen, und das holt den Baustein
+ * wirklich neu.
+ */
+function istKaputterBaustein(text: string): boolean {
+  return /_result|_payload/.test(text) && /undefined|null|not an object|reading/i.test(text);
 }
 
 /**
@@ -80,33 +108,3 @@ export function nachladefehlerBeobachten(): void {
   });
 }
 
-/**
- * Eine nachzuladende Ansicht — mit Wiederholung statt sofortigem Aufgeben.
- *
- * WARUM. Jede der zwei Dutzend Ansichten wird erst beim Öffnen geholt. Ein
- * einziger Netzhänger — die Sekunde beim Wechsel von WLAN auf Mobilfunk, der
- * Moment im Aufzug — reichte bisher, damit die Ansicht scheitert, die
- * Fehlergrenze anspringt und die App neu lädt. Aus Sicht des Monteurs:
- * „schon wieder springt es".
- *
- * Ein zweiter Versuch nach einer halben Sekunde erledigt genau diesen Fall,
- * ohne dass irgendjemand etwas merkt. Was danach immer noch scheitert, ist
- * kein Hänger, sondern ein echter Grund — meist eine Fassung, die es nicht
- * mehr gibt; dafür bleibt der Weg über die Fehlergrenze.
- *
- * DIE PAUSE STEIGT. Zwei Versuche im Abstand von 50 Millisekunden treffen
- * dieselbe tote Sekunde wie der erste. Gewartet wird deshalb 400 und dann
- * 1200 Millisekunden — lang genug, dass sich eine Verbindung fängt, kurz
- * genug, dass niemand es als Warten empfindet.
- */
-export function nachladbar<T>(laden: () => Promise<T>, versuche = 3): Promise<T> {
-  const pausen = [400, 1200];
-  const versuch = (n: number): Promise<T> =>
-    laden().catch((fehler: unknown) => {
-      if (n >= versuche - 1) throw fehler;
-      return new Promise<T>((weiter, ab) => {
-        setTimeout(() => versuch(n + 1).then(weiter, ab), pausen[n] ?? 1200);
-      });
-    });
-  return versuch(0);
-}
