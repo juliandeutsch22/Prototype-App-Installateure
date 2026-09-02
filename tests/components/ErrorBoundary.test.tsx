@@ -17,12 +17,23 @@ function Wirft({ fehler }: { fehler: Error }): JSX.Element {
   throw fehler;
 }
 
-/** Was die Browser tatsächlich melden, wenn ein Nachladen scheitert. */
+/**
+ * Was die Browser tatsächlich melden, wenn ein Nachladen scheitert.
+ *
+ * Die erste Zeile ist die aus dem Betrieb gemeldete — Safari auf dem iPhone,
+ * am 02.09.2026. Sie hat die ursprüngliche Liste nicht getroffen, und genau
+ * deshalb lief die Selbstheilung nicht an: der Monteur bekam die Tafel mit
+ * „Erneut versuchen", dem Knopf, der hier nichts ausrichten kann.
+ */
 const NACHLADE_MELDUNGEN = [
+  "'text/html' is not a valid JavaScript MIME type.",
   'Failed to fetch dynamically imported module: https://app.test/assets/TimeView-a1b2.js',
   "Importing a module script failed.",
   'error loading dynamically imported module',
   'Loading chunk 42 failed.',
+  // Chrome und Firefox sagen dasselbe mit anderen Worten.
+  'Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of "text/html".',
+  'Loading module from "https://app.test/assets/x.js" was blocked because of a disallowed MIME type ("text/html").',
 ];
 
 let reload: ReturnType<typeof vi.fn>;

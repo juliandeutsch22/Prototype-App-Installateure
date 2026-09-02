@@ -1,5 +1,6 @@
 import { where } from 'firebase/firestore';
 import type { TimeEntry } from '@/types';
+import { mitFristOder } from '@/lib/frist';
 import {
   queryTenant,
   subscribeTenant,
@@ -178,8 +179,35 @@ export class DuplicateEntryError extends Error {
  * verfälschen den Überstunden-Saldo unbemerkt. Gilt bewusst auch für den
  * Sprachpfad, deshalb sitzt die Prüfung hier und nicht nur im Formular.
  */
+/**
+ * Wie lange die Doppelbuchungsprüfung den Monteur warten lassen darf.
+ *
+ * AUS DEM BETRIEB GEMELDET: „das Erfassen einer Zeitbuchung hat lange
+ * gedauert". Eine der Ursachen steht hier — die Prüfung ist eine ABFRAGE, und
+ * Firestore-Abfragen haben keine Zeitgrenze. Auf einer zähen Verbindung im
+ * Keller wartete das Speichern also unbegrenzt, bevor der Schreibvorgang
+ * überhaupt losging.
+ */
+const DUPLIKAT_FRIST_MS = 3000;
+
 export async function createTimeEntry(companyId: string, entry: NewTimeEntry) {
-  const dupe = await findEntryForDate(companyId, entry.userId, entry.date);
+  /**
+   * WAS BEI ABLAUF DER FRIST PASSIERT — und warum es so herum richtig ist.
+   *
+   * Antwortet der Server nicht rechtzeitig, wird trotzdem gebucht. Die beiden
+   * Fehler sind ungleich schwer: eine Doppelbuchung steht sichtbar in „Meine
+   * Einträge" und lässt sich in zehn Sekunden löschen. Eine Zeit, die sich
+   * nicht buchen lässt, kostet den Monteur den Nachtrag am Abend — und das
+   * ist genau der Weg zurück zum Zettel im Auto.
+   *
+   * Das Formular prüft ohnehin zuerst gegen die geladenen Tage; diese Abfrage
+   * fängt nur die Tage AUSSERHALB des geladenen Fensters ab.
+   */
+  const dupe = await mitFristOder(
+    findEntryForDate(companyId, entry.userId, entry.date),
+    async () => null,
+    DUPLIKAT_FRIST_MS,
+  );
   if (dupe) throw new DuplicateEntryError(entry.date);
   return createInTenant(COLLECTION, companyId, entry);
 }
@@ -209,7 +237,12 @@ export async function updateTimeEntry(
   owner: { companyId: string; userId: string },
 ) {
   if (data.date) {
-    const dupe = await findEntryForDate(owner.companyId, owner.userId, data.date, id);
+    // Dieselbe Frist und dieselbe Abwägung wie beim Anlegen.
+    const dupe = await mitFristOder(
+      findEntryForDate(owner.companyId, owner.userId, data.date, id),
+      async () => null,
+      DUPLIKAT_FRIST_MS,
+    );
     if (dupe) throw new DuplicateEntryError(data.date);
   }
   return updateInTenant(COLLECTION, id, data);

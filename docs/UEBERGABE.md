@@ -130,7 +130,7 @@ npm run dev          # Vite
 
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint, --max-warnings 0
-npm test             # 503 Tests ohne Emulator
+npm test             # 512 Tests ohne Emulator
 
 # Die Emulator-Tests brauchen einen laufenden Firestore-Emulator:
 npx firebase emulators:start --project demo-test --only firestore
@@ -185,6 +185,9 @@ Diese Liste ist teuer bezahlt. Wer sie liest, spart sich die Wiederholung.
 | **Die Fassungsnummer eines Service Workers darf nicht aus dem Bundle kommen.** | Sie käme aus der ALTEN Fassung, der Worker meldete sich unter der alten Adresse an und erneuerte sich nie. Nur der Server weiß, ob es etwas Neues gibt — deshalb vergleicht der Worker die ausgelieferte `index.html` mit der gespeicherten. |
 | **Ein Service Worker darf beendet werden, sobald er geantwortet hat.** | Ohne `event.waitUntil` bricht die Hintergrundprüfung mitten im Laden ab — auf dem Telefon also fast immer, und der Deploy fällt nie auf. |
 | **Die alten Bausteine wegzuwerfen, sobald ein Deploy erkannt wird, bricht die laufende Seite.** | Sie ist noch die alte und fordert die alten Namen an — im Speicher gelöscht, auf dem Server nach dem Deploy nicht mehr vorhanden. Seit dem Code-Splitting lädt jede Ansicht erst beim Öffnen nach; wer auf „Später" tippt, bekommt danach eine Fehlermeldung statt der Ansicht. Aufgeräumt wird beim Übernehmen. |
+| **Es gibt keinen 404 für eine fehlende Datei.** | Der Hosting-Rewrite `"source": "**"` schickt JEDE unbekannte Adresse auf `index.html` — Status 200, `text/html`. Eine Bausteindatei, die es nach einem Deploy nicht mehr gibt, sieht damit aus wie ein Erfolg. Der Service Worker hat die Startseite daraufhin unter dem Namen der JavaScript-Datei gespeichert, und der Fehler blieb stehen. Gemeldet als „'text/html' is not a valid JavaScript MIME type". |
+| **Eine Fehlererkennung nach Wortlaut ist immer zu kurz.** | Dieselbe Meldung heißt in Safari, Chrome und Firefox anders. Die erste Fassung der Nachlade-Erkennung traf die Safari-Formulierung nicht — die Selbstheilung lief deshalb nicht an, und der Monteur bekam die Tafel mit dem Knopf, der nicht wirken kann. Erkennung UND ein sauberer Fehlschlag aus dem Worker, nicht eines von beiden. |
+| **Ein Firestore-Schnappschuss kommt zweimal.** | Einmal sofort aus dem lokalen Zwischenspeicher, einmal nach der Bestätigung des Servers — mit gleichem Inhalt, aber neuem Array. Ein Effekt, der an der Array-Identität hängt, rechnet damit alles doppelt. |
 | **„Erneut versuchen" kann einen Nachladefehler nicht heilen.** | React merkt sich das abgelehnte Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz zu fragen. Nur ein echtes Neuladen hilft — die Fehlergrenze tut das jetzt selbst. |
 | **`where('feld', '!=', wert)` überspringt Dokumente OHNE das Feld.** | Der nächtliche Bilanzlauf fragte `where('active', '!=', false)` und übersprang damit stillschweigend jeden übernommenen Altbestand ohne `active`. Überall sonst heißt „kein Feld" aktiv. Filtern gehört in diesem Fall in den Code, nicht in die Abfrage. |
 | **Ein Pfadfilter im Workflow ist eine Aussage über Abhängigkeiten.** | `deploy-functions.yml` hörte nur auf `functions/**`. `shared/` wird beim Bauen dorthin kopiert, liegt aber daneben — eine Änderung ging damit ins Hosting und nicht in die Functions. |

@@ -52,8 +52,11 @@ const eintraege = [
   '2026-08-24', '2026-08-25', '2026-08-26', '2026-08-27', '2026-08-28',
 ].map(eintrag);
 
+/** Wen die Ansicht als Belegschaft vorfindet — je Test setzbar. */
+let benutzer: AppUser[] = [monteur];
+
 vi.mock('@/lib/db/users', () => ({
-  listUsers: vi.fn(async () => [monteur]),
+  listUsers: vi.fn(async () => benutzer),
 }));
 vi.mock('@/lib/db/projects', () => ({
   // Die Ansicht laedt nur noch die Baustellen, die in den geladenen
@@ -104,6 +107,7 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 
 beforeEach(() => {
+  benutzer = [monteur];
   // Fest auf den 31.08.2026, damit "heute" den Test nicht mit der Zeit
   // verschiebt. shouldAdvanceTime, weil userEvent intern Zeitgeber braucht.
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -173,5 +177,45 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
     const tabelle = screen.getByRole('table');
     expect(within(tabelle).getByText('Mo 17.08.')).toBeInTheDocument();
     expect(within(tabelle).queryByText('Mo 03.08.')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Was dasteht, wenn die Liste leer ist.
+ *
+ * AUS DEM BETRIEB GEMELDET: die Geschäftsführung bucht eine Zeit und liest
+ * danach, es gebe keine Mitarbeiter. Die Aussage war richtig — ein
+ * Geschäftsführungskonto führt kein Zeitkonto und erscheint hier nie —, aber
+ * sie klang nach einem Fehler, wo eine Erklärung hingehört.
+ */
+describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
+  const gf: AppUser = {
+    ...monteur,
+    id: 'gf', uid: 'gf', name: 'Julian Deutsch', role: 'Geschäftsführung',
+  } as AppUser;
+
+  it('sagt, WARUM niemand dasteht, wenn es nur Leitung gibt', async () => {
+    benutzer = [gf];
+    render(
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>,
+    );
+
+    expect(await screen.findByText(/Kein Konto führt ein Zeitkonto/)).toBeInTheDocument();
+    expect(screen.getByText(/Geschäftsführung, Projektleitung und Administration/)).toBeInTheDocument();
+  });
+
+  it('sagt etwas anderes, wenn wirklich niemand angelegt ist', async () => {
+    // „Noch keine Benutzer" und „keiner davon führt ein Zeitkonto" sind zwei
+    // verschiedene Lagen mit zwei verschiedenen naechsten Schritten.
+    benutzer = [];
+    render(
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>,
+    );
+
+    expect(await screen.findByText('Noch keine Benutzer angelegt.')).toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { darfNeuLaden, istNachladeFehler } from '@/lib/nachladen';
 
 interface Props {
   children: ReactNode;
@@ -8,43 +9,11 @@ interface State {
 }
 
 /**
- * Ist das ein fehlgeschlagenes Nachladen einer Ansicht?
- *
- * Seit dem Code-Splitting laedt jede Ansicht erst beim Oeffnen nach. Kommt in
- * der Zwischenzeit ein Deploy, zeigt die laufende Seite auf Dateinamen, die
- * es auf dem Server nicht mehr gibt — Hosting kennt nach einem Deploy nur die
- * neuen. Der Fehler heisst je nach Browser anders; deshalb mehrere Muster.
+ * Erkennung und Schleifenschutz liegen in `lib/nachladen.ts` — dieselbe
+ * Antwort braucht auch `vite:preloadError`, das schon VOR React zuschlägt.
+ * Hier weiterhin ausgeführt, weil die Tests der Fehlergrenze sie prüfen.
  */
-export function istNachladeFehler(error: { name?: string; message?: string }): boolean {
-  const text = `${error.name ?? ''} ${error.message ?? ''}`;
-  return /dynamically imported module|Importing a module script failed|error loading dynamically|ChunkLoadError|Loading chunk \S+ failed/i.test(
-    text,
-  );
-}
-
-/** Merker gegen eine Schleife aus Neuladen und Scheitern. */
-const NEULADE_MERKER = 'perl:nachladefehler';
-/**
- * Wie lange ein Neuladen als „gerade erst versucht" gilt.
- *
- * Ohne diese Frist gaebe es zwei schlechte Auswege: ohne Merker eine
- * Endlosschleife aus Laden und Scheitern, mit dauerhaftem Merker keine
- * Reparatur mehr fuer den zweiten Deploy derselben Sitzung.
- */
-const NEULADE_SPERRE_MS = 10_000;
-
-function darfNeuLaden(): boolean {
-  try {
-    const zuletzt = Number(sessionStorage.getItem(NEULADE_MERKER) ?? 0);
-    if (Date.now() - zuletzt < NEULADE_SPERRE_MS) return false;
-    sessionStorage.setItem(NEULADE_MERKER, String(Date.now()));
-    return true;
-  } catch {
-    // Privates Fenster oder abgeschaltete Website-Daten: dann lieber einmal
-    // zu wenig neu laden als in einer Schleife zu landen.
-    return false;
-  }
-}
+export { istNachladeFehler } from '@/lib/nachladen';
 
 /**
  * Fängt Render-Fehler ab. Ohne das führt ein einziger Fehler in einer

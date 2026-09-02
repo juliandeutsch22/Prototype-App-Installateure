@@ -130,7 +130,42 @@ export default function TimeView() {
    */
   const [saldoEintraege, setSaldoEintraege] = useState<WithId<TimeEntry>[]>([]);
   const [bilanzen, setBilanzen] = useState<Monatsbilanz[] | null>(null);
-  const [laufendeEintraege, setLaufendeEintraege] = useState<WithId<TimeEntry>[]>([]);
+
+  /**
+   * Der laufende Monat — aus den Einträgen, die ohnehin schon da sind.
+   *
+   * AUS DEM BETRIEB GEMELDET: „das Erfassen einer Zeitbuchung hat lange
+   * gedauert." Eine der Ursachen stand hier: nach jeder Buchung holte die
+   * Ansicht den laufenden Monat ein ZWEITES Mal vom Server, obwohl das
+   * Live-Abo oben ihn längst geliefert hatte — das Fenster reicht drei Monate
+   * zurück, der laufende Monat liegt also immer darin.
+   *
+   * Nebenbei stimmt der Saldo damit besser: die zweite Abfrage hatte keine
+   * obere Grenze und zählte auch Buchungen in der ZUKUNFT mit, für die noch
+   * gar kein Soll besteht. Der Saldo sah dadurch zu gut aus.
+   */
+  const laufendeEintraege = useMemo(() => {
+    const jetzt = new Date();
+    const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
+    return entries.filter((e) => e.date >= monatsErster);
+  }, [entries]);
+
+  /**
+   * Woran der Saldo TATSÄCHLICH hängt.
+   *
+   * `entries` ist bei jedem Schnappschuss ein neues Array — auch dann, wenn
+   * sich inhaltlich nichts geändert hat. Firestore meldet nach einer Buchung
+   * zweimal: einmal sofort aus dem lokalen Zwischenspeicher, einmal nach der
+   * Bestätigung des Servers. An der Array-Identität hängend rechnete der
+   * Saldo deshalb zweimal — mit zwei vollen Abfragen je Buchung.
+   */
+  const eintraegeSchluessel = useMemo(
+    () =>
+      entries
+        .map((e) => `${e.id}:${e.date}:${e.status}:${e.startTime ?? ''}-${e.endTime ?? ''}:${e.breakDuration ?? 0}`)
+        .join('|'),
+    [entries],
+  );
 
   useEffect(() => {
     if (!user || !profile?.appStartDate) return;
@@ -144,15 +179,9 @@ export default function TimeView() {
       const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt);
 
       if (brauchbar) {
-        const jetzt = new Date();
-        const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
-        const [rows, laufend] = await Promise.all([
-          listBilanzen(user.companyId, user.uid, monatVon(eintritt)),
-          listOwnEntriesSince(user.companyId, user.uid, monatsErster),
-        ]);
+        const rows = await listBilanzen(user.companyId, user.uid, monatVon(eintritt));
         if (verworfen) return;
         setBilanzen(rows);
-        setLaufendeEintraege(laufend);
         setSaldoEintraege([]);
       } else {
         const rows = await listOwnEntriesSince(user.companyId, user.uid, eintritt);
@@ -167,9 +196,10 @@ export default function TimeView() {
     return () => {
       verworfen = true;
     };
-    // `entries` als Ausloeser: nach dem Buchen oder Loeschen muss der Saldo
-    // neu gerechnet werden, sonst steht dort bis zum Neuladen der alte Wert.
-  }, [user, profile?.appStartDate, entries]);
+    // Der INHALT der Einträge als Auslöser, nicht das Array: nach dem Buchen
+    // oder Löschen muss der Saldo neu gerechnet werden, nach einem bloßen
+    // Schnappschuss ohne Änderung nicht.
+  }, [user, profile?.appStartDate, eintraegeSchluessel]);
 
   const saldo = useMemo(() => {
     if (!profile) return null;

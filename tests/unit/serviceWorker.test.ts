@@ -198,6 +198,36 @@ describe('Service Worker — was er anfasst', () => {
     expect(u.geholt).toEqual([]);
   });
 
+  it('haelt die STARTSEITE nicht unter dem Namen eines Bausteins vor', async () => {
+    /**
+     * AUS DEM BETRIEB GEMELDET, 02.09.2026: „'text/html' is not a valid
+     * JavaScript MIME type."
+     *
+     * Firebase Hosting leitet mit `"source": "**"` jede unbekannte Adresse
+     * auf `index.html` um — Status 200, `text/html`. Eine Bausteindatei, die
+     * es nach einem Deploy nicht mehr gibt, sah damit aus wie ein Erfolg, und
+     * die Startseite landete im Speicher UNTER DEM NAMEN DER JAVASCRIPT-DATEI.
+     * Ab dann lieferte der Worker sie von dort, ohne das Netz noch zu fragen:
+     * der Fehler blieb stehen, bis jemand die App neu startete.
+     */
+    u.antwort = () =>
+      new Response('<!doctype html><title>App</title>', {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+      });
+
+    const antwort = await anfrage(u, 'https://app.test/assets/TimeView-a1b2.js');
+    // Ein sauberer Fehlschlag statt einer Seite, die als JavaScript gilt.
+    expect(antwort!.status).toBe(504);
+    expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/TimeView-a1b2.js')).toBeFalsy();
+
+    // Und beim naechsten Mal wird wieder gefragt, statt aus dem Speicher zu
+    // antworten — sonst waere der Fehler dauerhaft.
+    u.geholt.length = 0;
+    await anfrage(u, 'https://app.test/assets/TimeView-a1b2.js');
+    expect(u.geholt).toEqual(['https://app.test/assets/TimeView-a1b2.js']);
+  });
+
   it('haelt eine unvollstaendige Antwort NICHT vor', async () => {
     /**
      * Ein abgebrochener Download als „gespeichert" wäre eine kaputte Datei,

@@ -158,7 +158,7 @@ self.addEventListener('fetch', (event) => {
   // Bausteine tragen einen Fingerabdruck im Namen. Was einmal unter diesem
   // Namen geladen wurde, ändert sich nie — also erst schauen, dann holen.
   if (istEigenerBaustein(url)) {
-    event.respondWith(erstSpeicherDannNetz(request));
+    event.respondWith(erstSpeicherDannNetz(request, url));
   }
 });
 
@@ -233,11 +233,52 @@ async function allenFensternSagen(nachricht) {
   for (const f of fenster) f.postMessage(nachricht);
 }
 
-async function erstSpeicherDannNetz(request) {
+/*
+ * Ist das die Antwort auf DIESE Frage — oder die Startseite?
+ *
+ * DER FEHLER, DEN DAS VERHINDERT, IST AUS DEM BETRIEB GEMELDET WORDEN:
+ * „'text/html' is not a valid JavaScript MIME type."
+ *
+ * Firebase Hosting leitet mit `"source": "**"` JEDE unbekannte Adresse auf
+ * `index.html` um — mit Status 200 und `text/html`. Eine Bausteindatei, die
+ * es nach einem Deploy nicht mehr gibt, sieht damit nicht wie ein Fehler aus,
+ * sondern wie ein Erfolg. Die Prüfung `res.ok && res.status === 200` hat
+ * genau das durchgewinkt: die Startseite landete im Speicher UNTER DEM NAMEN
+ * DER JAVASCRIPT-DATEI. Danach lieferte der Worker sie von dort aus, ohne das
+ * Netz überhaupt noch zu fragen — der Fehler blieb also stehen.
+ *
+ * Der Deploy selbst ist nicht die Ursache: gefragt wird nach der Datei nur
+ * dann, wenn eine Ansicht ERSTMALS geöffnet wird, während die Seite noch die
+ * alte Fassung ist. Wer eine Ansicht schon offen hatte, bekommt sie weiter
+ * aus dem Speicher.
+ */
+function istStartseiteStattBaustein(url, res) {
+  const typ = res.headers.get('content-type') || '';
+  return /\.(js|mjs|css)$/.test(url.pathname) && typ.includes('text/html');
+}
+
+async function erstSpeicherDannNetz(request, url) {
   const c = await caches.open(TEILE);
   const treffer = await c.match(request);
   if (treffer) return treffer;
   const res = await fetch(request);
+
+  if (istStartseiteStattBaustein(url, res)) {
+    /*
+     * NICHT aufheben — und einen erkennbaren Fehler daraus machen.
+     *
+     * Die MIME-Meldung des Browsers lautet je nach Browser anders und ist
+     * schwer sicher zu erkennen. Ein sauberer Fehlschlag ergibt dagegen
+     * überall dieselbe Meldung („Failed to fetch dynamically imported
+     * module"), auf die sich die Fehlergrenze verlassen kann. Der Grund steht
+     * im Statustext, damit er beim Nachsehen nicht verlorengeht.
+     */
+    return new Response('', {
+      status: 504,
+      statusText: 'Veralteter Baustein nach einem Deploy',
+    });
+  }
+
   // Nur vollständige Antworten aufheben. Ein abgebrochener Download als
   // „gespeichert" wäre eine kaputte Datei, die nie wieder erneuert würde.
   if (res.ok && res.status === 200) await c.put(request, res.clone());
