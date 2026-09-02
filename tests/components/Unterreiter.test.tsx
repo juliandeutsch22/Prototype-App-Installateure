@@ -91,4 +91,34 @@ describe('Unterreiter', () => {
     zeige('/settings/gibtsnicht');
     expect(await screen.findByText('Meldungen-Inhalt')).toBeInTheDocument();
   });
+
+  it('kommt auch durch die DREI Ebenen der echten App hindurch', async () => {
+    /**
+     * In der App liegen drei `<Routes>` ineinander: `/*` fürs Layout,
+     * darin `/settings/*`, darin die Unterseite. Jede Ebene muss auf `*`
+     * enden, sonst findet die innerste nichts mehr — und der Reiter fiele
+     * kommentarlos auf die Startseite zurück. Die Prüfungen darüber
+     * benutzen nur zwei Ebenen und würden das nicht bemerken.
+     */
+    rolle = 'Geschäftsführung';
+    render(
+      <MemoryRouter initialEntries={['/settings/module']}>
+        <Routes>
+          <Route
+            path="/*"
+            element={
+              <Routes>
+                <Route
+                  path="/settings/*"
+                  element={<Unterreiter basis="/settings" elemente={ELEMENTE} />}
+                />
+                <Route path="*" element={<p>Startseite</p>} />
+              </Routes>
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Module-Inhalt')).toBeInTheDocument();
+  });
 });
