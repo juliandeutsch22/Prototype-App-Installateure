@@ -40,6 +40,59 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: das Verrechnet-Kennzeichen gehört der Buchhaltung, 02.09.2026
+
+Nachgang zum Materialstamm-Fund. Wenn eine Regel an einer Stelle zu eng war,
+ist die Frage naheliegend, wo sie zu weit ist — also alle Grenzen aus dem
+Sicherheits-Durchgang noch einmal durchgegangen, diesmal entlang der Frage:
+**welche Ansicht schreibt in eine Sammlung, die ihr nicht gehört?** Genau
+diese Konstellation hatte beim Material zugeschlagen.
+
+**Vier Verdachtsfälle geprüft, drei entkräftet:**
+
+- `markBilled` schreibt aus der Rechnungsansicht in fremde Sammlungen — aber
+  nur in `timeEntries` und `materialOrders`, nie in `workSheets`. Der
+  unterschriebene Schein wäre nach seiner Regel nicht beschreibbar gewesen;
+  der Weg existiert schlicht nicht. Nachgesehen statt behauptet.
+- Die Buchhaltung darf Materialanforderungen ändern — steht so in der Regel.
+- `updateUserProfile` schickt nur die geänderten Felder. Bei einem Update ist
+  `request.resource.data` aber das ZUSAMMENGEFÜHRTE Dokument, `companyId` und
+  `role` sind also da. Kein Problem.
+
+**Der vierte war echt.** Die Regel für `timeEntries` und `materialOrders`
+lautete sinngemäß „der Eigentümer darf seinen eigenen Beleg ändern" — ohne
+Einschränkung, welches FELD. Damit konnte ein Monteur an seinem eigenen
+Zeiteintrag `isBilled: true` setzen.
+
+Was daran hängt: die Rechnungsstellung sammelt nur, was **nicht** verrechnet
+ist. Ein selbst gesetztes Kennzeichen nimmt die eigene Arbeitszeit aus der
+Rechnung — still, ohne Fehlermeldung, und niemandem fällt es auf, weil die
+Zeile im Zeitkonto ganz normal weitersteht. Der Kunde zahlt sie nie. Über die
+Oberfläche ist das nicht erreichbar; die Formulare schicken `isBilled` und
+`invoiceNumber` überhaupt nie mit. Über das SDK schon, und der Server zählt —
+dieselbe Begründung wie beim deaktivierten Konto.
+
+Der Kommentar an dieser Regel behauptete sogar, das sei erledigt: „Vorher
+konnte jeder jede Bestellung ändern — inklusive des Verrechnet-Kennzeichens."
+Das stimmte zur Hälfte. FREMDE Belege waren dicht, die EIGENEN nicht.
+
+**Elf neue Regeltests, und die Aufteilung ist der Punkt:** vier prüfen, dass
+der Riegel hält, **sieben prüfen, dass er keinen echten Arbeitsweg kostet** —
+Zeit korrigieren, Zeit buchen, Abholung bestätigen, Material anfordern, fremde
+Einträge durch die Buchhaltung korrigieren. Genau diese zweite Hälfte fehlte
+beim Materialstamm, und deshalb tat dort ein Knopf drei Wochen lang nichts.
+
+Sie hat sich sofort bezahlt gemacht: zwei der sieben schlugen beim ersten Lauf
+fehl. Nicht wegen der Regel — mein Testdatensatz trug die falsche
+Benutzerkennung. Ohne diese Hälfte hätte ich den Fehlschlag nie gesehen.
+
+Geprüft: 572 ohne Emulator, **148 dagegen** (11 neu). Die vier Riegel-Tests
+schlagen gegen die vorherigen Regeln fehl, die sieben Gegenproben bestehen
+unter beiden Ständen — so gehört es: sie sichern Bestehendes, sie erlauben
+nichts Neues.
+
+---
+
 ## Erledigt: das Unterschreiben mit dem Finger, 02.09.2026
 
 Zum dritten Mal gemeldet, und diesmal mit dem entscheidenden Zusatz: **am PC
