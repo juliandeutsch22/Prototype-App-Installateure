@@ -130,7 +130,7 @@ npm run dev          # Vite
 
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint, --max-warnings 0
-npm test             # 475 Tests ohne Emulator
+npm test             # 503 Tests ohne Emulator
 
 # Die Emulator-Tests brauchen einen laufenden Firestore-Emulator:
 npx firebase emulators:start --project demo-test --only firestore
@@ -260,16 +260,17 @@ lädt die echte `public/sw.js` in eine Sandbox und hält genau das fest.
 
 Ehrlich und in der Reihenfolge, in der sie wehtun.
 
-### Ungetestete Ansichten — die größte Lücke
+### Ungetestete Ansichten — kleiner geworden, nicht weg
 
-**14 von 26 Ansichten haben keinen eigenen Test**, darunter die vier
-wichtigsten: **Zeiterfassung** (meistbenutzt), **Rechnungen** (Geld),
-**Einsatzplanung** (löscht Daten), **Baustellen**.
+Die vier wichtigsten sind seit dem 02.09.2026 abgedeckt: **Zeiterfassung**
+(meistbenutzt), **Rechnungen** (Geld), **Einsatzplanung** (löscht Daten),
+**Baustellen**. Bleiben **10 von 27** ohne eigenen Test — die kleineren.
 
-Und selbst wo Ansichtstests existieren, ist **jeder Datenbankzugriff ersetzt**.
-Sie finden Bedienfehler, keine Datenfehler. Jeder aus dem Betrieb gemeldete
-Fehler lag bisher in genau den Nähten, die diese Tests per Konstruktion nicht
-sehen.
+**Die Einschränkung gilt unverändert:** in jedem dieser Tests ist jeder
+Datenbankzugriff ersetzt. Sie finden Bedienfehler und falsche Verdrahtung,
+keine Datenfehler. Jeder aus dem Betrieb gemeldete Fehler lag bisher in genau
+den Nähten, die sie per Konstruktion nicht sehen — dafür sind die
+Emulator-Tests da, und für den Rest fehlt weiterhin ein echter Browser.
 
 ### Kein echter Browser
 
@@ -331,15 +332,19 @@ Schreiben. Wie bei allen Cloud Functions.
 
 In dieser Reihenfolge, mit Begründung.
 
-1. **Ansichtstests für die vier ungetesteten Kernansichten** — Zeiterfassung,
-   Rechnungen, Einsatzplanung, Baustellen. Größte Lücke, klarster Nutzen.
+1. **Ende-zu-Ende-Test mit echtem Browser** für die zwei Wege, die schon
+   einmal am Telefon gebrochen sind: Schein unterschreiben, Zeit buchen. Seit
+   die vier Kernansichten Tests haben (02.09.2026), ist das die größte
+   verbliebene Lücke — und die einzige, die die Unterschrift auf dem Telefon
+   je abdecken kann.
 2. **`AUSLEITUNG_BUCKET` auf einen Speicherort ausserhalb dieses Projekts
    setzen.** Der nächtliche Lauf existiert seit dem 02.09.2026 und
    funktioniert; er schreibt nur noch an die falsche Stelle, nämlich in
    dasselbe Google-Projekt. Kein Programmieraufwand mehr, sondern eine
    Entscheidung plus ein Konto. Siehe §6.
-3. **Ende-zu-Ende-Test mit echtem Browser** für die zwei Wege, die schon
-   einmal am Telefon gebrochen sind: Schein unterschreiben, Zeit buchen.
+3. **Ansichtstests für die verbliebenen zehn Ansichten** — deutlich kleinere
+   Stücke als die vier Kernansichten, und mit denen als Vorlage schnell
+   geschrieben.
 4. **Handwerksschein Stufen 2–4** — Fotos, Versand an den Kunden, Verbindung
    zur Rechnung. Der Fahrplan steht in `ROADMAP.md`.
 5. **Wartungsverträge und wiederkehrende Termine.** Die jährliche

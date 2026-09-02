@@ -40,6 +40,52 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: die vier Kernansichten haben Tests
+
+Die größte Lücke der Prüftiefe, seit Längerem als Nummer eins geführt:
+Zeiterfassung (meistbenutzt), Rechnungen (Geld), Einsatzplanung (löscht
+Daten), Baustellen. 28 neue Tests.
+
+**Geprüft wird die Verdrahtung, nicht die Rechnung.** Die Formeln sind längst
+abgedeckt — `assemble`, `totals`, `time`, `invoiceNumbers`. Was fehlte, war
+die Naht dazwischen, und genau dort lagen bisher alle gemeldeten Fehler.
+
+Was jetzt festgehalten ist, in der Reihenfolge, in der es wehtäte:
+
+- **Rechnungen: die Reihenfolge.** Nummer verbindlich ziehen, dann Belege
+  sperren, dann anlegen. Dreht man die letzten beiden um, ist im Fehlerfall
+  ein Zeiteintrag ein zweites Mal verrechenbar, und der Kunde bekommt
+  dieselbe Stunde zweimal in Rechnung gestellt. Der Test hält außerdem fest,
+  dass die verbindliche Nummer aus der Transaktion kommt und nicht aus dem
+  Vorschlag im Feld — der ist veraltet, sobald jemand parallel abrechnet.
+- **Zeiterfassung: welcher Weg zum Saldo.** Deckt der Marker den
+  Eintrittsmonat nicht ab, muss die Ansicht auf die Rohdaten zurückfallen.
+  Täte sie es nicht, summierte sie eine lückenhafte Bilanzreihe zu einem zu
+  niedrigen Saldo — ohne Fehlermeldung, und die Zahl steht auf dem
+  Lohnzettel. Dazu: ein verrechneter Eintrag ist gegen Bearbeiten und
+  Löschen gesperrt.
+- **Einsatzplanung: dass nichts still verschwindet.** Speichern ist ein
+  „alles weg, dann alles neu" für Tag und Baustelle. Der Test hält fest, dass
+  eine vorhandene Planung ins Formular kommt (sonst löschte eine Änderung am
+  Kommentar die ganze Mannschaft) und dass ein leer geräumtes Formular nicht
+  speichert, sondern sagt, wo das Löschen wirklich steht.
+- **Baustellen: der Kundenname kommt aus dem Stammsatz**, und ein leeres
+  Stundenbudget bleibt leer statt 0 — „kein Budget" und „Budget null" sind
+  zwei verschiedene Aussagen, und die zweite meldete jede Baustelle sofort
+  als überzogen.
+
+**Zwei Tests haben beim Schreiben eine eigene Fehlannahme aufgedeckt.** Die
+Einsatzplanung übernimmt eine bestehende Planung bereits ins Formular — der
+Test war ursprünglich als „speichert mit leerer Auswahl alles weg" angelegt
+und musste umgeschrieben werden, weil die Ansicht das schon verhindert. Und
+die Bilanz-Rückfallprüfung ist gegen eine absichtlich verdrehte Bedingung
+laufen gelassen worden: sie schlägt fehl, wie sie soll.
+
+*Weiterhin gilt:* in all diesen Tests ist jeder Datenbankzugriff ersetzt. Ein
+fehlender Index oder eine an den Regeln scheiternde Abfrage bleibt für sie
+unsichtbar. Und die Unterschrift auf dem Telefon deckt weiterhin nur ein
+echter Browser ab — das ist jetzt die größte verbliebene Lücke.
+
 ## Erledigt: die Daten liegen nachts nicht mehr nur an einer Stelle
 
 Der Punkt stand seit Längerem oben auf der Liste und war der einzige, der
