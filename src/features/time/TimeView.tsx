@@ -216,6 +216,28 @@ export default function TimeView() {
   const existingDates = useMemo(() => new Set(entries.map((e) => e.date)), [entries]);
 
   /**
+   * Tage mit MEHR ALS EINEM Eintrag.
+   *
+   * WARUM DAS SICHTBAR SEIN MUSS. Die Doppelbuchungs-Sperre vor dem Speichern
+   * hat eine Frist von drei Sekunden: antwortet der Server nicht rechtzeitig,
+   * wird trotzdem gebucht. Das ist der richtige Tausch — eine Zeit, die sich
+   * nicht buchen lässt, kostet den Monteur den Nachtrag am Abend. Aber der
+   * Preis dafür ist, dass auf einer zähen Verbindung zwei Einträge am selben
+   * Tag entstehen KÖNNEN.
+   *
+   * Bis hierher war die Begründung „ein Duplikat sieht man ja in der
+   * Übersicht" schlicht falsch: zwei Einträge am selben Tag sahen aus wie
+   * zwei gewöhnliche Zeilen. Der Saldo zählte beide, und niemand hätte einen
+   * Anlass gehabt hinzusehen. Genau so entsteht eine falsche Zahl auf dem
+   * Lohnzettel.
+   */
+  const doppelteTage = useMemo(() => {
+    const zaehler = new Map<string, number>();
+    for (const e of entries) zaehler.set(e.date, (zaehler.get(e.date) ?? 0) + 1);
+    return new Set([...zaehler.entries()].filter(([, n]) => n > 1).map(([d]) => d));
+  }, [entries]);
+
+  /**
    * Jüngster Anwesenheitseintrag mit Zeitspanne — Vorlage für „wie zuletzt".
    * Krank- und Urlaubstage taugen nicht als Vorlage, sie tragen keine Zeiten.
    */
@@ -259,6 +281,28 @@ export default function TimeView() {
       <PageHeader title="Zeiterfassung" subtitle="Deine gebuchten Zeiten und dein Saldo" />
 
       {profilFehler && <TeilFehler was="Dein Stammdatenblatt" onRetry={profilLaden} />}
+
+      {/*
+        DIESER HINWEIS STEHT ÜBER DEM SALDO, weil genau der falsch ist.
+        Ein doppelt gebuchter Tag zählt zweimal in die Stundenbilanz — und
+        wandert von dort auf den Lohnzettel. Ein Abzeichen unten in der Liste
+        findet nur, wer ohnehin schon sucht.
+      */}
+      {doppelteTage.size > 0 && (
+        <p
+          className="rounded border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger"
+          role="alert"
+        >
+          <strong>
+            {doppelteTage.size === 1
+              ? 'An einem Tag stehen zwei Einträge.'
+              : `An ${doppelteTage.size} Tagen stehen mehrere Einträge.`}
+          </strong>{' '}
+          Der Saldo zählt beide. Betroffen:{' '}
+          {[...doppelteTage].sort().join(', ')} — bitte unten in der Liste den
+          überflüssigen Eintrag löschen.
+        </p>
+      )}
 
       <MetricRow>
         <Metric
@@ -360,6 +404,9 @@ export default function TimeView() {
                             </>
                           }
                         >
+                          {doppelteTage.has(e.date) && (
+                            <Badge tone="danger">Tag doppelt gebucht</Badge>
+                          )}
                           {e.source === 'voice' && <Badge tone="info">KI</Badge>}
                           {e.isHelper && <Badge tone="warning">Helfer</Badge>}
                           {e.isEmergency && <Badge tone="danger">Notdienst</Badge>}
