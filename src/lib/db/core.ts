@@ -64,7 +64,7 @@ export function subscribeTenant<T>(
  * ohne Stundenbudget) hätte das Speichern sonst komplett scheitern lassen.
  * `null` bleibt erhalten, denn das heißt "bewusst leer".
  */
-function stripUndefined(data: DocumentData): DocumentData {
+export function stripUndefined(data: DocumentData): DocumentData {
   const out: DocumentData = {};
   for (const [k, v] of Object.entries(data)) {
     if (v !== undefined) out[k] = v;

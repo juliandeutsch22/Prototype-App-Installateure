@@ -82,17 +82,17 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-643 automatische Tests klingen nach viel. Aufgeschlüsselt:
+702 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
-| Regeltests gegen den Emulator | 131 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+| Regeltests gegen den Emulator | 137 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **91** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
-| Reine Rechnung | 274 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 133 | Findet Bedienfehler, **keine** Datenfehler |
+| Reine Rechnung | 283 | Hoch für die Formeln, **null** für die App |
+| Ansichten, Datenbank ersetzt | 179 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **12** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
-Die 131 gegen den Emulator teilen sich in 92 Regeltests, 33 Abfragen je Rolle
+Die 137 gegen den Emulator teilen sich in 98 Regeltests, 33 Abfragen je Rolle
 und 6 Durchstiche über Ansichtsgrenzen hinweg.
 
 **Zu den 20 neuen Regeltests, weil die Zahl allein nichts sagt:** jeder von
@@ -100,11 +100,19 @@ ihnen schlägt gegen die vorherigen Regeln fehl. Das ist nachgemessen, nicht
 angenommen — ein Test, der vorher und nachher grün ist, hält keine Grenze
 fest, sondern beschreibt nur, was ohnehin galt.
 
-**10 von 27 Ansichten haben keinen eigenen Test.** Die vier wichtigsten sind
-seit dem 02.09.2026 dabei: Zeiterfassung, Rechnungen, Einsatzplanung,
-Baustellen. Was fehlt, sind die kleineren — Mein Einsatzplan, Meine
-Baustellen, Material anfordern, Anforderungen, Lager, Benutzerverwaltung,
+**7 von 27 Ansichten haben keinen eigenen Test.** Seit dem 02.09.2026 dabei:
+zuerst die vier wichtigsten einzelnen — Zeiterfassung, Rechnungen,
+Einsatzplanung, Baustellen —, danach der ganze MATERIALABLAUF über drei
+Ansichten hinweg: anfordern, bearbeiten, Bestand führen. Was fehlt, sind die
+kleineren: Mein Einsatzplan, Meine Baustellen, Benutzerverwaltung,
 Einstellungen, Module, Nachkalkulation, Handwerksschein-Liste.
+
+**Warum der Materialablauf als GANZES getestet wurde und nicht Ansicht für
+Ansicht:** der Fehler, den er zutage gefördert hat, lag in keiner der drei
+Ansichten. Er lag in der Regel darunter — der Monteur durfte den Lagerbestand
+nicht mehr bewegen, seit der Materialstamm eingegrenzt wurde, und damit tat
+sein „Abgeholt"-Knopf nichts. Wer eine Ansicht allein prüft, sieht so etwas
+nie.
 
 **Und die Einschränkung gilt unverändert:** auch in den neuen Tests ist jeder
 Datenbankzugriff ersetzt. Sie prüfen die Verdrahtung — welche Zahl in welche

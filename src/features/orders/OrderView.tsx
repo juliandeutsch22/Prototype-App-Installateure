@@ -584,6 +584,12 @@ export default function OrderView() {
       <ConfirmDialog
         open={!!toPickUp}
         title="Material abgeholt?"
+        // Ohne diese beiden Zeilen stand auf dem Knopf die Vorgabe des
+        // Dialogs: „Löschen", in Rot. Gefragt wurde „Material abgeholt?" —
+        // wer das liest, tippt nicht auf Löschen, sondern bricht ab und
+        // meldet, die Abholung lasse sich nicht bestätigen.
+        confirmLabel="Abgeholt"
+        confirmTone="primary"
         message={
           toPickUp
             ? `„${toPickUp.materialName}" ×${toPickUp.quantity} wird als erledigt gebucht und vom Lagerbestand abgezogen.`

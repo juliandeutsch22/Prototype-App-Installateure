@@ -40,6 +40,51 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: der Materialablauf hat Tests — und dabei fiel ein eigener Fehler auf
+
+Nach den vier Kernansichten der nächste ganze ARBEITSABLAUF statt der nächsten
+Ansicht: anfordern (`OrderView`), bearbeiten (`AdminOrdersView`), Bestand
+führen (`StockView`). Drei Ansichten, ein Weg — vom Monteur im Keller bis zum
+Regal. 44 neue Ansichtstests, 9 auf die Retoure.
+
+**DER FUND: „Abgeholt" hat seit dem Sicherheits-Durchgang nichts mehr getan.**
+Dort wurde der Materialstamm auf Verwaltung und Leitung eingegrenzt, mit dem
+Satz „gebucht wird ohnehin nur unter Material → Lager". Der Satz war falsch.
+Der Monteur bewegt den Bestand an zwei Stellen selbst — beim Abholen und bei
+einer Retoure —, und beides läuft in einer Transaktion, die Anforderung UND
+Bestand schreibt. Scheitert der Bestandsteil, scheitert alles: die Anforderung
+blieb offen, der Knopf reagierte nicht, eine Meldung gab es nicht. Die Regel
+trennt jetzt nach FELDERN statt nach Rollen — `stock` bewegt jeder im Betrieb,
+Bezeichnung und Preis bleiben bei der Verwaltung. Mit `hasOnly`, nicht
+`hasAny`: sonst reichte ein mitgeschicktes `stock`, um den Preis gleich mit zu
+ändern. Genau dafür gibt es jetzt einen eigenen Regeltest.
+
+Bitter daran ist nicht der Fehler, sondern dass mein damaliger Regeltest ihn
+MITGESCHRIEBEN hat. Er prüfte „der Monteur ändert den Bestand nicht" und war
+grün — er hielt eine Annahme fest, die ich nie am Ablauf geprüft hatte. Ein
+Test schützt nur die Grenze, die man tatsächlich meint.
+
+**Zwei weitere Befunde aus demselben Durchgang:**
+
+- **Die Retoure war nicht atomar.** Erst der Beleg, dann in einem zweiten
+  Vorgang die Gutschrift. Scheiterte der zweite, stand der Beleg schon da, mit
+  `processed: true`, und der Bestand war nicht erhöht. Die Ansicht meldete
+  „Die Retoure konnte nicht erfasst werden" — was nicht stimmte. Wer es noch
+  einmal versuchte, legte einen ZWEITEN Beleg an. Beides läuft jetzt in einer
+  Transaktion: entweder beides oder nichts.
+- **Der Bestätigungsknopf beim Abholen hiess „Löschen".** Der Dialog bekam
+  kein `confirmLabel` und nahm seine Vorgabe — in Rot, unter der Frage
+  „Material abgeholt?". Wer das liest, tippt nicht darauf.
+
+Geprüft: 565 ohne Emulator (53 neu), 137 dagegen (6 neu). Jeder neue Test ist
+gegen den alten Stand laufen gelassen worden und fällt dort durch; bei zwei
+Tests war er das zunächst NICHT — einer prüfte die Sortierung mit Daten, die
+auch alphabetisch in derselben Reihenfolge standen, der andere sah den
+Beleg nicht, der an der Transaktion vorbei geschrieben wurde. Beide sind
+nachgeschärft, bis sie den alten Stand wirklich durchfallen lassen.
+
+---
+
 ## Erledigt: drei Meldungen aus dem Betrieb, 02.09.2026 abends
 
 Alle drei aus derselben Sitzung auf dem iPhone, und alle drei berechtigt.
@@ -242,6 +287,19 @@ Kollegen verschieben. Ändern ist jetzt Leitungssache; das tote Feld und
 Regel gab das ganze Dokument frei — auch Bezeichnung und Artikelnummer.
 Gebucht wird ohnehin nur unter Material → Lager, und dorthin kommt nur
 Verwaltung oder Leitung.
+
+> **NACHTRAG 02.09.2026: der letzte Satz war falsch, und die Regel dazu war
+> zu eng.** Der Monteur bewegt den Bestand an zwei Stellen seines Alltags,
+> beide aus der App und unter seiner eigenen Anmeldung: „Abgeholt" bei einer
+> abholbereiten Anforderung zieht ab, eine Retoure in Originalverpackung
+> schreibt gut. Mit der Regel oben scheiterte diese Transaktion — und weil sie
+> Anforderung und Bestand zusammen schreibt, blieb auch die Anforderung offen.
+> Der Knopf tat nichts, ohne Meldung. Seit dem Materialablauf-Durchgang läuft
+> die Grenze zwischen den FELDERN statt zwischen den Rollen: `stock` bewegt
+> jeder im Betrieb, alles andere bleibt bei Verwaltung und Leitung
+> (`hasOnly(['stock'])`, nicht `hasAny`). Aufgefallen ist es erst, als der
+> Materialablauf Ansichtstests bekam — der Regeltest von damals hat den
+> Irrtum mitgeschrieben, weil er dieselbe falsche Annahme prüfte.
 
 **4. Rechnungen waren frei löschbar**, auch offene und bezahlte. Die
 Oberfläche bietet „Löschen" ausschliesslich beim Storno an, ein

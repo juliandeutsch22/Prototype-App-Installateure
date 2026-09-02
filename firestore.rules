@@ -224,8 +224,20 @@ service cloud.firestore {
     match /materials/{id} {
       allow read: if ownsExisting();
       allow create: if (hasRole(['Verwaltung']) || isLeadership()) && ownsIncoming();
-      allow update: if (hasRole(['Verwaltung']) || isLeadership())
-        && ownsExisting() && ownsIncoming() && companyUnchanged();
+      // Die Grenze laeuft zwischen den FELDERN, nicht zwischen den Rollen.
+      //
+      // Der Monteur bewegt den Bestand in seinem Alltag an zwei Stellen:
+      // „Abgeholt" zieht ab, eine Retoure in Originalverpackung schreibt
+      // gut. Beides schreibt aus der App heraus unter SEINER Anmeldung, in
+      // derselben Transaktion wie die Anforderung. War das gesperrt,
+      // scheiterte die ganze Transaktion und der Knopf tat nichts.
+      //
+      // hasOnly, nicht hasAny: sonst reichte ein mitgeschicktes `stock`, um
+      // Preis und Bezeichnung gleich mit zu aendern.
+      allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
+        && (hasRole(['Verwaltung']) || isLeadership()
+            || (signedIn()
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock'])));
       allow delete: if (hasRole(['Verwaltung']) || isLeadership()) && ownsExisting();
     }
 

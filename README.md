@@ -319,7 +319,7 @@ dagegen echt geheim** und gehört niemals in einen Commit.
 
 ### Ablauf
 
-- **Pull Request:** Typprüfung, Lint, 512 Unit-Tests, 131 Rules-Tests. Kein Deploy.
+- **Pull Request:** Typprüfung, Lint, 565 Unit-Tests, 137 Rules-Tests. Kein Deploy.
 - **Push auf `main`:** dieselben Prüfungen, danach Build und Deploy.
 - **Von Hand:** *Actions → „Test und Deploy" → Run workflow*.
 

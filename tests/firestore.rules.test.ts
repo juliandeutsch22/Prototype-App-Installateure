@@ -1036,14 +1036,31 @@ describe('Einsatzplanung — planen darf nur die Leitung', () => {
 });
 
 /**
- * Materialstamm. Der Lagerstand wird ausschließlich unter „Material → Lager"
- * gebucht, und dorthin kommt nur Verwaltung oder Leitung.
+ * Materialstamm — und die Trennung, die dabei wirklich gilt.
+ *
+ * DIE ERSTE FASSUNG DIESER REGEL WAR ZU ENG, und dieser Block hat den Irrtum
+ * mit festgeschrieben: er behauptete, der Lagerstand werde ausschließlich
+ * unter „Material → Lager" gebucht und dorthin komme nur Verwaltung oder
+ * Leitung. Das stimmt nicht. Der Monteur bewegt den Bestand an zwei Stellen
+ * seines Alltags:
+ *
+ *  - „Abgeholt" bei einer abholbereiten Anforderung zieht das Material ab,
+ *  - eine Retoure in Originalverpackung schreibt es wieder gut.
+ *
+ * Beides läuft aus der App heraus, in einer Transaktion, unter SEINER
+ * Anmeldung. Mit der zu engen Regel scheiterte diese Transaktion — und weil
+ * sie beide Schreibvorgänge umfasst, blieb auch die Anforderung offen. Der
+ * Monteur stand mit dem Material in der Hand vor einem Knopf, der nichts tat.
+ *
+ * Die Grenze läuft deshalb nicht zwischen den Rollen, sondern zwischen den
+ * FELDERN: `stock` darf jeder im Betrieb bewegen, alles andere — Bezeichnung,
+ * Preis, Artikelnummer, Kategorie — bleibt bei Verwaltung und Leitung.
  */
-describe('Materialstamm — pflegen darf Verwaltung und Leitung', () => {
+describe('Materialstamm — Bestand bewegt jeder, gepflegt wird er von der Verwaltung', () => {
   async function seedMaterial() {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'materials', 'mA'), {
-        companyId: 'companyA', name: 'Kupferrohr 15mm', stock: 12,
+        companyId: 'companyA', name: 'Kupferrohr 15mm', stock: 12, price: 4.2,
       });
     });
   }
@@ -1053,16 +1070,69 @@ describe('Materialstamm — pflegen darf Verwaltung und Leitung', () => {
     await assertSucceeds(getDoc(doc(ctxA_employee().firestore(), 'materials', 'mA')));
   });
 
-  it('der Monteur aendert weder Bestand noch Bezeichnung', async () => {
+  it('der Monteur bucht seine Abholung vom Bestand ab', async () => {
+    // Genau der Schreibvorgang, den „Abgeholt" auslöst.
     await seedMaterial();
-    const db = ctxA_employee().firestore();
-    await assertFails(updateDoc(doc(db, 'materials', 'mA'), { stock: 999 }));
-    await assertFails(updateDoc(doc(db, 'materials', 'mA'), { name: 'etwas anderes' }));
+    await assertSucceeds(
+      updateDoc(doc(ctxA_employee().firestore(), 'materials', 'mA'), { stock: 9 }),
+    );
   });
 
-  it('die Verwaltung bucht den Bestand', async () => {
+  it('der Monteur schreibt eine Retoure zurück', async () => {
     await seedMaterial();
-    await assertSucceeds(updateDoc(doc(ctxA_verw().firestore(), 'materials', 'mA'), { stock: 7 }));
+    await assertSucceeds(
+      updateDoc(doc(ctxA_employee().firestore(), 'materials', 'mA'), { stock: 15 }),
+    );
+  });
+
+  it('der Monteur ändert die Bezeichnung NICHT', async () => {
+    await seedMaterial();
+    await assertFails(
+      updateDoc(doc(ctxA_employee().firestore(), 'materials', 'mA'), { name: 'etwas anderes' }),
+    );
+  });
+
+  it('der Monteur ändert den Preis NICHT', async () => {
+    // Der Einkaufspreis geht in jede Nachkalkulation und in jedes Angebot ein.
+    await seedMaterial();
+    await assertFails(
+      updateDoc(doc(ctxA_employee().firestore(), 'materials', 'mA'), { price: 0.01 }),
+    );
+  });
+
+  it('der Monteur schmuggelt den Preis NICHT neben dem Bestand mit', async () => {
+    /**
+     * DIE STELLE, AN DER EINE FELDGRENZE ÜBLICHERWEISE BRICHT. Erlaubt man
+     * „Bestand ändern", ist die naheliegende Regel „`stock` ist unter den
+     * geänderten Feldern" — und darunter geht dann alles andere gleich mit
+     * durch. Es muss `hasOnly` sein, nicht `hasAny`.
+     */
+    await seedMaterial();
+    await assertFails(
+      updateDoc(doc(ctxA_employee().firestore(), 'materials', 'mA'), { stock: 9, price: 0.01 }),
+    );
+  });
+
+  it('der Monteur legt kein Material an und löscht keines', async () => {
+    await seedMaterial();
+    const db = ctxA_employee().firestore();
+    await assertFails(
+      setDoc(doc(db, 'materials', 'm-neu2'), { companyId: 'companyA', name: 'Eigenes', stock: 1 }),
+    );
+    await assertFails(deleteDoc(doc(db, 'materials', 'mA')));
+  });
+
+  it('der fremde Betrieb bewegt den Bestand NICHT', async () => {
+    // Die Feldgrenze lockert die Mandantengrenze nicht.
+    await seedMaterial();
+    await assertFails(updateDoc(doc(ctxB_admin().firestore(), 'materials', 'mA'), { stock: 0 }));
+  });
+
+  it('die Verwaltung pflegt den Katalog vollständig', async () => {
+    await seedMaterial();
+    const db = ctxA_verw().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'materials', 'mA'), { stock: 7 }));
+    await assertSucceeds(updateDoc(doc(db, 'materials', 'mA'), { name: 'Kupferrohr 18mm', price: 5 }));
   });
 });
 
