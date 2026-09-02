@@ -44,6 +44,8 @@ interface SwUmgebung {
   geholt: string[];
   gesagt: string[];
   antwort: (url: string) => Response;
+  /** Schickt dem Worker eine Nachricht aus einem Fenster und wartet sie ab. */
+  nachricht: (data: unknown) => Promise<void>;
 }
 
 /** Lädt sw.js in eine Sandbox und gibt die Umgebung zurück. */
@@ -58,9 +60,23 @@ function ladeWorker(): SwUmgebung {
     geholt,
     gesagt,
     antwort: () => new Response('erste Fassung', { status: 200 }),
+    nachricht: async () => undefined,
   };
 
-  const fenster = { postMessage: (m: string) => gesagt.push(m) };
+  const fenster = { postMessage: (m: unknown) => gesagt.push(String(m)) };
+
+  umgebung.nachricht = async (data: unknown) => {
+    // `waitUntil` ist hier kein Beiwerk: der Worker raeumt darin auf, und
+    // ohne das Abwarten prueft der Test einen Zwischenstand.
+    const warten: Promise<unknown>[] = [];
+    const ereignis = {
+      data,
+      source: fenster,
+      waitUntil: (pr: Promise<unknown>) => warten.push(pr),
+    };
+    hoeren.get('message')?.forEach((fn) => fn(ereignis));
+    await Promise.all(warten);
+  };
 
   const self_ = {
     location: { origin: 'https://app.test', search: '?apiKey=k&messagingSenderId=s' },
@@ -218,16 +234,45 @@ describe('Service Worker — neue Fassung erkennen', () => {
     await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
   });
 
-  it('wirft dabei die alten Bausteine weg', async () => {
-    // Sie gehören zu einer Seite, die es nicht mehr gibt. Blieben sie liegen,
-    // wüchse der Speicher mit jedem Deploy weiter.
+  it('behaelt die alten Bausteine, solange die alte Seite laeuft', async () => {
+    /**
+     * DER FEHLER, DEN DIESER TEST FESTHAELT. Vorher flogen die alten
+     * Bausteine schon beim ERKENNEN des Deploys raus. Die Seite, die gerade
+     * lief, war aber noch die alte und forderte sie weiter an — im Speicher
+     * geloescht, auf dem Server nach dem Deploy nicht mehr vorhanden. Seit
+     * dem Code-Splitting laedt jede Ansicht erst beim Oeffnen nach, der
+     * Monteur bekam also statt des Scheins eine Fehlermeldung.
+     */
     await anfrage(u, 'https://app.test/assets/alt-111.js');
     await anfrage(u, 'https://app.test/', 'navigate');
     u.antwort = (url) =>
       new Response(url.endsWith('/index.html') ? 'zweite Fassung' : 'x', { status: 200 });
 
     await anfrage(u, 'https://app.test/', 'navigate');
-    await vi.waitFor(() => expect(u.speicher.has('perl-teile')).toBe(false));
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+
+    // Der Deploy ist gemeldet — und der alte Baustein liegt weiterhin bereit.
+    expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/alt-111.js')).toBe(true);
+    u.geholt.length = 0;
+    await anfrage(u, 'https://app.test/assets/alt-111.js');
+    expect(u.geholt).toEqual([]);
+  });
+
+  it('raeumt erst auf, wenn die neue Fassung uebernommen wird', async () => {
+    // Dann fordert sie niemand mehr an: die App laedt unmittelbar danach neu.
+    await anfrage(u, 'https://app.test/assets/alt-111.js');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    u.antwort = (url) =>
+      new Response(url.endsWith('/index.html') ? 'zweite Fassung' : 'x', { status: 200 });
+    await anfrage(u, 'https://app.test/', 'navigate');
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+
+    await u.nachricht('fassungUebernehmen');
+
+    expect(u.speicher.has('perl-teile')).toBe(false);
+    // Die Bestaetigung zurueck — der Aufrufer wartet darauf, damit das
+    // Neuladen nicht mitten ins Loeschen faellt.
+    expect(u.gesagt).toContain('fassungUebernommen');
   });
 
   it('meldet beim ERSTEN Besuch keine neue Fassung', async () => {

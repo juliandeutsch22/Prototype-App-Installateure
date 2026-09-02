@@ -182,10 +182,27 @@ async function huelleAusliefern(event) {
       await c.put(SEITE, res.clone());
 
       if (alterText !== null && alterText !== neuerText) {
-        // Die alten Bausteine gehören zu einer Seite, die es nicht mehr gibt.
-        // Sie jetzt wegzuwerfen verhindert, dass der Speicher über Monate
-        // mit jedem Deploy weiterwächst.
-        await caches.delete(TEILE);
+        /*
+         * HIER WIRD NICHTS WEGGEWORFEN — und das ist der Punkt.
+         *
+         * Vorher flogen an dieser Stelle die alten Bausteine raus. Der
+         * Gedanke war richtig (sonst wächst der Speicher mit jedem Deploy),
+         * der Zeitpunkt war es nicht: die Seite, die GERADE geladen wird, ist
+         * noch die alte. Sie fordert ihre Bausteine mit den alten Namen an —
+         * und die lagen nach dem Löschen weder im Speicher noch auf dem
+         * Server, denn Hosting kennt nach einem Deploy nur die neuen Namen.
+         *
+         * Auf dem Telefon fällt das doppelt ins Gewicht: seit dem
+         * Code-Splitting lädt JEDE Ansicht erst beim Öffnen nach. Wer auf
+         * „Später" getippt hat und danach den Schein aufmacht, bekam eine
+         * Fehlermeldung statt der Ansicht — ausgelöst von der Vorkehrung,
+         * die den Deploy sicherer machen sollte.
+         *
+         * Aufgeräumt wird jetzt beim Übernehmen (`fassungUebernehmen`
+         * weiter unten). Bis dahin liegen zwei Fassungen nebeneinander; das
+         * kostet ein paar hundert Kilobyte und ist der Preis dafür, dass die
+         * laufende App heil bleibt.
+         */
         await allenFensternSagen('neueFassung');
       }
       return res;
@@ -231,4 +248,18 @@ async function erstSpeicherDannNetz(request) {
 
 self.addEventListener('message', (event) => {
   if (event.data === 'pushBereit?') event.source?.postMessage({ pushBereit });
+
+  /*
+   * Die App lädt gleich neu — JETZT dürfen die alten Bausteine weg.
+   *
+   * Nach dem Neuladen zeigt die gespeicherte `index.html` auf die neuen
+   * Namen; was unter den alten liegt, braucht niemand mehr. Die Antwort
+   * zurück ist nicht Höflichkeit: der Aufrufer wartet darauf, damit das
+   * Neuladen nicht mitten ins Löschen fällt.
+   */
+  if (event.data === 'fassungUebernehmen') {
+    event.waitUntil(
+      caches.delete(TEILE).then(() => event.source?.postMessage('fassungUebernommen')),
+    );
+  }
 });
