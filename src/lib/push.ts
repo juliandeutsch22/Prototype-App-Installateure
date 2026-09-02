@@ -64,19 +64,19 @@ export async function enablePush(companyId: string, uid: string): Promise<string
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') return null;
 
-  // Eigener Service Worker: der Standardpfad /firebase-messaging-sw.js wird
-  // von Firebase automatisch gesucht, die Registrierung hier macht den
-  // Zeitpunkt aber vorhersagbar und erlaubt es, die Projektkonfiguration
-  // per Query mitzugeben (sie ist nicht geheim, steht ohnehin im Bundle).
-  const params = new URLSearchParams({
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  });
-  const registration = await navigator.serviceWorker.register(
-    `/firebase-messaging-sw.js?${params.toString()}`,
-  );
+  /**
+   * Den BEREITS LAUFENDEN Worker mitbenutzen, keinen zweiten anmelden.
+   *
+   * Früher hat diese Stelle einen eigenen `/firebase-messaging-sw.js`
+   * angemeldet. Seit die App ihre Hülle vorhält, läuft aber schon einer auf
+   * demselben Bereich — und für einen Bereich kann nur einer zuständig sein.
+   * Der zweite hätte den ersten verdrängt, und damit ausgerechnet beim
+   * Einschalten der Meldungen das Vorhalten abgeschaltet.
+   *
+   * `ready` wartet, bis der Worker die Seite tatsächlich führt; er wird beim
+   * Start angemeldet (siehe lib/sw.ts), nicht erst hier.
+   */
+  const registration = await navigator.serviceWorker.ready;
 
   const token = await getToken(getMessaging(app), {
     vapidKey: VAPID_KEY,

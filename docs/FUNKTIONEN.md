@@ -64,6 +64,7 @@ unterscheidet drei Stufen:
 | **Navigation** | Wer wohin darf, steht **nur** in `navigation.ts`; `RequireNav` liest Rolle und Modul aus demselben Eintrag, aus dem der Reiter gebaut wird | Statisch (29), Ansicht (5) | — |
 | **Monatsbilanzen** | Verdichtete Zeitkonten, Trigger + Nachtlauf + Neuaufbau | Rechnung (8) | Trigger und Nachtlauf laufen ungetestet in Produktion |
 | **Offline-Betrieb** | Lokaler Zwischenspeicher, Hinweis beim Speichern ohne Verbindung | Rechnung (7) | Kein Test mit tatsächlich unterbrochener Verbindung |
+| **Startgeschwindigkeit** | Ansichten einzeln nachladbar, Service Worker hält die App-Hülle vor, Frist auf jedem Start-Zugriff | Rechnung (17: Frist + Service Worker gegen den echten Quelltext) | **Auf keinem echten iPhone gemessen** — die Ursachen sind aus dem Code belegt, die Wirkung ist es nicht |
 | **Meldungen (Push)** | Wer wird wann benachrichtigt | Rechnung (25) | Zustellung selbst ungetestet |
 
 ## Abgeschaltet oder ohne Weg dorthin
@@ -78,14 +79,15 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-520 automatische Tests klingen nach viel. Aufgeschlüsselt:
+538 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | Regeltests gegen den Emulator | 111 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen) | **71** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
-| Reine Rechnung | 256 | Hoch für die Formeln, **null** für die App |
+| Reine Rechnung | 263 | Hoch für die Formeln, **null** für die App |
 | Ansichten, Datenbank ersetzt | 82 | Findet Bedienfehler, **keine** Datenfehler |
+| **Service Worker in einer Sandbox** | **10** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
 Die 111 gegen den Emulator teilen sich in 66 Regeltests, 33 Abfragen je Rolle
 und 6 Durchstiche über Ansichtsgrenzen hinweg.
@@ -102,7 +104,8 @@ Konstruktion nicht sehen:
 | Kundenakte ohne Baustellen | fehlender Firestore-Index | **Ja** — Index-Abgleich. Er hat beim ersten Lauf gleich einen zweiten fehlenden gefunden (`followUps`). |
 | Projektleitung: fünf Reiter mit „Kein Zugriff" | drei Listen behaupteten dasselbe und waren auseinandergelaufen (`navigation.ts`, `RequireRole`, `permissions.ts`) | **Ja** — der Abgleich Navigation ↔ Routen. Und die Doppelung selbst ist weg: `RequireNav` liest aus derselben Liste. |
 | Leeres Auswahlfeld beim Schein | verschluckter Fehler | **Teilweise** — der Smoketest findet eine Abfrage, die an den Regeln scheitert; eine schlicht leere Menge findet er nicht. |
-| „Lädt ewig" | Cloud Function ohne Frist | Nein |
+| „Lädt ewig" (Schein) | Cloud Function ohne Frist | **Ja** — die Frist liegt jetzt in `lib/frist.ts` und ist geprüft |
+| „iPhone lädt gar nicht" | Start hing an zwei Abfragen ohne Zeitgrenze; kein Vorhalten der App-Hülle | **Teilweise** — Frist und Service Worker sind geprüft, die Wirkung auf einem echten Gerät ist es nicht |
 | Unterschrift ohne Wirkung | `canvas.width` löscht die Fläche | Nein — dagegen hilft nur ein echter Browser |
 
 **Zwei Fallen, die der Emulator selbst stellt** — beide inzwischen als Test

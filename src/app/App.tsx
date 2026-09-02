@@ -1,32 +1,55 @@
+import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
 import ErrorBoundary from './ErrorBoundary';
 import Unterreiter from '@/components/Unterreiter';
 import Layout from './Layout';
-import LoginPage from '@/features/auth/LoginPage';
-import DashboardView from '@/features/dashboard/DashboardView';
-import TimeView from '@/features/time/TimeView';
-import VoiceView from '@/features/voice/VoiceView';
-import OrderView from '@/features/orders/OrderView';
-import AdminOrdersView from '@/features/orders/AdminOrdersView';
-import StockView from '@/features/orders/StockView';
-import AdminProjectsView from '@/features/projects/AdminProjectsView';
-import CustomersView from '@/features/customers/CustomersView';
-import QuotesView from '@/features/quotes/QuotesView';
-import NachkalkulationView from '@/features/costing/NachkalkulationView';
-import WorkSheetView from '@/features/worksheets/WorkSheetView';
-import VacationsView from '@/features/vacations/VacationsView';
-import ModulesView from '@/features/modules/ModulesView';
-import WorkSheetsListView from '@/features/worksheets/WorkSheetsListView';
-import MyProjectsView from '@/features/projects/MyProjectsView';
-import AssignmentsView from '@/features/assignments/AssignmentsView';
-import MyScheduleView from '@/features/assignments/MyScheduleView';
-import InvoicesView from '@/features/invoices/InvoicesView';
-import AccountingView from '@/features/accounting/AccountingView';
-import UserMgmtView from '@/features/users/UserMgmtView';
-import SettingsView from '@/features/settings/SettingsView';
-import NotificationSettings from '@/features/settings/NotificationSettings';
+import { LoadingState } from '@/components/States';
+
+/**
+ * Jede Ansicht ist ein eigenes Paket.
+ *
+ * WARUM. Vorher lag die ganze App in EINER Datei von 1,05 MB. Der Monteur
+ * lud die Rechnungsansicht, die Nachkalkulation und die Benutzerverwaltung
+ * mit, bevor er seine Zeit buchen konnte. Am Schreibtisch faellt das nicht
+ * auf; auf dem Telefon kostet es zweimal — einmal die Uebertragung ueber
+ * Mobilfunk, und dann noch einmal das Auswerten von einem Megabyte
+ * JavaScript, was auf einem aelteren Geraet fuer sich genommen ein bis zwei
+ * Sekunden dauert.
+ *
+ * Anmeldung, Layout und Waechter bleiben fest eingebunden: sie werden IMMER
+ * gebraucht, und ein Nachladen ausgerechnet der Anmeldeseite waere ein
+ * zusaetzlicher Schritt genau dort, wo noch gar nichts zu sehen ist.
+ *
+ * DER PREIS: das erste Oeffnen einer Ansicht kostet eine kurze Nachladepause,
+ * und ohne Netz ist eine noch nie geoeffnete Ansicht nicht erreichbar. Gegen
+ * das Zweite arbeitet der Service Worker, der die Pakete nach dem ersten
+ * Besuch vorhaelt.
+ */
+const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+const DashboardView = lazy(() => import('@/features/dashboard/DashboardView'));
+const TimeView = lazy(() => import('@/features/time/TimeView'));
+const VoiceView = lazy(() => import('@/features/voice/VoiceView'));
+const OrderView = lazy(() => import('@/features/orders/OrderView'));
+const AdminOrdersView = lazy(() => import('@/features/orders/AdminOrdersView'));
+const StockView = lazy(() => import('@/features/orders/StockView'));
+const AdminProjectsView = lazy(() => import('@/features/projects/AdminProjectsView'));
+const CustomersView = lazy(() => import('@/features/customers/CustomersView'));
+const QuotesView = lazy(() => import('@/features/quotes/QuotesView'));
+const NachkalkulationView = lazy(() => import('@/features/costing/NachkalkulationView'));
+const WorkSheetView = lazy(() => import('@/features/worksheets/WorkSheetView'));
+const VacationsView = lazy(() => import('@/features/vacations/VacationsView'));
+const ModulesView = lazy(() => import('@/features/modules/ModulesView'));
+const WorkSheetsListView = lazy(() => import('@/features/worksheets/WorkSheetsListView'));
+const MyProjectsView = lazy(() => import('@/features/projects/MyProjectsView'));
+const AssignmentsView = lazy(() => import('@/features/assignments/AssignmentsView'));
+const MyScheduleView = lazy(() => import('@/features/assignments/MyScheduleView'));
+const InvoicesView = lazy(() => import('@/features/invoices/InvoicesView'));
+const AccountingView = lazy(() => import('@/features/accounting/AccountingView'));
+const UserMgmtView = lazy(() => import('@/features/users/UserMgmtView'));
+const SettingsView = lazy(() => import('@/features/settings/SettingsView'));
+const NotificationSettings = lazy(() => import('@/features/settings/NotificationSettings'));
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
@@ -37,7 +60,14 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/login"
+          element={
+            <Suspense fallback={<LoadingState label="Anmeldung wird geladen …" />}>
+              <LoginPage />
+            </Suspense>
+          }
+        />
         <Route
           path="/*"
           element={
@@ -46,7 +76,16 @@ export default function App() {
                 {/* Fehlergrenze INNERHALB des Layouts: schlägt eine Ansicht
                     fehl, bleibt die Navigation bedienbar. */}
                 <ErrorBoundary>
-                  <AppRoutes />
+                  {/*
+                    Die Wartegrenze liegt ebenfalls INNERHALB des Layouts.
+                    Läge sie außen, verschwände beim Wechsel zwischen zwei
+                    Ansichten kurz die ganze Navigation — die Leiste am
+                    unteren Rand eingeschlossen. Sie soll stehen bleiben,
+                    während der Inhalt nachlädt.
+                  */}
+                  <Suspense fallback={<LoadingState label="Wird geladen …" />}>
+                    <AppRoutes />
+                  </Suspense>
                 </ErrorBoundary>
               </Layout>
             </RequireAuth>

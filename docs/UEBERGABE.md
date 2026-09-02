@@ -176,6 +176,10 @@ Diese Liste ist teuer bezahlt. Wer sie liest, spart sich die Wiederholung.
 | **Ein Cloud-Function-Aufruf ohne Frist wartet ewig.** | „Es lädt ewig" beim Handwerksschein. Jetzt eine 12-Sekunden-Frist mit Wiederholungsknopf. |
 | **Dieselbe Aussage an zwei Stellen läuft auseinander.** | Wer wohin darf, stand dreimal geschrieben; an sieben Stellen widersprachen sich die Listen. Siehe §5. |
 | **Firestore-Trigger laufen MINDESTENS einmal, nicht genau einmal.** | Ein `+= delta` verzählt sich beim Wiederholungslauf. Die Monatsbilanz rechnet den betroffenen Monat deshalb komplett neu. |
+| **Firestore-Abfragen haben KEINE Zeitgrenze.** | Sie werfen keinen Fehler und brechen nicht ab — sie warten. Auf einer toten Verbindung wartet der Aufrufer unbegrenzt. Zweimal als Fehler gemeldet („Schein lädt ewig", „iPhone lädt gar nicht"). Dagegen steht `lib/frist.ts`. |
+| **iOS friert eine Startbildschirm-App ein, statt sie neu zu laden.** | Beim Zurückkommen ist der JavaScript-Zustand noch da, die Netzverbindungen nicht. Ein Browser-Tab am Schreibtisch wird stattdessen neu geladen — deshalb sieht man es dort nie. |
+| **Die Fassungsnummer eines Service Workers darf nicht aus dem Bundle kommen.** | Sie käme aus der ALTEN Fassung, der Worker meldete sich unter der alten Adresse an und erneuerte sich nie. Nur der Server weiß, ob es etwas Neues gibt — deshalb vergleicht der Worker die ausgelieferte `index.html` mit der gespeicherten. |
+| **Ein Service Worker darf beendet werden, sobald er geantwortet hat.** | Ohne `event.waitUntil` bricht die Hintergrundprüfung mitten im Laden ab — auf dem Telefon also fast immer, und der Deploy fällt nie auf. |
 
 ---
 
@@ -218,6 +222,18 @@ Rechnungen mit derselben Nummer in den Büchern.
 immer gilt, klappt auf Tipp auf. Was gerade passiert oder gleich passieren
 wird — eine Warnung vor doppelten Datensätzen, die Folgen eines Stornos —
 bleibt sichtbar. **Eine Folge hinter einem Aufklapper ist keine Warnung.**
+
+**Jedes Warten hat eine Grenze.** Firestore und die Cloud Functions kennen
+keine; `lib/frist.ts` legt sie darum. Der Start der App weicht nach acht
+Sekunden auf den Zwischenspeicher aus, statt weiter zu warten. Schreibvorgänge
+sind ausgenommen — die nimmt Firestore lokal an und reicht sie nach, dort wäre
+eine Frist ein Rückschritt.
+
+**Der Service Worker fasst nur eigene Dateien an.** Firestore, Auth und die
+Cloud Functions gehen unberührt durch. Eine vorgehaltene Datenbankantwort wäre
+ein falscher Kontostand — und der Firestore-Client hat seinen eigenen,
+richtigen Zwischenspeicher. Ein Test in `tests/unit/serviceWorker.test.ts`
+lädt die echte `public/sw.js` in eine Sandbox und hält genau das fest.
 
 ---
 
