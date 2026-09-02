@@ -6,9 +6,20 @@ Ein Mitarbeiter spricht ~15 Sekunden, daraus entstehen automatisch
 strukturierte, bestätigbare Einträge (Zeit, Material, Folgetermin).
 
 Diese Codebasis ist die Professionalisierung der monolithischen Einzeldatei
-`perl-installateur-web-app.html` (~10.400 Zeilen) gemäß der Bau-Spec. Das
-Datenmodell und die übernommene Geschäftslogik sind in
-[`docs/LEGACY-ANALYSIS.md`](docs/LEGACY-ANALYSIS.md) dokumentiert.
+`perl-installateur-web-app.html` (~10.400 Zeilen) gemäß der Bau-Spec.
+
+## Dokumentation
+
+**Wer hier neu ist, fängt bei der Übergabe an** — sie erklärt Aufbau,
+Entscheidungen, Schwachstellen und die nächsten Schritte.
+
+| Datei | Beantwortet |
+|---|---|
+| [`docs/UEBERGABE.md`](docs/UEBERGABE.md) | **Einstieg.** Wie das Projekt aufgebaut ist, was man nicht versehentlich umwerfen sollte, wo die Lücken sind. |
+| [`docs/FUNKTIONEN.md`](docs/FUNKTIONEN.md) | Was gibt es, wer darf was, wodurch ist es geprüft — inklusive der bekannten Lücken. |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Änderungsprotokoll: was wurde wann warum gebaut. |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Firebase-Einrichtung, Secrets, Scheduler. |
+| [`docs/LEGACY-ANALYSIS.md`](docs/LEGACY-ANALYSIS.md) | Datenmodell und übernommene Geschäftslogik aus der Altanwendung. |
 
 ## Stack
 
@@ -21,18 +32,26 @@ Datenmodell und die übernommene Geschäftslogik sind in
 
 ```
 src/
-  app/        Routing, Layout, Auth-/Rollen-Guard, AuthContext
-  features/   time/ (vertikaler Schnitt), voice/ (KI), dashboard/, auth/
+  app/        Routing (App.tsx), Layout, AuthContext, guards.tsx,
+              navigation.ts — DIE Liste, wer wohin darf
+  features/   ein Verzeichnis je Bereich: time, invoices, quotes, customers,
+              projects, assignments, worksheets, vacations, orders, costing,
+              accounting, users, settings, modules, dashboard, voice, auth
   lib/        firebase.ts (Config aus ENV), db/ (typisierte Firestore-Zugriffe),
-              time.ts (Feiertage/Saldo), permissions.ts, tenant.ts, functions.ts
-  components/ wiederverwendbare UI (Button, Card, Metric, Field, …)
+              time.ts (Feiertage/Saldo), permissions.ts, module.ts, tenant.ts
+  components/ wiederverwendbare UI (Button, Card, InfoHint, Unterreiter, …)
   types/      zentrale Datentypen (companyId auf jedem Dokument)
-functions/    Cloud Functions: Claims-Sync, KI-Extraktion, DSGVO-Export
+shared/       Logik, die Browser UND Server brauchen — wird beim Bauen nach
+              functions/src/generated/ kopiert, nicht abgeschrieben
+functions/    Cloud Functions (europe-west3): Claims-Sync, Urlaubsentscheidung,
+              Schein-Vorbereitung, Monatsbilanzen, Push, DSGVO-Export
 firestore.rules   mandantensichere Security Rules (Custom Claims)
-tests/        Rules-Tests (Mandanten-Isolation, Spec §7)
+tests/        Rules, Abfrage-Smoketest und Durchstich gegen den Emulator;
+              unit/ (Rechnung und statische Abgleiche), components/ (Ansichten)
 ```
 
-Regel: keine Datei über ~300 Zeilen; rohe Firestore-Aufrufe nur in `lib/db/`.
+Regeln: keine Datei über ~300 Zeilen; rohe Firestore-Aufrufe nur in `lib/db/`,
+und dort **jede** Abfrage mit `limit()` (per Test erzwungen).
 
 ## Einrichtung
 
