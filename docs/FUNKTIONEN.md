@@ -1,6 +1,6 @@
 # Funktionsübersicht
 
-Stand: 01.09.2026.
+Stand: 02.09.2026.
 
 **Wofür dieses Dokument da ist.** Die Roadmap ist inzwischen ein
 Änderungsprotokoll: sie erzählt, was wann warum gebaut wurde, und sie ist
@@ -37,11 +37,11 @@ unterscheidet drei Stufen:
 | Bereich | Was es tut | Wer darf | Daten | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|---|---|
 | **Kunden** | Stammdaten, Dublettenschutz, Akte mit Baustellen und Angeboten, Übernahme der Altbestände | Buchhaltung, Verwaltung, Leitung | `customers`, `projects`, `quotes` | Emulator (Regeln), Ansicht (8) | Umbenennen zieht Baustellen nach — ungetestet |
-| **Angebote** | Positionen kalkulieren, Arbeitszeit getrennt ausweisen, beim Annehmen Baustelle mit Stundenbudget anlegen | Buchhaltung, Leitung | `quotes`, `projects`, `counters` | Ansicht (3), Emulator (Zähler) | Nummernkreis je Jahr nur im Emulator-Test der Zähler |
+| **Angebote** | Positionen kalkulieren, Arbeitszeit getrennt ausweisen, beim Annehmen Baustelle mit Stundenbudget anlegen | Buchhaltung, Leitung | `quotes`, `projects`, `counters` | Ansicht (3), Emulator (Zähler: steigend, Neubeginn nur zum Jahreswechsel) | — |
 | **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget | Leitung | `projects` | — | **Ansicht ungetestet** |
 | **Anforderungen** | Eingehende Materialanforderungen bearbeiten, Status setzen | Verwaltung, Leitung | `materialOrders` | Rechnung (Meldungen) | Ansicht ungetestet |
-| **Lager** | Bestand, Mindestmenge, Katalogpflege | Verwaltung, Leitung | `materials` | — | Ansicht ungetestet; Bestandsabzug per Transaktion ungetestet |
-| **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | — | **Ansicht ungetestet** — inklusive des Löschens vorhandener Einsätze |
+| **Lager** | Bestand, Mindestmenge, Katalogpflege | Verwaltung, Leitung | `materials` | Emulator (3: wer pflegen darf) | Ansicht ungetestet; Bestandsabzug per Transaktion ungetestet |
+| **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | Emulator (4: wer planen darf) | **Ansicht ungetestet** — inklusive des Löschens vorhandener Einsätze |
 | **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie) | Ansicht ungetestet |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8) | Ansicht ungetestet |
 | **Module** | Bereiche für den Betrieb ein- und ausschalten; zeigt vorher, was mit abgeschaltet wird | **nur GF/Admin** | `companies.modules` | Rechnung (14), Emulator (7) | Ansicht ungetestet |
@@ -50,7 +50,7 @@ unterscheidet drei Stufen:
 
 | Bereich | Was es tut | Wer darf | Daten | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|---|---|
-| **Rechnungen** | Aus Baustelle zusammenstellen, Nummernkreis, Status, PDF, Buchhaltungs-Export mit Lückenprüfung | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries` | Rechnung (49), Emulator (Zähler) | **Ansicht ungetestet** — der Weg von Zeiten zu Positionen ist nur in Teilen geprüft |
+| **Rechnungen** | Aus Baustelle zusammenstellen, Nummernkreis, Status, PDF, Buchhaltungs-Export mit Lückenprüfung | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries` | Rechnung (49), Emulator (Zähler, Löschen nur beim Storno) | **Ansicht ungetestet** — der Weg von Zeiten zu Positionen ist nur in Teilen geprüft |
 | **Mitarbeiterübersicht** | Zeitkonten, Salden, Monats- und Mitarbeiterexport, Stundennachweis | Buchhaltung, GF, Admin (**nicht** Projektleitung) | `timeEntries`, `monthlyStats` | Rechnung (20), Ansicht (4) | Zusammenspiel Bilanz ↔ Rohdaten ungetestet |
 | **Nachkalkulation** | Erlös gegen Personalkosten je Baustelle, Deckungsbeitrag | GF, Admin | `projects`, `timeEntries`, `invoices`, `quotes` | Rechnung (9) | Ansicht ungetestet |
 
@@ -59,12 +59,14 @@ unterscheidet drei Stufen:
 | Bereich | Was es tut | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|
 | **Mandantentrennung** | Jede Abfrage auf `companyId`, serverseitig erzwungen | Emulator (59 Regeltests) | — |
+| **Deaktivierte Konten** | Gesperrtes Auth-Konto, widerrufene Token und `active` als Claim in `signedIn()` — also unter jeder Regel | Emulator (5) | Ein bereits ausgestelltes Token bleibt bis zum Widerruf gültig; der Widerruf läuft in der Function, nicht im Browser |
 | **Wachstumsbremse** | Test verbietet jede Abfrage ohne Grenze in `lib/db` | Rechnung (40) | Prüft die Form der Abfrage, nicht ihre Laufzeit |
 | **Module** | Umfangsentscheidung des Betriebs: was ausgeschaltet ist, verschwindet aus Navigation, Startseite, Querverweisen **und** aus der Adresszeile | Rechnung (14), Emulator (7) | **Keine Sicherheitsgrenze.** Wer die Rolle hat, dürfte die Daten ohnehin — ein Modul nimmt nur den Weg weg, nicht das Recht. Die Regeln bleiben die einzige Grenze. |
 | **Navigation** | Wer wohin darf, steht **nur** in `navigation.ts`; `RequireNav` liest Rolle und Modul aus demselben Eintrag, aus dem der Reiter gebaut wird | Statisch (29), Ansicht (5) | — |
 | **Monatsbilanzen** | Verdichtete Zeitkonten, Trigger + Nachtlauf + Neuaufbau | Rechnung (8) | Trigger und Nachtlauf laufen ungetestet in Produktion |
 | **Offline-Betrieb** | Lokaler Zwischenspeicher, Hinweis beim Speichern ohne Verbindung | Rechnung (7) | Kein Test mit tatsächlich unterbrochener Verbindung |
-| **Startgeschwindigkeit** | Ansichten einzeln nachladbar, Service Worker hält die App-Hülle vor, Frist auf jedem Start-Zugriff | Rechnung (17: Frist + Service Worker gegen den echten Quelltext) | **Auf keinem echten iPhone gemessen** — die Ursachen sind aus dem Code belegt, die Wirkung ist es nicht |
+| **Startgeschwindigkeit** | Ansichten einzeln nachladbar, Service Worker hält die App-Hülle vor, Frist auf jedem Start-Zugriff | Rechnung (27: Frist, Service Worker und Fehlergrenze gegen den echten Quelltext) | **Auf keinem echten iPhone gemessen** — die Ursachen sind aus dem Code belegt, die Wirkung ist es nicht |
+| **Fassungswechsel** | Der Worker behält die alten Bausteine, bis die neue Fassung übernommen wird; ein fehlgeschlagenes Nachladen lädt einmal von selbst neu | Rechnung (11 Sandbox + 9 Fehlergrenze) | Nicht auf einem echten Gerät über einen echten Deploy gefahren |
 | **Meldungen (Push)** | Wer wird wann benachrichtigt | Rechnung (25) | Zustellung selbst ungetestet |
 
 ## Abgeschaltet oder ohne Weg dorthin
@@ -73,24 +75,29 @@ unterscheidet drei Stufen:
 |---|---|
 | **KI-Spracherfassung** (`/voice`, `voiceExtract`) | Vollständig gebaut, **aus** — jetzt als Modul, das ohne `VITE_ENABLE_VOICE` gar nicht erst einschaltbar ist. Grund: ohne Schlüssel führt der Knopf nur in eine Fehlermeldung, und Sprachaufnahmen von Mitarbeitern gehen an US-Anbieter — das braucht vorher Auftragsverarbeitungsverträge. Ein Schalter, den man umlegen kann, ohne dass etwas passiert, wäre schlimmer als keiner: deshalb steht er im Modulpanel sichtbar, aber gesperrt, mit dem Grund daneben. |
 | **Wiedervorlagen** (`followUps`) | Sammlung, Regeln und Abfragen existieren, geschrieben wird nur aus der KI-Erfassung. Also faktisch **tot**, solange die aus ist. |
-| **`exportCompanyData`** | Cloud Function ist deployed, wird von der App **nirgends aufgerufen**. Gedacht als Datenausleitung; ohne Aufrufer nur ein Versprechen. |
+| **`exportCompanyData`** | Cloud Function ist deployed und führt seit dem 02.09.2026 **alle** Sammlungen (vorher neun von sechzehn — es fehlten unter anderem Kunden, Scheine und die Nummernkreise). Sie wird von der App weiterhin **nirgends aufgerufen**: ohne Aufrufer bleibt sie ein Versprechen. Ein statischer Abgleich gegen `firestore.rules` meldet künftig jede vergessene Sammlung. |
 
 ---
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-538 automatische Tests klingen nach viel. Aufgeschlüsselt:
+591 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
-| Regeltests gegen den Emulator | 111 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
-| **Statischer Abgleich** (Indizes, Navigation ↔ Routen) | **71** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
+| Regeltests gegen den Emulator | 131 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+| **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **91** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 263 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 82 | Findet Bedienfehler, **keine** Datenfehler |
-| **Service Worker in einer Sandbox** | **10** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
+| Ansichten, Datenbank ersetzt | 95 | Findet Bedienfehler, **keine** Datenfehler |
+| **Service Worker in einer Sandbox** | **11** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
-Die 111 gegen den Emulator teilen sich in 66 Regeltests, 33 Abfragen je Rolle
+Die 131 gegen den Emulator teilen sich in 92 Regeltests, 33 Abfragen je Rolle
 und 6 Durchstiche über Ansichtsgrenzen hinweg.
+
+**Zu den 20 neuen Regeltests, weil die Zahl allein nichts sagt:** jeder von
+ihnen schlägt gegen die vorherigen Regeln fehl. Das ist nachgemessen, nicht
+angenommen — ein Test, der vorher und nachher grün ist, hält keine Grenze
+fest, sondern beschreibt nur, was ohnehin galt.
 
 **14 von 26 Ansichten haben keinen eigenen Test**, darunter Zeiterfassung,
 Rechnungen, Baustellen und Einsatzplanung.

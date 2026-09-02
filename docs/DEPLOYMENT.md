@@ -165,7 +165,13 @@ Die App ist dann unter `https://<projektid>.web.app` erreichbar.
   bevorzugen.
 - ✅ Sprachdaten werden nach der Auswertung nicht dauerhaft gespeichert (im Code
   so umgesetzt), Verarbeitung im Aufnahme-Flow transparent gemacht.
-- ✅ Datenexport pro Mandant (Cloud Function `exportCompanyData`, nur GF/Admin).
+- ☐ **Datenexport pro Mandant**: die Cloud Function `exportCompanyData`
+  (nur GF/Admin) ist deployed und führt seit dem 02.09.2026 alle Sammlungen —
+  aber **die App ruft sie nirgends auf**. Ein Auskunftsersuchen nach Art. 15
+  DSGVO liesse sich damit heute nur von Hand bedienen. Der Haken gehört erst
+  gesetzt, wenn es einen Weg dorthin gibt; vorher wäre er eine Zusage, die
+  niemand einlösen kann. Vorher stand hier ✅ — bei einer Function, die neun
+  von sechzehn Sammlungen führte und die niemand aufrufen konnte.
 - ☐ Firmen-Stammdaten/Logo im `companies/{companyId}`-Dokument hinterlegen
   (Rechnungskopf): `addressLine`, `iban`, `bic`, `vatId` etc.
 

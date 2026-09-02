@@ -1,6 +1,6 @@
 # Roadmap
 
-Stand: 01.09.2026. Reihenfolge nach Nutzen für den Betrieb, nicht nach
+Stand: 02.09.2026. Reihenfolge nach Nutzen für den Betrieb, nicht nach
 Aufwand. Was den Produktivbetrieb blockiert, steht oben.
 
 > **Diese Datei ist ein Änderungsprotokoll**, keine Übersicht: sie erzählt, was
@@ -39,6 +39,134 @@ Jahre alten Handwerkersoftware. Deren Büroseite ist mächtig, und ihre Monteure
 tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
+
+## Erledigt: sechs Stellen, an denen die Regel weiter offen stand als die Absicht
+
+Ausgangspunkt war keine Fehlermeldung aus dem Betrieb, sondern ein Durchgang
+durch `firestore.rules`, die Workflows und die vier Ansichten ohne Test. Das
+Muster war jedes Mal dasselbe: ein Kommentar beschrieb eine enge Grenze, und
+die Regel darunter war weiter. Genau der Fall, der bei `users` schon einmal
+aufgefallen war — dort stand „nur GF/Admin" über einer Regel, die
+`isLeadership()` zuliess.
+
+**1. Deaktivieren war eine Anzeigeeinstellung.** `active` wurde ausschliesslich
+in `AuthContext.loadProfile` geprüft. Die Regeln kannten das Feld an keiner
+Stelle, und `syncUserClaims` setzte die Claims unabhängig davon. Wer ausschied
+und auf „inaktiv" gestellt wurde, behielt ein gültiges Firebase-Konto mit
+gültigen Claims: mit seinem Passwort und dem Firestore-SDK kam er unverändert
+an alle Kunden, Baustellen, Scheine und seine Zeiteinträge. Die App liess ihn
+nur nicht mehr hinein.
+
+Jetzt drei Riegel, weil jeder für sich eine Lücke lässt: das Auth-Konto wird
+gesperrt (wirkt erst beim nächsten Anmelden), die Token werden widerrufen
+(sonst liefe ein ausgestelltes bis zu einer Stunde weiter), und `active` steht
+als Claim in `signedIn()` — also unter jeder Regel der Datei, damit eine neue
+Sammlung die Sperre nicht vergessen kann. Fehlt der Claim, gilt aktiv: sonst
+sperrte der Deploy jeden aus, bis er sich neu angemeldet hat.
+
+**2. Die Einsatzplanung stand jedem offen.** Begründet mit
+`pickedUpMaterials` — einem Feld, das in der App an keiner Stelle vorkommt,
+weder lesend noch schreibend. Die Regel gab dafür jedes Feld frei: ein Monteur
+konnte sich selbst auf eine andere Baustelle setzen oder den Einsatz eines
+Kollegen verschieben. Ändern ist jetzt Leitungssache; das tote Feld und
+`Assignment.materials` sind aus dem Typ heraus.
+
+**3. Der Materialstamm ebenso.** Der Kommentar nahm den Lagerstand aus, die
+Regel gab das ganze Dokument frei — auch Bezeichnung und Artikelnummer.
+Gebucht wird ohnehin nur unter Material → Lager, und dorthin kommt nur
+Verwaltung oder Leitung.
+
+**4. Rechnungen waren frei löschbar**, auch offene und bezahlte. Die
+Oberfläche bietet „Löschen" ausschliesslich beim Storno an, ein
+unterschriebener Handwerksschein lässt sich gar nicht löschen, und der Zähler
+auch nicht. Ausgerechnet beim Beleg fürs Finanzamt war die Grenze die
+weichste. *Offen bleibt die Produktfrage,* ob ein Storno überhaupt löschbar
+sein soll — buchhalterisch spricht einiges dagegen. Das entscheidet der
+Auftraggeber, nicht die Regel.
+
+**5. Der Angebotszähler durfte sinken.** Für Angebote stand dort nur
+`lastSeq > 0` — also jeder Wert, auch ein kleinerer, auch mitten im Jahr.
+„Nummernkreise nur steigend" galt damit für Angebote gar nicht, und zwei
+Kunden konnten dieselbe Nummer bekommen. Der Neubeginn hängt jetzt am
+Jahreswechsel und ist auf genau 1 festgelegt; der Rechnungskreis läuft
+unverändert monoton weiter.
+
+**6. Der Datenexport führte neun von sechzehn Sammlungen.** Es fehlten Kunden,
+Angebote, Handwerksscheine, Urlaubsanträge, die verdichteten Zeitkonten — und
+die **Nummernkreise**. Ein Wiederanlauf aus so einem Export hätte den
+Rechnungszähler bei null begonnen: genau der Schaden, vor dem die Regeln das
+Löschen der Zähler bewahren. Das Fehlen war an nichts zu merken, die Function
+lief durch und gab eine wohlgeformte Datei zurück.
+
+Die Liste ist jetzt vollständig, wird seitenweise gelesen (ein `.get()` über
+drei Jahre Zeiteinträge hält alles gleichzeitig im Speicher) und bricht mit
+einer verständlichen Meldung ab, statt an der 10-MB-Grenze eines Callable
+stumm zu scheitern. Push-Tokens bleiben bewusst draussen. Ein statischer
+Abgleich gegen `firestore.rules` meldet künftig jede vergessene Sammlung.
+
+### Was daneben noch herauskam
+
+**Der Functions-Deploy hörte nur auf `functions/**`.** `shared/` wird beim
+Bauen dorthin kopiert, liegt aber daneben — eine Änderung an den gemeinsamen
+Rechenregeln ging damit ins Hosting (`deploy.yml` hat keinen Pfadfilter) und
+**nicht** in die Functions. Browser und Server hätten denselben Stundensaldo
+verschieden gerechnet, bis irgendwann jemand aus anderem Grund `functions/`
+anfasst. Genau die Doppelung, gegen die `shared/` gebaut wurde, eine Ebene
+tiefer im Deploy — und dort fällt sie niemandem auf. Bisher ist es
+Glück gewesen: jeder `shared/`-Commit hat zufällig auch `functions/` berührt.
+
+**Der nächtliche Bilanzlauf fragte `where('active', '!=', false)`.** Firestore
+liefert bei `!=` ausschliesslich Dokumente, die das Feld überhaupt haben.
+Übernommene Altbestände ohne `active` fielen still heraus und bekamen nie eine
+Bilanz — ihr Saldo im Zeitkonto stünde dauerhaft daneben.
+
+## Erledigt: ein Deploy zerlegt die laufende App nicht mehr
+
+Nachtrag zur Startgeschwindigkeit weiter unten, und eine Folge davon.
+
+Der Service Worker warf die alten Bausteine weg, **sobald** er einen Deploy
+bemerkte. Der Gedanke war richtig — sonst wächst der Speicher mit jedem
+Deploy —, der Zeitpunkt war es nicht: die Hülle wird bewusst zuerst aus dem
+Speicher ausgeliefert, im Browser läuft also noch die alte `index.html`. Sie
+fordert ihre Bausteine unter den alten Namen an; die lagen nach dem Löschen
+weder im Speicher noch auf dem Server, denn Hosting kennt nach einem Deploy
+nur die neuen Namen.
+
+Seit dem Code-Splitting lädt jede der 26 Ansichten erst beim Öffnen nach. Wer
+auf „Später" getippt hat und danach den Schein aufmacht, bekam statt der
+Ansicht eine Fehlermeldung — ausgelöst von der Vorkehrung, die den Deploy
+sicherer machen sollte.
+
+Und die Fehlergrenze konnte nicht helfen. Ihr erster Knopf heisst „Erneut
+versuchen" und setzt den Zustand zurück; React merkt sich aber das abgelehnte
+Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz
+zu fragen. Der Knopf **kann** nicht wirken.
+
+Jetzt räumt der Worker erst beim Übernehmen auf, „Jetzt laden" wartet
+höchstens zwei Sekunden auf seine Bestätigung und lädt sonst trotzdem neu, und
+die Fehlergrenze erkennt einen Nachladefehler und lädt einmal von selbst neu —
+gesperrt für zehn Sekunden gegen die Schleife.
+
+*Weiterhin offen:* gemessen ist das nicht. Ein echter Deploy auf einem echten
+iPhone steht aus, wie die Startgeschwindigkeit selbst.
+
+## Erledigt: verschluckte Ladefehler sichtbar machen
+
+`catch(() => undefined)` steht seit Längerem als Falle in der Übergabe — und
+lebte in genau den vier Ansichten weiter, die keinen Test haben. Am
+deutlichsten in der Zeiterfassung: schlug das Laden des eigenen
+Stammdatenblatts fehl, blieb `profile` null, der Saldo rechnete nicht, und die
+Kachel zeigte „Kein Startdatum konfiguriert" — ein Einrichtungsfehler, den
+niemand beheben kann, angezeigt für ein Netzproblem.
+
+Am folgenreichsten in Material und Lager: dort war der Fehlerweg der **Abos**
+`() => undefined`. Scheiterte die Abfrage an den Regeln, blieb die Liste
+dauerhaft leer — derselbe verschluckte Fehler, der beim Handwerksschein schon
+einmal als „leeres Auswahlfeld" gemeldet wurde.
+
+Neu ist `TeilFehler`: ein Hinweis **neben** dem Inhalt, nicht an seiner
+Stelle. `ErrorState` wäre hier falsch — fällt die Kundenliste aus, ist die
+Rechnungsliste deswegen nicht weg.
 
 ## Erledigt: „auf dem iPhone lädt es manchmal gar nicht"
 
@@ -109,6 +237,14 @@ welches Firmendokument zu holen ist.
 abgeschaltetes Modul oder eine geänderte Rolle wirkt dann eine Sitzung später.
 Keine Sicherheitslücke — die Regeln entscheiden serverseitig, und ein
 deaktiviertes Konto kommt an keine Daten.
+
+> **Nachtrag.** Der letzte Halbsatz stimmte zum Zeitpunkt des Schreibens
+> nicht: `active` wurde ausschließlich im Browser geprüft, die Regeln kannten
+> das Feld gar nicht. Ein deaktiviertes Konto kam sehr wohl an alle Daten
+> seiner Firma, sobald jemand am UI vorbeiging. Seit „Die Sicherheitsgrenze
+> holt nach, was die Kommentare schon behaupteten" gilt der Satz — durch drei
+> Riegel: gesperrtes Auth-Konto, widerrufene Token und `active` als Claim in
+> `signedIn()`.
 
 ### 3. Warum die Verbindung ausgerechnet dort tot war
 
