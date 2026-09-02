@@ -40,6 +40,68 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: das Unterschreiben mit dem Finger, 02.09.2026
+
+Zum dritten Mal gemeldet, und diesmal mit dem entscheidenden Zusatz: **am PC
+geht es, auf dem iPhone nicht, Android ungetestet.** Genau diese Verteilung
+war der Hinweis — es liegt nicht an der Zeichenlogik, sondern am Eingabeweg.
+
+**Diesmal nicht geraten, sondern gemessen.** Die echte Komponente lief in
+einem echten Browser mit echter Fingereingabe (Chromium über das CDP, nicht
+jsdom). Der Befund:
+
+| Lauf | gezeichnete Pixel |
+|---|---|
+| ungestört | 8285 |
+| mit Abbruch der Zeigergeste | **36** |
+
+36 Pixel sind ein Punkt. Genau so wurde es beschrieben: „das Feld reagiert
+nicht". Und schlimmer — das Feld meldete diesen Punkt trotzdem als fertige
+Unterschrift nach oben. Ein Schein wäre damit mit einem praktisch leeren
+Unterschriftsfeld eingefroren worden.
+
+**DER MESSWERT, AUF DEM DER UMBAU BERUHT:** in derselben Geste, in der nach
+dem Abbruch kein einziges `pointermove` mehr kam, kamen noch **neun
+`touchmove`** an. Die Berührungsspur läuft weiter, wenn die Zeigerspur schon
+abgeräumt ist. Der Finger zeichnet deshalb jetzt über `touchstart`/`touchmove`;
+Maus und Stift laufen unverändert über die Zeigerereignisse.
+
+Drei Änderungen, jede einzeln begründet:
+
+1. **Berührungsereignisse statt Zeigerereignisse für den Finger** — der Kern.
+2. **`setPointerCapture` ist raus.** Es sollte den Strich über den Feldrand
+   halten und steht zugleich im Verdacht, den Abbruch auf WebKit überhaupt
+   auszulösen. Dieselbe Aufgabe erledigen jetzt Listener am Fenster, solange
+   ein Strich läuft — im Browser nachgeprüft, auch beim Loslassen weit
+   außerhalb des Feldes.
+3. **Die Listener hängen nativ am Element**, nicht über React. React meldet
+   Berührungsereignisse an der Wurzel als *passiv* an, und dort ist
+   `preventDefault()` wirkungslos — ohne das scrollt die Seite unter dem
+   Finger weg, statt dass er zeichnet.
+
+Dazu `touch-action: none` zusätzlich fest am Element statt nur als Klasse. Im
+Probestand ohne diese eine Eigenschaft brach der Browser die Geste nach dem
+ersten Zug ab; eine Klasse kann ein Build verlieren, diese Zeile nicht. (Im
+aktuellen Build ist sie nachweislich drin — das war die erste Hypothese, und
+sie war falsch. Nachgesehen statt angenommen.)
+
+**Zwei eigene Fehlmessungen auf dem Weg dorthin**, beide in der Übergabe
+festgehalten: der erste Probestand lud die Stylesheets nicht und zeigte den
+Fehler deshalb aus dem falschen Grund; und Vite lieferte aus dem
+Zwischenspeicher, sodass zwei Läufe für zwei verschiedene Codestände
+identische Zahlen ergaben. Ohne Neustart hätte ich „behoben" gemeldet, ohne
+etwas gemessen zu haben.
+
+**Was offen bleibt:** geprüft ist das in Chromium mit Fingereingabe, nicht in
+Safari auf einem iPhone. Ein iOS-Gerät steht mir nicht zur Verfügung. Der
+Mechanismus ist nachgewiesen und die Ursache beseitigt — die Bestätigung am
+Gerät steht aus.
+
+Geprüft: 572 ohne Emulator (12 auf das Unterschriftsfeld, 9 davon fallen gegen
+den vorherigen Stand durch), 137 gegen den Emulator.
+
+---
+
 ## Erledigt: der Materialablauf hat Tests — und dabei fiel ein eigener Fehler auf
 
 Nach den vier Kernansichten der nächste ganze ARBEITSABLAUF statt der nächsten

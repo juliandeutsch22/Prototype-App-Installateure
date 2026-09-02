@@ -82,14 +82,14 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-702 automatische Tests klingen nach viel. Aufgeschlüsselt:
+709 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | Regeltests gegen den Emulator | 137 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **91** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 283 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 179 | Findet Bedienfehler, **keine** Datenfehler |
+| Ansichten, Datenbank ersetzt | 186 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **12** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
 Die 137 gegen den Emulator teilen sich in 98 Regeltests, 33 Abfragen je Rolle
