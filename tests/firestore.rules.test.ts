@@ -925,3 +925,242 @@ describe('Benutzerverwaltung — wer Rollen vergibt', () => {
     );
   });
 });
+
+/**
+ * Deaktivierte Konten.
+ *
+ * Deaktivieren war vorher eine Anzeigeeinstellung: geprüft wurde nur im
+ * Browser. Ein ausgeschiedener Mitarbeiter behielt ein gültiges Konto mit
+ * gültigen Claims und kam mit dem Firestore-SDK unverändert an alle Daten
+ * seiner Firma. Diese Tests halten fest, dass der Server das entscheidet.
+ */
+describe('Deaktivierte Konten kommen an gar nichts', () => {
+  function ctxA_deaktiviert() {
+    return testEnv.authenticatedContext('userA1', {
+      companyId: 'companyA',
+      role: 'Mitarbeiter',
+      active: false,
+    });
+  }
+  function ctxA_aktiv() {
+    return testEnv.authenticatedContext('userA1', {
+      companyId: 'companyA',
+      role: 'Mitarbeiter',
+      active: true,
+    });
+  }
+
+  it('liest die eigenen Zeiteintraege NICHT mehr', async () => {
+    await assertFails(getDoc(doc(ctxA_deaktiviert().firestore(), 'timeEntries', 'tA')));
+  });
+
+  it('liest keine Baustellen und keine Firmendaten mehr', async () => {
+    const db = ctxA_deaktiviert().firestore();
+    await assertFails(getDoc(doc(db, 'projects', 'pA')));
+    await assertFails(getDoc(doc(db, 'companies', 'companyA')));
+  });
+
+  it('schreibt auch nichts mehr', async () => {
+    const db = ctxA_deaktiviert().firestore();
+    await assertFails(
+      setDoc(doc(db, 'timeEntries', 'neu'), {
+        companyId: 'companyA', userId: 'userA1', date: '2026-06-19', status: 'Anwesend',
+      }),
+    );
+  });
+
+  it('das aktive Konto derselben Person arbeitet weiter', async () => {
+    // Sonst prüfte der Test nur, dass irgendetwas fehlschlägt.
+    await assertSucceeds(getDoc(doc(ctxA_aktiv().firestore(), 'timeEntries', 'tA')));
+  });
+
+  it('ein Token OHNE das Merkmal gilt als aktiv', async () => {
+    /**
+     * Der Bestandsschutz, und er ist kein Detail: bestehende Token tragen den
+     * Claim nicht. Würde ein fehlendes Merkmal als „deaktiviert" gelesen,
+     * spörrte der Deploy jeden aus, bis er sich neu angemeldet hat — an einem
+     * Montagmorgen also den ganzen Betrieb.
+     */
+    await assertSucceeds(getDoc(doc(ctxA_employee().firestore(), 'timeEntries', 'tA')));
+  });
+});
+
+/**
+ * Einsatzplanung.
+ *
+ * Wer plant, entscheidet, wer am Montag wo steht. Das Ändern stand vorher
+ * jedem Firmenangehörigen offen — begründet mit einem Feld, das es in der App
+ * gar nicht gibt.
+ */
+describe('Einsatzplanung — planen darf nur die Leitung', () => {
+  async function seedEinsatz() {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'assignments', 'aA'), {
+        companyId: 'companyA',
+        date: '2026-06-18',
+        projectNumber: '2024-001',
+        userId: 'userA2',
+      });
+    });
+  }
+
+  it('der Monteur sieht die Einteilung', async () => {
+    await seedEinsatz();
+    await assertSucceeds(getDoc(doc(ctxA_employee().firestore(), 'assignments', 'aA')));
+  });
+
+  it('der Monteur setzt sich NICHT selbst auf eine andere Baustelle', async () => {
+    await seedEinsatz();
+    const db = ctxA_employee().firestore();
+    await assertFails(updateDoc(doc(db, 'assignments', 'aA'), { userId: 'userA1' }));
+    await assertFails(updateDoc(doc(db, 'assignments', 'aA'), { projectNumber: '2024-999' }));
+  });
+
+  it('der Monteur legt keine Einteilung an und loescht keine', async () => {
+    await seedEinsatz();
+    const db = ctxA_employee().firestore();
+    await assertFails(
+      setDoc(doc(db, 'assignments', 'neu'), {
+        companyId: 'companyA', date: '2026-06-19', projectNumber: '2024-001', userId: 'userA1',
+      }),
+    );
+    await assertFails(deleteDoc(doc(db, 'assignments', 'aA')));
+  });
+
+  it('die Projektleitung plant, anlegen bis loeschen', async () => {
+    await seedEinsatz();
+    const db = ctxA_pl().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'assignments', 'aA'), { projectNumber: '2024-002' }));
+    await assertSucceeds(deleteDoc(doc(db, 'assignments', 'aA')));
+  });
+});
+
+/**
+ * Materialstamm. Der Lagerstand wird ausschließlich unter „Material → Lager"
+ * gebucht, und dorthin kommt nur Verwaltung oder Leitung.
+ */
+describe('Materialstamm — pflegen darf Verwaltung und Leitung', () => {
+  async function seedMaterial() {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'materials', 'mA'), {
+        companyId: 'companyA', name: 'Kupferrohr 15mm', stock: 12,
+      });
+    });
+  }
+
+  it('der Monteur sieht den Katalog', async () => {
+    await seedMaterial();
+    await assertSucceeds(getDoc(doc(ctxA_employee().firestore(), 'materials', 'mA')));
+  });
+
+  it('der Monteur aendert weder Bestand noch Bezeichnung', async () => {
+    await seedMaterial();
+    const db = ctxA_employee().firestore();
+    await assertFails(updateDoc(doc(db, 'materials', 'mA'), { stock: 999 }));
+    await assertFails(updateDoc(doc(db, 'materials', 'mA'), { name: 'etwas anderes' }));
+  });
+
+  it('die Verwaltung bucht den Bestand', async () => {
+    await seedMaterial();
+    await assertSucceeds(updateDoc(doc(ctxA_verw().firestore(), 'materials', 'mA'), { stock: 7 }));
+  });
+});
+
+/**
+ * Rechnungen sind Belege. Gelöscht wird nur, was ohnehin storniert ist —
+ * alles andere bleibt in den Büchern.
+ */
+describe('Rechnungen — nur der Storno ist loeschbar', () => {
+  async function seedRechnungen() {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'invoices', 'offen'), {
+        companyId: 'companyA', invoiceNumber: 'RE-2026-1001', paymentStatus: 'Offen',
+      });
+      await setDoc(doc(db, 'invoices', 'storno'), {
+        companyId: 'companyA', invoiceNumber: 'RE-2026-1002', paymentStatus: 'Storniert',
+      });
+    });
+  }
+
+  it('eine offene Rechnung bleibt stehen', async () => {
+    await seedRechnungen();
+    await assertFails(deleteDoc(doc(ctxA_buch().firestore(), 'invoices', 'offen')));
+  });
+
+  it('eine bezahlte auch', async () => {
+    await seedRechnungen();
+    const db = ctxA_buch().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'invoices', 'offen'), { paymentStatus: 'Bezahlt' }));
+    await assertFails(deleteDoc(doc(db, 'invoices', 'offen')));
+  });
+
+  it('die stornierte darf weg', async () => {
+    await seedRechnungen();
+    await assertSucceeds(deleteDoc(doc(ctxA_buch().firestore(), 'invoices', 'storno')));
+  });
+});
+
+/**
+ * Angebotsnummern. Anders als der Rechnungskreis beginnt dieser zum
+ * Jahreswechsel neu — und genau dieses Zugeständnis war vorher ein Loch:
+ * erlaubt war jeder Wert über null, also auch ein kleinerer mitten im Jahr.
+ */
+describe('Angebotszaehler — steigend, Neubeginn nur zum Jahreswechsel', () => {
+  async function seedAngebotszaehler(seq: number, jahr: number) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'counters', 'companyA_quotes'), {
+        companyId: 'companyA', lastSeq: seq, year: jahr,
+      });
+    });
+  }
+
+  it('die Leitung zaehlt im laufenden Jahr hoch', async () => {
+    await seedAngebotszaehler(7, 2026);
+    await assertSucceeds(
+      updateDoc(doc(ctxA_pl().firestore(), 'counters', 'companyA_quotes'), {
+        lastSeq: 8, year: 2026,
+      }),
+    );
+  });
+
+  it('zurueck geht im laufenden Jahr NICHT', async () => {
+    // Sonst bekaemen zwei Kunden dieselbe Angebotsnummer.
+    await seedAngebotszaehler(7, 2026);
+    const db = ctxA_pl().firestore();
+    await assertFails(updateDoc(doc(db, 'counters', 'companyA_quotes'), { lastSeq: 3, year: 2026 }));
+    await assertFails(updateDoc(doc(db, 'counters', 'companyA_quotes'), { lastSeq: 7, year: 2026 }));
+  });
+
+  it('zum Jahreswechsel beginnt er bei genau 1', async () => {
+    await seedAngebotszaehler(42, 2026);
+    await assertSucceeds(
+      updateDoc(doc(ctxA_pl().firestore(), 'counters', 'companyA_quotes'), {
+        lastSeq: 1, year: 2027,
+      }),
+    );
+  });
+
+  it('der Jahreswechsel ist kein Freibrief fuer irgendeine Zahl', async () => {
+    await seedAngebotszaehler(42, 2026);
+    await assertFails(
+      updateDoc(doc(ctxA_pl().firestore(), 'counters', 'companyA_quotes'), {
+        lastSeq: 500, year: 2027,
+      }),
+    );
+  });
+
+  it('der Rechnungskreis laeuft ueber den Jahreswechsel weiter', async () => {
+    // Dort ist der Neubeginn ausdruecklich NICHT gewollt.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'counters', 'companyA_invoices'), {
+        companyId: 'companyA', lastSeq: 1042, year: 2026,
+      });
+    });
+    const db = ctxA_buch().firestore();
+    await assertFails(updateDoc(doc(db, 'counters', 'companyA_invoices'), { lastSeq: 1, year: 2027 }));
+    await assertSucceeds(
+      updateDoc(doc(db, 'counters', 'companyA_invoices'), { lastSeq: 1043, year: 2027 }),
+    );
+  });
+});

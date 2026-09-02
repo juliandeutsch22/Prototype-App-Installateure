@@ -161,12 +161,30 @@ export const bilanzenNachtlauf = onSchedule(
   { region: REGION, schedule: '15 3 * * *', timeZone: 'Europe/Vienna' },
   async () => {
     const db = getFirestore();
-    const nutzer = await db.collection('users').where('active', '!=', false).get();
+    /**
+     * ALLE Nutzer holen und HIER filtern, nicht in der Abfrage.
+     *
+     * `where('active', '!=', false)` sah richtig aus und war es nicht:
+     * Firestore liefert bei `!=` ausschliesslich Dokumente, die das Feld
+     * ueberhaupt HABEN. Uebernommene Altbestaende tragen kein `active` — ihre
+     * Monatsbilanzen waeren also nie nachgezogen worden, still und ohne
+     * Meldung, und der Saldo im Zeitkonto stuende dauerhaft daneben.
+     *
+     * Ueberall sonst in der App heisst „kein Feld" aktiv (`active !== false`).
+     * Diese Lesart gilt jetzt auch hier.
+     */
+    const nutzer = await db.collection('users').get();
     const monate = [monatVersetzt(0), monatVersetzt(1)];
 
     let gerechnet = 0;
     for (const doc of nutzer.docs) {
-      const u = doc.data() as { companyId?: string; uid?: string; app_start_date?: string | null };
+      const u = doc.data() as {
+        companyId?: string;
+        uid?: string;
+        app_start_date?: string | null;
+        active?: boolean;
+      };
+      if (u.active === false) continue;
       if (!u.companyId || !u.uid || !u.app_start_date) continue;
       for (const monat of monate) {
         // Monate vor dem Eintritt gibt es nicht.

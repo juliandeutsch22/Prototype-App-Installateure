@@ -16,6 +16,18 @@ on:
     branches: [main]
     paths:
       - 'functions/**'
+      # `shared/` MUSS hier stehen, obwohl es neben den Functions liegt.
+      #
+      # Die gemeinsamen Rechenregeln (Feiertage, Arbeitszeit, Monatsbilanz)
+      # werden beim Bauen nach functions/src/generated kopiert — sie sind
+      # also Bestandteil der Functions, ohne in ihrem Verzeichnis zu liegen.
+      # Ohne diese Zeile ginge eine Aenderung an `shared/` ins Hosting
+      # (deploy.yml hat keinen Pfadfilter), aber NICHT in die Functions: der
+      # Browser rechnete nach der neuen Regel, `urlaubEntscheiden` und der
+      # naechtliche Bilanzlauf nach der alten. Genau die Doppelung, gegen die
+      # `shared/` gebaut wurde — nur eine Ebene tiefer, im Deploy statt im
+      # Quelltext, und dort faellt sie niemandem auf.
+      - 'shared/**'
       - '.github/workflows/deploy-functions.yml'
   workflow_dispatch:
     inputs:
