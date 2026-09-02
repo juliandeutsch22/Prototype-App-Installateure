@@ -743,10 +743,19 @@ describe('Urlaub — Genehmigende sind einstellbar', () => {
     );
   });
 
-  it('die Projektleitung darf die uebrigen Firmendaten weiterhin aendern', async () => {
-    // Die neue Grenze gilt nur fuer dieses eine Feld.
+  it('die Projektleitung aendert am Firmendokument gar nichts mehr', async () => {
+    /**
+     * Frueher galt die Grenze nur fuer die beiden ausgenommenen Felder, alles
+     * Uebrige durfte die Projektleitung aendern — auch den STUNDENSATZ. Genau
+     * die Ausnahmeliste war der Beleg, dass die Grenze eine Stufe zu weit
+     * unten lag: sobald man einzelne Felder herausnehmen muss, gehoert das
+     * ganze Dokument nicht in diese Hand.
+     *
+     * Der Reiter „Einstellungen" liess die Projektleitung ohnehin nie hinein.
+     * Der Server aber schon — und der zaehlt.
+     */
     await seed();
-    await assertSucceeds(
+    await assertFails(
       updateDoc(doc(ctxA_pl().firestore(), 'companies', 'companyA'), { addressLine: 'Neu 1' }),
     );
   });
@@ -839,6 +848,80 @@ describe('Module — die Liste aendert nur die Leitung', () => {
         modules: { ki: false },
         vacationApprovers: ['verwA'],
       }),
+    );
+  });
+});
+
+
+/**
+ * Benutzer anlegen und Rollen vergeben.
+ *
+ * Der Kommentar in den Regeln sagte immer „nur GF/Admin", die Regel liess aber
+ * `isLeadership()` zu — und darin steckt die Projektleitung. Sie haette sich
+ * damit selbst hochstufen koennen: wer Rollen vergibt, vergibt sie auch an
+ * sich. Aufgefallen ist es beim Abgleich von Navigation und Routen, wo
+ * dieselbe Grenze zum dritten Mal anders gezogen war.
+ */
+describe('Benutzerverwaltung — wer Rollen vergibt', () => {
+  const NEU = {
+    companyId: 'companyA',
+    uid: 'neu1',
+    name: 'Neuer Monteur',
+    email: 'neu@a.at',
+    role: 'Mitarbeiter',
+    active: true,
+  };
+
+  it('die Geschaeftsfuehrung legt einen Benutzer an', async () => {
+    await assertSucceeds(setDoc(doc(ctxA_gf().firestore(), 'users', 'neu1'), NEU));
+  });
+
+  it('die Projektleitung NICHT', async () => {
+    // Sie plant Baustellen, sie vergibt keine Rechte.
+    await assertFails(setDoc(doc(ctxA_pl().firestore(), 'users', 'neu1'), NEU));
+  });
+
+  it('die Projektleitung stuft auch niemanden hoch', async () => {
+    /**
+     * Der eigentliche Grund fuer die Grenze: haette sie das Recht, koennte sie
+     * sich selbst zur Geschaeftsfuehrung machen und danach alles.
+     */
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', 'plA'), {
+        companyId: 'companyA',
+        uid: 'plA',
+        name: 'Projektleiter A',
+        email: 'pl@a.at',
+        role: 'Projektleiter',
+        active: true,
+      });
+    });
+    await assertFails(
+      updateDoc(doc(ctxA_pl().firestore(), 'users', 'plA'), { role: 'Geschäftsführung' }),
+    );
+  });
+
+  it('die Buchhaltung erst recht nicht', async () => {
+    await assertFails(setDoc(doc(ctxA_buch().firestore(), 'users', 'neu1'), NEU));
+  });
+
+  it('lesen darf die Projektleitung weiterhin', async () => {
+    // Sie braucht die Mitarbeiterliste zum Einteilen — nur aendern soll sie
+    // dort nichts.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', 'neu1'), NEU);
+    });
+    await assertSucceeds(getDoc(doc(ctxA_pl().firestore(), 'users', 'neu1')));
+  });
+
+  it('einen Administrator legt nur ein Administrator an', async () => {
+    // Unveraendert, aber hier festgehalten: die Hierarchie darf durch die
+    // neue Grenze nicht verlorengegangen sein.
+    await assertFails(
+      setDoc(doc(ctxA_gf().firestore(), 'users', 'neu2'), { ...NEU, uid: 'neu2', role: 'Administrator' }),
+    );
+    await assertSucceeds(
+      setDoc(doc(ctxA_admin().firestore(), 'users', 'neu2'), { ...NEU, uid: 'neu2', role: 'Administrator' }),
     );
   });
 });

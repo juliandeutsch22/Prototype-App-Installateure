@@ -71,17 +71,24 @@ export const NAV: NavItem[] = [
   { path: '/admin-orders', label: 'Anforderungen', short: 'Anforderungen', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
   { path: '/stock', label: 'Lager', short: 'Lager', icon: 'package', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
   { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Verwaltung', modul: 'einsatzplanung' },
-  { path: '/user-mgmt', label: 'Benutzerverwaltung', short: 'Benutzer', icon: 'users', roles: LEAD, group: 'Verwaltung' },
+  // Wer angelegt wird und welche Rolle er bekommt, ist Eigentümersache und
+  // nicht Sache der Bauleitung: mit dieser Ansicht vergibt man Rechte.
+  { path: '/user-mgmt', label: 'Benutzerverwaltung', short: 'Benutzer', icon: 'users', roles: TOP, group: 'Verwaltung' },
   // Stundensätze und Zuschläge sind Geschäftsführungssache — sie bestimmen,
-  // was der Betrieb verrechnet.
-  { path: '/settings', label: 'Einstellungen', short: 'Sätze', icon: 'settings', roles: LEAD, group: 'Verwaltung' },
+  // was der Betrieb verrechnet. Die Projektleitung stand hier früher mit
+  // drin, kam aber ohnehin nicht hinein: die Route ließ nur GF und Admin
+  // durch. Zwei Meinungen, eine sichtbare Sackgasse.
+  { path: '/settings', label: 'Einstellungen', short: 'Sätze', icon: 'settings', roles: TOP, group: 'Verwaltung' },
   // Welche Bereiche der Betrieb ueberhaupt benutzt. Kern: waere die
   // Modulverwaltung selbst abschaltbar, koennte man sich aussperren.
   { path: '/modules', label: 'Module', short: 'Module', icon: 'settings', roles: TOP, group: 'Verwaltung' },
 
   // Margen sind Geschaeftsfuehrungssache — die Projektleitung sieht sie nicht.
   { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'chart', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
-  { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Buchhaltung', modul: 'rechnungen' },
+  // Rechnungen OHNE Projektleitung — so steht es auch in firestore.rules, und
+  // dort ist es die Wahrheit. Der Eintrag zeigte sie ihr trotzdem an; wer
+  // klickte, landete in „Kein Zugriff".
+  { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung', modul: 'rechnungen' },
   // Zeitkonten: bewusst OHNE Projektleitung. Ueberstunden, Krankenstaende und
   // Urlaub eines Monteurs gehen sie nichts an — Krankenstaende sind zudem
   // Gesundheitsdaten nach Art. 9 DSGVO.

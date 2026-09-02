@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
-import { RequireAuth, RequireRole, RequireModul } from './guards';
-import { ROLES } from '@/types';
+import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
 import ErrorBoundary from './ErrorBoundary';
 import Layout from './Layout';
 import LoginPage from '@/features/auth/LoginPage';
@@ -57,81 +56,56 @@ export default function App() {
   );
 }
 
+/**
+ * Wer wohin darf, steht NUR in `navigation.ts`.
+ *
+ * Hier stand es früher ein zweites Mal, als `RequireRole` je Route — und die
+ * beiden Listen waren bereits auseinandergelaufen: die Projektleitung sah
+ * fünf Reiter, die sie nicht betreten konnte. `RequireNav` liest Rolle UND
+ * Modul aus demselben Eintrag, aus dem auch der Reiter gebaut wird. Damit
+ * kann diese Sorte Sackgasse nicht mehr entstehen.
+ */
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<DashboardView />} />
+      <Route path="/" element={<RequireNav path="/"><DashboardView /></RequireNav>} />
 
       {/* Außendienst */}
       {/* Zeit- und KI-Erfassung stehen JEDER Rolle offen (auch Buchhaltung:
           Krankenstand/Urlaub) — wie Legacy:1954, das den Tab ungeprüft setzt. */}
-      <Route path="/time" element={<TimeView />} />
-      {/* Ausgeblendet, nicht entfernt: ohne Schalter fuehrt /voice zurueck
-          aufs Dashboard, statt eine Ansicht zu zeigen, die ohne API-
-          Schluessel nur eine Fehlermeldung produzieren kann. */}
+      <Route path="/time" element={<RequireNav path="/time"><TimeView /></RequireNav>} />
       {/*
         Die KI-Erfassung haengt nicht mehr am Umgebungsschalter, sondern am
         Modul „ki" — und das ist nur waehlbar, wenn die Zugaenge hinterlegt
         sind. Ein Sonderweg weniger.
       */}
-      <Route
-        path="/voice"
-        element={
-          <RequireModul id="ki">
-            <VoiceView />
-          </RequireModul>
-        }
-      />
-      <Route
-        path="/order"
-        element={
-          <RequireModul id="material">
-            <RequireRole roles={['Mitarbeiter', 'Verwaltung', 'Geschäftsführung', 'Administrator']}>
-              <OrderView />
-            </RequireRole>
-          </RequireModul>
-        }
-      />
+      <Route path="/voice" element={<RequireNav path="/voice"><VoiceView /></RequireNav>} />
+      <Route path="/order" element={<RequireNav path="/order"><OrderView /></RequireNav>} />
       {/* Strikt nur reine Mitarbeiter (Legacy:1980) — GF/Admin nutzen die
-          Verwaltungssicht. Vorher fehlte hier jeder Schutz. */}
+          Verwaltungssicht. */}
       <Route
         path="/my-schedule"
-        element={
-          <RequireModul id="einsatzplanung">
-            <RequireRole roles={['Mitarbeiter']}>
-              <MyScheduleView />
-            </RequireRole>
-          </RequireModul>
-        }
+        element={<RequireNav path="/my-schedule"><MyScheduleView /></RequireNav>}
       />
       {/*
         Urlaub beantragen darf jede Rolle — auch Buchhaltung und Verwaltung
         nehmen Urlaub. Wer entscheiden darf, entscheidet die Ansicht selbst
         anhand der Rolle; die harte Grenze steht in firestore.rules.
       */}
-      <Route
-        path="/vacations"
-        element={
-          <RequireModul id="urlaub">
-            <RequireRole roles={ROLES}>
-              <VacationsView />
-            </RequireRole>
-          </RequireModul>
-        }
-      />
+      <Route path="/vacations" element={<RequireNav path="/vacations"><VacationsView /></RequireNav>} />
       <Route
         path="/my-projects"
-        element={
-          <RequireRole roles={['Mitarbeiter']}>
-            <MyProjectsView />
-          </RequireRole>
-        }
+        element={<RequireNav path="/my-projects"><MyProjectsView /></RequireNav>}
       />
-
-      {/* Verwaltung */}
+      <Route
+        path="/worksheets"
+        element={<RequireNav path="/worksheets"><WorkSheetsListView /></RequireNav>}
+      />
       {/*
-        Handwerksschein: erstellen darf jeder, der rausfaehrt — der Monteur
-        vor allem. Die Liste sieht zusaetzlich das Buero.
+        Der EINZELNE Schein hat bewusst keinen Reiter: er wird immer aus der
+        Liste oder aus dem Einsatzplan heraus geöffnet, zu einem bestimmten
+        Tag. Deshalb steht die Rollenprüfung hier ausnahmsweise ausgeschrieben
+        — erstellen darf ihn, wer rausfährt.
       */}
       <Route
         path="/worksheet"
@@ -145,156 +119,45 @@ function AppRoutes() {
           </RequireModul>
         }
       />
-      <Route
-        path="/worksheets"
-        element={
-          <RequireModul id="scheine">
-            <RequireRole
-              roles={[
-                'Mitarbeiter',
-                'Buchhaltung',
-                'Verwaltung',
-                'Projektleiter',
-                'Geschäftsführung',
-                'Administrator',
-              ]}
-            >
-              <WorkSheetsListView />
-            </RequireRole>
-          </RequireModul>
-        }
-      />
-      {/*
-        Angebote: kalkulieren ist Leitungssache, die Buchhaltung sieht mit —
-        ein angenommenes Angebot ist die Vorstufe der Rechnung.
-      */}
-      {/* Nachkalkulation zeigt Margen — nur Geschaeftsfuehrung und Admin. */}
-      <Route
-        path="/costing"
-        element={
-          <RequireModul id="nachkalkulation">
-            <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-              <NachkalkulationView />
-            </RequireRole>
-          </RequireModul>
-        }
-      />
-      <Route
-        path="/quotes"
-        element={
-          <RequireModul id="angebote">
-            <RequireRole
-              roles={['Buchhaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
-            >
-              <QuotesView />
-            </RequireRole>
-          </RequireModul>
-        }
-      />
-      <Route
-        path="/customers"
-        element={
-          <RequireRole
-            roles={['Buchhaltung', 'Verwaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
-          >
-            <CustomersView />
-          </RequireRole>
-        }
-      />
+
+      {/* Verwaltung */}
+      <Route path="/costing" element={<RequireNav path="/costing"><NachkalkulationView /></RequireNav>} />
+      <Route path="/quotes" element={<RequireNav path="/quotes"><QuotesView /></RequireNav>} />
+      <Route path="/customers" element={<RequireNav path="/customers"><CustomersView /></RequireNav>} />
       <Route
         path="/admin-projects"
-        element={
-          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <AdminProjectsView />
-          </RequireRole>
-        }
+        element={<RequireNav path="/admin-projects"><AdminProjectsView /></RequireNav>}
       />
       <Route
         path="/admin-orders"
-        element={
-          <RequireModul id="material">
-            <RequireRole roles={['Verwaltung', 'Geschäftsführung', 'Administrator']}>
-              <AdminOrdersView />
-            </RequireRole>
-          </RequireModul>
-        }
+        element={<RequireNav path="/admin-orders"><AdminOrdersView /></RequireNav>}
       />
-      {/* Lager: eigener Bereich statt versteckter Reiter unter Bestellungen.
-          Verwaltung und Leitung fuehren den Bestand. */}
-      <Route
-        path="/stock"
-        element={
-          <RequireModul id="material">
-            <RequireRole roles={['Verwaltung', 'Projektleiter', 'Geschäftsführung', 'Administrator']}>
-              <StockView />
-            </RequireRole>
-          </RequireModul>
-        }
-      />
+      {/* Lager: eigener Bereich statt versteckter Reiter unter Bestellungen. */}
+      <Route path="/stock" element={<RequireNav path="/stock"><StockView /></RequireNav>} />
       <Route
         path="/assignments"
-        element={
-          <RequireModul id="einsatzplanung">
-            <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-              <AssignmentsView />
-            </RequireRole>
-          </RequireModul>
-        }
+        element={<RequireNav path="/assignments"><AssignmentsView /></RequireNav>}
       />
+      <Route path="/user-mgmt" element={<RequireNav path="/user-mgmt"><UserMgmtView /></RequireNav>} />
+      {/* Persoenliche Benachrichtigungen: jede Rolle. Was jemand aufs Telefon
+          bekommt, entscheidet er selbst. */}
       <Route
-        path="/user-mgmt"
-        element={
-          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <UserMgmtView />
-          </RequireRole>
-        }
+        path="/notifications"
+        element={<RequireNav path="/notifications"><NotificationSettings /></RequireNav>}
       />
-      {/* Persoenliche Benachrichtigungen: jede Rolle, kein RequireRole.
-          Was jemand aufs Telefon bekommt, entscheidet er selbst. */}
-      <Route path="/notifications" element={<NotificationSettings />} />
-
       {/*
-        Welche Bereiche der Betrieb benutzt. Bewusst OHNE RequireModul: waere
-        die Modulverwaltung selbst abschaltbar, koennte man sich aussperren
-        und nie wieder hineinkommen.
+        Welche Bereiche der Betrieb benutzt. Der Eintrag traegt bewusst KEIN
+        Modul: waere die Modulverwaltung selbst abschaltbar, koennte man sich
+        aussperren und nie wieder hineinkommen.
       */}
-      <Route
-        path="/modules"
-        element={
-          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <ModulesView />
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <RequireRole roles={['Geschäftsführung', 'Administrator']}>
-            <SettingsView />
-          </RequireRole>
-        }
-      />
+      <Route path="/modules" element={<RequireNav path="/modules"><ModulesView /></RequireNav>} />
+      <Route path="/settings" element={<RequireNav path="/settings"><SettingsView /></RequireNav>} />
 
       {/* Buchhaltung */}
-      <Route
-        path="/invoices"
-        element={
-          <RequireModul id="rechnungen">
-            <RequireRole roles={['Buchhaltung', 'Geschäftsführung', 'Administrator']}>
-              <InvoicesView />
-            </RequireRole>
-          </RequireModul>
-        }
-      />
+      <Route path="/invoices" element={<RequireNav path="/invoices"><InvoicesView /></RequireNav>} />
       <Route
         path="/accounting"
-        element={
-          <RequireModul id="zeitkonten">
-            <RequireRole roles={['Buchhaltung', 'Geschäftsführung', 'Administrator']}>
-              <AccountingView />
-            </RequireRole>
-          </RequireModul>
-        }
+        element={<RequireNav path="/accounting"><AccountingView /></RequireNav>}
       />
 
       <Route path="*" element={<Navigate to="/" replace />} />

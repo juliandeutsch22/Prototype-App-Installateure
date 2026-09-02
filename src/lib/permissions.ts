@@ -75,7 +75,16 @@ export function darfUrlaubEntscheiden(
 }
 
 export const canManageProjects = (r: Role) => isGF(r);
-export const canManageUsers = (r: Role) => isGF(r);
+
+/**
+ * Benutzer anlegen und Rollen vergeben — OHNE Projektleitung.
+ *
+ * Wer Rollen vergibt, vergibt sie auch an sich: mit diesem Recht könnte sich
+ * die Projektleitung zur Geschäftsführung machen und danach alles. Die
+ * Firestore-Regel sagte im Kommentar seit jeher „nur GF/Admin", liess aber
+ * `isLeadership()` zu; hier stand dieselbe Lücke.
+ */
+export const canManageUsers = (r: Role) => isTopLevel(r);
 
 /**
  * Administratoren anlegen, ändern und löschen darf nur ein Administrator.
@@ -86,7 +95,15 @@ export const canManageUsers = (r: Role) => isGF(r);
  */
 export const canManageAdmins = (r: Role) => isAdmin(r);
 
-export const canInvoice = (r: Role) => isGF(r) || isBuch(r);
+/**
+ * Rechnungen sehen und stellen — OHNE Projektleitung.
+ *
+ * So steht es auch in `firestore.rules`, und dort ist es die Wahrheit: die
+ * Projektleitung kann Rechnungen nicht einmal lesen. Hier hiess es trotzdem
+ * `isGF`, worin sie steckt — die Ansicht bot ihr also Knöpfe an, die
+ * serverseitig scheitern mussten.
+ */
+export const canInvoice = (r: Role) => isTopLevel(r) || isBuch(r);
 export const canProcessOrders = (r: Role) => isVerw(r) || isGF(r);
 
 /**

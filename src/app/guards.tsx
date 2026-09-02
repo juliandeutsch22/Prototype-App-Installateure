@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { LoadingState } from '@/components/States';
 import { aktiveModule, modul, type ModulId } from '@/lib/module';
 import { isTopLevel } from '@/lib/permissions';
+import { NAV } from './navigation';
 import type { Role } from '@/types';
 
 /** Schützt Routen: ohne Anmeldung -> Login. */
@@ -70,4 +71,34 @@ export function RequireModul({ id, children }: { id: ModulId; children: ReactNod
       )}
     </div>
   );
+}
+
+/**
+ * Der Wächter für alles, was in der Navigation steht.
+ *
+ * WARUM ES DEN GIBT. Vorher stand zweimal geschrieben, wer wohin darf: als
+ * `roles` in `navigation.ts` und noch einmal als `RequireRole` an der Route.
+ * Zwei Listen, die dasselbe behaupten, laufen auseinander — und sie waren es
+ * bereits. Die Projektleitung sah fünf Einträge, die sie nicht betreten
+ * konnte: Baustellen, Einsatzplanung, Anforderungen, Benutzerverwaltung und
+ * Einstellungen. Sie klickte auf einen Reiter, den ihr die App selbst
+ * angeboten hatte, und bekam „Kein Zugriff". Nichts daran war ihr Fehler.
+ *
+ * Jetzt gibt es nur noch EINE Liste. Rolle und Modul kommen aus demselben
+ * Eintrag, aus dem auch der Reiter gebaut wird — ein Reiter ins Leere ist
+ * damit nicht mehr möglich, sondern müsste erst erfunden werden.
+ *
+ * Was das NICHT ersetzt: `firestore.rules`. Das hier ist Bedienführung, die
+ * Grenze steht auf dem Server.
+ */
+export function RequireNav({ path, children }: { path: string; children: ReactNode }) {
+  const item = NAV.find((i) => i.path === path);
+  // Ein Pfad, den die Navigation nicht kennt, ist ein Tippfehler an der Route.
+  // Ihn durchzulassen wäre die gefährlichere Antwort: dann hinge eine Ansicht
+  // ganz ohne Rollenprüfung im Netz. Ein Test in tests/unit fängt den Fall
+  // schon vor dem Ausliefern ab.
+  if (!item) return <RequireRole roles={[]}>{children}</RequireRole>;
+
+  const inhalt = <RequireRole roles={item.roles}>{children}</RequireRole>;
+  return item.modul ? <RequireModul id={item.modul}>{inhalt}</RequireModul> : inhalt;
 }
