@@ -177,6 +177,10 @@ export default function ModulesView() {
       <ConfirmDialog
         open={!!frage}
         title={frage ? `${modul(frage.id)?.name} ausschalten?` : ''}
+        // Ohne diese Zeile stand auf dem Knopf die Vorgabe „Löschen" — in Rot,
+        // direkt unter dem Satz „Daten bleiben in beiden Fällen erhalten".
+        // Der Knopf widersprach damit dem Text über ihm.
+        confirmLabel="Ausschalten"
         message={
           frage
             ? `Damit geht auch ${frage.mit

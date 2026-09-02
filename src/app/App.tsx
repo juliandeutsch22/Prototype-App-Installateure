@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider, useAuth } from './AuthContext';
 import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
 import ErrorBoundary from './ErrorBoundary';
 import { nachladbar } from '@/lib/nachladen';
@@ -94,7 +94,13 @@ function vorladen() {
 }
 
 function Vorlader() {
+  const { user } = useAuth();
   useEffect(() => {
+    // ERST NACH DER ANMELDUNG. Auf der Anmeldeseite waere das Vorladen ein
+    // Wettbewerb um dieselbe schmale Leitung, die gerade den Anmeldevorgang
+    // braucht — und wer sich nicht anmeldet, braucht die Ansichten ohnehin
+    // nicht.
+    if (!user) return;
     const start = () => vorladen();
     const w = window as Window & {
       requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
@@ -107,7 +113,7 @@ function Vorlader() {
     // etwas später, wenn der Start durch ist.
     const uhr = setTimeout(start, 2500);
     return () => clearTimeout(uhr);
-  }, []);
+  }, [user]);
   return null;
 }
 
