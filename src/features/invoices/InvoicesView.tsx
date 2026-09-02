@@ -777,6 +777,15 @@ export default function InvoicesView() {
 
       <Card
         title={`Alle Rechnungen (${visible.length})`}
+        hint={
+          'Der Status „Überfällig“ wird beim Öffnen dieser Ansicht automatisch gesetzt, ' +
+          'sobald das Zahlungsziel überschritten ist — „Bezahlt“ trägt jemand von Hand ein. ' +
+          'STORNIEREN und LÖSCHEN sind zweierlei: ein Storno behält die Rechnungsnummer ' +
+          '(sie darf in der Reihe nicht fehlen) und gibt die verrechneten Stunden und ' +
+          'Materialien wieder frei, sodass sie auf eine neue Rechnung können; er lässt sich ' +
+          'auch wieder aufheben. Gelöscht werden kann nur eine bereits stornierte Rechnung — ' +
+          'alles andere bleibt in den Büchern.'
+        }
         action={
           <SelectField id="invfilter" label="" className="py-1 text-sm" value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
