@@ -130,7 +130,7 @@ npm run dev          # Vite
 
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint, --max-warnings 0
-npm test             # 565 Tests ohne Emulator
+npm test             # 572 Tests ohne Emulator
 
 # Die Emulator-Tests brauchen einen laufenden Firestore-Emulator:
 npx firebase emulators:start --project demo-test --only firestore
@@ -191,6 +191,10 @@ Diese Liste ist teuer bezahlt. Wer sie liest, spart sich die Wiederholung.
 | **„Erneut versuchen" kann einen Nachladefehler nicht heilen.** | React merkt sich das abgelehnte Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz zu fragen. Nur ein echtes Neuladen hilft — die Fehlergrenze tut das jetzt selbst. |
 | **`where('feld', '!=', wert)` überspringt Dokumente OHNE das Feld.** | Der nächtliche Bilanzlauf fragte `where('active', '!=', false)` und übersprang damit stillschweigend jeden übernommenen Altbestand ohne `active`. Überall sonst heißt „kein Feld" aktiv. Filtern gehört in diesem Fall in den Code, nicht in die Abfrage. |
 | **Ein Pfadfilter im Workflow ist eine Aussage über Abhängigkeiten.** | `deploy-functions.yml` hörte nur auf `functions/**`. `shared/` wird beim Bauen dorthin kopiert, liegt aber daneben — eine Änderung ging damit ins Hosting und nicht in die Functions. |
+| **Ein `pointercancel` beendet die Zeigerspur endgültig, die Berührungsspur läuft weiter.** | Beansprucht der Browser die Geste für sich, kommt kein `pointermove` mehr — die Unterschrift blieb ein Punkt. In derselben Geste kamen noch neun `touchmove` an. Wer mit dem Finger zeichnet, gehört deshalb an `touchstart`/`touchmove`, nicht an die Zeigerereignisse. Nachgemessen in einem echten Browser: 8285 gezeichnete Pixel ungestört, 36 nach dem Abbruch. |
+| **React meldet Berührungsereignisse an der Wurzel als PASSIV an.** | In einem passiven Listener ist `preventDefault()` wirkungslos, und ohne das scrollt die Seite unter dem Finger weg, statt dass er zeichnet. Wer eine Berührung abfangen muss, hängt den Listener nativ ans Element mit `{ passive: false }` — nicht über `onTouchStart`. |
+| **`setPointerCapture` ist auf WebKit keine Hilfe, sondern ein Verdächtiger.** | Es sollte den Strich über den Feldrand halten. Dieselbe Aufgabe erledigen Listener am FENSTER, solange ein Strich läuft — ohne die Nebenwirkung. |
+| **Ein Probestand ohne die echte CSS misst den eigenen Aufbau, nicht die App.** | Der erste Messlauf zeigte den Fehler sofort — aber nur, weil die Stylesheets 404 gaben und damit `touch-action: none` fehlte. Mit geladener CSS lief alles. Erst danach war die Messung etwas wert. Genauso: Vite liefert aus dem Zwischenspeicher, ein Wechsel der Fassung auf der Platte kommt ohne Neustart NICHT im Browser an — zwei Läufe lieferten deshalb identische Zahlen für zwei verschiedene Stände. |
 | **Eine Regel einzugrenzen heißt, jeden Schreibweg zu kennen — auch die unsichtbaren.** | Der Materialstamm wurde auf Verwaltung und Leitung eingegrenzt, mit der Begründung, gebucht werde ohnehin nur unter „Material → Lager". Falsch: der Monteur bewegt den Bestand beim Abholen und bei jeder Retoure, aus einer Transaktion heraus, die Anforderung UND Bestand zusammen schreibt. Der Bestandsteil scheiterte, also scheiterte alles — der Knopf tat nichts, ohne Meldung. Wo eine Rolle nur EIN Feld bewegen darf, ist `hasOnly(['feld'])` die Grenze, nicht die Rolle. |
 | **Ein grüner Regeltest kann den Irrtum mitschreiben, den er prüfen sollte.** | Zur Regel oben gehörte ein Test „der Monteur ändert den Bestand nicht". Er war grün und hat die falsche Annahme drei Wochen festgehalten. Ein Regeltest ist erst dann etwas wert, wenn die Annahme dahinter am ABLAUF geprüft wurde — nicht am Kommentar über der Regel. |
 | **Zwei Schreibvorgänge hintereinander sind kein Vorgang.** | Die Retoure schrieb erst den Beleg, dann die Gutschrift. Scheiterte die zweite, stand der Beleg da (mit `processed: true`) und der Bestand war nicht erhöht — die Meldung „konnte nicht erfasst werden" war eine Lüge, und der zweite Versuch legte einen zweiten Beleg an. Was zusammengehört, gehört in EINE Transaktion. |
@@ -286,11 +290,31 @@ keine Datenfehler. Jeder aus dem Betrieb gemeldete Fehler lag bisher in genau
 den Nähten, die sie per Konstruktion nicht sehen — dafür sind die
 Emulator-Tests da, und für den Rest fehlt weiterhin ein echter Browser.
 
-### Kein echter Browser
+### Kein echter Browser in der CI — und was das dreimal gekostet hat
 
-Kein Playwright, kein Ende-zu-Ende-Test. Zwei gemeldete Fehler wären damit
-gefunden worden und sind es nicht: die Unterschrift auf dem Telefon und das
-endlose Laden. Beide sind repariert, aber ungeschützt gegen Rückfall.
+Kein Playwright, kein Ende-zu-Ende-Test **im Testlauf**. Drei gemeldete Fehler
+wären damit gefunden worden und sind es nicht: die Unterschrift auf dem
+Telefon (dreimal gemeldet), das endlose Laden, der weiße Bildschirm nach einem
+Deploy. Alle repariert, alle ungeschützt gegen Rückfall.
+
+**Das Unterschriftsfeld ist der Beleg dafür, dass hier eine echte Lücke ist.**
+Es wurde zweimal „repariert" und war zweimal weiter kaputt, weil jeder
+Ansichtstest den Eingabeweg nur nachstellt: jsdom kennt kein `pointercancel`,
+das eine echte Geste abräumt, und `setPointerCapture` ist dort eine Attrappe,
+die nie etwas auslöst. Erst als die Komponente in einem echten Browser mit
+echter Fingereingabe lief, war die Ursache in zehn Minuten sichtbar.
+
+**Wie es gemessen wurde**, falls es jemand wiederholen muss: eine kleine
+Seite, die nur diese eine Komponente rendert, über den Vite-Dev-Server; dazu
+`playwright-core` gegen das vorhandene Chromium und `Input.dispatchTouchEvent`
+über das CDP für echte Berührungen. Das ist keine halbe Stunde Arbeit. **Zwei
+Fallstricke dabei**, beide selbst hineingetappt: ohne die echte CSS fehlt
+`touch-action: none` und man misst seinen eigenen Aufbau statt der App; und
+Vite liefert aus dem Zwischenspeicher — ohne Neustart zeigen zwei Läufe für
+zwei verschiedene Codestände dieselben Zahlen.
+
+*Bleibt trotzdem offen:* Chromium ist nicht Safari. Der Mechanismus ist
+nachgewiesen, die Bestätigung auf einem iPhone steht aus.
 
 ### Cloud Functions laufen ungetestet
 
