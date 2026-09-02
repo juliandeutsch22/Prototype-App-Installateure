@@ -49,10 +49,21 @@ export const NAV: NavItem[] = [
   // Unterschied, dass sie ohne hinterlegte Zugaenge gar nicht erst waehlbar
   // ist (siehe `verfuegbar` in lib/module.ts).
   { path: '/voice', label: 'KI-Erfassung', short: 'KI', icon: 'mic', roles: ALL, group: 'Außendienst', modul: 'ki' },
-  // Material: EIN Reiter für drei Blicke auf dasselbe — anfordern, eingehende
-  // Anforderungen bearbeiten, Bestand führen. Vorher waren das drei Reiter,
-  // obwohl es ein Thema ist. Wer nur anfordert, sieht auch nur das.
-  { path: '/material', label: 'Material', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'material' },
+  /*
+   * MATERIAL SIND DREI EIGENE BEREICHE, KEIN REITER MIT UNTERREITERN.
+   *
+   * Sie waren eine Zeit lang unter „Material" zusammengefasst, weil es
+   * thematisch eines ist. Aus dem Betrieb kam die klare Rückmeldung, dass das
+   * nicht stimmt: es sind drei verschiedene Tätigkeiten von drei
+   * verschiedenen Leuten. Der Monteur fordert an, die Verwaltung arbeitet
+   * Anforderungen ab, und Bestand führt, wer im Lager steht. Wer eines davon
+   * tut, sucht es dort, wo es hingehört — und nicht hinter einem Unterreiter
+   * in einem fremden Bereich.
+   *
+   * Deshalb auch verschiedene Gruppen: Anfordern ist Außendienst, das
+   * Abarbeiten und der Bestand sind Verwaltung.
+   */
+  { path: '/material', label: 'Material anfordern', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'material' },
   // Nur REINE Mitarbeiter — Admin/GF sehen alle Baustellen über die
   // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
   { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Außendienst', modul: 'einsatzplanung' },
@@ -70,6 +81,8 @@ export const NAV: NavItem[] = [
   // Angebot vor Baustelle: so laeuft der Auftrag auch in Wirklichkeit.
   { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Verwaltung', modul: 'angebote' },
   { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'users', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Verwaltung' },
+  { path: '/anforderungen', label: 'Anforderungen', short: 'Anford.', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
+  { path: '/lager', label: 'Lager', short: 'Lager', icon: 'package', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
   { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Verwaltung' },
   { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Verwaltung', modul: 'einsatzplanung' },
   // Wer angelegt wird und welche Rolle er bekommt, ist Eigentümersache und
@@ -117,12 +130,6 @@ export interface Unterseite {
 }
 
 export const UNTER: Record<string, Unterseite[]> = {
-  '/material': [
-    // Anfordern zuerst: das macht der Monteur, und er ist die größte Gruppe.
-    { pfad: 'anfordern', label: 'Anfordern' },
-    { pfad: 'anforderungen', label: 'Anforderungen', roles: ['Verwaltung', ...LEAD] },
-    { pfad: 'lager', label: 'Lager', roles: ['Verwaltung', ...LEAD] },
-  ],
   '/settings': [
     // Meldungen zuerst: das Einzige, was jede Rolle hier hat.
     { pfad: 'meldungen', label: 'Meldungen' },

@@ -135,6 +135,45 @@ describe('Material anfordern — der Warenkorb', () => {
     });
   });
 
+  it('nimmt eine frei eingetippte Menge', async () => {
+    /**
+     * AUS DEM BETRIEB GEWUENSCHT. Vorher gab es nur „noch eins": wer dreissig
+     * Meter Rohr braucht, haette dreissig Mal tippen muessen — mit Handschuhen,
+     * auf der Baustelle. Der Knopf bleibt fuer den Regelfall, das Feld ist der
+     * Ausweg fuer alles darueber.
+     */
+    zeige();
+    const menge = await screen.findByRole('spinbutton', { name: /Menge .* Kupferrohr 15mm/ });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '30');
+    await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm anfordern/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Bestellung aufgeben' }));
+
+    await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
+    expect(anlegen.mock.calls[0][1].quantity).toBe(30);
+  });
+
+  it('faellt nach dem Anfordern auf eins zurueck', async () => {
+    // Eine stehengebliebene 30 waere die teurere Ueberraschung: die naechste
+    // Position ist fast immer wieder eine.
+    zeige();
+    const menge = await screen.findByRole('spinbutton', { name: /Menge .* Kupferrohr 15mm/ });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '30');
+    await userEvent.click(screen.getByRole('button', { name: /Kupferrohr 15mm anfordern/ }));
+
+    await waitFor(() => expect(menge).toHaveValue(1));
+  });
+
+  it('fordert nichts an, solange die Menge unbrauchbar ist', async () => {
+    // Ein leeres oder krummes Feld darf nicht als 0 oder NaN durchgehen.
+    zeige();
+    const menge = await screen.findByRole('spinbutton', { name: /Menge .* Kupferrohr 15mm/ });
+    await userEvent.clear(menge);
+    expect(screen.getByRole('button', { name: /Kupferrohr 15mm anfordern/ })).toBeDisabled();
+    expect(anlegen).not.toHaveBeenCalled();
+  });
+
   it('zählt dasselbe Material auf derselben Baustelle zusammen', async () => {
     // Sonst stünden drei Zeilen „Kupferrohr ×1" in der Anforderung, und die
     // Projektleitung müsste sie im Kopf addieren.
@@ -300,7 +339,8 @@ describe('Material anfordern — Retoure', () => {
      */
     zeige();
     await userEvent.click(screen.getByRole('tab', { name: 'Retoure' }));
-    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /^Material/ }), 'm1');
+    await userEvent.type(await screen.findByRole('searchbox', { name: /^Material/ }), 'Kupfer');
+    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
     const menge = screen.getByRole('spinbutton', { name: /Menge/ });
     await userEvent.clear(menge);
     await userEvent.type(menge, '-3');
@@ -313,7 +353,8 @@ describe('Material anfordern — Retoure', () => {
   it('gibt Zustand und Menge weiter — nur „neu" wird gutgeschrieben', async () => {
     zeige();
     await userEvent.click(screen.getByRole('tab', { name: 'Retoure' }));
-    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /^Material/ }), 'm1');
+    await userEvent.type(await screen.findByRole('searchbox', { name: /^Material/ }), 'KR15');
+    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm zurückgeben/ }));
     await userEvent.selectOptions(screen.getByRole('combobox', { name: /Zustand/ }), 'defekt');
     const menge = screen.getByRole('spinbutton', { name: /Menge/ });
     await userEvent.clear(menge);
@@ -363,9 +404,15 @@ describe('Material anfordern — gescheiterte Ladevorgänge', () => {
 });
 
 describe('Material anfordern — die eigene Verfolgung', () => {
-  it('bietet „Abgeholt" nur bei abholbereitem Material an', async () => {
-    // Der Abschluss zieht vom Lager ab. Auf „Offen" angeboten, buchte er
-    // Material aus, das noch niemand kommissioniert hat.
+  it('bietet „Abgeholt" bei JEDER eigenen offenen Anforderung an', async () => {
+    /**
+     * AUS DEM BETRIEB GEWUENSCHT, und die Begruendung ueberzeugt: der Status
+     * ist eine Absichtserklaerung der Verwaltung, kein Tatsachenbericht. Wer
+     * sich das Material selbst aus dem Lager nimmt oder es beim Haendler
+     * mitnimmt, ist fertig — unabhaengig davon, ob im Buero jemand dazu
+     * gekommen ist, den Status weiterzuschalten. Vorher blieb so eine
+     * Anforderung ewig offen, und der Lagerabzug unterblieb.
+     */
     eigene = [
       { id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 2,
         status: 'Offen', transactionType: 'order', userId: 'u1' } as WithId<MaterialOrder>,
@@ -376,7 +423,7 @@ describe('Material anfordern — die eigene Verfolgung', () => {
     await userEvent.click(screen.getByRole('tab', { name: /Meine Bestellungen/ }));
 
     const knoepfe = await screen.findAllByRole('button', { name: 'Abgeholt' });
-    expect(knoepfe).toHaveLength(1);
+    expect(knoepfe).toHaveLength(2);
   });
 
   it('bucht die Abholung erst nach der Bestätigung', async () => {
