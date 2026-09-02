@@ -131,6 +131,11 @@ export const UNTER: Record<string, Unterseite[]> = {
     // bewusst KEIN Modul: wäre die Modulverwaltung selbst abschaltbar, könnte
     // man sich aussperren und nie wieder hineinkommen.
     { pfad: 'module', label: 'Module', roles: TOP },
+    // Die Sicherung gehoert hierher und nicht in eine eigene Ecke: sie ist
+    // etwas, das man einmal einrichtet, einmal prueft und danach selten
+    // anfasst — wie die Saetze und die Module. Ein eigener Reiter dafuer
+    // waere der Rueckfall in die 18 Reiter von frueher.
+    { pfad: 'sicherung', label: 'Datensicherung', roles: TOP },
   ],
 };
 

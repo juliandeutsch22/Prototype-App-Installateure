@@ -156,6 +156,12 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       'meldungen',
       'saetze',
       'module',
+      'sicherung',
+    ]);
+    // Auch die Projektleitung nicht: die Sicherung enthaelt Zeitkonten und
+    // Rechnungen, und beides geht sie nichts an.
+    expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual([
+      'meldungen',
     ]);
   });
 

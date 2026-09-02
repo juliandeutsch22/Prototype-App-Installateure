@@ -130,7 +130,7 @@ npm run dev          # Vite
 
 npm run typecheck    # tsc --noEmit
 npm run lint         # eslint, --max-warnings 0
-npm test             # 460 Tests ohne Emulator
+npm test             # 475 Tests ohne Emulator
 
 # Die Emulator-Tests brauchen einen laufenden Firestore-Emulator:
 npx firebase emulators:start --project demo-test --only firestore
@@ -216,7 +216,8 @@ sagten. **Nicht wieder auseinanderziehen.** Ein statischer Test wacht darüber.
 | `bilanzNachziehen` / `bilanzenNachtlauf` | Verdichtete Zeitkonten, damit der Saldo nicht die ganze Historie lädt. |
 | `notifyNewOrder` / `notifyOrderReady` | Push. |
 | `scheinPruefsumme` | Friert den unterschriebenen Schein ein. |
-| `exportCompanyData` | Datenausleitung — **wird von der App nirgends aufgerufen** (siehe §6). |
+| `exportCompanyData` | Auskunft nach Art. 15 DSGVO: der ganze Bestand als Datei. Liest den Mandanten seitenweise; die Antwort ist bei 10 MB gedeckelt, deshalb ist sie NICHT die Sicherung. |
+| `datenAusleitung` / `datenAusleitungJetzt` | Die Sicherung: schreibt jede Nacht um 02:30 den Bestand jedes Mandanten zeilenweise weg und räumt alte Stände auf. Von Hand anstoßbar, damit sich überhaupt prüfen lässt, ob sie läuft. |
 
 **Nur das Ist speichern, nie den Saldo.** Der Saldo hängt an Wochenstunden,
 Arbeitstagen, Eintrittsdatum und Feiertagen. Ändert die Geschäftsführung
@@ -288,7 +289,7 @@ Test sie je gestartet hat.
 |---|---|
 | **KI-Spracherfassung** (`/voice`, `voiceExtract`) | Vollständig gebaut, als Modul aus. Ohne Schlüssel führt sie nur in eine Fehlermeldung, und Sprachaufnahmen von Mitarbeitern gingen an US-Anbieter — das braucht vorher Auftragsverarbeitungsverträge. |
 | **Wiedervorlagen** (`followUps`) | Sammlung, Regeln und Abfragen existieren; geschrieben wird nur aus der KI-Erfassung. Also faktisch tot, solange die aus ist. |
-| **`exportCompanyData`** | Deployed und seit dem 02.09.2026 vollständig — vorher führte sie neun von sechzehn Sammlungen, ohne Kunden, Angebote, Scheine, Urlaube und Nummernkreise. Wird von der App weiterhin nirgends aufgerufen: eine Datenausleitung, die niemand auslösen kann. |
+| **`exportCompanyData`** | Nicht mehr tot: vollständig und unter Einstellungen → Datensicherung erreichbar. |
 
 ### Eine offene Produktfrage
 
@@ -306,12 +307,23 @@ laufende Baustelle weiterhin deren gesamte Stundenhistorie. Bei der Messung
 lagen alle 15.660 Einträge auf einer aktiven Baustelle — dort brachte die
 Begrenzung nichts. Unrealistisch, aber es zeigt, wo die Lösung endet.
 
-### Kein zweiter Datenstandort
+### Der zweite Datenstandort ist erst zur Hälfte gewonnen
 
-Alles liegt bei Google. Es gibt **keine** automatische Ausleitung an einen
-zweiten Ort. Fällt das Projekt aus oder wird der Zugang gesperrt, sind die
-Daten des Betriebs nicht greifbar. Das ist die einzige Lücke auf dieser Liste,
-die nicht nur die App betrifft, sondern den Betrieb.
+Seit dem 02.09.2026 schreibt `datenAusleitung` jede Nacht den kompletten
+Bestand jedes Mandanten weg — zeilenweise, mit Aufbewahrung, von Hand
+anstoßbar. Gegen einen Fehlgriff, eine kaputte Migration oder eine
+versehentlich geleerte Sammlung hilft das ab sofort.
+
+**Gegen den Fall, um den es eigentlich ging, noch nicht.** Ohne die
+Repository-Variable `AUSLEITUNG_BUCKET` landet der Stand im Standard-Bucket
+DESSELBEN Google-Projekts. Fällt das Projekt aus oder wird der Zugang
+gesperrt, ist die Sicherung genauso weg wie die Daten. Der Handgriff dagegen
+ist klein und steht in `DEPLOYMENT.md`; er braucht eine Entscheidung darüber,
+wohin — und ein Konto dort.
+
+Ungetestet ist der Lauf selbst: geprüft sind die Entscheidungen (welcher Pfad,
+was darf gelöscht werden, wie sieht eine Zeile aus), nicht das Lesen und
+Schreiben. Wie bei allen Cloud Functions.
 
 ---
 
@@ -321,12 +333,11 @@ In dieser Reihenfolge, mit Begründung.
 
 1. **Ansichtstests für die vier ungetesteten Kernansichten** — Zeiterfassung,
    Rechnungen, Einsatzplanung, Baustellen. Größte Lücke, klarster Nutzen.
-2. **Nächtliche Ausleitung aller Daten an einen zweiten Ort.** Technisch
-   klein (`exportCompanyData` liest seit dem 02.09.2026 wirklich alles und
-   braucht nur noch einen Aufrufer — sinnvollerweise ein `onSchedule`, das in
-   einen zweiten Speicherort schreibt, statt die Daten durch eine
-   Callable-Antwort zu zwängen),
-   in der Wirkung das Wichtigste auf dieser Liste. Steht seit Längerem an.
+2. **`AUSLEITUNG_BUCKET` auf einen Speicherort ausserhalb dieses Projekts
+   setzen.** Der nächtliche Lauf existiert seit dem 02.09.2026 und
+   funktioniert; er schreibt nur noch an die falsche Stelle, nämlich in
+   dasselbe Google-Projekt. Kein Programmieraufwand mehr, sondern eine
+   Entscheidung plus ein Konto. Siehe §6.
 3. **Ende-zu-Ende-Test mit echtem Browser** für die zwei Wege, die schon
    einmal am Telefon gebrochen sind: Schein unterschreiben, Zeit buchen.
 4. **Handwerksschein Stufen 2–4** — Fotos, Versand an den Kunden, Verbindung

@@ -165,13 +165,36 @@ Die App ist dann unter `https://<projektid>.web.app` erreichbar.
   bevorzugen.
 - ✅ Sprachdaten werden nach der Auswertung nicht dauerhaft gespeichert (im Code
   so umgesetzt), Verarbeitung im Aufnahme-Flow transparent gemacht.
-- ☐ **Datenexport pro Mandant**: die Cloud Function `exportCompanyData`
-  (nur GF/Admin) ist deployed und führt seit dem 02.09.2026 alle Sammlungen —
-  aber **die App ruft sie nirgends auf**. Ein Auskunftsersuchen nach Art. 15
-  DSGVO liesse sich damit heute nur von Hand bedienen. Der Haken gehört erst
-  gesetzt, wenn es einen Weg dorthin gibt; vorher wäre er eine Zusage, die
-  niemand einlösen kann. Vorher stand hier ✅ — bei einer Function, die neun
-  von sechzehn Sammlungen führte und die niemand aufrufen konnte.
+- ✅ **Datenexport pro Mandant**: Cloud Function `exportCompanyData` (nur
+  GF/Admin), erreichbar unter **Einstellungen → Datensicherung → Alle Daten
+  herunterladen**. Sie führt alle sechzehn Sammlungen. Der Haken stand hier
+  schon einmal — damals bei einer Function, die neun von sechzehn Sammlungen
+  führte und die die App nirgends aufrief. Jetzt trägt er.
+- ☐ **Zweiter Datenstandort**: `datenAusleitung` schreibt jede Nacht um 02:30
+  den kompletten Bestand jedes Mandanten weg. **Ohne die Repository-Variable
+  `AUSLEITUNG_BUCKET` landet er im Standard-Bucket DESSELBEN Projekts** — das
+  hilft gegen einen Fehlgriff oder eine geleerte Sammlung, nicht gegen einen
+  Ausfall des Projekts. Der Haken gehört gesetzt, wenn die Variable auf einen
+  Bucket ausserhalb zeigt, besser ausserhalb von Google.
+
+### Die nächtliche Datenausleitung einrichten
+
+1. **Firebase Storage im Projekt aktivieren** (Konsole → Storage → Loslegen).
+   Ohne Bucket scheitert der Lauf; der Functions-Deploy warnt vorab.
+2. Dem Dienstkonto aus `FIREBASE_SERVICE_ACCOUNT` die Rolle **Storage Object
+   Admin** auf dem Zielbucket geben.
+3. Optional, aber der eigentliche Punkt: unter *Settings → Secrets and
+   variables → Actions → Variables* die Variable **`AUSLEITUNG_BUCKET`** auf
+   einen Bucket ausserhalb dieses Projekts setzen. Mit **`AUSLEITUNG_TAGE`**
+   lässt sich die Aufbewahrung ändern (Vorgabe 30).
+4. Nach dem Deploy einmal **Einstellungen → Datensicherung → Sicherung jetzt
+   erstellen** drücken. Der Knopf sagt, wie viele Datensätze geschrieben
+   wurden und wohin. Eine Sicherung, die niemand je ausgelöst hat, ist keine.
+
+Der Stand liegt als `ausleitung/{companyId}/{JJJJ-MM-TT}.jsonl` — eine Zeile
+je Dokument mit ihrer Sammlung. Aufbewahrt werden die letzten dreissig Stände,
+**der jüngste immer**, auch wenn er älter ist: sonst stünde ein Betrieb, bei
+dem die Ausleitung wochenlang scheitert, am Ende ohne jeden Stand da.
 - ☐ Firmen-Stammdaten/Logo im `companies/{companyId}`-Dokument hinterlegen
   (Rechnungskopf): `addressLine`, `iban`, `bic`, `vatId` etc.
 

@@ -45,6 +45,7 @@ unterscheidet drei Stufen:
 | **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie) | Ansicht ungetestet |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8) | Ansicht ungetestet |
 | **Module** | Bereiche für den Betrieb ein- und ausschalten; zeigt vorher, was mit abgeschaltet wird | **nur GF/Admin** | `companies.modules` | Rechnung (14), Emulator (7) | Ansicht ungetestet |
+| **Datensicherung** | Nächtliche Ausleitung des ganzen Bestands an einen zweiten Ort; Sicherung von Hand anstoßen; Bestand herunterladen (DSGVO) | **nur GF/Admin** | alle Sammlungen | Rechnung (11 Aufräum- und Pfadregeln), Ansicht (4) | **Der Lauf selbst ist ungetestet** — geprüft ist, was gelöscht werden darf, nicht das Schreiben. Und ohne `AUSLEITUNG_BUCKET` liegt die Sicherung im selben Google-Projekt |
 
 ## Büro und Auswertung
 
@@ -75,20 +76,20 @@ unterscheidet drei Stufen:
 |---|---|
 | **KI-Spracherfassung** (`/voice`, `voiceExtract`) | Vollständig gebaut, **aus** — jetzt als Modul, das ohne `VITE_ENABLE_VOICE` gar nicht erst einschaltbar ist. Grund: ohne Schlüssel führt der Knopf nur in eine Fehlermeldung, und Sprachaufnahmen von Mitarbeitern gehen an US-Anbieter — das braucht vorher Auftragsverarbeitungsverträge. Ein Schalter, den man umlegen kann, ohne dass etwas passiert, wäre schlimmer als keiner: deshalb steht er im Modulpanel sichtbar, aber gesperrt, mit dem Grund daneben. |
 | **Wiedervorlagen** (`followUps`) | Sammlung, Regeln und Abfragen existieren, geschrieben wird nur aus der KI-Erfassung. Also faktisch **tot**, solange die aus ist. |
-| **`exportCompanyData`** | Cloud Function ist deployed und führt seit dem 02.09.2026 **alle** Sammlungen (vorher neun von sechzehn — es fehlten unter anderem Kunden, Scheine und die Nummernkreise). Sie wird von der App weiterhin **nirgends aufgerufen**: ohne Aufrufer bleibt sie ein Versprechen. Ein statischer Abgleich gegen `firestore.rules` meldet künftig jede vergessene Sammlung. |
+| **`exportCompanyData`** | Nicht mehr hier: die Function führt alle sechzehn Sammlungen (vorher neun) und ist unter **Einstellungen → Datensicherung** erreichbar. Ein statischer Abgleich gegen `firestore.rules` meldet jede vergessene Sammlung. |
 
 ---
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-591 automatische Tests klingen nach viel. Aufgeschlüsselt:
+606 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | Regeltests gegen den Emulator | 131 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **91** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
-| Reine Rechnung | 263 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 95 | Findet Bedienfehler, **keine** Datenfehler |
+| Reine Rechnung | 274 | Hoch für die Formeln, **null** für die App |
+| Ansichten, Datenbank ersetzt | 99 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **11** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
 Die 131 gegen den Emulator teilen sich in 92 Regeltests, 33 Abfragen je Rolle

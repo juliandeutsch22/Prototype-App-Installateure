@@ -41,6 +41,7 @@ const NachkalkulationView = lazy(() => import('@/features/costing/Nachkalkulatio
 const WorkSheetView = lazy(() => import('@/features/worksheets/WorkSheetView'));
 const VacationsView = lazy(() => import('@/features/vacations/VacationsView'));
 const ModulesView = lazy(() => import('@/features/modules/ModulesView'));
+const SicherungView = lazy(() => import('@/features/settings/SicherungView'));
 const WorkSheetsListView = lazy(() => import('@/features/worksheets/WorkSheetsListView'));
 const MyProjectsView = lazy(() => import('@/features/projects/MyProjectsView'));
 const AssignmentsView = lazy(() => import('@/features/assignments/AssignmentsView'));
@@ -211,6 +212,7 @@ function AppRoutes() {
                 meldungen: <NotificationSettings />,
                 saetze: <SettingsView />,
                 module: <ModulesView />,
+                sicherung: <SicherungView />,
               }}
             />
           </RequireNav>

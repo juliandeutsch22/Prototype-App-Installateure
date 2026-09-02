@@ -16,7 +16,7 @@ import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. */
 function fmtDay(iso: string): string {
@@ -45,6 +45,8 @@ export default function MyScheduleView() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Ein Nebenladevorgang ist ausgefallen — der Kalender steht trotzdem. */
+  const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [selected, setSelected] = useState(todayStr());
   // Lokaler Monat, NICHT über toISOString: das rechnet in UTC und liefert am
   // Monatsersten vor 02:00 Uhr (Sommerzeit) noch den Vormonat.
@@ -98,9 +100,11 @@ export default function MyScheduleView() {
    */
   useEffect(() => {
     if (!user) return;
+    // Ohne Hinweis stuende „keine kommenden Einsaetze" da, wo „nicht
+    // geladen" gemeint ist — und der Monteur faehrt morgen nirgendwohin.
     listUpcomingAssignments(user.companyId, user.uid, todayStr())
       .then(setNaechste)
-      .catch(() => undefined);
+      .catch(() => setNebenFehler('Die kommenden Einsätze'));
     listOwnVacations(user.companyId, user.uid)
       .then(setUrlaube)
       .catch(() => setUrlaube([]));
@@ -121,9 +125,11 @@ export default function MyScheduleView() {
   const nummernSchluessel = nummern.join('|');
   useEffect(() => {
     if (!user || nummern.length === 0) return;
+    // Fehlen die Stammdaten, bleiben Kundenname, Route und Anruf leer —
+    // stumm sieht das aus wie eine Baustelle ohne Kontakt.
     listProjectsByNumbers(user.companyId, nummern)
       .then(setProjects)
-      .catch(() => undefined);
+      .catch(() => setNebenFehler('Die Baustellendaten'));
     // Am Inhalt haengen, nicht an der Array-Identitaet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, nummernSchluessel]);
@@ -169,6 +175,8 @@ export default function MyScheduleView() {
   return (
     <div className="space-y-6">
       <PageHeader title="Mein Einsatzplan" subtitle="Deine geplanten Einsätze" />
+
+      {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       {loading ? (
         <LoadingState />
