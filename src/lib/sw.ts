@@ -63,13 +63,41 @@ export function serviceWorkerAnmelden(beiNeuerFassung: () => void): void {
   });
 }
 
+/** Wie lange auf die Bestätigung des Workers gewartet wird. */
+const UEBERNAHME_FRIST_MS = 2000;
+
 /**
  * Zur neuen Fassung wechseln.
  *
- * Ein einfaches Neuladen genügt: die neue `index.html` liegt bereits im
- * Speicher (der Worker hat sie beim Vergleich abgelegt), und die alten
- * Bausteine sind weg. Der Neustart holt also genau die neue Fassung.
+ * Die neue `index.html` liegt bereits im Speicher — der Worker hat sie beim
+ * Vergleich abgelegt. Vorher genügte deshalb ein Neuladen.
+ *
+ * WARUM JETZT NOCH EIN SCHRITT DAZWISCHEN. Der Worker wirft die alten
+ * Bausteine nicht mehr weg, sobald er einen Deploy bemerkt — das brach die
+ * gerade laufende Seite, die ihre alten Bausteine noch braucht (siehe
+ * `public/sw.js`). Aufgeräumt wird stattdessen hier, unmittelbar vor dem
+ * Neuladen, wenn niemand sie mehr anfordert.
+ *
+ * Die Frist ist wichtiger als die Bestätigung: Antwortet der Worker nicht —
+ * er kann zwischendurch beendet worden sein —, wird trotzdem neu geladen.
+ * Ein Benutzer, der auf „Jetzt laden" tippt und bei dem nichts passiert,
+ * wäre der schlechtere Ausgang als ein Speicher, der eine Fassung länger
+ * mitläuft.
  */
-export function neueFassungUebernehmen(): void {
+export async function neueFassungUebernehmen(): Promise<void> {
+  const worker = navigator.serviceWorker?.controller;
+  if (worker) {
+    await new Promise<void>((fertig) => {
+      const uhr = setTimeout(fertig, UEBERNAHME_FRIST_MS);
+      const hoerer = (e: MessageEvent) => {
+        if (e.data !== 'fassungUebernommen') return;
+        clearTimeout(uhr);
+        navigator.serviceWorker.removeEventListener('message', hoerer);
+        fertig();
+      };
+      navigator.serviceWorker.addEventListener('message', hoerer);
+      worker.postMessage('fassungUebernehmen');
+    });
+  }
   window.location.reload();
 }

@@ -42,7 +42,7 @@ export default function NeueFassung() {
         </span>
       </p>
       <div className="mt-3 flex gap-2">
-        <Button onClick={neueFassungUebernehmen}>Jetzt laden</Button>
+        <Button onClick={() => void neueFassungUebernehmen()}>Jetzt laden</Button>
         <Button variant="ghost" onClick={() => setBereit(false)}>
           Später
         </Button>
