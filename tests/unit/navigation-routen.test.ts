@@ -66,6 +66,11 @@ const OHNE_REITER: Record<string, string> = {
   '/worksheet': 'wird aus Liste und Einsatzplan heraus geöffnet',
 };
 
+/** Die Rollen, die einen Navigationseintrag sehen duerfen. */
+function rollen(pfad: string) {
+    return NAV.find((i) => i.path === pfad)!.roles;
+  }
+
 describe('Navigation und Routen sagen dasselbe', () => {
   it('liest ueberhaupt Routen aus der Datei', () => {
     // Schutz vor dem stillsten Fehler dieses Tests: eine Umformatierung von
@@ -117,9 +122,14 @@ describe('Navigation und Routen sagen dasselbe', () => {
      * hatte. Dasselbe gilt für Lesezeichen im Büro.
      */
     const ziel = (von: string) => UMLEITUNGEN.find((u) => u.von === von)?.nach;
-    expect(ziel('/order')).toBe('/material/anfordern');
-    expect(ziel('/admin-orders')).toBe('/material/anforderungen');
-    expect(ziel('/stock')).toBe('/material/lager');
+    expect(ziel('/order')).toBe('/material');
+    expect(ziel('/admin-orders')).toBe('/anforderungen');
+    expect(ziel('/stock')).toBe('/lager');
+    // Und die Unterreiter-Adressen aus der Zwischenzeit, in der Material,
+    // Anforderungen und Lager unter einem Eintrag lagen.
+    expect(ziel('/material/anfordern')).toBe('/material');
+    expect(ziel('/material/anforderungen')).toBe('/anforderungen');
+    expect(ziel('/material/lager')).toBe('/lager');
     expect(ziel('/notifications')).toBe('/settings/meldungen');
     expect(ziel('/modules')).toBe('/settings/module');
   });
@@ -132,7 +142,9 @@ describe('Navigation und Routen sagen dasselbe', () => {
       const basis = '/' + u.nach.split('/')[1];
       const stueck = u.nach.split('/')[2];
       expect(NAV.some((i) => i.path === basis)).toBe(true);
-      expect(UNTER[basis]?.some((s) => s.pfad === stueck)).toBe(true);
+      // Zeigt die Umleitung auf eine Unterseite, muss es die auch geben.
+      // Zeigt sie auf einen Eintrag ohne Unterseiten, genügt der Eintrag.
+      if (stueck) expect(UNTER[basis]?.some((s) => s.pfad === stueck)).toBe(true);
     }
   });
 });
@@ -172,12 +184,18 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
   });
 
   it('laesst den Monteur Material anfordern, aber kein Lager fuehren', () => {
-    expect(unterseitenFuer('/material', 'Mitarbeiter').map((s) => s.pfad)).toEqual(['anfordern']);
-    expect(unterseitenFuer('/material', 'Verwaltung').map((s) => s.pfad)).toEqual([
-      'anfordern',
-      'anforderungen',
-      'lager',
-    ]);
+    /**
+     * Seit Material, Anforderungen und Lager wieder DREI EIGENE Bereiche sind,
+     * steht diese Grenze in den Rollen der Eintraege selbst — nicht mehr in
+     * Unterseiten. Die Frage bleibt dieselbe.
+     */
+    expect(rollen('/material')).toContain('Mitarbeiter');
+    expect(rollen('/anforderungen')).not.toContain('Mitarbeiter');
+    expect(rollen('/lager')).not.toContain('Mitarbeiter');
+
+    for (const p of ['/material', '/anforderungen', '/lager']) {
+      expect(rollen(p)).toContain('Verwaltung');
+    }
   });
 
   it('gibt jeder Rolle mindestens eine Unterseite je Reiter, den sie sieht', () => {
@@ -204,9 +222,7 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
 });
 
 describe('Wer wohin darf — die Entscheidungen, die dahinterstehen', () => {
-  function rollen(pfad: string) {
-    return NAV.find((i) => i.path === pfad)!.roles;
-  }
+
 
   it('laesst die Projektleitung planen, verwalten und Material fuehren', () => {
     // Das ist ihre Arbeit. Die Firestore-Regeln erlauben es ihr längst
@@ -214,11 +230,9 @@ describe('Wer wohin darf — die Entscheidungen, die dahinterstehen', () => {
     for (const p of ['/admin-projects', '/assignments', '/material']) {
       expect(rollen(p)).toContain('Projektleiter');
     }
-    expect(unterseitenFuer('/material', 'Projektleiter').map((s) => s.pfad)).toEqual([
-      'anfordern',
-      'anforderungen',
-      'lager',
-    ]);
+    for (const p of ['/material', '/anforderungen', '/lager']) {
+      expect(rollen(p)).toContain('Projektleiter');
+    }
   });
 
   it('haelt die Projektleitung aus Geld und Rechtevergabe heraus', () => {

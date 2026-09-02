@@ -122,25 +122,24 @@ function AppRoutes() {
       */}
       <Route path="/voice" element={<RequireNav path="/voice"><VoiceView /></RequireNav>} />
       {/*
-        Material unter EINEM Reiter: anfordern, Anforderungen bearbeiten,
-        Bestand führen. Wer nur anfordert, sieht auch nur das — die
-        Unterseiten und ihre Rollen stehen in navigation.ts.
+        Drei eigene Bereiche statt eines Reiters mit Unterreitern — drei
+        Tätigkeiten von drei verschiedenen Leuten. Die Rollen stehen in
+        navigation.ts, `RequireNav` liest sie von dort.
       */}
+      <Route path="/material" element={<RequireNav path="/material"><OrderView /></RequireNav>} />
       <Route
-        path="/material/*"
-        element={
-          <RequireNav path="/material">
-            <Unterreiter
-              basis="/material"
-              elemente={{
-                anfordern: <OrderView />,
-                anforderungen: <AdminOrdersView />,
-                lager: <StockView />,
-              }}
-            />
-          </RequireNav>
-        }
+        path="/anforderungen"
+        element={<RequireNav path="/anforderungen"><AdminOrdersView /></RequireNav>}
       />
+      <Route path="/lager" element={<RequireNav path="/lager"><StockView /></RequireNav>} />
+      {/*
+        Die Unterreiter-Adressen bleiben als Weiterleitung bestehen: sie
+        stehen in Lesezeichen und in den Meldungen, die schon verschickt
+        wurden. Eine tote Adresse dort wäre ein Fehler ohne Not.
+      */}
+      <Route path="/material/anfordern" element={<Navigate to="/material" replace />} />
+      <Route path="/material/anforderungen" element={<Navigate to="/anforderungen" replace />} />
+      <Route path="/material/lager" element={<Navigate to="/lager" replace />} />
       {/* Strikt nur reine Mitarbeiter (Legacy:1980) — GF/Admin nutzen die
           Verwaltungssicht. */}
       <Route
@@ -234,9 +233,9 @@ function AppRoutes() {
         dann die Anforderung, die ihn eigentlich hergerufen hatte. Dasselbe
         gilt für Lesezeichen im Büro.
       */}
-      <Route path="/order" element={<Navigate to="/material/anfordern" replace />} />
-      <Route path="/admin-orders" element={<Navigate to="/material/anforderungen" replace />} />
-      <Route path="/stock" element={<Navigate to="/material/lager" replace />} />
+      <Route path="/order" element={<Navigate to="/material" replace />} />
+      <Route path="/admin-orders" element={<Navigate to="/anforderungen" replace />} />
+      <Route path="/stock" element={<Navigate to="/lager" replace />} />
       <Route path="/notifications" element={<Navigate to="/settings/meldungen" replace />} />
       <Route path="/modules" element={<Navigate to="/settings/module" replace />} />
 

@@ -156,10 +156,24 @@ festgehalten:
    unterschriebenen Schein selbst stornieren dürfe (darf er nicht — nur die
    Leitung), und dass eine Juniwoche fünf Arbeitstage habe (der 4. Juni 2026
    ist Fronleichnam).
-4. ~~Navigation verdichten~~ — **erledigt.** Von 18 Reitern auf 14 für die
-   Leitung: Material (anfordern, Anforderungen, Lager) und Einstellungen
-   (Meldungen, Sätze, Module) fassen je drei Ansichten unter einem Reiter.
-   Dabei kam der Reiter-ins-Leere-Fehler heraus, siehe oben.
+4. ~~Navigation verdichten~~ — **erledigt, aber zur Hälfte zurückgenommen.**
+   Von 18 Reitern auf 14: Material (anfordern, Anforderungen, Lager) und
+   Einstellungen (Meldungen, Sätze, Module) fassten je drei Ansichten unter
+   einem Reiter. Dabei kam der Reiter-ins-Leere-Fehler heraus, siehe oben.
+
+   > **Material ist seit 03.09.2026 wieder getrennt.** Aus dem Betrieb kam die
+   > klare Ansage, dass die Zusammenfassung dort nicht stimmt. Das Argument
+   > überzeugt: es sind zwar drei Blicke auf dasselbe THEMA, aber drei
+   > verschiedene TÄTIGKEITEN von drei verschiedenen Leuten — der Monteur
+   > fordert an, die Verwaltung arbeitet ab, das Lager führt Bestand. Wer eines
+   > davon tut, sucht es dort, wo es hingehört, und nicht hinter einem
+   > Unterreiter in einem fremden Bereich. Bei den Einstellungen bleibt es
+   > dagegen: Sätze, Module und Sicherung richtet man einmal ein und fasst sie
+   > danach selten an — das ist wirklich ein Bereich.
+   >
+   > Die Lehre daraus ist nicht „Verdichten war falsch", sondern: **die richtige
+   > Frage ist nicht, ob etwas thematisch zusammengehört, sondern ob es
+   > dieselbe Person in derselben Situation tut.**
 5. **Ansichtstests nachziehen** ← *als Nächstes*, in dieser Reihenfolge: Zeiterfassung
    (meistbenutzt), Rechnungen (Geld), Einsatzplanung (löscht Daten),
    Baustellen.

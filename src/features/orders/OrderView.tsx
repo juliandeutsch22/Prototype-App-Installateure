@@ -76,6 +76,8 @@ export default function OrderView() {
 
   // Retoure
   const [retMaterial, setRetMaterial] = useState('');
+  /** Suchtext für die Artikelauswahl der Retoure. */
+  const [retSuche, setRetSuche] = useState('');
   const [retQty, setRetQty] = useState('1');
   const [retCondition, setRetCondition] = useState<'neu' | 'gebraucht' | 'defekt'>('neu');
   const [retProject, setRetProject] = useState('');
@@ -156,6 +158,28 @@ export default function OrderView() {
     const p = projects.find((x) => x.projectNumber === projectNumber);
     return (p?.projectManagers ?? []).length > 0;
   }, [projects, projectNumber]);
+
+  /**
+   * DIE ARTIKELAUSWAHL DER RETOURE IST EINE SUCHE, KEIN AUSWAHLFELD.
+   *
+   * Ein Auswahlfeld ist bei zwanzig Artikeln bequem und bei zweihundert
+   * unbrauchbar: auf dem Telefon wird daraus eine Rolliste, durch die man
+   * blind scrollt, ohne tippen zu können. Gesucht wird über dieselben drei
+   * Felder wie im Katalog — Bezeichnung, Kategorie, Artikelnummer —, damit
+   * man nicht zwei verschiedene Suchen lernen muss.
+   */
+  const retTreffer = useMemo(() => {
+    const q = retSuche.trim().toLowerCase();
+    if (!q) return [];
+    return sortedMaterials
+      .filter((m) => [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)))
+      .slice(0, 8);
+  }, [sortedMaterials, retSuche]);
+
+  const retGewaehlt = useMemo(
+    () => materials.find((m) => m.id === retMaterial) ?? null,
+    [materials, retMaterial],
+  );
 
   const activeOrders = useMemo(
     () => myOrders.filter((o) => o.status !== 'Erledigt' && o.transactionType !== 'return'),
@@ -270,6 +294,7 @@ export default function OrderView() {
         userName: user.name,
       });
       setRetMaterial('');
+      setRetSuche('');
       setRetQty('1');
       setRetReason('');
       toast.success(
@@ -499,12 +524,22 @@ export default function OrderView() {
                   >
                     {o.isUrgent && <Badge tone="danger">Eil</Badge>}
                     <StatusBadge status={o.status} />
-                    {/* Der Abschluss zieht das Material vom Lager ab. */}
-                    {o.status === 'Abholbereit' && (
-                      <Button variant="accent" onClick={() => setToPickUp(o)}>
-                        Abgeholt
-                      </Button>
-                    )}
+                    {/*
+                      ABGEHOLT GEHT IMMER, nicht erst ab „Abholbereit".
+                      
+                      Der Status ist eine Absichtserklärung der Verwaltung, kein
+                      Tatsachenbericht. Wer sich das Material selbst aus dem
+                      Lager nimmt oder es beim Händler mitnimmt, ist fertig —
+                      unabhängig davon, ob jemand im Büro dazu gekommen ist,
+                      den Status weiterzuschalten. Vorher blieb so eine
+                      Anforderung ewig offen, und der Lagerabzug unterblieb.
+
+                      Der Abschluss zieht das Material vom Lager ab; deshalb
+                      geht er weiterhin durch die Rückfrage.
+                    */}
+                    <Button variant="accent" onClick={() => setToPickUp(o)}>
+                      Abgeholt
+                    </Button>
                   </ListRow>
                 ))}
               </List>
@@ -545,13 +580,66 @@ export default function OrderView() {
           hint="Nur unbenutztes Material in Originalverpackung wird dem Lagerbestand wieder gutgeschrieben. Gebrauchtes und defektes Material wird nur erfasst."
         >
           <div className="space-y-4">
-            <SelectField id="retmat" label="Material" value={retMaterial}
-              onChange={(e) => setRetMaterial(e.target.value)} required>
-              <option value="">— bitte wählen —</option>
-              {sortedMaterials.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </SelectField>
+            {retGewaehlt ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-line bg-surface-2 px-3 py-2">
+                <div>
+                  <span className="section-label block">Material</span>
+                  <span className="font-semibold text-ink">{retGewaehlt.name}</span>
+                  <span className="block text-sm text-ink-muted">
+                    {retGewaehlt.category || 'ohne Kategorie'}
+                    {retGewaehlt.articleNumber ? ` · ${retGewaehlt.articleNumber}` : ''}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setRetMaterial('');
+                    setRetSuche('');
+                  }}
+                >
+                  Ändern
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <InputField
+                  id="retmat"
+                  label="Material"
+                  type="search"
+                  placeholder="Bezeichnung, Kategorie oder Artikelnummer"
+                  value={retSuche}
+                  onChange={(e) => setRetSuche(e.target.value)}
+                />
+                {retSuche.trim() !== '' && (
+                  <div className="mt-2">
+                    {retTreffer.length === 0 ? (
+                      <p className="text-sm text-ink-muted">Kein Material passt zur Suche.</p>
+                    ) : (
+                      <List>
+                        {retTreffer.map((m) => (
+                          <ListRow
+                            key={m.id}
+                            title={m.name}
+                            subtitle={m.category || 'ohne Kategorie'}
+                          >
+                            <Button
+                              variant="secondary"
+                              aria-label={`${m.name} zurückgeben`}
+                              onClick={() => {
+                                setRetMaterial(m.id);
+                                setRetSuche('');
+                              }}
+                            >
+                              Wählen
+                            </Button>
+                          </ListRow>
+                        ))}
+                      </List>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InputField id="retqty" label="Menge" type="number" min="1" value={retQty}
                 onChange={(e) => setRetQty(e.target.value)} />
@@ -628,23 +716,68 @@ function QtyAdder({
   material: WithId<Material>;
   onAdd: (m: WithId<Material>, qty: number) => void;
 }) {
+  const [menge, setMenge] = useState('1');
   const [added, setAdded] = useState(0);
+
+  const zahl = Math.floor(Number(menge.replace(',', '.')));
+  const gueltig = Number.isFinite(zahl) && zahl >= 1;
+
+  function anfordern() {
+    if (!gueltig) return;
+    onAdd(material, zahl);
+    setAdded((n) => n + zahl);
+    // Nach dem Anfordern zurück auf eins: die nächste Position ist wieder
+    // eine, und eine stehengebliebene 40 wäre die teurere Überraschung.
+    setMenge('1');
+  }
+
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       {added > 0 && (
-        <span className="tnum text-sm font-bold text-brand" aria-live="polite">
+        <span className="tnum mr-1 text-sm font-bold text-brand" aria-live="polite">
           ×{added}
         </span>
       )}
+      {/*
+        MINUS UND PLUS SIND DIE HAUPTBEDIENUNG, das Feld dazwischen der
+        Ausweg für grosse Mengen. Auf der Baustelle wird mit Handschuhen
+        getippt: zwei grosse Ziele treffen sicherer als ein Zahlenfeld, und
+        wer dreissig Meter Rohr braucht, tippt die Zahl trotzdem direkt ein,
+        statt dreissig Mal zu drücken.
+      */}
+      <IconButton
+        label={`Menge für ${material.name} verringern`}
+        onClick={() => setMenge(String(Math.max(1, (gueltig ? zahl : 1) - 1)))}
+        disabled={gueltig && zahl <= 1}
+      >
+        −
+      </IconButton>
+      <input
+        type="number"
+        inputMode="numeric"
+        min="1"
+        step="1"
+        value={menge}
+        onChange={(e) => setMenge(e.target.value)}
+        onFocus={(e) => e.currentTarget.select()}
+        aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
+        className={`tnum h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
+          gueltig ? 'border-line text-ink' : 'border-danger text-danger'
+        }`}
+      />
+      <IconButton
+        label={`Menge für ${material.name} erhöhen`}
+        onClick={() => setMenge(String((gueltig ? zahl : 0) + 1))}
+      >
+        +
+      </IconButton>
       <Button
         variant={added > 0 ? 'primary' : 'secondary'}
         aria-label={`${material.name} anfordern`}
-        onClick={() => {
-          onAdd(material, 1);
-          setAdded((n) => n + 1);
-        }}
+        disabled={!gueltig}
+        onClick={anfordern}
       >
-        {added > 0 ? 'noch eins' : '+ Anfordern'}
+        Anfordern
       </Button>
     </div>
   );

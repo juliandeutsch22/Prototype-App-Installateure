@@ -47,6 +47,17 @@ export default function StockView() {
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  /**
+   * Welcher Artikel im Katalog geöffnet werden soll.
+   *
+   * AUS DEM BETRIEB: im Lager gab es nur den Wareneingang. Alles andere —
+   * eine falsche Bezeichnung, eine vertauschte Artikelnummer, ein Bestand,
+   * der nach der Inventur nicht stimmt — ging nur über den Katalogreiter, wo
+   * man den Artikel erneut suchen musste. Die Bearbeitung liegt weiterhin
+   * dort (sie ist dieselbe und soll es bleiben), aber der Weg dorthin führt
+   * jetzt direkt aus der Zeile.
+   */
+  const [zuBearbeiten, setZuBearbeiten] = useState<WithId<Material> | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -183,7 +194,10 @@ export default function StockView() {
       {error && <ErrorState message={error} />}
 
       {tab === 'katalog' ? (
-        <MaterialCatalog />
+        <MaterialCatalog
+          zuBearbeiten={zuBearbeiten}
+          onUebernommen={() => setZuBearbeiten(null)}
+        />
       ) : (
         <>
           <MetricRow>
@@ -249,6 +263,22 @@ export default function StockView() {
                           onClick={() => void book(m)}
                         >
                           Wareneingang
+                        </Button>
+                        {/*
+                          Bezeichnung, Kategorie, Artikelnummer, Einheit UND
+                          der Bestand selbst — alles im Katalogformular, das
+                          es laengst gibt. Ein zweites Formular hier waere
+                          eine zweite Stelle, an der dieselben Regeln
+                          auseinanderlaufen koennen.
+                        */}
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            setZuBearbeiten(m);
+                            setTab('katalog');
+                          }}
+                        >
+                          Bearbeiten
                         </Button>
                       </ListRow>
                     );

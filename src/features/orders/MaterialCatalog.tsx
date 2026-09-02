@@ -16,8 +16,18 @@ import IconButton from '@/components/IconButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, FormGrid } from '@/components/Field';
+import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+
+/**
+ * Die ueblichen Mengeneinheiten im Sanitaer- und Heizungsbau.
+ *
+ * Als Vorschlagsliste, nicht als Zwang: ein Betrieb fuehrt auch Sonderposten,
+ * und ein Auswahlfeld, das die passende Einheit nicht kennt, ist schlimmer
+ * als ein freies Feld.
+ */
+const EINHEITEN = ['Stk', 'm', 'lfm', 'm²', 'kg', 'l', 'Pkg', 'Rolle', 'Sack', 'Paar'];
 
 const empty = {
   name: '',
@@ -35,7 +45,18 @@ const empty = {
  * der Monteur sagt der Projektleitung, was er auf der Baustelle braucht.
  * Die Verrechnung von Material läuft außerhalb dieser App.
  */
-export default function MaterialCatalog() {
+/**
+ * @param zuBearbeiten Ein Artikel, der beim Öffnen sofort im Formular stehen
+ *   soll — so kommt man aus der Bestandsliste mit einem Griff hierher, statt
+ *   den Artikel im Katalog noch einmal suchen zu müssen.
+ */
+export default function MaterialCatalog({
+  zuBearbeiten,
+  onUebernommen,
+}: {
+  zuBearbeiten?: WithId<Material> | null;
+  onUebernommen?: () => void;
+} = {}) {
   const { user } = useAuth();
   const toast = useToast();
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
@@ -76,6 +97,20 @@ export default function MaterialCatalog() {
     () => materials.filter((m) => (m.stock ?? 0) <= LOW_STOCK_THRESHOLD).length,
     [materials],
   );
+
+  /**
+   * Von aussen zum Bearbeiten hereingereicht.
+   *
+   * `onUebernommen` meldet zurueck, dass es angekommen ist — sonst wuerde
+   * derselbe Artikel bei jedem Neuzeichnen erneut ins Formular gesetzt und
+   * eine begonnene Aenderung dabei verworfen.
+   */
+  useEffect(() => {
+    if (!zuBearbeiten) return;
+    startEdit(zuBearbeiten);
+    onUebernommen?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zuBearbeiten]);
 
   function startEdit(m: WithId<Material>) {
     setEditId(m.id);
@@ -129,8 +164,40 @@ export default function MaterialCatalog() {
               onChange={(e) => setForm({ ...form, category: e.target.value })} />
             <InputField id="mart" label="Artikelnummer" value={form.articleNumber}
               onChange={(e) => setForm({ ...form, articleNumber: e.target.value })} />
-            <InputField id="munit" label="Einheit" placeholder="Stk" value={form.unit}
-              onChange={(e) => setForm({ ...form, unit: e.target.value })} />
+            {/*
+              DIE EINHEIT IST DAS WORT HINTER DER ZAHL — mehr nicht.
+              
+              Aus dem Betrieb kam die Frage, wofür das Feld überhaupt da ist,
+              und im Bestand stand daraufhin „100 20cm frei". Das ist die
+              richtige Frage zur falschen Zeit gewesen: das Feld sagte nirgends,
+              was es will, und eine Abmessung ist dort das Naheliegendste.
+              Jetzt schlägt es die üblichen Einheiten vor und erklärt sich.
+            */}
+            <div>
+              <InputField
+                id="munit"
+                label="Einheit"
+                placeholder="Stk"
+                list="einheiten"
+                value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+              />
+              <datalist id="einheiten">
+                {EINHEITEN.map((e) => (
+                  <option key={e} value={e} />
+                ))}
+              </datalist>
+              <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
+                Das Wort hinter der Zahl — „100 Stk", „30 m".
+                <InfoHint about="die Einheit">
+                  Sie beschriftet nur die Menge: im Katalog, im Lager und beim Wareneingang.
+                  Auf Rechnungen und Angeboten wirkt sie nicht — dort trägt jede Position ihre
+                  eigene Einheit. <strong>Eine Abmessung gehört nicht hierher</strong>: aus „20cm"
+                  wird im Bestand „100 20cm frei". Die Größe gehört in die Bezeichnung
+                  („Kupferrohr 20 cm") oder in die Artikelnummer.
+                </InfoHint>
+              </p>
+            </div>
             <InputField id="mstock" label="Lagerbestand" type="number" min="0" value={form.stock}
               onChange={(e) => setForm({ ...form, stock: e.target.value })} required />
           </FormGrid>
