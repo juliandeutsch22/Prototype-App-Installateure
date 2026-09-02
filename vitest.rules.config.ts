@@ -9,6 +9,8 @@ import path from 'node:path';
  *  - `firestore.rules.test.ts` fragt: darf diese Rolle dieses DOKUMENT?
  *  - `abfragen.smoke.test.ts` fragt: läuft die ABFRAGE, die die App
  *    tatsächlich absetzt — mit ihren Filtern, Sortierungen und Grenzen?
+ *  - `durchstich.test.ts` fragt: hängt die KETTE zusammen — vom gebuchten Tag
+ *    bis zur Auswertung, vom Angebot bis zur Marge?
  *
  * Die zweite Frage beantwortet kein Komponententest, weil dort jeder
  * Datenbankzugriff ersetzt ist. Genau in dieser Lücke lagen die Fehler, die
@@ -25,7 +27,11 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['tests/firestore.rules.test.ts', 'tests/abfragen.smoke.test.ts'],
+    include: [
+      'tests/firestore.rules.test.ts',
+      'tests/abfragen.smoke.test.ts',
+      'tests/durchstich.test.ts',
+    ],
     environment: 'node',
     testTimeout: 20000,
     hookTimeout: 20000,

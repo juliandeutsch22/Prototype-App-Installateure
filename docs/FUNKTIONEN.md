@@ -84,7 +84,7 @@ unterscheidet drei Stufen:
 | **Index-Abgleich (statisch)** | **39** | **Hoch — fängt genau das, was der Emulator verschweigt** |
 | Reine Rechnung | 209 | Hoch für die Formeln, **null** für die App |
 | Ansichten, Datenbank ersetzt | 77 | Findet Bedienfehler, **keine** Datenfehler |
-| **Ende zu Ende** | **0** | — |
+| **Durchstich gegen den Emulator** | **6** | **Hoch — die Ketten ueber Ansichtsgrenzen hinweg** |
 
 **14 von 26 Ansichten haben keinen eigenen Test**, darunter Zeiterfassung,
 Rechnungen, Baustellen und Einsatzplanung.
@@ -115,10 +115,14 @@ festgehalten:
 
 1. ~~Abfrage-Smoketest~~ — **erledigt.** Läuft in CI mit den Regeltests.
 2. ~~Index-Abgleich~~ — **erledigt.** Rein statisch, ohne Emulator.
-3. **Vier Durchstich-Tests** für die Geldwege: Zeit → Auswertung, Urlaub →
-   Genehmigung → Zeitkonto, Angebot → Baustelle → Rechnung →
-   Nachkalkulation, Schein → einfrieren → Storno. ← *als Nächstes*
-4. **Ansichtstests nachziehen**, in dieser Reihenfolge: Zeiterfassung
+3. ~~Vier Durchstich-Tests für die Geldwege~~ — **erledigt.** Zeit →
+   Auswertung, Urlaub → Genehmigung → Zeitkonto, Angebot → Baustelle →
+   Rechnung → Nachkalkulation, Schein → einfrieren → Storno. Sie haben beim
+   Schreiben zwei eigene Fehlannahmen aufgedeckt: dass ein Monteur seinen
+   unterschriebenen Schein selbst stornieren dürfe (darf er nicht — nur die
+   Leitung), und dass eine Juniwoche fünf Arbeitstage habe (der 4. Juni 2026
+   ist Fronleichnam).
+4. **Ansichtstests nachziehen** ← *als Nächstes*, in dieser Reihenfolge: Zeiterfassung
    (meistbenutzt), Rechnungen (Geld), Einsatzplanung (löscht Daten),
    Baustellen.
 5. Erst danach Navigation und Oberfläche.
