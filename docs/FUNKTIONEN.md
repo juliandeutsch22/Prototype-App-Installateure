@@ -44,6 +44,7 @@ unterscheidet drei Stufen:
 | **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | — | **Ansicht ungetestet** — inklusive des Löschens vorhandener Einsätze |
 | **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie) | Ansicht ungetestet |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8) | Ansicht ungetestet |
+| **Module** | Bereiche für den Betrieb ein- und ausschalten; zeigt vorher, was mit abgeschaltet wird | **nur GF/Admin** | `companies.modules` | Rechnung (14), Emulator (7) | Ansicht ungetestet |
 
 ## Büro und Auswertung
 
@@ -59,6 +60,7 @@ unterscheidet drei Stufen:
 |---|---|---|---|
 | **Mandantentrennung** | Jede Abfrage auf `companyId`, serverseitig erzwungen | Emulator (59 Regeltests) | — |
 | **Wachstumsbremse** | Test verbietet jede Abfrage ohne Grenze in `lib/db` | Rechnung (40) | Prüft die Form der Abfrage, nicht ihre Laufzeit |
+| **Module** | Umfangsentscheidung des Betriebs: was ausgeschaltet ist, verschwindet aus Navigation, Startseite, Querverweisen **und** aus der Adresszeile | Rechnung (14), Emulator (7) | **Keine Sicherheitsgrenze.** Wer die Rolle hat, dürfte die Daten ohnehin — ein Modul nimmt nur den Weg weg, nicht das Recht. Die Regeln bleiben die einzige Grenze. |
 | **Monatsbilanzen** | Verdichtete Zeitkonten, Trigger + Nachtlauf + Neuaufbau | Rechnung (8) | Trigger und Nachtlauf laufen ungetestet in Produktion |
 | **Offline-Betrieb** | Lokaler Zwischenspeicher, Hinweis beim Speichern ohne Verbindung | Rechnung (7) | Kein Test mit tatsächlich unterbrochener Verbindung |
 | **Meldungen (Push)** | Wer wird wann benachrichtigt | Rechnung (25) | Zustellung selbst ungetestet |
@@ -67,7 +69,7 @@ unterscheidet drei Stufen:
 
 | Was | Zustand |
 |---|---|
-| **KI-Spracherfassung** (`/voice`, `voiceExtract`) | Vollständig gebaut, per `VITE_ENABLE_VOICE` **aus**. Grund: ohne Schlüssel führt der Knopf nur in eine Fehlermeldung, und Sprachaufnahmen von Mitarbeitern gehen an US-Anbieter — das braucht vorher Auftragsverarbeitungsverträge. |
+| **KI-Spracherfassung** (`/voice`, `voiceExtract`) | Vollständig gebaut, **aus** — jetzt als Modul, das ohne `VITE_ENABLE_VOICE` gar nicht erst einschaltbar ist. Grund: ohne Schlüssel führt der Knopf nur in eine Fehlermeldung, und Sprachaufnahmen von Mitarbeitern gehen an US-Anbieter — das braucht vorher Auftragsverarbeitungsverträge. Ein Schalter, den man umlegen kann, ohne dass etwas passiert, wäre schlimmer als keiner: deshalb steht er im Modulpanel sichtbar, aber gesperrt, mit dem Grund daneben. |
 | **Wiedervorlagen** (`followUps`) | Sammlung, Regeln und Abfragen existieren, geschrieben wird nur aus der KI-Erfassung. Also faktisch **tot**, solange die aus ist. |
 | **`exportCompanyData`** | Cloud Function ist deployed, wird von der App **nirgends aufgerufen**. Gedacht als Datenausleitung; ohne Aufrufer nur ein Versprechen. |
 
@@ -75,14 +77,14 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-319 automatische Tests klingen nach viel. Aufgeschlüsselt:
+477 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
-| Regeltests gegen den Emulator | 59 | Hoch — echtes Verhalten |
+| Regeltests gegen den Emulator | 66 | Hoch — echtes Verhalten |
 | **Abfrage-Smoketest gegen den Emulator** | **33** | **Hoch — die echten Abfragen, je Rolle** |
 | **Index-Abgleich (statisch)** | **39** | **Hoch — fängt genau das, was der Emulator verschweigt** |
-| Reine Rechnung | 209 | Hoch für die Formeln, **null** für die App |
+| Reine Rechnung | 256 | Hoch für die Formeln, **null** für die App |
 | Ansichten, Datenbank ersetzt | 77 | Findet Bedienfehler, **keine** Datenfehler |
 | **Durchstich gegen den Emulator** | **6** | **Hoch — die Ketten ueber Ansichtsgrenzen hinweg** |
 

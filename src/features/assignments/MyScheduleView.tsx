@@ -7,6 +7,7 @@ import {
 } from '@/lib/db/assignments';
 import { listProjectsByNumbers } from '@/lib/db/projects';
 import { listOwnVacations } from '@/lib/db/vacations';
+import { useModul } from '@/lib/useModule';
 import type { Assignment, Project, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { todayStr } from '@/lib/time';
@@ -36,6 +37,10 @@ function fmtDay(iso: string): string {
  */
 export default function MyScheduleView() {
   const { user } = useAuth();
+  // Querverweise nur zeigen, wenn ihr Ziel ueberhaupt existiert — ein Link in
+  // die Meldung „ist ausgeschaltet" ist eine Sackgasse.
+  const scheineAn = useModul('scheine');
+  const urlaubAn = useModul('urlaub');
   const [rows, setRows] = useState<Assignment[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -277,12 +282,14 @@ export default function MyScheduleView() {
                             eigenen Bereich, in dem man die Baustelle erneut
                             heraussuchen muss. Datum und Baustelle wandern mit.
                           */}
+                          {scheineAn && (
                           <Link
                             to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
                             className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-semibold text-ink"
                           >
                             Schein schreiben
                           </Link>
+                          )}
                           <AdresseLink adresse={proj?.address} variante="knopf" />
                           <TelefonLink
                             nummer={proj?.contactPhone}
@@ -340,6 +347,7 @@ export default function MyScheduleView() {
               Frage, mit der ein Monteur in diese Ansicht kommt. Sie hier zu
               beantworten spart den Anruf im Büro.
             */}
+            {urlaubAn && (
             <Card
               title="Mein Urlaub"
               action={
@@ -370,6 +378,7 @@ export default function MyScheduleView() {
                 </ul>
               )}
             </Card>
+            )}
           </div>
         </div>
       )}

@@ -6,6 +6,7 @@ import { listOwnEntriesSince, listEntriesInRange, listEntriesForProjects } from 
 import { listUpcomingAssignments, listAssignmentsForDate } from '@/lib/db/assignments';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
+import { useModul } from '@/lib/useModule';
 import { listUnpaidInvoices } from '@/lib/db/invoices';
 import {
   localDateStr,
@@ -32,7 +33,6 @@ import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
 import { LoadingState } from '@/components/States';
-import { VOICE_ENABLED } from '@/lib/features';
 import { byNewest } from '@/lib/timestamps';
 
 /**
@@ -130,6 +130,18 @@ const LUECKEN_TAGE = 35;
 /** Rollen-spezifisches Zuhause mit echten Kennzahlen. */
 export default function DashboardView() {
   const { user, company } = useAuth();
+  /**
+   * Karten und Verweise nur zeigen, wenn ihr Bereich eingeschaltet ist.
+   *
+   * Die Startseite ist die Stelle, an der ein abgeschaltetes Modul am
+   * ehesten durchschlaegt: sie zieht aus allen Bereichen zusammen. Bliebe die
+   * Karte „Material angefordert" stehen, waehrend der Bereich aus ist, fuehrte
+   * jeder Verweis darin in eine Sackgasse.
+   */
+  const scheineAn = useModul('scheine');
+  const materialAn = useModul('material');
+  const rechnungenAn = useModul('rechnungen');
+  const kiAn = useModul('ki');
   const [data, setData] = useState<DashData>({});
   const [laden, setLaden] = useState({ persoenlich: true, betrieblich: true, team: true });
   const fuehrtZeitkonto = user ? shouldShowOvertime(user.role) : false;
@@ -417,7 +429,7 @@ export default function DashboardView() {
         </div>
       )}
 
-      {VOICE_ENABLED && (
+      {kiAn && (
         <Link
           to="/voice"
           className="flex min-h-touch items-center gap-3 rounded-lg bg-brand px-4 py-3 text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.99] sm:gap-4"
@@ -479,12 +491,14 @@ export default function DashboardView() {
                   >
                     Zeit erfassen
                   </Link>
-                  <Link
-                    to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
-                    className="flex min-h-touch items-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink"
-                  >
-                    Schein schreiben
-                  </Link>
+                  {scheineAn && (
+                    <Link
+                      to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
+                      className="flex min-h-touch items-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink"
+                    >
+                      Schein schreiben
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}
@@ -533,7 +547,8 @@ export default function DashboardView() {
       )}
 
       {/* Kennzahlen: jede Kachel nur, wenn sie fuer diese Rolle etwas aussagt. */}
-      {(data.ownOpenOrders !== undefined || data.invoiceSums) &&
+      {(materialAn || rechnungenAn) &&
+        (data.ownOpenOrders !== undefined || data.invoiceSums) &&
         ((data.ownOpenOrders ?? 0) > 0 ||
           (data.invoiceSums?.open ?? 0) > 0 ||
           (data.invoiceSums?.overdue ?? 0) > 0) && (
@@ -628,7 +643,7 @@ export default function DashboardView() {
 
       {/* Offene Materialanforderungen — als Liste, weil eine Zahl nicht sagt,
           was der Monteur auf der Baustelle braucht. */}
-      {data.openOrders && data.openOrders.length > 0 && (
+      {materialAn && data.openOrders && data.openOrders.length > 0 && (
         <Card
           title={`Material angefordert (${data.openOrders.length})`}
           action={

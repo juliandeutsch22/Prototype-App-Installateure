@@ -4,6 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import { subscribeRecentProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
+import { useModul } from '@/lib/useModule';
 import type { WithId } from '@/lib/db/core';
 import { byNewest } from '@/lib/timestamps';
 import type { Project, AppUser, Customer } from '@/types';
@@ -86,6 +87,8 @@ export default function AdminProjectsView() {
    * die Art von Sackgasse, die wie ein Fehler aussieht.
    */
   const [suchparameter] = useSearchParams();
+  // Der Schein-Verweis verschwindet mit seinem Modul.
+  const scheineAn = useModul('scheine');
   const gesuchteBaustelle = suchparameter.get('baustelle') ?? '';
   const [filter, setFilter] = useState<'offen' | 'alle' | 'archiv'>(
     gesuchteBaustelle ? 'alle' : 'offen',
@@ -410,12 +413,14 @@ export default function AdminProjectsView() {
                   <StatusBadge status={p.status} />
                   {/* Nachtraeglich einen Schein schreiben — der Fall, in dem
                       der Monteur ihn vor Ort vergessen hat. */}
-                  <Link
-                    to={`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`}
-                    className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
-                  >
-                    Schein
-                  </Link>
+                  {scheineAn && (
+                    <Link
+                      to={`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`}
+                      className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                    >
+                      Schein
+                    </Link>
+                  )}
                   <Button variant="ghost" onClick={() => startEdit(p)}>Bearbeiten</Button>
                   <IconButton label="Baustelle löschen" tone="danger" onClick={() => setToDelete(p)}>
                     ✕

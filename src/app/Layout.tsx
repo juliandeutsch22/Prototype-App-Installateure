@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { navForRole, navGroupsForRole } from './navigation';
+import { navGroupsForRole, tabBarForRole } from './navigation';
 import Button from '@/components/Button';
 import Icon from '@/components/Icon';
 import Avatar from '@/components/Avatar';
@@ -24,16 +24,22 @@ const sideLink = ({ isActive }: { isActive: boolean }) =>
 
 /** App-Shell: Desktop-Sidebar; mobil Top-Bar + Icon-Tab-Bar (4 + „Mehr"-Drawer). */
 export default function Layout({ children }: { children: ReactNode }) {
-  const { user, signOut } = useAuth();
+  const { user, company, signOut } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const [profilOpen, setProfilOpen] = useState(false);
   if (!user) return <>{children}</>;
 
-  const items = navForRole(user.role);
-  const groups = navGroupsForRole(user.role);
-  const primary = items.slice(0, 4);
-  const hasMore = items.length > 4;
-  const moreActive = items.slice(4).some((i) => i.path === location.pathname);
+  /**
+   * Die untere Leiste ist je Rolle AUSGESUCHT, nicht abgeschnitten.
+   *
+   * Vorher standen dort die ersten vier Eintraege der Liste — ein Nebeneffekt
+   * der Reihenfolge, kein Entschluss. Bei der Buchhaltung lagen die
+   * Rechnungen deshalb unter „Mehr". Siehe `tabBarForRole`.
+   */
+  const groups = navGroupsForRole(user.role, company?.modules);
+  const { unten: primary, mehr } = tabBarForRole(user.role, company?.modules);
+  const hasMore = mehr.length > 0;
+  const moreActive = mehr.some((i) => i.path === location.pathname);
 
   // Das Logo trägt den Firmennamen bereits als Schriftzug — ihn daneben noch
   // einmal zu setzen wäre doppelt. Der Name bleibt als Alternativtext im Bild

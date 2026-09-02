@@ -40,6 +40,80 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: Module — der Betrieb entscheidet, was er benutzt
+
+**Der Anlass war Unübersichtlichkeit, nicht Sicherheit.** Die App war auf 26
+Ansichten gewachsen; die Geschäftsführung sah siebzehn Reiter, von denen sie
+mehrere nie anfasst. Der Wunsch war ein Panel, in dem sich einzelne Bereiche
+ein- und ausschalten lassen.
+
+### Was ein Modul ist — und was es ausdrücklich nicht ist
+
+Ein Modul ist eine **Umfangsentscheidung des Betriebs**, keine
+Rechteverwaltung. Wer die Rolle hat, dürfte die Daten ohnehin lesen; ein
+abgeschaltetes Modul nimmt nur den Weg dorthin weg. Das steht so im Code
+(`src/lib/module.ts`), im Panel selbst und in `docs/FUNKTIONEN.md`, weil die
+Verwechslung sonst zwangsläufig kommt: „Rechnungen sind aus, also sieht der
+Monteur sie nicht" ist **falsch begründet** — er sieht sie nicht, weil die
+Regeln es verbieten. Wäre das Modul die Grenze, würde ein Wiedereinschalten
+sie öffnen.
+
+Neun Module: Einsatzplanung, Material, Urlaub, Scheine, Angebote, Rechnungen,
+Nachkalkulation, Zeitkonten, KI-Erfassung.
+
+**Nicht dabei — und das ist die wichtigere Entscheidung:** Zeiterfassung,
+Kunden, Baustellen, Benutzerverwaltung und Einstellungen. Ein Schalter, mit
+dem man die Anlage unbenutzbar macht, ist kein Freiheitsgrad, sondern eine
+Falle — insbesondere der, mit dem man sich selbst aus den Einstellungen
+aussperrt und ihn deshalb nie wieder umlegen kann.
+
+### Drei Dinge, die man dabei falsch macht
+
+1. **Nur die Navigation filtern.** Den Reiter auszublenden nimmt den Weg weg,
+   nicht die Adresse: Lesezeichen, alte Links und der Zurück-Knopf führen
+   weiter hinein. Deshalb prüft `canAccess()` das Modul mit, und jede
+   Modulroute liegt hinter `RequireModul` — mit einer Seite, die erklärt,
+   dass die Daten erhalten bleiben und die Leitung den Bereich unter
+   *Module* wieder einschalten kann. Eine leere Seite oder ein Sprung auf die
+   Startseite sähe wie ein Fehler aus.
+2. **Abhängigkeiten übersehen.** Die Nachkalkulation braucht den Erlös, und
+   der kommt aus den Rechnungen. Ohne sie meldete sie für jede Baustelle
+   „keine Aussage" — eine Ansicht, die nur mitteilt, dass sie nichts
+   mitteilen kann. Sie geht deshalb mit aus, und das Panel sagt es **vorher**
+   (`zieheMit()`), nicht hinterher.
+3. **Schalter anbieten, die nichts bewirken.** Die KI-Erfassung braucht
+   hinterlegte Zugänge. Ohne sie steht sie im Panel sichtbar, aber gesperrt,
+   mit dem Grund daneben — statt sich einschalten zu lassen und dann in eine
+   Fehlermeldung zu führen.
+
+### Wo die Grenze doch eine ist
+
+Die **Liste** ist sehr wohl geschützt: `companies.modules` darf nur
+Geschäftsführung und Administrator ändern, durchgesetzt in `firestore.rules`
+(sieben Regeltests). Könnte die Projektleitung sie ändern, wäre die
+Entscheidung der Leitung eine Empfehlung. Dasselbe gilt seit dieser Änderung
+für `vacationApprovers`; beide Felder liegen jetzt hinter derselben Klausel,
+und ein Test hält fest, dass sie sich **gemeinsam in einem Zug** speichern
+lassen — sonst hinge das Speichern der Einstellungsseite an der Reihenfolge.
+
+### Nebenbei repariert: die Leiste am unteren Rand
+
+Sie nahm bisher die **ersten vier** Einträge der Rollenliste. Das war keine
+Entscheidung, sondern ein Nebeneffekt der Reihenfolge: die Buchhaltung hatte
+unten „Urlaub" stehen und die Rechnungen — worin sie den ganzen Tag arbeitet
+— unter „Mehr". Jetzt ist je Rolle festgelegt, was untenhin gehört; für den
+Monteur **Start, Zeit, Plan, Material**. Fällt ein Eintrag wegen eines
+abgeschalteten Moduls weg, rückt der nächste nach, damit keine Lücke
+entsteht.
+
+Ebenfalls weggefallen: der Sonderweg für `VITE_ENABLE_VOICE`, der den
+`/voice`-Eintrag per Sonderbehandlung in die Navigation schob. Er ist jetzt
+ein gewöhnlicher Eintrag mit `modul: 'ki'`.
+
+**Geprüft:** 14 Rechnungstests (Standardwerte, Abhängigkeitskaskade, kein
+Schalter für den Kern, Navigation, geschlossene Adresse, Leiste je Rolle) und
+7 Regeltests gegen den Emulator.
+
 ## Erledigt: Urlaub als Antrag mit Genehmigung
 
 Urlaub war ein **Tagesstatus** in der Zeiterfassung. Jeder konnte ihn sich

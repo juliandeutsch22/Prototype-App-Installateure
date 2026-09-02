@@ -80,14 +80,21 @@ service cloud.firestore {
     //     vorbehalten: ein Mandant darf sich nicht selbst entfernen. ---
     match /companies/{companyId} {
       allow read: if signedIn() && companyId == tokenCompany();
-      // Die Liste der Urlaubs-Genehmigenden ist der Geschaeftsfuehrung
-      // vorbehalten. Duerfte die Projektleitung sie aendern, koennte sie sich
-      // selbst eintragen — und damit ueber die Urlaube derer entscheiden, die
-      // sie einteilt.
+      // Zwei Felder sind der Geschaeftsfuehrung vorbehalten:
+      //
+      //   vacationApprovers — wer Urlaub genehmigt. Duerfte die
+      //     Projektleitung das aendern, koennte sie sich selbst eintragen und
+      //     ueber die Urlaube derer entscheiden, die sie einteilt.
+      //
+      //   modules — welche Bereiche der Betrieb benutzt. Ohne diese Grenze
+      //     schaltete sich jeder frei, was er will. Das Modul selbst ist
+      //     KEINE Sicherheitsgrenze (die Rolle darf ja ohnehin) — die Liste
+      //     dagegen schon, denn sie bestimmt, was der Betrieb ueberhaupt
+      //     benutzt.
       allow update: if isLeadership() && companyId == tokenCompany()
         && (isTopLevel()
             || !request.resource.data.diff(resource.data)
-                 .affectedKeys().hasAny(['vacationApprovers']));
+                 .affectedKeys().hasAny(['vacationApprovers', 'modules']));
     }
 
     /**
