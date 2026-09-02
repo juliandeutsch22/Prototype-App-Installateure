@@ -40,6 +40,56 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: die Benutzerverwaltung hat Tests — und zwei stille Fehler weniger
+
+Die Ansicht, an der hängt, wer im Betrieb was darf und wer überhaupt
+hereinkommt. Beides geht still schief: eine falsch vergebene Rolle merkt
+niemand, bis jemand etwas sieht, das er nicht sehen soll, und eine falsch
+gesetzte Zahl im Zeitkonto steht am Monatsende auf dem Lohnzettel.
+
+**DER TEUERSTE FUND: eine eingetragene NULL wurde zur Vorgabe.**
+
+```
+weeklyTargetHours: Number(form.weeklyTargetHours) || DEFAULT_WEEKLY_HOURS
+```
+
+In JavaScript ist die Null unwahr. Beide Felder erlauben ausdrücklich
+`min="0"` — wer null Wochenstunden einträgt (geringfügig Beschäftigte, ein
+ruhendes Dienstverhältnis, die Chefin selbst) bekam **vierzig**. Danach
+produziert jeder Monat rund 170 Minusstunden, ohne dass irgendwo eine Meldung
+erschienen wäre. Dasselbe bei null Urlaubstagen, aus denen fünfundzwanzig
+wurden. Der Rückfall bei einem LEER gelassenen Feld ist richtig und bleibt —
+leer heißt „nicht entschieden", und ein Zeitkonto ohne Sollstunden rechnet gar
+nicht. Nur die Null ist eine Entscheidung.
+
+**Der zweite: der Bestätigungsknopf beim Sperren hieß „Löschen".** In Rot,
+unter der Frage „Benutzer deaktivieren?" — in einer Ansicht, die per
+Entscheidung **nie** etwas löscht, weil sonst Zeiteinträge, Bestellungen und
+Einsätze verwaisen. Der Kommentar zwei Zeilen darüber sagt das ausdrücklich.
+Derselbe fehlende `confirmLabel` wie beim Materialabholen; das ist jetzt
+zweimal aufgetreten und steht deshalb als eigene Falle in der Übergabe.
+
+**Was die 18 Tests festhalten**, sind die Grenzen, die sonst nur im Kopf
+stehen: dass die Geschäftsführung die Rolle Administrator gar nicht erst
+angeboten bekommt (dieselbe Grenze wie in `firestore.rules` — eine Oberfläche,
+die etwas anbietet, das der Server ablehnt, ist ein Knopf, der nichts tut);
+dass sie einen Administrator nicht anfassen kann, weil sie sonst den letzten
+Superuser sperren könnte; dass das **eigene** Konto keine Deaktivierung
+angeboten bekommt; und dass das Formular beim Bearbeiten die bestehenden Werte
+übernimmt — startete es leer, überschriebe eine Namenskorrektur die
+Wochenstunden mit der Vorgabe.
+
+Dazu der Weg, der sonst niemandem auffällt: geht die Willkommens-Mail nicht
+raus, wird das Startpasswort einmalig angezeigt. Ohne ihn stünde das Konto in
+der Liste und der neue Mitarbeiter käme nie hinein.
+
+Geprüft: 590 ohne Emulator (18 neu), 148 dagegen. Acht Mutationen gegen den
+alten Stand gefahren, alle gefangen.
+
+Bleiben **6 von 27** Ansichten ohne eigenen Test.
+
+---
+
 ## Erledigt: das Verrechnet-Kennzeichen gehört der Buchhaltung, 02.09.2026
 
 Nachgang zum Materialstamm-Fund. Wenn eine Regel an einer Stelle zu eng war,

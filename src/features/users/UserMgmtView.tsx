@@ -33,6 +33,23 @@ const WEEKDAYS: { value: number; label: string }[] = [
   { value: 0, label: 'So' },
 ];
 
+/**
+ * Eine Zahl aus einem Formularfeld — mit Rueckfall NUR bei leerer oder
+ * unbrauchbarer Eingabe.
+ *
+ * `Number(x) || VORGABE` sieht harmlos aus und ist es nicht: eine
+ * eingegebene NULL ist in JavaScript unwahr und faellt damit auf die Vorgabe
+ * zurueck. Beide Felder erlauben ausdruecklich `min="0"` — wer null
+ * Wochenstunden eintraegt (geringfuegig, ruhendes Dienstverhaeltnis, die
+ * Chefin selbst), bekam stillschweigend vierzig. Jeder Monat produziert
+ * danach rund 170 Minusstunden, und die Zahl steht auf dem Lohnzettel.
+ * Dasselbe bei null Urlaubstagen, aus denen fuenfundzwanzig wurden.
+ */
+function zahlOderVorgabe(eingabe: string, vorgabe: number) {
+  const n = Number(eingabe);
+  return eingabe.trim() !== '' && Number.isFinite(n) ? n : vorgabe;
+}
+
 function emptyForm() {
   return {
     name: '',
@@ -169,10 +186,10 @@ export default function UserMgmtView() {
       email: form.email,
       role: form.role,
       active: form.active,
-      weeklyTargetHours: Number(form.weeklyTargetHours) || DEFAULT_WEEKLY_HOURS,
-      yearlyVacationDays: Number(form.yearlyVacationDays) || DEFAULT_VACATION_DAYS,
+      weeklyTargetHours: zahlOderVorgabe(form.weeklyTargetHours, DEFAULT_WEEKLY_HOURS),
+      yearlyVacationDays: zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS),
       appStartDate: form.appStartDate || null,
-      initialOvertime: Number(form.initialOvertime) || 0,
+      initialOvertime: zahlOderVorgabe(form.initialOvertime, 0),
       workDays: form.workDays.length ? form.workDays : DEFAULT_WORK_DAYS,
     };
     try {
@@ -431,6 +448,13 @@ export default function UserMgmtView() {
       <ConfirmDialog
         open={!!toToggle}
         title={toToggle?.active === false ? 'Benutzer aktivieren?' : 'Benutzer deaktivieren?'}
+        // Ohne diese beiden Zeilen stand auf dem Knopf die Vorgabe des
+        // Dialogs: „Löschen", in Rot — unter einer Frage, in der von Löschen
+        // keine Rede ist, und in einer Ansicht, die per Entscheidung NIE
+        // etwas löscht (die Zeiteinträge würden verwaisen). Wer das liest,
+        // bricht ab und meldet, ein Konto lasse sich nicht sperren.
+        confirmLabel={toToggle?.active === false ? 'Aktivieren' : 'Deaktivieren'}
+        confirmTone={toToggle?.active === false ? 'primary' : 'danger'}
         message={
           toToggle
             ? toToggle.active === false
