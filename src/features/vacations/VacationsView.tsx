@@ -12,6 +12,7 @@ import { darfUrlaubEntscheiden } from '@/lib/permissions';
 import { todayStr, urlaubsTage } from '@/lib/time';
 import type { AppUser, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
+import InfoHint from '@/components/InfoHint';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -330,20 +331,26 @@ export default function VacationsView() {
           />
 
           {/*
-            Die Zahl, um die es geht — und zwar in Arbeitstagen. Wochenende und
-            Feiertage zählen nicht; wer eine Woche mit Feiertag nimmt, verbraucht
-            vier Tage, nicht fünf.
+            Die ZAHL bleibt sichtbar — sie ändert sich mit jeder Eingabe und
+            ist der eigentliche Inhalt dieses Kastens. Warum sie so
+            zustandekommt, steht hinter dem „i": das ist einmal interessant
+            und danach nur noch lang.
           */}
-          <p className="rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
+          <div className="flex flex-wrap items-center rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
             <strong className="tnum">
               {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
-            </strong>{' '}
-            in diesem Zeitraum. Wochenenden und Feiertage sind nicht mitgezählt.
-            <span className="mt-1 block text-xs">
+            </strong>
+            <span className="ml-1">in diesem Zeitraum.</span>
+            <InfoHint about="Arbeitstage">
+              Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
+              Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
+              Wer eine Woche mit Feiertag nimmt, verbraucht vier Tage, nicht fünf.
+            </InfoHint>
+            <span className="mt-1 block basis-full text-xs">
               In diesem Jahr genehmigt: <span className="tnum">{genommen}</span> von{' '}
               <span className="tnum">{anspruch}</span> Tagen.
             </span>
-          </p>
+          </div>
 
           <Button type="submit" loading={sendet} disabled={tage.length === 0}>
             Antrag einreichen
@@ -354,7 +361,17 @@ export default function VacationsView() {
       {/* Die Arbeitsliste der Genehmigenden steht VOR der eigenen Historie:
           hier wartet jemand auf eine Antwort. */}
       {darfEntscheiden && (
-        <Card title={`Offene Anträge (${offene.length})`}>
+        <Card
+          title={`Offene Anträge (${offene.length})`}
+          hint={
+            <>
+              Eine Genehmigung trägt die Tage sofort ins Zeitkonto ein — als „Urlaub", mit vollem
+              Tagessoll. Deshalb erscheint der Urlaub weder als fehlende Zeit auf der Startseite
+              noch als Minus im Saldo. Tage, an denen bereits gebucht war, bleiben unangetastet,
+              und eine Rücknahme entfernt nur die Tage, die durch die Genehmigung entstanden sind.
+            </>
+          }
+        >
           {laden ? (
             <SkeletonList rows={2} />
           ) : offene.length === 0 ? (
@@ -467,13 +484,6 @@ export default function VacationsView() {
         )}
       </Card>
 
-      {darfEntscheiden && (
-        <p className="text-sm text-ink-muted">
-          Ein genehmigter Urlaub trägt die Tage automatisch ins Zeitkonto ein — als „Urlaub", mit
-          vollem Tagessoll. Deshalb taucht er weder als fehlende Zeit auf der Startseite noch als
-          Minus im Saldo auf. Tage, an denen schon gebucht war, bleiben unangetastet.
-        </p>
-      )}
     </div>
   );
 }

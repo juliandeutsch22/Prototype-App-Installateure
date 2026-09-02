@@ -40,6 +40,92 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: achtzehn Reiter für vierzehn Themen
+
+Die Geschäftsführung sah achtzehn Reiter. Nicht weil es achtzehn Themen gäbe,
+sondern weil jede neue Ansicht automatisch einen eigenen Reiter bekam — auch
+dann, wenn sie zu einem bereits vorhandenen Thema gehörte. „Anforderungen" und
+„Lager" sind kein eigenes Thema; sie sind zwei Blicke auf Material.
+
+### Zwei Reiter fassen jetzt sechs Ansichten
+
+| Reiter | darunter |
+|---|---|
+| **Material** | Anfordern · Anforderungen · Lager |
+| **Einstellungen** | Meldungen · Sätze und Zuschläge · Module |
+
+Vierzehn statt achtzehn für die Leitung, acht statt neun beim Monteur.
+
+Die Unterseiten sind **eigene Routen**, keine Reiter auf einer Riesenseite:
+sie laden erst beim Öffnen, sie sind verlinkbar, und der Zurück-Knopf tut das
+Erwartete. Wer nur anfordert, sieht auch nur das — und wo nur eine Unterseite
+übrigbleibt, fällt die Leiste weg. Ein Reiter mit genau einer Wahl ist keine
+Navigation, sondern Zierrat.
+
+Die Einstellungen stehen jetzt **jeder** Rolle offen, weil die
+Meldungseinstellungen jedem gehören; was enger ist, steht als Rollenliste an
+der Unterseite. Der Monteur hatte vorher „Benachrichtigungen" als einzigen
+einstellungsartigen Reiter — jetzt heißt der Reiter, wonach er aussieht.
+
+**Die alten Adressen leiten weiter.** Das ist nicht Kosmetik: in bereits
+zugestellten Push-Meldungen stehen `/admin-orders` und `/order`, und die
+liegen auf den Telefonen. Wer eine davon antippt, wäre sonst wortlos auf der
+Startseite gelandet und hätte dann die Anforderung gesucht, die ihn hergerufen
+hatte.
+
+### Was dabei herauskam: fünf Reiter, die „Kein Zugriff" sagten
+
+Beim Zusammenfassen fiel auf, dass **wer wohin darf, dreimal geschrieben
+stand**: als `roles` in `navigation.ts`, als `RequireRole` an der Route, und
+noch einmal als Knopf-Freigabe in `permissions.ts`. Drei Listen, die dasselbe
+behaupten, laufen auseinander — sie waren es an sieben Stellen.
+
+Für die Projektleitung hieß das: Baustellen, Einsatzplanung, Anforderungen,
+Benutzerverwaltung und Einstellungen standen in ihrer Seitenleiste, und jeder
+Klick endete in „Kein Zugriff". Sie hatte nichts falsch gemacht, sah aber
+danach aus.
+
+**Die Doppelung ist weg statt abgeglichen.** `RequireNav` liest Rolle und
+Modul aus demselben Eintrag, aus dem auch der Reiter gebaut wird; ein Reiter
+ins Leere müsste jetzt erst erfunden werden. Wo die Listen sich
+widersprachen, war eine Entscheidung fällig:
+
+- **Planen, Baustellen führen, Material** — darf die Projektleitung. Das ist
+  ihre Arbeit, und die Firestore-Regeln erlaubten es ihr längst; nur die Route
+  sperrte sie aus.
+- **Rechnungen, Benutzerverwaltung, Sätze** — darf sie nicht. Wer Rollen
+  vergibt, vergibt sie auch an sich: mit der Benutzerverwaltung hätte sie sich
+  zur Geschäftsführung machen können. Und im Firmendokument steht der
+  Stundensatz.
+
+Die zweite Grenze **fehlte serverseitig**. `users` und `companies` ließen
+`isLeadership()` zu, worin die Projektleitung steckt — beim Firmendokument mit
+einer Ausnahmeliste für zwei Felder. Genau die war der Beleg, dass die Grenze
+eine Stufe zu tief lag: sobald man einzelne Felder herausnehmen muss, gehört
+das ganze Dokument nicht in diese Hand. Beide stehen jetzt auf `isTopLevel()`.
+
+Ebenfalls aufgefallen: `canAccess()` war **tote Funktion**. Die Navigation
+benutzte sie nicht, und der Wächter hatte die Bedingung nachgebaut. Ein Test,
+der eine Funktion prüft, die niemand aufruft, prüft nichts — der Wächter ruft
+sie jetzt.
+
+### Stehender Text wieder hinter das „i"
+
+In den neueren Ansichten war der Beipacktext zurückgekehrt: Erklärungen, die
+beim ersten Mal helfen und ab dem zweiten Mal Platz kosten. Zurück hinter das
+„i" gewandert sind die Erklärung der Arbeitstage im Urlaubsantrag, die Folgen
+einer Genehmigung, die Herkunft des Stundenbudgets im Angebot, die Übernahme
+der Altbestände in der Kundenakte und die Auswahl in der Nachkalkulation.
+
+**Nicht** verschoben wurde, was im Moment der Entscheidung sichtbar sein muss:
+die Warnung vor doppelten Kundendatensätzen vor dem Schreiben, und der Hinweis
+beim Stornieren, dass der Schein erhalten bleibt. Eine Folge hinter einem
+Aufklapper ist keine Warnung.
+
+**Geprüft:** 34 statische Tests (Navigation ↔ Routen ↔ Freigaben, Umleitungen,
+Unterseiten je Rolle), 5 Ansichtstests für den Unterreiter, 6 neue Regeltests
+gegen den Emulator.
+
 ## Erledigt: Module — der Betrieb entscheidet, was er benutzt
 
 **Der Anlass war Unübersichtlichkeit, nicht Sicherheit.** Die App war auf 26

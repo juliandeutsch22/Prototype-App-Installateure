@@ -360,14 +360,19 @@ export default function CustomersView() {
 
       {/* Übernahme der Altbestände — nur solange es etwas zu übernehmen gibt. */}
       {darfAendern && (
-        <Card title="Bestehende Baustellen übernehmen">
+        <Card
+          title="Bestehende Baustellen übernehmen"
+          hint={
+            <>
+              Legt aus den Kundennamen bestehender Baustellen Kunden an und ordnet die Baustellen
+              zu. Vor dem Schreiben wird angezeigt, was entstehen würde — geschrieben wird erst
+              auf Bestätigung.
+            </>
+          }
+        >
           {uebernahme === null ? (
             <>
-              <p className="text-sm text-ink-muted">
-                Legt aus den Kundennamen bestehender Baustellen Kunden an und ordnet die
-                Baustellen zu. Vor dem Schreiben wird angezeigt, was entstehen würde.
-              </p>
-              <div className="mt-3">
+              <div className="mt-1">
                 <Button variant="secondary" loading={uebernahmeLaeuft} onClick={uebernahmeVorbereiten}>
                   Vorschau erstellen
                 </Button>

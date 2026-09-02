@@ -61,6 +61,7 @@ unterscheidet drei Stufen:
 | **Mandantentrennung** | Jede Abfrage auf `companyId`, serverseitig erzwungen | Emulator (59 Regeltests) | — |
 | **Wachstumsbremse** | Test verbietet jede Abfrage ohne Grenze in `lib/db` | Rechnung (40) | Prüft die Form der Abfrage, nicht ihre Laufzeit |
 | **Module** | Umfangsentscheidung des Betriebs: was ausgeschaltet ist, verschwindet aus Navigation, Startseite, Querverweisen **und** aus der Adresszeile | Rechnung (14), Emulator (7) | **Keine Sicherheitsgrenze.** Wer die Rolle hat, dürfte die Daten ohnehin — ein Modul nimmt nur den Weg weg, nicht das Recht. Die Regeln bleiben die einzige Grenze. |
+| **Navigation** | Wer wohin darf, steht **nur** in `navigation.ts`; `RequireNav` liest Rolle und Modul aus demselben Eintrag, aus dem der Reiter gebaut wird | Statisch (29), Ansicht (5) | — |
 | **Monatsbilanzen** | Verdichtete Zeitkonten, Trigger + Nachtlauf + Neuaufbau | Rechnung (8) | Trigger und Nachtlauf laufen ungetestet in Produktion |
 | **Offline-Betrieb** | Lokaler Zwischenspeicher, Hinweis beim Speichern ohne Verbindung | Rechnung (7) | Kein Test mit tatsächlich unterbrochener Verbindung |
 | **Meldungen (Push)** | Wer wird wann benachrichtigt | Rechnung (25) | Zustellung selbst ungetestet |
@@ -77,16 +78,17 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-477 automatische Tests klingen nach viel. Aufgeschlüsselt:
+520 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
-| Regeltests gegen den Emulator | 66 | Hoch — echtes Verhalten |
-| **Abfrage-Smoketest gegen den Emulator** | **33** | **Hoch — die echten Abfragen, je Rolle** |
-| **Index-Abgleich (statisch)** | **39** | **Hoch — fängt genau das, was der Emulator verschweigt** |
+| Regeltests gegen den Emulator | 111 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+| **Statischer Abgleich** (Indizes, Navigation ↔ Routen) | **71** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 256 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 77 | Findet Bedienfehler, **keine** Datenfehler |
-| **Durchstich gegen den Emulator** | **6** | **Hoch — die Ketten ueber Ansichtsgrenzen hinweg** |
+| Ansichten, Datenbank ersetzt | 82 | Findet Bedienfehler, **keine** Datenfehler |
+
+Die 111 gegen den Emulator teilen sich in 66 Regeltests, 33 Abfragen je Rolle
+und 6 Durchstiche über Ansichtsgrenzen hinweg.
 
 **14 von 26 Ansichten haben keinen eigenen Test**, darunter Zeiterfassung,
 Rechnungen, Baustellen und Einsatzplanung.
@@ -98,6 +100,7 @@ Konstruktion nicht sehen:
 | Gemeldet | Ursache | Wird jetzt abgefangen? |
 |---|---|---|
 | Kundenakte ohne Baustellen | fehlender Firestore-Index | **Ja** — Index-Abgleich. Er hat beim ersten Lauf gleich einen zweiten fehlenden gefunden (`followUps`). |
+| Projektleitung: fünf Reiter mit „Kein Zugriff" | drei Listen behaupteten dasselbe und waren auseinandergelaufen (`navigation.ts`, `RequireRole`, `permissions.ts`) | **Ja** — der Abgleich Navigation ↔ Routen. Und die Doppelung selbst ist weg: `RequireNav` liest aus derselben Liste. |
 | Leeres Auswahlfeld beim Schein | verschluckter Fehler | **Teilweise** — der Smoketest findet eine Abfrage, die an den Regeln scheitert; eine schlicht leere Menge findet er nicht. |
 | „Lädt ewig" | Cloud Function ohne Frist | Nein |
 | Unterschrift ohne Wirkung | `canvas.width` löscht die Fläche | Nein — dagegen hilft nur ein echter Browser |
@@ -124,7 +127,20 @@ festgehalten:
    unterschriebenen Schein selbst stornieren dürfe (darf er nicht — nur die
    Leitung), und dass eine Juniwoche fünf Arbeitstage habe (der 4. Juni 2026
    ist Fronleichnam).
-4. **Ansichtstests nachziehen** ← *als Nächstes*, in dieser Reihenfolge: Zeiterfassung
+4. ~~Navigation verdichten~~ — **erledigt.** Von 18 Reitern auf 14 für die
+   Leitung: Material (anfordern, Anforderungen, Lager) und Einstellungen
+   (Meldungen, Sätze, Module) fassen je drei Ansichten unter einem Reiter.
+   Dabei kam der Reiter-ins-Leere-Fehler heraus, siehe oben.
+5. **Ansichtstests nachziehen** ← *als Nächstes*, in dieser Reihenfolge: Zeiterfassung
    (meistbenutzt), Rechnungen (Geld), Einsatzplanung (löscht Daten),
    Baustellen.
-5. Erst danach Navigation und Oberfläche.
+
+## Eine Ungereimtheit, die noch offen ist
+
+Die **Nachkalkulation** ist bewusst Geschäftsführungssache, weil sie Margen
+zeigt. Die **Angebote** stehen dagegen auch der Projektleitung offen — und
+darin steht die Vorkalkulation mit den Kostensätzen, also die Marge des
+einzelnen Auftrags. Entweder ist die eine Grenze zu eng oder die andere zu
+weit; entschieden ist es nicht. Das ist eine Produktfrage, keine
+Programmierfrage: sie hängt daran, ob die Projektleitung im Betrieb
+mitkalkulieren soll.

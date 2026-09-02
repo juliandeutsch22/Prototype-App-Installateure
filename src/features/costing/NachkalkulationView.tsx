@@ -142,14 +142,31 @@ export default function NachkalkulationView() {
             von null — und das sähe aus wie ein Ergebnis.
           </p>
           <p className="mt-3">
-            <Link to="/settings" className="font-semibold text-brand underline">
+            <Link to="/settings/saetze" className="font-semibold text-brand underline">
               In den Einstellungen hinterlegen
             </Link>
           </p>
         </Card>
       ) : (
         <>
-          <Card>
+          {/*
+            Der Hinweis zur Auswahl stand hier dauerhaft unter dem Feld. Beim
+            ersten Mal erklärt er etwas, ab dem zweiten Mal steht er im Weg —
+            deshalb hinter dem „i". Was sich MIT der Auswahl ändert (laufend
+            oder abgeschlossen), bleibt sichtbar: das ist keine Erklärung,
+            sondern eine Aussage über das, was gerade auf dem Schirm steht.
+          */}
+          <Card
+            title="Auswahl"
+            hint={
+              <>
+                Ein <strong>laufender</strong> Stand ist ein Zwischenstand: es kommen noch
+                Stunden dazu, und die Marge kann sich noch drehen. Bei{' '}
+                <strong>abgeschlossenen</strong> Baustellen steht das Ergebnis fest. Gerechnet
+                werden jeweils die {BAUSTELLEN_JE_LAUF} jüngsten.
+              </>
+            }
+          >
             <SelectField
               id="nkstatus"
               label="Baustellen"
@@ -159,12 +176,9 @@ export default function NachkalkulationView() {
               <option value="Abgeschlossen">Abgeschlossen</option>
               <option value="Aktiv">Laufend</option>
             </SelectField>
-            <p className="mt-2 text-sm text-ink-muted">
-              {status === 'Aktiv'
-                ? 'Bei laufenden Baustellen ist das ein Zwischenstand: es kommen noch Stunden dazu.'
-                : 'Abgeschlossene Baustellen — hier steht das Ergebnis fest.'}{' '}
-              Gerechnet werden die {BAUSTELLEN_JE_LAUF} jüngsten.
-            </p>
+            {status === 'Aktiv' && (
+              <p className="mt-2 text-sm text-warning">Zwischenstand — es kommen noch Stunden dazu.</p>
+            )}
           </Card>
 
           {error && <ErrorState message={error} />}
