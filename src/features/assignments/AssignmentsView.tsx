@@ -18,7 +18,7 @@ import { InputField, CheckboxField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
-import { ErrorState, EmptyState } from '@/components/States';
+import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
 
 /** 'YYYY-MM-DD' -> 'Fr., 28.08.2026'. */
 function fmtDay(iso: string): string {
@@ -61,13 +61,25 @@ export default function AssignmentsView() {
   const [monthAssignments, setMonthAssignments] = useState<WithId<Assignment>[]>([]);
   const [urlaube, setUrlaube] = useState<WithId<Vacation>[]>([]);
   const [error, setError] = useState<string | null>(null);
+  /** Ein Nebenladevorgang ist ausgefallen — der Kalender steht trotzdem. */
+  const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Assignment> | null>(null);
 
+  /**
+   * Baustellen und Belegschaft — beides Auswahlfelder dieser Ansicht.
+   *
+   * Fielen sie stumm aus, stuende der Kalender da mit zwei leeren Listen: der
+   * Planer sieht „keine Baustellen" und „keine Mitarbeiter", wo „nicht
+   * geladen" gemeint ist. Beim Einteilen ist das der Unterschied zwischen
+   * einer leeren Woche und einem Netzproblem.
+   */
   useEffect(() => {
     if (!user) return;
-    listActiveProjects(user.companyId).then(setProjects).catch(() => undefined);
-    listUsers(user.companyId).then(setUsers).catch(() => undefined);
+    listActiveProjects(user.companyId)
+      .then(setProjects)
+      .catch(() => setNebenFehler('Die Baustellen'));
+    listUsers(user.companyId).then(setUsers).catch(() => setNebenFehler('Die Belegschaft'));
   }, [user]);
 
   /**
@@ -261,6 +273,8 @@ export default function AssignmentsView() {
   return (
     <div className="space-y-6">
       <PageHeader title="Einsatzplanung" subtitle="Mitarbeiter einem Tag und einer Baustelle zuteilen" />
+
+      {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Kalender links, Planung rechts — am Telefon untereinander. */}

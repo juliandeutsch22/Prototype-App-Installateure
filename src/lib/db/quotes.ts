@@ -1,16 +1,13 @@
-import {
-  where,
-  orderBy,
-  limit,
-  doc,
-  updateDoc,
-  deleteDoc,
-  runTransaction,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { where, orderBy, limit, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Quote } from '@/types';
-import { queryTenant, createInTenant, type WithId } from './core';
+import {
+  queryTenant,
+  createInTenant,
+  updateInTenant,
+  deleteInTenant,
+  type WithId,
+} from './core';
 
 /**
  * Angebote.
@@ -49,13 +46,22 @@ export function createQuote(companyId: string, q: NewQuote) {
   return createInTenant(COLLECTION, companyId, q);
 }
 
+/**
+ * Über die gemeinsamen Helfer, nicht an ihnen vorbei.
+ *
+ * Vorher ging das hier direkt auf `updateDoc`. Damit fehlten zwei Dinge, die
+ * `updateInTenant` mitbringt: das Entfernen von `undefined` — Firestore lehnt
+ * das hart ab, ein leer gelassenes Optionalfeld hätte das Speichern des
+ * ganzen Angebots scheitern lassen — und `updatedAt`. Die Angebote waren die
+ * einzige Sammlung, die aus der Reihe tanzte.
+ */
 export function updateQuote(id: string, data: Partial<NewQuote>) {
-  return updateDoc(doc(db, COLLECTION, id), { ...data });
+  return updateInTenant(COLLECTION, id, data);
 }
 
 /** Nur ein Entwurf lässt sich löschen — alles Versendete bleibt nachvollziehbar. */
 export function deleteQuote(id: string) {
-  return deleteDoc(doc(db, COLLECTION, id));
+  return deleteInTenant(COLLECTION, id);
 }
 
 /**

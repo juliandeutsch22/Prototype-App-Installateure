@@ -80,6 +80,35 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   );
 }
 
+/**
+ * Ein NEBENSCHAUPLATZ ist ausgefallen — die Ansicht selbst steht noch.
+ *
+ * WOFÜR DAS DA IST. Viele Ansichten laden neben ihrem Hauptinhalt noch eine
+ * kleine Liste: die Baustellen für ein Auswahlfeld, die Kunden, die
+ * Belegschaft. Schlägt so ein Nebenladevorgang fehl, war die bisherige
+ * Antwort `catch(() => undefined)` — das Auswahlfeld blieb dann einfach leer.
+ * „Es gibt keine Baustellen" und „die Baustellen konnten nicht geladen
+ * werden" sahen identisch aus, und genau dieser Unterschied hat schon einmal
+ * als Fehler aus dem Betrieb zurückgemeldet werden müssen („leeres
+ * Auswahlfeld beim Schein").
+ *
+ * WARUM NICHT `ErrorState`. Der ersetzt den ganzen Inhalt. Wenn die
+ * Kundenliste fehlt, ist die Rechnungsliste deswegen nicht weg — sie
+ * unsichtbar zu machen wäre eine größere Störung als die, die gemeldet wird.
+ */
+export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void }) {
+  return (
+    <p className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning" role="alert">
+      {was} konnte nicht geladen werden.{' '}
+      {onRetry && (
+        <button onClick={onRetry} className="min-h-touch font-semibold underline">
+          Erneut versuchen
+        </button>
+      )}
+    </p>
+  );
+}
+
 /** Leerzustand — eine Einladung zu handeln, keine leere weiße Fläche. */
 export function EmptyState({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
