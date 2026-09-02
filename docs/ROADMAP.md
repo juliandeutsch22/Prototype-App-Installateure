@@ -40,6 +40,125 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: „auf dem iPhone lädt es manchmal gar nicht"
+
+Am Schreibtisch lud die App normal, mit kurzer Verzögerung. Als
+Startbildschirm-App auf dem iPhone dauerte es teilweise sehr lange — oder sie
+lud überhaupt nicht. Drei Ursachen, die zusammenwirkten.
+
+### 1. Ein einziges Paket von 1,05 MB, und nichts hielt es vor
+
+Alle 26 Ansichten in einer Datei, **kein einziges `React.lazy`**. Der Monteur
+lud die Rechnungsansicht, die Nachkalkulation und die Benutzerverwaltung mit,
+bevor er seine Zeit buchen konnte.
+
+Am Schreibtisch fällt das nicht auf. Auf dem Telefon sind es zwei getrennte
+Kosten: die Übertragung über Mobilfunk **und** das Auswerten von einem
+Megabyte JavaScript, was auf einem älteren Gerät für sich genommen ein bis
+zwei Sekunden dauert.
+
+Und der Punkt, der die Startbildschirm-App vom Safari-Tab unterscheidet: **es
+gab keinen Service Worker, der die App-Hülle vorhielt.** Der einzige kümmerte
+sich um Push, hielt nichts vor und wurde überhaupt nur registriert, wenn
+jemand Meldungen eingeschaltet hatte. iOS gibt einer solchen App einen eigenen
+Speicherbereich und räumt den beherzt auf — also war praktisch jeder Start ein
+Kaltstart.
+
+Bitter dabei: der Firestore-Zwischenspeicher, der eigens für den Keller
+eingebaut wurde, hält **Daten** vor. Wenn die App selbst nicht lädt, ist das
+gleichgültig.
+
+**Jetzt:** jede Ansicht ein eigenes Paket, Fremdpakete getrennt, und ein
+Service Worker, der die Hülle vorhält.
+
+| | vorher | jetzt |
+|---|---|---|
+| Eigener Code beim Start | 1.052 kB (274 kB gepackt) | **40 kB (13 kB)** |
+| React | *darin enthalten* | 165 kB (54 kB), ändert sich nie |
+| Firebase-SDK | *darin enthalten* | 617 kB (141 kB), ändert sich nie |
+
+Der Erststart wird dadurch um rund ein Fünftel kleiner — die Firebase-SDK
+braucht man nun einmal beim Anmelden. Der eigentliche Gewinn liegt woanders:
+**nach einem Deploy lädt das Telefon 13 kB neu statt 274 kB**, weil die
+Dateinamen einen Fingerabdruck tragen und sich nur unser Teil ändert. Und ab
+dem zweiten Start lädt es überhaupt nichts mehr, sondern nimmt die Hülle aus
+dem Speicher.
+
+### 2. Der Start hing an zwei Abfragen nacheinander — ohne jede Frist
+
+```
+onAuthStateChanged → await getDoc(users/{uid}) → await getCompany(…) → erst jetzt rendert etwas
+```
+
+Zwei volle Netzrunden, bevor ein Pixel erschien. Und entscheidend:
+**Firestore-Abfragen haben keine Zeitgrenze.** Sie werfen keinen Fehler und
+brechen nicht ab — sie warten. Kam keine Antwort, stand die App unbegrenzt auf
+„Anmeldung wird geprüft …".
+
+Das ist dieselbe Bauweise, die beim Handwerksschein das „lädt ewig"
+verursacht hat. Dort steht seither eine Frist; hier stand keine, und zwar am
+Anfang **jeder** Sitzung.
+
+**Jetzt:** die Frist liegt in `lib/frist.ts`, damit sie nicht ein drittes Mal
+neu erfunden wird. Nach acht Sekunden gilt der Zwischenspeicher statt weiter
+zu warten. Beide Abfragen laufen außerdem gleichzeitig — die zuletzt bekannte
+Firma steht lokal, also muss nicht erst das Profil zurückkommen, um zu wissen,
+welches Firmendokument zu holen ist.
+
+*Der Preis, ehrlich:* die App kann mit einem veralteten Profil hochkommen. Ein
+abgeschaltetes Modul oder eine geänderte Rolle wirkt dann eine Sitzung später.
+Keine Sicherheitslücke — die Regeln entscheiden serverseitig, und ein
+deaktiviertes Konto kommt an keine Daten.
+
+### 3. Warum die Verbindung ausgerechnet dort tot war
+
+iOS friert eine Startbildschirm-App beim Wegschalten ein und behält die Seite
+im Speicher. Kommt der Benutzer zurück, ist der JavaScript-Zustand noch da —
+die Netzverbindungen sind es nicht. Firestore merkt das nicht sofort, und eine
+Abfrage, die in diesem Moment abgeht, sitzt auf einem toten Kanal (siehe
+Punkt 2). Ein Browser-Tab am Schreibtisch wird stattdessen neu geladen,
+deshalb sieht man es dort nie.
+
+**Jetzt:** nach mehr als 30 Sekunden im Hintergrund wird das Netz einmal aus-
+und wieder eingeschaltet. Damit wirft der Client den toten Kanal weg und baut
+sofort einen neuen auf, statt auf sein eigenes Zeitfenster zu warten.
+
+Dazu kam `persistentMultipleTabManager`. Er handelt über IndexedDB aus,
+welches Fenster den Zwischenspeicher führt, und der Führende hält dafür eine
+Reservierung. Wird ein Fenster ordentlich geschlossen, gibt es sie zurück —
+iOS beendet eine App im Hintergrund aber **ohne Aufräumen**. Beim nächsten
+Start lag die Reservierung des vorigen Laufs noch da. In einer
+Startbildschirm-App gibt es ohnehin nur ein Fenster, also läuft dort jetzt die
+Einfenster-Variante.
+
+### Was man sich mit dem Service Worker einkauft
+
+Ein Service Worker ist zäh: liefert er einmal eine alte Fassung aus, sähe der
+Benutzer sie auch nach einem Deploy weiter. Drei Vorkehrungen:
+
+1. **`index.html` wird bei jedem Aufruf zusätzlich im Hintergrund geholt und
+   mit dem gespeicherten Stand verglichen.** Sie ist die einzige Datei, deren
+   Name gleich bleibt; ändert sich ihr Inhalt, gab es einen Deploy. Dann
+   fliegen die alten Bausteine weg und die App bietet „Jetzt laden" an — sie
+   lädt **nicht** von selbst neu, weil der Monteur mitten in einem Formular
+   stehen kann.
+2. **Fremdes bleibt unangetastet.** Firestore, Auth und die Cloud Functions
+   gehen durch, ohne angefasst zu werden.
+3. **Der Worker wird geprüft, nicht gehofft.** `tests/unit/serviceWorker.test.ts`
+   lädt die echte `public/sw.js` in eine Sandbox und fährt sie durch: dass
+   Firestore in Ruhe gelassen wird, dass eine unvollständige Antwort nicht
+   vorgehalten wird, dass ein Deploy erkannt wird, und dass der Worker auch
+   dann läuft, wenn die Firebase-Bibliotheken nicht geladen werden konnten.
+
+**Ein Fehler im ersten Entwurf, festgehalten weil er naheliegt:** Die
+Fassungsnummer sollte in der Adresse des Workers stehen (`/sw.js?v=…`). Das
+funktioniert nicht — die Nummer käme aus dem gerade laufenden JavaScript, also
+aus der **alten** Fassung. Der Worker meldete sich unter seiner alten Adresse
+an und erneuerte sich nie. Ob es etwas Neues gibt, weiß nur der Server.
+
+**Geprüft:** 427 Rechnungstests, davon 17 neu — 7 für die Frist, 10 für den
+Service Worker gegen den echten Quelltext.
+
 ## Erledigt: achtzehn Reiter für vierzehn Themen
 
 Die Geschäftsführung sah achtzehn Reiter. Nicht weil es achtzehn Themen gäbe,
