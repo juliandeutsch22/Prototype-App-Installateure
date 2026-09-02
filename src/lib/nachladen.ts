@@ -79,3 +79,34 @@ export function nachladefehlerBeobachten(): void {
     if (darfNeuLaden()) window.location.reload();
   });
 }
+
+/**
+ * Eine nachzuladende Ansicht — mit Wiederholung statt sofortigem Aufgeben.
+ *
+ * WARUM. Jede der zwei Dutzend Ansichten wird erst beim Öffnen geholt. Ein
+ * einziger Netzhänger — die Sekunde beim Wechsel von WLAN auf Mobilfunk, der
+ * Moment im Aufzug — reichte bisher, damit die Ansicht scheitert, die
+ * Fehlergrenze anspringt und die App neu lädt. Aus Sicht des Monteurs:
+ * „schon wieder springt es".
+ *
+ * Ein zweiter Versuch nach einer halben Sekunde erledigt genau diesen Fall,
+ * ohne dass irgendjemand etwas merkt. Was danach immer noch scheitert, ist
+ * kein Hänger, sondern ein echter Grund — meist eine Fassung, die es nicht
+ * mehr gibt; dafür bleibt der Weg über die Fehlergrenze.
+ *
+ * DIE PAUSE STEIGT. Zwei Versuche im Abstand von 50 Millisekunden treffen
+ * dieselbe tote Sekunde wie der erste. Gewartet wird deshalb 400 und dann
+ * 1200 Millisekunden — lang genug, dass sich eine Verbindung fängt, kurz
+ * genug, dass niemand es als Warten empfindet.
+ */
+export function nachladbar<T>(laden: () => Promise<T>, versuche = 3): Promise<T> {
+  const pausen = [400, 1200];
+  const versuch = (n: number): Promise<T> =>
+    laden().catch((fehler: unknown) => {
+      if (n >= versuche - 1) throw fehler;
+      return new Promise<T>((weiter, ab) => {
+        setTimeout(() => versuch(n + 1).then(weiter, ab), pausen[n] ?? 1200);
+      });
+    });
+  return versuch(0);
+}

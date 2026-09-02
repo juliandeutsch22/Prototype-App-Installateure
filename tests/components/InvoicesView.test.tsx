@@ -117,7 +117,7 @@ function zeige() {
 /** Baustelle wählen und die Positionen zusammenstellen lassen. */
 async function bisZurVorschau() {
   zeige();
-  const auswahl = await screen.findByLabelText(/Baustelle/);
+  const auswahl = await screen.findByRole("combobox", { name: /Baustelle/ });
   await userEvent.selectOptions(auswahl, '2026-042');
   await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
   return screen.findByRole('button', { name: /Rechnung erstellen/ });
@@ -216,7 +216,7 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
   it('legt ohne verrechenbare Stunden gar nichts an', async () => {
     zeiten = [];
     zeige();
-    const auswahl = await screen.findByLabelText(/Baustelle/);
+    const auswahl = await screen.findByRole("combobox", { name: /Baustelle/ });
     await userEvent.selectOptions(auswahl, '2026-042');
     await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
 

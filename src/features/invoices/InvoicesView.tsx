@@ -426,7 +426,10 @@ export default function InvoicesView() {
         Zahlendreher, ausgerechnet bei den Zahlen fuer die
         Umsatzsteuervoranmeldung.
       */}
-      <Card title="Buchhaltungs-Export">
+      <Card
+        title="Buchhaltungs-Export"
+        hint="Ausgegeben wird jede Rechnung, deren RECHNUNGSDATUM im gewählten Zeitraum liegt — nicht das Zahldatum. Stornierte sind mit dabei und als solche gekennzeichnet; sie gehören ins Rechnungsausgangsbuch, sonst fehlt eine Nummer in der Reihe. Die UID kommt aus dem Kundenstamm: fehlt sie dort, bleibt die Spalte leer."
+      >
         <p className="text-sm text-ink-muted">
           Rechnungsausgangsbuch als CSV — mit Nummer, Datum, Kunde, UID, Netto, USt und Brutto.
           Importierbar in BMD, RZL und DATEV; die Zuordnung zu den Erlöskonten macht die Kanzlei
@@ -501,7 +504,10 @@ export default function InvoicesView() {
         <Metric label="Bezahlt" tone="success" value={fmtEUR(stats.bezahlt)} />
       </MetricRow>
 
-      <Card title="Neue Rechnung aus Baustelle">
+      <Card
+        title="Neue Rechnung aus Baustelle"
+        hint="Zusammengestellt wird, was auf dieser Baustelle als „Anwesend“ gebucht und noch NICHT verrechnet ist — dazu das ausgegebene Material. Eine Position kann deshalb nie zweimal auf eine Rechnung geraten. Gesperrt werden die Belege aber erst beim Anlegen, nicht schon beim Zusammenstellen: bis dahin lässt sich alles gefahrlos ansehen und wieder verwerfen."
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="sm:w-80">
             <BaustellenSelect
@@ -573,7 +579,10 @@ export default function InvoicesView() {
       {/* Vorschau vor dem Erzeugen: danach sind die Belege gesperrt und eine
           Korrektur ginge nur noch über Storno. */}
       {preview && (
-        <Card title="Vorschau">
+        <Card
+          title="Vorschau"
+          hint="Hier ist noch nichts geschrieben. Positionen lassen sich ändern, löschen und ergänzen — eine Rechnung ist selten genau das, was die Zeiterfassung hergibt. Verbindlich wird alles erst mit „Rechnung anlegen“: dann zieht sie ihre Nummer, die Belege werden gesperrt, und beides ist nur noch über einen Storno rückgängig zu machen."
+        >
           {/* Positionen sind bearbeitbar, nicht nur ansehbar.
               Eine Rechnung ist selten genau das, was die Zeiterfassung
               hergibt: eine Anfahrt kommt dazu, eine Stunde wird dem Kunden
@@ -699,6 +708,14 @@ export default function InvoicesView() {
           {/* Rabatt auf das Netto, nicht auf das Brutto: die Umsatzsteuer
               bemisst sich am tatsaechlich vereinbarten Entgelt. */}
           <div className="mt-4 rounded border border-line bg-surface-2 p-4">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <span className="section-label">Rabatt</span>
+              <InfoHint about="den Rabatt">
+                Der Rabatt geht auf das NETTO, nicht auf das Brutto — die Umsatzsteuer bemisst
+                sich am tatsächlich vereinbarten Entgelt. Die Bezeichnung steht auf der
+                Rechnung; bleibt sie leer, erscheint dort nur „Rabatt“.
+              </InfoHint>
+            </div>
             <FormGrid cols={3}>
               <InputField
                 id="disc-label"
