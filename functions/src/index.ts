@@ -4,6 +4,7 @@ initializeApp();
 
 export { syncUserClaims } from './claims.js';
 export { exportCompanyData } from './export.js';
+export { datenAusleitung, datenAusleitungJetzt } from './ausleitung.js';
 export { notifyNewOrder, notifyOrderReady } from './notify.js';
 export {
   bilanzNachziehen,

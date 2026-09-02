@@ -206,6 +206,62 @@ jobs:
             --force \
             --non-interactive
 
+      # Wohin die naechtliche Datenausleitung schreibt.
+      #
+      # Ohne Angabe: der Standard-Bucket DIESES Projekts. Das hilft gegen
+      # einen Fehlgriff oder eine geleerte Sammlung — nicht gegen „der Zugang
+      # zum Projekt ist weg". Dafuer muss die Repository-Variable
+      # AUSLEITUNG_BUCKET auf einen Bucket ausserhalb zeigen.
+      #
+      # Firebase liest Laufzeit-Variablen aus functions/.env. Die Datei ist
+      # nicht eingecheckt (Secrets), also entsteht sie hier.
+      - name: Ziel der Datenausleitung festlegen
+        env:
+          AUSLEITUNG_BUCKET: ${{ vars.AUSLEITUNG_BUCKET }}
+          AUSLEITUNG_TAGE: ${{ vars.AUSLEITUNG_TAGE }}
+        run: |
+          : > functions/.env
+          if [ -n "$AUSLEITUNG_BUCKET" ]; then
+            echo "AUSLEITUNG_BUCKET=$AUSLEITUNG_BUCKET" >> functions/.env
+            echo "Ausleitung schreibt nach: $AUSLEITUNG_BUCKET"
+          else
+            echo "::warning::AUSLEITUNG_BUCKET ist nicht gesetzt — die Sicherung landet im"
+            echo "::warning::Standard-Bucket DESSELBEN Projekts. Gegen einen Ausfall des"
+            echo "::warning::Projekts hilft das nicht. Siehe docs/DEPLOYMENT.md."
+          fi
+          if [ -n "$AUSLEITUNG_TAGE" ]; then
+            echo "AUSLEITUNG_TAGE=$AUSLEITUNG_TAGE" >> functions/.env
+          fi
+
+      # Den Speicherort VORAB pruefen, aus demselben Grund wie beim Scheduler:
+      # der Deploy liefe sonst durch, und der Fehlschlag kaeme erst um 02:30
+      # in einem Protokoll, das niemand liest. Eine Sicherung, von der man
+      # faelschlich annimmt, sie laufe, ist schlimmer als gar keine.
+      - name: Speicherort der Ausleitung erreichbar?
+        continue-on-error: true
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
+          PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          AUSLEITUNG_BUCKET: ${{ vars.AUSLEITUNG_BUCKET }}
+        run: |
+          zugriff="$(gcloud auth application-default print-access-token 2>/dev/null || true)"
+          if [ -z "$zugriff" ]; then
+            echo "Zustand liess sich nicht pruefen — der erste Lauf meldet es sonst selbst."
+            exit 0
+          fi
+          eimer="${AUSLEITUNG_BUCKET:-${PROJECT_ID}.firebasestorage.app}"
+          antwort="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $zugriff" \
+            "https://storage.googleapis.com/storage/v1/b/$eimer")"
+          case "$antwort" in
+            200) echo "Speicherort $eimer ist erreichbar." ;;
+            404) echo "::warning::Speicherort $eimer existiert nicht. Firebase Storage im"
+                 echo "::warning::Projekt einrichten oder AUSLEITUNG_BUCKET setzen — sonst"
+                 echo "::warning::scheitert die naechtliche Sicherung stumm." ;;
+            403) echo "::warning::Kein Zugriff auf $eimer. Dem Dienstkonto die Rolle"
+                 echo "::warning::'Storage Object Admin' auf diesem Bucket geben." ;;
+            *)   echo "Unerwartete Antwort ($antwort) — der erste Lauf meldet es sonst selbst." ;;
+          esac
+
       - name: Deploy
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
@@ -224,7 +280,8 @@ jobs:
           if [ "${{ inputs.ki_erfassung }}" = "true" ]; then
             echo "Mit KI-Spracherfassung (voiceExtract)."
           else
-            echo "Ohne KI-Spracherfassung. syncUserClaims, exportCompanyData"
+            echo "Ohne KI-Spracherfassung. syncUserClaims, exportCompanyData,"
+            echo "datenAusleitung (naechtlich, 02:30) samt datenAusleitungJetzt"
             echo "und die beiden Benachrichtigungs-Trigger sind live."
             echo "Zum Einschalten: diesen Workflow von Hand starten und"
             echo "'KI-Spracherfassung mitdeployen' ankreuzen."

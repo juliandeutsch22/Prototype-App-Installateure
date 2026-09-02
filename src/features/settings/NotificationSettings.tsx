@@ -9,7 +9,7 @@ import PageHeader from '@/components/PageHeader';
 import { CheckboxField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
-import { ErrorState } from '@/components/States';
+import { ErrorState, TeilFehler } from '@/components/States';
 
 /** Was der Zustand für den Nutzer bedeutet — in seinen Worten, nicht in Fehlercodes. */
 const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus' }> = {
@@ -55,6 +55,8 @@ export default function NotificationSettings() {
   const [push, setPush] = useState<PushState>('aus');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Ein Nebenladevorgang ist ausgefallen — die Seite steht trotzdem. */
+  const [nebenFehler, setNebenFehler] = useState<string | null>(null);
 
   // Wer Anforderungen bearbeitet, ist der Empfänger der Eingangsmeldung;
   // wer selbst anfordert, der der Abholmeldung. Beides zu zeigen, wenn nur
@@ -74,8 +76,11 @@ export default function NotificationSettings() {
         setOrderReady(p.notifyOrderReady ?? true);
         setUrgent(p.notifyUrgentDelivery ?? true);
       })
-      .catch(() => undefined);
-    getPushState().then(setPush).catch(() => undefined);
+      // Stumm gescheitert saehen die Schalter aus wie „steht auf Standard",
+      // und wer sie danach umlegt, ueberschreibt seine eigene Einstellung mit
+      // dem Standard.
+      .catch(() => setNebenFehler('Deine Einstellungen'));
+    getPushState().then(setPush).catch(() => setNebenFehler('Der Zustand der Meldungen'));
   }, [user]);
 
   async function speichern(next: {
@@ -133,6 +138,8 @@ export default function NotificationSettings() {
         title="Benachrichtigungen"
         subtitle="Was du bekommen möchtest — und auf welchem Gerät"
       />
+
+      {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       <Card
         title="Wovon möchtest du erfahren?"

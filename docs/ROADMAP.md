@@ -40,6 +40,57 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: die Daten liegen nachts nicht mehr nur an einer Stelle
+
+Der Punkt stand seit Längerem oben auf der Liste und war der einzige, der
+nicht nur die App betrifft, sondern den Betrieb: alles lag ausschliesslich in
+Firestore. Fällt das Projekt aus, wird der Zugang gesperrt oder löscht jemand
+versehentlich eine Sammlung, sind Rechnungen, Zeitkonten und Kundenstamm nicht
+greifbar.
+
+`datenAusleitung` schreibt jetzt jede Nacht um 02:30 den kompletten Bestand
+jedes Mandanten weg — vor dem Bilanzlauf um 03:15, damit sie den Stand des
+abgelaufenen Tages festhält und nicht einen, der gerade umgerechnet wird.
+
+**Zeilenweises JSON, kein grosses Objekt.** Ein Stand je Mandant und Tag,
+`ausleitung/{companyId}/{JJJJ-MM-TT}.jsonl`, eine Zeile je Dokument mit ihrer
+Sammlung. So lässt er sich schreiben und wieder einlesen, ohne ihn je
+vollständig im Speicher zu halten — bei 15.660 Zeiteinträgen der Unterschied
+zwischen „läuft" und „bricht ohne Meldung ab". Aus demselben Grund wartet der
+Schreibvorgang auf `drain`, statt blind weiterzuschreiben.
+
+**Ein Stand je Tag, nicht je Lauf.** Läuft die Ausleitung zweimal an einem
+Tag, überschreibt der zweite Lauf den ersten. Sonst wüchse der Speicher mit
+jedem Wiederholungsversuch, und beim Wiederanlauf müsste jemand raten, welche
+von zwei Dateien die vollständige ist.
+
+**Der jüngste Stand wird nie gelöscht.** Aufbewahrt werden dreissig Tage —
+aber wenn die Ausleitung wochenlang scheitert, wären irgendwann alle Stände
+älter als die Frist, und ein Aufräumen nach reinem Alter löschte den letzten
+vorhandenen. Ausgerechnet dann, wenn ohnehin niemand hinsieht. Ebenso wird
+nie etwas angefasst, das nicht wie ein Stand heisst.
+
+**Und ein Knopf dafür.** Unter Einstellungen → Datensicherung, nur für
+Geschäftsführung und Administration: derselbe Lauf sofort, mit der Angabe wie
+viele Datensätze geschrieben wurden und wohin. Eine Sicherung, die niemand je
+ausgelöst hat, ist keine — und ob die Berechtigungen stimmen, sagt einem sonst
+erst das Protokoll um halb drei nachts. Daneben steht der Download des
+Bestands für eine Auskunft nach Art. 15 DSGVO; die Function dafür gab es
+schon, aufgerufen hat sie nur nie jemand.
+
+**Wie ehrlich das ist.** Ohne die Repository-Variable `AUSLEITUNG_BUCKET`
+landet der Stand im Standard-Bucket DESSELBEN Google-Projekts. Gegen einen
+Fehlgriff hilft das sofort; gegen „der Zugang zum Projekt ist weg" nicht.
+Diese eine Zeile Konfiguration ist der Rest des Weges, und sie braucht eine
+Entscheidung darüber, wohin. Der Functions-Deploy warnt, solange sie fehlt,
+und prüft vorab, ob der Speicherort überhaupt erreichbar ist — nach demselben
+Muster wie beim Cloud Scheduler, und aus demselben Grund: ein Fehlschlag, der
+nur im Protokoll steht, ist keiner, den jemand bemerkt.
+
+*Geprüft:* elf Tests auf die Entscheidungen (Pfade, Aufbewahrung, Zeilenform)
+und vier auf die Ansicht. Der Lauf selbst ist es nicht — Cloud Functions
+laufen hier weiterhin ungetestet, das bleibt die offene Stelle.
+
 ## Erledigt: sechs Stellen, an denen die Regel weiter offen stand als die Absicht
 
 Ausgangspunkt war keine Fehlermeldung aus dem Betrieb, sondern ein Durchgang

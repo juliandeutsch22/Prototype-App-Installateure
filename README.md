@@ -143,7 +143,9 @@ Acht Functions, alle in `europe-west3`:
 | `syncUserClaims` | setzt `companyId` + Rolle als Auth-Claims | nein |
 | `notifyNewOrder` | Push an Verwaltung/Leitung bei neuer Anforderung | nein |
 | `notifyOrderReady` | Push an den Monteur, wenn Material bereitliegt | nein |
-| `exportCompanyData` | DSGVO-Export je Mandant | nein |
+| `exportCompanyData` | DSGVO-Export je Mandant (Einstellungen → Datensicherung) | nein |
+| `datenAusleitung` | nächtliche Sicherung des ganzen Bestands an einen zweiten Ort | nein — **braucht Cloud Scheduler und einen Storage-Bucket** |
+| `datenAusleitungJetzt` | dieselbe Sicherung von Hand, zum Prüfen | nein |
 | `voiceExtract` | Sprache → strukturierte Einträge | **ja** — wird nur mit `ENABLE_VOICE=true` deployt |
 | `bilanzNachziehen` | schreibt die Monatsbilanz eines Mitarbeiters neu, sobald sich eine Buchung ändert | nein |
 | `bilanzenNachtlauf` | rechnet nachts den laufenden und den Vormonat neu (Selbstheilung) | nein — **braucht Cloud Scheduler** |
@@ -317,7 +319,7 @@ dagegen echt geheim** und gehört niemals in einen Commit.
 
 ### Ablauf
 
-- **Pull Request:** Typprüfung, Lint, 460 Unit-Tests, 131 Rules-Tests. Kein Deploy.
+- **Pull Request:** Typprüfung, Lint, 475 Unit-Tests, 131 Rules-Tests. Kein Deploy.
 - **Push auf `main`:** dieselben Prüfungen, danach Build und Deploy.
 - **Von Hand:** *Actions → „Test und Deploy" → Run workflow*.
 
@@ -358,7 +360,8 @@ npm run rules:test      # in einem zweiten Terminal
 - Datenregion EU (`europe-west3`) für Firestore-Zugriffe und Functions.
 - Sprachdaten werden serverseitig verarbeitet und **nicht** dauerhaft gespeichert;
   im Aufnahme-Flow transparent gemacht.
-- Datenexport pro Mandant via Cloud Function `exportCompanyData` (nur GF/Admin).
-  Sie führt alle Sammlungen des Mandanten — **aber die App ruft sie nirgends
-  auf.** Ein Auskunftsersuchen liesse sich damit heute nur von Hand bedienen;
-  siehe `docs/UEBERGABE.md` §6.
+- Datenexport pro Mandant via Cloud Function `exportCompanyData` (nur GF/Admin),
+  erreichbar unter Einstellungen → Datensicherung.
+- Nächtliche Ausleitung des kompletten Bestands (`datenAusleitung`, 02:30).
+  **Ohne die Variable `AUSLEITUNG_BUCKET` liegt sie im selben Google-Projekt**
+  und hilft damit nicht gegen dessen Ausfall — siehe `docs/DEPLOYMENT.md`.

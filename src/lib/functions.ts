@@ -68,3 +68,34 @@ export const callScheinVorbereiten = httpsCallable<
     material: Array<{ name: string; menge: number }>;
   }
 >(functions, 'scheinVorbereiten');
+
+/**
+ * Sichert den eigenen Mandanten sofort an den zweiten Ort.
+ *
+ * Denselben Lauf macht `datenAusleitung` jede Nacht. Von Hand gibt es ihn,
+ * weil eine Sicherung, die niemand je ausgeloest hat, keine ist: der Knopf
+ * zeigt in einem Zug, ob die Berechtigungen stimmen, ob das Ziel erreichbar
+ * ist und wie gross der Stand tatsaechlich ist.
+ */
+export const callDatenAusleitungJetzt = httpsCallable<
+  Record<string, never>,
+  { companyId: string; zeilen: number; bytes: number; pfad: string; geraeumt: number; ziel: string }
+>(functions, 'datenAusleitungJetzt');
+
+/**
+ * Laedt den kompletten Mandantenbestand als Datei herunter (DSGVO Art. 15/20).
+ *
+ * NICHT dasselbe wie die Ausleitung: hier kommt alles in EINER Antwort
+ * zurueck, und die ist bei 10 MB gedeckelt. Fuer einen Betrieb mit Historie
+ * ist die naechtliche Ausleitung der verlaessliche Weg; dieser hier ist der
+ * bequeme fuer eine Auskunft.
+ */
+export const callExportCompanyData = httpsCallable<
+  Record<string, never>,
+  {
+    companyId: string;
+    exportedAt: string;
+    anzahl: Record<string, number>;
+    data: Record<string, unknown[]>;
+  }
+>(functions, 'exportCompanyData');

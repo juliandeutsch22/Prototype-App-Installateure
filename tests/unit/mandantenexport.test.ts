@@ -23,7 +23,7 @@ import { join } from 'node:path';
  */
 
 const REGELN = join(__dirname, '../../firestore.rules');
-const EXPORT = join(__dirname, '../../functions/src/export.ts');
+const EXPORT = join(__dirname, '../../functions/src/mandantendaten.ts');
 
 /** Sammlungen, die bewusst NICHT über das companyId-Feld exportiert werden. */
 const AUSNAHMEN: Record<string, string> = {

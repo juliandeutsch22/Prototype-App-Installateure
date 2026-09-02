@@ -30,7 +30,7 @@ import TimeForm from '@/features/time/TimeForm';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
-import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import {
   buildMonthCsv,
   monthCsvFilename,
@@ -110,6 +110,8 @@ export default function AccountingView() {
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  /** Ein Nebenladevorgang ist ausgefallen — die Auswertung steht trotzdem. */
+  const [nebenFehler, setNebenFehler] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
   const [nurLuecken, setNurLuecken] = useState(false);
@@ -148,9 +150,10 @@ export default function AccountingView() {
       setProjects([]);
       return;
     }
+    // Ohne die Stammdaten stehen in der Auswertung nur Baustellennummern.
     listProjectsByNumbers(user.companyId, projektNummern)
       .then(setProjects)
-      .catch(() => undefined);
+      .catch(() => setNebenFehler('Die Baustellendaten'));
     // Am Inhalt haengen, nicht an der Array-Identitaet: sonst laedt jeder
     // Renderdurchlauf neu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -288,6 +291,8 @@ export default function AccountingView() {
         title="Mitarbeiterübersicht"
         subtitle="Monatsauswertung, Vollständigkeit und Salden"
       />
+
+      {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       <Card title="Zeitraum">
         <div className="grid grid-cols-2 gap-4">
