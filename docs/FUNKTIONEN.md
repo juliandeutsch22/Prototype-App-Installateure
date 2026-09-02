@@ -25,7 +25,7 @@ unterscheidet drei Stufen:
 
 | Bereich | Was es tut | Wer darf | Daten | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|---|---|
-| **Zeiterfassung** | Tag buchen: Status, Von–Bis, Pause, Baustelle, Zuschläge. Schlank für das Büro, voll für den Monteur. | alle (eigene); Buchhaltung/GF auch fremde | `timeEntries` | Rechnung (44), Emulator (Rechte) | **Ansicht ungetestet** — der meistbenutzte Bildschirm der App |
+| **Zeiterfassung** | Tag buchen: Status, Von–Bis, Pause, Baustelle, Zuschläge. Schlank für das Büro, voll für den Monteur. | alle (eigene); Buchhaltung/GF auch fremde | `timeEntries` | Rechnung (44), Emulator (Rechte), Ansicht (8) | Der Ansichtstest prüft die Verdrahtung — welcher Weg zum Saldo, verrechnete Einträge gesperrt —, nicht das Formular |
 | **Mein Einsatzplan** | Monatskalender der eigenen Einsätze, Kontaktdaten, Sprung zu Zeit und Schein | Mitarbeiter | `assignments`, `projects`, `vacations` | — | Ansicht ungetestet |
 | **Meine Baustellen** | Die Baustellen, denen der Monteur zugeordnet ist | Mitarbeiter | `projects` | — | Ansicht ungetestet |
 | **Material anfordern** | Warenkorb, Eilzustellung, eigene Anforderungen | Mitarbeiter, Verwaltung, Leitung | `materials`, `materialOrders` | Rechnung (25, Meldungen) | Ansicht ungetestet; Lagerabzug nur im Code geprüft |
@@ -38,10 +38,10 @@ unterscheidet drei Stufen:
 |---|---|---|---|---|---|
 | **Kunden** | Stammdaten, Dublettenschutz, Akte mit Baustellen und Angeboten, Übernahme der Altbestände | Buchhaltung, Verwaltung, Leitung | `customers`, `projects`, `quotes` | Emulator (Regeln), Ansicht (8) | Umbenennen zieht Baustellen nach — ungetestet |
 | **Angebote** | Positionen kalkulieren, Arbeitszeit getrennt ausweisen, beim Annehmen Baustelle mit Stundenbudget anlegen | Buchhaltung, Leitung | `quotes`, `projects`, `counters` | Ansicht (3), Emulator (Zähler: steigend, Neubeginn nur zum Jahreswechsel) | — |
-| **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget | Leitung | `projects` | — | **Ansicht ungetestet** |
+| **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget | Leitung | `projects` | Ansicht (6) | Der Kundenname kommt aus dem Stammsatz; leeres Stundenbudget bleibt leer statt 0 |
 | **Anforderungen** | Eingehende Materialanforderungen bearbeiten, Status setzen | Verwaltung, Leitung | `materialOrders` | Rechnung (Meldungen) | Ansicht ungetestet |
 | **Lager** | Bestand, Mindestmenge, Katalogpflege | Verwaltung, Leitung | `materials` | Emulator (3: wer pflegen darf) | Ansicht ungetestet; Bestandsabzug per Transaktion ungetestet |
-| **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | Emulator (4: wer planen darf) | **Ansicht ungetestet** — inklusive des Löschens vorhandener Einsätze |
+| **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | Emulator (4: wer planen darf), Ansicht (8) | Geprüft ist auch der gefährliche Teil: eine vorhandene Planung kommt ins Formular, statt beim Speichern gelöscht zu werden |
 | **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie) | Ansicht ungetestet |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8) | Ansicht ungetestet |
 | **Module** | Bereiche für den Betrieb ein- und ausschalten; zeigt vorher, was mit abgeschaltet wird | **nur GF/Admin** | `companies.modules` | Rechnung (14), Emulator (7) | Ansicht ungetestet |
@@ -51,7 +51,7 @@ unterscheidet drei Stufen:
 
 | Bereich | Was es tut | Wer darf | Daten | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|---|---|
-| **Rechnungen** | Aus Baustelle zusammenstellen, Nummernkreis, Status, PDF, Buchhaltungs-Export mit Lückenprüfung | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries` | Rechnung (49), Emulator (Zähler, Löschen nur beim Storno) | **Ansicht ungetestet** — der Weg von Zeiten zu Positionen ist nur in Teilen geprüft |
+| **Rechnungen** | Aus Baustelle zusammenstellen, Nummernkreis, Status, PDF, Buchhaltungs-Export mit Lückenprüfung | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries` | Rechnung (49), Emulator (Zähler, Löschen nur beim Storno), Ansicht (6) | Geprüft ist die Reihenfolge — Nummer ziehen, Belege sperren, dann anlegen — und dass die verbindliche Nummer aus der Transaktion kommt |
 | **Mitarbeiterübersicht** | Zeitkonten, Salden, Monats- und Mitarbeiterexport, Stundennachweis | Buchhaltung, GF, Admin (**nicht** Projektleitung) | `timeEntries`, `monthlyStats` | Rechnung (20), Ansicht (4) | Zusammenspiel Bilanz ↔ Rohdaten ungetestet |
 | **Nachkalkulation** | Erlös gegen Personalkosten je Baustelle, Deckungsbeitrag | GF, Admin | `projects`, `timeEntries`, `invoices`, `quotes` | Rechnung (9) | Ansicht ungetestet |
 
@@ -82,14 +82,14 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-606 automatische Tests klingen nach viel. Aufgeschlüsselt:
+634 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | Regeltests gegen den Emulator | 131 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **91** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 274 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 99 | Findet Bedienfehler, **keine** Datenfehler |
+| Ansichten, Datenbank ersetzt | 127 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **11** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
 Die 131 gegen den Emulator teilen sich in 92 Regeltests, 33 Abfragen je Rolle
@@ -100,8 +100,18 @@ ihnen schlägt gegen die vorherigen Regeln fehl. Das ist nachgemessen, nicht
 angenommen — ein Test, der vorher und nachher grün ist, hält keine Grenze
 fest, sondern beschreibt nur, was ohnehin galt.
 
-**14 von 26 Ansichten haben keinen eigenen Test**, darunter Zeiterfassung,
-Rechnungen, Baustellen und Einsatzplanung.
+**10 von 27 Ansichten haben keinen eigenen Test.** Die vier wichtigsten sind
+seit dem 02.09.2026 dabei: Zeiterfassung, Rechnungen, Einsatzplanung,
+Baustellen. Was fehlt, sind die kleineren — Mein Einsatzplan, Meine
+Baustellen, Material anfordern, Anforderungen, Lager, Benutzerverwaltung,
+Einstellungen, Module, Nachkalkulation, Handwerksschein-Liste.
+
+**Und die Einschränkung gilt unverändert:** auch in den neuen Tests ist jeder
+Datenbankzugriff ersetzt. Sie prüfen die Verdrahtung — welche Zahl in welche
+Kachel geht, in welcher Reihenfolge geschrieben wird, was passiert, wenn ein
+Ladevorgang scheitert. Einen fehlenden Index oder eine an den Regeln
+scheiternde Abfrage finden sie weiterhin nicht; dafür sind die
+Emulator-Tests da.
 
 **Warum das nicht theoretisch ist.** Jeder Fehler, der bisher aus dem Betrieb
 gemeldet wurde, lag in den Nähten, die ersetzte Datenbankzugriffe per
