@@ -21,6 +21,40 @@
 
 export type WriteOutcome = 'confirmed' | 'queued';
 
+/**
+ * Wenn ein VORGEMERKTER Schreibvorgang später doch scheitert.
+ *
+ * DAS LOCH, DAS DIESE ZEILEN SCHLIESSEN. „Ohne Verbindung gespeichert, wird
+ * automatisch gesendet" ist ein Versprechen. Firestore hält es in aller
+ * Regel — aber nicht, wenn der Server den Vorgang am Ende ABLEHNT: eine
+ * Regel, die nicht greift, ein inzwischen gesperrtes Konto, ein Dokument, das
+ * es nicht mehr gibt. Solche Schreibvorgänge sind endgültig verloren.
+ *
+ * Bisher wurde dieser Fehler verschluckt (`catch(() => undefined)`), damit
+ * kein unbehandelter Abbruch übrig bleibt. Der Monteur bekam also die
+ * Bestätigung und erfuhr nie, dass seine Zeitbuchung nicht angekommen ist —
+ * genau die Sorte Fehler, wegen der man einer App nicht mehr traut.
+ *
+ * Die Meldung kommt jetzt an, auch Minuten später. Sie kann nichts
+ * reparieren, aber sie sagt dem Monteur, dass er noch einmal hinsehen muss —
+ * und das ist der ganze Unterschied.
+ */
+type Horcher = (fehler: unknown) => void;
+let horcher: Horcher | null = null;
+
+/** Einmal beim Start setzen. `null` meldet ab. */
+export function beiVorgemerktemFehlschlag(cb: Horcher | null): void {
+  horcher = cb;
+}
+
+function melden(fehler: unknown): void {
+  try {
+    horcher?.(fehler);
+  } catch {
+    // Ein Fehler in der Meldung darf den Schreibpfad nicht mitreissen.
+  }
+}
+
 /** Wie lange auf die Serverbestätigung gewartet wird, bevor nachgesehen wird. */
 const WAIT_MS = 4000;
 
@@ -37,7 +71,7 @@ export async function writeWithOfflineNotice<T>(
   // nichts abzuwarten. Vier Sekunden Kreisel wären hier reine Schikane: der
   // Eintrag liegt in dem Moment bereits im Zwischenspeicher.
   if (offline()) {
-    void write.catch(() => undefined);
+    void write.catch(melden);
     return 'queued';
   }
 
@@ -55,7 +89,7 @@ export async function writeWithOfflineNotice<T>(
       // abwarten — offline kommt keine Antwort. Der Fehlerfall
       // wird abgefangen, damit kein unbehandelter Abbruch übrig bleibt; der
       // eigentliche Schreibvorgang läuft weiter und geht später raus.
-      void write.catch(() => undefined);
+      void write.catch(melden);
       return 'queued';
     }
 
