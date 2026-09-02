@@ -1,9 +1,8 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider } from './AuthContext';
 import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
 import ErrorBoundary from './ErrorBoundary';
-import { nachladbar } from '@/lib/nachladen';
 import Unterreiter from '@/components/Unterreiter';
 import Layout from './Layout';
 import { LoadingState } from '@/components/States';
@@ -28,99 +27,39 @@ import { LoadingState } from '@/components/States';
  * das Zweite arbeitet der Service Worker, der die Pakete nach dem ersten
  * Besuch vorhaelt.
  */
-const LoginPage = lazy(() => nachladbar(() => import('@/features/auth/LoginPage')));
-const DashboardView = lazy(() => nachladbar(() => import('@/features/dashboard/DashboardView')));
-const TimeView = lazy(() => nachladbar(() => import('@/features/time/TimeView')));
-const VoiceView = lazy(() => nachladbar(() => import('@/features/voice/VoiceView')));
-const OrderView = lazy(() => nachladbar(() => import('@/features/orders/OrderView')));
-const AdminOrdersView = lazy(() => nachladbar(() => import('@/features/orders/AdminOrdersView')));
-const StockView = lazy(() => nachladbar(() => import('@/features/orders/StockView')));
-const AdminProjectsView = lazy(() => nachladbar(() => import('@/features/projects/AdminProjectsView')));
-const CustomersView = lazy(() => nachladbar(() => import('@/features/customers/CustomersView')));
-const QuotesView = lazy(() => nachladbar(() => import('@/features/quotes/QuotesView')));
-const NachkalkulationView = lazy(() => nachladbar(() => import('@/features/costing/NachkalkulationView')));
-const WorkSheetView = lazy(() => nachladbar(() => import('@/features/worksheets/WorkSheetView')));
-const VacationsView = lazy(() => nachladbar(() => import('@/features/vacations/VacationsView')));
-const ModulesView = lazy(() => nachladbar(() => import('@/features/modules/ModulesView')));
-const SicherungView = lazy(() => nachladbar(() => import('@/features/settings/SicherungView')));
-const WorkSheetsListView = lazy(() => nachladbar(() => import('@/features/worksheets/WorkSheetsListView')));
-const MyProjectsView = lazy(() => nachladbar(() => import('@/features/projects/MyProjectsView')));
-const AssignmentsView = lazy(() => nachladbar(() => import('@/features/assignments/AssignmentsView')));
-const MyScheduleView = lazy(() => nachladbar(() => import('@/features/assignments/MyScheduleView')));
-const InvoicesView = lazy(() => nachladbar(() => import('@/features/invoices/InvoicesView')));
-const AccountingView = lazy(() => nachladbar(() => import('@/features/accounting/AccountingView')));
-const UserMgmtView = lazy(() => nachladbar(() => import('@/features/users/UserMgmtView')));
-const SettingsView = lazy(() => nachladbar(() => import('@/features/settings/SettingsView')));
-const NotificationSettings = lazy(() => nachladbar(() => import('@/features/settings/NotificationSettings')));
+const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+const DashboardView = lazy(() => import('@/features/dashboard/DashboardView'));
+const TimeView = lazy(() => import('@/features/time/TimeView'));
+const VoiceView = lazy(() => import('@/features/voice/VoiceView'));
+const OrderView = lazy(() => import('@/features/orders/OrderView'));
+const AdminOrdersView = lazy(() => import('@/features/orders/AdminOrdersView'));
+const StockView = lazy(() => import('@/features/orders/StockView'));
+const AdminProjectsView = lazy(() => import('@/features/projects/AdminProjectsView'));
+const CustomersView = lazy(() => import('@/features/customers/CustomersView'));
+const QuotesView = lazy(() => import('@/features/quotes/QuotesView'));
+const NachkalkulationView = lazy(() => import('@/features/costing/NachkalkulationView'));
+const WorkSheetView = lazy(() => import('@/features/worksheets/WorkSheetView'));
+const VacationsView = lazy(() => import('@/features/vacations/VacationsView'));
+const ModulesView = lazy(() => import('@/features/modules/ModulesView'));
+const SicherungView = lazy(() => import('@/features/settings/SicherungView'));
+const WorkSheetsListView = lazy(() => import('@/features/worksheets/WorkSheetsListView'));
+const MyProjectsView = lazy(() => import('@/features/projects/MyProjectsView'));
+const AssignmentsView = lazy(() => import('@/features/assignments/AssignmentsView'));
+const MyScheduleView = lazy(() => import('@/features/assignments/MyScheduleView'));
+const InvoicesView = lazy(() => import('@/features/invoices/InvoicesView'));
+const AccountingView = lazy(() => import('@/features/accounting/AccountingView'));
+const UserMgmtView = lazy(() => import('@/features/users/UserMgmtView'));
+const SettingsView = lazy(() => import('@/features/settings/SettingsView'));
+const NotificationSettings = lazy(() => import('@/features/settings/NotificationSettings'));
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
  * RequireAuth; rollenspezifische hinter RequireRole. Server-seitig setzen
  * firestore.rules dieselben Grenzen durch (Spec §7).
  */
-/**
- * Die täglich gebrauchten Ansichten still im Hintergrund vorladen.
- *
- * SEIT DEM AUFTEILEN DES PAKETS wird jede Ansicht erst beim Öffnen geholt.
- * Am Schreibtisch merkt das niemand; auf der Baustelle sind es zwei bis drei
- * Sekunden bei jedem ersten Aufruf — und ein Netzhänger genau in diesem
- * Moment ist die Meldung „konnte nicht geladen werden". Der Monteur bezahlt
- * den Preis also mehrfach am Tag, an unvorhersehbaren Stellen.
- *
- * ERST WENN DER BROWSER OHNEHIN NICHTS ZU TUN HAT (`requestIdleCallback`) und
- * NUR die Ansichten, die praktisch jeder täglich öffnet. Das lädt die
- * Startseite nicht langsamer — sie ist zu diesem Zeitpunkt längst da — und
- * macht den ersten Aufruf danach unmittelbar.
- *
- * Fehlschläge werden bewusst verschluckt: das hier ist ein Vorgriff, keine
- * Voraussetzung. Wer die Ansicht später wirklich öffnet, geht ohnehin durch
- * `nachladbar()` mit seinen Wiederholungen.
- */
-function vorladen() {
-  const wichtig = [
-    () => import('@/features/dashboard/DashboardView'),
-    () => import('@/features/time/TimeView'),
-    () => import('@/features/worksheets/WorkSheetView'),
-    () => import('@/features/orders/OrderView'),
-    () => import('@/features/vacations/VacationsView'),
-  ];
-  // Nacheinander statt alle auf einmal: fünf gleichzeitige Anfragen nehmen
-  // sich auf einer schmalen Leitung gegenseitig die Bandbreite — und zwar
-  // genau die, die eine echte Aktion des Benutzers gerade braucht.
-  void wichtig.reduce(
-    (kette, laden) => kette.then(() => laden().then(() => undefined, () => undefined)),
-    Promise.resolve(),
-  );
-}
-
-function Vorlader() {
-  const { user } = useAuth();
-  useEffect(() => {
-    // ERST NACH DER ANMELDUNG. Auf der Anmeldeseite waere das Vorladen ein
-    // Wettbewerb um dieselbe schmale Leitung, die gerade den Anmeldevorgang
-    // braucht — und wer sich nicht anmeldet, braucht die Ansichten ohnehin
-    // nicht.
-    if (!user) return;
-    const start = () => vorladen();
-    const w = window as Window & {
-      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
-    };
-    if (typeof w.requestIdleCallback === 'function') {
-      w.requestIdleCallback(start, { timeout: 4000 });
-      return;
-    }
-    // Safari kennt `requestIdleCallback` bis heute nicht — dort einfach
-    // etwas später, wenn der Start durch ist.
-    const uhr = setTimeout(start, 2500);
-    return () => clearTimeout(uhr);
-  }, [user]);
-  return null;
-}
-
 export default function App() {
   return (
     <AuthProvider>
-      <Vorlader />
       <Routes>
         <Route
           path="/login"
