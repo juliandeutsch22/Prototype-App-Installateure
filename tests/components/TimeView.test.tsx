@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, TimeEntry, Role } from '@/types';
@@ -55,6 +55,10 @@ const abo = vi.fn();
 const listeSeit = vi.fn();
 const listeBilanzen = vi.fn();
 
+/** Der Rueckruf des Live-Abos — damit ein Test einen zweiten Schnappschuss
+ *  schicken kann, so wie Firestore es nach der Serverbestaetigung tut. */
+let schnappschussSenden: ((rows: (TimeEntry & { id: string })[]) => void) | null = null;
+
 vi.mock('@/lib/db/timeEntries', () => ({
   subscribeOwnEntriesInRange: (
     _company: string,
@@ -64,6 +68,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
     cb: (rows: (TimeEntry & { id: string })[]) => void,
   ) => {
     abo(von, bis);
+    schnappschussSenden = cb;
     cb(eintraege);
     return () => undefined;
   },
@@ -131,6 +136,7 @@ beforeEach(() => {
   marker = null;
   rolle = 'Mitarbeiter';
   authWert.user.role = 'Mitarbeiter';
+  schnappschussSenden = null;
   abo.mockClear();
   listeSeit.mockClear();
   listeBilanzen.mockClear();
@@ -268,5 +274,61 @@ describe('Zeiterfassung — ältere Einträge', () => {
     await waitFor(() => {
       expect(letzterAufruf()[0] < ersterZeitraum).toBe(true);
     });
+  });
+});
+
+/**
+ * Was eine Buchung KOSTET.
+ *
+ * Aus dem Betrieb gemeldet: „das Erfassen einer Zeitbuchung hat lange
+ * gedauert, das muss schnell gehen." Die Ansicht holte danach zweimal den
+ * ganzen Saldo — einmal auf den lokalen Schnappschuss, einmal auf die
+ * Bestätigung des Servers — und dabei jedes Mal auch den laufenden Monat, der
+ * längst geladen war.
+ */
+describe('Zeiterfassung — was eine Buchung an Abfragen kostet', () => {
+  it('rechnet den Saldo NICHT neu, wenn sich inhaltlich nichts geaendert hat', async () => {
+    marker = null;
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    await waitFor(() => expect(listeSeit).toHaveBeenCalled());
+    const vorher = listeSeit.mock.calls.length;
+
+    // Zweiter Schnappschuss, derselbe Inhalt, neues Array — genau das schickt
+    // Firestore, wenn der Server eine Buchung bestaetigt, die lokal schon galt.
+    await act(async () => {
+      schnappschussSenden?.([eintrag({ id: 'e1' })]);
+    });
+
+    expect(listeSeit.mock.calls.length).toBe(vorher);
+  });
+
+  it('rechnet den Saldo SEHR WOHL neu, wenn eine Buchung dazukommt', async () => {
+    // Sonst prueft der Test daneben nur, dass ueberhaupt nichts mehr passiert.
+    marker = null;
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    await waitFor(() => expect(listeSeit).toHaveBeenCalled());
+    const vorher = listeSeit.mock.calls.length;
+
+    await act(async () => {
+      schnappschussSenden?.([eintrag({ id: 'e1' }), eintrag({ id: 'e2', date: '2026-08-31' })]);
+    });
+
+    await waitFor(() => expect(listeSeit.mock.calls.length).toBeGreaterThan(vorher));
+  });
+
+  it('holt den laufenden Monat nicht ein zweites Mal vom Server', async () => {
+    /**
+     * Er liegt im Fenster des Live-Abos — das reicht drei Monate zurueck.
+     * Wird er trotzdem geholt, ist das eine Netzrunde je Buchung, auf die der
+     * Monteur wartet.
+     */
+    marker = { vollstaendigAb: '2026-05' }; // Bilanzen sind brauchbar
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+
+    await waitFor(() => expect(listeBilanzen).toHaveBeenCalled());
+    expect(listeSeit).not.toHaveBeenCalled();
   });
 });

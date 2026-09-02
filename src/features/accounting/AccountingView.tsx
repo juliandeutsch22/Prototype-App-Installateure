@@ -390,8 +390,23 @@ export default function AccountingView() {
           <ErrorState message={error} />
         ) : rows.length === 0 ? (
           <EmptyState>
+            {/*
+              WARUM DIESE UNTERSCHEIDUNG. „Keine aktiven Mitarbeiter mit
+              Zeitkonto" stand hier auch dann, wenn der Betrieb sehr wohl
+              Benutzer hat — nur eben keinen, der ein Zeitkonto FÜHRT.
+              Geschäftsführung, Projektleitung und Administration tun das
+              nicht (siehe `shouldShowOvertime`), sie erscheinen hier also
+              nie, auch nicht mit eigenen Buchungen.
+
+              Aus dem Betrieb gemeldet: die Geschäftsführung bucht eine Zeit
+              und liest danach, es gebe keine Mitarbeiter. Die Aussage war
+              richtig und trotzdem irreführend — sie klang nach einem Fehler,
+              wo eine Erklärung hingehört.
+            */}
             {alleRows.length === 0
-              ? 'Keine aktiven Mitarbeiter mit Zeitkonto.'
+              ? users.length === 0
+                ? 'Noch keine Benutzer angelegt.'
+                : 'Kein Konto führt ein Zeitkonto. Geschäftsführung, Projektleitung und Administration erscheinen hier nicht — auch nicht mit eigenen Buchungen. Monteure, Verwaltung und Buchhaltung legst du unter Einstellungen → Benutzerverwaltung an.'
               : suche
                 ? `Kein Mitarbeiter passt zu „${suche}".`
                 : 'Alle Zeitkonten sind vollständig.'}

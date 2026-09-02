@@ -40,6 +40,76 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: drei Meldungen aus dem Betrieb, 02.09.2026 abends
+
+Alle drei aus derselben Sitzung auf dem iPhone, und alle drei berechtigt.
+
+### 1. „Die App lädt gar nicht mehr" — und mein eigener Fehler daran
+
+Auf dem Schirm stand: **`'text/html' is not a valid JavaScript MIME type.`**
+
+Die Ursache ist die vom Vormittag bekannte — nach einem Deploy fordert die
+noch laufende Seite einen Baustein an, den es unter diesem Namen nicht mehr
+gibt. Neu ist, WIE das aussieht: der Hosting-Rewrite `"source": "**"` schickt
+jede unbekannte Adresse auf `index.html`, mit **Status 200 und `text/html`**.
+Es gibt also gar keinen 404, an dem ein Fehler erkennbar wäre.
+
+Daraus folgten zwei Fehler, beide meine:
+
+- **Der Service Worker hat die Startseite unter dem Namen der
+  JavaScript-Datei gespeichert.** Die Prüfung lautete `res.ok && res.status
+  === 200` — und genau das war die Antwort. Danach lieferte er sie von dort
+  aus, ohne das Netz noch zu fragen: der Fehler blieb stehen, bis jemand die
+  App neu startete. Genau das hat der Betrieb beschrieben.
+- **Die Selbstheilung lief nicht an.** Die Erkennung von Nachladefehlern kannte
+  vier Formulierungen, aber nicht die von Safari. Der Monteur bekam deshalb
+  die Fehlertafel mit „Erneut versuchen" — dem Knopf, von dem am Vormittag
+  festgehalten wurde, dass er hier per Konstruktion nichts ausrichten kann.
+
+Jetzt drei Lagen übereinander: der Worker erkennt eine Startseite, die als
+Baustein ausgegeben wird, speichert sie **nicht** und macht daraus einen
+sauberen Fehlschlag; die Erkennung kennt die Formulierungen aller drei
+Browser; und `vite:preloadError` greift schon, bevor React überhaupt etwas
+sieht. Der zugehörige Test enthält die gemeldete Meldung wörtlich.
+
+### 2. „Das Erfassen einer Zeitbuchung hat lange gedauert"
+
+Drei Kosten lagen hintereinander, und keine davon war sichtbar:
+
+- Die **Doppelbuchungsprüfung** ist eine Abfrage, und Firestore-Abfragen haben
+  keine Zeitgrenze. Auf einer zähen Verbindung wartete das Speichern
+  unbegrenzt, bevor der Schreibvorgang überhaupt losging. Jetzt drei Sekunden
+  Frist; läuft sie ab, wird gebucht. Die Abwägung dahinter: eine Doppelbuchung
+  steht sichtbar in der Liste und ist in zehn Sekunden gelöscht, eine Zeit,
+  die sich nicht buchen lässt, kostet den Monteur den Nachtrag am Abend.
+- Der laufende Monat wurde **ein zweites Mal vom Server geholt**, obwohl das
+  Live-Abo ihn längst geliefert hatte — sein Fenster reicht drei Monate
+  zurück. Jetzt aus den vorhandenen Einträgen abgeleitet. Nebenbei stimmt der
+  Saldo damit besser: die zweite Abfrage hatte keine obere Grenze und zählte
+  auch Buchungen in der Zukunft mit, für die noch gar kein Soll besteht.
+- Der Saldo wurde **je Buchung zweimal** gerechnet. Firestore meldet einen
+  Schnappschuss zweimal — sofort aus dem lokalen Zwischenspeicher und noch
+  einmal nach der Bestätigung des Servers —, mit gleichem Inhalt, aber neuem
+  Array. Der Effekt hing an der Array-Identität. Jetzt am Inhalt.
+
+### 3. „Nach der Erfassung kam die Meldung, dass keine Mitarbeiter existieren"
+
+Die Meldung war richtig und trotzdem irreführend. Geschäftsführung,
+Projektleitung und Administration führen kein Zeitkonto (`shouldShowOvertime`)
+und erscheinen in der Mitarbeiterübersicht deshalb nie — auch nicht mit
+eigenen Buchungen. Wer als Geschäftsführung eine Zeit bucht und danach dorthin
+sieht, liest „keine aktiven Mitarbeiter" und hält es für einen Fehler.
+
+Die Ansicht unterscheidet jetzt zwei Lagen mit zwei verschiedenen nächsten
+Schritten: „noch keine Benutzer angelegt" und „kein Konto führt ein
+Zeitkonto — Leitung erscheint hier nicht, Monteure legst du unter
+Benutzerverwaltung an".
+
+*Geprüft:* 512 ohne Emulator (9 neu), 131 dagegen. Jeder der neuen Tests ist
+gegen den alten Code gelaufen und schlägt dort fehl — einer davon erst im
+zweiten Anlauf: die erste Fassung prüfte nichts, weil ein zweiter
+Schnappschuss ohne neues Abo gar nicht ausgelöst wurde.
+
 ## Erledigt: die vier Kernansichten haben Tests
 
 Die größte Lücke der Prüftiefe, seit Längerem als Nummer eins geführt:
