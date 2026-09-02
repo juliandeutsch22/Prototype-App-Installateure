@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
 import ErrorBoundary from './ErrorBoundary';
+import Unterreiter from '@/components/Unterreiter';
 import Layout from './Layout';
 import LoginPage from '@/features/auth/LoginPage';
 import DashboardView from '@/features/dashboard/DashboardView';
@@ -80,7 +81,26 @@ function AppRoutes() {
         sind. Ein Sonderweg weniger.
       */}
       <Route path="/voice" element={<RequireNav path="/voice"><VoiceView /></RequireNav>} />
-      <Route path="/order" element={<RequireNav path="/order"><OrderView /></RequireNav>} />
+      {/*
+        Material unter EINEM Reiter: anfordern, Anforderungen bearbeiten,
+        Bestand führen. Wer nur anfordert, sieht auch nur das — die
+        Unterseiten und ihre Rollen stehen in navigation.ts.
+      */}
+      <Route
+        path="/material/*"
+        element={
+          <RequireNav path="/material">
+            <Unterreiter
+              basis="/material"
+              elemente={{
+                anfordern: <OrderView />,
+                anforderungen: <AdminOrdersView />,
+                lager: <StockView />,
+              }}
+            />
+          </RequireNav>
+        }
+      />
       {/* Strikt nur reine Mitarbeiter (Legacy:1980) — GF/Admin nutzen die
           Verwaltungssicht. */}
       <Route
@@ -129,29 +149,34 @@ function AppRoutes() {
         element={<RequireNav path="/admin-projects"><AdminProjectsView /></RequireNav>}
       />
       <Route
-        path="/admin-orders"
-        element={<RequireNav path="/admin-orders"><AdminOrdersView /></RequireNav>}
-      />
-      {/* Lager: eigener Bereich statt versteckter Reiter unter Bestellungen. */}
-      <Route path="/stock" element={<RequireNav path="/stock"><StockView /></RequireNav>} />
-      <Route
         path="/assignments"
         element={<RequireNav path="/assignments"><AssignmentsView /></RequireNav>}
       />
       <Route path="/user-mgmt" element={<RequireNav path="/user-mgmt"><UserMgmtView /></RequireNav>} />
-      {/* Persoenliche Benachrichtigungen: jede Rolle. Was jemand aufs Telefon
-          bekommt, entscheidet er selbst. */}
-      <Route
-        path="/notifications"
-        element={<RequireNav path="/notifications"><NotificationSettings /></RequireNav>}
-      />
       {/*
-        Welche Bereiche der Betrieb benutzt. Der Eintrag traegt bewusst KEIN
-        Modul: waere die Modulverwaltung selbst abschaltbar, koennte man sich
-        aussperren und nie wieder hineinkommen.
+        Einstellungen unter EINEM Reiter: die eigenen Meldungen (jede Rolle),
+        die Sätze des Betriebs und die Module (Geschäftsführung). Der Reiter
+        steht allen offen, weil die Meldungen jedem gehören — was enger ist,
+        steht als Rollenliste bei der Unterseite.
+
+        Die Module tragen bewusst KEIN Modul: wäre die Modulverwaltung selbst
+        abschaltbar, könnte man sich aussperren und nie wieder hineinkommen.
       */}
-      <Route path="/modules" element={<RequireNav path="/modules"><ModulesView /></RequireNav>} />
-      <Route path="/settings" element={<RequireNav path="/settings"><SettingsView /></RequireNav>} />
+      <Route
+        path="/settings/*"
+        element={
+          <RequireNav path="/settings">
+            <Unterreiter
+              basis="/settings"
+              elemente={{
+                meldungen: <NotificationSettings />,
+                saetze: <SettingsView />,
+                module: <ModulesView />,
+              }}
+            />
+          </RequireNav>
+        }
+      />
 
       {/* Buchhaltung */}
       <Route path="/invoices" element={<RequireNav path="/invoices"><InvoicesView /></RequireNav>} />
@@ -159,6 +184,20 @@ function AppRoutes() {
         path="/accounting"
         element={<RequireNav path="/accounting"><AccountingView /></RequireNav>}
       />
+
+      {/*
+        Die alten Adressen bleiben erreichbar.
+        WARUM DAS NICHT VERZICHTBAR IST: In bereits zugestellten
+        Push-Meldungen stehen /admin-orders und /order. Wer eine alte Meldung
+        antippt, landete sonst kommentarlos auf der Startseite — und suchte
+        dann die Anforderung, die ihn eigentlich hergerufen hatte. Dasselbe
+        gilt für Lesezeichen im Büro.
+      */}
+      <Route path="/order" element={<Navigate to="/material/anfordern" replace />} />
+      <Route path="/admin-orders" element={<Navigate to="/material/anforderungen" replace />} />
+      <Route path="/stock" element={<Navigate to="/material/lager" replace />} />
+      <Route path="/notifications" element={<Navigate to="/settings/meldungen" replace />} />
+      <Route path="/modules" element={<Navigate to="/settings/module" replace />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

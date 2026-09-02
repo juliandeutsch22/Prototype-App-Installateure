@@ -81,12 +81,12 @@ describe('Navigation folgt den Modulen', () => {
   it('blendet die Eintraege eines abgeschalteten Moduls aus', () => {
     const mit = navForRole('Geschäftsführung', undefined).map((i) => i.path);
     const ohne = navForRole('Geschäftsführung', { material: false }).map((i) => i.path);
-    expect(mit).toContain('/stock');
-    expect(ohne).not.toContain('/stock');
-    expect(ohne).not.toContain('/admin-orders');
+    expect(mit).toContain('/material');
+    expect(ohne).not.toContain('/material');
     // Der Kern bleibt.
     expect(ohne).toContain('/time');
     expect(ohne).toContain('/admin-projects');
+    expect(ohne).toContain('/settings');
   });
 
   it('macht die Adresse zu, nicht nur den Eintrag unsichtbar', () => {
@@ -94,9 +94,12 @@ describe('Navigation folgt den Modulen', () => {
      * DER FEHLER, DEN MAN SONST MACHT. Den Eintrag auszublenden nimmt nur den
      * Weg weg, nicht die Adresse: ein Lesezeichen, ein alter Link oder der
      * Zurueck-Knopf fuehren weiter hinein.
+     *
+     * `canAccess` ist nicht nur eine Auskunft fuer Tests — `RequireNav` ruft
+     * genau diese Funktion auf, bevor es eine Ansicht durchlaesst.
      */
-    expect(canAccess('Geschäftsführung', '/stock', undefined)).toBe(true);
-    expect(canAccess('Geschäftsführung', '/stock', { material: false })).toBe(false);
+    expect(canAccess('Geschäftsführung', '/material', undefined)).toBe(true);
+    expect(canAccess('Geschäftsführung', '/material', { material: false })).toBe(false);
   });
 
   it('laesst die Rollengrenze unberuehrt', () => {
@@ -120,7 +123,7 @@ describe('Die mobile Leiste ist ausgesucht, nicht abgeschnitten', () => {
 
   it('gibt dem Monteur Start, Zeit, Plan und Material', () => {
     const { unten } = tabBarForRole('Mitarbeiter', undefined);
-    expect(unten.map((i) => i.path)).toEqual(['/', '/time', '/my-schedule', '/order']);
+    expect(unten.map((i) => i.path)).toEqual(['/', '/time', '/my-schedule', '/material']);
   });
 
   it('haelt die Leiste voll, wenn ein Modul fehlt', () => {
@@ -130,7 +133,7 @@ describe('Die mobile Leiste ist ausgesucht, nicht abgeschnitten', () => {
      */
     const { unten } = tabBarForRole('Mitarbeiter', { material: false, einsatzplanung: false });
     expect(unten).toHaveLength(4);
-    expect(unten.map((i) => i.path)).not.toContain('/order');
+    expect(unten.map((i) => i.path)).not.toContain('/material');
     expect(unten.map((i) => i.path)).not.toContain('/my-schedule');
   });
 

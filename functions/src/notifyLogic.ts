@@ -114,7 +114,7 @@ export function textNeueAnforderung(order: OrderDoc): Meldung {
     body: `${menge(order)}${order.userName ? ` — ${order.userName}` : ''}${
       order.projectNumber ? ` (${order.projectNumber})` : ''
     }`,
-    link: '/admin-orders',
+    link: '/material/anforderungen',
     // Alle offenen Anforderungen teilen sich eine Kennung: bei fünf Meldungen
     // kurz hintereinander bleibt eine im Sperrbildschirm stehen statt fünf.
     tag: 'material-neu',
@@ -127,7 +127,7 @@ export function textEilAngefordert(order: OrderDoc, id: string): Meldung {
     body: `${menge(order)} für ${order.projectNumber}${
       order.userName ? ` — ${order.userName}` : ''
     }`,
-    link: '/admin-orders',
+    link: '/material/anforderungen',
     // Eigene Kennung je Anforderung: eine Eilmeldung darf nicht von der
     // Sammelmeldung für gewöhnliche Anforderungen verdrängt werden.
     tag: `eil-neu-${id}`,
@@ -138,7 +138,7 @@ export function textAbholbereit(order: OrderDoc, id: string): Meldung {
   return {
     title: 'Material abholbereit',
     body: `${menge(order)} liegt bereit${order.projectNumber ? ` (${order.projectNumber})` : ''}`,
-    link: '/order',
+    link: '/material/anfordern',
     tag: `material-bereit-${id}`,
   };
 }
@@ -147,7 +147,7 @@ export function textEilAbholbereit(order: OrderDoc, id: string): Meldung {
   return {
     title: 'Eilzustellung abholbereit',
     body: `${menge(order)} für ${order.projectNumber} liegt bereit`,
-    link: '/admin-orders',
+    link: '/material/anforderungen',
     tag: `eil-bereit-${id}`,
   };
 }

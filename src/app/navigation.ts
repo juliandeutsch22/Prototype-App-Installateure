@@ -49,7 +49,10 @@ export const NAV: NavItem[] = [
   // Unterschied, dass sie ohne hinterlegte Zugaenge gar nicht erst waehlbar
   // ist (siehe `verfuegbar` in lib/module.ts).
   { path: '/voice', label: 'KI-Erfassung', short: 'KI', icon: 'mic', roles: ALL, group: 'Außendienst', modul: 'ki' },
-  { path: '/order', label: 'Material bestellen', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'material' },
+  // Material: EIN Reiter für drei Blicke auf dasselbe — anfordern, eingehende
+  // Anforderungen bearbeiten, Bestand führen. Vorher waren das drei Reiter,
+  // obwohl es ein Thema ist. Wer nur anfordert, sieht auch nur das.
+  { path: '/material', label: 'Material', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'material' },
   // Nur REINE Mitarbeiter — Admin/GF sehen alle Baustellen über die
   // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
   { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Außendienst', modul: 'einsatzplanung' },
@@ -68,20 +71,19 @@ export const NAV: NavItem[] = [
   { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Verwaltung', modul: 'angebote' },
   { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'users', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Verwaltung' },
   { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Verwaltung' },
-  { path: '/admin-orders', label: 'Anforderungen', short: 'Anforderungen', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
-  { path: '/stock', label: 'Lager', short: 'Lager', icon: 'package', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
   { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Verwaltung', modul: 'einsatzplanung' },
   // Wer angelegt wird und welche Rolle er bekommt, ist Eigentümersache und
   // nicht Sache der Bauleitung: mit dieser Ansicht vergibt man Rechte.
   { path: '/user-mgmt', label: 'Benutzerverwaltung', short: 'Benutzer', icon: 'users', roles: TOP, group: 'Verwaltung' },
-  // Stundensätze und Zuschläge sind Geschäftsführungssache — sie bestimmen,
-  // was der Betrieb verrechnet. Die Projektleitung stand hier früher mit
-  // drin, kam aber ohnehin nicht hinein: die Route ließ nur GF und Admin
-  // durch. Zwei Meinungen, eine sichtbare Sackgasse.
-  { path: '/settings', label: 'Einstellungen', short: 'Sätze', icon: 'settings', roles: TOP, group: 'Verwaltung' },
-  // Welche Bereiche der Betrieb ueberhaupt benutzt. Kern: waere die
-  // Modulverwaltung selbst abschaltbar, koennte man sich aussperren.
-  { path: '/modules', label: 'Module', short: 'Module', icon: 'settings', roles: TOP, group: 'Verwaltung' },
+  // Einstellungen: EIN Reiter für alles, was man einmal einstellt und dann
+  // lange nicht mehr anfasst — die eigenen Meldungen, die Sätze des Betriebs
+  // und die Module. Vorher waren das drei Reiter, zwei davon für Dinge, die
+  // man im Monat vielleicht einmal öffnet.
+  //
+  // Der Reiter steht JEDER Rolle offen, weil die Meldungseinstellungen jedem
+  // gehören. Was darunter enger ist, steht in UNTER — Sätze und Module sind
+  // Geschäftsführungssache.
+  { path: '/settings', label: 'Einstellungen', short: 'Einstellungen', icon: 'settings', roles: ALL, group: 'Allgemein' },
 
   // Margen sind Geschaeftsfuehrungssache — die Projektleitung sieht sie nicht.
   { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'chart', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
@@ -94,12 +96,48 @@ export const NAV: NavItem[] = [
   // Gesundheitsdaten nach Art. 9 DSGVO.
   { path: '/accounting', label: 'Mitarbeiterübersicht', short: 'Übersicht', icon: 'chart', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung', modul: 'zeitkonten' },
 
-  // Persönliche Einstellungen, für jede Rolle. Steht bewusst ganz am ENDE
-  // der Liste: die mobile Tab-Bar zeigt die ersten vier Einträge, und dort
-  // gehören Zeiterfassung und Material hin, nicht die Meldungseinstellungen.
-  // In der Sidebar erscheint der Punkt über die Gruppe trotzdem oben.
-  { path: '/notifications', label: 'Benachrichtigungen', short: 'Meldungen', icon: 'bell', roles: ALL, group: 'Allgemein' },
 ];
+
+/**
+ * Was unter einem Reiter liegt.
+ *
+ * Nicht jede Ansicht verdient einen eigenen Reiter. „Anforderungen" und
+ * „Lager" sind kein eigenes Thema — sie sind zwei Blicke auf Material. Die
+ * Geschäftsführung sah dadurch 18 Reiter für vielleicht 14 Themen.
+ *
+ * Ein Eintrag ohne `roles` gilt für jeden, der den Reiter selbst sieht. Steht
+ * eine Rollenliste da, ist die Unterseite ENGER als der Reiter — so kommt der
+ * Monteur an seine Meldungen, ohne die Sätze des Betriebs zu sehen.
+ */
+export interface Unterseite {
+  /** Letztes Pfadstück, z. B. `lager` für /material/lager. */
+  pfad: string;
+  label: string;
+  roles?: Role[];
+}
+
+export const UNTER: Record<string, Unterseite[]> = {
+  '/material': [
+    // Anfordern zuerst: das macht der Monteur, und er ist die größte Gruppe.
+    { pfad: 'anfordern', label: 'Anfordern' },
+    { pfad: 'anforderungen', label: 'Anforderungen', roles: ['Verwaltung', ...LEAD] },
+    { pfad: 'lager', label: 'Lager', roles: ['Verwaltung', ...LEAD] },
+  ],
+  '/settings': [
+    // Meldungen zuerst: das Einzige, was jede Rolle hier hat.
+    { pfad: 'meldungen', label: 'Meldungen' },
+    { pfad: 'saetze', label: 'Sätze und Zuschläge', roles: TOP },
+    // Welche Bereiche der Betrieb überhaupt benutzt. Diese Unterseite trägt
+    // bewusst KEIN Modul: wäre die Modulverwaltung selbst abschaltbar, könnte
+    // man sich aussperren und nie wieder hineinkommen.
+    { pfad: 'module', label: 'Module', roles: TOP },
+  ],
+};
+
+/** Die Unterseiten eines Reiters, die diese Rolle sehen darf. */
+export function unterseitenFuer(basis: string, role: Role): Unterseite[] {
+  return (UNTER[basis] ?? []).filter((s) => !s.roles || s.roles.includes(role));
+}
 
 /**
  * Was diese Rolle sehen darf UND was der Betrieb eingeschaltet hat.
@@ -129,13 +167,13 @@ const LEISTE: Record<Role, string[]> = {
   // Der Monteur: Zeit bucht er taeglich, den Plan schaut er morgens, Material
   // fordert er unterwegs an. Der Schein liegt unter „Mehr" — er entsteht am
   // Ende eines Einsatzes und ist von dort aus verlinkt.
-  Mitarbeiter: ['/', '/time', '/my-schedule', '/order'],
+  Mitarbeiter: ['/', '/time', '/my-schedule', '/material'],
   // Das Buero bearbeitet Anforderungen und pflegt Kunden.
-  Verwaltung: ['/', '/admin-orders', '/customers', '/time'],
+  Verwaltung: ['/', '/material', '/customers', '/time'],
   // Die Buchhaltung lebt in den Rechnungen — die standen vorher unter „Mehr".
   Buchhaltung: ['/', '/invoices', '/accounting', '/time'],
   // Die Projektleitung plant und schaut auf Baustellen.
-  Projektleiter: ['/', '/assignments', '/admin-projects', '/admin-orders'],
+  Projektleiter: ['/', '/assignments', '/admin-projects', '/material'],
   Geschäftsführung: ['/', '/assignments', '/admin-projects', '/invoices'],
   Administrator: ['/', '/assignments', '/admin-projects', '/invoices'],
 };

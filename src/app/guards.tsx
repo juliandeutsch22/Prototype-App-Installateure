@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { LoadingState } from '@/components/States';
 import { aktiveModule, modul, type ModulId } from '@/lib/module';
 import { isTopLevel } from '@/lib/permissions';
-import { NAV } from './navigation';
+import { NAV, canAccess } from './navigation';
 import type { Role } from '@/types';
 
 /** Schützt Routen: ohne Anmeldung -> Login. */
@@ -60,7 +60,7 @@ export function RequireModul({ id, children }: { id: ModulId; children: ReactNod
       </p>
       {isTopLevel(user.role) ? (
         <p className="mt-4">
-          <Link to="/modules" className="font-semibold text-brand underline">
+          <Link to="/settings/module" className="font-semibold text-brand underline">
             Unter „Module" wieder einschalten
           </Link>
         </p>
@@ -92,6 +92,9 @@ export function RequireModul({ id, children }: { id: ModulId; children: ReactNod
  * Grenze steht auf dem Server.
  */
 export function RequireNav({ path, children }: { path: string; children: ReactNode }) {
+  const { user, company } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+
   const item = NAV.find((i) => i.path === path);
   // Ein Pfad, den die Navigation nicht kennt, ist ein Tippfehler an der Route.
   // Ihn durchzulassen wäre die gefährlichere Antwort: dann hinge eine Ansicht
@@ -99,6 +102,14 @@ export function RequireNav({ path, children }: { path: string; children: ReactNo
   // schon vor dem Ausliefern ab.
   if (!item) return <RequireRole roles={[]}>{children}</RequireRole>;
 
+  // DIESELBE Frage, die auch die Navigation stellt, bevor sie einen Eintrag
+  // zeigt — buchstäblich dieselbe Funktion. Stünde hier eine zweite
+  // Bedingung, wären wir wieder da, wo wir hergekommen sind.
+  if (canAccess(user.role, path, company?.modules)) return <>{children}</>;
+
+  // Ab hier ist nur noch die Frage, WELCHE Auskunft die richtige ist: liegt
+  // es an der Rolle oder an einer Einstellung des Betriebs? „Kein Zugriff"
+  // wäre bei einem abgeschalteten Modul irreführend.
   const inhalt = <RequireRole roles={item.roles}>{children}</RequireRole>;
   return item.modul ? <RequireModul id={item.modul}>{inhalt}</RequireModul> : inhalt;
 }

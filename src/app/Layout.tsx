@@ -202,7 +202,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
         <div className="mt-4 flex flex-col gap-1 border-t border-line pt-3">
-          <NavLink to="/notifications" onClick={() => setProfilOpen(false)} className={sideLink}>
+          <NavLink to="/settings/meldungen" onClick={() => setProfilOpen(false)} className={sideLink}>
             <Icon name="bell" size={20} className="shrink-0" />
             <span>Benachrichtigungen</span>
           </NavLink>

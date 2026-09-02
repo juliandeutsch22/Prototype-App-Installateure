@@ -647,7 +647,7 @@ export default function DashboardView() {
         <Card
           title={`Material angefordert (${data.openOrders.length})`}
           action={
-            <Link to="/admin-orders" className="text-sm font-semibold text-brand underline">
+            <Link to="/material/anforderungen" className="text-sm font-semibold text-brand underline">
               Bearbeiten
             </Link>
           }
