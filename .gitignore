@@ -42,3 +42,17 @@ serviceAccount*.json
 
 # Aus shared/ erzeugte Kopien — siehe functions/scripts/shared-uebernehmen.mjs
 functions/src/generated
+
+# ProjectAtlas: lokaler Index (SQLite, 32 MB) — gehoert nicht ins Repo.
+# Neu erzeugt mit `projectatlas init`. Die MCP-Konfiguration bleibt dagegen
+# versioniert, damit jeder Agent denselben Einstieg findet.
+.projectatlas/*.db
+.projectatlas/*.db-shm
+.projectatlas/*.db-wal
+.projectatlas/*.lock
+.projectatlas/*.toon
+# Die je Host erzeugten Kopien der MCP-Konfiguration tragen absolute Pfade
+# DIESER Maschine. Versioniert ist nur `.mcp.json`.
+.projectatlas/projectatlas.claude.mcp.json
+.projectatlas/projectatlas.mcp.json
+.projectatlas/projectatlas.opencode.json
