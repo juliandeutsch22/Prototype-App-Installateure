@@ -74,7 +74,11 @@ export default function LoginPage() {
             Vor der Anmeldung ist der Mandant unbekannt, also die Vorgabe. */}
         <div className="border-b-[3px] border-b-accent bg-brand px-6 py-6 text-center">
           <BrandLogo height={52} ignoreCompany alt={PORTAL_NAME} className="mx-auto" />
-          <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-brand-fg/85">
+          {/* Volles Weiss, nicht 85 Prozent: auf dem Telefon im Freien ist der
+              abgedunkelte Text auf dem Blau schlecht zu lesen. `brand-fg` ist
+              die Kontrastfarbe zum Markenband und damit auch dann richtig,
+              wenn sich die Palette einmal aendert. */}
+          <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-brand-fg">
             Mitarbeiter-Portal
           </p>
         </div>
