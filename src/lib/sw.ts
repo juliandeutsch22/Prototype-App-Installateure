@@ -61,6 +61,61 @@ export function serviceWorkerAnmelden(beiNeuerFassung: () => void): void {
       // dann läuft die App wie bisher, nur ohne Vorhalten.
     });
   });
+
+  /**
+   * BEIM ZURUECKKOMMEN NACHSEHEN — der eigentliche Fix.
+   *
+   * Die Prüfung auf eine neue Fassung hing ausschliesslich an einem
+   * SEITENAUFRUF. Auf dem Telefon gibt es den praktisch nie: eine
+   * Startbildschirm-App wird beim Öffnen FORTGESETZT, nicht neu geladen. Die
+   * Prüfung lief also nicht, und der Betrieb blieb auf einer alten Fassung
+   * stehen, bis jemand die App vom Startbildschirm löschte und neu
+   * hinzufügte. Genau so wurde es gemeldet.
+   *
+   * Zwei Dinge auf einmal, weil zwei Dinge veralten können:
+   *   `update()`   — holt einen geänderten Worker selbst.
+   *   die Nachricht — lässt den laufenden Worker die `index.html` vergleichen.
+   */
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    void navigator.serviceWorker.getRegistration().then((reg) => {
+      void reg?.update().catch(() => undefined);
+    });
+    navigator.serviceWorker.controller?.postMessage('aufNeueFassungPruefen');
+  });
+}
+
+/**
+ * Wie lange nach dem Start eine Übernahme noch als „kalt" gilt.
+ *
+ * Der Vergleich mit dem Server braucht eine Netzrunde; auf einer zähen
+ * Verbindung kommt die Antwort erst nach ein paar Sekunden. Wäre das Fenster
+ * zu knapp, käme im Keller wieder die Leiste statt der stillen Übernahme.
+ */
+const KALTSTART_FENSTER_MS = 12_000;
+
+/** Merker gegen eine Schleife aus stillem Übernehmen und Neuladen. */
+const STILL_MERKER = 'perl:stillUebernommen';
+
+/**
+ * Darf JETZT noch still übernommen werden?
+ *
+ * Zwei Bedingungen, und beide müssen gelten: es ist kurz nach dem Start, UND
+ * der Benutzer hat noch nichts angefasst. Die zweite ist die wichtigere — wer
+ * schon tippt, soll nicht mitten im Satz neu geladen werden, auch nicht in
+ * der zweiten Sekunde.
+ */
+export function darfStillUebernehmen(gestartet: number, angefasst: boolean): boolean {
+  if (angefasst) return false;
+  if (Date.now() - gestartet > KALTSTART_FENSTER_MS) return false;
+  try {
+    if (sessionStorage.getItem(STILL_MERKER)) return false;
+    sessionStorage.setItem(STILL_MERKER, '1');
+  } catch {
+    // Privates Fenster: dann lieber fragen als eine Schleife riskieren.
+    return false;
+  }
+  return true;
 }
 
 /** Wie lange auf die Bestätigung des Workers gewartet wird. */
