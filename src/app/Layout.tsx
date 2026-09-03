@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { navGroupsForRole, tabBarForRole } from './navigation';
 import Button from '@/components/Button';
+import { FASSUNG } from '@/lib/fassung';
 import Icon from '@/components/Icon';
 import Avatar from '@/components/Avatar';
 import BrandLogo from '@/components/BrandLogo';
@@ -217,6 +218,15 @@ export default function Layout({ children }: { children: ReactNode }) {
         >
           Abmelden
         </Button>
+        {/*
+          WELCHE FASSUNG LAEUFT HIER. Aus dem Betrieb gemeldet: „keine deiner
+          Aenderungen ist in der App vorhanden." Der Deploy meldete Erfolg,
+          das Telefon zeigte etwas anderes — und niemand konnte nachsehen.
+          Eine Zeile mit Datum und Uhrzeit beendet das Ratespiel.
+        */}
+        <p className="mt-4 border-t border-line pt-3 text-center text-xs text-ink-muted">
+          Fassung {FASSUNG}
+        </p>
       </BottomSheet>
 
     </div>

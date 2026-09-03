@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { darfNeuLaden, istNachladeFehler } from '@/lib/nachladen';
 import { huelleErneuernUndNeuLaden } from '@/lib/sw';
+import { FASSUNG } from '@/lib/fassung';
 
 interface Props {
   children: ReactNode;
@@ -124,6 +125,12 @@ export default class ErrorBoundary extends Component<Props, State> {
             <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">
               {error.message}
             </pre>
+            {/*
+              Die Fassung gehoert in JEDE Fehlermeldung. Ein Bildschirmfoto
+              der Tafel sagt sonst nur, DASS etwas schiefging — nicht, auf
+              welchem Stand. Genau daran ist die letzte Suche haengengeblieben.
+            */}
+            <p className="mt-2">Fassung {FASSUNG}</p>
           </details>
         </div>
       </div>
