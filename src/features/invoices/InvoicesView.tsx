@@ -428,13 +428,17 @@ export default function InvoicesView() {
       */}
       <Card
         title="Buchhaltungs-Export"
-        hint="Ausgegeben wird jede Rechnung, deren RECHNUNGSDATUM im gewählten Zeitraum liegt — nicht das Zahldatum. Stornierte sind mit dabei und als solche gekennzeichnet; sie gehören ins Rechnungsausgangsbuch, sonst fehlt eine Nummer in der Reihe. Die UID kommt aus dem Kundenstamm: fehlt sie dort, bleibt die Spalte leer."
+        hint={
+          'Rechnungsausgangsbuch als CSV — Nummer, Datum, Kunde, UID, Netto, USt, Brutto. ' +
+          'Ausgegeben wird jede Rechnung, deren RECHNUNGSDATUM im Zeitraum liegt, nicht das ' +
+          'Zahldatum. Stornierte sind enthalten und gekennzeichnet, zählen aber nicht in die ' +
+          'Summe — sie gehören ins Ausgangsbuch, sonst fehlt eine Nummer in der Reihe. Die UID ' +
+          'kommt aus dem Kundenstamm; fehlt sie dort, bleibt die Spalte leer. ' +
+          'Das Zielformat mit dem Steuerberater abstimmen: ein geratenes BMD- oder DATEV-Layout ' +
+          'sähe importierbar aus und bucht im Zweifel auf falsche Konten. Deshalb hier ein ' +
+          'dokumentiertes CSV mit allen Feldern, die beide brauchen.'
+        }
       >
-        <p className="text-sm text-ink-muted">
-          Rechnungsausgangsbuch als CSV — mit Nummer, Datum, Kunde, UID, Netto, USt und Brutto.
-          Importierbar in BMD, RZL und DATEV; die Zuordnung zu den Erlöskonten macht die Kanzlei
-          einmal beim Einrichten.
-        </p>
         <FormGrid>
           <InputField
             id="expvon"
@@ -458,9 +462,6 @@ export default function InvoicesView() {
               <p className="mt-3 text-sm text-ink">
                 {e.anzahl} {e.anzahl === 1 ? 'Rechnung' : 'Rechnungen'} · Netto{' '}
                 {fmtEUR(e.summeNetto)} · Brutto {fmtEUR(e.summeBrutto)}
-                <span className="block text-xs text-ink-muted">
-                  Stornierte Rechnungen sind enthalten, zählen aber nicht in die Summe.
-                </span>
               </p>
               {/*
                 Eine Luecke im Nummernkreis ist bei jeder Pruefung ein Befund:
@@ -487,11 +488,6 @@ export default function InvoicesView() {
                   Als CSV herunterladen
                 </Button>
               </div>
-              <p className="mt-2 text-xs text-ink-muted">
-                Das genaue Zielformat mit dem Steuerberater abstimmen. Ein geratenes BMD- oder
-                DATEV-Layout sähe importierbar aus und bucht im Zweifel auf falsche Konten —
-                deshalb hier ein dokumentiertes CSV mit allen Feldern, die beide brauchen.
-              </p>
             </>
           );
         })()}
@@ -581,7 +577,13 @@ export default function InvoicesView() {
       {preview && (
         <Card
           title="Vorschau"
-          hint="Hier ist noch nichts geschrieben. Positionen lassen sich ändern, löschen und ergänzen — eine Rechnung ist selten genau das, was die Zeiterfassung hergibt. Verbindlich wird alles erst mit „Rechnung anlegen“: dann zieht sie ihre Nummer, die Belege werden gesperrt, und beides ist nur noch über einen Storno rückgängig zu machen."
+          hint={
+            'Hier ist noch nichts geschrieben. Positionen lassen sich ändern, löschen und ' +
+            'ergänzen — eine Rechnung ist selten genau das, was die Zeiterfassung hergibt. ' +
+            'Verbindlich wird alles erst mit „Rechnung anlegen“: dann zieht sie ihre Nummer, ' +
+            'die Belege werden gesperrt, und beides ist nur noch über einen Storno rückgängig ' +
+            'zu machen. Material wird über diese App nicht verrechnet.'
+          }
         >
           {/* Positionen sind bearbeitbar, nicht nur ansehbar.
               Eine Rechnung ist selten genau das, was die Zeiterfassung
@@ -758,9 +760,13 @@ export default function InvoicesView() {
             )}
             <CheckboxField id="invdetail" label="Leistungsnachweis anhängen"
               checked={appendDetail} onChange={(e) => setAppendDetail(e.target.checked)} />
+            {/* Die ZAHL bleibt stehen — sie gehört zu dem, was der Knopf gleich
+                tut. Der allgemeine Teil („Material wird nicht verrechnet")
+                steht im „i" der Karte. */}
             <p className="text-sm text-ink-muted">
-              {preview.linkedEntries.length} Zeiteinträge werden als verrechnet gesperrt.
-              Material wird über diese App nicht verrechnet.
+              {preview.linkedEntries.length}{' '}
+              {preview.linkedEntries.length === 1 ? 'Zeiteintrag wird' : 'Zeiteinträge werden'} als
+              verrechnet gesperrt.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button onClick={confirmInvoice} loading={busy} disabled={numberTaken || !invoiceNumber}
@@ -784,7 +790,8 @@ export default function InvoicesView() {
           '(sie darf in der Reihe nicht fehlen) und gibt die verrechneten Stunden und ' +
           'Materialien wieder frei, sodass sie auf eine neue Rechnung können; er lässt sich ' +
           'auch wieder aufheben. Gelöscht werden kann nur eine bereits stornierte Rechnung — ' +
-          'alles andere bleibt in den Büchern.'
+          'alles andere bleibt in den Büchern. Geladen werden die jüngsten Rechnungen; Suche und '
+          + 'Filter gelten für die geladenen — für ältere zuerst nachladen.'
         }
         action={
           <SelectField id="invfilter" label="" className="py-1 text-sm" value={statusFilter}
@@ -907,10 +914,7 @@ export default function InvoicesView() {
             <Button variant="secondary" onClick={() => setGrenze((n) => n + RECHNUNGEN_JE_SEITE)}>
               Ältere Rechnungen laden
             </Button>
-            <span className="text-sm text-ink-muted">
-              Angezeigt werden die {grenze} jüngsten Rechnungen. Suche und Filter gelten für
-              diese.
-            </span>
+            <span className="text-sm text-ink-muted">{grenze} jüngste geladen</span>
           </div>
         )}
       </Card>
