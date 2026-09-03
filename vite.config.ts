@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
@@ -41,10 +41,35 @@ function fassungsKennung(): string {
 }
 
 // https://vitejs.dev/config/
+/**
+ * Die Fassungskennung zusaetzlich als eigene Datei ausliefern.
+ *
+ * WARUM ES DIESE DATEI BRAUCHT, obwohl der Service Worker die `index.html`
+ * schon vergleicht: weil dieser Vergleich IM WORKER laeuft. Haengt der auf
+ * einem alten Stand fest — und genau das war die Ausgangslage —, faellt der
+ * Deploy nie auf, und die App hat keinen zweiten Weg, es zu erfahren.
+ *
+ * `/fassung.txt` ist dieser zweite Weg. Sie liegt nicht unter `/assets/`,
+ * wird vom Worker also nicht angefasst, und die App holt sie mit
+ * `cache: 'no-store'` direkt vom Server. Was dabei zurueckkommt, ist die
+ * Wahrheit ueber den ausgelieferten Stand — unabhaengig davon, was der
+ * Worker glaubt.
+ */
+function fassungsDatei(kennung: string): Plugin {
+  return {
+    name: 'fassung-txt',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'fassung.txt', source: kennung });
+    },
+  };
+}
+
+const KENNUNG = fassungsKennung();
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), fassungsDatei(KENNUNG)],
   define: {
-    __FASSUNG__: JSON.stringify(fassungsKennung()),
+    __FASSUNG__: JSON.stringify(KENNUNG),
   },
   resolve: {
     alias: {

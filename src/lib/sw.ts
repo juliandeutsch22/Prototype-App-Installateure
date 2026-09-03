@@ -179,7 +179,20 @@ export async function neueFassungUebernehmen(): Promise<void> {
     // Ohne Merker bleiben die alten Bausteine eine Fassung länger liegen.
     // Das kostet Speicher und sonst nichts.
   }
-  window.location.reload();
+  /*
+    ERST DIE HUELLE ERNEUERN LASSEN, DANN LADEN — auch hier.
+    
+    Die Meldung kann aus zwei Quellen kommen: vom Worker (dann hat er die
+    neue Hülle schon abgelegt) oder von der App selbst, die beim Server
+    nachgefragt hat (`lib/fassungPruefen.ts`). Im zweiten Fall weiß der
+    Worker unter Umständen noch von nichts, und ein sofortiges Laden holte
+    die alte Hülle. Ein Weg für beide Quellen ist der einzige, der in beiden
+    Fällen richtig ist.
+
+    Gelöscht wird dabei NICHTS — deshalb ist es unschädlich, dass die alte
+    Seite noch bis zu zwei Sekunden weiterläuft.
+  */
+  await huelleErneuernUndNeuLaden();
 }
 
 /**

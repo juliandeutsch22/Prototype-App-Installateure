@@ -4,6 +4,7 @@ import {
   neueFassungUebernehmen,
   darfStillUebernehmen,
 } from '@/lib/sw';
+import { fassungBeobachten } from '@/lib/fassungPruefen';
 import Button from './Button';
 
 /**
@@ -49,15 +50,31 @@ export default function NeueFassung() {
       window.addEventListener(art, merken, { once: true, passive: true });
     }
 
-    serviceWorkerAnmelden(() => {
+    /**
+     * ZWEI QUELLEN FÜR DIESELBE NACHRICHT, und das ist Absicht.
+     *
+     * Der Service Worker vergleicht die `index.html` — das setzt voraus,
+     * dass er selbst aktuell ist und sein Vergleich läuft. Hängt er auf
+     * einem alten Stand fest, erfährt die App nie etwas. Genau das war die
+     * Ausgangslage auf dem Telefon.
+     *
+     * Deshalb fragt die App zusätzlich SELBST beim Server nach
+     * (`lib/fassungPruefen.ts`) — ohne Worker, ohne Zwischenspeicher. Meldet
+     * sich einer von beiden, wird gehandelt.
+     */
+    const melden = () => {
       if (darfStillUebernehmen(gestartet.current, angefasst.current)) {
         void neueFassungUebernehmen();
         return;
       }
       setBereit(true);
-    });
+    };
+
+    serviceWorkerAnmelden(melden);
+    const abmelden = fassungBeobachten(melden);
 
     return () => {
+      abmelden();
       for (const art of ['pointerdown', 'keydown'] as const) {
         window.removeEventListener(art, merken);
       }
