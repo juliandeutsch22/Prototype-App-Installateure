@@ -443,12 +443,20 @@ export default function TimeForm({
                 Ab dem zweiten Mal ist das Rauschen; deshalb ins „i".
               */}
               <div className="flex flex-wrap items-center gap-2">
-                <CheckboxField
-                  id="erweitert"
-                  label="Erweiterte Erfassung (Baustelle, Wegzeit, Fahrzeug, Zuschläge)"
-                  checked={erweitert}
-                  onChange={(e) => setErweitert(e.target.checked)}
-                />
+                {/*
+                  `min-w-0 flex-1` um die Beschriftung, nicht ohne: gemessen
+                  auf 390 px rutschte das „i" sonst auf eine eigene Zeile
+                  (102 px statt 74 px), weil die lange Beschriftung als
+                  Flex-Element ihre volle Breite beanspruchte.
+                */}
+                <div className="min-w-0 flex-1">
+                  <CheckboxField
+                    id="erweitert"
+                    label="Erweiterte Erfassung (Baustelle, Wegzeit, Fahrzeug, Zuschläge)"
+                    checked={erweitert}
+                    onChange={(e) => setErweitert(e.target.checked)}
+                  />
+                </div>
                 <InfoHint about="erweiterte Erfassung">
                   Für Notdienste und Einsätze auf der Baustelle. Ohne diese Angaben zählt die Zeit
                   nicht ins Baustellenbudget und erscheint auf keiner Rechnung.
