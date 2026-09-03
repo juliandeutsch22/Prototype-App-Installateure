@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
-import type { AppUser, Assignment, Project, Vacation } from '@/types';
+import type { AppUser, Assignment, EinsatzMaterial, Material, Project, Vacation } from '@/types';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
 
 /**
@@ -69,6 +69,43 @@ vi.mock('@/lib/db/assignments', () => ({
   },
 }));
 
+const MATERIAL: (Material & { id: string })[] = [
+  { id: 'm1', companyId: 'perl', name: 'Eckventil 1/2', category: 'Armaturen', stock: 10, unit: 'Stk' } as Material & { id: string },
+  { id: 'm2', companyId: 'perl', name: 'Mischbatterie', category: 'Armaturen', stock: 1, unit: 'Stk' } as Material & { id: string },
+];
+
+let ruestlisten: (EinsatzMaterial & { id: string })[] = [];
+const ruestSpeichern = vi.fn();
+const anforderungAnlegen = vi.fn();
+
+vi.mock('@/lib/db/materials', () => ({
+  subscribeMaterials: (_c: string, cb: (r: (Material & { id: string })[]) => void) => {
+    cb(MATERIAL);
+    return () => undefined;
+  },
+  LOW_STOCK_THRESHOLD: 3,
+}));
+vi.mock('@/lib/db/materialOrders', () => ({
+  createMaterialOrder: (...a: unknown[]) => {
+    anforderungAnlegen(...a);
+    return Promise.resolve();
+  },
+}));
+vi.mock('@/lib/db/einsatzMaterial', () => ({
+  subscribeEinsatzMaterialForDate: (
+    _c: string,
+    _d: string,
+    cb: (r: (EinsatzMaterial & { id: string })[]) => void,
+  ) => {
+    cb(ruestlisten);
+    return () => undefined;
+  },
+  saveEinsatzMaterial: (...a: unknown[]) => {
+    ruestSpeichern(...a);
+    return Promise.resolve();
+  },
+}));
+
 const authWert = {
   user: { uid: 'pl', companyId: 'perl', name: 'Planer', role: 'Projektleiter' as const },
   company: { id: 'perl', name: 'Perl Installationen' },
@@ -88,9 +125,12 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   einsaetze = [];
   urlaube = [];
+  ruestlisten = [];
   ladefehler = false;
   speichere.mockClear();
   loesche.mockClear();
+  ruestSpeichern.mockClear();
+  anforderungAnlegen.mockClear();
 });
 
 afterEach(() => {
@@ -315,5 +355,139 @@ describe('Einsatzplanung — wen habe ich vergessen', () => {
     zeige();
     await screen.findByText('Keine Einsätze an diesem Tag.');
     expect(screen.queryByText(/Noch nicht eingeteilt/)).toBeNull();
+  });
+});
+
+describe('Einsatzplanung — Rüstliste', () => {
+  /**
+   * Die Liste sagt „nimm das mit", nicht „das muss besorgt werden". Sie darf
+   * deshalb weder den Lagerstand bewegen noch von selbst eine Anforderung
+   * auslösen: die Verwaltung bekäme eine Arbeitsliste voller Dinge, die im
+   * Regal stehen, und der Bestand würde zweimal abgezogen.
+   */
+  async function baustelleWaehlen() {
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: /Baustelle/ }),
+      '2026-042',
+    );
+  }
+
+  it('nimmt einen Artikel aus dem Lager auf und speichert ihn', async () => {
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann',
+      } as Assignment & { id: string },
+    ];
+    zeige();
+    await baustelleWaehlen();
+
+    await userEvent.type(
+      await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }),
+      'Eckventil',
+    );
+    await userEvent.click(await screen.findByRole('button', { name: /Eckventil 1\/2 auf die Rüstliste/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Rüstliste speichern' }));
+
+    await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+    const [, datum, baustelle, positionen, uids] = ruestSpeichern.mock.calls[0];
+    expect(datum).toBe(HEUTE);
+    expect(baustelle).toBe('2026-042');
+    expect(positionen).toHaveLength(1);
+    expect(positionen[0]).toMatchObject({ materialId: 'm1', name: 'Eckventil 1/2', menge: 1 });
+    // `uids` kommt aus der GESPEICHERTEN Einteilung — an ihm hängt die Regel,
+    // die entscheidet, wer abhaken darf.
+    expect(uids).toEqual(['u1']);
+  });
+
+  it('übernimmt eine vorhandene Liste ins Formular', async () => {
+    /**
+     * DERSELBE GEFÄHRLICHE FALL WIE BEI DER MANNSCHAFT. Startete das Formular
+     * leer, hätte ein Speichern die geplante Liste gelöscht — und der Monteur
+     * führe am nächsten Morgen ohne Material los.
+     */
+    ruestlisten = [
+      {
+        id: 'perl_2026-09-01_2026-042', companyId: 'perl', date: HEUTE,
+        projectNumber: '2026-042', uids: ['u1'],
+        positionen: [{ id: 'p1', materialId: 'm1', name: 'Eckventil 1/2', menge: 4 }],
+      } as EinsatzMaterial & { id: string },
+    ];
+    zeige();
+    await baustelleWaehlen();
+
+    expect(await screen.findByDisplayValue('4')).toBeInTheDocument();
+    expect(screen.getByText('Eckventil 1/2')).toBeInTheDocument();
+  });
+
+  it('meldet eine Unterdeckung und legt NUR auf Tipp eine Anforderung an', async () => {
+    /**
+     * Nie von selbst: der Planer weiß vielleicht, dass morgen eine Lieferung
+     * kommt oder das Teil schon im Bus liegt. Eine Schreibung in die
+     * Arbeitsliste eines anderen, auf Grundlage einer Vermutung, ist genau
+     * die Sorte Funktion, die das Vertrauen in die App kostet.
+     */
+    zeige();
+    await baustelleWaehlen();
+    await userEvent.type(
+      await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }),
+      'Mischbatterie',
+    );
+    await userEvent.click(await screen.findByRole('button', { name: /Mischbatterie auf die Rüstliste/ }));
+
+    // Lager hat 1 — bei Menge 3 fehlen 2.
+    const menge = screen.getByRole('spinbutton', { name: 'Menge' });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '3');
+
+    expect(await screen.findByText(/Im Lager fehlen/)).toBeInTheDocument();
+    expect(anforderungAnlegen).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: /Anforderung über 2 anlegen/ }));
+    await waitFor(() => expect(anforderungAnlegen).toHaveBeenCalled());
+    expect(anforderungAnlegen.mock.calls[0][1]).toMatchObject({
+      materialName: 'Mischbatterie',
+      quantity: 2,
+      projectNumber: '2026-042',
+      transactionType: 'order',
+      status: 'Offen',
+    });
+  });
+
+  it('meldet KEINE Unterdeckung bei einer freien Zeile', async () => {
+    // Eine freie Zeile („Leihgerät Kernbohrer") hat keinen Lagerstand.
+    // „0 von 1 vorhanden" wäre dort eine Falschaussage statt einer Warnung.
+    zeige();
+    await baustelleWaehlen();
+    await userEvent.type(
+      await screen.findByRole('textbox', { name: /Freie Zeile/ }),
+      'Leihgerät Kernbohrer',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+    expect(await screen.findByText('Leihgerät Kernbohrer')).toBeInTheDocument();
+    expect(screen.queryByText(/Im Lager fehlen/)).toBeNull();
+  });
+
+  it('sagt es, wenn noch niemand eingeteilt ist', async () => {
+    // Ohne Einteilung kennt die Sicherheitsregel niemanden — abhaken kann
+    // dann keiner. Das ist eine Reihenfolge, kein Fehler, und es gehört
+    // gesagt, bevor sich jemand wundert.
+    zeige();
+    await baustelleWaehlen();
+    await userEvent.type(
+      await screen.findByRole('textbox', { name: /Freie Zeile/ }),
+      'Dichtungen',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+    expect(await screen.findByText(/noch niemand eingeteilt/)).toBeInTheDocument();
+  });
+
+  it('zeigt ohne gewählte Baustelle gar keine Rüstliste', async () => {
+    // Eine Rüstliste ohne Baustelle gehört zu nichts.
+    zeige();
+    await screen.findByRole('combobox', { name: /Baustelle/ });
+    expect(screen.queryByText('Material für diesen Einsatz')).toBeNull();
   });
 });
