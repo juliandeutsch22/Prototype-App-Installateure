@@ -7,6 +7,16 @@ export interface PickablePerson {
   name: string;
   /** Zusatz in der Zeile, z. B. die Rolle. */
   hint?: string;
+  /**
+   * Diese Person ist an diesem Tag NICHT frei (Urlaub, schon eingeteilt).
+   *
+   * Sie bleibt waehlbar — verboten wird hier nichts. Sie rutscht nur nach
+   * unten und laesst sich ausblenden. Setzt die Aufrufstelle das Feld
+   * nirgends, verhaelt sich die Liste unveraendert: alle sind gleich, die
+   * stabile Sortierung laesst die Reihenfolge, und der Filter erscheint gar
+   * nicht erst.
+   */
+  nichtFrei?: boolean;
 }
 
 interface PersonPickerProps {
@@ -52,7 +62,12 @@ export default function PersonPicker({
   searchFrom = 8,
 }: PersonPickerProps) {
   const [q, setQ] = useState('');
+  const [nurFreie, setNurFreie] = useState(false);
   const suchId = useId();
+  const filterId = useId();
+
+  /** Gibt es ueberhaupt jemanden, der nicht frei ist? Sonst kein Filter. */
+  const belegte = useMemo(() => people.filter((p) => p.nichtFrei).length, [people]);
 
   const gewaehlt = useMemo(
     () => selected.map((uid) => people.find((p) => p.uid === uid)).filter(Boolean) as PickablePerson[],
@@ -61,9 +76,23 @@ export default function PersonPicker({
 
   const sichtbar = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return people;
-    return people.filter((p) => p.name.toLowerCase().includes(s));
-  }, [people, q]);
+    let liste = s ? people.filter((p) => p.name.toLowerCase().includes(s)) : people;
+
+    /*
+      Wer schon gewaehlt ist, bleibt SICHTBAR — auch wenn der Filter ihn
+      sonst ausblenden wuerde. Sonst verschwindet ein gesetzter Haken aus der
+      Liste, und der naechste Blick sagt: der ist gar nicht eingeteilt.
+    */
+    if (nurFreie) liste = liste.filter((p) => !p.nichtFrei || selected.includes(p.uid));
+
+    /*
+      Freie zuerst. Die Sortierung ist STABIL (ES2019), innerhalb der Gruppen
+      bleibt die Reihenfolge der Aufrufstelle also erhalten — bei ihr liegt
+      die Sortierung nach Namen. Ohne `nichtFrei` sind alle gleich und es
+      aendert sich nichts.
+    */
+    return [...liste].sort((a, b) => Number(!!a.nichtFrei) - Number(!!b.nichtFrei));
+  }, [people, q, nurFreie, selected]);
 
   function umschalten(uid: string, an: boolean) {
     onChange(an ? [...selected, uid] : selected.filter((x) => x !== uid));
@@ -104,6 +133,33 @@ export default function PersonPicker({
             </div>
           )}
 
+          {/*
+            DIE FRAGE, MIT DER JEMAND IN DIESE ANSICHT GEHT, ist nicht „wo
+            steht Herr Maier", sondern „wer ist an diesem Tag ueberhaupt noch
+            frei". Bei drei Monteuren sieht man das; bei zwanzig muss man
+            Namen fuer Namen die Hinweise lesen. Deshalb der Schalter — und
+            deshalb nur dann, wenn es tatsaechlich jemanden gibt, der nicht
+            frei ist.
+          */}
+          {belegte > 0 && (
+            <label
+              htmlFor={filterId}
+              className="mt-2 flex min-h-touch cursor-pointer items-center gap-3 text-sm text-ink"
+            >
+              <input
+                id={filterId}
+                type="checkbox"
+                checked={nurFreie}
+                onChange={(e) => setNurFreie(e.target.checked)}
+                className="h-5 w-5 shrink-0 rounded border-line text-brand focus:ring-brand"
+              />
+              Nur freie anzeigen
+              <span className="text-ink-muted">
+                ({belegte} {belegte === 1 ? 'ist' : 'sind'} an diesem Tag belegt)
+              </span>
+            </label>
+          )}
+
           {people.length >= searchFrom && (
             <div className="mt-2">
               <label htmlFor={suchId} className="sr-only">
@@ -125,7 +181,11 @@ export default function PersonPicker({
           <div className="mt-2 max-h-64 overflow-y-auto rounded border border-line">
             {sichtbar.length === 0 ? (
               <p className="px-3 py-3 text-sm text-ink-muted">
-                Kein Name passt zu „{q}".
+                {/* Warum die Liste leer ist, muss dabeistehen: sonst sieht ein
+                    gesetzter Filter aus wie „niemand vorhanden". */}
+                {q.trim()
+                  ? `Kein Name passt zu „${q}".`
+                  : 'Niemand ist an diesem Tag frei. Der Filter blendet die Belegten aus.'}
               </p>
             ) : (
               <ul className="divide-y divide-line">

@@ -109,6 +109,8 @@ const projekte = await import('@/lib/db/projects');
 const angeboteDb = await import('@/lib/db/quotes');
 const rechnungenDb = await import('@/lib/db/invoices');
 const scheineDb = await import('@/lib/db/workSheets');
+const einsaetzeDb = await import('@/lib/db/assignments');
+const ruestDb = await import('@/lib/db/einsatzMaterial');
 const urlaubeDb = await import('@/lib/db/vacations');
 const { calcOverallSaldo, offeneWerktage, urlaubsTage, calcWorkMin } = await import('@/lib/time');
 const { rechneBaustelle } = await import('@/features/costing/nachkalkulation');
@@ -489,5 +491,130 @@ describe('Durchstich 4: der Schein ist nach der Unterschrift zu', () => {
     // Geloescht wird nie: ein spurlos verschwundener Beleg waere schlimmer
     // als ein falscher.
     expect(nachher.exists()).toBe(true);
+  });
+});
+
+/**
+ * Durchstich 5: von der geplanten Rüstliste bis zum Haken im Bus.
+ *
+ * DIE NAHT, DIE HIER GEPRÜFT WIRD, ist eine Sicherheitsnaht. Die Regel, die
+ * dem Monteur das Abhaken erlaubt, hängt an einem Feld (`uids`), das eine
+ * ANDERE Funktion schreibt — die Einteilung. Beide Seiten für sich sind
+ * plausibel; läuft das Feld auseinander, sieht der Monteur die Liste und
+ * kommt beim Antippen nicht durch. Das fiele weder den Rules-Tests auf
+ * (die setzen `uids` selbst) noch den Ansichtstests (dort ist die Datenbank
+ * ersetzt).
+ *
+ * Und ein zweiter Weg, der leicht falsch wird: streicht die Planung eine
+ * Position, muss ihr Haken mitgehen. Sonst bleibt eine Markierung liegen,
+ * die zu nichts mehr gehört und beim nächsten Speichern mitwandert.
+ */
+describe('Durchstich 5: Rüstliste — geplant, gesehen, eingeladen', () => {
+  const TAG = '2026-06-18';
+  const BAUSTELLE = 'B-2026-0001';
+
+  async function einteilenMitMaterial(uids: string[], positionen: { id: string; name: string; menge: number }[]) {
+    aktuelleDb = alsGF();
+    await einsaetzeDb.saveAssignments(
+      FIRMA,
+      TAG,
+      BAUSTELLE,
+      uids.map((uid) => ({ date: TAG, projectNumber: BAUSTELLE, userId: uid, userName: uid })),
+    );
+    await ruestDb.saveEinsatzMaterial(FIRMA, TAG, BAUSTELLE, positionen, uids, 'chef');
+  }
+
+  it('der eingeteilte Monteur sieht die Liste und hakt sie ab', async () => {
+    await einteilenMitMaterial([MONTEUR], [
+      { id: 'p1', name: 'Eckventil', menge: 3 },
+      { id: 'p2', name: 'Mischbatterie', menge: 1 },
+    ]);
+
+    aktuelleDb = alsMonteur();
+    const liste = await ruestDb.getEinsatzMaterial(FIRMA, TAG, BAUSTELLE);
+    expect(liste?.positionen).toHaveLength(2);
+
+    await ruestDb.ladenUmschalten(FIRMA, TAG, BAUSTELLE, 'p1', true, 'Max Mustermann');
+    const nachher = await ruestDb.getEinsatzMaterial(FIRMA, TAG, BAUSTELLE);
+    expect(nachher?.geladen?.p1?.von).toBe('Max Mustermann');
+    expect(nachher?.geladen?.p2).toBeUndefined();
+
+    // Und wieder zurück — ein Haken, den man nicht lösen kann, ist eine Falle.
+    await ruestDb.ladenUmschalten(FIRMA, TAG, BAUSTELLE, 'p1', false, 'Max Mustermann');
+    expect((await ruestDb.getEinsatzMaterial(FIRMA, TAG, BAUSTELLE))?.geladen?.p1).toBeUndefined();
+  });
+
+  it('wer NICHT eingeteilt ist, kommt nicht durch', async () => {
+    await einteilenMitMaterial(['jemand-anderer'], [{ id: 'p1', name: 'Eckventil', menge: 3 }]);
+
+    aktuelleDb = alsMonteur();
+    // Sehen darf er sie — er ist in derselben Firma. Anfassen nicht.
+    expect(await ruestDb.getEinsatzMaterial(FIRMA, TAG, BAUSTELLE)).not.toBeNull();
+    await expect(
+      ruestDb.ladenUmschalten(FIRMA, TAG, BAUSTELLE, 'p1', true, 'Max'),
+    ).rejects.toThrow();
+  });
+
+  it('kommt jemand nachträglich dazu, darf er sofort abhaken', async () => {
+    /**
+     * DIE NAHT. `saveAssignments` zieht `uids` an der Rüstliste nach — im
+     * selben Batch. Täte es das nicht, sähe der neue Kollege das Material
+     * und käme beim Antippen nicht durch: die Regel kennt ihn nicht.
+     */
+    await einteilenMitMaterial(['jemand-anderer'], [{ id: 'p1', name: 'Eckventil', menge: 3 }]);
+
+    aktuelleDb = alsGF();
+    await einsaetzeDb.saveAssignments(FIRMA, TAG, BAUSTELLE, [
+      { date: TAG, projectNumber: BAUSTELLE, userId: 'jemand-anderer', userName: 'X' },
+      { date: TAG, projectNumber: BAUSTELLE, userId: MONTEUR, userName: 'Max' },
+    ]);
+
+    aktuelleDb = alsMonteur();
+    await expect(
+      ruestDb.ladenUmschalten(FIRMA, TAG, BAUSTELLE, 'p1', true, 'Max'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('streicht die Planung eine Position, geht ihr Haken mit', async () => {
+    await einteilenMitMaterial([MONTEUR], [
+      { id: 'p1', name: 'Eckventil', menge: 3 },
+      { id: 'p2', name: 'Mischbatterie', menge: 1 },
+    ]);
+    aktuelleDb = alsMonteur();
+    await ruestDb.ladenUmschalten(FIRMA, TAG, BAUSTELLE, 'p1', true, 'Max');
+    await ruestDb.ladenUmschalten(FIRMA, TAG, BAUSTELLE, 'p2', true, 'Max');
+
+    aktuelleDb = alsGF();
+    await ruestDb.saveEinsatzMaterial(
+      FIRMA, TAG, BAUSTELLE,
+      [{ id: 'p2', name: 'Mischbatterie', menge: 1 }],
+      [MONTEUR], 'chef',
+    );
+
+    const nachher = await ruestDb.getEinsatzMaterial(FIRMA, TAG, BAUSTELLE);
+    expect(nachher?.geladen?.p1).toBeUndefined();
+    // Der Haken der GEBLIEBENEN Position bleibt — sonst müsste der Monteur
+    // nach jeder Planungsänderung noch einmal von vorn einladen.
+    expect(nachher?.geladen?.p2?.von).toBe('Max');
+  });
+
+  it('eine leer geräumte Liste verschwindet, statt leer liegenzubleiben', async () => {
+    await einteilenMitMaterial([MONTEUR], [{ id: 'p1', name: 'Eckventil', menge: 3 }]);
+    aktuelleDb = alsGF();
+    await ruestDb.saveEinsatzMaterial(FIRMA, TAG, BAUSTELLE, [], [MONTEUR], 'chef');
+    expect(await ruestDb.getEinsatzMaterial(FIRMA, TAG, BAUSTELLE)).toBeNull();
+  });
+
+  it('die Kennung übersteht eine Baustellennummer mit Schrägstrich', async () => {
+    // Baustellennummern werden von Hand vergeben. Ein Schrägstrich wäre in
+    // einer Firestore-Kennung ein Pfadtrenner — das Schreiben schlüge fehl,
+    // und zwar erst im Betrieb.
+    const KRUMM = '2026/042';
+    aktuelleDb = alsGF();
+    await ruestDb.saveEinsatzMaterial(
+      FIRMA, TAG, KRUMM, [{ id: 'p1', name: 'Rohr', menge: 2 }], [MONTEUR], 'chef',
+    );
+    const liste = await ruestDb.getEinsatzMaterial(FIRMA, TAG, KRUMM);
+    expect(liste?.projectNumber).toBe(KRUMM);
   });
 });

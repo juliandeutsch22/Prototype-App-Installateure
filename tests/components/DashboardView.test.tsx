@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Assignment, MaterialOrder, Project, TimeEntry } from '@/types';
 
@@ -136,6 +137,17 @@ vi.mock('@/lib/db/invoices', () => ({
   listUnpaidInvoices: vi.fn(async () => []),
 }));
 
+/** Die Rüstliste zur ersten Baustelle — Material, das mitkommen soll. */
+const ruestlisten: { wert: unknown[] } = { wert: [] };
+const umschalten = vi.fn();
+vi.mock('@/lib/db/einsatzMaterial', () => ({
+  listEinsatzMaterialForDate: vi.fn(async () => ruestlisten.wert),
+  ladenUmschalten: (...a: unknown[]) => {
+    umschalten(...a);
+    return Promise.resolve();
+  },
+}));
+
 // EIN Objekt, nicht bei jedem Aufruf ein neues: die Ansicht hängt ihre
 // Effekte an die Identität von `user`, ein frisches Objekt je Aufruf löst
 // eine Endlosschleife aus.
@@ -265,5 +277,79 @@ describe('Startseite — Geschäftsführung', () => {
     expect(within(karte).getByText(/Familie Huber/)).toBeInTheDocument();
     expect(within(karte).getByText(/Gemeinde Neudorf/)).toBeInTheDocument();
     expect(within(karte).getAllByText('Anton Berger')).toHaveLength(2);
+  });
+});
+
+describe('Startseite — was der Monteur heute mitnehmen soll', () => {
+  /**
+   * Die Rüstliste am Einsatztag. Sie ist der Grund, warum die Planung sie
+   * überhaupt erfasst: der Monteur steht morgens vor dem Lager und muss
+   * wissen, was in den Bus kommt.
+   *
+   * DER HAKEN GILT FÜR DIE MANNSCHAFT, nicht für die Person — deshalb steht
+   * der Name dabei. Wenn Max die Kiste eingeladen hat, soll Tom sie nicht
+   * ein zweites Mal suchen.
+   */
+  beforeEach(() => {
+    rolle.wert = 'Mitarbeiter';
+    umschalten.mockClear();
+    ruestlisten.wert = [
+      {
+        id: 'perl_2026-09-15_B-001',
+        companyId: 'perl',
+        date: HEUTE,
+        projectNumber: 'B-001',
+        uids: ['m1'],
+        positionen: [
+          { id: 'p1', name: 'Eckventil 1/2', menge: 3, einheit: 'Stk' },
+          { id: 'p2', name: 'Mischbatterie', menge: 1 },
+        ],
+        geladen: { p2: { von: 'Erna Beispiel', am: 1750000000000 } },
+      },
+    ];
+  });
+
+  afterEach(() => {
+    ruestlisten.wert = [];
+  });
+
+  it('zeigt die Liste am Einsatz, mit Menge und Einheit', async () => {
+    zeichne();
+    const material = (await screen.findByText('Material')).closest('div')!;
+    expect(within(material).getByText(/Eckventil 1\/2/)).toBeInTheDocument();
+    expect(within(material).getByText(/3/)).toBeInTheDocument();
+    expect(within(material).getByText(/noch 1 von 2/)).toBeInTheDocument();
+  });
+
+  it('nennt, WER etwas schon eingeladen hat', async () => {
+    // Ohne den Namen sucht der Zweite dieselbe Kiste noch einmal.
+    zeichne();
+    expect(await screen.findByText(/eingeladen von Erna Beispiel/)).toBeInTheDocument();
+  });
+
+  it('hakt ab und schreibt genau diese eine Position', async () => {
+    zeichne();
+    const kaestchen = await screen.findByRole('checkbox', { name: /Eckventil/ });
+    expect(kaestchen).not.toBeChecked();
+
+    await userEvent.click(kaestchen);
+
+    // Sofort umgesprungen — auf der Baustelle wird ein Kästchen, das nicht
+    // reagiert, ein zweites Mal angetippt.
+    expect(kaestchen).toBeChecked();
+    await waitFor(() => expect(umschalten).toHaveBeenCalled());
+    const [, datum, baustelle, positionId, an] = umschalten.mock.calls[0];
+    expect(datum).toBe(HEUTE);
+    expect(baustelle).toBe('B-001');
+    expect(positionId).toBe('p1');
+    expect(an).toBe(true);
+  });
+
+  it('zeigt an der Baustelle OHNE Liste auch keine', async () => {
+    // Die zweite Baustelle hat keine Rüstliste. Ein leerer Materialblock
+    // dort sähe aus wie „nichts mitzunehmen" statt „nichts geplant".
+    zeichne();
+    await screen.findByText('Material');
+    expect(screen.getAllByText('Material')).toHaveLength(1);
   });
 });

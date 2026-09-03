@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Assignment } from '@/types';
+import { getEinsatzMaterial } from './einsatzMaterial';
 import { queryTenant, subscribeTenant, type WithId } from './core';
 
 const COLLECTION = 'assignments';
@@ -125,6 +126,24 @@ export async function saveAssignments(
     ),
   );
 
+  /**
+   * Die Rüstliste dieses Einsatzes muss wissen, WER eingeteilt ist.
+   *
+   * Nicht aus Bequemlichkeit: an dieser Liste von Kennungen hängt die
+   * Sicherheitsregel, die entscheidet, ob ein Monteur eine Position abhaken
+   * darf. Die Kennungen der Einsätze sind zufällig, eine Regel könnte die
+   * Einteilung also gar nicht nachschlagen (siehe `firestore.rules`).
+   *
+   * IM SELBEN BATCH, nicht danach. Bräche die Verbindung dazwischen ab —
+   * auf der Baustelle keine Seltenheit —, wäre die Mannschaft geändert und
+   * die Liste dächte weiter, es sei die alte: der neue Kollege sähe das
+   * Material und käme beim Antippen nicht durch.
+   *
+   * ANGELEGT WIRD HIER NICHTS. Gibt es keine Rüstliste, gibt es auch nichts
+   * nachzuziehen; ein leeres Materialdokument je Einsatz wäre Ballast.
+   */
+  const vorhandeneListe = await getEinsatzMaterial(companyId, date, projectNumber);
+
   const batch = writeBatch(db);
   for (const d of existing.docs) batch.delete(d.ref);
   for (const r of rows) {
@@ -134,9 +153,34 @@ export async function saveAssignments(
       createdAt: serverTimestamp(),
     });
   }
+  if (vorhandeneListe) {
+    batch.update(doc(db, 'einsatzMaterial', vorhandeneListe.id), {
+      uids: rows.map((r) => r.userId),
+      updatedAt: serverTimestamp(),
+    });
+  }
   await batch.commit();
 }
 
+/**
+ * Einen einzelnen Einsatz entfernen.
+ *
+ * WAS HIER BEWUSST NICHT PASSIERT: `uids` an der Ruestliste schrumpft nicht
+ * mit. Wer hier entfernt wird, steht dort also weiter — und duerfte nach den
+ * Regeln noch abhaken.
+ *
+ * Warum das vertretbar ist: den Weg dorthin gibt es in der App nicht mehr.
+ * Ohne Einsatz erscheint die Baustelle auf seiner Startseite nicht, es gibt
+ * also nichts anzutippen. Bliebe ein direkter Zugriff unter Umgehung der
+ * Oberflaeche — und der koennte an einer Liste, auf der er an diesem Tag
+ * tatsaechlich stand, einen Haken setzen oder loesen. Das ist sichtbar (der
+ * Name steht daneben) und in einem Tipp zurueckzunehmen.
+ *
+ * Der saubere Weg waere, die verbliebene Mannschaft neu zu berechnen. Das
+ * hiesse eine zusaetzliche Abfrage je Loeschung und eine geaenderte
+ * Signatur an einer Funktion, die heute richtig arbeitet. Beim naechsten
+ * Speichern der Einteilung steht `uids` ohnehin wieder richtig.
+ */
 export function deleteAssignment(id: string) {
   return deleteDoc(doc(db, COLLECTION, id));
 }

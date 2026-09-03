@@ -8,7 +8,9 @@ import {
 import { listProjectsByNumbers } from '@/lib/db/projects';
 import { listOwnVacations } from '@/lib/db/vacations';
 import { useModul } from '@/lib/useModule';
-import type { Assignment, Project, Vacation } from '@/types';
+import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
+import RuestlisteAbhaken from './RuestlisteAbhaken';
+import type { Assignment, Project, Vacation, EinsatzMaterial } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
@@ -41,6 +43,7 @@ export default function MyScheduleView() {
   // die Meldung „ist ausgeschaltet" ist eine Sackgasse.
   const scheineAn = useModul('scheine');
   const urlaubAn = useModul('urlaub');
+  const materialAn = useModul('material');
   const [rows, setRows] = useState<Assignment[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,6 +151,35 @@ export default function MyScheduleView() {
     () => rows.filter((a) => a.date === selected),
     [rows, selected],
   );
+
+  /**
+   * Die Rüstlisten des gewählten Tages.
+   *
+   * AUCH FÜR KOMMENDE TAGE, nicht nur für heute: den Bus lädt man am
+   * Vorabend. Wer erst am Einsatzmorgen erfährt, was mitzunehmen ist, steht
+   * um sieben vor einem Lager, in dem etwas fehlt.
+   *
+   * Ein Fehlschlag bleibt folgenlos — die Einteilung ist die Aufgabe dieser
+   * Ansicht, das Material die Zugabe.
+   */
+  const [ruestlisten, setRuestlisten] = useState<WithId<EinsatzMaterial>[]>([]);
+  useEffect(() => {
+    if (!user || !materialAn) {
+      setRuestlisten([]);
+      return;
+    }
+    let verworfen = false;
+    listEinsatzMaterialForDate(user.companyId, selected)
+      .then((r) => {
+        if (!verworfen) setRuestlisten(r);
+      })
+      .catch(() => {
+        if (!verworfen) setRuestlisten([]);
+      });
+    return () => {
+      verworfen = true;
+    };
+  }, [user, selected, materialAn]);
 
   /** Fällt der gewählte Tag in einen eigenen Urlaub — und ist er entschieden? */
   const urlaubAmTag = useMemo(
@@ -272,6 +304,22 @@ export default function MyScheduleView() {
                           </span>
                         </div>
                         {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
+
+                        {/* Was mitzunehmen ist — abhakbar, auch am Vorabend. */}
+                        {(() => {
+                          const liste = ruestlisten.find(
+                            (l) => l.projectNumber === a.projectNumber,
+                          );
+                          if (!materialAn || !liste?.positionen?.length) return null;
+                          return (
+                            <RuestlisteAbhaken
+                              date={a.date}
+                              projectNumber={a.projectNumber}
+                              positionen={liste.positionen}
+                              geladen={liste.geladen ?? {}}
+                            />
+                          );
+                        })()}
 
 
                         <div className="mt-3 flex flex-wrap gap-2">

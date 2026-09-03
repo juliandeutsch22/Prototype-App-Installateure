@@ -28,6 +28,10 @@ export const EXPORTABLE = [
   'userPrefs',
   'projects',
   'assignments',
+  // Die Ruestlisten zu den Einsaetzen. Sie tragen fest, was an einem Tag auf
+  // eine Baustelle mitgenommen werden sollte und wer es eingeladen hat — bei
+  // einer Rueckfrage Wochen spaeter ist das der einzige Beleg dafuer.
+  'einsatzMaterial',
   'materials',
   'materialOrders',
   'timeEntries',

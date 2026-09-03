@@ -162,6 +162,7 @@ const urlaube = await import('@/lib/db/vacations');
 const rechnungen = await import('@/lib/db/invoices');
 const material = await import('@/lib/db/materials');
 const anforderungen = await import('@/lib/db/materialOrders');
+const ruestlisten = await import('@/lib/db/einsatzMaterial');
 const bilanzen = await import('@/lib/db/monatsbilanzen');
 const nutzer = await import('@/lib/db/users');
 
@@ -229,6 +230,10 @@ const ABFRAGEN: Abfrage[] = [
   { name: 'listMaterials (Monteur)', wer: alsMonteur, lauf: () => material.listMaterials(FIRMA) },
   { name: 'listOpenOrders (Verwaltung/Leitung)', wer: alsGF, lauf: () => anforderungen.listOpenOrders(FIRMA) },
   { name: 'listOwnOpenOrders (Monteur)', wer: alsMonteur, lauf: () => anforderungen.listOwnOpenOrders(FIRMA, MONTEUR) },
+  // Die Ruestliste holt der MONTEUR auf der Startseite — die schwaechste
+  // Rolle also, nicht die Leitung, die sie plant.
+  { name: 'listEinsatzMaterialForDate (Monteur)', wer: alsMonteur, lauf: () => ruestlisten.listEinsatzMaterialForDate(FIRMA, '2026-06-18') },
+  { name: 'getEinsatzMaterial (Monteur, nichts geplant)', wer: alsMonteur, lauf: () => ruestlisten.getEinsatzMaterial(FIRMA, '2026-06-18', 'B-001') },
 
   // --- Auswertung ---
   { name: 'listBilanzen (Buchhaltung)', wer: alsBuchhaltung, lauf: () => bilanzen.listBilanzen(FIRMA, MONTEUR, '2026-01') },

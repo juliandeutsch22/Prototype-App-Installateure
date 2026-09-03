@@ -4,9 +4,11 @@ import { useAuth } from '@/app/AuthContext';
 import { getUserByUid, listUsers } from '@/lib/db/users';
 import { listOwnEntriesSince, listEntriesInRange, listEntriesForProjects } from '@/lib/db/timeEntries';
 import { listUpcomingAssignments, listAssignmentsForDate } from '@/lib/db/assignments';
+import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { useModul } from '@/lib/useModule';
+import RuestlisteAbhaken from '@/features/assignments/RuestlisteAbhaken';
 import { listUnpaidInvoices } from '@/lib/db/invoices';
 import {
   localDateStr,
@@ -24,7 +26,7 @@ import {
   canEditTime,
   isMitarbeiter,
 } from '@/lib/permissions';
-import type { Assignment, MaterialOrder, Project } from '@/types';
+import type { Assignment, EinsatzMaterial, MaterialOrder, Project, RuestPosition } from '@/types';
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
 import Badge from '@/components/Badge';
@@ -65,6 +67,14 @@ interface ProjectAlert {
 /** Ein Einsatz mit den Stammdaten der Baustelle — Adresse und Nummer zählen im Auto. */
 interface EinsatzZeile {
   id: string;
+  /**
+   * Der Tag des Einsatzes — mitgefuehrt, nicht aus `todayStr()` geholt.
+   *
+   * Bleibt die App ueber Mitternacht offen, waere „heute" ein anderer Tag
+   * als der, zu dem diese Zeile gehoert: der Haken auf der Ruestliste ginge
+   * dann an ein Dokument, das es nicht gibt.
+   */
+  date: string;
   projectNumber: string;
   customerName: string;
   address?: string;
@@ -72,6 +82,14 @@ interface EinsatzZeile {
   contactPhone?: string;
   asHelper: boolean;
   comment?: string;
+  /**
+   * Die Ruestliste dieses Einsatzes — was mitzunehmen ist.
+   *
+   * Sie haengt am Paar aus Tag und Baustelle, nicht am einzelnen Einsatz:
+   * die Kiste steht einmal im Bus, auch wenn drei Leute hinfahren.
+   */
+  material?: RuestPosition[];
+  geladen?: NonNullable<EinsatzMaterial['geladen']>;
 }
 
 /** Alle Einsätze eines Tages, nach Baustelle gebündelt — die Sicht der Leitung. */
@@ -187,14 +205,26 @@ export default function DashboardView() {
         const heute = todayStr();
         const heutige = einsaetze.filter((a) => a.date === heute);
         if (heutige.length > 0) {
-          const projekte = await listProjectsByNumbers(
-            user.companyId,
-            heutige.map((a) => a.projectNumber),
-          );
+          /*
+            Die Ruestlisten des Tages dazu — aber nur, wenn das Modul an ist,
+            und ohne die Startseite mitzureissen, wenn sie nicht kommen. Wo
+            der Monteur heute hin muss, ist die wichtigere Information; sie
+            darf nicht daran haengen, dass eine Materialabfrage durchkommt.
+          */
+          const [projekte, listen] = await Promise.all([
+            listProjectsByNumbers(user.companyId, heutige.map((a) => a.projectNumber)),
+            materialAn
+              ? listEinsatzMaterialForDate(user.companyId, heute).catch(() => [])
+              : Promise.resolve([]),
+          ]);
           out.heuteEigene = heutige.map((a) => {
             const pr = projekte.find((x) => x.projectNumber === a.projectNumber);
+            const liste = listen.find((l) => l.projectNumber === a.projectNumber);
             return {
+              material: liste?.positionen,
+              geladen: liste?.geladen ?? {},
               id: a.id,
+              date: a.date,
               projectNumber: a.projectNumber,
               customerName: pr?.customerName ?? `Baustelle ${a.projectNumber}`,
               address: pr?.address,
@@ -360,7 +390,7 @@ export default function DashboardView() {
     return () => {
       cancelled = true;
     };
-  }, [user, fuehrtZeitkonto, mgmt, leitung]);
+  }, [user, fuehrtZeitkonto, mgmt, leitung, materialAn]);
 
   /**
    * Grundregel gegen ein ueberladenes wie gegen ein leeres Dashboard: jede
@@ -478,6 +508,20 @@ export default function DashboardView() {
                   name={e.contactName}
                   className="mt-3"
                 />
+                {/*
+                  Was mitzunehmen ist — unter der Adresse, ueber den Knoepfen.
+                  Die Reihenfolge ist die des Morgens: wohin, was mit, dann
+                  losfahren. Der Haken gilt fuer die Mannschaft, nicht fuer
+                  die Person: die Kiste steht einmal im Bus.
+                */}
+                {materialAn && e.material && e.material.length > 0 && (
+                  <RuestlisteAbhaken
+                    date={e.date}
+                    projectNumber={e.projectNumber}
+                    positionen={e.material}
+                    geladen={e.geladen ?? {}}
+                  />
+                )}
                 {/*
                   Der Schein entsteht am Ende genau dieses Einsatzes. Ihn hier
                   anzubieten spart den Umweg ueber einen eigenen Bereich, in

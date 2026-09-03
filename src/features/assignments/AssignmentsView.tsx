@@ -4,9 +4,23 @@ import { listActiveProjects } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import { listApprovedVacationsInRange } from '@/lib/db/vacations';
 import { subscribeAssignmentsForMonth, saveAssignments, deleteAssignment } from '@/lib/db/assignments';
+import { subscribeMaterials } from '@/lib/db/materials';
+import { createMaterialOrder } from '@/lib/db/materialOrders';
+import {
+  subscribeEinsatzMaterialForDate,
+  saveEinsatzMaterial,
+} from '@/lib/db/einsatzMaterial';
 import { todayStr, getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Project, AppUser, Assignment, Vacation } from '@/types';
+import type {
+  Project,
+  AppUser,
+  Assignment,
+  Vacation,
+  Material,
+  EinsatzMaterial,
+  RuestPosition,
+} from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -17,6 +31,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, CheckboxField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import PersonPicker from '@/components/PersonPicker';
+import RuestlistePlanen from './RuestlistePlanen';
+import { useModul } from '@/lib/useModule';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
 
@@ -66,6 +82,19 @@ export default function AssignmentsView() {
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Assignment> | null>(null);
 
+  /*
+    Die Rüstliste. Sie hängt am Paar aus Tag und Baustelle, nicht an der
+    Person — deshalb ein eigener Zustand neben `picks` und ein eigener Knopf.
+    Wer nur das Material ändert, soll die Mannschaft nicht anfassen müssen.
+  */
+  const materialAn = useModul('material');
+  const [materials, setMaterials] = useState<WithId<Material>[]>([]);
+  const [tagesListen, setTagesListen] = useState<WithId<EinsatzMaterial>[]>([]);
+  const [ruestliste, setRuestliste] = useState<RuestPosition[]>([]);
+  const [ruestSpeichert, setRuestSpeichert] = useState(false);
+  const [ruestFehler, setRuestFehler] = useState<string | null>(null);
+  const [anforderungLaeuft, setAnforderungLaeuft] = useState(false);
+
   /**
    * Baustellen und Belegschaft — beides Auswahlfelder dieser Ansicht.
    *
@@ -113,6 +142,29 @@ export default function AssignmentsView() {
       verworfen = true;
     };
   }, [user, cursor.year, cursor.month]);
+
+  /**
+   * Der Materialstamm — nur wenn das Modul überhaupt an ist.
+   *
+   * Ein Fehlschlag bleibt hier folgenlos: ohne Katalog gibt es keine Suche,
+   * aber die Einteilung selbst ist davon unberührt. Sie ist die Aufgabe
+   * dieser Ansicht; das Material ist die Zugabe.
+   */
+  useEffect(() => {
+    if (!user || !materialAn) return;
+    return subscribeMaterials(user.companyId, setMaterials, () => setMaterials([]));
+  }, [user, materialAn]);
+
+  /** Die Rüstlisten des gewählten Tages, live wie die Einteilung selbst. */
+  useEffect(() => {
+    if (!user || !materialAn) return;
+    return subscribeEinsatzMaterialForDate(
+      user.companyId,
+      date,
+      setTagesListen,
+      () => setTagesListen([]),
+    );
+  }, [user, date, materialAn]);
 
   /**
    * Der ganze Monat, live. Live ist hier kein Luxus: nach dem Speichern
@@ -175,6 +227,21 @@ export default function AssignmentsView() {
   }, [projectNumber, dayAssignments]);
 
   /**
+   * Dieselbe Vorsicht wie bei der Mannschaft: eine vorhandene Rüstliste kommt
+   * ins Formular, bevor jemand speichern kann. Startete es leer, hätte ein
+   * Speichern die geplante Liste gelöscht — und der Monteur führe am
+   * nächsten Morgen ohne Material los.
+   */
+  useEffect(() => {
+    if (!projectNumber) {
+      setRuestliste([]);
+      return;
+    }
+    const treffer = tagesListen.find((l) => l.projectNumber === projectNumber);
+    setRuestliste(treffer?.positionen ?? []);
+  }, [projectNumber, tagesListen]);
+
+  /**
    * Wo steht diese Person an diesem Tag SCHON — auf anderen Baustellen?
    *
    * Mehrere Einsätze am selben Tag waren technisch immer möglich: gespeichert
@@ -207,6 +274,19 @@ export default function AssignmentsView() {
     }
     return m;
   }, [urlaube, date]);
+
+  /**
+   * Wer hat an diesem Tag ueberhaupt keinen Einsatz — auf KEINER Baustelle?
+   *
+   * Das ist die Frage, die bei zwanzig Mitarbeitern niemand mehr im Kopf
+   * behaelt: nicht „wer ist auf dieser Baustelle", sondern „wen habe ich
+   * vergessen". Der Urlaub kommt heraus — wer frei hat, ist nicht vergessen,
+   * sondern abwesend, und ihn hier aufzulisten machte die Zeile unbrauchbar.
+   */
+  const nichtEingeteilt = useMemo(() => {
+    const verplant = new Set(dayAssignments.map((a) => a.userId));
+    return staff.filter((u) => !verplant.has(u.uid) && !imUrlaub.has(u.uid));
+  }, [staff, dayAssignments, imUrlaub]);
 
   const selectedCount = Object.values(picks).filter((p) => p.on).length;
   /**
@@ -257,6 +337,72 @@ export default function AssignmentsView() {
       setError('Der Einsatz konnte nicht gespeichert werden.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  /**
+   * Die Rüstliste speichern — getrennt von der Mannschaft, mit Absicht.
+   *
+   * `uids` kommt aus der GESPEICHERTEN Einteilung, nicht aus den Haken im
+   * Formular: an dieser Liste hängt die Sicherheitsregel, die entscheidet,
+   * wer abhaken darf, und eine noch nicht gespeicherte Auswahl ist keine
+   * Einteilung. Wird die Mannschaft später geändert, zieht `saveAssignments`
+   * das Feld nach.
+   */
+  async function ruestlisteSpeichern() {
+    if (!user || !projectNumber) return;
+    setRuestSpeichert(true);
+    setRuestFehler(null);
+    try {
+      await saveEinsatzMaterial(
+        user.companyId,
+        date,
+        projectNumber,
+        ruestliste.filter((p) => p.menge > 0),
+        existingForProject.map((a) => a.userId),
+        user.uid,
+      );
+      toast.success('Rüstliste gespeichert');
+    } catch {
+      setRuestFehler('Die Rüstliste konnte nicht gespeichert werden.');
+    } finally {
+      setRuestSpeichert(false);
+    }
+  }
+
+  /**
+   * Aus einer Unterdeckung eine Materialanforderung machen — AUF TIPP.
+   *
+   * Nie von selbst: der Planer weiß vielleicht, dass morgen eine Lieferung
+   * kommt oder das Teil schon im Bus liegt. Eine Schreibung in die
+   * Arbeitsliste eines anderen, auf Grundlage einer Vermutung, ist genau die
+   * Sorte Funktion, die das Vertrauen in die App kostet.
+   *
+   * Der LAGERSTAND BLEIBT UNANGETASTET. Abgezogen wird erst, wenn die
+   * Anforderung erledigt oder abgeholt wird — dort, wo es schon immer
+   * passiert. Zweimal abziehen hieße, den Bestand kaputtzurechnen.
+   */
+  async function anforderungAnlegen(position: RuestPosition, fehlmenge: number) {
+    if (!user) return;
+    setAnforderungLaeuft(true);
+    setRuestFehler(null);
+    try {
+      await createMaterialOrder(user.companyId, {
+        materialId: position.materialId ?? '',
+        materialName: position.name,
+        quantity: fehlmenge,
+        projectNumber,
+        note: `Für den Einsatz am ${fmtDay(date)}`,
+        status: 'Offen',
+        transactionType: 'order',
+        userId: user.uid,
+        userName: user.name,
+      });
+      toast.success('Anforderung angelegt');
+    } catch {
+      setRuestFehler('Die Anforderung konnte nicht angelegt werden.');
+    } finally {
+      setAnforderungLaeuft(false);
     }
   }
 
@@ -378,6 +524,10 @@ export default function AssignmentsView() {
                     uid: u.uid,
                     name: u.name,
                     hint: hinweise.length > 0 ? hinweise.join(' · ') : undefined,
+                    // Genau dieselben zwei Gruende, die schon im Hinweis
+                    // stehen — nur maschinenlesbar, damit die Liste sie
+                    // sortieren und filtern kann.
+                    nichtFrei: hinweise.length > 0,
                   };
                 })}
                 selected={staff.filter((u) => picks[u.uid]?.on).map((u) => u.uid)}
@@ -426,6 +576,50 @@ export default function AssignmentsView() {
             )}
           </Card>
 
+          {/*
+            NACH dem Einsatz, VOR der Tagesübersicht. Erst steht fest, wer
+            hinfährt; dann, was mitkommt. Und nur mit gewählter Baustelle —
+            eine Rüstliste ohne Baustelle gehört zu nichts.
+          */}
+          {materialAn && projectNumber && (
+            <Card
+              title="Material für diesen Einsatz"
+              hint={
+                <>
+                  Was der Monteur am Einsatztag mitnehmen soll. Er sieht die Liste auf seiner
+                  Startseite und hakt ab, was im Bus ist. Der Lagerstand ändert sich dadurch
+                  <strong> nicht</strong> — gebucht wird er weiterhin über die Materialanforderung
+                  und das Abholen.
+                </>
+              }
+            >
+              <RuestlistePlanen
+                materials={materials}
+                positionen={ruestliste}
+                onChange={setRuestliste}
+                onAnforderung={anforderungAnlegen}
+                anforderungLaeuft={anforderungLaeuft}
+              />
+              {ruestFehler && <div className="mt-3"><ErrorState message={ruestFehler} /></div>}
+              {/*
+                Steht die Mannschaft noch nicht, kann niemand abhaken — die
+                Regel kennt ihn dann nicht. Das ist kein Fehler, sondern eine
+                Reihenfolge, und sie gehört gesagt, bevor jemand sich wundert.
+              */}
+              {existingForProject.length === 0 && ruestliste.length > 0 && (
+                <p className="mt-3 rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
+                  Für diese Baustelle ist an diesem Tag noch niemand eingeteilt. Die Liste lässt
+                  sich speichern; abhaken kann sie erst, wer eingeteilt ist.
+                </p>
+              )}
+              <div className="mt-4">
+                <Button onClick={ruestlisteSpeichern} loading={ruestSpeichert}>
+                  Rüstliste speichern
+                </Button>
+              </div>
+            </Card>
+          )}
+
           <Card title={`Einsätze am ${fmtDay(date)}`}>
             {dayAssignments.length === 0 ? (
               <EmptyState>Keine Einsätze an diesem Tag.</EmptyState>
@@ -470,6 +664,34 @@ export default function AssignmentsView() {
                   );
                 })}
               </div>
+            )}
+
+            {/*
+              Steht UNTER den Baustellen, nicht darueber: die Einteilung ist
+              die Antwort, die Luecke die Rueckfrage. Und nur, wenn ueberhaupt
+              schon geplant ist — sonst listete die Zeile die ganze
+              Belegschaft und saegte an ihrem eigenen Wert.
+            */}
+            {/*
+              `staff.length > 0` ist keine Formalie, sondern der Unterschied
+              zwischen einer Aussage und einer Behauptung. Solange die
+              Belegschaft nicht geladen ist, ist die Luecke LEER — und die
+              Zeile sagte „alle sind eingeteilt", obwohl sie niemanden kennt.
+              Faellt das Laden ganz aus, steht das oben als Teilfehler.
+            */}
+            {dayAssignments.length > 0 && staff.length > 0 && (
+              <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+                {nichtEingeteilt.length === 0 ? (
+                  <>Alle verfügbaren Mitarbeiter sind an diesem Tag eingeteilt.</>
+                ) : (
+                  <>
+                    <strong className="text-ink">
+                      Noch nicht eingeteilt ({nichtEingeteilt.length}):
+                    </strong>{' '}
+                    {nichtEingeteilt.map((u) => u.name).join(', ')}
+                  </>
+                )}
+              </p>
             )}
           </Card>
         </div>
