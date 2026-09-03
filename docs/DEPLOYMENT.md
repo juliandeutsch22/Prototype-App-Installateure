@@ -143,6 +143,53 @@ Die App ist dann unter `https://<projektid>.web.app` erreichbar.
 (Alternativ lässt sich `dist/` auch bei Vercel/Netlify hosten — dann Schritt 10
 überspringen.)
 
+## 10a · Nachsehen, WAS wirklich ausgeliefert wird
+
+Der Grund für diesen Abschnitt ist eine Suche, die einen ganzen Abend
+gekostet hat: „der Deploy meldet Erfolg" gegen „bei mir ist nichts da", und
+keiner der beiden konnte nachsehen. Drei Möglichkeiten standen offen und
+keine ließ sich ausschließen — der Deploy kam nicht an, das Telefon hält
+eine alte Fassung, oder die Änderung ist an eine Bedingung geknüpft, die
+gerade nicht gilt.
+
+Seitdem trägt jeder Bau eine Kennung aus Commit und Zeit, und die steht an
+drei Stellen:
+
+```bash
+# 1. Was liegt auf dem Server?
+curl -s https://<projektid>.firebaseapp.com/fassung.txt
+#    -> 895b36c · 03.09.2026, 22:11
+
+# 2. Ist eine bestimmte Änderung im ausgelieferten JavaScript?
+#    ACHTUNG: die Bausteine verweisen aufeinander. Wer nur `index.js`
+#    durchsucht, findet die GETEILTEN Bausteine nicht (PersonPicker,
+#    RuestlisteAbhaken) und hält eine vollständige Auslieferung für
+#    unvollständig. Rekursiv sammeln, nicht nur eine Ebene.
+```
+
+Und **im Gerät**: in der App oben rechts auf die Initialen tippen — ganz
+unten steht `Fassung …`. Dieselbe Kennung steht in den technischen Details
+jeder Fehlertafel; ein Bildschirmfoto sagt damit nicht nur, DASS etwas
+schiefging, sondern auf welchem Stand.
+
+Stimmen Server und Gerät überein, liegt es nicht am Deploy.
+
+### Was Firebase Hosting mit unbekannten Adressen macht
+
+```bash
+curl -s -D - -o /dev/null https://<projektid>.firebaseapp.com/assets/gibtesnicht.js
+# HTTP/2 200
+# content-type: text/html; charset=utf-8
+```
+
+**Status 200 und HTML**, kein 404. Das ist kein Schönheitsfehler, sondern
+die Ursache von zwei echten Störungen im Betrieb: ein nach einem Deploy
+verschwundener Baustein sah wie ein Erfolg aus, und eine fehlende
+`fassung.txt` hätte wie eine ewig neue Fassung ausgesehen. Beide Stellen
+prüfen deshalb den INHALT, nicht den Status — siehe
+`istStartseiteStattBaustein` in `public/sw.js` und `istKennung` in
+`src/lib/fassungPruefen.ts`. Wer hier etwas ändert, muss das wissen.
+
 ## 11 · Funktionstest in Produktion
 
 1. Unter der Hosting-URL als Admin anmelden → Branding (Farben/Name) der Firma
