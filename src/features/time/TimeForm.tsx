@@ -436,16 +436,32 @@ export default function TimeForm({
           */}
           {darfErweitern && !aussendienst && (
             <div className="rounded-sm border border-line bg-surface-2 p-3">
-              <CheckboxField
-                id="erweitert"
-                label="Erweiterte Erfassung (Baustelle, Wegzeit, Fahrzeug, Zuschläge)"
-                checked={erweitert}
-                onChange={(e) => setErweitert(e.target.checked)}
-              />
-              <p className="mt-1 text-sm text-ink-muted">
-                Für Notdienste und Einsätze auf der Baustelle. Ohne diese Angaben zählt die Zeit
-                nicht ins Baustellenbudget und erscheint auf keiner Rechnung.
-              </p>
+              {/*
+                Die Beschriftung sagt bereits, WAS dazukommt. Warum man es
+                braucht, stand darunter dauerhaft in zwei Zeilen — auf der
+                meistgenutzten Maske der App, bei jeder einzelnen Buchung.
+                Ab dem zweiten Mal ist das Rauschen; deshalb ins „i".
+              */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/*
+                  `min-w-0 flex-1` um die Beschriftung, nicht ohne: gemessen
+                  auf 390 px rutschte das „i" sonst auf eine eigene Zeile
+                  (102 px statt 74 px), weil die lange Beschriftung als
+                  Flex-Element ihre volle Breite beanspruchte.
+                */}
+                <div className="min-w-0 flex-1">
+                  <CheckboxField
+                    id="erweitert"
+                    label="Erweiterte Erfassung (Baustelle, Wegzeit, Fahrzeug, Zuschläge)"
+                    checked={erweitert}
+                    onChange={(e) => setErweitert(e.target.checked)}
+                  />
+                </div>
+                <InfoHint about="erweiterte Erfassung">
+                  Für Notdienste und Einsätze auf der Baustelle. Ohne diese Angaben zählt die Zeit
+                  nicht ins Baustellenbudget und erscheint auf keiner Rechnung.
+                </InfoHint>
+              </div>
               {/*
                 Abschalten an einem Eintrag, der die Angaben TRÄGT, löscht sie
                 beim Speichern. Das ist die richtige Folge — aber nicht, wenn

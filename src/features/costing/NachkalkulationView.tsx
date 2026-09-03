@@ -14,6 +14,7 @@ import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import { SelectField } from '@/components/Field';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import InfoHint from '@/components/InfoHint';
 
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
@@ -234,12 +235,20 @@ export default function NachkalkulationView() {
                   der naheliegende Fehler, und darauf trifft jemand
                   Entscheidungen.
                 */}
-                <p className="mt-4 rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
-                  <strong>Deckungsbeitrag, nicht Gewinn.</strong> Materialkosten sind nicht
-                  enthalten — die Materialanforderung trägt in dieser App bewusst keinen Preis.
-                  Ebenso wenig Gemeinkosten, soweit sie nicht schon im Kostensatz stecken. Eine
-                  Baustelle mit dünnem Deckungsbeitrag ist damit im Ergebnis vermutlich negativ.
-                </p>
+                <div className="mt-4 flex flex-wrap items-center rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
+                  <strong>Deckungsbeitrag, nicht Gewinn.</strong>
+                  {/*
+                    Die Warnung selbst bleibt stehen — sie ist die Aussage.
+                    Was NICHT enthalten ist, war der lange Teil und ist beim
+                    zweiten Blick bekannt; das steht jetzt im „i".
+                  */}
+                  <InfoHint about="Deckungsbeitrag">
+                    Materialkosten sind nicht enthalten — die Materialanforderung trägt in dieser
+                    App bewusst keinen Preis. Ebenso wenig Gemeinkosten, soweit sie nicht schon im
+                    Kostensatz stecken. Eine Baustelle mit dünnem Deckungsbeitrag ist damit im
+                    Ergebnis vermutlich negativ.
+                  </InfoHint>
+                </div>
               </>
             )}
           </Card>

@@ -7,7 +7,6 @@ import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 
@@ -92,24 +91,28 @@ export default function ModulesView() {
 
       {error && <ErrorState message={error} />}
 
-      <Card title="Was ein Modul ist">
-        <p className="text-sm text-ink">
-          Ein ausgeschaltetes Modul verschwindet aus der Navigation, und seine Adressen sind zu.
-          <strong> Vorhandene Daten bleiben unangetastet</strong> — wird es wieder eingeschaltet,
-          ist alles da, wo es war.
-        </p>
-        <div className="mt-3">
-          <InfoHint about="Module und Rechte">
+      {/*
+        Die Erklaerung stand als EIGENE KARTE ueber der Liste — eine ganze
+        Karte Hoehe, bei jedem Aufruf, obwohl sie nur beim ersten Mal etwas
+        sagt. Sie gehoert an die Liste, die sie erklaert, und dort ins „i".
+      */}
+      <Card
+        title={`Eingeschaltet: ${aktiv.size} von ${MODULE.length}`}
+        hint={
+          <>
+            Ein ausgeschaltetes Modul verschwindet aus der Navigation, und seine Adressen sind
+            zu. <strong>Vorhandene Daten bleiben unangetastet</strong> — wird es wieder
+            eingeschaltet, ist alles da, wo es war.
+            <br />
+            <br />
             Module sind <strong>keine Rechteverwaltung</strong>. Sie nehmen den Weg weg, nicht das
             Recht: wer als Buchhaltung Rechnungen anlegen darf, darf das weiterhin — die
             Oberfläche bietet es nur nicht mehr an. Wer wann was darf, steht in den Rollen und
             wird serverseitig durchgesetzt. Geschützt ist hier die <em>Modulliste selbst</em>:
             ändern darf sie nur die Geschäftsführung.
-          </InfoHint>
-        </div>
-      </Card>
-
-      <Card title={`Eingeschaltet: ${aktiv.size} von ${MODULE.length}`}>
+          </>
+        }
+      >
         <ul className="divide-y divide-line">
           {MODULE.map((m) => {
             const verfuegbar = istVerfuegbar(m.id);
