@@ -46,6 +46,7 @@ const WorkSheetsListView = lazy(() => import('@/features/worksheets/WorkSheetsLi
 const MyProjectsView = lazy(() => import('@/features/projects/MyProjectsView'));
 const AssignmentsView = lazy(() => import('@/features/assignments/AssignmentsView'));
 const MyScheduleView = lazy(() => import('@/features/assignments/MyScheduleView'));
+const WochenplanView = lazy(() => import('@/features/assignments/WochenplanView'));
 const InvoicesView = lazy(() => import('@/features/invoices/InvoicesView'));
 const AccountingView = lazy(() => import('@/features/accounting/AccountingView'));
 const UserMgmtView = lazy(() => import('@/features/users/UserMgmtView'));
@@ -187,9 +188,26 @@ function AppRoutes() {
         path="/admin-projects"
         element={<RequireNav path="/admin-projects"><AdminProjectsView /></RequireNav>}
       />
+      {/*
+        Einsatzplanung unter EINEM Reiter, zwei Unterseiten: der Wochenplan
+        beantwortet „wer ist frei", die Tagesplanung traegt ein. Der alte
+        Pfad `/assignments` fuehrt weiterhin hierher — `Unterreiter` leitet
+        auf die erste Unterseite weiter, damit bestehende Verweise (z. B.
+        „Zur Einsatzplanung" auf der Startseite) nicht ins Leere gehen.
+      */}
       <Route
-        path="/assignments"
-        element={<RequireNav path="/assignments"><AssignmentsView /></RequireNav>}
+        path="/assignments/*"
+        element={
+          <RequireNav path="/assignments">
+            <Unterreiter
+              basis="/assignments"
+              elemente={{
+                tag: <AssignmentsView />,
+                woche: <WochenplanView />,
+              }}
+            />
+          </RequireNav>
+        }
       />
       <Route path="/user-mgmt" element={<RequireNav path="/user-mgmt"><UserMgmtView /></RequireNav>} />
       {/*

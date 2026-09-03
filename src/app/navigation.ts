@@ -130,6 +130,21 @@ export interface Unterseite {
 }
 
 export const UNTER: Record<string, Unterseite[]> = {
+  /*
+   * EINSATZPLANUNG: ZWEI BLICKE AUF DASSELBE, deshalb Unterseiten.
+   *
+   * Bei Material war die Zusammenfassung falsch — dort sind es drei
+   * verschiedene Taetigkeiten von drei verschiedenen Leuten. Hier ist es
+   * EINE Person mit EINER Aufgabe: der Wochenplan beantwortet die Frage
+   * „wer ist frei", die Tagesplanung traegt danach ein. Wer plant, braucht
+   * beides nacheinander und nicht an zwei Orten.
+   *
+   * Der Tag steht zuerst: er ist der Ort, an dem geschrieben wird.
+   */
+  '/assignments': [
+    { pfad: 'tag', label: 'Tag planen' },
+    { pfad: 'woche', label: 'Wochenplan' },
+  ],
   '/settings': [
     // Meldungen zuerst: das Einzige, was jede Rolle hier hat.
     { pfad: 'meldungen', label: 'Meldungen' },
