@@ -43,6 +43,16 @@ interface SwUmgebung {
   speicher: Map<string, TestCache>;
   geholt: string[];
   gesagt: string[];
+  /**
+   * Was der Worker dem FRAGENDEN Fenster zurueckgibt — getrennt vom Rundruf.
+   *
+   * Der Unterschied ist nicht kosmetisch: „es gibt eine neue Fassung" geht an
+   * alle Fenster, „ich bin mit der Pruefung durch" nur an den, der gefragt
+   * hat. Steckte beides in einem Topf, koennte kein Test sagen, ob der
+   * Aufrufer seine Antwort ueberhaupt bekommt — und genau darauf wartet er,
+   * bevor er neu laedt.
+   */
+  geantwortet: string[];
   antwort: (url: string) => Response;
   /** Schickt dem Worker eine Nachricht aus einem Fenster und wartet sie ab. */
   nachricht: (data: unknown) => Promise<void>;
@@ -54,11 +64,13 @@ function ladeWorker(): SwUmgebung {
   const speicher = new Map<string, TestCache>();
   const geholt: string[] = [];
   const gesagt: string[] = [];
+  const geantwortet: string[] = [];
   const umgebung: SwUmgebung = {
     hoeren,
     speicher,
     geholt,
     gesagt,
+    geantwortet,
     antwort: () => new Response('erste Fassung', { status: 200 }),
     nachricht: async () => undefined,
   };
@@ -69,9 +81,10 @@ function ladeWorker(): SwUmgebung {
     // `waitUntil` ist hier kein Beiwerk: der Worker raeumt darin auf, und
     // ohne das Abwarten prueft der Test einen Zwischenstand.
     const warten: Promise<unknown>[] = [];
+    const frager = { postMessage: (m: unknown) => geantwortet.push(String(m)) };
     const ereignis = {
       data,
-      source: fenster,
+      source: frager,
       waitUntil: (pr: Promise<unknown>) => warten.push(pr),
     };
     hoeren.get('message')?.forEach((fn) => fn(ereignis));
@@ -225,7 +238,7 @@ describe('Service Worker — was er anfasst', () => {
     // antworten — sonst waere der Fehler dauerhaft.
     u.geholt.length = 0;
     await anfrage(u, 'https://app.test/assets/TimeView-a1b2.js');
-    expect(u.geholt).toEqual(['https://app.test/assets/TimeView-a1b2.js']);
+    expect(u.geholt).toContain('https://app.test/assets/TimeView-a1b2.js');
   });
 
   it('haelt eine unvollstaendige Antwort NICHT vor', async () => {
@@ -300,9 +313,8 @@ describe('Service Worker — neue Fassung erkennen', () => {
     await u.nachricht('fassungUebernehmen');
 
     expect(u.speicher.has('perl-teile')).toBe(false);
-    // Die Bestaetigung zurueck — der Aufrufer wartet darauf, damit das
-    // Neuladen nicht mitten ins Loeschen faellt.
-    expect(u.gesagt).toContain('fassungUebernommen');
+    // Die Bestaetigung geht an den FRAGENDEN, nicht als Rundruf an alle.
+    expect(u.geantwortet).toContain('fassungUebernommen');
   });
 
   it('meldet beim ERSTEN Besuch keine neue Fassung', async () => {
@@ -421,5 +433,97 @@ describe('Service Worker — auf Zuruf nachsehen', () => {
 
     await expect(u.nachricht('aufNeueFassungPruefen')).resolves.toBeUndefined();
     expect(u.gesagt).toEqual([]);
+  });
+});
+
+describe('Service Worker — der Fehler vom 03.09.2026', () => {
+  /**
+   * AUS DEM BETRIEB GEMELDET, auf dem iPhone, kurz nach einem Deploy:
+   *
+   *   undefined is not an object (evaluating 'e._result.default')
+   *
+   * Zwei Ursachen lagen hintereinander, und beide stehen hier fest.
+   */
+
+  it('erneuert die Huelle, sobald ein Baustein veraltet ist', async () => {
+    /**
+     * URSACHE ZWEI. Die Seite lud nach dem Fehlschlag sofort neu — und holte
+     * dabei DIESELBE alte `index.html` aus dem Speicher des Workers, weil
+     * niemand sie erneuert hatte. Also derselbe fehlende Baustein, und beim
+     * zweiten Versuch griff der Schleifenschutz: uebrig blieb die
+     * Fehlertafel, obwohl die neue Fassung laengst auf dem Server lag.
+     *
+     * Ein Baustein, den es nicht mehr gibt, ist der verlaesslichste Hinweis
+     * auf einen Deploy, den dieser Worker je bekommt — verlaesslicher als
+     * der Textvergleich, denn hier ist der Beweis schon da.
+     */
+    await anfrage(u, 'https://app.test/', 'navigate');
+    u.gesagt.length = 0;
+
+    // Nach dem Deploy: der alte Baustein ist weg, Hosting liefert die
+    // Startseite mit Status 200 zurueck.
+    u.antwort = (url) =>
+      url.endsWith('/index.html')
+        ? new Response('zweite Fassung', { status: 200 })
+        : new Response('<!doctype html>', {
+            status: 200,
+            headers: { 'content-type': 'text/html; charset=utf-8' },
+          });
+
+    const res = await anfrage(u, 'https://app.test/assets/AssignmentsView-alt.js');
+    expect(res!.status).toBe(504);
+
+    // Der Worker hat die neue Huelle geholt und abgelegt — das Neuladen
+    // landet damit auf der neuen Fassung statt wieder auf der alten.
+    await vi.waitFor(async () => {
+      const vorrat = u.speicher.get('perl-huelle')?.eintraege.get('/index.html');
+      expect(await vorrat!.clone().text()).toBe('zweite Fassung');
+    });
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+  });
+
+  it('antwortet dem Frager IMMER, auch ohne Unterschied und ohne Netz', async () => {
+    /**
+     * Der Aufrufer wartet auf diese Antwort, BEVOR er neu laedt. Bliebe sie
+     * bei einem Fehlschlag aus, wartete er bis zur Frist ins Leere — auf
+     * einer Baustelle mit schlechtem Netz also fast immer.
+     */
+    await anfrage(u, 'https://app.test/', 'navigate');
+
+    u.geantwortet.length = 0;
+    await u.nachricht('aufNeueFassungPruefen');
+    expect(u.geantwortet).toEqual(['fassungGeprueft']);
+
+    u.geantwortet.length = 0;
+    u.antwort = () => {
+      throw new Error('offline');
+    };
+    await u.nachricht('aufNeueFassungPruefen');
+    expect(u.geantwortet).toEqual(['fassungGeprueft']);
+  });
+
+  it('raeumt NICHT von selbst auf, sondern nur auf Zuruf', async () => {
+    /**
+     * URSACHE EINS, und sie war die schwerere. Aufgeraeumt wurde VOR dem
+     * Neuladen, waehrend die alte Seite noch lief und bedient wurde. Wer in
+     * diesem Fenster auf einen Reiter tippte, forderte einen Baustein an,
+     * den es im Speicher gerade nicht mehr und auf dem Server nach dem
+     * Deploy nicht mehr gab.
+     *
+     * Der Worker darf also bei nichts von allein loeschen — weder beim
+     * Erkennen des Deploys noch beim Ausliefern der neuen Huelle.
+     */
+    await anfrage(u, 'https://app.test/assets/alt-111.js');
+    await anfrage(u, 'https://app.test/', 'navigate');
+    u.antwort = (url) =>
+      new Response(url.endsWith('/index.html') ? 'zweite Fassung' : 'x', { status: 200 });
+
+    await anfrage(u, 'https://app.test/', 'navigate');
+    await vi.waitFor(() => expect(u.gesagt).toContain('neueFassung'));
+    await u.nachricht('aufNeueFassungPruefen');
+
+    // Der Deploy ist erkannt, gemeldet und geprueft — und der alte Baustein
+    // liegt weiterhin bereit, weil die alte Seite noch laeuft.
+    expect(u.speicher.get('perl-teile')?.eintraege.has('/assets/alt-111.js')).toBe(true);
   });
 });

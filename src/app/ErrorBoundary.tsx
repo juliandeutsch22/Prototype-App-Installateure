@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { darfNeuLaden, istNachladeFehler } from '@/lib/nachladen';
+import { huelleErneuernUndNeuLaden } from '@/lib/sw';
 
 interface Props {
   children: ReactNode;
@@ -52,7 +53,14 @@ export default class ErrorBoundary extends Component<Props, State> {
      */
     if (!istNachladeFehler(error)) return;
     if (darfNeuLaden()) {
-      window.location.reload();
+      /*
+        ERST DIE HUELLE ERNEUERN, DANN LADEN. Ein sofortiges Neuladen holte
+        dieselbe alte `index.html` aus dem Speicher des Workers, fand
+        denselben fehlenden Baustein — und beim zweiten Versuch griff der
+        Schleifenschutz. Genau so entstand die Fehlertafel, die aus dem
+        Betrieb gemeldet wurde, obwohl die neue Fassung längst da war.
+      */
+      void huelleErneuernUndNeuLaden();
       return;
     }
     /**

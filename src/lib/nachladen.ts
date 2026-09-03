@@ -9,6 +9,8 @@
  * hintereinander.
  */
 
+import { huelleErneuernUndNeuLaden } from './sw';
+
 /** Merker gegen eine Schleife aus Neuladen und Scheitern. */
 const NEULADE_MERKER = 'perl:nachladefehler';
 
@@ -97,6 +99,9 @@ function istKaputterBaustein(text: string): boolean {
  * `vite:preloadError` kommt, wenn das Vorladen eines Bausteins scheitert —
  * also im selben Fall, nur früher und ohne Umweg über React. Wer hier schon
  * neu lädt, sieht die Fehlertafel gar nicht erst.
+ *
+ * Geladen wird ERST, nachdem der Worker die Hülle erneuert hat: sonst holt
+ * das Neuladen dieselbe alte `index.html` mit demselben fehlenden Baustein.
  */
 export function nachladefehlerBeobachten(): void {
   window.addEventListener('vite:preloadError', (e) => {
@@ -104,7 +109,7 @@ export function nachladefehlerBeobachten(): void {
     // zusätzlich aus der Fehlergrenze, und der Schleifenschutz müsste den
     // zweiten abfangen. Einmal reicht.
     e.preventDefault();
-    if (darfNeuLaden()) window.location.reload();
+    if (darfNeuLaden()) void huelleErneuernUndNeuLaden();
   });
 }
 

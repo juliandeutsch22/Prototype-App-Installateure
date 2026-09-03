@@ -158,7 +158,7 @@ self.addEventListener('fetch', (event) => {
   // Bausteine tragen einen Fingerabdruck im Namen. Was einmal unter diesem
   // Namen geladen wurde, ändert sich nie — also erst schauen, dann holen.
   if (istEigenerBaustein(url)) {
-    event.respondWith(erstSpeicherDannNetz(request, url));
+    event.respondWith(erstSpeicherDannNetz(event, request, url));
   }
 });
 
@@ -187,19 +187,31 @@ self.addEventListener('fetch', (event) => {
  * sie fände die nächste Prüfung denselben Unterschied noch einmal, und wer
  * still übernimmt, liefe in eine Schleife aus Melden und Neuladen.
  */
-async function aufNeueFassungPruefen() {
+async function aufNeueFassungPruefen(quelle) {
   const c = await caches.open(HUELLE);
   const vorrat = await c.match(SEITE);
   const res = await fetch(new Request(SEITE, { cache: 'reload' })).catch(() => null);
-  if (!res || !res.ok) return null;
 
-  const neuerText = await res.clone().text();
-  const alterText = vorrat ? await vorrat.clone().text() : null;
-  await c.put(SEITE, res.clone());
+  if (res && res.ok) {
+    const neuerText = await res.clone().text();
+    const alterText = vorrat ? await vorrat.clone().text() : null;
+    await c.put(SEITE, res.clone());
 
-  if (alterText !== null && alterText !== neuerText) {
-    await allenFensternSagen('neueFassung');
+    if (alterText !== null && alterText !== neuerText) {
+      await allenFensternSagen('neueFassung');
+    }
   }
+
+  /*
+   * IMMER antworten, auch ohne Netz und auch ohne Unterschied.
+   *
+   * Der Aufrufer wartet darauf, BEVOR er neu lädt: lädt er zu früh, bekommt
+   * er dieselbe alte Hülle noch einmal, scheitert am selben fehlenden
+   * Baustein — und der Schleifenschutz hält ihn beim zweiten Mal davon ab.
+   * Genau so entstand die Fehlertafel, die aus dem Betrieb gemeldet wurde.
+   * Bliebe die Antwort bei einem Fehlschlag aus, wartete er ins Leere.
+   */
+  quelle?.postMessage('fassungGeprueft');
   return res;
 }
 
@@ -290,7 +302,7 @@ function istStartseiteStattBaustein(url, res) {
   return /\.(js|mjs|css)$/.test(url.pathname) && typ.includes('text/html');
 }
 
-async function erstSpeicherDannNetz(request, url) {
+async function erstSpeicherDannNetz(event, request, url) {
   const c = await caches.open(TEILE);
   const treffer = await c.match(request);
   if (treffer) return treffer;
@@ -306,6 +318,18 @@ async function erstSpeicherDannNetz(request, url) {
      * module"), auf die sich die Fehlergrenze verlassen kann. Der Grund steht
      * im Statustext, damit er beim Nachsehen nicht verlorengeht.
      */
+    /*
+     * UND SOFORT DIE HUELLE ERNEUERN.
+     *
+     * Ein Baustein, den es auf dem Server nicht mehr gibt, ist der
+     * verlässlichste Hinweis auf einen Deploy, den dieser Worker je bekommt —
+     * verlässlicher als der Textvergleich, denn hier ist der Beweis schon da.
+     * Ohne das lud die Seite gleich darauf in DIESELBE alte Hülle zurück und
+     * scheiterte am selben Baustein; beim zweiten Mal griff der
+     * Schleifenschutz, und übrig blieb die Fehlertafel.
+     */
+    event.waitUntil(aufNeueFassungPruefen());
+
     return new Response('', {
       status: 504,
       statusText: 'Veralteter Baustein nach einem Deploy',
@@ -329,16 +353,26 @@ self.addEventListener('message', (event) => {
    * Startbildschirm-App auf dem Telefon verlässlich etwas tut.
    */
   if (event.data === 'aufNeueFassungPruefen') {
-    event.waitUntil(aufNeueFassungPruefen());
+    event.waitUntil(aufNeueFassungPruefen(event.source));
   }
 
   /*
-   * Die App lädt gleich neu — JETZT dürfen die alten Bausteine weg.
+   * Die App LAEUFT SCHON auf der neuen Fassung — jetzt dürfen die alten
+   * Bausteine weg.
    *
-   * Nach dem Neuladen zeigt die gespeicherte `index.html` auf die neuen
-   * Namen; was unter den alten liegt, braucht niemand mehr. Die Antwort
-   * zurück ist nicht Höflichkeit: der Aufrufer wartet darauf, damit das
-   * Neuladen nicht mitten ins Löschen fällt.
+   * DER ZEITPUNKT WAR VORHER FALSCH, und das hat im Betrieb zugeschlagen.
+   * Aufgeräumt wurde VOR dem Neuladen, während die alte Seite noch lief und
+   * bedient wurde. Wer in diesem Fenster auf einen Reiter tippte, forderte
+   * einen Baustein an, den es im Speicher gerade nicht mehr und auf dem
+   * Server nach dem Deploy nicht mehr gab: „undefined is not an object
+   * (evaluating 'e._result.default')".
+   *
+   * Jetzt ruft die NEUE Seite das nach ihrem Start. Was sie danach noch
+   * nachlädt, liegt auf dem Server — schlimmstenfalls kostet es eine
+   * Netzrunde, nie eine Fehlertafel.
+   *
+   * Die Antwort zurück bleibt: der Aufrufer quittiert damit, dass das
+   * Aufräumen wirklich gelaufen ist.
    */
   if (event.data === 'fassungUebernehmen') {
     event.waitUntil(
