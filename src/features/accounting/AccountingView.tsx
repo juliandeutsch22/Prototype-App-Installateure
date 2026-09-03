@@ -29,6 +29,7 @@ import ProjectSummary from './ProjectSummary';
 import TimeForm from '@/features/time/TimeForm';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField } from '@/components/Field';
+import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import {
@@ -529,23 +530,38 @@ export default function AccountingView() {
                           tone={stats.urlaubRest < 5 ? 'text-warning' : ''}
                         />
                       </div>
-                      <p className="mt-2 text-xs text-ink-muted">
+                      {/*
+                        DIE ZAHLEN BLEIBEN, DER ERKLAERSATZ WANDERT INS „i".
+                        „Der Monat laeuft noch: gezaehlt sind die Solltage bis
+                        gestern …" stand bei JEDEM Mitarbeiter, jeden Monat,
+                        den ganzen Monat lang — dreissig Mal dieselben zwei
+                        Zeilen in einer Liste, durch die man scrollt. Wer es
+                        einmal gelesen hat, blaettert es danach nur noch weg.
+                        Uebrig bleibt das Wort „laufend"; warum das zaehlt,
+                        sagt das „i" auf Wunsch.
+                      */}
+                      <p className="mt-2 flex flex-wrap items-center gap-x-1 text-xs text-ink-muted">
                         Tagessoll {stats.dailyTargetH.toFixed(2).replace('.', ',')} h ·
                         Wochenstunden {String(stats.weeklyTarget).replace('.', ',')} h ·{' '}
                         {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
                         {stats.holidaysInMonth > 0 &&
                           ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
+                        {stats.hasConfig && stats.istLaufend && (
+                          <>
+                            {' · laufend'}
+                            <InfoHint about="den laufenden Monat">
+                              Gezählt sind die Solltage bis gestern. Die Zahl wächst mit jedem
+                              Arbeitstag und ist erst nach Monatsende endgültig — ein Rückstand
+                              mitten im Monat ist deshalb noch keine Aussage.
+                            </InfoHint>
+                          </>
+                        )}
                       </p>
                       {!stats.hasConfig ? (
                         <p className="mt-2 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
                           Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
                           sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,
                           sondern keine Aussage. Nachtragen in der Benutzerverwaltung.
-                        </p>
-                      ) : stats.istLaufend ? (
-                        <p className="mt-2 text-xs text-ink-muted">
-                          Der Monat läuft noch: gezählt sind die Solltage bis gestern. Die Zahl
-                          wächst mit jedem Arbeitstag und ist erst nach Monatsende endgültig.
                         </p>
                       ) : null}
 
