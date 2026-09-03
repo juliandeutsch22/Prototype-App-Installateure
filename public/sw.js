@@ -170,6 +170,39 @@ self.addEventListener('fetch', (event) => {
  * anderen tragen einen Fingerabdruck. Ändert sich ihr INHALT, zeigt sie auf
  * neue Bausteine, und es gab einen Deploy.
  */
+/**
+ * Nachsehen, ob es eine neue Fassung gibt — und das Ergebnis melden.
+ *
+ * WARUM DAS EINE EIGENE FUNKTION IST. Diese Prüfung hing ausschliesslich an
+ * einem SEITENAUFRUF. Auf dem Schreibtisch ist das dasselbe, auf dem Telefon
+ * nicht: eine Startbildschirm-App wird beim Öffnen FORTGESETZT, nicht neu
+ * geladen. Es gibt also gar keinen Seitenaufruf, die Prüfung lief nie, und
+ * der Betrieb blieb auf einer Fassung stehen, bis jemand die App vom
+ * Startbildschirm löschte und neu hinzufügte. Genau so wurde es gemeldet.
+ *
+ * Jetzt kann die App sie ausserdem auf Zuruf anstossen — sie tut das, sobald
+ * sie wieder in den Vordergrund kommt.
+ *
+ * Die neue `index.html` wird dabei IMMER abgelegt. Das ist kein Detail: ohne
+ * sie fände die nächste Prüfung denselben Unterschied noch einmal, und wer
+ * still übernimmt, liefe in eine Schleife aus Melden und Neuladen.
+ */
+async function aufNeueFassungPruefen() {
+  const c = await caches.open(HUELLE);
+  const vorrat = await c.match(SEITE);
+  const res = await fetch(new Request(SEITE, { cache: 'reload' })).catch(() => null);
+  if (!res || !res.ok) return null;
+
+  const neuerText = await res.clone().text();
+  const alterText = vorrat ? await vorrat.clone().text() : null;
+  await c.put(SEITE, res.clone());
+
+  if (alterText !== null && alterText !== neuerText) {
+    await allenFensternSagen('neueFassung');
+  }
+  return res;
+}
+
 async function huelleAusliefern(event) {
   const c = await caches.open(HUELLE);
   const vorrat = await c.match(SEITE);
@@ -289,6 +322,15 @@ async function erstSpeicherDannNetz(request, url) {
 
 self.addEventListener('message', (event) => {
   if (event.data === 'pushBereit?') event.source?.postMessage({ pushBereit });
+
+  /*
+   * „Schau nach, ob es etwas Neues gibt." Die App ruft das, wenn sie wieder
+   * in den Vordergrund kommt — der einzige Zeitpunkt, an dem eine
+   * Startbildschirm-App auf dem Telefon verlässlich etwas tut.
+   */
+  if (event.data === 'aufNeueFassungPruefen') {
+    event.waitUntil(aufNeueFassungPruefen());
+  }
 
   /*
    * Die App lädt gleich neu — JETZT dürfen die alten Bausteine weg.

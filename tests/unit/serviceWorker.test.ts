@@ -334,3 +334,92 @@ describe('Service Worker — was er aushalten muss', () => {
     expect(res!.status).toBe(503);
   });
 });
+
+describe('Service Worker — auf Zuruf nachsehen', () => {
+  /**
+   * DIE LUECKE, DIE DIESE GRUPPE FESTHAELT — aus dem Betrieb gemeldet: „damit
+   * die Aenderungen greifen, muss ich die App auf dem iPhone immer vom
+   * Startbildschirm loeschen und neu hinzufuegen."
+   *
+   * Die Pruefung auf einen Deploy hing ausschliesslich am Seitenaufruf
+   * (`request.mode === 'navigate'`). Eine Startbildschirm-App auf dem Telefon
+   * macht den fast nie: sie wird beim Oeffnen FORTGESETZT, nicht neu geladen.
+   * Also lief die Pruefung nie, und der Betrieb blieb auf einer alten Fassung
+   * stehen. Loeschen und neu hinzufuegen war der einzige Ausweg.
+   *
+   * Jetzt kann die App die Pruefung anstossen, sobald sie in den Vordergrund
+   * kommt — ganz ohne Seitenaufruf.
+   */
+
+  /** Bringt eine erste Fassung in den Speicher, wie beim ersten Start. */
+  async function ersteFassungVorhalten() {
+    await anfrage(u, 'https://app.test/', 'navigate');
+    await vi.waitFor(() =>
+      expect(u.speicher.get('perl-huelle')?.eintraege.has('/index.html')).toBe(true),
+    );
+    u.gesagt.length = 0;
+  }
+
+  it('meldet einen Deploy OHNE Seitenaufruf', async () => {
+    await ersteFassungVorhalten();
+    u.antwort = () => new Response('zweite Fassung', { status: 200 });
+
+    await u.nachricht('aufNeueFassungPruefen');
+
+    expect(u.gesagt).toContain('neueFassung');
+  });
+
+  it('meldet nichts, wenn sich nichts geaendert hat', async () => {
+    // Sonst kaeme die Leiste bei jedem Wechsel in den Vordergrund — also
+    // dutzende Male am Tag, ohne dass es je etwas Neues gaebe.
+    await ersteFassungVorhalten();
+
+    await u.nachricht('aufNeueFassungPruefen');
+
+    expect(u.gesagt).toEqual([]);
+  });
+
+  it('meldet denselben Deploy nur EINMAL', async () => {
+    /**
+     * Der Grund ist nicht Sparsamkeit, sondern die stille Uebernahme beim
+     * Kaltstart: wuerde die zweite Pruefung denselben Unterschied noch einmal
+     * finden, liefe die App in eine Schleife aus Melden und Neuladen. Deshalb
+     * legt die Pruefung die neue `index.html` ab, auch wenn niemand sie
+     * uebernimmt.
+     */
+    await ersteFassungVorhalten();
+    u.antwort = () => new Response('zweite Fassung', { status: 200 });
+
+    await u.nachricht('aufNeueFassungPruefen');
+    expect(u.gesagt).toEqual(['neueFassung']);
+
+    u.gesagt.length = 0;
+    await u.nachricht('aufNeueFassungPruefen');
+    expect(u.gesagt).toEqual([]);
+  });
+
+  it('haelt eine Fehlerantwort NICHT fuer die neue Fassung', async () => {
+    // Ein 503 aus dem Netz waere sonst der „Inhalt" der index.html — die
+    // App meldete eine neue Fassung und lernte einen Fehlertext als Huelle.
+    await ersteFassungVorhalten();
+    u.antwort = () => new Response('Wartung', { status: 503 });
+
+    await u.nachricht('aufNeueFassungPruefen');
+
+    expect(u.gesagt).toEqual([]);
+    const vorrat = u.speicher.get('perl-huelle')?.eintraege.get('/index.html');
+    expect(await vorrat!.clone().text()).toBe('erste Fassung');
+  });
+
+  it('uebersteht einen Zuruf ohne Netz', async () => {
+    // Auf der Baustelle der Normalfall: die App kommt in den Vordergrund,
+    // das Netz ist weg. Der Worker darf daran nicht zerbrechen.
+    await ersteFassungVorhalten();
+    u.antwort = () => {
+      throw new Error('offline');
+    };
+
+    await expect(u.nachricht('aufNeueFassungPruefen')).resolves.toBeUndefined();
+    expect(u.gesagt).toEqual([]);
+  });
+});

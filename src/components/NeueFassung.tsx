@@ -1,29 +1,67 @@
-import { useEffect, useState } from 'react';
-import { serviceWorkerAnmelden, neueFassungUebernehmen } from '@/lib/sw';
+import { useEffect, useRef, useState } from 'react';
+import {
+  serviceWorkerAnmelden,
+  neueFassungUebernehmen,
+  darfStillUebernehmen,
+} from '@/lib/sw';
 import Button from './Button';
 
 /**
- * „Es gibt eine neue Fassung" — und der Benutzer entscheidet, wann.
+ * „Es gibt eine neue Fassung" — beim Kaltstart still, sonst auf Nachfrage.
  *
- * WARUM NICHT VON SELBST NEU LADEN. Weil der Monteur mitten in einem Formular
- * stehen kann. Ein selbsttätiger Neustart wirft ihm die halb erfasste Zeit
- * weg — und zwar genau dann, wenn wir gerade etwas ausgeliefert haben, also
- * ohne erkennbaren Zusammenhang für ihn.
+ * WAS AUS DEM BETRIEB GEMELDET WURDE: „damit die Änderungen greifen, muss ich
+ * die App auf dem iPhone immer vom Startbildschirm löschen und neu
+ * hinzufügen." Das ist die härteste Form von „ein Update kommt nicht an", und
+ * sie machte das Ausliefern im laufenden Betrieb praktisch unmöglich.
  *
- * WARUM ES DEN HINWEIS ÜBERHAUPT BRAUCHT. Seit die App ihre Hülle vorhält,
- * startet sie aus dem Speicher. Das ist der ganze Zweck — kostet aber, dass
- * eine neue Fassung erst beim ÜBERNÄCHSTEN Start von allein da wäre. Der
- * Hinweis macht daraus einen Fingertipp.
+ * ZWEI LÜCKEN LAGEN HINTEREINANDER. Die Prüfung selbst hing an einem
+ * Seitenaufruf, den eine Startbildschirm-App fast nie macht (behoben in
+ * `lib/sw.ts` und `public/sw.js`). Und selbst wenn sie lief, musste jemand
+ * eine Leiste am unteren Rand bemerken und antippen — mitten in der Arbeit,
+ * auf einer Baustelle.
  *
- * Er liegt unten, nicht oben: oben sitzt auf dem Telefon die Kopfzeile, und
- * eine Leiste, die dort erscheint, verschiebt den ganzen Inhalt nach unten,
- * während man ihn gerade liest.
+ * DIE UNTERSCHEIDUNG, DIE DAS LÖST: beim KALTSTART kann nichts verlorengehen.
+ * Die App ist gerade erst erschienen, niemand hat etwas eingegeben — also
+ * wird die neue Fassung ohne Rückfrage übernommen. Wer die App öffnet,
+ * arbeitet damit auf dem aktuellen Stand, ohne je etwas zu tippen.
+ *
+ * BEIM FORTSETZEN WIRD WEITER GEFRAGT. Dort kann jemand mitten in einem
+ * Handwerksschein stehen, und ein selbsttätiger Neustart würfe ihm die
+ * Unterschrift weg — ausgelöst von einem Deploy, mit dem er nichts zu tun
+ * hat. Diese Abwägung bleibt, sie war von Anfang an richtig.
  */
+
 export default function NeueFassung() {
   const [bereit, setBereit] = useState(false);
+  const gestartet = useRef(Date.now());
+  const angefasst = useRef(false);
 
   useEffect(() => {
-    serviceWorkerAnmelden(() => setBereit(true));
+    /**
+     * „Angefasst" heisst: irgendeine echte Eingabe. Ein reines Scrollen zählt
+     * bewusst NICHT — wer nur überfliegt, verliert durch ein Neuladen nichts,
+     * und genau dieser Fall ist auf dem Telefon der häufigste.
+     */
+    const merken = () => {
+      angefasst.current = true;
+    };
+    for (const art of ['pointerdown', 'keydown'] as const) {
+      window.addEventListener(art, merken, { once: true, passive: true });
+    }
+
+    serviceWorkerAnmelden(() => {
+      if (darfStillUebernehmen(gestartet.current, angefasst.current)) {
+        void neueFassungUebernehmen();
+        return;
+      }
+      setBereit(true);
+    });
+
+    return () => {
+      for (const art of ['pointerdown', 'keydown'] as const) {
+        window.removeEventListener(art, merken);
+      }
+    };
   }, []);
 
   if (!bereit) return null;
