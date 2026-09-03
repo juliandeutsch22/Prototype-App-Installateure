@@ -95,6 +95,35 @@ export function subscribeAssignmentsForMonth(
   );
 }
 
+/**
+ * Alle Einsätze eines ZEITRAUMS, live — das Wochenbrett.
+ *
+ * Warum nicht `subscribeAssignmentsForMonth` mit zwei Aufrufen: eine Woche
+ * läuft regelmäßig über den Monatswechsel (der 30. ist ein Montag, der 3.
+ * ein Donnerstag). Zwei Abonnements müssten dann zusammengeführt werden, und
+ * zwar an einer Stelle, an der ein Fehler wie eine leere Woche aussieht.
+ *
+ * Der Bereichsfilter läuft über den Datums-STRING, was bei ISO-Angaben
+ * gleicher Länge zeichenweise dasselbe ist wie ein Datumsvergleich. Der
+ * zusammengesetzte Index (companyId, date) liegt bereits vor.
+ */
+export function subscribeAssignmentsInRange(
+  companyId: string,
+  from: string,
+  to: string,
+  cb: (rows: WithId<Assignment>[]) => void,
+  onError: (e: Error) => void,
+): () => void {
+  return subscribeTenant<Assignment>(
+    COLLECTION,
+    companyId,
+    cb,
+    onError,
+    where('date', '>=', from),
+    where('date', '<=', to),
+  );
+}
+
 export type AssignmentInput = Omit<Assignment, 'id' | 'companyId' | 'createdAt'>;
 
 /**

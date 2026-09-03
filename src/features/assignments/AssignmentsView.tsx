@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
@@ -64,14 +65,31 @@ export default function AssignmentsView() {
   const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
-  const [date, setDate] = useState(todayStr());
+  /**
+   * Tag und Baustelle koennen vom Wochenplan mitkommen.
+   *
+   * Dort steht, WER wann frei ist; eingetragen wird hier. Ohne diese
+   * Uebergabe muesste man nach jedem Tipp im Brett den Tag noch einmal im
+   * Kalender suchen — und genau dieser Umweg macht aus zwei Ansichten zwei
+   * getrennte Werkzeuge statt eines Ablaufs.
+   *
+   * Nur beim ERSTEN Zeichnen gelesen: danach gehoert die Auswahl dem
+   * Benutzer, und ein spaeteres Zurueckspringen waere ein Formular, das sich
+   * unter der Hand aendert.
+   */
+  const uebergabe = useLocation().state as
+    | { datum?: string; projectNumber?: string }
+    | null;
+  const startDatum = uebergabe?.datum ?? todayStr();
+
+  const [date, setDate] = useState(startDatum);
   const [cursor, setCursor] = useState(() => {
     // Lokal rechnen, NICHT über toISOString: das rechnet in UTC und liefert
     // am Monatsersten vor 02:00 Uhr (Sommerzeit) noch den Vormonat.
-    const [y, m] = todayStr().split('-');
+    const [y, m] = startDatum.split('-');
     return { year: Number(y), month: Number(m) - 1 };
   });
-  const [projectNumber, setProjectNumber] = useState('');
+  const [projectNumber, setProjectNumber] = useState(uebergabe?.projectNumber ?? '');
   const [picks, setPicks] = useState<Record<string, Pick>>({});
   const [comment, setComment] = useState('');
   const [monthAssignments, setMonthAssignments] = useState<WithId<Assignment>[]>([]);

@@ -79,7 +79,7 @@ export const MODULE: Modul[] = [
     name: 'Einsatzplanung',
     zweck: 'Wer ist an welchem Tag auf welcher Baustelle.',
     standard: true,
-    betrifft: ['Einsatzplanung', 'Mein Einsatzplan'],
+    betrifft: ['Einsatzplanung', 'Wochenplan', 'Mein Einsatzplan'],
   },
   {
     id: 'material',

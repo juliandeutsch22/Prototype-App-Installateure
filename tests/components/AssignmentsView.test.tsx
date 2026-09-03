@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Assignment, EinsatzMaterial, Material, Project, Vacation } from '@/types';
 import AssignmentsView from '@/features/assignments/AssignmentsView';
@@ -112,11 +113,15 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
-function zeige() {
+function zeige(zustand?: { datum?: string; projectNumber?: string }) {
+  // Die Ansicht liest Tag und Baustelle aus dem Router-Zustand — so kommt
+  // man vom Wochenplan hierher, ohne den Tag noch einmal zu suchen.
   return render(
-    <ToastProvider>
-      <AssignmentsView />
-    </ToastProvider>,
+    <MemoryRouter initialEntries={[{ pathname: '/assignments/tag', state: zustand ?? null }]}>
+      <ToastProvider>
+        <AssignmentsView />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -489,5 +494,35 @@ describe('Einsatzplanung — Rüstliste', () => {
     zeige();
     await screen.findByRole('combobox', { name: /Baustelle/ });
     expect(screen.queryByText('Material für diesen Einsatz')).toBeNull();
+  });
+});
+
+describe('Einsatzplanung — Übergabe vom Wochenplan', () => {
+  /**
+   * Im Wochenplan steht, WER wann frei ist; eingetragen wird hier. Ohne die
+   * Übergabe müsste man nach jedem Tipp im Brett den Tag noch einmal im
+   * Kalender suchen — und genau dieser Umweg macht aus zwei Ansichten zwei
+   * getrennte Werkzeuge statt eines Ablaufs.
+   */
+  it('übernimmt Tag und Baustelle', async () => {
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: '2026-09-04', projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann',
+      } as Assignment & { id: string },
+    ];
+    zeige({ datum: '2026-09-04', projectNumber: '2026-042' });
+
+    // Der Kalender steht auf dem übergebenen Tag …
+    expect(await screen.findByText(/Einsatz planen — Fr\., 04\.09\.2026/)).toBeInTheDocument();
+    // … und die Baustelle ist gewählt, also kommt die vorhandene Planung mit.
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked(),
+    );
+  });
+
+  it('nimmt ohne Übergabe den heutigen Tag', async () => {
+    zeige();
+    expect(await screen.findByText(/Einsatz planen — Di\., 01\.09\.2026/)).toBeInTheDocument();
   });
 });
