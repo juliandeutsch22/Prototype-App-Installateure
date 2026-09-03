@@ -78,6 +78,15 @@ function zeige() {
   );
 }
 
+/**
+ * Es gibt ZWEI Darstellungen derselben Woche: die Tabelle am Schreibtisch
+ * und die Tagesliste auf dem Telefon. Im Browser blendet CSS eine davon aus,
+ * in jsdom stehen beide im Baum — deshalb wird hier immer die gemeinte
+ * eingegrenzt, statt blind im ganzen Bild zu suchen.
+ */
+const tabelle = () => within(screen.getByRole('table', { name: 'Wochenplan als Tabelle' }));
+const liste = () => within(screen.getByRole('region', { name: 'Wochenplan als Liste' }));
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   // Mi, 02.09.2026 — die Woche beginnt also am Mo, 31.08.
@@ -96,9 +105,9 @@ describe('Wochenplan — wer ist wo', () => {
   it('zeigt eine Zeile je Mitarbeiter und sieben Tage', async () => {
     zeige();
     expect(await screen.findByRole('row', { name: /Max Mustermann/ })).toBeInTheDocument();
-    expect(screen.getByRole('row', { name: /Erna Beispiel/ })).toBeInTheDocument();
+    expect(tabelle().getByRole('row', { name: /Erna Beispiel/ })).toBeInTheDocument();
     // Kopfzeile plus zwei Mitarbeiter.
-    expect(screen.getAllByRole('row')).toHaveLength(3);
+    expect(tabelle().getAllByRole('row')).toHaveLength(3);
   });
 
   it('setzt die Baustelle in die Zelle des eingeteilten Tages', async () => {
@@ -112,7 +121,7 @@ describe('Wochenplan — wer ist wo', () => {
     const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
     expect(within(zeile).getByText('Familie Huber')).toBeInTheDocument();
     // Erna ist an dem Tag frei — ihre Zelle sagt das.
-    const andere = screen.getByRole('row', { name: /Erna Beispiel/ });
+    const andere = tabelle().getByRole('row', { name: /Erna Beispiel/ });
     expect(within(andere).getAllByText('frei').length).toBeGreaterThan(0);
   });
 
@@ -130,9 +139,11 @@ describe('Wochenplan — wer ist wo', () => {
     ];
     zeige();
     // Am Mittwoch ist einer von zweien eingeteilt, am Montag keiner.
-    const mi = await screen.findByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ });
-    expect(mi).toHaveTextContent('1 frei');
-    expect(screen.getByRole('button', { name: /Mo.*31\.08.*Tagesplanung/ })).toHaveTextContent(
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ })).toHaveTextContent(
+      '1 frei',
+    );
+    expect(tabelle().getByRole('button', { name: /Mo.*31\.08.*Tagesplanung/ })).toHaveTextContent(
       '2 frei',
     );
   });
@@ -149,7 +160,7 @@ describe('Wochenplan — wer ist wo', () => {
     zeige();
     const zeile = await screen.findByRole('row', { name: /Erna Beispiel/ });
     expect(within(zeile).getAllByText('Urlaub').length).toBeGreaterThan(0);
-    expect(screen.getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ })).toHaveTextContent(
+    expect(tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ })).toHaveTextContent(
       '1 frei',
     );
   });
@@ -164,7 +175,8 @@ describe('Wochenplan — der Weg in die Tagesplanung', () => {
       } as Assignment & { id: string },
     ];
     zeige();
-    await userEvent.click(await screen.findByRole('button', { name: /Familie Huber am 02\.09/ }));
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber am 02\.09/ }));
     expect(gefahren.zu).toBe('/assignments/tag');
     expect(gefahren.zustand).toEqual({ datum: MITTWOCH, projectNumber: '2026-042' });
   });
@@ -185,14 +197,89 @@ describe('Wochenplan — Woche wechseln', () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Woche ›' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Woche vor' }));
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Mo.*07\.09/ })).toBeInTheDocument(),
+      expect(tabelle().getByRole('button', { name: /Mo.*07\.09/ })).toBeInTheDocument(),
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Diese Woche' }));
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Mo.*31\.08/ })).toBeInTheDocument(),
+      expect(tabelle().getByRole('button', { name: /Mo.*31\.08/ })).toBeInTheDocument(),
     );
+  });
+});
+
+describe('Wochenplan — die Tagesliste auf dem Telefon', () => {
+  /**
+   * SIEBEN SPALTEN AUF 390 px SIND KEINE TABELLE, sondern ein Guckloch: zwei
+   * Tage sichtbar, der Rest hinter einem waagrechten Bildlauf — und die
+   * stehende Namensspalte schob sich in die Polsterung. Aus dem Betrieb
+   * gemeldet: „der Wochenplan sieht mobil leider noch gar nicht gut aus."
+   *
+   * Die Liste beantwortet dieselbe Frage in der Reihenfolge, in der man sie
+   * auf dem Telefon stellt: erst der Tag, dann wer dort ist, dann wer noch
+   * frei waere.
+   */
+  it('nennt je Tag die Baustelle MIT den Namen', async () => {
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann',
+      } as Assignment & { id: string },
+    ];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+
+    const knopf = liste().getByRole('button', { name: /Familie Huber am 02\.09/ });
+    expect(knopf).toHaveTextContent('Familie Huber');
+    expect(knopf).toHaveTextContent('Max Mustermann');
+  });
+
+  it('schreibt die freien Namen AUS, nicht nur ihre Zahl', async () => {
+    /**
+     * Am Schreibtisch liest man sie aus der Spalte ab; hier gaebe es dafuer
+     * keine Spalte. „2 frei" ohne Namen zwaenge zurueck in die Tagesplanung,
+     * nur um nachzusehen — genau der Umweg, den dieses Brett abschaffen soll.
+     */
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann',
+      } as Assignment & { id: string },
+    ];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+
+    // Am Mittwoch ist Max eingeteilt, Erna frei.
+    const mittwoch = liste().getByText('Mi, 02.09.').closest('div')!.parentElement!;
+    expect(mittwoch).toHaveTextContent('Frei: Erna Beispiel');
+  });
+
+  it('nennt den Urlaub beim Namen', async () => {
+    urlaube = [
+      {
+        id: 'v1', companyId: 'perl', userId: 'u2', userName: 'Erna Beispiel',
+        von: '2026-08-31', bis: '2026-09-04', status: 'Genehmigt', tage: 5,
+      } as Vacation & { id: string },
+    ];
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(liste().getAllByText(/Urlaub:/).length).toBeGreaterThan(0);
+  });
+
+  it('sagt es, wenn an einem Tag nichts geplant ist', async () => {
+    // „Nichts geplant" und „nichts anzuzeigen" sind zwei verschiedene
+    // Aussagen — eine leere Karte liesse offen, welche gemeint ist.
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(liste().getAllByText('Nichts geplant.')).toHaveLength(7);
+  });
+
+  it('fuehrt von einem Tag ohne Einteilung in die Tagesplanung', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    await userEvent.click(liste().getByRole('button', { name: 'Am 02.09. einteilen' }));
+    expect(gefahren.zu).toBe('/assignments/tag');
+    expect(gefahren.zustand).toEqual({ datum: MITTWOCH, projectNumber: undefined });
   });
 });
