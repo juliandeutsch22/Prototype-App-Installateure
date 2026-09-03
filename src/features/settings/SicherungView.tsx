@@ -118,10 +118,10 @@ export default function SicherungView() {
               Nummernkreise. Aufbewahrt werden die letzten dreißig Stände, der jüngste immer.
             </InfoHint>
           </h2>
-          <p className="text-sm text-ink-muted">
-            Sie läuft von selbst. Der Knopf ist zum Nachsehen da: er macht denselben Lauf
-            sofort und sagt, wie viel dabei herauskommt.
-          </p>
+          {/* Der Knopf darunter sagt bereits, was er tut. Uebrig bleibt der
+              eine Satz, der jemanden davon abhaelt, ihn fuer noetig zu
+              halten — das Warum steht im „i" darueber. */}
+          <p className="text-sm text-ink-muted">Sie läuft von selbst.</p>
           <Button onClick={() => void sicherungJetzt()} disabled={laeuft !== null}>
             {laeuft === 'sicherung' ? 'Sicherung läuft …' : 'Sicherung jetzt erstellen'}
           </Button>
@@ -136,13 +136,15 @@ export default function SicherungView() {
 
       <Card>
         <div className="space-y-3">
-          <h2 className="font-semibold text-ink">Daten herunterladen</h2>
-          <p className="text-sm text-ink-muted">
-            Der komplette Bestand als Datei, für eine Auskunft nach Art. 15 DSGVO oder für den
-            Umzug zu einem anderen Anbieter. Bei einem großen Betrieb kann der Download an
-            seine Grenze stoßen — dann ist die nächtliche Sicherung der vollständige Weg, und
-            die Meldung sagt das auch.
-          </p>
+          <h2 className="flex flex-wrap items-center font-semibold text-ink">
+            Daten herunterladen
+            <InfoHint about="das Herunterladen">
+              Der komplette Bestand als Datei, für eine Auskunft nach Art. 15 DSGVO oder für den
+              Umzug zu einem anderen Anbieter. Bei einem großen Betrieb kann der Download an
+              seine Grenze stoßen — dann ist die nächtliche Sicherung der vollständige Weg, und
+              die Meldung sagt das auch.
+            </InfoHint>
+          </h2>
           <Button variant="ghost" onClick={() => void herunterladen()} disabled={laeuft !== null}>
             {laeuft === 'download' ? 'Wird zusammengestellt …' : 'Alle Daten herunterladen'}
           </Button>

@@ -268,12 +268,16 @@ export default function SettingsView() {
           verdient hat — und mit dem Verrechnungssatz an ihrer Stelle ergaebe
           jede Baustelle glatt null.
         */}
-        <Card title="Interne Kostensätze">
-          <p className="text-sm text-ink-muted">
-            Was eine Arbeitsstunde den Betrieb kostet — nicht, was sie dem Kunden verrechnet
-            wird. Grundlage der Nachkalkulation. Üblich sind Lohn plus Lohnnebenkosten plus ein
-            Anteil der Gemeinkosten.
-          </p>
+        <Card
+          title="Interne Kostensätze"
+          hint={
+            <>
+              Was eine Arbeitsstunde den Betrieb kostet — nicht, was sie dem Kunden verrechnet
+              wird. Grundlage der Nachkalkulation. Üblich sind Lohn plus Lohnnebenkosten plus ein
+              Anteil der Gemeinkosten.
+            </>
+          }
+        >
           <FormGrid>
             <InputField
               id="costfach"
@@ -339,7 +343,16 @@ export default function SettingsView() {
         Dieselbe Grenze steht in firestore.rules.
       */}
       {darfGenehmigerSetzen && (
-        <Card title="Wer Urlaub genehmigt">
+        <Card
+          title="Wer Urlaub genehmigt"
+          hint={
+            <>
+              Eine Genehmigung trägt die Urlaubstage ins Zeitkonto ein. Wer sie aussprechen darf,
+              entscheidet damit über bezahlte Tage — die Auswahl gilt deshalb auch serverseitig,
+              nicht nur in der Oberfläche.
+            </>
+          }
+        >
           <p className="text-sm text-ink">
             Über Urlaubsanträge entscheiden <strong>{immerDabei.join(', ') || 'Geschäftsführung und Administration'}</strong> immer
             — das lässt sich nicht abwählen, sonst könnte eine Fehleingabe den ganzen Betrieb
@@ -361,12 +374,6 @@ export default function SettingsView() {
             />
           </div>
 
-          <p className="mt-3 text-sm text-ink-muted">
-            Eine Genehmigung trägt die Urlaubstage ins Zeitkonto ein. Wer sie aussprechen darf,
-            entscheidet damit über bezahlte Tage — die Auswahl gilt deshalb auch serverseitig,
-            nicht nur in der Oberfläche.
-          </p>
-
           <div className="mt-4">
             <Button
               type="button"
@@ -379,18 +386,22 @@ export default function SettingsView() {
         </Card>
       )}
 
-      <Card title="Monatsbilanzen">
+      <Card
+        title="Monatsbilanzen"
+        hint={
+          <>
+            Das Zeitkonto lädt danach ein Dokument je Monat statt aller Buchungen seit Eintritt —
+            bei langer Betriebszugehörigkeit der Unterschied zwischen ein paar hundert und ein
+            paar tausend Dokumenten. Danach wird jede Bilanz bei jeder Buchung nachgezogen, und
+            ein nächtlicher Lauf gleicht Abweichungen von selbst aus. Solange der Aufbau nicht
+            gelaufen ist, rechnet das Zeitkonto wie bisher — die angezeigten Salden ändern sich
+            durch den Aufbau nicht.
+          </>
+        }
+      >
         <p className="text-sm text-ink">
-          Verdichtet die Zeitbuchungen zu einer Bilanz je Mitarbeiter und Monat. Das Zeitkonto
-          lädt danach ein Dokument je Monat statt aller Buchungen seit Eintritt — bei langer
-          Betriebszugehörigkeit der Unterschied zwischen ein paar hundert und ein paar tausend
-          Dokumenten.
-        </p>
-        <p className="mt-2 text-sm text-ink-muted">
-          Einmalig anzustoßen. Danach wird jede Bilanz bei jeder Buchung nachgezogen, und ein
-          nächtlicher Lauf gleicht Abweichungen von selbst aus. Solange der Aufbau nicht gelaufen
-          ist, rechnet das Zeitkonto wie bisher — die angezeigten Salden ändern sich durch den
-          Aufbau nicht.
+          Verdichtet die Zeitbuchungen zu einer Bilanz je Mitarbeiter und Monat. Einmalig
+          anzustoßen.
         </p>
         {aufbauErgebnis && (
           <p className="mt-3 rounded-sm border border-success/30 bg-success-bg px-3 py-2 text-sm text-success">
