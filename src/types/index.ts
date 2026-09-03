@@ -479,6 +479,81 @@ export interface MaterialOrder {
   updatedAt?: number;
 }
 
+/**
+ * Eine Position der Ruestliste — ein Artikel, den der Monteur mitnehmen soll.
+ */
+export interface RuestPosition {
+  /**
+   * Stabil ueber Umsortieren und Umbenennen hinweg.
+   *
+   * An dieser Kennung haengt der Haken „eingeladen". Waere sie die
+   * Listenposition, ruecke der Haken mit, sobald der Planer eine Zeile
+   * einfuegt — und der Monteur laedt die falsche Kiste ein.
+   */
+  id: string;
+  /** Katalogartikel, wenn es einer ist. Freie Zeilen tragen keinen. */
+  materialId?: string;
+  name: string;
+  menge: number;
+  einheit?: string;
+}
+
+/**
+ * einsatzMaterial/{companyId}_{date}_{projectNumber} — die Ruestliste.
+ *
+ * WAS SIE IST UND WAS NICHT. Sie sagt „nimm das mit", nicht „das muss
+ * besorgt werden". Das Zweite gibt es schon als Materialanforderung
+ * (`MaterialOrder`), und die beiden zu vermischen waere teuer: die
+ * Verwaltung bekaeme eine Arbeitsliste voller Dinge, die im Regal stehen,
+ * und der Lagerstand wuerde zweimal abgezogen — einmal beim Erledigen der
+ * Anforderung, einmal wenn der Monteur das Material tatsaechlich mitnimmt.
+ * Eine Ruestliste bewegt den Bestand deshalb NICHT.
+ *
+ * WARUM EIN EIGENES DOKUMENT UND NICHT EIN FELD AM EINSATZ. `assignments`
+ * traegt EINE ZEILE JE MITARBEITER. Material am Einsatz hiesse: vier
+ * Monteure, vier Kopien derselben Liste — und ein Haken, von dem niemand
+ * sagen kann, fuer wen er gilt. Material gehoert zum Paar aus TAG und
+ * BAUSTELLE, nicht zur Person. Die Kiste steht einmal im Bus.
+ *
+ * DIE KENNUNG IST BERECHENBAR, damit die Startseite je Einsatz genau ein
+ * Dokument liest, ohne Abfrage. Sie ist aber KEINE Sicherheitsgrenze: die
+ * liegt wie ueberall am Feld `companyId`.
+ */
+export interface EinsatzMaterial {
+  id: string;
+  companyId: string;
+  date: string; // 'YYYY-MM-DD'
+  projectNumber: string;
+  /**
+   * Wer an diesem Tag auf dieser Baustelle eingeteilt ist.
+   *
+   * Steht hier doppelt (die Wahrheit steht in `assignments`), und zwar aus
+   * einem Grund: nur so kann die Sicherheitsregel „darf dieser Monteur
+   * abhaken?" ohne einen Nachschlag beantworten. Die Kennungen der Einsaetze
+   * sind zufaellig, eine Regel kaeme mit `get()` gar nicht an sie heran.
+   * Gepflegt wird das Feld beim Speichern der Einteilung UND beim Speichern
+   * der Liste.
+   */
+  uids: string[];
+  positionen: RuestPosition[];
+  /**
+   * Was schon im Bus ist: Positions-Kennung -> wer und wann.
+   *
+   * EIGENES FELD, NICHT EIN HAKEN IN DER POSITION. Nur so laesst sich in
+   * den Regeln die Grenze ziehen: der Monteur darf `geladen` schreiben und
+   * sonst nichts. Laege der Haken innerhalb von `positionen`, koennte keine
+   * Regel „Haken gesetzt" von „ganze Liste ueberschrieben" unterscheiden.
+   *
+   * Die Zeit kommt vom Geraet, nicht vom Server. Sie ist eine Anzeige
+   * („eingeladen von Max, 06:12"), keine Grundlage fuer eine Entscheidung —
+   * und ein Serverzeitstempel ist in einer verschachtelten Karte nicht zu
+   * haben, ohne die Regel aufzuweichen.
+   */
+  geladen?: Record<string, { von: string; am: number }>;
+  updatedAt?: number;
+  updatedBy?: string;
+}
+
 /** timeEntries/{id} — Zeiterfassung. */
 export interface TimeEntry {
   id: string;

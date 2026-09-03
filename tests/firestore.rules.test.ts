@@ -1036,6 +1036,131 @@ describe('Einsatzplanung — planen darf nur die Leitung', () => {
 });
 
 /**
+ * Die Rüstliste zu einem Einsatz — zwei Schreiber, zwei Rechte.
+ *
+ * Sie sagt „nimm das mit", nicht „das muss besorgt werden". Geplant wird sie
+ * von der Leitung; der Monteur hakt ab, was er eingeladen hat.
+ *
+ * DIE GEFÄHRLICHE STELLE ist genau diese Trennung. Dürfte der Monteur die
+ * Liste ändern, könnte er sich das Material wegplanen, das er mitnehmen
+ * soll — und niemand sähe, dass die Planung eine andere war. Deshalb steht
+ * der Haken in einem EIGENEN Feld: nur so kann eine Regel „abgehakt" von
+ * „Liste überschrieben" überhaupt unterscheiden.
+ */
+describe('Rüstliste — planen darf die Leitung, abhaken der Eingeteilte', () => {
+  const KENNUNG = 'companyA_2026-06-18_2024-001';
+
+  async function seedListe(uids: string[] = ['userA1']) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'einsatzMaterial', KENNUNG), {
+        companyId: 'companyA',
+        date: '2026-06-18',
+        projectNumber: '2024-001',
+        uids,
+        positionen: [{ id: 'p1', name: 'Eckventil', menge: 3 }],
+        geladen: {},
+      });
+    });
+  }
+
+  it('die fremde Firma kommt nicht heran', async () => {
+    await seedListe();
+    const db = ctxB_admin().firestore();
+    await assertFails(getDoc(doc(db, 'einsatzMaterial', KENNUNG)));
+    await assertFails(updateDoc(doc(db, 'einsatzMaterial', KENNUNG), { uids: ['adminB'] }));
+  });
+
+  it('die Projektleitung legt an, ändert und löscht', async () => {
+    const db = ctxA_pl().firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'einsatzMaterial', KENNUNG), {
+        companyId: 'companyA',
+        date: '2026-06-18',
+        projectNumber: '2024-001',
+        uids: ['userA1'],
+        positionen: [{ id: 'p1', name: 'Eckventil', menge: 3 }],
+        geladen: {},
+      }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(db, 'einsatzMaterial', KENNUNG), {
+        positionen: [{ id: 'p1', name: 'Eckventil', menge: 5 }],
+      }),
+    );
+    await assertSucceeds(deleteDoc(doc(db, 'einsatzMaterial', KENNUNG)));
+  });
+
+  it('der eingeteilte Monteur hakt ab', async () => {
+    await seedListe(['userA1']);
+    const db = ctxA_employee().firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'einsatzMaterial', KENNUNG), {
+        'geladen.p1': { von: 'Max', am: 1750000000000 },
+      }),
+    );
+  });
+
+  it('der eingeteilte Monteur ändert die LISTE nicht', async () => {
+    /**
+     * Der Kern der Trennung. Was mitzunehmen ist, entscheidet die Planung —
+     * sonst verschwände eine Position, und am Ende stünde der Monteur ohne
+     * Teil auf der Baustelle, ohne dass jemand sagen könnte, wo es abhanden
+     * kam.
+     */
+    await seedListe(['userA1']);
+    const db = ctxA_employee().firestore();
+    await assertFails(
+      updateDoc(doc(db, 'einsatzMaterial', KENNUNG), { positionen: [] }),
+    );
+    await assertFails(updateDoc(doc(db, 'einsatzMaterial', KENNUNG), { uids: ['userA1', 'x'] }));
+    // Auch nicht zusammen mit einem erlaubten Haken — sonst wäre die Regel
+    // mit einem Beipack zu umgehen.
+    await assertFails(
+      updateDoc(doc(db, 'einsatzMaterial', KENNUNG), {
+        'geladen.p1': { von: 'Max', am: 1 },
+        positionen: [],
+      }),
+    );
+  });
+
+  it('ein NICHT eingeteilter Mitarbeiter hakt nichts ab', async () => {
+    // Sonst könnte jeder in der Firma die Liste einer fremden Mannschaft als
+    // eingeladen markieren — und die führe ohne ihr Material los.
+    await seedListe(['userA2']);
+    const db = ctxA_employee().firestore();
+    await assertFails(
+      updateDoc(doc(db, 'einsatzMaterial', KENNUNG), {
+        'geladen.p1': { von: 'Max', am: 1 },
+      }),
+    );
+  });
+
+  it('der Monteur legt keine Liste an und löscht keine', async () => {
+    await seedListe(['userA1']);
+    const db = ctxA_employee().firestore();
+    await assertFails(
+      setDoc(doc(db, 'einsatzMaterial', 'companyA_2026-06-19_2024-001'), {
+        companyId: 'companyA',
+        date: '2026-06-19',
+        projectNumber: '2024-001',
+        uids: ['userA1'],
+        positionen: [],
+        geladen: {},
+      }),
+    );
+    await assertFails(deleteDoc(doc(db, 'einsatzMaterial', KENNUNG)));
+  });
+
+  it('die Buchhaltung sieht die Liste, plant sie aber nicht', async () => {
+    await seedListe();
+    await assertSucceeds(getDoc(doc(ctxA_buch().firestore(), 'einsatzMaterial', KENNUNG)));
+    await assertFails(
+      updateDoc(doc(ctxA_buch().firestore(), 'einsatzMaterial', KENNUNG), { positionen: [] }),
+    );
+  });
+});
+
+/**
  * Das Verrechnet-Kennzeichen — wem es gehört.
  *
  * `isBilled` und `invoiceNumber` entscheiden, ob eine Stunde oder eine

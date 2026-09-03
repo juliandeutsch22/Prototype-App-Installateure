@@ -240,6 +240,44 @@ service cloud.firestore {
       allow delete: if isLeadership() && ownsExisting();
     }
 
+    /**
+     * einsatzMaterial: die Ruestliste zu einem Tag und einer Baustelle.
+     *
+     * ZWEI SCHREIBER MIT ZWEI VERSCHIEDENEN RECHTEN, und genau deshalb steht
+     * das hier so ausfuehrlich.
+     *
+     * Die LEITUNG plant die Liste — dieselbe Rolle wie bei `assignments`,
+     * damit es auf die Frage „wer plant" eine einzige Antwort gibt.
+     *
+     * Der MONTEUR hakt ab, was er eingeladen hat, und sonst nichts. Er darf
+     * die Liste nicht aendern: was mitzunehmen ist, entscheidet die Planung.
+     * Braucht er zusaetzlich etwas, gibt es dafuer die Materialanforderung.
+     *
+     * WARUM `uids` UND NICHT EIN NACHSCHLAG AUF `assignments`. Die Frage
+     * lautet „ist dieser Monteur an diesem Tag auf dieser Baustelle
+     * eingeteilt". Beantworten koennte sie nur ein `get()` — aber die
+     * Kennungen der Einsaetze sind zufaellig, es gibt also keinen Pfad, den
+     * eine Regel bilden koennte. Deshalb traegt das Dokument die Kennungen
+     * der Eingeteilten mit; geschrieben werden sie von der Planung, und die
+     * Einteilung zieht sie nach, wenn sich die Mannschaft aendert.
+     *
+     * WARUM `geladen` EIN EIGENES FELD IST. Nur so laesst sich die Grenze
+     * ueberhaupt ziehen. Laege der Haken in `positionen`, koennte keine
+     * Regel „Haken gesetzt" von „ganze Liste ueberschrieben" unterscheiden —
+     * der Monteur haette damit faktisch Schreibrecht auf die Planung.
+     */
+    match /einsatzMaterial/{id} {
+      allow read: if ownsExisting();
+      allow create: if isLeadership() && ownsIncoming();
+      allow delete: if isLeadership() && ownsExisting();
+      allow update: if ownsExisting() && (
+        (isLeadership() && ownsIncoming() && companyUnchanged())
+        || (request.auth.uid in resource.data.uids
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['geladen', 'updatedAt']))
+      );
+    }
+
     // --- materials (Katalog): lesen in der Firma; pflegen GF/Verwaltung/Admin ---
     //
     // Der Kommentar nahm frueher den Lagerstand aus („darf jeder per
