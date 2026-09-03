@@ -134,3 +134,23 @@ describe('Fehlergrenze', () => {
     expect(screen.getByRole('button', { name: 'Zur Startseite' })).toBeInTheDocument();
   });
 });
+
+describe('Welche Fassung laeuft', () => {
+  it('nennt die Fassung in den technischen Details', async () => {
+    /**
+     * AUS DEM BETRIEB GEMELDET: „keine deiner Aenderungen ist in der App
+     * vorhanden." Der Deploy meldete Erfolg, das Telefon zeigte etwas
+     * anderes — und niemand konnte nachsehen, welcher Stand dort lief.
+     *
+     * Ein Bildschirmfoto der Fehlertafel sagte damit nur, DASS etwas
+     * schiefging, nicht auf welchem Stand. Genau daran ist die Suche
+     * haengengeblieben.
+     */
+    render(
+      <ErrorBoundary>
+        <Wirft fehler={new Error('irgendein Fehler')} />
+      </ErrorBoundary>,
+    );
+    expect(await screen.findByText(/^Fassung /)).toBeInTheDocument();
+  });
+});

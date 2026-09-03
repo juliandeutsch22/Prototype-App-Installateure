@@ -1,10 +1,51 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
+
+/**
+ * Welche Fassung laeuft hier eigentlich?
+ *
+ * WARUM DAS NOETIG WURDE. „Es ist deployed" gegen „bei mir ist nichts da" —
+ * und keiner von beiden konnte nachsehen. Die App hatte keine Stelle, an der
+ * steht, welcher Stand gerade laeuft. Damit war jede Diagnose ein Ratespiel:
+ * liegt es am Deploy, am Zwischenspeicher des Telefons, oder ist die
+ * Aenderung schlicht an eine Bedingung geknuepft, die gerade nicht gilt?
+ *
+ * Die Kennung kommt aus dem Bau, nicht aus dem Programm: aus GitHub Actions
+ * die Commit-Kennung, lokal die aus Git, und ein Zeitstempel dazu. Der
+ * Zeitstempel ist der wichtigere Teil — eine Uhrzeit kann jeder vergleichen,
+ * eine Pruefsumme muss man erst nachschlagen.
+ */
+function fassungsKennung(): string {
+  let kurz = process.env.GITHUB_SHA?.slice(0, 7) ?? '';
+  if (!kurz) {
+    try {
+      kurz = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+        .toString()
+        .trim();
+    } catch {
+      // Kein Git zur Hand (z. B. ein Bau aus einem Archiv): dann genuegt die Zeit.
+      kurz = 'ohne';
+    }
+  }
+  const zeit = new Intl.DateTimeFormat('de-AT', {
+    timeZone: 'Europe/Vienna',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date());
+  return `${kurz} · ${zeit}`;
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __FASSUNG__: JSON.stringify(fassungsKennung()),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
