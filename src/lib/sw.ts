@@ -60,6 +60,7 @@ export function serviceWorkerAnmelden(beiNeuerFassung: () => void): void {
       // Privates Fenster, abgeschaltete Website-Daten, unsichere Verbindung:
       // dann läuft die App wie bisher, nur ohne Vorhalten.
     });
+    aufraeumenFallsUebernommen();
   });
 
   /**
@@ -118,41 +119,103 @@ export function darfStillUebernehmen(gestartet: number, angefasst: boolean): boo
   return true;
 }
 
-/** Wie lange auf die Bestätigung des Workers gewartet wird. */
-const UEBERNAHME_FRIST_MS = 2000;
+/** Wie lange auf eine Antwort des Workers gewartet wird. */
+const WORKER_FRIST_MS = 2500;
+
+/** Merker: die neue Fassung läuft, die alten Bausteine dürfen weg. */
+const AUFRAEUM_MERKER = 'perl:aufraeumen';
+
+/**
+ * Eine Nachricht an den Worker schicken und auf seine Antwort warten.
+ *
+ * Die Frist ist wichtiger als die Antwort: der Browser darf einen Service
+ * Worker jederzeit beenden. Bleibt sie aus, geht es trotzdem weiter — eine
+ * App, die auf eine Antwort wartet, die nie kommt, wäre der schlechtere
+ * Ausgang.
+ */
+function workerFragen(frage: string, antwort: string): Promise<void> {
+  const worker = navigator.serviceWorker?.controller;
+  if (!worker) return Promise.resolve();
+  return new Promise<void>((fertig) => {
+    const uhr = setTimeout(fertig, WORKER_FRIST_MS);
+    const hoerer = (e: MessageEvent) => {
+      if (e.data !== antwort) return;
+      clearTimeout(uhr);
+      navigator.serviceWorker.removeEventListener('message', hoerer);
+      fertig();
+    };
+    navigator.serviceWorker.addEventListener('message', hoerer);
+    worker.postMessage(frage);
+  });
+}
 
 /**
  * Zur neuen Fassung wechseln.
  *
- * Die neue `index.html` liegt bereits im Speicher — der Worker hat sie beim
- * Vergleich abgelegt. Vorher genügte deshalb ein Neuladen.
+ * NUR NEU LADEN — das Aufräumen kommt danach.
  *
- * WARUM JETZT NOCH EIN SCHRITT DAZWISCHEN. Der Worker wirft die alten
- * Bausteine nicht mehr weg, sobald er einen Deploy bemerkt — das brach die
- * gerade laufende Seite, die ihre alten Bausteine noch braucht (siehe
- * `public/sw.js`). Aufgeräumt wird stattdessen hier, unmittelbar vor dem
- * Neuladen, wenn niemand sie mehr anfordert.
+ * DER FEHLER, DEN DAS BEHEBT, IST AUS DEM BETRIEB GEMELDET WORDEN:
+ * „undefined is not an object (evaluating 'e._result.default')".
  *
- * Die Frist ist wichtiger als die Bestätigung: Antwortet der Worker nicht —
- * er kann zwischendurch beendet worden sein —, wird trotzdem neu geladen.
- * Ein Benutzer, der auf „Jetzt laden" tippt und bei dem nichts passiert,
- * wäre der schlechtere Ausgang als ein Speicher, der eine Fassung länger
- * mitläuft.
+ * Vorher ließ diese Funktion den Worker ERST die alten Bausteine löschen und
+ * wartete auf seine Bestätigung, bevor sie neu lud. In diesen bis zu zwei
+ * Sekunden lief die ALTE Seite weiter und wurde bedient. Wer in diesem
+ * Fenster auf einen Reiter tippte, forderte einen Baustein an, den es im
+ * Speicher gerade nicht mehr und auf dem Server nach dem Deploy nicht mehr
+ * gab — genau die Meldung oben.
+ *
+ * Solange nur jemand bewusst auf „Jetzt laden" tippte, war das ein seltenes
+ * Fenster. Mit der stillen Übernahme beim Kaltstart wurde daraus der
+ * Regelfall: sie läuft bei jedem Start nach einem Deploy, unsichtbar,
+ * während der Monteur schon tippt.
+ *
+ * Aufgeräumt wird jetzt beim NÄCHSTEN Start, wenn die neue Fassung läuft und
+ * niemand mehr etwas Altes anfordern kann.
  */
 export async function neueFassungUebernehmen(): Promise<void> {
-  const worker = navigator.serviceWorker?.controller;
-  if (worker) {
-    await new Promise<void>((fertig) => {
-      const uhr = setTimeout(fertig, UEBERNAHME_FRIST_MS);
-      const hoerer = (e: MessageEvent) => {
-        if (e.data !== 'fassungUebernommen') return;
-        clearTimeout(uhr);
-        navigator.serviceWorker.removeEventListener('message', hoerer);
-        fertig();
-      };
-      navigator.serviceWorker.addEventListener('message', hoerer);
-      worker.postMessage('fassungUebernehmen');
-    });
+  try {
+    sessionStorage.setItem(AUFRAEUM_MERKER, '1');
+  } catch {
+    // Ohne Merker bleiben die alten Bausteine eine Fassung länger liegen.
+    // Das kostet Speicher und sonst nichts.
   }
+  window.location.reload();
+}
+
+/**
+ * Die alten Bausteine wegräumen — beim Start, nachdem übernommen wurde.
+ *
+ * Was die laufende Fassung danach noch nachlädt, liegt auf dem Server;
+ * schlimmstenfalls kostet es eine Netzrunde. Vorher, mit der alten Seite im
+ * Rücken, kostete es die Ansicht.
+ */
+function aufraeumenFallsUebernommen(): void {
+  let faellig = false;
+  try {
+    faellig = sessionStorage.getItem(AUFRAEUM_MERKER) !== null;
+    if (faellig) sessionStorage.removeItem(AUFRAEUM_MERKER);
+  } catch {
+    return;
+  }
+  if (!faellig) return;
+  void workerFragen('fassungUebernehmen', 'fassungUebernommen');
+}
+
+/**
+ * Nach einem gescheiterten Nachladen: erst die Hülle erneuern, dann laden.
+ *
+ * WARUM NICHT EINFACH NEU LADEN, wie es vorher geschah. Der fehlende
+ * Baustein steht in der ALTEN `index.html`, und genau die liegt noch im
+ * Speicher des Workers. Ein sofortiges Neuladen holt dieselbe Hülle, findet
+ * denselben fehlenden Baustein — und beim zweiten Versuch greift der
+ * Schleifenschutz. Übrig bleibt die Fehlertafel, obwohl die neue Fassung
+ * längst auf dem Server liegt.
+ *
+ * Der Worker legt die neue Hülle ab und meldet sich; erst dann wird geladen.
+ * Kommt er nicht durch, wird nach der Frist trotzdem geladen — ohne Netz
+ * hilft ohnehin nichts, und stehenbleiben ist der schlechtere Ausgang.
+ */
+export async function huelleErneuernUndNeuLaden(): Promise<void> {
+  await workerFragen('aufNeueFassungPruefen', 'fassungGeprueft');
   window.location.reload();
 }

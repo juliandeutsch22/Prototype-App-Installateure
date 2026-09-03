@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import ErrorBoundary, { istNachladeFehler } from '@/app/ErrorBoundary';
 
 /**
@@ -72,16 +72,23 @@ describe('Nachladefehler erkennen', () => {
 });
 
 describe('Fehlergrenze', () => {
-  it('laedt bei einem Nachladefehler von selbst neu', () => {
+  it('laedt bei einem Nachladefehler von selbst neu', async () => {
+    /**
+     * Das Laden ist seit dem Befund aus dem Betrieb ASYNCHRON: erst laesst
+     * die App den Service Worker die Huelle erneuern, dann laedt sie. Ohne
+     * das holte das Neuladen dieselbe alte `index.html` mit demselben
+     * fehlenden Baustein — und beim zweiten Versuch griff der
+     * Schleifenschutz, uebrig blieb die Fehlertafel.
+     */
     render(
       <ErrorBoundary>
         <Wirft fehler={new TypeError(NACHLADE_MELDUNGEN[0])} />
       </ErrorBoundary>,
     );
-    expect(reload).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
   });
 
-  it('laedt kein zweites Mal gleich hinterher', () => {
+  it('laedt kein zweites Mal gleich hinterher', async () => {
     /**
      * Der Schutz gegen die Schleife. Scheitert das Nachladen aus einem
      * anderen Grund — kein Netz —, brächte ein sofortiges zweites Neuladen
@@ -97,6 +104,7 @@ describe('Fehlergrenze', () => {
         <Wirft fehler={new TypeError(NACHLADE_MELDUNGEN[0])} />
       </ErrorBoundary>,
     );
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
