@@ -135,19 +135,66 @@ export default function WochenplanView() {
     return m;
   }, [einsaetze, urlaube, projects, tage]);
 
-  /** Wie viele sind an diesem Tag frei — die Zahl, um die es geht. */
-  const freiJeTag = useMemo(() => {
-    const m = new Map<string, number>();
+  /**
+   * Je Tag zusammengefasst: welche Baustelle mit wem, wer frei, wer im Urlaub.
+   *
+   * BEIDE DARSTELLUNGEN RECHNEN DAMIT — die Tabelle am Schreibtisch und die
+   * Tagesliste auf dem Telefon. Zwei getrennte Rechnungen hiessen zwei Orte,
+   * an denen „frei" etwas anderes heissen kann.
+   */
+  const proTag = useMemo(() => {
+    const m = new Map<
+      string,
+      {
+        baustellen: { nummer: string; name: string; namen: string[]; helfer: string[] }[];
+        frei: string[];
+        urlaub: string[];
+      }
+    >();
     for (const tag of tage) {
-      let frei = 0;
+      const nachNummer = new Map<
+        string,
+        { nummer: string; name: string; namen: string[]; helfer: string[] }
+      >();
+      const frei: string[] = [];
+      const urlaub: string[] = [];
       for (const u of staff) {
         const z = brett.get(u.uid)?.get(tag);
-        if (!z || (z.baustellen.length === 0 && !z.imUrlaub)) frei += 1;
+        if (z?.imUrlaub) {
+          urlaub.push(u.name);
+          continue;
+        }
+        if (!z || z.baustellen.length === 0) {
+          frei.push(u.name);
+          continue;
+        }
+        for (const b of z.baustellen) {
+          const e = nachNummer.get(b.nummer) ?? {
+            nummer: b.nummer,
+            name: b.name,
+            namen: [],
+            helfer: [],
+          };
+          e.namen.push(u.name);
+          if (b.helfer) e.helfer.push(u.name);
+          nachNummer.set(b.nummer, e);
+        }
       }
-      m.set(tag, frei);
+      m.set(tag, {
+        baustellen: [...nachNummer.values()].sort((a, b) => a.name.localeCompare(b.name, 'de')),
+        frei,
+        urlaub,
+      });
     }
     return m;
   }, [tage, staff, brett]);
+
+  /** Wie viele sind an diesem Tag frei — die Zahl, um die es geht. */
+  const freiJeTag = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const tag of tage) m.set(tag, proTag.get(tag)?.frei.length ?? 0);
+    return m;
+  }, [tage, proTag]);
 
   function wocheVerschieben(wochen: number) {
     setMontag(wocheVerschoben(montag, wochen));
@@ -192,15 +239,21 @@ export default function WochenplanView() {
           </>
         }
         action={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" onClick={() => wocheVerschieben(-1)}>
-              ‹ Woche
+          /*
+            EINE ZEILE, AUCH AUF 390 px. Mit „‹ Woche / Diese Woche / Woche ›"
+            brach die Leiste auf dem Telefon auf zwei Zeilen um und schob das
+            Brett noch weiter nach unten. Die Pfeile brauchen kein Wort — was
+            sie tun, sagt die Zeitspanne im Kartentitel daneben.
+          */
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" aria-label="Woche zurück" onClick={() => wocheVerschieben(-1)}>
+              ‹
             </Button>
             <Button variant="ghost" onClick={() => setMontag(montagDer(todayStr()))}>
               Diese Woche
             </Button>
-            <Button variant="ghost" onClick={() => wocheVerschieben(1)}>
-              Woche ›
+            <Button variant="ghost" aria-label="Woche vor" onClick={() => wocheVerschieben(1)}>
+              ›
             </Button>
           </div>
         }
@@ -215,8 +268,23 @@ export default function WochenplanView() {
             auf 390 px nicht nebeneinander; ohne die stehende Spalte wüsste
             beim Rollen niemand mehr, wessen Zeile er liest.
           */
-          <div className="-mx-4 overflow-x-auto px-4">
-            <table className="w-full min-w-[44rem] border-separate border-spacing-0 text-sm">
+          <>
+          {/*
+            DIE TABELLE ERST AB TABLET. Sieben Spalten auf 390 px sind keine
+            Tabelle mehr, sondern ein Guckloch: zwei Tage sichtbar, der Rest
+            hinter einem waagrechten Bildlauf. Auf dem Telefon steht deshalb
+            eine Tagesliste (weiter unten) — dieselben Daten, senkrecht.
+
+            Die negativen Raender (`-mx-4 px-4`) sind bewusst WEG: zusammen
+            mit `sticky left-0` schob sich der Inhalt der gerollten Spalten
+            in die 16 px Polsterung links neben die Namensspalte. Aus dem
+            Betrieb gemeldet, und im Bildschirmfoto gut zu sehen.
+          */}
+          <div className="hidden overflow-x-auto md:block">
+            <table
+              aria-label="Wochenplan als Tabelle"
+              className="w-full min-w-[44rem] border-separate border-spacing-0 text-sm"
+            >
               <thead>
                 <tr>
                   <th className="sticky left-0 z-10 bg-surface p-2 text-left align-bottom">
@@ -325,6 +393,90 @@ export default function WochenplanView() {
               </tbody>
             </table>
           </div>
+
+          {/*
+            DIE TAGESLISTE — die Telefonansicht.
+            
+            Sie beantwortet dieselbe Frage in der Reihenfolge, in der man sie
+            auf dem Telefon stellt: erst der Tag, dann wer dort ist, dann wer
+            noch frei wäre. Kein waagrechter Bildlauf, keine stehende Spalte,
+            nichts, was sich überlagern kann.
+
+            Die freien Namen stehen AUSGESCHRIEBEN, nicht nur als Zahl. Am
+            Schreibtisch liest man sie aus der Spalte ab; hier gäbe es dafür
+            keine Spalte, und „2 frei" ohne Namen zwingt zurück in die
+            Tagesplanung, nur um nachzusehen.
+          */}
+          <section aria-label="Wochenplan als Liste" className="space-y-3 md:hidden">
+            {tage.map((tag) => {
+              const { wochentag, datum } = tagKurz(tag);
+              const t = proTag.get(tag);
+              const feiertag = getAustrianHolidayName(new Date(`${tag}T00:00:00`));
+              const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
+              return (
+                <div
+                  key={tag}
+                  className={`rounded-sm border ${
+                    tag === heute ? 'border-brand' : 'border-line'
+                  } ${feiertag ? 'bg-warning-bg' : wochenende ? 'bg-surface-2' : ''}`}
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-3 py-2">
+                    <span className="font-semibold text-ink">
+                      {wochentag}, {datum}
+                      {tag === heute && <span className="ml-2 text-sm text-brand">heute</span>}
+                    </span>
+                    <span className="text-sm text-ink-muted">
+                      {(t?.frei.length ?? 0)} frei
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 p-3">
+                    {t && t.baustellen.length > 0 ? (
+                      t.baustellen.map((b) => (
+                        <button
+                          key={b.nummer}
+                          type="button"
+                          onClick={() => zurTagesplanung(tag, b.nummer)}
+                          aria-label={`${b.name} am ${datum} bearbeiten`}
+                          className="min-h-touch w-full rounded-sm bg-info-bg px-3 py-2 text-left"
+                        >
+                          <span className="block font-medium text-info">{b.name}</span>
+                          <span className="block text-sm text-info">
+                            {b.namen
+                              .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
+                              .join(', ')}
+                          </span>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-sm text-ink-muted">Nichts geplant.</p>
+                    )}
+
+                    {t && t.frei.length > 0 && (
+                      <p className="text-sm text-ink-muted">
+                        <span className="font-medium text-ink">Frei:</span> {t.frei.join(', ')}
+                      </p>
+                    )}
+                    {t && t.urlaub.length > 0 && (
+                      <p className="text-sm text-ink-muted">
+                        <span className="font-medium text-ink">Urlaub:</span> {t.urlaub.join(', ')}
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => zurTagesplanung(tag)}
+                      aria-label={`Am ${datum} einteilen`}
+                      className="min-h-touch w-full rounded-sm border border-dashed border-line text-sm text-ink-muted"
+                    >
+                      Einteilen
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+          </>
         )}
       </Card>
     </div>
