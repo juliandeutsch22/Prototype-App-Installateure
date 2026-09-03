@@ -208,6 +208,19 @@ export default function AssignmentsView() {
     return m;
   }, [urlaube, date]);
 
+  /**
+   * Wer hat an diesem Tag ueberhaupt keinen Einsatz — auf KEINER Baustelle?
+   *
+   * Das ist die Frage, die bei zwanzig Mitarbeitern niemand mehr im Kopf
+   * behaelt: nicht „wer ist auf dieser Baustelle", sondern „wen habe ich
+   * vergessen". Der Urlaub kommt heraus — wer frei hat, ist nicht vergessen,
+   * sondern abwesend, und ihn hier aufzulisten machte die Zeile unbrauchbar.
+   */
+  const nichtEingeteilt = useMemo(() => {
+    const verplant = new Set(dayAssignments.map((a) => a.userId));
+    return staff.filter((u) => !verplant.has(u.uid) && !imUrlaub.has(u.uid));
+  }, [staff, dayAssignments, imUrlaub]);
+
   const selectedCount = Object.values(picks).filter((p) => p.on).length;
   /**
    * Jemanden im Urlaub einzuteilen ist kein Fehler des Programms, sondern
@@ -378,6 +391,10 @@ export default function AssignmentsView() {
                     uid: u.uid,
                     name: u.name,
                     hint: hinweise.length > 0 ? hinweise.join(' · ') : undefined,
+                    // Genau dieselben zwei Gruende, die schon im Hinweis
+                    // stehen — nur maschinenlesbar, damit die Liste sie
+                    // sortieren und filtern kann.
+                    nichtFrei: hinweise.length > 0,
                   };
                 })}
                 selected={staff.filter((u) => picks[u.uid]?.on).map((u) => u.uid)}
@@ -470,6 +487,34 @@ export default function AssignmentsView() {
                   );
                 })}
               </div>
+            )}
+
+            {/*
+              Steht UNTER den Baustellen, nicht darueber: die Einteilung ist
+              die Antwort, die Luecke die Rueckfrage. Und nur, wenn ueberhaupt
+              schon geplant ist — sonst listete die Zeile die ganze
+              Belegschaft und saegte an ihrem eigenen Wert.
+            */}
+            {/*
+              `staff.length > 0` ist keine Formalie, sondern der Unterschied
+              zwischen einer Aussage und einer Behauptung. Solange die
+              Belegschaft nicht geladen ist, ist die Luecke LEER — und die
+              Zeile sagte „alle sind eingeteilt", obwohl sie niemanden kennt.
+              Faellt das Laden ganz aus, steht das oben als Teilfehler.
+            */}
+            {dayAssignments.length > 0 && staff.length > 0 && (
+              <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+                {nichtEingeteilt.length === 0 ? (
+                  <>Alle verfügbaren Mitarbeiter sind an diesem Tag eingeteilt.</>
+                ) : (
+                  <>
+                    <strong className="text-ink">
+                      Noch nicht eingeteilt ({nichtEingeteilt.length}):
+                    </strong>{' '}
+                    {nichtEingeteilt.map((u) => u.name).join(', ')}
+                  </>
+                )}
+              </p>
             )}
           </Card>
         </div>

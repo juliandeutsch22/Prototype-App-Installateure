@@ -242,3 +242,78 @@ describe('Einsatzplanung — wenn etwas nicht lädt', () => {
     );
   });
 });
+
+describe('Einsatzplanung — wen habe ich vergessen', () => {
+  /**
+   * BEI ZWANZIG MITARBEITERN BEHAELT DAS NIEMAND IM KOPF. Die Ansicht
+   * beantwortete bisher nur „wer ist auf DIESER Baustelle". Die andere
+   * Haelfte der Planung — wer hat an diesem Tag ueberhaupt keinen Einsatz —
+   * musste man sich aus den einzelnen Baustellen zusammensuchen.
+   */
+  it('nennt die Mitarbeiter ohne Einsatz an diesem Tag', async () => {
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann',
+      } as Assignment & { id: string },
+    ];
+    zeige();
+
+    const zeile = await screen.findByText(/Noch nicht eingeteilt/);
+    expect(zeile.parentElement).toHaveTextContent('Erna Beispiel');
+    // Max steht auf einer Baustelle — er darf hier gerade NICHT stehen.
+    expect(zeile.parentElement).not.toHaveTextContent('Max Mustermann');
+  });
+
+  it('laesst wen im Urlaub heraus', async () => {
+    // Wer frei hat, ist nicht vergessen, sondern abwesend. Stuende er in der
+    // Zeile, waere sie an jedem Urlaubstag voller Namen, die niemand
+    // einteilen will — und damit wertlos.
+    urlaube = [
+      {
+        id: 'v1', companyId: 'perl', userId: 'u2', userName: 'Erna Beispiel',
+        von: '2026-08-30', bis: '2026-09-05', status: 'Genehmigt', tage: 5,
+      } as Vacation & { id: string },
+    ];
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann',
+      } as Assignment & { id: string },
+    ];
+    zeige();
+    // Erst warten, bis die Belegschaft da ist. Ohne das griff die Zusicherung
+    // im Leerlauf: mit leerer Liste ist die Luecke leer, und die Zeile sagte
+    // „alle sind eingeteilt", ohne einen einzigen Namen zu kennen.
+    await screen.findByRole('checkbox', { name: /^Erna Beispiel/ });
+
+    expect(await screen.findByText(/Alle verfügbaren Mitarbeiter sind/)).toBeInTheDocument();
+  });
+
+  it('behauptet nichts, solange die Belegschaft noch nicht geladen ist', async () => {
+    /**
+     * DER FEHLER, DEN DIE GEGENPROBE ANS LICHT GEBRACHT HAT. Beim ersten
+     * Bild ist die Mitarbeiterliste leer — und eine leere Luecke las sich
+     * als „Alle verfügbaren Mitarbeiter sind an diesem Tag eingeteilt".
+     * Das ist keine Aussage, sondern eine Behauptung ueber Daten, die noch
+     * gar nicht da sind.
+     */
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann',
+      } as Assignment & { id: string },
+    ];
+    const { container } = zeige();
+    expect(container.textContent).not.toContain('Alle verfügbaren Mitarbeiter');
+    expect(container.textContent).not.toContain('Noch nicht eingeteilt');
+  });
+
+  it('schweigt, solange an dem Tag ueberhaupt nichts geplant ist', async () => {
+    // Sonst listete die Zeile die ganze Belegschaft und saegte an ihrem
+    // eigenen Wert: eine Luecke ist nur dort eine, wo schon geplant wurde.
+    zeige();
+    await screen.findByText('Keine Einsätze an diesem Tag.');
+    expect(screen.queryByText(/Noch nicht eingeteilt/)).toBeNull();
+  });
+});
