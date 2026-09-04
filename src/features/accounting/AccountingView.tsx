@@ -21,6 +21,7 @@ import type { AppUser, Project, TimeEntry } from '@/types';
 import { shouldShowOvertime } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
+import Zeitmarker from '@/features/time/Zeitmarker';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import Icon from '@/components/Icon';
@@ -583,22 +584,54 @@ export default function AccountingView() {
                         // sechsspaltige Tabelle war am Handy nicht zu retten —
                         // entweder man wischte seitwärts oder die Knöpfe
                         // wurden abgeschnitten.
-                        const days = daysOfMonth(year, month)
-                          .map((d) => {
-                            const entry = monthEntries.find((e) => e.date === d);
-                            const holiday = getAustrianHolidayName(new Date(`${d}T00:00:00`));
-                            if (!entry && !holiday) return null;
-                            return {
-                              d,
-                              entry,
-                              holiday,
-                              zeit:
-                                entry?.startTime && entry?.endTime
-                                  ? `${entry.startTime}–${entry.endTime}`
-                                  : null,
-                            };
-                          })
-                          .filter((x): x is NonNullable<typeof x> => x !== null);
+                        /*
+                          EINE ZEILE JE EINTRAG, nicht je Tag.
+
+                          AUS DEM BETRIEB GEMELDET: „die zweite Zeitbuchung an
+                          einem Tag erscheint zwar in der Projektauswertung,
+                          aber wird in der Mitarbeiterübersicht nicht
+                          angezeigt."
+
+                          Hier stand `monthEntries.find(...)` — die ERSTE
+                          Buchung des Tages, und der Rest fiel unter den Tisch.
+                          Das war richtig, solange je Tag nur eine Buchung
+                          möglich war; seit ein Monteur mehrere Baustellen an
+                          einem Tag buchen kann, ist es falsch.
+
+                          Besonders unangenehm: der Fuß zählte trotzdem ALLE
+                          Einträge und die volle Summe. „4 Einträge · 31:00"
+                          über drei sichtbaren Zeilen — eine Ansicht, die sich
+                          selbst widerspricht, und die vierte Buchung war
+                          weder zu sehen noch zu bearbeiten oder zu löschen.
+
+                          Innerhalb eines Tages nach Beginn sortiert: so liest
+                          sich der Tag in der Reihenfolge, in der er passiert
+                          ist.
+                        */
+                        type Tageszeile = {
+                          d: string;
+                          entry?: WithId<TimeEntry>;
+                          holiday: string | null;
+                          zeit: string | null;
+                        };
+                        const days = daysOfMonth(year, month).flatMap((d): Tageszeile[] => {
+                          const holiday = getAustrianHolidayName(new Date(`${d}T00:00:00`));
+                          const amTag = monthEntries
+                            .filter((e) => e.date === d)
+                            .sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? ''));
+                          if (amTag.length === 0) {
+                            return holiday ? [{ d, entry: undefined, holiday, zeit: null }] : [];
+                          }
+                          return amTag.map((entry) => ({
+                            d,
+                            entry,
+                            holiday,
+                            zeit:
+                              entry.startTime && entry.endTime
+                                ? `${entry.startTime}–${entry.endTime}`
+                                : null,
+                          }));
+                        });
 
                         /* Abwesenheit und Feiertag als Pille statt als
                            eingefärbte Zeile: die Tönung allein war für
@@ -656,11 +689,27 @@ export default function AccountingView() {
                               </thead>
                               <tbody>
                                 {days.map((x) => (
-                                  <tr key={x.d} className="border-b border-line/60">
+                                  // Der Schlüssel haengt am EINTRAG: zwei
+                                  // Buchungen desselben Tages haetten sonst
+                                  // denselben, und React zoege die Zeilen
+                                  // beim Bearbeiten durcheinander.
+                                  <tr key={x.entry?.id ?? x.d} className="border-b border-line/60">
                                     <td className="tnum whitespace-nowrap py-2 pr-3 font-medium text-ink">
                                       {dayLabel(x.d)}
                                     </td>
-                                    <td className="py-2 pr-3">{status(x)}</td>
+                                    <td className="py-2 pr-3">
+                                      {/*
+                                        Notdienst und Nachtarbeit gehören
+                                        NEBEN den Status. Sie hängen an einem
+                                        Zuschlag; wer sie hier nicht sieht,
+                                        schreibt die Stunde ohne ihn in die
+                                        Rechnung.
+                                      */}
+                                      <span className="flex flex-wrap items-center gap-1">
+                                        {status(x)}
+                                        {x.entry && <Zeitmarker eintrag={x.entry} />}
+                                      </span>
+                                    </td>
                                     <td className="tnum py-2 pr-3 text-ink-muted">
                                       {x.zeit ?? '—'}
                                     </td>
@@ -696,7 +745,7 @@ export default function AccountingView() {
 
                             <ul className="sm:hidden">
                               {days.map((x) => (
-                                <li key={x.d} className="border-b border-line/60 py-2">
+                                <li key={x.entry?.id ?? x.d} className="border-b border-line/60 py-2">
                                   <div className="flex items-baseline justify-between gap-2">
                                     <span className="tnum font-semibold text-ink">
                                       {dayLabel(x.d)}
@@ -707,6 +756,7 @@ export default function AccountingView() {
                                   </div>
                                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
                                     {status(x)}
+                                    {x.entry && <Zeitmarker eintrag={x.entry} />}
                                     {x.zeit && <span className="tnum">{x.zeit}</span>}
                                     {x.entry?.customerName && <span>{x.entry.customerName}</span>}
                                   </div>

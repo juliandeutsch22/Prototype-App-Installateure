@@ -63,6 +63,9 @@ vi.mock('@/lib/db/projects', () => ({
   // Buchungen VORKOMMEN — nicht mehr den gesamten Bestand.
   listProjectsByNumbers: vi.fn(async () => []),
 }));
+/** Was die Ansicht als Buchungen vorfindet — je Test setzbar. */
+let buchungen: (TimeEntry & { id: string })[] = eintraege;
+
 vi.mock('@/lib/db/timeEntries', () => ({
   subscribeEntriesInRange: vi.fn(
     (
@@ -71,11 +74,11 @@ vi.mock('@/lib/db/timeEntries', () => ({
       _to: string,
       cb: (rows: (TimeEntry & { id: string })[]) => void,
     ) => {
-      cb(eintraege);
+      cb(buchungen);
       return () => undefined;
     },
   ),
-  listEntriesInRange: vi.fn(async () => eintraege),
+  listEntriesInRange: vi.fn(async () => buchungen),
   deleteTimeEntry: vi.fn(),
 }));
 /**
@@ -108,6 +111,7 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 beforeEach(() => {
   benutzer = [monteur];
+  buchungen = eintraege;
   // Fest auf den 31.08.2026, damit "heute" den Test nicht mit der Zeit
   // verschiebt. shouldAdvanceTime, weil userEvent intern Zeitgeber braucht.
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -188,6 +192,83 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
  * Geschäftsführungskonto führt kein Zeitkonto und erscheint hier nie —, aber
  * sie klang nach einem Fehler, wo eine Erklärung hingehört.
  */
+/**
+ * MEHRERE BUCHUNGEN AN EINEM TAG — und was die Übersicht davon zeigt.
+ *
+ * AUS DEM BETRIEB GEMELDET: „die zweite Zeitbuchung an einem Tag erscheint
+ * zwar in der Projektauswertung, aber wird in der Mitarbeiterübersicht nicht
+ * angezeigt."
+ *
+ * Der Tagesnachweis nahm mit `find` die ERSTE Buchung des Tages. Das war
+ * richtig, solange je Tag nur eine möglich war; seit ein Monteur mehrere
+ * Baustellen an einem Tag buchen kann, ist es falsch — und besonders
+ * unangenehm, weil der Fuß trotzdem ALLE zählte: „4 Einträge · 31:00" über
+ * drei sichtbaren Zeilen. Die vierte Buchung war weder zu sehen noch zu
+ * bearbeiten oder zu löschen.
+ */
+describe('Mitarbeiteruebersicht — mehrere Buchungen an einem Tag', () => {
+  const zweiterEinsatz: TimeEntry & { id: string } = {
+    id: 'e-zweiter',
+    companyId: 'perl',
+    date: '2026-08-17',
+    status: 'Anwesend',
+    startTime: '16:00',
+    endTime: '19:00',
+    breakDuration: 0,
+    userId: 'u1',
+    userName: monteur.name,
+    projectNumber: 'B-2026-0002',
+    customerName: 'Zweite Baustelle',
+    isEmergency: true,
+  };
+
+  beforeEach(() => {
+    buchungen = [...eintraege, zweiterEinsatz];
+  });
+
+  it('zeigt BEIDE Buchungen des Tages, nicht nur die erste', async () => {
+    await oeffneMitarbeiter();
+
+    const tabelle = screen.getByRole('table');
+    // Zweimal derselbe Tag — einmal je Buchung.
+    expect(within(tabelle).getAllByText('Mo 17.08.')).toHaveLength(2);
+    expect(within(tabelle).getByText('Zweite Baustelle')).toBeInTheDocument();
+  });
+
+  it('zählt im Fuß nicht mehr, als es zeigt', async () => {
+    /*
+      DER WIDERSPRUCH, DER GEMELDET WURDE. Der Fuß zählte alle Einträge, die
+      Liste zeigte weniger. Eine Ansicht, die sich selbst widerspricht,
+      kostet mehr Vertrauen als eine, die etwas gar nicht kann.
+    */
+    await oeffneMitarbeiter();
+
+    const tabelle = screen.getByRole('table');
+    expect(within(tabelle).getByText('11 Einträge')).toBeInTheDocument();
+    // 10 Tage à 08:00 plus der zweite Einsatz mit 03:00.
+    /*
+      Gezählt werden die Zeilen mit „Bearbeiten" — das sind genau die
+      Buchungen. Eine feste Zeilenzahl wäre brittle: der Nachweis führt auch
+      Feiertage ohne Buchung (im August 2026 der 15.).
+    */
+    expect(within(tabelle).getAllByRole('button', { name: 'Bearbeiten' })).toHaveLength(11);
+  });
+
+  it('zeigt den Notdienst-Haken — er hängt an einem Zuschlag', async () => {
+    /*
+      GEMELDET: „Notdienst wurde angehakt, aber das scheint nicht auf."
+      Gespeichert war er; gezeigt wurde er nur in der eigenen Zeitübersicht.
+      Wer ihn hier nicht sieht, schreibt die Stunde ohne den Zuschlag von
+      +100 % in die Rechnung — und das fällt niemandem auf, weil die Zahl
+      plausibel aussieht.
+    */
+    await oeffneMitarbeiter();
+
+    const tabelle = screen.getByRole('table');
+    expect(within(tabelle).getByText('Notdienst')).toBeInTheDocument();
+  });
+});
+
 describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
   const gf: AppUser = {
     ...monteur,

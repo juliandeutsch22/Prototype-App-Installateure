@@ -9,6 +9,7 @@ import {
 import type { Project, TimeEntry } from '@/types';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
+import Zeitmarker from '@/features/time/Zeitmarker';
 import Icon from '@/components/Icon';
 import { EmptyState } from '@/components/States';
 
@@ -193,12 +194,19 @@ export default function ProjectSummary({
                             >
                               <td className="py-1 pr-3 tnum">{dayLabel(e.date)}</td>
                               <td className="py-1 pr-3">
-                                {e.userName ?? '–'}
-                                {e.isHelper && (
-                                  <span className="ml-2">
-                                    <Badge tone="warning">Helfer</Badge>
-                                  </span>
-                                )}
+                                {/*
+                                  ALLE Marker, nicht nur „Helfer". Gemeldet:
+                                  „Notdienst wurde angehakt, aber das scheint
+                                  beim Eintrag in der Projektauswertung nicht
+                                  auf." Der Haken war gespeichert und hier
+                                  schlicht nicht gezeigt — an einer Stunde mit
+                                  +100 % Zuschlag die teuerste Art, etwas zu
+                                  verschweigen.
+                                */}
+                                <span className="flex flex-wrap items-center gap-1">
+                                  <span>{e.userName ?? '–'}</span>
+                                  <Zeitmarker eintrag={e} />
+                                </span>
                               </td>
                               <td className="py-1 pr-3 text-ink-muted">
                                 {e.comment ? `„${e.comment}"` : '–'}
