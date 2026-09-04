@@ -9,6 +9,7 @@ import Avatar from '@/components/Avatar';
 import BrandLogo from '@/components/BrandLogo';
 import OfflineBanner from '@/components/OfflineBanner';
 import BottomSheet from '@/components/BottomSheet';
+import AppErneuern from '@/components/AppErneuern';
 
 /**
  * Aktiver Eintrag = roter Kantenmarker + blauer, fetter Text auf hellblauem
@@ -224,9 +225,16 @@ export default function Layout({ children }: { children: ReactNode }) {
           das Telefon zeigte etwas anderes — und niemand konnte nachsehen.
           Eine Zeile mit Datum und Uhrzeit beendet das Ratespiel.
         */}
-        <p className="mt-4 border-t border-line pt-3 text-center text-xs text-ink-muted">
-          Fassung {FASSUNG}
-        </p>
+        <div className="mt-4 border-t border-line pt-3">
+          <p className="text-center text-xs text-ink-muted">Fassung {FASSUNG}</p>
+          {/*
+            Der Knopf steht GENAU HIER, weil hier die Frage entsteht: wer
+            nachsieht, welche Fassung läuft, tut das, weil eine Änderung
+            fehlt. Die Antwort darauf soll nicht drei Bildschirme entfernt
+            sein.
+          */}
+          <AppErneuern />
+        </div>
       </BottomSheet>
 
     </div>

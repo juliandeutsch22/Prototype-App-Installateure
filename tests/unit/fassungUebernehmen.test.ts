@@ -31,6 +31,7 @@ beforeEach(() => {
   gesendet.length = 0;
   reload.mockClear();
   sessionStorage.clear();
+  localStorage.clear();
 
   echteLocation = Object.getOwnPropertyDescriptor(window, 'location');
   Object.defineProperty(window, 'location', {
@@ -56,6 +57,7 @@ afterEach(() => {
 });
 
 const { neueFassungUebernehmen } = await import('@/lib/sw');
+const { FASSUNG } = await import('@/lib/fassung');
 
 describe('Auf die neue Fassung wechseln', () => {
   it('laedt neu, OHNE vorher aufraeumen zu lassen', async () => {
@@ -75,6 +77,21 @@ describe('Auf die neue Fassung wechseln', () => {
     // Speicher der Startbildschirm-App waechst ohne Grenze.
     await neueFassungUebernehmen();
     expect(sessionStorage.getItem('perl:aufraeumen')).toBe('1');
+  });
+
+  it('haelt fest, VON WELCHER Fassung aus gewechselt wurde', async () => {
+    /**
+     * Ohne diesen Merker laesst sich nach dem Neuladen nicht sagen, ob der
+     * Wechsel etwas gebracht hat — und genau daran haengt die Notbremse in
+     * `lib/erneuerung.ts`. Aus dem Betrieb gemeldet: „ich muss die App jedes
+     * Mal vom Homescreen loeschen und neu speichern."
+     *
+     * Er liegt im LOKALEN Speicher, nicht im Sitzungsspeicher: iOS beendet
+     * eine Startbildschirm-App jederzeit, und genau ueber diese Grenze
+     * hinweg muss die Feststellung tragen.
+     */
+    await neueFassungUebernehmen();
+    expect(localStorage.getItem('perl:letzterVersuch')).toBe(FASSUNG);
   });
 
   it('laedt auch dann, wenn nichts gemerkt werden kann', async () => {
