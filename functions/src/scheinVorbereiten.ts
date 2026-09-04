@@ -19,10 +19,28 @@ import { calcWorkMin } from './generated/arbeitszeit.js';
  * wird, ist die falsche Reihenfolge.
  *
  * Stattdessen stellt der Server genau das zusammen, was auf den Schein
- * gehört: Anwesenheitszeiten EINER Baustelle an EINEM Tag, dazu das
- * angeforderte Material. Krank- und Urlaubstage sind darin per Definition
- * nicht enthalten. Der Aufrufer bekommt nichts, was er nicht ohnehin vor Ort
- * sieht — die Kollegen stehen neben ihm.
+ * gehört und was der Monteur NICHT selbst wissen kann: Anwesenheitszeiten
+ * EINER Baustelle an EINEM Tag. Krank- und Urlaubstage sind darin per
+ * Definition nicht enthalten. Der Aufrufer bekommt nichts, was er nicht
+ * ohnehin vor Ort sieht — die Kollegen stehen neben ihm.
+ *
+ * MATERIAL STEHT HIER BEWUSST NICHT MEHR.
+ *
+ * Aus dem Betrieb: „der Schein ist größtenteils für private Kunden mit
+ * kleineren Aufträgen und Reparaturen, da ist es schwierig, das schon im
+ * Voraus zu sagen." Genau daran scheiterte die Vorausfüllung. Sie las die
+ * MaterialANFORDERUNGEN der Baustelle — also das, was jemand vorab bestellt
+ * hatte. Bei einer Reparatur bestellt niemand vorab; was verbaut wird,
+ * entscheidet sich vor Ort am offenen Rohr.
+ *
+ * Die Liste war zudem in zwei Punkten falsch: sie nahm die Status „Offen",
+ * „In Bearbeitung" und „Abholbereit" — also gerade das NICHT abgeholte
+ * Material — und sie kannte keine Datumsgrenze, zeigte also den ganzen
+ * Lebenslauf der Baustelle. Auf einem Beleg, den der Kunde unterschreibt,
+ * ist das nicht bloß unpraktisch.
+ *
+ * Der Monteur trägt das Material jetzt beim Erstellen selbst ein. Was er
+ * verbaut hat, weiß er besser als jede Vorabbestellung.
  */
 
 const REGION = 'europe-west3';
@@ -38,7 +56,6 @@ interface Antwort {
     taetigkeit?: string;
     helfer?: boolean;
   }>;
-  material: Array<{ name: string; menge: number }>;
 }
 
 /** Wie die App: ein führendes „PR-" aus Altbeständen angleichen. */
@@ -108,25 +125,6 @@ export const scheinVorbereiten = onCall<{ projectNumber?: string; datum?: string
     }
     zeiten.sort((a, b) => a.mitarbeiter.localeCompare(b.mitarbeiter, 'de'));
 
-    const matSnap = await db
-      .collection('materialOrders')
-      .where('companyId', '==', companyId)
-      .where('status', 'in', ['Offen', 'In Bearbeitung', 'Abholbereit'])
-      .get();
-
-    const material: Antwort['material'] = [];
-    for (const d of matSnap.docs) {
-      const o = d.data() as {
-        transactionType?: string;
-        projectNumber?: string;
-        materialName?: string;
-        quantity?: number;
-      };
-      if (o.transactionType === 'return') continue;
-      if (norm(o.projectNumber ?? '') !== norm(projectNumber)) continue;
-      material.push({ name: o.materialName ?? 'Material', menge: o.quantity ?? 0 });
-    }
-
-    return { zeiten, material };
+    return { zeiten };
   },
 );

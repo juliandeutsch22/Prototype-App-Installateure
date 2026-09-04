@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listAssignmentsForUserInRange } from '@/lib/db/assignments';
 import { listProjectsByNumbers } from '@/lib/db/projects';
+import { listMaterials } from '@/lib/db/materials';
 import { callScheinVorbereiten } from '@/lib/functions';
 import {
   createWorkSheet,
@@ -11,7 +12,7 @@ import {
   type NewWorkSheet,
 } from '@/lib/db/workSheets';
 import { fmtMin, todayStr } from '@/lib/time';
-import type { Project, WorkSheet, WorkSheetZeit, WorkSheetMaterial } from '@/types';
+import type { Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -23,6 +24,8 @@ import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, LoadingState } from '@/components/States';
+import MaterialErfassen from './MaterialErfassen';
+import { ohneKennung, type MaterialZeile } from './materialZeilen';
 
 /**
  * Handwerksschein erstellen, unterschreiben lassen, einfrieren.
@@ -32,8 +35,16 @@ import { ErrorState, EmptyState, LoadingState } from '@/components/States';
  * häufigsten bestrittene Rechnungsposition; ohne unterschriebenen Beleg lässt
  * sich eine Mehrstunde im Zweifel nicht durchsetzen.
  *
- * Vorausgefüllt wird aus dem, was ohnehin erfasst ist — der Monteur soll auf
- * der Baustelle nichts abtippen, was das System schon weiß.
+ * Vorausgefüllt werden die ZEITEN — die weiß das System, und zwar für die
+ * ganze Mannschaft des Tages; der Monteur soll auf der Baustelle nichts
+ * abtippen, was ohnehin erfasst ist.
+ *
+ * DAS MATERIAL TRÄGT ER SELBST EIN. Gemeldet: „der Schein ist größtenteils
+ * für private Kunden mit kleineren Aufträgen und Reparaturen, da ist es
+ * schwierig, das schon im Voraus zu sagen." Vorausgefüllt wurde bis hierher
+ * aus den MaterialANFORDERUNGEN der Baustelle — also aus dem, was jemand
+ * vorab bestellt hatte. Bei einer Reparatur bestellt niemand vorab. Näheres
+ * in `MaterialErfassen.tsx`.
  */
 export default function WorkSheetView() {
   const { user } = useAuth();
@@ -49,7 +60,9 @@ export default function WorkSheetView() {
   const [projectNumber, setProjectNumber] = useState(projektAusUrl);
   const [datum, setDatum] = useState(datumAusUrl);
   const [zeiten, setZeiten] = useState<WorkSheetZeit[]>([]);
-  const [material, setMaterial] = useState<WorkSheetMaterial[]>([]);
+  const [material, setMaterial] = useState<MaterialZeile[]>([]);
+  /** Der Lagerkatalog für die Suche beim Eintragen — mehr braucht es hier nicht. */
+  const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [notizen, setNotizen] = useState('');
   const [laden, setLaden] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,17 +142,44 @@ export default function WorkSheetView() {
   }, [user, datum]);
 
   /**
-   * Vorausfüllen aus Zeiten und Material der Baustelle.
+   * Die Zeiten der Baustelle vorausfüllen.
    *
    * Die Zeiten werden auf das gewählte Datum eingegrenzt — ein Schein geht
    * über einen Tag, nicht über die Laufzeit der Baustelle. Wer mehrere Tage
    * zusammenfassen will, legt mehrere Scheine an; das entspricht dem
    * Papierbeleg und hält den Streitfall klein.
    */
+  /**
+   * Baustelle oder Tag gewechselt = ein ANDERER Schein. Das eingetragene
+   * Material gehört zum vorigen und muss weg.
+   *
+   * Bewusst ein eigener Effekt und nicht der der Vorausfüllung: der hängt
+   * auch an `versuch`, und ein zweiter Anlauf für die Zeiten darf die von
+   * Hand getippten Zeilen nicht mitnehmen.
+   */
+  useEffect(() => {
+    setMaterial([]);
+  }, [projectNumber, datum]);
+
+  useEffect(() => {
+    if (!user) return;
+    let verworfen = false;
+    listMaterials(user.companyId)
+      .then((m) => {
+        if (!verworfen) setMaterials(m);
+      })
+      .catch(() => {
+        // Ohne Katalog bleibt die freie Zeile. Der Schein hängt nicht daran.
+        if (!verworfen) setMaterials([]);
+      });
+    return () => {
+      verworfen = true;
+    };
+  }, [user]);
+
   useEffect(() => {
     if (!user || !projectNumber) {
       setZeiten([]);
-      setMaterial([]);
       setVorfuellFehler(null);
       return;
     }
@@ -167,14 +207,20 @@ export default function WorkSheetView() {
       .then(({ data }) => {
         if (verworfen) return;
         setZeiten(data.zeiten);
-        setMaterial(data.material);
       })
       .catch(() => {
         if (verworfen) return;
         setZeiten([]);
-        setMaterial([]);
+        /*
+          DAS EINGETRAGENE MATERIAL BLEIBT STEHEN.
+
+          Die Frist läuft zwölf Sekunden; im Keller mit einem Balken LTE
+          tippt der Monteur in dieser Zeit längst seine Zeilen. Sie hier
+          mitzuräumen hiesse, ihm seine Eingabe wegen einer FREMDEN
+          fehlgeschlagenen Abfrage zu löschen.
+        */
         setVorfuellFehler(
-          'Zeiten und Material konnten nicht geladen werden. Der Schein lässt sich trotzdem schreiben und unterschreiben.',
+          'Die Zeiten konnten nicht geladen werden. Der Schein lässt sich trotzdem schreiben und unterschreiben.',
         );
       })
       .finally(() => {
@@ -242,7 +288,7 @@ export default function WorkSheetView() {
         status: 'Entwurf',
         abrechnung: projekt.billingMode ?? 'Regie',
         zeiten,
-        material,
+        material: ohneKennung(material),
         notizen,
         erstelltVonUid: user.uid,
         erstelltVonName: user.name,
@@ -280,7 +326,7 @@ export default function WorkSheetView() {
         status: 'Entwurf',
         abrechnung: projekt.billingMode ?? 'Regie',
         zeiten,
-        material,
+        material: ohneKennung(material),
         notizen,
         erstelltVonUid: user.uid,
         erstelltVonName: user.name,
@@ -441,23 +487,13 @@ export default function WorkSheetView() {
             )}
           </Card>
 
-          <Card title={`Material (${material.length})`}>
-            {laden ? (
-              <LoadingState />
-            ) : material.length === 0 ? (
-              <EmptyState>Kein Material für diese Baustelle angefordert.</EmptyState>
-            ) : (
-              <ul className="divide-y divide-line">
-                {material.map((m, i) => (
-                  <li key={`${m.name}-${i}`} className="flex items-center justify-between gap-3 py-2">
-                    <span className="truncate text-ink">{m.name}</span>
-                    <span className="tnum shrink-0 text-ink-muted">
-                      {m.menge} {m.einheit ?? ''}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+          {/*
+            KEIN Ladezustand über dieser Karte. Sie hängt an keiner Abfrage
+            mehr — die Zeilen kommen aus der Hand des Monteurs. Ein Kreisel
+            hier würde ihn warten lassen, obwohl er sofort tippen könnte.
+          */}
+          <Card title={`Verbautes Material (${material.length})`}>
+            <MaterialErfassen materials={materials} zeilen={material} onChange={setMaterial} />
           </Card>
 
           <Card title="Ergänzungen">
@@ -516,10 +552,11 @@ export default function WorkSheetView() {
             */}
             {vorfuellFehler && (
               <p className="mt-4 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
-                <strong>Ohne Stunden und Material.</strong> Sie konnten nicht geladen werden, und
-                eingefroren wird genau das, was hier steht. Für einen Beleg über die Arbeitszeit
-                bitte oben erneut versuchen; als reine Bestätigung der Anwesenheit mit einer Notiz
-                ist der Schein auch so gültig.
+                <strong>Ohne Stunden.</strong> Sie konnten nicht geladen werden, und eingefroren
+                wird genau das, was hier steht. Für einen Beleg über die Arbeitszeit bitte oben
+                erneut versuchen; als reine Bestätigung der Anwesenheit mit einer Notiz ist der
+                Schein auch so gültig. Das Material ist davon nicht betroffen — es wird hier
+                ohnehin von Hand eingetragen.
               </p>
             )}
             <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">

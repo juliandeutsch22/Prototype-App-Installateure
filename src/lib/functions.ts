@@ -51,6 +51,9 @@ export const callUrlaubEntscheiden = httpsCallable<
  * lesen (Kranken- und Urlaubstage sind Gesundheitsdaten nach Art. 9 DSGVO).
  * Die Function gibt nur Anwesenheitszeiten EINER Baustelle an EINEM Tag
  * zurueck; die Datenschutzgrenze bleibt, wo sie ist.
+ *
+ * MATERIAL kommt hier NICHT mehr her — der Monteur traegt es beim Erstellen
+ * selbst ein. Warum, steht in `functions/src/scheinVorbereiten.ts`.
  */
 export const callScheinVorbereiten = httpsCallable<
   { projectNumber: string; datum: string },
@@ -65,7 +68,6 @@ export const callScheinVorbereiten = httpsCallable<
       taetigkeit?: string;
       helfer?: boolean;
     }>;
-    material: Array<{ name: string; menge: number }>;
   }
 >(functions, 'scheinVorbereiten');
 
