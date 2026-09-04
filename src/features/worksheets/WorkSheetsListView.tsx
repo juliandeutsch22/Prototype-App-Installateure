@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listRecentWorkSheets, cancelWorkSheet } from '@/lib/db/workSheets';
 import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
-import { isGF } from '@/lib/permissions';
+import { isGF, canWriteWorkSheet } from '@/lib/permissions';
 import { fmtMin } from '@/lib/time';
 import type { WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -46,6 +46,14 @@ export default function WorkSheetsListView() {
   const [busy, setBusy] = useState(false);
 
   const darfStornieren = user ? isGF(user.role) : false;
+  /**
+   * Wer darf einen Entwurf weiterbearbeiten?
+   *
+   * DIESELBE Prüfung wie die Route dahinter — sonst führte der Knopf für die
+   * Buchhaltung und die Verwaltung, die diese Liste ebenfalls sehen, auf eine
+   * Seite mit „Kein Zugriff".
+   */
+  const darfSchreiben = user ? canWriteWorkSheet(user.role) : false;
 
   const laden = useMemo(
     () => async () => {
@@ -240,6 +248,19 @@ export default function WorkSheetsListView() {
                   <Button variant="ghost" loading={busy} onClick={() => pdfAusgeben(s)}>
                     PDF
                   </Button>
+                  {/*
+                    „Als Entwurf speichern" war bis hierher eine Sackgasse: der
+                    Schein landete in dieser Liste, und dort gab es nur
+                    Aufklappen, PDF und Storno. Wer ihn anlegte, um ihn später
+                    unterschreiben zu lassen, kam nie wieder hinein und musste
+                    alles neu tippen — oder legte einen ZWEITEN Beleg über
+                    dieselbe Arbeit an.
+                  */}
+                  {darfSchreiben && s.status === 'Entwurf' && (
+                    <Link to={`/worksheet?entwurf=${s.id}`}>
+                      <Button variant="secondary">Weiterbearbeiten</Button>
+                    </Link>
+                  )}
                   {darfStornieren && s.status === 'Unterschrieben' && (
                     <Button variant="ghost" onClick={() => setStornoFuer(s)}>
                       Stornieren

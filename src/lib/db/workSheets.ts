@@ -1,4 +1,12 @@
-import { where, orderBy, limit, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  where,
+  orderBy,
+  limit,
+  doc,
+  getDoc,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { WorkSheet, WorkSheetUnterschrift } from '@/types';
 import { queryTenant, createInTenant, type WithId } from './core';
@@ -39,6 +47,34 @@ export function listWorkSheetsForProject(companyId: string, projectNumber: strin
     where('projectNumber', '==', projectNumber),
     limit(max),
   );
+}
+
+/**
+ * EINEN Schein holen — für das Weiterbearbeiten eines Entwurfs.
+ *
+ * WAS PASSIERT, WENN ES IHN NICHT GIBT — nachgemessen gegen den Emulator,
+ * nicht angenommen (siehe „Durchstich 4"):
+ *
+ * Der Aufruf WIRFT, er gibt nicht `undefined` zurück. `ownsExisting()` liest
+ * `resource.data.companyId`; bei einem Dokument, das es nicht gibt, ist
+ * `resource` null und die Regel scheitert. Ein fehlender Schein und ein
+ * fremder Schein sehen von außen deshalb GLEICH aus — beide kommen als
+ * abgewiesener Zugriff zurück.
+ *
+ * Genau diese Falle hat bei der Rüstliste schon einmal zugeschlagen. Der
+ * Aufrufer muss beide Ausgänge gleich behandeln; eine Meldung „nicht
+ * gefunden" behauptete sonst etwas, das die Datenbank so gar nicht gesagt
+ * hat.
+ *
+ * Der `undefined`-Zweig bleibt trotzdem stehen: er ist die richtige Antwort,
+ * falls die Regel je gelockert wird, und kostet eine Zeile.
+ */
+export async function getWorkSheet(id: string): Promise<WithId<WorkSheet> | undefined> {
+  const snap = await getDoc(doc(db, COLLECTION, id));
+  if (!snap.exists()) return undefined;
+  // Die echte Kennung zuletzt: der Typ traegt selbst ein Feld `id`, und ein
+  // im Dokument gespeicherter Altwert duerfte die des Dokuments nicht schlagen.
+  return { ...(snap.data() as WorkSheet), id: snap.id };
 }
 
 export type NewWorkSheet = Omit<WorkSheet, 'id' | 'companyId' | 'createdAt'>;

@@ -114,6 +114,27 @@ export const canProcessOrders = (r: Role) => isVerw(r) || isGF(r);
  * `isMitarbeiter` ihn als Superuser einschließt — er bekam dadurch immer das
  * volle Formular, obwohl er in aller Regel gar nicht rausfährt.
  */
+/**
+ * Wer einen Handwerksschein SCHREIBEN darf — anlegen, einen Entwurf
+ * weiterbearbeiten, unterschreiben lassen.
+ *
+ * WARUM DAS EINE FUNKTION IST UND KEINE AUFZAEHLUNG AN ZWEI STELLEN. Die
+ * Rollen standen ausgeschrieben in der Route; die Liste der Scheine sieht
+ * aber auch die Buchhaltung und die Verwaltung. Ein Knopf „Öffnen" dort
+ * fuehrte fuer sie auf eine Seite, die sie nicht betreten duerfen — und
+ * zwei getrennte Aufzaehlungen laufen frueher oder spaeter auseinander.
+ *
+ * Schreiben darf, wer rausfaehrt oder die Baustelle verantwortet.
+ */
+export const SCHEIN_ROLLEN: Role[] = [
+  'Mitarbeiter',
+  'Projektleiter',
+  'Geschäftsführung',
+  'Administrator',
+];
+
+export const canWriteWorkSheet = (r: Role) => SCHEIN_ROLLEN.includes(r);
+
 export const istAussendienst = (r: Role) => r === 'Mitarbeiter';
 
 /**

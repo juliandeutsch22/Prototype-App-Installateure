@@ -7,7 +7,9 @@ import { listMaterials } from '@/lib/db/materials';
 import { callScheinVorbereiten } from '@/lib/functions';
 import {
   createWorkSheet,
+  getWorkSheet,
   signWorkSheet,
+  updateWorkSheetDraft,
   listWorkSheetsForProject,
   type NewWorkSheet,
 } from '@/lib/db/workSheets';
@@ -25,7 +27,7 @@ import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, LoadingState } from '@/components/States';
 import MaterialErfassen from './MaterialErfassen';
-import { ohneKennung, type MaterialZeile } from './materialZeilen';
+import { neueKennung, ohneKennung, type MaterialZeile } from './materialZeilen';
 
 /**
  * Handwerksschein erstellen, unterschreiben lassen, einfrieren.
@@ -45,7 +47,28 @@ import { ohneKennung, type MaterialZeile } from './materialZeilen';
  * aus den MaterialANFORDERUNGEN der Baustelle — also aus dem, was jemand
  * vorab bestellt hatte. Bei einer Reparatur bestellt niemand vorab. Näheres
  * in `MaterialErfassen.tsx`.
+ *
+ * EIN ENTWURF LÄSST SICH WIEDER ÖFFNEN — über `?entwurf=<Kennung>`.
+ *
+ * „Als Entwurf speichern" war bis hierher eine Sackgasse: der Schein landete
+ * in der Liste, und dort gab es nur Aufklappen, PDF und Storno. Wer ihn
+ * anlegte, um ihn später unterschreiben zu lassen, kam nie wieder hinein und
+ * musste alles neu tippen. Das ist der Regelfall, für den der Knopf da ist:
+ * der Schein wird am Vormittag vorbereitet und am Nachmittag unterschrieben.
  */
+/**
+ * EINE Meldung für beide Ausgänge, und das ist keine Bequemlichkeit.
+ *
+ * Gegen den Emulator nachgemessen: eine Kennung, die es nicht gibt, kommt
+ * NICHT als „nicht gefunden" zurück, sondern als abgewiesener Zugriff — die
+ * Regel liest `resource.data.companyId`, und `resource` ist bei einem
+ * fehlenden Dokument null. Ein fehlender und ein fremder Schein sehen von
+ * hier aus also gleich aus. Zwei verschiedene Meldungen wären eine
+ * Behauptung, die die Datenbank gar nicht gemacht hat.
+ */
+const NICHT_ZU_OEFFNEN =
+  'Dieser Entwurf lässt sich nicht öffnen — die Kennung stimmt nicht, oder er gehört nicht zu diesem Betrieb.';
+
 export default function WorkSheetView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -55,6 +78,8 @@ export default function WorkSheetView() {
 
   const projektAusUrl = params.projectNumber ?? suchparameter.get('projekt') ?? '';
   const datumAusUrl = suchparameter.get('datum') ?? todayStr();
+  /** Die Kennung eines bestehenden Entwurfs — dann wird geändert statt angelegt. */
+  const entwurfId = suchparameter.get('entwurf');
 
   const [projekt, setProjekt] = useState<WithId<Project> | undefined>();
   const [projectNumber, setProjectNumber] = useState(projektAusUrl);
@@ -78,6 +103,30 @@ export default function WorkSheetView() {
   /** Hochzählen erzwingt einen neuen Anlauf der Vorausfüllung. */
   const [versuch, setVersuch] = useState(0);
   const [speichert, setSpeichert] = useState(false);
+  /**
+   * Solange der Entwurf geholt wird, darf NICHTS gespeichert werden.
+   *
+   * Sonst schriebe ein schneller Finger den halb geladenen Zustand über den
+   * vollständigen — und der Monteur verlöre genau das, was er sich vorhin
+   * aufgehoben hat.
+   */
+  const [entwurfLaedt, setEntwurfLaedt] = useState(!!entwurfId);
+  const [entwurfFehler, setEntwurfFehler] = useState<string | null>(null);
+  /**
+   * Die im Entwurf gespeicherten Zeiten — der Rückfall, wenn das Auffrischen
+   * scheitert. Ohne ihn stünde der wieder geöffnete Schein ohne Stunden da,
+   * obwohl sie im Entwurf sauber gespeichert sind.
+   */
+  const entwurfZeiten = useRef<WorkSheetZeit[] | null>(null);
+  /**
+   * Zu welchem Schein — Baustelle UND Tag — das eingetragene Material gehört.
+   *
+   * Der Wechsel auf einen anderen Schein räumt die Zeilen weg. Ein GELADENER
+   * Entwurf setzt Baustelle und Tag aber auch, und ohne diesen Merker sähe
+   * das Wegräumen wie ein Wechsel aus: es löschte genau das Material, das
+   * gerade aus dem Entwurf gekommen ist.
+   */
+  const materialGehoertZu = useRef(`${projektAusUrl}|${datumAusUrl}`);
 
   /** Unterschriften — erst wenn beide da sind, lässt sich einfrieren. */
   const [monteurName, setMonteurName] = useState(user?.name ?? '');
@@ -158,8 +207,69 @@ export default function WorkSheetView() {
    * Hand getippten Zeilen nicht mitnehmen.
    */
   useEffect(() => {
+    const jetzt = `${projectNumber}|${datum}`;
+    if (materialGehoertZu.current === jetzt) return;
+    materialGehoertZu.current = jetzt;
     setMaterial([]);
   }, [projectNumber, datum]);
+
+  /**
+   * Einen bestehenden Entwurf ins Formular holen.
+   *
+   * WAS ÜBERNOMMEN WIRD UND WAS NEU GEHOLT WIRD, ist eine Unterscheidung
+   * zwischen ABGELEITETEN und VON HAND ERFASSTEN Angaben:
+   *
+   *   Zeiten    — abgeleitet. Sie kommen frisch vom Server (der Effekt
+   *               darunter läuft, sobald die Baustelle steht). Wer den
+   *               Entwurf am Vormittag anlegt und erst danach seine Zeit
+   *               bucht, fände sonst am Nachmittag einen Schein ohne
+   *               Stunden. Unterschrieben ist noch nichts, es geht also
+   *               nichts verloren.
+   *   Material,
+   *   Notizen,
+   *   Namen     — von Hand erfasst. Die stehen so im Entwurf und werden
+   *               unverändert übernommen; sie neu zu holen gibt es gar nicht.
+   *
+   * NUR ENTWÜRFE. Ein unterschriebener oder stornierter Schein ist
+   * eingefroren; ihn hier zu öffnen ergäbe ein Formular, dessen Speichern die
+   * Rules ablehnen — ein Knopf, der nichts tut, ist schlimmer als keiner.
+   */
+  useEffect(() => {
+    if (!entwurfId) return;
+    let verworfen = false;
+    setEntwurfLaedt(true);
+    setEntwurfFehler(null);
+    getWorkSheet(entwurfId)
+      .then((schein) => {
+        if (verworfen) return;
+        if (!schein) {
+          setEntwurfFehler(NICHT_ZU_OEFFNEN);
+          return;
+        }
+        if (schein.status !== 'Entwurf') {
+          setEntwurfFehler(
+            `Dieser Schein ist ${schein.status.toLowerCase()} und lässt sich nicht mehr ändern.`,
+          );
+          return;
+        }
+        materialGehoertZu.current = `${schein.projectNumber}|${schein.datum}`;
+        entwurfZeiten.current = schein.zeiten;
+        setProjectNumber(schein.projectNumber);
+        setDatum(schein.datum);
+        setZeiten(schein.zeiten);
+        setMaterial(schein.material.map((m) => ({ ...m, id: neueKennung() })));
+        setNotizen(schein.notizen ?? '');
+      })
+      .catch(() => {
+        if (!verworfen) setEntwurfFehler(NICHT_ZU_OEFFNEN);
+      })
+      .finally(() => {
+        if (!verworfen) setEntwurfLaedt(false);
+      });
+    return () => {
+      verworfen = true;
+    };
+  }, [entwurfId]);
 
   useEffect(() => {
     if (!user) return;
@@ -210,7 +320,15 @@ export default function WorkSheetView() {
       })
       .catch(() => {
         if (verworfen) return;
-        setZeiten([]);
+        /*
+          BEIM ENTWURF DIE GESPEICHERTEN ZEITEN STEHENLASSEN.
+
+          Sie sind im Entwurf sauber abgelegt. Sie wegen einer
+          fehlgeschlagenen AUFFRISCHUNG zu leeren hiesse, aus einem
+          vollstaendigen Schein einen leeren zu machen — und zwar in dem
+          Moment, in dem der Kunde danebensteht und unterschreiben will.
+        */
+        setZeiten(entwurfZeiten.current ?? []);
         /*
           DAS EINGETRAGENE MATERIAL BLEIBT STEHEN.
 
@@ -220,7 +338,9 @@ export default function WorkSheetView() {
           fehlgeschlagenen Abfrage zu löschen.
         */
         setVorfuellFehler(
-          'Die Zeiten konnten nicht geladen werden. Der Schein lässt sich trotzdem schreiben und unterschreiben.',
+          entwurfZeiten.current
+            ? 'Die Zeiten konnten nicht aufgefrischt werden. Es stehen die Zeiten aus dem Entwurf.'
+            : 'Die Zeiten konnten nicht geladen werden. Der Schein lässt sich trotzdem schreiben und unterschreiben.',
         );
       })
       .finally(() => {
@@ -273,27 +393,7 @@ export default function WorkSheetView() {
     setSpeichert(true);
     setError(null);
     try {
-      /**
-       * Der Inhalt wird KOPIERT, nicht referenziert.
-       *
-       * Korrigiert die Buchhaltung morgen einen Zeiteintrag, ändert sich damit
-       * nicht rückwirkend, was der Kunde unterschrieben hat.
-       */
-      const entwurf: NewWorkSheet = {
-        projectNumber,
-        customerId: projekt.customerId,
-        customerName: projekt.customerName,
-        address: projekt.address,
-        datum,
-        status: 'Entwurf',
-        abrechnung: projekt.billingMode ?? 'Regie',
-        zeiten,
-        material: ohneKennung(material),
-        notizen,
-        erstelltVonUid: user.uid,
-        erstelltVonName: user.name,
-      };
-      const id = await createWorkSheet(user.companyId, entwurf);
+      const id = await inhaltSchreiben();
 
       // Gerätezeit: offline im Keller ist die Serverzeit die der späteren
       // Übertragung, nicht die der Unterschrift.
@@ -313,25 +413,61 @@ export default function WorkSheetView() {
     }
   }
 
+  /**
+   * Den Inhalt schreiben — anlegen oder den geöffneten Entwurf ändern — und
+   * die Kennung des Scheins zurückgeben.
+   *
+   * EINE STELLE FÜR BEIDE KNÖPFE. „Als Entwurf speichern" und
+   * „Unterschreiben und abschließen" schreiben denselben Inhalt; stünde er
+   * zweimal da, liefen die beiden Fassungen früher oder später auseinander —
+   * und zwar unbemerkt, weil beide für sich richtig aussehen.
+   *
+   * Der Inhalt wird KOPIERT, nicht referenziert: korrigiert die Buchhaltung
+   * morgen einen Zeiteintrag, ändert sich nicht rückwirkend, was der Kunde
+   * unterschrieben hat.
+   *
+   * BEIM ÄNDERN BLEIBT DER URHEBER STEHEN. Wer den Entwurf angelegt hat, hat
+   * ihn angelegt — auch wenn ihn ein Kollege zu Ende bringt. Ihn zu
+   * überschreiben verfälschte den einzigen Hinweis darauf, wer den Beleg
+   * aufgesetzt hat.
+   */
+  async function inhaltSchreiben(): Promise<string> {
+    if (!user || !projekt) throw new Error('Ohne Anmeldung und Baustelle geht nichts.');
+    /*
+      Der Typ haelt die Regel fest, nicht nur der Kommentar: „wer angelegt
+      hat" ist KEIN Inhalt und darf beim Aendern gar nicht erst mitgeschickt
+      werden koennen.
+    */
+    const inhalt: Omit<NewWorkSheet, 'erstelltVonUid' | 'erstelltVonName'> = {
+      projectNumber,
+      customerId: projekt.customerId,
+      customerName: projekt.customerName,
+      address: projekt.address,
+      datum,
+      status: 'Entwurf' as const,
+      abrechnung: projekt.billingMode ?? 'Regie',
+      zeiten,
+      material: ohneKennung(material),
+      notizen,
+    };
+    if (entwurfId) {
+      await updateWorkSheetDraft(entwurfId, inhalt);
+      return entwurfId;
+    }
+    return createWorkSheet(user.companyId, {
+      ...inhalt,
+      erstelltVonUid: user.uid,
+      erstelltVonName: user.name,
+    });
+  }
+
   async function alsEntwurfSichern() {
     if (!user || !projekt) return;
     setSpeichert(true);
+    setError(null);
     try {
-      await createWorkSheet(user.companyId, {
-        projectNumber,
-        customerId: projekt.customerId,
-        customerName: projekt.customerName,
-        address: projekt.address,
-        datum,
-        status: 'Entwurf',
-        abrechnung: projekt.billingMode ?? 'Regie',
-        zeiten,
-        material: ohneKennung(material),
-        notizen,
-        erstelltVonUid: user.uid,
-        erstelltVonName: user.name,
-      });
-      toast.success('Als Entwurf gespeichert');
+      await inhaltSchreiben();
+      toast.success(entwurfId ? 'Entwurf aktualisiert' : 'Als Entwurf gespeichert');
       navigate('/worksheets');
     } catch {
       setError('Der Entwurf konnte nicht gespeichert werden.');
@@ -342,11 +478,39 @@ export default function WorkSheetView() {
 
   if (!user) return null;
 
+  /*
+    DER ENTWURF LIESS SICH NICHT ÖFFNEN — dann steht hier auch kein Formular.
+
+    Ein leeres Formular unter der Überschrift „Entwurf" sähe aus wie ein
+    verlorener Schein: der Nächste tippte alles neu und legte damit einen
+    ZWEITEN Beleg über dieselbe Arbeit an. Lieber eine Meldung und der Weg
+    zurück in die Liste, wo der Entwurf ja steht.
+  */
+  if (entwurfFehler) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Handwerksschein — Entwurf" subtitle="Konnte nicht geöffnet werden" />
+        <Card>
+          <ErrorState message={entwurfFehler} />
+          <div className="mt-3">
+            <Button variant="secondary" onClick={() => navigate('/worksheets')}>
+              Zur Liste der Scheine
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Handwerksschein"
-        subtitle="Leistung vor Ort bestätigen lassen — Zeiten, Material, Unterschrift"
+        title={entwurfId ? 'Handwerksschein — Entwurf' : 'Handwerksschein'}
+        subtitle={
+          entwurfId
+            ? 'Vorbereiteter Schein — ergänzen und unterschreiben lassen'
+            : 'Leistung vor Ort bestätigen lassen — Zeiten, Material, Unterschrift'
+        }
       />
 
       <Card title="Baustelle und Tag">
@@ -568,10 +732,16 @@ export default function WorkSheetView() {
             {error && <div className="mt-3"><ErrorState message={error} /></div>}
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              {/*
+                WÄHREND DER ENTWURF LÄDT WIRD NICHT GESCHRIEBEN. Sonst
+                schriebe ein schneller Finger den halb geladenen Zustand über
+                den vollständigen — und der Monteur verlöre genau das, was er
+                sich vorhin aufgehoben hat.
+              */}
               <Button
                 onClick={unterschreibenUndEinfrieren}
                 loading={speichert}
-                disabled={!bereit}
+                disabled={!bereit || entwurfLaedt}
                 className="w-full sm:w-auto"
               >
                 Unterschreiben und abschließen
@@ -580,10 +750,10 @@ export default function WorkSheetView() {
                 variant="secondary"
                 onClick={alsEntwurfSichern}
                 loading={speichert}
-                disabled={!projekt}
+                disabled={!projekt || entwurfLaedt}
                 className="w-full sm:w-auto"
               >
-                Als Entwurf speichern
+                {entwurfId ? 'Entwurf aktualisieren' : 'Als Entwurf speichern'}
               </Button>
             </div>
             {!bereit && projectNumber && (

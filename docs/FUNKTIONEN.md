@@ -30,7 +30,7 @@ unterscheidet drei Stufen:
 | **Meine Baustellen** | Die Baustellen, denen der Monteur zugeordnet ist | Mitarbeiter | `projects` | — | Ansicht ungetestet |
 | **Material anfordern** | Warenkorb, Eilzustellung, eigene Anforderungen | Mitarbeiter, Verwaltung, Leitung | `materials`, `materialOrders` | Rechnung (25, Meldungen) | Ansicht ungetestet; Lagerabzug nur im Code geprüft |
 | **Urlaub** | Beantragen, entscheiden, Stand sehen. Genehmigung schreibt die Tage ins Zeitkonto. | alle (Antrag); Entscheider laut Einstellung | `vacations`, `timeEntries`, `companies` | Emulator (18), Rechnung (15), Ansicht (11) | Kein Durchstich: dass die Tage *wirklich* im Zeitkonto landen, prüft kein Test |
-| **Handwerksscheine** | Vorausfüllen, unterschreiben, einfrieren, Storno mit Grund, PDF | Mitarbeiter, Büro, Leitung | `workSheets`, `timeEntries` (serverseitig) | Emulator (Regeln), Rechnung (4), Ansicht (11) | Listenansicht ungetestet; PDF ungetestet |
+| **Handwerksscheine** | Zeiten vorausfüllen, Material von Hand erfassen, als Entwurf sichern und wieder öffnen, unterschreiben, einfrieren, Storno mit Grund, PDF | Mitarbeiter, Büro, Leitung | `workSheets`, `timeEntries` (serverseitig) | Emulator (Regeln + 3 Durchstiche), Rechnung (4), Ansicht (20), Liste (3) | PDF ungetestet; ein aufgegebener Entwurf lässt sich nicht löschen (`allow delete: if false`) |
 
 ## Verwaltung
 

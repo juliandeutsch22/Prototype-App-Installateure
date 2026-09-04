@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { Assignment, Material, Project } from '@/types';
+import type { Assignment, Material, Project, WorkSheet } from '@/types';
 import { todayStr } from '@/lib/time';
 import type { NewWorkSheet } from '@/lib/db/workSheets';
 
@@ -72,10 +72,18 @@ vi.mock('@/lib/db/materials', () => ({
   listMaterials: () => listMaterials(),
 }));
 const createWorkSheet = vi.fn<[string, NewWorkSheet], Promise<string>>(async () => 's1');
+const updateWorkSheetDraft = vi.fn<[string, Partial<NewWorkSheet>], Promise<void>>(
+  async () => undefined,
+);
+const signWorkSheet = vi.fn(async () => undefined);
+let entwurf: (WorkSheet & { id: string }) | undefined;
+const getWorkSheet = vi.fn(async () => entwurf);
 vi.mock('@/lib/db/workSheets', () => ({
-  createWorkSheet: (companyId: string, entwurf: NewWorkSheet) =>
-    createWorkSheet(companyId, entwurf),
-  signWorkSheet: vi.fn(async () => undefined),
+  createWorkSheet: (companyId: string, e: NewWorkSheet) => createWorkSheet(companyId, e),
+  updateWorkSheetDraft: (id: string, data: Partial<NewWorkSheet>) =>
+    updateWorkSheetDraft(id, data),
+  getWorkSheet: () => getWorkSheet(),
+  signWorkSheet: () => signWorkSheet(),
   listWorkSheetsForProject: vi.fn(async () => []),
 }));
 const callScheinVorbereiten = vi.fn(async () => ({ data: { zeiten: [] } }));
@@ -104,9 +112,9 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 const { default: WorkSheetView } = await import('@/features/worksheets/WorkSheetView');
 
-function zeichne() {
+function zeichne(adresse = '/worksheet') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[adresse]}>
       <ToastProvider>
         <WorkSheetView />
       </ToastProvider>
@@ -121,6 +129,10 @@ beforeEach(() => {
   callScheinVorbereiten.mockClear().mockResolvedValue({ data: { zeiten: [] } });
   listMaterials.mockClear().mockResolvedValue(materialien);
   createWorkSheet.mockClear().mockResolvedValue('s1');
+  updateWorkSheetDraft.mockClear();
+  signWorkSheet.mockClear();
+  getWorkSheet.mockClear();
+  entwurf = undefined;
 });
 
 describe('Handwerksschein', () => {
@@ -351,6 +363,147 @@ describe('Handwerksschein', () => {
 
       expect(await screen.findByText(/Verbautes Material \(0\)/)).toBeInTheDocument();
       expect(screen.queryByText('Gehört zu B-001')).not.toBeInTheDocument();
+    });
+  });
+
+  /**
+   * EIN ENTWURF WAR EINE SACKGASSE.
+   *
+   * „Als Entwurf speichern" legte den Schein an, und in der Liste gab es
+   * danach nur Aufklappen, PDF und Storno. Wer ihn anlegte, um ihn später
+   * unterschreiben zu lassen — der Regelfall für diesen Knopf: vormittags
+   * vorbereiten, nachmittags unterschreiben lassen —, kam nie wieder hinein.
+   * Er tippte alles neu und legte damit einen ZWEITEN Beleg über dieselbe
+   * Arbeit an.
+   */
+  describe('Entwurf weiterbearbeiten', () => {
+    const gespeichert: WorkSheet & { id: string } = {
+      id: 'e1',
+      companyId: 'perl',
+      projectNumber: 'B-001',
+      customerId: 'k1',
+      customerName: 'Familie Huber',
+      address: 'Hauptstraße 12',
+      datum: heute,
+      status: 'Entwurf',
+      abrechnung: 'Regie',
+      zeiten: [{ datum: heute, mitarbeiter: 'Max Mustermann', minuten: 300 }],
+      material: [{ name: 'Eckventil 1/2 Zoll', menge: 2, einheit: 'Stk' }],
+      notizen: 'Absperrventil klemmt',
+      erstelltVonUid: 'm9',
+      erstelltVonName: 'Erna Beispiel',
+    } as WorkSheet & { id: string };
+
+    it('holt Material und Notizen unverändert aus dem Entwurf', async () => {
+      // Von Hand Erfasstes gibt es nirgends sonst. Ginge es beim Öffnen
+      // verloren, wäre der Entwurf schlimmer als nutzlos.
+      entwurf = gespeichert;
+      zeichne('/worksheet?entwurf=e1');
+
+      expect(await screen.findByText(/Verbautes Material \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText('Eckventil 1/2 Zoll')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Absperrventil klemmt')).toBeInTheDocument();
+    });
+
+    it('ändert den bestehenden Schein, statt einen zweiten anzulegen', async () => {
+      /*
+        DER TEURE FEHLER, den das verhindert: zwei Belege über dieselbe
+        Arbeit. Einer davon wandert in die Rechnung, der andere bleibt als
+        Entwurf liegen — und niemand kann sagen, welcher gilt.
+      */
+      entwurf = gespeichert;
+      const nutzer = userEvent.setup();
+      zeichne('/worksheet?entwurf=e1');
+      await screen.findByText(/Verbautes Material \(1\)/);
+
+      await nutzer.click(screen.getByRole('button', { name: 'Entwurf aktualisieren' }));
+
+      await waitFor(() => expect(updateWorkSheetDraft).toHaveBeenCalled());
+      expect(createWorkSheet).not.toHaveBeenCalled();
+      expect(updateWorkSheetDraft.mock.calls[0][0]).toBe('e1');
+    });
+
+    it('lässt den Urheber stehen, auch wenn ein Kollege weitermacht', async () => {
+      /*
+        Angemeldet ist Max, angelegt hat Erna. „Wer hat den Beleg
+        aufgesetzt" ist eine Tatsache über die Vergangenheit — sie mit dem
+        gerade Angemeldeten zu überschreiben verfälscht den einzigen
+        Hinweis darauf.
+      */
+      entwurf = gespeichert;
+      const nutzer = userEvent.setup();
+      zeichne('/worksheet?entwurf=e1');
+      await screen.findByText(/Verbautes Material \(1\)/);
+
+      await nutzer.click(screen.getByRole('button', { name: 'Entwurf aktualisieren' }));
+
+      await waitFor(() => expect(updateWorkSheetDraft).toHaveBeenCalled());
+      const geschrieben = updateWorkSheetDraft.mock.calls[0][1];
+      expect(geschrieben).not.toHaveProperty('erstelltVonUid');
+      expect(geschrieben).not.toHaveProperty('erstelltVonName');
+    });
+
+    it('behält die Zeiten des Entwurfs, wenn das Auffrischen scheitert', async () => {
+      /*
+        Die Zeiten werden beim Öffnen NEU geholt — wer den Entwurf
+        vormittags anlegt und erst danach bucht, fände sonst nachmittags
+        einen Schein ohne Stunden. Kommt der Server nicht durch, dürfen sie
+        aber nicht auf null fallen: sie stehen sauber im Entwurf, und der
+        Kunde steht daneben und will unterschreiben.
+      */
+      entwurf = gespeichert;
+      callScheinVorbereiten.mockRejectedValue(new Error('deadline-exceeded'));
+      zeichne('/worksheet?entwurf=e1');
+
+      expect(await screen.findByText(/nicht aufgefrischt/)).toBeInTheDocument();
+      // Die Summe steht in der Kartenüberschrift: 300 Minuten aus dem
+      // Entwurf, nicht 0 aus einer fehlgeschlagenen Abfrage.
+      expect(screen.getByText(/Zeiten am .* · 05:00/)).toBeInTheDocument();
+    });
+
+    it('öffnet KEINEN unterschriebenen Schein', async () => {
+      /*
+        Er ist eingefroren; die Rules lehnen jede Änderung ab. Ein Formular
+        dafür wäre ein Knopf, der nichts tut — und beim Kunden ein
+        Versprechen, das die Datenbank nicht hält.
+      */
+      entwurf = { ...gespeichert, status: 'Unterschrieben' };
+      zeichne('/worksheet?entwurf=e1');
+
+      expect(await screen.findByText(/unterschrieben und lässt sich nicht mehr ändern/))
+        .toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Unterschreiben und abschließen' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('sagt es, wenn sich der Entwurf nicht öffnen lässt', async () => {
+      /*
+        DER REALE AUSGANG, gegen den Emulator nachgemessen: eine Kennung, die
+        es nicht gibt, kommt als ABGEWIESENER ZUGRIFF zurück, nicht als
+        „nicht gefunden" — die Regel liest `resource.data.companyId`, und
+        `resource` ist bei einem fehlenden Dokument null.
+
+        Deshalb wird hier die Ablehnung nachgestellt und nicht ein leeres
+        Ergebnis. Ein Test, der nur den leeren Fall prüft, prüfte einen Zweig,
+        den es im Betrieb gar nicht gibt.
+      */
+      getWorkSheet.mockRejectedValue(new Error('permission-denied'));
+      zeichne('/worksheet?entwurf=gibtesnicht');
+
+      expect(await screen.findByText(/lässt sich nicht öffnen/)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Unterschreiben und abschließen' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('behandelt ein leeres Ergebnis genauso', async () => {
+      // Der Zweig bleibt stehen, falls die Regel je gelockert wird. Dann
+      // darf er nicht plötzlich eine andere Geschichte erzählen.
+      entwurf = undefined;
+      zeichne('/worksheet?entwurf=gibtesnicht');
+
+      expect(await screen.findByText(/lässt sich nicht öffnen/)).toBeInTheDocument();
     });
   });
 
