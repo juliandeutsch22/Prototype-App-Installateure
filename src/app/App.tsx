@@ -52,6 +52,7 @@ const InvoicesView = lazy(() => import('@/features/invoices/InvoicesView'));
 const AccountingView = lazy(() => import('@/features/accounting/AccountingView'));
 const UserMgmtView = lazy(() => import('@/features/users/UserMgmtView'));
 const SettingsView = lazy(() => import('@/features/settings/SettingsView'));
+const FirmendatenView = lazy(() => import('@/features/settings/FirmendatenView'));
 const NotificationSettings = lazy(() => import('@/features/settings/NotificationSettings'));
 
 /**
@@ -232,6 +233,7 @@ function AppRoutes() {
               basis="/settings"
               elemente={{
                 meldungen: <NotificationSettings />,
+                firma: <FirmendatenView />,
                 saetze: <SettingsView />,
                 module: <ModulesView />,
                 sicherung: <SicherungView />,

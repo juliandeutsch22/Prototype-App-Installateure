@@ -87,7 +87,14 @@ export default function WorkSheetsListView() {
   async function pdfAusgeben(s: WithId<WorkSheet>) {
     setBusy(true);
     try {
-      const blob = await buildWorkSheetPdf(s, company?.name ?? 'Installateur');
+      // Der ganze Firmensatz, nicht nur der Name: der Beleg soll sagen, an
+      // wen der Kunde sich wenden muss.
+      const blob = await buildWorkSheetPdf(s, {
+        name: company?.name ?? 'Installateur',
+        addressLine: company?.addressLine,
+        contactLine: company?.contactLine,
+        logoUrl: company?.logoUrl,
+      });
       const art = await shareOrDownloadPdf(
         blob,
         `Handwerksschein_${s.projectNumber}_${s.datum}.pdf`,

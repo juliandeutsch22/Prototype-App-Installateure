@@ -148,6 +148,10 @@ export const UNTER: Record<string, Unterseite[]> = {
   '/settings': [
     // Meldungen zuerst: das Einzige, was jede Rolle hier hat.
     { pfad: 'meldungen', label: 'Meldungen' },
+    // Was auf den Belegen steht — Briefkopf, Logo, UID, Bankverbindung.
+    // Vor den Saetzen, weil es einmal beim Einrichten gebraucht wird und
+    // danach selten: wer den Reiter oeffnet, sucht meistens genau das.
+    { pfad: 'firma', label: 'Firmendaten', roles: TOP },
     { pfad: 'saetze', label: 'Sätze und Zuschläge', roles: TOP },
     // Welche Bereiche der Betrieb überhaupt benutzt. Diese Unterseite trägt
     // bewusst KEIN Modul: wäre die Modulverwaltung selbst abschaltbar, könnte

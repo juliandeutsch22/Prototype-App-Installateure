@@ -166,6 +166,8 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
     expect(unterseitenFuer('/settings', 'Mitarbeiter').map((s) => s.pfad)).toEqual(['meldungen']);
     expect(unterseitenFuer('/settings', 'Geschäftsführung').map((s) => s.pfad)).toEqual([
       'meldungen',
+      // Was auf den Belegen steht — Briefkopf, Logo, UID, Bankverbindung.
+      'firma',
       'saetze',
       'module',
       'sicherung',
