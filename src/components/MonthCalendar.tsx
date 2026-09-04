@@ -95,7 +95,30 @@ export default function MonthCalendar({
 
       <div className="grid grid-cols-7">
         {cells.map((iso, i) => {
-          if (!iso) return <div key={`pad-${i}`} className="min-h-[3.25rem] bg-surface-2/40" />;
+          /*
+            DIE UNTEREN ECKEN MUESSEN MITRUNDEN.
+
+            Der Rahmen aussen ist `rounded-lg` mit `overflow-hidden` — der
+            Browser beschneidet damit alles, was ueber die gerundete Ecke
+            hinausragt. Ein eckiges Kaestchen in der Ecke verliert dabei ein
+            Stueck seiner Kante, und beim AUSGEWAEHLTEN Tag ist das genau der
+            blaue Rahmen: er war unten links sichtbar abgeschnitten. Gemeldet
+            aus dem Betrieb, mit Bildschirmfoto.
+
+            15 statt 16 Pixel: der aeussere Rahmen rundet mit 16, ist aber
+            1 Pixel breit — beschnitten wird an der INNEREN Kante, und die
+            rundet um genau diese Breite kleiner. Nachgemessen im Browser,
+            nicht geschaetzt: mit 7 Pixeln stand die Ecke immer noch ueber.
+          */
+          const ecke =
+            i === cells.length - 7
+              ? ' rounded-bl-[15px]'
+              : i === cells.length - 1
+                ? ' rounded-br-[15px]'
+                : '';
+
+          if (!iso)
+            return <div key={`pad-${i}`} className={`min-h-[3.625rem] bg-surface-2/40${ecke}`} />;
 
           const day = Number(iso.slice(8));
           const dow = new Date(`${iso}T00:00:00`).getDay();
@@ -123,7 +146,14 @@ export default function MonthCalendar({
                 (holiday ? `, ${holiday}` : '') +
                 (count > 0 ? `, ${markLabel(count)}` : '')
               }
-              className={`flex min-h-[3.25rem] flex-col items-center gap-1 border-b border-r border-line/60 pt-2 transition-colors ${
+              /*
+                `py-2` statt `pt-2`: die Zahl der Einsaetze sass vorher hart
+                auf der unteren Kante des Kaestchens. Sie hatte dort auch
+                keinen Platz — 8 + 24 + 4 + 18 Pixel sind mehr als die 52, die
+                das Kaestchen hoch war, der Punkt wurde also nach unten
+                herausgedrueckt. Gemeldet aus dem Betrieb, mit Bildschirmfoto.
+              */
+              className={`flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line/60 py-2 transition-colors${ecke} ${
                 isSelected
                   ? 'bg-info-bg ring-2 ring-inset ring-brand'
                   : holiday
@@ -153,7 +183,7 @@ export default function MonthCalendar({
               </span>
               {count > 0 && (
                 <span
-                  className={`tnum inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none ${
+                  className={`tnum inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none ${
                     past ? 'bg-line text-ink-muted' : 'bg-accent text-accent-fg'
                   }`}
                 >

@@ -98,6 +98,32 @@ describe('Monatskalender', () => {
     expect(onShiftMonth).toHaveBeenCalledWith(-1);
   });
 
+  it('rundet die unteren Ecken mit — sonst wird der Rahmen abgeschnitten', () => {
+    /*
+      GEMELDET AUS DEM BETRIEB, mit Bildschirmfoto: „im Eckkaestchen des
+      Kalenders wird der blaue Rahmen abgeschnitten."
+
+      Der Rahmen aussen ist gerundet und schneidet ab, was ueber die Ecke
+      hinausragt. Ein eckiges Kaestchen verliert dort ein Stueck seiner
+      Kante — beim AUSGEWAEHLTEN Tag ist das genau die Markierung, an der
+      man sieht, welchen Tag man gerade plant.
+
+      Geprueft wird die INDEXRECHNUNG, nicht das Aussehen: welche zwei
+      Kaestchen die Rundung bekommen. Ein Fehler um eins gaebe die Rundung
+      einem Kaestchen mitten im Raster — und die Ecke bliebe abgeschnitten.
+    */
+    aufbauen();
+    const raster = document.querySelectorAll('.grid-cols-7')[1] as HTMLElement;
+    const zellen = [...raster.children] as HTMLElement[];
+
+    const links = zellen.filter((z) => z.className.includes('rounded-bl-'));
+    const rechts = zellen.filter((z) => z.className.includes('rounded-br-'));
+    expect(links).toHaveLength(1);
+    expect(rechts).toHaveLength(1);
+    expect(links[0]).toBe(zellen[zellen.length - 7]);
+    expect(rechts[0]).toBe(zellen[zellen.length - 1]);
+  });
+
   it('kommt mit einem Februar im Schaltjahr zurecht', () => {
     aufbauen({ year: 2028, month: 1 });
     const tage = screen.getAllByRole('button').filter((b) => b.getAttribute('aria-pressed') !== null);

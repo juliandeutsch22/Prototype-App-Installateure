@@ -109,7 +109,6 @@ export default function AssignmentsView() {
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [tagesListen, setTagesListen] = useState<WithId<EinsatzMaterial>[]>([]);
   const [ruestliste, setRuestliste] = useState<RuestPosition[]>([]);
-  const [ruestSpeichert, setRuestSpeichert] = useState(false);
   const [ruestFehler, setRuestFehler] = useState<string | null>(null);
   const [anforderungLaeuft, setAnforderungLaeuft] = useState(false);
 
@@ -350,41 +349,61 @@ export default function AssignmentsView() {
           createdBy: user.uid,
         }));
       await saveAssignments(user.companyId, date, projectNumber, rows);
+
+      /*
+        DIE RUESTLISTE GEHT IM SELBEN ZUG MIT.
+
+        Gemeldet: „ich würde es besser finden, Einsatz plus Rüstliste
+        gemeinsam zu speichern und nicht einzeln. Das ist ein zusätzlicher
+        Knopfdruck, auf den man potenziell vergessen kann."
+
+        Der Einwand trifft genau die teure Stelle. Wer den zweiten Knopf
+        vergisst, merkt es nicht — die Liste steht ja ausgefüllt vor ihm.
+        Auffallen würde es erst am nächsten Morgen, wenn der Monteur auf
+        seiner Startseite kein Material findet und ohne losfährt.
+
+        DIE KENNUNGEN KOMMEN AUS `rows`, nicht aus der gespeicherten
+        Einteilung. An dieser Liste haengt die Regel, die entscheidet, wer
+        abhaken darf. Vorher musste die Mannschaft dafuer schon gespeichert
+        sein — jetzt ist sie es in derselben Handlung, und zwar mit genau
+        den Leuten, die eben geschrieben wurden.
+
+        GESCHRIEBEN WIRD NUR, WENN ES ETWAS ZU SCHREIBEN GIBT: Positionen im
+        Formular, oder eine bereits gespeicherte Liste, die geleert werden
+        soll. Sonst entstuende fuer jeden Einsatz ein leeres Dokument.
+      */
+      const positionen = ruestliste.filter((p) => p.menge > 0);
+      const hatGespeicherteListe = tagesListen.some((l) => l.projectNumber === projectNumber);
+      if (materialAn && (positionen.length > 0 || hatGespeicherteListe)) {
+        try {
+          await saveEinsatzMaterial(
+            user.companyId,
+            date,
+            projectNumber,
+            positionen,
+            rows.map((r) => r.userId),
+            user.uid,
+          );
+        } catch {
+          /*
+            Der Einsatz steht bereits — das muss dastehen. „Speichern
+            fehlgeschlagen" liesse den Planer glauben, auch die Einteilung
+            sei weg, und er teilte sie ein zweites Mal ein.
+          */
+          setError(
+            'Der Einsatz ist gespeichert, die Rüstliste nicht. Bitte noch einmal speichern.',
+          );
+          return;
+        }
+        toast.success('Einsatz und Rüstliste gespeichert');
+        return;
+      }
+
       toast.success('Einsatz gespeichert');
     } catch {
       setError('Der Einsatz konnte nicht gespeichert werden.');
     } finally {
       setSaving(false);
-    }
-  }
-
-  /**
-   * Die Rüstliste speichern — getrennt von der Mannschaft, mit Absicht.
-   *
-   * `uids` kommt aus der GESPEICHERTEN Einteilung, nicht aus den Haken im
-   * Formular: an dieser Liste hängt die Sicherheitsregel, die entscheidet,
-   * wer abhaken darf, und eine noch nicht gespeicherte Auswahl ist keine
-   * Einteilung. Wird die Mannschaft später geändert, zieht `saveAssignments`
-   * das Feld nach.
-   */
-  async function ruestlisteSpeichern() {
-    if (!user || !projectNumber) return;
-    setRuestSpeichert(true);
-    setRuestFehler(null);
-    try {
-      await saveEinsatzMaterial(
-        user.companyId,
-        date,
-        projectNumber,
-        ruestliste.filter((p) => p.menge > 0),
-        existingForProject.map((a) => a.userId),
-        user.uid,
-      );
-      toast.success('Rüstliste gespeichert');
-    } catch {
-      setRuestFehler('Die Rüstliste konnte nicht gespeichert werden.');
-    } finally {
-      setRuestSpeichert(false);
     }
   }
 
@@ -574,12 +593,6 @@ export default function AssignmentsView() {
               <InputField id="acomment" label="Kommentar / Aufgabe" value={comment}
                 onChange={(e) => setComment(e.target.value)} />
             </div>
-            {error && <div className="mt-3"><ErrorState message={error} /></div>}
-            <div className="mt-4">
-              <Button onClick={save} loading={saving} disabled={!projectNumber}>
-                Einsatz speichern
-              </Button>
-            </div>
             {/*
               Nicht verbieten, sondern sagen. Bei einem Notdienst holt man auch
               mal jemanden aus dem Urlaub; eine Sperre stünde dann im Weg. Ein
@@ -618,25 +631,33 @@ export default function AssignmentsView() {
                 onAnforderung={anforderungAnlegen}
                 anforderungLaeuft={anforderungLaeuft}
               />
-              {ruestFehler && <div className="mt-3"><ErrorState message={ruestFehler} /></div>}
               {/*
-                Steht die Mannschaft noch nicht, kann niemand abhaken — die
-                Regel kennt ihn dann nicht. Das ist kein Fehler, sondern eine
-                Reihenfolge, und sie gehört gesagt, bevor jemand sich wundert.
+                Der Fehler der ANFORDERUNG steht weiter hier — sie ist ein
+                eigener Vorgang mit eigenem Knopf. Der Fehler des Speicherns
+                steht unten beim Speichern.
               */}
-              {existingForProject.length === 0 && ruestliste.length > 0 && (
-                <p className="mt-3 rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
-                  Für diese Baustelle ist an diesem Tag noch niemand eingeteilt. Die Liste lässt
-                  sich speichern; abhaken kann sie erst, wer eingeteilt ist.
-                </p>
-              )}
-              <div className="mt-4">
-                <Button onClick={ruestlisteSpeichern} loading={ruestSpeichert}>
-                  Rüstliste speichern
-                </Button>
-              </div>
+              {ruestFehler && <div className="mt-3"><ErrorState message={ruestFehler} /></div>}
             </Card>
           )}
+
+          {/*
+            EIN Knopf fuer das ganze Formular, am Ende des Formulars.
+
+            Vorher standen hier zwei: einer fuer die Mannschaft, einer fuer
+            die Ruestliste. Gemeldet: „das ist ein zusätzlicher Knopfdruck,
+            auf den man potenziell vergessen kann." Und vergessen faellt
+            nicht auf — die ausgefuellte Liste steht ja da; auffallen wuerde
+            es erst dem Monteur am naechsten Morgen.
+
+            Er steht UNTER der Ruestliste, nicht darueber: sonst scrollte man
+            beim Ausfuellen an ihm vorbei und suchte ihn danach unten.
+          */}
+          <div>
+            {error && <div className="mb-3"><ErrorState message={error} /></div>}
+            <Button onClick={save} loading={saving} disabled={!projectNumber}>
+              {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
+            </Button>
+          </div>
 
           <Card title={`Einsätze am ${fmtDay(date)}`}>
             {dayAssignments.length === 0 ? (
