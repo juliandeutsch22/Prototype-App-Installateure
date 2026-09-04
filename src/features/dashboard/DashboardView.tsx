@@ -17,6 +17,7 @@ import {
   groupProjectHours,
   normProjectNumber,
   calcBudgetState,
+  fmtStd,
 } from '@/lib/time';
 import {
   shouldShowOvertime,
@@ -60,7 +61,15 @@ interface ProjectAlert {
   customerName: string;
   pct: number | null;
   over: boolean;
-  usedH: number;
+  /**
+   * Verbrauchte Fachzeit in MINUTEN.
+   *
+   * Vorher standen hier fertig gerundete Stunden, die roh ausgegeben wurden —
+   * JavaScript schreibt sie mit PUNKT. Auf der Startseite stand „39.5 von
+   * 40 h", in der Projektauswertung „39,5 h". Formatiert wird jetzt erst beim
+   * Anzeigen, mit derselben Funktion wie dort.
+   */
+  usedMin: number;
   estimatedHours: number;
 }
 
@@ -326,7 +335,7 @@ export default function DashboardView() {
                   customerName: pr.customerName,
                   pct: state.pct,
                   over: state.over,
-                  usedH: Math.round((fachMin / 60) * 10) / 10,
+                  usedMin: fachMin,
                   estimatedHours: pr.estimatedHours ?? 0,
                   tone: state.tone,
                 };
@@ -673,7 +682,7 @@ export default function DashboardView() {
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-ink">{pr.customerName}</span>
                   <span className="block text-xs text-ink-muted">
-                    {pr.usedH} von {pr.estimatedHours} h · {pr.projectNumber}
+                    {fmtStd(pr.usedMin)} von {pr.estimatedHours} h · {pr.projectNumber}
                   </span>
                 </span>
                 <Badge tone={pr.over ? 'danger' : 'warning'}>

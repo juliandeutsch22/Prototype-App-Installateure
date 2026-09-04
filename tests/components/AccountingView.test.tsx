@@ -176,6 +176,36 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
     expect(screen.queryByText(/03\.08\./)).not.toBeInTheDocument();
   });
 
+  it('fuehrt auch keinen FEIERTAG vor dem Eintritt', async () => {
+    /*
+      Der Nachweis beginnt beim Eintritt — dafuer gibt es das Datum. Ein Tag
+      ohne Buchung kam trotzdem herein, wenn er ein Feiertag war: bei einem
+      Eintritt am 17. August stand dort „Sa 15.08. Mariä Himmelfahrt", ein
+      Tag, an dem die Person noch gar nicht im Betrieb war.
+    */
+    await oeffneMitarbeiter();
+
+    const tabelle = screen.getByRole('table');
+    expect(within(tabelle).queryByText('Sa 15.08.')).not.toBeInTheDocument();
+    expect(within(tabelle).queryByText(/Mariä Himmelfahrt/)).not.toBeInTheDocument();
+  });
+
+  it('zeigt eine BUCHUNG vor dem Eintritt trotzdem', async () => {
+    /*
+      Der Feiertagsfilter darf nicht zum Buchungsfilter werden. Eine Zeit vor
+      dem Eintritt ist eine Merkwuerdigkeit in den Daten — falsches
+      Eintrittsdatum, falscher Mitarbeiter, vertippter Tag. Die soll man
+      SEHEN. Sie wegzufiltern hiesse zudem, sie aus der Liste zu nehmen,
+      waehrend der Fuss sie weiterzaehlt: genau der Widerspruch, der in
+      dieser Ansicht gerade behoben wurde.
+    */
+    buchungen = [...eintraege, eintrag('2026-08-10')];
+    await oeffneMitarbeiter();
+
+    const tabelle = screen.getByRole('table');
+    expect(within(tabelle).getByText('Mo 10.08.')).toBeInTheDocument();
+  });
+
   it('listet im Tagesnachweis nur Tage ab dem Eintritt', async () => {
     await oeffneMitarbeiter();
 

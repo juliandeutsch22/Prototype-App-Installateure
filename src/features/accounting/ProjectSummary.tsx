@@ -5,6 +5,7 @@ import {
   normProjectNumber,
   calcWorkMin,
   fmtMin,
+  fmtStd,
 } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
 import Card from '@/components/Card';
@@ -30,8 +31,8 @@ function dayLabel(iso: string): string {
   });
 }
 
-/** Dezimalstunden mit Komma. */
-const h = (min: number) => (min / 60).toFixed(1).replace('.', ',');
+/** Dezimalstunden mit Komma — gemeinsam mit dem Dashboard, siehe `lib/time`. */
+const h = fmtStd;
 
 /**
  * Projektauswertung: Ist-Stunden gegen das kalkulierte Budget, getrennt nach

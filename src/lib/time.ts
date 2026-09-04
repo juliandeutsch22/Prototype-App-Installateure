@@ -545,6 +545,22 @@ export function groupProjectHours(entries: TimeEntry[]): ProjectHours[] {
   return [...map.values()].sort((a, b) => a.projectNumber.localeCompare(b.projectNumber));
 }
 
+/**
+ * Minuten als Dezimalstunden mit KOMMA — „16,5".
+ *
+ * WARUM DAS HIER STEHT UND NICHT ZWEIMAL IN DEN ANSICHTEN. Das Dashboard
+ * rechnete selbst (`Math.round(min / 60 * 10) / 10`) und gab die Zahl roh
+ * aus; JavaScript schreibt sie mit PUNKT. Auf der Startseite stand damit
+ * „39.5 von 40 h", in der Projektauswertung „39,5 h" — dieselbe Zahl,
+ * zweierlei Schreibweise, in einer deutschsprachigen Oberfläche.
+ *
+ * Immer EINE Nachkommastelle, auch bei glatten Werten: „40,0" neben „39,5"
+ * liest sich als Reihe, „40" neben „39,5" als Bruch in der Darstellung.
+ */
+export function fmtStd(min: number): string {
+  return (min / 60).toFixed(1).replace('.', ',');
+}
+
 export interface BudgetState {
   /** Ausschöpfung in Prozent, auf 100 gedeckelt; null ohne hinterlegtes Budget. */
   pct: number | null;
