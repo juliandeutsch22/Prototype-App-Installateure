@@ -105,6 +105,9 @@ const buchungen: (TimeEntry & { id: string })[] = [
 
 const rolle = { wert: 'Mitarbeiter' as string };
 
+/** Stunden je Baustelle — nur der Budget-Radar liest sie. */
+let zeitenJeBaustelle: (TimeEntry & { id: string })[] = [];
+
 vi.mock('@/lib/db/users', () => ({
   getUserByUid: vi.fn(async () => monteur),
   listUsers: vi.fn(async () => [monteur]),
@@ -127,7 +130,7 @@ vi.mock('@/lib/db/assignments', () => ({
 vi.mock('@/lib/db/timeEntries', () => ({
   listOwnEntriesSince: vi.fn(async () => buchungen),
   listEntriesInRange: vi.fn(async () => buchungen),
-  listEntriesForProjects: vi.fn(async () => [] as TimeEntry[]),
+  listEntriesForProjects: vi.fn(async () => zeitenJeBaustelle),
 }));
 vi.mock('@/lib/db/materialOrders', () => ({
   listOpenOrders: vi.fn(async () => [] as MaterialOrder[]),
@@ -268,6 +271,42 @@ describe('Startseite — Geschäftsführung', () => {
       'href',
       '/assignments',
     );
+  });
+
+  it('schreibt die Baustellenstunden mit KOMMA, wie die Auswertung', async () => {
+    /*
+      AUFGEFALLEN AUF DER STARTSEITE: dort stand „39.5 von 40 h" — mit
+      PUNKT. Das Dashboard rechnete selbst und gab die Zahl roh aus;
+      JavaScript schreibt sie so. In der Projektauswertung stand dieselbe
+      Zahl als „39,5 h". Kein Rechenfehler, aber zwei Schreibweisen für
+      dieselbe Größe in derselben deutschsprachigen App.
+    */
+    // 8,5 von 10 h = 85 % — erst ab 80 % erscheint die Baustelle ueberhaupt
+    // in dieser Karte.
+    baustellen[0].estimatedHours = 10;
+    zeitenJeBaustelle = [
+      {
+        id: 'b1',
+        companyId: 'perl',
+        date: '2026-06-01',
+        status: 'Anwesend',
+        userId: 'm1',
+        userName: 'Anton Berger',
+        projectNumber: 'B-001',
+        startTime: '07:00',
+        endTime: '16:00',
+        breakDuration: 30,
+      } as TimeEntry & { id: string },
+    ];
+    try {
+      zeichne();
+      const karte = (await screen.findByText(/Baustellen am Limit/i)).closest('section')!;
+      expect(within(karte).getByText(/8,5 von 10 h/)).toBeInTheDocument();
+      expect(within(karte).queryByText(/8\.5/)).not.toBeInTheDocument();
+    } finally {
+      delete baustellen[0].estimatedHours;
+      zeitenJeBaustelle = [];
+    }
   });
 
   it('zeigt die heutige Einteilung nach Baustelle', async () => {

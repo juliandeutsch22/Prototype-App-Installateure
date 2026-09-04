@@ -661,6 +661,23 @@ export default function AccountingView() {
                             .filter((e) => e.date === d)
                             .sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? ''));
                           if (amTag.length === 0) {
+                            /*
+                              EIN FEIERTAG VOR DEM EINTRITT GEHOERT NICHT IN
+                              DEN NACHWEIS.
+
+                              Der Nachweis beginnt beim Eintritt — dafuer gibt
+                              es das Datum. Ein Tag ohne Buchung kam bisher
+                              trotzdem herein, wenn er ein Feiertag war: bei
+                              einem Eintritt am 17. August stand dort „Sa
+                              15.08. Mariä Himmelfahrt — — —", ein Tag, an dem
+                              die Person noch gar nicht im Betrieb war.
+
+                              Eine BUCHUNG vor dem Eintritt bleibt dagegen
+                              stehen. Sie waere eine Merkwuerdigkeit in den
+                              Daten, und die soll man sehen statt sie
+                              wegzufiltern.
+                            */
+                            if (u.appStartDate && d < u.appStartDate) return [];
                             return holiday ? [{ d, entry: undefined, holiday, zeit: null }] : [];
                           }
                           return amTag.map((entry) => ({
