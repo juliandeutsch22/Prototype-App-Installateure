@@ -286,7 +286,16 @@ export interface WorkSheet {
   address?: string;
   /** Leistungsdatum (der Tag, über den der Schein geht). */
   datum: string;
-  status: 'Entwurf' | 'Unterschrieben' | 'Storniert';
+  /**
+   * „Verworfen" ist der aufgegebene ENTWURF, nicht der widerrufene Beleg.
+   *
+   * Der Storno zieht einen unterschriebenen Schein aus dem Verkehr und
+   * braucht dafür einen Grund — der Kunde hat etwas in der Hand. Ein Entwurf
+   * hat das Haus nie verlassen: der Auftrag ist geplatzt, oder er wurde
+   * versehentlich angelegt. Er wird deshalb gekennzeichnet, nicht gelöscht,
+   * und lässt sich als einziger Zustand wieder aufnehmen.
+   */
+  status: 'Entwurf' | 'Unterschrieben' | 'Storniert' | 'Verworfen';
   abrechnung: 'Regie' | 'Pauschal';
   /** Die kopierten Positionen — nach der Unterschrift unveränderlich. */
   zeiten: WorkSheetZeit[];
@@ -311,6 +320,8 @@ export interface WorkSheet {
   unterschriebenAm?: number;
   stornoGrund?: string;
   storniertVonName?: string;
+  /** Wer den Entwurf aufgegeben hat — ohne Grund: er war nie beim Kunden. */
+  verworfenVonName?: string;
   createdAt?: number;
 }
 

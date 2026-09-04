@@ -368,12 +368,19 @@ service cloud.firestore {
     // System steht, und niemand koennte den Unterschied nachweisen.
     //
     // Deshalb:
-    //   Entwurf         -> aenderbar
+    //   Entwurf         -> aenderbar, und aufgebbar („Verworfen")
     //   Unterschrieben  -> NUR NOCH der Uebergang nach „Storniert"
     //   Storniert       -> gar nichts mehr
+    //   Verworfen       -> NUR NOCH zurueck in den Entwurf, ohne Inhaltsaenderung
     //
     // Geloescht wird nie. Ein spurlos verschwundener Beleg waere schlimmer
     // als ein falscher — der Storno bleibt sichtbar und traegt seinen Grund.
+    //
+    // Auch der aufgegebene ENTWURF wird deshalb nur gekennzeichnet. Eine
+    // Loeschbedingung „nur Entwuerfe" waere die einzige Stelle, an der sich
+    // ein Vertipper in einen geloeschten Kundenbeleg uebersetzt; dieses
+    // Risiko ist gegen eine ueberfluessige Zeile in der Datenbank nicht
+    // aufzuwiegen.
     match /workSheets/{id} {
       function istEntwurf() {
         return resource.data.status == 'Entwurf';
@@ -388,13 +395,24 @@ service cloud.firestore {
           && request.resource.data.notizen == resource.data.notizen
           && request.resource.data.unterschriften == resource.data.unterschriften;
       }
+      function nurWiederAufnehmen() {
+        // Der einzige Rueckweg, und er fasst den Inhalt nicht an: ausser dem
+        // Status und dem Namen des Verwerfenden darf sich dabei nichts
+        // aendern. Ein unterschriebener Schein kommt hier nie vorbei — nach
+        // „Verworfen" fuehrt allein der Weg aus dem Entwurf, und der ist vor
+        // jeder Unterschrift.
+        return resource.data.status == 'Verworfen'
+          && request.resource.data.status == 'Entwurf'
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'verworfenVonName']);
+      }
 
       allow read: if ownsExisting();
       allow create: if ownsIncoming()
         && request.resource.data.status == 'Entwurf'
         && request.resource.data.erstelltVonUid == request.auth.uid;
       allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
-        && (istEntwurf() || (nurStorno() && isLeadership()));
+        && (istEntwurf() || (nurStorno() && isLeadership()) || nurWiederAufnehmen());
       allow delete: if false;
     }
 

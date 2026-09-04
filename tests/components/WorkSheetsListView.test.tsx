@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Role, WorkSheet } from '@/types';
@@ -48,9 +49,41 @@ const scheine: (WorkSheet & { id: string })[] = [
   } as WorkSheet & { id: string },
 ];
 
+/**
+ * Der verworfene Entwurf — aufgegeben, nicht geloescht.
+ *
+ * `allow delete` steht fuer diese Sammlung auf `false` und soll dort bleiben:
+ * die Regel schuetzt den unterschriebenen Kundenbeleg. Ein versehentlich
+ * angelegter Entwurf blieb damit aber fuer immer in der Arbeitsliste stehen.
+ */
+const verworfener: WorkSheet & { id: string } = {
+  id: 'v1',
+  companyId: 'perl',
+  projectNumber: 'B-003',
+  customerId: 'k3',
+  customerName: 'Familie Gruber',
+  address: 'Feldgasse 7',
+  datum: '2026-09-02',
+  status: 'Verworfen',
+  verworfenVonName: 'Max Mustermann',
+  abrechnung: 'Regie',
+  zeiten: [],
+  material: [],
+  erstelltVonUid: 'm1',
+  erstelltVonName: 'Max Mustermann',
+} as WorkSheet & { id: string };
+
+/** Was die Liste laedt — je Test setzbar. */
+let geladen: (WorkSheet & { id: string })[] = scheine;
+
+const verwerfen = vi.fn(async () => undefined);
+const zurueckholen = vi.fn(async () => undefined);
+
 vi.mock('@/lib/db/workSheets', () => ({
-  listRecentWorkSheets: vi.fn(async () => scheine),
+  listRecentWorkSheets: vi.fn(async () => geladen),
   cancelWorkSheet: vi.fn(async () => undefined),
+  discardWorkSheetDraft: (...a: unknown[]) => verwerfen(...(a as [])),
+  restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
 }));
 vi.mock('@/features/worksheets/worksheetPdf', () => ({
   buildWorkSheetPdf: vi.fn(),
@@ -101,6 +134,9 @@ function zeichne() {
 
 beforeEach(() => {
   authWert.user.role = 'Mitarbeiter';
+  geladen = scheine;
+  verwerfen.mockClear();
+  zurueckholen.mockClear();
 });
 
 describe('Liste der Handwerksscheine', () => {
@@ -132,6 +168,112 @@ describe('Liste der Handwerksscheine', () => {
     authWert.user.role = 'Buchhaltung';
     zeichne();
     await screen.findByText('Entwurf');
+    expect(screen.queryByRole('link', { name: /Weiterbearbeiten/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('Einen Entwurf aufgeben', () => {
+  it('fragt zurueck und nennt dabei den Schein', async () => {
+    /*
+      Der Fehlgriff in einer Liste gleichaussehender Zeilen ist die falsche
+      ZEILE, nicht der falsche Knopf. „Wollen Sie wirklich?" allein faengt
+      das nicht ab — der Kunde und der Tag muessen dastehen.
+    */
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Verwerfen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Entwurf verwerfen');
+    expect(dialog).toHaveTextContent('Familie Huber, 2026-09-04');
+    expect(verwerfen).not.toHaveBeenCalled();
+  });
+
+  it('verwirft erst nach der Bestaetigung, und mit dem Namen', async () => {
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Verwerfen' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Verwerfen' }));
+    await waitFor(() => expect(verwerfen).toHaveBeenCalledWith('e1', 'Max Mustermann'));
+  });
+
+  it('bricht ab, ohne etwas zu tun', async () => {
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Verwerfen' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Abbrechen' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(verwerfen).not.toHaveBeenCalled();
+  });
+
+  it('bietet das Verwerfen bei einem unterschriebenen Schein NICHT an', async () => {
+    // Der ist eingefroren; die Rules lehnen jede Aenderung ab.
+    geladen = [scheine[1]];
+    zeichne();
+    await screen.findByText('Unterschrieben');
+    expect(screen.queryByRole('button', { name: 'Verwerfen' })).not.toBeInTheDocument();
+  });
+
+  it('zeigt der Buchhaltung den Knopf gar nicht erst', async () => {
+    authWert.user.role = 'Buchhaltung';
+    zeichne();
+    await screen.findByText('Entwurf');
+    expect(screen.queryByRole('button', { name: 'Verwerfen' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Der verworfene Entwurf in der Liste', () => {
+  it('steht nicht mehr im Weg — die Liste zeigt ihn nicht', async () => {
+    geladen = [...scheine, verworfener];
+    zeichne();
+    await screen.findByText('Familie Huber');
+    expect(screen.queryByText('Familie Gruber')).not.toBeInTheDocument();
+  });
+
+  it('ist aber nicht verschwunden: der Schalter nennt seine Zahl', async () => {
+    /*
+      Ihn auch aus der ANSICHT zu nehmen waere das Loeschen durch die
+      Hintertuer. Was niemand mehr sehen kann, ist weg — und genau das
+      verbieten die Rules aus gutem Grund.
+    */
+    geladen = [...scheine, verworfener];
+    zeichne();
+    const schalter = await screen.findByRole('checkbox', {
+      name: /1 verworfener Entwurf anzeigen/,
+    });
+    await userEvent.click(schalter);
+    expect(await screen.findByText('Familie Gruber')).toBeInTheDocument();
+  });
+
+  it('zaehlt nicht in der Ueberschrift mit', async () => {
+    geladen = [...scheine, verworfener];
+    zeichne();
+    expect(await screen.findByText('Scheine (2)')).toBeInTheDocument();
+  });
+
+  it('nennt den, der ihn aufgegeben hat', async () => {
+    geladen = [verworfener];
+    zeichne();
+    await userEvent.click(await screen.findByRole('checkbox'));
+    expect(await screen.findByText(/Verworfen von Max Mustermann/)).toBeInTheDocument();
+  });
+
+  it('laesst sich wieder aufnehmen', async () => {
+    /*
+      Der Rueckweg ist der Punkt. „Verwerfen" ist der Knopf fuer den
+      Fehlgriff; ohne Rueckweg kostete sein eigener Fehlgriff den ganzen
+      getippten Schein — der Fehler waere nur verschoben.
+    */
+    geladen = [verworfener];
+    zeichne();
+    await userEvent.click(await screen.findByRole('checkbox'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Wieder aufnehmen' }));
+    await waitFor(() => expect(zurueckholen).toHaveBeenCalledWith('v1'));
+  });
+
+  it('bietet am verworfenen Entwurf kein Weiterbearbeiten an', async () => {
+    // Das Speichern lehnten die Rules ab: aus „Verworfen" fuehrt nur der
+    // eine Weg zurueck in den Entwurf, und der aendert den Inhalt nicht.
+    geladen = [verworfener];
+    zeichne();
+    await userEvent.click(await screen.findByRole('checkbox'));
     expect(screen.queryByRole('link', { name: /Weiterbearbeiten/ })).not.toBeInTheDocument();
   });
 });
