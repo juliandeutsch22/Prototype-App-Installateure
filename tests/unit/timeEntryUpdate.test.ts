@@ -75,3 +75,66 @@ describe('Zeiteintrag bearbeiten', () => {
     expect(JSON.stringify(queryTenant.mock.calls[0])).toContain('monteur-1');
   });
 });
+
+describe('Mehrere Baustellen an einem Tag', () => {
+  /**
+   * DIE SPERRE GING ZU WEIT. Sie pruefte `(Mitarbeiter, Tag)` ohne Ansehen
+   * der Baustelle — ein Monteur, der drei kleine Baustellen abklappert,
+   * konnte davon eine buchen. Die uebrigen bekamen keine Stunden, keinen
+   * Budgetverbrauch, keine Rechnungsposition.
+   *
+   * Was sie richtig machte, bleibt: zwei Buchungen fuer denselben Einsatz
+   * zaehlen doppelt in den Saldo und wandern auf den Lohnzettel.
+   */
+  it('laesst eine zweite Baustelle am selben Tag zu', async () => {
+    queryTenant.mockResolvedValue([
+      { id: 'anderer', date: '2026-09-01', status: 'Anwesend', projectNumber: '2026-042' },
+    ]);
+    await updateTimeEntry(
+      'mein-eintrag',
+      { date: '2026-09-01', status: 'Anwesend', projectNumber: '2026-043' },
+      OWNER,
+    );
+    expect(updateInTenant).toHaveBeenCalledOnce();
+  });
+
+  it('blockt DIESELBE Baustelle ein zweites Mal', async () => {
+    queryTenant.mockResolvedValue([
+      { id: 'anderer', date: '2026-09-01', status: 'Anwesend', projectNumber: '2026-042' },
+    ]);
+    await expect(
+      updateTimeEntry(
+        'mein-eintrag',
+        { date: '2026-09-01', status: 'Anwesend', projectNumber: '2026-042' },
+        OWNER,
+      ),
+    ).rejects.toBeInstanceOf(DuplicateEntryError);
+    expect(updateInTenant).not.toHaveBeenCalled();
+  });
+
+  it('blockt Arbeitszeit an einem Krankentag', async () => {
+    // Krank und Urlaub gelten fuer den GANZEN Tag; die Rechnung zaehlt sie
+    // als ganze Tage, je Eintrag einen.
+    queryTenant.mockResolvedValue([{ id: 'krank', date: '2026-09-01', status: 'Krank' }]);
+    await expect(
+      updateTimeEntry(
+        'mein-eintrag',
+        { date: '2026-09-01', status: 'Anwesend', projectNumber: '2026-042' },
+        OWNER,
+      ),
+    ).rejects.toBeInstanceOf(DuplicateEntryError);
+  });
+
+  it('nennt den Grund, nicht nur die Tatsache', async () => {
+    queryTenant.mockResolvedValue([
+      { id: 'anderer', date: '2026-09-01', status: 'Anwesend', projectNumber: '2026-042' },
+    ]);
+    await expect(
+      updateTimeEntry(
+        'mein-eintrag',
+        { date: '2026-09-01', status: 'Anwesend', projectNumber: '2026-042' },
+        OWNER,
+      ),
+    ).rejects.toThrow(/diese Baustelle/i);
+  });
+});

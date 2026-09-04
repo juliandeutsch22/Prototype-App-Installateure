@@ -15,6 +15,7 @@ import {
   localDateStr,
   todayStr,
 } from '@/lib/time';
+import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
 import { shouldShowOvertime } from '@/lib/permissions';
 import { bilanzMarker, listBilanzen, monatVon, type Monatsbilanz } from '@/lib/db/monatsbilanzen';
 import type { WithId } from '@/lib/db/core';
@@ -213,7 +214,6 @@ export default function TimeView() {
    * Doppelbuchungs-Frage. Fuer Tage ausserhalb fragt das Formular gezielt
    * beim Server nach.
    */
-  const existingDates = useMemo(() => new Set(entries.map((e) => e.date)), [entries]);
 
   /**
    * Tage mit MEHR ALS EINEM Eintrag.
@@ -231,11 +231,20 @@ export default function TimeView() {
    * Anlass gehabt hinzusehen. Genau so entsteht eine falsche Zahl auf dem
    * Lohnzettel.
    */
-  const doppelteTage = useMemo(() => {
-    const zaehler = new Map<string, number>();
-    for (const e of entries) zaehler.set(e.date, (zaehler.get(e.date) ?? 0) + 1);
-    return new Set([...zaehler.entries()].filter(([, n]) => n > 1).map(([d]) => d));
-  }, [entries]);
+  /**
+   * NICHT MEHR JEDER TAG MIT ZWEI EINTRAEGEN.
+   *
+   * Diese Warnung zaehlte bisher die Eintraege je Tag. Seit ein Monteur
+   * mehrere Baustellen an einem Tag buchen darf, waere das die Mehrzahl
+   * seiner normalen Tage — und eine Warnung, die taeglich grundlos
+   * erscheint, wird nach einer Woche nicht mehr gelesen, auch dann nicht,
+   * wenn sie einmal recht hat.
+   *
+   * Gemeldet wird deshalb nur noch, was den Saldo wirklich verfaelscht:
+   * dieselbe Baustelle zweimal, zwei Eintraege ohne Baustelle, oder ein
+   * ganztaegiger Status doppelt (siehe `lib/tagesbuchungen.ts`).
+   */
+  const doppelteTage = useMemo(() => tageMitEchterDoppelung(entries), [entries]);
 
   /**
    * Jüngster Anwesenheitseintrag mit Zeitspanne — Vorlage für „wie zuletzt".
@@ -295,12 +304,13 @@ export default function TimeView() {
         >
           <strong>
             {doppelteTage.size === 1
-              ? 'An einem Tag stehen zwei Einträge.'
-              : `An ${doppelteTage.size} Tagen stehen mehrere Einträge.`}
+              ? 'An einem Tag steht dieselbe Buchung zweimal.'
+              : `An ${doppelteTage.size} Tagen steht dieselbe Buchung zweimal.`}
           </strong>{' '}
           Der Saldo zählt beide. Betroffen:{' '}
           {[...doppelteTage].sort().join(', ')} — bitte unten in der Liste den
-          überflüssigen Eintrag löschen.
+          überflüssigen Eintrag löschen. Mehrere Baustellen an einem Tag sind
+          dagegen in Ordnung und stehen hier nicht.
         </p>
       )}
 
@@ -350,7 +360,6 @@ export default function TimeView() {
         <TimeForm
           key={editing?.id ?? 'new'}
           entry={editing ?? undefined}
-          existingDates={existingDates}
           lastEntry={lastEntry}
           onSaved={() => setEditing(null)}
           onCancel={editing ? () => setEditing(null) : undefined}
@@ -405,7 +414,7 @@ export default function TimeView() {
                           }
                         >
                           {doppelteTage.has(e.date) && (
-                            <Badge tone="danger">Tag doppelt gebucht</Badge>
+                            <Badge tone="danger">doppelt gebucht</Badge>
                           )}
                           {e.source === 'voice' && <Badge tone="info">KI</Badge>}
                           {e.isHelper && <Badge tone="warning">Helfer</Badge>}
