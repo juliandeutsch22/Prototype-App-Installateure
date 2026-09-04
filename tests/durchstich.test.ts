@@ -112,7 +112,8 @@ const scheineDb = await import('@/lib/db/workSheets');
 const einsaetzeDb = await import('@/lib/db/assignments');
 const ruestDb = await import('@/lib/db/einsatzMaterial');
 const urlaubeDb = await import('@/lib/db/vacations');
-const { calcOverallSaldo, offeneWerktage, urlaubsTage, calcWorkMin } = await import('@/lib/time');
+const { calcOverallSaldo, offeneWerktage, urlaubsTage, calcWorkMin, groupProjectHours } = await import('@/lib/time');
+const { bilanzAusEintraegen } = await import('@shared/monatsbilanz');
 const { rechneBaustelle } = await import('@/features/costing/nachkalkulation');
 
 /**
@@ -616,5 +617,112 @@ describe('Durchstich 5: Rüstliste — geplant, gesehen, eingeladen', () => {
     );
     const liste = await ruestDb.getEinsatzMaterial(FIRMA, TAG, KRUMM);
     expect(liste?.projectNumber).toBe(KRUMM);
+  });
+});
+
+/**
+ * Durchstich 6: drei kleine Baustellen an einem Tag.
+ *
+ * DIE FRAGE, DIE HIER BEANTWORTET WIRD, ist nicht „laesst die Sperre das
+ * durch" — das prueft der Regeltest. Sondern: SUMMIEREN SICH DIE STUNDEN AM
+ * ENDE RICHTIG? Drei Zahlen haengen daran, und sie werden an drei
+ * verschiedenen Stellen gerechnet:
+ *
+ *   der Stundensaldo        muss die drei Zeiten ADDIEREN und den Tag EINMAL
+ *                           als gebucht zaehlen
+ *   die Monatsbilanz        dasselbe, aus der die Buchhaltung spaeter liest
+ *   die Baustellenstunden   muessen sich auf die drei Baustellen VERTEILEN
+ *
+ * Ginge eine davon anders, waere die Folge ein falscher Lohnzettel oder eine
+ * Baustelle, die zu wenig verrechnet.
+ */
+describe('Durchstich 6: mehrere Baustellen an einem Tag', () => {
+  /** 07:00–10:00 ohne Pause = 3 h. */
+  function kurzeinsatz(datum: string, projectNumber: string, bis: string) {
+    return {
+      date: datum,
+      status: 'Anwesend' as const,
+      startTime: '07:00',
+      endTime: bis,
+      breakDuration: 0,
+      projectNumber,
+      userId: MONTEUR,
+      userName: MITARBEITER.name,
+    };
+  }
+
+  it('drei Buchungen an einem Tag — Stunden addiert, Tag einmal gezaehlt', async () => {
+    // Dienstag: gerechnet wird bis gestern, also genau ueber den Montag.
+    heuteIst('2026-06-02');
+    aktuelleDb = alsMonteur();
+
+    // 3 h + 2 h + 4 h = 9 h an einem Tag, auf drei Baustellen.
+    await zeiten.createTimeEntry(FIRMA, kurzeinsatz('2026-06-01', 'B-2026-0001', '10:00'));
+    await zeiten.createTimeEntry(FIRMA, kurzeinsatz('2026-06-01', 'B-2026-0002', '09:00'));
+    await zeiten.createTimeEntry(FIRMA, kurzeinsatz('2026-06-01', 'B-2026-0003', '11:00'));
+
+    aktuelleDb = alsBuchhaltung();
+    const alle = (await zeiten.listEntriesInRange(FIRMA, '2026-06-01', '2026-06-30'))
+      .filter((e) => e.userId === MONTEUR) as TimeEntry[];
+    expect(alle).toHaveLength(3);
+
+    /**
+     * DER SALDO. Soll je Tag: 40 h auf fuenf Tage = 8 h. Gebucht: 9 h.
+     * Also genau eine Stunde Plus — NICHT drei Tage Soll gegen 9 h, und
+     * nicht 9 h gegen 8 h dreimal.
+     */
+    const saldo = calcOverallSaldo(MITARBEITER, alle);
+    expect(saldo.saldoH).toBeCloseTo(1, 5);
+    // Und der Tag gilt als gebucht: es fehlt nichts.
+    expect(saldo.daysWithoutEntry).toBe(0);
+
+    /** DIE MONATSBILANZ, aus der die Buchhaltung spaeter liest. */
+    const bilanz = bilanzAusEintraegen('2026-06', alle);
+    expect(bilanz.anwesendMin).toBe(9 * 60);
+    // EIN gebuchter Tag, nicht drei.
+    expect(bilanz.tage).toEqual(['2026-06-01']);
+    expect(bilanz.krankTage).toBe(0);
+    expect(bilanz.urlaubTage).toBe(0);
+
+    /** DIE BAUSTELLENSTUNDEN — jede bekommt ihren Anteil. */
+    const proBaustelle = groupProjectHours(alle);
+    const nach = Object.fromEntries(proBaustelle.map((p) => [p.projectNumber, p.fachMin]));
+    expect(nach['B-2026-0001']).toBe(180);
+    expect(nach['B-2026-0002']).toBe(120);
+    expect(nach['B-2026-0003']).toBe(240);
+  });
+
+  it('DIESELBE Baustelle ein zweites Mal wird abgewiesen', async () => {
+    // Der Fall, den die alte Sperre eigentlich meinte: zwei Buchungen fuer
+    // denselben Einsatz zaehlen doppelt und wandern auf den Lohnzettel.
+    heuteIst('2026-06-02');
+    aktuelleDb = alsMonteur();
+    await zeiten.createTimeEntry(FIRMA, kurzeinsatz('2026-06-01', 'B-2026-0001', '10:00'));
+    await expect(
+      zeiten.createTimeEntry(FIRMA, kurzeinsatz('2026-06-01', 'B-2026-0001', '11:00')),
+    ).rejects.toThrow(/diese Baustelle/i);
+  });
+
+  it('Urlaub bleibt EIN Tag, auch wenn jemand es zweimal versucht', async () => {
+    /**
+     * Krank und Urlaub zaehlen in allen drei Rechnungen als GANZE TAGE, je
+     * Eintrag einen. Ein zweiter Urlaubseintrag am selben Tag waere ein
+     * zweiter Urlaubstag — im Saldo, im Monatsbericht und im Resturlaub.
+     */
+    heuteIst('2026-06-02');
+    aktuelleDb = alsMonteur();
+    await zeiten.createTimeEntry(FIRMA, {
+      date: '2026-06-01', status: 'Urlaub', userId: MONTEUR, userName: MITARBEITER.name,
+    });
+    await expect(
+      zeiten.createTimeEntry(FIRMA, {
+        date: '2026-06-01', status: 'Urlaub', userId: MONTEUR, userName: MITARBEITER.name,
+      }),
+    ).rejects.toThrow(/ganzen Tag/i);
+
+    aktuelleDb = alsBuchhaltung();
+    const alle = (await zeiten.listEntriesInRange(FIRMA, '2026-06-01', '2026-06-30'))
+      .filter((e) => e.userId === MONTEUR) as TimeEntry[];
+    expect(bilanzAusEintraegen('2026-06', alle).urlaubTage).toBe(1);
   });
 });

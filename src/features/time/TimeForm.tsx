@@ -4,9 +4,10 @@ import { useAuth } from '@/app/AuthContext';
 import {
   createTimeEntry,
   updateTimeEntry,
-  findEntryForDate,
+  eintraegeAmTag,
   DuplicateEntryError,
 } from '@/lib/db/timeEntries';
+import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { todayStr, getAustrianHolidayName } from '@/lib/time';
 import { istAussendienst, canExtendTimeEntry } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -44,7 +45,6 @@ interface Props {
    * geladen hat. Die verlässliche Prüfung fragt beim gewählten Datum direkt
    * nach — siehe `belegt` weiter unten.
    */
-  existingDates?: Set<string>;
   /**
    * Rolle des Eintrags-EIGENTÜMERS. Steuert, ob Projekt-/Helferfelder gelten.
    * Beim Bearbeiten fremder Einträge zählt der Eigentümer, nicht der Bearbeiter
@@ -72,7 +72,6 @@ export default function TimeForm({
   onSaved,
   entry,
   onCancel,
-  existingDates,
   ownerRole,
   staff,
   lastEntry,
@@ -162,51 +161,50 @@ export default function TimeForm({
    * eigene, unveränderte Tag zählt dabei natürlich nicht als Konflikt.
    */
   /**
-   * Ist am gewaehlten Tag schon gebucht — nachgefragt statt vorgeladen.
+   * Was steht an diesem Tag schon — und darf die neue Buchung dazu?
    *
-   * Vorher bekam das Formular die Menge ALLER belegten Tage uebergeben, und
-   * die Ansicht musste dafuer die gesamte Buchungsgeschichte des Mitarbeiters
-   * laden. Bei einem Fenster von ein paar Monaten waere die Warnung fuer
-   * jeden Tag ausserhalb stillschweigend ausgeblieben: das Formular haette
-   * gemeldet „frei", das Speichern waere dann an der serverseitigen Sperre
-   * gescheitert — mit einer Fehlermeldung statt einer Vorwarnung.
+   * Vorher war das ein Wahrheitswert: „an dem Tag ist gebucht, also nein."
+   * Seit ein Monteur mehrere Baustellen am selben Tag buchen darf, genügt das
+   * nicht mehr — ob noch etwas dazu darf, hängt davon ab, WAS dort steht und
+   * welche Baustelle gerade gewählt ist.
    *
-   * Die gezielte Abfrage kostet ein Dokument und ist unabhaengig davon, wie
-   * lange jemand im Betrieb ist. `existingDates` bleibt als sofortige Antwort
-   * fuer die Tage, die die Ansicht ohnehin geladen hat.
+   * Deshalb werden die Einträge des Tages geladen und der Grund daraus
+   * gerechnet. Das hat eine angenehme Nebenwirkung: die Warnung verschwindet
+   * in dem Moment, in dem eine andere Baustelle gewählt wird, statt bis zum
+   * Speichern stehenzubleiben.
+   *
+   * Die frühere Abkürzung über `existingDates` ist entfallen. Sie kannte nur
+   * DATEN, keine Baustellen, und hätte ab jetzt jeden zweiten Einsatz eines
+   * Tages fälschlich als belegt gemeldet.
    */
-  const [belegtServer, setBelegtServer] = useState<boolean | null>(null);
+  const [tagesEintraege, setTagesEintraege] = useState<TimeEntry[] | null>(null);
   const besitzerUid = targetUid || entry?.userId || user?.uid;
   useEffect(() => {
     if (!user || !besitzerUid || !date) return;
-    if (date === entry?.date) {
-      setBelegtServer(false);
-      return;
-    }
-    if (existingDates?.has(date)) {
-      setBelegtServer(true);
-      return;
-    }
     let verworfen = false;
-    setBelegtServer(null);
-    findEntryForDate(user.companyId, besitzerUid, date, entry?.id)
-      .then((treffer) => {
-        if (!verworfen) setBelegtServer(!!treffer);
+    setTagesEintraege(null);
+    eintraegeAmTag(user.companyId, besitzerUid, date, entry?.id)
+      .then((rows) => {
+        if (!verworfen) setTagesEintraege(rows);
       })
       // Faellt die Abfrage aus, bleibt die serverseitige Sperre beim
       // Speichern. Eine ausgebliebene VORwarnung darf das Formular nicht
       // blockieren.
       .catch(() => {
-        if (!verworfen) setBelegtServer(false);
+        if (!verworfen) setTagesEintraege([]);
       });
     return () => {
       verworfen = true;
     };
-  }, [user, besitzerUid, date, entry?.date, entry?.id, existingDates]);
+  }, [user, besitzerUid, date, entry?.id]);
 
-  const alreadyBooked = useMemo(
-    () => belegtServer === true && date !== entry?.date,
-    [belegtServer, date, entry?.date],
+  /** Der Grund, warum gerade nicht gespeichert werden kann — oder null. */
+  const konflikt = useMemo(
+    () =>
+      tagesEintraege
+        ? buchungKonflikt({ status, projectNumber: canHaveProject ? projectNumber : '' }, tagesEintraege)
+        : null,
+    [tagesEintraege, status, projectNumber, canHaveProject],
   );
 
   async function handleSubmit(e: FormEvent) {
@@ -214,10 +212,8 @@ export default function TimeForm({
     if (!user) return;
     setError(null);
 
-    if (alreadyBooked) {
-      setError(
-        `Für den ${date} existiert bereits ein Eintrag. Bitte den bestehenden Eintrag unter „Meine Einträge" bearbeiten.`,
-      );
+    if (konflikt) {
+      setError(konflikt);
       return;
     }
 
@@ -292,9 +288,9 @@ export default function TimeForm({
       onSaved();
     } catch (err) {
       if (err instanceof DuplicateEntryError) {
-        setError(
-          `Für den ${date} existiert bereits ein Eintrag. Bitte den bestehenden Eintrag bearbeiten.`,
-        );
+        // Den Grund des Servers zeigen, nicht einen eigenen Satz daruebersetzen:
+        // die Sperre kennt vier Faelle mit vier verschiedenen Handlungen.
+        setError(err.grund);
       } else {
         setError('Die Zeit konnte nicht gebucht werden. Bitte erneut versuchen.');
       }
@@ -379,12 +375,18 @@ export default function TimeForm({
         </SelectField>
       </FormGrid>
 
-      {alreadyBooked && (
+      {/*
+        DER GRUND STEHT DA, nicht nur die Tatsache. „Für diesen Tag existiert
+        bereits ein Eintrag" war richtig, solange je Tag einer erlaubt war —
+        jetzt gibt es vier verschiedene Fälle mit vier verschiedenen
+        Handlungen, und die Meldung nennt jeweils die eigene.
+      */}
+      {konflikt && (
         <p
           className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm font-medium text-warning"
           role="alert"
         >
-          Für diesen Tag existiert bereits ein Eintrag. Bitte den bestehenden bearbeiten.
+          {konflikt}
         </p>
       )}
       {holidayName && (
@@ -585,7 +587,7 @@ export default function TimeForm({
       {error && <ErrorState message={error} />}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" loading={saving} disabled={alreadyBooked || billed} className="w-full sm:w-auto">
+        <Button type="submit" loading={saving} disabled={!!konflikt || billed} className="w-full sm:w-auto">
           {isEdit ? 'Änderungen speichern' : 'Zeit buchen'}
         </Button>
         {onCancel && (

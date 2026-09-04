@@ -1,6 +1,7 @@
 import { where } from 'firebase/firestore';
 import type { TimeEntry } from '@/types';
 import { mitFristOder } from '@/lib/frist';
+import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import {
   queryTenant,
   subscribeTenant,
@@ -147,28 +148,49 @@ export async function listEntriesForProjects(
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'companyId' | 'createdAt'>;
 
 /**
- * Prüft, ob für einen Mitarbeiter an einem Datum bereits ein Eintrag existiert.
- * `exceptId` blendet den gerade bearbeiteten Eintrag aus.
+ * ALLE Einträge eines Mitarbeiters an einem Datum.
+ *
+ * Vorher gab diese Funktion den ERSTEN zurück und hieß `findEntryForDate` —
+ * das reichte, solange je Tag nur ein Eintrag erlaubt war. Seit ein Monteur
+ * mehrere Baustellen an einem Tag buchen darf, muss die Regel alle sehen:
+ * ob noch etwas dazu darf, hängt davon ab, WAS schon da steht (siehe
+ * `lib/tagesbuchungen.ts`).
+ *
+ * `exceptId` blendet den gerade bearbeiteten Eintrag aus — sonst meldete
+ * jede Änderung einen Konflikt mit sich selbst.
  */
-export async function findEntryForDate(
+export async function eintraegeAmTag(
   companyId: string,
   uid: string,
   date: string,
   exceptId?: string,
-): Promise<WithId<TimeEntry> | null> {
+): Promise<WithId<TimeEntry>[]> {
   const rows = await queryTenant<TimeEntry>(
     COLLECTION,
     companyId,
     where('userId', '==', uid),
     where('date', '==', date),
   );
-  return rows.find((r) => r.id !== exceptId) ?? null;
+  return rows.filter((r) => r.id !== exceptId);
 }
 
-/** Wird geworfen, wenn für den Tag schon gebucht ist (Legacy:2287-2293). */
+/**
+ * Wird geworfen, wenn an diesem Tag nicht mehr dazugebucht werden darf.
+ *
+ * DER GRUND STEHT IN DER MELDUNG, nicht nur die Tatsache. Es gibt vier
+ * verschiedene Fälle mit vier verschiedenen Handlungen (siehe
+ * `lib/tagesbuchungen.ts`); ein gemeinsames „geht nicht" ließe den Monteur
+ * raten, was er tun soll.
+ */
 export class DuplicateEntryError extends Error {
-  constructor(public readonly date: string) {
-    super(`Für den ${date} existiert bereits ein Eintrag.`);
+  constructor(
+    public readonly date: string,
+    public readonly grund: string,
+  ) {
+    // Der TAG gehoert in die Meldung: sie landet auch in Protokollen und in
+    // der Warteschlange fuer Offline-Schreibvorgaenge, wo der Zusammenhang
+    // sonst fehlt. Die Oberflaeche zeigt `grund` allein.
+    super(`${date}: ${grund}`);
     this.name = 'DuplicateEntryError';
   }
 }
@@ -203,12 +225,13 @@ export async function createTimeEntry(companyId: string, entry: NewTimeEntry) {
    * Das Formular prüft ohnehin zuerst gegen die geladenen Tage; diese Abfrage
    * fängt nur die Tage AUSSERHALB des geladenen Fensters ab.
    */
-  const dupe = await mitFristOder(
-    findEntryForDate(companyId, entry.userId, entry.date),
-    async () => null,
+  const vorhandene = await mitFristOder(
+    eintraegeAmTag(companyId, entry.userId, entry.date),
+    async () => [],
     DUPLIKAT_FRIST_MS,
   );
-  if (dupe) throw new DuplicateEntryError(entry.date);
+  const grund = buchungKonflikt(entry, vorhandene);
+  if (grund) throw new DuplicateEntryError(entry.date, grund);
   return createInTenant(COLLECTION, companyId, entry);
 }
 
@@ -236,14 +259,30 @@ export async function updateTimeEntry(
   data: Partial<TimeEntry>,
   owner: { companyId: string; userId: string },
 ) {
+  /*
+    GEPRUEFT WIRD JETZT AUCH DIE BAUSTELLE, nicht nur der Tag.
+
+    Vorher genuegte es zu wissen, DASS an dem Tag schon etwas steht — je Tag
+    war ohnehin nur ein Eintrag erlaubt. Jetzt entscheidet mit, WAS dort
+    steht: zwei Eintraege desselben Tages auf DIESELBE Baustelle waeren genau
+    die Doppelbuchung, die den Saldo verfaelscht.
+
+    Die Pruefung haengt weiterhin am mitgeschickten Datum. Das ist keine
+    Luecke, sondern eine Bedingung an die Aufrufstelle: `TimeForm` schickt
+    beim Bearbeiten IMMER den vollstaendigen Satz aus Datum, Status und
+    Baustelle mit (`payload`), und andere Aufrufer gibt es nicht.
+  */
   if (data.date) {
-    // Dieselbe Frist und dieselbe Abwägung wie beim Anlegen.
-    const dupe = await mitFristOder(
-      findEntryForDate(owner.companyId, owner.userId, data.date, id),
-      async () => null,
+    const vorhandene = await mitFristOder(
+      eintraegeAmTag(owner.companyId, owner.userId, data.date, id),
+      async () => [],
       DUPLIKAT_FRIST_MS,
     );
-    if (dupe) throw new DuplicateEntryError(data.date);
+    const grund = buchungKonflikt(
+      { status: data.status ?? 'Anwesend', projectNumber: data.projectNumber },
+      vorhandene,
+    );
+    if (grund) throw new DuplicateEntryError(data.date, grund);
   }
   return updateInTenant(COLLECTION, id, data);
 }

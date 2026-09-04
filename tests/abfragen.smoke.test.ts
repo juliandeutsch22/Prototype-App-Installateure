@@ -191,7 +191,7 @@ const ABFRAGEN: Abfrage[] = [
   { name: 'listOwnEntriesSince (Monteur)', wer: alsMonteur, lauf: () => zeiten.listOwnEntriesSince(FIRMA, MONTEUR, '2026-01-01') },
   { name: 'listEntriesInRange (Buchhaltung)', wer: alsBuchhaltung, lauf: () => zeiten.listEntriesInRange(FIRMA, '2026-06-01', '2026-06-30') },
   { name: 'listEntriesForProjects (Leitung)', wer: alsGF, lauf: () => zeiten.listEntriesForProjects(FIRMA, ['B-001']) },
-  { name: 'findEntryForDate (Monteur)', wer: alsMonteur, lauf: () => zeiten.findEntryForDate(FIRMA, MONTEUR, '2026-06-18') },
+  { name: 'eintraegeAmTag (Monteur)', wer: alsMonteur, lauf: () => zeiten.eintraegeAmTag(FIRMA, MONTEUR, '2026-06-18') },
 
   // --- Einsaetze ---
   { name: 'listUpcomingAssignments (Monteur)', wer: alsMonteur, lauf: () => einsaetze.listUpcomingAssignments(FIRMA, MONTEUR, '2026-01-01') },
