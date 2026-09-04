@@ -38,6 +38,11 @@ export default function NeueFassung() {
   const [bereit, setBereit] = useState(false);
   const gestartet = useRef(Date.now());
   const angefasst = useRef(false);
+  /**
+   * Läuft gerade eine stille Übernahme? Dann ist die Seite im Begriff, neu
+   * zu laden — und es darf nichts mehr gemeldet werden.
+   */
+  const uebernimmtGerade = useRef(false);
 
   useEffect(() => {
     /*
@@ -75,8 +80,36 @@ export default function NeueFassung() {
      * sich einer von beiden, wird gehandelt.
      */
     const melden = () => {
+      /*
+        DIE LEISTE BLITZTE BEIM START KURZ AUF — gemeldet aus dem Betrieb:
+        „beim Öffnen erscheint die Update-Meldung mit ‚Jetzt laden‘ nur ganz
+        kurz während dem ‚Anmeldung wird geprüft‘-Bildschirm. Man sieht nicht
+        einmal genau, was da steht, und kann auch nichts klicken."
+
+        Die Ursache steckte in der Verdopplung oben. BEIDE Quellen melden beim
+        Start, und `darfStillUebernehmen` trägt einen Einmal-Merker je
+        Sitzung: der erste Aufruf übernimmt still und verbraucht ihn, der
+        zweite findet ihn gesetzt, bekommt ein „nein" — und zeigt die Leiste.
+        Sekunden später lädt der Neustart aus dem ersten Aufruf die Seite neu
+        und sie ist wieder weg.
+
+        Zwei Quellen zu haben ist richtig; zweimal auf dieselbe Nachricht zu
+        REAGIEREN ist es nicht. Läuft die Übernahme schon, ist hier nichts
+        mehr zu tun.
+      */
+      if (uebernimmtGerade.current) return;
+
       if (darfStillUebernehmen(gestartet.current, angefasst.current)) {
-        void neueFassungUebernehmen();
+        uebernimmtGerade.current = true;
+        void neueFassungUebernehmen().catch(() => {
+          /*
+            Kommt der Neustart nicht zustande, muss die Leiste doch kommen.
+            Ein stiller Verzicht wäre der schlechteste Ausgang: die App bliebe
+            auf dem alten Stand, und niemand hätte je die Wahl gehabt.
+          */
+          uebernimmtGerade.current = false;
+          setBereit(true);
+        });
         return;
       }
       setBereit(true);
