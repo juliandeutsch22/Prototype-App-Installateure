@@ -37,27 +37,63 @@ const h = (min: number) => (min / 60).toFixed(1).replace('.', ',');
  * Projektauswertung: Ist-Stunden gegen das kalkulierte Budget, getrennt nach
  * Fach- und Helferzeit. Helferstunden zählen bewusst NICHT gegen das Budget —
  * sie werden zwar verrechnet, sind für die Kalkulation aber kostenneutral.
+ *
+ * ZWEI ZEITRÄUME, UND DAS IST DER KERN DIESER ANSICHT.
+ *
+ * Die Liste unten zeigt den GEWÄHLTEN MONAT — dafür steht man in dieser
+ * Ansicht. Der Budgetbalken darüber muss dagegen die GANZE Baustelle zeigen:
+ * `estimatedHours` ist für den gesamten Auftrag kalkuliert, nicht je Monat.
+ *
+ * VORHER STAND HIER BEIDES AUS DEM MONAT, und das Ergebnis war eine
+ * Falschaussage. Aus dem Betrieb aufgefallen: das Dashboard meldete
+ * „39,5 von 40 h · 99 %", dieselbe Baustelle stand hier bei „22,5 h / 40 h ·
+ * 56 %". Der Unterschied waren die Stunden aus dem Vormonat. Wer hier
+ * nachsah, hielt eine ausgereizte Baustelle für halb offen und plante weiter.
+ *
+ * Beide Ansichten rechnen jetzt aus derselben Quelle
+ * (`listEntriesForProjects`) und können nicht mehr auseinanderlaufen.
  */
 export default function ProjectSummary({
   entries,
   projects,
   label,
+  gesamtEntries,
 }: {
   entries: TimeEntry[];
   projects: Project[];
   label: string;
+  /**
+   * ALLE Stunden dieser Baustellen, über den Monat hinaus — Grundlage des
+   * Budgets.
+   *
+   * `null` heißt „konnte nicht geladen werden" und ist ausdrücklich NICHT
+   * dasselbe wie „keine". Dann entfällt der Balken; ihn aus den Monatsstunden
+   * zu rechnen wäre genau die Falschaussage, die es zu beheben galt.
+   */
+  gesamtEntries: TimeEntry[] | null;
 }) {
   const [open, setOpen] = useState<string | null>(null);
 
   const rows = useMemo(() => {
+    const gesamt = gesamtEntries ? groupProjectHours(gesamtEntries) : null;
     const grouped = groupProjectHours(entries);
     return grouped.map((g) => {
       const project = projects.find(
         (p) => normProjectNumber(p.projectNumber) === g.projectNumber,
       );
-      return { ...g, project, budget: calcBudgetState(g.fachMin, project?.estimatedHours) };
+      const gesamtFachMin =
+        gesamt?.find((x) => x.projectNumber === g.projectNumber)?.fachMin ?? null;
+      return {
+        ...g,
+        project,
+        gesamtFachMin,
+        budget:
+          gesamtFachMin === null
+            ? null
+            : calcBudgetState(gesamtFachMin, project?.estimatedHours),
+      };
     });
-  }, [entries, projects]);
+  }, [entries, projects, gesamtEntries]);
 
   if (rows.length === 0) {
     return (
@@ -112,11 +148,16 @@ export default function ProjectSummary({
                     </span>
                   </span>
                   <span className="flex items-center gap-2">
+                    {/*
+                      DER MONAT, und er sagt das auch. Vorher stand hier
+                      „22,5 h / 40 h" — Monatsstunden neben einem Budget für
+                      die ganze Baustelle, also zwei Zahlen, die nichts
+                      miteinander zu tun haben.
+                    */}
                     <span className={`tnum text-sm ${isOpen ? 'text-brand-fg' : 'text-ink'}`}>
                       {h(r.fachMin)} h
-                      {r.project?.estimatedHours ? ` / ${r.project.estimatedHours} h` : ''}
                     </span>
-                    {r.budget.over && <Badge tone="danger">über Budget</Badge>}
+                    {r.budget?.over && <Badge tone="danger">über Budget</Badge>}
                     {r.helperMin > 0 && <Badge tone="warning">+{h(r.helperMin)} h Helfer</Badge>}
                     <Icon
                       name="chevron"
@@ -126,33 +167,52 @@ export default function ProjectSummary({
                   </span>
                 </div>
 
-                {/* Fortschritt nur mit hinterlegtem Budget — sonst wäre der
-                    Balken eine Aussage, die gar nicht getroffen werden kann. */}
-                {r.budget.pct !== null ? (
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
-                      <span
-                        className={`block h-full ${BAR_TONE[r.budget.tone]}`}
-                        style={{ width: `${r.budget.pct}%` }}
-                      />
-                    </span>
-                    <span
-                      className={`shrink-0 text-xs font-semibold ${
-                        r.budget.over
-                          ? 'text-accent'
-                          : isOpen
-                            ? 'text-brand-fg/80'
-                            : 'text-ink-muted'
-                      }`}
+                {/*
+                  DER BALKEN GEHÖRT DER GANZEN BAUSTELLE, nicht dem Monat.
+                  Deshalb steht die Gesamtzahl daneben — sonst läse man den
+                  Prozentwert gegen die Monatsstunden darüber und käme wieder
+                  auf eine Aussage, die nicht stimmt.
+
+                  Kein Balken ohne hinterlegtes Budget und keiner ohne die
+                  Gesamtstunden: beides wäre eine Aussage, die gar nicht
+                  getroffen werden kann.
+                */}
+                {r.budget && r.budget.pct !== null && r.gesamtFachMin !== null ? (
+                  <>
+                    <p
+                      className={`mt-2 text-xs ${isOpen ? 'text-brand-fg/80' : 'text-ink-muted'}`}
                     >
-                      {r.budget.pct} %
-                    </span>
-                  </div>
+                      <span className="tnum">{h(r.fachMin)} h</span> in {label} · gesamt{' '}
+                      <span className="tnum font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
+                      <span className="tnum">{r.project?.estimatedHours} h</span>
+                    </p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
+                        <span
+                          className={`block h-full ${BAR_TONE[r.budget.tone]}`}
+                          style={{ width: `${r.budget.pct}%` }}
+                        />
+                      </span>
+                      <span
+                        className={`shrink-0 text-xs font-semibold ${
+                          r.budget.over
+                            ? 'text-accent'
+                            : isOpen
+                              ? 'text-brand-fg/80'
+                              : 'text-ink-muted'
+                        }`}
+                      >
+                        {r.budget.pct} %
+                      </span>
+                    </div>
+                  </>
                 ) : (
                   <p
                     className={`mt-1 text-xs ${isOpen ? 'text-brand-fg/70' : 'text-ink-muted'}`}
                   >
-                    Kein Stundenbudget hinterlegt.
+                    {r.gesamtFachMin === null
+                      ? 'Die Gesamtstunden der Baustelle konnten nicht geladen werden — ohne sie gibt es keinen Budgetstand.'
+                      : 'Kein Stundenbudget hinterlegt.'}
                   </p>
                 )}
               </button>
@@ -221,9 +281,19 @@ export default function ProjectSummary({
                   </div>
 
                   <p className="mt-3 border-t border-line pt-2 text-sm">
-                    <span className="font-semibold text-ink">Fachzeit: {h(r.fachMin)} h</span>
-                    {r.project?.estimatedHours ? (
-                      <span className="text-ink-muted"> / {r.project.estimatedHours} h Budget</span>
+                    {/*
+                      Auch hier stand die Monatszahl direkt neben dem Budget.
+                      Das Budget gehört zur ganzen Baustelle; es gehört
+                      deshalb neben die GESAMTZAHL, nicht neben den Monat.
+                    */}
+                    <span className="font-semibold text-ink">
+                      Fachzeit in {label}: {h(r.fachMin)} h
+                    </span>
+                    {r.project?.estimatedHours && r.gesamtFachMin !== null ? (
+                      <span className="text-ink-muted">
+                        {' '}
+                        · gesamt {h(r.gesamtFachMin)} h / {r.project.estimatedHours} h Budget
+                      </span>
                     ) : null}
                     {r.helperMin > 0 && (
                       <>
