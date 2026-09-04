@@ -147,7 +147,7 @@ describe('Einsatzplanung — speichern', () => {
     zeige();
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Einsatz speichern' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
 
     await waitFor(() => expect(speichere).toHaveBeenCalled());
     const [, datum, baustelle, zeilen] = speichere.mock.calls[0];
@@ -165,7 +165,7 @@ describe('Einsatzplanung — speichern', () => {
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
     await userEvent.click(await screen.findByRole('checkbox', { name: 'als Helfer' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Einsatz speichern' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
 
     await waitFor(() => expect(speichere).toHaveBeenCalled());
     expect(speichere.mock.calls[0][3][0].asHelper).toBe(true);
@@ -213,7 +213,7 @@ describe('Einsatzplanung — speichern', () => {
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
 
     await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Einsatz speichern' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }));
 
     expect(await screen.findByText(/Kein Mitarbeiter ausgewählt/)).toBeInTheDocument();
     expect(speichere).not.toHaveBeenCalled();
@@ -392,16 +392,25 @@ describe('Einsatzplanung — Rüstliste', () => {
       'Eckventil',
     );
     await userEvent.click(await screen.findByRole('button', { name: /Eckventil 1\/2 auf die Rüstliste/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Rüstliste speichern' }));
+    /*
+      EIN Knopf fuer beides. Gemeldet: „das ist ein zusätzlicher Knopfdruck,
+      auf den man potenziell vergessen kann." Und vergessen faellt nicht auf
+      — die ausgefuellte Liste steht ja da; auffallen wuerde es erst dem
+      Monteur am naechsten Morgen, wenn er ohne Material losfaehrt.
+    */
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }),
+    );
 
     await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+    expect(speichere).toHaveBeenCalled();
     const [, datum, baustelle, positionen, uids] = ruestSpeichern.mock.calls[0];
     expect(datum).toBe(HEUTE);
     expect(baustelle).toBe('2026-042');
     expect(positionen).toHaveLength(1);
     expect(positionen[0]).toMatchObject({ materialId: 'm1', name: 'Eckventil 1/2', menge: 1 });
-    // `uids` kommt aus der GESPEICHERTEN Einteilung — an ihm hängt die Regel,
-    // die entscheidet, wer abhaken darf.
+    // `uids` kommt aus der Mannschaft, die GERADE geschrieben wurde — an ihm
+    // haengt die Regel, die entscheidet, wer abhaken darf.
     expect(uids).toEqual(['u1']);
   });
 
@@ -474,19 +483,80 @@ describe('Einsatzplanung — Rüstliste', () => {
     expect(screen.queryByText(/Im Lager fehlen/)).toBeNull();
   });
 
-  it('sagt es, wenn noch niemand eingeteilt ist', async () => {
-    // Ohne Einteilung kennt die Sicherheitsregel niemanden — abhaken kann
-    // dann keiner. Das ist eine Reihenfolge, kein Fehler, und es gehört
-    // gesagt, bevor sich jemand wundert.
+  it('gibt der Liste die Mannschaft aus DEMSELBEN Speichern mit', async () => {
+    /*
+      DIE REIHENFOLGE, DIE ES VORHER GAB, IST DAMIT WEG.
+
+      An der Kennungsliste haengt die Regel, die entscheidet, wer abhaken
+      darf. Solange die Ruestliste getrennt gespeichert wurde, konnte sie nur
+      die BEREITS gespeicherte Einteilung mitbekommen — wer beides in einem
+      Zug plante, speicherte eine Liste, die noch niemanden kannte, und der
+      Monteur kam am naechsten Morgen beim Antippen nicht durch. Die Ansicht
+      musste diese Reihenfolge eigens erklaeren.
+
+      Jetzt kommen die Kennungen aus der Mannschaft, die im selben Vorgang
+      geschrieben wird. Hier ist vorher NICHTS eingeteilt.
+    */
     zeige();
     await baustelleWaehlen();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
     await userEvent.type(
       await screen.findByRole('textbox', { name: /Freie Zeile/ }),
       'Dichtungen',
     );
     await userEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
 
-    expect(await screen.findByText(/noch niemand eingeteilt/)).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }),
+    );
+
+    await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+    expect(ruestSpeichern.mock.calls[0][4]).toEqual(['u1']);
+  });
+
+  it('speichert auch eine LEERE Liste, wenn vorher eine da war', async () => {
+    /*
+      Der Gegenfall zum Nicht-Anlegen. Wer die letzte Zeile herausnimmt, will
+      die Liste loswerden — wuerde dann gar nicht geschrieben, staende am
+      naechsten Morgen die alte Liste im Bus des Monteurs, und er laedt
+      Material ein, das niemand mehr braucht.
+    */
+    ruestlisten = [
+      {
+        id: 'perl_2026-09-01_2026-042', companyId: 'perl', date: HEUTE,
+        projectNumber: '2026-042', uids: ['u1'],
+        positionen: [{ id: 'p1', materialId: 'm1', name: 'Eckventil 1/2', menge: 4 }],
+      } as EinsatzMaterial & { id: string },
+    ];
+    zeige();
+    await baustelleWaehlen();
+    await screen.findByDisplayValue('4');
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Eckventil 1\/2 von der Rüstliste nehmen/ }),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }),
+    );
+
+    await waitFor(() => expect(ruestSpeichern).toHaveBeenCalled());
+    expect(ruestSpeichern.mock.calls[0][3]).toEqual([]);
+  });
+
+  it('legt KEINE leere Liste an, wenn nie Material erfasst wurde', async () => {
+    // Sonst entstuende fuer jeden Einsatz ein leeres Materialdokument —
+    // Ballast in der Datenbank, in der Ausleitung und in der Sicherung.
+    zeige();
+    await baustelleWaehlen();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' }),
+    );
+
+    await waitFor(() => expect(speichere).toHaveBeenCalled());
+    expect(ruestSpeichern).not.toHaveBeenCalled();
   });
 
   it('zeigt ohne gewählte Baustelle gar keine Rüstliste', async () => {
