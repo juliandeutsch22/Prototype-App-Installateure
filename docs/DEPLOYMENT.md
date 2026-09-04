@@ -190,6 +190,35 @@ prüfen deshalb den INHALT, nicht den Status — siehe
 `istStartseiteStattBaustein` in `public/sw.js` und `istKennung` in
 `src/lib/fassungPruefen.ts`. Wer hier etwas ändert, muss das wissen.
 
+### Wenn ein Telefon trotzdem auf einer alten Fassung feststeckt
+
+Aus dem Betrieb mehrfach gemeldet: *„bei der am Homescreen gespeicherten
+Version funktioniert das automatische Updaten nicht, ich muss sie jedes Mal
+löschen und neu speichern."*
+
+**Warum das passieren kann.** Der ganze Erneuerungsablauf steckt IN der App —
+Service Worker, Prüfung auf `/fassung.txt`, stille Übernahme beim Kaltstart.
+Läuft auf dem Gerät eine Fassung, die genau in diesem Ablauf einen Fehler hat,
+führt der Weg zur Fassung, die ihn behebt, ausgerechnet über den kaputten
+Ablauf. Das Gerät kommt aus eigener Kraft nicht mehr heraus, egal wie oft
+ausgeliefert wird.
+
+**Was es dagegen gibt** (beides in `src/lib/erneuerung.ts`):
+
+1. **Ein Knopf.** Profil öffnen → unter `Fassung …` steht **App erneuern**. Er
+   meldet den Service Worker ab, löscht alle vorgehaltenen Programmdateien und
+   lädt neu — dasselbe wie Löschen und Neuhinzufügen, ohne den Umweg über den
+   Startbildschirm. Anmeldung und gespeicherte Daten bleiben (die liegen in
+   IndexedDB, nicht im Cache).
+2. **Eine selbsttätige Notbremse.** Merkt sich die App, von welcher Fassung aus
+   sie zu wechseln versucht hat, und läuft danach immer noch dieselbe, während
+   `/fassung.txt` eine andere meldet, räumt sie einmal hart. **Einmal je
+   Fassung** — hilft es nicht, lädt das Gerät sonst in Dauerschleife neu.
+
+**Zuerst nachfragen, welche Fassung dort läuft.** Die Zeile im Profil sagt es.
+Stimmt sie mit `curl …/fassung.txt` überein, ist der Deploy angekommen und die
+fehlende Änderung hat eine andere Ursache.
+
 ## 11 · Funktionstest in Produktion
 
 1. Unter der Hosting-URL als Admin anmelden → Branding (Farben/Name) der Firma

@@ -10,6 +10,9 @@
  * gar keinen Worker und damit auch nichts Vorgehaltenes.
  */
 
+import { FASSUNG } from './fassung';
+import { uebernahmeVormerken } from './erneuerung';
+
 /**
  * Die Adresse bleibt über Deploys hinweg GLEICH.
  *
@@ -173,6 +176,17 @@ function workerFragen(frage: string, antwort: string): Promise<void> {
  * niemand mehr etwas Altes anfordern kann.
  */
 export async function neueFassungUebernehmen(): Promise<void> {
+  /*
+    FESTHALTEN, VON WO AUS GEWECHSELT WIRD.
+
+    Nach dem Neuladen ist das die einzige Möglichkeit, den Wechsel überhaupt
+    zu bewerten: läuft danach dieselbe Fassung weiter, während der Server
+    eine andere anbietet, hat dieser Weg nicht funktioniert. Erst diese
+    Feststellung erlaubt die Notbremse in `lib/erneuerung.ts` — vorher konnte
+    die App nur immer wieder dasselbe versuchen und niemand erfuhr davon.
+  */
+  uebernahmeVormerken(FASSUNG);
+
   try {
     sessionStorage.setItem(AUFRAEUM_MERKER, '1');
   } catch {

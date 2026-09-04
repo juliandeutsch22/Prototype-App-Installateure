@@ -5,6 +5,8 @@ import {
   darfStillUebernehmen,
 } from '@/lib/sw';
 import { fassungBeobachten } from '@/lib/fassungPruefen';
+import { appHartErneuern, darfHartErneuern, uebernahmeAufraeumen } from '@/lib/erneuerung';
+import { FASSUNG } from '@/lib/fassung';
 import Button from './Button';
 
 /**
@@ -38,6 +40,16 @@ export default function NeueFassung() {
   const angefasst = useRef(false);
 
   useEffect(() => {
+    /*
+      ZUERST: hat der letzte Wechsel gewirkt?
+
+      Läuft jetzt eine andere Fassung als die, von der aus zuletzt gewechselt
+      wurde, ist der normale Weg in Ordnung und die Notbremse wird entschärft.
+      Das muss VOR jeder Prüfung stehen — sonst schlüge sie gleich beim
+      ersten erfolgreichen Wechsel zu.
+    */
+    uebernahmeAufraeumen(FASSUNG);
+
     /**
      * „Angefasst" heisst: irgendeine echte Eingabe. Ein reines Scrollen zählt
      * bewusst NICHT — wer nur überfliegt, verliert durch ein Neuladen nichts,
@@ -70,8 +82,29 @@ export default function NeueFassung() {
       setBereit(true);
     };
 
+    /**
+     * DIE NOTBREMSE HAENGT AN DER SERVERPRUEFUNG, nicht am Service Worker.
+     *
+     * Nur sie vergleicht die eingebaute Kennung der LAUFENDEN App mit dem,
+     * was der Server ausliefert. Sagt sie „hier läuft etwas Altes", ist das
+     * eine Tatsache und kein Verdacht — sie hängt an keinem Zwischenspeicher
+     * und an keinem Worker, der festgefahren sein könnte.
+     *
+     * Der Worker meldet dagegen nur, dass sich die `index.html` gegenüber
+     * SEINEM Vorrat geändert hat. Das ist ein guter Hinweis, aber keine
+     * Aussage über die laufende App — und auf einen Hinweis hin alles
+     * wegzuräumen wäre zu viel.
+     */
+    const meldenVomServer = () => {
+      if (darfHartErneuern(FASSUNG)) {
+        void appHartErneuern();
+        return;
+      }
+      melden();
+    };
+
     serviceWorkerAnmelden(melden);
-    const abmelden = fassungBeobachten(melden);
+    const abmelden = fassungBeobachten(meldenVomServer);
 
     return () => {
       abmelden();
