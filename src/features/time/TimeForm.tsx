@@ -178,7 +178,25 @@ export default function TimeForm({
    * Tages fälschlich als belegt gemeldet.
    */
   const [tagesEintraege, setTagesEintraege] = useState<TimeEntry[] | null>(null);
-  const besitzerUid = targetUid || entry?.userId || user?.uid;
+  /**
+   * WEM gehört der Eintrag, den dieses Formular schreiben wird?
+   *
+   * AUS DEM BETRIEB GEMELDET: „wenn ich in der Mitarbeiterübersicht eine Zeit
+   * buchen möchte und noch kein Mitarbeiter ausgewählt ist, steht die Meldung,
+   * dass eine Zeit bereits erfasst wurde."
+   *
+   * Der Rückfall auf den ANGEMELDETEN Benutzer war schuld. Für einen Monteur,
+   * der seine eigene Zeit bucht, ist er richtig — dort gibt es keine Auswahl.
+   * Erfasst die Buchhaltung dagegen FÜR jemanden (`staff` ist gesetzt) und hat
+   * noch niemanden gewählt, prüfte er die Buchungen der BUCHHALTERIN und
+   * warnte vor ihren Einträgen. Vor einem Formular, das gleich einem ganz
+   * anderen Menschen gehören wird.
+   *
+   * Ohne Auswahl gibt es schlicht keinen Eigentümer — und damit nichts zu
+   * prüfen. Gespeichert werden kann dann ohnehin nicht: die Auswahl ist
+   * Pflicht (siehe `submit`).
+   */
+  const besitzerUid = targetUid || entry?.userId || (staff ? '' : user?.uid);
   useEffect(() => {
     if (!user || !besitzerUid || !date) return;
     let verworfen = false;

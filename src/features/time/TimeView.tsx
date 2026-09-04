@@ -23,6 +23,7 @@ import type { TimeEntry, AppUser } from '@/types';
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
 import Badge from '@/components/Badge';
+import Zeitmarker from './Zeitmarker';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -417,9 +418,7 @@ export default function TimeView() {
                             <Badge tone="danger">doppelt gebucht</Badge>
                           )}
                           {e.source === 'voice' && <Badge tone="info">KI</Badge>}
-                          {e.isHelper && <Badge tone="warning">Helfer</Badge>}
-                          {e.isEmergency && <Badge tone="danger">Notdienst</Badge>}
-                          {e.isNightWork && <Badge tone="info">Nacht</Badge>}
+                          <Zeitmarker eintrag={e} />
                           <span className="tnum font-medium text-ink">
                             {fmtMin(calcWorkMin(e))}
                           </span>
