@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import autoTable from 'jspdf-autotable';
 import { discountLabel } from './totals';
 
@@ -54,11 +55,16 @@ export function generateInvoicePdf(opts: {
   const margin = 18;
 
   // Briefkopf
+  /*
+    Das Logo oben RECHTS: dort ist der Kopf frei — der Empfängerblock
+    beginnt erst bei y = 50. Der Text darunter bleibt damit unverändert
+    stehen, und ohne Logo sieht die Rechnung aus wie bisher.
+  */
+  logoZeichnen(doc, company, 210 - margin, 18);
   doc.setFontSize(16).setFont('helvetica', 'bold');
   doc.text(company.name || 'Firma', margin, 22);
   doc.setFontSize(9).setFont('helvetica', 'normal');
-  if (company.addressLine) doc.text(company.addressLine, margin, 28);
-  if (company.contactLine) doc.text(company.contactLine, margin, 33);
+  firmenZeilen(company).forEach((z, i) => doc.text(z, margin, 28 + i * 5));
   doc.setDrawColor(0, 51, 102).line(margin, 37, 210 - margin, 37);
 
   // Empfänger + Rechnungsdaten

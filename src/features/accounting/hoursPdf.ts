@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import autoTable from 'jspdf-autotable';
 import type { AppUser, Company, TimeEntry } from '@/types';
 import { calcWorkMin } from '@/lib/time';
@@ -39,11 +40,19 @@ export function generateHoursPdf(opts: {
   doc.setFontSize(9).setFont('helvetica', 'normal');
   doc.setTextColor(120, 120, 120);
   doc.text('Zeiterfassung & Stundenübersicht', margin, 27);
-  if (company.addressLine) doc.text(company.addressLine, rightX, 20, { align: 'right' });
-  if (company.contactLine) doc.text(company.contactLine, rightX, 25, { align: 'right' });
+
+  /*
+    Hier steht die Anschrift RECHTS OBEN — genau dort, wo das Logo hin will.
+    Sie rutscht deshalb um die Logohöhe nach unten, und die Trennlinie mit
+    ihr. Ohne Logo sind das 0 mm: dann steht alles, wo es immer stand.
+  */
+  const logoH = logoZeichnen(doc, company, rightX, 14);
+  firmenZeilen(company).forEach((z, i) =>
+    doc.text(z, rightX, 20 + logoH + i * 5, { align: 'right' }),
+  );
 
   doc.setDrawColor(...BRAND_RGB).setLineWidth(0.5);
-  doc.line(margin, 30, rightX, 30);
+  doc.line(margin, 30 + logoH, rightX, 30 + logoH);
 
   const meta: [string, string][] = [
     ['Mitarbeiter:', user.name],
@@ -54,7 +63,9 @@ export function generateHoursPdf(opts: {
   ];
   doc.setFontSize(11).setTextColor(0, 0, 0);
   meta.forEach(([label, value], i) => {
-    const y = 38 + i * 7;
+    // Um dieselbe Logohöhe nach unten wie die Trennlinie darüber — sonst
+    // schöbe sich der Kopf in die Angaben.
+    const y = 38 + logoH + i * 7;
     doc.setFont('helvetica', 'bold').text(label, margin, y);
     doc.setFont('helvetica', 'normal').text(value, 55, y);
   });
@@ -76,7 +87,7 @@ export function generateHoursPdf(opts: {
   });
 
   autoTable(doc, {
-    startY: 60,
+    startY: 60 + logoH,
     head: [['Datum', 'Status', 'Projekt', 'Kunde/Baustelle', 'Zeit', 'Dauer', 'Kommentar']],
     body,
     styles: { fontSize: 8, cellPadding: 2 },

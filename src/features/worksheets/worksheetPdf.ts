@@ -1,5 +1,6 @@
-import type { WorkSheet } from '@/types';
+import type { Company, WorkSheet } from '@/types';
 import { fmtMin } from '@/lib/time';
+import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 
 /**
  * Handwerksschein als PDF.
@@ -17,7 +18,10 @@ import { fmtMin } from '@/lib/time';
  * jsPDF wird dynamisch geladen — die Bibliothek ist groß und wird auf der
  * Baustelle nur gebraucht, wenn wirklich jemand einen Schein ausgibt.
  */
-export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: string): Promise<Blob> {
+/** Was der Schein vom Betrieb braucht — Name, Anschrift, Kontakt, Logo. */
+export type Betrieb = Pick<Company, 'name' | 'addressLine' | 'contactLine' | 'logoUrl'>;
+
+export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Promise<Blob> {
   const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import('jspdf'),
     import('jspdf-autotable'),
@@ -27,11 +31,29 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: string): Pro
   const rand = 15;
   let y = rand;
 
+  /*
+    DER BELEG SAGT JETZT, VON WEM ER IST.
+
+    Bis hierher stand rechts oben allein der Firmenname — kein Logo, keine
+    Anschrift, keine Kontaktangabe. Auf einem Beleg, den der Kunde
+    unterschreibt und behält, ist das die auffälligste Lücke von allen: er
+    kann daraus nicht ersehen, an wen er sich wenden muss.
+
+    Der Titel und der Name bleiben, wo sie waren; Logo und Zeilen kommen
+    darunter dazu. Ohne beides sieht der Schein aus wie bisher.
+  */
+  const logoH = logoZeichnen(doc, betrieb, 195, y - 5);
   doc.setFontSize(16).setFont('helvetica', 'bold');
   doc.text('Handwerksschein', rand, y);
   doc.setFontSize(10).setFont('helvetica', 'normal');
-  doc.text(betrieb, 195, y, { align: 'right' });
-  y += 10;
+  doc.text(betrieb.name || 'Installateur', 195, y + logoH, { align: 'right' });
+
+  const zeilen = firmenZeilen(betrieb);
+  doc.setFontSize(8).setTextColor(110, 110, 110);
+  zeilen.forEach((z, i) => doc.text(z, 195, y + logoH + 5 + i * 4, { align: 'right' }));
+  doc.setFontSize(10).setTextColor(0, 0, 0);
+
+  y += 10 + logoH + zeilen.length * 4;
 
   if (schein.status === 'Storniert') {
     doc.setTextColor(180, 30, 30).setFont('helvetica', 'bold');
