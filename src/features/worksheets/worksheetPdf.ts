@@ -55,6 +55,20 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
 
   y += 10 + logoH + zeilen.length * 4;
 
+  /*
+    Der verworfene Entwurf traegt es im PDF, nicht nur in der Liste.
+
+    Aus dem Haus gehen soll er nicht — aber er KANN: das PDF laesst sich
+    ausdrucken, ehe jemand ihn verwirft, und ein Blatt ohne Kennzeichnung
+    sieht aus wie ein gueltiger Beleg. Deshalb steht es auf dem Papier.
+  */
+  if (schein.status === 'Verworfen') {
+    doc.setTextColor(120, 120, 120).setFont('helvetica', 'bold');
+    doc.text('VERWORFENER ENTWURF — kein gültiger Beleg', rand, y);
+    doc.setTextColor(0, 0, 0).setFont('helvetica', 'normal');
+    y += 8;
+  }
+
   if (schein.status === 'Storniert') {
     doc.setTextColor(180, 30, 30).setFont('helvetica', 'bold');
     doc.text(`STORNIERT — ${schein.stornoGrund ?? 'ohne Angabe'}`, rand, y);

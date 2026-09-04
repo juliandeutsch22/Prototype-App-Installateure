@@ -1511,3 +1511,113 @@ describe('Angebotszaehler — steigend, Neubeginn nur zum Jahreswechsel', () => 
     );
   });
 });
+
+/**
+ * Handwerksscheine — die Unveraenderbarkeit, jetzt nachgewiesen.
+ *
+ * Sie stand bisher nur in den Rules. Das genuegt, solange niemand daran
+ * ruehrt; mit dem „Verwerfen" kommt aber eine zweite Bedingung in dieselbe
+ * `allow update`-Zeile, und ein Test, der erst hinterher geschrieben wird,
+ * beweist nur noch, dass der Code tut, was er tut.
+ *
+ * Die drei Zeilen, die der Betrieb wirklich braucht:
+ *   – ein unterschriebener Schein bleibt, wie er ist,
+ *   – geloescht wird gar nichts,
+ *   – der aufgegebene Entwurf kommt zurueck, aber ohne Inhaltsaenderung.
+ */
+describe('Handwerksschein: verwerfen, zurueckholen, einfrieren', () => {
+  const ENTWURF = {
+    companyId: 'companyA',
+    projectNumber: '2024-001',
+    customerName: 'Müller',
+    datum: '2026-06-18',
+    status: 'Entwurf',
+    abrechnung: 'Regie',
+    zeiten: [{ datum: '2026-06-18', mitarbeiter: 'A', minuten: 60 }],
+    material: [],
+    erstelltVonUid: 'userA1',
+    erstelltVonName: 'A',
+  };
+
+  async function seedSchein(daten: Record<string, unknown>) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'workSheets', 'sA'), { ...ENTWURF, ...daten });
+    });
+  }
+
+  it('der Entwurf laesst sich verwerfen', async () => {
+    await seedSchein({});
+    await assertSucceeds(
+      updateDoc(doc(ctxA_employee().firestore(), 'workSheets', 'sA'), {
+        status: 'Verworfen',
+        verworfenVonName: 'A',
+      }),
+    );
+  });
+
+  it('der verworfene Entwurf kommt zurueck', async () => {
+    await seedSchein({ status: 'Verworfen', verworfenVonName: 'A' });
+    await assertSucceeds(
+      updateDoc(doc(ctxA_employee().firestore(), 'workSheets', 'sA'), { status: 'Entwurf' }),
+    );
+  });
+
+  it('beim Zurueckholen darf sich der Inhalt NICHT aendern', async () => {
+    // Sonst waere der Rueckweg ein Schleichweg: verwerfen, umschreiben,
+    // zurueckholen — und der geaenderte Schein sieht aus wie der alte.
+    await seedSchein({ status: 'Verworfen', verworfenVonName: 'A' });
+    await assertFails(
+      updateDoc(doc(ctxA_employee().firestore(), 'workSheets', 'sA'), {
+        status: 'Entwurf',
+        zeiten: [{ datum: '2026-06-18', mitarbeiter: 'A', minuten: 999 }],
+      }),
+    );
+  });
+
+  it('aus dem verworfenen Entwurf wird KEIN unterschriebener Schein', async () => {
+    await seedSchein({ status: 'Verworfen', verworfenVonName: 'A' });
+    await assertFails(
+      updateDoc(doc(ctxA_employee().firestore(), 'workSheets', 'sA'), {
+        status: 'Unterschrieben',
+        unterschriften: { kunde: { name: 'K', bild: 'x', zeitpunkt: 1 } },
+      }),
+    );
+  });
+
+  it('der UNTERSCHRIEBENE Schein bleibt unveraenderbar', async () => {
+    await seedSchein({ status: 'Unterschrieben' });
+    const db = ctxA_employee().firestore();
+    await assertFails(updateDoc(doc(db, 'workSheets', 'sA'), { notizen: 'nachtraeglich' }));
+    await assertFails(updateDoc(doc(db, 'workSheets', 'sA'), { status: 'Entwurf' }));
+    // Und auch nicht ueber den neuen Zustand als Umweg.
+    await assertFails(updateDoc(doc(db, 'workSheets', 'sA'), { status: 'Verworfen' }));
+  });
+
+  it('auch die Geschaeftsfuehrung kann den unterschriebenen Schein nicht verwerfen', async () => {
+    await seedSchein({ status: 'Unterschrieben' });
+    await assertFails(
+      updateDoc(doc(ctxA_gf().firestore(), 'workSheets', 'sA'), { status: 'Verworfen' }),
+    );
+  });
+
+  it('der stornierte Schein bleibt eingefroren', async () => {
+    await seedSchein({ status: 'Storniert', stornoGrund: 'Zahlendreher' });
+    await assertFails(
+      updateDoc(doc(ctxA_gf().firestore(), 'workSheets', 'sA'), { status: 'Entwurf' }),
+    );
+  });
+
+  it('geloescht wird kein Schein, in keinem Zustand', async () => {
+    for (const status of ['Entwurf', 'Verworfen', 'Unterschrieben', 'Storniert']) {
+      await seedSchein({ status });
+      await assertFails(deleteDoc(doc(ctxA_gf().firestore(), 'workSheets', 'sA')));
+    }
+  });
+
+  it('die fremde Firma kommt an den Schein nicht heran', async () => {
+    await seedSchein({ status: 'Verworfen', verworfenVonName: 'A' });
+    await assertFails(
+      updateDoc(doc(ctxB_admin().firestore(), 'workSheets', 'sA'), { status: 'Entwurf' }),
+    );
+  });
+});

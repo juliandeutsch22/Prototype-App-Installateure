@@ -78,13 +78,15 @@ const updateWorkSheetDraft = vi.fn<[string, Partial<NewWorkSheet>], Promise<void
 const signWorkSheet = vi.fn(async () => undefined);
 let entwurf: (WorkSheet & { id: string }) | undefined;
 const getWorkSheet = vi.fn(async () => entwurf);
+let bestehendeScheine: (WorkSheet & { id: string })[] = [];
+const listWorkSheetsForProject = vi.fn(async () => bestehendeScheine);
 vi.mock('@/lib/db/workSheets', () => ({
   createWorkSheet: (companyId: string, e: NewWorkSheet) => createWorkSheet(companyId, e),
   updateWorkSheetDraft: (id: string, data: Partial<NewWorkSheet>) =>
     updateWorkSheetDraft(id, data),
   getWorkSheet: () => getWorkSheet(),
   signWorkSheet: () => signWorkSheet(),
-  listWorkSheetsForProject: vi.fn(async () => []),
+  listWorkSheetsForProject: () => listWorkSheetsForProject(),
 }));
 const callScheinVorbereiten = vi.fn(async () => ({ data: { zeiten: [] } }));
 vi.mock('@/lib/functions', () => ({
@@ -131,8 +133,18 @@ beforeEach(() => {
   createWorkSheet.mockClear().mockResolvedValue('s1');
   updateWorkSheetDraft.mockClear();
   signWorkSheet.mockClear();
-  getWorkSheet.mockClear();
+  /*
+    `mockClear` allein raeumt die IMPLEMENTIERUNG nicht weg.
+
+    Ein Test stellt hier die Ablehnung nach (`mockRejectedValue`); ohne das
+    Zuruecksetzen liefen alle folgenden Tests weiter in diese Ablehnung. Der
+    Test „behandelt ein leeres Ergebnis genauso" war deshalb aus dem falschen
+    Grund gruen: er prueft den leeren Zweig und bekam die Ablehnung.
+  */
+  getWorkSheet.mockReset().mockImplementation(async () => entwurf);
   entwurf = undefined;
+  bestehendeScheine = [];
+  listWorkSheetsForProject.mockClear();
 });
 
 describe('Handwerksschein', () => {
@@ -504,6 +516,40 @@ describe('Handwerksschein', () => {
       zeichne('/worksheet?entwurf=gibtesnicht');
 
       expect(await screen.findByText(/lässt sich nicht öffnen/)).toBeInTheDocument();
+    });
+
+    it('warnt NICHT vor einem verworfenen Entwurf als „schon vorhanden"', async () => {
+      /*
+        Die Warnung soll vor DOPPELT bestätigten Stunden schützen. Ein
+        aufgegebener Entwurf bestätigt nichts — er zählte sonst als Warnung
+        gegen genau den Schein, der ihn ersetzen soll.
+      */
+      bestehendeScheine = [
+        { ...gespeichert, id: 'v1', status: 'Verworfen' },
+        { ...gespeichert, id: 'e2' },
+      ];
+      zeichne();
+
+      expect(await screen.findByText(/Für diesen Tag gibt es bereits/)).toBeInTheDocument();
+      // EINER, nicht zwei: der verworfene zählt nicht mit.
+      expect(screen.getByText(/gibt es bereits/).textContent).toContain('1 Schein');
+    });
+
+    it('sagt beim VERWORFENEN Entwurf, wo er wieder herkommt', async () => {
+      /*
+        „Lässt sich nicht mehr ändern" wäre bei ihm falsch — er lässt sich
+        sehr wohl wieder aufnehmen, nur nicht von hier aus. Eine Meldung, die
+        eine Sackgasse behauptet, wo ein Weg ist, kostet den ganzen getippten
+        Schein.
+      */
+      entwurf = { ...gespeichert, status: 'Verworfen' };
+      zeichne('/worksheet?entwurf=e1');
+
+      expect(await screen.findByText(/wieder aufnehmen/)).toBeInTheDocument();
+      expect(screen.queryByText(/lässt sich nicht mehr ändern/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Unterschreiben und abschließen' }),
+      ).not.toBeInTheDocument();
     });
   });
 

@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { listRecentWorkSheets, cancelWorkSheet } from '@/lib/db/workSheets';
+import {
+  listRecentWorkSheets,
+  cancelWorkSheet,
+  discardWorkSheetDraft,
+  restoreWorkSheetDraft,
+} from '@/lib/db/workSheets';
 import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
 import { isGF, canWriteWorkSheet } from '@/lib/permissions';
 import { fmtMin } from '@/lib/time';
@@ -10,6 +15,7 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
@@ -20,6 +26,9 @@ const TON: Record<WorkSheet['status'], 'success' | 'gray' | 'danger'> = {
   Unterschrieben: 'success',
   Entwurf: 'gray',
   Storniert: 'danger',
+  // Kein Rot: der aufgegebene Entwurf ist kein Zwischenfall, sondern der
+  // Normalfall eines geplatzten Auftrags.
+  Verworfen: 'gray',
 };
 
 /**
@@ -43,6 +52,8 @@ export default function WorkSheetsListView() {
   const [offen, setOffen] = useState<string | null>(markiert);
   const [stornoFuer, setStornoFuer] = useState<WithId<WorkSheet> | null>(null);
   const [stornoGrund, setStornoGrund] = useState('');
+  const [verwerfenFuer, setVerwerfenFuer] = useState<WithId<WorkSheet> | null>(null);
+  const [zeigeVerworfene, setZeigeVerworfene] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const darfStornieren = user ? isGF(user.role) : false;
@@ -74,15 +85,29 @@ export default function WorkSheetsListView() {
     void laden();
   }, [laden]);
 
+  const verworfene = useMemo(
+    () => scheine.filter((s) => s.status === 'Verworfen').length,
+    [scheine],
+  );
+
+  /**
+   * Verworfene bleiben in der Datenbank, aber nicht im Weg.
+   *
+   * Sie AUCH aus der Ansicht zu nehmen waere das Loeschen durch die
+   * Hintertuer: was niemand mehr sehen kann, ist verschwunden. Der Schalter
+   * nennt deshalb ihre Zahl — auch eingeklappt sagt die Liste, was sie
+   * gerade nicht zeigt.
+   */
   const sichtbar = useMemo(() => {
     const q = suche.trim().toLowerCase();
-    if (!q) return scheine;
-    return scheine.filter((s) =>
-      [s.customerName, s.projectNumber, s.datum, s.notizen].some((v) =>
+    return scheine.filter((s) => {
+      if (s.status === 'Verworfen' && !zeigeVerworfene) return false;
+      if (!q) return true;
+      return [s.customerName, s.projectNumber, s.datum, s.notizen].some((v) =>
         v?.toLowerCase().includes(q),
-      ),
-    );
-  }, [scheine, suche]);
+      );
+    });
+  }, [scheine, suche, zeigeVerworfene]);
 
   async function pdfAusgeben(s: WithId<WorkSheet>) {
     setBusy(true);
@@ -126,7 +151,7 @@ export default function WorkSheetsListView() {
       </Card>
 
       <Card
-        title={`Scheine (${scheine.length})`}
+        title={`Scheine (${scheine.length - verworfene})`}
         action={
           <input
             aria-label="Scheine durchsuchen"
@@ -138,13 +163,26 @@ export default function WorkSheetsListView() {
         }
       >
         {error && <div className="mb-3"><ErrorState message={error} /></div>}
+        {verworfene > 0 && (
+          <label className="mb-3 flex min-h-touch items-center gap-2 text-sm text-ink-muted">
+            <input
+              type="checkbox"
+              checked={zeigeVerworfene}
+              onChange={(e) => setZeigeVerworfene(e.target.checked)}
+              className="h-4 w-4"
+            />
+            {verworfene} verworfene{verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen
+          </label>
+        )}
         {loading ? (
           <SkeletonList rows={4} />
         ) : sichtbar.length === 0 ? (
           <EmptyState>
             {scheine.length === 0
               ? 'Noch kein Handwerksschein erstellt.'
-              : `Kein Schein passt zu „${suche}".`}
+              : suche.trim()
+                ? `Kein Schein passt zu „${suche}".`
+                : 'Kein offener Schein — nur verworfene Entwürfe.'}
           </EmptyState>
         ) : (
           <List>
@@ -168,6 +206,13 @@ export default function WorkSheetsListView() {
                       {s.unterschriften?.kunde && (
                         <span className="mt-1 block text-xs text-ink-muted">
                           Unterschrieben von {s.unterschriften.kunde.name}
+                        </span>
+                      )}
+                      {s.status === 'Verworfen' && (
+                        <span className="mt-1 block text-xs text-ink-muted">
+                          Verworfen
+                          {s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
+                          weiterbearbeitet, nicht gelöscht.
                         </span>
                       )}
                       {s.stornoGrund && (
@@ -268,6 +313,38 @@ export default function WorkSheetsListView() {
                       <Button variant="secondary">Weiterbearbeiten</Button>
                     </Link>
                   )}
+                  {/*
+                    Verwerfen darf, wer auch weiterbearbeiten darf. Eine
+                    engere Grenze waere hier eine Erfindung der Oberflaeche:
+                    die Rules lassen jeden im Betrieb an den Entwurf, und ein
+                    Knopf, den die Datenbank nicht deckt, taeuscht Ordnung nur
+                    vor.
+                  */}
+                  {darfSchreiben && s.status === 'Entwurf' && (
+                    <Button variant="ghost" onClick={() => setVerwerfenFuer(s)}>
+                      Verwerfen
+                    </Button>
+                  )}
+                  {darfSchreiben && s.status === 'Verworfen' && (
+                    <Button
+                      variant="secondary"
+                      loading={busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          await restoreWorkSheetDraft(s.id);
+                          toast.success('Entwurf wieder aufgenommen');
+                          await laden();
+                        } catch {
+                          setError('Der Entwurf ließ sich nicht zurückholen.');
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      Wieder aufnehmen
+                    </Button>
+                  )}
                   {darfStornieren && s.status === 'Unterschrieben' && (
                     <Button variant="ghost" onClick={() => setStornoFuer(s)}>
                       Stornieren
@@ -279,6 +356,40 @@ export default function WorkSheetsListView() {
           </List>
         )}
       </Card>
+
+      {/*
+        Die Rueckfrage nennt Kunde, Tag und Umfang.
+
+        „Wollen Sie wirklich?" allein hilft nicht: in einer Liste
+        gleichaussehender Zeilen ist der Fehlgriff die falsche ZEILE, nicht
+        der falsche Knopf. Was gleich verschwindet, muss dastehen.
+
+        NICHT ROT, anders als beim Loeschen: der Entwurf bleibt unter dem
+        Schalter sichtbar und laesst sich zurueckholen. Wer sich an Rot fuer
+        Umkehrbares gewoehnt, uebersieht es beim Storno.
+      */}
+      <ConfirmDialog
+        open={!!verwerfenFuer}
+        title="Entwurf verwerfen"
+        message={
+          verwerfenFuer
+            ? `${verwerfenFuer.customerName}, ${verwerfenFuer.datum} · ` +
+              `${fmtMin(verwerfenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
+              `${verwerfenFuer.material.length} Materialposten. Der Entwurf verschwindet aus ` +
+              'der Arbeitsliste, bleibt aber erhalten und lässt sich wieder aufnehmen.'
+            : undefined
+        }
+        confirmLabel="Verwerfen"
+        confirmTone="primary"
+        onCancel={() => setVerwerfenFuer(null)}
+        onConfirm={async () => {
+          if (!verwerfenFuer) return;
+          await discardWorkSheetDraft(verwerfenFuer.id, user.name);
+          toast.success('Entwurf verworfen');
+          setVerwerfenFuer(null);
+          await laden();
+        }}
+      />
 
       {/*
         Storno mit Pflichtgrund. Ein unterschriebener Beleg verschwindet nicht

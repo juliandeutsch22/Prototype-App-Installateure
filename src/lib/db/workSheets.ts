@@ -14,12 +14,15 @@ import { queryTenant, createInTenant, type WithId } from './core';
 /**
  * Handwerksscheine — der Beleg, den der Kunde auf der Baustelle unterschreibt.
  *
- * Zwei Zustände, und der Übergang dazwischen ist endgültig:
+ * Zustände, und der Übergang zur Unterschrift ist endgültig:
  *
  *   ENTWURF          — änderbar, noch nichts unterschrieben
  *   UNTERSCHRIEBEN   — eingefroren. Weder Inhalt noch Unterschriften lassen
  *                      sich danach ändern; die Firestore-Rules verbieten es,
  *                      nicht nur die Oberfläche.
+ *   VERWORFEN        — der aufgegebene Entwurf. Aus der Arbeitsliste heraus,
+ *                      aber nicht aus der Datenbank; als einziger Zustand
+ *                      wieder aufnehmbar.
  *
  * Korrekturen laufen ausschließlich über einen Storno und einen neuen Schein
  * — dasselbe Muster wie bei den Rechnungen. Ein nachträglich geänderter Beleg
@@ -125,6 +128,43 @@ export function cancelWorkSheet(id: string, grund: string, vonName: string) {
     stornoGrund: grund,
     storniertVonName: vonName,
   });
+}
+
+/**
+ * Einen Entwurf aufgeben.
+ *
+ * WARUM GEKENNZEICHNET UND NICHT GELÖSCHT. `allow delete` steht für diese
+ * Sammlung auf `false`, und das soll so bleiben: die Regel schützt den
+ * unterschriebenen Beleg, und eine Löschbedingung, die „nur Entwürfe" meint
+ * und sich um ein Feld vertut, würde genau diesen Schutz aufheben. Der Preis
+ * dafür wäre ein spurlos verschwundener Kundenbeleg — dagegen ist eine
+ * Zeile mehr in der Datenbank nichts.
+ *
+ * OHNE GRUNDANGABE, anders als beim Storno. Der Storno widerruft etwas, das
+ * der Kunde unterschrieben hat und in Händen hält; da gehört gesagt, warum.
+ * Ein Entwurf war nie draußen. Ein Pflichtfeld dafür wäre eine Hürde ohne
+ * Adressaten — und würde nur mit „xxx" gefüllt.
+ */
+export function discardWorkSheetDraft(id: string, vonName: string) {
+  return updateDoc(doc(db, COLLECTION, id), {
+    status: 'Verworfen',
+    verworfenVonName: vonName,
+  });
+}
+
+/**
+ * Einen verworfenen Entwurf zurückholen.
+ *
+ * Der einzige Rückweg im ganzen Schein. Er muss es geben: „Verwerfen" ist der
+ * Knopf für den Fehlgriff, und ein Knopf gegen Fehlgriffe, dessen eigener
+ * Fehlgriff das Getippte kostet, hätte den Fehler nur verschoben.
+ *
+ * Der Name des Verwerfenden bleibt stehen — nicht als Vorwurf, sondern damit
+ * ein zweites Verwerfen dieselbe Zeile überschreibt statt eine Historie zu
+ * beginnen, für die es hier kein Feld gibt.
+ */
+export function restoreWorkSheetDraft(id: string) {
+  return updateDoc(doc(db, COLLECTION, id), { status: 'Entwurf' });
 }
 
 export type { WithId };

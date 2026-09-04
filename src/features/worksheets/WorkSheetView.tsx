@@ -233,6 +233,10 @@ export default function WorkSheetView() {
    * NUR ENTWÜRFE. Ein unterschriebener oder stornierter Schein ist
    * eingefroren; ihn hier zu öffnen ergäbe ein Formular, dessen Speichern die
    * Rules ablehnen — ein Knopf, der nichts tut, ist schlimmer als keiner.
+   *
+   * Der VERWORFENE Entwurf bekommt eine eigene Meldung. „Lässt sich nicht
+   * mehr ändern" wäre bei ihm schlicht falsch: er lässt sich sehr wohl
+   * wieder aufnehmen, nur nicht von hier aus.
    */
   useEffect(() => {
     if (!entwurfId) return;
@@ -244,6 +248,12 @@ export default function WorkSheetView() {
         if (verworfen) return;
         if (!schein) {
           setEntwurfFehler(NICHT_ZU_OEFFNEN);
+          return;
+        }
+        if (schein.status === 'Verworfen') {
+          setEntwurfFehler(
+            'Dieser Entwurf ist verworfen. In der Liste der Handwerksscheine lässt er sich unter „verworfene Entwürfe anzeigen" wieder aufnehmen.',
+          );
           return;
         }
         if (schein.status !== 'Entwurf') {
@@ -357,7 +367,14 @@ export default function WorkSheetView() {
      */
     listWorkSheetsForProject(user.companyId, projectNumber)
       .then((scheine) => {
-        if (!verworfen) setBestehende(scheine.filter((s) => s.datum === datum));
+        // Ein aufgegebener Entwurf ist kein „es gibt hier schon einen
+        // Schein". Er zaehlte sonst als Warnung gegen genau den Schein, den
+        // er ersetzen sollte.
+        if (!verworfen) {
+          setBestehende(
+            scheine.filter((s) => s.datum === datum && s.status !== 'Verworfen'),
+          );
+        }
       })
       .catch(() => {
         if (!verworfen) setBestehende([]);
