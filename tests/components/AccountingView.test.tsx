@@ -79,6 +79,7 @@ vi.mock('@/lib/db/timeEntries', () => ({
     },
   ),
   listEntriesInRange: vi.fn(async () => buchungen),
+  listEntriesForProjects: vi.fn(async () => buchungen),
   deleteTimeEntry: vi.fn(),
 }));
 /**

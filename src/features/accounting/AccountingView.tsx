@@ -5,6 +5,7 @@ import { listProjectsByNumbers } from '@/lib/db/projects';
 import {
   subscribeEntriesInRange,
   listEntriesInRange,
+  listEntriesForProjects,
   deleteTimeEntry,
 } from '@/lib/db/timeEntries';
 import {
@@ -110,6 +111,8 @@ export default function AccountingView() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
+  /** Alle Stunden der vorkommenden Baustellen; `null` = nicht geladen. */
+  const [gesamtProjektzeiten, setGesamtProjektzeiten] = useState<WithId<TimeEntry>[] | null>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Auswertung steht trotzdem. */
@@ -158,6 +161,44 @@ export default function AccountingView() {
       .catch(() => setNebenFehler('Die Baustellendaten'));
     // Am Inhalt haengen, nicht an der Array-Identitaet: sonst laedt jeder
     // Renderdurchlauf neu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, nummernSchluessel]);
+
+  /**
+   * ALLE Stunden der vorkommenden Baustellen — nur für den Budgetstand.
+   *
+   * WARUM DAS SEIN MUSS. `estimatedHours` ist für den GANZEN Auftrag
+   * kalkuliert. Die Auswertung verglich dagegen die Stunden des gewählten
+   * Monats damit und meldete „22,5 h / 40 h · 56 %", während dieselbe
+   * Baustelle im Dashboard bei „39,5 von 40 h · 99 %" stand — der
+   * Unterschied waren die Stunden des Vormonats. Wer hier nachsah, hielt eine
+   * ausgereizte Baustelle für halb offen.
+   *
+   * Dieselbe Funktion wie im Dashboard, damit die beiden Zahlen aus
+   * derselben Quelle kommen und nicht wieder auseinanderlaufen können.
+   *
+   * `null` heißt „nicht geladen" — die Auswertung lässt den Balken dann weg,
+   * statt auf die Monatszahl zurückzufallen. Das war ja der Fehler.
+   */
+  useEffect(() => {
+    if (!user || projektNummern.length === 0) {
+      setGesamtProjektzeiten([]);
+      return;
+    }
+    let verworfen = false;
+    listEntriesForProjects(user.companyId, projektNummern)
+      .then((rows) => {
+        if (!verworfen) setGesamtProjektzeiten(rows);
+      })
+      .catch(() => {
+        if (verworfen) return;
+        setGesamtProjektzeiten(null);
+        setNebenFehler('Die Gesamtstunden der Baustellen');
+      });
+    return () => {
+      verworfen = true;
+    };
+    // Am Inhalt haengen, nicht an der Array-Identitaet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, nummernSchluessel]);
 
@@ -803,6 +844,7 @@ export default function AccountingView() {
       {/* Deckungsbeitrags-Sicht: Ist gegen kalkuliertes Budget je Baustelle. */}
       <ProjectSummary
         entries={entries.filter((e) => e.date.startsWith(monthPrefix))}
+        gesamtEntries={gesamtProjektzeiten}
         projects={projects}
         label={`${MONTHS[month]} ${year}`}
       />
