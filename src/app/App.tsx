@@ -6,6 +6,7 @@ import ErrorBoundary from './ErrorBoundary';
 import Unterreiter from '@/components/Unterreiter';
 import Layout from './Layout';
 import { LoadingState } from '@/components/States';
+import { SCHEIN_ROLLEN } from '@/lib/permissions';
 
 /**
  * Jede Ansicht ist ein eigenes Paket.
@@ -171,9 +172,13 @@ function AppRoutes() {
         path="/worksheet"
         element={
           <RequireModul id="scheine">
-            <RequireRole
-              roles={['Mitarbeiter', 'Projektleiter', 'Geschäftsführung', 'Administrator']}
-            >
+            {/*
+              Die Rollen stehen in `permissions.ts`, nicht hier ausgeschrieben:
+              die Liste der Scheine zeigt denselben Knopf und sieht auch die
+              Buchhaltung. Zwei getrennte Aufzaehlungen laufen auseinander,
+              und dann fuehrt ein Knopf auf eine gesperrte Seite.
+            */}
+            <RequireRole roles={SCHEIN_ROLLEN}>
               <WorkSheetView />
             </RequireRole>
           </RequireModul>

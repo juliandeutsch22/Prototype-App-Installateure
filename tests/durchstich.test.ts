@@ -493,6 +493,101 @@ describe('Durchstich 4: der Schein ist nach der Unterschrift zu', () => {
     // als ein falscher.
     expect(nachher.exists()).toBe(true);
   });
+
+  it('einen Entwurf wieder OEFFNEN, aendern und dann unterschreiben', async () => {
+    /**
+     * DER WEG, DEN „Als Entwurf speichern" ERST BRAUCHBAR MACHT.
+     *
+     * Der Knopf legte den Schein an, und in der Liste gab es danach nur
+     * Aufklappen, PDF und Storno. Wer ihn anlegte, um ihn spaeter
+     * unterschreiben zu lassen — der Regelfall: vormittags vorbereiten,
+     * nachmittags unterschreiben lassen —, kam nie wieder hinein.
+     *
+     * Geprueft wird hier gegen den ECHTEN Firestore, weil die Frage an den
+     * RULES haengt und nicht an der Oberflaeche: darf derselbe Aufrufer den
+     * Entwurf lesen, seinen Inhalt ersetzen und ihn danach einfrieren?
+     */
+    aktuelleDb = alsMonteur();
+    const id = await scheineDb.createWorkSheet(FIRMA, {
+      projectNumber: 'B-2026-0001',
+      customerName: 'Familie Huber',
+      datum: '2026-06-19',
+      status: 'Entwurf',
+      abrechnung: 'Regie',
+      zeiten: [],
+      material: [],
+      erstelltVonUid: MONTEUR,
+      erstelltVonName: MITARBEITER.name,
+    });
+
+    const geholt = await scheineDb.getWorkSheet(id);
+    expect(geholt?.status).toBe('Entwurf');
+    expect(geholt?.id).toBe(id);
+
+    // Der Inhalt, der beim Anlegen noch fehlte — Stunden und Material.
+    await scheineDb.updateWorkSheetDraft(id, {
+      zeiten: [{ datum: '2026-06-19', mitarbeiter: MITARBEITER.name, minuten: 240 }],
+      material: [{ name: 'Eckventil 1/2 Zoll', menge: 2, einheit: 'Stk' }],
+      notizen: 'Absperrventil getauscht',
+    });
+
+    const jetzt = Date.now();
+    await expect(
+      scheineDb.signWorkSheet(
+        id,
+        { name: MITARBEITER.name, bild: 'data:image/png;base64,AAA', geraetZeit: jetzt },
+        { name: 'Herr Huber', bild: 'data:image/png;base64,BBB', geraetZeit: jetzt },
+      ),
+    ).resolves.toBeUndefined();
+
+    const fertig = await scheineDb.getWorkSheet(id);
+    expect(fertig?.status).toBe('Unterschrieben');
+    // Der ergaenzte Inhalt ist mit eingefroren — nicht der leere vom Anlegen.
+    expect(fertig?.zeiten).toHaveLength(1);
+    expect(fertig?.material?.[0]?.name).toBe('Eckventil 1/2 Zoll');
+  });
+
+  it('ein Schein einer FREMDEN Firma laesst sich nicht ueber die Kennung holen', async () => {
+    /**
+     * Die Kennung kommt sonst aus einer Liste, die der Aufrufer schon lesen
+     * durfte. Ueber die Adresszeile laesst sich aber jede Kennung eintippen —
+     * und dann entscheidet allein die Regel.
+     */
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'workSheets', 'fremd1'), {
+        companyId: 'andere-firma',
+        projectNumber: 'X-1',
+        customerName: 'Fremd GmbH',
+        datum: '2026-06-19',
+        status: 'Entwurf',
+        abrechnung: 'Regie',
+        zeiten: [],
+        material: [],
+        erstelltVonUid: 'wer-auch-immer',
+        erstelltVonName: 'Fremd',
+      });
+    });
+
+    aktuelleDb = alsMonteur();
+    await expect(scheineDb.getWorkSheet('fremd1')).rejects.toThrow();
+  });
+
+  it('eine Kennung, die es NICHT gibt, wird abgewiesen — nicht als „leer" beantwortet', async () => {
+    /**
+     * WARUM DAS HIER STEHT UND NICHT NUR IM KOMMENTAR. `ownsExisting()` liest
+     * `resource.data.companyId`; bei einem Dokument, das es nicht gibt, ist
+     * `resource` null und die Regel scheitert. Ein fehlender Schein kommt
+     * also NICHT als „nicht gefunden" zurueck, sondern als abgewiesener
+     * Zugriff.
+     *
+     * Genau diese Falle hat bei der Ruestliste schon einmal zugeschlagen.
+     * Die Oberflaeche muss deshalb BEIDE Ausgaenge gleich behandeln — sonst
+     * steht beim Vertippen in der Adresszeile eine Meldung, die etwas
+     * anderes behauptet, als tatsaechlich passiert ist.
+     */
+    aktuelleDb = alsMonteur();
+    await expect(scheineDb.getWorkSheet('gibtesnicht')).rejects.toThrow();
+  });
 });
 
 /**
