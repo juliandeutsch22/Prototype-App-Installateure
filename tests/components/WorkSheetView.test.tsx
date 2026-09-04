@@ -3,8 +3,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { Assignment, Project } from '@/types';
+import type { Assignment, Material, Project } from '@/types';
 import { todayStr } from '@/lib/time';
+import type { NewWorkSheet } from '@/lib/db/workSheets';
 
 /**
  * Der Handwerksschein war ein Formular ohne Anschluss: er stand in einem
@@ -42,23 +43,42 @@ const einsaetze: (Assignment & { id: string })[] = [
   } as Assignment & { id: string },
 ];
 
+const materialien: (Material & { id: string })[] = [
+  {
+    id: 'mat1',
+    companyId: 'perl',
+    name: 'Eckventil 1/2 Zoll',
+    category: 'Armaturen',
+    articleNumber: 'EV-12',
+    unit: 'Stk',
+    stock: 40,
+  } as Material & { id: string },
+];
+
 const listAssignmentsForUserInRange = vi.fn(async () => einsaetze);
 const listProjectsByNumbers = vi.fn(async () => projekte);
 
 vi.mock('@/lib/db/assignments', () => ({
   listAssignmentsForUserInRange: () => listAssignmentsForUserInRange(),
 }));
+const listActiveProjects = vi.fn(async () => projekte);
 vi.mock('@/lib/db/projects', () => ({
-  listActiveProjects: vi.fn(async () => projekte),
-  listRecentProjects: vi.fn(async () => projekte),
+  listActiveProjects: () => listActiveProjects(),
+  listRecentProjects: () => listActiveProjects(),
   listProjectsByNumbers: () => listProjectsByNumbers(),
 }));
+const listMaterials = vi.fn(async () => materialien);
+vi.mock('@/lib/db/materials', () => ({
+  listMaterials: () => listMaterials(),
+}));
+const createWorkSheet = vi.fn<[string, NewWorkSheet], Promise<string>>(async () => 's1');
 vi.mock('@/lib/db/workSheets', () => ({
-  createWorkSheet: vi.fn(async () => 's1'),
+  createWorkSheet: (companyId: string, entwurf: NewWorkSheet) =>
+    createWorkSheet(companyId, entwurf),
   signWorkSheet: vi.fn(async () => undefined),
   listWorkSheetsForProject: vi.fn(async () => []),
 }));
-const callScheinVorbereiten = vi.fn(async () => ({ data: { zeiten: [], material: [] } }));
+const callScheinVorbereiten = vi.fn(async () => ({ data: { zeiten: [] } }));
 vi.mock('@/lib/functions', () => ({
   callScheinVorbereiten: () => callScheinVorbereiten(),
 }));
@@ -97,7 +117,10 @@ function zeichne() {
 beforeEach(() => {
   listAssignmentsForUserInRange.mockClear().mockResolvedValue(einsaetze);
   listProjectsByNumbers.mockClear().mockResolvedValue(projekte);
-  callScheinVorbereiten.mockClear().mockResolvedValue({ data: { zeiten: [], material: [] } });
+  listActiveProjects.mockClear().mockResolvedValue(projekte);
+  callScheinVorbereiten.mockClear().mockResolvedValue({ data: { zeiten: [] } });
+  listMaterials.mockClear().mockResolvedValue(materialien);
+  createWorkSheet.mockClear().mockResolvedValue('s1');
 });
 
 describe('Handwerksschein', () => {
@@ -159,7 +182,14 @@ describe('Handwerksschein', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
     // Und es steht dabei, dass der Schein dann ohne Stunden eingefroren wird.
-    expect(screen.getByText(/Ohne Stunden und Material/)).toBeInTheDocument();
+    expect(screen.getByText(/Ohne Stunden\./)).toBeInTheDocument();
+    /*
+      Das MATERIAL haengt nicht daran, und das muss dastehen. Es wird von Hand
+      eingetragen; wer hier „ohne Stunden und Material" liest, glaubt, auch
+      seine getippten Zeilen seien verloren, und tippt sie nach dem zweiten
+      Versuch ein zweites Mal.
+    */
+    expect(screen.getByText(/ohnehin von Hand eingetragen/)).toBeInTheDocument();
   });
 
   it('laedt die Vorausfuellung auf Wunsch erneut', async () => {
@@ -172,6 +202,156 @@ describe('Handwerksschein', () => {
 
     expect(await screen.findByText(/keine Zeit gebucht/)).toBeInTheDocument();
     expect(callScheinVorbereiten).toHaveBeenCalledTimes(2);
+  });
+
+  /**
+   * DAS MATERIAL WIRD VON HAND EINGETRAGEN — gemeldet aus dem Betrieb:
+   *
+   *   „beim Schein sollte man Materialien nur selbst hinzufügen können bei
+   *   der Erstellung, um flexibler zu bleiben. Der Schein ist größtenteils
+   *   für private Kunden mit kleineren Aufträgen und Reparaturen, da ist es
+   *   schwierig, das schon im Voraus zu sagen."
+   *
+   * Vorausgefüllt wurde bis hierher aus den MaterialANFORDERUNGEN der
+   * Baustelle, also aus dem vorab Bestellten. Bei einer Reparatur bestellt
+   * niemand vorab; was verbaut wird, entscheidet sich vor Ort. Und was auf
+   * dem Schein steht, unterschreibt der Kunde: eine Liste aus einer
+   * Vorabbestellung führt genau den Streit herbei, den der Beleg verhindern
+   * soll.
+   */
+  describe('Material', () => {
+    it('faengt leer an und sagt, dass es von Hand dazukommt', async () => {
+      zeichne();
+      expect(await screen.findByText(/Verbautes Material \(0\)/)).toBeInTheDocument();
+      expect(screen.getByText(/Noch kein Material eingetragen/)).toBeInTheDocument();
+    });
+
+    it('nimmt eine freie Zeile auf — fuer alles, was nicht im Lager steht', async () => {
+      // Das beim Händler geholte Ersatzteil. Ohne diesen Weg müsste der
+      // Monteur auf der Baustelle den Katalog pflegen, um eine Zeile
+      // loszuwerden.
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/Verbautes Material \(0\)/);
+
+      await nutzer.type(
+        screen.getByLabelText(/Freie Zeile/),
+        'Dichtungssatz Mischbatterie',
+      );
+      await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+      expect(await screen.findByText(/Verbautes Material \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText('Dichtungssatz Mischbatterie')).toBeInTheDocument();
+    });
+
+    it('nimmt einen Artikel aus dem Lager samt Einheit auf', async () => {
+      // Der Regelfall. Bezeichnung und Einheit kommen richtig mit, statt
+      // abgetippt zu werden.
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/Verbautes Material \(0\)/);
+
+      await nutzer.type(screen.getByLabelText('Artikel aus dem Lager'), 'eckventil');
+      await nutzer.click(
+        await screen.findByRole('button', { name: /Eckventil 1\/2 Zoll auf den Schein/ }),
+      );
+
+      expect(await screen.findByText(/Verbautes Material \(1\)/)).toBeInTheDocument();
+      expect(screen.getByText('Stk')).toBeInTheDocument();
+    });
+
+    it('nimmt eine Zeile wieder heraus', async () => {
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/Verbautes Material \(0\)/);
+      await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Falsch eingetragen');
+      await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+      await screen.findByText(/Verbautes Material \(1\)/);
+
+      await nutzer.click(
+        screen.getByRole('button', { name: 'Falsch eingetragen vom Schein nehmen' }),
+      );
+
+      expect(await screen.findByText(/Verbautes Material \(0\)/)).toBeInTheDocument();
+    });
+
+    it('speichert die eingetragenen Zeilen OHNE Anzeigekennung', async () => {
+      /*
+        Der Schein wird eingefroren und mit einer Prüfsumme versehen. Was
+        hier hineingeht, steht danach unveränderlich auf einem Beleg.
+      */
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/Verbautes Material \(0\)/);
+      await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtungen');
+      await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+      await screen.findByText(/Verbautes Material \(1\)/);
+
+      await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+
+      expect(createWorkSheet.mock.calls[0][1].material).toEqual([
+        { name: 'Dichtungen', menge: 1 },
+      ]);
+    });
+
+    it('behaelt die getippten Zeilen, wenn die Vorausfuellung scheitert', async () => {
+      /*
+        DER FALL, DER SONST EINGABE VERNICHTET. Die Frist läuft zwölf
+        Sekunden; im Keller mit einem Balken LTE tippt der Monteur in dieser
+        Zeit längst seine Zeilen. Sie wegen einer FREMDEN fehlgeschlagenen
+        Abfrage zu löschen wäre auf der Baustelle nicht zu erklären.
+      */
+      const nutzer = userEvent.setup();
+      let scheitern: (f: Error) => void = () => undefined;
+      callScheinVorbereiten.mockReturnValue(
+        new Promise((_, ab) => {
+          scheitern = ab;
+        }) as ReturnType<typeof callScheinVorbereiten>,
+      );
+      zeichne();
+      await screen.findByText(/Verbautes Material \(0\)/);
+      await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Kupferrohr 18mm');
+      await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+      await screen.findByText(/Verbautes Material \(1\)/);
+
+      scheitern(new Error('deadline-exceeded'));
+
+      expect(
+        await screen.findByText(/Die Zeiten konnten nicht geladen werden/),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Kupferrohr 18mm')).toBeInTheDocument();
+    });
+
+    it('raeumt die Zeilen weg, wenn die Baustelle wechselt', async () => {
+      /*
+        Eine andere Baustelle ist ein ANDERER Schein. Material, das dort nicht
+        verbaut wurde, auf dem Beleg stehen zu lassen, wäre schlimmer als ein
+        verlorener Tipp — der Kunde unterschreibt es.
+      */
+      const nutzer = userEvent.setup();
+      listAssignmentsForUserInRange.mockResolvedValue([
+        ...einsaetze,
+        { ...einsaetze[0], id: 'a2', projectNumber: 'B-002' },
+      ]);
+      const zweitesProjekt = { ...projekte[0], id: 'p2', projectNumber: 'B-002' };
+      listProjectsByNumbers.mockResolvedValue([...projekte, zweitesProjekt]);
+      listActiveProjects.mockResolvedValue([...projekte, zweitesProjekt]);
+      zeichne();
+      // Zwei Einsätze an diesem Tag: dann wählt das Formular bewusst NICHT
+      // vor, und die Karte erscheint erst mit der Auswahl.
+      const feld = await screen.findByLabelText<HTMLSelectElement>('Baustelle');
+      await nutzer.selectOptions(feld, 'B-001');
+      await screen.findByText(/Verbautes Material \(0\)/);
+
+      await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Gehört zu B-001');
+      await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+      await screen.findByText(/Verbautes Material \(1\)/);
+
+      await nutzer.selectOptions(feld, 'B-002');
+
+      expect(await screen.findByText(/Verbautes Material \(0\)/)).toBeInTheDocument();
+      expect(screen.queryByText('Gehört zu B-001')).not.toBeInTheDocument();
+    });
   });
 
   it('sperrt den Abschluss, solange Unterschriften fehlen', async () => {
