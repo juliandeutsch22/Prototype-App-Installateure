@@ -45,7 +45,7 @@ unterscheidet drei Stufen:
 | **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie) | Ansicht ungetestet |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8) | Ansicht ungetestet |
 | **Module** | Bereiche für den Betrieb ein- und ausschalten; zeigt vorher, was mit abgeschaltet wird | **nur GF/Admin** | `companies.modules` | Rechnung (14), Emulator (7) | Ansicht ungetestet |
-| **Datensicherung** | Nächtliche Ausleitung des ganzen Bestands an einen zweiten Ort; Sicherung von Hand anstoßen; Bestand herunterladen (DSGVO) | **nur GF/Admin** | alle Sammlungen | Rechnung (11 Aufräum- und Pfadregeln), Ansicht (4) | **Der Lauf selbst ist ungetestet** — geprüft ist, was gelöscht werden darf, nicht das Schreiben. Und ohne `AUSLEITUNG_BUCKET` liegt die Sicherung im selben Google-Projekt |
+| **Datensicherung** | Nächtliche Ausleitung des ganzen Bestands an einen zweiten Ort; Sicherung von Hand anstoßen; Bestand herunterladen (DSGVO) | **nur GF/Admin** | alle Sammlungen | Rechnung (11 Aufräum- und Pfadregeln), Ansicht (4), Function (19: Lauf, Mandantengrenze, Seitenwechsel, Aufräumen) | Ohne `AUSLEITUNG_BUCKET` liegt die Sicherung im selben Google-Projekt — gegen einen Fehlgriff hilft das, gegen „der Zugang ist weg" nicht |
 
 ## Büro und Auswertung
 
@@ -82,17 +82,39 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-738 automatische Tests klingen nach viel. Aufgeschlüsselt:
+894 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
-| Regeltests gegen den Emulator | 148 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+| Regeltests gegen den Emulator | 178 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+| **Cloud Functions mit ersetztem Firestore** | **98** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **91** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
-| Reine Rechnung | 283 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 204 | Findet Bedienfehler, **keine** Datenfehler |
+| Reine Rechnung | 289 | Hoch für die Formeln, **null** für die App |
+| Ansichten, Datenbank ersetzt | 226 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **12** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
-Die 148 gegen den Emulator teilen sich in 109 Regeltests, 33 Abfragen je Rolle
+**Zu den Function-Tests, weil „ersetzter Firestore" nach Nachbau klingt.**
+Getestet wird der unveränderte Handler; untergeschoben ist nur, was ihn
+umgibt. Möglich wurde das über `resolve.alias` in `vitest.config.ts` — an
+`functions/src/` ist für diese Tests KEINE Zeile geändert worden. Was der
+Ersatz nicht kann: Indizes, Nebenläufigkeit, Regeln. Die Regeln prüft der
+Emulatorlauf; die anderen beiden bleiben offen und stehen unten.
+
+**Und die echten Firebase-Typen?** Die prüft seit dem 06.09.2026 ein eigener
+Lauf (`functions-pruefen.yml`) mit `functions/tsconfig.json` — auch auf Pull
+Requests. Vorher wurden die Functions ausschliesslich beim DEPLOY übersetzt,
+und der läuft nur auf `main`: ein Typfehler in einem Handler kam erst nach dem
+Merge zum Vorschein, im selben Lauf, der ihn ausliefern sollte. Getrennt vom
+Hosting bleibt er, weil eine kaputte Abhängigkeit der Functions keine
+Auslieferung der Oberfläche blockieren darf.
+
+Abgedeckt sind damit: Urlaubsentscheidung (24), Monatsbilanzen (15), Push-
+Meldungen (13), Schein-Vorbereitung (12), DSGVO-Export (10), Ausleitung (9),
+Prüfsumme (8), Custom Claims (7). Ungetestet bleibt die KI-Spracherfassung —
+ihre Entscheidungslogik liegt in `extractLogic.ts` und ist dort geprüft; was
+bleibt, ist der Aufruf beim Anbieter.
+
+Die 178 gegen den Emulator teilen sich in 139 Regeltests, 33 Abfragen je Rolle
 und 6 Durchstiche über Ansichtsgrenzen hinweg.
 
 **Zu den 20 neuen Regeltests, weil die Zahl allein nichts sagt:** jeder von
@@ -174,9 +196,26 @@ festgehalten:
    > Die Lehre daraus ist nicht „Verdichten war falsch", sondern: **die richtige
    > Frage ist nicht, ob etwas thematisch zusammengehört, sondern ob es
    > dieselbe Person in derselben Situation tut.**
-5. **Ansichtstests nachziehen** ← *als Nächstes*, in dieser Reihenfolge: Zeiterfassung
-   (meistbenutzt), Rechnungen (Geld), Einsatzplanung (löscht Daten),
-   Baustellen.
+5. ~~Ansichtstests nachziehen~~ — **erledigt** für die vier wichtigsten
+   (Zeiterfassung, Rechnungen, Einsatzplanung, Baustellen) und den ganzen
+   Materialablauf. Es fehlen die kleineren, siehe oben.
+6. ~~Cloud Functions von innen prüfen~~ — **erledigt am 05.09.2026.** Acht von
+   neun Handlern, 98 Tests, der Produktivcode unverändert. Die Hürde war nie
+   der Aufwand, sondern die Auflösung: `firebase-admin` und
+   `firebase-functions` liegen nur unter `functions/node_modules`. Ein Ersatz
+   per `resolve.alias` löst das, ohne beides ins Wurzelprojekt zu holen.
+
+   > **Was dabei herauskam, ist so wichtig wie die Tests selbst:** eine
+   > Gegenprobe ging zunächst durch. `{ merge: false }` gegen `{ merge: true }`
+   > zu tauschen änderte am Ergebnis nichts — die Bilanz liefert immer
+   > dieselben Felder, sie überschreiben sich gegenseitig. Der Unterschied
+   > zeigt sich erst an einem Feld aus einer FRÜHEREN Fassung, das die heutige
+   > Rechnung nicht mehr kennt. Genau dafür ist die Zusage da, und genau so
+   > steht der Test jetzt da.
+
+7. **Was weiterhin offen bleibt:** Nebenläufigkeit (zwei Läufe auf demselben
+   Dokument), die echten Firestore-Indizes im Function-Pfad, und die
+   KI-Spracherfassung jenseits ihrer Entscheidungslogik.
 
 ## Eine Ungereimtheit, die noch offen ist
 
