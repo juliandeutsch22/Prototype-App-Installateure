@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { scheinVorbereiten } from '../../functions/src/scheinVorbereiten';
 import { neueDatenbank, type FakeDb } from './ersatz/firestore';
-import { HttpsError, rufAuf } from './ersatz/funktionen';
+import { HttpsError, type AufrufKontext } from './ersatz/funktionen';
 
 /**
  * Die Zeiten für den Handwerksschein — serverseitig zusammengestellt.
@@ -20,10 +20,10 @@ let db: FakeDb;
 const TAG = '2026-09-04';
 
 function ruf(data: Record<string, unknown>, companyId: string | null = 'perl') {
-  return rufAuf<never, { zeiten: Array<Record<string, unknown>> }>(scheinVorbereiten, {
-    data: data as never,
+  return scheinVorbereiten({
+    data,
     auth: companyId ? { uid: 'monteur', token: { companyId } } : undefined,
-  });
+  } as AufrufKontext<{ projectNumber?: string; datum?: string }>);
 }
 
 async function scheitert(p: Promise<unknown>, code: string) {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { exportCompanyData } from '../../functions/src/export';
 import { jedesDokument, EXPORTABLE } from '../../functions/src/mandantendaten';
 import { neueDatenbank, type FakeDb } from './ersatz/firestore';
-import { HttpsError, rufAuf } from './ersatz/funktionen';
+import { HttpsError, type AufrufKontext } from './ersatz/funktionen';
 
 /**
  * Der DSGVO-Export — die Function, nicht die Liste.
@@ -19,19 +19,16 @@ import { HttpsError, rufAuf } from './ersatz/funktionen';
 let db: FakeDb;
 
 function ruf(auth: { role: string; companyId?: string } | null = { role: 'Geschäftsführung' }) {
-  return rufAuf<
-    never,
-    {
-      companyId: string;
-      anzahl: Record<string, number>;
-      data: Record<string, Array<Record<string, unknown>>>;
-    }
-  >(exportCompanyData, {
-    data: {} as never,
+  return exportCompanyData({
+    data: {},
     auth: auth
       ? { uid: 'chef', token: { companyId: auth.companyId ?? 'perl', role: auth.role } }
       : undefined,
-  });
+  } as AufrufKontext<unknown>) as Promise<{
+    companyId: string;
+    anzahl: Record<string, number>;
+    data: Record<string, Array<Record<string, unknown>>>;
+  }>;
 }
 
 async function scheitert(p: Promise<unknown>, code: string) {

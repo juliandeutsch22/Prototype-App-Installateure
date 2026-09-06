@@ -2,13 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { datenAusleitung, datenAusleitungJetzt } from '../../functions/src/ausleitung';
 import { neueDatenbank, type FakeDb } from './ersatz/firestore';
 import { neuerBucket, type FakeBucket } from './ersatz/storage';
-import {
-  HttpsError,
-  laufeGeplant,
-  protokoll,
-  protokollLeeren,
-  rufAuf,
-} from './ersatz/funktionen';
+import { HttpsError, protokoll, protokollLeeren, type AufrufKontext } from './ersatz/funktionen';
 
 /**
  * Die nächtliche Ausleitung — die einzige Lücke, die nicht die App betrifft,
@@ -46,10 +40,10 @@ function zeilen(pfad: string) {
 }
 
 function jetzt(rolle: string, companyId: string | null = 'perl') {
-  return rufAuf<never, { zeilen: number; pfad: string; geraeumt: number }>(datenAusleitungJetzt, {
-    data: {} as never,
+  return datenAusleitungJetzt({
+    data: {},
     auth: companyId ? { uid: 'chef', token: { companyId, role: rolle } } : undefined,
-  });
+  } as AufrufKontext<unknown>) as Promise<{ zeilen: number; pfad: string; geraeumt: number }>;
 }
 
 describe('Der Lauf von Hand', () => {
@@ -102,7 +96,7 @@ describe('Der nächtliche Lauf', () => {
       p1: { companyId: 'perl', nr: 'B-001' },
       p2: { companyId: 'huber', nr: 'H-001' },
     });
-    await laufeGeplant(datenAusleitung);
+    await datenAusleitung();
 
     expect([...bucket.dateien.keys()].sort()).toEqual([
       'ausleitung/huber/2026-09-05.jsonl',
@@ -123,7 +117,7 @@ describe('Der nächtliche Lauf', () => {
     db.seed('companies', { kaputt: { name: 'Kaputt' }, perl: { name: 'Perl' } });
     bucket.scheitertBei = 'ausleitung/kaputt/2026-09-05.jsonl';
 
-    await expect(laufeGeplant(datenAusleitung)).resolves.toBeUndefined();
+    await expect(datenAusleitung()).resolves.toBeUndefined();
     expect([...bucket.dateien.keys()]).toEqual(['ausleitung/perl/2026-09-05.jsonl']);
     expect(protokoll.some((p) => p.stufe === 'error')).toBe(true);
   });

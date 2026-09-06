@@ -19,6 +19,14 @@ export interface AbgelegteDatei {
 export class FakeBucket {
   readonly dateien = new Map<string, AbgelegteDatei>();
   readonly geloescht: string[] = [];
+  /**
+   * Mit welchem Namen der Bucket angefordert wurde.
+   *
+   * `undefined` heisst „Standard-Bucket dieses Projekts" — und genau das ist
+   * der Unterschied zwischen einer Sicherung, die gegen einen Fehlgriff hilft,
+   * und einer, die auch den Verlust des Projekts übersteht.
+   */
+  readonly angefordert: Array<string | undefined> = [];
   /** Ein Schreibfehler bei Google — der Lauf muss ihn überstehen. */
   scheitertBei: string | null = null;
 
@@ -26,7 +34,7 @@ export class FakeBucket {
 
   file(pfad: string) {
     return {
-      createWriteStream: (optionen?: { contentType?: string }) => {
+      createWriteStream: (optionen?: { contentType?: string; resumable?: boolean }) => {
         const strom = new PassThrough();
         const teile: Buffer[] = [];
         strom.on('data', (t: Buffer) => teile.push(t));
@@ -43,9 +51,16 @@ export class FakeBucket {
         }
         return strom;
       },
-      // Die Ausleitung reicht `{ ignoreNotFound: true }` durch; hier gibt es
-      // nichts zu ignorieren, weil ein fehlender Eintrag ohnehin nichts tut.
-      delete: async () => {
+      delete: async (optionen?: { ignoreNotFound?: boolean }) => {
+        /*
+          Ohne `ignoreNotFound` wirft die echte Schnittstelle, wenn die Datei
+          nicht mehr da ist. Das ist kein Randfall: zwei Läufe kurz
+          hintereinander räumen dieselbe Liste, und der zweite fände sie leer.
+          Der Ersatz bildet das nach, statt es zu schlucken.
+        */
+        if (!this.dateien.has(pfad) && !optionen?.ignoreNotFound) {
+          throw new Error(`Datei nicht vorhanden: ${pfad}`);
+        }
         this.geloescht.push(pfad);
         this.dateien.delete(pfad);
       },
@@ -71,7 +86,10 @@ export function neuerBucket(): FakeBucket {
 }
 
 export function getStorage() {
-  // Das Ziel steht in `AUSLEITUNG_BUCKET`; welcher Name ankommt, ist für die
-  // Tests gleichgültig — es gibt hier nur einen Bucket.
-  return { bucket: () => aktueller };
+  return {
+    bucket: (name?: string) => {
+      aktueller.angefordert.push(name);
+      return aktueller;
+    },
+  };
 }

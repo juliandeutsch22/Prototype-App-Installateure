@@ -263,6 +263,19 @@ export const FieldPath = {
   documentId: () => KENNUNG,
 };
 
+/*
+ * Die TYPEN, die `mandantendaten.ts` aus `firebase-admin/firestore` bezieht.
+ *
+ * Sie beschreiben dort die Signatur von `jedesDokument` — die Funktion nimmt
+ * die Datenbank entgegen, statt sie selbst zu holen, damit beide Aufrufer
+ * (Auskunft und Ausleitung) denselben Weg nehmen.
+ */
+export type Firestore = FakeDb;
+export interface QueryDocumentSnapshot {
+  id: string;
+  data: () => Dok;
+}
+
 export const Timestamp = {
   now: () => ({ toMillis: () => Date.now() }),
   fromMillis: (ms: number) => ({ toMillis: () => ms }),

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { urlaubEntscheiden } from '../../functions/src/urlaubEntscheiden';
 import { neueDatenbank, SERVERZEIT, type FakeDb, type Dok } from './ersatz/firestore';
-import { HttpsError, rufAuf } from './ersatz/funktionen';
+import { HttpsError, type AufrufKontext } from './ersatz/funktionen';
 
 /**
  * Über einen Urlaubsantrag entscheiden — die Function, nicht die Ansicht.
@@ -38,6 +38,13 @@ function grunddaten(zusatz?: { firma?: Dok; antrag?: Dok; nutzer?: Dok }) {
   });
 }
 
+/** Was die Function entgegennimmt — absichtlich lose, damit auch Unfug prüfbar ist. */
+type Eingabe = {
+  vacationId?: string;
+  entscheidung?: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
+  grund?: string;
+};
+
 function ruf(
   data: Record<string, unknown>,
   auth: { uid: string; role: string; companyId?: string } | null = {
@@ -51,12 +58,7 @@ function ruf(
       ? { uid: auth.uid, token: { companyId: auth.companyId ?? 'perl', role: auth.role } }
       : undefined,
   };
-  return rufAuf<never, {
-    status: string;
-    angelegt: number;
-    uebersprungen: number;
-    entfernt: number;
-  }>(urlaubEntscheiden, req as never);
+  return urlaubEntscheiden(req as AufrufKontext<Eingabe>);
 }
 
 /** Die Ablehnung samt ihrer ART prüfen — „wirft irgendwas" wäre zu wenig. */

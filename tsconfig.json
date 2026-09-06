@@ -22,7 +22,31 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./shared/*"],
+
+      // Die Cloud Functions werden seit ihren Tests MITGEPRUEFT: die
+      // Testdateien importieren die Handler, und damit ziehen sie
+      // `functions/src` in dieses Programm.
+      //
+      // Deren Firebase-Pakete liegen aber nur unter `functions/node_modules`.
+      // In CI wird ausschliesslich die Wurzel installiert — dort waeren sie
+      // schlicht nicht da. Sie zusaetzlich zu installieren hiesse 60 MB und
+      // ein zweiter Firebase-Baum, damit ein Import auflöst.
+      //
+      // Stattdessen zeigen die Pfade auf DIESELBEN Ersatzmodule, die auch
+      // `vitest.config.ts` unterschiebt. Die Typpruefung sieht damit genau
+      // das, was beim Testlauf wirklich passiert — und meldet es, sobald ein
+      // Handler etwas benutzt, das der Ersatz nicht kennt.
+      //
+      // Die ECHTEN Firebase-Typen prueft `functions-pruefen.yml` mit dem
+      // eigenen `functions/tsconfig.json`. Das ist die zustaendige Stelle
+      // dafuer, und sie laeuft jetzt auch auf Pull Requests.
+      "firebase-functions": ["./tests/functions/ersatz/funktionen.ts"],
+      "firebase-functions/*": ["./tests/functions/ersatz/funktionen.ts"],
+      "firebase-admin/firestore": ["./tests/functions/ersatz/firestore.ts"],
+      "firebase-admin/auth": ["./tests/functions/ersatz/auth.ts"],
+      "firebase-admin/storage": ["./tests/functions/ersatz/storage.ts"],
+      "firebase-admin/messaging": ["./tests/functions/ersatz/messaging.ts"]
     }
   },
   // Tests gehoeren dazu. Ohne sie in der Pruefung driftet ein Test still von

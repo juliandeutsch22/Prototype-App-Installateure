@@ -3,10 +3,9 @@ import { notifyNewOrder, notifyOrderReady } from '../../functions/src/notify';
 import { neueDatenbank, type FakeDb } from './ersatz/firestore';
 import { gesendet, messagingLeeren, tokenIstTot } from './ersatz/messaging';
 import {
-  loeseAus,
   protokollLeeren,
   type AenderungsEreignis,
-  type SchreibEreignis,
+  type AnlageEreignis,
 } from './ersatz/funktionen';
 
 /**
@@ -33,11 +32,17 @@ const ANFORDERUNG = {
   status: 'Offen',
 };
 
+/**
+ * Beim ANLEGEN kommt der Schnappschuss direkt, nicht in `before`/`after`
+ * verpackt — es gibt nur einen Zustand. Genau diesen Unterschied liest der
+ * Handler (`event.data?.data()`), und ein gemeinsamer Ereignistyp hätte einen
+ * Vertipper darin durchgehen lassen.
+ */
 function angelegt(order: Record<string, unknown>) {
   return {
     data: { exists: true, data: () => order },
     params: { id: 'o1' },
-  } as unknown as SchreibEreignis<Record<string, unknown>>;
+  } as AnlageEreignis<Record<string, unknown>>;
 }
 
 function geaendert(vorher: Record<string, unknown>, nachher: Record<string, unknown>) {
@@ -75,7 +80,7 @@ beforeEach(() => {
 
 describe('Eine neue Anforderung', () => {
   it('geht an Verwaltung und Leitung — und an sonst niemanden', async () => {
-    await loeseAus(notifyNewOrder, angelegt(ANFORDERUNG));
+    await notifyNewOrder(angelegt(ANFORDERUNG));
     expect(empfaenger()).toEqual(['t-buero', 't-chef']);
   });
 
@@ -85,25 +90,25 @@ describe('Eine neue Anforderung', () => {
       Client-Eingabe. Ohne diese Grenze erführe ein anderer Betrieb, welches
       Material hier bestellt wird.
     */
-    await loeseAus(notifyNewOrder, angelegt(ANFORDERUNG));
+    await notifyNewOrder(angelegt(ANFORDERUNG));
     expect(empfaenger()).not.toContain('t-fremd');
   });
 
   it('geht nicht an den, der sie selbst gestellt hat', async () => {
     // Wer gerade auf „Anfordern" gedrückt hat, braucht keine Meldung darüber.
-    await loeseAus(notifyNewOrder, angelegt({ ...ANFORDERUNG, userId: 'buero' }));
+    await notifyNewOrder(angelegt({ ...ANFORDERUNG, userId: 'buero' }));
     expect(empfaenger()).toEqual(['t-chef']);
   });
 
   it('respektiert das Abbestellen', async () => {
     db.inhalt('userPrefs').set('buero', { pushTokens: ['t-buero'], notifyNewOrder: false });
-    await loeseAus(notifyNewOrder, angelegt(ANFORDERUNG));
+    await notifyNewOrder(angelegt(ANFORDERUNG));
     expect(empfaenger()).toEqual(['t-chef']);
   });
 
   it('schreibt niemanden an, der kein Gerät registriert hat', async () => {
     db.inhalt('userPrefs').delete('chef');
-    await loeseAus(notifyNewOrder, angelegt(ANFORDERUNG));
+    await notifyNewOrder(angelegt(ANFORDERUNG));
     expect(empfaenger()).toEqual(['t-buero']);
   });
 });
@@ -114,7 +119,7 @@ describe('Eilzustellung', () => {
     db.seed('projects', {
       p1: { companyId: 'perl', projectNumber: 'B-001', projectManagers: ['leiter'] },
     });
-    await loeseAus(notifyNewOrder, angelegt({ ...ANFORDERUNG, isUrgent: true }));
+    await notifyNewOrder(angelegt({ ...ANFORDERUNG, isUrgent: true }));
     expect(empfaenger()).toEqual(['t-buero', 't-chef', 't-leiter']);
   });
 
@@ -122,14 +127,14 @@ describe('Eilzustellung', () => {
     db.seed('projects', {
       p1: { companyId: 'andere', projectNumber: 'B-001', projectManagers: ['leiter'] },
     });
-    await loeseAus(notifyNewOrder, angelegt({ ...ANFORDERUNG, isUrgent: true }));
+    await notifyNewOrder(angelegt({ ...ANFORDERUNG, isUrgent: true }));
     expect(empfaenger()).toEqual(['t-buero', 't-chef']);
   });
 
   it('kommt ohne zugeteilte Projektleitung ohne Fehler aus', async () => {
     db.seed('projects', { p1: { companyId: 'perl', projectNumber: 'B-001' } });
     await expect(
-      loeseAus(notifyNewOrder, angelegt({ ...ANFORDERUNG, isUrgent: true })),
+      notifyNewOrder(angelegt({ ...ANFORDERUNG, isUrgent: true })),
     ).resolves.toBeUndefined();
     expect(empfaenger()).toEqual(['t-buero', 't-chef']);
   });
@@ -137,14 +142,14 @@ describe('Eilzustellung', () => {
 
 describe('„Abholbereit"', () => {
   it('meldet sich beim Besteller', async () => {
-    await loeseAus(notifyOrderReady, geaendert(ANFORDERUNG, { ...ANFORDERUNG, status: 'Abholbereit' }));
+    await notifyOrderReady(geaendert(ANFORDERUNG, { ...ANFORDERUNG, status: 'Abholbereit' }));
     expect(empfaenger()).toEqual(['t-monteur']);
   });
 
   it('meldet sich NICHT, wenn der Status gleich bleibt', async () => {
     // Sonst käme bei jeder Kleinigkeit am Dokument dieselbe Meldung erneut.
     const bereit = { ...ANFORDERUNG, status: 'Abholbereit' };
-    await loeseAus(notifyOrderReady, geaendert(bereit, { ...bereit, quantity: 3 }));
+    await notifyOrderReady(geaendert(bereit, { ...bereit, quantity: 3 }));
     expect(gesendet).toHaveLength(0);
   });
 
@@ -153,7 +158,7 @@ describe('„Abholbereit"', () => {
       p1: { companyId: 'perl', projectNumber: 'B-001', projectManagers: ['leiter'] },
     });
     const eil = { ...ANFORDERUNG, isUrgent: true };
-    await loeseAus(notifyOrderReady, geaendert(eil, { ...eil, status: 'Abholbereit' }));
+    await notifyOrderReady(geaendert(eil, { ...eil, status: 'Abholbereit' }));
     expect(empfaenger()).toEqual(['t-leiter', 't-monteur']);
   });
 });
@@ -167,13 +172,13 @@ describe('Tote Tokens', () => {
     */
     db.inhalt('userPrefs').set('buero', { pushTokens: ['t-buero', 't-alt'] });
     tokenIstTot('t-alt');
-    await loeseAus(notifyNewOrder, angelegt(ANFORDERUNG));
+    await notifyNewOrder(angelegt(ANFORDERUNG));
     expect(db.alles('userPrefs').buero.pushTokens).toEqual(['t-buero']);
   });
 
   it('lassen die gültigen stehen', async () => {
     tokenIstTot('t-chef');
-    await loeseAus(notifyNewOrder, angelegt(ANFORDERUNG));
+    await notifyNewOrder(angelegt(ANFORDERUNG));
     expect(db.alles('userPrefs').buero.pushTokens).toEqual(['t-buero']);
     expect(db.alles('userPrefs').chef.pushTokens).toEqual([]);
   });

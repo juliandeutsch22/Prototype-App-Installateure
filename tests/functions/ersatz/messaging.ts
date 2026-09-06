@@ -27,7 +27,17 @@ export function tokenIstTot(...t: string[]) {
 
 export function getMessaging() {
   return {
-    async sendEachForMulticast({ tokens, data }: { tokens: string[]; data: Record<string, string> }) {
+    async sendEachForMulticast({
+      tokens,
+      data,
+    }: {
+      tokens: string[];
+      data: Record<string, string>;
+      // Der Versand setzt bewusst NUR `data` und keine `notification`: so
+      // entscheidet allein der Service Worker, wie die Meldung aussieht.
+      // `webpush` traegt nur den Zielverweis.
+      webpush?: { fcmOptions?: { link?: string } };
+    }) {
       gesendet.push({ tokens: [...tokens], data });
       const responses = tokens.map((t) =>
         tote.has(t)

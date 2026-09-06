@@ -100,6 +100,14 @@ umgibt. Möglich wurde das über `resolve.alias` in `vitest.config.ts` — an
 Ersatz nicht kann: Indizes, Nebenläufigkeit, Regeln. Die Regeln prüft der
 Emulatorlauf; die anderen beiden bleiben offen und stehen unten.
 
+**Und die echten Firebase-Typen?** Die prüft seit dem 06.09.2026 ein eigener
+Lauf (`functions-pruefen.yml`) mit `functions/tsconfig.json` — auch auf Pull
+Requests. Vorher wurden die Functions ausschliesslich beim DEPLOY übersetzt,
+und der läuft nur auf `main`: ein Typfehler in einem Handler kam erst nach dem
+Merge zum Vorschein, im selben Lauf, der ihn ausliefern sollte. Getrennt vom
+Hosting bleibt er, weil eine kaputte Abhängigkeit der Functions keine
+Auslieferung der Oberfläche blockieren darf.
+
 Abgedeckt sind damit: Urlaubsentscheidung (24), Monatsbilanzen (15), Push-
 Meldungen (13), Schein-Vorbereitung (12), DSGVO-Export (10), Ausleitung (9),
 Prüfsumme (8), Custom Claims (7). Ungetestet bleibt die KI-Spracherfassung —

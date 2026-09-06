@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { syncUserClaims } from '../../functions/src/claims';
 import { authAufrufe, authLeeren, authScheitertBei } from './ersatz/auth';
-import { loeseAus, protokoll, protokollLeeren, type SchreibEreignis } from './ersatz/funktionen';
+import { protokoll, protokollLeeren, type SchreibEreignis } from './ersatz/funktionen';
 
 /**
  * Die Custom Claims — das Fundament der ganzen Zugriffskontrolle.
@@ -35,7 +35,7 @@ beforeEach(() => {
 
 describe('Claims setzen', () => {
   it('überträgt Mandant und Rolle ins Token', async () => {
-    await loeseAus(syncUserClaims, ereignis(AKTIV));
+    await syncUserClaims(ereignis(AKTIV));
     expect(authAufrufe).toContainEqual({
       art: 'claims',
       uid: 'monteur',
@@ -49,23 +49,23 @@ describe('Claims setzen', () => {
       Übernommene Altbestände tragen das Feld nicht — ein Import dürfte
       niemanden aussperren, der nie deaktiviert wurde.
     */
-    await loeseAus(syncUserClaims, ereignis(AKTIV));
+    await syncUserClaims(ereignis(AKTIV));
     const claims = authAufrufe.find((a) => a.art === 'claims');
     expect((claims?.daten as { active: boolean }).active).toBe(true);
     expect(authAufrufe).toContainEqual({ art: 'update', uid: 'monteur', daten: { disabled: false } });
   });
 
   it('tut nichts, wenn das Dokument gelöscht wurde', async () => {
-    await loeseAus(syncUserClaims, ereignis(null));
+    await syncUserClaims(ereignis(null));
     expect(authAufrufe).toHaveLength(0);
   });
 
   it('setzt nichts ohne uid, companyId oder Rolle — und sagt es', async () => {
     // Halbe Claims wären schlimmer als keine: die Regeln lesen dann einen
     // undefinierten Mandanten und lassen niemanden mehr hinein, ohne Grund.
-    await loeseAus(syncUserClaims, ereignis({ companyId: 'perl', role: 'Mitarbeiter' }));
-    await loeseAus(syncUserClaims, ereignis({ uid: 'x', role: 'Mitarbeiter' }));
-    await loeseAus(syncUserClaims, ereignis({ uid: 'x', companyId: 'perl' }));
+    await syncUserClaims(ereignis({ companyId: 'perl', role: 'Mitarbeiter' }));
+    await syncUserClaims(ereignis({ uid: 'x', role: 'Mitarbeiter' }));
+    await syncUserClaims(ereignis({ uid: 'x', companyId: 'perl' }));
     expect(authAufrufe).toHaveLength(0);
     expect(protokoll.filter((p) => p.stufe === 'warn')).toHaveLength(3);
   });
@@ -86,7 +86,7 @@ describe('Ein deaktiviertes Konto', () => {
     Firestore-SDK kam er unverändert an Kunden, Baustellen und Scheine.
   */
   it('wird gesperrt, verliert seine Token und den active-Claim', async () => {
-    await loeseAus(syncUserClaims, ereignis({ ...AKTIV, active: false }));
+    await syncUserClaims(ereignis({ ...AKTIV, active: false }));
     expect(authAufrufe).toEqual([
       { art: 'claims', uid: 'monteur', daten: { companyId: 'perl', role: 'Mitarbeiter', active: false } },
       { art: 'update', uid: 'monteur', daten: { disabled: true } },
@@ -100,7 +100,7 @@ describe('Ein deaktiviertes Konto', () => {
       mehr herein — und niemand fände den Grund, weil im Firestore alles
       richtig aussähe.
     */
-    await loeseAus(syncUserClaims, ereignis({ ...AKTIV, active: true }));
+    await syncUserClaims(ereignis({ ...AKTIV, active: true }));
     expect(authAufrufe).toContainEqual({ art: 'update', uid: 'monteur', daten: { disabled: false } });
     expect(authAufrufe.some((a) => a.art === 'revoke')).toBe(false);
   });
@@ -111,7 +111,7 @@ describe('Wenn Google nicht erreichbar ist', () => {
     // Ein geworfener Fehler liesse den Trigger wiederholen — bei einem
     // dauerhaften Ausfall endlos.
     authScheitertBei('claims');
-    await expect(loeseAus(syncUserClaims, ereignis(AKTIV))).resolves.toBeUndefined();
+    await expect(syncUserClaims(ereignis(AKTIV))).resolves.toBeUndefined();
     expect(protokoll.some((p) => p.stufe === 'error')).toBe(true);
   });
 });

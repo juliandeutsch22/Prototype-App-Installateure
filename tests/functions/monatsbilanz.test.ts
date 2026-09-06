@@ -7,11 +7,9 @@ import {
 import { neueDatenbank, SERVERZEIT, type FakeDb } from './ersatz/firestore';
 import {
   HttpsError,
-  laufeGeplant,
-  loeseAus,
   protokoll,
   protokollLeeren,
-  rufAuf,
+  type AufrufKontext,
   type SchreibEreignis,
 } from './ersatz/funktionen';
 
@@ -60,7 +58,7 @@ describe('Eine Buchung zieht ihren Monat nach', () => {
       b: { ...TAG, date: '2026-09-08', startTime: '07:00', endTime: '12:00', breakDuration: 0 },
       andererMonat: { ...TAG, date: '2026-08-31', startTime: '07:00', endTime: '16:00' },
     });
-    await loeseAus(bilanzNachziehen, schreibEreignis(null, { ...TAG, date: '2026-09-07' }));
+    await bilanzNachziehen(schreibEreignis(null, { ...TAG, date: '2026-09-07' }));
 
     const b = db.alles('monthlyStats')['perl_monteur_2026-09'];
     expect(b).toMatchObject({ companyId: 'perl', userId: 'monteur' });
@@ -80,10 +78,10 @@ describe('Eine Buchung zieht ihren Monat nach', () => {
       a: { ...TAG, date: '2026-09-07', startTime: '07:00', endTime: '16:00', breakDuration: 30 },
     });
     const ev = schreibEreignis(null, { ...TAG, date: '2026-09-07' });
-    await loeseAus(bilanzNachziehen, ev);
+    await bilanzNachziehen(ev);
     const einmal = db.alles('monthlyStats')['perl_monteur_2026-09'].anwesendMin;
-    await loeseAus(bilanzNachziehen, ev);
-    await loeseAus(bilanzNachziehen, ev);
+    await bilanzNachziehen(ev);
+    await bilanzNachziehen(ev);
     expect(db.alles('monthlyStats')['perl_monteur_2026-09'].anwesendMin).toBe(einmal);
   });
 
@@ -93,11 +91,11 @@ describe('Eine Buchung zieht ihren Monat nach', () => {
     db.seed('timeEntries', {
       a: { ...TAG, date: '2026-09-07', startTime: '07:00', endTime: '16:00', breakDuration: 30 },
     });
-    await loeseAus(bilanzNachziehen, schreibEreignis(null, { ...TAG, date: '2026-09-07' }));
+    await bilanzNachziehen(schreibEreignis(null, { ...TAG, date: '2026-09-07' }));
     expect(db.alles('monthlyStats')['perl_monteur_2026-09'].anwesendMin).toBeGreaterThan(0);
 
     db.inhalt('timeEntries').delete('a');
-    await loeseAus(bilanzNachziehen, schreibEreignis({ ...TAG, date: '2026-09-07' }, null));
+    await bilanzNachziehen(schreibEreignis({ ...TAG, date: '2026-09-07' }, null));
     expect(db.alles('monthlyStats')['perl_monteur_2026-09'].anwesendMin).toBe(0);
   });
 
@@ -126,7 +124,7 @@ describe('Eine Buchung zieht ihren Monat nach', () => {
     db.seed('timeEntries', {
       a: { ...TAG, date: '2026-09-07', startTime: '07:00', endTime: '16:00', breakDuration: 30 },
     });
-    await loeseAus(bilanzNachziehen, schreibEreignis(null, { ...TAG, date: '2026-09-07' }));
+    await bilanzNachziehen(schreibEreignis(null, { ...TAG, date: '2026-09-07' }));
 
     const b = db.alles('monthlyStats')['perl_monteur_2026-09'];
     expect(b.anwesendMin).toBe(510);
@@ -141,8 +139,7 @@ describe('Eine Buchung zieht ihren Monat nach', () => {
     db.seed('timeEntries', {
       a: { ...TAG, date: '2026-10-01', startTime: '07:00', endTime: '16:00', breakDuration: 30 },
     });
-    await loeseAus(bilanzNachziehen, 
-      schreibEreignis({ ...TAG, date: '2026-09-30' }, { ...TAG, date: '2026-10-01' }),
+    await bilanzNachziehen(schreibEreignis({ ...TAG, date: '2026-09-30' }, { ...TAG, date: '2026-10-01' }),
     );
     expect(Object.keys(db.alles('monthlyStats')).sort()).toEqual([
       'perl_monteur_2026-09',
@@ -153,7 +150,7 @@ describe('Eine Buchung zieht ihren Monat nach', () => {
   });
 
   it('tut nichts ohne Mandanten', async () => {
-    await loeseAus(bilanzNachziehen, schreibEreignis(null, { userId: 'x', date: '2026-09-07' }));
+    await bilanzNachziehen(schreibEreignis(null, { userId: 'x', date: '2026-09-07' }));
     expect(db.schreibt).toHaveLength(0);
   });
 
@@ -166,9 +163,7 @@ describe('Eine Buchung zieht ihren Monat nach', () => {
       return Object.getPrototypeOf(db).collection.call(db, name);
     });
     await expect(
-      loeseAus(
-        bilanzNachziehen,
-        schreibEreignis({ ...TAG, date: '2026-09-30' }, { ...TAG, date: '2026-10-01' }),
+      bilanzNachziehen(schreibEreignis({ ...TAG, date: '2026-09-30' }, { ...TAG, date: '2026-10-01' }),
       ),
     ).resolves.toBeUndefined();
     kaputt.mockRestore();
@@ -194,7 +189,7 @@ describe('Der nächtliche Lauf', () => {
     */
     heuteIst('2026-10-05');
     db.seed('users', { u1: { companyId: 'perl', uid: 'monteur', app_start_date: '2020-01-01' } });
-    await laufeGeplant(bilanzenNachtlauf);
+    await bilanzenNachtlauf();
     expect(Object.keys(db.alles('monthlyStats')).sort()).toEqual([
       'perl_monteur_2026-09',
       'perl_monteur_2026-10',
@@ -210,7 +205,7 @@ describe('Der nächtliche Lauf', () => {
     */
     heuteIst('2026-10-05');
     db.seed('users', { u1: { companyId: 'perl', uid: 'ohneFeld', app_start_date: '2020-01-01' } });
-    await laufeGeplant(bilanzenNachtlauf);
+    await bilanzenNachtlauf();
     expect(Object.keys(db.alles('monthlyStats'))).toHaveLength(2);
   });
 
@@ -219,7 +214,7 @@ describe('Der nächtliche Lauf', () => {
     db.seed('users', {
       u1: { companyId: 'perl', uid: 'weg', app_start_date: '2020-01-01', active: false },
     });
-    await laufeGeplant(bilanzenNachtlauf);
+    await bilanzenNachtlauf();
     expect(db.alles('monthlyStats')).toEqual({});
   });
 
@@ -228,14 +223,14 @@ describe('Der nächtliche Lauf', () => {
     // ein Monat ohne Buchungen.
     heuteIst('2026-10-05');
     db.seed('users', { u1: { companyId: 'perl', uid: 'neu', app_start_date: '2026-10-01' } });
-    await laufeGeplant(bilanzenNachtlauf);
+    await bilanzenNachtlauf();
     expect(Object.keys(db.alles('monthlyStats'))).toEqual(['perl_neu_2026-10']);
   });
 
   it('überspringt Konten ohne Eintrittsdatum', async () => {
     heuteIst('2026-10-05');
     db.seed('users', { u1: { companyId: 'perl', uid: 'ohneStart' } });
-    await laufeGeplant(bilanzenNachtlauf);
+    await bilanzenNachtlauf();
     expect(db.alles('monthlyStats')).toEqual({});
   });
 });
@@ -246,10 +241,10 @@ describe('Der Erstaufbau', () => {
   });
 
   function ruf(rolle: string) {
-    return rufAuf<never, { mitarbeiter: number; bilanzen: number }>(bilanzenNeuAufbauen, {
-      data: {} as never,
+    return bilanzenNeuAufbauen({
+      data: {},
       auth: { uid: 'chef', token: { companyId: 'perl', role: rolle } },
-    });
+    } as AufrufKontext<unknown>) as Promise<{ mitarbeiter: number; bilanzen: number }>;
   }
 
   it('ist der Leitung vorbehalten', async () => {

@@ -62,10 +62,24 @@ export function onDocumentWritten<T>(
   return Object.assign(handler, { optionen });
 }
 
+/**
+ * `onDocumentCreated` bekommt den Schnappschuss DIREKT, nicht in `before`/
+ * `after` verpackt — es gibt beim Anlegen nur einen Zustand.
+ *
+ * Dass die drei Ereignisformen hier getrennt stehen, ist kein Formalismus:
+ * genau diesen Unterschied liest der Aufrufcode
+ * (`event.data?.data()` gegen `event.data?.after?.data()`), und ein
+ * gemeinsamer Typ hätte einen Vertipper darin durchgehen lassen.
+ */
+export interface AnlageEreignis<T> {
+  data?: { exists: boolean; data: () => T | undefined };
+  params: Record<string, string>;
+}
+
 export function onDocumentCreated<T>(
   optionen: Record<string, unknown>,
-  handler: (event: SchreibEreignis<T>) => unknown,
-): Ausgeloest<T> {
+  handler: (event: AnlageEreignis<T>) => unknown,
+): ((event: AnlageEreignis<T>) => unknown) & { optionen: Record<string, unknown> } {
   return Object.assign(handler, { optionen });
 }
 
@@ -114,37 +128,4 @@ export function protokollLeeren() {
 
 export function defineSecret(name: string) {
   return { name, value: () => '' };
-}
-
-/*
- * ZWEI SICHTEN AUF DENSELBEN HANDLER — und beide sind richtig.
- *
- * Beim Laufen bekommt der Test über `resolve.alias` den Ersatz von oben:
- * `onCall` gibt die Funktion selbst heraus, und ein Aufruf ist ein Aufruf.
- *
- * Die TYPPRÜFUNG sieht etwas anderes. `tsc` löst `firebase-functions` für die
- * Dateien unter `functions/` aus deren eigenem `node_modules` auf — also die
- * echten Typen. Dort ist das Ergebnis von `onCall` der HTTP-Einstiegspunkt
- * `(req, res) => void`, und ein Ereignis ist ein vollständiges `CloudEvent`
- * mit `specversion`, `id`, `source` und `time`.
- *
- * Das ist kein Widerspruch, den man wegtypen sollte: die Laufzeit ruft den
- * Handler tatsächlich anders auf, als sein öffentlicher Typ es beschreibt.
- * Die beiden Brücken hier machen genau diesen Übergang — einmal, mit Grund,
- * statt als `as never` an achtzig Aufrufstellen.
- */
-
-/** Einen `onCall`-Handler aufrufen, wie die Laufzeit es tut. */
-export function rufAuf<D, R>(fn: unknown, req: AufrufKontext<D>): Promise<R> {
-  return (fn as (r: AufrufKontext<D>) => Promise<R>)(req);
-}
-
-/** Einen Trigger auslösen, wie die Laufzeit es tut. */
-export function loeseAus<E>(fn: unknown, event: E): Promise<void> {
-  return Promise.resolve((fn as (e: E) => unknown)(event)) as Promise<void>;
-}
-
-/** Einen geplanten Lauf anstoßen. */
-export function laufeGeplant(fn: unknown): Promise<void> {
-  return Promise.resolve((fn as () => unknown)()) as Promise<void>;
 }
