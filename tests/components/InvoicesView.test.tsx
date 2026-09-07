@@ -771,3 +771,94 @@ describe('Eine stornierte Rechnung', () => {
     ).toBeInTheDocument();
   });
 });
+
+/**
+ * DIE UID DES KUNDEN AUF EINER GANZ GEWÖHNLICHEN RECHNUNG.
+ *
+ * GEFUNDEN BEI EINER DURCHSICHT: Die App lud die UID aus dem Kundenstamm,
+ * zeigte sie im Formular — und warf sie beim Speichern weg, sobald der
+ * Reverse-Charge-Haken aus war (`customerVatId: reverseCharge ? … : ''`).
+ *
+ * Über 10.000 € brutto an ein Unternehmen ist sie Pflichtangabe nach
+ * § 11 Abs 1 Z 2 UStG. Fehlt sie, trifft es nicht den Aussteller, sondern den
+ * KUNDEN: ihm steht der Vorsteuerabzug erst zu, wenn sämtliche Merkmale
+ * vorliegen. Bei 12.000 € sind das rund 2.000 €, die bei ihm hängenbleiben,
+ * bis jemand berichtigt.
+ */
+describe('Die UID des Kunden ohne Reverse Charge', () => {
+  it('wandert in die Rechnung, auch wenn der Haken aus ist', async () => {
+    kunden = [{ name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+
+    // Kein Haken — eine ganz gewöhnliche Rechnung mit 20 % Umsatzsteuer.
+    expect(screen.getByRole('checkbox', { name: /Bauleistung/ })).not.toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({
+      reverseCharge: false,
+      customerVatId: 'ATU55556666',
+    });
+  });
+
+  it('steht als Feld da, ohne dass jemand etwas anhaken muss', async () => {
+    // Vorher tauchte es erst unter dem Reverse-Charge-Haken auf — also genau
+    // dort, wo es bei einer gewöhnlichen Rechnung niemand sucht.
+    kunden = [{ name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+    expect(screen.getByLabelText(/UID-Nummer des Kunden/)).toHaveValue('ATU55556666');
+  });
+
+  it('sagt bei kleinen Beträgen, dass das Feld leer bleiben darf', async () => {
+    /*
+      Acht Stunden Facharbeit sind weit unter der Grenze. Eine Pflichtmeldung
+      an dieser Stelle wäre Lärm — und Lärm nimmt der einen Meldung die
+      Wirkung, auf die es ankommt.
+    */
+    await bisZurVorschau();
+    expect(screen.getByText(/Bei Privatkunden bleibt das Feld leer/)).toBeInTheDocument();
+    expect(screen.queryByText(/§ 11 Abs 1 Z 2 UStG/)).not.toBeInTheDocument();
+  });
+});
+
+describe('Über der 10.000-Euro-Grenze', () => {
+  /**
+   * 20 Tage à 8 Stunden Facharbeit: 160 h × 65 € = 10.400 € netto, mit 20 %
+   * Umsatzsteuer 12.480 € brutto. Damit ist die Empfänger-UID Pflichtangabe.
+   */
+  const GROSSAUFTRAG = Array.from({ length: 20 }, (_, i) => ({
+    ...ZEIT,
+    id: `z-gross-${i}`,
+    date: `2026-08-${String(i + 1).padStart(2, '0')}`,
+  }));
+
+  it('meldet die fehlende UID mit Bestimmung und Folge', async () => {
+    zeiten = GROSSAUFTRAG;
+    await bisZurVorschau();
+
+    const meldung = await screen.findByRole('alert');
+    expect(meldung.textContent).toContain('§ 11 Abs 1 Z 2 UStG');
+    expect(meldung.textContent).toContain('Vorsteuerabzug');
+  });
+
+  it('schweigt, sobald die UID aus dem Kundenstamm dasteht', async () => {
+    zeiten = GROSSAUFTRAG;
+    kunden = [{ name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+
+    expect(screen.queryByText(/§ 11 Abs 1 Z 2 UStG/)).not.toBeInTheDocument();
+  });
+
+  it('sperrt die Rechnung NICHT — die App weiss nicht, wer Unternehmer ist', async () => {
+    /*
+      Eine Rechnung über 12.000 € an eine Privatperson ist vollkommen in
+      Ordnung und braucht keine Empfänger-UID. Ob der Empfänger Unternehmer
+      ist, steht in keinem Datenfeld. Deshalb wird gewarnt und nicht gesperrt
+      — anders als bei Reverse Charge, wo die UID den Übergang der
+      Steuerschuld belegt und ohne sie gar nichts geht.
+    */
+    zeiten = GROSSAUFTRAG;
+    await bisZurVorschau();
+    expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeEnabled();
+  });
+});
