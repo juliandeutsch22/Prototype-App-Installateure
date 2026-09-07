@@ -481,12 +481,30 @@ export interface Material {
    * die Stunden liefen automatisch durch, das Material tippte das Büro von
    * Hand nach — bei einem Installateur schnell die Hälfte der Summe.
    *
-   * Der EINKAUFSpreis steht hier bewusst nicht. Er gehört zur
-   * Nachkalkulation, also zur Marge, und die ist Geschäftsführungssache; auf
-   * dem Katalog, den die Verwaltung pflegt, wäre er am falschen Ort. Wer ihn
-   * später braucht, führt ihn als eigenes Feld mit eigener Grenze ein.
+   * Der EINKAUFSpreis steht getrennt darunter, mit eigener Schreibgrenze:
+   * er ist Margendaten und gehört der Geschäftsführung, während diesen Preis
+   * hier die Verwaltung pflegt.
    */
   verkaufspreis?: number;
+  /**
+   * Einkaufspreis netto je Einheit, in Euro — was der BETRIEB zahlt.
+   *
+   * Die andere Hälfte der Rechnung. Der Verkaufspreis darüber bestimmt den
+   * Erlös, dieser die Kosten; wer beide verwechselt, bekommt in der
+   * Nachkalkulation für jedes Material einen Deckungsbeitrag von null und
+   * hält ihn für ein Ergebnis — dieselbe Falle wie beim Stundensatz.
+   *
+   * ÄNDERN DARF IHN NUR DIE GESCHÄFTSFÜHRUNG, nicht die Verwaltung, die den
+   * Katalog sonst pflegt: er ist Margendaten. Die Grenze steht in
+   * `firestore.rules` und läuft zwischen den FELDERN, nicht zwischen den
+   * Rollen. Was sie NICHT kann, ist das Lesen verhindern — Firestore gibt ein
+   * Dokument ganz oder gar nicht heraus.
+   *
+   * NICHT GESETZT heisst „nicht hinterlegt", nicht „kostet nichts". Die
+   * Nachkalkulation nennt solche Artikel beim Namen, statt sie mit null
+   * anzusetzen.
+   */
+  einkaufspreis?: number;
 }
 
 /**

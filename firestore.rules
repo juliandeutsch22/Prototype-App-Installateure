@@ -301,7 +301,24 @@ service cloud.firestore {
     // mit dem, was die Oberflaeche anbietet.
     match /materials/{id} {
       allow read: if ownsExisting();
-      allow create: if (hasRole(['Verwaltung']) || isLeadership()) && ownsIncoming();
+      /*
+        DER EINKAUFSPREIS IST MARGENDATEN — ihn setzt nur die
+        Geschäftsführung.
+
+        Den Katalog pflegt die Verwaltung: Bezeichnung, Einheit, Bestand,
+        Verkaufspreis. Was der Betrieb im EINKAUF zahlt, gehört dagegen zur
+        Nachkalkulation, und die sieht auch die Projektleitung nicht. Die
+        Grenze läuft deshalb zwischen den Feldern, nicht zwischen den Rollen.
+
+        WAS SIE NICHT KANN: das Lesen verhindern. Firestore gibt ein Dokument
+        ganz oder gar nicht heraus; wer den Katalog lesen darf — und das darf
+        jeder im Betrieb, der Monteur braucht ihn zum Anfordern —, sieht auch
+        dieses Feld, wenn er direkt abfragt. Geschützt ist das ÄNDERN. Ein
+        Einkaufspreis ist kein Geheimnis, aber eine Zahl, die niemand
+        nebenbei verstellen soll.
+      */
+      allow create: if (hasRole(['Verwaltung']) || isLeadership()) && ownsIncoming()
+        && (!('einkaufspreis' in request.resource.data) || isTopLevel());
       // Die Grenze laeuft zwischen den FELDERN, nicht zwischen den Rollen.
       //
       // Der Monteur bewegt den Bestand in seinem Alltag an zwei Stellen:
@@ -313,6 +330,8 @@ service cloud.firestore {
       // hasOnly, nicht hasAny: sonst reichte ein mitgeschicktes `stock`, um
       // Preis und Bezeichnung gleich mit zu aendern.
       allow update: if ownsExisting() && ownsIncoming() && companyUnchanged()
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['einkaufspreis'])
+            || isTopLevel())
         && (hasRole(['Verwaltung']) || isLeadership()
             || (signedIn()
                 && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock'])));

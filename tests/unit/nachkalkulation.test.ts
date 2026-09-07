@@ -128,7 +128,7 @@ describe('Nachkalkulation', () => {
 
   it('warnt bei dünner Marge und schlägt bei Verlust aus', () => {
     // Erlös 500, Kosten 420 -> 16 % Deckungsbeitrag. Formal positiv, aber nach
-    // Material und Gemeinkosten bleibt davon nichts.
+    // Gemeinkosten bleibt davon nichts.
     const duenn = rechneBaustelle('B-001', 'Huber', [zeit(600)], [rechnung(500)], undefined, kosten);
     expect(margenTon(duenn)).toBe('warning');
 

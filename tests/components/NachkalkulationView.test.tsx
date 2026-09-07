@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import type { Company, Invoice, Project, Quote, TimeEntry } from '@/types';
+import type { Company, Invoice, Material, Project, Quote, TimeEntry, WorkSheet } from '@/types';
 
 /**
  * Die Nachkalkulation — die einzige Ansicht der App, an der jemand
@@ -81,6 +81,19 @@ vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesForProjects: (c: string, n: string[]) => listEntriesForProjects(c, n),
 }));
 vi.mock('@/lib/db/quotes', () => ({ listRecentQuotes: vi.fn(async () => angebote) }));
+
+/*
+  Material zählt seit dem 07.09.2026 mit. Die Ansicht holt dafür den
+  Materialstamm (die Einkaufspreise) und je Baustelle die unterschriebenen
+  Handwerksscheine (die Mengen).
+*/
+let katalog: Material[] = [];
+let scheine: Array<WorkSheet & { id: string }> = [];
+const listWorkSheetsForProject = vi.fn(async () => scheine);
+vi.mock('@/lib/db/materials', () => ({ listMaterials: vi.fn(async () => katalog) }));
+vi.mock('@/lib/db/workSheets', () => ({
+  listWorkSheetsForProject: () => listWorkSheetsForProject(),
+}));
 vi.mock('@/lib/db/invoices', () => ({
   subscribeRecentInvoices: (
     _c: string,
@@ -129,10 +142,13 @@ beforeEach(() => {
     costRates: { fach: 40, helper: 25 },
   };
   projekte = [];
+  katalog = [];
+  scheine = [];
   eintraege = [];
   rechnungen = [];
   angebote = [];
   listEntriesForProjects.mockClear();
+  listWorkSheetsForProject.mockClear();
 });
 
 describe('Ohne interne Kostensätze', () => {
@@ -252,5 +268,81 @@ describe('Mit Kostensätzen', () => {
   it('sagt bei leerer Auswahl, dass nichts da ist', async () => {
     zeige();
     expect(await screen.findByText('Keine Baustelle in dieser Auswahl.')).toBeInTheDocument();
+  });
+});
+
+/**
+ * Material in der Ansicht — die Verdrahtung, nicht die Rechnung.
+ *
+ * Dass `materialkosten()` richtig rechnet, steht in `tests/unit`. Hier geht es
+ * um die Naht davor und danach: kommt der Materialstamm überhaupt an, werden
+ * die Scheine je Baustelle geholt, und steht das Ergebnis so da, dass jemand
+ * die Lücke sieht, statt sie für eine Null zu halten.
+ */
+describe('Material im Ergebnis', () => {
+  it('zieht es ab und schreibt es in die Zeile', async () => {
+    projekte = [projekt('2026-001')];
+    rechnungen = [rechnung('2026-001', 2000)];
+    katalog = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 0, einkaufspreis: 3.5 } as Material];
+    scheine = [
+      {
+        id: 's1', companyId: 'perl', projectNumber: '2026-001', status: 'Unterschrieben',
+        material: [{ name: 'Eckventil', menge: 100 }],
+      } as unknown as WorkSheet & { id: string },
+    ];
+    zeige();
+
+    const zeile = await screen.findByText(/− Material/);
+    // Erlös 2000 − Personal 0 − Material 350 = 1650. Die Zahl selbst zählt:
+    // stünde hier 2000, wäre das Material zwar geholt, aber nicht abgezogen.
+    expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1650,00');
+  });
+
+  it('nennt Artikel ohne Einkaufspreis, statt sie mit null anzusetzen', async () => {
+    projekte = [projekt('2026-001')];
+    rechnungen = [rechnung('2026-001', 2000)];
+    katalog = [];
+    scheine = [
+      {
+        id: 's1', companyId: 'perl', projectNumber: '2026-001', status: 'Unterschrieben',
+        material: [{ name: 'Spezialdichtung', menge: 2 }],
+      } as unknown as WorkSheet & { id: string },
+    ];
+    zeige();
+
+    expect(await screen.findByText(/Spezialdichtung/)).toBeInTheDocument();
+    expect(screen.getByText(/Deckungsbeitrag ist um diesen Betrag zu hoch/)).toBeInTheDocument();
+    // Und keine Materialzeile: es ist nichts eingerechnet worden, ein
+    // „− Material 0,00 €" läse sich wie „kein Material verbaut".
+    expect(screen.queryByText(/− Material/)).not.toBeInTheDocument();
+  });
+
+  it('holt die Scheine je Baustelle, nicht einmal für alle', async () => {
+    // Die Abfrage kann nur je Baustelle gestellt werden. Dass es genau so
+    // viele sind wie angezeigte Baustellen, ist die Wachstumsbremse: die
+    // Obergrenze von 25 gilt damit auch hier.
+    projekte = [projekt('2026-001'), projekt('2026-002')];
+    rechnungen = [rechnung('2026-001', 2000), rechnung('2026-002', 2000)];
+    zeige();
+
+    await screen.findAllByText(/Kunde 2026-00/);
+    expect(listWorkSheetsForProject).toHaveBeenCalledTimes(2);
+  });
+
+  it('rechnet weiter, wenn die Scheine einer Baustelle nicht ladbar sind', async () => {
+    /*
+      Die Scheine sind eine ZUSATZangabe. Fiele die ganze Auswertung aus, weil
+      eine Abfrage scheitert, wäre die Ansicht bei jedem Rechteproblem leer —
+      der Deckungsbeitrag vor Material ist immer noch eine Auskunft.
+    */
+    projekte = [projekt('2026-001')];
+    rechnungen = [rechnung('2026-001', 2000)];
+    listWorkSheetsForProject.mockRejectedValueOnce(new Error('nicht lesbar'));
+    zeige();
+
+    // Nicht /Erlös/: so heisst auch die Überschrift der Karte.
+    const zeile = await screen.findByText(/− Personal/);
+    expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('2000,00');
+    expect(screen.queryByText(/− Material/)).not.toBeInTheDocument();
   });
 });
