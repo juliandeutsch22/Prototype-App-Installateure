@@ -246,7 +246,22 @@ export default function SettingsView() {
               <option value="0.2">20 %</option>
               <option value="0.13">13 %</option>
               <option value="0.1">10 %</option>
-              <option value="0">0 % (Reverse Charge)</option>
+              {/*
+                „0 % (Reverse Charge)" STAND HIER UND WAR EINE FALLE.
+
+                Die Auswahl setzte nur den Satz auf null. Weder der
+                Pflichthinweis nach § 11 Abs 1a UStG noch die UID des
+                Empfängers kamen dabei auf den Beleg — die Rechnung sah aus
+                wie Reverse Charge und war keine. Und sie galt als VORGABE für
+                jede Rechnung des Betriebs, auch die an Privatkunden.
+
+                Der Übergang der Steuerschuld hängt an der einzelnen Leistung,
+                nicht am Betrieb. Er wird deshalb je Rechnung angehakt, in der
+                Vorschau beim Erstellen. Die Null bleibt als Satz wählbar — es
+                gibt echte Nullfälle wie die Ausfuhrlieferung —, aber ohne die
+                Beschriftung, die etwas anderes verspricht.
+              */}
+              <option value="0">0 %</option>
             </SelectField>
             <InputField
               id="r-due"
