@@ -839,6 +839,64 @@ export interface InvoiceDiscount {
 }
 
 /** followUps/{id} — neuer optionaler Typ aus dem KI-Magic-Moment (Spec §6). */
+/**
+ * wartungen/{id} — eine wiederkehrende Wartung, die der Betrieb schuldet.
+ *
+ * NICHT DASSELBE WIE EIN TERMIN. Ein Termin steht im Einsatzplan und ist
+ * vorbei, wenn er vorbei ist. Diese Vereinbarung überlebt ihre Ausführung:
+ * beim Eintragen der erledigten Wartung rückt der nächste Termin nach. Genau
+ * darin liegt der Wert — der Betrieb muss sich nichts merken.
+ */
+export interface Wartung {
+  id: string;
+  companyId: string;
+  /** Der Kunde, dem die Anlage gehört. Ohne ihn gäbe es niemanden anzurufen. */
+  customerId: string;
+  /**
+   * Kundenname als Kopie — dieselbe Überlegung wie bei den Baustellen: die
+   * Liste zeigt den Namen und soll dafür nicht die Kundensammlung laden.
+   */
+  customerName: string;
+  /** Was gewartet wird, in Worten: „Therme Vaillant ecoTEC, Keller". */
+  anlage: string;
+  /**
+   * Wo die Anlage steht.
+   *
+   * AUSDRÜCKLICH NICHT die Rechnungsadresse des Kunden. Eine Hausverwaltung
+   * hat eine Adresse und zwanzig Heizungen an zwanzig anderen. Leer heisst:
+   * es gilt die Kundenadresse.
+   */
+  address?: string;
+  /** Abstand zwischen zwei Wartungen, in ganzen Monaten. */
+  intervallMonate: number;
+  /** Wann zuletzt gewartet wurde. Fehlt bei einer neu übernommenen Anlage. */
+  zuletztAm?: string;
+  /**
+   * Der nächste Termin — abgeleitet, aber gespeichert.
+   *
+   * Bewusst redundant zu `zuletztAm` + `intervallMonate`: nur ein
+   * gespeichertes Feld lässt sich abfragen. Berechnet würde die Frage „was ist
+   * fällig?" jedes Dokument des Betriebs in den Browser laden. Geschrieben
+   * wird es an genau einer Stelle (`wartungErledigt`), gerechnet an genau
+   * einer (`naechsterTermin`).
+   */
+  faelligAm: string;
+  /**
+   * Ruht die Vereinbarung?
+   *
+   * Gekündigte Verträge werden nicht gelöscht: die Historie „bis 2027
+   * gewartet" ist der Grund, warum man den Kunden zwei Jahre später wieder
+   * anruft.
+   */
+  aktiv: boolean;
+  /** Freitext — Gerätenummer, Schlüsselübergabe, wer aufsperrt. */
+  hinweis?: string;
+  /** Baustelle, auf der zuletzt gewartet wurde — für den Weg in die Historie. */
+  letzteBaustelle?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 export interface FollowUp {
   id: string;
   companyId: string;

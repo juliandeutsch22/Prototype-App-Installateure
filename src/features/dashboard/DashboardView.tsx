@@ -33,6 +33,7 @@ import Metric, { MetricRow } from '@/components/Metric';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import LaufWarnung from './LaufWarnung';
+import WartungHinweis from './WartungHinweis';
 import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
@@ -440,6 +441,13 @@ export default function DashboardView() {
         eine dauerhafte grüne Kachel wäre nach zwei Wochen unsichtbar.
       */}
       <LaufWarnung />
+
+      {/*
+        Direkt danach die Wartungen: das Einzige auf dieser Seite, das UMSATZ
+        kostet, wenn man es übersieht — und zwar lautlos. Der Kunde meldet
+        sich nicht, wenn niemand kommt.
+      */}
+      <WartungHinweis />
 
       {/*
         Fehlende Zeiten statt Saldo.

@@ -1762,3 +1762,82 @@ describe('Die Überwachung schreibt nur der Server', () => {
     );
   });
 });
+
+describe('Wartungen — anlegen und verschieben darf nur die Leitung', () => {
+  const wartung = {
+    companyId: 'companyA',
+    customerId: 'k1',
+    customerName: 'Bäckerei Stein',
+    anlage: 'Therme Vaillant ecoTEC',
+    intervallMonate: 12,
+    faelligAm: '2027-03-15',
+    aktiv: true,
+  };
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'wartungen', 'w1'), wartung);
+    });
+  });
+
+  it('der Monteur darf lesen — er fährt hin', async () => {
+    // Er sieht vor Ort ohnehin, was dort steht; eine leere Zeile wäre nur
+    // ein Rätsel.
+    await assertSucceeds(getDoc(doc(ctxA_employee().firestore(), 'wartungen', 'w1')));
+    await assertSucceeds(getDoc(doc(ctxA_verw().firestore(), 'wartungen', 'w1')));
+  });
+
+  it('aber nicht schreiben', async () => {
+    /*
+      DER KERN. Den Termin zu verschieben heisst, eine Zusage gegenüber dem
+      Kunden zu verschieben — und beim Eintragen einer erledigten Wartung
+      rückt er gleich um ein Jahr. Wer das darf, entscheidet über den
+      Wartungsumsatz des nächsten Jahres.
+    */
+    // `firestore()` je Kontext EINMAL: ein zweiter Aufruf auf demselben
+    // Kontext lässt die Bibliothek über bereits gesetzte Einstellungen
+    // stolpern.
+    for (const ctx of [ctxA_employee(), ctxA_verw(), ctxA_buch()]) {
+      const db = ctx.firestore();
+      await assertFails(updateDoc(doc(db, 'wartungen', 'w1'), { faelligAm: '2030-01-01' }));
+      await assertFails(deleteDoc(doc(db, 'wartungen', 'w1')));
+    }
+  });
+
+  it('die Leitung darf anlegen, ändern und löschen', async () => {
+    await assertSucceeds(
+      setDoc(doc(ctxA_gf().firestore(), 'wartungen', 'w2'), { ...wartung, anlage: 'Etagenheizung' }),
+    );
+    await assertSucceeds(
+      updateDoc(doc(ctxA_pl().firestore(), 'wartungen', 'w1'), {
+        zuletztAm: '2026-03-15',
+        faelligAm: '2027-03-15',
+      }),
+    );
+    await assertSucceeds(deleteDoc(doc(ctxA_gf().firestore(), 'wartungen', 'w1')));
+  });
+
+  it('die fremde Firma sieht und ändert nichts', async () => {
+    await assertFails(getDoc(doc(ctxB_admin().firestore(), 'wartungen', 'w1')));
+    await assertFails(
+      updateDoc(doc(ctxB_admin().firestore(), 'wartungen', 'w1'), { faelligAm: '2030-01-01' }),
+    );
+  });
+
+  it('und niemand schiebt eine Wartung in eine fremde Firma', async () => {
+    /*
+      Die Vereinbarung trägt Kundenname und Adresse; sie umzuhängen wäre ein
+      Weg, Kundendaten aus dem Mandanten herauszutragen.
+
+      ZUR EHRLICHKEIT: gestoppt wird das schon von `ownsIncoming()` — die
+      neue companyId gehörte nicht zum Token. Das zusätzliche
+      `companyUnchanged()` in der Regel ist an dieser Stelle redundant und
+      steht dort, weil jede andere Sammlung dieser Datei es trägt; nimmt man
+      es heraus, bleibt dieser Test grün. Geprüft wird hier also das
+      VERHALTEN, nicht die einzelne Bedingung.
+    */
+    await assertFails(
+      updateDoc(doc(ctxA_gf().firestore(), 'wartungen', 'w1'), { companyId: 'companyB' }),
+    );
+  });
+});

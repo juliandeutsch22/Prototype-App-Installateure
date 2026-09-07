@@ -34,6 +34,7 @@ export type ModulId =
   | 'angebote'
   | 'rechnungen'
   | 'nachkalkulation'
+  | 'wartung'
   | 'zeitkonten'
   | 'ki';
 
@@ -123,6 +124,22 @@ export const MODULE: Modul[] = [
     standard: true,
     abhaengigVon: ['rechnungen'],
     betrifft: ['Nachkalkulation'],
+  },
+  {
+    id: 'wartung',
+    name: 'Wiederkehrende Wartungen',
+    zweck: 'Wartungsvereinbarungen führen und sehen, was fällig wird.',
+    /*
+      EINGESCHALTET, obwohl neu.
+
+      Die jährliche Thermenwartung ist bei einem Installateur kein Zusatz,
+      sondern der planbare Teil des Jahres. Ein Bereich, den man erst finden
+      muss, um ihn einzuschalten, wird nicht gefunden — und ein Betrieb, der
+      keine Wartungen führt, sieht eine leere Liste und schaltet sie in zwei
+      Klicks ab. Das ist die billigere der beiden Fehlannahmen.
+    */
+    standard: true,
+    betrifft: ['Wartungen'],
   },
   {
     id: 'zeitkonten',

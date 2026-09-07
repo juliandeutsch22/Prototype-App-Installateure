@@ -38,6 +38,11 @@ export const EXPORTABLE = [
   'workSheets',
   'quotes',
   'customers',
+  // Die Wartungsvereinbarungen. Sie sind das Einzige im Bestand, das in die
+  // ZUKUNFT zeigt: welche Anlage wann wieder fällig wird. Wer den Betrieb
+  // wechselt und sie nicht mitnimmt, verliert nicht Historie, sondern
+  // Aufträge.
+  'wartungen',
   'vacations',
   'invoices',
   'counters',
