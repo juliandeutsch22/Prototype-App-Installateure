@@ -485,6 +485,25 @@ service cloud.firestore {
       allow delete: if isLeadership() && ownsExisting();
     }
 
+    // --- wartungen: wiederkehrende Wartungen ---
+    //
+    // Lesen darf das ganze Büro und der Monteur: er fährt hin und will wissen,
+    // was dort steht und wann zuletzt gewartet wurde.
+    //
+    // Ändern darf nur die Leitung. Wer den Termin verschiebt, verschiebt eine
+    // Verpflichtung des Betriebs gegenüber dem Kunden — und beim Eintragen
+    // einer erledigten Wartung rückt der nächste Termin um ein Jahr nach.
+    // Beides ist keine Notiz, sondern eine Zusage.
+    match /wartungen/{id} {
+      allow read: if ownsExisting();
+      allow create: if isLeadership() && ownsIncoming();
+      // `companyUnchanged()` ist hier von `ownsIncoming()` bereits gedeckt und
+      // steht nur, damit diese Sammlung dieselbe Form hat wie alle anderen.
+      allow update: if isLeadership() && ownsExisting() && ownsIncoming()
+        && companyUnchanged();
+      allow delete: if isLeadership() && ownsExisting();
+    }
+
     // --- vacations: Urlaubsanträge ---
     //
     // DIE ENTSCHEIDENDE GRENZE IST, WER GENEHMIGT. Stünde sie nur in der

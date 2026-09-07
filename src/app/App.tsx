@@ -37,6 +37,7 @@ const AdminOrdersView = lazy(() => import('@/features/orders/AdminOrdersView'));
 const StockView = lazy(() => import('@/features/orders/StockView'));
 const AdminProjectsView = lazy(() => import('@/features/projects/AdminProjectsView'));
 const CustomersView = lazy(() => import('@/features/customers/CustomersView'));
+const WartungenView = lazy(() => import('@/features/maintenance/WartungenView'));
 const QuotesView = lazy(() => import('@/features/quotes/QuotesView'));
 const NachkalkulationView = lazy(() => import('@/features/costing/NachkalkulationView'));
 const WorkSheetView = lazy(() => import('@/features/worksheets/WorkSheetView'));
@@ -190,6 +191,7 @@ function AppRoutes() {
       <Route path="/costing" element={<RequireNav path="/costing"><NachkalkulationView /></RequireNav>} />
       <Route path="/quotes" element={<RequireNav path="/quotes"><QuotesView /></RequireNav>} />
       <Route path="/customers" element={<RequireNav path="/customers"><CustomersView /></RequireNav>} />
+      <Route path="/wartungen" element={<RequireNav path="/wartungen"><WartungenView /></RequireNav>} />
       <Route
         path="/admin-projects"
         element={<RequireNav path="/admin-projects"><AdminProjectsView /></RequireNav>}
