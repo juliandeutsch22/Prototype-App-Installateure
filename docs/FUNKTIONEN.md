@@ -82,7 +82,7 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-969 automatische Tests klingen nach viel. Aufgeschlüsselt:
+970 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
@@ -108,11 +108,18 @@ und eine Installation beauftragen (Übergang). Ohne die UID des Empfängers
 lässt sich die Rechnung nicht anlegen — ohne sie ist der Übergang nicht
 belegt.
 
-> **Vorgefunden wurde eine Falle:** im USt-Feld der Einstellungen stand
-> „0 % (Reverse Charge)". Das setzte nur den Satz auf null — weder der
-> Pflichthinweis noch die UID kamen auf den Beleg, und es hätte als Vorgabe
-> für JEDE Rechnung gegolten, auch die an Privatkunden. Die Beschriftung ist
-> weg; die Null bleibt als echter Nullfall wählbar.
+> **Vorgefunden wurde eine Falle, und zwar ZWEIMAL:** im USt-Feld stand
+> „0 % (Reverse Charge)" — einmal in den Einstellungen, einmal in einer
+> zweiten Fassung desselben Formulars in der Rechnungsansicht. Das setzte nur
+> den Satz auf null; weder der Pflichthinweis noch die UID kamen auf den
+> Beleg, und als Vorgabe hätte es für JEDE Rechnung gegolten, auch die an
+> Privatkunden.
+>
+> Beim Beheben ist mir die zweite Stelle durchgegangen — aufgefallen ist es
+> erst beim Durchsuchen des ausgelieferten Bundles. Dagegen hilft kein
+> Ansichtstest, sondern ein statischer Abgleich über ALLE Dateien
+> (`tests/unit/reverseChargeKeinSatz.test.ts`), dasselbe Muster wie bei
+> Navigation ↔ Routen.
 
 **Die Rechnung schliesst den Kreis erst seit dem 07.09.2026.** Bis dahin
 verrechnete diese App ausschliesslich STUNDEN — bei einem Installateur schnell
