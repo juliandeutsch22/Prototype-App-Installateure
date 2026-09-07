@@ -4,6 +4,7 @@ import { updateCompany } from '@/lib/db/company';
 import { isTopLevel } from '@/lib/permissions';
 import { logoAufbereiten, LogoFehler, dataUrlBytes } from '@/lib/logoAufbereiten';
 import { istZeichenbar } from '@/lib/pdfBriefkopf';
+import { urteil } from '@/lib/kontrast';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -25,6 +26,11 @@ import { ErrorState } from '@/components/States';
  * Erscheinungsbild ein, und eine falsch gewählte Kombination macht Text
  * unlesbar. Das gehört mit einer Vorschau und Kontrastprüfung gebaut, nicht
  * nebenbei in ein Formular für Anschriften.
+ *
+ * SEIT DEM 07.09.2026 SIND SIE DA — mit genau dieser Vorschau und dieser
+ * Prüfung. Die Mechanik dahinter gab es längst (`lib/tenant.ts` setzt die
+ * CSS-Variablen); gefehlt hat der Weg, sie zu pflegen, ohne sich die
+ * Oberfläche unlesbar zu machen.
  */
 export default function FirmendatenView() {
   const { user, company, reloadCompany } = useAuth();
@@ -39,6 +45,10 @@ export default function FirmendatenView() {
   const [bic, setBic] = useState(company?.bic ?? '');
   const [bankName, setBankName] = useState(company?.bankName ?? '');
   const [logoUrl, setLogoUrl] = useState(company?.logoUrl ?? '');
+  const [brandColor, setBrandColor] = useState(company?.brandColor ?? '');
+  const [brandForeground, setBrandForeground] = useState(company?.brandForeground ?? '');
+  const [accentColor, setAccentColor] = useState(company?.accentColor ?? '');
+  const [accentForeground, setAccentForeground] = useState(company?.accentForeground ?? '');
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +110,10 @@ export default function FirmendatenView() {
         bic: bic.trim(),
         bankName: bankName.trim(),
         logoUrl,
+        brandColor: brandColor.trim(),
+        brandForeground: brandForeground.trim(),
+        accentColor: accentColor.trim(),
+        accentForeground: accentForeground.trim(),
       });
       await reloadCompany();
       toast.success('Firmendaten gespeichert');
@@ -239,6 +253,91 @@ export default function FirmendatenView() {
               onChange={(e) => setBankName(e.target.value)}
             />
           </FormGrid>
+        </Card>
+
+        {/*
+          DIE MARKENFARBEN — mit Vorschau und Prüfung, oder gar nicht.
+
+          Zwei Werte, die über die ganze Oberfläche wirken: `--brand` trägt
+          jeden Hauptknopf, `--accent` jede Hervorhebung. Wer sie aussucht,
+          weiss ja, was auf dem Knopf steht — der Monteur im Keller bei
+          schlechtem Licht nicht.
+
+          Die Prüfung SPERRT NICHT, sie sagt. Es gibt Betriebe mit einer
+          Hausfarbe, die knapp unter der Schwelle liegt, und ihnen die eigene
+          Marke zu verbieten wäre anmassend. Aber niemand soll sie
+          versehentlich unlesbar machen.
+        */}
+        <Card
+          title="Farben"
+          hint={
+            'Die Hausfarben des Betriebs. Sie färben Knöpfe und Hervorhebungen in der ganzen ' +
+            'App — die Belege bleiben davon unberührt. Leer lassen heisst: die Vorgabe gilt.'
+          }
+        >
+          <FormGrid>
+            <InputField
+              id="fd-brand"
+              label="Hauptfarbe (#rrggbb)"
+              placeholder="#003366"
+              value={brandColor}
+              onChange={(e) => setBrandColor(e.target.value)}
+            />
+            <InputField
+              id="fd-brand-fg"
+              label="Schrift darauf"
+              placeholder="#ffffff"
+              value={brandForeground}
+              onChange={(e) => setBrandForeground(e.target.value)}
+            />
+            <InputField
+              id="fd-accent"
+              label="Akzentfarbe (#rrggbb)"
+              placeholder="#c8102e"
+              value={accentColor}
+              onChange={(e) => setAccentColor(e.target.value)}
+            />
+            <InputField
+              id="fd-accent-fg"
+              label="Schrift darauf"
+              placeholder="#ffffff"
+              value={accentForeground}
+              onChange={(e) => setAccentForeground(e.target.value)}
+            />
+          </FormGrid>
+
+          <div className="mt-4 space-y-3">
+            {(
+              [
+                ['Hauptfarbe', brandColor, brandForeground],
+                ['Akzentfarbe', accentColor, accentForeground],
+              ] as const
+            ).map(([bezeichnung, hintergrund, schrift]) => {
+              if (!hintergrund && !schrift) return null;
+              const u = urteil(hintergrund, schrift);
+              return (
+                <div key={bezeichnung} className="flex flex-wrap items-center gap-3">
+                  {/*
+                    Die Vorschau zeigt, was der Nutzer bekommt: ein Knopf, wie
+                    er später überall steht. Eine Farbfläche allein sagt nichts
+                    über Lesbarkeit.
+                  */}
+                  <span
+                    className="inline-flex min-h-touch items-center rounded px-4 py-2 text-sm font-semibold"
+                    style={{ backgroundColor: hintergrund || undefined, color: schrift || undefined }}
+                  >
+                    {bezeichnung}
+                  </span>
+                  <span
+                    className={`text-sm ${u.reicht ? 'text-ink-muted' : 'text-warning'}`}
+                    role={u.reicht ? undefined : 'alert'}
+                  >
+                    {u.text}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </Card>
 
         {error && <ErrorState message={error} />}

@@ -55,7 +55,19 @@ export interface Company {
   bankName?: string;
   vatId?: string; // UID-Nummer, z. B. "ATU12345678"
   companyRegister?: string; // FN
-  defaultVatRate?: number; // z. B. 0.20
+  /*
+    `defaultVatRate` STAND HIER UND WURDE NIE GELESEN.
+
+    Drei Einrichtungsskripte schrieben es, kein einziger Aufrufer holte es je
+    ab: gerechnet wird ausschliesslich mit `rates.vatRate`, und das ist in den
+    Einstellungen gepflegt. Ein zweites Feld für dieselbe Zahl ist die
+    klassische Falle — wer es setzt, wundert sich, warum die Rechnung eine
+    andere Steuer ausweist.
+
+    Bestehende Firmendokumente tragen es noch; Firestore stört das nicht, und
+    es aus ihnen zu entfernen wäre eine Wanderung durch fremde Daten für
+    nichts.
+  */
   /** Stundensätze und Zuschläge, gepflegt von der Geschäftsführung. */
   rates?: InvoiceRates;
   /**

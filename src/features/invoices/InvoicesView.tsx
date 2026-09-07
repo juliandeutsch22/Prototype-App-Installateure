@@ -739,7 +739,21 @@ export default function InvoicesView() {
                         type="number"
                         min="0"
                         step="0.01"
-                        className="tnum min-h-touch w-28 rounded border border-line bg-surface px-2 py-1 text-right text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        /*
+                          EINE NULL FÄLLT AUF, statt sich als Zahl zu tarnen.
+
+                          Der Hinweis über der Tabelle nennt die betroffenen
+                          Artikel — in einer Rechnung mit zwanzig Zeilen ist
+                          das trotzdem eine Suche. Ein Preis von 0,00 € sieht
+                          aus wie ein Preis; nur die Farbe sagt, dass hier
+                          noch eine Entscheidung fehlt.
+                        */
+                        className={
+                          'tnum min-h-touch w-28 rounded border bg-surface px-2 py-1 text-right text-sm text-ink focus:outline-none focus:ring-2 ' +
+                          (p.unitPrice === 0
+                            ? 'border-warning focus:border-warning focus:ring-warning/30'
+                            : 'border-line focus:border-brand focus:ring-brand/30')
+                        }
                         value={String(p.unitPrice)}
                         onChange={(e) => setPos(i, { unitPrice: Number(e.target.value) || 0 })}
                       />

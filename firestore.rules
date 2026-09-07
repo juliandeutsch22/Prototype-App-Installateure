@@ -140,7 +140,20 @@ service cloud.firestore {
     // aber schon, und der zählt.
     match /companies/{companyId} {
       allow read: if signedIn() && companyId == tokenCompany();
-      allow update: if isTopLevel() && companyId == tokenCompany();
+      // DIE MODULE SIND ADMINISTRATIONSSACHE, der Rest der Firmendaten nicht.
+      //
+      // Saetze, Briefkopf, Bankverbindung und Genehmigende sind das taegliche
+      // Geschaeft der Geschaeftsfuehrung. Die Modulliste ist etwas anderes:
+      // sie entscheidet, welche BEREICHE der Betrieb ueberhaupt hat, und ein
+      // versehentlich abgeschaltetes Modul nimmt allen den Weg zu ihrer
+      // Arbeit — sichtbar erst, wenn jemand ihn sucht.
+      //
+      // hasAny, nicht hasOnly: die Geschaeftsfuehrung darf alles AUSSER den
+      // Modulen aendern. Kaeme `modules` in einem Schreibvorgang mit, waere
+      // sonst der ganze Vorgang die Luecke.
+      allow update: if isTopLevel() && companyId == tokenCompany()
+        && (isAdmin()
+            || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['modules']));
     }
 
     /**

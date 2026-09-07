@@ -771,7 +771,20 @@ describe('Urlaub — Genehmigende sind einstellbar', () => {
  * eine Empfehlung. Und wer sich ein Modul selbst wieder einschaltet, umgeht
  * keine Rechte, aber eine betriebliche Anweisung.
  */
-describe('Module — die Liste aendert nur die Leitung', () => {
+/**
+ * Die Module — EINRICHTUNG, nicht Führung.
+ *
+ * Bis zum 07.09.2026 durfte die Geschäftsführung sie stellen. Aus dem Betrieb
+ * kam die Ansage, dass das enger gehört, und das Argument überzeugt: Sätze,
+ * Briefkopf und Bankverbindung sind ihr Tagesgeschäft. Die Modulliste
+ * entscheidet dagegen, welche BEREICHE es überhaupt gibt — ein versehentlich
+ * abgeschaltetes Modul nimmt allen den Weg zu ihrer Arbeit, und zwar
+ * unsichtbar: der Reiter ist einfach weg, und niemand weiss, warum.
+ *
+ * Dass die Oberfläche den Reiter nur der Administration zeigt, ist eine
+ * Bequemlichkeit. Die GRENZE steht hier.
+ */
+describe('Module stellt nur die Administration', () => {
   async function seed(module?: Record<string, boolean>) {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'companies', 'companyA'), {
@@ -781,19 +794,19 @@ describe('Module — die Liste aendert nur die Leitung', () => {
     });
   }
 
-  it('die Geschaeftsfuehrung schaltet ein Modul ab', async () => {
+  it('der Administrator schaltet ein Modul ab', async () => {
     await seed();
     await assertSucceeds(
-      updateDoc(doc(ctxA_gf().firestore(), 'companies', 'companyA'), {
+      updateDoc(doc(ctxA_admin().firestore(), 'companies', 'companyA'), {
         modules: { material: false },
       }),
     );
   });
 
-  it('der Administrator ebenso', async () => {
+  it('die Geschaeftsfuehrung NICHT', async () => {
     await seed();
-    await assertSucceeds(
-      updateDoc(doc(ctxA_admin().firestore(), 'companies', 'companyA'), {
+    await assertFails(
+      updateDoc(doc(ctxA_gf().firestore(), 'companies', 'companyA'), {
         modules: { material: false },
       }),
     );
@@ -839,13 +852,33 @@ describe('Module — die Liste aendert nur die Leitung', () => {
     );
   });
 
-  it('die Leitung darf beide vorbehaltenen Felder in einem Zug setzen', async () => {
-    // Sonst waere das Speichern der Einstellungsseite, die beides enthaelt,
-    // von der Reihenfolge abhaengig.
+  it('auch nicht als Beifang in einem sonst erlaubten Schreibvorgang', async () => {
+    /*
+      Der Grund fuer `hasAny` statt `hasOnly`. Kaeme `modules` in einem
+      Vorgang mit, der ansonsten erlaubt ist — etwa zusammen mit den
+      Genehmigenden —, waere genau dieser Vorgang die Luecke.
+
+      Der Test hiess vorher „die Leitung darf beide vorbehaltenen Felder in
+      einem Zug setzen" und war richtig, solange beide derselben Grenze
+      unterlagen. Seit die Module enger stehen, sagt derselbe Fall das
+      Gegenteil.
+    */
+    await seed();
+    await assertFails(
+      updateDoc(doc(ctxA_gf().firestore(), 'companies', 'companyA'), {
+        modules: { ki: false },
+        vacationApprovers: ['verwA'],
+      }),
+    );
+  });
+
+  it('die Geschaeftsfuehrung darf alles ANDERE weiterhin aendern', async () => {
+    // Die Grenze soll die Module ziehen, nicht das Tagesgeschaeft lahmlegen.
     await seed();
     await assertSucceeds(
       updateDoc(doc(ctxA_gf().firestore(), 'companies', 'companyA'), {
-        modules: { ki: false },
+        rates: { fach: 70 },
+        addressLine: 'Musterstraße 1',
         vacationApprovers: ['verwA'],
       }),
     );
@@ -1618,6 +1651,46 @@ describe('Handwerksschein: verwerfen, zurueckholen, einfrieren', () => {
     await seedSchein({ status: 'Verworfen', verworfenVonName: 'A' });
     await assertFails(
       updateDoc(doc(ctxB_admin().firestore(), 'workSheets', 'sA'), { status: 'Entwurf' }),
+    );
+  });
+});
+
+/**
+ * Der zweite Riegel, den der Betrieb ausdrücklich verlangt hat: KEIN Konto
+ * legt einen Administrator an ausser einem Administrator selbst.
+ *
+ * Die Fälle „anlegen" und „ändern" stehen schon weiter oben. Was fehlte, ist
+ * das LÖSCHEN — ohne das könnte die Geschäftsführung den letzten Administrator
+ * entfernen und danach die Rolle selbst neu vergeben.
+ */
+describe('Einen Administrator entfernt nur ein Administrator', () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', 'adminDoc'), {
+        companyId: 'companyA', uid: 'adminDoc', name: 'Chef-Admin',
+        email: 'a@a.at', role: 'Administrator', active: true,
+      });
+    });
+  });
+
+  it('die Geschäftsführung darf ihn nicht löschen', async () => {
+    await assertFails(deleteDoc(doc(ctxA_gf().firestore(), 'users', 'adminDoc')));
+  });
+
+  it('ein Administrator darf', async () => {
+    await assertSucceeds(deleteDoc(doc(ctxA_admin().firestore(), 'users', 'adminDoc')));
+  });
+
+  it('die Geschäftsführung kann sich auch nicht selbst befördern', async () => {
+    // Der direkteste Weg zum Superuser, und er ist zu.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', 'gfDoc'), {
+        companyId: 'companyA', uid: 'gfA', name: 'Chefin',
+        email: 'c@a.at', role: 'Geschäftsführung', active: true,
+      });
+    });
+    await assertFails(
+      updateDoc(doc(ctxA_gf().firestore(), 'users', 'gfDoc'), { role: 'Administrator' }),
     );
   });
 });

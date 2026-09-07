@@ -36,6 +36,14 @@ const ALL: Role[] = [
 const LEAD: Role[] = ['Projektleiter', 'Geschäftsführung', 'Administrator'];
 /** Ohne Projektleitung: alles rund um die Zeitkonten der Mitarbeiter. */
 const TOP: Role[] = ['Geschäftsführung', 'Administrator'];
+/**
+ * Enger als TOP: die Administration allein.
+ *
+ * Für Dinge, die nicht das tägliche Geschäft der Geschäftsführung sind,
+ * sondern die EINRICHTUNG des Betriebs — und deren Fehlgriff allen den Weg zu
+ * ihrer Arbeit nimmt.
+ */
+const NUR_ADMIN: Role[] = ['Administrator'];
 
 export const NAV: NavItem[] = [
   { path: '/', label: 'Dashboard', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
@@ -156,7 +164,14 @@ export const UNTER: Record<string, Unterseite[]> = {
     // Welche Bereiche der Betrieb überhaupt benutzt. Diese Unterseite trägt
     // bewusst KEIN Modul: wäre die Modulverwaltung selbst abschaltbar, könnte
     // man sich aussperren und nie wieder hineinkommen.
-    { pfad: 'module', label: 'Module', roles: TOP },
+    //
+    // NUR ADMINISTRATION, seit 07.09.2026 — enger als der Rest der
+    // Einstellungen. Sätze und Briefkopf ändert die Geschäftsführung im
+    // Tagesgeschäft; ein abgeschaltetes Modul nimmt dagegen allen den Weg zu
+    // ihrer Arbeit, und zwar unsichtbar: der Reiter ist einfach weg. Das ist
+    // Einrichtung, keine Führung. Dieselbe Grenze steht in `firestore.rules`
+    // — die Oberfläche allein wäre keine.
+    { pfad: 'module', label: 'Module', roles: NUR_ADMIN },
     // Die Sicherung gehoert hierher und nicht in eine eigene Ecke: sie ist
     // etwas, das man einmal einrichtet, einmal prueft und danach selten
     // anfasst — wie die Saetze und die Module. Ein eigener Reiter dafuer

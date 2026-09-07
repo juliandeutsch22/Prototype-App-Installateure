@@ -44,7 +44,7 @@ unterscheidet drei Stufen:
 | **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | Emulator (4: wer planen darf), Ansicht (8) | Geprüft ist auch der gefährliche Teil: eine vorhandene Planung kommt ins Formular, statt beim Speichern gelöscht zu werden |
 | **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie) | Ansicht ungetestet |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8) | Ansicht ungetestet |
-| **Module** | Bereiche für den Betrieb ein- und ausschalten; zeigt vorher, was mit abgeschaltet wird | **nur GF/Admin** | `companies.modules` | Rechnung (14), Emulator (7) | Ansicht ungetestet |
+| **Module** | Bereiche für den Betrieb ein- und ausschalten; zeigt vorher, was mit abgeschaltet wird | **nur Administration** | `companies.modules` | Rechnung (15), Emulator (8) | Ansicht ungetestet. Enger als der Rest der Einstellungen: ein abgeschaltetes Modul nimmt allen den Weg zu ihrer Arbeit, und zwar unsichtbar — das ist Einrichtung, keine Führung |
 | **Datensicherung** | Nächtliche Ausleitung des ganzen Bestands an einen zweiten Ort; Sicherung von Hand anstoßen; Bestand herunterladen (DSGVO) | **nur GF/Admin** | alle Sammlungen | Rechnung (11 Aufräum- und Pfadregeln), Ansicht (4), Function (19: Lauf, Mandantengrenze, Seitenwechsel, Aufräumen) | Ohne `AUSLEITUNG_BUCKET` liegt die Sicherung im selben Google-Projekt — gegen einen Fehlgriff hilft das, gegen „der Zugang ist weg" nicht |
 
 ## Büro und Auswertung
@@ -82,11 +82,11 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-927 automatische Tests klingen nach viel. Aufgeschlüsselt:
+940 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
-| Regeltests gegen den Emulator | 178 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+| Regeltests gegen den Emulator | 182 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Cloud Functions mit ersetztem Firestore** | **98** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **91** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 289 | Hoch für die Formeln, **null** für die App |

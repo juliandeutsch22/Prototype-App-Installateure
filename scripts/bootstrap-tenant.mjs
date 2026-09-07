@@ -68,7 +68,6 @@ async function main() {
       brandForeground: '#ffffff',
       accentColor: '#d51f26',
       accentForeground: '#ffffff',
-      defaultVatRate: 0.2,
       rates: {
         fach: 65,
         helper: 45,
