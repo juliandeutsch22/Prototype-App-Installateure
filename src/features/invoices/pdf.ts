@@ -51,6 +51,8 @@ export function generateInvoicePdf(opts: {
 }) {
   const { company, project, invoiceNumber, invoiceDate, dueDate, assembled } = opts;
   const vatRate = opts.vatRate ?? INVOICE_DEFAULTS.vatRate;
+  const leistungVon = assembled.leistung?.von;
+  const leistungBis = assembled.leistung?.bis;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const margin = 18;
 
@@ -78,6 +80,28 @@ export function generateInvoicePdf(opts: {
   doc.text(`Rechnungsdatum: ${fmtDatum(invoiceDate)}`, rightX, 55, { align: 'right' });
   doc.text(`Zahlungsziel: ${fmtDatum(dueDate)}`, rightX, 60, { align: 'right' });
   doc.text(`Baustelle: ${project.projectNumber}`, rightX, 65, { align: 'right' });
+
+  /*
+    DER LEISTUNGSZEITRAUM — Pflichtangabe nach § 11 Abs 1 Z 4 UStG.
+
+    Er fehlte auf jeder bisher geschriebenen Rechnung. Ohne ihn ist der Beleg
+    formal unvollständig, und beim Kunden wackelt der Vorsteuerabzug: er kann
+    nicht belegen, in welchen Zeitraum die Leistung fällt.
+
+    EIN TAG HEISST „LEISTUNGSDATUM", nicht „Zeitraum vom 4. bis 4." — das ist
+    keine Kosmetik, sondern genau die Unterscheidung, die das Gesetz trifft
+    („der Tag ... oder der Zeitraum").
+
+    Die Zeile steht UNTER dem bisherigen Block und verschiebt nichts: die
+    Positionstabelle beginnt weiterhin bei y = 72, dazwischen war Platz.
+  */
+  if (leistungVon && leistungBis) {
+    const text =
+      leistungVon === leistungBis
+        ? `Leistungsdatum: ${fmtDatum(leistungVon)}`
+        : `Leistungszeitraum: ${fmtDatum(leistungVon)} – ${fmtDatum(leistungBis)}`;
+    doc.text(text, rightX, 70, { align: 'right' });
+  }
 
   // Positionstabelle
   autoTable(doc, {

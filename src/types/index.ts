@@ -454,6 +454,19 @@ export interface Material {
   stock: number;
   articleNumber?: string;
   unit?: string;
+  /**
+   * Verkaufspreis netto je Einheit, in Euro.
+   *
+   * OHNE IHN GEHT MATERIAL NICHT AUF DIE RECHNUNG. Genau das war die Lücke:
+   * die Stunden liefen automatisch durch, das Material tippte das Büro von
+   * Hand nach — bei einem Installateur schnell die Hälfte der Summe.
+   *
+   * Der EINKAUFSpreis steht hier bewusst nicht. Er gehört zur
+   * Nachkalkulation, also zur Marge, und die ist Geschäftsführungssache; auf
+   * dem Katalog, den die Verwaltung pflegt, wäre er am falschen Ort. Wer ihn
+   * später braucht, führt ihn als eigenes Feld mit eigener Grenze ein.
+   */
+  verkaufspreis?: number;
 }
 
 /**
@@ -701,9 +714,42 @@ export interface Invoice {
   vatRate?: number;
   /** Anschrift der Baustelle zum Zeitpunkt der Rechnungslegung. */
   address?: string;
+  /**
+   * Leistungszeitraum — der Tag oder Zeitraum, über den die Leistung erbracht
+   * wurde.
+   *
+   * PFLICHTANGABE nach § 11 Abs 1 Z 4 UStG. Sie fehlte auf jeder bisher
+   * geschriebenen Rechnung: dort standen Rechnungsdatum, Zahlungsziel und
+   * Baustellennummer, und die Positionen hiessen schlicht
+   * „Facharbeiterstunden". Ohne den Zeitraum ist die Rechnung formal
+   * unvollständig, und beim Kunden wackelt der Vorsteuerabzug.
+   *
+   * Vorbelegt aus den verrechneten Belegen, aber ÄNDERBAR: eine Rechnung
+   * kann sich bewusst auf einen anderen Zeitraum beziehen als den, den die
+   * Buchungen zufällig aufspannen — etwa bei einer Teilrechnung oder wenn
+   * eine Nacharbeit später gebucht wurde.
+   *
+   * Sind beide gleich, steht auf dem Beleg „Leistungsdatum", sonst
+   * „Leistungszeitraum".
+   */
+  leistungVon?: string;
+  leistungBis?: string;
   paymentStatus: 'Offen' | 'Überfällig' | 'Bezahlt' | 'Storniert';
   linkedEntries?: string[];
   linkedOrders?: string[];
+  /**
+   * Handwerksscheine, deren Material in dieser Rechnung steckt.
+   *
+   * WARUM HIER UND NICHT AM SCHEIN. Zeiteinträge tragen ein `isBilled`; beim
+   * Schein geht das nicht — er ist nach der Unterschrift eingefroren, und die
+   * Rules lassen nur noch den Storno zu. Das ist richtig so: ein Beleg, den
+   * der Kunde unterschrieben hat, darf sich nicht mehr ändern.
+   *
+   * Also merkt sich die RECHNUNG, welche Scheine sie verbraucht hat. Der
+   * Storno gibt sie damit von selbst wieder frei — anders als ein Feld am
+   * Schein, das jemand zurücksetzen müsste.
+   */
+  linkedWorkSheets?: string[];
   cancellationNote?: string | null;
   cancelledAt?: number | null;
   createdAt?: number;
