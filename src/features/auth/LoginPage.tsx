@@ -103,6 +103,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              pflicht
             />
 
             {!resetMode && (
@@ -115,6 +116,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  pflicht
                 />
                 <CheckboxField
                   id="remember"

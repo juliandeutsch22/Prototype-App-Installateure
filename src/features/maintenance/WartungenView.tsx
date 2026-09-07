@@ -26,7 +26,13 @@ import Button from '@/components/Button';
 import Badge, { type Tone } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import {
+  InputField,
+  SelectField,
+  CheckboxField,
+  FormGrid,
+  Pflichthinweis,
+} from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -338,6 +344,7 @@ export default function WartungenView() {
             <FormGrid>
               <SelectField id="w-kunde"
                 label="Kunde"
+                pflicht
                 value={form.customerId}
                 onChange={(e) => kundeWaehlen(e.target.value)}
               >
@@ -350,6 +357,7 @@ export default function WartungenView() {
               </SelectField>
               <InputField id="w-anlage"
                 label="Anlage"
+                pflicht
                 placeholder="Therme Vaillant ecoTEC, Keller"
                 value={form.anlage}
                 onChange={(e) => setForm({ ...form, anlage: e.target.value })}
@@ -379,6 +387,7 @@ export default function WartungenView() {
               />
               <InputField id="w-termin"
                 label="Nächster Termin"
+                pflicht
                 type="date"
                 value={form.faelligAm}
                 onChange={(e) => setForm({ ...form, faelligAm: e.target.value })}
@@ -395,6 +404,7 @@ export default function WartungenView() {
                 onChange={(e) => setForm({ ...form, aktiv: e.target.checked })}
               />
             </FormGrid>
+            <Pflichthinweis />
             <p className="text-sm text-ink-muted">
               Eine gekündigte Vereinbarung wird nicht gelöscht, sondern angehalten — die
               Historie ist der Grund, warum man den Kunden später wieder anruft.

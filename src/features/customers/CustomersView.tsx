@@ -22,7 +22,7 @@ import Badge from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, FormGrid } from '@/components/Field';
+import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
@@ -291,6 +291,7 @@ export default function CustomersView() {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
+              pflicht
             />
             {/* Ausdrücklich die RECHNUNGSadresse: die Baustelle hat ihre
                 eigene, und eine Hausverwaltung hat zwanzig davon. */}
@@ -335,6 +336,7 @@ export default function CustomersView() {
               value={form.notes ?? ''}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
+            <Pflichthinweis />
             {error && <ErrorState message={error} />}
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button type="submit" loading={speichert} className="w-full sm:w-auto">

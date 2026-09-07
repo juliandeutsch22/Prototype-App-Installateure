@@ -43,10 +43,18 @@ export default function SettingsView() {
    *
    * Bewusst getrennt von den Verrechnungssätzen darüber. Wer beide
    * verwechselt, bekommt in der Nachkalkulation eine Marge von null und hält
-   * sie für ein Ergebnis. Der Startwert liegt bei rund zwei Dritteln des
-   * Verrechnungssatzes — eine Hausnummer, die der Betrieb ersetzen muss.
+   * sie für ein Ergebnis.
+   *
+   * LEER HEISST LEER, und das ist der Kern dieser Zeile. Vorher standen hier
+   * 42 und 28 als „Hausnummer" — sichtbar im Formular, aber nirgends
+   * gespeichert. Das ergab zwei Fehler auf einmal: die Nachkalkulation meldete
+   * „Kostensätze fehlen", während daneben zwei gefüllte Felder standen, und
+   * wer aus einem beliebigen anderen Grund auf Speichern drückte, schrieb
+   * eine erfundene Zahl fest, auf der danach jede Marge des Betriebs beruhte.
+   *
+   * Als Text gehalten, weil eine Zahl kein „noch nichts eingetragen" kennt.
    */
-  const [costRates, setCostRates] = useState({ fach: 42, helper: 28 });
+  const [costRates, setCostRates] = useState({ fach: '', helper: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +70,12 @@ export default function SettingsView() {
 
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
-    if (company?.costRates) setCostRates({ ...company.costRates });
+    if (company?.costRates) {
+      setCostRates({
+        fach: String(company.costRates.fach).replace('.', ','),
+        helper: String(company.costRates.helper).replace('.', ','),
+      });
+    }
     setGenehmiger(company?.vacationApprovers ?? []);
   }, [company]);
 
@@ -125,7 +138,21 @@ export default function SettingsView() {
     setSaving(true);
     setError(null);
     try {
-      await updateCompany(user.companyId, { rates, costRates });
+      /*
+        Die Kostensätze wandern nur mit, wenn BEIDE eingetragen sind. Ohne
+        diese Bedingung schriebe jedes Speichern der Verrechnungssätze
+        stillschweigend auch Kostensätze fest — und die Nachkalkulation
+        rechnete ab da mit einer Zahl, die niemand entschieden hat. Ein halb
+        gefülltes Paar ist ebenso wenig eine Entscheidung: ohne Helfersatz
+        stünde die Helferstunde mit null Kosten da, also mit voller Marge.
+      */
+      const kostenGesetzt = costRates.fach.trim() !== '' && costRates.helper.trim() !== '';
+      await updateCompany(user.companyId, {
+        rates,
+        ...(kostenGesetzt
+          ? { costRates: { fach: num(costRates.fach, 0), helper: num(costRates.helper, 0) } }
+          : {}),
+      });
       await reloadCompany();
       toast.success('Sätze gespeichert');
     } catch {
@@ -327,25 +354,39 @@ export default function SettingsView() {
             <InputField
               id="costfach"
               label="Kosten Facharbeiterstunde (€)"
-              value={String(costRates.fach).replace('.', ',')}
-              onChange={(e) => setCostRates({ ...costRates, fach: num(e.target.value, 42) })}
+              placeholder="noch nicht hinterlegt"
+              value={costRates.fach}
+              onChange={(e) => setCostRates({ ...costRates, fach: e.target.value })}
             />
             <InputField
               id="costhelper"
               label="Kosten Helferstunde (€)"
-              value={String(costRates.helper).replace('.', ',')}
-              onChange={(e) => setCostRates({ ...costRates, helper: num(e.target.value, 28) })}
+              placeholder="noch nicht hinterlegt"
+              value={costRates.helper}
+              onChange={(e) => setCostRates({ ...costRates, helper: e.target.value })}
             />
           </FormGrid>
-          <p className="mt-3 tnum text-sm text-ink">
-            Deckungsbeitrag je Facharbeiterstunde:{' '}
-            <strong>{fmtEUR(rates.fach - costRates.fach)}</strong>
-            {rates.fach - costRates.fach <= 0 && (
-              <span className="ml-2 text-danger">
-                — der Verrechnungssatz liegt nicht über den Kosten.
-              </span>
-            )}
-          </p>
+          {costRates.fach.trim() === '' || costRates.helper.trim() === '' ? (
+            /*
+              Kein Deckungsbeitrag ohne Kostensatz. Vorher stand hier eine
+              Zahl, die aus der Hausnummer 42 gerechnet war — und sie sah
+              genauso aus wie eine echte.
+            */
+            <p className="mt-3 text-sm text-ink-muted">
+              Noch nicht hinterlegt. Solange beide Felder leer sind, rechnet die Nachkalkulation
+              nicht und sagt das auch — eine erfundene Zahl wäre schlimmer als keine.
+            </p>
+          ) : (
+            <p className="mt-3 tnum text-sm text-ink">
+              Deckungsbeitrag je Facharbeiterstunde:{' '}
+              <strong>{fmtEUR(rates.fach - num(costRates.fach, 0))}</strong>
+              {rates.fach - num(costRates.fach, 0) <= 0 && (
+                <span className="ml-2 text-danger">
+                  — der Verrechnungssatz liegt nicht über den Kosten.
+                </span>
+              )}
+            </p>
+          )}
         </Card>
 
         {error && <ErrorState message={error} />}

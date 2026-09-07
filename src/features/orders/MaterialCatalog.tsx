@@ -15,7 +15,7 @@ import Badge from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, FormGrid } from '@/components/Field';
+import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -184,7 +184,7 @@ export default function MaterialCatalog({
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
             <InputField id="mname" label="Bezeichnung" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              onChange={(e) => setForm({ ...form, name: e.target.value })} required pflicht />
             <InputField id="mcat" label="Kategorie" placeholder="z. B. Sanitär" value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })} />
             <InputField id="mart" label="Artikelnummer" value={form.articleNumber}
@@ -224,7 +224,7 @@ export default function MaterialCatalog({
               </p>
             </div>
             <InputField id="mstock" label="Lagerbestand" type="number" min="0" value={form.stock}
-              onChange={(e) => setForm({ ...form, stock: e.target.value })} required />
+              onChange={(e) => setForm({ ...form, stock: e.target.value })} required pflicht />
             <InputField
               id="mpreis"
               label="Verkaufspreis netto je Einheit (€)"
@@ -236,6 +236,7 @@ export default function MaterialCatalog({
               onChange={(e) => setForm({ ...form, verkaufspreis: e.target.value })}
             />
           </FormGrid>
+          <Pflichthinweis />
           {error && <ErrorState message={error} />}
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button type="submit" loading={saving} className="w-full sm:w-auto">

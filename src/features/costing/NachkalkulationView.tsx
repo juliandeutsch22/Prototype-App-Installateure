@@ -144,7 +144,7 @@ export default function NachkalkulationView() {
           </p>
           <p className="mt-3">
             <Link to="/settings/saetze" className="font-semibold text-brand underline">
-              In den Einstellungen hinterlegen
+              Einstellungen → Sätze und Kosten → Interne Kostensätze
             </Link>
           </p>
         </Card>

@@ -19,7 +19,7 @@ import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import RowMenu from '@/components/RowMenu';
-import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
@@ -264,10 +264,10 @@ export default function UserMgmtView() {
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
             <InputField id="uname" label="Name" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              onChange={(e) => setForm({ ...form, name: e.target.value })} required pflicht />
             <InputField id="uemail" label="E-Mail" type="email" value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required disabled={!!editing}
+              required pflicht disabled={!!editing}
               title={editing ? 'Die E-Mail-Adresse ist das Anmeldekonto und kann hier nicht geändert werden.' : undefined} />
             <SelectField id="urole" label="Rolle" value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
@@ -331,6 +331,7 @@ export default function UserMgmtView() {
             </div>
           )}
 
+          <Pflichthinweis />
           {error && <ErrorState message={error} />}
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button type="submit" loading={saving} className="w-full sm:w-auto">

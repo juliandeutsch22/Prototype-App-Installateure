@@ -164,7 +164,11 @@ export const UNTER: Record<string, Unterseite[]> = {
     // Vor den Saetzen, weil es einmal beim Einrichten gebraucht wird und
     // danach selten: wer den Reiter oeffnet, sucht meistens genau das.
     { pfad: 'firma', label: 'Firmendaten', roles: TOP },
-    { pfad: 'saetze', label: 'Sätze und Zuschläge', roles: TOP },
+    // „und Kosten" steht dabei, weil hier auch die INTERNEN Kostensätze
+    // liegen — die Grundlage der Nachkalkulation. Unter „Sätze und Zuschläge"
+    // hat sie niemand vermutet; gefragt wurde stattdessen, wo das Feld
+    // überhaupt sei.
+    { pfad: 'saetze', label: 'Sätze und Kosten', roles: TOP },
     // Welche Bereiche der Betrieb überhaupt benutzt. Diese Unterseite trägt
     // bewusst KEIN Modul: wäre die Modulverwaltung selbst abschaltbar, könnte
     // man sich aussperren und nie wieder hineinkommen.

@@ -409,6 +409,7 @@ export default function WorkSheetsListView() {
               value={stornoGrund}
               onChange={(e) => setStornoGrund(e.target.value)}
               required
+              pflicht
             />
           </div>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">

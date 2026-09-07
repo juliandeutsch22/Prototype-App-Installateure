@@ -260,6 +260,7 @@ export default function QuotesView() {
                 if (k?.address && !address) setAddress(k.address);
               }}
               required
+              pflicht
             >
               <option value="">— wählen —</option>
               {kunden.map((k) => (

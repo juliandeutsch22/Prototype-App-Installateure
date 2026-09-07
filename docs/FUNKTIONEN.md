@@ -83,15 +83,15 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1100 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1116 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | Regeltests gegen den Emulator | 194 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Cloud Functions mit ersetztem Firestore** | **98** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
-| **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **104** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
+| **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang, Pflichtfelder) | **107** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 314 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 260 | Findet Bedienfehler, **keine** Datenfehler |
+| Ansichten, Datenbank ersetzt | 273 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **12** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
 **Zu den Function-Tests, weil „ersetzter Firestore" nach Nachbau klingt.**
@@ -115,6 +115,35 @@ es an dem Tag, an dem man sie braucht.
 > Geschrieben wird der Zustand **ausschliesslich vom Server**
 > (`allow write: if false`). Eine Überwachung, die der Überwachte selbst
 > beschreiben kann, überwacht nichts.
+
+**Pflichtfelder tragen seit dem 07.09.2026 einen Stern.** Vorher erfuhr man
+erst nach dem Absenden, dass etwas fehlt — bei einem Formular mit acht Feldern
+heisst das: ausfüllen, abschicken, Meldung lesen, suchen.
+
+> Der Stern steht **neben** dem Label, nicht darin: im Label wäre er Teil von
+> dessen Text, und das Feld hiesse „Von \*" statt „Von". Die zweite Hälfte der
+> Kennzeichnung ist `aria-required` am Feld selbst — ein Stern allein ist
+> Farbe und Form und für einen Vorleser nichts.
+>
+> `tests/unit/pflichtfelder.test.ts` gleicht ab: **jedes Feld mit `required`
+> trägt auch den Stern.** Beide Angaben stehen nebeneinander am selben
+> Element, und man kann die eine ohne die andere setzen — beim nächsten neuen
+> Formular ist genau das die naheliegende Nachlässigkeit.
+
+**Die internen Kostensätze standen als Hausnummer im Formular.** Gemeldet
+wurde: „Die Nachkalkulation sagt, man muss in den Einstellungen den Betrag
+festlegen, ich finde aber kein Feld." Das Feld war da — es zeigte 42 und 28,
+sichtbar, aber nirgends gespeichert.
+
+> Daraus wurden zwei Fehler auf einmal. Die Nachkalkulation meldete
+> „Kostensätze fehlen", während daneben zwei ausgefüllte Felder standen. Und
+> wer aus einem beliebigen anderen Grund auf Speichern drückte — etwa um das
+> Zahlungsziel zu ändern —, schrieb die erfundene Zahl fest: ab da beruhte
+> jede Marge des Betriebs auf 42 €, die niemand entschieden hatte.
+>
+> Jetzt bleiben die Felder leer, bis der Betrieb sie füllt, und mitgeschrieben
+> werden sie nur, wenn **beide** dastehen. Der Unterreiter heisst „Sätze und
+> **Kosten**", damit man sie dort auch vermutet.
 
 **Gelöscht wird nur mit Rückfrage — seit dem 07.09.2026 ausnahmslos.** Eine
 Prüfung über alle Löschwege der App fand zwei ohne: „Rechnung löschen" im

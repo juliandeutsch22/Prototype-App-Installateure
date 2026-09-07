@@ -364,6 +364,7 @@ export default function TimeForm({
           value={targetUid}
           onChange={(e) => setTargetUid(e.target.value)}
           required
+          pflicht
         >
           <option value="">— wählen —</option>
           {staff.map((u) => (
@@ -380,6 +381,7 @@ export default function TimeForm({
           value={date}
           onChange={(e) => setDate(e.target.value)}
           required
+          pflicht
         />
         <SelectField
           id="status"
@@ -429,6 +431,7 @@ export default function TimeForm({
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
               required
+              pflicht
             />
             <InputField
               id="endTime"
@@ -437,6 +440,7 @@ export default function TimeForm({
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
               required
+              pflicht
             />
             <InputField
               id="break"
@@ -446,6 +450,7 @@ export default function TimeForm({
               value={breakDuration}
               onChange={(e) => setBreakDuration(e.target.value)}
               required
+              pflicht
             />
           </FormGrid>
 

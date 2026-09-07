@@ -715,6 +715,7 @@ export default function WorkSheetView() {
                   value={kundeName}
                   onChange={(e) => setKundeName(e.target.value)}
                   required
+                  pflicht
                 />
                 <div className="mt-2">
                   <SignaturePad
