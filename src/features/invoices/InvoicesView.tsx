@@ -24,6 +24,7 @@ import { listMaterials } from '@/lib/db/materials';
 import { verrechneteScheine } from './materialPositionen';
 import { darfMahnen, naechsteStufe, spesenFuer, TEXTE, FRIST_TAGE } from './mahnung';
 import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
+import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr } from '@/lib/time';
@@ -247,6 +248,16 @@ export default function InvoicesView() {
    * später berichtigt werden muss.
    */
   const rcPruefung = pruefeReverseCharge(reverseCharge, kundenUid, company?.vatId);
+  /*
+    Die BETRAGSABHÄNGIGE Pflicht — eine andere Bestimmung als der Übergang der
+    Steuerschuld, mit einer anderen Folge: sie kostet den KUNDEN den
+    Vorsteuerabzug, nicht den Betrieb seine Steuer.
+  */
+  const uidPruefung = pruefeEmpfaengerUid({
+    bruttoBetrag: preview?.totalBrutto ?? 0,
+    reverseCharge,
+    uid: kundenUid,
+  });
 
   const rabatt = useMemo(() => {
     const v = Number(discount.value.replace(',', '.'));
@@ -413,7 +424,14 @@ export default function InvoicesView() {
         vatRate: satz,
         reverseCharge,
         // Leerstring statt undefined: Firestore lehnt undefined ab.
-        customerVatId: reverseCharge ? kundenUid.trim() : '',
+        /*
+          IMMER MITGESCHRIEBEN, nicht nur bei Reverse Charge. Vorher wurde die
+          UID aus dem Kundenstamm geladen, im Formular angezeigt — und beim
+          Speichern weggeworfen, sobald der Haken aus war. Über 10.000 € brutto
+          ist sie Pflichtangabe (§ 11 Abs 1 Z 2 UStG); darunter schadet sie
+          nicht und hilft dem Empfänger beim Zuordnen.
+        */
+        customerVatId: kundenUid.trim(),
         subtotalNetto: preview.subtotalNetto,
         // null statt undefined: Firestore laesst undefined nicht zu, und
         // "kein Rabatt" soll als bewusster Wert im Dokument stehen.
@@ -456,7 +474,14 @@ export default function InvoicesView() {
         appendDetail,
         vatRate: satz,
         reverseCharge,
-        customerVatId: reverseCharge ? kundenUid.trim() : '',
+        /*
+          IMMER MITGESCHRIEBEN, nicht nur bei Reverse Charge. Vorher wurde die
+          UID aus dem Kundenstamm geladen, im Formular angezeigt — und beim
+          Speichern weggeworfen, sobald der Haken aus war. Über 10.000 € brutto
+          ist sie Pflichtangabe (§ 11 Abs 1 Z 2 UStG); darunter schadet sie
+          nicht und hilft dem Empfänger beim Zuordnen.
+        */
+        customerVatId: kundenUid.trim(),
       });
 
       setPreview(null);
@@ -1034,20 +1059,6 @@ export default function InvoicesView() {
               </p>
               {reverseCharge && (
                 <div className="mt-3 space-y-2">
-                  <InputField
-                    id="rc-uid"
-                    label="UID-Nummer des Kunden (Pflicht)"
-                    placeholder="ATU12345678"
-                    value={kundenUid}
-                    onChange={(e) => setKundenUid(e.target.value)}
-                    required
-                    pflicht
-                  />
-                  {kundenUid.trim() && !sichtAusWieUid(kundenUid) && (
-                    <p className="text-sm text-warning">
-                      Das sieht nicht nach einer UID-Nummer aus. Österreich: ATU und acht Ziffern.
-                    </p>
-                  )}
                   {!rcPruefung.vollstaendig && (
                     <p className="text-sm text-warning" role="alert">
                       Ohne {rcPruefung.fehlt.join(' und ')} ist der Übergang der Steuerschuld nicht
@@ -1059,6 +1070,45 @@ export default function InvoicesView() {
                     Hinweis und beide UID-Nummern.
                   </p>
                 </div>
+              )}
+            </div>
+
+            {/*
+              DIE UID DES KUNDEN STEHT AUSSERHALB DES REVERSE-CHARGE-BLOCKS,
+              und das ist der Kern dieser Änderung.
+
+              Sie stand vorher DARIN und wurde beim Speichern weggeworfen,
+              sobald der Haken aus war. Über 10.000 € brutto ist sie aber auch
+              auf einer ganz gewöhnlichen Rechnung Pflichtangabe — und ihr
+              Fehlen kostet den KUNDEN den Vorsteuerabzug, nicht den Betrieb
+              seine Steuer. Sie gehört zum Empfänger, nicht zur Steuerschuld.
+
+              Vorausgefüllt aus dem Kundenstamm, wenn dort eine hinterlegt ist.
+            */}
+            <div className="rounded-sm border border-line p-3">
+              <InputField
+                id="rc-uid"
+                label="UID-Nummer des Kunden"
+                placeholder="ATU12345678"
+                value={kundenUid}
+                onChange={(e) => setKundenUid(e.target.value)}
+                pflicht={uidPruefung.pflicht}
+              />
+              {kundenUid.trim() && !sichtAusWieUid(kundenUid) && (
+                <p className="mt-1 text-sm text-warning">
+                  Das sieht nicht nach einer UID-Nummer aus. Österreich: ATU und acht Ziffern.
+                </p>
+              )}
+              {uidPruefung.text && (
+                <p className="mt-1 text-sm text-warning" role="alert">
+                  {uidPruefung.text}
+                </p>
+              )}
+              {!uidPruefung.pflicht && !kundenUid.trim() && (
+                <p className="mt-1 text-sm text-ink-muted">
+                  Bei Privatkunden bleibt das Feld leer. Pflicht wird es über 10.000 € brutto
+                  und bei Bauleistungen mit Übergang der Steuerschuld.
+                </p>
               )}
             </div>
 

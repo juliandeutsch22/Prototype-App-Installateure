@@ -83,15 +83,15 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1174 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1191 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | Regeltests gegen den Emulator | 194 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Cloud Functions mit ersetztem Firestore** | **98** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang, Pflichtfelder) | **107** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
-| Reine Rechnung | 321 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 324 | Findet Bedienfehler, **keine** Datenfehler |
+| Reine Rechnung | 332 | Hoch für die Formeln, **null** für die App |
+| Ansichten, Datenbank ersetzt | 333 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **12** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
 **Zu den Function-Tests, weil „ersetzter Firestore" nach Nachbau klingt.**
@@ -189,6 +189,24 @@ aufklappbar je Zeile.
 > Entscheidung, die in der Mitarbeiterübersicht längst getroffen war und hier
 > stehengeblieben ist. Helferstunden sind keine Warnung mehr, sondern eine
 > Angabe; eine Pille bekommt nur noch, was eine Ausnahme ist („über Budget").
+
+**Die UID des Kunden landete nur bei Reverse Charge auf der Rechnung.**
+Gefunden bei einer Durchsicht am 07.09.2026: die App lud sie aus dem
+Kundenstamm, zeigte sie im Formular — und warf sie beim Speichern weg, sobald
+der Haken aus war (`customerVatId: reverseCharge ? … : ''`).
+
+> **Über 10.000 € brutto an ein Unternehmen ist sie Pflichtangabe**
+> (§ 11 Abs 1 Z 2 UStG). Ihr Fehlen trifft nicht den Aussteller, sondern den
+> KUNDEN: ihm steht der Vorsteuerabzug erst zu, wenn sämtliche
+> Rechnungsmerkmale vorliegen. Wird die UID binnen eines Monats nachgereicht,
+> wirkt die Berichtigung zurück, später erst ab dem Tag der Ergänzung.
+>
+> Das Feld steht jetzt AUSSERHALB des Reverse-Charge-Blocks — es gehört zum
+> Empfänger, nicht zur Steuerschuld — und die UID wandert immer in die
+> Rechnung. Über der Grenze wird **gewarnt, nicht gesperrt**: ob der Empfänger
+> Unternehmer ist, steht in keinem Datenfeld, und eine Rechnung über 12.000 €
+> an eine Privatperson ist vollkommen in Ordnung. Bei Reverse Charge bleibt
+> es bei der Sperre — dort belegt die UID den Übergang der Steuerschuld.
 
 **Die Kundenakte, seit dem 07.09.2026.** Gemeldet wurde: „Man kann Kunden
 zwar eine Mail, Notiz, UID und weiteres hinzufügen, diese Daten scheinen
