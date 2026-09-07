@@ -29,7 +29,7 @@ unterscheidet drei Stufen:
 | **Mein Einsatzplan** | Monatskalender der eigenen Einsätze, Kontaktdaten, Sprung zu Zeit und Schein | Mitarbeiter | `assignments`, `projects`, `vacations` | Ansicht (5) | — |
 | **Meine Baustellen** | Die Baustellen, denen der Monteur zugeordnet ist, mit Route und Telefonnummer | Mitarbeiter | `projects` | Ansicht (7) | Abgeschlossene fallen heraus, pausierte bleiben; ein fehlender Ansprechpartner wird angemahnt statt verschwiegen |
 | **Material anfordern** | Warenkorb, Eilzustellung, eigene Anforderungen | Mitarbeiter, Verwaltung, Leitung | `materials`, `materialOrders` | Rechnung (25, Meldungen), Ansicht (21) | Lagerabzug nur im Code geprüft, nicht gegen eine echte Transaktion |
-| **Urlaub** | Beantragen, entscheiden, Stand sehen. Genehmigung schreibt die Tage ins Zeitkonto. | alle (Antrag); Entscheider laut Einstellung | `vacations`, `timeEntries`, `companies` | Emulator (18), Rechnung (15), Ansicht (11) | Kein Durchstich: dass die Tage *wirklich* im Zeitkonto landen, prüft kein Test |
+| **Urlaub** | Beantragen, entscheiden, Stand sehen. Genehmigung schreibt die Tage ins Zeitkonto. | alle (Antrag); Entscheider laut Einstellung | `vacations`, `timeEntries`, `companies` | Emulator (18), Rechnung (15), Ansicht (15), Function (28), Durchstich (3) | Die Tage der ECHTEN Function laufen durch die ECHTE Saldorechnung — die Naht ist geprüft, nicht nur die beiden Hälften |
 | **Handwerksscheine** | Zeiten vorausfüllen, Material von Hand erfassen, als Entwurf sichern und wieder öffnen, Entwurf verwerfen und zurückholen, unterschreiben, einfrieren, Storno mit Grund, PDF | Mitarbeiter, Büro, Leitung | `workSheets`, `timeEntries` (serverseitig) | Emulator (Regeln + 3 Durchstiche + 9 Zustandsübergänge), Rechnung (4), Ansicht (22), Liste (14), PDF-Zustand (3), Nutzlast (3) | ein verworfener Entwurf bleibt in der Datenbank — gelöscht wird kein Schein (`allow delete: if false`), das schützt den unterschriebenen Beleg |
 
 ## Verwaltung
@@ -83,12 +83,12 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1191 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1195 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | Regeltests gegen den Emulator | 194 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
-| **Cloud Functions mit ersetztem Firestore** | **98** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
+| **Cloud Functions mit ersetztem Firestore** | **102** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang, Pflichtfelder) | **107** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 332 | Hoch für die Formeln, **null** für die App |
 | Ansichten, Datenbank ersetzt | 333 | Findet Bedienfehler, **keine** Datenfehler |
@@ -189,6 +189,23 @@ aufklappbar je Zeile.
 > Entscheidung, die in der Mitarbeiterübersicht längst getroffen war und hier
 > stehengeblieben ist. Helferstunden sind keine Warnung mehr, sondern eine
 > Angabe; eine Pille bekommt nur noch, was eine Ausnahme ist („über Budget").
+
+**Die Naht zwischen der Urlaubs-Function und dem Zeitkonto, seit dem
+07.09.2026.** Hier stand, es gebe „keinen Durchstich" — das war zu pauschal.
+Beide Hälften waren geprüft: die Function mit 24 eigenen Tests, und
+`durchstich.test.ts` prüfte, dass fünf Urlaubstage den Saldo nicht ins Minus
+ziehen.
+
+> **Nur bemerkte keine die andere.** Der Durchstich STELLTE NACH, was die
+> Function schreibt, statt sie aufzurufen. Dazwischen lag eine Annahme, die
+> niemand nachrechnete: dass die Datensätze der Function genau die Form haben,
+> die die Saldorechnung erwartet. Hiesse das Feld einmal `'Urlaub'` und einmal
+> `'Urlaubstag'`, blieben beide Testreihen grün — und der Monteur stünde nach
+> seinem Urlaub mit vierzig Minusstunden da.
+>
+> Jetzt läuft die ECHTE Ausgabe der Function durch die ECHTE Rechnung: Saldo,
+> offene Werktage, Monatsbilanz. Und nach der Rücknahme steht der Saldo wieder
+> dort, wo er ohne Urlaub stünde.
 
 **Die UID des Kunden landete nur bei Reverse Charge auf der Rechnung.**
 Gefunden bei einer Durchsicht am 07.09.2026: die App lud sie aus dem

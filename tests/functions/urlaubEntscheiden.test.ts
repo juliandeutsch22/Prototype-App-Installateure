@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { urlaubEntscheiden } from '../../functions/src/urlaubEntscheiden';
 import { neueDatenbank, SERVERZEIT, type FakeDb, type Dok } from './ersatz/firestore';
 import { HttpsError, type AufrufKontext } from './ersatz/funktionen';
@@ -330,5 +330,116 @@ describe('Zurücknehmen', () => {
     const r = await ruf({ vacationId: 'a1', entscheidung: 'Storniert', grund: 'Krank geworden' });
     expect(r.entfernt).toBe(0);
     expect(db.alles('timeEntries').fremd).toBeDefined();
+  });
+});
+
+/**
+ * DIE NAHT ZWISCHEN FUNCTION UND ZEITKONTO.
+ *
+ * Beide Hälften waren geprüft und keine bemerkte die andere:
+ *
+ *   – Die Tests oben sehen, WAS die Function schreibt, und vergleichen es mit
+ *     dem, was ich hier hineingeschrieben habe.
+ *   – `tests/durchstich.test.ts` (Durchstich 2) prüft, dass fünf Urlaubstage
+ *     den Saldo nicht ins Minus ziehen — aber er STELLT NACH, was die
+ *     Function schreibt, statt sie aufzurufen.
+ *
+ * Zwischen beiden liegt eine Annahme, die niemand nachrechnet: dass die
+ * Datensätze der Function genau die Form haben, die die Saldorechnung
+ * erwartet. Hiesse das Feld `status` einmal `'Urlaub'` und einmal
+ * `'Urlaubstag'`, blieben beide Testreihen grün — und der Monteur stünde nach
+ * seinem Urlaub mit vierzig Minusstunden da.
+ *
+ * Dieser Test nimmt deshalb die ECHTE Ausgabe der Function und schickt sie
+ * durch die ECHTE Rechnung.
+ */
+describe('Was die Function schreibt, versteht das Zeitkonto', () => {
+  /*
+    STICHTAG NACH DER URLAUBSWOCHE. Der Saldo rechnet das Soll nur bis heute:
+    läge der Urlaub in der Zukunft, stünde noch kein Soll dagegen und fünf
+    Urlaubstage ergäben +40 Stunden. Geprüft werden soll aber der Fall, um den
+    es geht — die Woche ist vorbei, das Soll ist angefallen, und der Urlaub
+    hat es gedeckt.
+  */
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-09-14T09:00:00'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Der Betroffene, wie ihn die Saldorechnung sieht. */
+  const NEULING = {
+    id: 'u1',
+    companyId: 'perl',
+    uid: 'monteur',
+    name: 'Max',
+    email: 'max@perl.at',
+    role: 'Mitarbeiter',
+    weeklyTargetHours: 40,
+    workDays: [1, 2, 3, 4, 5],
+    // Eintritt am Montag der Urlaubswoche: das geprüfte Fenster ist damit
+    // GENAU diese Woche, ohne ungebuchte Tage davor.
+    appStartDate: VON,
+  } as unknown as import('@/types').AppUser;
+
+  /** Die geschriebenen Zeiteinträge, wie die App sie lesen würde. */
+  function geschriebeneTage() {
+    return Object.entries(db.alles('timeEntries')).map(([id, t]) => ({
+      id,
+      ...t,
+    })) as unknown as import('@/types').TimeEntry[];
+  }
+
+  it('fünf genehmigte Urlaubstage ziehen den Saldo NICHT ins Minus', async () => {
+    const { calcOverallSaldo } = await import('@/lib/time');
+    grunddaten();
+    await ruf({ vacationId: 'a1', entscheidung: 'Genehmigt' });
+
+    /*
+      Ohne die Zeiteinträge zöge der Saldo fünfmal das Tagessoll ab — vierzig
+      Stunden. Mit ihnen steht er auf null: Urlaub ist bezahlte Abwesenheit.
+    */
+    const saldo = calcOverallSaldo(NEULING, geschriebeneTage());
+    expect(saldo.saldoH).toBeCloseTo(0, 5);
+  });
+
+  it('und erscheinen nicht als „Zeit fehlt"', async () => {
+    const { offeneWerktage } = await import('@/lib/time');
+    grunddaten();
+    await ruf({ vacationId: 'a1', entscheidung: 'Genehmigt' });
+
+    const offen = offeneWerktage(
+      NEULING,
+      geschriebeneTage(),
+      new Date(`${VON}T00:00:00`),
+      new Date(`${BIS}T00:00:00`),
+    );
+    expect(offen).toEqual([]);
+  });
+
+  it('zählen in der Monatsbilanz als fünf Urlaubstage', async () => {
+    /*
+      Der Resturlaub hängt daran. Zählte die Bilanz sie nicht, hätte der
+      Monteur am Jahresende Tage übrig, die er längst genommen hat.
+    */
+    const { bilanzAusEintraegen } = await import('@shared/monatsbilanz');
+    grunddaten();
+    await ruf({ vacationId: 'a1', entscheidung: 'Genehmigt' });
+
+    expect(bilanzAusEintraegen('2026-09', geschriebeneTage()).urlaubTage).toBe(5);
+  });
+
+  it('nach der Rücknahme steht der Saldo wieder da, wo er ohne Urlaub stünde', async () => {
+    const { calcOverallSaldo } = await import('@/lib/time');
+    grunddaten();
+    await ruf({ vacationId: 'a1', entscheidung: 'Genehmigt' });
+    await ruf({ vacationId: 'a1', entscheidung: 'Storniert', grund: 'Baustelle brennt' });
+
+    expect(geschriebeneTage()).toHaveLength(0);
+    // Fünf Arbeitstage ohne jede Buchung: das volle Wochensoll fehlt.
+    const saldo = calcOverallSaldo(NEULING, geschriebeneTage());
+    expect(saldo.saldoH).toBeCloseTo(-40, 5);
   });
 });
