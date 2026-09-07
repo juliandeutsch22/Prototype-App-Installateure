@@ -117,12 +117,35 @@ beforeEach(() => {
   updateWartung.mockClear();
 });
 
-/** Der Abschnitt „Steht an" als eigener Bereich, ohne den Bestand darunter. */
+/**
+ * Der Abschnitt „Steht an" als eigener Bereich, ohne den Bestand darunter.
+ *
+ * GEWARTET WIRD AUF DIE DATEN, NICHT AUF DIE ÜBERSCHRIFT. Die Karte trägt
+ * ihren Titel schon während des Ladens — „Steht an (0)" neben einem
+ * Skelettblock. Ein `findByText(/^Steht an/)` ist damit sofort erfüllt, und
+ * die Zusicherung danach läuft gegen den Ladezustand.
+ *
+ * Genau daran ist der Testlauf auf `main` gescheitert, nachdem er im
+ * Zweig zweimal grün war: der Fehler hing an der Laufzeit der Maschine, nicht
+ * am Code. Ein Test, der von der Tagesform abhängt, ist schlimmer als keiner
+ * — er blockiert den Deploy und man sucht die Ursache im Falschen.
+ */
 async function anstehendeZeilen() {
-  const ueberschrift = await screen.findByText(/^Steht an/);
+  /*
+    Irgendeine echte Zeile: sie erscheint erst, wenn die Abfrage zurück ist.
+    `findAll`, weil dieselbe Vereinbarung zweimal auf dem Schirm steht — oben
+    unter „Steht an", darunter im Bestand.
+  */
+  await screen.findAllByText(/Bäckerei Stein/);
+  const ueberschrift = screen.getByText(/^Steht an/);
   const karte = ueberschrift.closest('section');
   if (!karte) throw new Error('Abschnitt „Steht an" nicht gefunden');
   return within(karte as HTMLElement);
+}
+
+/** Wartet, bis die Ansicht fertig geladen hat — für Tests ohne Zeilenbezug. */
+async function geladen() {
+  await screen.findAllByText(/Familie Huber/);
 }
 
 describe('Wartungen', () => {
@@ -218,7 +241,7 @@ describe('Wartungen', () => {
   it('legt keine Wartung ohne Termin an', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await screen.findByText(/^Steht an/);
+    await geladen();
 
     await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
     await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
@@ -232,7 +255,7 @@ describe('Wartungen', () => {
   it('schlägt aus der letzten Wartung den nächsten Termin vor', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await screen.findByText(/^Steht an/);
+    await geladen();
 
     await nutzer.click(screen.getByRole('button', { name: 'Neue Wartung' }));
     const zuletzt = screen.getByLabelText('Zuletzt gewartet') as HTMLInputElement;
