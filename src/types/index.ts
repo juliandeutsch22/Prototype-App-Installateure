@@ -146,6 +146,14 @@ export interface InvoiceRates {
   vatRate: number;
   /** Zahlungsziel in Tagen. */
   dueDays: number;
+  /**
+   * Mahnspesen je Stufe, in Euro — [Erinnerung, Mahnung, letzte Mahnung].
+   *
+   * OHNE VORGABE. Was ein Betrieb verrechnen darf, hängt am Aufwand und am
+   * Vertrag; eine voreingestellte Zahl sähe aus wie eine Auskunft darüber.
+   * Nicht gesetzt heisst null — dann steht auf der Mahnung keine Spesenzeile.
+   */
+  mahnspesen?: number[];
 }
 
 /** users/{docId} — Auth-Verknüpfung über `uid`, nicht Doc-ID. */
@@ -794,6 +802,23 @@ export interface Invoice {
   linkedWorkSheets?: string[];
   cancellationNote?: string | null;
   cancelledAt?: number | null;
+  /**
+   * MAHNWESEN — wie oft und wann gemahnt wurde.
+   *
+   * Vorher gab es nur den Status „Überfällig". Er wurde beim Öffnen der Liste
+   * gesetzt und angezeigt; das Mahnen selbst führte der Betrieb im Kopf. Ab
+   * der dritten Stufe geht es hier nicht weiter — was dann folgt, entscheidet
+   * ein Mensch mit einem Anwalt oder einem Inkassobüro.
+   *
+   * `mahnfrist` ist die NEUE Frist aus der letzten Mahnung, nicht das
+   * ursprüngliche Zahlungsziel. Beide werden gebraucht: das eine sagt, wie
+   * lange der Verzug dauert, das andere, wann die nächste Stufe ansteht.
+   */
+  mahnstufe?: number;
+  gemahntAm?: string;
+  mahnfrist?: string;
+  /** Die auf der letzten Mahnung ausgewiesenen Spesen, in Euro. */
+  mahnspesen?: number;
   createdAt?: number;
   updatedAt?: number;
 }

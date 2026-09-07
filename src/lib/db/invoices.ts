@@ -157,6 +157,31 @@ export function deleteInvoice(id: string) {
   return deleteDoc(doc(db, COLLECTION, id));
 }
 
+/**
+ * Eine Mahnung festhalten.
+ *
+ * GESCHRIEBEN WIRD NACH dem Erzeugen des Belegs, nicht davor. Scheitert das
+ * PDF, ist schlimmstenfalls nichts geschehen — umgekehrt stünde die Rechnung
+ * als gemahnt da, ohne dass je ein Schreiben entstanden wäre, und die nächste
+ * Stufe begänne bei zwei.
+ *
+ * Der Status geht auf „Überfällig", falls er noch auf „Offen" stand: wer
+ * mahnt, hat den Verzug festgestellt.
+ */
+export function mahnungFesthalten(
+  id: string,
+  daten: { stufe: number; gemahntAm: string; frist: string; spesen: number },
+) {
+  return updateDoc(doc(db, COLLECTION, id), {
+    mahnstufe: daten.stufe,
+    gemahntAm: daten.gemahntAm,
+    mahnfrist: daten.frist,
+    mahnspesen: daten.spesen,
+    paymentStatus: 'Überfällig',
+    updatedAt: serverTimestamp(),
+  });
+}
+
 /** Markiert Belege als verrechnet (isBilled + invoiceNumber). */
 export async function markBilled(coll: string, ids: string[], invoiceNumber: string) {
   await Promise.all(
