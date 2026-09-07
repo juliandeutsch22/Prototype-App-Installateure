@@ -37,6 +37,7 @@ const AdminOrdersView = lazy(() => import('@/features/orders/AdminOrdersView'));
 const StockView = lazy(() => import('@/features/orders/StockView'));
 const AdminProjectsView = lazy(() => import('@/features/projects/AdminProjectsView'));
 const CustomersView = lazy(() => import('@/features/customers/CustomersView'));
+const KundenakteView = lazy(() => import('@/features/customers/KundenakteView'));
 const WartungenView = lazy(() => import('@/features/maintenance/WartungenView'));
 const QuotesView = lazy(() => import('@/features/quotes/QuotesView'));
 const NachkalkulationView = lazy(() => import('@/features/costing/NachkalkulationView'));
@@ -191,6 +192,20 @@ function AppRoutes() {
       <Route path="/costing" element={<RequireNav path="/costing"><NachkalkulationView /></RequireNav>} />
       <Route path="/quotes" element={<RequireNav path="/quotes"><QuotesView /></RequireNav>} />
       <Route path="/customers" element={<RequireNav path="/customers"><CustomersView /></RequireNav>} />
+      {/*
+        Die Akte eines Kunden. Sie hängt an derselben Prüfung wie die Liste
+        (`path="/customers"`): wer die Liste sehen darf, darf auch die Akte —
+        eine eigene Rollenangabe hier wäre eine zweite Wahrheit über dieselbe
+        Frage und liefe irgendwann auseinander.
+      */}
+      <Route
+        path="/customers/:id"
+        element={
+          <RequireNav path="/customers">
+            <KundenakteView />
+          </RequireNav>
+        }
+      />
       <Route path="/wartungen" element={<RequireNav path="/wartungen"><WartungenView /></RequireNav>} />
       <Route
         path="/admin-projects"

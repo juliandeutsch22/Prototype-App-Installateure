@@ -36,7 +36,7 @@ unterscheidet drei Stufen:
 
 | Bereich | Was es tut | Wer darf | Daten | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|---|---|
-| **Kunden** | Stammdaten, Dublettenschutz, Akte mit Baustellen und Angeboten, Übernahme der Altbestände | Buchhaltung, Verwaltung, Leitung | `customers`, `projects`, `quotes` | Emulator (Regeln), Ansicht (8) | Umbenennen zieht Baustellen nach — ungetestet |
+| **Kunden** | Stammdaten, Dublettenschutz, Übernahme der Altbestände; **Kundenakte** je Kunde mit allen Angaben, Baustellen, Wartungen und Angeboten | Buchhaltung, Verwaltung, Leitung | `customers`, `projects`, `quotes`, `wartungen` | Emulator (Regeln), Liste (6), Akte (13) | Umbenennen zieht Baustellen nach — ungetestet |
 | **Angebote** | Positionen kalkulieren, Arbeitszeit getrennt ausweisen, beim Annehmen Baustelle mit Stundenbudget anlegen | Buchhaltung, Leitung | `quotes`, `projects`, `counters` | Ansicht (3), Emulator (Zähler: steigend, Neubeginn nur zum Jahreswechsel) | — |
 | **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget; **Übersicht je Baustelle** (Stunden über die ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter) | Leitung | `projects`, `timeEntries` | Ansicht (8), Übersicht (8) | Der Kundenname kommt aus dem Stammsatz; leeres Stundenbudget bleibt leer statt 0. Die Übersicht zeigt **kein Geld** — Erlös und Marge bleiben in der Nachkalkulation |
 | **Anforderungen** | Eingehende Materialanforderungen bearbeiten, Status setzen | Verwaltung, Leitung | `materialOrders` | Rechnung (Meldungen), Ansicht (14) | — |
@@ -83,15 +83,15 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1156 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1174 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | Regeltests gegen den Emulator | 194 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Cloud Functions mit ersetztem Firestore** | **98** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang, Pflichtfelder) | **107** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
-| Reine Rechnung | 314 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 313 | Findet Bedienfehler, **keine** Datenfehler |
+| Reine Rechnung | 321 | Hoch für die Formeln, **null** für die App |
+| Ansichten, Datenbank ersetzt | 324 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **12** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
 **Zu den Function-Tests, weil „ersetzter Firestore" nach Nachbau klingt.**
@@ -189,6 +189,29 @@ aufklappbar je Zeile.
 > Entscheidung, die in der Mitarbeiterübersicht längst getroffen war und hier
 > stehengeblieben ist. Helferstunden sind keine Warnung mehr, sondern eine
 > Angabe; eine Pille bekommt nur noch, was eine Ausnahme ist („über Budget").
+
+**Die Kundenakte, seit dem 07.09.2026.** Gemeldet wurde: „Man kann Kunden
+zwar eine Mail, Notiz, UID und weiteres hinzufügen, diese Daten scheinen
+jedoch nirgendwo auf." Das stimmte — das Formular nahm sieben Felder
+entgegen, die Liste zeigte drei. E-Mail, UID-Nummer und Notiz wurden erfasst
+und danach nie wieder gezeigt.
+
+> **Am teuersten war die UID.** Sie gehört auf jede Rechnung an ein
+> Unternehmen, und wer sie nachsehen wollte, musste in die
+> Bearbeitungsmaske — also genau dorthin, wo man sie versehentlich ändert,
+> während man sie nachliest.
+>
+> Die Akte ist eine eigene Seite (`/customers/:id`), kein Aufklappen mehr.
+> Die Historie hing bisher IN der Nebenzeile einer Listenzeile, mit `span`
+> gebaut, weil ein Absatz keine Blöcke verträgt. Um Stammdaten und Wartungen
+> erweitert wäre daraus vollends eine Ansicht in der Verkleidung einer Zeile.
+> Und eine Seite hat eine Adresse: von der Baustelle oder der Rechnung lässt
+> sich später darauf verlinken, auf ein Aufklappen nicht.
+>
+> Mitgenommen: `listWartungenForCustomer` war geschrieben und nie verdrahtet —
+> jetzt stehen die Wartungen des Kunden in seiner Akte. Und die
+> Kontakt-Regeln (`mapsUrl`, `telUrl`, der neue `mailUrl`) haben endlich
+> eigene Tests; im Modul stand seit jeher, sie seien genau dafür ausgelagert.
 
 **Jede Ansicht der App hat seit dem 07.09.2026 einen Ansichtstest.** Zuletzt
 offen waren Nachkalkulation, Module, Meine Baustellen, Firmendaten,

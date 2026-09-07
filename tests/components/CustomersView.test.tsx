@@ -184,46 +184,19 @@ describe('Kundenverwaltung', () => {
    * Sie hing nur als Text zusammen, nicht als Datensatz — und nichts in der
    * Ansicht sagte das.
    */
-  it('findet Baustellen, die nur ueber den Namen zusammenhaengen', async () => {
-    const nutzer = userEvent.setup();
+  it('führt zur Akte des Kunden', async () => {
+    /*
+      DIE HISTORIE WAR EIN AUFKLAPPEN IN DER NEBENZEILE. Baustellen und
+      Angebote steckten dort im Absatz einer Listenzeile; E-Mail, UID und
+      Notiz standen überhaupt nirgends. Beides liegt jetzt in der Akte —
+      geprüft wird sie in `KundenakteView.test.tsx`, hier nur der Weg dorthin.
+    */
     zeichne();
-    await screen.findByText('Hausverwaltung Nord');
-
-    await nutzer.click(screen.getByRole('button', { name: 'Historie' }));
-
-    expect(await screen.findByText(/noch keinem Kunden zugeordnet/)).toBeInTheDocument();
-    expect(screen.getByText(/B-042/)).toBeInTheDocument();
-  });
-
-  it('stellt die Verbindung auf einen Klick her', async () => {
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByText('Hausverwaltung Nord');
-    await nutzer.click(screen.getByRole('button', { name: 'Historie' }));
-    await screen.findByText(/noch keinem Kunden zugeordnet/);
-
-    await nutzer.click(screen.getByRole('button', { name: 'Zuordnen' }));
-
-    // Die Baustelle bekommt Kunde UND Namen — der Name wandert als Kopie mit,
-    // weil die Baustellenlisten ihn zeigen, ohne die Kunden zu laden.
-    expect(assignProjectToCustomer).toHaveBeenCalledWith('p9', 'k1', 'Hausverwaltung Nord');
-  });
-
-  it('sagt beim Laden und beim Fehler, was los ist — statt „nichts da"', async () => {
-    listUnlinkedProjectsByName.mockRejectedValueOnce(new Error('offline'));
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByText('Hausverwaltung Nord');
-
-    await nutzer.click(screen.getByRole('button', { name: 'Historie' }));
-
-    /**
-     * „Es konnte nicht geladen werden" und „es gibt keine" sind verschiedene
-     * Aussagen. Sie gleich aussehen zu lassen war der Grund, warum der Fehler
-     * so lange unbemerkt blieb.
-     */
-    expect(await screen.findByText(/nicht geladen werden/)).toBeInTheDocument();
-    expect(screen.queryByText('Noch keine Baustelle zugeordnet.')).not.toBeInTheDocument();
+    const zeile = (await screen.findByText('Hausverwaltung Nord')).closest('li')!;
+    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
+      'href',
+      '/customers/k1',
+    );
   });
 
   it('nennt die Rechnungsadresse beim Namen', () => {

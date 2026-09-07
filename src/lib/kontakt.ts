@@ -31,3 +31,22 @@ export function telUrl(nummer: string): string {
   const fuehrendesPlus = ziffern.startsWith('+');
   return `tel:${fuehrendesPlus ? '+' : ''}${ziffern.replace(/\+/g, '')}`;
 }
+
+/**
+ * Schreibbare Form einer hinterlegten Adresse.
+ *
+ * `mailto:` vertraegt keine Leerzeichen und keine spitzen Klammern — und
+ * genau so stehen Adressen in Stammdaten, wenn sie jemand aus einer Mail
+ * herauskopiert hat: „ Max Muster <max@example.at> ". Herausgeholt wird die
+ * Adresse selbst; steht keine da, gibt es auch keinen Link.
+ */
+export function mailUrl(adresse: string): string | null {
+  const roh = adresse.trim();
+  const inKlammern = /<([^>]+)>/.exec(roh);
+  const kandidat = (inKlammern ? inKlammern[1] : roh).trim();
+  // Bewusst grob geprueft: ein Zeichen, ein @, ein Punkt danach. Eine strenge
+  // Pruefung wuerde gueltige Adressen abweisen, und eine ungueltige schadet
+  // hier nichts — das Mailprogramm meldet sich.
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(kandidat)) return null;
+  return `mailto:${kandidat}`;
+}
