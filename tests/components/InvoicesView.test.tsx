@@ -118,7 +118,8 @@ vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => [PROJEKT]),
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
 }));
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
+let kunden: Array<{ name: string; vatId?: string }> = [];
+vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
 vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesForProjects: vi.fn(async () => zeiten),
 }));
@@ -129,11 +130,21 @@ vi.mock('@/lib/db/materials', () => ({ listMaterials: vi.fn(async () => katalog)
 
 // Das PDF wird beim Bestätigen dynamisch nachgeladen und hat mit der Frage
 // dieses Tests nichts zu tun.
-vi.mock('@/features/invoices/pdf', () => ({ downloadInvoicePdf: vi.fn() }));
+const pdfAusgabe = vi.fn();
+vi.mock('@/features/invoices/pdf', () => ({
+  downloadInvoicePdf: (...a: unknown[]) => pdfAusgabe(...a),
+}));
 
 const authWert = {
   user: { uid: 'gf', companyId: 'perl', name: 'Chefin', role: 'Buchhaltung' as const },
-  company: { id: 'perl', name: 'Perl Installationen', rates: undefined },
+  company: {
+    id: 'perl',
+    name: 'Perl Installationen',
+    rates: undefined,
+    // Ohne eigene UID ist keine Reverse-Charge-Rechnung vollständig — sie
+    // gehört zu den Firmendaten und steht auf jeder Rechnung in der Fusszeile.
+    vatId: 'ATU12345678',
+  },
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
@@ -161,12 +172,14 @@ beforeEach(() => {
   zeiten = [ZEIT];
   scheine = [];
   katalog = [];
+  kunden = [];
   reservierteNummer = 'RE-2026-1099';
   reservierungWirft = null;
   reihenfolge.length = 0;
   reserve.mockClear();
   markiere.mockClear();
   lege.mockClear();
+  pdfAusgabe.mockClear();
 });
 
 afterEach(() => {
@@ -400,5 +413,137 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     ];
     await bisZurVorschau();
     expect(screen.queryByDisplayValue('Eckventil 1/2 Zoll')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Bauleistung mit Übergang der Steuerschuld — § 19 Abs 1a UStG.
+ *
+ * Die reinen Regeln stehen in `tests/unit/reverseCharge.test.ts`, der Beleg in
+ * `rechnungLeistungszeitraum`. Hier geht es um die Stelle, an der es schiefgeht:
+ * eine Rechnung, die als Reverse Charge hinausgeht, ohne die UID des
+ * Empfängers zu tragen. Der Übergang ist dann nicht belegt, der Empfänger
+ * kann den Beleg nicht verwenden — und der Betrieb bekommt ihn zurück.
+ */
+describe('Reverse Charge in der Rechnungsmaske', () => {
+  it('ist aus, solange niemand es anhakt', async () => {
+    // Bei einem Betrieb, der überwiegend für Private arbeitet, bleibt der
+    // Haken das ganze Jahr aus. Er darf sich nicht von selbst setzen.
+    await bisZurVorschau();
+    expect(screen.getByRole('checkbox', { name: /Bauleistung/ })).not.toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ reverseCharge: false, vatRate: 0.2 });
+  });
+
+  it('sperrt den Knopf, solange die UID des Kunden fehlt', async () => {
+    /*
+      Eine Warnung, die man wegklicken kann, führte zu genau der Rechnung, die
+      später berichtigt werden muss. Hier gibt es nichts abzuwägen.
+    */
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    expect(await screen.findByRole('button', { name: /Rechnung erstellen/ })).toBeDisabled();
+    expect(screen.getByText(/nicht belegt/)).toBeInTheDocument();
+  });
+
+  it('gibt ihn frei, sobald sie dasteht — und schreibt sie in die Rechnung', async () => {
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
+
+    const knopf = await screen.findByRole('button', { name: /Rechnung erstellen/ });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await userEvent.click(knopf);
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({
+      reverseCharge: true,
+      customerVatId: 'ATU11112222',
+      // Der geltende Satz, nicht der eingestellte: sonst stünde auf dem Beleg
+      // eine Steuer über einen Betrag ohne.
+      vatRate: 0,
+      totalVat: 0,
+    });
+  });
+
+  it('belegt die UID aus den Kundenstammdaten vor', async () => {
+    // Abtippen vom Briefkopf ist die Stelle, an der die Ziffer verlorengeht.
+    kunden = [{ name: 'Familie Huber', vatId: 'ATU55556666' }];
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    expect(screen.getByLabelText(/UID-Nummer des Kunden/)).toHaveValue('ATU55556666');
+  });
+
+  it('weist auf eine UID hin, die keine sein kann', async () => {
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU123');
+    expect(await screen.findByText(/sieht nicht nach einer UID/)).toBeInTheDocument();
+  });
+
+  it('rechnet die Steuer aus der Vorschau heraus', async () => {
+    // 8 Stunden Facharbeit — ohne Übergang mit 20 %, mit Übergang ohne.
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
+    expect(await screen.findByText('Übergang der Steuerschuld')).toBeInTheDocument();
+    expect(screen.getByText('Rechnungsbetrag')).toBeInTheDocument();
+  });
+});
+
+/**
+ * Eine bestehende Rechnung erneut als PDF ausgeben.
+ *
+ * DIESER TEST ENTSTAND AUS EINER GEGENPROBE, DIE DURCHGING. Der Weg war
+ * ungeprüft — und ausgerechnet hier fällt ein Fehler nicht auf: der zweite
+ * Druck sieht aus wie ein PDF, nur ohne den Pflichthinweis und ohne die UID
+ * des Empfängers. Damit wäre es ein anderer, ungültiger Beleg über dieselbe
+ * Rechnungsnummer.
+ */
+describe('Erneute PDF-Ausgabe', () => {
+  const RC_RECHNUNG = {
+    id: 'r1',
+    invoiceNumber: 'RE-2026-0007',
+    projectNumber: '2026-042',
+    customerName: 'Baumeister Gruber',
+    invoiceDate: '2026-09-10',
+    dueDate: '2026-09-24',
+    positions: [{ label: 'Facharbeit', qty: 8, unit: 'h', unitPrice: 65, netto: 520 }],
+    totalNetto: 520,
+    totalVat: 0,
+    totalBrutto: 520,
+    vatRate: 0,
+    reverseCharge: true,
+    customerVatId: 'ATU11112222',
+    leistungVon: '2026-09-01',
+    leistungBis: '2026-09-05',
+    paymentStatus: 'Offen',
+  } as unknown as Invoice & { id: string };
+
+  it('nimmt Pflichthinweis, UID und Zeitraum aus dem DOKUMENT', async () => {
+    rechnungen = [RC_RECHNUNG];
+    zeige();
+    // Der Zeilentitel ist eine zusammengesetzte Zeichenkette
+    // („Nummer · Kunde"), deshalb der Ausdruck statt des genauen Texts.
+    await screen.findByText(/RE-2026-0007/);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0007/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'PDF erneut laden' }));
+
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({
+      reverseCharge: true,
+      customerVatId: 'ATU11112222',
+      vatRate: 0,
+    });
+    // Und der Zeitraum aus dem Dokument, nicht neu abgeleitet: er stand so
+    // beim Kunden, auch wenn seither Buchungen dazugekommen sind.
+    expect(pdfAusgabe.mock.calls[0][0].assembled.leistung).toEqual({
+      von: '2026-09-01',
+      bis: '2026-09-05',
+    });
   });
 });

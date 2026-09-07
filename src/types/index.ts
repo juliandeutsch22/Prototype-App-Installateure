@@ -722,8 +722,38 @@ export interface Invoice {
   discount?: InvoiceDiscount | null;
   /** Der daraus errechnete Abzug in Euro — festgehalten, nicht neu gerechnet. */
   discountAmount?: number;
-  /** Angewandter USt-Satz (0.2 = 20 %). */
+  /** Angewandter USt-Satz (0.2 = 20 %). Bei Reverse Charge 0. */
   vatRate?: number;
+  /**
+   * BAULEISTUNG MIT ÜBERGANG DER STEUERSCHULD — § 19 Abs 1a UStG.
+   *
+   * Der Normalfall ist: der Betrieb weist 20 % aus, kassiert sie und führt
+   * sie ab. Erbringt er eine BAULEISTUNG an einen anderen Bauunternehmer —
+   * also als Subunternehmer —, kehrt sich das um: die Rechnung geht netto
+   * hinaus, und der Empfänger schuldet die Steuer selbst.
+   *
+   * WARUM DAS EIN EIGENES FELD IST und nicht einfach `vatRate: 0`. Beides
+   * ergibt dieselbe Summe und bedeutet etwas völlig anderes. „0 %" ist ein
+   * Steuersatz; Reverse Charge ist ein Übergang der Steuerschuld, der auf dem
+   * Beleg ausdrücklich benannt werden MUSS (§ 11 Abs 1a UStG) und im Journal
+   * getrennt auszuweisen ist. Wer die beiden Fälle über eine Null
+   * zusammenlegt, kann sie im Nachhinein nicht mehr unterscheiden.
+   *
+   * WAS SCHIEFGEHT, WENN ES FEHLT: der Betrieb schreibt 20 % auf eine
+   * Rechnung an einen Baumeister. Der zahlt sie nicht und verlangt eine
+   * Berichtigung — die ausgewiesene Steuer schuldet der Betrieb bis dahin
+   * trotzdem (§ 11 Abs 12 UStG).
+   */
+  reverseCharge?: boolean;
+  /**
+   * Die UID des Leistungsempfängers, festgehalten zum Zeitpunkt der Rechnung.
+   *
+   * Bei Reverse Charge Pflicht: ohne sie ist der Übergang der Steuerschuld
+   * nicht belegt. Kopiert und nicht verknüpft — aus demselben Grund wie die
+   * Anschrift: ein Beleg ist ein Dokument, kein Blick auf die aktuellen
+   * Stammdaten.
+   */
+  customerVatId?: string;
   /** Anschrift der Baustelle zum Zeitpunkt der Rechnungslegung. */
   address?: string;
   /**

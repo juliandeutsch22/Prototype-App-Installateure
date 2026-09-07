@@ -75,6 +75,15 @@ const KOPF = [
   'Netto',
   'USt-Satz %',
   'USt-Betrag',
+  /*
+    Reverse Charge gehört als EIGENE Spalte ins Journal, nicht als Null im
+    Steuersatz. Beides ergibt 0,00 € und bedeutet etwas anderes: „0 %" ist ein
+    Steuersatz, der Übergang der Steuerschuld ist ein anderer Umsatz, den der
+    Steuerberater getrennt erklären muss (Kennzahl 021 der UVA). Wer die
+    beiden Fälle über eine Null zusammenlegt, kann sie im Nachhinein nicht
+    mehr trennen.
+  */
+  'Reverse Charge',
   'Brutto',
   'Zahlungsstatus',
   'Storniert',
@@ -128,11 +137,15 @@ export function buildInvoiceCsv(
         i.leistungBis ? fmtDate(i.leistungBis) : '',
         fmtDate(i.dueDate),
         i.customerName,
-        uidNachName.get(i.customerName.trim().toLowerCase()) ?? '',
+        // Die auf der RECHNUNG festgehaltene UID hat Vorrang: sie stand auf
+        // dem Beleg, den der Kunde bekommen hat. Die Stammdaten koennen sich
+        // seither geaendert haben.
+        i.customerVatId?.trim() || uidNachName.get(i.customerName.trim().toLowerCase()) || '',
         i.projectNumber,
         num(i.totalNetto),
         prozent(i.vatRate),
         num(i.totalVat),
+        i.reverseCharge ? 'ja' : 'nein',
         num(i.totalBrutto),
         i.paymentStatus,
         storniert ? 'ja' : 'nein',
