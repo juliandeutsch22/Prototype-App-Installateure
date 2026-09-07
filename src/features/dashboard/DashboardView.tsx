@@ -32,6 +32,7 @@ import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import LaufWarnung from './LaufWarnung';
 import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
@@ -429,6 +430,16 @@ export default function DashboardView() {
         title={`Willkommen, ${user.name.split(' ')[0]}`}
         subtitle={`${company?.name ?? 'Installateur-App'} · Rolle: ${user.role}`}
       />
+
+      {/*
+        DIE NACHTLÄUFE ZUERST, noch vor allem anderen.
+
+        Sie sind das Einzige auf dieser Seite, bei dem der Schaden mit der Zeit
+        wächst statt aufzufallen: eine ausgefallene Sicherung merkt man an dem
+        Tag, an dem man sie braucht. Steht nichts an, steht hier auch nichts —
+        eine dauerhafte grüne Kachel wäre nach zwei Wochen unsichtbar.
+      */}
+      <LaufWarnung />
 
       {/*
         Fehlende Zeiten statt Saldo.

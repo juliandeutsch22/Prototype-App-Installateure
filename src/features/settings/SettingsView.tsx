@@ -6,6 +6,7 @@ import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { isTopLevel } from '@/lib/permissions';
 import type { AppUser, InvoiceRates } from '@/types';
 import Card from '@/components/Card';
+import LaufStatus from './LaufStatus';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
@@ -418,6 +419,14 @@ export default function SettingsView() {
           Verdichtet die Zeitbuchungen zu einer Bilanz je Mitarbeiter und Monat. Einmalig
           anzustoßen.
         </p>
+        {/*
+          DER NÄCHTLICHE LAUF war die stillste Stelle der ganzen App. Er
+          gleicht Abweichungen aus; fällt er aus, steht ein Saldo still
+          daneben und landet auf einem Lohnzettel. Bemerkt hätte das niemand.
+        */}
+        <div className="mt-3">
+          <LaufStatus art="bilanzen" />
+        </div>
         {aufbauErgebnis && (
           <p className="mt-3 rounded-sm border border-success/30 bg-success-bg px-3 py-2 text-sm text-success">
             {aufbauErgebnis}

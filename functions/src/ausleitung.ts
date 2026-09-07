@@ -5,6 +5,7 @@ import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
 import { jedesDokument } from './mandantendaten.js';
 import { abgelaufeneStaende, ausleitungsPfad, ausleitungsPraefix, jsonZeile } from './ausleitungPlan.js';
+import { laufFesthalten } from './laufFesthalten.js';
 
 /**
  * Nächtliche Ausleitung: der Bestand jedes Mandanten an einen zweiten Ort.
@@ -127,13 +128,28 @@ async function alleMandantenAusleiten(): Promise<Bilanz[]> {
       const geraeumt = await alteStaendeRaeumen(firma.id, heute);
       bilanzen.push(bilanz);
       logger.info('Mandant ausgeleitet', { ...bilanz, geraeumt, ziel: ZIEL_BUCKET ?? 'Standard' });
+      await laufFesthalten(firma.id, 'ausleitung', {
+        erfolg: true,
+        kennzahl: bilanz.zeilen,
+        kennzahlEinheit: 'Zeilen',
+      });
     } catch (e) {
       /**
        * Weitermachen: ein Mandant, der scheitert, darf die übrigen nicht
        * mitreißen. Der Fehlschlag steht im Protokoll, und der jüngste Stand
        * dieses Mandanten bleibt beim Aufräumen ausdrücklich verschont.
+       *
+       * ER STEHT SEIT DEM 07.09.2026 AUCH IN DER ÜBERWACHUNG. Vorher endete
+       * er hier im Google-Protokoll, und dorthin sieht in einem
+       * Installationsbetrieb niemand: die Sicherung konnte wochenlang
+       * ausfallen, und bemerkt hätte man es an dem Tag, an dem man sie
+       * braucht.
        */
       logger.error('Ausleitung fehlgeschlagen', { companyId: firma.id, e });
+      await laufFesthalten(firma.id, 'ausleitung', {
+        erfolg: false,
+        meldung: e instanceof Error ? e.message : 'Unbekannter Fehler',
+      });
     }
   }
   return bilanzen;
@@ -188,9 +204,24 @@ export const datenAusleitungJetzt = onCall(
     }
 
     const heute = new Date();
-    const bilanz = await mandantAusleiten(companyId, heute);
-    const geraeumt = await alteStaendeRaeumen(companyId, heute);
-    logger.info('Ausleitung von Hand', { ...bilanz, geraeumt });
-    return { ...bilanz, geraeumt, ziel: ZIEL_BUCKET ?? 'Standard-Bucket des Projekts' };
+    try {
+      const bilanz = await mandantAusleiten(companyId, heute);
+      const geraeumt = await alteStaendeRaeumen(companyId, heute);
+      logger.info('Ausleitung von Hand', { ...bilanz, geraeumt });
+      // Auch der Lauf VON HAND zählt: sonst stünde nach einer eben erst
+      // ausgelösten Sicherung weiter „überfällig" da.
+      await laufFesthalten(companyId, 'ausleitung', {
+        erfolg: true,
+        kennzahl: bilanz.zeilen,
+        kennzahlEinheit: 'Zeilen',
+      });
+      return { ...bilanz, geraeumt, ziel: ZIEL_BUCKET ?? 'Standard-Bucket des Projekts' };
+    } catch (e) {
+      await laufFesthalten(companyId, 'ausleitung', {
+        erfolg: false,
+        meldung: e instanceof Error ? e.message : 'Unbekannter Fehler',
+      });
+      throw e;
+    }
   },
 );

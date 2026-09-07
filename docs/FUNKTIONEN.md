@@ -45,7 +45,7 @@ unterscheidet drei Stufen:
 | **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie) | Ansicht ungetestet |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8) | Ansicht ungetestet |
 | **Module** | Bereiche für den Betrieb ein- und ausschalten; zeigt vorher, was mit abgeschaltet wird | **nur Administration** | `companies.modules` | Rechnung (15), Emulator (8) | Ansicht ungetestet. Enger als der Rest der Einstellungen: ein abgeschaltetes Modul nimmt allen den Weg zu ihrer Arbeit, und zwar unsichtbar — das ist Einrichtung, keine Führung |
-| **Datensicherung** | Nächtliche Ausleitung des ganzen Bestands an einen zweiten Ort; Sicherung von Hand anstoßen; Bestand herunterladen (DSGVO) | **nur GF/Admin** | alle Sammlungen | Rechnung (11 Aufräum- und Pfadregeln), Ansicht (4), Function (19: Lauf, Mandantengrenze, Seitenwechsel, Aufräumen) | Ohne `AUSLEITUNG_BUCKET` liegt die Sicherung im selben Google-Projekt — gegen einen Fehlgriff hilft das, gegen „der Zugang ist weg" nicht |
+| **Datensicherung** | Nächtliche Ausleitung des ganzen Bestands an einen zweiten Ort; Sicherung von Hand anstoßen; Bestand herunterladen (DSGVO); **Zustand des letzten Laufs** | **nur GF/Admin** | alle Sammlungen, `systemLaeufe` | Rechnung (23 Aufräum-, Pfad- und Fristregeln), Ansicht (11), Function (24), Emulator (6) | Ohne `AUSLEITUNG_BUCKET` liegt die Sicherung im selben Google-Projekt — gegen einen Fehlgriff hilft das, gegen „der Zugang ist weg" nicht |
 
 ## Büro und Auswertung
 
@@ -82,11 +82,11 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-970 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1000 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
-| Regeltests gegen den Emulator | 182 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+| Regeltests gegen den Emulator | 187 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Cloud Functions mit ersetztem Firestore** | **98** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **91** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 289 | Hoch für die Formeln, **null** für die App |
@@ -99,6 +99,21 @@ umgibt. Möglich wurde das über `resolve.alias` in `vitest.config.ts` — an
 `functions/src/` ist für diese Tests KEINE Zeile geändert worden. Was der
 Ersatz nicht kann: Indizes, Nebenläufigkeit, Regeln. Die Regeln prüft der
 Emulatorlauf; die anderen beiden bleiben offen und stehen unten.
+
+**Die Nachtläufe melden sich seit dem 07.09.2026.** Ausleitung (02:30) und
+Bilanzlauf (03:15) halten fest, ob sie durchgegangen sind; bleibt der letzte
+Erfolg zwei Nächte aus, steht das auf der Startseite der Leitung. Es war der
+einzige Mangel dieser App, bei dem der Schaden mit der Zeit WÄCHST statt
+aufzufallen: die Sicherung konnte wochenlang ausfallen, und bemerkt hätte man
+es an dem Tag, an dem man sie braucht.
+
+> **„Unbekannt" ist nicht „gut".** Ein Betrieb ohne Aufzeichnung sieht in den
+> Daten genauso aus wie einer, bei dem nie etwas lief — und beides heisst: es
+> gibt keine Sicherung, von der jemand weiss. Beide Fälle melden sich.
+>
+> Geschrieben wird der Zustand **ausschliesslich vom Server**
+> (`allow write: if false`). Eine Überwachung, die der Überwachte selbst
+> beschreiben kann, überwacht nichts.
 
 **Reverse Charge seit dem 07.09.2026.** Erbringt der Betrieb eine Bauleistung
 an einen anderen Bauunternehmer — als Subunternehmer —, geht die
@@ -189,7 +204,7 @@ Konstruktion nicht sehen:
 | Leeres Auswahlfeld beim Schein | verschluckter Fehler | **Teilweise** — der Smoketest findet eine Abfrage, die an den Regeln scheitert; eine schlicht leere Menge findet er nicht. |
 | „Lädt ewig" (Schein) | Cloud Function ohne Frist | **Ja** — die Frist liegt jetzt in `lib/frist.ts` und ist geprüft |
 | „iPhone lädt gar nicht" | Start hing an zwei Abfragen ohne Zeitgrenze; kein Vorhalten der App-Hülle | **Teilweise** — Frist und Service Worker sind geprüft, die Wirkung auf einem echten Gerät ist es nicht |
-| Unterschrift ohne Wirkung | `canvas.width` löscht die Fläche | Nein — dagegen hilft nur ein echter Browser |
+| Unterschrift ohne Wirkung | `canvas.width` löscht die Fläche | **Vom Betrieb auf einem echten Gerät nachgeprüft (07.09.2026) — sie funktioniert.** Automatisiert weiterhin nicht abgedeckt; dagegen hülfe nur ein echter Browser im Testlauf |
 
 **Zwei Fallen, die der Emulator selbst stellt** — beide inzwischen als Test
 festgehalten:

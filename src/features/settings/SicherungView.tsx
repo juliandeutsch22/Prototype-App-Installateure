@@ -7,6 +7,7 @@ import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import InfoHint from '@/components/InfoHint';
 import { ErrorState } from '@/components/States';
+import LaufStatus from './LaufStatus';
 import { useToast } from '@/components/Toast';
 
 /**
@@ -122,6 +123,14 @@ export default function SicherungView() {
               eine Satz, der jemanden davon abhaelt, ihn fuer noetig zu
               halten — das Warum steht im „i" darueber. */}
           <p className="text-sm text-ink-muted">Sie läuft von selbst.</p>
+          {/*
+            „SIE LÄUFT VON SELBST" WAR EINE BEHAUPTUNG, bis diese Zeile
+            dazukam. Ob sie tatsächlich lief, stand nur im Google-Protokoll —
+            und dorthin sieht in einem Installationsbetrieb niemand. Die
+            Sicherung konnte wochenlang ausfallen; bemerkt hätte man es an dem
+            Tag, an dem man sie braucht.
+          */}
+          <LaufStatus art="ausleitung" />
           <Button onClick={() => void sicherungJetzt()} disabled={laeuft !== null}>
             {laeuft === 'sicherung' ? 'Sicherung läuft …' : 'Sicherung jetzt erstellen'}
           </Button>

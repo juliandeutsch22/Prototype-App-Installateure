@@ -1694,3 +1694,71 @@ describe('Einen Administrator entfernt nur ein Administrator', () => {
     );
   });
 });
+
+/**
+ * Der Zustand der nächtlichen Läufe.
+ *
+ * Ausleitung und Bilanzlauf halten hier fest, ob sie durchgegangen sind. Der
+ * Punkt der Regel: geschrieben wird ausschliesslich vom Server. Eine
+ * Überwachung, die der Überwachte selbst beschreiben kann, überwacht nichts —
+ * wer sich aussperren will, setzte einfach einen Erfolg von heute ein.
+ */
+describe('Die Überwachung schreibt nur der Server', () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'systemLaeufe', 'companyA_ausleitung'), {
+        companyId: 'companyA',
+        art: 'ausleitung',
+        zuletztErfolg: 1757000000000,
+        erfolg: true,
+      });
+    });
+  });
+
+  it('die Leitung darf den Zustand lesen', async () => {
+    await assertSucceeds(getDoc(doc(ctxA_gf().firestore(), 'systemLaeufe', 'companyA_ausleitung')));
+    await assertSucceeds(
+      getDoc(doc(ctxA_admin().firestore(), 'systemLaeufe', 'companyA_ausleitung')),
+    );
+  });
+
+  it('der Monteur nicht', async () => {
+    // Es sind Betriebsdaten. Eine Meldung über eine ausgefallene Sicherung auf
+    // seinem Telefon wäre eine Beunruhigung ohne Handlungsmöglichkeit.
+    await assertFails(
+      getDoc(doc(ctxA_employee().firestore(), 'systemLaeufe', 'companyA_ausleitung')),
+    );
+  });
+
+  it('NIEMAND darf schreiben — auch die Administration nicht', async () => {
+    /*
+      Der Kern. Wer sich aussperren will, setzte einfach einen Erfolg von
+      heute ein, und die Überwachung meldete Ruhe, während seit Wochen nichts
+      läuft.
+    */
+    for (const ctx of [ctxA_admin(), ctxA_gf(), ctxA_buch(), ctxA_employee()]) {
+      await assertFails(
+        updateDoc(doc(ctx.firestore(), 'systemLaeufe', 'companyA_ausleitung'), {
+          zuletztErfolg: Date.now(),
+        }),
+      );
+    }
+  });
+
+  it('und keiner legt einen eigenen an', async () => {
+    await assertFails(
+      setDoc(doc(ctxA_admin().firestore(), 'systemLaeufe', 'companyA_bilanzen'), {
+        companyId: 'companyA',
+        art: 'bilanzen',
+        zuletztErfolg: Date.now(),
+        erfolg: true,
+      }),
+    );
+  });
+
+  it('die fremde Firma sieht nichts', async () => {
+    await assertFails(
+      getDoc(doc(ctxB_admin().firestore(), 'systemLaeufe', 'companyA_ausleitung')),
+    );
+  });
+});

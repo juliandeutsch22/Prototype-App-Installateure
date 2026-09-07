@@ -30,6 +30,19 @@ const AUSNAHMEN: Record<string, string> = {
   // Ein einzelnes Dokument, adressiert über die Mandanten-ID statt über ein
   // Feld. Die Function holt es getrennt — deshalb steht es nicht in EXPORTABLE.
   companies: 'wird über die Dokument-ID geholt, nicht über ein Feld',
+  /*
+    Der Zustand der nächtlichen Läufe: WANN die Sicherung zuletzt durchging
+    und wie viele Zeilen sie schrieb.
+
+    Das ist eine Aussage über die App, kein Geschäftsdatum. Für einen
+    Wiederanlauf taugt es nichts — die Läufe schreiben ihren Zustand in der
+    ersten Nacht neu, und ein mitgeschleppter Stand von früher wäre dort sogar
+    schädlich: er behauptete eine Sicherung, die es in der neuen Umgebung
+    nicht gibt.
+
+    Derselbe Gedanke wie bei den Push-Tokens, die aus `userPrefs` fallen.
+  */
+  systemLaeufe: 'Zustand der App, kein Geschäftsdatum — entsteht in der ersten Nacht neu',
 };
 
 function sammlungenAusRegeln(): string[] {

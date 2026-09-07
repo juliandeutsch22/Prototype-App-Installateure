@@ -25,6 +25,12 @@ vi.mock('@/lib/functions', () => ({
   callExportCompanyData: (...a: unknown[]) => export_(...a),
 }));
 
+/** Was die Überwachung über den letzten Lauf weiss. */
+let letzterLauf: { zuletztErfolg?: number; kennzahl?: number; kennzahlEinheit?: string } | undefined;
+vi.mock('@/lib/db/laeufe', () => ({
+  ladeLauf: vi.fn(async () => (letzterLauf ? { companyId: 'perl', art: 'ausleitung', ...letzterLauf } : undefined)),
+}));
+
 vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({
     user: { uid: 'gf', companyId: 'perl', name: 'Chef', role: 'Geschäftsführung' },
@@ -43,6 +49,7 @@ function zeige() {
 beforeEach(() => {
   ausleitung.mockReset();
   export_.mockReset();
+  letzterLauf = undefined;
 });
 
 describe('Datensicherung', () => {
@@ -101,5 +108,45 @@ describe('Datensicherung', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' })).toBeEnabled(),
     );
+  });
+});
+
+/**
+ * „Sie läuft von selbst" war eine BEHAUPTUNG.
+ *
+ * Ob die nächtliche Sicherung tatsächlich lief, stand nur im
+ * Google-Protokoll — und dorthin sieht in einem Installationsbetrieb niemand.
+ * Sie konnte wochenlang ausfallen; bemerkt hätte man es an dem Tag, an dem
+ * man sie braucht.
+ */
+describe('Der Zustand der nächtlichen Sicherung', () => {
+  it('sagt, wann sie zuletzt durchging — und wie viel', async () => {
+    letzterLauf = {
+      zuletztErfolg: Date.now() - 6 * 3_600_000,
+      kennzahl: 4812,
+      kennzahlEinheit: 'Zeilen',
+    };
+    zeige();
+    expect(await screen.findByText(/lief zuletzt vor 6 Stunden durch/)).toBeInTheDocument();
+    expect(screen.getByText(/4.812/)).toBeInTheDocument();
+  });
+
+  it('meldet sich, wenn sie zu lange aussteht', async () => {
+    letzterLauf = { zuletztErfolg: Date.now() - 80 * 3_600_000 };
+    zeige();
+    // Nach dem TEXT, nicht nach der Rolle: der Toast-Bereich trägt von
+    // Anfang an eine leere Live-Region, und die käme zuerst.
+    expect(await screen.findByText(/lief zuletzt vor 3 Tagen durch/)).toBeInTheDocument();
+  });
+
+  it('sagt „noch nie", wenn nichts festgehalten ist — statt zu schweigen', async () => {
+    /*
+      Der gefährlichste Fall: ein Betrieb ohne Aufzeichnung sieht genauso aus
+      wie einer, bei dem nie etwas lief. Beides heisst, dass es keine
+      Sicherung gibt, von der jemand weiss.
+    */
+    letzterLauf = undefined;
+    zeige();
+    expect(await screen.findByText(/noch nie durchgelaufen/)).toBeInTheDocument();
   });
 });
