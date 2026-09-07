@@ -19,6 +19,9 @@ import { listCustomers } from '@/lib/db/customers';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
+import { listWorkSheetsForProject } from '@/lib/db/workSheets';
+import { listMaterials } from '@/lib/db/materials';
+import { verrechneteScheine } from './materialPositionen';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr } from '@/lib/time';
@@ -65,6 +68,15 @@ export default function InvoicesView() {
   // Entwurf
   const [projectNumber, setProjectNumber] = useState('');
   const [preview, setPreview] = useState<AssembledInvoice | null>(null);
+  /**
+   * Der Leistungszeitraum, wie er auf die Rechnung kommt.
+   *
+   * Vorbelegt aus den Belegen, aber ÄNDERBAR — eine Teilrechnung oder eine
+   * später gebuchte Nacharbeit soll den Zeitraum nicht verschieben, den der
+   * Betrieb dem Kunden gegenüber nennen will.
+   */
+  const [leistungVon, setLeistungVon] = useState('');
+  const [leistungBis, setLeistungBis] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   /**
    * Der zuletzt EINGESETZTE Vorschlag. Nur daran ist erkennbar, ob jemand die
@@ -264,14 +276,41 @@ export default function InvoicesView() {
        * `assembleInvoice` beim Filtern ohnehin vornimmt. Am Ergebnis der
        * Rechnung aendert sich also nichts, nur an der Menge.
        */
-      const entries = await listEntriesForProjects(user.companyId, [projectNumber]);
-      const assembled = assembleInvoice(projectNumber, entries, rates);
+      /*
+        Scheine und Katalog laufen NEBEN den Zeiteintraegen, nicht davor.
+
+        Sie liefern das Material. Schlaegt eines davon fehl, soll die Rechnung
+        trotzdem entstehen — mit den Stunden allein und einem Hinweis, statt
+        gar nicht. Ein Betrieb, der abrechnen will, wartet sonst auf eine
+        Abfrage, die mit seinen Stunden nichts zu tun hat.
+      */
+      const [entries, scheine, katalog] = await Promise.all([
+        listEntriesForProjects(user.companyId, [projectNumber]),
+        listWorkSheetsForProject(user.companyId, projectNumber).catch(() => {
+          setNebenFehler('Die Handwerksscheine');
+          return [];
+        }),
+        listMaterials(user.companyId).catch(() => {
+          setNebenFehler('Der Materialkatalog');
+          return [];
+        }),
+      ]);
+      const assembled = assembleInvoice(projectNumber, entries, rates, {
+        scheine,
+        katalog,
+        // Was auf einer bestehenden Rechnung steht, kommt nicht noch einmal.
+        // Ein STORNIERTER Beleg zaehlt dabei nicht — sein Material ist wieder
+        // offen.
+        bereitsVerrechnet: verrechneteScheine(invoices),
+      });
       if (assembled.positions.length === 0) {
         setPreview(null);
-        setError('Keine offenen, verrechenbaren Stunden für diese Baustelle.');
+        setError('Keine offenen Stunden und kein offenes Material für diese Baustelle.');
         return;
       }
       setPreview(assembled);
+      setLeistungVon(assembled.leistung?.von ?? '');
+      setLeistungBis(assembled.leistung?.bis ?? '');
       const vorschlag = nextInvoiceNumber(invoices);
       setSuggestedNumber(vorschlag);
       setInvoiceNumber(vorschlag);
@@ -333,8 +372,15 @@ export default function InvoicesView() {
         totalVat: preview.totalVat,
         totalBrutto: preview.totalBrutto,
         paymentStatus: 'Offen',
+        // Leerstring statt undefined: Firestore lehnt undefined ab, und ein
+        // leeres Feld sagt ehrlich „nicht angegeben".
+        leistungVon,
+        leistungBis,
         linkedEntries: preview.linkedEntries,
         linkedOrders: preview.linkedOrders,
+        // Die Scheine, deren Material eingeflossen ist. Sie sind damit
+        // verbraucht — bis diese Rechnung storniert wird.
+        linkedWorkSheets: preview.linkedWorkSheets,
       });
 
       // jsPDF erst hier nachladen — es wiegt mehrere hundert Kilobyte und
@@ -350,7 +396,12 @@ export default function InvoicesView() {
         invoiceNumber: reserved,
         invoiceDate,
         dueDate,
-        assembled: preview,
+        // Der GEÄNDERTE Zeitraum, nicht der abgeleitete: auf dem Beleg steht,
+        // was im Feld steht.
+        assembled: {
+          ...preview,
+          leistung: leistungVon && leistungBis ? { von: leistungVon, bis: leistungBis } : null,
+        },
         appendDetail,
         vatRate: rates.vatRate,
       });
@@ -402,6 +453,14 @@ export default function InvoicesView() {
         totalBrutto: inv.totalBrutto,
         linkedEntries: inv.linkedEntries ?? [],
         linkedOrders: inv.linkedOrders ?? [],
+        linkedWorkSheets: inv.linkedWorkSheets ?? [],
+        // Aus dem DOKUMENT, nicht neu abgeleitet: der Zeitraum steht so beim
+        // Kunden, auch wenn seither Buchungen dazugekommen sind.
+        leistung:
+          inv.leistungVon && inv.leistungBis
+            ? { von: inv.leistungVon, bis: inv.leistungBis }
+            : null,
+        materialOhnePreis: [],
         entries: [],
       },
       appendDetail: false,
@@ -579,12 +638,50 @@ export default function InvoicesView() {
           title="Vorschau"
           hint={
             'Hier ist noch nichts geschrieben. Positionen lassen sich ändern, löschen und ' +
-            'ergänzen — eine Rechnung ist selten genau das, was die Zeiterfassung hergibt. ' +
-            'Verbindlich wird alles erst mit „Rechnung anlegen“: dann zieht sie ihre Nummer, ' +
-            'die Belege werden gesperrt, und beides ist nur noch über einen Storno rückgängig ' +
-            'zu machen. Material wird über diese App nicht verrechnet.'
+            'ergänzen — auch das vorbereitete Material — denn eine Rechnung ist selten genau ' +
+            'das, was Zeiterfassung und Scheine hergeben. Verbindlich wird alles erst mit ' +
+            '„Rechnung anlegen“: dann zieht sie ihre Nummer, die Belege werden gesperrt, und ' +
+            'beides ist nur noch über einen Storno rückgängig zu machen.'
           }
         >
+          {/*
+            DER LEISTUNGSZEITRAUM STEHT VOR DEN POSITIONEN.
+
+            Er ist Pflichtangabe nach § 11 Abs 1 Z 4 UStG und fehlte auf jeder
+            bisher geschriebenen Rechnung. Vorbelegt aus den Belegen, aber
+            änderbar: eine Teilrechnung oder eine später gebuchte Nacharbeit
+            soll den Zeitraum nicht verschieben, den der Betrieb dem Kunden
+            gegenüber nennen will.
+          */}
+          <div className="mb-4 grid gap-3 sm:grid-cols-2">
+            <InputField
+              id="leistung-von"
+              label="Leistung von"
+              type="date"
+              value={leistungVon}
+              onChange={(e) => setLeistungVon(e.target.value)}
+            />
+            <InputField
+              id="leistung-bis"
+              label="Leistung bis"
+              type="date"
+              value={leistungBis}
+              onChange={(e) => setLeistungBis(e.target.value)}
+            />
+          </div>
+          {(!leistungVon || !leistungBis) && (
+            <p className="mb-3 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+              Ohne Leistungszeitraum ist die Rechnung nach § 11 UStG unvollständig — beim Kunden
+              wackelt damit der Vorsteuerabzug.
+            </p>
+          )}
+          {preview.materialOhnePreis.length > 0 && (
+            <p className="mb-3 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+              Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt:{' '}
+              {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile
+              entfernen — im Lager gepflegt, kommt er beim nächsten Mal von selbst.
+            </p>
+          )}
           {/* Positionen sind bearbeitbar, nicht nur ansehbar.
               Eine Rechnung ist selten genau das, was die Zeiterfassung
               hergibt: eine Anfahrt kommt dazu, eine Stunde wird dem Kunden

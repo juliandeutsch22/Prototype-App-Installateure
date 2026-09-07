@@ -123,3 +123,86 @@ describe('Rechnungsausgangsbuch', () => {
     );
   });
 });
+
+describe('Der Leistungszeitraum im Journal', () => {
+  it('steht als eigene Spalte darin', async () => {
+    /*
+      Er entscheidet über die PERIODE, in die der Umsatz fällt — genau die
+      Frage, die der Steuerberater an diese Datei stellt. Eine Rechnung vom
+      2. Jänner über eine Leistung vom Dezember gehört in die
+      Dezemberumsatzsteuer.
+
+      Der Test hält die SPALTEN fest, nicht nur die Werte: eine verschobene
+      Spalte fällt beim Einlesen nicht auf, sie landet nur im falschen Feld.
+    */
+    const r = buildInvoiceCsv(
+      [
+        {
+          invoiceNumber: 'RE-2026-0001',
+          invoiceDate: '2027-01-02',
+          dueDate: '2027-01-16',
+          leistungVon: '2026-12-03',
+          leistungBis: '2026-12-19',
+          customerName: 'Huber',
+          projectNumber: 'B-001',
+          totalNetto: 100,
+          totalVat: 20,
+          totalBrutto: 120,
+          vatRate: 0.2,
+          paymentStatus: 'Offen',
+        } as never,
+      ],
+      [],
+      '2027-01-01',
+      '2027-01-31',
+    );
+    const [kopf, zeile] = r.csv.split('\n');
+    expect(kopf.split(';')).toEqual([
+      'Rechnungsnummer',
+      'Rechnungsdatum',
+      'Leistung von',
+      'Leistung bis',
+      'Fälligkeitsdatum',
+      'Kunde',
+      'UID-Nummer',
+      'Baustelle',
+      'Netto',
+      'USt-Satz %',
+      'USt-Betrag',
+      'Brutto',
+      'Zahlungsstatus',
+      'Storniert',
+      'Stornogrund',
+    ]);
+    const felder = zeile.split(';');
+    expect(felder[2]).toBe('03.12.2026');
+    expect(felder[3]).toBe('19.12.2026');
+  });
+
+  it('bleibt leer, wenn er nicht angegeben ist', async () => {
+    // Altbestände tragen ihn nicht. Eine erfundene Angabe wäre schlimmer als
+    // ein leeres Feld, das jemandem auffällt.
+    const r = buildInvoiceCsv(
+      [
+        {
+          invoiceNumber: 'RE-2026-0001',
+          invoiceDate: '2026-09-01',
+          dueDate: '2026-09-15',
+          customerName: 'Huber',
+          projectNumber: 'B-001',
+          totalNetto: 100,
+          totalVat: 20,
+          totalBrutto: 120,
+          vatRate: 0.2,
+          paymentStatus: 'Offen',
+        } as never,
+      ],
+      [],
+      '2026-09-01',
+      '2026-09-30',
+    );
+    const felder = r.csv.split('\n')[1].split(';');
+    expect(felder[2]).toBe('');
+    expect(felder[3]).toBe('');
+  });
+});

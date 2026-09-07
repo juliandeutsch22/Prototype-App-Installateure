@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
-import type { Invoice, Project, TimeEntry } from '@/types';
+import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
 
 /**
@@ -38,8 +38,35 @@ const ZEIT: TimeEntry & { id: string } = {
   projectNumber: '2026-042',
 } as TimeEntry & { id: string };
 
+const SCHEIN: WorkSheet & { id: string } = {
+  id: 's1',
+  companyId: 'perl',
+  projectNumber: '2026-042',
+  customerName: 'Familie Huber',
+  datum: '2026-08-22',
+  status: 'Unterschrieben',
+  abrechnung: 'Regie',
+  zeiten: [],
+  material: [{ name: 'Eckventil 1/2 Zoll', menge: 2, einheit: 'Stk' }],
+  erstelltVonUid: 'u1',
+  erstelltVonName: 'Max',
+} as WorkSheet & { id: string };
+
+const KATALOG: Material[] = [
+  {
+    id: 'k1',
+    companyId: 'perl',
+    name: 'Eckventil 1/2 Zoll',
+    stock: 20,
+    unit: 'Stk',
+    verkaufspreis: 8.5,
+  },
+];
+
 let rechnungen: (Invoice & { id: string })[] = [];
 let zeiten: (TimeEntry & { id: string })[] = [];
+let scheine: (WorkSheet & { id: string })[] = [];
+let katalog: Material[] = [];
 let reservierteNummer = 'RE-2026-1099';
 let reservierungWirft: Error | null = null;
 
@@ -95,6 +122,10 @@ vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => []) }));
 vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesForProjects: vi.fn(async () => zeiten),
 }));
+vi.mock('@/lib/db/workSheets', () => ({
+  listWorkSheetsForProject: vi.fn(async () => scheine),
+}));
+vi.mock('@/lib/db/materials', () => ({ listMaterials: vi.fn(async () => katalog) }));
 
 // Das PDF wird beim Bestätigen dynamisch nachgeladen und hat mit der Frage
 // dieses Tests nichts zu tun.
@@ -128,6 +159,8 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   rechnungen = [];
   zeiten = [ZEIT];
+  scheine = [];
+  katalog = [];
   reservierteNummer = 'RE-2026-1099';
   reservierungWirft = null;
   reihenfolge.length = 0;
@@ -213,15 +246,108 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     expect(lege).not.toHaveBeenCalled();
   });
 
-  it('legt ohne verrechenbare Stunden gar nichts an', async () => {
+  it('legt ohne verrechenbare Belege gar nichts an', async () => {
+    // Die Meldung nennt seither BEIDE Quellen: seit Material aus den
+    // Handwerksscheinen mitkommt, wäre „keine Stunden" nur die halbe Auskunft.
     zeiten = [];
     zeige();
     const auswahl = await screen.findByRole("combobox", { name: /Baustelle/ });
     await userEvent.selectOptions(auswahl, '2026-042');
     await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
 
-    expect(await screen.findByText(/Keine offenen, verrechenbaren Stunden/)).toBeInTheDocument();
+    expect(await screen.findByText(/Keine offenen Stunden und kein offenes Material/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
     expect(reserve).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Material aus dem Handwerksschein — und der Leistungszeitraum.
+ *
+ * Die Rechenregeln stehen in `tests/unit/materialAufRechnung.test.ts`. Hier
+ * geht es um die Zusage, die der Betrieb ausdrücklich verlangt hat:
+ * automatisch heisst VORBEREITET, nicht festgelegt. Was da steht, muss sich
+ * ändern und entfernen lassen — sonst ist die Automatik eine Fessel.
+ */
+describe('Material und Leistungszeitraum in der Vorschau', () => {
+  it('setzt Material aus dem unterschriebenen Schein als eigene Position', async () => {
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    await bisZurVorschau();
+
+    const zeile = await screen.findByDisplayValue('Eckventil 1/2 Zoll');
+    expect(zeile).toBeInTheDocument();
+    expect(screen.getByDisplayValue('8.5')).toBeInTheDocument();
+  });
+
+  it('lässt sich entfernen — und die Summe zieht nach', async () => {
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    await bisZurVorschau();
+    await screen.findByDisplayValue('Eckventil 1/2 Zoll');
+
+    // Die Entfernen-Knöpfe stehen je Zeile; der letzte gehört dem Material.
+    const knoepfe = screen.getAllByRole('button', { name: /entfernen/i });
+    await userEvent.click(knoepfe[knoepfe.length - 1]);
+
+    await waitFor(() =>
+      expect(screen.queryByDisplayValue('Eckventil 1/2 Zoll')).not.toBeInTheDocument(),
+    );
+  });
+
+  it('belegt den Leistungszeitraum vor und lässt ihn ändern', async () => {
+    /*
+      Vorbelegt aus den Belegen: Zeiteintrag am 20.08., Schein am 22.08. Der
+      Zeitraum spannt beide — und bleibt trotzdem änderbar, weil eine
+      Teilrechnung sich bewusst auf einen anderen beziehen kann.
+    */
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    await bisZurVorschau();
+
+    const von = await screen.findByLabelText('Leistung von');
+    const bis = screen.getByLabelText('Leistung bis');
+    expect(von).toHaveValue('2026-08-20');
+    expect(bis).toHaveValue('2026-08-22');
+
+    await userEvent.clear(von);
+    await userEvent.type(von, '2026-08-01');
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({
+      leistungVon: '2026-08-01',
+      leistungBis: '2026-08-22',
+      linkedWorkSheets: ['s1'],
+    });
+  });
+
+  it('warnt, wenn der Zeitraum leer ist', async () => {
+    // Ohne ihn ist die Rechnung nach § 11 UStG unvollständig. Das darf nicht
+    // stillschweigend durchgehen.
+    await bisZurVorschau();
+    const von = await screen.findByLabelText('Leistung von');
+    await userEvent.clear(von);
+    expect(await screen.findByText(/nach § 11 UStG unvollständig/)).toBeInTheDocument();
+  });
+
+  it('weist auf Material ohne Preis hin', async () => {
+    // Eine erfundene Zahl auf einer Rechnung wäre schlimmer als eine
+    // sichtbare Lücke.
+    scheine = [SCHEIN];
+    katalog = [];
+    await bisZurVorschau();
+    expect(await screen.findByText(/Ohne Preis im Katalog/)).toBeInTheDocument();
+    expect(screen.getByText(/Eckventil 1\/2 Zoll/)).toBeInTheDocument();
+  });
+
+  it('nimmt einen Schein NICHT, dessen Material schon auf einer Rechnung steht', async () => {
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    rechnungen = [
+      { id: 'r1', linkedWorkSheets: ['s1'], paymentStatus: 'Offen' } as Invoice & { id: string },
+    ];
+    await bisZurVorschau();
+    expect(screen.queryByDisplayValue('Eckventil 1/2 Zoll')).not.toBeInTheDocument();
   });
 });

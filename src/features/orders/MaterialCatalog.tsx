@@ -35,14 +35,27 @@ const empty = {
   stock: '0',
   articleNumber: '',
   unit: 'Stk',
+  verkaufspreis: '',
 };
 
 /**
  * Materialkatalog (Verwaltung/GF). Ohne diese Pflege bleibt die Bestellansicht
  * für einen neuen Betrieb dauerhaft leer.
  *
- * Bewusst OHNE Preise: Materialanforderungen sind hier interne Logistik —
- * der Monteur sagt der Projektleitung, was er auf der Baustelle braucht.
+ * DER VERKAUFSPREIS steht hier, seit Material auf die Rechnung kommt. Bis
+ * dahin war der Katalog bewusst preisfrei — Materialanforderungen sind interne
+ * Logistik, der Monteur sagt der Projektleitung, was er braucht, und ein Preis
+ * hätte dort nur abgelenkt.
+ *
+ * Er ändert daran nichts: der Monteur sieht ihn nicht, und die Anforderung
+ * trägt ihn auch weiterhin nicht. Gebraucht wird er an genau einer Stelle —
+ * wenn das Büro aus den unterschriebenen Handwerksscheinen eine Rechnung
+ * stellt. Fehlt er, steht die Zeile dort mit 0,00 € und will ausgefüllt
+ * werden; das ist besser als eine erfundene Zahl.
+ *
+ * Der EINKAUFSpreis fehlt weiterhin. Er gehört zur Marge und damit zur
+ * Nachkalkulation, die Geschäftsführungssache ist — auf einem Katalog, den die
+ * Verwaltung pflegt, wäre er am falschen Ort.
  * Die Verrechnung von Material läuft außerhalb dieser App.
  */
 /**
@@ -120,6 +133,7 @@ export default function MaterialCatalog({
       stock: String(m.stock ?? 0),
       articleNumber: m.articleNumber ?? '',
       unit: m.unit ?? 'Stk',
+      verkaufspreis: m.verkaufspreis != null ? String(m.verkaufspreis) : '',
     });
   }
   function reset() {
@@ -133,12 +147,23 @@ export default function MaterialCatalog({
     setSaving(true);
     setError(null);
     try {
+      /*
+        LEER HEISST „NICHT GEPFLEGT", NICHT NULL.
+
+        Ein Preis von 0,00 € und ein fehlender Preis sind für die Rechnung
+        dasselbe Ergebnis, aber nicht dieselbe Aussage: der eine ist eine
+        Entscheidung, der andere eine Lücke. Die Rechnung weist genau die
+        Lücken aus — deshalb geht ein leeres Feld als 0 hinein und wird dort
+        als „ohne Preis" behandelt.
+      */
+      const preis = form.verkaufspreis.trim().replace(',', '.');
       const data = {
         name: form.name.trim(),
         category: form.category.trim(),
         stock: Number(form.stock) || 0,
         articleNumber: form.articleNumber.trim(),
         unit: form.unit.trim() || 'Stk',
+        verkaufspreis: preis === '' ? 0 : Math.max(0, Number(preis) || 0),
       };
       if (editId) await updateMaterial(editId, data);
       else await createMaterial(user.companyId, data);
@@ -200,6 +225,16 @@ export default function MaterialCatalog({
             </div>
             <InputField id="mstock" label="Lagerbestand" type="number" min="0" value={form.stock}
               onChange={(e) => setForm({ ...form, stock: e.target.value })} required />
+            <InputField
+              id="mpreis"
+              label="Verkaufspreis netto je Einheit (€)"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="leer = nicht gepflegt"
+              value={form.verkaufspreis}
+              onChange={(e) => setForm({ ...form, verkaufspreis: e.target.value })}
+            />
           </FormGrid>
           {error && <ErrorState message={error} />}
           <div className="flex flex-col gap-2 sm:flex-row">

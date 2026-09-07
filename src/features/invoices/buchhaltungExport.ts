@@ -59,6 +59,15 @@ function row(values: unknown[]): string {
 const KOPF = [
   'Rechnungsnummer',
   'Rechnungsdatum',
+  /*
+    Der Leistungszeitraum gehört auch in das Journal, nicht nur auf den Beleg.
+    Er entscheidet über die PERIODE, in die der Umsatz fällt — und das ist
+    genau die Frage, die der Steuerberater an dieser Datei stellt. Ein
+    Rechnungsdatum vom 2. Jänner über eine Leistung vom Dezember gehört in die
+    Dezemberumsatzsteuer.
+  */
+  'Leistung von',
+  'Leistung bis',
   'Fälligkeitsdatum',
   'Kunde',
   'UID-Nummer',
@@ -115,6 +124,8 @@ export function buildInvoiceCsv(
       row([
         i.invoiceNumber,
         fmtDate(i.invoiceDate),
+        i.leistungVon ? fmtDate(i.leistungVon) : '',
+        i.leistungBis ? fmtDate(i.leistungBis) : '',
         fmtDate(i.dueDate),
         i.customerName,
         uidNachName.get(i.customerName.trim().toLowerCase()) ?? '',

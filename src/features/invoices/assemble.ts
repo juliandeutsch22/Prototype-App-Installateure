@@ -1,6 +1,7 @@
-import type { InvoiceDiscount, InvoiceRates, TimeEntry } from '@/types';
+import type { Material, InvoiceDiscount, InvoiceRates, TimeEntry, WorkSheet } from '@/types';
 import { calcWorkMin } from '@/lib/time';
 import { calcTotals, cent, positionNetto, type InvoicePosition } from './totals';
+import { leistungszeitraum, materialPositionen } from './materialPositionen';
 
 export type { InvoicePosition } from './totals';
 
@@ -29,6 +30,18 @@ export interface AssembledInvoice {
   totalBrutto: number;
   linkedEntries: string[];
   linkedOrders: string[];
+  /** Scheine, deren Material eingeflossen ist — die Rechnung merkt sie sich. */
+  linkedWorkSheets: string[];
+  /**
+   * Vorschlag für den Leistungszeitraum, aus den Belegen abgeleitet.
+   *
+   * `null` heisst: es gibt keinen datierten Beleg. Dann bleibt das Feld leer
+   * und will ausgefüllt werden — eine erfundene Angabe wäre gegenüber dem
+   * Finanzamt falsch.
+   */
+  leistung: { von: string; bis: string } | null;
+  /** Materialzeilen ohne Preis im Katalog — die Ansicht weist darauf hin. */
+  materialOhnePreis: string[];
   entries: TimeEntry[]; // für optionalen Leistungsnachweis
 }
 
@@ -89,10 +102,19 @@ function positionLabel(b: Bucket, rates: InvoiceRates): string {
 /**
  * Stellt die Rechnungspositionen für ein Projekt zusammen.
  *
- * Grundlage sind ausschließlich Zeiteinträge: Material wird über diese App
- * NICHT verrechnet. Materialbestellungen sind interne Anforderungen des
- * Monteurs an die Projektleitung ("bring mir das auf die Baustelle") und
- * tragen deshalb bewusst keine Preise.
+ * ZWEI QUELLEN, und die zweite kam spät dazu: Zeiteinträge und das Material
+ * aus den unterschriebenen Handwerksscheinen. Bis dahin verrechnete diese App
+ * ausschließlich Stunden — bei einem Installateur schnell die Hälfte der
+ * Rechnungssumme, die das Büro von Hand nachtippen musste.
+ *
+ * Die Materialquelle ist der SCHEIN, nicht die Anforderung: was angefordert
+ * wurde, ist nicht, was verbaut wurde, und die Anforderung hat der Kunde nie
+ * gesehen. Näheres in `materialPositionen.ts`.
+ *
+ * BEIDES BLEIBT ÄNDERBAR. Die Positionen dieser Vorschau lassen sich in der
+ * Ansicht bearbeiten und entfernen, eigene Zeilen kommen dazu. Automatisch
+ * heisst hier „vorbereitet", nicht „festgelegt" — der Betrieb entscheidet, was
+ * beim Kunden landet.
  *
  * Zuschläge für Nachtarbeit und Notdienst sind Anteile des Stundensatzes und
  * ADDIEREN sich: ein Notdiensteinsatz in der Nacht kostet den Grundsatz plus
@@ -103,6 +125,11 @@ export function assembleInvoice(
   projectNumber: string,
   timeEntries: Array<TimeEntry & { id: string }>,
   rates: InvoiceRates = INVOICE_DEFAULTS,
+  material?: {
+    scheine: Array<WorkSheet & { id: string }>;
+    katalog: Material[];
+    bereitsVerrechnet?: ReadonlySet<string>;
+  },
 ): AssembledInvoice {
   const pn = norm(projectNumber);
 
@@ -152,12 +179,40 @@ export function assembleInvoice(
     });
   }
 
+  /*
+    Material NACH den Stunden.
+
+    Der Kunde liest die Rechnung von oben: erst die Arbeit, für die er jemanden
+    gerufen hat, dann das, was dabei verbaut wurde. Umgekehrt stünde eine
+    Liste von Kleinteilen vor der Leistung.
+  */
+  const mat = material
+    ? materialPositionen(material.scheine, material.katalog, material.bereitsVerrechnet)
+    : { positionen: [], herkunft: { scheine: [], ohnePreis: [] } };
+  positions.push(...mat.positionen);
+
+  /*
+    Der Leistungszeitraum spannt sich über BEIDE Quellen.
+
+    Ein Schein kann einen Tag betreffen, an dem keine Stunden gebucht sind —
+    etwa wenn nur geliefert und verbaut wurde. Nähme man nur die Zeiteinträge,
+    fiele dieser Tag aus dem Zeitraum, den die Rechnung behauptet.
+  */
+  const verbraucht = new Set(mat.herkunft.scheine);
+  const leistung = leistungszeitraum([
+    ...eligibleEntries.map((e) => e.date),
+    ...material?.scheine.filter((s) => verbraucht.has(s.id)).map((s) => s.datum) ?? [],
+  ]);
+
   return {
     positions,
     discount: null,
     ...calcTotals(positions, rates.vatRate),
     linkedEntries: eligibleEntries.map((e) => e.id),
     linkedOrders: [],
+    linkedWorkSheets: mat.herkunft.scheine,
+    leistung,
+    materialOhnePreis: mat.herkunft.ohnePreis,
     entries: eligibleEntries,
   };
 }
