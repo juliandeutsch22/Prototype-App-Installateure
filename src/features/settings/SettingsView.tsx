@@ -272,6 +272,35 @@ export default function SettingsView() {
               value={String(rates.dueDays)}
               onChange={(e) => setRates({ ...rates, dueDays: num(e.target.value, 14) })}
             />
+            {/*
+              MAHNSPESEN JE STUFE — ohne Vorgabe.
+
+              Was ein Betrieb verrechnen darf, hängt am Aufwand und am
+              Vertrag; eine voreingestellte Zahl sähe aus wie eine Auskunft
+              darüber. Leer heisst null, und dann steht auf der Mahnung keine
+              Spesenzeile.
+
+              Die Zahlungserinnerung steht bewusst mit dabei: manche Betriebe
+              verrechnen auch dort etwas, und ihnen das Feld vorzuenthalten
+              wäre eine Entscheidung, die uns nicht zusteht.
+            */}
+            {(['Zahlungserinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => (
+              <InputField
+                key={wort}
+                id={`r-mahn-${i}`}
+                label={`Mahnspesen ${wort} (€)`}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="leer = keine"
+                value={rates.mahnspesen?.[i] ? String(rates.mahnspesen[i]) : ''}
+                onChange={(e) => {
+                  const werte = [...(rates.mahnspesen ?? [0, 0, 0])];
+                  werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
+                  setRates({ ...rates, mahnspesen: werte });
+                }}
+              />
+            ))}
           </FormGrid>
         </Card>
 

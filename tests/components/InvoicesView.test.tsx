@@ -73,6 +73,7 @@ let reservierungWirft: Error | null = null;
 const reserve = vi.fn();
 const markiere = vi.fn();
 const lege = vi.fn();
+const mahnung = vi.fn();
 const reihenfolge: string[] = [];
 
 vi.mock('@/lib/db/invoices', async () => {
@@ -108,6 +109,10 @@ vi.mock('@/lib/db/invoices', async () => {
       return Promise.resolve('neu');
     },
     updateInvoiceStatus: vi.fn(async () => undefined),
+    mahnungFesthalten: (...a: unknown[]) => {
+      mahnFolge.push('vermerk');
+      return mahnung(...a);
+    },
     cancelInvoice: vi.fn(async () => undefined),
     reactivateInvoice: vi.fn(async () => undefined),
     deleteInvoice: vi.fn(async () => undefined),
@@ -130,6 +135,28 @@ vi.mock('@/lib/db/materials', () => ({ listMaterials: vi.fn(async () => katalog)
 
 // Das PDF wird beim Bestätigen dynamisch nachgeladen und hat mit der Frage
 // dieses Tests nichts zu tun.
+/*
+  Das Mahnungs-PDF wird beim Erzeugen dynamisch nachgeladen. Der Ersatz gibt
+  einen Blob heraus, damit der Weg bis zum Herunterladen durchläuft.
+*/
+/** Die Reihenfolge, in der beim Mahnen etwas geschieht. */
+const mahnFolge: string[] = [];
+const mahnungPdf = vi.fn(async () => {
+  mahnFolge.push('pdf');
+  return new Blob(['%PDF'], { type: 'application/pdf' });
+});
+vi.mock('@/features/invoices/mahnungPdf', () => ({
+  buildMahnungPdf: (...a: unknown[]) => mahnungPdf(...(a as [])),
+  mahnungDateiname: () => 'Mahnung.pdf',
+}));
+// Derselbe Weg wie beim Handwerksschein — jsdom kennt weder das Teilen noch
+// `URL.createObjectURL`.
+const teilen = vi.fn(async () => 'geladen' as const);
+vi.mock('@/features/worksheets/worksheetPdf', () => ({
+  shareOrDownloadPdf: (...a: unknown[]) => teilen(...(a as [])),
+  buildWorkSheetPdf: vi.fn(),
+}));
+
 const pdfAusgabe = vi.fn();
 vi.mock('@/features/invoices/pdf', () => ({
   downloadInvoicePdf: (...a: unknown[]) => pdfAusgabe(...a),
@@ -180,6 +207,13 @@ beforeEach(() => {
   markiere.mockClear();
   lege.mockClear();
   pdfAusgabe.mockClear();
+  mahnung.mockClear();
+  mahnungPdf.mockClear().mockImplementation(async () => {
+    mahnFolge.push('pdf');
+    return new Blob(['%PDF'], { type: 'application/pdf' });
+  });
+  teilen.mockClear();
+  mahnFolge.length = 0;
 });
 
 afterEach(() => {
@@ -545,5 +579,140 @@ describe('Erneute PDF-Ausgabe', () => {
       von: '2026-09-01',
       bis: '2026-09-05',
     });
+  });
+});
+
+/**
+ * Mahnwesen.
+ *
+ * WAS ES VORHER GAB: den Status „Überfällig". Er wurde beim Öffnen der
+ * Ansicht gesetzt und angezeigt — mehr nicht. Der Betrieb sah, dass Geld
+ * aussteht, und führte das Mahnen selbst im Kopf.
+ */
+describe('Eine überfällige Rechnung mahnen', () => {
+  const UEBERFAELLIG = {
+    id: 'r1',
+    invoiceNumber: 'RE-2026-0009',
+    projectNumber: '2026-042',
+    customerName: 'Baumeister Gruber',
+    invoiceDate: '2026-08-01',
+    dueDate: '2026-08-15',
+    address: 'Bergweg 3',
+    totalNetto: 1000,
+    totalVat: 200,
+    totalBrutto: 1200,
+    vatRate: 0.2,
+    paymentStatus: 'Offen',
+  } as unknown as Invoice & { id: string };
+
+  async function menue(nummer = 'RE-2026-0009') {
+    zeige();
+    await screen.findByText(new RegExp(nummer));
+    await userEvent.click(
+      await screen.findByRole('button', { name: new RegExp(`Weitere Aktionen für Rechnung ${nummer}`) }),
+    );
+  }
+
+  it('bietet die Zahlungserinnerung an', async () => {
+    rechnungen = [UEBERFAELLIG];
+    await menue();
+    expect(
+      await screen.findByRole('menuitem', { name: 'Zahlungserinnerung erzeugen' }),
+    ).toBeInTheDocument();
+  });
+
+  it('bietet sie NICHT an, solange das Zahlungsziel läuft', async () => {
+    // Wer am letzten Tag zahlt, zahlt pünktlich. Ein Menüpunkt, der bei jedem
+    // Klick erklärt, warum er nicht geht, ist eine Sackgasse mit Beschriftung.
+    rechnungen = [{ ...UEBERFAELLIG, dueDate: '2026-12-31' }];
+    await menue();
+    expect(screen.queryByRole('menuitem', { name: /erzeugen/ })).not.toBeInTheDocument();
+  });
+
+  it('bietet sie bei einer bezahlten Rechnung nicht an', async () => {
+    rechnungen = [{ ...UEBERFAELLIG, paymentStatus: 'Bezahlt' }];
+    await menue();
+    expect(screen.queryByRole('menuitem', { name: /erzeugen/ })).not.toBeInTheDocument();
+  });
+
+  it('geht nach der dritten Stufe nicht weiter', async () => {
+    // Was dann folgt, entscheidet ein Mensch mit einem Anwalt oder einem
+    // Inkassobüro.
+    rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 3 }];
+    await menue();
+    expect(screen.queryByRole('menuitem', { name: /erzeugen/ })).not.toBeInTheDocument();
+  });
+
+  it('nennt beim zweiten Mal die nächste Stufe', async () => {
+    rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 1 }];
+    await menue();
+    expect(await screen.findByRole('menuitem', { name: 'Mahnung erzeugen' })).toBeInTheDocument();
+  });
+
+  it('erzeugt den Beleg und hält die Mahnung danach fest', async () => {
+    /*
+      IN DIESER REIHENFOLGE. Scheitert das PDF, ist schlimmstenfalls nichts
+      geschehen — umgekehrt stünde die Rechnung als gemahnt da, ohne dass je
+      ein Schreiben entstanden wäre, und die nächste Stufe begänne bei zwei.
+    */
+    rechnungen = [UEBERFAELLIG];
+    await menue();
+    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
+
+    await waitFor(() => expect(mahnung).toHaveBeenCalled());
+    // DIE REIHENFOLGE ist die Zusicherung, nicht das blosse Geschehen.
+    expect(mahnFolge).toEqual(['pdf', 'vermerk']);
+    // Über denselben Weg wie der Handwerksschein — auf dem Tablet ein Teilen.
+    expect(teilen).toHaveBeenCalled();
+    expect(mahnung.mock.calls[0][1]).toMatchObject({ stufe: 1 });
+  });
+
+  it('hält NICHTS fest, wenn der Beleg scheitert', async () => {
+    /*
+      Der Fall, für den die Reihenfolge da ist. Stünde der Vermerk zuerst,
+      wäre die Rechnung als gemahnt vermerkt, ohne dass je ein Schreiben
+      entstanden ist — und die nächste Stufe begänne bei zwei, für eine
+      Mahnung, die der Kunde nie bekommen hat.
+    */
+    rechnungen = [UEBERFAELLIG];
+    mahnungPdf.mockRejectedValueOnce(new Error('jsPDF weg'));
+    await menue();
+    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
+
+    expect(await screen.findByText(/konnte nicht erzeugt werden/)).toBeInTheDocument();
+    expect(mahnung).not.toHaveBeenCalled();
+  });
+
+  it('schlägt eine Frist vor, die sich ändern lässt', async () => {
+    // Eine Woche ist der Vorschlag, nicht die Regel: bei einem Stammkunden
+    // vor dem Urlaub sind zwei angemessen.
+    rechnungen = [UEBERFAELLIG];
+    await menue();
+    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+
+    const frist = await screen.findByLabelText('Neue Frist');
+    expect(frist).toHaveValue('2026-09-08'); // heute + 7 (Systemzeit: 01.09.)
+    await userEvent.clear(frist);
+    await userEvent.type(frist, '2026-09-30');
+    await userEvent.click(screen.getByRole('button', { name: 'Erzeugen' }));
+
+    await waitFor(() => expect(mahnung).toHaveBeenCalled());
+    expect(mahnung.mock.calls[0][1]).toMatchObject({ frist: '2026-09-30' });
+  });
+
+  it('zeigt in der Liste, was schon gemahnt wurde', async () => {
+    /*
+      Ohne diese Angabe führt der Betrieb den Mahnstand weiterhin im Kopf —
+      und genau das war der Zustand vorher. Zwei Erinnerungen an denselben
+      Kunden in einer Woche sind peinlicher als gar keine.
+    */
+    rechnungen = [
+      { ...UEBERFAELLIG, mahnstufe: 2, gemahntAm: '2026-08-30', mahnfrist: '2026-09-06' },
+    ];
+    zeige();
+    expect(await screen.findByText(/Mahnung am 2026-08-30/)).toBeInTheDocument();
+    expect(screen.getByText(/Frist 2026-09-06/)).toBeInTheDocument();
   });
 });

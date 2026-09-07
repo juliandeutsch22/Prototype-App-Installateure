@@ -13,6 +13,7 @@ import {
   reactivateInvoice,
   deleteInvoice,
   markBilled,
+  mahnungFesthalten,
 } from '@/lib/db/invoices';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listCustomers } from '@/lib/db/customers';
@@ -22,6 +23,7 @@ import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
 import { verrechneteScheine } from './materialPositionen';
+import { darfMahnen, naechsteStufe, spesenFuer, TEXTE, FRIST_TAGE } from './mahnung';
 import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { discountLabel, type InvoicePosition } from './totals';
@@ -87,6 +89,9 @@ export default function InvoicesView() {
    * Ein Haken am Kundenstamm hätte die Entscheidung stillschweigend
    * vorweggenommen.
    */
+  /** Welche Rechnung gerade gemahnt wird — samt vorgeschlagener Frist. */
+  const [mahnFuer, setMahnFuer] = useState<WithId<Invoice> | null>(null);
+  const [mahnFrist, setMahnFrist] = useState('');
   const [reverseCharge, setReverseCharge] = useState(false);
   const [kundenUid, setKundenUid] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -469,6 +474,55 @@ export default function InvoicesView() {
           ? e.message
           : 'Die Rechnung konnte nicht vollständig erstellt werden. Bitte die Liste prüfen, bevor du es erneut versuchst.',
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Eine Mahnung erzeugen und festhalten.
+   *
+   * IN DIESER REIHENFOLGE: erst der Beleg, dann der Vermerk. Scheitert das
+   * PDF, ist schlimmstenfalls nichts geschehen — umgekehrt stünde die
+   * Rechnung als gemahnt da, ohne dass je ein Schreiben entstanden wäre, und
+   * die nächste Stufe begänne bei zwei.
+   */
+  async function mahnen(inv: WithId<Invoice>, frist: string) {
+    if (!company) return;
+    const stufe = naechsteStufe(inv);
+    if (!stufe) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const heute = todayStr();
+      const spesen = spesenFuer(stufe, company.rates?.mahnspesen);
+      const { buildMahnungPdf, mahnungDateiname } = await import('./mahnungPdf');
+      const blob = await buildMahnungPdf({
+        company,
+        invoice: inv,
+        stufe,
+        datum: heute,
+        frist,
+        adresse: inv.address,
+        kundenUid: inv.customerVatId,
+      });
+      /*
+        DERSELBE WEG WIE BEIM HANDWERKSSCHEIN, nicht ein zweiter.
+
+        `shareOrDownloadPdf` bietet auf dem Tablet zuerst das TEILEN an — und
+        genau so geht eine Mahnung im Betrieb hinaus: als Anhang einer Mail
+        vom Gerät, an dem man gerade sitzt. Ein selbst geschriebener Download
+        hätte das nicht gekonnt, und zwei Wege zum selben Ziel laufen
+        auseinander.
+      */
+      const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
+      await shareOrDownloadPdf(blob, mahnungDateiname(inv, stufe));
+
+      await mahnungFesthalten(inv.id, { stufe, gemahntAm: heute, frist, spesen });
+      toast.success(`${TEXTE[stufe].titel} erzeugt`);
+      setMahnFuer(null);
+    } catch {
+      setError('Die Mahnung konnte nicht erzeugt werden.');
     } finally {
       setBusy(false);
     }
@@ -1083,6 +1137,21 @@ export default function InvoicesView() {
                 subtitle={
                   <>
                     {inv.invoiceDate} · fällig {inv.dueDate} · {fmtEUR(inv.totalBrutto)}
+                    {/*
+                      WAS SCHON GEMAHNT WURDE, gehört in die Zeile.
+
+                      Ohne diese Angabe führt der Betrieb den Mahnstand
+                      weiterhin im Kopf — und genau das war der Zustand
+                      vorher. Zwei Erinnerungen an denselben Kunden in einer
+                      Woche sind peinlicher als gar keine.
+                    */}
+                    {!!inv.mahnstufe && (
+                      <span className="mt-1 block text-xs text-warning">
+                        {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {inv.gemahntAm}
+                        {inv.mahnfrist ? ` · Frist ${inv.mahnfrist}` : ''}
+                        {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} € Spesen` : ''}
+                      </span>
+                    )}
                     {inv.cancellationNote && (
                       <span className="mt-1 block text-xs text-ink-muted">
                         Storno: {inv.cancellationNote}
@@ -1102,6 +1171,31 @@ export default function InvoicesView() {
                   about={`Rechnung ${inv.invoiceNumber}`}
                   items={[
                     { label: 'PDF erneut laden', onSelect: () => void redownload(inv) },
+                    /*
+                      MAHNEN steht im Menü, nicht als Knopf in der Zeile.
+
+                      Es ist die seltenere Handlung — die meisten Rechnungen
+                      werden bezahlt. Ein eigener Knopf an jeder Zeile machte
+                      das Mahnen zur naheliegendsten Sache in einer Liste, in
+                      der es die Ausnahme ist.
+
+                      Der Punkt erscheint nur, wenn gemahnt werden DARF: ein
+                      Eintrag, der bei jedem Klick erklärt, warum er nicht
+                      geht, ist eine Sackgasse mit Beschriftung.
+                    */
+                    ...(darfMahnen(inv, todayStr()).moeglich
+                      ? [
+                          {
+                            label: `${TEXTE[naechsteStufe(inv)!].titel} erzeugen`,
+                            onSelect: () => {
+                              const frist = new Date();
+                              frist.setDate(frist.getDate() + FRIST_TAGE);
+                              setMahnFrist(localDateStr(frist));
+                              setMahnFuer(inv);
+                            },
+                          },
+                        ]
+                      : []),
                     ...(inv.paymentStatus !== 'Storniert'
                       ? [
                           ...(['Offen', 'Überfällig', 'Bezahlt'] as const)
@@ -1187,6 +1281,48 @@ export default function InvoicesView() {
       >
         <InputField id="cancelnote" label="Grund (erscheint in der Liste)" value={cancelNote}
           onChange={(e) => setCancelNote(e.target.value)} placeholder="z. B. Falscher Kunde" />
+      </ConfirmDialog>
+
+      {/*
+        DIE MAHNUNG MIT ÄNDERBARER FRIST.
+
+        Eine Woche ist der Vorschlag, nicht die Regel: bei einem Stammkunden
+        vor dem Urlaub sind zwei angemessen, bei der dritten Stufe vielleicht
+        drei Tage. Wer die Frist nicht setzen kann, schreibt sie danach von
+        Hand ins Begleitmail — und dann steht auf dem Beleg etwas anderes als
+        im Text.
+
+        NICHT ROT: eine Zahlungserinnerung ist ein normaler Arbeitsschritt und
+        kein Löschen. Wer sich an Rot dafür gewöhnt, übersieht es beim Storno.
+      */}
+      <ConfirmDialog
+        open={!!mahnFuer}
+        title={
+          mahnFuer && naechsteStufe(mahnFuer)
+            ? `${TEXTE[naechsteStufe(mahnFuer)!].titel} — ${mahnFuer.customerName}`
+            : 'Mahnen'
+        }
+        message={
+          mahnFuer
+            ? `${mahnFuer.invoiceNumber} über ${fmtEUR(mahnFuer.totalBrutto)} €, fällig war ` +
+              `${mahnFuer.dueDate}. Der Beleg wird als PDF erzeugt und heruntergeladen; ` +
+              'versendet wird er von Ihnen.'
+            : undefined
+        }
+        confirmLabel="Erzeugen"
+        confirmTone="primary"
+        onCancel={() => setMahnFuer(null)}
+        onConfirm={async () => {
+          if (mahnFuer) await mahnen(mahnFuer, mahnFrist);
+        }}
+      >
+        <InputField
+          id="mahnfrist"
+          label="Neue Frist"
+          type="date"
+          value={mahnFrist}
+          onChange={(e) => setMahnFrist(e.target.value)}
+        />
       </ConfirmDialog>
     </div>
   );
