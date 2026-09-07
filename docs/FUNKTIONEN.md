@@ -38,7 +38,7 @@ unterscheidet drei Stufen:
 |---|---|---|---|---|---|
 | **Kunden** | Stammdaten, Dublettenschutz, Akte mit Baustellen und Angeboten, Übernahme der Altbestände | Buchhaltung, Verwaltung, Leitung | `customers`, `projects`, `quotes` | Emulator (Regeln), Ansicht (8) | Umbenennen zieht Baustellen nach — ungetestet |
 | **Angebote** | Positionen kalkulieren, Arbeitszeit getrennt ausweisen, beim Annehmen Baustelle mit Stundenbudget anlegen | Buchhaltung, Leitung | `quotes`, `projects`, `counters` | Ansicht (3), Emulator (Zähler: steigend, Neubeginn nur zum Jahreswechsel) | — |
-| **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget | Leitung | `projects` | Ansicht (6) | Der Kundenname kommt aus dem Stammsatz; leeres Stundenbudget bleibt leer statt 0 |
+| **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget; **Übersicht je Baustelle** (Stunden über die ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter) | Leitung | `projects`, `timeEntries` | Ansicht (8), Übersicht (8) | Der Kundenname kommt aus dem Stammsatz; leeres Stundenbudget bleibt leer statt 0. Die Übersicht zeigt **kein Geld** — Erlös und Marge bleiben in der Nachkalkulation |
 | **Anforderungen** | Eingehende Materialanforderungen bearbeiten, Status setzen | Verwaltung, Leitung | `materialOrders` | Rechnung (Meldungen) | Ansicht ungetestet |
 | **Lager** | Bestand, Mindestmenge, Katalogpflege | Verwaltung, Leitung | `materials` | Emulator (3: wer pflegen darf) | Ansicht ungetestet; Bestandsabzug per Transaktion ungetestet |
 | **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | Emulator (4: wer planen darf), Ansicht (8) | Geprüft ist auch der gefährliche Teil: eine vorhandene Planung kommt ins Formular, statt beim Speichern gelöscht zu werden |
@@ -83,7 +83,7 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1081 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1094 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
@@ -91,7 +91,7 @@ unterscheidet drei Stufen:
 | **Cloud Functions mit ersetztem Firestore** | **98** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **104** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 314 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 241 | Findet Bedienfehler, **keine** Datenfehler |
+| Ansichten, Datenbank ersetzt | 254 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **12** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
 **Zu den Function-Tests, weil „ersetzter Firestore" nach Nachbau klingt.**
@@ -115,6 +115,29 @@ es an dem Tag, an dem man sie braucht.
 > Geschrieben wird der Zustand **ausschliesslich vom Server**
 > (`allow write: if false`). Eine Überwachung, die der Überwachte selbst
 > beschreiben kann, überwacht nichts.
+
+**Die Auswertung steht jetzt an zwei Stellen, und das mit Absicht.** Bis zum
+07.09.2026 gab es sie nur unter der Mitarbeiterübersicht — dort beantwortet
+sie eine Monatsfrage über alle Baustellen („wohin gingen die Stunden im
+September?"), und daran hängt auch der CSV-Export. Die Frage, die man beim
+Blick auf eine Baustelle tatsächlich hat, ist eine andere: „wie steht DIESE
+Baustelle?", über ihre ganze Laufzeit. Sie steht jetzt im Baustellen-Tab,
+aufklappbar je Zeile.
+
+> Beide rechnen aus derselben Quelle (`listEntriesForProjects`) und können
+> nicht auseinanderlaufen. Genau daran ist die Auswertung schon einmal
+> gescheitert: sie verglich Monatsstunden mit einem Budget, das für den
+> ganzen Auftrag kalkuliert war, und meldete eine ausgereizte Baustelle als
+> halb offen.
+>
+> **Ohne Geld.** Erlös, Kosten und Deckungsbeitrag bleiben in der
+> Nachkalkulation und damit bei der Geschäftsführung; die Baustellenübersicht
+> sieht auch die Projektleitung.
+>
+> Zugleich ist der blaue Kopfbereich der Projektauswertung weg — dieselbe
+> Entscheidung, die in der Mitarbeiterübersicht längst getroffen war und hier
+> stehengeblieben ist. Helferstunden sind keine Warnung mehr, sondern eine
+> Angabe; eine Pille bekommt nur noch, was eine Ausnahme ist („über Budget").
 
 **Wiederkehrende Wartungen seit dem 07.09.2026.** Die jährliche
 Thermenwartung ist der einzige Umsatz eines Installateurs, der sich ein Jahr
