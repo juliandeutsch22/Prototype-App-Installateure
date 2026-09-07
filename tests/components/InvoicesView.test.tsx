@@ -716,3 +716,58 @@ describe('Eine überfällige Rechnung mahnen', () => {
     expect(screen.getByText(/Frist 2026-09-06/)).toBeInTheDocument();
   });
 });
+
+/**
+ * DAS LÖSCHEN EINER RECHNUNG GIBT ES NICHT MEHR.
+ *
+ * Es stand im Zeilenmenü einer stornierten Rechnung, direkt unter „Storno
+ * aufheben", und zwar OHNE Rückfrage — ein Fehlgriff im Menü, und der Beleg
+ * war weg. Elf andere Löschwege der App fragen nach; ausgerechnet der für das
+ * Finanzamt tat es nicht.
+ *
+ * Ersatzlos gestrichen statt mit einer Rückfrage versehen: § 132 BAO verlangt
+ * sieben Jahre Aufbewahrung, und die gezogene Nummer hinterliesse eine Lücke
+ * im Kreis, die der Buchhaltungs-Export danach zu Recht meldet — ohne dass
+ * noch jemand wüsste, warum. Die Rules sagen dasselbe.
+ */
+describe('Eine stornierte Rechnung', () => {
+  const STORNIERT = {
+    id: 'rs',
+    companyId: 'perl',
+    invoiceNumber: 'RE-2026-0011',
+    projectNumber: '2026-001',
+    customerName: 'Familie Huber',
+    invoiceDate: '2026-08-01',
+    dueDate: '2026-08-15',
+    totalNetto: 1000,
+    totalVat: 200,
+    totalBrutto: 1200,
+    vatRate: 0.2,
+    paymentStatus: 'Storniert',
+    cancellationNote: 'Falsche Baustelle verrechnet',
+  } as unknown as Invoice & { id: string };
+
+  async function menueStorno() {
+    rechnungen = [STORNIERT];
+    zeige();
+    await screen.findByText(/RE-2026-0011/);
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: /Weitere Aktionen für Rechnung RE-2026-0011/,
+      }),
+    );
+  }
+
+  it('bietet kein Löschen an', async () => {
+    await menueStorno();
+    expect(screen.queryByRole('menuitem', { name: /löschen/i })).not.toBeInTheDocument();
+  });
+
+  it('lässt sich aber weiterhin wieder aufheben', async () => {
+    // Der Storno ist die Korrektur, nicht das Löschen — und er ist umkehrbar.
+    await menueStorno();
+    expect(
+      await screen.findByRole('menuitem', { name: 'Storno aufheben' }),
+    ).toBeInTheDocument();
+  });
+});
