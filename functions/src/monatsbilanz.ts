@@ -3,6 +3,7 @@ import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions';
+import { laufFesthalten } from './laufFesthalten.js';
 import {
   bilanzAusEintraegen,
   betroffeneMonate,
@@ -177,6 +178,14 @@ export const bilanzenNachtlauf = onSchedule(
     const monate = [monatVersetzt(0), monatVersetzt(1)];
 
     let gerechnet = 0;
+    /*
+      JE MANDANT ZÄHLEN, nicht insgesamt.
+
+      Die Überwachung sitzt beim Betrieb: eine Gesamtzahl sagte einem Betrieb
+      nichts darüber, ob SEINE Bilanzen gerechnet wurden. Und ein Betrieb, bei
+      dem alles scheitert, verschwände in der Summe der anderen.
+    */
+    const jeMandant = new Map<string, { gut: number; fehler: number }>();
     for (const doc of nutzer.docs) {
       const u = doc.data() as {
         companyId?: string;
@@ -186,16 +195,36 @@ export const bilanzenNachtlauf = onSchedule(
       };
       if (u.active === false) continue;
       if (!u.companyId || !u.uid || !u.app_start_date) continue;
+      const zaehler = jeMandant.get(u.companyId) ?? { gut: 0, fehler: 0 };
+      jeMandant.set(u.companyId, zaehler);
       for (const monat of monate) {
         // Monate vor dem Eintritt gibt es nicht.
         if (monat < monatVon(u.app_start_date)) continue;
         try {
           await bilanzNeuRechnen(u.companyId, u.uid, monat);
           gerechnet++;
+          zaehler.gut++;
         } catch (e) {
           logger.error('Nachtlauf fehlgeschlagen', { uid: u.uid, monat, e });
+          zaehler.fehler++;
         }
       }
+    }
+
+    /*
+      EIN EINZIGER FEHLSCHLAG MACHT DEN LAUF ZUM FEHLSCHLAG.
+
+      Der Saldo eines Mitarbeiters, der nicht gerechnet wurde, steht still
+      daneben und landet auf einem Lohnzettel. „19 von 20 gerechnet" als
+      Erfolg zu melden hiesse, genau diesen einen Fall wegzumitteln.
+    */
+    for (const [companyId, z] of jeMandant) {
+      await laufFesthalten(companyId, 'bilanzen', {
+        erfolg: z.fehler === 0,
+        meldung: z.fehler > 0 ? `${z.fehler} Monatsbilanzen konnten nicht gerechnet werden.` : '',
+        kennzahl: z.gut,
+        kennzahlEinheit: 'Bilanzen',
+      });
     }
     logger.info('Monatsbilanzen im Nachtlauf erneuert', { gerechnet });
   },

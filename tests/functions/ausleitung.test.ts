@@ -151,3 +151,76 @@ describe('Alte Stände wegräumen', () => {
     expect(bucket.geloescht).toEqual([]);
   });
 });
+
+/**
+ * Was der Lauf über sich selbst festhält.
+ *
+ * Vorher endete ein Fehlschlag im Google-Protokoll — und dorthin sieht in
+ * einem Installationsbetrieb niemand. Die Sicherung konnte wochenlang
+ * ausfallen; bemerkt hätte man es an dem Tag, an dem man sie braucht.
+ */
+describe('Der Lauf hält seinen Ausgang fest', () => {
+  it('schreibt den Erfolg mit der Zeilenzahl', async () => {
+    db.seed('companies', { perl: { name: 'Perl' } });
+    db.seed('customers', { k1: { companyId: 'perl', name: 'Huber' } });
+    await datenAusleitung();
+
+    const stand = db.alles('systemLaeufe').perl_ausleitung;
+    expect(stand).toMatchObject({ companyId: 'perl', art: 'ausleitung', erfolg: true });
+    expect(stand.kennzahl).toBe(2);
+    expect(stand.zuletztErfolg).toBeGreaterThan(0);
+  });
+
+  it('schreibt AUCH den Fehlschlag', async () => {
+    /*
+      Nur den Erfolg festzuhalten hiesse: ein Betrieb, bei dem seit Wochen
+      nichts läuft, sieht aus wie einer, der gerade erst eingerichtet wurde.
+      Der Unterschied zwischen „noch nie" und „seit drei Wochen nicht mehr"
+      ist genau der, auf den es ankommt.
+    */
+    db.seed('companies', { perl: { name: 'Perl' } });
+    bucket.scheitertBei = 'ausleitung/perl/2026-09-05.jsonl';
+    await datenAusleitung();
+
+    const stand = db.alles('systemLaeufe').perl_ausleitung;
+    expect(stand).toMatchObject({ erfolg: false });
+    expect(String(stand.meldung)).toContain('Bucket');
+  });
+
+  it('löscht mit einem Fehlschlag NICHT den letzten Erfolg', async () => {
+    /*
+      Der Wert, den die Überwachung beurteilt, ist `zuletztErfolg`. Ersetzte
+      der Fehlschlag das ganze Dokument, stünde danach „noch nie gelaufen" —
+      und das ist etwas anderes als „seit gestern nicht mehr".
+    */
+    db.seed('companies', { perl: { name: 'Perl' } });
+    await datenAusleitung();
+    const ersterErfolg = db.alles('systemLaeufe').perl_ausleitung.zuletztErfolg;
+
+    bucket.scheitertBei = 'ausleitung/perl/2026-09-05.jsonl';
+    await datenAusleitung();
+
+    const stand = db.alles('systemLaeufe').perl_ausleitung;
+    expect(stand.erfolg).toBe(false);
+    expect(stand.zuletztErfolg).toBe(ersterErfolg);
+  });
+
+  it('hält auch den Lauf VON HAND fest', async () => {
+    // Sonst stünde nach einer eben erst ausgelösten Sicherung weiter
+    // „überfällig" da.
+    db.seed('companies', { perl: { name: 'Perl' } });
+    await jetzt('Geschäftsführung');
+    expect(db.alles('systemLaeufe').perl_ausleitung).toMatchObject({ erfolg: true });
+  });
+
+  it('hält jeden Mandanten für sich fest', async () => {
+    // Ein Betrieb, bei dem alles scheitert, verschwände sonst in der Summe
+    // der anderen.
+    db.seed('companies', { perl: { name: 'Perl' }, kaputt: { name: 'Kaputt' } });
+    bucket.scheitertBei = 'ausleitung/kaputt/2026-09-05.jsonl';
+    await datenAusleitung();
+
+    expect(db.alles('systemLaeufe').perl_ausleitung.erfolg).toBe(true);
+    expect(db.alles('systemLaeufe').kaputt_ausleitung.erfolg).toBe(false);
+  });
+});

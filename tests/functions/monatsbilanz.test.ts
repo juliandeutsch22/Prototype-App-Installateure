@@ -292,3 +292,60 @@ describe('Der Erstaufbau', () => {
     expect(Object.keys(db.alles('monthlyStatsMeta'))).toEqual(['perl_monteur']);
   });
 });
+
+/**
+ * Was der Nachtlauf über sich selbst festhält.
+ *
+ * Er ist die stillste Stelle der ganzen App: fällt er aus, steht ein Saldo
+ * still daneben und landet auf einem Lohnzettel. Bemerkt hätte das niemand.
+ */
+describe('Der Nachtlauf hält seinen Ausgang fest', () => {
+  function heuteIst(datum: string) {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(`${datum}T04:00:00`));
+  }
+
+  it('schreibt den Erfolg je Mandant', async () => {
+    // Eine Gesamtzahl sagte einem Betrieb nichts darüber, ob SEINE Bilanzen
+    // gerechnet wurden.
+    heuteIst('2026-10-05');
+    db.seed('users', {
+      u1: { companyId: 'perl', uid: 'monteur', app_start_date: '2020-01-01' },
+      u2: { companyId: 'huber', uid: 'anna', app_start_date: '2020-01-01' },
+    });
+    await bilanzenNachtlauf();
+
+    expect(db.alles('systemLaeufe').perl_bilanzen).toMatchObject({
+      art: 'bilanzen',
+      erfolg: true,
+      kennzahl: 2,
+    });
+    expect(db.alles('systemLaeufe').huber_bilanzen).toMatchObject({ erfolg: true });
+    vi.useRealTimers();
+  });
+
+  it('EIN Fehlschlag macht den Lauf zum Fehlschlag', async () => {
+    /*
+      Der Saldo eines Mitarbeiters, der nicht gerechnet wurde, steht still
+      daneben. „19 von 20 gerechnet" als Erfolg zu melden hiesse, genau diesen
+      einen Fall wegzumitteln.
+    */
+    heuteIst('2026-10-05');
+    db.seed('users', { u1: { companyId: 'perl', uid: 'monteur', app_start_date: '2020-01-01' } });
+
+    const echt = Object.getPrototypeOf(db).collection;
+    let rufe = 0;
+    const kaputt = vi.spyOn(db, 'collection');
+    kaputt.mockImplementation((name: string) => {
+      if (name === 'monthlyStats' && rufe++ === 0) throw new Error('Firestore weg');
+      return echt.call(db, name);
+    });
+    await bilanzenNachtlauf();
+    kaputt.mockRestore();
+
+    const stand = db.alles('systemLaeufe').perl_bilanzen;
+    expect(stand.erfolg).toBe(false);
+    expect(String(stand.meldung)).toContain('nicht gerechnet');
+    vi.useRealTimers();
+  });
+});

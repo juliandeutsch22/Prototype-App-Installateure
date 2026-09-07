@@ -373,6 +373,27 @@ service cloud.firestore {
             || isBuchOrTop());
     }
 
+    // --- systemLaeufe: der Zustand der naechtlichen Laeufe ---
+    //
+    // Ausleitung und Bilanzlauf halten hier fest, ob sie durchgegangen sind.
+    // Die App liest das und meldet, wenn der letzte Erfolg zu lange her ist.
+    //
+    // GESCHRIEBEN WIRD AUSSCHLIESSLICH VOM SERVER. Die Functions laufen mit
+    // Admin-Rechten und sind an diese Regeln nicht gebunden; fuer jeden
+    // ANGEMELDETEN Zugriff steht das Schreiben deshalb auf `false`. Eine
+    // Ueberwachung, die der Ueberwachte selbst beschreiben kann, ueberwacht
+    // nichts — wer sich aussperren will, setzte einfach einen Erfolg von
+    // heute ein.
+    //
+    // GELESEN wird von der Leitung. Es sind Betriebsdaten, keine
+    // Personendaten; der Monteur hat damit nichts zu tun, und eine Meldung
+    // ueber eine ausgefallene Sicherung auf seinem Telefon waere eine
+    // Beunruhigung ohne Handlungsmoeglichkeit.
+    match /systemLaeufe/{id} {
+      allow read: if ownsExisting() && isTopLevel();
+      allow write: if false;
+    }
+
     // --- workSheets: Handwerksscheine ---
     //
     // DIE UNVERAENDERBARKEIT STEHT HIER, nicht in der Oberflaeche. Ein Beleg,
