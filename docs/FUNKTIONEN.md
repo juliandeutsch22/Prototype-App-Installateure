@@ -51,7 +51,7 @@ unterscheidet drei Stufen:
 
 | Bereich | Was es tut | Wer darf | Daten | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|---|---|
-| **Rechnungen** | Aus Baustelle zusammenstellen — Stunden UND Material aus den unterschriebenen Handwerksscheinen —, Leistungszeitraum, Nummernkreis, Status, PDF, Buchhaltungs-Export mit Lückenprüfung | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries`, `workSheets`, `materials` | Rechnung (73), Emulator (Zähler, Löschen nur beim Storno), Ansicht (12), Beleg (3) | Geprüft ist die Reihenfolge — Nummer ziehen, Belege sperren, dann anlegen. Material ohne Preis im Katalog steht mit 0,00 € da und wird ausgewiesen: eine erfundene Zahl wäre schlimmer als eine sichtbare Lücke |
+| **Rechnungen** | Aus Baustelle zusammenstellen — Stunden UND Material aus den unterschriebenen Handwerksscheinen —, Leistungszeitraum, Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG), Nummernkreis, Status, PDF, Buchhaltungs-Export mit Lückenprüfung | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries`, `workSheets`, `materials` | Rechnung (86), Emulator (Zähler, Löschen nur beim Storno), Ansicht (21), Beleg (9) | Geprüft ist die Reihenfolge — Nummer ziehen, Belege sperren, dann anlegen. Material ohne Preis im Katalog steht mit 0,00 € da und wird ausgewiesen: eine erfundene Zahl wäre schlimmer als eine sichtbare Lücke |
 | **Mitarbeiterübersicht** | Zeitkonten, Salden, Monats- und Mitarbeiterexport, Stundennachweis | Buchhaltung, GF, Admin (**nicht** Projektleitung) | `timeEntries`, `monthlyStats` | Rechnung (20), Ansicht (4) | Zusammenspiel Bilanz ↔ Rohdaten ungetestet |
 | **Nachkalkulation** | Erlös gegen Personalkosten je Baustelle, Deckungsbeitrag | GF, Admin | `projects`, `timeEntries`, `invoices`, `quotes` | Rechnung (9) | Ansicht ungetestet |
 
@@ -82,7 +82,7 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-940 automatische Tests klingen nach viel. Aufgeschlüsselt:
+969 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
@@ -99,6 +99,20 @@ umgibt. Möglich wurde das über `resolve.alias` in `vitest.config.ts` — an
 `functions/src/` ist für diese Tests KEINE Zeile geändert worden. Was der
 Ersatz nicht kann: Indizes, Nebenläufigkeit, Regeln. Die Regeln prüft der
 Emulatorlauf; die anderen beiden bleiben offen und stehen unten.
+
+**Reverse Charge seit dem 07.09.2026.** Erbringt der Betrieb eine Bauleistung
+an einen anderen Bauunternehmer — als Subunternehmer —, geht die
+Umsatzsteuerschuld auf den Empfänger über (§ 19 Abs 1a UStG). Ein Haken je
+RECHNUNG, nicht am Kunden: derselbe Baumeister kann ein Werkzeug kaufen (20 %)
+und eine Installation beauftragen (Übergang). Ohne die UID des Empfängers
+lässt sich die Rechnung nicht anlegen — ohne sie ist der Übergang nicht
+belegt.
+
+> **Vorgefunden wurde eine Falle:** im USt-Feld der Einstellungen stand
+> „0 % (Reverse Charge)". Das setzte nur den Satz auf null — weder der
+> Pflichthinweis noch die UID kamen auf den Beleg, und es hätte als Vorgabe
+> für JEDE Rechnung gegolten, auch die an Privatkunden. Die Beschriftung ist
+> weg; die Null bleibt als echter Nullfall wählbar.
 
 **Die Rechnung schliesst den Kreis erst seit dem 07.09.2026.** Bis dahin
 verrechnete diese App ausschliesslich STUNDEN — bei einem Installateur schnell

@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import autoTable from 'jspdf-autotable';
 import { discountLabel } from './totals';
+import { RC_HINWEIS } from './reverseCharge';
 
 /**
  * '2026-09-14' -> '14.09.2026'.
@@ -48,11 +49,16 @@ export function generateInvoicePdf(opts: {
   assembled: AssembledInvoice;
   appendDetail?: boolean;
   vatRate?: number;
+  /** Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG). */
+  reverseCharge?: boolean;
+  /** UID des Leistungsempfängers — bei Reverse Charge Pflicht. */
+  customerVatId?: string;
 }) {
   const { company, project, invoiceNumber, invoiceDate, dueDate, assembled } = opts;
   const vatRate = opts.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const leistungVon = assembled.leistung?.von;
   const leistungBis = assembled.leistung?.bis;
+  const rc = !!opts.reverseCharge;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const margin = 18;
 
@@ -74,6 +80,17 @@ export function generateInvoicePdf(opts: {
   doc.setFontSize(10).setFont('helvetica', 'normal');
   doc.text(project.customerName || '–', margin, 58);
   if (project.address) doc.text(project.address, margin, 63);
+  /*
+    DIE UID DES EMPFÄNGERS gehört zum Empfängerblock, nicht in die Fusszeile.
+
+    Bei Reverse Charge ist sie Pflicht — ohne sie ist der Übergang der
+    Steuerschuld nicht belegt, und der Empfänger kann seine eigene
+    Steuerschuld damit nicht zuordnen. Sie steht deshalb dort, wo er selbst
+    steht.
+  */
+  if (opts.customerVatId?.trim()) {
+    doc.text(`UID: ${opts.customerVatId.trim()}`, margin, project.address ? 68 : 63);
+  }
 
   const rightX = 210 - margin;
   doc.text(`Rechnungsnummer: ${invoiceNumber}`, rightX, 50, { align: 'right' });
@@ -131,8 +148,18 @@ export function generateInvoicePdf(opts: {
           ]
         : []),
       ['', '', '', 'Netto', fmtEUR(assembled.totalNetto)],
-      ['', '', '', `USt. ${Math.round(vatRate * 100)}%`, fmtEUR(assembled.totalVat)],
-      ['', '', '', 'Brutto', fmtEUR(assembled.totalBrutto)],
+      /*
+        BEI REVERSE CHARGE STEHT KEINE STEUER DA — auch keine „USt. 0 %".
+
+        Eine ausgewiesene Steuer schuldet der Betrieb kraft Rechnungslegung,
+        bis er berichtigt (§ 11 Abs 12 UStG). „0 %" ist ein Steuersatz und
+        etwas anderes als ein Übergang der Steuerschuld; die Zeile bekommt
+        deshalb den Grund statt einer Zahl.
+      */
+      ...(rc
+        ? [['', '', '', 'Umsatzsteuer', 'Übergang der Steuerschuld']]
+        : [['', '', '', `USt. ${Math.round(vatRate * 100)}%`, fmtEUR(assembled.totalVat)]]),
+      ['', '', '', rc ? 'Rechnungsbetrag' : 'Brutto', fmtEUR(assembled.totalBrutto)],
     ],
     headStyles: { fillColor: [0, 51, 102] },
     footStyles: { fontStyle: 'bold' },
@@ -153,6 +180,20 @@ export function generateInvoicePdf(opts: {
     y,
   );
   doc.text(`Verwendungszweck: ${invoiceNumber} / ${project.projectNumber}`, margin, (y += 5));
+
+  /*
+    DER PFLICHTSATZ — § 11 Abs 1a UStG verlangt ihn im Wortlaut.
+
+    Er steht unter dem Zahlungshinweis und nicht in der Fusszeile: die
+    Fusszeile ist Kleingedrucktes, das man überliest. Dies hier ist der Grund,
+    warum auf der Rechnung keine Steuer steht, und der gehört dorthin, wo der
+    Kunde nach dem Betrag sucht.
+  */
+  if (rc) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(RC_HINWEIS, margin, (y += 8), { maxWidth: 210 - 2 * margin });
+    doc.setFont('helvetica', 'normal');
+  }
 
   // Fußzeile mit den Pflichtangaben, unten auf der Rechnungsseite.
   const footer = [company.vatId && `UID: ${company.vatId}`, company.companyRegister]

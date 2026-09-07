@@ -22,6 +22,7 @@ import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
 import { verrechneteScheine } from './materialPositionen';
+import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr } from '@/lib/time';
@@ -77,6 +78,17 @@ export default function InvoicesView() {
    */
   const [leistungVon, setLeistungVon] = useState('');
   const [leistungBis, setLeistungBis] = useState('');
+  /**
+   * Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG).
+   *
+   * BEWUSST JE RECHNUNG und nicht am Kunden hinterlegt: ob der Übergang gilt,
+   * hängt an der LEISTUNG, nicht am Empfänger. Derselbe Baumeister kann ein
+   * Werkzeug kaufen (20 %) und eine Installation beauftragen (Reverse Charge).
+   * Ein Haken am Kundenstamm hätte die Entscheidung stillschweigend
+   * vorweggenommen.
+   */
+  const [reverseCharge, setReverseCharge] = useState(false);
+  const [kundenUid, setKundenUid] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   /**
    * Der zuletzt EINGESETZTE Vorschlag. Nur daran ist erkennbar, ob jemand die
@@ -211,6 +223,27 @@ export default function InvoicesView() {
   }, [invoices, preview, suggestedNumber, invoiceNumber]);
 
   /** Der Rabatt in der Form, in der er gespeichert und gedruckt wird. */
+  /**
+   * Der Steuersatz, der tatsächlich gilt.
+   *
+   * EINE Stelle, an der aus „Reverse Charge" die Null wird. Stünde die
+   * Entscheidung an drei Stellen — Vorschau, gespeicherte Rechnung, PDF —,
+   * liefen sie irgendwann auseinander, und der Kunde bekäme einen Beleg mit
+   * Steuer über einen Betrag ohne.
+   */
+  const satz = geltenderSatz(reverseCharge, rates.vatRate);
+
+  /**
+   * Ist die Rechnung als Reverse Charge vollständig?
+   *
+   * Sie SPERRT den Knopf. Anders als bei den Markenfarben ist hier nichts
+   * abzuwägen: eine Rechnung ohne die UID des Empfängers belegt den Übergang
+   * der Steuerschuld nicht, und der Empfänger kann sie nicht verwenden. Eine
+   * Warnung, die man wegklicken kann, führte zu genau der Rechnung, die
+   * später berichtigt werden muss.
+   */
+  const rcPruefung = pruefeReverseCharge(reverseCharge, kundenUid, company?.vatId);
+
   const rabatt = useMemo(() => {
     const v = Number(discount.value.replace(',', '.'));
     if (!Number.isFinite(v) || v <= 0) return null;
@@ -226,21 +259,21 @@ export default function InvoicesView() {
   useEffect(() => {
     // Nur an Rabatt und Steuersatz gehaengt; die Positionen rechnen ihre
     // eigenen Aenderungen bereits in setPos mit.
-    setPreview((p) => (p ? recalc(p, p.positions, rates.vatRate, rabatt) : p));
-  }, [rabatt, rates.vatRate]);
+    setPreview((p) => (p ? recalc(p, p.positions, satz, rabatt) : p));
+  }, [rabatt, satz]);
 
   /** Eine Position aendern; die Summen ziehen sofort nach. */
   function setPos(i: number, patch: Partial<InvoicePosition>) {
     setPreview((p) => {
       if (!p) return p;
       const next = p.positions.map((x, k) => (k === i ? { ...x, ...patch } : x));
-      return recalc(p, next, rates.vatRate, rabatt);
+      return recalc(p, next, satz, rabatt);
     });
   }
 
   function entfernePos(i: number) {
     setPreview((p) =>
-      p ? recalc(p, p.positions.filter((_, k) => k !== i), rates.vatRate, rabatt) : p,
+      p ? recalc(p, p.positions.filter((_, k) => k !== i), satz, rabatt) : p,
     );
   }
 
@@ -251,7 +284,7 @@ export default function InvoicesView() {
         ? recalc(
             p,
             [...p.positions, { label, qty, unit, unitPrice: 0, netto: 0 }],
-            rates.vatRate,
+            satz,
             rabatt,
           )
         : p,
@@ -311,6 +344,17 @@ export default function InvoicesView() {
       setPreview(assembled);
       setLeistungVon(assembled.leistung?.von ?? '');
       setLeistungBis(assembled.leistung?.bis ?? '');
+      /*
+        Die UID aus den Kundenstammdaten vorbelegen — über den Namen, wie es
+        der Buchhaltungs-Export auch tut. Bei verknüpften Baustellen ist er
+        aus den Stammdaten kopiert und damit verlässlich gleich geschrieben.
+        Findet sich nichts, bleibt das Feld leer und will ausgefüllt werden.
+      */
+      const kunde = projects.find((x) => x.projectNumber === projectNumber)?.customerName ?? '';
+      const treffer = kunden.find(
+        (k) => k.name.trim().toLowerCase() === kunde.trim().toLowerCase(),
+      );
+      setKundenUid(treffer?.vatId?.trim() ?? '');
       const vorschlag = nextInvoiceNumber(invoices);
       setSuggestedNumber(vorschlag);
       setInvoiceNumber(vorschlag);
@@ -362,7 +406,10 @@ export default function InvoicesView() {
         invoiceDate,
         dueDate,
         positions: preview.positions,
-        vatRate: rates.vatRate,
+        vatRate: satz,
+        reverseCharge,
+        // Leerstring statt undefined: Firestore lehnt undefined ab.
+        customerVatId: reverseCharge ? kundenUid.trim() : '',
         subtotalNetto: preview.subtotalNetto,
         // null statt undefined: Firestore laesst undefined nicht zu, und
         // "kein Rabatt" soll als bewusster Wert im Dokument stehen.
@@ -403,12 +450,16 @@ export default function InvoicesView() {
           leistung: leistungVon && leistungBis ? { von: leistungVon, bis: leistungBis } : null,
         },
         appendDetail,
-        vatRate: rates.vatRate,
+        vatRate: satz,
+        reverseCharge,
+        customerVatId: reverseCharge ? kundenUid.trim() : '',
       });
 
       setPreview(null);
       setProjectNumber('');
       setDiscount({ mode: 'percent', value: '', label: '' });
+      setReverseCharge(false);
+      setKundenUid('');
       toast.success(`Rechnung ${reserved} erstellt`);
     } catch (e) {
       // Die Nummernvergabe sagt genau, welche Nummer belegt ist und welche
@@ -465,6 +516,15 @@ export default function InvoicesView() {
       },
       appendDetail: false,
       vatRate: inv.vatRate,
+      /*
+        AUS DEM DOKUMENT, nicht aus dem Formular: der zweite Druck muss
+        denselben Beleg ergeben wie der erste. Ohne diese zwei Zeilen verlöre
+        eine Reverse-Charge-Rechnung beim erneuten Ausgeben ihren Pflichtsatz
+        und die UID des Empfängers — und wäre damit ein anderer, ungültiger
+        Beleg über dieselbe Nummer.
+      */
+      reverseCharge: inv.reverseCharge,
+      customerVatId: inv.customerVatId,
     });
     toast.success('PDF erneut erzeugt');
   }
@@ -617,12 +677,28 @@ export default function InvoicesView() {
               <InputField id="r-due" label="Zahlungsziel (Tage)" type="number" min="0"
                 value={String(rates.dueDays)}
                 onChange={(e) => setRates({ ...rates, dueDays: Number(e.target.value) || 0 })} />
+              {/*
+                „0 % (Reverse Charge)" STAND HIER UND WAR EINE FALLE.
+
+                Die Auswahl setzte nur den Satz auf null. Weder der
+                Pflichthinweis nach § 11 Abs 1a UStG noch die UID des
+                Empfängers kamen dabei auf den Beleg — die Rechnung sah aus
+                wie Reverse Charge und war keine. Und sie hätte gegolten: als
+                Vorgabe für JEDE Rechnung des Betriebs, auch die an
+                Privatkunden.
+
+                Der Übergang der Steuerschuld hängt an der einzelnen Leistung,
+                nicht am Betrieb. Er wird deshalb je Rechnung angehakt, unten
+                in der Vorschau. Die Null bleibt als Satz wählbar — es gibt
+                echte Nullfälle wie die Ausfuhrlieferung —, aber ohne die
+                Beschriftung, die etwas anderes verspricht.
+              */}
               <SelectField id="r-vat" label="USt-Satz" value={String(rates.vatRate)}
                 onChange={(e) => setRates({ ...rates, vatRate: Number(e.target.value) })}>
                 <option value="0.2">20 %</option>
                 <option value="0.13">13 %</option>
                 <option value="0.1">10 %</option>
-                <option value="0">0 % (Reverse Charge)</option>
+                <option value="0">0 %</option>
               </SelectField>
             </FormGrid>
           </div>
@@ -795,13 +871,17 @@ export default function InvoicesView() {
                 )}
                 <tr>
                   <td colSpan={4} className="text-right">
-                    USt. {Math.round(rates.vatRate * 100)} %
+                    {reverseCharge ? 'Umsatzsteuer' : `USt. ${Math.round(satz * 100)} %`}
                   </td>
-                  <td className="tnum pr-3 text-right">{fmtEUR(preview.totalVat)}</td>
+                  <td className="tnum pr-3 text-right">
+                    {reverseCharge ? 'Übergang der Steuerschuld' : fmtEUR(preview.totalVat)}
+                  </td>
                   <td />
                 </tr>
                 <tr className="font-bold">
-                  <td colSpan={4} className="text-right">Brutto</td>
+                  <td colSpan={4} className="text-right">
+                    {reverseCharge ? 'Rechnungsbetrag' : 'Brutto'}
+                  </td>
                   <td className="tnum pr-3 text-right">{fmtEUR(preview.totalBrutto)}</td>
                   <td />
                 </tr>
@@ -874,13 +954,70 @@ export default function InvoicesView() {
             {/* Die ZAHL bleibt stehen — sie gehört zu dem, was der Knopf gleich
                 tut. Der allgemeine Teil („Material wird nicht verrechnet")
                 steht im „i" der Karte. */}
+            {/*
+              BAULEISTUNG MIT ÜBERGANG DER STEUERSCHULD — § 19 Abs 1a UStG.
+
+              Steht hier unten und nicht oben bei den Sätzen: es ist eine
+              Entscheidung über DIESE Rechnung, keine Einstellung des Betriebs.
+              Ob der Übergang gilt, hängt an der Leistung und am Empfänger —
+              derselbe Baumeister kann ein Werkzeug kaufen (20 %) und eine
+              Installation beauftragen (Reverse Charge).
+
+              Bei einem Betrieb, der überwiegend für Private arbeitet, bleibt
+              der Haken das ganze Jahr aus. Genau deshalb ist er ein Haken und
+              keine Vorgabe: eine ungenutzte Steuerfunktion, die sich
+              versehentlich einschaltet, kostet mehr als sie nützt.
+            */}
+            <div className="rounded-sm border border-line p-3">
+              <CheckboxField
+                id="rc"
+                label="Bauleistung — Steuerschuld geht auf den Empfänger über (§ 19 Abs 1a UStG)"
+                checked={reverseCharge}
+                onChange={(e) => setReverseCharge(e.target.checked)}
+              />
+              <p className="mt-1 text-sm text-ink-muted">
+                Nur bei Bauleistungen an einen anderen Bauunternehmer — also als Subunternehmer.
+                Bei Privatkunden gilt der Übergang nicht.
+              </p>
+              {reverseCharge && (
+                <div className="mt-3 space-y-2">
+                  <InputField
+                    id="rc-uid"
+                    label="UID-Nummer des Kunden (Pflicht)"
+                    placeholder="ATU12345678"
+                    value={kundenUid}
+                    onChange={(e) => setKundenUid(e.target.value)}
+                    required
+                  />
+                  {kundenUid.trim() && !sichtAusWieUid(kundenUid) && (
+                    <p className="text-sm text-warning">
+                      Das sieht nicht nach einer UID-Nummer aus. Österreich: ATU und acht Ziffern.
+                    </p>
+                  )}
+                  {!rcPruefung.vollstaendig && (
+                    <p className="text-sm text-warning" role="alert">
+                      Ohne {rcPruefung.fehlt.join(' und ')} ist der Übergang der Steuerschuld nicht
+                      belegt — die Rechnung lässt sich so nicht anlegen.
+                    </p>
+                  )}
+                  <p className="text-sm text-ink-muted">
+                    Auf der Rechnung steht dann keine Umsatzsteuer, dafür der vorgeschriebene
+                    Hinweis und beide UID-Nummern.
+                  </p>
+                </div>
+              )}
+            </div>
+
             <p className="text-sm text-ink-muted">
               {preview.linkedEntries.length}{' '}
               {preview.linkedEntries.length === 1 ? 'Zeiteintrag wird' : 'Zeiteinträge werden'} als
               verrechnet gesperrt.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button onClick={confirmInvoice} loading={busy} disabled={numberTaken || !invoiceNumber}
+              <Button
+                onClick={confirmInvoice}
+                loading={busy}
+                disabled={numberTaken || !invoiceNumber || !rcPruefung.vollstaendig}
                 className="w-full sm:w-auto">
                 Rechnung erstellen &amp; PDF
               </Button>

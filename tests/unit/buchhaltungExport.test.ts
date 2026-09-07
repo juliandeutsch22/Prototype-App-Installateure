@@ -169,6 +169,7 @@ describe('Der Leistungszeitraum im Journal', () => {
       'Netto',
       'USt-Satz %',
       'USt-Betrag',
+      'Reverse Charge',
       'Brutto',
       'Zahlungsstatus',
       'Storniert',
@@ -204,5 +205,74 @@ describe('Der Leistungszeitraum im Journal', () => {
     const felder = r.csv.split('\n')[1].split(';');
     expect(felder[2]).toBe('');
     expect(felder[3]).toBe('');
+  });
+});
+
+describe('Reverse Charge im Journal', () => {
+  /**
+   * Ein Feld über seinen SPALTENNAMEN holen, nicht über eine gezählte
+   * Position.
+   *
+   * Beim Schreiben dieser Tests habe ich mich um eine Spalte verzählt — und
+   * genau das passiert dem Nächsten auch, sobald eine Spalte dazukommt. Die
+   * REIHENFOLGE hält der Kopfzeilentest weiter oben fest; hier geht es um die
+   * Werte, und die sollen nicht an einer Zahl hängen.
+   */
+  function feld(csv: string, spalte: string): string {
+    const [kopf, zeile] = csv.split('\n');
+    const i = kopf.split(';').indexOf(spalte);
+    expect(i).toBeGreaterThanOrEqual(0);
+    return zeile.split(';')[i];
+  }
+
+  function zeile(inv: Record<string, unknown>) {
+    const r = buildInvoiceCsv(
+      [
+        {
+          invoiceNumber: 'RE-2026-0001',
+          invoiceDate: '2026-09-10',
+          dueDate: '2026-09-24',
+          customerName: 'Baumeister Gruber',
+          projectNumber: 'B-001',
+          totalNetto: 1000,
+          totalVat: 0,
+          totalBrutto: 1000,
+          vatRate: 0,
+          paymentStatus: 'Offen',
+          ...inv,
+        } as never,
+      ],
+      [{ name: 'Baumeister Gruber', vatId: 'ATU99999999' } as never],
+      '2026-09-01',
+      '2026-09-30',
+    );
+    return r.csv;
+  }
+
+  it('steht als eigene Spalte da, nicht als Null im Steuersatz', () => {
+    /*
+      Beides ergibt 0,00 € und bedeutet etwas anderes: „0 %" ist ein
+      Steuersatz, der Übergang der Steuerschuld ist ein anderer Umsatz, den
+      der Steuerberater getrennt erklären muss. Wer die Fälle über eine Null
+      zusammenlegt, kann sie im Nachhinein nicht mehr trennen.
+    */
+    const rc = zeile({ reverseCharge: true, customerVatId: 'ATU11112222' });
+    const normal = zeile({ reverseCharge: false, vatRate: 0.2, totalVat: 200, totalBrutto: 1200 });
+    expect(feld(rc, 'Reverse Charge')).toBe('ja');
+    expect(feld(normal, 'Reverse Charge')).toBe('nein');
+  });
+
+  it('nimmt die auf der RECHNUNG festgehaltene UID, nicht die aktuelle', () => {
+    // Die Stammdaten können sich seither geändert haben; auf dem Beleg, den
+    // der Kunde bekommen hat, stand die eine.
+    expect(feld(zeile({ reverseCharge: true, customerVatId: 'ATU11112222' }), 'UID-Nummer')).toBe(
+      'ATU11112222',
+    );
+  });
+
+  it('fällt ohne festgehaltene UID auf die Stammdaten zurück', () => {
+    // Altbestände tragen sie nicht — dann ist die aus dem Kundenstamm besser
+    // als ein leeres Feld.
+    expect(feld(zeile({}), 'UID-Nummer')).toBe('ATU99999999');
   });
 });
