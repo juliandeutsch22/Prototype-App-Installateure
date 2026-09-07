@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listWartungen,
@@ -8,7 +9,9 @@ import {
   wartungErledigt,
   type NewWartung,
 } from '@/lib/db/wartungen';
+import { wartungEingeplant } from '@/lib/db/wartungen';
 import { listCustomers } from '@/lib/db/customers';
+import { listRecentProjects, createProject } from '@/lib/db/projects';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
 import type { Customer, Wartung } from '@/types';
@@ -21,6 +24,11 @@ import {
   VORLAUF_TAGE,
   type Dringlichkeit,
 } from './wartungsplan';
+import {
+  naechsteProjektnummer,
+  nummerFrei,
+  baustelleAusWartung,
+} from './wartungBaustelle';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge, { type Tone } from '@/components/Badge';
@@ -68,6 +76,12 @@ interface Erledigung {
   baustelle: string;
 }
 
+/** Die Baustelle, die gerade aus einer Wartung entstehen soll. */
+interface Einplanung {
+  wartung: WithId<Wartung>;
+  nummer: string;
+}
+
 /**
  * Wiederkehrende Wartungen.
  *
@@ -94,6 +108,15 @@ export default function WartungenView() {
   const [formOffen, setFormOffen] = useState(false);
   const [speichert, setSpeichert] = useState(false);
   const [erledigung, setErledigung] = useState<Erledigung | null>(null);
+  const [einplanung, setEinplanung] = useState<Einplanung | null>(null);
+  /*
+    Die vorhandenen Projektnummern — für den Vorschlag UND für die Prüfung,
+    ob die Nummer noch frei ist. Es gibt für Baustellen bewusst keinen Zähler
+    (siehe `wartungBaustelle.ts`); zwei Baustellen mit derselben Nummer wären
+    aber der teuerste Fehler dieser Kette, weil Zeiten, Scheine und Rechnungen
+    an der Nummer hängen und nicht an der Dokument-ID.
+  */
+  const [nummern, setNummern] = useState<string[]>([]);
   const [toDelete, setToDelete] = useState<WithId<Wartung> | null>(null);
 
   const darfAendern = user ? isGF(user.role) : false;
@@ -107,10 +130,21 @@ export default function WartungenView() {
     setLoading(true);
     void (async () => {
       try {
-        const [w, k] = await Promise.all([listWartungen(companyId), listCustomers(companyId)]);
+        const [w, k, p] = await Promise.all([
+          listWartungen(companyId),
+          listCustomers(companyId),
+          /*
+            Nur für den Nummernvorschlag. Scheitert es — etwa weil eine Rolle
+            die Baustellen nicht lesen darf —, bleibt die Liste leer und der
+            Vorschlag beginnt beim ersten des Jahres. Die ganze Wartungsliste
+            deswegen scheitern zu lassen, wäre die falsche Reihenfolge.
+          */
+          listRecentProjects(companyId, 300).catch(() => []),
+        ]);
         if (weg) return;
         setWartungen(w);
         setKunden(k);
+        setNummern(p.map((x) => x.projectNumber));
         setError(null);
       } catch (e) {
         if (!weg) setError((e as Error).message);
@@ -248,6 +282,50 @@ export default function WartungenView() {
     }
   };
 
+  /**
+   * Aus der Wartung eine Baustelle machen — und sie an der Wartung vormerken.
+   *
+   * ZWEI SCHREIBVORGÄNGE, UND DIE REIHENFOLGE IST DIE AUSSAGE. Zuerst
+   * entsteht die Baustelle, dann wird sie vermerkt. Bricht der zweite Schritt
+   * ab, steht eine Baustelle da, die niemand der Wartung zuordnet — ärgerlich,
+   * aber sichtbar und von Hand nachtragbar. Andersherum verwiese die Wartung
+   * auf eine Baustelle, die es nicht gibt, und der Monteur bekäme einen
+   * Einsatz auf eine Nummer, unter der nichts steht.
+   *
+   * Eine Transaktion über beide wäre die saubere Antwort. Sie geht hier nicht:
+   * Firestore-Transaktionen brauchen die Dokument-ID vorab, und die Nummer
+   * ist ein Geschäftsschlüssel, kein Dokumentpfad.
+   */
+  const einplanenSpeichern = async () => {
+    if (!einplanung || !companyId) return;
+    const nummer = einplanung.nummer.trim();
+    if (!nummer) {
+      toast.error('Ohne Projektnummer gibt es keine Baustelle.');
+      return;
+    }
+    if (!nummerFrei(nummer, nummern)) {
+      toast.error(`${nummer} ist schon vergeben. Bitte eine andere Nummer.`);
+      return;
+    }
+    setSpeichert(true);
+    try {
+      const kunde = kunden.find((k) => k.id === einplanung.wartung.customerId);
+      await createProject(
+        companyId,
+        baustelleAusWartung(einplanung.wartung, kunde, nummer),
+      );
+      await wartungEingeplant(einplanung.wartung.id, nummer);
+      setNummern((n) => [...n, nummer]);
+      setEinplanung(null);
+      await neuLaden();
+      toast.success(`Baustelle ${nummer} angelegt. Jetzt im Einsatzplan einteilen.`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSpeichert(false);
+    }
+  };
+
   const erledigtSpeichern = async () => {
     if (!erledigung) return;
     setSpeichert(true);
@@ -301,11 +379,43 @@ export default function WartungenView() {
             {fmtDatum(w.faelligAm)}
             {w.zuletztAm ? ` · zuletzt ${fmtDatum(w.zuletztAm)}` : ' · noch nie gewartet'}
             {w.hinweis ? ` · ${w.hinweis}` : ''}
+            {/*
+              WAS SCHON EINGEPLANT IST, SAGT ES. Ohne diese Zeile hiess
+              „fällig" zweierlei — „noch nichts passiert" und „steht längst im
+              Einsatzplan" —, und wer die Liste zweimal durchging, legte die
+              Baustelle zweimal an.
+            */}
+            {w.offeneBaustelle ? (
+              <span className="mt-1 block text-xs text-ink-muted">
+                Eingeplant auf Baustelle{' '}
+                <Link className="underline" to={`/projects?baustelle=${encodeURIComponent(w.offeneBaustelle)}`}>
+                  {w.offeneBaustelle}
+                </Link>
+              </span>
+            ) : null}
           </>
         }
       >
         {darfAendern && (
           <>
+            {/*
+              Einplanen steht nur dort, wo es etwas zu planen gibt: bei einer
+              anstehenden Wartung ohne offene Baustelle. An einer Vereinbarung,
+              die erst in acht Monaten fällig wird, wäre der Knopf eine
+              Einladung, Baustellen auf Vorrat anzulegen.
+            */}
+            {!w.offeneBaustelle && u.stand !== 'später' && u.stand !== 'ruht' && (
+              <Button
+                onClick={() =>
+                  setEinplanung({
+                    wartung: w,
+                    nummer: naechsteProjektnummer(nummern, new Date().getFullYear()),
+                  })
+                }
+              >
+                Baustelle anlegen
+              </Button>
+            )}
             <Button
               variant="secondary"
               onClick={() =>
@@ -313,7 +423,9 @@ export default function WartungenView() {
                   wartung: w,
                   datum: heute,
                   intervall: w.intervallMonate,
-                  baustelle: '',
+                  // Die eingeplante Baustelle steht schon da: niemand soll
+                  // eine Nummer abtippen, die die App kennt.
+                  baustelle: w.offeneBaustelle ?? '',
                 })
               }
             >
@@ -510,6 +622,43 @@ export default function WartungenView() {
               Nächster Termin: {fmtDatum(naechsterTermin(erledigung.datum, erledigung.intervall))}
               . Gerechnet ab dem Tag der Ausführung, nicht ab dem geplanten Termin — das
               Wartungsintervall läuft ab der letzten tatsächlichen Wartung.
+            </p>
+          </div>
+        </ConfirmDialog>
+      )}
+
+      {einplanung && (
+        <ConfirmDialog
+          open
+          title="Baustelle für diese Wartung anlegen?"
+          confirmLabel="Anlegen"
+          confirmTone="primary"
+          onConfirm={einplanenSpeichern}
+          onCancel={() => setEinplanung(null)}
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-ink-muted">
+              {einplanung.wartung.customerName} · {einplanung.wartung.anlage}
+            </p>
+            <FormGrid cols={1}>
+              <InputField id="p-nummer"
+                label="Projektnummer"
+                pflicht
+                value={einplanung.nummer}
+                onChange={(e) => setEinplanung({ ...einplanung, nummer: e.target.value })}
+              />
+            </FormGrid>
+            {/*
+              VORSCHLAG, NICHT ZÄHLER — und das steht auch da. Projektnummern
+              vergibt der Betrieb frei; wer ein eigenes System führt,
+              überschreibt die Zahl. Vergeben ist sie deshalb erst, wenn
+              gespeichert wird, und dabei wird sie noch einmal geprüft.
+            */}
+            <p className="text-sm text-ink-muted">
+              Vorgeschlagen aus den vorhandenen Nummern — änderbar. Die Baustelle entsteht mit
+              Kunde, Standort und der Anlage in der Beschreibung; einzuteilen ist sie danach im
+              Einsatzplan. Die Abrechnungsart bleibt offen: was im Wartungsvertrag steht, weiß
+              diese App nicht.
             </p>
           </div>
         </ConfirmDialog>

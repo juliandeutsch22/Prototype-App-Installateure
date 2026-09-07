@@ -462,9 +462,11 @@ export interface Project {
 /**
  * materials/{id} — Katalog.
  *
- * Bewusst ohne Preis: Material wird über diese App nicht verrechnet. Der
- * Katalog dient allein dazu, dass ein Monteur auf der Baustelle benennen kann,
- * was ihm die Projektleitung bringen soll.
+ * Er trägt inzwischen ZWEI Preise, und die Unterscheidung ist der ganze
+ * Punkt: der Verkaufspreis geht auf die Rechnung, der Einkaufspreis in die
+ * Nachkalkulation. Sein ursprünglicher Zweck bleibt daneben bestehen — dass
+ * ein Monteur auf der Baustelle benennen kann, was ihm die Projektleitung
+ * bringen soll; die Anforderung selbst trägt weiterhin keinen Preis.
  */
 export interface Material {
   id: string;
@@ -911,6 +913,22 @@ export interface Wartung {
   hinweis?: string;
   /** Baustelle, auf der zuletzt gewartet wurde — für den Weg in die Historie. */
   letzteBaustelle?: string;
+  /**
+   * Die Baustelle, die für die ANSTEHENDE Wartung schon angelegt ist.
+   *
+   * DAS IST DER UNTERSCHIED ZWISCHEN „ZU TUN" UND „SCHON EINGEPLANT", und
+   * ohne ihn war die Liste der fälligen Wartungen nicht abarbeitbar: wer sie
+   * am Montag durchgeht und drei Baustellen anlegt, sieht am Dienstag
+   * dieselben drei Zeilen im selben Rot. Beim zweiten Durchgang entsteht die
+   * Baustelle ein zweites Mal.
+   *
+   * Getrennt von `letzteBaustelle` gehalten, weil es zwei verschiedene
+   * Aussagen sind: hier steht, was ansteht, dort, was gewesen ist. Beim
+   * Eintragen der erledigten Wartung wandert der Wert von hier nach dort und
+   * wird hier geleert — in EINEM Schreibvorgang, damit kein Zustand entsteht,
+   * in dem er in beiden Feldern steht.
+   */
+  offeneBaustelle?: string;
   createdAt?: number;
   updatedAt?: number;
 }

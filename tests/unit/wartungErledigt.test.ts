@@ -54,6 +54,10 @@ describe('Eine erledigte Wartung eintragen', () => {
         zuletztAm: '2026-06-01',
         faelligAm: '2027-06-01',
         intervallMonate: 12,
+        // Immer mitgeschrieben, auch wenn nie eine eingeplant war: eine
+        // Fallunterscheidung dafür wäre mehr Maschinerie als das leere Feld
+        // kostet — und der eine Fall, in dem sie fehlte, wäre der teure.
+        offeneBaustelle: '',
         updatedAt: 'SERVERZEIT',
       },
     );
@@ -84,6 +88,28 @@ describe('Eine erledigte Wartung eintragen', () => {
     updateDoc.mockClear();
     await wartungErledigt('w4', { erledigtAm: '2026-06-01', intervallMonate: 12 });
     expect(updateDoc.mock.calls[0][1]).not.toHaveProperty('letzteBaustelle');
+  });
+
+  /*
+    DIE EINGEPLANTE BAUSTELLE IST MIT DEM EINTRAG GEWESEN. Bliebe sie stehen,
+    zeigte die Liste die Wartung bis zum nächsten Termin als „eingeplant",
+    obwohl der Einsatz vorbei ist — und beim nächsten Mal führe der Monteur
+    auf eine abgeschlossene Baustelle.
+
+    Leerstring, nicht `undefined`: `updateInTenant` wirft `undefined` heraus,
+    das Feld bliebe also unverändert stehen. Genau daran ist eine Mutation
+    durchgerutscht, bis dieser Test dazukam.
+  */
+  it('räumt die eingeplante Baustelle im selben Schreibvorgang weg', async () => {
+    await wartungErledigt('w7', {
+      erledigtAm: '2026-06-01',
+      intervallMonate: 12,
+      projectNumber: '2026-014',
+    });
+    const nutzlast = updateDoc.mock.calls[0][1] as Record<string, unknown>;
+    expect(nutzlast.offeneBaustelle).toBe('');
+    // Und sie ist zugleich in die Historie gewandert, nicht bloss verschwunden.
+    expect(nutzlast.letzteBaustelle).toBe('2026-014');
   });
 
   /*

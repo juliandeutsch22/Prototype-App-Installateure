@@ -52,7 +52,7 @@ unterscheidet drei Stufen:
 | Bereich | Was es tut | Wer darf | Daten | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|---|---|
 | **Rechnungen** | Aus Baustelle zusammenstellen — Stunden UND Material aus den unterschriebenen Handwerksscheinen —, Leistungszeitraum, Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG), Nummernkreis, Status, **Mahnwesen in drei Stufen**, PDF, Buchhaltungs-Export mit Lückenprüfung. **Gelöscht wird keine Rechnung** — die Korrektur ist der Storno | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries`, `workSheets`, `materials` | Rechnung (110), Emulator (Zähler, Löschen nur beim Storno), Ansicht (30), Beleg (20) | Geprüft ist die Reihenfolge — Nummer ziehen, Belege sperren, dann anlegen. Material ohne Preis im Katalog steht mit 0,00 € da und wird ausgewiesen: eine erfundene Zahl wäre schlimmer als eine sichtbare Lücke |
-| **Wartungen** | Wiederkehrende Wartungsvereinbarungen je Anlage; erledigt eintragen rückt den nächsten Termin nach; Hinweis auf der Startseite, wenn etwas ansteht | Lesen alle, ändern nur die Leitung | `wartungen`, `customers` | Rechnung (24), Ansicht (15), Emulator (5), statischer Abgleich (Index, Export) | Kein automatischer Einsatz aus der fälligen Wartung — den Termin vereinbart weiterhin ein Mensch am Telefon |
+| **Wartungen** | Wiederkehrende Wartungsvereinbarungen je Anlage; **aus einer fälligen Wartung mit einem Griff eine Baustelle**; erledigt eintragen rückt den nächsten Termin nach; Hinweis auf der Startseite, wenn etwas ansteht | Lesen alle, ändern nur die Leitung | `wartungen`, `customers`, `projects` | Rechnung (40), Ansicht (13), Emulator (5), statischer Abgleich (Index, Export) | Die Baustelle entsteht mit Kunde, **Anlagen**adresse und Anlage in der Beschreibung; eingeteilt wird sie danach im Einsatzplan, den Termin vereinbart weiterhin ein Mensch am Telefon. Die Projektnummer ist ein **Vorschlag, kein Zähler** — Baustellennummern vergibt der Betrieb frei; gegen Doppelvergabe wird beim Speichern geprüft |
 | **Mitarbeiterübersicht** | Zeitkonten, Salden, Monats- und Mitarbeiterexport, Stundennachweis | Buchhaltung, GF, Admin (**nicht** Projektleitung) | `timeEntries`, `monthlyStats` | Rechnung (20), Ansicht (4) | Zusammenspiel Bilanz ↔ Rohdaten ungetestet |
 | **Nachkalkulation** | Erlös gegen Personal- **und Materialkosten** je Baustelle, Deckungsbeitrag | GF, Admin | `projects`, `timeEntries`, `invoices`, `quotes`, `workSheets`, `materials` | Rechnung (23), Ansicht (13) | Geprüft ist auch die Verdrahtung: es rechnet mit den KOSTEN-, nicht den Verrechnungssätzen — der Fehler, den keine Formelprüfung findet. Material zählt seit 07.09.2026 mit, soweit ein **Einkaufspreis** hinterlegt ist; Artikel ohne Preis werden **beim Namen genannt statt geschätzt**, und die Ampel bleibt so lange gelb |
 
@@ -83,16 +83,16 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1418 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1439 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | **Cloud Functions mit ersetztem Firestore** | **109** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang, Pflichtfelder) | **107** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | **Service Worker in einer Sandbox** | **20** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
-| Reine Rechnung (der Rest von `tests/unit`) | 535 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 447 | Findet Bedienfehler, **keine** Datenfehler |
-| *Zusammen `npm test`* | *1218* | |
+| Reine Rechnung (der Rest von `tests/unit`) | 551 | Hoch für die Formeln, **null** für die App |
+| Ansichten, Datenbank ersetzt | 452 | Findet Bedienfehler, **keine** Datenfehler |
+| *Zusammen `npm test`* | *1239* | |
 | Regeltests gegen den Emulator (`npm run rules:test`) | 200 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 
 > Die Tabelle ADDIERT SICH, und das ist Absicht: eine Aufschlüsselung, in der
