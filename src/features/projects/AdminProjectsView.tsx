@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router-dom';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Fragment, Suspense, lazy, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { subscribeRecentProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
@@ -21,6 +21,12 @@ import { InputField, SelectField, FormGrid } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+
+/*
+  Nachgeladen, nicht mitgeliefert. Die Übersicht braucht niemand beim Öffnen
+  der Liste — sie ist der zweite Klick auf genau eine Baustelle.
+*/
+const BaustellenUebersicht = lazy(() => import('./BaustellenUebersicht'));
 
 const empty = {
   projectNumber: '',
@@ -80,6 +86,8 @@ export default function AdminProjectsView() {
   const [managers, setManagers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
+  /** Welche Baustelle ihre Übersicht zeigt — höchstens eine. */
+  const [uebersicht, setUebersicht] = useState<string | null>(null);
   /**
    * Ein Tiefenlink auf eine Baustelle setzt Suche UND Filter.
    *
@@ -383,9 +391,17 @@ export default function AdminProjectsView() {
                 uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
               const team = namen(p.assignedEmployees ?? []);
               const leitung = namen(p.projectManagers ?? []);
+              const offen = uebersicht === p.id;
               return (
+                /*
+                  Die Übersicht steht als eigene Zeile UNTER der Baustelle,
+                  nicht in ihr. Eine Listenzeile trägt Titel, Nebenzeile und
+                  Aktionen; ein aufklappbarer Block gehört nicht hinein, und
+                  ein `<li>` neben dem anderen ist genau die Form, die die
+                  Liste ohnehin hat.
+                */
+                <Fragment key={p.id}>
                 <ListRow
-                  key={p.id}
                   title={
                     <span>
                       {p.customerName} <span className="tnum text-ink-muted">({p.projectNumber})</span>
@@ -427,11 +443,30 @@ export default function AdminProjectsView() {
                       Schein
                     </Link>
                   )}
+                  <Button
+                    variant="ghost"
+                    aria-expanded={offen}
+                    onClick={() => setUebersicht(offen ? null : p.id)}
+                  >
+                    {offen ? 'Übersicht zu' : 'Übersicht'}
+                  </Button>
                   <Button variant="ghost" onClick={() => startEdit(p)}>Bearbeiten</Button>
                   <IconButton label="Baustelle löschen" tone="danger" onClick={() => setToDelete(p)}>
                     ✕
                   </IconButton>
                 </ListRow>
+                {offen && user && (
+                  <li className="pb-4">
+                    <div className="rounded-lg border border-brand/40 bg-surface-2 px-4 py-3">
+                      <Suspense
+                        fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}
+                      >
+                        <BaustellenUebersicht companyId={user.companyId} projekt={p} />
+                      </Suspense>
+                    </div>
+                  </li>
+                )}
+                </Fragment>
               );
             })}
           </List>

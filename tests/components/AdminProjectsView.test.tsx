@@ -63,6 +63,30 @@ vi.mock('@/lib/db/users', () => ({
 }));
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => [KUNDE]) }));
 
+/*
+  Die Stunden der Übersicht. Sie hängen an einer eigenen Abfrage, und diese
+  Datei prüft nicht die Übersicht selbst (das tut
+  `BaustellenUebersicht.test.tsx`), sondern DASS sie überhaupt geöffnet wird —
+  und erst dann lädt.
+*/
+const listEntriesForProjects = vi.fn(async () => [
+  {
+    id: 'z1',
+    companyId: 'perl',
+    date: '2026-09-01',
+    status: 'Anwesend',
+    startTime: '07:00',
+    endTime: '15:00',
+    breakDuration: 0,
+    userId: 'u1',
+    userName: 'Max Mustermann',
+    projectNumber: '2026-001',
+  },
+]);
+vi.mock('@/lib/db/timeEntries', () => ({
+  listEntriesForProjects: () => listEntriesForProjects(),
+}));
+
 const authWert = {
   user: { uid: 'gf', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as const },
   company: { id: 'perl', name: 'Perl Installationen' },
@@ -195,5 +219,53 @@ describe('Baustellen — wenn etwas nicht lädt', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Die Belegschaft konnte nicht geladen werden.',
     );
+  });
+});
+
+/**
+ * DIE ÜBERSICHT JE BAUSTELLE.
+ *
+ * Sie beantwortet die Frage, die man beim Blick auf eine Baustelle
+ * tatsächlich hat — „wie steht DIESE Baustelle?" —, und zwar dort, wo man sie
+ * stellt. Bisher stand die Auswertung nur unter der Mitarbeiterübersicht, wo
+ * sie eine Monatsfrage über alle Baustellen beantwortet.
+ */
+describe('Baustellen — Übersicht je Baustelle', () => {
+  beforeEach(() => {
+    baustellen = [
+      {
+        id: 'p1',
+        companyId: 'perl',
+        projectNumber: '2026-001',
+        customerName: 'Familie Huber',
+        status: 'Aktiv',
+        estimatedHours: 40,
+      } as Project & { id: string },
+    ];
+    listEntriesForProjects.mockClear();
+  });
+
+  it('lädt die Stunden erst beim Aufklappen', async () => {
+    zeige();
+    await screen.findByText(/Familie Huber/);
+    /*
+      Der Punkt: zwanzig Baustellen im Voraus zu laden hiesse zwanzig
+      Abfragen für die eine, die jemanden interessiert.
+    */
+    expect(listEntriesForProjects).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Übersicht' }));
+    await waitFor(() => expect(listEntriesForProjects).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Fachzeit')).toBeInTheDocument();
+  });
+
+  it('klappt wieder zu', async () => {
+    zeige();
+    await screen.findByText(/Familie Huber/);
+    await userEvent.click(screen.getByRole('button', { name: 'Übersicht' }));
+    await screen.findByText('Fachzeit');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Übersicht zu' }));
+    await waitFor(() => expect(screen.queryByText('Fachzeit')).not.toBeInTheDocument());
   });
 });

@@ -191,3 +191,84 @@ describe('Projektauswertung — Marker am Eintrag', () => {
     expect(screen.queryByText('Helfer')).not.toBeInTheDocument();
   });
 });
+
+/**
+ * WIE LAUT DIE ANSICHT IST.
+ *
+ * Aus dem Betrieb: „beim Aufklappen ist der blaue Kopfbereich mit den ganzen
+ * anderen Farben der Badges zu bunt — das sollte wie bei den Mitarbeitern
+ * aussehen." In der Mitarbeiterübersicht war derselbe blaue Block schon
+ * zurückgenommen; hier war er stehengeblieben.
+ *
+ * Ohne diesen Test kommt beides beim nächsten Umbau still zurück: eine Farbe
+ * mehr sieht in einer einzelnen Zeile immer gut aus. Auffallen tut es erst
+ * bei zwanzig.
+ */
+describe('Der Kopf einer Baustelle bleibt ruhig', () => {
+  const helferEintrag = eintrag({ id: 'h', isHelper: true } as Partial<TimeEntry>);
+
+  it('färbt sich beim Aufklappen nicht blau ein', async () => {
+    render(
+      <ProjectSummary
+        entries={[eintrag({ id: 'a' } as Partial<TimeEntry>)]}
+        projects={[projekt]}
+        gesamtEntries={[]}
+        label="September 2026"
+      />,
+    );
+    const kopf = screen.getByRole('button', { name: /Max Musterkunde/ });
+    await aufklappen();
+
+    expect(kopf.getAttribute('aria-expanded')).toBe('true');
+    /*
+      `bg-brand` ist der blaue Block, `text-brand-fg` die zweite Farbfassung,
+      die jede Zahl darin gebraucht hätte. Geprüft wird der aufgeklappte
+      Zustand — zugeklappt war der Kopf nie blau.
+    */
+    expect(kopf.className).not.toContain('bg-brand');
+    expect(kopf.className).not.toContain('text-brand-fg');
+  });
+
+  it('macht aus Helferstunden keine Pille', async () => {
+    render(
+      <ProjectSummary
+        entries={[helferEintrag]}
+        projects={[projekt]}
+        gesamtEntries={[]}
+        label="September 2026"
+      />,
+    );
+
+    /*
+      Die Angabe bleibt — sie ist eine Zahl, die man braucht. Was weg ist, ist
+      der gelbe Grund: Helferstunden sind auf vielen Baustellen der Normalfall,
+      und als Warnfarbe neben jeder zweiten Zeile nehmen sie der einen
+      Baustelle die Aufmerksamkeit, die wirklich über dem Budget liegt.
+    */
+    const angabe = screen.getAllByText(/h Helfer$/)[0];
+    expect(angabe).toBeInTheDocument();
+    expect(angabe.className).not.toContain('bg-warning-bg');
+    expect(angabe.className).not.toContain('rounded-pill');
+  });
+
+  it('lässt „über Budget" sehr wohl als Pille stehen', async () => {
+    /*
+      Die Ausnahme darf schreien. 45 Stunden auf ein Budget von 40 sind der
+      eine Fall, für den die Farbe da ist.
+    */
+    const viele = Array.from({ length: 5 }, (_, i) =>
+      eintrag({ id: `v${i}`, date: `2026-09-0${i + 1}` } as Partial<TimeEntry>),
+    );
+    render(
+      <ProjectSummary
+        entries={viele}
+        projects={[projekt]}
+        gesamtEntries={viele}
+        label="September 2026"
+      />,
+    );
+
+    const pille = screen.getByText('über Budget');
+    expect(pille.className).toContain('rounded-pill');
+  });
+});

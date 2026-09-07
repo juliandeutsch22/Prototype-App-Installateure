@@ -128,25 +128,33 @@ export default function ProjectSummary({
           );
 
           return (
-            <div key={r.projectNumber} className="overflow-hidden rounded-lg border border-line">
+            /*
+              KEIN BLAUER BLOCK BEIM AUFKLAPPEN — dieselbe Entscheidung wie in
+              der Mitarbeiterübersicht, hier war sie stehengeblieben. Der
+              farbige Kopf schrie lauter als der Inhalt, den er ankündigte,
+              und zwang zugleich jede Zahl darin in eine zweite Farbfassung.
+              Jetzt genügt der hellere Grund und die farbige Kante.
+            */
+            <div
+              key={r.projectNumber}
+              className={`overflow-hidden rounded-lg border transition-colors ${
+                isOpen ? 'border-brand/40' : 'border-line'
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : r.projectNumber)}
                 aria-expanded={isOpen}
                 className={`w-full px-4 py-3 text-left transition-colors ${
-                  isOpen ? 'bg-brand text-brand-fg' : 'bg-surface-2 hover:bg-line/40'
+                  isOpen ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="min-w-0">
-                    <span className={`block font-bold ${isOpen ? 'text-brand-fg' : 'text-ink'}`}>
+                    <span className="block font-bold text-ink">
                       {r.project?.customerName ?? r.projectNumber}
                     </span>
-                    <span
-                      className={`block tnum text-sm ${isOpen ? 'text-brand-fg/80' : 'text-ink-muted'}`}
-                    >
-                      {r.projectNumber}
-                    </span>
+                    <span className="block tnum text-sm text-ink-muted">{r.projectNumber}</span>
                   </span>
                   <span className="flex items-center gap-2">
                     {/*
@@ -155,11 +163,21 @@ export default function ProjectSummary({
                       die ganze Baustelle, also zwei Zahlen, die nichts
                       miteinander zu tun haben.
                     */}
-                    <span className={`tnum text-sm ${isOpen ? 'text-brand-fg' : 'text-ink'}`}>
-                      {h(r.fachMin)} h
-                    </span>
+                    <span className="tnum text-sm text-ink">{h(r.fachMin)} h</span>
+                    {/*
+                      NUR DIE AUSNAHME BEKOMMT EINE PILLE. „Über Budget" ist
+                      eine — Helferstunden sind es nicht, sie sind auf vielen
+                      Baustellen der Normalfall. Als gelbe Pille standen sie
+                      neben jeder zweiten Zeile und machten aus einer Angabe
+                      ein Warnsignal; die eine Baustelle, die wirklich über
+                      dem Budget liegt, ging darin unter.
+                    */}
                     {r.budget?.over && <Badge tone="danger">über Budget</Badge>}
-                    {r.helperMin > 0 && <Badge tone="warning">+{h(r.helperMin)} h Helfer</Badge>}
+                    {r.helperMin > 0 && (
+                      <span className="tnum text-sm text-ink-muted">
+                        +{h(r.helperMin)} h Helfer
+                      </span>
+                    )}
                     <Icon
                       name="chevron"
                       size={18}
@@ -180,9 +198,7 @@ export default function ProjectSummary({
                 */}
                 {r.budget && r.budget.pct !== null && r.gesamtFachMin !== null ? (
                   <>
-                    <p
-                      className={`mt-2 text-xs ${isOpen ? 'text-brand-fg/80' : 'text-ink-muted'}`}
-                    >
+                    <p className="mt-2 text-xs text-ink-muted">
                       <span className="tnum">{h(r.fachMin)} h</span> in {label} · gesamt{' '}
                       <span className="tnum font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
                       <span className="tnum">{r.project?.estimatedHours} h</span>
@@ -196,11 +212,7 @@ export default function ProjectSummary({
                       </span>
                       <span
                         className={`shrink-0 text-xs font-semibold ${
-                          r.budget.over
-                            ? 'text-accent'
-                            : isOpen
-                              ? 'text-brand-fg/80'
-                              : 'text-ink-muted'
+                          r.budget.over ? 'text-accent' : 'text-ink-muted'
                         }`}
                       >
                         {r.budget.pct} %
@@ -208,9 +220,7 @@ export default function ProjectSummary({
                     </div>
                   </>
                 ) : (
-                  <p
-                    className={`mt-1 text-xs ${isOpen ? 'text-brand-fg/70' : 'text-ink-muted'}`}
-                  >
+                  <p className="mt-1 text-xs text-ink-muted">
                     {r.gesamtFachMin === null
                       ? 'Die Gesamtstunden der Baustelle konnten nicht geladen werden — ohne sie gibt es keinen Budgetstand.'
                       : 'Kein Stundenbudget hinterlegt.'}
@@ -227,9 +237,9 @@ export default function ProjectSummary({
                         className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1 text-xs"
                       >
                         <span className="font-semibold text-ink">{p.name}</span>
-                        <span className="text-ink-muted">{h(p.fachMin)} h</span>
+                        <span className="tnum text-ink-muted">{h(p.fachMin)} h</span>
                         {p.helperMin > 0 && (
-                          <Badge tone="warning">+{h(p.helperMin)} h Helfer</Badge>
+                          <span className="tnum text-ink-muted">+{h(p.helperMin)} h Helfer</span>
                         )}
                       </span>
                     ))}
