@@ -54,7 +54,11 @@ describe('Unterreiter', () => {
   });
 
   it('wechselt ueber die Leiste', async () => {
-    rolle = 'Geschäftsführung';
+    // Administration, nicht Geschäftsführung: die Module stehen seit dem
+    // 07.09.2026 allein der Administration offen. Geprüft wird hier der
+    // MECHANISMUS der Leiste — die Grenze selbst steht in
+    // `navigation-routen.test.ts` und in den Rules.
+    rolle = 'Administrator';
     zeige('/settings');
     await userEvent.click(await screen.findByRole('link', { name: 'Module' }));
     expect(await screen.findByText('Module-Inhalt')).toBeInTheDocument();
@@ -100,7 +104,8 @@ describe('Unterreiter', () => {
      * kommentarlos auf die Startseite zurück. Die Prüfungen darüber
      * benutzen nur zwei Ebenen und würden das nicht bemerken.
      */
-    rolle = 'Geschäftsführung';
+    // Siehe oben: die Modulseite gehört der Administration.
+    rolle = 'Administrator';
     render(
       <MemoryRouter initialEntries={['/settings/module']}>
         <Routes>

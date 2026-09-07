@@ -53,7 +53,6 @@ async function main() {
       brandForeground: BRAND_FG,
       accentColor: ACCENT_COLOR,
       accentForeground: ACCENT_FG,
-      defaultVatRate: 0.2,
       createdAt: FieldValue.serverTimestamp(),
     },
     { merge: true },

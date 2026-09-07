@@ -280,6 +280,57 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     expect(screen.getByDisplayValue('8.5')).toBeInTheDocument();
   });
 
+  it('lässt seinen PREIS von Hand überschreiben', async () => {
+    /*
+      Ausdrücklich aus dem Betrieb: „für manche Materialien sind keine
+      Standardpreise vorhanden." Das gilt nicht nur für die Lücke — auch ein
+      gepflegter Katalogpreis stimmt nicht immer: ein Sonderrabatt vom
+      Grosshandel, ein Kulanzpreis, ein Artikel, der teurer geworden ist,
+      seit ihn jemand eingetragen hat.
+
+      Der Katalog liefert einen VORSCHLAG. Was beim Kunden landet, entscheidet
+      das Büro in dieser Zeile.
+    */
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    await bisZurVorschau();
+    await screen.findByDisplayValue('Eckventil 1/2 Zoll');
+
+    const preis = screen.getByLabelText(/Einzelpreis Position 2/);
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '12.5');
+
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+
+    const positionen = lege.mock.calls[0][0].positions as Array<{
+      label: string;
+      unitPrice: number;
+      netto: number;
+    }>;
+    const material = positionen.find((x) => x.label === 'Eckventil 1/2 Zoll');
+    // 2 Stück zu 12,50 € — nicht der Katalogpreis von 8,50 €.
+    expect(material).toMatchObject({ unitPrice: 12.5, netto: 25 });
+  });
+
+  it('lässt auch die MENGE ändern', async () => {
+    // Der Schein sagt, was mitgenommen wurde; verbaut wird gelegentlich
+    // weniger, und der Rest fährt zurück ins Lager.
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    await bisZurVorschau();
+    await screen.findByDisplayValue('Eckventil 1/2 Zoll');
+
+    const menge = screen.getByLabelText(/Menge Position 2/);
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '1');
+
+    await userEvent.click(screen.getByRole('button', { name: /Rechnung erstellen/ }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const positionen = lege.mock.calls[0][0].positions as Array<{ label: string; netto: number }>;
+    expect(positionen.find((x) => x.label === 'Eckventil 1/2 Zoll')).toMatchObject({ netto: 8.5 });
+  });
+
   it('lässt sich entfernen — und die Summe zieht nach', async () => {
     scheine = [SCHEIN];
     katalog = KATALOG;

@@ -49,7 +49,6 @@ async function seedCompany({ companyId, name, brandColor, accentColor, projects 
     brandForeground: '#ffffff',
     accentColor: accentColor ?? '#d51f26',
     accentForeground: '#ffffff',
-    defaultVatRate: 0.2,
     createdAt: FieldValue.serverTimestamp(),
   });
   for (const p of projects) {

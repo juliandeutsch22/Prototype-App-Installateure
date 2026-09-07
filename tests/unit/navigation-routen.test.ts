@@ -169,7 +169,7 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       // Was auf den Belegen steht — Briefkopf, Logo, UID, Bankverbindung.
       'firma',
       'saetze',
-      'module',
+      // „module" steht hier NICHT: siehe der eigene Fall weiter unten.
       'sicherung',
     ]);
     // Auch die Projektleitung nicht: die Sicherung enthaelt Zeitkonten und
@@ -177,6 +177,23 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
     expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual([
       'meldungen',
     ]);
+  });
+
+  it('gibt die MODULE allein der Administration', () => {
+    /*
+      Enger als der Rest der Einstellungen, und aus einem anderen Grund als
+      dort: Sätze und Briefkopf ändert die Geschäftsführung im Tagesgeschäft.
+      Ein abgeschaltetes Modul nimmt dagegen ALLEN den Weg zu ihrer Arbeit, und
+      zwar unsichtbar — der Reiter ist einfach weg, und niemand weiss, warum.
+      Das ist Einrichtung, keine Führung.
+
+      Die Oberfläche allein wäre keine Grenze; dieselbe steht in
+      `firestore.rules` und ist dort gegen den Emulator geprüft.
+    */
+    expect(unterseitenFuer('/settings', 'Administrator').map((s) => s.pfad)).toContain('module');
+    for (const rolle of ['Geschäftsführung', 'Projektleiter', 'Buchhaltung', 'Verwaltung', 'Mitarbeiter'] as const) {
+      expect(unterseitenFuer('/settings', rolle).map((s) => s.pfad)).not.toContain('module');
+    }
   });
 
   it('gibt der Projektleitung die Saetze und die Module NICHT', () => {
