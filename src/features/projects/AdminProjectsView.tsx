@@ -17,7 +17,7 @@ import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid, Pflichthinweis } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
@@ -243,7 +243,7 @@ export default function AdminProjectsView() {
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
             <InputField id="pnr" label="Projektnummer" value={form.projectNumber}
-              onChange={(e) => setForm({ ...form, projectNumber: e.target.value })} required />
+              onChange={(e) => setForm({ ...form, projectNumber: e.target.value })} required pflicht />
             {/*
               Kunde AUSWÄHLEN statt tippen.
               Vorher war das ein freies Textfeld, und zwei Schreibweisen
@@ -265,6 +265,7 @@ export default function AdminProjectsView() {
                 });
               }}
               required
+              pflicht
             >
               <option value="">— wählen —</option>
               {kunden.map((k) => (
@@ -345,6 +346,7 @@ export default function AdminProjectsView() {
               niemanden. Die Verwaltung wird weiterhin verständigt.
             </p>
           )}
+          <Pflichthinweis />
           {error && <ErrorState message={error} />}
           <div className="flex gap-3">
             <Button type="submit" loading={saving}>{editId ? 'Speichern' : 'Anlegen'}</Button>

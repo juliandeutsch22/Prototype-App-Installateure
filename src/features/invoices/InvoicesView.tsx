@@ -1041,6 +1041,7 @@ export default function InvoicesView() {
                     value={kundenUid}
                     onChange={(e) => setKundenUid(e.target.value)}
                     required
+                    pflicht
                   />
                   {kundenUid.trim() && !sichtAusWieUid(kundenUid) && (
                     <p className="text-sm text-warning">

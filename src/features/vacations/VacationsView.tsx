@@ -18,7 +18,7 @@ import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, FormGrid } from '@/components/Field';
+import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
@@ -330,6 +330,7 @@ export default function VacationsView() {
                 if (bis < e.target.value) setBis(e.target.value);
               }}
               required
+              pflicht
             />
             <InputField
               id="ubis"
@@ -339,6 +340,7 @@ export default function VacationsView() {
               min={von}
               onChange={(e) => setBis(e.target.value)}
               required
+              pflicht
             />
           </FormGrid>
           <InputField
@@ -369,6 +371,8 @@ export default function VacationsView() {
               <span className="tnum">{anspruch}</span> Tagen.
             </span>
           </div>
+
+          <Pflichthinweis />
 
           <Button type="submit" loading={sendet} disabled={tage.length === 0}>
             Antrag einreichen
