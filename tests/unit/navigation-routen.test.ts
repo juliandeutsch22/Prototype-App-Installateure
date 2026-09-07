@@ -49,6 +49,37 @@ const ROUTEN_PFADE = [...APP.matchAll(/<Route\s+path="([^"]+)"/g)]
 /** Alle Pfade, die per `RequireNav path="…"` bewacht werden. */
 const BEWACHT = [...APP.matchAll(/<RequireNav path="([^"]+)"/g)].map((m) => m[1]);
 
+/**
+ * Route und ihr EIGENER Wächter, als Paar.
+ *
+ * Vorher wurden beide Listen getrennt gesammelt und nur gefragt, ob ein Pfad
+ * irgendwo als bewacht auftaucht. Das genügte, solange jede Route ihren
+ * Wächter unter demselben Pfad trug. Eine Unterseite wie `/customers/:id`
+ * bricht das: sie wird von `RequireNav path="/customers"` bewacht — richtig,
+ * denn wer die Liste sehen darf, darf auch die Akte, und eine zweite
+ * Rollenangabe wäre eine zweite Wahrheit über dieselbe Frage.
+ *
+ * Die Paarbildung ist zugleich strenger als die alte Prüfung: sie merkt, wenn
+ * eine Route den Wächter einer ANDEREN trägt.
+ */
+const PAARE = APP.split('<Route')
+  .slice(1)
+  .map((block) => {
+    const pfad = /^\s+path="([^"]+)"/.exec(block)?.[1] ?? /\s+path="([^"]+)"/.exec(block)?.[1];
+    const waechter = /<RequireNav path="([^"]+)"/.exec(block)?.[1];
+    return { pfad: pfad?.replace(/\/\*$/, ''), waechter };
+  })
+  .filter((x): x is { pfad: string; waechter: string | undefined } => !!x.pfad);
+
+/** Bewacht die Route sich selbst — oder ihre Elternseite? */
+function bewacht(pfad: string): boolean {
+  const paar = PAARE.find((x) => x.pfad === pfad);
+  if (!paar?.waechter) return false;
+  if (paar.waechter === pfad) return true;
+  // `/customers/:id` unter `/customers`: die Unterseite erbt die Entscheidung.
+  return pfad.startsWith(`${paar.waechter}/`);
+}
+
 /** Alte Adressen, die nur noch auf ihr neues Ziel umleiten. */
 const UMLEITUNGEN = [
   ...APP.matchAll(/<Route path="([^"]+)" element=\{<Navigate to="([^"]+)"/g),
@@ -108,7 +139,7 @@ describe('Navigation und Routen sagen dasselbe', () => {
      */
     const umgeleitet = UMLEITUNGEN.map((u) => u.von);
     const ungeschuetzt = ROUTEN_PFADE.filter(
-      (p) => !BEWACHT.includes(p) && !(p in OHNE_REITER) && !umgeleitet.includes(p),
+      (p) => !bewacht(p) && !(p in OHNE_REITER) && !umgeleitet.includes(p),
     );
     expect(ungeschuetzt).toEqual([]);
   });

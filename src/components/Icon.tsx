@@ -17,6 +17,7 @@ export type IconName =
   | 'settings'
   | 'bell'
   | 'phone'
+  | 'mail'
   | 'pin';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
@@ -42,6 +43,7 @@ const paths: Record<IconName, string> = {
   // macht — anrufen und hinfahren.
   phone:
     'M6.5 3h3l1.5 4-2 1.5a12 12 0 0 0 6.5 6.5L17 13l4 1.5v3a2 2 0 0 1-2.2 2A17 17 0 0 1 4.5 5.2 2 2 0 0 1 6.5 3Z',
+  mail: 'M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Zm0 .5 9 6 9-6',
   pin: 'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11ZM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
