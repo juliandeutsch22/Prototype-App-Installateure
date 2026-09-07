@@ -6,7 +6,10 @@ import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { subscribeRecentInvoices } from '@/lib/db/invoices';
 import { listRecentQuotes } from '@/lib/db/quotes';
 import { rechneBaustelle, margenTon, type Nachkalkulation } from './nachkalkulation';
-import type { Invoice, Project, Quote } from '@/types';
+import { materialkosten, KEINE_MATERIALKOSTEN } from './materialkosten';
+import { listWorkSheetsForProject } from '@/lib/db/workSheets';
+import { listMaterials } from '@/lib/db/materials';
+import type { Invoice, Material, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Badge from '@/components/Badge';
@@ -42,6 +45,12 @@ export default function NachkalkulationView() {
   const [projekte, setProjekte] = useState<WithId<Project>[]>([]);
   const [rechnungen, setRechnungen] = useState<WithId<Invoice>[]>([]);
   const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
+  /*
+    Der Materialstamm, einmal geladen: er trägt die Einkaufspreise. Ohne ihn
+    stünde jede Baustelle als „Material ohne Preis" da — und das wäre eine
+    Aussage über den Katalog, nicht über die Baustelle.
+  */
+  const [katalog, setKatalog] = useState<Material[]>([]);
   const [ergebnisse, setErgebnisse] = useState<Nachkalkulation[] | null>(null);
   const [status, setStatus] = useState<'Aktiv' | 'Abgeschlossen'>('Abgeschlossen');
   const [loading, setLoading] = useState(true);
@@ -52,10 +61,15 @@ export default function NachkalkulationView() {
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    Promise.all([listRecentProjects(user.companyId, 300), listRecentQuotes(user.companyId)])
-      .then(([p, q]) => {
+    Promise.all([
+      listRecentProjects(user.companyId, 300),
+      listRecentQuotes(user.companyId),
+      listMaterials(user.companyId),
+    ])
+      .then(([p, q, m]) => {
         setProjekte(p);
         setAngebote(q);
+        setKatalog(m);
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
@@ -87,24 +101,47 @@ export default function NachkalkulationView() {
       return;
     }
     let verworfen = false;
-    listEntriesForProjects(
-      user.companyId,
-      gefiltert.map((p) => p.projectNumber),
-    )
-      .then((eintraege) => {
+    const companyId = user.companyId;
+    /*
+      Die Scheine je Baustelle EINZELN — dieselbe Obergrenze wie oben schützt
+      auch hier: höchstens 25 Baustellen, also höchstens 25 Abfragen. Ohne die
+      Grenze liefe bei einem alten Betrieb genau die Art Abfrage, gegen die
+      die Wachstumsbremse gebaut wurde.
+    */
+    Promise.all([
+      listEntriesForProjects(
+        companyId,
+        gefiltert.map((p) => p.projectNumber),
+      ),
+      Promise.all(
+        gefiltert.map((p) =>
+          listWorkSheetsForProject(companyId, p.projectNumber).catch(() => null),
+        ),
+      ),
+    ])
+      .then(([eintraege, scheineJeBaustelle]) => {
         if (verworfen) return;
         setErgebnisse(
           gefiltert
-            .map((p) =>
-              rechneBaustelle(
+            .map((p, i) => {
+              const scheine = scheineJeBaustelle[i];
+              /*
+                Konnten die Scheine nicht geladen werden, wird KEIN Material
+                angesetzt — und die Lücke bleibt sichtbar, weil auch keine
+                Artikel gemeldet werden. Eine Null wäre hier dasselbe wie
+                „kein Material verbaut", und das ist eine andere Aussage.
+              */
+              const material = scheine ? materialkosten(scheine, katalog) : KEINE_MATERIALKOSTEN;
+              return rechneBaustelle(
                 p.projectNumber,
                 p.customerName,
                 eintraege,
                 rechnungen,
                 angebote.find((q) => q.projectNumber === p.projectNumber),
                 kosten,
-              ),
-            )
+                material,
+              );
+            })
             // Die schlechtesten oben: eine Auswertung ist eine Arbeitsliste.
             .sort((a, b) => (a.margeProzent ?? 999) - (b.margeProzent ?? 999)),
         );
@@ -115,7 +152,7 @@ export default function NachkalkulationView() {
     };
     // Am Inhalt haengen, nicht an der Array-Identitaet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, nummern, rechnungen, angebote, kosten?.fach, kosten?.helper]);
+  }, [user, nummern, rechnungen, angebote, katalog, kosten?.fach, kosten?.helper]);
 
   if (!user) return null;
 
@@ -206,9 +243,23 @@ export default function NachkalkulationView() {
                       subtitle={
                         <>
                           <span className="tnum block">
-                            Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)} ={' '}
+                            Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)}
+                            {/*
+                              Material steht nur da, wenn welches bekannt ist.
+                              Ein „− 0,00 €" läse sich wie „kein Material
+                              verbaut" und wäre bei fehlenden Einkaufspreisen
+                              genau die falsche Auskunft.
+                            */}
+                            {k.materialkosten > 0 && <> − Material {fmtEUR(k.materialkosten)}</>} ={' '}
                             <strong>{fmtEUR(k.deckungsbeitrag)}</strong>
                           </span>
+                          {k.materialLuecken.length > 0 && (
+                            <span className="mt-1 block text-xs text-warning">
+                              Ohne Einkaufspreis, deshalb nicht eingerechnet:{' '}
+                              {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um diesen
+                              Betrag zu hoch.
+                            </span>
+                          )}
                           <span className="mt-1 block text-xs text-ink-muted">
                             {k.fachStunden} h Facharbeit
                             {k.helferStunden > 0 ? `, ${k.helferStunden} h Helfer` : ''}
@@ -243,10 +294,12 @@ export default function NachkalkulationView() {
                     zweiten Blick bekannt; das steht jetzt im „i".
                   */}
                   <InfoHint about="Deckungsbeitrag">
-                    Materialkosten sind nicht enthalten — die Materialanforderung trägt in dieser
-                    App bewusst keinen Preis. Ebenso wenig Gemeinkosten, soweit sie nicht schon im
-                    Kostensatz stecken. Eine Baustelle mit dünnem Deckungsbeitrag ist damit im
-                    Ergebnis vermutlich negativ.
+                    Material zählt mit, soweit im Materialstamm ein <strong>Einkaufspreis</strong>
+                    {' '}hinterlegt ist — gezählt wird, was auf den unterschriebenen
+                    Handwerksscheinen steht. Artikel ohne Preis werden beim Namen genannt und
+                    nicht geschätzt; solange dort etwas steht, ist der Deckungsbeitrag zu hoch.
+                    Nicht enthalten sind Gemeinkosten, soweit sie nicht schon im Stundenkostensatz
+                    stecken.
                   </InfoHint>
                 </div>
               </>

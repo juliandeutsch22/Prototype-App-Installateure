@@ -40,7 +40,7 @@ unterscheidet drei Stufen:
 | **Angebote** | Positionen kalkulieren, Arbeitszeit getrennt ausweisen, beim Annehmen Baustelle mit Stundenbudget anlegen | Buchhaltung, Leitung | `quotes`, `projects`, `counters` | Ansicht (3), Emulator (Zähler: steigend, Neubeginn nur zum Jahreswechsel) | — |
 | **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget; **Übersicht je Baustelle** (Stunden über die ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter) | Leitung | `projects`, `timeEntries` | Ansicht (8), Übersicht (8) | Der Kundenname kommt aus dem Stammsatz; leeres Stundenbudget bleibt leer statt 0. Die Übersicht zeigt **kein Geld** — Erlös und Marge bleiben in der Nachkalkulation |
 | **Anforderungen** | Eingehende Materialanforderungen bearbeiten, Status setzen | Verwaltung, Leitung | `materialOrders` | Rechnung (Meldungen), Ansicht (14) | — |
-| **Lager** | Bestand, Mindestmenge, Katalogpflege | Verwaltung, Leitung | `materials` | Emulator (3: wer pflegen darf), Ansicht (12) | Bestandsabzug per Transaktion ungetestet |
+| **Lager** | Bestand, Mindestmenge, Katalogpflege mit Verkaufs- und **Einkaufspreis** | Verwaltung, Leitung; **Einkaufspreis nur GF/Admin** | `materials` | Emulator (15: wer pflegen darf, wer den Einkaufspreis setzt), Ansicht (12 + 5 Katalog) | Bestandsabzug per Transaktion ungetestet. Die Grenze beim Einkaufspreis läuft zwischen den FELDERN, nicht zwischen den Ansichten — sie schützt das Ändern, **nicht das Lesen**: Firestore gibt ein Dokument ganz oder gar nicht heraus |
 | **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | Emulator (4: wer planen darf), Ansicht (8) | Geprüft ist auch der gefährliche Teil: eine vorhandene Planung kommt ins Formular, statt beim Speichern gelöscht zu werden |
 | **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie), Ansicht (18) | — |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8), Ansicht (6) | — |
@@ -54,7 +54,7 @@ unterscheidet drei Stufen:
 | **Rechnungen** | Aus Baustelle zusammenstellen — Stunden UND Material aus den unterschriebenen Handwerksscheinen —, Leistungszeitraum, Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG), Nummernkreis, Status, **Mahnwesen in drei Stufen**, PDF, Buchhaltungs-Export mit Lückenprüfung. **Gelöscht wird keine Rechnung** — die Korrektur ist der Storno | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries`, `workSheets`, `materials` | Rechnung (110), Emulator (Zähler, Löschen nur beim Storno), Ansicht (30), Beleg (20) | Geprüft ist die Reihenfolge — Nummer ziehen, Belege sperren, dann anlegen. Material ohne Preis im Katalog steht mit 0,00 € da und wird ausgewiesen: eine erfundene Zahl wäre schlimmer als eine sichtbare Lücke |
 | **Wartungen** | Wiederkehrende Wartungsvereinbarungen je Anlage; erledigt eintragen rückt den nächsten Termin nach; Hinweis auf der Startseite, wenn etwas ansteht | Lesen alle, ändern nur die Leitung | `wartungen`, `customers` | Rechnung (24), Ansicht (15), Emulator (5), statischer Abgleich (Index, Export) | Kein automatischer Einsatz aus der fälligen Wartung — den Termin vereinbart weiterhin ein Mensch am Telefon |
 | **Mitarbeiterübersicht** | Zeitkonten, Salden, Monats- und Mitarbeiterexport, Stundennachweis | Buchhaltung, GF, Admin (**nicht** Projektleitung) | `timeEntries`, `monthlyStats` | Rechnung (20), Ansicht (4) | Zusammenspiel Bilanz ↔ Rohdaten ungetestet |
-| **Nachkalkulation** | Erlös gegen Personalkosten je Baustelle, Deckungsbeitrag | GF, Admin | `projects`, `timeEntries`, `invoices`, `quotes` | Rechnung (9), Ansicht (9) | Geprüft ist auch die Verdrahtung: es rechnet mit den KOSTEN-, nicht den Verrechnungssätzen — der Fehler, den keine Formelprüfung findet |
+| **Nachkalkulation** | Erlös gegen Personal- **und Materialkosten** je Baustelle, Deckungsbeitrag | GF, Admin | `projects`, `timeEntries`, `invoices`, `quotes`, `workSheets`, `materials` | Rechnung (23), Ansicht (13) | Geprüft ist auch die Verdrahtung: es rechnet mit den KOSTEN-, nicht den Verrechnungssätzen — der Fehler, den keine Formelprüfung findet. Material zählt seit 07.09.2026 mit, soweit ein **Einkaufspreis** hinterlegt ist; Artikel ohne Preis werden **beim Namen genannt statt geschätzt**, und die Ampel bleibt so lange gelb |
 
 ## Grundlagen
 
@@ -83,16 +83,22 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1195 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1418 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
-| Regeltests gegen den Emulator | 194 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
-| **Cloud Functions mit ersetztem Firestore** | **102** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
+| **Cloud Functions mit ersetztem Firestore** | **109** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang, Pflichtfelder) | **107** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
-| Reine Rechnung | 332 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 333 | Findet Bedienfehler, **keine** Datenfehler |
-| **Service Worker in einer Sandbox** | **12** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
+| **Service Worker in einer Sandbox** | **20** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
+| Reine Rechnung (der Rest von `tests/unit`) | 535 | Hoch für die Formeln, **null** für die App |
+| Ansichten, Datenbank ersetzt | 447 | Findet Bedienfehler, **keine** Datenfehler |
+| *Zusammen `npm test`* | *1218* | |
+| Regeltests gegen den Emulator (`npm run rules:test`) | 200 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+
+> Die Tabelle ADDIERT SICH, und das ist Absicht: eine Aufschlüsselung, in der
+> Zeilen fehlen, liest sich wie eine vollständige und ist keine. Die
+> Emulatorläufe stehen getrennt, weil sie einen laufenden Emulator brauchen
+> und deshalb nicht im selben Befehl stecken.
 
 **Zu den Function-Tests, weil „ersetzter Firestore" nach Nachbau klingt.**
 Getestet wird der unveränderte Handler; untergeschoben ist nur, was ihn

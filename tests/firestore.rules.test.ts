@@ -1403,7 +1403,7 @@ describe('Materialstamm — Bestand bewegt jeder, gepflegt wird er von der Verwa
   });
 
   it('der Monteur ändert den Preis NICHT', async () => {
-    // Der Einkaufspreis geht in jede Nachkalkulation und in jedes Angebot ein.
+    // Der Preis geht in jede Rechnung und in jedes Angebot ein.
     await seedMaterial();
     await assertFails(
       updateDoc(doc(ctxA_employee().firestore(), 'materials', 'mA'), { price: 0.01 }),
@@ -1443,6 +1443,93 @@ describe('Materialstamm — Bestand bewegt jeder, gepflegt wird er von der Verwa
     const db = ctxA_verw().firestore();
     await assertSucceeds(updateDoc(doc(db, 'materials', 'mA'), { stock: 7 }));
     await assertSucceeds(updateDoc(doc(db, 'materials', 'mA'), { name: 'Kupferrohr 18mm', price: 5 }));
+  });
+
+  /*
+    DER EINKAUFSPREIS IST DIE AUSNAHME IN DIESER AUSNAHME.
+
+    Den Katalog pflegt die Verwaltung — alles ausser diesem einen Feld. Was
+    der Betrieb im EINKAUF zahlt, ist die Kostenseite der Nachkalkulation und
+    damit Margendaten; die sieht nicht einmal die Projektleitung. Die Grenze
+    läuft also ein zweites Mal zwischen den FELDERN, diesmal quer durch eine
+    Rolle, die sonst alles darf.
+
+    WAS SIE NICHT KANN, und das gehört gesagt: das LESEN verhindern. Firestore
+    gibt ein Dokument ganz oder gar nicht heraus, und den Katalog muss jeder
+    im Betrieb lesen dürfen — der Monteur fordert daraus an. Wer direkt
+    abfragt, sieht das Feld. Geschützt ist das Ändern.
+  */
+  it('die Verwaltung setzt den Einkaufspreis NICHT', async () => {
+    await seedMaterial();
+    await assertFails(
+      updateDoc(doc(ctxA_verw().firestore(), 'materials', 'mA'), { einkaufspreis: 2.1 }),
+    );
+  });
+
+  it('die Verwaltung schmuggelt ihn auch nicht neben der Bezeichnung mit', async () => {
+    // Dieselbe Stelle, an der Feldgrenzen brechen: erlaubt ist „Katalog
+    // pflegen", und darunter geht dann alles Übrige gleich mit durch.
+    await seedMaterial();
+    await assertFails(
+      updateDoc(doc(ctxA_verw().firestore(), 'materials', 'mA'), {
+        name: 'Kupferrohr 18mm', einkaufspreis: 2.1,
+      }),
+    );
+  });
+
+  it('die Verwaltung legt auch kein neues Material MIT Einkaufspreis an', async () => {
+    // Beim Anlegen gibt es kein Vorher, gegen das sich diffen liesse — die
+    // Regel muss dort auf das blosse Vorhandensein des Feldes schauen.
+    await assertFails(
+      setDoc(doc(ctxA_verw().firestore(), 'materials', 'm-ek'), {
+        companyId: 'companyA', name: 'Eckventil', stock: 1, einkaufspreis: 3.5,
+      }),
+    );
+  });
+
+  it('die Projektleitung ebenfalls nicht — sie sieht keine Marge', async () => {
+    await seedMaterial();
+    const db = ctxA_pl().firestore();
+    await assertFails(updateDoc(doc(db, 'materials', 'mA'), { einkaufspreis: 2.1 }));
+    // Auch nicht auf dem Umweg über einen neuen Artikel: die Projektleitung
+    // darf Material anlegen, nur eben ohne dieses Feld.
+    await assertFails(
+      setDoc(doc(db, 'materials', 'm-ek-pl'), {
+        companyId: 'companyA', name: 'Eckventil', stock: 1, einkaufspreis: 3.5,
+      }),
+    );
+    await assertSucceeds(
+      setDoc(doc(db, 'materials', 'm-pl'), {
+        companyId: 'companyA', name: 'Eckventil', stock: 1,
+      }),
+    );
+  });
+
+  it('die Geschäftsführung setzt ihn — beim Anlegen wie beim Ändern', async () => {
+    await seedMaterial();
+    const db = ctxA_gf().firestore();
+    await assertSucceeds(updateDoc(doc(db, 'materials', 'mA'), { einkaufspreis: 2.1 }));
+    await assertSucceeds(
+      setDoc(doc(db, 'materials', 'm-ek2'), {
+        companyId: 'companyA', name: 'Eckventil', stock: 1, einkaufspreis: 3.5,
+      }),
+    );
+  });
+
+  it('die Verwaltung pflegt weiter, was neben einem gesetzten Einkaufspreis steht', async () => {
+    /*
+      DER ALLTAGSFALL, an dem eine zu strenge Regel scheitern würde: der Chef
+      hat 2,10 hinterlegt, die Verwaltung ändert die Bezeichnung. Solange sie
+      den Wert nicht ANFASST, geht das — sonst wäre der Katalog für sie
+      gesperrt, sobald der Chef einmal einen Preis eingetragen hat.
+    */
+    await seedMaterial();
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await updateDoc(doc(ctx.firestore(), 'materials', 'mA'), { einkaufspreis: 2.1 });
+    });
+    await assertSucceeds(
+      updateDoc(doc(ctxA_verw().firestore(), 'materials', 'mA'), { name: 'Kupferrohr 18mm' }),
+    );
   });
 });
 

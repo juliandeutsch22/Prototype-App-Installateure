@@ -1095,11 +1095,16 @@ läse sich wie „nichts verdient" und wäre eine Behauptung über eine Baustell
 über die nichts bekannt ist.
 
 **Die Grenze steht unter den Zahlen, nicht im Kleingedruckten:** Es ist ein
-DECKUNGSBEITRAG, kein Gewinn. Materialkosten fehlen, weil die
-Materialanforderung in dieser App bewusst keinen Preis trägt. Eine Baustelle
-mit dünnem Deckungsbeitrag ist im Ergebnis vermutlich negativ — deshalb steht
-die Ampel schon unter zwanzig Prozent auf Gelb, obwohl die Zahl formal positiv
-ist.
+DECKUNGSBEITRAG, kein Gewinn. Gemeinkosten fehlen, soweit sie nicht schon im
+Stundenkostensatz stecken. Eine Baustelle mit dünnem Deckungsbeitrag ist im
+Ergebnis vermutlich negativ — deshalb steht die Ampel schon unter zwanzig
+Prozent auf Gelb, obwohl die Zahl formal positiv ist.
+
+**Material zählt seit dem 07.09.2026 mit** (siehe unten). Bis dahin fehlte es
+ganz, und bei einem Installateur ist es schnell die Hälfte der
+Rechnungssumme: der ausgewiesene Deckungsbeitrag war systematisch zu hoch,
+und zwar in der teuersten Richtung — eine Baustelle sah tragfähig aus, die es
+nicht war.
 
 Nur für die Geschäftsführung: hier stehen Margen, und die Projektleitung sieht
 sie nicht.
@@ -1107,6 +1112,50 @@ sie nicht.
 Geprüft: neun Tests plus der Durchlauf im Browser — der Zustand ohne
 Kostensätze, das Setzen (Deckungsbeitrag 23,00 € je Stunde bei 65 gegen 42),
 und alle drei Erlösquellen nebeneinander.
+
+## Erledigt: Material in der Nachkalkulation (07.09.2026)
+
+Die Nachkalkulation rechnete Erlös minus Personalkosten. Material kam darin
+nicht vor — bei einem Installateur schnell die Hälfte der Rechnungssumme. Der
+ausgewiesene Deckungsbeitrag war damit systematisch zu hoch, und zwar in der
+teuersten Richtung: eine Baustelle sah tragfähig aus, die es nicht war. Dass
+es als Einschränkung darunterstand, machte die Zahl nicht richtig.
+
+**Die Mengen kommen aus den UNTERSCHRIEBENEN Handwerksscheinen** — das ist,
+was nachweislich verbaut wurde, vom Kunden bestätigt. Die Materialanforderung
+wäre die falsche Quelle: sie sagt, was bestellt wurde, nicht was auf dieser
+Baustelle geblieben ist. Gezählt werden alle Scheine der Baustelle, auch die
+schon verrechneten — für die Frage „hat sie etwas verdient" zählt alles
+Verbaute, unabhängig davon, auf welcher Rechnung es gelandet ist.
+
+**Die Preise kommen aus einem neuen Feld `einkaufspreis` im Materialstamm.**
+Der Verkaufspreis daneben bestimmt den Erlös, dieser die Kosten; wer beide
+verwechselt, bekommt für jedes Material einen Deckungsbeitrag von null und
+hält ihn für ein Ergebnis — dieselbe Falle wie beim Stundensatz.
+
+**Setzen darf ihn nur die Geschäftsführung**, obwohl den Katalog sonst die
+Verwaltung pflegt. Er ist Margendaten; die Grenze läuft deshalb zwischen den
+FELDERN, nicht zwischen den Rollen, und steht hart in `firestore.rules`. Was
+sie NICHT kann, und das gehört gesagt: das Lesen verhindern. Firestore gibt
+ein Dokument ganz oder gar nicht heraus, und den Katalog muss jeder im Betrieb
+lesen dürfen — der Monteur fordert daraus an. Geschützt ist das Ändern.
+
+**Fehlt ein Einkaufspreis, wird nichts geschätzt.** Der Artikel wird beim
+Namen genannt, fliesst nicht in die Kosten ein, und die Ampel bleibt gelb,
+auch bei fetter Marge. Ein angenommener Preis wäre eine erfundene Zahl in
+einer Auswertung, auf der jemand Preisentscheidungen trifft — und sie wäre
+nicht als erfunden erkennbar. Ein zu hoher Deckungsbeitrag, der SAGT, dass ihm
+etwas fehlt, ist besser als ein falscher, der schweigt.
+
+Im Bestand ist das der Regelfall: Verkaufspreise sind gepflegt,
+Einkaufspreise noch nirgends. Die Ansicht sagt das dann Baustelle für
+Baustelle, statt still zu tun, als sei kein Material verbaut worden.
+
+Geprüft: 14 Rechen-Tests, 13 in der Ansicht, 5 im Katalogformular, 15 gegen
+den Emulator — und 19 absichtlich kaputte Fassungen, die alle aufgefallen
+sind. Zwei davon fielen beim ersten Anlauf NICHT auf (Verkaufs- statt
+Einkaufspreis; die Projektleitung legt Material mit Einkaufspreis an); erst
+diese beiden Tests fehlten, nicht die Prüfungen.
 
 ## Erledigt: Angebot und Vorkalkulation
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { isTopLevel } from '@/lib/permissions';
 import {
   subscribeMaterials,
   createMaterial,
@@ -36,6 +37,7 @@ const empty = {
   articleNumber: '',
   unit: 'Stk',
   verkaufspreis: '',
+  einkaufspreis: '',
 };
 
 /**
@@ -53,10 +55,14 @@ const empty = {
  * stellt. Fehlt er, steht die Zeile dort mit 0,00 € und will ausgefüllt
  * werden; das ist besser als eine erfundene Zahl.
  *
- * Der EINKAUFSpreis fehlt weiterhin. Er gehört zur Marge und damit zur
- * Nachkalkulation, die Geschäftsführungssache ist — auf einem Katalog, den die
- * Verwaltung pflegt, wäre er am falschen Ort.
- * Die Verrechnung von Material läuft außerhalb dieser App.
+ * DER EINKAUFSPREIS steht seit dem 07.09.2026 daneben, aber nur für die
+ * Geschäftsführung. Er ist die Kostenseite und damit Margendaten; die
+ * Nachkalkulation rechnete ohne ihn und wies einen Deckungsbeitrag aus, der
+ * systematisch zu hoch war. Dass die Verwaltung diesen Katalog pflegt und den
+ * Einkaufspreis trotzdem nicht setzen darf, ist kein Widerspruch: die Grenze
+ * läuft zwischen den FELDERN, nicht zwischen den Ansichten, und steht hart in
+ * `firestore.rules`. Was sie nicht kann, ist das Lesen verhindern — Firestore
+ * gibt ein Dokument ganz oder gar nicht heraus.
  */
 /**
  * @param zuBearbeiten Ein Artikel, der beim Öffnen sofort im Formular stehen
@@ -71,6 +77,8 @@ export default function MaterialCatalog({
   onUebernommen?: () => void;
 } = {}) {
   const { user } = useAuth();
+  /** Den Einkaufspreis setzt nur die Geschäftsführung — er ist Margendaten. */
+  const darfKosten = user ? isTopLevel(user.role) : false;
   const toast = useToast();
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +142,7 @@ export default function MaterialCatalog({
       articleNumber: m.articleNumber ?? '',
       unit: m.unit ?? 'Stk',
       verkaufspreis: m.verkaufspreis != null ? String(m.verkaufspreis) : '',
+      einkaufspreis: m.einkaufspreis != null ? String(m.einkaufspreis) : '',
     });
   }
   function reset() {
@@ -157,6 +166,7 @@ export default function MaterialCatalog({
         als „ohne Preis" behandelt.
       */
       const preis = form.verkaufspreis.trim().replace(',', '.');
+      const ek = form.einkaufspreis.trim().replace(',', '.');
       const data = {
         name: form.name.trim(),
         category: form.category.trim(),
@@ -164,6 +174,18 @@ export default function MaterialCatalog({
         articleNumber: form.articleNumber.trim(),
         unit: form.unit.trim() || 'Stk',
         verkaufspreis: preis === '' ? 0 : Math.max(0, Number(preis) || 0),
+        /*
+          DER EINKAUFSPREIS WANDERT NUR MIT, WENN DIE ROLLE IHN SETZEN DARF.
+
+          Serverseitig lässt die Regel eine Änderung dieses Feldes nur der
+          Geschäftsführung durch. Das Formular der Verwaltung kennt den Wert
+          gar nicht und trüge eine 0 ein, wo der Chef 3,50 hinterlegt hat —
+          gescheitert wäre dann ihr GANZES Speichern, der Knopf täte nichts,
+          und niemand wüsste warum. Sie schickt das Feld deshalb nicht mit.
+        */
+        ...(darfKosten
+          ? { einkaufspreis: ek === '' ? 0 : Math.max(0, Number(ek) || 0) }
+          : {}),
       };
       if (editId) await updateMaterial(editId, data);
       else await createMaterial(user.companyId, data);
@@ -235,6 +257,24 @@ export default function MaterialCatalog({
               value={form.verkaufspreis}
               onChange={(e) => setForm({ ...form, verkaufspreis: e.target.value })}
             />
+            {/*
+              Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
+              die Grundlage der Nachkalkulation, also Margendaten, und die
+              sieht auch die Projektleitung nicht. Die harte Grenze steht in
+              `firestore.rules` — hier wird das Feld nur nicht angeboten.
+            */}
+            {darfKosten && (
+              <InputField
+                id="mek"
+                label="Einkaufspreis netto je Einheit (€)"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="leer = nicht gepflegt"
+                value={form.einkaufspreis}
+                onChange={(e) => setForm({ ...form, einkaufspreis: e.target.value })}
+              />
+            )}
           </FormGrid>
           <Pflichthinweis />
           {error && <ErrorState message={error} />}

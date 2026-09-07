@@ -1,5 +1,6 @@
 import type { Invoice, Quote, TimeEntry } from '@/types';
 import { calcWorkMin, normProjectNumber } from '@/lib/time';
+import { KEINE_MATERIALKOSTEN, type Materialkosten } from './materialkosten';
 
 /**
  * Nachkalkulation: hat die Baustelle Geld verdient?
@@ -14,12 +15,20 @@ import { calcWorkMin, normProjectNumber } from '@/lib/time';
  * anteilige Gemeinkosten — ist eine andere Zahl und liegt darunter. Wer beide
  * verwechselt, bekommt eine Marge von null und hält sie für ein Ergebnis.
  *
- * WAS DIESE RECHNUNG NICHT KANN, und das gehört gesagt: Materialkosten fehlen.
- * Die Materialanforderung trägt in dieser App bewusst keinen Preis — sie ist
- * eine Anforderung, keine Bestellung. Das Ergebnis ist deshalb ein
- * DECKUNGSBEITRAG vor Material und Gemeinkosten, kein Gewinn. Ihn als Gewinn
- * auszuweisen wäre eine Zahl, die zu gut aussieht und auf der jemand
- * Entscheidungen trifft.
+ * MATERIAL ZÄHLT SEIT DEM 07.09.2026 MIT — soweit ein Einkaufspreis
+ * hinterlegt ist. Es fehlte vorher ganz, und bei einem Installateur ist es
+ * schnell die Hälfte der Rechnungssumme: der ausgewiesene Deckungsbeitrag war
+ * damit systematisch zu hoch, und zwar in der teuersten Richtung — eine
+ * Baustelle sah tragfähig aus, die es nicht war.
+ *
+ * Artikel OHNE hinterlegten Einkaufspreis werden nicht geschätzt, sondern
+ * beim Namen genannt (`materialLuecken`). Ein zu hoher Deckungsbeitrag, der
+ * SAGT, dass ihm etwas fehlt, ist besser als ein falscher, der schweigt.
+ *
+ * WAS AUCH JETZT NICHT DRIN IST: Gemeinkosten, soweit sie nicht schon im
+ * Stundenkostensatz stecken. Das Ergebnis bleibt ein DECKUNGSBEITRAG, kein
+ * Gewinn — ihn als Gewinn auszuweisen wäre eine Zahl, die zu gut aussieht und
+ * auf der jemand Entscheidungen trifft.
  */
 
 export interface KostenSaetze {
@@ -38,11 +47,20 @@ export interface Nachkalkulation {
   helferStunden: number;
   /** Personalkosten aus den geleisteten Stunden. */
   personalkosten: number;
+  /** Materialkosten aus den unterschriebenen Scheinen — 0, wenn keine bekannt. */
+  materialkosten: number;
+  /**
+   * Artikel ohne hinterlegten Einkaufspreis.
+   *
+   * Steht in der Ansicht: solange hier etwas steht, ist der Deckungsbeitrag
+   * zu hoch, und zwar um einen Betrag, den niemand kennt.
+   */
+  materialLuecken: string[];
   /** Erlös netto — aus Rechnungen, sonst aus dem Angebot. */
   erloes: number;
   /** Woher der Erlös stammt: verrechnet oder erst kalkuliert. */
   erloesQuelle: 'Rechnungen' | 'Angebot' | 'unbekannt';
-  /** Erlös minus Personalkosten. VOR Material und Gemeinkosten. */
+  /** Erlös minus Personal- und Materialkosten. VOR Gemeinkosten. */
   deckungsbeitrag: number;
   /** Anteil am Erlös, oder null wenn kein Erlös bekannt ist. */
   margeProzent: number | null;
@@ -65,6 +83,12 @@ export function rechneBaustelle(
   invoices: Invoice[],
   quote: Quote | undefined,
   kosten: KostenSaetze,
+  /*
+    Vorbelegt, damit jeder Aufrufer, der noch kein Material kennt, dieselbe
+    Rechnung bekommt wie vorher — nur eben mit einer Null, die als Null
+    gemeint ist. Die Ansicht reicht die echten Werte durch.
+  */
+  material: Materialkosten = KEINE_MATERIALKOSTEN,
 ): Nachkalkulation {
   const pn = normProjectNumber(projectNumber);
 
@@ -97,7 +121,8 @@ export function rechneBaustelle(
     erloesQuelle = 'Angebot';
   }
 
-  const deckungsbeitrag = Math.round((erloes - personalkosten) * 100) / 100;
+  const deckungsbeitrag =
+    Math.round((erloes - personalkosten - material.kosten) * 100) / 100;
 
   return {
     projectNumber,
@@ -105,6 +130,8 @@ export function rechneBaustelle(
     fachStunden,
     helferStunden,
     personalkosten,
+    materialkosten: material.kosten,
+    materialLuecken: material.ohnePreis,
     erloes,
     erloesQuelle,
     deckungsbeitrag,
@@ -118,9 +145,15 @@ export function rechneBaustelle(
 export function margenTon(k: Nachkalkulation): 'success' | 'warning' | 'danger' | 'gray' {
   if (k.erloesQuelle === 'unbekannt') return 'gray';
   if (k.deckungsbeitrag < 0) return 'danger';
-  // Unter zwanzig Prozent bleibt nach Material und Gemeinkosten
-  // erfahrungsgemäß nichts übrig — das ist eine Warnung wert, auch wenn die
-  // Zahl formal positiv ist.
+  /*
+    Unter zwanzig Prozent bleibt nach Gemeinkosten erfahrungsgemäß nichts
+    übrig — das ist eine Warnung wert, auch wenn die Zahl formal positiv ist.
+
+    Ebenso, wenn Material ohne Einkaufspreis mitgelaufen ist: dann ist der
+    Deckungsbeitrag um einen unbekannten Betrag zu hoch, und Grün wäre eine
+    Zusage, die die Zahlen nicht decken.
+  */
+  if (k.materialLuecken.length > 0) return 'warning';
   if ((k.margeProzent ?? 0) < 20) return 'warning';
   return 'success';
 }
