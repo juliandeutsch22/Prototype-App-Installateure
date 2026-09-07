@@ -6,7 +6,6 @@ import {
   where,
   addDoc,
   updateDoc,
-  deleteDoc,
   runTransaction,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -153,9 +152,16 @@ export async function cancelInvoice(inv: WithId<Invoice>, note: string) {
   await releaseBilled('materialOrders', inv.linkedOrders ?? []);
 }
 
-export function deleteInvoice(id: string) {
-  return deleteDoc(doc(db, COLLECTION, id));
-}
+/*
+  `deleteInvoice` IST WEG, und zwar ersatzlos.
+
+  Sie stand hier und wurde aus einem Zeilenmenü ohne Rückfrage aufgerufen. §
+  132 BAO verlangt sieben Jahre Aufbewahrung, und die gezogene Nummer
+  hinterliesse eine Lücke im Kreis, die der Buchhaltungs-Export danach zu
+  Recht meldet. Die Korrektur heisst Storno (`cancelInvoice`): der Beleg
+  bleibt stehen, trägt seinen Grund und lässt sich mit `reactivateInvoice`
+  wieder aufheben. Die Rules sagen dasselbe — `allow delete: if false`.
+*/
 
 /**
  * Eine Mahnung festhalten.

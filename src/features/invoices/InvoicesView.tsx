@@ -11,7 +11,6 @@ import {
   updateInvoiceStatus,
   cancelInvoice,
   reactivateInvoice,
-  deleteInvoice,
   markBilled,
   mahnungFesthalten,
 } from '@/lib/db/invoices';
@@ -1224,14 +1223,21 @@ export default function InvoicesView() {
                               toast.success('Storno aufgehoben');
                             },
                           },
-                          {
-                            label: 'Rechnung löschen',
-                            danger: true,
-                            onSelect: async () => {
-                              await deleteInvoice(inv.id);
-                              toast.success('Rechnung gelöscht');
-                            },
-                          },
+                          /*
+                            HIER STAND „RECHNUNG LÖSCHEN", ohne Rückfrage,
+                            direkt unter „Storno aufheben". Ein Fehlgriff im
+                            Menü, und der Beleg war weg.
+
+                            Ersatzlos gestrichen, nicht mit einer Rückfrage
+                            versehen: § 132 BAO verlangt sieben Jahre
+                            Aufbewahrung, und die gezogene Nummer hinterliesse
+                            eine Lücke, die der Buchhaltungs-Export danach zu
+                            Recht meldet — ohne dass noch jemand wüsste,
+                            warum. Der Storno ist die vorgesehene Korrektur;
+                            er bleibt stehen, trägt seinen Grund und lässt
+                            sich aufheben. Die Rules sagen dasselbe
+                            (`allow delete: if false`).
+                          */
                         ]),
                   ]}
                 />

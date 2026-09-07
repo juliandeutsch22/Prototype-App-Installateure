@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Vacation } from '@/types';
@@ -39,6 +39,10 @@ const createVacation = vi.fn<[string, unknown], Promise<string>>(async () => 'v-
  * entschieden wird — er darf die Zeiteinträge des Antragstellers weder lesen
  * noch schreiben.
  */
+// Die Signatur steht am Doppelgänger, nicht an seinen Parametern: der Test
+// liest später, MIT WELCHER Id gelöscht wurde.
+const deleteVacation = vi.fn<[string], Promise<void>>(async () => undefined);
+
 const callUrlaubEntscheiden = vi.fn<
   [
     {
@@ -55,7 +59,7 @@ vi.mock('@/lib/db/vacations', () => ({
   listOwnVacations: vi.fn(async () => antraege.filter((v) => v.userId === rolle.uid)),
   listOpenVacations: vi.fn(async () => antraege.filter((v) => v.status === 'Beantragt')),
   createVacation: (c: string, v: unknown) => createVacation(c, v),
-  deleteVacation: vi.fn(async () => undefined),
+  deleteVacation: (id: string) => deleteVacation(id),
 }));
 vi.mock('@/lib/functions', () => ({
   callUrlaubEntscheiden: (a: unknown) =>
@@ -110,6 +114,7 @@ async function datum(label: string, wert: string) {
 
 beforeEach(() => {
   createVacation.mockClear();
+  deleteVacation.mockClear();
   callUrlaubEntscheiden
     .mockClear()
     .mockResolvedValue({ data: { status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 } });
@@ -346,5 +351,77 @@ describe('Genehmigende aus den Einstellungen', () => {
     genehmiger = ['buero'];
     zeichne();
     expect(await screen.findByText(/Offene Anträge/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * ZURÜCKZIEHEN IST LÖSCHEN, und der Knopf heisst nicht danach.
+ *
+ * Er stand neben dem eigenen Antrag und entfernte ihn sofort — als einziger
+ * Löschweg der App ohne Rückfrage, neben elf mit. Der Schaden eines
+ * Fehlgriffs ist klein (der Antrag lässt sich neu stellen); die Ausnahme im
+ * Verhalten ist es nicht, denn auf sie stellt sich niemand ein.
+ */
+describe('Einen eigenen Antrag zurückziehen', () => {
+  function eigenerAntrag() {
+    antraege.push({
+      id: 'v9',
+      companyId: 'perl',
+      userId: 'm1',
+      userName: 'Max Mustermann',
+      von: '2026-07-06',
+      bis: '2026-07-10',
+      tage: 5,
+      status: 'Beantragt',
+    });
+  }
+
+  it('fragt nach, bevor der Antrag verschwindet', async () => {
+    const nutzer = userEvent.setup();
+    eigenerAntrag();
+    zeichne();
+
+    await nutzer.click(await screen.findByRole('button', { name: 'Zurückziehen' }));
+    // Der Dialog steht — und geschrieben ist noch nichts.
+    expect(await screen.findByText('Antrag zurückziehen?')).toBeInTheDocument();
+    expect(deleteVacation).not.toHaveBeenCalled();
+  });
+
+  it('nennt im Dialog den Zeitraum, um den es geht', async () => {
+    // „Wollen Sie wirklich?" ohne Angabe, was gemeint ist, beantwortet
+    // niemand bewusst — bei mehreren offenen Anträgen erst recht nicht.
+    const nutzer = userEvent.setup();
+    eigenerAntrag();
+    zeichne();
+
+    await nutzer.click(await screen.findByRole('button', { name: 'Zurückziehen' }));
+    // Der Zeitraum steht auch in der Liste dahinter — geprüft wird der Text
+    // IM Dialog, sonst bewiese der Test nur, dass die Liste geladen hat.
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/06\.07\.2026/)).toBeInTheDocument();
+  });
+
+  it('zieht erst nach der Bestätigung zurück', async () => {
+    const nutzer = userEvent.setup();
+    eigenerAntrag();
+    zeichne();
+
+    await nutzer.click(await screen.findByRole('button', { name: 'Zurückziehen' }));
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Zurückziehen' }));
+
+    expect(deleteVacation).toHaveBeenCalledWith('v9');
+  });
+
+  it('und gar nicht, wenn man abbricht', async () => {
+    const nutzer = userEvent.setup();
+    eigenerAntrag();
+    zeichne();
+
+    await nutzer.click(await screen.findByRole('button', { name: 'Zurückziehen' }));
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.click(within(dialog).getByRole('button', { name: /Abbrechen/i }));
+
+    expect(deleteVacation).not.toHaveBeenCalled();
   });
 });

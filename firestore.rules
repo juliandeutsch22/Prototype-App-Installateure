@@ -598,16 +598,28 @@ service cloud.firestore {
       allow create: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator']) && ownsIncoming();
       allow update: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator'])
         && ownsExisting() && ownsIncoming() && companyUnchanged();
-      // NUR DER STORNO IST LOESCHBAR. Vorher liess sich jede Rechnung
-      // entfernen — auch eine offene oder bezahlte. Das passte weder zur
-      // Oberflaeche (sie bietet „Loeschen" ausschliesslich beim Storno an)
-      // noch zum Umgang mit den uebrigen Belegen: ein unterschriebener
-      // Handwerksschein laesst sich gar nicht loeschen, und der Zaehler auch
-      // nicht. Ausgerechnet beim Beleg fuer das Finanzamt war die Grenze die
-      // weichste.
-      allow delete: if hasRole(['Buchhaltung', 'Geschäftsführung', 'Administrator'])
-        && ownsExisting()
-        && resource.data.paymentStatus == 'Storniert';
+      /*
+        EINE RECHNUNG WIRD NICHT GELOESCHT — auch die stornierte nicht.
+
+        Vorher liess sich jede Rechnung entfernen, dann nur noch die
+        stornierte. Beides war zu viel. Zwei Gruende, und beide sind keine
+        Geschmacksfrage:
+
+          – § 132 BAO verlangt sieben Jahre Aufbewahrung. Der Storno ist
+            selbst ein Buchhaltungsbeleg, kein Rueckgaengigmachen.
+          – Die Nummer ist gezogen. Faellt der Beleg weg, klafft im
+            Nummernkreis eine Luecke, und der Buchhaltungs-Export meldet sie
+            zu Recht — nur weiss dann niemand mehr, warum.
+
+        Der STORNO ist die vorgesehene Korrektur: er bleibt stehen, traegt
+        seinen Grund und laesst sich auch wieder aufheben. Damit ist jeder
+        Fall abgedeckt, fuer den vorher geloescht wurde.
+
+        Dieselbe Grenze wie beim unterschriebenen Handwerksschein und beim
+        Zaehler. Ausgerechnet beim Beleg fuer das Finanzamt war sie bisher die
+        weichste.
+      */
+      allow delete: if false;
     }
 
     // --- counters: fortlaufende Nummernkreise, einer je Firma ---

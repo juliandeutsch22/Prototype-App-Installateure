@@ -51,7 +51,7 @@ unterscheidet drei Stufen:
 
 | Bereich | Was es tut | Wer darf | Daten | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|---|---|
-| **Rechnungen** | Aus Baustelle zusammenstellen — Stunden UND Material aus den unterschriebenen Handwerksscheinen —, Leistungszeitraum, Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG), Nummernkreis, Status, **Mahnwesen in drei Stufen**, PDF, Buchhaltungs-Export mit Lückenprüfung | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries`, `workSheets`, `materials` | Rechnung (110), Emulator (Zähler, Löschen nur beim Storno), Ansicht (30), Beleg (20) | Geprüft ist die Reihenfolge — Nummer ziehen, Belege sperren, dann anlegen. Material ohne Preis im Katalog steht mit 0,00 € da und wird ausgewiesen: eine erfundene Zahl wäre schlimmer als eine sichtbare Lücke |
+| **Rechnungen** | Aus Baustelle zusammenstellen — Stunden UND Material aus den unterschriebenen Handwerksscheinen —, Leistungszeitraum, Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG), Nummernkreis, Status, **Mahnwesen in drei Stufen**, PDF, Buchhaltungs-Export mit Lückenprüfung. **Gelöscht wird keine Rechnung** — die Korrektur ist der Storno | Buchhaltung, Leitung | `invoices`, `counters`, `timeEntries`, `workSheets`, `materials` | Rechnung (110), Emulator (Zähler, Löschen nur beim Storno), Ansicht (30), Beleg (20) | Geprüft ist die Reihenfolge — Nummer ziehen, Belege sperren, dann anlegen. Material ohne Preis im Katalog steht mit 0,00 € da und wird ausgewiesen: eine erfundene Zahl wäre schlimmer als eine sichtbare Lücke |
 | **Wartungen** | Wiederkehrende Wartungsvereinbarungen je Anlage; erledigt eintragen rückt den nächsten Termin nach; Hinweis auf der Startseite, wenn etwas ansteht | Lesen alle, ändern nur die Leitung | `wartungen`, `customers` | Rechnung (24), Ansicht (15), Emulator (5), statischer Abgleich (Index, Export) | Kein automatischer Einsatz aus der fälligen Wartung — den Termin vereinbart weiterhin ein Mensch am Telefon |
 | **Mitarbeiterübersicht** | Zeitkonten, Salden, Monats- und Mitarbeiterexport, Stundennachweis | Buchhaltung, GF, Admin (**nicht** Projektleitung) | `timeEntries`, `monthlyStats` | Rechnung (20), Ansicht (4) | Zusammenspiel Bilanz ↔ Rohdaten ungetestet |
 | **Nachkalkulation** | Erlös gegen Personalkosten je Baustelle, Deckungsbeitrag | GF, Admin | `projects`, `timeEntries`, `invoices`, `quotes` | Rechnung (9) | Ansicht ungetestet |
@@ -83,15 +83,15 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1094 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1100 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
-| Regeltests gegen den Emulator | 192 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+| Regeltests gegen den Emulator | 194 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 | **Cloud Functions mit ersetztem Firestore** | **98** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang) | **104** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | Reine Rechnung | 314 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 254 | Findet Bedienfehler, **keine** Datenfehler |
+| Ansichten, Datenbank ersetzt | 260 | Findet Bedienfehler, **keine** Datenfehler |
 | **Service Worker in einer Sandbox** | **12** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 
 **Zu den Function-Tests, weil „ersetzter Firestore" nach Nachbau klingt.**
@@ -115,6 +115,28 @@ es an dem Tag, an dem man sie braucht.
 > Geschrieben wird der Zustand **ausschliesslich vom Server**
 > (`allow write: if false`). Eine Überwachung, die der Überwachte selbst
 > beschreiben kann, überwacht nichts.
+
+**Gelöscht wird nur mit Rückfrage — seit dem 07.09.2026 ausnahmslos.** Eine
+Prüfung über alle Löschwege der App fand zwei ohne: „Rechnung löschen" im
+Zeilenmenü einer stornierten Rechnung, und „Antrag zurückziehen" beim Urlaub.
+
+> **Das Löschen einer Rechnung gibt es nicht mehr**, auch nicht für die
+> stornierte — weder in der Oberfläche noch serverseitig
+> (`allow delete: if false`). Nicht bloss mit einer Rückfrage versehen,
+> sondern gestrichen: § 132 BAO verlangt sieben Jahre Aufbewahrung, und die
+> gezogene Nummer hinterliesse eine Lücke im Kreis, die der
+> Buchhaltungs-Export danach zu Recht meldet — ohne dass noch jemand wüsste,
+> warum. Der **Storno** ist die vorgesehene Korrektur: er bleibt stehen,
+> trägt seinen Grund und lässt sich wieder aufheben.
+>
+> **„Antrag zurückziehen"** fragt jetzt nach und nennt den Zeitraum. Betroffen
+> ist nur der eigene, noch nicht entschiedene Antrag; der Schaden eines
+> Fehlgriffs ist gering. Die Ausnahme im Verhalten war das Problem — auf einen
+> Löschknopf ohne Rückfrage neben elf mit stellt sich niemand ein.
+>
+> Zwei Dinge bleiben ganz unlöschbar und waren es schon: der unterschriebene
+> **Handwerksschein** und das **Benutzerkonto** (nur deaktivierbar, sonst
+> verlören seine Buchungen ihren Besitzer).
 
 **Die Auswertung steht jetzt an zwei Stellen, und das mit Absicht.** Bis zum
 07.09.2026 gab es sie nur unter der Mitarbeiterübersicht — dort beantwortet

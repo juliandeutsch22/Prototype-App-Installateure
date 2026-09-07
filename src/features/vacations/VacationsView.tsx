@@ -17,6 +17,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
@@ -86,6 +87,8 @@ export default function VacationsView() {
   const [laden, setLaden] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
+  /** Welcher eigene Antrag zurückgezogen werden soll — null heisst: keiner. */
+  const [zurueckzuziehen, setZurueckzuziehen] = useState<WithId<Vacation> | null>(null);
 
   const [von, setVon] = useState(todayStr());
   const [bis, setBis] = useState(todayStr());
@@ -262,6 +265,20 @@ export default function VacationsView() {
     await entscheiden(antrag, 'Storniert', grund.trim());
   }
 
+  /**
+   * Den eigenen, noch nicht entschiedenen Antrag zurückziehen.
+   *
+   * MIT RÜCKFRAGE, obwohl der Schaden klein ist. Der Knopf steht direkt neben
+   * dem Antrag und heisst nicht danach, was er tut: er LÖSCHT ihn. Ein
+   * Fehlgriff kostet zwar nur das erneute Eintippen, aber ein Löschknopf ohne
+   * Rückfrage neben elf Löschknöpfen mit Rückfrage ist genau die Ausnahme,
+   * auf die sich niemand einstellt.
+   *
+   * Betroffen ist ausschliesslich ein Antrag im Zustand „Beantragt". Ein
+   * genehmigter wird nicht gelöscht, sondern über `zuruecknehmen`
+   * zurückgenommen — dabei räumt der Server auch die erzeugten Urlaubstage
+   * wieder aus dem Zeitkonto.
+   */
   async function zurueckziehen(antrag: WithId<Vacation>) {
     setArbeitet(antrag.id);
     try {
@@ -272,6 +289,7 @@ export default function VacationsView() {
       setError('Der Antrag konnte nicht zurückgezogen werden.');
     } finally {
       setArbeitet(null);
+      setZurueckzuziehen(null);
     }
   }
 
@@ -464,7 +482,7 @@ export default function VacationsView() {
                   <Button
                     variant="ghost"
                     loading={arbeitet === v.id}
-                    onClick={() => zurueckziehen(v)}
+                    onClick={() => setZurueckzuziehen(v)}
                   >
                     Zurückziehen
                   </Button>
@@ -483,6 +501,22 @@ export default function VacationsView() {
           </List>
         )}
       </Card>
+
+      {zurueckzuziehen && (
+        <ConfirmDialog
+          open
+          title="Antrag zurückziehen?"
+          confirmLabel="Zurückziehen"
+          onConfirm={() => zurueckziehen(zurueckzuziehen)}
+          onCancel={() => setZurueckzuziehen(null)}
+        >
+          <p>
+            {zeitraum(zurueckzuziehen)} — der Antrag wird gelöscht und
+            verschwindet aus der Liste der offenen Anträge. Ein neuer Antrag
+            für denselben Zeitraum ist jederzeit möglich.
+          </p>
+        </ConfirmDialog>
+      )}
 
     </div>
   );

@@ -1450,7 +1450,19 @@ describe('Materialstamm — Bestand bewegt jeder, gepflegt wird er von der Verwa
  * Rechnungen sind Belege. Gelöscht wird nur, was ohnehin storniert ist —
  * alles andere bleibt in den Büchern.
  */
-describe('Rechnungen — nur der Storno ist loeschbar', () => {
+/**
+ * KEINE RECHNUNG WIRD GELOESCHT — auch die stornierte nicht.
+ *
+ * Vorher liess sich jede entfernen, dann nur noch die stornierte. Beides war
+ * zu viel: § 132 BAO verlangt sieben Jahre Aufbewahrung, und die gezogene
+ * Nummer hinterliesse eine Luecke im Kreis, die der Buchhaltungs-Export
+ * danach zu Recht meldet — ohne dass noch jemand wuesste, warum.
+ *
+ * Der Storno ist die vorgesehene Korrektur: er bleibt stehen, traegt seinen
+ * Grund und laesst sich wieder aufheben. Dass er selbst kein Loeschen ist,
+ * prueft der letzte Fall hier.
+ */
+describe('Rechnungen — geloescht wird gar keine', () => {
   async function seedRechnungen() {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();
@@ -1475,9 +1487,29 @@ describe('Rechnungen — nur der Storno ist loeschbar', () => {
     await assertFails(deleteDoc(doc(db, 'invoices', 'offen')));
   });
 
-  it('die stornierte darf weg', async () => {
+  it('und die stornierte ebenfalls', async () => {
+    // Der Fall, der vorher erlaubt war. Er ist der teuerste: eine stornierte
+    // Rechnung sieht nach „erledigt" aus und ist trotzdem ein Beleg.
     await seedRechnungen();
-    await assertSucceeds(deleteDoc(doc(ctxA_buch().firestore(), 'invoices', 'storno')));
+    await assertFails(deleteDoc(doc(ctxA_buch().firestore(), 'invoices', 'storno')));
+  });
+
+  it('auch die Administration kommt nicht daran vorbei', async () => {
+    await seedRechnungen();
+    for (const ctx of [ctxA_admin(), ctxA_gf()]) {
+      const db = ctx.firestore();
+      await assertFails(deleteDoc(doc(db, 'invoices', 'storno')));
+    }
+  });
+
+  it('stornieren geht weiter — das ist die Korrektur', async () => {
+    await seedRechnungen();
+    await assertSucceeds(
+      updateDoc(doc(ctxA_buch().firestore(), 'invoices', 'offen'), {
+        paymentStatus: 'Storniert',
+        cancellationNote: 'Falsche Baustelle verrechnet',
+      }),
+    );
   });
 });
 
