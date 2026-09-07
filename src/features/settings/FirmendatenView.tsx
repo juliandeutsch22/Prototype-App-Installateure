@@ -284,9 +284,16 @@ export default function FirmendatenView() {
               value={brandColor}
               onChange={(e) => setBrandColor(e.target.value)}
             />
+            {/*
+              „Schrift darauf" stand zweimal wortgleich da — einmal zur Haupt-,
+              einmal zur Akzentfarbe. Auf dem Bildschirm ordnet die Nähe das
+              zu; eine Sprachausgabe liest die Beschriftung ohne ihre Umgebung
+              und sagt beide Male dasselbe. Jetzt benennt jedes Feld die Farbe,
+              zu der es gehört.
+            */}
             <InputField
               id="fd-brand-fg"
-              label="Schrift darauf"
+              label="Schrift auf der Hauptfarbe"
               placeholder="#ffffff"
               value={brandForeground}
               onChange={(e) => setBrandForeground(e.target.value)}
@@ -300,7 +307,7 @@ export default function FirmendatenView() {
             />
             <InputField
               id="fd-accent-fg"
-              label="Schrift darauf"
+              label="Schrift auf der Akzentfarbe"
               placeholder="#ffffff"
               value={accentForeground}
               onChange={(e) => setAccentForeground(e.target.value)}
