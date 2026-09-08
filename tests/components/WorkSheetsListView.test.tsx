@@ -79,8 +79,13 @@ let geladen: (WorkSheet & { id: string })[] = scheine;
 const verwerfen = vi.fn(async () => undefined);
 const zurueckholen = vi.fn(async () => undefined);
 
+/* Die tiefe Prüfung holt sich ihre Scheine selbst — auf Anforderung. */
+let tiefGeladen: (WorkSheet & { id: string })[] = [];
+const tiefeAbfrage = vi.fn(async () => tiefGeladen);
+
 vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: vi.fn(async () => geladen),
+  listSignedWorkSheetsInRange: (...a: unknown[]) => tiefeAbfrage(...(a as [])),
   cancelWorkSheet: vi.fn(async () => undefined),
   discardWorkSheetDraft: (...a: unknown[]) => verwerfen(...(a as [])),
   restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
@@ -158,6 +163,8 @@ beforeEach(() => {
   authWert.user.role = 'Mitarbeiter';
   geladen = scheine;
   buchungen = [];
+  tiefGeladen = [];
+  tiefeAbfrage.mockClear();
   verwerfen.mockClear();
   zurueckholen.mockClear();
   zeitenGeholt.mockClear();
@@ -445,7 +452,7 @@ describe('Stunden ohne Buchung', () => {
     expect(screen.queryByText(/Stunden ohne Buchung/)).not.toBeInTheDocument();
   });
 
-  it('schweigt, sobald die Zeit gebucht ist', async () => {
+  it('meldet nichts mehr, sobald die Zeit gebucht ist', async () => {
     authWert.user.role = 'Buchhaltung';
     geladen = [offenerSchein()];
     buchungen = [
@@ -455,7 +462,8 @@ describe('Stunden ohne Buchung', () => {
 
     await screen.findByText(/Familie Wagner/);
     await waitFor(() => expect(zeitenGeholt).toHaveBeenCalled());
-    expect(screen.queryByText(/Stunden ohne Buchung/)).not.toBeInTheDocument();
+    expect(await screen.findByText('Stunden ohne Buchung (0)')).toBeInTheDocument();
+    expect(screen.getByText(/gibt es eine Buchung in der Zeiterfassung/)).toBeInTheDocument();
   });
 
   /*
@@ -491,17 +499,77 @@ describe('Stunden ohne Buchung', () => {
   });
 
   /*
-    Die Karte ist kein Dauerzustand: gibt es nichts zu tun, steht sie nicht
-    da. Ein Kasten „alles gebucht", der jeden Tag erscheint, wird nach einer
-    Woche nicht mehr gelesen — und dann auch nicht, wenn er etwas meldet.
+    OHNE BEFUND BLEIBT DIE KARTE STEHEN — und das ist eine Abkehr von der
+    ersten Fassung. Damals war sie ein reiner Befund, und ein leerer Kasten
+    wäre Rauschen gewesen. Jetzt trägt sie eine HANDLUNG: weiter zurück
+    prüfen. Verschwände sie bei null Befunden, gäbe es keinen Weg mehr zu der
+    Prüfung, die den alten — und damit teuren — Schein überhaupt erst findet.
   */
-  it('erscheint gar nicht, wenn nichts offen ist', async () => {
+  it('bleibt ohne Befund stehen, weil sie die tiefe Prüfung trägt', async () => {
     authWert.user.role = 'Buchhaltung';
     geladen = scheine;
     zeichne();
 
     await screen.findByText(/Familie Berger/);
-    expect(screen.queryByText(/Stunden ohne Buchung/)).not.toBeInTheDocument();
+    expect(await screen.findByText('Stunden ohne Buchung (0)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1 Jahr' })).toBeInTheDocument();
+  });
+
+  /*
+    DER ALTE SCHEIN IST DER TEURE. Die Anzeigeliste reicht fünfzig Scheine
+    weit; was vier Monate zurückliegt, lag ausserhalb — und bucht niemand
+    mehr von selbst nach.
+  */
+  it('findet auf Anforderung den Schein ausserhalb der Liste', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = scheine;
+    tiefGeladen = [offenerSchein({ id: 'alt', datum: vorTagen(200) })];
+    const nutzer = userEvent.setup();
+    zeichne();
+
+    await screen.findByText('Stunden ohne Buchung (0)');
+    await nutzer.click(screen.getByRole('button', { name: '1 Jahr' }));
+
+    expect(await screen.findByText('Stunden ohne Buchung (1)')).toBeInTheDocument();
+    // Mandant, Von, Bis, Obergrenze — in dieser Reihenfolge. Die Grenze
+    // gehört mitgegeben: ohne sie holte die Abfrage ein ganzes Jahr
+    // unterschriebener Scheine samt ihrer Unterschriftsbilder.
+    expect(tiefeAbfrage.mock.calls[0]).toEqual(['perl', vorTagen(365), vorTagen(0), 150]);
+  });
+
+  /*
+    WORAUF SICH DAS ERGEBNIS STÜTZT, muss dastehen: sonst hiesse „nichts
+    offen" mal „im letzten Monat" und mal „im letzten Jahr", ohne dass es
+    jemand unterscheiden könnte.
+  */
+  it('sagt, worüber gerade geprüft wurde', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = scheine;
+    tiefGeladen = [];
+    const nutzer = userEvent.setup();
+    zeichne();
+
+    expect(await screen.findByText(/geladenen Scheine dieser Liste/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: '30 Tage' }));
+    expect(await screen.findByText(/über die letzten 30 Tage/)).toBeInTheDocument();
+  });
+
+  /*
+    Und die Obergrenze schneidet nicht still ab. Wird sie erreicht, kann die
+    Antwort „nichts offen" schlicht falsch sein — das gehört dazugesagt.
+  */
+  it('nennt die erreichte Obergrenze', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = scheine;
+    tiefGeladen = Array.from({ length: 150 }, (_, i) =>
+      offenerSchein({ id: `s${i}`, datum: vorTagen(1) }),
+    );
+    const nutzer = userEvent.setup();
+    zeichne();
+
+    await screen.findByText('Stunden ohne Buchung (0)');
+    await nutzer.click(screen.getByRole('button', { name: '90 Tage' }));
+    expect(await screen.findByText(/Grenze von 150 Scheinen ist erreicht/)).toBeInTheDocument();
   });
 
   /*

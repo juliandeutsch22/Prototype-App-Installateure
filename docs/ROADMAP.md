@@ -1192,6 +1192,129 @@ Formular — und 15 absichtlich kaputte Fassungen, die alle aufgefallen sind.
 Zwei davon erst im zweiten Anlauf: was die Vorbelegung im echten Formular
 bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
 
+## Erledigt: Der Zuschlag wurde verrechnet, aber nicht ausgewiesen (08.09.2026)
+
+Beim Suchen nach der nächsten Schwachstelle gefunden, und es ist eine
+**Asymmetrie**, kein vergessenes Feature.
+
+`features/invoices/assemble.ts` bildet aus `isNightWork` und `isEmergency`
+eigene Rechnungspositionen mit Aufschlag — „Facharbeiterstunden (Notdienst
++50 %, Nachtarbeit +…)". Der Kunde zahlt den Zuschlag also. Die
+Lohnausleitung dagegen kannte die beiden Felder **überhaupt nicht**: weder die
+Monats-CSV noch die Mitarbeiter-CSV noch der Stundennachweis führten eine
+Spalte dafür, und `calcMonthStats` kommt bis heute ohne sie aus.
+
+Der Nacht- und der Notdienstzuschlag sind ein **Anspruch des Arbeitnehmers
+nach Kollektivvertrag**. Er kann nur abgerechnet werden, wenn die Stunden in
+der Lohnverrechnung als solche ankommen. Eine Ausleitung, die sie verschweigt,
+sieht dabei vollständig aus — die Gesamtstunden stimmen ja.
+
+### Was jetzt ausgewiesen wird
+
+- **Monats-CSV**: je Zeile die Spalten `Nacht` und `Notdienst`; je Mitarbeiter
+  `Nacht(Std)`, `Notdienst(Std)` und `davon beides(Std)`.
+- **Mitarbeiter-CSV**: dieselben Kennzeichen je Zeile, dazu ein Summenblock,
+  der **immer** dasteht — auch mit null Stunden. Die Datei wird maschinell
+  gelesen, und eine fehlende Spalte bedeutet dort etwas anderes als eine
+  leere, nämlich „diese Auswertung kennt das Thema nicht".
+- **Stundennachweis (PDF)**: eine schmale Spalte „Zuschlag" mit `N`, `ND` oder
+  `N+ND`, und darunter die Summen samt Legende — hier nur, wenn welche
+  angefallen sind; auf einem Nachweis ohne Zuschlagsstunden wäre die Zeile
+  Zierrat.
+
+### „davon beides" ist keine Zierde
+
+Nacht und Notdienst schliessen einander nicht aus: der Rohrbruch um zwei Uhr
+früh ist beides. Wer die zwei Zahlen addiert, zählt diese Stunden doppelt —
+und niemand sähe es der Datei an. Die Überschneidung steht deshalb als eigene
+Spalte daneben, statt sich auf eine Fussnote zu verlassen.
+
+### Was bewusst nicht passiert
+
+**Gerechnet wird kein Geld.** Die Höhe des Zuschlags steht im
+Kollektivvertrag und hängt an Einstufung, Uhrzeit und Anlass; sie hier zu
+schätzen hiesse, eine Zahl zu erfinden, die dann in einem Lohnzettel landet.
+Ausgewiesen werden die STUNDEN — die Bewertung macht die Lohnverrechnung, die
+den Vertrag kennt.
+
+Geprüft: 14 Rechen- und Ausleitungstests, 5 am PDF — und 15 absichtlich
+kaputte Fassungen, die alle aufgefallen sind. Ein bestehender Test musste
+mitwandern: er zählte die Spalten **vom Ende her** und mass nach jeder
+Erweiterung etwas anderes; er sucht sie jetzt über die Kopfzeile.
+
+## Erledigt: Keine Foto-Waisen mehr im Storage (08.09.2026)
+
+Der Entwurf entsteht mit dem ersten Foto, das Bild geht sofort in den Storage
+— der **Verweis** darauf entstand aber erst, wenn der Monteur den Entwurf
+speicherte. Wer fotografierte und dann das Fenster schloss, hinterliess eine
+Datei, auf die kein Dokument zeigt.
+
+Das kostet dauerhaft, und es ist zugleich ein Bild aus einer fremden Wohnung
+**ohne Beleg, der seine Aufbewahrung rechtfertigt** — die unangenehmere Hälfte
+des Befunds.
+
+Die Liste wird jetzt nach jedem Upload und nach jedem Entfernen sofort ans
+Dokument geschrieben (`fotosAmEntwurf`), und zwar mit einer **ausdrücklich
+übergebenen** Liste statt aus dem Zustand der Ansicht: React verarbeitet
+`setFotos` erst nach dem laufenden Durchlauf, und ein Schreibvorgang von dort
+liesse ausgerechnet das eben hochgeladene Bild weg. Dafür führt die Ansicht
+einen Spiegel der Liste als `useRef` — derselbe Grund wie bei den selbst
+erfassten Zeilen.
+
+Beim Entfernen zuerst das Dokument, dann der Storage: andersherum stünde
+zwischendurch ein Eintrag da, der auf eine gelöschte Datei zeigt — und genau
+der ginge beim Unterschreiben in die Prüfsumme ein.
+
+Ein gescheiterter Upload wird **nicht** festgeschrieben. `fuerDenSchein` lässt
+nur die tatsächlich hochgeladenen durch; ein Verweis auf eine Datei, die es
+nicht gibt, wäre schlimmer als kein Verweis.
+
+## Erledigt: Die Bürosicht prüft jetzt so weit zurück, wie das Büro will (08.09.2026)
+
+Nachgezogen an der eigenen Einschränkung von heute Vormittag: „Stunden ohne
+Buchung" verglich nur die **geladenen fünfzig** Scheine der Anzeigeliste. Das
+stand ehrlich in der Karte, war aber halb — gerade der Schein von vor vier
+Monaten ist der teure, und der lag ausserhalb.
+
+Neu: `listSignedWorkSheetsInRange` holt gezielt die unterschriebenen Scheine
+eines gewählten Zeitraums (30 Tage, 90 Tage, 1 Jahr), samt Index
+`companyId + status + datum`.
+
+**Auf Anforderung, nicht bei jedem Aufruf**, und das ist der springende Punkt:
+ein unterschriebener Schein trägt zwei Unterschriftsbilder als PNG im
+Dokument, rund 70 KB je Stück. Ein Jahr wären schnell zwanzig Megabyte. Als
+bewusster Griff am Bürorechner ist das vertretbar, als stiller Nebeneffekt
+beim Öffnen eines Reiters nicht. Die Obergrenze liegt bei 150 Scheinen und
+steht sichtbar da, sobald sie erreicht ist — dieselbe Regel wie überall seit
+„Sichtbare Grenzen".
+
+Über der Liste steht jedes Mal, **worauf sich das Ergebnis stützt**. Ohne das
+hiesse „nichts offen" mal „im letzten Monat" und mal „im letzten Jahr", ohne
+dass es jemand unterscheiden könnte.
+
+### Eine Abkehr von der ersten Fassung
+
+Die Karte verschwindet nicht mehr, wenn nichts offen ist. Vorher war sie ein
+reiner Befund, und ein leerer Kasten „alles gebucht" wäre Rauschen gewesen.
+Jetzt trägt sie eine **Handlung**: weiter zurück prüfen. Verschwände sie bei
+null Befunden, gäbe es keinen Weg mehr zu der Prüfung, die den alten Schein
+überhaupt erst findet. Ohne Befund bleibt sie knapp.
+
+### Was dabei zur Geschwindigkeit herauskam
+
+Aus dem Betrieb kam die Frage, ob es hilft, überall nur die ersten x Einträge
+zu laden und einen Reiter erst beim Aufrufen. **Beides ist längst gebaut:**
+jede Ansicht steckt in `lazy(() => import(...))` — 30 Chunks statt einem —,
+und jede Liste hat seit „Sichtbare Grenzen" eine Obergrenze, die sie auch
+ansagt.
+
+Der verbleibende Hebel ist nicht die ANZAHL, sondern das GEWICHT: die
+Unterschriftsbilder liegen als PNG im Firestore-Dokument. Sie in den Storage
+zu verlagern und nur die Adresse zu speichern, machte die Scheinlisten um
+Faktor 30 leichter — greift aber in einen eingefrorenen Beleg samt Prüfsumme
+ein und ist deshalb nichts, was nebenbei mitläuft. Steht als Vorschlag, nicht
+als Plan.
+
 ## Erledigt: Stunden ohne Buchung — die Bürosicht (08.09.2026)
 
 Nachgereicht zur Leistungszeit: die Lücke, die dort ausdrücklich offen stand.
@@ -1964,8 +2087,9 @@ deshalb wandern sie hierher statt still zu verschwinden:
 - **Lehrlingssatz**: bewusst entfernt, weil kein Eintrag und kein Nutzer die
   Qualifikation trägt. Sauberer Weg wäre eine Qualifikation am Benutzer plus
   ein dritter Abrechnungstopf.
-- **Exporte um Zuschläge erweitern**: Nacht- und Notdienststunden erscheinen
-  noch nicht als eigene Spalten in den Lohn-CSVs.
+- ~~**Exporte um Zuschläge erweitern**~~: erledigt am 08.09.2026 — Nacht und
+  Notdienst stehen jetzt in beiden CSVs und im Stundennachweis, samt der
+  Überschneidung „davon beides". Siehe oben.
 - **Mehrmandantenfähigkeit praktisch erproben**: technisch vorhanden und
   durch Rules-Tests belegt, aber noch nie mit einem zweiten echten Betrieb
   gelaufen.
@@ -1986,7 +2110,7 @@ KI-Erfassung eingeschaltet wird — nicht vorher.
 | Sprach-Erfassung, Teilschreibungen | Schlägt ein Schreibvorgang mitten in der Bestätigung fehl, bleibt ein halber Datensatz zurück |
 | Folgetermine | Werden erfasst und gespeichert, aber nirgends angezeigt |
 | Mikrofon | Läuft nach dem Abbrechen der Aufnahme weiter |
-| Listen ohne Begrenzung | Zeiteinträge werden weiterhin vollständig geladen. Rechnungen sind auf 50 mit „Weitere anzeigen" begrenzt, Bestellungen ebenso |
+| ~~Listen ohne Begrenzung~~ | **Erledigt.** Stand hier zuletzt falsch: alle Abfragen in `timeEntries.ts` sind zeitraumbegrenzt. Übrig ist `listOwnEntriesSince` als Rückfall, wenn die Monatsbilanzen unvollständig sind — je Person, nicht je Betrieb. Eine Doku, die Erledigtes als offen führt, schickt den Nächsten in die Irre |
 
 ## Skalierbarkeit: die Regel und die eine verbleibende Ausnahme
 

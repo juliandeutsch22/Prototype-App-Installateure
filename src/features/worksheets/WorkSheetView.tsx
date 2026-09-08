@@ -11,6 +11,7 @@ import {
   signWorkSheet,
   updateWorkSheetDraft,
   listWorkSheetsForProject,
+  fotosAmEntwurf,
   type NewWorkSheet,
 } from '@/lib/db/workSheets';
 import { fmtMin, todayStr } from '@/lib/time';
@@ -110,7 +111,19 @@ export default function WorkSheetView() {
   */
   const [scheinId, setScheinId] = useState<string | null>(entwurfId);
   /** Die Fotos im Formular — hochgeladen oder noch nicht. Immer freiwillig. */
-  const [fotos, setFotos] = useState<FotoEntwurf[]>([]);
+  const [fotos, setFotosZustand] = useState<FotoEntwurf[]>([]);
+  /*
+    SPIEGEL DER LISTE, damit sie sich AUSSERHALB eines Zustands-Aktualisierers
+    lesen lässt. Die Liste muss nach jedem Upload sofort ans Dokument
+    geschrieben werden; `setFotos((f) => …)` liefert den aktuellen Stand nur
+    innerhalb der Rückrufe, und ein Schreibvorgang von dort wäre ein
+    Seiteneffekt in einer Funktion, die React zweimal aufrufen darf.
+  */
+  const fotosRef = useRef<FotoEntwurf[]>([]);
+  function setFotos(naechste: FotoEntwurf[]) {
+    fotosRef.current = naechste;
+    setFotosZustand(naechste);
+  }
   const [fotoLaeuft, setFotoLaeuft] = useState(false);
   /*
     WELCHE ZEILEN VOR ORT ENTSTANDEN SIND — nach Position in `zeiten`.
@@ -508,14 +521,17 @@ export default function WorkSheetView() {
           daten: klein,
           geraetZeit: Date.now(),
         };
-        setFotos((f) => [...f, eintrag]);
+        setFotos([...fotosRef.current, eintrag]);
         try {
           const id = scheinId ?? (await inhaltSchreiben());
           const oben = await fotoHochladen(user.companyId, id, klein, eintrag.geraetZeit);
-          setFotos((f) => f.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)));
+          setFotos(
+            fotosRef.current.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)),
+          );
+          await festschreiben(id);
         } catch {
-          setFotos((f) =>
-            f.map((x) =>
+          setFotos(
+            fotosRef.current.map((x) =>
               x === eintrag ? { ...x, fehler: 'Nicht hochgeladen — kein Netz?' } : x,
             ),
           );
@@ -535,10 +551,15 @@ export default function WorkSheetView() {
     try {
       const id = scheinId ?? (await inhaltSchreiben());
       const oben = await fotoHochladen(user.companyId, id, eintrag.daten, eintrag.geraetZeit);
-      setFotos((f) => f.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)));
+      setFotos(
+        fotosRef.current.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)),
+      );
+      await festschreiben(id);
     } catch {
-      setFotos((f) =>
-        f.map((x) => (x === eintrag ? { ...x, fehler: 'Immer noch kein Netz.' } : x)),
+      setFotos(
+        fotosRef.current.map((x) =>
+          x === eintrag ? { ...x, fehler: 'Immer noch kein Netz.' } : x,
+        ),
       );
     } finally {
       setFotoLaeuft(false);
@@ -555,9 +576,41 @@ export default function WorkSheetView() {
    * haben, und eine verwaiste Datei im Storage ist sein kleinstes Problem.
    */
   async function fotoWegnehmen(eintrag: FotoEntwurf) {
-    setFotos((f) => f.filter((x) => x !== eintrag));
+    setFotos(fotosRef.current.filter((x) => x !== eintrag));
     URL.revokeObjectURL(eintrag.vorschau);
+    /*
+      ERST AUS DEM DOKUMENT, DANN AUS DEM STORAGE. Andersherum entstünde
+      zwischendurch ein Eintrag, der auf eine gelöschte Datei zeigt — und
+      genau der ginge beim Unterschreiben in die Prüfsumme ein.
+    */
+    if (scheinId) await festschreiben(scheinId);
     if (eintrag.oben) await fotoEntfernen(eintrag.oben.pfad).catch(() => undefined);
+  }
+
+  /**
+   * Die Fotoliste sofort ans Dokument schreiben.
+   *
+   * OHNE DAS ENTSTEHEN WAISEN. Das Bild liegt nach dem Upload im Storage; der
+   * Verweis darauf entstand bisher erst, wenn der Monteur den Entwurf
+   * speicherte. Wer fotografierte und dann das Fenster schloss, hinterliess
+   * eine Datei, auf die kein Dokument zeigt — sie kostet dauerhaft, und es
+   * ist ein Bild aus einer fremden Wohnung ohne Beleg, der seine Aufbewahrung
+   * rechtfertigt.
+   *
+   * STILL, UND DAS IST ABSICHT. Der Monteur hat sein Bild im Formular und
+   * kann weiterarbeiten; ein Fehlerbalken für einen Schreibvorgang, den er
+   * nicht ausgelöst hat, hülfe ihm nicht. Beim Speichern oder Unterschreiben
+   * geht die Liste ohnehin vollständig mit — misslingt es hier, ist es
+   * spätestens dann geheilt.
+   */
+  async function festschreiben(id: string) {
+    // try/catch, nicht `.catch()`: der Aufruf darf auch dann nicht
+    // durchschlagen, wenn er gar nicht erst zu einem Versprechen kommt.
+    try {
+      await fotosAmEntwurf(id, fuerDenSchein(fotosRef.current));
+    } catch {
+      /* still — siehe oben */
+    }
   }
 
   /** Eine vor Ort erfasste Zeile wieder wegnehmen. */

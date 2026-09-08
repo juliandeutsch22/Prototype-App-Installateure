@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentWorkSheets,
+  listSignedWorkSheetsInRange,
   cancelWorkSheet,
   discardWorkSheetDraft,
   restoreWorkSheetDraft,
@@ -51,6 +52,19 @@ const TON: Record<WorkSheet['status'], 'success' | 'gray' | 'danger'> = {
  * Übersicht, sondern der Leitung.
  */
 const SCHEINE_JE_SEITE = 50;
+
+/**
+ * Wie viele Scheine die tiefe Prüfung höchstens holt.
+ *
+ * Dieselbe Rechnung wie oben, nur über einen längeren Zeitraum: rund 70 KB je
+ * unterschriebenem Schein. Hundertfünfzig sind knapp elf Megabyte — viel für
+ * eine Ansicht, vertretbar für einen bewussten Griff am Bürorechner. Wird die
+ * Grenze erreicht, sagt die Karte es; sie schneidet nicht still ab.
+ */
+const PRUEF_GRENZE = 150;
+
+/** Zeiträume, die sich prüfen lassen. */
+const PRUEF_ZEITRAEUME = [30, 90, 365];
 
 export default function WorkSheetsListView() {
   const { user, company } = useAuth();
@@ -133,13 +147,37 @@ export default function WorkSheetsListView() {
   >([]);
   const darfZeitenSehen = user ? canEditTime(user.role) : false;
 
-  /* Der Zeitraum kommt aus den geladenen Scheinen, nicht aus dem Kalender:
+  /*
+    WIE WEIT DIE PRÜFUNG ZURÜCKREICHT — und warum das eine Wahl ist.
+
+    Zuerst über die Scheine, die die Liste ohnehin geladen hat: das kostet
+    keine zusätzliche Abfrage und deckt den Alltag ab. Gerade der ALTE Schein
+    ist aber der teure — was vier Monate zurückliegt, bucht niemand mehr von
+    selbst nach, und der lag ausserhalb der geladenen fünfzig.
+
+    Weiter zurück wird deshalb auf Anforderung geprüft, nicht bei jedem
+    Aufruf. Ein unterschriebener Schein trägt zwei Unterschriftsbilder als PNG
+    im Dokument, rund 70 KB je Stück; ein Jahr wären schnell zwanzig
+    Megabyte. Das ist als bewusster Griff des Büros vertretbar, als stiller
+    Nebeneffekt beim Öffnen eines Reiters nicht.
+  */
+  const [tiefePruefung, setTiefePruefung] = useState<number | null>(null);
+  const [tiefeScheine, setTiefeScheine] = useState<WithId<WorkSheet>[] | null>(null);
+  const [pruefungLaeuft, setPruefungLaeuft] = useState(false);
+
+  /** Die Scheine, über die geprüft wird: die tiefe Prüfung schlägt die Liste. */
+  const pruefBasis = tiefeScheine ?? scheine;
+
+  /* Der Zeitraum für die Buchungen folgt der Prüfbasis, nicht dem Kalender:
      ein fester Monat holte entweder zu wenig oder viel zu viel. */
   const zeitraum = useMemo(() => {
-    const tage = scheine.filter((s) => s.status === 'Unterschrieben').map((s) => s.datum).sort();
+    const tage = pruefBasis
+      .filter((s) => s.status === 'Unterschrieben')
+      .map((s) => s.datum)
+      .sort();
     if (tage.length === 0) return null;
     return { von: tage[0], bis: tage[tage.length - 1] };
-  }, [scheine]);
+  }, [pruefBasis]);
 
   useEffect(() => {
     if (!user || !darfZeitenSehen || !zeitraum) {
@@ -163,9 +201,30 @@ export default function WorkSheetsListView() {
     };
   }, [user, darfZeitenSehen, zeitraum]);
 
+  /** Weiter zurück prüfen — auf Anforderung, mit gewähltem Zeitraum. */
+  async function tieferPruefen(tage: number) {
+    if (!user) return;
+    setPruefungLaeuft(true);
+    try {
+      const bis = todayStr();
+      const von = new Date(Date.parse(`${bis}T00:00:00Z`) - tage * 86_400_000)
+        .toISOString()
+        .slice(0, 10);
+      setTiefeScheine(await listSignedWorkSheetsInRange(user.companyId, von, bis, PRUEF_GRENZE));
+      setTiefePruefung(tage);
+    } catch {
+      // Auch hier still: die Liste darunter bleibt benutzbar. Der Zustand
+      // bleibt auf dem alten Stand, statt fälschlich „nichts offen" zu sagen.
+      setTiefeScheine(null);
+      setTiefePruefung(null);
+    } finally {
+      setPruefungLaeuft(false);
+    }
+  }
+
   const ohneBuchung = useMemo(
-    () => (darfZeitenSehen ? scheineOhneBuchung(scheine, buchungen, todayStr()) : []),
-    [darfZeitenSehen, scheine, buchungen],
+    () => (darfZeitenSehen ? scheineOhneBuchung(pruefBasis, buchungen, todayStr()) : []),
+    [darfZeitenSehen, pruefBasis, buchungen],
   );
 
   const verworfene = useMemo(
@@ -234,16 +293,24 @@ export default function WorkSheetsListView() {
       </Card>
 
       {/*
-        DIE KARTE ERSCHEINT NUR, WENN ES ETWAS ZU TUN GIBT — und nur für das
-        Büro. Ein leerer Kasten „alles gebucht" wäre eine Zeile, die jeden Tag
-        dasteht und nie gelesen wird; fehlt sie, ist nichts offen.
+        NUR FÜRS BÜRO — `canEditTime` ist die Rolle, die fremde Zeiteinträge
+        lesen UND anlegen darf. Für alle anderen wäre die Karte eine Liste
+        ohne Handhabe.
+
+        SIE STEHT AUCH DA, WENN NICHTS OFFEN IST, und das ist eine Abkehr von
+        der ersten Fassung. Damals war sie ein reiner Befund, und ein leerer
+        Kasten „alles gebucht" wäre Rauschen gewesen. Jetzt trägt sie eine
+        HANDLUNG: weiter zurück prüfen. Verschwände sie bei null Befunden,
+        gäbe es keinen Weg mehr zu der Prüfung, die den alten — und damit
+        teuren — Schein überhaupt erst findet. Ohne Befund bleibt sie
+        entsprechend knapp.
 
         Sie steht ÜBER der Scheinliste, weil sie eine Frist hat: eine Stunde,
         die niemand bucht, wird nie verrechnet und fehlt zugleich in der
         Arbeitszeitaufzeichnung nach § 26 AZG. Das ist dringender als das
         Nachschlagen eines Belegs.
       */}
-      {ohneBuchung.length > 0 && (
+      {darfZeitenSehen && (
         <Card
           title={`Stunden ohne Buchung (${ohneBuchung.length})`}
           hint={
@@ -286,9 +353,19 @@ export default function WorkSheetsListView() {
               nicht „nicht gebucht".
               <br />
               <br />
-              <strong>Woher die Daten stammen.</strong> Aus den unten geladenen Scheinen und den
-              Zeiteinträgen desselben Zeitraums. Wer weiter zurückschauen will, lädt unten
-              weitere Scheine nach — die Prüfung wandert mit.
+              <strong>Woher die Daten stammen.</strong> Zunächst aus den unten geladenen
+              Scheinen und den Zeiteinträgen desselben Zeitraums — das kostet keine zusätzliche
+              Abfrage. Mit „Weiter zurück prüfen" wird stattdessen gezielt über alle
+              unterschriebenen Scheine des gewählten Zeitraums geprüft; darüber steht jedes Mal,
+              worauf sich das Ergebnis stützt.
+              <br />
+              <br />
+              <strong>Warum das nicht automatisch passiert.</strong> Ein unterschriebener Schein
+              trägt zwei Unterschriftsbilder im Dokument, rund 70 KB je Stück — ein Jahr wären
+              schnell zwanzig Megabyte. Als bewusster Griff am Bürorechner ist das in Ordnung,
+              als stiller Nebeneffekt beim Öffnen eines Reiters nicht. Aus demselben Grund holt
+              die Prüfung höchstens {PRUEF_GRENZE} Scheine; wird die Grenze erreicht, steht es
+              da, statt still zu wirken.
             </>
           }
         >
@@ -298,6 +375,47 @@ export default function WorkSheetsListView() {
               beim Kunden und in keiner Zeiterfassung.
             </p>
           )}
+
+          {/*
+            WORAUF SICH DIE PRÜFUNG STÜTZT, steht sichtbar da — sonst hiesse
+            „nichts offen" mal „im letzten Monat" und mal „im letzten Jahr",
+            ohne dass es jemand unterscheiden könnte.
+          */}
+          <p className="mb-3 text-xs text-ink-muted">
+            {tiefePruefung
+              ? `Geprüft über die letzten ${tiefePruefung} Tage (${pruefBasis.length} unterschriebene Scheine).`
+              : `Geprüft über die ${scheine.length} geladenen Scheine dieser Liste.`}
+            {tiefeScheine && tiefeScheine.length >= PRUEF_GRENZE && (
+              <>
+                {' '}
+                <strong className="text-warning">
+                  Die Grenze von {PRUEF_GRENZE} Scheinen ist erreicht — ältere sind nicht dabei.
+                </strong>
+              </>
+            )}
+          </p>
+
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-sm text-ink-muted">Weiter zurück prüfen:</span>
+            {PRUEF_ZEITRAEUME.map((tage) => (
+              <Button
+                key={tage}
+                variant={tiefePruefung === tage ? 'primary' : 'secondary'}
+                disabled={pruefungLaeuft}
+                onClick={() => void tieferPruefen(tage)}
+              >
+                {tage === 365 ? '1 Jahr' : `${tage} Tage`}
+              </Button>
+            ))}
+            {pruefungLaeuft && <span className="text-sm text-ink-muted">Wird geprüft …</span>}
+          </div>
+
+          {ohneBuchung.length === 0 && (
+            <EmptyState>
+              Zu jeder Stunde auf diesen Scheinen gibt es eine Buchung in der Zeiterfassung.
+            </EmptyState>
+          )}
+
           <List>
             {ohneBuchung.map(({ schein, zeilen, tage }) => (
               <ListRow
