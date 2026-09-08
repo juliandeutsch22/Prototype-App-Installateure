@@ -28,7 +28,7 @@ unterscheidet drei Stufen:
 | **Zeiterfassung** | Tag buchen: Status, Von–Bis, Pause, Baustelle, Zuschläge. Schlank für das Büro, voll für den Monteur. | alle (eigene); Buchhaltung/GF auch fremde | `timeEntries` | Rechnung (44), Emulator (Rechte), Ansicht (8) | Der Ansichtstest prüft die Verdrahtung — welcher Weg zum Saldo, verrechnete Einträge gesperrt —, nicht das Formular |
 | **Mein Einsatzplan** | Monatskalender der eigenen Einsätze, Kontaktdaten, Sprung zu Zeit und Schein | Mitarbeiter | `assignments`, `projects`, `vacations` | Ansicht (5) | — |
 | **Meine Baustellen** | Die Baustellen, denen der Monteur zugeordnet ist, mit Route und Telefonnummer | Mitarbeiter | `projects` | Ansicht (7) | Abgeschlossene fallen heraus, pausierte bleiben; ein fehlender Ansprechpartner wird angemahnt statt verschwiegen |
-| **Material anfordern** | Warenkorb, Eilzustellung, eigene Anforderungen | Mitarbeiter, Verwaltung, Leitung | `materials`, `materialOrders` | Rechnung (25, Meldungen), Ansicht (21) | Lagerabzug nur im Code geprüft, nicht gegen eine echte Transaktion |
+| **Material anfordern** | Warenkorb, Eilzustellung, eigene Anforderungen | Mitarbeiter, Verwaltung, Leitung | `materials`, `materialOrders` | Rechnung (25, Meldungen), Ansicht (21), **Durchstich (7, echte Transaktion)** | Der Lagerabzug läuft jetzt gegen einen echten Firestore — auch **zwei gleichzeitige** Abschlüsse derselben Anforderung, der Fall, den kein Ersatz-Firestore prüfen kann |
 | **Urlaub** | Beantragen, entscheiden, Stand sehen. Genehmigung schreibt die Tage ins Zeitkonto. | alle (Antrag); Entscheider laut Einstellung | `vacations`, `timeEntries`, `companies` | Emulator (18), Rechnung (15), Ansicht (15), Function (28), Durchstich (3) | Die Tage der ECHTEN Function laufen durch die ECHTE Saldorechnung — die Naht ist geprüft, nicht nur die beiden Hälften |
 | **Handwerksscheine** | Zeiten vorausfüllen, Material von Hand erfassen, als Entwurf sichern und wieder öffnen, Entwurf verwerfen und zurückholen, unterschreiben, einfrieren, Storno mit Grund, PDF | Mitarbeiter, Büro, Leitung | `workSheets`, `timeEntries` (serverseitig) | Emulator (Regeln + 3 Durchstiche + 9 Zustandsübergänge), Rechnung (4), Ansicht (22), Liste (14), PDF-Zustand (3), Nutzlast (3) | ein verworfener Entwurf bleibt in der Datenbank — gelöscht wird kein Schein (`allow delete: if false`), das schützt den unterschriebenen Beleg |
 
@@ -40,7 +40,7 @@ unterscheidet drei Stufen:
 | **Angebote** | Positionen kalkulieren, Arbeitszeit getrennt ausweisen, beim Annehmen Baustelle mit Stundenbudget anlegen | Buchhaltung, Leitung | `quotes`, `projects`, `counters` | Ansicht (3), Emulator (Zähler: steigend, Neubeginn nur zum Jahreswechsel) | — |
 | **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget; **Übersicht je Baustelle** (Stunden über die ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter) | Leitung | `projects`, `timeEntries` | Ansicht (8), Übersicht (8) | Der Kundenname kommt aus dem Stammsatz; leeres Stundenbudget bleibt leer statt 0. Die Übersicht zeigt **kein Geld** — Erlös und Marge bleiben in der Nachkalkulation |
 | **Anforderungen** | Eingehende Materialanforderungen bearbeiten, Status setzen | Verwaltung, Leitung | `materialOrders` | Rechnung (Meldungen), Ansicht (14) | — |
-| **Lager** | Bestand, Mindestmenge, Katalogpflege mit Verkaufs- und **Einkaufspreis** | Verwaltung, Leitung; **Einkaufspreis nur GF/Admin** | `materials` | Emulator (15: wer pflegen darf, wer den Einkaufspreis setzt), Ansicht (12 + 5 Katalog) | Bestandsabzug per Transaktion ungetestet. Die Grenze beim Einkaufspreis läuft zwischen den FELDERN, nicht zwischen den Ansichten — sie schützt das Ändern, **nicht das Lesen**: Firestore gibt ein Dokument ganz oder gar nicht heraus |
+| **Lager** | Bestand, Mindestmenge, Katalogpflege mit Verkaufs- und **Einkaufspreis** | Verwaltung, Leitung; **Einkaufspreis nur GF/Admin** | `materials` | Emulator (15: wer pflegen darf, wer den Einkaufspreis setzt), Ansicht (12 + 5 Katalog), Durchstich (7) | Der Bestandsabzug ist jetzt gegen eine **echte Transaktion** geprüft, gleichzeitige Zugriffe eingeschlossen. Die Grenze beim Einkaufspreis läuft zwischen den FELDERN, nicht zwischen den Ansichten — sie schützt das Ändern, **nicht das Lesen**: Firestore gibt ein Dokument ganz oder gar nicht heraus |
 | **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | Emulator (4: wer planen darf), Ansicht (8) | Geprüft ist auch der gefährliche Teil: eine vorhandene Planung kommt ins Formular, statt beim Speichern gelöscht zu werden |
 | **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie), Ansicht (18) | — |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8), Ansicht (6) | — |
@@ -83,17 +83,17 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1457 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1478 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | **Cloud Functions mit ersetztem Firestore** | **109** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
-| **Statischer Abgleich** (Indizes, Navigation ↔ Routen, Exportumfang, Pflichtfelder) | **107** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
+| **Statischer Abgleich** (Indizes **inkl. Cloud Functions**, Navigation ↔ Routen, Exportumfang, Pflichtfelder) | **121** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | **Service Worker in einer Sandbox** | **20** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
 | Reine Rechnung (der Rest von `tests/unit`) | 563 | Hoch für die Formeln, **null** für die App |
 | Ansichten, Datenbank ersetzt | 458 | Findet Bedienfehler, **keine** Datenfehler |
-| *Zusammen `npm test`* | *1257* | |
-| Regeltests gegen den Emulator (`npm run rules:test`) | 200 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
+| *Zusammen `npm test`* | *1271* | |
+| Regeltests gegen den Emulator (`npm run rules:test`) | 207 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 
 > Die Tabelle ADDIERT SICH, und das ist Absicht: eine Aufschlüsselung, in der
 > Zeilen fehlen, liest sich wie eine vollständige und ist keine. Die
@@ -454,9 +454,49 @@ festgehalten:
    > Rechnung nicht mehr kennt. Genau dafür ist die Zusage da, und genau so
    > steht der Test jetzt da.
 
-7. **Was weiterhin offen bleibt:** Nebenläufigkeit (zwei Läufe auf demselben
-   Dokument), die echten Firestore-Indizes im Function-Pfad, und die
-   KI-Spracherfassung jenseits ihrer Entscheidungslogik.
+7. **Zwei dieser Lücken sind am 07.09.2026 geschlossen worden.**
+
+   **Nebenläufigkeit** — jedenfalls dort, wo sie am teuersten war: der
+   Lagerabzug läuft jetzt als Durchstich gegen einen echten Firestore, mit
+   zwei GLEICHZEITIGEN Abschlüssen derselben Anforderung. Der Fall ist keine
+   Theorie: Verwaltung und Projektleitung arbeiten dieselbe Liste ab, oft am
+   selben Vormittag; ohne Transaktion ginge der Bestand zweimal herunter, und
+   beide Klicks meldeten Erfolg.
+
+   > **Und der Test verdient seinen Platz.** Ersetzt man die Transaktion durch
+   > ein schlichtes Lesen-dann-Schreiben, bleibt die Gegenprobe „zweimal
+   > nacheinander" GRÜN — das `processed`-Flag steht beim zweiten Klick ja
+   > schon. Nur der gleichzeitige Fall fällt durch. Genau dafür ist er da.
+
+   **Die Firestore-Indizes im Function-Pfad**: der statische Index-Abgleich
+   liest jetzt auch `functions/src`. Eine Function-Abfrage ohne Index
+   scheitert in Produktion ins Protokoll, das niemand liest — der Bilanzlauf
+   bliebe still stehen. Der Emulator hilft dort nicht, er legt Indizes selbst
+   an.
+
+   > **Dabei ist eine Regel korrigiert worden.** Der Abgleich verlangte einen
+   > zusammengesetzten Index, sobald eine Abfrage mehr als ein Feld
+   > einschränkt. Für `lib/db` fiel das nie auf, weil dort ohnehin überall
+   > einer steht. Auf die Functions angewandt meldete er zwei Abfragen als
+   > indexlos, die einwandfrei laufen: Firestore bedient mehrere
+   > GLEICHHEITSfilter aus den Einzelfeld-Indizes. Die Regel hätte zwei
+   > Indizes erzwungen, die bei jedem Schreibvorgang in `users` Leistung
+   > kosten und nie gebraucht würden. Jetzt zählt, was über Gleichheit
+   > hinausgeht — Bereich, `array-contains`, Sortierung.
+
+   **Nebenbei gefunden, nicht behoben:** zwei Indizes, die keine Abfrage mehr
+   braucht — `invoices: companyId + invoiceNumber` und `materials: companyId +
+   name`. Sie kosten bei jedem Schreibvorgang in diese Sammlungen Leistung.
+   Entfernt sind sie NICHT: einen Index zu löschen wirkt sofort in Produktion,
+   und wenn doch etwas darauf zugreift, das der Abgleich nicht sieht, steht
+   die Ansicht leer da. Das gehört mit Blick auf die echte Datenbank
+   entschieden, nicht nebenbei.
+
+8. **Was weiterhin offen bleibt:** Nebenläufigkeit ausserhalb des Lagerabzugs
+   (zwei Läufe auf derselben Monatsbilanz), der Beweis, dass die nächtlichen
+   Auslöser in Produktion tatsächlich feuern — dafür gibt es seit Ü1 die
+   Überwachung, die es MELDET, aber keinen Test, der es vorher zusichert —,
+   und die KI-Spracherfassung jenseits ihrer Entscheidungslogik.
 
 ## Eine Ungereimtheit, die noch offen ist
 

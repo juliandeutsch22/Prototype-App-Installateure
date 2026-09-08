@@ -111,6 +111,7 @@ const rechnungenDb = await import('@/lib/db/invoices');
 const scheineDb = await import('@/lib/db/workSheets');
 const einsaetzeDb = await import('@/lib/db/assignments');
 const ruestDb = await import('@/lib/db/einsatzMaterial');
+const anforderungenDb = await import('@/lib/db/materialOrders');
 const urlaubeDb = await import('@/lib/db/vacations');
 const { calcOverallSaldo, offeneWerktage, urlaubsTage, calcWorkMin, groupProjectHours } = await import('@/lib/time');
 const { bilanzAusEintraegen } = await import('@shared/monatsbilanz');
@@ -819,5 +820,155 @@ describe('Durchstich 6: mehrere Baustellen an einem Tag', () => {
     const alle = (await zeiten.listEntriesInRange(FIRMA, '2026-06-01', '2026-06-30'))
       .filter((e) => e.userId === MONTEUR) as TimeEntry[];
     expect(bilanzAusEintraegen('2026-06', alle).urlaubTage).toBe(1);
+  });
+});
+
+/**
+ * Durchstich: die Anforderung bewegt den Lagerbestand — genau einmal.
+ *
+ * WARUM DAS EINEN ECHTEN FIRESTORE BRAUCHT. Der Lagerabzug läuft in einer
+ * Firestore-TRANSAKTION. Ein Ersatz-Firestore kann sie nachbauen, aber nicht
+ * das, wofür sie da ist: dass zwei gleichzeitige Zugriffe sich nicht in die
+ * Quere kommen. Genau dieser Fall stand bis jetzt in der Funktionsübersicht
+ * als „nur im Code geprüft, nicht gegen eine echte Transaktion".
+ *
+ * Er ist keine Theorie: Verwaltung und Projektleitung arbeiten dieselbe
+ * Anforderungsliste ab, oft am selben Vormittag. Klicken beide „Erledigt",
+ * ginge der Bestand ohne Absicherung zweimal herunter — und niemandem fiele
+ * es auf, weil beide Klicks Erfolg melden.
+ */
+describe('Durchstich 6: Anforderung → Lager', () => {
+  const ARTIKEL = 'kupfer15';
+
+  async function lagerAufbauen(stand: number) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'materials', ARTIKEL), {
+        companyId: FIRMA, name: 'Kupferrohr 15mm', stock: stand, unit: 'm',
+      });
+    });
+  }
+
+  const bestand = async () => {
+    let wert = -1;
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const snap = await getDoc(doc(ctx.firestore(), 'materials', ARTIKEL));
+      wert = (snap.data() as { stock: number }).stock;
+    });
+    return wert;
+  };
+
+  it('zieht beim Abschliessen genau die angeforderte Menge ab', async () => {
+    await lagerAufbauen(20);
+    aktuelleDb = alsMonteur();
+    const id = await anforderungenDb.createMaterialOrder(FIRMA, {
+      materialId: ARTIKEL, materialName: 'Kupferrohr 15mm', quantity: 8,
+      userId: MONTEUR, userName: MITARBEITER.name,
+      status: 'Offen', transactionType: 'order',
+    });
+
+    aktuelleDb = alsGF();
+    await anforderungenDb.updateOrderStatus(id, 'Erledigt');
+    expect(await bestand()).toBe(12);
+  });
+
+  /*
+    DER GRUND FÜR DIE TRANSAKTION. Zweimal „Erledigt" auf derselben
+    Anforderung darf den Bestand einmal bewegen. Das `processed`-Flag wird IN
+    der Transaktion gelesen und gesetzt — ein Blick davor genügte nicht, weil
+    zwischen Blick und Schreibvorgang der andere Klick liegt.
+  */
+  it('zieht bei zwei gleichzeitigen Abschlüssen nur einmal ab', async () => {
+    await lagerAufbauen(20);
+    aktuelleDb = alsMonteur();
+    const id = await anforderungenDb.createMaterialOrder(FIRMA, {
+      materialId: ARTIKEL, materialName: 'Kupferrohr 15mm', quantity: 8,
+      userId: MONTEUR, userName: MITARBEITER.name,
+      status: 'Offen', transactionType: 'order',
+    });
+
+    aktuelleDb = alsGF();
+    await Promise.all([
+      anforderungenDb.updateOrderStatus(id, 'Erledigt'),
+      anforderungenDb.updateOrderStatus(id, 'Erledigt'),
+    ]);
+    expect(await bestand()).toBe(12);
+  });
+
+  it('zieht auch nacheinander nicht zweimal ab', async () => {
+    // Derselbe Schutz, aber der alltäglichere Weg: jemand klickt nochmal,
+    // weil die Liste sich langsam aktualisiert hat.
+    await lagerAufbauen(20);
+    aktuelleDb = alsMonteur();
+    const id = await anforderungenDb.createMaterialOrder(FIRMA, {
+      materialId: ARTIKEL, materialName: 'Kupferrohr 15mm', quantity: 8,
+      userId: MONTEUR, userName: MITARBEITER.name,
+      status: 'Offen', transactionType: 'order',
+    });
+
+    aktuelleDb = alsGF();
+    await anforderungenDb.updateOrderStatus(id, 'Erledigt');
+    await anforderungenDb.updateOrderStatus(id, 'Erledigt');
+    expect(await bestand()).toBe(12);
+  });
+
+  /*
+    EIN NEGATIVER LAGERSTAND IST KEINE AUSSAGE ÜBER EIN LAGER, sondern ein
+    Zeichen, dass die Buchführung nicht mehr stimmt. Die ehrliche Null fällt
+    im Bestand sofort als „knapp" auf; minus vier sähe aus wie eine Zahl.
+  */
+  it('bleibt bei null stehen, statt ins Minus zu laufen', async () => {
+    await lagerAufbauen(3);
+    aktuelleDb = alsMonteur();
+    const id = await anforderungenDb.createMaterialOrder(FIRMA, {
+      materialId: ARTIKEL, materialName: 'Kupferrohr 15mm', quantity: 7,
+      userId: MONTEUR, userName: MITARBEITER.name,
+      status: 'Offen', transactionType: 'order',
+    });
+
+    aktuelleDb = alsGF();
+    await anforderungenDb.updateOrderStatus(id, 'Erledigt');
+    expect(await bestand()).toBe(0);
+  });
+
+  it('bewegt nichts, solange die Anforderung offen oder abholbereit ist', async () => {
+    await lagerAufbauen(20);
+    aktuelleDb = alsMonteur();
+    const id = await anforderungenDb.createMaterialOrder(FIRMA, {
+      materialId: ARTIKEL, materialName: 'Kupferrohr 15mm', quantity: 8,
+      userId: MONTEUR, userName: MITARBEITER.name,
+      status: 'Offen', transactionType: 'order',
+    });
+
+    aktuelleDb = alsGF();
+    await anforderungenDb.updateOrderStatus(id, 'Abholbereit');
+    expect(await bestand()).toBe(20);
+  });
+
+  /*
+    BELEG UND GUTSCHRIFT IN EINEM SCHRITT. Vorher wurde erst der Beleg
+    geschrieben und danach der Bestand gutgeschrieben. Scheiterte der zweite
+    Vorgang, stand der Beleg schon da — und wer es noch einmal versuchte,
+    legte einen ZWEITEN Beleg an.
+  */
+  it('bucht eine Retoure in neuem Zustand zurück', async () => {
+    await lagerAufbauen(12);
+    aktuelleDb = alsMonteur();
+    await anforderungenDb.createReturn(FIRMA, {
+      materialId: ARTIKEL, materialName: 'Kupferrohr 15mm', quantity: 5,
+      userId: MONTEUR, userName: MITARBEITER.name, condition: 'neu',
+    });
+    expect(await bestand()).toBe(17);
+  });
+
+  it('bucht beschädigtes Material NICHT zurück', async () => {
+    // Es liegt im Regal, ist aber nicht verkäuflich. Stünde es im Bestand,
+    // sagte jemand es einer Baustelle zu.
+    await lagerAufbauen(12);
+    aktuelleDb = alsMonteur();
+    await anforderungenDb.createReturn(FIRMA, {
+      materialId: ARTIKEL, materialName: 'Kupferrohr 15mm', quantity: 5,
+      userId: MONTEUR, userName: MITARBEITER.name, condition: 'beschädigt',
+    });
+    expect(await bestand()).toBe(12);
   });
 });

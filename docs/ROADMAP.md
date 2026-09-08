@@ -1113,6 +1113,77 @@ Geprüft: neun Tests plus der Durchlauf im Browser — der Zustand ohne
 Kostensätze, das Setzen (Deckungsbeitrag 23,00 € je Stunde bei 65 gegen 42),
 und alle drei Erlösquellen nebeneinander.
 
+## Erledigt: Zwei Lücken, die die Übersicht selbst benannt hat (07.09.2026)
+
+In der Funktionsübersicht standen sie seit Monaten als offen: **Nebenläufigkeit**
+und **die echten Firestore-Indizes im Function-Pfad**. Beide sind jetzt
+geschlossen — die eine ganz, die andere dort, wo sie am teuersten war.
+
+### Der Lagerabzug gegen eine echte Transaktion
+
+Der Abzug lief schon immer in einer Firestore-Transaktion, geprüft war er nur
+gegen einen Ersatz-Firestore. Der kann eine Transaktion nachbauen, aber nicht
+das, wofür sie da ist: dass zwei gleichzeitige Zugriffe sich nicht in die
+Quere kommen.
+
+Der Fall ist keine Theorie. Verwaltung und Projektleitung arbeiten dieselbe
+Anforderungsliste ab, oft am selben Vormittag. Klicken beide „Erledigt", ginge
+der Bestand ohne Absicherung zweimal herunter — und **niemandem fiele es auf**,
+weil beide Klicks Erfolg melden.
+
+Sieben Durchstiche gegen den Emulator: Abzug, zweimal nacheinander, zweimal
+gleichzeitig, Stopp bei null statt Minus, kein Abzug bei „Abholbereit",
+Retoure in neuem Zustand zurückgebucht, beschädigte Ware nicht.
+
+> **Der gleichzeitige Fall verdient seinen eigenen Test.** Ersetzt man die
+> Transaktion durch ein schlichtes Lesen-dann-Schreiben, bleibt „zweimal
+> nacheinander" grün — das `processed`-Flag steht beim zweiten Klick ja schon.
+> Nur der gleichzeitige fällt durch. Das habe ich ausprobiert, nicht
+> angenommen.
+
+### Der Index-Abgleich liest jetzt auch die Cloud Functions
+
+Er sah bisher nur `src/lib/db`. Die Functions fragen Firestore genauso ab, mit
+dem Admin-SDK und derselben Indexpflicht — und ihr Ausfall ist der stillere:
+eine Function scheitert ins Protokoll, das niemand liest, und die Bilanzen
+blieben stehen. Der Emulator hilft nicht, er legt Indizes bei Bedarf selbst an.
+
+**Dabei ist eine Regel korrigiert worden, und das ist die eigentliche
+Geschichte.** Der Abgleich verlangte einen zusammengesetzten Index, sobald
+eine Abfrage mehr als ein Feld einschränkt. Für `lib/db` fiel das nie auf,
+weil dort ohnehin überall einer steht. Auf die Functions angewandt meldete er
+sofort zwei Abfragen als indexlos — `users` auf `companyId + uid` und
+`companyId + role`. Beide laufen einwandfrei: Firestore bedient mehrere
+GLEICHHEITSfilter aus den Einzelfeld-Indizes, die es für jedes Feld ohnehin
+anlegt.
+
+Die bequeme Antwort wäre gewesen, die zwei Indizes anzulegen und weiterzugehen.
+Sie kosteten dann bei jedem Schreibvorgang in `users` Leistung, für nichts —
+und der Test nebenan warnt ausdrücklich vor Indizes auf Vorrat. Also zählt
+jetzt, was über Gleichheit hinausgeht: Bereich, `array-contains`, Sortierung.
+Zwei Tests halten beide Seiten der Regel fest, damit die Lockerung nicht beim
+nächsten Mal weiter gelockert wird.
+
+> Die Gegenprobe hat mir dabei noch eine Lücke gezeigt: eine Fassung, die
+> Bereichsoperatoren nicht mehr beachtet, rutschte zunächst durch — kein Test
+> verlangte, dass die Abfrage des Bilanzlaufs indexpflichtig IST. Jetzt tut es
+> einer.
+
+### Nebenbei gefunden, bewusst nicht behoben
+
+Zwei Indizes, die keine Abfrage mehr braucht: `invoices: companyId +
+invoiceNumber` und `materials: companyId + name`. Sie kosten Schreibleistung.
+Entfernt sind sie nicht — einen Index zu löschen wirkt sofort in Produktion,
+und greift doch etwas darauf zu, das der Abgleich nicht sieht, steht die
+Ansicht leer da. Das gehört mit Blick auf die echte Datenbank entschieden.
+
+### Was offen bleibt
+
+Der Beweis, dass die nächtlichen Auslöser in Produktion tatsächlich feuern.
+Dafür gibt es seit Ü1 die Überwachung — sie MELDET einen ausgefallenen Lauf,
+aber kein Test sichert vorher zu, dass er läuft. Ein Cloud-Scheduler-Eintrag
+lässt sich von hier aus nicht prüfen, nur beobachten.
+
 ## Erledigt: Der Mahnlauf (07.09.2026)
 
 Das Mahnen gab es schon — als Menüpunkt an der einzelnen Rechnung. Die Stufen
