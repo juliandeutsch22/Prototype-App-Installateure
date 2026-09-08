@@ -52,6 +52,12 @@ const GRENZ_MUSTER = [
   /limit\(/,
   /where\(\s*'date'\s*,\s*'>=?'/,
   /where\(\s*'date'\s*,\s*'=='/,
+  // Das RECHNUNGSdatum ist dieselbe Art Grenze wie `date`, nur heisst das
+  // Feld auf der Rechnung anders. Der Buchhaltungs-Export holt darüber
+  // seinen Zeitraum — der Zeitraum IST seine Grenze, und ein `limit` wäre
+  // dort sogar schädlich: ein Journal, das stillschweigend bei tausend
+  // Rechnungen aufhört, ist genau der Fehler, den diese Abfrage behebt.
+  /where\(\s*'invoiceDate'\s*,\s*'>=?'/,
   // Monatsbilanzen sind ueber einen Monatsbereich begrenzt — dieselbe Art
   // Grenze wie ein Datumsbereich, nur eine Stufe groeber.
   /where\(\s*'monat'\s*,\s*'>=?'/,

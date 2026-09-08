@@ -8,6 +8,8 @@ import {
   persistentSingleTabManager,
   disableNetwork,
   enableNetwork,
+  getPersistentCacheIndexManager,
+  enablePersistentCacheIndexAutoCreation,
 } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
@@ -102,6 +104,42 @@ function createDb() {
 }
 
 export const db = createDb();
+
+/**
+ * Der Zwischenspeicher legt seine Indizes selbst an.
+ *
+ * DAS IST DIE STELLE, AN DER DIESE APP MIT DEN JAHREN TRÄGE GEWORDEN WÄRE.
+ * Serverseitig hängt die Antwortzeit von Firestore an der ERGEBNISgrösse, nicht
+ * an der Sammlungsgrösse — „die letzten fünfzig Rechnungen" ist bei
+ * hunderttausend genauso schnell wie bei hundert. Im lokalen Zwischenspeicher
+ * gilt das NICHT von selbst: ohne Index durchsucht das SDK dort den
+ * zwischengespeicherten Bestand der Sammlung, und der wächst mit jedem Monat,
+ * den ein Betrieb die App benutzt.
+ *
+ * Genau das ist die Bremse, die man für „zu viel Offline-Speicher" hält. Die
+ * naheliegende Antwort — den Speicher kleiner machen — wäre die falsche: sie
+ * nähme dem Monteur im Keller die Daten weg und liesse die Abfrage trotzdem
+ * suchen. Die richtige ist, das Suchen überflüssig zu machen.
+ *
+ * `enablePersistentCacheIndexAutoCreation` überlässt dem SDK die Entscheidung,
+ * WELCHE Indizes es anlegt: es beobachtet, welche Abfragen tatsächlich laufen.
+ * Eine Liste von Hand gepflegter Indizes wäre eine zweite Wahrheit neben
+ * `firestore.indexes.json` — und die beiden liefen auseinander.
+ *
+ * Ohne dauerhaften Zwischenspeicher (privates Fenster, blockierte
+ * Website-Daten) gibt es nichts zu indizieren; dann steht hier `null` und es
+ * bleibt beim bisherigen Verhalten.
+ */
+function cacheIndizesEinschalten(): void {
+  try {
+    const verwalter = getPersistentCacheIndexManager(db);
+    if (verwalter) enablePersistentCacheIndexAutoCreation(verwalter);
+  } catch {
+    // Eine Beschleunigung, die beim Einrichten scheitert, darf die App nicht
+    // aufhalten — sie lief bisher auch ohne.
+  }
+}
+cacheIndizesEinschalten();
 export const functions = getFunctions(app, FUNCTIONS_REGION);
 
 // Im Dev-Modus optional gegen die lokalen Emulatoren laufen.

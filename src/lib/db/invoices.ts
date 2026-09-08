@@ -38,6 +38,16 @@ const COLLECTION = 'invoices';
  * — wird die Liste lang, hat der Betrieb ein anderes Problem als die
  * Ladezeit.
  */
+/*
+  ER TRÄGT SEIT DEM 08.09.2026 AUCH DEN MAHNLAUF. Der lief vorher über die
+  Rechnungs-Arbeitsliste, und die schneidet nach Anlagedatum ab — damit sah er
+  ausgerechnet die Forderungen NICHT, die am längsten offen sind. Die ältesten
+  fallen als erste aus einer solchen Liste.
+
+  Eine zweite Abfrage dafür wäre eine zweite Wahrheit über denselben Zustand
+  gewesen. Diese hier ist ohne Zeitgrenze und von Natur aus klein: offene
+  Forderungen sind der Ausnahmezustand, nicht der Bestand.
+*/
 export function listUnpaidInvoices(companyId: string) {
   return queryTenant<Invoice>(
     COLLECTION,
@@ -67,6 +77,38 @@ export function subscribeRecentInvoices(
     onError,
     orderBy('createdAt', 'desc'),
     limit(max),
+  );
+}
+
+/**
+ * Die Rechnungen EINES ZEITRAUMS — nach Rechnungsdatum.
+ *
+ * WARUM DAS NICHT AUS DER LISTE KOMMEN DARF. Der Buchhaltungs-Export filterte
+ * bisher die geladene Rechnungsliste nach Datum. Die ist aber eine
+ * Arbeitsliste mit Obergrenze: voreingestellt die fünfzig jüngsten. Ein
+ * Export für einen Monat, der weiter zurückliegt, lieferte damit eine LEERE
+ * Datei — und zwar eine, die wie ein erfolgreicher Export aussah, mit „0
+ * Rechnungen" und ohne einen einzigen Hinweis.
+ *
+ * Schlimmer noch war die Lückenprüfung im Nummernkreis: sie meldete Lücken,
+ * die keine sind, weil die fehlenden Nummern schlicht nicht geladen waren.
+ * Ein Befund, den es nicht gibt, kostet in einer Kanzlei einen halben Tag.
+ *
+ * Gefiltert wird nach `invoiceDate`, dem RECHNUNGSdatum — nicht nach
+ * `createdAt`. Eine im Jänner nachgetragene Dezember-Rechnung gehört ins
+ * Dezember-Journal; danach fragt der Steuerberater.
+ *
+ * KEINE Obergrenze. Der Zeitraum IST die Grenze, und ein Export, der
+ * stillschweigend bei tausend Rechnungen aufhört, wäre genau der Fehler, den
+ * diese Funktion behebt.
+ */
+export function listInvoicesInRange(companyId: string, von: string, bis: string) {
+  return queryTenant<Invoice>(
+    COLLECTION,
+    companyId,
+    where('invoiceDate', '>=', von),
+    where('invoiceDate', '<=', bis),
+    orderBy('invoiceDate'),
   );
 }
 
