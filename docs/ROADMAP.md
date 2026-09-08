@@ -1194,8 +1194,14 @@ bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
 
 ## Erledigt: Der Ansichten-Durchgang (08.09.2026)
 
-Ansicht für Ansicht, jede Ladegrenze, jede Abfrage ohne Grenze, jedes
-Live-Abo. Zwei echte Befunde, drei benannte Wachstumsrisiken.
+Zwei Durchgänge über zwei verschiedene Dimensionen, weil ein Durchgang über
+EINE Form alles findet ausser dem, was anders gebaut ist:
+
+1. **die Datenschicht** — alle 47 Abfragen auf Grenzen, Live-Abos und
+   verschluckte Fehler,
+2. **die drei Zustände jeder Ansicht** — laden, Fehler, leer.
+
+Drei echte Befunde, drei benannte Wachstumsrisiken.
 
 ### Befund 1: Die Baustellenliste schnitt still bei 300 ab
 
@@ -1229,6 +1235,29 @@ Scheine stimmt das; für die Forderungen nicht — sie sind die Grundlage.
 Jetzt steht eine Zeile über beiden Karten, und beide ziehen sich zurück. Eine
 Karte, die auf halber Grundlage rechnet, ist schlimmer als keine: sie wird
 geglaubt.
+
+### Befund 3: Die Startseite lud ewig, wenn eine Abfrage scheiterte
+
+Nachgereicht am selben Tag, beim zweiten Durchgang — diesmal nicht über die
+Datenschicht, sondern über die drei Zustände jeder Ansicht: laden, Fehler,
+leer. **Die Startseite war die einzige ganz ohne Fehlerzustand.**
+
+Sie lädt in drei Blöcken über `Promise.allSettled`, dessen Ergebnis verworfen
+wurde. Warf ein Block, wurde sein `setLaden(false)` nie erreicht:
+
+- der Kreisel blieb **für immer** stehen,
+- und die Warnungen dieses Blocks — fehlende Tage ohne Buchung, offene
+  Anforderungen, überfällige Rechnungen — erschienen **einfach nie**.
+
+Ein ewiger Kreisel behauptet zwar nichts Falsches (`nothingToShow` verlangt,
+dass nichts mehr lädt). Aber er erklärt auch nichts, und wer sich an eine
+Startseite gewöhnt, die dauernd lädt, sieht auch dann nicht hin, wenn sie
+etwas zu sagen hat.
+
+Jetzt fängt jeder Block für sich, der Ladezustand endet **immer**, und wer
+nicht kam, steht unten mit Namen da — nach allem, was sehr wohl geladen
+wurde. Die Blöcke bleiben getrennt: fällt die Betriebssicht aus, sieht der
+Monteur trotzdem, wo er heute hin muss.
 
 ### Benannt, nicht gebaut: drei Wachstumsrisiken
 
