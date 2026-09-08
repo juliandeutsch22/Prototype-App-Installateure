@@ -1192,6 +1192,66 @@ Formular — und 15 absichtlich kaputte Fassungen, die alle aufgefallen sind.
 Zwei davon erst im zweiten Anlauf: was die Vorbelegung im echten Formular
 bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
 
+## Erledigt: Der Ansichten-Durchgang (08.09.2026)
+
+Ansicht für Ansicht, jede Ladegrenze, jede Abfrage ohne Grenze, jedes
+Live-Abo. Zwei echte Befunde, drei benannte Wachstumsrisiken.
+
+### Befund 1: Die Baustellenliste schnitt still bei 300 ab
+
+`AdminProjectsView` holte über `subscribeRecentProjects(…, 300)` und schwieg
+dazu. Ab der 301. Baustelle fielen die **ältesten** heraus, ohne dass
+irgendwo etwas stand — die Baustelle von vor drei Jahren war in der
+Verwaltung schlicht nicht auffindbar, und nichts unterschied das von „gibt es
+nicht".
+
+**Warum „Sichtbare Grenzen" das übersehen hat:** die Ansicht verwendet ein
+LIVE-ABO. Der Durchgang damals suchte nach einmal ladenden Listen, und diese
+passte nicht ins Muster. Ein Durchgang, der nach einer Form sucht, findet
+alles ausser dem, was anders gebaut ist.
+
+Buchen war nie betroffen — die Baustellenauswahl hängt an
+`listActiveProjects` und kennt keine Grenze. Betroffen war die Verwaltung,
+also genau die Stelle, an der jemand gezielt nachschlägt.
+
+### Befund 2: Scheiterte die Forderungsabfrage, logen zwei Karten
+
+`listUnpaidInvoices` scheiterte still, und sie trägt **zwei** Karten:
+
+| Karte | Was sie dann sagte |
+| --- | --- |
+| Mahnlauf | rechnete über eine leere Liste und verschwand — sieht aus wie „nichts zu mahnen", ist aber „ich weiss es nicht" |
+| Nicht verrechnete Leistung | meldete Scheine als unverrechnet, die längst auf einer offenen Rechnung stehen — eine falsche Anschuldigung, der jemand nachgeht |
+
+Der Kommentar daneben rechtfertigte das Schweigen mit „Zusatzangabe". Für die
+Scheine stimmt das; für die Forderungen nicht — sie sind die Grundlage.
+
+Jetzt steht eine Zeile über beiden Karten, und beide ziehen sich zurück. Eine
+Karte, die auf halber Grundlage rechnet, ist schlimmer als keine: sie wird
+geglaubt.
+
+### Benannt, nicht gebaut: drei Wachstumsrisiken
+
+**Der Materialkatalog wird vollständig geladen, in sechs Ansichten, vier
+davon als Live-Abo.** `subscribeMaterials` hat gar keine Grenze. Heute
+harmlos (ein paar hundert handgepflegte Artikel), aber es wächst ohne jedes
+Signal — und es ist der **harte Vorläufer für Datanorm**: ein
+Großhandelskatalog hat 50.000 bis 500.000 Artikel. Bevor importiert wird,
+braucht der Katalog eine Grenze und die Ansichten eine Suche, die nicht über
+das Geladene läuft.
+
+**`listCustomers` hat einen Standardwert von 500 ohne Ansage.** Vier
+Auswahlfelder ziehen daraus. Weniger schlimm als eine Liste, weil man einen
+gesuchten Namen vermisst statt ihn zu übersehen — aber dieselbe Klasse. Bei
+einem Fünf-Mann-Betrieb sind 500 Kunden über zehn Jahre.
+
+**`listActiveProjects` hat gar keine Grenze** und hängt an sieben Stellen,
+darunter die Baustellenauswahl jedes Monteurs. Begrenzt ist sie nur durch
+Disziplin beim Abschliessen von Baustellen — nicht durch Code.
+
+Für alle drei gilt derselbe ehrliche Auslöser wie bei der Suche: **wenn
+„Weitere laden" regelmässig erscheint**, nicht eine geratene Zahl.
+
 ## Erledigt: Zwei Betriebe arbeiten nebeneinander (08.09.2026)
 
 Aus der Frage, wie die Software an mehrere Betriebe ausgeliefert wird. Die

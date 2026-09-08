@@ -89,6 +89,8 @@ export default function InvoicesView() {
     Forderung übersieht, ist schlimmer als keine.
   */
   const [offeneRechnungen, setOffeneRechnungen] = useState<WithId<Invoice>[]>([]);
+  /** Kamen die offenen Forderungen nicht? Dann darf keine Karte so tun, als wüsste sie Bescheid. */
+  const [forderungenFehler, setForderungenFehler] = useState(false);
   /*
     Der Export holt seinen Zeitraum SELBST. Vorher filterte er die geladene
     Liste nach Datum — ein Export für einen älteren Monat lieferte damit eine
@@ -242,11 +244,38 @@ export default function InvoicesView() {
       zwei Monate ab. Gemeldet wird ohnehin erst ab vier Wochen — was älter
       ist als dieses Fenster, ist längst gemeldet worden.
     */
+    /*
+      DIESE ABFRAGE DARF NICHT STILL SCHEITERN, und bis hierher tat sie es.
+
+      Sie trägt ZWEI Karten, und beide sagen bei einem Fehlschlag etwas
+      Falsches statt gar nichts:
+
+        Mahnlauf                 rechnet über eine leere Liste, die Karte
+                                 verschwindet — und das sieht aus wie
+                                 „nichts zu mahnen". Es ist aber „ich weiss
+                                 es nicht", und der Unterschied sind offene
+                                 Forderungen, die niemand anmahnt.
+
+        Nicht verrechnete        sucht Scheine, die auf KEINER Rechnung
+        Leistung                 stehen. Fehlen die offenen Forderungen,
+                                 erscheinen Scheine als unverrechnet, die
+                                 längst auf einer offenen Rechnung stehen —
+                                 eine falsche Anschuldigung, der jemand
+                                 nachgeht.
+
+      Der Kommentar weiter unten rechtfertigt das Schweigen mit
+      „Zusatzangabe". Für die SCHEINE stimmt das; für die Forderungen nicht.
+    */
     listUnpaidInvoices(user.companyId)
       .then((rows) => {
-        if (!weg) setOffeneRechnungen(rows);
+        if (!weg) {
+          setOffeneRechnungen(rows);
+          setForderungenFehler(false);
+        }
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!weg) setForderungenFehler(true);
+      });
     listRecentWorkSheets(user.companyId, 60)
       .then((rows) => {
         if (!weg) setScheineAllerBaustellen(rows);
@@ -938,7 +967,26 @@ export default function InvoicesView() {
         Rechnung liegt regelmässig ein Monatsabschluss, und eine Liste, die
         das anmahnt, sieht sich nach zwei Wochen niemand mehr an.
       */}
-      {auffaellige(offeneLeistung).length > 0 && (
+      {/*
+        EINE ZEILE STATT ZWEIER LÜGEN.
+
+        Kamen die offenen Forderungen nicht, dürfen Mahnlauf und
+        „nicht verrechnete Leistung" nicht so tun, als hätten sie gerechnet:
+        der eine verschwände als „nichts zu mahnen", die andere meldete
+        Scheine, die längst auf einer offenen Rechnung stehen.
+
+        Die Zeile steht über beiden Karten, nicht in ihnen — sie betrifft die
+        Grundlage, nicht das Ergebnis.
+      */}
+      {forderungenFehler && (
+        <p role="status" className="rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+          <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
+          „nicht verrechnete Leistung" sind deshalb unvollständig — was hier fehlt, heisst
+          nicht, dass es nichts zu tun gibt. Bitte die Seite neu laden.
+        </p>
+      )}
+
+      {!forderungenFehler && auffaellige(offeneLeistung).length > 0 && (
         <Card
           title={`Nicht verrechnete Leistung (${auffaellige(offeneLeistung).length})`}
           hint={
@@ -987,7 +1035,7 @@ export default function InvoicesView() {
         </Card>
       )}
 
-      {(lauf.zeilen.length > 0 || lauf.ausgereizt.length > 0) && (
+      {!forderungenFehler && (lauf.zeilen.length > 0 || lauf.ausgereizt.length > 0) && (
         <Card
           title={`Mahnlauf (${lauf.zeilen.length})`}
           hint={

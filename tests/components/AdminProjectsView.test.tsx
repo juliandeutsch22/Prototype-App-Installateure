@@ -32,12 +32,16 @@ const lege = vi.fn();
 const aendere = vi.fn();
 const loesche = vi.fn();
 
+/* Mit welcher Grenze zuletzt abonniert wurde — der Nachladeknopf hebt sie an. */
+let letzteGrenze = 0;
+
 vi.mock('@/lib/db/projects', () => ({
   subscribeRecentProjects: (
     _c: string,
-    _g: number,
+    g: number,
     cb: (rows: (Project & { id: string })[]) => void,
   ) => {
+    letzteGrenze = g;
     cb(baustellen);
     return () => undefined;
   },
@@ -267,5 +271,58 @@ describe('Baustellen — Übersicht je Baustelle', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Übersicht zu' }));
     await waitFor(() => expect(screen.queryByText('Fachzeit')).not.toBeInTheDocument());
+  });
+});
+
+/**
+ * Die Baustellenliste sagt, wie weit sie reicht.
+ *
+ * Sie holte fest die jüngsten 300 und schwieg dazu. Ab der 301. Baustelle
+ * fielen die ÄLTESTEN heraus, ohne dass irgendwo etwas stand — die Baustelle
+ * von vor drei Jahren war in der Verwaltung schlicht nicht mehr auffindbar,
+ * und nichts unterschied das von „gibt es nicht".
+ *
+ * Genau diese Fehlerform hat „Sichtbare Grenzen" überall herausgenommen; hier
+ * wurde sie übersehen, weil die Ansicht ein Live-Abo verwendet und damit
+ * nicht ins Muster der einmal ladenden Listen passte.
+ */
+describe('Wie weit die Baustellenliste reicht', () => {
+  const viele = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      ({
+        id: `p${i}`,
+        companyId: 'perl',
+        projectNumber: `B-${String(i).padStart(4, '0')}`,
+        customerName: 'Familie Huber',
+        status: 'Aktiv',
+      }) as Project & { id: string },
+    );
+
+  it('schweigt, solange die Grenze nicht greift', async () => {
+    baustellen = viele(12);
+    zeige();
+    await screen.findByText(/Alle Baustellen/);
+    expect(screen.queryByRole('button', { name: /Weitere Baustellen laden/ })).not.toBeInTheDocument();
+  });
+
+  it('sagt es, sobald die Grenze erreicht ist — samt Hinweis auf die Suche', async () => {
+    baustellen = viele(300);
+    zeige();
+    await screen.findByText(/Alle Baustellen/);
+    expect(screen.getByRole('button', { name: /Weitere Baustellen laden/ })).toBeInTheDocument();
+    // Der zweite Satz ist der wichtigere: wer eine alte Nummer sucht und
+    // nichts findet, soll nicht schliessen, es gebe sie nicht.
+    expect(screen.getByText(/Die Suche geht nur über diese/)).toBeInTheDocument();
+  });
+
+  it('holt beim Nachladen tatsächlich mehr', async () => {
+    baustellen = viele(300);
+    const nutzer = userEvent.setup();
+    zeige();
+    await screen.findByText(/Alle Baustellen/);
+    expect(letzteGrenze).toBe(300);
+
+    await nutzer.click(screen.getByRole('button', { name: /Weitere Baustellen laden/ }));
+    expect(letzteGrenze).toBe(600);
   });
 });
