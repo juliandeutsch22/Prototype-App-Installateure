@@ -1179,19 +1179,112 @@ stillschweigend einundzwanzig Stunden, auf einem Zettel, den der Kunde gleich
 unterschreibt. Deshalb wird ab vierzehn Stunden **nachgefragt statt gesperrt**
 — eine durchgemachte Nacht gibt es wirklich, aber sie gehört bestätigt.
 
-### Offen bleibt: die Kollegen
+### Die Kollegen — nachgereicht
 
 Der Schein gilt für die ganze Mannschaft, aber ein Monteur darf die
 Zeiteinträge seiner Kollegen weder lesen noch schreiben — dort stehen Kranken-
 und Urlaubstage (Art. 9 DSGVO). Der Hinweis betrifft deshalb nur seine EIGENE
-Zeit. Für händisch eingetragene Kollegenzeiten braucht das Büro eine eigene
-Liste; die ist noch nicht gebaut, und das steht hier, statt so zu tun, als
-wäre es abgedeckt.
+Zeit. Die Liste fürs Büro stand hier als offene Lücke; sie ist inzwischen
+gebaut, siehe „Stunden ohne Buchung" weiter unten.
 
 Geprüft: 14 Rechen-Tests, 19 in der Zeiterfassung, 7 am Schein, 3 am
 Formular — und 15 absichtlich kaputte Fassungen, die alle aufgefallen sind.
 Zwei davon erst im zweiten Anlauf: was die Vorbelegung im echten Formular
 bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
+
+## Erledigt: Stunden ohne Buchung — die Bürosicht (08.09.2026)
+
+Nachgereicht zur Leistungszeit: die Lücke, die dort ausdrücklich offen stand.
+
+### Die Kollegenzeile hat niemanden, der an sie erinnert wird
+
+Der Nachtrag in der Zeiterfassung deckt nur die **eigenen** Zeilen des
+Monteurs ab. Das ist keine Nachlässigkeit, sondern eine Grenze, die bleiben
+muss: in `timeEntries` stehen Kranken- und Urlaubstage, also Gesundheitsdaten
+nach Art. 9 DSGVO. Die Firestore-Regel lässt einen Monteur deshalb nur an die
+eigenen Einträge (`resource.data.userId == request.auth.uid || isBuchOrTop()`),
+und das ist richtig so.
+
+Trägt er auf dem Schein die Zeile „Kollege Huber, 07:00–15:30" ein, sieht die
+danach niemand wieder: **er** sieht fremde Buchungen nicht, **Huber** sieht den
+Schein nicht, den ein anderer geschrieben hat. Die Stunde steht unterschrieben
+beim Kunden — und wird nie gebucht. Also nie verrechnet (die Rechnung nimmt
+ihre Stunden aus den Zeiteinträgen, der Schein liefert nur das Material) und
+nie aufgezeichnet (§ 26 AZG: dort stünde ein Tag, an dem der Mann
+nachweislich beim Kunden war und laut Aufzeichnung nicht gearbeitet hat).
+
+### Die Liste steht dort, wo jemand sie abarbeiten kann
+
+In den **Handwerksscheinen**, über der Liste, und nur für `canEditTime`
+(Buchhaltung, Geschäftsführung, Administrator) — genau die Rolle, die fremde
+Zeiteinträge lesen **und** anlegen darf. Für alle anderen wird die Abfrage gar
+nicht erst abgeschickt: sie bliebe an den Regeln hängen und hinterliesse nur
+einen Fehler in einer Ansicht, die sie sonst benutzen können.
+
+Verglichen wird je **Person und Tag**, nicht je Schein: auf einem Schein kann
+die Zeile des Monteurs gebucht sein und die des Kollegen nicht — und das ist
+der häufige Fall.
+
+### Zwei Befunde, die nicht dasselbe sind
+
+- **Keine Buchung gefunden** — an diesem Tag ist für diese Person gar keine
+  Anwesenheit erfasst. Die Stunden fehlen vollständig. Nur diese zählen in die
+  Summe „steht unterschrieben beim Kunden und in keiner Zeiterfassung".
+- **Auf eine andere Baustelle gebucht** — es gibt eine Buchung, sie hängt am
+  falschen Auftrag. Die Arbeitszeit ist aufgezeichnet, falsch ist nur die
+  Zuordnung; die entscheidet aber, wem die Stunde verrechnet wird. Das kommt
+  regelmässig vor, wenn jemand den ganzen Tag auf die Hauptbaustelle bucht.
+
+Beides in eine Zahl zu werfen machte die Summe unbrauchbar.
+
+### Was bewusst nicht geprüft wird
+
+**Die Minuten.** Sie dürfen abweichen: der Schein bestätigt die Zeit beim
+Kunden, der Eintrag umfasst den Arbeitstag samt Anfahrt. Ein Wächter, der jede
+Abweichung meldet, schlüge ständig zu Recht an — und wäre nach einer Woche
+weggeklickt.
+
+**Urlaub und Krankenstand** gelten nicht als Buchung. Steht der Mann laut
+Schein beim Kunden und laut Zeiterfassung im Urlaub, ist die Arbeitszeit ebenso
+wenig aufgezeichnet; der Widerspruch gehört gesehen, nicht überdeckt.
+
+### Die eine Grenze, die offen benannt ist
+
+Der Schein trägt den Namen als **Text**, wie ihn der Monteur auf der Baustelle
+tippt; der Zeiteintrag trägt ihn aus dem Benutzerkonto. Gross- und
+Kleinschreibung und doppelte Leerzeichen werden ausgeglichen — „F. Huber"
+findet „Franz Huber" aber nicht. Geraten wird hier nicht. Die Ansicht sagt
+deshalb **„keine Buchung gefunden"**, nicht „nicht gebucht".
+
+Nach unten zwei Tage Karenz (gebucht wird am Ende des Arbeitstags, oft erst am
+Morgen darauf), nach oben **keine** Grenze — anders als beim Nachtrag des
+Monteurs. Der soll an das erinnert werden, was er noch weiss; das Büro muss
+auch den Schein von vor drei Monaten finden, denn genau der ist der teure.
+
+Geprüft: 15 Rechen-Tests, 7 in der Ansicht — und 18 absichtlich kaputte
+Fassungen, die alle aufgefallen sind.
+
+## Erledigt: Fotobereich am Schein neu geordnet (08.09.2026)
+
+Aus dem Betrieb, nach dem ersten Blick auf die neue Fotofunktion: „der Bereich
+für die Fotos in der Schein-Erstellung sieht optisch gar nicht gut aus."
+
+Er sass im Kopf der Karte **Unterschriften**, unmittelbar über „Monteur (Name
+in Druckbuchstaben)": ein unterstrichener Link in Akzentfarbe und darunter drei
+Zeilen graues Kleingedrucktes. Beides las sich wie eine **Fehlermeldung zu
+genau diesem Feld** — und das ausgerechnet an der Stelle, an der ein Kunde
+gerade unterschreiben soll.
+
+Jetzt: eine **eigene Karte** mit Zähler im Titel („Fotos (2/8)"), ein echter
+Knopf statt des Links, dessen Beschriftung dem Stand folgt („Foto aufnehmen" /
+„Weiteres Foto" / „Höchstens 8 Fotos"), ein Satz sichtbarer Text — und der
+ganze Rest im „i": wozu Bilder gut sind, dass sie am Gerät auf 1600 px
+verkleinert werden, dass sie über ihren Inhalts-Hash in die Prüfsumme eingehen
+und deshalb nach dem Unterschreiben unveränderlich sind, dass Storage ohne Netz
+nichts vorhält, und was man nicht fotografieren soll.
+
+Ein Test hält die Trennung fest: im Abschnitt der Unterschriften darf kein
+Dateifeld mehr vorkommen. Sonst fällt das beim nächsten Umbau still zurück.
 
 ## Erledigt: Was nach Jahren passiert (08.09.2026)
 

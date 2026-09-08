@@ -10,9 +10,11 @@ import {
 import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
 import Fotostreifen from './Fotostreifen';
 import Nachladen from '@/components/Nachladen';
-import { isGF, canWriteWorkSheet } from '@/lib/permissions';
-import { fmtMin } from '@/lib/time';
-import type { WorkSheet } from '@/types';
+import { listEntriesInRange } from '@/lib/db/timeEntries';
+import { scheineOhneBuchung, minutenOhneBuchung, OFFEN_AB_TAGEN } from './fehlendeZeitbuchung';
+import { isGF, canWriteWorkSheet, canEditTime } from '@/lib/permissions';
+import { fmtMin, todayStr } from '@/lib/time';
+import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -106,6 +108,66 @@ export default function WorkSheetsListView() {
     void laden();
   }, [laden]);
 
+  /*
+    DIE KOLLEGENZEILE, AN DIE NIEMAND ERINNERT WIRD — nur fürs Büro.
+
+    Der Nachtrag in der Zeiterfassung deckt nur die EIGENEN Zeilen des
+    Monteurs ab, und das muss so bleiben: in derselben Sammlung stehen
+    Kranken- und Urlaubstage der Kollegen, also Gesundheitsdaten nach Art. 9
+    DSGVO. Die Firestore-Regeln lassen den Monteur deshalb nur an die
+    eigenen Einträge.
+
+    Trägt er auf dem Schein die Zeile eines Kollegen ein, hat sie damit
+    niemanden, der an sie erinnert wird: der Monteur sieht fremde Buchungen
+    nicht, der Kollege sieht den fremden Schein nicht. Die Stunde steht
+    unterschrieben beim Kunden — und wird nie gebucht, also nie verrechnet
+    und nie aufgezeichnet.
+
+    GELADEN WIRD NUR FÜR DIE, DIE ES AUCH DÜRFEN. `canEditTime` ist genau
+    die Rolle, die fremde Zeiteinträge sehen UND anlegen darf; für alle
+    anderen bliebe die Abfrage an den Regeln hängen und produzierte nichts
+    als einen Fehler in einer Ansicht, die sie sonst benutzen können.
+  */
+  const [buchungen, setBuchungen] = useState<
+    Array<Pick<TimeEntry, 'date' | 'status' | 'projectNumber' | 'userName'>>
+  >([]);
+  const darfZeitenSehen = user ? canEditTime(user.role) : false;
+
+  /* Der Zeitraum kommt aus den geladenen Scheinen, nicht aus dem Kalender:
+     ein fester Monat holte entweder zu wenig oder viel zu viel. */
+  const zeitraum = useMemo(() => {
+    const tage = scheine.filter((s) => s.status === 'Unterschrieben').map((s) => s.datum).sort();
+    if (tage.length === 0) return null;
+    return { von: tage[0], bis: tage[tage.length - 1] };
+  }, [scheine]);
+
+  useEffect(() => {
+    if (!user || !darfZeitenSehen || !zeitraum) {
+      setBuchungen([]);
+      return;
+    }
+    let abgemeldet = false;
+    listEntriesInRange(user.companyId, zeitraum.von, zeitraum.bis)
+      .then((rows) => {
+        if (!abgemeldet) setBuchungen(rows);
+      })
+      /*
+        STILL SCHEITERN, ABER NUR HIER. Die Scheinliste ist das, wofür diese
+        Seite da ist; sie darf nicht wegen einer Zusatzauswertung mit einer
+        Fehlermeldung stehenbleiben. Bleibt die Abfrage aus, bleibt die Karte
+        leer — und die Karte sagt selbst, worauf sie sich stützt.
+      */
+      .catch(() => undefined);
+    return () => {
+      abgemeldet = true;
+    };
+  }, [user, darfZeitenSehen, zeitraum]);
+
+  const ohneBuchung = useMemo(
+    () => (darfZeitenSehen ? scheineOhneBuchung(scheine, buchungen, todayStr()) : []),
+    [darfZeitenSehen, scheine, buchungen],
+  );
+
   const verworfene = useMemo(
     () => scheine.filter((s) => s.status === 'Verworfen').length,
     [scheine],
@@ -170,6 +232,124 @@ export default function WorkSheetsListView() {
           Neuen Schein erstellen
         </Link>
       </Card>
+
+      {/*
+        DIE KARTE ERSCHEINT NUR, WENN ES ETWAS ZU TUN GIBT — und nur für das
+        Büro. Ein leerer Kasten „alles gebucht" wäre eine Zeile, die jeden Tag
+        dasteht und nie gelesen wird; fehlt sie, ist nichts offen.
+
+        Sie steht ÜBER der Scheinliste, weil sie eine Frist hat: eine Stunde,
+        die niemand bucht, wird nie verrechnet und fehlt zugleich in der
+        Arbeitszeitaufzeichnung nach § 26 AZG. Das ist dringender als das
+        Nachschlagen eines Belegs.
+      */}
+      {ohneBuchung.length > 0 && (
+        <Card
+          title={`Stunden ohne Buchung (${ohneBuchung.length})`}
+          hint={
+            <>
+              <strong>Was hier steht.</strong> Unterschriebene Handwerksscheine, auf denen Zeit
+              vermerkt ist, zu der es in der Zeiterfassung keine passende Anwesenheit gibt —
+              älteste zuerst, ab {OFFEN_AB_TAGEN} Tagen. Gebucht wird am Ende des Arbeitstags,
+              oft erst am Morgen darauf; der Schein von gestern ist deshalb noch kein Befund.
+              <br />
+              <br />
+              <strong>Warum das nicht der Monteur selbst sieht.</strong> Er wird in der
+              Zeiterfassung an seine eigenen Scheine erinnert — aber nur an die eigenen Zeilen.
+              Fremde Zeiteinträge darf er weder lesen noch schreiben: in derselben Ablage stehen
+              Kranken- und Urlaubstage der Kollegen, also Gesundheitsdaten. Trägt er auf dem
+              Schein die Zeile eines Kollegen ein, hat sie damit niemanden, der an sie erinnert
+              wird — er sieht dessen Buchungen nicht, und der Kollege sieht diesen Schein nicht.
+              Genau diese Lücke schliesst diese Liste.
+              <br />
+              <br />
+              <strong>Was es kostet.</strong> Die Rechnung nimmt ihre Stunden aus den
+              Zeiteinträgen, nicht vom Schein — der Schein liefert nur das Material. Eine
+              ungebuchte Stunde wird also nie verrechnet, nicht „später korrigiert", sondern
+              nie. Und sie fehlt in der Arbeitszeitaufzeichnung, die der Betrieb nach § 26 AZG
+              zu führen hat: dort stünde ein Tag, an dem der Mann nachweislich beim Kunden war
+              und laut Aufzeichnung nicht gearbeitet hat.
+              <br />
+              <br />
+              <strong>„Auf einer anderen Baustelle gebucht"</strong> ist der mildere Fall: die
+              Arbeitszeit ist aufgezeichnet, sie hängt nur am falschen Auftrag. Das kommt
+              regelmässig vor, wenn jemand den ganzen Tag auf die Hauptbaustelle bucht und
+              zwischendurch bei diesem Kunden war. Zu tun ist es trotzdem — die Zuordnung
+              entscheidet, wem die Stunde verrechnet wird.
+              <br />
+              <br />
+              <strong>Verglichen werden Tag und Name, nicht die Minuten.</strong> Sie dürfen
+              abweichen: der Schein bestätigt die Zeit beim Kunden, der Eintrag umfasst den
+              Arbeitstag samt Anfahrt. Der Name kommt vom Schein, wie ihn der Monteur getippt
+              hat; Gross- und Kleinschreibung spielen keine Rolle, eine Abkürzung („F. Huber")
+              findet die Buchung aber nicht. Deshalb steht hier „keine Buchung gefunden" und
+              nicht „nicht gebucht".
+              <br />
+              <br />
+              <strong>Woher die Daten stammen.</strong> Aus den unten geladenen Scheinen und den
+              Zeiteinträgen desselben Zeitraums. Wer weiter zurückschauen will, lädt unten
+              weitere Scheine nach — die Prüfung wandert mit.
+            </>
+          }
+        >
+          {minutenOhneBuchung(ohneBuchung) > 0 && (
+            <p className="mb-3 text-sm text-ink">
+              <strong>{fmtMin(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
+              beim Kunden und in keiner Zeiterfassung.
+            </p>
+          )}
+          <List>
+            {ohneBuchung.map(({ schein, zeilen, tage }) => (
+              <ListRow
+                key={schein.id}
+                title={
+                  <>
+                    <span>{schein.customerName}</span>
+                    <Badge tone={tage >= 30 ? 'danger' : 'warning'}>{tage} Tage</Badge>
+                  </>
+                }
+                subtitle={
+                  <>
+                    <span className="tnum">
+                      Baustelle {schein.projectNumber} · Leistung vom {schein.datum}
+                    </span>
+                    <span className="mt-1 block">
+                      {zeilen.map((z) => (
+                        <span key={z.name} className="block text-xs text-ink-muted">
+                          {z.name} · {fmtMin(z.minuten)} ·{' '}
+                          {z.art === 'keine'
+                            ? 'keine Buchung gefunden'
+                            : `gebucht auf ${z.gebuchtAuf?.join(', ')}`}
+                        </span>
+                      ))}
+                    </span>
+                  </>
+                }
+              >
+                {/*
+                  Der Weg führt zum SCHEIN, nicht direkt in ein Zeitformular:
+                  wer eine fremde Stunde nachträgt, muss vorher sehen, was auf
+                  dem Beleg steht — Spanne, Tätigkeit, Helferhaken. Ein Knopf,
+                  der ein leeres Formular öffnet, verleitete zum Schätzen.
+                */}
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    // Die Suche mit aufmachen: steht dort noch ein Filter,
+                    // klappte der Schein unten zwar auf, wäre aber nicht zu
+                    // sehen — ein Knopf, der scheinbar nichts tut.
+                    setSuche('');
+                    setZeigeVerworfene(false);
+                    setOffen(schein.id);
+                  }}
+                >
+                  Schein ansehen
+                </Button>
+              </ListRow>
+            ))}
+          </List>
+        </Card>
+      )}
 
       <Card
         title={`Scheine (${scheine.length - verworfene})`}
