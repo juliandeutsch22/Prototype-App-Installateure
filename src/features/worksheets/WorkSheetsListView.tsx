@@ -9,6 +9,7 @@ import {
 } from '@/lib/db/workSheets';
 import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
 import Fotostreifen from './Fotostreifen';
+import Nachladen from '@/components/Nachladen';
 import { isGF, canWriteWorkSheet } from '@/lib/permissions';
 import { fmtMin } from '@/lib/time';
 import type { WorkSheet } from '@/types';
@@ -40,6 +41,15 @@ const TON: Record<WorkSheet['status'], 'success' | 'gray' | 'danger'> = {
  * aber nicht mehr ändern — Korrekturen laufen ausschließlich über einen
  * Storno und einen neuen Schein.
  */
+/**
+ * Wie viele Handwerksscheine auf einmal geholt werden.
+ *
+ * Bewusst niedrig: ein unterschriebener Schein wiegt rund 70 KB, weil er die
+ * beiden Unterschriftsbilder mitträgt. Die Zahl ist hier keine Frage der
+ * Übersicht, sondern der Leitung.
+ */
+const SCHEINE_JE_SEITE = 50;
+
 export default function WorkSheetsListView() {
   const { user, company } = useAuth();
   const toast = useToast();
@@ -47,6 +57,16 @@ export default function WorkSheetsListView() {
   const markiert = suchparameter.get('markiert');
 
   const [scheine, setScheine] = useState<WithId<WorkSheet>[]>([]);
+  /*
+    WIE WEIT DIE LISTE ZURÜCKREICHT — und hier wiegt jeder Datensatz schwer.
+
+    Ein unterschriebener Schein trägt zwei Unterschriftsbilder als PNG im
+    Dokument; nachgemessen sind das rund 70 KB je Schein. Hundert Scheine
+    waren damit knapp sieben Megabyte, bei jedem Öffnen dieser Ansicht. Fünfzig
+    decken bei einem Fünf-Mann-Betrieb gut einen Monat ab, und wer weiter
+    zurück muss, lädt nach — sichtbar, statt es nie zu erfahren.
+  */
+  const [grenze, setGrenze] = useState(SCHEINE_JE_SEITE);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
@@ -72,14 +92,14 @@ export default function WorkSheetsListView() {
       if (!user) return;
       setLoading(true);
       try {
-        setScheine(await listRecentWorkSheets(user.companyId));
+        setScheine(await listRecentWorkSheets(user.companyId, grenze));
       } catch (e) {
         setError((e as Error).message);
       } finally {
         setLoading(false);
       }
     },
-    [user],
+    [user, grenze],
   );
 
   useEffect(() => {
@@ -369,6 +389,15 @@ export default function WorkSheetsListView() {
               );
             })}
           </List>
+        )}
+        {!loading && (
+          <Nachladen
+            geladen={scheine.length}
+            grenze={grenze}
+            einheit="Scheine"
+            laeuft={loading}
+            onMehr={() => setGrenze((n) => n + SCHEINE_JE_SEITE)}
+          />
         )}
       </Card>
 

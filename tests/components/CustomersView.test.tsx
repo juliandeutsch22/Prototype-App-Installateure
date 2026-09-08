@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -76,8 +76,17 @@ const namensgleich: (Project & { id: string })[] = [
 const listUnlinkedProjectsByName = vi.fn(async () => namensgleich);
 const listProjectsForCustomer = vi.fn(async () => [] as (Project & { id: string })[]);
 
+/*
+  Die Kundenliste hat eine Obergrenze — und sie muss sagen, wenn sie erreicht
+  ist. Der 501. Kunde existierte für die App sonst schlicht nicht: nicht in
+  der Liste, nicht in der Suche, nirgends. Und nichts sagte es.
+*/
+const listCustomers = vi.fn<[string, number | undefined], Promise<typeof kunden>>(
+  async () => kunden,
+);
+
 vi.mock('@/lib/db/customers', () => ({
-  listCustomers: vi.fn(async () => kunden),
+  listCustomers: (c: string, max?: number) => listCustomers(c, max),
   createCustomer: (...a: unknown[]) => createCustomer(...(a as [])),
   updateCustomer: vi.fn(async () => 0),
   deleteCustomer: vi.fn(async () => undefined),
@@ -122,6 +131,7 @@ function zeichne() {
 }
 
 beforeEach(() => {
+  listCustomers.mockClear().mockImplementation(async () => kunden);
   createCustomer.mockClear();
   assignProjectToCustomer.mockClear();
   listUnlinkedProjectsByName.mockClear();
@@ -221,5 +231,69 @@ describe('Kundenverwaltung', () => {
       'href',
       'tel:06641234567',
     );
+  });
+});
+
+/**
+ * Die Grenze der Liste — sichtbar statt stillschweigend.
+ *
+ * Bis zum 08.09.2026 lud die Ansicht „die ersten fünfhundert, alphabetisch"
+ * und sagte nichts dazu. Ein Betrieb mit mehr Kunden verlor die hinteren
+ * Buchstaben, und zwar überall: in der Liste, in der Suche, im
+ * Rechnungsformular. Das ist kein Geschwindigkeitsproblem, es ist ein
+ * Wahrheitsproblem.
+ */
+describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
+  /** So viele Kunden, wie auf eine Seite gehen — die Grenze greift also. */
+  const volleSeite = () =>
+    Array.from({ length: 200 }, (_, i) => ({
+      id: `k${i}`,
+      companyId: 'perl',
+      name: `Kunde ${String(i).padStart(3, '0')}`,
+    })) as typeof kunden;
+
+  it('holt nur eine Seite, nicht den ganzen Bestand', async () => {
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    // Die Zahl selbst zählt: ohne sie holte die Abfrage ihre eigene
+    // Voreinstellung, und die war fünfhundert.
+    expect(listCustomers.mock.calls[0][1]).toBe(200);
+  });
+
+  it('schweigt, solange die Liste unter der Grenze bleibt', async () => {
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    expect(screen.queryByRole('button', { name: /Weitere Kunden laden/ })).not.toBeInTheDocument();
+  });
+
+  it('sagt es, sobald die Grenze erreicht ist — samt Hinweis auf die Suche', async () => {
+    listCustomers.mockResolvedValue(volleSeite());
+    zeichne();
+    expect(await screen.findByRole('button', { name: 'Weitere Kunden laden' })).toBeInTheDocument();
+    expect(screen.getByText(/Suche geht nur über diese/)).toBeInTheDocument();
+  });
+
+  it('lädt auf Wunsch weiter', async () => {
+    listCustomers.mockResolvedValue(volleSeite());
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Weitere Kunden laden' }));
+    await waitFor(() => expect(listCustomers.mock.calls[listCustomers.mock.calls.length - 1][1]).toBe(400));
+  });
+
+  /*
+    DER GEFÄHRLICHSTE MOMENT: die Suche findet nichts. Genau dann ist die
+    Frage „gibt es den Kunden nicht, oder ist er nur nicht geladen?" die
+    entscheidende — der Hinweis muss also auch neben der Leermeldung stehen.
+  */
+  it('steht auch dann da, wenn die Suche nichts findet', async () => {
+    listCustomers.mockResolvedValue(volleSeite());
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('button', { name: 'Weitere Kunden laden' });
+
+    await nutzer.type(screen.getByLabelText('Kunden durchsuchen'), 'Zzzz');
+    expect(await screen.findByText(/Kein Kunde passt/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Weitere Kunden laden' })).toBeInTheDocument();
   });
 });

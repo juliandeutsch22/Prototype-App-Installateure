@@ -18,6 +18,7 @@ import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
+import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -51,6 +52,16 @@ function schluessel(name: string): string {
  * Rechnung hinausgeht. Zwei Schreibweisen desselben Namens ergaben zwei
  * Kunden, und keiner der beiden war vollständig.
  */
+/**
+ * Wie viele Kunden auf einmal geholt werden.
+ *
+ * Zweihundert statt der bisherigen fünfhundert: die Liste ist zum
+ * NACHSCHLAGEN da, und nachgeschlagen wird über die Suche, nicht durch
+ * Scrollen. Die kleinere Zahl kostet auf einer Baustelle mit halbem Balken
+ * weniger — und was fehlt, steht jetzt dabei, statt lautlos zu verschwinden.
+ */
+const KUNDEN_JE_SEITE = 200;
+
 export default function CustomersView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -65,19 +76,30 @@ export default function CustomersView() {
 
   const darfAendern = user ? isGF(user.role) : false;
 
+  /*
+    WIE VIELE KUNDEN GELADEN SIND — als Zustand, nicht als feste Zahl.
+
+    Vorher stand hier die Voreinstellung der Abfrage: fünfhundert,
+    alphabetisch. Ein Betrieb mit mehr Kunden verlor die hinteren Buchstaben,
+    und zwar lautlos — der 501. Kunde existierte für die App nicht mehr, auch
+    nicht in der Suche. Jetzt sagt die Liste, wenn sie an ihrer Grenze steht,
+    und lässt nachladen.
+  */
+  const [grenze, setGrenze] = useState(KUNDEN_JE_SEITE);
+
   const laden = useMemo(
     () => async () => {
       if (!user) return;
       setLoading(true);
       try {
-        setKunden(await listCustomers(user.companyId));
+        setKunden(await listCustomers(user.companyId, grenze));
       } catch (e) {
         setError((e as Error).message);
       } finally {
         setLoading(false);
       }
     },
-    [user],
+    [user, grenze],
   );
 
   useEffect(() => {
@@ -436,6 +458,20 @@ export default function CustomersView() {
               </ListRow>
             ))}
           </List>
+        )}
+        {/*
+          Der Hinweis steht AUSSERHALB der Leermeldung: er gehört auch dann
+          hin, wenn die Suche gerade nichts findet — denn genau dann ist die
+          Frage „gibt es den Kunden nicht, oder ist er nur nicht geladen?" die
+          entscheidende.
+        */}
+        {!loading && (
+          <Nachladen
+            geladen={kunden.length}
+            grenze={grenze}
+            einheit="Kunden"
+            onMehr={() => setGrenze((n) => n + KUNDEN_JE_SEITE)}
+          />
         )}
       </Card>
 

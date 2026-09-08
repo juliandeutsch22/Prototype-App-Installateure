@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
   subscribeRecentInvoices,
+  listInvoicesInRange,
+  listUnpaidInvoices,
   nextInvoiceNumber,
   isInvoiceNumberTaken,
   reserveInvoiceNumber,
@@ -76,6 +78,24 @@ export default function InvoicesView() {
     nichts.
   */
   const [scheineAllerBaustellen, setScheineAllerBaustellen] = useState<WithId<WorkSheet>[]>([]);
+  /*
+    DIE OFFENEN FORDERUNGEN, EIGENS GEHOLT — nicht aus der Liste darüber.
+
+    Der Mahnlauf und die unverrechnete Leistung liefen bisher über die
+    Arbeitsliste, und die schneidet nach Anlagedatum ab. Damit sahen sie
+    ausgerechnet die Forderungen NICHT, die am längsten offen sind: die
+    ältesten fallen als erste heraus. Eine Mahnliste, die die älteste
+    Forderung übersieht, ist schlimmer als keine.
+  */
+  const [offeneRechnungen, setOffeneRechnungen] = useState<WithId<Invoice>[]>([]);
+  /*
+    Der Export holt seinen Zeitraum SELBST. Vorher filterte er die geladene
+    Liste nach Datum — ein Export für einen älteren Monat lieferte damit eine
+    leere Datei, die wie ein Erfolg aussah.
+  */
+  const [exportZeilen, setExportZeilen] = useState<WithId<Invoice>[] | null>(null);
+  const [exportLaeuft, setExportLaeuft] = useState(false);
+  const [exportFehler, setExportFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
@@ -221,6 +241,11 @@ export default function InvoicesView() {
       zwei Monate ab. Gemeldet wird ohnehin erst ab vier Wochen — was älter
       ist als dieses Fenster, ist längst gemeldet worden.
     */
+    listUnpaidInvoices(user.companyId)
+      .then((rows) => {
+        if (!weg) setOffeneRechnungen(rows);
+      })
+      .catch(() => undefined);
     listRecentWorkSheets(user.companyId, 60)
       .then((rows) => {
         if (!weg) setScheineAllerBaustellen(rows);
@@ -666,8 +691,8 @@ export default function InvoicesView() {
    * Datenstand, der auseinanderlaufen könnte.
    */
   const lauf = useMemo(
-    () => mahnlauf(invoices, todayStr(), company?.rates?.mahnspesen),
-    [invoices, company?.rates?.mahnspesen],
+    () => mahnlauf(offeneRechnungen, todayStr(), company?.rates?.mahnspesen),
+    [offeneRechnungen, company?.rates?.mahnspesen],
   );
 
   /**
@@ -680,11 +705,44 @@ export default function InvoicesView() {
    * man später sieht, sondern Geld, das nie eingefordert wird.
    */
   const offeneLeistung = useMemo(
-    () => unverrechneteScheine(scheineAllerBaustellen, invoices, todayStr()),
-    [scheineAllerBaustellen, invoices],
+    /*
+      HIER BRAUCHT ES BEIDE LISTEN, und das ist kein Versehen: gesucht sind
+      Scheine, die auf KEINER Rechnung stehen. Eine bezahlte Rechnung ist
+      genauso ein Beleg dafür, dass verrechnet wurde, wie eine offene — sie
+      steht nur nicht in `offeneRechnungen`. Die Arbeitsliste deckt die
+      jüngeren ab, die offenen die älteren; zusammen ist das die belastbare
+      Auskunft, die es vorher nicht gab.
+    */
+    () => unverrechneteScheine(scheineAllerBaustellen, [...invoices, ...offeneRechnungen], todayStr()),
+    [scheineAllerBaustellen, invoices, offeneRechnungen],
   );
 
   if (!user) return null;
+
+  /**
+   * Den Zeitraum für den Buchhaltungs-Export vom Server holen.
+   *
+   * Ein eigener Schritt, kein Nebenprodukt der Liste. Ändert jemand den
+   * Zeitraum, wird das vorige Ergebnis weggeräumt: eine Zusammenstellung, die
+   * zu einem anderen Zeitraum gehört als der, der im Feld steht, ist die
+   * gefährlichste Anzeige von allen.
+   */
+  async function exportHolen() {
+    if (!user) return;
+    setExportLaeuft(true);
+    setExportFehler(null);
+    try {
+      setExportZeilen(await listInvoicesInRange(user.companyId, exportVon, exportBis));
+    } catch {
+      setExportZeilen(null);
+      setExportFehler(
+        'Der Zeitraum konnte nicht geladen werden. Ohne ihn wäre das Journal unvollständig — ' +
+          'bitte erneut versuchen.',
+      );
+    } finally {
+      setExportLaeuft(false);
+    }
+  }
 
   /** Den Mahndialog für eine Rechnung öffnen — mit der vorgeschlagenen Frist. */
   const mahnenOeffnen = (inv: WithId<Invoice>) => {
@@ -727,24 +785,76 @@ export default function InvoicesView() {
             label="Von"
             type="date"
             value={exportVon}
-            onChange={(e) => setExportVon(e.target.value)}
+            onChange={(e) => {
+              setExportVon(e.target.value);
+              // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
+              // im Feld, ist die gefährlichste Anzeige von allen.
+              setExportZeilen(null);
+            }}
           />
           <InputField
             id="expbis"
             label="Bis"
             type="date"
             value={exportBis}
-            onChange={(e) => setExportBis(e.target.value)}
+            onChange={(e) => {
+              setExportBis(e.target.value);
+              // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
+              // im Feld, ist die gefährlichste Anzeige von allen.
+              setExportZeilen(null);
+            }}
           />
         </FormGrid>
-        {(() => {
-          const e = buildInvoiceCsv(invoices, kunden, exportVon, exportBis);
+        {/*
+          DER ZEITRAUM WIRD GEHOLT, NICHT GEFILTERT.
+
+          Vorher stand hier `buildInvoiceCsv(invoices, …)` — die geladene
+          Arbeitsliste, nach Datum gefiltert. Die reicht voreingestellt fünfzig
+          Rechnungen zurück. Ein Export für einen älteren Monat lieferte damit
+          eine LEERE Datei, und zwar eine, die wie ein erfolgreicher Export
+          aussah: „0 Rechnungen", keine Lücken, Knopf grau.
+
+          Schlimmer war die Lückenprüfung: sie meldete Lücken, die keine sind,
+          weil die fehlenden Nummern schlicht nicht geladen waren. Ein Befund,
+          den es nicht gibt, kostet in einer Kanzlei einen halben Tag.
+
+          Deshalb ist der Export jetzt ein bewusster Schritt: Zeitraum wählen,
+          holen, ansehen, herunterladen. Das Nachladen dauert einen Moment —
+          und ein Moment ist billiger als ein falsches Journal.
+        */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            loading={exportLaeuft}
+            disabled={!exportVon || !exportBis || exportVon > exportBis}
+            onClick={() => void exportHolen()}
+          >
+            Zeitraum zusammenstellen
+          </Button>
+          {exportVon > exportBis && (
+            <span className="text-sm text-warning">„Von" liegt nach „Bis".</span>
+          )}
+        </div>
+        {exportFehler && <div className="mt-3"><ErrorState message={exportFehler} /></div>}
+        {exportZeilen !== null && (() => {
+          const e = buildInvoiceCsv(exportZeilen, kunden, exportVon, exportBis);
           return (
             <>
               <p className="mt-3 text-sm text-ink">
                 {e.anzahl} {e.anzahl === 1 ? 'Rechnung' : 'Rechnungen'} · Netto{' '}
                 {fmtEUR(e.summeNetto)} · Brutto {fmtEUR(e.summeBrutto)}
               </p>
+              {/*
+                NULL RECHNUNGEN IST EINE AUSSAGE, keine Panne — aber nur, wenn
+                dabeisteht, dass wirklich nachgesehen wurde. Genau daran fehlte
+                es vorher: eine leere Ausgabe sah aus wie ein leerer Monat.
+              */}
+              {e.anzahl === 0 && (
+                <p className="mt-1 text-sm text-ink-muted">
+                  In diesem Zeitraum wurde keine Rechnung geschrieben. Nachgesehen wurde im
+                  gesamten Bestand, nicht nur in der Liste unten.
+                </p>
+              )}
               {/*
                 Eine Luecke im Nummernkreis ist bei jeder Pruefung ein Befund:
                 entweder fehlt eine Rechnung, oder sie wurde geloescht statt

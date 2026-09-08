@@ -33,6 +33,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge, { type Tone } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import {
   InputField,
@@ -95,6 +96,16 @@ interface Einplanung {
  * tun ist, darunter der Bestand. Wer die Seite öffnet, will nicht
  * dreihundert Vereinbarungen sehen, sondern die vier, die anstehen.
  */
+/**
+ * Wie viele Wartungsvereinbarungen auf einmal geholt werden.
+ *
+ * Zweihundert reichen für einen Betrieb mit ein paar Jahren Bestand; wer mehr
+ * führt, lädt nach. Die Zahl ist bewusst kleiner als der Bestand sein kann —
+ * die Antwort auf „was steht an" steht ohnehin oben und rechnet über das
+ * Geladene hinaus nicht anders.
+ */
+const WARTUNGEN_JE_SEITE = 200;
+
 export default function WartungenView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -117,6 +128,13 @@ export default function WartungenView() {
     an der Nummer hängen und nicht an der Dokument-ID.
   */
   const [nummern, setNummern] = useState<string[]>([]);
+  /*
+    Wie weit der Bestand geladen ist. Vorher stand hier die Voreinstellung der
+    Abfrage — fünfhundert —, und ein Betrieb mit mehr Vereinbarungen verlor
+    die späteren Termine lautlos. Ausgerechnet bei Wartungen ist das teuer:
+    eine Vereinbarung, die niemand sieht, wird nicht ausgeführt.
+  */
+  const [grenze, setGrenze] = useState(WARTUNGEN_JE_SEITE);
   const [toDelete, setToDelete] = useState<WithId<Wartung> | null>(null);
 
   const darfAendern = user ? isGF(user.role) : false;
@@ -131,7 +149,7 @@ export default function WartungenView() {
     void (async () => {
       try {
         const [w, k, p] = await Promise.all([
-          listWartungen(companyId),
+          listWartungen(companyId, grenze),
           listCustomers(companyId),
           /*
             Nur für den Nummernvorschlag. Scheitert es — etwa weil eine Rolle
@@ -155,11 +173,11 @@ export default function WartungenView() {
     return () => {
       weg = true;
     };
-  }, [companyId]);
+  }, [companyId, grenze]);
 
   const neuLaden = async () => {
     if (!companyId) return;
-    setWartungen(await listWartungen(companyId));
+    setWartungen(await listWartungen(companyId, grenze));
   };
 
   /**
@@ -576,6 +594,14 @@ export default function WartungenView() {
           </EmptyState>
         ) : (
           <List>{gefiltert.map(zeile)}</List>
+        )}
+        {!loading && (
+          <Nachladen
+            geladen={wartungen.length}
+            grenze={grenze}
+            einheit="Vereinbarungen"
+            onMehr={() => setGrenze((n) => n + WARTUNGEN_JE_SEITE)}
+          />
         )}
       </Card>
 

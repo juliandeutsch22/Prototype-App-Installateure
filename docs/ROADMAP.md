@@ -1116,6 +1116,95 @@ Geprüft: neun Tests plus der Durchlauf im Browser — der Zustand ohne
 Kostensätze, das Setzen (Deckungsbeitrag 23,00 € je Stunde bei 65 gegen 42),
 und alle drei Erlösquellen nebeneinander.
 
+## Erledigt: Was nach Jahren passiert (08.09.2026)
+
+Aus dem Betrieb kam die Frage, ob die App mit den Jahren langsamer wird und ob
+der Offline-Speicher daran schuld ist. Beim Nachsehen kam etwas Dringenderes
+heraus als Geschwindigkeit.
+
+### Serverseitig wird nichts langsamer
+
+Die Antwortzeit von Firestore hängt an der ERGEBNISgrösse, nicht an der
+Sammlungsgrösse. „Die letzten fünfzig Rechnungen" ist bei hunderttausend
+genauso schnell wie bei hundert — solange ein Index da ist. Deshalb gibt es
+den Index-Abgleich als Test, und deshalb ist Archivieren hier keine Antwort,
+sondern SQL-Denken.
+
+### Was tatsächlich wächst: der lokale Zwischenspeicher
+
+Ohne lokale Indizes durchsucht das SDK bei jeder Abfrage den
+zwischengespeicherten Bestand der Sammlung, und der wächst mit jedem Monat.
+Das ist die Bremse, die man für „zu viel Offline-Speicher" hält.
+
+Die naheliegende Antwort — den Speicher kleiner machen — wäre die falsche:
+sie nähme dem Monteur im Keller die Daten weg und liesse die Abfrage trotzdem
+suchen. Die richtige ist, das Suchen überflüssig zu machen. Eine Zeile:
+`enablePersistentCacheIndexAutoCreation`. Welche Indizes entstehen, entscheidet
+das SDK anhand der Abfragen, die tatsächlich laufen — eine von Hand gepflegte
+Liste wäre eine zweite Wahrheit neben `firestore.indexes.json`.
+
+**Der Offline-Speicher bleibt.** Er ist nicht der Grund für lange Ladezeiten;
+ohne ihn wäre jeder Wechsel zwischen zwei Ansichten wieder ein Netzweg, und im
+Keller, im Rohbau und in der Tiefgarage stünde eine leere App. Für einen
+Installateur ist fehlender Empfang kein Randfall, sondern der Arbeitsplatz.
+
+### Das eigentliche Problem war kein Geschwindigkeitsproblem
+
+**Jede Liste hatte eine Obergrenze, und keine einzige sagte, wenn sie erreicht
+war.** Der 501. Kunde existierte für die App schlicht nicht — nicht in der
+Kundenliste, nicht im Rechnungsformular, nicht bei den Wartungen. Und nichts
+sagte es.
+
+Am teuersten war es beim **Buchhaltungs-Export**: er filterte die geladene
+Rechnungsliste nach Datum, und die reicht voreingestellt fünfzig Rechnungen
+zurück. Ein Export für einen älteren Monat lieferte damit eine LEERE Datei —
+eine, die wie ein erfolgreicher Export aussah, mit „0 Rechnungen" und ohne
+einen Hinweis. Schlimmer noch meldete die Lückenprüfung im Nummernkreis
+Lücken, die keine sind, weil die fehlenden Nummern nicht geladen waren. Ein
+Befund, den es nicht gibt, kostet in einer Kanzlei einen halben Tag.
+
+Dasselbe traf **Mahnlauf** und **unverrechnete Leistung**: beide rechneten über
+die Arbeitsliste, die nach Anlagedatum abschneidet — und sahen damit
+ausgerechnet die ältesten Forderungen nicht. Die fallen als erste heraus.
+
+**Drei Regeln, in dieser Reihenfolge, und sie gelten überall:**
+
+1. **Jede Liste ist eine Arbeitsliste, kein Archiv.** Begrenzt wird nach
+   Zustand oder Zeitraum, nicht nach Stückzahl. Eine Grenze von 500 ist
+   willkürlich und läuft irgendwann über; „was offen ist" läuft nie über.
+2. **Wo eine Grenze bleibt, muss sie sichtbar sein.** Dafür gibt es jetzt
+   `components/Nachladen` — „200 von möglicherweise mehr geladen. Die Suche
+   geht nur über diese." Der zweite Satz ist der wichtigere: ohne ihn sucht
+   jemand einen alten Kunden, findet nichts und schliesst daraus, es gebe ihn
+   nicht.
+3. **Auswertungen rechnen nicht über das, was zufällig geladen ist,** sondern
+   holen ihren Zeitraum selbst.
+
+Angewandt auf: Kunden (500 → 200 mit Nachladen), Wartungen (dito),
+Handwerksscheine (100 → 50 — jeder wiegt rund 70 KB wegen der beiden
+Unterschriftsbilder), Buchhaltungs-Export, Mahnlauf, unverrechnete Leistung.
+
+> **Der Abfragegrenzen-Test hat sofort angeschlagen**, als die neue
+> Zeitraum-Abfrage dazukam — zu Recht: er kannte `invoiceDate` noch nicht.
+> Und der Index-Abgleich verlangte den passenden Index, bevor die Abfrage in
+> Produktion mit „The query requires an index" gescheitert wäre. Beide Tests
+> haben genau das getan, wofür sie gebaut wurden.
+
+### Was NICHT umgesetzt wurde, und warum
+
+Die serverseitige Präfix-Suche für Kunden, Baustellen und Wartungen. Sie
+bräuchte ein normalisiertes Feld (`nameLower`) auf JEDEM Datensatz, auch auf
+allen bestehenden — Firestore kann nicht ohne Rücksicht auf Gross- und
+Kleinschreibung suchen. Bis zur Nachbefüllung fände die Suche die alten
+Kunden NICHT.
+
+Das wäre genau der stille Ausfall, den diese Änderung gerade beseitigt, nur an
+einer neuen Stelle. Mit dem sichtbaren Nachladen ist die Gefahr weg; wer einen
+alten Kunden sucht und nicht findet, liest jetzt, dass die Liste an ihrer
+Grenze steht. **Wieder aufgreifen, wenn ein Betrieb über etwa tausend Kunden
+kommt** — dann lohnt die Nachbefüllung, und sie gehört mit einem sichtbaren
+Fortschritt und einer Prüfung „wie viele haben das Feld noch nicht" gebaut.
+
 ## Erledigt: Handwerksschein Stufe 2 und 4 (08.09.2026)
 
 ### Stufe 2 — Fotos, und zwar freiwillig

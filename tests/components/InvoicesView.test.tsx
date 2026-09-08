@@ -76,6 +76,18 @@ const lege = vi.fn();
 const mahnung = vi.fn();
 const reihenfolge: string[] = [];
 
+/*
+  Zwei neue Abfragen, weil zwei Auswertungen nicht mehr über die zufällig
+  geladene Liste rechnen: der Mahnlauf über die offenen Forderungen, der
+  Export über seinen Zeitraum.
+*/
+let offene: (Invoice & { id: string })[] = [];
+let imZeitraum: (Invoice & { id: string })[] = [];
+const listUnpaidInvoices = vi.fn(async () => offene);
+const listInvoicesInRange = vi.fn<[string, string, string], Promise<(Invoice & { id: string })[]>>(
+  async () => imZeitraum,
+);
+
 vi.mock('@/lib/db/invoices', async () => {
   const echt = await vi.importActual<typeof import('@/lib/invoiceNumbers')>('@/lib/invoiceNumbers');
   return {
@@ -84,6 +96,19 @@ vi.mock('@/lib/db/invoices', async () => {
     isInvoiceNumberTaken: echt.isInvoiceNumberTaken,
     highestInvoiceSeq: echt.highestInvoiceSeq,
     invoiceSeqOf: echt.invoiceSeqOf,
+    /*
+      Die OFFENEN Forderungen kommen jetzt eigens vom Server — der Mahnlauf
+      lief vorher über die Arbeitsliste und sah damit ausgerechnet die
+      ältesten Forderungen nicht.
+    */
+    listUnpaidInvoices: () => listUnpaidInvoices(),
+    /*
+      Und der Buchhaltungs-Export holt seinen Zeitraum selbst, statt die
+      geladene Liste zu filtern. Der Doppelgänger gibt zurück, was der Test
+      als „im Zeitraum vorhanden" hinterlegt hat.
+    */
+    listInvoicesInRange: (c: string, von: string, bis: string) =>
+      listInvoicesInRange(c, von, bis),
     subscribeRecentInvoices: (
       _c: string,
       _g: number,
@@ -206,6 +231,10 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   rechnungen = [];
   alleScheine = [];
+  offene = [];
+  imZeitraum = [];
+  listUnpaidInvoices.mockClear();
+  listInvoicesInRange.mockClear();
   listRecentWorkSheets.mockClear();
   zeiten = [ZEIT];
   scheine = [];
@@ -889,6 +918,12 @@ describe('Über der 10.000-Euro-Grenze', () => {
  * Schreiben, sondern am Zusammenstellen, das sich immer verschieben lässt.
  */
 describe('Der Mahnlauf', () => {
+  /*
+    GESETZT WIRD `offene`, NICHT `rechnungen` — und das ist der Punkt der
+    Änderung vom 08.09.2026. Der Lauf rechnete vorher über die geladene
+    Arbeitsliste, und die schneidet nach Anlagedatum ab: damit sah er
+    ausgerechnet die Forderungen NICHT, die am längsten offen sind.
+  */
   const offen = (
     id: string,
     p: Partial<Invoice> = {},
@@ -910,6 +945,7 @@ describe('Der Mahnlauf', () => {
 
   it('steht gar nicht da, wenn nichts offen ist', async () => {
     // Eine dauerhaft sichtbare leere Mahnliste wäre ein Vorwurf ohne Anlass.
+    // Die bezahlte Rechnung steht in der Arbeitsliste, nicht bei den offenen.
     rechnungen = [offen('0001', { paymentStatus: 'Bezahlt' })];
     zeige();
     await screen.findByText(/RE-2026-0001/);
@@ -917,7 +953,7 @@ describe('Der Mahnlauf', () => {
   });
 
   it('zählt zusammen, was zu mahnen ist, und nennt die Summe', async () => {
-    rechnungen = [offen('0001'), offen('0002', { totalBrutto: 300 })];
+    offene = [offen('0001'), offen('0002', { totalBrutto: 300 })];
     zeige();
 
     const karte = (await screen.findByText(/^Mahnlauf \(2\)/)).closest('section')!;
@@ -932,7 +968,7 @@ describe('Der Mahnlauf', () => {
     die gerade erst die Frist überschritten hat.
   */
   it('stellt die weit fortgeschrittene Forderung nach oben', async () => {
-    rechnungen = [
+    offene = [
       offen('0001', { dueDate: '2026-01-01' }),
       offen('0002', { mahnstufe: 2, dueDate: '2026-08-28' }),
     ];
@@ -944,7 +980,7 @@ describe('Der Mahnlauf', () => {
   });
 
   it('mahnt aus der Liste heraus — mit der richtigen Stufe', async () => {
-    rechnungen = [offen('0001', { mahnstufe: 1 })];
+    offene = [offen('0001', { mahnstufe: 1 })];
     zeige();
 
     const karte = (await screen.findByText(/^Mahnlauf/)).closest('section')!;
@@ -959,7 +995,7 @@ describe('Der Mahnlauf', () => {
     die unsichtbarsten.
   */
   it('nennt die ausgereizten Forderungen, statt sie zu verschlucken', async () => {
-    rechnungen = [offen('0001', { mahnstufe: 3 })];
+    offene = [offen('0001', { mahnstufe: 3 })];
     zeige();
 
     expect(await screen.findByText(/braucht eine Entscheidung/)).toBeInTheDocument();
@@ -967,10 +1003,30 @@ describe('Der Mahnlauf', () => {
   });
 
   it('führt eine bezahlte dritte Mahnung nicht als offene Entscheidung', async () => {
+    /*
+      Seit der Lauf über `listUnpaidInvoices` geht, kann eine bezahlte
+      Rechnung ihn gar nicht mehr erreichen — die Abfrage filtert sie am
+      Server weg. Der Test prüft jetzt genau das: sie steht in der
+      Arbeitsliste und trotzdem nirgends unter „braucht eine Entscheidung".
+      Dass `mahnlauf()` sie auch für sich genommen aussortiert, hält der
+      Rechen-Test in `tests/unit/mahnlauf.test.ts` fest.
+    */
     rechnungen = [offen('0001', { mahnstufe: 3, paymentStatus: 'Bezahlt' })];
     zeige();
     await screen.findByText(/RE-2026-0001/);
     expect(screen.queryByText(/braucht eine Entscheidung/)).not.toBeInTheDocument();
+  });
+
+  /*
+    DER FALL, DER VORHER DURCHFIEL. Eine Forderung von vor zwei Jahren steht
+    längst nicht mehr in den fünfzig jüngsten Rechnungen — und war damit im
+    Mahnlauf unsichtbar. Ausgerechnet die älteste.
+  */
+  it('sieht eine alte Forderung, die in der Arbeitsliste gar nicht mehr steht', async () => {
+    rechnungen = [];
+    offene = [offen('0001', { dueDate: '2024-03-01' })];
+    zeige();
+    expect(await screen.findByText(/^Mahnlauf \(1\)/)).toBeInTheDocument();
   });
 });
 
@@ -1084,5 +1140,91 @@ describe('Nicht verrechnete Leistung', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Baustelle wählen' }));
     const auswahl = await screen.findByRole<HTMLSelectElement>('combobox', { name: /Baustelle/ });
     expect(auswahl.value).toBe('2026-042');
+  });
+});
+
+/**
+ * Der Buchhaltungs-Export.
+ *
+ * ER RECHNETE ÜBER DIE GELADENE ARBEITSLISTE. Die reicht voreingestellt
+ * fünfzig Rechnungen zurück; ein Export für einen älteren Monat lieferte
+ * damit eine LEERE Datei — und zwar eine, die wie ein erfolgreicher Export
+ * aussah: „0 Rechnungen", keine Lücken, Knopf grau.
+ *
+ * Schlimmer war die Lückenprüfung im Nummernkreis: sie meldete Lücken, die
+ * keine sind, weil die fehlenden Nummern schlicht nicht geladen waren. Ein
+ * Befund, den es nicht gibt, kostet in einer Kanzlei einen halben Tag.
+ */
+describe('Der Buchhaltungs-Export', () => {
+  const journal = (nr: string, datum: string): Invoice & { id: string } =>
+    ({
+      id: nr,
+      invoiceNumber: `RE-2026-${nr}`,
+      projectNumber: '2026-042',
+      customerName: 'Baumeister Gruber',
+      invoiceDate: datum,
+      dueDate: datum,
+      totalNetto: 1000,
+      totalVat: 200,
+      totalBrutto: 1200,
+      paymentStatus: 'Bezahlt',
+    }) as unknown as Invoice & { id: string };
+
+  it('rechnet nicht über die Liste, sondern holt den Zeitraum', async () => {
+    // Die Arbeitsliste ist LEER — und das Journal trotzdem vollständig.
+    rechnungen = [];
+    imZeitraum = [journal('0001', '2026-09-01'), journal('0002', '2026-09-02')];
+    zeige();
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }),
+    );
+    expect(await screen.findByText(/2 Rechnungen/)).toBeInTheDocument();
+    expect(listInvoicesInRange).toHaveBeenCalled();
+  });
+
+  /*
+    NULL IST EINE AUSSAGE, KEINE PANNE — aber nur, wenn dabeisteht, dass
+    wirklich nachgesehen wurde. Genau daran fehlte es: eine leere Ausgabe sah
+    aus wie ein leerer Monat.
+  */
+  it('sagt bei null Rechnungen, dass im ganzen Bestand nachgesehen wurde', async () => {
+    imZeitraum = [];
+    zeige();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }),
+    );
+    expect(await screen.findByText(/im gesamten Bestand/)).toBeInTheDocument();
+  });
+
+  it('zeigt vor dem Zusammenstellen gar keine Zahl', async () => {
+    // Sonst stünde dort eine Auskunft über einen Zeitraum, den niemand
+    // abgefragt hat — die gefährlichste Anzeige von allen.
+    imZeitraum = [journal('0001', '2026-09-01')];
+    zeige();
+    await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' });
+    expect(screen.queryByText(/Rechnung · Netto|Rechnungen · Netto/)).not.toBeInTheDocument();
+  });
+
+  it('verwirft das Ergebnis, sobald der Zeitraum geändert wird', async () => {
+    imZeitraum = [journal('0001', '2026-09-01')];
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+    await screen.findByText(/1 Rechnung/);
+
+    await nutzer.clear(screen.getByLabelText('Von'));
+    await waitFor(() => expect(screen.queryByText(/1 Rechnung/)).not.toBeInTheDocument());
+  });
+
+  it('sagt es, wenn der Zeitraum nicht geladen werden konnte', async () => {
+    // Ohne ihn wäre das Journal unvollständig — und ein unvollständiges
+    // Journal, das wie ein vollständiges aussieht, ist der ganze Fehler.
+    listInvoicesInRange.mockRejectedValueOnce(new Error('offline'));
+    zeige();
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }),
+    );
+    expect(await screen.findByText(/Journal unvollständig/)).toBeInTheDocument();
   });
 });
