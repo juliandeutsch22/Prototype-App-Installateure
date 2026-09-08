@@ -1192,6 +1192,83 @@ Formular — und 15 absichtlich kaputte Fassungen, die alle aufgefallen sind.
 Zwei davon erst im zweiten Anlauf: was die Vorbelegung im echten Formular
 bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
 
+## Erledigt: Scheine serverseitig suchen (08.09.2026)
+
+Der echte Kern der Archiv-Frage von heute. Das Suchfeld in der Scheinliste
+filterte den GELADENEN Bestand im Browser — die jüngsten fünfzig. Ein Schein
+vom März war damit nicht auffindbar, egal was jemand eintippte, **und das Feld
+sagte nichts dazu**: es lieferte einfach kein Ergebnis. Dieselbe Fehlerform
+wie beim Buchhaltungs-Export damals, eine leere Antwort, die wie ein Befund
+aussieht.
+
+### Was serverseitig geht — und was nicht, samt Begründung in der Ansicht
+
+Firestore kann keine Volltextsuche. Nach einem Kundennamen liesse sich nur mit
+einem zusätzlich gepflegten Feld (`nameLower`) suchen, und bis das auf jedem
+Altbestand nachgetragen wäre, fände die Suche alte Scheine **stillschweigend**
+nicht — genau das Verhalten, das hier beseitigt werden soll. Deshalb die
+Trennung, und sie steht in der Oberfläche:
+
+| Begriff | Weg |
+| --- | --- |
+| `2026-042`, `B-001`, `PR-2026-042` | Baustellennummer, serverseitig und exakt |
+| `2026-03-14`, `2026-09`, `09.2026`, `2026` | Zeitraum, serverseitig |
+| `Huber`, freier Text | nur im geladenen Bestand — und die Ansicht sagt es und nennt den Ausweg |
+
+Das deckt ab, wonach im Büro tatsächlich gesucht wird, und behauptet für den
+Rest nichts.
+
+### Die Entscheidungen, die im Kleingedruckten stecken
+
+**`2026-09` gilt als Monat, nicht als Baustellennummer.** Zweideutig, und
+bewusst so entschieden: die Nummernvergabe füllt auf drei Stellen auf
+(`2026-042`), eine zweistellige Nummer ist die unwahrscheinlichere Lesart —
+und wer sie doch meint, sieht die Scheine des Monats, in dem sie liegt.
+
+**`2026-13` ist kein Monat** und fällt auf die Baustellenlesart durch. Als
+Zeitraum gedeutet käme eine Abfrage heraus, die nie etwas findet — und das
+sähe aus wie „gibt es nicht".
+
+**Das Serverergebnis wird nicht noch einmal gefiltert.** Sonst fiele ein
+Treffer weg, dessen Nummer anders geschrieben ist (`PR-2026-042`) — also
+gerade der alte Schein, um den es geht.
+
+**Es gilt für genau den Begriff, mit dem es geholt wurde.** Tippt jemand
+weiter, verschwindet es. Stehen zu bleiben hiesse, Scheine unter einem
+Suchbegriff zu zeigen, zu dem sie nicht passen.
+
+**Ein Fehler wird gemeldet, nicht als leeres Ergebnis ausgegeben.** Wer sucht,
+wartet auf eine Antwort; „nichts gefunden" wäre die falsche, wenn gar nicht
+gesucht wurde.
+
+Obergrenze 150 wie bei der tiefen Prüfung, aus demselben Grund (rund 70 KB je
+unterschriebenem Schein) — und sie wird angesagt, sobald sie greift.
+
+Geprüft: 10 Rechen-Tests am Suchbegriff, 8 in der Ansicht — und 15 absichtlich
+kaputte Fassungen. Eine entwischte zuerst und war ein Fehler in der PROBE,
+nicht in den Tests: `setError((e as Error).message)` steht zweimal in der
+Datei, und die Mutation traf den Lader statt die Suche. Gezielt wiederholt,
+fiel sie auf.
+
+## Nicht gebaut, und das ist eine Rücknahme: Unterschriftsbilder in den Storage
+
+Ich hatte das selbst als grössten verbleibenden Hebel für die Ladezeit
+vorgeschlagen. Beim Nachsehen ist es die falsche Idee, und zwar aus genau dem
+Grund, der schon die Fotos freiwillig gemacht hat: **Firebase Storage kennt
+keine Warteschlange für Offline-Schreibvorgänge**, Firestore schon.
+
+Ein Foto darf deshalb fehlen. **Eine Unterschrift nicht.** Läge sie im
+Storage, liesse sich im Keller ohne Empfang kein Schein mehr unterschreiben —
+und das ist der Kernfall, für den die Funktion gebaut wurde. Der Vorschlag
+hätte den Hauptzweck beschädigt, um eine Liste schneller zu machen.
+
+**Die rettbare Variante**, falls das Gewicht später wirklich drückt: die
+Bilder in ein Unterdokument INNERHALB von Firestore verschieben
+(`workSheets/{id}/anhang/…`), geschrieben im selben `writeBatch`. Das bleibt
+offline-fähig und nimmt die rund 70 KB trotzdem aus jeder Listenabfrage. Es
+ändert die Dokumentform, braucht dauerhaft zwei Lesearten für alte und neue
+Scheine und rührt an der Prüfsumme — ein eigenes Projekt, kein Nebenbei.
+
 ## Erledigt: Zuschlagsstunden im eigenen Zeitkonto (08.09.2026)
 
 Die zweite Hälfte des Zuschlags-Befunds. Nacht und Notdienst gehen seither in
