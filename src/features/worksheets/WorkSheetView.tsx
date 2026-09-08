@@ -36,6 +36,7 @@ import {
   fuerDenSchein,
   groesse,
   MAX_FOTOS,
+  MAX_KANTE,
   type FotoEntwurf,
 } from './fotos';
 
@@ -458,6 +459,15 @@ export default function WorkSheetView() {
   }, [user, projectNumber, datum, versuch]);
 
   const gesamtMinuten = zeiten.reduce((s, z) => s + z.minuten, 0);
+
+  /**
+   * Keine weitere Aufnahme: es läuft gerade eine, oder das Fach ist voll.
+   *
+   * Steht hier und nicht in der Ansicht, weil sowohl das versteckte Feld
+   * (das die Sperre wirklich trägt) als auch das Label (das sie zeigt) den
+   * Wert brauchen — und zwei getrennte Ausdrücke irgendwann auseinanderlaufen.
+   */
+  const fotoKnopfAus = fotoLaeuft || fotos.length >= MAX_FOTOS;
   /**
    * Der Datensatz gehört in die Bedingung, nicht nur die Nummer.
    *
@@ -923,89 +933,151 @@ export default function WorkSheetView() {
             />
           </Card>
 
+          {/*
+            FOTOS — FREIWILLIG, und das steht auch da.
+
+            Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
+            Firestore hält einen Schreibvorgang offline vor, Firebase Storage
+            tut das nicht. Wäre ein Foto Bedingung, hinge der ganze Beleg an
+            einem Balken Empfang — und der Monteur stünde mit einem Kunden vor
+            sich da, der unterschreiben will.
+
+            Der Abschnitt erscheint erst mit einer gewählten Baustelle: ein
+            Foto ohne Schein hat keinen Ort, an den es gehört.
+
+            EIGENE KARTE, nicht mehr im Kopf der Unterschriften. Dort standen
+            ein unterstrichener Link in Akzentfarbe und drei Zeilen graues
+            Kleingedrucktes unmittelbar über „Monteur (Name in
+            Druckbuchstaben)" — die Zeile las sich wie eine Fehlermeldung zu
+            genau diesem Feld. Das Kleingedruckte ist ins „i" der Karte
+            gewandert, sichtbar bleibt der eine Satz, der vor Ort zählt.
+          */}
+          {projekt && (
+            <Card
+              title={`Fotos (${fotos.length}/${MAX_FOTOS})`}
+              hint={
+                <>
+                  Bilder sind kein Pflichtteil des Scheins — er ist auch ohne gültig. Sie
+                  belegen aber, was im Text nur behauptet steht: den Zustand vor dem Eingriff,
+                  eine verdeckte Leitung vor dem Verschliessen, den Zählerstand, einen Schaden,
+                  der nicht von uns stammt. Im Streitfall ist das der Unterschied zwischen
+                  Aussage und Beweis.
+                  <br />
+                  <br />
+                  Jedes Bild wird noch am Gerät auf {MAX_KANTE} px lange Kante verkleinert,
+                  bevor es das Mobilfunknetz sieht — aus 4 MB werden rund 200 KB. Das spart
+                  Datenvolumen und Ladezeit beim späteren Öffnen des Scheins.
+                  <br />
+                  <br />
+                  Die Bilder gehen in die Prüfsumme des Scheins ein: wird eines später
+                  ausgetauscht, stimmt die Summe nicht mehr und der Schein fällt bei der
+                  Prüfung auf. Deshalb lassen sie sich nach dem Unterschreiben nicht mehr
+                  ändern.
+                  <br />
+                  <br />
+                  Ohne Netz geht das Hochladen nicht: anders als eine Buchung hält Firebase
+                  Storage nichts vor. Der Schein selbst lässt sich trotzdem unterschreiben und
+                  wird nachgereicht, sobald wieder Empfang da ist — die Bilder aber müssten
+                  dann neu aufgenommen werden. Wer im Keller arbeitet, fotografiert deshalb
+                  besser oben.
+                  <br />
+                  <br />
+                  Keine Personen fotografieren, wenn es nicht sein muss, und keine fremden
+                  Unterlagen. Was auf dem Bild ist, landet in der Firmenablage und bleibt dort
+                  sieben Jahre.
+                </>
+              }
+            >
+              <p className="text-sm text-ink-muted">
+                Freiwillig. Höchstens {MAX_FOTOS} Stück, am Gerät verkleinert.
+              </p>
+
+              {fotos.length > 0 && (
+                <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {fotos.map((f) => (
+                    <li key={f.vorschau} className="relative">
+                      <img
+                        src={f.vorschau}
+                        alt="Aufnahme vom Einsatz"
+                        className="aspect-square w-full rounded-sm border border-line object-cover"
+                      />
+                      {/*
+                        Das Kreuz sitzt AUF dem Bild und braucht deshalb einen
+                        eigenen Untergrund — auf einem dunklen Foto wäre ein
+                        blosses Zeichen nicht zu sehen.
+                      */}
+                      <button
+                        type="button"
+                        aria-label="Foto entfernen"
+                        title="Foto entfernen"
+                        onClick={() => void fotoWegnehmen(f)}
+                        className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-surface/90 text-sm text-danger shadow-sm"
+                      >
+                        ✕
+                      </button>
+                      {f.oben ? (
+                        <p className="mt-1 text-center text-xs text-ink-muted">
+                          {groesse(f.oben.bytes)}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-center text-xs text-warning">
+                          {f.fehler ?? 'Wird hochgeladen …'}
+                          {f.fehler && (
+                            <button
+                              type="button"
+                              onClick={() => void fotoNachreichen(f)}
+                              className="ml-1 underline"
+                            >
+                              Nochmal versuchen
+                            </button>
+                          )}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/*
+                Ein Knopf, kein unterstrichener Link. Ein <label> deshalb, weil
+                die Dateiauswahl nur ein <input type="file"> auslöst; „disabled"
+                kann ein Label nicht, also trägt das versteckte Feld die Sperre
+                und das Label nur deren Aussehen.
+              */}
+              <label
+                aria-disabled={fotoKnopfAus}
+                className={`mt-3 inline-flex min-h-touch w-full items-center justify-center gap-2 rounded border border-line px-4 py-2 text-base font-semibold transition sm:w-auto ${
+                  fotoKnopfAus
+                    ? 'cursor-not-allowed bg-surface-2 text-ink-muted opacity-60'
+                    : 'cursor-pointer bg-surface-2 text-ink active:scale-[0.98]'
+                }`}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  className="sr-only"
+                  disabled={fotoKnopfAus}
+                  onChange={(e) => {
+                    void fotoAufnehmen(e.target.files);
+                    // Zurücksetzen, sonst löst dieselbe Datei kein
+                    // zweites Mal aus — der Monteur tippt und nichts tut sich.
+                    e.target.value = '';
+                  }}
+                />
+                {fotoLaeuft
+                  ? 'Wird verarbeitet …'
+                  : fotos.length >= MAX_FOTOS
+                    ? `Höchstens ${MAX_FOTOS} Fotos`
+                    : fotos.length === 0
+                      ? 'Foto aufnehmen'
+                      : 'Weiteres Foto'}
+              </label>
+            </Card>
+          )}
+
           <Card title="Unterschriften">
-            {/*
-              FOTOS — FREIWILLIG, und das steht auch da.
-
-              Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
-              Firestore hält einen Schreibvorgang offline vor, Firebase
-              Storage tut das nicht. Wäre ein Foto Bedingung, hinge der ganze
-              Beleg an einem Balken Empfang — und der Monteur stünde mit einem
-              Kunden vor sich da, der unterschreiben will.
-
-              Der Abschnitt erscheint erst mit einer gewählten Baustelle: ein
-              Foto ohne Schein hat keinen Ort, an den es gehört.
-            */}
-            {projekt && (
-              <div className="mt-6">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-medium text-ink">
-                    Fotos <span className="text-ink-muted">(freiwillig)</span>
-                  </h3>
-                  <label className="cursor-pointer text-sm text-accent underline">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      multiple
-                      className="sr-only"
-                      disabled={fotoLaeuft || fotos.length >= MAX_FOTOS}
-                      onChange={(e) => {
-                        void fotoAufnehmen(e.target.files);
-                        // Zurücksetzen, sonst löst dieselbe Datei kein
-                        // zweites Mal aus — der Monteur tippt und nichts tut sich.
-                        e.target.value = '';
-                      }}
-                    />
-                    {fotoLaeuft ? 'Wird verarbeitet …' : 'Foto aufnehmen oder wählen'}
-                  </label>
-                </div>
-                <p className="mt-1 text-xs text-ink-muted">
-                  Höchstens {MAX_FOTOS}. Sie werden am Gerät verkleinert und gehen in die
-                  Prüfsumme des Scheins ein — ein später ausgetauschtes Bild fällt damit auf.
-                  Ohne Netz lassen sie sich nicht hochladen; der Schein selbst schon.
-                </p>
-                {fotos.length > 0 && (
-                  <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {fotos.map((f) => (
-                      <li key={f.vorschau} className="relative">
-                        <img
-                          src={f.vorschau}
-                          alt="Aufnahme vom Einsatz"
-                          className="aspect-square w-full rounded-sm border border-line object-cover"
-                        />
-                        <button
-                          type="button"
-                          aria-label="Foto entfernen"
-                          title="Foto entfernen"
-                          onClick={() => void fotoWegnehmen(f)}
-                          className="absolute right-1 top-1 rounded-sm bg-surface/90 px-1 text-sm text-danger"
-                        >
-                          ✕
-                        </button>
-                        {f.oben ? (
-                          <p className="mt-1 text-xs text-ink-muted">{groesse(f.oben.bytes)}</p>
-                        ) : (
-                          <p className="mt-1 text-xs text-warning">
-                            {f.fehler ?? 'Wird hochgeladen …'}
-                            {f.fehler && (
-                              <button
-                                type="button"
-                                onClick={() => void fotoNachreichen(f)}
-                                className="ml-1 underline"
-                              >
-                                Nochmal versuchen
-                              </button>
-                            )}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
             {/*
               Name in Druckbuchstaben NEBEN dem Strich. Eine Unterschrift ohne
               zuordenbaren Namen ist im Streitfall wenig wert — beim Kunden ist

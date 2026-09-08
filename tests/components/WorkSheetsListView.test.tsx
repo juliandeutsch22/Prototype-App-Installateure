@@ -95,6 +95,18 @@ vi.mock('@/lib/db/scheinFotos', () => ({
   fotoAdresse: (p: string) => fotoAdresse(p),
 }));
 
+/*
+  Die Zeiteinträge der KOLLEGEN — nur das Büro bekommt sie zu sehen.
+
+  Der Mock ist auch dann nötig, wenn keine Buchung geprüft wird: ohne ihn
+  zöge die Ansicht das echte Firebase-Modul in den Testlauf.
+*/
+let buchungen: Array<Record<string, unknown>> = [];
+const zeitenGeholt = vi.fn(async () => buchungen);
+vi.mock('@/lib/db/timeEntries', () => ({
+  listEntriesInRange: (...a: unknown[]) => zeitenGeholt(...(a as [])),
+}));
+
 vi.mock('@/features/worksheets/worksheetPdf', () => ({
   buildWorkSheetPdf: vi.fn(),
   shareOrDownloadPdf: vi.fn(),
@@ -145,8 +157,10 @@ function zeichne() {
 beforeEach(() => {
   authWert.user.role = 'Mitarbeiter';
   geladen = scheine;
+  buchungen = [];
   verwerfen.mockClear();
   zurueckholen.mockClear();
+  zeitenGeholt.mockClear();
 });
 
 describe('Liste der Handwerksscheine', () => {
@@ -352,5 +366,164 @@ describe('Fotos am Schein', () => {
     await screen.findByText(/Familie Huber/);
     await nutzer.click(screen.getAllByRole('button', { name: 'Details' })[0]);
     expect(screen.queryByText(/^Fotos/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Stunden ohne Buchung — die Kollegenzeile, an die niemand erinnert wird.
+ *
+ * Der Nachtrag in der Zeiterfassung deckt nur die EIGENEN Zeilen des
+ * Monteurs ab, und das muss so bleiben: in derselben Ablage stehen Kranken-
+ * und Urlaubstage der Kollegen. Trägt er auf dem Schein die Zeile eines
+ * Kollegen ein, sieht die niemand wieder — er nicht, weil ihm fremde
+ * Buchungen verborgen sind, der Kollege nicht, weil ihm dieser Schein
+ * verborgen ist. Die Stunde wird nie verrechnet und nie aufgezeichnet.
+ */
+describe('Stunden ohne Buchung', () => {
+  /* Tage relativ zu HEUTE — der Befund hängt am Alter des Scheins, und ein
+     festes Datum im Testtext wäre nächstes Jahr ein anderer Fall. */
+  const vorTagen = (n: number) =>
+    new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+
+  /* Die Zeile ist aus mehreren Elementen gesetzt — gesucht wird deshalb im
+     zusammengesetzten Text, nicht in einem einzelnen Knoten. */
+  const zeile = (text: string) =>
+    screen.getByText((_t, el) => el?.textContent?.replace(/\s+/g, ' ').trim() === text, {
+      selector: 'span.text-xs',
+    });
+
+  const offenerSchein = (p: Partial<WorkSheet> = {}): WorkSheet & { id: string } =>
+    ({
+      id: 'o1',
+      companyId: 'perl',
+      projectNumber: 'B-009',
+      customerName: 'Familie Wagner',
+      datum: vorTagen(10),
+      status: 'Unterschrieben',
+      abrechnung: 'Regie',
+      zeiten: [
+        {
+          datum: vorTagen(10),
+          mitarbeiter: 'Franz Huber',
+          von: '07:00',
+          bis: '15:30',
+          pauseMin: 30,
+          minuten: 480,
+        },
+      ],
+      material: [],
+      erstelltVonUid: 'm1',
+      erstelltVonName: 'Max Mustermann',
+      ...p,
+    }) as WorkSheet & { id: string };
+
+  it('nennt dem Büro die Zeile, die niemand gebucht hat', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein()];
+    zeichne();
+
+    expect(await screen.findByText(/Stunden ohne Buchung \(1\)/)).toBeInTheDocument();
+    expect(zeile('Franz Huber · 08:00 · keine Buchung gefunden')).toBeInTheDocument();
+    // Die Summe ist die eigentliche Aussage: so viel Zeit steht
+    // unterschrieben beim Kunden und in keiner Aufzeichnung.
+    expect(screen.getByText(/stehen unterschrieben beim Kunden/)).toBeInTheDocument();
+  });
+
+  /*
+    DER MONTEUR BEKOMMT DIESE KARTE NICHT — und holt die Daten auch gar nicht
+    erst. Fremde Zeiteinträge darf er nach den Firestore-Regeln nicht lesen;
+    die Abfrage bliebe an ihnen hängen und hinterliesse nichts als einen
+    Fehler in einer Ansicht, die er sonst benutzen kann.
+  */
+  it('lädt für den Monteur keine fremden Zeiteinträge', async () => {
+    authWert.user.role = 'Mitarbeiter';
+    geladen = [offenerSchein()];
+    zeichne();
+
+    await screen.findByText(/Familie Wagner/);
+    expect(zeitenGeholt).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Stunden ohne Buchung/)).not.toBeInTheDocument();
+  });
+
+  it('schweigt, sobald die Zeit gebucht ist', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein()];
+    buchungen = [
+      { date: vorTagen(10), userName: 'Franz Huber', projectNumber: 'B-009', status: 'Anwesend' },
+    ];
+    zeichne();
+
+    await screen.findByText(/Familie Wagner/);
+    await waitFor(() => expect(zeitenGeholt).toHaveBeenCalled());
+    expect(screen.queryByText(/Stunden ohne Buchung/)).not.toBeInTheDocument();
+  });
+
+  /*
+    Gebucht, aber auf die Hauptbaustelle: die Arbeitszeit IST aufgezeichnet,
+    falsch ist nur die Zuordnung — und die entscheidet, wem die Stunde
+    verrechnet wird. Beides in einen Topf zu werfen machte die Summe
+    unbrauchbar.
+  */
+  it('unterscheidet die falsch zugeordnete Stunde von der fehlenden', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein()];
+    buchungen = [
+      { date: vorTagen(10), userName: 'Franz Huber', projectNumber: 'B-001', status: 'Anwesend' },
+    ];
+    zeichne();
+
+    await screen.findByText(/Stunden ohne Buchung/);
+    expect(zeile('Franz Huber · 08:00 · gebucht auf B-001')).toBeInTheDocument();
+    expect(screen.queryByText(/stehen unterschrieben beim Kunden/)).not.toBeInTheDocument();
+  });
+
+  /*
+    Der Zeitraum der Abfrage kommt aus den geladenen Scheinen, nicht aus dem
+    Kalender: ein fester Monat holte entweder zu wenig oder viel zu viel.
+  */
+  it('holt die Zeiteinträge über den Zeitraum der geladenen Scheine', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein(), offenerSchein({ id: 'o2', datum: vorTagen(40) })];
+    zeichne();
+
+    await waitFor(() => expect(zeitenGeholt).toHaveBeenCalled());
+    expect(zeitenGeholt.mock.calls[0]).toEqual(['perl', vorTagen(40), vorTagen(10)]);
+  });
+
+  /*
+    Die Karte ist kein Dauerzustand: gibt es nichts zu tun, steht sie nicht
+    da. Ein Kasten „alles gebucht", der jeden Tag erscheint, wird nach einer
+    Woche nicht mehr gelesen — und dann auch nicht, wenn er etwas meldet.
+  */
+  it('erscheint gar nicht, wenn nichts offen ist', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = scheine;
+    zeichne();
+
+    await screen.findByText(/Familie Berger/);
+    expect(screen.queryByText(/Stunden ohne Buchung/)).not.toBeInTheDocument();
+  });
+
+  /*
+    Der Knopf führt zum Schein, und der steht unten in der Liste. Steht dort
+    noch ein Suchbegriff, klappte er zwar auf, wäre aber nicht zu sehen — ein
+    Knopf, der scheinbar nichts tut.
+  */
+  it('räumt die Suche weg, bevor es den Schein aufklappt', async () => {
+    authWert.user.role = 'Buchhaltung';
+    geladen = [offenerSchein()];
+    const nutzer = userEvent.setup();
+    zeichne();
+
+    await screen.findByText(/Stunden ohne Buchung/);
+    const suchfeld = screen.getByLabelText('Scheine durchsuchen');
+    await nutzer.type(suchfeld, 'zzz');
+    expect(screen.getByText(/Kein Schein passt/)).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Schein ansehen' }));
+    expect(suchfeld).toHaveValue('');
+    // Zweimal: einmal in der Karte oben, einmal in der Liste darunter — und
+    // genau die untere soll wieder da sein.
+    expect(screen.getAllByText(/Familie Wagner/)).toHaveLength(2);
   });
 });
