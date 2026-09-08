@@ -545,3 +545,63 @@ describe('Offene Nachtragungen', () => {
     expect(screen.queryByText(/wartet noch auf deine Zeitbuchung/)).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Zuschlagsstunden im eigenen Zeitkonto.
+ *
+ * Nacht und Notdienst gehen seit dem 08.09.2026 in die Lohnausleitung ein —
+ * der Zuschlag ist ein Anspruch nach Kollektivvertrag. Sichtbar war er damit
+ * aber nur, wenn das Büro eine CSV zog: der Mann selbst konnte nicht prüfen,
+ * ob überhaupt gezählt wird, was er gearbeitet hat.
+ */
+describe('Zuschlagsstunden', () => {
+  it('zeigt sie als eigene Kachel, aufgeschlüsselt im Beipacktext', async () => {
+    eintraege = [
+      eintrag({ id: 'n1', isNightWork: true }),
+      eintrag({ id: 'n2', date: '2026-09-02', isEmergency: true }),
+    ];
+    zeige();
+
+    expect(await screen.findByText('Zuschlag')).toBeInTheDocument();
+    expect(screen.getByText(/Nacht 08:00 · Notdienst 08:00/)).toBeInTheDocument();
+  });
+
+  /*
+    DER WERT IST DIE VEREINIGUNG, NICHT DIE SUMME. Der Rohrbruch um zwei Uhr
+    früh trägt beide Kennzeichen; addiert stünde er doppelt da, und niemand
+    sähe der Kachel an, warum sie mehr zeigt, als der Mann gearbeitet hat.
+  */
+  it('zählt die Stunde mit beiden Kennzeichen nur einmal', async () => {
+    eintraege = [eintrag({ id: 'n1', isNightWork: true, isEmergency: true })];
+    zeige();
+
+    const kachel = (await screen.findByText('Zuschlag')).parentElement;
+    // 8 h, nicht 16 h — die Stunde trägt beide Kennzeichen, ist aber eine.
+    expect(kachel).toHaveTextContent('08:00');
+    expect(kachel).not.toHaveTextContent('16:00');
+    expect(screen.getByText(/08:00 beides/)).toBeInTheDocument();
+  });
+
+  /*
+    Eine Kachel, die bei den allermeisten dauerhaft „0:00" zeigt, nimmt auf
+    dem Telefon die Breite weg, die Saldo und Wochensumme brauchen — und sagt
+    nichts.
+  */
+  it('bleibt weg, wenn keine anfielen', async () => {
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+
+    await screen.findByText('Einträge');
+    expect(screen.queryByText('Zuschlag')).not.toBeInTheDocument();
+  });
+
+  it('zählt Urlaub und Krankenstand nicht mit', async () => {
+    // Ein Abwesenheitstag trägt kein Kennzeichen — stünde er drin, wäre die
+    // Zuschlagszeit höher als die Arbeitszeit.
+    eintraege = [eintrag({ id: 'k1', status: 'Krank', isNightWork: true })];
+    zeige();
+
+    await screen.findByText('Einträge');
+    expect(screen.queryByText('Zuschlag')).not.toBeInTheDocument();
+  });
+});

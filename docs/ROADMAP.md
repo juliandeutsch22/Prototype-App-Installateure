@@ -1192,6 +1192,87 @@ Formular — und 15 absichtlich kaputte Fassungen, die alle aufgefallen sind.
 Zwei davon erst im zweiten Anlauf: was die Vorbelegung im echten Formular
 bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
 
+## Erledigt: Zuschlagsstunden im eigenen Zeitkonto (08.09.2026)
+
+Die zweite Hälfte des Zuschlags-Befunds. Nacht und Notdienst gehen seither in
+die Lohnausleitung ein — sichtbar waren sie damit aber nur, wenn das Büro eine
+CSV zog. Der Mann selbst sah in seinem Zeitkonto nichts davon und konnte nicht
+prüfen, ob überhaupt gezählt wird, was er gearbeitet hat.
+
+Jetzt eine Kachel „Zuschlag" neben Saldo und Wochensumme, mit der
+Aufschlüsselung im Beipacktext: „Nacht 08:00 · Notdienst 08:00 · 04:00 beides
+· letzte 3 Monate".
+
+**Der Wert ist die Vereinigung, nicht die Summe.** Der Rohrbruch um zwei Uhr
+früh trägt beide Kennzeichen; addiert stünde er doppelt da, und niemand sähe
+der Kachel an, warum sie mehr zeigt, als der Mann gearbeitet hat.
+
+**Gerechnet wird aus den Einträgen, die ohnehin geladen sind** — kein
+zusätzliches Feld, keine zweite Abfrage, kein Nachtlauf, und damit nichts, was
+auseinanderlaufen kann. Die Kachel gilt für genau das Fenster, das die Liste
+zeigt, und das steht im Beipacktext. `calcMonthStats` und die Monatsbilanzen
+bleiben unberührt: Saldo, Soll und Ist ändern sich durch diese Erweiterung
+nicht.
+
+**Die Kachel bleibt weg, wenn keine Zuschlagsstunden anfielen.** Bei den
+allermeisten stünde dort dauerhaft „0:00" und nähme auf dem Telefon die
+Breite, die Saldo und Wochensumme brauchen.
+
+## Nachgesehen, nicht gebaut: Archiv für alte Scheine (08.09.2026)
+
+Aus dem Betrieb kam der Vorschlag, Scheine nach einer gewissen Zeit in ein
+Archiv rutschen zu lassen, das nur bei einer Suche geladen wird. Der Gedanke
+stimmt für viele Systeme, für dieses nicht — und das gehört begründet, statt
+es einfach zu bauen.
+
+**Firestore rechnet nach Ergebnisgröße ab, nicht nach Sammlungsgröße.**
+`listRecentWorkSheets` trägt `orderBy('createdAt','desc')` und `limit(50)`. Ob
+zwanzig oder zwanzigtausend Scheine in der Sammlung liegen, ändert an Kosten
+und Tempo nichts: die alten werden schon heute nicht geladen.
+
+Ein Archiv-Kennzeichen brächte also keine Beschleunigung, kostete aber ein
+Feld, das jemand pflegen muss, einen zweiten Abfrageweg — und **eine neue Art,
+wie ein Schein still aus der Liste verschwindet**. Genau diese Fehlerform
+haben wir in „Sichtbare Grenzen" überall herausgenommen.
+
+Es rührt auch nicht an das, was wirklich wiegt: fünfzig Scheine sind 3,5 MB
+**wegen der Unterschriftsbilder im Dokument**, und die wiegen gleich viel,
+egal wie alt die Sammlung ist.
+
+### Was an dem Vorschlag echt ist
+
+**Die Suche erreicht die alten Scheine nicht.** `WorkSheetsListView` filtert
+die geladenen fünfzig im Browser; ein Schein vom März ist nicht auffindbar,
+egal was man eintippt. Dieselbe Klasse wie der Buchhaltungs-Export damals. Die
+Lösung ist eine serverseitige Suche nach Baustelle, Kunde oder Zeitraum — das
+halbe Werkzeug steht mit `listSignedWorkSheetsInRange` bereits.
+
+**Aufbewahrung und Löschung nach Fristablauf** (§ 132 BAO, sieben Jahre) ist
+die einzige Form von „Archiv", die sich verteidigen liesse — eine rechtliche
+Frage, keine Geschwindigkeitsfrage, und nicht dringend. Zu beachten:
+`allow delete: if false` — Scheine lassen sich derzeit bewusst gar nicht
+löschen.
+
+## Nachgesehen: Wer sieht welche Scheine? (08.09.2026)
+
+Gefragt, ob ein Monteur nur seine eigenen Scheine sieht. **Nein:**
+`firestore.rules` erlaubt `read: if ownsExisting()` — das prüft nur den
+Mandanten, nicht den Ersteller —, und die Liste holt ohne Benutzerfilter. Nur
+der Nachtrag in der Zeiterfassung ist auf die eigenen begrenzt
+(`listOwnWorkSheetsSince`), und zwar aus Gewicht, nicht aus Datenschutz.
+
+Die Unstimmigkeit, die daraus entsteht und die man kennen sollte: seit die
+Leistungszeit auf dem Schein steht, kann ein Monteur über einen fremden Schein
+sehen, wie lange ein Kollege an dem Tag gearbeitet hat — obwohl ihm dessen
+Zeiteintrag verschlossen ist. Der Grund für die Sperre dort sind Kranken- und
+Urlaubstage (Art. 9 DSGVO); reine Arbeitsstunden auf einem gemeinsamen Auftrag
+sind eine andere Kategorie.
+
+**Bewusst so gelassen.** Das Büro braucht ohnehin alle, ein Monteur muss den
+Schein eines Kollegen zur selben Baustelle nachschlagen können, und die
+PDF-Ausgabe hängt daran. Eine Einschränkung wäre eine Änderung mit echtem
+Risiko für einen Gewinn, der sich nicht benennen lässt.
+
 ## Erledigt: Der Zuschlag wurde verrechnet, aber nicht ausgewiesen (08.09.2026)
 
 Beim Suchen nach der nächsten Schwachstelle gefunden, und es ist eine
