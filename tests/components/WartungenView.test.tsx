@@ -57,12 +57,29 @@ const wartungErledigt = vi.fn(async () => undefined);
 const createWartung = vi.fn(async () => 'neu');
 const updateWartung = vi.fn(async () => undefined);
 
+const wartungEingeplant = vi.fn(async () => undefined);
+
 vi.mock('@/lib/db/wartungen', () => ({
   listWartungen: () => listWartungen(),
   createWartung: (...a: unknown[]) => createWartung(...(a as [])),
   updateWartung: (...a: unknown[]) => updateWartung(...(a as [])),
   deleteWartung: vi.fn(async () => undefined),
   wartungErledigt: (...a: unknown[]) => wartungErledigt(...(a as [])),
+  wartungEingeplant: (...a: unknown[]) => wartungEingeplant(...(a as [])),
+}));
+
+/*
+  Die Baustellen kommen nur wegen der Projektnummern herein: daraus entsteht
+  der Vorschlag, und gegen sie wird geprüft, ob die Nummer noch frei ist.
+*/
+let baustellen: { projectNumber: string }[] = [];
+const createProject = vi.fn<[string, Record<string, unknown>], Promise<string>>(
+  async () => 'p-neu',
+);
+const listRecentProjects = vi.fn(async () => baustellen);
+vi.mock('@/lib/db/projects', () => ({
+  listRecentProjects: () => listRecentProjects(),
+  createProject: (c: string, p: Record<string, unknown>) => createProject(c, p),
 }));
 
 const kunden: (Customer & { id: string })[] = [
@@ -111,10 +128,15 @@ beforeEach(() => {
     wartung('w3', 'Familie Huber', '2026-11-02'),
     wartung('w4', 'Gasthaus Alt', '2025-01-01', { aktiv: false }),
   ];
+  baustellen = [{ projectNumber: '2026-014' }, { projectNumber: '2025-087' }];
   listWartungen.mockClear();
   wartungErledigt.mockClear();
   createWartung.mockClear();
   updateWartung.mockClear();
+  wartungEingeplant.mockClear();
+  createProject.mockClear();
+  listRecentProjects.mockClear();
+  listRecentProjects.mockResolvedValue(baustellen);
 });
 
 /**
@@ -263,5 +285,104 @@ describe('Wartungen', () => {
     await nutzer.tab();
 
     expect((screen.getByLabelText('Nächster Termin') as HTMLInputElement).value).toBe('2027-03-15');
+  });
+});
+
+/**
+ * Aus der fälligen Wartung wird eine Baustelle.
+ *
+ * DIE SACKGASSE WAR DER PUNKT. Die Liste sagte, was fällig ist, und hörte
+ * dort auf: Baustelle von Hand anlegen, Kunden abtippen, Adresse abtippen,
+ * einplanen, und nach getaner Arbeit die Projektnummer in den
+ * Erledigt-Dialog zurücktippen.
+ *
+ * Schlimmer als die Tipparbeit war, dass die Liste den Fortschritt nicht
+ * kannte: „fällig" hiess sowohl „noch nichts passiert" als auch „steht
+ * längst im Einsatzplan".
+ */
+describe('Baustelle aus einer Wartung', () => {
+  it('legt sie mit Kunde, Standort und Anlage an und merkt sie vor', async () => {
+    bestand = [
+      wartung('w1', 'Bäckerei Stein', '2026-04-10', {
+        address: 'Lindengasse 4/12',
+        hinweis: 'Schlüssel bei Frau Berger',
+      }),
+    ];
+    const nutzer = userEvent.setup();
+    zeichne();
+
+    await screen.findAllByText(/Bäckerei Stein/);
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Baustelle anlegen' }))[0]);
+
+    // Vorgeschlagen aus dem Bestand (2026-014 ist die höchste des Jahres).
+    const feld = await screen.findByLabelText(/Projektnummer/);
+    expect(feld).toHaveValue('2026-015');
+
+    await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    await vi.waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(createProject.mock.calls[0][1]).toMatchObject({
+      projectNumber: '2026-015',
+      customerName: 'Bäckerei Stein',
+      address: 'Lindengasse 4/12',
+      status: 'Aktiv',
+    });
+    // Und die Wartung weiss davon — sonst stünde sie morgen wieder als
+    // „nichts passiert" da und die Baustelle entstünde ein zweites Mal.
+    expect(wartungEingeplant).toHaveBeenCalledWith('w1', '2026-015');
+  });
+
+  /*
+    ZWEI BAUSTELLEN MIT DERSELBEN NUMMER wären der teuerste Fehler dieser
+    Kette: Zeiten, Scheine und Rechnungen hängen an der Nummer, nicht an der
+    Dokument-ID. Für Baustellen gibt es bewusst keinen Zähler — deshalb muss
+    beim Speichern noch einmal geprüft werden.
+  */
+  it('legt keine Baustelle auf eine schon vergebene Nummer', async () => {
+    bestand = [wartung('w1', 'Bäckerei Stein', '2026-04-10')];
+    const nutzer = userEvent.setup();
+    zeichne();
+
+    await screen.findAllByText(/Bäckerei Stein/);
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Baustelle anlegen' }))[0]);
+
+    const feld = await screen.findByLabelText(/Projektnummer/);
+    await nutzer.clear(feld);
+    await nutzer.type(feld, '2026-014');
+    await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    expect(await screen.findByText(/schon vergeben/)).toBeInTheDocument();
+    expect(createProject).not.toHaveBeenCalled();
+  });
+
+  it('zeigt eine eingeplante Wartung als eingeplant und bietet sie nicht erneut an', async () => {
+    bestand = [wartung('w1', 'Bäckerei Stein', '2026-04-10', { offeneBaustelle: '2026-014' })];
+    zeichne();
+
+    await screen.findAllByText(/Bäckerei Stein/);
+    expect(screen.getAllByText(/Eingeplant auf Baustelle/).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Baustelle anlegen' })).not.toBeInTheDocument();
+  });
+
+  it('füllt den Erledigt-Dialog mit der eingeplanten Baustelle', async () => {
+    // Die Nummer kennt die App — niemand soll sie abtippen und sich dabei
+    // vertippen. Genau daran hing vorher die Verbindung in die Historie.
+    bestand = [wartung('w1', 'Bäckerei Stein', '2026-04-10', { offeneBaustelle: '2026-014' })];
+    const nutzer = userEvent.setup();
+    zeichne();
+
+    await screen.findAllByText(/Bäckerei Stein/);
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Erledigt' }))[0]);
+    expect(await screen.findByLabelText(/Baustelle/)).toHaveValue('2026-014');
+  });
+
+  it('bietet an einer erst im Herbst fälligen Wartung nichts zum Anlegen', async () => {
+    // Sonst legte jemand Baustellen auf Vorrat an, und der Einsatzplan füllte
+    // sich mit Arbeit, die noch ein halbes Jahr Zeit hat.
+    bestand = [wartung('w3', 'Familie Huber', '2026-11-02')];
+    zeichne();
+
+    await screen.findAllByText(/Familie Huber/);
+    expect(screen.queryByRole('button', { name: 'Baustelle anlegen' })).not.toBeInTheDocument();
   });
 });

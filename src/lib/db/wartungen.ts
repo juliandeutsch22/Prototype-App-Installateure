@@ -104,7 +104,31 @@ export async function wartungErledigt(
     faelligAm: naechsterTermin(args.erledigtAm, args.intervallMonate),
     intervallMonate: args.intervallMonate,
     letzteBaustelle: args.projectNumber,
+    /*
+      Die eingeplante Baustelle ist mit dem Eintrag GEWESEN — sie wandert nach
+      `letzteBaustelle` und wird hier geleert, im selben Schreibvorgang. Bliebe
+      sie stehen, zeigte die Liste die Wartung bis zum nächsten Termin als
+      „eingeplant", obwohl der Einsatz vorbei ist; beim nächsten Mal führe der
+      Monteur auf eine abgeschlossene Baustelle.
+
+      Leerstring statt `undefined`: Firestore lässt `undefined` nicht zu, und
+      `deleteField()` wäre hier zu viel Maschinerie für eine Angabe, die die
+      Ansicht ohnehin auf „gesetzt oder nicht" prüft.
+    */
+    offeneBaustelle: '',
   });
+}
+
+/**
+ * Die Baustelle vormerken, die für die anstehende Wartung angelegt wurde.
+ *
+ * Getrennt von `wartungErledigt`, weil es der Schritt DAVOR ist: hier ist noch
+ * nichts gewartet, es steht nur fest, wohin gefahren wird. Wer beides in eine
+ * Funktion legte, müsste beim Anlegen schon ein Ausführungsdatum erfinden —
+ * und der nächste Termin rückte, bevor jemand da war.
+ */
+export function wartungEingeplant(id: string, projectNumber: string) {
+  return updateWartung(id, { offeneBaustelle: projectNumber.trim() });
 }
 
 export type { WithId };

@@ -1113,6 +1113,54 @@ Geprüft: neun Tests plus der Durchlauf im Browser — der Zustand ohne
 Kostensätze, das Setzen (Deckungsbeitrag 23,00 € je Stunde bei 65 gegen 42),
 und alle drei Erlösquellen nebeneinander.
 
+## Erledigt: Aus der fälligen Wartung wird eine Baustelle (07.09.2026)
+
+Die Wartungsliste sagte, was fällig ist — und hörte dort auf. Alles Weitere
+lief von Hand: Baustelle anlegen, Kundennamen abtippen, Adresse abtippen,
+einplanen, und nach getaner Arbeit die Projektnummer in den Erledigt-Dialog
+zurücktippen. Vier Wege durch die App für einen Vorgang, der aus der Liste
+heraus einer sein sollte.
+
+**Schlimmer als die Tipparbeit war, dass die Liste den Fortschritt nicht
+kannte.** Wer sie am Montag durchgeht und drei Baustellen anlegt, sieht am
+Dienstag dieselben drei Zeilen im selben Rot: „fällig" hiess sowohl „noch
+nichts passiert" als auch „steht längst im Einsatzplan". Beim zweiten
+Durchgang entsteht die Baustelle ein zweites Mal.
+
+Jetzt steht an jeder anstehenden Wartung ein Knopf. Die Baustelle entsteht mit
+Kunde, Standort und der Anlage in der Beschreibung, die Wartung merkt sie sich
+als `offeneBaustelle` und zeigt sie als eingeplant an — mit Verweis auf die
+Baustelle. Beim Eintragen der erledigten Wartung wandert der Wert nach
+`letzteBaustelle` und wird geleert, in EINEM Schreibvorgang: sonst zeigte die
+Liste die Wartung bis zum nächsten Termin als eingeplant, obwohl der Einsatz
+vorbei ist.
+
+**Die Anlagenadresse gewinnt immer.** Eine Hausverwaltung hat eine
+Rechnungsadresse und zwanzig Heizungen an zwanzig anderen; gewönne die
+Kundenadresse, führe der Monteur ins Büro der Verwaltung.
+
+**Die Projektnummer ist ein Vorschlag, kein Zähler** — und das ist ein
+bewusster Unterschied zur Rechnung. Rechnungsnummern kommen aus `counters`,
+weil eine Lücke dort ein Mangel der Buchhaltung ist (§ 11 UStG).
+Projektnummern vergibt der Betrieb frei; in manchen hängt die Nummer am
+Auftrag des Kunden. Ein Zähler würde diese Freiheit stillschweigend
+abschaffen. Weil es keiner ist, kann der Vorschlag doppelt sein — deshalb wird
+beim Speichern noch einmal geprüft, ob die Nummer frei ist. Zwei Baustellen
+mit derselben Nummer wären der teuerste Fehler dieser Kette: Zeiten, Scheine
+und Rechnungen hängen an der Nummer, nicht an der Dokument-ID.
+
+**Was NICHT passiert, und das gehört gesagt:** es wird niemand eingeteilt und
+niemand angerufen. Der Termin mit dem Kunden ist ein Gespräch, kein
+Datenbankfeld. Die Abrechnungsart bleibt ebenfalls offen — was im
+Wartungsvertrag steht, weiss diese App nicht, und eine Vorbelegung stünde auf
+jedem Handwerksschein dieser Baustelle.
+
+Geprüft: 15 Rechen-Tests, 13 in der Ansicht, 1 auf der Nutzlast — und 15
+absichtlich kaputte Fassungen, die alle aufgefallen sind. Eine davon fiel
+zunächst nicht auf (die eingeplante Baustelle blieb nach dem Erledigen
+stehen), weil der Mutationslauf die Datei mit dem passenden Test gar nicht
+mitlaufen liess; das war ein Fehler im Prüflauf, nicht im Test.
+
 ## Erledigt: Material in der Nachkalkulation (07.09.2026)
 
 Die Nachkalkulation rechnete Erlös minus Personalkosten. Material kam darin
