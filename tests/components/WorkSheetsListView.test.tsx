@@ -83,9 +83,16 @@ const zurueckholen = vi.fn(async () => undefined);
 let tiefGeladen: (WorkSheet & { id: string })[] = [];
 const tiefeAbfrage = vi.fn(async () => tiefGeladen);
 
+/* Die serverseitige Suche — je Weg eine eigene Abfrage. */
+let serverTreffer: (WorkSheet & { id: string })[] = [];
+const zeitraumSuche = vi.fn(async () => serverTreffer);
+const baustellenSuche = vi.fn(async () => serverTreffer);
+
 vi.mock('@/lib/db/workSheets', () => ({
   listRecentWorkSheets: vi.fn(async () => geladen),
   listSignedWorkSheetsInRange: (...a: unknown[]) => tiefeAbfrage(...(a as [])),
+  listWorkSheetsInRange: (...a: unknown[]) => zeitraumSuche(...(a as [])),
+  listWorkSheetsForProject: (...a: unknown[]) => baustellenSuche(...(a as [])),
   cancelWorkSheet: vi.fn(async () => undefined),
   discardWorkSheetDraft: (...a: unknown[]) => verwerfen(...(a as [])),
   restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
@@ -165,6 +172,9 @@ beforeEach(() => {
   buchungen = [];
   tiefGeladen = [];
   tiefeAbfrage.mockClear();
+  serverTreffer = [];
+  zeitraumSuche.mockClear();
+  baustellenSuche.mockClear();
   verwerfen.mockClear();
   zurueckholen.mockClear();
   zeitenGeholt.mockClear();
@@ -593,5 +603,153 @@ describe('Stunden ohne Buchung', () => {
     // Zweimal: einmal in der Karte oben, einmal in der Liste darunter — und
     // genau die untere soll wieder da sein.
     expect(screen.getAllByText(/Familie Wagner/)).toHaveLength(2);
+  });
+});
+
+/**
+ * Suche über den geladenen Bestand hinaus.
+ *
+ * Das Feld filterte bis hierher nur die geladenen fünfzig im Browser. Ein
+ * Schein vom März war nicht auffindbar, egal was jemand eintippte — und das
+ * Feld sagte nichts dazu, es lieferte einfach kein Ergebnis. Dieselbe
+ * Fehlerform wie beim Buchhaltungs-Export: eine leere Antwort, die wie ein
+ * Befund aussieht.
+ */
+describe('Scheine suchen', () => {
+  const alterSchein = (over: Partial<WorkSheet> = {}): WorkSheet & { id: string } =>
+    ({
+      id: 'alt1',
+      companyId: 'perl',
+      projectNumber: 'B-042',
+      customerName: 'Familie Steiner',
+      datum: '2026-03-14',
+      status: 'Unterschrieben',
+      abrechnung: 'Regie',
+      zeiten: [],
+      material: [],
+      erstelltVonUid: 'm1',
+      erstelltVonName: 'Max Mustermann',
+      ...over,
+    }) as WorkSheet & { id: string };
+
+  /*
+    OHNE DIESE ZEILE hiesse „kein Treffer" mal „gibt es nicht" und mal „ist
+    nicht geladen", ohne dass es jemand unterscheiden könnte.
+  */
+  it('sagt, dass die Suche nur die geladenen Scheine sieht', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+
+    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    expect(screen.getByText(/von 2 geladenen Scheinen passen/)).toBeInTheDocument();
+    expect(screen.getByText(/Ältere sind nicht geladen/)).toBeInTheDocument();
+  });
+
+  it('holt eine Baustellennummer vom Server', async () => {
+    serverTreffer = [alterSchein()];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+
+    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+
+    expect(await screen.findByText(/Familie Steiner/)).toBeInTheDocument();
+    expect(baustellenSuche.mock.calls[0]).toEqual(['perl', 'B-042', 150]);
+    expect(zeitraumSuche).not.toHaveBeenCalled();
+  });
+
+  it('holt einen Monat als Zeitraum', async () => {
+    serverTreffer = [alterSchein()];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+
+    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), '03.2026');
+    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+
+    await screen.findByText(/Familie Steiner/);
+    expect(zeitraumSuche.mock.calls[0]).toEqual(['perl', '2026-03-01', '2026-03-31', 150]);
+    expect(baustellenSuche).not.toHaveBeenCalled();
+  });
+
+  /*
+    Firestore kann keine Volltextsuche. Nach einem Namen liesse sich nur mit
+    einem zusätzlich gepflegten Feld suchen, und bis das auf jedem Altbestand
+    nachgetragen wäre, fände sie alte Scheine stillschweigend nicht — genau
+    das Verhalten, das hier weg soll. Also wird es gesagt, nicht behauptet.
+  */
+  it('bietet beim Kundennamen gar keine Serversuche an, sondern erklärt es', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+
+    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'Steiner');
+    expect(screen.getByText(/nur im geladenen Bestand/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Auf dem Server suchen' })).not.toBeInTheDocument();
+  });
+
+  /*
+    Das Ergebnis gilt für GENAU den Begriff, mit dem es geholt wurde. Tippt
+    jemand weiter, ist es veraltet — stehen zu bleiben hiesse, Scheine unter
+    einem Suchbegriff zu zeigen, zu dem sie nicht passen.
+  */
+  it('verwirft das Serverergebnis, sobald der Begriff sich ändert', async () => {
+    serverTreffer = [alterSchein()];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+
+    const feld = screen.getByLabelText('Scheine durchsuchen');
+    await nutzer.type(feld, 'B-042');
+    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    await screen.findByText(/Familie Steiner/);
+
+    await nutzer.type(feld, '9');
+    expect(screen.queryByText(/Familie Steiner/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Ältere sind nicht geladen/)).toBeInTheDocument();
+  });
+
+  it('nennt die erreichte Obergrenze auch bei der Suche', async () => {
+    serverTreffer = Array.from({ length: 150 }, (_, i) => alterSchein({ id: `t${i}` }));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+
+    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+
+    expect(await screen.findByText(/Grenze von 150 ist erreicht/)).toBeInTheDocument();
+  });
+
+  /*
+    Wer sucht, wartet auf eine Antwort. „Nichts gefunden" wäre bei einem
+    Fehler die falsche — es wurde gar nicht gesucht.
+  */
+  it('meldet einen Fehler, statt ein leeres Ergebnis vorzutäuschen', async () => {
+    baustellenSuche.mockRejectedValueOnce(new Error('Netz weg'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+
+    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+
+    expect(await screen.findByText(/Netz weg/)).toBeInTheDocument();
+  });
+
+  it('führt aus dem Serverergebnis zurück in die Liste', async () => {
+    serverTreffer = [alterSchein()];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+
+    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
+    await screen.findByText(/Familie Steiner/);
+
+    await nutzer.click(screen.getByRole('button', { name: 'Zurück zur Liste' }));
+    expect(screen.queryByText(/Familie Steiner/)).not.toBeInTheDocument();
   });
 });

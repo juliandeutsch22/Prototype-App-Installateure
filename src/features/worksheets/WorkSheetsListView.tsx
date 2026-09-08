@@ -4,6 +4,8 @@ import { useAuth } from '@/app/AuthContext';
 import {
   listRecentWorkSheets,
   listSignedWorkSheetsInRange,
+  listWorkSheetsInRange,
+  listWorkSheetsForProject,
   cancelWorkSheet,
   discardWorkSheetDraft,
   restoreWorkSheetDraft,
@@ -13,6 +15,7 @@ import Fotostreifen from './Fotostreifen';
 import Nachladen from '@/components/Nachladen';
 import { listEntriesInRange } from '@/lib/db/timeEntries';
 import { scheineOhneBuchung, minutenOhneBuchung, OFFEN_AB_TAGEN } from './fehlendeZeitbuchung';
+import { deuteSuche, suchHinweis } from './scheinSuche';
 import { isGF, canWriteWorkSheet, canEditTime } from '@/lib/permissions';
 import { fmtMin, todayStr } from '@/lib/time';
 import type { TimeEntry, WorkSheet } from '@/types';
@@ -240,16 +243,67 @@ export default function WorkSheetsListView() {
    * nennt deshalb ihre Zahl — auch eingeklappt sagt die Liste, was sie
    * gerade nicht zeigt.
    */
+  /*
+    SUCHE ÜBER DEN GELADENEN BESTAND HINAUS.
+
+    Das Feld filterte bis hierher nur die geladenen fünfzig im Browser. Ein
+    Schein vom März war damit nicht auffindbar, egal was jemand eintippte —
+    und das Feld sagte nichts dazu, es lieferte einfach kein Ergebnis.
+    Dieselbe Fehlerform wie beim Buchhaltungs-Export damals: eine leere
+    Antwort, die wie ein Befund aussieht.
+
+    Serverseitig geht, was Firestore ohne zusätzlich gepflegtes Feld hergibt —
+    Baustellennummer (exakt) und Zeitraum. Nach einem Kundennamen liesse sich
+    nur mit einem `nameLower` auf jedem Datensatz suchen, und bis das auf dem
+    Altbestand nachgetragen wäre, fände die Suche alte Scheine
+    STILLSCHWEIGEND nicht. Das steht in der Ansicht, statt es zu behaupten.
+  */
+  const [treffer, setTreffer] = useState<WithId<WorkSheet>[] | null>(null);
+  const [trefferZu, setTrefferZu] = useState('');
+  const [sucheLaeuft, setSucheLaeuft] = useState(false);
+  const absicht = useMemo(() => deuteSuche(suche), [suche]);
+
+  async function serverseitigSuchen() {
+    if (!user || absicht.art === 'text') return;
+    setSucheLaeuft(true);
+    try {
+      const gefunden =
+        absicht.art === 'baustelle'
+          ? await listWorkSheetsForProject(user.companyId, absicht.nummer, PRUEF_GRENZE)
+          : await listWorkSheetsInRange(user.companyId, absicht.von, absicht.bis, PRUEF_GRENZE);
+      setTreffer(gefunden);
+      setTrefferZu(suche.trim());
+    } catch (e) {
+      // Sichtbar, nicht still: wer sucht, wartet auf eine Antwort. „Nichts
+      // gefunden" wäre hier die falsche — es wurde gar nicht gesucht.
+      setError((e as Error).message);
+      setTreffer(null);
+    } finally {
+      setSucheLaeuft(false);
+    }
+  }
+
+  /*
+    Das Ergebnis gilt für GENAU den Begriff, mit dem es geholt wurde. Tippt
+    jemand weiter, ist es veraltet und verschwindet — stehen zu bleiben hiesse,
+    Scheine unter einem Suchbegriff zu zeigen, zu dem sie nicht passen.
+  */
+  const trefferGelten = treffer !== null && trefferZu === suche.trim() && trefferZu !== '';
+
   const sichtbar = useMemo(() => {
     const q = suche.trim().toLowerCase();
-    return scheine.filter((s) => {
+    const grundmenge = trefferGelten ? (treffer as WithId<WorkSheet>[]) : scheine;
+    return grundmenge.filter((s) => {
       if (s.status === 'Verworfen' && !zeigeVerworfene) return false;
-      if (!q) return true;
+      // Das Serverergebnis ist bereits die Antwort auf den Begriff; noch
+      // einmal danach zu filtern würde einen Treffer wegwerfen, dessen
+      // Baustellennummer anders geschrieben ist („PR-2026-042").
+      if (!q || trefferGelten) return true;
       return [s.customerName, s.projectNumber, s.datum, s.notizen].some((v) =>
         v?.toLowerCase().includes(q),
       );
     });
-  }, [scheine, suche, zeigeVerworfene]);
+  }, [scheine, treffer, trefferGelten, suche, zeigeVerworfene]);
 
   async function pdfAusgeben(s: WithId<WorkSheet>) {
     setBusy(true);
@@ -482,6 +536,59 @@ export default function WorkSheetsListView() {
         }
       >
         {error && <div className="mb-3"><ErrorState message={error} /></div>}
+
+        {/*
+          WAS DIE SUCHE GERADE ABDECKT — und was nicht.
+
+          Ohne diese Zeile hiesse „kein Treffer" mal „gibt es nicht" und mal
+          „ist nicht geladen", ohne dass es jemand unterscheiden könnte. Genau
+          daran ist der Buchhaltungs-Export einmal gescheitert.
+        */}
+        {suche.trim() && (
+          <div className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2">
+            {trefferGelten ? (
+              <p className="text-sm text-ink">
+                <strong>{sichtbar.length}</strong>{' '}
+                {sichtbar.length === 1 ? 'Schein' : 'Scheine'} vom Server zu „{trefferZu}".
+                {treffer && treffer.length >= PRUEF_GRENZE && (
+                  <span className="text-warning">
+                    {' '}
+                    Die Grenze von {PRUEF_GRENZE} ist erreicht — ältere sind nicht dabei.
+                  </span>
+                )}{' '}
+                <button
+                  type="button"
+                  className="underline"
+                  onClick={() => {
+                    setTreffer(null);
+                    setTrefferZu('');
+                  }}
+                >
+                  Zurück zur Liste
+                </button>
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-ink-muted">
+                  {sichtbar.length} von {scheine.length} geladenen Scheinen passen. Ältere sind
+                  nicht geladen.
+                </p>
+                <p className="mt-1 text-sm text-ink-muted">{suchHinweis(absicht)}</p>
+                {absicht.art !== 'text' && (
+                  <div className="mt-2">
+                    <Button
+                      variant="secondary"
+                      disabled={sucheLaeuft}
+                      onClick={() => void serverseitigSuchen()}
+                    >
+                      {sucheLaeuft ? 'Wird gesucht …' : 'Auf dem Server suchen'}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
         {verworfene > 0 && (
           <label className="mb-3 flex min-h-touch items-center gap-2 text-sm text-ink-muted">
             <input

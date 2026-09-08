@@ -126,6 +126,30 @@ export function listWorkSheetsForProject(companyId: string, projectNumber: strin
 }
 
 /**
+ * Alle Scheine eines Zeitraums — für die Suche über den geladenen Bestand
+ * hinaus.
+ *
+ * Anders als `listSignedWorkSheetsInRange` OHNE Status-Filter: gesucht wird
+ * auch der Entwurf, den jemand vor Monaten liegen liess, und der stornierte
+ * Beleg, zu dem gerade eine Rückfrage kommt. Wer sucht, weiss nicht, in
+ * welchem Zustand der Schein ist — sonst müsste er nicht suchen.
+ *
+ * Die Obergrenze ist dieselbe Rechnung wie überall bei den Scheinen: rund
+ * 70 KB je unterschriebenem Stück wegen der beiden Unterschriftsbilder. Wird
+ * sie erreicht, sagt die Ansicht es.
+ */
+export function listWorkSheetsInRange(companyId: string, von: string, bis: string, max = 150) {
+  return queryTenant<WorkSheet>(
+    COLLECTION,
+    companyId,
+    where('datum', '>=', von),
+    where('datum', '<=', bis),
+    orderBy('datum', 'desc'),
+    limit(max),
+  );
+}
+
+/**
  * EINEN Schein holen — für das Weiterbearbeiten eines Entwurfs.
  *
  * WAS PASSIERT, WENN ES IHN NICHT GIBT — nachgemessen gegen den Emulator,
