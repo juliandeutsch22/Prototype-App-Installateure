@@ -8,7 +8,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { WorkSheet, WorkSheetUnterschrift } from '@/types';
+import type { WorkSheet, WorkSheetFoto, WorkSheetUnterschrift } from '@/types';
 import { queryTenant, createInTenant, type WithId } from './core';
 
 /**
@@ -77,6 +77,44 @@ export function listOwnWorkSheetsSince(
   );
 }
 
+/**
+ * UNTERSCHRIEBENE Scheine eines Zeitraums — für die Prüfung des Büros auf
+ * Stunden, die nie gebucht wurden.
+ *
+ * WARUM EINE EIGENE ABFRAGE. Die Prüfung lief bisher über die Scheine, die
+ * die Anzeigeliste ohnehin geladen hatte — also über die jüngsten fünfzig.
+ * Gerade der alte Schein ist aber der teure: was vier Monate zurückliegt,
+ * bucht niemand mehr von selbst nach.
+ *
+ * WARUM SIE TROTZDEM EINE GRENZE HAT, und das ist keine Bequemlichkeit: ein
+ * unterschriebener Schein trägt zwei Unterschriftsbilder als PNG im Dokument,
+ * nachgemessen rund 70 KB je Schein. Ein Jahr eines Fünf-Mann-Betriebs sind
+ * damit schnell zwanzig Megabyte — für eine Prüfliste. Der Zeitraum wird
+ * deshalb gewählt, nicht geraten, und die Obergrenze steht sichtbar in der
+ * Ansicht, statt still zu wirken.
+ *
+ * Nur `Unterschrieben`: ein Entwurf ist noch in Arbeit, ein Storno
+ * zurückgezogen, ein verworfener nie beim Kunden gewesen. Für keinen davon
+ * wäre eine fehlende Buchung ein Befund — und jeder von ihnen würde die
+ * Abfrage schwerer machen.
+ */
+export function listSignedWorkSheetsInRange(
+  companyId: string,
+  von: string,
+  bis: string,
+  max = 150,
+) {
+  return queryTenant<WorkSheet>(
+    COLLECTION,
+    companyId,
+    where('status', '==', 'Unterschrieben'),
+    where('datum', '>=', von),
+    where('datum', '<=', bis),
+    orderBy('datum', 'desc'),
+    limit(max),
+  );
+}
+
 /** Die Scheine EINER Baustelle. */
 export function listWorkSheetsForProject(companyId: string, projectNumber: string, max = 100) {
   return queryTenant<WorkSheet>(
@@ -124,6 +162,29 @@ export function createWorkSheet(companyId: string, s: NewWorkSheet) {
 /** Ändern — nur im Entwurf. Nach der Unterschrift lehnen die Rules ab. */
 export function updateWorkSheetDraft(id: string, data: Partial<NewWorkSheet>) {
   return updateDoc(doc(db, COLLECTION, id), { ...data });
+}
+
+/**
+ * NUR die Fotoliste am Entwurf festschreiben.
+ *
+ * WARUM DAS NICHT ÜBER `updateWorkSheetDraft` LÄUFT. Ein Bild liegt nach dem
+ * Upload im Storage; der Verweis darauf entstand aber erst, wenn der Monteur
+ * den Entwurf speicherte. Wer fotografierte und dann das Fenster schloss,
+ * hinterliess eine Datei, auf die kein Dokument zeigt: sie kostet dauerhaft,
+ * und es ist ein Bild aus einer fremden Wohnung ohne Beleg, der seine
+ * Aufbewahrung rechtfertigt.
+ *
+ * Die Liste wird deshalb sofort nach jedem Upload und nach jedem Entfernen
+ * geschrieben — mit einer AUSDRÜCKLICH ÜBERGEBENEN Liste, nicht aus dem
+ * Zustand der Ansicht. Der Zustand ist in genau dem Moment noch der alte:
+ * React verarbeitet `setFotos` erst nach dem laufenden Durchlauf, und ein
+ * Schreibvorgang daraus liesse ausgerechnet das eben hochgeladene Bild weg.
+ *
+ * Der Rest des Entwurfs bleibt unberührt — was der Monteur gerade tippt,
+ * gehört ihm, bis er speichert.
+ */
+export function fotosAmEntwurf(id: string, fotos: WorkSheetFoto[]) {
+  return updateDoc(doc(db, COLLECTION, id), { fotos });
 }
 
 /**

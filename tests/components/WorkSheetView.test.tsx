@@ -81,6 +81,13 @@ let entwurf: (WorkSheet & { id: string }) | undefined;
 const getWorkSheet = vi.fn(async () => entwurf);
 let bestehendeScheine: (WorkSheet & { id: string })[] = [];
 const listWorkSheetsForProject = vi.fn(async () => bestehendeScheine);
+/*
+  Die Fotoliste wird SOFORT nach jedem Upload ans Dokument geschrieben, nicht
+  erst beim Speichern — sonst bliebe ein Bild im Storage zurück, auf das kein
+  Dokument zeigt, wenn der Monteur das Fenster schliesst.
+*/
+const fotosFestgeschrieben = vi.fn(async () => undefined);
+
 vi.mock('@/lib/db/workSheets', () => ({
   createWorkSheet: (companyId: string, e: NewWorkSheet) => createWorkSheet(companyId, e),
   updateWorkSheetDraft: (id: string, data: Partial<NewWorkSheet>) =>
@@ -88,6 +95,7 @@ vi.mock('@/lib/db/workSheets', () => ({
   getWorkSheet: () => getWorkSheet(),
   signWorkSheet: () => signWorkSheet(),
   listWorkSheetsForProject: () => listWorkSheetsForProject(),
+  fotosAmEntwurf: (...a: unknown[]) => fotosFestgeschrieben(...(a as [])),
 }));
 /*
   Die Foto-Schicht. Sie kapselt Canvas und Firebase Storage — beides gibt es
@@ -186,6 +194,7 @@ beforeEach(() => {
   listMaterials.mockClear().mockResolvedValue(materialien);
   createWorkSheet.mockClear().mockResolvedValue('s1');
   updateWorkSheetDraft.mockClear();
+  fotosFestgeschrieben.mockClear();
   signWorkSheet.mockClear();
   komprimiere.mockClear().mockImplementation(async (b: Blob) => b);
   fotoHochladen.mockClear().mockResolvedValue({
@@ -765,6 +774,13 @@ describe('Fotos', () => {
     await waitFor(() =>
       expect(screen.queryByText(/Nicht hochgeladen/)).not.toBeInTheDocument(),
     );
+    // Auch das nachgereichte Bild geht sofort ans Dokument, sonst wäre genau
+    // der zweite Anlauf der Weg, auf dem doch noch eine Waise entsteht.
+    await waitFor(() =>
+      expect(fotosFestgeschrieben).toHaveBeenCalledWith('s1', [
+        { pfad: 'scheine/perl/s1/aaa.jpg', hash: 'aaa', bytes: 340_000, geraetZeit: 1 },
+      ]),
+    );
   });
 
   /*
@@ -806,6 +822,59 @@ describe('Fotos', () => {
 
     await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
     expect(updateWorkSheetDraft.mock.calls[updateWorkSheetDraft.mock.calls.length - 1][1].fotos).toEqual([]);
+  });
+
+  /*
+    KEINE WAISEN IM STORAGE.
+
+    Der Entwurf entsteht mit dem ersten Foto, das Bild geht sofort hoch — der
+    VERWEIS darauf entstand bisher aber erst, wenn der Monteur den Entwurf
+    speicherte. Wer fotografierte und dann das Fenster schloss, hinterliess
+    eine Datei, auf die kein Dokument zeigt: sie kostet dauerhaft, und es ist
+    ein Bild aus einer fremden Wohnung ohne Beleg, der seine Aufbewahrung
+    rechtfertigt.
+  */
+  it('schreibt das Bild sofort ans Dokument, nicht erst beim Speichern', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+    await waitFor(() => expect(fotosFestgeschrieben).toHaveBeenCalled());
+
+    // Kein Knopf wurde gedrückt: der Entwurf ist nicht gespeichert worden.
+    expect(updateWorkSheetDraft).not.toHaveBeenCalled();
+    expect(fotosFestgeschrieben).toHaveBeenCalledWith('s1', [
+      { pfad: 'scheine/perl/s1/aaa.jpg', hash: 'aaa', bytes: 340_000, geraetZeit: 1 },
+    ]);
+  });
+
+  /*
+    ERST AUS DEM DOKUMENT, DANN AUS DEM STORAGE. Andersherum stünde
+    zwischendurch ein Eintrag da, der auf eine gelöschte Datei zeigt — und
+    genau der ginge beim Unterschreiben in die Prüfsumme ein.
+  */
+  it('nimmt das Bild auch aus dem Dokument, wenn es entfernt wird', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+    await waitFor(() => expect(fotosFestgeschrieben).toHaveBeenCalled());
+    fotosFestgeschrieben.mockClear();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Foto entfernen' }));
+    await waitFor(() => expect(fotosFestgeschrieben).toHaveBeenCalledWith('s1', []));
+  });
+
+  /*
+    EIN GESCHEITERTER UPLOAD DARF NICHT IN DAS DOKUMENT. Der Eintrag zeigte
+    auf eine Datei, die es im Storage nicht gibt — und er ginge in die
+    Prüfsumme ein, die damit einen Beleg zusichert, den niemand ansehen kann.
+  */
+  it('schreibt ein nicht hochgeladenes Bild nicht fest', async () => {
+    fotoHochladen.mockRejectedValueOnce(new Error('kein Netz'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+    await screen.findByText(/Nicht hochgeladen/);
+    expect(fotosFestgeschrieben).not.toHaveBeenCalled();
   });
 
   it('nimmt ein Bild wieder weg — auch aus dem Storage', async () => {

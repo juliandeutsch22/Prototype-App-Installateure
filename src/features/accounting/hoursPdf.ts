@@ -4,6 +4,15 @@ import autoTable from 'jspdf-autotable';
 import type { AppUser, Company, TimeEntry } from '@/types';
 import { calcWorkMin } from '@/lib/time';
 import { BRAND_RGB, fmtDate, hours } from './export';
+import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
+
+/** „N", „ND" oder „N+ND" — leer, wenn kein Kennzeichen gesetzt ist. */
+function zuschlagKuerzel(e: TimeEntry): string {
+  const teile: string[] = [];
+  if (e.isNightWork) teile.push('N');
+  if (e.isEmergency) teile.push('ND');
+  return teile.join('+');
+}
 
 /**
  * Der PDF-Stundennachweis, bewusst in einem EIGENEN Modul.
@@ -82,13 +91,15 @@ export function generateHoursPdf(opts: {
       e.customerName || '–',
       e.startTime && e.endTime ? `${e.startTime}–${e.endTime}` : '–',
       wm > 0 ? `${hours(wm)} h` : '–',
+      // Kurz, weil die Spalte schmal ist; die Legende steht im Summenblock.
+      zuschlagKuerzel(e),
       e.comment || '',
     ];
   });
 
   autoTable(doc, {
     startY: 60 + logoH,
-    head: [['Datum', 'Status', 'Projekt', 'Kunde/Baustelle', 'Zeit', 'Dauer', 'Kommentar']],
+    head: [['Datum', 'Status', 'Projekt', 'Kunde/Baustelle', 'Zeit', 'Dauer', 'Zuschlag', 'Kommentar']],
     body,
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: BRAND_RGB, textColor: 255, fontStyle: 'bold' },
@@ -97,10 +108,11 @@ export function generateHoursPdf(opts: {
       0: { cellWidth: 22 },
       1: { cellWidth: 20 },
       2: { cellWidth: 22 },
-      3: { cellWidth: 38 },
+      3: { cellWidth: 32 },
       4: { cellWidth: 22 },
       5: { cellWidth: 16 },
-      6: { cellWidth: 'auto' },
+      6: { cellWidth: 16 },
+      7: { cellWidth: 'auto' },
     },
     didDrawPage: () => {
       doc.setFontSize(8).setTextColor(150);
@@ -126,6 +138,31 @@ export function generateHoursPdf(opts: {
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(100);
   if (krank) doc.text(`Krankenstandstage: ${krank}`, margin, y + 12);
   if (urlaub) doc.text(`Urlaubstage: ${urlaub}`, krank ? 60 : margin, y + 12);
+
+  /*
+    ZUSCHLAGSSTUNDEN, und nur wenn es welche gibt.
+
+    Der Nachweis ging bisher an der Frage vorbei, obwohl die Rechnung aus
+    denselben Kennzeichen Positionen mit Aufschlag bildet. Wer den Nachweis
+    vorlegt, um Nacht- oder Notdienststunden geltend zu machen, hatte damit
+    ein Blatt in der Hand, auf dem sie nicht vorkommen.
+
+    Auf einem Nachweis mit null Zuschlagsstunden bliebe die Zeile dagegen
+    Zierrat — anders als in der CSV, die die Lohnverrechnung maschinell
+    liest und wo eine fehlende Spalte etwas anderes bedeutet als eine leere.
+  */
+  const z = zuschlagszeit(sorted);
+  if (hatZuschlaege(z)) {
+    const teile = [`Nacht: ${hours(z.nachtMin)} h`, `Notdienst: ${hours(z.notdienstMin)} h`];
+    // Nacht und Notdienst schliessen einander nicht aus — ohne diesen
+    // Zusatz addierte der Leser die beiden Zahlen und zählte doppelt.
+    if (z.beidesMin > 0) teile.push(`davon beides: ${hours(z.beidesMin)} h`);
+    doc.text(
+      `Zuschlagsstunden (N = Nacht, ND = Notdienst) — ${teile.join(' · ')}`,
+      margin,
+      y + (krank || urlaub ? 18 : 12),
+    );
+  }
 
   return doc;
 }
