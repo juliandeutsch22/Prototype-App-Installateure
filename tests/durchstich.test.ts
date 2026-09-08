@@ -1139,3 +1139,205 @@ describe('Durchstich 7: Storno als eine Klammer', () => {
     expect((await eintrag(EIGENER))?.isBilled).toBe(false);
   });
 });
+
+/**
+ * Durchstich 8: zwei Betriebe arbeiten am selben Tag nebeneinander.
+ *
+ * WARUM DAS EIGENS GEPRÜFT GEHÖRT, obwohl die Mandantentrennung als belegt
+ * gilt. Die Regeltests fragen: darf diese Rolle DIESES DOKUMENT? Das ist die
+ * richtige Frage für einen Zugriff und die falsche für eine AUSWERTUNG. Wo
+ * über viele Dokumente summiert wird — Zeitkonto, Nummernkreis, Mahnlauf,
+ * „Stunden ohne Buchung" — entscheidet nicht die Regel, sondern ob die
+ * Abfrage ihren Filter mitführt. Fehlt er an einer Stelle, liefert die
+ * Datenbank willig fremde Zeilen, und die Regel hat nichts dagegen, weil sie
+ * gar nicht gefragt wird: `queryTenant` setzt den Filter, die Regel prüft nur
+ * das, was zurückkommt.
+ *
+ * Ein solcher Fehler ist im Ein-Betrieb-Betrieb UNSICHTBAR. Er erscheint am
+ * Tag, an dem der zweite Kunde dazukommt — und dann als fremde Stunden auf
+ * einem Lohnzettel oder als Rechnungsnummer, die schon vergeben ist.
+ *
+ * Bis hierher kam `andere-firma` in diesen Tests genau zweimal vor, beide
+ * Male als einzelnes fremdes Dokument, an dem eine Regel scheitert. Zwei
+ * Betriebe, die gleichzeitig ARBEITEN, gab es nicht.
+ */
+describe('Durchstich 8: zwei Betriebe nebeneinander', () => {
+  const FIRMA_B = 'gruber';
+  const MONTEUR_B = 'monteur-b';
+
+  const alsMonteurB = () =>
+    testEnv
+      .authenticatedContext(MONTEUR_B, { companyId: FIRMA_B, role: 'Mitarbeiter' })
+      .firestore() as unknown as Firestore;
+  const alsBuchhaltungB = () =>
+    testEnv
+      .authenticatedContext('buch-b', { companyId: FIRMA_B, role: 'Buchhaltung' })
+      .firestore() as unknown as Firestore;
+
+  /** Derselbe Tag, dieselbe Baustellennummer, zwei Betriebe. */
+  const TAG = '2026-06-15';
+  const NUMMER = 'B-2026-0001';
+
+  const arbeit = (userId: string, name: string, bis: string) => ({
+    date: TAG,
+    status: 'Anwesend' as const,
+    startTime: '07:00',
+    endTime: bis,
+    breakDuration: 0,
+    projectNumber: NUMMER,
+    userId,
+    userName: name,
+  });
+
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'companies', FIRMA_B), { name: 'Gruber Installationen' });
+      await setDoc(doc(db, 'users', MONTEUR_B), {
+        companyId: FIRMA_B,
+        uid: MONTEUR_B,
+        name: 'Franz Gruber',
+        email: 'franz@gruber.at',
+        role: 'Mitarbeiter',
+        workDays: [1, 2, 3, 4, 5],
+        app_start_date: '2026-06-01',
+      });
+    });
+  });
+
+  /*
+    DIESELBE BAUSTELLENNUMMER IN BEIDEN BETRIEBEN ist der harte Fall, und er
+    ist realistisch: „B-2026-0001" vergibt jeder Betrieb, der bei eins
+    anfängt. Führte eine Auswertung den Mandantenfilter nicht mit, addierte
+    sie hier acht fremde Stunden — und niemand sähe es, weil die Zahl
+    plausibel bleibt.
+  */
+  it('hält Stunden auseinander, auch bei gleicher Baustellennummer am selben Tag', async () => {
+    aktuelleDb = alsMonteur();
+    await zeiten.createTimeEntry(FIRMA, arbeit(MONTEUR, MITARBEITER.name, '15:00'));
+
+    aktuelleDb = alsMonteurB();
+    await zeiten.createTimeEntry(FIRMA_B, arbeit(MONTEUR_B, 'Franz Gruber', '11:00'));
+
+    aktuelleDb = alsBuchhaltung();
+    const perl = await zeiten.listEntriesInRange(FIRMA, TAG, TAG);
+    expect(perl).toHaveLength(1);
+    expect(calcWorkMin(perl[0] as TimeEntry)).toBe(480);
+
+    aktuelleDb = alsBuchhaltungB();
+    const gruber = await zeiten.listEntriesInRange(FIRMA_B, TAG, TAG);
+    expect(gruber).toHaveLength(1);
+    expect(calcWorkMin(gruber[0] as TimeEntry)).toBe(240);
+  });
+
+  /*
+    UND AUCH IN DER BAUSTELLENAUSWERTUNG. Das Projekt-Radar fragt nach
+    Baustellennummern, nicht nach einem Zeitraum — genau die Abfrage, bei der
+    ein vergessener Mandantenfilter am wenigsten auffiele.
+  */
+  it('rechnet die Baustelle nur mit den eigenen Stunden', async () => {
+    aktuelleDb = alsMonteur();
+    await zeiten.createTimeEntry(FIRMA, arbeit(MONTEUR, MITARBEITER.name, '15:00'));
+    aktuelleDb = alsMonteurB();
+    await zeiten.createTimeEntry(FIRMA_B, arbeit(MONTEUR_B, 'Franz Gruber', '11:00'));
+
+    aktuelleDb = alsGF();
+    const eigene = await zeiten.listEntriesForProjects(FIRMA, [NUMMER]);
+    expect(eigene).toHaveLength(1);
+    expect(groupProjectHours(eigene as TimeEntry[])[0].fachMin).toBe(480);
+  });
+
+  /*
+    DER NUMMERNKREIS IST DER TEUERSTE FALL. Zöge er aus einem gemeinsamen
+    Zähler, bekäme Betrieb B eine Rechnung mit einer Lücke im eigenen Kreis —
+    und der Buchhaltungs-Export meldete sie zu Recht, ohne dass jemand
+    erklären könnte, wo die fehlende Nummer geblieben ist.
+  */
+  it('führt für jeden Betrieb einen eigenen Nummernkreis', async () => {
+    aktuelleDb = alsBuchhaltung();
+    const a1 = await rechnungenDb.reserveInvoiceNumber(FIRMA, { seedFrom: 0 });
+    const a2 = await rechnungenDb.reserveInvoiceNumber(FIRMA, { seedFrom: 0 });
+
+    aktuelleDb = alsBuchhaltungB();
+    const b1 = await rechnungenDb.reserveInvoiceNumber(FIRMA_B, { seedFrom: 0 });
+
+    // Beide fangen bei derselben Zahl an — das ist der Punkt, nicht ein Mangel.
+    expect(a1).toBe(b1);
+    expect(a2).not.toBe(a1);
+
+    aktuelleDb = alsBuchhaltungB();
+    const b2 = await rechnungenDb.reserveInvoiceNumber(FIRMA_B, { seedFrom: 0 });
+    expect(b2).toBe(a2);
+  });
+
+  it('zeigt jedem Betrieb nur die eigenen offenen Forderungen', async () => {
+    aktuelleDb = alsBuchhaltung();
+    await rechnungenDb.createInvoice(FIRMA, {
+      invoiceNumber: 'RE-2026-0001', projectNumber: NUMMER, customerName: 'Familie Huber',
+      invoiceDate: '2026-06-30', dueDate: '2026-07-14',
+      totalNetto: 1000, totalVat: 200, totalBrutto: 1200, paymentStatus: 'Offen',
+    } as never);
+
+    aktuelleDb = alsBuchhaltungB();
+    await rechnungenDb.createInvoice(FIRMA_B, {
+      invoiceNumber: 'RE-2026-0001', projectNumber: NUMMER, customerName: 'Familie Berger',
+      invoiceDate: '2026-06-30', dueDate: '2026-07-14',
+      totalNetto: 500, totalVat: 100, totalBrutto: 600, paymentStatus: 'Offen',
+    } as never);
+
+    const offenB = await rechnungenDb.listUnpaidInvoices(FIRMA_B);
+    expect(offenB).toHaveLength(1);
+    expect(offenB[0].customerName).toBe('Familie Berger');
+
+    aktuelleDb = alsBuchhaltung();
+    const offenA = await rechnungenDb.listUnpaidInvoices(FIRMA);
+    expect(offenA).toHaveLength(1);
+    expect(offenA[0].customerName).toBe('Familie Huber');
+  });
+
+  /*
+    „Stunden ohne Buchung" vergleicht Scheine gegen Zeiteinträge — zwei
+    Sammlungen, zwei Abfragen, zwei Gelegenheiten für einen vergessenen
+    Filter. Der Fall hier ist der gemeinste: Betrieb B HAT gebucht, Betrieb A
+    nicht. Zöge die Prüfung fremde Buchungen mit, meldete sie bei A nichts —
+    und die fehlende Stunde bliebe für immer unverrechnet.
+  */
+  it('meldet fehlende Buchungen ohne fremde Buchungen anzurechnen', async () => {
+    const { scheineOhneBuchung } = await import('@/features/worksheets/fehlendeZeitbuchung');
+
+    aktuelleDb = alsMonteurB();
+    await zeiten.createTimeEntry(FIRMA_B, arbeit(MONTEUR_B, 'Franz Gruber', '15:00'));
+
+    const scheinA = {
+      id: 'sa', companyId: FIRMA, projectNumber: NUMMER, customerName: 'Familie Huber',
+      datum: TAG, status: 'Unterschrieben', abrechnung: 'Regie',
+      zeiten: [{ datum: TAG, mitarbeiter: 'Franz Gruber', minuten: 480 }],
+      material: [], erstelltVonUid: MONTEUR, erstelltVonName: MITARBEITER.name,
+    } as never;
+
+    aktuelleDb = alsBuchhaltung();
+    const eigeneBuchungen = await zeiten.listEntriesInRange(FIRMA, TAG, TAG);
+    expect(eigeneBuchungen).toHaveLength(0);
+
+    const befunde = scheineOhneBuchung([scheinA], eigeneBuchungen as TimeEntry[], '2026-06-30');
+    expect(befunde).toHaveLength(1);
+    expect(befunde[0].zeilen[0].art).toBe('keine');
+  });
+
+  /*
+    Und der Monteur von B kommt an nichts von A — auch nicht über die
+    Abfrage, die seine eigenen Scheine holt. Sie filtert auf `erstelltVonUid`;
+    ohne den Mandantenfilter DAVOR wäre das eine Abfrage über den gesamten
+    Bestand, die nur zufällig nichts Fremdes trifft.
+  */
+  it('lässt den Monteur des einen Betriebs nicht an die Zeiten des anderen', async () => {
+    aktuelleDb = alsMonteur();
+    await zeiten.createTimeEntry(FIRMA, arbeit(MONTEUR, MITARBEITER.name, '15:00'));
+
+    aktuelleDb = alsMonteurB();
+    const eigene = await zeiten.listOwnEntriesSince(FIRMA_B, MONTEUR_B, '2026-06-01');
+    expect(eigene).toHaveLength(0);
+    // Und der Versuch, es über die fremde Kennung zu holen, scheitert an der Regel.
+    await expect(zeiten.listOwnEntriesSince(FIRMA, MONTEUR, '2026-06-01')).rejects.toThrow();
+  });
+});

@@ -60,7 +60,7 @@ unterscheidet drei Stufen:
 
 | Bereich | Was es tut | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|
-| **Mandantentrennung** | Jede Abfrage auf `companyId`, serverseitig erzwungen | Emulator (59 Regeltests) | — |
+| **Mandantentrennung** | Jede Abfrage auf `companyId`, serverseitig erzwungen | Emulator (Regeltests je Dokument **und** „Durchstich 8": zwei Betriebe, gleicher Tag, gleiche Baustellennummer) | Regeltests fragen „darf diese Rolle dieses Dokument?" — bei AUSWERTUNGEN entscheidet stattdessen, ob die Abfrage ihren Filter mitführt. Gegenprobe: ohne den Filter in `queryTenant` fallen 19 Tests. Der Nummernkreis trennt über die Dokumentkennung, nicht über den Filter, und hat deshalb eine eigene Gegenprobe. **Nicht belegt:** die Auslieferung an einen echten zweiten Betrieb |
 | **Deaktivierte Konten** | Gesperrtes Auth-Konto, widerrufene Token und `active` als Claim in `signedIn()` — also unter jeder Regel | Emulator (5) | Ein bereits ausgestelltes Token bleibt bis zum Widerruf gültig; der Widerruf läuft in der Function, nicht im Browser |
 | **Wachstumsbremse** | Test verbietet jede Abfrage ohne Grenze in `lib/db` | Rechnung (40) | Prüft die Form der Abfrage, nicht ihre Laufzeit |
 | **Module** | Umfangsentscheidung des Betriebs: was ausgeschaltet ist, verschwindet aus Navigation, Startseite, Querverweisen **und** aus der Adresszeile | Rechnung (14), Emulator (7) | **Keine Sicherheitsgrenze.** Wer die Rolle hat, dürfte die Daten ohnehin — ein Modul nimmt nur den Weg weg, nicht das Recht. Die Regeln bleiben die einzige Grenze. |
