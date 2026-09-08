@@ -1192,6 +1192,58 @@ Formular — und 15 absichtlich kaputte Fassungen, die alle aufgefallen sind.
 Zwei davon erst im zweiten Anlauf: was die Vorbelegung im echten Formular
 bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
 
+## Erledigt: Zwei Betriebe arbeiten nebeneinander (08.09.2026)
+
+Aus der Frage, wie die Software an mehrere Betriebe ausgeliefert wird. Die
+Mandantentrennung galt als belegt — 214 Regeltests gegen eine echte Datenbank.
+Beim Nachsehen stellte sich heraus, dass sie die falsche Frage beantworten.
+
+**Regeltests fragen: darf diese Rolle DIESES DOKUMENT?** Das ist richtig für
+einen Zugriff und unvollständig für eine AUSWERTUNG. Wo über viele Dokumente
+summiert wird — Zeitkonto, Nummernkreis, Mahnlauf, „Stunden ohne Buchung" —
+entscheidet nicht die Regel, sondern ob die ABFRAGE ihren Mandantenfilter
+mitführt. Fehlt er, liefert die Datenbank willig fremde Zeilen, und die Regel
+hat nichts dagegen: sie prüft nur, was zurückkommt, und zurück kommt ja etwas,
+das der Aufrufer lesen dürfte, wenn es ihm gehörte.
+
+**Ein solcher Fehler ist im Ein-Betrieb-Betrieb unsichtbar.** Er erscheint am
+Tag, an dem der zweite Kunde dazukommt — als fremde Stunden auf einem
+Lohnzettel oder als Rechnungsnummer, die schon vergeben ist.
+
+Bis hierher kam `andere-firma` in den Durchstichen genau zweimal vor, beide
+Male als einzelnes fremdes Dokument, an dem eine Regel scheitert. Zwei
+Betriebe, die gleichzeitig ARBEITEN, gab es nicht.
+
+### Was „Durchstich 8" prüft
+
+Zwei Betriebe, **derselbe Tag, dieselbe Baustellennummer** — der harte Fall,
+und der realistische: „B-2026-0001" vergibt jeder Betrieb, der bei eins
+anfängt.
+
+| Geprüft | Warum gerade das |
+| --- | --- |
+| Zeitraum-Abfrage | Die Grundlage jedes Zeitkontos und jeder Lohn-CSV |
+| Baustellen-Abfrage | Fragt nach Nummern, nicht nach Zeitraum — dort fiele ein fehlender Filter am wenigsten auf |
+| Nummernkreis | Der teuerste Fall: ein gemeinsamer Zähler risse eine Lücke in den Kreis des anderen |
+| Offene Forderungen | Grundlage des Mahnlaufs |
+| Stunden ohne Buchung | Zwei Sammlungen, zwei Abfragen, zwei Gelegenheiten für einen vergessenen Filter |
+| Eigene Einträge des Monteurs | Filtert auf `erstelltVonUid` — ohne Mandantenfilter davor eine Abfrage über den ganzen Bestand |
+
+### Die Gegenprobe, und sie ist der eigentliche Beleg
+
+Wird der Mandantenfilter aus `queryTenant` entfernt, fallen **19 Tests**,
+davon **fünf der sechs neuen**. Der sechste bleibt grün — zu Recht: der
+Nummernkreis trennt über die Dokumentkennung
+(`counters/{companyId}_invoices`), nicht über einen Abfragefilter. Für ihn
+gibt es deshalb eine eigene Gegenprobe: ein gemeinsamer Zähler, und genau
+dieser eine Test fällt.
+
+**Was damit NICHT belegt ist:** dass die Auslieferung an einen echten zweiten
+Betrieb funktioniert. Der Bootstrap ist nie für einen zweiten Mandanten
+gelaufen, und die betrieblichen Fragen — AV-Vertrag als Auftragsverarbeiter,
+Impressum, getrenntes Produktivprojekt — sind davon unberührt. Geprüft ist
+das, was Code ist.
+
 ## Erledigt: Der Storno geht ganz durch oder gar nicht (08.09.2026)
 
 Beim Suchen nach weiteren Schwachstellen gefunden — und es ist dieselbe
