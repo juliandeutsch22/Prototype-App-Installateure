@@ -127,13 +127,25 @@ vi.mock('@/lib/db/assignments', () => ({
   listUpcomingAssignments: vi.fn(async () => einsaetze),
   listAssignmentsForDate: vi.fn(async () => einsaetze),
 }));
+/*
+  Welche Abfrage scheitern soll. Die Startseite lädt in drei Blöcken; jeder
+  muss für sich stolpern können, ohne die anderen mitzureissen.
+*/
+const scheitert = { persoenlich: false, betrieblich: false };
+
 vi.mock('@/lib/db/timeEntries', () => ({
-  listOwnEntriesSince: vi.fn(async () => buchungen),
+  listOwnEntriesSince: vi.fn(async () => {
+    if (scheitert.persoenlich) throw new Error('kein Netz');
+    return buchungen;
+  }),
   listEntriesInRange: vi.fn(async () => buchungen),
   listEntriesForProjects: vi.fn(async () => zeitenJeBaustelle),
 }));
 vi.mock('@/lib/db/materialOrders', () => ({
-  listOpenOrders: vi.fn(async () => [] as MaterialOrder[]),
+  listOpenOrders: vi.fn(async () => {
+    if (scheitert.betrieblich) throw new Error('kein Netz');
+    return [] as MaterialOrder[];
+  }),
   listOwnOpenOrders: vi.fn(async () => [] as MaterialOrder[]),
 }));
 vi.mock('@/lib/db/invoices', () => ({
@@ -186,6 +198,8 @@ function zeichne() {
 }
 
 beforeEach(() => {
+  scheitert.persoenlich = false;
+  scheitert.betrieblich = false;
   // Feste Uhr: sonst verschiebt sich „heute" und der Test wird mit der Zeit
   // falsch statt rot.
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -390,5 +404,94 @@ describe('Startseite — was der Monteur heute mitnehmen soll', () => {
     zeichne();
     await screen.findByText('Material');
     expect(screen.getAllByText('Material')).toHaveLength(1);
+  });
+});
+
+/**
+ * Wenn ein Teil der Startseite nicht kommt.
+ *
+ * Die drei Blöcke liefen über `Promise.allSettled`, dessen Ergebnis verworfen
+ * wurde. Warf einer, wurde sein `setLaden(false)` nie erreicht: der Kreisel
+ * blieb für IMMER stehen, und die Warnungen dieses Blocks — fehlende Tage,
+ * offene Anforderungen, überfällige Rechnungen — erschienen einfach nie.
+ *
+ * Die Startseite war damit die einzige Ansicht der App ganz ohne
+ * Fehlerzustand, und ausgerechnet sie sagt, was ansteht.
+ */
+describe('Wenn ein Teil der Startseite nicht kommt', () => {
+  it('hört auf zu laden, statt ewig zu kreiseln', async () => {
+    scheitert.persoenlich = true;
+    zeichne();
+
+    // Der Kreisel verschwindet — vorher blieb er für immer stehen.
+    await waitFor(() =>
+      expect(screen.queryByText(/Wird geladen/)).not.toBeInTheDocument(),
+    );
+  });
+
+  it('sagt, welcher Teil fehlt', async () => {
+    scheitert.persoenlich = true;
+    zeichne();
+
+    expect(await screen.findByText(/Nicht geladen: Deine Tage und Einsätze/)).toBeInTheDocument();
+  });
+
+  /*
+    DER ZWEITE SATZ IST DER WICHTIGE. Eine Startseite, die weniger zeigt als
+    sonst, sieht aus wie ein ruhiger Tag — genau diesen Schluss darf sie
+    nicht zulassen.
+  */
+  it('lässt nicht den Schluss zu, es stünde nichts an', async () => {
+    scheitert.persoenlich = true;
+    zeichne();
+
+    await screen.findByText(/Nicht geladen/);
+    expect(screen.getByText(/heisst nicht, dass nichts ansteht/)).toBeInTheDocument();
+  });
+
+  /*
+    DIE BLÖCKE BLEIBEN GETRENNT. Fällt die Betriebssicht aus, soll der
+    Monteur trotzdem sehen, wo er heute hin muss.
+  */
+  it('reisst die anderen Blöcke nicht mit', async () => {
+    rolle.wert = 'Geschäftsführung';
+    scheitert.betrieblich = true;
+    zeichne();
+
+    await screen.findByText(/Nicht geladen: Baustellen, Anforderungen und Rechnungen/);
+    expect(screen.queryByText(/Deine Tage und Einsätze/)).not.toBeInTheDocument();
+  });
+
+  /*
+    UND SIE BLEIBT NICHT STEHEN. Die Startseite lädt neu, sobald sich Rolle,
+    Konto oder ein Modul ändert. Eine Meldung aus dem vorigen Anlauf wäre
+    danach eine Behauptung über einen Zustand, den es nicht mehr gibt.
+  */
+  it('räumt die Meldung weg, sobald neu geladen wird', async () => {
+    scheitert.persoenlich = true;
+    const { rerender } = zeichne();
+    await screen.findByText(/Nicht geladen/);
+
+    // Ein Rollenwechsel ändert `mgmt` und `fuehrtZeitkonto` — beides
+    // Abhängigkeiten des Ladeeffekts. Er läuft damit von vorne, diesmal ohne
+    // Fehler. (Das Konto zu klonen ginge nicht: `role` ist ein Getter, und
+    // ein Spread würde ihn einfrieren.)
+    scheitert.persoenlich = false;
+    rolle.wert = 'Geschäftsführung';
+    rerender(
+      <MemoryRouter>
+        <DashboardView />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.queryByText(/Nicht geladen/)).not.toBeInTheDocument());
+  });
+
+  it('schweigt, solange alles durchkommt', async () => {
+    zeichne();
+    await waitFor(() =>
+      expect(screen.queryByText(/Wird geladen/)).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/Nicht geladen/)).not.toBeInTheDocument();
   });
 });

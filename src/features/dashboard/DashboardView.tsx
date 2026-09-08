@@ -173,6 +173,22 @@ export default function DashboardView() {
   const kiAn = useModul('ki');
   const [data, setData] = useState<DashData>({});
   const [laden, setLaden] = useState({ persoenlich: true, betrieblich: true, team: true });
+  /*
+    WELCHER TEIL NICHT KAM — und dass es überhaupt jemand erfährt.
+
+    Die drei Blöcke liefen über `Promise.allSettled`, dessen Ergebnis
+    verworfen wurde. Warf einer, wurde sein `setLaden(false)` nie erreicht:
+    der Kreisel blieb für immer stehen, und die Warnungen dieses Blocks —
+    fehlende Tage, offene Anforderungen, überfällige Rechnungen — erschienen
+    einfach nie. Die Startseite war damit die einzige Ansicht der App ganz
+    ohne Fehlerzustand, und ausgerechnet sie sagt, was ansteht.
+
+    Ein ewiger Kreisel behauptet zwar nichts Falsches — `nothingToShow`
+    verlangt, dass nichts mehr lädt —, aber er erklärt auch nichts. Und wer
+    sich an eine Startseite gewöhnt, die dauernd lädt, sieht auch dann nicht
+    hin, wenn sie etwas zu sagen hat.
+  */
+  const [nichtGeladen, setNichtGeladen] = useState<string[]>([]);
   const fuehrtZeitkonto = user ? shouldShowOvertime(user.role) : false;
   const mgmt = user ? canProcessOrders(user.role) || isGF(user.role) : false;
   const leitung = user ? isGF(user.role) : false;
@@ -181,6 +197,7 @@ export default function DashboardView() {
     if (!user) return;
     let cancelled = false;
     setLaden({ persoenlich: true, betrieblich: true, team: true });
+    setNichtGeladen([]);
 
     const reiche = (teil: Partial<DashData>) => {
       if (!cancelled) setData((v) => ({ ...v, ...teil }));
@@ -250,7 +267,6 @@ export default function DashboardView() {
         }
       }
       reiche(out);
-      if (!cancelled) setLaden((v) => ({ ...v, persoenlich: false }));
     };
 
     /** Betriebliches: Baustellen, heutige Einteilung, Anforderungen, Rechnungen. */
@@ -351,7 +367,6 @@ export default function DashboardView() {
         out.ownOpenOrders = orders.filter((o) => o.transactionType !== 'return').length;
       }
       reiche(out);
-      if (!cancelled) setLaden((v) => ({ ...v, betrieblich: false }));
     };
 
     /**
@@ -394,10 +409,36 @@ export default function DashboardView() {
           .sort((a, b) => b.fehlendeTage - a.fehlendeTage || a.name.localeCompare(b.name, 'de'));
       }
       reiche(out);
-      if (!cancelled) setLaden((v) => ({ ...v, team: false }));
     };
 
-    void Promise.allSettled([persoenlich(), betrieblich(), team()]);
+    /**
+     * Jeder Block für sich, mit Auffang.
+     *
+     * `allSettled` verschluckte die Ablehnung, und `finally` gab es nicht —
+     * beides zusammen ergab den ewigen Kreisel. Jetzt wird der Ladezustand
+     * IMMER beendet, und wer nicht kam, sagt es.
+     *
+     * Die Blöcke bleiben getrennt: fällt die Betriebssicht aus, soll der
+     * Monteur trotzdem sehen, wo er heute hin muss.
+     */
+    const mitAuffang = (
+      teil: 'persoenlich' | 'betrieblich' | 'team',
+      name: string,
+      lauf: () => Promise<void>,
+    ) =>
+      lauf()
+        .catch(() => {
+          if (!cancelled) setNichtGeladen((f) => (f.includes(name) ? f : [...f, name]));
+        })
+        .finally(() => {
+          if (!cancelled) setLaden((v) => ({ ...v, [teil]: false }));
+        });
+
+    void Promise.allSettled([
+      mitAuffang('persoenlich', 'Deine Tage und Einsätze', persoenlich),
+      mitAuffang('betrieblich', 'Baustellen, Anforderungen und Rechnungen', betrieblich),
+      mitAuffang('team', 'Die Mannschaft', team),
+    ]);
     return () => {
       cancelled = true;
     };
@@ -787,6 +828,27 @@ export default function DashboardView() {
       {nochAmLaden && (
         <Card>
           <LoadingState />
+        </Card>
+      )}
+
+      {/*
+        WAS NICHT KAM, statt eines Kreisels, der nie aufhört.
+
+        Die Meldung steht UNTEN, nach allem, was sehr wohl geladen wurde: der
+        Monteur soll zuerst sehen, wo er heute hin muss, und erst danach
+        erfahren, dass ein Teil fehlt.
+
+        Der zweite Satz ist der wichtige. Eine Startseite, die weniger zeigt
+        als sonst, sieht aus wie ein ruhiger Tag — und genau diesen Schluss
+        darf sie hier nicht zulassen.
+      */}
+      {nichtGeladen.length > 0 && (
+        <Card>
+          <p role="status" className="text-sm text-warning">
+            <strong>Nicht geladen: {nichtGeladen.join(' · ')}.</strong> Was hier fehlt, heisst
+            nicht, dass nichts ansteht — bitte die Seite neu laden. Die Reiter oben zeigen den
+            vollständigen Stand.
+          </p>
         </Card>
       )}
 
