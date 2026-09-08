@@ -650,8 +650,10 @@ describe('Fotos', () => {
   async function fotoWaehlen(nutzer: ReturnType<typeof userEvent.setup>) {
     // Erst wenn die Baustelle steht, gibt es den Abschnitt: ein Foto ohne
     // Schein hat keinen Ort, an den es gehört.
-    await screen.findByText(/^Fotos/);
-    const feld = screen.getByLabelText(/Foto aufnehmen oder wählen/);
+    await screen.findByText(/^Fotos \(/);
+    // Beschriftung des versteckten Dateifelds ist der Knopftext, und der
+    // wechselt mit dem Zustand: erstes Bild, weiteres, Fach voll.
+    const feld = screen.getByLabelText(/Foto aufnehmen|Weiteres Foto|Höchstens/);
     await nutzer.upload(feld, bild());
   }
 
@@ -671,6 +673,48 @@ describe('Fotos', () => {
     // Storage-Regel an der falschen Stelle.
     expect(fotoHochladen.mock.calls[0][0]).toBe('perl');
     expect(fotoHochladen.mock.calls[0][1]).toBe('s1');
+  });
+
+  /*
+    DER FOTOBLOCK STEHT NICHT MEHR IM KOPF DER UNTERSCHRIFTEN.
+
+    Dort sass er unmittelbar über „Monteur (Name in Druckbuchstaben)": ein
+    unterstrichener Link in Akzentfarbe und darunter drei Zeilen graues
+    Kleingedrucktes — beides las sich wie eine Fehlermeldung zu genau diesem
+    Feld. Der Test hält die Trennung fest, weil sie sonst beim nächsten
+    Umbau still zurückfällt: das Dateifeld darf im Abschnitt der
+    Unterschriften nicht vorkommen.
+  */
+  it('steht in einer eigenen Karte, nicht bei den Unterschriften', async () => {
+    zeichne();
+    await screen.findByText(/^Fotos \(/);
+
+    const namensfeld = screen.getByLabelText(/Monteur \(Name in Druckbuchstaben\)/);
+    const unterschriften = namensfeld.closest('section');
+    expect(unterschriften).not.toBeNull();
+    expect(
+      unterschriften!.querySelector('input[type="file"]'),
+      'Das Dateifeld gehört in die Fotokarte, nicht zu den Unterschriften.',
+    ).toBeNull();
+  });
+
+  /*
+    Der Knopf sagt, was er tut — und was er nicht mehr tut. „Foto aufnehmen"
+    beim leeren Fach, „Weiteres Foto", sobald eines da ist. Ohne diesen
+    Wechsel stünde nach acht Bildern derselbe Text wie am Anfang, nur ohne
+    Wirkung: ein Knopf, der nichts tut, ist schlimmer als keiner.
+  */
+  it('beschriftet den Knopf nach dem Stand und zählt im Kartentitel mit', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Fotos (0/8)');
+    expect(screen.getByLabelText('Foto aufnehmen')).toBeInTheDocument();
+
+    await fotoWaehlen(nutzer);
+    await waitFor(() => expect(fotoHochladen).toHaveBeenCalled());
+
+    expect(await screen.findByText('Fotos (1/8)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Weiteres Foto')).toBeInTheDocument();
   });
 
   it('verkleinert vor dem Hochladen', async () => {
