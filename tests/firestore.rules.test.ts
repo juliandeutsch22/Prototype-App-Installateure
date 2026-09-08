@@ -1745,6 +1745,60 @@ describe('Handwerksschein: verwerfen, zurueckholen, einfrieren', () => {
     await assertFails(updateDoc(doc(db, 'workSheets', 'sA'), { status: 'Verworfen' }));
   });
 
+  /*
+    DIE FOTOS GEHOEREN ZUM EINGEFRORENEN INHALT.
+
+    Ihre Pfade und Inhalts-Hashes sind das einzige, was ein spaeter im Storage
+    ausgetauschtes Bild auffliegen laesst — die Storage-Regel sieht die Datei,
+    nicht ihren Zusammenhang mit dem Schein. Waere die Liste beim Storno
+    aenderbar, liesse sich genau dieser Nachweis stillschweigend umschreiben:
+    stornieren, Fotoliste tauschen, fertig.
+  */
+  it('die Fotoliste laesst sich beim Storno nicht mitaendern', async () => {
+    await seedSchein({
+      status: 'Unterschrieben',
+      fotos: [{ pfad: 'scheine/companyA/sA/aaa.jpg', hash: 'aaa', bytes: 1, geraetZeit: 1 }],
+    });
+    await assertFails(
+      updateDoc(doc(ctxA_gf().firestore(), 'workSheets', 'sA'), {
+        status: 'Storniert',
+        stornoGrund: 'Verrechnet',
+        fotos: [{ pfad: 'scheine/companyA/sA/bbb.jpg', hash: 'bbb', bytes: 1, geraetZeit: 1 }],
+      }),
+    );
+  });
+
+  it('der Storno geht mit unveraenderter Fotoliste durch', async () => {
+    await seedSchein({
+      status: 'Unterschrieben',
+      fotos: [{ pfad: 'scheine/companyA/sA/aaa.jpg', hash: 'aaa', bytes: 1, geraetZeit: 1 }],
+    });
+    await assertSucceeds(
+      updateDoc(doc(ctxA_gf().firestore(), 'workSheets', 'sA'), {
+        status: 'Storniert',
+        stornoGrund: 'Verrechnet',
+        fotos: [{ pfad: 'scheine/companyA/sA/aaa.jpg', hash: 'aaa', bytes: 1, geraetZeit: 1 }],
+      }),
+    );
+  });
+
+  it('und der Storno eines Scheins OHNE Fotofeld geht weiterhin', async () => {
+    /*
+      Scheine aus der Zeit vor den Fotos tragen das Feld gar nicht. Ein
+      direkter Zugriff auf ein fehlendes Feld bricht die Regel ab — der
+      Storno eines Altbelegs waere damit unmoeglich geworden, und zwar
+      ausgerechnet fuer die aeltesten Belege, bei denen am ehesten etwas
+      zu korrigieren ist.
+    */
+    await seedSchein({ status: 'Unterschrieben' });
+    await assertSucceeds(
+      updateDoc(doc(ctxA_gf().firestore(), 'workSheets', 'sA'), {
+        status: 'Storniert',
+        stornoGrund: 'Verrechnet',
+      }),
+    );
+  });
+
   it('auch die Geschaeftsfuehrung kann den unterschriebenen Schein nicht verwerfen', async () => {
     await seedSchein({ status: 'Unterschrieben' });
     await assertFails(

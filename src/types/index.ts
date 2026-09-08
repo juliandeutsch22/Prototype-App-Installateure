@@ -336,6 +336,19 @@ export interface WorkSheet {
    * vorgelegtes PDF genau das ist, was unterschrieben wurde.
    */
   inhaltHash?: string;
+  /**
+   * Fotos vom Einsatz — FREIWILLIG, nie Voraussetzung.
+   *
+   * WARUM OPTIONAL UND NICHT PFLICHT. Der Schein muss im Keller ohne Netz
+   * unterschreibbar bleiben; Firestore hält einen Schreibvorgang offline vor,
+   * ein Storage-Upload nicht. Wäre auch nur ein Foto Bedingung, hinge der
+   * ganze Beleg an einem Balken Empfang — und der Monteur stünde mit einem
+   * Kunden vor sich da, der unterschreiben will.
+   *
+   * Was die App dafür tut: sie sagt VOR dem Unterschreiben, wenn ein Bild
+   * noch nicht oben ist, statt es still fallen zu lassen.
+   */
+  fotos?: WorkSheetFoto[];
   /** Zeitpunkt des Einfrierens, vom SERVER. */
   unterschriebenAm?: number;
   stornoGrund?: string;
@@ -361,6 +374,31 @@ export interface WorkSheetMaterial {
   name: string;
   menge: number;
   einheit?: string;
+}
+
+/**
+ * Ein Foto am Schein.
+ *
+ * DIE BILDDATEI LIEGT IN FIREBASE STORAGE, nicht in Firestore — ein Dokument
+ * fasst 1 MB, ein Handyfoto ist drei- bis fünfmal so gross. Hier steht nur,
+ * wo es liegt und was drinsteht.
+ *
+ * `hash` IST DER GRUND, WARUM DAS FUNKTIONIERT. Die Prüfsumme des Scheins
+ * kann die Bilddatei nicht mitrechnen, sie sieht nur Firestore. Ohne einen
+ * Inhalts-Hash liesse sich die Datei im Storage nach der Unterschrift
+ * austauschen, ohne dass irgendetwas auffiele — der Beleg wäre dann genau
+ * dort löchrig, wo er beweisen soll. Der Hash steht im Dokument, geht in die
+ * Prüfsumme ein und ist damit vom Einfrieren mitgeschützt.
+ */
+export interface WorkSheetFoto {
+  /** Pfad in Firebase Storage. */
+  pfad: string;
+  /** SHA-256 der hochgeladenen Bytes, hexadezimal. */
+  hash: string;
+  /** Grösse der komprimierten Datei in Byte — für die Anzeige. */
+  bytes: number;
+  /** Wann am Gerät aufgenommen bzw. gewählt. */
+  geraetZeit: number;
 }
 
 /**

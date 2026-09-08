@@ -85,6 +85,16 @@ vi.mock('@/lib/db/workSheets', () => ({
   discardWorkSheetDraft: (...a: unknown[]) => verwerfen(...(a as [])),
   restoreWorkSheetDraft: (...a: unknown[]) => zurueckholen(...(a as [])),
 }));
+/*
+  Die Adressen der Bilder kommen aus Firebase Storage. Geprüft wird hier
+  nicht das Laden, sondern was die Ansicht damit tut — und was sie sagt, wenn
+  ein Bild NICHT mehr dort liegt, wo der Schein es verzeichnet.
+*/
+const fotoAdresse = vi.fn<[string], Promise<string>>(async (p) => `https://x/${p}`);
+vi.mock('@/lib/db/scheinFotos', () => ({
+  fotoAdresse: (p: string) => fotoAdresse(p),
+}));
+
 vi.mock('@/features/worksheets/worksheetPdf', () => ({
   buildWorkSheetPdf: vi.fn(),
   shareOrDownloadPdf: vi.fn(),
@@ -275,5 +285,72 @@ describe('Der verworfene Entwurf in der Liste', () => {
     zeichne();
     await userEvent.click(await screen.findByRole('checkbox'));
     expect(screen.queryByRole('link', { name: /Weiterbearbeiten/ })).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Die Fotos im Büro.
+ *
+ * Sie liegen in Firebase Storage, ihre Adressen müssen einzeln geholt werden.
+ * Deshalb geschieht das erst beim AUFKLAPPEN eines Scheins — eine Liste, die
+ * beim Öffnen zwanzig Bilder nachlädt, ist auf einer Baustelle keine Liste
+ * mehr.
+ */
+describe('Fotos am Schein', () => {
+  const mitFotos = () => {
+    scheine[1] = {
+      ...scheine[1],
+      fotos: [
+        { pfad: 'scheine/perl/u1/aaa.jpg', hash: 'a'.repeat(64), bytes: 340_000, geraetZeit: 1 },
+      ],
+    } as WorkSheet & { id: string };
+  };
+
+  it('holt die Bilder erst beim Aufklappen', async () => {
+    mitFotos();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Berger/);
+    expect(fotoAdresse).not.toHaveBeenCalled();
+
+    await nutzer.click(screen.getAllByRole('button', { name: 'Details' })[1]);
+    await waitFor(() => expect(fotoAdresse).toHaveBeenCalledWith('scheine/perl/u1/aaa.jpg'));
+  });
+
+  it('zeigt die Prüfsumme neben dem Bild', async () => {
+    /*
+      Sie ist der Grund, warum ein Foto überhaupt etwas beweist: die
+      Storage-Datei allein sagt nichts darüber, ob sie noch die ist, die
+      unterschrieben wurde.
+    */
+    mitFotos();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Berger/);
+    await nutzer.click(screen.getAllByRole('button', { name: 'Details' })[1]);
+    expect(await screen.findByText(/^aaaaaaaaaaaa…/)).toBeInTheDocument();
+  });
+
+  /*
+    EIN FEHLENDES BILD IST EINE AUSSAGE, KEINE PANNE. Die Datei liegt nicht
+    mehr dort, wo der Schein sie verzeichnet — das ist der Unterschied
+    zwischen „lädt noch" und „der Beleg hat ein Loch".
+  */
+  it('sagt es, wenn ein Bild nicht mehr da ist', async () => {
+    mitFotos();
+    fotoAdresse.mockRejectedValueOnce(new Error('weg'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Berger/);
+    await nutzer.click(screen.getAllByRole('button', { name: 'Details' })[1]);
+    expect(await screen.findByText(/nicht mehr vollständig belegbar/)).toBeInTheDocument();
+  });
+
+  it('zeigt gar keinen Fotobereich, wenn es keine gibt', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Familie Huber/);
+    await nutzer.click(screen.getAllByRole('button', { name: 'Details' })[0]);
+    expect(screen.queryByText(/^Fotos/)).not.toBeInTheDocument();
   });
 });

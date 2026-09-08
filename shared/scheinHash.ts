@@ -17,6 +17,13 @@
  * Die Unterschriftsbilder gehen MIT ein: sie sind Teil dessen, was
  * unterschrieben wurde. Ein ausgetauschtes Bild muss die Prüfsumme ändern.
  *
+ * DASSELBE GILT FÜR DIE FOTOS, und dort ist es kniffliger: die Bilddateien
+ * liegen in Firebase Storage, das diese Rechnung gar nicht sieht. Sie geht
+ * deshalb über den INHALTS-HASH jedes Fotos, den der Client beim Hochladen
+ * bildet. Wer die Datei im Storage später austauscht, ändert ihren Hash — und
+ * der im Schein festgehaltene passt dann nicht mehr. Ohne diesen Umweg wäre
+ * der Beleg ausgerechnet an den Bildern löcherig.
+ *
  * Ohne Importe, damit die Cloud Functions dieselbe Datei verwenden können —
  * eine zweite, von Hand gepflegte Fassung würde irgendwann abweichen, und
  * dann stimmte keine der beiden Prüfsummen mehr.
@@ -39,6 +46,8 @@ export interface HashbarerSchein {
     helfer?: boolean;
   }>;
   material: Array<{ name: string; menge: number; einheit?: string }>;
+  /** Freiwillig — ein Schein ohne Fotos ist vollständig. */
+  fotos?: Array<{ pfad: string; hash: string }>;
   notizen?: string;
   unterschriften?: {
     monteur?: { name: string; bild: string; geraetZeit: number };
@@ -77,6 +86,15 @@ export function kanonischerInhalt(s: HashbarerSchein): string {
   }
   for (const m of s.material) {
     zeilen.push(['MATERIAL', t(m.name), n(m.menge), t(m.einheit)].join(''));
+  }
+  /*
+    Die Fotos in ihrer Reihenfolge — sie ist Teil des Belegs, wie bei den
+    Positionen. Ein Schein OHNE Fotos schreibt hier gar nichts: sonst änderte
+    allein das Einführen dieses Feldes die Prüfsumme jedes bestehenden
+    Scheins, und keiner davon liesse sich mehr nachrechnen.
+  */
+  for (const f of s.fotos ?? []) {
+    zeilen.push(['FOTO', t(f.pfad), t(f.hash)].join(''));
   }
   zeilen.push(['NOTIZ', t(s.notizen)].join(''));
 

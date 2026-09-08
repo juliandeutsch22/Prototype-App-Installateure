@@ -150,13 +150,23 @@ jobs:
       # passenden Regeln wäre entweder gesperrt oder – schlimmer – offen.
       # Indizes gehören dazu, sonst laufen Abfragen produktiv ins Leere, die
       # lokal gegen den Emulator noch funktioniert haben.
+      #
+      # STORAGE-REGELN AUS DEMSELBEN GRUND, seit die Handwerksscheine Fotos
+      # tragen. Fehlten sie hier, gälten in Produktion die Voreinstellungen —
+      # und die sperren jeden Zugriff vom Gerät. Das Aufnehmen eines Fotos
+      # schlüge dann fehl, und zwar erst beim Monteur auf der Baustelle.
+      #
+      # VORAUSSETZUNG, die nur EINMAL von Hand geht: der Standard-Bucket muss
+      # in der Firebase-Konsole unter „Storage" angelegt sein. Ohne ihn hat
+      # dieser Schritt kein Ziel und bricht ab — mit einer Meldung, die genau
+      # das sagt.
       - name: Deploy
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
         run: |
           npx --yes firebase-tools@15 deploy \
-            --only hosting,firestore:rules,firestore:indexes \
+            --only hosting,firestore:rules,firestore:indexes,storage \
             --project "$PROJECT_ID" \
             --non-interactive \
             --message "${GITHUB_SHA::7} von ${GITHUB_ACTOR}"

@@ -19,18 +19,23 @@ import { listCustomers } from '@/lib/db/customers';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
-import { listWorkSheetsForProject } from '@/lib/db/workSheets';
+import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
 import { verrechneteScheine } from './materialPositionen';
 import { darfMahnen, naechsteStufe, spesenFuer, TEXTE, FRIST_TAGE } from './mahnung';
 import { mahnlauf } from './mahnlauf';
+import {
+  unverrechneteScheine,
+  auffaellige,
+  AUFFAELLIG_AB_TAGEN,
+} from '@/features/worksheets/unverrechnet';
 import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice, Project } from '@/types';
+import type { Invoice, Project, WorkSheet } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -63,6 +68,14 @@ export default function InvoicesView() {
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Rechnungsliste steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
+  /*
+    Die unterschriebenen Scheine des Betriebs — für die Frage, welche Leistung
+    noch auf keiner Rechnung steht. Einmal geladen, nicht abonniert: die
+    Antwort ändert sich im Takt von Tagen, nicht von Sekunden, und ein
+    zweiter laufender Zuhörer kostete auf einer Baustelle Verbindung für
+    nichts.
+  */
+  const [scheineAllerBaustellen, setScheineAllerBaustellen] = useState<WithId<WorkSheet>[]>([]);
   const [busy, setBusy] = useState(false);
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
@@ -186,6 +199,29 @@ export default function InvoicesView() {
       // je Rechnung waere Laerm ohne Handlungsmoeglichkeit.
       .forEach((i) => void updateInvoiceStatus(i.id, 'Überfällig').catch(() => undefined));
   }, [invoices]);
+
+  /*
+    NUR FÜRS BÜRO. Der Monteur kommt hier gar nicht her; die Abfrage lädt die
+    letzten Scheine des ganzen Betriebs und hat auf einem Gerät im Keller
+    nichts verloren.
+  */
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    listRecentWorkSheets(user.companyId, 200)
+      .then((rows) => {
+        if (!weg) setScheineAllerBaustellen(rows);
+      })
+      /*
+        Still: die Liste ist eine ZUSATZangabe. Fiele die ganze
+        Rechnungsansicht aus, weil sie nicht kommt, wäre das Verhältnis
+        zwischen Nutzen und Schaden verkehrt herum.
+      */
+      .catch(() => undefined);
+    return () => {
+      weg = true;
+    };
+  }, [user]);
 
   const sorted = useMemo(
     () => [...invoices].sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber)),
@@ -621,6 +657,20 @@ export default function InvoicesView() {
     [invoices, company?.rates?.mahnspesen],
   );
 
+  /**
+   * Unterschriebene Leistung, für die nie eine Rechnung geschrieben wurde.
+   *
+   * DIE LETZTE OFFENE STELLE IM KREIS. Die Rechnung merkt sich seit jeher,
+   * welche Scheine sie verbraucht hat; gelesen wurde das nur, um beim
+   * Zusammenstellen nichts doppelt zu verrechnen. Die Umkehrung fehlte — und
+   * sie ist die betrieblich wichtigere: das ist kein Buchhaltungsfehler, den
+   * man später sieht, sondern Geld, das nie eingefordert wird.
+   */
+  const offeneLeistung = useMemo(
+    () => unverrechneteScheine(scheineAllerBaustellen, invoices, todayStr()),
+    [scheineAllerBaustellen, invoices],
+  );
+
   if (!user) return null;
 
   /** Den Mahndialog für eine Rechnung öffnen — mit der vorgeschlagenen Frist. */
@@ -737,6 +787,70 @@ export default function InvoicesView() {
         Die Karte erscheint nur, wenn es etwas zu tun gibt. Eine dauerhaft
         sichtbare leere Mahnliste wäre ein Vorwurf ohne Anlass.
       */}
+      {/*
+        UNVERRECHNETE LEISTUNG.
+
+        Der Weg vom Einsatz zum Geld war durchgehend gebaut — Zeit buchen,
+        Schein unterschreiben, Rechnung daraus zusammenstellen —, aber niemand
+        konnte sagen, WAS davon noch nicht durch ist. Das ist kein
+        Buchhaltungsfehler, den man später sieht: es ist Geld, das schlicht
+        nie eingefordert wird, und im Handwerk der klassische Weg, wie ein gut
+        ausgelasteter Betrieb trotzdem knapp bei Kasse ist.
+
+        Die Karte erscheint erst, wenn etwas AUFFÄLLIG lange offen ist. Ein
+        Schein von vorgestern gehört nicht gemeldet — zwischen Einsatz und
+        Rechnung liegt regelmässig ein Monatsabschluss, und eine Liste, die
+        das anmahnt, sieht sich nach zwei Wochen niemand mehr an.
+      */}
+      {auffaellige(offeneLeistung).length > 0 && (
+        <Card
+          title={`Nicht verrechnete Leistung (${auffaellige(offeneLeistung).length})`}
+          hint={
+            'Unterschriebene Handwerksscheine, die auf keiner gültigen Rechnung stehen und ' +
+            `älter als ${AUFFAELLIG_AB_TAGEN} Tage sind — älteste zuerst. Wird eine Rechnung ` +
+            'storniert, tauchen ihre Scheine hier wieder auf: der Storno nimmt die Forderung ' +
+            'zurück, also steht die Leistung wieder offen.'
+          }
+        >
+          <List>
+            {auffaellige(offeneLeistung).map(({ schein, tage }) => (
+              <ListRow
+                key={schein.id}
+                title={
+                  <>
+                    <span>{schein.customerName}</span>
+                    <Badge tone={tage >= 90 ? 'danger' : 'warning'}>{tage} Tage</Badge>
+                  </>
+                }
+                subtitle={
+                  <span className="tnum">
+                    Baustelle {schein.projectNumber} · Leistung vom {schein.datum} ·{' '}
+                    {schein.abrechnung}
+                  </span>
+                }
+              >
+                {/*
+                  Der Weg zur Rechnung ist die Baustelle: aus ihr wird
+                  zusammengestellt, nicht aus dem einzelnen Schein. Der Knopf
+                  setzt deshalb nur die Auswahl oben — von Hand abzutippen war
+                  genau die Reibung, die dazu führt, dass es liegen bleibt.
+                */}
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setProjectNumber(schein.projectNumber);
+                    setPreview(null);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  Baustelle wählen
+                </Button>
+              </ListRow>
+            ))}
+          </List>
+        </Card>
+      )}
+
       {(lauf.zeilen.length > 0 || lauf.ausgereizt.length > 0) && (
         <Card
           title={`Mahnlauf (${lauf.zeilen.length})`}

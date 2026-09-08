@@ -36,3 +36,21 @@ vi.mock('@/lib/firebase', () => ({
 if (typeof HTMLCanvasElement !== 'undefined') {
   HTMLCanvasElement.prototype.getContext = (() => null) as HTMLCanvasElement['getContext'];
 }
+
+/**
+ * jsdom kennt `URL.createObjectURL` nicht.
+ *
+ * Die Fotovorschau am Handwerksschein braucht es — ohne Ersatz wirft schon
+ * das ANLEGEN der Vorschau, und der Fehler sieht dann aus, als sei das
+ * Hochladen gescheitert. Genau darauf bin ich beim Schreiben dieser Tests
+ * hereingefallen: die Komprimierung lief, der Upload nicht, und die Ursache
+ * lag drei Zeilen dazwischen.
+ *
+ * Ein Zähler statt einer festen Zeichenkette, damit zwei Vorschauen zwei
+ * verschiedene Schlüssel bekommen — die Liste im Formular hängt daran.
+ */
+if (typeof URL !== 'undefined' && !URL.createObjectURL) {
+  let lauf = 0;
+  URL.createObjectURL = () => `blob:test/${++lauf}`;
+  URL.revokeObjectURL = () => undefined;
+}
