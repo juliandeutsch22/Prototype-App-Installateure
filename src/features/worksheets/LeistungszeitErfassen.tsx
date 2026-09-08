@@ -191,18 +191,26 @@ export default function LeistungszeitErfassen({
         </p>
       )}
       {/*
-        ÜBER NACHT GERECHNET — nachfragen, nicht sperren.
+        EINE UNGEWÖHNLICH LANGE SPANNE — nachfragen, nicht sperren.
 
         Eine Endzeit vor der Startzeit gilt als Einsatz über Mitternacht; so
         muss es sein, sonst wäre eine Notdienstnacht unbezahlt. Aus dem
         Vertipper „11:00 bis 08:00" werden dabei aber einundzwanzig Stunden,
         und der Kunde unterschreibt sie gleich.
+
+        DIE URSACHE WIRD ABGELESEN, NICHT ERRATEN. Die Meldung nannte bisher
+        immer die Mitternacht als Grund — auch bei „05:00 bis 19:00", wo „Bis"
+        gar nicht vor „Von" liegt. Eine Warnung, die den falschen Grund nennt,
+        schickt den Monteur zum Prüfen an die falsche Stelle; und wer einmal
+        gemerkt hat, dass sie danebenliegt, liest sie beim nächsten Mal nicht
+        mehr.
       */}
       {minuten >= NACHFRAGE_AB_MINUTEN && (
         <p className="mt-1 text-sm text-warning" role="alert">
-          Das sind <strong>{fmtMin(minuten)}</strong> — über Mitternacht gerechnet, weil „Bis"
-          vor „Von" liegt. Bei einer Notdienstnacht stimmt das; sonst sind Von und Bis
-          vertauscht.
+          Das sind <strong>{fmtMin(minuten)}</strong> —{' '}
+          {form.bis < form.von
+            ? 'über Mitternacht gerechnet, weil „Bis" vor „Von" liegt. Bei einer Notdienstnacht stimmt das; sonst sind Von und Bis vertauscht.'
+            : 'ein ungewöhnlich langer Einsatz. Bitte prüfen, ob Von und Bis stimmen.'}
         </p>
       )}
       {fehler && (
