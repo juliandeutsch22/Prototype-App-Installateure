@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { useEffect } from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
-import type { AppUser, TimeEntry, Role } from '@/types';
+import type { AppUser, TimeEntry, Role, WorkSheet } from '@/types';
 import TimeView from '@/features/time/TimeView';
 
 /**
@@ -95,10 +96,46 @@ vi.mock('@/lib/db/monatsbilanzen', () => ({
   }),
 }));
 
-// Das Formular hat seine eigenen Belange (und seine eigenen Tests). Hier geht
-// es um die Ansicht drumherum.
+/*
+  Das Formular hat seine eigenen Belange (und seine eigenen Tests). Hier geht
+  es um die Ansicht drumherum — mit einer Ausnahme: was als VORBELEGUNG
+  ankommt, ist genau die Naht, um die es beim Nachtragen geht. Der
+  Doppelgänger schreibt sie deshalb sichtbar hin.
+*/
+/*
+  Wie oft das Formular NEU AUFGESETZT wurde. Seine Felder werden mit
+  `useState` initialisiert, und ein React-Zustand ändert sich nicht, weil eine
+  Eigenschaft sich ändert — ohne neuen Schlüssel bliebe das Formular auf dem
+  alten Stand stehen, und der Klick auf „Zeit nachtragen" täte sichtbar
+  nichts. Genau das prüft der Zähler.
+*/
+let formularAufbauten = 0;
 vi.mock('@/features/time/TimeForm', () => ({
-  default: () => <div data-testid="zeitformular" />,
+  default: function Zeitformular({
+    vorbelegung,
+  }: {
+    vorbelegung?: Record<string, unknown> | null;
+  }) {
+    useEffect(() => {
+      formularAufbauten += 1;
+    }, []);
+    return (
+      <div data-testid="zeitformular">
+        {vorbelegung ? `vorbelegt: ${JSON.stringify(vorbelegung)}` : 'leer'}
+      </div>
+    );
+  },
+}));
+
+/*
+  Die eigenen Handwerksscheine der letzten zwei Wochen. Daraus entsteht der
+  Hinweis „unterschriebener Schein ohne Zeiteintrag" — abgeleitet, nicht
+  gespeichert.
+*/
+let eigeneScheine: (WorkSheet & { id: string })[] = [];
+const listOwnWorkSheetsSince = vi.fn(async () => eigeneScheine);
+vi.mock('@/lib/db/workSheets', () => ({
+  listOwnWorkSheetsSince: () => listOwnWorkSheetsSince(),
 }));
 
 /**
@@ -125,6 +162,9 @@ function zeige() {
 }
 
 beforeEach(() => {
+  eigeneScheine = [];
+  formularAufbauten = 0;
+  listOwnWorkSheetsSince.mockClear();
   // Fest auf Dienstag, den 1. September 2026 — sonst verschiebt „diese Woche"
   // den Test mit der Zeit. NUR `Date` faelschen: ein vollstaendig
   // eingefrorener Zeitgeber laesst `waitFor` und userEvent haengen (siehe die
@@ -330,5 +370,178 @@ describe('Zeiterfassung — was eine Buchung an Abfragen kostet', () => {
 
     await waitFor(() => expect(listeBilanzen).toHaveBeenCalled());
     expect(listeSeit).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Offene Nachtragungen — unterschriebene Scheine ohne Zeiteintrag.
+ *
+ * DIE RECHNUNG RECHNET IHRE STUNDEN AUS DEN ZEITEINTRÄGEN, nicht vom Schein;
+ * der Schein liefert nur das Material. Eine nie gebuchte Stunde wird also nie
+ * verrechnet — nicht „später korrigiert", sondern nie. Und zugleich fehlt die
+ * Arbeitszeitaufzeichnung nach § 26 AZG.
+ */
+describe('Offene Nachtragungen', () => {
+  const schein = (
+    id: string,
+    datum: string,
+    p: Partial<WorkSheet> = {},
+  ): WorkSheet & { id: string } =>
+    ({
+      id,
+      companyId: 'perl',
+      projectNumber: '2026-042',
+      customerName: 'Familie Huber',
+      datum,
+      status: 'Unterschrieben',
+      abrechnung: 'Regie',
+      zeiten: [
+        { datum, mitarbeiter: 'Max Mustermann', von: '08:00', bis: '11:00', pauseMin: 0, minuten: 180 },
+      ],
+      material: [],
+      erstelltVonUid: 'u1',
+      erstelltVonName: 'Max Mustermann',
+      ...p,
+    }) as WorkSheet & { id: string };
+
+  it('setzt das Formular neu auf, sonst täte der Knopf sichtbar nichts', async () => {
+    /*
+      Die Felder des Formulars werden mit `useState` INITIALISIERT. Ein
+      React-Zustand ändert sich nicht, weil eine Eigenschaft sich ändert —
+      ohne neuen Schlüssel bliebe „07:00 bis 16:00" stehen, obwohl auf dem
+      Schein „08:00 bis 11:00" steht. Der Monteur tippte auf den Knopf, sähe
+      keine Änderung und trüge die Zeit von Hand ein.
+    */
+    eintraege = [];
+    eigeneScheine = [schein('s1', '2026-08-31')];
+    const nutzer = userEvent.setup();
+    zeige();
+
+    await screen.findByRole('button', { name: 'Zeit nachtragen' });
+    const vorher = formularAufbauten;
+    await nutzer.click(screen.getByRole('button', { name: 'Zeit nachtragen' }));
+    await waitFor(() => expect(formularAufbauten).toBeGreaterThan(vorher));
+  });
+
+  it('meldet einen Schein, für den keine Zeit gebucht ist', async () => {
+    eintraege = [];
+    eigeneScheine = [schein('s1', '2026-08-31')];
+    zeige();
+
+    expect(
+      await screen.findByText(/wartet noch auf deine Zeitbuchung/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Familie Huber/)).toBeInTheDocument();
+    expect(screen.getByText(/03:00 beim Kunden/)).toBeInTheDocument();
+  });
+
+  it('schweigt, sobald die Zeit gebucht ist', async () => {
+    eintraege = [
+      {
+        id: 'e1',
+        companyId: 'perl',
+        userId: 'u1',
+        date: '2026-08-31',
+        status: 'Anwesend',
+        projectNumber: '2026-042',
+        startTime: '07:00',
+        endTime: '16:00',
+        breakDuration: 30,
+      } as TimeEntry & { id: string },
+    ];
+    eigeneScheine = [schein('s1', '2026-08-31')];
+    zeige();
+
+    await screen.findByTestId('zeitformular');
+    expect(screen.queryByText(/wartet noch auf deine Zeitbuchung/)).not.toBeInTheDocument();
+  });
+
+  /*
+    DIE MINUTEN WERDEN NICHT VERGLICHEN. Der Arbeitstag ist regelmässig länger
+    als die Zeit beim Kunden — Anfahrt, andere Baustellen, Rüstzeit. Ein
+    Wächter, der jede Abweichung meldet, schlüge ständig zu Recht an und würde
+    nach einer Woche weggeklickt.
+  */
+  it('meckert nicht, wenn der Eintrag länger ist als der Schein', async () => {
+    eintraege = [
+      {
+        id: 'e1',
+        companyId: 'perl',
+        userId: 'u1',
+        date: '2026-08-31',
+        status: 'Anwesend',
+        projectNumber: '2026-042',
+        startTime: '07:00',
+        endTime: '17:00',
+        breakDuration: 30,
+      } as TimeEntry & { id: string },
+    ];
+    eigeneScheine = [schein('s1', '2026-08-31')];
+    zeige();
+
+    await screen.findByTestId('zeitformular');
+    expect(screen.queryByText(/wartet noch auf deine Zeitbuchung/)).not.toBeInTheDocument();
+  });
+
+  it('übernimmt Datum, Baustelle und Zeitspanne ins Formular', async () => {
+    // Abtippen ist genau die Reibung, an der das Nachtragen scheitert.
+    eintraege = [];
+    eigeneScheine = [schein('s1', '2026-08-31')];
+    const nutzer = userEvent.setup();
+    zeige();
+
+    await nutzer.click(await screen.findByRole('button', { name: 'Zeit nachtragen' }));
+    const formular = await screen.findByTestId('zeitformular');
+    expect(formular.textContent).toContain('"date":"2026-08-31"');
+    expect(formular.textContent).toContain('"projectNumber":"2026-042"');
+    expect(formular.textContent).toContain('"startTime":"08:00"');
+    expect(formular.textContent).toContain('"endTime":"11:00"');
+  });
+
+  it('sagt im „i", was noch zu ergänzen ist', async () => {
+    /*
+      Anfahrt und Fahrzeug (Kennzeichen) kennt der Schein nicht — und genau
+      deshalb wird der Eintrag NICHT automatisch erzeugt. Stünde das nirgends,
+      wäre der Hinweis eine Aufforderung ohne Anleitung.
+    */
+    eintraege = [];
+    eigeneScheine = [schein('s1', '2026-08-31')];
+    const nutzer = userEvent.setup();
+    zeige();
+
+    await nutzer.click(
+      await screen.findByRole('button', { name: /offene Nachtragungen/i }),
+    );
+    /*
+      Der ganze Hinweiskasten, nicht ein einzelner Treffer: „Fahrzeug
+      (Kennzeichen)" steht bewusst zweimal darin — einmal in der Begründung,
+      warum NICHT automatisch gebucht wird, und einmal in der Aufzählung
+      dessen, was zu ergänzen ist.
+    */
+    const kasten = (await screen.findByRole('alert')).textContent ?? '';
+    expect(kasten).toMatch(/Fahrzeug \(Kennzeichen\)/);
+    expect(kasten).toMatch(/Anfahrt/);
+    expect(kasten).toMatch(/§ 26 AZG/);
+  });
+
+  it('führt einen reinen Materialschein nicht als Nachtrag', async () => {
+    // Dafür war niemand stundenlang dort — es gibt nichts nachzutragen.
+    eintraege = [];
+    eigeneScheine = [schein('s1', '2026-08-31', { zeiten: [] })];
+    zeige();
+
+    await screen.findByTestId('zeitformular');
+    expect(screen.queryByText(/wartet noch auf deine Zeitbuchung/)).not.toBeInTheDocument();
+  });
+
+  it('bleibt still, wenn die Scheine nicht geladen werden können', async () => {
+    // Der Hinweis ist eine Zusatzangabe. Gebucht werden muss auch dann.
+    listOwnWorkSheetsSince.mockRejectedValueOnce(new Error('offline'));
+    eintraege = [];
+    eigeneScheine = [schein('s1', '2026-08-31')];
+    zeige();
+
+    await screen.findByTestId('zeitformular');
+    expect(screen.queryByText(/wartet noch auf deine Zeitbuchung/)).not.toBeInTheDocument();
   });
 });

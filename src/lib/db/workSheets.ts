@@ -42,6 +42,41 @@ export function listRecentWorkSheets(companyId: string, max = 100) {
   return queryTenant<WorkSheet>(COLLECTION, companyId, orderBy('createdAt', 'desc'), limit(max));
 }
 
+/**
+ * Die EIGENEN Scheine ab einem Tag — für die offenen Zeit-Nachtragungen.
+ *
+ * ENG GEFASST, UND ZWAR AUS GEWICHT. Ein unterschriebener Schein trägt zwei
+ * Unterschriftsbilder als PNG im Dokument; nachgemessen sind das rund 70 KB
+ * je Schein. Die Liste aller Betriebsscheine zu holen, um die eigenen
+ * herauszufiltern, wären auf dem Telefon eines Monteurs schnell mehrere
+ * Megabyte — für eine Handvoll Zeilen.
+ *
+ * Deshalb: nur die eigenen (`erstelltVonUid`), nur ab einem Stichtag, mit
+ * Obergrenze. Ein Monteur schreibt höchstens ein oder zwei Scheine am Tag;
+ * zwanzig decken zwei Wochen mit Reserve ab.
+ *
+ * WARUM NUR DIE EIGENEN: Der Nachtrag betrifft die Zeit, die dieser Monteur
+ * selbst buchen darf und muss. Die Zeiteinträge seiner Kollegen darf er
+ * weder lesen noch schreiben — das verbieten die Rules, weil dort Kranken-
+ * und Urlaubstage stehen (Art. 9 DSGVO). Händisch eingetragene Kollegenzeiten
+ * sieht deshalb das Büro, nicht er.
+ */
+export function listOwnWorkSheetsSince(
+  companyId: string,
+  uid: string,
+  abDatum: string,
+  max = 20,
+) {
+  return queryTenant<WorkSheet>(
+    COLLECTION,
+    companyId,
+    where('erstelltVonUid', '==', uid),
+    where('datum', '>=', abDatum),
+    orderBy('datum', 'desc'),
+    limit(max),
+  );
+}
+
 /** Die Scheine EINER Baustelle. */
 export function listWorkSheetsForProject(companyId: string, projectNumber: string, max = 100) {
   return queryTenant<WorkSheet>(

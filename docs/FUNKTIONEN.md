@@ -30,7 +30,7 @@ unterscheidet drei Stufen:
 | **Meine Baustellen** | Die Baustellen, denen der Monteur zugeordnet ist, mit Route und Telefonnummer | Mitarbeiter | `projects` | Ansicht (7) | Abgeschlossene fallen heraus, pausierte bleiben; ein fehlender Ansprechpartner wird angemahnt statt verschwiegen |
 | **Material anfordern** | Warenkorb, Eilzustellung, eigene Anforderungen | Mitarbeiter, Verwaltung, Leitung | `materials`, `materialOrders` | Rechnung (25, Meldungen), Ansicht (21), **Durchstich (7, echte Transaktion)** | Der Lagerabzug läuft jetzt gegen einen echten Firestore — auch **zwei gleichzeitige** Abschlüsse derselben Anforderung, der Fall, den kein Ersatz-Firestore prüfen kann |
 | **Urlaub** | Beantragen, entscheiden, Stand sehen. Genehmigung schreibt die Tage ins Zeitkonto. | alle (Antrag); Entscheider laut Einstellung | `vacations`, `timeEntries`, `companies` | Emulator (18), Rechnung (15), Ansicht (15), Function (28), Durchstich (3) | Die Tage der ECHTEN Function laufen durch die ECHTE Saldorechnung — die Naht ist geprüft, nicht nur die beiden Hälften |
-| **Handwerksscheine** | Zeiten vorausfüllen, Material von Hand erfassen, **Fotos (freiwillig)**, als Entwurf sichern und wieder öffnen, Entwurf verwerfen und zurückholen, unterschreiben, einfrieren, Storno mit Grund, PDF | Mitarbeiter, Büro, Leitung | `workSheets`, `timeEntries` (serverseitig), **Storage** | Emulator (Regeln + 3 Durchstiche + 12 Zustandsübergänge), Rechnung (20), Ansicht (31), Liste (18), PDF-Zustand (3), Nutzlast (3) | ein verworfener Entwurf bleibt in der Datenbank — gelöscht wird kein Schein (`allow delete: if false`), das schützt den unterschriebenen Beleg. **Fotos sind nie Voraussetzung:** Firestore hält einen Schreibvorgang offline vor, Storage nicht — wäre eines Bedingung, hinge der Beleg an einem Balken Empfang. Sie gehen über ihren **Inhalts-Hash** in die Prüfsumme ein; ein später im Storage ausgetauschtes Bild fällt damit auf |
+| **Handwerksscheine** | Zeiten vorausfüllen **oder vor Ort selbst eintragen**, Material von Hand erfassen, **Fotos (freiwillig)**, als Entwurf sichern und wieder öffnen, Entwurf verwerfen und zurückholen, unterschreiben, einfrieren, Storno mit Grund, PDF | Mitarbeiter, Büro, Leitung | `workSheets`, `timeEntries` (serverseitig), **Storage** | Emulator (Regeln + 3 Durchstiche + 12 Zustandsübergänge), Rechnung (20), Ansicht (31), Liste (18), PDF-Zustand (3), Nutzlast (3) | ein verworfener Entwurf bleibt in der Datenbank — gelöscht wird kein Schein (`allow delete: if false`), das schützt den unterschriebenen Beleg. **Leistungszeit vor Ort:** Der Monteur trägt Von/Bis/Pause selbst ein, wenn er noch nichts gebucht hat — das ist die Zeit BEIM KUNDEN, ohne Anfahrt, also genau die Zahl, die später auf der Rechnung steht. Danach erscheint der Einsatz in der Zeiterfassung als **offener Nachtrag**, weil die Rechnung ihre Stunden aus den Zeiteinträgen rechnet und eine nie gebuchte Stunde nie verrechnet wird. Gebucht wird **nicht automatisch**: der Schein kennt weder Anfahrt noch Fahrzeug (Kennzeichen) noch Zuschläge, und ein zu niedriger Eintrag, der vollständig aussieht, wäre schlimmer als ein Hinweis. **Fotos sind nie Voraussetzung:** Firestore hält einen Schreibvorgang offline vor, Storage nicht — wäre eines Bedingung, hinge der Beleg an einem Balken Empfang. Sie gehen über ihren **Inhalts-Hash** in die Prüfsumme ein; ein später im Storage ausgetauschtes Bild fällt damit auf |
 
 ## Verwaltung
 
@@ -83,16 +83,16 @@ unterscheidet drei Stufen:
 
 ## Die ehrliche Bilanz zur Prüftiefe
 
-1547 automatische Tests klingen nach viel. Aufgeschlüsselt:
+1581 automatische Tests klingen nach viel. Aufgeschlüsselt:
 
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | **Cloud Functions mit ersetztem Firestore** | **109** | **Hoch für die Entscheidungen — der ECHTE Handler läuft, nur die Aussenwelt ist nachgebaut** |
 | **Statischer Abgleich** (Indizes **inkl. Cloud Functions**, Navigation ↔ Routen, Exportumfang, Pflichtfelder, Abfragegrenzen) | **123** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | **Service Worker in einer Sandbox** | **20** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
-| Reine Rechnung (der Rest von `tests/unit`) | 592 | Hoch für die Formeln, **null** für die App |
-| Ansichten, Datenbank ersetzt | 493 | Findet Bedienfehler, **keine** Datenfehler |
-| *Zusammen `npm test`* | *1337* | |
+| Reine Rechnung (der Rest von `tests/unit`) | 608 | Hoch für die Formeln, **null** für die App |
+| Ansichten, Datenbank ersetzt | 511 | Findet Bedienfehler, **keine** Datenfehler |
+| *Zusammen `npm test`* | *1371* | |
 | Regeltests gegen den Emulator (`npm run rules:test`) | 210 | Hoch — echtes Verhalten (inkl. Abfrage-Smoketest und Durchstich) |
 
 > Die Tabelle ADDIERT SICH, und das ist Absicht: eine Aufschlüsselung, in der

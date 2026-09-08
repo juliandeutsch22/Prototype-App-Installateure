@@ -19,7 +19,13 @@ import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
 import { shouldShowOvertime } from '@/lib/permissions';
 import { bilanzMarker, listBilanzen, monatVon, type Monatsbilanz } from '@/lib/db/monatsbilanzen';
 import type { WithId } from '@/lib/db/core';
-import type { TimeEntry, AppUser } from '@/types';
+import type { TimeEntry, AppUser, WorkSheet } from '@/types';
+import { listOwnWorkSheetsSince } from '@/lib/db/workSheets';
+import {
+  offeneNachtraege,
+  NACHTRAG_TAGE,
+} from '@/features/worksheets/zeitNachtrag';
+import InfoHint from '@/components/InfoHint';
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
 import Badge from '@/components/Badge';
@@ -50,6 +56,21 @@ export default function TimeView() {
   const toast = useToast();
   /** Die angezeigte Liste — nur das Fenster, nicht die ganze Geschichte. */
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
+  /*
+    Die eigenen unterschriebenen Scheine der letzten zwei Wochen — für die
+    Frage, wozu noch kein Zeiteintrag existiert. Eng gefasst geholt, weil
+    jeder Schein die beiden Unterschriftsbilder mitträgt und damit rund
+    70 KB wiegt.
+  */
+  const [eigeneScheine, setEigeneScheine] = useState<WithId<WorkSheet>[]>([]);
+  /** Was aus einem offenen Nachtrag ins Formular übernommen wurde. */
+  const [vorbelegung, setVorbelegung] = useState<{
+    date: string;
+    projectNumber: string;
+    startTime?: string;
+    endTime?: string;
+    breakDuration?: number;
+  } | null>(null);
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -169,6 +190,29 @@ export default function TimeView() {
     [entries],
   );
 
+  /**
+   * Die eigenen Scheine der letzten zwei Wochen holen.
+   *
+   * STILL BEI EINEM FEHLER, und das ist Absicht: der Nachtrag-Hinweis ist
+   * eine ZUSATZangabe. Fiele die ganze Zeiterfassung aus, weil diese Abfrage
+   * nicht durchkommt, wäre das Verhältnis zwischen Nutzen und Schaden verkehrt
+   * herum — gebucht werden muss auch dann.
+   */
+  useEffect(() => {
+    if (!user) return;
+    let verworfen = false;
+    const ab = new Date();
+    ab.setDate(ab.getDate() - NACHTRAG_TAGE);
+    listOwnWorkSheetsSince(user.companyId, user.uid, localDateStr(ab))
+      .then((rows) => {
+        if (!verworfen) setEigeneScheine(rows);
+      })
+      .catch(() => undefined);
+    return () => {
+      verworfen = true;
+    };
+  }, [user]);
+
   useEffect(() => {
     if (!user || !profile?.appStartDate) return;
     let verworfen = false;
@@ -284,6 +328,19 @@ export default function TimeView() {
       .reduce((sum, e) => sum + calcWorkMin(e), 0);
   }, [entries]);
 
+  /**
+   * Unterschriebene Scheine, zu denen noch kein Zeiteintrag existiert.
+   *
+   * Abgeleitet, nicht gespeichert: der Hinweis verschwindet von selbst,
+   * sobald gebucht ist. Ein Feld „noch nachzutragen" müsste jemand setzen
+   * und wieder löschen — und stünde eines Tages für etwas, das längst
+   * erledigt ist.
+   */
+  const nachtraege = useMemo(
+    () => offeneNachtraege(eigeneScheine, entries, todayStr()),
+    [eigeneScheine, entries],
+  );
+
   if (!user) return null;
 
   return (
@@ -298,6 +355,92 @@ export default function TimeView() {
         wandert von dort auf den Lohnzettel. Ein Abzeichen unten in der Liste
         findet nur, wer ohnehin schon sucht.
       */}
+      {/*
+        OFFENE NACHTRAGUNGEN — unterschriebene Scheine ohne Zeiteintrag.
+
+        Sie stehen GANZ OBEN, noch vor dem Saldo, weil hier zweierlei fehlt:
+        Geld und eine gesetzlich vorgeschriebene Aufzeichnung. Die Rechnung
+        rechnet ihre Stunden aus den Zeiteinträgen, nicht vom Schein — eine
+        nie gebuchte Stunde wird nie verrechnet.
+      */}
+      {nachtraege.length > 0 && (
+        <div
+          className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning"
+          role="alert"
+        >
+          <p className="flex flex-wrap items-center gap-1">
+            <strong>
+              {nachtraege.length === 1
+                ? 'Ein unterschriebener Schein wartet noch auf deine Zeitbuchung.'
+                : `${nachtraege.length} unterschriebene Scheine warten noch auf deine Zeitbuchung.`}
+            </strong>
+            <InfoHint about="offene Nachtragungen">
+              <strong>Warum das hier steht.</strong> Du hast beim Kunden einen Schein
+              ausgestellt und die Zeit dort eingetragen — der Kunde hat sie unterschrieben. In
+              deinem Zeitkonto ist sie damit aber noch nicht. Die Rechnung an den Kunden rechnet
+              ihre Stunden aus der ZEITERFASSUNG, nicht vom Schein; der Schein liefert nur das
+              Material.
+              <br />
+              <br />
+              <strong>Vergessen kostet doppelt.</strong> Die Stunde wird nie verrechnet — nicht
+              „später korrigiert", sondern nie —, und in deinem Zeitkonto fehlt sie ebenfalls.
+              Der Betrieb muss die Arbeitszeit ausserdem aufzeichnen (§ 26 AZG); ein Schein
+              erfüllt das nicht.
+              <br />
+              <br />
+              <strong>Warum nicht automatisch gebucht wird.</strong> Der Schein kennt nur die
+              Zeit beim Kunden. Er kennt weder deine <strong>Anfahrt</strong> noch das{' '}
+              <strong>Fahrzeug (Kennzeichen)</strong>, weder Nacht- oder Notdienstzuschlag noch
+              den Rest deines Arbeitstags. Ein automatisch erzeugter Eintrag wäre zu niedrig und
+              sähe trotzdem vollständig aus — und niemand sähe je wieder hin.
+              <br />
+              <br />
+              <strong>Was der Knopf tut.</strong> Er öffnet das Formular mit Datum, Baustelle,
+              Von, Bis und Pause vom Schein. Ergänzen musst du{' '}
+              <strong>Anfahrt, Fahrzeug (Kennzeichen)</strong> und die Haken für Nacht,
+              Notdienst und Helfer — alles unter „Erweiterte Erfassung".
+              <br />
+              <br />
+              <strong>Der Hinweis verschwindet von selbst</strong>, sobald für diesen Tag und
+              diese Baustelle ein Eintrag steht. Die Minuten werden nicht verglichen: dein
+              Arbeitstag ist regelmässig länger als die Zeit beim Kunden, und das ist richtig
+              so. Erinnert wird {NACHTRAG_TAGE} Tage lang — was älter ist, klärt das Büro.
+            </InfoHint>
+          </p>
+          <ul className="mt-2 space-y-2">
+            {nachtraege.map((n) => (
+              <li key={n.schein.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-ink">
+                  {n.schein.datum} · {n.schein.customerName} · Baustelle{' '}
+                  {n.schein.projectNumber} · {fmtMin(n.minuten)} beim Kunden
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    /*
+                      Ein laufendes Bearbeiten wird beendet: sonst stünde die
+                      Vorbelegung im Formular für einen ANDEREN Eintrag, und
+                      der Monteur überschriebe versehentlich eine fremde
+                      Buchung mit den Zeiten dieses Scheins.
+                    */
+                    setEditing(null);
+                    setVorbelegung({
+                      date: n.schein.datum,
+                      projectNumber: n.schein.projectNumber,
+                      startTime: n.von,
+                      endTime: n.bis,
+                      breakDuration: n.pauseMin,
+                    });
+                  }}
+                >
+                  Zeit nachtragen
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {doppelteTage.size > 0 && (
         <p
           className="rounded border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger"
@@ -359,11 +502,30 @@ export default function TimeView() {
 
       <Card title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'}>
         <TimeForm
-          key={editing?.id ?? 'new'}
+          /*
+            Der Schlüssel trägt die Vorbelegung mit: die Felder werden mit
+            `useState` INITIALISIERT, und ein React-Zustand ändert sich nicht,
+            weil eine Eigenschaft sich ändert. Ohne den neuen Schlüssel bliebe
+            das Formular auf dem alten Stand stehen, und der Klick auf
+            „Zeit nachtragen" täte sichtbar nichts.
+          */
+          key={editing?.id ?? (vorbelegung ? `nachtrag-${vorbelegung.date}-${vorbelegung.projectNumber}` : 'new')}
           entry={editing ?? undefined}
           lastEntry={lastEntry}
-          onSaved={() => setEditing(null)}
-          onCancel={editing ? () => setEditing(null) : undefined}
+          vorbelegung={editing ? null : vorbelegung}
+          onSaved={() => {
+            setEditing(null);
+            // Die Vorbelegung ist verbraucht. Bliebe sie stehen, käme sie
+            // beim nächsten Eintrag unbemerkt wieder hoch.
+            setVorbelegung(null);
+          }}
+          onCancel={
+            editing
+              ? () => setEditing(null)
+              : vorbelegung
+                ? () => setVorbelegung(null)
+                : undefined
+          }
         />
       </Card>
 

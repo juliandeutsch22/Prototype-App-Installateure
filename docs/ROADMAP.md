@@ -1116,6 +1116,83 @@ Geprüft: neun Tests plus der Durchlauf im Browser — der Zustand ohne
 Kostensätze, das Setzen (Deckungsbeitrag 23,00 € je Stunde bei 65 gegen 42),
 und alle drei Erlösquellen nebeneinander.
 
+## Erledigt: Leistungszeit am Schein, Nachtrag in der Zeiterfassung (08.09.2026)
+
+Aus dem Betrieb: der Monteur stellt den Schein beim Kunden aus, oft bevor er
+die Zeit gebucht hat — bei einer Reparatur zwischendurch hat er vorher gar
+nichts erfasst.
+
+**Er konnte auf dem Schein auch nichts eintragen.** Die Zeilen kamen
+ausschliesslich aus der Zeiterfassung; war dort nichts gebucht, stand auf dem
+Beleg „Für diesen Tag ist auf dieser Baustelle keine Zeit gebucht" — und der
+Kunde unterschrieb einen Zettel, der nur Material dokumentierte.
+
+### Das war nicht nur unschön, es kostete Geld
+
+**Die Rechnung rechnet ihre Stunden aus den ZEITEINTRÄGEN, nicht vom Schein.**
+Der Schein liefert nur das Material. Eine Stunde, die nie gebucht wird, wird
+also nie verrechnet — nicht „später korrigiert", sondern nie. Und es fehlt
+zugleich die Arbeitszeitaufzeichnung, die der Betrieb nach § 26 AZG führen
+muss.
+
+### Ein glücklicher Umstand hat den Zuschnitt vereinfacht
+
+`calcWorkMin` lässt die Wegzeit ausdrücklich draussen — `travelTime` zählt
+nicht zur Arbeitszeit. Die „Zeit beim Kunden ohne Anfahrt" ist damit **genau
+dieselbe Größe**, die die Rechnung später abrechnet. Schein und Rechnung sagen
+dasselbe; die Diskrepanz, vor der sonst zu warnen gewesen wäre, gibt es nicht.
+
+### Der Nachtrag ist abgeleitet, nicht gespeichert
+
+In der Zeiterfassung steht ganz oben, welche unterschriebenen Scheine noch
+ohne Zeiteintrag sind, mit einem Griff ins Formular — Datum, Baustelle, Von,
+Bis und Pause vorbelegt. Es gibt **kein Feld „noch nachzutragen"**, das jemand
+setzen und wieder löschen müsste: der Hinweis ergibt sich aus dem Vergleich
+und verschwindet von selbst.
+
+**Gebucht wird nicht automatisch**, und das ist die wichtigste Entscheidung
+hier. Der Schein kennt die Zeit beim Kunden. Er kennt nicht die Anfahrt, nicht
+das Fahrzeug (Kennzeichen), nicht die Zuschläge und nicht den Rest des
+Arbeitstags. Ein automatisch erzeugter Eintrag wäre eine zu niedrige
+Arbeitszeitaufzeichnung, die vollständig aussieht — und niemand sähe je wieder
+hin.
+
+**Die Minuten werden nicht verglichen.** Der Arbeitstag ist regelmässig länger
+als die Zeit beim Kunden; ein Wächter, der jede Abweichung meldet, schlüge
+ständig zu Recht an und würde nach einer Woche weggeklickt. Verglichen wird
+nur, OB für Tag und Baustelle etwas gebucht ist.
+
+**Vierzehn Tage lang.** Länger würde zur Dauerliste — wer den Tag auf eine
+andere Baustelle gebucht hat, behielte den Hinweis für immer. Den langen
+Schwanz fängt das Büro über „nicht verrechnete Leistung".
+
+### Was der Test gefunden hat, und es war kein Testfehler
+
+Meine erste Fassung wies „Bis vor Von" als Vertipper zurück. Das wäre falsch
+gewesen: `calcWorkMin` behandelt eine Endzeit vor der Startzeit als Einsatz
+**über Mitternacht** — Bereitschaft und Notdienst gibt es in diesem Gewerbe,
+und 22:00–06:00 muss acht Stunden ergeben, nicht null. Die Sperre hätte die
+Notdienstnacht unbezahlt gelassen.
+
+Der Preis der richtigen Formel: aus dem Vertipper „11:00 bis 08:00" werden
+stillschweigend einundzwanzig Stunden, auf einem Zettel, den der Kunde gleich
+unterschreibt. Deshalb wird ab vierzehn Stunden **nachgefragt statt gesperrt**
+— eine durchgemachte Nacht gibt es wirklich, aber sie gehört bestätigt.
+
+### Offen bleibt: die Kollegen
+
+Der Schein gilt für die ganze Mannschaft, aber ein Monteur darf die
+Zeiteinträge seiner Kollegen weder lesen noch schreiben — dort stehen Kranken-
+und Urlaubstage (Art. 9 DSGVO). Der Hinweis betrifft deshalb nur seine EIGENE
+Zeit. Für händisch eingetragene Kollegenzeiten braucht das Büro eine eigene
+Liste; die ist noch nicht gebaut, und das steht hier, statt so zu tun, als
+wäre es abgedeckt.
+
+Geprüft: 14 Rechen-Tests, 19 in der Zeiterfassung, 7 am Schein, 3 am
+Formular — und 15 absichtlich kaputte Fassungen, die alle aufgefallen sind.
+Zwei davon erst im zweiten Anlauf: was die Vorbelegung im echten Formular
+bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
+
 ## Erledigt: Was nach Jahren passiert (08.09.2026)
 
 Aus dem Betrieb kam die Frage, ob die App mit den Jahren langsamer wird und ob

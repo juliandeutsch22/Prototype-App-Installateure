@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
-import type { Assignment, Material, Project, WorkSheet } from '@/types';
+import type { Assignment, Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import { todayStr } from '@/lib/time';
 import type { NewWorkSheet } from '@/lib/db/workSheets';
 
@@ -133,7 +133,9 @@ vi.mock('@/components/SignaturePad', () => ({
   }),
 }));
 
-const callScheinVorbereiten = vi.fn(async () => ({ data: { zeiten: [] } }));
+const callScheinVorbereiten = vi.fn<[], Promise<{ data: { zeiten: WorkSheetZeit[] } }>>(
+  async () => ({ data: { zeiten: [] } }),
+);
 vi.mock('@/lib/functions', () => ({
   callScheinVorbereiten: () => callScheinVorbereiten(),
 }));
@@ -784,5 +786,161 @@ describe('Fotos', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
 
     await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
+  });
+});
+
+/**
+ * Leistungszeit vor Ort erfassen.
+ *
+ * Der Monteur stellt den Schein beim Kunden aus, oft bevor er die Zeit
+ * gebucht hat. Bis zum 08.09.2026 konnte er auf dem Schein nichts eintragen:
+ * die Zeilen kamen ausschliesslich aus der Zeiterfassung, und war dort nichts
+ * gebucht, unterschrieb der Kunde einen Zettel, der nur Material
+ * dokumentierte.
+ */
+describe('Zeit beim Kunden eintragen', () => {
+  async function zeileEintragen(
+    nutzer: ReturnType<typeof userEvent.setup>,
+    von = '08:00',
+    bis = '11:00',
+  ) {
+    await screen.findByText(/Zeit beim Kunden eintragen/);
+    await nutzer.clear(screen.getByLabelText('Von'));
+    await nutzer.type(screen.getByLabelText('Von'), von);
+    await nutzer.clear(screen.getByLabelText('Bis'));
+    await nutzer.type(screen.getByLabelText('Bis'), bis);
+    await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
+  }
+
+  it('rechnet die Minuten mit derselben Formel wie die Zeiterfassung', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await zeileEintragen(nutzer);
+
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    const zeilen = createWorkSheet.mock.calls[0][1].zeiten;
+    expect(zeilen).toHaveLength(1);
+    expect(zeilen[0].minuten).toBe(180);
+    expect(zeilen[0].mitarbeiter).toBe('Max Mustermann');
+  });
+
+  it('zieht die Pause ab', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Zeit beim Kunden eintragen/);
+    await nutzer.clear(screen.getByLabelText('Von'));
+    await nutzer.type(screen.getByLabelText('Von'), '08:00');
+    await nutzer.type(screen.getByLabelText('Bis'), '12:00');
+    await nutzer.type(screen.getByLabelText(/Pause/), '30');
+    await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
+
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    expect(createWorkSheet.mock.calls[0][1].zeiten[0].minuten).toBe(210);
+  });
+
+  /*
+    „BIS" VOR „VON" IST HIER KEIN FEHLER, SONDERN EINE NACHT.
+
+    `calcWorkMin` behandelt eine Endzeit vor der Startzeit als Einsatz über
+    Mitternacht — Bereitschaft und Notdienst gibt es in diesem Gewerbe, und
+    22:00–06:00 muss acht Stunden ergeben, nicht null. Das ist beim Schreiben
+    dieses Tests aufgefallen: meine erste Fassung hielt es für einen
+    Vertipper und hätte die Notdienstnacht unbezahlt gelassen.
+
+    Der Preis der richtigen Formel: aus dem Vertipper „11:00 bis 08:00"
+    werden stillschweigend einundzwanzig Stunden — auf einem Zettel, den der
+    Kunde gleich unterschreibt. Deshalb wird nachgefragt statt gesperrt.
+  */
+  it('rechnet eine Nachtschicht richtig und fragt bei langer Spanne nach', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Zeit beim Kunden eintragen/);
+    await nutzer.clear(screen.getByLabelText('Von'));
+    await nutzer.type(screen.getByLabelText('Von'), '11:00');
+    await nutzer.type(screen.getByLabelText('Bis'), '08:00');
+
+    /*
+      Die Nachfrage steht WÄHREND des Tippens da, nicht erst nach dem
+      Hinzufügen — nachher ist die Zeile schon auf dem Beleg, und genau davor
+      soll sie warnen.
+    */
+    expect(await screen.findByText(/über Mitternacht gerechnet/)).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    // 21 Stunden — die Zeile geht durch, aber der Monteur hat es gelesen.
+    expect(createWorkSheet.mock.calls[0][1].zeiten[0].minuten).toBe(21 * 60);
+  });
+
+  it('weist eine Spanne zurück, die gar keine Zeit ergibt', async () => {
+    // Pause so lang wie der Einsatz: null Minuten auf einem Beleg wäre eine
+    // Zeile, die nichts aussagt.
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Zeit beim Kunden eintragen/);
+    await nutzer.clear(screen.getByLabelText('Von'));
+    await nutzer.type(screen.getByLabelText('Von'), '08:00');
+    await nutzer.type(screen.getByLabelText('Bis'), '10:00');
+    await nutzer.type(screen.getByLabelText(/Pause/), '120');
+    await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
+
+    expect(await screen.findByText(/ergibt keine Zeit/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    expect(createWorkSheet.mock.calls[0][1].zeiten).toEqual([]);
+  });
+
+  it('nimmt eine getippte Zeile wieder weg', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await zeileEintragen(nutzer);
+    await screen.findByRole('button', { name: /Zeile Max Mustermann entfernen/ });
+
+    await nutzer.click(screen.getByRole('button', { name: /Zeile Max Mustermann entfernen/ }));
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    expect(createWorkSheet.mock.calls[0][1].zeiten).toEqual([]);
+  });
+
+  /*
+    DER GEFÄHRLICHSTE FALL. Die Vorausfüllung hat eine Frist von zwölf
+    Sekunden; im Keller mit einem Balken LTE tippt der Monteur in dieser Zeit
+    längst. Käme die Antwort danach und ersetzte die Liste, wäre seine Eingabe
+    weg — kommentarlos, während der Kunde danebensteht.
+  */
+  it('behält die getippte Zeile, wenn die Vorausfüllung scheitert', async () => {
+    callScheinVorbereiten.mockRejectedValue(new Error('deadline-exceeded'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await zeileEintragen(nutzer);
+
+    await nutzer.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    expect(createWorkSheet.mock.calls[0][1].zeiten).toHaveLength(1);
+  });
+
+  it('behält sie auch, wenn die Vorausfüllung danach doch noch antwortet', async () => {
+    /*
+      Der Ablauf, wie er im Keller wirklich aussieht: die Vorausfüllung läuft
+      in die Frist, der Monteur tippt in der Wartezeit, dann versucht er es
+      erneut — und diesmal kommen die gebuchten Zeiten. Sie gehören dazu, aber
+      nicht ANSTELLE seiner Eingabe.
+    */
+    callScheinVorbereiten.mockRejectedValueOnce(new Error('deadline-exceeded'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('button', { name: 'Erneut versuchen' });
+    await zeileEintragen(nutzer);
+
+    callScheinVorbereiten.mockResolvedValue({
+      data: {
+        zeiten: [
+          { datum: '2026-09-04', mitarbeiter: 'Kollege', von: '07:00', bis: '09:00', minuten: 120 },
+        ],
+      },
+    });
+    await nutzer.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
+
+    await nutzer.click(await screen.findByRole('button', { name: 'Als Entwurf speichern' }));
+    const zeilen = createWorkSheet.mock.calls[0][1].zeiten;
+    expect(zeilen.map((z) => z.mitarbeiter)).toEqual(['Kollege', 'Max Mustermann']);
   });
 });

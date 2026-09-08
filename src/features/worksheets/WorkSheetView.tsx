@@ -28,6 +28,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, LoadingState } from '@/components/States';
 import MaterialErfassen from './MaterialErfassen';
 import { neueKennung, ohneKennung, type MaterialZeile } from './materialZeilen';
+import LeistungszeitErfassen, { ZeileEntfernen } from './LeistungszeitErfassen';
 import { komprimiere, fotoHochladen, fotoEntfernen } from '@/lib/db/scheinFotos';
 import {
   darfFotografieren,
@@ -110,6 +111,22 @@ export default function WorkSheetView() {
   /** Die Fotos im Formular — hochgeladen oder noch nicht. Immer freiwillig. */
   const [fotos, setFotos] = useState<FotoEntwurf[]>([]);
   const [fotoLaeuft, setFotoLaeuft] = useState(false);
+  /*
+    WELCHE ZEILEN VOR ORT ENTSTANDEN SIND — nach Position in `zeiten`.
+
+    Nur sie lassen sich wieder wegnehmen. Eine Zeile aus der Zeiterfassung
+    steht für eine gebuchte Zeit; sie hier zu entfernen änderte den Beleg,
+    nicht die Buchung, und die beiden liefen auseinander, ohne dass es jemand
+    sähe. Der Zustand lebt nur im Formular — im Schein steht am Ende einfach
+    eine Liste von Zeilen, und woher sie kam, ist für den Kunden ohne Belang.
+  */
+  const [selbstErfasst, setSelbstErfasst] = useState<Set<number>>(new Set());
+  /*
+    Dieselbe Menge als Ref. Der Vorausfüll-Effekt braucht sie beim Eintreffen
+    der Antwort, darf aber nicht an ihr HÄNGEN — sonst liefe er bei jeder
+    getippten Zeile neu und holte die Cloud Function ein zweites Mal.
+  */
+  const selbstErfasstRef = useRef<Set<number>>(new Set());
   /** Hat der Monteur die Warnung „Fotos fehlen" schon gesehen? */
   const [ohneFotosBestaetigt, setOhneFotosBestaetigt] = useState(false);
   const [laden, setLaden] = useState(false);
@@ -349,7 +366,26 @@ export default function WorkSheetView() {
     mitFrist(callScheinVorbereiten({ projectNumber, datum }))
       .then(({ data }) => {
         if (verworfen) return;
-        setZeiten(data.zeiten);
+        /*
+          DIE VOR ORT GETIPPTEN ZEILEN ÜBERLEBEN DIE VORAUSFÜLLUNG.
+
+          Die Frist läuft zwölf Sekunden, und im Keller mit einem Balken LTE
+          tippt der Monteur in dieser Zeit längst. Käme die Antwort danach und
+          ersetzte die Liste, wäre seine Eingabe weg — kommentarlos, während
+          der Kunde danebensteht. Dasselbe beim „Erneut versuchen": es soll
+          die gebuchten Zeiten nachholen, nicht seine Arbeit löschen.
+
+          Die gebuchten Zeilen kommen nach vorne, die eigenen dahinter; die
+          Merkliste wird entsprechend verschoben.
+        */
+        setZeiten((bisher) => {
+          const eigene = bisher.filter((_, i) => selbstErfasstRef.current.has(i));
+          selbstErfasstRef.current = new Set(
+            eigene.map((_, i) => data.zeiten.length + i),
+          );
+          setSelbstErfasst(selbstErfasstRef.current);
+          return [...data.zeiten, ...eigene];
+        });
       })
       .catch(() => {
         if (verworfen) return;
@@ -361,7 +397,20 @@ export default function WorkSheetView() {
           vollstaendigen Schein einen leeren zu machen — und zwar in dem
           Moment, in dem der Kunde danebensteht und unterschreiben will.
         */
-        setZeiten(entwurfZeiten.current ?? []);
+        /*
+          Auch hier bleiben die selbst getippten Zeilen stehen — aus demselben
+          Grund wie oben, nur ist der Fall der wahrscheinlichere: die
+          Vorausfüllung ist gescheitert, der Monteur hat in der Wartezeit
+          eingetragen, und genau jetzt seine Eingabe zu verwerfen wäre die
+          schlechteste aller Antworten.
+        */
+        setZeiten((bisher) => {
+          const eigene = bisher.filter((_, i) => selbstErfasstRef.current.has(i));
+          const gebucht = entwurfZeiten.current ?? [];
+          selbstErfasstRef.current = new Set(eigene.map((_, i) => gebucht.length + i));
+          setSelbstErfasst(selbstErfasstRef.current);
+          return [...gebucht, ...eigene];
+        });
         /*
           DAS EINGETRAGENE MATERIAL BLEIBT STEHEN.
 
@@ -499,6 +548,24 @@ export default function WorkSheetView() {
     setFotos((f) => f.filter((x) => x !== eintrag));
     URL.revokeObjectURL(eintrag.vorschau);
     if (eintrag.oben) await fotoEntfernen(eintrag.oben.pfad).catch(() => undefined);
+  }
+
+  /** Eine vor Ort erfasste Zeile wieder wegnehmen. */
+  function zeileWegnehmen(index: number) {
+    setZeiten((z) => z.filter((_, i) => i !== index));
+    /*
+      Die Merkliste rutscht mit: alles hinter der entfernten Zeile verschiebt
+      sich um eins nach vorne. Ohne dieses Nachziehen zeigte das Kreuz nach
+      dem ersten Löschen auf die falsche Zeile — und der Monteur nähme eine
+      gebuchte Zeit vom Beleg statt seiner eigenen.
+    */
+    const nachgezogen = new Set<number>();
+    for (const i of selbstErfasstRef.current) {
+      if (i < index) nachgezogen.add(i);
+      else if (i > index) nachgezogen.add(i - 1);
+    }
+    selbstErfasstRef.current = nachgezogen;
+    setSelbstErfasst(nachgezogen);
   }
 
   async function unterschreibenUndEinfrieren() {
@@ -781,8 +848,9 @@ export default function WorkSheetView() {
               </div>
             ) : zeiten.length === 0 ? (
               <EmptyState>
-                Für diesen Tag ist auf dieser Baustelle keine Zeit gebucht. Ein Schein ohne
-                Stunden ergibt nur Sinn, wenn ausschließlich Material geliefert wurde.
+                Für diesen Tag ist auf dieser Baustelle noch keine Zeit gebucht. Trag sie unten
+                ein — oder lass den Schein ohne Stunden, wenn ausschließlich Material geliefert
+                wurde.
               </EmptyState>
             ) : (
               <ul className="divide-y divide-line">
@@ -800,10 +868,41 @@ export default function WorkSheetView() {
                       {z.helfer && <Badge tone="warning">Helfer</Badge>}
                       <span className="tnum font-medium text-ink">{fmtMin(z.minuten)}</span>
                     </span>
+                    {/*
+                      WEGNEHMEN NUR, WAS HIER EINGETRAGEN WURDE. Zeilen aus
+                      der Zeiterfassung stehen für gebuchte Zeit; sie hier zu
+                      entfernen änderte den Beleg, nicht die Buchung — und die
+                      beiden liefen auseinander, ohne dass es jemand sähe.
+                    */}
+                    {selbstErfasst.has(i) && (
+                      <ZeileEntfernen
+                        name={z.mitarbeiter}
+                        onWeg={() => zeileWegnehmen(i)}
+                      />
+                    )}
                   </li>
                 ))}
               </ul>
             )}
+
+            {/*
+              DIE EIGENE ERFASSUNG STEHT IMMER DA, auch wenn schon Zeilen aus
+              der Zeiterfassung gekommen sind: der Monteur war vielleicht
+              länger dort, als er gebucht hat, oder ein Kollege ist
+              dazugestossen.
+            */}
+            <div className="mt-4">
+              <LeistungszeitErfassen
+                eigenerName={user?.name ?? ''}
+                onHinzufuegen={(zeile) =>
+                  setZeiten((z) => {
+                    selbstErfasstRef.current = new Set(selbstErfasstRef.current).add(z.length);
+                    setSelbstErfasst(selbstErfasstRef.current);
+                    return [...z, { ...zeile, datum }];
+                  })
+                }
+              />
+            </div>
           </Card>
 
           {/*
