@@ -972,3 +972,170 @@ describe('Durchstich 6: Anforderung → Lager', () => {
     expect(await bestand()).toBe(12);
   });
 });
+
+/**
+ * Durchstich 7: der Storno geht ganz durch oder gar nicht.
+ *
+ * WAS HIER SCHIEFGEHEN KANN, und es ging lange nicht auf. Storno und
+ * Storno-Aufhebung schrieben erst die Rechnung und danach die Belege — zwei
+ * getrennte Vorgänge. Bricht es dazwischen ab, bleibt ein Zustand stehen, den
+ * niemand sieht und den nichts wieder einrenkt:
+ *
+ *   Storno halb durch    → Rechnung storniert, Stunden weiter gesperrt. Sie
+ *                          stehen auf keiner gültigen Rechnung und lassen
+ *                          sich auf keine neue nehmen. Geld, das nie wieder
+ *                          eingefordert wird.
+ *
+ *   Aufhebung halb durch → Rechnung offen, Stunden frei. Dieselbe Stunde kann
+ *                          ein zweites Mal verrechnet werden.
+ *
+ * WIE MAN DAS PRÜFT, OHNE DEN STROM ABZUSCHALTEN: einen Beleg mitgeben, den
+ * die REGEL ablehnt — hier ein Zeiteintrag einer fremden Firma. Ein Stapel
+ * fällt daran ganz; zwei getrennte Schreibvorgänge hätten die Rechnung längst
+ * geändert, bevor der zweite scheitert. Genau diesen Unterschied misst der
+ * Test.
+ */
+describe('Durchstich 7: Storno als eine Klammer', () => {
+  const RECHNUNG = 'rechnung-storno';
+  const EIGENER = 'eintrag-eigen';
+  const FREMDER = 'eintrag-fremd';
+
+  async function aufbauen(mitFremdem: boolean, bereitsStorniert = false) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'timeEntries', EIGENER), {
+        companyId: FIRMA,
+        date: '2026-06-15',
+        status: 'Anwesend',
+        startTime: '07:00',
+        endTime: '15:00',
+        breakDuration: 0,
+        projectNumber: 'B-2026-0001',
+        userId: MONTEUR,
+        isBilled: !bereitsStorniert,
+        invoiceNumber: bereitsStorniert ? '' : 'RE-2026-0001',
+      });
+      // Ein Eintrag, an den die Buchhaltung von „perl" nicht heranreicht.
+      await setDoc(doc(db, 'timeEntries', FREMDER), {
+        companyId: 'andere-firma',
+        date: '2026-06-15',
+        status: 'Anwesend',
+        userId: 'fremder',
+        isBilled: true,
+      });
+      await setDoc(doc(db, 'invoices', RECHNUNG), {
+        companyId: FIRMA,
+        invoiceNumber: 'RE-2026-0001',
+        projectNumber: 'B-2026-0001',
+        customerName: 'Familie Huber',
+        invoiceDate: '2026-06-30',
+        dueDate: '2026-07-14',
+        totalNetto: 1000,
+        totalVat: 200,
+        totalBrutto: 1200,
+        paymentStatus: bereitsStorniert ? 'Storniert' : 'Offen',
+        linkedEntries: mitFremdem ? [EIGENER, FREMDER] : [EIGENER],
+        linkedOrders: [],
+      });
+    });
+  }
+
+  const rechnung = async () => {
+    let daten: Record<string, unknown> | undefined;
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      daten = (await getDoc(doc(ctx.firestore(), 'invoices', RECHNUNG))).data();
+    });
+    return daten;
+  };
+
+  const eintrag = async (id: string) => {
+    let daten: Record<string, unknown> | undefined;
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      daten = (await getDoc(doc(ctx.firestore(), 'timeEntries', id))).data();
+    });
+    return daten;
+  };
+
+  it('storniert und gibt die Stunden im selben Zug frei', async () => {
+    await aufbauen(false);
+    aktuelleDb = alsBuchhaltung();
+
+    await rechnungenDb.cancelInvoice(
+      { id: RECHNUNG, invoiceNumber: 'RE-2026-0001', linkedEntries: [EIGENER], linkedOrders: [] } as never,
+      'Falscher Kunde',
+    );
+
+    expect((await rechnung())?.paymentStatus).toBe('Storniert');
+    // Frei heisst: wieder verrechenbar, und ohne Nummer einer Rechnung, die
+    // es als Forderung nicht mehr gibt.
+    expect((await eintrag(EIGENER))?.isBilled).toBe(false);
+    expect((await eintrag(EIGENER))?.invoiceNumber).toBe('');
+  });
+
+  it('nimmt die Stunden bei der Storno-Aufhebung wieder mit', async () => {
+    await aufbauen(false);
+    aktuelleDb = alsBuchhaltung();
+    await rechnungenDb.cancelInvoice(
+      { id: RECHNUNG, invoiceNumber: 'RE-2026-0001', linkedEntries: [EIGENER], linkedOrders: [] } as never,
+      'Falscher Kunde',
+    );
+
+    await rechnungenDb.reactivateInvoice(
+      { id: RECHNUNG, invoiceNumber: 'RE-2026-0001', linkedEntries: [EIGENER], linkedOrders: [] } as never,
+    );
+
+    expect((await rechnung())?.paymentStatus).toBe('Offen');
+    expect((await eintrag(EIGENER))?.isBilled).toBe(true);
+    expect((await eintrag(EIGENER))?.invoiceNumber).toBe('RE-2026-0001');
+  });
+
+  /*
+    DER EIGENTLICHE BEFUND. Scheitert einer der Belege, darf die Rechnung
+    NICHT stehenbleiben, als wäre sie storniert — sonst stünden Stunden für
+    immer gesperrt hinter einer Rechnung, die es als Forderung nicht mehr gibt.
+  */
+  it('lässt die Rechnung unberührt, wenn ein Beleg abgelehnt wird', async () => {
+    await aufbauen(true);
+    aktuelleDb = alsBuchhaltung();
+
+    await expect(
+      rechnungenDb.cancelInvoice(
+        {
+          id: RECHNUNG,
+          invoiceNumber: 'RE-2026-0001',
+          linkedEntries: [EIGENER, FREMDER],
+          linkedOrders: [],
+        } as never,
+        'Falscher Kunde',
+      ),
+    ).rejects.toThrow();
+
+    expect((await rechnung())?.paymentStatus).toBe('Offen');
+    // Und die eigene Stunde ist auch nicht halb freigegeben.
+    expect((await eintrag(EIGENER))?.isBilled).toBe(true);
+  });
+
+  it('hebt auch bei der Aufhebung nichts halb auf', async () => {
+    // Der stornierte Zustand wird gleich mit aufgebaut: ein zweiter Griff an
+    // die Datenbank mitten im Test lässt den Emulator-Client seine
+    // Einstellungen nicht mehr ändern und bricht mit einer Meldung ab, die
+    // mit der Sache nichts zu tun hat.
+    await aufbauen(true, true);
+    aktuelleDb = alsBuchhaltung();
+
+    await expect(
+      rechnungenDb.reactivateInvoice(
+        {
+          id: RECHNUNG,
+          invoiceNumber: 'RE-2026-0001',
+          linkedEntries: [EIGENER, FREMDER],
+          linkedOrders: [],
+        } as never,
+      ),
+    ).rejects.toThrow();
+
+    expect((await rechnung())?.paymentStatus).toBe('Storniert');
+    // Nicht doppelt gesperrt: die Stunde bleibt frei und damit verrechenbar.
+    expect((await eintrag(EIGENER))?.isBilled).toBe(false);
+  });
+});

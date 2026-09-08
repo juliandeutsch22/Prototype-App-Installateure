@@ -34,8 +34,9 @@ import {
 import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
+import { scheinAbgleich } from './scheinAbgleich';
 import { discountLabel, type InvoicePosition } from './totals';
-import { todayStr, localDateStr } from '@/lib/time';
+import { todayStr, localDateStr, fmtMin } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice, Project, WorkSheet } from '@/types';
 import Card from '@/components/Card';
@@ -717,6 +718,18 @@ export default function InvoicesView() {
     [scheineAllerBaustellen, invoices, offeneRechnungen],
   );
 
+  /*
+    Der Abgleich hängt an der Vorschau, nicht an der Liste: verglichen wird,
+    was DIESE Rechnung nehmen würde, gegen die Scheine derselben Baustelle.
+  */
+  const abgleich = useMemo(
+    () =>
+      preview
+        ? scheinAbgleich(projectNumber, preview.entries, scheineAllerBaustellen)
+        : { verrechnetMin: 0, bestaetigtMin: 0, scheine: 0, mehrMin: 0, auffaellig: false },
+    [preview, projectNumber, scheineAllerBaustellen],
+  );
+
   if (!user) return null;
 
   /**
@@ -1173,6 +1186,42 @@ export default function InvoicesView() {
             <p className="mb-3 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
               Ohne Leistungszeitraum ist die Rechnung nach § 11 UStG unvollständig — beim Kunden
               wackelt damit der Vorsteuerabzug.
+            </p>
+          )}
+          {/*
+            WAS DER KUNDE UNTERSCHRIEBEN HAT, NEBEN DEM, WAS VERRECHNET WIRD.
+
+            Die Rechnung nimmt alle unverrechneten Stunden der Baustelle; der
+            Kunde hat einen Schein über die Zeit BEI IHM in der Hand — ohne
+            Anfahrt, ohne Vorbereitung in der Werkstatt. Beides darf
+            auseinandergehen, und zwar zu Recht. Nur sagte es niemandem, wenn
+            die Rechnung deutlich darüber liegt, und die Reklamation kommt
+            erst, wenn sie schon draussen ist.
+
+            GEKAPPT WIRD NICHTS. Die Zahl steht da, entschieden wird im Büro.
+          */}
+          {abgleich.scheine > 0 && (
+            <p
+              className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
+                abgleich.auffaellig
+                  ? 'border-warning/30 bg-warning-bg text-warning'
+                  : 'border-line bg-surface-2 text-ink-muted'
+              }`}
+            >
+              {abgleich.scheine === 1 ? 'Ein Schein bestätigt' : `${abgleich.scheine} Scheine bestätigen`}{' '}
+              <strong>{fmtMin(abgleich.bestaetigtMin)}</strong>, verrechnet werden{' '}
+              <strong>{fmtMin(abgleich.verrechnetMin)}</strong>
+              {abgleich.auffaellig ? (
+                <>
+                  {' '}
+                  — <strong>{fmtMin(abgleich.mehrMin)} mehr, als der Kunde unterschrieben hat.</strong>{' '}
+                  Das kann stimmen: Vorfertigung in der Werkstatt und der Weg zum Grosshändler
+                  zählen auf die Baustelle, stehen aber auf keinem Schein. Nur wird der Kunde
+                  danach fragen — besser jetzt als nach dem Versand.
+                </>
+              ) : (
+                '.'
+              )}
             </p>
           )}
           {preview.materialOhnePreis.length > 0 && (
