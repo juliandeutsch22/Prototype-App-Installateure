@@ -34,6 +34,21 @@ export interface Lauf {
   kennzahl?: number;
   /** Wofür die Zahl steht — „Zeilen", „Bilanzen". */
   kennzahlEinheit?: string;
+  /**
+   * Liegt die Sicherung AUSSERHALB des Projekts, in dem die Daten liegen?
+   *
+   * Nur die Ausleitung setzt das. Ohne gesetzten Zielspeicher schreibt sie in
+   * den Standard-Bucket desselben Google-Projekts — gegen einen Fehlgriff
+   * hilft das, gegen „der Zugang zum Projekt ist weg" nicht.
+   *
+   * DAS WEISS NUR DER SERVER, und bis hierher stand es allein in
+   * `docs/DEPLOYMENT.md`. Eine Sicherung, deren halbe Wirkung man nur durch
+   * Lesen einer Datei erfährt, ist eine Sicherung, die man für ganz hält.
+   *
+   * `undefined` heisst „von einem Lauf geschrieben, der das noch nicht
+   * mitgeteilt hat" — dann wird nichts behauptet.
+   */
+  zielExtern?: boolean;
 }
 
 /**

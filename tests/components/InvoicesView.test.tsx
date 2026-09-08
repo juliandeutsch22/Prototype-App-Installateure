@@ -1228,3 +1228,79 @@ describe('Der Buchhaltungs-Export', () => {
     expect(await screen.findByText(/Journal unvollständig/)).toBeInTheDocument();
   });
 });
+
+/**
+ * Was verrechnet wird, gegen das, was der Kunde unterschrieben hat.
+ *
+ * Die Rechnung nimmt alle unverrechneten Stunden der Baustelle; der Kunde hat
+ * einen Schein über die Zeit BEI IHM in der Hand — ohne Anfahrt, ohne
+ * Vorbereitung in der Werkstatt. Beides darf auseinandergehen, und zwar zu
+ * Recht. Nur sagte es niemandem, wenn die Rechnung deutlich darüber liegt,
+ * und die Reklamation kommt erst, wenn sie schon draussen ist.
+ */
+describe('Rechnung gegen Schein', () => {
+  const mitZeiten = (minuten: number[]): WorkSheet & { id: string } =>
+    ({
+      id: 'sa1',
+      companyId: 'perl',
+      projectNumber: '2026-042',
+      customerName: 'Baumeister Gruber',
+      datum: '2026-08-20',
+      status: 'Unterschrieben',
+      abrechnung: 'Regie',
+      zeiten: minuten.map((m) => ({ datum: '2026-08-20', mitarbeiter: 'Max', minuten: m })),
+      material: [],
+      erstelltVonUid: 'm1',
+      erstelltVonName: 'Max',
+    }) as WorkSheet & { id: string };
+
+  it('stellt bestätigte und verrechnete Stunden nebeneinander', async () => {
+    // Der Zeiteintrag ergibt 8 h; der Schein bestätigt 7 h — knapp darunter,
+    // also kein Befund, aber die Zahl gehört trotzdem vor Augen.
+    alleScheine = [mitZeiten([420])];
+    await bisZurVorschau();
+
+    expect(screen.getByText(/Ein Schein bestätigt/)).toBeInTheDocument();
+    expect(screen.getByText(/07:00/)).toBeInTheDocument();
+    expect(screen.getByText(/08:00/)).toBeInTheDocument();
+  });
+
+  /*
+    DER FALL, UM DEN ES GEHT: doppelt so viel verrechnet wie unterschrieben.
+    Das kann stimmen — Vorfertigung zählt auf die Baustelle —, aber der Kunde
+    wird danach fragen, und besser jetzt als nach dem Versand.
+  */
+  it('warnt, wenn deutlich mehr verrechnet wird als bestätigt', async () => {
+    alleScheine = [mitZeiten([240])];
+    await bisZurVorschau();
+
+    expect(
+      screen.getByText(/mehr, als der Kunde unterschrieben hat/),
+    ).toBeInTheDocument();
+  });
+
+  /*
+    OHNE SCHEIN GIBT ES NICHTS ZU VERGLEICHEN. „Sie verrechnen 8 Stunden,
+    bestätigt sind 0" stünde sonst bei jeder Baustelle ohne Schein da.
+  */
+  it('sagt gar nichts, wenn es keinen unterschriebenen Schein gibt', async () => {
+    alleScheine = [];
+    await bisZurVorschau();
+
+    // Beide Wortformen: bei null Scheinen hiesse es „0 Scheine bestätigen",
+    // und ein Test nur auf „bestätigt" ginge daran vorbei.
+    expect(
+      screen.queryByText(/Schein bestätigt|Scheine bestätigen/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('kappt die Rechnung nicht auf die Scheinstunden', async () => {
+    // Die Warnung ist ein Hinweis, keine Grenze: geleistete Arbeit zu
+    // verschenken wäre der teurere Fehler.
+    alleScheine = [mitZeiten([240])];
+    const bestaetigen = await bisZurVorschau();
+    expect(bestaetigen).toBeInTheDocument();
+    // 8 h stehen weiterhin in der Vorschau, nicht 4 h.
+    expect(screen.getByText(/08:00/)).toBeInTheDocument();
+  });
+});

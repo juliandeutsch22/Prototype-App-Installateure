@@ -7,11 +7,12 @@ import {
   addDoc,
   updateDoc,
   runTransaction,
+  writeBatch,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Invoice } from '@/types';
-import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from './core';
+import { queryTenant, subscribeTenant, createInTenant, type WithId } from './core';
 import { decideInvoiceSeq, formatInvoiceNumber } from '@/lib/invoiceNumbers';
 
 // Die reinen Rechenregeln liegen in lib/invoiceNumbers — ohne Firestore und
@@ -159,17 +160,68 @@ export async function reserveInvoiceNumber(
 }
 
 /**
+ * Storno und Storno-Aufhebung — in EINEM Schreibvorgang.
+ *
+ * WARUM DAS EINE KLAMMER BRAUCHT, und es fehlte hier. Beide Wege schrieben
+ * erst die Rechnung und danach die Freigabe bzw. Sperre der Belege; die
+ * Freigabe selbst war ein `Promise.all` einzelner Schreibvorgänge. Bricht die
+ * Verbindung dazwischen ab — im Funkloch der Normalfall —, bleibt ein Zustand
+ * stehen, den niemand sieht und den nichts wieder einrenkt:
+ *
+ *   Storno halb durch   → Rechnung storniert, Stunden weiter `isBilled`.
+ *                         Sie stehen auf keiner gültigen Rechnung und lassen
+ *                         sich auf keine neue nehmen. Geld, das nie wieder
+ *                         eingefordert wird.
+ *
+ *   Aufhebung halb durch → Rechnung wieder offen, Stunden frei. Sie können
+ *                         ein ZWEITES Mal verrechnet werden — dieselbe Stunde
+ *                         auf zwei Rechnungen an denselben Kunden.
+ *
+ * Genau dieser Fall wurde beim Lagerabzug schon einmal geschlossen (siehe
+ * `materialOrders`). Hier stand er noch offen, weil die Wege einzeln
+ * geschrieben und einzeln geprüft worden waren.
+ *
+ * WARUM `writeBatch` UND NICHT `runTransaction`: gelesen wird nichts. Die
+ * Kennungen der Belege stehen in der Rechnung, der neue Zustand steht fest.
+ * Ein Stapel ist dafür das richtige Werkzeug — er geht ganz durch oder gar
+ * nicht, und er wird OFFLINE VORGEHALTEN und nachgeschickt, was eine
+ * Transaktion nicht tut.
+ *
+ * DIE GRENZE VON 500 SCHREIBVORGÄNGEN je Stapel gilt und wird hier nicht
+ * umgangen: eine Rechnung mit mehr als 499 verknüpften Belegen gäbe es nur
+ * bei einer Baustelle mit über 499 Zeiteinträgen und Anforderungen zugleich.
+ * Sollte es sie geben, schlägt der Aufruf hörbar fehl, statt still die Hälfte
+ * zu schreiben — eine geteilte Klammer wäre keine Klammer mehr.
+ */
+function belegZustand(
+  batch: ReturnType<typeof writeBatch>,
+  coll: string,
+  ids: string[],
+  invoiceNumber: string,
+  isBilled: boolean,
+) {
+  for (const id of ids) {
+    // Firestore kann Felder nicht löschen — die leere Nummer ist das Zeichen
+    // für „gehört zu keiner Rechnung mehr".
+    batch.update(doc(db, coll, id), { isBilled, invoiceNumber });
+  }
+}
+
+/**
  * Hebt einen Storno wieder auf. Ein Fehlstorno war sonst nur durch Löschen
  * und vollständiges Neuerstellen zu heilen — inklusive neuer Nummer.
  */
 export async function reactivateInvoice(inv: WithId<Invoice>) {
-  await updateInTenant(COLLECTION, inv.id, {
+  const batch = writeBatch(db);
+  batch.update(doc(db, COLLECTION, inv.id), {
     paymentStatus: 'Offen',
     cancellationNote: null,
     cancelledAt: null,
+    updatedAt: serverTimestamp(),
   });
-  await markBilled('timeEntries', inv.linkedEntries ?? [], inv.invoiceNumber);
-  await markBilled('materialOrders', inv.linkedOrders ?? [], inv.invoiceNumber);
+  belegZustand(batch, 'timeEntries', inv.linkedEntries ?? [], inv.invoiceNumber, true);
+  belegZustand(batch, 'materialOrders', inv.linkedOrders ?? [], inv.invoiceNumber, true);
+  await batch.commit();
 }
 
 export type NewInvoice = Omit<Invoice, 'id' | 'companyId' | 'createdAt'>;
@@ -184,14 +236,16 @@ export function updateInvoiceStatus(id: string, paymentStatus: Invoice['paymentS
 
 /** Storniert eine Rechnung und gibt die verknüpften Belege wieder frei. */
 export async function cancelInvoice(inv: WithId<Invoice>, note: string) {
-  await updateDoc(doc(db, COLLECTION, inv.id), {
+  const batch = writeBatch(db);
+  batch.update(doc(db, COLLECTION, inv.id), {
     paymentStatus: 'Storniert',
     cancellationNote: note,
     cancelledAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
-  await releaseBilled('timeEntries', inv.linkedEntries ?? []);
-  await releaseBilled('materialOrders', inv.linkedOrders ?? []);
+  belegZustand(batch, 'timeEntries', inv.linkedEntries ?? [], '', false);
+  belegZustand(batch, 'materialOrders', inv.linkedOrders ?? [], '', false);
+  await batch.commit();
 }
 
 /*
@@ -230,17 +284,23 @@ export function mahnungFesthalten(
   });
 }
 
-/** Markiert Belege als verrechnet (isBilled + invoiceNumber). */
+/**
+ * Markiert Belege als verrechnet — beim ANLEGEN einer Rechnung.
+ *
+ * ABSICHTLICH KEIN STAPEL, anders als bei Storno und Aufhebung. Die
+ * Reihenfolge beim Anlegen ist selbst die Sicherung: Nummer ziehen, Belege
+ * sperren, DANN die Rechnung anlegen. Bricht es dazwischen ab, sind Belege
+ * gesperrt, zu denen es keine Rechnung gibt — die harmlose Richtung, denn
+ * nichts wird dadurch doppelt verrechnet. Umgekehrt wäre es der teure Fall.
+ *
+ * Ein gemeinsamer Stapel ginge auch, brauchte aber die Kennung der Rechnung,
+ * bevor sie existiert. Der Gewinn wäre gering, die Umstellung berührte den
+ * einzigen Weg, auf dem Rechnungsnummern entstehen — und dessen Reihenfolge
+ * ist gegen den Emulator geprüft.
+ */
 export async function markBilled(coll: string, ids: string[], invoiceNumber: string) {
   await Promise.all(
     ids.map((id) => updateDoc(doc(db, coll, id), { isBilled: true, invoiceNumber })),
-  );
-}
-
-/** Gibt Belege wieder frei (Firestore kann Felder nicht löschen -> ''). */
-async function releaseBilled(coll: string, ids: string[]) {
-  await Promise.all(
-    ids.map((id) => updateDoc(doc(db, coll, id), { isBilled: false, invoiceNumber: '' })),
   );
 }
 

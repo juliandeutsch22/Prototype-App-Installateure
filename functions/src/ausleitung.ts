@@ -132,6 +132,7 @@ async function alleMandantenAusleiten(): Promise<Bilanz[]> {
         erfolg: true,
         kennzahl: bilanz.zeilen,
         kennzahlEinheit: 'Zeilen',
+        zielExtern: !!ZIEL_BUCKET,
       });
     } catch (e) {
       /**
@@ -149,6 +150,7 @@ async function alleMandantenAusleiten(): Promise<Bilanz[]> {
       await laufFesthalten(firma.id, 'ausleitung', {
         erfolg: false,
         meldung: e instanceof Error ? e.message : 'Unbekannter Fehler',
+        zielExtern: !!ZIEL_BUCKET,
       });
     }
   }

@@ -1192,6 +1192,86 @@ Formular — und 15 absichtlich kaputte Fassungen, die alle aufgefallen sind.
 Zwei davon erst im zweiten Anlauf: was die Vorbelegung im echten Formular
 bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
 
+## Erledigt: Der Storno geht ganz durch oder gar nicht (08.09.2026)
+
+Beim Suchen nach weiteren Schwachstellen gefunden — und es ist dieselbe
+Lücke, die beim Lagerabzug schon einmal geschlossen wurde, nur an einer
+Stelle, die noch niemand angesehen hatte.
+
+`cancelInvoice` schrieb erst die Rechnung, dann die Freigabe der Belege; die
+Freigabe selbst war ein `Promise.all` einzelner Schreibvorgänge. Bricht die
+Verbindung dazwischen ab — im Funkloch der Normalfall —, bleibt ein Zustand
+stehen, den niemand sieht und den nichts wieder einrenkt:
+
+| Bricht ab bei | Folge |
+| --- | --- |
+| Storno | Rechnung storniert, Stunden weiter gesperrt. Sie stehen auf keiner gültigen Rechnung und lassen sich auf keine neue nehmen — **Geld, das nie wieder eingefordert wird**. |
+| Storno-Aufhebung | Rechnung offen, Stunden frei. Dieselbe Stunde kann **ein zweites Mal verrechnet** werden. |
+
+Beide Wege laufen jetzt als **ein `writeBatch`**. Bewusst kein
+`runTransaction`: gelesen wird nichts, und ein Stapel wird zusätzlich offline
+vorgehalten und nachgeschickt — was eine Transaktion nicht tut.
+
+**Das Anlegen bleibt absichtlich, wie es war.** Dort ist die Reihenfolge
+selbst die Sicherung: Nummer ziehen, Belege sperren, dann anlegen. Bricht es
+ab, sind Belege gesperrt, zu denen es keine Rechnung gibt — die harmlose
+Richtung. Ein gemeinsamer Stapel bräuchte die Kennung der Rechnung, bevor sie
+existiert, und würde den einzigen Weg berühren, auf dem Rechnungsnummern
+entstehen.
+
+### Wie man Atomarität prüft, ohne den Strom abzuschalten
+
+Ein Beleg, den die REGEL ablehnt — hier ein Zeiteintrag einer fremden Firma.
+Ein Stapel fällt daran ganz; zwei getrennte Schreibvorgänge hätten die
+Rechnung längst geändert, bevor der zweite scheitert. Genau diesen Unterschied
+misst „Durchstich 7" gegen den Emulator, und die Probe bestätigt es: mit der
+alten Fassung fällt exakt dieser Test.
+
+## Erledigt: Rechnung gegen unterschriebenen Schein (08.09.2026)
+
+Die Rechnung nimmt alle unverrechneten Stunden der Baustelle. Der Kunde hat
+aber einen Schein über die Zeit **bei ihm** in der Hand — ohne Anfahrt, ohne
+Vorbereitung in der Werkstatt, ohne den zweiten Weg zum Grosshändler.
+
+Beides darf auseinandergehen, und zwar völlig zu Recht: vorgefertigt wird auf
+die Baustelle gebucht, und das ist geleistete Arbeit. **Nur sagte es
+niemandem**, wenn die Rechnung deutlich über dem liegt, was auf dem Papier in
+der Kundenmappe steht — und die Reklamation kommt erst, wenn sie schon
+draussen ist.
+
+In der Vorschau steht jetzt eine Zeile: „Ein Schein bestätigt 04:00,
+verrechnet werden 08:00". Ruhig, solange es passt; als Warnung, sobald die
+Abweichung **beide** Schwellen reisst — mindestens eine Stunde UND mindestens
+ein Viertel über dem Bestätigten. Jede Bedingung allein wäre Lärm: ein Viertel
+mehr ist bei einem Einstundeneinsatz eine Viertelstunde, eine Stunde mehr auf
+einer Vierzigstundenbaustelle nichts.
+
+**Gekappt wird nichts.** Eine Rechnung auf die Scheinstunden zu begrenzen
+würde geleistete Arbeit verschenken — der teurere Fehler. Die Zahl wird
+gezeigt, entschieden wird im Büro.
+
+Ohne unterschriebenen Schein steht gar nichts da: „Sie verrechnen 40 Stunden,
+bestätigt sind 0" wäre bei jeder Baustelle ohne Schein zu lesen.
+
+## Erledigt: Die Sicherung sagt, wo sie liegt (08.09.2026)
+
+Stand seit Langem als bekannte Lücke da: ohne gesetzten `AUSLEITUNG_BUCKET`
+schreibt die nächtliche Ausleitung in denselben Google-Projektbereich wie die
+Daten. Gegen einen Fehlgriff hilft das sofort, gegen „der Zugang zum Projekt
+ist weg" gar nicht.
+
+**Die Lücke ist nicht geschlossen — sie ist sichtbar geworden**, und das ist
+hier der ehrliche Schritt: das Ziel zu setzen ist eine Sache der Einrichtung,
+keine des Codes. Bis heute stand diese halbe Wirkung allein in
+`docs/DEPLOYMENT.md`; eine Sicherung, deren Grenze man nur durch Lesen einer
+Datei erfährt, hält man für ganz.
+
+Die Ausleitung schreibt jetzt `zielExtern` in ihren Laufstatus, und die
+Sicherungsansicht sagt es unter der Zustandszeile. Nicht gelb — es ist eine
+Einrichtungsgrenze, kein Fehler; gelb neben einem „lief durch" hiesse, da sei
+etwas kaputt. Und nur bei `false`: ein Lauf aus einer älteren Fassung, die das
+Feld nicht schreibt, ist kein Befund.
+
 ## Erledigt: Scheine serverseitig suchen (08.09.2026)
 
 Der echte Kern der Archiv-Frage von heute. Das Suchfeld in der Scheinliste
@@ -2268,6 +2348,7 @@ KI-Erfassung eingeschaltet wird — nicht vorher.
 | Sprach-Erfassung, Teilschreibungen | Schlägt ein Schreibvorgang mitten in der Bestätigung fehl, bleibt ein halber Datensatz zurück |
 | Folgetermine | Werden erfasst und gespeichert, aber nirgends angezeigt |
 | Mikrofon | Läuft nach dem Abbrechen der Aufnahme weiter |
+| ~~Sicherung im selben Haus~~ | **Sichtbar gemacht am 08.09.2026** — die Ansicht sagt es jetzt. Geschlossen ist sie erst, wenn `AUSLEITUNG_BUCKET` auf einen Speicher ausserhalb zeigt; das ist Einrichtung, nicht Code |
 | ~~Listen ohne Begrenzung~~ | **Erledigt.** Stand hier zuletzt falsch: alle Abfragen in `timeEntries.ts` sind zeitraumbegrenzt. Übrig ist `listOwnEntriesSince` als Rückfall, wenn die Monatsbilanzen unvollständig sind — je Person, nicht je Betrieb. Eine Doku, die Erledigtes als offen führt, schickt den Nächsten in die Irre |
 
 ## Skalierbarkeit: die Regel und die eine verbleibende Ausnahme

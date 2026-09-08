@@ -26,7 +26,14 @@ const SAMMLUNG = 'systemLaeufe';
 export async function laufFesthalten(
   companyId: string,
   art: LaufArt,
-  ergebnis: { erfolg: boolean; meldung?: string; kennzahl?: number; kennzahlEinheit?: string },
+  ergebnis: {
+    erfolg: boolean;
+    meldung?: string;
+    kennzahl?: number;
+    kennzahlEinheit?: string;
+    /** Nur die Ausleitung: liegt der Zielspeicher ausserhalb dieses Projekts? */
+    zielExtern?: boolean;
+  },
 ): Promise<void> {
   const jetzt = Date.now();
   try {
@@ -42,6 +49,9 @@ export async function laufFesthalten(
           // Leerstring statt undefined: Firestore lehnt undefined ab, und ein
           // geleertes Feld sagt „diesmal ging es durch".
           meldung: ergebnis.meldung ?? '',
+          // Auch beim Fehlschlag: wo die Sicherung LIEGEN SOLL, ist eine
+          // Eigenschaft der Einrichtung und nicht des einzelnen Laufs.
+          ...(ergebnis.zielExtern === undefined ? {} : { zielExtern: ergebnis.zielExtern }),
           ...(ergebnis.erfolg
             ? {
                 zuletztErfolg: jetzt,

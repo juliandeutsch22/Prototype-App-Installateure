@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import SicherungView from '@/features/settings/SicherungView';
+import LaufStatus from '@/features/settings/LaufStatus';
 
 /**
  * Die Ansicht, die aus einer deployten Function eine benutzbare Sicherung
@@ -26,7 +27,14 @@ vi.mock('@/lib/functions', () => ({
 }));
 
 /** Was die Überwachung über den letzten Lauf weiss. */
-let letzterLauf: { zuletztErfolg?: number; kennzahl?: number; kennzahlEinheit?: string } | undefined;
+let letzterLauf:
+  | {
+      zuletztErfolg?: number;
+      kennzahl?: number;
+      kennzahlEinheit?: string;
+      zielExtern?: boolean;
+    }
+  | undefined;
 vi.mock('@/lib/db/laeufe', () => ({
   ladeLauf: vi.fn(async () => (letzterLauf ? { companyId: 'perl', art: 'ausleitung', ...letzterLauf } : undefined)),
 }));
@@ -148,5 +156,57 @@ describe('Der Zustand der nächtlichen Sicherung', () => {
     letzterLauf = undefined;
     zeige();
     expect(await screen.findByText(/noch nie durchgelaufen/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * Wo die Sicherung liegt.
+ *
+ * Ohne gesetzten Zielspeicher schreibt die Ausleitung in denselben
+ * Google-Projektbereich wie die Daten. Gegen einen Fehlgriff hilft das
+ * sofort; gegen „der Zugang zum Projekt ist weg" gar nicht. Bis zum
+ * 08.09.2026 stand diese halbe Wirkung allein in der Deployment-Dokumentation
+ * — eine Sicherung, deren Grenze man nur durch Lesen einer Datei erfährt,
+ * hält man für ganz.
+ */
+describe('Wo der Stand liegt', () => {
+  it('sagt es, wenn die Sicherung im selben Projekt liegt', async () => {
+    letzterLauf = { zuletztErfolg: Date.now() - 6 * 3_600_000, zielExtern: false };
+    zeige();
+    expect(
+      await screen.findByText(/im selben Projekt wie die Daten/),
+    ).toBeInTheDocument();
+  });
+
+  it('schweigt, wenn ein Ziel ausserhalb gesetzt ist', async () => {
+    letzterLauf = { zuletztErfolg: Date.now() - 6 * 3_600_000, zielExtern: true };
+    zeige();
+    await screen.findByText(/lief zuletzt vor 6 Stunden durch/);
+    expect(screen.queryByText(/im selben Projekt wie die Daten/)).not.toBeInTheDocument();
+  });
+
+  /*
+    Ein Lauf aus einer Fassung, die das Feld noch nicht schreibt, ist kein
+    Befund, sondern eine ältere Fassung. Etwas zu behaupten, das man nicht
+    weiss, wäre schlechter als zu schweigen.
+  */
+  it('behauptet nichts, wenn der Lauf es nicht mitteilt', async () => {
+    letzterLauf = { zuletztErfolg: Date.now() - 6 * 3_600_000 };
+    zeige();
+    await screen.findByText(/lief zuletzt vor 6 Stunden durch/);
+    expect(screen.queryByText(/im selben Projekt wie die Daten/)).not.toBeInTheDocument();
+  });
+
+  /*
+    NUR DIE AUSLEITUNG. Der Bilanzlauf schreibt nichts in einen Speicher, für
+    ihn ist die Frage sinnlos — und ein Hinweis auf einen Zielspeicher unter
+    einer Monatsbilanz wäre schlicht falsch. Die Bedingung steht im Code; ohne
+    diesen Test fiele sie beim nächsten Umbau still weg.
+  */
+  it('sagt es beim Bilanzlauf gar nicht, egal was dort steht', async () => {
+    letzterLauf = { zuletztErfolg: Date.now() - 6 * 3_600_000, zielExtern: false };
+    render(<LaufStatus art="bilanzen" />);
+    await screen.findByText(/lief zuletzt vor 6 Stunden durch/);
+    expect(screen.queryByText(/im selben Projekt wie die Daten/)).not.toBeInTheDocument();
   });
 });
