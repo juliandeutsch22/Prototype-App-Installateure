@@ -208,7 +208,20 @@ export default function InvoicesView() {
   useEffect(() => {
     if (!user) return;
     let weg = false;
-    listRecentWorkSheets(user.companyId, 200)
+    /*
+      SECHZIG, NICHT ZWEIHUNDERT — und die Zahl hat einen gemessenen Grund.
+
+      Ein unterschriebener Schein trägt zwei Unterschriftsbilder als PNG im
+      Dokument. Gemessen an einem Telefon mit dreifacher Punktdichte sind das
+      rund 35 KB je Bild, also 70 KB je Schein: zweihundert Scheine wären
+      vierzehn Megabyte, jedes Mal, wenn jemand die Rechnungen öffnet. Auf
+      einer Baustelle mit halbem Balken sind das Minuten.
+
+      Sechzig unterschriebene Scheine decken bei einem Fünf-Mann-Betrieb rund
+      zwei Monate ab. Gemeldet wird ohnehin erst ab vier Wochen — was älter
+      ist als dieses Fenster, ist längst gemeldet worden.
+    */
+    listRecentWorkSheets(user.companyId, 60)
       .then((rows) => {
         if (!weg) setScheineAllerBaustellen(rows);
       })
