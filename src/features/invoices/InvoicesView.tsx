@@ -23,6 +23,7 @@ import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
 import { verrechneteScheine } from './materialPositionen';
 import { darfMahnen, naechsteStufe, spesenFuer, TEXTE, FRIST_TAGE } from './mahnung';
+import { mahnlauf } from './mahnlauf';
 import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
@@ -35,6 +36,7 @@ import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
+import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
@@ -607,7 +609,27 @@ export default function InvoicesView() {
     toast.success('PDF erneut erzeugt');
   }
 
+  /**
+   * Der Mahnlauf: was heute zu mahnen ist, dringlichstes zuerst.
+   *
+   * Gerechnet aus denselben Rechnungen, die die Liste unten zeigt — keine
+   * zweite Abfrage. Der Lauf ist eine Sicht auf den Bestand, kein eigener
+   * Datenstand, der auseinanderlaufen könnte.
+   */
+  const lauf = useMemo(
+    () => mahnlauf(invoices, todayStr(), company?.rates?.mahnspesen),
+    [invoices, company?.rates?.mahnspesen],
+  );
+
   if (!user) return null;
+
+  /** Den Mahndialog für eine Rechnung öffnen — mit der vorgeschlagenen Frist. */
+  const mahnenOeffnen = (inv: WithId<Invoice>) => {
+    const frist = new Date();
+    frist.setDate(frist.getDate() + FRIST_TAGE);
+    setMahnFrist(localDateStr(frist));
+    setMahnFuer(inv);
+  };
 
   return (
     <div className="space-y-6">
@@ -696,6 +718,93 @@ export default function InvoicesView() {
           value={fmtEUR(stats.ueberfaellig)} />
         <Metric label="Bezahlt" tone="success" value={fmtEUR(stats.bezahlt)} />
       </MetricRow>
+
+      {/*
+        DER MAHNLAUF.
+
+        Das Mahnen gab es schon — als Menüpunkt an der einzelnen Rechnung. Die
+        Stufen stimmten, die Belege stimmten, nur kam niemand dorthin: wer
+        wissen wollte, was zu mahnen ist, filterte auf „Überfällig", ging die
+        Liste durch, öffnete an jeder Zeile das Menü und prüfte im Kopf, ob
+        die dritte Mahnung schon draussen war.
+
+        Genau daran bleibt Mahnwesen in kleinen Betrieben liegen — nicht am
+        Schreiben, sondern am Zusammenstellen, das sich immer verschieben
+        lässt. Diese Karte nimmt das Zusammenstellen ab. Verschickt wird
+        weiterhin einzeln und bewusst: hinter jeder Forderung steht ein Kunde,
+        den der Chef vielleicht gerade am Telefon hatte.
+
+        Die Karte erscheint nur, wenn es etwas zu tun gibt. Eine dauerhaft
+        sichtbare leere Mahnliste wäre ein Vorwurf ohne Anlass.
+      */}
+      {(lauf.zeilen.length > 0 || lauf.ausgereizt.length > 0) && (
+        <Card
+          title={`Mahnlauf (${lauf.zeilen.length})`}
+          hint={
+            'Was heute gemahnt werden kann — die weit fortgeschrittenen Forderungen oben, denn ' +
+            'eine Rechnung vor der letzten Mahnung ist dringender als eine, die gerade erst die ' +
+            'Frist überschritten hat. Verschickt wird einzeln: jede Mahnung erzeugt ihren Beleg ' +
+            'und wird an der Rechnung festgehalten. Verzugszinsen stehen bewusst auf keiner ' +
+            'Mahnung — der gesetzliche Satz hängt am Basiszinssatz und ändert sich halbjährlich; ' +
+            'eine falsch gerechnete Zinsforderung wäre schlechter als keine.'
+          }
+        >
+          {lauf.zeilen.length > 0 ? (
+            <>
+              <p className="mb-3 text-sm text-ink">
+                <strong>{fmtEUR(lauf.summeBrutto)} €</strong> offen
+                {lauf.summeSpesen > 0 ? ` · ${fmtEUR(lauf.summeSpesen)} € Mahnspesen` : ''}
+              </p>
+              <List>
+                {lauf.zeilen.map((z) => (
+                  <ListRow
+                    key={z.rechnung.id}
+                    title={
+                      <>
+                        <span>{z.rechnung.customerName}</span>
+                        <Badge tone={z.stufe === 3 ? 'danger' : z.stufe === 2 ? 'warning' : 'gray'}>
+                          {TEXTE[z.stufe].titel}
+                        </Badge>
+                      </>
+                    }
+                    subtitle={
+                      <span className="tnum">
+                        {z.rechnung.invoiceNumber} · {fmtEUR(z.rechnung.totalBrutto)} € ·{' '}
+                        {z.tageUeberfaellig} Tage überfällig
+                        {z.spesen > 0 ? ` · ${fmtEUR(z.spesen)} € Spesen` : ''}
+                      </span>
+                    }
+                  >
+                    <Button variant="secondary" onClick={() => mahnenOeffnen(z.rechnung)}>
+                      Mahnen
+                    </Button>
+                  </ListRow>
+                ))}
+              </List>
+            </>
+          ) : (
+            <p className="text-sm text-ink-muted">Heute ist nichts zu mahnen.</p>
+          )}
+
+          {/*
+            NACH DER DRITTEN MAHNUNG HÖRT DIE APP AUF. Was folgt — Anwalt,
+            Inkasso oder abschreiben — entscheidet ein Mensch. Fielen diese
+            Rechnungen stillschweigend aus dem Lauf, wären ausgerechnet die
+            ältesten Forderungen die unsichtbarsten.
+          */}
+          {lauf.ausgereizt.length > 0 && (
+            <p className="mt-4 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+              <strong>
+                {lauf.ausgereizt.length}{' '}
+                {lauf.ausgereizt.length === 1 ? 'Forderung' : 'Forderungen'} braucht eine
+                Entscheidung:
+              </strong>{' '}
+              {lauf.ausgereizt.map((i) => `${i.invoiceNumber} (${i.customerName})`).join(', ')}. Die
+              dritte Mahnung ist verschickt — was jetzt folgt, entscheidet der Betrieb.
+            </p>
+          )}
+        </Card>
+      )}
 
       <Card
         title="Neue Rechnung aus Baustelle"
