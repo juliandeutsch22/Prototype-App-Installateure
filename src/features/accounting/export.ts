@@ -1,5 +1,6 @@
 import type { AppUser, TimeEntry } from '@/types';
 import { calcWorkMin, calcMonthStats, type MonthStats } from '@/lib/time';
+import { zuschlagszeit, kennzeichen } from './zuschlaege';
 
 /**
  * Exporte der Mitarbeiterübersicht (portiert aus Legacy:3776-3865 und
@@ -103,6 +104,10 @@ export function buildMonthCsv(rows: UserWithEntries[], year: number, month: numb
       'Mitarbeiter', 'Datum', 'Status', 'Kunde/Baustelle', 'Projektnummer', 'Fahrzeug',
       'Startzeit', 'Endzeit', 'Pause(Min)', 'Wegzeit(Min)', 'Kommentar',
       'Arbeitszeit(Std)', 'Gesamtzeit(Std)',
+      // Die Rechnung stellt aus genau diesen beiden Kennzeichen Positionen
+      // mit Aufschlag zusammen. Fehlten sie hier, verrechnete der Betrieb
+      // einen Zuschlag, den die Lohnverrechnung nie zu sehen bekommt.
+      'Nacht', 'Notdienst',
     ]),
   );
 
@@ -129,15 +134,24 @@ export function buildMonthCsv(rows: UserWithEntries[], year: number, month: numb
         hours(wm),
         // Gesamtzeit schließt die Wegzeit ein — nur in diesem Export.
         hours(wm + travel),
+        kennzeichen(e.isNightWork),
+        kennzeichen(e.isEmergency),
       ]),
     );
   }
 
   lines.push('', 'Mitarbeiter-Zusammenfassung');
   lines.push(
-    row(['Name', 'Ist(Std)', 'Soll(Std)', 'Saldo(Std)', 'Krank-Tage', 'Urlaub-Tage', 'Resturlaub']),
+    row([
+      'Name', 'Ist(Std)', 'Soll(Std)', 'Saldo(Std)', 'Krank-Tage', 'Urlaub-Tage', 'Resturlaub',
+      'Nacht(Std)', 'Notdienst(Std)', 'davon beides(Std)',
+    ]),
   );
-  for (const { user, stats } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
+  for (const { user, monthEntries, stats } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
+    // „davon beides" ist keine Zierde: der Rohrbruch um zwei Uhr früh trägt
+    // beide Kennzeichen. Wer Nacht und Notdienst addiert, zählt diese
+    // Stunden doppelt — und sähe es der Datei nicht an.
+    const z = zuschlagszeit(monthEntries);
     lines.push(
       row([
         user.name,
@@ -147,6 +161,9 @@ export function buildMonthCsv(rows: UserWithEntries[], year: number, month: numb
         stats.krankDays,
         stats.urlaubDays,
         stats.urlaubRest,
+        hours(z.nachtMin),
+        hours(z.notdienstMin),
+        hours(z.beidesMin),
       ]),
     );
   }
@@ -199,7 +216,7 @@ export function buildUserCsv(
   lines.push(
     row([
       'Datum', 'Status', 'Kunde/Baustelle', 'Projektnummer', 'Startzeit', 'Endzeit',
-      'Pause(Min)', 'Wegzeit(Min)', 'Arbeitszeit(Std)', 'Kommentar',
+      'Pause(Min)', 'Wegzeit(Min)', 'Arbeitszeit(Std)', 'Nacht', 'Notdienst', 'Kommentar',
     ]),
   );
 
@@ -215,6 +232,8 @@ export function buildUserCsv(
         e.breakDuration ?? 0,
         e.travelTime ?? 0,
         hours(calcWorkMin(e)),
+        kennzeichen(e.isNightWork),
+        kennzeichen(e.isEmergency),
         e.comment ?? '',
       ]),
     );
@@ -228,6 +247,18 @@ export function buildUserCsv(
   lines.push(row(['Urlaub (Monat)', `${stats.urlaubDays} Tage`]));
   lines.push(row([`Urlaub ${year} gesamt`, `${stats.yearlyUrlaubDays} Tage`]));
   lines.push(row(['Resturlaub', `${stats.urlaubRest} Tage`]));
+
+  /*
+    ZUSCHLÄGE STEHEN IMMER DA, auch mit null Stunden. Der Block ist die
+    Auskunft „für diesen Monat sind keine Zuschlagsstunden angefallen" — und
+    die unterscheidet sich von „diese Datei kennt das Thema nicht", was
+    vorher der Fall war und niemandem auffiel.
+  */
+  const z = zuschlagszeit(monthEntries);
+  lines.push('');
+  lines.push(row(['Nachtstunden', `${hours(z.nachtMin)} h`]));
+  lines.push(row(['Notdienststunden', `${hours(z.notdienstMin)} h`]));
+  lines.push(row(['davon beides', `${hours(z.beidesMin)} h`]));
 
   return lines.join('\n');
 }

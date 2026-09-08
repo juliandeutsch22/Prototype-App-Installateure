@@ -48,9 +48,14 @@ describe('CSV-Aufbau', () => {
 
   it('addiert die Wegzeit nur in der Spalte Gesamtzeit', () => {
     const csv = buildMonthCsv([makeRow([entry({ travelTime: 30 })])], 2025, 5);
-    const cells = csv.split('\n')[1].split(';');
-    expect(cells[cells.length - 2]).toBe('9,00'); // Arbeitszeit
-    expect(cells[cells.length - 1]).toBe('9,50'); // + 30 min Wegzeit
+    const [kopf, erste] = csv.split('\n');
+    // Über die Kopfzeile, nicht vom Ende her gezählt: hinter der Gesamtzeit
+    // stehen inzwischen die Zuschlagskennzeichen, und ein Test, der die
+    // letzte Spalte meint, misst nach jeder Erweiterung etwas anderes.
+    const spalten = kopf.split(';');
+    const cells = erste.split(';');
+    expect(cells[spalten.indexOf('Arbeitszeit(Std)')]).toBe('9,00');
+    expect(cells[spalten.indexOf('Gesamtzeit(Std)')]).toBe('9,50'); // + 30 min Wegzeit
   });
 
   it('escaped Semikolon und Anführungszeichen in JEDEM Feld', () => {
