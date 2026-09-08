@@ -216,12 +216,18 @@ export const datenAusleitungJetzt = onCall(
         erfolg: true,
         kennzahl: bilanz.zeilen,
         kennzahlEinheit: 'Zeilen',
+        // AUCH VON HAND. Der Knopf ist der erste Lauf nach dem Einrichten —
+        // genau der Moment, in dem die Frage „liegt der Stand ausserhalb
+        // dieses Projekts?" beantwortet gehoert. Ohne das erfuehre man es
+        // erst in der naechsten Nacht.
+        zielExtern: !!ZIEL_BUCKET,
       });
       return { ...bilanz, geraeumt, ziel: ZIEL_BUCKET ?? 'Standard-Bucket des Projekts' };
     } catch (e) {
       await laufFesthalten(companyId, 'ausleitung', {
         erfolg: false,
         meldung: e instanceof Error ? e.message : 'Unbekannter Fehler',
+        zielExtern: !!ZIEL_BUCKET,
       });
       throw e;
     }

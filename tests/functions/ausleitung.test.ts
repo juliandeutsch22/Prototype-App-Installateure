@@ -213,6 +213,28 @@ describe('Der Lauf hält seinen Ausgang fest', () => {
     expect(db.alles('systemLaeufe').perl_ausleitung).toMatchObject({ erfolg: true });
   });
 
+  it('sagt auch von Hand, wo der Stand liegt', async () => {
+    /*
+      Der Knopf ist der ERSTE Lauf nach dem Einrichten — genau der, mit dem
+      man prüft, ob die Sicherung geht. Ohne `zielExtern` stünde in der
+      Überwachung bis zur nächsten Nacht nichts darüber, dass der Stand im
+      selben Projekt liegt wie die Daten; man hielte die halbe Sicherung für
+      die ganze.
+    */
+    db.seed('companies', { perl: { name: 'Perl' } });
+    await jetzt('Geschäftsführung');
+    expect(db.alles('systemLaeufe').perl_ausleitung.zielExtern).toBe(false);
+  });
+
+  it('sagt es auch, wenn der Lauf von Hand scheitert', async () => {
+    // Wo die Sicherung LIEGEN SOLL, ist eine Eigenschaft der Einrichtung und
+    // nicht des einzelnen Laufs.
+    db.seed('companies', { perl: { name: 'Perl' } });
+    bucket.scheitertBei = 'ausleitung/perl/2026-09-05.jsonl';
+    await expect(jetzt('Geschäftsführung')).rejects.toThrow();
+    expect(db.alles('systemLaeufe').perl_ausleitung.zielExtern).toBe(false);
+  });
+
   it('hält jeden Mandanten für sich fest', async () => {
     // Ein Betrieb, bei dem alles scheitert, verschwände sonst in der Summe
     // der anderen.
