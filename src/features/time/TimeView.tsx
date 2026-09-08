@@ -30,6 +30,7 @@ import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
 import Badge from '@/components/Badge';
 import Zeitmarker from './Zeitmarker';
+import { zuschlagszeit, hatZuschlaege } from '@/features/accounting/zuschlaege';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -317,6 +318,23 @@ export default function TimeView() {
   }, [entries]);
 
   /**
+   * Die eigenen Zuschlagsstunden im angezeigten Fenster.
+   *
+   * WARUM DAS HIER STEHT. Nacht- und Notdienststunden gehen seit dem
+   * 08.09.2026 in die Lohnausleitung ein — der Zuschlag ist ein Anspruch nach
+   * Kollektivvertrag. Sichtbar war er damit aber nur, wenn das Büro eine CSV
+   * zog: der Mann selbst sah in seinem Zeitkonto nichts davon und konnte
+   * nicht prüfen, ob überhaupt gezählt wird, was er gearbeitet hat.
+   *
+   * GERECHNET WIRD AUS DEN EINTRÄGEN, DIE OHNEHIN DA SIND — kein zusätzliches
+   * Feld, keine zweite Abfrage, kein Nachtlauf. Die Kachel gilt damit für
+   * genau das Fenster, das die Liste zeigt, und das steht im Beipacktext.
+   * Ein gespeicherter Wert liefe irgendwann auseinander; hier kann er das
+   * nicht.
+   */
+  const zuschlag = useMemo(() => zuschlagszeit(entries), [entries]);
+
+  /**
    * Summe der TATSÄCHLICH aktuellen Kalenderwoche. Vorher wurde die neueste
    * Woche mit Einträgen genommen — nach einer buchungsfreien Woche zeigte die
    * Kachel dadurch fremde Zahlen unter dem Label "Diese Woche".
@@ -498,6 +516,27 @@ export default function TimeView() {
         />
         )}
         <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} />
+        {/*
+          NUR WENN ES WELCHE GIBT. Eine Kachel, die bei den allermeisten
+          dauerhaft „0:00" zeigt, nimmt auf dem Telefon die Breite weg, die
+          Saldo und Wochensumme brauchen — und sagt nichts.
+
+          Der Wert ist die VEREINIGUNG, nicht die Summe: Nacht und Notdienst
+          schliessen einander nicht aus, der Rohrbruch um zwei Uhr früh ist
+          beides. Addiert stünde er doppelt da. Die Aufschlüsselung steht im
+          Beipacktext, dort auch die Überschneidung.
+        */}
+        {hatZuschlaege(zuschlag) && (
+          <Metric
+            label="Zuschlag"
+            value={fmtMin(zuschlag.nachtMin + zuschlag.notdienstMin - zuschlag.beidesMin)}
+            hint={
+              `Nacht ${fmtMin(zuschlag.nachtMin)} · Notdienst ${fmtMin(zuschlag.notdienstMin)}` +
+              (zuschlag.beidesMin > 0 ? ` · ${fmtMin(zuschlag.beidesMin)} beides` : '') +
+              ` · letzte ${monate} Monate`
+            }
+          />
+        )}
       </MetricRow>
 
       <Card title={editing ? 'Eintrag bearbeiten' : 'Neuen Eintrag erfassen'}>
