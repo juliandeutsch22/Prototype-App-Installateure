@@ -9,6 +9,7 @@ import type { WithId } from '@/lib/db/core';
 import { byNewest } from '@/lib/timestamps';
 import type { Project, AppUser, Customer } from '@/types';
 import Card from '@/components/Card';
+import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
@@ -74,6 +75,23 @@ export default function AdminProjectsView() {
   const { user } = useAuth();
   const toast = useToast();
   const [projects, setProjects] = useState<WithId<Project>[]>([]);
+  /*
+    WIE WEIT DIE LISTE REICHT — und dass sie es sagt.
+
+    Sie holte fest die jüngsten 300 und schwieg dazu. Ab der 301. Baustelle
+    fielen die ÄLTESTEN heraus, ohne dass irgendwo etwas stand: die Baustelle
+    von vor drei Jahren war in der Verwaltung schlicht nicht mehr auffindbar,
+    und nichts unterschied das von „gibt es nicht".
+
+    Genau diese Fehlerform hat „Sichtbare Grenzen" überall herausgenommen —
+    hier wurde sie übersehen, weil die Ansicht ein LIVE-ABO verwendet und
+    damit nicht ins Muster der einmal ladenden Listen passte.
+
+    Buchen war davon nie betroffen: die Baustellenauswahl hängt an
+    `listActiveProjects` und kennt keine Grenze. Betroffen war die
+    Verwaltung — dort, wo jemand gezielt nachschlägt.
+  */
+  const [grenze, setGrenze] = useState(BAUSTELLEN_JE_SEITE);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [kunden, setKunden] = useState<(Customer & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +172,7 @@ export default function AdminProjectsView() {
     listCustomers(user.companyId).then(setKunden).catch(() => setNebenFehler('Die Kunden'));
     const unsub = subscribeRecentProjects(
       user.companyId,
-      BAUSTELLEN_JE_SEITE,
+      grenze,
       (rows) => {
         setProjects(rows);
         setLoading(false);
@@ -165,7 +183,9 @@ export default function AdminProjectsView() {
       },
     );
     return unsub;
-  }, [user]);
+    // Die Grenze gehört in die Abhängigkeiten: ein Abo trägt sie in sich,
+    // eine neue Grenze heisst also ein neues Abo.
+  }, [user, grenze]);
 
   function startEdit(p: WithId<Project>) {
     setEditId(p.id);
@@ -473,6 +493,20 @@ export default function AdminProjectsView() {
             })}
           </List>
         )}
+        {/*
+          Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende gescrollt
+          hat und nichts gefunden hat, braucht die Auskunft.
+
+          `sucheImBrowser`, weil die Suche dieser Ansicht über das GELADENE
+          läuft — wer eine alte Baustellennummer eintippt und nichts findet,
+          soll nicht schliessen, es gebe sie nicht.
+        */}
+        <Nachladen
+          geladen={projects.length}
+          grenze={grenze}
+          onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
+          einheit="Baustellen"
+        />
       </Card>
 
       <ConfirmDialog

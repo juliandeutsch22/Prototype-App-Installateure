@@ -1304,3 +1304,70 @@ describe('Rechnung gegen Schein', () => {
     expect(screen.getByText(/08:00/)).toBeInTheDocument();
   });
 });
+
+/**
+ * Scheitert die Forderungsabfrage, darf keine Karte so tun, als wüsste sie es.
+ *
+ * `listUnpaidInvoices` trägt ZWEI Karten, und beide sagten bei einem
+ * Fehlschlag etwas Falsches statt gar nichts:
+ *
+ *   Mahnlauf              rechnete über eine leere Liste und verschwand — das
+ *                         sieht aus wie „nichts zu mahnen", ist aber „ich
+ *                         weiss es nicht". Der Unterschied sind offene
+ *                         Forderungen, die niemand anmahnt.
+ *
+ *   Nicht verrechnete     sucht Scheine, die auf KEINER Rechnung stehen.
+ *   Leistung              Fehlen die offenen Forderungen, erscheinen Scheine
+ *                         als unverrechnet, die längst auf einer offenen
+ *                         Rechnung stehen — eine falsche Anschuldigung.
+ */
+describe('Wenn die offenen Forderungen nicht kommen', () => {
+  const alt = (tage: number) =>
+    new Date(Date.now() - tage * 86_400_000).toISOString().slice(0, 10);
+
+  it('sagt es, statt zu schweigen', async () => {
+    listUnpaidInvoices.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+    expect(
+      await screen.findByText(/offenen Forderungen konnten nicht geladen werden/),
+    ).toBeInTheDocument();
+  });
+
+  /*
+    UND ZIEHT BEIDE KARTEN EIN. Eine Karte, die auf unvollständiger Grundlage
+    rechnet, ist schlimmer als keine — sie wird geglaubt.
+  */
+  it('meldet keine unverrechnete Leistung auf halber Grundlage', async () => {
+    // Ein alter Schein, der bei geglückter Abfrage als unverrechnet gälte.
+    alleScheine = [
+      {
+        id: 'alt', companyId: 'perl', projectNumber: '2026-042',
+        customerName: 'Baumeister Gruber', datum: alt(90), status: 'Unterschrieben',
+        abrechnung: 'Regie', zeiten: [], material: [],
+        erstelltVonUid: 'm1', erstelltVonName: 'Max',
+      } as WorkSheet & { id: string },
+    ];
+    listUnpaidInvoices.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+
+    await screen.findByText(/offenen Forderungen konnten nicht geladen werden/);
+    expect(screen.queryByText(/Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+  });
+
+  it('zeigt beide Karten wieder, sobald die Abfrage durchgeht', async () => {
+    alleScheine = [
+      {
+        id: 'alt', companyId: 'perl', projectNumber: '2026-042',
+        customerName: 'Baumeister Gruber', datum: alt(90), status: 'Unterschrieben',
+        abrechnung: 'Regie', zeiten: [], material: [],
+        erstelltVonUid: 'm1', erstelltVonName: 'Max',
+      } as WorkSheet & { id: string },
+    ];
+    zeige();
+
+    expect(await screen.findByText(/Nicht verrechnete Leistung/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/offenen Forderungen konnten nicht geladen werden/),
+    ).not.toBeInTheDocument();
+  });
+});
