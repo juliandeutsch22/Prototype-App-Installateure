@@ -128,7 +128,16 @@ vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) 
 vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesForProjects: vi.fn(async () => zeiten),
 }));
+/*
+  Die Scheine des ganzen Betriebs — für „nicht verrechnete Leistung". Eigene
+  Liste, nicht dieselbe wie die je Baustelle: hier geht es um Scheine, deren
+  Baustelle gerade NICHT gewählt ist.
+*/
+let alleScheine: (WorkSheet & { id: string })[] = [];
+const listRecentWorkSheets = vi.fn(async () => alleScheine);
+
 vi.mock('@/lib/db/workSheets', () => ({
+  listRecentWorkSheets: () => listRecentWorkSheets(),
   listWorkSheetsForProject: vi.fn(async () => scheine),
 }));
 vi.mock('@/lib/db/materials', () => ({ listMaterials: vi.fn(async () => katalog) }));
@@ -196,6 +205,8 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   rechnungen = [];
+  alleScheine = [];
+  listRecentWorkSheets.mockClear();
   zeiten = [ZEIT];
   scheine = [];
   katalog = [];
@@ -960,5 +971,118 @@ describe('Der Mahnlauf', () => {
     zeige();
     await screen.findByText(/RE-2026-0001/);
     expect(screen.queryByText(/braucht eine Entscheidung/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Nicht verrechnete Leistung.
+ *
+ * DIE LETZTE OFFENE STELLE IM KREIS. Die Rechnung merkt sich seit jeher,
+ * welche Scheine sie verbraucht hat — gelesen wurde das nur, um beim
+ * Zusammenstellen nichts doppelt zu verrechnen. Die Umkehrung fehlte, und sie
+ * ist die betrieblich wichtigere: das ist kein Buchhaltungsfehler, den man
+ * später sieht, sondern Geld, das nie eingefordert wird.
+ */
+describe('Nicht verrechnete Leistung', () => {
+  const schein = (
+    id: string,
+    datum: string,
+    p: Partial<WorkSheet> = {},
+  ): WorkSheet & { id: string } =>
+    ({
+      id,
+      companyId: 'perl',
+      projectNumber: '2026-042',
+      customerName: 'Baumeister Gruber',
+      datum,
+      status: 'Unterschrieben',
+      abrechnung: 'Regie',
+      zeiten: [],
+      material: [],
+      erstelltVonUid: 'm1',
+      erstelltVonName: 'Max',
+      ...p,
+    }) as WorkSheet & { id: string };
+
+  it('meldet einen alten Schein ohne Rechnung', async () => {
+    // „Heute" steht in dieser Datei auf dem 01.09.2026.
+    alleScheine = [schein('s1', '2026-06-01')];
+    zeige();
+
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/92 Tage/)).toBeInTheDocument();
+  });
+
+  /*
+    EIN SCHEIN VON VORGESTERN GEHÖRT NICHT GEMELDET. Zwischen Einsatz und
+    Rechnung liegt im Handwerk regelmässig ein Monatsabschluss — eine Liste,
+    die das anmahnt, sieht sich nach zwei Wochen niemand mehr an, und dann
+    fällt auch der echte Fall nicht mehr auf.
+  */
+  it('schweigt bei frischer Leistung', async () => {
+    alleScheine = [schein('s1', '2026-08-30')];
+    zeige();
+    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+  });
+
+  it('schweigt, sobald eine Rechnung den Schein trägt', async () => {
+    alleScheine = [schein('s1', '2026-06-01')];
+    rechnungen = [
+      {
+        id: 'r1',
+        invoiceNumber: 'RE-2026-0001',
+        projectNumber: '2026-042',
+        customerName: 'Baumeister Gruber',
+        totalBrutto: 1200,
+        paymentStatus: 'Bezahlt',
+        linkedWorkSheets: ['s1'],
+      } as unknown as Invoice & { id: string },
+    ];
+    zeige();
+    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+  });
+
+  /*
+    DER KERN, und er ist leicht zu übersehen: wer eine Rechnung STORNIERT,
+    nimmt die Forderung zurück — die Leistung steht dann wieder offen.
+    Zählte der Storno als Verrechnung, verschwände genau die Arbeit aus der
+    Liste, die am ehesten vergessen wird.
+  */
+  it('holt den Schein einer stornierten Rechnung zurück', async () => {
+    alleScheine = [schein('s1', '2026-06-01')];
+    rechnungen = [
+      {
+        id: 'r1',
+        invoiceNumber: 'RE-2026-0001',
+        projectNumber: '2026-042',
+        customerName: 'Baumeister Gruber',
+        totalBrutto: 1200,
+        paymentStatus: 'Storniert',
+        linkedWorkSheets: ['s1'],
+      } as unknown as Invoice & { id: string },
+    ];
+    zeige();
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+  });
+
+  it('führt Entwürfe gar nicht — sie sind noch keine Leistung', async () => {
+    alleScheine = [schein('s1', '2026-06-01', { status: 'Entwurf' })];
+    zeige();
+    await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+  });
+
+  it('wählt die Baustelle aus, statt sie abtippen zu lassen', async () => {
+    // Von Hand abzutippen war genau die Reibung, die dazu führt, dass es
+    // liegen bleibt.
+    alleScheine = [schein('s1', '2026-06-01')];
+    zeige();
+    await screen.findByText(/^Nicht verrechnete Leistung/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Baustelle wählen' }));
+    const auswahl = await screen.findByRole<HTMLSelectElement>('combobox', { name: /Baustelle/ });
+    expect(auswahl.value).toBe('2026-042');
   });
 });

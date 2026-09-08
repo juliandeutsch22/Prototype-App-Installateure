@@ -28,6 +28,15 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, LoadingState } from '@/components/States';
 import MaterialErfassen from './MaterialErfassen';
 import { neueKennung, ohneKennung, type MaterialZeile } from './materialZeilen';
+import { komprimiere, fotoHochladen, fotoEntfernen } from '@/lib/db/scheinFotos';
+import {
+  darfFotografieren,
+  nochNichtOben,
+  fuerDenSchein,
+  groesse,
+  MAX_FOTOS,
+  type FotoEntwurf,
+} from './fotos';
 
 /**
  * Handwerksschein erstellen, unterschreiben lassen, einfrieren.
@@ -89,6 +98,20 @@ export default function WorkSheetView() {
   /** Der Lagerkatalog für die Suche beim Eintragen — mehr braucht es hier nicht. */
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [notizen, setNotizen] = useState('');
+  /*
+    Die Kennung des Scheins, an dem gerade gearbeitet wird.
+
+    Beginnt mit dem Entwurf aus der Adresse und wird gesetzt, sobald ein
+    Entwurf entsteht — was das erste Foto auslöst. Fotos brauchen einen Ort im
+    Storage, und der hängt an der Kennung; ohne sie landeten sie in einem
+    Ordner, den später nichts mehr einem Schein zuordnet.
+  */
+  const [scheinId, setScheinId] = useState<string | null>(entwurfId);
+  /** Die Fotos im Formular — hochgeladen oder noch nicht. Immer freiwillig. */
+  const [fotos, setFotos] = useState<FotoEntwurf[]>([]);
+  const [fotoLaeuft, setFotoLaeuft] = useState(false);
+  /** Hat der Monteur die Warnung „Fotos fehlen" schon gesehen? */
+  const [ohneFotosBestaetigt, setOhneFotosBestaetigt] = useState(false);
   const [laden, setLaden] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /**
@@ -396,6 +419,88 @@ export default function WorkSheetView() {
   const bereit =
     !!projekt && monteurGesetzt && kundeGesetzt && kundeName.trim().length > 1;
 
+  /**
+   * Ein Foto aufnehmen: verkleinern, hochladen, ans Formular hängen.
+   *
+   * DER ENTWURF ENTSTEHT HIER, falls es noch keinen gibt. Fotos brauchen
+   * einen Ort im Storage, und der hängt an der Kennung des Scheins; ohne sie
+   * landeten sie in einem Ordner, den später nichts mehr zuordnet. Der
+   * Moment passt auch inhaltlich: wer fotografiert, hat etwas, das er behalten
+   * will.
+   *
+   * SCHEITERT DER UPLOAD, BLEIBT DAS BILD LIEGEN — im Formular, mit einer
+   * Meldung daran. Genau dafür ist `FotoEntwurf.daten` da. Im Keller ohne
+   * Netz ist ein fehlgeschlagener Upload der Normalfall, und ein Bild, das
+   * dabei still verschwindet, wäre die schlechteste aller Antworten.
+   */
+  async function fotoAufnehmen(dateien: FileList | null) {
+    if (!dateien?.length || !user || !projekt) return;
+    const pruefung = darfFotografieren('Entwurf', fotos.length);
+    if (!pruefung.moeglich) {
+      toast.error(pruefung.grund ?? 'Es geht kein weiteres Foto.');
+      return;
+    }
+    setFotoLaeuft(true);
+    try {
+      for (const datei of Array.from(dateien).slice(0, MAX_FOTOS - fotos.length)) {
+        const klein = await komprimiere(datei);
+        const eintrag: FotoEntwurf = {
+          vorschau: URL.createObjectURL(klein),
+          daten: klein,
+          geraetZeit: Date.now(),
+        };
+        setFotos((f) => [...f, eintrag]);
+        try {
+          const id = scheinId ?? (await inhaltSchreiben());
+          const oben = await fotoHochladen(user.companyId, id, klein, eintrag.geraetZeit);
+          setFotos((f) => f.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)));
+        } catch {
+          setFotos((f) =>
+            f.map((x) =>
+              x === eintrag ? { ...x, fehler: 'Nicht hochgeladen — kein Netz?' } : x,
+            ),
+          );
+        }
+      }
+    } catch {
+      toast.error('Das Bild liess sich auf diesem Gerät nicht verarbeiten.');
+    } finally {
+      setFotoLaeuft(false);
+    }
+  }
+
+  /** Einen einzelnen Upload nachholen — der Knopf am fehlgeschlagenen Bild. */
+  async function fotoNachreichen(eintrag: FotoEntwurf) {
+    if (!user || !projekt) return;
+    setFotoLaeuft(true);
+    try {
+      const id = scheinId ?? (await inhaltSchreiben());
+      const oben = await fotoHochladen(user.companyId, id, eintrag.daten, eintrag.geraetZeit);
+      setFotos((f) => f.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)));
+    } catch {
+      setFotos((f) =>
+        f.map((x) => (x === eintrag ? { ...x, fehler: 'Immer noch kein Netz.' } : x)),
+      );
+    } finally {
+      setFotoLaeuft(false);
+    }
+  }
+
+  /**
+   * Ein Foto wieder wegnehmen.
+   *
+   * Aus dem Storage wird es MITGELÖSCHT, wenn es schon oben ist — sonst
+   * sammelte der Bucket über die Jahre die Bilder, die jemand versehentlich
+   * aufgenommen und gleich wieder verworfen hat. Scheitert das Löschen,
+   * verschwindet es trotzdem aus dem Formular: der Monteur wollte es weg
+   * haben, und eine verwaiste Datei im Storage ist sein kleinstes Problem.
+   */
+  async function fotoWegnehmen(eintrag: FotoEntwurf) {
+    setFotos((f) => f.filter((x) => x !== eintrag));
+    URL.revokeObjectURL(eintrag.vorschau);
+    if (eintrag.oben) await fotoEntfernen(eintrag.oben.pfad).catch(() => undefined);
+  }
+
   async function unterschreibenUndEinfrieren() {
     if (!user || !projekt) return;
     // Die Bilder erst JETZT aus den Feldern holen — und beide, bevor
@@ -405,6 +510,25 @@ export default function WorkSheetView() {
     const kundeBild = kundeFeld.current?.bildLesen() ?? null;
     if (!monteurBild || !kundeBild) {
       setError('Die Unterschriften konnten nicht gelesen werden. Bitte noch einmal zeichnen.');
+      return;
+    }
+    /*
+      FOTOS, DIE NOCH NICHT OBEN SIND, WERDEN NICHT STILL FALLEN GELASSEN.
+
+      Sie kommen nicht mit in den Schein — ein Verweis auf eine Datei, die es
+      nicht gibt, wäre schlimmer als kein Verweis. Aber der Monteur erfährt es
+      VORHER und entscheidet: nochmal versuchen, oder ohne. Im Keller ohne
+      Netz ist genau das der Alltag, und ein Bild, das beim Unterschreiben
+      lautlos verschwindet, wäre die schlechteste aller Antworten.
+    */
+    const offen = nochNichtOben(fotos);
+    if (offen.length > 0 && !ohneFotosBestaetigt) {
+      setOhneFotosBestaetigt(true);
+      setError(
+        `${offen.length} ${offen.length === 1 ? 'Foto ist' : 'Fotos sind'} noch nicht ` +
+          'hochgeladen und würden fehlen. Nochmal auf „Nochmal versuchen" tippen — oder ' +
+          'gleich noch einmal unterschreiben, dann geht der Schein ohne sie hinaus.',
+      );
       return;
     }
     setSpeichert(true);
@@ -465,17 +589,25 @@ export default function WorkSheetView() {
       abrechnung: projekt.billingMode ?? 'Regie',
       zeiten,
       material: ohneKennung(material),
+      /*
+        Nur die hochgeladenen. Ein Eintrag für ein Bild, das nicht im Storage
+        liegt, wäre ein Verweis ins Leere — und er ginge in die Prüfsumme ein,
+        die damit einen Beleg zusicherte, den niemand ansehen kann.
+      */
+      fotos: fuerDenSchein(fotos),
       notizen,
     };
-    if (entwurfId) {
-      await updateWorkSheetDraft(entwurfId, inhalt);
-      return entwurfId;
+    if (scheinId) {
+      await updateWorkSheetDraft(scheinId, inhalt);
+      return scheinId;
     }
-    return createWorkSheet(user.companyId, {
+    const neueId = await createWorkSheet(user.companyId, {
       ...inhalt,
       erstelltVonUid: user.uid,
       erstelltVonName: user.name,
     });
+    setScheinId(neueId);
+    return neueId;
   }
 
   async function alsEntwurfSichern() {
@@ -484,7 +616,13 @@ export default function WorkSheetView() {
     setError(null);
     try {
       await inhaltSchreiben();
-      toast.success(entwurfId ? 'Entwurf aktualisiert' : 'Als Entwurf gespeichert');
+      /*
+        Nach `scheinId`, nicht nach der Adresse: seit ein Foto den Entwurf
+        anlegen kann, gibt es ihn womöglich schon, obwohl man ohne
+        `?entwurf=` hereingekommen ist. „Als Entwurf gespeichert" wäre dann
+        die falsche Auskunft.
+      */
+      toast.success(scheinId ? 'Entwurf aktualisiert' : 'Als Entwurf gespeichert');
       navigate('/worksheets');
     } catch {
       setError('Der Entwurf konnte nicht gespeichert werden.');
@@ -688,6 +826,88 @@ export default function WorkSheetView() {
 
           <Card title="Unterschriften">
             {/*
+              FOTOS — FREIWILLIG, und das steht auch da.
+
+              Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
+              Firestore hält einen Schreibvorgang offline vor, Firebase
+              Storage tut das nicht. Wäre ein Foto Bedingung, hinge der ganze
+              Beleg an einem Balken Empfang — und der Monteur stünde mit einem
+              Kunden vor sich da, der unterschreiben will.
+
+              Der Abschnitt erscheint erst mit einer gewählten Baustelle: ein
+              Foto ohne Schein hat keinen Ort, an den es gehört.
+            */}
+            {projekt && (
+              <div className="mt-6">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium text-ink">
+                    Fotos <span className="text-ink-muted">(freiwillig)</span>
+                  </h3>
+                  <label className="cursor-pointer text-sm text-accent underline">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      multiple
+                      className="sr-only"
+                      disabled={fotoLaeuft || fotos.length >= MAX_FOTOS}
+                      onChange={(e) => {
+                        void fotoAufnehmen(e.target.files);
+                        // Zurücksetzen, sonst löst dieselbe Datei kein
+                        // zweites Mal aus — der Monteur tippt und nichts tut sich.
+                        e.target.value = '';
+                      }}
+                    />
+                    {fotoLaeuft ? 'Wird verarbeitet …' : 'Foto aufnehmen oder wählen'}
+                  </label>
+                </div>
+                <p className="mt-1 text-xs text-ink-muted">
+                  Höchstens {MAX_FOTOS}. Sie werden am Gerät verkleinert und gehen in die
+                  Prüfsumme des Scheins ein — ein später ausgetauschtes Bild fällt damit auf.
+                  Ohne Netz lassen sie sich nicht hochladen; der Schein selbst schon.
+                </p>
+                {fotos.length > 0 && (
+                  <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {fotos.map((f) => (
+                      <li key={f.vorschau} className="relative">
+                        <img
+                          src={f.vorschau}
+                          alt="Aufnahme vom Einsatz"
+                          className="aspect-square w-full rounded-sm border border-line object-cover"
+                        />
+                        <button
+                          type="button"
+                          aria-label="Foto entfernen"
+                          title="Foto entfernen"
+                          onClick={() => void fotoWegnehmen(f)}
+                          className="absolute right-1 top-1 rounded-sm bg-surface/90 px-1 text-sm text-danger"
+                        >
+                          ✕
+                        </button>
+                        {f.oben ? (
+                          <p className="mt-1 text-xs text-ink-muted">{groesse(f.oben.bytes)}</p>
+                        ) : (
+                          <p className="mt-1 text-xs text-warning">
+                            {f.fehler ?? 'Wird hochgeladen …'}
+                            {f.fehler && (
+                              <button
+                                type="button"
+                                onClick={() => void fotoNachreichen(f)}
+                                className="ml-1 underline"
+                              >
+                                Nochmal versuchen
+                              </button>
+                            )}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/*
               Name in Druckbuchstaben NEBEN dem Strich. Eine Unterschrift ohne
               zuordenbaren Namen ist im Streitfall wenig wert — beim Kunden ist
               das Feld deshalb Pflicht.
@@ -771,7 +991,7 @@ export default function WorkSheetView() {
                 disabled={!projekt || entwurfLaedt}
                 className="w-full sm:w-auto"
               >
-                {entwurfId ? 'Entwurf aktualisieren' : 'Als Entwurf speichern'}
+                {scheinId ? 'Entwurf aktualisieren' : 'Als Entwurf speichern'}
               </Button>
             </div>
             {!bereit && projectNumber && (

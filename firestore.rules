@@ -445,8 +445,24 @@ service cloud.firestore {
           && request.resource.data.status == 'Storniert'
           && request.resource.data.zeiten == resource.data.zeiten
           && request.resource.data.material == resource.data.material
-          && request.resource.data.notizen == resource.data.notizen
-          && request.resource.data.unterschriften == resource.data.unterschriften;
+          // Durchgehend `get` mit Standardwert. Ein direkter Zugriff auf ein
+          // FEHLENDES Feld bricht die Regel ab — und `notizen` ist optional.
+          // Ein unterschriebener Schein ohne Notiz liess sich damit nie
+          // stornieren, ohne dass irgendetwas gesagt haette, warum. Beim
+          // Vergleich zweier vorhandener Felder aendert sich nichts.
+          && request.resource.data.get('notizen', '') == resource.data.get('notizen', '')
+          && request.resource.data.get('unterschriften', {}) == resource.data.get('unterschriften', {})
+          // Die Fotoliste gehoert zum eingefrorenen Inhalt: ihre Pfade und
+          // Inhalts-Hashes sind das einzige, was ein spaeter ausgetauschtes
+          // Bild im Storage auffliegen laesst. Waere sie beim Storno
+          // aenderbar, liesse sich genau dieser Nachweis stillschweigend
+          // umschreiben.
+          //
+          // `get` mit Standardwert, nicht der direkte Zugriff: Scheine aus
+          // der Zeit vor den Fotos tragen das Feld gar nicht, und ein
+          // Zugriff auf ein fehlendes Feld bricht die Regel ab — der Storno
+          // eines Altbelegs waere damit unmoeglich geworden.
+          && request.resource.data.get('fotos', []) == resource.data.get('fotos', []);
       }
       function nurWiederAufnehmen() {
         // Der einzige Rueckweg, und er fasst den Inhalt nicht an: ausser dem

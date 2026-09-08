@@ -20,8 +20,11 @@ abtippt. Der Kreis ist an zwei Stellen offen.
 Reihenfolge nach Wirkung je Aufwand:
 
 1. **Kundenstammdaten** — ERLEDIGT, siehe unten.
-2. **Digitaler Handwerksschein** — Stufe 1 ERLEDIGT, siehe unten. Stufen 2
-   bis 4 (Fotos, Versand, Verbindung zur Rechnung) stehen im Fahrplan.
+2. **Digitaler Handwerksschein** — Stufen 1, 2 und 4 ERLEDIGT, siehe unten.
+   Offen bleibt Stufe 3 (automatischer Versand): sie braucht einen
+   Mailanbieter und ein Geheimnis in der Function, was nur der Betrieb selbst
+   einrichten kann. Der Fallback — das PDF vom Gerät aus teilen — steht seit
+   Stufe 1 und trägt den Alltag ohnehin besser.
 3. **Buchhaltungs-Übergabe** — ERLEDIGT, siehe unten. *Weiterhin vorab zu
    klären:* ob der Betrieb Barumsätze hat — dann wäre die
    Registrierkassenpflicht ein eigenes Thema.
@@ -1113,6 +1116,109 @@ Geprüft: neun Tests plus der Durchlauf im Browser — der Zustand ohne
 Kostensätze, das Setzen (Deckungsbeitrag 23,00 € je Stunde bei 65 gegen 42),
 und alle drei Erlösquellen nebeneinander.
 
+## Erledigt: Handwerksschein Stufe 2 und 4 (08.09.2026)
+
+### Stufe 2 — Fotos, und zwar freiwillig
+
+Der Schein sagt, was gemacht wurde; das Foto sagt, wie es aussah. Bei einem
+Wasserschaden im Keller, einer verkalkten Therme oder einer Leitung, die
+hinter der Wand anders lag als geplant, ist das Bild das einzige, was sich
+später nicht wegdiskutieren lässt.
+
+**Sie sind freiwillig, und das ist eine Entscheidung, keine Sparsamkeit.**
+Firestore hält einen Schreibvorgang offline vor und schickt ihn nach; Firebase
+Storage tut das NICHT. Wäre auch nur ein Foto Bedingung, hinge der ganze Beleg
+an einem Balken Empfang — und der Monteur stünde mit einem Kunden vor sich da,
+der unterschreiben will.
+
+Was die App stattdessen tut: sie sagt VOR dem Unterschreiben, wenn ein Bild
+noch nicht oben ist. Das Bild bleibt im Formular liegen, mit einem Knopf zum
+Nachreichen; erst der zweite Griff auf „Unterschreiben" geht ohne es hinaus.
+Ein Bild, das dabei still verschwindet, wäre die schlechteste aller Antworten.
+
+**Die Beweiskraft hängt an einem Umweg.** Die Prüfsumme des Scheins sieht nur
+Firestore, nicht die Bilddatei im Storage. Ohne Gegenmassnahme liesse sich das
+Bild nach der Unterschrift austauschen, ohne dass irgendetwas auffiele — der
+Beleg wäre genau dort löcherig, wo er beweisen soll. Deshalb bildet der Client
+beim Hochladen einen **Inhalts-Hash**, der im Schein steht und in die
+Prüfsumme eingeht. Er ist zugleich der Dateiname: dasselbe Bild landet damit
+immer am selben Ort, und ein wiederholter Upload nach einem Abbruch schreibt
+dorthin, wo der erste hinwollte, statt eine halbe Leiche zurückzulassen.
+
+Weiteres, das dazugehört:
+
+- **Verkleinert wird am Gerät** — längere Kante 1600 Bildpunkte, JPEG 0,72.
+  Aus vier Megabyte werden ein paar hundert Kilobyte. Das Original hochzuladen
+  wäre auf einer Baustelle mit halbem Balken keine Übertragung, sondern ein
+  Abbruch. Die EXIF-Drehung wird dabei berücksichtigt, sonst läge jedes
+  iPhone-Hochformat im Beleg auf der Seite.
+- **Das Storage-SDK wird erst beim ersten Foto geladen.** Es ist ein eigenes
+  Bündel; die meisten Aufrufe dieser App kommen nie in die Nähe eines Fotos.
+- **Höchstens acht je Schein.** Nicht aus technischer Not — ein Beleg mit
+  dreissig Bildern hilft niemandem.
+- **Storage-Regeln** neu: nur der eigene Mandant, nur Bilder, höchstens 2 MB,
+  alles andere zu. Überschreiben ist erlaubt, damit ein abgebrochener Upload
+  wiederholbar bleibt; der Schutz gegen das Austauschen sitzt im Hash.
+- **Im PDF stehen die Fotos nicht.** Eingebettet wüchse es um ein bis zwei
+  Megabyte je Bild — und erzeugt wird es auf dem Gerät des Monteurs, um dort
+  geteilt zu werden. Ein Beleg, der sich nicht verschicken lässt, ist kein
+  Beleg. Er nennt stattdessen ihre Zahl; die Bilder stehen in der Scheinliste,
+  mit dem Hash daneben.
+
+> **Eine Regel musste dabei nachgezogen werden.** `nurStorno()` vergleicht die
+> Felder, die sich beim Stornieren NICHT ändern dürfen. Die Fotoliste gehörte
+> dazu, sonst liesse sich der Nachweis beim Storno stillschweigend
+> umschreiben. Dabei fiel eine ältere Schwäche auf: die Regel las `notizen`
+> und `unterschriften` direkt, und ein Zugriff auf ein FEHLENDES Feld bricht
+> in Firestore-Regeln ab — ein unterschriebener Schein ohne Notiz liess sich
+> also nie stornieren, ohne dass irgendetwas gesagt hätte, warum. Jetzt steht
+> überall `get` mit Standardwert.
+
+### Stufe 4 — was noch auf keiner Rechnung steht
+
+Die Verbindung zur Rechnung war zur Hälfte schon da: die Rechnung merkt sich,
+welche Scheine sie verbraucht hat. Gelesen wurde das nur, um beim
+Zusammenstellen der nächsten nichts doppelt zu verrechnen.
+
+**Die Umkehrung fehlte, und sie ist die betrieblich wichtigere.** Niemand
+konnte sagen, welche unterschriebene Leistung noch auf keiner Rechnung steht.
+Das ist kein Buchhaltungsfehler, den man später sieht — es ist Geld, das
+schlicht nie eingefordert wird, und im Handwerk der klassische Weg, wie ein
+gut ausgelasteter Betrieb trotzdem knapp bei Kasse ist.
+
+Jetzt steht das in den Rechnungen als eigene Karte, älteste zuerst, mit einem
+Knopf, der die Baustelle oben auswählt. Von Hand abzutippen war genau die
+Reibung, die dazu führt, dass es liegen bleibt.
+
+**Erst ab vier Wochen.** Ein Schein von vorgestern gehört nicht gemeldet —
+zwischen Einsatz und Rechnung liegt regelmässig ein Monatsabschluss, und eine
+Liste, die das anmahnt, sieht sich nach zwei Wochen niemand mehr an.
+
+**Ein Storno gibt die Scheine wieder frei.** Wer eine Rechnung storniert,
+nimmt die Forderung zurück; die Leistung steht dann wieder offen. Zählte der
+Storno als Verrechnung, verschwände genau die Arbeit aus der Liste, die am
+ehesten vergessen wird.
+
+### Stufe 3 bleibt offen, und der Grund gehört genannt
+
+Der automatische Versand braucht einen Mailanbieter, ein hinterlegtes Konto
+und ein Geheimnis in der Function — Dinge, die nur der Betrieb selbst
+einrichten kann. **Der Fallback steht seit Stufe 1 und trägt den Alltag
+ohnehin besser:** das PDF wird vom Gerät aus geteilt, per Mail oder Messenger,
+ohne dass eine Adresse hinterlegt sein muss. Genau daran scheitert
+automatischer Versand in der Praxis — die Adresse hat vor Ort niemand zur
+Hand.
+
+Was ein automatischer Versand zusätzlich brächte, ist der Nachweis, DASS und
+WANN verschickt wurde. Das ist ein echter Gewinn und der Grund, warum die
+Stufe im Fahrplan bleibt; ohne Zugangsdaten ist sie von hier aus aber nicht zu
+bauen, und eine halbe Fassung mit einem erfundenen Absender wäre schlimmer als
+keine.
+
+Geprüft: 20 Rechen-Tests zu den Fotos, 9 zur unverrechneten Leistung, 9 in der
+Scheinansicht, 4 in der Scheinliste, 6 in den Rechnungen, 3 gegen den
+Emulator — und 26 absichtlich kaputte Fassungen, die alle aufgefallen sind.
+
 ## Erledigt: Zwei Lücken, die die Übersicht selbst benannt hat (07.09.2026)
 
 In der Funktionsübersicht standen sie seit Monaten als offen: **Nebenläufigkeit**
@@ -1535,17 +1641,21 @@ Papierschein vollständig. Die Unterschriftsbilder passen als PNG (~10 KB)
 direkt ins Dokument — **Stufe 1 braucht kein Firebase Storage**, das spart ein
 ganzes Subsystem.
 
-**Stufe 2 — Fotos.** Storage ist im Projekt bisher gar nicht eingerichtet:
-eigene Rules, clientseitige Komprimierung (Handyfotos sind 3–5 MB),
-Offline-Upload. Die teuerste Einzelposition — und die am wenigsten kritische.
+**Stufe 2 — Fotos. ERLEDIGT am 08.09.2026**, siehe oben. Storage eingerichtet,
+eigene Rules, Komprimierung am Gerät, Inhalts-Hash in der Prüfsumme. Der
+Offline-Upload ist NICHT gebaut und wird es auch nicht: Storage kennt keine
+Warteschlange, und eine selbstgebaute wäre ein Subsystem für einen Zweck, den
+die Freiwilligkeit besser löst. Die Fotos sind optional, und wenn eines nicht
+hochgeht, sagt die App es vor dem Unterschreiben.
 
 **Stufe 3 — automatischer Versand.** Mailanbieter, Function, Secrets. Dazu ein
 Fallback, weil der Kunde oft keine E-Mail-Adresse dabeihat: PDF direkt teilen
 oder QR-Code. Ans Büro geht es immer.
 
-**Stufe 4 — Verbindung zur Rechnung.** Die Rechnung verweist auf
-unterschriebene Scheine; die Buchhaltung sieht, welche Regiestunden gedeckt
-sind. Erst hier wird aus dem Schein Geld.
+**Stufe 4 — Verbindung zur Rechnung. ERLEDIGT am 08.09.2026**, siehe oben. Die
+Rechnung verwies schon immer auf die verbrauchten Scheine; neu ist die
+Umkehrung — welche unterschriebene Leistung noch auf KEINER Rechnung steht.
+Das ist die Hälfte, an der im Handwerk das Geld hängen bleibt.
 
 ## Wartet auf eine Entscheidung
 

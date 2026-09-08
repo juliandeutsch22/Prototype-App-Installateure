@@ -8,6 +8,7 @@ import {
   restoreWorkSheetDraft,
 } from '@/lib/db/workSheets';
 import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
+import Fotostreifen from './Fotostreifen';
 import { isGF, canWriteWorkSheet } from '@/lib/permissions';
 import { fmtMin } from '@/lib/time';
 import type { WorkSheet } from '@/types';
@@ -255,6 +256,20 @@ export default function WorkSheetsListView() {
                             <>
                               <span className="section-label mt-3 block">Anmerkungen</span>
                               <span className="mt-1 block text-sm text-ink">{s.notizen}</span>
+                            </>
+                          )}
+                          {/*
+                            DIE FOTOS. Sie liegen in Firebase Storage und
+                            werden erst beim Aufklappen geholt — eine Liste,
+                            die beim Öffnen zwanzig Bilder nachlädt, ist auf
+                            einer Baustelle keine Liste mehr.
+                          */}
+                          {s.fotos && s.fotos.length > 0 && (
+                            <>
+                              <span className="section-label mt-3 block">
+                                Fotos ({s.fotos.length})
+                              </span>
+                              <Fotostreifen fotos={s.fotos} />
                             </>
                           )}
                           {/*

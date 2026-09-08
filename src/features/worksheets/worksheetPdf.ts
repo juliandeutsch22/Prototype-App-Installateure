@@ -162,6 +162,30 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     y += 45;
   }
 
+  /*
+    FOTOS WERDEN GENANNT, NICHT EINGEBETTET.
+
+    Eingebettet würde das PDF um ein bis zwei Megabyte je Bild wachsen — und
+    erzeugt wird es auf dem Gerät des Monteurs, meist auf einer Baustelle, um
+    dort geteilt zu werden. Ein Beleg, der sich nicht verschicken lässt, ist
+    kein Beleg.
+
+    Der Nachweis leidet nicht darunter: die Prüfsumme des Scheins deckt die
+    Fotoliste samt Inhalts-Hashes mit ab, und der Betrieb sieht die Bilder in
+    der Scheinliste. Wer eines vorlegen muss, holt es dort — mit dem Hash
+    daneben, der belegt, dass es dasselbe ist.
+  */
+  if (schein.fotos?.length) {
+    doc.setFontSize(9).setTextColor(60, 60, 60);
+    doc.text(
+      `${schein.fotos.length} ${schein.fotos.length === 1 ? 'Foto' : 'Fotos'} zu diesem Schein — ` +
+        'beim Betrieb hinterlegt, von der Prüfsumme mit erfasst.',
+      rand,
+      y,
+    );
+    y += 8;
+  }
+
   doc.setFontSize(7).setTextColor(120, 120, 120);
   const fuss = schein.inhaltHash
     ? `Prüfsumme (SHA-256): ${schein.inhaltHash}`

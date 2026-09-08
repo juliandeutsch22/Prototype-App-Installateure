@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { forwardRef, useImperativeHandle } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -88,6 +89,50 @@ vi.mock('@/lib/db/workSheets', () => ({
   signWorkSheet: () => signWorkSheet(),
   listWorkSheetsForProject: () => listWorkSheetsForProject(),
 }));
+/*
+  Die Foto-Schicht. Sie kapselt Canvas und Firebase Storage — beides gibt es
+  in jsdom nicht, und beides ist nicht das, was hier geprüft wird. Geprüft
+  wird, was die Ansicht damit MACHT: dass sie den Entwurf anlegt, das Bild
+  anhängt, einen gescheiterten Upload stehen lässt statt ihn zu verschlucken,
+  und vor dem Unterschreiben warnt.
+*/
+const komprimiere = vi.fn(async (b: Blob) => b);
+const fotoHochladen = vi.fn<[string, string, Blob, number], Promise<unknown>>(async () => ({
+  pfad: 'scheine/perl/s1/aaa.jpg',
+  hash: 'aaa',
+  bytes: 340_000,
+  geraetZeit: 1,
+}));
+const fotoEntfernen = vi.fn<[string], Promise<void>>(async () => undefined);
+vi.mock('@/lib/db/scheinFotos', () => ({
+  komprimiere: (b: Blob) => komprimiere(b),
+  fotoHochladen: (c: string, s: string, b: Blob, z: number) => fotoHochladen(c, s, b, z),
+  fotoEntfernen: (p: string) => fotoEntfernen(p),
+}));
+
+/*
+  Das Unterschriftsfeld zeichnet auf ein Canvas — in jsdom gibt es keins. Der
+  Doppelgänger bietet stattdessen einen Knopf je Feld an und liefert ein
+  festes Bild zurück. Geprüft wird hier ohnehin nicht das Zeichnen (dafür gibt
+  es `SignaturePad.test.tsx`), sondern was die Ansicht mit dem Ergebnis tut.
+*/
+vi.mock('@/components/SignaturePad', () => ({
+  default: forwardRef<
+    { bildLesen: () => string | null; leeren: () => void },
+    { titel: string; onChange?: (gesetzt: boolean) => void }
+  >(function Feld({ titel, onChange }, ref) {
+    useImperativeHandle(ref, () => ({
+      bildLesen: () => 'data:image/png;base64,AAAA',
+      leeren: () => undefined,
+    }));
+    return (
+      <button type="button" onClick={() => onChange?.(true)}>
+        {titel} zeichnen
+      </button>
+    );
+  }),
+}));
+
 const callScheinVorbereiten = vi.fn(async () => ({ data: { zeiten: [] } }));
 vi.mock('@/lib/functions', () => ({
   callScheinVorbereiten: () => callScheinVorbereiten(),
@@ -114,6 +159,13 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 const { default: WorkSheetView } = await import('@/features/worksheets/WorkSheetView');
 
+/** Beide Unterschriften setzen — der Doppelgänger oben macht daraus einen Klick. */
+function unterschreiben() {
+  for (const knopf of screen.getAllByRole('button', { name: /zeichnen$/ })) {
+    knopf.click();
+  }
+}
+
 function zeichne(adresse = '/worksheet') {
   return render(
     <MemoryRouter initialEntries={[adresse]}>
@@ -133,6 +185,14 @@ beforeEach(() => {
   createWorkSheet.mockClear().mockResolvedValue('s1');
   updateWorkSheetDraft.mockClear();
   signWorkSheet.mockClear();
+  komprimiere.mockClear().mockImplementation(async (b: Blob) => b);
+  fotoHochladen.mockClear().mockResolvedValue({
+    pfad: 'scheine/perl/s1/aaa.jpg',
+    hash: 'aaa',
+    bytes: 340_000,
+    geraetZeit: 1,
+  });
+  fotoEntfernen.mockClear();
   /*
     `mockClear` allein raeumt die IMPLEMENTIERUNG nicht weg.
 
@@ -571,5 +631,158 @@ describe('Handwerksschein', () => {
     expect(await screen.findByText(/^Zum Abschließen fehlen:/)).toHaveTextContent(
       'Unterschrift Monteur, Unterschrift Kunde, Name des Kunden',
     );
+  });
+});
+
+/**
+ * Fotos am Schein — freiwillig, und das ist keine Sparsamkeit.
+ *
+ * Der Schein muss im Keller ohne Netz unterschreibbar bleiben: Firestore hält
+ * einen Schreibvorgang offline vor, Firebase Storage tut das NICHT. Wäre auch
+ * nur ein Foto Bedingung, hinge der ganze Beleg an einem Balken Empfang — und
+ * der Monteur stünde mit einem Kunden vor sich da, der unterschreiben will.
+ */
+describe('Fotos', () => {
+  const bild = () => new File([new Uint8Array([1, 2, 3])], 'foto.jpg', { type: 'image/jpeg' });
+
+  async function fotoWaehlen(nutzer: ReturnType<typeof userEvent.setup>) {
+    // Erst wenn die Baustelle steht, gibt es den Abschnitt: ein Foto ohne
+    // Schein hat keinen Ort, an den es gehört.
+    await screen.findByText(/^Fotos/);
+    const feld = screen.getByLabelText(/Foto aufnehmen oder wählen/);
+    await nutzer.upload(feld, bild());
+  }
+
+  /*
+    DER ENTWURF ENTSTEHT MIT DEM ERSTEN FOTO. Ein Bild braucht einen Ort im
+    Storage, und der hängt an der Kennung des Scheins; ohne sie landete es in
+    einem Ordner, den später nichts mehr zuordnet.
+  */
+  it('legt den Entwurf an und hängt das Bild daran', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+
+    await waitFor(() => expect(fotoHochladen).toHaveBeenCalled());
+    expect(createWorkSheet).toHaveBeenCalled();
+    // Mandant und Schein-Kennung — in dieser Reihenfolge, sonst greift die
+    // Storage-Regel an der falschen Stelle.
+    expect(fotoHochladen.mock.calls[0][0]).toBe('perl');
+    expect(fotoHochladen.mock.calls[0][1]).toBe('s1');
+  });
+
+  it('verkleinert vor dem Hochladen', async () => {
+    // Ein Handyfoto ist drei bis fünf Megabyte. Auf einer Baustelle mit
+    // halbem Balken ist das keine Übertragung, sondern ein Abbruch.
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+    await waitFor(() => expect(komprimiere).toHaveBeenCalled());
+  });
+
+  it('schreibt das Foto in den Schein', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+    await waitFor(() => expect(fotoHochladen).toHaveBeenCalled());
+
+    await nutzer.click(screen.getByRole('button', { name: 'Entwurf aktualisieren' }));
+    await waitFor(() => expect(updateWorkSheetDraft).toHaveBeenCalled());
+    expect(updateWorkSheetDraft.mock.calls[updateWorkSheetDraft.mock.calls.length - 1][1].fotos).toEqual([
+      { pfad: 'scheine/perl/s1/aaa.jpg', hash: 'aaa', bytes: 340_000, geraetZeit: 1 },
+    ]);
+  });
+
+  /*
+    EIN GESCHEITERTER UPLOAD VERSCHWINDET NICHT. Im Keller ohne Netz ist er
+    der Normalfall. Das Bild bleibt im Formular stehen, mit einer Meldung und
+    einem Knopf — ein Bild, das dabei still verschwindet, wäre die
+    schlechteste aller Antworten.
+  */
+  it('lässt ein Bild ohne Netz stehen und bietet es erneut an', async () => {
+    fotoHochladen.mockRejectedValueOnce(new Error('offline'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+
+    expect(await screen.findByText(/Nicht hochgeladen/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nochmal versuchen' })).toBeInTheDocument();
+  });
+
+  it('reicht es nach, wenn wieder Netz da ist', async () => {
+    fotoHochladen.mockRejectedValueOnce(new Error('offline'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+
+    await nutzer.click(await screen.findByRole('button', { name: 'Nochmal versuchen' }));
+    await waitFor(() =>
+      expect(screen.queryByText(/Nicht hochgeladen/)).not.toBeInTheDocument(),
+    );
+  });
+
+  /*
+    UND ER WIRD BEIM UNTERSCHREIBEN GENANNT. Das nicht hochgeladene Bild kommt
+    nicht in den Schein — ein Verweis auf eine Datei, die es nicht gibt, wäre
+    schlimmer als kein Verweis. Aber der Monteur erfährt es VORHER und
+    entscheidet.
+  */
+  it('warnt vor dem Unterschreiben, wenn ein Bild noch nicht oben ist', async () => {
+    fotoHochladen.mockRejectedValue(new Error('offline'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+    await screen.findByText(/Nicht hochgeladen/);
+
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
+    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+
+    expect(await screen.findByText(/noch nicht.*hochgeladen/i)).toBeInTheDocument();
+    expect(signWorkSheet).not.toHaveBeenCalled();
+  });
+
+  it('unterschreibt beim zweiten Tippen trotzdem — ohne das Bild', async () => {
+    // Die Entscheidung liegt beim Monteur, nicht bei der App. Ein Schein, der
+    // sich ohne Netz nicht abschliessen lässt, ist unbrauchbar.
+    fotoHochladen.mockRejectedValue(new Error('offline'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+    await screen.findByText(/Nicht hochgeladen/);
+
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
+    const knopf = screen.getByRole('button', { name: 'Unterschreiben und abschließen' });
+    await nutzer.click(knopf);
+    await screen.findByText(/noch nicht.*hochgeladen/i);
+    await nutzer.click(knopf);
+
+    await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
+    expect(updateWorkSheetDraft.mock.calls[updateWorkSheetDraft.mock.calls.length - 1][1].fotos).toEqual([]);
+  });
+
+  it('nimmt ein Bild wieder weg — auch aus dem Storage', async () => {
+    // Sonst sammelte der Bucket über die Jahre alles, was jemand versehentlich
+    // aufgenommen und gleich wieder verworfen hat.
+    const nutzer = userEvent.setup();
+    zeichne();
+    await fotoWaehlen(nutzer);
+    await waitFor(() => expect(fotoHochladen).toHaveBeenCalled());
+
+    await nutzer.click(screen.getByRole('button', { name: 'Foto entfernen' }));
+    await waitFor(() => expect(fotoEntfernen).toHaveBeenCalledWith('scheine/perl/s1/aaa.jpg'));
+  });
+
+  it('unterschreibt ganz ohne Fotos ohne jede Nachfrage', async () => {
+    // Der Regelfall. Ein Schein ohne Fotos ist vollständig.
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Verbautes Material/);
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
+    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+
+    await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
   });
 });
