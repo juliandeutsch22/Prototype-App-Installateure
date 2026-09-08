@@ -65,6 +65,22 @@ interface Props {
    * am Telefon zählt jeder gesparte Griff.
    */
   lastEntry?: TimeEntry;
+  /**
+   * Vorbelegung von der aufrufenden Ansicht — heute der offene Nachtrag zu
+   * einem unterschriebenen Handwerksschein.
+   *
+   * ALS PROP UND NICHT NUR ÜBER DEN ROUTER, weil das Formular auf DERSELBEN
+   * Seite steht wie der Hinweis. Ein Umweg über die Adresszeile bedeutete,
+   * die Seite ihrer selbst wegen neu zu laden — und der Monteur verlöre dabei
+   * seine Scrollposition und einen bereits halb getippten Eintrag.
+   */
+  vorbelegung?: {
+    date?: string;
+    projectNumber?: string;
+    startTime?: string;
+    endTime?: string;
+    breakDuration?: number;
+  } | null;
 }
 
 /** Formular zur manuellen Zeiterfassung (portiert aus der Legacy-Zeitform). */
@@ -75,30 +91,47 @@ export default function TimeForm({
   ownerRole,
   staff,
   lastEntry,
+  vorbelegung,
 }: Props) {
   const { user } = useAuth();
   const toast = useToast();
   // Vorbelegung aus dem Einsatzplan ("Zeit erfassen" am geplanten Einsatz).
   // Wichtig vor allem für asHelper: ein vergessener Haken führt zum falschen
   // Stundensatz auf der Rechnung.
-  const prefill = (useLocation().state ?? null) as {
+  const ausRouter = (useLocation().state ?? null) as {
     projectNumber?: string;
     asHelper?: boolean;
   } | null;
+  /*
+    Die Vorbelegung der aufrufenden Ansicht geht VOR der aus dem Router: sie
+    ist die frischere Absicht. Beim Bearbeiten eines bestehenden Eintrags
+    zählt ohnehin nur `entry` — dessen Werte stehen unten überall zuerst.
+  */
+  const prefill = vorbelegung ?? ausRouter;
+  /*
+    `asHelper` kommt ausschliesslich aus dem Einsatzplan. Der Nachtrag setzt
+    ihn bewusst NICHT: ob jemand als Helfer gearbeitet hat, steht zwar auf dem
+    Schein, aber je ZEILE — und der Eintrag deckt den ganzen Tag ab. Ihn hier
+    zu raten hiesse, den Stundensatz einer ganzen Buchung aus einer einzelnen
+    Zeile abzuleiten.
+  */
+  const asHelperVorschlag = vorbelegung ? undefined : ausRouter?.asHelper;
   const [projects, setProjects] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const isEdit = !!entry;
 
-  const [date, setDate] = useState(entry?.date ?? todayStr());
+  const [date, setDate] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   const [status, setStatus] = useState<TimeEntry['status']>(entry?.status ?? 'Anwesend');
-  const [startTime, setStartTime] = useState(entry?.startTime || '07:00');
-  const [endTime, setEndTime] = useState(entry?.endTime || '16:00');
-  const [breakDuration, setBreakDuration] = useState(String(entry?.breakDuration ?? 30));
+  const [startTime, setStartTime] = useState(entry?.startTime || vorbelegung?.startTime || '07:00');
+  const [endTime, setEndTime] = useState(entry?.endTime || vorbelegung?.endTime || '16:00');
+  const [breakDuration, setBreakDuration] = useState(
+    String(entry?.breakDuration ?? vorbelegung?.breakDuration ?? 30),
+  );
   const [travelTime, setTravelTime] = useState(String(entry?.travelTime ?? 0));
   const [projectNumber, setProjectNumber] = useState(entry?.projectNumber ?? prefill?.projectNumber ?? '');
   const [comment, setComment] = useState(entry?.comment ?? '');
-  const [isHelper, setIsHelper] = useState(entry?.isHelper ?? prefill?.asHelper ?? false);
+  const [isHelper, setIsHelper] = useState(entry?.isHelper ?? asHelperVorschlag ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
   // Zuschläge werden bewusst gesetzt, nicht aus der Uhrzeit geraten: ob ein
   // Einsatz als Nachtarbeit oder Notdienst gilt, entscheidet die Vereinbarung

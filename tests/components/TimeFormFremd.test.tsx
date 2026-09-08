@@ -145,3 +145,63 @@ describe('Zeit für einen Mitarbeiter erfassen', () => {
     expect(eintraegeAmTag).toHaveBeenCalledWith('perl', CHEFIN);
   });
 });
+
+/**
+ * Die Vorbelegung aus einem offenen Nachtrag.
+ *
+ * Der Monteur hat beim Kunden einen Schein unterschreiben lassen und die Zeit
+ * dort eingetragen. In der Zeiterfassung steht sie noch nicht. „Zeit
+ * nachtragen" öffnet dieses Formular mit Datum, Baustelle und Spanne vom
+ * Schein — abtippen ist genau die Reibung, an der das Nachtragen scheitert.
+ */
+describe('Vorbelegung aus einem offenen Nachtrag', () => {
+  const nachtrag = {
+    date: '2026-08-31',
+    projectNumber: '2026-042',
+    startTime: '08:00',
+    endTime: '11:00',
+    breakDuration: 15,
+  };
+
+  it('übernimmt Datum, Von, Bis und Pause', async () => {
+    zeichne({ vorbelegung: nachtrag });
+
+    expect(await screen.findByLabelText<HTMLInputElement>(/Datum/)).toHaveValue('2026-08-31');
+    expect(screen.getByLabelText<HTMLInputElement>(/^Von/)).toHaveValue('08:00');
+    expect(screen.getByLabelText<HTMLInputElement>(/^Bis/)).toHaveValue('11:00');
+    // Zahlenfeld: der Vergleichswert ist eine Zahl, keine Zeichenkette.
+    expect(screen.getByLabelText<HTMLInputElement>(/Pause/)).toHaveValue(15);
+  });
+
+  /*
+    OHNE VORBELEGUNG BLEIBT ALLES WIE BISHER. Der Regelfall ist die eigene
+    Buchung am Feierabend, und die soll auf dem gewohnten Stand starten.
+  */
+  it('lässt das Formular ohne Nachtrag unverändert', async () => {
+    zeichne();
+    expect(await screen.findByLabelText<HTMLInputElement>(/^Von/)).toHaveValue('07:00');
+    expect(screen.getByLabelText<HTMLInputElement>(/^Bis/)).toHaveValue('16:00');
+  });
+
+  /*
+    BEIM BEARBEITEN GEWINNT DER EINTRAG. Sonst überschriebe ein Nachtrag die
+    Werte einer bestehenden Buchung, die gerade jemand korrigiert — und zwar
+    unbemerkt, weil beide Zahlen plausibel aussehen.
+  */
+  it('lässt einen bestehenden Eintrag in Ruhe', async () => {
+    const eintrag = {
+      id: 'e1',
+      companyId: 'perl',
+      userId: 'u1',
+      date: '2026-07-01',
+      status: 'Anwesend',
+      startTime: '06:30',
+      endTime: '15:00',
+      breakDuration: 45,
+    } as TimeEntry & { id: string };
+
+    zeichne({ entry: eintrag, vorbelegung: nachtrag });
+    expect(await screen.findByLabelText<HTMLInputElement>(/Datum/)).toHaveValue('2026-07-01');
+    expect(screen.getByLabelText<HTMLInputElement>(/^Von/)).toHaveValue('06:30');
+  });
+});
