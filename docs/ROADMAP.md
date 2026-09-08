@@ -1113,6 +1113,50 @@ Geprüft: neun Tests plus der Durchlauf im Browser — der Zustand ohne
 Kostensätze, das Setzen (Deckungsbeitrag 23,00 € je Stunde bei 65 gegen 42),
 und alle drei Erlösquellen nebeneinander.
 
+## Erledigt: Der Mahnlauf (07.09.2026)
+
+Das Mahnen gab es schon — als Menüpunkt an der einzelnen Rechnung. Die Stufen
+stimmten, die Belege stimmten. **Nur kam niemand dorthin.**
+
+Wer wissen wollte, was zu mahnen ist, filterte die Rechnungsliste auf
+„Überfällig", ging sie von oben nach unten durch, öffnete an jeder Zeile das
+Menü und prüfte im Kopf, ob die dritte Mahnung schon draussen war. Genau daran
+bleibt Mahnwesen in kleinen Betrieben liegen: nicht das Schreiben ist die
+Arbeit, das ZUSAMMENSTELLEN ist es — und das lässt sich immer verschieben.
+
+Jetzt steht über der Rechnungsliste eine Karte mit dem, was heute gemahnt
+werden kann, samt Summe und den Mahnspesen, die der Lauf verrechnen würde.
+Der Knopf in der Zeile öffnet denselben Dialog wie bisher.
+
+**Die Reihenfolge ist die Aussage**, und sie ist nicht die der Rechnungsliste
+darunter: oben steht, was am weitesten fortgeschritten ist. Eine Forderung vor
+der letzten Mahnung ist dringender als eine, die gerade erst die Frist
+überschritten hat. Bei gleicher Stufe entscheidet das Alter, dann der Betrag.
+
+**Was der Lauf NICHT tut:** er verschickt nichts von selbst. Jede Mahnung
+bleibt ein bewusster Griff, weil hinter jeder ein Kunde steht, den der Chef
+vielleicht gerade am Telefon hatte. Der Lauf nimmt das Suchen ab, nicht die
+Entscheidung. Auch ein Stapel-PDF gibt es nicht: zwölf gleichzeitige
+Downloads sind im Browser keine Erleichterung.
+
+**Nach der dritten Mahnung hört die App auf.** Diese Forderungen stehen
+getrennt als „braucht eine Entscheidung" da, mit Nummer und Kundennamen.
+Fielen sie stillschweigend aus dem Lauf, wären ausgerechnet die ältesten
+Forderungen die unsichtbarsten. Was folgt — Anwalt, Inkasso oder abschreiben —
+entscheidet ein Mensch.
+
+**Verzugszinsen stehen weiterhin auf keiner Mahnung.** Der gesetzliche Satz
+hängt zwischen Unternehmern am Basiszinssatz (§ 456 UGB) und ändert sich
+halbjährlich; eine hinterlegte Zahl veraltete still und stünde danach auf
+jedem Schreiben falsch. Eine falsch gerechnete Zinsforderung ist schlechter
+als keine.
+
+Die Karte erscheint nur, wenn es etwas zu tun gibt — eine dauerhaft sichtbare
+leere Mahnliste wäre ein Vorwurf ohne Anlass.
+
+Geprüft: 12 Rechen-Tests, 7 in der Ansicht — und 12 absichtlich kaputte
+Fassungen, die alle aufgefallen sind.
+
 ## Erledigt: Aus der fälligen Wartung wird eine Baustelle (07.09.2026)
 
 Die Wartungsliste sagte, was fällig ist — und hörte dort auf. Alles Weitere

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
@@ -607,7 +607,9 @@ describe('Eine überfällige Rechnung mahnen', () => {
 
   async function menue(nummer = 'RE-2026-0009') {
     zeige();
-    await screen.findByText(new RegExp(nummer));
+    // `findAll`, weil eine mahnbare Rechnung seit dem Mahnlauf ZWEIMAL auf
+    // dem Schirm steht: oben in der Mahnliste und unten im Bestand.
+    await screen.findAllByText(new RegExp(nummer));
     await userEvent.click(
       await screen.findByRole('button', { name: new RegExp(`Weitere Aktionen für Rechnung ${nummer}`) }),
     );
@@ -860,5 +862,103 @@ describe('Über der 10.000-Euro-Grenze', () => {
     zeiten = GROSSAUFTRAG;
     await bisZurVorschau();
     expect(screen.getByRole('button', { name: /Rechnung erstellen/ })).toBeEnabled();
+  });
+});
+
+/**
+ * Der Mahnlauf.
+ *
+ * Das Mahnen gab es schon — als Menüpunkt an der einzelnen Rechnung. Die
+ * Stufen stimmten, die Belege stimmten, nur kam niemand dorthin: wer wissen
+ * wollte, was zu mahnen ist, filterte auf „Überfällig", ging die Liste durch,
+ * öffnete an jeder Zeile das Menü und prüfte im Kopf, ob die dritte Mahnung
+ * schon draussen war.
+ *
+ * Genau daran bleibt Mahnwesen in kleinen Betrieben liegen — nicht am
+ * Schreiben, sondern am Zusammenstellen, das sich immer verschieben lässt.
+ */
+describe('Der Mahnlauf', () => {
+  const offen = (
+    id: string,
+    p: Partial<Invoice> = {},
+  ): Invoice & { id: string } =>
+    ({
+      id,
+      invoiceNumber: `RE-2026-${id}`,
+      projectNumber: '2026-042',
+      customerName: `Kunde ${id}`,
+      invoiceDate: '2026-07-01',
+      dueDate: '2026-08-01',
+      totalNetto: 1000,
+      totalVat: 200,
+      totalBrutto: 1200,
+      vatRate: 0.2,
+      paymentStatus: 'Offen',
+      ...p,
+    }) as unknown as Invoice & { id: string };
+
+  it('steht gar nicht da, wenn nichts offen ist', async () => {
+    // Eine dauerhaft sichtbare leere Mahnliste wäre ein Vorwurf ohne Anlass.
+    rechnungen = [offen('0001', { paymentStatus: 'Bezahlt' })];
+    zeige();
+    await screen.findByText(/RE-2026-0001/);
+    expect(screen.queryByText(/^Mahnlauf/)).not.toBeInTheDocument();
+  });
+
+  it('zählt zusammen, was zu mahnen ist, und nennt die Summe', async () => {
+    rechnungen = [offen('0001'), offen('0002', { totalBrutto: 300 })];
+    zeige();
+
+    const karte = (await screen.findByText(/^Mahnlauf \(2\)/)).closest('section')!;
+    // Trennzeichen raus: de-AT setzt hier je nach Umgebung Punkt oder ein
+    // geschütztes Leerzeichen, und darum geht es hier nicht.
+    expect(karte.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1500,00');
+  });
+
+  /*
+    DIE REIHENFOLGE IST DIE AUSSAGE, und sie ist nicht die der Rechnungsliste
+    darunter: eine Forderung vor der letzten Mahnung ist dringender als eine,
+    die gerade erst die Frist überschritten hat.
+  */
+  it('stellt die weit fortgeschrittene Forderung nach oben', async () => {
+    rechnungen = [
+      offen('0001', { dueDate: '2026-01-01' }),
+      offen('0002', { mahnstufe: 2, dueDate: '2026-08-28' }),
+    ];
+    zeige();
+
+    const karte = (await screen.findByText(/^Mahnlauf/)).closest('section')!;
+    const zeilen = within(karte).getAllByText(/RE-2026-000/);
+    expect(zeilen[0].textContent).toContain('RE-2026-0002');
+  });
+
+  it('mahnt aus der Liste heraus — mit der richtigen Stufe', async () => {
+    rechnungen = [offen('0001', { mahnstufe: 1 })];
+    zeige();
+
+    const karte = (await screen.findByText(/^Mahnlauf/)).closest('section')!;
+    await userEvent.click(within(karte).getByRole('button', { name: 'Mahnen' }));
+    // Der bestehende Dialog, mit der zweiten Stufe im Titel.
+    expect(await screen.findByText(/Mahnung — Kunde 0001/)).toBeInTheDocument();
+  });
+
+  /*
+    NACH DER DRITTEN MAHNUNG HÖRT DIE APP AUF. Fielen diese Rechnungen
+    stillschweigend aus dem Lauf, wären ausgerechnet die ältesten Forderungen
+    die unsichtbarsten.
+  */
+  it('nennt die ausgereizten Forderungen, statt sie zu verschlucken', async () => {
+    rechnungen = [offen('0001', { mahnstufe: 3 })];
+    zeige();
+
+    expect(await screen.findByText(/braucht eine Entscheidung/)).toBeInTheDocument();
+    expect(screen.getByText(/RE-2026-0001 \(Kunde 0001\)/)).toBeInTheDocument();
+  });
+
+  it('führt eine bezahlte dritte Mahnung nicht als offene Entscheidung', async () => {
+    rechnungen = [offen('0001', { mahnstufe: 3, paymentStatus: 'Bezahlt' })];
+    zeige();
+    await screen.findByText(/RE-2026-0001/);
+    expect(screen.queryByText(/braucht eine Entscheidung/)).not.toBeInTheDocument();
   });
 });
