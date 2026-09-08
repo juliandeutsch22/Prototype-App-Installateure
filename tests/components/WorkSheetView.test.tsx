@@ -985,6 +985,26 @@ describe('Zeit beim Kunden eintragen', () => {
     expect(createWorkSheet.mock.calls[0][1].zeiten[0].minuten).toBe(21 * 60);
   });
 
+  it('nennt bei einem langen Tag OHNE Mitternacht nicht die Mitternacht', async () => {
+    /*
+      05:00–19:00 sind vierzehn Stunden und lösen dieselbe Nachfrage aus —
+      „Bis" liegt dabei aber gar nicht vor „Von". Die Meldung nannte trotzdem
+      die Mitternacht als Grund und schickte den Monteur damit an die falsche
+      Stelle. Wer einmal gemerkt hat, dass eine Warnung danebenliegt, liest
+      sie beim nächsten Mal nicht mehr.
+    */
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Zeit beim Kunden eintragen/);
+    await nutzer.clear(screen.getByLabelText('Von'));
+    await nutzer.type(screen.getByLabelText('Von'), '05:00');
+    await nutzer.type(screen.getByLabelText('Bis'), '19:00');
+
+    const meldung = await screen.findByText(/ungewöhnlich langer Einsatz/);
+    expect(meldung.textContent).toMatch(/14:00/);
+    expect(meldung.textContent).not.toMatch(/Mitternacht/);
+  });
+
   it('weist eine Spanne zurück, die gar keine Zeit ergibt', async () => {
     // Pause so lang wie der Einsatz: null Minuten auf einem Beleg wäre eine
     // Zeile, die nichts aussagt.

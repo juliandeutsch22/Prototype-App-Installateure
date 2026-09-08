@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
@@ -467,6 +467,29 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     const von = await screen.findByLabelText('Leistung von');
     await userEvent.clear(von);
     expect(await screen.findByText(/nach § 11 UStG unvollständig/)).toBeInTheDocument();
+  });
+
+  it('warnt, wenn der Zeitraum verdreht ist', async () => {
+    /*
+      Die Felder sind vorbelegt, aber änderbar; wer eines von Hand korrigiert,
+      kann sie vertauschen. Auf der Rechnung stünde der Zeitraum dann
+      rückwärts — und zurückzunehmen wäre das nur noch mit einem Storno.
+    */
+    await bisZurVorschau();
+    const bis = await screen.findByLabelText('Leistung bis');
+    fireEvent.change(bis, { target: { value: '2026-07-01' } });
+    expect(await screen.findByText(/liegt vor „Leistung von"/)).toBeInTheDocument();
+  });
+
+  it('warnt NICHT bei einem eintägigen Zeitraum', async () => {
+    // Von und Bis am selben Tag ist der Normalfall eines Serviceeinsatzes,
+    // keine Verdrehung. Eine Warnung, die dabei erscheint, wäre täglicher
+    // Lärm auf der Maske, die das Geld schreibt.
+    await bisZurVorschau();
+    const von = await screen.findByLabelText('Leistung von');
+    const bis = await screen.findByLabelText('Leistung bis');
+    fireEvent.change(bis, { target: { value: (von as HTMLInputElement).value } });
+    expect(screen.queryByText(/liegt vor „Leistung von"/)).not.toBeInTheDocument();
   });
 
   it('weist auf Material ohne Preis hin', async () => {

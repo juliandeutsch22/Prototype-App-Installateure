@@ -1237,6 +1237,27 @@ export default function InvoicesView() {
             </p>
           )}
           {/*
+            VERDREHT IST NICHT DASSELBE WIE FEHLEND.
+
+            Die Felder sind vorbelegt, aber änderbar — und wer eines der
+            beiden von Hand korrigiert, kann sie vertauschen. Auf der Rechnung
+            stünde dann „30.09.2026 – 01.09.2026". Anders als bei einem
+            Tippfehler in einer Maske ist das hier nicht zurückzunehmen: eine
+            geschriebene Rechnung geht nur noch über einen Storno weg, und
+            zwischendurch ist sie beim Kunden und im Journal.
+
+            Gesperrt wird trotzdem nicht — dieselbe Entscheidung wie eine
+            Zeile darüber, wo der ganz FEHLENDE Zeitraum der schwerere Mangel
+            ist und ebenfalls nur gemeldet wird. Zwei verschiedene Maßstäbe in
+            derselben Maske wären für niemanden nachvollziehbar.
+          */}
+          {leistungVon && leistungBis && leistungBis < leistungVon && (
+            <p className="mb-3 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+              „Leistung bis" liegt vor „Leistung von" — so stünde der Zeitraum verdreht auf der
+              Rechnung. Zurückzunehmen wäre das nur noch mit einem Storno.
+            </p>
+          )}
+          {/*
             WAS DER KUNDE UNTERSCHRIEBEN HAT, NEBEN DEM, WAS VERRECHNET WIRD.
 
             Die Rechnung nimmt alle unverrechneten Stunden der Baustelle; der

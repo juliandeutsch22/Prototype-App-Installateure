@@ -8,7 +8,8 @@ import {
   DuplicateEntryError,
 } from '@/lib/db/timeEntries';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
-import { todayStr, getAustrianHolidayName } from '@/lib/time';
+import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
+import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
 import { istAussendienst, canExtendTimeEntry } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
@@ -258,6 +259,21 @@ export default function TimeForm({
     [tagesEintraege, status, projectNumber, canHaveProject],
   );
 
+  /**
+   * Was aus den drei Feldern gerechnet wird — damit es dasteht, bevor
+   * gespeichert wird. Siehe `zeitPlausibilitaet.ts`.
+   *
+   * Ob die Zahl ÜBERHAUPT gehört, entscheidet allein `showWorkFields` unten in
+   * der Maske: bei „Urlaub" gibt es die drei Felder nicht, und eine Zahl über
+   * Felder, die niemand sieht, wäre eine Behauptung ins Leere. Dieselbe
+   * Bedingung hier zu wiederholen hiesse, sie an zwei Stellen pflegen zu
+   * müssen.
+   */
+  const bild = useMemo(
+    () => zeitbild(startTime, endTime, breakDuration),
+    [startTime, endTime, breakDuration],
+  );
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
@@ -486,6 +502,33 @@ export default function TimeForm({
               pflicht
             />
           </FormGrid>
+
+          {/*
+            DIE GERECHNETE ZAHL, BEVOR GESPEICHERT WIRD.
+
+            Die Maske nahm drei Werte entgegen und sagte nicht, was daraus
+            wird. Ein Tippfehler in der Endzeit fiel damit erst in der
+            Lohnverrechnung auf — oder gar nicht. Warum genau diese drei
+            Faelle einen Satz bekommen, steht in `zeitPlausibilitaet.ts`.
+          */}
+          {bild && (
+            <p
+              className={
+                bild.befund === 'ok'
+                  ? 'text-sm text-ink-muted'
+                  : 'rounded border border-warning/30 bg-surface-2 px-3 py-2 text-sm text-warning'
+              }
+              /*
+                Nur der Befund wird angesagt, die normale Zahl nicht: eine
+                Vorlesehilfe, die bei jedem Tastendruck im Zeitfeld die
+                Arbeitszeit dazwischenruft, macht die Maske unbenutzbar.
+              */
+              role={bild.befund === 'ok' ? undefined : 'alert'}
+            >
+              Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
+              {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
+            </p>
+          )}
 
           {/*
             Der Umschalter steht VOR den Feldern, die er ein- und ausblendet,
