@@ -8,6 +8,7 @@ import {
   deleteMaterial,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
+import { KATALOG_GRENZE } from '@/lib/katalogGrenze';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
 import Card from '@/components/Card';
@@ -18,6 +19,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
+import Nachladen from '@/components/Nachladen';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
@@ -88,6 +90,12 @@ export default function MaterialCatalog({
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [toDelete, setToDelete] = useState<WithId<Material> | null>(null);
+  /*
+    Wie viele Artikel geholt werden. Der Katalog lief bis hierher ohne jede
+    Grenze — warum das eine Sicherung braucht und warum sie heute nirgends
+    greift, steht in `lib/db/materials.ts`.
+  */
+  const [grenze, setGrenze] = useState(KATALOG_GRENZE);
 
   useEffect(() => {
     if (!user) return;
@@ -101,9 +109,10 @@ export default function MaterialCatalog({
         setError(e.message);
         setLoading(false);
       },
+      grenze,
     );
     return unsub;
-  }, [user]);
+  }, [user, grenze]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -351,6 +360,17 @@ export default function MaterialCatalog({
               })}
             </List>
           )}
+          {/*
+            Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
+            gescrollt und nichts gefunden hat, braucht die Auskunft.
+          */}
+          <Nachladen
+            geladen={materials.length}
+            grenze={grenze}
+            onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+            einheit="Artikel"
+            sucheSatz="Nach Name, Kategorie und Artikelnummer wird nur in diesen gesucht."
+          />
         </div>
       </Card>
 

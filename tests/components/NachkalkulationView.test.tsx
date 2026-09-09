@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Company, Invoice, Material, Project, Quote, TimeEntry, WorkSheet } from '@/types';
@@ -296,6 +296,40 @@ describe('Material im Ergebnis', () => {
     // Erlös 2000 − Personal 0 − Material 350 = 1650. Die Zahl selbst zählt:
     // stünde hier 2000, wäre das Material zwar geholt, aber nicht abgezogen.
     expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1650,00');
+  });
+
+  it('sagt es, wenn der Materialstamm nur bis zur Grenze geladen wurde', async () => {
+    /*
+      Material wird über den NAMEN zugeordnet, nicht über eine Kennung — ein
+      Artikel, der wegen der Obergrenze fehlt, findet seinen Einkaufspreis
+      nicht. Falsch wird die Zahl dadurch nicht: der Artikel landet in „ohne
+      Einkaufspreis" und steht sichtbar da. Aber der GRUND wäre ein anderer
+      als sonst, und wer ihm nachginge, suchte im Materialstamm nach einer
+      Pflege, die längst da ist.
+    */
+    projekte = [projekt('2026-001')];
+    rechnungen = [rechnung('2026-001', 2000)];
+    katalog = Array.from({ length: 1000 }, (_, i) =>
+      ({ id: `m${i}`, companyId: 'perl', name: `Artikel ${i}`, stock: 0 }) as Material,
+    );
+    zeige();
+
+    expect(await screen.findByText(/nur bis zur Obergrenze geladen/)).toBeInTheDocument();
+  });
+
+  it('schweigt dazu, solange der Stamm vollständig ist', async () => {
+    // Ein Hinweis, der bei jedem gewöhnlichen Katalog erschiene, wäre Lärm.
+    projekte = [projekt('2026-001')];
+    rechnungen = [rechnung('2026-001', 2000)];
+    katalog = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 0 } as Material];
+    zeige();
+
+    // Auf das Ende des Ladens warten, sonst prüft die Zusicherung eine Seite,
+    // die noch gar nichts behauptet.
+    await screen.findByText(/Nachkalkulation/);
+    await waitFor(() =>
+      expect(screen.queryByText(/nur bis zur Obergrenze geladen/)).not.toBeInTheDocument(),
+    );
   });
 
   it('nennt Artikel ohne Einkaufspreis, statt sie mit null anzusetzen', async () => {

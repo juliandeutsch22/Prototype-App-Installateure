@@ -9,6 +9,7 @@ import { rechneBaustelle, margenTon, type Nachkalkulation } from './nachkalkulat
 import { materialkosten, KEINE_MATERIALKOSTEN } from './materialkosten';
 import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
+import { katalogAbgeschnitten } from '@/lib/katalogGrenze';
 import type { Invoice, Material, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -162,6 +163,25 @@ export default function NachkalkulationView() {
         title="Nachkalkulation"
         subtitle="Erlös gegen Personalkosten — je Baustelle"
       />
+
+      {/*
+        WENN DER KATALOG NICHT GANZ GELADEN WURDE, MUSS DAS HIER STEHEN.
+
+        Material wird über den NAMEN zugeordnet, nicht über eine Kennung — ein
+        Artikel, der wegen der Obergrenze fehlt, findet seinen Einkaufspreis
+        also nicht. Falsch wird die Zahl dadurch nicht: der Artikel landet in
+        „ohne Einkaufspreis" und steht sichtbar bei der Baustelle. Aber der
+        GRUND wäre ein anderer als sonst — dort heisst es „im Materialstamm
+        nicht gepflegt", und hier stimmt das nicht. Wer dem nachginge, suchte
+        an der falschen Stelle.
+      */}
+      {katalogAbgeschnitten(katalog) && (
+        <p className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+          Der Materialstamm wurde nur bis zur Obergrenze geladen ({katalog.length} Artikel). Artikel
+          darüber hinaus erscheinen unten als „ohne Einkaufspreis", obwohl einer hinterlegt sein
+          kann — der Deckungsbeitrag ist dann zu hoch ausgewiesen.
+        </p>
+      )}
 
       {/*
         Ohne interne Kostensaetze laesst sich nichts rechnen. Das ausdruecklich

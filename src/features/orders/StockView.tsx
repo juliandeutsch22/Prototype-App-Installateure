@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { subscribeMaterials, adjustStock, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import {
+  subscribeMaterials,
+  adjustStock,
+  LOW_STOCK_THRESHOLD,
+} from '@/lib/db/materials';
+import { KATALOG_GRENZE } from '@/lib/katalogGrenze';
 import { subscribeAllOrders } from '@/lib/db/materialOrders';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder } from '@/types';
+import Nachladen from '@/components/Nachladen';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -58,6 +64,8 @@ export default function StockView() {
    * jetzt direkt aus der Zeile.
    */
   const [zuBearbeiten, setZuBearbeiten] = useState<WithId<Material> | null>(null);
+  /* Warum der Katalog eine Grenze braucht: siehe `lib/db/materials.ts`. */
+  const [grenze, setGrenze] = useState(KATALOG_GRENZE);
 
   useEffect(() => {
     if (!user) return;
@@ -71,6 +79,7 @@ export default function StockView() {
         setError(e.message);
         setLoading(false);
       },
+      grenze,
     );
     /**
      * Der Fehlerweg des Abos war `() => undefined`. Scheitert die Abfrage —
@@ -89,7 +98,7 @@ export default function StockView() {
       unsubM();
       unsubO();
     };
-  }, [user]);
+  }, [user, grenze]);
 
   /**
    * Was ist zugesagt, aber noch nicht abgeholt?
@@ -285,6 +294,13 @@ export default function StockView() {
                   })}
                 </List>
               )}
+              <Nachladen
+                geladen={materials.length}
+                grenze={grenze}
+                onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+                einheit="Artikel"
+                sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
+              />
             </div>
           </Card>
         </>

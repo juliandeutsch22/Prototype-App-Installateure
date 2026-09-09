@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Material, RuestPosition } from '@/types';
+import { katalogAbgeschnitten } from '@/lib/katalogGrenze';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
@@ -195,6 +196,14 @@ export default function RuestlistePlanen({
               <p className="text-sm text-ink-muted">
                 Kein Artikel passt zur Suche. Was nicht im Lager geführt wird, kann unten als
                 freie Zeile dazu.
+                {/* Wie am Schein: „gibt es nicht" und „nicht geladen" sind
+                    zwei verschiedene Auskünfte. */}
+                {katalogAbgeschnitten(materials) && (
+                  <strong className="mt-1 block text-warning">
+                    Der Katalog wurde nur bis zur Obergrenze geladen — den Artikel kann es
+                    trotzdem geben.
+                  </strong>
+                )}
               </p>
             ) : (
               <List>

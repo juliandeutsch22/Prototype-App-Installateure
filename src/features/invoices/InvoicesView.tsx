@@ -23,6 +23,7 @@ import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
+import { katalogAbgeschnitten } from '@/lib/katalogGrenze';
 import { verrechneteScheine } from './materialPositionen';
 import { darfMahnen, naechsteStufe, spesenFuer, TEXTE, FRIST_TAGE } from './mahnung';
 import { mahnlauf } from './mahnlauf';
@@ -91,6 +92,12 @@ export default function InvoicesView() {
   const [offeneRechnungen, setOffeneRechnungen] = useState<WithId<Invoice>[]>([]);
   /** Kamen die offenen Forderungen nicht? Dann darf keine Karte so tun, als wüsste sie Bescheid. */
   const [forderungenFehler, setForderungenFehler] = useState(false);
+  /*
+    War der Materialstamm beim Zusammenstellen abgeschnitten? Ein Artikel
+    darüber hinaus findet seinen Preis nicht — er steht dann unten als „ohne
+    Preis im Katalog", und das wäre in diesem Fall die falsche Auskunft.
+  */
+  const [katalogUnvollstaendig, setKatalogUnvollstaendig] = useState(false);
   /*
     Der Export holt seinen Zeitraum SELBST. Vorher filterte er die geladene
     Liste nach Datum — ein Export für einen älteren Monat lieferte damit eine
@@ -449,6 +456,7 @@ export default function InvoicesView() {
           return [];
         }),
       ]);
+      setKatalogUnvollstaendig(katalogAbgeschnitten(katalog));
       const assembled = assembleInvoice(projectNumber, entries, rates, {
         scheine,
         katalog,
@@ -1298,6 +1306,18 @@ export default function InvoicesView() {
               Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt:{' '}
               {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile
               entfernen — im Lager gepflegt, kommt er beim nächsten Mal von selbst.
+              {/*
+                „Im Lager gepflegt, kommt er beim nächsten Mal von selbst" ist
+                der übliche Rat — und er wäre falsch, wenn der Katalog gar
+                nicht vollständig geladen wurde. Dann liegt es nicht an der
+                Pflege, und wer ihr nachginge, suchte an der falschen Stelle.
+              */}
+              {katalogUnvollstaendig && (
+                <strong className="mt-1 block">
+                  Achtung: der Materialstamm wurde nur bis zur Obergrenze geladen. Für diese
+                  Artikel kann sehr wohl ein Preis hinterlegt sein.
+                </strong>
+              )}
             </p>
           )}
           {/* Positionen sind bearbeitbar, nicht nur ansehbar.
