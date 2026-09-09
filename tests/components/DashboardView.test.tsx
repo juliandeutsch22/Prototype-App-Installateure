@@ -112,8 +112,17 @@ vi.mock('@/lib/db/users', () => ({
   getUserByUid: vi.fn(async () => monteur),
   listUsers: vi.fn(async () => [monteur]),
 }));
+/*
+  Ein Bestand, den ein einzelner Test vorgeben kann — fuer die Frage, wie
+  viele Zeilen die Startseite vertraegt. `null` heisst: der gewoehnliche
+  Bestand oben. Der Zugriff steht IM Rueckruf, nicht in der Fabrik: die laeuft
+  vor dem Modulrumpf, und der Wert waere dort noch nicht da.
+*/
+let baustellenUeberschreibung: Project[] | null = null;
+
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () =>
+    baustellenUeberschreibung ??
     // Wie die echte Abfrage: abgeschlossene Baustellen kommen gar nicht erst
     // zurück. Ein Mock, der ALLE liefert, würde den Filter der Ansicht
     // prüfen statt den der Datenschicht — und damit am Fehler vorbei.
@@ -200,6 +209,7 @@ function zeichne() {
 beforeEach(() => {
   scheitert.persoenlich = false;
   scheitert.betrieblich = false;
+  baustellenUeberschreibung = null;
   // Feste Uhr: sonst verschiebt sich „heute" und der Test wird mit der Zeit
   // falsch statt rot.
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -493,5 +503,51 @@ describe('Wenn ein Teil der Startseite nicht kommt', () => {
       expect(screen.queryByText(/Wird geladen/)).not.toBeInTheDocument(),
     );
     expect(screen.queryByText(/Nicht geladen/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * WIE VIELE ZEILEN DIE STARTSEITE VERTRÄGT.
+ *
+ * Sie ist eine Rangfolge, keine Übersicht: oben steht, was heute jemanden
+ * angeht. Zwei Karten wuchsen ungedeckelt mit dem Betrieb — alle laufenden
+ * Baustellen und alle Budgetwarnungen — und schoben damit genau die kurzen,
+ * wichtigen Karten darunter aus dem Blick.
+ *
+ * Zwei andere waren längst gedeckelt („Tage ohne Buchung", „Material
+ * angefordert"), und dieses Muster wird hier fortgesetzt: die ersten N, dann
+ * die Zahl der übrigen und der Weg dorthin.
+ */
+describe('Startseite — wie viele Zeilen je Karte', () => {
+  const vieleBaustellen = (n: number): Project[] =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `p${i}`,
+      companyId: 'perl',
+      projectNumber: `2026-${String(i).padStart(3, '0')}`,
+      customerName: `Kunde ${String(i).padStart(3, '0')}`,
+      status: 'Aktiv',
+      estimatedHours: 0,
+    })) as Project[];
+
+  it('zeigt bei wenigen Baustellen alle und sagt nichts dazu', async () => {
+    baustellenUeberschreibung = vieleBaustellen(5);
+    rolle.wert = 'Geschäftsführung';
+    zeichne();
+
+    expect(await screen.findByText(/Aktive Baustellen \(5\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Kunde 004/)).toBeInTheDocument();
+    expect(screen.queryByText(/weitere/)).not.toBeInTheDocument();
+  });
+
+  it('deckelt bei zwölf und nennt den Rest samt Weg', async () => {
+    baustellenUeberschreibung = vieleBaustellen(30);
+    rolle.wert = 'Geschäftsführung';
+    zeichne();
+
+    // Die Zahl im Titel bleibt die WAHRE — sie ist die Aussage der Karte.
+    expect(await screen.findByText(/Aktive Baustellen \(30\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Kunde 011/)).toBeInTheDocument();
+    expect(screen.queryByText(/Kunde 012/)).not.toBeInTheDocument();
+    expect(screen.getByText(/und 18 weitere/)).toBeInTheDocument();
   });
 });

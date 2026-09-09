@@ -30,6 +30,7 @@ import {
   baustelleAusWartung,
 } from './wartungBaustelle';
 import Card from '@/components/Card';
+import KundenGrenze from '@/components/AuswahlGrenze';
 import Button from '@/components/Button';
 import Badge, { type Tone } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -485,6 +486,7 @@ export default function WartungenView() {
                   </option>
                 ))}
               </SelectField>
+              <KundenGrenze kunden={kunden} />
               <InputField id="w-anlage"
                 label="Anlage"
                 pflicht

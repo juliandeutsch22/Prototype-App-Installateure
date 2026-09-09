@@ -156,6 +156,21 @@ interface DashData {
  */
 const LUECKEN_TAGE = 35;
 
+/**
+ * Wie viele Zeilen die Startseite je Karte zeigt.
+ *
+ * Die Startseite ist eine Rangfolge, keine Übersicht: oben steht, was heute
+ * jemanden angeht. Eine Karte, die mit dem Betrieb wächst, verschiebt alles
+ * unter ihr aus dem Blick — und zwar genau die kurzen, wichtigen Karten.
+ *
+ * ZWEI VERSCHIEDENE ZAHLEN, weil die Karten verschiedene Fragen beantworten:
+ * die Baustellenliste ist eine Übersicht („was haben wir gerade?") und
+ * braucht Substanz; die Budgetwarnungen sind eine Arbeitsliste und sind nach
+ * Auslastung sortiert — die schlimmsten stehen oben, der Rest ist Nachlauf.
+ */
+const BAUSTELLEN_AUF_STARTSEITE = 12;
+const WARNUNGEN_AUF_STARTSEITE = 8;
+
 /** Rollen-spezifisches Zuhause mit echten Kennzahlen. */
 export default function DashboardView() {
   const { user, company } = useAuth();
@@ -683,6 +698,21 @@ export default function DashboardView() {
         laeuft; diese Karte beantwortet die schlichtere Frage „was haben wir
         gerade?", fuer die man bisher in die Verwaltung wechseln musste.
       */}
+      {/*
+        WIE VIELE ZEILEN DIE STARTSEITE VERTRÄGT.
+
+        Diese Karte zeigte ALLE laufenden Baustellen. Bei zwanzig Stück geht
+        das — der Kommentar unten spricht genau davon —, bei achtzig nicht
+        mehr: dann steht die längste und harmloseste Liste der Seite vor den
+        kurzen, wichtigen darunter (Baustellen am Limit, Material,
+        Mannschaft). Die Startseite wird dadurch nicht falsch, aber ihre
+        Reihenfolge kippt, und das ist ihr einziger Zweck.
+
+        ZWÖLF, nicht fünf: die Karte beantwortet die Frage „welche Baustellen
+        haben wir gerade?", und dafür braucht es mehr als einen Ausschnitt.
+        Der Rest steht als Zahl da, mit dem Weg dorthin — dasselbe Muster wie
+        bei den offenen Anforderungen und den Tagen ohne Buchung.
+      */}
       {leitung && data.aktiveBaustellen && data.aktiveBaustellen.length > 0 && (
         <Card
           title={`Aktive Baustellen (${data.aktiveBaustellen.length})`}
@@ -693,7 +723,7 @@ export default function DashboardView() {
           }
         >
           <ul className="divide-y divide-line">
-            {data.aktiveBaustellen.map((pr) => (
+            {data.aktiveBaustellen.slice(0, BAUSTELLEN_AUF_STARTSEITE).map((pr) => (
               <li key={pr.id} className="py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-medium text-ink">
@@ -720,6 +750,15 @@ export default function DashboardView() {
               </li>
             ))}
           </ul>
+          {data.aktiveBaustellen.length > BAUSTELLEN_AUF_STARTSEITE && (
+            <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted">
+              und {data.aktiveBaustellen.length - BAUSTELLEN_AUF_STARTSEITE} weitere — alle unter{' '}
+              <Link to="/admin-projects" className="font-semibold text-brand underline">
+                Baustellen
+              </Link>
+              .
+            </p>
+          )}
         </Card>
       )}
 
@@ -734,7 +773,7 @@ export default function DashboardView() {
           }
         >
           <ul className="divide-y divide-line">
-            {data.projectAlerts.map((pr) => (
+            {data.projectAlerts.slice(0, WARNUNGEN_AUF_STARTSEITE).map((pr) => (
               <li
                 key={pr.projectNumber}
                 className="flex min-h-touch items-center justify-between gap-3 py-2"
@@ -751,6 +790,21 @@ export default function DashboardView() {
               </li>
             ))}
           </ul>
+          {/*
+            Die Liste ist nach Auslastung sortiert, die schlimmsten stehen
+            oben. Acht davon sind eine Arbeitsliste; vierzig sind eine
+            Tapete, die niemand mehr liest — und dann geht auch die eine
+            unter, die wirklich brennt.
+          */}
+          {data.projectAlerts.length > WARNUNGEN_AUF_STARTSEITE && (
+            <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted">
+              und {data.projectAlerts.length - WARNUNGEN_AUF_STARTSEITE} weitere —{' '}
+              <Link to="/accounting" className="font-semibold text-brand underline">
+                zur Auswertung
+              </Link>
+              .
+            </p>
+          )}
         </Card>
       )}
 

@@ -16,6 +16,7 @@ import { isGF } from '@/lib/permissions';
 import type { Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
+import KundenGrenze from '@/components/AuswahlGrenze';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
@@ -269,6 +270,7 @@ export default function QuotesView() {
                 </option>
               ))}
             </SelectField>
+            <KundenGrenze kunden={kunden} />
             <InputField
               id="anqgueltig"
               label="Gültig bis"

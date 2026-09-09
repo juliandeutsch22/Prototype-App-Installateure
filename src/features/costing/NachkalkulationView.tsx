@@ -9,7 +9,7 @@ import { rechneBaustelle, margenTon, type Nachkalkulation } from './nachkalkulat
 import { materialkosten, KEINE_MATERIALKOSTEN } from './materialkosten';
 import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
-import { katalogAbgeschnitten } from '@/lib/katalogGrenze';
+import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { Invoice, Material, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';

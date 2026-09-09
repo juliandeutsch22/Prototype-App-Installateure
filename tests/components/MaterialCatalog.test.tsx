@@ -26,6 +26,25 @@ let materialien: WithId<Material>[] = [];
 const anlegen = vi.fn();
 const aendern = vi.fn();
 
+/*
+  DIE GRENZE IM TEST KLEIN HALTEN.
+
+  Die echte steht bei tausend. Tausend Zeilen zu rendern, nur um zu prüfen,
+  DASS die Ansicht die Grenze weiterreicht, kostete auf dem Läufer über fünf
+  Sekunden — der Test lief in die Zeitgrenze. Geprüft wird hier die
+  Verdrahtung, nicht der Zahlenwert; der steht in
+  `tests/unit/listengrenzen.test.ts`.
+*/
+vi.mock('@/lib/listengrenzen', () => ({
+  KATALOG_GRENZE: 3,
+  KUNDEN_GRENZE: 500,
+  BAUSTELLEN_AUSWAHL_GRENZE: 500,
+  abgeschnitten: (z: readonly unknown[], g: number) => z.length >= g,
+  katalogAbgeschnitten: (z: readonly unknown[], g = 3) => z.length >= g,
+  kundenAbgeschnitten: (z: readonly unknown[], g = 500) => z.length >= g,
+  baustellenAuswahlAbgeschnitten: (z: readonly unknown[], g = 500) => z.length >= g,
+}));
+
 /* Mit welcher Grenze zuletzt abonniert wurde — der Nachladeknopf hebt sie an. */
 let letzteGrenze = 0;
 
@@ -157,21 +176,21 @@ describe('Materialkatalog — wie weit die Liste reicht', () => {
     );
 
   it('holt mit der Grenze, nicht unbegrenzt', async () => {
-    materialien = viele(5);
+    materialien = viele(2);
     zeige();
     await screen.findByText(/Artikel 0/);
-    expect(letzteGrenze).toBe(1000);
+    expect(letzteGrenze).toBe(3);
   });
 
   it('schweigt, solange die Grenze nicht greift', async () => {
-    materialien = viele(5);
+    materialien = viele(2);
     zeige();
     await screen.findByText(/Artikel 0/);
     expect(screen.queryByRole('button', { name: /Weitere Artikel laden/ })).not.toBeInTheDocument();
   });
 
   it('sagt es, sobald die Grenze erreicht ist — samt Reichweite der Suche', async () => {
-    materialien = viele(1000);
+    materialien = viele(3);
     zeige();
     await screen.findByText(/Artikel 0/);
     expect(screen.getByRole('button', { name: /Weitere Artikel laden/ })).toBeInTheDocument();
@@ -181,13 +200,13 @@ describe('Materialkatalog — wie weit die Liste reicht', () => {
   });
 
   it('holt beim Nachladen tatsächlich mehr', async () => {
-    materialien = viele(1000);
+    materialien = viele(3);
     const nutzer = userEvent.setup();
     zeige();
     await screen.findByText(/Artikel 0/);
-    expect(letzteGrenze).toBe(1000);
+    expect(letzteGrenze).toBe(3);
 
     await nutzer.click(screen.getByRole('button', { name: /Weitere Artikel laden/ }));
-    expect(letzteGrenze).toBe(2000);
+    expect(letzteGrenze).toBe(6);
   });
 });

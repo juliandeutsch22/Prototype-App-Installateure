@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { subscribeMaterials, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
-import { KATALOG_GRENZE } from '@/lib/katalogGrenze';
+import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import {
   createMaterialOrder,
   subscribeOwnOrders,

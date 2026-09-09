@@ -16,6 +16,7 @@ import type { WithId } from '@/lib/db/core';
 import { byNewest } from '@/lib/timestamps';
 import type { Project, AppUser, Customer } from '@/types';
 import Card from '@/components/Card';
+import KundenGrenze from '@/components/AuswahlGrenze';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
@@ -353,6 +354,7 @@ export default function AdminProjectsView() {
                 </option>
               ))}
             </SelectField>
+            <KundenGrenze kunden={kunden} />
             {/*
               Altbestand: die Baustelle trägt einen Kundennamen, aber noch
               keine Verknüpfung. Ohne diesen Hinweis stünde beim Bearbeiten

@@ -5,7 +5,7 @@ import {
   adjustStock,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
-import { KATALOG_GRENZE } from '@/lib/katalogGrenze';
+import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { subscribeAllOrders } from '@/lib/db/materialOrders';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder } from '@/types';

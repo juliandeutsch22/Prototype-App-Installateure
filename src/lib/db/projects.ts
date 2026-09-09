@@ -1,6 +1,7 @@
 import { where, doc, deleteDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Project } from '@/types';
+import { BAUSTELLEN_AUSWAHL_GRENZE } from '@/lib/listengrenzen';
 import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from './core';
 
 const COLLECTION = 'projects';
@@ -13,11 +14,12 @@ const COLLECTION = 'projects';
  * machen mit den Jahren den Grossteil aus. Firestore kann das selbst, und
  * dann wandern die abgeschlossenen gar nicht erst ueber die Leitung.
  */
-export function listActiveProjects(companyId: string) {
+export function listActiveProjects(companyId: string, max = BAUSTELLEN_AUSWAHL_GRENZE) {
   return queryTenant<Project>(
     COLLECTION,
     companyId,
     where('status', 'in', ['Aktiv', 'Pausiert']),
+    limit(max),
   );
 }
 

@@ -103,3 +103,62 @@ describe('Baustellenauswahl', () => {
     );
   });
 });
+
+/**
+ * WENN DIE AUSWAHL AN IHRER GRENZE ENDET.
+ *
+ * `listActiveProjects` galt lange als begrenzt, weil sie auf „Aktiv" und
+ * „Pausiert" filtert — abgeschlossene fallen weg, und die machen mit der Zeit
+ * den Grossteil aus. Das stimmt, und es ist trotzdem keine Grenze: die Zahl
+ * der OFFENEN Baustellen wächst nicht mit der Zeit, wohl aber mit dem
+ * Betrieb, und sie wird nie wieder kleiner.
+ *
+ * Ein Auswahlfeld ist dabei der unangenehmste Ort für eine Grenze: es sieht
+ * vollständig aus, egal wie viel fehlt. Wer seine Baustelle nicht findet,
+ * bucht auf eine andere.
+ */
+describe('Baustellenauswahl — wenn die Grenze greift', () => {
+  const viele = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      ({
+        id: `v${i}`,
+        companyId: 'perl',
+        projectNumber: `2026-${String(i).padStart(3, '0')}`,
+        customerName: `Kunde ${i}`,
+        status: 'Aktiv',
+      }) as Project & { id: string },
+    );
+
+  it('sagt es, sobald die Grenze erreicht ist', async () => {
+    listActiveProjects.mockResolvedValue(viele(500));
+    render(<BaustellenSelect companyId="perl" value="" onChange={vi.fn()} />);
+
+    expect(await screen.findByText(/nur die ersten 500 laufenden Baustellen/)).toBeInTheDocument();
+  });
+
+  it('schweigt bei einem gewöhnlichen Betrieb', async () => {
+    // Achtzig laufende Baustellen sind viel — und weit unter der Grenze. Ein
+    // Hinweis, der dort erschiene, wäre täglicher Lärm über dem Feld, das der
+    // Monteur bei jeder Buchung bedient.
+    listActiveProjects.mockResolvedValue(viele(80));
+    render(<BaustellenSelect companyId="perl" value="" onChange={vi.fn()} />);
+
+    await screen.findByText(/Kunde 0/);
+    expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
+  });
+
+  it('verwechselt den Ausweichweg nicht mit der Grenze', async () => {
+    /*
+      Gibt es keine laufende Baustelle, weicht die Komponente auf die zuletzt
+      angelegten aus — und die bringen ihre EIGENE Grenze mit. Dort „nur die
+      ersten 500 laufenden" zu behaupten wäre schlicht falsch: laufend ist
+      keine davon.
+    */
+    listActiveProjects.mockResolvedValue([]);
+    listRecentProjects.mockResolvedValue(viele(500));
+    render(<BaustellenSelect companyId="perl" value="" onChange={vi.fn()} />);
+
+    expect(await screen.findByText(/Keine laufende Baustelle/)).toBeInTheDocument();
+    expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
+  });
+});
