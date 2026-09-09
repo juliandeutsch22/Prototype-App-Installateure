@@ -1,6 +1,7 @@
 import { where, orderBy, limit, doc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Customer, Project } from '@/types';
+import { KUNDEN_GRENZE } from '@/lib/listengrenzen';
 import { queryTenant, createInTenant, updateInTenant, type WithId } from './core';
 
 /**
@@ -22,7 +23,7 @@ const PROJEKTE = 'projects';
  * Alphabetisch statt nach Anlagedatum, weil diese Liste zum NACHSCHLAGEN da
  * ist: gesucht wird ein Name, nicht der zuletzt angelegte Datensatz.
  */
-export function listCustomers(companyId: string, max = 500) {
+export function listCustomers(companyId: string, max = KUNDEN_GRENZE) {
   return queryTenant<Customer>(COLLECTION, companyId, orderBy('name'), limit(max));
 }
 

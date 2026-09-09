@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { listActiveProjects, listProjectsByNumbers, listRecentProjects } from '@/lib/db/projects';
+import { baustellenAuswahlAbgeschnitten } from '@/lib/listengrenzen';
 import type { Project } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { SelectField } from '@/components/Field';
@@ -52,6 +53,12 @@ export default function BaustellenSelect({
   const [zustand, setZustand] = useState<'laedt' | 'fehler' | 'bereit'>('laedt');
   /** Wurde auf den Gesamtbestand ausgewichen, weil nichts aktiv ist? */
   const [ausweich, setAusweich] = useState(false);
+  /*
+    Reichte die Abfrage bis an ihre Grenze? Dann kann eine Baustelle fehlen,
+    und das ist hier teuer: wer sie nicht findet, bucht auf die falsche oder
+    gar nicht. Siehe `lib/listengrenzen.ts`.
+  */
+  const [angeschnitten, setAngeschnitten] = useState(false);
   const [versuch, setVersuch] = useState(0);
 
   useEffect(() => {
@@ -70,6 +77,9 @@ export default function BaustellenSelect({
         if (verworfen) return;
         setProjekte(rows);
         setAusweich(gewichen && rows.length > 0);
+        // Nur die Abfrage der LAUFENDEN Baustellen hat diese Grenze; der
+        // Ausweichweg bringt seine eigene mit und sagt es getrennt.
+        setAngeschnitten(!gewichen && baustellenAuswahlAbgeschnitten(rows));
         setZustand('bereit');
       } catch {
         if (!verworfen) setZustand('fehler');
@@ -188,6 +198,19 @@ export default function BaustellenSelect({
         <p className="mt-2 text-sm text-ink-muted">
           Keine laufende Baustelle — angezeigt werden die zuletzt angelegten, unabhängig vom
           Status.
+        </p>
+      )}
+      {/*
+        Eine Auswahl, in der etwas fehlt, sagt von sich aus nichts — sie sieht
+        vollständig aus. Für ein Auswahlfeld ist das die schlimmste Form einer
+        Grenze: der Monteur sucht seine Baustelle, findet sie nicht und bucht
+        auf eine andere. Deshalb steht es hier, auch wenn es heute nie
+        erscheint.
+      */}
+      {angeschnitten && (
+        <p className="mt-2 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+          Es werden nur die ersten {projekte.length} laufenden Baustellen angeboten. Fehlt eine,
+          ist sie unter „Baustellen" zu finden — von dort führt ein Weg direkt hierher.
         </p>
       )}
     </div>

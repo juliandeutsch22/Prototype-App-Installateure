@@ -23,7 +23,7 @@ import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
-import { katalogAbgeschnitten } from '@/lib/katalogGrenze';
+import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import { verrechneteScheine } from './materialPositionen';
 import { darfMahnen, naechsteStufe, spesenFuer, TEXTE, FRIST_TAGE } from './mahnung';
 import { mahnlauf } from './mahnlauf';

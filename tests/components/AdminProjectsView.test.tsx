@@ -74,7 +74,8 @@ vi.mock('@/lib/db/users', () => ({
     return [MONTEUR];
   }),
 }));
-vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => [KUNDE]) }));
+let kundenBestand: (Customer & { id: string })[] = [KUNDE];
+vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kundenBestand) }));
 
 /*
   Die Stunden der Übersicht. Sie hängen an einer eigenen Abfrage, und diese
@@ -120,6 +121,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   baustellen = [];
+  kundenBestand = [KUNDE];
   ladefehler = false;
   serverBaustellen = [];
   serverFehler = false;
@@ -465,5 +467,35 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
     expect(await screen.findByText('(2026-003)')).toBeInTheDocument();
     expect(screen.queryByText(/Baustellen? ausserhalb der geladenen Liste gefunden/))
       .not.toBeInTheDocument();
+  });
+});
+
+/**
+ * WENN DIE KUNDENAUSWAHL AN IHRER GRENZE ENDET.
+ *
+ * `listCustomers` hatte schon immer eine Grenze — einen Standardwert von 500,
+ * der nirgends stand. Damit war sie die einzige Liste, die noch
+ * stillschweigend abschnitt: der Wächter `abfragegrenzen` liess sie durch,
+ * weil sie eine Grenze HAT.
+ *
+ * Der Schaden wäre nicht die Kundenliste, sondern dieses Auswahlfeld: fehlt
+ * ein Kunde, legt jemand die Baustelle ohne Kunden an oder tippt den Namen
+ * von Hand — genau die Dublette, gegen die die Kundenstammdaten eingeführt
+ * wurden.
+ */
+describe('Baustellen — Kundenauswahl an der Grenze', () => {
+  it('sagt es, sobald die Grenze erreicht ist', async () => {
+    kundenBestand = Array.from({ length: 500 }, (_, i) =>
+      ({ id: `k${i}`, companyId: 'perl', name: `Kunde ${i}` }) as Customer & { id: string },
+    );
+    zeige();
+
+    expect(await screen.findByText(/nur die ersten 500 Kunden/)).toBeInTheDocument();
+  });
+
+  it('schweigt bei einem gewöhnlichen Kundenstamm', async () => {
+    zeige();
+    await screen.findByLabelText('Kunde');
+    expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
   });
 });

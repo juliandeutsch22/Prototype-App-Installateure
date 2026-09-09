@@ -56,6 +56,22 @@ const AUSNAHMEN: Record<string, string> = {
   subscribePrefs: 'Ein Dokument je Mandant',
 };
 
+/**
+ * Abfragen, bei denen ein Statusfilter NICHT als Grenze zählt.
+ *
+ * „Wächst nicht mit der ZEIT" ist nicht dasselbe wie „ist begrenzt". Die Zahl
+ * der laufenden Baustellen wächst nicht mit der Historie — abgeschlossene
+ * fallen heraus —, wohl aber mit dem Betrieb, und sie wird nie wieder
+ * kleiner. Genau deshalb ging `listActiveProjects` jahrelang als begrenzt
+ * durch, obwohl sie es nicht war.
+ *
+ * Wo das Ergebnis an einem AUSWAHLFELD hängt, wiegt das doppelt: dort sieht
+ * eine abgeschnittene Liste vollständig aus, egal wie viel fehlt.
+ */
+const STATUS_REICHT_NICHT: Record<string, string> = {
+  listActiveProjects: 'Hängt an der Baustellenauswahl beim Buchen — dort darf nichts fehlen',
+};
+
 /** Muster, die eine Grenze belegen. */
 const GRENZ_MUSTER = [
   /limit\(/,
@@ -131,7 +147,10 @@ describe('Abfragegrenzen in der Datenschicht', () => {
         expect(AUSNAHMEN[name]).toBeTruthy();
         return;
       }
-      const begrenzt = GRENZ_MUSTER.some((m) => m.test(abfrage.koerper));
+      const muster = STATUS_REICHT_NICHT[name]
+        ? GRENZ_MUSTER.filter((m) => !/'status'/.test(m.source))
+        : GRENZ_MUSTER;
+      const begrenzt = muster.some((m) => m.test(abfrage.koerper));
       expect(
         begrenzt,
         `${abfrage.datei}: ${name}() fragt Firestore ohne Grenze ab.\n` +

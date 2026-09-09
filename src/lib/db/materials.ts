@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Material } from '@/types';
-import { KATALOG_GRENZE } from '@/lib/katalogGrenze';
+import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { limit } from 'firebase/firestore';
 import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from './core';
 
@@ -22,7 +22,7 @@ const COLLECTION = 'materials';
   genau die Fehlerform, die hier verschwinden soll. Sortiert wird in den
   Ansichten, und die tun es ohnehin alle.
 */
-export { KATALOG_GRENZE, katalogAbgeschnitten } from '@/lib/katalogGrenze';
+export { KATALOG_GRENZE, katalogAbgeschnitten } from '@/lib/listengrenzen';
 
 export function subscribeMaterials(
   companyId: string,

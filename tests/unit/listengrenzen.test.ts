@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { KATALOG_GRENZE, katalogAbgeschnitten } from '@/lib/katalogGrenze';
+import {
+  KATALOG_GRENZE,
+  KUNDEN_GRENZE,
+  BAUSTELLEN_AUSWAHL_GRENZE,
+  abgeschnitten,
+  katalogAbgeschnitten,
+  kundenAbgeschnitten,
+  baustellenAuswahlAbgeschnitten,
+} from '@/lib/listengrenzen';
 
 /**
  * Die Obergrenze des Materialkatalogs.
@@ -38,6 +46,39 @@ describe('Wann der Katalog als abgeschnitten gilt', () => {
   it('steht bei tausend', () => {
     // Festgehalten, damit eine spätere Änderung eine Entscheidung ist und
     // kein Nebeneffekt.
+    expect(KATALOG_GRENZE).toBe(1000);
+  });
+});
+
+/**
+ * DIE ANDEREN BEIDEN LISTEN — Kunden und laufende Baustellen.
+ *
+ * Beide gingen durch den Wächter `abfragegrenzen`, und beide zu Unrecht:
+ * `listCustomers` HAT eine Grenze, sagte sie aber nirgends, und
+ * `listActiveProjects` galt über den Statusfilter als begrenzt. „Wächst nicht
+ * mit der Zeit" ist aber nicht dasselbe wie „ist begrenzt": die Zahl der
+ * offenen Baustellen wächst mit dem Betrieb und wird nie wieder kleiner.
+ */
+describe('Kunden und laufende Baustellen', () => {
+  it('teilen dieselbe Rechnung, nur mit anderer Grenze', () => {
+    expect(abgeschnitten(new Array(500).fill(0), 500)).toBe(true);
+    expect(kundenAbgeschnitten(new Array(KUNDEN_GRENZE).fill(0))).toBe(true);
+    expect(
+      baustellenAuswahlAbgeschnitten(new Array(BAUSTELLEN_AUSWAHL_GRENZE).fill(0)),
+    ).toBe(true);
+  });
+
+  it('schweigen bei einem gewöhnlichen Betrieb', () => {
+    // Achtzig laufende Baustellen und dreihundert Kunden sind viel für einen
+    // Installationsbetrieb — und weit unter beiden Grenzen.
+    expect(kundenAbgeschnitten(new Array(300).fill(0))).toBe(false);
+    expect(baustellenAuswahlAbgeschnitten(new Array(80).fill(0))).toBe(false);
+  });
+
+  it('stehen beide bei fünfhundert', () => {
+    // Festgehalten, damit eine spätere Änderung eine Entscheidung ist.
+    expect(KUNDEN_GRENZE).toBe(500);
+    expect(BAUSTELLEN_AUSWAHL_GRENZE).toBe(500);
     expect(KATALOG_GRENZE).toBe(1000);
   });
 });

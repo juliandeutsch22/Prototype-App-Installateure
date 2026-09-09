@@ -8,7 +8,7 @@ import {
   deleteMaterial,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
-import { KATALOG_GRENZE } from '@/lib/katalogGrenze';
+import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
 import Card from '@/components/Card';

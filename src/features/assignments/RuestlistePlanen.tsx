@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Material, RuestPosition } from '@/types';
-import { katalogAbgeschnitten } from '@/lib/katalogGrenze';
+import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
