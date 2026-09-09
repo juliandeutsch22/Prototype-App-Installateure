@@ -9,6 +9,7 @@ import {
 import type { WithId } from '@/lib/db/core';
 import type { MaterialOrder } from '@/types';
 import Card from '@/components/Card';
+import Nachladen from '@/components/Nachladen';
 import Badge from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
@@ -59,6 +60,19 @@ export default function AdminOrdersView() {
    * fünfzig Zeilen, der sich erweitern lässt.
    */
   const [limit, setLimit] = useState(50);
+  /**
+   * Wie viele Anforderungen ÜBERHAUPT geholt werden.
+   *
+   * Das darüber ist die ANZEIGE-Grenze: sie sagt, wie viele der geholten
+   * Zeilen untereinander stehen, und lässt sich am Knopf erweitern. Diese
+   * hier ist die ABFRAGE-Grenze, und die stand fest bei zweihundert.
+   *
+   * Der Unterschied fällt erst im Archiv auf: es wächst mit jeder erledigten
+   * Anforderung, und ab der zweihundertsten fehlten die ältesten — die Suche
+   * fand sie nicht, und nichts unterschied das von „gibt es nicht". Genau
+   * derselbe Fehler wie bei den Baustellen im September.
+   */
+  const [holgrenze, setHolgrenze] = useState(ANFORDERUNGEN_JE_SEITE);
   /** Bestätigung vor dem Abschluss — dabei wird das Lager reduziert. */
   const [toComplete, setToComplete] = useState<WithId<MaterialOrder> | null>(null);
 
@@ -66,7 +80,7 @@ export default function AdminOrdersView() {
     if (!user) return;
     const unsub = subscribeAllOrders(
       user.companyId,
-      ANFORDERUNGEN_JE_SEITE,
+      holgrenze,
       (rows) => {
         setOrders(rows);
         setLoading(false);
@@ -77,7 +91,7 @@ export default function AdminOrdersView() {
       },
     );
     return unsub;
-  }, [user]);
+  }, [user, holgrenze]);
 
   const purchases = useMemo(() => orders.filter((o) => o.transactionType !== 'return'), [orders]);
   const returns = useMemo(() => orders.filter((o) => o.transactionType === 'return'), [orders]);
@@ -311,6 +325,20 @@ export default function AdminOrdersView() {
                   Weitere anzeigen ({rows.length - limit})
                 </Button>
               )}
+
+              {/*
+                Und darunter die ABFRAGE-Grenze. „Weitere anzeigen" oben holt
+                nichts nach — es zeigt nur mehr von dem, was schon da ist. Wer
+                im Archiv sucht und nichts findet, muss den Unterschied
+                erfahren.
+              */}
+              <Nachladen
+                geladen={orders.length}
+                grenze={holgrenze}
+                onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
+                einheit="Anforderungen"
+                sucheSatz="Nach Artikel, Person, Baustelle und Notiz wird nur in diesen gesucht."
+              />
             </div>
           )}
         </Card>
