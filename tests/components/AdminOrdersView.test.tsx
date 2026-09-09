@@ -37,14 +37,18 @@ let ladefehler: string | null = null;
 const statusSetzen = vi.fn();
 const loeschen = vi.fn();
 
+/* Mit welcher ABFRAGE-Grenze zuletzt abonniert wurde. */
+let letzteHolgrenze = 0;
+
 vi.mock('@/lib/db/materialOrders', () => ({
   ORDER_STATUS_FLOW: ['Offen', 'In Bearbeitung', 'Abholbereit', 'Erledigt'],
   subscribeAllOrders: (
     _c: string,
-    _max: number,
+    max: number,
     cb: (rows: WithId<MaterialOrder>[]) => void,
     onError: (e: Error) => void,
   ) => {
+    letzteHolgrenze = max;
     if (ladefehler) onError(new Error(ladefehler));
     else cb(anforderungen);
     return () => undefined;
@@ -257,5 +261,61 @@ describe('Anforderungen — wenn das Laden scheitert', () => {
     zeige();
     expect(await screen.findByText(/Fehlende Berechtigung/)).toBeInTheDocument();
     expect(screen.queryByText('Aktuell keine offenen Bestellungen.')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * ZWEI GRENZEN, DIE LEICHT ZU VERWECHSELN SIND.
+ *
+ * „Weitere anzeigen" im Archiv hebt die ANZEIGE-Grenze an: es zeigt mehr von
+ * dem, was schon geladen ist. Die ABFRAGE-Grenze stand fest bei zweihundert
+ * und liess sich gar nicht anheben.
+ *
+ * Aufgefallen ist das erst beim Archiv: es wächst mit jeder erledigten
+ * Anforderung, und ab der zweihundertsten fehlten die ältesten. Die Suche
+ * fand sie nicht, und nichts unterschied das von „gibt es nicht" — derselbe
+ * Fehler wie bei den Baustellen im September, nur eine Ansicht weiter.
+ */
+describe('Anforderungen — wie weit die Abfrage reicht', () => {
+  const viele = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      ({
+        id: `o${i}`,
+        companyId: 'perl',
+        materialName: `Artikel ${i}`,
+        quantity: 1,
+        // Der Reiter „aktiv“ ist die Vorgabe und zeigt nur Offene.
+        status: 'Offen',
+        userId: 'u1',
+        userName: 'Max Mustermann',
+        projectNumber: '2026-001',
+      }) as unknown as WithId<MaterialOrder>,
+    );
+
+  it('holt mit der Grenze, nicht unbegrenzt', async () => {
+    anforderungen = viele(3);
+    zeige();
+    await screen.findByText(/Artikel 0/);
+    expect(letzteHolgrenze).toBe(200);
+  });
+
+  it('schweigt, solange die Grenze nicht greift', async () => {
+    anforderungen = viele(3);
+    zeige();
+    await screen.findByText(/Artikel 0/);
+    expect(
+      screen.queryByRole('button', { name: /Weitere Anforderungen laden/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('sagt es, sobald die Grenze erreicht ist, und holt dann mehr', async () => {
+    anforderungen = viele(200);
+    const nutzer = userEvent.setup();
+    zeige();
+    await screen.findByText(/Artikel 0/);
+
+    expect(screen.getByText(/nur in diesen gesucht/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: /Weitere Anforderungen laden/ }));
+    expect(letzteHolgrenze).toBe(400);
   });
 });
