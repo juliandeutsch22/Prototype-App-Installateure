@@ -26,6 +26,7 @@ export default function Nachladen({
   onMehr,
   einheit,
   sucheImBrowser = true,
+  sucheSatz,
 }: {
   /** Wie viele Datensätze gerade da sind. */
   geladen: number;
@@ -37,6 +38,15 @@ export default function Nachladen({
   einheit: string;
   /** Läuft die Suche dieser Ansicht nur über das Geladene? */
   sucheImBrowser?: boolean;
+  /**
+   * Ein genauerer Satz zur Reichweite der Suche.
+   *
+   * Der Standardsatz stimmt für die meisten Listen. Wo ein Teil der Suche
+   * SEHR WOHL auf den Server geht — die Baustellen über ihre Nummer —, wäre
+   * er falsch, und eine Auskunft, die einmal danebenlag, wird beim nächsten
+   * Mal nicht mehr geglaubt.
+   */
+  sucheSatz?: string;
 }) {
   /*
     NUR WENN DIE GRENZE WIRKLICH GREIFT. Steht die Liste bei 43 von 500, ist
@@ -52,7 +62,7 @@ export default function Nachladen({
       </Button>
       <span className="text-sm text-ink-muted">
         {geladen} von möglicherweise mehr geladen.
-        {sucheImBrowser ? ' Die Suche geht nur über diese.' : ''}
+        {sucheImBrowser ? ` ${sucheSatz ?? 'Die Suche geht nur über diese.'}` : ''}
       </span>
     </div>
   );

@@ -1,7 +1,14 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { Fragment, Suspense, lazy, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { subscribeRecentProjects, createProject, updateProject, deleteProject } from '@/lib/db/projects';
+import {
+  subscribeRecentProjects,
+  createProject,
+  updateProject,
+  deleteProject,
+  findProjectsByNumber,
+} from '@/lib/db/projects';
+import { deuteBaustellenSuche, baustellenSuchHinweis } from './baustellenSuche';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
 import { useModul } from '@/lib/useModule';
@@ -235,6 +242,40 @@ export default function AdminProjectsView() {
     () => projects.filter((p) => p.status === 'Abgeschlossen').length,
     [projects],
   );
+  /**
+   * Was der Suchbegriff meint. Eine Baustellennummer geht auf den Server und
+   * findet damit auch, was ausserhalb der geladenen Liste liegt; alles andere
+   * bleibt eine Suche im Geladenen. Warum diese Trennung und keine
+   * Volltextsuche: siehe `baustellenSuche.ts`.
+   */
+  const absicht = useMemo(() => deuteBaustellenSuche(suche), [suche]);
+
+  const [serverTreffer, setServerTreffer] = useState<WithId<Project>[]>([]);
+
+  useEffect(() => {
+    if (!user || absicht.art !== 'nummer') {
+      setServerTreffer([]);
+      return;
+    }
+    let verworfen = false;
+    const formen = absicht.formen;
+    void findProjectsByNumber(user.companyId, formen)
+      .then((gefunden) => {
+        if (!verworfen) setServerTreffer(gefunden);
+      })
+      /*
+        Ein Fehlschlag laesst die oertliche Suche stehen, statt die Liste zu
+        leeren: was geladen ist, ist deshalb nicht falsch. Gemeldet wird er
+        trotzdem — unten steht dann, dass ueber die Nummer nichts dazukam.
+      */
+      .catch(() => {
+        if (!verworfen) setServerTreffer([]);
+      });
+    return () => {
+      verworfen = true;
+    };
+  }, [user, absicht]);
+
   const visible = useMemo(() => {
     const nachStatus =
       filter === 'alle'
@@ -246,10 +287,28 @@ export default function AdminProjectsView() {
     // Liste sonst nur noch scrollbar, nicht mehr benutzbar.
     const q = suche.trim().toLowerCase();
     if (!q) return nachStatus;
-    return nachStatus.filter((p) =>
+    const oertlich = nachStatus.filter((p) =>
       [p.customerName, p.projectNumber, p.address].some((v) => v?.toLowerCase().includes(q)),
     );
-  }, [sorted, filter, suche]);
+
+    /*
+      DER SERVERTREFFER GEHT AM STATUSFILTER VORBEI.
+
+      Wer eine Nummer eintippt, meint genau diese Baustelle. Sie wegen „Aktiv
+      & pausiert" zu verschweigen waere wieder das leere Ergebnis, das wie ein
+      Befund aussieht — und abgeschlossen ist die gesuchte alte Baustelle
+      fast immer.
+    */
+    const bekannt = new Set(oertlich.map((p) => p.id));
+    return [...oertlich, ...serverTreffer.filter((p) => !bekannt.has(p.id))];
+  }, [sorted, filter, suche, serverTreffer]);
+
+  /** Wie viele Treffer NUR vom Server kamen — das ist die Aussage, nicht die Summe. */
+  const nurVomServer = useMemo(() => {
+    if (absicht.art !== 'nummer') return 0;
+    const geladen = new Set(sorted.map((p) => p.id));
+    return serverTreffer.filter((p) => !geladen.has(p.id)).length;
+  }, [absicht, serverTreffer, sorted]);
 
   if (!user) return null;
 
@@ -396,6 +455,24 @@ export default function AdminProjectsView() {
               value={suche}
               onChange={(e) => setSuche(e.target.value)}
             />
+            {/*
+              WAS DIE SUCHE ERREICHT, BEVOR SIE ETWAS FINDET.
+
+              Ohne diesen Satz sah eine Suche nach „Huber" ueber die Grenze
+              hinaus genauso aus wie eine, die es wirklich nicht gibt: leer.
+              Der Hinweis steht deshalb waehrend des Tippens da und nicht
+              erst im Leerzustand.
+            */}
+            {suche.trim() && (
+              <p className="mt-1 text-xs text-ink-muted">{baustellenSuchHinweis(absicht)}</p>
+            )}
+            {nurVomServer > 0 && (
+              <p className="mt-1 text-xs text-ink">
+                {nurVomServer === 1
+                  ? 'Eine Baustelle ausserhalb der geladenen Liste gefunden.'
+                  : `${nurVomServer} Baustellen ausserhalb der geladenen Liste gefunden.`}
+              </p>
+            )}
           </div>
         )}
         {loading ? <SkeletonList rows={4} /> : visible.length === 0 ? (
@@ -497,15 +574,17 @@ export default function AdminProjectsView() {
           Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende gescrollt
           hat und nichts gefunden hat, braucht die Auskunft.
 
-          `sucheImBrowser`, weil die Suche dieser Ansicht über das GELADENE
-          läuft — wer eine alte Baustellennummer eintippt und nichts findet,
-          soll nicht schliessen, es gebe sie nicht.
+          Der Satz ist seither GENAUER: die Nummer geht auf den Server, Kunde
+          und Adresse nicht. „Die Suche geht nur über diese" wäre jetzt falsch,
+          und eine Auskunft, die einmal danebenlag, wird beim nächsten Mal
+          nicht mehr geglaubt.
         */}
         <Nachladen
           geladen={projects.length}
           grenze={grenze}
           onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
           einheit="Baustellen"
+          sucheSatz="Nach Kunde und Adresse wird nur in diesen gesucht; eine Baustellennummer geht auf den Server."
         />
       </Card>
 

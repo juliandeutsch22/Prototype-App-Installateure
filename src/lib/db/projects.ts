@@ -46,6 +46,24 @@ export async function listProjectsByNumbers(companyId: string, numbers: string[]
 }
 
 /**
+ * Baustellen zu einer NUMMER — die Suche, die ueber die geladene Liste
+ * hinausreicht.
+ *
+ * Die Verwaltungsliste zeigt die juengsten dreihundert. Eine Baustelle von
+ * vor vier Jahren steht nicht darin, und im Browser zu filtern kann sie
+ * folglich nicht finden. Nach der NUMMER laesst sich dagegen exakt fragen —
+ * ohne ein zusaetzliches Suchfeld, das erst auf jedem Altbestand nachgetragen
+ * werden muesste.
+ *
+ * `formen` traegt beide Schreibweisen (mit und ohne „PR-"), weil Firestore
+ * genau vergleicht. Warum das so ist, steht in `baustellenSuche.ts`.
+ */
+export function findProjectsByNumber(companyId: string, formen: string[]) {
+  if (formen.length === 0) return Promise.resolve([]);
+  return queryTenant<Project>(COLLECTION, companyId, where('projectNumber', 'in', formen));
+}
+
+/**
  * Die juengsten Baustellen, mit Obergrenze — fuer die Verwaltungsliste.
  *
  * Baustellen wachsen langsamer als Zeiteintraege, aber sie wachsen: bei
