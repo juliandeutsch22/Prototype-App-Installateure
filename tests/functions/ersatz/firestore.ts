@@ -198,6 +198,12 @@ class FakeBatch {
   }
   async commit() {
     this.db.commits++;
+    /*
+      Ein scheiternder Batch ist kein Randfall: an ihm haengt, ob eine
+      Function ihre halbfertige Arbeit wieder aufraeumt. Ohne diesen Schalter
+      liesse sich genau das nicht pruefen.
+    */
+    if (this.db.scheitertBeimSchreiben) throw new Error('Firestore nicht erreichbar');
     for (const s of this.schritte) await s();
   }
 }
@@ -208,6 +214,8 @@ export class FakeDb {
   readonly schreibt: Array<{ art: string; pfad: string; daten: Dok }> = [];
   /** Wie oft `batch().commit()` lief: Atomarität ist eine Zusicherung. */
   commits = 0;
+  /** Laesst jeden `batch().commit()` scheitern. */
+  scheitertBeimSchreiben = false;
   private zaehler = 0;
 
   inhalt(name: string): Map<string, Dok> {

@@ -1,4 +1,5 @@
 import { httpsCallable } from 'firebase/functions';
+import type { NeuerBetrieb } from '@shared/plattform';
 import { functions } from './firebase';
 import type { VoiceExtractResponse } from '@/features/voice/types';
 
@@ -101,3 +102,17 @@ export const callExportCompanyData = httpsCallable<
     data: Record<string, unknown[]>;
   }
 >(functions, 'exportCompanyData');
+
+/**
+ * Einen neuen Betrieb anlegen — nur für den globalen Administrator.
+ *
+ * Der Aufruf ist der EINZIGE Weg dieses Kontos in die Daten, und er schreibt
+ * ausschliesslich: ein leeres Firmendokument, den ersten Administrator, einen
+ * Eintrag ins Anlageprotokoll. Gelesen werden kann mit diesem Konto nichts —
+ * sein Token trägt keine `companyId`, und daran hängt jede einzelne Regel.
+ * Warum das so gebaut ist, steht in `shared/plattform.ts`.
+ */
+export const callBetriebAnlegen = httpsCallable<
+  NeuerBetrieb,
+  { companyId: string; ersterAdminUid: string; passwortLink: string }
+>(functions, 'betriebAnlegen');
