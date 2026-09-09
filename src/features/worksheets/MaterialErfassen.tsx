@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Material } from '@/types';
+import { katalogAbgeschnitten } from '@/lib/katalogGrenze';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
@@ -124,6 +125,19 @@ export default function MaterialErfassen({ materials, zeilen, onChange }: Props)
               <p className="text-sm text-ink-muted">
                 Kein Artikel passt zur Suche. Was nicht im Lager geführt wird, kann unten als
                 freie Zeile dazu.
+                {/*
+                  „Wird nicht im Lager geführt" ist die übliche Erklärung —
+                  und sie wäre falsch, wenn der Katalog nur bis zur
+                  Obergrenze geladen wurde. Der Monteur tippt den Artikel dann
+                  von Hand ein, und der Eintrag mit Preis und Einheit bleibt
+                  ungenutzt; auf der Rechnung steht er später ohne Preis.
+                */}
+                {katalogAbgeschnitten(materials) && (
+                  <strong className="mt-1 block text-warning">
+                    Der Katalog wurde nur bis zur Obergrenze geladen — den Artikel kann es
+                    trotzdem geben.
+                  </strong>
+                )}
               </p>
             ) : (
               <List>

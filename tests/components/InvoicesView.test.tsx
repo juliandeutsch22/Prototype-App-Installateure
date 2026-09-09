@@ -492,6 +492,32 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
     expect(screen.queryByText(/liegt vor „Leistung von"/)).not.toBeInTheDocument();
   });
 
+  it('warnt bei abgeschnittenem Materialstamm gegen den falschen Rat', async () => {
+    /*
+      Der übliche Rat lautet „im Lager gepflegt, kommt er beim nächsten Mal
+      von selbst". Der wäre falsch, wenn der Katalog gar nicht vollständig
+      geladen wurde — dann liegt es nicht an der Pflege, und wer ihr nachginge,
+      suchte an der falschen Stelle.
+    */
+    scheine = [SCHEIN];
+    katalog = Array.from({ length: 1000 }, (_, i) =>
+      ({ id: `m${i}`, companyId: 'perl', name: `Artikel ${i}` }) as Material & { id: string },
+    );
+    await bisZurVorschau();
+
+    expect(await screen.findByText(/Ohne Preis im Katalog/)).toBeInTheDocument();
+    expect(screen.getByText(/nur bis zur Obergrenze geladen/)).toBeInTheDocument();
+  });
+
+  it('warnt NICHT, solange der Materialstamm vollständig ist', async () => {
+    scheine = [SCHEIN];
+    katalog = [];
+    await bisZurVorschau();
+
+    expect(await screen.findByText(/Ohne Preis im Katalog/)).toBeInTheDocument();
+    expect(screen.queryByText(/nur bis zur Obergrenze geladen/)).not.toBeInTheDocument();
+  });
+
   it('weist auf Material ohne Preis hin', async () => {
     // Eine erfundene Zahl auf einer Rechnung wäre schlimmer als eine
     // sichtbare Lücke.

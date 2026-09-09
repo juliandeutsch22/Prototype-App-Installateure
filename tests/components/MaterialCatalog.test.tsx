@@ -26,9 +26,18 @@ let materialien: WithId<Material>[] = [];
 const anlegen = vi.fn();
 const aendern = vi.fn();
 
+/* Mit welcher Grenze zuletzt abonniert wurde — der Nachladeknopf hebt sie an. */
+let letzteGrenze = 0;
+
 vi.mock('@/lib/db/materials', () => ({
   LOW_STOCK_THRESHOLD: 5,
-  subscribeMaterials: (_c: string, cb: (rows: WithId<Material>[]) => void) => {
+  subscribeMaterials: (
+    _c: string,
+    cb: (rows: WithId<Material>[]) => void,
+    _onError: (e: Error) => void,
+    grenze: number,
+  ) => {
+    letzteGrenze = grenze;
     cb(materialien);
     return () => undefined;
   },
@@ -125,5 +134,60 @@ describe('Der Einkaufspreis', () => {
     await waitFor(() => expect(aendern).toHaveBeenCalled());
     const daten = aendern.mock.calls[0][1] as Record<string, unknown>;
     expect(Object.keys(daten)).not.toContain('einkaufspreis');
+  });
+});
+
+/**
+ * WIE WEIT DER KATALOG REICHT.
+ *
+ * Er wurde bis zum 09.09.2026 ohne jede Grenze geladen — in sechs Ansichten,
+ * vier davon als Live-Abo. Bei ein paar hundert Artikeln harmlos; er wächst
+ * nur ohne jedes Signal, und bemerkt würde es an dem Tag, an dem die
+ * Anwendung stehen bleibt.
+ */
+describe('Materialkatalog — wie weit die Liste reicht', () => {
+  const viele = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      ({
+        id: `m${i}`,
+        companyId: 'perl',
+        name: `Artikel ${i}`,
+        stock: 10,
+      }) as WithId<Material>,
+    );
+
+  it('holt mit der Grenze, nicht unbegrenzt', async () => {
+    materialien = viele(5);
+    zeige();
+    await screen.findByText(/Artikel 0/);
+    expect(letzteGrenze).toBe(1000);
+  });
+
+  it('schweigt, solange die Grenze nicht greift', async () => {
+    materialien = viele(5);
+    zeige();
+    await screen.findByText(/Artikel 0/);
+    expect(screen.queryByRole('button', { name: /Weitere Artikel laden/ })).not.toBeInTheDocument();
+  });
+
+  it('sagt es, sobald die Grenze erreicht ist — samt Reichweite der Suche', async () => {
+    materialien = viele(1000);
+    zeige();
+    await screen.findByText(/Artikel 0/);
+    expect(screen.getByRole('button', { name: /Weitere Artikel laden/ })).toBeInTheDocument();
+    // Der zweite Satz ist der wichtigere: wer einen Artikel sucht und nichts
+    // findet, soll nicht schliessen, es gebe ihn nicht.
+    expect(screen.getByText(/nur in diesen gesucht/)).toBeInTheDocument();
+  });
+
+  it('holt beim Nachladen tatsächlich mehr', async () => {
+    materialien = viele(1000);
+    const nutzer = userEvent.setup();
+    zeige();
+    await screen.findByText(/Artikel 0/);
+    expect(letzteGrenze).toBe(1000);
+
+    await nutzer.click(screen.getByRole('button', { name: /Weitere Artikel laden/ }));
+    expect(letzteGrenze).toBe(2000);
   });
 });

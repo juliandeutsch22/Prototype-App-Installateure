@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { subscribeMaterials, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
+import { KATALOG_GRENZE } from '@/lib/katalogGrenze';
 import {
   createMaterialOrder,
   subscribeOwnOrders,
@@ -11,6 +12,7 @@ import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
+import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import IconButton from '@/components/IconButton';
@@ -60,6 +62,8 @@ export default function OrderView() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [myOrders, setMyOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
+  /* Warum der Katalog eine Grenze braucht: siehe `lib/db/materials.ts`. */
+  const [grenze, setGrenze] = useState(KATALOG_GRENZE);
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — der Katalog steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
@@ -100,6 +104,7 @@ export default function OrderView() {
         setError(e.message);
         setLoading(false);
       },
+      grenze,
     );
     // Siehe StockView: ein stumm gescheitertes Abo sieht aus wie „nichts da".
     const unsubO = subscribeOwnOrders(
@@ -113,7 +118,7 @@ export default function OrderView() {
       unsubM();
       unsubO();
     };
-  }, [user]);
+  }, [user, grenze]);
 
   // Korb des angemeldeten Nutzers laden, sobald er feststeht.
   useEffect(() => {
@@ -443,6 +448,20 @@ export default function OrderView() {
                   })}
                 </List>
               )}
+              {/*
+                Der Monteur sucht hier den Artikel, den er braucht. Findet er
+                ihn nicht, muss dastehen, ob es ihn nicht gibt oder ob die
+                Liste nur nicht so weit reicht — sonst tippt er ihn von Hand
+                ein, und der Katalogeintrag mit Preis und Bestand bleibt
+                ungenutzt.
+              */}
+              <Nachladen
+                geladen={materials.length}
+                grenze={grenze}
+                onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+                einheit="Artikel"
+                sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
+              />
             </div>
           </Card>
 

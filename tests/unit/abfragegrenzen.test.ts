@@ -37,10 +37,19 @@ const AUSNAHMEN: Record<string, string> = {
   // Die Belegschaft. Wächst mit Einstellungen, nicht mit der Zeit — ein
   // Betrieb mit zwanzig Monteuren hat auch nach zehn Jahren zwanzig Zeilen.
   listUsers: 'Belegschaft — wächst nicht mit der Zeit',
-  // Der Materialstamm. Ein Katalog, den der Betrieb selbst pflegt; er wächst
-  // mit dem Sortiment, nicht mit dem Betrieb.
-  subscribeMaterials: 'Materialstamm — gepflegter Katalog',
-  listMaterials: 'Materialstamm — gepflegter Katalog',
+  /*
+    DER MATERIALSTAMM STAND HIER — ZU UNRECHT.
+
+    Die Begründung lautete „ein Katalog, den der Betrieb selbst pflegt; er
+    wächst mit dem Sortiment, nicht mit dem Betrieb". Das stimmt genau so
+    lange, wie er von Hand gepflegt wird. Ein Datanorm-Import bringt 50.000
+    bis 500.000 Artikel auf einmal — und dann laden sechs Ansichten den
+    ganzen Bestand, vier davon als Live-Abo.
+
+    Die Ausnahme ist am 09.09.2026 entfallen. Beide Abfragen tragen jetzt
+    eine Obergrenze; wo sie greift, sagt es die Ansicht (siehe
+    `lib/katalogGrenze.ts`).
+  */
   // Nachfassungen sind per Status begrenzt: erledigte fallen heraus.
   listOpenFollowUps: 'Nur offene — per Status begrenzt',
   // Einstellungen und Stammdaten des Mandanten: ein Dokument.
