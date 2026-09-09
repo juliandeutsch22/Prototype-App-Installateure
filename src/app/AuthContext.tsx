@@ -215,6 +215,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
 
       /**
+       * DER GLOBALE ADMINISTRATOR WIRD GEPRÜFT, BEVOR IRGENDETWAS GELESEN
+       * WIRD — und das ist keine Beschleunigung, sondern der Kern.
+       *
+       * Er hat absichtlich kein `users`-Dokument. Die Regel dafür lautet
+       * `allow read: if ownsExisting()`, und `ownsExisting()` liest
+       * `resource.data.companyId`. Bei einem Dokument, das es NICHT GIBT, ist
+       * `resource` leer: die Regel ist damit nicht erfüllt, und Firestore
+       * antwortet mit PERMISSION_DENIED. `getDoc` liefert also keinen leeren
+       * Schnappschuss, sondern WIRFT.
+       *
+       * Genau daran ist der erste Anlauf gescheitert: die Prüfung stand
+       * hinter dem Abruf, im Zweig „kein Profil gefunden". Dorthin kam der
+       * globale Administrator nie — der Fehler landete im Auffangblock, und
+       * auf dem Anmeldebildschirm stand „Das liegt meist am Empfang". Eine
+       * Meldung, die auf ein Netzproblem zeigt, wo keines ist.
+       *
+       * `getIdTokenResult()` liest das bereits vorliegende Token; ohne
+       * `forceRefresh` kostet das keine Netzrunde. Für alle anderen ändert
+       * sich damit nichts ausser einem aufgelösten Promise.
+       *
+       * Das ist eine ANZEIGEFRAGE, keine Sicherheitsgrenze: die steht in den
+       * firestore.rules und in der Function, die den Betrieb anlegt. Ein
+       * gefälschter Claim brächte hier nur eine Seite zum Vorschein, auf der
+       * jeder Knopf serverseitig abgewiesen würde.
+       */
+      const plattformMarke = await fbUser
+        .getIdTokenResult()
+        .then((t) => t.claims.plattformAdmin === true)
+        .catch(() => false);
+      if (plattformMarke) {
+        setPlattformAdmin(true);
+        setUser(null);
+        setCompany(null);
+        setLoading(false);
+        return;
+      }
+
+      /**
        * ERST ZEIGEN, WAS DA IST — DANN NACHZIEHEN.
        *
        * Der Zwischenspeicher antwortet in Millisekunden, das Netz im Keller
@@ -263,33 +301,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!profile) {
           /*
-            KEIN PROFIL IST NICHT IMMER EIN FEHLER.
-
-            Der globale Administrator hat absichtlich kein `users`-Dokument:
-            er gehört zu keinem Betrieb, und genau daran hängt, dass er in
-            keinen hineinsehen kann. Sein Recht steht allein im Token.
-
-            Die Prüfung ist eine Anzeigefrage und keine Sicherheitsgrenze —
-            die steht in den firestore.rules und in der Function, die den
-            Betrieb anlegt. Ein gefälschter Claim brächte hier nur eine Seite
-            zum Vorschein, auf der jeder Knopf serverseitig abgewiesen würde.
+            Hier landet nur noch, wessen users-Dokument zwar LESBAR ist, aber
+            keine companyId oder Rolle trägt. Der globale Administrator kommt
+            nicht mehr hierher — er ist oben schon abgebogen, bevor überhaupt
+            gelesen wurde.
           */
-          const marke = await fbUser
-            .getIdTokenResult()
-            .then((t) => t.claims.plattformAdmin === true)
-            .catch(() => false);
-          if (marke) {
-            setPlattformAdmin(true);
-            setUser(null);
-            setCompany(null);
-          } else {
-            setError(
-              'Kein Benutzerprofil für dieses Konto gefunden. Bitte an die Verwaltung wenden.',
-            );
-            await fbSignOut(auth);
-            setUser(null);
-            setCompany(null);
-          }
+          setError(
+            'Kein Benutzerprofil für dieses Konto gefunden. Bitte an die Verwaltung wenden.',
+          );
+          await fbSignOut(auth);
+          setUser(null);
+          setCompany(null);
         } else {
           setUser(profile);
           firmaMerken(profile.uid, profile.companyId);
