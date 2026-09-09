@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { InputField, CheckboxField } from '@/components/Field';
@@ -26,6 +26,25 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [resetMode, setResetMode] = useState(false);
+
+  /**
+   * DER KREISEL AUF DEM KNOPF BRAUCHT EIN ENDE, DAS NICHT „VERSCHWINDEN" HEISST.
+   *
+   * Bei einer geglückten Anmeldung endete er dadurch, dass diese Seite
+   * verschwindet — `user` ist gesetzt, der Verweis unten führt ins Dashboard.
+   * Für den Weg, der NICHT ins Dashboard führt, war nie eines vorgesehen:
+   * scheitert das Laden des Profils, steht die Meldung darüber, und der Knopf
+   * dreht sich weiter. Ein zweiter Versuch sieht dann aus wie der erste, und
+   * niemand weiss, ob die App noch arbeitet oder längst aufgegeben hat.
+   *
+   * Zu sehen war das auf dem allerersten Bild dieses Fehlers: die rote Meldung
+   * und darunter der laufende Kreisel. Es ist ein eigener Mangel, kein
+   * Nebeneffekt — er trifft jede gescheiterte Anmeldung, nicht nur die des
+   * globalen Administrators.
+   */
+  useEffect(() => {
+    if (authError) setSubmitting(false);
+  }, [authError]);
 
   // Bereits angemeldet -> direkt ins Dashboard (der Auth-Guard übernimmt die
   // Navigation; kein manuelles navigate() mit Timing-Risiko nötig).
