@@ -74,6 +74,25 @@ const listEntriesForProjects = vi.fn<[string, string[]], Promise<(TimeEntry & { 
   async () => eintraege,
 );
 
+/*
+  DIE GRENZE IM TEST KLEIN HALTEN.
+
+  Die echte steht bei tausend. Tausend Zeilen zu rendern, nur um zu prüfen,
+  DASS die Ansicht die Grenze weiterreicht, kostete auf dem Läufer über fünf
+  Sekunden — der Test lief in die Zeitgrenze. Geprüft wird hier die
+  Verdrahtung, nicht der Zahlenwert; der steht in
+  `tests/unit/listengrenzen.test.ts`.
+*/
+vi.mock('@/lib/listengrenzen', () => ({
+  KATALOG_GRENZE: 3,
+  KUNDEN_GRENZE: 500,
+  BAUSTELLEN_AUSWAHL_GRENZE: 500,
+  abgeschnitten: (z: readonly unknown[], g: number) => z.length >= g,
+  katalogAbgeschnitten: (z: readonly unknown[], g = 3) => z.length >= g,
+  kundenAbgeschnitten: (z: readonly unknown[], g = 500) => z.length >= g,
+  baustellenAuswahlAbgeschnitten: (z: readonly unknown[], g = 500) => z.length >= g,
+}));
+
 vi.mock('@/lib/db/projects', () => ({
   listRecentProjects: vi.fn(async () => projekte),
 }));
@@ -309,7 +328,7 @@ describe('Material im Ergebnis', () => {
     */
     projekte = [projekt('2026-001')];
     rechnungen = [rechnung('2026-001', 2000)];
-    katalog = Array.from({ length: 1000 }, (_, i) =>
+    katalog = Array.from({ length: 3 }, (_, i) =>
       ({ id: `m${i}`, companyId: 'perl', name: `Artikel ${i}`, stock: 0 }) as Material,
     );
     zeige();
