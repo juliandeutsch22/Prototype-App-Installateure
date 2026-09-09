@@ -1,6 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './AuthContext';
+import { AuthProvider, useAuth } from './AuthContext';
 import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
 import ErrorBoundary from './ErrorBoundary';
 import Unterreiter from '@/components/Unterreiter';
@@ -29,6 +29,7 @@ import { SCHEIN_ROLLEN } from '@/lib/permissions';
  * Besuch vorhaelt.
  */
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+const PlattformView = lazy(() => import('@/features/plattform/PlattformView'));
 const DashboardView = lazy(() => import('@/features/dashboard/DashboardView'));
 const TimeView = lazy(() => import('@/features/time/TimeView'));
 const VoiceView = lazy(() => import('@/features/voice/VoiceView'));
@@ -65,6 +66,37 @@ const NotificationSettings = lazy(() => import('@/features/settings/Notification
 export default function App() {
   return (
     <AuthProvider>
+      <AppInhalt />
+    </AuthProvider>
+  );
+}
+
+/**
+ * DER GLOBALE ADMINISTRATOR KOMMT GAR NICHT ERST IN DIE APP.
+ *
+ * Er hat kein `users`-Dokument und damit weder Betrieb noch Rolle. Statt ihn
+ * durch `RequireAuth` zu schicken — das ihn mangels `user` zur Anmeldung
+ * zurückwürfe, wo er schon angemeldet ist — bekommt er seine eine Seite, ohne
+ * Layout und ohne Navigation.
+ *
+ * Das ist die sichtbare Form der Zusage: dieses Konto legt Betriebe an und
+ * sieht in keinen hinein. Die Grenze selbst steht nicht hier, sondern in den
+ * firestore.rules (jede Regel verlangt eine `companyId` im Token, und er hat
+ * keine) und in der Function, die den Betrieb anlegt.
+ */
+function AppInhalt() {
+  const { plattformAdmin, loading } = useAuth();
+
+  if (!loading && plattformAdmin) {
+    return (
+      <Suspense fallback={<LoadingState label="Wird geladen …" />}>
+        <PlattformView />
+      </Suspense>
+    );
+  }
+
+  return (
+    <>
       <Routes>
         <Route
           path="/login"
@@ -98,7 +130,7 @@ export default function App() {
           }
         />
       </Routes>
-    </AuthProvider>
+    </>
   );
 }
 

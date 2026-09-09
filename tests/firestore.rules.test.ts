@@ -48,6 +48,13 @@ function ctxA_verw() {
 function ctxB_admin() {
   return testEnv.authenticatedContext('adminB', { companyId: 'companyB', role: 'Administrator' });
 }
+/**
+ * Der globale Administrator: angemeldet, mit seinem Claim — und OHNE
+ * companyId. Genau darauf beruht, dass er in keinen Betrieb hineinsieht.
+ */
+function ctxPlattform() {
+  return testEnv.authenticatedContext('global', { plattformAdmin: true });
+}
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
@@ -2012,5 +2019,86 @@ describe('Wartungen — anlegen und verschieben darf nur die Leitung', () => {
     await assertFails(
       updateDoc(doc(ctxA_gf().firestore(), 'wartungen', 'w1'), { companyId: 'companyB' }),
     );
+  });
+});
+
+/**
+ * DER GLOBALE ADMINISTRATOR SIEHT IN KEINEN BETRIEB.
+ *
+ * Das ist die tragende Zusage dieses Kontos, und sie beruht auf einer
+ * Eigenschaft, die man leicht für einen Zufall halten könnte: jede Regel
+ * dieser Datei vergleicht `resource.data.companyId` mit
+ * `request.auth.token.companyId`, und ein Token ohne companyId erfüllt das
+ * nirgends.
+ *
+ * „Nirgends" ist eine Aussage über ALLE Sammlungen, und sie steht und fällt
+ * mit der nächsten Regel, die jemand hinzufügt. Deshalb wird sie hier gegen
+ * eine echte Datenbank geprüft und nicht bloss behauptet — eine Regel, die
+ * versehentlich nur `signedIn()` verlangte, öffnete diesem Konto sonst
+ * lautlos jeden Kundenstamm.
+ */
+describe('Der globale Administrator', () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, 'companies', 'companyA'), { name: 'Firma A' });
+      await setDoc(doc(db, 'customers', 'kA'), { companyId: 'companyA', name: 'Familie Huber' });
+      await setDoc(doc(db, 'invoices', 'rA'), { companyId: 'companyA', invoiceNumber: '2026-0001' });
+      await setDoc(doc(db, 'users', 'userA1'), {
+        uid: 'userA1',
+        companyId: 'companyA',
+        role: 'Mitarbeiter',
+      });
+      await setDoc(doc(db, 'platformAdmins', 'global'), { name: 'Betreiber' });
+      await setDoc(doc(db, 'betriebsanlagen', 'companyA'), {
+        companyId: 'companyA',
+        angelegtVon: 'global',
+      });
+    });
+  });
+
+  it('kommt an kein Dokument eines Betriebs', async () => {
+    const db = ctxPlattform().firestore();
+    await assertFails(getDoc(doc(db, 'companies', 'companyA')));
+    await assertFails(getDoc(doc(db, 'customers', 'kA')));
+    await assertFails(getDoc(doc(db, 'invoices', 'rA')));
+    await assertFails(getDoc(doc(db, 'projects', 'pA')));
+    await assertFails(getDoc(doc(db, 'timeEntries', 'tA')));
+    await assertFails(getDoc(doc(db, 'users', 'userA1')));
+  });
+
+  it('schreibt auch nichts hinein', async () => {
+    // Der Claim ist kein Generalschlüssel mit Leseverbot — er ist gar kein
+    // Schlüssel. Angelegt wird ausschliesslich über die Cloud Function, die
+    // mit Administratorrechten läuft und genau eines kann.
+    const db = ctxPlattform().firestore();
+    await assertFails(setDoc(doc(db, 'customers', 'neu'), { companyId: 'companyA', name: 'X' }));
+    await assertFails(
+      setDoc(doc(db, 'companies', 'neu'), { name: 'Neuer Betrieb' }),
+    );
+    await assertFails(updateDoc(doc(db, 'companies', 'companyA'), { name: 'Umbenannt' }));
+  });
+
+  it('kommt nicht einmal an seine eigene Ernennung', async () => {
+    /*
+      `platformAdmins` fällt unter das abschliessende `allow read, write: if
+      false`. Wer einen globalen Administrator ernennen will, braucht die
+      Firebase-Konsole oder ein Dienstkonto — sonst könnte sich dieses Konto
+      selbst vermehren, und die Hürde wäre keine.
+    */
+    const db = ctxPlattform().firestore();
+    await assertFails(getDoc(doc(db, 'platformAdmins', 'global')));
+    await assertFails(setDoc(doc(db, 'platformAdmins', 'noch-einer'), { name: 'X' }));
+  });
+
+  it('liest auch das Anlageprotokoll nicht', async () => {
+    // Es trägt keine Geschäftsdaten, aber es trägt die Namen aller Betriebe.
+    // Gelesen wird es dort, wo es hingehört: in der Firebase-Konsole.
+    await assertFails(getDoc(doc(ctxPlattform().firestore(), 'betriebsanlagen', 'companyA')));
+  });
+
+  it('und ein Betrieb sieht das Anlageprotokoll ebenso wenig', async () => {
+    await assertFails(getDoc(doc(ctxA_admin().firestore(), 'betriebsanlagen', 'companyA')));
+    await assertFails(getDoc(doc(ctxA_admin().firestore(), 'platformAdmins', 'global')));
   });
 });

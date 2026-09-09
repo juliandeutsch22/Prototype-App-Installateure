@@ -88,6 +88,44 @@ durch ein Protokoll, das später jeder mit Repo-Zugriff lesen kann.
 Der Workflow ist mehrfach ausführbar: eine bestehende Firma wird nicht
 überschrieben, ein bestehendes Konto nur aktualisiert.
 
+### Weitere Betriebe: der globale Administrator
+
+Für jeden **weiteren** Betrieb gibt es einen zweiten Weg, und er ist der
+bessere: ein Konto, das Betriebe anlegen kann und in keinen hineinsieht.
+
+Der Bootstrap-Workflow braucht ein Dienstkonto — und ein Dienstkonto kann
+alles, hinterlässt kein Protokoll und kommt auch an jeden Kundenstamm. Der
+globale Administrator kann genau eines: einen neuen, leeren Betrieb erzeugen.
+Sein Token trägt **keine `companyId`**, und daran hängt jede einzelne
+Leseregel — `tests/firestore.rules.test.ts` prüft gegen eine echte Datenbank,
+dass er an kein Dokument eines Betriebs kommt.
+
+**Einrichten** (einmalig, nur über die Firebase-Konsole — mit Absicht):
+
+1. Unter *Authentication* ein Konto mit eigener E-Mail anlegen. Es darf zu
+   **keinem** Betrieb gehören: kein `users`-Dokument, keine Rolle. Der Trigger
+   verweigert den Claim, wenn doch eines existiert, und schreibt den Grund ins
+   Protokoll.
+2. Unter *Firestore* ein Dokument `platformAdmins/{uid}` anlegen — die uid
+   steht in der Kontoübersicht. Inhalt beliebig; allein die Existenz zählt.
+3. Der Trigger `plattformAdminClaim` setzt daraufhin den Claim. Nach einer
+   Neuanmeldung zeigt die App diesem Konto **nur** die Seite „Betriebe
+   anlegen" — kein Layout, keine Navigation, keinen einzigen Reiter.
+
+An `platformAdmins` kommt kein Client heran (die Sammlung fällt unter das
+abschliessende `allow read, write: if false`). Wer einen globalen
+Administrator ernennen will, braucht die Konsole oder ein Dienstkonto — genau
+die Hürde, die ein solches Konto verdient.
+
+**Entziehen:** das Dokument löschen. Der Trigger nimmt den Claim zurück und
+widerruft die Sitzungstoken; ohne den Widerruf liefe ein bereits ausgestelltes
+Token bis zu einer Stunde weiter.
+
+Der erste Administrator des neuen Betriebs bekommt **kein Passwort**, sondern
+einen Rücksetzlink, der nach dem Anlegen einmalig auf der Seite steht. Er wird
+nicht gespeichert und nicht versendet — der Betrieb versendet seine Post
+selbst.
+
 **Vorher in der Firebase Console einzurichten** (sonst scheitert der Deploy
 mit Berechtigungsfehlern, die wie ein IAM-Problem aussehen):
 
@@ -150,6 +188,8 @@ Acht Functions, alle in `europe-west3`:
 | `bilanzNachziehen` | schreibt die Monatsbilanz eines Mitarbeiters neu, sobald sich eine Buchung ändert | nein |
 | `bilanzenNachtlauf` | rechnet nachts den laufenden und den Vormonat neu (Selbstheilung) | nein — **braucht Cloud Scheduler** |
 | `bilanzenNeuAufbauen` | einmaliger Erstaufbau, aus den Einstellungen aufrufbar | nein |
+| `plattformAdminClaim` | setzt den Claim des globalen Administrators aus `platformAdmins/{uid}` | nein |
+| `betriebAnlegen` | legt einen neuen Betrieb an — nur für den globalen Administrator | nein |
 
 **`syncUserClaims` ist nicht optional.** Ohne diesen Trigger bekommt ein neu
 angelegter Benutzer keine Berechtigungen: er kommt durch die Anmeldung, sieht

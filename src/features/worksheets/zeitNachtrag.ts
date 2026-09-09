@@ -48,12 +48,17 @@ export const NACHTRAG_TAGE = 14;
 
 export interface OffenerNachtrag {
   schein: WorkSheet & { id: string };
-  /** Die auf dem Schein bestätigte Zeit beim Kunden, in Minuten. */
+  /** Die auf dem Schein bestätigte EIGENE Zeit beim Kunden, in Minuten. */
   minuten: number;
   /** Vorschlag fürs Formular — die Spanne der ersten eigenen Zeile. */
   von?: string;
   bis?: string;
   pauseMin?: number;
+}
+
+/** Wie in der Bürosicht: Gross-/Kleinschreibung und Doppelleerzeichen egal. */
+function normName(name: string): string {
+  return (name ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 /** Tage zwischen zwei ISO-Tagen, in UTC — ohne Sommerzeitfallen. */
@@ -79,8 +84,31 @@ export function offeneNachtraege(
   scheine: Array<WorkSheet & { id: string }>,
   eintraege: Array<Pick<TimeEntry, 'date' | 'status' | 'projectNumber'>>,
   heute: string,
+  /**
+   * DER NAME DESSEN, DER GERADE ANGEMELDET IST — und der Grund für diesen
+   * ganzen Zusatz.
+   *
+   * Vorher galt als „eigener Schein", was `erstelltVonUid` sagte: wer ihn
+   * geschrieben hat. Dahinter steckte die Annahme, dass der Schreiber auch
+   * der Arbeitende ist. Für den Monteur beim Kunden stimmt sie. Sie stimmt
+   * NICHT, wenn das Büro einen Schein nachträglich für einen Monteur
+   * schreibt — der Weg dafür steht in der Baustellenliste — oder wenn jemand
+   * Belege zum Ausprobieren anlegt.
+   *
+   * Dann forderte die Zeiterfassung die Buchhalterin auf, Stunden zu buchen,
+   * die ein anderer geleistet hat. Deren Zeiten waren längst gebucht; der
+   * Hinweis stand trotzdem da, weil er in IHRE Einträge sah. Ein Hinweis, der
+   * zu Unrecht dasteht, wird nach einer Woche weggeklickt wie jeder andere —
+   * auch dann, wenn er einmal recht hat.
+   *
+   * Wer arbeitete, steht auf dem Schein: in jeder Zeile unter `mitarbeiter`.
+   * Verglichen wird über den Namen, weil der Schein keine Kennung mitführt —
+   * dieselbe Zuordnung wie in der Bürosicht (`fehlendeZeitbuchung.ts`).
+   */
+  eigenerName: string,
   tageZurueck = NACHTRAG_TAGE,
 ): OffenerNachtrag[] {
+  const ich = normName(eigenerName);
   const gebucht = new Set<string>();
   for (const e of eintraege) {
     if (e.status !== 'Anwesend') continue;
@@ -97,10 +125,20 @@ export function offeneNachtraege(
         Materialschein ist vollständig — dafür war niemand stundenlang dort.
       */
       if (!s.zeiten?.some((z) => z.minuten > 0)) return false;
+      /*
+        NUR WAS AUF MICH LÄUFT. Ohne Namen in der Zeile wird nichts
+        angemahnt: „unbekannt" auf mich zu beziehen wäre wieder die
+        Vermutung, die diesen Fehler erzeugt hat. Der Schein geht dadurch
+        nicht verloren — die Bürosicht „Stunden ohne Buchung" prüft alle
+        Zeilen aller Scheine und ist genau dafür da.
+      */
+      if (!s.zeiten.some((z) => z.minuten > 0 && normName(z.mitarbeiter) === ich)) return false;
       return !gebucht.has(`${s.datum}|${normProjectNumber(s.projectNumber)}`);
     })
     .map((schein) => {
-      const zeilen = schein.zeiten.filter((z) => z.minuten > 0);
+      const zeilen = schein.zeiten.filter(
+        (z) => z.minuten > 0 && normName(z.mitarbeiter) === ich,
+      );
       const erste = zeilen[0];
       return {
         schein,

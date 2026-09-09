@@ -28,6 +28,11 @@ const MONTEUR: AppUser = {
 let baustellen: (Project & { id: string })[] = [];
 let ladefehler = false;
 
+/* Was die Serversuche nach einer Nummer zurückgibt — und womit sie gefragt wurde. */
+let serverBaustellen: (Project & { id: string })[] = [];
+let serverFehler = false;
+const gefragtMit = vi.fn();
+
 const lege = vi.fn();
 const aendere = vi.fn();
 const loesche = vi.fn();
@@ -56,6 +61,10 @@ vi.mock('@/lib/db/projects', () => ({
   deleteProject: (id: string) => {
     loesche(id);
     return Promise.resolve();
+  },
+  findProjectsByNumber: (c: string, formen: string[]) => {
+    gefragtMit(c, formen);
+    return serverFehler ? Promise.reject(new Error('kein Netz')) : Promise.resolve(serverBaustellen);
   },
 }));
 
@@ -112,6 +121,9 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   baustellen = [];
   ladefehler = false;
+  serverBaustellen = [];
+  serverFehler = false;
+  gefragtMit.mockClear();
   lege.mockClear();
   aendere.mockClear();
   loesche.mockClear();
@@ -310,9 +322,13 @@ describe('Wie weit die Baustellenliste reicht', () => {
     zeige();
     await screen.findByText(/Alle Baustellen/);
     expect(screen.getByRole('button', { name: /Weitere Baustellen laden/ })).toBeInTheDocument();
-    // Der zweite Satz ist der wichtigere: wer eine alte Nummer sucht und
-    // nichts findet, soll nicht schliessen, es gebe sie nicht.
-    expect(screen.getByText(/Die Suche geht nur über diese/)).toBeInTheDocument();
+    /*
+      Der zweite Satz ist der wichtigere: wer eine alte Baustelle sucht und
+      nichts findet, soll nicht schliessen, es gebe sie nicht. Er sagt
+      seither auch, was WEITER reicht — die Nummer geht auf den Server.
+    */
+    const satz = screen.getByText(/nur in diesen gesucht/);
+    expect(satz.textContent).toMatch(/Baustellennummer geht auf den Server/);
   });
 
   it('holt beim Nachladen tatsächlich mehr', async () => {
@@ -324,5 +340,130 @@ describe('Wie weit die Baustellenliste reicht', () => {
 
     await nutzer.click(screen.getByRole('button', { name: /Weitere Baustellen laden/ }));
     expect(letzteGrenze).toBe(600);
+  });
+});
+
+/**
+ * Die Suche, die über die geladene Liste hinausreicht.
+ *
+ * Die Liste zeigt die jüngsten dreihundert. Eine Baustelle von vor vier
+ * Jahren steht nicht darin, und im Browser zu filtern kann sie folglich nicht
+ * finden — das Feld lieferte einfach kein Ergebnis, und nichts unterschied
+ * das von „gibt es nicht". Nach der NUMMER lässt sich dagegen exakt fragen.
+ *
+ * Warum nur nach der Nummer und nicht nach Kunde und Adresse, steht in
+ * `baustellenSuche.ts` und ist in `tests/unit/baustellenSuche.test.ts`
+ * geprüft. Hier geht es um die Ansicht: fragt sie den Server, zeigt sie den
+ * Treffer, und sagt sie vorher, wie weit sie reicht?
+ */
+describe('Baustellen — Suche über die Liste hinaus', () => {
+  const geladene = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      ({
+        id: `p${i}`,
+        companyId: 'perl',
+        projectNumber: `2026-${String(i).padStart(3, '0')}`,
+        customerName: 'Familie Huber',
+        status: 'Aktiv',
+      }) as Project & { id: string },
+    );
+
+  /** Die alte, abgeschlossene Baustelle, die nur der Server kennt. */
+  const ALT = {
+    id: 'alt',
+    companyId: 'perl',
+    projectNumber: '2022-007',
+    customerName: 'Hausverwaltung Berger',
+    status: 'Abgeschlossen',
+  } as Project & { id: string };
+
+  it('fragt den Server, sobald der Begriff eine Nummer ist', async () => {
+    baustellen = geladene(10);
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeige();
+    await nutzer.type(await screen.findByLabelText('Suche'), '2022-007');
+
+    // Beide Schreibweisen, sonst fänden sich ausgerechnet die Altbestände nicht.
+    await waitFor(() =>
+      expect(gefragtMit).toHaveBeenCalledWith('perl', ['2022-007', 'PR-2022-007']),
+    );
+  });
+
+  it('fragt NICHT bei Kunde oder Adresse', async () => {
+    // Eine Abfrage, die verlässlich nichts findet, wäre nur ein falsches
+    // Versprechen über der örtlichen Suche.
+    baustellen = geladene(10);
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeige();
+    await nutzer.type(await screen.findByLabelText('Suche'), 'Berger');
+
+    expect(await screen.findByText(/nur im geladenen Bestand/)).toBeInTheDocument();
+    expect(gefragtMit).not.toHaveBeenCalled();
+  });
+
+  it('zeigt die gefundene Baustelle, obwohl sie nicht geladen ist', async () => {
+    baustellen = geladene(10);
+    serverBaustellen = [ALT];
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeige();
+    await nutzer.type(await screen.findByLabelText('Suche'), '2022-007');
+
+    expect(await screen.findByText(/Hausverwaltung Berger/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Eine Baustelle ausserhalb der geladenen Liste gefunden/),
+    ).toBeInTheDocument();
+  });
+
+  it('lässt den Servertreffer am Statusfilter vorbei', async () => {
+    /*
+      Die Ansicht steht auf „Aktiv & pausiert"; die gesuchte alte Baustelle ist
+      abgeschlossen. Sie deshalb zu verschweigen wäre wieder das leere
+      Ergebnis, das wie ein Befund aussieht — und wer eine Nummer eintippt,
+      meint genau diese Baustelle.
+    */
+    baustellen = geladene(10);
+    serverBaustellen = [ALT];
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeige();
+    await nutzer.type(await screen.findByLabelText('Suche'), '2022-007');
+
+    expect(await screen.findByText(/Hausverwaltung Berger/)).toBeInTheDocument();
+  });
+
+  it('zählt eine bereits geladene Baustelle nicht als Fund vom Server', async () => {
+    // Sonst behauptete die Zeile einen Gewinn, den es nicht gab.
+    baustellen = geladene(10);
+    serverBaustellen = [baustellen[3]];
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeige();
+    await nutzer.type(await screen.findByLabelText('Suche'), '2026-003');
+
+    await waitFor(() => expect(gefragtMit).toHaveBeenCalled());
+    /*
+      Genau die Zählzeile, nicht der Hinweis darüber: der kündigt die
+      Serversuche an und enthält dieselben Worte. Ein zu weiter Ausdruck
+      träfe ihn und wäre damit blind für das, was hier geprüft wird.
+    */
+    expect(screen.queryByText(/Baustellen? ausserhalb der geladenen Liste gefunden/))
+      .not.toBeInTheDocument();
+  });
+
+  it('lässt bei einem Fehlschlag die örtliche Suche stehen', async () => {
+    /*
+      Was geladen ist, ist wegen eines gescheiterten Serveraufrufs nicht
+      falsch. Die Liste zu leeren wäre der schlechtere Zustand: sie behauptete
+      dann, es gebe die Baustelle nicht.
+    */
+    baustellen = geladene(10);
+    serverFehler = true;
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    zeige();
+    await nutzer.type(await screen.findByLabelText('Suche'), '2026-003');
+
+    // Die Zeile der Baustelle, nicht der Hinweis über dem Feld: dort steht die
+    // Nummer in Klammern hinter dem Kundennamen.
+    expect(await screen.findByText('(2026-003)')).toBeInTheDocument();
+    expect(screen.queryByText(/Baustellen? ausserhalb der geladenen Liste gefunden/))
+      .not.toBeInTheDocument();
   });
 });

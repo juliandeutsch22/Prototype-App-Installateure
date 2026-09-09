@@ -977,7 +977,44 @@ export default function WorkSheetView() {
             <MaterialErfassen materials={materials} zeilen={material} onChange={setMaterial} />
           </Card>
 
-          <Card title="Ergänzungen">
+          {/*
+            DAS NOTIZFELD IST DIE EINE STELLE, AN DER DIE TRENNUNG VON HAND ZU
+            UMGEHEN IST.
+
+            Fremde Zeiteinträge darf ein Monteur weder lesen noch schreiben —
+            in derselben Ablage stehen Kranken- und Urlaubstage, also
+            Gesundheitsdaten nach Art. 9 DSGVO. Den SCHEIN dagegen sieht jeder
+            im Betrieb, und das ist Absicht: er ist ein Geschäftsbeleg über
+            einen Kundenauftrag, und der Kollege braucht ihn fachlich.
+
+            Wer hier „Kollege war krank" hineinschreibt, hebt damit die
+            Trennung auf, die die App an jeder anderen Stelle hält — ohne dass
+            ihn etwas daran hindert oder auch nur darauf hinweist. Sperren
+            liesse sich das nicht: kein Filter unterscheidet zuverlässig eine
+            Krankmeldung von einer Mängelbeschreibung. Sagen lässt es sich, und
+            zwar dort, wo getippt wird.
+          */}
+          <Card
+            title="Ergänzungen"
+            hint={
+              <>
+                <strong>Was hier steht, sieht jeder im Betrieb.</strong> Der Schein ist ein
+                Geschäftsbeleg über einen Kundenauftrag, keine Personalakte — auch Kollegen, die
+                später auf dieselbe Baustelle kommen, lesen ihn.
+                <br />
+                <br />
+                Angaben zur <strong>Gesundheit</strong> gehören deshalb nicht hierher: „war krank",
+                „darf nicht heben", „Rücken". Solche Daten sind nach Art. 9 DSGVO besonders
+                geschützt, und die App hält sie sonst überall getrennt — Kranken- und Urlaubstage
+                stehen in der Zeiterfassung, die kein Kollege einsehen kann. Eine Notiz hier hebt
+                diese Trennung auf.
+                <br />
+                <br />
+                Gemeint sind: Mängel, Regiearbeiten, Absprachen mit dem Kunden, alles, was zum
+                Auftrag gehört.
+              </>
+            }
+          >
             <InputField
               id="wsnotes"
               label="Notizen, Regiearbeiten, Mängel"

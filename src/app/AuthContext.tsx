@@ -99,6 +99,16 @@ interface AuthState {
   resetPassword: (email: string) => Promise<void>;
   /** Lädt die Mandanten-Stammdaten neu — nach dem Speichern in den Einstellungen. */
   reloadCompany: () => Promise<void>;
+  /**
+   * Ein globaler Administrator — angemeldet, aber in KEINEM Betrieb.
+   *
+   * Er hat kein `users`-Dokument und damit weder `companyId` noch Rolle;
+   * `user` bleibt hier `null`, und jede Ansicht der App, die auf `user`
+   * prüft, bleibt ihm folglich verschlossen. Er sieht genau eine Seite, und
+   * die kann nur eines: Betriebe anlegen. Warum das so gebaut ist, steht in
+   * `shared/plattform.ts`.
+   */
+  plattformAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -185,6 +195,7 @@ async function profilAusSpeicher(uid: string, email: string): Promise<CurrentUse
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
+  const [plattformAdmin, setPlattformAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -194,9 +205,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!fbUser) {
         setUser(null);
         setCompany(null);
+        setPlattformAdmin(false);
         setLoading(false);
         return;
       }
+      setPlattformAdmin(false);
       // Während das Profil geladen wird, "loading" halten, damit der
       // Auth-Guard nicht fälschlich auf /login zurückspringt.
       setLoading(true);
@@ -249,12 +262,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ]);
 
         if (!profile) {
-          setError(
-            'Kein Benutzerprofil für dieses Konto gefunden. Bitte an die Verwaltung wenden.',
-          );
-          await fbSignOut(auth);
-          setUser(null);
-          setCompany(null);
+          /*
+            KEIN PROFIL IST NICHT IMMER EIN FEHLER.
+
+            Der globale Administrator hat absichtlich kein `users`-Dokument:
+            er gehört zu keinem Betrieb, und genau daran hängt, dass er in
+            keinen hineinsehen kann. Sein Recht steht allein im Token.
+
+            Die Prüfung ist eine Anzeigefrage und keine Sicherheitsgrenze —
+            die steht in den firestore.rules und in der Function, die den
+            Betrieb anlegt. Ein gefälschter Claim brächte hier nur eine Seite
+            zum Vorschein, auf der jeder Knopf serverseitig abgewiesen würde.
+          */
+          const marke = await fbUser
+            .getIdTokenResult()
+            .then((t) => t.claims.plattformAdmin === true)
+            .catch(() => false);
+          if (marke) {
+            setPlattformAdmin(true);
+            setUser(null);
+            setCompany(null);
+          } else {
+            setError(
+              'Kein Benutzerprofil für dieses Konto gefunden. Bitte an die Verwaltung wenden.',
+            );
+            await fbSignOut(auth);
+            setUser(null);
+            setCompany(null);
+          }
         } else {
           setUser(profile);
           firmaMerken(profile.uid, profile.companyId);
@@ -332,7 +367,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, company, loading, error, signIn, signOut, resetPassword, reloadCompany }}
+      value={{
+        user,
+        company,
+        loading,
+        error,
+        signIn,
+        signOut,
+        resetPassword,
+        reloadCompany,
+        plattformAdmin,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -35,6 +35,7 @@ export {
 export { scheinPruefsumme } from './scheinPruefsumme.js';
 export { scheinVorbereiten } from './scheinVorbereiten.js';
 export { urlaubEntscheiden } from './urlaubEntscheiden.js';
+export { betriebAnlegen, plattformAdminClaim } from './plattform.js';
 
 /*
  * Die KI-Spracherfassung wird über eine GENERIERTE Datei eingebunden

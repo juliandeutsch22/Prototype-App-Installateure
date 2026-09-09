@@ -985,6 +985,39 @@ describe('Zeit beim Kunden eintragen', () => {
     expect(createWorkSheet.mock.calls[0][1].zeiten[0].minuten).toBe(21 * 60);
   });
 
+  it('warnt am Notizfeld vor Angaben zur Gesundheit', async () => {
+    /*
+      DAS NOTIZFELD IST DIE EINE STELLE, AN DER DIE TRENNUNG VON HAND ZU
+      UMGEHEN IST.
+
+      Fremde Zeiteinträge darf ein Monteur weder lesen noch schreiben — dort
+      stehen Kranken- und Urlaubstage, also Gesundheitsdaten nach Art. 9
+      DSGVO. Den Schein dagegen sieht jeder im Betrieb, und das ist Absicht.
+      Wer hier „Kollege war krank" hineinschreibt, hebt die Trennung auf,
+      ohne dass ihn etwas daran hindert. Sperren liesse sich das nicht — kein
+      Filter unterscheidet eine Krankmeldung von einer Mängelbeschreibung.
+      Sagen lässt es sich, und zwar dort, wo getippt wird.
+    */
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Was bedeutet Ergänzungen/ }));
+
+    /*
+      Der Text ist über mehrere `strong` verteilt; ein schlichtes `getByText`
+      trifft nur das innerste davon. Gesucht wird deshalb der Absatz, der ihn
+      GANZ enthält — sonst prüfte die Zusicherung ein Bruchstück.
+    */
+    const feld = await screen.findByText(
+      (_t, el) => el?.tagName === 'P' && /Was hier steht, sieht jeder im Betrieb/.test(el.textContent ?? ''),
+    );
+    const text = feld.textContent ?? '';
+    expect(text).toMatch(/Gesundheit/);
+    expect(text).toMatch(/Art\. 9 DSGVO/);
+    // Und es sagt auch, was hier SEHR WOHL hingehört — sonst bleibt das Feld
+    // aus Unsicherheit leer, und der Mangel steht nirgends.
+    expect(text).toMatch(/Mängel/);
+  });
+
   it('nennt bei einem langen Tag OHNE Mitternacht nicht die Mitternacht', async () => {
     /*
       05:00–19:00 sind vierzehn Stunden und lösen dieselbe Nachfrage aus —

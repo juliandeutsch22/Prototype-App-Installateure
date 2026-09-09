@@ -355,8 +355,10 @@ export default function TimeView() {
    * erledigt ist.
    */
   const nachtraege = useMemo(
-    () => offeneNachtraege(eigeneScheine, entries, todayStr()),
-    [eigeneScheine, entries],
+    // Der NAME entscheidet, nicht wer den Schein geschrieben hat: warum,
+    // steht ausführlich in `zeitNachtrag.ts`.
+    () => offeneNachtraege(eigeneScheine, entries, todayStr(), user?.name ?? ''),
+    [eigeneScheine, entries, user?.name],
   );
 
   if (!user) return null;
