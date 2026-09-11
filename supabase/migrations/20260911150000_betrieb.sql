@@ -235,9 +235,17 @@ alter table user_prefs enable row level security;
 -- nichts zu suchen: die Push-Marken eines anderen Geraets gehen ihn nichts an.
 create policy user_prefs_lesen on user_prefs
   for select using (app.darf(company_id) and user_id = auth.uid());
-create policy user_prefs_schreiben on user_prefs
-  for all using (app.darf(company_id) and user_id = auth.uid())
+create policy user_prefs_anlegen on user_prefs
+  for insert with check (app.darf(company_id) and user_id = auth.uid());
+create policy user_prefs_aendern on user_prefs
+  for update using (app.darf(company_id) and user_id = auth.uid())
   with check (app.darf(company_id) and user_id = auth.uid());
+
+-- KEIN Loeschen. Die Einstellungen gehoeren zum Konto; ein geloeschtes Konto
+-- raeumt sie per Fremdschluessel selbst weg. Ein Loeschrecht hier brauchte
+-- niemand und waere nur ein Weg, sich unbemerkt von Benachrichtigungen
+-- abzumelden.
+
 
 create trigger user_prefs_updated_at before update on user_prefs
   for each row execute function app.updated_at_setzen();

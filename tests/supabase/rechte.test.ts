@@ -177,8 +177,16 @@ describe('Wer was darf', () => {
       .update({ status: 'Storniert' }).eq('id', antrag.id);
     expect(zurueck.error).toBeNull();
 
-    const vonOben = await leitung.client.from('vacations')
+    // Die Projektleitung SIEHT den Urlaub, entscheidet aber nicht — ohne
+    // eigene Festlegung ist das die Buchhaltung. Dieser Test stand in Stufe 1
+    // falsch herum: er hat meinen zu groben Trigger beschrieben statt der
+    // Regel aus firestore.rules.
+    const vonDerLeitung = await leitung.client.from('vacations')
       .update({ status: 'Genehmigt' }).eq('id', antrag.id);
-    expect(vonOben.error).toBeNull();
+    expect(vonDerLeitung.error?.code).toBe('42501');
+
+    const vonDerBuchhaltung = await buch.client.from('vacations')
+      .update({ status: 'Genehmigt' }).eq('id', antrag.id);
+    expect(vonDerBuchhaltung.error).toBeNull();
   });
 });

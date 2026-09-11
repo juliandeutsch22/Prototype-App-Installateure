@@ -477,3 +477,69 @@ Datenbank durchgeht, ist eine Falle.
 Die App schreibt weiterhin nach Firestore; hier steht bisher nur das Ziel.
 Der Umbau der Datenschicht ist Stufe 3, und davor kommt Stufe 2: die 225
 Regelprüfungen gegen den Emulator werden portiert.
+
+
+---
+
+## Stufe 2: das Prüfnetz ist umgezogen
+
+**Vollständig.** 12.09.2026. Alle 155 Regelprüfungen aus
+`tests/firestore.rules.test.ts` haben eine Entsprechung in
+`tests/supabase/regeln.test.ts` — gleiche Blöcke, gleiche Titel, damit sich
+beide Seiten nebeneinander lesen lassen.
+
+Dass nichts fehlt, ist nicht abgehakt, sondern geprüft:
+`tests/supabase/vollstaendigkeit.test.ts` liest beide Dateien, zieht die Titel
+heraus und vergleicht sie. Eine Prüfung, die drüben steht und hier nicht,
+lässt den Lauf fallen — es sei denn, sie steht als Ausnahme mit einer
+Begründung von mindestens zwanzig Zeichen. Die Liste der Ausnahmen ist derzeit
+leer.
+
+### Was das Portieren zutage gefördert hat
+
+**Der Dienstschlüssel kommt durch den Zeilenschutz, aber nicht durch Trigger.**
+Der wichtigste Fund der Stufe. In Firestore umging das Admin-SDK die Regeln
+vollständig; serverseitiger Code musste sich um sie nicht kümmern. In Postgres
+trägt `service_role` zwar `BYPASSRLS`, aber Trigger laufen weiter. Mein Riegel
+gegen die Ernennung von Administratoren sperrte damit ausgerechnet die
+Funktion aus, die den **ersten** Administrator eines neuen Betriebs anlegt.
+
+Welche Trigger den Dienstschlüssel durchlassen, ist jetzt eine Entscheidung je
+Trigger: **durch** darf, was serverseitige Abläufe brauchen (ersten
+Administrator anlegen, über Urlaub entscheiden, die Prüfsumme auf einen
+unterschriebenen Schein schreiben, einen Katalog importieren); **nicht durch**
+kommt, was den Beleg selbst schützt (der Betrieb einer Zeile, die eingefrorene
+Rechnung, die eingefrorenen Scheinpositionen). Ein Server, der diese Riegel
+braucht, tut etwas Falsches.
+
+**Fünf Regeln fehlten im Schema.** Sie standen in `firestore.rules`, aber
+nicht in Stufe 1: Administratoren ernennt nur ein Administrator; Module
+schaltet nur die Administration; die Genehmigenden für Urlaub sind
+einstellbar; der Einkaufspreis — die Marge — gehört der Geschäftsführung
+allein; und auf der Rüstliste hakt nur ab, wer eingeteilt ist.
+
+**Drei eigene Fehler.** Die Einstellungen liessen sich löschen, weil `for all`
+auch DELETE umfasst. Beim Zurückholen eines verworfenen Entwurfs konnte der
+Inhalt mitgeändert werden, weil der Trigger nur den Zustandswechsel prüfte und
+nicht, was sonst im selben Schreibvorgang mitkam. Und mein Test aus Stufe 1
+liess die Projektleitung Urlaub genehmigen — er beschrieb meinen zu groben
+Trigger statt der Regel.
+
+### Stand nach Stufe 2
+
+| | |
+|---|---|
+| Prüfungen gegen die echte Datenbank | 208 |
+| davon portierte Regelprüfungen | 155 |
+| Mutationen angesetzt | 8 |
+| gefangen | 8 |
+
+Der Lauf ist zweimal hintereinander grün, ohne Zurücksetzen dazwischen.
+
+### Was noch fehlt
+
+Die 35 Durchstich- und 35 Abfrage-Prüfungen (`tests/durchstich.test.ts`,
+`tests/abfragen.smoke.test.ts`) sind noch nicht portiert. Sie prüfen ganze
+Abläufe und die Abfragen der Datenschicht — beides hängt an Stufe 3, weil es
+ohne umgebaute Datenschicht nichts zu prüfen gibt. Sie kommen dort dazu, nicht
+später.
