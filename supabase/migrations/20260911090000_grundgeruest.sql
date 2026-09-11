@@ -188,3 +188,23 @@ $$;
 create trigger time_entries_updated_at
   before update on time_entries
   for each row execute function app.updated_at_setzen();
+
+-- ---------------------------------------------------------------------------
+-- Live-Abonnements
+-- ---------------------------------------------------------------------------
+
+-- Eine Tabelle meldet ihre Aenderungen nur, wenn sie in dieser
+-- Veroeffentlichung steht. Das ist der Ersatz fuer onSnapshot.
+--
+-- WICHTIG UND LEICHT ZU UEBERSEHEN: der Zeilenschutz gilt hier ebenfalls,
+-- aber er wird je Empfaenger und je Zeile ausgewertet. Eine Tabelle
+-- versehentlich ohne passende Lese-Richtlinie zu veroeffentlichen hiesse,
+-- jede Aenderung an JEDEN angemeldeten Empfaenger zu schicken — quer durch
+-- alle Betriebe. Deshalb steht hier jede Tabelle einzeln und nie ein
+-- „alle Tabellen".
+alter publication supabase_realtime add table time_entries;
+
+-- Ohne das traegt eine Aenderungsmeldung nur die geaenderten Felder und den
+-- Schluessel. Fuer die Mandantenpruefung braucht der Empfaenger aber
+-- company_id — auch dann, wenn sich company_id gar nicht geaendert hat.
+alter table time_entries replica identity full;

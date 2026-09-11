@@ -70,15 +70,32 @@ export type Sendeergebnis =
    */
   | { art: 'unklar'; grund: string };
 
-export type Sender = (v: Vormerkung) => Promise<Sendeergebnis>;
+/**
+ * Was der Sender braucht — ohne die Folge.
+ *
+ * Der erste, direkte Versuch geschieht, BEVOR etwas im Fach liegt; eine Folge
+ * gibt es da noch gar nicht. Sie dem Sender vorzugaukeln (etwa als 0) hiesse,
+ * eine Zahl zu erfinden, die niemand braucht: den Server interessiert die
+ * Reihenfolge im Fach nicht.
+ */
+export type Sendung = Omit<Vormerkung, 'folge'>;
+
+export type Sender = (v: Sendung) => Promise<Sendeergebnis>;
 
 /** Das dauerhafte Lager. Im Browser IndexedDB, im Test eine Karte. */
 export interface Lager {
   alle(): Promise<Vormerkung[]>;
-  ablegen(v: Vormerkung): Promise<void>;
+  /**
+   * Legt ab und gibt die vergebene Folge zurück.
+   *
+   * DAS LAGER VERGIBT SIE, NICHT DER AUFRUFER. Zwei offene Tabs, die beide
+   * erst die höchste Nummer lesen und dann schreiben, vergeben zweimal
+   * dieselbe — und dann überholt beim Nachsenden das „Ändern" sein „Anlegen".
+   * IndexedDB kann das selbst, also soll es das auch tun.
+   */
+  ablegen(v: Omit<Vormerkung, 'folge'>): Promise<number>;
   entfernen(folge: number): Promise<void>;
   ersetzen(v: Vormerkung): Promise<void>;
-  naechsteFolge(): Promise<number>;
 }
 
 /**
@@ -137,8 +154,7 @@ export async function schreiben(
   sender: Sender,
   istOffline: () => boolean = offline,
 ): Promise<WriteOutcome> {
-  const v: Vormerkung = {
-    folge: 0, // wird beim Vormerken vergeben
+  const v: Omit<Vormerkung, 'folge'> = {
     zeile: auftrag.zeile,
     tabelle: auftrag.tabelle,
     art: auftrag.art,
@@ -176,9 +192,8 @@ export async function schreiben(
  * Scheitert das Lager selbst — kein Platz, privater Modus, gesperrter Speicher
  * —, dann ist der Vorgang weg. Das muss der Aufrufer erfahren.
  */
-async function vormerken(v: Vormerkung, lager: Lager): Promise<void> {
-  const folge = await lager.naechsteFolge();
-  await lager.ablegen({ ...v, folge });
+async function vormerken(v: Omit<Vormerkung, 'folge'>, lager: Lager): Promise<void> {
+  await lager.ablegen(v);
 }
 
 export interface Bericht {

@@ -8,6 +8,7 @@ import {
   type Sender,
   type Sendeergebnis,
   type Vormerkung,
+  type Sendung,
 } from '@/lib/sync/ausgangsfach';
 
 /** Ein Lager im Arbeitsspeicher — dieselben Zusagen, ohne Browser. */
@@ -20,9 +21,11 @@ function lagerImKopf(): Lager & { inhalt: () => Vormerkung[]; kaputt: boolean } 
     async alle() {
       return [...zeilen];
     },
-    async ablegen(v: Vormerkung) {
+    async ablegen(v: Omit<Vormerkung, 'folge'>) {
       if (l.kaputt) throw new Error('Speicher voll');
-      zeilen.push(v);
+      zaehler += 1;
+      zeilen.push({ ...v, folge: zaehler });
+      return zaehler;
     },
     async entfernen(folge: number) {
       zeilen = zeilen.filter((x) => x.folge !== folge);
@@ -30,21 +33,17 @@ function lagerImKopf(): Lager & { inhalt: () => Vormerkung[]; kaputt: boolean } 
     async ersetzen(v: Vormerkung) {
       zeilen = zeilen.map((x) => (x.folge === v.folge ? v : x));
     },
-    async naechsteFolge() {
-      zaehler += 1;
-      return zaehler;
-    },
   };
   return l;
 }
 
-function senderMit(...antworten: Sendeergebnis[]): Sender & { gesehen: Vormerkung[] } {
+function senderMit(...antworten: Sendeergebnis[]): Sender & { gesehen: Sendung[] } {
   const rest = [...antworten];
-  const s = async (v: Vormerkung) => {
+  const s = async (v: Sendung) => {
     s.gesehen.push(v);
     return rest.shift() ?? ({ art: 'ok' } as Sendeergebnis);
   };
-  s.gesehen = [] as Vormerkung[];
+  s.gesehen = [] as Sendung[];
   return s;
 }
 

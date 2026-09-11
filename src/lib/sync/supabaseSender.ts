@@ -13,7 +13,7 @@
  *   für verloren zu erklären, die in Wahrheit nur wartet.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Sendeergebnis, Sender, Vormerkung } from './ausgangsfach';
+import type { Sendeergebnis, Sender, Sendung } from './ausgangsfach';
 
 /**
  * PostgREST-Codes, die eine endgültige Ablehnung bedeuten.
@@ -41,7 +41,7 @@ function istNetzfehler(fehler: { code?: string; message?: string }): boolean {
 }
 
 export function supabaseSender(client: SupabaseClient): Sender {
-  return async (v: Vormerkung): Promise<Sendeergebnis> => {
+  return async (v: Sendung): Promise<Sendeergebnis> => {
     try {
       const { error } =
         v.art === 'anlegen'

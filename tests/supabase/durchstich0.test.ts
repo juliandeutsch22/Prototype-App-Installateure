@@ -30,10 +30,9 @@ function lagerImKopf(): Lager & { inhalt: () => Vormerkung[] } {
   return {
     inhalt: () => [...zeilen].sort((a, b) => a.folge - b.folge),
     async alle() { return [...zeilen]; },
-    async ablegen(v) { zeilen.push(v); },
+    async ablegen(v) { zaehler += 1; zeilen.push({ ...v, folge: zaehler }); return zaehler; },
     async entfernen(folge) { zeilen = zeilen.filter((x) => x.folge !== folge); },
     async ersetzen(v) { zeilen = zeilen.map((x) => (x.folge === v.folge ? v : x)); },
-    async naechsteFolge() { zaehler += 1; return zaehler; },
   };
 }
 

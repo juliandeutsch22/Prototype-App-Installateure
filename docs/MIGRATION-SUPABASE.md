@@ -331,9 +331,59 @@ gehalten worden; von zehn Mutationen sind zunächst acht gefallen, die zwei
 Keiner der drei Punkte wäre durch Lesen aufgefallen. Das ist das Argument
 dafür, diese Stufe vor allen anderen zu machen.
 
-### Was Stufe 0 NICHT beantwortet
+### Die Warteschlange überlebt den Neustart
 
-Das Ausgangsfach liegt bisher nur im Arbeitsspeicher. Die Fassung für den
-Browser (IndexedDB, damit ein Neustart die Warteschlange nicht verliert) und
-die Messung der elf Abonnements unter Zeilenschutz stehen noch aus. Beides
-gehört vor Stufe 1 abgeschlossen.
+`src/lib/sync/lagerIndexedDB.ts`. Firestore hielt seine Warteschlange in
+IndexedDB; wäre unsere nur im Arbeitsspeicher, wäre die Buchung des Monteurs
+beim Wegwischen der App weg — lautlos, denn er hat ja eine Bestätigung
+gesehen. Zwei Entscheidungen tragen das:
+
+- **Die Datenbank vergibt die Folge**, nicht der Aufrufer. Zwei offene Tabs,
+  die erst die höchste Nummer lesen und dann schreiben, vergeben zweimal
+  dieselbe — und dann überholt beim Nachsenden das „Ändern" sein „Anlegen".
+- **Gewartet wird auf das Ende der Transaktion**, nicht auf die Anfrage.
+  IndexedDB meldet eine Anfrage als erfolgreich, lange bevor festgeschrieben
+  ist; bricht die Transaktion danach ab, ist nichts geschrieben. Wer hier
+  abkürzt, sagt „vorgemerkt" für eine Buchung, die es nie gab.
+
+Der zweite Punkt war zunächst ungeprüft: die erste Mutation dagegen ist
+durchgelaufen, weil der erzwungene Abbruch zu früh kam und schon die Anfrage
+scheitern liess. Erst ein Abbruch NACH der erfolgreichen Anfrage trennt die
+beiden Fassungen.
+
+### Die Abonnements trennen die Betriebe — mit einer Fussangel
+
+`tests/supabase/abos.test.ts`. Gemessen: eine Änderung im eigenen Betrieb
+kommt unter einer Sekunde an, ein fremder Betrieb bekommt nichts. Das ist
+nicht selbstverständlich, denn **Abfrage und Meldeweg sind zwei Wege mit zwei
+Prüfungen**: eine Tabelle zu veröffentlichen, ohne dass eine Lese-Richtlinie
+greift, schickt jede Änderung an jeden angemeldeten Empfänger, ohne dass je
+eine Abfrage etwas Falsches zurückgäbe. Deshalb steht in der Migration jede
+Tabelle einzeln und nie ein „alle Tabellen".
+
+**Die Fussangel, und sie hat Folgen für Stufe 4:** `SUBSCRIBED` sagt, dass der
+Kanal steht — nicht, dass das Abonnement serverseitig schon hört. Wer
+unmittelbar danach schreibt, verliert die Meldung lautlos. Firestore lieferte
+den ersten Bestand aus demselben Abo; hier sind Abonnieren und Bestand holen
+zwei Vorgänge mit einer Lücke dazwischen. **Beim Umbau der elf Abonnements muss
+deshalb zuerst abonniert und dann der Bestand geholt werden.**
+
+Der erste Anlauf dagegen war eine feste Wartezeit. Die hat nach einem Neustart
+des Stacks nicht gereicht und den Lauf flattern lassen — ein Test, der mal
+fällt und mal nicht, ist schlimmer als keiner. Jetzt wird gewartet, bis eine
+eigens dafür geschriebene Zeile ankommt. Für den Beweis, dass der fremde
+Betrieb nichts bekommt, gilt das doppelt: ohne den Nachweis, dass sein Kanal
+überhaupt lief, bewiese der Test das Gegenteil von dem, was er behauptet.
+
+### Stand nach Stufe 0
+
+| | |
+|---|---|
+| Prüfungen der Ablauflogik (in `npm test`) | 23 |
+| Prüfungen gegen die echte Datenbank (`npm run supabase:test`) | 12 |
+| Mutationen angesetzt | 17 |
+| davon beim ersten Anlauf gefangen | 13 |
+| echte Lücken, die die vier übrigen aufgedeckt haben | 4 |
+
+Alle vier Lücken sind mit eigenen Prüfungen geschlossen und die Mutationen
+danach wiederholt.
