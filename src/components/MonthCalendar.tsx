@@ -155,7 +155,7 @@ export default function MonthCalendar({
               */
               className={`flex min-h-[3.625rem] flex-col items-center gap-0.5 border-b border-r border-line/60 py-2 transition-colors${ecke} ${
                 isSelected
-                  ? 'bg-info-bg ring-2 ring-inset ring-brand'
+                  ? 'bg-info-bg ring-2 ring-inset ring-accent-deep'
                   : holiday
                     ? // Zusätzlich zur Fläche ein Balken oben: die getönte
                       // Fläche allein war neben dem Wochenend-Grau kaum zu
@@ -169,9 +169,9 @@ export default function MonthCalendar({
               <span
                 className={`tnum flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                   isSelected
-                    ? 'bg-brand text-brand-fg'
+                    ? 'bg-accent-deep text-white'
                     : isToday
-                      ? 'bg-brand/20 font-bold text-brand'
+                      ? 'bg-accent-deep/20 font-bold text-accent-deep'
                       : // Vergangene Tage ohne Planung treten zurück; wo etwas
                         // geplant war, bleibt der Tag lesbar.
                         past && count === 0
@@ -184,7 +184,7 @@ export default function MonthCalendar({
               {count > 0 && (
                 <span
                   className={`tnum inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none ${
-                    past ? 'bg-line text-ink-muted' : 'bg-accent text-accent-fg'
+                    past ? 'bg-line text-ink-muted' : 'bg-accent-deep text-white'
                   }`}
                 >
                   {count}

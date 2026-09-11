@@ -129,11 +129,17 @@ interface CheckboxFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
   id: string;
 }
 
-/** Checkbox mit großem Touch-Ziel und einheitlichem Label. */
+/**
+ * Checkbox mit großem Touch-Ziel und einheitlichem Label.
+ *
+ * Das Aussehen steckt in `.checkbox` (index.css) und nicht hier: es gibt
+ * sieben weitere Kästchen in der App, die nicht durch diesen Baustein laufen
+ * — eine Klasse ist die einzige Fassung, die alle acht gleich hält.
+ */
 export function CheckboxField({ label, id, className = '', ...rest }: CheckboxFieldProps) {
   return (
     <label htmlFor={id} className="flex min-h-touch cursor-pointer items-center gap-3 text-base text-ink">
-      <input id={id} type="checkbox" className={`h-5 w-5 rounded border-line accent-brand focus:ring-brand ${className}`} {...rest} />
+      <input id={id} type="checkbox" className={`checkbox ${className}`} {...rest} />
       {label}
     </label>
   );

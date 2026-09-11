@@ -5,7 +5,7 @@ export function LoadingState({ label = 'Wird geladen …' }: { label?: string })
   return (
     <div className="flex items-center justify-center gap-3 p-6 text-ink-muted" role="status">
       <span
-        className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-brand"
+        className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent-deep"
         aria-hidden="true"
       />
       <span>{label}</span>

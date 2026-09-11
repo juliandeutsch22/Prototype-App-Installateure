@@ -345,7 +345,7 @@ export default function QuotesView() {
                           v.map((x, j) => (j === i ? { ...x, istArbeitszeit: e.target.checked } : x)),
                         )
                       }
-                      className="h-5 w-5 rounded border-line text-brand focus:ring-brand"
+                      className="checkbox"
                     />
                     Zählt als Arbeitszeit ins Stundenbudget
                   </label>

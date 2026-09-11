@@ -340,7 +340,7 @@ export default function OrderView() {
             onClick={() => setTab(t.key)}
             className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-4 py-2 text-sm transition ${
               tab === t.key
-                ? 'border-b-accent font-bold text-brand'
+                ? 'border-b-accent-deep font-bold text-accent-deep'
                 : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
             }`}
           >

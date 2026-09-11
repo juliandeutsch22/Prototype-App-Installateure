@@ -99,6 +99,58 @@ setzen.**
 Funktional ist nichts angefasst worden: die Testreihe, die Typprüfung und
 der Lint sind unverändert grün.
 
+### Nachgeschärft nach dem ersten Blick darauf
+
+Fünf Punkte aus dem Betrieb, und vier davon dieselbe Ursache.
+
+**Ein roter Strich unter den Reitern.** Der Pilotbetrieb hat `#d51f26` als
+Akzentfarbe in seinen Stammdaten, und die Reitermarkierung kam aus
+`--accent`. Also stand mitten auf einer türkisen Seite ein roter Unterstrich.
+Daraus ist eine Regel geworden, die mehr trägt als diesen einen Strich: **die
+Marke färbt, was handelt — Knöpfe, Abzeichen, Links. Die Oberfläche färbt,
+was Struktur ist** — Trägerflächen, Kanten, Reitermarkierung, Kästchen,
+Kalender, und dafür gibt es feste Töne, an die `applyBranding` nicht
+herankommt. Ohne diese Trennung wäre nach dem Reiterstrich der Zähler im
+Kalender der nächste rote Punkt gewesen.
+
+**Zu viele Verläufe.** Auf jedem Knopf, auf jeder Karte, auf dem Seitengrund.
+Nebeneinander war das kein Rang mehr, sondern Unruhe. Jetzt: Verlauf nur auf
+den grossen dunklen Trägerflächen und auf der Markenkante, alles andere
+einfarbig.
+
+**Der Avatar.** Ein Verlauf auf 32 px ist kein Verlauf, sondern ein Fleck mit
+zwei Farben. Jetzt ein Ton.
+
+**Die Kästchen.** Sie sahen aus wie aus einer anderen App, und das stimmte
+auch: `accent-color` färbt den Haken und sonst nichts — Grösse, Rundung und
+Rahmen blieben die des Betriebssystems, neben Feldern mit 14 px Rundung. Ein
+eigenes `.checkbox` mit `appearance: none` und einem Haken als SVG. Es bleibt
+ein echtes `<input type="checkbox">`; Tastatur und Vorlesehilfe merken
+nichts davon.
+
+**Die Ränder der Startbildschirm-App.** Der erste Anlauf setzte das
+Tintenblau auf `html` — sah auf kurzen Seiten richtig aus und legte unter jede
+längere Seite ein dunkles Band, weil `body` genau einen Bildschirm hoch ist
+und alles darunter dem `html` gehört. Jetzt malt die App die Streifen selbst:
+Kopf- und Tableiste rechnen `env(safe-area-inset-*)` in ihr Innenmaß ein.
+**Für eine bereits installierte App hilft das nicht rückwirkend** — iOS und
+Android merken sich die `theme_color` aus dem Manifest beim Hinzufügen. Dafür
+muss sie einmal vom Startbildschirm entfernt und neu abgelegt werden.
+
+**Die Ladeplatzhalter.** Sie liefen von `--surface-2` über `--border` und
+zurück — `--border` ist die Farbe der Trennstriche, ein Balken darin sah aus
+wie ein sehr dicker Strich. Und sie PENDELTEN: beim Zusehen wusste man nie, ob
+die Bewegung vorwärts oder rückwärts läuft. Jetzt ein eigener Türkiston, über
+den ein schmaler Lichtstreifen einmal von links nach rechts wandert, und
+Pillenform statt Kästchen. Der Ladekreis dreht im selben Türkis wie die
+übrigen Markierungen.
+
+**Eine weisse Fuge zwischen Navigation und Inhalt.** Am Rand jeder dunklen
+Leiste — rechts an der Seitenleiste, unter der Kopfleiste, über der
+Tableiste. Sie sitzt HINTER der Markenkante, nicht statt ihr: die Kante
+gehört zur Leiste, der weisse Streifen trennt sie vom Arbeitsbereich.
+Dieselbe Trennung, nur rund, liegt als schmaler Ring um das Profil-Abzeichen.
+
 ---
 
 ## Erledigt: die Benutzerverwaltung hat Tests — und zwei stille Fehler weniger

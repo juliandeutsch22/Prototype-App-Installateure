@@ -80,7 +80,7 @@ export default function VoiceView() {
                 // der Zustand hinge allein am Quadrat in der Mitte.
                 state === 'recording'
                   ? 'animate-pulse bg-danger'
-                  : 'bg-brand bg-grad-brand'
+                  : 'bg-brand'
               }`}
             >
               {state === 'recording' ? (

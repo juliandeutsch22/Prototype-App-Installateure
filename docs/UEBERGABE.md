@@ -285,6 +285,35 @@ Utilities und gewänne gegen sie. Dann schlüge `.panel { border-radius }` ein
 `rounded-sm` an der Aufrufstelle, und `.panel-dark { position }` das `fixed`
 der unteren Leiste.
 
+**Die Marke färbt, was HANDELT. Die Oberfläche färbt, was STRUKTUR ist.**
+`--brand` und `--accent` gehören dem Mandanten (`applyBranding` setzt sie zur
+Laufzeit) und stehen auf Knöpfen, Abzeichen und Links. Alles Strukturelle —
+Trägerflächen, Kanten, Reitermarkierung, Kästchen, Kalender — nimmt die festen
+Töne `--ink-deep`, `--accent-deep`, `--accent-bright`, `--mint`. Der Anlass
+war ein roter Strich: der Pilotbetrieb hat `#d51f26` als Akzentfarbe
+hinterlegt, und solange die Reitermarkierung aus `--accent` kam, war sie der
+einzige rote Punkt auf einer türkisen Seite. **Eine Markierung ist keine
+Handlung.**
+
+**Verläufe nur auf den grossen dunklen Trägerflächen** — Seitenleiste,
+Kopfleiste, Tableiste, Anmeldekopf, Sprach-Banner — und auf der 3 px hohen
+Markenkante. Alles andere ist einfarbig: Karten, Knöpfe, Kästen, Blätter,
+Dialoge. Der erste Entwurf hatte überall welche; nebeneinander war das kein
+Rang mehr, sondern Unruhe.
+
+**`html` bekommt ausdrücklich KEINEN Grund.** Nur `body`. Der Versuch, die
+Ränder der Startbildschirm-App über einen dunklen `html`-Grund einzufärben,
+sah auf kurzen Seiten richtig aus und legte unter jede längere Seite ein
+dunkles Band: `body` ist 100 % hoch, also genau einen Bildschirm, und alles
+darunter gehört dem `html`. Die dunklen Ränder malt deshalb die App selbst —
+Kopf- und Tableiste rechnen `env(safe-area-inset-*)` in ihr Innenmaß ein.
+
+**Das Kästchen ist `.checkbox`, nicht `accent-color`.** `accent-color` färbt
+den Haken und sonst nichts; Grösse, Rundung und Rahmen bleiben die des
+Betriebssystems. Es gibt acht Kästchen in der App und nur eines davon läuft
+durch `CheckboxField` — eine Klasse in `index.css` ist die einzige Fassung,
+die alle acht gleich hält.
+
 **Die leuchtenden Töne tragen nie Text.** `--accent-bright` (#12b0c6) und
 `--mint` (#66ffb0) erreichen auf Weiß 2,6:1 bzw. 1,3:1. Sie sind Kante und
 Fläche. Gelesen wird auf `--text`, `--text-muted`, `--brand` oder `--accent` —
