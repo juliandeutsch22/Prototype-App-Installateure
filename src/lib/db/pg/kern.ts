@@ -53,7 +53,9 @@ export type Bedingung =
   | { art: 'ungleich'; feld: string; wert: unknown }
   | { art: 'in'; feld: string; werte: readonly unknown[] }
   | { art: 'ab'; feld: string; wert: unknown }
-  | { art: 'bis'; feld: string; wert: unknown };
+  | { art: 'bis'; feld: string; wert: unknown }
+  /** Der Wert steht IN einem Feld, das eine Liste ist (Firestore: array-contains). */
+  | { art: 'enthaelt'; feld: string; wert: unknown };
 
 export interface Abfrage {
   wo?: readonly Bedingung[];
@@ -73,6 +75,7 @@ interface Filterbar {
   eq(spalte: string, wert: unknown): Filterbar;
   neq(spalte: string, wert: unknown): Filterbar;
   in(spalte: string, werte: unknown[]): Filterbar;
+  contains(spalte: string, werte: unknown[]): Filterbar;
   gte(spalte: string, wert: unknown): Filterbar;
   lte(spalte: string, wert: unknown): Filterbar;
   order(spalte: string, wie: { ascending: boolean }): Filterbar;
@@ -87,7 +90,8 @@ function anwenden(bauer: Filterbar, abfrage: Abfrage): Filterbar {
     else if (bed.art === 'ungleich') b = b.neq(spalte, bed.wert);
     else if (bed.art === 'in') b = b.in(spalte, bed.werte as unknown[]);
     else if (bed.art === 'ab') b = b.gte(spalte, bed.wert);
-    else b = b.lte(spalte, bed.wert);
+    else if (bed.art === 'bis') b = b.lte(spalte, bed.wert);
+    else b = b.contains(spalte, [bed.wert]);
   }
   if (abfrage.sortiere) {
     b = b.order(alsSpalteSicher(abfrage.sortiere.feld), {
@@ -124,7 +128,7 @@ export async function abfragen<T>(
     error: { message: string } | null;
   }>);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((z) => zeileAlsObjekt<WithId<T>>(z));
+  return (data ?? []).map((z) => zeileAlsObjekt<WithId<T>>(tabelle, z));
 }
 
 /** Schreibt ein neues Dokument; companyId kommt aus dem Anmeldekontext. */
@@ -135,7 +139,7 @@ export async function anlegen(
   client?: SupabaseClient,
 ): Promise<string> {
   const c = derClient(client);
-  const zeile = { ...objektAlsZeile(daten), company_id: companyId };
+  const zeile = { ...objektAlsZeile(tabelle, daten), company_id: companyId };
   const { data, error } = await c.from(tabelle).insert(zeile).select('id').single();
   if (error) throw new Error(error.message);
   return String((data as { id: string }).id);
@@ -156,7 +160,7 @@ export async function anlegenMitKennung(
   client?: SupabaseClient,
 ): Promise<string> {
   const c = derClient(client);
-  const zeile = { ...objektAlsZeile(daten), company_id: companyId, id };
+  const zeile = { ...objektAlsZeile(tabelle, daten), company_id: companyId, id };
   const { error } = await c.from(tabelle).upsert(zeile, { onConflict: 'id' });
   if (error) throw new Error(error.message);
   return id;
@@ -172,7 +176,7 @@ export async function aendern(
   const c = derClient(client);
   const { companyId: _weg, ...rest } = daten;
   void _weg;
-  const { error } = await c.from(tabelle).update(objektAlsZeile(rest)).eq('id', id);
+  const { error } = await c.from(tabelle).update(objektAlsZeile(tabelle, rest)).eq('id', id);
   if (error) throw new Error(error.message);
 }
 
@@ -240,6 +244,7 @@ export function abonnieren<T>(
       if (bed.art === 'in' && !bed.werte.includes(wert)) return false;
       if (bed.art === 'ab' && (wert as never) < (bed.wert as never)) return false;
       if (bed.art === 'bis' && (wert as never) > (bed.wert as never)) return false;
+      if (bed.art === 'enthaelt' && !(Array.isArray(wert) && wert.includes(bed.wert))) return false;
     }
     return true;
   };
@@ -265,7 +270,7 @@ export function abonnieren<T>(
       if (id) bestand.delete(id);
       return;
     }
-    const zeile = zeileAlsObjekt<WithId<T>>(n.neu ?? {});
+    const zeile = zeileAlsObjekt<WithId<T>>(tabelle, n.neu ?? {});
     const id = String((zeile as unknown as { id: string }).id ?? '');
     if (!id) return;
     if (passt(zeile)) bestand.set(id, zeile);

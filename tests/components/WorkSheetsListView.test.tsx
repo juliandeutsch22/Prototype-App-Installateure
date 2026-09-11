@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Role, WorkSheet } from '@/types';
+import { todayStr } from '@/lib/time';
 
 /**
  * Der Weg zurück in einen Entwurf.
@@ -398,9 +399,18 @@ describe('Fotos am Schein', () => {
  */
 describe('Stunden ohne Buchung', () => {
   /* Tage relativ zu HEUTE — der Befund hängt am Alter des Scheins, und ein
-     festes Datum im Testtext wäre nächstes Jahr ein anderer Fall. */
+     festes Datum im Testtext wäre nächstes Jahr ein anderer Fall.
+
+     GERECHNET WIRD AB DEM ÖRTLICHEN HEUTE, genau wie in der Ansicht: die
+     nimmt `todayStr()` und zieht davon ab. Wer hier stattdessen von der
+     UTC-Uhr ausgeht, bekommt zwischen 22 und 24 Uhr UTC einen Tag Versatz —
+     in Wien ist dann schon der nächste Tag. Der Test fiele zwei Stunden am
+     Tag und liefe die übrigen zweiundzwanzig durch; wer ihn rot sieht, sucht
+     den Fehler in seiner Änderung. Aufgefallen um 22:29 UTC. */
   const vorTagen = (n: number) =>
-    new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+    new Date(Date.parse(`${todayStr()}T00:00:00Z`) - n * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
 
   /* Die Zeile ist aus mehreren Elementen gesetzt — gesucht wird deshalb im
      zusammengesetzten Text, nicht in einem einzelnen Knoten. */

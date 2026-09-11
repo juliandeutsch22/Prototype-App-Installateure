@@ -13,6 +13,7 @@
  * übersteht. Eine Spalte, die das nicht tut, fällt auf, bevor sie still Daten
  * verschluckt.
  */
+import { SPALTENTYPEN } from './spaltentypen';
 
 /** `break_duration` → `breakDuration` */
 export function alsFeld(spalte: string): string {
@@ -24,10 +25,52 @@ export function alsSpalte(feld: string): string {
   return feld.replace(/[A-Z]/g, (z) => `_${z.toLowerCase()}`);
 }
 
-/** Eine ganze Zeile aus der Datenbank in die Sprache der App. */
-export function zeileAlsObjekt<T>(zeile: Record<string, unknown>): T {
+/**
+ * `"2026-09-11T22:09:23.036724+00:00"` → `1789...` (Millisekunden).
+ *
+ * Die App-Typen sagen `number`; so lagen die Zeitstempel in Firestore, und so
+ * rechnet jede Anzeige damit.
+ */
+function alsZeitpunkt(wert: unknown): unknown {
+  if (wert === null || wert === undefined) return wert;
+  if (typeof wert === 'number') return wert;
+  const ms = Date.parse(String(wert));
+  return Number.isNaN(ms) ? wert : ms;
+}
+
+/**
+ * `"07:00:00"` → `"07:00"`.
+ *
+ * Das ist es, was ein `<input type="time">` liefert und annimmt. Sekunden
+ * führt die App nirgends; sie stünden nur da und wären beim Vergleich zweier
+ * Zeichenketten sogar schädlich.
+ */
+function alsUhrzeit(wert: unknown): unknown {
+  if (typeof wert !== 'string') return wert;
+  const treffer = /^(\d{2}:\d{2})(:\d{2})?/.exec(wert);
+  return treffer ? treffer[1] : wert;
+}
+
+/** Umgekehrt: `1789...` → ISO, damit Postgres es als Zeitpunkt annimmt. */
+function alsZeitpunktFuerDB(wert: unknown): unknown {
+  if (typeof wert !== 'number') return wert;
+  return new Date(wert).toISOString();
+}
+
+/**
+ * Eine ganze Zeile aus der Datenbank in die Sprache der App.
+ *
+ * Die Tabelle muss mit, weil die Umrechnung von der SPALTE abhängt und nicht
+ * von der Form des Werts — siehe `spaltentypen.ts`.
+ */
+export function zeileAlsObjekt<T>(tabelle: string, zeile: Record<string, unknown>): T {
+  const arten = SPALTENTYPEN[tabelle] ?? {};
   const raus: Record<string, unknown> = {};
-  for (const [spalte, wert] of Object.entries(zeile)) raus[alsFeld(spalte)] = wert;
+  for (const [spalte, wert] of Object.entries(zeile)) {
+    const art = arten[spalte];
+    raus[alsFeld(spalte)] =
+      art === 'zeitpunkt' ? alsZeitpunkt(wert) : art === 'uhrzeit' ? alsUhrzeit(wert) : wert;
+  }
   return raus as T;
 }
 
@@ -40,10 +83,16 @@ export function zeileAlsObjekt<T>(zeile: Record<string, unknown>): T {
  * Das ist dieselbe Unterscheidung, die `stripUndefined` in der alten
  * Datenschicht getroffen hat.
  */
-export function objektAlsZeile(daten: Record<string, unknown>): Record<string, unknown> {
+export function objektAlsZeile(
+  tabelle: string,
+  daten: Record<string, unknown>,
+): Record<string, unknown> {
+  const arten = SPALTENTYPEN[tabelle] ?? {};
   const raus: Record<string, unknown> = {};
   for (const [feld, wert] of Object.entries(daten)) {
-    if (wert !== undefined) raus[alsSpalte(feld)] = wert;
+    if (wert === undefined) continue;
+    const spalte = alsSpalte(feld);
+    raus[spalte] = arten[spalte] === 'zeitpunkt' ? alsZeitpunktFuerDB(wert) : wert;
   }
   return raus;
 }

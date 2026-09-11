@@ -70,7 +70,7 @@ export async function listUnlinkedProjectsByName(
     .is('customer_id', null)
     .limit(max);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((z) => zeileAlsObjekt<WithId<Project>>(z));
+  return (data ?? []).map((z) => zeileAlsObjekt<WithId<Project>>(BAUSTELLEN, z));
 }
 
 export type NewCustomer = Omit<Customer, 'id' | 'companyId' | 'createdAt'>;
@@ -112,7 +112,7 @@ export async function updateCustomer(
   const { data: anzahl, error } = await c.rpc('kunde_umbenennen', {
     p_kunde: id,
     p_name: data.name,
-    p_rest: objektAlsZeile({ ...data, name: undefined }),
+    p_rest: objektAlsZeile(KUNDEN, { ...data, name: undefined }),
   });
   if (error) throw new Error(error.message);
   return Number(anzahl ?? 0);
