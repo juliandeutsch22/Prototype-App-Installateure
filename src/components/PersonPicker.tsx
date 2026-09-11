@@ -151,7 +151,7 @@ export default function PersonPicker({
                 type="checkbox"
                 checked={nurFreie}
                 onChange={(e) => setNurFreie(e.target.checked)}
-                className="h-5 w-5 shrink-0 rounded border-line text-brand focus:ring-brand"
+                className="checkbox"
               />
               Nur freie anzeigen
               <span className="text-ink-muted">
@@ -204,7 +204,7 @@ export default function PersonPicker({
                             type="checkbox"
                             checked={an}
                             onChange={(e) => umschalten(p.uid, e.target.checked)}
-                            className="h-5 w-5 shrink-0 rounded border-line text-brand focus:ring-brand"
+                            className="checkbox"
                           />
                           <span className="min-w-0">
                             <span className="block truncate text-ink">{p.name}</span>

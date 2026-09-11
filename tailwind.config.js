@@ -77,26 +77,24 @@ export default {
         warning: { DEFAULT: token('--warning'), bg: token('--warning-bg') },
         danger: { DEFAULT: token('--danger'), bg: token('--danger-bg') },
         info: { DEFAULT: token('--info'), bg: token('--info-bg') },
-        // Dekorative Markentöne. Nur Fläche und Kante — sie erreichen auf
-        // Weiß keine 4,5:1 und dürfen deshalb keinen Text tragen.
+        // Die festen Töne der Oberfläche (siehe index.css): sie sind NICHT
+        // mandantenfähig und tragen alles Strukturelle. Nur `accent-deep`
+        // darf davon Text tragen — die übrigen erreichen auf Weiß keine
+        // 4,5:1 und sind Fläche und Kante.
         'ink-deep': token('--ink-deep'),
         'brand-mid': token('--brand-mid'),
+        'accent-deep': token('--accent-deep'),
         'accent-bright': token('--accent-bright'),
         mint: { DEFAULT: token('--mint'), soft: token('--mint-soft') },
       },
-      // Die Verläufe der Oberfläche als Rollen, nicht als Rezept: bg-grad-brand
-      // statt eines von Hand geschriebenen linear-gradient an der Aufrufstelle.
-      // Die Werte stehen in index.css.
+      // Die vier verbliebenen Verläufe als Rollen, nicht als Rezept. Wo sie
+      // benutzt werden dürfen, steht in index.css — kurz: nur auf den grossen
+      // dunklen Trägerflächen und auf der Markenkante.
       backgroundImage: {
-        'grad-app': 'var(--grad-app)',
         'grad-brand': 'var(--grad-brand)',
-        'grad-brand-soft': 'var(--grad-brand-soft)',
-        'grad-accent': 'var(--grad-accent)',
         'grad-dark': 'var(--grad-dark)',
-        'grad-surface': 'var(--grad-surface)',
         'grad-tint': 'var(--grad-tint)',
         'grad-edge': 'var(--grad-edge)',
-        'grad-mint': 'var(--grad-mint)',
       },
       borderRadius: {
         sm: 'var(--radius-sm)',

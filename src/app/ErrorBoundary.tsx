@@ -106,7 +106,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={() => this.setState({ error: null })}
-              className="min-h-touch rounded-sm bg-brand bg-grad-brand-soft px-4 py-2 font-semibold text-brand-fg shadow-sm"
+              className="min-h-touch rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
             >
               Erneut versuchen
             </button>

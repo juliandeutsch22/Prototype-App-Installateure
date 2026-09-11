@@ -57,13 +57,16 @@ export default function Unterreiter({
                 [
                   'min-h-touch whitespace-nowrap border-b-2 px-4 py-2 text-sm transition',
                   // Dieselbe Markierung wie bei den Reitern in Material,
-                  // Lager und Anforderungen: Akzentkante UNTEN, Text in der
-                  // Marke und fett. Vorher war die Kante hier in der Marke
-                  // und dort im Akzent — zwei Regeln für dieselbe Sache, und
-                  // beim Wechsel zwischen den Bereichen sprang der Unterschied
-                  // ins Auge.
+                  // Lager und Anforderungen: Kante UNTEN, Text fett, beides im
+                  // festen Türkis der Oberfläche.
+                  //
+                  // Bewusst NICHT in `--accent`: das ist die Farbe des
+                  // Mandanten, und dieser Betrieb hat dort sein Logo-Rot
+                  // stehen. Ein roter Strich unter „Meldungen" war deshalb
+                  // der einzige rote Punkt auf einer türkisen Seite — eine
+                  // Markierung ist Oberfläche, keine Handlung.
                   isActive
-                    ? 'border-b-accent font-bold text-brand'
+                    ? 'border-b-accent-deep font-bold text-accent-deep'
                     : 'border-b-transparent font-medium text-ink-muted hover:text-ink',
                 ].join(' ')
               }

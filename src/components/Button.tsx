@@ -9,21 +9,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
- * Die Hauptaktionen tragen einen Verlauf, die Nebenaktionen eine Fläche.
+ * Alle Knöpfe sind EINFARBIG.
  *
- * Das ist keine Zierde, sondern die Rangordnung: auf einem Formular mit fünf
- * Knöpfen erkennt man den einen, der die Sache abschließt, am Verlauf, bevor
- * man die Beschriftung gelesen hat. `bg-brand` bleibt als Farbe darunter
- * stehen — kennt ein Browser den Verlauf nicht, ist der Knopf einfarbig
- * türkis statt durchsichtig.
- *
- * Rot (danger) bekommt bewusst KEINEN Verlauf: eine destruktive Aktion soll
- * nicht hübsch aussehen.
+ * Der erste Entwurf gab den Hauptaktionen einen Verlauf, um die Rangordnung
+ * schon vor dem Lesen sichtbar zu machen. Auf einem Formular mit fünf Knöpfen
+ * nebeneinander war das aber kein Rang mehr, sondern Unruhe — und die
+ * Rangordnung steht ohnehin in der Farbe: gefüllt in der Marke gegen weiss
+ * mit Rahmen. Verläufe bleiben den grossen dunklen Trägerflächen vorbehalten
+ * (siehe index.css).
  */
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand bg-grad-brand-soft text-brand-fg shadow-sm hover:opacity-95',
+  primary: 'bg-brand text-brand-fg shadow-sm hover:opacity-95',
   secondary: 'border border-line bg-surface text-ink shadow-sm hover:bg-surface-2',
-  accent: 'bg-accent bg-grad-accent text-accent-fg shadow-sm hover:opacity-95',
+  accent: 'bg-accent text-accent-fg shadow-sm hover:opacity-95',
   danger: 'bg-danger text-white shadow-sm hover:opacity-90',
   ghost: 'bg-transparent text-ink-muted hover:bg-surface-2',
   // Derselbe zurückhaltende Knopf, aber auf einer dunklen Trägerfläche

@@ -90,7 +90,7 @@ export default function BottomSheet({ open, onClose, label, children }: BottomSh
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        className="absolute inset-x-0 bottom-0 rounded-t-lg border border-b-0 border-line bg-surface bg-grad-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
+        className="absolute inset-x-0 bottom-0 rounded-t-lg border border-b-0 border-line bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
         style={{
           transform: `translateY(${dy}px)`,
           // Während des Ziehens keine Übergangszeit: sonst hinkt das Blatt

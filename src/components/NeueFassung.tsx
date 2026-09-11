@@ -154,7 +154,7 @@ export default function NeueFassung() {
       role="status"
       // Über der unteren Leiste, aber unterhalb von Dialogen: ein Hinweis
       // darf niemals eine Rückfrage verdecken, die beantwortet werden muss.
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface bg-grad-surface px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-lg sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-sm sm:rounded-lg sm:border"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-lg sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-sm sm:rounded-lg sm:border"
     >
       <p className="text-sm text-ink">
         Eine neue Fassung der App steht bereit.

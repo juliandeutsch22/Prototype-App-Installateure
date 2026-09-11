@@ -18,18 +18,33 @@
   /* Marke (Defaults; werden vom Mandanten-Theme überschrieben).
    * brand  = tiefes Türkis: trägt Navigation und Primäraktionen (10,5:1 auf
    *   Weiß).
-   * accent = abgedunkeltes Cyan für Hervorhebungen und den Avatar — 5,2:1 auf
-   *   Weiß und in beide Richtungen AA. Für destruktive Aktionen gibt es
-   *   --danger; „Marke" und „Achtung" bleiben unterscheidbar. */
+   * accent = abgedunkeltes Cyan für Hervorhebungen — 5,2:1 auf Weiß und in
+   *   beide Richtungen AA. Für destruktive Aktionen gibt es --danger;
+   *   „Marke" und „Achtung" bleiben unterscheidbar. */
   --brand: #0f4552;
   --brand-fg: #ffffff;
   --accent: #00778a;
   --accent-fg: #ffffff;
 
-  /* Dekorative Markenfarben — nur Fläche/Kante, nie Text.
-   * ink-deep ist der dunkelste Punkt aller Verläufe. */
+  /*
+   * FESTE FARBEN DER OBERFLÄCHE — hier greift `applyBranding` nicht hin.
+   *
+   * Die Trennung ist die Antwort auf einen roten Unterstrich unter den
+   * Reitern: der Betrieb hat `accentColor: #d51f26` in seinen Stammdaten,
+   * und solange eine Markierung aus `--accent` kam, trug sie diese Farbe —
+   * mitten in einer türkisen Oberfläche. Seitdem gilt:
+   *
+   *   --brand / --accent   MANDANT. Was HANDELT: Knöpfe, Abzeichen, Links.
+   *   die Töne hier        OBERFLÄCHE. Was STRUKTUR ist: Trägerflächen,
+   *                        Kanten, Reitermarkierung, Kästchen, Kalender.
+   *
+   * `--accent-deep` ist der einzige davon, der Text tragen darf (5,2:1 auf
+   * Weiß, Weiß darauf ebenso). `--accent-bright` und `--mint` sind Fläche
+   * und Kante — auf Weiß nur 2,6:1 bzw. 1,3:1.
+   */
   --ink-deep: #0a2030;
   --brand-mid: #12889b;
+  --accent-deep: #00778a;
   --accent-bright: #12b0c6;
   --mint: #66ffb0;
   --mint-soft: #bff3ea;
@@ -61,25 +76,29 @@
   --info: #0e6d80;
   --info-bg: #d9f2f7;
 
-  /* VERLÄUFE — die Signatur dieser Oberfläche. Sie stehen hier EINMAL und
-   * werden überall über die Tailwind-Rollen (bg-grad-*) abgerufen; eine
-   * Fläche, die ihren Verlauf selbst zusammenbaut, driftet ab. */
   /*
-   * Der helle Endpunkt jedes Verlaufs, auf dem WEISSER TEXT steht, ist
-   * abgedunkelt bis er allein 4,5:1 erreicht (#107a8c → 5,0:1). Die Vorlage
-   * hört dort bei #12889b auf; das sind 4,2:1 und damit unter AA — ein
-   * Verlauf ist nur so lesbar wie seine hellste Stelle, und das ist genau die
-   * Ecke, in der in der Seitenleiste der Benutzername steht.
+   * VERLÄUFE — sparsam, und nur dort, wo sie etwas tun.
+   *
+   * Der erste Entwurf hatte überall welche: auf jedem Knopf, auf jeder
+   * Karte, auf dem Seitengrund. Das Ergebnis war unruhig, ohne dass ein
+   * einziger Verlauf eine Aussage getragen hätte. Jetzt gilt eine Regel, die
+   * man vor dem Schreiben beantworten kann:
+   *
+   *   VERLAUF   nur auf den grossen dunklen Trägerflächen (Seitenleiste,
+   *             Kopfleiste, Tableiste, Anmeldekopf, Sprach-Banner) und auf
+   *             der 3 px hohen Markenkante.
+   *   FLÄCHE    alles andere — Karten, Knöpfe, Kästen, Blätter, Dialoge.
+   *
+   * Der helle Endpunkt von --grad-brand ist abgedunkelt, bis er allein 4,5:1
+   * erreicht (#107a8c → 5,0:1). Die Vorlage hört bei #12889b auf; das sind
+   * 4,2:1 und damit unter AA — ein Verlauf ist nur so lesbar wie seine
+   * hellste Stelle, und das ist genau die Ecke, in der in der Seitenleiste
+   * der Benutzername steht.
    */
-  --grad-app: linear-gradient(180deg, #f6fcfd 0%, #eaf3f6 55%, #e3eff3 100%);
   --grad-brand: linear-gradient(120deg, #0a2030 0%, #0f4552 70%, #107a8c 100%);
-  --grad-brand-soft: linear-gradient(100deg, #0f4552 0%, #107a8c 100%);
-  --grad-accent: linear-gradient(100deg, #005866 0%, #00778a 100%);
   --grad-dark: linear-gradient(100deg, #0a2030 0%, #0b2d3d 55%, #0d4152 100%);
-  --grad-surface: linear-gradient(135deg, #ffffff 0%, #fafdfe 55%, #f1f9fb 100%);
   --grad-tint: linear-gradient(120deg, rgba(102, 255, 176, 0.14), rgba(18, 176, 198, 0.12));
   --grad-edge: linear-gradient(90deg, #12b0c6 0%, #66ffb0 100%);
-  --grad-mint: linear-gradient(100deg, #ffffff 0%, #bff3ea 60%, #66ffb0 100%);
 
   /* Radius & Schatten — weiche Ecken und lange, flache Schatten mit
    * negativer Streuung: die Kante bleibt scharf, der Schatten liegt darunter
@@ -103,16 +122,22 @@ body,
 }
 
 /*
- * Der Grund ist ein Verlauf, kein Ton: oben fast weiß, unten ins Türkis
- * abgedunkelt. `background-attachment: fixed` hält ihn beim Scrollen still —
- * sonst wanderte der Verlauf mit dem Inhalt und die Seite wirkte gestreift.
- * `background-color` bleibt als Rückfall stehen, falls der Verlauf (sehr
- * alter Browser) nicht gezeichnet wird.
+ * NUR `body` BEKOMMT EINEN GRUND, `html` AUSDRÜCKLICH NICHT.
+ *
+ * Der erste Versuch, die Ränder der Startbildschirm-App einzufärben, setzte
+ * das Tintenblau auf `html`. Das sah auf kurzen Seiten richtig aus und war
+ * trotzdem falsch: `body` ist 100 % hoch, also genau einen Bildschirm, und
+ * alles darunter gehört dem `html`. Auf jeder Seite, die länger ist als der
+ * Bildschirm — und das sind fast alle — stand unter dem letzten Inhalt ein
+ * dunkles Band.
+ *
+ * Solange `html` keinen eigenen Grund hat, färbt der des `body` die ganze
+ * Fläche. Die dunklen Ränder oben und unten malt deshalb die App selbst:
+ * Kopfleiste und Tableiste rechnen `env(safe-area-inset-*)` in ihr
+ * Innenmaß ein (siehe Layout.tsx).
  */
 body {
   background-color: var(--bg);
-  background-image: var(--grad-app);
-  background-attachment: fixed;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   /* Poppins wie im Prototyp; System-Schriften als Fallback, falls die
@@ -190,7 +215,6 @@ textarea:focus {
 @layer components {
   .panel {
     background-color: var(--surface);
-    background-image: var(--grad-surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
@@ -205,6 +229,64 @@ textarea:focus {
     background-color: var(--ink-deep);
     background-image: var(--grad-tint), var(--grad-brand);
     color: #ffffff;
+  }
+
+  /*
+   * DAS KÄSTCHEN. Ein eigenes, weil das des Browsers keines ist, das man
+   * gestalten könnte: `accent-color` färbt den Haken ein und sonst nichts —
+   * Grösse, Rundung und Rahmen bleiben die des Betriebssystems, und auf
+   * Windows ist das ein hartes Quadrat mit dünner grauer Kante. Neben
+   * Feldern mit 14 px Rundung sah das aus wie aus einer anderen App.
+   *
+   * `appearance: none` nimmt die Zeichnung des Browsers weg, der Haken kommt
+   * als SVG im Hintergrund. Es bleibt ein echtes `<input type="checkbox">` —
+   * Tastatur, Vorlesehilfe und `:checked` verhalten sich unverändert.
+   *
+   * Der Haken ist fest türkis und NICHT `--brand`: das Kästchen ist
+   * Bedienoberfläche, keine Handlung. Siehe die Aufteilung oben bei den
+   * festen Farben.
+   */
+  .checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 2px solid var(--border);
+    border-radius: 0.4375rem;
+    background-color: var(--surface);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 0.8rem;
+    cursor: pointer;
+    transition:
+      background-color 120ms ease,
+      border-color 120ms ease;
+  }
+
+  .checkbox:checked {
+    background-color: var(--accent-deep);
+    border-color: var(--accent-deep);
+    /* Weisser Haken, 5,2:1 auf der Fläche darunter. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.4l3.4 3.4L13 4.6'/%3E%3C/svg%3E");
+  }
+
+  .checkbox:indeterminate {
+    background-color: var(--accent-deep);
+    border-color: var(--accent-deep);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+  }
+
+  .checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* Grösseres Kästchen, wo es allein in einer Zeile steht (Module). */
+  .checkbox-lg {
+    width: 1.5rem;
+    height: 1.5rem;
+    background-size: 1rem;
   }
 
   /*

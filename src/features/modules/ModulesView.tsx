@@ -150,7 +150,7 @@ export default function ModulesView() {
                   <span className="text-sm text-ink-muted">{an ? 'ein' : 'aus'}</span>
                   <input
                     type="checkbox"
-                    className="h-6 w-6 rounded border-line accent-brand"
+                    className="checkbox checkbox-lg"
                     checked={an}
                     disabled={!verfuegbar || (fehlt.length > 0 && !an)}
                     onChange={(e) => umschalten(m.id, e.target.checked)}

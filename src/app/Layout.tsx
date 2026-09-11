@@ -24,7 +24,7 @@ import AppErneuern from '@/components/AppErneuern';
 const sideLink = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-accent bg-info-bg font-bold text-brand'
+      ? 'border-l-accent-deep bg-info-bg font-bold text-accent-deep'
       : 'border-l-transparent font-medium text-ink-muted hover:bg-surface-2 hover:text-ink'
   }`;
 
@@ -68,8 +68,15 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="flex min-h-full flex-col md:flex-row">
       {/* Mobile Top-Bar — dunkles Markenband mit leuchtender Unterkante. Die
           Kante ist ein eigenes Element und keine Rahmenfarbe: einen Verlauf
-          kann ein `border-bottom` nicht tragen. */}
-      <header className="panel-dark md:hidden">
+          kann ein `border-bottom` nicht tragen.
+
+          `pt-[env(safe-area-inset-top)]`: die Kopfzeile im Anzug (`index.html`
+          setzt `viewport-fit=cover`) reicht bis unter die Statusleiste des
+          Telefons. Ohne den Zuschlag stünde das Logo dahinter; mit ihm malt
+          die Leiste diesen Streifen in ihrer eigenen Farbe aus — genau das,
+          was man von einer App vom Startbildschirm erwartet. Auf einem Gerät
+          ohne Aussparung ist der Wert 0 und es ändert sich nichts. */}
+      <header className="panel-dark pt-[env(safe-area-inset-top)] md:hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-3">
         {BrandMarkMobile}
         {/* Der Avatar allein zeigt nur zwei Buchstaben. Auf einem
