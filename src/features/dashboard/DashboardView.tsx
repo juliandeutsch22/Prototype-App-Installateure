@@ -546,7 +546,7 @@ export default function DashboardView() {
       {kiAn && (
         <Link
           to="/voice"
-          className="flex min-h-touch items-center gap-3 rounded-lg bg-brand px-4 py-3 text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.99] sm:gap-4"
+          className="flex min-h-touch items-center gap-3 rounded-lg bg-brand bg-grad-brand px-4 py-3 text-brand-fg shadow transition hover:opacity-95 active:scale-[0.99] sm:gap-4"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 sm:h-12 sm:w-12">
             <Icon name="mic" size={22} />
@@ -615,7 +615,7 @@ export default function DashboardView() {
                   <Link
                     to="/time"
                     state={{ projectNumber: e.projectNumber, asHelper: !!e.asHelper }}
-                    className="flex min-h-touch items-center rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg"
+                    className="flex min-h-touch items-center rounded bg-brand bg-grad-brand-soft px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm"
                   >
                     Zeit erfassen
                   </Link>

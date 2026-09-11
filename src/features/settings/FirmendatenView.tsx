@@ -280,7 +280,7 @@ export default function FirmendatenView() {
             <InputField
               id="fd-brand"
               label="Hauptfarbe (#rrggbb)"
-              placeholder="#003366"
+              placeholder="#0f4552"
               value={brandColor}
               onChange={(e) => setBrandColor(e.target.value)}
             />
@@ -301,7 +301,7 @@ export default function FirmendatenView() {
             <InputField
               id="fd-accent"
               label="Akzentfarbe (#rrggbb)"
-              placeholder="#c8102e"
+              placeholder="#00778a"
               value={accentColor}
               onChange={(e) => setAccentColor(e.target.value)}
             />

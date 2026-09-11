@@ -95,7 +95,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="flex min-h-full items-center justify-center p-6">
-        <div className="w-full max-w-md rounded-lg border border-line bg-surface p-6 shadow-sm">
+        <div className="panel w-full max-w-md p-6">
           <h1 className="text-lg font-bold text-ink">Da ist etwas schiefgelaufen</h1>
           <p className="mt-2 text-sm text-ink-muted">
             {istNachladeFehler(error)
@@ -106,7 +106,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             <button
               type="button"
               onClick={() => this.setState({ error: null })}
-              className="min-h-touch rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg"
+              className="min-h-touch rounded-sm bg-brand bg-grad-brand-soft px-4 py-2 font-semibold text-brand-fg shadow-sm"
             >
               Erneut versuchen
             </button>

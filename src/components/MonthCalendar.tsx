@@ -59,7 +59,7 @@ export default function MonthCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-line bg-surface">
+    <div className="panel overflow-hidden">
       <div className="flex items-center justify-between border-b border-line px-2 py-2">
         <button
           type="button"

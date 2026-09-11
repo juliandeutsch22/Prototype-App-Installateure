@@ -55,10 +55,16 @@ export default function Unterreiter({
               to={`${basis}/${s.pfad}`}
               className={({ isActive }) =>
                 [
-                  'min-h-touch whitespace-nowrap border-b-2 px-4 py-2 text-sm font-semibold',
+                  'min-h-touch whitespace-nowrap border-b-2 px-4 py-2 text-sm transition',
+                  // Dieselbe Markierung wie bei den Reitern in Material,
+                  // Lager und Anforderungen: Akzentkante UNTEN, Text in der
+                  // Marke und fett. Vorher war die Kante hier in der Marke
+                  // und dort im Akzent — zwei Regeln für dieselbe Sache, und
+                  // beim Wechsel zwischen den Bereichen sprang der Unterschied
+                  // ins Auge.
                   isActive
-                    ? 'border-brand text-brand'
-                    : 'border-transparent text-ink-muted hover:text-ink',
+                    ? 'border-b-accent font-bold text-brand'
+                    : 'border-b-transparent font-medium text-ink-muted hover:text-ink',
                 ].join(' ')
               }
             >

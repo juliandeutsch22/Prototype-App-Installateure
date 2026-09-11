@@ -64,9 +64,9 @@ async function main() {
   } else {
     await companyRef.set({
       name: companyName,
-      brandColor: '#003366',
+      brandColor: '#0f4552',
       brandForeground: '#ffffff',
-      accentColor: '#d51f26',
+      accentColor: '#00778a',
       accentForeground: '#ffffff',
       rates: {
         fach: 65,

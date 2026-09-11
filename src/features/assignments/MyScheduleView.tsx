@@ -276,7 +276,7 @@ export default function MyScheduleView() {
               )}
               {visible.length === 0 ? (
                 <EmptyState>
-                  Kein Einsatz an diesem Tag. Die roten Zahlen im Kalender zeigen, an welchen
+                  Kein Einsatz an diesem Tag. Die Zahlen im Kalender zeigen, an welchen
                   Tagen du eingeplant bist.
                 </EmptyState>
               ) : (
@@ -329,7 +329,7 @@ export default function MyScheduleView() {
                           <Link
                             to="/time"
                             state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}
-                            className="flex min-h-touch items-center rounded bg-brand px-4 py-2 font-semibold text-brand-fg"
+                            className="flex min-h-touch items-center rounded bg-brand bg-grad-brand-soft px-4 py-2 font-semibold text-brand-fg shadow-sm"
                           >
                             Zeit erfassen
                           </Link>

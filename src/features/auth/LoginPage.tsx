@@ -14,7 +14,7 @@ import Button from '@/components/Button';
 const PORTAL_NAME = import.meta.env.VITE_PORTAL_NAME || 'Installateur-Portal';
 
 /**
- * Anmeldung. Aufbau wie im Prototyp: blaues Kopfband mit roter Unterkante,
+ * Anmeldung. Dunkles Kopfband im Markenverlauf mit leuchtender Unterkante,
  * darunter das Formular — die Marke trägt der Kopf, nicht die Eingabefelder.
  */
 export default function LoginPage() {
@@ -86,23 +86,27 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-full items-center justify-center bg-bg p-4">
-      <div className="w-full max-w-sm overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
-        {/* Markenband: Perl-Blau mit roter Unterkante. Das Logo bringt seinen
-            eigenen roten Kasten mit und steht deshalb ohne weitere Fassung
-            darauf — Blau als Fläche, Rot als Marke, wie in der ganzen App.
-            Vor der Anmeldung ist der Mandant unbekannt, also die Vorgabe. */}
-        <div className="border-b-[3px] border-b-accent bg-brand px-6 py-6 text-center">
+      <div className="panel w-full max-w-sm overflow-hidden shadow-lg">
+        {/* Markenband: derselbe dunkle Verlauf wie Seitenleiste und Tableiste,
+            abgeschlossen von der leuchtenden Kante. Das Logo steht ohne weitere
+            Fassung darauf. Vor der Anmeldung ist der Mandant unbekannt, also
+            die Vorgabe. */}
+        <div className="panel-dark px-6 py-6 text-center">
           <BrandLogo height={52} ignoreCompany alt={PORTAL_NAME} className="mx-auto" />
           {/* Volles Weiss, nicht 85 Prozent: auf dem Telefon im Freien ist der
-              abgedunkelte Text auf dem Blau schlecht zu lesen. `brand-fg` ist
-              die Kontrastfarbe zum Markenband und damit auch dann richtig,
-              wenn sich die Palette einmal aendert. */}
-          <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-brand-fg">
+              abgedunkelte Text auf dem dunklen Band schlecht zu lesen.
+              `text-white` und nicht `brand-fg`, weil das Band seit dem
+              Erscheinungsbild-Umbau nicht mehr die Markenfarbe des Mandanten
+              traegt, sondern den festen dunklen Verlauf — die Kontrastfarbe
+              dazu ist Weiss, unabhaengig davon, was der Betrieb als Marke
+              hinterlegt hat. */}
+          <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-white">
             Mitarbeiter-Portal
           </p>
         </div>
+        <div className="edge-accent h-[3px]" aria-hidden="true" />
 
-        <form onSubmit={handleSubmit} className="px-6 py-6">
+        <form onSubmit={handleSubmit} className="bg-surface px-6 py-6">
           <h1 className="mb-1 text-lg font-bold text-ink">
             {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
           </h1>

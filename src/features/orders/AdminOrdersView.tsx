@@ -188,7 +188,8 @@ export default function AdminOrdersView() {
         subtitle="Materialanforderungen der Monteure bearbeiten und Rückgaben sichten"
       />
 
-      {/* Aktiver Reiter mit roter Unterkante — wie die Tabs im Prototyp. */}
+      {/* Aktiver Reiter mit Akzentkante unten — gleiche Markierung wie in
+          Unterreiter. */}
       <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button

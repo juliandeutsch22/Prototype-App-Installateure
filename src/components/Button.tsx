@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'accent' | 'danger' | 'ghost';
+type Variant = 'primary' | 'secondary' | 'accent' | 'danger' | 'ghost' | 'ghost-dark';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -8,12 +8,30 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
+/**
+ * Die Hauptaktionen tragen einen Verlauf, die Nebenaktionen eine Fläche.
+ *
+ * Das ist keine Zierde, sondern die Rangordnung: auf einem Formular mit fünf
+ * Knöpfen erkennt man den einen, der die Sache abschließt, am Verlauf, bevor
+ * man die Beschriftung gelesen hat. `bg-brand` bleibt als Farbe darunter
+ * stehen — kennt ein Browser den Verlauf nicht, ist der Knopf einfarbig
+ * türkis statt durchsichtig.
+ *
+ * Rot (danger) bekommt bewusst KEINEN Verlauf: eine destruktive Aktion soll
+ * nicht hübsch aussehen.
+ */
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand text-brand-fg hover:opacity-90',
-  secondary: 'bg-surface-2 text-ink border border-line hover:bg-bg',
-  accent: 'bg-accent text-accent-fg hover:opacity-90',
-  danger: 'bg-danger text-white hover:opacity-90',
+  primary: 'bg-brand bg-grad-brand-soft text-brand-fg shadow-sm hover:opacity-95',
+  secondary: 'border border-line bg-surface text-ink shadow-sm hover:bg-surface-2',
+  accent: 'bg-accent bg-grad-accent text-accent-fg shadow-sm hover:opacity-95',
+  danger: 'bg-danger text-white shadow-sm hover:opacity-90',
   ghost: 'bg-transparent text-ink-muted hover:bg-surface-2',
+  // Derselbe zurückhaltende Knopf, aber auf einer dunklen Trägerfläche
+  // (Seitenleiste). Eine eigene Spielart statt einer mitgegebenen Klasse:
+  // zwei Textfarben in einem class-Attribut entscheidet nicht die
+  // Reihenfolge im Attribut, sondern die im erzeugten Stylesheet — das
+  // wäre stiller Zufall.
+  'ghost-dark': 'bg-transparent text-white/80 hover:bg-white/10 hover:text-white',
 };
 
 /**

@@ -461,8 +461,8 @@ export default function AccountingView() {
               return (
                 <div
                   key={u.uid}
-                  className={`overflow-hidden rounded-lg border transition-colors ${
-                    open ? 'border-brand/40' : 'border-line'
+                  className={`panel overflow-hidden transition-colors ${
+                    open ? 'border-brand/40' : ''
                   }`}
                 >
                   {/* Der Kopf trägt nur noch, was den Mitarbeiter einordnet:

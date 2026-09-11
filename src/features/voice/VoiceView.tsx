@@ -75,7 +75,12 @@ export default function VoiceView() {
               disabled={busy}
               aria-label={state === 'recording' ? 'Aufnahme stoppen' : 'Aufnahme starten'}
               className={`flex h-28 w-28 items-center justify-center rounded-full text-white shadow-lg transition active:scale-95 disabled:opacity-50 ${
-                state === 'recording' ? 'animate-pulse bg-accent' : 'bg-brand'
+                // Rot für „nimmt auf": seit der Akzent im Türkis der Marke
+                // liegt, wären Ruhe und Aufnahme sonst zwei Türkistöne — und
+                // der Zustand hinge allein am Quadrat in der Mitte.
+                state === 'recording'
+                  ? 'animate-pulse bg-danger'
+                  : 'bg-brand bg-grad-brand'
               }`}
             >
               {state === 'recording' ? (

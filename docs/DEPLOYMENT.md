@@ -117,7 +117,7 @@ COMPANY_ID=perl \
 COMPANY_NAME="Perl Installationen GmbH" \
 ADMIN_EMAIL=chef@perl.at \
 ADMIN_PASSWORD='EinSicheresPasswort!' \
-BRAND_COLOR=#003366 ACCENT_COLOR=#d51f26 \
+BRAND_COLOR=#0f4552 ACCENT_COLOR=#00778a \
 node scripts/bootstrap-company.mjs
 ```
 

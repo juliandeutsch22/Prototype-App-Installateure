@@ -134,11 +134,14 @@ export default function ProjectSummary({
               farbige Kopf schrie lauter als der Inhalt, den er ankündigte,
               und zwang zugleich jede Zahl darin in eine zweite Farbfassung.
               Jetzt genügt der hellere Grund und die farbige Kante.
+
+              `.panel` bringt Fläche, Rundung und Schatten mit; offen wird
+              allein die Rahmenfarbe ausgetauscht.
             */
             <div
               key={r.projectNumber}
-              className={`overflow-hidden rounded-lg border transition-colors ${
-                isOpen ? 'border-brand/40' : 'border-line'
+              className={`panel overflow-hidden transition-colors ${
+                isOpen ? 'border-brand/40' : ''
               }`}
             >
               <button
