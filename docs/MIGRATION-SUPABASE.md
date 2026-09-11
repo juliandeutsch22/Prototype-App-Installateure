@@ -543,3 +543,75 @@ Die 35 Durchstich- und 35 Abfrage-Prüfungen (`tests/durchstich.test.ts`,
 Abläufe und die Abfragen der Datenschicht — beides hängt an Stufe 3, weil es
 ohne umgebaute Datenschicht nichts zu prüfen gibt. Sie kommen dort dazu, nicht
 später.
+
+
+---
+
+## Stufe 3, erster Teil: die Taille steht
+
+12.09.2026. Die Datenschicht hat jetzt ein zweites Inneres. Umgestellt ist
+noch kein Modul — aber das Fundament, auf dem die zwanzig stehen werden, und
+der Vertrag, der sie zusammenhält.
+
+### Der Vertrag ist festgenagelt
+
+`tests/unit/datenschichtVertrag.test.ts` liest mit dem TypeScript-Compiler
+jede ausgeführte Funktion aus `src/lib/db` samt Typen und vergleicht sie mit
+einer festgehaltenen Fassung: **130 Signaturen**. Verschwindet oder ändert
+sich eine, fällt der Lauf. Neue dürfen dazukommen — die Schicht darf wachsen,
+nur nicht schrumpfen.
+
+Damit ist „die Ansichten werden nicht angefasst" keine Absichtserklärung mehr,
+sondern eine Prüfung. Reine Typ-Exporte stehen bewusst nicht drin: sie kämen
+als `any` heraus und sagten damit nichts zu; ändert sich ein Typ, bricht
+ohnehin der Typprüfer an jeder Ansicht, die ihn benutzt.
+
+### Feldnamen: mechanisch, aber bewacht
+
+Die App spricht `camelCase`, Postgres `snake_case`. Umgerechnet wird
+mechanisch — und `tests/supabase/felder.test.ts` prüft, dass **jede** echte
+Spalte **jeder** echten Tabelle den Hin- und Rückweg unverändert übersteht und
+dass keine zwei Spalten auf demselben Feld landen. Der Test kennt keine Liste,
+er fragt die Datenbank.
+
+### Drei Entscheidungen im Abonnement, jede aus einem Fehlschlag
+
+Das Abonnement ist der heikelste Teil der Taille, weil Firestore hier zwei
+Dinge in einem lieferte, die jetzt getrennt sind.
+
+1. **Erst abonnieren, dann holen.** Wer zuerst holt, verliert alles, was
+   dazwischen passiert.
+2. **Was während des Holens hereinkommt, wird gepuffert.** Zwischen dem Abzug
+   und dem Bereitmelden liegt ein Fenster.
+3. **Einmal wird nachgefasst.** Der unangenehme Teil: `SUBSCRIBED` sagt, dass
+   der Kanal steht, nicht dass das Abonnement serverseitig hört. Von aussen
+   ist dieser Zustand nicht beobachtbar. Also wird nach 1,2 Sekunden ein
+   zweites Mal geholt.
+
+Punkt 3 ist nicht aus Vorsicht entstanden, sondern aus einem roten Lauf: ohne
+ihn flatterten zwei Prüfungen. Ein Flattern im Test heisst draussen, dass die
+Liste des Monteurs manchmal unvollständig ist, ohne dass es jemand merkt.
+
+Ein erster Versuch, das Fenster künstlich aufzureissen, ist verworfen: er
+verlor die Meldung an die Anlaufzeit des Abonnements statt an das Fenster und
+bewies damit das Falsche. Geprüft wird jetzt mit einem **gestellten Kanal**,
+der meldet, was der Test sagt, und wann der Test es sagt — damit hängen die
+Prüfungen an meiner Ablauflogik und nicht an der Tagesform des Meldewegs.
+
+### Stand
+
+| | |
+|---|---|
+| Prüfungen gegen die echte Datenbank | 228 |
+| festgenagelte Signaturen der Datenschicht | 130 |
+| Mutationen angesetzt | 13 |
+| beim ersten Anlauf gefangen | 9 |
+| echte Lücken durch die vier übrigen | 4 |
+
+Der Lauf ist viermal hintereinander grün.
+
+### Als Nächstes
+
+Die zwanzig Module, eines nach dem anderen, jedes mit eigenen Prüfungen gegen
+die echte Datenbank. Die 35 Durchstich- und 35 Abfrageprüfungen kommen dabei
+mit — sie hängen an genau dieser Schicht.
