@@ -288,3 +288,52 @@ Die 225 Prüfungen gegen die echte Datenbank laufen mit:
 ```bash
 npx --yes firebase-tools@15 emulators:exec --only firestore --project demo-ci "npm run rules:test"
 ```
+
+---
+
+## Stufe 0: Ergebnis
+
+**Bestanden.** Gemessen am 11.09.2026 gegen einen lokalen Supabase-Stack
+(Postgres 17.6, PostgREST, GoTrue) im Container.
+
+| Prüffrage | Ergebnis |
+|---|---|
+| Buchung im Flugmodus, danach Netz an — Eintrag ist da, **einmal** | ja |
+| Derselbe Vorgang kommt zweimal an — landet einmal | ja, über die geräteseitige Kennung und `upsert` |
+| Reihenfolge: erst anlegen, dann ändern | ja, das Fach hält beim ersten Fehlschlag an |
+| Späte Ablehnung erreicht den Monteur | ja, `beiVormerkungFehlgeschlagen` |
+| Fremder Betrieb sieht nichts | ja, RLS |
+| Monteur bucht nicht für Kollegen, Büro schon | ja |
+
+Geprüft wodurch: 16 Prüfungen der Ablauflogik gegen einen erfundenen Server
+(`tests/unit/ausgangsfach.test.ts`, Teil von `npm test`) und 10 Prüfungen
+gegen die echte Datenbank (`tests/supabase/durchstich0.test.ts`,
+`npm run supabase:test`). Beide Sätze sind gegen absichtlich kaputten Code
+gehalten worden; von zehn Mutationen sind zunächst acht gefallen, die zwei
+übrigen haben je eine echte Lücke aufgedeckt (siehe unten).
+
+### Was der Sperrversuch gefunden hat
+
+1. **Ein Fehler im Ausgangsfach.** Nach dem Wegräumen einer abgelehnten Zeile
+   samt ihrer Nachfolger lief die Schleife auf einem veralteten Abzug weiter
+   und sendete die gerade verworfene Zeile doch noch. Der Monteur hätte eine
+   Meldung „verloren" bekommen und die Buchung wäre trotzdem angekommen.
+
+2. **Ein Schloss ohne Tür.** Die Richtlinien rufen Helfer im Schema `app` auf.
+   Ohne `grant usage on schema app` scheitert nicht die Prüfung, sondern der
+   ganze Aufruf — und damit geht nichts mehr durch, auch das Erlaubte nicht.
+
+3. **Eine ungeprüfte Richtlinie.** Ein `upsert` verlangt von PostgREST auch
+   das Änderungsrecht. Die Änderungs-Richtlinie weist den fremden Betrieb
+   schon ab, also blieb die Anlege-Richtlinie ungetestet und hätte sperrangel-
+   weit offen stehen können, ohne dass eine Prüfung es merkt.
+
+Keiner der drei Punkte wäre durch Lesen aufgefallen. Das ist das Argument
+dafür, diese Stufe vor allen anderen zu machen.
+
+### Was Stufe 0 NICHT beantwortet
+
+Das Ausgangsfach liegt bisher nur im Arbeitsspeicher. Die Fassung für den
+Browser (IndexedDB, damit ein Neustart die Warteschlange nicht verliert) und
+die Messung der elf Abonnements unter Zeilenschutz stehen noch aus. Beides
+gehört vor Stufe 1 abgeschlossen.
