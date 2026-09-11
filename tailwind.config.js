@@ -2,7 +2,7 @@
  * EINE FARBROLLE, DIE AUCH MIT DECKKRAFT FUNKTIONIERT.
  *
  * DER FEHLER, DEN DAS BEHEBT. Die Farben stehen als Design-Tokens in
- * `index.css`, und zwar als Hex (`--brand: #003366`). Schreibt man dann
+ * `index.css`, und zwar als Hex (`--brand: #0f4552`). Schreibt man dann
  * irgendwo `bg-ink/40` oder `text-brand-fg/85`, kann Tailwind die Deckkraft
  * NICHT anwenden: es müsste dafür an die einzelnen Farbkanäle heran, und aus
  * einem Hex in einer CSS-Variablen kommt es nicht heran. Heraus kommt eine
@@ -72,11 +72,31 @@ export default {
         bg: token('--bg'),
         surface: { DEFAULT: token('--surface'), 2: token('--surface-2') },
         ink: { DEFAULT: token('--text'), muted: token('--text-muted') },
-        line: token('--border'),
+        line: { DEFAULT: token('--border'), strong: token('--border-strong') },
         success: { DEFAULT: token('--success'), bg: token('--success-bg') },
         warning: { DEFAULT: token('--warning'), bg: token('--warning-bg') },
         danger: { DEFAULT: token('--danger'), bg: token('--danger-bg') },
         info: { DEFAULT: token('--info'), bg: token('--info-bg') },
+        // Dekorative Markentöne. Nur Fläche und Kante — sie erreichen auf
+        // Weiß keine 4,5:1 und dürfen deshalb keinen Text tragen.
+        'ink-deep': token('--ink-deep'),
+        'brand-mid': token('--brand-mid'),
+        'accent-bright': token('--accent-bright'),
+        mint: { DEFAULT: token('--mint'), soft: token('--mint-soft') },
+      },
+      // Die Verläufe der Oberfläche als Rollen, nicht als Rezept: bg-grad-brand
+      // statt eines von Hand geschriebenen linear-gradient an der Aufrufstelle.
+      // Die Werte stehen in index.css.
+      backgroundImage: {
+        'grad-app': 'var(--grad-app)',
+        'grad-brand': 'var(--grad-brand)',
+        'grad-brand-soft': 'var(--grad-brand-soft)',
+        'grad-accent': 'var(--grad-accent)',
+        'grad-dark': 'var(--grad-dark)',
+        'grad-surface': 'var(--grad-surface)',
+        'grad-tint': 'var(--grad-tint)',
+        'grad-edge': 'var(--grad-edge)',
+        'grad-mint': 'var(--grad-mint)',
       },
       borderRadius: {
         sm: 'var(--radius-sm)',

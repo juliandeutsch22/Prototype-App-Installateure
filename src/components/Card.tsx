@@ -17,13 +17,20 @@ interface CardProps {
 }
 
 /**
- * Ruhige Karte: dünne Linie, flacher Schatten, kompaktes Innenmaß.
+ * Ruhige Karte: heller Verlauf, türkis getönte Haarlinie, langer flacher
+ * Schatten, kompaktes Innenmaß — die Fläche `.panel` aus index.css.
+ *
+ * Der Verlauf ist kaum zu benennen und genau deshalb richtig: er nimmt der
+ * weißen Fläche das Sterile, ohne dass jemand ihn beim Arbeiten bemerkt. Der
+ * Schatten liegt mit negativer Streuung UNTER der Karte statt als Rahmen um
+ * sie herum; dadurch bleibt die Kante scharf und die Karte hebt sich trotzdem
+ * vom Grund ab.
  *
  * Der farbige Balken links ist entfallen. Er war als Signatur gedacht,
  * markierte am Ende aber fast jede Karte — und was überall steht, hebt
- * nichts mehr hervor. Übrig blieb eine Oberfläche, die an jeder Kante
- * etwas behauptet. Betont wird jetzt über Inhalt und Badge, nicht über
- * Rahmenschmuck.
+ * nichts mehr hervor. Aus demselben Grund trägt die Karte auch keine
+ * leuchtende Oberkante: die ist der App-Navigation vorbehalten, wo sie einzeln
+ * vorkommt. Betont wird über Inhalt und Badge, nicht über Rahmenschmuck.
  *
  * Auch der Schatten beim Überfahren ist weg: Karten sind hier keine
  * Schaltflächen, sie sollen nicht so tun.
@@ -40,9 +47,11 @@ export default function Card({
   const hinweisId = useId();
 
   return (
-    <section className={`overflow-hidden rounded-lg border border-line bg-surface ${className}`}>
+    <section className={`panel overflow-hidden ${className}`}>
       {title && (
-        <header className="border-b border-line px-4 py-3">
+        // Der Kartenkopf sitzt eine Spur kühler als der Körper — so ist er
+        // auch dann als Kopf zu lesen, wenn der Titel kurz ist.
+        <header className="border-b border-line bg-surface-2/70 px-4 py-3">
           {/* Auf schmalen Schirmen Titel und Aktionen untereinander: sonst
               überlagern breite Aktionen (mehrere Knöpfe) den Titel. */}
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -76,7 +85,9 @@ export default function Card({
         </header>
       )}
       <div className="px-4 py-4">{children}</div>
-      {footer && <footer className="border-t border-line px-4 py-3">{footer}</footer>}
+      {footer && (
+        <footer className="border-t border-line bg-surface-2/70 px-4 py-3">{footer}</footer>
+      )}
     </section>
   );
 }

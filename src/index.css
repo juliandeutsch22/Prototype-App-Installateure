@@ -6,51 +6,91 @@
  * Design-Tokens. Mandanten-themebar: brand/accent kommen aus
  * companies/{companyId} (applyBranding setzt sie zur Laufzeit). Alle übrigen
  * Rollen sind bewusst hochkontrastig (Sonnenlicht auf der Baustelle).
+ *
+ * FARBWELT. Tiefes Tintenblau-Türkis als Grund, Cyan und Mint als Kante —
+ * dunkle Flächen tragen die Navigation, helle Flächen tragen die Arbeit.
+ * Die leuchtenden Töne (--accent-bright, --mint) sind AUSSCHLIESSLICH
+ * Dekoration: Kanten, Verläufe, Glanz. Sie tragen nie Text und nie Bedeutung,
+ * weil sie auf Weiß nur 2,6:1 erreichen. Was gelesen werden muss, steht in
+ * --text, --text-muted, --brand oder --accent.
  */
 :root {
-  /* Marke (Defaults = Perl-Pilot; werden vom Theme überschrieben).
-   * brand  = Perl-Blau aus dem Prototyp: trägt Navigation und Primäraktionen.
-   * accent = echtes Perl-Rot von perl.co.at (Logo/Headlines), bewusst SPARSAM
-   *   für Hervorhebungen — nicht für destruktive Aktionen. Dafür gibt es
-   *   --danger, das deutlich dunkler ist, damit "Marke" und "Achtung"
-   *   unterscheidbar bleiben. Kontrast #D51F26 auf Weiß = 5,19:1 (WCAG AA). */
-  --brand: #003366;
+  /* Marke (Defaults; werden vom Mandanten-Theme überschrieben).
+   * brand  = tiefes Türkis: trägt Navigation und Primäraktionen (10,5:1 auf
+   *   Weiß).
+   * accent = abgedunkeltes Cyan für Hervorhebungen und den Avatar — 5,2:1 auf
+   *   Weiß und in beide Richtungen AA. Für destruktive Aktionen gibt es
+   *   --danger; „Marke" und „Achtung" bleiben unterscheidbar. */
+  --brand: #0f4552;
   --brand-fg: #ffffff;
-  --accent: #d51f26;
+  --accent: #00778a;
   --accent-fg: #ffffff;
 
-  /* Flächen & Text */
-  --bg: #eef1f5;
-  --surface: #ffffff;
-  --surface-2: #f5f7fa;
-  --text: #0f172a;
-  /* Nebentext dunkler als üblich: gearbeitet wird draußen, im Sommer mit
-   * Sonne auf dem Display. Zuvor #525b6a — 6,86:1 auf Weiß und damit zwar
-   * AA-konform, auf dem grauen Grund aber nur 6,05:1. Jetzt über 7:1 (AAA)
-   * auf ALLEN drei Flächen: Weiß 8,41, surface-2 7,84, Grund 7,42. */
-  --text-muted: #454e5c;
-  --border: #d3dae3;
+  /* Dekorative Markenfarben — nur Fläche/Kante, nie Text.
+   * ink-deep ist der dunkelste Punkt aller Verläufe. */
+  --ink-deep: #0a2030;
+  --brand-mid: #12889b;
+  --accent-bright: #12b0c6;
+  --mint: #66ffb0;
+  --mint-soft: #bff3ea;
 
-  /* Semantische Zustände (Text + Fläche) */
+  /* Flächen & Text */
+  --bg: #eef6f8;
+  --surface: #ffffff;
+  --surface-2: #f1f8fa;
+  --text: #0a2030;
+  /* Nebentext dunkler als üblich: gearbeitet wird draußen, im Sommer mit
+   * Sonne auf dem Display. Über 7:1 (AAA) auf ALLEN drei Flächen:
+   * Weiß 8,46, surface-2 7,88, Grund 7,73. */
+  --text-muted: #38505f;
+  /* Linien tragen einen Hauch Cyan statt neutralem Grau — dadurch gehören
+   * Rahmen, Trennstriche und Flächen sichtbar zusammen. */
+  --border: #cfe3e9;
+  --border-strong: rgba(24, 180, 201, 0.34);
+
+  /* Semantische Zustände (Text + Fläche).
+   * „info" liegt jetzt im Türkis der Marke statt im alten Blau: die
+   * Hinweiskästen und der aktive Navigationseintrag sind dieselbe Familie,
+   * nicht zwei konkurrierende Blautöne. Kontrast 5,1:1 auf eigener Fläche. */
   --success: #15803d;
-  --success-bg: #dcfce7;
+  --success-bg: #dcf7e6;
   --warning: #b45309;
   --warning-bg: #fef3c7;
   --danger: #b91c1c;
   --danger-bg: #fee2e2;
-  --info: #1d4ed8;
-  --info-bg: #dbeafe;
+  --info: #0e6d80;
+  --info-bg: #d9f2f7;
 
-  /* Radius & Schatten — Prototyp arbeitet mit deutlich weicheren Ecken
-   * (Karten 12–14px, Pillen 20px) und flachen Schatten, die erst beim
-   * Überfahren aufmachen. */
-  --radius-sm: 0.5rem;
-  --radius: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-pill: 20px;
-  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
-  --shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.1);
+  /* VERLÄUFE — die Signatur dieser Oberfläche. Sie stehen hier EINMAL und
+   * werden überall über die Tailwind-Rollen (bg-grad-*) abgerufen; eine
+   * Fläche, die ihren Verlauf selbst zusammenbaut, driftet ab. */
+  /*
+   * Der helle Endpunkt jedes Verlaufs, auf dem WEISSER TEXT steht, ist
+   * abgedunkelt bis er allein 4,5:1 erreicht (#107a8c → 5,0:1). Die Vorlage
+   * hört dort bei #12889b auf; das sind 4,2:1 und damit unter AA — ein
+   * Verlauf ist nur so lesbar wie seine hellste Stelle, und das ist genau die
+   * Ecke, in der in der Seitenleiste der Benutzername steht.
+   */
+  --grad-app: linear-gradient(180deg, #f6fcfd 0%, #eaf3f6 55%, #e3eff3 100%);
+  --grad-brand: linear-gradient(120deg, #0a2030 0%, #0f4552 70%, #107a8c 100%);
+  --grad-brand-soft: linear-gradient(100deg, #0f4552 0%, #107a8c 100%);
+  --grad-accent: linear-gradient(100deg, #005866 0%, #00778a 100%);
+  --grad-dark: linear-gradient(100deg, #0a2030 0%, #0b2d3d 55%, #0d4152 100%);
+  --grad-surface: linear-gradient(135deg, #ffffff 0%, #fafdfe 55%, #f1f9fb 100%);
+  --grad-tint: linear-gradient(120deg, rgba(102, 255, 176, 0.14), rgba(18, 176, 198, 0.12));
+  --grad-edge: linear-gradient(90deg, #12b0c6 0%, #66ffb0 100%);
+  --grad-mint: linear-gradient(100deg, #ffffff 0%, #bff3ea 60%, #66ffb0 100%);
+
+  /* Radius & Schatten — weiche Ecken und lange, flache Schatten mit
+   * negativer Streuung: die Kante bleibt scharf, der Schatten liegt darunter
+   * statt darum herum. */
+  --radius-sm: 0.625rem;
+  --radius: 0.875rem;
+  --radius-lg: 1.125rem;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(10, 32, 48, 0.05), 0 6px 16px -12px rgba(10, 32, 48, 0.22);
+  --shadow: 0 1px 2px rgba(10, 32, 48, 0.05), 0 10px 26px -16px rgba(10, 32, 48, 0.3);
+  --shadow-lg: 0 2px 8px rgba(10, 32, 48, 0.1), 0 24px 60px -18px rgba(10, 32, 48, 0.38);
 
   /* Akzentstreifen an Karten (Signatur des Prototyps) */
   --accent-strip: 4px;
@@ -62,8 +102,17 @@ body,
   height: 100%;
 }
 
+/*
+ * Der Grund ist ein Verlauf, kein Ton: oben fast weiß, unten ins Türkis
+ * abgedunkelt. `background-attachment: fixed` hält ihn beim Scrollen still —
+ * sonst wanderte der Verlauf mit dem Inhalt und die Seite wirkte gestreift.
+ * `background-color` bleibt als Rückfall stehen, falls der Verlauf (sehr
+ * alter Browser) nicht gezeichnet wird.
+ */
 body {
   background-color: var(--bg);
+  background-image: var(--grad-app);
+  background-attachment: fixed;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   /* Poppins wie im Prototyp; System-Schriften als Fallback, falls die
@@ -78,7 +127,7 @@ h2,
 h3,
 h4 {
   letter-spacing: -0.02em;
-  color: #0d1117;
+  color: var(--ink-deep);
 }
 
 /* Sichtbarer Tastatur-Fokus (Barrierearmut, Büro/Desktop) */
@@ -88,14 +137,14 @@ h4 {
   border-radius: var(--radius-sm);
 }
 
-/* Formularfelder bekommen den weichen blauen Fokusring des Prototyps
- * zusätzlich zur Randfarbe. */
+/* Formularfelder bekommen zusätzlich zur Randfarbe einen weichen Ring im
+ * Cyan der Marke. */
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.15);
+  box-shadow: 0 0 0 3px rgba(18, 176, 198, 0.22);
 }
 
 /*
@@ -117,6 +166,57 @@ textarea:focus {
  * Die wiederkehrenden Maße stehen in Card, ListRow und Field — dort ändern,
  * nicht an der Aufrufstelle nachbessern.
  */
+
+/*
+ * FLÄCHEN — die drei Kästen, aus denen die ganze App gebaut ist.
+ *
+ * Sie stehen hier und nicht an den Aufrufstellen, weil „das Design der Boxen"
+ * sonst an 60 Stellen einzeln gepflegt werden müsste und nach dem dritten
+ * Nachbessern nicht mehr übereinstimmt. Wer eine neue Fläche braucht, nimmt
+ * eine dieser drei — oder ergänzt sie hier.
+ *
+ *   .panel       helle Arbeitsfläche: Karten, Kästen, Dialoge
+ *   .panel-dark  dunkle Trägerfläche: Navigation, Anmeldekopf, Markenband
+ *   .edge-accent leuchtende Kante (Cyan → Mint) als Markierung, 3 px hoch
+ *
+ * WARUM `@layer components` UND NICHT EINFACH HIER HINGESCHRIEBEN. Weil
+ * Tailwind diese Ebene VOR die Utilities stellt. Als freies CSS stünde
+ * `.panel` weiter unten in der Datei als jede Utility-Klasse und gewänne
+ * gegen sie — die aufgeklappte Zeile in der Mitarbeiterübersicht könnte ihre
+ * Rahmenfarbe dann nicht mehr mit `border-brand/40` austauschen, und eine
+ * Karte, die `rounded-sm` braucht, bekäme sie nicht. Eine Grundfläche muss
+ * sich von der Aufrufstelle überschreiben lassen.
+ */
+@layer components {
+  .panel {
+    background-color: var(--surface);
+    background-image: var(--grad-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+  }
+
+  /*
+   * Der Schimmer auf der dunklen Fläche: ein zarter Mint-Cyan-Schleier über
+   * dem Verlauf. Ohne ihn wirkt das Dunkel flach wie Druckfarbe; mit ihm
+   * bekommt es die Tiefe der Vorlage.
+   */
+  .panel-dark {
+    background-color: var(--ink-deep);
+    background-image: var(--grad-tint), var(--grad-brand);
+    color: #ffffff;
+  }
+
+  /*
+   * Leuchtende Kante. Sie markiert Kanten von Trägerflächen (Tableiste,
+   * Anmeldekopf) und ist reine Dekoration — sie trägt nie die einzige
+   * Information über einen Zustand, dafür sind Farbe UND Fettung des Textes
+   * da.
+   */
+  .edge-accent {
+    background-image: var(--grad-edge);
+  }
+}
 
 /* Abschnittsüberschrift im Kartenkopf: klein, fett, gesperrt, versal. */
 .section-label {

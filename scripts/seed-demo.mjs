@@ -47,7 +47,7 @@ async function seedCompany({ companyId, name, brandColor, accentColor, projects 
     name,
     brandColor,
     brandForeground: '#ffffff',
-    accentColor: accentColor ?? '#d51f26',
+    accentColor: accentColor ?? '#00778a',
     accentForeground: '#ffffff',
     createdAt: FieldValue.serverTimestamp(),
   });
@@ -67,8 +67,8 @@ async function main() {
   await seedCompany({
     companyId: 'perl',
     name: 'Perl Installationen GmbH',
-    brandColor: '#003366',
-    accentColor: '#d51f26',
+    brandColor: '#0f4552',
+    accentColor: '#00778a',
     projects: [
       { projectNumber: '2026-001', customerName: 'Familie Müller', address: 'Hauptstr. 1, Graz', status: 'Aktiv' },
       { projectNumber: '2026-002', customerName: 'Bäckerei Huber', address: 'Marktplatz 3, Graz', status: 'Aktiv' },

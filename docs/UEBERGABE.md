@@ -262,6 +262,42 @@ Anmelden, ein ausgestelltes Token liefe bis zu einer Stunde weiter, und der
 Claim greift auch dort. **Fehlt der Claim, gilt aktiv** — bestehende Token
 tragen ihn nicht, und ein Deploy darf nicht den ganzen Betrieb aussperren.
 
+**Farbe, Verlauf und Fläche kommen aus Tokens, nicht aus der Aufrufstelle.**
+Alles Sichtbare liegt in `src/index.css` (`:root`) und wird über
+`tailwind.config.js` als Rolle angeboten: `bg-surface`, `border-line`,
+`text-ink-muted`, `bg-grad-brand`. Wer in einer Ansicht einen Hexwert oder ein
+eigenes `linear-gradient(...)` schreibt, nimmt diese Fläche aus der
+Mandantenfähigkeit heraus — `applyBranding` setzt `--brand` und `--accent` zur
+Laufzeit aus `companies/{id}` — und aus jeder künftigen Änderung des
+Erscheinungsbilds.
+
+Drei Flächen tragen die ganze App, alle drei stehen in `index.css` unter
+`@layer components`:
+
+| Klasse | Wofür |
+|---|---|
+| `.panel` | Helle Arbeitsfläche: Karten, Dialoge, Kästen. Heller Verlauf, türkis getönte Haarlinie, langer flacher Schatten. |
+| `.panel-dark` | Dunkle Trägerfläche: Seitenleiste, mobile Kopfleiste, Tableiste, Anmeldekopf. |
+| `.edge-accent` | Leuchtende Kante (Cyan → Mint) als Markierung. Reine Dekoration. |
+
+`@layer components` ist kein Schmuck: freies CSS am Dateiende stünde NACH den
+Utilities und gewänne gegen sie. Dann schlüge `.panel { border-radius }` ein
+`rounded-sm` an der Aufrufstelle, und `.panel-dark { position }` das `fixed`
+der unteren Leiste.
+
+**Die leuchtenden Töne tragen nie Text.** `--accent-bright` (#12b0c6) und
+`--mint` (#66ffb0) erreichen auf Weiß 2,6:1 bzw. 1,3:1. Sie sind Kante und
+Fläche. Gelesen wird auf `--text`, `--text-muted`, `--brand` oder `--accent` —
+und wo weißer Text auf einem Verlauf steht, ist dessen HELLSTES Ende der
+Maßstab; deshalb endet `--grad-brand` bei #107a8c (5,0:1) und nicht, wie die
+Vorlage, bei #12889b (4,2:1).
+
+**Abtönungen gehen über `color-mix`.** `bg-ink/40`, `border-info/30`,
+`text-brand-fg/80` funktionieren nur, weil die Farbrollen in
+`tailwind.config.js` als FUNKTION hinterlegt sind (`token('--ink')`) — die
+Datei erklärt an Ort und Stelle, was sonst passiert. **Nicht zurück auf
+Strings setzen.**
+
 **Der Service Worker fasst nur eigene Dateien an.** Firestore, Auth und die
 Cloud Functions gehen unberührt durch. Eine vorgehaltene Datenbankantwort wäre
 ein falscher Kontostand — und der Firestore-Client hat seinen eigenen,

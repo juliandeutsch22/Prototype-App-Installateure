@@ -43,6 +43,64 @@ tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
 nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
 schon.
 
+## Erledigt: ein Erscheinungsbild statt einer Sammlung von Einzelfällen
+
+Die Oberfläche war nicht hässlich, sie war UNEINIG. Marineblau mit rotem
+Akzent aus dem alten Prototyp, daneben ein blaues „info", das dem Markenblau
+so nahe kam, dass ein Hinweiskasten und ein aktiver Reiter dieselbe Farbe
+trugen. Die Reiter in „Material" unterstrichen sich im Akzent, die Reiter in
+„Einstellungen" in der Marke — zwei Regeln für dieselbe Sache. Und: Karten,
+Kästen und Leisten hatten jede ihre eigene Kante.
+
+### Was jetzt gilt
+
+Eine Farbwelt aus tiefem Tintenblau-Türkis mit Cyan und Mint als Kante.
+Dunkle Flächen tragen die Navigation (Seitenleiste, mobile Kopfleiste,
+Tableiste, Anmeldekopf), helle Flächen tragen die Arbeit. Hauptaktionen tragen
+einen Verlauf, Nebenaktionen eine Fläche — die Rangordnung ist erkennbar,
+bevor die Beschriftung gelesen ist.
+
+Sämtliche Werte stehen EINMAL in `src/index.css` und werden über
+`tailwind.config.js` als Rolle angeboten. Deshalb war für die ganze Umstellung
+keine Ansicht anzufassen, in der es um Rechnungen, Zeiten oder Scheine geht:
+sie lesen alle `bg-surface`, `border-line`, `text-ink-muted`. Die drei
+tragenden Flächen (`.panel`, `.panel-dark`, `.edge-accent`) stehen in
+`@layer components` — als freies CSS stünden sie nach den Utilities und
+schlügen jedes `rounded-sm` und jedes `fixed` an der Aufrufstelle.
+
+### Kontrast ist nicht verhandelt worden
+
+Gearbeitet wird draußen, im Sommer mit Sonne auf dem Display. `--text-muted`
+liegt auf allen drei Flächen über 7:1 (AAA). Die leuchtenden Töne sind Kante
+und Fläche, nie Text — #12b0c6 erreicht auf Weiß 2,6:1. Und weil ein Verlauf
+nur so lesbar ist wie seine hellste Stelle, endet `--grad-brand` bei #107a8c
+(5,0:1) statt, wie die Vorlage, bei #12889b (4,2:1). Genau dort steht in der
+Seitenleiste der Benutzername.
+
+### Was diese Umstellung erst möglich gemacht hat
+
+Dass die Farbrollen in `tailwind.config.js` Funktionen sind, die bei einer
+Abtönung ein `color-mix` liefern — das kam mit der Deckkraft-Reparatur und
+war hier die Voraussetzung: der halbdurchsichtige Marker auf der dunklen
+Leiste (`bg-white/10`), die getönte Kante an den Hinweiskästen und der
+Abdunkler hinter jedem Dialog hängen alle daran. **Nicht zurück auf Strings
+setzen.**
+
+### Zwei Dinge, die dabei zwingend mitgehen mussten
+
+- **Die Aufnahmetaste ist rot.** Sie war „Akzent", und der Akzent war rot.
+  Seit der Akzent im Türkis der Marke liegt, wären Ruhe und Aufnahme zwei
+  Türkistöne gewesen, und der Zustand hinge allein am Quadrat in der Mitte.
+- **Der Avatar trägt die leuchtende Kante, nicht den Akzent.** Auf der nun
+  dunklen Kopfleiste erreichte ein Kreis in `--accent` 2,1:1 gegen seinen
+  Träger — er verschwände. Der Sinn dieses Punktes ist, dass man auf einem
+  geteilten Baustellen-Tablet mit einem Blick sieht, wer angemeldet ist.
+
+Funktional ist nichts angefasst worden: die Testreihe, die Typprüfung und
+der Lint sind unverändert grün.
+
+---
+
 ## Erledigt: die Benutzerverwaltung hat Tests — und zwei stille Fehler weniger
 
 Die Ansicht, an der hängt, wer im Betrieb was darf und wer überhaupt

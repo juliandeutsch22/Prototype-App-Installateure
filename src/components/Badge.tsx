@@ -10,8 +10,12 @@ const tones: Record<Tone, string> = {
   danger: 'bg-danger-bg text-danger',
   info: 'bg-info-bg text-info',
   brand: 'bg-brand text-brand-fg',
-  violet: 'bg-[#ede9fe] text-[#3b0764]',
-  dark: 'bg-[#111827] text-[#f9fafb]',
+  // Zwei Töne ohne eigene Rolle im Token-Satz: sie kennzeichnen
+  // ausschliesslich die beiden obersten Rollen und müssen sich dafür von
+  // Türkis, Grün, Gelb und Rot unterscheiden. Der violette Ton ist ins Kühle
+  // gerückt, damit er neben dem neuen Türkis nicht fremd wirkt (10,2:1).
+  violet: 'bg-[#e8e6fb] text-[#332a6b]',
+  dark: 'bg-ink-deep text-white',
 };
 
 /**

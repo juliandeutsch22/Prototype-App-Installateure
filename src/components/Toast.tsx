@@ -18,7 +18,9 @@ const ToastContext = createContext<ToastApi | undefined>(undefined);
 const toneClasses: Record<ToastTone, string> = {
   success: 'bg-success text-white',
   error: 'bg-danger text-white',
-  info: 'bg-ink text-white',
+  // Der neutrale Ton liegt im dunklen Markenverlauf — dieselbe Fläche wie
+  // Kopf- und Tableiste, damit eine Meldung sichtbar zur App gehört.
+  info: 'bg-ink-deep bg-grad-dark text-white',
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {

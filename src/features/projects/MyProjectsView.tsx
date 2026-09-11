@@ -104,7 +104,7 @@ export default function MyProjectsView() {
                   href={mapsUrl(p.address)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 flex min-h-touch items-center justify-center gap-2 rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg"
+                  className="mt-3 flex min-h-touch items-center justify-center gap-2 rounded-sm bg-brand bg-grad-brand-soft px-4 py-2 font-semibold text-brand-fg shadow-sm"
                 >
                   <Icon name="pin" size={18} aria-hidden />
                   Route: {p.address}
