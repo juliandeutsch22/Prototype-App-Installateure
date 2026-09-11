@@ -22,6 +22,24 @@ export type WithId<T> = T & { id: string };
 export const NACHFASSEN_MS = 1200;
 
 /**
+ * Der Client, mit dem diese Schicht arbeitet.
+ *
+ * Standardmässig der aus `lib/supabase.ts`. Er lässt sich ersetzen, und das
+ * ist keine Hintertür für Tests, sondern die Naht, an der die App ihren
+ * angemeldeten Client EINMAL hineinreicht, statt ihn durch hundertdreissig
+ * Signaturen zu fädeln. Tests benutzen dieselbe Naht — nicht eine eigene.
+ */
+let eingereicht: SupabaseClient | null = null;
+
+export function clientEinreichen(c: SupabaseClient | null): void {
+  eingereicht = c;
+}
+
+export function derClient(c?: SupabaseClient): SupabaseClient {
+  return c ?? eingereicht ?? supabaseClient();
+}
+
+/**
  * Die Bedingungen, die eine Abfrage tragen muss.
  *
  * Bewusst eine kurze, ausdrückliche Liste statt eines allgemeinen Baukastens.
@@ -96,7 +114,7 @@ export async function abfragen<T>(
   abfrage: Abfrage = {},
   client?: SupabaseClient,
 ): Promise<WithId<T>[]> {
-  const c = client ?? supabaseClient();
+  const c = derClient(client);
   const bauer = anwenden(
     c.from(tabelle).select('*').eq('company_id', companyId) as unknown as Filterbar,
     abfrage,
@@ -116,7 +134,7 @@ export async function anlegen(
   daten: Record<string, unknown>,
   client?: SupabaseClient,
 ): Promise<string> {
-  const c = client ?? supabaseClient();
+  const c = derClient(client);
   const zeile = { ...objektAlsZeile(daten), company_id: companyId };
   const { data, error } = await c.from(tabelle).insert(zeile).select('id').single();
   if (error) throw new Error(error.message);
@@ -137,7 +155,7 @@ export async function anlegenMitKennung(
   daten: Record<string, unknown>,
   client?: SupabaseClient,
 ): Promise<string> {
-  const c = client ?? supabaseClient();
+  const c = derClient(client);
   const zeile = { ...objektAlsZeile(daten), company_id: companyId, id };
   const { error } = await c.from(tabelle).upsert(zeile, { onConflict: 'id' });
   if (error) throw new Error(error.message);
@@ -151,7 +169,7 @@ export async function aendern(
   daten: Record<string, unknown>,
   client?: SupabaseClient,
 ): Promise<void> {
-  const c = client ?? supabaseClient();
+  const c = derClient(client);
   const { companyId: _weg, ...rest } = daten;
   void _weg;
   const { error } = await c.from(tabelle).update(objektAlsZeile(rest)).eq('id', id);
@@ -164,7 +182,7 @@ export async function loeschen(
   id: string,
   client?: SupabaseClient,
 ): Promise<void> {
-  const c = client ?? supabaseClient();
+  const c = derClient(client);
   const { error } = await c.from(tabelle).delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
@@ -207,7 +225,7 @@ export function abonnieren<T>(
   abfrage: Abfrage = {},
   client?: SupabaseClient,
 ): () => void {
-  const c = client ?? supabaseClient();
+  const c = derClient(client);
   const bestand = new Map<string, WithId<T>>();
   let bereit = false;
   let nachfassen: ReturnType<typeof setTimeout> | undefined;
