@@ -27,11 +27,11 @@ async function konto(betrieb: string, email: string) {
     email,
     password: 'sperrversuch-2026',
     email_confirm: true,
-    app_metadata: { company_id: betrieb, role: 'Monteur', active: true },
+    app_metadata: { company_id: betrieb, role: 'Mitarbeiter', active: true },
   });
   if (error) throw error;
   const uid = data.user!.id;
-  await admin.from('users').upsert({ id: uid, company_id: betrieb, name: email, role: 'Monteur', active: true });
+  await admin.from('users').upsert({ id: uid, company_id: betrieb, name: email, email, role: 'Mitarbeiter', active: true });
   const client = createClient(API, ANON, { auth: { persistSession: false } });
   const an = await client.auth.signInWithPassword({ email, password: 'sperrversuch-2026' });
   if (an.error) throw an.error;
@@ -51,7 +51,7 @@ function buchung(uid: string, betrieb: string, datum: string) {
     status: 'Anwesend',
     start_time: '07:00',
     end_time: '16:00',
-    break_minutes: 30,
+    break_duration: 30,
   };
 }
 

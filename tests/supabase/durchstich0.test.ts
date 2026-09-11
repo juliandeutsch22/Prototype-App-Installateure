@@ -40,7 +40,7 @@ function lagerImKopf(): Lager & { inhalt: () => Vormerkung[] } {
 async function betriebMitMonteur(
   betrieb: string,
   email: string,
-  rolle = 'Monteur',
+  rolle = 'Mitarbeiter',
   aktiv = true,
 ): Promise<{ client: SupabaseClient; uid: string }> {
   await admin.from('companies').upsert({ id: betrieb, name: betrieb });
@@ -55,7 +55,7 @@ async function betriebMitMonteur(
   if (error) throw error;
   const uid = data.user!.id;
 
-  await admin.from('users').upsert({ id: uid, company_id: betrieb, name: email, role: rolle, active: aktiv });
+  await admin.from('users').upsert({ id: uid, company_id: betrieb, name: email, email, role: rolle, active: aktiv });
 
   const client = createClient(API, ANON, { auth: { persistSession: false } });
   const an = await client.auth.signInWithPassword({ email, password: 'sperrversuch-2026' });
@@ -70,7 +70,7 @@ const buchung = (uid: string, betrieb: string, datum = '2026-09-11') => ({
   status: 'Anwesend',
   start_time: '07:00',
   end_time: '16:00',
-  break_minutes: 30,
+  break_duration: 30,
 });
 
 let perl: { client: SupabaseClient; uid: string };
@@ -82,7 +82,7 @@ beforeAll(async () => {
   const stempel = Date.now();
   perl = await betriebMitMonteur('perl', `monteur-${stempel}@perl.test`);
   perlKollege = await betriebMitMonteur('perl', `kollege-${stempel}@perl.test`);
-  perlBuero = await betriebMitMonteur('perl', `buero-${stempel}@perl.test`, 'Büro');
+  perlBuero = await betriebMitMonteur('perl', `buchhaltung-${stempel}@perl.test`, 'Buchhaltung');
   fremd = await betriebMitMonteur('huber', `monteur-${stempel}@huber.test`);
 }, 60_000);
 
@@ -213,7 +213,7 @@ describe('Sperrversuch 2b: wer was anlegen darf', () => {
     expect(error?.code).toBe('42501');
   });
 
-  it('laesst das Buero sehr wohl fuer einen Monteur buchen', async () => {
+  it('laesst die Buchhaltung sehr wohl fuer einen Monteur buchen', async () => {
     // Ohne diese Zeile waere die Rollen-Klausel auch dann „geprueft", wenn sie
     // schlicht alles verboete.
     const { error } = await perlBuero.client

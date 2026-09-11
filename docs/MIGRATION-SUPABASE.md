@@ -387,3 +387,93 @@ Betrieb nichts bekommt, gilt das doppelt: ohne den Nachweis, dass sein Kanal
 
 Alle vier Lücken sind mit eigenen Prüfungen geschlossen und die Mutationen
 danach wiederholt.
+
+
+---
+
+## Stufe 1: Schema und Zeilenschutz
+
+**Steht.** 11.09.2026. Zwanzig Firestore-Sammlungen sind 24 Tabellen und eine
+Sicht geworden, jede mit `company_id`, jede mit eingeschaltetem Zeilenschutz.
+
+### Die vier Modellentscheidungen
+
+**1. Zeitbuchung und Scheinzeit bleiben getrennt.** `time_entries` ist die
+lebende Buchung, `work_sheet_hours` eine mit der Unterschrift eingefrorene
+Kopie — mit dem Mitarbeiter als *Namen* und ohne Fremdschlüssel auf die
+Buchung. Sie dürfen auseinanderlaufen; genau darauf beruht die Meldung
+„Scheine warten noch auf deine Zeitbuchung". Dasselbe gilt für
+`work_sheet_material`, `invoice_lines` und `quote_lines`: ein geänderter Preis
+darf einen unterschriebenen Beleg nicht rückwirkend ändern.
+
+**2. `project_number` bleibt, `project_id` kommt dazu.** Heute hängt nichts an
+einer Baustellen-Id, alles an der getippten Nummer — weil der Monteur auf
+„2026-014" bucht, bevor das Büro die Baustelle angelegt hat. Ein
+Pflicht-Fremdschlüssel tötete diesen Ablauf. Also beides: die Nummer trägt den
+Alltag, ein nullbarer Fremdschlüssel wird per Trigger aufgelöst, sobald er
+passt.
+
+**3. Lieferanten stehen auf Betriebsebene.** `material_prices` ist die
+Verbindung aus Artikel, Lieferant und Gültigkeit, mit Listenpreis *und*
+Einkaufspreis als getrennten Spalten. Das ist die Vorbedingung dafür, dass der
+Datanorm-Import später ein Datenladen ist und keine Schemaänderung.
+
+**4. Eine Benutzertabelle, nicht zwei.** Zugang und Person zu trennen ist
+lehrbuchrichtig und kostet hier einen Verbund in fast jeder Abfrage, für einen
+Fall, den es nicht gibt.
+
+### Regeln als Richtlinien, Übergänge als Trigger
+
+`firestore.rules` konnte alte und neue Fassung eines Dokuments vergleichen.
+Eine RLS-Richtlinie kann das nicht: `using` sieht die alte Zeile, `with check`
+die neue, keine von beiden sieht beide. Also die Aufteilung: **Richtlinien
+sagen, wer welche Zeilen anfassen darf; Trigger sagen, was sich daran ändern
+darf.** Sieben Trigger tragen das, darunter der Zustandswechsel des Scheins,
+die eingefrorene Rechnung, der geschützte Verrechnungsstand und die
+Urlaubsentscheidung.
+
+### Der Wächter
+
+`tests/supabase/schema.test.ts` kennt keine Liste von Tabellen — er fragt die
+Datenbank. Eine neue Tabelle ist damit automatisch geprüft oder fällt durch.
+Er verlangt: Zeilenschutz überall, in **jeder** Richtlinie eine Betriebsprüfung,
+auf jeder änderbaren Betriebstabelle den Riegel gegen den Betriebswechsel,
+keine Veröffentlichung ohne Leserichtlinie, vollen Datensatz in jeder Meldung,
+und die beiden Plattformtabellen ohne `company_id` und ohne jede Richtlinie.
+
+Er hat beim ersten Lauf vier eigene Versäumnisse gefunden: sieben Tabellen ohne
+Riegel, eine Plattformtabelle mit einer Spalte namens `company_id`, die
+fehlende Monatsbilanz-Sicht und einen Zähler ohne erklärte Ausnahme.
+
+Und er war zunächst zu schwach: er fragte, ob *irgendeine* Richtlinie den
+Betrieb prüft. Eine zweite, offene Richtlinie daneben kam damit durch — genau
+so entsteht ein Leck. Jetzt wird jede Richtlinie einzeln geprüft.
+
+### Die Monatsbilanz ist jetzt eine Sicht
+
+Sie brauchte in Firestore zwei Sammlungen, einen Trigger und einen Nachtlauf —
+alles nur, weil dort nicht summiert werden kann. Damit war sie immer nur
+*irgendwann* richtig. Als Sicht ist sie immer richtig. Die Minutenrechnung
+folgt `calcWorkMin` Zeile für Zeile, samt der Nacht über Mitternacht, die
+früher glatt null Stunden ergab.
+
+### Stand nach Stufe 1
+
+| | |
+|---|---|
+| Tabellen | 24, dazu eine Sicht |
+| Prüfungen gegen die echte Datenbank | 46 |
+| Mutationen angesetzt | 18 |
+| beim ersten Anlauf gefangen | 16 |
+| echte Lücken durch die zwei übrigen aufgedeckt | 2 |
+
+Die Prüfungen leeren die lokale Datenbank vor jedem Lauf. Das war nicht von
+Anfang an so: der erste Satz ging beim zweiten Lauf kaputt, weil er seine
+eigenen Rechnungsnummern liegen liess. Ein Test, der nur auf einer frischen
+Datenbank durchgeht, ist eine Falle.
+
+### Was Stufe 1 nicht umfasst
+
+Die App schreibt weiterhin nach Firestore; hier steht bisher nur das Ziel.
+Der Umbau der Datenschicht ist Stufe 3, und davor kommt Stufe 2: die 225
+Regelprüfungen gegen den Emulator werden portiert.

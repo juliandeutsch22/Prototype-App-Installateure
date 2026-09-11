@@ -11,6 +11,8 @@ export default defineConfig({
   resolve: { alias: { '@': path.resolve(__dirname, './src') } },
   test: {
     include: ['tests/supabase/**/*.test.ts'],
+    // Leert die lokale Datenbank vor dem Lauf — siehe tests/supabase/aufraeumen.ts.
+    globalSetup: ['tests/supabase/aufraeumen.ts'],
     environment: 'node',
     testTimeout: 30_000,
     hookTimeout: 60_000,
