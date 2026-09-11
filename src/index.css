@@ -290,10 +290,14 @@ textarea:focus {
   }
 
   /*
-   * Leuchtende Kante. Sie markiert Kanten von Trägerflächen (Tableiste,
-   * Anmeldekopf) und ist reine Dekoration — sie trägt nie die einzige
-   * Information über einen Zustand, dafür sind Farbe UND Fettung des Textes
-   * da.
+   * Leuchtende Kante. Sie steht noch am Anmeldekopf und als kurzer Strich
+   * unter der Seitenüberschrift; von den Navigationsleisten ist sie weg.
+   * Dort lag sie zusammen mit der weissen Fuge, und zwei Streifen
+   * übereinander waren zwei Trennungen für eine Sache — am Telefon sah die
+   * Leiste damit anders aus als die Seitenleiste am Schreibtisch.
+   *
+   * Reine Dekoration: sie trägt nie die einzige Information über einen
+   * Zustand, dafür sind Farbe UND Fettung des Textes da.
    */
   .edge-accent {
     background-image: var(--grad-edge);

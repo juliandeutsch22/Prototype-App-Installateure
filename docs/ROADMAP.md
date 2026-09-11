@@ -151,6 +151,13 @@ Tableiste. Sie sitzt HINTER der Markenkante, nicht statt ihr: die Kante
 gehört zur Leiste, der weisse Streifen trennt sie vom Arbeitsbereich.
 Dieselbe Trennung, nur rund, liegt als schmaler Ring um das Profil-Abzeichen.
 
+Zuerst lag an Kopf- und Tableiste zusätzlich die leuchtende Markenkante über
+der Fuge. Zwei Streifen übereinander waren zwei Trennungen für eine Sache,
+und am Telefon sah die Leiste damit anders aus als die Seitenleiste am
+Schreibtisch. Jetzt eine Trennung, überall dieselbe. Die leuchtende Kante
+steht noch dort, wo sie allein steht: am Anmeldekopf und als kurzer Strich
+unter der Seitenüberschrift.
+
 ---
 
 ## Erledigt: die Benutzerverwaltung hat Tests — und zwei stille Fehler weniger
