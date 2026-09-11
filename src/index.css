@@ -326,20 +326,44 @@ table th {
  * Platzhalter beim Laden. Deutet die spätere Struktur an, statt die Fläche
  * leer zu lassen — die App wirkt dadurch schneller, ohne schneller zu sein,
  * und der Inhalt springt beim Eintreffen nicht mehr.
+ *
+ * DREI DINGE HABEN SICH GEÄNDERT, ALS DIE OBERFLÄCHE TÜRKIS WURDE.
+ *
+ * Die FARBE: vorher lief der Verlauf von `--surface-2` über `--border` und
+ * zurück. `--border` ist die Farbe der Trennstriche — ein Balken darin sah
+ * aus wie ein sehr dicker Strich und nicht wie ein Platzhalter. Jetzt ein
+ * eigener, etwas satterer Türkiston mit einem weissen Lichtstreifen darüber.
+ *
+ * Die BEWEGUNG: statt eine 200 % breite Fläche hin und her zu schieben,
+ * wandert ein schmaler Lichtstreifen einmal von links nach rechts und setzt
+ * dann neu an. Das ist die Bewegung, die man von einem Ladebalken erwartet —
+ * die alte pendelte, und beim Zusehen wusste man nie, ob sie vorwärts oder
+ * rückwärts lief.
+ *
+ * Die FORM: Pille statt `--radius-sm`. Ein Balken von 12 px Höhe mit 10 px
+ * Radius ist ohnehin fast rund; ganz rund ist er ruhiger und sagt deutlicher
+ * „hier steht gleich Text" statt „hier ist ein leeres Kästchen".
  */
 .skeleton {
-  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s ease-in-out infinite;
-  border-radius: var(--radius-sm);
+  background-color: #dceaef;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 55% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-pill);
 }
 
 @keyframes skeleton-shimmer {
   from {
-    background-position: 200% 0;
+    background-position: -60% 0;
   }
   to {
-    background-position: -200% 0;
+    background-position: 160% 0;
   }
 }
 

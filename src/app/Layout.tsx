@@ -93,10 +93,16 @@ export default function Layout({ children }: { children: ReactNode }) {
         </button>
         </div>
         <div className="edge-accent h-[3px]" aria-hidden="true" />
+        {/* Weisser Trenner zwischen Navigation und Inhalt. Er sitzt HINTER
+            der Markenkante, nicht statt ihr: die Kante gehört zur dunklen
+            Leiste, der weisse Streifen ist die Fuge zum Arbeitsbereich. Auf
+            dem hellen Grund (#eef6f8) ist Weiss zurückhaltend, gegen das
+            Tintenblau der Leiste liest es sich als saubere Kante. */}
+        <div className="h-[3px] bg-white" aria-hidden="true" />
       </header>
 
       {/* Desktop-Sidebar */}
-      <aside className="panel-dark hidden md:flex md:w-64 md:shrink-0 md:flex-col md:p-3">
+      <aside className="panel-dark hidden md:flex md:w-64 md:shrink-0 md:flex-col md:border-r-[3px] md:border-r-white md:p-3">
         <div className="mb-4 px-2 pt-1">{BrandMarkSidebar}</div>
         <nav className="flex flex-col gap-4 overflow-y-auto" aria-label="Hauptnavigation">
           {groups.map(({ group, items: groupItems }) => (
@@ -156,6 +162,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         className="panel-dark fixed inset-x-0 bottom-0 z-30 md:hidden"
         aria-label="Hauptnavigation"
       >
+        {/* Gespiegelt zur Kopfleiste: erst die Fuge zum Inhalt, dann die
+            Markenkante, dann die dunkle Leiste. */}
+        <div className="h-[3px] bg-white" aria-hidden="true" />
         <div className="edge-accent h-[3px]" aria-hidden="true" />
         <div className="flex pb-[env(safe-area-inset-bottom)]">
           {primary.map((item) => (

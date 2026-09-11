@@ -137,6 +137,20 @@ Kopf- und Tableiste rechnen `env(safe-area-inset-*)` in ihr Innenmaß ein.
 Android merken sich die `theme_color` aus dem Manifest beim Hinzufügen. Dafür
 muss sie einmal vom Startbildschirm entfernt und neu abgelegt werden.
 
+**Die Ladeplatzhalter.** Sie liefen von `--surface-2` über `--border` und
+zurück — `--border` ist die Farbe der Trennstriche, ein Balken darin sah aus
+wie ein sehr dicker Strich. Und sie PENDELTEN: beim Zusehen wusste man nie, ob
+die Bewegung vorwärts oder rückwärts läuft. Jetzt ein eigener Türkiston, über
+den ein schmaler Lichtstreifen einmal von links nach rechts wandert, und
+Pillenform statt Kästchen. Der Ladekreis dreht im selben Türkis wie die
+übrigen Markierungen.
+
+**Eine weisse Fuge zwischen Navigation und Inhalt.** Am Rand jeder dunklen
+Leiste — rechts an der Seitenleiste, unter der Kopfleiste, über der
+Tableiste. Sie sitzt HINTER der Markenkante, nicht statt ihr: die Kante
+gehört zur Leiste, der weisse Streifen trennt sie vom Arbeitsbereich.
+Dieselbe Trennung, nur rund, liegt als schmaler Ring um das Profil-Abzeichen.
+
 ---
 
 ## Erledigt: die Benutzerverwaltung hat Tests — und zwei stille Fehler weniger
