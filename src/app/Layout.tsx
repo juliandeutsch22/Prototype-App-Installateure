@@ -66,9 +66,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-full flex-col md:flex-row">
-      {/* Mobile Top-Bar — dunkles Markenband mit leuchtender Unterkante. Die
-          Kante ist ein eigenes Element und keine Rahmenfarbe: einen Verlauf
-          kann ein `border-bottom` nicht tragen.
+      {/* Mobile Top-Bar — dieselbe dunkle Trägerfläche wie die Seitenleiste
+          am Schreibtisch, abgesetzt durch dieselbe weisse Fuge.
 
           `pt-[env(safe-area-inset-top)]`: die Kopfzeile im Anzug (`index.html`
           setzt `viewport-fit=cover`) reicht bis unter die Statusleiste des
@@ -92,12 +91,12 @@ export default function Layout({ children }: { children: ReactNode }) {
           <Avatar name={user.name} size={32} />
         </button>
         </div>
-        <div className="edge-accent h-[3px]" aria-hidden="true" />
-        {/* Weisser Trenner zwischen Navigation und Inhalt. Er sitzt HINTER
-            der Markenkante, nicht statt ihr: die Kante gehört zur dunklen
-            Leiste, der weisse Streifen ist die Fuge zum Arbeitsbereich. Auf
-            dem hellen Grund (#eef6f8) ist Weiss zurückhaltend, gegen das
-            Tintenblau der Leiste liest es sich als saubere Kante. */}
+        {/* Die Fuge zwischen Navigation und Inhalt — dieselbe wie rechts an
+            der Seitenleiste, nur waagrecht. Hier lag zuerst zusätzlich die
+            leuchtende Markenkante darüber; zwei Streifen übereinander waren
+            zwei Trennungen für eine Sache, und am Telefon sah die Leiste
+            damit anders aus als am Schreibtisch. Eine Trennung, überall
+            dieselbe. */}
         <div className="h-[3px] bg-white" aria-hidden="true" />
       </header>
 
@@ -153,19 +152,15 @@ export default function Layout({ children }: { children: ReactNode }) {
       </main>
 
       {/* Mobile Tab-Bar — dieselbe dunkle Trägerfläche wie die Kopfleiste, so
-          dass der Inhalt oben und unten von der Marke eingefasst wird. Die
-          leuchtende Oberkante (Cyan → Mint) ist die Signatur; sie liegt als
-          eigenes Element über der Leiste, weil ein Rahmen keinen Verlauf
-          tragen kann. Aktiv = weiße Schrift in heller Pille, PLUS Fettung —
-          auf 10 px Schrift ist Farbe allein zu wenig. */}
+          dass der Inhalt oben und unten von der Marke eingefasst wird.
+          Aktiv = weiße Schrift in heller Pille, PLUS Fettung — auf 10 px
+          Schrift ist Farbe allein zu wenig. */}
       <nav
         className="panel-dark fixed inset-x-0 bottom-0 z-30 md:hidden"
         aria-label="Hauptnavigation"
       >
-        {/* Gespiegelt zur Kopfleiste: erst die Fuge zum Inhalt, dann die
-            Markenkante, dann die dunkle Leiste. */}
+        {/* Dieselbe Fuge wie an Kopfleiste und Seitenleiste. */}
         <div className="h-[3px] bg-white" aria-hidden="true" />
-        <div className="edge-accent h-[3px]" aria-hidden="true" />
         <div className="flex pb-[env(safe-area-inset-bottom)]">
           {primary.map((item) => (
             <NavLink
