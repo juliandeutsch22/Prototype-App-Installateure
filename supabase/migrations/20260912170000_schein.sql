@@ -112,16 +112,18 @@ begin
 
   if p_fotos is not null then
     delete from public.work_sheet_photos where work_sheet_id = p_id;
+    lauf := 0;
     for zeile in select * from jsonb_array_elements(p_fotos) loop
       insert into public.work_sheet_photos (
-        company_id, work_sheet_id, pfad, hash, bytes, geraet_zeit
+        company_id, work_sheet_id, position, pfad, hash, bytes, geraet_zeit
       ) values (
-        betrieb, p_id, zeile ->> 'pfad', zeile ->> 'hash',
+        betrieb, p_id, lauf, zeile ->> 'pfad', zeile ->> 'hash',
         (zeile ->> 'bytes')::bigint,
         -- Als ISO-Zeichenkette, weil `objektAlsZeile` sie so liefert: die
         -- Umrechnung von Millisekunden steht an EINER Stelle, nicht an zweien.
         (zeile ->> 'geraet_zeit')::timestamptz
       );
+      lauf := lauf + 1;
     end loop;
   end if;
 

@@ -58,7 +58,6 @@ async function zusammensetzen(
       companyId,
       {
         wo: [{ art: 'in', feld: 'workSheetId', werte: kennungen }],
-        // Fotos tragen keine Reihenfolge — sie hatten in Firestore auch keine.
         ...(sortiert ? { sortiere: { feld: 'position' } } : {}),
       },
       client,
@@ -67,7 +66,12 @@ async function zusammensetzen(
   const [zeiten, material, fotos] = await Promise.all([
     teile<WorkSheetZeit>(ZEITEN, true),
     teile<WorkSheetMaterial>(MATERIAL, true),
-    teile<WorkSheetFoto>(FOTOS, false),
+    /*
+      AUCH DIE FOTOS HABEN EINE REIHENFOLGE, und sie gehört zum Beleg: die
+      Prüfsumme schreibt sie in dieser Folge. Käme die Liste einmal anders
+      sortiert zurück, ergäbe derselbe Schein eine andere Prüfsumme.
+    */
+    teile<WorkSheetFoto>(FOTOS, true),
   ]);
 
   /*

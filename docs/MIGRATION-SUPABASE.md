@@ -1020,3 +1020,88 @@ hat eine Prüfung nach sich gezogen, die das festhält.
 ### Als Nächstes
 
 Stufe 5: die fünfzehn Cloud Functions.
+
+---
+
+## Stufe 5, erster Teil: die Prüfsumme wird ein Trigger
+
+12.09.2026. `scheinPruefsumme` war eine Cloud Function, die nach dem
+Schreiben ansprang. Jetzt ist sie ein Trigger — und das ist mehr als ein
+Ortswechsel.
+
+### Der Gewinn ist die Lückenlosigkeit
+
+Die Function lief NACH dem Schreibvorgang und in einem eigenen Lauf. Der
+Trigger läuft in derselben Transaktion und fängt **jeden** Weg: ein Schein,
+der an `schein_unterschreiben` vorbei unterschrieben wird — eine schlichte
+Anweisung auf die Tabelle reicht dafür —, bekommt seine Prüfsumme trotzdem.
+
+### Die Kanonisierung musste zeichengenau werden
+
+Der Hash entsteht über einer Zeichenkette, und die muss auf beiden Seiten
+dieselbe sein. Sonst lässt sich ein Schein, der unter Firestore
+unterschrieben wurde, nach dem Umzug nicht mehr nachrechnen — und der Beleg
+ist genau dort wertlos, wo er beweisen soll.
+
+Drei Stellen, an denen Postgres und JavaScript auseinandergehen:
+
+* **Zahlen.** `numeric(12,3)` schreibt sich als „2.500", JavaScript schreibt
+  „2.5". Ohne Angleichung wäre fast jede Prüfsumme verschieden.
+* **Ränder.** `trim()` schneidet in JavaScript mehr ab als Leerzeichen —
+  Tabulator, Zeilenumbruch, geschütztes Leerzeichen, Byte-Order-Mark.
+* **Die Reihenfolge der Fotos.** Sie ist Teil des Belegs, hatte aber keine
+  Spalte. Ohne sie müsste die Datenbank nach etwas anderem sortieren, und
+  sobald Hochlade- und Pfadreihenfolge auseinandergehen, stimmt die
+  Prüfsumme eines alten Scheins nicht mehr.
+
+Geprüft wird das nicht durch Hinsehen: zwölf Prüfungen rechnen denselben
+Schein **in der Datenbank und in JavaScript** und vergleichen die beiden
+Hashes. Drei Mutationen an der Kanonisierung fallen damit sofort auf.
+
+### Zwei Funde beim Schreiben dieser Prüfungen
+
+**Der Riegel wies die Prüfsumme ab.** Ein unterschriebener Schein ist zu —
+das schloss den Nachtrag des Hashes ein. Unter Firestore lief die Berechnung
+über das Admin-SDK und damit an den Regeln vorbei; in Postgres gibt es
+diesen Weg nicht, und das ist gut so. Die Ausnahme lautet deshalb nicht „der
+Trigger darf", sondern: es darf sich ausschliesslich `inhalt_hash` ändern, er
+muss vorher leer gewesen sein, und der neue Wert muss der **richtige** sein.
+Ein Kennzeichen „ich bin der Trigger" hätte geprüft, WER schreibt, statt WAS
+geschrieben wird.
+
+**Ein Entwurf konnte eine Prüfsumme mitbringen.** Der Nachtrag springt nur
+an, wenn das Feld leer ist. Am Entwurf war jede Änderung erlaubt — er ist ja
+in Arbeit. Ein Monteur konnte also am Entwurf eine ausgedachte Prüfsumme
+eintragen und danach unterschreiben: der Trigger sah ein gefülltes Feld,
+rechnete nicht nach, und auf dem Beleg stand eine Zahl, die der Client sich
+selbst gegeben hatte. Genau das, was die Prüfsumme ausschliessen soll. Jetzt
+gilt: ein Entwurf hat keine Prüfsumme, und was der Client hineinschreibt,
+wird beim Speichern verworfen.
+
+### Drei Functions fallen ersatzlos weg
+
+`bilanzNachziehen`, `bilanzenNachtlauf` und `bilanzenNeuAufbauen` haben die
+Monatsbilanzen gepflegt. Die sind jetzt eine Sicht. Es gibt nichts mehr
+nachzuziehen, nichts nachts zu rechnen und nichts neu aufzubauen.
+
+### Eine offene Zeile, benannt
+
+Der Vergleich mit `app.schein_hash` in der Ausnahme ist die ZWEITE Sperre.
+Eine Mutation hat gezeigt, dass ohne ihn nichts kaputtgeht — die erste Sperre
+schliesst schon. Das Fenster „unterschrieben, Hash leer" ist von aussen nicht
+erreichbar; eine Prüfung dafür gibt es deshalb nicht. Der Vergleich bleibt
+trotzdem stehen: er trägt genau dann, wenn die Berechnung einmal fehlschlägt.
+
+### Stand
+
+| | |
+|---|---|
+| Functions umgestellt oder entfallen | 4 von 15 |
+| Prüfungen gegen die echte Datenbank | 458 |
+| Mutationen dieses Teils | 6 |
+| davon gefangen | 5 |
+
+### Als Nächstes
+
+`syncUserClaims` und `plattformAdminClaim` als Trigger auf `auth.users`,
+dann `pg_cron` für die beiden Nachtläufe und die Edge Functions.
