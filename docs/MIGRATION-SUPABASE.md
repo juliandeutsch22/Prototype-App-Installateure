@@ -941,3 +941,82 @@ steht mit Datum im Wächter, damit sie auffällt, wenn sie stehen bleibt.
 
 Stufe 4: die Abonnements in der Oberfläche gegen den echten Stack fahren.
 Danach die Functions.
+
+---
+
+## Stufe 4: die elf Abonnements, gemessen
+
+12.09.2026. Ein Abonnement ist die einzige Stelle, an der ein Fehler nicht zu
+einer Fehlermeldung führt, sondern zu **Stille**. Die Ansicht steht da und
+zeigt einen Stand von vor zehn Minuten; niemand sieht einen Fehler, weil
+keiner passiert ist.
+
+Vor dieser Stufe hatten sechs der elf Abonnements eine Zustellprüfung, fünf
+nicht. Jetzt haben alle elf dieselbe: eine Änderung NACH dem Anmelden kommt
+an. Der erste Bestand kommt aus einer gewöhnlichen Abfrage und sagt über den
+Meldeweg nichts.
+
+### Die Mandantengrenze hält der Zeilenschutz, nicht der Kanalfilter
+
+Eine Mutation kam durch: nimmt man dem Kanal den Filter `company_id=eq.…`
+weg, bleibt „ein fremder Betrieb kommt nie an" trotzdem grün. Das ist die
+richtige Antwort — der Meldeweg wertet den Zeilenschutz je Zeile UND je
+Empfänger aus. Der Filter spart Meldungen, er zieht keine Grenze.
+
+Davon hängt ab, wie gefährlich eine Änderung am Kanal ist. Wäre der Filter die
+Grenze, wäre jede Änderung daran eine Sicherheitsänderung. Eine eigene Prüfung
+meldet den Kanal jetzt VON HAND ohne Filter an und hält fest, dass die fremde
+Zeile trotzdem nie ankommt — und die eigene sehr wohl.
+
+Dieselbe Messung beantwortet die Frage, an der Gesundheitsdaten hängen: ein
+Monteur, der ohne Personenfilter abonniert, bekommt die Krankmeldung eines
+Kollegen **nicht**. Das ist eine Zusage von Supabase; eine Zusage dieser
+Tragweite wird gemessen und nicht geglaubt.
+
+### Was die Last ergeben hat
+
+| Messung | Ergebnis |
+|---|---|
+| 20 Buchungen auf einmal, unmittelbarer Meldeweg | alle 20 kommen an |
+| 10 Speichervorgänge an einer Rüstliste | 20 rohe Meldungen, 4 Nachladungen |
+
+Der unmittelbare Weg trägt also auch für die langen Abonnements; eine Meldung
+aus dem Datenbank-Trigger ist nicht nötig. Für die zusammengesetzten
+Abonnements — Rüstliste und Rechnungsliste, die bei jeder Meldung den ganzen
+Stand neu holen — zahlt sich das Zusammenfassen aus: aus zwanzig Meldungen
+werden vier Nachladungen.
+
+### Der Fund: eine Positionskennung, die zu weit reichte
+
+Die Lastmessung hat einen Fehler aufgedeckt, der kein Testartefakt ist.
+
+`einsatz_material_positionen.id` war betriebsweit eindeutig. Die Kennung kommt
+aber vom Gerät und meint „diese Position IN DIESER Liste" — genauso ist
+`geladen` abgelegt. Traf dieselbe Kennung ein zweites Mal, änderte das
+Speichern die Zeile der ERSTEN Liste, ohne sie umzuhängen: **die zweite Liste
+stand leer da.** Kein Fehler, keine Meldung. Der Kopf ist da, die Positionen
+fehlen, und der Monteur fährt ohne Material los.
+
+Ein Zusammentreffen ist unwahrscheinlich — die Kennung trägt einen Zeitstempel
+und fünf Zufallszeichen. „Unwahrscheinlich und lautlos" ist aber die
+schlechteste Kombination, die ein Fehler haben kann. Der Schlüssel ist jetzt
+das Paar aus Liste und Kennung.
+
+### Stand nach Stufe 4
+
+| | |
+|---|---|
+| Abonnements mit Zustellprüfung | 11 von 11 |
+| Prüfungen gegen die echte Datenbank | 446 |
+| Prüfungen `npm test` | 1649 |
+| Prüfungen gegen den Firestore-Emulator | 225 |
+| Mutationen dieser Stufe | 4 |
+| davon gefangen | 3 |
+
+Die vierte kam durch und war der Befund über die Mandantengrenze — eine
+Mutation, die nichts kaputtmacht, weil sie nur eine Abkürzung entfernt. Sie
+hat eine Prüfung nach sich gezogen, die das festhält.
+
+### Als Nächstes
+
+Stufe 5: die fünfzehn Cloud Functions.

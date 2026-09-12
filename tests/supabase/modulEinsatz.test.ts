@@ -275,6 +275,38 @@ describe('Rüstliste', () => {
     expect(count).toBe(1);
   });
 
+  it('dieselbe Positionskennung in zwei Listen stört einander nicht', async () => {
+    /*
+      GEFUNDEN BEIM PRÜFEN DER ABONNEMENTS UNTER LAST.
+
+      Die Kennung kommt vom Gerät und meint „diese Position IN DIESER Liste" —
+      genauso ist `geladen` abgelegt. Sie war in der Datenbank aber
+      betriebsweit eindeutig. Traf dieselbe Kennung ein zweites Mal, änderte
+      das Speichern die Zeile der ERSTEN Liste, ohne sie umzuhängen, und die
+      zweite Liste stand LEER da. Kein Fehler, keine Meldung: der Kopf ist da,
+      die Positionen fehlen, und der Monteur fährt ohne Material los.
+
+      Ein Zusammentreffen ist unwahrscheinlich — die Kennung trägt einen
+      Zeitstempel und fünf Zufallszeichen. „Unwahrscheinlich und lautlos" ist
+      aber die schlechteste Kombination, die ein Fehler haben kann.
+    */
+    await leeren();
+    await leeren('2026-05-05');
+    await ruest.saveEinsatzMaterial(
+      BETRIEB, TAG, BAU, [position('pa', 'Rohr', 1)], [anton.uid], 'Planer',
+    );
+    await ruest.saveEinsatzMaterial(
+      BETRIEB, '2026-05-05', BAU, [position('pa', 'Kessel', 7)], [anton.uid], 'Planer',
+    );
+
+    const erste = await ruest.getEinsatzMaterial(BETRIEB, TAG, BAU);
+    const zweite = await ruest.getEinsatzMaterial(BETRIEB, '2026-05-05', BAU);
+    expect(erste!.positionen).toEqual([{ id: 'pa', name: 'Rohr', menge: 1 }]);
+    expect(zweite!.positionen).toEqual([{ id: 'pa', name: 'Kessel', menge: 7 }]);
+
+    await leeren('2026-05-05');
+  });
+
   it('trennt die Rüstlisten zweier Baustellen desselben Tages', async () => {
     await leeren();
     await ruest.saveEinsatzMaterial(BETRIEB, TAG, BAU, [position('pa', 'Rohr')], [anton.uid], 'Planer');
