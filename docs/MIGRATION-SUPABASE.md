@@ -615,3 +615,105 @@ Der Lauf ist viermal hintereinander grün.
 Die zwanzig Module, eines nach dem anderen, jedes mit eigenen Prüfungen gegen
 die echte Datenbank. Die 35 Durchstich- und 35 Abfrageprüfungen kommen dabei
 mit — sie hängen an genau dieser Schicht.
+
+---
+
+## Stufe 3, zweiter Teil: sieben Module stehen
+
+12.09.2026. Umgestellt sind **Kunden, Baustellen, Zeiten, Material,
+Anforderungen, Einsatzplanung und Rüstliste** — jedes nach demselben Schnitt:
+`db/x.ts` ist nur noch die Weiche, `db/fs/x.ts` die Firestore-Fassung,
+`db/pg/x.ts` die Postgres-Fassung. Dreizehn Module fehlen noch.
+
+### Wo der Umzug die Sache wirklich vereinfacht
+
+Zwei Vorgänge waren in Firestore Batches, die nur deshalb hielten, weil
+niemand sie unterbrach:
+
+* **Einteilung speichern** war „alle löschen, dann alle schreiben". Brach die
+  Verbindung dazwischen ab — auf der Baustelle keine Seltenheit —, war der
+  Tag für diese Baustelle leer, und niemand erfuhr davon. Jetzt ist es
+  `public.einsatz_speichern`: eine Transaktion, die ganz durchgeht oder gar
+  nichts tut. Geprüft wird das mit einer Zeile, die absichtlich scheitert;
+  die alte Einteilung muss danach unverändert dastehen.
+* **Rüstliste speichern** zieht die Mitarbeiterliste des Einsatzes mit. An
+  ihr hängt die Entscheidung, ob ein Monteur abhaken darf. Liefe das
+  Nachziehen getrennt, sähe ein neu eingeteilter Kollege das Material und
+  käme beim Antippen nicht durch.
+
+### Aus einem Dokument werden zwei Tabellen
+
+Die Rüstliste lag in Firestore als ein Dokument mit einem Array darin. Jetzt
+ist eine Position eine Zeile. Das ist besser und verlangt drei Dinge, die
+alle drei eine eigene Prüfung haben:
+
+1. **Die Kennung einer Position kommt vom Gerät** und wird übernommen. An ihr
+   hängt die Abhakliste `geladen`. Vergäbe die Datenbank eigene Kennungen,
+   verlöre jedes Speichern der Planung sämtliche Haken der Monteure — und die
+   Liste sähe danach einfach unabgehakt aus.
+2. **Die Kennung ist Text, kein UUID.** Sie entsteht im Browser und sieht aus
+   wie `pmf3k2x9abcd`. Sie auf UUID zu zwingen hiesse, beim Umzug jede
+   bestehende Position UND jeden Schlüssel in `geladen` gemeinsam
+   umzuschreiben; ginge dabei ein Paar auseinander, stünde der Haken am
+   falschen Artikel. Der Gewinn wäre ein hübscherer Datentyp.
+3. **Die Reihenfolge steht in einer Spalte.** Im Dokument war sie der Platz
+   im Array. Die Prüfung dafür sortiert bewusst um — dass frisch angelegte
+   Zeilen in Schreibreihenfolge zurückkommen, beweist nichts.
+
+### Das Abonnement der Rüstliste hört am Kopf
+
+Es beobachtet die Kopftabelle und holt bei jeder Meldung den ganzen Tag neu.
+Das trägt nur, solange **jedes** Schreiben den Kopf berührt — und genau das
+steht auf dem Prüfstand: eine Änderung, die nur eine Menge betrifft, muss
+ankommen. Gäbe es einen Weg, eine Position ohne den Kopf zu ändern, bliebe
+die Planungsansicht stumm.
+
+### Ein Export ist entfallen
+
+`einsatzMaterialId` steht nicht mehr an der Weiche. Die berechenbare
+Dokumentkennung ist ein Firestore-Kunstgriff; in Postgres gibt es sie nicht.
+Eine Weiche, die unter einer Datenquelle etwas Falsches zurückgibt, ist
+schlimmer als keine. Die Funktion lebt jetzt in `fs/einsatzMaterial.ts`, wo
+sie gebraucht wird und stimmt. Der Vertragswächter hat den Wegfall gemeldet,
+wie er soll; die festgehaltene Fassung ist bewusst nachgezogen worden.
+
+### Der Wächter war blind — schon wieder
+
+`abfragegrenzen.test.ts` prüft, dass jede Abfrage eine Grenze hat. Sein
+Muster für die Postgres-Schicht verlangte eine Klammer unmittelbar hinter
+`abfragen`. Die Aufrufe tragen aber fast alle eine Typangabe —
+`abfragen<Assignment>(…)`. **Fünfundzwanzig Postgres-Abfragen waren damit
+unbewacht**, und der Test meldete grün; die eigens eingebaute Prüfung „findet
+Abfragen in `fs/` UND in `pg/`" war erfüllt, weil eine Handvoll Abfragen
+ohne Typangabe durchrutschte.
+
+Aufgefallen ist es nur, weil die Mindestzahl nachgezogen werden sollte und
+dabei auffiel, dass sie sich durch zwei neue Module nicht bewegt hatte. Die
+Zahl steht jetzt auf **74** statt 49. Dass alle fünfundzwanzig Abfragen
+tatsächlich eine Grenze tragen, war Glück im Unglück — geprüft war es nicht.
+
+Das ist das zweite Mal, dass dieser Wächter still weniger bewacht hat als
+gedacht. Die Lehre bleibt dieselbe und steht jetzt zweimal im Kopf der Datei.
+
+### Stand
+
+| | |
+|---|---|
+| Module umgestellt | 7 von 20 |
+| Prüfungen `npm test` | 1629 |
+| Prüfungen gegen die echte Datenbank | 307 |
+| Prüfungen gegen den Firestore-Emulator | 225 |
+| bewachte Abfragen | 74 |
+| Mutationen für Einsatzplanung und Rüstliste | 8 |
+| davon gefangen | 8 |
+| echte Lücken, die sie aufgedeckt haben | 2 |
+
+Die zwei Lücken: die Reihenfolgeprüfung hätte ein Speichern ohne
+Sortierspalte durchgehen lassen, und die Hakenprüfung hätte nicht bemerkt,
+dass ein Haken ins Leere zeigt. Beide sind geschlossen.
+
+### Als Nächstes
+
+Urlaub, Handwerksscheine, Rechnungen, Angebote, Wartungen, Nachfassungen,
+Belegschaft, Firmeneinstellungen, Voreinstellungen, Nachtläufe,
+Monatsbilanzen und Scheinfotos — dann fällt `core.ts`.

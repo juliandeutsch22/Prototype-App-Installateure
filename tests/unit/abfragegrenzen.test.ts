@@ -166,7 +166,13 @@ function sammleAbfragen(): Abfrage[] {
       // namentlich auszunehmen wäre eine Liste, die jemand pflegen muss.
       // Dieselbe Frage in der Sprache der Postgres-Schicht: `abfragen(…)`
       // und `abonnieren(…)` holen mehrere Zeilen, ein `.single()` genau eine.
-      if (!/queryTenant|subscribeTenant|getDocs\(|onSnapshot\(|abfragen\(|abonnieren\(|\.select\(/.test(koerper)) continue;
+      //
+      // DIE ECKIGE KLAMMER IST DER PUNKT. Die Aufrufe stehen fast immer mit
+      // Typangabe da — `abfragen<Assignment>(…)` —, und ein Muster, das ein
+      // `(` unmittelbar nach dem Namen verlangte, ging daran vorbei. So
+      // blieben fünfundzwanzig Postgres-Abfragen unbewacht, während der Test
+      // grün meldete und sogar bestätigte, er finde etwas in `pg/`.
+      if (!/queryTenant|subscribeTenant|getDocs\(|onSnapshot\(|abfragen[<(]|abonnieren[<(]|\.select\(/.test(koerper)) continue;
       raus.push({ datei, name, koerper });
     }
   }
@@ -225,7 +231,19 @@ describe('Abfragegrenzen in der Datenschicht', () => {
  * Die Zahl unten ist deshalb Teil der Zusage. Sie darf steigen; sinkt sie,
  * muss jemand hinsehen und sie bewusst nachziehen.
  */
-const MINDESTENS = 49;
+const MINDESTENS = 74;
+
+/*
+  Am 12.09.2026 sprang die Zahl von 49 auf 74 — ohne dass eine einzige
+  Abfrage hinzugekommen wäre. Das Muster für die Postgres-Schicht verlangte
+  eine Klammer unmittelbar hinter `abfragen`, die Aufrufe tragen aber fast
+  alle eine Typangabe (`abfragen<Assignment>(…)`). Fünfundzwanzig Abfragen
+  waren damit unbewacht, und der Test meldete grün.
+
+  Die Lehre steht schon im Kopf dieser Datei und hat sich wiederholt: ein
+  Wächter, der still weniger bewacht, ist schlimmer als keiner. Deshalb ist
+  die Zahl Teil der Zusage — sie darf steigen, aber nie unbemerkt sinken.
+*/
 
 describe('Der Wächter bewacht noch, was er bewachen soll', () => {
   it(`findet mindestens ${MINDESTENS} Abfragen`, () => {
