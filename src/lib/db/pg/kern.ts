@@ -166,6 +166,34 @@ export async function anlegenMitKennung(
   return id;
 }
 
+/**
+ * EIN SCHREIBVORGANG, DER NICHTS TRIFFT, IST EIN FEHLER — KEIN ERFOLG.
+ *
+ * Das ist der Unterschied, der beim Umzug am leichtesten durchrutscht.
+ * Firestore WARF, wenn ein Dokument fehlte oder die Regeln es verwehrten. Der
+ * Zeilenschutz antwortet anders: eine Zeile, die man nicht ändern darf, ist
+ * für die Anweisung schlicht nicht da. PostgREST meldet dann keinen Fehler,
+ * sondern null geänderte Zeilen — und der Aufrufer sieht einen geglückten
+ * Schreibvorgang.
+ *
+ * Was das draussen heisst: die Verwaltung ändert die Wochenstunden eines
+ * Mitarbeiters, bekommt „gespeichert" und sieht beim nächsten Laden den alten
+ * Wert. Oder ein Antrag wird „zurückgezogen" und steht am nächsten Tag wieder
+ * da. Kein Fehler, keine Meldung, kein Hinweis.
+ *
+ * `count: 'exact'` zählt die Zeilen, die die ANWEISUNG bewegt hat — nicht die,
+ * die der Aufrufer danach lesen dürfte. Damit lässt sich „nichts getroffen"
+ * von „erledigt" unterscheiden, und der Aufrufer bekommt dieselbe Auskunft
+ * wie vorher.
+ */
+function pruefeTreffer(tabelle: string, anzahl: number | null): void {
+  if (anzahl === 0) {
+    throw new Error(
+      `Kein Datensatz in ${tabelle} geändert — es gibt ihn nicht, oder er gehört nicht zu diesem Betrieb.`,
+    );
+  }
+}
+
 /** Aktualisiert; companyId wird NICHT verändert. */
 export async function aendern(
   tabelle: string,
@@ -176,8 +204,20 @@ export async function aendern(
   const c = derClient(client);
   const { companyId: _weg, ...rest } = daten;
   void _weg;
-  const { error } = await c.from(tabelle).update(objektAlsZeile(tabelle, rest)).eq('id', id);
+  const zeile = objektAlsZeile(tabelle, rest);
+  /*
+    NICHTS ZU SCHREIBEN IST KEIN FEHLSCHLAG. Ein Aufruf, in dem jedes Feld
+    `undefined` war, will nichts ändern — dann darf er auch nicht daran
+    scheitern, dass er nichts getroffen hat. Firestore hat einen leeren
+    Schreibvorgang ebenso stillschweigend hingenommen.
+  */
+  if (Object.keys(zeile).length === 0) return;
+  const { error, count } = await c
+    .from(tabelle)
+    .update(zeile, { count: 'exact' })
+    .eq('id', id);
   if (error) throw new Error(error.message);
+  pruefeTreffer(tabelle, count);
 }
 
 /** Löscht. Die Mandantenprüfung erzwingt der Zeilenschutz. */
@@ -187,8 +227,9 @@ export async function loeschen(
   client?: SupabaseClient,
 ): Promise<void> {
   const c = derClient(client);
-  const { error } = await c.from(tabelle).delete().eq('id', id);
+  const { error, count } = await c.from(tabelle).delete({ count: 'exact' }).eq('id', id);
   if (error) throw new Error(error.message);
+  pruefeTreffer(tabelle, count);
 }
 
 /**

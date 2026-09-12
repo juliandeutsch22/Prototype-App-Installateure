@@ -125,7 +125,13 @@ describe('Zurückziehen', () => {
     const id = await urlaub.createVacation(BETRIEB, antrag(anton, '2026-07-06', '2026-07-10'));
     await entscheiden(id, 'Genehmigt');
 
-    await urlaub.deleteVacation(id);
+    /*
+      UND ZWAR HÖRBAR. Die Richtlinie lässt nur den eigenen, noch offenen
+      Antrag löschen; die Anweisung trifft danach keine Zeile. Ohne die
+      Prüfung in `aendern`/`loeschen` sähe das von aussen wie ein geglücktes
+      Zurückziehen aus — und der Antrag stünde am nächsten Tag wieder da.
+    */
+    await expect(urlaub.deleteVacation(id)).rejects.toThrow();
     expect(await urlaub.listOwnVacations(BETRIEB, anton.uid)).toHaveLength(1);
   });
 
@@ -135,7 +141,7 @@ describe('Zurückziehen', () => {
     const id = await urlaub.createVacation(BETRIEB, antrag(berta, '2026-07-06', '2026-07-10'));
     clientEinreichen(anton.client);
 
-    await urlaub.deleteVacation(id);
+    await expect(urlaub.deleteVacation(id)).rejects.toThrow();
     clientEinreichen(berta.client);
     expect(await urlaub.listOwnVacations(BETRIEB, berta.uid)).toHaveLength(1);
     clientEinreichen(anton.client);

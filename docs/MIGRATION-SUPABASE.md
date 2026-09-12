@@ -603,7 +603,7 @@ Prüfungen an meiner Ablauflogik und nicht an der Tagesform des Meldewegs.
 | | |
 |---|---|
 | Prüfungen gegen die echte Datenbank | 228 |
-| festgenagelte Signaturen der Datenschicht | 130 |
+| festgenagelte Signaturen der Datenschicht | 143 |
 | Mutationen angesetzt | 13 |
 | beim ersten Anlauf gefangen | 9 |
 | echte Lücken durch die vier übrigen | 4 |
@@ -699,13 +699,13 @@ gedacht. Die Lehre bleibt dieselbe und steht jetzt zweimal im Kopf der Datei.
 
 | | |
 |---|---|
-| Module umgestellt | 11 von 20 |
-| Prüfungen `npm test` | 1642 |
-| Prüfungen gegen die echte Datenbank | 384 |
+| Module umgestellt | 14 von 20 |
+| Prüfungen `npm test` | 1647 |
+| Prüfungen gegen die echte Datenbank | 404 |
 | Prüfungen gegen den Firestore-Emulator | 225 |
-| bewachte Abfragen | 87 |
-| Mutationen dieser Runde (Einsatz bis Angebot) | 35 |
-| davon gefangen | 35 |
+| bewachte Abfragen | 92 |
+| Mutationen seit Beginn von Stufe 3 | 48 |
+| davon gefangen | 48 |
 | echte Lücken, die sie aufgedeckt haben | 2 |
 
 Die zwei Lücken: die Reihenfolgeprüfung hätte ein Speichern ohne
@@ -816,7 +816,61 @@ einen Nachlass löschen, den der Kunde schriftlich hat. Eine Mutation ist an
 meiner ersten Fassung dieser Prüfung vorbeigekommen — sie sah nur die
 Positionen an.
 
+### Ein Schreibvorgang, der nichts trifft, ist ein Fehler
+
+Vierzehn Module stehen. Der wichtigste Fund dieser Runde ist kein Modul,
+sondern eine Eigenschaft der Taille — und er betrifft alle vierzehn.
+
+Firestore WARF, wenn ein Dokument fehlte oder die Regeln es verwehrten. Der
+Zeilenschutz antwortet anders: eine Zeile, die man nicht anfassen darf, ist
+für die Anweisung schlicht nicht da. PostgREST meldet dann keinen Fehler,
+sondern null geänderte Zeilen — und der Aufrufer sieht einen geglückten
+Schreibvorgang.
+
+Draussen hiesse das: die Verwaltung ändert die Wochenstunden eines
+Mitarbeiters, bekommt „gespeichert" und sieht beim nächsten Laden den alten
+Wert. Oder ein Urlaubsantrag wird „zurückgezogen" und steht am nächsten Tag
+wieder da. Kein Fehler, keine Meldung, kein Hinweis.
+
+`aendern` und `loeschen` zählen jetzt die betroffenen Zeilen und melden
+„nichts getroffen" als Fehler. Ein Aufruf, in dem jedes Feld `undefined` war,
+ist davon ausgenommen: er wollte nichts ändern und darf nicht daran
+scheitern.
+
+Aufgefallen ist es an einer einzigen Prüfung — ein Monteur, der seine eigene
+Rolle hochsetzt und dafür keine Fehlermeldung bekam.
+
+### Der Vertragswächter hatte zwei eigene Löcher
+
+**Durchgereichte Exporte fielen heraus.** `export { x } from './y'` liefert
+dem Compiler ein Alias und keinen Wert; die Prüfung liess solche Exporte
+stillschweigend aus dem Vertrag fallen. Neun Namen waren betroffen, darunter
+die Rechennamen der Rechnungsnummern und die Vorgaben der Belegschaft — alles
+Dinge, die Ansichten importieren. Die Zahl im Wächter über dem Wächter steht
+jetzt auf 143 statt 123, ohne dass ein einziger Export hinzugekommen wäre.
+
+**Eine Zeile trug den absoluten Pfad dieses Rechners.** In einer
+festgehaltenen Fassung ist das eine Zeitbombe: auf jedem anderen Rechner
+fiele die Prüfung aus einem Grund, der mit der Datenschicht nichts zu tun
+hat.
+
+Zugleich ist der Vertrag auf das eingegrenzt, was er zusagt: die
+AUSSENSEITE. `fs/` und `pg/` sind das Innere, das diese Stufe gerade
+austauscht; es festzunageln hiesse, die Fassung bei jedem Modul nachzuziehen
+— und eine Fassung, die dauernd nachgezogen wird, sagt bald gar nichts mehr.
+
+### Wartung: noch ein Nachfilter verschwindet
+
+`listFaelligeWartungen` filterte ruhende Vereinbarungen im Browser, weil eine
+Firestore-Abfrage Dokumente nicht findet, denen das Feld ganz fehlt. Eine
+Spalte kann nicht fehlen. Die Bedingung steht jetzt in der Abfrage, und damit
+greift die Obergrenze auf die richtige Menge.
+
+Eine bestehende Prüfung des Abonnements hat dabei geflattert: sie wartete auf
+die ZAHL der Meldungen statt auf deren Inhalt, und das Nachfassen meldet
+ohnehin einen zweiten Stand. Sie wartet jetzt auf den Inhalt.
+
 ### Als Nächstes
 
-Wartungen, Nachfassungen, Belegschaft, Firmeneinstellungen, Voreinstellungen,
-Nachtläufe, Monatsbilanzen und Scheinfotos — dann fällt `core.ts`.
+Firmeneinstellungen, Voreinstellungen, Nachtläufe, Monatsbilanzen und
+Scheinfotos — dann fällt `core.ts`.

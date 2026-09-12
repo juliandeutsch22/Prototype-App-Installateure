@@ -128,6 +128,8 @@ describe('Schreiben', () => {
     const id = await anlegen('customers', 'kern-a',
       { name: 'Mit Notiz', notes: 'steht da' }, chef.client);
 
+    // Ein Aufruf, in dem jedes Feld `undefined` ist, schreibt nichts — und
+    // scheitert auch nicht daran, dass er nichts getroffen hat.
     await aendern('customers', id, { email: undefined }, chef.client);
     let [k] = await abfragen<{ notes?: string }>('customers', 'kern-a',
       { wo: [{ art: 'gleich', feld: 'id', wert: id }] }, chef.client);
@@ -159,6 +161,30 @@ describe('Schreiben', () => {
     expect(await abfragen('customers', 'kern-a',
       { wo: [{ art: 'gleich', feld: 'id', wert: id }] }, chef.client)).toEqual([]);
   });
+
+  it('ein Schreibvorgang, der nichts trifft, ist ein Fehler', async () => {
+    /*
+      DER UNTERSCHIED, DER BEIM UMZUG AM LEICHTESTEN DURCHRUTSCHT. Firestore
+      warf, wenn ein Dokument fehlte oder die Regeln es verwehrten. Der
+      Zeilenschutz antwortet anders: eine Zeile, die man nicht anfassen darf,
+      ist für die Anweisung schlicht nicht da — PostgREST meldet dann keinen
+      Fehler, sondern null geänderte Zeilen.
+
+      Draussen hiesse das: die Verwaltung ändert die Wochenstunden eines
+      Mitarbeiters, bekommt „gespeichert" und sieht beim nächsten Laden den
+      alten Wert. Kein Fehler, keine Meldung, kein Hinweis.
+    */
+    const erfunden = crypto.randomUUID();
+    await expect(aendern('customers', erfunden, { notes: 'x' }, chef.client)).rejects.toThrow();
+    await expect(loeschen('customers', erfunden, chef.client)).rejects.toThrow();
+
+    // Und ebenso, wenn die Zeile einem anderen Betrieb gehört.
+    const { data: fremd } = await admin.from('customers')
+      .select('id').eq('company_id', 'kern-b').limit(1).single();
+    await expect(
+      aendern('customers', fremd!.id as string, { notes: 'x' }, chef.client),
+    ).rejects.toThrow();
+  });
 });
 
 describe('Abonnieren', () => {
@@ -173,7 +199,17 @@ describe('Abonnieren', () => {
     expect(stände[0].map((m) => m.name)).toEqual(['Rohr A']);
 
     await anlegen('materials', 'kern-a', { name: 'Rohr B', stock: 3 }, chef.client);
-    for (let i = 0; i < 60 && stände.length < 2; i += 1) await warte(50);
+    /*
+      GEWARTET WIRD AUF DEN INHALT, NICHT AUF DIE ZAHL DER MELDUNGEN.
+
+      Das Nachfassen nach `NACHFASSEN_MS` meldet ohnehin einen zweiten Stand —
+      und wenn es zufällig vor dem Schreiben lief, enthält der nur „Rohr A".
+      Eine Schleife, die bis „zwei Meldungen" wartet, hört dann genau einen
+      Wimpernschlag zu früh auf und prüft den falschen Stand. Genau so hat
+      diese Prüfung geflattert.
+    */
+    const hatB = () => stände[stände.length - 1].some((m) => m.name === 'Rohr B');
+    for (let i = 0; i < 80 && !hatB(); i += 1) await warte(50);
     expect(stände[stände.length - 1].map((m) => m.name)).toEqual(['Rohr A', 'Rohr B']);
 
     ab();
