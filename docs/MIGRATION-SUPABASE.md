@@ -699,21 +699,44 @@ gedacht. Die Lehre bleibt dieselbe und steht jetzt zweimal im Kopf der Datei.
 
 | | |
 |---|---|
-| Module umgestellt | 7 von 20 |
-| Prüfungen `npm test` | 1629 |
-| Prüfungen gegen die echte Datenbank | 307 |
+| Module umgestellt | 8 von 20 |
+| Prüfungen `npm test` | 1632 |
+| Prüfungen gegen die echte Datenbank | 326 |
 | Prüfungen gegen den Firestore-Emulator | 225 |
-| bewachte Abfragen | 74 |
-| Mutationen für Einsatzplanung und Rüstliste | 8 |
-| davon gefangen | 8 |
+| bewachte Abfragen | 77 |
+| Mutationen für Einsatzplanung, Rüstliste und Urlaub | 15 |
+| davon gefangen | 15 |
 | echte Lücken, die sie aufgedeckt haben | 2 |
 
 Die zwei Lücken: die Reihenfolgeprüfung hätte ein Speichern ohne
 Sortierspalte durchgehen lassen, und die Hakenprüfung hätte nicht bemerkt,
 dass ein Haken ins Leere zeigt. Beide sind geschlossen.
 
+### Urlaub: ein Nachfilter verschwindet, eine Regel wird ehrlicher
+
+Acht Module stehen. `listApprovedVacationsInRange` hat unter Firestore die
+zweite Bedingung im Browser geprüft, weil Bereichsfilter nur auf EINEM Feld
+laufen — also **nach** der Obergrenze. Die Grenze konnte damit Zeilen
+wegschneiden, die der Nachfilter ohnehin verworfen hätte: die Liste war
+kürzer als nötig, ohne dass es auffiel. Postgres nimmt beide Bedingungen, die
+Grenze greift jetzt auf die richtige Menge.
+
+**Und ein Befund, der keiner Datenbank anzulasten ist.** Eine Prüfung,
+geschrieben nach dem Kommentar im Schema („über den eigenen Urlaub
+entscheidet man nicht selbst"), schlug fehl: die Geschäftsführung genehmigt
+ihren eigenen Antrag sehr wohl. Nachgesehen in `firestore.rules` — dort war
+es immer schon so. `darfUrlaubEntscheiden()` fragt, WER entscheiden darf,
+nicht ÜBER WESSEN Antrag.
+
+Geändert wurde das Verhalten nicht: der Umzug soll nichts still verschieben.
+Geändert wurde der Kommentar, der etwas zusagte, was die Regel nie hielt. Das
+Verhalten ist jetzt festgehalten, damit es nicht unbemerkt kippt.
+
+**Ob der Betrieb ein Vier-Augen-Prinzip für Urlaubsanträge will, ist eine
+Entscheidung für den Betrieb.** Sie steht offen.
+
 ### Als Nächstes
 
-Urlaub, Handwerksscheine, Rechnungen, Angebote, Wartungen, Nachfassungen,
+Handwerksscheine, Rechnungen, Angebote, Wartungen, Nachfassungen,
 Belegschaft, Firmeneinstellungen, Voreinstellungen, Nachtläufe,
 Monatsbilanzen und Scheinfotos — dann fällt `core.ts`.

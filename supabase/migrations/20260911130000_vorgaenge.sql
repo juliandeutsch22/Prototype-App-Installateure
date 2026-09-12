@@ -159,12 +159,17 @@ create policy vacations_loeschen on vacations
   for delete using (app.darf(company_id) and user_id = auth.uid() and status = 'Beantragt');
 
 /*
-  UEBER DEN EIGENEN URLAUB ENTSCHEIDET MAN NICHT SELBST.
+  WER ENTSCHEIDET, NICHT UEBER WESSEN ANTRAG.
 
   Der Antragsteller darf seinen Antrag zuruecknehmen (Status „Storniert"),
-  aber nicht genehmigen oder ablehnen. Das stand in firestore.rules als
-  darfUrlaubEntscheiden() und ist hier ein Trigger, weil es den Statuswechsel
-  vergleicht — also alte und neue Zeile braucht.
+  aber nicht genehmigen oder ablehnen — sofern er nicht ohnehin zu denen
+  gehoert, die entscheiden duerfen. Ein Mitarbeiter kann seinen eigenen
+  Urlaub also nicht genehmigen, die Geschaeftsfuehrung ihren schon. Genauso
+  war es in firestore.rules (darfUrlaubEntscheiden()); ein Vier-Augen-Prinzip
+  hat es dort nie gegeben, und der Umzug fuehrt keines ein.
+
+  Ein Trigger und keine Richtlinie, weil es den Statuswechsel vergleicht —
+  also alte und neue Zeile braucht.
 */
 create or replace function app.urlaub_entscheidung_geschuetzt() returns trigger
   language plpgsql
