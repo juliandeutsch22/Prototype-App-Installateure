@@ -67,6 +67,22 @@ export function zeileAlsObjekt<T>(tabelle: string, zeile: Record<string, unknown
   const arten = SPALTENTYPEN[tabelle] ?? {};
   const raus: Record<string, unknown> = {};
   for (const [spalte, wert] of Object.entries(zeile)) {
+    /*
+      LEERE SPALTEN FALLEN WEG, UND ZWAR AUS EINEM GRUND.
+
+      In Firestore gab es „Feld nicht da". In Postgres gibt es eine Spalte mit
+      `null`. Die App-Typen sagen aber `notizen?: string` — nicht
+      `string | null` —, und der Umweg über `as T` lässt den Typprüfer diese
+      Lüge nicht sehen. Käme `null` durch, stünde es in jedem Objekt, das die
+      Datenschicht liefert: `Object.keys` zählte anders, ein `=== undefined`
+      ginge daneben, und ein `null.trim()` fiele erst draussen auf.
+
+      Umgekehrt bleibt `null` beim SCHREIBEN erhalten (siehe
+      `objektAlsZeile`): „ausdrücklich geleert" ist eine Absicht, „nicht
+      mitgeschickt" eine andere. Gelesen bedeuten beide dasselbe — nichts —,
+      und genau so hat es Firestore auch gehalten.
+    */
+    if (wert === null) continue;
     const art = arten[spalte];
     raus[alsFeld(spalte)] =
       art === 'zeitpunkt' ? alsZeitpunkt(wert) : art === 'uhrzeit' ? alsUhrzeit(wert) : wert;

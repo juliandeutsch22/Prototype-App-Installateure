@@ -172,7 +172,22 @@ function sammleAbfragen(): Abfrage[] {
       // `(` unmittelbar nach dem Namen verlangte, ging daran vorbei. So
       // blieben fünfundzwanzig Postgres-Abfragen unbewacht, während der Test
       // grün meldete und sogar bestätigte, er finde etwas in `pg/`.
-      if (!/queryTenant|subscribeTenant|getDocs\(|onSnapshot\(|abfragen[<(]|abonnieren[<(]|\.select\(/.test(koerper)) continue;
+      const mehrere = /queryTenant|subscribeTenant|getDocs\(|onSnapshot\(|abfragen[<(]|abonnieren[<(]|\.select\(/.test(koerper);
+      if (!mehrere) continue;
+      /*
+        `.single()` und `.maybeSingle()` holen GENAU EINE Zeile — das ist die
+        Entsprechung zu `getDoc(doc(…))` und kann per Definition nicht mit dem
+        Bestand wachsen. Sie tragen trotzdem ein `.select(`, und ohne diese
+        Zeile verlangte der Wächter eine Grenze für einen Einzelzugriff. Die
+        einzige Antwort darauf wäre eine Ausnahmeliste gewesen — also eine
+        Liste, die jemand pflegen muss, statt einer Regel, die trägt.
+
+        Steht daneben ein echter Mehrzeilen-Aufruf, zählt der: eine Funktion,
+        die erst eine Zeile holt und dann eine Liste, braucht ihre Grenze.
+      */
+      const nurEine = /\.(maybe)?[Ss]ingle\(/.test(koerper)
+        && !/queryTenant|subscribeTenant|getDocs\(|onSnapshot\(|abfragen[<(]|abonnieren[<(]/.test(koerper);
+      if (nurEine) continue;
       raus.push({ datei, name, koerper });
     }
   }
@@ -231,7 +246,7 @@ describe('Abfragegrenzen in der Datenschicht', () => {
  * Die Zahl unten ist deshalb Teil der Zusage. Sie darf steigen; sinkt sie,
  * muss jemand hinsehen und sie bewusst nachziehen.
  */
-const MINDESTENS = 77;
+const MINDESTENS = 82;
 
 /*
   Am 12.09.2026 sprang die Zahl von 49 auf 74 — ohne dass eine einzige

@@ -699,13 +699,13 @@ gedacht. Die Lehre bleibt dieselbe und steht jetzt zweimal im Kopf der Datei.
 
 | | |
 |---|---|
-| Module umgestellt | 8 von 20 |
-| Prüfungen `npm test` | 1632 |
-| Prüfungen gegen die echte Datenbank | 326 |
+| Module umgestellt | 9 von 20 |
+| Prüfungen `npm test` | 1637 |
+| Prüfungen gegen die echte Datenbank | 353 |
 | Prüfungen gegen den Firestore-Emulator | 225 |
-| bewachte Abfragen | 77 |
-| Mutationen für Einsatzplanung, Rüstliste und Urlaub | 15 |
-| davon gefangen | 15 |
+| bewachte Abfragen | 82 |
+| Mutationen für Einsatz, Rüstliste, Urlaub und Schein | 24 |
+| davon gefangen | 24 |
 | echte Lücken, die sie aufgedeckt haben | 2 |
 
 Die zwei Lücken: die Reihenfolgeprüfung hätte ein Speichern ohne
@@ -735,8 +735,52 @@ Verhalten ist jetzt festgehalten, damit es nicht unbemerkt kippt.
 **Ob der Betrieb ein Vier-Augen-Prinzip für Urlaubsanträge will, ist eine
 Entscheidung für den Betrieb.** Sie steht offen.
 
+### Der Handwerksschein: aus einem Dokument werden vier Tabellen
+
+Zeiten, Material und Fotos lagen als Arrays im Schein. Jetzt sind es eigene
+Zeilen — und damit gilt dasselbe wie bei der Rüstliste, nur schärfer: Kopf und
+Positionen müssen **zusammen** geschrieben werden. Ein Kopf ohne seine
+Stunden wäre ein halber Beleg, und wird in genau diesem Augenblick
+unterschrieben, ist er für immer halb. `public.schein_speichern` erledigt
+beides in einer Transaktion.
+
+**Die Spaltenliste dieser Funktion ist ein Riegel, kein Zufall.** Sie nennt
+genau die Felder, die ein Entwurf ändern darf. `status`, die Unterschriften,
+`inhalt_hash` und `unterschrieben_am` stehen nicht darauf — sie sind kein
+Inhalt, sondern der Zustand des Belegs, und der wechselt über eigene Wege,
+die ein Trigger beurteilt. Damit kann der Inhaltsweg einen Schein weder
+unterschreiben noch stornieren, egal was ihm übergeben wird.
+
+Eine Prüfung dazu ist zweimal umgeschrieben worden, und der Grund gehört
+festgehalten: Client und Datenbank sieben beide. Über den Modulweg geprüft
+blieb sie grün, egal welche der beiden Seiten ich kaputtmachte — sie sagte
+also nichts. Jetzt stellt sie den Datenbankaufruf von Hand und prüft die
+Spaltenliste allein.
+
+### `null` ist nicht dasselbe wie „nicht da"
+
+Firestore kannte nur „Feld nicht da". Postgres hat eine Spalte mit `null`. Die
+App-Typen sagen `notizen?: string` und nicht `string | null`, und der Umweg
+über `as T` lässt den Typprüfer diese Lüge nicht sehen.
+
+`zeileAlsObjekt` lässt leere Spalten deshalb weg — an einer Stelle, für alle
+Module. Beim SCHREIBEN bleibt `null` erhalten: „ausdrücklich geleert" ist eine
+Absicht, „nicht mitgeschickt" eine andere. Gelesen bedeuten beide dasselbe.
+
+Aufgefallen ist es an einer einzigen Prüfung, die `undefined` erwartete und
+`null` bekam. Es hätte jedes der acht bereits umgestellten Module betroffen.
+
+### Der Wächter kann jetzt zwischen einer Zeile und einer Liste unterscheiden
+
+`getWorkSheet` holt genau eine Zeile (`.maybeSingle()`), trägt aber ein
+`.select(` und verlangte damit eine Grenze. Die bequeme Antwort wäre eine
+Ausnahmeliste gewesen — also eine Liste, die jemand pflegen muss. Stattdessen
+kennt der Wächter jetzt den Unterschied: `.single()` und `.maybeSingle()` sind
+die Entsprechung zu `getDoc(doc(…))` und können per Definition nicht wachsen.
+Steht daneben ein echter Mehrzeilen-Aufruf, zählt der.
+
 ### Als Nächstes
 
-Handwerksscheine, Rechnungen, Angebote, Wartungen, Nachfassungen,
-Belegschaft, Firmeneinstellungen, Voreinstellungen, Nachtläufe,
-Monatsbilanzen und Scheinfotos — dann fällt `core.ts`.
+Rechnungen, Angebote, Wartungen, Nachfassungen, Belegschaft,
+Firmeneinstellungen, Voreinstellungen, Nachtläufe, Monatsbilanzen und
+Scheinfotos — dann fällt `core.ts`.

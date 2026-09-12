@@ -129,14 +129,28 @@ describe('Schreiben', () => {
       { name: 'Mit Notiz', notes: 'steht da' }, chef.client);
 
     await aendern('customers', id, { email: undefined }, chef.client);
-    let [k] = await abfragen<{ notes: string | null }>('customers', 'kern-a',
+    let [k] = await abfragen<{ notes?: string }>('customers', 'kern-a',
       { wo: [{ art: 'gleich', feld: 'id', wert: id }] }, chef.client);
     expect(k.notes).toBe('steht da');
 
+    /*
+      GELEERT HEISST IN DER DATENBANK `null` UND IN DER APP „nicht da".
+
+      Das ist kein Widerspruch, sondern die Grenze zwischen beiden Welten.
+      Firestore kannte nur „Feld nicht da"; die App-Typen sagen deshalb
+      `notes?: string` und nicht `string | null`. Käme `null` durch, stünde es
+      in jedem gelieferten Objekt und liefe irgendwo in ein `.trim()`.
+
+      Geprüft wird beides: dass die Spalte wirklich geleert wurde, und dass
+      die Datenschicht sie als abwesend meldet.
+    */
     await aendern('customers', id, { notes: null }, chef.client);
-    [k] = await abfragen<{ notes: string | null }>('customers', 'kern-a',
+    [k] = await abfragen<{ notes?: string }>('customers', 'kern-a',
       { wo: [{ art: 'gleich', feld: 'id', wert: id }] }, chef.client);
-    expect(k.notes).toBeNull();
+    expect('notes' in k).toBe(false);
+
+    const { data: roh } = await admin.from('customers').select('notes').eq('id', id).single();
+    expect(roh!.notes).toBeNull();
   });
 
   it('löscht', async () => {
