@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { WorkSheet, WorkSheetFoto, WorkSheetUnterschrift } from '@/types';
-import { queryTenant, createInTenant, type WithId } from '../core';
+import { queryTenant, createInTenant, type WithId } from './core';
 
 /**
  * Handwerksscheine — der Beleg, den der Kunde auf der Baustelle unterschreibt.

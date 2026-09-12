@@ -254,7 +254,7 @@ describe('Abfragegrenzen in der Datenschicht', () => {
  * Die Zahl unten ist deshalb Teil der Zusage. Sie darf steigen; sinkt sie,
  * muss jemand hinsehen und sie bewusst nachziehen.
  */
-const MINDESTENS = 92;
+const MINDESTENS = 93;
 
 /*
   Am 12.09.2026 sprang die Zahl von 49 auf 74 — ohne dass eine einzige

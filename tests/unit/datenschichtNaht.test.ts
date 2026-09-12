@@ -7,8 +7,8 @@
  * würde es erst dort, wo jemand einen anderen Client einreicht: in Tests, und
  * später beim Wechsel des angemeldeten Kontos.
  *
- * Neunzehn Module kommen noch. Dieser Wächter fängt den Fehler beim nächsten
- * Mal sofort, statt nach einer halben Stunde Suche.
+ * Dieser Wächter fängt den Fehler sofort, statt nach einer halben Stunde
+ * Suche.
  */
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -34,6 +34,49 @@ describe('Die Naht der Datenschicht', () => {
     const gemischt = dateien()
       .filter((d) => /from 'firebase\/|from '@\/lib\/firebase'/.test(readFileSync(resolve(PG, d), 'utf8')));
     expect(gemischt).toEqual([]);
+  });
+
+  it('die Mitte kennt keine der beiden Datenbanken', () => {
+    /*
+      WAS „DIE MITTE" IST: die Dateien unmittelbar in `src/lib/db/`, die keine
+      Weiche sind — `core.ts` mit der Kennung, `quelle.ts` mit dem Schalter,
+      und die Module mit den Vorgaben des Betriebs.
+
+      `core.ts` trug bis zum 12.09.2026 die Firestore-Helfer. Damit zog jede
+      der zwanzig Ansichten, die von dort nur `WithId` holte, das
+      Firestore-SDK in ihren Typgraphen — und der Rückbau in Stufe 7 hätte an
+      zwanzig Stellen angefangen statt an einer. Die Helfer liegen jetzt in
+      `fs/core.ts`; damit das so bleibt, steht es hier.
+    */
+    const WURZEL = resolve(process.cwd(), 'src/lib/db');
+    const mitte = readdirSync(WURZEL)
+      .filter((d) => d.endsWith('.ts'))
+      .filter((d) => !/from '\.\/pg\//.test(readFileSync(resolve(WURZEL, d), 'utf8')));
+
+    /*
+      EINE AUSNAHME, UND SIE STEHT HIER MIT DATUM.
+
+      `scheinFotos.ts` lädt Bilder in den Speicher hoch — das ist nicht die
+      Datenbank, sondern Firebase Storage, und es zieht in Stufe 6 um. Es
+      liegt in diesem Verzeichnis, weil eine Ansicht es von dort importiert;
+      es wegzuräumen hiesse, eine Ansicht anzufassen, und genau das sagt
+      Stufe 3 nicht zu tun zu.
+
+      Die Ausnahme fällt mit Stufe 6. Bleibt sie länger stehen, ist das hier
+      die Stelle, an der es auffällt.
+    */
+    const SPEICHER = 'scheinFotos.ts';
+
+    const verunreinigt = mitte.filter((d) => d !== SPEICHER).filter((d) =>
+      /from 'firebase\/|from '@\/lib\/firebase'|from '@\/lib\/supabase'/
+        .test(readFileSync(resolve(WURZEL, d), 'utf8')));
+    expect(verunreinigt).toEqual([]);
+
+    // Und der Wächter über den Wächter: findet er die Mitte überhaupt, und
+    // gibt es die Ausnahme noch?
+    expect(mitte).toContain('core.ts');
+    expect(mitte).toContain('quelle.ts');
+    expect(mitte).toContain(SPEICHER);
   });
 
   it('und die Weiche entscheidet, statt selbst zu arbeiten', () => {

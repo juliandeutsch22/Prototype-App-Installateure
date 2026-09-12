@@ -1,7 +1,7 @@
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppUser, Role } from '@/types';
-import { queryTenant } from '../core';
+import { queryTenant } from './core';
 import {
   DEFAULT_WEEKLY_HOURS, DEFAULT_VACATION_DAYS, DEFAULT_WORK_DAYS,
   type UserProfileInput,

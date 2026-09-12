@@ -2,7 +2,7 @@ import { where, orderBy, limit, doc, deleteDoc, writeBatch } from 'firebase/fire
 import { db } from '@/lib/firebase';
 import type { Customer, Project } from '@/types';
 import { KUNDEN_GRENZE } from '@/lib/listengrenzen';
-import { queryTenant, createInTenant, updateInTenant, type WithId } from '../core';
+import { queryTenant, createInTenant, updateInTenant, type WithId } from './core';
 
 /**
  * Kundenstammdaten.

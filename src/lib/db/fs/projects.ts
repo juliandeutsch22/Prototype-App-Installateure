@@ -2,7 +2,7 @@ import { where, doc, deleteDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Project } from '@/types';
 import { BAUSTELLEN_AUSWAHL_GRENZE } from '@/lib/listengrenzen';
-import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from '../core';
+import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from './core';
 
 const COLLECTION = 'projects';
 

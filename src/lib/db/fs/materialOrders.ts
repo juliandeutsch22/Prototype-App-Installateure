@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { MaterialOrder } from '@/types';
-import { queryTenant, subscribeTenant, createInTenant, stripUndefined, type WithId } from '../core';
+import { queryTenant, subscribeTenant, createInTenant, stripUndefined, type WithId } from './core';
 
 const COLLECTION = 'materialOrders';
 

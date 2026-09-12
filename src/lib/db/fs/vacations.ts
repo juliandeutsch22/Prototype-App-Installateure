@@ -1,6 +1,6 @@
 import { where, orderBy, limit } from 'firebase/firestore';
 import type { Vacation } from '@/types';
-import { queryTenant, createInTenant, deleteInTenant, type WithId } from '../core';
+import { queryTenant, createInTenant, deleteInTenant, type WithId } from './core';
 
 /**
  * Urlaubsanträge.

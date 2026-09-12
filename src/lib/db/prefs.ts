@@ -1,36 +1,26 @@
-import { doc, getDoc, setDoc, onSnapshot, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { UserPrefs } from '@/types';
-
 /**
- * Persönliche Einstellungen, per uid geschlüsselt (userPrefs/{uid}).
+ * Persönliche Einstellungen — nur die Weiche.
  *
- * Getrennt von `users`, weil dort nur die Geschäftsführung schreiben darf.
  * Was jemand an Meldungen bekommen will und auf welchen Geräten, entscheidet
- * er selbst — die Rules erlauben deshalb genau das eigene Dokument.
+ * er selbst. Beide Datenquellen lassen deshalb genau das eigene Dokument zu,
+ * und zwar auch beim Lesen.
  */
+import type { UserPrefs } from '@/types';
+import { nutztPostgres } from './quelle';
+import * as fs from './fs/prefs';
+import * as pg from './pg/prefs';
 
-const COLLECTION = 'userPrefs';
+/*
+  Meldungsart und Vorgabe stehen in `meldungsvorgaben.ts` — einmal, weil sie
+  Regeln des Betriebs sind und keine der Datenbank. Hier nur durchgereicht,
+  damit die Ansichten wie bisher aus einem Modul importieren.
+*/
+export { PREFS_DEFAULTS } from './meldungsvorgaben';
+export type { NotifyPrefs } from './meldungsvorgaben';
+import type { NotifyPrefs } from './meldungsvorgaben';
 
-/** Die Meldungsarten, die jemand fuer sich ein- und ausschalten kann. */
-export type NotifyPrefs = Pick<
-  UserPrefs,
-  'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery'
->;
-
-/** Vorgabe für jemanden, der noch nie etwas eingestellt hat. */
-export const PREFS_DEFAULTS: NotifyPrefs = {
-  // Beide an: wer nichts einstellt, soll nichts verpassen. Abschalten ist
-  // ein bewusster Schritt, Einschalten sollte keiner sein.
-  notifyNewOrder: true,
-  notifyOrderReady: true,
-  notifyUrgentDelivery: true,
-};
-
-export async function getPrefs(uid: string): Promise<UserPrefs | null> {
-  const snap = await getDoc(doc(db, COLLECTION, uid));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...(snap.data() as Omit<UserPrefs, 'id'>) };
+export function getPrefs(uid: string): Promise<UserPrefs | null> {
+  return nutztPostgres() ? pg.getPrefs(uid) : fs.getPrefs(uid);
 }
 
 export function subscribePrefs(
@@ -38,45 +28,27 @@ export function subscribePrefs(
   cb: (p: UserPrefs | null) => void,
   onError?: (e: Error) => void,
 ): () => void {
-  return onSnapshot(
-    doc(db, COLLECTION, uid),
-    (snap) =>
-      cb(snap.exists() ? { id: snap.id, ...(snap.data() as Omit<UserPrefs, 'id'>) } : null),
-    (e) => onError?.(e),
-  );
+  return nutztPostgres()
+    ? pg.subscribePrefs(uid, cb, onError)
+    : fs.subscribePrefs(uid, cb, onError);
 }
 
-/** Schreibt die Auswahl. `merge`, damit die Gerätetokens unangetastet bleiben. */
-export async function savePrefs(
-  companyId: string,
-  uid: string,
-  prefs: NotifyPrefs,
+export function savePrefs(
+  companyId: string, uid: string, prefs: NotifyPrefs,
 ): Promise<void> {
-  await setDoc(
-    doc(db, COLLECTION, uid),
-    { companyId, userId: uid, ...prefs, updatedAt: Date.now() },
-    { merge: true },
-  );
+  return nutztPostgres()
+    ? pg.savePrefs(companyId, uid, prefs)
+    : fs.savePrefs(companyId, uid, prefs);
 }
 
-/**
- * Gerät für Push registrieren. arrayUnion statt Lesen-Ändern-Schreiben:
- * meldet sich jemand auf Telefon und Rechner gleichzeitig an, gingen sonst
- * je nach Reihenfolge Tokens verloren.
- */
-export async function addPushToken(companyId: string, uid: string, token: string): Promise<void> {
-  await setDoc(
-    doc(db, COLLECTION, uid),
-    { companyId, userId: uid, pushTokens: arrayUnion(token), updatedAt: Date.now() },
-    { merge: true },
-  );
+export function addPushToken(
+  companyId: string, uid: string, token: string,
+): Promise<void> {
+  return nutztPostgres()
+    ? pg.addPushToken(companyId, uid, token)
+    : fs.addPushToken(companyId, uid, token);
 }
 
-/** Gerät abmelden — beim Abschalten der Benachrichtigungen oder beim Logout. */
-export async function removePushToken(uid: string, token: string): Promise<void> {
-  await setDoc(
-    doc(db, COLLECTION, uid),
-    { pushTokens: arrayRemove(token), updatedAt: Date.now() },
-    { merge: true },
-  );
+export function removePushToken(uid: string, token: string): Promise<void> {
+  return nutztPostgres() ? pg.removePushToken(uid, token) : fs.removePushToken(uid, token);
 }

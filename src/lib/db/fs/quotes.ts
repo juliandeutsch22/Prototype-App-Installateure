@@ -7,7 +7,7 @@ import {
   updateInTenant,
   deleteInTenant,
   type WithId,
-} from '../core';
+} from './core';
 
 /**
  * Angebote.

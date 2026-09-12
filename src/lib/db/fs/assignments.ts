@@ -13,7 +13,7 @@ import {
 import { db } from '@/lib/firebase';
 import type { Assignment } from '@/types';
 import { getEinsatzMaterial } from './einsatzMaterial';
-import { queryTenant, subscribeTenant, type WithId } from '../core';
+import { queryTenant, subscribeTenant, type WithId } from './core';
 
 const COLLECTION = 'assignments';
 

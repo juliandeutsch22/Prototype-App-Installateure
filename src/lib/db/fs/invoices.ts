@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Invoice } from '@/types';
-import { queryTenant, subscribeTenant, createInTenant, type WithId } from '../core';
+import { queryTenant, subscribeTenant, createInTenant, type WithId } from './core';
 import { decideInvoiceSeq, formatInvoiceNumber } from '@/lib/invoiceNumbers';
 
 // Die reinen Rechenregeln liegen in lib/invoiceNumbers — ohne Firestore und

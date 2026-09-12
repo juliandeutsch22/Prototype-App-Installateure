@@ -10,14 +10,6 @@ src/lib/db/benutzerVorgaben.ts#DEFAULT_WEEKLY_HOURS: 40
 src/lib/db/benutzerVorgaben.ts#DEFAULT_WORK_DAYS: number[]
 src/lib/db/company.ts#getCompany: (companyId: string) => Promise<Company | null>
 src/lib/db/company.ts#updateCompany: (companyId: string, data: Partial<Omit<Company, "id">>) => Promise<void>
-src/lib/db/core.ts#createInTenant: (collectionName: string, companyId: string, data: DocumentData) => Promise<string>
-src/lib/db/core.ts#deleteInTenant: (collectionName: string, id: string) => Promise<void>
-src/lib/db/core.ts#queryTenant: <T>(collectionName: string, companyId: string, ...constraints: QueryConstraint[]) => Promise<WithId<T>[]>
-src/lib/db/core.ts#serverTimestamp: () => import("node_modules/@firebase/firestore/dist/index").FieldValue
-src/lib/db/core.ts#stripUndefined: (data: DocumentData) => DocumentData
-src/lib/db/core.ts#subscribeTenant: <T>(collectionName: string, companyId: string, cb: (rows: WithId<T>[]) => void, onError: (e: Error) => void, ...constraints: QueryConstraint[]) => () => void
-src/lib/db/core.ts#updateInTenant: (collectionName: string, id: string, data: DocumentData) => Promise<void>
-src/lib/db/core.ts#where: (fieldPath: string | import("node_modules/@firebase/firestore/dist/index").FieldPath, opStr: import("node_modules/@firebase/firestore/dist/index").WhereFilterOp, value: unknown) => import("node_modules/@firebase/firestore/dist/index").QueryFieldFilterConstraint
 src/lib/db/customers.ts#assignProjectToCustomer: (projectId: string, customerId: string, customerName: string) => Promise<void>
 src/lib/db/customers.ts#createCustomer: (companyId: string, c: NewCustomer) => Promise<string>
 src/lib/db/customers.ts#deleteCustomer: (companyId: string, id: string) => Promise<void>
@@ -69,6 +61,7 @@ src/lib/db/materials.ts#katalogAbgeschnitten: (artikel: readonly unknown[], gren
 src/lib/db/materials.ts#listMaterials: (companyId: string, max?: number) => Promise<WithId<Material>[]>
 src/lib/db/materials.ts#subscribeMaterials: (companyId: string, cb: (rows: WithId<Material>[]) => void, onError: (e: Error) => void, max?: number) => () => void
 src/lib/db/materials.ts#updateMaterial: (id: string, data: Partial<Material>) => Promise<void>
+src/lib/db/meldungsvorgaben.ts#PREFS_DEFAULTS: NotifyPrefs
 src/lib/db/monatsbilanzen.ts#bilanzMarker: (companyId: string, uid: string) => Promise<{ vollstaendigAb: string; } | null>
 src/lib/db/monatsbilanzen.ts#listBilanzen: (companyId: string, uid: string, abMonat: string) => Promise<Monatsbilanz[]>
 src/lib/db/monatsbilanzen.ts#monatVon: (datum: string) => string

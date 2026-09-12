@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase';
 import type { Material } from '@/types';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import { limit } from 'firebase/firestore';
-import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from '../core';
+import { queryTenant, subscribeTenant, createInTenant, updateInTenant, type WithId } from './core';
 
 const COLLECTION = 'materials';
 

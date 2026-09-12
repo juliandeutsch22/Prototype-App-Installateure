@@ -603,7 +603,7 @@ Prüfungen an meiner Ablauflogik und nicht an der Tagesform des Meldewegs.
 | | |
 |---|---|
 | Prüfungen gegen die echte Datenbank | 228 |
-| festgenagelte Signaturen der Datenschicht | 143 |
+| festgenagelte Signaturen der Aussenseite | 136 |
 | Mutationen angesetzt | 13 |
 | beim ersten Anlauf gefangen | 9 |
 | echte Lücken durch die vier übrigen | 4 |
@@ -699,13 +699,13 @@ gedacht. Die Lehre bleibt dieselbe und steht jetzt zweimal im Kopf der Datei.
 
 | | |
 |---|---|
-| Module umgestellt | 14 von 20 |
-| Prüfungen `npm test` | 1647 |
-| Prüfungen gegen die echte Datenbank | 404 |
+| Module umgestellt | 18 von 18 |
+| Prüfungen `npm test` | 1649 |
+| Prüfungen gegen die echte Datenbank | 427 |
 | Prüfungen gegen den Firestore-Emulator | 225 |
-| bewachte Abfragen | 92 |
-| Mutationen seit Beginn von Stufe 3 | 48 |
-| davon gefangen | 48 |
+| bewachte Abfragen | 93 |
+| Mutationen seit Beginn von Stufe 3 | 56 |
+| davon gefangen | 56 |
 | echte Lücken, die sie aufgedeckt haben | 2 |
 
 Die zwei Lücken: die Reihenfolgeprüfung hätte ein Speichern ohne
@@ -870,7 +870,74 @@ Eine bestehende Prüfung des Abonnements hat dabei geflattert: sie wartete auf
 die ZAHL der Meldungen statt auf deren Inhalt, und das Nachfassen meldet
 ohnehin einen zweiten Stand. Sie wartet jetzt auf den Inhalt.
 
+## Stufe 3 ist durch: achtzehn Module, und `core.ts` ist leer
+
+12.09.2026. Alle achtzehn Datenmodule sind Weichen; das Innere liegt in `fs/`
+und `pg/`. Keine Ansicht ist angefasst worden.
+
+### Ein ganzer Nachtlauf verschwindet
+
+Die Monatsbilanzen waren in Firestore ein nächtlich vorgerechneter Bestand.
+Fiel der Lauf aus, war eine fehlende Bilanz von einem Monat ohne Buchungen
+nicht zu unterscheiden — und wer sie ungeprüft summierte, bekam einen zu
+niedrigen Saldo, ohne Meldung, und die Zahl ging auf den Lohnzettel. Dagegen
+gab es den Vollständigkeits-Marker und den Rückfall auf die direkte Rechnung.
+
+`monthly_stats` ist eine Sicht über die Zeitbuchungen. Sie kann nicht
+unvollständig sein: sie IST die direkte Rechnung, nur in der Datenbank statt
+im Browser. Der Marker bleibt trotzdem stehen und antwortet „vollständig, von
+Anfang an" — die Ansicht fragt ihn, und eine Weiche, die unter der einen
+Datenquelle etwas anderes antwortet als unter der anderen, wäre schlimmer als
+eine Zeile Code.
+
+### Ein Spaltenname, der stillschweigend nichts geliefert hätte
+
+`system_laeufe.ausser_haus` hiess in der App seit jeher `zielExtern`. Die
+Umrechnung zwischen beiden Welten ist mechanisch; eine Spalte, die anders
+heisst, fällt heraus und kommt als Feld an, nach dem niemand fragt. Die
+Ansicht hätte dann nichts über den Ablageort der Sicherung gesagt — und
+„nichts behauptet" sieht aus wie „in Ordnung". Die Spalte heisst jetzt wie die
+Sache.
+
+### `core.ts` trägt nur noch die Kennung
+
+Zwanzig Ansichten importieren `WithId` von dort. Solange die Firestore-Helfer
+danebenstanden, zog jede von ihnen das Firestore-SDK in ihren Typgraphen, und
+der Rückbau in Stufe 7 hätte an zwanzig Stellen angefangen statt an einer. Die
+Helfer liegen jetzt in `fs/core.ts`, `core.ts` erklärt eine Typzeile, und ein
+Wächter hält fest, dass die Mitte der Datenschicht keine der beiden Datenbanken
+kennt.
+
+Die einzige benannte Ausnahme ist `scheinFotos.ts` — Bilder gehen in den
+Speicher und nicht in die Datenbank; das zieht in Stufe 6 um. Die Ausnahme
+steht mit Datum im Wächter, damit sie auffällt, wenn sie stehen bleibt.
+
+### Stand nach Stufe 3
+
+| | |
+|---|---|
+| Module umgestellt | 18 von 18 |
+| Prüfungen `npm test` | 1649 |
+| Prüfungen gegen die echte Datenbank | 427 |
+| Prüfungen gegen den Firestore-Emulator | 225 |
+| bewachte Abfragen | 93 |
+| festgenagelte Signaturen der Aussenseite | 136 |
+| Mutationen in Stufe 3 | 56 |
+| davon gefangen | 56 |
+
+### Was Stufe 3 NICHT umfasst
+
+* **Die fünfzehn Cloud Functions.** Sie schreiben weiter nach Firestore; das
+  ist Stufe 5.
+* **Fotos und Push.** Firebase Storage und FCM bleiben bis Stufe 6.
+* **Die 35 Durchstich- und 35 Abfrageprüfungen.** Sie laufen gegen den
+  Firestore-Emulator und prüfen die Weichen von aussen — sie ziehen erst
+  um, wenn die Datenquelle umgeschaltet wird (Stufe 8).
+* **Der Rückbau.** Die Narben — der Vollständigkeits-Marker, die
+  Obergrenzen, die gespiegelten Namensfelder — stehen noch. Sie fallen in
+  Stufe 7, und erst dann zahlt sich der Umzug in der Oberfläche aus.
+
 ### Als Nächstes
 
-Firmeneinstellungen, Voreinstellungen, Nachtläufe, Monatsbilanzen und
-Scheinfotos — dann fällt `core.ts`.
+Stufe 4: die Abonnements in der Oberfläche gegen den echten Stack fahren.
+Danach die Functions.

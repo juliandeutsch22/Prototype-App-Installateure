@@ -1,6 +1,6 @@
 import { where } from 'firebase/firestore';
 import type { FollowUp } from '@/types';
-import { queryTenant, createInTenant, updateInTenant } from '../core';
+import { queryTenant, createInTenant, updateInTenant } from './core';
 
 const COLLECTION = 'followUps';
 

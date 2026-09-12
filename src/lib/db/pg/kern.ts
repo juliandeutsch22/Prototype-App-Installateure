@@ -9,9 +9,15 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabaseClient } from '@/lib/supabase';
+import type { WithId } from '../core';
 import { zeileAlsObjekt, objektAlsZeile } from './felder';
 
-export type WithId<T> = T & { id: string };
+/*
+  DIESELBE KENNUNG WIE AUF DER ANDEREN SEITE. Sie hier ein zweites Mal zu
+  erklären hiesse, zwei Typen zu haben, die zufällig gleich aussehen — und
+  eines Tages nicht mehr.
+*/
+export type { WithId };
 
 /**
  * Wie lange nach dem Abonnieren noch einmal geholt wird.

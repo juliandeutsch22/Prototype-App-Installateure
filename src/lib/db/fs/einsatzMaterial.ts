@@ -9,7 +9,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { EinsatzMaterial, RuestPosition } from '@/types';
-import { queryTenant, subscribeTenant, type WithId } from '../core';
+import { queryTenant, subscribeTenant, type WithId } from './core';
 
 /**
  * Die Rüstliste eines Einsatzes: was der Monteur an diesem Tag auf diese

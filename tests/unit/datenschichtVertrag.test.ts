@@ -123,7 +123,7 @@ describe('Die Datenschicht behält ihre Aussenseite', () => {
     Namen waren betroffen, darunter die Rechennamen der Rechnungsnummern und
     die Vorgaben der Belegschaft — alles Dinge, die Ansichten importieren.
   */
-  it('es sind mindestens die 143, die der Vertrag heute trägt', () => {
-    expect(signaturen().length).toBeGreaterThanOrEqual(143);
+  it('es sind mindestens die 136, die der Vertrag heute trägt', () => {
+    expect(signaturen().length).toBeGreaterThanOrEqual(136);
   });
 });

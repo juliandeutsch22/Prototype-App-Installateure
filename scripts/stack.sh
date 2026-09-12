@@ -11,14 +11,30 @@
 #   scripts/stack.sh neu      hält vorher alles an (wenn der Stack klemmt)
 set -u
 
-if ! timeout 5 docker info >/dev/null 2>&1; then
-  echo "Docker-Dienst starten…"
-  sudo -n dockerd >/tmp/dockerd.log 2>&1 &
+warte_auf_docker() {
   for _ in $(seq 1 60); do
-    timeout 5 docker info >/dev/null 2>&1 && break
+    timeout 5 docker info >/dev/null 2>&1 && return 0
     sleep 2
   done
-  timeout 5 docker info >/dev/null 2>&1 || { echo "Docker startet nicht, siehe /tmp/dockerd.log"; exit 1; }
+  return 1
+}
+
+if ! timeout 5 docker info >/dev/null 2>&1; then
+  # LÄUFT SCHON EINER? Dann NICHT noch einen starten.
+  #
+  # Ein `dockerd`, der gerade hochfährt, antwortet noch nicht auf `docker
+  # info` — sieht also aus wie „keiner da". Ein zweiter Start scheitert dann
+  # an der PID-Datei des ersten („process with PID … is still running"), und
+  # dieses Skript brach ab, obwohl der erste eine halbe Minute später bereit
+  # war. Ein blosser zweiter Aufruf half; das ist keine Lösung, sondern eine
+  # Gewohnheit.
+  if pgrep -x dockerd >/dev/null 2>&1; then
+    echo "Docker-Dienst läuft schon, warte…"
+  else
+    echo "Docker-Dienst starten…"
+    sudo -n dockerd >/tmp/dockerd.log 2>&1 &
+  fi
+  warte_auf_docker || { echo "Docker antwortet nicht, siehe /tmp/dockerd.log"; exit 1; }
 fi
 
 if [ "${1:-}" = "neu" ]; then
