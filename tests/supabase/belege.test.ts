@@ -208,13 +208,18 @@ describe('Die Nummernvergabe', () => {
     const b = await buch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2026 });
     expect(b.data).toBe((a.data as number) + 1);
 
-    // Neues Jahr, neuer Anfang — Rechnungsnummern tragen das Jahr.
+    /*
+      Neues Jahr, neuer Anfang — Rechnungsnummern tragen das Jahr. Und zwar
+      bei 1001 und nicht bei 1: „RE-2027-0001" sieht nach der ersten Rechnung
+      des Betriebs aus, und das ist eine Auskunft an jeden Kunden, die
+      niemand geben will.
+    */
     const neuesJahr = await buch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2027 });
-    expect(neuesJahr.data).toBe(1);
+    expect(neuesJahr.data).toBe(1001);
 
     // Anderer Betrieb, eigener Zähler.
     const andere = await fremd.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2026 });
-    expect(andere.data).toBe(1);
+    expect(andere.data).toBe(1001);
   });
 
   it('gibt einem Mitarbeiter keine Rechnungsnummer', async () => {

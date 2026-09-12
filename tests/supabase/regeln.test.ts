@@ -327,11 +327,18 @@ describe('Administratoren verwaltet nur ein Administrator', () => {
 });
 
 describe('Rechnungszaehler — monoton und nur fuer Abrechnende', () => {
+  /*
+    RECHNUNGEN BEGINNEN BEI 1001, Angebote bei 1. „RE-2030-0001" sieht nach
+    der ersten Rechnung des Betriebs aus; das ist eine Auskunft an jeden
+    Kunden, die niemand geben will. Die Regel stand in `lib/invoiceNumbers`
+    und ist mit dem Umzug des Moduls in die Datenbank gewandert — sie gilt
+    jetzt auch fuer jeden, der die Funktion an der App vorbei aufruft.
+  */
   it('Buchhaltung darf den Zaehler anlegen und hochzaehlen', async () => {
     const erst = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(erst.data).toBe(1);
+    expect(erst.data).toBe(1001);
     const dann = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(dann.data).toBe(2);
+    expect(dann.data).toBe(1002);
   });
 
   it('der Zaehler darf NICHT zurueckgesetzt werden', async () => {
@@ -343,13 +350,13 @@ describe('Rechnungszaehler — monoton und nur fuer Abrechnende', () => {
       .update({ stand: 0 }).eq('company_id', 'firma-a').select();
     expect(direkt.data ?? []).toEqual([]);
     const weiter = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(weiter.data).toBe(3);
+    expect(weiter.data).toBe(1003);
   });
 
   it('der Zaehler darf nicht geloescht werden', async () => {
     await aBuch.client.from('number_counters').delete().eq('company_id', 'firma-a');
     const weiter = await aBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(weiter.data).toBe(4);
+    expect(weiter.data).toBe(1004);
   });
 
   it('ein Monteur kommt an den Zaehler nicht heran', async () => {
@@ -362,7 +369,7 @@ describe('Rechnungszaehler — monoton und nur fuer Abrechnende', () => {
     // liest den Betrieb aus dem Token und nicht aus dem Aufruf.
     const bBuch = await konto('firma-b', 'Buchhaltung', 'b-buch');
     const eigener = await bBuch.client.rpc('naechste_nummer', { p_art: 'invoices', p_jahr: 2030 });
-    expect(eigener.data).toBe(1);
+    expect(eigener.data).toBe(1001);
     expect((await bBuch.client.from('number_counters').select('*')).data ?? []).toEqual([]);
   });
 });

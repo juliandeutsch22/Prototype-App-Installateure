@@ -699,13 +699,13 @@ gedacht. Die Lehre bleibt dieselbe und steht jetzt zweimal im Kopf der Datei.
 
 | | |
 |---|---|
-| Module umgestellt | 9 von 20 |
-| Prüfungen `npm test` | 1637 |
-| Prüfungen gegen die echte Datenbank | 353 |
+| Module umgestellt | 11 von 20 |
+| Prüfungen `npm test` | 1642 |
+| Prüfungen gegen die echte Datenbank | 384 |
 | Prüfungen gegen den Firestore-Emulator | 225 |
-| bewachte Abfragen | 82 |
-| Mutationen für Einsatz, Rüstliste, Urlaub und Schein | 24 |
-| davon gefangen | 24 |
+| bewachte Abfragen | 87 |
+| Mutationen dieser Runde (Einsatz bis Angebot) | 35 |
+| davon gefangen | 35 |
 | echte Lücken, die sie aufgedeckt haben | 2 |
 
 Die zwei Lücken: die Reihenfolgeprüfung hätte ein Speichern ohne
@@ -779,8 +779,44 @@ kennt der Wächter jetzt den Unterschied: `.single()` und `.maybeSingle()` sind
 die Entsprechung zu `getDoc(doc(…))` und können per Definition nicht wachsen.
 Steht daneben ein echter Mehrzeilen-Aufruf, zählt der.
 
+### Rechnung und Angebot: der Nummernkreis wandert in die Datenbank
+
+Elf Module stehen. Die Rechnung ist wieder ein Kopf plus zwei Tabellen
+(Positionen und Abdeckung), zusammen geschrieben — eine Rechnung ohne
+Positionen wäre eine Rechnung über nichts, mit einer verbrauchten Nummer, die
+sich nach § 132 BAO auch nicht mehr wegräumen lässt.
+
+**Der Zähler in der Datenbank konnte weniger als die Datenschicht.** Er zählte
+hoch, und das war alles. Drei Dinge fehlten, jedes mit einem Grund im Betrieb:
+
+* **Altbestand.** Ein Betrieb, der die App einführt, steht nicht bei null.
+  Ohne Startwert finge sein Nummernkreis wieder von vorne an — zwei Rechnungen
+  mit derselben Nummer.
+* **Wunschnummer.** Wer von Hand eine höhere Nummer setzt, führt bewusst
+  seinen bestehenden Kreis fort. Eine verbrauchte Nummer wird abgelehnt, und
+  der Fehlertext nennt die nächste freie.
+* **Der Start bei 1001.** „RE-2026-0001" sieht nach der ersten Rechnung des
+  Betriebs aus. Das ist eine Auskunft an jeden Kunden, die niemand geben will.
+
+Diese Regeln standen in `lib/invoiceNumbers` und galten damit nur für den, der
+durch die App ging. Jetzt stehen sie in der Datenbankfunktion. Fünf bestehende
+Prüfungen erwarteten den alten Zählerstart und sind nachgezogen worden —
+ausdrücklich, mit dem Grund im Kommentar, nicht stillschweigend.
+
+**Storno und Storno-Aufhebung holen sich die betroffenen Belege aus der
+Abdeckung, nicht aus dem Aufruf.** Eine unvollständige Liste hinterliesse
+genau den halben Zustand, den die Klammer verhindern soll: Rechnung storniert,
+Stunden weiter gesperrt — Geld, das nie wieder eingefordert wird. Die
+Firestore-Fassung war hier auf 500 Schreibvorgänge je Stapel begrenzt; diese
+Grenze fällt weg.
+
+Beim Angebot ist der Unterschied zwischen „leer" und „nicht mitgeschickt" die
+ganze Prüfung wert: ein Statuswechsel darf weder die Kalkulation abräumen noch
+einen Nachlass löschen, den der Kunde schriftlich hat. Eine Mutation ist an
+meiner ersten Fassung dieser Prüfung vorbeigekommen — sie sah nur die
+Positionen an.
+
 ### Als Nächstes
 
-Rechnungen, Angebote, Wartungen, Nachfassungen, Belegschaft,
-Firmeneinstellungen, Voreinstellungen, Nachtläufe, Monatsbilanzen und
-Scheinfotos — dann fällt `core.ts`.
+Wartungen, Nachfassungen, Belegschaft, Firmeneinstellungen, Voreinstellungen,
+Nachtläufe, Monatsbilanzen und Scheinfotos — dann fällt `core.ts`.

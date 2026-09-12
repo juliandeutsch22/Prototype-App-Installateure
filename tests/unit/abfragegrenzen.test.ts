@@ -85,6 +85,14 @@ const GRENZ_MUSTER = [
    */
   /grenze:/,
   /\{ art: 'in', feld: '(id|projectNumber|status)'/,
+  /*
+    DER ZAHLUNGSSTAND IST DIESELBE ART GRENZE WIE DER STATUS, nur heisst das
+    Feld an der Rechnung anders. Offene Forderungen sind der Ausnahmezustand
+    und nicht der Bestand: wird diese Liste lang, hat der Betrieb ein anderes
+    Problem als die Ladezeit. In der Firestore-Fassung war dasselbe über
+    `where('paymentStatus', …)` gedeckt.
+  */
+  /\{ art: 'in', feld: 'paymentStatus'/,
   /\{ art: 'gleich', feld: '(date|datum|customerId|projectNumber|userId)'/,
   /\{ art: 'ab', feld: '(date|datum|invoiceDate|monat)'/,
   /\{ art: 'enthaelt', feld: 'assignedEmployees'/,
@@ -246,7 +254,7 @@ describe('Abfragegrenzen in der Datenschicht', () => {
  * Die Zahl unten ist deshalb Teil der Zusage. Sie darf steigen; sinkt sie,
  * muss jemand hinsehen und sie bewusst nachziehen.
  */
-const MINDESTENS = 82;
+const MINDESTENS = 87;
 
 /*
   Am 12.09.2026 sprang die Zahl von 49 auf 74 — ohne dass eine einzige
