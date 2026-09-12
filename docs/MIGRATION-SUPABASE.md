@@ -1105,3 +1105,87 @@ trotzdem stehen: er trägt genau dann, wenn die Berechnung einmal fehlschlägt.
 
 `syncUserClaims` und `plattformAdminClaim` als Trigger auf `auth.users`,
 dann `pg_cron` für die beiden Nachtläufe und die Edge Functions.
+
+---
+
+## Stufe 5, zweiter Teil: die Ansprüche im Token
+
+12.09.2026. `syncUserClaims` und `plattformAdminClaim` sind Trigger. Daran
+hängt alles: `app.betrieb()`, `app.rolle()` und `app.aktiv()` lesen die
+Ansprüche, und jede einzelne Richtlinie fragt diese drei.
+
+### Das Fenster, das es nicht mehr gibt
+
+Gemessen, nicht vermutet: **nach dem Deaktivieren konnte das bereits
+ausgestellte Token bis zu einer Stunde weiterlesen und weiterschreiben.** Das
+Konto war gesperrt, die Sitzung gelöscht, das Erneuern abgewiesen — aber ein
+Zugangstoken trägt seine Ansprüche in sich, und darin stand `active: true`.
+
+Unter Firestore war es genauso. Der Kommentar dort sprach von drei Riegeln;
+der dritte („der `active`-Claim, den die Regeln prüfen") hat dieses Fenster
+nie geschlossen, weil das alte Token den alten Anspruch trägt.
+
+In Postgres lässt es sich schliessen, und zwar billig: `app.aktiv()` fragt
+jetzt die Belegschaft statt das Token — ein Zugriff über den
+Primärschlüssel. Firestore konnte das nicht; dort hätte jede Regelprüfung
+eine gezählte Leseoperation gekostet.
+
+Der Anspruch im Token bleibt die zweite Antwort: für Konten ohne Zeile in der
+Belegschaft — ein Plattformkonto etwa — gilt weiter, was im Token steht.
+
+### `infinity` ist ein gültiger Zeitstempel und trotzdem falsch
+
+Die Kontosperre war zuerst `banned_until = 'infinity'`. Postgres nimmt das an;
+der Anmeldedienst liest die Spalte in einen Zeittyp, der es nicht kennt — und
+antwortete danach auf **jeden** Anmeldeversuch mit einem Serverfehler, auch
+bei Konten, die gar nicht gesperrt waren. Eine Sperre, die die Anmeldung des
+ganzen Betriebs lahmlegt, wäre ein teurer Weg, einen Mitarbeiter
+auszusperren. Jetzt sind es hundert Jahre.
+
+### Die Prüfung hat zwei Fragen vermischt
+
+Das Testkonto „gesperrt" wurde bisher deaktiviert ANGELEGT und meldete sich
+dann an. Das geht nicht mehr — und das ist der Punkt. Die beiden Fragen
+gehören getrennt:
+
+* Kommt ein gesperrtes Konto überhaupt herein? Nein, die Anmeldung wird
+  abgewiesen.
+* Greifen die Regeln bei einem Konto, das während der Sitzung deaktiviert
+  wird? Ja, sofort.
+
+Der Helfer legt jetzt aktiv an, meldet an und deaktiviert danach — der
+wirkliche Ablauf.
+
+### Ein Zwitterkonto gibt es in keine Richtung
+
+Wäre dieselbe Kennung Plattformkonto UND in einem Betrieb, entschiede allein
+die Reihenfolge der beiden Trigger, welche Ansprüche am Ende stehen — und mit
+einem Betrieb im Token greift jede Leseregel. Beide Richtungen sind jetzt
+gesperrt, und wer aus einem Betrieb ausscheidet und Plattformkonto wird,
+nimmt dessen Ansprüche nicht mit.
+
+Anders als bisher wird das nicht protokolliert und durchgelassen, sondern
+abgelehnt. Eine Zeile, die etwas behauptet, was nicht gilt, ist schlimmer als
+eine Fehlermeldung.
+
+### Eine Zeile ist entfallen, weil sie unerreichbar war
+
+Eine Mutation hat gezeigt, dass das Wegräumen des Plattform-Anspruchs auf der
+Belegschaftsseite nie greift: der Riegel in der Gegenrichtung lässt eine
+Plattformkennung gar nicht erst hinein. Sie ist gestrichen. Eine Zeile, die
+nie greift, ist keine zweite Sicherung — sie ist eine Behauptung, die niemand
+prüfen kann.
+
+### Stand
+
+| | |
+|---|---|
+| Functions umgestellt oder entfallen | 6 von 15 |
+| Prüfungen gegen die echte Datenbank | 470 |
+| Mutationen dieses Teils | 6 |
+| davon gefangen | 5 |
+
+### Als Nächstes
+
+`pg_cron` für die beiden Nachtläufe, dann die sieben Edge Functions und die
+beiden Push-Meldungen.

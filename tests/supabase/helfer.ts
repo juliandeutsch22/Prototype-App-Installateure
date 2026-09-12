@@ -51,15 +51,39 @@ export async function konto(
   });
   if (error) throw error;
   const uid = data.user!.id;
+  /*
+    ANGELEGT WIRD IMMER AKTIV, GESPERRT WIRD DANACH.
+
+    Ein Konto, das von Anfang an deaktiviert ist, kann sich gar nicht mehr
+    anmelden — es bekäme nie ein Token und könnte über die Regeln nichts
+    aussagen. Der wirkliche Ablauf ist ohnehin ein anderer: jemand arbeitet,
+    und dann wird er deaktiviert. Genau das wird hier nachgestellt.
+
+    Dass dieses Konto danach an nichts mehr herankommt, liegt nicht am Token
+    — das trägt noch den alten Anspruch — sondern daran, dass `app.aktiv()`
+    die Belegschaft fragt und nicht das Token.
+  */
   await admin.from('users').upsert({
-    id: uid, company_id: betrieb, name: email, email, role: rolle, active: aktiv,
+    id: uid, company_id: betrieb, name: email, email, role: rolle, active: true,
   });
 
   const client = createClient(API, ANON, { auth: { persistSession: false } });
   const an = await client.auth.signInWithPassword({ email, password: PASSWORT });
   if (an.error) throw an.error;
   await client.realtime.setAuth(an.data.session!.access_token);
+  if (!aktiv) await deaktivieren(uid);
   return { client, uid, betrieb, rolle };
+}
+
+/**
+ * Ein Konto wirklich deaktivieren — so, wie es die Verwaltung tut.
+ *
+ * Der Trigger an der Belegschaft zieht daraus alles Weitere: die Ansprüche,
+ * die Kontosperre und das Löschen der Sitzungen.
+ */
+export async function deaktivieren(uid: string): Promise<void> {
+  const { error } = await admin.from('users').update({ active: false }).eq('id', uid);
+  if (error) throw new Error(error.message);
 }
 
 export const buchung = (k: Konto, datum: string, rest: Record<string, unknown> = {}) => ({
