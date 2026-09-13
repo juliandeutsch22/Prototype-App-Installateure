@@ -1461,6 +1461,69 @@ Schloss, das heute niemand aufsperren kann.
 
 ### Als Nächstes
 
-`datenAusleitung` hat jetzt einen Speicherort — also `pg_cron` und der
-nächtliche Lauf. Danach bleiben `betriebAnlegen` und `voiceExtract` als echte
-Edge Functions (beide brauchen Geheimnisse) sowie die beiden Push-Meldungen.
+`datenAusleitung` hat jetzt einen Speicherort — für den Lauf selbst fehlt
+trotzdem eine Edge Function samt Geheimnis, denn aus SQL heraus lässt sich
+keine Datei schreiben. Also wartet er auf das Projekt.
+
+## Die Durchstiche laufen jetzt auch auf Postgres
+
+13.09.2026. Die acht Durchstich-Ketten in `tests/durchstich.test.ts` prüfen
+die Arbeitsabläufe von einem Ende zum anderen — und sie liefen ausschliesslich
+gegen den Firestore-Emulator. Die Module waren einzeln gegen Postgres geprüft,
+die KETTEN nicht. Das war vor dem Umschalten die grösste offene Stelle: ein
+Fehler an einer Naht fällt einer Modulprüfung nicht auf, weil jede Seite für
+sich stimmt.
+
+Vier neue Dateien decken sie ab — `durchstich1` bis `durchstich4` in
+`tests/supabase/`, 31 Prüfungen:
+
+| Kette | wo |
+|---|---|
+| 1 Zeit → Auswertung, 2 Urlaub → Zeitkonto | `durchstich1.test.ts` |
+| 3 Angebot → Nachkalkulation, 4 der eingefrorene Schein | `durchstich2.test.ts` |
+| 5 Rüstliste, 6 mehrere Baustellen, 6b Anforderung → Lager | `durchstich3.test.ts` |
+| 8 zwei Betriebe nebeneinander | `durchstich4.test.ts` |
+
+Kette 7 (Storno als eine Klammer) steht nicht dabei, und das ist kein
+Versehen: `modulGeld.test.ts` prüft sie bereits vollständig, einschliesslich
+des Punktes, um den es geht — die betroffenen Belege kommen aus der Abdeckung
+und nicht aus dem Aufruf. Eine zweite Fassung wäre Doppelung.
+
+### Sie gehen durch die Weiche, nicht an ihr vorbei
+
+`VITE_DATENQUELLE` steht in diesen Dateien auf `postgres`, und importiert wird
+`@/lib/db/…` statt `@/lib/db/pg/…`. Damit ist mitgeprüft, dass der Schalter in
+Stufe 8 die ganze Kette trägt und nicht nur die einzelnen Module. Gegengeprüft:
+steht der Schalter auf Firestore, wird jede dieser Prüfungen rot.
+
+### Zwei Stellen, an denen Postgres anders antwortet
+
+Beide sind Verbesserungen, und beide stehen jetzt als Zusage im Test:
+
+**Ein Schein, den es nicht gibt.** Firestore wies eine unbekannte Kennung als
+ZUGRIFF ab — die Regel las `resource.data.companyId`, und bei einem fehlenden
+Dokument ist `resource` null. Ein fehlender Schein kam also als Fehler zurück,
+nicht als „nicht gefunden"; die Oberfläche musste beide Ausgänge gleich
+behandeln. Der Zeilenschutz filtert stattdessen: ein fehlender und ein fremder
+Schein kommen beide als `undefined` zurück. Aus zwei Ausgängen ist einer
+geworden.
+
+**Die Abfrage über eine fremde Kennung.** Dort ein Fehler, hier eine leere
+Liste. Aus einem Datenleck ist damit ein stiller Ausfall geworden — die
+Richtung, in die man sich irren will, aber eine andere Richtung. Deshalb
+prüft Durchstich 8 beide: dass der eigene Betrieb seine Zeilen SIEHT und der
+fremde keine.
+
+### Stand
+
+| | |
+|---|---|
+| Prüfungen gegen die echte Datenbank | 548 |
+| davon Durchstiche | 41 |
+| Hermetische Prüfungen | 1655 |
+
+### Als Nächstes
+
+Was jetzt noch offen ist, hängt am Supabase-Projekt: die Edge Functions
+(`betriebAnlegen`, `voiceExtract`, der nächtliche Ausleitungslauf), die
+beiden Push-Meldungen und das Umschalten selbst.
