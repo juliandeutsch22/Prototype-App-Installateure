@@ -1,23 +1,21 @@
-import { app } from '@/lib/firebase';
-import { bildHash, fotoPfad, zielMasse, GUETE } from '@/features/worksheets/fotos';
-import type { WorkSheetFoto } from '@/types';
-
 /**
- * Fotos hochladen und wieder entfernen.
+ * Fotos am Handwerksschein — die Weiche, und das Verkleinern.
  *
- * DAS STORAGE-SDK WIRD ERST HIER GELADEN, per dynamischem Import. Es ist ein
- * eigenes Bündel von rund fünfzig Kilobyte, und die allermeisten Aufrufe
- * dieser App kommen nie in die Nähe eines Fotos — der Monteur bucht Zeit, das
- * Büro schreibt Rechnungen. Fest importiert läge es in jedem ersten Aufruf
- * mit auf der Leitung, auch auf einer Baustelle mit halbem Balken.
+ * DAS VERKLEINERN STEHT HIER UND NICHT IN EINER DER BEIDEN HÄLFTEN: es
+ * passiert im Browser, bevor irgendein Speicher ins Spiel kommt, und wäre in
+ * beiden Fassungen Zeichen für Zeichen dasselbe. Zwei Kopien einer Rechnung
+ * laufen auseinander; diese hier bestimmt, welche Bytes gehasht werden, und
+ * der Hash ist der Beweis am Beleg.
+ *
+ * DER PFAD IST IN BEIDEN FASSUNGEN DERSELBE. Er steht im Schein und geht in
+ * dessen Prüfsumme ein — würde der Umzug ihn umschreiben, liesse sich kein
+ * unterschriebener Schein mehr nachrechnen.
  */
-
-async function speicher() {
-  const { getStorage, ref, uploadBytes, deleteObject, getDownloadURL } = await import(
-    'firebase/storage'
-  );
-  return { getStorage, ref, uploadBytes, deleteObject, getDownloadURL };
-}
+import type { WorkSheetFoto } from '@/types';
+import { zielMasse, GUETE } from '@/features/worksheets/fotos';
+import { nutztPostgres } from './quelle';
+import * as fs from './fs/scheinFotos';
+import * as pg from './pg/scheinFotos';
 
 /**
  * Ein Bild verkleinern und als JPEG ausgeben.
@@ -56,46 +54,21 @@ export async function komprimiere(datei: Blob): Promise<Blob> {
   return klein.size < datei.size ? klein : datei;
 }
 
-/**
- * Ein Foto hochladen und den Eintrag für den Schein zurückgeben.
- *
- * DER HASH WIRD ÜBER DIE BYTES GEBILDET, DIE TATSÄCHLICH HOCHGEHEN — nicht
- * über das Original. Sonst stimmte er mit nichts überein, was jemals in
- * Storage liegt, und die spätere Prüfung schlüge bei jedem Foto an.
- */
-export async function fotoHochladen(
+export function fotoHochladen(
   companyId: string,
   scheinId: string,
   daten: Blob,
   geraetZeit: number,
 ): Promise<WorkSheetFoto> {
-  const { getStorage, ref, uploadBytes } = await speicher();
-  const bytes = await daten.arrayBuffer();
-  const hash = await bildHash(bytes);
-  /*
-    DER HASH IST ZUGLEICH DER DATEINAME. Zweimal dasselbe Bild ergibt damit
-    denselben Pfad und belegt den Bucket nicht doppelt — und ein
-    wiederholter Upload nach einem Abbruch schreibt genau dorthin, wo der
-    erste hinwollte, statt eine halbe Leiche zurückzulassen.
-  */
-  const pfad = fotoPfad(companyId, scheinId, `${hash}.jpg`);
-  await uploadBytes(ref(getStorage(app), pfad), daten, { contentType: 'image/jpeg' });
-  return { pfad, hash, bytes: daten.size, geraetZeit };
+  return nutztPostgres()
+    ? pg.fotoHochladen(companyId, scheinId, daten, geraetZeit)
+    : fs.fotoHochladen(companyId, scheinId, daten, geraetZeit);
 }
 
-/** Die Adresse, unter der sich ein Foto anzeigen lässt. */
-export async function fotoAdresse(pfad: string): Promise<string> {
-  const { getStorage, ref, getDownloadURL } = await speicher();
-  return getDownloadURL(ref(getStorage(app), pfad));
+export function fotoAdresse(pfad: string): Promise<string> {
+  return nutztPostgres() ? pg.fotoAdresse(pfad) : fs.fotoAdresse(pfad);
 }
 
-/**
- * Ein Foto entfernen.
- *
- * Nur am ENTWURF sinnvoll — das prüft die Ansicht. Hier steht keine zweite
- * Prüfung: eine Regel, die an zwei Stellen steht, weicht irgendwann ab.
- */
-export async function fotoEntfernen(pfad: string): Promise<void> {
-  const { getStorage, ref, deleteObject } = await speicher();
-  await deleteObject(ref(getStorage(app), pfad));
+export function fotoEntfernen(pfad: string): Promise<void> {
+  return nutztPostgres() ? pg.fotoEntfernen(pfad) : fs.fotoEntfernen(pfad);
 }

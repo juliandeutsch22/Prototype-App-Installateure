@@ -54,29 +54,23 @@ describe('Die Naht der Datenschicht', () => {
       .filter((d) => !/from '\.\/pg\//.test(readFileSync(resolve(WURZEL, d), 'utf8')));
 
     /*
-      EINE AUSNAHME, UND SIE STEHT HIER MIT DATUM.
+      DIE AUSNAHME IST MIT STUFE 6 GEFALLEN.
 
-      `scheinFotos.ts` lädt Bilder in den Speicher hoch — das ist nicht die
-      Datenbank, sondern Firebase Storage, und es zieht in Stufe 6 um. Es
-      liegt in diesem Verzeichnis, weil eine Ansicht es von dort importiert;
-      es wegzuräumen hiesse, eine Ansicht anzufassen, und genau das sagt
-      Stufe 3 nicht zu tun zu.
-
-      Die Ausnahme fällt mit Stufe 6. Bleibt sie länger stehen, ist das hier
-      die Stelle, an der es auffällt.
+      `scheinFotos.ts` stand hier, weil es Bilder nach Firebase Storage lud —
+      das ist nicht die Datenbank, und der Umzug kam später. Seit die Fotos
+      im Supabase-Speicher liegen, ist die Datei eine Weiche wie jede andere
+      und gehört gar nicht mehr zur Mitte. Ausnahmslos heisst jetzt
+      ausnahmslos.
     */
-    const SPEICHER = 'scheinFotos.ts';
-
-    const verunreinigt = mitte.filter((d) => d !== SPEICHER).filter((d) =>
+    const verunreinigt = mitte.filter((d) =>
       /from 'firebase\/|from '@\/lib\/firebase'|from '@\/lib\/supabase'/
         .test(readFileSync(resolve(WURZEL, d), 'utf8')));
     expect(verunreinigt).toEqual([]);
 
-    // Und der Wächter über den Wächter: findet er die Mitte überhaupt, und
-    // gibt es die Ausnahme noch?
+    // Und der Wächter über den Wächter: findet er die Mitte überhaupt?
     expect(mitte).toContain('core.ts');
     expect(mitte).toContain('quelle.ts');
-    expect(mitte).toContain(SPEICHER);
+    expect(mitte).not.toContain('scheinFotos.ts');
   });
 
   it('und die Weiche entscheidet, statt selbst zu arbeiten', () => {

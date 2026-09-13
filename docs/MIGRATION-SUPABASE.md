@@ -1397,7 +1397,70 @@ die nächtliche Ausleitung zeigt — den Weg, der keine Größengrenze hat.
 
 ### Als Nächstes
 
-`pg_cron` für die beiden Nachtläufe, soweit sie ohne Storage auskommen — das
-bringt erst Stufe 6. Danach bleiben `betriebAnlegen` und `voiceExtract` als
-echte Edge Functions (beide brauchen Geheimnisse) sowie die beiden
-Push-Meldungen.
+`pg_cron` für die beiden Nachtläufe. Der eine braucht einen Speicherort —
+also zuerst Stufe 6.
+
+## Stufe 6, erster Teil: die Fotos ziehen um
+
+13.09.2026. Vorgezogen, weil der nächtliche Lauf einen Speicherort braucht
+und der lokale Stapel einen hat. Es ist die einzige Stelle, an der diese App
+Dateien vom Gerät annimmt; alles andere passt in Zeilen.
+
+### Der Pfad ist das Empfindlichste daran
+
+`scheine/{betrieb}/{schein}/{datei}` bleibt Zeichen für Zeichen stehen. Er
+steht im Schein und geht in dessen Prüfsumme ein — die Zeile `FOTO` in
+`kanonischerInhalt` führt Pfad und Hash. Würde der Umzug ihn umschreiben,
+etwa das führende `scheine/` weglassen, weil der Eimer schon so heisst,
+liesse sich **kein einziger unterschriebener Schein mehr nachrechnen**. Der
+erste Abschnitt ist also bewusst doppelt gemoppelt.
+
+Damit fällt auch die letzte datierte Ausnahme in `datenschichtNaht.test.ts`:
+`scheinFotos.ts` war die eine Datei in der Mitte, die ein Firebase-SDK
+importieren durfte. Sie ist jetzt eine Weiche wie die anderen achtzehn.
+
+### Was sich für den Benutzer wirklich ändert
+
+Unter Firebase kam die Bildadresse aus `getDownloadURL` und galt für immer.
+Jetzt wird bei jedem Ansehen eine befristete ausgestellt — eine Stunde. Wer
+so eine Adresse weitergibt, gibt keinen dauerhaften Zugang mehr weiter.
+
+Grösse und Typ stehen am Eimer statt in einer Richtlinie: zwei Megabyte und
+`image/*`. Beides fängt nicht den Normalfall ab — der Browser verkleinert auf
+zwei- bis vierhundert Kilobyte —, sondern den Fehler.
+
+### Zwei Prüfungen, die aus dem falschen Grund grün waren
+
+**Der Speicher überlebt `supabase db reset`.** Ein Test, der einen abgewiesenen
+Upload erwartet, war beim zweiten Lauf grün, weil die Datei vom ersten Lauf
+noch dort lag: ohne `upsert` weist der Speicher eine vorhandene Datei mit
+einem Fehler zurück, der genauso aussieht wie der einer greifenden Regel. Die
+Mutation, die die Regel entfernte, blieb unbemerkt. Jeder abgewiesene Upload
+bekommt jetzt einen einmaligen Namen.
+
+**Eine Mutation ist geblieben, und sie bleibt bewusst.** Die Mandantenprüfung
+an der *Löschregel* lässt sich entfernen, ohne dass etwas rot wird: der
+Speicherdienst sucht vor dem Löschen das Objekt, und daran scheitert ein
+fremder Betrieb schon an der Leseregel. Sie zu streichen hiesse, sich darauf
+zu verlassen, dass `remove` auch morgen erst liest und die Leseregel nie
+weiter wird — zwei Annahmen über fremden Code als einziges Schloss an einem
+unterschriebenen Beleg. Sie steht als das da, was sie ist: ein zweites
+Schloss, das heute niemand aufsperren kann.
+
+### Stand
+
+| | |
+|---|---|
+| Functions umgestellt oder entfallen | 9 von 15 |
+| Prüfungen gegen die echte Datenbank | 517 |
+| Hermetische Prüfungen | 1655 |
+| Mutationen dieses Teils | 8 |
+| davon sofort gefangen | 6 |
+| nachgezogen | 1 |
+| begründet stehen geblieben | 1 |
+
+### Als Nächstes
+
+`datenAusleitung` hat jetzt einen Speicherort — also `pg_cron` und der
+nächtliche Lauf. Danach bleiben `betriebAnlegen` und `voiceExtract` als echte
+Edge Functions (beide brauchen Geheimnisse) sowie die beiden Push-Meldungen.
