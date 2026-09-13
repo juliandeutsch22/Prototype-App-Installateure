@@ -381,3 +381,35 @@ export function discardWorkSheetDraft(id: string, vonName: string): Promise<void
 export function restoreWorkSheetDraft(id: string): Promise<void> {
   return aendern(SCHEINE, id, { status: 'Entwurf' });
 }
+
+/** Eine Zeile, die die Vorausfüllung auf den Schein legt. */
+export interface ScheinZeit {
+  datum: string;
+  mitarbeiter: string;
+  von?: string;
+  bis?: string;
+  pauseMin?: number;
+  minuten: number;
+  taetigkeit?: string;
+  helfer?: boolean;
+}
+
+/**
+ * Die Stunden der ganzen Mannschaft für einen Schein — serverseitig.
+ *
+ * Bis zum Umzug war das eine Cloud Function; der Grund für beides ist
+ * derselbe und hat nichts mit dem Ort zu tun: der Kunde unterschreibt für
+ * alle, die dort waren, ein Monteur darf die Zeiteinträge seiner Kollegen
+ * aber nicht lesen (Kranken- und Urlaubstage sind Gesundheitsdaten nach
+ * Art. 9 DSGVO). Zurück kommt nur, was auf dem Beleg steht.
+ */
+export async function vorbereiten(
+  projectNumber: string, datum: string,
+): Promise<{ zeiten: ScheinZeit[] }> {
+  const { data, error } = await derClient().rpc('schein_vorbereiten', {
+    p_baustelle: projectNumber,
+    p_datum: datum,
+  });
+  if (error) throw new Error(error.message);
+  return data as { zeiten: ScheinZeit[] };
+}

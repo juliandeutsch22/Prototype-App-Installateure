@@ -178,8 +178,8 @@ Datenbank-Trigger der ruhigere Weg. Welcher wofür, wird gemessen.
 |---|---|
 | `scheinPruefsumme`, `bilanzNachziehen`, `syncUserClaims`, `plattformAdminClaim` | Postgres-Trigger, in derselben Transaktion |
 | `bilanzenNachtlauf`, `datenAusleitung` | `pg_cron` |
-| `urlaubEntscheiden` | `security definer`-Funktion in der Datenbank (siehe Stufe 5, dritter Teil) |
-| `betriebAnlegen`, `exportCompanyData`, `scheinVorbereiten`, `voiceExtract`, `datenAusleitungJetzt`, `bilanzenNeuAufbauen` | Edge Functions |
+| `urlaubEntscheiden`, `scheinVorbereiten` | `security definer`-Funktionen in der Datenbank (siehe Stufe 5, dritter und vierter Teil) |
+| `betriebAnlegen`, `exportCompanyData`, `voiceExtract`, `datenAusleitungJetzt`, `bilanzenNeuAufbauen` | Edge Functions |
 | `notifyNewOrder`, `notifyOrderReady` | Trigger, der die Push-Function anstößt |
 
 ### Stufe 6 — Fotos, Push, Ausleitung
@@ -1261,7 +1261,7 @@ Ansicht merkt nichts: sie bekommt in beiden Fällen `{ data }`. Die achtzehn
 Weichen in `lib/db/` hält `datenschichtVertrag.test.ts` zusammen — der prüft
 aber nur Dateien unter `src/lib/db/`. Diese eine stand ungeprüft da; ein
 vertauschter Zweig wäre still geblieben, bis in Stufe 8 der Schalter umgelegt
-wird. `tests/unit/urlaubWeiche.test.ts` schliesst das.
+wird. `tests/unit/weichenInFunctions.test.ts` schliesst das.
 
 ### Stand
 
@@ -1279,3 +1279,65 @@ wird. `tests/unit/urlaubWeiche.test.ts` schliesst das.
 `scheinVorbereiten` und `exportCompanyData` sind die nächsten beiden, die in
 die Datenbank gehören statt in eine Edge Function. Danach `pg_cron` für die
 Nachtläufe — soweit sie ohne Storage auskommen, das erst Stufe 6 bringt.
+
+## Stufe 5, vierter Teil: die Vorausfüllung des Handwerksscheins
+
+13.09.2026. `scheinVorbereiten` war die zweite Edge Function auf der Liste
+und ist die zweite, die keine geworden ist. Sie liest Zeiteinträge und gibt
+sie zurück; dafür braucht es keinen zweiten Ort.
+
+Der Grund, warum sie serverseitig bleibt, ist derselbe wie beim Urlaub und
+hat nichts mit dem Ort zu tun: der Schein trägt die Stunden der GANZEN
+Mannschaft eines Tages — der Kunde unterschreibt für alle, die dort waren,
+nicht nur für den, der das Tablet hält. Die Zeiteinträge seiner Kollegen darf
+ein Monteur aber nicht lesen. Zurück kommt deshalb genau der Inhalt des
+Belegs: Anwesenheit, eine Baustelle, ein Tag. Ein Test stellt beides
+nebeneinander — was der Monteur direkt abfragen kann (nur sich selbst) und
+was er über die Funktion bekommt (die ganze Mannschaft dieses einen Tages).
+
+### Zwei Formen, die man nicht sieht, bis sie auf dem Beleg stehen
+
+**Die Uhrzeit.** Firestore speicherte „07:30" als Zeichenkette, und die
+Ansicht stellt sie unverändert dar. Postgres gibt eine `time`-Spalte als
+„07:30:00" aus. Also `to_char(…, 'HH24:MI')` — eine Zeile, die nur deshalb
+da ist, weil sonst auf jedem Schein drei Zeichen zu viel stünden.
+
+**Die Sortierung.** `localeCompare(…, 'de')` im Browser und
+`collate "de-x-icu"` hier sind dieselbe ICU-Tabelle: „Öllinger" steht vor
+„Ostermann", nicht hinter „Zehner". Der Test lässt beide Seiten dieselben
+sieben Namen sortieren und vergleicht.
+
+**Was leer ist, fehlt.** Die Function ließ `undefined` weg, und `undefined`
+überlebt JSON nicht — die Ansicht bekam den Schlüssel gar nicht.
+`jsonb_strip_nulls` hält das. Eine Ausnahme ist geblieben und ist so gewollt:
+`pauseMin` steht jetzt als 0 da, wo Firestore nichts stehen hatte, weil die
+Spalte `not null default 0` ist.
+
+### Ein Test, der grün war, weil beide Seiten nichts hatten
+
+Der erste Durchlauf war rot — und der Grund war keiner von denen, die ich
+geprüft hatte: **`supabase-js` wirft bei einem fehlgeschlagenen Einfügen
+nicht.** Der Fehler liegt in `error`, und wer ihn nicht liest, prüft danach
+eine leere Liste gegen eine leere Datenbank. Alle Einfügungen in dieser
+Prüfung gehen jetzt durch einen Helfer, der wirft.
+
+Dahinter steckte etwas, das man wissen muss: **in einem Stapel gibt es keinen
+Spaltenvorgabewert.** PostgREST bildet aus allen Zeilen eines Stapels EINE
+Spaltenliste — nennt eine Zeile `is_helper`, bekommen die anderen dort
+ausdrücklich `null`, und `not null default false` greift nicht mehr.
+
+### Stand
+
+| | |
+|---|---|
+| Functions umgestellt oder entfallen | 8 von 15 |
+| Prüfungen gegen die echte Datenbank | 495 |
+| Hermetische Prüfungen | 1653 |
+| Mutationen dieses Teils | 11 |
+| davon sofort gefangen | 10 |
+| nachgezogen | 1 |
+
+### Als Nächstes
+
+`exportCompanyData` — der DSGVO-Auszug. Danach `pg_cron` für die Nachtläufe,
+soweit sie ohne Storage auskommen, das erst Stufe 6 bringt.

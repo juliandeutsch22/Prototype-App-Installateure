@@ -3,6 +3,7 @@ import type { NeuerBetrieb } from '@shared/plattform';
 import { functions } from './firebase';
 import { nutztPostgres } from './db/quelle';
 import { entscheiden } from './db/vacations';
+import { vorbereiten, type ScheinZeit } from './db/workSheets';
 import type { VoiceExtractResponse } from '@/features/voice/types';
 
 /** Ruft die serverseitige KI-Extraktion auf. API-Schlüssel bleiben im Server. */
@@ -75,21 +76,26 @@ export function callUrlaubEntscheiden(
  * MATERIAL kommt hier NICHT mehr her — der Monteur traegt es beim Erstellen
  * selbst ein. Warum, steht in `functions/src/scheinVorbereiten.ts`.
  */
-export const callScheinVorbereiten = httpsCallable<
-  { projectNumber: string; datum: string },
-  {
-    zeiten: Array<{
-      datum: string;
-      mitarbeiter: string;
-      von?: string;
-      bis?: string;
-      pauseMin?: number;
-      minuten: number;
-      taetigkeit?: string;
-      helfer?: boolean;
-    }>;
-  }
->(functions, 'scheinVorbereiten');
+interface ScheinEingabe { projectNumber: string; datum: string }
+type ScheinAntwort = { zeiten: ScheinZeit[] };
+
+const scheinAlsFunction = httpsCallable<ScheinEingabe, ScheinAntwort>(
+  functions, 'scheinVorbereiten',
+);
+
+/**
+ * UNTER POSTGRES IST DAS KEINE FUNCTION MEHR, sondern eine Abfrage mit
+ * erhoehten Rechten — dieselbe Grenze, ein Weg weniger.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callScheinVorbereiten(
+  daten: ScheinEingabe,
+): Promise<{ data: ScheinAntwort }> {
+  return nutztPostgres()
+    ? vorbereiten(daten.projectNumber, daten.datum).then((data) => ({ data }))
+    : scheinAlsFunction(daten);
+}
 
 /**
  * Sichert den eigenen Mandanten sofort an den zweiten Ort.

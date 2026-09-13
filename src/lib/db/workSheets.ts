@@ -108,4 +108,20 @@ export function restoreWorkSheetDraft(id: string): Promise<void> {
   return nutztPostgres() ? pg.restoreWorkSheetDraft(id) : fs.restoreWorkSheetDraft(id);
 }
 
+/**
+ * Die Stunden der ganzen Mannschaft für einen Schein.
+ *
+ * Unter Firestore tut das die Cloud Function `scheinVorbereiten` — der
+ * Aufrufer findet beide Wege über `lib/functions.ts:callScheinVorbereiten`.
+ */
+export function vorbereiten(
+  projectNumber: string, datum: string,
+): Promise<{ zeiten: pg.ScheinZeit[] }> {
+  if (!nutztPostgres()) {
+    throw new Error('Unter Firestore bereitet die Cloud Function vor — siehe lib/functions.ts.');
+  }
+  return pg.vorbereiten(projectNumber, datum);
+}
+
+export type { ScheinZeit } from './pg/workSheets';
 export type { WithId };
