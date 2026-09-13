@@ -58,4 +58,32 @@ export function deleteVacation(id: string): Promise<void> {
   return nutztPostgres() ? pg.deleteVacation(id) : fs.deleteVacation(id);
 }
 
+export type { UrlaubsEntscheidung } from './pg/vacations';
+import type { UrlaubsEntscheidung } from './pg/vacations';
+
+/**
+ * Über einen Antrag entscheiden.
+ *
+ * Unter Firestore eine Cloud Function, unter Postgres eine Datenbankfunktion —
+ * in beiden Fällen serverseitig, und zwar aus demselben Grund: die Genehmigung
+ * muss fremde Zeiteinträge lesen und schreiben, und das darf der
+ * Genehmigende nicht.
+ *
+ * DIESE WEICHE STEHT HIER UND NICHT IN `lib/functions.ts`, weil es unter
+ * Postgres keine Function mehr ist, sondern schlicht ein Aufruf an die
+ * Datenbank. `lib/functions.ts` reicht sie durch, damit die Ansicht nichts
+ * merkt.
+ */
+export function entscheiden(daten: {
+  vacationId: string;
+  entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
+  grund?: string;
+  entscheiderName?: string;
+}): Promise<UrlaubsEntscheidung> {
+  if (!nutztPostgres()) {
+    throw new Error('Unter Firestore entscheidet die Cloud Function — siehe lib/functions.ts.');
+  }
+  return pg.entscheiden(daten);
+}
+
 export type { WithId };

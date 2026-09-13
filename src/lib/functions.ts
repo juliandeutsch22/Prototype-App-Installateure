@@ -1,6 +1,8 @@
 import { httpsCallable } from 'firebase/functions';
 import type { NeuerBetrieb } from '@shared/plattform';
 import { functions } from './firebase';
+import { nutztPostgres } from './db/quelle';
+import { entscheiden } from './db/vacations';
 import type { VoiceExtractResponse } from '@/features/voice/types';
 
 /** Ruft die serverseitige KI-Extraktion auf. API-Schlüssel bleiben im Server. */
@@ -34,15 +36,32 @@ export const callBilanzenNeuAufbauen = httpsCallable<
  * Sobald die Geschaeftsfuehrung frei festlegt, WER genehmigt, geht es nicht
  * mehr — und die Grenze aufzumachen waere die falsche Reihenfolge.
  */
-export const callUrlaubEntscheiden = httpsCallable<
-  {
-    vacationId: string;
-    entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
-    grund?: string;
-    entscheiderName?: string;
-  },
-  { status: string; angelegt: number; uebersprungen: number; entfernt: number }
->(functions, 'urlaubEntscheiden');
+interface UrlaubsEingabe {
+  vacationId: string;
+  entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
+  grund?: string;
+  entscheiderName?: string;
+}
+type UrlaubsAntwort = { status: string; angelegt: number; uebersprungen: number; entfernt: number };
+
+const urlaubAlsFunction = httpsCallable<UrlaubsEingabe, UrlaubsAntwort>(
+  functions, 'urlaubEntscheiden',
+);
+
+/**
+ * UNTER POSTGRES IST DAS KEINE FUNCTION MEHR, sondern ein Aufruf an die
+ * Datenbank — in EINER Transaktion statt in einem Stapel, den ein Abbruch
+ * halb stehen liesse.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callUrlaubEntscheiden(
+  daten: UrlaubsEingabe,
+): Promise<{ data: UrlaubsAntwort }> {
+  return nutztPostgres()
+    ? entscheiden(daten).then((data) => ({ data }))
+    : urlaubAlsFunction(daten);
+}
 
 /**
  * Stellt die Positionen fuer einen Handwerksschein zusammen.

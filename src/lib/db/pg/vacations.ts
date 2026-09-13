@@ -9,7 +9,7 @@
  * bekommen soll.
  */
 import type { Vacation } from '@/types';
-import { abfragen, anlegen, loeschen } from './kern';
+import { abfragen, anlegen, loeschen, derClient } from './kern';
 
 const URLAUB = 'vacations';
 
@@ -84,4 +84,44 @@ export function createVacation(companyId: string, v: NewVacation) {
  */
 export function deleteVacation(id: string) {
   return loeschen(URLAUB, id);
+}
+
+/** Was die Entscheidung zurückmeldet — Zahlen, keine fremden Buchungen. */
+export interface UrlaubsEntscheidung {
+  status: string;
+  angelegt: number;
+  uebersprungen: number;
+  entfernt: number;
+}
+
+/**
+ * Über einen Urlaubsantrag entscheiden.
+ *
+ * WARUM DAS NICHT DIE ANSICHT TUT, obwohl sie es könnte: die Genehmigung muss
+ * fremde Zeiteinträge LESEN (um bereits gebuchte Tage nicht zu überschreiben)
+ * und fremde Zeiteinträge SCHREIBEN. Beides darf ein Genehmigender nicht —
+ * Zeiteinträge tragen Kranken- und Urlaubstage und damit Gesundheitsdaten
+ * nach Art. 9 DSGVO.
+ *
+ * Die Datenbankfunktion darf es, der Aufrufer nicht. Zurück kommen nur
+ * Zahlen; zu sehen bekommt er nichts, was er nicht ohnehin sehen dürfte.
+ *
+ * Bis zum Umzug war das eine Cloud Function. Der Unterschied ist nicht der
+ * Ort, sondern die Klammer: Statuswechsel und Zeitkonto gehen jetzt in EINER
+ * Transaktion hinaus.
+ */
+export async function entscheiden(daten: {
+  vacationId: string;
+  entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
+  grund?: string;
+  entscheiderName?: string;
+}): Promise<UrlaubsEntscheidung> {
+  const { data, error } = await derClient().rpc('urlaub_entscheiden', {
+    p_antrag: daten.vacationId,
+    p_entscheidung: daten.entscheidung,
+    p_grund: daten.grund ?? '',
+    p_entscheider_name: daten.entscheiderName ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return data as UrlaubsEntscheidung;
 }

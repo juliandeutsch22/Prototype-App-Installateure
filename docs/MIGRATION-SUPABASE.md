@@ -178,7 +178,8 @@ Datenbank-Trigger der ruhigere Weg. Welcher wofür, wird gemessen.
 |---|---|
 | `scheinPruefsumme`, `bilanzNachziehen`, `syncUserClaims`, `plattformAdminClaim` | Postgres-Trigger, in derselben Transaktion |
 | `bilanzenNachtlauf`, `datenAusleitung` | `pg_cron` |
-| `betriebAnlegen`, `exportCompanyData`, `urlaubEntscheiden`, `scheinVorbereiten`, `voiceExtract`, `datenAusleitungJetzt`, `bilanzenNeuAufbauen` | Edge Functions |
+| `urlaubEntscheiden` | `security definer`-Funktion in der Datenbank (siehe Stufe 5, dritter Teil) |
+| `betriebAnlegen`, `exportCompanyData`, `scheinVorbereiten`, `voiceExtract`, `datenAusleitungJetzt`, `bilanzenNeuAufbauen` | Edge Functions |
 | `notifyNewOrder`, `notifyOrderReady` | Trigger, der die Push-Function anstößt |
 
 ### Stufe 6 — Fotos, Push, Ausleitung
@@ -1189,3 +1190,92 @@ prüfen kann.
 
 `pg_cron` für die beiden Nachtläufe, dann die sieben Edge Functions und die
 beiden Push-Meldungen.
+
+## Stufe 5, dritter Teil: Urlaub entscheiden
+
+13.09.2026. `urlaubEntscheiden` war als Edge Function eingeplant. Sie ist
+keine geworden: die Function tut nichts, was ausserhalb der Datenbank
+passieren müsste — sie liest Zeiteinträge, schreibt Zeiteinträge und setzt
+einen Status. Als `security definer`-Funktion läuft dasselbe in EINER
+Transaktion statt in einem Stapel, den ein Abbruch halb stehen liesse.
+
+### Warum das überhaupt serverseitig bleibt
+
+Der Genehmigende muss zwei Dinge tun, die er selbst nicht darf: fremde
+Zeiteinträge LESEN (um bereits gebuchte Tage nicht zu überschreiben) und
+fremde Zeiteinträge SCHREIBEN. Zeiteinträge tragen Kranken- und Urlaubstage
+und damit Gesundheitsdaten nach Art. 9 DSGVO.
+
+Solange nur Buchhaltung und Leitung genehmigen durften, fiel das nicht auf —
+sie dürfen beides ohnehin. Sobald die Geschäftsführung frei festlegt, WER
+genehmigt (etwa eine Bürokraft), ginge es nicht mehr. Die Funktion gibt
+deshalb nur vier Zahlen zurück: Status, angelegt, übersprungen, entfernt. Ein
+eigener Test hält das fest.
+
+### Die Feiertagsrechnung steht jetzt zweimal da
+
+`shared/feiertage.ts` rechnet im Browser, `app.urlaubstage` in der Datenbank.
+Das ist eine Doppelung, und sie ist gefährlich: liefen beide auseinander,
+bekäme ein Monteur für eine Woche mit Feiertag fünf Tage abgezogen und hätte
+trotzdem einen Tag als „nicht gebucht" offen — bemerkt würde es an einem
+Urlaubskonto, das am Jahresende nicht aufgeht.
+
+Zusammengehalten werden sie nicht durch Hinsehen: `tests/supabase/urlaub.test.ts`
+lässt beide Fassungen über **zehn Jahre und vier Wochenmodelle** rechnen und
+vergleicht Tag für Tag. Gauß/Butcher steht in SQL als CTE-Kette, Zeichen für
+Zeichen wie in `getEasterDate`; `extract(dow)` zählt wie `getDay()`, also
+Sonntag als 0.
+
+Die Datenbankfassung steht zusätzlich als `public.urlaubstage` offen. Nicht
+für die Prüfungen, sondern weil sie die Naht ist, an der der Browser eines
+Tages aufhört, selbst zu rechnen.
+
+### 480 ist keine Grenze von Postgres mehr
+
+Die Function brach bei mehr als 480 Tagen ab, weil in einen
+Firestore-Stapel 500 Schreibvorgänge passen. Postgres kennt diese Grenze
+nicht. Geblieben ist die Zahl trotzdem — als Plausibilitätsprüfung: zwei
+Jahre Urlaub am Stück ist ein Tippfehler im Datum, und ein Tippfehler soll
+nicht hunderttausend Zeilen schreiben.
+
+### Zwei Mutationen sind durchgekommen
+
+**Die Berechtigungsprüfung liess sich entfernen, ohne dass ein Test rot
+wurde.** Abgewiesen wurde der Mitarbeiter trotzdem — vom Trigger
+`urlaub_entscheidung_geschuetzt` auf `vacations`, denn ein Trigger greift
+auch bei `security definer`. Die Prüfung in der Funktion ist also zweite
+Reihe, und das soll sie bleiben: sie sagt dem Abgewiesenen, woran es liegt,
+statt ihn über die Zeilenregel eines Statuswechsels stolpern zu lassen.
+Beobachtbar ist davon genau die Meldung — der Test prüft jetzt sie.
+
+**Die Arbeitstage liessen sich beim Entscheidenden statt beim Antragsteller
+lesen.** Kein Test merkte es, weil in allen Prüfungen beide fünf Tage die
+Woche arbeiteten. Für einen Teilzeitmitarbeiter wären aus zwei Urlaubstagen
+fünf geworden — auffallen würde es erst am Jahresende. Jetzt arbeitet Cäsar
+Montag und Mittwoch, und der Chef, der genehmigt, fünf Tage.
+
+### Die erste Weiche ausserhalb der Datenschicht
+
+`callUrlaubEntscheiden` in `lib/functions.ts` schaltet jetzt selbst, und die
+Ansicht merkt nichts: sie bekommt in beiden Fällen `{ data }`. Die achtzehn
+Weichen in `lib/db/` hält `datenschichtVertrag.test.ts` zusammen — der prüft
+aber nur Dateien unter `src/lib/db/`. Diese eine stand ungeprüft da; ein
+vertauschter Zweig wäre still geblieben, bis in Stufe 8 der Schalter umgelegt
+wird. `tests/unit/urlaubWeiche.test.ts` schliesst das.
+
+### Stand
+
+| | |
+|---|---|
+| Functions umgestellt oder entfallen | 7 von 15 |
+| Prüfungen gegen die echte Datenbank | 485 |
+| Hermetische Prüfungen | 1651 |
+| Mutationen dieses Teils | 10 |
+| davon sofort gefangen | 8 |
+| nachgezogen | 2 |
+
+### Als Nächstes
+
+`scheinVorbereiten` und `exportCompanyData` sind die nächsten beiden, die in
+die Datenbank gehören statt in eine Edge Function. Danach `pg_cron` für die
+Nachtläufe — soweit sie ohne Storage auskommen, das erst Stufe 6 bringt.
