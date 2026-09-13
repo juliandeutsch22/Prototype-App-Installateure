@@ -4,6 +4,7 @@ import { functions } from './firebase';
 import { nutztPostgres } from './db/quelle';
 import { entscheiden } from './db/vacations';
 import { vorbereiten, type ScheinZeit } from './db/workSheets';
+import { auszug, type BetriebsAuszug } from './db/company';
 import type { VoiceExtractResponse } from '@/features/voice/types';
 
 /** Ruft die serverseitige KI-Extraktion auf. API-Schlüssel bleiben im Server. */
@@ -118,15 +119,24 @@ export const callDatenAusleitungJetzt = httpsCallable<
  * ist die naechtliche Ausleitung der verlaessliche Weg; dieser hier ist der
  * bequeme fuer eine Auskunft.
  */
-export const callExportCompanyData = httpsCallable<
-  Record<string, never>,
-  {
-    companyId: string;
-    exportedAt: string;
-    anzahl: Record<string, number>;
-    data: Record<string, unknown[]>;
-  }
->(functions, 'exportCompanyData');
+const auszugAlsFunction = httpsCallable<Record<string, never>, BetriebsAuszug>(
+  functions, 'exportCompanyData',
+);
+
+/**
+ * UNTER POSTGRES IST DAS KEINE FUNCTION MEHR, sondern eine Abfrage mit
+ * erhoehten Rechten — und die Sammlungsliste kommt aus dem Katalog statt aus
+ * einer Datei, die jemand pflegen muss.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callExportCompanyData(
+  _daten: Record<string, never> = {},
+): Promise<{ data: BetriebsAuszug }> {
+  return nutztPostgres()
+    ? auszug().then((data) => ({ data }))
+    : auszugAlsFunction(_daten);
+}
 
 /**
  * Einen neuen Betrieb anlegen — nur für den globalen Administrator.

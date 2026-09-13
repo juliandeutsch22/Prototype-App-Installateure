@@ -40,3 +40,24 @@ export async function updateCompany(
     throw new Error('Die Einstellungen dieses Betriebs lassen sich nicht ändern.');
   }
 }
+
+/** Der Betriebsbestand, so wie ihn der DSGVO-Auszug zurückgibt. */
+export interface BetriebsAuszug {
+  companyId: string;
+  exportedAt: string;
+  anzahl: Record<string, number>;
+  data: Record<string, unknown[]>;
+}
+
+/**
+ * Der ganze Bestand eines Betriebs in einer Antwort (DSGVO Art. 15/20).
+ *
+ * Bis zum Umzug war das eine Cloud Function mit einer von Hand gepflegten
+ * Sammlungsliste — die neun von sechzehn Sammlungen umfasste. Hier kommt die
+ * Liste aus dem Katalog: jede Tabelle mit `company_id` ist dabei.
+ */
+export async function auszug(): Promise<BetriebsAuszug> {
+  const { data, error } = await derClient().rpc('betrieb_auszug');
+  if (error) throw new Error(error.message);
+  return data as BetriebsAuszug;
+}

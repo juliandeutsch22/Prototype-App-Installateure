@@ -1,14 +1,14 @@
 /**
  * Die Weichen in `lib/functions.ts` — die außerhalb der Datenschicht.
  *
- * Zwei Cloud Functions sind Datenbankfunktionen geworden: „Urlaub
- * entscheiden" und die Vorausfüllung des Handwerksscheins. Die Ansichten
- * merken davon nichts — sie bekommen in beiden Fällen `{ data }` mit
- * demselben Inhalt.
+ * Drei Cloud Functions sind Datenbankfunktionen geworden: „Urlaub
+ * entscheiden", die Vorausfüllung des Handwerksscheins und der DSGVO-Auszug.
+ * Die Ansichten merken davon nichts — sie bekommen in beiden Fällen
+ * `{ data }` mit demselben Inhalt.
  *
  * WARUM DAS EINEN EIGENEN TEST BRAUCHT. Die achtzehn Weichen in `lib/db/`
  * hält `datenschichtVertrag.test.ts` zusammen — der prüft aber nur Dateien
- * unter `src/lib/db/`. Diese beiden liegen in `lib/functions.ts`, weil der
+ * unter `src/lib/db/`. Diese drei liegen in `lib/functions.ts`, weil der
  * Aufrufer dort schon immer gesucht hat. Ohne diesen Test stünden sie
  * ungeprüft da: ein vertauschter Zweig bliebe still, bis in Stufe 8 der
  * Schalter umgelegt wird und die Genehmigung ins Leere ruft.
@@ -18,6 +18,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const nutztPostgres = vi.fn<[], boolean>();
 const entscheiden = vi.fn();
 const vorbereiten = vi.fn();
+const auszug = vi.fn();
 /*
   `httpsCallable` bekommt den Namen der Function als zweites Argument; er
   landet im Aufruf, damit ein vertauschter Name auffällt — beide Weichen
@@ -30,6 +31,7 @@ vi.mock('@/lib/db/vacations', () => ({ entscheiden: (d: unknown) => entscheiden(
 vi.mock('@/lib/db/workSheets', () => ({
   vorbereiten: (p: string, d: string) => vorbereiten(p, d),
 }));
+vi.mock('@/lib/db/company', () => ({ auszug: () => auszug() }));
 vi.mock('@/lib/firebase', () => ({ functions: {} }));
 vi.mock('firebase/functions', () => ({
   httpsCallable: (_f: unknown, name: string) => (d: unknown) => alsFunction(name, d),
@@ -45,13 +47,20 @@ const ZAHLEN = { status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0
 
 const SCHEIN_EINGABE = { projectNumber: '2026-041', datum: '2026-03-10' };
 const STUNDEN = { zeiten: [{ datum: '2026-03-10', mitarbeiter: 'Auer', minuten: 240 }] };
+const AUSZUG = {
+  companyId: 'perl', exportedAt: '2026-03-10T08:00:00.000Z',
+  anzahl: { users: 3 }, data: { users: [] },
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
   entscheiden.mockResolvedValue(ZAHLEN);
   vorbereiten.mockResolvedValue(STUNDEN);
-  alsFunction.mockImplementation((name: string) =>
-    Promise.resolve({ data: name === 'urlaubEntscheiden' ? ZAHLEN : STUNDEN }));
+  auszug.mockResolvedValue(AUSZUG);
+  alsFunction.mockImplementation((name: string) => Promise.resolve({
+    data: { urlaubEntscheiden: ZAHLEN, scheinVorbereiten: STUNDEN,
+            exportCompanyData: AUSZUG }[name],
+  }));
 });
 
 async function funktionen() {
@@ -64,6 +73,10 @@ async function callUrlaubEntscheiden() {
 
 async function callScheinVorbereiten() {
   return (await funktionen()).callScheinVorbereiten;
+}
+
+async function callExportCompanyData() {
+  return (await funktionen()).callExportCompanyData;
 }
 
 describe('Urlaub entscheiden — dieselbe Antwort aus zwei Datenbanken', () => {
@@ -105,5 +118,25 @@ describe('Schein vorbereiten — dieselben Stunden aus zwei Datenbanken', () => 
     expect(alsFunction).toHaveBeenCalledWith('scheinVorbereiten', SCHEIN_EINGABE);
     expect(vorbereiten).not.toHaveBeenCalled();
     expect(antwort).toEqual({ data: STUNDEN });
+  });
+});
+
+describe('Betriebsauszug — derselbe Bestand aus zwei Datenbanken', () => {
+  it('unter Postgres fragt die Datenbank, nicht die Cloud Function', async () => {
+    nutztPostgres.mockReturnValue(true);
+    const antwort = await (await callExportCompanyData())();
+
+    expect(auszug).toHaveBeenCalled();
+    expect(alsFunction).not.toHaveBeenCalled();
+    expect(antwort).toEqual({ data: AUSZUG });
+  });
+
+  it('unter Firestore die Cloud Function, nicht die Datenbank', async () => {
+    nutztPostgres.mockReturnValue(false);
+    const antwort = await (await callExportCompanyData())();
+
+    expect(alsFunction).toHaveBeenCalledWith('exportCompanyData', {});
+    expect(auszug).not.toHaveBeenCalled();
+    expect(antwort).toEqual({ data: AUSZUG });
   });
 });

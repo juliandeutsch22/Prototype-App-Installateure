@@ -21,3 +21,18 @@ export function updateCompany(
 ): Promise<void> {
   return nutztPostgres() ? pg.updateCompany(companyId, data) : fs.updateCompany(companyId, data);
 }
+
+/**
+ * Der ganze Bestand eines Betriebs in einer Antwort (DSGVO Art. 15/20).
+ *
+ * Unter Firestore tut das die Cloud Function `exportCompanyData` — der
+ * Aufrufer findet beide Wege über `lib/functions.ts:callExportCompanyData`.
+ */
+export function auszug(): Promise<pg.BetriebsAuszug> {
+  if (!nutztPostgres()) {
+    throw new Error('Unter Firestore holt die Cloud Function den Auszug — siehe lib/functions.ts.');
+  }
+  return pg.auszug();
+}
+
+export type { BetriebsAuszug } from './pg/company';

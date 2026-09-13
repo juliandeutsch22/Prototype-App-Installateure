@@ -178,8 +178,8 @@ Datenbank-Trigger der ruhigere Weg. Welcher wofür, wird gemessen.
 |---|---|
 | `scheinPruefsumme`, `bilanzNachziehen`, `syncUserClaims`, `plattformAdminClaim` | Postgres-Trigger, in derselben Transaktion |
 | `bilanzenNachtlauf`, `datenAusleitung` | `pg_cron` |
-| `urlaubEntscheiden`, `scheinVorbereiten` | `security definer`-Funktionen in der Datenbank (siehe Stufe 5, dritter und vierter Teil) |
-| `betriebAnlegen`, `exportCompanyData`, `voiceExtract`, `datenAusleitungJetzt`, `bilanzenNeuAufbauen` | Edge Functions |
+| `urlaubEntscheiden`, `scheinVorbereiten`, `exportCompanyData` | `security definer`-Funktionen in der Datenbank (siehe Stufe 5, dritter bis fünfter Teil) |
+| `betriebAnlegen`, `voiceExtract`, `datenAusleitungJetzt`, `bilanzenNeuAufbauen` | Edge Functions |
 | `notifyNewOrder`, `notifyOrderReady` | Trigger, der die Push-Function anstößt |
 
 ### Stufe 6 — Fotos, Push, Ausleitung
@@ -1341,3 +1341,63 @@ ausdrücklich `null`, und `not null default false` greift nicht mehr.
 
 `exportCompanyData` — der DSGVO-Auszug. Danach `pg_cron` für die Nachtläufe,
 soweit sie ohne Storage auskommen, das erst Stufe 6 bringt.
+
+## Stufe 5, fünfter Teil: der DSGVO-Auszug
+
+13.09.2026. Die dritte Function, die keine Edge Function geworden ist. Sie
+liest jede Tabelle eines Betriebs und gibt sie in einer Antwort zurück — das
+ist genau das, was eine Datenbank kann.
+
+### Die Liste pflegt sich jetzt selbst
+
+Der interessanteste Teil ist nicht die Umstellung, sondern was sie ersetzt.
+In Firestore stand die Sammlungsliste von Hand in `mandantendaten.ts`, und
+sie umfasste einmal neun von sechzehn Sammlungen: es fehlten Kunden,
+Angebote, Handwerksscheine, Urlaubsanträge und — am folgenreichsten — die
+Nummernkreise. Ein Wiederanlauf aus so einem Export hätte den Rechnungszähler
+bei null begonnen, und der Betrieb hätte zwei Rechnungen mit derselben Nummer
+in den Büchern.
+
+Hier kommt die Liste aus dem Katalog: **jede Tabelle mit einer Spalte
+`company_id` ist dabei**, heute 26 plus der Betrieb selbst. Wer morgen eine
+Tabelle anlegt, ist im Auszug, ohne daran zu denken.
+
+Der Test darf sich dabei nicht auf dieselbe Abfrage verlassen, sonst prüfte
+er sich gegen sich selbst: er fragt den Katalog über eine eigene
+Datenbankverbindung und vergleicht die Schlüssel des Auszugs damit.
+
+Zwei Tabellen fallen von selbst heraus, weil sie kein `company_id` tragen —
+`betriebsanlagen` und `platform_admins` gehören der Plattform, nicht dem
+Betrieb. Die Sicht `monthly_stats` ist bewusst nicht dabei: sie rechnet aus
+den Zeiteinträgen, die ohnehin im Auszug stehen. In Firestore musste sie mit,
+weil ihr Neuaufbau eine Function brauchte; hier kostet er nichts.
+
+### Eine Grenze, die man nur prüfen kann, wenn man sie erreicht
+
+Die Antwort ist bei acht Megabyte gedeckelt, und der Parameter dafür lässt
+sich nur senken, nie heben. Die erste Fassung dieser Prüfung war wertlos: sie
+setzte die Grenze hoch und stellte fest, dass nichts passiert — bei einem
+Bestand von zwanzig Zeilen passiert auch ohne Deckel nichts. Eine Mutation,
+die `least(…)` entfernte, blieb grün.
+
+Jetzt bekommt ein eigener Betrieb zehn Megabyte Notizen, und der Aufrufer
+versucht, sich zwei Gigabyte zu genehmigen. Er bekommt die Meldung, die auf
+die nächtliche Ausleitung zeigt — den Weg, der keine Größengrenze hat.
+
+### Stand
+
+| | |
+|---|---|
+| Functions umgestellt oder entfallen | 9 von 15 |
+| Prüfungen gegen die echte Datenbank | 504 |
+| Hermetische Prüfungen | 1655 |
+| Mutationen dieses Teils | 6 |
+| davon sofort gefangen | 5 |
+| nachgezogen | 1 |
+
+### Als Nächstes
+
+`pg_cron` für die beiden Nachtläufe, soweit sie ohne Storage auskommen — das
+bringt erst Stufe 6. Danach bleiben `betriebAnlegen` und `voiceExtract` als
+echte Edge Functions (beide brauchen Geheimnisse) sowie die beiden
+Push-Meldungen.
