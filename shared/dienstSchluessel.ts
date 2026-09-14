@@ -88,6 +88,24 @@ export function dienstSchluessel(
 }
 
 /**
+ * Sieht der Schlüssel aus wie ein JWT?
+ *
+ * WOZU DIE FRAGE. Die alten Schlüssel (`service_role`) SIND JWT, die neuen
+ * (`sb_secret_…`) sind es nicht. Das Tor vor den Edge Functions prüft alles,
+ * was im `Authorization`-Kopf steht, als JWT — und lehnt einen neuen
+ * Schlüssel dort ab, auch wenn `apikey` daneben steht. Ein neuer Schlüssel
+ * gehört deshalb NUR in `apikey`.
+ *
+ * Geprüft wird die Form, nicht die Gültigkeit: drei durch Punkte getrennte
+ * Teile. Mehr braucht es nicht — die Entscheidung lautet „in welchen Kopf",
+ * nicht „ist er echt". Echt oder nicht entscheidet ohnehin das Tor.
+ */
+export function istJwtFormat(wert: string): boolean {
+  const teile = wert.split('.');
+  return teile.length === 3 && teile.every((t) => t.length > 0);
+}
+
+/**
  * Ruft hier die Maschine an?
  *
  * DIE LEERE ZEICHENKETTE IST DER GRUND, WARUM DAS EINE FUNKTION IST. Ohne
@@ -100,6 +118,40 @@ export function dienstSchluessel(
 export function istDienst(token: string, dienst: string | null): boolean {
   const sauber = token.trim();
   return sauber !== '' && sauber === dienst;
+}
+
+/**
+ * Kommt dieser Aufruf von der Maschine — gleich, in welchem Kopf der
+ * Schlüssel steht?
+ *
+ * Der alte Schlüssel kommt als `Authorization: Bearer …`, der neue als
+ * `apikey`. Beide Wege sind gleich stark: wer den Dienstschlüssel hat, ist
+ * die Maschine, ganz gleich, in welche Kopfzeile er ihn schreibt.
+ */
+export function rufDerMaschine(
+  authKopf: string,
+  apikeyKopf: string,
+  dienst: string | null,
+): boolean {
+  const ausAuth = authKopf.startsWith('Bearer ') ? authKopf.slice(7) : '';
+  return istDienst(ausAuth, dienst) || istDienst(apikeyKopf, dienst);
+}
+
+/**
+ * Die Kopfzeilen, mit denen eine Function selbst bei Supabase anfragt.
+ *
+ * Der Schlüssel steht immer in `apikey`. In `Authorization` kommt er nur,
+ * wenn er ein JWT ist — dort leitet PostgREST die Rolle daraus ab. Ein neuer
+ * Schlüssel würde an derselben Stelle als kaputtes JWT abgewiesen.
+ */
+export function dienstKopfzeilen(dienst: string | null): Record<string, string> {
+  const schluessel = dienst ?? '';
+  const kopf: Record<string, string> = {
+    apikey: schluessel,
+    'Content-Type': 'application/json',
+  };
+  if (istJwtFormat(schluessel)) kopf.Authorization = `Bearer ${schluessel}`;
+  return kopf;
 }
 
 /** Was einer Function fehlt, in Worten — für die Antwort nach aussen. */

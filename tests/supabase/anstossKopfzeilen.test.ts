@@ -56,11 +56,12 @@ async function kopfzeilenVon(
   aufruf: string,
   urlName: string,
   schluesselName: string,
+  schluessel: string,
 ): Promise<Record<string, string>> {
   await db.query('begin');
   try {
     await tresorSetzen(urlName, 'http://beispiel.test/ziel');
-    await tresorSetzen(schluesselName, 'sb_secret_probe');
+    await tresorSetzen(schluesselName, schluessel);
     await db.query(aufruf);
     const { rows } = await db.query(
       'select headers from net.http_request_queue order by id desc limit 1',
@@ -79,21 +80,52 @@ beforeAll(async () => {
 
 afterAll(async () => { await db.end(); });
 
-describe('Der Anstoss schickt den Schlüssel in beiden Kopfzeilen', () => {
-  it('die Ausleitung', async () => {
+/** Ein JWT der Form nach — der Inhalt spielt für die Kopfzeilen keine Rolle. */
+const ALT = 'eyJhbGciOi.eyJyb2xlIjo.unterschrift';
+const NEU = 'sb_secret_probe';
+
+describe('Der Anstoss legt den Schlüssel in die richtige Kopfzeile', () => {
+  /*
+    DER NEUE SCHLÜSSEL DARF NICHT IN `Authorization`. Das Tor vor den Edge
+    Functions prüft alles dort als JWT und lehnt ihn ab, bevor die Function
+    anläuft — `apikey` daneben hilft nicht. Genau daran ist der erste Anlauf
+    im echten Projekt gescheitert.
+  */
+  it('ein neuer Schlüssel geht nur als apikey hinaus — Ausleitung', async () => {
     const kopf = await kopfzeilenVon(
-      'select app.ausleitung_anstossen()', 'ausleitung_url', 'ausleitung_schluessel',
+      'select app.ausleitung_anstossen()', 'ausleitung_url', 'ausleitung_schluessel', NEU,
     );
-    expect(kopf.apikey).toBe('sb_secret_probe');
-    expect(kopf.Authorization).toBe('Bearer sb_secret_probe');
+    expect(kopf.apikey).toBe(NEU);
+    expect(kopf.Authorization).toBeUndefined();
   }, 60_000);
 
-  it('die Push-Meldung', async () => {
+  it('ein neuer Schlüssel geht nur als apikey hinaus — Push', async () => {
     const kopf = await kopfzeilenVon(
-      `select app.push_anstossen('{"art":"neu"}'::jsonb)`, 'push_url', 'push_schluessel',
+      `select app.push_anstossen('{"art":"neu"}'::jsonb)`, 'push_url', 'push_schluessel', NEU,
     );
-    expect(kopf.apikey).toBe('sb_secret_probe');
-    expect(kopf.Authorization).toBe('Bearer sb_secret_probe');
+    expect(kopf.apikey).toBe(NEU);
+    expect(kopf.Authorization).toBeUndefined();
+  }, 60_000);
+
+  /*
+    UND DER ALTE WEG BLEIBT, WIE ER WAR. Er ist bis Ende 2026 der gültige;
+    ihn beim Reparieren des neuen zu verlieren, wäre der teuerste Fehler an
+    dieser Stelle.
+  */
+  it('ein JWT-Schlüssel geht in beide Kopfzeilen — Ausleitung', async () => {
+    const kopf = await kopfzeilenVon(
+      'select app.ausleitung_anstossen()', 'ausleitung_url', 'ausleitung_schluessel', ALT,
+    );
+    expect(kopf.apikey).toBe(ALT);
+    expect(kopf.Authorization).toBe(`Bearer ${ALT}`);
+  }, 60_000);
+
+  it('ein JWT-Schlüssel geht in beide Kopfzeilen — Push', async () => {
+    const kopf = await kopfzeilenVon(
+      `select app.push_anstossen('{"art":"neu"}'::jsonb)`, 'push_url', 'push_schluessel', ALT,
+    );
+    expect(kopf.apikey).toBe(ALT);
+    expect(kopf.Authorization).toBe(`Bearer ${ALT}`);
   }, 60_000);
 
   /*

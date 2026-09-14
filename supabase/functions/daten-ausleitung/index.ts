@@ -35,7 +35,7 @@ import {
   abgelaufeneStaende, ausleitungsPfad, ausleitungsPraefix, jsonZeile,
 } from '../_shared/ausleitungPlan.ts';
 import {
-  dienstSchluessel, istDienst, SCHLUESSEL_FEHLT,
+  dienstKopfzeilen, dienstSchluessel, rufDerMaschine, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
@@ -66,15 +66,11 @@ const SEITE = 1000;
 const GRENZE_BYTES = 256 * 1024 * 1024;
 
 /*
-  Der leere Ersatz ist nie im Einsatz: fehlt der Schlüssel, antwortet die
-  Function 503, bevor sie irgendetwas abruft. Er steht hier, weil die
-  Kopfzeilen beim Laden der Datei gebaut werden und nicht beim Aufruf.
+  Fehlt der Schlüssel, sind diese Kopfzeilen leer — benutzt werden sie dann
+  nie, weil die Function vorher mit 503 antwortet. Sie stehen hier, weil sie
+  beim Laden der Datei gebaut werden und nicht beim Aufruf.
 */
-const alsDienst = {
-  apikey: DIENST ?? '',
-  Authorization: `Bearer ${DIENST ?? ''}`,
-  'Content-Type': 'application/json',
-};
+const alsDienst = dienstKopfzeilen(DIENST);
 
 const antwort = (inhalt: unknown, status = 200) =>
   new Response(JSON.stringify(inhalt), {
@@ -213,8 +209,7 @@ async function betriebAusleiten(
   const hoch = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}/${pfad}`, {
     method: 'POST',
     headers: {
-      apikey: DIENST ?? '',
-      Authorization: `Bearer ${DIENST ?? ''}`,
+      ...alsDienst,
       'Content-Type': 'application/x-ndjson',
       'x-upsert': 'true',
     },
@@ -232,8 +227,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return fehler('Nur POST.', 405);
 
   const kopf = req.headers.get('Authorization') ?? '';
+  const apikeyKopf = req.headers.get('apikey') ?? '';
   const token = kopf.startsWith('Bearer ') ? kopf.slice(7) : '';
-  if (!token) return fehler('Keine Anmeldung.', 401);
+  if (!token && !apikeyKopf) return fehler('Keine Anmeldung.', 401);
 
   /*
     ZUERST DIE EIGENE AUSRÜSTUNG, DANN DER ANRUFER.
@@ -261,7 +257,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     ihn hat, ist die Maschine, und etwas anderes soll hier auch nicht
     durchkommen.
   */
-  if (istDienst(token, DIENST)) {
+  if (rufDerMaschine(kopf, apikeyKopf, DIENST)) {
     const firmen = await fetch(`${URL_BASIS}/rest/v1/companies?select=id`, {
       headers: alsDienst,
     });

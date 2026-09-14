@@ -15,7 +15,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  dienstSchluessel, istDienst, SCHLUESSEL_NAMEN, SCHLUESSEL_FEHLT,
+  dienstKopfzeilen, dienstSchluessel, istDienst, istJwtFormat, rufDerMaschine,
+  SCHLUESSEL_NAMEN, SCHLUESSEL_FEHLT,
 } from '@shared/dienstSchluessel';
 
 describe('dienstSchluessel', () => {
@@ -120,6 +121,70 @@ describe('istDienst', () => {
 
   it('stört sich nicht an Leerraum um das Token', () => {
     expect(istDienst(' abc ', 'abc')).toBe(true);
+  });
+});
+
+describe('istJwtFormat', () => {
+  it('erkennt ein JWT an seinen drei Teilen', () => {
+    expect(istJwtFormat('eyJhbGciOi.eyJyb2xlIjo.unterschrift')).toBe(true);
+  });
+
+  it('und einen neuen Schlüssel als das, was er ist: keines', () => {
+    expect(istJwtFormat('sb_secret_N7UND0Ugj')).toBe(false);
+  });
+
+  it('drei Teile heisst drei GEFÜLLTE Teile', () => {
+    expect(istJwtFormat('a..c')).toBe(false);
+    expect(istJwtFormat('a.b')).toBe(false);
+    expect(istJwtFormat('a.b.c.d')).toBe(false);
+    expect(istJwtFormat('')).toBe(false);
+  });
+});
+
+describe('dienstKopfzeilen', () => {
+  /*
+    DIE EINE ZEILE, DIE DEN UNTERSCHIED MACHT. Ein neuer Schlüssel in
+    `Authorization` wird vom Tor als kaputtes JWT abgewiesen, bevor
+    irgendetwas anläuft.
+  */
+  it('legt einen neuen Schlüssel nur in apikey', () => {
+    const kopf = dienstKopfzeilen('sb_secret_xyz');
+    expect(kopf.apikey).toBe('sb_secret_xyz');
+    expect(kopf.Authorization).toBeUndefined();
+  });
+
+  it('legt ein JWT in beide Kopfzeilen', () => {
+    const kopf = dienstKopfzeilen('eyJhbGciOi.eyJyb2xlIjo.unterschrift');
+    expect(kopf.apikey).toBe('eyJhbGciOi.eyJyb2xlIjo.unterschrift');
+    expect(kopf.Authorization).toBe('Bearer eyJhbGciOi.eyJyb2xlIjo.unterschrift');
+  });
+
+  it('kommt ohne Schlüssel aus, ohne zu scheitern', () => {
+    // Benutzt wird das nie — die Function antwortet vorher mit 503 —, aber
+    // die Kopfzeilen entstehen beim Laden der Datei und dürfen nicht werfen.
+    expect(dienstKopfzeilen(null).apikey).toBe('');
+    expect(dienstKopfzeilen(null).Authorization).toBeUndefined();
+  });
+});
+
+describe('rufDerMaschine', () => {
+  it('erkennt den alten Weg: Schlüssel im Authorization-Kopf', () => {
+    expect(rufDerMaschine('Bearer geheim', '', 'geheim')).toBe(true);
+  });
+
+  it('erkennt den neuen Weg: Schlüssel im apikey-Kopf', () => {
+    expect(rufDerMaschine('', 'geheim', 'geheim')).toBe(true);
+  });
+
+  it('weist einen Menschen ab, der den anon-Schlüssel mitschickt', () => {
+    // Genau so ruft ein angemeldeter Mensch an: sein Token im Authorization-
+    // Kopf, der öffentliche Schlüssel in apikey. Das ist keine Maschine.
+    expect(rufDerMaschine('Bearer nutzertoken', 'anon', 'geheim')).toBe(false);
+  });
+
+  it('und macht aus zweimal nichts keine Maschine', () => {
+    expect(rufDerMaschine('', '', null)).toBe(false);
+    expect(rufDerMaschine('', '', '')).toBe(false);
   });
 });
 

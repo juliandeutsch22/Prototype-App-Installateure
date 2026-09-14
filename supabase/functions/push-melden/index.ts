@@ -39,7 +39,7 @@ import {
   alsSdkCode, jwtBauen, type Dienstkonto,
 } from '../_shared/fcmVersand.ts';
 import {
-  dienstSchluessel, istDienst, SCHLUESSEL_FEHLT,
+  dienstKopfzeilen, dienstSchluessel, rufDerMaschine, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
@@ -59,11 +59,7 @@ const DIENSTKONTO = Deno.env.get('FCM_DIENSTKONTO') ?? '';
   Function 503, bevor sie irgendetwas abruft. Er steht hier, weil die
   Kopfzeilen beim Laden der Datei gebaut werden und nicht beim Aufruf.
 */
-const alsDienst = {
-  apikey: DIENST ?? '',
-  Authorization: `Bearer ${DIENST ?? ''}`,
-  'Content-Type': 'application/json',
-};
+const alsDienst = dienstKopfzeilen(DIENST);
 
 const antwort = (inhalt: unknown, status = 200) =>
   new Response(JSON.stringify(inhalt), {
@@ -171,11 +167,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // abzuweisen, als waere seine Anmeldung das Problem.
   if (!DIENST) return antwort({ error: SCHLUESSEL_FEHLT }, 503);
 
-  const kopf = req.headers.get('Authorization') ?? '';
   // Angestossen wird ausschliesslich vom Trigger, und der hat den
   // Dienstschluessel. Ein Mensch hat hier nichts zu suchen.
-  const token = kopf.startsWith('Bearer ') ? kopf.slice(7) : '';
-  if (!istDienst(token, DIENST)) return antwort({ error: 'Nur der Dienst.' }, 401);
+  const kopf = req.headers.get('Authorization') ?? '';
+  const apikeyKopf = req.headers.get('apikey') ?? '';
+  if (!rufDerMaschine(kopf, apikeyKopf, DIENST)) {
+    return antwort({ error: 'Nur der Dienst.' }, 401);
+  }
 
   const ereignis = await req.json().catch(() => null);
   if (!ereignis) return antwort({ error: 'Kein lesbares Ereignis.' }, 400);
