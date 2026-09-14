@@ -29,14 +29,20 @@
  * zwischen zwei Auslieferungen verschiebt sich unter ihr nichts.
  */
 import { betriebFehler, betriebNormalisiert, type NeuerBetrieb } from '../_shared/plattform.ts';
+import { dienstSchluessel, SCHLUESSEL_FEHLT } from '../_shared/dienstSchluessel.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
-const DIENST = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const DIENST = dienstSchluessel(Deno.env.toObject());
 
-/** Die Köpfe, mit denen der Dienstschlüssel spricht. */
+/*
+  Die Köpfe, mit denen der Dienstschlüssel spricht. Der leere Ersatz ist nie
+  im Einsatz: fehlt der Schlüssel, antwortet die Function 503, bevor sie
+  irgendetwas abruft. Er steht hier, weil die Kopfzeilen beim Laden der Datei
+  gebaut werden und nicht beim Aufruf.
+*/
 const alsDienst = {
-  apikey: DIENST,
-  Authorization: `Bearer ${DIENST}`,
+  apikey: DIENST ?? '',
+  Authorization: `Bearer ${DIENST ?? ''}`,
   'Content-Type': 'application/json',
 };
 
@@ -57,7 +63,7 @@ const fehler = (text: string, status: number) => antwort({ error: text }, status
 /** Die Kennung hinter einem Anmeldetoken — geprüft vom Anmeldedienst. */
 async function werRuftAn(token: string): Promise<string | null> {
   const r = await fetch(`${URL_BASIS}/auth/v1/user`, {
-    headers: { apikey: DIENST, Authorization: `Bearer ${token}` },
+    headers: { apikey: DIENST ?? '', Authorization: `Bearer ${token}` },
   });
   if (!r.ok) return null;
   const nutzer = await r.json();
@@ -72,6 +78,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     und nicht von uns — eine selbst nachgebaute Signaturprüfung wäre die
     schlechteste Stelle für einen eigenen Einfall.
   */
+  // Ohne Dienstschlüssel kann diese Function weder ein Konto anlegen noch
+  // die Plattformverwaltung nachschlagen. Sagt sie es nicht, sieht jeder
+  // Anrufer stattdessen „Keine Anmeldung." und sucht bei sich.
+  if (!DIENST) return fehler(SCHLUESSEL_FEHLT, 503);
+
   const kopf = req.headers.get('Authorization') ?? '';
   const token = kopf.startsWith('Bearer ') ? kopf.slice(7) : '';
   const aufrufer = token ? await werRuftAn(token) : null;

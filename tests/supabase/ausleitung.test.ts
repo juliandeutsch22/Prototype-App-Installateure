@@ -159,6 +159,34 @@ describe('Wer die Ausleitung auslösen darf', () => {
     expect(daten.error).toContain('Geschäftsführung');
   }, 60_000);
 
+  /*
+    WARUM EIN LEERZEICHEN EINEN EIGENEN FALL BEKOMMT. Der Dienstschlüssel
+    wird von Hand in den Tresor gelegt, und beim Einfügen rutscht Leerraum
+    mit. Der Aufruf sähe danach aus wie ein falscher Schlüssel: 401, „Keine
+    Anmeldung.", gesucht wird am Wert, und der ist richtig.
+
+    GEPRÜFT WIRD DER FALL, DER AUCH ANKOMMT: ein Umbruch am Ende taugt dafür
+    nicht — den schneidet schon die HTTP-Schicht ab, der Code sieht ihn nie,
+    und die Prüfung wäre grün, ohne irgendetwas zu prüfen (nachgemessen: mit
+    entferntem `trim` antwortet der Umbruch-Fall weiter 200, dieser hier
+    401). Ein zweites Leerzeichen hinter „Bearer" gehört dagegen zum Wert
+    und kommt durch.
+  */
+  it('nimmt den Dienstschlüssel auch mit Leerraum davor', async () => {
+    const antwort = await fetch(FUNKTION, {
+      method: 'POST',
+      headers: {
+        apikey: ANON,
+        Authorization: `Bearer  ${SERVICE}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ quelle: 'test' }),
+    });
+    expect(antwort.status).toBe(200);
+    // Der Dienstweg, nicht der Knopf: er zählt Mandanten statt einen Betrieb.
+    expect(await antwort.json()).toHaveProperty('mandanten');
+  }, 120_000);
+
   it('ohne Anmeldung niemand', async () => {
     const antwort = await fetch(FUNKTION, {
       method: 'POST',
