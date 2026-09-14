@@ -42,8 +42,8 @@ export const SCHLUESSEL_NAMEN = [
  */
 const VORZUGSEINTRAG = 'default';
 
-/** Aus dem JSON-Verzeichnis den Schlüssel holen, mit dem gearbeitet wird. */
-function ausVerzeichnis(roh: string): string | null {
+/** Alle brauchbaren Einträge aus dem JSON-Verzeichnis, `default` zuerst. */
+function ausVerzeichnis(roh: string): string[] {
   let gelesen: unknown;
   try {
     gelesen = JSON.parse(roh);
@@ -54,37 +54,79 @@ function ausVerzeichnis(roh: string): string | null {
       Zeichenkette hinterlegen, läuft der Dienst weiter, statt an einer
       Formatannahme von heute zu sterben.
     */
-    return roh;
+    return [roh];
   }
-  if (typeof gelesen !== 'object' || gelesen === null) return null;
+  if (typeof gelesen !== 'object' || gelesen === null) return [];
 
   const verzeichnis = gelesen as Record<string, unknown>;
-  const bevorzugt = verzeichnis[VORZUGSEINTRAG];
-  if (typeof bevorzugt === 'string' && bevorzugt.trim()) return bevorzugt.trim();
+  const brauchbar = (wert: unknown): wert is string =>
+    typeof wert === 'string' && wert.trim().length > 0;
 
-  // Kein `default` — dann der erste brauchbare Eintrag, damit ein Projekt
-  // mit anders benannten Schlüsseln nicht stillsteht.
-  for (const wert of Object.values(verzeichnis)) {
-    if (typeof wert === 'string' && wert.trim()) return wert.trim();
+  const gefunden: string[] = [];
+  const bevorzugt = verzeichnis[VORZUGSEINTRAG];
+  if (brauchbar(bevorzugt)) gefunden.push(bevorzugt.trim());
+  for (const [name, wert] of Object.entries(verzeichnis)) {
+    if (name !== VORZUGSEINTRAG && brauchbar(wert)) gefunden.push(wert.trim());
   }
-  return null;
+  return gefunden;
 }
 
 /**
- * Der Dienstschlüssel aus der Umgebung — oder `null`, wenn keiner dasteht.
+ * ALLE Dienstschlüssel, die diese Umgebung kennt — in der Reihenfolge, in
+ * der sie benutzt werden sollen.
+ *
+ * WARUM ALLE UND NICHT EINER. Ein Projekt kann mitten in der Ablösung
+ * stehen: der alte JWT-Schlüssel ist noch gesetzt, der neue auch. Welcher im
+ * Tresor liegt, entscheidet die Person, die ihn dort eingetragen hat — und
+ * wenn die Function nur gegen EINEN vergleicht, hängt es am Zufall, ob es
+ * derselbe ist. Der Fehlschlag sieht dann aus wie ein falscher Schlüssel und
+ * ist eine Reihenfolge.
+ *
+ * Sicherheitlich kostet das nichts: jeder dieser Schlüssel hebelt die
+ * Zeilenregeln ohnehin aus. Wer einen davon hat, IST der Dienst.
  *
  * Leerzeichen werden abgeschnitten: ein Schlüssel, der beim Einfügen einen
  * Zeilenumbruch mitbekommen hat, ist derselbe Schlüssel, und ein Vergleich,
  * der daran scheitert, wäre nicht sicherer, sondern nur schwerer zu finden.
  */
+export function alleDienstSchluessel(
+  umgebung: Record<string, string | undefined>,
+): string[] {
+  const gefunden: string[] = [];
+  const alt = umgebung.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (alt) gefunden.push(alt);
+
+  const neu = umgebung.SUPABASE_SECRET_KEYS?.trim();
+  if (neu) gefunden.push(...ausVerzeichnis(neu).filter((k) => !gefunden.includes(k)));
+  return gefunden;
+}
+
+/**
+ * Der Schlüssel, mit dem die Function selbst spricht — oder `null`, wenn
+ * keiner dasteht.
+ */
 export function dienstSchluessel(
   umgebung: Record<string, string | undefined>,
 ): string | null {
-  const alt = umgebung.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (alt) return alt;
+  return alleDienstSchluessel(umgebung)[0] ?? null;
+}
 
-  const neu = umgebung.SUPABASE_SECRET_KEYS?.trim();
-  return neu ? ausVerzeichnis(neu) : null;
+/**
+ * Sieht der Schlüssel aus wie ein JWT?
+ *
+ * WOZU DIE FRAGE. Die alten Schlüssel (`service_role`) SIND JWT, die neuen
+ * (`sb_secret_…`) sind es nicht. Das Tor vor den Edge Functions prüft alles,
+ * was im `Authorization`-Kopf steht, als JWT — und lehnt einen neuen
+ * Schlüssel dort ab, auch wenn `apikey` daneben steht. Ein neuer Schlüssel
+ * gehört deshalb NUR in `apikey`.
+ *
+ * Geprüft wird die Form, nicht die Gültigkeit: drei durch Punkte getrennte
+ * Teile. Mehr braucht es nicht — die Entscheidung lautet „in welchen Kopf",
+ * nicht „ist er echt". Echt oder nicht entscheidet ohnehin das Tor.
+ */
+export function istJwtFormat(wert: string): boolean {
+  const teile = wert.split('.');
+  return teile.length === 3 && teile.every((t) => t.length > 0);
 }
 
 /**
@@ -100,6 +142,41 @@ export function dienstSchluessel(
 export function istDienst(token: string, dienst: string | null): boolean {
   const sauber = token.trim();
   return sauber !== '' && sauber === dienst;
+}
+
+/**
+ * Kommt dieser Aufruf von der Maschine — gleich, in welchem Kopf der
+ * Schlüssel steht?
+ *
+ * Der alte Schlüssel kommt als `Authorization: Bearer …`, der neue als
+ * `apikey`. Beide Wege sind gleich stark: wer den Dienstschlüssel hat, ist
+ * die Maschine, ganz gleich, in welche Kopfzeile er ihn schreibt — und
+ * gleich, welchen der Schlüssel dieser Umgebung er benutzt.
+ */
+export function rufDerMaschine(
+  authKopf: string,
+  apikeyKopf: string,
+  schluessel: readonly string[],
+): boolean {
+  const ausAuth = authKopf.startsWith('Bearer ') ? authKopf.slice(7) : '';
+  return schluessel.some((s) => istDienst(ausAuth, s) || istDienst(apikeyKopf, s));
+}
+
+/**
+ * Die Kopfzeilen, mit denen eine Function selbst bei Supabase anfragt.
+ *
+ * Der Schlüssel steht immer in `apikey`. In `Authorization` kommt er nur,
+ * wenn er ein JWT ist — dort leitet PostgREST die Rolle daraus ab. Ein neuer
+ * Schlüssel würde an derselben Stelle als kaputtes JWT abgewiesen.
+ */
+export function dienstKopfzeilen(dienst: string | null): Record<string, string> {
+  const schluessel = dienst ?? '';
+  const kopf: Record<string, string> = {
+    apikey: schluessel,
+    'Content-Type': 'application/json',
+  };
+  if (istJwtFormat(schluessel)) kopf.Authorization = `Bearer ${schluessel}`;
+  return kopf;
 }
 
 /** Was einer Function fehlt, in Worten — für die Antwort nach aussen. */
