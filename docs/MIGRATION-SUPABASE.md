@@ -2142,6 +2142,41 @@ Schreibvorgang erfolgreich" war von keiner Prüfung berührt, weil der Fall im
 Funkloch immer scheitert. Die Gegenprobe mit Empfang fehlte; sie steht jetzt
 da.
 
+## Die `in`-Grenze ist nicht weg — sie hat die Form gewechselt
+
+Beim Umstellen stand in mehreren Modulen derselbe Vermerk: *„Die Blockbildung
+von Firestore entfällt: dort waren höchstens 30 Werte je `in`-Abfrage erlaubt,
+hier gibt es diese Grenze nicht."* Für Postgres stimmt das. Nur steht zwischen
+der App und Postgres **PostgREST**, und dort steht die Werteliste in der
+Adresse.
+
+Gemessen gegen den örtlichen Stapel: die Annahme bricht zwischen **8135 und
+8145 Zeichen** Werteliste ab, danach kommt `414 URI too long`. Bei Kennungen
+sind das gut 220 Stück.
+
+**Wen das trifft:** jede Abfrage nach dem Muster „Köpfe laden, dann die Zeilen
+dazu" — die Positionen zu einem Stapel Rechnungen, die Zeilen zu einem Monat
+Handwerksscheine, die Kunden zu dreihundert Baustellen. Nicht der Grenzfall,
+sondern der erste Betrieb mit ordentlich Daten. Im Pilotbetrieb mit zehn
+Zeilen fällt es nie auf.
+
+Gestückelt wird jetzt an einer Stelle, in `abfragen` — **nach Länge, nicht
+nach Anzahl**, denn eine Kennung wiegt 36 Zeichen und eine Baustellennummer
+neun. Das Budget ist 4000 Zeichen, die Hälfte des Gemessenen: die gehostete
+Anlage muss dieselbe Grenze nicht haben.
+
+**Zusammen mit einer Grenze (`limit`) bricht es laut ab.** Jeder Block brächte
+sonst seine eigenen `grenze` Zeilen mit, und zusammengelegt stünde eine andere
+Auswahl da als die gefragte; das nachträglich in der App zu sortieren hiesse,
+die Sortierregeln von Postgres nachzubauen — für Umlaute gehen die beiden
+auseinander. Heute ruft niemand so, und wer es täte, erfährt es sofort statt
+über eine Liste, die fast stimmt.
+
+Geprüft in `tests/supabase/inGrenze.test.ts`, gegen den echten Weg: erst wird
+**gemessen**, dass 400 Kennungen am Stück das `414` auslösen — ohne diese
+Messung bewiese die Prüfung nur, dass zwei Wege dasselbe liefern, nicht dass
+einer davon nötig ist. Drei Mutationen, drei gefallen.
+
 ### Als Nächstes
 
 Stufe 9: den Rückbau. Erst wenn der Betrieb ein paar Tage auf Postgres

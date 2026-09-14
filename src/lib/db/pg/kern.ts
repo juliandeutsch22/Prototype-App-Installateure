@@ -131,6 +131,66 @@ function alsSpalteSicher(feld: string): string {
   return spalte;
 }
 
+/**
+ * Wie lang die Werteliste einer `in`-Abfrage werden darf.
+ *
+ * DIE GRENZE IST NICHT WEG, SIE HAT DIE FORM GEWECHSELT. Firestore liess
+ * höchstens 30 Werte je `in` zu; die umgestellten Module haben die
+ * Blockbildung darum weggelassen, mit dem Vermerk „hier gibt es diese Grenze
+ * nicht". Für Postgres stimmt das — nur steht zwischen der App und Postgres
+ * PostgREST, und dort steht die Werteliste in der ADRESSE. Das Gateway weist
+ * eine zu lange Adresse mit `414 URI too long` ab.
+ *
+ * GEMESSEN, NICHT GESCHÄTZT: die Annahme bricht zwischen 8135 und 8145
+ * Zeichen Werteliste ab (eingegrenzt gegen den örtlichen Stapel, siehe
+ * `tests/supabase/inGrenze.test.ts`). Bei Kennungen sind das gut 220 Stück —
+ * erreichbar, sobald jemand einen Monat Scheine oder die Kunden zu 300
+ * Baustellen lädt.
+ *
+ * 4000 ist die Hälfte davon. Der Abstand ist Absicht: die gehostete Anlage
+ * muss nicht dieselbe Grenze haben wie die örtliche, und ein Block von rund
+ * hundert Kennungen kostet keine spürbare Zeit.
+ */
+const LISTE_HOECHSTENS = 4000;
+
+/** So lang wird der Wert in der Adresse, grob nach oben geschätzt. */
+function adressLaenge(wert: unknown): number {
+  // `+3` für das Komma und die Anführungszeichen, die PostgREST um
+  // Zeichenketten setzt.
+  return encodeURIComponent(String(wert)).length + 3;
+}
+
+/** Die `in`-Bedingung, die gestückelt werden muss — oder keine. */
+type InBedingung = Extract<Bedingung, { art: 'in' }>;
+
+function zuLangeListe(abfrage: Abfrage): { bed: InBedingung; laenge: number } | null {
+  for (const bed of abfrage.wo ?? []) {
+    if (bed.art !== 'in') continue;
+    const laenge = bed.werte.reduce<number>((summe, w) => summe + adressLaenge(w), 0);
+    if (laenge > LISTE_HOECHSTENS) return { bed, laenge };
+  }
+  return null;
+}
+
+/** Die Werte in Blöcke schneiden, die je unter der Grenze bleiben. */
+function bloecke(werte: readonly unknown[]): unknown[][] {
+  const raus: unknown[][] = [];
+  let laufend: unknown[] = [];
+  let laenge = 0;
+  for (const w of werte) {
+    const l = adressLaenge(w);
+    if (laufend.length > 0 && laenge + l > LISTE_HOECHSTENS) {
+      raus.push(laufend);
+      laufend = [];
+      laenge = 0;
+    }
+    laufend.push(w);
+    laenge += l;
+  }
+  if (laufend.length > 0) raus.push(laufend);
+  return raus;
+}
+
 /** Abfrage innerhalb eines Mandanten. */
 export async function abfragen<T>(
   tabelle: string,
@@ -138,6 +198,43 @@ export async function abfragen<T>(
   abfrage: Abfrage = {},
   client?: SupabaseClient,
 ): Promise<WithId<T>[]> {
+  const lang = zuLangeListe(abfrage);
+  if (lang) {
+    /*
+      MIT GRENZE WÄRE DIE STÜCKELUNG EINE STILLE LÜGE. Jeder Block brächte
+      seine eigenen `grenze` Zeilen mit, und zusammengelegt stünde eine andere
+      Auswahl da als die, die gefragt war. Das nachträglich in der App zu
+      sortieren hiesse, die Sortierregeln von Postgres nachzubauen — für
+      Umlaute gehen die beiden auseinander.
+
+      Heute ruft niemand so; deshalb bricht es laut ab, statt etwas
+      Unauffälliges zurückzugeben. Wer die Verbindung braucht, erfährt es
+      sofort und nicht über eine Liste, die fast stimmt.
+    */
+    if (abfrage.grenze !== undefined) {
+      throw new Error(
+        `Abfrage auf ${tabelle}: eine Werteliste von ${lang.laenge} Zeichen zusammen mit einer `
+          + 'Grenze lässt sich nicht stückeln, ohne die Auswahl zu verändern.',
+      );
+    }
+    const teile = await Promise.all(
+      bloecke(lang.bed.werte).map((block) =>
+        abfragen<T>(
+          tabelle,
+          companyId,
+          {
+            ...abfrage,
+            wo: (abfrage.wo ?? []).map((b) =>
+              b === lang.bed ? { ...lang.bed, werte: block } : b,
+            ),
+          },
+          client,
+        ),
+      ),
+    );
+    return teile.flat();
+  }
+
   const c = derClient(client);
   const bauer = anwenden(
     c.from(tabelle).select('*').eq('company_id', companyId) as unknown as Filterbar,
