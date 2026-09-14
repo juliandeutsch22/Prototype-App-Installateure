@@ -89,6 +89,32 @@ durch ein Protokoll, das später jeder mit Repo-Zugriff lesen kann.
 Der Workflow ist mehrfach ausführbar: eine bestehende Firma wird nicht
 überschrieben, ein bestehendes Konto nur aktualisiert.
 
+### Dasselbe im Postgres-Projekt
+
+Steht die Datenquelle auf Postgres, führt derselbe Ring durch Supabase, und
+der Schlüssel dazu ist `scripts/bootstrap-postgres.mjs`:
+
+```bash
+SUPABASE_URL=https://<ref>.supabase.co \
+SUPABASE_SERVICE_KEY=<Project Settings → API Keys> \
+ADMIN_EMAIL=chef@betrieb.at ADMIN_NAME='Vorname Nachname' \
+COMPANY_NAME='Betrieb GmbH' COMPANY_ID=betrieb \
+PLATTFORM_EMAIL=verwaltung@betrieb.at \
+node scripts/bootstrap-postgres.mjs
+```
+
+Es legt den Betrieb über **dieselbe** Datenbankfunktion an wie die Edge
+Function `betrieb-anlegen` — zwei Wege wären zwei Fassungen derselben
+Vorgabewerte, und sie liefen auseinander.
+
+`PLATTFORM_EMAIL` ist freiwillig und braucht eine **eigene** Adresse: ein
+Plattformverwalter gehört zu keinem Betrieb, und die Datenbank weist ein
+Zwitterkonto ab. Ohne ihn lässt sich über die App kein *weiterer* Betrieb
+anlegen; für einen einzelnen ist das in Ordnung.
+
+Kein Passwort, kein Link in der Ausgabe — freigeschaltet wird beides über
+„Passwort vergessen?", aus demselben Grund wie oben.
+
 ### Weitere Betriebe: der globale Administrator
 
 Für jeden **weiteren** Betrieb gibt es einen zweiten Weg, und er ist der
