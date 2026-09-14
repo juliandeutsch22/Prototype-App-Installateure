@@ -14,6 +14,8 @@ import type { Wartung } from '@/types';
  * gerechnet wird, ist an drei Stellen anders.
  */
 
+import { tageImMonat } from '@shared/feiertage';
+
 /** Wie weit im Voraus eine Wartung als „fällig" gilt, in Tagen. */
 export const VORLAUF_TAGE = 30;
 
@@ -21,11 +23,6 @@ export const VORLAUF_TAGE = 30;
 export const INTERVALLE = [6, 12, 18, 24, 36] as const;
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Tage im Monat (1-basiert), schaltjahrfest über UTC. */
-function tageImMonat(jahr: number, monat: number): number {
-  return new Date(Date.UTC(jahr, monat, 0)).getUTCDate();
-}
 
 /**
  * Monate auf ein Datum addieren — mit Anschlag am Monatsende.

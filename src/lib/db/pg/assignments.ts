@@ -6,6 +6,7 @@
  * der Rüstliste; hier ist es EIN Aufruf, der in einer Transaktion läuft.
  */
 import type { Assignment } from '@/types';
+import { monatsEnde } from '@shared/feiertage';
 import { abfragen, abonnieren, derClient, loeschen, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 
@@ -62,9 +63,13 @@ export function listAssignmentsForUserInRange(
  * Alle Einsätze eines Monats, live.
  *
  * Der Kalender braucht den ganzen Monat auf einmal, sonst könnte er die
- * belegten Tage nicht markieren. Der 31. steht auch in Monaten, die keinen
- * haben: ein Datumsvergleich gegen einen Tag, den es nicht gibt, schließt
- * schlicht nichts zusätzlich ein.
+ * belegten Tage nicht markieren.
+ *
+ * DAS ENDE WIRD GERECHNET, NICHT AUF 31 GESETZT. Firestore verglich den
+ * Zeitraum als ZEICHENKETTE, und '2026-09-31' lag dort einfach hinter dem
+ * letzten echten Tag — harmlos. Postgres liest denselben Wert als DATUM und
+ * bricht ab: `date/time field value out of range`. Die Einsatzplanung war
+ * nach dem Umschalten genau deshalb nicht benutzbar.
  */
 export function subscribeAssignmentsForMonth(
   companyId: string,
@@ -74,7 +79,7 @@ export function subscribeAssignmentsForMonth(
   onError: (e: Error) => void,
 ): () => void {
   const from = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const to = `${year}-${String(month + 1).padStart(2, '0')}-31`;
+  const to = monatsEnde(year, month + 1);
   return subscribeAssignmentsInRange(companyId, from, to, cb, onError);
 }
 

@@ -23,6 +23,40 @@ export function localDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * Tage im Monat (Monat 1-basiert), schaltjahrfest.
+ *
+ * Tag 0 des FOLGEmonats ist der letzte des gesuchten — das spart eine
+ * Schaltjahrregel, die irgendwann jemand falsch abschreibt.
+ */
+export function tageImMonat(jahr: number, monat: number): number {
+  return new Date(Date.UTC(jahr, monat, 0)).getUTCDate();
+}
+
+/**
+ * Der letzte Tag eines Monats als ISO-Tag (Monat 1-basiert).
+ *
+ * WARUM DAS HIER STEHT UND NICHT DREIMAL VERSTREUT. Ein Monatsende „31."
+ * hinzuschreiben war unter Firestore harmlos: dort wurde ein Datumsbereich
+ * als ZEICHENKETTE verglichen, und '2026-09-31' ist zwar kein Tag, liegt
+ * aber sauber hinter '2026-09-30' — die Abfrage schloss schlicht nichts
+ * zusätzlich ein.
+ *
+ * Postgres liest denselben Wert als DATUM und bricht ab:
+ * `date/time field value out of range: "2026-09-31"`. Genau daran ist die
+ * Einsatzplanung nach dem Umschalten gescheitert, und zwar an einer Zeile,
+ * neben der ein Kommentar von mir stand, der die Firestore-Annahme
+ * mitgebracht hatte.
+ *
+ * Es ist der Unterschied zwischen einer Datenbank, die Zeichenketten
+ * vergleicht, und einer, die Datumsangaben versteht — und die Lehre daraus
+ * gehört an eine Stelle, nicht an drei.
+ */
+export function monatsEnde(jahr: number, monat: number): string {
+  const d = new Date(Date.UTC(jahr, monat, 0));
+  return d.toISOString().slice(0, 10);
+}
+
 /** Osterdatum nach Gauß/Butcher. */
 export function getEasterDate(year: number): Date {
   const a = year % 19;
