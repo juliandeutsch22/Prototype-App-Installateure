@@ -24,18 +24,12 @@ import { normProjectNumber } from '@/lib/time';
  * 2026-042", „alles vom März"), und behauptet für den Rest nichts.
  */
 
+import { monatsEnde } from '@shared/feiertage';
+
 export type Suchabsicht =
   | { art: 'baustelle'; nummer: string }
   | { art: 'zeitraum'; von: string; bis: string; text: string }
   | { art: 'text' };
-
-/** Letzter Tag eines Monats, als ISO-Tag. */
-function monatsEnde(jahr: number, monat: number): string {
-  // Tag 0 des FOLGEmonats ist der letzte des gesuchten — spart eine
-  // Schalttagsregel, die irgendwann jemand falsch abschreibt.
-  const d = new Date(Date.UTC(jahr, monat, 0));
-  return d.toISOString().slice(0, 10);
-}
 
 /**
  * Was der Begriff bedeutet.

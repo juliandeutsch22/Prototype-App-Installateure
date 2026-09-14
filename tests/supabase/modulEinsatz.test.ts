@@ -57,6 +57,77 @@ const position = (id: string, name: string, menge = 1): RuestPosition => ({ id, 
 /** Der zuletzt gemeldete Stand. `Array.prototype.at` liegt ausserhalb des Ziels. */
 const letzter = <T>(staende: T[]): T => staende[staende.length - 1];
 
+/*
+  DER MONAT, DER KEINEN 31. HAT.
+
+  Firestore verglich einen Datumsbereich als ZEICHENKETTE: '2026-09-31' ist
+  kein Tag, liegt aber hinter '2026-09-30' — die Abfrage schloss schlicht
+  nichts zusätzlich ein, und ein hart hingeschriebener 31. fiel nie auf.
+  Postgres liest denselben Wert als DATUM und bricht ab:
+
+    date/time field value out of range: "2026-09-31"
+
+  Genau das ist nach dem Umschalten passiert: die Einsatzplanung war in
+  jedem Monat mit 30 oder 28 Tagen nicht benutzbar. Die Modulprüfungen
+  arbeiteten alle im Mai.
+
+  Diese Prüfung fährt deshalb ausdrücklich über einen kurzen Monat.
+*/
+describe('Der ganze Monat, auch ein kurzer', () => {
+  const warteKurz = () => warte(NACHFASSEN_MS + 1800);
+
+  it('liefert September, ohne am 31. zu scheitern', async () => {
+    const TAG_SEPT = '2026-09-30';
+    await leeren(TAG_SEPT);
+    clientEinreichen(planer.client);
+    await einsaetze.saveAssignments(BETRIEB, TAG_SEPT, BAU, [zeile(anton)]);
+
+    const staende: WithId<unknown>[][] = [];
+    const fehler: Error[] = [];
+    // Monat ist 0-basiert: 8 ist der September.
+    const stopp = einsaetze.subscribeAssignmentsForMonth(
+      BETRIEB, 2026, 8,
+      (rows) => staende.push(rows as WithId<unknown>[]),
+      (e) => fehler.push(e),
+    );
+    try {
+      await warteKurz();
+      expect(fehler).toEqual([]);
+      expect(letzter(staende)).toHaveLength(1);
+    } finally {
+      stopp();
+      await leeren(TAG_SEPT);
+    }
+  }, 30_000);
+
+  /*
+    Und der Februar, damit nicht nur „30 statt 31" abgedeckt ist: 2026 ist
+    kein Schaltjahr, der Monat endet am 28.
+  */
+  it('liefert auch Februar', async () => {
+    const TAG_FEB = '2026-02-28';
+    await leeren(TAG_FEB);
+    clientEinreichen(planer.client);
+    await einsaetze.saveAssignments(BETRIEB, TAG_FEB, BAU, [zeile(anton)]);
+
+    const staende: WithId<unknown>[][] = [];
+    const fehler: Error[] = [];
+    const stopp = einsaetze.subscribeAssignmentsForMonth(
+      BETRIEB, 2026, 1,
+      (rows) => staende.push(rows as WithId<unknown>[]),
+      (e) => fehler.push(e),
+    );
+    try {
+      await warteKurz();
+      expect(fehler).toEqual([]);
+      expect(letzter(staende)).toHaveLength(1);
+    } finally {
+      stopp();
+      await leeren(TAG_FEB);
+    }
+  }, 30_000);
+});
+
 describe('Einteilung', () => {
   it('schreibt, ersetzt und zählt richtig', async () => {
     await leeren();
