@@ -255,7 +255,7 @@ export async function loeschen(
 /**
  * Live-Abonnement innerhalb eines Mandanten.
  *
- * DREI ENTSCHEIDUNGEN, JEDE AUS EINEM FEHLSCHLAG GELERNT.
+ * VIER ENTSCHEIDUNGEN, JEDE AUS EINEM FEHLSCHLAG GELERNT.
  *
  * 1. ERST ABONNIEREN, DANN HOLEN. Firestore lieferte den ersten Bestand aus
  *    demselben Abo; hier sind das zwei Vorgänge. Wer zuerst holt und dann
@@ -276,6 +276,13 @@ export async function loeschen(
  *    Ohne dieses Nachfassen flatterten die Prüfungen dieser Datei — und ein
  *    Flattern im Test heisst draussen: die Liste des Monteurs ist manchmal
  *    unvollständig, ohne dass es jemand merkt.
+ *
+ * 4. EIN ABGERISSENER KANAL WIRD NEU AUFGEBAUT, NICHT GEMELDET. Schickt das
+ *    Telefon die App in den Hintergrund, schliesst das Betriebssystem die
+ *    Verbindung; beim Zurückkommen meldet der Kanal `CHANNEL_ERROR`. Das war
+ *    ein roter Kasten auf jeder Ansicht mit Live-Daten — obwohl nichts kaputt
+ *    ist. Firestore hat diesen Wiederaufbau selbst erledigt. Die Begründung
+ *    im Einzelnen steht unten am Wiederaufbau.
  *
  * Gefiltert wird im Kanal nur nach dem Betrieb. Alles Weitere (Zeitraum,
  * Person) prüft der Client an der eingehenden Zeile: Supabase kann nur EINEN
@@ -361,37 +368,116 @@ export function abonnieren<T>(
     }
   };
 
-  const kanal = c
-    .channel(`${tabelle}-${companyId}-${Math.random().toString(36).slice(2)}`)
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: tabelle, filter: `company_id=eq.${companyId}` },
-      (n) => {
-        const aenderung = {
-          typ: n.eventType,
-          neu: n.new as Record<string, unknown>,
-          alt: n.old as Record<string, unknown>,
-        };
-        if (!bereit) { puffer.push(aenderung); return; }
-        anwendenAenderung(aenderung);
-        melden();
-      },
-    )
-    .subscribe((status) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        onError(new Error(`Live-Abonnement für ${tabelle}: ${status}`));
-        return;
-      }
-      if (status !== 'SUBSCRIBED') return;
+  /*
+    EIN ABGERISSENER KANAL IST KEIN FEHLER, SONDERN DER NORMALFALL.
 
-      void laden().then(() => {
-        // Das Nachfassen. Siehe Punkt 3 im Kopf dieser Funktion.
-        nachfassen = setTimeout(() => { void laden(); }, NACHFASSEN_MS);
+    Das Live-Abonnement hängt an einer WebSocket-Verbindung. Schickt das
+    Telefon die App in den Hintergrund — Anruf, Bildschirmsperre, ein Blick in
+    die Karten-App —, schliesst das Betriebssystem sie. Beim Zurückkommen
+    meldet der Kanal `CHANNEL_ERROR`.
+
+    DAS WAR VORHER EIN ROTER KASTEN, und zwar auf jeder Ansicht mit Live-Daten.
+    Auf einer Baustelle heisst das: einmal weggesehen, und die App sagt „Das
+    hat nicht geklappt" — obwohl nichts kaputt ist und die angezeigten Daten
+    stimmen. Firestore hat diesen Wiederaufbau selbst erledigt; hier muss er
+    hier stehen.
+
+    Also: neu verbinden, mit wachsendem Abstand, und den Bestand dabei neu
+    holen — während der Pause kann sich etwas geändert haben, was kein
+    Ereignis mehr erreicht hat. Gemeldet wird erst, wenn es auch nach der
+    letzten Stufe nicht klappt; dann steht wirklich etwas an, und der Hinweis
+    ist verdient.
+  */
+  const ABSTAENDE_MS = [1000, 2000, 4000, 8000, 15000];
+  let versuch = 0;
+  let beendet = false;
+  let neuAufbau: ReturnType<typeof setTimeout> | undefined;
+  let kanal: ReturnType<SupabaseClient['channel']> | null = null;
+
+  const anmelden = () => {
+    if (beendet) return;
+    kanal = c
+      .channel(`${tabelle}-${companyId}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: tabelle, filter: `company_id=eq.${companyId}` },
+        (n) => {
+          const aenderung = {
+            typ: n.eventType,
+            neu: n.new as Record<string, unknown>,
+            alt: n.old as Record<string, unknown>,
+          };
+          if (!bereit) { puffer.push(aenderung); return; }
+          anwendenAenderung(aenderung);
+          melden();
+        },
+      )
+      .subscribe((status) => {
+        if (beendet) return;
+
+        if (status === 'SUBSCRIBED') {
+          versuch = 0;
+          void laden().then(() => {
+            // Das Nachfassen. Siehe Punkt 4 im Kopf dieser Funktion.
+            nachfassen = setTimeout(() => { void laden(); }, NACHFASSEN_MS);
+          });
+          return;
+        }
+
+        /*
+          `CLOSED` kommt auch beim eigenen Abmelden — dann steht `beendet`
+          schon, und wir sind oben heraus. Bleibt der Fall, in dem die
+          Verbindung von aussen wegbricht.
+        */
+        if (status !== 'CHANNEL_ERROR' && status !== 'TIMED_OUT' && status !== 'CLOSED') return;
+
+        if (versuch >= ABSTAENDE_MS.length) {
+          onError(new Error(
+            `Die Live-Verbindung für ${tabelle} steht nicht (${status}). `
+            + 'Die angezeigten Daten können veraltet sein — neu laden hilft.',
+          ));
+          return;
+        }
+        const wartezeit = ABSTAENDE_MS[versuch];
+        versuch += 1;
+        if (kanal) void c.removeChannel(kanal);
+        kanal = null;
+        neuAufbau = setTimeout(anmelden, wartezeit);
       });
-    });
+  };
+
+  /*
+    ZURÜCK AUS DEM HINTERGRUND: sofort, nicht erst nach dem Abstand.
+
+    Ohne das läge zwischen „App wieder da" und „Daten wieder aktuell" die
+    gerade laufende Wartezeit — und der Monteur sähe seinen eben gebuchten
+    Eintrag bis zu fünfzehn Sekunden lang nicht.
+  */
+  const wiederDa = () => {
+    if (beendet) return;
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    versuch = 0;
+    if (neuAufbau) { clearTimeout(neuAufbau); neuAufbau = undefined; }
+    if (kanal) { void c.removeChannel(kanal); kanal = null; }
+    anmelden();
+  };
+
+  const horcht = typeof document !== 'undefined' && typeof window !== 'undefined';
+  if (horcht) {
+    document.addEventListener('visibilitychange', wiederDa);
+    window.addEventListener('online', wiederDa);
+  }
+
+  anmelden();
 
   return () => {
+    beendet = true;
     if (nachfassen) clearTimeout(nachfassen);
-    void c.removeChannel(kanal);
+    if (neuAufbau) clearTimeout(neuAufbau);
+    if (horcht) {
+      document.removeEventListener('visibilitychange', wiederDa);
+      window.removeEventListener('online', wiederDa);
+    }
+    if (kanal) void c.removeChannel(kanal);
   };
 }

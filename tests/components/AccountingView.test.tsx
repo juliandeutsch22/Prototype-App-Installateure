@@ -314,8 +314,49 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
       </ToastProvider>,
     );
 
-    expect(await screen.findByText(/Kein Konto führt ein Zeitkonto/)).toBeInTheDocument();
-    expect(screen.getByText(/Geschäftsführung, Projektleitung und Administration/)).toBeInTheDocument();
+    expect(await screen.findByText(/Kein Konto erscheint in dieser Auswertung/)).toBeInTheDocument();
+    expect(screen.getByText(/Geschäftsführung und Administration/)).toBeInTheDocument();
+  });
+
+  /*
+    DIE PROJEKTLEITUNG STAND HIER NICHT — UND HAT GEBUCHT.
+
+    Sie führt kein Zeitkonto: kein Soll, also weder Über- noch Unterstunden.
+    Daraus war geschlossen worden, sie gehöre auch nicht in die Auswertung.
+    Das ist zweierlei: bei einem Notdienst fährt sie selbst hinaus, und ihre
+    Stunden stehen auf einer Baustelle und in einer Nachkalkulation.
+
+    Aus dem Betrieb gemeldet: der Projektleiter bucht und taucht nirgends auf.
+  */
+  it('zeigt die Projektleitung — mit Stunden, ohne Saldo', async () => {
+    const pl: AppUser = {
+      ...monteur,
+      id: 'pl', uid: 'pl', name: 'Paula Leiter', role: 'Projektleiter',
+    } as AppUser;
+    benutzer = [gf, pl];
+    render(
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>,
+    );
+
+    expect(await screen.findByText('Paula Leiter')).toBeInTheDocument();
+    // Kein Saldo, aber auch kein falscher Mangel: „kein Eintritt hinterlegt"
+    // schickte sonst jemanden in die Stammdaten, wo nichts fehlt.
+    expect(screen.getByText('führt kein Zeitkonto')).toBeInTheDocument();
+    expect(screen.queryByText('kein Eintritt hinterlegt')).not.toBeInTheDocument();
+  });
+
+  it('und die Geschäftsführung weiterhin nicht', async () => {
+    benutzer = [gf];
+    render(
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>,
+    );
+
+    await screen.findByText(/Kein Konto erscheint in dieser Auswertung/);
+    expect(screen.queryByText('Julian Deutsch')).not.toBeInTheDocument();
   });
 
   it('sagt etwas anderes, wenn wirklich niemand angelegt ist', async () => {
