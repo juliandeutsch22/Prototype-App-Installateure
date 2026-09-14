@@ -1669,5 +1669,86 @@ Zeitfenster dazwischen eine Function, die bei jedem Aufruf scheitert.
 
 ### Als Nächstes
 
-`voiceExtract` (braucht einen API-Schlüssel als Geheimnis), der nächtliche
-Ausleitungslauf und die beiden Push-Meldungen.
+Der nächtliche Ausleitungslauf und die beiden Push-Meldungen. `voiceExtract`
+bleibt draussen: die KI-Spracherfassung ist nicht eingeschaltet und soll es
+vorerst nicht werden.
+
+## Der nächtliche Ausleitungslauf
+
+14.09.2026. `pg_cron` weckt eine Edge Function, die jeden Betrieb zeilenweise
+als `.jsonl` wegschreibt, alte Stände wegräumt und das Ergebnis in
+`system_laeufe` festhält — dieselbe Überwachung wie bisher, also bleibt die
+Anzeige „Sicherung überfällig" unverändert.
+
+### Zwei Wege in dieselbe Function
+
+Der Zeitplan ruft mit dem **Dienstschlüssel** und nimmt alle Betriebe; der
+Knopf in der Sicherungsansicht mit dem **Token eines Menschen** und nimmt nur
+dessen eigenen. Zwei getrennte Fassungen wären zwei Gelegenheiten dafür, dass
+die eine ausleitet, was die andere auslässt.
+
+Die Aufbewahrungsregel — was weg darf und was nie — ist dabei nicht neu
+geschrieben worden: `ausleitungPlan.ts` ist von `functions/src/` nach
+`shared/` gezogen und wird jetzt von beiden Fassungen gelesen. Die elf
+Prüfungen dazu laufen unverändert weiter.
+
+### Wie ehrlich das ist
+
+Das Ziel ist heute ein Eimer im **selben Projekt**. Gegen einen Fehlgriff,
+eine kaputte Migration oder eine versehentlich geleerte Tabelle hilft das
+sofort. Gegen „der Zugang zum Projekt ist weg" hilft es **nicht** — dafür muss
+das Ziel ausserhalb liegen. Solange es das nicht tut, steht
+`system_laeufe.ziel_extern` auf `false`, und die Ansicht schreibt „Eimer im
+selben Projekt" statt eines beruhigenden Namens.
+
+Der Eimer trägt **keine einzige Richtlinie**, und das ist der Punkt: was keine
+trifft, ist zu. Auch die Geschäftsführung kommt nicht heran. Wer den Bestand
+braucht, holt ihn über den DSGVO-Auszug, der die Rolle prüft und nur den
+eigenen Betrieb liefert — ein Leserecht auf den Eimer wäre ein zweiter Weg an
+dieselben Daten, mit eigener Regel und eigener Gelegenheit, sich zu vertun.
+
+### Zwei Dinge, die beim Prüfen aufgefallen sind
+
+**Eine Mutation kam durch, und sie war die gefährlichste.** Bricht die
+Leseschleife nach der ersten Seite ab, ist der Stand vollständig AUSSEHEND und
+unvollständig: Datei da, Lauf grün, Überwachung zufrieden, und beim
+Wiederanlauf fehlen vier Fünftel der Zeiteinträge. Kein Test hatte je mehr als
+tausend Zeilen. Jetzt bekommt ein eigener Betrieb 1200 Buchungen, und die
+Prüfung zählt sie in der geschriebenen Datei nach.
+
+**Mein Mutationswerkzeug hat selbst einen Fehler gehabt.** Es stellte die
+Function auf der Platte wieder her, startete den Runtime aber nicht neu — und
+der KOPIERT die Functions beim Start. Die nächste Prüfung lief gegen die
+mutierte Fassung und wurde aus einem Grund rot, der nichts mit ihr zu tun
+hatte. Zwei Minuten Verwirrung, die als Notiz mehr wert sind als still
+behoben.
+
+### Was an der Zeit auffallen wird
+
+`pg_cron` rechnet in UTC. Eingetragen ist 01:30 UTC — im Sommer 03:30, im
+Winter 02:30 Wiener Zeit. Der Lauf wandert also mit der Zeitumstellung um eine
+Stunde. Für einen Nachtlauf ohne Belang; es steht in der Migration, damit es
+niemand später im Protokoll entdeckt und für einen Fehler hält.
+
+### Was noch fehlt
+
+Adresse und Dienstschlüssel für den Zeitplan liegen im **Tresor** und nicht in
+der Migration — eine Migration liegt im Git, und dort bliebe ein Schlüssel für
+immer. Sie werden einmal angelegt; bis dahin tut der Lauf nichts und sagt es,
+statt jede Nacht in einen Fehler zu laufen, den niemand liest.
+
+### Stand
+
+| | |
+|---|---|
+| Functions umgestellt oder entfallen | 12 von 15 |
+| Prüfungen gegen die echte Datenbank | 571 |
+| Hermetische Prüfungen | 1659 |
+| Mutationen dieses Teils | 7 |
+| davon sofort gefangen | 6 |
+| nachgezogen | 1 |
+
+### Als Nächstes
+
+Die Anmeldung. Sie ist der letzte grosse Brocken und der, ohne den sich der
+Schalter gar nicht umlegen lässt.

@@ -6,7 +6,7 @@ import {
   datumAusPfad,
   datumsStempel,
   jsonZeile,
-} from '../../functions/src/ausleitungPlan';
+} from '@shared/ausleitungPlan';
 
 /**
  * Die Entscheidungen der nächtlichen Ausleitung.

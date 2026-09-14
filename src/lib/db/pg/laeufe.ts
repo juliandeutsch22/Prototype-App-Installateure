@@ -29,3 +29,38 @@ export async function ladeLauf(companyId: string, art: LaufArt): Promise<Lauf | 
     return undefined;
   }
 }
+
+/** Was die Ausleitung von Hand zurückmeldet. */
+export interface AusleitungsBilanz {
+  companyId: string;
+  zeilen: number;
+  bytes: number;
+  pfad: string;
+  geraeumt: number;
+  ziel: string;
+}
+
+/**
+ * Die Sicherung sofort erstellen — über die Edge Function.
+ *
+ * WARUM ES DEN KNOPF GIBT: eine Sicherung, die man nicht auslösen kann, prüft
+ * niemand; und eine, die niemand je geprüft hat, ist keine. Einmal drücken
+ * zeigt in einem Zug, ob die Berechtigungen stimmen, ob das Ziel erreichbar
+ * ist und wie gross der Stand ist.
+ *
+ * Ausgeleitet wird immer nur der EIGENE Betrieb — der Nachtlauf nimmt alle,
+ * dieser Aufruf nicht.
+ */
+export async function ausleitungJetzt(): Promise<AusleitungsBilanz> {
+  const { data, error } = await derClient().functions.invoke('daten-ausleitung', {
+    body: { quelle: 'knopf' },
+  });
+  if (error) {
+    // Die Meldung der Function durchreichen, nicht den nackten Status — sonst
+    // stünde vor der Geschäftsführung „non-2xx status code".
+    const rumpf = await (error as { context?: Response }).context?.json?.()
+      .catch(() => undefined);
+    throw new Error(rumpf?.error ?? error.message);
+  }
+  return data as AusleitungsBilanz;
+}

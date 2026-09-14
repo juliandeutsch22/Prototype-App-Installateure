@@ -26,6 +26,16 @@ export interface Konto {
   uid: string;
   betrieb: string;
   rolle: Rolle;
+  /**
+   * Das Anmeldetoken, roh.
+   *
+   * Der Client trägt es ohnehin mit; herausgereicht wird es für die Edge
+   * Functions, die kein `SupabaseClient` aufruft, sondern ein `fetch` mit
+   * einem `Authorization`-Kopf. Ohne diese Zeile müsste jede solche Prüfung
+   * sich noch einmal selbst anmelden — und prüfte dann ein anderes Token als
+   * das, mit dem der Rest der Prüfung arbeitet.
+   */
+  token: string;
 }
 
 const PASSWORT = 'stufe-eins-2026';
@@ -72,7 +82,7 @@ export async function konto(
   if (an.error) throw an.error;
   await client.realtime.setAuth(an.data.session!.access_token);
   if (!aktiv) await deaktivieren(uid);
-  return { client, uid, betrieb, rolle };
+  return { client, uid, betrieb, rolle, token: an.data.session!.access_token };
 }
 
 /**

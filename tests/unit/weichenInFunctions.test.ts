@@ -1,14 +1,15 @@
 /**
  * Die Weichen in `lib/functions.ts` — die außerhalb der Datenschicht.
  *
- * Vier sind umgezogen: „Urlaub entscheiden", die Vorausfüllung des
+ * Fünf sind umgezogen: „Urlaub entscheiden", die Vorausfüllung des
  * Handwerksscheins und der DSGVO-Auszug wurden Datenbankfunktionen, das
- * Anlegen eines Betriebs eine Edge Function. Die Ansichten merken davon
- * nichts — sie bekommen in beiden Fällen `{ data }` mit demselben Inhalt.
+ * Anlegen eines Betriebs und die Ausleitung Edge Functions. Die Ansichten
+ * merken davon nichts — sie bekommen in beiden Fällen `{ data }` mit
+ * demselben Inhalt.
  *
  * WARUM DAS EINEN EIGENEN TEST BRAUCHT. Die achtzehn Weichen in `lib/db/`
  * hält `datenschichtVertrag.test.ts` zusammen — der prüft aber nur Dateien
- * unter `src/lib/db/`. Diese vier liegen in `lib/functions.ts`, weil der
+ * unter `src/lib/db/`. Diese fünf liegen in `lib/functions.ts`, weil der
  * Aufrufer dort schon immer gesucht hat. Ohne diesen Test stünden sie
  * ungeprüft da: ein vertauschter Zweig bliebe still, bis in Stufe 8 der
  * Schalter umgelegt wird und die Genehmigung ins Leere ruft.
@@ -20,6 +21,7 @@ const entscheiden = vi.fn();
 const vorbereiten = vi.fn();
 const auszug = vi.fn();
 const betriebAnlegen = vi.fn();
+const ausleitungJetzt = vi.fn();
 /*
   `httpsCallable` bekommt den Namen der Function als zweites Argument; er
   landet im Aufruf, damit ein vertauschter Name auffällt — beide Weichen
@@ -34,6 +36,7 @@ vi.mock('@/lib/db/workSheets', () => ({
 }));
 vi.mock('@/lib/db/company', () => ({ auszug: () => auszug() }));
 vi.mock('@/lib/db/plattform', () => ({ betriebAnlegen: (d: unknown) => betriebAnlegen(d) }));
+vi.mock('@/lib/db/laeufe', () => ({ ausleitungJetzt: () => ausleitungJetzt() }));
 vi.mock('@/lib/firebase', () => ({ functions: {} }));
 vi.mock('firebase/functions', () => ({
   httpsCallable: (_f: unknown, name: string) => (d: unknown) => alsFunction(name, d),
@@ -57,6 +60,11 @@ const ANGELEGT = {
   companyId: 'gruber', ersterAdminUid: 'uid-1',
   passwortLink: 'https://example.test/reset?token=abc',
 };
+const BILANZ = {
+  companyId: 'perl', zeilen: 1234, bytes: 98765,
+  pfad: 'ausleitung/perl/2026-09-14.jsonl', geraeumt: 1,
+  ziel: 'ausleitung (Eimer im selben Projekt)',
+};
 const AUSZUG = {
   companyId: 'perl', exportedAt: '2026-03-10T08:00:00.000Z',
   anzahl: { users: 3 }, data: { users: [] },
@@ -68,9 +76,11 @@ beforeEach(() => {
   vorbereiten.mockResolvedValue(STUNDEN);
   auszug.mockResolvedValue(AUSZUG);
   betriebAnlegen.mockResolvedValue(ANGELEGT);
+  ausleitungJetzt.mockResolvedValue(BILANZ);
   alsFunction.mockImplementation((name: string) => Promise.resolve({
     data: { urlaubEntscheiden: ZAHLEN, scheinVorbereiten: STUNDEN,
-            exportCompanyData: AUSZUG, betriebAnlegen: ANGELEGT }[name],
+            exportCompanyData: AUSZUG, betriebAnlegen: ANGELEGT,
+            datenAusleitungJetzt: BILANZ }[name],
   }));
 });
 
@@ -92,6 +102,10 @@ async function callExportCompanyData() {
 
 async function callBetriebAnlegen() {
   return (await funktionen()).callBetriebAnlegen;
+}
+
+async function callDatenAusleitungJetzt() {
+  return (await funktionen()).callDatenAusleitungJetzt;
 }
 
 describe('Urlaub entscheiden — dieselbe Antwort aus zwei Datenbanken', () => {
@@ -173,5 +187,26 @@ describe('Betrieb anlegen — Edge Function statt Cloud Function', () => {
     expect(alsFunction).toHaveBeenCalledWith('betriebAnlegen', BETRIEB_EINGABE);
     expect(betriebAnlegen).not.toHaveBeenCalled();
     expect(antwort).toEqual({ data: ANGELEGT });
+  });
+});
+
+describe('Sicherung jetzt — dieselbe Bilanz aus zwei Wegen', () => {
+  it('unter Postgres die Edge Function, nicht die Cloud Function', async () => {
+    nutztPostgres.mockReturnValue(true);
+    const antwort = await (await callDatenAusleitungJetzt())();
+
+    expect(ausleitungJetzt).toHaveBeenCalled();
+    expect(alsFunction).not.toHaveBeenCalled();
+    // Die Ansicht liest `zeilen`, `bytes` und `ziel` — alle drei müssen da sein.
+    expect(antwort).toEqual({ data: BILANZ });
+  });
+
+  it('unter Firestore die Cloud Function, nicht die Edge Function', async () => {
+    nutztPostgres.mockReturnValue(false);
+    const antwort = await (await callDatenAusleitungJetzt())();
+
+    expect(alsFunction).toHaveBeenCalledWith('datenAusleitungJetzt', {});
+    expect(ausleitungJetzt).not.toHaveBeenCalled();
+    expect(antwort).toEqual({ data: BILANZ });
   });
 });

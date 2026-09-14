@@ -6,6 +6,7 @@ import { entscheiden } from './db/vacations';
 import { vorbereiten, type ScheinZeit } from './db/workSheets';
 import { auszug, type BetriebsAuszug } from './db/company';
 import { betriebAnlegen, type BetriebAngelegt } from './db/plattform';
+import { ausleitungJetzt, type AusleitungsBilanz } from './db/laeufe';
 import type { VoiceExtractResponse } from '@/features/voice/types';
 
 /** Ruft die serverseitige KI-Extraktion auf. API-Schlüssel bleiben im Server. */
@@ -107,10 +108,27 @@ export function callScheinVorbereiten(
  * zeigt in einem Zug, ob die Berechtigungen stimmen, ob das Ziel erreichbar
  * ist und wie gross der Stand tatsaechlich ist.
  */
-export const callDatenAusleitungJetzt = httpsCallable<
-  Record<string, never>,
-  { companyId: string; zeilen: number; bytes: number; pfad: string; geraeumt: number; ziel: string }
->(functions, 'datenAusleitungJetzt');
+const ausleitungAlsFunction = httpsCallable<Record<string, never>, AusleitungsBilanz>(
+  functions, 'datenAusleitungJetzt',
+);
+
+/**
+ * UNTER POSTGRES IST DAS EINE EDGE FUNCTION, und dieselbe, die nachts läuft.
+ *
+ * Zwei Wege in eine Function, weil es zwei Fragen sind: der Zeitplan ruft mit
+ * dem Dienstschlüssel und nimmt alle Betriebe, der Knopf mit dem Token eines
+ * Menschen und nimmt nur dessen eigenen. Zwei getrennte Fassungen wären zwei
+ * Gelegenheiten, dass die eine etwas ausleitet, was die andere auslässt.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callDatenAusleitungJetzt(
+  _daten: Record<string, never> = {},
+): Promise<{ data: AusleitungsBilanz }> {
+  return nutztPostgres()
+    ? ausleitungJetzt().then((data) => ({ data }))
+    : ausleitungAlsFunction(_daten);
+}
 
 /**
  * Laedt den kompletten Mandantenbestand als Datei herunter (DSGVO Art. 15/20).
