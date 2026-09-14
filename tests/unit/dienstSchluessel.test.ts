@@ -23,14 +23,55 @@ describe('dienstSchluessel', () => {
     expect(dienstSchluessel({ SUPABASE_SERVICE_ROLE_KEY: 'abc' })).toBe('abc');
   });
 
-  it('findet den neuen Namen', () => {
-    expect(dienstSchluessel({ SUPABASE_SECRET_KEY: 'sb_secret_xyz' })).toBe('sb_secret_xyz');
+  /*
+    DER NEUE NAME IST EIN VERZEICHNIS, KEIN WERT. Beim Tausch eines
+    Schlüssels stehen zwei darin — der alte läuft weiter, während der neue
+    schon gilt. Wer den Rohwert als Schlüssel nähme, schickte der Plattform
+    eine JSON-Zeile als Schlüssel und bekäme 401.
+  */
+  it('liest den neuen Namen als JSON-Verzeichnis', () => {
+    expect(dienstSchluessel({
+      SUPABASE_SECRET_KEYS: '{"default":"sb_secret_xyz"}',
+    })).toBe('sb_secret_xyz');
+  });
+
+  it('nimmt `default`, auch wenn mehrere dastehen', () => {
+    expect(dienstSchluessel({
+      SUPABASE_SECRET_KEYS: '{"alt":"sb_secret_alt","default":"sb_secret_neu"}',
+    })).toBe('sb_secret_neu');
+  });
+
+  it('nimmt den ersten brauchbaren, wenn es kein `default` gibt', () => {
+    expect(dienstSchluessel({
+      SUPABASE_SECRET_KEYS: '{"eigen":"sb_secret_eigen"}',
+    })).toBe('sb_secret_eigen');
+  });
+
+  it('überspringt leere Einträge im Verzeichnis', () => {
+    expect(dienstSchluessel({
+      SUPABASE_SECRET_KEYS: '{"default":"   ","zweit":"sb_secret_zweit"}',
+    })).toBe('sb_secret_zweit');
+  });
+
+  it('meldet null bei einem Verzeichnis ohne brauchbaren Eintrag', () => {
+    expect(dienstSchluessel({ SUPABASE_SECRET_KEYS: '{}' })).toBeNull();
+    expect(dienstSchluessel({ SUPABASE_SECRET_KEYS: '{"a":123}' })).toBeNull();
+    expect(dienstSchluessel({ SUPABASE_SECRET_KEYS: 'null' })).toBeNull();
+  });
+
+  /*
+    Kein JSON heisst nicht „kaputt": sollte die Plattform je wieder eine
+    einfache Zeichenkette hinterlegen, läuft der Dienst weiter, statt an
+    einer Formatannahme von heute zu sterben.
+  */
+  it('nimmt einen einfachen Wert, wenn kein JSON dasteht', () => {
+    expect(dienstSchluessel({ SUPABASE_SECRET_KEYS: 'sb_secret_pur' })).toBe('sb_secret_pur');
   });
 
   it('nimmt den alten zuerst, wenn beide dastehen', () => {
     expect(dienstSchluessel({
       SUPABASE_SERVICE_ROLE_KEY: 'alt',
-      SUPABASE_SECRET_KEY: 'neu',
+      SUPABASE_SECRET_KEYS: '{"default":"neu"}',
     })).toBe('alt');
   });
 
@@ -47,7 +88,7 @@ describe('dienstSchluessel', () => {
   it('fällt auf den zweiten Namen zurück, wenn der erste leer ist', () => {
     expect(dienstSchluessel({
       SUPABASE_SERVICE_ROLE_KEY: '',
-      SUPABASE_SECRET_KEY: 'neu',
+      SUPABASE_SECRET_KEYS: '{"default":"neu"}',
     })).toBe('neu');
   });
 
