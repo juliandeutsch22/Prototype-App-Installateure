@@ -78,7 +78,9 @@ vi.mock('@/lib/db/materialOrders', () => ({
     else cb(eigene);
     return () => undefined;
   },
-  createMaterialOrder: (...a: unknown[]) => anlegen(...a),
+  // Die Ansicht schreibt über das Ausgangsfach: die Antwort ist nicht mehr
+  // eine Kennung, sondern der Stand — `confirmed` oder `queued`.
+  createMaterialOrderOhneEmpfang: (...a: unknown[]) => anlegen(...a),
   createReturn: (...a: unknown[]) => retoure(...a),
   updateOrderStatus: (...a: unknown[]) => statusSetzen(...a),
 }));
@@ -104,7 +106,7 @@ beforeEach(() => {
   eigene = [];
   abosFehler = {};
   anlegen.mockReset();
-  anlegen.mockResolvedValue('neu1');
+  anlegen.mockResolvedValue('confirmed');
   retoure.mockReset();
   retoure.mockResolvedValue('ret1');
   statusSetzen.mockReset();
@@ -259,7 +261,7 @@ describe('Material anfordern — wenn das Absenden teilweise scheitert', () => {
      * Gescheiterte bleibt liegen.
      */
     anlegen
-      .mockResolvedValueOnce('ok1')
+      .mockResolvedValueOnce('confirmed')
       .mockRejectedValueOnce(new Error('kein Netz'));
 
     zeige();
@@ -273,6 +275,21 @@ describe('Material anfordern — wenn das Absenden teilweise scheitert', () => {
     expect(await screen.findByRole('heading', { name: 'Anforderung (1)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Dichtung .* entfernen/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Kupferrohr 15mm entfernen/ })).not.toBeInTheDocument();
+  });
+
+  it('sagt es, wenn die Anforderung nur vorgemerkt ist', async () => {
+    /*
+      IM KELLER OHNE NETZ. Die Anforderung liegt im Ausgangsfach und geht
+      später raus — sagt die App das nicht, tippt der Monteur sie oben am
+      Fahrzeug ein zweites Mal, und das Material kommt doppelt.
+    */
+    anlegen.mockResolvedValue('queued');
+
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm anfordern/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Bestellung aufgeben' }));
+
+    expect(await screen.findByText(/wird automatisch gesendet/)).toBeInTheDocument();
   });
 
   it('leert den Korb und wechselt zur Verfolgung, wenn alles durchging', async () => {

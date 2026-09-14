@@ -2084,6 +2084,64 @@ Geprüft, bevor der Schalter fiel:
 | Mutationen dieses Teils | 11 |
 | davon gefangen | 11 |
 
+## Das Ausgangsfach war gebaut — und an nichts angeschlossen
+
+Der Fahrplan hat den ganzen Umzug an eine Bedingung geknüpft: *der Schreibweg
+ohne Empfang wird zuerst gebaut und bewiesen.* Gebaut war er seit Stufe 0,
+bewiesen auch — sechzehn Prüfungen gegen einen erfundenen Server, zehn gegen
+die echte Datenbank. **Aufgerufen hat ihn niemand.**
+
+Die Ansichten schrieben weiter unmittelbar und zeigten dabei denselben Satz
+wie unter Firestore:
+
+> Zeit gebucht — ohne Verbindung gespeichert, wird automatisch gesendet.
+
+Unter Firestore stimmte er: das SDK legte den Vorgang in IndexedDB ab und
+sendete ihn nach. Unter Postgres stimmte davon nichts. Der Aufruf scheiterte,
+die Buchung war weg, und auf dem Bildschirm stand eine Zusage, die niemand
+hielt. Gemerkt hätte man es am Monatsende, wenn niemand mehr weiss, welcher
+Tag es war.
+
+**Warum keine der bestehenden Prüfungen das gefangen hat**, und das ist die
+eigentliche Lehre: die Prüfungen des Ausgangsfachs rufen das Ausgangsfach.
+Sie beweisen, dass die Mechanik trägt — nie, dass jemand sie benutzt. Eine
+Prüfung, die ihren Prüfling selbst aufruft, kann die Frage „ruft ihn sonst
+noch wer?" grundsätzlich nicht beantworten.
+
+### Was jetzt daran hängt
+
+`src/lib/db/pg/ohneEmpfang.ts` ist die Brücke. Darüber laufen die beiden
+Vorgänge, die auf der Baustelle entstehen: die Zeitbuchung (`TimeForm`) und
+die Materialanforderung (`OrderView`). `src/components/Nachsender.tsx` stösst
+das Nachsenden an — beim Start, bei `online`, und beim Zurückkommen aus dem
+Hintergrund, weil `online` auf Telefonen unzuverlässig ist.
+
+**Nicht jeder Schreibvorgang gehört dazu**, und das ist keine Auslassung:
+nachsenden lässt sich nur, was ohne den Server entschieden werden kann. Eine
+Rechnungsnummer, ein Lagerabzug, eine Transaktion über mehrere Tabellen
+brauchen den Stand von jetzt. Ebenso wenig gehören die Büroansichten dazu: dort
+wäre ein stillschweigend vorgemerkter Vorgang schlimmer als eine
+Fehlermeldung.
+
+**Ohne Lager kein Versprechen.** Privates Fenster, gesperrter Speicher: dann
+wird geschrieben wie bisher, und ein Fehlschlag ist ein Fehlschlag. „Wird
+nachgesendet" zu melden, wo nichts gelagert werden kann, wäre dieselbe Lüge in
+neuen Kleidern.
+
+### Drei Prüfungen, weil eine die Lücke wieder zuliesse
+
+| Prüfung | Beantwortet die Frage |
+|---|---|
+| `tests/supabase/ohneEmpfang.test.ts` | Trägt der Weg von der Weiche bis in die Zeile in Postgres? Das Funkloch wird echt hergestellt — der Client zeigt auf einen Port, an dem niemand horcht |
+| `tests/unit/ausgangsfachNaht.test.ts` | Hängt das Fach überhaupt noch an den Ansichten? Liest den Quelltext, nicht das Verhalten — der Fehler war ein **fehlender Aufruf**, und den sieht man nur dort |
+| `TimeFormVormerkung.test.tsx`, `OrderView.test.tsx` | Übersetzt die Maske den Stand in den richtigen Satz — und verspricht sie nichts, wenn die Buchung angekommen ist? |
+
+Gegen absichtlich kaputten Code gehalten: sieben Mutationen, sechs sofort
+gefallen. Die siebte ist durchgelaufen — der Rückgabewert „ohne Lager,
+Schreibvorgang erfolgreich" war von keiner Prüfung berührt, weil der Fall im
+Funkloch immer scheitert. Die Gegenprobe mit Empfang fehlte; sie steht jetzt
+da.
+
 ### Als Nächstes
 
 Stufe 9: den Rückbau. Erst wenn der Betrieb ein paar Tage auf Postgres

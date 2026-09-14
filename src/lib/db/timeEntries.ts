@@ -15,6 +15,7 @@ import { mitFristOder } from '@/lib/frist';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { nutztPostgres } from './quelle';
 import type { WithId } from './core';
+import type { WriteOutcome } from '@/lib/sync/ausgangsfach';
 import * as fs from './fs/timeEntries';
 import * as pg from './pg/timeEntries';
 
@@ -131,6 +132,58 @@ export async function createTimeEntry(companyId: string, entry: NewTimeEntry): P
   const grund = buchungKonflikt(entry, vorhandene);
   if (grund) throw new DuplicateEntryError(entry.date, grund);
   return nutztPostgres() ? pg.anlegen(companyId, entry) : fs.anlegen(companyId, entry);
+}
+
+/**
+ * DASSELBE FÜR DEN MONTEUR OHNE EMPFANG — mit derselben Doppelbuchungsprüfung.
+ *
+ * WARUM ES DIESE ZWEITE FASSUNG GIBT und `createTimeEntry` nicht einfach
+ * umgestellt wurde: nicht jeder Aufrufer will ein Vormerken. Die Ansicht im
+ * Büro sitzt am Schreibtisch; eine Meldung „wird nachgesendet" wäre dort
+ * verwirrend, und ein stillschweigend vorgemerkter Vorgang in der
+ * Einsatzplanung noch schlimmer.
+ *
+ * Die Prüfung auf Doppelbuchung läuft VOR dem Vormerken und mit Frist: ohne
+ * Empfang kommt sie nicht durch, dann gilt `mitFristOder` und es wird
+ * geschrieben. Das ist die richtige Reihenfolge — eine Buchung zu verlieren
+ * wiegt schwerer als eine doppelte, die im Büro auffällt.
+ */
+export async function createTimeEntryOhneEmpfang(
+  companyId: string, entry: NewTimeEntry,
+): Promise<WriteOutcome> {
+  const vorhandene = await mitFristOder(
+    eintraegeAmTag(companyId, entry.userId, entry.date),
+    async () => [],
+    DUPLIKAT_FRIST_MS,
+  );
+  const grund = buchungKonflikt(entry, vorhandene);
+  if (grund) throw new DuplicateEntryError(entry.date, grund);
+
+  if (!nutztPostgres()) return fs.anlegenOhneEmpfang(companyId, entry);
+  const { stand } = await pg.anlegenOhneEmpfang(companyId, entry);
+  return stand;
+}
+
+export async function updateTimeEntryOhneEmpfang(
+  id: string,
+  data: Partial<TimeEntry>,
+  owner: { companyId: string; userId: string },
+): Promise<WriteOutcome> {
+  if (data.date) {
+    const vorhandene = await mitFristOder(
+      eintraegeAmTag(owner.companyId, owner.userId, data.date, id),
+      async () => [],
+      DUPLIKAT_FRIST_MS,
+    );
+    const grund = buchungKonflikt(
+      { status: data.status ?? 'Anwesend', projectNumber: data.projectNumber },
+      vorhandene,
+    );
+    if (grund) throw new DuplicateEntryError(data.date, grund);
+  }
+  return nutztPostgres()
+    ? pg.aendernOhneEmpfang(id, data)
+    : fs.aendernOhneEmpfang(id, data);
 }
 
 /**

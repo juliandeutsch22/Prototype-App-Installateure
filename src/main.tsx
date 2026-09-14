@@ -5,6 +5,7 @@ import App from './app/App';
 import { ToastProvider } from './components/Toast';
 import NeueFassung from './components/NeueFassung';
 import VerloreneBuchung from './components/VerloreneBuchung';
+import Nachsender from './components/Nachsender';
 import { verbindungBeimAufwachenErneuern } from './lib/firebase';
 import { nachladefehlerBeobachten } from './lib/nachladen';
 // Poppins self-gehostet (kein Google-CDN -> keine IP-Übermittlung an Google, DSGVO).
@@ -34,6 +35,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <NeueFassung />
         {/* Meldet sich nur, wenn eine vorgemerkte Buchung doch verlorengeht. */}
         <VerloreneBuchung />
+        {/* Sendet nach, was ohne Empfang vorgemerkt wurde. Ohne das läge es. */}
+        <Nachsender />
       </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>,

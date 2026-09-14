@@ -1,5 +1,6 @@
 import { where } from 'firebase/firestore';
 import type { TimeEntry } from '@/types';
+import { writeWithOfflineNotice } from '@/lib/offlineWrite';
 import {
   queryTenant,
   subscribeTenant,
@@ -178,4 +179,23 @@ export function aendern(id: string, data: Partial<TimeEntry>) {
 
 export function loeschen(id: string) {
   return deleteInTenant(COLLECTION, id);
+}
+
+/**
+ * Dieselben Namen wie in `pg/` — hier trägt sie Firestore selbst.
+ *
+ * Das SDK nimmt einen Schreibvorgang ohne Empfang in seinen lokalen
+ * Zwischenspeicher und sendet ihn nach; `writeWithOfflineNotice` wartet nur
+ * begrenzt auf die Serverbestätigung und meldet sonst „vorgemerkt". Ein
+ * eigenes Ausgangsfach wäre hier eine zweite Warteschlange neben der des SDK
+ * — zwei Fassungen derselben Zusage, und die laufen auseinander.
+ *
+ * Diese beiden Zeilen fallen mit Stufe 9 weg.
+ */
+export function anlegenOhneEmpfang(companyId: string, entry: NewTimeEntry) {
+  return writeWithOfflineNotice(anlegen(companyId, entry));
+}
+
+export function aendernOhneEmpfang(id: string, data: Partial<TimeEntry>) {
+  return writeWithOfflineNotice(aendern(id, data));
 }

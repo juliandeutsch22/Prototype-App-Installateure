@@ -38,8 +38,9 @@ const amTag: Record<string, (TimeEntry & { id: string })[]> = {};
 const eintraegeAmTag = vi.fn(async (_c: string, uid: string) => amTag[uid] ?? []);
 
 vi.mock('@/lib/db/timeEntries', () => ({
-  createTimeEntry: vi.fn(async () => 'neu'),
-  updateTimeEntry: vi.fn(async () => undefined),
+  // Die Maske schreibt über das Ausgangsfach; die Antwort ist der Stand.
+  createTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
+  updateTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
   eintraegeAmTag: (c: string, uid: string) => eintraegeAmTag(c, uid),
   DuplicateEntryError: class extends Error {},
 }));

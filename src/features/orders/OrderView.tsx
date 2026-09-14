@@ -3,7 +3,7 @@ import { useAuth } from '@/app/AuthContext';
 import { subscribeMaterials, LOW_STOCK_THRESHOLD } from '@/lib/db/materials';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import {
-  createMaterialOrder,
+  createMaterialOrderOhneEmpfang,
   subscribeOwnOrders,
   updateOrderStatus,
   createReturn,
@@ -24,7 +24,7 @@ import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
-import { writeWithOfflineNotice, queuedMessage } from '@/lib/offlineWrite';
+import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
@@ -241,21 +241,19 @@ export default function OrderView() {
     let vorgemerkt = false;
     for (const line of cart) {
       try {
-        const stand = await writeWithOfflineNotice(
-          createMaterialOrder(user.companyId, {
-            materialId: line.materialId,
-            materialName: line.materialName,
-            quantity: line.quantity,
-            note: line.note,
-            projectNumber: line.projectNumber,
-            isUrgent: !!line.isUrgent,
-            status: 'Offen',
-            transactionType: 'order',
-            userId: user.uid,
-            userName: user.name,
-            source: 'manual',
-          }),
-        );
+        const stand = await createMaterialOrderOhneEmpfang(user.companyId, {
+          materialId: line.materialId,
+          materialName: line.materialName,
+          quantity: line.quantity,
+          note: line.note,
+          projectNumber: line.projectNumber,
+          isUrgent: !!line.isUrgent,
+          status: 'Offen',
+          transactionType: 'order',
+          userId: user.uid,
+          userName: user.name,
+          source: 'manual',
+        });
         if (stand === 'queued') vorgemerkt = true;
       } catch {
         failed.push(line);
@@ -265,7 +263,7 @@ export default function OrderView() {
     setSaving(false);
     if (failed.length === 0) {
       setNote('');
-      if (vorgemerkt) toast.info(queuedMessage('Anforderung aufgegeben'));
+      if (vorgemerkt) toast.info(vorgemerktMeldung('Anforderung aufgegeben'));
       else toast.success('Bestellung aufgegeben');
       setTab('meine');
     } else {
