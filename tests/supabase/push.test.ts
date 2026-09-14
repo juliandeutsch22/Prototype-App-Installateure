@@ -207,16 +207,25 @@ describe('Wer die Function anstossen darf', () => {
     const { status } = await anstossen({ art: 'neu', nachher: anforderung() }, monteur.token);
     expect(status).toBe(401);
     /*
-      DIESELBE FRIST WIE BEI DEN GESCHWISTERN. Diese Prüfung hatte als einzige
-      im Haus die halbe — bei gleicher Arbeit: ein Aufruf derselben Function
-      über dasselbe Gateway. Auf dem CI-Läufer ist sie deshalb als erste
-      umgefallen, nicht weil sie etwas anderes prüft, sondern weil ihr Budget
-      knapper war.
+      DIESE PRÜFUNG IST ZWEIMAL AUF DEM CI-LÄUFER UMGEFALLEN, und zwar mit
+      einer Zeitüberschreitung statt einer falschen Behauptung. Beim ersten
+      Mal hatte sie als einzige im Haus die halbe Frist; die wurde
+      angeglichen. Beim zweiten Mal fiel sie auch mit 120 Sekunden — die
+      Frist war es also nicht.
 
-      Die Behauptung bleibt unverändert (401 für einen angemeldeten Menschen);
-      geändert ist nur, wie lange gewartet wird. Örtlich war die Verzögerung
-      nicht nachzustellen — fällt sie wieder um, liegt die Ursache woanders
-      und gehört gesucht, nicht weggewartet.
+      GESUCHT UND GEFUNDEN wurde etwas anderes: drei Prüfungen im Haus lasen
+      den Rumpf ihrer Antwort nie aus. `fetch` in Node hält die Verbindung
+      offen, solange der Rumpf weder gelesen noch verworfen ist; in einem Lauf
+      mit sechshundert Prüfungen gegen dieselbe Adresse wartet irgendwann eine
+      Anfrage auf eine Verbindung, die nie frei wird. Dass es diese hier traf,
+      ist Zufall — sie ruft dieselbe Adresse wie alle anderen. Siehe
+      `nurStatus` in `helfer.ts`.
+
+      OB DAS DIE URSACHE WAR, IST DAMIT NICHT BEWIESEN: örtlich liess sich der
+      Ausfall nie nachstellen, auch nicht im vollen Lauf. Belegt ist nur, dass
+      die Verbindungen jetzt sauber freigegeben werden. Fällt sie wieder um,
+      liegt es woanders — und dann gehört es erneut gesucht, nicht die Frist
+      noch einmal erhöht.
     */
   }, 120_000);
 

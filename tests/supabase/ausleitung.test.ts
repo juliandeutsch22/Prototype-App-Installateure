@@ -16,7 +16,9 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Client } from 'pg';
-import { admin, API, ANON, SERVICE, betriebAnlegen, konto, buchung, type Konto } from './helfer';
+import {
+  admin, API, ANON, SERVICE, betriebAnlegen, konto, buchung, nurStatus, type Konto,
+} from './helfer';
 import { ausleitungsPfad, ausleitungsPraefix } from '@shared/ausleitungPlan';
 
 const FUNKTION = `${API}/functions/v1/daten-ausleitung`;
@@ -193,7 +195,7 @@ describe('Wer die Ausleitung auslösen darf', () => {
       headers: { apikey: ANON, 'Content-Type': 'application/json' },
       body: '{}',
     });
-    expect(antwort.status).toBe(401);
+    expect(await nurStatus(antwort)).toBe(401);
   }, 60_000);
 
   it('der Knopf nimmt nur den EIGENEN Betrieb', async () => {

@@ -18,7 +18,7 @@
  * beweisen: die Grenze steht nicht im Code, sondern im Gateway.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { admin, API, ANON, betriebAnlegen } from './helfer';
+import { admin, API, ANON, betriebAnlegen, nurStatus } from './helfer';
 import { abfragen } from '@/lib/db/pg/kern';
 
 const BETRIEB = 'in-grenze';
@@ -67,7 +67,7 @@ describe('Eine lange Werteliste', () => {
       `${API}/rest/v1/customers?select=id&id=in.(${liste})`,
       { headers: { apikey: ANON } },
     );
-    expect(antwort.status).toBe(414);
+    expect(await nurStatus(antwort)).toBe(414);
   }, 60_000);
 
   it('kommt gestückelt vollständig zurück', async () => {
