@@ -37,7 +37,7 @@ const createInTenant = vi.fn();
 
 vi.mock('@/lib/firebase', () => ({ db: {} }));
 
-vi.mock('@/lib/db/core', () => ({
+vi.mock('@/lib/db/fs/core', () => ({
   queryTenant: (...a: unknown[]) => queryTenant(...a),
   subscribeTenant: vi.fn(),
   createInTenant: (...a: unknown[]) => createInTenant(...a),

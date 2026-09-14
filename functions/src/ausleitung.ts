@@ -4,7 +4,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { logger } from 'firebase-functions';
 import { jedesDokument } from './mandantendaten.js';
-import { abgelaufeneStaende, ausleitungsPfad, ausleitungsPraefix, jsonZeile } from './ausleitungPlan.js';
+import { abgelaufeneStaende, ausleitungsPfad, ausleitungsPraefix, jsonZeile } from './generated/ausleitungPlan.js';
 import { laufFesthalten } from './laufFesthalten.js';
 
 /**

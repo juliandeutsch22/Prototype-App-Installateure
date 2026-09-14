@@ -17,7 +17,7 @@ import {
   type MeldungsArt,
   type Meldung,
   type OrderDoc,
-} from './notifyLogic.js';
+} from './generated/notifyLogic.js';
 
 /**
  * Push-Benachrichtigungen rund um Materialanforderungen.

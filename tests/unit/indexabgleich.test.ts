@@ -192,9 +192,26 @@ function funktionsAbfragenAus(datei: string, quelle: string): Abfrage[] {
 }
 
 const ALLE: Abfrage[] = [];
-for (const datei of readdirSync(DB_VERZEICHNIS).filter((f) => f.endsWith('.ts'))) {
-  if (datei === 'core.ts') continue; // die Helfer selbst, ohne eigene Abfrage
-  ALLE.push(...abfragenAus(datei, readFileSync(join(DB_VERZEICHNIS, datei), 'utf8')));
+/*
+ * AUCH IN fs/ SUCHEN.
+ *
+ * Mit dem Umzug wandern die Firestore-Abfragen modulweise von
+ * `src/lib/db/x.ts` nach `src/lib/db/fs/x.ts`; was dort steht, läuft
+ * unverändert weiter und braucht seine Indizes genauso. Ein Wächter, der dem
+ * Code nicht folgt, wird still blind — und das wäre hier besonders bitter,
+ * weil genau dieser Test die produktiv leere Kundenakte gefunden hat.
+ */
+for (const verzeichnis of [DB_VERZEICHNIS, join(DB_VERZEICHNIS, 'fs')]) {
+  let dateien: string[];
+  try {
+    dateien = readdirSync(verzeichnis).filter((f) => f.endsWith('.ts'));
+  } catch {
+    continue; // fs/ gibt es erst, sobald das erste Modul umgezogen ist
+  }
+  for (const datei of dateien) {
+    if (datei === 'core.ts') continue; // die Helfer selbst, ohne eigene Abfrage
+    ALLE.push(...abfragenAus(datei, readFileSync(join(verzeichnis, datei), 'utf8')));
+  }
 }
 const FUNKTIONEN: Abfrage[] = [];
 for (const datei of readdirSync(FUNCTIONS_VERZEICHNIS).filter((f) => f.endsWith('.ts'))) {

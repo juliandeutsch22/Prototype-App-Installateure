@@ -75,6 +75,27 @@ const STATUS_REICHT_NICHT: Record<string, string> = {
 /** Muster, die eine Grenze belegen. */
 const GRENZ_MUSTER = [
   /limit\(/,
+  /*
+   * DIESELBE GRENZE, IN DER SPRACHE DER POSTGRES-SCHICHT.
+   *
+   * Mit dem Umzug wandert eine Abfrage von `limit(50)` nach `grenze: 50`.
+   * Ohne diese Zeilen fiele der Wächter bei jedem umgestellten Modul um —
+   * und die naheliegende „Lösung" wäre, das Modul auszunehmen. Dann wäre er
+   * am Ende des Umzugs blind, ohne dass es jemand gemerkt hätte.
+   */
+  /grenze:/,
+  /\{ art: 'in', feld: '(id|projectNumber|status)'/,
+  /*
+    DER ZAHLUNGSSTAND IST DIESELBE ART GRENZE WIE DER STATUS, nur heisst das
+    Feld an der Rechnung anders. Offene Forderungen sind der Ausnahmezustand
+    und nicht der Bestand: wird diese Liste lang, hat der Betrieb ein anderes
+    Problem als die Ladezeit. In der Firestore-Fassung war dasselbe über
+    `where('paymentStatus', …)` gedeckt.
+  */
+  /\{ art: 'in', feld: 'paymentStatus'/,
+  /\{ art: 'gleich', feld: '(date|datum|customerId|projectNumber|userId)'/,
+  /\{ art: 'ab', feld: '(date|datum|invoiceDate|monat)'/,
+  /\{ art: 'enthaelt', feld: 'assignedEmployees'/,
   /where\(\s*'date'\s*,\s*'>=?'/,
   /where\(\s*'date'\s*,\s*'=='/,
   // Das RECHNUNGSdatum ist dieselbe Art Grenze wie `date`, nur heisst das
@@ -104,11 +125,38 @@ interface Abfrage {
 /** Alle exportierten Funktionen der Datenschicht, die Firestore lesen. */
 function sammleAbfragen(): Abfrage[] {
   const raus: Abfrage[] = [];
-  for (const datei of readdirSync(DB_VERZEICHNIS).filter((f) => f.endsWith('.ts'))) {
-    // core.ts hält die Bausteine selbst — dort steht die Grenze naturgemäß
-    // nicht, sie wird von den Aufrufern mitgegeben.
-    if (datei === 'core.ts') continue;
-    const text = readFileSync(join(DB_VERZEICHNIS, datei), 'utf8');
+  /*
+   * DER WÄCHTER FOLGT DEM CODE.
+   *
+   * Mit dem Umzug liegt dieselbe Abfrage mal in `db/x.ts`, mal in `db/fs/x.ts`
+   * und mal in `db/pg/x.ts`. Ein Wächter, der nur das obere Verzeichnis
+   * kennt, findet nach dem ersten Umzug weniger Abfragen als vorher und
+   * meldet trotzdem grün. Genau das ist passiert: von 46 Prüfungen blieben
+   * 40 übrig, ohne dass eine einzige rot wurde.
+   *
+   * Deshalb wird auch die ANZAHL geprüft (siehe unten): ein Wächter, der
+   * still weniger bewacht, ist schlimmer als keiner.
+   */
+  const verzeichnisse = [DB_VERZEICHNIS, join(DB_VERZEICHNIS, 'fs'), join(DB_VERZEICHNIS, 'pg')];
+  const dateien: Array<{ datei: string; pfad: string }> = [];
+  for (const v of verzeichnisse) {
+    let inhalt: string[];
+    try {
+      inhalt = readdirSync(v).filter((f) => f.endsWith('.ts'));
+    } catch {
+      continue; // fs/ und pg/ gibt es erst, sobald das erste Modul umzieht
+    }
+    const zweig = v === DB_VERZEICHNIS ? '' : `${v.split('/').pop()}/`;
+    for (const d of inhalt) dateien.push({ datei: `${zweig}${d}`, pfad: join(v, d) });
+  }
+
+  for (const { datei, pfad } of dateien) {
+    // core.ts und kern.ts halten die Bausteine selbst — dort steht die Grenze
+    // naturgemäß nicht, sie wird von den Aufrufern mitgegeben.
+    if (datei === 'core.ts' || datei === 'pg/kern.ts') continue;
+    // Die Weichen entscheiden nur; die Abfrage steht in fs/ oder pg/.
+    if (/from '\.\/pg\//.test(readFileSync(pfad, 'utf8'))) continue;
+    const text = readFileSync(pfad, 'utf8');
 
     const muster = /export\s+(?:async\s+)?function\s+(\w+)\s*\(/g;
     let treffer: RegExpExecArray | null;
@@ -124,7 +172,30 @@ function sammleAbfragen(): Abfrage[] {
       // Nur was tatsächlich MEHRERE Dokumente abfragt. Ein `getDoc(doc(…))`
       // holt genau eines und kann per Definition nicht wachsen — es hier
       // namentlich auszunehmen wäre eine Liste, die jemand pflegen muss.
-      if (!/queryTenant|subscribeTenant|getDocs\(|onSnapshot\(/.test(koerper)) continue;
+      // Dieselbe Frage in der Sprache der Postgres-Schicht: `abfragen(…)`
+      // und `abonnieren(…)` holen mehrere Zeilen, ein `.single()` genau eine.
+      //
+      // DIE ECKIGE KLAMMER IST DER PUNKT. Die Aufrufe stehen fast immer mit
+      // Typangabe da — `abfragen<Assignment>(…)` —, und ein Muster, das ein
+      // `(` unmittelbar nach dem Namen verlangte, ging daran vorbei. So
+      // blieben fünfundzwanzig Postgres-Abfragen unbewacht, während der Test
+      // grün meldete und sogar bestätigte, er finde etwas in `pg/`.
+      const mehrere = /queryTenant|subscribeTenant|getDocs\(|onSnapshot\(|abfragen[<(]|abonnieren[<(]|\.select\(/.test(koerper);
+      if (!mehrere) continue;
+      /*
+        `.single()` und `.maybeSingle()` holen GENAU EINE Zeile — das ist die
+        Entsprechung zu `getDoc(doc(…))` und kann per Definition nicht mit dem
+        Bestand wachsen. Sie tragen trotzdem ein `.select(`, und ohne diese
+        Zeile verlangte der Wächter eine Grenze für einen Einzelzugriff. Die
+        einzige Antwort darauf wäre eine Ausnahmeliste gewesen — also eine
+        Liste, die jemand pflegen muss, statt einer Regel, die trägt.
+
+        Steht daneben ein echter Mehrzeilen-Aufruf, zählt der: eine Funktion,
+        die erst eine Zeile holt und dann eine Liste, braucht ihre Grenze.
+      */
+      const nurEine = /\.(maybe)?[Ss]ingle\(/.test(koerper)
+        && !/queryTenant|subscribeTenant|getDocs\(|onSnapshot\(|abfragen[<(]|abonnieren[<(]/.test(koerper);
+      if (nurEine) continue;
       raus.push({ datei, name, koerper });
     }
   }
@@ -168,5 +239,45 @@ describe('Abfragegrenzen in der Datenschicht', () => {
     const namen = new Set(abfragen.map((a) => a.name));
     const verwaist = Object.keys(AUSNAHMEN).filter((n) => !namen.has(n));
     expect(verwaist).toEqual([]);
+  });
+});
+
+/**
+ * Der Wächter über den Wächter.
+ *
+ * Diese Datei erzeugt eine Prüfung je gefundener Abfrage. Findet sie keine
+ * mehr — weil der Code umgezogen ist, weil ein Muster nicht mehr passt, weil
+ * jemand ein Verzeichnis übersehen hat —, dann meldet sie GRÜN und bewacht
+ * nichts. Genau das ist beim Umzug des ersten Moduls passiert: von 46
+ * Prüfungen blieben 40, und keine einzige wurde rot.
+ *
+ * Die Zahl unten ist deshalb Teil der Zusage. Sie darf steigen; sinkt sie,
+ * muss jemand hinsehen und sie bewusst nachziehen.
+ */
+const MINDESTENS = 93;
+
+/*
+  Am 12.09.2026 sprang die Zahl von 49 auf 74 — ohne dass eine einzige
+  Abfrage hinzugekommen wäre. Das Muster für die Postgres-Schicht verlangte
+  eine Klammer unmittelbar hinter `abfragen`, die Aufrufe tragen aber fast
+  alle eine Typangabe (`abfragen<Assignment>(…)`). Fünfundzwanzig Abfragen
+  waren damit unbewacht, und der Test meldete grün.
+
+  Die Lehre steht schon im Kopf dieser Datei und hat sich wiederholt: ein
+  Wächter, der still weniger bewacht, ist schlimmer als keiner. Deshalb ist
+  die Zahl Teil der Zusage — sie darf steigen, aber nie unbemerkt sinken.
+*/
+
+describe('Der Wächter bewacht noch, was er bewachen soll', () => {
+  it(`findet mindestens ${MINDESTENS} Abfragen`, () => {
+    expect(sammleAbfragen().length).toBeGreaterThanOrEqual(MINDESTENS);
+  });
+
+  it('findet Abfragen in fs/ UND in pg/', () => {
+    // Sonst wäre die Zahl oben auch dann erfüllt, wenn eine ganze Seite
+    // fehlte — solange die andere genug liefert.
+    const dateien = new Set(sammleAbfragen().map((a) => a.datei));
+    expect([...dateien].some((d) => d.startsWith('fs/'))).toBe(true);
+    expect([...dateien].some((d) => d.startsWith('pg/'))).toBe(true);
   });
 });

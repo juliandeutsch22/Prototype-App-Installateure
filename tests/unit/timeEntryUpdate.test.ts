@@ -16,7 +16,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const updateInTenant = vi.fn();
 const queryTenant = vi.fn();
 
-vi.mock('@/lib/db/core', () => ({
+vi.mock('@/lib/db/fs/core', () => ({
   queryTenant: (...a: unknown[]) => queryTenant(...a),
   updateInTenant: (...a: unknown[]) => updateInTenant(...a),
   subscribeTenant: vi.fn(),

@@ -27,6 +27,33 @@ export interface OrderDoc {
 export type MeldungsArt = 'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery';
 
 /**
+ * Eine Postgres-Zeile als `OrderDoc`.
+ *
+ * WARUM DIESE SECHS ZEILEN HIER STEHEN und nicht in der Edge Function: sie
+ * sind eine ENTSCHEIDUNG, keine Mechanik. Verwechselt man `is_urgent` mit
+ * `isUrgent`, ist `istEilRelevant` immer falsch — und die Projektleitung
+ * erfährt nie von einer Eilzustellung. Das fällt niemandem auf: es kommt ja
+ * keine Fehlermeldung, es kommt nur nichts. Genau dafür ist diese Datei da,
+ * und deshalb wird auch das hier einzeln geprüft.
+ */
+export function orderAusZeile(zeile: Record<string, unknown> | undefined): OrderDoc | undefined {
+  if (!zeile) return undefined;
+  return {
+    companyId: zeile.company_id as string | undefined,
+    materialName: zeile.material_name as string | undefined,
+    quantity: zeile.quantity === undefined || zeile.quantity === null
+      ? undefined
+      : Number(zeile.quantity),
+    projectNumber: zeile.project_number as string | undefined,
+    userId: zeile.user_id as string | undefined,
+    userName: zeile.user_name as string | undefined,
+    status: zeile.status as string | undefined,
+    transactionType: zeile.transaction_type as string | undefined,
+    isUrgent: zeile.is_urgent === true,
+  };
+}
+
+/**
  * Die Nutzlast einer Meldung.
  *
  * Die Indexsignatur ist kein Beiwerk: FCM nimmt als `data` ausschliesslich

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
-  listCustomers,
+  searchCustomers,
   createCustomer,
   updateCustomer,
   deleteCustomer,
@@ -25,6 +25,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { nutztPostgres } from '@/lib/db/quelle';
 
 const LEER: NewCustomer = {
   name: '',
@@ -87,34 +88,58 @@ export default function CustomersView() {
   */
   const [grenze, setGrenze] = useState(KUNDEN_JE_SEITE);
 
+  /*
+    GESUCHT WIRD SERVERSEITIG — und das ändert, was die Liste bedeutet.
+
+    Vorher wurden die ersten `grenze` Kunden geladen und im Browser gefiltert:
+    wer den 501. suchte, fand ihn nicht, und die App sagte darüber nichts. Der
+    Suchbegriff geht jetzt mit in die Abfrage; unter Postgres sucht die
+    Datenbank über den ganzen Bestand, unter Firestore bleibt es beim Filtern
+    im Browser (dort gibt es keine Volltextsuche).
+
+    WARUM NICHT BEI JEDEM TASTENDRUCK. Zwischen zwei Anschlägen liegen
+    Millisekunden, eine Abfrage dauert länger — ohne Verzögerung stünden
+    zwanzig Abfragen gleichzeitig in der Leitung, und die Antworten kämen in
+    beliebiger Reihenfolge zurück. Dreihundert Millisekunden sind die Pause,
+    nach der jemand aufgehört hat zu tippen.
+  */
+  const [begriff, setBegriff] = useState('');
+  const [ohneSuche, setOhneSuche] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setBegriff(suche), 300);
+    return () => clearTimeout(t);
+  }, [suche]);
+
   const laden = useMemo(
     () => async () => {
       if (!user) return;
       setLoading(true);
       try {
-        setKunden(await listCustomers(user.companyId, grenze));
+        const treffer = await searchCustomers(user.companyId, begriff, grenze);
+        setKunden(treffer);
+        /*
+          WIE VIELE OHNE SUCHE DA WAREN — getrennt gemerkt.
+
+          Der Nachladehinweis spricht über die geladene LISTE, nicht über ein
+          Suchergebnis. Speiste man ihn mit den Treffern, verschwände er beim
+          ersten Suchversuch — und mit ihm die Auskunft, dass die Liste
+          überhaupt an ihrer Grenze steht.
+        */
+        if (!begriff.trim()) setOhneSuche(treffer.length);
       } catch (e) {
         setError((e as Error).message);
       } finally {
         setLoading(false);
       }
     },
-    [user, grenze],
+    [user, grenze, begriff],
   );
 
   useEffect(() => {
     void laden();
   }, [laden]);
 
-  const sichtbar = useMemo(() => {
-    const q = suche.trim().toLowerCase();
-    if (!q) return kunden;
-    return kunden.filter((k) =>
-      [k.name, k.address, k.contactName, k.contactPhone, k.email].some((v) =>
-        v?.toLowerCase().includes(q),
-      ),
-    );
-  }, [kunden, suche]);
+  const sichtbar = kunden;
 
   async function speichern(e: FormEvent) {
     e.preventDefault();
@@ -392,9 +417,19 @@ export default function CustomersView() {
           <SkeletonList rows={4} />
         ) : sichtbar.length === 0 ? (
           <EmptyState>
-            {kunden.length === 0
-              ? 'Noch keine Kunden. Über „Bestehende Baustellen übernehmen" lassen sich die vorhandenen anlegen.'
-              : `Kein Kunde passt zu „${suche}".`}
+            {/*
+              DIE UNTERSCHEIDUNG HÄNGT AM SUCHBEGRIFF, NICHT AN DER LISTE.
+
+              Bis zum 14.09.2026 war `kunden` die geladene Liste, und leer
+              hiess „es gibt keine". Jetzt ist `kunden` das ERGEBNIS DER
+              SUCHE — und leer heisst dann „nichts passt". Bliebe die alte
+              Bedingung stehen, läse ein Betrieb mit vierhundert Kunden beim
+              ersten Fehlversuch „Noch keine Kunden", und das wäre ein
+              Schrecken ohne Grund.
+            */}
+            {suche.trim()
+              ? `Kein Kunde passt zu „${suche}".`
+              : 'Noch keine Kunden. Über „Bestehende Baustellen übernehmen" lassen sich die vorhandenen anlegen.'}
           </EmptyState>
         ) : (
           <List>
@@ -467,10 +502,25 @@ export default function CustomersView() {
         */}
         {!loading && (
           <Nachladen
-            geladen={kunden.length}
+            geladen={suche.trim() ? ohneSuche : kunden.length}
             grenze={grenze}
             einheit="Kunden"
             onMehr={() => setGrenze((n) => n + KUNDEN_JE_SEITE)}
+            /*
+              UNTER POSTGRES IST DER SATZ „Die Suche geht nur über diese"
+              FALSCH — und eine Auskunft, die einmal danebenlag, wird beim
+              nächsten Mal nicht mehr geglaubt.
+
+              Die Datenbank sucht über den ganzen Bestand; die Grenze gilt nur
+              für das, was OHNE Suchbegriff angezeigt wird. Der Knopf bleibt
+              deshalb stehen, der Satz daneben nicht.
+            */
+            sucheImBrowser={!nutztPostgres()}
+            sucheSatz={
+              nutztPostgres()
+                ? undefined
+                : 'Die Suche geht nur über diese.'
+            }
           />
         )}
       </Card>

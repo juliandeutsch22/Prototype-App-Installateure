@@ -1,5 +1,4 @@
-import { createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
-import { auth, getSecondaryAuth } from '@/lib/firebase';
+import { kontoAnlegen, passwortZuruecksetzen } from '@/lib/auth/sitzung';
 import { createUserDoc, type UserProfileInput } from '@/lib/db/users';
 
 const PW_ALPHABET = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -27,38 +26,71 @@ export interface ProvisionResult {
 }
 
 /**
- * Legt einen neuen Benutzer an (Legacy "secApp"-Muster, docs §6):
- * 1) Auth-Konto auf einer Secondary-App erstellen, damit die Admin-Session
- *    der Primär-App unberührt bleibt.
- * 2) Secondary sofort abmelden.
- * 3) users/{uid}-Dokument mit companyId aus dem Admin-Kontext schreiben
- *    (die Cloud Function syncUserClaims setzt daraufhin die Custom Claims).
- * 4) Passwort-Reset-/Willkommens-Mail senden (best effort).
+ * Legt einen neuen Mitarbeiter an — in drei Schritten, und die Reihenfolge
+ * zählt:
+ *
+ * 1) Das ANMELDEKONTO, ohne die eigene Sitzung zu verlieren. Beide
+ *    Anmeldungen melden den gerade Angelegten sonst sofort an, und die
+ *    Verwaltung stünde als der neue Mitarbeiter da. Wie das verhindert wird,
+ *    unterscheidet sich je Anmeldung und steht in der Naht.
+ * 2) Die ZEILE IN DER BELEGSCHAFT mit dem Betrieb aus dem Kontext der
+ *    Verwaltung. Erst daraus entstehen die Ansprüche — unter Firestore über
+ *    `syncUserClaims`, unter Postgres über einen Trigger.
+ * 3) Die Willkommensmail. Sie darf scheitern: das Konto steht, und das
+ *    Anfangspasswort lässt sich durchgeben.
+ *
+ * WARUM DAS KONTO ZUERST KOMMT: die Zeile in der Belegschaft braucht die
+ * Kennung des Kontos als Schlüssel. Umgekehrt entstünde eine Zeile ohne
+ * Konto — ein Mitarbeiter, der in der Liste steht und sich nicht anmelden
+ * kann.
  */
 export async function provisionUser(
   companyId: string,
   profile: UserProfileInput,
 ): Promise<ProvisionResult> {
-  const secAuth = getSecondaryAuth();
   const tempPassword = generatePassword();
-  const cred = await createUserWithEmailAndPassword(secAuth, profile.email, tempPassword);
-  const newUid = cred.user.uid;
-  await signOut(secAuth); // nur die Secondary-Session abmelden
+  const newUid = await kontoAnlegen(profile.email, tempPassword);
 
-  await createUserDoc(companyId, newUid, profile);
+  try {
+    await createUserDoc(companyId, newUid, profile);
+  } catch (e) {
+    /*
+      AUFRÄUMEN GEHT HIER NICHT, UND DAS GEHÖRT GESAGT.
+
+      Das Anmeldekonto steht schon; es wieder zu entfernen bräuchte
+      Dienstrechte, die der Browser nicht hat und nicht haben soll. Zurück
+      bleibt also ein Konto ohne Zeile in der Belegschaft — jemand, der sich
+      anmelden kann und nichts sieht.
+
+      Das ist der ehrlichere der beiden schlechten Ausgänge: die Alternative
+      wäre, die Zeile zuerst zu schreiben und bei einem Fehlschlag am Konto
+      eine Belegschaftszeile ohne Anmeldung zurückzulassen — und die STEHT in
+      der Mitarbeiterliste und sieht richtig aus. Ein Konto ohne Zeile fällt
+      beim ersten Anmeldeversuch auf; eine Zeile ohne Konto fällt niemandem
+      auf.
+
+      Die Meldung nennt deshalb die Adresse: der zweite Versuch mit derselben
+      scheitert an ihr, und ohne diesen Hinweis wüsste niemand, warum.
+    */
+    const grund = e instanceof Error ? e.message : 'Unbekannter Fehler';
+    throw new Error(
+      `Das Konto zu ${profile.email} wurde angelegt, das Profil aber nicht: ${grund}. ` +
+        'Bitte an die Entwicklung wenden — mit dieser Adresse lässt sich kein zweites anlegen.',
+    );
+  }
 
   let mailSent = true;
   try {
-    await sendPasswordResetEmail(auth, profile.email);
+    await passwortZuruecksetzen(profile.email);
   } catch {
-    // Nicht kritisch (z. B. Emulator ohne Mailversand) — Anlage gilt als erfolgt,
-    // das UI zeigt dann das Initialpasswort zur Weitergabe.
+    // Nicht kritisch (etwa ohne eingerichteten Mailversand) — die Anlage gilt
+    // als erfolgt, und die Ansicht zeigt das Anfangspasswort zur Weitergabe.
     mailSent = false;
   }
   return { uid: newUid, tempPassword, mailSent };
 }
 
-/** Passwort-Reset-Mail erneut senden (Legacy:8163-8177). */
+/** Die Willkommensmail erneut senden. */
 export function resendPasswordReset(email: string): Promise<void> {
-  return sendPasswordResetEmail(auth, email);
+  return passwortZuruecksetzen(email);
 }

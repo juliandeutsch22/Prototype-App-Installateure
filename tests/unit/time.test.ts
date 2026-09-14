@@ -79,6 +79,17 @@ describe('Österreichische Feiertage', () => {
   });
 });
 
+/*
+ * DATUMSANGABEN HIER IMMER MIT localDateStr, NIE MIT toISOString.
+ *
+ * `toISOString()` liefert den Tag in UTC; die gerechnete Seite arbeitet mit
+ * der ÖRTLICHEN Zeit (Europe/Vienna, im Testskript gesetzt). Zwischen 22 und
+ * 24 Uhr UTC ist in Wien bereits der nächste Tag — die Prüfungen fielen dann
+ * zwei Stunden am Tag und liefen die übrigen zweiundzwanzig durch.
+ *
+ * Genau so ein Test ist eine Falle: wer ihn rot sieht, sucht den Fehler in
+ * seiner Änderung. Aufgefallen ist das um 22:29 UTC.
+ */
 describe('calcOverallSaldo', () => {
   const base: AppUser = {
     id: 'u', companyId: 'c', uid: 'u', name: 'Max', email: 'm@x.at', role: 'Mitarbeiter',
@@ -98,7 +109,7 @@ describe('calcOverallSaldo', () => {
     // stark negativ — und als Aussage über den Mitarbeiter wertlos.
     const start = new Date();
     start.setDate(start.getDate() - 30);
-    const iso = start.toISOString().slice(0, 10);
+    const iso = localDateStr(start);
 
     const r = calcOverallSaldo({ ...base, appStartDate: iso }, []);
     expect(r.hasConfig).toBe(true);
@@ -111,13 +122,13 @@ describe('calcOverallSaldo', () => {
   it('zählt Tage MIT Buchung nicht als Lücke', () => {
     const start = new Date();
     start.setDate(start.getDate() - 3);
-    const iso = start.toISOString().slice(0, 10);
+    const iso = localDateStr(start);
     const entries: TimeEntry[] = [];
     for (let i = 3; i >= 1; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       entries.push({
-        id: `e${i}`, companyId: 'c', userId: 'u', date: d.toISOString().slice(0, 10),
+        id: `e${i}`, companyId: 'c', userId: 'u', date: localDateStr(d),
         status: 'Anwesend', startTime: '07:00', endTime: '16:00', breakDuration: 60,
       } as TimeEntry);
     }
@@ -130,7 +141,7 @@ describe('calcOverallSaldo', () => {
     // Soll ins Ist. Als Lücke gezählt würde die Warnung sinnlos aufleuchten.
     const start = new Date();
     start.setDate(start.getDate() - 1);
-    const iso = start.toISOString().slice(0, 10);
+    const iso = localDateStr(start);
     const r = calcOverallSaldo({ ...base, appStartDate: iso }, [
       { id: 'e', companyId: 'c', userId: 'u', date: iso, status: 'Krank' } as TimeEntry,
     ]);

@@ -1,0 +1,136 @@
+src/lib/db/assignments.ts#deleteAssignment: (id: string) => Promise<void>
+src/lib/db/assignments.ts#listAssignmentsForDate: (companyId: string, date: string) => Promise<WithId<Assignment>[]>
+src/lib/db/assignments.ts#listAssignmentsForUserInRange: (companyId: string, uid: string, from: string, to: string) => Promise<WithId<Assignment>[]>
+src/lib/db/assignments.ts#listUpcomingAssignments: (companyId: string, uid: string, from: string, max?: number) => Promise<WithId<Assignment>[]>
+src/lib/db/assignments.ts#saveAssignments: (companyId: string, date: string, projectNumber: string, rows: AssignmentInput[]) => Promise<void>
+src/lib/db/assignments.ts#subscribeAssignmentsForMonth: (companyId: string, year: number, month: number, cb: (rows: WithId<Assignment>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/assignments.ts#subscribeAssignmentsInRange: (companyId: string, from: string, to: string, cb: (rows: WithId<Assignment>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/benutzerVorgaben.ts#DEFAULT_VACATION_DAYS: 25
+src/lib/db/benutzerVorgaben.ts#DEFAULT_WEEKLY_HOURS: 40
+src/lib/db/benutzerVorgaben.ts#DEFAULT_WORK_DAYS: number[]
+src/lib/db/company.ts#getCompany: (companyId: string) => Promise<Company | null>
+src/lib/db/company.ts#updateCompany: (companyId: string, data: Partial<Omit<Company, "id">>) => Promise<void>
+src/lib/db/customers.ts#assignProjectToCustomer: (projectId: string, customerId: string, customerName: string) => Promise<void>
+src/lib/db/customers.ts#createCustomer: (companyId: string, c: NewCustomer) => Promise<string>
+src/lib/db/customers.ts#deleteCustomer: (companyId: string, id: string) => Promise<void>
+src/lib/db/customers.ts#listCustomers: (companyId: string, max?: number) => Promise<WithId<Customer>[]>
+src/lib/db/customers.ts#listCustomersByIds: (companyId: string, ids: string[]) => Promise<WithId<Customer>[]>
+src/lib/db/customers.ts#listProjectsForCustomer: (companyId: string, customerId: string, max?: number) => Promise<WithId<Project>[]>
+src/lib/db/customers.ts#listUnlinkedProjectsByName: (companyId: string, customerName: string, max?: number) => Promise<WithId<Project>[]>
+src/lib/db/customers.ts#updateCustomer: (companyId: string, id: string, data: Partial<NewCustomer>) => Promise<number>
+src/lib/db/einsatzMaterial.ts#getEinsatzMaterial: (companyId: string, date: string, projectNumber: string) => Promise<WithId<EinsatzMaterial> | null>
+src/lib/db/einsatzMaterial.ts#ladenUmschalten: (companyId: string, date: string, projectNumber: string, positionId: string, an: boolean, vonName: string) => Promise<void>
+src/lib/db/einsatzMaterial.ts#listEinsatzMaterialForDate: (companyId: string, date: string) => Promise<WithId<EinsatzMaterial>[]>
+src/lib/db/einsatzMaterial.ts#saveEinsatzMaterial: (companyId: string, date: string, projectNumber: string, positionen: RuestPosition[], uids: string[], updatedBy: string) => Promise<void>
+src/lib/db/einsatzMaterial.ts#subscribeEinsatzMaterialForDate: (companyId: string, date: string, cb: (rows: WithId<EinsatzMaterial>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/followUps.ts#createFollowUp: (companyId: string, f: NewFollowUp) => Promise<string>
+src/lib/db/followUps.ts#listOpenFollowUps: (companyId: string) => Promise<WithId<FollowUp>[]>
+src/lib/db/followUps.ts#markFollowUpDone: (id: string) => Promise<void>
+src/lib/db/invoices.ts#cancelInvoice: (inv: WithId<Invoice>, note: string) => Promise<void>
+src/lib/db/invoices.ts#createInvoice: (companyId: string, inv: NewInvoice) => Promise<string>
+src/lib/db/invoices.ts#decideInvoiceSeq: (last: number, desired?: number, year?: number) => number
+src/lib/db/invoices.ts#formatInvoiceNumber: (seq: number, year?: number) => string
+src/lib/db/invoices.ts#highestInvoiceSeq: (existing: Pick<Invoice, "invoiceNumber">[]) => number
+src/lib/db/invoices.ts#invoiceSeqOf: (number: string) => number | null
+src/lib/db/invoices.ts#isInvoiceNumberTaken: (existing: Pick<Invoice, "invoiceNumber">[] & { id?: string; }[], number: string, exceptId?: string) => boolean
+src/lib/db/invoices.ts#listInvoicesInRange: (companyId: string, von: string, bis: string) => Promise<WithId<Invoice>[]>
+src/lib/db/invoices.ts#listUnpaidInvoices: (companyId: string) => Promise<WithId<Invoice>[]>
+src/lib/db/invoices.ts#mahnungFesthalten: (id: string, daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; }) => Promise<void>
+src/lib/db/invoices.ts#markBilled: (coll: string, ids: string[], invoiceNumber: string) => Promise<void>
+src/lib/db/invoices.ts#nextInvoiceNumber: (existing: Pick<Invoice, "invoiceNumber">[]) => string
+src/lib/db/invoices.ts#reactivateInvoice: (inv: WithId<Invoice>) => Promise<void>
+src/lib/db/invoices.ts#reserveInvoiceNumber: (companyId: string, opts: { seedFrom: number; desired?: number; }) => Promise<string>
+src/lib/db/invoices.ts#subscribeRecentInvoices: (companyId: string, max: number, cb: (rows: WithId<Invoice>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/invoices.ts#updateInvoiceStatus: (id: string, paymentStatus: Invoice["paymentStatus"]) => Promise<void>
+src/lib/db/laeufe.ts#ladeLauf: (companyId: string, art: LaufArt) => Promise<Lauf | undefined>
+src/lib/db/materialOrders.ts#ORDER_STATUS_FLOW: ("Offen" | "In Bearbeitung" | "Abholbereit" | "Erledigt")[]
+src/lib/db/materialOrders.ts#createMaterialOrder: (companyId: string, order: NewMaterialOrder) => Promise<string>
+src/lib/db/materialOrders.ts#createReturn: (companyId: string, ret: Omit<NewMaterialOrder, "status" | "transactionType"> & { condition: string; }) => Promise<string>
+src/lib/db/materialOrders.ts#deleteOrder: (orderId: string) => Promise<void>
+src/lib/db/materialOrders.ts#listOpenOrders: (companyId: string) => Promise<WithId<MaterialOrder>[]>
+src/lib/db/materialOrders.ts#listOwnOpenOrders: (companyId: string, uid: string) => Promise<WithId<MaterialOrder>[]>
+src/lib/db/materialOrders.ts#subscribeAllOrders: (companyId: string, max: number, cb: (rows: WithId<MaterialOrder>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/materialOrders.ts#subscribeOwnOrders: (companyId: string, uid: string, max: number, cb: (rows: WithId<MaterialOrder>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/materialOrders.ts#updateOrderStatus: (orderId: string, newStatus: MaterialOrder["status"]) => Promise<void>
+src/lib/db/materials.ts#KATALOG_GRENZE: 1000
+src/lib/db/materials.ts#LOW_STOCK_THRESHOLD: 5
+src/lib/db/materials.ts#adjustStock: (materialId: string, delta: number) => Promise<void>
+src/lib/db/materials.ts#createMaterial: (companyId: string, m: NewMaterial) => Promise<string>
+src/lib/db/materials.ts#deleteMaterial: (id: string) => Promise<void>
+src/lib/db/materials.ts#katalogAbgeschnitten: (artikel: readonly unknown[], grenze?: number) => boolean
+src/lib/db/materials.ts#listMaterials: (companyId: string, max?: number) => Promise<WithId<Material>[]>
+src/lib/db/materials.ts#subscribeMaterials: (companyId: string, cb: (rows: WithId<Material>[]) => void, onError: (e: Error) => void, max?: number) => () => void
+src/lib/db/materials.ts#updateMaterial: (id: string, data: Partial<Material>) => Promise<void>
+src/lib/db/meldungsvorgaben.ts#PREFS_DEFAULTS: NotifyPrefs
+src/lib/db/monatsbilanzen.ts#bilanzMarker: (companyId: string, uid: string) => Promise<{ vollstaendigAb: string; } | null>
+src/lib/db/monatsbilanzen.ts#listBilanzen: (companyId: string, uid: string, abMonat: string) => Promise<Monatsbilanz[]>
+src/lib/db/monatsbilanzen.ts#monatVon: (datum: string) => string
+src/lib/db/prefs.ts#PREFS_DEFAULTS: NotifyPrefs
+src/lib/db/prefs.ts#addPushToken: (companyId: string, uid: string, token: string) => Promise<void>
+src/lib/db/prefs.ts#getPrefs: (uid: string) => Promise<UserPrefs | null>
+src/lib/db/prefs.ts#removePushToken: (uid: string, token: string) => Promise<void>
+src/lib/db/prefs.ts#savePrefs: (companyId: string, uid: string, prefs: NotifyPrefs) => Promise<void>
+src/lib/db/prefs.ts#subscribePrefs: (uid: string, cb: (p: UserPrefs | null) => void, onError?: (e: Error) => void) => () => void
+src/lib/db/projects.ts#createProject: (companyId: string, p: NewProject) => Promise<string>
+src/lib/db/projects.ts#deleteProject: (id: string) => Promise<void>
+src/lib/db/projects.ts#findProjectsByNumber: (companyId: string, formen: string[]) => Promise<WithId<Project>[]>
+src/lib/db/projects.ts#listActiveProjects: (companyId: string, max?: number) => Promise<WithId<Project>[]>
+src/lib/db/projects.ts#listProjectsByNumbers: (companyId: string, numbers: string[]) => Promise<WithId<Project>[]>
+src/lib/db/projects.ts#listProjectsForEmployee: (companyId: string, uid: string) => Promise<WithId<Project>[]>
+src/lib/db/projects.ts#listRecentProjects: (companyId: string, max: number) => Promise<WithId<Project>[]>
+src/lib/db/projects.ts#subscribeRecentProjects: (companyId: string, max: number, cb: (rows: WithId<Project>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/projects.ts#updateProject: (id: string, data: Partial<Project>) => Promise<void>
+src/lib/db/quelle.ts#nutztPostgres: () => boolean
+src/lib/db/quotes.ts#createQuote: (companyId: string, q: NewQuote) => Promise<string>
+src/lib/db/quotes.ts#deleteQuote: (id: string) => Promise<void>
+src/lib/db/quotes.ts#listQuotesForCustomer: (companyId: string, customerId: string, max?: number) => Promise<WithId<Quote>[]>
+src/lib/db/quotes.ts#listRecentQuotes: (companyId: string, max?: number) => Promise<WithId<Quote>[]>
+src/lib/db/quotes.ts#reserveQuoteNumber: (companyId: string) => Promise<string>
+src/lib/db/quotes.ts#updateQuote: (id: string, data: Partial<NewQuote>) => Promise<void>
+src/lib/db/scheinFotos.ts#fotoAdresse: (pfad: string) => Promise<string>
+src/lib/db/scheinFotos.ts#fotoEntfernen: (pfad: string) => Promise<void>
+src/lib/db/scheinFotos.ts#fotoHochladen: (companyId: string, scheinId: string, daten: Blob, geraetZeit: number) => Promise<WorkSheetFoto>
+src/lib/db/scheinFotos.ts#komprimiere: (datei: Blob) => Promise<Blob>
+src/lib/db/timeEntries.ts#DuplicateEntryError: typeof DuplicateEntryError
+src/lib/db/timeEntries.ts#createTimeEntry: (companyId: string, entry: NewTimeEntry) => Promise<string>
+src/lib/db/timeEntries.ts#deleteTimeEntry: (id: string) => Promise<void>
+src/lib/db/timeEntries.ts#eintraegeAmTag: (companyId: string, uid: string, date: string, exceptId?: string) => Promise<WithId<TimeEntry>[]>
+src/lib/db/timeEntries.ts#listEntriesForProjects: (companyId: string, projectNumbers: string[]) => Promise<WithId<TimeEntry>[]>
+src/lib/db/timeEntries.ts#listEntriesInRange: (companyId: string, from: string, to: string) => Promise<WithId<TimeEntry>[]>
+src/lib/db/timeEntries.ts#listOwnEntriesSince: (companyId: string, uid: string, from: string) => Promise<WithId<TimeEntry>[]>
+src/lib/db/timeEntries.ts#subscribeEntriesInRange: (companyId: string, from: string, to: string, cb: (rows: WithId<TimeEntry>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/timeEntries.ts#subscribeOwnEntriesInRange: (companyId: string, uid: string, from: string, to: string, cb: (rows: WithId<TimeEntry>[]) => void, onError: (e: Error) => void) => () => void
+src/lib/db/timeEntries.ts#updateTimeEntry: (id: string, data: Partial<TimeEntry>, owner: { companyId: string; userId: string; }) => Promise<void>
+src/lib/db/users.ts#DEFAULT_VACATION_DAYS: 25
+src/lib/db/users.ts#DEFAULT_WEEKLY_HOURS: 40
+src/lib/db/users.ts#DEFAULT_WORK_DAYS: number[]
+src/lib/db/users.ts#createUserDoc: (companyId: string, uid: string, p: UserProfileInput) => Promise<void>
+src/lib/db/users.ts#getUserByUid: (companyId: string, uid: string) => Promise<AppUser | null>
+src/lib/db/users.ts#listUsers: (companyId: string) => Promise<AppUser[]>
+src/lib/db/users.ts#updateUserProfile: (uid: string, p: Partial<UserProfileInput>) => Promise<void>
+src/lib/db/vacations.ts#createVacation: (companyId: string, v: NewVacation) => Promise<string>
+src/lib/db/vacations.ts#deleteVacation: (id: string) => Promise<void>
+src/lib/db/vacations.ts#listApprovedVacationsInRange: (companyId: string, vonIso: string, bisIso: string, max?: number) => Promise<WithId<Vacation>[]>
+src/lib/db/vacations.ts#listOpenVacations: (companyId: string, max?: number) => Promise<WithId<Vacation>[]>
+src/lib/db/vacations.ts#listOwnVacations: (companyId: string, uid: string, max?: number) => Promise<WithId<Vacation>[]>
+src/lib/db/wartungen.ts#createWartung: (companyId: string, w: NewWartung) => Promise<string>
+src/lib/db/wartungen.ts#deleteWartung: (id: string) => Promise<void>
+src/lib/db/wartungen.ts#listFaelligeWartungen: (companyId: string, bis: string, max?: number) => Promise<WithId<Wartung>[]>
+src/lib/db/wartungen.ts#listWartungen: (companyId: string, max?: number) => Promise<WithId<Wartung>[]>
+src/lib/db/wartungen.ts#listWartungenForCustomer: (companyId: string, customerId: string, max?: number) => Promise<WithId<Wartung>[]>
+src/lib/db/wartungen.ts#updateWartung: (id: string, data: Partial<NewWartung>) => Promise<void>
+src/lib/db/wartungen.ts#wartungEingeplant: (id: string, projectNumber: string) => Promise<void>
+src/lib/db/wartungen.ts#wartungErledigt: (id: string, args: { erledigtAm: string; intervallMonate: number; projectNumber?: string; }) => Promise<void>
+src/lib/db/workSheets.ts#cancelWorkSheet: (id: string, grund: string, vonName: string) => Promise<void>
+src/lib/db/workSheets.ts#createWorkSheet: (companyId: string, s: NewWorkSheet) => Promise<string>
+src/lib/db/workSheets.ts#discardWorkSheetDraft: (id: string, vonName: string) => Promise<void>
+src/lib/db/workSheets.ts#fotosAmEntwurf: (id: string, fotos: WorkSheetFoto[]) => Promise<void>
+src/lib/db/workSheets.ts#getWorkSheet: (id: string) => Promise<WithId<WorkSheet> | undefined>
+src/lib/db/workSheets.ts#listOwnWorkSheetsSince: (companyId: string, uid: string, abDatum: string, max?: number) => Promise<WithId<WorkSheet>[]>
+src/lib/db/workSheets.ts#listRecentWorkSheets: (companyId: string, max?: number) => Promise<WithId<WorkSheet>[]>
+src/lib/db/workSheets.ts#listSignedWorkSheetsInRange: (companyId: string, von: string, bis: string, max?: number) => Promise<WithId<WorkSheet>[]>
+src/lib/db/workSheets.ts#listWorkSheetsForProject: (companyId: string, projectNumber: string, max?: number) => Promise<WithId<WorkSheet>[]>
+src/lib/db/workSheets.ts#listWorkSheetsInRange: (companyId: string, von: string, bis: string, max?: number) => Promise<WithId<WorkSheet>[]>
+src/lib/db/workSheets.ts#restoreWorkSheetDraft: (id: string) => Promise<void>
+src/lib/db/workSheets.ts#signWorkSheet: (id: string, monteur: WorkSheetUnterschrift, kunde: WorkSheetUnterschrift) => Promise<void>
+src/lib/db/workSheets.ts#updateWorkSheetDraft: (id: string, data: Partial<NewWorkSheet>) => Promise<void>

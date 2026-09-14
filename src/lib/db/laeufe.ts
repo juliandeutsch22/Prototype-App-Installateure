@@ -1,27 +1,30 @@
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { laufId, type Lauf, type LaufArt } from '@shared/laufStatus';
+/**
+ * Der Zustand der nächtlichen Läufe — nur die Weiche.
+ *
+ * Gelesen wird, geschrieben nicht: eine Überwachung, die der Überwachte
+ * selbst beschreiben kann, überwacht nichts. „Nicht da" heisst „von diesem
+ * Lauf ist nichts bekannt" und ausdrücklich NICHT „alles in Ordnung".
+ */
+import type { Lauf, LaufArt } from '@shared/laufStatus';
+import { nutztPostgres } from './quelle';
+import * as fs from './fs/laeufe';
+import * as pg from './pg/laeufe';
+
+export function ladeLauf(companyId: string, art: LaufArt): Promise<Lauf | undefined> {
+  return nutztPostgres() ? pg.ladeLauf(companyId, art) : fs.ladeLauf(companyId, art);
+}
 
 /**
- * Den Zustand eines nächtlichen Laufs holen.
+ * Die Sicherung sofort erstellen.
  *
- * GESCHRIEBEN WIRD HIER NICHTS, und das ist Absicht: die Rules lassen für
- * angemeldete Zugriffe gar kein Schreiben zu. Eine Überwachung, die der
- * Überwachte selbst beschreiben kann, überwacht nichts.
- *
- * WAS „NICHT DA" HEISST. Es gibt den Fall, dass ein Lauf noch nie gelaufen
- * ist — dann fehlt das Dokument. Anders als bei den mandantengebundenen
- * Sammlungen wirft das hier nicht: die Regel prüft `ownsExisting()`, und ein
- * fehlendes Dokument ist damit ein abgewiesener Zugriff. Beides — Ablehnung
- * und Leere — bedeutet dasselbe und wird gleich behandelt: „von diesem Lauf
- * ist nichts bekannt". Das ist NICHT dasselbe wie „alles in Ordnung".
+ * Unter Firestore tut das die Cloud Function `datenAusleitungJetzt` — der
+ * Aufrufer findet beide Wege über `lib/functions.ts:callDatenAusleitungJetzt`.
  */
-export async function ladeLauf(companyId: string, art: LaufArt): Promise<Lauf | undefined> {
-  try {
-    const snap = await getDoc(doc(db, 'systemLaeufe', laufId(companyId, art)));
-    if (!snap.exists()) return undefined;
-    return snap.data() as Lauf;
-  } catch {
-    return undefined;
+export function ausleitungJetzt(): Promise<pg.AusleitungsBilanz> {
+  if (!nutztPostgres()) {
+    throw new Error('Unter Firestore leitet die Cloud Function aus — siehe lib/functions.ts.');
   }
+  return pg.ausleitungJetzt();
 }
+
+export type { AusleitungsBilanz } from './pg/laeufe';

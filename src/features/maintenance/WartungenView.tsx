@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listWartungen,
+  searchWartungen,
   createWartung,
   updateWartung,
   deleteWartung,
@@ -199,16 +200,58 @@ export default function WartungenView() {
     [wartungen, heute],
   );
 
-  const gefiltert = useMemo(() => {
-    const s = suche.trim().toLowerCase();
-    if (!s) return wartungen;
-    return wartungen.filter(
-      (w) =>
-        w.customerName.toLowerCase().includes(s) ||
-        w.anlage.toLowerCase().includes(s) ||
-        (w.address ?? '').toLowerCase().includes(s),
-    );
-  }, [wartungen, suche]);
+  /*
+    GESUCHT WIRD SERVERSEITIG — und zwar NEBEN der geladenen Liste, nicht
+    statt ihrer.
+
+    Die Liste `wartungen` trägt zwei Aufgaben: aus ihr entsteht die Karte
+    „anstehend", und sie ist zugleich das, was unten steht. Würde die Suche
+    sie ersetzen, schrumpfte beim Tippen auch die Anstehend-Karte — und wer
+    nach einem Kunden sucht, bekäme den Eindruck, es sei nichts mehr fällig.
+
+    Deshalb eine zweite Abfrage. Unter Postgres sucht sie über den ganzen
+    Bestand und findet auch mitten im Wort; unter Firestore filtert sie die
+    ersten `max` Zeilen im Browser, wie bisher.
+  */
+  const [gesucht, setGesucht] = useState<WithId<Wartung>[]>([]);
+  const [suchtGerade, setSuchtGerade] = useState(false);
+
+  useEffect(() => {
+    if (!companyId) return;
+    const begriff = suche.trim();
+    if (!begriff) {
+      setGesucht([]);
+      setSuchtGerade(false);
+      return;
+    }
+    let weg = false;
+    setSuchtGerade(true);
+    // Dreihundert Millisekunden: die Pause, nach der jemand aufgehört hat zu
+    // tippen. Ohne sie stünden zwanzig Abfragen gleichzeitig in der Leitung.
+    const verzoegert = setTimeout(() => {
+      void searchWartungen(companyId, begriff, grenze)
+        .then((treffer) => {
+          if (!weg) setGesucht(treffer);
+        })
+        // Ein Fehlschlag lässt die geladene Liste stehen, statt sie zu leeren:
+        // was da ist, ist deshalb nicht falsch.
+        .catch(() => {
+          if (!weg) setGesucht([]);
+        })
+        .finally(() => {
+          if (!weg) setSuchtGerade(false);
+        });
+    }, 300);
+    return () => {
+      weg = true;
+      clearTimeout(verzoegert);
+    };
+  }, [companyId, suche, grenze]);
+
+  const gefiltert = useMemo(
+    () => (suche.trim() ? gesucht : wartungen),
+    [wartungen, gesucht, suche],
+  );
 
   const formOeffnen = (w?: WithId<Wartung>) => {
     if (w) {
@@ -586,7 +629,16 @@ export default function WartungenView() {
             onChange={(e) => setSuche(e.target.value)}
           />
         </div>
-        {loading ? (
+        {loading || suchtGerade ? (
+          /*
+            WÄHREND DER SUCHE STEHT DAS GERÜST, NICHT DIE LEERE.
+
+            Zwischen Tastendruck und Antwort liegen die Verzögerung und eine
+            Netzrunde. Ohne diesen Zweig stünde in dieser Zeit „Kein Treffer
+            für diese Suche" — eine Aussage über den Bestand, wo nur noch
+            keine Antwort da ist. Wer schnell tippt, läse sie bei jedem
+            Buchstaben.
+          */
           <SkeletonList />
         ) : gefiltert.length === 0 ? (
           <EmptyState>

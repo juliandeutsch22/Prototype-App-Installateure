@@ -25,7 +25,7 @@ vi.mock('firebase/firestore', () => ({
   serverTimestamp: () => 'SERVERZEIT',
 }));
 vi.mock('@/lib/firebase', () => ({ db: {} }));
-vi.mock('@/lib/db/core', () => ({ queryTenant: vi.fn(), createInTenant: vi.fn() }));
+vi.mock('@/lib/db/fs/core', () => ({ queryTenant: vi.fn(), createInTenant: vi.fn() }));
 
 const { discardWorkSheetDraft, restoreWorkSheetDraft, cancelWorkSheet } = await import(
   '@/lib/db/workSheets'

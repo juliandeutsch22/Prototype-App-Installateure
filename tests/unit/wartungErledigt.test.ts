@@ -24,7 +24,7 @@ vi.mock('firebase/firestore', () => ({
 }));
 vi.mock('@/lib/firebase', () => ({ db: {} }));
 const queryTenant = vi.fn();
-vi.mock('@/lib/db/core', () => ({
+vi.mock('@/lib/db/fs/core', () => ({
   queryTenant: (...a: unknown[]) => queryTenant(...a),
   createInTenant: vi.fn(),
   deleteInTenant: vi.fn(),

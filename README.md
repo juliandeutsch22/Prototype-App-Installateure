@@ -20,6 +20,7 @@ Entscheidungen, Schwachstellen und die nächsten Schritte.
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Änderungsprotokoll: was wurde wann warum gebaut. |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Firebase-Einrichtung, Secrets, Scheduler. |
 | [`docs/LEGACY-ANALYSIS.md`](docs/LEGACY-ANALYSIS.md) | Datenmodell und übernommene Geschäftslogik aus der Altanwendung. |
+| [`docs/MIGRATION-SUPABASE.md`](docs/MIGRATION-SUPABASE.md) | Entscheidungsvorlage: soll das Hinterhaus von Firestore auf Supabase wechseln, und in welcher Reihenfolge. |
 
 ## Stack
 

@@ -7,7 +7,9 @@ import {
   updateProject,
   deleteProject,
   findProjectsByNumber,
+  searchProjects,
 } from '@/lib/db/projects';
+import { nutztPostgres } from '@/lib/db/quelle';
 import { deuteBaustellenSuche, baustellenSuchHinweis } from './baustellenSuche';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
@@ -253,29 +255,59 @@ export default function AdminProjectsView() {
 
   const [serverTreffer, setServerTreffer] = useState<WithId<Project>[]>([]);
 
+  /*
+    UNTER POSTGRES GEHT JEDE EINGABE AN DEN SERVER, nicht nur eine Nummer.
+
+    Die Einschränkung auf Nummern war eine Notlösung: Firestore kann nur
+    Anfänge einer sortierten Spalte vergleichen, also war „B-2026-0042"
+    findbar und „Seestraße" nicht. Postgres sucht über Nummer, Kunde und
+    Adresse, und auch mitten im Wort.
+
+    `deuteBaustellenSuche` bleibt für die Firestore-Seite stehen und
+    verschwindet mit ihr in Stufe 9 — solange beide laufen, muss jede das
+    Beste können, was sie kann.
+
+    DIE VERZÖGERUNG IST KEIN FEINSCHLIFF. Zwischen zwei Anschlägen liegen
+    Millisekunden, eine Abfrage dauert länger; ohne sie stünden zwanzig
+    gleichzeitig in der Leitung und die Antworten kämen in beliebiger
+    Reihenfolge zurück.
+  */
   useEffect(() => {
-    if (!user || absicht.art !== 'nummer') {
+    if (!user) {
       setServerTreffer([]);
       return;
     }
+    const begriff = suche.trim();
+    const nummernweg = !nutztPostgres();
+    if (nummernweg ? absicht.art !== 'nummer' : begriff === '') {
+      setServerTreffer([]);
+      return;
+    }
+
     let verworfen = false;
-    const formen = absicht.formen;
-    void findProjectsByNumber(user.companyId, formen)
-      .then((gefunden) => {
-        if (!verworfen) setServerTreffer(gefunden);
-      })
-      /*
-        Ein Fehlschlag laesst die oertliche Suche stehen, statt die Liste zu
-        leeren: was geladen ist, ist deshalb nicht falsch. Gemeldet wird er
-        trotzdem — unten steht dann, dass ueber die Nummer nichts dazukam.
-      */
-      .catch(() => {
-        if (!verworfen) setServerTreffer([]);
-      });
+    const formen = absicht.art === 'nummer' ? absicht.formen : [];
+    const verzoegert = setTimeout(() => {
+      void (nummernweg
+        ? findProjectsByNumber(user.companyId, formen)
+        : searchProjects(user.companyId, begriff))
+        .then((gefunden) => {
+          if (!verworfen) setServerTreffer(gefunden);
+        })
+        /*
+          Ein Fehlschlag laesst die oertliche Suche stehen, statt die Liste zu
+          leeren: was geladen ist, ist deshalb nicht falsch. Gemeldet wird er
+          trotzdem — unten steht dann, dass ueber die Nummer nichts dazukam.
+        */
+        .catch(() => {
+          if (!verworfen) setServerTreffer([]);
+        });
+    }, nummernweg ? 0 : 300);
+
     return () => {
       verworfen = true;
+      clearTimeout(verzoegert);
     };
-  }, [user, absicht]);
+  }, [user, absicht, suche]);
 
   const visible = useMemo(() => {
     const nachStatus =
@@ -306,7 +338,9 @@ export default function AdminProjectsView() {
 
   /** Wie viele Treffer NUR vom Server kamen — das ist die Aussage, nicht die Summe. */
   const nurVomServer = useMemo(() => {
-    if (absicht.art !== 'nummer') return 0;
+    // Unter Firestore kommen Servertreffer nur bei einer Nummer; unter
+    // Postgres bei jeder Eingabe.
+    if (!nutztPostgres() && absicht.art !== 'nummer') return 0;
     const geladen = new Set(sorted.map((p) => p.id));
     return serverTreffer.filter((p) => !geladen.has(p.id)).length;
   }, [absicht, serverTreffer, sorted]);

@@ -1,6 +1,12 @@
 import { httpsCallable } from 'firebase/functions';
 import type { NeuerBetrieb } from '@shared/plattform';
 import { functions } from './firebase';
+import { nutztPostgres } from './db/quelle';
+import { entscheiden } from './db/vacations';
+import { vorbereiten, type ScheinZeit } from './db/workSheets';
+import { auszug, type BetriebsAuszug } from './db/company';
+import { betriebAnlegen, type BetriebAngelegt } from './db/plattform';
+import { ausleitungJetzt, type AusleitungsBilanz } from './db/laeufe';
 import type { VoiceExtractResponse } from '@/features/voice/types';
 
 /** Ruft die serverseitige KI-Extraktion auf. API-Schlüssel bleiben im Server. */
@@ -34,15 +40,32 @@ export const callBilanzenNeuAufbauen = httpsCallable<
  * Sobald die Geschaeftsfuehrung frei festlegt, WER genehmigt, geht es nicht
  * mehr — und die Grenze aufzumachen waere die falsche Reihenfolge.
  */
-export const callUrlaubEntscheiden = httpsCallable<
-  {
-    vacationId: string;
-    entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
-    grund?: string;
-    entscheiderName?: string;
-  },
-  { status: string; angelegt: number; uebersprungen: number; entfernt: number }
->(functions, 'urlaubEntscheiden');
+interface UrlaubsEingabe {
+  vacationId: string;
+  entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
+  grund?: string;
+  entscheiderName?: string;
+}
+type UrlaubsAntwort = { status: string; angelegt: number; uebersprungen: number; entfernt: number };
+
+const urlaubAlsFunction = httpsCallable<UrlaubsEingabe, UrlaubsAntwort>(
+  functions, 'urlaubEntscheiden',
+);
+
+/**
+ * UNTER POSTGRES IST DAS KEINE FUNCTION MEHR, sondern ein Aufruf an die
+ * Datenbank — in EINER Transaktion statt in einem Stapel, den ein Abbruch
+ * halb stehen liesse.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callUrlaubEntscheiden(
+  daten: UrlaubsEingabe,
+): Promise<{ data: UrlaubsAntwort }> {
+  return nutztPostgres()
+    ? entscheiden(daten).then((data) => ({ data }))
+    : urlaubAlsFunction(daten);
+}
 
 /**
  * Stellt die Positionen fuer einen Handwerksschein zusammen.
@@ -56,21 +79,26 @@ export const callUrlaubEntscheiden = httpsCallable<
  * MATERIAL kommt hier NICHT mehr her — der Monteur traegt es beim Erstellen
  * selbst ein. Warum, steht in `functions/src/scheinVorbereiten.ts`.
  */
-export const callScheinVorbereiten = httpsCallable<
-  { projectNumber: string; datum: string },
-  {
-    zeiten: Array<{
-      datum: string;
-      mitarbeiter: string;
-      von?: string;
-      bis?: string;
-      pauseMin?: number;
-      minuten: number;
-      taetigkeit?: string;
-      helfer?: boolean;
-    }>;
-  }
->(functions, 'scheinVorbereiten');
+interface ScheinEingabe { projectNumber: string; datum: string }
+type ScheinAntwort = { zeiten: ScheinZeit[] };
+
+const scheinAlsFunction = httpsCallable<ScheinEingabe, ScheinAntwort>(
+  functions, 'scheinVorbereiten',
+);
+
+/**
+ * UNTER POSTGRES IST DAS KEINE FUNCTION MEHR, sondern eine Abfrage mit
+ * erhoehten Rechten — dieselbe Grenze, ein Weg weniger.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callScheinVorbereiten(
+  daten: ScheinEingabe,
+): Promise<{ data: ScheinAntwort }> {
+  return nutztPostgres()
+    ? vorbereiten(daten.projectNumber, daten.datum).then((data) => ({ data }))
+    : scheinAlsFunction(daten);
+}
 
 /**
  * Sichert den eigenen Mandanten sofort an den zweiten Ort.
@@ -80,10 +108,27 @@ export const callScheinVorbereiten = httpsCallable<
  * zeigt in einem Zug, ob die Berechtigungen stimmen, ob das Ziel erreichbar
  * ist und wie gross der Stand tatsaechlich ist.
  */
-export const callDatenAusleitungJetzt = httpsCallable<
-  Record<string, never>,
-  { companyId: string; zeilen: number; bytes: number; pfad: string; geraeumt: number; ziel: string }
->(functions, 'datenAusleitungJetzt');
+const ausleitungAlsFunction = httpsCallable<Record<string, never>, AusleitungsBilanz>(
+  functions, 'datenAusleitungJetzt',
+);
+
+/**
+ * UNTER POSTGRES IST DAS EINE EDGE FUNCTION, und dieselbe, die nachts läuft.
+ *
+ * Zwei Wege in eine Function, weil es zwei Fragen sind: der Zeitplan ruft mit
+ * dem Dienstschlüssel und nimmt alle Betriebe, der Knopf mit dem Token eines
+ * Menschen und nimmt nur dessen eigenen. Zwei getrennte Fassungen wären zwei
+ * Gelegenheiten, dass die eine etwas ausleitet, was die andere auslässt.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callDatenAusleitungJetzt(
+  _daten: Record<string, never> = {},
+): Promise<{ data: AusleitungsBilanz }> {
+  return nutztPostgres()
+    ? ausleitungJetzt().then((data) => ({ data }))
+    : ausleitungAlsFunction(_daten);
+}
 
 /**
  * Laedt den kompletten Mandantenbestand als Datei herunter (DSGVO Art. 15/20).
@@ -93,15 +138,24 @@ export const callDatenAusleitungJetzt = httpsCallable<
  * ist die naechtliche Ausleitung der verlaessliche Weg; dieser hier ist der
  * bequeme fuer eine Auskunft.
  */
-export const callExportCompanyData = httpsCallable<
-  Record<string, never>,
-  {
-    companyId: string;
-    exportedAt: string;
-    anzahl: Record<string, number>;
-    data: Record<string, unknown[]>;
-  }
->(functions, 'exportCompanyData');
+const auszugAlsFunction = httpsCallable<Record<string, never>, BetriebsAuszug>(
+  functions, 'exportCompanyData',
+);
+
+/**
+ * UNTER POSTGRES IST DAS KEINE FUNCTION MEHR, sondern eine Abfrage mit
+ * erhoehten Rechten — und die Sammlungsliste kommt aus dem Katalog statt aus
+ * einer Datei, die jemand pflegen muss.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callExportCompanyData(
+  _daten: Record<string, never> = {},
+): Promise<{ data: BetriebsAuszug }> {
+  return nutztPostgres()
+    ? auszug().then((data) => ({ data }))
+    : auszugAlsFunction(_daten);
+}
 
 /**
  * Einen neuen Betrieb anlegen — nur für den globalen Administrator.
@@ -112,7 +166,24 @@ export const callExportCompanyData = httpsCallable<
  * sein Token trägt keine `companyId`, und daran hängt jede einzelne Regel.
  * Warum das so gebaut ist, steht in `shared/plattform.ts`.
  */
-export const callBetriebAnlegen = httpsCallable<
-  NeuerBetrieb,
-  { companyId: string; ersterAdminUid: string; passwortLink: string }
->(functions, 'betriebAnlegen');
+const betriebAlsFunction = httpsCallable<NeuerBetrieb, BetriebAngelegt>(
+  functions, 'betriebAnlegen',
+);
+
+/**
+ * UNTER POSTGRES IST DAS DIE EINE EDGE FUNCTION, die bleiben musste.
+ *
+ * Alles andere aus dem Functions-Bestand ist zu SQL geworden; ein
+ * ANMELDEKONTO aber entsteht im Anmeldedienst und nicht in einer Tabelle.
+ * Warum das keine Bequemlichkeit ist, steht im Kopf von
+ * `supabase/functions/betrieb-anlegen/index.ts`.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callBetriebAnlegen(
+  daten: NeuerBetrieb,
+): Promise<{ data: BetriebAngelegt }> {
+  return nutztPostgres()
+    ? betriebAnlegen(daten).then((data) => ({ data }))
+    : betriebAlsFunction(daten);
+}

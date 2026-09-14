@@ -14,6 +14,7 @@ import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { callBilanzenNeuAufbauen } from '@/lib/functions';
+import { nutztPostgres } from '@/lib/db/quelle';
 
 const fmtEUR = (n: number) =>
   new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -472,6 +473,32 @@ export default function SettingsView() {
         </Card>
       )}
 
+      {/*
+        DIESE KARTE IST EINE NARBE, UND SIE VERSCHWINDET MIT DEM UMSCHALTEN.
+
+        Unter Firestore mussten die Monatsbilanzen vorgerechnet und abgelegt
+        werden — eine Sammlung, ein Aufbaulauf, ein Trigger zum Nachziehen,
+        ein Nachtlauf zum Ausgleichen und ein Marker für die Vollständigkeit.
+        Eine Bilanz war dadurch immer nur IRGENDWANN richtig, und eine
+        fehlende war von einem Monat ohne Buchungen nicht zu unterscheiden.
+
+        Unter Postgres ist `monthly_stats` eine SICHT. Sie rechnet bei jeder
+        Abfrage neu und kann nicht unvollständig sein — es gibt nichts
+        aufzubauen, nichts nachzuziehen und nichts auszugleichen.
+
+        Der Knopf riefe nach dem Umschalten eine Cloud Function, die es dann
+        nicht mehr gibt. Er bleibt deshalb nicht stehen und wird auch nicht
+        stillgelegt: er ist WEG, und an seiner Stelle steht, warum.
+      */}
+      {nutztPostgres() ? (
+        <Card title="Monatsbilanzen">
+          <p className="text-sm text-ink">
+            Die Monatsbilanzen sind eine Sicht auf die Zeitbuchungen: sie rechnen bei jeder
+            Abfrage neu. Es gibt nichts aufzubauen und nichts nachzuziehen — und damit auch
+            keinen Stand, der stillstehen und auf einem Lohnzettel landen könnte.
+          </p>
+        </Card>
+      ) : (
       <Card
         title="Monatsbilanzen"
         hint={
@@ -527,6 +554,7 @@ export default function SettingsView() {
           </Button>
         </div>
       </Card>
+      )}
     </div>
   );
 }

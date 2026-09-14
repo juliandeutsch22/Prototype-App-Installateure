@@ -1,9 +1,5 @@
-import { where, orderBy, limit } from 'firebase/firestore';
-import type { Vacation } from '@/types';
-import { queryTenant, createInTenant, deleteInTenant, type WithId } from './core';
-
 /**
- * Urlaubsanträge.
+ * Urlaubsanträge — nur die Weiche.
  *
  * Der Ablauf hat drei Beteiligte und muss für alle drei ehrlich sein:
  *
@@ -16,93 +12,78 @@ import { queryTenant, createInTenant, deleteInTenant, type WithId } from './core
  *  - Wer Einsätze plant, muss den genehmigten Urlaub SEHEN, bevor er jemanden
  *    einteilt. Ein Urlaub, der erst am Einsatztag auffällt, ist doppelte
  *    Arbeit für alle.
- */
-
-const COLLECTION = 'vacations';
-
-/**
- * Die eigenen Anträge, jüngste zuerst.
  *
- * Nach `von` sortiert und begrenzt: ein Mitarbeiter sammelt über zehn Jahre
- * vielleicht fünfzig Anträge an, und die Ansicht zeigt seinen Stand, nicht
- * sein Archiv.
+ * Entschieden wird SERVERSEITIG — siehe `lib/functions.ts:callUrlaubEntscheiden`.
+ * Der Genehmigende bekommt dabei nichts zu sehen, was er nicht ohnehin sehen
+ * darf: Zeiteinträge tragen Kranken- und Urlaubstage und damit
+ * Gesundheitsdaten nach Art. 9 DSGVO.
  */
-export function listOwnVacations(companyId: string, uid: string, max = 60) {
-  return queryTenant<Vacation>(
-    COLLECTION,
-    companyId,
-    where('userId', '==', uid),
-    orderBy('von', 'desc'),
-    limit(max),
-  );
-}
-
-/**
- * Die offenen Anträge des Betriebs — die Arbeitsliste der Genehmigenden.
- *
- * Gleichheitsfilter auf einen kleinen Statuswert: die Menge bleibt klein,
- * egal wie viele Anträge über die Jahre entschieden wurden.
- */
-export function listOpenVacations(companyId: string, max = 100) {
-  return queryTenant<Vacation>(
-    COLLECTION,
-    companyId,
-    where('status', '==', 'Beantragt'),
-    limit(max),
-  );
-}
-
-/**
- * Genehmigter Urlaub, der in einen Zeitraum hineinreicht — für die Planung.
- *
- * Abgefragt wird über `bis >= vonDesZeitraums`, danach wird im Browser auf
- * `von <= bisDesZeitraums` eingeengt. Firestore kann Bereichsfilter nur auf
- * EINEM Feld führen, und ein Urlaub, der vor dem Zeitraum beginnt und in ihn
- * hineinragt, muss gefunden werden — sonst fehlte im Kalender genau der
- * längere Urlaub, der am ehesten stört.
- */
-export async function listApprovedVacationsInRange(
-  companyId: string,
-  vonIso: string,
-  bisIso: string,
-  max = 200,
-) {
-  const rows = await queryTenant<Vacation>(
-    COLLECTION,
-    companyId,
-    where('status', '==', 'Genehmigt'),
-    where('bis', '>=', vonIso),
-    orderBy('bis', 'asc'),
-    limit(max),
-  );
-  return rows.filter((v) => v.von <= bisIso);
-}
+import type { Vacation } from '@/types';
+import { nutztPostgres } from './quelle';
+import type { WithId } from './core';
+import * as fs from './fs/vacations';
+import * as pg from './pg/vacations';
 
 export type NewVacation = Omit<Vacation, 'id' | 'companyId' | 'createdAt'>;
 
-export function createVacation(companyId: string, v: NewVacation) {
-  return createInTenant(COLLECTION, companyId, v);
+export function listOwnVacations(
+  companyId: string, uid: string, max = 60,
+): Promise<WithId<Vacation>[]> {
+  return nutztPostgres()
+    ? pg.listOwnVacations(companyId, uid, max)
+    : fs.listOwnVacations(companyId, uid, max);
 }
 
-/** Einen noch nicht entschiedenen Antrag zurückziehen. */
-export function deleteVacation(id: string) {
-  return deleteInTenant(COLLECTION, id);
+export function listOpenVacations(
+  companyId: string, max = 100,
+): Promise<WithId<Vacation>[]> {
+  return nutztPostgres()
+    ? pg.listOpenVacations(companyId, max)
+    : fs.listOpenVacations(companyId, max);
 }
+
+export function listApprovedVacationsInRange(
+  companyId: string, vonIso: string, bisIso: string, max = 200,
+): Promise<WithId<Vacation>[]> {
+  return nutztPostgres()
+    ? pg.listApprovedVacationsInRange(companyId, vonIso, bisIso, max)
+    : fs.listApprovedVacationsInRange(companyId, vonIso, bisIso, max);
+}
+
+export function createVacation(companyId: string, v: NewVacation): Promise<string> {
+  return nutztPostgres() ? pg.createVacation(companyId, v) : fs.createVacation(companyId, v);
+}
+
+export function deleteVacation(id: string): Promise<void> {
+  return nutztPostgres() ? pg.deleteVacation(id) : fs.deleteVacation(id);
+}
+
+export type { UrlaubsEntscheidung } from './pg/vacations';
+import type { UrlaubsEntscheidung } from './pg/vacations';
 
 /**
- * Entschieden wird SERVERSEITIG — siehe `lib/functions.ts:callUrlaubEntscheiden`.
+ * Über einen Antrag entscheiden.
  *
- * Hier stand die Genehmigung ursprünglich als Batch im Browser. Das ging,
- * solange nur Buchhaltung und Leitung entscheiden durften: sie dürfen fremde
- * Zeiteinträge ohnehin lesen und schreiben. Sobald die Geschäftsführung frei
- * festlegen kann, WER genehmigt — etwa eine Bürokraft —, ginge es nicht mehr.
- * Der naheliegende Ausweg wäre gewesen, dieser Person das Lesen aller
- * Zeiteinträge zu erlauben; Zeiteinträge tragen aber Kranken- und Urlaubstage
- * und damit Gesundheitsdaten nach Art. 9 DSGVO.
+ * Unter Firestore eine Cloud Function, unter Postgres eine Datenbankfunktion —
+ * in beiden Fällen serverseitig, und zwar aus demselben Grund: die Genehmigung
+ * muss fremde Zeiteinträge lesen und schreiben, und das darf der
+ * Genehmigende nicht.
  *
- * Deshalb entscheidet der Server, und der Aufrufer bekommt nichts zu sehen,
- * was er nicht ohnehin sehen darf. Dieselbe Überlegung wie beim
- * Handwerksschein.
+ * DIESE WEICHE STEHT HIER UND NICHT IN `lib/functions.ts`, weil es unter
+ * Postgres keine Function mehr ist, sondern schlicht ein Aufruf an die
+ * Datenbank. `lib/functions.ts` reicht sie durch, damit die Ansicht nichts
+ * merkt.
  */
+export function entscheiden(daten: {
+  vacationId: string;
+  entscheidung: 'Genehmigt' | 'Abgelehnt' | 'Storniert';
+  grund?: string;
+  entscheiderName?: string;
+}): Promise<UrlaubsEntscheidung> {
+  if (!nutztPostgres()) {
+    throw new Error('Unter Firestore entscheidet die Cloud Function — siehe lib/functions.ts.');
+  }
+  return pg.entscheiden(daten);
+}
 
 export type { WithId };
