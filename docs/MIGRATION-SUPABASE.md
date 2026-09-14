@@ -2177,6 +2177,63 @@ Geprüft in `tests/supabase/inGrenze.test.ts`, gegen den echten Weg: erst wird
 Messung bewiese die Prüfung nur, dass zwei Wege dasselbe liefern, nicht dass
 einer davon nötig ist. Drei Mutationen, drei gefallen.
 
+## Der Durchklick: die App im echten Browser
+
+Der Rauchtest des Betriebs hat an einem Nachmittag drei Fehler gefunden, die
+keine Prüfung vorher gesehen hatte — ein roter Kasten nach jedem
+Hintergrundwechsel, eine fehlende Rolle in der Auswertung, eine Fehlermeldung
+mit Firebase-Wortlaut. Das ist kein Zufall und kein Versäumnis im Einzelnen,
+sondern eine **Lücke der Bauart**:
+
+| Prüfung | Sieht | Ist blind für |
+|---|---|---|
+| `npm test` | Bausteine mit nachgebauter Umgebung | ob jemand den Baustein benutzt |
+| `npm run supabase:test` | die Datenschicht gegen die echte Datenbank | ob eine Ansicht sie ruft |
+| **`npm run durchklick`** | die Naht dazwischen | Darstellung, Geräte, Netzverhalten |
+
+Gefahren werden vier Wege, und die Auswahl ist eng: **Zeit buchen, Material
+anfordern, Schein unterschreiben, Rechnung stellen.** Die Anmeldung steht
+nicht daneben — jeder der vier beginnt damit, über die Maske und nicht über
+eine untergeschobene Sitzung.
+
+**Warum nicht mehr.** Ein Durchklick durch jede Ansicht kostet Stunden
+Rechenzeit und flattert; eine Prüfung, die mal fällt und mal nicht, wird nach
+zwei Wochen ignoriert, und dann ist sie schlimmer als keine. Deshalb steht
+auch `retries: 0` — ein Wiederholungslauf versteckt genau das Flattern, das
+man sehen will.
+
+### Was der erste Anlauf gekostet — und gezeigt hat
+
+Vier der fünf Anläufe sind an der App gescheitert, nicht an der Prüfung, und
+jeder davon ist ein Stück Wissen über den echten Weg:
+
+* Die **Baustelle ist Pflicht** bei der Zeitbuchung; ohne sie gibt der Browser
+  „Please select an item in the list" und es wird nichts gebucht.
+* Der **Name des Kunden in Druckbuchstaben** ist Pflicht am Schein — der Knopf
+  „Unterschreiben und abschließen" bleibt sonst gesperrt.
+* Die **Rolle entscheidet über die Navigation**: „Rechnungen" gibt es für die
+  Verwaltung nicht, nur für Buchhaltung und Führung.
+* Die **Kennung eines Zeiteintrags kommt vom Gerät** — die Spalte hat bewusst
+  keine Vorgabe (das ist die Bedingung fürs Nachsenden ohne Empfang).
+
+### Der Fehler, den der Durchklick an sich selbst gefunden hat
+
+Beim ersten gemeinsamen Lauf war `zeitBuchen` grün, **ohne etwas zu
+beweisen**: die Prüfung zählte EINE Zeile und fand die, die `rechnungStellen`
+hatte liegenlassen — ihre eigene Buchung war da noch gar nicht angekommen.
+Eine Prüfung, die von der Reihenfolge der Dateien abhängt, ist keine.
+
+Seither räumt jede ihren eigenen Tisch ab, und geprüft wird nicht mehr die
+ANZAHL, sondern die Zeile: Von, Bis, Pause, Baustelle.
+
+Dieselbe Sorte Blindheit steckte in der Unterschrift. Mit demselben Strich auf
+beiden Feldern konnte die Prüfung nicht sehen, dass die Ansicht zweimal
+dasselbe Bild einfriert — ein Schein, auf dem der Kunde die Handschrift des
+Monteurs trägt. Die Mutation ist durchgekommen; jetzt werden zwei
+verschiedene Züge gezeichnet und die Bilder gegeneinander geprüft.
+
+Vier Mutationen gehalten: drei sofort gefallen, die vierte war diese.
+
 ### Als Nächstes
 
 Stufe 9: den Rückbau. Erst wenn der Betrieb ein paar Tage auf Postgres

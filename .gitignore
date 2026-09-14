@@ -57,3 +57,8 @@ functions/src/generated
 .projectatlas/projectatlas.mcp.json
 .projectatlas/projectatlas.opencode.json
 supabase/functions/_shared/
+
+# Durchklick (Playwright): Bilder, Spuren und Berichte eines Laufs. Sie sind
+# Diagnose, kein Quelltext — und ein Trace-Archiv wiegt Megabyte.
+test-results/
+playwright-report/

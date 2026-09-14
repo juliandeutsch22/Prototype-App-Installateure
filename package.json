@@ -18,6 +18,7 @@
     "test": "TZ=Europe/Vienna vitest run",
     "rules:test": "vitest run --config vitest.rules.config.ts",
     "supabase:test": "vitest run --config vitest.supabase.config.ts",
+    "durchklick": "playwright test",
     "stack": "./scripts/stack.sh",
     "presupabase:test": "npm run gemeinsames"
   },
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.3",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.6",
