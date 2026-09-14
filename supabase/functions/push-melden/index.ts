@@ -39,11 +39,17 @@ import {
   alsSdkCode, jwtBauen, type Dienstkonto,
 } from '../_shared/fcmVersand.ts';
 import {
-  dienstKopfzeilen, dienstSchluessel, rufDerMaschine, SCHLUESSEL_FEHLT,
+  alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
-const DIENST = dienstSchluessel(Deno.env.toObject());
+/*
+  ALLE Schlüssel, die diese Umgebung kennt — gesprochen wird mit dem ersten,
+  anerkannt wird jeder. Ein Projekt mitten in der Ablösung hat zwei, und
+  welcher im Tresor liegt, entscheidet nicht diese Datei.
+*/
+const SCHLUESSEL = alleDienstSchluessel(Deno.env.toObject());
+const DIENST = SCHLUESSEL[0] ?? null;
 
 /**
  * Das Dienstkonto, mit dem bei Google gesendet wird — als JSON im Geheimnis.
@@ -171,7 +177,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   // Dienstschluessel. Ein Mensch hat hier nichts zu suchen.
   const kopf = req.headers.get('Authorization') ?? '';
   const apikeyKopf = req.headers.get('apikey') ?? '';
-  if (!rufDerMaschine(kopf, apikeyKopf, DIENST)) {
+  if (!rufDerMaschine(kopf, apikeyKopf, SCHLUESSEL)) {
     return antwort({ error: 'Nur der Dienst.' }, 401);
   }
 

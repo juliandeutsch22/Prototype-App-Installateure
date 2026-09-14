@@ -30,11 +30,17 @@
  */
 import { betriebFehler, betriebNormalisiert, type NeuerBetrieb } from '../_shared/plattform.ts';
 import {
-  dienstKopfzeilen, dienstSchluessel, SCHLUESSEL_FEHLT,
+  alleDienstSchluessel, dienstKopfzeilen, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
-const DIENST = dienstSchluessel(Deno.env.toObject());
+/*
+  ALLE Schlüssel, die diese Umgebung kennt — gesprochen wird mit dem ersten,
+  anerkannt wird jeder. Ein Projekt mitten in der Ablösung hat zwei, und
+  welcher im Tresor liegt, entscheidet nicht diese Datei.
+*/
+const SCHLUESSEL = alleDienstSchluessel(Deno.env.toObject());
+const DIENST = SCHLUESSEL[0] ?? null;
 
 /*
   Die Köpfe, mit denen der Dienstschlüssel spricht. Fehlt er, sind sie leer —

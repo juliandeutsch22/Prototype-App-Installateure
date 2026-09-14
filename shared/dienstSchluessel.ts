@@ -42,8 +42,8 @@ export const SCHLUESSEL_NAMEN = [
  */
 const VORZUGSEINTRAG = 'default';
 
-/** Aus dem JSON-Verzeichnis den Schlüssel holen, mit dem gearbeitet wird. */
-function ausVerzeichnis(roh: string): string | null {
+/** Alle brauchbaren Einträge aus dem JSON-Verzeichnis, `default` zuerst. */
+function ausVerzeichnis(roh: string): string[] {
   let gelesen: unknown;
   try {
     gelesen = JSON.parse(roh);
@@ -54,37 +54,61 @@ function ausVerzeichnis(roh: string): string | null {
       Zeichenkette hinterlegen, läuft der Dienst weiter, statt an einer
       Formatannahme von heute zu sterben.
     */
-    return roh;
+    return [roh];
   }
-  if (typeof gelesen !== 'object' || gelesen === null) return null;
+  if (typeof gelesen !== 'object' || gelesen === null) return [];
 
   const verzeichnis = gelesen as Record<string, unknown>;
-  const bevorzugt = verzeichnis[VORZUGSEINTRAG];
-  if (typeof bevorzugt === 'string' && bevorzugt.trim()) return bevorzugt.trim();
+  const brauchbar = (wert: unknown): wert is string =>
+    typeof wert === 'string' && wert.trim().length > 0;
 
-  // Kein `default` — dann der erste brauchbare Eintrag, damit ein Projekt
-  // mit anders benannten Schlüsseln nicht stillsteht.
-  for (const wert of Object.values(verzeichnis)) {
-    if (typeof wert === 'string' && wert.trim()) return wert.trim();
+  const gefunden: string[] = [];
+  const bevorzugt = verzeichnis[VORZUGSEINTRAG];
+  if (brauchbar(bevorzugt)) gefunden.push(bevorzugt.trim());
+  for (const [name, wert] of Object.entries(verzeichnis)) {
+    if (name !== VORZUGSEINTRAG && brauchbar(wert)) gefunden.push(wert.trim());
   }
-  return null;
+  return gefunden;
 }
 
 /**
- * Der Dienstschlüssel aus der Umgebung — oder `null`, wenn keiner dasteht.
+ * ALLE Dienstschlüssel, die diese Umgebung kennt — in der Reihenfolge, in
+ * der sie benutzt werden sollen.
+ *
+ * WARUM ALLE UND NICHT EINER. Ein Projekt kann mitten in der Ablösung
+ * stehen: der alte JWT-Schlüssel ist noch gesetzt, der neue auch. Welcher im
+ * Tresor liegt, entscheidet die Person, die ihn dort eingetragen hat — und
+ * wenn die Function nur gegen EINEN vergleicht, hängt es am Zufall, ob es
+ * derselbe ist. Der Fehlschlag sieht dann aus wie ein falscher Schlüssel und
+ * ist eine Reihenfolge.
+ *
+ * Sicherheitlich kostet das nichts: jeder dieser Schlüssel hebelt die
+ * Zeilenregeln ohnehin aus. Wer einen davon hat, IST der Dienst.
  *
  * Leerzeichen werden abgeschnitten: ein Schlüssel, der beim Einfügen einen
  * Zeilenumbruch mitbekommen hat, ist derselbe Schlüssel, und ein Vergleich,
  * der daran scheitert, wäre nicht sicherer, sondern nur schwerer zu finden.
  */
+export function alleDienstSchluessel(
+  umgebung: Record<string, string | undefined>,
+): string[] {
+  const gefunden: string[] = [];
+  const alt = umgebung.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (alt) gefunden.push(alt);
+
+  const neu = umgebung.SUPABASE_SECRET_KEYS?.trim();
+  if (neu) gefunden.push(...ausVerzeichnis(neu).filter((k) => !gefunden.includes(k)));
+  return gefunden;
+}
+
+/**
+ * Der Schlüssel, mit dem die Function selbst spricht — oder `null`, wenn
+ * keiner dasteht.
+ */
 export function dienstSchluessel(
   umgebung: Record<string, string | undefined>,
 ): string | null {
-  const alt = umgebung.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (alt) return alt;
-
-  const neu = umgebung.SUPABASE_SECRET_KEYS?.trim();
-  return neu ? ausVerzeichnis(neu) : null;
+  return alleDienstSchluessel(umgebung)[0] ?? null;
 }
 
 /**
@@ -126,15 +150,16 @@ export function istDienst(token: string, dienst: string | null): boolean {
  *
  * Der alte Schlüssel kommt als `Authorization: Bearer …`, der neue als
  * `apikey`. Beide Wege sind gleich stark: wer den Dienstschlüssel hat, ist
- * die Maschine, ganz gleich, in welche Kopfzeile er ihn schreibt.
+ * die Maschine, ganz gleich, in welche Kopfzeile er ihn schreibt — und
+ * gleich, welchen der Schlüssel dieser Umgebung er benutzt.
  */
 export function rufDerMaschine(
   authKopf: string,
   apikeyKopf: string,
-  dienst: string | null,
+  schluessel: readonly string[],
 ): boolean {
   const ausAuth = authKopf.startsWith('Bearer ') ? authKopf.slice(7) : '';
-  return istDienst(ausAuth, dienst) || istDienst(apikeyKopf, dienst);
+  return schluessel.some((s) => istDienst(ausAuth, s) || istDienst(apikeyKopf, s));
 }
 
 /**

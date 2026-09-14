@@ -35,11 +35,17 @@ import {
   abgelaufeneStaende, ausleitungsPfad, ausleitungsPraefix, jsonZeile,
 } from '../_shared/ausleitungPlan.ts';
 import {
-  dienstKopfzeilen, dienstSchluessel, rufDerMaschine, SCHLUESSEL_FEHLT,
+  alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
-const DIENST = dienstSchluessel(Deno.env.toObject());
+/*
+  ALLE Schlüssel, die diese Umgebung kennt — gesprochen wird mit dem ersten,
+  anerkannt wird jeder. Ein Projekt mitten in der Ablösung hat zwei, und
+  welcher im Tresor liegt, entscheidet nicht diese Datei.
+*/
+const SCHLUESSEL = alleDienstSchluessel(Deno.env.toObject());
+const DIENST = SCHLUESSEL[0] ?? null;
 const EIMER = Deno.env.get('AUSLEITUNG_EIMER') ?? 'ausleitung';
 /** Wie lange Stände aufbewahrt werden. */
 const AUFBEWAHRUNG_TAGE = Number(Deno.env.get('AUSLEITUNG_TAGE') ?? 30);
@@ -257,7 +263,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     ihn hat, ist die Maschine, und etwas anderes soll hier auch nicht
     durchkommen.
   */
-  if (rufDerMaschine(kopf, apikeyKopf, DIENST)) {
+  if (rufDerMaschine(kopf, apikeyKopf, SCHLUESSEL)) {
     const firmen = await fetch(`${URL_BASIS}/rest/v1/companies?select=id`, {
       headers: alsDienst,
     });
