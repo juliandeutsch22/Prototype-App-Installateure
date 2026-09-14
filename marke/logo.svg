@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 64" role="img" aria-label="Senklot">
+  <title>Senklot</title>
+  <path d="M26 7 V18" stroke="#12b0c6" stroke-width="2" stroke-linecap="round"/>
+  <path d="M26 18 L33 26 V31 C33 39 30 46 26 53 C22 46 19 39 19 31 V26 Z" fill="#0f4552"/>
+
+  <text x="48" y="43"
+        font-family="Poppins, 'Segoe UI', system-ui, -apple-system, sans-serif"
+        font-size="32" font-weight="600" letter-spacing="-0.4" fill="#0f4552">Senklot</text>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Senklot">
+  <title>Senklot</title>
+  <defs>
+    <linearGradient id="grund" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#12889b"/>
+      <stop offset="1" stop-color="#0f4552"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="url(#grund)"/>
+
+  <!-- Die Schnur. Sie endet an der Öse — ein Senklot haengt, es steckt nicht
+       auf einem Stab. -->
+  <path d="M32 8 V19" stroke="#66ffb0" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Der Koerper: Kegel oben, kurzer Schaft, lange Spitze. Das ist die Form,
+       an der man das Werkzeug erkennt — eine breite Rundung waere ein Tropfen,
+       eine gerade Flaeche ein Schild. -->
+  <path d="M32 19 L39 27 V32 C39 40 36 47 32 54 C28 47 25 40 25 32 V27 Z" fill="#ffffff"/>
+</svg>

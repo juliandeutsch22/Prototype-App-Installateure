@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Senklot">
+  <title>Senklot</title>
+  <!-- FUER 16 PIXEL GEBAUT, nicht bloss verkleinert: die Schnur waere dort
+       ein Grauschleier. Der Koerper traegt allein und sitzt deshalb groesser. -->
+  <rect width="64" height="64" rx="12" fill="#0f4552"/>
+  <path d="M32 10 L44 24 V31 C44 42 39 51 32 59 C25 51 20 42 20 31 V24 Z" fill="#ffffff"/>
+</svg>
