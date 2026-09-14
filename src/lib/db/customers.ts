@@ -71,3 +71,22 @@ export function assignProjectToCustomer(
 }
 
 export type { WithId };
+
+/**
+ * Kunden suchen.
+ *
+ * DIE EINE WEICHE, HINTER DER SICH ZWEI VERSCHIEDENE ZUSAGEN VERBERGEN — und
+ * das steht hier, weil es sonst niemand wüsste. Unter Postgres sucht die
+ * Datenbank über den ganzen Bestand und findet auch mitten im Wort. Unter
+ * Firestore lädt die App die ersten `max` Zeilen und filtert im Browser: was
+ * dahinter liegt, ist unauffindbar.
+ *
+ * Der Unterschied ist der Grund für den Umzug und nicht sein Nebenprodukt.
+ */
+export function searchCustomers(
+  companyId: string, begriff: string, max = KUNDEN_GRENZE,
+): Promise<WithId<Customer>[]> {
+  return nutztPostgres()
+    ? pg.searchCustomers(companyId, begriff, max)
+    : fs.searchCustomers(companyId, begriff, max);
+}

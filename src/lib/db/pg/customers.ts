@@ -9,6 +9,7 @@ import type { Customer, Project } from '@/types';
 import { KUNDEN_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, anlegen, aendern, loeschen, derClient, type WithId } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
+import { oderUeberSpalten } from './suche';
 
 const KUNDEN = 'customers';
 const BAUSTELLEN = 'projects';
@@ -144,3 +145,27 @@ export function assignProjectToCustomer(
 }
 
 export type { WithId };
+
+/**
+ * Kunden suchen — SERVERSEITIG, mit Treffern in der Wortmitte.
+ *
+ * DIE NARBE, DIE HIER FÄLLT. Unter Firestore gab es keine Volltextsuche: die
+ * Ansicht lud die ersten paar hundert Kunden und filterte sie im Browser.
+ * Wer den 301. suchte, fand ihn nicht — und bekam keine Auskunft darüber,
+ * sondern eine leere Liste. Deshalb stand über der Liste ein Nachladeknopf,
+ * den niemand verstand.
+ *
+ * Postgres sucht über den ganzen Bestand und findet auch mitten im Wort.
+ * `ilike` und nicht `like`: wer „huber" tippt, meint „Huber".
+ */
+export function searchCustomers(
+  companyId: string, begriff: string, max = KUNDEN_GRENZE,
+): Promise<WithId<Customer>[]> {
+  return abfragen<Customer>(KUNDEN, companyId, {
+    oder: oderUeberSpalten(
+      ['name', 'address', 'contact_name', 'contact_phone', 'email'], begriff,
+    ),
+    sortiere: { feld: 'name' },
+    grenze: max,
+  });
+}

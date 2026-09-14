@@ -81,12 +81,21 @@ const listProjectsForCustomer = vi.fn(async () => [] as (Project & { id: string 
   ist. Der 501. Kunde existierte für die App sonst schlicht nicht: nicht in
   der Liste, nicht in der Suche, nirgends. Und nichts sagte es.
 */
-const listCustomers = vi.fn<[string, number | undefined], Promise<typeof kunden>>(
-  async () => kunden,
-);
+const searchCustomers = vi.fn<
+  [string, string, number | undefined], Promise<typeof kunden>
+>(async () => kunden);
 
+/*
+  SEIT DEM 14.09.2026 GEHT DER SUCHBEGRIFF MIT IN DIE ABFRAGE.
+
+  Vorher lud die Ansicht die ersten `max` Kunden und filterte im Browser. Der
+  Test hiess deshalb `listCustomers`; jetzt heisst er `searchCustomers`, und
+  das zweite Argument ist der Begriff — unter Postgres sucht die Datenbank
+  darüber, unter Firestore filtert die Datenschicht wie bisher im Browser.
+*/
 vi.mock('@/lib/db/customers', () => ({
-  listCustomers: (c: string, max?: number) => listCustomers(c, max),
+  searchCustomers: (c: string, begriff: string, max?: number) =>
+    searchCustomers(c, begriff, max),
   createCustomer: (...a: unknown[]) => createCustomer(...(a as [])),
   updateCustomer: vi.fn(async () => 0),
   deleteCustomer: vi.fn(async () => undefined),
@@ -131,7 +140,7 @@ function zeichne() {
 }
 
 beforeEach(() => {
-  listCustomers.mockClear().mockImplementation(async () => kunden);
+  searchCustomers.mockClear().mockImplementation(async () => kunden);
   createCustomer.mockClear();
   assignProjectToCustomer.mockClear();
   listUnlinkedProjectsByName.mockClear();
@@ -257,7 +266,7 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
     await screen.findByText('Hausverwaltung Nord');
     // Die Zahl selbst zählt: ohne sie holte die Abfrage ihre eigene
     // Voreinstellung, und die war fünfhundert.
-    expect(listCustomers.mock.calls[0][1]).toBe(200);
+    expect(searchCustomers.mock.calls[0][2]).toBe(200);
   });
 
   it('schweigt, solange die Liste unter der Grenze bleibt', async () => {
@@ -267,18 +276,19 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
   });
 
   it('sagt es, sobald die Grenze erreicht ist — samt Hinweis auf die Suche', async () => {
-    listCustomers.mockResolvedValue(volleSeite());
+    searchCustomers.mockResolvedValue(volleSeite());
     zeichne();
     expect(await screen.findByRole('button', { name: 'Weitere Kunden laden' })).toBeInTheDocument();
     expect(screen.getByText(/Suche geht nur über diese/)).toBeInTheDocument();
   });
 
   it('lädt auf Wunsch weiter', async () => {
-    listCustomers.mockResolvedValue(volleSeite());
+    searchCustomers.mockResolvedValue(volleSeite());
     const nutzer = userEvent.setup();
     zeichne();
     await nutzer.click(await screen.findByRole('button', { name: 'Weitere Kunden laden' }));
-    await waitFor(() => expect(listCustomers.mock.calls[listCustomers.mock.calls.length - 1][1]).toBe(400));
+    await waitFor(() =>
+      expect(searchCustomers.mock.calls[searchCustomers.mock.calls.length - 1][2]).toBe(400));
   });
 
   /*
@@ -287,7 +297,13 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
     entscheidende — der Hinweis muss also auch neben der Leermeldung stehen.
   */
   it('steht auch dann da, wenn die Suche nichts findet', async () => {
-    listCustomers.mockResolvedValue(volleSeite());
+    /*
+      Der Suchbegriff geht jetzt MIT in die Abfrage — die Attrappe antwortet
+      deshalb wie die Datenschicht: ohne Begriff die volle Seite, mit einem
+      Begriff, den niemand trägt, nichts.
+    */
+    searchCustomers.mockImplementation(async (_c, begriff) =>
+      begriff.trim() ? [] : volleSeite());
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByRole('button', { name: 'Weitere Kunden laden' });
@@ -295,5 +311,24 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
     await nutzer.type(screen.getByLabelText('Kunden durchsuchen'), 'Zzzz');
     expect(await screen.findByText(/Kein Kunde passt/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Weitere Kunden laden' })).toBeInTheDocument();
+  });
+
+  it('reicht den Suchbegriff an die Datenschicht weiter, statt im Browser zu filtern', async () => {
+    /*
+      DIE NARBE, DIE HIER FÄLLT. Vorher lud die Ansicht die ersten `max`
+      Kunden und filterte danach selbst — der 501. war unauffindbar, ohne
+      dass irgendwo stand, warum. Jetzt entscheidet die Datenschicht, und
+      unter Postgres sucht die Datenbank über den ganzen Bestand.
+
+      Gefragt wird deshalb nach dem ARGUMENT und nicht nach dem Ergebnis: dass
+      gefiltert wird, sähe man auch, wenn es weiter im Browser geschähe.
+    */
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+
+    await nutzer.type(screen.getByLabelText('Kunden durchsuchen'), 'Huber');
+    await waitFor(() =>
+      expect(searchCustomers.mock.calls.some(([, b]) => b === 'Huber')).toBe(true));
   });
 });

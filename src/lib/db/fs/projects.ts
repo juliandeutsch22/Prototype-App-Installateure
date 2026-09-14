@@ -118,3 +118,19 @@ export function updateProject(id: string, data: Partial<Project>) {
 export function deleteProject(id: string) {
   return deleteDoc(doc(db, COLLECTION, id));
 }
+
+/**
+ * Baustellen suchen — im Browser. Siehe `fs/customers.ts:searchCustomers`:
+ * Firestore kennt keine Volltextsuche, also wird geladen und danach
+ * gefiltert. Was jenseits von `max` liegt, bleibt unauffindbar.
+ */
+export async function searchProjects(
+  companyId: string, begriff: string, max = 300,
+): Promise<WithId<Project>[]> {
+  const alle = await listRecentProjects(companyId, max);
+  const q = begriff.trim().toLowerCase();
+  if (!q) return alle;
+  return alle.filter((p) =>
+    [p.projectNumber, p.customerName, p.address].some((v) => v?.toLowerCase().includes(q)),
+  );
+}

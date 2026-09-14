@@ -8,7 +8,8 @@
  */
 import type { Wartung } from '@/types';
 import { naechsterTermin } from '@/features/maintenance/wartungsplan';
-import { abfragen, anlegen, aendern, loeschen } from './kern';
+import { abfragen, anlegen, aendern, loeschen, type WithId } from './kern';
+import { oderUeberSpalten } from './suche';
 
 const WARTUNGEN = 'wartungen';
 
@@ -133,4 +134,21 @@ export async function wartungErledigt(
  */
 export function wartungEingeplant(id: string, projectNumber: string): Promise<void> {
   return updateWartung(id, { offeneBaustelle: projectNumber.trim() });
+}
+
+/**
+ * Wartungen suchen — serverseitig, mit Treffern in der Wortmitte.
+ *
+ * Die Wartungen sind das Einzige im Bestand, das in die ZUKUNFT zeigt:
+ * welche Anlage wann wieder fällig wird. Eine, die sich nicht finden lässt,
+ * ist ein verlorener Auftrag und nicht nur eine unbequeme Liste.
+ */
+export function searchWartungen(
+  companyId: string, begriff: string, max = 500,
+): Promise<WithId<Wartung>[]> {
+  return abfragen<Wartung>(WARTUNGEN, companyId, {
+    oder: oderUeberSpalten(['customer_name', 'anlage', 'address'], begriff),
+    sortiere: { feld: 'faelligAm' },
+    grenze: max,
+  });
 }

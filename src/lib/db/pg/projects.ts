@@ -7,6 +7,7 @@
 import type { Project } from '@/types';
 import { BAUSTELLEN_AUSWAHL_GRENZE } from '@/lib/listengrenzen';
 import { abfragen, abonnieren, anlegen, aendern, loeschen, type WithId } from './kern';
+import { oderUeberSpalten } from './suche';
 
 const BAUSTELLEN = 'projects';
 
@@ -91,4 +92,23 @@ export function updateProject(id: string, data: Partial<Project>) {
 
 export function deleteProject(id: string) {
   return loeschen(BAUSTELLEN, id);
+}
+
+/**
+ * Baustellen suchen — serverseitig, mit Treffern in der Wortmitte.
+ *
+ * Dieselbe Narbe wie bei den Kunden: unter Firestore lud die Ansicht die
+ * jüngsten paar hundert und filterte im Browser. Eine Baustelle aus dem
+ * Vorjahr war damit unauffindbar, ohne dass irgendwo stand, warum.
+ */
+export function searchProjects(
+  companyId: string, begriff: string, max = 300,
+): Promise<WithId<Project>[]> {
+  return abfragen<Project>(BAUSTELLEN, companyId, {
+    oder: oderUeberSpalten(
+      ['project_number', 'customer_name', 'address'], begriff,
+    ),
+    sortiere: { feld: 'projectNumber', absteigend: true },
+    grenze: max,
+  });
 }

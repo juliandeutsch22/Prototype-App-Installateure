@@ -67,6 +67,16 @@ export interface Abfrage {
   wo?: readonly Bedingung[];
   sortiere?: { feld: string; absteigend?: boolean };
   grenze?: number;
+  /**
+   * Eine fertige `or`-Bedingung — für die Suche über mehrere Spalten.
+   *
+   * WARUM SIE NICHT ALS `Bedingung` KOMMT. Die anderen Bedingungen sind
+   * Paare aus Feld und Wert; diese ist eine ZEICHENKETTE mit eigener Syntax,
+   * die `pg/suche.ts` baut und entschärft. Sie hier als etwas anderes
+   * auszugeben, als sie ist, hiesse, die Entschärfung aus dem Blick zu
+   * verlieren — und genau dort sitzt das Risiko.
+   */
+  oder?: string | null;
 }
 
 /**
@@ -86,6 +96,7 @@ interface Filterbar {
   lte(spalte: string, wert: unknown): Filterbar;
   order(spalte: string, wie: { ascending: boolean }): Filterbar;
   limit(anzahl: number): Filterbar;
+  or(bedingung: string): Filterbar;
 }
 
 function anwenden(bauer: Filterbar, abfrage: Abfrage): Filterbar {
@@ -99,6 +110,9 @@ function anwenden(bauer: Filterbar, abfrage: Abfrage): Filterbar {
     else if (bed.art === 'bis') b = b.lte(spalte, bed.wert);
     else b = b.contains(spalte, [bed.wert]);
   }
+  // VOR dem Sortieren und der Grenze: `or` ist ein Filter wie die anderen,
+  // und PostgREST erwartet Filter vor der Reihenfolge.
+  if (abfrage.oder) b = b.or(abfrage.oder);
   if (abfrage.sortiere) {
     b = b.order(alsSpalteSicher(abfrage.sortiere.feld), {
       ascending: !abfrage.sortiere.absteigend,

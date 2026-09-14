@@ -168,3 +168,24 @@ export function assignProjectToCustomer(
 }
 
 export type { WithId };
+
+/**
+ * Kunden suchen — im BROWSER, weil Firestore keine Volltextsuche kennt.
+ *
+ * Das ist genau die Narbe, die der Umzug wegnimmt: geladen werden die ersten
+ * `max` Kunden, gefiltert wird danach hier. Wer den 301. sucht, findet ihn
+ * nicht. Die Zusage ist dieselbe wie auf der Postgres-Seite, das Ergebnis ist
+ * es nicht — und das steht hier, damit niemand sich darauf verlässt.
+ */
+export async function searchCustomers(
+  companyId: string, begriff: string, max = KUNDEN_GRENZE,
+): Promise<WithId<Customer>[]> {
+  const alle = await listCustomers(companyId, max);
+  const q = begriff.trim().toLowerCase();
+  if (!q) return alle;
+  return alle.filter((k) =>
+    [k.name, k.address, k.contactName, k.contactPhone, k.email].some((v) =>
+      v?.toLowerCase().includes(q),
+    ),
+  );
+}

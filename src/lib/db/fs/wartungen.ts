@@ -132,3 +132,17 @@ export function wartungEingeplant(id: string, projectNumber: string) {
 }
 
 export type { WithId };
+
+/**
+ * Wartungen suchen — im Browser. Siehe `fs/customers.ts:searchCustomers`.
+ */
+export async function searchWartungen(
+  companyId: string, begriff: string, max = 500,
+): Promise<WithId<Wartung>[]> {
+  const alle = await listWartungen(companyId, max);
+  const q = begriff.trim().toLowerCase();
+  if (!q) return alle;
+  return alle.filter((w) =>
+    [w.customerName, w.anlage, w.address].some((v) => v?.toLowerCase().includes(q)),
+  );
+}

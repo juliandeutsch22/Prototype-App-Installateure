@@ -1912,3 +1912,95 @@ gefährlichster Zug.
 ### Als Nächstes
 
 Stufe 7 — die Narben zurückbauen.
+
+## Stufe 7: die Suche, und ein Knopf, der verschwindet
+
+14.09.2026. Zwei von den Narben aus der Übersicht — und nicht alle, denn der
+Rest lässt sich erst abräumen, wenn Firestore weg ist.
+
+### Serverseitig suchen, mit Treffern in der Wortmitte
+
+Firestore kennt keine Volltextsuche: es kann nur Anfänge einer sortierten
+Spalte vergleichen. Die Ansichten luden deshalb die ersten paar hundert Zeilen
+und filterten im Browser. **Wer den 501. Kunden suchte, fand ihn nicht — und
+bekam darüber keine Auskunft, sondern eine leere Liste.** Genau dafür stand
+über jeder Liste ein Nachladeknopf, den niemand verstand.
+
+Postgres sucht über den ganzen Bestand und findet „uber" in „Huber".
+Trigram-Indizes tragen das; ohne sie liefe dieselbe Suche als vollständiger
+Tabellendurchlauf — bei zweihundert Kunden unauffällig, bei fünfzehntausend
+Zeilen an dem Tag, an dem niemand damit rechnet.
+
+Die Firestore-Seite behält ihr Verhalten. Beide hängen an derselben Weiche,
+und im Kopf der Weiche steht, dass sich hinter einer Zusage zwei verschiedene
+Ergebnisse verbergen — sonst wüsste es niemand.
+
+### Der heikle Teil ist das Escaping
+
+Eine Suche über mehrere Spalten geht in PostgREST über `or(...)`, und dessen
+Syntax ist eine **Zeichenkette**: Bedingungen durch Kommas, Gruppen in
+Klammern. Gemessen, nicht vermutet:
+
+    failed to parse logic tree ((name.ilike.%Huber,%,address.ilike.%Huber,%))
+
+Ein Kundenname wie „Huber, Franz" zerreisst also die Abfrage. Das ist der
+gutmütige Ausgang — der andere ist ein Begriff, der den Filterbaum nicht
+zerreisst, sondern **umbaut**. Dazu kommt, dass `%` und `_` in `ilike`
+Jokerzeichen sind: wer „50%" tippt, meint das Zeichen und nicht „alles, was
+mit 50 beginnt".
+
+`pg/suche.ts` entschärft beides, und die Reihenfolge zählt — erst der
+Rückstrich, dann die Joker; umgekehrt verdoppelte der zweite Durchgang, was
+der erste gerade gesetzt hat. Geprüft wird es zweimal: hermetisch auf der
+Zeichenebene und gegen die echte Datenbank mit Kunden, die Komma, Prozent,
+Unterstrich, Klammern, Apostroph und Anführungszeichen im Namen tragen.
+
+### Zwei Rückschritte, die ich selbst gebaut habe
+
+Beide entstanden dadurch, dass `kunden` nicht mehr die geladene Liste ist,
+sondern das **Suchergebnis**:
+
+**„Noch keine Kunden."** Die Leermeldung unterschied am `length === 0`
+zwischen „es gibt keine" und „nichts passt". Mit serverseitiger Suche läse ein
+Betrieb mit vierhundert Kunden beim ersten Fehlversuch „Noch keine Kunden" —
+ein Schrecken ohne Grund. Die Unterscheidung hängt jetzt am Suchbegriff.
+
+**Der Nachladehinweis verschwand beim Tippen.** Er spricht über die geladene
+Liste; gespeist mit den Treffern wäre er beim ersten Suchversuch weg, und mit
+ihm die Auskunft, dass die Liste an ihrer Grenze steht. Die Zahl ohne Suche
+wird jetzt getrennt gemerkt.
+
+Und der Satz daneben — „Die Suche geht nur über diese" — ist unter Postgres
+schlicht falsch. Er steht nur noch dort, wo er stimmt. Eine Auskunft, die
+einmal danebenlag, wird beim nächsten Mal nicht mehr geglaubt.
+
+### Ein Knopf, der ins Leere gerufen hätte
+
+„Monatsbilanzen aufbauen" in den Einstellungen ruft eine Cloud Function, die
+es nach dem Umschalten nicht mehr gibt. Unter Postgres ist `monthly_stats`
+eine Sicht: sie rechnet bei jeder Abfrage neu, es gibt nichts aufzubauen und
+nichts nachzuziehen. Der Knopf bleibt nicht stehen und wird auch nicht
+stillgelegt — er ist weg, und an seiner Stelle steht, warum.
+
+### Was von Stufe 7 offen bleibt, und warum
+
+`listengrenzen.ts` löschen, die vierzig Firestore-Indizes fallen lassen,
+`counters` zu einer Sequenz machen, `stripUndefined` entfernen: all das
+zerstörte die laufende App, solange sie auf Firestore liegt. Es gehört hinter
+das Umschalten, nicht davor. Was **vorher** gehen musste, ist das, was nach
+dem Umschalten kaputt wäre — und das ist erledigt.
+
+### Stand
+
+| | |
+|---|---|
+| Prüfungen gegen die echte Datenbank | 611 |
+| Hermetische Prüfungen | 1691 |
+| Firestore-Regeln | 225 |
+| Mutationen dieses Teils | 3 |
+| davon gefangen | 3 |
+
+### Als Nächstes
+
+Stufe 8: umschalten. Alles, was danach kaputt wäre, ist umgezogen; was vorher
+nicht weg durfte, fällt in Stufe 9.
