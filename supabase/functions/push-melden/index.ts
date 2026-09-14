@@ -38,9 +38,12 @@ import {
 import {
   alsSdkCode, jwtBauen, type Dienstkonto,
 } from '../_shared/fcmVersand.ts';
+import {
+  dienstSchluessel, istDienst, SCHLUESSEL_FEHLT,
+} from '../_shared/dienstSchluessel.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
-const DIENST = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const DIENST = dienstSchluessel(Deno.env.toObject());
 
 /**
  * Das Dienstkonto, mit dem bei Google gesendet wird — als JSON im Geheimnis.
@@ -51,9 +54,14 @@ const DIENST = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
  */
 const DIENSTKONTO = Deno.env.get('FCM_DIENSTKONTO') ?? '';
 
+/*
+  Der leere Ersatz ist nie im Einsatz: fehlt der Schlüssel, antwortet die
+  Function 503, bevor sie irgendetwas abruft. Er steht hier, weil die
+  Kopfzeilen beim Laden der Datei gebaut werden und nicht beim Aufruf.
+*/
 const alsDienst = {
-  apikey: DIENST,
-  Authorization: `Bearer ${DIENST}`,
+  apikey: DIENST ?? '',
+  Authorization: `Bearer ${DIENST ?? ''}`,
   'Content-Type': 'application/json',
 };
 
@@ -158,10 +166,16 @@ async function senden(
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return antwort({ error: 'Nur POST.' }, 405);
 
+  // Ohne eigenen Dienstschluessel koennte diese Function nicht einmal die
+  // Geraete nachschlagen. Das zu sagen ist ehrlicher, als jeden Anrufer
+  // abzuweisen, als waere seine Anmeldung das Problem.
+  if (!DIENST) return antwort({ error: SCHLUESSEL_FEHLT }, 503);
+
   const kopf = req.headers.get('Authorization') ?? '';
   // Angestossen wird ausschliesslich vom Trigger, und der hat den
   // Dienstschluessel. Ein Mensch hat hier nichts zu suchen.
-  if (kopf !== `Bearer ${DIENST}`) return antwort({ error: 'Nur der Dienst.' }, 401);
+  const token = kopf.startsWith('Bearer ') ? kopf.slice(7) : '';
+  if (!istDienst(token, DIENST)) return antwort({ error: 'Nur der Dienst.' }, 401);
 
   const ereignis = await req.json().catch(() => null);
   if (!ereignis) return antwort({ error: 'Kein lesbares Ereignis.' }, 400);

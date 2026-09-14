@@ -34,9 +34,12 @@
 import {
   abgelaufeneStaende, ausleitungsPfad, ausleitungsPraefix, jsonZeile,
 } from '../_shared/ausleitungPlan.ts';
+import {
+  dienstSchluessel, istDienst, SCHLUESSEL_FEHLT,
+} from '../_shared/dienstSchluessel.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
-const DIENST = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const DIENST = dienstSchluessel(Deno.env.toObject());
 const EIMER = Deno.env.get('AUSLEITUNG_EIMER') ?? 'ausleitung';
 /** Wie lange Stände aufbewahrt werden. */
 const AUFBEWAHRUNG_TAGE = Number(Deno.env.get('AUSLEITUNG_TAGE') ?? 30);
@@ -62,9 +65,14 @@ const SEITE = 1000;
  */
 const GRENZE_BYTES = 256 * 1024 * 1024;
 
+/*
+  Der leere Ersatz ist nie im Einsatz: fehlt der Schlüssel, antwortet die
+  Function 503, bevor sie irgendetwas abruft. Er steht hier, weil die
+  Kopfzeilen beim Laden der Datei gebaut werden und nicht beim Aufruf.
+*/
 const alsDienst = {
-  apikey: DIENST,
-  Authorization: `Bearer ${DIENST}`,
+  apikey: DIENST ?? '',
+  Authorization: `Bearer ${DIENST ?? ''}`,
   'Content-Type': 'application/json',
 };
 
@@ -205,8 +213,8 @@ async function betriebAusleiten(
   const hoch = await fetch(`${URL_BASIS}/storage/v1/object/${EIMER}/${pfad}`, {
     method: 'POST',
     headers: {
-      apikey: DIENST,
-      Authorization: `Bearer ${DIENST}`,
+      apikey: DIENST ?? '',
+      Authorization: `Bearer ${DIENST ?? ''}`,
       'Content-Type': 'application/x-ndjson',
       'x-upsert': 'true',
     },
@@ -227,6 +235,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const token = kopf.startsWith('Bearer ') ? kopf.slice(7) : '';
   if (!token) return fehler('Keine Anmeldung.', 401);
 
+  /*
+    ZUERST DIE EIGENE AUSRÜSTUNG, DANN DER ANRUFER.
+
+    Ohne Dienstschlüssel kann diese Function gar nichts — sie liest ja auch
+    ihre eigenen Tabellen damit. Stünde die Prüfung weiter unten, liefe der
+    Aufruf in `/auth/v1/user` und käme als „Keine Anmeldung." zurück: eine
+    Meldung über den Anrufer, wo der Dienst gemeint ist. Der Nachtlauf sähe
+    im Protokoll 401 und suchte den Fehler beim Schlüssel im Tresor, der
+    stimmt. 503 heisst „an mir liegt es", und der Name steht dabei.
+  */
+  if (!DIENST) return fehler(SCHLUESSEL_FEHLT, 503);
+
   const tabellenAntwort = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_tabellen`, {
     method: 'POST', headers: alsDienst, body: '{}',
   });
@@ -241,7 +261,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     ihn hat, ist die Maschine, und etwas anderes soll hier auch nicht
     durchkommen.
   */
-  if (token === DIENST) {
+  if (istDienst(token, DIENST)) {
     const firmen = await fetch(`${URL_BASIS}/rest/v1/companies?select=id`, {
       headers: alsDienst,
     });
@@ -281,7 +301,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     seinen Anspruch bis zu einer Stunde weiter.
   */
   const werAntwort = await fetch(`${URL_BASIS}/auth/v1/user`, {
-    headers: { apikey: DIENST, Authorization: `Bearer ${token}` },
+    headers: { apikey: DIENST ?? '', Authorization: `Bearer ${token}` },
   });
   if (!werAntwort.ok) return fehler('Keine Anmeldung.', 401);
   const wer = await werAntwort.json();
