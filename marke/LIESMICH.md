@@ -16,6 +16,25 @@ kommt von *plumbum*, Blei — dem Werkstoff des Senklots.
 | `favicon.svg` | **Eigens für kleine Größen gezeichnet**, nicht verkleinert |
 | `*.png` | Aus den SVG erzeugt, siehe unten |
 
+## Die Haltung
+
+Modern, ruhig, zeitlos. Das heisst hier konkret:
+
+* **Fläche statt Verlauf.** Ein Verlauf datiert ein Zeichen auf das Jahr, in
+  dem er gemacht wurde.
+* **Gerade Kanten statt Rundungen.** Die erste Fassung hatte weiche Flanken
+  und las sich als Blatt. Vier Geraden machen daraus wieder ein Werkzeug.
+* **Zwei Farben, nicht drei.** Weiss auf Petrol. Der Mint-Akzent an der
+  Schnur war ein Detail zu viel.
+* **Stumpfe Linienenden.** Ein runder Abschluss macht die Schnur weich, und
+  weich ist das Gegenteil von genau.
+* **Mittlere Schriftstärke, offene Laufweite.** Fett und eng gesetzt wirkt
+  laut und altert schnell.
+
+Die breiteste Stelle des Körpers sitzt im oberen Drittel, das Verhältnis liegt
+bei etwa 1:2,3. Daran — und nicht an der Silhouette allein — erkennt man ein
+Senklot; breiter wird daraus eine Raute, schmaler ein Pfeil.
+
 ## Warum es zwei Zeichnungen gibt
 
 `favicon.svg` ist nicht `icon.svg` in klein. Bei 16 Pixeln wird die Schnur zu
@@ -30,12 +49,14 @@ zu 20 % wegschneidet. Ohne das köpft das System die Öse.
 
 Unverändert die der App — die Marke kommt aus dem Produkt, nicht neben es.
 
+Zwei, mehr nicht.
+
 | | |
 |---|---|
-| Grund, tief | `#0F4552` |
-| Grund, hell (Verlauf oben) | `#12889B` |
-| Schnur | `#66FFB0` |
-| Körper | `#FFFFFF` |
+| Grund | `#0F4552` |
+| Zeichen | `#FFFFFF` |
+
+Auf hellem Grund steht das Zeichen in `#0F4552` ohne Platte.
 
 ## PNG neu erzeugen
 
