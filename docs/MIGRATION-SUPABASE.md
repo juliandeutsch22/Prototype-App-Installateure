@@ -1527,3 +1527,86 @@ fremde keine.
 Was jetzt noch offen ist, hängt am Supabase-Projekt: die Edge Functions
 (`betriebAnlegen`, `voiceExtract`, der nächtliche Ausleitungslauf), die
 beiden Push-Meldungen und das Umschalten selbst.
+
+## Das Projekt steht — und `anon` bekommt nichts mehr
+
+14.09.2026. Beim Einrichten des Projekts kam eine Frage auf, die vorher
+niemand gestellt hatte: welche Häkchen gehören bei der Anlage gesetzt? Zwei
+Befunde daraus.
+
+### „Automatically expose new tables" muss AN bleiben
+
+Nachgesehen, nicht vermutet: **keine einzige Migration vergibt Tabellenrechte.**
+Sie verlassen sich darauf, dass `authenticated` sie über die
+Standard-Privilegien des Schemas `public` bekommt — genau das, was dieses
+Häkchen einschaltet. Aus wäre es ein harter Bruch: 27 Tabellen ohne jedes
+Recht, jede Abfrage mit „permission denied for table …".
+
+Das Häkchen ist auch nicht die Sicherheitsgrenze. Die ist der Zeilenschutz,
+und `schema.test.ts` lässt keine Tabelle ohne ihn durch.
+
+### Was dabei aufgefallen ist
+
+Dieselbe Standardvergabe gibt auch **`anon`** volle Rechte auf jeder Tabelle —
+der Rolle also, unter der jede Anfrage ohne Anmeldetoken ankommt. Der
+öffentliche Schlüssel steht im ausgelieferten JavaScript; zwischen einem
+Fremden ohne Konto und den Löhnen dieses Betriebs stand damit genau eine
+Sache: der Zeilenschutz.
+
+Ein Loch war das nicht — jede Richtlinie verlangt eine Anmeldung, und ohne
+Token ist `auth.uid()` null. Der Punkt ist die **Reichweite eines künftigen
+Fehlers**: fällt eine der siebzig Richtlinien einmal zu weit aus, ist der
+Unterschied zwischen „ein angemeldeter Mitarbeiter eines anderen Betriebs"
+und „jeder, der die Adresse der Seite kennt".
+
+`20260914090000_anon_zumachen.sql` nimmt die Rechte weg und ändert die
+Vorgabe für künftige Tabellen. Die Datenbankfunktionen bleiben ausdrücklich
+aufrufbar: sie prüfen die Anmeldung in ihrer ersten Zeile, und wer sich
+vertan hat, soll lesen können, was los ist.
+
+**Eine Lücke bleibt, und sie steht im Kommentar.** `alter default privileges`
+wirkt nur für die Rolle, unter der es gesetzt wurde; eine von Hand in der
+Dashboard-Maske angelegte Tabelle entsteht als `supabase_admin`, dessen
+Vorgabe `postgres` nicht ändern darf. Geschlossen wird das nicht durch SQL,
+sondern durch einen Wächter in `schema.test.ts`, der jede Tabelle in `public`
+prüft.
+
+### Eine eigene frühere Begründung, die nicht hielt
+
+In `durchstich0.test.ts` stand: „eine leere Liste ist die richtige Antwort —
+ein Fehler wäre sogar gesprächiger, als er sein dürfte." Das Argument hält
+nicht. Die Meldung verrät einen Tabellennamen, und der steht ohnehin im
+ausgelieferten Bundle — jedes `.from('time_entries')` nennt ihn. Preisgegeben
+wird nichts, was nicht schon öffentlich wäre; gewonnen wird eine ganze
+Schutzebene. Zwei Prüfungen, die das alte Verhalten festhielten, sind
+umgeschrieben.
+
+### Der Weg der Migrationen ins Projekt
+
+`.github/workflows/supabase-migrationen.yml`: auf jedem Pull Request laufen
+die Migrationen gegen eine **frische** lokale Datenbank und die 552 Prüfungen
+dagegen — das beantwortet die Frage, die ein Blick in die Dateien nicht
+beantwortet: laufen sie in dieser Reihenfolge, von null an, ohne die Hand,
+die beim Schreiben nachgeholfen hat. Erst auf `main` wandern sie ins Projekt.
+
+Die Reihenfolge ist der Punkt: eine Migration, die einmal im Projekt liegt,
+ist dort. Ein `git revert` holt sie nicht zurück.
+
+Die App bekommt `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` schon jetzt
+mit ins Bundle, benutzt aber weiter Firestore — `VITE_DATENQUELLE` steht auf
+`firestore`. Der Umzug soll an EINER Variablen umgelegt werden und nicht an
+einem Deploy, bei dem gleichzeitig drei neue Werte zum ersten Mal mitkommen.
+
+### Stand
+
+| | |
+|---|---|
+| Prüfungen gegen die echte Datenbank | 552 |
+| Hermetische Prüfungen | 1655 |
+| Mutationen dieses Teils | 2 |
+| davon gefangen | 2 |
+
+### Als Nächstes
+
+Die drei Edge Functions und die beiden Push-Meldungen — dafür steht das
+Projekt jetzt bereit.

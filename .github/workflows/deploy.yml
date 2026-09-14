@@ -135,6 +135,18 @@ jobs:
           VITE_PORTAL_NAME: ${{ vars.VITE_PORTAL_NAME || 'Perl Installationen' }}
           # Im Produktivbuild niemals gegen die lokalen Emulatoren zeigen.
           VITE_USE_EMULATORS: 'false'
+          # SUPABASE — ab hier liegt beides im Bundle, benutzt wird aber nur
+          # eines. Welches, entscheidet `VITE_DATENQUELLE`: alles ausser
+          # `postgres` heisst Firestore, und die Variable ist bis zum
+          # Umschalten in Stufe 8 nicht gesetzt.
+          #
+          # Sie stehen trotzdem schon hier. Der Umzug soll an EINER Stelle
+          # umgelegt werden — an einer Variablen, nicht an einem Deploy, bei
+          # dem gleichzeitig drei neue Werte zum ersten Mal mitkommen. Wenn
+          # der Schalter fällt, ist das hier längst erprobt.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_DATENQUELLE: ${{ vars.VITE_DATENQUELLE || 'firestore' }}
         run: npm run build
 
       # Der Schlüssel landet außerhalb des Arbeitsverzeichnisses, damit er

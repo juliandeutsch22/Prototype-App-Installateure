@@ -73,10 +73,15 @@ describe('Mandanten-Isolation', () => {
   });
 
   it('Nicht angemeldet: kein Zugriff', async () => {
+    // Abgewiesen wird seit dem 14.09.2026 nicht mehr erst vom Zeilenschutz,
+    // sondern schon am Tabellenrecht — `anon` hat keines mehr. Warum, steht
+    // in `20260914090000_anon_zumachen.sql`.
     const ohne = createClient(API, ANON, { auth: { persistSession: false } });
-    expect((await ohne.from('projects').select('id')).data).toEqual([]);
-    expect((await ohne.from('time_entries').select('id')).data).toEqual([]);
-    expect((await ohne.from('companies').select('id')).data).toEqual([]);
+    for (const tabelle of ['projects', 'time_entries', 'companies']) {
+      const { data, error } = await ohne.from(tabelle).select('id');
+      expect({ tabelle, data }).toEqual({ tabelle, data: null });
+      expect({ tabelle, code: error?.code }).toEqual({ tabelle, code: '42501' });
+    }
   });
 });
 

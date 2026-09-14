@@ -6,7 +6,8 @@
  * Regel für Regel nachgewiesen werden müssen — nicht, dass „RLS an ist".
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { admin, betriebAnlegen, konto, buchung, type Konto } from './helfer';
+import { createClient } from '@supabase/supabase-js';
+import { API, ANON, admin, betriebAnlegen, konto, buchung, type Konto } from './helfer';
 
 let perl: Konto;          // Mitarbeiter
 let kollege: Konto;       // Mitarbeiter im selben Betrieb
@@ -189,4 +190,46 @@ describe('Wer was darf', () => {
       .update({ status: 'Genehmigt' }).eq('id', antrag.id);
     expect(vonDerBuchhaltung.error).toBeNull();
   });
+});
+
+describe('Ohne Anmeldung gibt es nicht einmal die Tür', () => {
+  /*
+    DER ÖFFENTLICHE SCHLÜSSEL IST KEIN GEHEIMNIS — er steht im ausgelieferten
+    JavaScript. Jede Anfrage ohne Anmeldetoken kommt als Rolle `anon` an.
+
+    Bis zum 14.09.2026 hatte diese Rolle auf jeder Tabelle volle Rechte, und
+    abgewiesen wurde sie allein vom Zeilenschutz: die Abfrage GELANG und kam
+    leer zurück. Kein Loch, solange alle Richtlinien stimmen — aber die
+    Reichweite eines künftigen Fehlers wäre das halbe Internet gewesen.
+
+    Jetzt endet sie eine Ebene früher, und genau das prüft dieser Test: nicht
+    „es kommt nichts zurück" (das täte auch der Zeilenschutz), sondern „es
+    gibt eine Rechteverletzung". Der Unterschied ist der ganze Punkt.
+  */
+  const ohneAnmeldung = createClient(API, ANON, { auth: { persistSession: false } });
+
+  it('liest keine Zeile — und zwar mit einer Rechteverletzung, nicht mit einer leeren Liste', async () => {
+    for (const tabelle of ['users', 'time_entries', 'invoices', 'customers']) {
+      const { data, error } = await ohneAnmeldung.from(tabelle).select('*').limit(1);
+      expect({ tabelle, data }).toEqual({ tabelle, data: null });
+      expect({ tabelle, code: error?.code }).toEqual({ tabelle, code: '42501' });
+    }
+  }, 60_000);
+
+  it('schreibt auch nichts', async () => {
+    const { error } = await ohneAnmeldung.from('customers')
+      .insert({ company_id: 'perl', name: 'Von draussen' });
+    expect(error?.code).toBe('42501');
+  }, 30_000);
+
+  it('und die Datenbankfunktionen weisen ihn mit einer MELDUNG ab', async () => {
+    /*
+      Die Funktionen bleiben ausdrücklich aufrufbar: sie prüfen die Anmeldung
+      in ihrer ersten Zeile. Wer sich vertan hat, soll lesen können, was los
+      ist, statt auf eine Rechteverletzung zu stossen — und ein
+      Ausführungsrecht ist ohnehin keines auf die Daten.
+    */
+    const { error } = await ohneAnmeldung.rpc('betrieb_auszug');
+    expect(error?.message).toContain('Keine Anmeldung');
+  }, 30_000);
 });

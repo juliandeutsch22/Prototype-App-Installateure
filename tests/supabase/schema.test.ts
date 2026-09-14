@@ -38,6 +38,34 @@ describe('Zeilenschutz', () => {
     expect(ohne.map((r) => r.tablename)).toEqual([]);
   });
 
+  it('gibt der Rolle `anon` auf KEINER Tabelle ein Recht', async () => {
+    /*
+      DIE ROLLE HINTER DEM ÖFFENTLICHEN SCHLÜSSEL.
+
+      Der Schlüssel steht im ausgelieferten JavaScript; jede Anfrage ohne
+      Anmeldetoken kommt als `anon` an. Supabase vergibt im Schema `public`
+      per Vorgabe SELECT, INSERT, UPDATE und DELETE an `anon` — zwischen
+      einem Fremden ohne Konto und den Löhnen dieses Betriebs stand damit
+      genau eine Sache: der Zeilenschutz.
+
+      Kein Loch, solange alle siebzig Richtlinien stimmen. Der Punkt ist die
+      REICHWEITE eines künftigen Fehlers: fällt eine Richtlinie einmal zu
+      weit aus, liest es mit `anon`-Rechten das halbe Internet und ohne sie
+      bestenfalls ein angemeldeter Mitarbeiter eines anderen Betriebs.
+
+      Dieser Test ist zugleich die Stelle, an der die Lücke auffällt, die
+      `20260914090000_anon_zumachen.sql` nicht schliessen kann: eine von Hand
+      in der Dashboard-Maske angelegte Tabelle entsteht als `supabase_admin`
+      und bekommt die alte Vorgabe. Sie würde hier rot.
+    */
+    const mitRecht = await zeilen<{ table_name: string; privilege_type: string }>(`
+      select table_name, privilege_type from information_schema.role_table_grants
+       where table_schema = 'public' and grantee = 'anon'
+       order by 1, 2
+    `);
+    expect(mitRecht.map((r) => `${r.table_name}:${r.privilege_type}`)).toEqual([]);
+  });
+
   it('prüft in JEDER Richtlinie auf einer Betriebstabelle auch wirklich den Betrieb', async () => {
     // Eingeschalteter Zeilenschutz ohne Betriebsprüfung wäre eine Tür mit
     // Schloss und ohne Riegel: die Richtlinie greift, erlaubt aber allen alles.

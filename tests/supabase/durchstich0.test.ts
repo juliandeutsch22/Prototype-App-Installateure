@@ -246,11 +246,27 @@ describe('Sperrversuch 3: der Zeilenschutz trennt die Betriebe', () => {
   it('ein abgemeldetes Konto kommt an gar nichts', async () => {
     const ohne = createClient(API, ANON, { auth: { persistSession: false } });
     const { data, error } = await ohne.from('time_entries').select('id');
-    // Postgres wirft hier NICHT, es zeigt schlicht nichts: ohne Token ist
-    // app.betrieb() leer, und damit trifft keine Lesezeile zu. Eine leere
-    // Liste ist die richtige Antwort — ein Fehler waere sogar gespraechiger,
-    // als er sein duerfte.
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    /*
+      SEIT DEM 14.09.2026 EINE EBENE FRUEHER.
+
+      Bis dahin gelang die Abfrage und kam leer zurueck: ohne Token ist
+      `app.betrieb()` leer, also traf keine Lesezeile zu. Hier stand deshalb
+      „eine leere Liste ist die richtige Antwort — ein Fehler waere sogar
+      gespraechiger, als er sein duerfte."
+
+      Das Gespraechigkeits-Argument haelt nicht. Die Meldung verraet einen
+      TABELLENNAMEN, und der steht ohnehin im ausgelieferten JavaScript —
+      jedes `.from('time_entries')` im Bundle nennt ihn. Preisgegeben wird
+      also nichts, was nicht schon oeffentlich waere.
+
+      Dagegen steht, was es kostet: die Rolle `anon` hatte auf jeder Tabelle
+      volle Rechte, und abgewiesen hat sie allein der Zeilenschutz. Faellt
+      eine der siebzig Richtlinien einmal zu weit aus, ist der Unterschied
+      zwischen „ein Angemeldeter eines anderen Betriebs" und „jeder mit der
+      Adresse der Seite". Die Rechte sind weg; die Abfrage endet jetzt mit
+      42501.
+    */
+    expect(data).toBeNull();
+    expect(error?.code).toBe('42501');
   });
 });
