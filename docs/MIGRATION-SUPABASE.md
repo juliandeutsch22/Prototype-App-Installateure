@@ -1752,3 +1752,84 @@ statt jede Nacht in einen Fehler zu laufen, den niemand liest.
 
 Die Anmeldung. Sie ist der letzte grosse Brocken und der, ohne den sich der
 Schalter gar nicht umlegen lässt.
+
+## Die Anmeldung zieht um
+
+14.09.2026. Der Block, der quer lag — und der in keiner meiner früheren
+Aufzählungen stand. `AuthContext.tsx` sprach direkt mit Firebase Auth und
+Firestore, `provisionUser.ts` ebenso. Damit liess sich der Umzug **gar nicht
+umschalten**: die Datenschicht hätte mit Postgres geredet, das Token wäre
+weiter von Firebase gekommen, und keine einzige Zeilenregel hätte gegriffen.
+
+Jetzt gibt es `lib/auth/sitzung.ts` — dieselbe Bauart wie `lib/db/`: zwei
+Fassungen in `fs/` und `pg/`, eine Weiche dazwischen, und `AuthContext` kennt
+keine der beiden mehr. `datenschichtNaht.test.ts` bewacht das ab sofort auch
+für dieses Verzeichnis.
+
+### Drei Unterschiede, die Folgen haben
+
+**Es gibt keinen Zwischenspeicher.** Das Firestore-SDK legte jedes gelesene
+Dokument von selbst ab, und der Start las daraus, bevor er das Netz fragte —
+die Grundlage dafür, dass der Monteur im Keller sofort drin ist. Supabase tut
+das nicht. Ohne Ersatz stünde bei jedem Start wieder ein Ladebalken, genau die
+Sekunden, die dieses Projekt einmal mühsam weggeräumt hat. Die Postgres-Seite
+führt deshalb einen eigenen, kleinen Zwischenspeicher.
+
+**Die Sitzungsdauer wird nicht beim Anmelden gewählt, sondern am Speicher.**
+`browserLocalPersistence` gibt es nicht; stattdessen entscheidet ein Adapter
+bei jedem Zugriff neu, ob die Sitzung im `localStorage` oder im
+`sessionStorage` landet. Das geteilte Baustellen-Tablet hängt daran: läge die
+Sitzung im falschen Speicher, bliebe der nächste Monteur als sein Vorgänger
+angemeldet. Zwei Prüfungen halten es fest.
+
+**Ein Konto anlegen, ohne die eigene Sitzung zu verlieren.** Beide Anmeldungen
+melden den gerade Angelegten sofort an — die Verwaltung stünde als der neue
+Mitarbeiter da. Unter Firebase brauchte es dafür eine zweite App, hier einen
+eigenen Client, der nichts speichert.
+
+### Was gemessen wurde und die Meldung verbessert hat
+
+Ein mitten in der Sitzung deaktiviertes Konto sieht **seine eigene Zeile nicht
+mehr**: der Zeilenschutz filtert sie weg, die Abfrage gelingt und liefert
+nichts. `active: false` ist nirgends zu sehen. Für die Anmeldung sah das
+genauso aus wie „dieses Konto hat gar kein Profil" — und auf dem Bildschirm
+stand „Kein Benutzerprofil für dieses Konto gefunden".
+
+Nicht falsch, und trotzdem die schlechtere Auskunft. Wer gerade ausgeschieden
+ist, soll lesen, dass sein Zugang beendet wurde, und nicht raten, ob etwas
+kaputt ist. `public.mein_zustand()` sieht an der Zeilenregel vorbei und gibt
+**zwei Wahrheitswerte über den Aufrufer** zurück — keinen Namen, keine Rolle,
+keinen Betrieb, und nie über ein fremdes Konto.
+
+Dabei kam ein zweiter Unterschied zum Vorschein, und der ist ein Gewinn: ein
+deaktiviertes Konto kommt unter Postgres **gar nicht erst herein**. Die Sperre
+aus Stufe 5 greift schon am Anmeldedienst. Firestore hatte hier noch ein
+Fenster von bis zu einer Stunde.
+
+### Ein Ausgang, für den es keine gute Lösung gibt
+
+`provisionUser` legt erst das Anmeldekonto an und dann die Zeile in der
+Belegschaft. Scheitert der zweite Schritt, bleibt ein Konto ohne Zeile zurück —
+aufräumen kann der Browser es nicht, dafür bräuchte er Dienstrechte, die er
+nicht haben soll.
+
+Das ist der ehrlichere der beiden schlechten Ausgänge. Die Alternative wäre,
+die Zeile zuerst zu schreiben; bei einem Fehlschlag am Konto bliebe dann eine
+Belegschaftszeile ohne Anmeldung — und die **steht in der Mitarbeiterliste und
+sieht richtig aus**. Ein Konto ohne Zeile fällt beim ersten Anmeldeversuch
+auf; eine Zeile ohne Konto fällt niemandem auf. Die Fehlermeldung nennt
+deshalb die Adresse: der zweite Versuch mit derselben scheitert an ihr.
+
+### Stand
+
+| | |
+|---|---|
+| Prüfungen gegen die echte Datenbank | 584 |
+| Hermetische Prüfungen | 1667 |
+| Firestore-Regeln | 225 |
+| Mutationen dieses Teils | 8 |
+| davon gefangen | 8 |
+
+### Als Nächstes
+
+Die beiden Push-Meldungen, dann Stufe 7.

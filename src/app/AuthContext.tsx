@@ -7,20 +7,21 @@ import {
   type ReactNode,
 } from 'react';
 import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut as fbSignOut,
-  sendPasswordResetEmail,
-  setPersistence,
-  browserLocalPersistence,
-  browserSessionPersistence,
-} from 'firebase/auth';
-import { doc, getDoc, getDocFromCache } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+  beiAenderung,
+  anmelden as anmeldenNaht,
+  abmelden as abmeldenNaht,
+  passwortZuruecksetzen,
+  istPlattformAdmin,
+  profilSchnell,
+  profilVomServer,
+  firmaSchnell,
+  profilMerken,
+  InactiveUserError,
+} from '@/lib/auth/sitzung';
 import { getCompany } from '@/lib/db/company';
 import { applyBranding } from '@/lib/tenant';
 import { mitFristOder } from '@/lib/frist';
-import type { CurrentUser, Company, Role } from '@/types';
+import type { CurrentUser, Company } from '@/types';
 
 /**
  * Wie lange der Start auf das Netz wartet, bevor er den Zwischenspeicher
@@ -37,14 +38,13 @@ const START_FRIST_MS = 8000;
 /**
  * Die zuletzt bekannte Firma je Anmeldung.
  *
- * WOFÜR: Profil und Firmendaten liefen bisher NACHEINANDER — erst
- * `users/{uid}`, dann mit der darin gefundenen `companyId` das
- * Firmendokument. Zwei Netzrunden, bevor das erste Pixel erscheint. Wer sich
- * schon einmal angemeldet hat, dessen Firma kennen wir aber bereits; damit
- * laufen beide Abfragen gleichzeitig.
+ * WOFÜR: Profil und Firmendaten liefen bisher NACHEINANDER — erst das Profil,
+ * dann mit der darin gefundenen Kennung die Firma. Zwei Netzrunden, bevor das
+ * erste Pixel erscheint. Wer sich schon einmal angemeldet hat, dessen Firma
+ * kennen wir aber bereits; damit laufen beide Abfragen gleichzeitig.
  *
  * Das ist reine Beschleunigung, keine Quelle der Wahrheit: stimmt der Wert
- * nicht mit dem Profil überein, wird das richtige Dokument nachgeladen.
+ * nicht mit dem Profil überein, wird die richtige Firma nachgeladen.
  */
 const FIRMA_MERKER = 'perl.letzteFirma';
 
@@ -65,25 +65,18 @@ function firmaMerken(uid: string, companyId: string): void {
   }
 }
 
-/** Die Firma aus dem lokalen Zwischenspeicher — ohne Netz. */
-async function firmaAusSpeicher(companyId: string): Promise<Company | null> {
-  const snap = await getDocFromCache(doc(db, 'companies', companyId));
-  if (!snap.exists()) return null;
-  return { id: snap.id, ...(snap.data() as Omit<Company, 'id'>) };
-}
-
 /**
- * Das Firmendokument schon laden, während das Profil noch unterwegs ist.
+ * Die Firma schon laden, während das Profil noch unterwegs ist.
  *
- * Gibt `null` zurück, wenn die Firma noch nicht bekannt ist (erste Anmeldung
- * auf diesem Gerät) oder die Abfrage scheitert — dann wird sie danach
- * regulär geholt. Ein Fehler hier darf den Start nicht aufhalten: es ist ein
+ * Gibt `null` zurück, wenn sie noch nicht bekannt ist (erste Anmeldung auf
+ * diesem Gerät) oder die Abfrage scheitert — dann wird sie danach regulär
+ * geholt. Ein Fehler hier darf den Start nicht aufhalten: es ist ein
  * Vorgriff, keine Voraussetzung.
  */
 function gemerktesFirmenDokument(uid: string): Promise<Company | null> {
   const id = gemerkteFirma(uid);
   if (!id) return Promise.resolve(null);
-  return mitFristOder(getCompany(id), () => firmaAusSpeicher(id), START_FRIST_MS).catch(
+  return mitFristOder(getCompany(id), () => firmaSchnell(id), START_FRIST_MS).catch(
     () => null,
   );
 }
@@ -113,85 +106,6 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
-/**
- * Lädt das App-Profil (Rolle, companyId) zur Firebase-Auth-UID.
- *
- * Wichtig: users-Dokumente sind per `uid` als Dokument-ID geschlüsselt
- * (users/{uid}). Das ist nötig, damit der erste Profil-Load ein einzelnes
- * `get` ist — eine Query `where('uid','==',...)` ohne companyId-Filter würde
- * von firestore.rules abgelehnt (Mandanten-Constraint nicht erfüllbar).
- */
-/** Deaktivierte Konten sollen sich nicht mehr anmelden können. */
-export class InactiveUserError extends Error {
-  constructor() {
-    super('Dieses Konto ist deaktiviert.');
-    this.name = 'InactiveUserError';
-  }
-}
-
-/** Ein Profil aus einem Schnappschuss — gleich, ob er vom Netz oder aus dem
- *  Zwischenspeicher kommt. */
-function profilAus(
-  snap: { exists: () => boolean; id: string; data: () => unknown },
-  uid: string,
-  email: string,
-): CurrentUser | null {
-  if (!snap.exists()) return null;
-  const data = snap.data() as {
-    name?: string;
-    role?: Role;
-    companyId?: string;
-    email?: string;
-    active?: boolean;
-  };
-  if (!data.companyId || !data.role) return null;
-  // Deaktivieren ist im Legacy der Ersatz fürs Löschen (Daten bleiben erhalten).
-  // Ohne diese Prüfung könnte sich ein ausgeschiedener Mitarbeiter weiter anmelden.
-  if (data.active === false) throw new InactiveUserError();
-  return {
-    uid,
-    email: data.email ?? email,
-    name: data.name ?? email,
-    role: data.role,
-    companyId: data.companyId,
-    docId: snap.id,
-  };
-}
-
-/**
- * Das Profil vom Server — mit Frist und Rückfall auf den Zwischenspeicher.
- */
-async function profilVomServer(uid: string, email: string): Promise<CurrentUser | null> {
-  const ref = doc(db, 'users', uid);
-  const snap = await mitFristOder(getDoc(ref), () => getDocFromCache(ref), START_FRIST_MS);
-  return profilAus(snap, uid, email);
-}
-
-/**
- * Das Profil aus dem lokalen Zwischenspeicher — ohne Netz, in Millisekunden.
- *
- * WARUM DAS ZUERST KOMMT. Vorher wartete der Start bis zu ACHT SEKUNDEN auf
- * eine Antwort des Servers und sah erst DANN im Zwischenspeicher nach.
- * Genau der lag aber schon die ganze Zeit bereit. Auf einer zähen Verbindung
- * — Keller, Baustelle, Tiefgarage — war das die gesamte gefühlte Ladezeit,
- * bei jedem einzelnen Start.
- *
- * Jetzt erscheint die App sofort mit dem letzten bekannten Stand und zieht
- * den aktuellen im Hintergrund nach. Ein veraltetes Profil ist dabei
- * ungefährlich: die harte Grenze steht serverseitig in den Regeln, und ein
- * deaktiviertes Konto wird auch hier abgewiesen.
- */
-async function profilAusSpeicher(uid: string, email: string): Promise<CurrentUser | null> {
-  try {
-    return profilAus(await getDocFromCache(doc(db, 'users', uid)), uid, email);
-  } catch (e) {
-    // Ein deaktiviertes Konto muss auch aus dem Speicher heraus greifen —
-    // sonst käme ein Ausgeschiedener offline noch einmal hinein.
-    if (e instanceof InactiveUserError) throw e;
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -200,9 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fbUser) => {
+    const unsub = beiAenderung(async (wer) => {
       setError(null);
-      if (!fbUser) {
+      if (!wer) {
         setUser(null);
         setCompany(null);
         setPlattformAdmin(false);
@@ -240,10 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        * gefälschter Claim brächte hier nur eine Seite zum Vorschein, auf der
        * jeder Knopf serverseitig abgewiesen würde.
        */
-      const plattformMarke = await fbUser
-        .getIdTokenResult()
-        .then((t) => t.claims.plattformAdmin === true)
-        .catch(() => false);
+      const plattformMarke = await istPlattformAdmin();
       if (plattformMarke) {
         setPlattformAdmin(true);
         setUser(null);
@@ -263,10 +174,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        */
       let sofortDa = false;
       try {
-        const schnell = await profilAusSpeicher(fbUser.uid, fbUser.email ?? '');
+        const schnell = await profilSchnell(wer.uid, wer.email);
         if (schnell) {
           setUser(schnell);
-          const firma = await firmaAusSpeicher(schnell.companyId).catch(() => null);
+          const firma = await firmaSchnell(schnell.companyId).catch(() => null);
           if (firma) {
             setCompany(firma);
             applyBranding(firma);
@@ -277,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         if (e instanceof InactiveUserError) {
           setError('Dieses Konto ist deaktiviert. Bitte an die Verwaltung wenden.');
-          await fbSignOut(auth);
+          await abmeldenNaht();
           setUser(null);
           setCompany(null);
           setLoading(false);
@@ -293,9 +204,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          * irgendetwas erschien. Auf dem Telefon im Keller ist das der
          * Unterschied zwischen „kurz" und „lange".
          */
-        const gemerkt = gemerktesFirmenDokument(fbUser.uid);
+        const gemerkt = gemerktesFirmenDokument(wer.uid);
         const [profile, firmaVorab] = await Promise.all([
-          profilVomServer(fbUser.uid, fbUser.email ?? ''),
+          profilVomServer(wer.uid, wer.email),
           gemerkt,
         ]);
 
@@ -309,7 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setError(
             'Kein Benutzerprofil für dieses Konto gefunden. Bitte an die Verwaltung wenden.',
           );
-          await fbSignOut(auth);
+          await abmeldenNaht();
           setUser(null);
           setCompany(null);
         } else {
@@ -322,16 +233,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ? firmaVorab
               : await mitFristOder(
                   getCompany(profile.companyId),
-                  () => firmaAusSpeicher(profile.companyId),
+                  () => firmaSchnell(profile.companyId),
                   START_FRIST_MS,
                 );
           setCompany(comp);
           if (comp) applyBranding(comp);
+          /*
+            FÜR DEN NÄCHSTEN START ABLEGEN. Unter Firestore erledigt das der
+            Zwischenspeicher des SDK von selbst; unter Postgres gibt es keinen,
+            und ohne diese Zeile begänne jeder Start wieder mit einem
+            Ladebalken — genau die Sekunden, die hier einmal mühsam
+            weggeräumt wurden.
+          */
+          profilMerken(profile, comp);
         }
       } catch (e) {
         if (e instanceof InactiveUserError) {
           setError('Dieses Konto ist deaktiviert. Bitte an die Verwaltung wenden.');
-          await fbSignOut(auth);
+          await abmeldenNaht();
           setUser(null);
           setCompany(null);
         } else if (!sofortDa) {
@@ -364,18 +283,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async (email: string, password: string, remember = true) => {
     setError(null);
     // Auf einem geteilten Baustellen-Tablet soll die Sitzung mit dem Browser
-    // enden — deshalb ist die Dauer wählbar und nicht fest.
-    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-    await signInWithEmailAndPassword(auth, email, password);
+    // enden — deshalb ist die Dauer wählbar und nicht fest. WIE das erreicht
+    // wird, unterscheidet sich je Anmeldung und steht in der Naht.
+    await anmeldenNaht(email, password, remember);
   }, []);
 
-  const signOut = useCallback(async () => {
-    await fbSignOut(auth);
-  }, []);
+  const signOut = useCallback(() => abmeldenNaht(), []);
 
-  const resetPassword = useCallback(async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
-  }, []);
+  const resetPassword = useCallback((email: string) => passwortZuruecksetzen(email), []);
 
   // Die Stammdaten liegen bewusst nicht auf einem Live-Abo: sie ändern sich
   // selten, und ein Abo auf `companies` hinge an jeder Sitzung. Nach dem

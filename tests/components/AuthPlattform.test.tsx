@@ -27,47 +27,51 @@ import { render, screen, waitFor } from '@testing-library/react';
  * nachgebauten Firebase darunter.
  */
 
-/** Was `getDoc` tut, wenn nach dem users-Dokument gefragt wird. */
-let usersAbruf: () => Promise<unknown> = () =>
-  Promise.reject(new Error('FirebaseError: Missing or insufficient permissions.'));
-const gefragtNach = vi.fn();
+/*
+  SEIT DEM 14.09.2026 GEGEN DIE NAHT, NICHT GEGEN FIREBASE.
 
-/** Die Claims des angemeldeten Kontos. */
-let claims: Record<string, unknown> = {};
+  `AuthContext` spricht nicht mehr mit einem SDK, sondern mit
+  `lib/auth/sitzung` — und die entscheidet, ob Firebase oder Supabase
+  antwortet. Damit prüft diese Datei, was sie immer prüfen wollte: die
+  REIHENFOLGE der Entscheidungen im Provider, unabhängig davon, wer darunter
+  liegt. Vorher war sie an Firebase gebunden und hätte nach dem Umschalten
+  eine Frage beantwortet, die niemand mehr stellt.
+*/
+
+/** Was der Profilabruf tut. Vorgabe: abgewiesen, wie bei einem Konto ohne Zeile. */
+let profilAbruf: () => Promise<unknown> = () =>
+  Promise.reject(new Error('Missing or insufficient permissions.'));
+const gefragtNachProfil = vi.fn();
+
+/** Trägt das Token den Plattform-Anspruch? */
+let plattform = false;
 let abgemeldet = false;
 
-vi.mock('firebase/auth', () => ({
-  onAuthStateChanged: (_a: unknown, cb: (u: unknown) => void) => {
-    cb({
-      uid: 'global',
-      email: 'betreiber@example.at',
-      getIdTokenResult: () => Promise.resolve({ claims }),
-    });
-    return () => undefined;
-  },
-  signOut: () => {
-    abgemeldet = true;
-    return Promise.resolve();
-  },
-  signInWithEmailAndPassword: vi.fn(),
-  sendPasswordResetEmail: vi.fn(),
-  setPersistence: vi.fn(),
-  browserLocalPersistence: {},
-  browserSessionPersistence: {},
-}));
+vi.mock('@/lib/auth/sitzung', async () => {
+  const kern = await import('@/lib/auth/kern');
+  return {
+    InactiveUserError: kern.InactiveUserError,
+    beiAenderung: (ruf: (w: unknown) => void) => {
+      ruf({ uid: 'global', email: 'betreiber@example.at' });
+      return () => undefined;
+    },
+    istPlattformAdmin: () => Promise.resolve(plattform),
+    abmelden: () => {
+      abgemeldet = true;
+      return Promise.resolve();
+    },
+    anmelden: vi.fn(),
+    passwortZuruecksetzen: vi.fn(),
+    profilSchnell: () => Promise.resolve(null),
+    profilVomServer: () => {
+      gefragtNachProfil();
+      return profilAbruf();
+    },
+    firmaSchnell: () => Promise.resolve(null),
+    profilMerken: vi.fn(),
+  };
+});
 
-vi.mock('firebase/firestore', () => ({
-  doc: (_db: unknown, sammlung: string, id: string) => ({ sammlung, id }),
-  getDoc: (ref: { sammlung: string }) => {
-    gefragtNach(ref.sammlung);
-    return usersAbruf();
-  },
-  // Der Zwischenspeicher ist auf einem frischen Gerät leer — wie bei Google
-  // ist das ein Fehler, keine Leere.
-  getDocFromCache: () => Promise.reject(new Error('Failed to get document from cache.')),
-}));
-
-vi.mock('@/lib/firebase', () => ({ auth: {}, db: {} }));
 vi.mock('@/lib/db/company', () => ({ getCompany: () => Promise.resolve(null) }));
 vi.mock('@/lib/tenant', () => ({ applyBranding: vi.fn() }));
 
@@ -94,11 +98,10 @@ function zeige() {
 }
 
 beforeEach(() => {
-  claims = {};
+  plattform = false;
   abgemeldet = false;
-  gefragtNach.mockClear();
-  usersAbruf = () =>
-    Promise.reject(new Error('FirebaseError: Missing or insufficient permissions.'));
+  gefragtNachProfil.mockClear();
+  profilAbruf = () => Promise.reject(new Error('Missing or insufficient permissions.'));
 });
 
 describe('Anmeldung als globaler Administrator', () => {
@@ -108,7 +111,7 @@ describe('Anmeldung als globaler Administrator', () => {
       geladen werden. Das liegt meist am Empfang" — und das Konto blieb
       draussen.
     */
-    claims = { plattformAdmin: true };
+    plattform = true;
     zeige();
 
     expect(await screen.findByText('plattform: true')).toBeInTheDocument();
@@ -119,25 +122,35 @@ describe('Anmeldung als globaler Administrator', () => {
   it('fragt gar nicht erst nach dem users-Dokument', async () => {
     // Es gibt keines, und die Regel weist die Frage danach ab. Sie zu stellen
     // hiesse, eine Absage einzuholen, um sie dann zu deuten.
-    claims = { plattformAdmin: true };
+    plattform = true;
     zeige();
 
     await screen.findByText('plattform: true');
-    expect(gefragtNach).not.toHaveBeenCalled();
+    expect(gefragtNachProfil).not.toHaveBeenCalled();
   });
 
   it('meldet ihn nicht ab', async () => {
     // Der Zweig „kein Profil" wirft das Konto hinaus. Für dieses Konto wäre
     // das eine Endlosschleife: anmelden, hinausgeworfen werden, von vorn.
-    claims = { plattformAdmin: true };
+    plattform = true;
     zeige();
 
     await screen.findByText('plattform: true');
     expect(abgemeldet).toBe(false);
   });
 
-  it('zählt nur der echte Claim, nicht ein ähnlich aussehender Wert', async () => {
-    claims = { plattformAdmin: 'ja' };
+  it('ohne Anspruch geht er den gewöhnlichen Weg — und bekommt dessen Meldung', async () => {
+    /*
+      Die Gegenprobe. Wer den Anspruch NICHT trägt, soll nicht versehentlich
+      hineinkommen, sondern am fehlenden Profil scheitern — mit der Meldung,
+      die dafür da ist.
+
+      Dass nur der WÖRTLICHE Anspruch zählt und nicht ein ähnlich aussehender
+      Wert, entscheidet seit dem 14.09.2026 die Naht und nicht mehr diese
+      Datei; geprüft wird es in `tests/unit/plattformAnspruch.test.ts`, für
+      beide Anmeldungen einzeln.
+    */
+    plattform = false;
     zeige();
 
     expect(await screen.findByText(/fehler:/)).toBeInTheDocument();
@@ -158,16 +171,16 @@ describe('Anmeldung ohne diesen Claim', () => {
   });
 
   it('lässt einen gewöhnlichen Benutzer unverändert durch', async () => {
-    usersAbruf = () =>
+    // Die Naht liefert ein fertiges Profil — welche Datenbank es geformt hat,
+    // ist an dieser Stelle bewusst nicht mehr zu sehen.
+    profilAbruf = () =>
       Promise.resolve({
-        exists: () => true,
-        id: 'u1',
-        data: () => ({
-          name: 'Max Mustermann',
-          role: 'Mitarbeiter',
-          companyId: 'perl',
-          email: 'max@perl.at',
-        }),
+        uid: 'u1',
+        docId: 'u1',
+        name: 'Max Mustermann',
+        role: 'Mitarbeiter',
+        companyId: 'perl',
+        email: 'max@perl.at',
       });
     zeige();
 

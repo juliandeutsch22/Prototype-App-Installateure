@@ -87,4 +87,43 @@ describe('Die Naht der Datenschicht', () => {
         .toEqual({ weiche: w, firestore: false });
     }
   });
+
+  it('und die Anmeldung hält dieselbe Grenze', () => {
+    /*
+      SEIT DEM 14.09.2026 GILT DIE REGEL AUCH FÜR `lib/auth/`.
+
+      `AuthContext` sprach bis dahin direkt mit Firebase Auth und Firestore.
+      Damit liess sich der Umzug gar nicht umschalten: die Datenschicht hätte
+      mit Postgres geredet, das Token wäre weiter von Firebase gekommen, und
+      keine einzige Zeilenregel hätte gegriffen. Es war der letzte Block, der
+      quer lag.
+
+      Geprüft wird dieselbe Aussage wie oben, nur für das andere Verzeichnis:
+      die Mitte kennt keine der beiden Anmeldungen. Fiele das zurück, fiele es
+      hier auf — und nicht erst beim Umschalten.
+    */
+    const WURZEL = resolve(process.cwd(), 'src/lib/auth');
+    const mitte = readdirSync(WURZEL)
+      .filter((d) => d.endsWith('.ts'))
+      .filter((d) => !/from '\.\/pg\//.test(readFileSync(resolve(WURZEL, d), 'utf8')));
+
+    const verunreinigt = mitte.filter((d) =>
+      /from 'firebase\/|from '@\/lib\/firebase'|from '@\/lib\/supabase'|@supabase\/supabase-js/
+        .test(readFileSync(resolve(WURZEL, d), 'utf8')));
+    expect(verunreinigt).toEqual([]);
+
+    // Der Wächter über den Wächter: findet er die Mitte überhaupt?
+    expect(mitte).toContain('kern.ts');
+    expect(mitte).toContain('provisionUser.ts');
+    expect(mitte).not.toContain('sitzung.ts');
+  });
+
+  it('auch die Ansicht, die die Anmeldung benutzt', () => {
+    // `AuthContext` ist keine Weiche, sondern ihr Aufrufer — und darf deshalb
+    // erst recht kein SDK kennen.
+    const inhalt = readFileSync(resolve(process.cwd(), 'src/app/AuthContext.tsx'), 'utf8');
+    expect(
+      /from 'firebase\/|from '@\/lib\/firebase'|from '@\/lib\/supabase'/.test(inhalt),
+    ).toBe(false);
+  });
 });
