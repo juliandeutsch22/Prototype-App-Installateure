@@ -1833,3 +1833,82 @@ deshalb die Adresse: der zweite Versuch mit derselben scheitert an ihr.
 ### Als Nächstes
 
 Die beiden Push-Meldungen, dann Stufe 7.
+
+## Die Push-Meldungen: neuer Auslöser, alter Versand
+
+14.09.2026. Firebase Cloud Messaging bleibt — es hängt an keiner Datenbank
+und funktioniert. Umgezogen ist nur, was den Versand ANSTÖSST: aus zwei
+Firestore-Ereignissen wird ein Trigger auf `material_orders`, der eine Edge
+Function ruft.
+
+Die Entscheidungen sind nicht neu geschrieben worden. `notifyLogic.ts` ist
+nach `shared/` gezogen und wird jetzt von beiden Seiten gelesen — wer etwas
+bekommt, wann ein Übergang gilt, wann ein Gerät wirklich tot ist. Eine zweite
+Fassung in plpgsql hätte dieselben Meldungen ergeben, bis sie es eines Tages
+nicht mehr getan hätte, und bemerkt würde es daran, dass jemand eine Meldung
+**nicht** bekommt.
+
+### Was das Admin-SDK einem abgenommen hat
+
+Zwei Dinge, und beide gehen still daneben:
+
+**Das signierte JWT für Google.** Ohne SDK sind es dreissig Zeilen — und genau
+die, bei denen ein Tippfehler zu „invalid_grant" führt und zu sonst gar
+nichts. Sie stehen jetzt in `shared/fcmVersand.ts` und werden gegen einen
+selbst erzeugten Schlüssel nachgerechnet: Signatur geprüft, Rumpf gelesen,
+und die Gegenprobe mit veränderter Nutzlast fällt durch.
+
+**Die Bedeutung der Fehlercodes.** Das SDK meldete
+`messaging/registration-token-not-registered`, die HTTP-v1-Schnittstelle
+meldet `UNREGISTERED`. Ohne Zuordnung hielte `toteTokens` jedes tote Gerät für
+lebendig, und jeder Versand liefe bis in alle Ewigkeit in dieselben Fehler.
+Wichtiger noch: die dort sorgfältig begründete Ausnahme für
+`invalid-argument` — derselbe Code kommt auch bei einer fehlerhaften
+Nachricht und beträfe dann **alle** Empfänger auf einmal — gilt nur weiter,
+weil die Zuordnung sie erhält.
+
+### Drei Befunde beim Prüfen
+
+**Ein echter Fehler in meiner eigenen Migration.** `pg_cron` und `pg_net`
+standen in EINEM Ausnahmeblock. Ein Ausnahmeblock in plpgsql macht die ganze
+Anweisung rückgängig: scheitert die zweite, ist auch die erste wieder weg —
+und die Meldung sprach von beiden, sodass nicht einmal zu sehen war, welche.
+Genau so ist es beim ersten Einspielen passiert; `pg_net` fehlte danach, und
+der Trigger stiess ins Leere. Jetzt ein Block je Erweiterung.
+
+**`pg_net` läuft im Datenbankcontainer.** `127.0.0.1` ist dort nicht der
+Stapel, sondern der Container selbst. Im Projekt fällt das nicht auf — dort
+ist es die öffentliche URL —, in der Prüfung schon: `net._http_response`
+enthielt „Couldn't connect to server", und bei einer Push-Meldung heisst das
+schlicht, dass nichts kommt.
+
+**Eine Mutation hat eine halbe Prüfung aufgedeckt.** Die Antwort der Function
+nannte nur die Zahl der EMPFÄNGER. Wer die Meldungsart abgeschaltet hat,
+bekommt aber nichts — und das ist eine Einstellung, die jemand bewusst
+getroffen hat. `willMeldung` liess sich ersatzlos streichen, ohne dass etwas
+rot wurde. Jetzt steht in der Antwort auch die Zahl der GERÄTE: „ein
+Empfänger, null Geräte" heisst, dass niemand etwas merkt.
+
+### Was ungeprüft bleibt, und warum
+
+Genau eine Runde: die zu Google. Dafür braucht es ein Dienstkonto, und ohne
+es wird **nicht still nichts getan** — die Function antwortet mit 503, nennt
+den Namen des fehlenden Geheimnisses und gibt trotzdem `geplant` zurück.
+Daran ist zu sehen, dass alles bis zum Versand richtig gelaufen ist. Eine
+Push-Meldung, die nicht ankommt, merkt sonst niemand; das ist ihr
+gefährlichster Zug.
+
+### Stand
+
+| | |
+|---|---|
+| Functions umgestellt oder entfallen | 14 von 15 |
+| Prüfungen gegen die echte Datenbank | 598 |
+| Hermetische Prüfungen | 1681 |
+| Mutationen dieses Teils | 8 |
+| davon sofort gefangen | 6 |
+| nachgezogen | 2 |
+
+### Als Nächstes
+
+Stufe 7 — die Narben zurückbauen.

@@ -30,9 +30,26 @@
 do $$
 begin
   create extension if not exists pg_cron;
+exception when others then
+  raise warning 'pg_cron nicht verfügbar (%). Der Zeitplan ist NICHT eingerichtet; im Dashboard unter Database > Extensions einschalten.', sqlerrm;
+end;
+$$;
+
+/*
+  EIN EIGENER BLOCK JE ERWEITERUNG, und das ist nicht Ordnungsliebe.
+
+  Beide standen zuerst in EINEM Block. Ein Ausnahmeblock in plpgsql macht die
+  ganze Anweisung rueckgaengig: scheiterte die zweite, war auch die erste
+  wieder weg — und die Meldung sprach von beiden, sodass nicht einmal zu sehen
+  war, welche. Genau so ist es beim ersten Einspielen passiert; `pg_net`
+  fehlte danach, und der Trigger stiess ins Leere, ohne dass irgendwo etwas
+  stand.
+*/
+do $$
+begin
   create extension if not exists pg_net;
 exception when others then
-  raise warning 'pg_cron/pg_net nicht verfügbar (%). Der nächtliche Lauf ist NICHT eingerichtet; im Dashboard unter Database > Extensions einschalten.', sqlerrm;
+  raise warning 'pg_net nicht verfügbar (%). Der nächtliche Lauf und die Push-Meldungen sind NICHT eingerichtet; im Dashboard unter Database > Extensions einschalten.', sqlerrm;
 end;
 $$;
 

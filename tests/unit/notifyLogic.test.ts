@@ -9,7 +9,8 @@ import {
   textNeueAnforderung,
   toteTokens,
   willMeldung,
-} from '../../functions/src/notifyLogic';
+  orderAusZeile,
+} from '@shared/notifyLogic';
 
 /**
  * Benachrichtigungen laufen in Ereignis-Triggern auf dem Server. Ein Fehler
@@ -211,5 +212,58 @@ describe('Was in der Meldung steht', () => {
     const m = textAbholbereit(order, 'a1');
     expect(m.link).toBe('/material/anfordern');
     expect(m.body).toBe('3× Kupferrohr 15 mm liegt bereit (2026-001)');
+  });
+});
+
+describe('Eine Postgres-Zeile wird zur Anforderung', () => {
+  /*
+    SECHS ZEILEN, DIE STILL FALSCH SEIN KÖNNEN. Verwechselt man `is_urgent`
+    mit `isUrgent`, ist `istEilRelevant` immer falsch — und die
+    Projektleitung erfährt nie von einer Eilzustellung. Es kommt keine
+    Fehlermeldung, es kommt nur nichts.
+  */
+  const zeile = {
+    company_id: 'perl',
+    material_name: 'Kupferrohr 15mm',
+    quantity: '8.000',
+    project_number: 'B-2026-0001',
+    user_id: 'u1',
+    user_name: 'Max Mustermann',
+    status: 'Offen',
+    transaction_type: 'order',
+    is_urgent: true,
+  };
+
+  it('übersetzt jedes Feld, auf das eine Entscheidung schaut', () => {
+    expect(orderAusZeile(zeile)).toEqual({
+      companyId: 'perl',
+      materialName: 'Kupferrohr 15mm',
+      // `numeric` kommt als Zeichenkette zurück — als solche stünde im
+      // Meldungstext „8.000× Kupferrohr".
+      quantity: 8,
+      projectNumber: 'B-2026-0001',
+      userId: 'u1',
+      userName: 'Max Mustermann',
+      status: 'Offen',
+      transactionType: 'order',
+      isUrgent: true,
+    });
+  });
+
+  it('und die Entscheidungen greifen danach', () => {
+    const order = orderAusZeile(zeile)!;
+    expect(istMeldepflichtigeAnforderung(order)).toBe(true);
+    expect(istEilRelevant(order)).toBe(true);
+    expect(textNeueAnforderung(order).body).toContain('8× Kupferrohr 15mm');
+  });
+
+  it('ohne Zeile gibt es nichts zu melden', () => {
+    expect(orderAusZeile(undefined)).toBeUndefined();
+  });
+
+  it('ein fehlendes `is_urgent` ist nicht eilig — und kein `undefined`', () => {
+    // `!!undefined` wäre auch falsch-sicher; hier steht ausdrücklich `false`,
+    // damit ein Vergleich auf `=== false` nicht danebenliegt.
+    expect(orderAusZeile({ company_id: 'perl' })!.isUrgent).toBe(false);
   });
 });
