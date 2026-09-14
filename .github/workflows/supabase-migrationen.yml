@@ -37,8 +37,13 @@ concurrency:
   group: supabase-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Node 22, nicht 20: `@supabase/supabase-js` baut in seinem Konstruktor einen
+# Realtime-Client, und der verlangt ein globales `WebSocket`. Das gibt es in
+# Node erst ab 22. Unter 20 scheitert schon `createClient` in
+# `tests/supabase/helfer.ts` — vor der ersten Prüfung, mit einer Meldung, die
+# nach einem Fehler in den Migrationen aussieht und keiner ist.
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   pruefen:
@@ -112,7 +117,7 @@ jobs:
       # Function, die bei jedem Aufruf scheitert.
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - run: npm ci
