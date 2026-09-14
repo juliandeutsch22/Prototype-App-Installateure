@@ -1610,3 +1610,64 @@ einem Deploy, bei dem gleichzeitig drei neue Werte zum ersten Mal mitkommen.
 
 Die drei Edge Functions und die beiden Push-Meldungen — dafür steht das
 Projekt jetzt bereit.
+
+## Die erste Edge Function: einen Betrieb anlegen
+
+14.09.2026. Fast alles aus dem Functions-Bestand ist beim Umzug zu SQL
+geworden. Das hier nicht, und der Grund ist handfest: **ein Anmeldekonto
+entsteht im Anmeldedienst, nicht in einer Tabelle.** Sein Passwort wird dort
+gehasht, seine Kennung dort vergeben, sein Rücksetzlink dort signiert. Von
+Hand in `auth.users` zu schreiben hiesse, all das nachzubauen — und beim
+nächsten Update des Dienstes wäre es falsch.
+
+Geteilt ist die Arbeit deshalb so: die Function legt das Konto an, alles
+Weitere macht `public.betrieb_anlegen` in EINER Transaktion. Ein Betrieb ohne
+Administrator wäre nicht zu betreten und nicht zu reparieren — niemand könnte
+sich anmelden, um den fehlenden anzulegen.
+
+### Die Tabelle entscheidet, nicht das Token
+
+Im Token steht `plattform_admin`, gesetzt vom Trigger auf `platform_admins`.
+Ein bereits ausgestelltes Token trägt seinen Anspruch aber bis zu einer Stunde
+weiter: wer heute früh entzogen wurde, legte sonst noch bis Mittag Betriebe
+an. Die Function fragt deshalb die Tabelle — dieselbe Entscheidung wie bei
+`app.aktiv()`, und aus demselben Grund. Ein eigener Test hält den Fall fest:
+Anspruch im Token, Zeile gelöscht, Zugriff verweigert.
+
+### Ohne Fernimport
+
+Der naheliegende Weg wäre `import { createClient } from 'jsr:@supabase/supabase-js'`
+gewesen. Er scheiterte hier am Netz — und ist trotzdem nicht deshalb
+gestrichen: es sind sechs Aufrufe, die als `fetch` genauso kurz und deutlich
+dastehen, und eine Function ohne Fernimport hat nichts nachzuladen. Sie
+startet auch dann, wenn die Registry gerade nicht erreichbar ist, und zwischen
+zwei Auslieferungen verschiebt sich unter ihr nichts.
+
+### `supabase start` kopiert, es bindet nicht ein
+
+Eine Kleinigkeit mit Folgen: die CLI kopiert `supabase/functions/` beim Start
+in den Container. Eine neu angelegte Function ist also erst nach einem
+Neustart da, und die gemeinsamen Regeln aus `shared/` müssen VOR dem Start
+dort liegen. `scripts/edge-shared-uebernehmen.mjs` schreibt sie nach
+`supabase/functions/_shared/` — nicht eingecheckt, bei jedem Lauf neu, also
+unfähig, von der Quelle abzuweichen. Dasselbe Muster wie bei den Cloud
+Functions. `stack.sh`, `npm run gemeinsames` und der Workflow rufen es auf.
+
+Im Workflow werden die Functions NACH den Migrationen ausgeliefert: stünde
+die Function vor ihrer eigenen Datenbankfunktion im Projekt, wäre das
+Zeitfenster dazwischen eine Function, die bei jedem Aufruf scheitert.
+
+### Stand
+
+| | |
+|---|---|
+| Functions umgestellt oder entfallen | 10 von 15 |
+| Prüfungen gegen die echte Datenbank | 560 |
+| Hermetische Prüfungen | 1657 |
+| Mutationen dieses Teils | 8 |
+| davon gefangen | 8 |
+
+### Als Nächstes
+
+`voiceExtract` (braucht einen API-Schlüssel als Geheimnis), der nächtliche
+Ausleitungslauf und die beiden Push-Meldungen.

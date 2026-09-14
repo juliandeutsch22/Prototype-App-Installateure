@@ -58,6 +58,11 @@ jobs:
         with:
           version: latest
 
+      # Die gemeinsamen Regeln müssen VOR dem Start dort liegen: `supabase
+      # start` kopiert die Functions in den Container, es bindet sie nicht ein.
+      - name: Gemeinsame Regeln übernehmen
+        run: npm run gemeinsames
+
       # `supabase start` spielt alles in `supabase/migrations/` der Reihe nach
       # ein. Scheitert eine, scheitert der Start — und zwar hier und nicht im
       # Projekt.
@@ -100,3 +105,22 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: supabase db push --include-all
+
+      # NACH den Migrationen, nicht davor. Die Function ruft
+      # `public.betrieb_anlegen` auf; stünde sie vor ihrer eigenen
+      # Datenbankfunktion im Projekt, wäre das Zeitfenster dazwischen eine
+      # Function, die bei jedem Aufruf scheitert.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Gemeinsame Regeln übernehmen
+        run: npm run gemeinsames
+
+      - name: Edge Functions ausliefern
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"

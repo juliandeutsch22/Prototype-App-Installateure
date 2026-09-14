@@ -5,6 +5,7 @@ import { nutztPostgres } from './db/quelle';
 import { entscheiden } from './db/vacations';
 import { vorbereiten, type ScheinZeit } from './db/workSheets';
 import { auszug, type BetriebsAuszug } from './db/company';
+import { betriebAnlegen, type BetriebAngelegt } from './db/plattform';
 import type { VoiceExtractResponse } from '@/features/voice/types';
 
 /** Ruft die serverseitige KI-Extraktion auf. API-Schlüssel bleiben im Server. */
@@ -147,7 +148,24 @@ export function callExportCompanyData(
  * sein Token trägt keine `companyId`, und daran hängt jede einzelne Regel.
  * Warum das so gebaut ist, steht in `shared/plattform.ts`.
  */
-export const callBetriebAnlegen = httpsCallable<
-  NeuerBetrieb,
-  { companyId: string; ersterAdminUid: string; passwortLink: string }
->(functions, 'betriebAnlegen');
+const betriebAlsFunction = httpsCallable<NeuerBetrieb, BetriebAngelegt>(
+  functions, 'betriebAnlegen',
+);
+
+/**
+ * UNTER POSTGRES IST DAS DIE EINE EDGE FUNCTION, die bleiben musste.
+ *
+ * Alles andere aus dem Functions-Bestand ist zu SQL geworden; ein
+ * ANMELDEKONTO aber entsteht im Anmeldedienst und nicht in einer Tabelle.
+ * Warum das keine Bequemlichkeit ist, steht im Kopf von
+ * `supabase/functions/betrieb-anlegen/index.ts`.
+ *
+ * Die Form bleibt: die Ansicht bekommt `{ data }` und merkt nichts.
+ */
+export function callBetriebAnlegen(
+  daten: NeuerBetrieb,
+): Promise<{ data: BetriebAngelegt }> {
+  return nutztPostgres()
+    ? betriebAnlegen(daten).then((data) => ({ data }))
+    : betriebAlsFunction(daten);
+}

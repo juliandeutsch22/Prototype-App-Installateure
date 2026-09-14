@@ -41,6 +41,12 @@ if [ "${1:-}" = "neu" ]; then
   npx --yes supabase@latest stop --no-backup >/dev/null 2>&1
 fi
 
+# DIE GEMEINSAMEN REGELN ZUERST. `supabase start` KOPIERT die Functions in
+# den Container — es bindet sie nicht ein. Fehlt `_shared` in diesem Moment,
+# startet die Edge Function mit einem fehlenden Import, und der Fehler steht
+# im Containerprotokoll statt im Testlauf.
+node "$(dirname "$0")/edge-shared-uebernehmen.mjs" >/dev/null
+
 if ! npx --yes supabase@latest start >/tmp/supabase-start.log 2>&1; then
   echo "Erster Versuch gescheitert, halte an und starte neu…"
   npx --yes supabase@latest stop --no-backup >/dev/null 2>&1
