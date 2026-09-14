@@ -115,6 +115,46 @@ anlegen; für einen einzelnen ist das in Ordnung.
 Kein Passwort, kein Link in der Ausgabe — freigeschaltet wird beides über
 „Passwort vergessen?", aus demselben Grund wie oben.
 
+#### Ohne Terminal: derselbe Weg im Dashboard
+
+Wer das Skript nicht laufen lassen will oder kann, kommt auch im Browser hin.
+Zwei Schritte, in dieser Reihenfolge:
+
+**1. Das Anmeldekonto.** *Authentication → Users → Add user → Create new
+user*: E-Mail, ein Passwort deiner Wahl, „Auto Confirm User" an. Die
+angezeigte User-UID brauchst du gleich.
+
+**2. Den Betrieb.** *SQL Editor*:
+
+```sql
+begin;
+-- OHNE DIESE ZEILE SCHEITERT DER AUFRUF, und die Meldung führt in die Irre:
+-- „Die Rolle Administrator vergibt und ändert nur ein Administrator". Der
+-- Riegel fragt den Anspruch aus dem Token, und der SQL Editor bringt keines
+-- mit. Über die Schnittstelle trägt der Dienstschlüssel ihn; hier wird er
+-- für diese eine Transaktion gesetzt.
+set local request.jwt.claims = '{"role":"service_role"}';
+
+select public.betrieb_anlegen(
+  'betrieb',                 -- Kennung, klein, ohne Leerzeichen
+  'Betrieb GmbH',            -- Anzeigename
+  '<User-UID aus Schritt 1>'::uuid,
+  'Vorname Nachname',
+  'chef@betrieb.at',
+  '<dieselbe User-UID>'::uuid);
+commit;
+```
+
+Ein Plattformverwalter, falls gewünscht, ist ein **zweites** Konto aus
+Schritt 1 mit einer eigenen Adresse:
+
+```sql
+insert into public.platform_admins (id, name)
+values ('<UID des zweiten Kontos>'::uuid, 'Plattformverwaltung');
+```
+
+Das Ergebnis ist dasselbe wie beim Skript — es ruft dieselbe Funktion.
+
 ### Weitere Betriebe: der globale Administrator
 
 Für jeden **weiteren** Betrieb gibt es einen zweiten Weg, und er ist der
