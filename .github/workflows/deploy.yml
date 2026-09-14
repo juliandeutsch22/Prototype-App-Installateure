@@ -135,18 +135,26 @@ jobs:
           VITE_PORTAL_NAME: ${{ vars.VITE_PORTAL_NAME || 'Perl Installationen' }}
           # Im Produktivbuild niemals gegen die lokalen Emulatoren zeigen.
           VITE_USE_EMULATORS: 'false'
-          # SUPABASE — ab hier liegt beides im Bundle, benutzt wird aber nur
-          # eines. Welches, entscheidet `VITE_DATENQUELLE`: alles ausser
-          # `postgres` heisst Firestore, und die Variable ist bis zum
-          # Umschalten in Stufe 8 nicht gesetzt.
+          # SUPABASE — DER SCHALTER STEHT AUF POSTGRES (Stufe 8).
           #
-          # Sie stehen trotzdem schon hier. Der Umzug soll an EINER Stelle
-          # umgelegt werden — an einer Variablen, nicht an einem Deploy, bei
-          # dem gleichzeitig drei neue Werte zum ersten Mal mitkommen. Wenn
-          # der Schalter fällt, ist das hier längst erprobt.
+          # Beides liegt weiter im Bundle, benutzt wird aber nur eines.
+          # Welches, entscheidet `VITE_DATENQUELLE`: alles ausser `postgres`
+          # heisst Firestore.
+          #
+          # DIE RÜCKFALLTÜR IST EINE VARIABLE, KEIN REVERT: steht die
+          # Repository-Variable `VITE_DATENQUELLE` auf `firestore`, baut der
+          # nächste Lauf wieder die alte Seite — ohne dass jemand unter Druck
+          # einen Commit zurücknehmen muss. Sie bleibt offen, bis Stufe 9 die
+          # Firestore-Hälfte ausbaut; vorher wäre ein Umzug ohne Rückweg eine
+          # Wette.
+          #
+          # OHNE DIE BEIDEN GEHEIMNISSE startet die App nicht still falsch,
+          # sondern gar nicht: `supabaseClient()` wirft mit einer Meldung, die
+          # sagt, was fehlt. Eine App, die sich ohne Zugangsdaten startet und
+          # erst beim ersten Speichern scheitert, kostet mehr Zeit.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_DATENQUELLE: ${{ vars.VITE_DATENQUELLE || 'firestore' }}
+          VITE_DATENQUELLE: ${{ vars.VITE_DATENQUELLE || 'postgres' }}
         run: npm run build
 
       # Der Schlüssel landet außerhalb des Arbeitsverzeichnisses, damit er
