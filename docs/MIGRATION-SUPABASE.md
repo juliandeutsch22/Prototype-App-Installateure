@@ -2004,3 +2004,88 @@ dem Umschalten kaputt wäre — und das ist erledigt.
 
 Stufe 8: umschalten. Alles, was danach kaputt wäre, ist umgezogen; was vorher
 nicht weg durfte, fällt in Stufe 9.
+
+---
+
+## Stufe 8: umschalten
+
+Drei Arbeiten, und zwei davon waren nicht im Plan — sie sind bei der
+Einrichtung des echten Projekts aufgefallen.
+
+### Der Wächter, den es vorher nicht gab
+
+`net.http_post` wartet nicht auf die Antwort. Kommt eine 401 zurück, weil ein
+Schlüssel nicht stimmt, steht das in `net._http_response`, und dort sieht
+niemand hin. `system_laeufe` — die Tabelle hinter der Überwachungsansicht —
+bleibt dabei **leer**, denn geschrieben wird sie von der Edge Function, und
+die ist nie angelaufen.
+
+In der Ansicht stünde also nicht „fehlgeschlagen", sondern gar nichts. Und gar
+nichts sieht aus wie „noch nie gelaufen", nicht wie „seit drei Wochen kaputt".
+
+Das ist kein gedachtes Beispiel: bei der Einrichtung ist genau das dreimal
+passiert, und gefunden wurde es jedes Mal von Hand. Ein zweiter
+`pg_cron`-Eintrag sieht jetzt eine Viertelstunde nach dem Anstoss nach, was
+daraus geworden ist, und schreibt alles ausser 200 als Fehlschlag fest — für
+jeden Betrieb, denn scheitert der Anstoss, ist der Lauf für alle ausgefallen.
+
+Der letzte **Erfolgs**zeitpunkt bleibt dabei stehen, wo er stand.
+
+### Die Erstanlage: Henne und Ei, zweimal übereinander
+
+Einen Betrieb legt die Edge Function an, und die lässt nur herein, wer in
+`platform_admins` steht. In diese Tabelle trägt aber niemand jemanden ein —
+sie hat absichtlich keine einzige Richtlinie.
+
+`scripts/bootstrap-postgres.mjs` durchbricht den Ring genau einmal, über
+**dieselbe** Datenbankfunktion wie die Edge Function. Zwei Wege wären zwei
+Fassungen derselben Vorgabewerte — Stundensätze, Steuersatz, Zahlungsziel —,
+und sie liefen auseinander.
+
+**Zwei Konten, nicht eines.** Der erste Anlauf wollte Betriebsadministrator
+und Plattformverwalter auf eine Kennung legen; die Datenbank hat das
+abgewiesen, und zu Recht. Gäbe es für dieselbe Kennung beides, entschiede
+allein die Reihenfolge zweier Trigger, ob am Ende ein Plattformkonto oder ein
+Konto *mit* Betrieb dasteht — und mit einem Betrieb im Token greift jede
+Leseregel. Ein Zufall entschiede über Leserechte an fremden Kundendaten.
+
+### Der Schalter
+
+`VITE_DATENQUELLE` steht im Auslieferungsworkflow jetzt auf `postgres`. Die
+Rückfalltür ist eine **Repository-Variable**, kein Revert: `VITE_DATENQUELLE`
+auf `firestore` gesetzt, und der nächste Lauf baut wieder die alte Seite —
+ohne dass jemand unter Druck einen Commit zurücknehmen muss. Sie bleibt offen,
+bis Stufe 9 die Firestore-Hälfte ausbaut.
+
+**Leer gestartet, nicht übernommen.** Im Pilotbetrieb lagen nur Testdaten. Ein
+Übernahmeskript hätte denselben Aufwand an Sorgfalt getragen wie eines für
+echte Daten und hätte nichts gerettet, was nicht in zehn Minuten neu erfasst
+ist. Das ist eine Entscheidung, keine Auslassung — und sie steht hier, weil
+sie nach dem Echtstart nicht mehr offen gestanden hätte.
+
+### Was am Umschalten nicht hängt
+
+Geprüft, bevor der Schalter fiel:
+
+* **Kein Firebase-eigener Weg bleibt erreichbar.** Die einzige Ansicht, die
+  noch eine Cloud Function ruft, ist die KI-Erfassung — und die ist doppelt
+  aus: `standard: false` am Modul, und `VITE_ENABLE_VOICE` ist nicht gesetzt.
+* **Der Knopf „Monatsbilanzen aufbauen"** stand schon in Stufe 7 hinter
+  `nutztPostgres()` und ist unter Postgres gar nicht da.
+* **Fehlende Zugangsdaten scheitern laut.** `supabaseClient()` wirft mit dem
+  Namen dessen, was fehlt, statt sich still mit `undefined` zu verbinden.
+
+### Stand
+
+| | |
+|---|---|
+| Prüfungen gegen die echte Datenbank | 630 |
+| Hermetische Prüfungen | 1726 |
+| Mutationen dieses Teils | 11 |
+| davon gefangen | 11 |
+
+### Als Nächstes
+
+Stufe 9: den Rückbau. Erst wenn der Betrieb ein paar Tage auf Postgres
+gelaufen ist — vorher wäre die Rückfalltür zugemauert, und das ist genau
+der Zeitpunkt, zu dem man sie braucht.
