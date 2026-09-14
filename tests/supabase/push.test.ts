@@ -206,7 +206,19 @@ describe('Wer die Function anstossen darf', () => {
     */
     const { status } = await anstossen({ art: 'neu', nachher: anforderung() }, monteur.token);
     expect(status).toBe(401);
-  }, 60_000);
+    /*
+      DIESELBE FRIST WIE BEI DEN GESCHWISTERN. Diese Prüfung hatte als einzige
+      im Haus die halbe — bei gleicher Arbeit: ein Aufruf derselben Function
+      über dasselbe Gateway. Auf dem CI-Läufer ist sie deshalb als erste
+      umgefallen, nicht weil sie etwas anderes prüft, sondern weil ihr Budget
+      knapper war.
+
+      Die Behauptung bleibt unverändert (401 für einen angemeldeten Menschen);
+      geändert ist nur, wie lange gewartet wird. Örtlich war die Verzögerung
+      nicht nachzustellen — fällt sie wieder um, liegt die Ursache woanders
+      und gehört gesucht, nicht weggewartet.
+    */
+  }, 120_000);
 
   it('und die Buchhaltung bekommt gar keine Materialmeldungen', async () => {
     // Sie steht nicht in den Empfängerrollen — geprüft wird das hier, weil
