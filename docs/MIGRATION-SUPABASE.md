@@ -2084,6 +2084,156 @@ Geprüft, bevor der Schalter fiel:
 | Mutationen dieses Teils | 11 |
 | davon gefangen | 11 |
 
+## Das Ausgangsfach war gebaut — und an nichts angeschlossen
+
+Der Fahrplan hat den ganzen Umzug an eine Bedingung geknüpft: *der Schreibweg
+ohne Empfang wird zuerst gebaut und bewiesen.* Gebaut war er seit Stufe 0,
+bewiesen auch — sechzehn Prüfungen gegen einen erfundenen Server, zehn gegen
+die echte Datenbank. **Aufgerufen hat ihn niemand.**
+
+Die Ansichten schrieben weiter unmittelbar und zeigten dabei denselben Satz
+wie unter Firestore:
+
+> Zeit gebucht — ohne Verbindung gespeichert, wird automatisch gesendet.
+
+Unter Firestore stimmte er: das SDK legte den Vorgang in IndexedDB ab und
+sendete ihn nach. Unter Postgres stimmte davon nichts. Der Aufruf scheiterte,
+die Buchung war weg, und auf dem Bildschirm stand eine Zusage, die niemand
+hielt. Gemerkt hätte man es am Monatsende, wenn niemand mehr weiss, welcher
+Tag es war.
+
+**Warum keine der bestehenden Prüfungen das gefangen hat**, und das ist die
+eigentliche Lehre: die Prüfungen des Ausgangsfachs rufen das Ausgangsfach.
+Sie beweisen, dass die Mechanik trägt — nie, dass jemand sie benutzt. Eine
+Prüfung, die ihren Prüfling selbst aufruft, kann die Frage „ruft ihn sonst
+noch wer?" grundsätzlich nicht beantworten.
+
+### Was jetzt daran hängt
+
+`src/lib/db/pg/ohneEmpfang.ts` ist die Brücke. Darüber laufen die beiden
+Vorgänge, die auf der Baustelle entstehen: die Zeitbuchung (`TimeForm`) und
+die Materialanforderung (`OrderView`). `src/components/Nachsender.tsx` stösst
+das Nachsenden an — beim Start, bei `online`, und beim Zurückkommen aus dem
+Hintergrund, weil `online` auf Telefonen unzuverlässig ist.
+
+**Nicht jeder Schreibvorgang gehört dazu**, und das ist keine Auslassung:
+nachsenden lässt sich nur, was ohne den Server entschieden werden kann. Eine
+Rechnungsnummer, ein Lagerabzug, eine Transaktion über mehrere Tabellen
+brauchen den Stand von jetzt. Ebenso wenig gehören die Büroansichten dazu: dort
+wäre ein stillschweigend vorgemerkter Vorgang schlimmer als eine
+Fehlermeldung.
+
+**Ohne Lager kein Versprechen.** Privates Fenster, gesperrter Speicher: dann
+wird geschrieben wie bisher, und ein Fehlschlag ist ein Fehlschlag. „Wird
+nachgesendet" zu melden, wo nichts gelagert werden kann, wäre dieselbe Lüge in
+neuen Kleidern.
+
+### Drei Prüfungen, weil eine die Lücke wieder zuliesse
+
+| Prüfung | Beantwortet die Frage |
+|---|---|
+| `tests/supabase/ohneEmpfang.test.ts` | Trägt der Weg von der Weiche bis in die Zeile in Postgres? Das Funkloch wird echt hergestellt — der Client zeigt auf einen Port, an dem niemand horcht |
+| `tests/unit/ausgangsfachNaht.test.ts` | Hängt das Fach überhaupt noch an den Ansichten? Liest den Quelltext, nicht das Verhalten — der Fehler war ein **fehlender Aufruf**, und den sieht man nur dort |
+| `TimeFormVormerkung.test.tsx`, `OrderView.test.tsx` | Übersetzt die Maske den Stand in den richtigen Satz — und verspricht sie nichts, wenn die Buchung angekommen ist? |
+
+Gegen absichtlich kaputten Code gehalten: sieben Mutationen, sechs sofort
+gefallen. Die siebte ist durchgelaufen — der Rückgabewert „ohne Lager,
+Schreibvorgang erfolgreich" war von keiner Prüfung berührt, weil der Fall im
+Funkloch immer scheitert. Die Gegenprobe mit Empfang fehlte; sie steht jetzt
+da.
+
+## Die `in`-Grenze ist nicht weg — sie hat die Form gewechselt
+
+Beim Umstellen stand in mehreren Modulen derselbe Vermerk: *„Die Blockbildung
+von Firestore entfällt: dort waren höchstens 30 Werte je `in`-Abfrage erlaubt,
+hier gibt es diese Grenze nicht."* Für Postgres stimmt das. Nur steht zwischen
+der App und Postgres **PostgREST**, und dort steht die Werteliste in der
+Adresse.
+
+Gemessen gegen den örtlichen Stapel: die Annahme bricht zwischen **8135 und
+8145 Zeichen** Werteliste ab, danach kommt `414 URI too long`. Bei Kennungen
+sind das gut 220 Stück.
+
+**Wen das trifft:** jede Abfrage nach dem Muster „Köpfe laden, dann die Zeilen
+dazu" — die Positionen zu einem Stapel Rechnungen, die Zeilen zu einem Monat
+Handwerksscheine, die Kunden zu dreihundert Baustellen. Nicht der Grenzfall,
+sondern der erste Betrieb mit ordentlich Daten. Im Pilotbetrieb mit zehn
+Zeilen fällt es nie auf.
+
+Gestückelt wird jetzt an einer Stelle, in `abfragen` — **nach Länge, nicht
+nach Anzahl**, denn eine Kennung wiegt 36 Zeichen und eine Baustellennummer
+neun. Das Budget ist 4000 Zeichen, die Hälfte des Gemessenen: die gehostete
+Anlage muss dieselbe Grenze nicht haben.
+
+**Zusammen mit einer Grenze (`limit`) bricht es laut ab.** Jeder Block brächte
+sonst seine eigenen `grenze` Zeilen mit, und zusammengelegt stünde eine andere
+Auswahl da als die gefragte; das nachträglich in der App zu sortieren hiesse,
+die Sortierregeln von Postgres nachzubauen — für Umlaute gehen die beiden
+auseinander. Heute ruft niemand so, und wer es täte, erfährt es sofort statt
+über eine Liste, die fast stimmt.
+
+Geprüft in `tests/supabase/inGrenze.test.ts`, gegen den echten Weg: erst wird
+**gemessen**, dass 400 Kennungen am Stück das `414` auslösen — ohne diese
+Messung bewiese die Prüfung nur, dass zwei Wege dasselbe liefern, nicht dass
+einer davon nötig ist. Drei Mutationen, drei gefallen.
+
+## Der Durchklick: die App im echten Browser
+
+Der Rauchtest des Betriebs hat an einem Nachmittag drei Fehler gefunden, die
+keine Prüfung vorher gesehen hatte — ein roter Kasten nach jedem
+Hintergrundwechsel, eine fehlende Rolle in der Auswertung, eine Fehlermeldung
+mit Firebase-Wortlaut. Das ist kein Zufall und kein Versäumnis im Einzelnen,
+sondern eine **Lücke der Bauart**:
+
+| Prüfung | Sieht | Ist blind für |
+|---|---|---|
+| `npm test` | Bausteine mit nachgebauter Umgebung | ob jemand den Baustein benutzt |
+| `npm run supabase:test` | die Datenschicht gegen die echte Datenbank | ob eine Ansicht sie ruft |
+| **`npm run durchklick`** | die Naht dazwischen | Darstellung, Geräte, Netzverhalten |
+
+Gefahren werden vier Wege, und die Auswahl ist eng: **Zeit buchen, Material
+anfordern, Schein unterschreiben, Rechnung stellen.** Die Anmeldung steht
+nicht daneben — jeder der vier beginnt damit, über die Maske und nicht über
+eine untergeschobene Sitzung.
+
+**Warum nicht mehr.** Ein Durchklick durch jede Ansicht kostet Stunden
+Rechenzeit und flattert; eine Prüfung, die mal fällt und mal nicht, wird nach
+zwei Wochen ignoriert, und dann ist sie schlimmer als keine. Deshalb steht
+auch `retries: 0` — ein Wiederholungslauf versteckt genau das Flattern, das
+man sehen will.
+
+### Was der erste Anlauf gekostet — und gezeigt hat
+
+Vier der fünf Anläufe sind an der App gescheitert, nicht an der Prüfung, und
+jeder davon ist ein Stück Wissen über den echten Weg:
+
+* Die **Baustelle ist Pflicht** bei der Zeitbuchung; ohne sie gibt der Browser
+  „Please select an item in the list" und es wird nichts gebucht.
+* Der **Name des Kunden in Druckbuchstaben** ist Pflicht am Schein — der Knopf
+  „Unterschreiben und abschließen" bleibt sonst gesperrt.
+* Die **Rolle entscheidet über die Navigation**: „Rechnungen" gibt es für die
+  Verwaltung nicht, nur für Buchhaltung und Führung.
+* Die **Kennung eines Zeiteintrags kommt vom Gerät** — die Spalte hat bewusst
+  keine Vorgabe (das ist die Bedingung fürs Nachsenden ohne Empfang).
+
+### Der Fehler, den der Durchklick an sich selbst gefunden hat
+
+Beim ersten gemeinsamen Lauf war `zeitBuchen` grün, **ohne etwas zu
+beweisen**: die Prüfung zählte EINE Zeile und fand die, die `rechnungStellen`
+hatte liegenlassen — ihre eigene Buchung war da noch gar nicht angekommen.
+Eine Prüfung, die von der Reihenfolge der Dateien abhängt, ist keine.
+
+Seither räumt jede ihren eigenen Tisch ab, und geprüft wird nicht mehr die
+ANZAHL, sondern die Zeile: Von, Bis, Pause, Baustelle.
+
+Dieselbe Sorte Blindheit steckte in der Unterschrift. Mit demselben Strich auf
+beiden Feldern konnte die Prüfung nicht sehen, dass die Ansicht zweimal
+dasselbe Bild einfriert — ein Schein, auf dem der Kunde die Handschrift des
+Monteurs trägt. Die Mutation ist durchgekommen; jetzt werden zwei
+verschiedene Züge gezeichnet und die Bilder gegeneinander geprüft.
+
+Vier Mutationen gehalten: drei sofort gefallen, die vierte war diese.
+
 ### Als Nächstes
 
 Stufe 9: den Rückbau. Erst wenn der Betrieb ein paar Tage auf Postgres

@@ -155,3 +155,23 @@ export const canExtendTimeEntry = (r: Role) =>
 /** Soll/Ist-Saldo gilt nur für diese Rollen (Leitung ausgenommen). */
 export const shouldShowOvertime = (r: Role) =>
   r === 'Mitarbeiter' || r === 'Verwaltung' || r === 'Buchhaltung';
+
+/**
+ * Wer in der Mitarbeiterübersicht erscheint.
+ *
+ * DAS IST EINE ANDERE FRAGE ALS DIE NACH DEM SALDO, und sie war bisher
+ * dieselbe. Ein Projektleiter führt kein Zeitkonto — er hat kein Soll, also
+ * auch keine Über- oder Unterstunden. Er BUCHT aber Zeit: bei einem Notdienst
+ * fährt er selbst hinaus, und `canExtendTimeEntry` gibt ihm dafür
+ * ausdrücklich die vollen Felder.
+ *
+ * Seine Stunden gehören damit in die Monatsauswertung — sie stehen auf einer
+ * Baustelle und in einer Nachkalkulation. Aus dem Betrieb gemeldet: der
+ * Projektleiter bucht und taucht nirgends auf.
+ *
+ * Geschäftsführung und Administration bleiben draussen. Sie buchen im
+ * Regelfall nicht, und eine Zeile ohne Zahlen ist in einer Auswertung kein
+ * Gewinn, sondern eine Zeile mehr.
+ */
+export const erscheintInAuswertung = (r: Role) =>
+  shouldShowOvertime(r) || r === 'Projektleiter';

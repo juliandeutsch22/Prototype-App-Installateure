@@ -1,0 +1,89 @@
+name: Durchklick
+
+# DIE APP IM ECHTEN BROWSER, auf den vier Wegen, bei denen ein Fehler Geld
+# oder Arbeitszeit kostet: Zeit buchen, Material anfordern, Schein
+# unterschreiben, Rechnung stellen. Die Anmeldung steht nicht daneben — jeder
+# der vier beginnt damit, und zwar über die Maske, nicht über eine
+# untergeschobene Sitzung.
+#
+# WARUM ES DIESEN AUFTRAG NEBEN DEN ANDEREN GIBT. „Typen, Lint und Tests"
+# prüft Bausteine mit nachgebauter Umgebung, „Migrationen von null an" die
+# Datenschicht gegen die echte Datenbank. Beide sind blind für die Naht
+# dazwischen: eine Ansicht, die eine Funktion ruft, die es nicht mehr gibt;
+# ein Knopf, der nach einem Umbau ins Leere zeigt. Genau diese Sorte hat der
+# Rauchtest des Betriebs gefunden — drei Stück an einem Nachmittag, keinen
+# davon hat eine Prüfung vorher gesehen.
+#
+# NUR AUF PULL REQUESTS, nicht auf jedem Push nach main: der Lauf braucht
+# einen ganzen Supabase-Stapel und einen Browser. Was hier rot wird, muss vor
+# dem Merge grün sein — danach ist es zu spät.
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'shared/**'
+      - 'supabase/**'
+      - 'tests/durchklick/**'
+      - 'playwright.config.ts'
+      - '.github/workflows/durchklick.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: durchklick-${{ github.ref }}
+  cancel-in-progress: true
+
+# Node 22 aus demselben Grund wie bei den Migrationen: `supabase-js` baut im
+# Konstruktor einen Realtime-Client und verlangt dafür ein globales
+# `WebSocket`, das es erst ab 22 gibt.
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  durchklicken:
+    name: Die vier Wege im Browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Vor dem Start: `supabase start` kopiert die Functions in den
+      # Container, es bindet sie nicht ein.
+      - name: Gemeinsame Regeln übernehmen
+        run: npm run gemeinsames
+
+      - name: Stapel hochfahren
+        run: supabase start
+
+      # NUR CHROMIUM, nicht alle drei Browser: jeder weitere kostet Minuten
+      # Ladezeit für einen Erkenntnisgewinn, den diese fünf Wege nicht
+      # hergeben — sie prüfen Abläufe, nicht Darstellung.
+      - name: Browser holen
+        run: npx playwright install --with-deps chromium
+
+      - name: Durchklick
+        run: npm run durchklick
+
+      # Bilder und Spuren NUR BEI ROT. Sie sind der Unterschied zwischen
+      # „irgendein Knopf fehlte" und einer Antwort in zwei Minuten.
+      - name: Bilder und Spuren sichern
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: durchklick-spuren
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

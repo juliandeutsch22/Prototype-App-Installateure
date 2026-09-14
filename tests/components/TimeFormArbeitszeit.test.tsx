@@ -26,8 +26,9 @@ const MONTEUR = 'u1';
 
 const eintraegeAmTag = vi.fn(async () => []);
 vi.mock('@/lib/db/timeEntries', () => ({
-  createTimeEntry: vi.fn(async () => 'neu'),
-  updateTimeEntry: vi.fn(async () => undefined),
+  // Die Maske schreibt über das Ausgangsfach; die Antwort ist der Stand.
+  createTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
+  updateTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
   eintraegeAmTag: () => eintraegeAmTag(),
   DuplicateEntryError: class extends Error {},
 }));

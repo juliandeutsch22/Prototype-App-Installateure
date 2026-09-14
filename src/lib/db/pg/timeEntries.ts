@@ -8,6 +8,10 @@
 import type { TimeEntry } from '@/types';
 import { abfragen, abonnieren, anlegenMitKennung, aendern as kernAendern, loeschen as kernLoeschen, type WithId } from './kern';
 
+import {
+  aendernOhneEmpfang as fachAendern, anlegenOhneEmpfang as fachAnlegen,
+} from './ohneEmpfang';
+
 const ZEITEN = 'time_entries';
 
 export function listOwnEntriesSince(companyId: string, uid: string, from: string) {
@@ -120,6 +124,21 @@ export function anlegen(companyId: string, entry: NewTimeEntry) {
 
 export function aendern(id: string, data: Partial<TimeEntry>) {
   return kernAendern(ZEITEN, id, data);
+}
+
+/**
+ * Dasselbe, aber mit dem Ausgangsfach dahinter — für den Monteur im Keller.
+ *
+ * Getrennt von `anlegen`/`aendern`, weil nicht jeder Aufrufer ein Vormerken
+ * will: das Büro sitzt am Schreibtisch, und eine Zeile, die dort „vorgemerkt"
+ * meldet, verwirrt mehr, als sie hilft.
+ */
+export function anlegenOhneEmpfang(companyId: string, entry: NewTimeEntry) {
+  return fachAnlegen(ZEITEN, companyId, entry as unknown as Record<string, unknown>);
+}
+
+export function aendernOhneEmpfang(id: string, data: Partial<TimeEntry>) {
+  return fachAendern(ZEITEN, id, data as Record<string, unknown>);
 }
 
 export function loeschen(id: string) {

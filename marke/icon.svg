@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Senklot">
+  <title>Senklot</title>
+
+  <!-- FLÄCHE STATT VERLAUF. Ein Verlauf datiert ein Zeichen auf das Jahr,
+       in dem er gemacht wurde; eine Fläche nicht. -->
+  <rect width="64" height="64" rx="14" fill="#0F4552"/>
+
+  <!-- Die Schnur: Haarlinie, stumpf abgeschnitten. Ein runder Abschluss
+       macht sie weich, und weich ist das Gegenteil von genau. -->
+  <path d="M32 6 V17" stroke="#FFFFFF" stroke-width="1.6"/>
+
+  <!-- Der Körper aus VIER GERADEN. Die Rundungen der ersten Fassung liessen
+       ihn als Blatt lesen; gerade Kanten machen daraus wieder ein Werkzeug.
+       Die breiteste Stelle sitzt im oberen Drittel — daran, und nicht an der
+       Silhouette allein, erkennt man ein Senklot. -->
+  <path d="M32 17 L41 30 L32 58 L23 30 Z" fill="#FFFFFF"/>
+</svg>

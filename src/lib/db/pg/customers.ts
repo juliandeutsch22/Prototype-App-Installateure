@@ -24,8 +24,11 @@ export function listCustomers(companyId: string, max = KUNDEN_GRENZE) {
 /**
  * Bestimmte Kunden, nach Id.
  *
- * Die Blockbildung von Firestore entfällt: dort waren höchstens 30 Werte je
- * `in`-Abfrage erlaubt, hier gibt es diese Grenze nicht.
+ * Die Blockbildung von Firestore (höchstens 30 Werte je `in`-Abfrage) steht
+ * hier nicht mehr — sie ist nach `kern.ts` gewandert. Postgres kennt die
+ * Grenze wirklich nicht; PostgREST trägt die Werteliste aber in der ADRESSE,
+ * und die ist ab rund 8000 Zeichen zu lang. `abfragen` stückelt deshalb
+ * selbst, nach Länge statt nach Anzahl.
  */
 export async function listCustomersByIds(companyId: string, ids: string[]) {
   const eindeutig = [...new Set(ids.filter(Boolean))];

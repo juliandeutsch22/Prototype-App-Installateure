@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
-  createTimeEntry,
-  updateTimeEntry,
+  createTimeEntryOhneEmpfang,
+  updateTimeEntryOhneEmpfang,
   eintraegeAmTag,
   DuplicateEntryError,
 } from '@/lib/db/timeEntries';
@@ -18,7 +18,7 @@ import Button from '@/components/Button';
 import { ErrorState } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
-import { writeWithOfflineNotice, queuedMessage } from '@/lib/offlineWrite';
+import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, Role } from '@/types';
 
@@ -322,33 +322,29 @@ export default function TimeForm({
           entry.userId !== user.uid
             ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
             : {};
-        const stand = await writeWithOfflineNotice(
-          // Geprüft wird gegen die Tage des EIGENTÜMERS, nicht gegen die des
-          // Bearbeiters — die Buchhaltung korrigiert fremde Einträge.
-          updateTimeEntry(
-            entry.id,
-            { ...payload, ...audit },
-            { companyId: user.companyId, userId: entry.userId },
-          ),
+        // Geprüft wird gegen die Tage des EIGENTÜMERS, nicht gegen die des
+        // Bearbeiters — die Buchhaltung korrigiert fremde Einträge.
+        const stand = await updateTimeEntryOhneEmpfang(
+          entry.id,
+          { ...payload, ...audit },
+          { companyId: user.companyId, userId: entry.userId },
         );
-        if (stand === 'queued') toast.info(queuedMessage('Änderung übernommen'));
+        if (stand === 'queued') toast.info(vorgemerktMeldung('Änderung übernommen'));
         else toast.success('Eintrag aktualisiert');
       } else {
         // Beim Erfassen für jemand anderen gehört der Eintrag DEM Mitarbeiter,
         // nicht dem Erfassenden — sonst stünde er im falschen Zeitkonto.
         const owner = target ?? { uid: user.uid, name: user.name };
-        const stand = await writeWithOfflineNotice(
-          createTimeEntry(user.companyId, {
-            ...payload,
-            userId: owner.uid,
-            userName: owner.name,
-            source: 'manual',
-            ...(target
-              ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
-              : {}),
-          }),
-        );
-        if (stand === 'queued') toast.info(queuedMessage('Zeit gebucht'));
+        const stand = await createTimeEntryOhneEmpfang(user.companyId, {
+          ...payload,
+          userId: owner.uid,
+          userName: owner.name,
+          source: 'manual',
+          ...(target
+            ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
+            : {}),
+        });
+        if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit gebucht'));
         else toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht');
         setComment('');
       }

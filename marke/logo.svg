@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 64" role="img" aria-label="Senklot">
+  <title>Senklot</title>
+  <path d="M16 9 V21" stroke="#0F4552" stroke-width="1.7"/>
+  <path d="M16 21 L24 33 L16 56 L8 33 Z" fill="#0F4552"/>
+
+  <!-- Mittlere Stärke, offene Laufweite: fett und eng gesetzt wirkt laut und
+       altert schnell. Poppins, weil die App sie ohnehin trägt — die Marke
+       kommt aus dem Produkt. -->
+  <text x="44" y="43"
+        font-family="Poppins, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+        font-size="27" font-weight="500" letter-spacing="0.6" fill="#0F4552">Senklot</text>
+</svg>

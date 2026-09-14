@@ -3,6 +3,7 @@
  */
 import type { MaterialOrder } from '@/types';
 import { nutztPostgres } from './quelle';
+import type { WriteOutcome } from '@/lib/sync/ausgangsfach';
 import type { WithId } from './core';
 import * as fs from './fs/materialOrders';
 import * as pg from './pg/materialOrders';
@@ -38,6 +39,20 @@ export function createMaterialOrder(
   return nutztPostgres()
     ? pg.createMaterialOrder(companyId, order)
     : fs.createMaterialOrder(companyId, order);
+}
+
+/**
+ * Dasselbe für die Anforderung von der Baustelle — mit Ausgangsfach.
+ *
+ * Getrennt von `createMaterialOrder`, weil die Einsatzplanung im Büro dieselbe
+ * Funktion ruft und dort nichts vorgemerkt werden soll.
+ */
+export async function createMaterialOrderOhneEmpfang(
+  companyId: string, order: NewMaterialOrder,
+): Promise<WriteOutcome> {
+  if (!nutztPostgres()) return fs.createMaterialOrderOhneEmpfang(companyId, order);
+  const { stand } = await pg.createMaterialOrderOhneEmpfang(companyId, order);
+  return stand;
 }
 
 /**

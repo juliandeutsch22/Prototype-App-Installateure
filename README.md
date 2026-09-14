@@ -426,9 +426,28 @@ dagegen echt geheim** und gehört niemals in einen Commit.
 
 ### Ablauf
 
-- **Pull Request:** Typprüfung, Lint, 590 Unit-Tests, 148 Rules-Tests. Kein Deploy.
+- **Pull Request:** Typprüfung, Lint, die hermetischen Prüfungen und die
+  Rules-Tests; dazu die Migrationen von null an mit den Prüfungen gegen die
+  echte Datenbank, und der **Durchklick** — die App im echten Browser auf den
+  vier Wegen, an denen Geld oder Arbeitszeit hängt. Kein Deploy.
 - **Push auf `main`:** dieselben Prüfungen, danach Build und Deploy.
 - **Von Hand:** *Actions → „Test und Deploy" → Run workflow*.
+
+Zahlen stehen hier bewusst keine: sie veralten schneller, als sie jemand
+nachträgt, und eine falsche Zahl im README ist schlechter als keine. Was
+wirklich lief, steht im Protokoll des Laufs.
+
+Örtlich:
+
+| Befehl | Was er prüft |
+| --- | --- |
+| `npm test` | Bausteine, ohne Stapel — läuft überall |
+| `npm run supabase:test` | die Datenschicht gegen die echte Datenbank (`npm run stack` zuerst) |
+| `npm run durchklick` | die vier Wege im Browser (Stapel nötig) |
+
+Der Durchklick holt sich beim ersten Mal einen Browser (`npx playwright
+install chromium`). Liegt auf dem Rechner schon einer, zeigt `CHROMIUM_PFAD`
+darauf und der Download entfällt.
 
 Fehlt ein Secret, bricht der Deploy mit einer Klartextmeldung ab, bevor
 irgendetwas veröffentlicht wird. Das ist Absicht: `npm run build` läuft auch

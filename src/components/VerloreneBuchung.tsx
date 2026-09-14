@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { beiVorgemerktemFehlschlag } from '@/lib/offlineWrite';
+import { beiVormerkungFehlgeschlagen } from '@/lib/sync/ausgangsfach';
 import { useToast } from '@/components/Toast';
 
 /**
@@ -19,17 +20,28 @@ import { useToast } from '@/components/Toast';
  * OHNE FRIST UND OHNE KNOPF: Die Meldung darf nicht wegblinken, bevor jemand
  * sie gelesen hat, und es gibt nichts zu tun ausser nachzusehen. Deshalb ein
  * Hinweis, der stehen bleibt, bis die App neu geladen wird.
+ *
+ * ZWEI QUELLEN, EINE MELDUNG. Unter Firestore kommt der Fehlschlag aus dem
+ * SDK (`offlineWrite`), unter Postgres aus dem eigenen Ausgangsfach
+ * (`sync/ausgangsfach`). Beide werden hier gehört: welche Datenquelle gerade
+ * gilt, ist für den Monteur keine Information — er will wissen, dass seine
+ * Buchung fehlt. Die zweite Zeile fällt mit Stufe 9 weg.
  */
 export default function VerloreneBuchung() {
   const toast = useToast();
 
   useEffect(() => {
-    beiVorgemerktemFehlschlag(() => {
+    const melden = () => {
       toast.error(
         'Eine vorgemerkte Buchung konnte nicht gesendet werden. Bitte in der Übersicht nachsehen und gegebenenfalls neu erfassen.',
       );
-    });
-    return () => beiVorgemerktemFehlschlag(null);
+    };
+    beiVorgemerktemFehlschlag(melden);
+    beiVormerkungFehlgeschlagen(melden);
+    return () => {
+      beiVorgemerktemFehlschlag(null);
+      beiVormerkungFehlgeschlagen(null);
+    };
   }, [toast]);
 
   return null;

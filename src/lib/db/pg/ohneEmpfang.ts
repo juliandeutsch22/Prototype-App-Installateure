@@ -1,0 +1,148 @@
+/**
+ * Die Brücke zwischen der Datenschicht und dem Ausgangsfach.
+ *
+ * WAS HIER FEHLTE — und es ist die Bedingung, unter der dieser ganze Umzug
+ * beschlossen wurde: „der Schreibweg ohne Empfang wird zuerst gebaut und
+ * bewiesen." Gebaut wurde er (`lib/sync/ausgangsfach.ts`), bewiesen auch
+ * (`tests/supabase/durchstich0.test.ts`, gegen die echte Datenbank). Nur
+ * ANGESCHLOSSEN war er an keiner einzigen Stelle.
+ *
+ * Solange das so war, sagte die App dem Monteur im Keller:
+ *
+ *   „Änderung übernommen — ohne Verbindung gespeichert, wird automatisch
+ *    gesendet."
+ *
+ * Unter Firestore stimmte dieser Satz: das SDK legte den Vorgang lokal ab und
+ * sendete ihn nach. Unter Postgres stimmte davon nichts. Der Aufruf scheiterte,
+ * die Buchung war weg, und auf dem Bildschirm stand eine Zusage, die niemand
+ * hielt. Eine falsche Bestätigung ist schlimmer als eine ehrliche
+ * Fehlermeldung — und eine verlorene Arbeitsstunde merkt man erst am
+ * Monatsende, wenn niemand mehr weiss, welcher Tag es war.
+ *
+ * WARUM NUR ANLEGEN UND ÄNDERN, und nicht jeder Schreibvorgang: nachsenden
+ * lässt sich nur, was ohne den Server entschieden werden kann. Eine
+ * Datenbankfunktion, die Lagerstände verrechnet, eine Rechnungsnummer zieht
+ * oder eine Transaktion über mehrere Tabellen führt, kann das nicht — sie
+ * braucht den Stand von jetzt. Das ist keine Einschränkung dieser Datei,
+ * sondern die Natur der Sache, und sie steht hier, damit niemand später die
+ * Liste stillschweigend erweitert.
+ */
+import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  schreiben, type Auftrag, type Lager, type WriteOutcome,
+} from '@/lib/sync/ausgangsfach';
+import { lagerImBrowser, lagerVerfuegbar } from '@/lib/sync/lagerIndexedDB';
+import { supabaseSender } from '@/lib/sync/supabaseSender';
+import { nachsenden } from '@/lib/sync/ausgangsfach';
+import { derClient } from './kern';
+import { objektAlsZeile } from './felder';
+
+/**
+ * Das Lager wird EINMAL geöffnet und gemerkt.
+ *
+ * Zwei Verbindungen auf dieselbe IndexedDB-Datenbank sind nicht falsch, aber
+ * jede kostet beim Öffnen — und der erste Schreibvorgang nach dem Start ist
+ * genau der, bei dem der Monteur schon wartet.
+ */
+let gemerktesLager: Lager | null = null;
+
+function lager(): Lager | null {
+  // Ein eingereichtes Lager gilt, ohne nachzufragen: in der Prüfung gibt es
+  // kein IndexedDB, und `lagerVerfuegbar()` würde es vor der Benutzung wieder
+  // wegwerfen.
+  if (gemerktesLager) return gemerktesLager;
+  if (!lagerVerfuegbar()) return null;
+  gemerktesLager = lagerImBrowser();
+  return gemerktesLager;
+}
+
+/** Nur für Prüfungen: ein eigenes Lager unterschieben. */
+export function lagerEinreichen(eigenes: Lager | null): void {
+  gemerktesLager = eigenes;
+}
+
+/**
+ * Ohne IndexedDB gibt es kein Vormerken — und dann auch kein Versprechen.
+ *
+ * Privates Fenster, gesperrter Speicher, ein sehr alter Browser: dann wird
+ * geschrieben wie bisher, und ein Fehlschlag ist ein Fehlschlag. Das ist die
+ * ehrliche Fassung; „wird nachgesendet" zu melden, wo nichts gelagert werden
+ * kann, wäre dieselbe Lüge in neuen Kleidern.
+ */
+function ohneLager<T>(tun: () => Promise<T>): Promise<T> {
+  return tun();
+}
+
+/**
+ * Anlegen mit einer Kennung VOM GERÄT — bestätigt oder vorgemerkt.
+ *
+ * Die Kennung steht fest, bevor der Server sie bestätigt hat. Nur deshalb
+ * darf derselbe Vorgang zweimal ankommen, ohne zweimal zu landen: der Sender
+ * schreibt mit `upsert` auf ebendiese Kennung.
+ */
+export async function anlegenOhneEmpfang(
+  tabelle: string,
+  companyId: string,
+  daten: Record<string, unknown>,
+  client?: SupabaseClient,
+): Promise<{ id: string; stand: WriteOutcome }> {
+  const id = crypto.randomUUID();
+  const zeile = { ...objektAlsZeile(tabelle, daten), company_id: companyId };
+  const fach = lager();
+
+  if (!fach) {
+    await ohneLager(async () => {
+      const c = derClient(client);
+      const { error } = await c.from(tabelle).upsert({ ...zeile, id }, { onConflict: 'id' });
+      if (error) throw new Error(error.message);
+    });
+    return { id, stand: 'confirmed' };
+  }
+
+  const auftrag: Auftrag = { tabelle, art: 'anlegen', zeile: id, daten: zeile };
+  const stand = await schreiben(auftrag, fach, supabaseSender(derClient(client)));
+  return { id, stand };
+}
+
+/** Ändern — bestätigt oder vorgemerkt. */
+export async function aendernOhneEmpfang(
+  tabelle: string,
+  id: string,
+  daten: Record<string, unknown>,
+  client?: SupabaseClient,
+): Promise<WriteOutcome> {
+  const zeile = objektAlsZeile(tabelle, daten);
+  const fach = lager();
+
+  if (!fach) {
+    await ohneLager(async () => {
+      const c = derClient(client);
+      const { error } = await c.from(tabelle).update(zeile).eq('id', id);
+      if (error) throw new Error(error.message);
+    });
+    return 'confirmed';
+  }
+
+  const auftrag: Auftrag = { tabelle, art: 'aendern', zeile: id, daten: zeile };
+  return schreiben(auftrag, fach, supabaseSender(derClient(client)));
+}
+
+/**
+ * Was noch im Fach liegt, jetzt nachsenden.
+ *
+ * Gibt zurück, wie viele Vorgänge durchgingen — der Aufrufer entscheidet, ob
+ * er das zeigt. Ohne Lager gibt es nichts nachzusenden, und das ist kein
+ * Fehler.
+ */
+export async function nachsendenJetzt(client?: SupabaseClient) {
+  const fach = lager();
+  if (!fach) return { gesendet: 0, abgelehnt: 0, offen: 0 };
+  return nachsenden(fach, supabaseSender(derClient(client)));
+}
+
+/** Wie viele Vorgänge warten? Für die Anzeige, nicht für Entscheidungen. */
+export async function offeneVormerkungen(): Promise<number> {
+  const fach = lager();
+  if (!fach) return 0;
+  return (await fach.alle()).length;
+}

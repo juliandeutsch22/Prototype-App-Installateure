@@ -27,9 +27,10 @@ export function listActiveProjects(companyId: string, max = BAUSTELLEN_AUSWAHL_G
 /**
  * Bestimmte Baustellen, nach Nummer.
  *
- * Die Blockbildung entfällt: Firestore erlaubte höchstens 30 Werte je
- * `in`-Abfrage, Postgres kennt diese Grenze nicht. Eine Abfrage statt
- * vier — und keine Stelle mehr, an der jemand die Blockgrösse vergisst.
+ * Die Blockbildung steht hier nicht mehr, sondern in `kern.ts`: Postgres
+ * kennt die 30-Werte-Grenze von Firestore nicht, PostgREST hat dafür eine
+ * Längengrenze für die Adresse — und keine Stelle hier, an der jemand die
+ * Blockgrösse vergisst.
  */
 export async function listProjectsByNumbers(companyId: string, numbers: string[]) {
   const eindeutig = [...new Set(numbers.filter(Boolean))];

@@ -11,6 +11,8 @@ import type { MaterialOrder } from '@/types';
 import { abfragen, abonnieren, anlegenMitKennung, loeschen, derClient, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 
+import { anlegenOhneEmpfang as fachAnlegen } from './ohneEmpfang';
+
 const ANFORDERUNGEN = 'material_orders';
 
 export function subscribeOwnOrders(
@@ -54,6 +56,11 @@ export type NewMaterialOrder = Omit<MaterialOrder, 'id' | 'companyId' | 'created
  */
 export function createMaterialOrder(companyId: string, order: NewMaterialOrder) {
   return anlegenMitKennung(ANFORDERUNGEN, companyId, crypto.randomUUID(), order);
+}
+
+/** Dasselbe, mit dem Ausgangsfach dahinter — für die Anforderung von der Baustelle. */
+export function createMaterialOrderOhneEmpfang(companyId: string, order: NewMaterialOrder) {
+  return fachAnlegen(ANFORDERUNGEN, companyId, order as unknown as Record<string, unknown>);
 }
 
 /**

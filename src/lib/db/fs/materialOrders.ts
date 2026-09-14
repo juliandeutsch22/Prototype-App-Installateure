@@ -12,6 +12,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { writeWithOfflineNotice } from '@/lib/offlineWrite';
 import type { MaterialOrder } from '@/types';
 import { queryTenant, subscribeTenant, createInTenant, stripUndefined, type WithId } from './core';
 
@@ -243,4 +244,9 @@ export function listOwnOpenOrders(companyId: string, uid: string) {
     where('userId', '==', uid),
     where('status', 'in', ['Offen', 'In Bearbeitung', 'Abholbereit']),
   );
+}
+
+/** Wie in `pg/` benannt; hier trägt es Firestore selbst. Fällt mit Stufe 9 weg. */
+export function createMaterialOrderOhneEmpfang(companyId: string, order: NewMaterialOrder) {
+  return writeWithOfflineNotice(createMaterialOrder(companyId, order));
 }

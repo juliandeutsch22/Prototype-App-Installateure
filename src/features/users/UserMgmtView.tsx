@@ -22,6 +22,7 @@ import RowMenu from '@/components/RowMenu';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { anlegeFehler } from './anlegeFehler';
 
 const WEEKDAYS: { value: number; label: string }[] = [
   { value: 1, label: 'Mo' },
@@ -210,14 +211,7 @@ export default function UserMgmtView() {
       }
       await reload();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '';
-      setError(
-        msg.includes('email-already-in-use')
-          ? 'Diese E-Mail ist bereits vergeben.'
-          : editing
-            ? 'Die Änderungen konnten nicht gespeichert werden.'
-            : 'Der Benutzer konnte nicht angelegt werden.',
-      );
+      setError(anlegeFehler(err, Boolean(editing)));
     } finally {
       setSaving(false);
     }
