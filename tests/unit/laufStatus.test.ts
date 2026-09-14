@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { beurteile, laufId, FRIST_STUNDEN, type Lauf } from '@shared/laufStatus';
+import {
+  beurteile, pushBeurteilen, laufId, FRIST_STUNDEN,
+  type Lauf, type NachtLaufArt,
+} from '@shared/laufStatus';
 
 /**
  * Die Überwachung der nächtlichen Läufe.
@@ -13,7 +16,7 @@ import { beurteile, laufId, FRIST_STUNDEN, type Lauf } from '@shared/laufStatus'
 const STUNDE = 3_600_000;
 const JETZT = Date.parse('2026-09-07T08:00:00Z');
 
-function lauf(zusatz: Partial<Lauf> = {}): Lauf {
+function lauf(zusatz: Partial<Lauf<NachtLaufArt>> = {}): Lauf<NachtLaufArt> {
   return { companyId: 'perl', art: 'ausleitung', ...zusatz };
 }
 
@@ -108,5 +111,58 @@ describe('Die Kennung', () => {
     // wären eine Sicherung, deren Zustand niemand findet.
     expect(laufId('perl', 'ausleitung')).toBe('perl_ausleitung');
     expect(laufId('perl', 'bilanzen')).toBe('perl_bilanzen');
+  });
+});
+
+describe('Der Push-Versand wird anders beurteilt als ein Nachtlauf', () => {
+  /*
+    DER UNTERSCHIED IST DER GANZE PUNKT. Ein Nachtlauf MUSS laufen; bleibt er
+    aus, ist genau das der Fehler. Push läuft, WENN etwas passiert — bestellt
+    drei Tage niemand Material, geht zu Recht keine Meldung hinaus.
+
+    Würde `beurteile` darübergelegt, stünde am ruhigen Wochenende „überfällig"
+    über einem Versand, der nichts zu tun hatte. Eine Warnung, die grundlos
+    erscheint, wird nach zwei Wochen nicht mehr gelesen — auch dann nicht,
+    wenn sie einmal recht hat.
+  */
+  const push = (zusatz: Partial<Lauf<'push'>> = {}): Lauf<'push'> => ({
+    companyId: 'perl', art: 'push', ...zusatz,
+  });
+
+  it('kennt keine Frist: ein alter Erfolg bleibt ein Erfolg', () => {
+    const vorEinerWoche = JETZT - 7 * 24 * STUNDE;
+    const u = pushBeurteilen(push({
+      zuletztVersuch: vorEinerWoche, zuletztErfolg: vorEinerWoche, erfolg: true, kennzahl: 0,
+    }));
+    // Derselbe Abstand macht einen Nachtlauf längst überfällig.
+    expect(beurteile(lauf({ zuletztErfolg: vorEinerWoche }), JETZT).stand).toBe('ueberfaellig');
+    expect(u.stand).toBe('gut');
+  });
+
+  it('meldet, wie viele nicht durchkamen', () => {
+    const u = pushBeurteilen(push({
+      zuletztVersuch: JETZT, erfolg: false, kennzahl: 3,
+      meldung: 'Der Versand antwortete mit 401: Keine Anmeldung.',
+    }));
+    expect(u.stand).toBe('ueberfaellig');
+    expect(u.text).toContain('3 Push-Meldungen');
+    // Die Meldung des Servers gehört dazu — ohne sie sucht jemand im Falschen.
+    expect(u.text).toContain('401');
+  });
+
+  it('zählt richtig im Einzahl', () => {
+    const u = pushBeurteilen(push({ zuletztVersuch: JETZT, erfolg: false, kennzahl: 1 }));
+    expect(u.text).toContain('1 Push-Meldung kam');
+  });
+
+  it('ohne jeden Versuch wird nichts behauptet', () => {
+    /*
+      NICHT „funktioniert nicht". Ein Betrieb, der noch keine Meldung
+      ausgelöst hat, hat kein Problem — und ein roter Kasten dafür wäre die
+      erste Warnung, die jemand wegklickt.
+    */
+    const u = pushBeurteilen(undefined);
+    expect(u.stand).toBe('unbekannt');
+    expect(u.text).not.toMatch(/Fehler|nicht durch/);
   });
 });

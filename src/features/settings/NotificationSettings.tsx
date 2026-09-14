@@ -10,6 +10,7 @@ import { CheckboxField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, TeilFehler } from '@/components/States';
+import PushStatus from './PushStatus';
 
 /** Was der Zustand für den Nutzer bedeutet — in seinen Worten, nicht in Fehlercodes. */
 const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus' }> = {
@@ -239,6 +240,21 @@ export default function NotificationSettings() {
           </div>
         )}
       </Card>
+
+      {/*
+        NUR FÜR DIE FÜHRUNG, aus demselben Grund wie die Lauf-Warnung auf der
+        Startseite: ein Monteur kann an einem gestörten Versand nichts ändern,
+        und „drei Meldungen kamen nicht durch" wäre für ihn eine Beunruhigung
+        ohne Handlungsmöglichkeit.
+      */}
+      {user && isGF(user.role) && (
+        <Card
+          title="Kommen die Meldungen an?"
+          hint="Stündlich nachgesehen: von den Meldungen, die angestossen wurden, wie viele haben den Versand nicht verlassen. Keine Frist — Push läuft, wenn es etwas zu melden gibt, und ein ruhiger Tag ist kein Befund."
+        >
+          <PushStatus />
+        </Card>
+      )}
     </div>
   );
 }

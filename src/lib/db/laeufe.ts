@@ -10,7 +10,9 @@ import { nutztPostgres } from './quelle';
 import * as fs from './fs/laeufe';
 import * as pg from './pg/laeufe';
 
-export function ladeLauf(companyId: string, art: LaufArt): Promise<Lauf | undefined> {
+export function ladeLauf<A extends LaufArt>(
+  companyId: string, art: A,
+): Promise<Lauf<A> | undefined> {
   return nutztPostgres() ? pg.ladeLauf(companyId, art) : fs.ladeLauf(companyId, art);
 }
 

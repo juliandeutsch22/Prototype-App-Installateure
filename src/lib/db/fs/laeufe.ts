@@ -16,11 +16,13 @@ import { laufId, type Lauf, type LaufArt } from '@shared/laufStatus';
  * und Leere — bedeutet dasselbe und wird gleich behandelt: „von diesem Lauf
  * ist nichts bekannt". Das ist NICHT dasselbe wie „alles in Ordnung".
  */
-export async function ladeLauf(companyId: string, art: LaufArt): Promise<Lauf | undefined> {
+export async function ladeLauf<A extends LaufArt>(
+  companyId: string, art: A,
+): Promise<Lauf<A> | undefined> {
   try {
     const snap = await getDoc(doc(db, 'systemLaeufe', laufId(companyId, art)));
     if (!snap.exists()) return undefined;
-    return snap.data() as Lauf;
+    return snap.data() as Lauf<A>;
   } catch {
     return undefined;
   }
