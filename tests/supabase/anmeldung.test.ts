@@ -217,11 +217,24 @@ describe('Ein Mitarbeiterkonto anlegen', () => {
   it('legt es an, OHNE die eigene Sitzung zu verlieren', async () => {
     /*
       DER FALLSTRICK. Beide Anmeldungen melden den gerade Angelegten sofort
-      an — die Verwaltung stünde als der neue Mitarbeiter da und hätte dessen
-      Rechte. Unter Firebase brauchte es dafür eine zweite App, hier einen
-      eigenen Client, der nichts speichert.
+      an — die Anlegende stünde als der neue Mitarbeiter da und hätte dessen
+      Rechte. Unter Firebase brauchte es dafür eine zweite App; unter Postgres
+      hat sich das Problem aufgelöst, weil `mitarbeiter-anlegen` das Konto
+      serverseitig anlegt und dabei niemanden anmeldet.
+
+      HIER STAND „Verwaltung", UND DAS WAR EIN BEFUND. Über `signUp` durfte
+      jede Rolle ein Anmeldekonto erzeugen — auch eine, die die Zeile in der
+      Belegschaft nie schreiben kann: `users_anlegen` verlangt
+      `app.ist_spitze()`, und die Benutzerverwaltung steht in der Navigation
+      ohnehin nur der Spitze offen. Herausgekommen wäre genau das Waisenkonto,
+      vor dem `provisionUser` warnt: jemand, der sich anmelden kann und nichts
+      sieht.
+
+      Die Function zieht die Grenze jetzt dort, wo die Datenbank sie zieht.
+      Deshalb legt hier die Geschäftsführung an — nicht, damit die Prüfung
+      grün wird, sondern weil das der Weg ist, den es wirklich gibt.
     */
-    const verwaltung = await kontoMit('an-verwaltung', 'Verwaltung');
+    const verwaltung = await kontoMit('an-verwaltung', 'Geschäftsführung');
     await sitzung.anmelden(verwaltung.email, PASSWORT);
 
     const neueAdresse = `neu-${crypto.randomUUID().slice(0, 8)}@anmeldung.test`;
