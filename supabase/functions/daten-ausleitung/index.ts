@@ -37,6 +37,9 @@ import {
 import {
   alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
+import {
+  zielAusUmgebung, zielPfad, putAnfrage, type Zielspeicher,
+} from '../_shared/ausleitungZiel.ts';
 import { mitCors } from '../_eigen/cors.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
@@ -51,13 +54,29 @@ const EIMER = Deno.env.get('AUSLEITUNG_EIMER') ?? 'ausleitung';
 /** Wie lange Stände aufbewahrt werden. */
 const AUFBEWAHRUNG_TAGE = Number(Deno.env.get('AUSLEITUNG_TAGE') ?? 30);
 /**
- * Liegt das Ziel AUSSERHALB dieses Projekts?
+ * Der Speicher AUSSERHALB dieses Projekts — oder `null`, wenn keiner
+ * eingerichtet ist.
  *
- * Heute nein. Die Angabe steht trotzdem hier und wandert in `system_laeufe`,
- * damit die Überwachung nicht „gesichert" meldet, wo „gesichert, aber am
- * selben Ort" gemeint ist.
+ * HIER STAND EINE UMGEBUNGSVARIABLE `AUSLEITUNG_ZIEL_EXTERN`, und sie war
+ * eine Falle: sie setzte nur die MELDUNG in der Überwachung und bewegte
+ * keine Datei. Wer sie einschaltete, brachte den ehrlichen Hinweis zum
+ * Schweigen, ohne dass irgendetwas ausser Haus lag — das Gegenteil dessen,
+ * wofür die Anzeige gebaut wurde. Sie ist ersatzlos weg.
+ *
+ * Jetzt entscheidet nicht eine Angabe, sondern der VERSUCH: gemeldet wird
+ * „ausser Haus" genau dann, wenn eine Datei dort wirklich angekommen ist.
+ *
+ * Ein halb eingerichtetes Ziel wirft — siehe `ausleitungZiel.ts`. Das
+ * passiert beim Laden der Datei, also beim ersten Aufruf; die Function
+ * antwortet dann mit 503 und sagt, welches Feld fehlt.
  */
-const ZIEL_EXTERN = (Deno.env.get('AUSLEITUNG_ZIEL_EXTERN') ?? 'false') === 'true';
+let ZIEL: Zielspeicher | null = null;
+let ZIEL_FEHLER: string | null = null;
+try {
+  ZIEL = zielAusUmgebung(Deno.env.toObject());
+} catch (e) {
+  ZIEL_FEHLER = e instanceof Error ? e.message : 'Der Zielspeicher ist nicht lesbar.';
+}
 
 /** Wie viele Zeilen je Abfrage. Nicht die Datenbank ist die Grenze, der Speicher. */
 const SEITE = 1000;
@@ -91,6 +110,10 @@ interface Bilanz {
   bytes: number;
   pfad: string;
   geraeumt: number;
+  /** Ist der Stand ausserhalb dieses Projekts angekommen? */
+  ausserHaus: boolean;
+  /** Wo er liegt — im Klartext, so wie es in der Ansicht steht. */
+  ziel: string;
 }
 
 /** Eine Seite aus einer Tabelle — PostgREST zählt Zeilen über `Range`. */
@@ -187,6 +210,7 @@ async function alteStaendeRaeumen(betrieb: string, heute: Date): Promise<number>
 
 async function festhalten(
   betrieb: string, erfolg: boolean, meldung: string | null, zeilen: number | null,
+  ausserHaus = false,
 ): Promise<void> {
   await fetch(`${URL_BASIS}/rest/v1/rpc/lauf_festhalten`, {
     method: 'POST',
@@ -195,9 +219,43 @@ async function festhalten(
       p_betrieb: betrieb, p_art: 'ausleitung', p_erfolg: erfolg,
       p_meldung: meldung, p_kennzahl: zeilen,
       p_kennzahl_einheit: zeilen === null ? null : 'Zeilen',
-      p_ziel_extern: ZIEL_EXTERN,
+      p_ziel_extern: ausserHaus,
     }),
   }).catch(() => undefined);
+}
+
+/**
+ * Den Stand ausser Haus legen.
+ *
+ * DER EINE SCHRITT, UM DEN ES BEI DIESER FUNKTION GEHT. Alles davor schützt
+ * gegen einen Fehlgriff; erst das hier schützt gegen den Verlust des
+ * Zugangs — dagegen, dass dieses Projekt morgen gesperrt, gelöscht oder
+ * übernommen ist.
+ *
+ * ÜBER DIE S3-SCHNITTSTELLE, nicht über die Google-eigene: derselbe Code
+ * trägt damit auch zu einem anderen Anbieter. Bei einer Sicherung ist das
+ * keine Kleinigkeit — sie soll den Anbieter überleben, gegen dessen Ausfall
+ * sie gebaut ist.
+ */
+async function ausserHausLegen(
+  ziel: Zielspeicher, betrieb: string, inhalt: string, jetzt: Date,
+): Promise<string> {
+  const pfad = zielPfad(betrieb, jetzt);
+  const { url, kopfzeilen } = await putAnfrage(ziel, pfad, inhalt, jetzt);
+
+  const r = await fetch(url, { method: 'PUT', headers: kopfzeilen, body: inhalt });
+  if (!r.ok) {
+    /*
+      DIE ANTWORT KOMMT MIT IN DIE MELDUNG. Ein blosses „ging nicht" hiesse,
+      dass jemand nachts zwischen abgelaufenem Schlüssel, falschem Eimer und
+      fehlender Berechtigung raten müsste; der Zielspeicher sagt es in seiner
+      Antwort ziemlich genau. Auf 400 Zeichen gekürzt, weil sie in eine
+      Protokollzeile passen muss.
+    */
+    const text = (await r.text()).slice(0, 400);
+    throw new Error(`Sicherung ausser Haus (${r.status}): ${text}`);
+  }
+  return `${ziel.eimer}/${pfad}`;
 }
 
 async function betriebAusleiten(
@@ -224,10 +282,30 @@ async function betriebAusleiten(
   });
   if (!hoch.ok) throw new Error(`Speicher: ${await hoch.text()}`);
 
+  /*
+    ERST DER EIGENE SPEICHER, DANN DAS HAUS VERLASSEN — und in dieser
+    Reihenfolge aus einem Grund: scheitert der Weg nach draussen, liegt der
+    Stand wenigstens drinnen. Andersherum stünde man am Ende mit gar nichts
+    da.
+
+    UND DER FEHLSCHLAG NACH DRAUSSEN IST EIN FEHLSCHLAG. Ihn als Erfolg mit
+    Fussnote zu melden wäre die bequeme Fassung und die falsche: die
+    Überwachung soll ausschlagen, wenn die Sicherung ausser Haus ausbleibt.
+    Genau dieses Ausbleiben ist der stille Ausfall, gegen den das Ganze
+    gebaut ist. Ist gar kein Ziel eingerichtet, ist das etwas anderes — eine
+    benannte Lücke, kein Fehler, und der Lauf gilt als erfolgreich.
+  */
+  let ausserHaus = false;
+  let ziel = `${EIMER} (Eimer im selben Projekt)`;
+  if (ZIEL) {
+    ziel = await ausserHausLegen(ZIEL, betrieb, inhalt, heute);
+    ausserHaus = true;
+  }
+
   const geraeumt = await alteStaendeRaeumen(betrieb, heute);
   const zeilen = inhalt === '' ? 0 : inhalt.split('\n').length - 1;
-  await festhalten(betrieb, true, null, zeilen);
-  return { companyId: betrieb, zeilen, bytes: inhalt.length, pfad, geraeumt };
+  await festhalten(betrieb, true, null, zeilen, ausserHaus);
+  return { companyId: betrieb, zeilen, bytes: inhalt.length, pfad, geraeumt, ausserHaus, ziel };
 }
 
 Deno.serve(mitCors(async (req: Request): Promise<Response> => {
@@ -249,6 +327,14 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     stimmt. 503 heisst „an mir liegt es", und der Name steht dabei.
   */
   if (!DIENST) return fehler(SCHLUESSEL_FEHLT, 503);
+  /*
+    Dieselbe Sorte Auskunft wie beim fehlenden Dienstschlüssel: „an mir liegt
+    es", mit dem Namen des fehlenden Feldes. Ohne diese Zeile liefe der Lauf
+    los, schriebe in den eigenen Speicher und meldete „liegt im selben
+    Projekt" — die richtige Meldung für den falschen Grund, und niemand
+    suchte nach dem fünften Feld.
+  */
+  if (ZIEL_FEHLER) return fehler(ZIEL_FEHLER, 503);
 
   const tabellenAntwort = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_tabellen`, {
     method: 'POST', headers: alsDienst, body: '{}',
@@ -292,7 +378,9 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
       zeilen: bilanzen.reduce((s, b) => s + b.zeilen, 0),
       bytes: bilanzen.reduce((s, b) => s + b.bytes, 0),
       gescheitert,
-      zielExtern: ZIEL_EXTERN,
+      // ALLE oder keiner: ein Lauf, bei dem die Hälfte der Betriebe nach
+      // draussen kam, ist kein „ausser Haus".
+      zielExtern: bilanzen.length > 0 && bilanzen.every((b) => b.ausserHaus),
     });
   }
 
@@ -325,13 +413,10 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
       `ziel` STEHT IM KLARTEXT IN DER ANSICHT — und soll dort die Wahrheit
       sagen. „Eimer im selben Projekt" ist ein Satz, den jemand liest und
       versteht; ein `false` in einem Feld namens `zielExtern` ist einer, den
-      niemand liest.
+      niemand liest. Beides kommt jetzt aus der Bilanz, also aus dem, was
+      wirklich geschah.
     */
-    return antwort({
-      ...bilanz,
-      zielExtern: ZIEL_EXTERN,
-      ziel: ZIEL_EXTERN ? EIMER : `${EIMER} (Eimer im selben Projekt)`,
-    });
+    return antwort({ ...bilanz, zielExtern: bilanz.ausserHaus });
   } catch (e) {
     const meldung = e instanceof Error ? e.message : 'Unbekannter Fehler';
     await festhalten(profil.company_id, false, meldung, null);

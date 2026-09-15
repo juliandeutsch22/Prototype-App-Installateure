@@ -87,23 +87,27 @@ export default function LaufStatus({ art }: { art: NachtLaufArt }) {
       {/*
         WO DIE SICHERUNG LIEGT — und das ist keine Nebensache.
 
-        Ohne gesetzten Zielspeicher schreibt die Ausleitung in denselben
-        Google-Projektbereich wie die Daten. Gegen einen Fehlgriff hilft das
-        sofort; gegen „der Zugang zum Projekt ist weg" gar nicht. Bis hierher
-        stand diese halbe Wirkung allein in `docs/DEPLOYMENT.md` — eine
-        Sicherung, deren Grenze man nur durch Lesen einer Datei erfährt, hält
-        man für ganz.
+        Ohne eingerichteten Zielspeicher schreibt die Ausleitung in dasselbe
+        Projekt wie die Daten. Gegen einen Fehlgriff hilft das sofort; gegen
+        „der Zugang zum Projekt ist weg" gar nicht. Bis hierher stand diese
+        halbe Wirkung allein in `docs/DEPLOYMENT.md` — eine Sicherung, deren
+        Grenze man nur durch Lesen einer Datei erfährt, hält man für ganz.
 
         NUR BEI `false`, nicht bei `undefined`: ein Lauf, der es noch nicht
         mitteilt, ist kein Befund, sondern eine ältere Fassung. Und nicht
         gelb: es ist eine Einrichtungsgrenze, kein Fehler — gelb neben einem
         „lief durch" hiesse, da sei etwas kaputt.
+
+        DER DRITTE FALL BRAUCHT HIER NICHTS: ist ein Ziel eingerichtet und
+        die Ablage scheitert, ist der LAUF gescheitert. Dann steht unten
+        „Letzter Versuch: …" mit der Antwort des Zielspeichers — und das ist
+        die richtige Stelle, weil es ein Ausfall ist und keine Grenze.
       */}
       {art === 'ausleitung' && lauf?.zielExtern === false && (
         <span className="mt-1 block text-xs text-ink-muted">
           Der Stand liegt im selben Projekt wie die Daten. Gegen einen Fehlgriff hilft das,
           gegen einen Verlust des Zugangs nicht — dafür muss ein Zielspeicher ausserhalb
-          gesetzt sein (siehe DEPLOYMENT.md).
+          eingerichtet sein (siehe DEPLOYMENT.md).
         </span>
       )}
       {/*

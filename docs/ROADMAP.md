@@ -2888,6 +2888,92 @@ Die Datei `public/perl-logo.png` bleibt liegen — sie wird von keinem Code mehr
 benutzt, ist aber der bequemste Weg, an das Bild zu kommen
 (`…/perl-logo.png` im Browser öffnen, speichern, hochladen).
 
+## Erledigt: die Sicherung verlässt das Haus (15.09.2026)
+
+Die letzte Lücke, bei der ein Ausfall **unwiederbringlich** gewesen wäre. Die
+nächtliche Ausleitung schrieb bisher in den Speicher desselben Supabase-
+Projekts, in dem auch die Daten liegen. Gegen einen Fehlgriff, eine kaputte
+Migration oder eine versehentlich geleerte Tabelle half das sofort — gegen
+„der Zugang zum Projekt ist weg" gar nicht.
+
+### Was jetzt gilt
+
+Der Stand geht **zuerst** in den eigenen Speicher und **danach** ausser Haus,
+in einen S3-kompatiblen Eimer bei einem anderen Anbieter. Die Reihenfolge ist
+Absicht: scheitert der Weg nach draussen, liegt der Stand wenigstens drinnen.
+Andersherum stünde man am Ende mit gar nichts da.
+
+Fünf Secrets, alle oder keines — Endpunkt, Region, Eimer, Schlüssel,
+Geheimnis. Die Einzelheiten stehen in der README.
+
+**DAS DIENSTKONTO DARF NUR ANLEGEN.** Nicht lesen, nicht löschen, nicht
+überschreiben. Wer morgen dieses Projekt übernimmt, hat damit einen
+Schlüssel, mit dem er die abgelegten Stände **nicht vernichten kann** — das
+ist der halbe Zweck einer Sicherung ausser Haus, und ein Schlüssel mit
+Vollzugriff hätte ihn weggenommen. Weil nicht überschrieben werden darf,
+trägt der Pfad draussen die Uhrzeit; drinnen liegt weiterhin ein Stand je Tag.
+
+### Drei Entscheidungen, die im Code begründet stehen
+
+**`AUSLEITUNG_ZIEL_EXTERN` ist ersatzlos weg.** Die Variable setzte **nur die
+Meldung** in der Überwachung und bewegte keine Datei: eingeschaltet legte sie
+den ehrlichen Hinweis still, ohne dass etwas ausser Haus lag — das Gegenteil
+dessen, wofür die Anzeige gebaut wurde. Gemeldet wird jetzt der tatsächliche
+Versuch.
+
+**Ein Fehlschlag nach draussen ist ein Fehlschlag.** Ihn als Erfolg mit
+Fussnote zu melden wäre die bequeme Fassung und die falsche: genau das
+Ausbleiben der Sicherung ist der stille Ausfall, gegen den das Ganze gebaut
+ist. Ist gar kein Ziel eingerichtet, ist das etwas anderes — eine benannte
+Lücke, kein Fehler, und der Lauf gilt als erfolgreich.
+
+**Halb eingerichtet gilt als Fehler**, mit dem Namen des fehlenden Feldes und
+Status 503. Wer vier von fünf Feldern setzt, würde sonst als „nicht
+eingerichtet" behandelt: die App meldete brav „liegt im selben Projekt", und
+niemand käme auf die Idee, nach dem fünften zu suchen.
+
+### Die Signatur — und warum sie selbst geschrieben ist
+
+Die S3-Schnittstelle verlangt eine SigV4-Signatur. Ein SDK dafür wäre ein
+Paket von einigen hundert Kilobyte für dreissig Zeilen Rechnung, die sich
+exakt nachprüfen lässt — und es müsste in Deno UND im Node-Testlauf laufen.
+Stattdessen `shared/s3Signatur.ts`, das nichts importiert ausser Web Crypto.
+
+**Geprüft wird gegen die veröffentlichten Testvektoren von AWS**
+(`aws-sig-v4-test-suite`, Fall `get-vanilla`): bekannter Schlüssel, bekannte
+Zeit, bekannte Anfrage, erwartete Kopfzeile Zeichen für Zeichen. Stimmt sie,
+stimmt die ganze Kette — kanonische Anfrage, Geltungsbereich,
+Schlüsselableitung, Signatur. Eine falsch gerechnete Signatur ergibt sonst
+ein 403 ohne einen Hinweis darauf, welcher der acht Schritte danebenlag.
+
+> Die erste Fassung dieser Prüfung war zu schwach: sie verglich nur die FORM
+> („sieht aus wie eine Signatur"). Damit die Kopfzeile exakt vergleichbar
+> wurde, legt der Signierer jetzt nichts mehr von sich aus dazu — er
+> signiert, was man ihm gibt. Der Inhaltshash kommt vom Aufrufer, der ihn
+> ohnehin braucht.
+
+**Warum die S3-Schnittstelle und nicht die von Google.** Der Google-eigene
+Weg verlangt ein Dienstkonto-JSON, ein selbst signiertes JWT und einen Tausch
+gegen ein Token — drei Schritte, die alle ablaufen können. Vor allem aber ist
+die S3-Schnittstelle nicht anbietereigen: derselbe Code trägt morgen zu
+Cloudflare R2, Wasabi oder Hetzner. Bei einer Sicherung ist das keine
+Kleinigkeit — sie soll den Anbieter überleben, gegen dessen Ausfall sie
+gebaut ist.
+
+### Was hier NICHT geprüft ist, und was das heisst
+
+Geprüft sind Signatur, Adresse, Kopfzeilen, die Pfadform und die
+Unterscheidung „kein Ziel / halbes Ziel / Ziel". **Nicht geprüft ist, ob der
+echte Eimer den Aufruf annimmt** — das kann keine Prüfung hier beantworten,
+sondern nur der Eimer selbst. Deshalb trägt die Fehlermeldung die Antwort des
+Zielspeichers im Klartext mit: zwischen abgelaufenem Schlüssel, falschem
+Eimer und fehlender Berechtigung soll nachts niemand raten müssen.
+
+**Und der Rücklauf steht weiterhin aus.** Eine Sicherung, die nie
+zurückgespielt wurde, ist keine. Wenn die erste Datei im Eimer liegt, gehört
+der Weg zurück einmal gegangen — herunterladen, einlesen, nachsehen, ob
+Rechnungen und Zeiten vollständig sind. Erst danach ist die Lücke geschlossen.
+
 ---
 
 ## Wartet auf eine Entscheidung
@@ -2961,7 +3047,7 @@ KI-Erfassung eingeschaltet wird — nicht vorher.
 | Sprach-Erfassung, Teilschreibungen | Schlägt ein Schreibvorgang mitten in der Bestätigung fehl, bleibt ein halber Datensatz zurück |
 | Folgetermine | Werden erfasst und gespeichert, aber nirgends angezeigt |
 | Mikrofon | Läuft nach dem Abbrechen der Aufnahme weiter |
-| Sicherung im selben Haus | **Sichtbar gemacht am 08.09.2026** — die Ansicht sagt es. **Berichtigt am 15.09.2026:** hier stand „das ist Einrichtung, nicht Code". Das galt für Firebase, wo `AUSLEITUNG_BUCKET` auf einen beliebigen Speicher zeigen konnte. Die Ausleitung auf Postgres schreibt fest in den Speicher des eigenen Projekts; `AUSLEITUNG_EIMER` wechselt nur den Eimernamen darin, und `AUSLEITUNG_ZIEL_EXTERN` setzt **nur die Meldung**, nicht das Ziel — eingeschaltet legte es den ehrlichen Hinweis still, ohne eine Datei zu bewegen. Es braucht einen Speicher bei einem anderen Anbieter und den Weg dorthin im Code |
+| ~~Sicherung im selben Haus~~ | **Erledigt am 15.09.2026.** Die Ausleitung legt den Stand zusätzlich in einen S3-kompatiblen Eimer bei einem anderen Anbieter, sobald die fünf `SICHERUNG_S3_*`-Secrets gesetzt sind. `AUSLEITUNG_ZIEL_EXTERN` ist weg — die Variable setzte nur die Meldung und bewegte keine Datei. Gemeldet wird jetzt der tatsächliche Erfolg. **Offen bleibt der Rücklauf:** eine Sicherung, die nie zurückgespielt wurde, ist keine |
 | ~~Listen ohne Begrenzung~~ | **Erledigt.** Stand hier zuletzt falsch: alle Abfragen in `timeEntries.ts` sind zeitraumbegrenzt. Übrig ist `listOwnEntriesSince` als Rückfall, wenn die Monatsbilanzen unvollständig sind — je Person, nicht je Betrieb. Eine Doku, die Erledigtes als offen führt, schickt den Nächsten in die Irre |
 
 ## Skalierbarkeit: die Regel und die eine verbleibende Ausnahme
