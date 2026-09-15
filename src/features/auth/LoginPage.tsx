@@ -2,20 +2,19 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { InputField, CheckboxField } from '@/components/Field';
-import BrandLogo from '@/components/BrandLogo';
+import ProduktMarke from '@/components/ProduktMarke';
 import Button from '@/components/Button';
 
 /**
- * Vor der Anmeldung ist der Mandant noch unbekannt — das Branding aus
- * companies/{companyId} steht erst danach zur Verfügung. Der Name kommt
- * deshalb aus der Deployment-Konfiguration, damit hier nicht der Name eines
- * fremden Betriebs steht.
- */
-const PORTAL_NAME = import.meta.env.VITE_PORTAL_NAME || 'Installateur-Portal';
-
-/**
- * Anmeldung. Dunkles Kopfband im Markenverlauf mit leuchtender Unterkante,
- * darunter das Formular — die Marke trägt der Kopf, nicht die Eingabefelder.
+ * Anmeldung. Dunkles Kopfband mit der Produktmarke, darunter das Formular —
+ * die Marke trägt der Kopf, nicht die Eingabefelder.
+ *
+ * HIER STEHT DAS PRODUKT UND NICHT DER BETRIEB. Vor der Anmeldung ist der
+ * Mandant unbekannt: das Branding aus `companies/{id}` gibt es erst danach.
+ * Bis hierher sprang deshalb eine Vorgabe ein — und die trug das Logo des
+ * ersten Kunden. Ein zweiter Betrieb hätte sich unter fremdem Zeichen
+ * angemeldet. Jetzt steht dort Senklot, und der Betrieb erscheint ab der
+ * ersten Seite nach der Anmeldung (siehe `BrandLogo` in `Layout`).
  */
 export default function LoginPage() {
   const { signIn, user, error: authError, resetPassword } = useAuth();
@@ -87,24 +86,25 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-full items-center justify-center bg-bg p-4">
       <div className="panel w-full max-w-sm overflow-hidden shadow-lg">
-        {/* Markenband: derselbe dunkle Verlauf wie Seitenleiste und Tableiste,
-            abgeschlossen von der leuchtenden Kante. Das Logo steht ohne weitere
-            Fassung darauf. Vor der Anmeldung ist der Mandant unbekannt, also
-            die Vorgabe. */}
+        {/* Markenband: dieselbe dunkle Trägerfläche wie Seitenleiste und
+            Tableiste. Die Marke steht ohne weitere Fassung darauf. */}
         <div className="panel-dark px-6 py-6 text-center">
-          <BrandLogo height={52} ignoreCompany alt={PORTAL_NAME} className="mx-auto" />
+          <ProduktMarke hoehe={44} className="text-white" />
           {/* Volles Weiss, nicht 85 Prozent: auf dem Telefon im Freien ist der
               abgedunkelte Text auf dem dunklen Band schlecht zu lesen.
-              `text-white` und nicht `brand-fg`, weil das Band seit dem
-              Erscheinungsbild-Umbau nicht mehr die Markenfarbe des Mandanten
-              traegt, sondern den festen dunklen Verlauf — die Kontrastfarbe
-              dazu ist Weiss, unabhaengig davon, was der Betrieb als Marke
-              hinterlegt hat. */}
+              `text-white` und nicht `brand-fg`, weil das Band nicht die
+              Markenfarbe des Mandanten traegt, sondern die feste dunkle
+              Flaeche — die Kontrastfarbe dazu ist Weiss, unabhaengig davon,
+              was der Betrieb als Marke hinterlegt hat. */}
           <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-white">
             Mitarbeiter-Portal
           </p>
         </div>
-        <div className="edge-accent h-[3px]" aria-hidden="true" />
+        {/* KEIN STREIFEN MEHR ZWISCHEN KOPF UND FORMULAR. Hier lag die
+            leuchtende Kante aus Cyan und Mint — eine dritte Farbe, die das
+            Zeichen selbst nicht kennt. Die Kante zwischen dunkler Fläche und
+            weissem Formular ist die Trennung; ein Streifen darauf wäre eine
+            zweite für dieselbe Sache. */}
 
         <form onSubmit={handleSubmit} className="bg-surface px-6 py-6">
           <h1 className="mb-1 text-lg font-bold text-ink">

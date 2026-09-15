@@ -4,22 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!--
-      DIE FARBE DES STATUSBALKENS auf dem Startbildschirm — und sie ist nicht
-      dieselbe wie die dunkelste Ecke der Kopfleiste.
+      DIE FARBE DES STATUSBALKENS auf dem Startbildschirm.
 
-      Vorher stand hier `#0a2030`, der Anfangspunkt von `--grad-brand`. Rein
-      rechnerisch passte das: an der oberen linken Ecke IST die Kopfleiste
-      dieses Blau. Nur sieht das Auge nicht die Ecke, sondern die Fläche, und
-      die läuft über `#0f4552` nach `#107a8c`. Der Balken stand damit als
-      dunkler Riegel über einer türkisen Leiste.
+      `#0f4552` ist `--brand-fixed`: die Farbe der Kopfleiste, die Farbe des
+      Zeichens, die Farbe des Strichs unter jeder Überschrift. Solange die
+      Kopfleiste einen Verlauf trug, war das eine Näherung — der Balken sass
+      über einer Fläche, die von `#0a2030` nach `#107a8c` lief, und passte
+      nur an einer Stelle. Seit sie flach ist, ist es dieselbe Farbe.
 
-      `#0f4552` ist der mittlere Halt desselben Verlaufs und zugleich der
-      Grund des App-Zeichens. Er schliesst nach beiden Seiten an.
-
-      NICHT `black-translucent`: das liesse den Inhalt unter den Balken laufen
-      und die Kopfleiste ihren eigenen Verlauf dorthin ziehen — schöner, aber
-      hier falsch. Die Kopfleiste ist nicht fixiert, sie scrollt weg; danach
-      stünde die weisse Systemschrift auf hellem Grund.
+      NICHT `black-translucent`: das liesse den Inhalt unter den Balken
+      laufen — schöner, aber hier falsch. Die Kopfleiste ist nicht fixiert,
+      sie scrollt weg; danach stünde die weisse Systemschrift auf hellem
+      Grund.
     -->
     <meta name="theme-color" content="#0f4552" />
     <!--
@@ -37,7 +33,7 @@
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <title>Perl Zeiterfassung</title>
+    <title>Senklot</title>
     <!--
       Hinweis: Das früher hier injizierte Kaspersky-Script
       (ff.kis.v2.scr.kaspersky-labs.com) wurde entfernt — es gehörte nicht

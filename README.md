@@ -444,9 +444,15 @@ Actions → New repository secret*:
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | ebenda |
 | `VITE_FIREBASE_APP_ID` | ebenda |
 
-Optional als *Variable* (nicht Secret): `VITE_PORTAL_NAME` (Name über dem
-Anmeldebildschirm, Vorgabe „Perl Installationen") und `VITE_FUNCTIONS_REGION`
-(Vorgabe `europe-west3`).
+Optional als *Variable* (nicht Secret): `VITE_FUNCTIONS_REGION` (Vorgabe
+`europe-west3`).
+
+`VITE_PORTAL_NAME` gibt es nicht mehr. Über dem Anmeldebildschirm steht die
+Marke des Produkts — Senklot —, nicht der Name eines Betriebs: vor der
+Anmeldung ist der Mandant unbekannt, und die Vorgabe zeigte deshalb jedem
+zweiten Kunden das Zeichen des ersten. Das Logo des Betriebs erscheint ab der
+ersten Seite nach der Anmeldung; `VITE_PORTAL_LOGO` bleibt als Vorgabe für
+Mandanten ohne eigenes Logo.
 
 Die `VITE_FIREBASE_*`-Werte sind technisch nicht geheim — sie stehen ohnehin
 im ausgelieferten JavaScript, und Firebase schützt die Daten über die
@@ -518,6 +524,12 @@ npm run rules:test      # in einem zweiten Terminal
   im Aufnahme-Flow transparent gemacht.
 - Datenexport pro Mandant via Cloud Function `exportCompanyData` (nur GF/Admin),
   erreichbar unter Einstellungen → Datensicherung.
-- Nächtliche Ausleitung des kompletten Bestands (`datenAusleitung`, 02:30).
-  **Ohne die Variable `AUSLEITUNG_BUCKET` liegt sie im selben Google-Projekt**
-  und hilft damit nicht gegen dessen Ausfall — siehe `docs/DEPLOYMENT.md`.
+- Nächtliche Ausleitung des kompletten Bestands (`daten-ausleitung`, 02:30,
+  angestossen von `pg_cron`). **Sie liegt im selben Supabase-Projekt wie die
+  Daten** und hilft damit gegen einen Fehlgriff, nicht gegen den Verlust des
+  Zugangs. `AUSLEITUNG_EIMER` wechselt nur den Eimer INNERHALB des Projekts;
+  `AUSLEITUNG_ZIEL_EXTERN` setzt nur die Meldung in der Überwachung und
+  bewegt keine Datei — bitte nicht einschalten, solange das Ziel drinnen
+  liegt. Ein Ziel ausserhalb ist noch zu bauen.
+  (`AUSLEITUNG_BUCKET` gehörte zum alten Firebase-Weg in `functions/`; dort
+  zeigte es wirklich nach draussen.)

@@ -28,11 +28,19 @@ const sideLink = ({ isActive }: { isActive: boolean }) =>
       : 'border-l-transparent font-medium text-ink-muted hover:bg-surface-2 hover:text-ink'
   }`;
 
-/** Dieselbe Zeile auf der dunklen Seitenleiste. */
+/**
+ * Dieselbe Zeile auf der dunklen Seitenleiste.
+ *
+ * DIE MARKIERUNG IST WEISS, NICHT CYAN. Auf der Trägerfläche steht nur Weiß —
+ * das ist die Farbpaarung des Zeichens, und seit die Fläche flach ist (kein
+ * Verlauf mehr), hat Cyan dort auch keinen Ton mehr, an den es anschliesst.
+ * Getragen wird der Zustand ohnehin dreifach: Fläche, Fettung, Textfarbe.
+ * Der Strich ist der vierte Hinweis und nie der einzige.
+ */
 const sideLinkDark = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-accent-bright bg-white/10 font-bold text-white'
+      ? 'border-l-white bg-white/10 font-bold text-white'
       : 'border-l-transparent font-medium text-white/75 hover:bg-white/10 hover:text-white'
   }`;
 

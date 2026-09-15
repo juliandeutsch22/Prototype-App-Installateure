@@ -12,7 +12,7 @@ kommt von *plumbum*, Blei — dem Werkstoff des Senklots.
 | Datei | Wofür |
 |---|---|
 | `logo.svg` | Wortmarke, waagrecht. Für Kopfzeilen, Briefpapier, Anmeldebildschirm |
-| `icon.svg` | App-Zeichen, quadratisch mit Verlauf |
+| `icon.svg` | App-Zeichen, quadratisch: Senklot in Petrol auf weisser Platte |
 | `favicon.svg` | **Eigens für kleine Größen gezeichnet**, nicht verkleinert |
 | `*.png` | Aus den SVG erzeugt, siehe unten |
 
@@ -53,10 +53,34 @@ Zwei, mehr nicht.
 
 | | |
 |---|---|
-| Grund | `#0F4552` |
-| Zeichen | `#FFFFFF` |
+| Zeichen | `#0F4552` |
+| Grund | `#FFFFFF` |
 
-Auf hellem Grund steht das Zeichen in `#0F4552` ohne Platte.
+### Die Platte ist weiss, nicht petrol
+
+Die erste Fassung war umgekehrt: weisses Zeichen auf petrol Platte. Gewechselt
+hat nicht die Farbe, sondern wer von beiden Fläche ist und wer Figur.
+
+Der Grund ist nicht Geschmack, sondern der Ort, an dem das Zeichen steht. Ein
+Startbildschirm ist voll dunkler, satter Kacheln; eine weitere konkurriert mit
+ihnen, statt sich zu behaupten. Eine weisse Platte tritt zurück und lässt das
+Senklot die Arbeit machen — und bei 16 Pixeln im Reiter ist der Gewinn am
+grössten: eine dunkle Figur auf hellem Grund bleibt bis zum letzten Pixel eine
+Figur, eine helle auf dunklem läuft an den Kanten zu.
+
+**Die Schnur steht seither auf 1,8 statt 1,6.** Eine helle Linie auf dunklem
+Grund wirkt breiter als sie ist, eine dunkle auf hellem schmaler; dasselbe
+Mass hätte nach dem Tausch dünner ausgesehen. Korrigiert wird das Auge, nicht
+die Zahl.
+
+**Und das Apple-Touch-Icon ist seither quadratisch und randlos.** iOS rundet
+es selbst ab und rechnet Durchsichtigkeit vorher gegen Schwarz. Solange die
+Platte petrol war, fiel das nicht auf — die weggerundeten Ecken waren dunkel
+und der Rest auch. Mit weisser Platte wäre daraus ein weisses Zeichen mit vier
+schwarzen Ecken geworden.
+
+Auf dunklem Grund steht das Zeichen in `#FFFFFF` ohne Platte — so in der
+Seitenleiste und über dem Anmeldeformular.
 
 ## PNG neu erzeugen
 
@@ -79,13 +103,45 @@ die zweite Zeichnung.
 Der Service Worker nimmt `/icon-192.png` als Bild der Push-Meldung und
 `/favicon-64.png` als Abzeichen — beides wechselt damit mit.
 
-**Was NICHT gewechselt ist:** `manifest.webmanifest` heißt weiterhin „Perl
-Zeiterfassung" / „Perl Zeit", und `BrandLogo` zeigt weiter das Logo des
-Betriebs. Beides ist Absicht und kein Rest:
+Am Startbildschirm und im Reiter steht jetzt **Senklot**
+(`manifest.webmanifest`, `<title>`), und über dem Anmeldeformular steht die
+Produktmarke statt eines Kundenlogos — vor der Anmeldung ist der Mandant
+unbekannt, und die Vorgabe zeigte bis dahin jedem zweiten Betrieb das Zeichen
+des ersten.
 
-* Der Name unter dem Symbol am Startbildschirm zu ändern, ändert etwas auf
-  den Telefonen von Leuten, die gerade arbeiten. Das ist eine Entscheidung
-  des Betriebs, keine Aufräumarbeit.
-* Das Logo IM Kopf der App gehört dem Betrieb, nicht dem Produkt — die App
-  ist mandantenfähig. Senklot ist, womit gearbeitet wird; Perl ist, wer damit
-  arbeitet.
+`background_color` im Manifest steht auf `#ffffff` und nicht mehr auf dem
+Grund der App: der Startbildschirm zeigt das Zeichen auf dieser Farbe, und mit
+weisser Platte wäre auf `#eef6f8` ein schwach sichtbares Quadrat darum
+gestanden.
+
+**Was NICHT gewechselt ist:** `BrandLogo` zeigt weiter das Logo des Betriebs.
+Das Logo IM Kopf der App gehört dem Betrieb, nicht dem Produkt — die App ist
+mandantenfähig. Senklot ist, womit gearbeitet wird; Perl ist, wer damit
+arbeitet.
+
+## Was die Marke an der Oberfläche geändert hat
+
+Die Haltung oben gilt nicht nur für das Zeichen. Mit ihm sind vier Verläufe
+und die Mint-Familie aus `index.css` verschwunden; die dunklen Trägerflächen
+sind flaches `#0F4552`.
+
+Das war kein reiner Geschmackswechsel: ein Verlauf ist nur so lesbar wie seine
+hellste Stelle, und die lag bei `#107a8c` — 5,0:1, genau dort, wo in der
+Seitenleiste der Benutzername steht. Flach sind es **10,5:1** auf der ganzen
+Fläche, und die Gruppenüberschriften steigen von rund 3,3:1 auf 4,9:1.
+
+Daraus folgt eine Regel, die man vor dem Schreiben beantworten kann: **was auf
+der dunklen Trägerfläche zur Bedienung gehört, ist weiß.** Die Markierung des
+aktiven Eintrags in der Seitenleiste ist deshalb weiß und nicht mehr cyan.
+
+Mit genau einer Ausnahme, und die steht hier, damit sie niemand für einen Rest
+hält: der Avatar bleibt cyan. Er ist keine Bedienoberfläche, sondern ein
+Mensch — auf einem Tablet, an dem mehrere arbeiten, ist „wer bin ich hier
+gerade?" eine echte Frage, und ein weisser Kreis unter weisser Schrift
+beantwortet sie nicht.
+
+**Nicht angefasst:** die Rundungen der Oberfläche. „Gerade Kanten statt
+Rundungen" ist eine Aussage über den Körper des Senklots, der mit weichen
+Flanken als Blatt las — keine über Knöpfe und Karten. Eine App mit scharfen
+Ecken wäre eine andere Entscheidung mit eigenem Preis, und sie stünde hier
+ohne Begründung.
