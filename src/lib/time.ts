@@ -1,4 +1,4 @@
-import type { AppUser, TimeEntry } from '@/types';
+import type { AppUser, Company, TimeEntry } from '@/types';
 import { shouldShowOvertime } from './permissions';
 /*
   DIE VORGABE FÜR URLAUBSTAGE KOMMT AUS EINER QUELLE, NICHT AUS ZWEIEN.
@@ -47,9 +47,53 @@ export function urlaubsTage(
   return urlaubsTageShared(user.workDays, vonIso, bisIso);
 }
 
+/** Wie ein Betrieb mit nicht verbrauchtem Urlaub zum Jahreswechsel umgeht. */
+export type UebertragArt = 'verjaehrung' | 'stichtag';
+
+export interface UebertragRegel {
+  art: UebertragArt;
+  /**
+   * 'MM-DD' — nur bei `stichtag`. An diesem Tag verfällt, was aus früheren
+   * Jahren offen ist.
+   */
+  stichtag?: string | null;
+}
+
+/**
+ * Wie lange ein Urlaubsjahrgang nach seinem Jahr noch lebt.
+ *
+ * Zwei Jahre, und das ist keine gewählte Zahl: § 4 Abs 5 UrlG lässt den
+ * Urlaubsanspruch zwei Jahre nach Ende des Urlaubsjahres verjähren, in dem er
+ * entstanden ist. Der Jahrgang 2026 ist also bis Ende 2028 lebendig.
+ */
+export const VERJAEHRUNG_JAHRE = 2;
+
+/** Die Vorgabe: was kein Betrieb eingestellt hat, richtet sich nach dem Gesetz. */
+export const UEBERTRAG_VORGABE: UebertragRegel = { art: 'verjaehrung' };
+
+/**
+ * Die Übertragsregel aus den Stammdaten des Betriebs.
+ *
+ * AN EINER STELLE, damit nicht jede Ansicht ihre eigene Lesart von „nicht
+ * eingestellt" erfindet. Ein `stichtag` ohne Datum fiele sonst je nach
+ * Aufrufer auf „verfällt nie" oder auf einen Absturz zurück; hier fällt er
+ * auf das Gesetz zurück, und das ist die einzige Antwort, die niemandem
+ * etwas wegnimmt. Die Datenbank lässt diesen Zustand gar nicht erst zu
+ * (siehe `companies_urlaub_stichtag_check`) — aber eine Rechnung, die sich
+ * darauf VERLÄSST, ist eine Rechnung mit einer Annahme.
+ */
+export function uebertragsRegel(
+  betrieb: Pick<Company, 'urlaubUebertrag' | 'urlaubStichtag'> | null | undefined,
+): UebertragRegel {
+  if (betrieb?.urlaubUebertrag === 'stichtag' && betrieb.urlaubStichtag) {
+    return { art: 'stichtag', stichtag: betrieb.urlaubStichtag };
+  }
+  return UEBERTRAG_VORGABE;
+}
+
 /** Was für ein Jahr zur Verfügung steht, was weg ist, was bleibt. */
 export interface UrlaubsStand {
-  /** Tage, die in diesem Jahr zur Verfügung stehen. */
+  /** Tage, die in diesem Jahr zur Verfügung stehen — Übertrag eingerechnet. */
   anspruch: number;
   /** Davon schon genommen — nur, was gegen diesen Anspruch zählt. */
   genommen: number;
@@ -63,6 +107,16 @@ export interface UrlaubsStand {
    * Beschriftung ist auch eine falsche Auskunft.
    */
   ausAnfangsbestand: boolean;
+  /** Wie viele der verfügbaren Tage aus früheren Jahren stammen. */
+  uebertrag: number;
+  /**
+   * Was in diesem Jahr verfallen ist.
+   *
+   * Steht hier, damit es jemand SAGEN kann. Tage, die lautlos verschwinden,
+   * sind die Sorte Befund, die erst auffällt, wenn sich jemand beschwert —
+   * und dann ist es ein Streit statt einer Auskunft.
+   */
+  verfallen: number;
 }
 
 /** Ein Urlaub, wie ihn beide Aufrufer liefern können: Beginn und Dauer. */
@@ -72,17 +126,46 @@ export interface UrlaubsPosten {
   tage: number;
 }
 
+/** Ein Urlaubsjahrgang: was in einem Jahr entstanden und davon noch offen ist. */
+interface Jahrgang {
+  jahr: number;
+  offen: number;
+}
+
 /**
  * DER RESTURLAUB — und warum er an EINER Stelle steht.
  *
- * WAS VORHER FALSCH WAR. Gerechnet wurde „Jahresanspruch minus Urlaubstage,
- * die in der App stehen". Vor dem Startdatum gibt es dort keine. Geht ein
- * Betrieb im September in Betrieb und Petra hat von ihren 25 Tagen schon 18
- * genommen, zeigte die App ihr 25 Tage Resturlaub — dem Genehmigenden
- * dieselbe Zahl, und der Buchhaltung dieselbe Zahl in der Lohn-CSV.
+ * WAS VORHER FALSCH WAR, ZWEIMAL.
  *
- * Beim Überstundensaldo war dieselbe Frage von Anfang an beantwortet
- * (`initialOvertime`). Beim Urlaub wurde sie übersehen.
+ * Erstens: gerechnet wurde „Jahresanspruch minus Urlaubstage in der App".
+ * Vor dem Startdatum gibt es dort keine, und im Umstiegsjahr war die Zahl um
+ * genau die mitgebrachten Tage zu hoch.
+ *
+ * Zweitens, und das trifft jeden 1. Jänner: der Rest wurde weggeworfen. In
+ * Österreich verfällt nicht verbrauchter Urlaub aber nicht am Jahresende —
+ * er verjährt erst zwei Jahre nach dem Jahr, in dem er entstand
+ * (§ 4 Abs 5 UrlG). Wer der App glaubte, verkürzte seinen Leuten den
+ * Anspruch.
+ *
+ * WARUM JAHRGÄNGE UND NICHT EIN SALDO. Weil ein blosser Saldo nicht sagen
+ * kann, WELCHE Tage alt sind. Verjährung trifft den Jahrgang, nicht die
+ * Summe: wer 2026 zehn Tage übrig hatte und 2027 wieder zehn, dem verfallen
+ * Ende 2028 die von 2026 und nicht die von 2027. Ohne Jahrgänge liesse sich
+ * das nicht unterscheiden, und die Frage „wie viele verfallen mir heuer?"
+ * wäre nicht beantwortbar.
+ *
+ * VERBRAUCHT WIRD DER ÄLTESTE ZUERST. Das ist nicht nur die übliche Lesart,
+ * es ist auch die für den Mitarbeiter günstige: so verfällt so wenig wie
+ * möglich.
+ *
+ * WARUM DER GANZE VERLAUF GEBRAUCHT WIRD. Der Anspruch dieses Jahres hängt
+ * am Rest des Vorjahres, und der am Rest des Jahres davor. Ein Fenster von
+ * zwei oder drei Jahren wäre billiger und an einer Stelle falsch: hätte
+ * jemand vor vier Jahren einen alten Jahrgang verbraucht, schriebe ein kurzes
+ * Fenster denselben Verbrauch einem jüngeren zu und zeigte zu wenig Rest.
+ * Beim Urlaub in die für den Betrieb günstige Richtung zu irren ist keine
+ * Näherung, sondern ein Fehler. Begrenzt ist der Verlauf ohnehin: er beginnt
+ * am Startdatum des Mitarbeiters.
  *
  * WARUM ES EINE GEMEINSAME FUNKTION IST. Zwei Ansichten beantworten dieselbe
  * Frage aus VERSCHIEDENEN Quellen: die Mitarbeiteransicht zählt genehmigte
@@ -92,25 +175,18 @@ export interface UrlaubsPosten {
  * getrennt (sie beantworten „genehmigt" und „gebucht", und das ist nicht
  * dasselbe), die REGEL ist eine.
  *
- * ZWEI FÄLLE, EINE ZEILE:
- *
- *   Im Jahr des Startdatums   Anspruch = Anfangsbestand
- *   In jedem anderen Jahr     Anspruch = Jahresanspruch
- *
  * WARUM IM STARTJAHR NUR AB DEM STARTDATUM GEZÄHLT WIRD. Der Anfangsbestand
  * deckt alles davor bereits ab. Ein Urlaubstag, der vor dem Startdatum in der
  * App landet — die Buchhaltung darf fremde Zeiteinträge nachtragen —, wäre
- * sonst zweimal abgezogen: einmal im mitgebrachten Bestand, einmal als
- * Eintrag.
+ * sonst zweimal abgezogen.
  *
- * OHNE ANGABE BLEIBT ALLES WIE BISHER. Kein Anfangsbestand oder kein
- * Startdatum heisst: voller Jahresanspruch, alle Tage des Jahres gezählt.
- * Eine bestehende Zeile ändert dadurch ihre Bedeutung nicht.
+ * @param posten Der GANZE Verlauf seit dem Startdatum, nicht nur das Jahr.
  */
 export function urlaubsStand(
   user: Pick<AppUser, 'yearlyVacationDays' | 'initialVacationDays' | 'appStartDate'>,
   jahr: number,
   posten: readonly UrlaubsPosten[],
+  regel: UebertragRegel = UEBERTRAG_VORGABE,
 ): UrlaubsStand {
   const jahresanspruch = Number(user.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
   const start = user.appStartDate ?? null;
@@ -126,23 +202,137 @@ export function urlaubsStand(
     ausfüllt, hätte im Umstiegsjahr bei allen einen Anspruch von 0 gesehen —
     schlimmer als der Fehler, der hier repariert werden sollte.
     Aufgefallen ist das der Prüfung, nicht dem Kopf.
-
-    Deshalb ZUERST auf „gar nichts da" prüfen und erst dann rechnen. `NaN`
-    (leeres Formularfeld) fällt weiterhin über `Number.isFinite` heraus.
   */
-  const angegeben =
+  const bestandAngegeben =
     bestand !== null && bestand !== undefined && Number.isFinite(Number(bestand));
 
-  const imStartjahr = start !== null && start.slice(0, 4) === String(jahr) && angegeben;
+  const startjahr = start !== null ? Number(start.slice(0, 4)) : jahr;
+  const ausAnfangsbestand = startjahr === jahr && bestandAngegeben;
 
-  const anspruch = imStartjahr ? Number(bestand) : jahresanspruch;
-  const zaehltAb = imStartjahr ? start : null;
+  /*
+    OHNE STARTDATUM GIBT ES KEINEN VERLAUF, den man durchrechnen könnte — und
+    damit auch keinen Übertrag. Dann bleibt es beim Jahresanspruch, also bei
+    dem Verhalten, das jede bestehende Zeile ohne Startdatum schon hatte.
+  */
+  if (start === null || startjahr > jahr) {
+    const genommen = summe(posten.filter((p) => imJahr(p, jahr)));
+    return {
+      anspruch: jahresanspruch, genommen, rest: jahresanspruch - genommen,
+      ausAnfangsbestand: false, uebertrag: 0, verfallen: 0,
+    };
+  }
 
-  const genommen = posten
-    .filter((p) => zaehltAb === null || p.von >= zaehltAb)
-    .reduce((summe, p) => summe + p.tage, 0);
+  let jahrgaenge: Jahrgang[] = [];
+  let verfallenImJahr = 0;
+  let uebertragInsJahr = 0;
+  let genommenImJahr = 0;
 
-  return { anspruch, genommen, rest: anspruch - genommen, ausAnfangsbestand: imStartjahr };
+  for (let j = startjahr; j <= jahr; j += 1) {
+    /*
+      ZUERST DIE VERJÄHRUNG, DANN DER NEUE JAHRGANG. Ein Jahrgang aus dem Jahr
+      v lebt bis Ende v + VERJAEHRUNG_JAHRE; zu Beginn des Jahres j ist alles
+      älter als j - VERJAEHRUNG_JAHRE weg. Käme der neue Jahrgang zuerst,
+      müsste die Grenze ihn ausdrücklich ausnehmen — eine Bedingung mehr für
+      dasselbe Ergebnis.
+    */
+    let verfallenHier = 0;
+    if (regel.art === 'verjaehrung') {
+      verfallenHier += weg(jahrgaenge, (g) => g.jahr < j - VERJAEHRUNG_JAHRE);
+      jahrgaenge = jahrgaenge.filter((g) => g.jahr >= j - VERJAEHRUNG_JAHRE);
+    }
+
+    if (j === startjahr) {
+      jahrgaenge.push({ jahr: j, offen: bestandAngegeben ? Number(bestand) : jahresanspruch });
+    } else {
+      jahrgaenge.push({ jahr: j, offen: jahresanspruch });
+    }
+
+    if (j === jahr) uebertragInsJahr = summeOffen(jahrgaenge.filter((g) => g.jahr < j));
+
+    /*
+      IM STARTJAHR ZÄHLT NUR, WAS AB DEM STARTDATUM LIEGT — aber NUR, wenn es
+      einen Anfangsbestand gibt.
+
+      Der Schnitt hat genau eine Aufgabe: zu verhindern, dass ein Tag zweimal
+      abgezogen wird, einmal im mitgebrachten Bestand und einmal als Eintrag.
+      Ohne Anfangsbestand gibt es nichts, wogegen doppelt gezählt werden
+      könnte — dann wirft der Schnitt nur einen echten Urlaubstag weg. Genau
+      das hatte die erste Fassung des Jahrgangsmodells getan, und die Prüfung
+      zum bestehenden Verhalten ist darüber gefallen.
+    */
+    const schnitt = j === startjahr && bestandAngegeben ? start : null;
+    const desJahres = posten
+      .filter((p) => imJahr(p, j) && (schnitt === null || p.von >= schnitt))
+      .slice()
+      .sort((a, b) => (a.von < b.von ? -1 : a.von > b.von ? 1 : 0));
+
+    /*
+      DER STICHTAG LIEGT MITTEN IM JAHR, nicht an seinem Rand. Was bis dahin
+      verbraucht wird, zehrt noch vom alten Jahrgang; was danach kommt, nicht
+      mehr. Die Reihenfolge ist deshalb Teil der Rechnung und kein Detail.
+    */
+    const stichtag = regel.art === 'stichtag' && regel.stichtag
+      ? `${j}-${regel.stichtag}`
+      : null;
+    let stichtagErledigt = stichtag === null || j === startjahr;
+
+    for (const p of desJahres) {
+      if (!stichtagErledigt && p.von > stichtag!) {
+        verfallenHier += weg(jahrgaenge, (g) => g.jahr < j);
+        jahrgaenge = jahrgaenge.filter((g) => g.jahr >= j);
+        stichtagErledigt = true;
+      }
+      abbuchen(jahrgaenge, p.tage, j);
+      if (j === jahr) genommenImJahr += p.tage;
+    }
+
+    if (!stichtagErledigt) {
+      verfallenHier += weg(jahrgaenge, (g) => g.jahr < j);
+      jahrgaenge = jahrgaenge.filter((g) => g.jahr >= j);
+    }
+
+    if (j === jahr) verfallenImJahr = verfallenHier;
+  }
+
+  const rest = summeOffen(jahrgaenge);
+  return {
+    anspruch: rest + genommenImJahr,
+    genommen: genommenImJahr,
+    rest,
+    ausAnfangsbestand,
+    uebertrag: uebertragInsJahr,
+    verfallen: verfallenImJahr,
+  };
+}
+
+const imJahr = (p: UrlaubsPosten, jahr: number) => p.von.slice(0, 4) === String(jahr);
+const summe = (p: readonly UrlaubsPosten[]) => p.reduce((s, x) => s + x.tage, 0);
+const summeOffen = (g: readonly Jahrgang[]) => g.reduce((s, x) => s + x.offen, 0);
+
+/** Was an verfallenden Jahrgängen noch OFFEN war — nur das geht verloren. */
+function weg(jahrgaenge: readonly Jahrgang[], trifft: (g: Jahrgang) => boolean): number {
+  return jahrgaenge.filter(trifft).reduce((s, g) => s + Math.max(0, g.offen), 0);
+}
+
+/**
+ * Tage abbuchen — ältester Jahrgang zuerst.
+ *
+ * Bleibt etwas übrig, weil mehr genommen wurde als offen war, geht es ins
+ * MINUS des laufenden Jahrgangs. Bei null zu stoppen versteckte genau den
+ * Fall, wegen dessen jemand hinsieht.
+ */
+function abbuchen(jahrgaenge: Jahrgang[], tage: number, laufendesJahr: number): void {
+  let rest = tage;
+  for (const g of jahrgaenge) {
+    if (rest <= 0) break;
+    const nimmt = Math.min(rest, Math.max(0, g.offen));
+    g.offen -= nimmt;
+    rest -= nimmt;
+  }
+  if (rest > 0) {
+    const laufend = jahrgaenge.find((g) => g.jahr === laufendesJahr) ?? jahrgaenge[jahrgaenge.length - 1];
+    if (laufend) laufend.offen -= rest;
+  }
 }
 
 /**
@@ -407,6 +597,7 @@ export function calcMonthStats(
   yearEntries: TimeEntry[],
   year: number,
   month: number,
+  urlaub: UrlaubsQuelle = {},
 ): MonthStats {
   const weeklyTarget = Number(user.weeklyTargetHours ?? 40) || 40;
   const yearlyVacation = Number(user.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
@@ -458,11 +649,16 @@ export function calcMonthStats(
     unterscheiden, und genau deshalb sind es zwei.
   */
   const yearlyUrlaubDays = yearEntries.filter((e) => e.status === 'Urlaub').length;
-  const stand = urlaubsStand(
-    user,
-    year,
-    yearEntries.filter((e) => e.status === 'Urlaub').map((e) => ({ von: e.date, tage: 1 })),
-  );
+  /*
+    DER VERLAUF, NICHT DAS JAHR. Der Anspruch dieses Jahres hängt am Rest des
+    Vorjahres; mit nur den Einträgen des angezeigten Jahres wäre der Übertrag
+    immer null. Wer `verlauf` weglässt, bekommt die Einträge des Jahres — das
+    ist richtig für ein Startjahr und für jeden Aufrufer, der keinen Übertrag
+    kennt, und es ist genau das Verhalten von vorher.
+  */
+  const verlauf = urlaub.verlauf
+    ?? yearEntries.filter((e) => e.status === 'Urlaub').map((e) => ({ von: e.date, tage: 1 }));
+  const stand = urlaubsStand(user, year, verlauf, urlaub.regel);
 
   // Laufend heißt: der letzte Tag des Monats liegt noch vor uns.
   const heute = new Date();
@@ -488,6 +684,20 @@ export function calcMonthStats(
     urlaubsAnspruch: stand.anspruch,
     urlaubAusAnfangsbestand: stand.ausAnfangsbestand,
   };
+}
+
+/**
+ * Woher `calcMonthStats` seinen Urlaubsstand nimmt.
+ *
+ * Beides ist freiwillig, und das ist Absicht: ohne Angabe rechnet die
+ * Funktion wie vorher — Einträge des Jahres, gesetzliche Vorgabe. Damit
+ * bleibt jeder bestehende Aufruf gültig UND richtig; nur wer den Übertrag
+ * sehen will, muss den Verlauf mitbringen.
+ */
+export interface UrlaubsQuelle {
+  /** Alle Urlaubstage seit dem Startdatum — nicht nur die des Jahres. */
+  verlauf?: readonly UrlaubsPosten[];
+  regel?: UebertragRegel;
 }
 
 export type CompletenessStatus = 'complete' | 'today_only' | 'missing';

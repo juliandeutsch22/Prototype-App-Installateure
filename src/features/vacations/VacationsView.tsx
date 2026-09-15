@@ -9,7 +9,7 @@ import {
 import { getUserByUid } from '@/lib/db/users';
 import { callUrlaubEntscheiden } from '@/lib/functions';
 import { darfUrlaubEntscheiden } from '@/lib/permissions';
-import { todayStr, urlaubsTage, urlaubsStand } from '@/lib/time';
+import { todayStr, urlaubsTage, urlaubsStand, uebertragsRegel } from '@/lib/time';
 import type { AppUser, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
@@ -102,7 +102,14 @@ export default function VacationsView() {
       setError(null);
       try {
         const [meine, profilDaten] = await Promise.all([
-          listOwnVacations(user.companyId, user.uid),
+          /*
+            MEHR ALS DIE LETZTEN SECHZIG. Die Vorgabe reichte, solange nur das
+            laufende Jahr zählte. Für den Übertrag hängt der Anspruch am
+            ganzen Verlauf seit dem Startdatum — und abgeschnitten würde
+            ausgerechnet das Älteste, also genau das, woraus der Übertrag
+            kommt. 500 sind bei einem Menschen ein Berufsleben.
+          */
+          listOwnVacations(user.companyId, user.uid, 500),
           getUserByUid(user.companyId, user.uid),
         ]);
         setEigene(meine);
@@ -151,11 +158,18 @@ export default function VacationsView() {
       urlaubsStand(
         profil ?? { yearlyVacationDays: undefined, initialVacationDays: null, appStartDate: null },
         jahr,
+        /*
+          ALLE genehmigten Urlaube, nicht nur die dieses Jahres. Der Anspruch
+          hängt am Rest des Vorjahres; mit einem Jahresfilter wäre der Übertrag
+          immer null, und die Zahl wäre wieder die falsche — nur an einer
+          anderen Stelle als vorher.
+        */
         eigene
-          .filter((v) => v.status === 'Genehmigt' && v.von.startsWith(String(jahr)))
+          .filter((v) => v.status === 'Genehmigt')
           .map((v) => ({ von: v.von, tage: v.tage })),
+        uebertragsRegel(company),
       ),
-    [eigene, jahr, profil],
+    [eigene, jahr, profil, company],
   );
   const genommen = stand.genommen;
   const anspruch = stand.anspruch;
@@ -381,10 +395,24 @@ export default function VacationsView() {
             <span className="mt-1 block basis-full text-xs">
               In diesem Jahr genehmigt: <span className="tnum">{genommen}</span> von{' '}
               <span className="tnum">{anspruch}</span> Tagen
-              {/* „von 25" wäre im Startjahr falsch beschriftet: dort sind es
-                  die Tage, die beim Umstieg noch übrig waren. Eine richtige
-                  Zahl mit falscher Erklärung ist auch eine falsche Auskunft. */}
-              {stand.ausAnfangsbestand ? ' (Restanspruch beim Umstieg).' : '.'}
+              {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
+                  falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
+                  (dort sind es die mitgebrachten Tage) noch dort, wo ein
+                  Übertrag aus dem Vorjahr dabei ist. */}
+              {stand.ausAnfangsbestand
+                ? ' (Restanspruch beim Umstieg).'
+                : stand.uebertrag > 0
+                  ? `, davon ${stand.uebertrag} aus dem Vorjahr.`
+                  : '.'}
+              {/* Verfallene Tage werden GENANNT. Sie lautlos abzuziehen wäre
+                  genau die Sorte Zahl, über die sich jemand später beschwert
+                  — und dann ist es ein Streit statt einer Auskunft. */}
+              {stand.verfallen > 0 && (
+                <span className="mt-1 block">
+                  <span className="tnum">{stand.verfallen}</span>
+                  {stand.verfallen === 1 ? ' Tag ist' : ' Tage sind'} heuer verfallen.
+                </span>
+              )}
             </span>
           </div>
 

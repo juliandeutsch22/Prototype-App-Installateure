@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { urlaubsStand, calcMonthStats } from '@/lib/time';
+import { urlaubsStand, calcMonthStats, uebertragsRegel, type UebertragRegel } from '@/lib/time';
 import type { TimeEntry } from '@/types';
 
 /**
@@ -71,9 +71,16 @@ describe('Im Jahr des Umstiegs', () => {
 });
 
 describe('In jedem anderen Jahr', () => {
-  it('gilt wieder der volle Jahresanspruch', () => {
+  it('kommt der Jahresanspruch dazu — und was übrig war, bleibt', () => {
+    /*
+      HIER STAND BIS ZUM ÜBERTRAG `toBe(25)`, und das war der Fehler, den
+      diese Änderung behebt: am 1. Jänner wurde der Rest weggeworfen. Petra
+      hatte beim Umstieg 7 Tage und nichts genommen — sie geht mit 32 ins
+      nächste Jahr, nicht mit 25.
+    */
     const stand = urlaubsStand(petra, 2027, []);
-    expect(stand.anspruch).toBe(25);
+    expect(stand.anspruch).toBe(32);
+    expect(stand.uebertrag).toBe(7);
     expect(stand.ausAnfangsbestand).toBe(false);
   });
 
@@ -82,7 +89,7 @@ describe('In jedem anderen Jahr', () => {
     // nicht im Folgejahr weiterwirken — dort liegt JEDER Tag danach.
     const stand = urlaubsStand(petra, 2027, [{ von: '2027-01-08', tage: 3 }]);
     expect(stand.genommen).toBe(3);
-    expect(stand.rest).toBe(22);
+    expect(stand.rest).toBe(29);
   });
 
   it('auch im Jahr VOR dem Umstieg', () => {
@@ -197,5 +204,161 @@ describe('Die Monatszahlen der Buchhaltung nehmen dieselbe Regel', () => {
     );
     expect(stats.urlaubRest).toBe(24);
     expect(stats.urlaubAusAnfangsbestand).toBe(false);
+  });
+});
+
+/**
+ * DER ÜBERTRAG ZUM JAHRESWECHSEL.
+ *
+ * Bis hierher sprang der Resturlaub am 1. Jänner auf den vollen
+ * Jahresanspruch zurück; was übrig war, verschwand. In Österreich verfällt
+ * nicht verbrauchter Urlaub aber nicht am Jahresende — er verjährt erst zwei
+ * Jahre nach dem Jahr, in dem er entstand (§ 4 Abs 5 UrlG).
+ *
+ * Gerechnet wird in Jahrgängen, weil ein blosser Saldo nicht sagen kann,
+ * WELCHE Tage alt sind.
+ */
+
+/** Anton: 25 Tage im Jahr, in der App seit Anfang 2024, ohne Anfangsbestand. */
+const anton = {
+  yearlyVacationDays: 25,
+  initialVacationDays: null,
+  appStartDate: '2024-01-01',
+};
+
+const VERJAEHRT: UebertragRegel = { art: 'verjaehrung' };
+const STICHTAG: UebertragRegel = { art: 'stichtag', stichtag: '03-31' };
+
+describe('Übertrag nach der gesetzlichen Verjährung', () => {
+  it('nimmt den Rest ins nächste Jahr mit', () => {
+    const stand = urlaubsStand(anton, 2025, [{ von: '2024-07-01', tage: 20 }], VERJAEHRT);
+    expect(stand.uebertrag).toBe(5);
+    expect(stand.anspruch).toBe(30);
+  });
+
+  it('lässt einen Jahrgang zwei Jahre nach seinem Jahr verfallen', () => {
+    /*
+      Der Jahrgang 2024 lebt bis Ende 2026. Anton nimmt nie Urlaub:
+        2025  25 + 25 = 50
+        2026  25 + 25 + 25 = 75
+        2027  der Jahrgang 2024 ist weg — 25 + 25 + 25 = 75, nicht 100
+    */
+    expect(urlaubsStand(anton, 2026, [], VERJAEHRT).anspruch).toBe(75);
+    const stand = urlaubsStand(anton, 2027, [], VERJAEHRT);
+    expect(stand.anspruch).toBe(75);
+    expect(stand.verfallen).toBe(25);
+  });
+
+  it('verbraucht den ÄLTESTEN Jahrgang zuerst', () => {
+    /*
+      Das ist die für den Mitarbeiter günstige Reihenfolge: so verfällt so
+      wenig wie möglich. Anton nimmt 2025 zwanzig Tage — die gehen auf 2024,
+      nicht auf 2025. Ende 2026 verfällt vom Jahrgang 2024 deshalb nur der
+      Rest von fünf.
+    */
+    const genommen = [{ von: '2025-06-02', tage: 20 }];
+    expect(urlaubsStand(anton, 2027, genommen, VERJAEHRT).verfallen).toBe(5);
+  });
+
+  it('meldet nichts als verfallen, wenn der alte Jahrgang aufgebraucht war', () => {
+    // Die Gegenprobe: wer seinen alten Urlaub verbraucht, verliert nichts.
+    const genommen = [{ von: '2025-06-02', tage: 25 }];
+    expect(urlaubsStand(anton, 2027, genommen, VERJAEHRT).verfallen).toBe(0);
+  });
+});
+
+describe('Übertrag mit vereinbartem Verfallsstichtag', () => {
+  /** Anton hat 2024 zwanzig von fünfundzwanzig Tagen genommen: fünf bleiben. */
+  const ausZweiundzwanzigVier = { von: '2024-07-01', tage: 20 };
+
+  it('zehrt ein Urlaub VOR dem Stichtag noch vom alten Jahrgang', () => {
+    /*
+      Am 2. März 2025 stehen Anton 30 Tage zur Verfügung — 25 neue und 5
+      mitgebrachte. Die drei Tage gehen auf den alten Jahrgang, also verfallen
+      am 31.03. nur noch zwei statt fünf. Genau dafür liegt der Stichtag
+      mitten im Jahr und nicht an seinem Rand.
+    */
+    const stand = urlaubsStand(
+      anton, 2025, [ausZweiundzwanzigVier, { von: '2025-03-02', tage: 3 }], STICHTAG,
+    );
+    expect(stand.uebertrag).toBe(5);
+    expect(stand.verfallen).toBe(2);
+    expect(stand.rest).toBe(25);
+  });
+
+  it('lässt den alten Jahrgang am Stichtag verfallen', () => {
+    // Der Urlaub im Juni kommt zu spät — die fünf Tage aus 2024 sind weg.
+    const stand = urlaubsStand(
+      anton, 2025, [ausZweiundzwanzigVier, { von: '2025-06-02', tage: 3 }], STICHTAG,
+    );
+    expect(stand.verfallen).toBe(5);
+    expect(stand.rest).toBe(22);
+  });
+
+  it('verfällt auch dann, wenn im ganzen Jahr kein Urlaub genommen wurde', () => {
+    /*
+      DER FALL, DEN EINE SCHLEIFE ÜBER DIE URLAUBE VERLIERT. Ohne einen
+      einzigen Eintrag gäbe es keinen Zeitpunkt, an dem der Stichtag
+      „überschritten" wird — und der alte Jahrgang bliebe für immer stehen.
+      Deshalb steht dieselbe Prüfung noch einmal HINTER der Schleife.
+    */
+    const stand = urlaubsStand(anton, 2025, [ausZweiundzwanzigVier], STICHTAG);
+    expect(stand.verfallen).toBe(5);
+    expect(stand.rest).toBe(25);
+  });
+
+  it('greift im Startjahr nicht — davor gibt es nichts zu verfallen', () => {
+    const stand = urlaubsStand(anton, 2024, [{ von: '2024-06-03', tage: 2 }], STICHTAG);
+    expect(stand.verfallen).toBe(0);
+    expect(stand.anspruch).toBe(25);
+  });
+});
+
+describe('Der Anfangsbestand trägt in die Folgejahre', () => {
+  it('bringt Petras sieben Tage ins nächste Jahr', () => {
+    // Der Anfangsbestand IST der Jahrgang des Startjahres — er verhält sich
+    // ab da wie jeder andere.
+    expect(urlaubsStand(petra, 2027, [], VERJAEHRT).uebertrag).toBe(7);
+  });
+
+  it('und lässt sie mit dem Startjahrgang verjähren', () => {
+    // Jahrgang 2026 lebt bis Ende 2028; 2029 ist er weg.
+    expect(urlaubsStand(petra, 2029, [], VERJAEHRT).uebertrag).toBe(50);
+  });
+});
+
+describe('Ohne Übertragsregel gilt das Gesetz', () => {
+  it('die Vorgabe ist die Verjährung, nicht das Wegwerfen', () => {
+    /*
+      Was ein Betrieb nicht eingestellt hat, richtet sich nach dem Gesetz —
+      nicht nach dem, was die App vorher tat. Hätte die Vorgabe „kein
+      Übertrag" geheissen, wäre der Fehler als Einstellung konserviert.
+    */
+    expect(urlaubsStand(anton, 2025, [])).toEqual(
+      urlaubsStand(anton, 2025, [], VERJAEHRT),
+    );
+  });
+});
+
+describe('Die Regel aus den Stammdaten des Betriebs', () => {
+  it('nimmt den Stichtag, wenn er gesetzt ist', () => {
+    expect(uebertragsRegel({ urlaubUebertrag: 'stichtag', urlaubStichtag: '03-31' }))
+      .toEqual({ art: 'stichtag', stichtag: '03-31' });
+  });
+
+  it('fällt ohne Einstellung auf das Gesetz zurück', () => {
+    expect(uebertragsRegel(null).art).toBe('verjaehrung');
+    expect(uebertragsRegel({}).art).toBe('verjaehrung');
+  });
+
+  it('fällt auch bei „Stichtag ohne Datum" auf das Gesetz zurück', () => {
+    /*
+      Die Datenbank lässt diesen Zustand nicht zu. Eine Rechnung, die sich
+      darauf VERLÄSST, hat trotzdem eine Annahme eingebaut — und die Antwort
+      „Gesetz" ist die einzige, die niemandem etwas wegnimmt. „Verfällt nie"
+      wäre zu viel, ein Absturz zu wenig.
+    */
+    expect(uebertragsRegel({ urlaubUebertrag: 'stichtag', urlaubStichtag: null }).art)
+      .toBe('verjaehrung');
   });
 });
