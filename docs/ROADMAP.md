@@ -2606,7 +2606,7 @@ KI-Erfassung eingeschaltet wird — nicht vorher.
 | Sprach-Erfassung, Teilschreibungen | Schlägt ein Schreibvorgang mitten in der Bestätigung fehl, bleibt ein halber Datensatz zurück |
 | Folgetermine | Werden erfasst und gespeichert, aber nirgends angezeigt |
 | Mikrofon | Läuft nach dem Abbrechen der Aufnahme weiter |
-| ~~Sicherung im selben Haus~~ | **Sichtbar gemacht am 08.09.2026** — die Ansicht sagt es jetzt. Geschlossen ist sie erst, wenn `AUSLEITUNG_BUCKET` auf einen Speicher ausserhalb zeigt; das ist Einrichtung, nicht Code |
+| Sicherung im selben Haus | **Sichtbar gemacht am 08.09.2026** — die Ansicht sagt es. **Berichtigt am 15.09.2026:** hier stand „das ist Einrichtung, nicht Code". Das galt für Firebase, wo `AUSLEITUNG_BUCKET` auf einen beliebigen Speicher zeigen konnte. Die Ausleitung auf Postgres schreibt fest in den Speicher des eigenen Projekts; `AUSLEITUNG_EIMER` wechselt nur den Eimernamen darin, und `AUSLEITUNG_ZIEL_EXTERN` setzt **nur die Meldung**, nicht das Ziel — eingeschaltet legte es den ehrlichen Hinweis still, ohne eine Datei zu bewegen. Es braucht einen Speicher bei einem anderen Anbieter und den Weg dorthin im Code |
 | ~~Listen ohne Begrenzung~~ | **Erledigt.** Stand hier zuletzt falsch: alle Abfragen in `timeEntries.ts` sind zeitraumbegrenzt. Übrig ist `listOwnEntriesSince` als Rückfall, wenn die Monatsbilanzen unvollständig sind — je Person, nicht je Betrieb. Eine Doku, die Erledigtes als offen führt, schickt den Nächsten in die Irre |
 
 ## Skalierbarkeit: die Regel und die eine verbleibende Ausnahme
