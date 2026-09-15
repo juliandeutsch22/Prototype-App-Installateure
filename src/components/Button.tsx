@@ -2,8 +2,24 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type Variant = 'primary' | 'secondary' | 'accent' | 'danger' | 'ghost' | 'ghost-dark';
 
+/**
+ * `klein` ist für REIHEN VON SCHALTERN, nicht für Aktionen.
+ *
+ * Drei Zeitraum-Schalter in voller Grösse nebeneinander passen auf einem
+ * Telefon nicht in eine Zeile; sie brechen um und stehen dann als drei fette
+ * Blöcke da, die aussehen, als wäre jeder für sich wichtig. Wichtig ist aber
+ * die Auswahl, nicht der einzelne Schalter.
+ *
+ * DIE HÖHE BLEIBT: schmaler heisst hier weniger Polsterung und kleinere
+ * Schrift, nicht ein kleineres Ziel für den Finger. Ein Monteur bedient das
+ * mit Arbeitshandschuhen, und ein 32 Pixel hoher Schalter ist damit nicht zu
+ * treffen — das ist der Grund, aus dem `min-h-touch` app-weit steht.
+ */
+type Groesse = 'normal' | 'klein';
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
+  groesse?: Groesse;
   loading?: boolean;
   children: ReactNode;
 }
@@ -32,13 +48,22 @@ const variants: Record<Variant, string> = {
   'ghost-dark': 'bg-transparent text-white/80 hover:bg-white/10 hover:text-white',
 };
 
+const groessen: Record<Groesse, string> = {
+  normal: 'px-4 py-2 text-base',
+  klein: 'px-3 py-1.5 text-sm',
+};
+
 /**
  * Großes Touch-Ziel (min. 48px) mit taktilem Press-Feedback (:active-Scale).
  * Hover-Effekte sind app-weit hinter @media (hover:hover) gegatet (Tailwind
  * hoverOnlyWhenSupported) — Touch löst kein klebriges Hover aus.
+ *
+ * Die Höhe gilt für BEIDE Grössen: `klein` nimmt Polsterung und Schrift,
+ * nicht das Ziel für den Finger.
  */
 export default function Button({
   variant = 'primary',
+  groesse = 'normal',
   loading = false,
   disabled,
   className = '',
@@ -47,7 +72,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex min-h-touch items-center justify-center gap-2 rounded px-4 py-2 text-base font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${variants[variant]} ${className}`}
+      className={`inline-flex min-h-touch items-center justify-center gap-2 rounded font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${groessen[groesse]} ${variants[variant]} ${className}`}
       disabled={disabled || loading}
       {...rest}
     >
