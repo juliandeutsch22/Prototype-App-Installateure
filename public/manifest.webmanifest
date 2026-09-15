@@ -1,13 +1,13 @@
 {
-  "name": "Perl Zeiterfassung",
-  "short_name": "Perl Zeit",
-  "description": "Zeiterfassung, Baustellen und Materialanforderung für Perl Installationen GmbH",
+  "name": "Senklot",
+  "short_name": "Senklot",
+  "description": "Zeiterfassung, Baustellen, Scheine und Rechnungen für das Installationshandwerk",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "lang": "de-AT",
-  "background_color": "#eef6f8",
+  "background_color": "#ffffff",
   "theme_color": "#0f4552",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

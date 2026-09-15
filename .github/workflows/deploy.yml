@@ -132,7 +132,6 @@ jobs:
           # deshalb kein Abbruch in der Vorabpruefung, sondern optional.
           VITE_FIREBASE_VAPID_KEY: ${{ secrets.VITE_FIREBASE_VAPID_KEY }}
           VITE_FUNCTIONS_REGION: ${{ vars.VITE_FUNCTIONS_REGION || 'europe-west3' }}
-          VITE_PORTAL_NAME: ${{ vars.VITE_PORTAL_NAME || 'Perl Installationen' }}
           # Im Produktivbuild niemals gegen die lokalen Emulatoren zeigen.
           VITE_USE_EMULATORS: 'false'
           # SUPABASE — DER SCHALTER STEHT AUF POSTGRES (Stufe 8).

@@ -7,12 +7,32 @@
  * companies/{companyId} (applyBranding setzt sie zur Laufzeit). Alle übrigen
  * Rollen sind bewusst hochkontrastig (Sonnenlicht auf der Baustelle).
  *
- * FARBWELT. Tiefes Tintenblau-Türkis als Grund, Cyan und Mint als Kante —
- * dunkle Flächen tragen die Navigation, helle Flächen tragen die Arbeit.
- * Die leuchtenden Töne (--accent-bright, --mint) sind AUSSCHLIESSLICH
- * Dekoration: Kanten, Verläufe, Glanz. Sie tragen nie Text und nie Bedeutung,
- * weil sie auf Weiß nur 2,6:1 erreichen. Was gelesen werden muss, steht in
- * --text, --text-muted, --brand oder --accent.
+ * FARBWELT — SEIT DER MARKE SENKLOT: FLÄCHE STATT VERLAUF.
+ *
+ * Das Zeichen kennt zwei Farben und keinen Verlauf: „Ein Verlauf datiert ein
+ * Zeichen auf das Jahr, in dem er gemacht wurde" (marke/LIESMICH.md). Die
+ * Oberfläche folgt jetzt derselben Regel. Vier Verläufe und die Mint-Familie
+ * sind ersatzlos entfallen; die dunklen Trägerflächen sind flaches Petrol.
+ *
+ * DAS WAR KEIN REINER GESCHMACKSWECHSEL. Ein Verlauf ist nur so lesbar wie
+ * seine hellste Stelle, und das war #107a8c mit 5,0:1 — genau dort, wo in
+ * der Seitenleiste der Benutzername stand. Flach sind es 10,5:1 auf der
+ * ganzen Fläche. Die Gruppenüberschriften in Weiß auf 60 % steigen dabei von
+ * rund 3,3:1 auf 4,9:1.
+ *
+ * DIE REGEL, DIE DARAUS FOLGT: was auf der dunklen Trägerfläche zur BEDIENUNG
+ * gehört, ist weiß — Beschriftung, Markierung, Trennung. Deshalb ist der
+ * Strich am aktiven Eintrag der Seitenleiste weiß und nicht mehr cyan: auf
+ * einer flachen Fläche schliesst Cyan an keinen Ton mehr an.
+ *
+ * MIT GENAU EINER AUSNAHME, und die ist keine Nachlässigkeit: der Avatar.
+ * Er ist keine Bedienoberfläche, sondern ein Mensch — auf einem Tablet, an
+ * dem mehrere arbeiten, ist „wer bin ich hier gerade?" eine echte Frage, und
+ * ein weisser Kreis unter weisser Schrift beantwortet sie nicht. Er bleibt
+ * deshalb in --accent-bright, dem einzigen hellen Ton, der übrig ist. Text
+ * von Bedeutung trägt der nie und einen Zustand nie allein — auf Weiß
+ * erreicht er nur 2,6:1. Was gelesen werden muss, steht in --text,
+ * --text-muted, --brand oder --accent.
  */
 :root {
   /* Marke (Defaults; werden vom Mandanten-Theme überschrieben).
@@ -39,15 +59,20 @@
    *                        Kanten, Reitermarkierung, Kästchen, Kalender.
    *
    * `--accent-deep` ist der einzige davon, der Text tragen darf (5,2:1 auf
-   * Weiß, Weiß darauf ebenso). `--accent-bright` und `--mint` sind Fläche
-   * und Kante — auf Weiß nur 2,6:1 bzw. 1,3:1.
+   * Weiß, Weiß darauf ebenso). `--accent-bright` ist Fläche — auf Weiß nur
+   * 2,6:1.
+   *
+   * `--brand-fixed` IST DIE FARBE DES PRODUKTS, NICHT DIE DES BETRIEBS. Sie
+   * sieht aus wie die Vorgabe von `--brand` und ist es trotzdem nicht: an
+   * `--brand` greift `applyBranding`, an diese hier nicht. Wo Senklot selbst
+   * spricht — die dunkle Trägerfläche, der Strich unter jeder Überschrift,
+   * der Balken des Telefons —, muss dieselbe Farbe stehen wie auf dem
+   * App-Zeichen, auch bei einem Betrieb mit rotem Erscheinungsbild.
    */
   --ink-deep: #0a2030;
-  --brand-mid: #12889b;
+  --brand-fixed: #0f4552;
   --accent-deep: #00778a;
   --accent-bright: #12b0c6;
-  --mint: #66ffb0;
-  --mint-soft: #bff3ea;
 
   /* Flächen & Text */
   --bg: #eef6f8;
@@ -77,28 +102,16 @@
   --info-bg: #d9f2f7;
 
   /*
-   * VERLÄUFE — sparsam, und nur dort, wo sie etwas tun.
+   * KEINE VERLÄUFE MEHR — vier standen hier, alle sind weg.
    *
-   * Der erste Entwurf hatte überall welche: auf jedem Knopf, auf jeder
-   * Karte, auf dem Seitengrund. Das Ergebnis war unruhig, ohne dass ein
-   * einziger Verlauf eine Aussage getragen hätte. Jetzt gilt eine Regel, die
-   * man vor dem Schreiben beantworten kann:
+   * Die Regel davor lautete: Verlauf auf den grossen dunklen Trägerflächen
+   * und auf der Markenkante, Fläche überall sonst. Sie war sauber
+   * beantwortbar, und sie war trotzdem eine Regel zu viel. Seit das Zeichen
+   * steht, gilt eine einzige: FLÄCHE. Überall.
    *
-   *   VERLAUF   nur auf den grossen dunklen Trägerflächen (Seitenleiste,
-   *             Kopfleiste, Tableiste, Anmeldekopf, Sprach-Banner) und auf
-   *             der 3 px hohen Markenkante.
-   *   FLÄCHE    alles andere — Karten, Knöpfe, Kästen, Blätter, Dialoge.
-   *
-   * Der helle Endpunkt von --grad-brand ist abgedunkelt, bis er allein 4,5:1
-   * erreicht (#107a8c → 5,0:1). Die Vorlage hört bei #12889b auf; das sind
-   * 4,2:1 und damit unter AA — ein Verlauf ist nur so lesbar wie seine
-   * hellste Stelle, und das ist genau die Ecke, in der in der Seitenleiste
-   * der Benutzername steht.
+   * Wer hier wieder einen Verlauf einführen will, muss zuerst seine hellste
+   * Stelle nachrechnen — daran ist der letzte gescheitert.
    */
-  --grad-brand: linear-gradient(120deg, #0a2030 0%, #0f4552 70%, #107a8c 100%);
-  --grad-dark: linear-gradient(100deg, #0a2030 0%, #0b2d3d 55%, #0d4152 100%);
-  --grad-tint: linear-gradient(120deg, rgba(102, 255, 176, 0.14), rgba(18, 176, 198, 0.12));
-  --grad-edge: linear-gradient(90deg, #12b0c6 0%, #66ffb0 100%);
 
   /* Radius & Schatten — weiche Ecken und lange, flache Schatten mit
    * negativer Streuung: die Kante bleibt scharf, der Schatten liegt darunter
@@ -193,16 +206,15 @@ textarea:focus {
  */
 
 /*
- * FLÄCHEN — die drei Kästen, aus denen die ganze App gebaut ist.
+ * FLÄCHEN — die zwei Kästen, aus denen die ganze App gebaut ist.
  *
  * Sie stehen hier und nicht an den Aufrufstellen, weil „das Design der Boxen"
  * sonst an 60 Stellen einzeln gepflegt werden müsste und nach dem dritten
  * Nachbessern nicht mehr übereinstimmt. Wer eine neue Fläche braucht, nimmt
- * eine dieser drei — oder ergänzt sie hier.
+ * eine dieser zwei — oder ergänzt sie hier.
  *
  *   .panel       helle Arbeitsfläche: Karten, Kästen, Dialoge
  *   .panel-dark  dunkle Trägerfläche: Navigation, Anmeldekopf, Markenband
- *   .edge-accent leuchtende Kante (Cyan → Mint) als Markierung, 3 px hoch
  *
  * WARUM `@layer components` UND NICHT EINFACH HIER HINGESCHRIEBEN. Weil
  * Tailwind diese Ebene VOR die Utilities stellt. Als freies CSS stünde
@@ -221,13 +233,16 @@ textarea:focus {
   }
 
   /*
-   * Der Schimmer auf der dunklen Fläche: ein zarter Mint-Cyan-Schleier über
-   * dem Verlauf. Ohne ihn wirkt das Dunkel flach wie Druckfarbe; mit ihm
-   * bekommt es die Tiefe der Vorlage.
+   * DIE DUNKLE TRÄGERFLÄCHE — flach, in der Farbe des App-Zeichens.
+   *
+   * Hier lagen ein Verlauf und ein Mint-Cyan-Schleier darüber, „damit das
+   * Dunkel nicht flach wirkt wie Druckfarbe". Genau das soll es jetzt: das
+   * Senklot steht auf einer Fläche, und die Leiste, die es trägt, ist
+   * dieselbe Fläche. `--brand-fixed` und nicht `--brand`, damit sie auch bei
+   * einem Betrieb mit eigener Hausfarbe die Farbe des Produkts behält.
    */
   .panel-dark {
-    background-color: var(--ink-deep);
-    background-image: var(--grad-tint), var(--grad-brand);
+    background-color: var(--brand-fixed);
     color: #ffffff;
   }
 
@@ -290,18 +305,16 @@ textarea:focus {
   }
 
   /*
-   * Leuchtende Kante. Sie steht noch am Anmeldekopf und als kurzer Strich
-   * unter der Seitenüberschrift; von den Navigationsleisten ist sie weg.
-   * Dort lag sie zusammen mit der weissen Fuge, und zwei Streifen
-   * übereinander waren zwei Trennungen für eine Sache — am Telefon sah die
-   * Leiste damit anders aus als die Seitenleiste am Schreibtisch.
+   * `.edge-accent` GIBT ES NICHT MEHR — die leuchtende Kante aus Cyan und
+   * Mint war die dritte Farbe, die das Zeichen selbst nicht kennt.
    *
-   * Reine Dekoration: sie trägt nie die einzige Information über einen
-   * Zustand, dafür sind Farbe UND Fettung des Textes da.
+   * Sie stand an zwei Stellen. Am Anmeldekopf ist sie ersatzlos weg: die
+   * Kante zwischen dunkler Fläche und weissem Formular IST die Trennung,
+   * ein Streifen darauf wäre eine zweite für dieselbe Sache. Unter der
+   * Seitenüberschrift steht der Strich weiter, jetzt flach in
+   * `--brand-fixed` — dort schreibt ihn `PageHeader` selbst hin, statt ihn
+   * über eine Klasse mit einem einzigen Benutzer zu holen.
    */
-  .edge-accent {
-    background-image: var(--grad-edge);
-  }
 }
 
 /* Abschnittsüberschrift im Kartenkopf: klein, fett, gesperrt, versal. */

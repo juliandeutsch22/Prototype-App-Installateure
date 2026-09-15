@@ -32,7 +32,12 @@ vi.mock('@/app/AuthContext', () => ({
     resetPassword: vi.fn(async () => undefined),
   }),
 }));
-vi.mock('@/components/BrandLogo', () => ({ default: () => null }));
+/*
+  `BrandLogo` wurde hier bis zur Marke Senklot weggemockt, weil es ein Bild
+  des MANDANTEN lud — vor der Anmeldung gibt es den nicht. Die Anmeldemaske
+  zeigt jetzt die Produktmarke, und die ist gezeichnetes SVG mit echtem Text:
+  sie braucht keine Attrappe und gehört mitgeprüft.
+*/
 
 const { default: LoginPage } = await import('@/features/auth/LoginPage');
 
@@ -137,5 +142,26 @@ describe('Der Anmeldeknopf', () => {
 
     expect(await screen.findByText(/E-Mail oder Passwort prüfen/)).toBeInTheDocument();
     expect(knopf()).not.toBeDisabled();
+  });
+});
+
+describe('Die Marke über dem Formular', () => {
+  /*
+    WAS HIER SCHIEFGING UND NICHT AUFFIEL. Vor der Anmeldung ist der Mandant
+    unbekannt, also sprang eine Vorgabe ein — und die zeigte das Logo des
+    ersten Kunden. Bei einem Betrieb sieht das richtig aus; beim zweiten
+    meldet sich seine Belegschaft unter fremdem Zeichen an. Ein Bild, das
+    niemand prüft, kann jahrelang das Falsche behaupten.
+  */
+  it('nennt das Produkt und nicht einen Betrieb', () => {
+    zeige();
+    expect(screen.getByText('Senklot')).toBeInTheDocument();
+  });
+
+  it('lädt vor der Anmeldung kein Logo eines Mandanten', () => {
+    // Die Gegenprobe zur Zeile darüber: „Senklot" könnte auch NEBEN einem
+    // fremden Logo stehen. Vor der Anmeldung gehört gar keines auf die Seite.
+    const { container } = zeige();
+    expect(container.querySelectorAll('img')).toHaveLength(0);
   });
 });

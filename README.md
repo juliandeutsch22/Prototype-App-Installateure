@@ -444,9 +444,15 @@ Actions → New repository secret*:
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | ebenda |
 | `VITE_FIREBASE_APP_ID` | ebenda |
 
-Optional als *Variable* (nicht Secret): `VITE_PORTAL_NAME` (Name über dem
-Anmeldebildschirm, Vorgabe „Perl Installationen") und `VITE_FUNCTIONS_REGION`
-(Vorgabe `europe-west3`).
+Optional als *Variable* (nicht Secret): `VITE_FUNCTIONS_REGION` (Vorgabe
+`europe-west3`).
+
+`VITE_PORTAL_NAME` gibt es nicht mehr. Über dem Anmeldebildschirm steht die
+Marke des Produkts — Senklot —, nicht der Name eines Betriebs: vor der
+Anmeldung ist der Mandant unbekannt, und die Vorgabe zeigte deshalb jedem
+zweiten Kunden das Zeichen des ersten. Das Logo des Betriebs erscheint ab der
+ersten Seite nach der Anmeldung; `VITE_PORTAL_LOGO` bleibt als Vorgabe für
+Mandanten ohne eigenes Logo.
 
 Die `VITE_FIREBASE_*`-Werte sind technisch nicht geheim — sie stehen ohnehin
 im ausgelieferten JavaScript, und Firebase schützt die Daten über die

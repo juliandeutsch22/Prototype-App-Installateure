@@ -67,7 +67,9 @@ export default {
     extend: {
       colors: {
         // Alle Farbrollen lesen Design-Tokens (siehe index.css / applyBranding).
-        brand: { DEFAULT: token('--brand'), fg: token('--brand-fg') },
+        // `brand-fixed` ist die Ausnahme: die Farbe des PRODUKTS, an die
+        // `applyBranding` nicht herangeht (siehe index.css).
+        brand: { DEFAULT: token('--brand'), fg: token('--brand-fg'), fixed: token('--brand-fixed') },
         accent: { DEFAULT: token('--accent'), fg: token('--accent-fg') },
         bg: token('--bg'),
         surface: { DEFAULT: token('--surface'), 2: token('--surface-2') },
@@ -79,23 +81,18 @@ export default {
         info: { DEFAULT: token('--info'), bg: token('--info-bg') },
         // Die festen Töne der Oberfläche (siehe index.css): sie sind NICHT
         // mandantenfähig und tragen alles Strukturelle. Nur `accent-deep`
-        // darf davon Text tragen — die übrigen erreichen auf Weiß keine
-        // 4,5:1 und sind Fläche und Kante.
+        // darf davon Text tragen — `accent-bright` erreicht auf Weiß keine
+        // 4,5:1 und ist reine Fläche.
         'ink-deep': token('--ink-deep'),
-        'brand-mid': token('--brand-mid'),
         'accent-deep': token('--accent-deep'),
         'accent-bright': token('--accent-bright'),
-        mint: { DEFAULT: token('--mint'), soft: token('--mint-soft') },
       },
-      // Die vier verbliebenen Verläufe als Rollen, nicht als Rezept. Wo sie
-      // benutzt werden dürfen, steht in index.css — kurz: nur auf den grossen
-      // dunklen Trägerflächen und auf der Markenkante.
-      backgroundImage: {
-        'grad-brand': 'var(--grad-brand)',
-        'grad-dark': 'var(--grad-dark)',
-        'grad-tint': 'var(--grad-tint)',
-        'grad-edge': 'var(--grad-edge)',
-      },
+      /*
+        KEIN `backgroundImage` MEHR. Hier standen vier Verläufe als Rollen.
+        Seit der Marke Senklot gilt Fläche statt Verlauf — und `brand-mid`
+        und die Mint-Familie sind mit ihnen gegangen, weil sie ausser in
+        ihnen nirgends vorkamen.
+      */
       borderRadius: {
         sm: 'var(--radius-sm)',
         DEFAULT: 'var(--radius)',
