@@ -78,6 +78,93 @@ describe('Baustellen auf Postgres', () => {
     }
   });
 
+  it('holt eine Baustelle über ihre Kennung — und findet sie auch nach einer Umnummerierung', async () => {
+    /*
+      DIE AKTE LÄDT ÜBER DIE KENNUNG, NICHT ÜBER DIE NUMMER.
+
+      Ich hatte das zuerst mit „zwei Baustellen mit derselben Nummer"
+      begründen wollen — die Datenbank lässt das gar nicht zu
+      (`projects_nummer_je_betrieb`). Der Grund ist ein anderer und lässt
+      sich hier auch zeigen: die Nummer ist ÄNDERBAR, die Kennung nicht. Wer
+      eine Akte als Lesezeichen ablegt oder ihren Link weitergibt, und im
+      Büro wird danach ein Zahlendreher in der Projektnummer korrigiert,
+      landet über die Nummer im Nichts.
+    */
+    const id = await baustellen.createProject('bau-a', {
+      projectNumber: '2026-810', customerName: 'Mit Zahlendreher', status: 'Aktiv',
+    });
+    expect((await baustellen.listProjectsByIds('bau-a', [id]))[0].projectNumber).toBe('2026-810');
+
+    await baustellen.updateProject(id, { projectNumber: '2026-801' });
+
+    const nachher = await baustellen.listProjectsByIds('bau-a', [id]);
+    expect(nachher.map((b) => b.projectNumber)).toEqual(['2026-801']);
+    // Die Gegenprobe: über die alte Nummer ist sie weg.
+    expect(await baustellen.listProjectsByNumbers('bau-a', ['2026-810'])).toEqual([]);
+  });
+
+  it('legt eine Baustelle OHNE Datumsangaben an', async () => {
+    /*
+      DER FEHLER, DEN DER DURCHKLICK IM BROWSER GEFUNDEN HAT — und er war
+      schon im Betrieb. Ein Datumsfeld, das niemand ausfüllt, liefert `''`.
+      Postgres nimmt das für eine `date`-Spalte nicht an, und die Maske
+      meldete „Die Baustelle konnte nicht gespeichert werden." Eine
+      Baustelle ohne Beginn und Ende liess sich gar nicht anlegen.
+
+      Die Umwandlung steht in `pg/projects` — dort, wo ihr Grund liegt:
+      Firestore nahm `''` klaglos an, Postgres nicht.
+    */
+    const id = await baustellen.createProject('bau-a', {
+      projectNumber: '2026-820', customerName: 'Ohne Termin', status: 'Aktiv',
+      startDate: '', endDate: '',
+    });
+    const [b] = await baustellen.listProjectsByIds('bau-a', [id]);
+    expect(b.startDate ?? null).toBeNull();
+    expect(b.endDate ?? null).toBeNull();
+  });
+
+  it('nimmt ein eingetragenes Datum mit — und lässt es wieder leeren', async () => {
+    /*
+      Die Gegenprobe in beide Richtungen. Wäre die Umwandlung zu grob, käme
+      gar kein Datum mehr durch; würde beim Ändern nur WEGGELASSEN statt
+      geleert, behielte die Baustelle ein Enddatum, das gerade gelöscht
+      wurde — der stillere der beiden Fehler.
+    */
+    const id = await baustellen.createProject('bau-a', {
+      projectNumber: '2026-821', customerName: 'Mit Termin', status: 'Aktiv',
+      startDate: '2026-03-02', endDate: '2026-04-30',
+    });
+    expect((await baustellen.listProjectsByIds('bau-a', [id]))[0].startDate).toBe('2026-03-02');
+
+    await baustellen.updateProject(id, { endDate: '' });
+    const [b] = await baustellen.listProjectsByIds('bau-a', [id]);
+    expect(b.startDate).toBe('2026-03-02');
+    expect(b.endDate ?? null).toBeNull();
+  });
+
+  it('fragt nicht nach einer leeren Kennungsliste', async () => {
+    let gefragt = 0;
+    const beobachtet = {
+      ...leitung.client,
+      from: (tabelle: string) => { gefragt += 1; return leitung.client.from(tabelle); },
+    } as unknown as typeof leitung.client;
+    clientEinreichen(beobachtet);
+    try {
+      expect(await baustellen.listProjectsByIds('bau-a', [])).toEqual([]);
+      expect(await baustellen.listProjectsByIds('bau-a', ['', ''])).toEqual([]);
+      expect(gefragt).toBe(0);
+    } finally {
+      clientEinreichen(leitung.client);
+    }
+  });
+
+  it('gibt zu einer erfundenen Kennung nichts zurück', async () => {
+    // Nicht „irgendeine Baustelle": eine Akte unter einer falschen Adresse
+    // muss leer bleiben und darf nicht die erstbeste zeigen.
+    const erfunden = '00000000-0000-4000-8000-000000000000';
+    expect(await baustellen.listProjectsByIds('bau-a', [erfunden])).toEqual([]);
+  });
+
   it('findet eine alte Baustelle über ihre Nummer, in beiden Schreibweisen', async () => {
     await baustellen.createProject('bau-a', {
       projectNumber: 'PR-2022-007', customerName: 'Von früher', status: 'Abgeschlossen',
@@ -109,10 +196,18 @@ describe('Baustellen auf Postgres', () => {
   });
 
   it('lässt einen fremden Betrieb nichts sehen', async () => {
+    // Eine ECHTE Kennung aus `bau-a` — eine erfundene wäre auch ohne
+    // Zeilenschutz leer und bewiese nichts.
+    const fremdeKennung = await baustellen.createProject('bau-a', {
+      projectNumber: '2026-900', customerName: 'Nicht für bau-b', status: 'Aktiv',
+    });
     clientEinreichen(fremd.client);
     try {
       expect(await baustellen.listActiveProjects('bau-a')).toEqual([]);
       expect(await baustellen.findProjectsByNumber('bau-a', ['2022-007'])).toEqual([]);
+      // Auch nicht über die Kennung: der neue Leseweg muss dieselbe Grenze
+      // tragen wie die alten, sonst ist die Akte das Loch in der Wand.
+      expect(await baustellen.listProjectsByIds('bau-a', [fremdeKennung])).toEqual([]);
     } finally {
       clientEinreichen(leitung.client);
     }

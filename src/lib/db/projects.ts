@@ -27,6 +27,12 @@ export function listProjectsByNumbers(
     : fs.listProjectsByNumbers(companyId, numbers);
 }
 
+export function listProjectsByIds(
+  companyId: string, ids: string[],
+): Promise<WithId<Project>[]> {
+  return nutztPostgres() ? pg.listProjectsByIds(companyId, ids) : fs.listProjectsByIds(companyId, ids);
+}
+
 export function findProjectsByNumber(
   companyId: string, formen: string[],
 ): Promise<WithId<Project>[]> {

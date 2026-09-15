@@ -182,27 +182,61 @@ describe('Baustellen — anlegen', () => {
   });
 });
 
-describe('Baustellen — bearbeiten', () => {
-  it('ändert die vorhandene Baustelle, statt eine zweite anzulegen', async () => {
-    /**
-     * Bei einer Nummer, die zweimal existiert, wüsste keine Zeitbuchung mehr,
-     * zu welcher Baustelle sie gehört.
-     */
+describe('Baustellen — der Weg in die Akte', () => {
+  /*
+    HIER STANDEN DREI PRÜFUNGEN: „ändert die vorhandene Baustelle, statt eine
+    zweite anzulegen", „lädt die Stunden erst beim Aufklappen" und „klappt
+    wieder zu". Alle drei galten einer Liste, die zugleich Formular und
+    Auswertung war. Beides steht jetzt in der Akte (`/admin-projects/:id`) und wird
+    dort geprüft — die Zusicherungen sind nicht weggefallen, sie sind
+    umgezogen. Was HIER bleibt, ist die Grenze zwischen den beiden Ansichten.
+  */
+  beforeEach(() => {
     baustellen = [
       {
         id: 'p1', companyId: 'perl', projectNumber: '2026-042',
         customerName: 'Familie Huber', customerId: 'k1', status: 'Aktiv',
       } as Project & { id: string },
     ];
+  });
+
+  it('führt aus der Zeile in die Akte, nicht in das Formular ganz oben', async () => {
     zeige();
-
     const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
-    await userEvent.click(within(zeile).getByRole('button', { name: /bearbeiten/i }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
+    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
+      'href', '/admin-projects/p1',
+    );
+  });
 
-    await waitFor(() => expect(aendere).toHaveBeenCalled());
-    expect(aendere.mock.calls[0][0]).toBe('p1');
-    expect(lege).not.toHaveBeenCalled();
+  it('legt aus diesem Formular nur an — ändern kann es nicht mehr', async () => {
+    /*
+      Die Gegenprobe zum Umzug. Bliebe hier ein Weg zum Ändern, gäbe es zwei
+      Masken für dieselbe Baustelle, und die eine wüsste nichts von der
+      anderen.
+    */
+    zeige();
+    await screen.findByText(/2026-042/);
+    expect(screen.getByText('Neue Baustelle')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^bearbeiten$/i })).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText(/Projektnummer/), '2026-999');
+    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k1');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(aendere).not.toHaveBeenCalled();
+  });
+
+  it('lädt für die Liste keine Stunden', async () => {
+    /*
+      Der Punkt, der beim Aufklappen galt und weiterhin gilt: zwanzig
+      Baustellen im Voraus auszuwerten hiesse zwanzig Abfragen für die eine,
+      die jemanden interessiert. Die Auswertung hängt jetzt an der Akte.
+    */
+    listEntriesForProjects.mockClear();
+    zeige();
+    await screen.findByText(/2026-042/);
+    expect(listEntriesForProjects).not.toHaveBeenCalled();
   });
 });
 
@@ -237,54 +271,6 @@ describe('Baustellen — wenn etwas nicht lädt', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Die Belegschaft konnte nicht geladen werden.',
     );
-  });
-});
-
-/**
- * DIE ÜBERSICHT JE BAUSTELLE.
- *
- * Sie beantwortet die Frage, die man beim Blick auf eine Baustelle
- * tatsächlich hat — „wie steht DIESE Baustelle?" —, und zwar dort, wo man sie
- * stellt. Bisher stand die Auswertung nur unter der Mitarbeiterübersicht, wo
- * sie eine Monatsfrage über alle Baustellen beantwortet.
- */
-describe('Baustellen — Übersicht je Baustelle', () => {
-  beforeEach(() => {
-    baustellen = [
-      {
-        id: 'p1',
-        companyId: 'perl',
-        projectNumber: '2026-001',
-        customerName: 'Familie Huber',
-        status: 'Aktiv',
-        estimatedHours: 40,
-      } as Project & { id: string },
-    ];
-    listEntriesForProjects.mockClear();
-  });
-
-  it('lädt die Stunden erst beim Aufklappen', async () => {
-    zeige();
-    await screen.findByText(/Familie Huber/);
-    /*
-      Der Punkt: zwanzig Baustellen im Voraus zu laden hiesse zwanzig
-      Abfragen für die eine, die jemanden interessiert.
-    */
-    expect(listEntriesForProjects).not.toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Übersicht' }));
-    await waitFor(() => expect(listEntriesForProjects).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText('Fachzeit')).toBeInTheDocument();
-  });
-
-  it('klappt wieder zu', async () => {
-    zeige();
-    await screen.findByText(/Familie Huber/);
-    await userEvent.click(screen.getByRole('button', { name: 'Übersicht' }));
-    await screen.findByText('Fachzeit');
-
-    await userEvent.click(screen.getByRole('button', { name: 'Übersicht zu' }));
-    await waitFor(() => expect(screen.queryByText('Fachzeit')).not.toBeInTheDocument());
   });
 });
 
