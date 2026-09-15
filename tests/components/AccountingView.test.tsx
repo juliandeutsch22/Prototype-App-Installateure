@@ -80,6 +80,13 @@ vi.mock('@/lib/db/timeEntries', () => ({
   ),
   listEntriesInRange: vi.fn(async () => buchungen),
   listEntriesForProjects: vi.fn(async () => buchungen),
+  /*
+    Der Urlaubsverlauf für den Übertrag — dieselben Buchungen, auf Urlaub
+    gefiltert. Die echte Abfrage filtert serverseitig; hier ist das die
+    ehrlichste Attrappe, weil sie liefert, was die Datenbank auch liefern
+    würde, statt einer leeren Liste, die jeden Übertrag unsichtbar machte.
+  */
+  listUrlaubstage: vi.fn(async () => buchungen.filter((b) => b.status === 'Urlaub')),
   deleteTimeEntry: vi.fn(),
 }));
 /**

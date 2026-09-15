@@ -62,6 +62,23 @@ export function listEntriesInRange(
     : fs.listEntriesInRange(companyId, from, to);
 }
 
+/**
+ * Nur die Urlaubstage eines Zeitraums — für den Resturlaub.
+ *
+ * Steht als eigene Weiche neben `listEntriesInRange`, weil sie eine andere
+ * Frage beantwortet: nicht „was war in diesem Zeitraum los", sondern „wie
+ * viel Urlaub wurde seit dem Startdatum verbraucht". Beide über einen Aufruf
+ * zu bedienen hiesse, dem Aufrufer das Filtern zu überlassen — und damit dem
+ * Browser eine Arbeit, die die Datenbank in derselben Abfrage erledigt.
+ */
+export function listUrlaubstage(
+  companyId: string, from: string, to: string,
+): Promise<WithId<TimeEntry>[]> {
+  return nutztPostgres()
+    ? pg.listUrlaubstage(companyId, from, to)
+    : fs.listUrlaubstage(companyId, from, to);
+}
+
 export function listEntriesForProjects(
   companyId: string, projectNumbers: string[],
 ): Promise<WithId<TimeEntry>[]> {

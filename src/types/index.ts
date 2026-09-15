@@ -108,6 +108,22 @@ export interface Company {
    */
   vacationApprovers?: string[];
   /**
+   * Wie nicht verbrauchter Urlaub zum Jahreswechsel behandelt wird.
+   *
+   * `verjaehrung` (Vorgabe) ist die gesetzliche Lesart: der Rest wird
+   * übertragen und verjährt zwei Jahre nach dem Jahr, in dem er entstand
+   * (§ 4 Abs 5 UrlG). `stichtag` ist die vereinbarte: übertragen wird
+   * ebenfalls, was aus früheren Jahren offen ist, verfällt aber an
+   * `urlaubStichtag`.
+   *
+   * DIE VORGABE IST DAS GESETZ UND NICHT DAS FRÜHERE VERHALTEN. Bis hierher
+   * warf die App den Rest am 1. Jänner weg. Das als dritte Wahlmöglichkeit
+   * anzubieten hiesse, einen Fehler zur Einstellung zu erklären.
+   */
+  urlaubUebertrag?: 'verjaehrung' | 'stichtag';
+  /** 'MM-DD'. Nur bei `urlaubUebertrag === 'stichtag'` gesetzt. */
+  urlaubStichtag?: string | null;
+  /**
    * Welche Bereiche der App dieser Betrieb benutzt.
    *
    * Gespeichert werden nur die ABWEICHUNGEN vom Standard; was fehlt, gilt wie

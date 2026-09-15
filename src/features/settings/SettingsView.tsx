@@ -32,6 +32,20 @@ function num(v: string, fallback: number): number {
  * Preiserhöhung beim Grundsatz zieht damit automatisch durch. Die Vorschau
  * zeigt sofort, was eine Nacht- oder Notdienststunde tatsächlich kostet.
  */
+/**
+ * Monate und die Zahl ihrer Tage — für die Auswahl des Verfallsstichtags.
+ *
+ * DER 29. FEBRUAR STEHT BEWUSST NICHT ZUR WAHL. Es gibt ihn nur jedes vierte
+ * Jahr; ein Verfallstag, der in drei von vier Jahren gar nicht eintritt, ist
+ * keine Regel, sondern eine Falle. Dieselbe Grenze zieht die Datenbank.
+ */
+const MONATE = [
+  ['01', 'Jänner', 31], ['02', 'Februar', 28], ['03', 'März', 31],
+  ['04', 'April', 30], ['05', 'Mai', 31], ['06', 'Juni', 30],
+  ['07', 'Juli', 31], ['08', 'August', 31], ['09', 'September', 30],
+  ['10', 'Oktober', 31], ['11', 'November', 30], ['12', 'Dezember', 31],
+] as const;
+
 export default function SettingsView() {
   const { user, company, reloadCompany } = useAuth();
   /** Erstaufbau der Monatsbilanzen — Zustand des einmaligen Laufs. */
@@ -69,6 +83,18 @@ export default function SettingsView() {
   const [genehmigerSpeichert, setGenehmigerSpeichert] = useState(false);
   const darfGenehmigerSetzen = user ? isTopLevel(user.role) : false;
 
+  /**
+   * Wie nicht verbrauchter Urlaub zum Jahreswechsel behandelt wird.
+   *
+   * Der Stichtag steht als Monat und Tag getrennt, weil ein `<input
+   * type="date">` ein Jahr verlangt — und das Jahr wäre hier eine Lüge: die
+   * Regel wiederholt sich jedes Jahr.
+   */
+  const [uebertrag, setUebertrag] = useState<'verjaehrung' | 'stichtag'>('verjaehrung');
+  const [stichtagMonat, setStichtagMonat] = useState('03');
+  const [stichtagTag, setStichtagTag] = useState('31');
+  const [uebertragSpeichert, setUebertragSpeichert] = useState(false);
+
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
     if (company?.costRates) {
@@ -78,6 +104,12 @@ export default function SettingsView() {
       });
     }
     setGenehmiger(company?.vacationApprovers ?? []);
+    setUebertrag(company?.urlaubUebertrag ?? 'verjaehrung');
+    if (company?.urlaubStichtag) {
+      const [m, d] = company.urlaubStichtag.split('-');
+      setStichtagMonat(m);
+      setStichtagTag(d);
+    }
   }, [company]);
 
   useEffect(() => {
@@ -130,6 +162,40 @@ export default function SettingsView() {
       setError('Die Genehmigenden konnten nicht gespeichert werden.');
     } finally {
       setGenehmigerSpeichert(false);
+    }
+  }
+
+  /**
+   * WAS HIER NICHT PASSIERT: die Auswahl auf gültige Tage je Monat prüfen.
+   *
+   * Das tut die Datenbank (`companies_urlaub_stichtag_check`), und zwar für
+   * jeden Weg hinein — nicht nur für diese Maske. Die Auswahlfelder bieten
+   * deshalb gar nicht erst den 31. Februar an; käme er doch durch, wiese ihn
+   * der Server ab, und die Meldung stünde hier. Eine Prüfung im Browser
+   * ALLEIN wäre eine Zusage, die niemand einhält.
+   */
+  async function uebertragSpeichern() {
+    if (!user) return;
+    setUebertragSpeichert(true);
+    setError(null);
+    try {
+      await updateCompany(user.companyId, {
+        urlaubUebertrag: uebertrag,
+        // `null` und nicht weglassen: wer von Stichtag auf Verjährung
+        // zurückstellt, muss das alte Datum LOS werden. Ein weggelassenes
+        // Feld liesse es stehen, und die Datenbank wiese den Zustand ab.
+        urlaubStichtag: uebertrag === 'stichtag' ? `${stichtagMonat}-${stichtagTag}` : null,
+      });
+      await reloadCompany();
+      toast.success('Urlaubsübertrag gespeichert');
+    } catch (e) {
+      setError(
+        e instanceof Error && e.message
+          ? `Der Urlaubsübertrag konnte nicht gespeichert werden: ${e.message}`
+          : 'Der Urlaubsübertrag konnte nicht gespeichert werden.',
+      );
+    } finally {
+      setUebertragSpeichert(false);
     }
   }
 
@@ -423,6 +489,120 @@ export default function SettingsView() {
         Bis er gelaufen ist, rechnet das Zeitkonto weiter direkt aus den
         Buchungen. Langsamer, aber richtig — und niemals eine falsche Zahl.
       */}
+      {/*
+        Der Urlaubsübertrag — dieselbe Grenze wie bei den Genehmigenden.
+        `companies_aendern` verlangt ohnehin die Spitze; die Bedingung hier
+        nimmt nur den Weg weg, statt einen Knopf anzubieten, der abgewiesen
+        wird.
+      */}
+      {darfGenehmigerSetzen && (
+        <Card
+          title="Urlaub zum Jahreswechsel"
+          hint={
+            <>
+              Was am 31. Dezember offen ist, verschwindet nicht. Womit der Betrieb rechnet,
+              steht hier — und danach richtet sich jeder Resturlaub, den die App anzeigt.
+            </>
+          }
+        >
+          <fieldset className="flex flex-col gap-3">
+            <legend className="sr-only">Wie Resturlaub übertragen wird</legend>
+
+            {/*
+              KEIN `min-h-touch` AM PUNKT. Ein 48 px hoher Auswahlpunkt sitzt
+              in seiner Mitte — also auf der zweiten Textzeile statt neben der
+              Überschrift; genau so sah es im Browser aus. Der Fingerbereich
+              ist ohnehin das ganze `label`, und das ist hier zweizeilig und
+              damit von selbst gross genug.
+            */}
+            <label className="flex min-h-touch items-start gap-3 py-1">
+              <input
+                type="radio"
+                name="uebertrag"
+                id="uebertrag-verjaehrung"
+                className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                checked={uebertrag === 'verjaehrung'}
+                onChange={() => setUebertrag('verjaehrung')}
+              />
+              <span className="text-sm">
+                <strong className="text-ink">Gesetzliche Verjährung</strong>
+                <span className="mt-1 block text-ink-muted">
+                  Der Rest wird übertragen und verjährt zwei Jahre nach dem Jahr, in dem er
+                  entstanden ist (§ 4 Abs 5 UrlG). Was 2026 offen bleibt, ist bis Ende 2028
+                  da.
+                </span>
+              </span>
+            </label>
+
+            <label className="flex min-h-touch items-start gap-3 py-1">
+              <input
+                type="radio"
+                name="uebertrag"
+                id="uebertrag-stichtag"
+                className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                checked={uebertrag === 'stichtag'}
+                onChange={() => setUebertrag('stichtag')}
+              />
+              <span className="text-sm">
+                <strong className="text-ink">Vereinbarter Verfallstag</strong>
+                <span className="mt-1 block text-ink-muted">
+                  Der Rest wird übertragen und verfällt an einem festen Tag im Folgejahr.
+                </span>
+              </span>
+            </label>
+          </fieldset>
+
+          {uebertrag === 'stichtag' && (
+            <div className="mt-4 flex flex-wrap items-end gap-3 rounded border border-line bg-surface-2 p-4">
+              <SelectField
+                id="stichtag-tag"
+                label="Verfällt am"
+                value={stichtagTag}
+                onChange={(e) => setStichtagTag(e.target.value)}
+              >
+                {Array.from(
+                  { length: MONATE.find((m) => m[0] === stichtagMonat)?.[2] ?? 31 },
+                  (_, i) => String(i + 1).padStart(2, '0'),
+                ).map((d) => (
+                  <option key={d} value={d}>{Number(d)}.</option>
+                ))}
+              </SelectField>
+              <SelectField
+                id="stichtag-monat"
+                label="Monat"
+                value={stichtagMonat}
+                onChange={(e) => {
+                  const m = e.target.value;
+                  setStichtagMonat(m);
+                  // Vom 31. Jänner auf Februar zu wechseln darf keinen 31.
+                  // Februar stehen lassen — die Datenbank wiese ihn ab, und
+                  // der Grund stünde erst beim Speichern da.
+                  const tage = MONATE.find((x) => x[0] === m)?.[2] ?? 31;
+                  if (Number(stichtagTag) > tage) setStichtagTag(String(tage));
+                }}
+              >
+                {MONATE.map(([wert, name]) => (
+                  <option key={wert} value={wert}>{name}</option>
+                ))}
+              </SelectField>
+            </div>
+          )}
+
+          <p className="mt-4 text-sm text-ink-muted">
+            <strong className="text-ink">Was die App hier nicht entscheidet.</strong> Ob ein
+            vereinbarter Verfallstag im Einzelfall trägt, ist eine arbeitsrechtliche Frage — die
+            gesetzliche Verjährung steht dem Mitarbeiter unabhängig davon zu. Diese Einstellung
+            legt fest, womit die App rechnet und was sie anzeigt, nicht was jemandem zusteht.
+          </p>
+
+          <div className="mt-4">
+            <Button type="button" loading={uebertragSpeichert} onClick={uebertragSpeichern}>
+              Urlaubsübertrag speichern
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/*
         Wer Urlaub genehmigt — der Geschaeftsfuehrung vorbehalten.
         Duerfte die Projektleitung sie aendern, koennte sie sich selbst

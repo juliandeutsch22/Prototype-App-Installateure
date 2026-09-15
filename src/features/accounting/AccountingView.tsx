@@ -7,6 +7,7 @@ import {
   listEntriesInRange,
   listEntriesForProjects,
   deleteTimeEntry,
+  listUrlaubstage,
 } from '@/lib/db/timeEntries';
 import {
   calcMonthStats,
@@ -16,6 +17,7 @@ import {
   getAustrianHolidayName,
   localDateStr,
   type CompletenessStatus,
+  uebertragsRegel,
 } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry } from '@/types';
@@ -223,6 +225,41 @@ export default function AccountingView() {
     );
   }, [user, year]);
 
+  /*
+    DER URLAUBSVERLAUF — eine eigene, schmale Abfrage neben dem Jahr.
+
+    Der Resturlaub hängt seit dem Übertrag nicht mehr nur am angezeigten Jahr:
+    was 2026 offen blieb, steht 2027 zur Verfügung. Ohne den Verlauf wäre der
+    Übertrag hier immer null — die Mitarbeiteransicht zeigte den richtigen
+    Stand und die Lohn-CSV den alten.
+
+    Geholt werden NUR Urlaubstage, serverseitig gefiltert. Den kompletten
+    Zeitbestand mehrerer Jahre zu laden wäre um Grössenordnungen mehr, als die
+    Frage braucht. Der Zeitraum beginnt am frühesten Startdatum der
+    Belegschaft; früher gibt es nichts zu rechnen.
+  */
+  const [urlaubVerlauf, setUrlaubVerlauf] = useState<WithId<TimeEntry>[]>([]);
+  const fruehesterStart = useMemo(
+    () => users.map((u) => u.appStartDate).filter((d): d is string => !!d).sort()[0] ?? null,
+    [users],
+  );
+
+  useEffect(() => {
+    if (!user || !fruehesterStart) {
+      setUrlaubVerlauf([]);
+      return;
+    }
+    let abgemeldet = false;
+    listUrlaubstage(user.companyId, fruehesterStart, `${year}-12-31`)
+      .then((rows) => { if (!abgemeldet) setUrlaubVerlauf(rows); })
+      // Ein fehlender Verlauf darf die Ansicht nicht kippen: dann rechnet sie
+      // ohne Übertrag weiter — zu wenig, aber nicht gar nichts.
+      .catch(() => { if (!abgemeldet) setUrlaubVerlauf([]); });
+    return () => { abgemeldet = true; };
+  }, [user, fruehesterStart, year]);
+
+  const urlaubsRegel = useMemo(() => uebertragsRegel(company), [company]);
+
   // Deaktivierte Mitarbeiter fallen aus der Auswertung (Legacy:5407).
   const relevant = useMemo(
     () =>
@@ -242,11 +279,16 @@ export default function AccountingView() {
         return {
           user: u,
           monthEntries,
-          stats: calcMonthStats(u, monthEntries, yearEntries, year, month),
+          stats: calcMonthStats(u, monthEntries, yearEntries, year, month, {
+            verlauf: urlaubVerlauf
+              .filter((e) => e.userId === u.uid)
+              .map((e) => ({ von: e.date, tage: 1 })),
+            regel: urlaubsRegel,
+          }),
           completeness: calcCompleteness(u, monthEntries, year, month),
         };
       }),
-    [relevant, entries, monthPrefix, year, month],
+    [relevant, entries, monthPrefix, year, month, urlaubVerlauf, urlaubsRegel],
   );
 
   /**

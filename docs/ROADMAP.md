@@ -2581,15 +2581,52 @@ Nebenbei: `lib/time.ts` liest die Vorgabe von 25 Tagen jetzt aus
 `benutzerVorgaben.ts`, statt sie zweimal als nackte Zahl zu führen. Dort stand
 dazu bisher nur ein Satz, dass die beiden übereinstimmen MÜSSEN.
 
-### Was NICHT gebaut ist
+### Der Übertrag — nachgereicht am 15.09.2026
 
-**Der Übertrag zum Jahreswechsel.** Der Resturlaub wird am 1. Jänner wieder
-auf den vollen Jahresanspruch gesetzt; was übrig war, ist weg. In Österreich
+Stand hier zuerst als „nicht gebaut". Der Resturlaub sprang am 1. Jänner auf
+den vollen Jahresanspruch zurück; was übrig war, verschwand. In Österreich
 verfällt nicht verbrauchter Urlaub aber nicht am Jahresende — er verjährt
-erst nach zwei Jahren (§ 4 Abs 5 UrlG). Die Lücke hier trifft einmal beim
-Start, jene jeden 1. Jänner. Sie braucht vorher eine Entscheidung des
-Betriebs: gilt ein vereinbarter Verfallsstichtag oder die gesetzliche
-Verjährung?
+erst zwei Jahre nach dem Jahr, in dem er entstand (§ 4 Abs 5 UrlG). Diese
+Lücke traf jeden 1. Jänner.
+
+**Der Betrieb stellt die Regel ein** (`companies.urlaub_uebertrag`), und zwar
+die Geschäftsführung oder die Administration — dieselbe Grenze wie bei den
+Genehmigenden, gezogen vom Zeilenschutz:
+
+| | |
+| --- | --- |
+| `verjaehrung` (Vorgabe) | Rest wird übertragen, verjährt nach zwei Jahren |
+| `stichtag` | Rest wird übertragen, verfällt an `urlaub_stichtag` ('MM-DD') |
+
+**Die Vorgabe ist das Gesetz, nicht das bisherige Verhalten.** „Kein Übertrag"
+als dritte Wahl anzubieten hiesse, einen Fehler zur Einstellung zu erklären.
+
+**Gerechnet wird in Jahrgängen**, weil ein blosser Saldo nicht sagen kann,
+welche Tage alt sind: wer 2026 zehn Tage übrig hatte und 2027 wieder zehn,
+dem verfallen Ende 2028 die von 2026. Verbraucht wird der älteste zuerst —
+das ist die für den Mitarbeiter günstige Reihenfolge. Und was verfällt, wird
+**genannt**, nicht lautlos abgezogen.
+
+**Zwei Befunde in der eigenen Migration**, beide nur sichtbar, weil die
+Bedingungen wirklich ausprobiert wurden:
+
+* `stichtag` OHNE Datum ging durch. `urlaub_stichtag ~ '...'` ergibt bei
+  `null` nicht `false`, sondern `null` — und eine Prüfbedingung, die `null`
+  ergibt, gilt in SQL als erfüllt. Die Regel wäre ohne Zeitpunkt gespeichert
+  worden und stillschweigend zu „verfällt nie" geworden.
+* `'02-31'` ging durch. Ein Verfallstag, den es nicht gibt, tritt nie ein —
+  derselbe stille Ausfall. Jetzt prüft die Bedingung die Tage je Monat; der
+  29. Februar steht bewusst nicht zur Wahl.
+
+### Was weiterhin NICHT gebaut ist
+
+**Ein gespeicherter Vortrag je Jahr.** Der Übertrag wird bei jeder Anzeige
+aus dem Verlauf gerechnet, nicht als Zahl fortgeschrieben. Das ist richtig,
+solange der Verlauf kurz ist — er beginnt am Startdatum des Mitarbeiters —
+und hat den Vorteil, dass eine nachträglich korrigierte Buchung sofort
+durchschlägt. Bei einem Betrieb mit vielen Jahren Historie wäre ein
+festgehaltener Jahresvortrag die billigere und für die Buchhaltung
+nachvollziehbarere Fassung.
 
 ---
 

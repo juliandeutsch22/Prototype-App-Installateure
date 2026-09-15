@@ -55,6 +55,31 @@ export function subscribeEntriesInRange(
   });
 }
 
+/**
+ * Nur die URLAUBSTAGE eines Zeitraums — für den Resturlaub.
+ *
+ * WARUM EINE EIGENE ABFRAGE UND NICHT DER JAHRESBESTAND. Der Anspruch dieses
+ * Jahres hängt am Rest des Vorjahres, und der am Jahr davor; gerechnet werden
+ * muss also der ganze Verlauf seit dem Startdatum. Den kompletten
+ * Zeitbestand mehrerer Jahre dafür zu laden wäre um ein Vielfaches mehr, als
+ * die Frage braucht — bei zehn Monteuren sind das Zehntausende Buchungen
+ * gegenüber ein paar Hundert Urlaubstagen.
+ *
+ * Gefiltert wird deshalb SERVERSEITIG auf den Status. Die Alternative — alles
+ * holen und im Browser filtern — ist genau die Sorte Abfrage, die dieser
+ * Anwendung schon einmal die Ladezeit gekostet hat.
+ */
+export function listUrlaubstage(companyId: string, from: string, to: string) {
+  return abfragen<TimeEntry>(ZEITEN, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'status', wert: 'Urlaub' },
+      { art: 'ab', feld: 'date', wert: from },
+      { art: 'bis', feld: 'date', wert: to },
+    ],
+    sortiere: { feld: 'date' },
+  });
+}
+
 export function listEntriesInRange(companyId: string, from: string, to: string) {
   return abfragen<TimeEntry>(ZEITEN, companyId, {
     wo: [
