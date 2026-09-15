@@ -168,6 +168,14 @@ export interface AppUser {
   weeklyTargetHours?: number; // default 40
   yearlyVacationDays?: number; // default 25
   initialOvertime?: number; // Startsaldo Überstunden (kann negativ sein)
+  /**
+   * Resturlaub am `appStartDate` — was die Person mitbringt.
+   *
+   * `undefined`/`null` heisst NICHT ANGEGEBEN, nicht „null Tage": dann gilt
+   * der volle Jahresanspruch, also genau das Verhalten von vorher. Kann
+   * negativ sein, wer im Vorgriff mehr genommen hat, als ihm zusteht.
+   */
+  initialVacationDays?: number | null;
   appStartDate?: string | null; // 'YYYY-MM-DD' ab dem Soll/Ist gilt
   workDays?: number[]; // 0=So..6=Sa, default [1,2,3,4,5]
   createdAt?: number;

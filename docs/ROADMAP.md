@@ -2535,6 +2535,64 @@ Rechnung verwies schon immer auf die verbrauchten Scheine; neu ist die
 Umkehrung — welche unterschriebene Leistung noch auf KEINER Rechnung steht.
 Das ist die Hälfte, an der im Handwerk das Geld hängen bleibt.
 
+## Erledigt: der Resturlaub stimmt ab dem ersten Tag (15.09.2026)
+
+**Gemeldet als Frage, gefunden als Fehler.** Der Resturlaub wurde gerechnet
+als „Jahresanspruch minus Urlaubstage, die IN DER APP stehen". Vor dem
+Startdatum gibt es dort keine.
+
+Ein Betrieb steigt im September um, Petra hat von ihren 25 Tagen schon 18
+genommen — die App zeigte ihr **25 Tage Resturlaub**. Dieselbe Zahl sah der
+Genehmigende, und dieselbe Zahl stand in der Lohn-CSV der Buchhaltung. Eine
+falsche Auskunft an drei Stellen gleichzeitig.
+
+Beim Überstundensaldo war dieselbe Frage von Anfang an beantwortet
+(`initial_overtime`). Beim Urlaub wurde sie übersehen.
+
+### Was jetzt gilt
+
+`users.initial_vacation_days` — **Resturlaub am Startdatum**, also die Zahl,
+die im Büro ohnehin auf der Liste steht. Daraus:
+
+| | |
+| --- | --- |
+| Im Jahr des Startdatums | Anspruch = Anfangsbestand, gezählt wird ab dem Startdatum |
+| In jedem anderen Jahr | Anspruch = Jahresanspruch, gezählt wird das ganze Jahr |
+| Ohne Angabe | genau wie vorher — voller Jahresanspruch |
+
+**Nur ab dem Startdatum gezählt**, weil der Anfangsbestand alles davor schon
+abdeckt: ein nachgetragener Urlaubstag von vorher wäre sonst zweimal weg.
+
+**`null` ist nicht `0`.** „Nicht angegeben" heisst voller Jahresanspruch,
+„null Tage" heisst aufgebraucht. Die erste Fassung der Prüfzeile verwechselte
+beides — `Number(null)` ist `0` und damit endlich —, und jeder Betrieb ohne
+ausgefülltes Feld hätte im Umstiegsjahr überall einen Anspruch von 0 gesehen.
+Gefunden hat das die Prüfung, nicht der Kopf.
+
+### Eine Regel, zwei Quellen
+
+`urlaubsStand` in `lib/time.ts` ist die einzige Stelle. Die Mitarbeiteransicht
+zählt **genehmigte Anträge**, die Buchhaltung zählt **Urlaubstage in der
+Zeiterfassung** — zwei verschiedene Fragen, die getrennt bleiben. Die Regel
+darüber ist eine; stünde sie zweimal, sagten die beiden Ansichten nach der
+ersten Änderung verschiedene Zahlen.
+
+Nebenbei: `lib/time.ts` liest die Vorgabe von 25 Tagen jetzt aus
+`benutzerVorgaben.ts`, statt sie zweimal als nackte Zahl zu führen. Dort stand
+dazu bisher nur ein Satz, dass die beiden übereinstimmen MÜSSEN.
+
+### Was NICHT gebaut ist
+
+**Der Übertrag zum Jahreswechsel.** Der Resturlaub wird am 1. Jänner wieder
+auf den vollen Jahresanspruch gesetzt; was übrig war, ist weg. In Österreich
+verfällt nicht verbrauchter Urlaub aber nicht am Jahresende — er verjährt
+erst nach zwei Jahren (§ 4 Abs 5 UrlG). Die Lücke hier trifft einmal beim
+Start, jene jeden 1. Jänner. Sie braucht vorher eine Entscheidung des
+Betriebs: gilt ein vereinbarter Verfallsstichtag oder die gesetzliche
+Verjährung?
+
+---
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft

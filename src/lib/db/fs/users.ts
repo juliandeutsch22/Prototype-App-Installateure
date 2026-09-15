@@ -23,6 +23,7 @@ interface RawUser {
   weeklyTargetHours?: number;
   yearlyVacationDays?: number;
   initial_overtime?: number;
+  initial_vacation_days?: number | null;
   app_start_date?: string | null;
   work_days?: number[];
   companyId: string;
@@ -40,6 +41,7 @@ function normalize(raw: RawUser & { id: string }): AppUser {
     weeklyTargetHours: raw.weeklyTargetHours,
     yearlyVacationDays: raw.yearlyVacationDays,
     initialOvertime: raw.initial_overtime,
+    initialVacationDays: raw.initial_vacation_days ?? null,
     appStartDate: raw.app_start_date ?? null,
     workDays: raw.work_days,
   };
@@ -71,6 +73,7 @@ function toRaw(companyId: string, uid: string, p: UserProfileInput) {
     work_days: p.workDays ?? DEFAULT_WORK_DAYS,
     app_start_date: p.appStartDate ?? null,
     initial_overtime: p.initialOvertime ?? 0,
+    initial_vacation_days: p.initialVacationDays ?? null,
   };
 }
 
@@ -85,6 +88,7 @@ export function updateUserProfile(uid: string, p: Partial<UserProfileInput>) {
   if (p.workDays !== undefined) raw.work_days = p.workDays;
   if (p.appStartDate !== undefined) raw.app_start_date = p.appStartDate;
   if (p.initialOvertime !== undefined) raw.initial_overtime = p.initialOvertime;
+  if (p.initialVacationDays !== undefined) raw.initial_vacation_days = p.initialVacationDays;
   return updateDoc(doc(db, COLLECTION, uid), raw);
 }
 

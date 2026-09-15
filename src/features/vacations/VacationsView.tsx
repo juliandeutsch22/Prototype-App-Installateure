@@ -9,7 +9,7 @@ import {
 import { getUserByUid } from '@/lib/db/users';
 import { callUrlaubEntscheiden } from '@/lib/functions';
 import { darfUrlaubEntscheiden } from '@/lib/permissions';
-import { todayStr, urlaubsTage } from '@/lib/time';
+import { todayStr, urlaubsTage, urlaubsStand } from '@/lib/time';
 import type { AppUser, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
@@ -132,21 +132,33 @@ export default function VacationsView() {
   );
 
   /**
-   * Was in diesem Jahr schon genehmigt ist.
+   * Was in diesem Jahr zur Verfügung steht und was davon schon weg ist.
    *
-   * Der Anspruch steht in den Stammdaten (`yearlyVacationDays`). Ohne diese
-   * Gegenüberstellung müsste jeder selbst mitzählen — und genau das führt zu
-   * dem Anruf beim Chef, den die Ansicht ersparen soll.
+   * Ohne diese Gegenüberstellung müsste jeder selbst mitzählen — und genau
+   * das führt zu dem Anruf beim Chef, den die Ansicht ersparen soll. Dann
+   * muss die Zahl aber auch stimmen: im Jahr der Inbetriebnahme zählt der
+   * mitgebrachte Bestand, nicht der volle Jahresanspruch. Gerechnet wird das
+   * in `urlaubsStand` — derselben Stelle, aus der auch die Buchhaltung ihre
+   * Zahl bekommt.
+   *
+   * GEZÄHLT WIRD, WAS GENEHMIGT IST. Die Buchhaltung zählt stattdessen die
+   * Urlaubstage in der Zeiterfassung. Das sind zwei verschiedene Fragen —
+   * „zugesagt" und „gebucht" —, und sie bleiben absichtlich getrennt.
    */
-  const jahr = String(new Date().getFullYear());
-  const genommen = useMemo(
+  const jahr = new Date().getFullYear();
+  const stand = useMemo(
     () =>
-      eigene
-        .filter((v) => v.status === 'Genehmigt' && v.von.startsWith(jahr))
-        .reduce((s, v) => s + v.tage, 0),
-    [eigene, jahr],
+      urlaubsStand(
+        profil ?? { yearlyVacationDays: undefined, initialVacationDays: null, appStartDate: null },
+        jahr,
+        eigene
+          .filter((v) => v.status === 'Genehmigt' && v.von.startsWith(String(jahr)))
+          .map((v) => ({ von: v.von, tage: v.tage })),
+      ),
+    [eigene, jahr, profil],
   );
-  const anspruch = profil?.yearlyVacationDays ?? 25;
+  const genommen = stand.genommen;
+  const anspruch = stand.anspruch;
 
   async function beantragen(e: FormEvent) {
     e.preventDefault();
@@ -368,7 +380,11 @@ export default function VacationsView() {
             </InfoHint>
             <span className="mt-1 block basis-full text-xs">
               In diesem Jahr genehmigt: <span className="tnum">{genommen}</span> von{' '}
-              <span className="tnum">{anspruch}</span> Tagen.
+              <span className="tnum">{anspruch}</span> Tagen
+              {/* „von 25" wäre im Startjahr falsch beschriftet: dort sind es
+                  die Tage, die beim Umstieg noch übrig waren. Eine richtige
+                  Zahl mit falscher Erklärung ist auch eine falsche Auskunft. */}
+              {stand.ausAnfangsbestand ? ' (Restanspruch beim Umstieg).' : '.'}
             </span>
           </div>
 
