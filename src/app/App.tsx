@@ -55,6 +55,7 @@ const WochenplanView = lazy(() => import('@/features/assignments/WochenplanView'
 const InvoicesView = lazy(() => import('@/features/invoices/InvoicesView'));
 const AccountingView = lazy(() => import('@/features/accounting/AccountingView'));
 const UserMgmtView = lazy(() => import('@/features/users/UserMgmtView'));
+const BenutzerakteView = lazy(() => import('@/features/users/BenutzerakteView'));
 const SettingsView = lazy(() => import('@/features/settings/SettingsView'));
 const FirmendatenView = lazy(() => import('@/features/settings/FirmendatenView'));
 const NotificationSettings = lazy(() => import('@/features/settings/NotificationSettings'));
@@ -280,6 +281,19 @@ function AppRoutes() {
         }
       />
       <Route path="/user-mgmt" element={<RequireNav path="/user-mgmt"><UserMgmtView /></RequireNav>} />
+      {/*
+        Die Akte eines Benutzers, unter dem Pfad der Liste: wer die Liste
+        sehen darf, darf auch die Akte. Eine eigene Rollenangabe hier wäre
+        eine zweite Wahrheit über dieselbe Frage.
+      */}
+      <Route
+        path="/user-mgmt/:uid"
+        element={
+          <RequireNav path="/user-mgmt">
+            <BenutzerakteView />
+          </RequireNav>
+        }
+      />
       {/*
         Einstellungen unter EINEM Reiter: die eigenen Meldungen (jede Rolle),
         die Sätze des Betriebs und die Module (Geschäftsführung). Der Reiter

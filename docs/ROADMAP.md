@@ -2763,6 +2763,72 @@ nächste Schritt. **Der Einsatz bekommt weiterhin keine Akte:** er wird in der
 Planung bearbeitet, wo er neben den anderen Einsätzen desselben Tages steht —
 eine eigene Seite nähme ihm genau diesen Zusammenhang.
 
+## Erledigt: die Benutzerakte — und damit trägt das Muster dreimal (15.09.2026)
+
+Der dritte und letzte Schritt des Plans. `/user-mgmt/:uid` nach demselben
+Zuschnitt wie Kunde und Baustelle.
+
+**Was vorher war.** Wer ein Zeitkonto korrigieren wollte, klickte in der Liste
+auf „Bearbeiten", wurde nach ganz oben in das ANLEGE-Formular gescrollt und
+musste dort erst noch „Zeitkonto-Einstellungen anzeigen" aufklappen — genau
+die Felder, deretwegen er gekommen war. Danach stand er wieder in einer Liste
+von fünfundzwanzig Namen. Passwort-Mail und Sperren lagen zusätzlich in einem
+Zeilenmenü, also an einer dritten Stelle.
+
+### Was jetzt gilt
+
+Aus drei Wegen wird einer: „Akte". Darin die Stammdaten als Formular, die
+Zeitkonto-Felder **offen** statt aufklappbar, und der Zugang (Passwort-Mail,
+Sperren) als eigene Karte.
+
+**Die Zeitkonto-Felder sind hier offen, im Anlege-Formular bleiben sie
+eingeklappt.** Das ist kein Widerspruch: beim Anlegen sind sie vorbelegt und
+stimmen meistens; in der Akte sind sie der Grund, warum jemand die Seite
+öffnet.
+
+**Auch ein Administrator, den die aufrufende Rolle nicht ändern darf, hat
+jetzt eine Akte.** Vorher stand in seiner Zeile „nur durch Administrator" —
+ohne Weg zur Person. Ansehen darf man sie; die Akte sagt dort, warum nichts zu
+ändern ist. Ändern nicht, sonst könnte die Geschäftsführung den letzten
+Superuser deaktivieren und käme nie mehr an die Rollenvergabe.
+
+### Eine Regel, zwei Masken
+
+Die Umrechnung zwischen Formularfeld und Datensatz steht jetzt in
+`features/users/benutzerEntwurf.ts` — vorher in `UserMgmtView`. Die Akte
+schreibt dieselben Felder; zwei Auslegungen von „leer" wären zwei verschiedene
+Wochenstunden für denselben Menschen, und die Zahl steht auf dem Lohnzettel.
+
+Mit umgezogen ist die Feinheit, die dort schon einmal teuer war: `Number(x) ||
+VORGABE` macht aus einer **eingetippten Null** die Vorgabe. Wer null
+Wochenstunden hat — geringfügig, ruhendes Dienstverhältnis, die Chefin
+selbst — bekäme vierzig, und jeder Monat produzierte danach rund 170
+Minusstunden. Dasselbe beim Resturlaub, wo „nicht angegeben" (voller
+Jahresanspruch) und „null Tage" (aufgebraucht) zwei verschiedene Aussagen
+sind.
+
+### Die Zusicherungen sind nicht weggefallen, sie sind umgezogen
+
+Sechs Prüfungen standen an der Liste und stehen jetzt an der Akte: bestehende
+Werte übernehmen statt leer starten, das Profil ändern statt einen zweiten
+Zugang anlegen, das eigene Konto nicht sperren können, erst nach Rückfrage
+schreiben und nur den Status, die Richtung bei einem deaktivierten Konto
+umdrehen, und einen Administrator nur durch einen Administrator ändern lassen.
+In der Liste steht dafür neu die Grenze: sie führt in die Akte, und anlegen
+kann sie, ändern nicht.
+
+### Was die Akte NICHT zeigt
+
+**Den Urlaubs- und Zeitkontostand dieser Person.** Beides gibt es — in der
+Mitarbeiterübersicht und in der Buchhaltung —, und es in der Akte zu
+wiederholen hiesse, dieselbe Zahl an einer dritten Stelle zu rechnen. Ob sie
+hier fehlt, entscheidet der Betrieb im Gebrauch; zwei Quellen für eine Zahl
+sind teurer als ein Klick.
+
+**Der Einsatz bekommt weiterhin keine Akte.** Er wird in der Planung
+bearbeitet, wo er neben den anderen Einsätzen desselben Tages steht — eine
+eigene Seite nähme ihm genau diesen Zusammenhang.
+
 ---
 
 ## Wartet auf eine Entscheidung

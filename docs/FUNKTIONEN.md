@@ -42,7 +42,7 @@ unterscheidet drei Stufen:
 | **Anforderungen** | Eingehende Materialanforderungen bearbeiten, Status setzen | Verwaltung, Leitung | `materialOrders` | Rechnung (Meldungen), Ansicht (14) | — |
 | **Lager** | Bestand, Mindestmenge, Katalogpflege mit Verkaufs- und **Einkaufspreis** | Verwaltung, Leitung; **Einkaufspreis nur GF/Admin** | `materials` | Emulator (15: wer pflegen darf, wer den Einkaufspreis setzt), Ansicht (12 + 5 Katalog), Durchstich (7) | Der Bestandsabzug ist jetzt gegen eine **echte Transaktion** geprüft, gleichzeitige Zugriffe eingeschlossen. Die Grenze beim Einkaufspreis läuft zwischen den FELDERN, nicht zwischen den Ansichten — sie schützt das Ändern, **nicht das Lesen**: Firestore gibt ein Dokument ganz oder gar nicht heraus |
 | **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | Emulator (4: wer planen darf), Ansicht (8) | Geprüft ist auch der gefährliche Teil: eine vorhandene Planung kommt ins Formular, statt beim Speichern gelöscht zu werden |
-| **Benutzerverwaltung** | Anlegen, Rollen, Wochenstunden, Arbeitstage, Eintritt | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie), Ansicht (18) | — |
+| **Benutzerverwaltung** | Anlegen und suchen; **Benutzerakte** je Person mit Rolle, Wochenstunden, Arbeitstagen, Eintritt, Start-Saldo und Resturlaub, **dort auch bearbeitbar**, dazu Passwort-Mail und Sperren | Leitung (Admins nur durch Admins) | `users` | Emulator (Rollenhierarchie), Liste (14), Akte (18), Entwurf (15) | — |
 | **Einstellungen** | Verrechnungs- und Kostensätze, Urlaubs-Genehmigende, Monatsbilanzen aufbauen | Leitung; Genehmigende nur GF/Admin | `companies` | Emulator (8), Ansicht (6) | — |
 | **Module** | Bereiche für den Betrieb ein- und ausschalten; zeigt vorher, was mit abgeschaltet wird | **nur Administration** | `companies.modules` | Rechnung (15), Emulator (8), Ansicht (11) | Enger als der Rest der Einstellungen. Enger als der Rest der Einstellungen: ein abgeschaltetes Modul nimmt allen den Weg zu ihrer Arbeit, und zwar unsichtbar — das ist Einrichtung, keine Führung |
 | **Datensicherung** | Nächtliche Ausleitung des ganzen Bestands an einen zweiten Ort; Sicherung von Hand anstoßen; Bestand herunterladen (DSGVO); **Zustand des letzten Laufs** | **nur GF/Admin** | alle Sammlungen, `systemLaeufe` | Rechnung (23 Aufräum-, Pfad- und Fristregeln), Ansicht (11), Function (24), Emulator (6) | Ohne `AUSLEITUNG_BUCKET` liegt die Sicherung im selben Google-Projekt — gegen einen Fehlgriff hilft das, gegen „der Zugang ist weg" nicht |
@@ -282,6 +282,17 @@ legt nur noch an.
 > liefert `''`, und das nimmt eine `date`-Spalte nicht an. Gefunden hat das
 > der Durchklick im echten Browser — im Ansichtstest ist die Datenschicht
 > ersetzt, und eine Nachbildung nimmt jede Zeichenkette an.
+
+**Der Benutzer hat seit dem 15.09.2026 dieselbe Akte** (`/user-mgmt/:uid`).
+Vorher führte „Bearbeiten" in das ANLEGE-Formular ganz oben, wo die
+Zeitkonto-Felder erst noch aufzuklappen waren; Passwort-Mail und Sperren
+lagen in einem Zeilenmenü. Aus drei Wegen ist einer geworden. Die
+Zeitkonto-Felder stehen in der Akte offen — im Anlege-Formular bleiben sie
+eingeklappt, weil die Vorgaben dort meistens stimmen.
+
+> Auch ein Administrator, den die aufrufende Rolle nicht ändern darf, hat
+> jetzt eine Akte: vorher stand in seiner Zeile „nur durch Administrator"
+> ohne einen Weg zur Person. Ansehen darf man sie, ändern nicht.
 
 **Jede Ansicht der App hat seit dem 07.09.2026 einen Ansichtstest.** Zuletzt
 offen waren Nachkalkulation, Module, Meine Baustellen, Firmendaten,
