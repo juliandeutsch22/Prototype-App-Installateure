@@ -449,19 +449,35 @@ export default function WorkSheetsListView() {
             )}
           </p>
 
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-ink-muted">Weiter zurück prüfen:</span>
-            {PRUEF_ZEITRAEUME.map((tage) => (
-              <Button
-                key={tage}
-                variant={tiefePruefung === tage ? 'primary' : 'secondary'}
-                disabled={pruefungLaeuft}
-                onClick={() => void tieferPruefen(tage)}
-              >
-                {tage === 365 ? '1 Jahr' : `${tage} Tage`}
-              </Button>
-            ))}
-            {pruefungLaeuft && <span className="text-sm text-ink-muted">Wird geprüft …</span>}
+          {/*
+            DIE BESCHRIFTUNG STEHT ÜBER DER REIHE, nicht davor.
+
+            Davor gesetzt, füllte sie auf einem Telefon die erste Zeile fast
+            allein aus; der erste Schalter rutschte noch daneben, die beiden
+            anderen in die nächste Zeile. Heraus kam ein Umbruch mitten in
+            einer Auswahl, die zusammengehört — und drei fette Blöcke, von
+            denen jeder aussah, als wäre er für sich wichtig.
+
+            Jetzt: eine Zeile Beschriftung, darunter die drei Schalter in
+            einer Reihe. `klein` nimmt ihnen Polsterung und Schriftgrösse,
+            nicht die Höhe — anzutippen bleiben sie mit Arbeitshandschuhen.
+          */}
+          <div className="mb-3">
+            <span className="mb-2 block text-sm text-ink-muted">Weiter zurück prüfen:</span>
+            <div className="flex flex-wrap items-center gap-2">
+              {PRUEF_ZEITRAEUME.map((tage) => (
+                <Button
+                  key={tage}
+                  groesse="klein"
+                  variant={tiefePruefung === tage ? 'primary' : 'secondary'}
+                  disabled={pruefungLaeuft}
+                  onClick={() => void tieferPruefen(tage)}
+                >
+                  {tage === 365 ? '1 Jahr' : `${tage} Tage`}
+                </Button>
+              ))}
+              {pruefungLaeuft && <span className="text-sm text-ink-muted">Wird geprüft …</span>}
+            </div>
           </div>
 
           {ohneBuchung.length === 0 && (

@@ -43,11 +43,24 @@ function falscherClient() {
       return kanal;
     },
     removeChannel: () => { entfernt += 1; return Promise.resolve('ok'); },
-    // `abfragen` baut darauf auf; die Kette muss nur „leere Liste" liefern.
+    /*
+      `abfragen` baut darauf auf; die Kette muss nur „leere Liste" liefern.
+
+      JEDE METHODE, DIE `abfragen` RUFT, GEHÖRT HIERHER — und dieser Nachbau
+      ist schon einmal hinterhergehinkt: als das Blättern dazukam, fehlten
+      `order` und `range`, und der Lauf scheiterte an
+      „b.order is not a function". Das ist der Preis eines nachgebauten
+      Baukastens; die Alternative wäre, den Wiederaufbau der Live-Verbindung
+      gegen eine echte Datenbank zu prüfen, und dafür braucht er gestellte
+      Uhren.
+    */
     from: () => {
       const bauer = {
         select: () => bauer,
         eq: () => bauer,
+        order: () => bauer,
+        range: () => bauer,
+        limit: () => bauer,
         then: (aufl: (w: { data: unknown[]; error: null }) => unknown) =>
           Promise.resolve({ data: [], error: null }).then(aufl),
       };

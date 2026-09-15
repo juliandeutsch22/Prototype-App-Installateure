@@ -3,7 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a2030" />
+    <!--
+      DIE FARBE DES STATUSBALKENS auf dem Startbildschirm — und sie ist nicht
+      dieselbe wie die dunkelste Ecke der Kopfleiste.
+
+      Vorher stand hier `#0a2030`, der Anfangspunkt von `--grad-brand`. Rein
+      rechnerisch passte das: an der oberen linken Ecke IST die Kopfleiste
+      dieses Blau. Nur sieht das Auge nicht die Ecke, sondern die Fläche, und
+      die läuft über `#0f4552` nach `#107a8c`. Der Balken stand damit als
+      dunkler Riegel über einer türkisen Leiste.
+
+      `#0f4552` ist der mittlere Halt desselben Verlaufs und zugleich der
+      Grund des App-Zeichens. Er schliesst nach beiden Seiten an.
+
+      NICHT `black-translucent`: das liesse den Inhalt unter den Balken laufen
+      und die Kopfleiste ihren eigenen Verlauf dorthin ziehen — schöner, aber
+      hier falsch. Die Kopfleiste ist nicht fixiert, sie scrollt weg; danach
+      stünde die weisse Systemschrift auf hellem Grund.
+    -->
+    <meta name="theme-color" content="#0f4552" />
     <!--
       DAS FAVICON IST EIGENS FÜR KLEINE GRÖSSEN GEZEICHNET, nicht verkleinert.
       Beim Senklot verschwindet die Schnur bei 16 px zu einem Grauschleier und
