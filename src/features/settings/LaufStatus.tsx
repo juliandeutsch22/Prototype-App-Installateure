@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { ladeLauf } from '@/lib/db/laeufe';
-import { beurteile, type Lauf, type LaufArt } from '@shared/laufStatus';
+import { beurteile, type Lauf, type NachtLaufArt } from '@shared/laufStatus';
 
 /**
  * Was ein nächtlicher Lauf zuletzt getan hat.
@@ -20,9 +20,9 @@ import { beurteile, type Lauf, type LaufArt } from '@shared/laufStatus';
  * aus wie einer, bei dem nie etwas lief — und beides heisst: es gibt keine
  * Sicherung, von der jemand weiss.
  */
-export default function LaufStatus({ art }: { art: LaufArt }) {
+export default function LaufStatus({ art }: { art: NachtLaufArt }) {
   const { user } = useAuth();
-  const [lauf, setLauf] = useState<Lauf | undefined>();
+  const [lauf, setLauf] = useState<Lauf<NachtLaufArt> | undefined>();
   const [geladen, setGeladen] = useState(false);
 
   /*

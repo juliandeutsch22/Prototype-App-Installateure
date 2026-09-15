@@ -2234,6 +2234,74 @@ verschiedene Züge gezeichnet und die Bilder gegeneinander geprüft.
 
 Vier Mutationen gehalten: drei sofort gefallen, die vierte war diese.
 
+## Die zwei offenen Punkte, die jetzt zu sind
+
+### Benutzer anlegen ging gar nicht
+
+Die App legte Anmeldekonten mit `auth.signUp` an — **aus dem Browser, mit dem
+öffentlichen Schlüssel**. Das verlangt im Projekt den Schalter „Allow new
+users to sign up", und der steht auf aus.
+
+**Der Schalter steht richtig.** Der öffentliche Schlüssel steht im
+ausgelieferten JavaScript; eingeschaltet könnte sich jeder, der ihn dort
+abliest, selbst ein Konto anlegen. Der Weg war also nicht der Schalter,
+sondern die Stelle: `mitarbeiter-anlegen` hat den Dienstschlüssel und fragt
+die Belegschaftstabelle, ob der Aufrufer anlegen darf.
+
+**Was die Function bewusst nicht tut**, und das ist die wichtigste
+Entscheidung daran: die Zeile in der Belegschaft schreiben. Auf `users` liegen
+`users_anlegen` (verlangt `app.ist_spitze()`) und der Trigger
+`users_adminrolle`; beide lesen den Anspruch aus dem Token des Aufrufers. Mit
+dem Dienstschlüssel geschrieben, gälte keine der beiden Regeln mehr — aus
+einer Absicherung würde ein Loch, das niemandem auffiele, weil alles weiter
+funktioniert.
+
+Dabei kamen zwei Befunde heraus, beide gegen die eigene Annahme:
+
+* Ein deaktiviertes Konto wird mit **401** abgewiesen, nicht mit 403 — eine
+  Schicht früher: `app.konto_sperren` setzt `banned_until` und löscht die
+  Sitzungen. Die Prüfung wurde an die Wirklichkeit angepasst, nicht die
+  Function an die Prüfung.
+* Der bestehende Anmelde-Test legte als **Verwaltung** an. Über `signUp` ging
+  das — obwohl diese Rolle die Profilzeile nie schreiben kann und die
+  Benutzerverwaltung nicht einmal sieht. Herausgekommen wäre genau das
+  Waisenkonto, vor dem `provisionUser` warnt.
+
+### Die Push-Meldungen haben jetzt einen Wächter
+
+`app.push_anstossen` warf die Nummer seiner Anfrage weg. Der Anstoss galt als
+getan, sobald er in der Warteschlange lag; was zurückkam, landete in
+`net._http_response`, und dort sah niemand hin.
+
+**Der Fall, der wehtut**, ist nicht die einzelne verlorene Meldung, sondern
+der systematische Ausfall: ein Schlüssel stimmt nicht mehr, die Adresse zeigt
+ins Leere, die Function ist nicht ausgeliefert. Dann geht keine Meldung mehr
+hinaus — und niemand merkt es, denn eine Push-Meldung, die nicht kommt, sieht
+aus wie eine, die es nicht zu senden gab.
+
+**Warum Push nicht in `beurteile` passt**, und warum das eine eigene
+Beurteilung bekommen hat statt einer dritten Zeile in der bestehenden:
+
+| | Nachtläufe | Push |
+|---|---|---|
+| Laufen | **müssen** sie, jede Nacht | **wenn** es etwas zu melden gibt |
+| Gemessen wird | eine Frist (50 Stunden) | ein Anteil (wie viele kamen nicht durch) |
+| Ruhiges Wochenende | ein Befund | **kein** Befund |
+
+Dieselbe Frist über den Push-Versand gelegt, ergäbe am ruhigen Wochenende
+einen Fehlalarm — und eine Warnung, die grundlos erscheint, wird nach zwei
+Wochen nicht mehr gelesen. Auch dann nicht, wenn sie einmal recht hat. Der
+Unterschied steckt deshalb schon im Typ: `NachtLaufArt` und `LaufArt` sind
+zwei Typen, und wer `push` an `beurteile` reicht, bekommt es vom Übersetzer
+gesagt und nicht vom Betrieb.
+
+**Ein Nebenbefund aus dem Prüflauf:** seit der Versand seine Anfragen notiert,
+liegen im Lauf echte Push-Merkzettel herum. Eine bestehende Prüfung zählte
+`count(*)` über die ganze Merkzettel-Tabelle und verglich das mit einem
+gefilterten `count` — das ging gut, solange es nur eine Art gab. Zwei
+Prüfungen hingen damit an der Reihenfolge der Dateien, und das ist keine
+Prüfung.
+
 ### Als Nächstes
 
 Stufe 9: den Rückbau. Erst wenn der Betrieb ein paar Tage auf Postgres

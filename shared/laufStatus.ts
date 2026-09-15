@@ -16,12 +16,22 @@
  * Fassungen derselben Frist wären genau der Fehler, den `shared/` verhindert.
  */
 
-/** Die überwachten Läufe. */
-export type LaufArt = 'ausleitung' | 'bilanzen';
+/** Die nächtlichen Läufe — die, für die `beurteile` und `FRIST_STUNDEN` gelten. */
+export type NachtLaufArt = 'ausleitung' | 'bilanzen';
 
-export interface Lauf {
+/**
+ * Alles, was in der Übersicht steht.
+ *
+ * `push` steht daneben, NICHT dazwischen: es ist kein Lauf mit einer Frist,
+ * sondern ein Versand, der stattfindet, wenn es etwas zu melden gibt. Die
+ * Unterscheidung steckt deshalb schon im Typ — wer `push` an `beurteile`
+ * reicht, bekommt es vom Übersetzer gesagt und nicht vom Betrieb.
+ */
+export type LaufArt = NachtLaufArt | 'push';
+
+export interface Lauf<A extends LaufArt = LaufArt> {
   companyId: string;
-  art: LaufArt;
+  art: A;
   /** Zeitpunkt des letzten ERFOLGREICHEN Laufs, in Millisekunden. */
   zuletztErfolg?: number;
   /** Zeitpunkt des letzten VERSUCHS — auch eines gescheiterten. */
@@ -76,7 +86,7 @@ export interface LaufUrteil {
   stundenHer: number | null;
 }
 
-const NAME: Record<LaufArt, string> = {
+const NAME: Record<NachtLaufArt, string> = {
   ausleitung: 'Die Sicherung',
   bilanzen: 'Der Bilanzlauf',
 };
@@ -90,7 +100,7 @@ const NAME: Record<LaufArt, string> = {
  * jemand weiss. Das als Erfolg zu zeigen wäre die gefährlichste Auskunft von
  * allen.
  */
-export function beurteile(lauf: Lauf | undefined, jetzt: number): LaufUrteil {
+export function beurteile(lauf: Lauf<NachtLaufArt> | undefined, jetzt: number): LaufUrteil {
   const name = lauf ? NAME[lauf.art] : 'Der Lauf';
   if (!lauf?.zuletztErfolg) {
     return {
@@ -125,4 +135,46 @@ function tageOderStunden(stunden: number): string {
 /** Die Dokument-Kennung eines Laufs. Eine Stelle, damit beide Seiten dieselbe bilden. */
 export function laufId(companyId: string, art: LaufArt): string {
   return `${companyId}_${art}`;
+}
+
+/**
+ * Der Zustand des Push-Versands — nach EIGENER Regel.
+ *
+ * WARUM NICHT `beurteile`. Die Nachtläufe müssen laufen; bleiben sie aus, ist
+ * genau das der Fehler. Push läuft, WENN etwas passiert: bestellt drei Tage
+ * niemand Material, geht zu Recht keine Meldung hinaus. Dieselbe Frist
+ * darübergelegt, ergäbe das einen Fehlalarm am ruhigen Wochenende — und eine
+ * Warnung, die grundlos erscheint, wird nach zwei Wochen nicht mehr gelesen.
+ * Auch dann nicht, wenn sie einmal recht hat.
+ *
+ * Gemessen wird deshalb ein ANTEIL, keine Frist: von den Meldungen, die
+ * angestossen wurden, wie viele sind nicht durchgekommen. `kennzahl` trägt
+ * diese Zahl, geschrieben von `app.push_nachsehen()`.
+ */
+export function pushBeurteilen(lauf: Lauf<'push'> | undefined): LaufUrteil {
+  if (!lauf?.zuletztVersuch) {
+    return {
+      stand: 'unbekannt',
+      // NICHT „funktioniert nicht": es ist schlicht nichts angefallen. Ein
+      // Betrieb, der noch keine Meldung ausgelöst hat, hat kein Problem.
+      text: 'Seit der Einrichtung wurde noch keine Push-Meldung angestossen.',
+      stundenHer: null,
+    };
+  }
+  const offen = lauf.kennzahl ?? 0;
+  if (lauf.erfolg === false || offen > 0) {
+    return {
+      stand: 'ueberfaellig',
+      text: offen > 0
+        ? `${offen} ${offen === 1 ? 'Push-Meldung kam' : 'Push-Meldungen kamen'} zuletzt nicht durch.`
+          + (lauf.meldung ? ` ${lauf.meldung}` : '')
+        : (lauf.meldung ?? 'Der Push-Versand meldete einen Fehler.'),
+      stundenHer: null,
+    };
+  }
+  return {
+    stand: 'gut',
+    text: 'Die zuletzt angestossenen Push-Meldungen sind alle durchgegangen.',
+    stundenHer: null,
+  };
 }

@@ -17,14 +17,16 @@ import { zeileAlsObjekt } from './felder';
 
 const LAEUFE = 'system_laeufe';
 
-export async function ladeLauf(companyId: string, art: LaufArt): Promise<Lauf | undefined> {
+export async function ladeLauf<A extends LaufArt>(
+  companyId: string, art: A,
+): Promise<Lauf<A> | undefined> {
   try {
     const { data, error } = await derClient()
       .from(LAEUFE).select('*')
       .eq('company_id', companyId).eq('art', art)
       .maybeSingle();
     if (error || !data) return undefined;
-    return zeileAlsObjekt<Lauf>(LAEUFE, data as Record<string, unknown>);
+    return zeileAlsObjekt<Lauf<A>>(LAEUFE, data as Record<string, unknown>);
   } catch {
     return undefined;
   }

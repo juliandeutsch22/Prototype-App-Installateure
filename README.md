@@ -155,6 +155,36 @@ values ('<UID des zweiten Kontos>'::uuid, 'Plattformverwaltung');
 
 Das Ergebnis ist dasselbe wie beim Skript — es ruft dieselbe Funktion.
 
+### Mitarbeiter anlegen — und warum kein Schalter im Dashboard hilft
+
+In der App legt die Geschäftsführung oder die Administration Mitarbeiter unter
+*Benutzerverwaltung* an. Das läuft über die Edge Function
+`mitarbeiter-anlegen`, und der Umweg hat einen Grund.
+
+Vorher rief die App `auth.signUp` — aus dem Browser, mit dem **öffentlichen**
+Schlüssel. Das verlangt im Projekt unter *Authentication → Sign In / Providers
+→ Email* den Schalter **„Allow new users to sign up"**, und der gehört
+**ausgeschaltet**: der öffentliche Schlüssel steht im ausgelieferten
+JavaScript, und eingeschaltet könnte sich jeder, der ihn dort abliest, selbst
+ein Konto anlegen.
+
+| Schalter | Stellung | Warum |
+| --- | --- | --- |
+| Allow new users to sign up | **aus** | sonst steht die Anmeldung des Betriebs offen |
+| Confirm email | **an** | wer sich selbst anmeldet, bestätigt seine Adresse |
+
+Die Function setzt beim Anlegen `email_confirm`, weil hier nicht jemand sich
+selbst anmeldet, sondern die Geschäftsführung ein Konto für einen Mitarbeiter
+erzeugt, den sie kennt. Ohne das käme er bis zu seinem Klick in einer Mail
+nicht hinein.
+
+**Was die Function bewusst NICHT tut:** die Zeile in der Belegschaft
+schreiben. Auf `users` liegen `users_anlegen` (verlangt `app.ist_spitze()`)
+und der Trigger `users_adminrolle`; beide lesen den Anspruch aus dem Token des
+Aufrufers. Mit dem Dienstschlüssel geschrieben, gälte keine der beiden Regeln
+mehr. Die Zeile schreibt deshalb weiter der Browser — durch den Zeilenschutz,
+so wie bisher.
+
 ### Weitere Betriebe: der globale Administrator
 
 Für jeden **weiteren** Betrieb gibt es einen zweiten Weg, und er ist der

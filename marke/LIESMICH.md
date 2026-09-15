@@ -69,9 +69,23 @@ Durchklick ohnehin da, und er zeichnet die Datei genau so, wie sie später im
 Browser aussieht. Ein zweiter Rasterer wäre eine zweite Wahrheit. Ohne
 `CHROMIUM_PFAD` holt sich Playwright seinen eigenen.
 
-## Noch nicht eingebaut
+## Eingebaut
 
-Die Dateien unter `public/` tragen weiterhin das alte Zeichen, und
-`manifest.webmanifest` heißt weiterhin „Perl Zeiterfassung". Das ist Absicht:
-der Name der Software zu wechseln ist eine Entscheidung des Betriebs, keine
-Aufräumarbeit. Der Wechsel ist ein Handgriff, sobald er gewollt ist.
+Die PNG unter `public/` sind diese hier — App-Zeichen, Apple-Touch-Icon und
+Favicon in drei Größen. Die 16er-Fassung steht in `index.html` ausdrücklich
+da, statt sie den Browser aus der 32er rechnen zu lassen: genau dafür gibt es
+die zweite Zeichnung.
+
+Der Service Worker nimmt `/icon-192.png` als Bild der Push-Meldung und
+`/favicon-64.png` als Abzeichen — beides wechselt damit mit.
+
+**Was NICHT gewechselt ist:** `manifest.webmanifest` heißt weiterhin „Perl
+Zeiterfassung" / „Perl Zeit", und `BrandLogo` zeigt weiter das Logo des
+Betriebs. Beides ist Absicht und kein Rest:
+
+* Der Name unter dem Symbol am Startbildschirm zu ändern, ändert etwas auf
+  den Telefonen von Leuten, die gerade arbeiten. Das ist eine Entscheidung
+  des Betriebs, keine Aufräumarbeit.
+* Das Logo IM Kopf der App gehört dem Betrieb, nicht dem Produkt — die App
+  ist mandantenfähig. Senklot ist, womit gearbeitet wird; Perl ist, wer damit
+  arbeitet.

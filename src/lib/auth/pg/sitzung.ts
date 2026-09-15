@@ -97,25 +97,40 @@ export async function istPlattformAdmin(): Promise<boolean> {
 }
 
 /**
- * Ein Konto anlegen, OHNE die eigene Sitzung zu verlieren.
+ * Ein Konto anlegen — über die Edge Function, nicht aus dem Browser.
  *
- * Unter Firebase brauchte es dafür eine zweite App — `createUserWithEmail`
- * meldet den Angelegten sofort an. Hier legt `signUp` die Sitzung nur dann um,
- * wenn keine besteht; um das gar nicht erst zu riskieren, geht der Aufruf
- * über einen EIGENEN Client, der nichts speichert. Die Sitzung der Verwaltung
- * bleibt unberührt.
+ * VORHER STAND HIER `auth.signUp`, und es hat nicht funktioniert. Der Aufruf
+ * verlangt im Projekt den Schalter „Allow new users to sign up", und der ist
+ * aus. Zu Recht: `signUp` spricht mit dem ÖFFENTLICHEN Schlüssel, der im
+ * ausgelieferten JavaScript steht. Eingeschaltet könnte sich jeder, der ihn
+ * dort abliest, selbst ein Konto anlegen.
+ *
+ * Also nicht den Schalter umlegen, sondern die Stelle verlegen: anlegen darf
+ * jetzt `mitarbeiter-anlegen` mit dem Dienstschlüssel, und diese Function
+ * fragt die Belegschaftstabelle, ob der Aufrufer das darf.
+ *
+ * DIE SITZUNG DER VERWALTUNG BLEIBT UNBERÜHRT — der Grund, aus dem hier
+ * früher ein Einweg-Client stand, ist damit ganz weggefallen: die Function
+ * legt das Konto an, ohne irgendjemanden anzumelden.
  */
 export async function kontoAnlegen(email: string, passwort: string): Promise<string> {
-  const { createClient } = await import('@supabase/supabase-js');
-  const einweg = createClient(
-    import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
-  const { data, error } = await einweg.auth.signUp({ email, password: passwort });
-  if (error) throw new Error(error.message);
-  if (!data.user) throw new Error('Das Konto wurde nicht angelegt.');
-  return data.user.id;
+  const { data, error } = await supabaseClient().functions.invoke('mitarbeiter-anlegen', {
+    body: { email, passwort },
+  });
+  /*
+    DIE MELDUNG DER FUNCTION DURCHREICHEN, nicht den nackten Status — wie bei
+    `betrieb-anlegen`. Sonst stünde „Edge Function returned a non-2xx status
+    code" über einer vergebenen Adresse, und `anlegeFehler` hätte nichts, was
+    es übersetzen könnte.
+  */
+  if (error) {
+    const rumpf = await (error as { context?: Response }).context?.json?.()
+      .catch(() => undefined);
+    throw new Error(rumpf?.error ?? error.message);
+  }
+  const uid = (data as { uid?: unknown } | null)?.uid;
+  if (typeof uid !== 'string' || !uid) throw new Error('Das Konto wurde nicht angelegt.');
+  return uid;
 }
 
 function profilAus(

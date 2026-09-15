@@ -42,7 +42,7 @@ src/lib/db/invoices.ts#reactivateInvoice: (inv: WithId<Invoice>) => Promise<void
 src/lib/db/invoices.ts#reserveInvoiceNumber: (companyId: string, opts: { seedFrom: number; desired?: number; }) => Promise<string>
 src/lib/db/invoices.ts#subscribeRecentInvoices: (companyId: string, max: number, cb: (rows: WithId<Invoice>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/invoices.ts#updateInvoiceStatus: (id: string, paymentStatus: Invoice["paymentStatus"]) => Promise<void>
-src/lib/db/laeufe.ts#ladeLauf: (companyId: string, art: LaufArt) => Promise<Lauf | undefined>
+src/lib/db/laeufe.ts#ladeLauf: <A extends LaufArt>(companyId: string, art: A) => Promise<Lauf<A> | undefined>
 src/lib/db/materialOrders.ts#ORDER_STATUS_FLOW: ("Offen" | "In Bearbeitung" | "Abholbereit" | "Erledigt")[]
 src/lib/db/materialOrders.ts#createMaterialOrder: (companyId: string, order: NewMaterialOrder) => Promise<string>
 src/lib/db/materialOrders.ts#createReturn: (companyId: string, ret: Omit<NewMaterialOrder, "status" | "transactionType"> & { condition: string; }) => Promise<string>

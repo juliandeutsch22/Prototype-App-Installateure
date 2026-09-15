@@ -107,3 +107,24 @@ export const buchung = (k: Konto, datum: string, rest: Record<string, unknown> =
   break_duration: 30,
   ...rest,
 });
+
+/**
+ * Den Status einer Antwort lesen und ihren Rumpf WEGRÄUMEN.
+ *
+ * WARUM DAS NICHT WEGGELASSEN WERDEN DARF, und warum es einen Namen hat statt
+ * einer Zeile, die beim nächsten Aufräumen als überflüssig gilt:
+ *
+ * `fetch` in Node hält die Verbindung offen, solange der Rumpf einer Antwort
+ * weder gelesen noch verworfen ist — sie bleibt im Verbindungsvorrat belegt.
+ * Bei einer Handvoll Aufrufen fällt das nie auf. In einem Lauf mit
+ * sechshundert Prüfungen gegen dieselbe Adresse wartet irgendwann eine
+ * Anfrage auf eine Verbindung, die nie frei wird, und stirbt an ihrer Frist —
+ * an einer Stelle, die mit der Ursache nichts zu tun hat.
+ *
+ * Verworfen wird VOR der Behauptung: scheitert sie, wird der Rumpf sonst
+ * gerade dann liegengelassen, wenn ohnehin etwas schiefläuft.
+ */
+export async function nurStatus(antwort: Response): Promise<number> {
+  await antwort.body?.cancel().catch(() => undefined);
+  return antwort.status;
+}

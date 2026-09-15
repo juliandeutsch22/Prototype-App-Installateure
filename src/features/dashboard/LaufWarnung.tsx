@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { isTopLevel } from '@/lib/permissions';
 import { ladeLauf } from '@/lib/db/laeufe';
-import { beurteile, type LaufArt } from '@shared/laufStatus';
+import { beurteile, type NachtLaufArt } from '@shared/laufStatus';
 
 /**
  * Die Meldung, die einen ausgefallenen Nachtlauf sichtbar macht.
@@ -22,14 +22,14 @@ import { beurteile, type LaufArt } from '@shared/laufStatus';
  * gar nicht lesen.
  */
 
-const WOHIN: Record<LaufArt, { pfad: string; wort: string }> = {
+const WOHIN: Record<NachtLaufArt, { pfad: string; wort: string }> = {
   ausleitung: { pfad: '/settings/sicherung', wort: 'Zur Datensicherung' },
   bilanzen: { pfad: '/settings/saetze', wort: 'Zu den Monatsbilanzen' },
 };
 
 export default function LaufWarnung() {
   const { user } = useAuth();
-  const [offen, setOffen] = useState<Array<{ art: LaufArt; text: string }>>([]);
+  const [offen, setOffen] = useState<Array<{ art: NachtLaufArt; text: string }>>([]);
 
   /*
     AN DEN WERTEN, nicht am `user`-OBJEKT — sonst liefe der Effekt bei jedem
@@ -42,8 +42,14 @@ export default function LaufWarnung() {
     if (!companyId || !rolle || !isTopLevel(rolle)) return;
     let weg = false;
     void (async () => {
-      const arten: LaufArt[] = ['ausleitung', 'bilanzen'];
-      const gemeldet: Array<{ art: LaufArt; text: string }> = [];
+      /*
+        NUR DIE NACHTLÄUFE, und der Typ hält das fest. Der Push-Versand hat
+        keine Frist — er läuft, wenn es etwas zu melden gibt. Hier
+        aufgenommen, stünde am ruhigen Wochenende „steht aus" über etwas, das
+        gar nichts zu tun hatte.
+      */
+      const arten: NachtLaufArt[] = ['ausleitung', 'bilanzen'];
+      const gemeldet: Array<{ art: NachtLaufArt; text: string }> = [];
       for (const art of arten) {
         const u = beurteile(await ladeLauf(companyId, art), Date.now());
         // „Unbekannt" wird MITGEMELDET. Ein Betrieb ohne Aufzeichnung sieht

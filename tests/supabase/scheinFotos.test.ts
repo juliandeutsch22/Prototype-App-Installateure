@@ -14,7 +14,7 @@
  * entsteht, den `fotoPfad` erzeugt.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { betriebAnlegen, konto, type Konto } from './helfer';
+import { betriebAnlegen, konto, nurStatus, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import { fotoHochladen, fotoAdresse, fotoEntfernen } from '@/lib/db/pg/scheinFotos';
 import { fotoPfad } from '@/features/worksheets/fotos';
@@ -162,7 +162,7 @@ describe('Was der Eimer selbst abweist', () => {
     const eintrag = await fotoHochladen(BETRIEB, SCHEIN, bild('nicht oeffentlich'), 1);
     const { data } = monteur.client.storage.from('scheinfotos').getPublicUrl(eintrag.pfad);
     const antwort = await fetch(data.publicUrl);
-    expect(antwort.status).toBe(400);
+    expect(await nurStatus(antwort)).toBe(400);
   }, 60_000);
 });
 

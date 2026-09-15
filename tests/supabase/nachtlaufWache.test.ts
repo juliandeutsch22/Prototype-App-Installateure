@@ -167,7 +167,17 @@ describe('Der Anstoss legt den Merkzettel an', () => {
   it('ohne ihn hätte der Wächter nichts nachzusehen', async () => {
     await db.query('begin');
     try {
-      const vorher = await db.query('select count(*)::int as n from app.anstoss_wache');
+      /*
+        GEZÄHLT WIRD NUR DIE EIGENE ART — vorher stand hier ein `count(*)`
+        über die ganze Tabelle, verglichen mit einem gefilterten `count` nach
+        dem Anstoss. Das ging gut, solange es nur eine Art Merkzettel gab.
+        Seit der Push-Versand seine Anfragen ebenfalls notiert, verglich die
+        Prüfung Äpfel mit Birnen und schlug fehl, ohne dass am Anstoss etwas
+        falsch war.
+      */
+      const vorher = await db.query(
+        `select count(*)::int as n from app.anstoss_wache where art = 'ausleitung'`,
+      );
       await db.query(
         `select vault.create_secret('http://beispiel.test/ziel', 'ausleitung_url')`,
       ).catch(() => undefined);
