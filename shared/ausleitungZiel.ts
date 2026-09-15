@@ -14,8 +14,8 @@
  *
  * Die beiden zu verwechseln wäre der teuerste Fehler dieser Funktion.
  */
-import { datumsStempel } from './ausleitungPlan.ts';
-import { signiere, inhaltsHash, pfadKodieren } from './s3Signatur.ts';
+import { datumsStempel } from './ausleitungPlan';
+import { signiere, inhaltsHash, pfadKodieren } from './s3Signatur';
 
 export interface Zielspeicher {
   endpunkt: string;

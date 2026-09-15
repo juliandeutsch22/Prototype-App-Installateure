@@ -2974,6 +2974,23 @@ zurückgespielt wurde, ist keine. Wenn die erste Datei im Eimer liegt, gehört
 der Weg zurück einmal gegangen — herunterladen, einlesen, nachsehen, ob
 Rechnungen und Zeiten vollständig sind. Erst danach ist die Lücke geschlossen.
 
+### Ein Befund über den Bau selbst
+
+`shared/` wird an ZWEI Ziele kopiert, und beide verlangen etwas anderes: Deno
+braucht die Endung `.ts`, die alten Cloud Functions unter NodeNext ein `.js`.
+Deshalb steht in der Quelle **keine** Endung, und jeder der beiden Generatoren
+ergänzt seine eigene.
+
+Meine neuen Dateien sind die ersten in `shared/`, die einander importieren —
+und ich hatte `./s3Signatur.ts` geschrieben, weil ich gerade an Deno dachte.
+Örtlich fiel das nicht auf: `npm test`, `tsc`, der Durchklick, alle grün. Es
+brach in einem eigenen CI-Auftrag, der die Cloud Functions gegen die echten
+Firebase-Typen übersetzt.
+
+Die Regel gibt es also längst; sie stand nur in einem Kommentar. Jetzt hält
+sie `tests/unit/gemeinsameImporte.test.ts` fest — samt der Gegenprobe, dass
+das Muster überhaupt noch Importe findet.
+
 ---
 
 ## Wartet auf eine Entscheidung
