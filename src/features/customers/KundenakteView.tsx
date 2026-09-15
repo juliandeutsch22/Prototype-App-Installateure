@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listCustomersByIds,
   listProjectsForCustomer,
   listUnlinkedProjectsByName,
   assignProjectToCustomer,
+  updateCustomer,
+  type NewCustomer,
 } from '@/lib/db/customers';
 import { listQuotesForCustomer } from '@/lib/db/quotes';
 import { listWartungenForCustomer } from '@/lib/db/wartungen';
@@ -16,6 +18,7 @@ import { todayStr } from '@/lib/time';
 import type { Customer, Project, Quote, Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import { InputField, FormGrid, CheckboxField } from '@/components/Field';
 import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -60,7 +63,6 @@ export default function KundenakteView() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const toast = useToast();
-  const navigate = useNavigate();
   const wartungAn = useModul('wartung');
   const angeboteAn = useModul('angebote');
 
@@ -71,6 +73,23 @@ export default function KundenakteView() {
   const [wartungen, setWartungen] = useState<Teil<WithId<Wartung>[]>>(LAEDT);
   const [zuordnenLaeuft, setZuordnenLaeuft] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
+
+  /**
+   * DER ENTWURF DER STAMMDATEN — und warum es keinen Bearbeitungsmodus gibt.
+   *
+   * Zwei Zustände derselben Seite („ansehen" und „bearbeiten") sind die Sorte
+   * Oberfläche, bei der man ständig im falschen steht: man tippt in ein Feld,
+   * das keines ist, oder liest in einer Maske, in der man versehentlich etwas
+   * verstellt. Genau das ist bei der UID-Nummer schon passiert — sie war nur
+   * in der Bearbeitungsmaske zu sehen.
+   *
+   * Stattdessen: die Felder sind bearbeitbar, und ein Speichern-Balken
+   * erscheint erst, wenn sich wirklich etwas geändert hat. Wer nur nachsieht,
+   * merkt vom Bearbeiten nichts.
+   */
+  const [entwurf, setEntwurf] = useState<NewCustomer | null>(null);
+  const [speichert, setSpeichert] = useState(false);
+  const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
 
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
@@ -101,6 +120,49 @@ export default function KundenakteView() {
   const kundeDaten = kunde.zustand === 'bereit' ? kunde.daten : null;
   const kundeName = kundeDaten?.name;
 
+  /*
+    Der Entwurf folgt dem geladenen Kunden — aber NUR, wenn dieser sich
+    wirklich geändert hat. Liefe er bei jedem Durchlauf mit, überschriebe
+    jedes erneute Zeichnen die halb getippte Eingabe.
+  */
+  useEffect(() => {
+    setEntwurf(kundeDaten ? alsEntwurf(kundeDaten) : null);
+  }, [kundeDaten]);
+
+  const geaendert =
+    entwurf !== null && kundeDaten !== null && !gleich(entwurf, alsEntwurf(kundeDaten));
+
+  async function stammdatenSpeichern(): Promise<void> {
+    if (!companyId || !id || !entwurf) return;
+    if (!entwurf.name.trim()) {
+      setSpeicherFehler('Ohne Namen geht es nicht — daran hängen Baustellen und Rechnungen.');
+      return;
+    }
+    setSpeichert(true);
+    setSpeicherFehler(null);
+    try {
+      const nachgezogen = await updateCustomer(companyId, id, entwurf);
+      /*
+        WIE VIELE BAUSTELLEN MITGEWANDERT SIND, WIRD GESAGT. Der Kundenname
+        steht als Kopie auf jeder Baustelle; ein Umbenennen zieht sie nach.
+        Das lautlos zu tun hiesse, eine Änderung an fremden Datensätzen zu
+        verschweigen — dieselbe Meldung gab schon die Kundenliste.
+      */
+      toast.success(
+        nachgezogen > 0
+          ? `Gespeichert, ${nachgezogen} ${nachgezogen === 1 ? 'Baustelle' : 'Baustellen'} nachgezogen`
+          : 'Gespeichert',
+      );
+      // Neu laden: der Name ist der Schlüssel, unter dem Angebote und
+      // namensgleiche Baustellen gesucht werden.
+      setVersuch((v) => v + 1);
+    } catch {
+      setSpeicherFehler('Der Kunde konnte nicht gespeichert werden.');
+    } finally {
+      setSpeichert(false);
+    }
+  }
+
   useEffect(() => {
     if (!companyId || !id || !kundeName) return;
     let weg = false;
@@ -122,16 +184,30 @@ export default function KundenakteView() {
     };
   }, [companyId, id, kundeName, versuch]);
 
+  /*
+    DIE ANGEBOTE HINGEN AM NAMEN UND MUSSTEN AN DER KENNUNG HÄNGEN.
+
+    Hier stand `listQuotesForCustomer(companyId, kundeName)`. Die Abfrage
+    filtert aber auf `customerId` — und `quotes.customer_id` ist eine `uuid`.
+    Unter Postgres scheitert sie damit an jedem Kunden, und die Akte meldete
+    „die Angebote konnte nicht geladen werden"; unter Firestore kam einfach
+    nichts zurück, was wie „noch kein Angebot" aussah. Der Abschnitt hat also
+    nie funktioniert, und der Umzug hat aus einer stillen Leere eine sichtbare
+    Meldung gemacht.
+
+    Angebote tragen die Kennung (`QuotesView` setzt sie beim Anlegen aus dem
+    gewählten Kunden), also wird danach gesucht.
+  */
   useEffect(() => {
-    if (!companyId || !kundeName || !angeboteAn) return;
+    if (!companyId || !id || !angeboteAn) return;
     let weg = false;
-    listQuotesForCustomer(companyId, kundeName)
+    listQuotesForCustomer(companyId, id)
       .then((q) => !weg && setAngebote({ zustand: 'bereit', daten: q }))
       .catch(() => !weg && setAngebote({ zustand: 'fehler' }));
     return () => {
       weg = true;
     };
-  }, [companyId, kundeName, angeboteAn, versuch]);
+  }, [companyId, id, angeboteAn, versuch]);
 
   useEffect(() => {
     if (!companyId || !id || !wartungAn) return;
@@ -197,11 +273,12 @@ export default function KundenakteView() {
             ← Zur Kundenliste
           </Link>
         }
-        action={
-          darfAendern ? (
-            <Button onClick={() => navigate(`/customers?bearbeiten=${k.id}`)}>Bearbeiten</Button>
-          ) : undefined
-        }
+        /*
+          KEIN „BEARBEITEN"-KNOPF MEHR. Er führte in das Formular der
+          Kundenliste — also aus der Akte heraus, um etwas zu ändern, das in
+          der Akte steht. Wer zurückkam, stand wieder in der Liste und musste
+          den Kunden erneut suchen. Geändert wird jetzt dort, wo es steht.
+        */
       />
 
       {/*
@@ -209,37 +286,19 @@ export default function KundenakteView() {
         E-Mail, UID und Notiz standen bisher in keiner Ansicht.
       */}
       <Card title="Stammdaten">
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Angabe wort="Rechnungsadresse">
-            {k.address ? <AdresseLink adresse={k.address} /> : null}
-          </Angabe>
-          <Angabe wort="Ansprechpartner">{k.contactName}</Angabe>
-          <Angabe wort="Telefon">
-            {k.contactPhone ? (
-              <TelefonLink nummer={k.contactPhone} name={k.contactName} />
-            ) : null}
-          </Angabe>
-          <Angabe wort="E-Mail">{k.email ? <MailLink adresse={k.email} /> : null}</Angabe>
-          {/*
-            Die UID gehört auf jede Rechnung an ein Unternehmen. Sie war
-            bisher nur in der Bearbeitungsmaske zu sehen — also genau dort,
-            wo man sie versehentlich ändert, während man sie nachsieht.
-          */}
-          <Angabe wort="UID-Nummer">
-            {k.vatId ? <span className="tnum">{k.vatId}</span> : null}
-          </Angabe>
-          <Angabe wort="Zustand">
-            {k.active === false ? <Badge tone="gray">inaktiv</Badge> : <Badge tone="success">aktiv</Badge>}
-          </Angabe>
-        </dl>
-
-        {k.notes?.trim() ? (
-          <div className="mt-4 border-t border-line pt-3">
-            <p className="section-label">Notiz</p>
-            {/* Zeilenumbrüche bleiben: eine Notiz ist oft eine Liste. */}
-            <p className="mt-1 whitespace-pre-line text-sm text-ink">{k.notes}</p>
-          </div>
-        ) : null}
+        {darfAendern && entwurf ? (
+          <StammdatenFormular
+            entwurf={entwurf}
+            setEntwurf={setEntwurf}
+            geaendert={geaendert}
+            speichert={speichert}
+            fehler={speicherFehler}
+            onSpeichern={() => void stammdatenSpeichern()}
+            onVerwerfen={() => setEntwurf(alsEntwurf(k))}
+          />
+        ) : (
+          <StammdatenLesen k={k} />
+        )}
       </Card>
 
       <Card title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
@@ -385,6 +444,179 @@ export default function KundenakteView() {
             </ul>
           )}
         </Card>
+      )}
+    </div>
+  );
+}
+
+/** Die Felder, die die Akte bearbeitet — dieselben, die das Anlegen kennt. */
+function alsEntwurf(k: Customer): NewCustomer {
+  return {
+    name: k.name ?? '',
+    address: k.address ?? '',
+    contactName: k.contactName ?? '',
+    contactPhone: k.contactPhone ?? '',
+    email: k.email ?? '',
+    vatId: k.vatId ?? '',
+    notes: k.notes ?? '',
+    active: k.active !== false,
+  };
+}
+
+/**
+ * Hat sich wirklich etwas geändert?
+ *
+ * Feldweise und nicht über `JSON.stringify`: die Reihenfolge der Schlüssel
+ * wäre dort Teil des Vergleichs, und ein Entwurf aus einer anderen Quelle
+ * gälte als geändert, obwohl er dasselbe sagt. Der Speichern-Balken erschiene
+ * dann, ohne dass jemand etwas getan hat.
+ */
+function gleich(a: NewCustomer, b: NewCustomer): boolean {
+  return (Object.keys(a) as (keyof NewCustomer)[]).every((f) => a[f] === b[f]);
+}
+
+/** Die Stammdaten für alle, die sie nicht ändern dürfen. */
+function StammdatenLesen({ k }: { k: Customer }) {
+  return (
+    <>
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+        <Angabe wort="Rechnungsadresse">
+          {k.address ? <AdresseLink adresse={k.address} /> : null}
+        </Angabe>
+        <Angabe wort="Ansprechpartner">{k.contactName}</Angabe>
+        <Angabe wort="Telefon">
+          {k.contactPhone ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}
+        </Angabe>
+        <Angabe wort="E-Mail">{k.email ? <MailLink adresse={k.email} /> : null}</Angabe>
+        {/*
+          Die UID gehört auf jede Rechnung an ein Unternehmen. Sie war bisher
+          nur in der Bearbeitungsmaske zu sehen — also genau dort, wo man sie
+          versehentlich ändert, während man sie nachsieht.
+        */}
+        <Angabe wort="UID-Nummer">
+          {k.vatId ? <span className="tnum">{k.vatId}</span> : null}
+        </Angabe>
+        <Angabe wort="Zustand">
+          {k.active === false ? <Badge tone="gray">inaktiv</Badge> : <Badge tone="success">aktiv</Badge>}
+        </Angabe>
+      </dl>
+
+      {k.notes?.trim() ? (
+        <div className="mt-4 border-t border-line pt-3">
+          <p className="section-label">Notiz</p>
+          {/* Zeilenumbrüche bleiben: eine Notiz ist oft eine Liste. */}
+          <p className="mt-1 whitespace-pre-line text-sm text-ink">{k.notes}</p>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+interface FormularProps {
+  entwurf: NewCustomer;
+  setEntwurf: (e: NewCustomer) => void;
+  geaendert: boolean;
+  speichert: boolean;
+  fehler: string | null;
+  onSpeichern: () => void;
+  onVerwerfen: () => void;
+}
+
+/**
+ * Dieselben Stammdaten, bearbeitbar.
+ *
+ * DIE ANRUF- UND KARTENVERWEISE BLEIBEN. Ein Eingabefeld allein nähme der
+ * Akte genau das, wofür das Büro sie aufmacht: die Nummer antippen und
+ * anrufen. Sie stehen deshalb als Zeile unter den Feldern und folgen dem, was
+ * gerade im Feld steht — wer eine Nummer korrigiert, kann sie sofort wählen,
+ * ohne vorher zu speichern.
+ */
+function StammdatenFormular({
+  entwurf, setEntwurf, geaendert, speichert, fehler, onSpeichern, onVerwerfen,
+}: FormularProps) {
+  const setze = (feld: keyof NewCustomer, wert: string | boolean) =>
+    setEntwurf({ ...entwurf, [feld]: wert });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <FormGrid>
+        <InputField
+          id="k-name" label="Name" pflicht value={entwurf.name}
+          onChange={(e) => setze('name', e.target.value)}
+        />
+        <InputField
+          id="k-adresse" label="Rechnungsadresse" value={entwurf.address ?? ''}
+          onChange={(e) => setze('address', e.target.value)}
+        />
+        <InputField
+          id="k-ansprech" label="Ansprechpartner" value={entwurf.contactName ?? ''}
+          onChange={(e) => setze('contactName', e.target.value)}
+        />
+        <InputField
+          id="k-telefon" label="Telefon" type="tel" value={entwurf.contactPhone ?? ''}
+          onChange={(e) => setze('contactPhone', e.target.value)}
+        />
+        <InputField
+          id="k-mail" label="E-Mail" type="email" value={entwurf.email ?? ''}
+          onChange={(e) => setze('email', e.target.value)}
+        />
+        <InputField
+          id="k-uid" label="UID-Nummer" value={entwurf.vatId ?? ''}
+          placeholder="ATU12345678"
+          onChange={(e) => setze('vatId', e.target.value)}
+        />
+      </FormGrid>
+
+      <div className="flex flex-col gap-1">
+        <label htmlFor="k-notiz" className="text-sm font-medium text-ink">Notiz</label>
+        <textarea
+          id="k-notiz"
+          rows={3}
+          className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand"
+          value={entwurf.notes ?? ''}
+          onChange={(e) => setze('notes', e.target.value)}
+        />
+      </div>
+
+      {/*
+        DER ZUSTAND IST EIN KÄSTCHEN UND KEIN LÖSCHEN. Ein Kunde mit
+        Baustellen und Rechnungen verschwindet nicht; er wird stillgelegt.
+      */}
+      <CheckboxField
+        id="k-aktiv"
+        label="Aktiv — erscheint in den Auswahlfeldern"
+        checked={entwurf.active !== false}
+        onChange={(e) => setze('active', e.target.checked)}
+      />
+
+      {(entwurf.address || entwurf.contactPhone || entwurf.email) && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+          <AdresseLink adresse={entwurf.address} variante="knopf" />
+          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
+          <MailLink adresse={entwurf.email} variante="knopf" />
+        </div>
+      )}
+
+      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+
+      {/*
+        DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — und er steht IN der
+        Karte, nicht fest am unteren Rand. Dort sitzt am Telefon bereits die
+        Tableiste; zwei Balken übereinander wären eine Falle statt einer
+        Hilfe.
+      */}
+      {geaendert && (
+        <div className="flex flex-wrap items-center gap-3 rounded border border-brand-fixed/40 bg-info-bg p-3">
+          <span className="text-sm text-ink">Es gibt ungespeicherte Änderungen.</span>
+          <div className="ml-auto flex gap-2">
+            <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
+              Verwerfen
+            </Button>
+            <Button onClick={onSpeichern} loading={speichert}>
+              Speichern
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

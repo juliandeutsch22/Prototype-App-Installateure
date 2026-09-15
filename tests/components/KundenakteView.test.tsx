@@ -47,14 +47,20 @@ const listUnlinkedProjectsByName = vi.fn(async () => namensgleich);
 const assignProjectToCustomer = vi.fn(async () => undefined);
 const listQuotesForCustomer = vi.fn(async () => angebote);
 const listWartungenForCustomer = vi.fn(async () => wartungen);
+/** Wie viele Baustellen beim Umbenennen nachgezogen wurden. */
+let nachgezogen = 0;
+const updateCustomer = vi.fn(async () => nachgezogen);
 
 vi.mock('@/lib/db/customers', () => ({
   listCustomersByIds: () => listCustomersByIds(),
   listProjectsForCustomer: () => listProjectsForCustomer(),
   listUnlinkedProjectsByName: () => listUnlinkedProjectsByName(),
   assignProjectToCustomer: (...a: unknown[]) => assignProjectToCustomer(...(a as [])),
+  updateCustomer: (...a: unknown[]) => updateCustomer(...(a as [])),
 }));
-vi.mock('@/lib/db/quotes', () => ({ listQuotesForCustomer: () => listQuotesForCustomer() }));
+vi.mock('@/lib/db/quotes', () => ({
+  listQuotesForCustomer: (...a: unknown[]) => listQuotesForCustomer(...(a as [])),
+}));
 vi.mock('@/lib/db/wartungen', () => ({
   listWartungenForCustomer: () => listWartungenForCustomer(),
 }));
@@ -108,13 +114,28 @@ beforeEach(() => {
   modulAn = true;
   rolle = 'Geschäftsführung';
   nutzer = NUTZER();
+  nachgezogen = 0;
   listCustomersByIds.mockClear();
+  updateCustomer.mockClear();
   assignProjectToCustomer.mockClear();
   listUnlinkedProjectsByName.mockClear();
   listWartungenForCustomer.mockClear();
+  listQuotesForCustomer.mockClear();
 });
 
-describe('Die Stammdaten — der Grund für diese Seite', () => {
+/**
+ * ZWEI DARSTELLUNGEN DERSELBEN STAMMDATEN — und beide werden geprüft.
+ *
+ * Wer ändern darf, bekommt Felder; alle anderen bekommen Text. Nur eine von
+ * beiden zu prüfen hiesse, die Hälfte der Belegschaft ungeprüft zu lassen —
+ * und zwar die grössere.
+ */
+describe('Die Stammdaten für alle, die nur lesen', () => {
+  beforeEach(() => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+  });
+
   it('zeigt E-Mail, UID und Notiz, die vorher nirgends standen', async () => {
     zeige();
     await screen.findByText('Stammdaten');
@@ -160,6 +181,20 @@ describe('Die Stammdaten — der Grund für diese Seite', () => {
     kunden = [{ ...KUNDE, active: false }];
     zeige();
     expect(await screen.findByText('inaktiv')).toBeInTheDocument();
+  });
+
+  it('bietet kein einziges Eingabefeld an', async () => {
+    /*
+      DIE GEGENPROBE. Die Grenze steht ohnehin im Zeilenschutz — eine
+      Verwaltung, die speichert, bekommt einen Fehler. Ein Formular
+      anzubieten, das beim Absenden abgewiesen wird, ist trotzdem eine
+      Zumutung: man tippt, drückt, und erfährt erst dann, dass man es nicht
+      darf.
+    */
+    zeige();
+    await screen.findByText('Stammdaten');
+    expect(screen.queryByLabelText('UID-Nummer')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull();
   });
 });
 
@@ -253,5 +288,128 @@ describe('Wenn es den Kunden nicht gibt', () => {
     kunden = [];
     zeige('gibtsnicht');
     expect(await screen.findByText(/Diesen Kunden gibt es nicht/)).toBeInTheDocument();
+  });
+});
+
+describe('Die Stammdaten bearbeiten — in der Akte statt woanders', () => {
+  /*
+    WAS VORHER PASSIERTE. Der Knopf „Bearbeiten" führte in das Formular der
+    Kundenliste — also aus der Akte heraus, um etwas zu ändern, das in der
+    Akte steht. Wer zurückkam, stand wieder in der Liste und musste den
+    Kunden erneut suchen.
+  */
+  it('zeigt die Werte in Feldern, ohne dass man etwas umschalten muss', async () => {
+    zeige();
+    expect(await screen.findByLabelText('UID-Nummer')).toHaveValue('ATU12345678');
+    expect(screen.getByLabelText(/^Name/)).toHaveValue('Hausverwaltung Nord');
+  });
+
+  it('hält den Speichern-Balken zurück, solange nichts geändert wurde', async () => {
+    /*
+      DER GANZE PUNKT DES ENTWURFS. Ein Balken, der von Anfang an dasteht,
+      behauptet eine Änderung, die es nicht gibt — und wer ihn einmal
+      ignoriert hat, ignoriert ihn auch beim nächsten Mal.
+    */
+    zeige();
+    await screen.findByLabelText('UID-Nummer');
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull();
+  });
+
+  it('lässt ihn erscheinen, sobald sich etwas ändert', async () => {
+    const bediener = userEvent.setup();
+    zeige();
+    await bediener.type(await screen.findByLabelText('UID-Nummer'), '9');
+    expect(screen.getByRole('button', { name: 'Speichern' })).toBeInTheDocument();
+  });
+
+  it('nimmt ihn wieder weg, wenn die Änderung zurückgetippt wird', async () => {
+    // Die Gegenprobe: ein Balken, der nur auf „es wurde getippt" hört, bliebe
+    // stehen, obwohl wieder dasselbe dasteht wie vorher.
+    const bediener = userEvent.setup();
+    zeige();
+    const feld = await screen.findByLabelText('UID-Nummer');
+    await bediener.type(feld, '9');
+    await bediener.type(feld, '{backspace}');
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull();
+  });
+
+  it('speichert und sagt, wie viele Baustellen mitgewandert sind', async () => {
+    /*
+      Der Kundenname steht als Kopie auf jeder Baustelle. Ein Umbenennen zieht
+      sie nach — das lautlos zu tun hiesse, eine Änderung an fremden
+      Datensätzen zu verschweigen.
+    */
+    nachgezogen = 3;
+    const bediener = userEvent.setup();
+    zeige();
+    const feld = await screen.findByLabelText(/^Name/);
+    await bediener.clear(feld);
+    await bediener.type(feld, 'Hausverwaltung Süd');
+    await bediener.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    await screen.findByText(/3 Baustellen nachgezogen/);
+    expect(updateCustomer).toHaveBeenCalledWith(
+      'perl', 'k1', expect.objectContaining({ name: 'Hausverwaltung Süd' }),
+    );
+  });
+
+  it('weist einen leeren Namen ab, statt ihn zu speichern', async () => {
+    /*
+      Am Namen hängen Baustellen und Rechnungen. Ein leerer Name käme in der
+      Datenbank durch — die Spalte ist `not null`, aber eine leere
+      Zeichenkette ist nicht null — und hinterliesse eine Akte ohne
+      Überschrift.
+    */
+    const bediener = userEvent.setup();
+    zeige();
+    await bediener.clear(await screen.findByLabelText(/^Name/));
+    await bediener.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Ohne Namen/);
+    expect(updateCustomer).not.toHaveBeenCalled();
+  });
+
+  it('stellt mit „Verwerfen" den gespeicherten Stand wieder her', async () => {
+    const bediener = userEvent.setup();
+    zeige();
+    const feld = await screen.findByLabelText('UID-Nummer');
+    await bediener.clear(feld);
+    await bediener.type(feld, 'ATU99999999');
+    await bediener.click(screen.getByRole('button', { name: 'Verwerfen' }));
+
+    expect(feld).toHaveValue('ATU12345678');
+    expect(screen.queryByRole('button', { name: 'Speichern' })).toBeNull();
+  });
+
+  it('behält Anrufen und Karte — dafür macht das Büro die Akte auf', async () => {
+    /*
+      Ein Eingabefeld allein nähme der Akte genau das. Die Verweise folgen
+      dem, was IM FELD steht: wer eine Nummer korrigiert, kann sie sofort
+      wählen, ohne vorher zu speichern.
+    */
+    const bediener = userEvent.setup();
+    zeige();
+    const feld = await screen.findByLabelText('Telefon');
+    await bediener.clear(feld);
+    await bediener.type(feld, '0664 9999999');
+
+    expect(screen.getByRole('link', { name: /0664 9999999/ }))
+      .toHaveAttribute('href', 'tel:06649999999');
+  });
+});
+
+describe('Die Angebote der Akte', () => {
+  it('sucht nach der KENNUNG des Kunden, nicht nach seinem Namen', async () => {
+    /*
+      DER FEHLER, DER NIE AUFFIEL. Hier stand der Name; die Abfrage filtert
+      aber auf `customerId`, und `quotes.customer_id` ist eine `uuid`. Unter
+      Postgres scheitert sie damit an JEDEM Kunden — die Akte meldete „die
+      Angebote konnte nicht geladen werden". Unter Firestore kam einfach
+      nichts zurück, was wie „noch kein Angebot" aussah; der Abschnitt hat
+      also nie funktioniert.
+    */
+    zeige();
+    await screen.findByText('Stammdaten');
+    expect(listQuotesForCustomer).toHaveBeenCalledWith('perl', 'k1');
   });
 });

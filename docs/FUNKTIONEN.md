@@ -36,7 +36,7 @@ unterscheidet drei Stufen:
 
 | Bereich | Was es tut | Wer darf | Daten | Geprüft wodurch | Bekannte Lücke |
 |---|---|---|---|---|---|
-| **Kunden** | Stammdaten, Dublettenschutz, Übernahme der Altbestände; **Kundenakte** je Kunde mit allen Angaben, Baustellen, Wartungen und Angeboten | Buchhaltung, Verwaltung, Leitung | `customers`, `projects`, `quotes`, `wartungen` | Emulator (Regeln), Liste (6), Akte (13) | Umbenennen zieht Baustellen nach — ungetestet |
+| **Kunden** | Stammdaten, Dublettenschutz, Übernahme der Altbestände; **Kundenakte** je Kunde mit allen Angaben, Baustellen, Wartungen und Angeboten, **dort auch bearbeitbar** | Buchhaltung, Verwaltung, Leitung | `customers`, `projects`, `quotes`, `wartungen` | Emulator (Regeln), Liste (6), Akte (23), Postgres (10) | — |
 | **Angebote** | Positionen kalkulieren, Arbeitszeit getrennt ausweisen, beim Annehmen Baustelle mit Stundenbudget anlegen | Buchhaltung, Leitung | `quotes`, `projects`, `counters` | Ansicht (3), Emulator (Zähler: steigend, Neubeginn nur zum Jahreswechsel) | — |
 | **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget; **Übersicht je Baustelle** (Stunden über die ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter) | Leitung | `projects`, `timeEntries` | Ansicht (8), Übersicht (8) | Der Kundenname kommt aus dem Stammsatz; leeres Stundenbudget bleibt leer statt 0. Die Übersicht zeigt **kein Geld** — Erlös und Marge bleiben in der Nachkalkulation |
 | **Anforderungen** | Eingehende Materialanforderungen bearbeiten, Status setzen | Verwaltung, Leitung | `materialOrders` | Rechnung (Meldungen), Ansicht (14) | — |
@@ -253,6 +253,20 @@ und danach nie wieder gezeigt.
 > jetzt stehen die Wartungen des Kunden in seiner Akte. Und die
 > Kontakt-Regeln (`mapsUrl`, `telUrl`, der neue `mailUrl`) haben endlich
 > eigene Tests; im Modul stand seit jeher, sie seien genau dafür ausgelagert.
+
+**Bearbeitet wird seit dem 15.09.2026 in der Akte selbst.** Die
+Stammdatenkarte IST das Formular — kein Umschalten in einen Bearbeiten-Modus,
+und kein Rücksprung in die Kundenliste, aus der man gerade gekommen ist. Wer
+ändern darf, tippt direkt; wer nur lesen darf, sieht dieselben Felder als
+Liste. Die Grenze ist dieselbe wie in der Kundenliste (`isGF`:
+Geschäftsführung, Projektleitung, Administration) — eine zweite Regel an
+derselben Sache wäre der Anfang zweier verschiedener Antworten. Die
+Speicherleiste erscheint erst, wenn sich wirklich etwas geändert hat.
+
+> Dabei gefunden: der Angebotsblock der Akte suchte die Angebote über den
+> KUNDENNAMEN, die Abfrage filtert aber auf die Kennung. Unter Postgres
+> scheiterte er an jedem Kunden, unter Firestore blieb er still leer. Er hat
+> nie funktioniert; jetzt tut er es, und eine Prüfung hält das Argument fest.
 
 **Jede Ansicht der App hat seit dem 07.09.2026 einen Ansichtstest.** Zuletzt
 offen waren Nachkalkulation, Module, Meine Baustellen, Firmendaten,
