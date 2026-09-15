@@ -1,10 +1,9 @@
 import { Link, useSearchParams } from 'react-router-dom';
-import { Fragment, Suspense, lazy, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
   subscribeRecentProjects,
   createProject,
-  updateProject,
   deleteProject,
   findProjectsByNumber,
   searchProjects,
@@ -33,12 +32,6 @@ import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 
-/*
-  Nachgeladen, nicht mitgeliefert. Die Übersicht braucht niemand beim Öffnen
-  der Liste — sie ist der zweite Klick auf genau eine Baustelle.
-*/
-const BaustellenUebersicht = lazy(() => import('./BaustellenUebersicht'));
-
 const empty = {
   projectNumber: '',
   customerId: '',
@@ -54,23 +47,6 @@ const empty = {
   contactPhone: '',
 };
 
-type FormState = typeof empty;
-
-function formFromProject(p: WithId<Project>): FormState {
-  return {
-    projectNumber: p.projectNumber,
-    customerId: p.customerId ?? '',
-    customerName: p.customerName,
-    address: p.address ?? '',
-    status: p.status,
-    estimatedHours: p.estimatedHours != null ? String(p.estimatedHours) : '',
-    description: p.description ?? '',
-    startDate: p.startDate ?? '',
-    endDate: p.endDate ?? '',
-    contactName: p.contactName ?? '',
-    contactPhone: p.contactPhone ?? '',
-  };
-}
 
 /** Baustellen-Verwaltung: CRUD + Mitarbeiterzuordnung (GF/Admin). */
 /**
@@ -108,14 +84,11 @@ export default function AdminProjectsView() {
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Baustellenliste steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
-  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [assigned, setAssigned] = useState<string[]>([]);
   const [managers, setManagers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
-  /** Welche Baustelle ihre Übersicht zeigt — höchstens eine. */
-  const [uebersicht, setUebersicht] = useState<string | null>(null);
   /**
    * Ein Tiefenlink auf eine Baustelle setzt Suche UND Filter.
    *
@@ -197,15 +170,13 @@ export default function AdminProjectsView() {
     // eine neue Grenze heisst also ein neues Abo.
   }, [user, grenze]);
 
-  function startEdit(p: WithId<Project>) {
-    setEditId(p.id);
-    setForm(formFromProject(p));
-    setAssigned(p.assignedEmployees ?? []);
-    setManagers(p.projectManagers ?? []);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  /*
+    DIESES FORMULAR LEGT NUR NOCH AN. Geändert wird in der Akte der
+    Baustelle (`/admin-projects/:id`) — dort, wo die Baustelle auch steht. Vorher
+    sprang „Bearbeiten" hierher nach oben, und wer fertig war, suchte die
+    Baustelle in der Liste wieder.
+  */
   function reset() {
-    setEditId(null);
     setForm(empty);
     setAssigned([]);
     setManagers([]);
@@ -225,10 +196,9 @@ export default function AdminProjectsView() {
         assignedEmployees: assigned,
         projectManagers: managers,
       };
-      if (editId) await updateProject(editId, data);
-      else await createProject(user.companyId, data);
+      await createProject(user.companyId, data);
       reset();
-      toast.success(editId ? 'Baustelle gespeichert' : 'Baustelle angelegt');
+      toast.success('Baustelle angelegt');
     } catch {
       setError('Die Baustelle konnte nicht gespeichert werden.');
     } finally {
@@ -349,11 +319,11 @@ export default function AdminProjectsView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Baustellen" subtitle="Projekte anlegen, bearbeiten und Mitarbeiter zuordnen" />
+      <PageHeader title="Baustellen" subtitle="Baustellen anlegen und suchen — geändert wird in der Akte" />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <Card title={editId ? 'Baustelle bearbeiten' : 'Neue Baustelle'}>
+      <Card title="Neue Baustelle">
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
             <InputField id="pnr" label="Projektnummer" value={form.projectNumber}
@@ -464,8 +434,7 @@ export default function AdminProjectsView() {
           <Pflichthinweis />
           {error && <ErrorState message={error} />}
           <div className="flex gap-3">
-            <Button type="submit" loading={saving}>{editId ? 'Speichern' : 'Anlegen'}</Button>
-            {editId && <Button type="button" variant="secondary" onClick={reset}>Abbrechen</Button>}
+            <Button type="submit" loading={saving}>Anlegen</Button>
           </div>
         </form>
       </Card>
@@ -526,17 +495,9 @@ export default function AdminProjectsView() {
                 uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
               const team = namen(p.assignedEmployees ?? []);
               const leitung = namen(p.projectManagers ?? []);
-              const offen = uebersicht === p.id;
               return (
-                /*
-                  Die Übersicht steht als eigene Zeile UNTER der Baustelle,
-                  nicht in ihr. Eine Listenzeile trägt Titel, Nebenzeile und
-                  Aktionen; ein aufklappbarer Block gehört nicht hinein, und
-                  ein `<li>` neben dem anderen ist genau die Form, die die
-                  Liste ohnehin hat.
-                */
-                <Fragment key={p.id}>
                 <ListRow
+                  key={p.id}
                   title={
                     <span>
                       {p.customerName} <span className="tnum text-ink-muted">({p.projectNumber})</span>
@@ -578,30 +539,23 @@ export default function AdminProjectsView() {
                       Schein
                     </Link>
                   )}
-                  <Button
-                    variant="ghost"
-                    aria-expanded={offen}
-                    onClick={() => setUebersicht(offen ? null : p.id)}
+                  {/*
+                    EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine
+                    Auswertung in die Liste) und „Bearbeiten" (sprang in das
+                    Formular ganz oben). Beides steht jetzt in der Akte, und
+                    die hat eine Adresse: sie lässt sich verlinken, als
+                    Lesezeichen ablegen und kommt zurück, wohin man war.
+                  */}
+                  <Link
+                    to={`/admin-projects/${p.id}`}
+                    className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
                   >
-                    {offen ? 'Übersicht zu' : 'Übersicht'}
-                  </Button>
-                  <Button variant="ghost" onClick={() => startEdit(p)}>Bearbeiten</Button>
+                    Akte
+                  </Link>
                   <IconButton label="Baustelle löschen" tone="danger" onClick={() => setToDelete(p)}>
                     ✕
                   </IconButton>
                 </ListRow>
-                {offen && user && (
-                  <li className="pb-4">
-                    <div className="rounded-lg border border-brand/40 bg-surface-2 px-4 py-3">
-                      <Suspense
-                        fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}
-                      >
-                        <BaustellenUebersicht companyId={user.companyId} projekt={p} />
-                      </Suspense>
-                    </div>
-                  </li>
-                )}
-                </Fragment>
               );
             })}
           </List>

@@ -37,6 +37,7 @@ const OrderView = lazy(() => import('@/features/orders/OrderView'));
 const AdminOrdersView = lazy(() => import('@/features/orders/AdminOrdersView'));
 const StockView = lazy(() => import('@/features/orders/StockView'));
 const AdminProjectsView = lazy(() => import('@/features/projects/AdminProjectsView'));
+const BaustellenakteView = lazy(() => import('@/features/projects/BaustellenakteView'));
 const CustomersView = lazy(() => import('@/features/customers/CustomersView'));
 const KundenakteView = lazy(() => import('@/features/customers/KundenakteView'));
 const WartungenView = lazy(() => import('@/features/maintenance/WartungenView'));
@@ -242,6 +243,20 @@ function AppRoutes() {
       <Route
         path="/admin-projects"
         element={<RequireNav path="/admin-projects"><AdminProjectsView /></RequireNav>}
+      />
+      {/*
+        Die Akte einer Baustelle. Sie hängt an derselben Prüfung wie die Liste
+        (`path="/admin-projects"`): wer die Liste sehen darf, darf auch die
+        Akte — eine eigene Rollenangabe hier wäre eine zweite Wahrheit über
+        dieselbe Frage und liefe irgendwann auseinander.
+      */}
+      <Route
+        path="/admin-projects/:id"
+        element={
+          <RequireNav path="/admin-projects">
+            <BaustellenakteView />
+          </RequireNav>
+        }
       />
       {/*
         Einsatzplanung unter EINEM Reiter, zwei Unterseiten: der Wochenplan

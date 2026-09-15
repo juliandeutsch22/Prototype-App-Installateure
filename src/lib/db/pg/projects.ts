@@ -41,6 +41,26 @@ export async function listProjectsByNumbers(companyId: string, numbers: string[]
 }
 
 /**
+ * Bestimmte Baustellen, nach Id.
+ *
+ * WARUM NICHT ÜBER DIE NUMMER. Die Projektnummer ist der Geschäftsschlüssel
+ * und steht überall in der Oberfläche — aber sie ist ÄNDERBAR. Wird ein
+ * Zahlendreher korrigiert, führt jeder Link auf die Akte ins Leere, der über
+ * die Nummer gebaut war; die Kennung überlebt das. Eindeutig ist die Nummer
+ * zwar (`projects_nummer_je_betrieb`), das macht sie aber nicht stabil.
+ *
+ * Die Blockbildung steht in `kern.ts`, nicht hier — siehe
+ * `listProjectsByNumbers`.
+ */
+export async function listProjectsByIds(companyId: string, ids: string[]) {
+  const eindeutig = [...new Set(ids.filter(Boolean))];
+  if (eindeutig.length === 0) return [];
+  return abfragen<Project>(BAUSTELLEN, companyId, {
+    wo: [{ art: 'in', feld: 'id', werte: eindeutig }],
+  });
+}
+
+/**
  * Baustellen zu einer Nummer — die Suche, die über die geladene Liste
  * hinausreicht.
  *
@@ -83,12 +103,47 @@ export function subscribeRecentProjects(
 
 export type NewProject = Omit<Project, 'id' | 'companyId' | 'createdAt'>;
 
+/**
+ * EIN LEERES DATUM IST KEIN DATUM.
+ *
+ * DER FEHLER, DEN DAS BEHEBT — und er war schon im Betrieb, nicht neu. Ein
+ * Datumsfeld, das niemand ausfüllt, liefert `''`. Postgres nimmt das für eine
+ * `date`-Spalte nicht an („invalid input syntax for type date"), und die Maske
+ * meldete „Die Baustelle konnte nicht gespeichert werden." Eine Baustelle OHNE
+ * Beginn und Ende — der Normalfall bei einem kurzfristigen Auftrag — liess
+ * sich damit gar nicht anlegen.
+ *
+ * Gefunden hat das der Durchklick im echten Browser. Die Ansichtstests konnten
+ * es nicht finden: dort ist die Datenschicht ersetzt, und eine Nachbildung
+ * nimmt jede Zeichenkette an.
+ *
+ * WARUM HIER UND NICHT IN DER MASKE. Beide Masken — Anlegen in der Liste,
+ * Ändern in der Akte — gehen hier durch. In der Maske behoben wäre es zweimal
+ * dieselbe Regel, und die dritte Maske hätte den Fehler wieder. Und der Grund
+ * ist ein Postgres-Grund: Firestore nahm `''` klaglos an.
+ *
+ * Die App-Typen sagen ohnehin `startDate?: string` — „nicht angegeben" heisst
+ * dort `undefined`, nie die leere Zeichenkette.
+ */
+const DATUMSFELDER = ['startDate', 'endDate'] as const;
+
 export function createProject(companyId: string, p: NewProject) {
-  return anlegen(BAUSTELLEN, companyId, p);
+  const rein = { ...p };
+  // Weglassen: `anlegen` überspringt `undefined`, die Spalte bleibt leer.
+  for (const feld of DATUMSFELDER) if (rein[feld] === '') delete rein[feld];
+  return anlegen(BAUSTELLEN, companyId, rein);
 }
 
 export function updateProject(id: string, data: Partial<Project>) {
-  return aendern(BAUSTELLEN, id, data);
+  /*
+    BEIM ÄNDERN REICHT WEGLASSEN NICHT. Wer ein eingetragenes Datum wieder
+    LEERT, will es los sein — ein weggelassenes Feld bliebe in der Datenbank
+    stehen, und die Baustelle behielte ein Enddatum, das gerade gelöscht
+    wurde. Deshalb `null`: das heisst „diese Spalte leeren".
+  */
+  const rein: Record<string, unknown> = { ...data };
+  for (const feld of DATUMSFELDER) if (rein[feld] === '') rein[feld] = null;
+  return aendern(BAUSTELLEN, id, rein as Partial<Project>);
 }
 
 export function deleteProject(id: string) {

@@ -38,7 +38,7 @@ unterscheidet drei Stufen:
 |---|---|---|---|---|---|
 | **Kunden** | Stammdaten, Dublettenschutz, Übernahme der Altbestände; **Kundenakte** je Kunde mit allen Angaben, Baustellen, Wartungen und Angeboten, **dort auch bearbeitbar** | Buchhaltung, Verwaltung, Leitung | `customers`, `projects`, `quotes`, `wartungen` | Emulator (Regeln), Liste (6), Akte (23), Postgres (10) | — |
 | **Angebote** | Positionen kalkulieren, Arbeitszeit getrennt ausweisen, beim Annehmen Baustelle mit Stundenbudget anlegen | Buchhaltung, Leitung | `quotes`, `projects`, `counters` | Ansicht (3), Emulator (Zähler: steigend, Neubeginn nur zum Jahreswechsel) | — |
-| **Baustellen** | Anlegen, Kunde zuordnen, Team und Projektleitung, Stundenbudget; **Übersicht je Baustelle** (Stunden über die ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter) | Leitung | `projects`, `timeEntries` | Ansicht (8), Übersicht (8) | Der Kundenname kommt aus dem Stammsatz; leeres Stundenbudget bleibt leer statt 0. Die Übersicht zeigt **kein Geld** — Erlös und Marge bleiben in der Nachkalkulation |
+| **Baustellen** | Anlegen und suchen; **Baustellenakte** je Baustelle mit allen Angaben, Team, Projektleitung, Abrechnungsart und der **Stundenübersicht** (ganze Laufzeit gegen das Budget, Stunden je Mitarbeiter), **dort auch bearbeitbar** | Leitung | `projects`, `timeEntries` | Liste (19), Akte (21), Entwurf (10), Übersicht (8), Postgres (15) | Der Kundenname kommt aus dem Stammsatz; leeres Stundenbudget bleibt leer statt 0. Die Übersicht zeigt **kein Geld** — Erlös und Marge bleiben in der Nachkalkulation |
 | **Anforderungen** | Eingehende Materialanforderungen bearbeiten, Status setzen | Verwaltung, Leitung | `materialOrders` | Rechnung (Meldungen), Ansicht (14) | — |
 | **Lager** | Bestand, Mindestmenge, Katalogpflege mit Verkaufs- und **Einkaufspreis** | Verwaltung, Leitung; **Einkaufspreis nur GF/Admin** | `materials` | Emulator (15: wer pflegen darf, wer den Einkaufspreis setzt), Ansicht (12 + 5 Katalog), Durchstich (7) | Der Bestandsabzug ist jetzt gegen eine **echte Transaktion** geprüft, gleichzeitige Zugriffe eingeschlossen. Die Grenze beim Einkaufspreis läuft zwischen den FELDERN, nicht zwischen den Ansichten — sie schützt das Ändern, **nicht das Lesen**: Firestore gibt ein Dokument ganz oder gar nicht heraus |
 | **Einsatzplanung** | Kalender, Mitarbeiter je Tag und Baustelle, Urlaubswarnung | Leitung | `assignments`, `vacations` | Emulator (4: wer planen darf), Ansicht (8) | Geprüft ist auch der gefährliche Teil: eine vorhandene Planung kommt ins Formular, statt beim Speichern gelöscht zu werden |
@@ -267,6 +267,21 @@ Speicherleiste erscheint erst, wenn sich wirklich etwas geändert hat.
 > KUNDENNAMEN, die Abfrage filtert aber auf die Kennung. Unter Postgres
 > scheiterte er an jedem Kunden, unter Firestore blieb er still leer. Er hat
 > nie funktioniert; jetzt tut er es, und eine Prüfung hält das Argument fest.
+
+**Die Baustelle hat seit dem 15.09.2026 dieselbe Akte** (`/admin-projects/:id`).
+Sie hatte vorher gar keine eigene Seite: bearbeitet wurde sie über der Liste,
+die Stundenauswertung klappte in der Listenzeile auf. Aus „Übersicht" und
+„Bearbeiten" ist ein Verweis geworden — „Akte"; das Formular über der Liste
+legt nur noch an.
+
+> Zwei Fehler kamen dabei heraus. **Die Abrechnungsart (Regie/Pauschal) war
+> nirgends änderbar** — der Handwerksschein liest sie, geschrieben wurde sie
+> nur beim Umwandeln eines Angebots; jede von Hand angelegte Baustelle galt
+> stillschweigend als Regie. Und **eine Baustelle ohne Datumsangaben liess
+> sich seit dem Postgres-Umstieg gar nicht anlegen**: ein leeres Datumsfeld
+> liefert `''`, und das nimmt eine `date`-Spalte nicht an. Gefunden hat das
+> der Durchklick im echten Browser — im Ansichtstest ist die Datenschicht
+> ersetzt, und eine Nachbildung nimmt jede Zeichenkette an.
 
 **Jede Ansicht der App hat seit dem 07.09.2026 einen Ansichtstest.** Zuletzt
 offen waren Nachkalkulation, Module, Meine Baustellen, Firmendaten,

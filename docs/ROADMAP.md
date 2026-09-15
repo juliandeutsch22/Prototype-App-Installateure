@@ -2698,6 +2698,71 @@ folgt als nächstes; das Gerüst steht dann.
 wo er neben den anderen Einsätzen desselben Tages steht — eine eigene Akte
 nähme ihm genau diesen Zusammenhang.
 
+## Erledigt: die Baustelle bekommt eine Akte (15.09.2026)
+
+Dasselbe Muster wie beim Kunden, einen Tag später — nur war hier mehr zu
+tun, als es aussah. **Die Baustelle hatte gar keine eigene Seite.** Bearbeitet
+wurde sie in einem Formular über der Liste, ihre Stundenauswertung klappte IN
+der Listenzeile auf: genau die Konstruktion, die bei den Kunden am 07.09.
+schon einmal aufgelöst wurde — eine Ansicht in der Verkleidung einer Zeile.
+
+### Was jetzt gilt
+
+`/admin-projects/:id` — die Akte. Stammdaten als Formular für alle, die
+ändern dürfen (`isGF`, dieselbe Grenze wie die Liste), als Liste für alle
+anderen. Darunter die Stundenauswertung, die vorher aufklappte, und die
+Verweise auf Kundenakte und Handwerksschein.
+
+Aus „Übersicht" und „Bearbeiten" in der Listenzeile wird **ein** Verweis:
+„Akte". Das Formular über der Liste **legt nur noch an**.
+
+**Die Adresse trägt die Kennung, nicht die Projektnummer.** Dafür gibt es
+`listProjectsByIds` neu in beiden Datenschichten. Begründen wollte ich das
+zuerst mit einer doppelt vergebenen Nummer — die Datenbank lässt das gar
+nicht zu (`projects_nummer_je_betrieb`), der Test ist daran gescheitert. Der
+richtige Grund: **die Nummer ist änderbar, die Kennung nicht.** Wird ein
+Zahlendreher korrigiert, führte ein Lesezeichen auf die Akte ins Leere. Die
+Prüfung zeigt genau das: anlegen, umnummerieren, über die Kennung weiterhin
+da, über die alte Nummer weg.
+
+**Der Pfad heisst `/admin-projects/:id` und nicht `/projects/:id`.** Das war
+mein erster Entwurf, und `navigation-routen.test.ts` hat ihn zurückgewiesen:
+ein Wächter für `/admin-projects` und eine Route `/projects/:id` sind zwei
+unverbundene Zeichenketten, und niemand sieht ihnen an, dass sie
+zusammengehören. Unter dem Pfad der Liste erbt die Akte die Entscheidung — wie
+die Kundenakte unter `/customers`.
+
+### Zwei Fehler, die dabei aufgefallen sind
+
+**Die Abrechnungsart war nirgends änderbar.** Der Handwerksschein LIEST
+`billingMode` — auf einer Regiebaustelle sind die bestätigten Stunden die
+Rechnungsgrundlage, auf einer Pauschalbaustelle belegt derselbe Schein nur,
+DASS gearbeitet wurde. Geschrieben wurde die Angabe aber nur beim Umwandeln
+eines Angebots. Wer sie korrigieren musste, konnte es nicht; jede von Hand
+angelegte Baustelle galt stillschweigend als Regie. Sie steht jetzt in der
+Akte.
+
+**Eine Baustelle ohne Datumsangaben liess sich gar nicht anlegen.** Ein leeres
+Datumsfeld liefert `''`, und Postgres nimmt das für eine `date`-Spalte nicht
+an („invalid input syntax for type date"). Die Maske meldete „Die Baustelle
+konnte nicht gespeichert werden." — bei einem kurzfristigen Auftrag ohne
+geplanten Beginn also immer. **Das war schon im Betrieb**, seit dem Umstieg
+auf Postgres; unter Firestore ging `''` klaglos durch.
+
+> Gefunden hat das der Durchklick im echten Browser, und nur der konnte es:
+> im Ansichtstest ist die Datenschicht ersetzt, und eine Nachbildung nimmt
+> jede Zeichenkette an. Die Regel steht jetzt in `pg/projects.ts` — beim
+> Anlegen wird das Feld weggelassen, beim Ändern auf `null` gesetzt. Der
+> Unterschied ist nicht kosmetisch: wer ein eingetragenes Enddatum LEERT,
+> will es los sein, und ein weggelassenes Feld bliebe stehen.
+
+### Warum nicht gleich auch die Benutzer
+
+Dasselbe Muster trägt, das ist jetzt zweimal gezeigt. Die Benutzerakte ist der
+nächste Schritt. **Der Einsatz bekommt weiterhin keine Akte:** er wird in der
+Planung bearbeitet, wo er neben den anderen Einsätzen desselben Tages steht —
+eine eigene Seite nähme ihm genau diesen Zusammenhang.
+
 ---
 
 ## Wartet auf eine Entscheidung

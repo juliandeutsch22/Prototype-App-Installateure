@@ -48,6 +48,29 @@ export async function listProjectsByNumbers(companyId: string, numbers: string[]
 }
 
 /**
+ * Bestimmte Baustellen, nach Id.
+ *
+ * WARUM NICHT UEBER DIE NUMMER. Die Projektnummer ist der
+ * Geschaeftsschluessel, aber sie ist AENDERBAR: wird ein Zahlendreher
+ * korrigiert, fuehrt jeder ueber die Nummer gebaute Link auf die Akte ins
+ * Leere. Die Kennung ueberlebt das. Hier kommt dazu, dass Firestore die
+ * Nummer nicht einmal eindeutig haelt — das tut erst Postgres.
+ *
+ * `__name__` ist in Firestore die Dokumentkennung. Bloecke zu dreissig wie
+ * oben, aus demselben Grund.
+ */
+export async function listProjectsByIds(companyId: string, ids: string[]) {
+  const eindeutig = [...new Set(ids.filter(Boolean))];
+  if (eindeutig.length === 0) return [];
+  const bloecke: string[][] = [];
+  for (let i = 0; i < eindeutig.length; i += 30) bloecke.push(eindeutig.slice(i, i + 30));
+  const teile = await Promise.all(
+    bloecke.map((b) => queryTenant<Project>(COLLECTION, companyId, where('__name__', 'in', b))),
+  );
+  return teile.flat();
+}
+
+/**
  * Baustellen zu einer NUMMER — die Suche, die ueber die geladene Liste
  * hinausreicht.
  *

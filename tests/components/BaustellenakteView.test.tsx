@@ -1,0 +1,347 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ToastProvider } from '@/components/Toast';
+import type { Project, AppUser, Customer } from '@/types';
+
+/**
+ * Die Baustellenakte.
+ *
+ * WAS SIE ABLÖST. Die Baustelle hatte keine eigene Seite: bearbeitet wurde
+ * sie in einem Formular über der Liste, ihre Stundenauswertung klappte IN der
+ * Listenzeile auf. Wer etwas ändern wollte, sprang nach oben, tippte, und
+ * suchte die Baustelle danach in der Liste wieder.
+ *
+ * Geprüft werden beide Darstellungen — Formular und Nur-Lesen —, weil an der
+ * zweiten die grössere Hälfte der Belegschaft hängt.
+ */
+
+const BAUSTELLE: Project & { id: string } = {
+  id: 'b1',
+  companyId: 'perl',
+  projectNumber: '2026-101',
+  customerId: 'k1',
+  customerName: 'Hausverwaltung Nord',
+  address: 'Ringstraße 3, 2700 Wiener Neustadt',
+  status: 'Aktiv',
+  billingMode: 'Pauschal',
+  estimatedHours: 40,
+  description: 'Steigleitung tauschen.\nBad im ersten Stock.',
+  startDate: '2026-03-02',
+  endDate: '2026-04-30',
+  contactName: 'Frau Wagner',
+  contactPhone: '0664 1234567',
+  assignedEmployees: ['u1', 'u2'],
+  projectManagers: ['u9'],
+};
+
+const BELEGSCHAFT: AppUser[] = [
+  { id: 'u1', uid: 'u1', name: 'Anton Meier', email: 'a@perl.at', role: 'Mitarbeiter', companyId: 'perl', active: true },
+  { id: 'u2', uid: 'u2', name: 'Berta Klein', email: 'b@perl.at', role: 'Mitarbeiter', companyId: 'perl', active: true },
+  { id: 'u9', uid: 'u9', name: 'Clara Leiter', email: 'c@perl.at', role: 'Projektleiter', companyId: 'perl', active: true },
+];
+
+const KUNDEN: (Customer & { id: string })[] = [
+  { id: 'k1', companyId: 'perl', name: 'Hausverwaltung Nord' },
+  { id: 'k2', companyId: 'perl', name: 'Bäckerei Süd' },
+];
+
+let baustellen: (Project & { id: string })[] = [BAUSTELLE];
+let belegschaft: AppUser[] = BELEGSCHAFT;
+let nebenladenScheitert = false;
+
+const listProjectsByIds = vi.fn(async () => baustellen);
+const updateProject = vi.fn(async () => undefined);
+
+vi.mock('@/lib/db/projects', () => ({
+  listProjectsByIds: () => listProjectsByIds(),
+  updateProject: (...a: unknown[]) => updateProject(...(a as [])),
+}));
+vi.mock('@/lib/db/users', () => ({
+  listUsers: async () => {
+    if (nebenladenScheitert) throw new Error('kaputt');
+    return belegschaft;
+  },
+}));
+vi.mock('@/lib/db/customers', () => ({
+  listCustomers: async () => {
+    if (nebenladenScheitert) throw new Error('kaputt');
+    return KUNDEN;
+  },
+}));
+
+/*
+  Die Stundenauswertung hat einen eigenen Ansichtstest. Hier steht sie als
+  Platzhalter: geprüft wird, DASS die Akte sie zeigt, nicht was sie rechnet.
+*/
+vi.mock('@/features/projects/BaustellenUebersicht', () => ({
+  default: () => <p>Stundenauswertung</p>,
+}));
+
+let modulAn = true;
+vi.mock('@/lib/useModule', () => ({ useModul: () => modulAn }));
+
+let rolle: 'Geschäftsführung' | 'Verwaltung' = 'Geschäftsführung';
+const NUTZER = () => ({
+  uid: 'chef',
+  email: 'chefin@perl.at',
+  name: 'Julian Deutsch',
+  role: rolle,
+  companyId: 'perl',
+  docId: 'chef',
+});
+let nutzer = NUTZER();
+vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer }) }));
+
+const { default: BaustellenakteView } = await import('@/features/projects/BaustellenakteView');
+
+function zeige(id = 'b1') {
+  return render(
+    <MemoryRouter initialEntries={[`/admin-projects/${id}`]}>
+      <ToastProvider>
+        <Routes>
+          <Route path="/admin-projects/:id" element={<BaustellenakteView />} />
+        </Routes>
+      </ToastProvider>
+    </MemoryRouter>,
+  );
+}
+
+/** Der Wert zu einer Beschriftung in den Stammdaten. */
+function angabe(wort: string) {
+  const dt = screen.getByText(wort);
+  return dt.nextElementSibling as HTMLElement;
+}
+
+beforeEach(() => {
+  baustellen = [BAUSTELLE];
+  belegschaft = BELEGSCHAFT;
+  nebenladenScheitert = false;
+  modulAn = true;
+  rolle = 'Geschäftsführung';
+  nutzer = NUTZER();
+  listProjectsByIds.mockClear();
+  updateProject.mockClear();
+});
+
+describe('Die Stammdaten für alle, die nur lesen', () => {
+  beforeEach(() => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+  });
+
+  it('zeigt die Angaben, ohne ein einziges Eingabefeld', async () => {
+    zeige();
+    expect(await screen.findByText('Projektnummer')).toBeInTheDocument();
+    expect(angabe('Projektnummer')).toHaveTextContent('2026-101');
+    expect(angabe('Abrechnung')).toHaveTextContent('Pauschal');
+    expect(screen.queryByLabelText(/Projektnummer/)).not.toBeInTheDocument();
+  });
+
+  it('sagt bei einer leeren Angabe, dass sie nicht hinterlegt ist', async () => {
+    /*
+      Die Zeile wegzulassen wäre bequemer und falsch: eine Akte ohne
+      Ansprechpartner sähe dann genauso aus wie eine, in der das Feld gar
+      nicht vorgesehen ist — und niemand käme auf die Idee, ihn nachzutragen.
+    */
+    baustellen = [{ ...BAUSTELLE, contactName: undefined }];
+    zeige();
+    expect(await screen.findByText('Ansprechpartner vor Ort')).toBeInTheDocument();
+    expect(angabe('Ansprechpartner vor Ort')).toHaveTextContent('nicht hinterlegt');
+  });
+
+  it('zeigt die Beschreibung mit ihren Zeilenumbrüchen', async () => {
+    zeige();
+    const text = await screen.findByText(/Steigleitung tauschen/);
+    expect(text).toHaveClass('whitespace-pre-line');
+  });
+
+  it('nennt das Team beim Namen und nicht bei der Kennung', async () => {
+    /*
+      DER FEHLER, DEN DIESE PRÜFUNG GEFUNDEN HAT. Die Belegschaft wurde
+      zuerst nur für die Auswahlfelder geladen — also nur für die, die
+      ändern dürfen. Im Nur-Lesen-Fall stand im Team deshalb `u1, u2`. An
+      der Baustelle steht, WER dort arbeitet; eine Kennung beantwortet das
+      nicht.
+    */
+    zeige();
+    expect(await screen.findByText('Team')).toBeInTheDocument();
+    expect(angabe('Team')).toHaveTextContent('Anton Meier, Berta Klein');
+    expect(angabe('Projektleitung')).toHaveTextContent('Clara Leiter');
+  });
+
+  it('sagt es, wenn die Belegschaft nicht lädt', async () => {
+    nebenladenScheitert = true;
+    zeige();
+    expect(await screen.findByText(/Belegschaft/)).toBeInTheDocument();
+  });
+});
+
+describe('Die Stammdaten für alle, die ändern dürfen', () => {
+  it('zeigt dieselben Angaben als Felder', async () => {
+    zeige();
+    expect(await screen.findByLabelText(/Projektnummer/)).toHaveValue('2026-101');
+    expect(screen.getByLabelText(/Baustellenadresse/)).toHaveValue(
+      'Ringstraße 3, 2700 Wiener Neustadt',
+    );
+    expect(screen.getByLabelText(/Abrechnung/)).toHaveValue('Pauschal');
+    expect(screen.getByLabelText(/Stundenbudget/)).toHaveValue(40);
+  });
+
+  it('zeigt die Speicherleiste erst, wenn sich wirklich etwas geändert hat', async () => {
+    /*
+      Ein dauerhaft sichtbarer Speichern-Knopf lädt zum Speichern ohne
+      Änderung ein. Jeder dieser Schreibvorgänge geht auf die Baustelle —
+      und die Einsatzplanung hängt daran.
+    */
+    zeige();
+    await screen.findByLabelText(/Projektnummer/);
+    expect(screen.queryByText(/ungespeicherte Änderungen/)).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText(/Baustellenadresse/), '!');
+    expect(await screen.findByText(/ungespeicherte Änderungen/)).toBeInTheDocument();
+  });
+
+  it('nimmt die Änderung mit, nicht nur die Anzeige', async () => {
+    zeige();
+    const feld = await screen.findByLabelText(/Ansprechpartner vor Ort/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'Herr Huber');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(updateProject).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ contactName: 'Herr Huber' }),
+    );
+  });
+
+  it('macht aus einem geleerten Stundenbudget kein Budget von null', async () => {
+    /*
+      `Number('')` ist `0`, und `0` hiesse „null Stunden kalkuliert" — die
+      Ampel der Projektauswertung stünde ab da auf Rot. „Kein Budget" ist
+      etwas anderes.
+    */
+    zeige();
+    await userEvent.clear(await screen.findByLabelText(/Stundenbudget/));
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(updateProject).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ estimatedHours: undefined }),
+    );
+  });
+
+  it('schreibt die Abrechnungsart, die vorher nirgends änderbar war', async () => {
+    /*
+      Der Handwerksschein LIEST `billingMode` — auf einer Regiebaustelle sind
+      die bestätigten Stunden die Rechnungsgrundlage, auf einer
+      Pauschalbaustelle belegt derselbe Schein nur, DASS gearbeitet wurde.
+      Geschrieben wurde die Angabe bisher nur beim Umwandeln eines Angebots;
+      wer sie korrigieren musste, konnte es nicht.
+    */
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Regie');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(updateProject).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ billingMode: 'Regie' }),
+    );
+  });
+
+  it('nimmt beim Kundenwechsel den Namen mit', async () => {
+    // Der Name steht als Kopie auf der Baustelle, damit die Listen ihn zeigen
+    // können, ohne den Kundenstamm zu laden. Bliebe er stehen, zeigte die
+    // Liste den alten Kunden zu einer Baustelle, die einem anderen gehört.
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText(/Kunde/), 'k2');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(updateProject).toHaveBeenCalledWith(
+      'b1',
+      expect.objectContaining({ customerId: 'k2', customerName: 'Bäckerei Süd' }),
+    );
+  });
+
+  it('speichert nicht ohne Projektnummer', async () => {
+    zeige();
+    await userEvent.clear(await screen.findByLabelText(/Projektnummer/));
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(updateProject).not.toHaveBeenCalled();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Ohne Projektnummer/);
+  });
+
+  it('verwirft die Änderung auf Wunsch wieder', async () => {
+    zeige();
+    const feld = await screen.findByLabelText(/Baustellenadresse/);
+    await userEvent.type(feld, '!');
+    await userEvent.click(screen.getByRole('button', { name: 'Verwerfen' }));
+
+    expect(feld).toHaveValue('Ringstraße 3, 2700 Wiener Neustadt');
+    expect(screen.queryByText(/ungespeicherte Änderungen/)).not.toBeInTheDocument();
+  });
+
+  it('warnt, solange keine Projektleitung zugeteilt ist', async () => {
+    // Ohne Zuständige erreicht eine Eilzustellung niemanden. Das gehört
+    // gesagt, nicht erst, wenn ein Monteur im Keller wartet.
+    baustellen = [{ ...BAUSTELLE, projectManagers: [] }];
+    zeige();
+    expect(await screen.findByText(/Eilzustellung für diese Baustelle/)).toBeInTheDocument();
+  });
+
+  it('sagt es, wenn Belegschaft und Kundenstamm nicht laden', async () => {
+    // Sonst blieben beide Auswahlfelder leer, und es sähe aus, als hätte der
+    // Betrieb weder Monteure noch Kunden.
+    nebenladenScheitert = true;
+    zeige();
+    expect(await screen.findByText(/Belegschaft und Kundenstamm/)).toBeInTheDocument();
+  });
+});
+
+describe('Was die Akte sonst noch zeigt', () => {
+  it('trägt die Stundenauswertung, die vorher in der Listenzeile aufklappte', async () => {
+    zeige();
+    expect(await screen.findByText('Stundenauswertung')).toBeInTheDocument();
+  });
+
+  it('verweist auf die Kundenakte', async () => {
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Zur Kundenakte' })).toHaveAttribute(
+      'href',
+      '/customers/k1',
+    );
+  });
+
+  it('sagt es, wenn kein Kunde verknüpft ist, statt den Verweis wegzulassen', async () => {
+    // Altbestand: die Baustelle trägt einen Kundennamen, aber keine
+    // Verknüpfung. Ein fehlender Verweis sähe aus wie „gibt es nicht".
+    baustellen = [{ ...BAUSTELLE, customerId: undefined }];
+    zeige();
+    expect(await screen.findByText(/Kein Kunde verknüpft/)).toBeInTheDocument();
+  });
+
+  it('führt zum Handwerksschein dieser Baustelle', async () => {
+    zeige();
+    expect(await screen.findByRole('link', { name: /Handwerksschein/ })).toHaveAttribute(
+      'href',
+      '/worksheet?projekt=2026-101',
+    );
+  });
+
+  it('zeigt den Schein-Verweis nicht, wenn das Modul aus ist', async () => {
+    modulAn = false;
+    zeige();
+    await screen.findByLabelText(/Projektnummer/);
+    expect(screen.queryByRole('link', { name: /Handwerksschein/ })).not.toBeInTheDocument();
+  });
+
+  it('unterscheidet „gibt es nicht" von „konnte nicht laden"', async () => {
+    // Wer einem alten Lesezeichen folgt, soll das erfahren und nicht auf
+    // einen Ladefehler schliessen.
+    baustellen = [];
+    zeige();
+    expect(await screen.findByText(/gibt es nicht/)).toBeInTheDocument();
+  });
+});
