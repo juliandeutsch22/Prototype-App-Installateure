@@ -2302,6 +2302,62 @@ gefilterten `count` — das ging gut, solange es nur eine Art gab. Zwei
 Prüfungen hingen damit an der Reihenfolge der Dateien, und das ist keine
 Prüfung.
 
+## Die stille Obergrenze — der Befund, der am längsten unbemerkt geblieben wäre
+
+Stufe 7 hat `listengrenzen.ts` gelöscht und die Nachladeknöpfe entfernt, mit
+dem Satz: die Grenzen waren eine Eigenschaft von Firestore, Postgres braucht
+sie nicht. Das stimmt für Postgres. Es stimmt nicht für den Weg dorthin.
+
+**PostgREST deckelt jede Antwort bei `db-max-rows` — im Projekt 1000 — ohne
+Fehler und ohne Hinweis.** Gemessen:
+
+| | |
+|---|---|
+| Zeilen in der Tabelle | 1 500 |
+| Zeilen in der Antwort | 1 000 |
+| Fehlermeldung | **keine** |
+
+Die Grenze war nie im Code. Sie sass eine Ebene tiefer, und der Rückbau in
+Stufe 7 hat genau das Gegenteil bewirkt: vorher stand die Obergrenze in einer
+Datei, wo man sie lesen konnte, und ein Knopf sagte „es gibt mehr". Danach
+stand nirgends mehr etwas — und die Liste war trotzdem abgeschnitten.
+
+**Für einen Betrieb mit zehn Monteuren erreicht `time_entries` die tausend in
+etwa vier Monaten.** Danach zeigte jede Jahresauswertung zu wenig, und nichts
+daran sähe falsch aus.
+
+### Was jetzt passiert
+
+`abfragen` blättert, mit einer Seitengrösse von 500. **Nicht 1000**: wer 1000
+anfordert und 1000 bekommt, weiss nicht, ob das die Antwort war oder die
+Deckelung; wer 500 anfordert und 500 bekommt, weiss es. Dass 500 wirklich
+unter der Grenze liegt, ist gemessen — die Prüfung liest die Deckelung des
+Servers und vergleicht sie mit der Seitengrösse.
+
+Dazu ein **eindeutiger Zweitschlüssel** auf jeder Abfrage. Ohne ihn ist die
+Reihenfolge bei gleichen Sortierwerten offen, und beim Blättern heisst offen:
+eine Zeile kann auf zwei Seiten stehen und eine andere auf keiner. Das fällt
+nicht als Fehler auf, sondern als eine Liste, in der ein Eintrag doppelt steht
+und ein anderer fehlt.
+
+### Zwei Fehler auf dem Weg dorthin, beide von den Prüfungen gefunden
+
+**Die Sicht ohne Kennung.** Der Zweitschlüssel ist `id` — ausser bei
+`monthly_stats`, das seit Stufe 7 eine SICHT ist und keine hat. `order by id`
+darauf ist schlicht ein Fehler; vier Prüfungen sind darüber gefallen. Gefunden
+hat das nicht der Kopf, sondern der volle Lauf.
+
+**Die Stolperschnur, die die Hälfte des Raums nicht abdeckte.** Die Prüfung,
+die genau das hätte fangen sollen, fragte nach `table_type = 'BASE TABLE'` —
+und Sichten sind keine. Sie war grün, während der Fehler danebenstand.
+
+### Was nicht getroffen war
+
+Die **Ausleitung** blättert seit jeher selbst (`Range`, Seiten zu 1000). Die
+nächtliche Sicherung war also vollständig — hätte sie dieselbe Deckelung
+stillschweigend getroffen, wäre die Sicherung unvollständig gewesen und der
+Wächter hätte „erfolgreich" gemeldet.
+
 ### Als Nächstes
 
 Stufe 9: den Rückbau. Erst wenn der Betrieb ein paar Tage auf Postgres

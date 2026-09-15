@@ -97,9 +97,10 @@ interface Filterbar {
   order(spalte: string, wie: { ascending: boolean }): Filterbar;
   limit(anzahl: number): Filterbar;
   or(bedingung: string): Filterbar;
+  range(von: number, bis: number): Filterbar;
 }
 
-function anwenden(bauer: Filterbar, abfrage: Abfrage): Filterbar {
+function anwenden(bauer: Filterbar, abfrage: Abfrage, tabelle: string): Filterbar {
   let b = bauer;
   for (const bed of abfrage.wo ?? []) {
     const spalte = alsSpalteSicher(bed.feld);
@@ -119,7 +120,45 @@ function anwenden(bauer: Filterbar, abfrage: Abfrage): Filterbar {
     });
   }
   if (abfrage.grenze !== undefined) b = b.limit(abfrage.grenze);
+
+  /*
+    EIN EINDEUTIGER ZWEITSCHLÜSSEL — auch wenn gar nicht sortiert wurde.
+
+    Ohne ihn ist die Reihenfolge bei gleichen Sortierwerten offen, und beim
+    BLÄTTERN heisst offen: eine Zeile kann auf zwei Seiten stehen und eine
+    andere auf keiner. Das fällt nicht als Fehler auf, sondern als eine Liste,
+    in der ein Eintrag doppelt steht und ein anderer fehlt — und niemand
+    sucht danach, weil beides für sich richtig aussieht.
+
+    Wo schon sortiert wird, entscheidet er nur den Gleichstand; wo nicht,
+    macht er aus einer beliebigen Reihenfolge eine feste. Verloren geht dabei
+    nichts: eine beliebige Reihenfolge hat keine Bedeutung, die man behalten
+    könnte.
+  */
+  for (const spalte of zweitschluessel(tabelle)) {
+    b = b.order(spalte, { ascending: true });
+  }
   return b;
+}
+
+/**
+ * Die Spalten, die eine Zeile eindeutig machen.
+ *
+ * FAST IMMER `id` — und die Ausnahme hat mich eingeholt. `monthly_stats` ist
+ * seit Stufe 7 eine SICHT und hat keine Kennung; sie wird über `abfragen`
+ * gelesen wie jede Tabelle, und ein `order by id` darauf ist schlicht ein
+ * Fehler. Gefunden hat das nicht der Kopf, sondern der Prüflauf.
+ *
+ * Die anderen vier Beziehungen ohne Kennung (`system_laeufe`, `user_prefs`,
+ * `number_counters`, `betriebsanlagen`) kommen hier nicht vor, weil sie
+ * unmittelbar gelesen werden. `zeilengrenze.test.ts` hält die Liste gegen das
+ * echte Schema — eine sechste kann damit nicht still auflaufen.
+ */
+function zweitschluessel(tabelle: string): string[] {
+  // Betrieb, Benutzer und Monat sind in der Sicht zusammen eindeutig; der
+  // Betrieb steht ohnehin schon in der Bedingung.
+  if (tabelle === 'monthly_stats') return ['user_id', 'monat'];
+  return ['id'];
 }
 
 /** Feldnamen kommen aus dem Quelltext, nie aus Eingaben — trotzdem geprüft. */
@@ -191,6 +230,28 @@ function bloecke(werte: readonly unknown[]): unknown[][] {
   return raus;
 }
 
+/**
+ * Wie viele Zeilen je Anfrage geholt werden.
+ *
+ * DIE ZWEITE STILLE GRENZE, und sie wiegt schwerer als die erste. PostgREST
+ * gibt höchstens `db-max-rows` Zeilen zurück — im Projekt 1000 — und zwar
+ * OHNE Fehler und ohne Hinweis. Gemessen: 1500 Zeilen in der Tabelle, 1000
+ * kommen an, der Rest fehlt einfach.
+ *
+ * Das ist genau die Narbe, die Stufe 7 zu entfernen glaubte. `listengrenzen.ts`
+ * ist gelöscht, die Nachladeknöpfe sind weg — die Grenze war aber nie im Code,
+ * sie sass eine Ebene tiefer. Für einen Betrieb mit zehn Monteuren erreicht
+ * `time_entries` die tausend in etwa vier Monaten; danach zeigte jede
+ * Jahresauswertung zu wenig, und nichts daran sähe falsch aus.
+ *
+ * 500 UND NICHT 1000: die Seitengrösse muss UNTER der Serverobergrenze
+ * liegen. Wer 1000 anfordert und 1000 bekommt, weiss nicht, ob das die
+ * Antwort war oder die Deckelung; wer 500 anfordert und 500 bekommt, weiss
+ * es. Dass 500 wirklich unter der Grenze liegt, ist gemessen und nicht
+ * angenommen — siehe `tests/supabase/zeilengrenze.test.ts`.
+ */
+export const SEITE = 500;
+
 /** Abfrage innerhalb eines Mandanten. */
 export async function abfragen<T>(
   tabelle: string,
@@ -236,16 +297,47 @@ export async function abfragen<T>(
   }
 
   const c = derClient(client);
-  const bauer = anwenden(
-    c.from(tabelle).select('*').eq('company_id', companyId) as unknown as Filterbar,
-    abfrage,
-  );
-  const { data, error } = await (bauer as unknown as PromiseLike<{
-    data: Record<string, unknown>[] | null;
-    error: { message: string } | null;
-  }>);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((z) => zeileAlsObjekt<WithId<T>>(tabelle, z));
+  const gesamt: Record<string, unknown>[] = [];
+
+  for (let von = 0; ; von += SEITE) {
+    /*
+      WIE VIELE ZEILEN DIESE SEITE HOLEN DARF. Mit `grenze` nie mehr als noch
+      fehlen — sonst käme aus einer Abfrage mit `grenze: 10` eine Seite mit
+      500 Zeilen, von denen 490 weggeworfen würden.
+    */
+    const rest = abfrage.grenze === undefined
+      ? SEITE
+      : Math.min(SEITE, abfrage.grenze - gesamt.length);
+    if (rest <= 0) break;
+
+    const bauer = anwenden(
+      c.from(tabelle).select('*').eq('company_id', companyId) as unknown as Filterbar,
+      // `grenze` wird HIER nicht mitgegeben: sie steckt schon in `rest`, und
+      // ein `limit` neben einem `range` liefert deren Schnittmenge — also
+      // beim zweiten Durchgang nichts mehr.
+      { ...abfrage, grenze: undefined },
+      tabelle,
+    ).range(von, von + rest - 1);
+
+    const { data, error } = await (bauer as unknown as PromiseLike<{
+      data: Record<string, unknown>[] | null;
+      error: { message: string } | null;
+    }>);
+    if (error) throw new Error(error.message);
+
+    const zeilen = data ?? [];
+    gesamt.push(...zeilen);
+
+    /*
+      EINE NICHT VOLLE SEITE IST DIE LETZTE. Genau dafür liegt `SEITE` unter
+      der Serverobergrenze: käme die Deckelung ins Spiel, wäre eine volle
+      Seite nicht mehr von einer gedeckelten zu unterscheiden, und das
+      Blättern hörte an derselben Stelle auf wie vorher.
+    */
+    if (zeilen.length < rest) break;
+  }
+
+  return gesamt.map((z) => zeileAlsObjekt<WithId<T>>(tabelle, z));
 }
 
 /** Schreibt ein neues Dokument; companyId kommt aus dem Anmeldekontext. */
