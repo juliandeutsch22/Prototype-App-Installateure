@@ -1,14 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import {
-  listUsers,
-  updateUserProfile,
-  DEFAULT_WEEKLY_HOURS,
-  DEFAULT_VACATION_DAYS,
-  DEFAULT_WORK_DAYS,
-} from '@/lib/db/users';
-import { provisionUser, resendPasswordReset } from '@/lib/auth/provisionUser';
-import { todayStr } from '@/lib/time';
+import { listUsers } from '@/lib/db/users';
+import { provisionUser } from '@/lib/auth/provisionUser';
 import { ROLES, type AppUser, type Role } from '@/types';
 import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
@@ -16,91 +10,16 @@ import Button from '@/components/Button';
 import Badge from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
-import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import RowMenu from '@/components/RowMenu';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { anlegeFehler } from './anlegeFehler';
+import {
+  WEEKDAYS, leererEntwurf, alsProfil, type BenutzerEntwurf,
+} from './benutzerEntwurf';
 
-const WEEKDAYS: { value: number; label: string }[] = [
-  { value: 1, label: 'Mo' },
-  { value: 2, label: 'Di' },
-  { value: 3, label: 'Mi' },
-  { value: 4, label: 'Do' },
-  { value: 5, label: 'Fr' },
-  { value: 6, label: 'Sa' },
-  { value: 0, label: 'So' },
-];
-
-/**
- * Eine Zahl aus einem Formularfeld — mit Rueckfall NUR bei leerer oder
- * unbrauchbarer Eingabe.
- *
- * `Number(x) || VORGABE` sieht harmlos aus und ist es nicht: eine
- * eingegebene NULL ist in JavaScript unwahr und faellt damit auf die Vorgabe
- * zurueck. Beide Felder erlauben ausdruecklich `min="0"` — wer null
- * Wochenstunden eintraegt (geringfuegig, ruhendes Dienstverhaeltnis, die
- * Chefin selbst), bekam stillschweigend vierzig. Jeder Monat produziert
- * danach rund 170 Minusstunden, und die Zahl steht auf dem Lohnzettel.
- * Dasselbe bei null Urlaubstagen, aus denen fuenfundzwanzig wurden.
- */
-function zahlOderVorgabe(eingabe: string, vorgabe: number) {
-  const n = Number(eingabe);
-  return eingabe.trim() !== '' && Number.isFinite(n) ? n : vorgabe;
-}
-
-/** Leeres Feld heisst „nicht angegeben" — und das ist nicht dasselbe wie 0. */
-function zahlOderNull(eingabe: string): number | null {
-  const n = Number(eingabe);
-  return eingabe.trim() !== '' && Number.isFinite(n) ? n : null;
-}
-
-function emptyForm() {
-  return {
-    name: '',
-    email: '',
-    role: 'Mitarbeiter' as Role,
-    active: true,
-    weeklyTargetHours: String(DEFAULT_WEEKLY_HOURS),
-    yearlyVacationDays: String(DEFAULT_VACATION_DAYS),
-    // Ohne Startdatum bleibt der Saldo dauerhaft "nicht konfiguriert",
-    // deshalb wie im Legacy mit heute vorbelegen.
-    appStartDate: todayStr(),
-    initialOvertime: '0',
-    /*
-      LEER UND NICHT VORBELEGT. Beim Überstundensaldo ist 0 die richtige
-      Vorgabe — wer nichts angibt, bringt nichts mit. Beim Urlaub wäre 0 die
-      Behauptung „hat dieses Jahr keinen Tag mehr" und würde jeden Antrag
-      rechnerisch ins Minus schicken. Leer heisst „nicht angegeben", und dann
-      rechnet die App mit dem vollen Jahresanspruch wie bisher.
-    */
-    initialVacationDays: '',
-    workDays: DEFAULT_WORK_DAYS,
-  };
-}
-
-type FormState = ReturnType<typeof emptyForm>;
-
-function formFromUser(u: AppUser): FormState {
-  return {
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    active: u.active !== false,
-    weeklyTargetHours: String(u.weeklyTargetHours ?? DEFAULT_WEEKLY_HOURS),
-    yearlyVacationDays: String(u.yearlyVacationDays ?? DEFAULT_VACATION_DAYS),
-    appStartDate: u.appStartDate ?? todayStr(),
-    initialOvertime: String(u.initialOvertime ?? 0),
-    initialVacationDays:
-      u.initialVacationDays === null || u.initialVacationDays === undefined
-        ? ''
-        : String(u.initialVacationDays),
-    workDays: u.workDays ?? DEFAULT_WORK_DAYS,
-  };
-}
 
 /** Benutzerverwaltung (GF/Admin): anlegen, Stammdaten und Rollen pflegen. */
 export default function UserMgmtView() {
@@ -109,11 +28,9 @@ export default function UserMgmtView() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [editing, setEditing] = useState<AppUser | null>(null);
+  const [form, setForm] = useState<BenutzerEntwurf>(leererEntwurf);
   const [saving, setSaving] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const [toToggle, setToToggle] = useState<AppUser | null>(null);
   const [suche, setSuche] = useState('');
   const [status, setStatus] = useState<'aktiv' | 'inaktiv' | 'alle'>('aktiv');
   /** Initialpasswort, falls die Willkommens-Mail nicht zugestellt werden konnte. */
@@ -172,21 +89,6 @@ export default function UserMgmtView() {
     [users],
   );
 
-  function startEdit(u: AppUser) {
-    setEditing(u);
-    setForm(formFromUser(u));
-    setShowDetails(true);
-    setError(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function cancelEdit() {
-    setEditing(null);
-    setForm(emptyForm());
-    setShowDetails(false);
-    setError(null);
-  }
-
   function toggleWorkday(d: number) {
     setForm((f) => ({
       ...f,
@@ -201,54 +103,32 @@ export default function UserMgmtView() {
     if (!user) return;
     setSaving(true);
     setError(null);
-    const profile = {
-      name: form.name,
-      email: form.email,
-      role: form.role,
-      active: form.active,
-      weeklyTargetHours: zahlOderVorgabe(form.weeklyTargetHours, DEFAULT_WEEKLY_HOURS),
-      yearlyVacationDays: zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS),
-      appStartDate: form.appStartDate || null,
-      initialOvertime: zahlOderVorgabe(form.initialOvertime, 0),
-      /*
-        Leeres Feld → `null`, und NICHT `zahlOderVorgabe(..., 0)`. „Nicht
-        angegeben" ist hier eine eigene Aussage; sie auf 0 zu runden hiesse,
-        jedem Nicht-Ausfüllen einen aufgebrauchten Urlaubsanspruch
-        anzudichten.
-      */
-      initialVacationDays: zahlOderNull(form.initialVacationDays),
-      workDays: form.workDays.length ? form.workDays : DEFAULT_WORK_DAYS,
-    };
+    /*
+      Die Umrechnung steht in `benutzerEntwurf.ts` und nicht hier. Die Akte
+      schreibt dieselben Felder; zwei Auslegungen von „leer" wären zwei
+      verschiedene Wochenstunden für denselben Menschen.
+    */
+    const profile = alsProfil(form);
     try {
-      if (editing) {
-        await updateUserProfile(editing.uid, profile);
-        toast.success(`${form.name} aktualisiert`);
-        cancelEdit();
+      /*
+        DIESES FORMULAR LEGT NUR NOCH AN. Geändert wird in der Akte
+        (`/user-mgmt/:uid`) — dort, wo die Person auch steht, und mit
+        offenen Zeitkonto-Feldern statt eines zweiten Aufklappens.
+      */
+      const res = await provisionUser(user.companyId, profile);
+      if (res.mailSent) {
+        toast.success(`${form.name} angelegt — Passwort-Mail versendet`);
       } else {
-        const res = await provisionUser(user.companyId, profile);
-        if (res.mailSent) {
-          toast.success(`${form.name} angelegt — Passwort-Mail versendet`);
-        } else {
-          toast.success(`${form.name} angelegt`);
-          setHandoverPassword({ name: form.name, pw: res.tempPassword });
-        }
-        setForm(emptyForm());
-        setShowDetails(false);
+        toast.success(`${form.name} angelegt`);
+        setHandoverPassword({ name: form.name, pw: res.tempPassword });
       }
+      setForm(leererEntwurf());
+      setShowDetails(false);
       await reload();
     } catch (err) {
-      setError(anlegeFehler(err, Boolean(editing)));
+      setError(anlegeFehler(err, false));
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function sendReset(u: AppUser) {
-    try {
-      await resendPasswordReset(u.email);
-      toast.success(`Passwort-Mail an ${u.email} gesendet`);
-    } catch {
-      toast.error('Die Passwort-Mail konnte nicht gesendet werden.');
     }
   }
 
@@ -280,15 +160,14 @@ export default function UserMgmtView() {
         </div>
       )}
 
-      <Card title={editing ? `${editing.name} bearbeiten` : 'Neuen Benutzer anlegen'}>
+      <Card title="Neuen Benutzer anlegen">
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
             <InputField id="uname" label="Name" value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })} required pflicht />
             <InputField id="uemail" label="E-Mail" type="email" value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required pflicht disabled={!!editing}
-              title={editing ? 'Die E-Mail-Adresse ist das Anmeldekonto und kann hier nicht geändert werden.' : undefined} />
+              required pflicht />
             <SelectField id="urole" label="Rolle" value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
               {/* Die Rolle Administrator vergibt nur ein Administrator.
@@ -385,13 +264,8 @@ export default function UserMgmtView() {
           {error && <ErrorState message={error} />}
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button type="submit" loading={saving} className="w-full sm:w-auto">
-              {editing ? 'Änderungen speichern' : 'Benutzer anlegen'}
+              Benutzer anlegen
             </Button>
-            {editing && (
-              <Button type="button" variant="ghost" onClick={cancelEdit} className="w-full sm:w-auto">
-                Abbrechen
-              </Button>
-            )}
           </div>
         </form>
       </Card>
@@ -458,32 +332,24 @@ export default function UserMgmtView() {
                 {/* Ein Administrator laesst sich nur von einem Administrator
                     anfassen — sonst koennte die Geschaeftsfuehrung den letzten
                     Superuser deaktivieren und sich selbst aussperren. */}
-                {u.role === 'Administrator' && !canManageAdmins(user.role) ? (
-                  <span className="text-sm text-ink-muted">nur durch Administrator</span>
-                ) : (
-                  <>
-                    {/* Sichtbar bleibt die taegliche Aktion. Passwort-Mail
-                        und Sperren sind selten und im Fall des Sperrens
-                        folgenreich — die gehoeren nicht unter den Daumen,
-                        der gerade durch die Liste wischt. */}
-                    <Button variant="ghost" onClick={() => startEdit(u)}>Bearbeiten</Button>
-                    <RowMenu
-                      about={u.name}
-                      items={[
-                        { label: 'Passwort-Mail senden', onSelect: () => void sendReset(u) },
-                        ...(u.uid !== user.uid
-                          ? [
-                              {
-                                label: u.active === false ? 'Aktivieren' : 'Deaktivieren',
-                                onSelect: () => setToToggle(u),
-                                danger: u.active !== false,
-                              },
-                            ]
-                          : []),
-                      ]}
-                    />
-                  </>
-                )}
+                {/*
+                  EIN WEG STATT DREI. Hier standen „Bearbeiten" (sprang in das
+                  Anlege-Formular ganz oben, wo die Zeitkonto-Felder erst noch
+                  aufzuklappen waren) und ein Zeilenmenü mit Passwort-Mail und
+                  Sperren. Alles drei steht jetzt in der Akte — und die hat
+                  eine Adresse, auf die sich verweisen lässt.
+
+                  Auch für einen Administrator, den die aufrufende Rolle nicht
+                  ändern darf: ANSEHEN darf sie ihn, und die Akte sagt dort,
+                  warum nichts zu ändern ist. Ein „nur durch Administrator"
+                  ohne Weg dorthin war eine Sackgasse.
+                */}
+                <Link
+                  to={`/user-mgmt/${u.uid}`}
+                  className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                >
+                  Akte
+                </Link>
               </ListRow>
             ))}
                 </List>
@@ -493,37 +359,6 @@ export default function UserMgmtView() {
         )}
       </Card>
 
-      {/* Bewusst kein Löschen: Zeiteinträge, Bestellungen und Einsätze
-          verweisen auf die uid und würden verwaisen. Deaktivieren sperrt die
-          Anmeldung und blendet den Nutzer aus Auswertungen aus. */}
-      <ConfirmDialog
-        open={!!toToggle}
-        title={toToggle?.active === false ? 'Benutzer aktivieren?' : 'Benutzer deaktivieren?'}
-        // Ohne diese beiden Zeilen stand auf dem Knopf die Vorgabe des
-        // Dialogs: „Löschen", in Rot — unter einer Frage, in der von Löschen
-        // keine Rede ist, und in einer Ansicht, die per Entscheidung NIE
-        // etwas löscht (die Zeiteinträge würden verwaisen). Wer das liest,
-        // bricht ab und meldet, ein Konto lasse sich nicht sperren.
-        confirmLabel={toToggle?.active === false ? 'Aktivieren' : 'Deaktivieren'}
-        confirmTone={toToggle?.active === false ? 'primary' : 'danger'}
-        message={
-          toToggle
-            ? toToggle.active === false
-              ? `${toToggle.name} kann sich danach wieder anmelden.`
-              : `${toToggle.name} kann sich danach nicht mehr anmelden. Alle bisherigen Zeiteinträge bleiben erhalten.`
-            : ''
-        }
-        onCancel={() => setToToggle(null)}
-        onConfirm={async () => {
-          if (toToggle) {
-            const next = toToggle.active === false;
-            await updateUserProfile(toToggle.uid, { active: next });
-            await reload();
-            toast.success(next ? 'Benutzer aktiviert' : 'Benutzer deaktiviert');
-          }
-          setToToggle(null);
-        }}
-      />
     </div>
   );
 }

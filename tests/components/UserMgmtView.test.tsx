@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser } from '@/types';
 import UserMgmtView from '@/features/users/UserMgmtView';
@@ -65,9 +66,12 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: angemeldet }) }));
 
 function zeige() {
   return render(
-    <ToastProvider>
-      <UserMgmtView />
-    </ToastProvider>,
+    // Die Liste verweist in die Akte — ohne Router wirft jeder `Link`.
+    <MemoryRouter>
+      <ToastProvider>
+        <UserMgmtView />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -166,100 +170,44 @@ describe('Benutzerverwaltung — die Rolle Administrator', () => {
     expect(within(rolle).getByRole('option', { name: 'Administrator' })).toBeInTheDocument();
   });
 
-  it('laesst die Geschaeftsfuehrung einen Administrator nicht anfassen', async () => {
-    // Sonst koennte sie den letzten Superuser deaktivieren — und niemand
-    // kaeme mehr an die Rollenvergabe.
+  /*
+    „laesst die Geschaeftsfuehrung einen Administrator nicht anfassen" steht
+    jetzt in `BenutzerakteView.test.tsx`. Hier stand dazu ein „nur durch
+    Administrator" OHNE Weg zur Person — eine Sackgasse. Die Liste führt
+    jetzt auch dorthin; wer nicht ändern darf, erfährt es in der Akte.
+  */
+  it('führt auch zu einem Administrator, den man nicht ändern darf', async () => {
     leute = [person({ uid: 'ad1', name: 'Root Person', role: 'Administrator' })];
     zeige();
 
-    expect(await screen.findByText('nur durch Administrator')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
-  });
-});
-
-describe('Benutzerverwaltung — deaktivieren', () => {
-  it('bietet keine Deaktivierung des EIGENEN Kontos an', async () => {
-    // Wer sich selbst sperrt, kommt nicht mehr herein, um es rueckgaengig zu
-    // machen — und bei nur einer Geschaeftsfuehrung ist der Betrieb draussen.
-    leute = [
-      person({ uid: 'gf1', name: 'Chefin', role: 'Geschäftsführung' }),
-      person({ uid: 'u2', name: 'Erna Beispiel' }),
-    ];
-    zeige();
-
-    await screen.findByText('Chefin');
-    await userEvent.click(screen.getByRole('button', { name: /Chefin/ }));
-    expect(screen.queryByRole('menuitem', { name: 'Deaktivieren' })).not.toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Passwort-Mail senden' })).toBeInTheDocument();
-  });
-
-  it('schreibt erst nach der Rueckfrage, und schreibt NUR den Status', async () => {
-    leute = [person({ uid: 'u2', name: 'Erna Beispiel' })];
-    zeige();
-
-    await screen.findByText('Erna Beispiel');
-    await userEvent.click(screen.getByRole('button', { name: /Erna Beispiel/ }));
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Deaktivieren' }));
-    expect(profilAendern).not.toHaveBeenCalled();
-
-    /**
-     * Der Knopf muss „Deaktivieren" heissen. Ohne gesetztes `confirmLabel`
-     * nimmt der Dialog seine Vorgabe „Löschen" — in einer Ansicht, die per
-     * Entscheidung NIE etwas loescht, weil sonst Zeiteintraege verwaisen.
-     */
-    const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Deaktivieren' }));
-
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u2', { active: false }));
-  });
-
-  it('dreht die Richtung bei einem bereits deaktivierten Konto um', async () => {
-    leute = [person({ uid: 'u3', name: 'Ausgeschieden', active: false })];
-    zeige();
-
-    await userEvent.selectOptions(await screen.findByRole('combobox', { name: '' }).catch(
-      () => screen.getAllByRole('combobox')[0],
-    ), 'alle');
-    await userEvent.click(await screen.findByRole('button', { name: /Ausgeschieden/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Aktivieren' }));
-    const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Aktivieren' }));
-
-    await waitFor(() => expect(profilAendern).toHaveBeenCalledWith('u3', { active: true }));
+    const zeile = (await screen.findByText('Root Person')).closest('li') as HTMLElement;
+    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
+      'href', '/user-mgmt/ad1',
+    );
   });
 });
 
 describe('Benutzerverwaltung — anlegen und bearbeiten', () => {
-  it('uebernimmt beim Bearbeiten die bestehenden Werte ins Formular', async () => {
-    /**
-     * Startete das Formular leer, ueberschriebe eine Namenskorrektur die
-     * Wochenstunden mit der Vorgabe — und der Saldo waere ab dem naechsten
-     * Monat falsch, ohne dass jemand etwas angefasst haette.
-     */
-    leute = [
-      person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at',
-        role: 'Buchhaltung', weeklyTargetHours: 20, yearlyVacationDays: 30 }),
-    ];
-    zeige();
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
-
-    expect(screen.getByRole('textbox', { name: /^Name/ })).toHaveValue('Erna Beispiel');
-    expect(screen.getByRole('combobox', { name: /Rolle/ })).toHaveValue('Buchhaltung');
-    expect(await screen.findByRole('spinbutton', { name: /Wochenstunden/ })).toHaveValue(20);
-    expect(screen.getByRole('spinbutton', { name: /Urlaubstage/ })).toHaveValue(30);
-  });
-
-  it('aendert beim Bearbeiten das Profil, statt einen zweiten Zugang anzulegen', async () => {
+  /*
+    „uebernimmt beim Bearbeiten die bestehenden Werte" und „aendert das
+    Profil statt einen zweiten Zugang anzulegen" stehen jetzt in
+    `BenutzerakteView.test.tsx` — dort wird bearbeitet. Was HIER bleibt, ist
+    die Grenze zwischen den beiden Ansichten.
+  */
+  it('legt aus diesem Formular nur an — ändern kann es nicht mehr', async () => {
     leute = [person({ uid: 'u2', name: 'Erna Beispiel' })];
     zeige();
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
-    await userEvent.click(screen.getByRole('button', { name: /Speichern|Änderungen/ }));
+    await screen.findByText('Erna Beispiel');
+    expect(screen.getByText('Neuen Benutzer anlegen')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
 
-    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
-    expect(profilAendern.mock.calls[0][0]).toBe('u2');
-    expect(anlegen).not.toHaveBeenCalled();
+    await userEvent.type(screen.getByRole('textbox', { name: /^Name/ }), 'Neu Person');
+    await userEvent.type(screen.getByRole('textbox', { name: /E-Mail/ }), 'neu@perl.at');
+    await userEvent.click(screen.getByRole('button', { name: 'Benutzer anlegen' }));
+
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(profilAendern).not.toHaveBeenCalled();
   });
 
   it('zeigt das Startpasswort, wenn die Willkommens-Mail nicht rausging', async () => {
