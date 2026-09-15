@@ -36,6 +36,7 @@
 import {
   alleDienstSchluessel, dienstKopfzeilen, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
+import { mitCors } from '../_eigen/cors.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
 const SCHLUESSEL = alleDienstSchluessel(Deno.env.toObject());
@@ -63,7 +64,7 @@ async function werRuftAn(token: string): Promise<string | null> {
   return typeof nutzer?.id === 'string' ? nutzer.id : null;
 }
 
-Deno.serve(async (req: Request): Promise<Response> => {
+Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return fehler('Nur POST.', 405);
   if (!DIENST) return fehler(SCHLUESSEL_FEHLT, 503);
 
@@ -132,4 +133,4 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
 
   return antwort({ uid: konto.id });
-});
+}));

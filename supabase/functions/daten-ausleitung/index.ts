@@ -37,6 +37,7 @@ import {
 import {
   alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
+import { mitCors } from '../_eigen/cors.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
 /*
@@ -229,7 +230,7 @@ async function betriebAusleiten(
   return { companyId: betrieb, zeilen, bytes: inhalt.length, pfad, geraeumt };
 }
 
-Deno.serve(async (req: Request): Promise<Response> => {
+Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return fehler('Nur POST.', 405);
 
   const kopf = req.headers.get('Authorization') ?? '';
@@ -336,4 +337,4 @@ Deno.serve(async (req: Request): Promise<Response> => {
     await festhalten(profil.company_id, false, meldung, null);
     return fehler(meldung, 500);
   }
-});
+}));
