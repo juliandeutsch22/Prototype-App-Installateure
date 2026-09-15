@@ -7,6 +7,7 @@ import { FASSUNG } from '@/lib/fassung';
 import Icon from '@/components/Icon';
 import Avatar from '@/components/Avatar';
 import BrandLogo from '@/components/BrandLogo';
+import ProduktMarke from '@/components/ProduktMarke';
 import OfflineBanner from '@/components/OfflineBanner';
 import BottomSheet from '@/components/BottomSheet';
 import AppErneuern from '@/components/AppErneuern';
@@ -63,14 +64,23 @@ export default function Layout({ children }: { children: ReactNode }) {
   const hasMore = mehr.length > 0;
   const moreActive = mehr.some((i) => i.path === location.pathname);
 
-  // Das Logo trägt den Firmennamen bereits als Schriftzug — ihn daneben noch
-  // einmal zu setzen wäre doppelt. Der Name bleibt als Alternativtext im Bild
-  // und damit für Screenreader erhalten.
-  //
-  // Unter etwa 36 px ist die Zeile „DAS BAD · DIE HEIZUNG" nicht mehr lesbar,
-  // deshalb in der Sidebar größer als in der schmalen mobilen Kopfleiste.
-  const BrandMarkMobile = <BrandLogo height={32} className="rounded-sm" />;
-  const BrandMarkSidebar = <BrandLogo height={40} className="rounded-sm" />;
+  /*
+    HIER STEHT DER BETRIEB, NICHT DAS PRODUKT. Die Seitenleiste ist der
+    Arbeitsplatz von Perls Leuten; ihnen zwanzigmal am Tag zu sagen, in
+    welcher Software sie sind, bringt ihnen nichts. Zu sehen, WESSEN Betrieb
+    das ist, schon — spätestens, wenn jemand für zwei Firmen arbeitet.
+
+    Ein hinterlegtes Logo trägt den Firmennamen meist schon als Schriftzug;
+    ihn daneben noch einmal zu setzen wäre doppelt. Ist keines hinterlegt,
+    setzt `BrandLogo` den Namen selbst — und nicht das Logo eines fremden
+    Betriebs.
+
+    Unter etwa 36 px ist eine Zeile wie „DAS BAD · DIE HEIZUNG" nicht mehr
+    lesbar, deshalb in der Seitenleiste grösser als in der schmalen mobilen
+    Kopfleiste.
+  */
+  const BrandMarkMobile = <BrandLogo height={32} className="rounded-sm text-white" />;
+  const BrandMarkSidebar = <BrandLogo height={40} className="rounded-sm text-white" />;
 
   return (
     <div className="flex min-h-full flex-col md:flex-row">
@@ -148,6 +158,24 @@ export default function Layout({ children }: { children: ReactNode }) {
           >
             Abmelden
           </Button>
+
+          {/*
+            DIE PRODUKTMARKE, KLEIN UND UNTERGEORDNET. Nicht aus Eitelkeit:
+            wenn ein Monteur anruft und sagt „die App tut nicht", ist
+            „Senklot" das Wort, mit dem er sucht und mit dem das Büro den
+            Support anspricht. Ganz unten, gedämpft, hinter dem Abmelden —
+            dort konkurriert sie mit nichts, und der Betrieb bleibt oben.
+          */}
+          <p className="mt-4 px-3 text-white/60">
+            {/*
+              `white/60` und nicht schwächer: gegen die dunkle Trägerfläche
+              sind das rund 4,9:1, und darunter ist kleiner Text nicht mehr
+              zuverlässig lesbar. „Zurückhaltend" darf nicht „blass" heissen —
+              eine Beschriftung, die man erraten muss, hilft im Supportfall
+              niemandem.
+            */}
+            <ProduktMarke hoehe={20} />
+          </p>
         </div>
       </aside>
 
