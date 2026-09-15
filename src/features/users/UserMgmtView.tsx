@@ -20,6 +20,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import RowMenu from '@/components/RowMenu';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
+import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { anlegeFehler } from './anlegeFehler';
@@ -51,6 +52,12 @@ function zahlOderVorgabe(eingabe: string, vorgabe: number) {
   return eingabe.trim() !== '' && Number.isFinite(n) ? n : vorgabe;
 }
 
+/** Leeres Feld heisst „nicht angegeben" — und das ist nicht dasselbe wie 0. */
+function zahlOderNull(eingabe: string): number | null {
+  const n = Number(eingabe);
+  return eingabe.trim() !== '' && Number.isFinite(n) ? n : null;
+}
+
 function emptyForm() {
   return {
     name: '',
@@ -63,6 +70,14 @@ function emptyForm() {
     // deshalb wie im Legacy mit heute vorbelegen.
     appStartDate: todayStr(),
     initialOvertime: '0',
+    /*
+      LEER UND NICHT VORBELEGT. Beim Überstundensaldo ist 0 die richtige
+      Vorgabe — wer nichts angibt, bringt nichts mit. Beim Urlaub wäre 0 die
+      Behauptung „hat dieses Jahr keinen Tag mehr" und würde jeden Antrag
+      rechnerisch ins Minus schicken. Leer heisst „nicht angegeben", und dann
+      rechnet die App mit dem vollen Jahresanspruch wie bisher.
+    */
+    initialVacationDays: '',
     workDays: DEFAULT_WORK_DAYS,
   };
 }
@@ -79,6 +94,10 @@ function formFromUser(u: AppUser): FormState {
     yearlyVacationDays: String(u.yearlyVacationDays ?? DEFAULT_VACATION_DAYS),
     appStartDate: u.appStartDate ?? todayStr(),
     initialOvertime: String(u.initialOvertime ?? 0),
+    initialVacationDays:
+      u.initialVacationDays === null || u.initialVacationDays === undefined
+        ? ''
+        : String(u.initialVacationDays),
     workDays: u.workDays ?? DEFAULT_WORK_DAYS,
   };
 }
@@ -191,6 +210,13 @@ export default function UserMgmtView() {
       yearlyVacationDays: zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS),
       appStartDate: form.appStartDate || null,
       initialOvertime: zahlOderVorgabe(form.initialOvertime, 0),
+      /*
+        Leeres Feld → `null`, und NICHT `zahlOderVorgabe(..., 0)`. „Nicht
+        angegeben" ist hier eine eigene Aussage; sie auf 0 zu runden hiesse,
+        jedem Nicht-Ausfüllen einen aufgebrauchten Urlaubsanspruch
+        anzudichten.
+      */
+      initialVacationDays: zahlOderNull(form.initialVacationDays),
       workDays: form.workDays.length ? form.workDays : DEFAULT_WORK_DAYS,
     };
     try {
@@ -304,7 +330,37 @@ export default function UserMgmtView() {
                 <InputField id="uinit" label="Start-Saldo (Stunden)" type="number" step="0.25"
                   value={form.initialOvertime}
                   onChange={(e) => setForm({ ...form, initialOvertime: e.target.value })} />
+                <InputField
+                  id="uvacinit"
+                  label="Resturlaub beim Umstieg (Tage)"
+                  type="number"
+                  step="0.5"
+                  placeholder="leer = voller Jahresanspruch"
+                  value={form.initialVacationDays}
+                  onChange={(e) => setForm({ ...form, initialVacationDays: e.target.value })} />
               </FormGrid>
+              {/* Zwei Urlaubsfelder nebeneinander brauchen einen Satz dazu —
+                  „pro Jahr" und „beim Umstieg" sehen sonst aus wie dasselbe. */}
+              <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+                <span>Warum es zwei Urlaubsfelder gibt</span>
+                <InfoHint about="Resturlaub beim Umstieg">
+                  <p>
+                    <strong>Urlaubstage pro Jahr</strong> ist der Anspruch laut Vertrag. Danach
+                    rechnet die App in jedem vollen Jahr.
+                  </p>
+                  <p className="mt-2">
+                    <strong>Resturlaub beim Umstieg</strong> gilt nur für das Jahr, in dem der
+                    Saldo startet. Wer im September umsteigt und schon 18 von 25 Tagen genommen
+                    hat, trägt hier <span className="tnum">7</span> ein — sonst zeigt die App
+                    weiterhin 25, weil die Tage davor in keiner Buchung stehen.
+                  </p>
+                  <p className="mt-2">
+                    Leer lassen, wenn der Anspruch am Startdatum unangetastet war. Dann bleibt es
+                    beim vollen Jahresanspruch.
+                  </p>
+                </InfoHint>
+              </div>
+
               <fieldset>
                 <legend className="mb-1 text-sm font-medium text-ink">Arbeitstage</legend>
                 <div className="flex flex-wrap gap-x-4">

@@ -32,7 +32,22 @@ const BELEGSCHAFT = 'users';
 type Zeile = Omit<AppUser, 'uid'>;
 
 function alsBenutzer(zeile: WithId<Zeile>): AppUser {
-  return { ...zeile, uid: zeile.id, appStartDate: zeile.appStartDate ?? null };
+  return {
+    ...zeile,
+    uid: zeile.id,
+    appStartDate: zeile.appStartDate ?? null,
+    /*
+      DIESELBE AUSNAHME WIE BEIM STARTDATUM, AUS DEMSELBEN GRUND.
+
+      `zeileAlsObjekt` lässt leere Spalten absichtlich weg — die App-Typen
+      sagen meist `feld?: string` und nicht `string | null`. Hier sagt der Typ
+      aber `number | null`, weil „nicht angegeben" eine AUSSAGE ist: dann gilt
+      der volle Jahresanspruch. Ohne diese Zeile käme `undefined` zurück, wo
+      der Vertrag `null` verspricht — und das Formular, das zwischen „leer"
+      und „0" unterscheiden muss, bekäme zwei Schreibweisen für dasselbe.
+    */
+    initialVacationDays: zeile.initialVacationDays ?? null,
+  };
 }
 
 export async function listUsers(companyId: string): Promise<AppUser[]> {
@@ -74,7 +89,7 @@ export function updateUserProfile(uid: string, p: Partial<UserProfileInput>): Pr
   const daten: Record<string, unknown> = {};
   for (const feld of [
     'name', 'role', 'active', 'weeklyTargetHours', 'yearlyVacationDays',
-    'workDays', 'appStartDate', 'initialOvertime',
+    'workDays', 'appStartDate', 'initialOvertime', 'initialVacationDays',
   ] as const) {
     daten[feld] = p[feld];
   }
@@ -106,6 +121,13 @@ export async function createUserDoc(
       workDays: p.workDays ?? DEFAULT_WORK_DAYS,
       appStartDate: p.appStartDate ?? null,
       initialOvertime: p.initialOvertime ?? 0,
+      /*
+        `?? null` und NICHT `?? DEFAULT_VACATION_DAYS`: „nicht angegeben" ist
+        hier eine eigene Aussage und heisst „rechne wie ohne Anfangsbestand".
+        Ein Vorbelegen mit dem Jahresanspruch sähe genauso aus wie eine
+        bewusste Angabe und wäre nur zufällig richtig.
+      */
+      initialVacationDays: p.initialVacationDays ?? null,
     }),
     id: uid,
     company_id: companyId,

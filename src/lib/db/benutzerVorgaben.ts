@@ -25,4 +25,6 @@ export interface UserProfileInput {
   workDays?: number[];
   appStartDate?: string | null;
   initialOvertime?: number;
+  /** Resturlaub am Startdatum. `null` = nicht angegeben (voller Jahresanspruch). */
+  initialVacationDays?: number | null;
 }

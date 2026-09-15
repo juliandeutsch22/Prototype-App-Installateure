@@ -1,5 +1,15 @@
 import type { AppUser, TimeEntry } from '@/types';
 import { shouldShowOvertime } from './permissions';
+/*
+  DIE VORGABE FÜR URLAUBSTAGE KOMMT AUS EINER QUELLE, NICHT AUS ZWEIEN.
+
+  In `benutzerVorgaben.ts` stand dazu der Satz, sie MÜSSE mit dem Rückfallwert
+  hier übereinstimmen — sonst rechnet ein Nutzer ohne gesetzten Wert anders
+  als ein neu angelegter. Ein Satz, den man einhalten muss, ist schwächer als
+  ein Import, bei dem man es nicht vergessen kann. Hier stand bis dahin
+  zweimal die nackte 25.
+*/
+import { DEFAULT_VACATION_DAYS as DEFAULT_URLAUBSTAGE } from './db/benutzerVorgaben';
 import { calcWorkMin } from '@shared/arbeitszeit';
 import {
   getAustrianHolidayName,
@@ -35,6 +45,104 @@ export function urlaubsTage(
   bisIso: string,
 ): string[] {
   return urlaubsTageShared(user.workDays, vonIso, bisIso);
+}
+
+/** Was für ein Jahr zur Verfügung steht, was weg ist, was bleibt. */
+export interface UrlaubsStand {
+  /** Tage, die in diesem Jahr zur Verfügung stehen. */
+  anspruch: number;
+  /** Davon schon genommen — nur, was gegen diesen Anspruch zählt. */
+  genommen: number;
+  /** Was bleibt. Kann negativ sein; das ist eine Aussage, kein Fehler. */
+  rest: number;
+  /**
+   * Kommt der Anspruch aus dem Anfangsbestand statt aus dem Jahresanspruch?
+   *
+   * Die Ansicht braucht das, um „von 25 Tagen" nicht zu schreiben, wo in
+   * Wahrheit „von 7 mitgebrachten" gilt. Eine richtige Zahl mit falscher
+   * Beschriftung ist auch eine falsche Auskunft.
+   */
+  ausAnfangsbestand: boolean;
+}
+
+/** Ein Urlaub, wie ihn beide Aufrufer liefern können: Beginn und Dauer. */
+export interface UrlaubsPosten {
+  /** 'YYYY-MM-DD' */
+  von: string;
+  tage: number;
+}
+
+/**
+ * DER RESTURLAUB — und warum er an EINER Stelle steht.
+ *
+ * WAS VORHER FALSCH WAR. Gerechnet wurde „Jahresanspruch minus Urlaubstage,
+ * die in der App stehen". Vor dem Startdatum gibt es dort keine. Geht ein
+ * Betrieb im September in Betrieb und Petra hat von ihren 25 Tagen schon 18
+ * genommen, zeigte die App ihr 25 Tage Resturlaub — dem Genehmigenden
+ * dieselbe Zahl, und der Buchhaltung dieselbe Zahl in der Lohn-CSV.
+ *
+ * Beim Überstundensaldo war dieselbe Frage von Anfang an beantwortet
+ * (`initialOvertime`). Beim Urlaub wurde sie übersehen.
+ *
+ * WARUM ES EINE GEMEINSAME FUNKTION IST. Zwei Ansichten beantworten dieselbe
+ * Frage aus VERSCHIEDENEN Quellen: die Mitarbeiteransicht zählt genehmigte
+ * Anträge, die Buchhaltung zählt Urlaubstage in der Zeiterfassung. Stünde die
+ * Regel zweimal, sagten die beiden nach der ersten Änderung verschiedene
+ * Zahlen — und dann glaubt niemand mehr einer von beiden. Die QUELLEN bleiben
+ * getrennt (sie beantworten „genehmigt" und „gebucht", und das ist nicht
+ * dasselbe), die REGEL ist eine.
+ *
+ * ZWEI FÄLLE, EINE ZEILE:
+ *
+ *   Im Jahr des Startdatums   Anspruch = Anfangsbestand
+ *   In jedem anderen Jahr     Anspruch = Jahresanspruch
+ *
+ * WARUM IM STARTJAHR NUR AB DEM STARTDATUM GEZÄHLT WIRD. Der Anfangsbestand
+ * deckt alles davor bereits ab. Ein Urlaubstag, der vor dem Startdatum in der
+ * App landet — die Buchhaltung darf fremde Zeiteinträge nachtragen —, wäre
+ * sonst zweimal abgezogen: einmal im mitgebrachten Bestand, einmal als
+ * Eintrag.
+ *
+ * OHNE ANGABE BLEIBT ALLES WIE BISHER. Kein Anfangsbestand oder kein
+ * Startdatum heisst: voller Jahresanspruch, alle Tage des Jahres gezählt.
+ * Eine bestehende Zeile ändert dadurch ihre Bedeutung nicht.
+ */
+export function urlaubsStand(
+  user: Pick<AppUser, 'yearlyVacationDays' | 'initialVacationDays' | 'appStartDate'>,
+  jahr: number,
+  posten: readonly UrlaubsPosten[],
+): UrlaubsStand {
+  const jahresanspruch = Number(user.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
+  const start = user.appStartDate ?? null;
+  const bestand = user.initialVacationDays;
+
+  /*
+    „NICHT ANGEGEBEN" UND „NULL TAGE" SIND ZWEI VERSCHIEDENE AUSSAGEN — und
+    genau daran ist die erste Fassung dieser Zeile gescheitert.
+
+    Sie prüfte nur `Number.isFinite(Number(bestand))`. `Number(null)` ist
+    aber `0`, und `0` ist endlich: aus der Datenbank gelesenes `null` galt
+    damit als Angabe „null Tage übrig". Jeder Betrieb, der das Feld nicht
+    ausfüllt, hätte im Umstiegsjahr bei allen einen Anspruch von 0 gesehen —
+    schlimmer als der Fehler, der hier repariert werden sollte.
+    Aufgefallen ist das der Prüfung, nicht dem Kopf.
+
+    Deshalb ZUERST auf „gar nichts da" prüfen und erst dann rechnen. `NaN`
+    (leeres Formularfeld) fällt weiterhin über `Number.isFinite` heraus.
+  */
+  const angegeben =
+    bestand !== null && bestand !== undefined && Number.isFinite(Number(bestand));
+
+  const imStartjahr = start !== null && start.slice(0, 4) === String(jahr) && angegeben;
+
+  const anspruch = imStartjahr ? Number(bestand) : jahresanspruch;
+  const zaehltAb = imStartjahr ? start : null;
+
+  const genommen = posten
+    .filter((p) => zaehltAb === null || p.von >= zaehltAb)
+    .reduce((summe, p) => summe + p.tage, 0);
+
+  return { anspruch, genommen, rest: anspruch - genommen, ausAnfangsbestand: imStartjahr };
 }
 
 /**
@@ -267,6 +375,10 @@ export interface MonthStats {
   krankDays: number;
   urlaubDays: number;
   yearlyUrlaubDays: number;
+  /** Tage, die in diesem Jahr zur Verfügung stehen — siehe `urlaubsStand`. */
+  urlaubsAnspruch: number;
+  /** Stammt der Anspruch aus dem mitgebrachten Bestand? Für die Beschriftung. */
+  urlaubAusAnfangsbestand: boolean;
   urlaubRest: number;
 }
 
@@ -287,14 +399,17 @@ export interface MonthStats {
  * @param month        0-basiert (0 = Jänner)
  */
 export function calcMonthStats(
-  user: Pick<AppUser, 'weeklyTargetHours' | 'yearlyVacationDays' | 'workDays' | 'appStartDate'>,
+  user: Pick<
+    AppUser,
+    'weeklyTargetHours' | 'yearlyVacationDays' | 'workDays' | 'appStartDate' | 'initialVacationDays'
+  >,
   monthEntries: TimeEntry[],
   yearEntries: TimeEntry[],
   year: number,
   month: number,
 ): MonthStats {
   const weeklyTarget = Number(user.weeklyTargetHours ?? 40) || 40;
-  const yearlyVacation = Number(user.yearlyVacationDays ?? 25) || 25;
+  const yearlyVacation = Number(user.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
 
   const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
   // Tagessoll über die tatsächlichen Arbeitstage — identisch zu
@@ -328,7 +443,26 @@ export function calcMonthStats(
   const requiredDays = Math.max(0, workdaysInMonth - krankDays - urlaubDays);
   const sollMin = Math.round(requiredDays * dailyTargetH * 60);
 
+  /*
+    DER RESTURLAUB KOMMT AUS `urlaubsStand` UND WIRD HIER NICHT GERECHNET.
+
+    Hier stand `jahresanspruch - urlaubstage`. Das ist im ersten Jahr falsch:
+    was jemand VOR der Inbetriebnahme genommen hat, steht in keiner
+    Zeiterfassung, und die Zahl war um genau diese Tage zu hoch. Sie geht von
+    hier in die Mitarbeiterübersicht, in die Lohn-CSV und in den
+    Stundennachweis.
+
+    `yearlyUrlaubDays` bleibt daneben stehen und zählt weiter ALLE Urlaubstage
+    des Jahres: es ist eine Beobachtung („so viele Urlaubstage stehen in der
+    App"), kein Anspruch. Die beiden Zahlen dürfen sich im Startjahr
+    unterscheiden, und genau deshalb sind es zwei.
+  */
   const yearlyUrlaubDays = yearEntries.filter((e) => e.status === 'Urlaub').length;
+  const stand = urlaubsStand(
+    user,
+    year,
+    yearEntries.filter((e) => e.status === 'Urlaub').map((e) => ({ von: e.date, tage: 1 })),
+  );
 
   // Laufend heißt: der letzte Tag des Monats liegt noch vor uns.
   const heute = new Date();
@@ -350,7 +484,9 @@ export function calcMonthStats(
     krankDays,
     urlaubDays,
     yearlyUrlaubDays,
-    urlaubRest: yearlyVacation - yearlyUrlaubDays,
+    urlaubRest: stand.rest,
+    urlaubsAnspruch: stand.anspruch,
+    urlaubAusAnfangsbestand: stand.ausAnfangsbestand,
   };
 }
 
