@@ -2628,6 +2628,76 @@ durchschlägt. Bei einem Betrieb mit vielen Jahren Historie wäre ein
 festgehaltener Jahresvortrag die billigere und für die Buchhaltung
 nachvollziehbarere Fassung.
 
+## Erledigt: die Kundenakte wird in der Akte bearbeitet (15.09.2026)
+
+**Der Weg war ein Kreis.** Die Akte zeigte den Kunden, zum Ändern schickte sie
+zurück in die Kundenliste — aus der Detailansicht heraus, um etwas zu ändern,
+das in der Detailansicht steht. Wer danach zurückkam, stand wieder in der
+Liste und musste den Kunden erneut suchen. Drei Klicks und ein verlorener
+Platz, jedes Mal.
+
+### Was jetzt gilt
+
+Die Stammdatenkarte ist das Formular. Kein Umschalten in einen
+„Bearbeiten-Modus": wer ändern darf, tippt direkt; wer nicht darf, sieht
+dieselben Felder als Liste.
+
+| | |
+| --- | --- |
+| Geschäftsführung, Projektleitung, Administration | Formular, Speicherleiste erscheint bei der ersten Änderung |
+| Buchhaltung, Verwaltung, Mitarbeiter | Nur-Lesen, dieselben Felder, dieselbe Reihenfolge |
+
+Die Grenze ist `isGF` — dieselbe, die schon die Kundenliste zieht. Eine
+zweite Regel an derselben Sache wäre der Anfang zweier verschiedener
+Antworten auf dieselbe Frage.
+
+**Die Speicherleiste erscheint erst, wenn sich wirklich etwas geändert hat**,
+und sie steht IN der Karte, nicht am Seitenende. Ein dauerhaft sichtbarer
+Knopf lädt zum Speichern ohne Änderung ein; jeder dieser Schreibvorgänge
+zieht den Kundennamen über alle Baustellen nach.
+
+**Verglichen wird Feld für Feld, nicht über `JSON.stringify`.** Die
+Reihenfolge der Schlüssel in einem Objekt ist kein Vertrag — ein umsortiertes
+Feld hätte die Leiste dauerhaft eingeblendet, und niemand hätte den Grund
+gesehen.
+
+**Der Entwurf folgt dem geladenen Kunden nur, wenn dieser sich geändert hat.**
+Liefe er bei jedem Zeichnen mit, überschriebe die Ansicht die halb getippte
+Eingabe — der Fehler, der sich erst beim Tippen mit langsamer Verbindung
+zeigt.
+
+**Ohne Namen wird nicht gespeichert**, und das steht als Satz da, nicht als
+rotes Feld: am Namen hängen Baustellen und Rechnungen.
+
+**Wie viele Baustellen mitgewandert sind, wird genannt** — dieselbe Meldung,
+die schon die Kundenliste gab. Eine Änderung an fremden Datensätzen lautlos
+durchzuführen, wäre der Punkt, an dem die App mehr tut, als sie sagt.
+
+Die Kontaktzeile (anrufen, mailen) folgt dem Entwurf, nicht dem gespeicherten
+Stand: wer eine Nummer korrigiert, will sie danach prüfen können, ohne vorher
+zu speichern.
+
+### Ein Fehler, der beim Bauen aufgefallen ist
+
+Der Angebotsblock der Akte rief `listQuotesForCustomer(companyId, kundeName)`
+auf — die Abfrage filtert aber auf `customerId`, und `quotes.customer_id` ist
+eine `uuid`. **Unter Postgres scheiterte sie an jedem Kunden**, und die Akte
+meldete „die Angebote konnten nicht geladen werden". Unter Firestore kam
+einfach nichts zurück, was wie „noch kein Angebot" aussah. Der Abschnitt hat
+also nie funktioniert; der Umzug hat aus einer stillen Leere eine sichtbare
+Meldung gemacht. Jetzt wird die Kennung übergeben, und eine Prüfung hält das
+Argument fest.
+
+### Warum zuerst nur der Kunde
+
+Baustelle, Benutzer und Einsatz tragen dasselbe Muster — aber ob es trägt,
+zeigt sich am ersten Fall, nicht an vier gleichzeitig gebauten. Baustelle
+folgt als nächstes; das Gerüst steht dann.
+
+**Der Einsatz bleibt bewusst aussen vor.** Er wird in der Planung bearbeitet,
+wo er neben den anderen Einsätzen desselben Tages steht — eine eigene Akte
+nähme ihm genau diesen Zusammenhang.
+
 ---
 
 ## Wartet auf eine Entscheidung
