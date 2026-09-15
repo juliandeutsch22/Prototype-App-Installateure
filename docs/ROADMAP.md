@@ -2829,6 +2829,65 @@ sind teurer als ein Klick.
 bearbeitet, wo er neben den anderen Einsätzen desselben Tages steht — eine
 eigene Seite nähme ihm genau diesen Zusammenhang.
 
+## Erledigt: kein fremdes Logo mehr — der Betrieb steht in seiner eigenen App (15.09.2026)
+
+**Gemeldet als Frage, gefunden als Fehler.** Gefragt war, ob in der
+Seitenleiste das Senklot-Zeichen stehen sollte oder das Logo des Betriebs.
+Die Antwort ist das Logo des Betriebs — und beim Nachsehen stellte sich
+heraus, dass dort etwas Schlimmeres stand: ein **fest verdrahteter Ersatz auf
+`/perl-logo.png`**.
+
+Ein zweiter Betrieb, der noch kein eigenes Logo hinterlegt hat, sah damit das
+Zeichen des ERSTEN — jeden Tag, in seiner eigenen Seitenleiste. Das ist kein
+Schönheitsfehler, sondern eine falsche Aussage darüber, wessen Betrieb man
+vor sich hat. Und es ist die Sorte Fehler, die erst beim zweiten Kunden
+auffällt, also genau dann, wenn er am teuersten ist.
+
+Der bisherige Ausweg stand im Kommentar: der zweite Kunde setze eben
+`VITE_PORTAL_LOGO`. Das ist aber eine **Bauzeit**-Variable, also ein eigener
+Build je Betrieb — das Gegenteil dessen, was der Schritt zum echten
+Mehrmandanten-Betrieb erreichen soll. Die Variable ist ersatzlos weg.
+
+### Wo welche Marke steht
+
+| | |
+| --- | --- |
+| Anmeldung, App-Zeichen, Startbildschirm | **Senklot** — dort ist der Betrieb noch unbekannt, und die App gehört dem Produkt |
+| Seitenleiste und mobile Kopfleiste | **Der Betrieb**: sein hinterlegtes Logo, sonst sein Name als Schriftzug |
+| Fuss der Seitenleiste | **Senklot**, klein und gedämpft |
+
+**Warum der Betrieb oben steht.** Die Seitenleiste ist der Arbeitsplatz von
+Perls Leuten. Ihnen zwanzigmal am Tag zu sagen, in welcher Software sie
+sitzen, bringt ihnen nichts; zu sehen, WESSEN Betrieb das ist, schon —
+spätestens, wenn jemand für zwei Firmen arbeitet.
+
+**Warum die Produktmarke trotzdem vorkommt.** Wenn ein Monteur anruft und
+sagt „die App tut nicht", ist „Senklot" das Wort, mit dem er sucht und mit
+dem das Büro den Support anspricht. Sie steht deshalb am Fuss, hinter dem
+Abmelden — dort konkurriert sie mit nichts. **Gedämpft, aber nicht blass:**
+`white/60` gegen die dunkle Fläche sind rund 4,9:1. Eine Beschriftung, die
+man erraten muss, hilft im Supportfall niemandem.
+
+**Kein Ersatzbild, auch kein neutrales.** Ohne hinterlegtes Logo steht der
+NAME da. Ein Platzhalter sagt nichts, wo etwas zu sagen wäre; ein fremdes
+Logo sagt etwas Falsches. Und solange der Betrieb noch lädt, steht dort gar
+nichts — einen Namen zu raten wäre ausgerechnet beim Wechsel zwischen zwei
+Mandanten das Falsche.
+
+### Was das für Perl heisst
+
+**Steht in den Firmendaten kein Logo, zeigt die Seitenleiste ab jetzt
+„Perl Installationen" als Schriftzug statt des Bildes.** Das ist die
+richtige Anzeige — und zugleich der Hinweis auf eine Lücke, die es schon
+vorher gab: dasselbe Logo fehlt dann nämlich auch auf Rechnung, Stundenbericht
+und Handwerksschein, weil die ihre Grafik aus `companies.logoUrl` holen und
+nie aus der Datei. Einmal unter **Einstellungen → Firmendaten** hochladen
+richtet beides zugleich.
+
+Die Datei `public/perl-logo.png` bleibt liegen — sie wird von keinem Code mehr
+benutzt, ist aber der bequemste Weg, an das Bild zu kommen
+(`…/perl-logo.png` im Browser öffnen, speichern, hochladen).
+
 ---
 
 ## Wartet auf eine Entscheidung

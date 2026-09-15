@@ -447,12 +447,18 @@ Actions → New repository secret*:
 Optional als *Variable* (nicht Secret): `VITE_FUNCTIONS_REGION` (Vorgabe
 `europe-west3`).
 
-`VITE_PORTAL_NAME` gibt es nicht mehr. Über dem Anmeldebildschirm steht die
-Marke des Produkts — Senklot —, nicht der Name eines Betriebs: vor der
-Anmeldung ist der Mandant unbekannt, und die Vorgabe zeigte deshalb jedem
-zweiten Kunden das Zeichen des ersten. Das Logo des Betriebs erscheint ab der
-ersten Seite nach der Anmeldung; `VITE_PORTAL_LOGO` bleibt als Vorgabe für
-Mandanten ohne eigenes Logo.
+`VITE_PORTAL_NAME` und `VITE_PORTAL_LOGO` gibt es nicht mehr. Über dem
+Anmeldebildschirm steht die Marke des Produkts — Senklot —, nicht der Name
+eines Betriebs: vor der Anmeldung ist der Mandant unbekannt, und die Vorgabe
+zeigte deshalb jedem zweiten Kunden das Zeichen des ersten.
+
+Ab der ersten Seite nach der Anmeldung steht dort der BETRIEB: sein
+hinterlegtes Logo (Einstellungen → Firmendaten), und wenn keines hinterlegt
+ist, sein Name als Schriftzug. **Kein Ersatzbild und erst recht nicht das Logo
+eines anderen Kunden** — genau das tat die alte Vorgabe. Eine Bauzeit-Variable
+wäre dafür ohnehin der falsche Ort gewesen: sie bedeutet einen eigenen Build je
+Betrieb, also das Gegenteil von Mehrmandantenbetrieb. Die Produktmarke steht
+klein am Fuss der Seitenleiste, damit der Support ein Wort hat.
 
 Die `VITE_FIREBASE_*`-Werte sind technisch nicht geheim — sie stehen ohnehin
 im ausgelieferten JavaScript, und Firebase schützt die Daten über die

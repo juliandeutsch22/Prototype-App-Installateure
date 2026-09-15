@@ -1,47 +1,75 @@
 import { useAuth } from '@/app/AuthContext';
 
 /**
- * Vom Betrieb mitgeliefertes Logo. Reihenfolge mit Absicht:
+ * Das Zeichen des BETRIEBS — nicht das des Produkts.
  *
- *  1. `companies/{id}.logoUrl` — was der Mandant selbst hinterlegt hat
- *  2. `VITE_PORTAL_LOGO` bzw. die mitgelieferte Datei — gilt auch VOR der
- *     Anmeldung, wo der Mandant noch unbekannt ist
+ * WAS HIER FALSCH WAR, UND ZWAR NICHT NUR OPTISCH. Der Ersatz war fest auf
+ * `/perl-logo.png` verdrahtet: ein zweiter Betrieb, der noch kein Logo
+ * hinterlegt hat, sah damit das Zeichen des ERSTEN — das Logo eines fremden
+ * Kunden in seiner eigenen App, jeden Tag, in der Seitenleiste. Das ist keine
+ * Kleinigkeit: es ist eine falsche Aussage darüber, wessen Betrieb man gerade
+ * vor sich hat.
  *
- * Damit trägt ein zweiter Kunde nicht das Logo des ersten: er setzt entweder
- * seine `logoUrl` in den Stammdaten oder baut mit eigener VITE_PORTAL_LOGO.
+ * Der bisherige Ausweg stand im Kommentar: der zweite Kunde setze eben
+ * `VITE_PORTAL_LOGO`. Das ist aber eine BAUZEIT-Variable, also ein eigener
+ * Build je Betrieb — genau das, was der Schritt zum echten Mehrmandanten-
+ * Betrieb beenden soll.
+ *
+ * WAS JETZT GILT:
+ *
+ *  1. `companies/{id}.logoUrl` — was der Betrieb selbst hinterlegt hat.
+ *  2. Sonst sein NAME als Schriftzug. Ein sauber gesetzter Name sagt die
+ *     Wahrheit; ein fremdes Bild sagt etwas Falsches, und ein
+ *     Platzhalterbild sagt gar nichts.
+ *
+ * Die Produktmarke gehört NICHT hierher, sondern an die Tür (Anmeldung), auf
+ * das App-Zeichen und klein an den Fuss der Seitenleiste: wer hier arbeitet,
+ * muss sehen, WESSEN Betrieb das ist — in welcher Software er sitzt, weiss er.
  */
-const FALLBACK_LOGO = import.meta.env.VITE_PORTAL_LOGO || '/perl-logo.png';
 
 interface Props {
   /** Höhe in px. Das Logo ist quer, die Breite ergibt sich aus dem Seitenverhältnis. */
   height?: number;
   className?: string;
-  /** Vor der Anmeldung gibt es keinen Mandanten — dann nur die Vorgabe nutzen. */
-  ignoreCompany?: boolean;
-  /** Alternativtext, wenn der Firmenname noch nicht bekannt ist. */
-  alt?: string;
 }
 
-export default function BrandLogo({
-  height = 28,
-  className = '',
-  ignoreCompany = false,
-  alt,
-}: Props) {
-  // useAuth ist auch auf dem Anmeldebildschirm verfügbar (Provider umschließt
-  // die Routen), company ist dort schlicht null.
+export default function BrandLogo({ height = 28, className = '' }: Props) {
   const { company } = useAuth();
-  const src = (!ignoreCompany && company?.logoUrl) || FALLBACK_LOGO;
-  const name = alt ?? company?.name ?? 'Firmenlogo';
+
+  /*
+    SOLANGE DER BETRIEB NOCH LÄDT, STEHT HIER NICHTS. Einen Namen zu raten
+    oder ein Bild vorzuhalten hiesse, für einen Augenblick etwas zu behaupten
+    — und ausgerechnet beim Wechsel zwischen zwei Mandanten wäre es das
+    Falsche. Der Platz bleibt, der Inhalt kommt nach.
+  */
+  if (!company) return <span style={{ height }} className={`block ${className}`} aria-hidden="true" />;
+
+  if (company.logoUrl) {
+    return (
+      <img
+        src={company.logoUrl}
+        alt={company.name}
+        // Höhe führt, Breite frei: ein anderes Logo darf ein anderes
+        // Seitenverhältnis haben, ohne verzerrt zu werden.
+        style={{ height }}
+        className={`w-auto shrink-0 object-contain ${className}`}
+      />
+    );
+  }
 
   return (
-    <img
-      src={src}
-      alt={name}
-      // Höhe führt, Breite frei: ein anderes Logo darf ein anderes
-      // Seitenverhältnis haben, ohne verzerrt zu werden.
-      style={{ height }}
-      className={`w-auto shrink-0 object-contain ${className}`}
-    />
+    <span
+      /*
+        `truncate` und `block`: ein langer Betriebsname („Installationen
+        Mustermann Gesellschaft m.b.H.") darf die Seitenleiste nicht
+        auseinanderdrücken. Die Höhe folgt der des Logos, damit die Kopfzeile
+        nicht springt, je nachdem ob ein Logo hinterlegt ist.
+      */
+      className={`block truncate font-semibold leading-none ${className}`}
+      style={{ fontSize: Math.round(height * 0.5), lineHeight: `${height}px` }}
+      title={company.name}
+    >
+      {company.name}
+    </span>
   );
 }
