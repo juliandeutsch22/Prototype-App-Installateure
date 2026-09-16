@@ -17,12 +17,12 @@ import { listEntriesInRange } from '@/lib/db/timeEntries';
 import { scheineOhneBuchung, minutenOhneBuchung, OFFEN_AB_TAGEN } from './fehlendeZeitbuchung';
 import { deuteSuche, suchHinweis } from './scheinSuche';
 import { isGF, canWriteWorkSheet, canEditTime } from '@/lib/permissions';
-import { fmtMin, todayStr } from '@/lib/time';
+import { fmtMin, tageWort, todayStr } from '@/lib/time';
 import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
@@ -30,13 +30,14 @@ import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
-const TON: Record<WorkSheet['status'], 'success' | 'gray' | 'danger'> = {
-  Unterschrieben: 'success',
-  Entwurf: 'gray',
-  Storniert: 'danger',
-  // Kein Rot: der aufgegebene Entwurf ist kein Zwischenfall, sondern der
-  // Normalfall eines geplatzten Auftrags.
-  Verworfen: 'gray',
+const STAND: Record<WorkSheet['status'], Stand> = {
+  Unterschrieben: 'gut',
+  Entwurf: 'laeuft',
+  // Kein Rot: weder der Storno noch der aufgegebene Entwurf ist ein
+  // Zwischenfall. Der eine ist die vorgesehene Korrektur, der andere der
+  // Normalfall eines geplatzten Auftrags — beide sind abgeschlossen.
+  Storniert: 'ruht',
+  Verworfen: 'ruht',
 };
 
 /**
@@ -493,7 +494,7 @@ export default function WorkSheetsListView() {
                 title={
                   <>
                     <span>{schein.customerName}</span>
-                    <Badge tone={tage >= 30 ? 'danger' : 'warning'}>{tage} Tage</Badge>
+                    <Warnung stufe={tage >= 30 ? 'dringend' : 'achtung'}>{tageWort(tage)}</Warnung>
                   </>
                 }
                 subtitle={
@@ -749,7 +750,7 @@ export default function WorkSheetsListView() {
                     </>
                   }
                 >
-                  <Badge tone={TON[s.status]}>{s.status}</Badge>
+                  <Zustand stand={STAND[s.status]}>{s.status}</Zustand>
                   <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
                     {auf ? 'Zuklappen' : 'Details'}
                   </Button>

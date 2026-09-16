@@ -19,7 +19,7 @@ import type { Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import SignaturePad, { type SignaturePadHandle } from '@/components/SignaturePad';
 import BaustellenSelect from '@/components/BaustellenSelect';
@@ -862,9 +862,9 @@ export default function WorkSheetView() {
               <AdresseLink adresse={projekt.address} />
               <TelefonLink nummer={projekt.contactPhone} name={projekt.contactName} />
             </span>
-            <Badge tone={projekt.billingMode === 'Pauschal' ? 'gray' : 'info'}>
-              {projekt.billingMode ?? 'Regie'}
-            </Badge>
+            {/* Regie oder Pauschal ist eine Tatsache über die Baustelle, keine
+                Bewertung — vorher hiess Pauschal grau und Regie türkis. */}
+            <Marke>{projekt.billingMode ?? 'Regie'}</Marke>
           </div>
         )}
         {/*
@@ -928,7 +928,7 @@ export default function WorkSheetView() {
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
-                      {z.helfer && <Badge tone="warning">Helfer</Badge>}
+                      {z.helfer && <Marke>Helfer</Marke>}
                       <span className="tnum font-medium text-ink">{fmtMin(z.minuten)}</span>
                     </span>
                     {/*

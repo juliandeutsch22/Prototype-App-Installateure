@@ -4,7 +4,7 @@ import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
-import Badge from '@/components/Badge';
+import { Marke } from '@/components/Badge';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 
@@ -132,7 +132,7 @@ export default function RuestlistePlanen({
                     <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
                       {p.name}
                       {p.einheit && <span className="text-sm text-ink-muted">{p.einheit}</span>}
-                      {!p.materialId && <Badge tone="gray">{FREI}</Badge>}
+                      {!p.materialId && <Marke>{FREI}</Marke>}
                     </p>
                     {artikel && (
                       <p className="text-sm text-ink-muted">

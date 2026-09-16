@@ -10,7 +10,7 @@ import type { WithId } from '@/lib/db/core';
 import type { MaterialOrder } from '@/types';
 import Card from '@/components/Card';
 import Nachladen from '@/components/Nachladen';
-import Badge from '@/components/Badge';
+import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
@@ -204,7 +204,7 @@ export default function AdminOrdersView() {
             }`}
           >
             {t.label}
-            {t.count !== undefined && t.count > 0 && <Badge tone="gray">{t.count}</Badge>}
+            {t.count !== undefined && t.count > 0 && <Marke>{t.count}</Marke>}
           </button>
         ))}
       </div>
@@ -277,9 +277,9 @@ export default function AdminOrdersView() {
                           </>
                         }
                       >
-                        {o.isUrgent && <Badge tone="danger">Eil</Badge>}
+                        {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
                         {o.transactionType === 'return' ? (
-                          <Badge tone="info">Retoure</Badge>
+                          <Marke>Retoure</Marke>
                         ) : (
                           <StatusBadge status={o.status} />
                         )}

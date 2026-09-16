@@ -9,7 +9,7 @@ import {
 } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
 import Card from '@/components/Card';
-import Badge from '@/components/Badge';
+import { Warnung } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
 import Icon from '@/components/Icon';
 import { EmptyState } from '@/components/States';
@@ -175,7 +175,7 @@ export default function ProjectSummary({
                       ein Warnsignal; die eine Baustelle, die wirklich über
                       dem Budget liegt, ging darin unter.
                     */}
-                    {r.budget?.over && <Badge tone="danger">über Budget</Badge>}
+                    {r.budget?.over && <Warnung stufe="dringend">über Budget</Warnung>}
                     {r.helperMin > 0 && (
                       <span className="tnum text-sm text-ink-muted">
                         +{h(r.helperMin)} h Helfer

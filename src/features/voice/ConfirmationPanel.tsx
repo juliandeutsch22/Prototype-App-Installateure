@@ -7,7 +7,7 @@ import { todayStr } from '@/lib/time';
 import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
-import Badge from '@/components/Badge';
+import { Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
@@ -158,7 +158,7 @@ export default function ConfirmationPanel({
             checked={includeTime}
             onChange={(e) => setIncludeTime(e.target.checked)}
           />
-          {ext.time.needsReview && <Badge tone="warning">bitte prüfen</Badge>}
+          {ext.time.needsReview && <Warnung>bitte prüfen</Warnung>}
         </div>
         {includeTime && (
           <InputField
@@ -207,7 +207,7 @@ export default function ConfirmationPanel({
                     )
                   }
                 />
-                {m.needsReview && <Badge tone="warning">prüfen</Badge>}
+                {m.needsReview && <Warnung>prüfen</Warnung>}
                 <IconButton
                   label="Entfernen"
                   tone="danger"

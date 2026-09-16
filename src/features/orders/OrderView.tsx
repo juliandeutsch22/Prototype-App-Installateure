@@ -14,7 +14,7 @@ import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
@@ -343,7 +343,7 @@ export default function OrderView() {
             }`}
           >
             {t.label}
-            {t.count !== undefined && t.count > 0 && <Badge tone="gray">{t.count}</Badge>}
+            {t.count !== undefined && t.count > 0 && <Marke>{t.count}</Marke>}
           </button>
         ))}
       </div>
@@ -497,7 +497,7 @@ export default function OrderView() {
                           .join(' · ')
                       }
                     >
-                      {line.isUrgent && <Badge tone="danger">Eil</Badge>}
+                      {line.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
                       <IconButton
                         label={`${line.materialName} entfernen`}
                         tone="danger"
@@ -539,7 +539,7 @@ export default function OrderView() {
                     }
                     subtitle={[o.projectNumber, o.note].filter(Boolean).join(' · ')}
                   >
-                    {o.isUrgent && <Badge tone="danger">Eil</Badge>}
+                    {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
                     <StatusBadge status={o.status} />
                     {/*
                       ABGEHOLT GEHT IMMER, nicht erst ab „Abholbereit".
@@ -579,7 +579,7 @@ export default function OrderView() {
                     subtitle={[o.projectNumber, o.note].filter(Boolean).join(' · ')}
                   >
                     {o.transactionType === 'return' ? (
-                      <Badge tone="info">Retoure</Badge>
+                      <Marke>Retoure</Marke>
                     ) : (
                       <StatusBadge status={o.status} />
                     )}

@@ -15,7 +15,7 @@ import type { Customer, Project } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import Nachladen from '@/components/Nachladen';
@@ -381,10 +381,10 @@ export default function CustomersView() {
                 {uebernahme.map((g) => (
                   <li key={g.name} className="flex items-center justify-between gap-3 px-3 py-2">
                     <span className="truncate text-ink">{g.name}</span>
-                    <Badge tone="info">
+                    <Marke>
                       {g.projekte.length}{' '}
                       {g.projekte.length === 1 ? 'Baustelle' : 'Baustellen'}
-                    </Badge>
+                    </Marke>
                   </li>
                 ))}
               </ul>

@@ -3243,6 +3243,65 @@ drei Stellen, an einer davon richtig; jetzt steht sie als `tageWort` an einer.
 
 ---
 
+## Erledigt: Abzeichen nach Aufgabe statt nach Stimmung (16.09.2026)
+
+**Eine Form erledigte fünf Aufgaben, und dadurch keine davon gut.** Die
+gefüllte Pille mit acht Farbtönen trug Status, Rolle, Eigenschaft, Zahl mit
+Urteil und neutrale Notiz. Gelb hiess damit gleichzeitig „Helfer" (eine
+Tatsache), „Krank" (ein Status), „knapp" (ein Engpass) und „bitte prüfen"
+(eine Aufforderung) — eine Farbe, die vier Dinge heisst, heisst nichts. Und
+alles wog gleich viel: „40 h Budget" schrie so laut wie „über Budget".
+
+**Jetzt entscheidet die Aufgabe über die Form:**
+
+| Form | Wofür | Aussehen |
+| --- | --- | --- |
+| **Marke** | eine Tatsache ohne Urteil | keine Fläche, keine Farbe — die Stimme der Kartentitel |
+| **Zustand** | ein Wert aus einer kleinen Menge | ein Punkt in der Farbe des Werts, daneben das Wort |
+| **Warnung** | hier liegt etwas für dich | die gefüllte Pille — und NUR noch hier, zwei Stufen |
+
+Dass die gefüllte Pille jetzt nur noch eines bedeutet, ist die eigentliche
+Wirkung. Fünfzig Fundstellen in dreissig Ansichten sind einzeln eingeordnet
+worden; der Übersetzer hat dazu gezwungen, weil der alte Standard-Export weg
+ist. **Die Rollen haben ihre sechs Farben verloren** — eine Legende, die
+niemand auswendig lernt, und „Buchhaltung" sagt, was „Gelb" nicht sagt.
+
+Ein paar Entscheidungen, die dabei fielen und die nicht offensichtlich sind:
+
+- **„Überfällig" ist ein Zustand, keine Warnung.** Der Status sagt, WO etwas
+  steht; was zu tun ist, steht daneben („3 Tage" am Mahnlauf). Stünde beides
+  als Pille da, riefe die Zeile zweimal dasselbe.
+- **„Abgelehnt" und „Storniert" sind nicht mehr rot.** Entschieden ist
+  entschieden; Rot schickte jemanden auf eine Liste, an der er nichts ändern
+  kann.
+- **„Notdienst" war rot** — die Farbe für „hier ist etwas kaputt" — und ist
+  eine Angabe zur Abrechnung.
+- **„Heute" am eigenen Einsatzplan war rot** und ist der Einsatz, der gerade
+  läuft.
+
+### Gelb und Rot gehörten nicht zu dieser App — gemessen
+
+Jeder Strukturton der Oberfläche liegt zwischen 187° und 194° (Türkis);
+selbst das Grün ist mit 63 % Sättigung in dieses Band gezogen, Türkis liegt
+bei 65 %. Die beiden Warnfarben kamen unverändert aus der Tailwind-Vorgabe und
+standen bei **96 % und 93 %** — die zwei gesättigtsten Flächen der ganzen App.
+
+Dazu ein zweiter Fehler, der die Rangfolge umdrehte: das Gelb war mit 89 %
+Helligkeit **dunkler** als das Rot mit 94 %. Die harmlosere Farbe wog optisch
+schwerer als die dringende.
+
+| | vorher | jetzt | Text auf Fläche |
+| --- | --- | --- | --- |
+| warning | `#fef3c7` S 96 % | `#f7f0d9` S 66 % | 4,51 → **4,76:1** |
+| danger | `#fee2e2` S 93 % | `#f8dbd8` S 68 % | 5,30 → **5,48:1** |
+
+**Der Kontrast steigt dabei, er sinkt nicht** — eine Farbe, die hübscher und
+schlechter lesbar ist, wäre in dieser App die falsche Richtung, denn
+gearbeitet wird draussen. `tests/unit/warnfarben.test.ts` hält beides fest:
+das Sättigungsband und die Lesbarkeit.
+
+---
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft

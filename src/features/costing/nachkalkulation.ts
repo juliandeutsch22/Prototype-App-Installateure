@@ -1,6 +1,7 @@
 import type { Invoice, Quote, TimeEntry } from '@/types';
 import { calcWorkMin, normProjectNumber } from '@/lib/time';
 import { KEINE_MATERIALKOSTEN, type Materialkosten } from './materialkosten';
+import type { Stand } from '@/components/Badge';
 
 /**
  * Nachkalkulation: hat die Baustelle Geld verdient?
@@ -141,10 +142,17 @@ export function rechneBaustelle(
   };
 }
 
-/** Ampel für den Deckungsbeitrag. */
-export function margenTon(k: Nachkalkulation): 'success' | 'warning' | 'danger' | 'gray' {
-  if (k.erloesQuelle === 'unbekannt') return 'gray';
-  if (k.deckungsbeitrag < 0) return 'danger';
+/**
+ * Ampel für den Deckungsbeitrag.
+ *
+ * GIBT EINEN ZUSTAND ZURÜCK, KEINE FARBE. Vorher standen hier die Tonnamen
+ * der alten Pille; wer sie las, sah „danger" und nicht „hier wird Geld
+ * verloren". Der Zustand sagt die Sache, die Anzeige entscheidet über die
+ * Form.
+ */
+export function margenTon(k: Nachkalkulation): Stand {
+  if (k.erloesQuelle === 'unbekannt') return 'ruht';
+  if (k.deckungsbeitrag < 0) return 'schlecht';
   /*
     Unter zwanzig Prozent bleibt nach Gemeinkosten erfahrungsgemäß nichts
     übrig — das ist eine Warnung wert, auch wenn die Zahl formal positiv ist.
@@ -153,7 +161,7 @@ export function margenTon(k: Nachkalkulation): 'success' | 'warning' | 'danger' 
     Deckungsbeitrag um einen unbekannten Betrag zu hoch, und Grün wäre eine
     Zusage, die die Zahlen nicht decken.
   */
-  if (k.materialLuecken.length > 0) return 'warning';
-  if ((k.margeProzent ?? 0) < 20) return 'warning';
-  return 'success';
+  if (k.materialLuecken.length > 0) return 'achtung';
+  if ((k.margeProzent ?? 0) < 20) return 'achtung';
+  return 'gut';
 }

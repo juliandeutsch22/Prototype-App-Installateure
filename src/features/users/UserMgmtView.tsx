@@ -7,7 +7,7 @@ import { ROLES, type AppUser, type Role } from '@/types';
 import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
@@ -324,7 +324,7 @@ export default function UserMgmtView() {
                     {u.name}
                     {/* Die Rolle steht bereits in der Gruppenueberschrift —
                         sie an jeder Zeile zu wiederholen ist Laerm. */}
-                    {u.active === false && <Badge tone="gray">inaktiv</Badge>}
+                    {u.active === false && <Marke>inaktiv</Marke>}
                   </span>
                 }
                 subtitle={u.email}

@@ -15,7 +15,7 @@ import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -37,11 +37,16 @@ function zeitraum(v: Vacation): string {
   return v.von === v.bis ? fmt(v.von) : `${fmt(v.von)} – ${fmt(v.bis)}`;
 }
 
-const TON: Record<Vacation['status'], 'success' | 'warning' | 'danger' | 'gray'> = {
-  Genehmigt: 'success',
-  Beantragt: 'warning',
-  Abgelehnt: 'danger',
-  Storniert: 'gray',
+/*
+  „Beantragt" bleibt der einzige Zustand mit Aufmerksamkeit: dort wartet eine
+  Entscheidung. „Abgelehnt" war rot und ist es nicht mehr — entschieden ist
+  entschieden, zu tun bleibt nichts.
+*/
+const STAND: Record<Vacation['status'], Stand> = {
+  Genehmigt: 'gut',
+  Beantragt: 'achtung',
+  Abgelehnt: 'ruht',
+  Storniert: 'ruht',
 };
 
 /**
@@ -525,7 +530,7 @@ export default function VacationsView() {
                   </>
                 }
               >
-                <Badge tone={TON[v.status]}>{v.status}</Badge>
+                <Zustand stand={STAND[v.status]}>{v.status}</Zustand>
                 {v.status === 'Beantragt' && (
                   <Button
                     variant="ghost"

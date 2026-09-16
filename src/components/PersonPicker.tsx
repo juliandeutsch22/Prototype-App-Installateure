@@ -1,5 +1,5 @@
 import { useId, useMemo, useState, type ReactNode } from 'react';
-import Badge from './Badge';
+import { Marke } from './Badge';
 import Button from './Button';
 
 export interface PickablePerson {
@@ -102,7 +102,7 @@ export default function PersonPicker({
     <fieldset>
       <legend className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">
         {legend}
-        {selected.length > 0 && <Badge tone="info">{selected.length} ausgewählt</Badge>}
+        {selected.length > 0 && <Marke>{selected.length} ausgewählt</Marke>}
       </legend>
 
       {people.length === 0 ? (

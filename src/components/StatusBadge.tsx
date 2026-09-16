@@ -1,26 +1,35 @@
-import Badge, { type Tone } from './Badge';
+import { Zustand, type Stand } from './Badge';
 
 /**
- * Zentrale Status→Farbe-Zuordnung für alle Domänen-Status (Bestellung,
- * Rechnung, Baustelle). Ersetzt die zuvor je Screen duplizierten Maps —
- * gleicher Status sieht überall gleich aus.
+ * Der Status eines Geschäftsobjekts — Bestellung, Rechnung, Baustelle,
+ * Angebot, Urlaubsantrag.
+ *
+ * EINE ZUORDNUNG FÜR ALLE DOMÄNEN, damit derselbe Status überall gleich
+ * aussieht. Vorher stand sie je Ansicht noch einmal, und „Offen" war in der
+ * einen Liste gelb und in der anderen grau.
+ *
+ * WARUM „ÜBERFÄLLIG" HIER KEINE WARNUNG IST, obwohl es nach einer klingt:
+ * der Status einer Rechnung sagt, WO sie steht, nicht was zu tun ist. Was zu
+ * tun ist, steht daneben — „3 Tage" am Mahnlauf, „12 Tage" an der
+ * unverrechneten Leistung —, und DAS sind Warnungen. Stünde beides als
+ * gefüllte Pille da, hätte die Liste zwei Rufe für eine Sache.
  */
-const STATUS_TONE: Record<string, Tone> = {
+const STATUS_STAND: Record<string, Stand> = {
   // Bestell-Status
-  Offen: 'warning',
-  'In Bearbeitung': 'info',
-  Abholbereit: 'info',
-  Erledigt: 'success',
+  Offen: 'achtung',
+  'In Bearbeitung': 'laeuft',
+  Abholbereit: 'laeuft',
+  Erledigt: 'gut',
   // Rechnungs-Status
-  Überfällig: 'danger',
-  Bezahlt: 'success',
-  Storniert: 'gray',
+  Überfällig: 'schlecht',
+  Bezahlt: 'gut',
+  Storniert: 'ruht',
   // Baustellen-Status
-  Aktiv: 'success',
-  Pausiert: 'warning',
-  Abgeschlossen: 'gray',
+  Aktiv: 'gut',
+  Pausiert: 'achtung',
+  Abgeschlossen: 'ruht',
 };
 
 export default function StatusBadge({ status }: { status: string }) {
-  return <Badge tone={STATUS_TONE[status] ?? 'gray'}>{status}</Badge>;
+  return <Zustand stand={STATUS_STAND[status] ?? 'ruht'}>{status}</Zustand>;
 }

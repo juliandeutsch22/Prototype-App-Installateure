@@ -182,14 +182,14 @@ describe('In der Nachkalkulation', () => {
   */
   it('nimmt der Ampel das Grün, solange Preise fehlen', () => {
     const ohneLuecke = rechneBaustelle('2026-001', 'Huber', [], RECHNUNG, undefined, KOSTEN);
-    expect(margenTon(ohneLuecke)).toBe('success');
+    expect(margenTon(ohneLuecke)).toBe('gut');
 
     const material = materialkosten([schein('s1', [{ name: 'Fremdteil', menge: 1 }])], []);
     const mitLuecke = rechneBaustelle(
       '2026-001', 'Huber', [], RECHNUNG, undefined, KOSTEN, material,
     );
     expect(mitLuecke.margeProzent).toBeGreaterThan(20);
-    expect(margenTon(mitLuecke)).toBe('warning');
+    expect(margenTon(mitLuecke)).toBe('achtung');
   });
 
   it('rechnet ohne Materialangabe genau wie vorher', () => {

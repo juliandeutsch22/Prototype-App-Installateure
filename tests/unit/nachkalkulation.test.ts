@@ -110,7 +110,7 @@ describe('Nachkalkulation', () => {
     expect(k.erloes).toBe(0);
     expect(k.margeProzent).toBeNull();
     expect(k.erloesQuelle).toBe('unbekannt');
-    expect(margenTon(k)).toBe('gray');
+    expect(margenTon(k)).toBe('ruht');
   });
 
   it('lässt Zeiten anderer Baustellen liegen', () => {
@@ -130,13 +130,13 @@ describe('Nachkalkulation', () => {
     // Erlös 500, Kosten 420 -> 16 % Deckungsbeitrag. Formal positiv, aber nach
     // Gemeinkosten bleibt davon nichts.
     const duenn = rechneBaustelle('B-001', 'Huber', [zeit(600)], [rechnung(500)], undefined, kosten);
-    expect(margenTon(duenn)).toBe('warning');
+    expect(margenTon(duenn)).toBe('achtung');
 
     const verlust = rechneBaustelle('B-001', 'Huber', [zeit(600)], [rechnung(300)], undefined, kosten);
     expect(verlust.deckungsbeitrag).toBeLessThan(0);
-    expect(margenTon(verlust)).toBe('danger');
+    expect(margenTon(verlust)).toBe('schlecht');
 
     const gut = rechneBaustelle('B-001', 'Huber', [zeit(600)], [rechnung(1000)], undefined, kosten);
-    expect(margenTon(gut)).toBe('success');
+    expect(margenTon(gut)).toBe('gut');
   });
 });

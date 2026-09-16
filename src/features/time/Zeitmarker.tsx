@@ -1,4 +1,4 @@
-import Badge from '@/components/Badge';
+import { Marke } from '@/components/Badge';
 import type { TimeEntry } from '@/types';
 
 /**
@@ -26,9 +26,15 @@ export type MarkierterEintrag = Pick<TimeEntry, 'isHelper' | 'isEmergency' | 'is
 export default function Zeitmarker({ eintrag }: { eintrag: MarkierterEintrag }) {
   return (
     <>
-      {eintrag.isHelper && <Badge tone="warning">Helfer</Badge>}
-      {eintrag.isEmergency && <Badge tone="danger">Notdienst</Badge>}
-      {eintrag.isNightWork && <Badge tone="info">Nacht</Badge>}
+      {/*
+        DREI EIGENSCHAFTEN EINER BUCHUNG, KEIN URTEIL. „Notdienst" stand in
+        Rot — der Farbe für „hier ist etwas kaputt" —, dabei ist es eine
+        Angabe zur Abrechnung. Wer das Wort liest, weiss mehr als von der
+        Farbe.
+      */}
+      {eintrag.isHelper && <Marke>Helfer</Marke>}
+      {eintrag.isEmergency && <Marke>Notdienst</Marke>}
+      {eintrag.isNightWork && <Marke>Nacht</Marke>}
     </>
   );
 }
