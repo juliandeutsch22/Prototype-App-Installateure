@@ -567,3 +567,28 @@ npm run rules:test      # in einem zweiten Terminal
   sie den ehrlichen Hinweis still, ohne dass etwas ausser Haus lag. Gemeldet
   wird jetzt, was wirklich geschah.
   (`AUSLEITUNG_BUCKET` gehörte zum alten Firebase-Weg in `functions/`.)
+
+- **Der Rücklauf** (`scripts/ruecklauf.mjs`): aus einer Sicherungsdatei wird
+  wieder ein Betrieb. Eine Sicherung, die nie zurückgespielt wurde, ist keine;
+  `tests/supabase/ruecklauf.test.ts` geht den Weg bei jedem Prüflauf einmal
+  ganz durch — ausleiten, Betrieb löschen, zurückspielen, vergleichen.
+
+  ```
+  RUECKLAUF_URL=https://<projekt>.supabase.co \
+  RUECKLAUF_DIENSTSCHLUESSEL=<service_role des ZIELS> \
+    node scripts/ruecklauf.mjs stand.jsonl            # nur nachsehen
+    node scripts/ruecklauf.mjs stand.jsonl --schreiben # wirklich einspielen
+  ```
+
+  **Ein Werkzeug für die Hand und keine Edge Function.** Der Ernstfall ist
+  „das Projekt ist weg" — eine Function IN diesem Projekt wäre dann ebenfalls
+  weg. Der Trockenlauf ist die Vorgabe, und in ein Ziel, in dem es den Betrieb
+  schon gibt, schreibt das Werkzeug gar nicht erst.
+
+  **Die Anmeldekonten stehen NICHT in der Sicherung** — sie tragen kein
+  `company_id` und fallen aus der Ausleitung heraus. Der Rücklauf baut sie aus
+  den Profilen neu, unter derselben Kennung; damit lösen sich alle
+  Fremdschlüssel wieder auf. Betrieb, Rolle und Zustand setzt dabei der
+  Auslöser `users_ansprueche` aus der Profilzeile, nicht das Werkzeug.
+  **Die Passwörter kommen nicht zurück** (sie stehen als Hash in `auth.users`):
+  jeder Zugang braucht danach einmal „Passwort vergessen".

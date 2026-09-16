@@ -2969,10 +2969,8 @@ sondern nur der Eimer selbst. Deshalb trägt die Fehlermeldung die Antwort des
 Zielspeichers im Klartext mit: zwischen abgelaufenem Schlüssel, falschem
 Eimer und fehlender Berechtigung soll nachts niemand raten müssen.
 
-**Und der Rücklauf steht weiterhin aus.** Eine Sicherung, die nie
-zurückgespielt wurde, ist keine. Wenn die erste Datei im Eimer liegt, gehört
-der Weg zurück einmal gegangen — herunterladen, einlesen, nachsehen, ob
-Rechnungen und Zeiten vollständig sind. Erst danach ist die Lücke geschlossen.
+**Der Rücklauf** stand hier zuerst als offen — er ist am 16.09.2026
+nachgereicht, siehe unten.
 
 ### Ein Befund über den Bau selbst
 
@@ -2990,6 +2988,83 @@ Firebase-Typen übersetzt.
 Die Regel gibt es also längst; sie stand nur in einem Kommentar. Jetzt hält
 sie `tests/unit/gemeinsameImporte.test.ts` fest — samt der Gegenprobe, dass
 das Muster überhaupt noch Importe findet.
+
+## Erledigt: der Rücklauf — und damit ist es wirklich eine Sicherung (16.09.2026)
+
+**Erst am 16.09. um 09:21 ist zum ersten Mal ein Stand wirklich ausser Haus
+gelandet** (`senklot-sicherung/ausleitung/perl/2026-09-16/092128.jsonl`,
+10 Zeilen). Damit war die halbe Strecke gewonnen — und die andere Hälfte
+offen: niemand wusste, ob die abgelegten Dateien überhaupt etwas taugen.
+
+Jetzt gibt es den Weg zurück, und `tests/supabase/ruecklauf.test.ts` geht ihn
+bei **jedem** Prüflauf einmal ganz durch: einen Betrieb anlegen, ihn mit der
+echten Edge Function ausleiten, die Datei aus dem Speicher holen, **den
+Betrieb vollständig löschen** — samt Anmeldekonten —, mit dem echten Werkzeug
+zurückspielen und vergleichen. Nichts daran ist nachgebildet.
+
+### Der Befund, der die ganze Bauform bestimmt hat
+
+`public.users.id` verweist auf `auth.users(id)`. Die **Anmeldekonten stehen
+nicht in der Sicherung**: sie tragen kein `company_id` und fallen damit aus
+der Ausleitung heraus. Ohne sie lässt sich keine einzige Profilzeile
+einfügen — und ohne Profilzeilen hängt der ganze Rest in der Luft.
+
+Der Rücklauf baut sie deshalb aus den Profilen neu, **unter derselben
+Kennung**; die Admin-Schnittstelle nimmt eine vorgegebene Kennung an (das habe
+ich ausprobiert, bevor ich darauf gebaut habe). Damit lösen sich alle
+Fremdschlüssel der Sicherung wieder auf. Bekämen die Konten neue Kennungen,
+zeigte jede Zeiteintragung, jeder Schein und jede Zuordnung ins Leere.
+
+**Die Passwörter kommen nicht zurück.** Sie stehen als Hash in `auth.users`
+und damit nicht in der Sicherung. Jeder wiederhergestellte Zugang braucht
+einmal „Passwort vergessen" — keine Lücke, sondern die Folge davon, dass eine
+Sicherung keine Passwörter mitnimmt.
+
+### Drei Entscheidungen
+
+**Ein Werkzeug für die Hand, keine Edge Function.** Der Ernstfall ist „das
+Projekt ist weg" — eine Function IN diesem Projekt wäre dann ebenfalls weg.
+Ein Rücklauf läuft auf dem Rechner eines Menschen, gegen ein frisches Projekt,
+mit einem Schlüssel, den dieser Mensch in dem Moment in der Hand hat.
+
+**Der Trockenlauf ist die Vorgabe.** Ein Werkzeug, das beim ersten
+unbedachten Aufruf schreibt, wird irgendwann unbedacht aufgerufen. Und in ein
+Ziel, in dem es den Betrieb schon gibt, schreibt es gar nicht erst.
+
+**Eingefügt wird in RUNDEN, nicht in fester Reihenfolge.** Die Tabellen hängen
+über Fremdschlüssel aneinander. Eine einprogrammierte Reihenfolge wäre die
+naheliegende Lösung und die schlechteste: sie veraltet bei der nächsten neuen
+Tabelle, unbemerkt, weil sie erst im Ernstfall gebraucht wird. Stattdessen:
+alles versuchen, was scheitert in die nächste Runde, und wenn eine Runde
+nichts mehr schafft, ehrlich abbrechen statt halb einzuspielen.
+
+### Zwei eigene Fehler, beide von Prüfungen gefunden
+
+**Der Messpunkt war falsch.** Der erste Durchstich meldete eine fehlende Zeile
+in `system_laeufe`. Die Ausleitung hält ihren EIGENEN Lauf dort fest, und zwar
+NACH dem Schreiben der Datei — die Datei kann ihn gar nicht enthalten. Wer
+erst danach misst, hält ein richtiges Ergebnis für falsch. Gemessen wird jetzt
+davor.
+
+**Der Rücklauf schrieb eine Wahrheit doppelt.** Er setzte beim Anlegen der
+Konten auch Betrieb, Rolle und Zustand im Token. Eine Mutation, die das
+wegliess, überlebte — und das war kein Loch in der Prüfung, sondern eine
+Antwort: der Auslöser `users_ansprueche` setzt diese Angaben aus der
+Profilzeile und sperrt ein inaktives Konto gleich mit. Zwei Quellen für
+dieselbe Wahrheit laufen auseinander; die im Werkzeug wäre die schlechtere
+gewesen, weil sie einer Datei glaubt statt der Datenbank. Sie ist weg.
+
+### Was weiterhin offen ist
+
+**Der Rücklauf spielt in ein Projekt mit fertigem Schema.** Er setzt voraus,
+dass die Migrationen dort schon gelaufen sind — er baut keine Datenbank, er
+füllt eine. Für den Ernstfall heisst das: erst ein frisches Supabase-Projekt
+mit `supabase db push`, dann der Rücklauf.
+
+**Dateien im Speicher (Fotos am Handwerksschein) gehen nicht mit.** Die
+Ausleitung schreibt Tabellenzeilen; die Bilder liegen im Storage und sind
+nicht Teil des Standes. Ein Schein käme also zurück, seine Fotos nicht — das
+gehört benannt, bevor es jemand im Ernstfall feststellt.
 
 ---
 
