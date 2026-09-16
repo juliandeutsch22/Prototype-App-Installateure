@@ -10,7 +10,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { EinsatzMaterial, RuestPosition } from '@/types';
-import { abfragen, derClient, NACHFASSEN_MS, type WithId } from './kern';
+import { abfragen, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
 
 const KOPF = 'einsatz_material';
 const POSITIONEN = 'einsatz_material_positionen';
@@ -144,27 +144,22 @@ export function subscribeEinsatzMaterialForDate(
       });
   };
 
-  const kanal = c
-    .channel(`${KOPF}-${companyId}-${date}-${Math.random().toString(36).slice(2)}`)
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: KOPF, filter: `company_id=eq.${companyId}` },
-      () => anstossen(),
-    )
-    .subscribe((status) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        onError(new Error(`Live-Abonnement für ${KOPF}: ${status}`));
-        return;
-      }
-      if (status !== 'SUBSCRIBED') return;
+  // Wiederaufbau wie überall — siehe `kanalHalten`.
+  const stoppKanal = kanalHalten({
+    tabelle: KOPF,
+    filter: `company_id=eq.${companyId}`,
+    beiAenderung: () => anstossen(),
+    beiBereit: () => {
       anstossen();
       nachfassen = setTimeout(anstossen, NACHFASSEN_MS);
-    });
+    },
+    client: c,
+  });
 
   return () => {
     gestoppt = true;
     if (nachfassen) clearTimeout(nachfassen);
-    void c.removeChannel(kanal);
+    stoppKanal();
   };
 }
 
