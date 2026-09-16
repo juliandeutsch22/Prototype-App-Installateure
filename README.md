@@ -562,6 +562,29 @@ npm run rules:test      # in einem zweiten Terminal
   Sicherung ausbleibt. Ist gar kein Ziel eingerichtet, ist das etwas
   anderes: eine benannte Lücke, und der Lauf gilt als erfolgreich.
 
+  **Die Fotos am Handwerksschein gehen mit** — aber nur ausser Haus. Sie
+  liegen bereits im Speicher dieses Projekts; sie in den Eimer nebenan zu
+  kopieren verdoppelte den Platz und schützte gegen nichts. Ohne
+  eingerichteten Zielspeicher geschieht also nichts, und das ist eine
+  benannte Lücke, keine ausgelassene Arbeit.
+
+  | Name | Vorgabe | Wofür |
+  | --- | --- | --- |
+  | `AUSLEITUNG_DATEIEN_JE_LAUF` | `200` | Dateien je Lauf |
+  | `AUSLEITUNG_DATEIEN_BYTES_JE_LAUF` | `67108864` (64 MB) | Bytes je Lauf |
+
+  Die Grenzen sind da, weil eine Edge Function eine Wanduhr hat: ein Betrieb
+  mit Jahren an Fotos bräche sonst in jeder Nacht an derselben Stelle ab. So
+  arbeitet sich der Rückstand Nacht für Nacht ab, und die Ansicht sagt, wie
+  viele noch fehlen.
+
+  Welche Datei schon draussen liegt, führt `ausleitung_dateien` Buch — das
+  Dienstkonto dort darf ja nicht nachsehen. Die Tabelle trägt `company_id`
+  und geht damit selbst mit in die Sicherung. Welche Eimer überhaupt
+  mitgehen, steht in `app.datei_eimer()`, und jeder Eimer muss dort stehen,
+  mit `true` oder mit `false`: `tests/supabase/ausleitungDateien.test.ts`
+  fällt, wenn ein neuer Eimer niemandem eine Entscheidung abverlangt hat.
+
   `AUSLEITUNG_ZIEL_EXTERN` gibt es nicht mehr. Die Variable setzte **nur die
   Meldung** in der Überwachung und bewegte keine Datei — eingeschaltet legte
   sie den ehrlichen Hinweis still, ohne dass etwas ausser Haus lag. Gemeldet
@@ -592,3 +615,12 @@ npm run rules:test      # in einem zweiten Terminal
   Auslöser `users_ansprueche` aus der Profilzeile, nicht das Werkzeug.
   **Die Passwörter kommen nicht zurück** (sie stehen als Hash in `auth.users`):
   jeder Zugang braucht danach einmal „Passwort vergessen".
+
+  **Die Dateien holt der Rücklauf NICHT** — und das liegt nicht an ihm.
+  Das Dienstkonto im Zielspeicher darf nur anlegen; mit seinem Schlüssel
+  lässt sich nichts herunterladen. Wer wiederherstellt, holt die Fotos unter
+  `dateien/<betrieb>/<eimer>/…` mit seinem EIGENEN Zugang aus dem Eimer und
+  legt sie unter demselben Objektnamen in den Speicher des neuen Projekts.
+  Der Name ist unverändert geblieben, Zeichen für Zeichen — er steht in der
+  Prüfsumme des Scheins, und nur deshalb lässt sich ein unterschriebener
+  Beleg danach noch nachrechnen.

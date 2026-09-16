@@ -28,14 +28,26 @@ const KODIERER = new TextEncoder();
   `as`-Umweg an dieser Stelle hätte genau die Prüfung ausgeschaltet, die hier
   etwas taugt.
 */
-type Bytes = Uint8Array<ArrayBuffer>;
+export type Bytes = Uint8Array<ArrayBuffer>;
 
 function roh(text: string): Bytes {
   return KODIERER.encode(text) as Bytes;
 }
 
 /**
- * Der SHA-256 eines Textes, hexadezimal.
+ * Text oder Bytes — beides wird hier zu Bytes.
+ *
+ * WARUM ES BEIDES GIBT. Der Stand ist Text (`.jsonl`), ein Foto ist es nicht.
+ * Ein Bild durch eine Zeichenkette zu schicken hiesse, es zu kodieren und
+ * wieder zu dekodieren; jedes Byte, das dabei nicht heil ankommt, macht die
+ * Signatur ungueltig — und bei einem JPEG ist fast jedes Byte ein solches.
+ */
+function alsBytes(daten: string | Bytes): Bytes {
+  return typeof daten === 'string' ? roh(daten) : daten;
+}
+
+/**
+ * Der SHA-256 eines Inhalts — Text oder Bytes —, hexadezimal.
  *
  * Nach aussen gereicht, weil S3 den Inhaltshash als KOPFZEILE verlangt
  * (`x-amz-content-sha256`) und der Aufrufer ihn deshalb ohnehin braucht.
@@ -44,8 +56,8 @@ function roh(text: string): Bytes {
  * was man ihr gibt, und nichts sonst. Nur so lässt sie sich gegen die
  * veröffentlichten Testvektoren halten.
  */
-export async function inhaltsHash(daten: string): Promise<string> {
-  return alsHex(new Uint8Array(await crypto.subtle.digest('SHA-256', roh(daten))) as Bytes);
+export async function inhaltsHash(daten: string | Bytes): Promise<string> {
+  return alsHex(new Uint8Array(await crypto.subtle.digest('SHA-256', alsBytes(daten))) as Bytes);
 }
 
 async function hmac(schluessel: Bytes, nachricht: string): Promise<Bytes> {
@@ -94,7 +106,7 @@ export interface Signatureingabe {
   verb: string;
   /** Pfad OHNE führenden Schrägstrich, z. B. 'eimer/ausleitung/perl/…' */
   pfad: string;
-  inhalt: string;
+  inhalt: string | Bytes;
   schluessel: string;
   geheimnis: string;
   jetzt: Date;

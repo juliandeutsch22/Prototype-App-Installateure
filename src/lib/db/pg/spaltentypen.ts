@@ -29,6 +29,14 @@ export type Spaltenart = 'zeitpunkt' | 'uhrzeit';
 
 export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   assignments: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  /*
+    Die App liest diese Tabelle nie — sie gehört der Ausleitung und ist nur
+    mit dem Dienstschlüssel erreichbar. Die Zeile steht trotzdem hier, weil
+    die Karte das SCHEMA abbildet und nicht die Lesegewohnheiten: eine
+    Lücke darin sähe aus wie ein Versäumnis und wäre beim nächsten Leser
+    eine Frage statt einer Auskunft.
+  */
+  ausleitung_dateien: { gesichert_am: 'zeitpunkt' },
   betriebsanlagen: { angelegt_am: 'zeitpunkt' },
   companies: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   customers: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },

@@ -8,7 +8,8 @@
  * gibt.
  */
 import { describe, it, expect } from 'vitest';
-import { zielAusUmgebung, zielPfad, putAnfrage } from '@/../shared/ausleitungZiel';
+import { zielAusUmgebung, zielPfad, dateiZielPfad, putAnfrage } from '@/../shared/ausleitungZiel';
+import { inhaltsHash } from '@/../shared/s3Signatur';
 
 const VOLLSTAENDIG = {
   SICHERUNG_S3_ENDPUNKT: 'https://storage.googleapis.com',
@@ -142,5 +143,88 @@ describe('Der Aufruf, mit dem der Stand ausser Haus geht', () => {
     const { url, kopfzeilen } = await putAnfrage(ZIEL, "ausleitung/O'Brien/x.jsonl", 'inhalt', JETZT);
     expect(url).toContain('O%27Brien');
     expect(kopfzeilen.Authorization).toContain('Signature=');
+  });
+});
+
+describe('Der Pfad einer DATEI im Zielspeicher', () => {
+  it('lässt den Objektnamen unangetastet', () => {
+    /*
+      DER PUNKT DIESER PRÜFUNG. Der Pfad eines Scheinfotos geht in die
+      Prüfsumme des Scheins ein. Wer ihn beim Sichern umschreibt — etwa das
+      führende `scheine/` weglässt, weil der Eimer schon so heisst —, kann
+      den Beleg nach einem Wiederanlauf nicht mehr nachrechnen.
+    */
+    expect(dateiZielPfad('perl', 'scheinfotos', 'scheine/perl/s1/abc.jpg'))
+      .toBe('dateien/perl/scheinfotos/scheine/perl/s1/abc.jpg');
+  });
+
+  it('hält Eimer und Betriebe auseinander', () => {
+    // Zwei Eimer dürfen denselben Objektnamen tragen; ohne den Abschnitt
+    // schriebe der zweite auf den ersten — was der Zielspeicher abwiese und
+    // was wie ein kaputter Zugang aussähe.
+    expect(dateiZielPfad('perl', 'scheinfotos', 'a/b.jpg'))
+      .not.toBe(dateiZielPfad('perl', 'anderer', 'a/b.jpg'));
+    expect(dateiZielPfad('perl', 'scheinfotos', 'a/b.jpg'))
+      .not.toBe(dateiZielPfad('gruber', 'scheinfotos', 'a/b.jpg'));
+  });
+
+  it('trägt KEINEN Zeitstempel — anders als der Stand', () => {
+    /*
+      Beim Stand ist die Uhrzeit nötig, weil jeder Lauf einen neuen schreibt
+      und das Dienstkonto nicht überschreiben darf. Bei einer Datei wäre sie
+      schädlich: der Dateiname IST der Inhalts-Hash, derselbe Pfad trägt also
+      immer denselben Inhalt. Mit Zeitstempel läge dasselbe Foto nach einem
+      Jahr dreihundertmal im Zielspeicher.
+    */
+    expect(dateiZielPfad('perl', 'scheinfotos', 'x.jpg'))
+      .toBe(dateiZielPfad('perl', 'scheinfotos', 'x.jpg'));
+    expect(dateiZielPfad('perl', 'scheinfotos', 'x.jpg')).not.toMatch(/\d{6}/);
+  });
+});
+
+describe('Eine Datei geht ausser Haus', () => {
+  const ZIEL = {
+    endpunkt: 'https://storage.googleapis.com',
+    region: 'auto',
+    eimer: 'senklot-ausleitung-perl',
+    schluessel: 'GOOG1EXAMPLE',
+    geheimnis: 'geheim',
+  };
+  const JETZT = new Date(Date.UTC(2026, 8, 15, 2, 30, 7));
+  /** Bytes, die als Text nicht heil überleben — genau darum geht es. */
+  const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+
+  it('signiert die BYTES und nicht ihre Textfassung', async () => {
+    /*
+      DER FEHLER, GEGEN DEN DAS HIER STEHT. Schickte man ein JPEG durch eine
+      Zeichenkette, ersetzte die Kodierung jedes Byte über 0x7F durch das
+      Ersatzzeichen — die Signatur passte dann zu einem Inhalt, den niemand
+      abgeschickt hat, und der Zielspeicher antwortete mit 403. Bei einem
+      JPEG ist fast jedes zweite Byte ein solches.
+    */
+    const { kopfzeilen } = await putAnfrage(
+      ZIEL, 'dateien/perl/scheinfotos/x.jpg', JPEG, JETZT, 'image/jpeg',
+    );
+    expect(kopfzeilen['x-amz-content-sha256']).toBe(await inhaltsHash(JPEG));
+    expect(kopfzeilen['x-amz-content-sha256'])
+      .not.toBe(await inhaltsHash(new TextDecoder().decode(JPEG)));
+  });
+
+  it('legt den Typ ans Objekt, den der Aufrufer nennt', async () => {
+    const { kopfzeilen } = await putAnfrage(
+      ZIEL, 'dateien/perl/scheinfotos/x.jpg', JPEG, JETZT, 'image/jpeg',
+    );
+    expect(kopfzeilen['Content-Type']).toBe('image/jpeg');
+    // Und er ist MITSIGNIERT — sonst liesse er sich unterwegs austauschen.
+    expect(kopfzeilen.Authorization).toContain(
+      'SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date',
+    );
+  });
+
+  it('bleibt für den Stand beim zeilenweisen JSON, wenn niemand etwas sagt', async () => {
+    // Die Vorgabe darf sich nicht verschoben haben: jeder bestehende Aufruf
+    // gibt keinen Typ mit.
+    const { kopfzeilen } = await putAnfrage(ZIEL, 'ausleitung/perl/x.jsonl', '{}\n', JETZT);
+    expect(kopfzeilen['Content-Type']).toBe('application/x-ndjson');
   });
 });

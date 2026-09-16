@@ -40,6 +40,16 @@ export interface AusleitungsBilanz {
   pfad: string;
   geraeumt: number;
   ziel: string;
+  /**
+   * Die Dateien — Fotos am Handwerksschein — die dieser Lauf ausser Haus
+   * gelegt hat, und wie viele danach noch fehlen.
+   *
+   * OPTIONAL, weil eine ältere Fassung der Function sie nicht mitschickt. Ein
+   * `0` dafür einzusetzen wäre bequem und falsch: es hiesse „nichts offen",
+   * wo in Wirklichkeit „nicht gesagt" steht.
+   */
+  dateien?: number;
+  dateienOffen?: number;
 }
 
 /**

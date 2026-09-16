@@ -81,6 +81,62 @@ describe('Datensicherung', () => {
     expect(beleg).toHaveTextContent('Standard-Bucket des Projekts');
   });
 
+  it('sagt, wie viele Fotos mitgingen — und wie viele noch fehlen', async () => {
+    /*
+      DER BESTAND GEHT IN EINEM ZUG HINAUS, DIE FOTOS NICHT. Ein Lauf nimmt so
+      viele Bilder, wie in seine Laufzeit passen, und holt den Rest in den
+      nächsten Nächten nach. Stünde hier nur „gesichert", hielte jemand einen
+      Rückstand von dreitausend Fotos für erledigt — und genau die sind der
+      Beweis am Handwerksschein.
+    */
+    ausleitung.mockResolvedValue({
+      data: {
+        companyId: 'perl', zeilen: 12, bytes: 1000, pfad: 'x', geraeumt: 0,
+        ziel: 'eimer/ausleitung/perl/2026-09-16/023007.jsonl',
+        dateien: 200, dateienOffen: 3041,
+      },
+    });
+    zeige();
+    await userEvent.click(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' }));
+
+    const beleg = await screen.findByText(/Zuletzt gesichert:/);
+    expect(beleg).toHaveTextContent('200');
+    expect(beleg).toHaveTextContent('3041 noch offen');
+  });
+
+  it('sagt ausdrücklich, wenn KEIN Foto mehr fehlt', async () => {
+    // „0 noch offen" wäre dieselbe Auskunft und die schlechtere: eine Null
+    // liest sich wie ein Zähler, der noch nicht gelaufen ist.
+    ausleitung.mockResolvedValue({
+      data: {
+        companyId: 'perl', zeilen: 12, bytes: 1000, pfad: 'x', geraeumt: 0, ziel: 'z',
+        dateien: 4, dateienOffen: 0,
+      },
+    });
+    zeige();
+    await userEvent.click(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' }));
+
+    const beleg = await screen.findByText(/Zuletzt gesichert:/);
+    expect(beleg).toHaveTextContent('es fehlt keines');
+    expect(beleg).not.toHaveTextContent('noch offen');
+  });
+
+  it('behauptet nichts über Fotos, wenn die Function nichts dazu sagt', async () => {
+    /*
+      EINE ÄLTERE FASSUNG DER FUNCTION SCHICKT DIE FELDER NICHT MIT. Sie dann
+      als „0 mitgesichert, es fehlt keines" anzuzeigen wäre die bequeme
+      Fassung und eine Falschaussage: „nicht gesagt" ist nicht „nichts offen".
+    */
+    ausleitung.mockResolvedValue({
+      data: { companyId: 'perl', zeilen: 12, bytes: 1000, pfad: 'x', geraeumt: 0, ziel: 'z' },
+    });
+    zeige();
+    await userEvent.click(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' }));
+
+    const beleg = await screen.findByText(/Zuletzt gesichert:/);
+    expect(beleg).not.toHaveTextContent('Fotos');
+  });
+
   it('reicht die Meldung der Function durch, statt sie zu verschlucken', async () => {
     ausleitung.mockRejectedValue(new Error('Der Datenbestand ist zu groß für einen Export in einem Stück.'));
     zeige();

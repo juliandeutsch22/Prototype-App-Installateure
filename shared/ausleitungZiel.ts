@@ -15,7 +15,7 @@
  * Die beiden zu verwechseln wäre der teuerste Fehler dieser Funktion.
  */
 import { datumsStempel } from './ausleitungPlan';
-import { signiere, inhaltsHash, pfadKodieren } from './s3Signatur';
+import { signiere, inhaltsHash, pfadKodieren, type Bytes } from './s3Signatur';
 
 export interface Zielspeicher {
   endpunkt: string;
@@ -76,6 +76,30 @@ export function zielPfad(companyId: string, jetzt: Date): string {
 }
 
 /**
+ * Der Pfad einer DATEI im Zielspeicher.
+ *
+ * WARUM DER OBJEKTNAME UNVERAENDERT DARIN STEHT. Der Pfad eines Scheinfotos
+ * geht in die Prüfsumme des Scheins ein — `scheine/<betrieb>/<schein>/<hash>.jpg`,
+ * Zeichen für Zeichen. Wer den Betrieb einmal wiederherstellt, muss die Datei
+ * genau dorthin zurücklegen können; ein umgeschriebener Name machte jeden
+ * unterschriebenen Beleg unnachrechenbar. Hier wird deshalb nur davor gesetzt
+ * und nie ersetzt.
+ *
+ * DER EIMER STEHT MIT DARIN, obwohl es heute nur einen gibt. Zwei Eimer
+ * dürfen denselben Objektnamen tragen; ohne diesen Abschnitt überschriebe der
+ * zweite den ersten — was der Zielspeicher gar nicht zuliesse und was als
+ * „Zugang kaputt" erschiene statt als das, was es wäre.
+ *
+ * KEIN ZEITSTEMPEL, anders als beim Stand: der Dateiname IST der
+ * Inhalts-Hash, derselbe Pfad trägt also immer denselben Inhalt. Ein zweites
+ * Hochladen wäre reine Verdopplung — welche Datei schon draussen liegt, führt
+ * `ausleitung_dateien` Buch, weil das Dienstkonto dort nicht nachsehen darf.
+ */
+export function dateiZielPfad(companyId: string, eimer: string, pfad: string): string {
+  return `dateien/${companyId}/${eimer}/${pfad}`;
+}
+
+/**
  * Der fertige Aufruf, mit dem ein Stand ausser Haus geht.
  *
  * WARUM DAS HIER STEHT UND NICHT IN DER FUNCTION. Alles daran lässt sich
@@ -90,11 +114,22 @@ export function zielPfad(companyId: string, jetzt: Date): string {
  * `storage.googleapis.com` erwartet, und sie kommt ohne eigenen DNS-Namen je
  * Eimer aus. Signiert wird genau das, was danach in der Adresse steht — jede
  * Abweichung zwischen beidem ergibt ein 403 ohne Begründung.
+ *
+ * UND DESHALB GEHT DER PFADTEIL DES ENDPUNKTS MIT IN DIE SIGNATUR. Bei den
+ * grossen Anbietern ist der Endpunkt ein blosser Hostname, und dann fällt
+ * dieser Fall nie auf. Steht dort aber ein Pfad — `…/storage/v1/s3` bei
+ * Supabase, `…/s3` hinter einem Vorschaltserver —, dann rechnete eine
+ * Signatur über den blossen Eimerpfad etwas anderes aus, als der Server über
+ * die empfangene Adresse rechnet. Das Ergebnis wäre ein 403 ohne Begründung,
+ * und es sähe nach einem falschen Schlüssel aus.
  */
 export async function putAnfrage(
-  ziel: Zielspeicher, pfad: string, inhalt: string, jetzt: Date,
+  ziel: Zielspeicher, pfad: string, inhalt: string | Bytes, jetzt: Date,
+  typ = 'application/x-ndjson',
 ): Promise<{ url: string; kopfzeilen: Record<string, string> }> {
-  const imPfad = `${ziel.eimer}/${pfad}`;
+  const basis = new URL(ziel.endpunkt);
+  const vorsatz = basis.pathname.replace(/^\/+|\/+$/g, '');
+  const imPfad = [vorsatz, ziel.eimer, pfad].filter(Boolean).join('/');
   const kopfzeilen = await signiere({
     endpunkt: ziel.endpunkt,
     region: ziel.region,
@@ -108,8 +143,14 @@ export async function putAnfrage(
       // Bei S3 Pflicht — und der Grund, warum sich der Inhalt unterwegs
       // nicht austauschen lässt.
       'x-amz-content-sha256': await inhaltsHash(inhalt),
-      'Content-Type': 'application/x-ndjson',
+      /*
+        DER TYP KOMMT VOM AUFRUFER. Der Stand ist `.jsonl`, ein Foto ist ein
+        JPEG — und der Typ steht am abgelegten Objekt. Wer den Stand Jahre
+        später aus dem Zielspeicher holt, lädt sonst ein Bild herunter, das
+        sein Rechner für zeilenweises JSON hält.
+      */
+      'Content-Type': typ,
     },
   });
-  return { url: `${ziel.endpunkt}/${pfadKodieren(imPfad)}`, kopfzeilen };
+  return { url: `${basis.origin}/${pfadKodieren(imPfad)}`, kopfzeilen };
 }
