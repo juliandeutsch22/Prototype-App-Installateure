@@ -531,11 +531,39 @@ npm run rules:test      # in einem zweiten Terminal
 - Datenexport pro Mandant via Cloud Function `exportCompanyData` (nur GF/Admin),
   erreichbar unter Einstellungen → Datensicherung.
 - Nächtliche Ausleitung des kompletten Bestands (`daten-ausleitung`, 02:30,
-  angestossen von `pg_cron`). **Sie liegt im selben Supabase-Projekt wie die
-  Daten** und hilft damit gegen einen Fehlgriff, nicht gegen den Verlust des
-  Zugangs. `AUSLEITUNG_EIMER` wechselt nur den Eimer INNERHALB des Projekts;
-  `AUSLEITUNG_ZIEL_EXTERN` setzt nur die Meldung in der Überwachung und
-  bewegt keine Datei — bitte nicht einschalten, solange das Ziel drinnen
-  liegt. Ein Ziel ausserhalb ist noch zu bauen.
-  (`AUSLEITUNG_BUCKET` gehörte zum alten Firebase-Weg in `functions/`; dort
-  zeigte es wirklich nach draussen.)
+  angestossen von `pg_cron`). Sie schreibt **immer** in den Speicher des
+  eigenen Projekts (`AUSLEITUNG_EIMER`) — das hilft gegen einen Fehlgriff —,
+  und **zusätzlich ausser Haus**, sobald ein Zielspeicher eingerichtet ist.
+  Erst das hilft gegen den Verlust des Zugangs.
+
+  Der Zielspeicher ist ein S3-kompatibler Eimer bei einem anderen Anbieter
+  (eingerichtet mit Google Cloud Storage; derselbe Code trägt auch zu R2 oder
+  Wasabi). Fünf Secrets in den Edge Functions, alle oder keines:
+
+  | Name | Beispiel |
+  | --- | --- |
+  | `SICHERUNG_S3_ENDPUNKT` | `https://storage.googleapis.com` |
+  | `SICHERUNG_S3_REGION` | `auto` |
+  | `SICHERUNG_S3_EIMER` | `senklot-ausleitung-perl` |
+  | `SICHERUNG_S3_SCHLUESSEL` | der Zugriffsschlüssel |
+  | `SICHERUNG_S3_GEHEIMNIS` | das zugehörige Geheimnis |
+
+  **Das Dienstkonto dort darf nur ANLEGEN** (`roles/storage.objectCreator`) —
+  nicht lesen, nicht löschen, nicht überschreiben. Wer dieses Projekt
+  übernimmt, hat damit einen Schlüssel, mit dem er die abgelegten Stände
+  nicht vernichten kann; das ist der halbe Zweck der Übung. Weil nicht
+  überschrieben werden darf, trägt der Pfad ausser Haus die Uhrzeit
+  (`ausleitung/<betrieb>/<tag>/<hhmmss>.jsonl`), während im eigenen Projekt
+  ein Stand JE TAG liegt.
+
+  **Halb eingerichtet gilt als Fehler:** die Function antwortet mit 503 und
+  nennt das fehlende Feld. Und **scheitert die Ablage ausser Haus, gilt der
+  Lauf als gescheitert** — die Überwachung soll ausschlagen, wenn die
+  Sicherung ausbleibt. Ist gar kein Ziel eingerichtet, ist das etwas
+  anderes: eine benannte Lücke, und der Lauf gilt als erfolgreich.
+
+  `AUSLEITUNG_ZIEL_EXTERN` gibt es nicht mehr. Die Variable setzte **nur die
+  Meldung** in der Überwachung und bewegte keine Datei — eingeschaltet legte
+  sie den ehrlichen Hinweis still, ohne dass etwas ausser Haus lag. Gemeldet
+  wird jetzt, was wirklich geschah.
+  (`AUSLEITUNG_BUCKET` gehörte zum alten Firebase-Weg in `functions/`.)
