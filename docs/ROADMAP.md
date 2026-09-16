@@ -3207,6 +3207,42 @@ Fehler.
 
 ---
 
+## Erledigt: Der Bilanzlauf, den es nicht gibt (16.09.2026)
+
+**Auf der Startseite stand dauerhaft „Ein nächtlicher Lauf steht aus".** Für
+Geschäftsführung und Administration, jeden Tag, mit einem Weg zu den
+Monatsbilanzen — auf eine Karte, die selbst erklärt, dass dort nichts
+anzustossen ist.
+
+Die Meldung war nicht falsch, sie war **veraltet**. In Firestore musste die
+Monatsbilanz vorgerechnet und abgelegt werden: eine Sammlung, ein Trigger zum
+Nachziehen, ein nächtlicher Lauf zum Ausgleichen, ein Marker für die
+Vollständigkeit. Unter Postgres ist `monthly_stats` eine SICHT — sie rechnet
+bei jeder Abfrage neu, kann nicht unvollständig sein, und deshalb gibt es
+weder einen Lauf noch einen Eintrag in `cron`. Die Einstellungen sagen das
+seit Stufe 8 auch so. Nur die Startseite fragte weiter nach ihm, bekam „noch
+nie durchgelaufen" — was stimmt — und meldete es.
+
+**Eine Warnung, die niemand abstellen kann, ist schlimmer als keine.** Sie
+bringt einem bei, die Stelle zu übersehen; und an derselben Stelle steht eines
+Tages die ausgefallene SICHERUNG. Genau das war der Grund, sie überhaupt zu
+bauen.
+
+Gefunden hat sie kein Test, sondern der Betrieb — ein Fund für Aufgabe O2
+(„weitere Firestore↔Postgres-Bedeutungsreste"). Welche Läufe es gibt,
+entscheidet jetzt die Datenquelle, und beide Zweige sind geprüft. Mit Stufe 9
+fällt die Fallunterscheidung weg.
+
+### Nebenbei: „1 Tage fehlen"
+
+In der Mitarbeiterübersicht stand die Zahl mit der falschen Form daneben. Es
+ist eine Kleinigkeit und trotzdem keine: wer eine Zahl anzeigt, die mit dem
+Wort daneben nicht zusammenpasst, hat offensichtlich nicht hingesehen — und
+der Leser fragt sich, wo sonst noch nicht. Die Fallunterscheidung stand an
+drei Stellen, an einer davon richtig; jetzt steht sie als `tageWort` an einer.
+
+---
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft

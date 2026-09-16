@@ -24,6 +24,15 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
+/*
+  DIE DATENQUELLE ENTSCHEIDET, WELCHE LÄUFE ES GIBT. Unter Firestore zwei,
+  unter Postgres nur die Ausleitung — die Monatsbilanz ist dort eine Sicht und
+  kein Lauf. Die Vorgabe hier ist Firestore, damit die bestehenden Prüfungen
+  weiter beide Läufe meinen; der Postgres-Zweig hat unten seinen eigenen Block.
+*/
+let postgres = false;
+vi.mock('@/lib/db/quelle', () => ({ nutztPostgres: () => postgres }));
+
 const { default: LaufWarnung } = await import('@/features/dashboard/LaufWarnung');
 
 function zeige() {
@@ -42,6 +51,7 @@ beforeEach(() => {
   laeufe = {};
   ladeLauf.mockClear();
   authWert.user.role = 'Geschäftsführung';
+  postgres = false;
 });
 
 describe('Wenn alles läuft', () => {
@@ -123,5 +133,43 @@ describe('Wer sie sieht', () => {
     await Promise.resolve();
     expect(ladeLauf).not.toHaveBeenCalled();
     expect(container.textContent).toBe('');
+  });
+});
+
+describe('Unter Postgres gibt es den Bilanzlauf gar nicht', () => {
+  /*
+    DER BEFUND AUS DEM BETRIEB. Auf der Startseite stand dauerhaft „Ein
+    nächtlicher Lauf steht aus", verlinkt auf die Monatsbilanzen. Er war
+    tatsächlich nie durchgelaufen und wird es nie: unter Postgres ist
+    `monthly_stats` eine SICHT, es gibt nichts nachzuziehen, keinen Lauf und
+    keinen Eintrag in `cron`. Die Einstellungen sagen das auch so — nur die
+    Startseite fragte weiter danach.
+
+    Eine Warnung, die niemand abstellen kann, ist schlimmer als keine: sie
+    bringt einem bei, die Stelle zu übersehen, an der eines Tages die
+    ausgefallene SICHERUNG steht.
+  */
+  beforeEach(() => { postgres = true; });
+
+  it('fragt gar nicht erst nach ihm', async () => {
+    laeufe = { ausleitung: lauf('ausleitung', 6) };
+    zeige();
+    await waitFor(() => expect(ladeLauf).toHaveBeenCalledTimes(1));
+    expect(ladeLauf).toHaveBeenCalledWith('perl', 'ausleitung');
+  });
+
+  it('schweigt, wenn die Sicherung läuft — auch ohne jede Bilanz-Aufzeichnung', async () => {
+    laeufe = { ausleitung: lauf('ausleitung', 6) };
+    const { container } = zeige();
+    await waitFor(() => expect(ladeLauf).toHaveBeenCalledTimes(1));
+    expect(container.textContent).toBe('');
+  });
+
+  it('meldet die Sicherung weiterhin, wenn sie ausbleibt', async () => {
+    // Das Wegnehmen darf nicht das Falsche mitnehmen.
+    laeufe = { ausleitung: lauf('ausleitung', 80) };
+    zeige();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sicherung');
+    expect(screen.queryByRole('link', { name: 'Zu den Monatsbilanzen' })).not.toBeInTheDocument();
   });
 });

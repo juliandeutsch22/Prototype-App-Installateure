@@ -1,6 +1,21 @@
 # Funktionsübersicht
 
-Stand: 02.09.2026.
+Stand: 16.09.2026.
+
+> **EIN VORBEHALT ZUM WORTLAUT, UND ER GEHÖRT NACH OBEN.** Diese Datei ist in
+> der Firestore-Zeit geschrieben und spricht an vielen Stellen noch von
+> Firestore, vom Emulator, von `firestore.rules` und von Cloud Functions. Die
+> App läuft seit Stufe 8 auf **Supabase/Postgres**: aus den Sammlungen sind
+> Tabellen geworden, aus den Regeln der Zeilenschutz (RLS), aus den Cloud
+> Functions Edge Functions und Trigger, und der Emulatorlauf heisst jetzt
+> `npm run supabase:test` und läuft gegen eine echte Datenbank.
+>
+> Die AUSSAGEN stimmen — wer darf was, worauf ist Verlass, wo sind die Lücken.
+> Die Namen darin stimmen teilweise nicht mehr. Sie werden mit **Stufe 9**
+> umgeschrieben, wenn die Firestore-Seite wirklich weg ist; sie vorher
+> umzubenennen hiesse, eine Datei zu pflegen, die zwei Zustände gleichzeitig
+> beschreiben müsste. Was seither dazugekommen ist, steht in `ROADMAP.md`
+> — dort mit den richtigen Namen.
 
 **Wofür dieses Dokument da ist.** Die Roadmap ist inzwischen ein
 Änderungsprotokoll: sie erzählt, was wann warum gebaut wurde, und sie ist
@@ -107,12 +122,26 @@ umgibt. Möglich wurde das über `resolve.alias` in `vitest.config.ts` — an
 Ersatz nicht kann: Indizes, Nebenläufigkeit, Regeln. Die Regeln prüft der
 Emulatorlauf; die anderen beiden bleiben offen und stehen unten.
 
-**Die Nachtläufe melden sich seit dem 07.09.2026.** Ausleitung (02:30) und
-Bilanzlauf (03:15) halten fest, ob sie durchgegangen sind; bleibt der letzte
-Erfolg zwei Nächte aus, steht das auf der Startseite der Leitung. Es war der
-einzige Mangel dieser App, bei dem der Schaden mit der Zeit WÄCHST statt
-aufzufallen: die Sicherung konnte wochenlang ausfallen, und bemerkt hätte man
-es an dem Tag, an dem man sie braucht.
+**Die Nachtläufe melden sich seit dem 07.09.2026.** Die Ausleitung (02:30)
+hält fest, ob sie durchgegangen ist; bleibt der letzte Erfolg zwei Nächte aus,
+steht das auf der Startseite der Leitung. Es war der einzige Mangel dieser
+App, bei dem der Schaden mit der Zeit WÄCHST statt aufzufallen: die Sicherung
+konnte wochenlang ausfallen, und bemerkt hätte man es an dem Tag, an dem man
+sie braucht.
+
+> **DEN BILANZLAUF GIBT ES UNTER POSTGRES NICHT MEHR** (03:15, bis 16.09.2026
+> hier mitgeführt). In Firestore musste die Monatsbilanz vorgerechnet und
+> abgelegt werden — mit einem Trigger zum Nachziehen und einem nächtlichen
+> Lauf zum Ausgleichen. Unter Postgres ist `monthly_stats` eine SICHT: sie
+> rechnet bei jeder Abfrage neu, es gibt nichts nachzuziehen, keinen Lauf und
+> keinen Eintrag in `cron`.
+>
+> Die Startseite fragte trotzdem weiter nach ihm, bekam „noch nie
+> durchgelaufen" — was stimmt, weil es ihn nicht gibt — und meldete
+> Geschäftsführung und Administration **dauerhaft** „Ein nächtlicher Lauf
+> steht aus". Eine Warnung, die niemand abstellen kann, ist schlimmer als
+> keine: sie bringt einem bei, die Stelle zu übersehen, an der eines Tages
+> die ausgefallene Sicherung steht.
 
 > **„Unbekannt" ist nicht „gut".** Ein Betrieb ohne Aufzeichnung sieht in den
 > Daten genauso aus wie einer, bei dem nie etwas lief — und beides heisst: es

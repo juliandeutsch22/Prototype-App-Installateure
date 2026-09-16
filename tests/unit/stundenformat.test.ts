@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fmtStd } from '@/lib/time';
+import { fmtStd, tageWort } from '@/lib/time';
 
 /**
  * Dezimalstunden in einer deutschsprachigen Oberfläche.
@@ -28,5 +28,20 @@ describe('Dezimalstunden', () => {
   it('rundet auf eine Stelle', () => {
     // 8:20 h = 8,333… → 8,3
     expect(fmtStd(500)).toBe('8,3');
+  });
+});
+
+describe('Die Zahl und das Wort daneben', () => {
+  it('sagt bei eins „1 Tag" und sonst „n Tage"', () => {
+    /*
+      „1 Tage fehlen" stand in der Mitarbeiterübersicht. Es ist die Sorte
+      Fehler, die einen Beleg billig aussehen lässt: wer eine Zahl anzeigt,
+      die mit dem Wort daneben nicht zusammenpasst, hat offensichtlich nicht
+      hingesehen — und der Leser fragt sich, wo sonst noch nicht.
+    */
+    expect(tageWort(1)).toBe('1 Tag');
+    expect(tageWort(2)).toBe('2 Tage');
+    expect(tageWort(0)).toBe('0 Tage');
+    expect(tageWort(21)).toBe('21 Tage');
   });
 });

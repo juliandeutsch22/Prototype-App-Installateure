@@ -395,6 +395,23 @@ export function isoWeekLabel(date: Date): string {
  */
 export { calcWorkMin };
 
+/**
+ * „1 Tag" oder „5 Tage" — die Zahl mit der richtigen Form dahinter.
+ *
+ * WARUM DAS EINE ZEILE WERT IST. „1 Tage fehlen" stand in der
+ * Mitarbeiterübersicht, und es ist die Sorte Fehler, die einen Beleg billig
+ * aussehen lässt: wer eine Zahl anzeigt, die mit dem Wort daneben nicht
+ * zusammenpasst, hat offensichtlich nicht hingesehen — und der Leser fragt
+ * sich, wo sonst noch nicht.
+ *
+ * An drei Stellen gebraucht, und an einer davon war es schon richtig
+ * gelöst. Drei Abschriften derselben Fallunterscheidung laufen auseinander;
+ * die vierte macht es dann wieder falsch.
+ */
+export function tageWort(n: number): string {
+  return n === 1 ? '1 Tag' : `${n} Tage`;
+}
+
 /** Minuten -> 'HH:MM'. */
 export function fmtMin(m: number): string {
   const sign = m < 0 ? '-' : '';

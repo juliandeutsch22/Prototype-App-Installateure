@@ -18,6 +18,7 @@ import {
   normProjectNumber,
   calcBudgetState,
   fmtStd,
+  tageWort,
 } from '@/lib/time';
 import {
   shouldShowOvertime,
@@ -864,7 +865,7 @@ export default function DashboardView() {
                   <Badge tone="gray">kein Startdatum</Badge>
                 ) : t.fehlendeTage > 0 ? (
                   <Badge tone="warning">
-                    {t.fehlendeTage === 1 ? '1 Tag offen' : `${t.fehlendeTage} Tage offen`}
+                    {tageWort(t.fehlendeTage)} offen
                   </Badge>
                 ) : (
                   <Badge tone="success">vollständig</Badge>
