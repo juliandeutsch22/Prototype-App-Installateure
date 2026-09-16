@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Marke, Zustand, Warnung, RoleBadge } from '@/components/Badge';
+import { Marke, Zustand, Warnung, RoleBadge, Zaehler } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
 
 /**
@@ -118,5 +118,63 @@ describe('Die Rolle', () => {
 
     expect(hatFlaeche(rolle)).toBe(false);
     expect([...rolle.classList]).toContain('section-label');
+  });
+});
+
+describe('Der Zähler — die Zahl am Menüpunkt', () => {
+  it('ist bei null gar nicht da', () => {
+    /*
+      DIE WICHTIGSTE PRÜFUNG AN DIESER FORM. Eine Null anzuzeigen hiesse,
+      jedem Menüpunkt dauerhaft ein Abzeichen zu geben — und dann ist das
+      Abzeichen wieder Tapete und keine Meldung. Fällt diese Zeile, sieht
+      jede einzelne Ansicht für sich weiter vernünftig aus.
+    */
+    const { container } = render(<Zaehler anzahl={0} was="offene Urlaubsanträge" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('trägt die Farbe der Marke und nicht die der Warnung', () => {
+    /*
+      Drei wartende Urlaubsanträge sind kein Fehler und kein Verzug, sondern
+      Arbeit, die jemandem gehört. Rot hiesse „hier ist etwas kaputt"; wer
+      das jeden Morgen liest, hört irgendwann weg — und dann ist auch das
+      rote Abzeichen wirkungslos, das wirklich einmal etwas meldet.
+    */
+    const { container } = render(<Zaehler anzahl={3} was="offene Urlaubsanträge" />);
+    const klassen = [...(container.firstElementChild as HTMLElement).classList];
+
+    expect(klassen).toContain('bg-accent-deep');
+    expect(klassen.join(' ')).not.toMatch(/bg-(warning|danger)/);
+  });
+
+  it('hat auf der dunklen Seitenleiste eine eigene Fassung', () => {
+    // Auf der dunklen Trägerfläche trägt die helle Fläche die dunkle Zahl.
+    // Eine gemeinsame Fassung müsste auf einem der beiden Träger falsch
+    // aussehen — dieselbe Teilung wie bei den Menüzeilen selbst.
+    const { container } = render(
+      <Zaehler anzahl={3} was="offene Urlaubsanträge" auf="dunkel" />,
+    );
+    const klassen = [...(container.firstElementChild as HTMLElement).classList];
+
+    expect(klassen).toContain('bg-accent-bright');
+    expect(klassen).toContain('text-ink-deep');
+  });
+
+  it('sagt dem Vorleser, wovon die Zahl handelt', () => {
+    // „Urlaub 3" ist keine Auskunft. Die Ziffer selbst ist deshalb
+    // `aria-hidden`, damit sie nicht zweimal kommt.
+    const { container } = render(<Zaehler anzahl={3} was="offene Urlaubsanträge" />);
+
+    expect(screen.getByText('3 offene Urlaubsanträge')).toBeInTheDocument();
+    expect(container.querySelector('[aria-hidden="true"]')!.textContent).toBe('3');
+  });
+
+  it('bricht bei grossen Zahlen nicht die Zeile auf', () => {
+    // Ein Betrieb, der die Anforderungen ein Jahr liegen lässt, soll keine
+    // vierstellige Pille in der Navigation bekommen.
+    render(<Zaehler anzahl={128} was="offene Materialanforderungen" />);
+    expect(screen.getByText('99+')).toBeInTheDocument();
+    // Vorgelesen wird trotzdem die Wahrheit.
+    expect(screen.getByText('128 offene Materialanforderungen')).toBeInTheDocument();
   });
 });

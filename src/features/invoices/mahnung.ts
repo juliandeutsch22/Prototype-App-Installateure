@@ -95,7 +95,7 @@ export interface MahnPruefung {
  * Anzeige, das Datum ist die Tatsache.
  */
 export function darfMahnen(
-  inv: Pick<Invoice, 'paymentStatus' | 'dueDate' | 'mahnstufe' | 'gemahntAm'>,
+  inv: Pick<Invoice, 'paymentStatus' | 'dueDate' | 'mahnstufe' | 'gemahntAm' | 'mahnfrist'>,
   heute: string,
 ): MahnPruefung {
   if (inv.paymentStatus === 'Bezahlt') {
@@ -113,7 +113,54 @@ export function darfMahnen(
       grund: 'Die dritte Mahnung ist verschickt. Was jetzt folgt, entscheidet der Betrieb.',
     };
   }
+  const laeuft = laufendeFrist(inv);
+  if (laeuft && laeuft >= heute) {
+    return {
+      moeglich: false,
+      grund: `Die Frist aus der letzten Mahnung läuft noch bis ${laeuft}.`,
+    };
+  }
   return { moeglich: true };
+}
+
+/**
+ * Bis wann die Frist aus der LETZTEN Mahnung läuft — oder `null`, wenn keine
+ * läuft.
+ *
+ * DER FEHLER, DEN DAS BEHEBT. Geprüft wurde bisher nur das ursprüngliche
+ * Zahlungsziel. Wer gestern eine Zahlungserinnerung mit einer Woche Frist
+ * verschickt hat, bekam die Rechnung heute wieder im Mahnlauf angeboten — für
+ * Stufe 2, sechs Tage vor Ablauf der Frist, die er selbst gesetzt hat. Das sah
+ * nach Arbeit aus und war eine Aufforderung, dem Kunden die zugesagte Frist
+ * wieder zu nehmen.
+ *
+ * Aufgefallen ist es erst durch das Abzeichen im Menü: eine Zahl, die jede
+ * überfällige Rechnung jeden Tag mitzählt, leuchtet dauerhaft — und eine
+ * Meldung, die immer an ist, ist keine.
+ *
+ * DER RÜCKFALL, wenn `mahnfrist` fehlt: das Mahndatum plus {@link FRIST_TAGE},
+ * also die Frist, die der Beleg vorschlägt. Fehlt auch das, ist die Rechnung
+ * fällig — die andere Wahl wäre „nie wieder fällig", und das versteckte eine
+ * offene Forderung für immer.
+ *
+ * Dieselbe Regel steht in `app.mahnung_faellig` (Migration
+ * `20260916140000_offene_posten.sql`), weil das Abzeichen zählen muss, was
+ * diese Liste zeigt.
+ */
+export function laufendeFrist(
+  inv: Pick<Invoice, 'mahnstufe' | 'gemahntAm' | 'mahnfrist'>,
+): string | null {
+  if (!inv.mahnstufe) return null;
+  if (inv.mahnfrist) return inv.mahnfrist;
+  if (!inv.gemahntAm) return null;
+  return tagePlus(inv.gemahntAm, FRIST_TAGE);
+}
+
+/** `n` Tage auf einen ISO-Tag, in UTC gerechnet — ohne Sommerzeitfallen. */
+function tagePlus(isoTag: string, n: number): string | null {
+  const t = Date.parse(`${isoTag}T00:00:00Z`);
+  if (Number.isNaN(t)) return null;
+  return new Date(t + n * 86_400_000).toISOString().slice(0, 10);
 }
 
 /**

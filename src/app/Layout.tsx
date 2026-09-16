@@ -1,7 +1,12 @@
-import { useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
-import { navGroupsForRole, tabBarForRole } from './navigation';
+import {
+  navGroupsForRole, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, type NavItem,
+} from './navigation';
+import { useOffenePosten, postenNeuLaden } from './offenePosten';
+import type { OffenePosten } from '@/lib/db/offenePosten';
+import { Zaehler } from '@/components/Badge';
 import Button from '@/components/Button';
 import { FASSUNG } from '@/lib/fassung';
 import Icon from '@/components/Icon';
@@ -45,11 +50,70 @@ const sideLinkDark = ({ isActive }: { isActive: boolean }) =>
       : 'border-l-transparent font-medium text-white/75 hover:bg-white/10 hover:text-white'
   }`;
 
+/**
+ * Das Abzeichen an einer Menuezeile — rechtsbuendig, oder gar nicht.
+ *
+ * `ml-auto` STEHT HIER UND NICHT IM `Zaehler`: die Zahl haengt am Telefon
+ * auch in der Ecke eines Symbols, und dort waere ein automatischer
+ * Aussenabstand falsch. Die Zeile weiss, wo sie ihr Abzeichen hinhaengt; das
+ * Abzeichen weiss, wie es aussieht.
+ */
+function ZeilenHinweis(
+  { item, posten, auf }: { item: NavItem; posten?: OffenePosten; auf: 'hell' | 'dunkel' },
+) {
+  /*
+    OB DIE ZAHL GROSS GENUG IST, ENTSCHEIDET DER `Zaehler` UND NICHT DIESE
+    ZEILE. Hier stand kurz zusaetzlich `n < 1` — und damit war die Regel „null
+    ist kein Abzeichen" an vier Stellen geschrieben. Nachgemessen: eine
+    Mutation, die den `Zaehler` bei null zeichnen liess, fiel dadurch nur in
+    EINER Pruefung auf, weil die Huelle sie vorher abfing. Vier Waechter fuer
+    eine Regel heisst, dass drei davon nie gepruefte Behauptungen sind.
+
+    Bleibt die Frage, die WIRKLICH hierher gehoert: haengt an diesem Eintrag
+    ueberhaupt eine Zahl?
+  */
+  if (!item.hinweis) return null;
+  const n = hinweisZahl(item, posten);
+  return (
+    <span className="ml-auto flex items-center">
+      <Zaehler anzahl={n} was={hinweisWort(item.hinweis, n)} auf={auf} />
+    </span>
+  );
+}
+
 /** App-Shell: Desktop-Sidebar; mobil Top-Bar + Icon-Tab-Bar (4 + „Mehr"-Drawer). */
 export default function Layout({ children }: { children: ReactNode }) {
   const { user, company, signOut } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const [profilOpen, setProfilOpen] = useState(false);
+  const ort = useLocation();
+  const posten = useOffenePosten();
+  const angemeldet = !!user;
+
+  /*
+    NACHGELADEN WIRD BEI JEDEM SEITENWECHSEL — eine Abfrage, ein Umlauf.
+
+    Der Zeitpunkt ist mit Absicht dieser: wer einen Antrag entscheidet,
+    bleibt auf der Seite, und die Ansicht stösst dann selbst an
+    (`postenNeuLaden`). Wer nur wechselt, bekommt den frischen Stand
+    kostenlos mit. Und wer den Tab eine Stunde liegen lässt, soll beim
+    Zurückkommen keine Zahl von vorgestern sehen — deshalb zusätzlich am
+    `visibilitychange`.
+
+    DIE ABFRAGE LÄUFT NICHT OHNE ANMELDUNG: vor dem Anmelden gibt es keinen
+    Betrieb, und der Aufruf käme leer zurück. Ein Umlauf, dessen Antwort
+    schon feststeht, ist einer zu viel.
+  */
+  useEffect(() => {
+    if (!angemeldet) return;
+    void postenNeuLaden();
+    const beiSicht = () => {
+      if (document.visibilityState === 'visible') void postenNeuLaden();
+    };
+    document.addEventListener('visibilitychange', beiSicht);
+    return () => document.removeEventListener('visibilitychange', beiSicht);
+  }, [angemeldet, ort.pathname]);
+
   if (!user) return <>{children}</>;
 
   /**
@@ -62,7 +126,15 @@ export default function Layout({ children }: { children: ReactNode }) {
   const groups = navGroupsForRole(user.role, company?.modules);
   const { unten: primary, mehr } = tabBarForRole(user.role, company?.modules);
   const hasMore = mehr.length > 0;
-  const moreActive = mehr.some((i) => i.path === location.pathname);
+  const mehrSumme = hinweisSumme(mehr, posten);
+  /*
+    ÜBER DEN ROUTER UND NICHT ÜBER `location` DES FENSTERS. Hier stand die
+    globale Adresse; die ändert sich zwar, löst aber kein Neuzeichnen aus —
+    der Knopf „Mehr" blieb deshalb so markiert (oder unmarkiert), wie er beim
+    letzten Zeichnen aus anderem Grund gerade war. Aufgefallen ist es erst,
+    als der Seitenwechsel für die Abzeichen ohnehin gebraucht wurde.
+  */
+  const moreActive = mehr.some((i) => i.path === ort.pathname);
 
   /*
     HIER STEHT DER BETRIEB, NICHT DAS PRODUKT. Die Seitenleiste ist der
@@ -138,6 +210,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 >
                   <Icon name={item.icon} size={20} className="shrink-0" />
                   <span className="truncate">{item.label}</span>
+                  <ZeilenHinweis item={item} posten={posten} auf="dunkel" />
                 </NavLink>
               ))}
             </div>
@@ -211,12 +284,28 @@ export default function Layout({ children }: { children: ReactNode }) {
             >
               {({ isActive }) => (
                 <>
+                  {/*
+                    AM TELEFON HAENGT DIE ZAHL AM SYMBOL, nicht hinter dem
+                    Wort: die Beschriftung darunter ist 10 px breit und schon
+                    abgeschnitten („Rechnungen"), eine Zahl dahinter waere das
+                    Erste, was wegfaellt. Ueber der rechten oberen Ecke ist sie
+                    die gewohnte Stelle und kostet keinen Platz in der Zeile.
+                  */}
                   <span
-                    className={`flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
+                    className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
                       isActive ? 'bg-white/15' : ''
                     }`}
                   >
                     <Icon name={item.icon} size={20} />
+                    {item.hinweis && (
+                      <span className="absolute -right-1.5 -top-1">
+                        <Zaehler
+                          anzahl={hinweisZahl(item, posten)}
+                          was={hinweisWort(item.hinweis, hinweisZahl(item, posten))}
+                          auf="dunkel"
+                        />
+                      </span>
+                    )}
                   </span>
                   <span className="max-w-full truncate px-1">{item.short}</span>
                 </>
@@ -232,11 +321,25 @@ export default function Layout({ children }: { children: ReactNode }) {
               }`}
             >
               <span
-                className={`flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
+                className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
                   moreActive ? 'bg-white/15' : ''
                 }`}
               >
                 <Icon name="more" size={20} />
+                {/*
+                  DIE SUMME DESSEN, WAS DER KNOPF VERDECKT. „Mehr" verbirgt am
+                  Telefon bis zu zwoelf Bereiche; ohne diese Zahl laege eine
+                  Meldung hinter einem Knopf, den man nur oeffnet, wenn man
+                  ohnehin schon etwas sucht — genau der Zustand, den die
+                  Abzeichen beenden sollen.
+                */}
+                <span className="absolute -right-1.5 -top-1">
+                  <Zaehler
+                    anzahl={mehrSumme}
+                    was={mehrSumme === 1 ? 'offener Posten' : 'offene Posten'}
+                    auf="dunkel"
+                  />
+                </span>
               </span>
               <span>Mehr</span>
             </button>
@@ -265,6 +368,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   >
                     <Icon name={item.icon} size={20} className="shrink-0" />
                     <span className="truncate">{item.label}</span>
+                    <ZeilenHinweis item={item} posten={posten} auf="hell" />
                   </NavLink>
                 ))}
               </div>
