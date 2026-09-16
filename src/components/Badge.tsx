@@ -152,3 +152,63 @@ export function Warnung({
 export function RoleBadge({ role }: { role: Role }) {
   return <Marke>{role}</Marke>;
 }
+
+/**
+ * Wie viele offene Posten hinter einem Menüpunkt liegen.
+ *
+ * DIE VIERTE FORM — UND SIE STEHT NUR IN DER NAVIGATION. Das ist keine
+ * Ausnahme von der Regel oben, sondern ihr Gegenstück: die Regel sagt, dass
+ * eine gefüllte Pille IN EINER LISTE eine Warnung ist, weil sie dort mit dem
+ * Namen, der Nummer und dem Betrag um denselben Blick kämpft. Im Menü steht
+ * neben dem Wort nichts — die Zahl kämpft mit nichts, und ohne Fläche wäre
+ * sie ein zweites Wort in einer Zeile, die aus einem Wort besteht.
+ *
+ * NICHT GELB UND NICHT ROT, und das ist der Unterschied zur `Warnung`. Drei
+ * wartende Urlaubsanträge sind kein Fehler und kein Verzug, sondern Arbeit,
+ * die jemandem gehört. Rot hiesse „hier ist etwas kaputt"; wer das jeden
+ * Morgen liest, hört irgendwann weg — und dann ist auch das rote Abzeichen
+ * wirkungslos, das wirklich einmal etwas meldet. Die Farbe ist deshalb die
+ * der Marke.
+ *
+ * ZWEI FASSUNGEN, WEIL ES ZWEI TRÄGER GIBT — genau wie bei den Menüzeilen
+ * selbst (`sideLink` und `sideLinkDark` in `app/Layout.tsx`). Auf der dunklen
+ * Seitenleiste trägt die helle Fläche die dunkle Zahl (6,4:1, die Fläche
+ * selbst 4,0:1 gegen die Leiste); auf den hellen Blättern von unten ist es
+ * umgekehrt (5,2:1). Eine gemeinsame Fassung müsste auf einem von beiden
+ * falsch aussehen.
+ *
+ * DIE ZAHL ALLEIN SAGT NICHTS. „3" neben „Urlaub" liest ein Mensch aus dem
+ * Zusammenhang; ein Vorleser liest „Urlaub 3". Deshalb trägt sie einen
+ * ausgeschriebenen Namen und die Ziffer selbst ist `aria-hidden` — sonst
+ * käme sie zweimal.
+ */
+export function Zaehler({
+  anzahl,
+  was,
+  auf = 'hell',
+}: {
+  anzahl: number;
+  /** Ausgeschrieben, für den Vorleser: „offene Urlaubsanträge". */
+  was: string;
+  auf?: 'hell' | 'dunkel';
+}) {
+  /*
+    NULL IST KEIN ABZEICHEN. Eine Null anzuzeigen hiesse, jedem Menüpunkt
+    dauerhaft ein Abzeichen zu geben — und damit wäre das Abzeichen wieder
+    Tapete und keine Meldung. Die Entscheidung steht HIER und nicht an den
+    Aufrufstellen: dort wäre sie viermal zu treffen und dreimal richtig.
+  */
+  if (!Number.isFinite(anzahl) || anzahl < 1) return null;
+
+  const ton = auf === 'dunkel'
+    ? 'bg-accent-bright text-ink-deep'
+    : 'bg-accent-deep text-white';
+  return (
+    <span
+      className={`tnum inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-[0.7rem] font-bold leading-none ${ton}`}
+    >
+      <span aria-hidden="true">{anzahl > 99 ? '99+' : anzahl}</span>
+      <span className="sr-only">{`${anzahl} ${was}`}</span>
+    </span>
+  );
+}

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { postenNeuLaden } from '@/app/offenePosten';
 import {
   subscribeAllOrders,
   updateOrderStatus,
@@ -163,6 +164,8 @@ export default function AdminOrdersView() {
     setBusyId(o.id);
     try {
       await updateOrderStatus(o.id, next);
+      // Das Abzeichen im Menü zählt mit — „Offen" ist genau das, was es zählt.
+      void postenNeuLaden();
       toast.success(`Status: ${next}`);
     } catch {
       // Ohne diesen Zweig blieb ein fehlgeschlagenes Update unbemerkt: der
@@ -370,6 +373,8 @@ export default function AdminOrdersView() {
         onConfirm={async () => {
           if (toDelete) {
             await deleteOrder(toDelete.id);
+            // Auch das Löschen nimmt einen offenen Posten weg.
+            void postenNeuLaden();
             toast.success('Eintrag gelöscht');
           }
           setToDelete(null);

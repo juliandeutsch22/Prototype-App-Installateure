@@ -1,5 +1,6 @@
 import type { Role } from '@/types';
 import type { IconName } from '@/components/Icon';
+import type { OffenePosten } from '@/lib/db/offenePosten';
 import { aktiveModule, type ModulId } from '@/lib/module';
 
 export interface NavItem {
@@ -21,6 +22,20 @@ export interface NavItem {
    * Baustellen, Benutzer und Einstellungen lassen sich nicht abschalten.
    */
   modul?: ModulId;
+  /**
+   * Welche offene Zahl als Abzeichen an diesem Eintrag steht.
+   *
+   * ABSICHTLICH NUR AN DREI EINTRAEGEN. Ein Abzeichen taugt nur, solange es
+   * die Ausnahme ist: was hier steht, ist normalerweise NULL, ist eine
+   * Entscheidung und hat einen Besitzer. „Nicht eingetragene Zeiten" traefe
+   * keines der drei — die stehen am Monatsende bei jedem offen, und niemand
+   * kann sie wegentscheiden. Eine Zahl, die immer leuchtet, nimmt den beiden
+   * anderen die Wirkung mit.
+   *
+   * Der Typ ist `keyof OffenePosten` und keine eigene Aufzaehlung: so kann
+   * hier nichts stehen, was die Datenbank gar nicht zaehlt.
+   */
+  hinweis?: keyof OffenePosten;
 }
 
 /**
@@ -79,7 +94,7 @@ export const NAV: NavItem[] = [
   // Urlaub sieht JEDE Rolle: auch Buchhaltung und Verwaltung nehmen Urlaub,
   // und beantragen muessen ihn alle. Wer entscheiden darf, sieht in derselben
   // Ansicht zusaetzlich die offenen Antraege.
-  { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'calendar', roles: ALL, group: 'Außendienst', modul: 'urlaub' },
+  { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'calendar', roles: ALL, group: 'Außendienst', modul: 'urlaub', hinweis: 'urlaub' },
   // Der Schein gehoert in den Aussendienst: er entsteht vor Ort beim Kunden,
   // nicht im Buero.
   { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'clipboard', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'scheine' },
@@ -93,7 +108,7 @@ export const NAV: NavItem[] = [
   // gehört dem Kunden und überlebt jede einzelne Baustelle. Die Verwaltung
   // sieht sie mit — sie ruft an und vereinbart den Termin.
   { path: '/wartungen', label: 'Wartungen', short: 'Wartung', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'wartung' },
-  { path: '/anforderungen', label: 'Anforderungen', short: 'Anford.', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
+  { path: '/anforderungen', label: 'Anforderungen', short: 'Anford.', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material', hinweis: 'anforderungen' },
   { path: '/lager', label: 'Lager', short: 'Lager', icon: 'package', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
   { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Verwaltung' },
   { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Verwaltung', modul: 'einsatzplanung' },
@@ -115,7 +130,7 @@ export const NAV: NavItem[] = [
   // Rechnungen OHNE Projektleitung — so steht es auch in firestore.rules, und
   // dort ist es die Wahrheit. Der Eintrag zeigte sie ihr trotzdem an; wer
   // klickte, landete in „Kein Zugriff".
-  { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung', modul: 'rechnungen' },
+  { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung', modul: 'rechnungen', hinweis: 'mahnungen' },
   // Zeitkonten: bewusst OHNE Projektleitung. Ueberstunden, Krankenstaende und
   // Urlaub eines Monteurs gehen sie nichts an — Krankenstaende sind zudem
   // Gesundheitsdaten nach Art. 9 DSGVO.
@@ -278,4 +293,50 @@ export function canAccess(role: Role, path: string, module?: Record<string, bool
   const item = NAV.find((i) => i.path === path);
   if (!item || !item.roles.includes(role)) return false;
   return !item.modul || aktiveModule(module).has(item.modul);
+}
+
+/**
+ * Wie die Zahl an einem Menüpunkt heisst, wenn sie vorgelesen wird.
+ *
+ * EINZAHL UND MEHRZAHL GETRENNT, und das ist nicht Ziererei: „1 offene
+ * Urlaubsanträge" ist der Satz, über den in dieser App schon einmal jemand
+ * gestolpert ist („1 Tage fehlen", behoben am 16.09.). Wer einen Vorleser
+ * benutzt, hört ihn im Gegensatz zum Sehenden ganz.
+ */
+export function hinweisWort(art: keyof OffenePosten, anzahl: number): string {
+  const eins = anzahl === 1;
+  switch (art) {
+    case 'urlaub':
+      return eins ? 'offener Urlaubsantrag' : 'offene Urlaubsanträge';
+    case 'anforderungen':
+      return eins ? 'offene Materialanforderung' : 'offene Materialanforderungen';
+    case 'mahnungen':
+      return eins ? 'fällige Mahnung' : 'fällige Mahnungen';
+  }
+}
+
+/**
+ * Die Zahl an einem Menüpunkt — 0, wenn keine dranhängt oder keine bekannt ist.
+ *
+ * `undefined` VON DER ABFRAGE HEISST „NICHT BEKANNT", nicht „nichts offen".
+ * Beides führt hier zu 0 und damit zu keinem Abzeichen — der Unterschied
+ * bleibt trotzdem wichtig, und deshalb setzt die Datenschicht auch keine 0
+ * ein, wenn sie nichts weiss: eine Zahl, die niemand geprüft hat, sähe aus
+ * wie eine Auskunft.
+ */
+export function hinweisZahl(item: NavItem, posten: OffenePosten | undefined): number {
+  if (!item.hinweis || !posten) return 0;
+  return posten[item.hinweis];
+}
+
+/**
+ * Alle Zahlen hinter einer Gruppe von Einträgen zusammen.
+ *
+ * WOFÜR: der Knopf „Mehr" am Telefon verdeckt bis zu zwölf Bereiche. Ohne
+ * diese Summe läge dort eine Meldung, die man nur findet, wenn man ohnehin
+ * schon hinsieht — und das ist genau der Zustand, den die Abzeichen beenden
+ * sollen.
+ */
+export function hinweisSumme(items: NavItem[], posten: OffenePosten | undefined): number {
+  return items.reduce((s, i) => s + hinweisZahl(i, posten), 0);
 }

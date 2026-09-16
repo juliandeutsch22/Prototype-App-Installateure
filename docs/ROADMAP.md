@@ -3302,6 +3302,90 @@ das Sättigungsband und die Lesbarkeit.
 
 ---
 
+## Erledigt: Menü-Hinweise für offene Posten (16.09.2026)
+
+**Die Navigation sagte, WO etwas liegt, aber nie, DASS dort etwas liegt.** Wer
+entscheidet, ob ein Urlaubsantrag wartet, musste den Reiter öffnen; wer es
+nicht tat, erfuhr es nicht. Genau daran bleibt in kleinen Betrieben liegen,
+was keinen Ort hat, an dem es sich meldet.
+
+### Drei Zahlen, und die Begründung, warum nicht mehr
+
+Aufgenommen ist nur, was **drei Bedingungen zugleich** erfüllt:
+
+1. **Es ist normalerweise null.** Eine Zahl, die immer leuchtet, ist keine
+   Meldung mehr, sondern Tapete — und nimmt den anderen die Wirkung mit.
+2. **Jeder Eintrag ist eine Entscheidung**, kein Zustand.
+3. **Sie hat einen klaren Besitzer.** Wer sie nicht entscheiden darf, bekommt
+   sie gar nicht erst gezählt.
+
+| Menüpunkt | Zahl | Wer sie sieht |
+| --- | --- | --- |
+| **Urlaub** | Anträge im Zustand „Beantragt" | wer laut Einstellung entscheidet |
+| **Anforderungen** | Materialanforderungen „Offen" | Büro und Leitung |
+| **Rechnungen** | Rechnungen, bei denen heute eine Mahnung fällig wäre | Buchhaltung und Spitze |
+
+**„Nicht eingetragene Zeiten" steht bewusst NICHT dabei**, obwohl danach
+gefragt war. Sie sind am Monatsende bei jedem offen, und niemand kann sie
+wegentscheiden — das Abzeichen wäre dauerhaft an und hätte die beiden anderen
+mit entwertet.
+
+**Eine Abfrage, nicht drei.** `public.offene_posten(p_heute)` liefert alle
+drei Zahlen in einer Zeile; nachgeladen wird bei jedem Seitenwechsel, beim
+Zurückkommen in den Tab und auf Zuruf, sobald jemand einen Posten erledigt
+hat. Die Rollengrenze steht **zweimal** — als `case` in der Funktion und im
+Zeilenschutz der drei Tabellen; fällt eine, hält die andere.
+
+> **Was es NICHT ist: eine Live-Anzeige.** Entscheidet die Kollegin am anderen
+> Schreibtisch einen Antrag, sieht man es hier erst beim nächsten
+> Seitenwechsel. Drei weitere Abonnements über den WebSocket kosten dauerhaft
+> Verbindung für eine Zahl, die niemand sekundengenau braucht. Die Lücke steht
+> im Kopf von `app/offenePosten.ts`, damit sie niemand für einen Fehler hält.
+
+### Die vierte Form — und warum sie die Regel von gestern nicht bricht
+
+Die Regel aus dem Abschnitt darüber lautet: eine gefüllte Pille IN EINER LISTE
+ist eine Warnung. Der **Zähler** im Menü ist die Ausnahme, und sie ist das
+Gegenstück zur Regel: in einer Liste kämpft die Pille mit Namen, Nummer und
+Betrag um denselben Blick — im Menü steht neben dem Wort nichts.
+
+**Nicht gelb und nicht rot.** Drei wartende Urlaubsanträge sind kein Fehler
+und kein Verzug, sondern Arbeit, die jemandem gehört. Die Farbe ist die der
+Marke: auf der dunklen Seitenleiste `accent-bright` mit dunkler Zahl (6,4:1,
+die Fläche selbst 4,0:1 gegen die Leiste), auf den hellen Blättern von unten
+`accent-deep` mit weisser Zahl (5,2:1).
+
+**Null ist kein Abzeichen**, und diese Entscheidung steht an genau einer
+Stelle. Sie stand zwischendurch an vieren — nachgemessen fiel eine Mutation,
+die den Zähler bei null zeichnen liess, dadurch nur in EINER Prüfung auf, weil
+die Hülle sie vorher abfing. Vier Wächter für eine Regel heisst, dass drei
+davon nie geprüfte Behauptungen sind.
+
+### Zwei Lücken, die erst dadurch sichtbar wurden
+
+**Wer Urlaub entscheiden darf, durfte ihn nicht lesen.** Seit dem 13.09. legt
+der Betrieb fest, WER genehmigt — auch eine Bürokraft oder ein Vorarbeiter.
+Die Leserichtlinie kannte weiter nur Leitung und Buchhaltung: eine eingetragene
+Genehmigende aus der Verwaltung bekam das Recht zu entscheiden und eine LEERE
+Liste dazu. Ohne Abzeichen fällt das nicht auf, weil eine leere Liste auch
+heisst „gerade nichts da". Mit Abzeichen wäre es eine Lüge gewesen: null, wo
+drei warten.
+
+**Der Mahnlauf ignorierte die Frist, die der Betrieb selbst gesetzt hat.**
+Siehe `docs/FUNKTIONEN.md`, Abschnitt Mahnwesen. Ohne diese Korrektur wäre das
+Abzeichen dauerhaft an gewesen — jede unbezahlte überfällige Rechnung hätte
+bis zur dritten Mahnung jeden Tag darin gestanden.
+
+### Nebenbei: der Knopf „Mehr" war falsch markiert
+
+Er las die Adresse aus `location` des Fensters statt aus dem Router. Die ändert
+sich zwar, löst aber kein Neuzeichnen aus — der Knopf blieb also so markiert
+(oder unmarkiert), wie er beim letzten Zeichnen aus anderem Grund gerade war.
+Aufgefallen ist es erst, als der Seitenwechsel für die Abzeichen ohnehin
+gebraucht wurde.
+
+---
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft

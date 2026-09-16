@@ -26,6 +26,7 @@ import { listMaterials } from '@/lib/db/materials';
 import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import { verrechneteScheine } from './materialPositionen';
 import { darfMahnen, naechsteStufe, spesenFuer, TEXTE, FRIST_TAGE } from './mahnung';
+import { postenNeuLaden } from '@/app/offenePosten';
 import { mahnlauf } from './mahnlauf';
 import {
   unverrechneteScheine,
@@ -657,6 +658,9 @@ export default function InvoicesView() {
       await shareOrDownloadPdf(blob, mahnungDateiname(inv, stufe));
 
       await mahnungFesthalten(inv.id, { stufe, gemahntAm: heute, frist, spesen });
+      // Das Abzeichen im Menü zählt mit: diese Rechnung ist bis zum Ablauf
+      // der neuen Frist keine fällige Mahnung mehr.
+      void postenNeuLaden();
       toast.success(`${TEXTE[stufe].titel} erzeugt`);
       setMahnFuer(null);
     } catch {

@@ -9,6 +9,7 @@ import {
 import { getUserByUid } from '@/lib/db/users';
 import { callUrlaubEntscheiden } from '@/lib/functions';
 import { darfUrlaubEntscheiden } from '@/lib/permissions';
+import { postenNeuLaden } from '@/app/offenePosten';
 import { todayStr, urlaubsTage, urlaubsStand, uebertragsRegel } from '@/lib/time';
 import type { AppUser, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -260,6 +261,13 @@ export default function VacationsView() {
         );
       }
       await laden_();
+      /*
+        DAS ABZEICHEN IM MENÜ ZÄHLT MIT. Ohne diese Zeile stünde nach der
+        letzten Entscheidung weiter eine Zahl daneben, bis jemand die Seite
+        wechselt — und ein Hinweis, der nach getaner Arbeit stehen bleibt,
+        ist schlimmer als keiner: beim nächsten Mal glaubt man ihm nicht.
+      */
+      void postenNeuLaden();
     } catch {
       setError(
         entscheidung === 'Genehmigt'
