@@ -17,12 +17,19 @@
  * zeigt in einem Zug, ob die Berechtigungen stimmen, ob das Ziel erreichbar
  * ist und wie gross der Stand tatsächlich ist.
  *
- * WIE EHRLICH DIESE LÖSUNG IST. Das Ziel ist heute ein Eimer im SELBEN
- * Projekt. Gegen einen Fehlgriff, eine kaputte Migration oder eine
- * versehentlich geleerte Tabelle hilft das sofort. Gegen „der Zugang zum
- * Projekt ist weg" hilft es NICHT — dafür muss das Ziel ausserhalb liegen.
- * Solange es das nicht tut, ist die halbe Strecke gewonnen und nicht die
- * ganze, und `system_laeufe.ziel_extern` sagt das auch so.
+ * ZWEI ZIELE, UND SIE KÖNNEN VERSCHIEDENES. Der Eimer im SELBEN Projekt hilft
+ * gegen einen Fehlgriff, eine kaputte Migration, eine versehentlich geleerte
+ * Tabelle — sofort und ohne jede Einrichtung. Gegen „der Zugang zum Projekt
+ * ist weg" hilft er NICHT; dafür gibt es den Speicher ausserhalb. Ist keiner
+ * eingerichtet, ist das eine benannte Lücke, und `system_laeufe.ziel_extern`
+ * sagt es auch so.
+ *
+ * WAS AUSSER DEN ZEILEN MITGEHT. Der Stand sind Tabellenzeilen; die Fotos am
+ * Handwerksschein liegen im Speicher, und ihre Zeile nennt nur den Pfad. Ohne
+ * die Dateien käme bei einem Wiederanlauf der Schein zurück und seine
+ * Beweisfotos nicht — und genau die sind der Grund, warum es den Schein gibt.
+ * Sie gehen deshalb mit, aber NUR ausser Haus: sie in den Eimer nebenan zu
+ * kopieren verdoppelte den Speicher und schützte gegen nichts.
  *
  * FORMAT. Zeilenweises JSON (`.jsonl`), eine Zeile je Datensatz mit ihrer
  * Tabelle. So lässt sich der Stand wieder einlesen, ohne ihn je vollständig
@@ -38,8 +45,9 @@ import {
   alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
 import {
-  zielAusUmgebung, zielPfad, putAnfrage, type Zielspeicher,
+  zielAusUmgebung, zielPfad, dateiZielPfad, putAnfrage, type Zielspeicher,
 } from '../_shared/ausleitungZiel.ts';
+import { inhaltsHash, pfadKodieren } from '../_shared/s3Signatur.ts';
 import { mitCors } from '../_eigen/cors.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
@@ -82,6 +90,24 @@ try {
 const SEITE = 1000;
 
 /**
+ * Wie viele DATEIEN ein Lauf hinausschiebt — und wie viele Bytes dabei.
+ *
+ * ZWEI GRENZEN, WEIL ES ZWEI ARTEN VON RÜCKSTAND GIBT: sehr viele kleine
+ * Bilder und wenige grosse. Beide enden sonst gleich — die Function läuft in
+ * ihre Wanduhr und bricht ohne verwertbare Meldung ab, und zwar in jeder
+ * Nacht wieder.
+ *
+ * Mit den Grenzen arbeitet sich ein Rückstand Nacht für Nacht ab, und die
+ * Bilanz sagt, wie weit es noch ist. Ein Betrieb, der die Sicherung heute
+ * einschaltet und Jahre an Fotos liegen hat, ist damit nicht sofort
+ * vollständig gesichert — aber er ist es nach ein paar Nächten, statt nie.
+ */
+const DATEIEN_JE_LAUF = Number(Deno.env.get('AUSLEITUNG_DATEIEN_JE_LAUF') ?? 200);
+const DATEIEN_BYTES_JE_LAUF = Number(
+  Deno.env.get('AUSLEITUNG_DATEIEN_BYTES_JE_LAUF') ?? 64 * 1024 * 1024,
+);
+
+/**
  * Bei welcher Grösse ein Stand als zu gross gilt.
  *
  * Kein Schutz der Datenbank, sondern eine ehrliche Absage: ein Lauf, der am
@@ -114,6 +140,16 @@ interface Bilanz {
   ausserHaus: boolean;
   /** Wo er liegt — im Klartext, so wie es in der Ansicht steht. */
   ziel: string;
+  /** Wie viele Dateien dieser Lauf ausser Haus gelegt hat. */
+  dateien: number;
+  /** Wie viele danach noch fehlen — 0 heisst: alles draussen. */
+  dateienOffen: number;
+}
+
+interface OffeneDatei {
+  eimer: string;
+  pfad: string;
+  bytes: number;
 }
 
 /** Eine Seite aus einer Tabelle — PostgREST zählt Zeilen über `Range`. */
@@ -258,6 +294,110 @@ async function ausserHausLegen(
   return `${ziel.eimer}/${pfad}`;
 }
 
+/** Eine Zahl aus einer RPC, die genau eine zurückgibt. */
+async function zahlAusRpc(name: string, koerper: unknown): Promise<number> {
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/${name}`, {
+    method: 'POST', headers: alsDienst, body: JSON.stringify(koerper),
+  });
+  if (!r.ok) throw new Error(`${name}: ${await r.text()}`);
+  return Number(await r.json());
+}
+
+/**
+ * Vermerken, dass eine Datei draussen liegt.
+ *
+ * SOFORT NACH JEDER EINZELNEN und nicht gesammelt am Ende: bricht der Lauf in
+ * der Mitte ab, versuchte der nächste sonst genau die Dateien noch einmal, die
+ * schon oben sind — und der Zielspeicher wiese sie ab, weil er nicht
+ * überschreiben lässt. Ein Fehlschlag machte damit jeden weiteren Lauf
+ * unmöglich, dauerhaft.
+ *
+ * `merge-duplicates`, damit auch ein Vermerk, der zweimal geschrieben wird,
+ * durchgeht — etwa nach einem Netzabbruch zwischen Antwort und Eintrag.
+ */
+async function vermerken(
+  betrieb: string, datei: OffeneDatei, hash: string, bytes: number,
+): Promise<void> {
+  const r = await fetch(`${URL_BASIS}/rest/v1/ausleitung_dateien`, {
+    method: 'POST',
+    headers: { ...alsDienst, Prefer: 'resolution=merge-duplicates' },
+    body: JSON.stringify({
+      company_id: betrieb, eimer: datei.eimer, pfad: datei.pfad, hash, bytes,
+    }),
+  });
+  if (!r.ok) throw new Error(`Vermerk ${datei.pfad}: ${await r.text()}`);
+}
+
+/**
+ * Die Dateien eines Betriebs ausser Haus legen.
+ *
+ * DER RÜCKSTAND WIRD ABGEARBEITET, NICHT ERLEDIGT. Ein Lauf nimmt so viele
+ * Dateien, wie in seine Wanduhr passen (`DATEIEN_JE_LAUF`,
+ * `DATEIEN_BYTES_JE_LAUF`), und meldet, wie viele danach noch fehlen. Das ist
+ * der Unterschied zwischen einer Sicherung, die sich in drei Nächten einholt,
+ * und einer, die jede Nacht an derselben Stelle abbricht.
+ *
+ * EIN FEHLSCHLAG BRICHT AB UND ZÄHLT ALS FEHLSCHLAG. Die bereits vermerkten
+ * Dateien bleiben vermerkt, der nächste Lauf macht dort weiter. Die
+ * Alternative — weitermachen und am Ende „ging überwiegend gut" melden —
+ * hiesse, dass eine dauerhaft kaputte Datei nie auffiele.
+ */
+async function dateienAusserHaus(
+  ziel: Zielspeicher, betrieb: string, jetzt: Date,
+): Promise<{ anzahl: number; offen: number }> {
+  const liste = await fetch(`${URL_BASIS}/rest/v1/rpc/sicherungs_dateien`, {
+    method: 'POST',
+    headers: alsDienst,
+    body: JSON.stringify({ p_betrieb: betrieb, p_grenze: DATEIEN_JE_LAUF }),
+  });
+  if (!liste.ok) throw new Error(`Dateiliste: ${await liste.text()}`);
+  const offene = (await liste.json()) as OffeneDatei[];
+
+  let anzahl = 0;
+  let bytes = 0;
+  for (const datei of offene) {
+    if (bytes >= DATEIEN_BYTES_JE_LAUF) break;
+
+    const herunter = await fetch(
+      `${URL_BASIS}/storage/v1/object/${datei.eimer}/${pfadKodieren(datei.pfad)}`,
+      { headers: alsDienst },
+    );
+    if (!herunter.ok) {
+      throw new Error(`Datei ${datei.eimer}/${datei.pfad}: ${await herunter.text()}`);
+    }
+    /*
+      DER TYP KOMMT VOM SPEICHER, nicht aus dem Dateinamen. Der Eimer nimmt
+      JPEG, PNG, WebP und HEIC an; ihn zu raten hiesse, im Zielspeicher etwas
+      anderes zu behaupten, als die Datei ist.
+    */
+    const typ = herunter.headers.get('Content-Type') ?? 'application/octet-stream';
+    const inhalt = new Uint8Array(await herunter.arrayBuffer());
+
+    const imZiel = dateiZielPfad(betrieb, datei.eimer, datei.pfad);
+    const { url, kopfzeilen } = await putAnfrage(ziel, imZiel, inhalt, jetzt, typ);
+    const r = await fetch(url, { method: 'PUT', headers: kopfzeilen, body: inhalt });
+    if (!r.ok) {
+      const text = (await r.text()).slice(0, 400);
+      throw new Error(`Datei ausser Haus (${r.status}) ${imZiel}: ${text}`);
+    }
+
+    /*
+      GEHASHT WIRD, WAS HOCHGEGANGEN IST. In `work_sheet_photos` steht schon
+      ein Hash — den von der Aufnahme. Ihn hier abzuschreiben wäre bequem und
+      wertlos: er sagte dann nichts über die gesicherte Datei aus, sondern
+      wiederholte nur eine Behauptung.
+    */
+    await vermerken(betrieb, datei, await inhaltsHash(inhalt), inhalt.length);
+    anzahl += 1;
+    bytes += inhalt.length;
+  }
+
+  return {
+    anzahl,
+    offen: await zahlAusRpc('sicherungs_dateien_offen', { p_betrieb: betrieb }),
+  };
+}
+
 async function betriebAusleiten(
   betrieb: string, tabellen: string[], heute: Date,
 ): Promise<Bilanz> {
@@ -297,15 +437,31 @@ async function betriebAusleiten(
   */
   let ausserHaus = false;
   let ziel = `${EIMER} (Eimer im selben Projekt)`;
+  /*
+    DIE DATEIEN GEHEN NUR AUSSER HAUS, und ohne Ziel gehen sie gar nicht.
+
+    Sie liegen bereits im Speicher DIESES Projekts; sie in den Eimer nebenan
+    zu kopieren verdoppelte den Platz und schützte gegen nichts — fällt das
+    Projekt aus, fällt beides aus. Ohne eingerichteten Zielspeicher ist das
+    also keine ausgelassene Arbeit, sondern keine.
+  */
+  let dateien = 0;
+  let dateienOffen = 0;
   if (ZIEL) {
     ziel = await ausserHausLegen(ZIEL, betrieb, inhalt, heute);
     ausserHaus = true;
+    const bilanz = await dateienAusserHaus(ZIEL, betrieb, heute);
+    dateien = bilanz.anzahl;
+    dateienOffen = bilanz.offen;
   }
 
   const geraeumt = await alteStaendeRaeumen(betrieb, heute);
   const zeilen = inhalt === '' ? 0 : inhalt.split('\n').length - 1;
   await festhalten(betrieb, true, null, zeilen, ausserHaus);
-  return { companyId: betrieb, zeilen, bytes: inhalt.length, pfad, geraeumt, ausserHaus, ziel };
+  return {
+    companyId: betrieb, zeilen, bytes: inhalt.length, pfad, geraeumt, ausserHaus, ziel,
+    dateien, dateienOffen,
+  };
 }
 
 Deno.serve(mitCors(async (req: Request): Promise<Response> => {
@@ -378,6 +534,8 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
       zeilen: bilanzen.reduce((s, b) => s + b.zeilen, 0),
       bytes: bilanzen.reduce((s, b) => s + b.bytes, 0),
       gescheitert,
+      dateien: bilanzen.reduce((s, b) => s + b.dateien, 0),
+      dateienOffen: bilanzen.reduce((s, b) => s + b.dateienOffen, 0),
       // ALLE oder keiner: ein Lauf, bei dem die Hälfte der Betriebe nach
       // draussen kam, ist kein „ausser Haus".
       zielExtern: bilanzen.length > 0 && bilanzen.every((b) => b.ausserHaus),

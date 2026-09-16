@@ -3061,10 +3061,85 @@ dass die Migrationen dort schon gelaufen sind — er baut keine Datenbank, er
 füllt eine. Für den Ernstfall heisst das: erst ein frisches Supabase-Projekt
 mit `supabase db push`, dann der Rücklauf.
 
-**Dateien im Speicher (Fotos am Handwerksschein) gehen nicht mit.** Die
-Ausleitung schreibt Tabellenzeilen; die Bilder liegen im Storage und sind
-nicht Teil des Standes. Ein Schein käme also zurück, seine Fotos nicht — das
-gehört benannt, bevor es jemand im Ernstfall feststellt.
+**Die Fotos holt der Rücklauf nicht zurück.** Sie liegen seit dem
+16.09.2026 ausser Haus (siehe unten), aber das Dienstkonto dort darf nur
+anlegen — mit seinem Schlüssel lässt sich nichts herunterladen. Wer
+wiederherstellt, holt die Dateien mit seinem eigenen Zugang aus dem Eimer und
+legt sie unter demselben Objektnamen in den Speicher des neuen Projekts. Das
+ist ein Handgriff, keine Automatik, und er gehört genannt, bevor ihn jemand im
+Ernstfall entdeckt.
+
+---
+
+## Erledigt: Die Dateien gehen mit (16.09.2026)
+
+**Die Ausleitung schrieb Tabellenzeilen — und die Fotos am Handwerksschein
+sind keine.** Die Zeile in `work_sheet_photos` nennt nur einen Pfad; das Bild
+selbst lag ausschliesslich im Speicher dieses Projekts. Ein Schein wäre nach
+einem Wiederanlauf zurückgekommen und seine Beweisfotos nicht — und genau die
+sind der Grund, warum es den Schein gibt. Ein Kunde, der eine Leistung
+bestreitet, lässt sich mit dem Verweis auf eine nicht mehr vorhandene Datei
+nicht überzeugen.
+
+**Nur ausser Haus, und das ist keine Sparsamkeit.** Die Bilder liegen bereits
+im Speicher dieses Projekts; sie in den Eimer nebenan zu kopieren verdoppelte
+den Platz und schützte gegen nichts — fällt das Projekt aus, fällt beides aus.
+Ohne eingerichteten Zielspeicher geschieht deshalb gar nichts, und das ist
+eine benannte Lücke und keine ausgelassene Arbeit.
+
+**Buch geführt wird in der Datenbank, weil der Zielspeicher es nicht kann.**
+Das Dienstkonto dort darf anlegen und sonst nichts — nicht lesen, nicht
+auflisten, nicht löschen. Das ist der Sinn der Übung: wer den Schlüssel
+erbeutet, kann die Sicherung nicht vernichten. Der Preis steht in
+`ausleitung_dateien`: die Frage „liegt diese Datei schon draussen?"
+beantwortet nur die eigene Datenbank. Die Tabelle trägt `company_id` und geht
+damit selbst mit in die Sicherung — ein wiederhergestellter Betrieb weiss
+also, was bereits draussen liegt.
+
+**Gefragt wird der SPEICHER, nicht die Zeilen.** Ginge die Liste über
+`work_sheet_photos`, fiele jede Datei heraus, deren Zeile fehlt — und genau
+die bräuchte man am dringendsten. Eine Waise kostet ein paar Kilobyte und
+wird mitgesichert.
+
+**Eine Handvoll je Lauf.** Eine Edge Function hat eine Wanduhr; ein Betrieb
+mit Jahren an Fotos bräche sonst in jeder Nacht an derselben Stelle ab.
+`AUSLEITUNG_DATEIEN_JE_LAUF` (200) und `AUSLEITUNG_DATEIEN_BYTES_JE_LAUF`
+(64 MB) begrenzen einen Lauf, die Reihenfolge liegt fest, und die Ansicht
+sagt, wie viele noch fehlen. Ein Rückstand arbeitet sich so Nacht für Nacht
+ab, statt nie.
+
+**Der Stolperdraht für neue Eimer.** `app.datei_eimer()` führt JEDEN Eimer des
+Projekts — mit `true` oder mit `false`. Ein neuer Eimer, den niemand einträgt,
+fiele sonst stillschweigend aus der Sicherung, und bemerkt würde es am Tag des
+Wiederanlaufs. `tests/supabase/ausleitungDateien.test.ts` vergleicht die Liste
+mit `storage.buckets` und fällt bei jedem Eimer, zu dem niemand eine
+Entscheidung getroffen hat.
+
+### Zwei Funde auf dem Weg
+
+**Die Signatur rechnete am Pfad des Endpunkts vorbei.** `putAnfrage` signierte
+bisher nur `<eimer>/<pfad>`. Bei Google Cloud Storage ist der Endpunkt ein
+blosser Hostname, und dann fällt das nie auf. Steht dort aber ein Pfad —
+`…/storage/v1/s3` bei Supabase, `…/s3` hinter einem Vorschaltserver —,
+rechnete die Signatur über etwas anderes als der Server über die empfangene
+Adresse: ein 403 ohne Begründung, das nach einem falschen Schlüssel aussieht.
+Der Pfadteil des Endpunkts geht jetzt mit ein.
+
+**Und damit liess sich der Transport endlich wirklich prüfen.** Bis hierher
+war die Signatur nur gegen die veröffentlichten AWS-Testvektoren gerechnet —
+das ist viel, aber es ist Papier. Der Supabase-Speicher selbst spricht die
+S3-Schnittstelle; `tests/supabase/ausleitungDateien.test.ts` schiebt ein Bild
+jetzt gegen einen ECHTEN S3-Dienst hinaus, lädt es zurück und vergleicht Byte
+für Byte — und weist daneben nach, dass derselbe Dienst eine falsch gerechnete
+Signatur abweist. Ohne das zweite wäre das erste wertlos.
+
+### Was hier weiterhin offen ist
+
+**Die Reihenfolge IN der Edge Function ist nicht integrierend geprüft.** Jede
+Schnittstelle, die sie anspricht, ist es — die Liste, das Herunterladen, der
+signierte PUT, der Vermerk. Was fehlt, ist der Zielspeicher in der Umgebung
+der Function selbst; der liegt ausserhalb, und im lokalen Stapel gibt es ihn
+nicht. Diese letzte Handbreit beantwortet der Knopf in den Einstellungen.
 
 ---
 

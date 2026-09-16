@@ -44,7 +44,9 @@ export default function SicherungView() {
 
   const [laeuft, setLaeuft] = useState<'sicherung' | 'download' | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
-  const [letzte, setLetzte] = useState<{ zeilen: number; bytes: number; ziel: string } | null>(null);
+  const [letzte, setLetzte] = useState<
+    { zeilen: number; bytes: number; ziel: string; dateien?: number; dateienOffen?: number } | null
+  >(null);
 
   if (!user) return null;
 
@@ -53,7 +55,10 @@ export default function SicherungView() {
     setFehler(null);
     try {
       const { data } = await mitFrist(callDatenAusleitungJetzt({}), FRIST_MS);
-      setLetzte({ zeilen: data.zeilen, bytes: data.bytes, ziel: data.ziel });
+      setLetzte({
+        zeilen: data.zeilen, bytes: data.bytes, ziel: data.ziel,
+        dateien: data.dateien, dateienOffen: data.dateienOffen,
+      });
       toast.success(`Sicherung erstellt: ${data.zeilen} Datensätze`);
     } catch (e) {
       // Der Text der Function ist bewusst verständlich gehalten — sie sagt
@@ -138,6 +143,25 @@ export default function SicherungView() {
             <p className="text-sm text-ink">
               Zuletzt gesichert: <strong>{letzte.zeilen}</strong> Datensätze,{' '}
               {mb(letzte.bytes)} — Ziel: {letzte.ziel}
+              {/*
+                DIE FOTOS STEHEN DANEBEN, WEIL SIE EINEN EIGENEN ZUSTAND
+                HABEN. Der Bestand geht in einem Zug hinaus; die Bilder nicht
+                — ein Lauf nimmt so viele, wie in seine Laufzeit passen, und
+                holt den Rest in den nächsten Nächten nach. Stünde hier nur
+                „gesichert", hielte jemand einen Rückstand von dreitausend
+                Fotos für erledigt.
+
+                NUR WENN DIE FUNCTION ES SAGT: eine ältere Fassung schickt das
+                Feld nicht mit, und dann wird nichts behauptet.
+              */}
+              {letzte.dateien !== undefined && (
+                <span className="mt-1 block">
+                  Fotos: <strong>{letzte.dateien}</strong> mitgesichert
+                  {letzte.dateienOffen
+                    ? `, ${letzte.dateienOffen} noch offen — sie gehen in den nächsten Läufen mit.`
+                    : ' — es fehlt keines.'}
+                </span>
+              )}
             </p>
           )}
         </div>

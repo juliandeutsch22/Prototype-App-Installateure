@@ -150,12 +150,18 @@ describe('Der Zweitschlüssel und die Beziehungen ohne Kennung', () => {
     `);
     /*
       `monthly_stats` steht in `zweitschluessel()` mit einem eigenen Schlüssel.
-      Die anderen vier werden unmittelbar gelesen (`maybeSingle`), nicht über
-      `abfragen`. Kommt eine sechste dazu, fällt diese Prüfung und die
+      Die anderen werden unmittelbar gelesen (`maybeSingle`), nicht über
+      `abfragen`. Kommt eine weitere dazu, fällt diese Prüfung und die
       Entscheidung wird bewusst getroffen statt im Betrieb entdeckt.
+
+      `ausleitung_dateien` liest die App ÜBERHAUPT NICHT: sie gehört der
+      Ausleitung, ist nur mit dem Dienstschlüssel erreichbar und wird dort mit
+      einer eigenen Abfrage gelesen. Ein Zweitschlüssel dafür wäre eine
+      Vorkehrung für einen Weg, den es nicht gibt.
     */
     expect(rows.map((r) => r.table_name)).toEqual([
-      'betriebsanlagen', 'monthly_stats', 'number_counters', 'system_laeufe', 'user_prefs',
+      'ausleitung_dateien', 'betriebsanlagen', 'monthly_stats', 'number_counters',
+      'system_laeufe', 'user_prefs',
     ]);
   }, 60_000);
 
