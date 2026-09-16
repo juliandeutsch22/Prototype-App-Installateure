@@ -19,7 +19,7 @@ import InfoHint from '@/components/InfoHint';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Zustand, type Stand } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -31,11 +31,16 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
-const TON: Record<Quote['status'], 'gray' | 'info' | 'success' | 'danger'> = {
-  Entwurf: 'gray',
-  Versendet: 'info',
-  Angenommen: 'success',
-  Abgelehnt: 'danger',
+/*
+  „Abgelehnt" war rot. Es ist ein ENDZUSTAND und keine Störung: der Kunde hat
+  entschieden, zu tun ist nichts mehr. Rot hiesse „hier ist etwas für dich"
+  und schickte jemanden auf eine Liste, an der er nichts ändern kann.
+*/
+const STAND: Record<Quote['status'], Stand> = {
+  Entwurf: 'ruht',
+  Versendet: 'laeuft',
+  Angenommen: 'gut',
+  Abgelehnt: 'ruht',
 };
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
@@ -443,7 +448,7 @@ export default function QuotesView() {
                   </>
                 }
               >
-                <Badge tone={TON[q.status]}>{q.status}</Badge>
+                <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
                 {darfAendern && q.status === 'Entwurf' && (
                   <Button
                     variant="ghost"

@@ -37,7 +37,7 @@ import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { scheinAbgleich } from './scheinAbgleich';
 import { discountLabel, type InvoicePosition } from './totals';
-import { todayStr, localDateStr, fmtMin } from '@/lib/time';
+import { todayStr, localDateStr, fmtMin, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice, Project, WorkSheet } from '@/types';
 import Card from '@/components/Card';
@@ -45,7 +45,7 @@ import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
-import Badge from '@/components/Badge';
+import { Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
@@ -1011,7 +1011,7 @@ export default function InvoicesView() {
                 title={
                   <>
                     <span>{schein.customerName}</span>
-                    <Badge tone={tage >= 90 ? 'danger' : 'warning'}>{tage} Tage</Badge>
+                    <Warnung stufe={tage >= 90 ? 'dringend' : 'achtung'}>{tageWort(tage)}</Warnung>
                   </>
                 }
                 subtitle={
@@ -1068,9 +1068,11 @@ export default function InvoicesView() {
                     title={
                       <>
                         <span>{z.rechnung.customerName}</span>
-                        <Badge tone={z.stufe === 3 ? 'danger' : z.stufe === 2 ? 'warning' : 'gray'}>
+                        {/* Die dritte Mahnung ist die letzte, die die App
+                            schreibt — danach braucht es eine Entscheidung. */}
+                        <Warnung stufe={z.stufe === 3 ? 'dringend' : 'achtung'}>
                           {TEXTE[z.stufe].titel}
-                        </Badge>
+                        </Warnung>
                       </>
                     }
                     subtitle={

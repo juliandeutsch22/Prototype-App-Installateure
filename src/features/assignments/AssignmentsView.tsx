@@ -24,7 +24,7 @@ import type {
 } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
@@ -676,8 +676,8 @@ export default function AssignmentsView() {
                           <span className="tnum text-sm text-ink-muted">({pn})</span>
                         </span>
                         <span className="flex gap-2">
-                          <Badge tone="info">{fach} Facharbeiter</Badge>
-                          {helper > 0 && <Badge tone="warning">{helper} Helfer</Badge>}
+                          <Marke>{fach} Facharbeiter</Marke>
+                          {helper > 0 && <Marke>{helper} Helfer</Marke>}
                         </span>
                       </div>
                       <ul className="divide-y divide-line">
@@ -690,7 +690,7 @@ export default function AssignmentsView() {
                               )}
                             </span>
                             <span className="flex shrink-0 items-center gap-2">
-                              {a.asHelper && <Badge tone="warning">Helfer</Badge>}
+                              {a.asHelper && <Marke>Helfer</Marke>}
                               <IconButton label={`Einsatz von ${a.userName} löschen`} tone="danger"
                                 onClick={() => setToDelete(a)}>
                                 ✕

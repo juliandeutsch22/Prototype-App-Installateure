@@ -94,10 +94,30 @@
    * nicht zwei konkurrierende Blautöne. Kontrast 5,1:1 auf eigener Fläche. */
   --success: #15803d;
   --success-bg: #dcf7e6;
-  --warning: #b45309;
-  --warning-bg: #fef3c7;
-  --danger: #b91c1c;
-  --danger-bg: #fee2e2;
+  /*
+   * GELB UND ROT KAMEN UNVERÄNDERT AUS TAILWIND — und das war zu sehen.
+   *
+   * GEMESSEN, NICHT GESCHÄTZT. Jeder Strukturton dieser App liegt zwischen
+   * 187° und 194° (Türkis); selbst `success-bg` ist mit 63 % Sättigung in
+   * dieses Band gezogen, `info-bg` liegt bei 65 %. Die beiden Warnfarben
+   * standen bei 96 % und 93 % — die zwei gesättigtsten Flächen der ganzen
+   * Oberfläche, aus einer fremden Palette, mitten in einer sehr ruhigen.
+   *
+   * Dazu ein zweiter Fehler, der die Rangfolge umdrehte: das Gelb war mit
+   * L 89 % DUNKLER als das Rot mit L 94 %. Die harmlosere Farbe wog optisch
+   * schwerer als die dringende.
+   *
+   * Jetzt liegen beide Flächen bei 66 % und 68 % — im selben Band wie Türkis
+   * und Grün —, und der Text ist eine Spur tiefer. DER KONTRAST STEIGT
+   * DABEI, er sinkt nicht: 4,51 auf 4,76 beim Gelb, 5,30 auf 5,48 beim Rot.
+   * Auf Weiss tragen beide über 5:1. `tests/unit/kontrast.test.ts` hält das
+   * fest — eine Farbe, die hübscher und schlechter lesbar ist, wäre in
+   * dieser App die falsche Richtung.
+   */
+  --warning: #a55409;
+  --warning-bg: #f7f0d9;
+  --danger: #ad1a1a;
+  --danger-bg: #f8dbd8;
   --info: #0e6d80;
   --info-bg: #d9f2f7;
 

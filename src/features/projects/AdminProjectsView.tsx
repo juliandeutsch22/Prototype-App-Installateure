@@ -22,7 +22,7 @@ import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
-import Badge from '@/components/Badge';
+import { Marke } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -527,7 +527,7 @@ export default function AdminProjectsView() {
                     </>
                   }
                 >
-                  {p.estimatedHours ? <Badge tone="gray">{p.estimatedHours} h Budget</Badge> : null}
+                  {p.estimatedHours ? <Marke>{p.estimatedHours} h Budget</Marke> : null}
                   <StatusBadge status={p.status} />
                   {/* Nachtraeglich einen Schein schreiben — der Fall, in dem
                       der Monteur ihn vor Ort vergessen hat. */}

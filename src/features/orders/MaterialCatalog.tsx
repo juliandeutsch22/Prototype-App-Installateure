@@ -13,7 +13,7 @@ import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
@@ -303,7 +303,7 @@ export default function MaterialCatalog({
       <Card
         title={`Katalog (${materials.length})`}
         action={
-          lowStock > 0 ? <Badge tone="warning">{lowStock} knapp</Badge> : undefined
+          lowStock > 0 ? <Warnung>{lowStock} knapp</Warnung> : undefined
         }
       >
         <InputField
@@ -348,9 +348,11 @@ export default function MaterialCatalog({
                         .join(' · ') || undefined
                     }
                   >
-                    <Badge tone={low ? 'warning' : 'gray'}>
-                      {m.stock ?? 0} {m.unit ?? 'Stk'}
-                    </Badge>
+                    {low ? (
+                      <Warnung>{m.stock ?? 0} {m.unit ?? 'Stk'}</Warnung>
+                    ) : (
+                      <Marke>{m.stock ?? 0} {m.unit ?? 'Stk'}</Marke>
+                    )}
                     <Button variant="ghost" onClick={() => startEdit(m)}>Bearbeiten</Button>
                     <IconButton label={`${m.name} löschen`} tone="danger" onClick={() => setToDelete(m)}>
                       ✕

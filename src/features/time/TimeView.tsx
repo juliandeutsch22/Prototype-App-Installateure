@@ -29,7 +29,7 @@ import {
 import InfoHint from '@/components/InfoHint';
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
-import Badge from '@/components/Badge';
+import { Marke, Warnung } from '@/components/Badge';
 import Zeitmarker from './Zeitmarker';
 import { zuschlagszeit, hatZuschlaege } from '@/features/accounting/zuschlaege';
 import Button from '@/components/Button';
@@ -619,9 +619,9 @@ export default function TimeView() {
                           }
                         >
                           {doppelteTage.has(e.date) && (
-                            <Badge tone="danger">doppelt gebucht</Badge>
+                            <Warnung stufe="dringend">doppelt gebucht</Warnung>
                           )}
-                          {e.source === 'voice' && <Badge tone="info">KI</Badge>}
+                          {e.source === 'voice' && <Marke>KI</Marke>}
                           <Zeitmarker eintrag={e} />
                           <span className="tnum font-medium text-ink">
                             {fmtMin(calcWorkMin(e))}
@@ -629,7 +629,7 @@ export default function TimeView() {
                           {/* Verrechnete Einträge sind Grundlage einer
                               verschickten Rechnung und bleiben gesperrt. */}
                           {e.isBilled ? (
-                            <Badge tone="gray">verrechnet</Badge>
+                            <Marke>verrechnet</Marke>
                           ) : (
                             <>
                               <Button variant="ghost" onClick={() => setEditing(e)}>

@@ -13,7 +13,7 @@ import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { Invoice, Material, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
-import Badge from '@/components/Badge';
+import { Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
 import { SelectField } from '@/components/Field';
@@ -293,9 +293,9 @@ export default function NachkalkulationView() {
                         </>
                       }
                     >
-                      <Badge tone={margenTon(k)}>
+                      <Zustand stand={margenTon(k)}>
                         {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
-                      </Badge>
+                      </Zustand>
                     </ListRow>
                   ))}
                 </List>

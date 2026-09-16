@@ -8,7 +8,7 @@ import { TelefonLink } from '@/components/Kontakt';
 import { mapsUrl } from '@/lib/kontakt';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
-import Badge from '@/components/Badge';
+import { Marke } from '@/components/Badge';
 import { LoadingState, ErrorState, EmptyState } from '@/components/States';
 
 /** 'YYYY-MM-DD' -> '27.08.2026'; leer bleibt leer. */
@@ -75,7 +75,7 @@ export default function MyProjectsView() {
               )}
               {p.estimatedHours ? (
                 <p className="mt-2">
-                  <Badge tone="gray">{p.estimatedHours} h kalkuliert</Badge>
+                  <Marke>{p.estimatedHours} h kalkuliert</Marke>
                 </p>
               ) : null}
 

@@ -24,7 +24,7 @@ import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry } from '@/types';
 import { erscheintInAuswertung, shouldShowOvertime } from '@/lib/permissions';
 import Card from '@/components/Card';
-import Badge from '@/components/Badge';
+import { Marke, Warnung, Zustand } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -59,11 +59,7 @@ const STATUS_LABEL: Record<CompletenessStatus, string> = {
   today_only: 'heute offen',
   missing: 'fehlt',
 };
-const STATUS_TONE: Record<CompletenessStatus, 'success' | 'info' | 'danger'> = {
-  complete: 'success',
-  today_only: 'info',
-  missing: 'danger',
-};
+
 
 /** Alle Kalendertage eines Monats als 'YYYY-MM-DD'. */
 function daysOfMonth(year: number, month: number): string[] {
@@ -530,14 +526,16 @@ export default function AccountingView() {
                       <span className="font-bold text-ink">{u.name}</span>
                       {/* „vollständig" braucht keine Pille — nur die Ausnahme
                           verdient Aufmerksamkeit. */}
-                      {completeness.status !== 'complete' && (
-                        <Badge tone={STATUS_TONE[completeness.status]}>
-                          {completeness.status === 'missing'
-                            ? `${tageWort(completeness.missingCount)} ${
-                                completeness.missingCount === 1 ? 'fehlt' : 'fehlen'}`
-                            : STATUS_LABEL[completeness.status]}
-                        </Badge>
-                      )}
+                      {completeness.status === 'missing' ? (
+                        <Warnung>
+                          {`${tageWort(completeness.missingCount)} ${
+                            completeness.missingCount === 1 ? 'fehlt' : 'fehlen'}`}
+                        </Warnung>
+                      ) : completeness.status !== 'complete' ? (
+                        /* „heute offen" ist keine Lücke, sondern der laufende
+                           Tag — er füllt sich von selbst bis zum Feierabend. */
+                        <Marke>{STATUS_LABEL[completeness.status]}</Marke>
+                      ) : null}
                     </span>
                     <span className="flex shrink-0 items-center gap-3">
                       <span className="hidden text-right sm:block">
@@ -571,22 +569,30 @@ export default function AccountingView() {
                           hinterlegt" stünde hier also als Mangel, wo keiner
                           ist, und schickte jemanden in die Stammdaten.
                         */
-                        <Badge tone="gray">führt kein Zeitkonto</Badge>
+                        <Marke>führt kein Zeitkonto</Marke>
                       ) : !stats.hasConfig ? (
-                        <Badge tone="gray">kein Eintritt hinterlegt</Badge>
+                        <Marke>kein Eintritt hinterlegt</Marke>
                       ) : (
-                        <Badge
-                          tone={
+                        /*
+                          DER SALDO IST EINE ZAHL, KEINE AUFFORDERUNG. Er stand
+                          als gefüllte Pille neben der Lückenmeldung, und zwei
+                          Pillen in einer Zeile riefen beide gleich laut —
+                          dabei ist nur die eine etwas zu tun.
+                        */
+                        <Zustand
+                          stand={
                             completeness.missingCount > 0
-                              ? 'warning'
+                              ? 'ruht'
                               : stats.saldoMin >= 0
-                                ? 'success'
-                                : 'danger'
+                                ? 'gut'
+                                : 'achtung'
                           }
                         >
-                          {stats.saldoMin > 0 ? '+' : ''}
-                          {fmtMin(stats.saldoMin)}
-                        </Badge>
+                          <span className="tnum">
+                            {stats.saldoMin > 0 ? '+' : ''}
+                            {fmtMin(stats.saldoMin)}
+                          </span>
+                        </Zustand>
                       )}
                       <Icon
                         name="chevron"
@@ -754,11 +760,11 @@ export default function AccountingView() {
                            Farbenblinde kein Signal. */
                         const status = (x: (typeof days)[number]) =>
                           !x.entry ? (
-                            <Badge tone="info">{x.holiday}</Badge>
+                            <Marke>{x.holiday}</Marke>
                           ) : x.entry.status === 'Krank' ? (
-                            <Badge tone="warning">Krank</Badge>
+                            <Marke>Krank</Marke>
                           ) : x.entry.status === 'Urlaub' ? (
-                            <Badge tone="info">Urlaub</Badge>
+                            <Marke>Urlaub</Marke>
                           ) : (
                             <span className="text-ink-muted">Anwesend</span>
                           );
@@ -767,7 +773,7 @@ export default function AccountingView() {
                           e.isBilled ? (
                             // Verrechnete Einträge sind Rechnungsgrundlage
                             // und bleiben unangetastet.
-                            <Badge tone="gray">verrechnet</Badge>
+                            <Marke>verrechnet</Marke>
                           ) : (
                             <>
                               <Button

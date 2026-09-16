@@ -4,7 +4,7 @@ import { updateCompany } from '@/lib/db/company';
 import { MODULE, aktiveModule, istVerfuegbar, zieheMit, modul, type ModulId } from '@/lib/module';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke, Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
@@ -123,11 +123,13 @@ export default function ModulesView() {
                 <div className="min-w-[12rem] flex-1">
                   <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
                     {m.name}
-                    {!verfuegbar && <Badge tone="gray">nicht eingerichtet</Badge>}
+                    {!verfuegbar && <Marke>nicht eingerichtet</Marke>}
+                    {/* Eine Aufforderung, keine Eigenschaft: ohne das andere
+                        Modul lässt sich dieses gar nicht einschalten. */}
                     {verfuegbar && fehlt.length > 0 && (
-                      <Badge tone="warning">
+                      <Warnung>
                         braucht {fehlt.map((d) => modul(d)?.name ?? d).join(', ')}
-                      </Badge>
+                      </Warnung>
                     )}
                   </p>
                   <p className="mt-1 text-sm text-ink-muted">{m.zweck}</p>

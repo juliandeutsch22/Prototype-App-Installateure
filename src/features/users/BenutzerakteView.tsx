@@ -7,7 +7,7 @@ import { canManageAdmins } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import InfoHint from '@/components/InfoHint';
@@ -179,8 +179,8 @@ export default function BenutzerakteView() {
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link to="/user-mgmt" className="text-brand underline">← Zur Benutzerliste</Link>
-            <Badge tone="gray">{p.role}</Badge>
-            {p.active === false && <Badge tone="gray">inaktiv</Badge>}
+            <Marke>{p.role}</Marke>
+            {p.active === false && <Marke>inaktiv</Marke>}
           </span>
         }
       />
@@ -286,7 +286,9 @@ function StammdatenLesen({ p }: { p: AppUser }) {
       <Angabe wort="E-Mail"><MailLink adresse={p.email} /></Angabe>
       <Angabe wort="Rolle">{p.role}</Angabe>
       <Angabe wort="Zustand">
-        {p.active === false ? <Badge tone="gray">inaktiv</Badge> : <Badge tone="success">aktiv</Badge>}
+        {p.active === false
+          ? <Zustand stand="ruht">inaktiv</Zustand>
+          : <Zustand stand="gut">aktiv</Zustand>}
       </Angabe>
       <Angabe wort="Wochenstunden">
         {p.weeklyTargetHours != null ? <span className="tnum">{p.weeklyTargetHours}</span> : null}

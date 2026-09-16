@@ -20,7 +20,7 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import { InputField, FormGrid, CheckboxField } from '@/components/Field';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, MailLink } from '@/components/Kontakt';
@@ -402,17 +402,17 @@ export default function KundenakteView() {
                         alle {w.intervallMonate} Monate · Termin {fmtDatum(w.faelligAm)}
                       </span>
                     </span>
-                    <Badge
-                      tone={
+                    <Zustand
+                      stand={
                         u.stand === 'überfällig'
-                          ? 'danger'
+                          ? 'schlecht'
                           : u.stand === 'fällig'
-                            ? 'warning'
-                            : 'gray'
+                            ? 'achtung'
+                            : 'ruht'
                       }
                     >
                       {u.stand === 'ruht' ? 'ruht' : u.text}
-                    </Badge>
+                    </Zustand>
                   </li>
                 );
               })}
@@ -497,7 +497,9 @@ function StammdatenLesen({ k }: { k: Customer }) {
           {k.vatId ? <span className="tnum">{k.vatId}</span> : null}
         </Angabe>
         <Angabe wort="Zustand">
-          {k.active === false ? <Badge tone="gray">inaktiv</Badge> : <Badge tone="success">aktiv</Badge>}
+          {k.active === false
+            ? <Zustand stand="ruht">inaktiv</Zustand>
+            : <Zustand stand="gut">aktiv</Zustand>}
         </Angabe>
       </dl>
 

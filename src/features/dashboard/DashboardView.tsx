@@ -31,7 +31,7 @@ import {
 import type { Assignment, EinsatzMaterial, MaterialOrder, Project, RuestPosition } from '@/types';
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
-import Badge from '@/components/Badge';
+import { Marke, Warnung, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import LaufWarnung from './LaufWarnung';
 import WartungHinweis from './WartungHinweis';
@@ -581,7 +581,7 @@ export default function DashboardView() {
               <div key={e.id} className="rounded-sm border border-line p-3">
                 <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-ink">
                   {e.customerName}
-                  {e.asHelper && <Badge tone="warning">Helfer</Badge>}
+                  {e.asHelper && <Marke>Helfer</Marke>}
                 </p>
                 <p className="tnum text-sm text-ink-muted">{e.projectNumber}</p>
                 {e.comment && (
@@ -659,10 +659,10 @@ export default function DashboardView() {
                       ({b.projectNumber})
                     </span>
                   </span>
-                  <Badge tone="info">
+                  <Marke>
                     {b.namen.length} {b.namen.length === 1 ? 'Person' : 'Personen'}
                     {b.helfer > 0 && `, davon ${b.helfer} Helfer`}
-                  </Badge>
+                  </Marke>
                 </div>
                 <p className="mt-1 text-sm text-ink-muted">{b.namen.join(', ')}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
@@ -734,7 +734,7 @@ export default function DashboardView() {
                     </span>
                   </span>
                   {pr.estimatedHours ? (
-                    <Badge tone="gray">{pr.estimatedHours} h Budget</Badge>
+                    <Marke>{pr.estimatedHours} h Budget</Marke>
                   ) : null}
                 </div>
                 {/*
@@ -785,9 +785,9 @@ export default function DashboardView() {
                     {fmtStd(pr.usedMin)} von {pr.estimatedHours} h · {pr.projectNumber}
                   </span>
                 </span>
-                <Badge tone={pr.over ? 'danger' : 'warning'}>
+                <Warnung stufe={pr.over ? 'dringend' : 'achtung'}>
                   {pr.over ? 'überschritten' : `${pr.pct} %`}
-                </Badge>
+                </Warnung>
               </li>
             ))}
           </ul>
@@ -862,13 +862,11 @@ export default function DashboardView() {
               <li key={t.uid} className="flex min-h-touch items-center justify-between gap-3 py-2">
                 <span className="min-w-0 truncate text-ink">{t.name}</span>
                 {!t.hatKonfig ? (
-                  <Badge tone="gray">kein Startdatum</Badge>
+                  <Marke>kein Startdatum</Marke>
                 ) : t.fehlendeTage > 0 ? (
-                  <Badge tone="warning">
-                    {tageWort(t.fehlendeTage)} offen
-                  </Badge>
+                  <Warnung>{tageWort(t.fehlendeTage)} offen</Warnung>
                 ) : (
-                  <Badge tone="success">vollständig</Badge>
+                  <Zustand stand="gut">vollständig</Zustand>
                 )}
               </li>
             ))}

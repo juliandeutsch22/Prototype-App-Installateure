@@ -12,7 +12,7 @@ import type { Material, MaterialOrder } from '@/types';
 import Nachladen from '@/components/Nachladen';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke, Warnung } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
@@ -263,9 +263,11 @@ export default function StockView() {
                           </>
                         }
                       >
-                        <Badge tone={low ? 'warning' : 'gray'}>
-                          {m.free} {m.unit ?? 'Stk'} frei
-                        </Badge>
+                        {low ? (
+                          <Warnung>{m.free} {m.unit ?? 'Stk'} frei</Warnung>
+                        ) : (
+                          <Marke>{m.free} {m.unit ?? 'Stk'} frei</Marke>
+                        )}
                         <Button
                           variant="ghost"
                           loading={busyId === m.id}

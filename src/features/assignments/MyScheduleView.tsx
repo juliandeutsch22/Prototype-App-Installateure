@@ -15,7 +15,7 @@ import type { WithId } from '@/lib/db/core';
 import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
-import Badge from '@/components/Badge';
+import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
@@ -297,10 +297,10 @@ export default function MyScheduleView() {
                             )}
                           </span>
                           <span className="flex gap-2">
-                            {a.date === today && <Badge tone="danger">Heute</Badge>}
-                            <Badge tone={a.asHelper ? 'warning' : 'info'}>
-                              {a.asHelper ? 'Helfer' : 'Facharbeiter'}
-                            </Badge>
+                            {/* „Heute" war rot. Es ist kein Ausfall, sondern der
+                                Einsatz, der GERADE läuft. */}
+                            {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
+                            <Marke>{a.asHelper ? 'Helfer' : 'Facharbeiter'}</Marke>
                           </span>
                         </div>
                         {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
@@ -383,8 +383,8 @@ export default function MyScheduleView() {
                           <span className="block text-xs text-ink-muted">{fmtDay(a.date)}</span>
                         </span>
                         <span className="flex shrink-0 gap-2">
-                          {a.date === today && <Badge tone="danger">Heute</Badge>}
-                          {a.asHelper && <Badge tone="warning">Helfer</Badge>}
+                          {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
+                          {a.asHelper && <Marke>Helfer</Marke>}
                         </span>
                       </li>
                     );
@@ -425,9 +425,9 @@ export default function MyScheduleView() {
                         <span className="tnum text-xs text-ink-muted">
                           {v.tage} {v.tage === 1 ? 'Tag' : 'Tage'}
                         </span>
-                        <Badge tone={v.status === 'Genehmigt' ? 'success' : 'warning'}>
+                        <Zustand stand={v.status === 'Genehmigt' ? 'gut' : 'achtung'}>
                           {v.status}
-                        </Badge>
+                        </Zustand>
                       </span>
                     </li>
                   ))}

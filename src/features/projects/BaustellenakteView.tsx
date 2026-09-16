@@ -11,7 +11,7 @@ import type { Project, AppUser, Customer } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Badge from '@/components/Badge';
+import { Marke } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import PersonPicker from '@/components/PersonPicker';
@@ -261,7 +261,7 @@ export default function BaustellenakteView() {
             <Link to="/admin-projects" className="text-brand underline">← Zur Baustellenliste</Link>
             <span className="tnum text-ink-muted">{b.projectNumber}</span>
             <StatusBadge status={b.status} />
-            {b.estimatedHours ? <Badge tone="gray">{b.estimatedHours} h Budget</Badge> : null}
+            {b.estimatedHours ? <Marke>{b.estimatedHours} h Budget</Marke> : null}
           </span>
         }
       />

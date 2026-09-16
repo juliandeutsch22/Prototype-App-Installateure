@@ -33,7 +33,7 @@ import {
 import Card from '@/components/Card';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Button from '@/components/Button';
-import Badge, { type Tone } from '@/components/Badge';
+import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -51,12 +51,17 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 const fmtDatum = (iso?: string) =>
   iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT') : '—';
 
-const TON: Record<Dringlichkeit, Tone> = {
-  'überfällig': 'danger',
-  'fällig': 'warning',
-  'später': 'gray',
-  ruht: 'gray',
-  unklar: 'info',
+/*
+  DIE LISTE IST DER AUFRUF, NICHT DIE ZEILE. „Überfällig" sagt, WO eine
+  Wartung steht; dass sie zu tun ist, sagt die Ansicht, in der sie steht.
+  Stünde beides als gefüllte Pille da, riefe die Liste zweimal dasselbe.
+*/
+const STAND: Record<Dringlichkeit, Stand> = {
+  'überfällig': 'schlecht',
+  'fällig': 'achtung',
+  'später': 'laeuft',
+  ruht: 'ruht',
+  unklar: 'ruht',
 };
 
 const LEER = (): NewWartung => ({
@@ -431,7 +436,7 @@ export default function WartungenView() {
         title={
           <>
             <span>{w.customerName}</span>
-            <Badge tone={TON[u.stand]}>{u.stand === 'ruht' ? 'ruht' : u.text}</Badge>
+            <Zustand stand={STAND[u.stand]}>{u.stand === 'ruht' ? 'ruht' : u.text}</Zustand>
           </>
         }
         subtitle={
