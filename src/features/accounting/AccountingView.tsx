@@ -18,6 +18,7 @@ import {
   localDateStr,
   type CompletenessStatus,
   uebertragsRegel,
+  tageWort,
 } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry } from '@/types';
@@ -532,7 +533,8 @@ export default function AccountingView() {
                       {completeness.status !== 'complete' && (
                         <Badge tone={STATUS_TONE[completeness.status]}>
                           {completeness.status === 'missing'
-                            ? `${completeness.missingCount} Tage fehlen`
+                            ? `${tageWort(completeness.missingCount)} ${
+                                completeness.missingCount === 1 ? 'fehlt' : 'fehlen'}`
                             : STATUS_LABEL[completeness.status]}
                         </Badge>
                       )}

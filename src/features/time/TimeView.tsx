@@ -14,6 +14,7 @@ import {
   getISOWeek,
   localDateStr,
   todayStr,
+  tageWort,
 } from '@/lib/time';
 import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
 import { shouldShowOvertime } from '@/lib/permissions';
@@ -512,7 +513,7 @@ export default function TimeView() {
             !saldo?.hasConfig
               ? 'Kein Startdatum konfiguriert'
               : saldo.daysWithoutEntry > 0
-                ? `${saldo.daysWithoutEntry} Tage ohne Buchung — unvollständig`
+                ? `${tageWort(saldo.daysWithoutEntry)} ohne Buchung — unvollständig`
                 : 'Über-/Unterstunden'
           }
         />
