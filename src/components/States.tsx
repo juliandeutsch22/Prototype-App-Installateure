@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { GUTER_RAND } from './Metric';
 
 /** Ladezustand — sichtbar, kein stiller Abbruch. */
 export function LoadingState({ label = 'Wird geladen …' }: { label?: string }) {
@@ -50,7 +51,11 @@ export function SkeletonMetrics({ count = 3 }: { count?: number }) {
     // Form und Hoehe folgen der Kennzahlen-Leiste. Ein Platzhalter, der
     // anders gebaut ist als sein Inhalt, laesst die Seite beim Eintreffen
     // springen — genau das, was er verhindern soll.
-    <div role="status" aria-busy="true" className="flex items-stretch divide-x divide-line">
+    <div
+      role="status"
+      aria-busy="true"
+      className={`flex items-stretch divide-x divide-line ${GUTER_RAND}`}
+    >
       <span className="sr-only">Wird geladen …</span>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="min-w-0 flex-1 px-3 first:pl-0 last:pr-0" aria-hidden="true">

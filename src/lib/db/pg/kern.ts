@@ -11,6 +11,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabaseClient } from '@/lib/supabase';
 import type { WithId } from '../core';
 import { zeileAlsObjekt, objektAlsZeile } from './felder';
+import { meldeVerbindung, vergissVerbindung } from '@/lib/liveVerbindung';
 
 /*
   DIESELBE KENNUNG WIE AUF DER ANDEREN SEITE. Sie hier ein zweites Mal zu
@@ -442,6 +443,197 @@ export async function loeschen(
 }
 
 /**
+ * Ein Kanal, der sich selbst wieder aufbaut — und selbst Bescheid gibt.
+ *
+ * EIN ABGERISSENER KANAL IST KEIN FEHLER, SONDERN DER NORMALFALL. Das
+ * Live-Abonnement hängt an einer WebSocket-Verbindung. Schickt das Telefon
+ * die App in den Hintergrund — Anruf, Bildschirmsperre, ein Blick in die
+ * Karten-App —, schliesst das Betriebssystem sie. Am Schreibtisch reicht ein
+ * Wechsel in einen anderen Browser-Tab: der Browser drosselt die Zeitgeber,
+ * der Herzschlag der Verbindung bleibt aus, und der Server legt auf.
+ *
+ * WARUM DAS HIER STEHT UND NICHT VIERMAL. Es gab diesen Wiederaufbau genau
+ * einmal, in `abonnieren`. Die drei anderen Abonnements der App — die
+ * Einstellungen, die Rechnungen, die Rüstliste — meldeten einen Abriss
+ * SOFORT als Fehler. Ein kurzer Blick in einen anderen Tab, und in der
+ * Rechnungsansicht stand ein roter Kasten. Ein Wiederaufbau, den drei von
+ * vier Wegen nicht haben, ist keiner.
+ *
+ * DREI ENTSCHEIDUNGEN, und die erste ist die, die gefehlt hat:
+ *
+ *   1. IM HINTERGRUND WIRD NICHT GEZÄHLT. Liegt der Tab im Hintergrund, ist
+ *      ein geschlossener Kanal zu erwarten und ein Wiederaufbau zwecklos —
+ *      der Browser drosselt ihn ohnehin. Ohne diese Zeile lief die Leiter
+ *      der Wartezeiten ungesehen ab, und der Nutzer fand beim Zurückkommen
+ *      eine Meldung vor über etwas, das in seiner Abwesenheit geschah und
+ *      längst behoben war.
+ *   2. WIEDERAUFBAU MIT WACHSENDEM ABSTAND. Gemeldet wird erst, wenn auch
+ *      die letzte Stufe nicht greift; dann steht wirklich etwas an.
+ *   3. GEMELDET WIRD AN `liveVerbindung`, NICHT AN DIE ANSICHT. Alle
+ *      Abonnements hängen an derselben Verbindung; es ist ein Zustand der
+ *      App und keiner dieser Liste. Und er lässt sich dort wieder
+ *      ZURÜCKNEHMEN — was über `onError` nie ging.
+ */
+const ABSTAENDE_MS = [1000, 2000, 4000, 8000, 15000];
+
+interface KanalAuftrag {
+  tabelle: string;
+  /** PostgREST-Filter für den Kanal, z. B. `company_id=eq.perl`. */
+  filter: string;
+  beiAenderung: (n: {
+    eventType: string;
+    new: Record<string, unknown>;
+    old: Record<string, unknown>;
+  }) => void;
+  /** Läuft nach jedem geglückten Aufbau — auch nach einem Wiederaufbau. */
+  beiBereit: () => void;
+  client: SupabaseClient;
+}
+
+export function kanalHalten(a: KanalAuftrag): () => void {
+  /*
+    DER SCHLÜSSEL IST JE ABONNEMENT EINDEUTIG, nicht je Tabelle: dieselbe
+    Tabelle kann in zwei Ansichten gleichzeitig abonniert sein, und wenn
+    beide denselben Schlüssel benutzten, räumte das Abmelden der einen den
+    Vorbehalt der anderen weg.
+  */
+  const schluessel = `${a.tabelle}-${Math.random().toString(36).slice(2)}`;
+  let versuch = 0;
+  /*
+    EIN WIEDERAUFBAU IST SCHON EINGEPLANT — ALSO NICHT NOCH EINER.
+
+    GEMESSEN, NICHT VERMUTET, und es war der eigentliche Grund für die
+    Meldung aus dem Betrieb. Ein sterbender Kanal ruft seinen Rückruf nicht
+    EINMAL, sondern mehrfach in einem Atemzug — `CHANNEL_ERROR`, dann
+    `CLOSED`, und vor allem: `removeChannel` selbst meldet noch einmal
+    `CLOSED`, und zwar SYNCHRON aus dem Rückruf heraus, der es gerade
+    aufgerufen hat. Ohne diese Sperre lief die Behandlung also in sich
+    selbst, fünf Ebenen tief, und die unterste meldete den Vorbehalt.
+
+    Nachgemessen im echten Browser mit gekapptem Socket: der Hinweis stand
+    nach ZWEI ZEHNTELSEKUNDEN da statt nach dreissig Sekunden — und zwar
+    schon vor diesem Umbau. „Kurz den Tab gewechselt, sofort die Meldung"
+    ist genau das.
+  */
+  let wartet = false;
+  let beendet = false;
+  let neuAufbau: ReturnType<typeof setTimeout> | undefined;
+  let kanal: ReturnType<SupabaseClient['channel']> | null = null;
+
+  /*
+    OHNE `document` GILT „SICHTBAR". Im Prüflauf und auf dem Server gibt es
+    keinen Tab, der in den Hintergrund rutschen könnte; „unsichtbar"
+    anzunehmen hiesse, den Wiederaufbau dort stillzulegen.
+  */
+  const sichtbar = () =>
+    typeof document === 'undefined' || document.visibilityState === 'visible';
+
+  const anmelden = () => {
+    if (beendet) return;
+    kanal = a.client
+      .channel(`${a.tabelle}-${schluessel}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: a.tabelle, filter: a.filter },
+        (n) => a.beiAenderung(n as unknown as {
+          eventType: string;
+          new: Record<string, unknown>;
+          old: Record<string, unknown>;
+        }),
+      )
+      .subscribe((status) => {
+        if (beendet) return;
+
+        if (status === 'SUBSCRIBED') {
+          versuch = 0;
+          wartet = false;
+          meldeVerbindung(schluessel, true);
+          a.beiBereit();
+          return;
+        }
+
+        /*
+          `CLOSED` kommt auch beim eigenen Abmelden — dann steht `beendet`
+          schon, und wir sind oben heraus. Bleibt der Fall, in dem die
+          Verbindung von aussen wegbricht.
+        */
+        if (status !== 'CHANNEL_ERROR' && status !== 'TIMED_OUT' && status !== 'CLOSED') return;
+
+        /*
+          IM HINTERGRUND: NICHTS TUN, NICHTS ZÄHLEN, NICHTS MELDEN. Der
+          Wiederaufbau beginnt bei `wiederDa` — und der läuft, sobald jemand
+          wieder hinsieht.
+        */
+        if (!sichtbar()) return;
+
+        // Der zweite Ruf desselben sterbenden Kanals ist keine zweite
+        // Störung — siehe `wartet` oben.
+        if (wartet) return;
+
+        if (versuch >= ABSTAENDE_MS.length) {
+          meldeVerbindung(schluessel, false);
+          return;
+        }
+        /*
+          DIE SPERRE ZUERST, DANN DAS AUFRÄUMEN — und diese Reihenfolge ist
+          das ganze Kunststück.
+
+          `removeChannel` meldet den Kanal ab, und das ruft DIESEN Rückruf
+          synchron noch einmal auf, mit `CLOSED`. Stünde `wartet = true`
+          dahinter, liefe der Rückruf in sich selbst: fünf Ebenen tief, und
+          die unterste meldete den Vorbehalt — alles im selben Atemzug. Die
+          Leiter von dreissig Sekunden wäre nach zwei Zehntelsekunden abgelaufen.
+
+          Im echten Browser nachgemessen, und es ist die Ursache der Meldung
+          aus dem Betrieb: „kurz den Tab gewechselt, sofort die Meldung".
+        */
+        const wartezeit = ABSTAENDE_MS[versuch];
+        versuch += 1;
+        wartet = true;
+        if (kanal) void a.client.removeChannel(kanal);
+        kanal = null;
+        neuAufbau = setTimeout(() => { wartet = false; anmelden(); }, wartezeit);
+      });
+  };
+
+  /*
+    ZURÜCK AUS DEM HINTERGRUND: sofort, nicht erst nach dem Abstand.
+
+    Ohne das läge zwischen „App wieder da" und „Daten wieder aktuell" die
+    gerade laufende Wartezeit — und der Monteur sähe seinen eben gebuchten
+    Eintrag bis zu fünfzehn Sekunden lang nicht.
+  */
+  const wiederDa = () => {
+    if (beendet) return;
+    if (!sichtbar()) return;
+    versuch = 0;
+    wartet = false;
+    if (neuAufbau) { clearTimeout(neuAufbau); neuAufbau = undefined; }
+    if (kanal) { void a.client.removeChannel(kanal); kanal = null; }
+    anmelden();
+  };
+
+  const horcht = typeof document !== 'undefined' && typeof window !== 'undefined';
+  if (horcht) {
+    document.addEventListener('visibilitychange', wiederDa);
+    window.addEventListener('online', wiederDa);
+  }
+
+  anmelden();
+
+  return () => {
+    beendet = true;
+    if (neuAufbau) clearTimeout(neuAufbau);
+    if (horcht) {
+      document.removeEventListener('visibilitychange', wiederDa);
+      window.removeEventListener('online', wiederDa);
+    }
+    vergissVerbindung(schluessel);
+    if (kanal) void a.client.removeChannel(kanal);
+  };
+}
+
+/**
  * Live-Abonnement innerhalb eines Mandanten.
  *
  * VIER ENTSCHEIDUNGEN, JEDE AUS EINEM FEHLSCHLAG GELERNT.
@@ -466,12 +658,12 @@ export async function loeschen(
  *    Flattern im Test heisst draussen: die Liste des Monteurs ist manchmal
  *    unvollständig, ohne dass es jemand merkt.
  *
- * 4. EIN ABGERISSENER KANAL WIRD NEU AUFGEBAUT, NICHT GEMELDET. Schickt das
- *    Telefon die App in den Hintergrund, schliesst das Betriebssystem die
- *    Verbindung; beim Zurückkommen meldet der Kanal `CHANNEL_ERROR`. Das war
- *    ein roter Kasten auf jeder Ansicht mit Live-Daten — obwohl nichts kaputt
- *    ist. Firestore hat diesen Wiederaufbau selbst erledigt. Die Begründung
- *    im Einzelnen steht unten am Wiederaufbau.
+ * 4. EIN ABGERISSENER KANAL WIRD NEU AUFGEBAUT, NICHT GEMELDET. Das erledigt
+ *    `kanalHalten` darüber, mitsamt der Begründung. `onError` ist hier
+ *    seither NUR noch für ein gescheitertes LADEN da — dafür hat die Ansicht
+ *    keine Daten, und das gehört dorthin, wo die Daten stehen sollten. Ein
+ *    Verbindungsabriss dagegen lässt die Daten stehen; er ist ein Vorbehalt
+ *    und steht in `liveVerbindung`.
  *
  * Gefiltert wird im Kanal nur nach dem Betrieb. Alles Weitere (Zeitraum,
  * Person) prüft der Client an der eingehenden Zeile: Supabase kann nur EINEN
@@ -557,116 +749,30 @@ export function abonnieren<T>(
     }
   };
 
-  /*
-    EIN ABGERISSENER KANAL IST KEIN FEHLER, SONDERN DER NORMALFALL.
-
-    Das Live-Abonnement hängt an einer WebSocket-Verbindung. Schickt das
-    Telefon die App in den Hintergrund — Anruf, Bildschirmsperre, ein Blick in
-    die Karten-App —, schliesst das Betriebssystem sie. Beim Zurückkommen
-    meldet der Kanal `CHANNEL_ERROR`.
-
-    DAS WAR VORHER EIN ROTER KASTEN, und zwar auf jeder Ansicht mit Live-Daten.
-    Auf einer Baustelle heisst das: einmal weggesehen, und die App sagt „Das
-    hat nicht geklappt" — obwohl nichts kaputt ist und die angezeigten Daten
-    stimmen. Firestore hat diesen Wiederaufbau selbst erledigt; hier muss er
-    hier stehen.
-
-    Also: neu verbinden, mit wachsendem Abstand, und den Bestand dabei neu
-    holen — während der Pause kann sich etwas geändert haben, was kein
-    Ereignis mehr erreicht hat. Gemeldet wird erst, wenn es auch nach der
-    letzten Stufe nicht klappt; dann steht wirklich etwas an, und der Hinweis
-    ist verdient.
-  */
-  const ABSTAENDE_MS = [1000, 2000, 4000, 8000, 15000];
-  let versuch = 0;
-  let beendet = false;
-  let neuAufbau: ReturnType<typeof setTimeout> | undefined;
-  let kanal: ReturnType<SupabaseClient['channel']> | null = null;
-
-  const anmelden = () => {
-    if (beendet) return;
-    kanal = c
-      .channel(`${tabelle}-${companyId}-${Math.random().toString(36).slice(2)}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: tabelle, filter: `company_id=eq.${companyId}` },
-        (n) => {
-          const aenderung = {
-            typ: n.eventType,
-            neu: n.new as Record<string, unknown>,
-            alt: n.old as Record<string, unknown>,
-          };
-          if (!bereit) { puffer.push(aenderung); return; }
-          anwendenAenderung(aenderung);
-          melden();
-        },
-      )
-      .subscribe((status) => {
-        if (beendet) return;
-
-        if (status === 'SUBSCRIBED') {
-          versuch = 0;
-          void laden().then(() => {
-            // Das Nachfassen. Siehe Punkt 4 im Kopf dieser Funktion.
-            nachfassen = setTimeout(() => { void laden(); }, NACHFASSEN_MS);
-          });
-          return;
-        }
-
-        /*
-          `CLOSED` kommt auch beim eigenen Abmelden — dann steht `beendet`
-          schon, und wir sind oben heraus. Bleibt der Fall, in dem die
-          Verbindung von aussen wegbricht.
-        */
-        if (status !== 'CHANNEL_ERROR' && status !== 'TIMED_OUT' && status !== 'CLOSED') return;
-
-        if (versuch >= ABSTAENDE_MS.length) {
-          onError(new Error(
-            `Die Live-Verbindung für ${tabelle} steht nicht (${status}). `
-            + 'Die angezeigten Daten können veraltet sein — neu laden hilft.',
-          ));
-          return;
-        }
-        const wartezeit = ABSTAENDE_MS[versuch];
-        versuch += 1;
-        if (kanal) void c.removeChannel(kanal);
-        kanal = null;
-        neuAufbau = setTimeout(anmelden, wartezeit);
+  const stoppKanal = kanalHalten({
+    tabelle,
+    filter: `company_id=eq.${companyId}`,
+    beiAenderung: (n) => {
+      const aenderung = {
+        typ: n.eventType as string,
+        neu: n.new as Record<string, unknown>,
+        alt: n.old as Record<string, unknown>,
+      };
+      if (!bereit) { puffer.push(aenderung); return; }
+      anwendenAenderung(aenderung);
+      melden();
+    },
+    beiBereit: () => {
+      void laden().then(() => {
+        // Das Nachfassen. Siehe Punkt 4 im Kopf dieser Funktion.
+        nachfassen = setTimeout(() => { void laden(); }, NACHFASSEN_MS);
       });
-  };
-
-  /*
-    ZURÜCK AUS DEM HINTERGRUND: sofort, nicht erst nach dem Abstand.
-
-    Ohne das läge zwischen „App wieder da" und „Daten wieder aktuell" die
-    gerade laufende Wartezeit — und der Monteur sähe seinen eben gebuchten
-    Eintrag bis zu fünfzehn Sekunden lang nicht.
-  */
-  const wiederDa = () => {
-    if (beendet) return;
-    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
-    versuch = 0;
-    if (neuAufbau) { clearTimeout(neuAufbau); neuAufbau = undefined; }
-    if (kanal) { void c.removeChannel(kanal); kanal = null; }
-    anmelden();
-  };
-
-  const horcht = typeof document !== 'undefined' && typeof window !== 'undefined';
-  if (horcht) {
-    document.addEventListener('visibilitychange', wiederDa);
-    window.addEventListener('online', wiederDa);
-  }
-
-  anmelden();
+    },
+    client: c,
+  });
 
   return () => {
-    beendet = true;
     if (nachfassen) clearTimeout(nachfassen);
-    if (neuAufbau) clearTimeout(neuAufbau);
-    if (horcht) {
-      document.removeEventListener('visibilitychange', wiederDa);
-      window.removeEventListener('online', wiederDa);
-    }
-    if (kanal) void c.removeChannel(kanal);
+    stoppKanal();
   };
 }

@@ -3143,6 +3143,70 @@ nicht. Diese letzte Handbreit beantwortet der Knopf in den Einstellungen.
 
 ---
 
+## Erledigt: Zwei Befunde aus dem Betrieb (16.09.2026)
+
+### Die Kennzahlen-Leiste fluchtete nicht
+
+**Sechzehn Bildpunkte, und sie waren zu sehen.** Die Leiste mit „Offen /
+Überfällig / Bezahlt" hat keinen Rahmen und deshalb keine eigene Polsterung —
+ihre erste Beschriftung stand genau dort, wo die KANTE der Karte darunter
+liegt, und damit links neben deren Titel. Zwei Beschriftungen untereinander,
+die knapp nicht übereinander stehen, sehen nicht nach einer Entscheidung aus,
+sondern nach einem Versehen; auf dem Telefon, wo die Karte fast die ganze
+Breite einnimmt, umso mehr.
+
+Das Mass steht jetzt als EIN Wert (`GUTER_RAND`) und gilt für die Leiste, für
+ihren Ladeplatzhalter und für den Kartenkörper. Die Leiste steckt in fünf
+Ansichten — Startseite, Zeiten, Rechnungen, Lager, Mitarbeiterübersicht —,
+und alle fünf fluchten damit auf einen Schlag. `tests/components/Metric.test.tsx`
+hält die Masse zusammen; eine erste Fassung dieser Prüfung ging an einer
+LEEREN Polsterung vorbei (jede Zeichenkette enthält die leere), was die
+Mutation gezeigt hat.
+
+### Ein Tab-Wechsel sah aus wie ein Ausfall
+
+**Der Befund.** Ein kurzer Blick in einen anderen Browser-Tab, und die
+Zeiterfassung zeigte einen roten Kasten: „Das hat nicht geklappt — Die
+Live-Verbindung für time_entries steht nicht (CLOSED)". Er ersetzte die
+Liste, ging nie wieder weg und nannte einen Tabellennamen.
+
+Drei Fehler übereinander, und der dritte war der eigentliche:
+
+1. **Er ging nie wieder weg.** Die Ansicht setzte ihren Fehlerzustand; der
+   geglückte Wiederaufbau ruft nur den Erfolgsrückruf, und der räumte ihn
+   nicht weg. Die Verbindung stand längst wieder.
+2. **Er verdeckte die Daten.** `error` ersetzt in den meisten Ansichten den
+   ganzen Inhalt. Die Liste war da und richtig; zu sehen war sie nicht.
+3. **Die Leiter der Wartezeiten lief in zwei Zehntelsekunden ab.** Das war im
+   echten Browser zu messen und sonst nirgends: `removeChannel` meldet den
+   Kanal ab — und das Abmelden ruft denselben Rückruf noch einmal auf,
+   SYNCHRON, mitten aus der Behandlung heraus. Die Behandlung lief also in
+   sich selbst, fünf Ebenen tief, und die unterste meldete den Ausfall. Die
+   dreissig Sekunden, die davor schützen sollten, gab es nie. Gemessen: der
+   Hinweis stand nach 0,2 Sekunden da; nach dem Umbau nach 38.
+
+**Was jetzt steht.** Der Zustand der Live-Verbindung liegt an EINER Stelle
+(`src/lib/liveVerbindung.ts`) und nicht in jeder Ansicht — alle Abonnements
+hängen ohnehin an derselben WebSocket-Verbindung. Gemeldet wird ein
+Vorbehalt, kein Fehler, und er nimmt sich selbst zurück; eine Ansicht kann
+das gar nicht mehr vergessen. Angezeigt wird er als schmales Band über dem
+Inhalt, in derselben Form wie der Hinweis bei fehlendem Empfang —
+`role="status"`, gelb, mit „Neu laden" daneben. Die Daten bleiben stehen.
+
+**Und der Wiederaufbau gilt jetzt für alle vier Abonnement-Wege.** Es gab ihn
+nur in `abonnieren`. Die Einstellungen, die Rechnungen und die Rüstliste
+meldeten einen Abriss SOFORT als Fehler — ein Wiederaufbau, den drei von vier
+Wegen nicht haben, ist keiner. `kanalHalten` ist jetzt die eine Stelle, und
+sie zählt im Hintergrund gar nicht erst mit: liegt der Tab hinten, ist ein
+geschlossener Kanal zu erwarten und ein Wiederaufbau zwecklos.
+
+**Was `onError` noch bedeutet:** ein gescheitertes LADEN. Dann hat die
+Ansicht keine Daten, und das gehört dorthin, wo die Daten stehen sollten. Ein
+Verbindungsabriss lässt die Daten stehen — das ist ein Vorbehalt und kein
+Fehler.
+
+---
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft

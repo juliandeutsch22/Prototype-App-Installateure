@@ -13,7 +13,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { UserPrefs } from '@/types';
-import { derClient, NACHFASSEN_MS } from './kern';
+import { derClient, kanalHalten, NACHFASSEN_MS } from './kern';
 import type { NotifyPrefs } from '../meldungsvorgaben';
 import { zeileAlsObjekt } from './felder';
 
@@ -59,27 +59,28 @@ export function subscribePrefs(
       .catch((e: unknown) => { if (!gestoppt) onError?.(e as Error); });
   };
 
-  const kanal = c
-    .channel(`${EINSTELLUNGEN}-${uid}-${Math.random().toString(36).slice(2)}`)
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: EINSTELLUNGEN, filter: `user_id=eq.${uid}` },
-      () => holen(),
-    )
-    .subscribe((status) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        onError?.(new Error(`Live-Abonnement für ${EINSTELLUNGEN}: ${status}`));
-        return;
-      }
-      if (status !== 'SUBSCRIBED') return;
+  /*
+    DER KANAL BAUT SICH SELBST WIEDER AUF. Hier stand vorher ein sofortiges
+    `onError` bei `CHANNEL_ERROR` — und damit meldete ein blosser
+    Tab-Wechsel einen Fehler, den niemand beheben kann und der von selbst
+    vorbei ist. `kanalHalten` versucht es erst mehrfach und meldet den
+    Vorbehalt dann dorthin, wo er auch wieder zurückgenommen wird.
+  */
+  const stoppKanal = kanalHalten({
+    tabelle: EINSTELLUNGEN,
+    filter: `user_id=eq.${uid}`,
+    beiAenderung: () => holen(),
+    beiBereit: () => {
       holen();
       nachfassen = setTimeout(holen, NACHFASSEN_MS);
-    });
+    },
+    client: c,
+  });
 
   return () => {
     gestoppt = true;
     if (nachfassen) clearTimeout(nachfassen);
-    void c.removeChannel(kanal);
+    stoppKanal();
   };
 }
 

@@ -9,6 +9,16 @@ interface MetricProps {
   tone?: Tone;
 }
 
+/**
+ * Die seitliche Polsterung, mit der die Leiste mit dem Karteninhalt fluchtet.
+ *
+ * SIE STEHT HIER ALS EIN WERT, damit es nicht zwei gibt. `Card` polstert
+ * seinen Körper mit `px-4`; weicht diese Zeile davon ab, versetzt sich die
+ * ganze Leiste gegen alles darunter — und das fällt beim Schreiben nicht auf,
+ * sondern erst dem, der die Seite ansieht.
+ */
+export const GUTER_RAND = 'px-4';
+
 const valueTone: Record<Tone, string> = {
   default: 'text-ink',
   success: 'text-success',
@@ -30,10 +40,20 @@ const valueTone: Record<Tone, string> = {
  * Die Symbole sind entfallen; sie trugen nichts bei, was die Beschriftung
  * nicht schon sagte, und kosteten die Breite, die den Zahlen fehlte. Der Ton
  * lebt weiter in der Farbe der Zahl.
+ *
+ * SIE FLUCHTET MIT DEM KARTENINHALT, nicht mit der Kartenkante. Ohne Rahmen
+ * hat die Leiste keine eigene Polsterung — die erste Beschriftung stand
+ * deshalb genau dort, wo die KANTE der Karte darunter liegt, und damit
+ * sechzehn Bildpunkte links neben deren Titel. Zwei Beschriftungen
+ * untereinander, die knapp nicht übereinander stehen, sehen nicht nach einer
+ * Entscheidung aus, sondern nach einem Versehen; auf dem Telefon, wo die
+ * Karte fast die ganze Breite einnimmt, umso mehr. `GUTER_RAND` ist dasselbe
+ * Mass wie am Kartenkörper, und `tests/components/Metric.test.tsx` hält die
+ * beiden zusammen.
  */
 export function MetricRow({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-stretch divide-x divide-line">{children}</div>
+    <div className={`flex items-stretch divide-x divide-line ${GUTER_RAND}`}>{children}</div>
   );
 }
 

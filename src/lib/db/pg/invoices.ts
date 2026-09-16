@@ -14,7 +14,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Invoice, InvoiceDiscount } from '@/types';
-import { abfragen, aendern, derClient, NACHFASSEN_MS, type WithId } from './kern';
+import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
 
 const RECHNUNGEN = 'invoices';
@@ -196,27 +196,23 @@ export function subscribeRecentInvoices(
       });
   };
 
-  const kanal = c
-    .channel(`${RECHNUNGEN}-${companyId}-${Math.random().toString(36).slice(2)}`)
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: RECHNUNGEN, filter: `company_id=eq.${companyId}` },
-      () => anstossen(),
-    )
-    .subscribe((status) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        onError(new Error(`Live-Abonnement für ${RECHNUNGEN}: ${status}`));
-        return;
-      }
-      if (status !== 'SUBSCRIBED') return;
+  // Wiederaufbau wie überall — siehe `kanalHalten`. Ein Abriss war hier
+  // vorher sofort ein roter Kasten mitten in der Rechnungsansicht.
+  const stoppKanal = kanalHalten({
+    tabelle: RECHNUNGEN,
+    filter: `company_id=eq.${companyId}`,
+    beiAenderung: () => anstossen(),
+    beiBereit: () => {
       anstossen();
       nachfassen = setTimeout(anstossen, NACHFASSEN_MS);
-    });
+    },
+    client: c,
+  });
 
   return () => {
     gestoppt = true;
     if (nachfassen) clearTimeout(nachfassen);
-    void c.removeChannel(kanal);
+    stoppKanal();
   };
 }
 

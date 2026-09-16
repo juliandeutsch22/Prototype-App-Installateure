@@ -8,7 +8,7 @@ import Icon from '@/components/Icon';
 import Avatar from '@/components/Avatar';
 import BrandLogo from '@/components/BrandLogo';
 import ProduktMarke from '@/components/ProduktMarke';
-import OfflineBanner from '@/components/OfflineBanner';
+import Verbindungsband from '@/components/Verbindungsband';
 import BottomSheet from '@/components/BottomSheet';
 import AppErneuern from '@/components/AppErneuern';
 
@@ -181,9 +181,9 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Inhalt */}
       <main className="flex-1 pb-24 md:pb-6">
-        {/* Ganz oben im Inhalt, nicht in der Kopfleiste: dort wäre er auf dem
+        {/* Ganz oben im Inhalt, nicht in der Kopfleiste: dort wäre es auf dem
             Schreibtisch gar nicht zu sehen, wo es keine mobile Top-Bar gibt. */}
-        <OfflineBanner />
+        <Verbindungsband />
         <div className="mx-auto max-w-5xl p-4 md:p-6">{children}</div>
       </main>
 
