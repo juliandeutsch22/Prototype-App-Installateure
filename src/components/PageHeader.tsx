@@ -26,7 +26,15 @@ export default function PageHeader({
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-bold text-ink">{title}</h1>
+        {/*
+          EINE STUFE KLEINER AUF DEM TELEFON. 1,75 rem sind am Schreibtisch
+          richtig und auf 390 px zu viel: „Benutzerverwaltung" fuellte dort
+          zwei Zeilen, und die Ueberschrift nahm mehr Platz ein als die erste
+          Karte darunter. 1,375 rem stehen noch klar ueber allem anderen auf
+          der Seite — die naechstkleinere Schrift ist der Fliesstext mit
+          1 rem.
+        */}
+        <h1 className="text-xl font-bold text-ink sm:text-2xl">{title}</h1>
         <div className="mt-2 h-[3px] w-12 rounded-pill bg-brand-fixed" aria-hidden="true" />
         {subtitle && <p className="mt-2 text-sm text-ink-muted">{subtitle}</p>}
       </div>

@@ -548,7 +548,12 @@ export default function WorkSheetsListView() {
             placeholder="Suchen …"
             value={suche}
             onChange={(e) => setSuche(e.target.value)}
-            className="min-h-touch rounded border border-line bg-surface px-3 py-1 text-base text-ink"
+            // `w-full sm:w-auto`: der Kartenkopf ist mobil eine SPALTE, und
+            // ein Eingabefeld ohne Breitenangabe nimmt darin seine
+            // Wunschbreite (rund 180 px plus Polsterung) — gemessen 18 px
+            // mehr, als die Karte innen hat. Es ragte damit unter dem Titel
+            // heraus. Volle Breite ist dort ohnehin das Richtige.
+            className="min-h-touch w-full rounded border border-line bg-surface px-3 py-1 text-base text-ink sm:w-auto"
           />
         }
       >
