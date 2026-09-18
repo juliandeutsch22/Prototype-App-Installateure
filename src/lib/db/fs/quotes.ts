@@ -1,4 +1,5 @@
 import { where, orderBy, limit, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { db } from '@/lib/firebase';
 import type { Quote } from '@/types';
 import {
@@ -77,7 +78,7 @@ export function deleteQuote(id: string) {
  * sind verschiedene Nummernkreise, und ein gemeinsamer Zähler würde beide
  * löchrig machen.
  */
-export async function reserveQuoteNumber(companyId: string): Promise<string> {
+export async function reserveQuoteNumber(companyId: string, praefix?: string): Promise<string> {
   const ref = doc(db, 'counters', `${companyId}_quotes`);
   const jahr = new Date().getFullYear();
 
@@ -88,7 +89,7 @@ export async function reserveQuoteNumber(companyId: string): Promise<string> {
     const letzte = daten?.year === jahr ? Number(daten.lastSeq ?? 0) : 0;
     const seq = letzte + 1;
     tx.set(ref, { companyId, lastSeq: seq, year: jahr, updatedAt: serverTimestamp() }, { merge: true });
-    return `AN-${jahr}-${String(seq).padStart(4, '0')}`;
+    return belegNummer(praefix ?? PRAEFIX_VORGABE.angebot, jahr, seq);
   });
 }
 

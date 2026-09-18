@@ -42,8 +42,10 @@ export function deleteQuote(id: string): Promise<void> {
   return nutztPostgres() ? pg.deleteQuote(id) : fs.deleteQuote(id);
 }
 
-export function reserveQuoteNumber(companyId: string): Promise<string> {
-  return nutztPostgres() ? pg.reserveQuoteNumber(companyId) : fs.reserveQuoteNumber(companyId);
+export function reserveQuoteNumber(companyId: string, praefix?: string): Promise<string> {
+  return nutztPostgres()
+    ? pg.reserveQuoteNumber(companyId, praefix)
+    : fs.reserveQuoteNumber(companyId, praefix);
 }
 
 export type { WithId };

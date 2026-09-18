@@ -22,6 +22,7 @@ import Button from '@/components/Button';
 import { Zustand, type Stand } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
+import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -78,6 +79,7 @@ const LEERE_ZEILE: ZeilenEingabe = {
  */
 export default function QuotesView() {
   const { user, company } = useAuth();
+  const vorsaetze = praefixeVon(company);
   const toast = useToast();
 
   const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
@@ -177,7 +179,7 @@ export default function QuotesView() {
     setBusy(true);
     setError(null);
     try {
-      const nummer = await reserveQuoteNumber(user.companyId);
+      const nummer = await reserveQuoteNumber(user.companyId, vorsaetze.angebot);
       await createQuote(user.companyId, {
         quoteNumber: nummer,
         customerId: kunde.id,
@@ -218,9 +220,22 @@ export default function QuotesView() {
     setError(null);
     try {
       const vorhandene = await listActiveProjects(user.companyId);
-      // Baustellennummer aus der Angebotsnummer ableiten: sie bleiben damit
-      // ohne weiteres Zutun einander zuordenbar.
-      const projectNumber = q.quoteNumber.replace(/^AN-/, 'B-');
+      /*
+        BAUSTELLENNUMMER AUS DER ANGEBOTSNUMMER — damit beide ohne weiteres
+        Zutun einander zuordenbar bleiben.
+
+        Hier stand `replace(/^AN-/, 'B-')`, also beide Vorsätze fest im Code.
+        Seit der Betrieb sie selbst festlegt, wird der eigene Vorsatz des
+        Angebots abgezogen und der eigene der Baustelle gesetzt. Abgezogen wird
+        die Nummer, wie sie WIRKLICH DASTEHT: ein Angebot von vor der Umstellung
+        trägt noch den alten Vorsatz, und den kennt diese Ansicht nicht mehr.
+        Deshalb wird alles vor der Jahreszahl ersetzt, statt auf einen
+        bestimmten Anfang zu hoffen.
+      */
+      const rumpf = q.quoteNumber.replace(/^.*?(?=\d{4}-)/, '');
+      const projectNumber = vorsaetze.baustelle
+        ? `${vorsaetze.baustelle}-${rumpf}`
+        : rumpf;
       if (vorhandene.some((p) => p.projectNumber === projectNumber)) {
         setError(`Baustelle ${projectNumber} gibt es bereits.`);
         return;

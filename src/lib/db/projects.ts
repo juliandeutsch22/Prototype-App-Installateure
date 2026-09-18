@@ -64,6 +64,25 @@ export function subscribeRecentProjects(
     : fs.subscribeRecentProjects(companyId, max, cb, onError);
 }
 
+/**
+ * Ein VORSCHLAG für die nächste Baustellennummer — `null`, wenn keiner geht.
+ *
+ * `null` HEISST „KEIN VORSCHLAG" UND IST KEIN FEHLER. Unter Firestore gibt es
+ * den Zähler nicht; dort bleibt das Feld leer und wird getippt, genau wie
+ * bisher. Zu werfen wäre hier falsch: die Nummer ist ein Vorschlag, und ein
+ * Vorschlag, der die ganze Ansicht mitreisst, ist keiner.
+ */
+export async function reserveProjectNumber(
+  companyId: string, opts: { seedFrom: number; praefix?: string },
+): Promise<string | null> {
+  if (!nutztPostgres()) return null;
+  try {
+    return await pg.reserveProjectNumber(companyId, opts);
+  } catch {
+    return null;
+  }
+}
+
 export function createProject(companyId: string, p: NewProject): Promise<string> {
   return nutztPostgres() ? pg.createProject(companyId, p) : fs.createProject(companyId, p);
 }

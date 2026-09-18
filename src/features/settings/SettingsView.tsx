@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany } from '@/lib/db/company';
+import { praefixeVon, praefixPutzen, praefixFehler, belegNummer, PRAEFIX_MAX } from '@/lib/praefixe';
 import { listUsers } from '@/lib/db/users';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { isTopLevel } from '@/lib/permissions';
@@ -94,6 +95,13 @@ export default function SettingsView() {
   const [stichtagMonat, setStichtagMonat] = useState('03');
   const [stichtagTag, setStichtagTag] = useState('31');
   const [uebertragSpeichert, setUebertragSpeichert] = useState(false);
+  /*
+    DIE VIER VORSÄTZE. Was der Betrieb noch nicht festgelegt hat, kommt aus
+    `PRAEFIX_VORGABE` — ausser beim Kennzeichen, das hat mit Absicht keine:
+    `WZ` stand fest im Code und ist der Kenner eines bestimmten Bezirks.
+  */
+  const [vorsaetze, setVorsaetze] = useState(() => praefixeVon(company));
+  const [vorsaetzeSpeichert, setVorsaetzeSpeichert] = useState(false);
 
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
@@ -104,6 +112,9 @@ export default function SettingsView() {
       });
     }
     setGenehmiger(company?.vacationApprovers ?? []);
+    // Der Betrieb kommt womöglich erst nach dem ersten Zeichnen an; ohne
+    // diese Zeile stünden hier die Vorgaben statt der gespeicherten Vorsätze.
+    setVorsaetze(praefixeVon(company));
     setUebertrag(company?.urlaubUebertrag ?? 'verjaehrung');
     if (company?.urlaubStichtag) {
       const [m, d] = company.urlaubStichtag.split('-');
@@ -174,6 +185,49 @@ export default function SettingsView() {
    * der Server ab, und die Meldung stünde hier. Eine Prüfung im Browser
    * ALLEIN wäre eine Zusage, die niemand einhält.
    */
+  /**
+   * Die Vorsätze speichern.
+   *
+   * SIE GELTEN AB JETZT UND NICHT RÜCKWIRKEND. Eine ausgestellte Rechnung
+   * behält ihre Nummer — `app.rechnung_eingefroren` lässt sie ohnehin nicht
+   * mehr ändern (§ 132 BAO). Das steht auch am Kasten, denn sonst erwartet
+   * jemand, dass die alten Belege mitwandern.
+   *
+   * Geprüft wird hier UND in der Datenbank (`companies_praefix_*`). Der Wert
+   * landet im Dateinamen des PDFs und in der CSV für den Steuerberater; eine
+   * Prüfung allein im Browser wäre eine Zusage, die niemand einhält.
+   */
+  async function vorsaetzeSpeichern() {
+    if (!user) return;
+    const fehler = (['rechnung', 'angebot', 'baustelle', 'kennzeichen'] as const)
+      .map((k) => praefixFehler(vorsaetze[k]))
+      .find(Boolean);
+    if (fehler) {
+      setError(fehler);
+      return;
+    }
+    setVorsaetzeSpeichert(true);
+    setError(null);
+    try {
+      await updateCompany(user.companyId, {
+        praefixRechnung: vorsaetze.rechnung,
+        praefixAngebot: vorsaetze.angebot,
+        praefixBaustelle: vorsaetze.baustelle,
+        praefixKennzeichen: vorsaetze.kennzeichen,
+      });
+      await reloadCompany();
+      toast.success('Nummernkreise gespeichert');
+    } catch (e) {
+      setError(
+        e instanceof Error && e.message
+          ? `Die Nummernkreise konnten nicht gespeichert werden: ${e.message}`
+          : 'Die Nummernkreise konnten nicht gespeichert werden.',
+      );
+    } finally {
+      setVorsaetzeSpeichert(false);
+    }
+  }
+
   async function uebertragSpeichern() {
     if (!user) return;
     setUebertragSpeichert(true);
@@ -598,6 +652,82 @@ export default function SettingsView() {
           <div className="mt-4">
             <Button type="button" loading={uebertragSpeichert} onClick={uebertragSpeichern}>
               Urlaubsübertrag speichern
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/*
+        DIE NUMMERNKREISE UND DER FUHRPARK.
+
+        Vier Zeichenfolgen, die bis zum 18.09. fest im Quelltext standen. Die
+        letzte, `WZ`, ist der Kenner eines bestimmten Bezirks und stand auf
+        jedem Zeiteintrag — ein zweiter Betrieb wäre ihn nicht losgeworden.
+
+        Der Kasten steht der Spitze offen, wie die Sätze: `companies_aendern`
+        lässt ohnehin nur sie an diese Tabelle, und ein Feld anzuzeigen, dessen
+        Speichern der Server abweist, wäre ein Versprechen ohne Deckung.
+      */}
+      {darfGenehmigerSetzen && (
+        <Card
+          title="Nummernkreise und Fuhrpark"
+          hint="Die Vorsätze gelten ab jetzt. Bereits ausgestellte Belege behalten ihre Nummer — eine Rechnung lässt sich nach § 132 BAO nicht mehr ändern."
+        >
+          <FormGrid>
+            {([
+              ['rechnung', 'Rechnungen', 'RE', 1001],
+              ['angebot', 'Angebote', 'AN', 1],
+              ['baustelle', 'Baustellen', 'B', 1],
+            ] as const).map(([schluessel, beschriftung, beispiel, ab]) => (
+              <div key={schluessel} className="flex flex-col gap-1">
+                <InputField
+                  id={`vorsatz-${schluessel}`}
+                  label={beschriftung}
+                  value={vorsaetze[schluessel]}
+                  maxLength={PRAEFIX_MAX}
+                  placeholder={beispiel}
+                  onChange={(e) =>
+                    setVorsaetze({ ...vorsaetze, [schluessel]: praefixPutzen(e.target.value) })}
+                />
+                {/*
+                  DIE VORSCHAU IST DIE EIGENTLICHE ANTWORT. „RE" sagt niemandem
+                  etwas; „RE-2026-1001" beantwortet die Frage, die jemand hat,
+                  wenn er hier steht — wie sieht die nächste Nummer aus?
+                */}
+                <p className="tnum text-sm text-ink-muted">
+                  {belegNummer(vorsaetze[schluessel], new Date().getFullYear(), ab)}
+                </p>
+              </div>
+            ))}
+
+            <div className="flex flex-col gap-1">
+              <InputField
+                id="vorsatz-kennzeichen"
+                label="Kennzeichen des Fuhrparks"
+                value={vorsaetze.kennzeichen}
+                maxLength={PRAEFIX_MAX}
+                placeholder="z. B. WZ"
+                onChange={(e) =>
+                  setVorsaetze({ ...vorsaetze, kennzeichen: praefixPutzen(e.target.value) })}
+              />
+              <p className="tnum text-sm text-ink-muted">
+                {vorsaetze.kennzeichen
+                  ? `${vorsaetze.kennzeichen}-12345A`
+                  : 'Ohne Vorsatz — im Zeiteintrag steht das ganze Kennzeichen'}
+              </p>
+            </div>
+          </FormGrid>
+
+          <p className="mt-4 text-sm text-ink-muted">
+            Nur Großbuchstaben, Ziffern und Bindestrich, höchstens {PRAEFIX_MAX} Zeichen: der
+            Vorsatz steht im Dateinamen des Rechnungs-PDFs und in der Buchhaltungs-CSV.
+            Leer lassen heißt „kein Vorsatz" — dann zählt der Kreis als
+            <span className="tnum"> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
+          </p>
+
+          <div className="mt-4">
+            <Button type="button" loading={vorsaetzeSpeichert} onClick={vorsaetzeSpeichern}>
+              Nummernkreise speichern
             </Button>
           </div>
         </Card>

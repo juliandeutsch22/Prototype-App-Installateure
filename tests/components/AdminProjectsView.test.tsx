@@ -143,7 +143,16 @@ describe('Baustellen — anlegen', () => {
      * Akte fände ihre eigene Baustelle nicht wieder.
      */
     zeige();
-    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-042');
+    /*
+      GELEERT, WEIL DAS FELD SEIT DEM 18.09. VORBELEGT IST. Vorher stand es
+      leer da und die Nummer wurde getippt; jetzt schlägt der Nummernkreis
+      eine vor. Ohne das Leeren hinge das Getippte am Vorschlag —
+      „B-2026-00012026-042" —, und genau so ist dieser Test beim Umbau auch
+      gefallen.
+    */
+    const feld = await screen.findByLabelText('Projektnummer');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '2026-042');
     await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
 
@@ -153,6 +162,18 @@ describe('Baustellen — anlegen', () => {
       customerId: 'k1',
       customerName: 'Familie Huber',
     });
+  });
+
+  it('schlägt die nächste Nummer aus dem Nummernkreis vor', async () => {
+    /*
+      DER VORSCHLAG IST EIN VORSCHLAG UND KEIN ZWANG — manche Betriebe führen
+      die Nummer des Bauträgers oder des Architekten. Deshalb steht er IM
+      FELD und nicht nur daneben: ein Wert, den man überschreiben kann, muss
+      dort stehen, wo man ihn überschreibt.
+    */
+    zeige();
+    const feld = await screen.findByLabelText('Projektnummer');
+    expect((feld as HTMLInputElement).value).toMatch(/^B-\d{4}-\d{4}$/);
   });
 
   it('lässt ein leeres Stundenbudget UNGESETZT, statt 0 daraus zu machen', async () => {

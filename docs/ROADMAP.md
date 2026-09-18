@@ -3386,6 +3386,75 @@ gebraucht wurde.
 
 ---
 
+## Erledigt: die Vorsätze gehören dem Betrieb (18.09.2026)
+
+**Vier fest verdrahtete Zeichenfolgen, verstreut über sechs Dateien.**
+
+| | wo sie stand | was daran falsch war |
+| --- | --- | --- |
+| `RE-` | `invoiceNumbers.ts` **und** `db/pg/invoices.ts` | zwei Quellen für dieselbe Wahrheit — der Vorschlag konnte eine andere Nummer zeigen, als die Rechnung danach trug |
+| `AN-` | `db/pg/quotes.ts` und `db/fs/quotes.ts` | dieselbe Doppelung |
+| `B-` | **nirgends vergeben** | die Baustellennummer tippt ein Mensch; automatisch entstand sie nur beim Annehmen eines Angebots, per Textersetzung |
+| `WZ-` | **dreifach** in `TimeForm.tsx` | der Kenner eines bestimmten Bezirks, auf jedem Zeiteintrag — und von dort im Lohnexport |
+
+**Das Kennzeichen ist derselbe Fehler wie das fest verdrahtete Firmenlogo vom
+15.09.**: eine Aussage über einen bestimmten Betrieb im Quelltext, die erst
+beim zweiten Kunden auffällt — also genau dann, wenn sie am teuersten ist.
+
+### Warum es mehr war als vier Einstellungen
+
+**Ein Baustellen-Vorsatz allein hätte nichts bewirkt.** Es gab keinen
+Nummerngenerator für Baustellen, also niemanden, der ihn anwendet. Deshalb
+bekommt die Baustelle denselben gesperrten Zähler wie Rechnung und Angebot —
+und das Formular schlägt die nächste Nummer vor, **überschreibbar**: manche
+Betriebe führen die Nummer des Bauträgers oder des Architekten.
+
+Gerechnet wird der Vorschlag örtlich, vergeben wird er serverseitig — dasselbe
+Vorgehen wie bei den Rechnungen und aus demselben Grund: würde beim Öffnen der
+Maske eine Nummer aus dem Zähler gezogen, verbrauchte jedes Abbrechen eine.
+
+### Drei Entscheidungen, die im Code begründet stehen
+
+**`null` heisst „nicht festgelegt", leer heisst „ausdrücklich keiner".** Ohne
+diesen Unterschied käme ein Betrieb seinen Vorsatz nie los — jede leere Eingabe
+fiele auf die Vorgabe zurück. Deshalb steht in der Spalte auch kein `default`:
+eine Vorgabe dort wäre dieselbe Aussage wie ein fest verdrahteter Wert, nur an
+einer anderen Stelle.
+
+**Das Kennzeichen hat als einziges KEINE Vorgabe.** `WZ` als Vorgabe zu
+behalten hiesse, ihn jedem neuen Betrieb aufzustempeln. Die bestehenden
+Bestände übernimmt die Migration aus den DATEN — `where exists (select 1 from
+time_entries where vehicle_plate like 'WZ-%')` statt `where company_id =
+'perl'`; eine Betriebskennung im Quelltext wäre genau der behobene Fehler.
+
+**Vier Spalten und kein JSON-Feld**, obwohl `rates` und `modules` daneben JSON
+sind. Deren Begründung („Einstellungen, nach denen niemand filtert") trifft
+auch hier zu; was dazukommt, ist die harte Formprüfung. Der Wert landet im
+Dateinamen des Rechnungs-PDFs und in der CSV für den Steuerberater, und ein
+`check` auf einer typisierten Spalte ist die einzige Sperre, an der auch ein
+direkter Schreibzugriff nicht vorbeikommt.
+
+### Was das Auslesen trägt
+
+`lfdNummerVon` liest die **Ziffern am Ende**, nicht den Vorsatz. Ein Betrieb,
+der im Juli von `RE-` auf `R-` umstellt, hat einen lückenlosen Zahlenkreis in
+zwei Schreibweisen — würde der Vorsatz mitgeprüft, finge die Zählung wieder bei
+1001 an und risse genau die Lücke, die der Steuerberater erklären lassen will.
+
+### Zwei eigene Fehler, beide von Prüfungen gefunden
+
+**Ein regulärer Ausdruck hat einen Kommentar geschlossen.** `\s*/` im
+Kopfkommentar von `praefixe.ts` enthält `*/` — der Übersetzer las ab dort Code.
+Zwanzig Fehlermeldungen für ein Zeichen.
+
+**Das Feld zeigte den Vorschlag und hielt ihn nicht.** `value={form.projectNumber
+|| nummernVorschlag}` sieht richtig aus und ist es nicht: das Feld wird
+kontrolliert gezeichnet, im Zustand stand die leere Zeichenkette. Wer tippte,
+bekam `B-2026-00012026-042`. Gefunden hat das `AdminProjectsView.test.tsx`,
+nicht das Nachdenken — der Vorschlag gehört in den Zustand.
+
+---
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft
