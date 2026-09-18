@@ -90,6 +90,16 @@ export default function AdminProjectsView() {
   const [assigned, setAssigned] = useState<string[]>([]);
   const [managers, setManagers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  /*
+    LISTE ZUERST — gemessen, nicht geschätzt. Am Telefon begann „Alle
+    Baustellen" bei 1590 px, also knapp DREI Bildschirme unter der Kante, und
+    darüber stand eine leere Maske. Diese Ansicht wird zum Nachschlagen
+    geöffnet; angelegt wird der seltenere Fall.
+
+    Dasselbe Muster wie in `WartungenView`: Knopf in der Kopfzeile, Formular
+    klappt auf. `PageHeader` trägt den `action`-Platz dafür seit jeher.
+  */
+  const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
   /**
    * Ein Tiefenlink auf eine Baustelle setzt Suche UND Filter.
@@ -216,6 +226,7 @@ export default function AdminProjectsView() {
       }
       await createProject(user.companyId, data);
       reset();
+      setFormOffen(false);
       toast.success('Baustelle angelegt');
     } catch {
       setError('Die Baustelle konnte nicht gespeichert werden.');
@@ -377,10 +388,19 @@ export default function AdminProjectsView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Baustellen" subtitle="Baustellen anlegen und suchen — geändert wird in der Akte" />
+      <PageHeader
+        title="Baustellen"
+        subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
+        action={
+          formOffen ? undefined : (
+            <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>
+          )
+        }
+      />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
+      {formOffen && (
       <Card title="Neue Baustelle">
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
@@ -499,9 +519,19 @@ export default function AdminProjectsView() {
           {error && <ErrorState message={error} />}
           <div className="flex gap-3">
             <Button type="submit" loading={saving}>Anlegen</Button>
+            {/* Der Weg zurück zur Liste — vorher gab es ihn nicht, weil das
+                Formular gar nicht zuging. */}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => { setFormOffen(false); reset(); }}
+            >
+              Abbrechen
+            </Button>
           </div>
         </form>
       </Card>
+      )}
 
       <Card
         title={`Alle Baustellen (${visible.length})`}

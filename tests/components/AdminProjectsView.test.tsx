@@ -117,6 +117,17 @@ function zeige() {
   );
 }
 
+/**
+ * Das Anlege-Formular aufklappen.
+ *
+ * SEIT DEM 18.09. STEHT ES NICHT MEHR OFFEN. Gemessen am Telefon begann die
+ * Baustellenliste bei 1590 px — knapp drei Bildschirme unter der Kante, und
+ * darüber eine leere Maske. Diese Ansicht wird zum NACHSCHLAGEN geöffnet.
+ */
+async function formOeffnen() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Neue Baustelle' }));
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
@@ -136,6 +147,30 @@ afterEach(() => {
 });
 
 describe('Baustellen — anlegen', () => {
+  it('zeigt die Liste zuerst, nicht die leere Maske', async () => {
+    /*
+      GEMESSEN AM TELEFON: „Alle Baustellen" begann bei 1590 px — knapp drei
+      Bildschirme Wischen an einer leeren Maske vorbei. Das offene Formular
+      sparte beim Anlegen einen Klick und kostete beim Nachschauen jedes Mal
+      drei Wischer; geöffnet wird dieser Reiter zum Nachschlagen.
+
+      Fällt diese Prüfung, ist der Weg zurück — und zwar unbemerkt, weil eine
+      Ansicht mit offenem Formular für sich weiter vernünftig aussieht.
+    */
+    zeige();
+    await screen.findByRole('button', { name: 'Neue Baustelle' });
+    expect(screen.queryByLabelText('Projektnummer')).not.toBeInTheDocument();
+  });
+
+  it('klappt das Formular auf und wieder zu', async () => {
+    zeige();
+    await formOeffnen();
+    expect(screen.getByLabelText('Projektnummer')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByLabelText('Projektnummer')).not.toBeInTheDocument();
+  });
+
   it('übernimmt den Kundennamen aus dem Stammdatensatz', async () => {
     /**
      * Der Kunde ist kein Textfeld mehr. Würde der Name hier frei getippt,
@@ -143,6 +178,7 @@ describe('Baustellen — anlegen', () => {
      * Akte fände ihre eigene Baustelle nicht wieder.
      */
     zeige();
+    await formOeffnen();
     /*
       GELEERT, WEIL DAS FELD SEIT DEM 18.09. VORBELEGT IST. Vorher stand es
       leer da und die Nummer wurde getippt; jetzt schlägt der Nummernkreis
@@ -172,6 +208,7 @@ describe('Baustellen — anlegen', () => {
       dort stehen, wo man ihn überschreibt.
     */
     zeige();
+    await formOeffnen();
     const feld = await screen.findByLabelText('Projektnummer');
     expect((feld as HTMLInputElement).value).toMatch(/^B-\d{4}-\d{4}$/);
   });
@@ -183,6 +220,7 @@ describe('Baustellen — anlegen', () => {
      * Nachkalkulation jede Baustelle sofort als überzogen meldet.
      */
     zeige();
+    await formOeffnen();
     await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-043');
     await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
@@ -193,6 +231,7 @@ describe('Baustellen — anlegen', () => {
 
   it('nimmt ein gesetztes Stundenbudget als Zahl mit', async () => {
     zeige();
+    await formOeffnen();
     await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-044');
     await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await userEvent.type(screen.getByLabelText(/Stundenbudget/), '40');
@@ -236,6 +275,7 @@ describe('Baustellen — der Weg in die Akte', () => {
       anderen.
     */
     zeige();
+    await formOeffnen();
     await screen.findByText(/2026-042/);
     expect(screen.getByText('Neue Baustelle')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^bearbeiten$/i })).not.toBeInTheDocument();
@@ -496,12 +536,14 @@ describe('Baustellen — Kundenauswahl an der Grenze', () => {
       ({ id: `k${i}`, companyId: 'perl', name: `Kunde ${i}` }) as Customer & { id: string },
     );
     zeige();
+    await formOeffnen();
 
     expect(await screen.findByText(/nur die ersten 500 Kunden/)).toBeInTheDocument();
   });
 
   it('schweigt bei einem gewöhnlichen Kundenstamm', async () => {
     zeige();
+    await formOeffnen();
     await screen.findByLabelText('Kunde');
     expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
   });

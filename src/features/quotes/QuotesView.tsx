@@ -87,6 +87,14 @@ export default function QuotesView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /*
+    LISTE ZUERST — gemessen: am Telefon begann „Angebote" bei 1332 px, also
+    gut zwei Bildschirme unter der Kante. Das Kalkulationsformular ist das
+    längste der vier und der seltenste Vorgang; nachgeschlagen wird täglich.
+
+    Dasselbe Muster wie in `WartungenView`, nicht ein neues.
+  */
+  const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Quote> | null>(null);
 
   // Formular
@@ -199,6 +207,7 @@ export default function QuotesView() {
       });
       toast.success(`Angebot ${nummer} angelegt`);
       formularLeeren();
+      setFormOffen(false);
       await laden();
     } catch {
       setError('Das Angebot konnte nicht angelegt werden.');
@@ -266,9 +275,17 @@ export default function QuotesView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Angebote" subtitle="Kalkulieren, versenden, in einen Auftrag überführen" />
+      <PageHeader
+        title="Angebote"
+        subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
+        action={
+          darfAendern && !formOffen ? (
+            <Button onClick={() => setFormOffen(true)}>Neues Angebot</Button>
+          ) : undefined
+        }
+      />
 
-      {darfAendern && (
+      {darfAendern && formOffen && (
         <Card title="Neues Angebot">
           <FormGrid>
             <SelectField
@@ -433,6 +450,10 @@ export default function QuotesView() {
               disabled={!customerId || positionen.length === 0}
             >
               Angebot anlegen
+            </Button>
+            {/* Der Weg zurück zur Liste. */}
+            <Button type="button" variant="ghost" onClick={() => setFormOffen(false)}>
+              Abbrechen
             </Button>
           </div>
         </Card>

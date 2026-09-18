@@ -153,6 +153,8 @@ describe('Kundenverwaltung', () => {
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
 
+    // Das Formular klappt seit dem 18.09. erst auf Klick auf.
+    await nutzer.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
     // Andere Schreibweise, derselbe Kunde.
     await nutzer.type(screen.getByLabelText('Name oder Firma'), '  hausverwaltung NORD ');
     await nutzer.click(screen.getByRole('button', { name: 'Kunde anlegen' }));
@@ -218,8 +220,9 @@ describe('Kundenverwaltung', () => {
     );
   });
 
-  it('nennt die Rechnungsadresse beim Namen', () => {
+  it('nennt die Rechnungsadresse beim Namen', async () => {
     zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
     /**
      * Die Abgrenzung ist der Kern des Datenmodells: hier steht die
      * Rechnungsadresse, an der Baustelle die Baustellenadresse. Ein
@@ -227,6 +230,36 @@ describe('Kundenverwaltung', () => {
      * erzeugt, die das Modell vermeiden soll.
      */
     expect(screen.getByLabelText('Rechnungsadresse')).toBeInTheDocument();
+  });
+
+  it('zeigt die Liste zuerst, nicht die leere Maske', async () => {
+    /*
+      GEMESSEN, NICHT GESCHÄTZT: am Telefon begann die Kundenliste bei
+      1175 px — zwei Bildschirme Wischen an einem Formular vorbei, das man
+      alle paar Wochen braucht. Man öffnet diesen Reiter, um einen Kunden zu
+      FINDEN.
+
+      Fällt diese Prüfung, ist der Weg zurück, und zwar unbemerkt: eine
+      Ansicht mit offenem Formular sieht für sich weiter vernünftig aus.
+    */
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+
+    expect(screen.queryByLabelText('Name oder Firma')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Neuer Kunde' })).toBeInTheDocument();
+  });
+
+  it('und klappt das Formular auf Klick auf — mit einem Weg zurück', async () => {
+    zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Neuer Kunde' }));
+    expect(screen.getByLabelText('Name oder Firma')).toBeInTheDocument();
+
+    // „Abbrechen" galt vorher nur beim Bearbeiten — solange das Formular
+    // offen stand, gab es nichts abzubrechen.
+    await userEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByLabelText('Name oder Firma')).not.toBeInTheDocument();
   });
 
   it('zeigt Adresse und Telefon als Handgriff, nicht als Text', async () => {

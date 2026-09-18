@@ -3455,6 +3455,60 @@ nicht das Nachdenken — der Vorschlag gehört in den Zustand.
 
 ---
 
+## Erledigt: die Liste zuerst, das Formular auf Klick (18.09.2026)
+
+**Gefragt war, ob das lange Anlege-Formular oben in jedem Reiter Sinn ergibt.
+Gemessen** am Telefon (390 × 780 px, davon nach Kopf- und Fussleiste rund
+590 px sichtbar), bis zur ersten vorhandenen Zeile:
+
+| Ansicht | vorher | jetzt |
+| --- | --- | --- |
+| Baustellen | **1590 px** (2,7 Bildschirme) | **276 px** |
+| Angebote | 1332 px | 256 px |
+| Kunden | 1175 px | 431 px |
+| Benutzer | 932 px | 385 px |
+| *Wartungen* | *276 px* | *unverändert* |
+
+**Die letzte Zeile ist der eigentliche Befund: `WartungenView` machte es
+bereits richtig** — Knopf im `PageHeader`, Formular klappt auf, Listen oben.
+Es war also keine Geschmacksfrage, sondern eine **Inkonsistenz**: eine von
+sechs Ansichten hatte das Muster, fünf nicht. Und `PageHeader` trägt den
+`action`-Platz dafür seit jeher.
+
+### Warum das Schnelligkeits-Argument nicht trägt
+
+Das offene Formular sparte beim Anlegen **einen Klick** und kostete beim
+Nachschauen **jedes Mal bis zu drei Wischer** — und Nachschauen ist in diesen
+Ansichten der Normalfall. Man öffnet Kunden, um einen Kunden zu *finden*.
+
+Dazu ein Schaden, der nicht in Pixeln zu messen ist: eine Maske ganz oben
+sieht aus wie der **Zweck** der Seite. Wer die Baustellenliste sucht, sah
+zuerst ein leeres Formular.
+
+**Kein schwebender +-Knopf.** Er verdeckt am Telefon die letzte Listenzeile,
+und unten liegt bereits die Leiste mit fünf Symbolen. Er wäre die erste
+schwebende Schaltfläche dieser App — eine Sonderform für einen Fall, den der
+Kopfzeilen-Knopf löst.
+
+### Zwei Ansichten bleiben, wie sie sind
+
+**Zeiterfassung und Urlaub.** Dort ist das Formular der Zweck: der Monteur
+öffnet die Zeiterfassung, um zu buchen, nicht um zu blättern. Ein zusätzlicher
+Klick wäre dort echter Verlust — und die Zeitbuchung ist der häufigste Vorgang
+der ganzen App. Das ist die Trennlinie, die die Frage beantwortet: *steht man
+vor der Ansicht, um etwas anzulegen, oder um etwas nachzusehen?*
+
+### Eine Verschlechterung, die dabei fast entstanden wäre
+
+In der Benutzerverwaltung trägt `error` **zwei** Dinge: das gescheiterte Laden
+der Liste und das gescheiterte Anlegen — angezeigt wurde er aber nur **im
+Formular**. Solange das immer offen stand, fiel das nicht auf. Zugeklappt wäre
+ein Ladefehler unsichtbar geworden: die Liste bliebe leer, und niemand erführe,
+warum. Gefunden hat das `UserMgmtView.test.tsx`; der Fehler steht jetzt
+ausserhalb des Formulars, wo er hingehört.
+
+---
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft
