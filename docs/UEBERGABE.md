@@ -12,6 +12,7 @@ rückgängig zu machen. Es ersetzt nicht:
 | [`FUNKTIONEN.md`](./FUNKTIONEN.md) | *Was gibt es, wer darf was, worauf kann ich mich verlassen?* Eine Zeile je Bereich, inklusive der Lücken. |
 | [`ROADMAP.md`](./ROADMAP.md) | *Was wurde wann warum gebaut?* Änderungsprotokoll, neueste Einträge oben. |
 | [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Einrichtung von Firebase, Secrets, Scheduler. |
+| [`../tools/vorschau/README.md`](../tools/vorschau/README.md) | **Layout prüfen.** Die App im echten Browser ohne Datenbank — und eine Messung über alle Routen auf drei Breiten. |
 | [`LEGACY-ANALYSIS.md`](./LEGACY-ANALYSIS.md) | Das Datenmodell und die Geschäftslogik aus der alten Einzeldatei. |
 
 Wer schnell etwas sucht: **Funktionsfrage → `FUNKTIONEN.md`. Warum-Frage →

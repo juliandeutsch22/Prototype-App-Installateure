@@ -62,3 +62,7 @@ supabase/functions/_shared/
 # Diagnose, kein Quelltext — und ein Trace-Archiv wiegt Megabyte.
 test-results/
 playwright-report/
+
+# Vorschau: die Ersatzmodule werden aus src/lib/db erzeugt (siehe
+# tools/vorschau/README.md) und gehoeren deshalb nicht ins Repo.
+tools/vorschau/db/

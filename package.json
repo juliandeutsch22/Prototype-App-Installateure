@@ -20,7 +20,9 @@
     "supabase:test": "vitest run --config vitest.supabase.config.ts",
     "durchklick": "playwright test",
     "stack": "./scripts/stack.sh",
-    "presupabase:test": "npm run gemeinsames"
+    "presupabase:test": "npm run gemeinsames",
+    "vorschau": "node tools/vorschau/stubs-erzeugen.mjs && vite --config vite.vorschau.config.ts",
+    "vorschau:messen": "node tools/vorschau/messen.mjs"
   },
   "dependencies": {
     "@fontsource/poppins": "^5.3.0",

@@ -13,4 +13,17 @@ module.exports = {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     '@typescript-eslint/no-explicit-any': 'warn',
   },
+  overrides: [
+    {
+      /*
+        Die Vorschau unter `tools/` ist Werkzeug, kein Anwendungscode. Sie
+        ERSETZT `AuthContext` und muss dafuer dieselben Namen exportieren wie
+        das Original — eine Komponente UND einen Hook aus einer Datei. Die
+        Regel dahinter (Fast Refresh) betrifft nur die Entwicklung der App
+        selbst und hat hier keinen Gegenstand.
+      */
+      files: ['tools/**/*.{ts,tsx,mjs}'],
+      rules: { 'react-refresh/only-export-components': 'off' },
+    },
+  ],
 };
