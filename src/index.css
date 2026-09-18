@@ -337,10 +337,25 @@ textarea:focus {
    */
 }
 
-/* Abschnittsüberschrift im Kartenkopf: klein, fett, gesperrt, versal. */
+/*
+ * Abschnittsüberschrift im Kartenkopf: klein, halbfett, gesperrt, versal.
+ *
+ * 600 UND NICHT 800, und die 800 waren obendrein eine Behauptung: geladen
+ * sind von Poppins die Schnitte 400, 500, 600 und 700. Nachgemessen rendern
+ * 700, 800 und 900 exakt gleich breit — der Browser nimmt den 700er und
+ * rechnet sich nichts aus. Hier stand also „extrafett" und es kam „fett"
+ * heraus.
+ *
+ * Und „fett" war zu viel. Diese Klasse sitzt auf JEDEM Kartentitel, jeder
+ * Kennzahl-Beschriftung und jeder Marke in einer Listenzeile — sie ist damit
+ * die häufigste Schrift der App nach dem Fliesstext. Dazu kommen hier drei
+ * Verstärker auf einmal: Versalien, Sperrung und Gewicht, bei nur 0,7 rem.
+ * Drei davon auf Anschlag machen aus einer Beschriftung, die BEGLEITEN soll,
+ * einen Ruf. 600 lässt sie begleiten.
+ */
 .section-label {
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);

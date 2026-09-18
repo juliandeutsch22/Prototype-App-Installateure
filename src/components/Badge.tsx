@@ -160,7 +160,7 @@ export function Warnung({
   const ton = stufe === 'dringend' ? 'text-danger' : 'text-warning';
   return (
     <span
-      className={`tnum inline-block whitespace-nowrap rounded-pill border-[1.5px] border-current bg-surface px-2.5 py-0.5 text-xs font-bold ${ton}`}
+      className={`tnum inline-block whitespace-nowrap rounded-pill border-[1.5px] border-current bg-surface px-2.5 py-0.5 text-xs font-semibold ${ton}`}
     >
       {children}
     </span>
