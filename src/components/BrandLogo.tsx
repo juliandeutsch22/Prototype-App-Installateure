@@ -57,19 +57,47 @@ export default function BrandLogo({ height = 28, className = '' }: Props) {
     );
   }
 
+  /*
+    ZWEI ZEILEN STATT EINES SCHNITTS.
+
+    Vorher stand der Name einzeilig mit `truncate` in halber Logohöhe — in der
+    Seitenleiste also 20 px auf 216 px Platz. „Perl Installationen GmbH"
+    braucht dort rund 250 px und wurde damit zu „Perl Installationen …". Ein
+    abgeschnittener Firmenname ist schlimmer als ein kleiner: er behauptet,
+    der Betrieb heisse so.
+
+    DIE LOGOHÖHE IST DIE MINDESTHÖHE, NICHT DIE HÖHE. Das war die Bedingung,
+    unter der hier ursprünglich `truncate` stand: sonst springt die Kopfzeile,
+    je nachdem ob ein Logo hinterlegt ist. Als FESTE Höhe war sie aber zu
+    streng — „Installationen Mustermann Gesellschaft m.b.H." passt auch in
+    zwei Zeilen nicht und wurde dann eben zweizeilig abgeschnitten. Als
+    Mindesthöhe erfüllt sie ihren Zweck und kostet nichts: bis zu zwei Zeilen
+    (Schriftgrad 0,4 × Höhe, Zeilenabstand 0,5 × Höhe) ergeben genau die
+    Logohöhe, und erst ein Name, der mehr braucht, macht die Leiste um eine
+    Zeile höher. Das ist der Fall, in dem Wachsen richtig ist.
+
+    `line-clamp-3` ist die Grenze nach unten: ein Name, der auch in drei
+    Zeilen nicht fertig wird, drückt die Navigation nicht weg, sondern endet
+    mit Auslassungspunkten — und steht vollständig im `title`.
+
+    `hyphens: auto` trennt deutsche Zusammensetzungen an der richtigen Stelle
+    (das Dokument ist `lang="de"`), `overflow-wrap: anywhere` fängt den Fall
+    ab, dass ein EINZELNES Wort breiter ist als die Leiste. Ohne das Zweite
+    liefe so ein Wort seitlich heraus, statt umzubrechen.
+  */
   return (
     <span
-      /*
-        `truncate` und `block`: ein langer Betriebsname („Installationen
-        Mustermann Gesellschaft m.b.H.") darf die Seitenleiste nicht
-        auseinanderdrücken. Die Höhe folgt der des Logos, damit die Kopfzeile
-        nicht springt, je nachdem ob ein Logo hinterlegt ist.
-      */
-      className={`block truncate font-semibold leading-none ${className}`}
-      style={{ fontSize: Math.round(height * 0.5), lineHeight: `${height}px` }}
+      className={`flex items-center font-semibold ${className}`}
+      style={{
+        minHeight: height,
+        fontSize: Math.round(height * 0.4),
+        lineHeight: `${Math.round(height * 0.5)}px`,
+        hyphens: 'auto',
+        overflowWrap: 'anywhere',
+      }}
       title={company.name}
     >
-      {company.name}
+      <span className="line-clamp-3">{company.name}</span>
     </span>
   );
 }

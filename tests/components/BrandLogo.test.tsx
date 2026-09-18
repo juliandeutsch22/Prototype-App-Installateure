@@ -69,15 +69,27 @@ describe('Was in der Kopfleiste steht', () => {
   });
 
   it('hält einen langen Namen in der Spur', () => {
-    // Die Seitenleiste ist 16rem breit. Ein Name wie dieser darf sie nicht
-    // auseinanderdrücken — und der volle Name bleibt am Mauszeiger lesbar.
+    /*
+      Die Seitenleiste ist 16rem breit. Ein Name wie dieser darf sie nicht
+      auseinanderdrücken — und der volle Name bleibt am Mauszeiger lesbar.
+
+      GEPRÜFT WIRD DIE GRENZE, NICHT DIE TECHNIK. Vorher stand hier
+      `truncate`, also EINE Zeile mit Auslassungspunkten; das schnitt schon
+      „Perl Installationen GmbH" mitten im Wort ab. Jetzt bricht der Name um
+      und wird erst nach DREI Zeilen begrenzt. Was beide Fassungen
+      gemeinsam haben und worauf es ankommt: es gibt eine Grenze, und der
+      vollständige Name bleibt erreichbar.
+    */
     betrieb = {
       id: 'lang', name: 'Installationen Mustermann Gesellschaft m.b.H. & Co KG',
     } as Company;
     render(<BrandLogo />);
 
     const schriftzug = screen.getByText(/Mustermann/);
-    expect(schriftzug).toHaveClass('truncate');
-    expect(schriftzug).toHaveAttribute('title', 'Installationen Mustermann Gesellschaft m.b.H. & Co KG');
+    expect(schriftzug).toHaveClass('line-clamp-3');
+    expect(schriftzug.parentElement).toHaveAttribute(
+      'title',
+      'Installationen Mustermann Gesellschaft m.b.H. & Co KG',
+    );
   });
 });

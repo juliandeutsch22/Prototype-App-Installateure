@@ -6,17 +6,29 @@ import StatusBadge from '@/components/StatusBadge';
 /**
  * Die drei Formen — und die eine Regel, auf der alles steht.
  *
- * DIE GEFÜLLTE PILLE GIBT ES NUR NOCH BEI EINER WARNUNG. Das ist nicht
- * Geschmack, sondern die Bedingung dafür, dass sie überhaupt etwas heisst:
- * solange „40 h Budget" genauso aussah wie „über Budget", sagte eine gefüllte
- * Pille nichts über Dringlichkeit. Fällt diese Prüfung, ist der Gewinn wieder
- * weg — und zwar unbemerkt, weil jede einzelne Ansicht für sich weiter
- * vernünftig aussieht.
+ * DIE PILLE GIBT ES NUR BEI EINER WARNUNG. Das ist nicht Geschmack, sondern
+ * die Bedingung dafür, dass sie überhaupt etwas heisst: solange „40 h Budget"
+ * genauso aussah wie „über Budget", sagte eine Pille nichts über
+ * Dringlichkeit. Fällt diese Prüfung, ist der Gewinn wieder weg — und zwar
+ * unbemerkt, weil jede einzelne Ansicht für sich weiter vernünftig aussieht.
+ *
+ * GEPRÜFT WIRD DIE FORM, NICHT DIE FÜLLFARBE. Die Warnung war einmal eine
+ * gefüllte Pille in Pastellgelb und Pastellrot; sie ist jetzt umrandet, weil
+ * diese beiden Pastelltöne die einzigen Farbflächen der App waren, die nicht
+ * aus der Familie Türkis/Tinte stammen. Die Regel darüber — nur hier eine
+ * Pille, zwei Stufen, im Zweifel die mildere — ist von diesem Wechsel nicht
+ * berührt, und genau sie hält dieser Test fest.
  */
 
-/** Hat das Abzeichen eine eigene Fläche? Genau das unterscheidet die Formen. */
+/** Hat das Abzeichen eine eigene Fläche? Marke und Zustand dürfen keine haben. */
 function hatFlaeche(el: HTMLElement): boolean {
   return [...el.classList].some((k) => k.startsWith('bg-'));
+}
+
+/** Ist es die Pille? Umrandete Form mit vollem Radius — nur die Warnung. */
+function istPille(el: HTMLElement): boolean {
+  const k = [...el.classList];
+  return k.includes('rounded-pill') && k.some((c) => c.startsWith('border-'));
 }
 
 describe('Die Marke — eine Tatsache ohne Urteil', () => {
@@ -67,23 +79,48 @@ describe('Der Zustand — ein Wert aus einer kleinen Menge', () => {
 });
 
 describe('Die Warnung — die einzige gefüllte Pille', () => {
-  it('trägt eine Fläche', () => {
-    render(<Warnung>3 knapp</Warnung>);
-    expect(hatFlaeche(screen.getByText('3 knapp'))).toBe(true);
+  it('ist die Pille — und Marke und Zustand sind es nicht', () => {
+    /*
+      DIE ABGRENZUNG IST DIE PRÜFUNG, nicht die Form für sich. „Die Warnung
+      ist eine Pille" allein bliebe wahr, wenn morgen auch die Marke eine
+      bekäme — und dann wäre die Regel still gebrochen.
+    */
+    const { container: w } = render(<Warnung>3 knapp</Warnung>);
+    const { container: m } = render(<Marke>40 h Budget</Marke>);
+    const { container: z } = render(<Zustand stand="gut">Bezahlt</Zustand>);
+
+    expect(istPille(w.firstElementChild as HTMLElement)).toBe(true);
+    expect(istPille(m.firstElementChild as HTMLElement)).toBe(false);
+    expect(istPille(z.firstElementChild as HTMLElement)).toBe(false);
+  });
+
+  it('trägt keine fremde Farbfläche, sondern die der Karte', () => {
+    /*
+      Pastellgelb und Pastellrot waren die einzigen Farbflächen der App
+      ausserhalb der Familie Türkis/Tinte. Sie fielen auf, weil sie fremd
+      waren, nicht weil sie dringend waren.
+    */
+    render(<Warnung stufe="dringend">über Budget</Warnung>);
+    const k = [...screen.getByText('über Budget').classList];
+    expect(k).toContain('bg-surface');
+    expect(k).not.toContain('bg-danger-bg');
+    expect(k).not.toContain('bg-warning-bg');
   });
 
   it('hat zwei Stufen, und die dringende ist die rote', () => {
     render(<Warnung stufe="achtung">12 Tage</Warnung>);
     render(<Warnung stufe="dringend">90 Tage</Warnung>);
 
-    expect([...screen.getByText('12 Tage').classList]).toContain('bg-warning-bg');
-    expect([...screen.getByText('90 Tage').classList]).toContain('bg-danger-bg');
+    expect([...screen.getByText('12 Tage').classList]).toContain('text-warning');
+    expect([...screen.getByText('90 Tage').classList]).toContain('text-danger');
   });
 
   it('ist ohne Angabe die mildere Stufe', () => {
     // Wer sich nicht entscheidet, soll nicht versehentlich Alarm schlagen.
     render(<Warnung>bitte prüfen</Warnung>);
-    expect([...screen.getByText('bitte prüfen').classList]).toContain('bg-warning-bg');
+    const k = [...screen.getByText('bitte prüfen').classList];
+    expect(k).toContain('text-warning');
+    expect(k).not.toContain('text-danger');
   });
 });
 

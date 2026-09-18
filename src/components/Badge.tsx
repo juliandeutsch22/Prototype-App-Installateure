@@ -32,9 +32,12 @@ import type { Role } from '@/types';
  *            Werts, daneben das Wort in normaler Schrift. Die Farbe bleibt
  *            zum Überfliegen da, die farbige FLÄCHE schrumpft von einer
  *            Pille auf sechs Bildpunkte.
- *   WARNUNG  Hier liegt etwas für dich. Die gefüllte Pille — und NUR noch
- *            hier. Genau deshalb heisst eine gefüllte Pille in dieser App
- *            jetzt etwas.
+ *   WARNUNG  Hier liegt etwas für dich. Die Pille — und NUR noch hier.
+ *            Genau deshalb heisst eine Pille in dieser App jetzt etwas.
+ *            Sie ist umrandet und nicht gefüllt: gefüllt hiesse Pastellgelb
+ *            und Pastellrot, und das sind die einzigen Farbflächen der App,
+ *            die nicht aus der Familie Türkis/Tinte stammen (siehe unten bei
+ *            `Warnung`).
  *
  * DIE ROLLEN HABEN IHRE FARBEN VERLOREN. Sechs Farben für sechs Rollen sind
  * eine Legende, die niemand auswendig lernt; das Wort „Buchhaltung" sagt es
@@ -113,15 +116,15 @@ export function Zustand({ stand, children }: { stand: Stand; children: ReactNode
 }
 
 /**
- * Hier liegt etwas für dich — die einzige gefüllte Pille der App.
+ * Hier liegt etwas für dich — die einzige Pille der App.
  *
  * ZWEI STUFEN UND NICHT MEHR. `achtung` heisst „sollte jemand ansehen",
  * `dringend` heisst „ist überfällig oder aus dem Ruder". Eine dritte Stufe
  * wäre eine Unterscheidung, die niemand beim Überfliegen trifft.
  *
- * Dass es sie nur hier gibt, ist die eigentliche Wirkung: solange gefüllte
- * Pillen auch „40 h Budget" bedeuteten, sagte eine gefüllte Pille nichts
- * über Dringlichkeit. Jetzt schon.
+ * Dass es sie nur hier gibt, ist die eigentliche Wirkung: solange Pillen
+ * auch „40 h Budget" bedeuteten, sagte eine Pille nichts über Dringlichkeit.
+ * Jetzt schon.
  */
 export function Warnung({
   stufe = 'achtung',
@@ -130,12 +133,34 @@ export function Warnung({
   stufe?: 'achtung' | 'dringend';
   children: ReactNode;
 }) {
-  const ton = stufe === 'dringend'
-    ? 'bg-danger-bg text-danger'
-    : 'bg-warning-bg text-warning';
+  /*
+    DIE FLÄCHE IST DIE DER KARTE, DIE FARBE STEHT IN RAND UND SCHRIFT.
+
+    Vorher war es eine GEFÜLLTE Pille in Pastellgelb (`--warning-bg`) und
+    Pastellrot (`--danger-bg`). Sie tat ihre Arbeit, sah aber fremd aus, und
+    der Grund dafür ist nachweisbar und nicht Geschmack: das sind die einzigen
+    beiden Farbflächen der ganzen Oberfläche, die nicht aus der Familie
+    Türkis/Tinte stammen. Zwei Pastelltöne in einer Liste, in der sonst nichts
+    pastellfarben ist, fallen auf, weil sie fremd sind — nicht, weil sie
+    dringend sind.
+
+    Die FORM bleibt, und damit bleibt auch die Bedeutung: eine Pille heisst in
+    dieser App weiterhin „hier liegt etwas für dich", und sie ist weiterhin
+    die einzige. Getauscht ist nur, was die Farbe trägt.
+
+    DER KONTRAST WIRD DABEI BESSER, NICHT SCHLECHTER — nachgerechnet, nicht
+    geschätzt: `--warning` steigt von 4,76:1 auf dem Pastellgrund auf 5,42:1
+    auf Weiss, `--danger` von 5,48:1 auf 7,14:1. Der Rand misst 1,5 px und
+    nicht 1 px: ein Haarstrich in einer Warnfarbe verschwindet auf einem
+    Telefon im Sonnenlicht.
+
+    `currentColor` für den Rand statt einer zweiten Farbklasse: Rand und
+    Schrift sind dieselbe Aussage und sollen nicht auseinanderlaufen können.
+  */
+  const ton = stufe === 'dringend' ? 'text-danger' : 'text-warning';
   return (
     <span
-      className={`tnum inline-block whitespace-nowrap rounded-pill px-2.5 py-0.5 text-xs font-bold ${ton}`}
+      className={`tnum inline-block whitespace-nowrap rounded-pill border-[1.5px] border-current bg-surface px-2.5 py-0.5 text-xs font-bold ${ton}`}
     >
       {children}
     </span>
