@@ -50,7 +50,7 @@ export default function PushStatus() {
   const u = pushBeurteilen(lauf);
   const farbe =
     u.stand === 'ueberfaellig'
-      ? 'border-warning/40 bg-warning-bg text-warning'
+      ? 'border-l-[3px] border-warning bg-surface-2 text-warning'
       : 'border-line text-ink-muted';
 
   return (

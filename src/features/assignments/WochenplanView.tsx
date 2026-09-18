@@ -348,7 +348,7 @@ export default function WochenplanView() {
                           }`}
                         >
                           {z?.imUrlaub ? (
-                            <span className="block rounded-sm bg-info-bg px-2 py-1 text-center text-xs text-info">
+                            <span className="block rounded-sm border-l-[3px] border-info bg-surface-2 px-2 py-1 text-center text-xs text-info">
                               Urlaub
                             </span>
                           ) : leer ? (
@@ -438,7 +438,7 @@ export default function WochenplanView() {
                           type="button"
                           onClick={() => zurTagesplanung(tag, b.nummer)}
                           aria-label={`${b.name} am ${datum} bearbeiten`}
-                          className="min-h-touch w-full rounded-sm bg-info-bg px-3 py-2 text-left"
+                          className="min-h-touch w-full rounded-sm border-l-[3px] border-info bg-surface-2 px-3 py-2 text-left"
                         >
                           <span className="block font-medium text-info">{b.name}</span>
                           <span className="block text-sm text-info">

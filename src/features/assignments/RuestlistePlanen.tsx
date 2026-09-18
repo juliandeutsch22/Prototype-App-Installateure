@@ -160,7 +160,7 @@ export default function RuestlistePlanen({
                   den diese App sich nicht leisten kann.
                 */}
                 {fehlt > 0 && (
-                  <div className="mt-2 flex flex-wrap items-center gap-3 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+                  <div className="mt-2 flex flex-wrap items-center gap-3 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
                     <span>
                       Im Lager fehlen <strong className="tnum">{fehlt}</strong>.
                     </span>

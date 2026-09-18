@@ -314,6 +314,27 @@ Betriebssystems. Es gibt acht Kästchen in der App und nur eines davon läuft
 durch `CheckboxField` — eine Klasse in `index.css` ist die einzige Fassung,
 die alle acht gleich hält.
 
+**Farbe lebt auf KANTEN und in SCHRIFT, nicht in Flächen.** Das ist die Regel,
+auf die die Oberfläche nach und nach zugelaufen ist, und sie gilt inzwischen
+durchgehend: die Reitermarkierung ist eine Unterkante, der aktive
+Navigationseintrag eine linke Kante, die Seitenüberschrift ein kurzer Strich,
+die Warnpille ein Rand mit farbiger Schrift auf der Fläche der Karte — und
+**Meldungskästen** eine 3 px breite linke Kante auf `bg-surface-2`.
+
+Vorher waren die Kästen pastellgelb und pastellrot gefüllt. Das waren die
+einzigen Farbflächen der App ausserhalb der Familie Türkis/Tinte; sie fielen
+auf, weil sie fremd waren, nicht weil sie dringend waren. Der Kontrast ist
+dabei gestiegen, nicht gefallen — `--success` lag auf seinem alten
+Pastellgrund bei **4,42:1 und damit unter AA**, jetzt sind es 4,67:1.
+
+**NICHT umgestellt sind Flächen, die keine Meldung sind:** Tageszellen im
+Kalender und im Wochenplan, der aktive Navigationseintrag, die Auswahl im
+PersonPicker, das Band am Kopf einer Akte, die Helferzeile in der
+Projektauswertung und das Verbindungsband. Das Verbindungsband ist die eine
+bewusste Ausnahme unter den Meldungen: es läuft von Rand zu Rand, und eine
+Kante allein könnte es nicht vom Seitengrund abheben — dafür braucht es eine
+Fläche.
+
 **Die leuchtenden Töne tragen nie Text.** `--accent-bright` (#12b0c6) und
 `--mint` (#66ffb0) erreichen auf Weiß 2,6:1 bzw. 1,3:1. Sie sind Kante und
 Fläche. Gelesen wird auf `--text`, `--text-muted`, `--brand` oder `--accent` —

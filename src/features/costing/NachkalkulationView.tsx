@@ -176,7 +176,7 @@ export default function NachkalkulationView() {
         an der falschen Stelle.
       */}
       {katalogAbgeschnitten(katalog) && (
-        <p className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+        <p className="rounded border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
           Der Materialstamm wurde nur bis zur Obergrenze geladen ({katalog.length} Artikel). Artikel
           darüber hinaus erscheinen unten als „ohne Einkaufspreis", obwohl einer hinterlegt sein
           kann — der Deckungsbeitrag ist dann zu hoch ausgewiesen.
@@ -306,7 +306,7 @@ export default function NachkalkulationView() {
                   der naheliegende Fehler, und darauf trifft jemand
                   Entscheidungen.
                 */}
-                <div className="mt-4 flex flex-wrap items-center rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
+                <div className="mt-4 flex flex-wrap items-center rounded-sm border-l-[3px] border-info bg-surface-2 px-3 py-2 text-sm text-info">
                   <strong>Deckungsbeitrag, nicht Gewinn.</strong>
                   {/*
                     Die Warnung selbst bleibt stehen — sie ist die Aussage.

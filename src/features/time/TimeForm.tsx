@@ -369,7 +369,7 @@ export default function TimeForm({
       {/* Bereits verrechnete Einträge sind die Grundlage einer verschickten
           Rechnung — eine Änderung würde den Beleg nachträglich verfälschen. */}
       {billed && (
-        <p className="rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning" role="alert">
+        <p className="rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
           Dieser Eintrag ist mit Rechnung {entry?.invoiceNumber || '—'} verrechnet und kann nicht
           mehr geändert werden. Dafür muss zuerst die Rechnung storniert werden.
         </p>
@@ -448,14 +448,14 @@ export default function TimeForm({
       */}
       {konflikt && (
         <p
-          className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm font-medium text-warning"
+          className="rounded border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm font-medium text-warning"
           role="alert"
         >
           {konflikt}
         </p>
       )}
       {holidayName && (
-        <p className="rounded border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
+        <p className="rounded border-l-[3px] border-info bg-surface-2 px-3 py-2 text-sm text-info">
           Hinweis: {holidayName} — gesetzlicher Feiertag.
         </p>
       )}
@@ -566,7 +566,7 @@ export default function TimeForm({
                 die Rechnung eine Position, ohne dass jemand es merkt.
               */}
               {!erweitert && entry && (entry.projectNumber || entry.isEmergency || entry.isNightWork) && (
-                <p className="mt-2 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+                <p className="mt-2 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
                   Dieser Eintrag hat eine Baustelle oder Zuschläge hinterlegt. Speichern ohne
                   erweiterte Erfassung entfernt sie.
                 </p>
