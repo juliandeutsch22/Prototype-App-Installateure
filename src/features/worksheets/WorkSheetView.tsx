@@ -873,13 +873,13 @@ export default function WorkSheetView() {
           gesagt, sonst rechnet jemand später damit.
         */}
         {projekt?.billingMode === 'Pauschal' && (
-          <p className="mt-2 rounded-sm border-l-[3px] border-info bg-surface-2 px-3 py-2 text-sm text-info">
+          <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
             Pauschalbaustelle: Der Schein dokumentiert die geleistete Arbeit, die Stunden sind
             aber keine Grundlage für eine Nachverrechnung.
           </p>
         )}
         {bestehende.length > 0 && (
-          <p className="mt-2 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+          <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
             Für diesen Tag gibt es bereits {bestehende.length}{' '}
             {bestehende.length === 1 ? 'Schein' : 'Scheine'}. Ein zweiter ist möglich, etwa für
             einen getrennt beauftragten Zusatz — doppelt bestätigen sollte man dieselben Stunden
@@ -901,7 +901,7 @@ export default function WorkSheetView() {
             {laden ? (
               <LoadingState />
             ) : vorfuellFehler ? (
-              <div className="rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2">
+              <div className="rounded-sm border border-line bg-surface-2 px-3 py-2">
                 <p className="text-sm text-warning">{vorfuellFehler}</p>
                 <div className="mt-2">
                   <Button variant="secondary" onClick={() => setVersuch((v) => v + 1)}>
@@ -1214,7 +1214,7 @@ export default function WorkSheetView() {
               vorher dastehen, denn danach ist er eingefroren.
             */}
             {vorfuellFehler && (
-              <p className="mt-4 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+              <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                 <strong>Ohne Stunden.</strong> Sie konnten nicht geladen werden, und eingefroren
                 wird genau das, was hier steht. Für einen Beleg über die Arbeitszeit bitte oben
                 erneut versuchen; als reine Bestätigung der Anwesenheit mit einer Notiz ist der

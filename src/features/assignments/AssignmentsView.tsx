@@ -486,7 +486,7 @@ export default function AssignmentsView() {
               Heute
             </span>
             <span className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-5 rounded-sm border-l-[3px] border-warning bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
+              <span className="inline-block h-2.5 w-5 rounded-sm border border-line bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
               Feiertag (AT)
             </span>
           </div>
@@ -505,7 +505,7 @@ export default function AssignmentsView() {
             />
 
             {(holiday || weekend) && (
-              <p className="mt-3 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                 {holiday ? `${holiday} — gesetzlicher Feiertag.` : 'Wochenende.'} Einsatz ist trotzdem
                 planbar.
               </p>
@@ -517,7 +517,7 @@ export default function AssignmentsView() {
               in dieser Ansicht auftaucht.
             */}
             {imUrlaub.size > 0 && (
-              <p className="mt-3 rounded-sm border-l-[3px] border-info bg-surface-2 px-3 py-2 text-sm text-info">
+              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
                 <strong>Im Urlaub an diesem Tag:</strong> {[...imUrlaub.values()].join(', ')}
               </p>
             )}
@@ -528,7 +528,7 @@ export default function AssignmentsView() {
               vermutet hinter dem Speichern ein Überschreiben des ganzen Tages.
             */}
             {projectNumber && schonVerplant.size > 0 && (
-              <p className="mt-3 rounded-sm border-l-[3px] border-info bg-surface-2 px-3 py-2 text-sm text-info">
+              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
                 Einige Mitarbeiter sind heute bereits auf anderen Baustellen eingeteilt (siehe
                 Hinweis am Namen). Eine zusätzliche Einteilung ist möglich — die bestehende bleibt
                 bestehen.
@@ -536,7 +536,7 @@ export default function AssignmentsView() {
             )}
 
             {projectNumber && existingForProject.length > 0 && (
-              <p className="mt-3 rounded-sm border-l-[3px] border-info bg-surface-2 px-3 py-2 text-sm text-info">
+              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
                 Für diese Baustelle ist der Tag bereits geplant. Die Auswahl unten ist übernommen —
                 Speichern überschreibt sie.
               </p>
@@ -599,7 +599,7 @@ export default function AssignmentsView() {
               stilles Durchwinken wäre aber genauso falsch.
             */}
             {verplanteUrlauber.length > 0 && (
-              <p className="mt-2 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+              <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                 <strong>{verplanteUrlauber.join(', ')}</strong>{' '}
                 {verplanteUrlauber.length === 1 ? 'ist' : 'sind'} an diesem Tag im genehmigten
                 Urlaub. Das Einteilen geht trotzdem — gemeint ist es meistens nicht.

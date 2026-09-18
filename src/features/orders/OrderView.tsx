@@ -401,7 +401,7 @@ export default function OrderView() {
               )}
             </div>
             {projectNumber && urgent && !leitungDa && (
-              <p className="rounded border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+              <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                 Dieser Baustelle ist keine Projektleitung zugeteilt — die Eilmeldung erreicht
                 niemanden. Die Verwaltung bekommt die Anforderung trotzdem.
               </p>

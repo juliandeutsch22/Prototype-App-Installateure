@@ -152,7 +152,7 @@ export default function UserMgmtView() {
       </MetricRow>
 
       {handoverPassword && (
-        <div className="rounded border-l-[3px] border-warning bg-surface-2 p-4 text-warning" role="alert">
+        <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
           <p className="font-semibold">Willkommens-Mail konnte nicht gesendet werden</p>
           <p className="mt-1 text-sm">
             Bitte {handoverPassword.name} dieses Startpasswort persönlich weitergeben. Es wird

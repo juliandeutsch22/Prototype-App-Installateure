@@ -151,12 +151,12 @@ export default function LoginPage() {
             )}
 
             {(error || authError) && (
-              <p className="rounded-sm border-l-[3px] border-danger bg-surface-2 p-2 text-sm text-danger" role="alert">
+              <p className="rounded-sm border border-line bg-surface-2 p-2 text-sm text-danger" role="alert">
                 {error ?? authError}
               </p>
             )}
             {notice && (
-              <p className="rounded-sm border-l-[3px] border-success bg-surface-2 p-2 text-sm text-success" role="status">
+              <p className="rounded-sm border border-line bg-surface-2 p-2 text-sm text-success" role="status">
                 {notice}
               </p>
             )}

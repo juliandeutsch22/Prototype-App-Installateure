@@ -57,7 +57,7 @@ export default function LaufStatus({ art }: { art: NachtLaufArt }) {
   const farbe =
     u.stand === 'gut'
       ? 'border-line text-ink-muted'
-      : 'border-l-[3px] border-warning bg-surface-2 text-warning';
+      : 'border border-line bg-surface-2 text-warning';
 
   return (
     <p

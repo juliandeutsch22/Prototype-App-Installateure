@@ -916,7 +916,7 @@ export default function InvoicesView() {
                 Kanzlei geht — nicht danach.
               */}
               {e.luecken.length > 0 && (
-                <p className="mt-3 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+                <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                   <strong>Lücke im Nummernkreis:</strong> {e.luecken.join(', ')}. Entweder fehlt
                   eine Rechnung, oder sie wurde gelöscht statt storniert. Das sollte vor der
                   Übergabe an die Kanzlei geklärt sein.
@@ -991,7 +991,7 @@ export default function InvoicesView() {
         Grundlage, nicht das Ergebnis.
       */}
       {forderungenFehler && (
-        <p role="status" className="rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+        <p role="status" className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
           <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
           „nicht verrechnete Leistung" sind deshalb unvollständig — was hier fehlt, heisst
           nicht, dass es nichts zu tun gibt. Bitte die Seite neu laden.
@@ -1105,7 +1105,7 @@ export default function InvoicesView() {
             ältesten Forderungen die unsichtbarsten.
           */}
           {lauf.ausgereizt.length > 0 && (
-            <p className="mt-4 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+            <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
               <strong>
                 {lauf.ausgereizt.length}{' '}
                 {lauf.ausgereizt.length === 1 ? 'Forderung' : 'Forderungen'} braucht eine
@@ -1245,7 +1245,7 @@ export default function InvoicesView() {
             />
           </div>
           {(!leistungVon || !leistungBis) && (
-            <p className="mb-3 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+            <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
               Ohne Leistungszeitraum ist die Rechnung nach § 11 UStG unvollständig — beim Kunden
               wackelt damit der Vorsteuerabzug.
             </p>
@@ -1266,7 +1266,7 @@ export default function InvoicesView() {
             derselben Maske wären für niemanden nachvollziehbar.
           */}
           {leistungVon && leistungBis && leistungBis < leistungVon && (
-            <p className="mb-3 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+            <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
               „Leistung bis" liegt vor „Leistung von" — so stünde der Zeitraum verdreht auf der
               Rechnung. Zurückzunehmen wäre das nur noch mit einem Storno.
             </p>
@@ -1287,7 +1287,7 @@ export default function InvoicesView() {
             <p
               className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
                 abgleich.auffaellig
-                  ? 'border-l-[3px] border-warning bg-surface-2 text-warning'
+                  ? 'border border-line bg-surface-2 text-warning'
                   : 'border-line bg-surface-2 text-ink-muted'
               }`}
             >
@@ -1308,7 +1308,7 @@ export default function InvoicesView() {
             </p>
           )}
           {preview.materialOhnePreis.length > 0 && (
-            <p className="mb-3 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+            <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
               Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt:{' '}
               {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile
               entfernen — im Lager gepflegt, kommt er beim nächsten Mal von selbst.

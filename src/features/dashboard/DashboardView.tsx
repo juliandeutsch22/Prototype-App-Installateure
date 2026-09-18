@@ -520,7 +520,7 @@ export default function DashboardView() {
         und braucht den Hinweis nicht.
       */}
       {fuehrtZeitkonto && data.hatEintritt === false && (
-        <div className="rounded border-l-[3px] border-info bg-surface-2 p-4 text-info">
+        <div className="rounded border border-line bg-surface-2 p-4 text-info">
           <p className="font-semibold">Kein Eintrittsdatum hinterlegt</p>
           <p className="mt-1 text-sm">
             Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen und wie der Saldo
@@ -530,7 +530,7 @@ export default function DashboardView() {
       )}
 
       {offeneTage.length > 0 && (
-        <div className="rounded border-l-[3px] border-warning bg-surface-2 p-4 text-warning" role="alert">
+        <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
           <p className="font-semibold">
             {offeneTage.length === 1 ? 'Ein Tag ohne Buchung' : `${offeneTage.length} Tage ohne Buchung`}
           </p>

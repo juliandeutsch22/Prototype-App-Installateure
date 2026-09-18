@@ -705,7 +705,7 @@ export default function SettingsView() {
           <LaufStatus art="bilanzen" />
         </div>
         {aufbauErgebnis && (
-          <p className="mt-3 rounded-sm border-l-[3px] border-success bg-surface-2 px-3 py-2 text-sm text-success">
+          <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-success">
             {aufbauErgebnis}
           </p>
         )}

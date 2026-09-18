@@ -241,7 +241,7 @@ export default function MyScheduleView() {
                 Heute
               </span>
               <span className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-5 rounded-sm border-l-[3px] border-warning bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
+                <span className="inline-block h-2.5 w-5 rounded-sm border border-line bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
                 Feiertag (AT)
               </span>
             </div>
@@ -257,8 +257,8 @@ export default function MyScheduleView() {
                 <p
                   className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
                     urlaubAmTag.status === 'Genehmigt'
-                      ? 'border-l-[3px] border-success bg-surface-2 text-success'
-                      : 'border-l-[3px] border-warning bg-surface-2 text-warning'
+                      ? 'border border-line bg-surface-2 text-success'
+                      : 'border border-line bg-surface-2 text-warning'
                   }`}
                 >
                   {urlaubAmTag.status === 'Genehmigt' ? (

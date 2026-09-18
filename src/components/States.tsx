@@ -70,7 +70,7 @@ export function SkeletonMetrics({ count = 3 }: { count?: number }) {
 /** Fehlerzustand: erklärt, was war und was zu tun ist. */
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="rounded border-l-[3px] border-danger bg-surface-2 p-4 text-danger" role="alert">
+    <div className="rounded border border-line bg-surface-2 p-4 text-danger" role="alert">
       <p className="font-semibold">Das hat nicht geklappt</p>
       <p className="mt-1 text-sm">{message}</p>
       {onRetry && (
@@ -103,7 +103,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
  */
 export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void }) {
   return (
-    <p className="rounded border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
+    <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
       {was} konnte nicht geladen werden.{' '}
       {onRetry && (
         <button onClick={onRetry} className="min-h-touch font-semibold underline">

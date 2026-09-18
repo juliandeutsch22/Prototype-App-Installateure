@@ -690,7 +690,7 @@ export default function AccountingView() {
                           hier — sie gehören auf die Baustelle und in die Nachkalkulation.
                         </p>
                       ) : !stats.hasConfig ? (
-                        <p className="mt-2 rounded-sm border-l-[3px] border-warning bg-surface-2 px-3 py-2 text-sm text-warning">
+                        <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                           Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
                           sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,
                           sondern keine Aussage. Nachtragen in der Benutzerverwaltung.
@@ -698,7 +698,7 @@ export default function AccountingView() {
                       ) : null}
 
                       {completeness.missingCount > 0 && (
-                        <details className="mt-4 rounded border-l-[3px] border-danger bg-surface-2 px-3 py-2 text-sm text-danger">
+                        <details className="mt-4 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-danger">
                           <summary className="cursor-pointer font-semibold">
                             {completeness.missingCount === 1
                               ? '1 Arbeitstag ohne Buchung'
