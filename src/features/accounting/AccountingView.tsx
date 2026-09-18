@@ -698,13 +698,37 @@ export default function AccountingView() {
                       ) : null}
 
                       {completeness.missingCount > 0 && (
-                        <details className="mt-4 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-danger">
-                          <summary className="cursor-pointer font-semibold">
-                            {completeness.missingCount === 1
-                              ? '1 Arbeitstag ohne Buchung'
-                              : `${completeness.missingCount} Arbeitstage ohne Buchung`}
+                        /*
+                          DAS ZEICHEN ZUM AUFKLAPPEN IST UNSERES, NICHT DAS DES
+                          BROWSERS.
+
+                          Hier stand ein blankes `<summary>`. Ein solches ist
+                          `display: list-item` und bekommt damit das native
+                          Dreieck davor — mitten im roten Text, in einer App,
+                          die sonst ueberall denselben Winkel rechts benutzt
+                          (Mitarbeiterkarte, Baustellenzeile). Aus dem Betrieb:
+                          „macht der Pfeil vor dem roten text hier?"
+
+                          `flex` nimmt dem `<summary>` das Dreieck (es ist dann
+                          kein list-item mehr), `list-none` sagt es zusaetzlich
+                          fuer Browser, die das anders halten. Der Winkel steht
+                          rechts und dreht sich beim Oeffnen — dieselbe
+                          Bewegung wie eine Zeile hoeher.
+                        */
+                        <details className="group mt-4 rounded border border-line bg-surface-2 text-sm text-danger">
+                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-semibold [&::-webkit-details-marker]:hidden">
+                            <span>
+                              {completeness.missingCount === 1
+                                ? '1 Arbeitstag ohne Buchung'
+                                : `${completeness.missingCount} Arbeitstage ohne Buchung`}
+                            </span>
+                            <Icon
+                              name="chevron"
+                              size={18}
+                              className="shrink-0 transition-transform duration-200 group-open:rotate-180"
+                            />
                           </summary>
-                          <p className="mt-2 leading-relaxed">
+                          <p className="px-3 pb-2 leading-relaxed">
                             {completeness.missingDates.map((d) => dayLabel(d)).join(' · ')}
                           </p>
                         </details>
@@ -821,15 +845,26 @@ export default function AccountingView() {
                         return (
                           <div className="mt-4">
                             <details className="group">
-                              <summary className="flex min-h-touch cursor-pointer items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-semibold text-ink">
+                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
                                 <span>
                                   Tagesnachweis ·{' '}
                                   {monthEntries.length === 1
                                     ? '1 Eintrag'
                                     : `${monthEntries.length} Einträge`}
                                 </span>
-                                <span className="tnum font-normal text-ink-muted">
-                                  {fmtMin(stats.istMin)}
+                                <span className="flex shrink-0 items-center gap-2">
+                                  <span className="tnum font-normal text-ink-muted">
+                                    {fmtMin(stats.istMin)}
+                                  </span>
+                                  {/* Ohne Winkel war ueberhaupt nicht zu sehen,
+                                      dass sich hier etwas oeffnet: `flex` am
+                                      `<summary>` nimmt das native Dreieck weg,
+                                      und ein Ersatz stand nicht da. */}
+                                  <Icon
+                                    name="chevron"
+                                    size={18}
+                                    className="shrink-0 text-ink-muted transition-transform duration-200 group-open:rotate-180"
+                                  />
                                 </span>
                               </summary>
                               <table className="mt-1 hidden w-full text-sm sm:table">
