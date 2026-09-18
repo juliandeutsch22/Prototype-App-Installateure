@@ -48,8 +48,24 @@ const variants: Record<Variant, string> = {
   'ghost-dark': 'bg-transparent text-white/80 hover:bg-white/10 hover:text-white',
 };
 
+/**
+ * DIE SCHRIFT IST AUF DEM TELEFON EINE STUFE KLEINER, DIE HOEHE NICHT.
+ *
+ * Mit 1 rem fuellte die Beschriftung laengerer Knoepfe die Breite fast ganz
+ * aus — „Zeitraum zusammenstellen" und „Positionen zusammenstellen" standen
+ * auf 390 px als Blöcke da, die randvoll waren. 0,875 rem geben ihnen Luft,
+ * ohne dass etwas umbricht.
+ *
+ * `min-h-touch` bleibt: kleiner heisst kleinere SCHRIFT, nicht ein kleineres
+ * Ziel fuer den Finger. Ein Monteur bedient das mit Arbeitshandschuhen.
+ *
+ * Damit sehen `normal` und `klein` auf dem Telefon gleich gross aus und
+ * unterscheiden sich nur noch in der Polsterung. Das ist hingenommen: die
+ * Abstufung ist fuer Reihen von Schaltern am Schreibtisch gedacht, und dort
+ * bleibt sie.
+ */
 const groessen: Record<Groesse, string> = {
-  normal: 'px-4 py-2 text-base',
+  normal: 'px-4 py-2 text-sm sm:text-base',
   klein: 'px-3 py-1.5 text-sm',
 };
 

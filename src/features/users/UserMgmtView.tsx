@@ -138,12 +138,17 @@ export default function UserMgmtView() {
     <div className="space-y-6">
       <PageHeader title="Benutzerverwaltung" subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen" />
 
-      {/* Mobil zweispaltig: bei drei Spalten wurden längere Beschriftungen
-          wie "Im Außendienst" abgeschnitten. */}
+      {/*
+        „Außendienst" statt „Im Außendienst": bei drei Kennzahlen nebeneinander
+        bleiben auf 390 px rund 95 px je Beschriftung, und die längere wurde
+        dort zu „IM AUSSENDI…" abgeschnitten. Die Leiste ist bewusst EINE
+        Reihe (siehe Metric.tsx) — kürzer beschriften ist hier richtiger, als
+        die Leiste für einen Sonderfall umzubauen.
+      */}
       <MetricRow>
         <Metric label="Benutzer" value={stats.total} />
         <Metric label="Aktiv" value={stats.active} />
-        <Metric label="Im Außendienst" value={stats.field} />
+        <Metric label="Außendienst" value={stats.field} />
       </MetricRow>
 
       {handoverPassword && (

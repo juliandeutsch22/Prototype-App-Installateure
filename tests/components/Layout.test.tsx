@@ -86,9 +86,18 @@ describe('Wessen Marke in der Hülle steht', () => {
     const folgt = abmelden.compareDocumentPosition(marke) & Node.DOCUMENT_POSITION_FOLLOWING;
     expect(folgt).toBeTruthy();
 
-    // Und sie ist kleiner als der Betriebsname darüber.
+    /*
+      Und sie ist kleiner als der Betriebsname darüber.
+
+      Der Schriftgrad steht am UMSCHLIESSENDEN Element, nicht am Text selbst:
+      der Name liegt seit dem Umbruch auf bis zu drei Zeilen in einem inneren
+      `span`, der die Begrenzung trägt. `getByText` findet diesen inneren —
+      gemessen wird deshalb am Elternteil, wo der Grad gesetzt ist.
+    */
     const betriebsname = within(seitenleiste!).getByText('Perl Installationen');
-    const gross = Number.parseFloat(betriebsname.style.fontSize);
+    const gross = Number.parseFloat(
+      (betriebsname.parentElement as HTMLElement).style.fontSize,
+    );
     const klein = Number.parseFloat((marke.parentElement as HTMLElement).style.fontSize);
     expect(klein).toBeLessThan(gross);
   });
