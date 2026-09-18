@@ -15,6 +15,7 @@ import type { Customer, Project } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import { Marke } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
@@ -284,6 +285,7 @@ export default function CustomersView() {
         action={
           darfAendern && !formOffen ? (
             <Button onClick={() => { setBearbeitet(null); setForm(LEER); setFormOffen(true); }}>
+              <Icon name="plus" size={18} />
               Neuer Kunde
             </Button>
           ) : undefined

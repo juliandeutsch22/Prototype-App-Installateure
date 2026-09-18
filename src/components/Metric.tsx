@@ -66,6 +66,24 @@ const valueTone: Record<Tone, string> = {
 export function MetricRow({ children }: { children: ReactNode }) {
   return (
     <div
+      /*
+        DREI KENNZAHLEN IN ZWEI SPALTEN LASSEN DIE DRITTE ALLEIN STEHEN — und
+        das bleibt so. Gemeldet als „bricht komisch um"; nachgemessen ist es
+        die einzige Anordnung, die trägt:
+
+          DREI SPALTEN   Auf 375 px blieben je Kennzahl rund 105 px, und
+                         „€ 22 104,60" braucht gemessen gut 110. Die Zahl
+                         würde abgeschnitten — schlimmer als eine tiefstehende.
+          COL-SPAN       Die letzte Kennzahl über beide Spalten zu ziehen war
+                         der erste Versuch. Am Bildschirm ändert das NICHTS:
+                         der Inhalt steht links, die gewonnene Breite bleibt
+                         leer. Eine Klasse, die nichts tut, aber etwas
+                         behauptet, ist schlimmer als keine.
+
+        Was wirklich hilft, wäre eine andere Darstellung (Beschriftung links,
+        Wert rechts, untereinander) — und das ist ein Umbau einer Leiste, die
+        am 16.09. gerade erst ausgerichtet wurde. Nicht für diesen Anlass.
+      */
       className={`grid grid-cols-2 gap-x-4 gap-y-3 sm:flex sm:items-stretch sm:gap-0 sm:divide-x sm:divide-line ${GUTER_RAND}`}
     >
       {children}

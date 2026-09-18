@@ -3509,6 +3509,76 @@ ausserhalb des Formulars, wo er hingehört.
 
 ---
 
+## Erledigt: was auf 375 px umbrach — und das Plus am Knopf (18.09.2026)
+
+**Gemeldet mit zwei Bildschirmfotos vom iPhone XS: „manche Dinge brechen noch
+komisch um."** Statt zu raten, nachgemessen — eine wegwerfbare
+Playwright-Sonde bei **375 px** über sechs Ansichten, die jedes Element meldet,
+das über den Rand ragt.
+
+**Kein einziges tat das.** Waagrecht scrollte nichts. Die Meldung war also
+richtig und die naheliegende Erklärung falsch: es waren **drei verschiedene
+Sachen**, von denen nur eine überhaupt ein Umbruch war.
+
+### 1. Ein Eurozeichen zu viel — und der Grund dafür trägt weiter
+
+Auf der Mahnlauf-Karte stand **„€ 22 104,60 € offen"**. Sechs Stellen in
+`InvoicesView` hängten ein zweites Zeichen an einen Betrag, der es schon trug.
+
+Der Grund ist nicht Unachtsamkeit, sondern **der Name**: `fmtEUR` gibt es in
+**acht** Dateien, vier stellen das Zeichen voran, vier nicht. Wer aus der
+Nachbardatei abschreibt, schreibt die falsche Hälfte ab — und auf einen
+einzelnen Betrag geschaut fällt das nie auf, nur auf dem Beleg.
+
+Zusammengelegt wurden die acht **nicht**: zwei erzeugen PDFs, und die
+Startseite rundet auf ganze Euro. Stattdessen eine Prüfung
+(`tests/unit/eurozeichen.test.ts`), die für jede Fassung mit vorangestelltem
+Zeichen jede Aufrufstelle danach absucht — samt einem Wächter über den
+Wächter, der meldet, wenn die acht Kopien einmal verschwinden und die Prüfung
+damit ihre Grundlage verliert.
+
+### 2. Das ✕ stand allein in der zweiten Zeile
+
+In der Baustellenliste lagen rechts **fünf** Elemente: Budget-Marke, Zustand,
+„Schein", „Akte" und das ✕. Das letzte passte nicht mehr und rutschte allein
+nach unten — **ausgerechnet die einzige unumkehrbare Aktion stand damit am
+auffälligsten da.**
+
+Nur das ✕ ins Zeilenmenü zu verschieben half nicht: nachgemessen rutschte
+danach das Menü selbst. **Fünf passen auf 375 px nicht, gleich welches zuletzt
+kommt.** Also geht „Schein nachtragen" mit — es ist der Ausnahmefall, der
+Monteur hat den Schein vor Ort vergessen, und als eigener Verweis stand er
+gleichauf mit der Akte, die man täglich braucht.
+
+Die Regel dafür stand längst in `ListRow`: *„Wo es mehr als zwei Aktionen gibt,
+gehört alles Seltene in ein RowMenu."* Sie war nur nicht befolgt. Ein Test hält
+die Zahl jetzt fest.
+
+### 3. Das Datum brach mitten durch
+
+In der Rechnungsliste stand die Unterzeile als ein einziger Fluss — der Umbruch
+fiel dorthin, wo gerade Platz war, auch **mitten in ein ISO-Datum**. Jetzt
+darf sie nur noch **zwischen** den Feldern brechen.
+
+### Was nicht behoben wurde, und warum
+
+Die Kennzahlen-Leiste zeigt drei Karten in zwei Spalten; die dritte steht
+allein. Ein `col-span-2` auf die letzte war der naheliegende Griff — **gemessen
+änderte er nichts** (die Karte ist ohnehin so breit), und drei Spalten
+schneiden „€ 22 104,60" ab. Also blieb die Klasse draussen und ein Kommentar
+drin: eine Klasse, die etwas behauptet, was sie nicht tut, ist schlimmer als
+keine.
+
+### Das Plus
+
+Vor „Neuer Kunde", „Neue Baustelle", „Neues Angebot", „Neuer Benutzer" und
+„Neue Wartung" steht jetzt ein Pluszeichen — zwei Striche, das einzige Zeichen
+der Sammlung, das kein Gegenstand ist. Es ist `aria-hidden`; der Knopf heisst
+weiter „Neuer Kunde", und die über zwanzig Tests, die ihn über genau diesen
+Namen finden, sind der Wächter dafür.
+
+---
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft

@@ -302,6 +302,36 @@ describe('Baustellen — der Weg in die Akte', () => {
 });
 
 describe('Baustellen — löschen', () => {
+  it('hält die Zeile auf einer Zeile — höchstens vier Elemente rechts', async () => {
+    /*
+      GEMESSEN AUF 375 px (iPhone XS): mit Budget-Marke, Zustand, „Schein",
+      „Akte" und dem ✕ waren es FÜNF Elemente; das letzte rutschte allein in
+      eine zweite Zeile, unter einer leeren Lücke. Erst das ✕ zu verschieben
+      half nicht — dann rutschte das Menü. Fünf passen schlicht nicht.
+
+      `ListRow` sagt es selbst: „Wo es mehr als zwei Aktionen gibt, gehört
+      alles Seltene in ein RowMenu." Diese Prüfung hält die Zahl fest, damit
+      die sechste Ergänzung nicht wieder still umbricht.
+    */
+    baustellen = [
+      {
+        id: 'p1', companyId: 'perl', projectNumber: '2026-042',
+        customerName: 'Familie Huber', status: 'Aktiv', estimatedHours: 54,
+      } as Project & { id: string },
+    ];
+    zeige();
+
+    const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
+    const rechts = zeile.lastElementChild as HTMLElement;
+    expect(rechts.children.length).toBeLessThanOrEqual(4);
+
+    // „Schein nachtragen" ist nicht weg, es steht im Menü.
+    await userEvent.click(
+      within(zeile).getByRole('button', { name: /Weitere Aktionen für Baustelle 2026-042/ }),
+    );
+    expect(await screen.findByRole('menuitem', { name: 'Schein nachtragen' })).toBeInTheDocument();
+  });
+
   it('fragt vorher nach', async () => {
     // An einer Baustelle haengen Zeiten, Scheine und Rechnungen. Ein Loeschen
     // ohne Rueckfrage waere hier besonders teuer.
@@ -313,8 +343,16 @@ describe('Baustellen — löschen', () => {
     ];
     zeige();
 
+    /*
+      LÖSCHEN LIEGT SEIT DEM 18.09. IM ZEILENMENÜ. Als ✕ in der Zeile passte
+      es auf 375 px nicht mehr daneben und rutschte allein in eine zweite
+      Zeile — die einzige unumkehrbare Aktion stand damit am auffälligsten da.
+    */
     const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
-    await userEvent.click(within(zeile).getByRole('button', { name: 'Baustelle löschen' }));
+    await userEvent.click(
+      within(zeile).getByRole('button', { name: /Weitere Aktionen für Baustelle 2026-042/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Löschen' }));
 
     const dialog = await screen.findByRole('dialog');
     expect(loesche).not.toHaveBeenCalled();

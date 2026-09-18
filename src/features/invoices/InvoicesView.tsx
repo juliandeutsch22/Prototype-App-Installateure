@@ -58,6 +58,24 @@ import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 
+/**
+ * Ein Betrag MIT vorangestelltem Eurozeichen — „€ 22 104,60".
+ *
+ * DASS DAS ZEICHEN SCHON DRIN IST, STAND NUR IN DIESER ZEILE, und sechs
+ * Stellen in dieser Datei hängten noch eines hinten an: auf dem Mahnlauf
+ * stand „€ 22 104,60 € offen". Gesehen wurde es auf einem Telefon, nicht im
+ * Quelltext.
+ *
+ * DER GRUND IST DER NAME. `fmtEUR` gibt es in ACHT Dateien, und VIER davon
+ * stellen das Zeichen NICHT voran (`pdf.ts`, `mahnungPdf.ts`,
+ * `SettingsView.tsx`, dort steht es richtig hinten). Zwei gleichnamige
+ * Funktionen mit verschiedenem Verhalten sind eine Falle, in die man beim
+ * Abschreiben aus der Nachbardatei zwangsläufig tappt.
+ *
+ * `tests/unit/eurozeichen.test.ts` hält fest, dass kein Aufruf mehr ein
+ * zweites Zeichen anhängt — solange die acht Kopien nicht zu einer werden,
+ * ist das die günstigere Sperre.
+ */
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
@@ -1066,8 +1084,8 @@ export default function InvoicesView() {
           {lauf.zeilen.length > 0 ? (
             <>
               <p className="mb-3 text-sm text-ink">
-                <strong>{fmtEUR(lauf.summeBrutto)} €</strong> offen
-                {lauf.summeSpesen > 0 ? ` · ${fmtEUR(lauf.summeSpesen)} € Mahnspesen` : ''}
+                <strong>{fmtEUR(lauf.summeBrutto)}</strong> offen
+                {lauf.summeSpesen > 0 ? ` · ${fmtEUR(lauf.summeSpesen)} Mahnspesen` : ''}
               </p>
               <List>
                 {lauf.zeilen.map((z) => (
@@ -1085,9 +1103,9 @@ export default function InvoicesView() {
                     }
                     subtitle={
                       <span className="tnum">
-                        {z.rechnung.invoiceNumber} · {fmtEUR(z.rechnung.totalBrutto)} € ·{' '}
+                        {z.rechnung.invoiceNumber} · {fmtEUR(z.rechnung.totalBrutto)} ·{' '}
                         {z.tageUeberfaellig} Tage überfällig
-                        {z.spesen > 0 ? ` · ${fmtEUR(z.spesen)} € Spesen` : ''}
+                        {z.spesen > 0 ? ` · ${fmtEUR(z.spesen)} Spesen` : ''}
                       </span>
                     }
                   >
@@ -1680,7 +1698,16 @@ export default function InvoicesView() {
                 title={`${inv.invoiceNumber} · ${inv.customerName}`}
                 subtitle={
                   <>
-                    {inv.invoiceDate} · fällig {inv.dueDate} · {fmtEUR(inv.totalBrutto)}
+                    {/*
+                      JEDE ANGABE BLEIBT AM STÜCK. Auf 375 px brach die Zeile
+                      mitten im Datum — „fällig 2026-" in der einen Zeile,
+                      „08-01" in der nächsten. Ein halbes Datum ist keine
+                      Angabe mehr, sondern eine Zahlenfolge. Die Zeile darf
+                      weiter umbrechen, aber nur ZWISCHEN den Angaben.
+                    */}
+                    <span className="whitespace-nowrap">{inv.invoiceDate}</span> ·{' '}
+                    <span className="whitespace-nowrap">fällig {inv.dueDate}</span> ·{' '}
+                    <span className="whitespace-nowrap">{fmtEUR(inv.totalBrutto)}</span>
                     {/*
                       WAS SCHON GEMAHNT WURDE, gehört in die Zeile.
 
@@ -1693,7 +1720,7 @@ export default function InvoicesView() {
                       <span className="mt-1 block text-xs text-warning">
                         {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {inv.gemahntAm}
                         {inv.mahnfrist ? ` · Frist ${inv.mahnfrist}` : ''}
-                        {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} € Spesen` : ''}
+                        {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} Spesen` : ''}
                       </span>
                     )}
                     {inv.cancellationNote && (
@@ -1855,7 +1882,7 @@ export default function InvoicesView() {
         }
         message={
           mahnFuer
-            ? `${mahnFuer.invoiceNumber} über ${fmtEUR(mahnFuer.totalBrutto)} €, fällig war ` +
+            ? `${mahnFuer.invoiceNumber} über ${fmtEUR(mahnFuer.totalBrutto)}, fällig war ` +
               `${mahnFuer.dueDate}. Der Beleg wird als PDF erzeugt und heruntergeladen; ` +
               'versendet wird er von Ihnen.'
             : undefined
