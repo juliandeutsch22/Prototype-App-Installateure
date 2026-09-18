@@ -1,7 +1,21 @@
 import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react';
 
+/*
+ * `max-w-full min-w-0` GEHOEREN ZUR GRUNDAUSSTATTUNG, nicht zur Zierde.
+ *
+ * Die Breite eines `<select>` richtet sich nach seiner LAENGSTEN OPTION. In
+ * der Einsatzplanung steht dort „Wohnungseigentümergemeinschaft Hauptstraße
+ * 112–118 (B-2026-0147)" — das Feld wurde damit breiter als das Telefon, zog
+ * die Karte mit auf und schob gemessen 195 Pixel aus dem Bild. Ein globaler
+ * Wortumbruch hilft dagegen NICHT: Optionen brechen nicht um.
+ *
+ * `max-w-full` deckelt das Feld auf die Breite seines Behaelters, ohne es wie
+ * `w-full` zu zwingen, ihn auszufuellen — das haette die Felder gesprengt, die
+ * absichtlich schmal in einer Kartenkopfzeile stehen. `min-w-0` erlaubt
+ * zusaetzlich das Schrumpfen, wo ein Feld in einer Flex-Zeile sitzt.
+ */
 const fieldBase =
-  'min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand';
+  'min-h-touch min-w-0 max-w-full rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand';
 
 /**
  * Pflichtfelder kennzeichnen — der Stern und was daran hängt.

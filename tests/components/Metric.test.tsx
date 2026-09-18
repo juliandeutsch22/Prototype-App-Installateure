@@ -69,9 +69,16 @@ describe('Die Kennzahlen-Leiste', () => {
         <Metric label="Bezahlt" value="€ 2,00" />
       </MetricRow>,
     );
+    /*
+      MIT `sm:`-VORSATZ, und das ist kein Aufweichen der Pruefung: seit die
+      Leiste auf dem Telefon ein zweispaltiges Raster ist, tragen die Spalten
+      dort GAR KEINE Polsterung — es gibt also nichts zurueckzunehmen. Erst ab
+      `sm` stehen sie wieder in einer Reihe mit `sm:px-3`, und genau dort muss
+      die aeussere Polsterung wieder weg.
+    */
     const spalten = [...container.firstElementChild!.children];
-    expect([...spalten[0].classList]).toContain('first:pl-0');
-    expect([...spalten[spalten.length - 1].classList]).toContain('last:pr-0');
+    expect([...spalten[0].classList]).toContain('sm:first:pl-0');
+    expect([...spalten[spalten.length - 1].classList]).toContain('sm:last:pr-0');
   });
 
   it('zeigt Beschriftung und Wert', () => {

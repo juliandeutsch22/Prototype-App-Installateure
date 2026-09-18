@@ -144,7 +144,13 @@ export default function PersonPicker({
           {belegte > 0 && (
             <label
               htmlFor={filterId}
-              className="mt-2 flex min-h-touch cursor-pointer items-center gap-3 text-sm text-ink"
+              /*
+                `flex-wrap` und `min-w-0`: Beschriftung und Klammerzusatz waren
+                zwei Flex-Elemente in einer Zeile, die nicht umbrechen durfte —
+                „(2 sind an diesem Tag belegt)" lief damit auf 390 px rechts
+                aus dem Bild. Jetzt rutscht der Zusatz in die naechste Zeile.
+              */
+              className="mt-2 flex min-h-touch cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink"
             >
               <input
                 id={filterId}
@@ -153,9 +159,11 @@ export default function PersonPicker({
                 onChange={(e) => setNurFreie(e.target.checked)}
                 className="checkbox"
               />
-              Nur freie anzeigen
-              <span className="text-ink-muted">
-                ({belegte} {belegte === 1 ? 'ist' : 'sind'} an diesem Tag belegt)
+              <span className="min-w-0">
+                Nur freie anzeigen{' '}
+                <span className="text-ink-muted">
+                  ({belegte} {belegte === 1 ? 'ist' : 'sind'} an diesem Tag belegt)
+                </span>
               </span>
             </label>
           )}
@@ -197,7 +205,7 @@ export default function PersonPicker({
                       <div className="flex flex-wrap items-center justify-between gap-2 px-3">
                         <label
                           htmlFor={id}
-                          className="flex min-h-touch flex-1 cursor-pointer items-center gap-3 py-1"
+                          className="flex min-h-touch min-w-0 flex-1 cursor-pointer items-center gap-3 py-1"
                         >
                           <input
                             id={id}

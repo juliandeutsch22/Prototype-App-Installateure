@@ -51,9 +51,25 @@ const valueTone: Record<Tone, string> = {
  * Mass wie am Kartenkörper, und `tests/components/Metric.test.tsx` hält die
  * beiden zusammen.
  */
+/*
+ * AUF DEM TELEFON ZWEI SPALTEN, AB `sm` EINE REIHE.
+ *
+ * EIN ABGESCHNITTENER BETRAG IST NICHT UNSCHOEN, ER IST FALSCH. Bei drei
+ * Kennzahlen nebeneinander blieben auf 390 px rund 95 Pixel je Spalte. „€ 22
+ * 104,60" braucht 118 und stand deshalb als „€ 22 104…" da — was sich wie ein
+ * anderer Betrag liest. Dasselbe bei „€ 7 488,…".
+ *
+ * Zwei Spalten geben jeder Zahl 163 Pixel; damit passt auch ein
+ * fuenfstelliger Betrag. Die Trennstriche gibt es erst ab `sm`: in einem
+ * Raster mit zwei Zeilen trennen sie nicht mehr, sie zerschneiden.
+ */
 export function MetricRow({ children }: { children: ReactNode }) {
   return (
-    <div className={`flex items-stretch divide-x divide-line ${GUTER_RAND}`}>{children}</div>
+    <div
+      className={`grid grid-cols-2 gap-x-4 gap-y-3 sm:flex sm:items-stretch sm:gap-0 sm:divide-x sm:divide-line ${GUTER_RAND}`}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -61,12 +77,19 @@ export default function Metric({ label, value, hint, tone = 'default' }: MetricP
   return (
     // min-w-0 ist hier entscheidend: ohne das weigert sich die Spalte zu
     // schrumpfen, und eine lange Zahl schiebt die Nachbarn aus der Reihe.
-    <div className="min-w-0 flex-1 px-3 first:pl-0 last:pr-0">
+    <div className="min-w-0 sm:flex-1 sm:px-3 sm:first:pl-0 sm:last:pr-0">
       <p className="section-label truncate">{label}</p>
       {/* `font-bold` und nicht `font-extrabold`: von Poppins sind 400 bis 700
           geladen, und 800 rendert nachgemessen identisch zu 700. Das Wort
           „extrabold" versprach eine Stufe, die es in dieser App nicht gibt. */}
-      <p className={`tnum mt-1 truncate text-lg font-bold sm:text-2xl ${valueTone[tone]}`}>
+      {/*
+        DREI STUFEN STATT ZWEI. Zwischen `sm` und `lg` steht die Leiste neben
+        der 259 px breiten Seitenleiste und hat je Kennzahl nur rund 180 Pixel
+        — „€ 22 104,60" bei 1,75 rem braucht 190 und wurde dort abgeschnitten.
+        Mit 1,375 rem in der Mitte passt es, und am Schreibtisch bleibt die
+        grosse Zahl gross.
+      */}
+      <p className={`tnum mt-1 truncate text-lg font-bold sm:text-xl lg:text-2xl ${valueTone[tone]}`}>
         {value}
       </p>
       {hint && <p className="mt-1 text-xs leading-snug text-ink-muted">{hint}</p>}

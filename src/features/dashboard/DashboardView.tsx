@@ -19,7 +19,9 @@ import {
   calcBudgetState,
   fmtStd,
   tageWort,
+  getISOWeek,
 } from '@/lib/time';
+import { getAustrianHolidayName } from '@shared/feiertage';
 import {
   shouldShowOvertime,
   canProcessOrders,
@@ -482,11 +484,58 @@ export default function DashboardView() {
 
   if (!user) return null;
 
+  /*
+    Einmal gerechnet, dreimal gelesen. `toLocaleDateString` mit `de-AT` gibt
+    „Freitag, 18. September" — Wochentag ausgeschrieben, weil genau der die
+    Frage beantwortet, die jemand um 6:50 Uhr im Auto hat. Das Jahr bleibt
+    weg: es traegt hier nichts bei.
+  */
+  const heuteKopf = (() => {
+    const d = new Date();
+    return {
+      datum: d.toLocaleDateString('de-AT', { weekday: 'long', day: 'numeric', month: 'long' }),
+      kw: getISOWeek(d).week,
+      feiertag: getAustrianHolidayName(d),
+    };
+  })();
+
   return (
     <div className="space-y-6">
+      {/*
+        DER TAG IST DIE UEBERSCHRIFT, NICHT DIE BEGRUESSUNG.
+
+        Hier stand „Willkommen, {Vorname}" ueber „{Firma} · Rolle: {Rolle}".
+        Beide Zeilen aendern sich nie — auf dem Bildschirm, der am oeftesten
+        geoeffnet wird, stand damit an der auffaelligsten Stelle nichts, was
+        man nicht schon wusste.
+
+        Und darunter geht es ausschliesslich um HEUTE: „Heute — 2
+        Baustellen", „Heute im Einsatz", die fehlenden Buchungen, die faellige
+        Wartung. Das Thema der Seite war der heutige Tag, und genau der stand
+        nirgends.
+
+        DAS IST MEHR ALS SCHMUCK. Die App laeuft mit Service Worker und haelt
+        Ansichten vor; ein veralteter Stand sieht genauso aus wie ein frischer.
+        Ein sichtbares Datum ist die billigste Auskunft darueber, dass man auf
+        den heutigen Tag schaut — und nach einem Wochenende oder Feiertag
+        beantwortet es die Frage, warum nichts ansteht, bevor sie entsteht.
+
+        Die Kalenderwoche steht dabei: im Betrieb wird nach ihr geplant und
+        Material bestellt.
+      */}
       <PageHeader
-        title={`Willkommen, ${user.name.split(' ')[0]}`}
-        subtitle={`${company?.name ?? 'Installateur-App'} · Rolle: ${user.role}`}
+        title={heuteKopf.datum}
+        subtitle={
+          <>
+            KW {heuteKopf.kw} · {company?.name ?? 'Installateur-App'} · Rolle: {user.role}
+            {heuteKopf.feiertag && (
+              <>
+                {' · '}
+                <span className="font-semibold text-warning">{heuteKopf.feiertag}</span>
+              </>
+            )}
+          </>
+        }
       />
 
       {/*

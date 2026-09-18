@@ -508,7 +508,21 @@ export default function TimeView() {
                   ? 'success'
                   : 'danger'
           }
-          value={saldo?.hasConfig ? `${saldo.saldoH > 0 ? '+' : ''}${saldo.saldoH} h` : '—'}
+          /*
+            ZAHLEN IN DIESER APP SCHREIBEN SICH OESTERREICHISCH. Hier stand
+            `${saldo.saldoH} h` — die rohe JS-Zahl, also „-1366.75 h" mit
+            PUNKT, waehrend zwei Zeilen weiter „8,00 h" und in den Rechnungen
+            „€ 22 104,60" steht. Ein Punkt als Dezimaltrennzeichen liest sich
+            im Deutschen als Tausenderpunkt und damit als ganz andere Zahl.
+          */
+          value={
+            saldo?.hasConfig
+              ? `${saldo.saldoH > 0 ? '+' : ''}${saldo.saldoH.toLocaleString('de-AT', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} h`
+              : '—'
+          }
           hint={
             !saldo?.hasConfig
               ? 'Kein Startdatum konfiguriert'
