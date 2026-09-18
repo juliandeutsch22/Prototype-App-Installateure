@@ -7,6 +7,7 @@ import {
   deleteProject,
   findProjectsByNumber,
   searchProjects,
+  reserveProjectNumber,
 } from '@/lib/db/projects';
 import { nutztPostgres } from '@/lib/db/quelle';
 import { deuteBaustellenSuche, baustellenSuchHinweis } from './baustellenSuche';
@@ -25,6 +26,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { Marke } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
+import { praefixeVon, belegNummer, hoechsteLfd } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -58,7 +60,7 @@ const empty = {
 const BAUSTELLEN_JE_SEITE = 300;
 
 export default function AdminProjectsView() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
   const [projects, setProjects] = useState<WithId<Project>[]>([]);
   /*
@@ -88,6 +90,16 @@ export default function AdminProjectsView() {
   const [assigned, setAssigned] = useState<string[]>([]);
   const [managers, setManagers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  /*
+    LISTE ZUERST — gemessen, nicht geschätzt. Am Telefon begann „Alle
+    Baustellen" bei 1590 px, also knapp DREI Bildschirme unter der Kante, und
+    darüber stand eine leere Maske. Diese Ansicht wird zum Nachschlagen
+    geöffnet; angelegt wird der seltenere Fall.
+
+    Dasselbe Muster wie in `WartungenView`: Knopf in der Kopfzeile, Formular
+    klappt auf. `PageHeader` trägt den `action`-Platz dafür seit jeher.
+  */
+  const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
   /**
    * Ein Tiefenlink auf eine Baustelle setzt Suche UND Filter.
@@ -188,16 +200,33 @@ export default function AdminProjectsView() {
     setSaving(true);
     setError(null);
     try {
+      const nummer = form.projectNumber.trim();
       const data = {
         ...form,
+        projectNumber: nummer,
         // Leeres Feld heißt "kein Budget" — dann bleibt die Ampel der
         // Projektauswertung bewusst aus, statt 0 h anzunehmen.
         estimatedHours: form.estimatedHours === '' ? undefined : Number(form.estimatedHours) || 0,
         assignedEmployees: assigned,
         projectManagers: managers,
       };
+      /*
+        WER DIE NUMMER STEHEN LIESS, BEKOMMT DIE VERBINDLICHE AUS DEM ZÄHLER.
+        Wer eine eigene getippt hat, behält sie — manche Betriebe führen die
+        Nummer des Bauträgers oder des Architekten, und ein Pflichtschema
+        nähme ihnen das weg. Der Zähler wird dann gar nicht erst angefasst.
+      */
+      if (nummer === nummernVorschlag) {
+        const vergeben = await reserveProjectNumber(user.companyId, {
+          seedFrom: hoechsteLfd(projects.map((p) => p.projectNumber)),
+          praefix: vorsaetze.baustelle,
+        });
+        // `null` heisst „kein Zähler verfügbar" — dann gilt der Vorschlag.
+        if (vergeben) data.projectNumber = vergeben;
+      }
       await createProject(user.companyId, data);
       reset();
+      setFormOffen(false);
       toast.success('Baustelle angelegt');
     } catch {
       setError('Die Baustelle konnte nicht gespeichert werden.');
@@ -205,6 +234,46 @@ export default function AdminProjectsView() {
       setSaving(false);
     }
   }
+
+  /**
+   * Der Vorschlag für die nächste Baustellennummer.
+   *
+   * GERECHNET WIRD ÖRTLICH, VERGEBEN WIRD SERVERSEITIG — dasselbe Vorgehen
+   * wie bei den Rechnungen, und aus demselben Grund: würde beim Öffnen der
+   * Maske eine Nummer aus dem Zähler gezogen, verbrauchte jedes Abbrechen
+   * eine. Nach zehn Versuchen stünde die erste Baustelle auf der Elf.
+   *
+   * Der Vorschlag darf und wird veralten, sobald jemand anderes gleichzeitig
+   * anlegt; verbindlich wird die Nummer erst beim Speichern.
+   */
+  const vorsaetze = praefixeVon(company);
+  const nummernVorschlag = useMemo(
+    () =>
+      belegNummer(
+        vorsaetze.baustelle,
+        new Date().getFullYear(),
+        hoechsteLfd(projects.map((p) => p.projectNumber)) + 1,
+      ),
+    [projects, vorsaetze.baustelle],
+  );
+
+  /*
+    DER VORSCHLAG GEHÖRT IN DEN ZUSTAND, NICHT IN DIE ANZEIGE.
+
+    Hier stand kurz `value={form.projectNumber || nummernVorschlag}`. Das sieht
+    richtig aus und ist es nicht: das Feld wird kontrolliert gezeichnet, im
+    Zustand steht aber die leere Zeichenkette. Wer dann tippt, bekommt
+    „B-2026-00012026-042" — die Anzeige plus das Getippte. Gefunden hat das
+    `AdminProjectsView.test.tsx`, nicht das Nachdenken.
+
+    Vorbelegt wird nur, solange das Feld leer ist: beim ersten Eintreffen der
+    Liste und nach jedem Speichern. Wer den Vorschlag löscht, um seine eigene
+    Nummer zu tippen, bekommt ihn nicht sofort zurück — die Wirkung hängt am
+    Vorschlag selbst, und der ändert sich erst mit der Liste.
+  */
+  useEffect(() => {
+    setForm((f) => (f.projectNumber === '' ? { ...f, projectNumber: nummernVorschlag } : f));
+  }, [nummernVorschlag]);
 
   // Neueste zuerst; ohne Sortierung ist die Reihenfolge von Firestore beliebig.
   const sorted = useMemo(
@@ -319,15 +388,30 @@ export default function AdminProjectsView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Baustellen" subtitle="Baustellen anlegen und suchen — geändert wird in der Akte" />
+      <PageHeader
+        title="Baustellen"
+        subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
+        action={
+          formOffen ? undefined : (
+            <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>
+          )
+        }
+      />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
+      {formOffen && (
       <Card title="Neue Baustelle">
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
-            <InputField id="pnr" label="Projektnummer" value={form.projectNumber}
-              onChange={(e) => setForm({ ...form, projectNumber: e.target.value })} required pflicht />
+            <InputField
+              id="pnr"
+              label="Projektnummer"
+              value={form.projectNumber}
+              onChange={(e) => setForm({ ...form, projectNumber: e.target.value })}
+              required
+              pflicht
+            />
             {/*
               Kunde AUSWÄHLEN statt tippen.
               Vorher war das ein freies Textfeld, und zwei Schreibweisen
@@ -435,9 +519,19 @@ export default function AdminProjectsView() {
           {error && <ErrorState message={error} />}
           <div className="flex gap-3">
             <Button type="submit" loading={saving}>Anlegen</Button>
+            {/* Der Weg zurück zur Liste — vorher gab es ihn nicht, weil das
+                Formular gar nicht zuging. */}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => { setFormOffen(false); reset(); }}
+            >
+              Abbrechen
+            </Button>
           </div>
         </form>
       </Card>
+      )}
 
       <Card
         title={`Alle Baustellen (${visible.length})`}

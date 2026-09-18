@@ -68,6 +68,24 @@ export interface Company {
     es aus ihnen zu entfernen wäre eine Wanderung durch fremde Daten für
     nichts.
   */
+  /**
+   * Die Vorsätze der Nummernkreise und des Fuhrparks.
+   *
+   * VIER EINSTELLUNGEN STATT VIER FEST VERDRAHTETER ZEICHENFOLGEN. Was hier
+   * nicht gesetzt ist, fällt auf `PRAEFIX_VORGABE` zurück — mit einer
+   * Ausnahme: das Kennzeichen hat KEINE Vorgabe. `WZ` stand fest im Code und
+   * ist der Bezirkskenner eines bestimmten Bezirks; ihn als Vorgabe zu
+   * behalten hiesse, ihn jedem neuen Betrieb aufzustempeln.
+   *
+   * Die Regeln stehen in `lib/praefixe.ts`, die Grenze in der Datenbank
+   * (`companies_praefix_*`). Geändert werden darf nur von der Spitze — das
+   * setzt die Richtlinie `companies_aendern` durch, nicht das Formular.
+   */
+  praefixRechnung?: string;
+  praefixAngebot?: string;
+  praefixBaustelle?: string;
+  praefixKennzeichen?: string;
+
   /** Stundensätze und Zuschläge, gepflegt von der Geschäftsführung. */
   rates?: InvoiceRates;
   /**

@@ -48,6 +48,7 @@ import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import { Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import RowMenu from '@/components/RowMenu';
@@ -66,6 +67,8 @@ const RECHNUNGEN_JE_SEITE = 50;
 
 export default function InvoicesView() {
   const { user, company } = useAuth();
+  // Die Vorsätze des Betriebs — `RE-` stand hier bisher fest im Code.
+  const vorsaetze = praefixeVon(company);
   const toast = useToast();
   const [invoices, setInvoices] = useState<WithId<Invoice>[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -334,12 +337,12 @@ export default function InvoicesView() {
   useEffect(() => {
     if (!preview || !suggestedNumber) return;
     if (invoiceNumber.trim() !== suggestedNumber) return; // von Hand gesetzt
-    const aktuell = nextInvoiceNumber(invoices);
+    const aktuell = nextInvoiceNumber(invoices, vorsaetze.rechnung);
     if (aktuell !== suggestedNumber) {
       setSuggestedNumber(aktuell);
       setInvoiceNumber(aktuell);
     }
-  }, [invoices, preview, suggestedNumber, invoiceNumber]);
+  }, [invoices, preview, suggestedNumber, invoiceNumber, vorsaetze.rechnung]);
 
   /** Der Rabatt in der Form, in der er gespeichert und gedruckt wird. */
   /**
@@ -485,7 +488,7 @@ export default function InvoicesView() {
         (k) => k.name.trim().toLowerCase() === kunde.trim().toLowerCase(),
       );
       setKundenUid(treffer?.vatId?.trim() ?? '');
-      const vorschlag = nextInvoiceNumber(invoices);
+      const vorschlag = nextInvoiceNumber(invoices, vorsaetze.rechnung);
       setSuggestedNumber(vorschlag);
       setInvoiceNumber(vorschlag);
     } catch {
@@ -522,6 +525,7 @@ export default function InvoicesView() {
       const reserved = await reserveInvoiceNumber(user.companyId, {
         seedFrom: highestInvoiceSeq(invoices),
         desired: vonHand ? typedSeq : undefined,
+        praefix: vorsaetze.rechnung,
       });
 
       // Belege ZUERST sperren: bricht es danach ab, ist schlimmstenfalls eine

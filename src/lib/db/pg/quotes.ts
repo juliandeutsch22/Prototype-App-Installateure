@@ -13,6 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Quote, InvoiceDiscount } from '@/types';
 import { abfragen, derClient, loeschen, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
+import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 
 const ANGEBOTE = 'quotes';
 const POSITIONEN = 'quote_lines';
@@ -146,7 +147,7 @@ export function deleteQuote(id: string): Promise<void> {
  * ein gemeinsamer Zähler machte beide löchrig. Zum Jahreswechsel beginnt er
  * neu bei 1 — das Jahr steht in der Nummer.
  */
-export async function reserveQuoteNumber(companyId: string): Promise<string> {
+export async function reserveQuoteNumber(companyId: string, praefix?: string): Promise<string> {
   void companyId;
   const jahr = new Date().getFullYear();
   const { data, error } = await derClient().rpc('naechste_nummer', {
@@ -154,5 +155,5 @@ export async function reserveQuoteNumber(companyId: string): Promise<string> {
     p_jahr: jahr,
   });
   if (error) throw new Error(error.message);
-  return `AN-${jahr}-${String(Number(data)).padStart(4, '0')}`;
+  return belegNummer(praefix ?? PRAEFIX_VORGABE.angebot, jahr, Number(data));
 }

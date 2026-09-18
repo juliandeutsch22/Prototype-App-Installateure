@@ -5,8 +5,9 @@
  * dabei weg, beide unten benannt.
  */
 import type { Project } from '@/types';
+import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 import { BAUSTELLEN_AUSWAHL_GRENZE } from '@/lib/listengrenzen';
-import { abfragen, abonnieren, anlegen, aendern, loeschen, type WithId } from './kern';
+import { abfragen, abonnieren, anlegen, aendern, derClient, loeschen, type WithId } from './kern';
 import { oderUeberSpalten } from './suche';
 
 const BAUSTELLEN = 'projects';
@@ -99,6 +100,35 @@ export function subscribeRecentProjects(
     sortiere: { feld: 'createdAt', absteigend: true },
     grenze: max,
   });
+}
+
+/**
+ * Reserviert eine Baustellennummer — als VORSCHLAG, nicht als Zwang.
+ *
+ * WARUM ES DAS VORHER NICHT GAB: die Baustellennummer war ein Pflichtfeld,
+ * das ein Mensch tippt. Automatisch entstand sie an genau einer Stelle, beim
+ * Annehmen eines Angebots. Damit hätte ein einstellbarer Vorsatz für
+ * Baustellen nichts bewirkt — es gäbe niemanden, der ihn anwendet.
+ *
+ * ÜBERSCHREIBBAR BLEIBT SIE. Manche Betriebe führen die Nummer des
+ * Bauträgers oder des Architekten; ein Pflichtschema nähme ihnen das weg. Der
+ * Zähler läuft dabei trotzdem weiter — sonst schlüge er beim nächsten Mal
+ * dieselbe Nummer wieder vor.
+ */
+export async function reserveProjectNumber(
+  companyId: string,
+  opts: { seedFrom: number; praefix?: string },
+): Promise<string> {
+  void companyId;
+  const jahr = new Date().getFullYear();
+  const { data, error } = await derClient().rpc('naechste_nummer', {
+    p_art: 'projects',
+    p_jahr: jahr,
+    p_seed: Math.max(opts.seedFrom, 0),
+    p_wunsch: null,
+  });
+  if (error) throw new Error(error.message);
+  return belegNummer(opts.praefix ?? PRAEFIX_VORGABE.baustelle, jahr, Number(data));
 }
 
 export type NewProject = Omit<Project, 'id' | 'companyId' | 'createdAt'>;

@@ -75,6 +75,17 @@ function zeige() {
   );
 }
 
+/**
+ * Das Anlege-Formular aufklappen.
+ *
+ * SEIT DEM 18.09. STEHT ES NICHT MEHR OFFEN. Gemessen am Telefon begann die
+ * Benutzerliste bei 932 px — eineinhalb Bildschirme unter der Kante. Ein
+ * Benutzer wird ein paarmal im Jahr angelegt und dauernd nachgesehen.
+ */
+async function formOeffnen() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Neuer Benutzer' }));
+}
+
 beforeEach(() => {
   leute = [];
   ladefehler = null;
@@ -99,6 +110,7 @@ describe('Benutzerverwaltung — das Zeitkonto', () => {
      * Monat produzierte danach rund 170 Minusstunden — auf dem Lohnzettel.
      */
     zeige();
+    await formOeffnen();
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Aushilfe');
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'aushilfe@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
@@ -123,6 +135,7 @@ describe('Benutzerverwaltung — das Zeitkonto', () => {
     // Der Rueckfall selbst ist richtig — leer heisst „nicht entschieden",
     // und ein Zeitkonto ohne Sollstunden rechnet gar nicht.
     zeige();
+    await formOeffnen();
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Neu');
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'neu@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
@@ -137,6 +150,7 @@ describe('Benutzerverwaltung — das Zeitkonto', () => {
     // Wer mit Minusstunden uebernommen wird, startet mit Minusstunden. Ein
     // verschluckter Start-Saldo verschenkt oder erfindet Arbeitszeit.
     zeige();
+    await formOeffnen();
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Uebernahme');
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'ue@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
@@ -158,6 +172,7 @@ describe('Benutzerverwaltung — die Rolle Administrator', () => {
      * serverseitig scheitert, ohne dass jemand versteht warum.
      */
     zeige();
+    await formOeffnen();
     const rolle = await screen.findByRole('combobox', { name: /Rolle/ });
     expect(within(rolle).queryByRole('option', { name: 'Administrator' })).not.toBeInTheDocument();
     expect(within(rolle).getByRole('option', { name: 'Geschäftsführung' })).toBeInTheDocument();
@@ -166,6 +181,7 @@ describe('Benutzerverwaltung — die Rolle Administrator', () => {
   it('bietet sie einem Administrator schon an', async () => {
     angemeldet = { uid: 'ad1', companyId: 'perl', name: 'Admin', role: 'Administrator' };
     zeige();
+    await formOeffnen();
     const rolle = await screen.findByRole('combobox', { name: /Rolle/ });
     expect(within(rolle).getByRole('option', { name: 'Administrator' })).toBeInTheDocument();
   });
@@ -197,6 +213,7 @@ describe('Benutzerverwaltung — anlegen und bearbeiten', () => {
   it('legt aus diesem Formular nur an — ändern kann es nicht mehr', async () => {
     leute = [person({ uid: 'u2', name: 'Erna Beispiel' })];
     zeige();
+    await formOeffnen();
 
     await screen.findByText('Erna Beispiel');
     expect(screen.getByText('Neuen Benutzer anlegen')).toBeInTheDocument();
@@ -218,6 +235,7 @@ describe('Benutzerverwaltung — anlegen und bearbeiten', () => {
      */
     mailGeht = false;
     zeige();
+    await formOeffnen();
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Neuling');
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'neuling@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
@@ -228,6 +246,7 @@ describe('Benutzerverwaltung — anlegen und bearbeiten', () => {
 
   it('zeigt es NICHT, wenn die Mail durchging', async () => {
     zeige();
+    await formOeffnen();
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Neuling');
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'neuling@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
@@ -243,6 +262,7 @@ describe('Benutzerverwaltung — anlegen und bearbeiten', () => {
       throw new Error('auth/email-already-in-use');
     });
     zeige();
+    await formOeffnen();
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Doppelt');
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'max@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
@@ -275,6 +295,27 @@ describe('Benutzerverwaltung — die Liste', () => {
 
     expect(await screen.findByText('Erna Beispiel')).toBeInTheDocument();
     expect(screen.queryByText('Ausgeschieden')).not.toBeInTheDocument();
+  });
+
+  it('zeigt die Liste zuerst, nicht die leere Maske', async () => {
+    // Gemessen: 932 px bis zur ersten Zeile. Ein Benutzer wird ein paarmal im
+    // Jahr angelegt und dauernd nachgesehen.
+    zeige();
+    await screen.findByRole('button', { name: 'Neuer Benutzer' });
+    expect(screen.queryByRole('textbox', { name: /^Name/ })).not.toBeInTheDocument();
+  });
+
+  it('zeigt den Ladefehler AUCH bei zugeklapptem Formular', async () => {
+    /*
+      DIE VERSCHLECHTERUNG, DIE BEIM ZUKLAPPEN FAST ENTSTANDEN WÄRE. Der
+      Ladefehler der LISTE stand im Anlege-Formular; solange das immer offen
+      war, fiel das nicht auf. Zugeklappt wäre er unsichtbar geworden — die
+      Liste bliebe leer, und niemand erführe, warum.
+    */
+    ladefehler = 'Fehlende Berechtigung';
+    zeige();
+    expect(await screen.findByText(/Fehlende Berechtigung/)).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /^Name/ })).not.toBeInTheDocument();
   });
 
   it('zeigt den Ladefehler, statt „keine Benutzer" zu behaupten', async () => {

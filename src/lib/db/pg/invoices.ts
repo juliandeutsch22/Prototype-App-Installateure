@@ -16,6 +16,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Invoice, InvoiceDiscount } from '@/types';
 import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
+import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 
 const RECHNUNGEN = 'invoices';
 const POSITIONEN = 'invoice_lines';
@@ -253,7 +254,7 @@ export async function listInvoicesInRange(companyId: string, von: string, bis: s
  */
 export async function reserveInvoiceNumber(
   companyId: string,
-  opts: { seedFrom: number; desired?: number },
+  opts: { seedFrom: number; desired?: number; praefix?: string },
 ): Promise<string> {
   void companyId;
   const jahr = new Date().getFullYear();
@@ -264,7 +265,13 @@ export async function reserveInvoiceNumber(
     p_wunsch: opts.desired ?? null,
   });
   if (error) throw new Error(error.message);
-  return `RE-${jahr}-${String(Number(data)).padStart(4, '0')}`;
+  /*
+    DER VORSATZ KOMMT VOM AUFRUFER. Hier stand `RE-` fest, ein zweites Mal
+    neben `invoiceNumbers.ts`. Diese Stelle ist die verbindliche: was hier
+    gebaut wird, steht danach auf dem Beleg und lässt sich nicht mehr ändern
+    (`app.rechnung_eingefroren`).
+  */
+  return belegNummer(opts.praefix ?? PRAEFIX_VORGABE.rechnung, jahr, Number(data));
 }
 
 export type NewInvoice = Omit<Invoice, 'id' | 'companyId' | 'createdAt'>;

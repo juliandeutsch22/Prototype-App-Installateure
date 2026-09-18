@@ -52,7 +52,7 @@ export function listInvoicesInRange(
 }
 
 export function reserveInvoiceNumber(
-  companyId: string, opts: { seedFrom: number; desired?: number },
+  companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string },
 ): Promise<string> {
   return nutztPostgres()
     ? pg.reserveInvoiceNumber(companyId, opts)

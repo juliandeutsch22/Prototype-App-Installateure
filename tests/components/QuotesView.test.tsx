@@ -73,6 +73,17 @@ function zeichne() {
   );
 }
 
+/**
+ * Das Kalkulationsformular aufklappen.
+ *
+ * SEIT DEM 18.09. STEHT ES NICHT MEHR OFFEN. Gemessen am Telefon begann die
+ * Angebotsliste bei 1332 px — gut zwei Bildschirme unter der Kante, und
+ * darüber das längste Formular der App.
+ */
+async function formOeffnen() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Neues Angebot' }));
+}
+
 beforeEach(() => {
   createQuote.mockClear();
   createProject.mockClear();
@@ -81,10 +92,27 @@ beforeEach(() => {
 });
 
 describe('Angebot kalkulieren', () => {
+  it('zeigt die Liste zuerst, nicht die leere Kalkulation', async () => {
+    // Gemessen: 1332 px bis zur ersten Zeile. Das Kalkulationsformular ist
+    // das längste der vier Ansichten und der seltenste Vorgang.
+    zeichne();
+    await screen.findByRole('button', { name: 'Neues Angebot' });
+    expect(screen.queryByLabelText('Kunde')).not.toBeInTheDocument();
+  });
+
+  it('klappt die Kalkulation auf und wieder zu', async () => {
+    zeichne();
+    await formOeffnen();
+    expect(screen.getByLabelText('Kunde')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByLabelText('Kunde')).not.toBeInTheDocument();
+  });
+
   it('zählt nur echte Arbeitszeit ins Stundenbudget', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await screen.findByLabelText('Kunde');
+    await formOeffnen();
 
     await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
 
@@ -118,7 +146,7 @@ describe('Angebot kalkulieren', () => {
   it('rechnet Netto, USt und Brutto mit derselben Funktion wie die Rechnung', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await screen.findByLabelText('Kunde');
+    await formOeffnen();
     await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Pauschale');
     await nutzer.type(screen.getByLabelText('Menge'), '1');

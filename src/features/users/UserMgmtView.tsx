@@ -30,6 +30,13 @@ export default function UserMgmtView() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<BenutzerEntwurf>(leererEntwurf);
   const [saving, setSaving] = useState(false);
+  /*
+    LISTE ZUERST — gemessen: am Telefon begann die Benutzerliste bei 932 px.
+    Das ist der kürzeste Weg der vier Ansichten und trotzdem eineinhalb
+    Bildschirme; angelegt wird ein Benutzer ein paarmal im Jahr, nachgesehen
+    wird er dauernd. Dasselbe Muster wie in `WartungenView`.
+  */
+  const [formOffen, setFormOffen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [suche, setSuche] = useState('');
   const [status, setStatus] = useState<'aktiv' | 'inaktiv' | 'alle'>('aktiv');
@@ -124,6 +131,7 @@ export default function UserMgmtView() {
       }
       setForm(leererEntwurf());
       setShowDetails(false);
+      setFormOffen(false);
       await reload();
     } catch (err) {
       setError(anlegeFehler(err, false));
@@ -136,7 +144,15 @@ export default function UserMgmtView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Benutzerverwaltung" subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen" />
+      <PageHeader
+        title="Benutzerverwaltung"
+        subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen"
+        action={
+          formOffen ? undefined : (
+            <Button onClick={() => setFormOffen(true)}>Neuer Benutzer</Button>
+          )
+        }
+      />
 
       {/*
         „Außendienst" statt „Im Außendienst": bei drei Kennzahlen nebeneinander
@@ -165,6 +181,20 @@ export default function UserMgmtView() {
         </div>
       )}
 
+      {/*
+        DER FEHLER STEHT AUSSERHALB DES FORMULARS, und das ist eine Korrektur.
+
+        `error` trägt ZWEI Dinge: das gescheiterte Laden der Liste (Zeile 55)
+        und das gescheiterte Anlegen. Angezeigt wurde er nur INNEN — solange
+        das Formular immer offen stand, fiel das nicht auf. Mit dem
+        zugeklappten Formular wäre ein Ladefehler unsichtbar geworden: die
+        Liste bliebe leer und niemand erführe, warum.
+
+        Gefunden hat das `UserMgmtView.test.tsx`, nicht das Nachdenken.
+      */}
+      {error && <ErrorState message={error} />}
+
+      {formOffen && (
       <Card title="Neuen Benutzer anlegen">
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
@@ -266,14 +296,23 @@ export default function UserMgmtView() {
           )}
 
           <Pflichthinweis />
-          {error && <ErrorState message={error} />}
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button type="submit" loading={saving} className="w-full sm:w-auto">
               Benutzer anlegen
             </Button>
+            {/* Der Weg zurück zur Liste. */}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => { setFormOffen(false); setForm(leererEntwurf()); }}
+              className="w-full sm:w-auto"
+            >
+              Abbrechen
+            </Button>
           </div>
         </form>
       </Card>
+      )}
 
       <Card
         title={`Benutzer (${gefiltert.length})`}

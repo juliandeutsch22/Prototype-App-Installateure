@@ -21,18 +21,8 @@ import { useToast } from '@/components/Toast';
 import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, Role } from '@/types';
+import { praefixeVon, ohneKennzeichenVorsatz, mitKennzeichenVorsatz } from '@/lib/praefixe';
 
-/** Amtliches Praefix des Fuhrparks; im Feld steht nur der Rest. */
-const PLATE_PREFIX = 'WZ-';
-
-/**
- * Entfernt ein eingetipptes Praefix wieder. Wer „WZ-12345A" aus der Zwischen-
- * ablage einfuegt, soll nicht „WZ-WZ-12345A" bekommen — und der Bindestrich
- * allein wird ebenso geschluckt.
- */
-function stripPlatePrefix(v: string): string {
-  return v.toUpperCase().replace(/^\s*W\s*Z\s*-?\s*/, '').replace(/^-/, '');
-}
 
 interface Props {
   onSaved: () => void;
@@ -94,8 +84,19 @@ export default function TimeForm({
   lastEntry,
   vorbelegung,
 }: Props) {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
+  /*
+    DER BEZIRKSKENNER KOMMT VOM BETRIEB. Hier stand `WZ-` fest — dreifach:
+    als Konstante, als Regel zum Abziehen und als Beschriftung am Feld. Das
+    ist der Kenner eines bestimmten Bezirks; ein zweiter Betrieb hätte ihn auf
+    jedem Zeiteintrag stehen gehabt, und von dort geht er in den Lohnexport.
+
+    Ohne festgelegten Kenner verschwindet das graue Kästchen vor dem Feld und
+    der Monteur tippt das ganze Kennzeichen — das ist der richtige Zustand für
+    einen Fuhrpark, der nicht aus einem Bezirk kommt.
+  */
+  const kennzeichenVorsatz = praefixeVon(company).kennzeichen;
   // Vorbelegung aus dem Einsatzplan ("Zeit erfassen" am geplanten Einsatz).
   // Wichtig vor allem für asHelper: ein vergessener Haken führt zum falschen
   // Stundensatz auf der Rechnung.
@@ -139,7 +140,7 @@ export default function TimeForm({
   // mit dem Kunden — nicht der Zeiger auf der Uhr.
   const [isNightWork, setIsNightWork] = useState(entry?.isNightWork ?? false);
   const [isEmergency, setIsEmergency] = useState(entry?.isEmergency ?? false);
-  const [vehiclePlate, setVehiclePlate] = useState(stripPlatePrefix(entry?.vehiclePlate ?? ''));
+  const [vehiclePlate, setVehiclePlate] = useState(() => ohneKennzeichenVorsatz(entry?.vehiclePlate ?? '', kennzeichenVorsatz));
   /** Für wen wird gebucht (nur wenn `staff` gesetzt ist). */
   const [targetUid, setTargetUid] = useState(entry?.userId ?? '');
 
@@ -307,7 +308,10 @@ export default function TimeForm({
         customerName: canHaveProject ? project?.customerName ?? '' : '',
         // Gespeichert wird IMMER mit Praefix, damit Exporte und die
         // Fahrzeugsuche ein einheitliches Format vorfinden.
-        vehiclePlate: canHaveProject && vehiclePlate ? PLATE_PREFIX + vehiclePlate : '',
+        vehiclePlate:
+          canHaveProject && vehiclePlate
+            ? mitKennzeichenVorsatz(vehiclePlate, kennzeichenVorsatz)
+            : '',
         helperName: canHaveProject ? helperName : '',
         comment,
         isHelper: canHaveProject ? isHelper : false,
@@ -388,7 +392,9 @@ export default function TimeForm({
             setBreakDuration(String(lastEntry.breakDuration ?? 30));
             if (canHaveProject) {
               setProjectNumber(lastEntry.projectNumber ?? '');
-              setVehiclePlate(stripPlatePrefix(lastEntry.vehiclePlate ?? ''));
+              setVehiclePlate(
+                ohneKennzeichenVorsatz(lastEntry.vehiclePlate ?? '', kennzeichenVorsatz),
+              );
               setIsHelper(!!lastEntry.isHelper);
             }
           }}
@@ -612,18 +618,30 @@ export default function TimeForm({
                     Fahrzeug (Kennzeichen)
                   </label>
                   <div className="flex">
-                    <span
-                      aria-hidden
-                      className="flex min-h-touch shrink-0 items-center rounded-l border border-r-0 border-line bg-surface-2 px-3 font-medium text-ink-muted"
-                    >
-                      WZ-
-                    </span>
+                    {/*
+                      DAS GRAUE KAESTCHEN STEHT NUR DA, WENN ES ETWAS ZU SAGEN
+                      HAT. Ohne festgelegten Bezirkskenner waere es ein leeres
+                      Feld vor einem Feld — dann traegt das Eingabefeld allein
+                      das ganze Kennzeichen, und die Rundung links kommt
+                      zurueck.
+                    */}
+                    {kennzeichenVorsatz && (
+                      <span
+                        aria-hidden
+                        className="flex min-h-touch shrink-0 items-center rounded-l border border-r-0 border-line bg-surface-2 px-3 font-medium text-ink-muted"
+                      >
+                        {kennzeichenVorsatz}-
+                      </span>
+                    )}
                     <input
                       id="vehiclePlate"
-                      className="min-h-touch w-full rounded-r border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand"
-                      placeholder="12345A"
+                      className={`min-h-touch w-full border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand ${
+                        kennzeichenVorsatz ? 'rounded-r' : 'rounded'
+                      }`}
+                      placeholder={kennzeichenVorsatz ? '12345A' : 'W-12345A'}
                       value={vehiclePlate}
-                      onChange={(e) => setVehiclePlate(stripPlatePrefix(e.target.value))}
+                      onChange={(e) =>
+                        setVehiclePlate(ohneKennzeichenVorsatz(e.target.value, kennzeichenVorsatz))}
                     />
                   </div>
                 </div>

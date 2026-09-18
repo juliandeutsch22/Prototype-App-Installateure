@@ -72,6 +72,29 @@ export default function CustomersView() {
   const [suche, setSuche] = useState('');
   const [form, setForm] = useState<NewCustomer>(LEER);
   const [bearbeitet, setBearbeitet] = useState<WithId<Customer> | null>(null);
+  /*
+    DAS FORMULAR STEHT NICHT MEHR OFFEN, SONDERN KLAPPT AUF.
+
+    GEMESSEN am Telefon (390 px breit, davon nach Kopf- und Fussleiste rund
+    590 px sichtbar): die Kundenliste begann bei 1175 px — zwei Bildschirme
+    Wischen an einer leeren Maske vorbei. Man öffnet diesen Reiter aber, um
+    einen Kunden zu FINDEN; angelegt wird alle paar Wochen einer.
+
+    Das offene Formular sparte beim Anlegen einen Klick und kostete beim
+    Nachschauen jedes Mal zwei Wischer. Schlimmer als die Wege: eine Maske
+    ganz oben sieht aus wie der ZWECK der Seite.
+
+    Das Muster ist nicht neu — `WartungenView` macht es seit jeher so, und
+    `PageHeader` trägt den `action`-Platz dafür. Hier wird es durchgezogen,
+    nicht erfunden.
+  */
+  const [formOffen, setFormOffen] = useState(false);
+
+  const formSchliessen = () => {
+    setFormOffen(false);
+    setBearbeitet(null);
+    setForm(LEER);
+  };
   const [speichert, setSpeichert] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Customer> | null>(null);
 
@@ -166,6 +189,7 @@ export default function CustomersView() {
       }
       setForm(LEER);
       setBearbeitet(null);
+      setFormOffen(false);
       await laden();
     } catch {
       setError('Der Kunde konnte nicht gespeichert werden.');
@@ -254,9 +278,19 @@ export default function CustomersView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Kunden" subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie" />
+      <PageHeader
+        title="Kunden"
+        subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie"
+        action={
+          darfAendern && !formOffen ? (
+            <Button onClick={() => { setBearbeitet(null); setForm(LEER); setFormOffen(true); }}>
+              Neuer Kunde
+            </Button>
+          ) : undefined
+        }
+      />
 
-      {darfAendern && (
+      {darfAendern && formOffen && (
         <Card title={bearbeitet ? `„${bearbeitet.name}" bearbeiten` : 'Neuen Kunden anlegen'}>
           <form onSubmit={speichern} className="space-y-4">
             <InputField
@@ -316,19 +350,19 @@ export default function CustomersView() {
               <Button type="submit" loading={speichert} className="w-full sm:w-auto">
                 {bearbeitet ? 'Änderungen speichern' : 'Kunde anlegen'}
               </Button>
-              {bearbeitet && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setBearbeitet(null);
-                    setForm(LEER);
-                  }}
-                  className="w-full sm:w-auto"
-                >
-                  Abbrechen
-                </Button>
-              )}
+              {/*
+                ABBRECHEN GILT JETZT IMMER, nicht nur beim Bearbeiten: solange
+                das Formular offen stand, gab es nichts abzubrechen — jetzt
+                ist es der Weg zurück zur Liste.
+              */}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={formSchliessen}
+                className="w-full sm:w-auto"
+              >
+                Abbrechen
+              </Button>
             </div>
           </form>
         </Card>
@@ -475,6 +509,7 @@ export default function CustomersView() {
                       variant="ghost"
                       onClick={() => {
                         setBearbeitet(k);
+                        setFormOffen(true);
                         setForm({
                           name: k.name,
                           address: k.address ?? '',

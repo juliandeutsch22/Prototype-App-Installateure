@@ -1,4 +1,5 @@
 import type { Invoice } from '@/types';
+import { belegNummer, lfdNummerVon, PRAEFIX_VORGABE } from './praefixe';
 
 /**
  * Rechnungsnummern — reine Rechenregeln, ohne Firestore.
@@ -19,14 +20,37 @@ export function highestInvoiceSeq(existing: Pick<Invoice, 'invoiceNumber'>[]): n
   return max;
 }
 
-/** Laufende Nummer aus 'RE-2026-1042' herauslösen; null, wenn keine da ist. */
+/**
+ * Laufende Nummer aus 'RE-2026-1042' herauslösen; null, wenn keine da ist.
+ *
+ * LIEST DIE ZIFFERN AM ENDE, NICHT DEN VORSATZ — und genau das trägt über
+ * einen Wechsel hinweg. Wer mitten im Jahr von `RE-` auf `R-` umstellt, hat
+ * einen lückenlosen Zahlenkreis in zwei Schreibweisen; würde hier der Vorsatz
+ * mitgeprüft, finge die Zählung wieder bei 1001 an und risse eine Lücke, die
+ * der Steuerberater erklären lassen will.
+ */
 export function invoiceSeqOf(number: string): number | null {
-  const m = /(\d+)$/.exec(number.trim());
-  return m ? Number(m[1]) : null;
+  return lfdNummerVon(number);
 }
 
-export function formatInvoiceNumber(seq: number, year = new Date().getFullYear()): string {
-  return `RE-${year}-${String(seq).padStart(4, '0')}`;
+/**
+ * `RE-2026-1001` — der Vorsatz kommt vom BETRIEB, nicht aus dieser Datei.
+ *
+ * Er stand hier fest verdrahtet, und ein zweites Mal in
+ * `db/pg/invoices.ts:reserveInvoiceNumber`. Zwei Quellen für dieselbe
+ * Wahrheit: liefen sie auseinander, zeigte der Vorschlag eine andere Nummer
+ * an, als die Rechnung danach trug.
+ *
+ * Die VORGABE steht hier trotzdem als Rückfall — ein Betrieb, der nichts
+ * festgelegt hat, zählt weiter wie bisher. Sie in `PRAEFIX_VORGABE` zu holen
+ * statt sie hinzuschreiben, hält sie an der einen Stelle.
+ */
+export function formatInvoiceNumber(
+  seq: number,
+  year = new Date().getFullYear(),
+  praefix = PRAEFIX_VORGABE.rechnung,
+): string {
+  return belegNummer(praefix, year, seq);
 }
 
 /**
@@ -41,9 +65,12 @@ export function formatInvoiceNumber(seq: number, year = new Date().getFullYear()
  * Vorschlag darf und wird veralten, sobald jemand anderes gleichzeitig
  * abrechnet.
  */
-export function nextInvoiceNumber(existing: Pick<Invoice, 'invoiceNumber'>[]): string {
+export function nextInvoiceNumber(
+  existing: Pick<Invoice, 'invoiceNumber'>[],
+  praefix = PRAEFIX_VORGABE.rechnung,
+): string {
   const max = highestInvoiceSeq(existing);
-  return formatInvoiceNumber(max > 0 ? max + 1 : 1001);
+  return formatInvoiceNumber(max > 0 ? max + 1 : 1001, new Date().getFullYear(), praefix);
 }
 
 /** Prüft, ob eine Nummer bereits vergeben ist (Stornos zählen mit). */
@@ -70,6 +97,7 @@ export function decideInvoiceSeq(
   last: number,
   desired?: number,
   year = new Date().getFullYear(),
+  praefix = PRAEFIX_VORGABE.rechnung,
 ): number {
   if (desired == null) return last > 0 ? last + 1 : 1001;
   if (!Number.isInteger(desired) || desired < 1) {
@@ -77,8 +105,8 @@ export function decideInvoiceSeq(
   }
   if (desired <= last) {
     throw new Error(
-      `Die Nummer ${formatInvoiceNumber(desired, year)} ist bereits vergeben. ` +
-        `Die nächste freie ist ${formatInvoiceNumber(last + 1, year)}.`,
+      `Die Nummer ${formatInvoiceNumber(desired, year, praefix)} ist bereits vergeben. ` +
+        `Die nächste freie ist ${formatInvoiceNumber(last + 1, year, praefix)}.`,
     );
   }
   return desired;

@@ -134,7 +134,7 @@ export function listInvoicesInRange(companyId: string, von: string, bis: string)
  */
 export async function reserveInvoiceNumber(
   companyId: string,
-  opts: { seedFrom: number; desired?: number },
+  opts: { seedFrom: number; desired?: number; praefix?: string },
 ): Promise<string> {
   const ref = doc(db, 'counters', `${companyId}_invoices`);
   const year = new Date().getFullYear();
@@ -148,14 +148,14 @@ export async function reserveInvoiceNumber(
       ? Number((snap.data() as { lastSeq?: number }).lastSeq ?? 0)
       : Math.max(opts.seedFrom, 0);
 
-    const seq = decideInvoiceSeq(last, opts.desired, year);
+    const seq = decideInvoiceSeq(last, opts.desired, year, opts.praefix);
 
     tx.set(
       ref,
       { companyId, lastSeq: seq, year, updatedAt: serverTimestamp() },
       { merge: true },
     );
-    return formatInvoiceNumber(seq, year);
+    return formatInvoiceNumber(seq, year, opts.praefix);
   });
 }
 
