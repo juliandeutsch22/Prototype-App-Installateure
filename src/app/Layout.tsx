@@ -253,7 +253,26 @@ export default function Layout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Inhalt */}
-      <main className="flex-1 pb-24 md:pb-6">
+      {/*
+        `min-w-0` IST HIER NICHT KOSMETIK, SONDERN DIE BREMSE.
+
+        `main` ist das Flex-Geschwister der 259 px breiten Seitenleiste
+        (256 + 3 px Fuge). Ein Flex-Element hat von sich aus `min-width: auto`
+        und kann damit NICHT unter die Mindestbreite seines Inhalts
+        schrumpfen — es schiebt stattdessen die ganze Seite auf.
+
+        Auf dem Tablet war das zu sehen: bei 834 px stehen dem Inhalt 575 px
+        zu, sein Mindestmass lag aber bei 592, und das Dokument wurde 848 px
+        breit. Die Seite liess sich also seitwaerts schieben, auf neun der
+        achtundzwanzig Ansichten. Am Telefon faellt es nicht auf (keine
+        Seitenleiste), am Schreibtisch auch nicht (genug Platz) — genau
+        dazwischen bricht es.
+
+        Mit `min-w-0` schrumpft `main` wie vorgesehen, und was wirklich breit
+        ist (Tabellen), scrollt in seinem eigenen Behaelter mit
+        `overflow-x-auto`.
+      */}
+      <main className="min-w-0 flex-1 pb-24 md:pb-6">
         {/* Ganz oben im Inhalt, nicht in der Kopfleiste: dort wäre es auf dem
             Schreibtisch gar nicht zu sehen, wo es keine mobile Top-Bar gibt. */}
         <Verbindungsband />

@@ -155,6 +155,25 @@ body,
 }
 
 /*
+ * `<fieldset>` SCHRUMPFT VON SICH AUS NICHT.
+ *
+ * Browser geben dem Element eine Mindestbreite in Hoehe seines Inhalts — eine
+ * Eigenart aus der Fruehzeit von HTML, die kein anderes Element hat und die
+ * sich in `getComputedStyle` auch nicht ablesen laesst (dort steht brav
+ * „0px"). Nachgemessen: in der Einsatzplanung war das Fieldset mit der
+ * Mitarbeiterliste auf einem 390 px breiten Telefon 535 Pixel breit, obwohl
+ * sein Elternteil 324 misst. Es zog die Karte mit auf, und die halbe Liste
+ * stand ausserhalb des Bildes.
+ *
+ * Ein `min-width: 0` an dieser einen Stelle nimmt die Eigenart fuer die ganze
+ * App weg — auch fuer jedes Fieldset, das erst noch geschrieben wird. Genau
+ * deshalb steht es hier und nicht als Klasse an den fuenf Aufrufstellen.
+ */
+fieldset {
+  min-width: 0;
+}
+
+/*
  * NUR `body` BEKOMMT EINEN GRUND, `html` AUSDRÜCKLICH NICHT.
  *
  * Der erste Versuch, die Ränder der Startbildschirm-App einzufärben, setzte
@@ -170,6 +189,27 @@ body,
  * Innenmaß ein (siehe Layout.tsx).
  */
 body {
+  /*
+   * LANGE ZUSAMMENSETZUNGEN BRECHEN, STATT AUS IHREM KASTEN ZU LAUFEN.
+   *
+   * Die Kunden dieses Betriebs heissen „Wohnungseigentümergemeinschaft
+   * Hauptstraße 112–118" — dreissig Zeichen ohne eine einzige Stelle, an der
+   * ein Umbruch erlaubt waere. Auf 390 px lief so ein Name aus jeder Karte
+   * heraus, gemessen bis zu 42 Pixel weit; auf dem Tablet in den Listen
+   * ebenso.
+   *
+   * `anywhere` UND NICHT `break-word`, und der Unterschied ist genau der, auf
+   * den es hier ankommt: beide brechen ein zu langes Wort erst, wenn es sonst
+   * nicht passt — aber nur `anywhere` senkt dabei auch die MINDESTBREITE des
+   * Kastens. Mit `break-word` bleibt die Mindestbreite das laengste Wort, und
+   * ein Flex- oder Rasterfeld richtet sich danach. Nachgemessen: auf der
+   * Startseite blieb der Ueberlauf mit `break-word` bei 42 Pixeln stehen und
+   * verschwand mit `anywhere`.
+   *
+   * Elemente mit `truncate` sind nicht betroffen — die kuerzen weiterhin mit
+   * Auslassungspunkten, weil `white-space: nowrap` jeden Umbruch verbietet.
+   */
+  overflow-wrap: anywhere;
   background-color: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;

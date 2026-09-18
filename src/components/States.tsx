@@ -54,11 +54,11 @@ export function SkeletonMetrics({ count = 3 }: { count?: number }) {
     <div
       role="status"
       aria-busy="true"
-      className={`flex items-stretch divide-x divide-line ${GUTER_RAND}`}
+      className={`grid grid-cols-2 gap-x-4 gap-y-3 sm:flex sm:items-stretch sm:gap-0 sm:divide-x sm:divide-line ${GUTER_RAND}`}
     >
       <span className="sr-only">Wird geladen …</span>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="min-w-0 flex-1 px-3 first:pl-0 last:pr-0" aria-hidden="true">
+        <div key={i} className="min-w-0 sm:flex-1 sm:px-3 sm:first:pl-0 sm:last:pr-0" aria-hidden="true">
           <div className="skeleton h-3 w-20" />
           <div className="skeleton mt-2 h-6 w-16 sm:h-8" />
         </div>
