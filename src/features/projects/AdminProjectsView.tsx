@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -21,11 +21,12 @@ import Card from '@/components/Card';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
-import IconButton from '@/components/IconButton';
+import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
+import RowMenu from '@/components/RowMenu';
 import { praefixeVon, belegNummer, hoechsteLfd } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
@@ -61,6 +62,7 @@ const BAUSTELLEN_JE_SEITE = 300;
 
 export default function AdminProjectsView() {
   const { user, company } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
   const [projects, setProjects] = useState<WithId<Project>[]>([]);
   /*
@@ -393,7 +395,7 @@ export default function AdminProjectsView() {
         subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
         action={
           formOffen ? undefined : (
-            <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>
+            <Button onClick={() => setFormOffen(true)}><Icon name="plus" size={18} />Neue Baustelle</Button>
           )
         }
       />
@@ -623,16 +625,6 @@ export default function AdminProjectsView() {
                 >
                   {p.estimatedHours ? <Marke>{p.estimatedHours} h Budget</Marke> : null}
                   <StatusBadge status={p.status} />
-                  {/* Nachtraeglich einen Schein schreiben — der Fall, in dem
-                      der Monteur ihn vor Ort vergessen hat. */}
-                  {scheineAn && (
-                    <Link
-                      to={`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`}
-                      className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
-                    >
-                      Schein
-                    </Link>
-                  )}
                   {/*
                     EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine
                     Auswertung in die Liste) und „Bearbeiten" (sprang in das
@@ -646,9 +638,45 @@ export default function AdminProjectsView() {
                   >
                     Akte
                   </Link>
-                  <IconButton label="Baustelle löschen" tone="danger" onClick={() => setToDelete(p)}>
-                    ✕
-                  </IconButton>
+                  {/*
+                    LÖSCHEN STEHT IM MENÜ, NICHT ALS ✕ IN DER ZEILE.
+
+                    Gemessen auf 375 px (iPhone XS): mit Budget-Marke, Zustand
+                    und zwei Verweisen passte das ✕ nicht mehr in die Zeile und
+                    rutschte ALLEIN in eine zweite — rechtsbündig, unter einer
+                    leeren Lücke. Damit stand ausgerechnet die einzige
+                    unumkehrbare Aktion am auffälligsten da.
+
+                    Die Regel steht schon in `ListRow`: „Wo es mehr als zwei
+                    Aktionen gibt, gehört alles Seltene in ein RowMenu." Hier
+                    war sie nur nicht befolgt.
+
+                    NUR DAS ✕ ZU VERSCHIEBEN REICHTE NICHT — nachgemessen
+                    rutschte danach das Menü selbst in die zweite Zeile. Fünf
+                    Elemente passen auf 375 px nicht, gleich welches zuletzt
+                    kommt. Deshalb geht „Schein nachtragen" mit: übrig bleiben
+                    Budget, Zustand, die Akte und das Menü. Der Umbruch war der
+                    Anlass, die Gewichtung ist der Gewinn.
+                  */}
+                  <RowMenu
+                    about={`Baustelle ${p.projectNumber}`}
+                    items={[
+                      /*
+                        „Schein nachtragen" ist der Ausnahmefall — der
+                        Monteur hat ihn vor Ort vergessen. Als eigener
+                        Verweis in der Zeile stand er gleichauf mit der
+                        Akte, die man täglich braucht.
+                      */
+                      ...(scheineAn
+                        ? [{
+                            label: 'Schein nachtragen',
+                            onSelect: () =>
+                              navigate(`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`),
+                          }]
+                        : []),
+                      { label: 'Löschen', onSelect: () => setToDelete(p), danger: true },
+                    ]}
+                  />
                 </ListRow>
               );
             })}

@@ -7,6 +7,7 @@ import { ROLES, type AppUser, type Role } from '@/types';
 import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import { Marke } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
@@ -149,7 +150,7 @@ export default function UserMgmtView() {
         subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen"
         action={
           formOffen ? undefined : (
-            <Button onClick={() => setFormOffen(true)}>Neuer Benutzer</Button>
+            <Button onClick={() => setFormOffen(true)}><Icon name="plus" size={18} />Neuer Benutzer</Button>
           )
         }
       />
