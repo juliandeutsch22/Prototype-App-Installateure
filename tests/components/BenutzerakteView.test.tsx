@@ -267,7 +267,16 @@ describe('Der Zugang', () => {
     gefunden = person({ uid: 'gf1', name: 'Chefin', role: 'Geschäftsführung' });
     zeige('gf1');
 
-    expect(await screen.findByText(/eigene Konto lässt sich nicht sperren/)).toBeInTheDocument();
+    /*
+      GEWARTET WIRD AUF DAS FORMULAR, NICHT AUF DEN SATZ. Der Hinweis steht im
+      Zugangsbereich und ist da, sobald die Person geladen ist; das Formular
+      entsteht einen Rendergang später, weil der Entwurf aus einem Effekt
+      kommt. Auf dem langsameren CI-Läufer fiel die Prüfung des Statusfeldes
+      genau in diese Lücke — sie fand die Nur-Lese-Ansicht vor. Dieselbe
+      Reihenfolge wie in den Prüfungen weiter oben.
+    */
+    expect(await screen.findByRole('textbox', { name: /^Name/ })).toBeInTheDocument();
+    expect(screen.getByText(/eigene Konto lässt sich nicht sperren/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Konto deaktivieren/ })).not.toBeInTheDocument();
     // Die Passwort-Mail an sich selbst bleibt erlaubt.
     expect(screen.getByRole('button', { name: 'Passwort-Mail senden' })).toBeInTheDocument();
