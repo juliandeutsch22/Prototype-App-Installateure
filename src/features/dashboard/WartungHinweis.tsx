@@ -67,7 +67,7 @@ export default function WartungHinweis() {
   if (anzahl === 0) return null;
 
   return (
-    <div className="rounded border border-info/30 bg-info-bg p-4 text-info">
+    <div className="rounded border border-line bg-surface-2 p-4 text-info">
       <p className="font-semibold">
         {anzahl === 1 ? 'Eine Wartung steht an' : `${anzahl} Wartungen stehen an`}
       </p>

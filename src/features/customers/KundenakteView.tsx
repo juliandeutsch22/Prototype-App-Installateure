@@ -332,7 +332,7 @@ export default function KundenakteView() {
           Sie nur anzuzeigen wäre halb — der Knopf stellt die Verbindung her.
         */}
         {namensgleich.length > 0 && (
-          <div className="mt-4 rounded border border-warning/40 bg-warning-bg p-3">
+          <div className="mt-4 rounded border border-line bg-surface-2 p-3">
             <p className="text-sm text-warning">
               <strong>{namensgleich.length}</strong>{' '}
               {namensgleich.length === 1

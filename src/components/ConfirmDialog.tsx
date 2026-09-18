@@ -83,7 +83,7 @@ export default function ConfirmDialog({
         {message && <p className="mt-2 text-sm text-ink-muted">{message}</p>}
         {children && <div className="mt-4">{children}</div>}
         {error && (
-          <p className="mt-3 rounded-sm bg-danger-bg px-3 py-2 text-sm text-danger" role="alert">
+          <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-danger" role="alert">
             {error}
           </p>
         )}

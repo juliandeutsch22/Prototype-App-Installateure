@@ -75,31 +75,6 @@ function dayLabel(iso: string): string {
 }
 
 /**
- * Kennzahl im aufgeklappten Bereich: Wert über Beschriftung.
- *
- * Bewusst keine `Metric`-Kachel — die trägt Rahmen und Symbol und wäre
- * innerhalb einer bereits gerahmten Zeile eine Schachtel in der Schachtel.
- * Hier zählt nur, dass jede Zahl ihren Namen bei sich hat: „101:00" allein
- * sagt niemandem, ob das Ist, Soll oder Saldo ist.
- */
-function Figure({
-  label,
-  value,
-  tone = '',
-}: {
-  label: string;
-  value: string;
-  tone?: string;
-}) {
-  return (
-    <div>
-      <p className={`tnum text-lg font-bold leading-tight ${tone || 'text-ink'}`}>{value}</p>
-      <p className="text-xs text-ink-muted">{label}</p>
-    </div>
-  );
-}
-
-/**
  * Mitarbeiterübersicht (Buchhaltung/GF/Admin): Monatsauswertung je Mitarbeiter
  * mit Vollständigkeitskontrolle. Da es keinen Freigabe-Workflow gibt, ist die
  * Ampel die eigentliche Kontrollinstanz der Geschäftsführung.
@@ -498,6 +473,17 @@ export default function AccountingView() {
           <div className="space-y-3">
             {rows.map(({ user: u, monthEntries, stats, completeness }) => {
               const open = expanded === u.uid;
+              /*
+                Traegt dieser Mitarbeiter ueberhaupt einen Saldo?
+
+                Zwei Faelle, in denen die Zahl KEINE Aussage ist: die
+                Projektleitung fuehrt kein Zeitkonto (es gibt kein Soll), und
+                ohne hinterlegtes Eintrittsdatum laesst sich keines rechnen.
+                Beide sind unten je mit einem eigenen Kasten erklaert — die
+                Bedingung steht hier einmal, damit die grosse Zahl am Telefon
+                und der Kasten nicht auseinanderlaufen koennen.
+              */
+              const zeigtSaldo = shouldShowOvertime(u.role) && stats.hasConfig;
               return (
                 <div
                   key={u.uid}
@@ -607,28 +593,68 @@ export default function AccountingView() {
                       {/* Zuerst die Zahlen des Monats, dann erst die Tage.
                           Wer eine Zeitkarte öffnet, will meist nur wissen,
                           wie der Monat steht — nicht jeden einzelnen Tag. */}
-                      <div className="grid grid-cols-3 gap-x-4 gap-y-3 sm:grid-cols-6">
-                        <Figure label="Ist" value={fmtMin(stats.istMin)} />
-                        <Figure label="Soll" value={fmtMin(stats.sollMin)} />
-                        <Figure
-                          label="Saldo"
-                          value={`${stats.saldoMin > 0 ? '+' : ''}${fmtMin(stats.saldoMin)}`}
-                          tone={stats.saldoMin >= 0 ? 'text-success' : 'text-danger'}
-                        />
-                        <Figure
-                          label="Krank"
-                          value={`${stats.krankDays} ${stats.krankDays === 1 ? 'Tag' : 'Tage'}`}
-                          tone={stats.krankDays > 0 ? 'text-warning' : ''}
-                        />
-                        <Figure
-                          label="Urlaub"
-                          value={`${stats.urlaubDays} ${stats.urlaubDays === 1 ? 'Tag' : 'Tage'}`}
-                        />
-                        <Figure
-                          label="Resturlaub"
-                          value={`${stats.urlaubRest} ${stats.urlaubRest === 1 ? 'Tag' : 'Tage'}`}
-                          tone={stats.urlaubRest < 5 ? 'text-warning' : ''}
-                        />
+                      {/*
+                        EINE ZAHL BEANTWORTET DIE FRAGE, DER REST ORDNET SICH UNTER.
+
+                        Hier standen sechs gleich grosse Kennzahlen nebeneinander.
+                        Sechs gleich grosse Zahlen beantworten aber keine Frage,
+                        sie stellen sechs — und auf dem Telefon stapelten sie
+                        sich zu zwei Reihen, bevor der Inhalt ueberhaupt begann.
+
+                        Wer eine Zeitkarte oeffnet, will den SALDO. Ist und Soll
+                        sind dessen Herleitung und gehoeren klein darunter;
+                        Krank, Urlaub und Resturlaub sind Nebenzahlen und stehen
+                        als Zeile. Am Schreibtisch ruecken die beiden Bloecke
+                        nebeneinander, damit die Breite nicht leer bleibt.
+
+                        DAS WORT „SALDO" BLEIBT STEHEN. Eine grosse Zahl ohne
+                        Namen ist auf dem Schirm mehrdeutig und fuer einen
+                        Vorleser gar nichts — er laese „minus fuenfundneunzig
+                        dreissig" und sonst nichts.
+                      */}
+                      <div className="sm:flex sm:items-end sm:justify-between sm:gap-6">
+                        <div className="min-w-0">
+                          <p className="section-label">{zeigtSaldo ? 'Saldo' : 'Gebucht'}</p>
+                          {zeigtSaldo ? (
+                            <>
+                              <p
+                                className={`tnum mt-1 text-[2rem] font-bold leading-none tracking-tight ${
+                                  stats.saldoMin >= 0 ? 'text-success' : 'text-danger'
+                                }`}
+                              >
+                                {stats.saldoMin > 0 ? '+' : ''}
+                                {fmtMin(stats.saldoMin)}
+                              </p>
+                              <p className="tnum mt-1.5 text-sm text-ink-muted">
+                                {fmtMin(stats.istMin)} von {fmtMin(stats.sollMin)} Soll
+                                {stats.istLaufend && ' bisher'}
+                              </p>
+                            </>
+                          ) : (
+                            /*
+                              OHNE SOLL IST DER SALDO KEINE ZAHL, SONDERN KEINE
+                              AUSSAGE. Ihn trotzdem gross zu setzen, hiesse eine
+                              Luecke in den Stammdaten als Befund ueber den
+                              Mitarbeiter auszugeben. Gross steht dann, was
+                              wirklich gemessen ist: die gebuchte Zeit.
+                            */
+                            <p className="tnum mt-1 text-[2rem] font-bold leading-none tracking-tight text-ink">
+                              {fmtMin(stats.istMin)}
+                            </p>
+                          )}
+                        </div>
+                        <p className="mt-3 text-sm text-ink-muted sm:mt-0 sm:shrink-0 sm:text-right">
+                          <b className="font-semibold text-ink">{stats.krankDays}</b> Tage krank ·{' '}
+                          <b className="font-semibold text-ink">{stats.urlaubDays}</b> Tage Urlaub ·{' '}
+                          <b
+                            className={`font-semibold ${
+                              stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'
+                            }`}
+                          >
+                            {stats.urlaubRest}
+                          </b>{' '}
+                          Tage Resturlaub
+                        </p>
                       </div>
                       {/*
                         DIE ZAHLEN BLEIBEN, DER ERKLAERSATZ WANDERT INS „i".
@@ -640,7 +666,7 @@ export default function AccountingView() {
                         Uebrig bleibt das Wort „laufend"; warum das zaehlt,
                         sagt das „i" auf Wunsch.
                       */}
-                      <p className="mt-2 flex flex-wrap items-center gap-x-1 text-xs text-ink-muted">
+                      <p className="mt-3 flex flex-wrap items-center gap-x-1 text-xs text-ink-muted">
                         Tagessoll {stats.dailyTargetH.toFixed(2).replace('.', ',')} h ·
                         Wochenstunden {String(stats.weeklyTarget).replace('.', ',')} h ·{' '}
                         {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
@@ -664,7 +690,7 @@ export default function AccountingView() {
                           hier — sie gehören auf die Baustelle und in die Nachkalkulation.
                         </p>
                       ) : !stats.hasConfig ? (
-                        <p className="mt-2 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+                        <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                           Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
                           sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,
                           sondern keine Aussage. Nachtragen in der Benutzerverwaltung.
@@ -672,13 +698,37 @@ export default function AccountingView() {
                       ) : null}
 
                       {completeness.missingCount > 0 && (
-                        <details className="mt-4 rounded border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger">
-                          <summary className="cursor-pointer font-semibold">
-                            {completeness.missingCount === 1
-                              ? '1 Arbeitstag ohne Buchung'
-                              : `${completeness.missingCount} Arbeitstage ohne Buchung`}
+                        /*
+                          DAS ZEICHEN ZUM AUFKLAPPEN IST UNSERES, NICHT DAS DES
+                          BROWSERS.
+
+                          Hier stand ein blankes `<summary>`. Ein solches ist
+                          `display: list-item` und bekommt damit das native
+                          Dreieck davor — mitten im roten Text, in einer App,
+                          die sonst ueberall denselben Winkel rechts benutzt
+                          (Mitarbeiterkarte, Baustellenzeile). Aus dem Betrieb:
+                          „macht der Pfeil vor dem roten text hier?"
+
+                          `flex` nimmt dem `<summary>` das Dreieck (es ist dann
+                          kein list-item mehr), `list-none` sagt es zusaetzlich
+                          fuer Browser, die das anders halten. Der Winkel steht
+                          rechts und dreht sich beim Oeffnen — dieselbe
+                          Bewegung wie eine Zeile hoeher.
+                        */
+                        <details className="group mt-4 rounded border border-line bg-surface-2 text-sm text-danger">
+                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-semibold [&::-webkit-details-marker]:hidden">
+                            <span>
+                              {completeness.missingCount === 1
+                                ? '1 Arbeitstag ohne Buchung'
+                                : `${completeness.missingCount} Arbeitstage ohne Buchung`}
+                            </span>
+                            <Icon
+                              name="chevron"
+                              size={18}
+                              className="shrink-0 transition-transform duration-200 group-open:rotate-180"
+                            />
                           </summary>
-                          <p className="mt-2 leading-relaxed">
+                          <p className="px-3 pb-2 leading-relaxed">
                             {completeness.missingDates.map((d) => dayLabel(d)).join(' · ')}
                           </p>
                         </details>
@@ -794,9 +844,30 @@ export default function AccountingView() {
 
                         return (
                           <div className="mt-4">
-                            <h4 className="section-label mb-1">Tagesnachweis</h4>
-
-                            <table className="hidden w-full text-sm sm:table">
+                            <details className="group">
+                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
+                                <span>
+                                  Tagesnachweis ·{' '}
+                                  {monthEntries.length === 1
+                                    ? '1 Eintrag'
+                                    : `${monthEntries.length} Einträge`}
+                                </span>
+                                <span className="flex shrink-0 items-center gap-2">
+                                  <span className="tnum font-normal text-ink-muted">
+                                    {fmtMin(stats.istMin)}
+                                  </span>
+                                  {/* Ohne Winkel war ueberhaupt nicht zu sehen,
+                                      dass sich hier etwas oeffnet: `flex` am
+                                      `<summary>` nimmt das native Dreieck weg,
+                                      und ein Ersatz stand nicht da. */}
+                                  <Icon
+                                    name="chevron"
+                                    size={18}
+                                    className="shrink-0 text-ink-muted transition-transform duration-200 group-open:rotate-180"
+                                  />
+                                </span>
+                              </summary>
+                              <table className="mt-1 hidden w-full text-sm sm:table">
                               <thead>
                                 <tr className="border-b border-line text-left text-ink-muted">
                                   <th className="py-2 pr-3 font-medium">Tag</th>
@@ -865,7 +936,27 @@ export default function AccountingView() {
                               </tfoot>
                             </table>
 
-                            <ul className="sm:hidden">
+                            {/*
+                              ZUGEKLAPPT — UND NUR AM TELEFON.
+
+                              Der Tagesnachweis ist der laengste Teil der Karte
+                              (bis zu einunddreissig Zeilen mit je zwei
+                              Knoepfen) und der am seltensten gebrauchte: wer
+                              eine Zeitkarte oeffnet, will meist wissen, wie der
+                              Monat steht, nicht was am 14. war. Offen schob er
+                              alles darunter aus dem Bild.
+
+                              Die Zusammenfassung sagt weiterhin, wie viele
+                              Eintraege es sind und wie viel zusammenkommt — man
+                              tippt also nur hinein, wenn man einen bestimmten
+                              Tag sucht.
+
+                              AM SCHREIBTISCH BLEIBT DIE TABELLE OFFEN. Dort ist
+                              der Tagesnachweis das Werkzeug der Buchhaltung und
+                              kein Anhang; ein zusaetzlicher Klick waere dort
+                              keine Ruhe, sondern ein Umweg.
+                            */}
+                              <ul className="sm:hidden">
                               {days.map((x) => (
                                 <li key={x.entry?.id ?? x.d} className="border-b border-line/60 py-2">
                                   <div className="flex items-baseline justify-between gap-2">
@@ -897,7 +988,8 @@ export default function AccountingView() {
                                 </span>
                                 <span className="tnum">{fmtMin(stats.istMin)}</span>
                               </li>
-                            </ul>
+                              </ul>
+                            </details>
                           </div>
                         );
                       })()}
@@ -909,9 +1001,13 @@ export default function AccountingView() {
                         <Button variant="accent" onClick={() => setExportFor(u)}>
                           Bericht für Zeitraum …
                         </Button>
-                        <Button variant="ghost" onClick={() => setExpanded(null)}>
-                          Einklappen
-                        </Button>
+                        {/*
+                          „Einklappen" ist entfallen. Der Knopf machte dasselbe
+                          wie der Kartenkopf darueber und war die Antwort auf
+                          eine Karte, die ueber den Bildschirm hinausging —
+                          seit der Tagesnachweis zugeklappt ist, ist sie das
+                          nicht mehr, und der Kopf steht wieder in Reichweite.
+                        */}
                       </div>
                     </div>
                   )}

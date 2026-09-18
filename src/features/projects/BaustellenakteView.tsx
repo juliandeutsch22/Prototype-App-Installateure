@@ -514,7 +514,7 @@ function StammdatenFormular({
       {/* Ohne Zuständige läuft eine Eilbestellung ins Leere — das gehört
           gesagt, nicht erst, wenn ein Monteur wartet. */}
       {entwurf.projectManagers.length === 0 && (
-        <p className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
           Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
           niemanden. Die Verwaltung wird weiterhin verständigt.
         </p>

@@ -133,7 +133,7 @@ export default function BaustellenSelect({
 
   if (zustand === 'fehler') {
     return (
-      <div className="rounded-sm border border-danger/30 bg-danger-bg px-3 py-2">
+      <div className="rounded-sm border border-line bg-surface-2 px-3 py-2">
         <p className="text-sm text-danger">
           Die Baustellen konnten nicht geladen werden. Ohne sie lässt sich hier nichts auswählen.
         </p>
@@ -189,7 +189,7 @@ export default function BaustellenSelect({
       </SelectField>
 
       {zustand === 'bereit' && projekte.length === 0 && (
-        <p className="mt-2 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+        <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
           Es ist noch keine Baustelle angelegt. Sie entsteht entweder direkt unter „Baustellen"
           oder automatisch, sobald ein Angebot angenommen wird.
         </p>
@@ -208,7 +208,7 @@ export default function BaustellenSelect({
         erscheint.
       */}
       {angeschnitten && (
-        <p className="mt-2 rounded-sm border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning">
+        <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
           Es werden nur die ersten {projekte.length} laufenden Baustellen angeboten. Fehlt eine,
           ist sie unter „Baustellen" zu finden — von dort führt ein Weg direkt hierher.
         </p>

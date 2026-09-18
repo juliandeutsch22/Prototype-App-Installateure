@@ -386,7 +386,7 @@ export default function TimeView() {
       */}
       {nachtraege.length > 0 && (
         <div
-          className="rounded border border-warning/30 bg-warning-bg px-3 py-2 text-sm text-warning"
+          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning"
           role="alert"
         >
           <p className="flex flex-wrap items-center gap-1">
@@ -464,7 +464,7 @@ export default function TimeView() {
 
       {doppelteTage.size > 0 && (
         <p
-          className="rounded border border-danger/30 bg-danger-bg px-3 py-2 text-sm text-danger"
+          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-danger"
           role="alert"
         >
           <strong>

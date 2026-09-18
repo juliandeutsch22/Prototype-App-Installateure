@@ -314,6 +314,34 @@ Betriebssystems. Es gibt acht Kästchen in der App und nur eines davon läuft
 durch `CheckboxField` — eine Klasse in `index.css` ist die einzige Fassung,
 die alle acht gleich hält.
 
+**Farbe lebt auf KANTEN und in SCHRIFT, nicht in Flächen.** Die
+Reitermarkierung ist eine Unterkante, der aktive Navigationseintrag eine linke
+Kante, die Seitenüberschrift ein kurzer Strich, die Warnpille ein Rand mit
+farbiger Schrift auf der Fläche der Karte.
+
+**Ein MELDUNGSKASTEN trägt die Farbe nur in der Schrift** — `border-line` wie
+jeder andere Rahmen, `bg-surface-2` als Fläche. Das ging über zwei Irrwege:
+zuerst die pastellgelb und pastellrot GEFÜLLTEN Kästen (die einzigen
+Farbflächen der App ausserhalb der Familie Türkis/Tinte — sie fielen auf, weil
+sie fremd waren, nicht weil sie dringend waren), dann eine 3 px breite linke
+Kante in der Zustandsfarbe. Die Kante war ein DRITTES Idiom neben Pille und
+Kartenkante, und drei verschiedenfarbige Balken untereinander sahen verspielt
+aus. Aus dem Betrieb: „ich bin kein Fan von diesen einseitigen Balken."
+
+Die Begründung für den jetzigen Stand ist einfacher als beide Vorgänger: in
+einem Meldungskasten IST der Text die Meldung. Die Farbe sitzt damit genau
+dort, wo die Bedeutung steht, und der Kasten bleibt ein Behälter. Der Kontrast
+ist dabei gestiegen — `--success` lag auf seinem alten Pastellgrund bei
+**4,42:1 und damit unter AA**, auf `--surface-2` sind es 4,67:1.
+
+**NICHT umgestellt sind Flächen, die keine Meldung sind:** Tageszellen im
+Kalender und im Wochenplan, der aktive Navigationseintrag, die Auswahl im
+PersonPicker, das Band am Kopf einer Akte, die Helferzeile in der
+Projektauswertung und das Verbindungsband. Das Verbindungsband ist die eine
+bewusste Ausnahme unter den Meldungen: es läuft von Rand zu Rand, und eine
+Kante allein könnte es nicht vom Seitengrund abheben — dafür braucht es eine
+Fläche.
+
 **Die leuchtenden Töne tragen nie Text.** `--accent-bright` (#12b0c6) und
 `--mint` (#66ffb0) erreichen auf Weiß 2,6:1 bzw. 1,3:1. Sie sind Kante und
 Fläche. Gelesen wird auf `--text`, `--text-muted`, `--brand` oder `--accent` —

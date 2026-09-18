@@ -395,7 +395,7 @@ export default function VacationsView() {
             zustandekommt, steht hinter dem „i": das ist einmal interessant
             und danach nur noch lang.
           */}
-          <div className="flex flex-wrap items-center rounded-sm border border-info/30 bg-info-bg px-3 py-2 text-sm text-info">
+          <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
             <strong className="tnum">
               {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
             </strong>

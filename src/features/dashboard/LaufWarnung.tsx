@@ -98,7 +98,7 @@ export default function LaufWarnung() {
   if (offen.length === 0) return null;
 
   return (
-    <div className="rounded border border-warning/40 bg-warning-bg p-4 text-warning" role="alert">
+    <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
       <p className="font-semibold">
         {offen.length === 1 ? 'Ein nächtlicher Lauf steht aus' : 'Zwei nächtliche Läufe stehen aus'}
       </p>

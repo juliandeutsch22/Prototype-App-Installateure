@@ -21,7 +21,7 @@ export default function Avatar({ name, size = 34 }: { name: string; size?: numbe
   return (
     <span
       aria-hidden
-      className="flex shrink-0 select-none items-center justify-center rounded-full bg-accent-bright font-extrabold text-ink-deep ring-2 ring-white"
+      className="flex shrink-0 select-none items-center justify-center rounded-full bg-accent-bright font-bold text-ink-deep ring-2 ring-white"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
     >
       {initialsOf(name)}

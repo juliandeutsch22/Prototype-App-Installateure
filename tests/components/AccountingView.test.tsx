@@ -159,8 +159,12 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
      * im Kleinen fest, der im Betrieb als „00:00 von 176:00 · −176:00" am
      * Monatsanfang auffiel.
      */
-    const soll = screen.getByText('Soll').previousElementSibling;
-    expect(soll).toHaveTextContent('80:00');
+    /*
+      Das Soll steht seit dem Umbau nicht mehr als eigene Kennzahl da, sondern
+      als Herleitung unter dem Saldo: „80:00 von 80:00 Soll bisher". Geprueft
+      wird unveraendert die ZAHL — nur eben dort, wo sie jetzt steht.
+    */
+    expect(screen.getByText(/von 80:00 Soll/)).toBeInTheDocument();
   });
 
   it('zeigt keinen Minus-Saldo, wenn ab Eintritt vollstaendig gebucht wurde', async () => {
@@ -169,7 +173,9 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
     // 10 gebuchte Tage a 8 Stunden = 80 Stunden Ist, und genau 80 Stunden
     // Soll bis gestern. Der Saldo ist damit ausgeglichen — und eben nicht
     // -168:00 und auch nicht -08:00 fuer den laufenden Tag.
-    const saldo = screen.getByText('Saldo').previousElementSibling;
+    // `nextElementSibling` und nicht `previous`: die Beschriftung steht jetzt
+    // ueber der Zahl, nicht darunter.
+    const saldo = screen.getByText('Saldo').nextElementSibling;
     expect(saldo).toHaveTextContent('00:00');
   });
 
