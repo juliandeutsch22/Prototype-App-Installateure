@@ -1,8 +1,8 @@
 /**
  * Baustellen — auf Postgres.
  *
- * Gleiche Aussenseite wie `fs/projects.ts`. Zwei Firestore-Eigenheiten fallen
- * dabei weg, beide unten benannt.
+ * Zwei Firestore-Eigenheiten sind beim Umzug weggefallen, beide unten
+ * benannt.
  */
 import type { Project } from '@/types';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
@@ -58,21 +58,6 @@ export async function listProjectsByIds(companyId: string, ids: string[]) {
   if (eindeutig.length === 0) return [];
   return abfragen<Project>(BAUSTELLEN, companyId, {
     wo: [{ art: 'in', feld: 'id', werte: eindeutig }],
-  });
-}
-
-/**
- * Baustellen zu einer Nummer — die Suche, die über die geladene Liste
- * hinausreicht.
- *
- * `formen` trägt weiterhin beide Schreibweisen (mit und ohne „PR-"). Das ist
- * keine Firestore-Eigenheit, sondern eine des Betriebs: beide Formen stehen
- * so in den Daten. Warum, steht in `baustellenSuche.ts`.
- */
-export function findProjectsByNumber(companyId: string, formen: string[]) {
-  if (formen.length === 0) return Promise.resolve([] as WithId<Project>[]);
-  return abfragen<Project>(BAUSTELLEN, companyId, {
-    wo: [{ art: 'in', feld: 'projectNumber', werte: formen }],
   });
 }
 

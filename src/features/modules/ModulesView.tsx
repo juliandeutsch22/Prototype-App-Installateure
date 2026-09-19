@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany } from '@/lib/db/company';
-import { MODULE, aktiveModule, istVerfuegbar, zieheMit, modul, type ModulId } from '@/lib/module';
+import { MODULE, aktiveModule, zieheMit, modul, type ModulId } from '@/lib/module';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { Marke, Warnung } from '@/components/Badge';
+import { Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
@@ -115,7 +115,6 @@ export default function ModulesView() {
       >
         <ul className="divide-y divide-line">
           {MODULE.map((m) => {
-            const verfuegbar = istVerfuegbar(m.id);
             const an = aktiv.has(m.id);
             const fehlt = m.abhaengigVon?.filter((d) => !aktiv.has(d)) ?? [];
             return (
@@ -123,10 +122,9 @@ export default function ModulesView() {
                 <div className="min-w-[12rem] flex-1">
                   <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
                     {m.name}
-                    {!verfuegbar && <Marke>nicht eingerichtet</Marke>}
                     {/* Eine Aufforderung, keine Eigenschaft: ohne das andere
                         Modul lässt sich dieses gar nicht einschalten. */}
-                    {verfuegbar && fehlt.length > 0 && (
+                    {fehlt.length > 0 && (
                       <Warnung>
                         braucht {fehlt.map((d) => modul(d)?.name ?? d).join(', ')}
                       </Warnung>
@@ -136,16 +134,6 @@ export default function ModulesView() {
                   <p className="mt-1 text-xs text-ink-muted">
                     Betrifft: {m.betrifft.join(', ')}
                   </p>
-                  {/*
-                    Ein Schalter, der nichts bewirkt, ist schlimmer als keiner.
-                    Deshalb steht hier, WARUM er gesperrt ist.
-                  */}
-                  {!verfuegbar && (
-                    <p className="mt-1 text-xs text-warning">
-                      Erst einzurichten: ohne hinterlegte Zugänge führt dieser Bereich nur in eine
-                      Fehlermeldung.
-                    </p>
-                  )}
                 </div>
 
                 <label className="flex min-h-touch shrink-0 items-center gap-3">
@@ -154,7 +142,7 @@ export default function ModulesView() {
                     type="checkbox"
                     className="checkbox checkbox-lg"
                     checked={an}
-                    disabled={!verfuegbar || (fehlt.length > 0 && !an)}
+                    disabled={fehlt.length > 0 && !an}
                     onChange={(e) => umschalten(m.id, e.target.checked)}
                     aria-label={`${m.name} ${an ? 'ausschalten' : 'einschalten'}`}
                   />

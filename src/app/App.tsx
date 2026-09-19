@@ -32,7 +32,6 @@ const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
 const PlattformView = lazy(() => import('@/features/plattform/PlattformView'));
 const DashboardView = lazy(() => import('@/features/dashboard/DashboardView'));
 const TimeView = lazy(() => import('@/features/time/TimeView'));
-const VoiceView = lazy(() => import('@/features/voice/VoiceView'));
 const OrderView = lazy(() => import('@/features/orders/OrderView'));
 const AdminOrdersView = lazy(() => import('@/features/orders/AdminOrdersView'));
 const StockView = lazy(() => import('@/features/orders/StockView'));
@@ -151,15 +150,10 @@ function AppRoutes() {
       <Route path="/" element={<RequireNav path="/"><DashboardView /></RequireNav>} />
 
       {/* Außendienst */}
-      {/* Zeit- und KI-Erfassung stehen JEDER Rolle offen (auch Buchhaltung:
-          Krankenstand/Urlaub) — wie Legacy:1954, das den Tab ungeprüft setzt. */}
+      {/* Die Zeiterfassung steht JEDER Rolle offen (auch der Buchhaltung:
+          Krankenstand und Urlaub) — wie Legacy:1954, das den Tab ungeprüft
+          setzt. */}
       <Route path="/time" element={<RequireNav path="/time"><TimeView /></RequireNav>} />
-      {/*
-        Die KI-Erfassung haengt nicht mehr am Umgebungsschalter, sondern am
-        Modul „ki" — und das ist nur waehlbar, wenn die Zugaenge hinterlegt
-        sind. Ein Sonderweg weniger.
-      */}
-      <Route path="/voice" element={<RequireNav path="/voice"><VoiceView /></RequireNav>} />
       {/*
         Drei eigene Bereiche statt eines Reiters mit Unterreitern — drei
         Tätigkeiten von drei verschiedenen Leuten. Die Rollen stehen in

@@ -19,10 +19,8 @@ import { navForRole, tabBarForRole, canAccess } from '@/app/navigation';
 describe('Welche Module gelten', () => {
   it('nimmt ohne Festlegung die Standardwerte', () => {
     const an = aktiveModule(undefined);
-    // Alles an, ausser der KI-Erfassung: die braucht hinterlegte Zugaenge.
     expect(an.has('rechnungen')).toBe(true);
     expect(an.has('material')).toBe(true);
-    expect(an.has('ki')).toBe(false);
   });
 
   it('folgt der Festlegung des Betriebs', () => {
@@ -42,10 +40,19 @@ describe('Welche Module gelten', () => {
     expect(an.has('nachkalkulation')).toBe(false);
   });
 
-  it('laesst ein Modul aus, das technisch nicht eingerichtet ist', () => {
-    // Die KI-Erfassung ohne hinterlegte Zugaenge: ein Schalter, der nichts
-    // bewirkt, ist schlimmer als keiner.
-    expect(aktiveModule({ ki: true }).has('ki')).toBe(false);
+  it('ignoriert eine Festlegung zu einem Modul, das es nicht mehr gibt', () => {
+    /*
+      DER FALL, DER WIRKLICH VORKOMMT. Die KI-Spracherfassung ist am 19.09.
+      ersatzlos entfernt worden — in den Betriebsdaten steht ihr Schalter aber
+      weiter, denn niemand wandert durch fremde Firmendokumente, um einen
+      Schlüssel zu löschen, den ohnehin niemand mehr liest.
+
+      Geprüft wird deshalb, dass ein UNBEKANNTER Schlüssel folgenlos bleibt
+      und die übrigen Module unverändert lässt.
+    */
+    const an = aktiveModule({ ki: true, gibtsNicht: false });
+    expect(an.has('rechnungen')).toBe(true);
+    expect([...an].some((m) => (m as string) === 'ki')).toBe(false);
   });
 
   it('sagt VORHER, was mit abgeschaltet wuerde', () => {

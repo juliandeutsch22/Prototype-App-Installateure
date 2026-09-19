@@ -19,9 +19,7 @@
  * Gesundheitsdaten nach Art. 9 DSGVO.
  */
 import type { Vacation } from '@/types';
-import { nutztPostgres } from './quelle';
 import type { WithId } from './core';
-import * as fs from './fs/vacations';
 import * as pg from './pg/vacations';
 
 export type NewVacation = Omit<Vacation, 'id' | 'companyId' | 'createdAt'>;
@@ -29,33 +27,27 @@ export type NewVacation = Omit<Vacation, 'id' | 'companyId' | 'createdAt'>;
 export function listOwnVacations(
   companyId: string, uid: string, max = 60,
 ): Promise<WithId<Vacation>[]> {
-  return nutztPostgres()
-    ? pg.listOwnVacations(companyId, uid, max)
-    : fs.listOwnVacations(companyId, uid, max);
+  return pg.listOwnVacations(companyId, uid, max);
 }
 
 export function listOpenVacations(
   companyId: string, max = 100,
 ): Promise<WithId<Vacation>[]> {
-  return nutztPostgres()
-    ? pg.listOpenVacations(companyId, max)
-    : fs.listOpenVacations(companyId, max);
+  return pg.listOpenVacations(companyId, max);
 }
 
 export function listApprovedVacationsInRange(
   companyId: string, vonIso: string, bisIso: string, max = 200,
 ): Promise<WithId<Vacation>[]> {
-  return nutztPostgres()
-    ? pg.listApprovedVacationsInRange(companyId, vonIso, bisIso, max)
-    : fs.listApprovedVacationsInRange(companyId, vonIso, bisIso, max);
+  return pg.listApprovedVacationsInRange(companyId, vonIso, bisIso, max);
 }
 
 export function createVacation(companyId: string, v: NewVacation): Promise<string> {
-  return nutztPostgres() ? pg.createVacation(companyId, v) : fs.createVacation(companyId, v);
+  return pg.createVacation(companyId, v);
 }
 
 export function deleteVacation(id: string): Promise<void> {
-  return nutztPostgres() ? pg.deleteVacation(id) : fs.deleteVacation(id);
+  return pg.deleteVacation(id);
 }
 
 export type { UrlaubsEntscheidung } from './pg/vacations';
@@ -69,10 +61,9 @@ import type { UrlaubsEntscheidung } from './pg/vacations';
  * muss fremde Zeiteinträge lesen und schreiben, und das darf der
  * Genehmigende nicht.
  *
- * DIESE WEICHE STEHT HIER UND NICHT IN `lib/functions.ts`, weil es unter
- * Postgres keine Function mehr ist, sondern schlicht ein Aufruf an die
- * Datenbank. `lib/functions.ts` reicht sie durch, damit die Ansicht nichts
- * merkt.
+ * DAS IST KEINE FUNCTION, SONDERN EIN AUFRUF AN DIE DATENBANK — in EINER
+ * Transaktion statt in einem Stapel, den ein Abbruch halb stehen liesse.
+ * `lib/functions.ts` reicht ihn nur durch, damit die Ansicht nichts merkt.
  */
 export function entscheiden(daten: {
   vacationId: string;
@@ -80,9 +71,6 @@ export function entscheiden(daten: {
   grund?: string;
   entscheiderName?: string;
 }): Promise<UrlaubsEntscheidung> {
-  if (!nutztPostgres()) {
-    throw new Error('Unter Firestore entscheidet die Cloud Function — siehe lib/functions.ts.');
-  }
   return pg.entscheiden(daten);
 }
 

@@ -34,13 +34,13 @@ function signaturen(): string[] {
     /*
       NUR DIE AUSSENSEITE, nicht das Innere.
 
-      Der Vertrag sagt zu, dass die Ansichten nichts merken. Sie importieren
-      aus `src/lib/db/x.ts` — den Weichen. Was in `fs/` und `pg/` steht, ist
-      das Innere, das diese Stufe gerade austauscht; es hier festzunageln
-      hiesse, die Fassung bei jedem Modul nachzuziehen, und eine Fassung, die
-      dauernd nachgezogen wird, sagt bald gar nichts mehr.
+      Der Vertrag sagt zu, dass die Ansichten von einem Wechsel der Datenbank
+      nichts merken. Sie importieren aus `src/lib/db/x.ts`. Was in `pg/` steht,
+      ist das Innere; es hier festzunageln hiesse, die Fassung bei jeder
+      Änderung nachzuziehen, und eine Fassung, die dauernd nachgezogen wird,
+      sagt bald gar nichts mehr.
     */
-    if (pfad.startsWith('src/lib/db/fs/') || pfad.startsWith('src/lib/db/pg/')) continue;
+    if (pfad.startsWith('src/lib/db/pg/')) continue;
 
     const modul = pruefer.getSymbolAtLocation(quelle);
     if (!modul) continue;

@@ -5,9 +5,9 @@ import {
   listOpenVacations,
   createVacation,
   deleteVacation,
+  entscheiden as urlaubEntscheiden,
 } from '@/lib/db/vacations';
 import { getUserByUid } from '@/lib/db/users';
-import { callUrlaubEntscheiden } from '@/lib/functions';
 import { darfUrlaubEntscheiden } from '@/lib/permissions';
 import { postenNeuLaden } from '@/app/offenePosten';
 import { todayStr, urlaubsTage, urlaubsStand, uebertragsRegel } from '@/lib/time';
@@ -241,7 +241,7 @@ export default function VacationsView() {
     setArbeitet(antrag.id);
     setError(null);
     try {
-      const { data } = await callUrlaubEntscheiden({
+      const data = await urlaubEntscheiden({
         vacationId: antrag.id,
         entscheidung,
         grund,

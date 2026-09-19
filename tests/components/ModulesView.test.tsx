@@ -16,7 +16,7 @@ import type { Company } from '@/types';
  *      braucht die Rechnungen — wer sie abschaltet und das erst hinterher
  *      merkt, ist überrascht, und Überraschung ist bei Einstellungen das
  *      Gegenteil von Kontrolle.
- *   2. Ein Schalter, der nichts bewirken kann, ist gesperrt UND begründet.
+ *   2. Kein Modul behauptet eine Voraussetzung, die es nicht gibt.
  */
 
 const updateCompany = vi.fn<[string, Record<string, unknown>], Promise<void>>(
@@ -72,22 +72,26 @@ describe('Die Liste', () => {
 
   it('zählt, wie viele eingeschaltet sind', async () => {
     zeige();
-    // Ohne Festlegung gelten die Standards; die KI-Erfassung ist ohne
-    // hinterlegte Zugänge nicht verfügbar und zählt deshalb nicht mit.
+    // Ohne Festlegung gelten die Standardwerte der Module.
     expect(screen.getByText(/^Eingeschaltet: \d+ von \d+$/)).toBeInTheDocument();
   });
 
-  it('sperrt einen Schalter, der nichts bewirken kann — und sagt warum', async () => {
+  it('führt kein Modul mehr, das technisch nicht einrichtbar wäre', () => {
     /*
-      Die KI-Erfassung braucht hinterlegte Zugänge. Ohne sie führt der Knopf
-      nur in eine Fehlermeldung; ein Schalter, der nichts tut, ist schlimmer
-      als keiner. Deshalb gesperrt UND begründet.
+      HIER STAND DIE KI-SPRACHERFASSUNG. Sie brauchte hinterlegte Zugänge zu
+      zwei fremden Diensten; ohne sie führte der Schalter nur in eine
+      Fehlermeldung, also war er gesperrt und begründet — „nicht
+      eingerichtet".
+
+      Sie ist am 19.09.2026 ersatzlos entfernt worden, und mit ihr der dritte
+      Zustand. Diese Zeile bleibt als AUSSAGE stehen: solange kein Modul eine
+      Voraussetzung hat, darf auch keine Oberfläche dafür da sein. Eine
+      gesperrte Schaltfläche ohne Modul, das sie sperrt, wäre ein Versprechen
+      ohne Gegenstand.
     */
     zeige();
-    expect(schalter('KI-Spracherfassung')).toBeDisabled();
-    expect(screen.getByText('nicht eingerichtet')).toBeInTheDocument();
-    expect(screen.getByText(/ohne hinterlegte Zugänge führt dieser Bereich/))
-      .toBeInTheDocument();
+    expect(screen.queryByText('nicht eingerichtet')).toBeNull();
+    expect(screen.queryByText(/ohne hinterlegte Zugänge/)).toBeNull();
   });
 });
 

@@ -5,12 +5,9 @@ import {
   subscribeRecentProjects,
   createProject,
   deleteProject,
-  findProjectsByNumber,
   searchProjects,
   reserveProjectNumber,
 } from '@/lib/db/projects';
-import { nutztPostgres } from '@/lib/db/quelle';
-import { deuteBaustellenSuche, baustellenSuchHinweis } from './baustellenSuche';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
 import { useModul } from '@/lib/useModule';
@@ -292,21 +289,17 @@ export default function AdminProjectsView() {
    * bleibt eine Suche im Geladenen. Warum diese Trennung und keine
    * Volltextsuche: siehe `baustellenSuche.ts`.
    */
-  const absicht = useMemo(() => deuteBaustellenSuche(suche), [suche]);
-
   const [serverTreffer, setServerTreffer] = useState<WithId<Project>[]>([]);
 
   /*
-    UNTER POSTGRES GEHT JEDE EINGABE AN DEN SERVER, nicht nur eine Nummer.
+    JEDE EINGABE GEHT AN DEN SERVER und sucht über Nummer, Kunde und Adresse,
+    auch mitten im Wort.
 
-    Die Einschränkung auf Nummern war eine Notlösung: Firestore kann nur
-    Anfänge einer sortierten Spalte vergleichen, also war „B-2026-0042"
-    findbar und „Seestraße" nicht. Postgres sucht über Nummer, Kunde und
-    Adresse, und auch mitten im Wort.
-
-    `deuteBaustellenSuche` bleibt für die Firestore-Seite stehen und
-    verschwindet mit ihr in Stufe 9 — solange beide laufen, muss jede das
-    Beste können, was sie kann.
+    Bis zum Abbau von Firestore ging nur eine BAUSTELLENNUMMER an den Server,
+    weil dort nur Anfänge einer sortierten Spalte vergleichbar waren:
+    „2026-0042" war findbar, „Seestraße" nicht. Mit dieser Einschränkung sind
+    auch die beiden Hinweissätze gefallen, die sie dem Benutzer erklärten —
+    sie behaupteten zuletzt etwas, das nicht mehr stimmte.
 
     DIE VERZÖGERUNG IST KEIN FEINSCHLIFF. Zwischen zwei Anschlägen liegen
     Millisekunden, eine Abfrage dauert länger; ohne sie stünden zwanzig
@@ -319,36 +312,32 @@ export default function AdminProjectsView() {
       return;
     }
     const begriff = suche.trim();
-    const nummernweg = !nutztPostgres();
-    if (nummernweg ? absicht.art !== 'nummer' : begriff === '') {
+    if (begriff === '') {
       setServerTreffer([]);
       return;
     }
 
     let verworfen = false;
-    const formen = absicht.art === 'nummer' ? absicht.formen : [];
     const verzoegert = setTimeout(() => {
-      void (nummernweg
-        ? findProjectsByNumber(user.companyId, formen)
-        : searchProjects(user.companyId, begriff))
+      void searchProjects(user.companyId, begriff)
         .then((gefunden) => {
           if (!verworfen) setServerTreffer(gefunden);
         })
         /*
           Ein Fehlschlag laesst die oertliche Suche stehen, statt die Liste zu
-          leeren: was geladen ist, ist deshalb nicht falsch. Gemeldet wird er
-          trotzdem — unten steht dann, dass ueber die Nummer nichts dazukam.
+          leeren: was geladen ist, ist deshalb nicht falsch. Unten steht dann
+          nur nicht mehr, dass vom Server etwas dazukam.
         */
         .catch(() => {
           if (!verworfen) setServerTreffer([]);
         });
-    }, nummernweg ? 0 : 300);
+    }, 300);
 
     return () => {
       verworfen = true;
       clearTimeout(verzoegert);
     };
-  }, [user, absicht, suche]);
+  }, [user, suche]);
 
   const visible = useMemo(() => {
     const nachStatus =
@@ -379,12 +368,9 @@ export default function AdminProjectsView() {
 
   /** Wie viele Treffer NUR vom Server kamen — das ist die Aussage, nicht die Summe. */
   const nurVomServer = useMemo(() => {
-    // Unter Firestore kommen Servertreffer nur bei einer Nummer; unter
-    // Postgres bei jeder Eingabe.
-    if (!nutztPostgres() && absicht.art !== 'nummer') return 0;
     const geladen = new Set(sorted.map((p) => p.id));
     return serverTreffer.filter((p) => !geladen.has(p.id)).length;
-  }, [absicht, serverTreffer, sorted]);
+  }, [serverTreffer, sorted]);
 
   if (!user) return null;
 
@@ -564,9 +550,6 @@ export default function AdminProjectsView() {
               Der Hinweis steht deshalb waehrend des Tippens da und nicht
               erst im Leerzustand.
             */}
-            {suche.trim() && (
-              <p className="mt-1 text-xs text-ink-muted">{baustellenSuchHinweis(absicht)}</p>
-            )}
             {nurVomServer > 0 && (
               <p className="mt-1 text-xs text-ink">
                 {nurVomServer === 1
@@ -686,17 +669,19 @@ export default function AdminProjectsView() {
           Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende gescrollt
           hat und nichts gefunden hat, braucht die Auskunft.
 
-          Der Satz ist seither GENAUER: die Nummer geht auf den Server, Kunde
-          und Adresse nicht. „Die Suche geht nur über diese" wäre jetzt falsch,
-          und eine Auskunft, die einmal danebenlag, wird beim nächsten Mal
-          nicht mehr geglaubt.
+          KEIN SUCHSATZ MEHR. Er sagte „Nach Kunde und Adresse wird nur in
+          diesen gesucht" — richtig unter Firestore, seit dem Abbau falsch:
+          die Datenbank sucht über Nummer, Kunde und Adresse im ganzen
+          Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
+          angezeigt wird. Eine Auskunft, die einmal danebenlag, wird beim
+          nächsten Mal nicht mehr geglaubt.
         */}
         <Nachladen
           geladen={projects.length}
           grenze={grenze}
           onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
           einheit="Baustellen"
-          sucheSatz="Nach Kunde und Adresse wird nur in diesen gesucht; eine Baustellennummer geht auf den Server."
+          sucheImBrowser={false}
         />
       </Card>
 

@@ -26,7 +26,6 @@ import { List, ListRow } from '@/components/ListRow';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
-import { nutztPostgres } from '@/lib/db/quelle';
 
 const LEER: NewCustomer = {
   name: '',
@@ -557,12 +556,7 @@ export default function CustomersView() {
               für das, was OHNE Suchbegriff angezeigt wird. Der Knopf bleibt
               deshalb stehen, der Satz daneben nicht.
             */
-            sucheImBrowser={!nutztPostgres()}
-            sucheSatz={
-              nutztPostgres()
-                ? undefined
-                : 'Die Suche geht nur über diese.'
-            }
+            sucheImBrowser={false}
           />
         )}
       </Card>

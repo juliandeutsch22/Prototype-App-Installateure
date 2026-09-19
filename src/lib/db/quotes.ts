@@ -9,43 +9,35 @@
  * niemand traut.
  */
 import type { Quote } from '@/types';
-import { nutztPostgres } from './quelle';
 import type { WithId } from './core';
-import * as fs from './fs/quotes';
 import * as pg from './pg/quotes';
 
 export type NewQuote = Omit<Quote, 'id' | 'companyId' | 'createdAt'>;
 
 export function listRecentQuotes(companyId: string, max = 100): Promise<WithId<Quote>[]> {
-  return nutztPostgres()
-    ? pg.listRecentQuotes(companyId, max)
-    : fs.listRecentQuotes(companyId, max);
+  return pg.listRecentQuotes(companyId, max);
 }
 
 export function listQuotesForCustomer(
   companyId: string, customerId: string, max = 100,
 ): Promise<WithId<Quote>[]> {
-  return nutztPostgres()
-    ? pg.listQuotesForCustomer(companyId, customerId, max)
-    : fs.listQuotesForCustomer(companyId, customerId, max);
+  return pg.listQuotesForCustomer(companyId, customerId, max);
 }
 
 export function createQuote(companyId: string, q: NewQuote): Promise<string> {
-  return nutztPostgres() ? pg.createQuote(companyId, q) : fs.createQuote(companyId, q);
+  return pg.createQuote(companyId, q);
 }
 
 export function updateQuote(id: string, data: Partial<NewQuote>): Promise<void> {
-  return nutztPostgres() ? pg.updateQuote(id, data) : fs.updateQuote(id, data);
+  return pg.updateQuote(id, data);
 }
 
 export function deleteQuote(id: string): Promise<void> {
-  return nutztPostgres() ? pg.deleteQuote(id) : fs.deleteQuote(id);
+  return pg.deleteQuote(id);
 }
 
 export function reserveQuoteNumber(companyId: string, praefix?: string): Promise<string> {
-  return nutztPostgres()
-    ? pg.reserveQuoteNumber(companyId, praefix)
-    : fs.reserveQuoteNumber(companyId, praefix);
+  return pg.reserveQuoteNumber(companyId, praefix);
 }
 
 export type { WithId };

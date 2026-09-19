@@ -24,15 +24,6 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
-/*
-  DIE DATENQUELLE ENTSCHEIDET, WELCHE LÄUFE ES GIBT. Unter Firestore zwei,
-  unter Postgres nur die Ausleitung — die Monatsbilanz ist dort eine Sicht und
-  kein Lauf. Die Vorgabe hier ist Firestore, damit die bestehenden Prüfungen
-  weiter beide Läufe meinen; der Postgres-Zweig hat unten seinen eigenen Block.
-*/
-let postgres = false;
-vi.mock('@/lib/db/quelle', () => ({ nutztPostgres: () => postgres }));
-
 const { default: LaufWarnung } = await import('@/features/dashboard/LaufWarnung');
 
 function zeige() {
@@ -51,17 +42,16 @@ beforeEach(() => {
   laeufe = {};
   ladeLauf.mockClear();
   authWert.user.role = 'Geschäftsführung';
-  postgres = false;
 });
 
 describe('Wenn alles läuft', () => {
   it('steht gar nichts da', async () => {
-    laeufe = { ausleitung: lauf('ausleitung', 6), bilanzen: lauf('bilanzen', 5) };
+    laeufe = { ausleitung: lauf('ausleitung', 6) };
     const { container } = zeige();
     // ERST WARTEN, BIS GELADEN IST. Am Anfang ist ohnehin nichts da; eine
     // Zusicherung darauf ginge durch, ohne je etwas geprüft zu haben — genau
     // das ist mir hier beim ersten Anlauf passiert.
-    await waitFor(() => expect(ladeLauf).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(ladeLauf).toHaveBeenCalledTimes(1));
     // Nicht „grün melden": eine Kachel, die immer da ist, sieht nach zwei
     // Wochen niemand mehr.
     expect(container.querySelector('[role="alert"]')).toBeNull();
@@ -71,18 +61,29 @@ describe('Wenn alles läuft', () => {
 
 describe('Wenn ein Lauf ausbleibt', () => {
   it('meldet sich mit dem Weg dorthin', async () => {
-    laeufe = { ausleitung: lauf('ausleitung', 80), bilanzen: lauf('bilanzen', 4) };
+    laeufe = { ausleitung: lauf('ausleitung', 80) };
     zeige();
     expect(await screen.findByRole('alert')).toHaveTextContent('Sicherung');
     expect(screen.getByRole('link', { name: 'Zur Datensicherung' })).toBeInTheDocument();
-    // Der Bilanzlauf ist in Ordnung und wird deshalb nicht mitgenannt.
-    expect(screen.queryByText(/Bilanzlauf/)).not.toBeInTheDocument();
   });
 
-  it('nennt beide, wenn beide ausbleiben', async () => {
-    laeufe = { ausleitung: lauf('ausleitung', 80), bilanzen: lauf('bilanzen', 80) };
+  it('in der Einzahl, solange es nur einen Lauf gibt', async () => {
+    /*
+      BIS ZUM 19.09. STAND HIER DAS GEGENTEIL: „nennt beide, wenn beide
+      ausbleiben". Es gab zwei Nachtläufe — die Sicherung und den Bilanzlauf,
+      der die Monatssummen vorrechnete. Unter Postgres ist die Monatsbilanz
+      eine Sicht; es gibt nur noch einen Lauf.
+
+      Die Mehrzahl steht in der Ansicht weiterhin da und ist RICHTIG so: sie
+      ist die Regel für eine Liste, nicht ein Schalter für einen zweiten Lauf.
+      Kommt je einer dazu, soll die Überschrift von selbst stimmen. Bis dahin
+      hält diese Zeile fest, dass die Einzahl erscheint — und fällt, sobald
+      jemand einen zweiten Lauf einträgt, ohne die Prüfungen mitzunehmen.
+    */
+    laeufe = { ausleitung: lauf('ausleitung', 80) };
     zeige();
-    expect(await screen.findByText('Zwei nächtliche Läufe stehen aus')).toBeInTheDocument();
+    expect(await screen.findByText('Ein nächtlicher Lauf steht aus')).toBeInTheDocument();
+    expect(screen.queryByText(/Läufe stehen aus/)).not.toBeInTheDocument();
   });
 
   it('meldet auch den Lauf, von dem NICHTS bekannt ist', async () => {
@@ -93,7 +94,7 @@ describe('Wenn ein Lauf ausbleibt', () => {
       Ihn zu verschweigen wäre die stillste Art, eine fehlende Sicherung zu
       verstecken.
     */
-    laeufe = { bilanzen: lauf('bilanzen', 4) };
+    laeufe = {};
     zeige();
     expect(await screen.findByRole('alert')).toHaveTextContent('noch nie');
   });
@@ -136,21 +137,19 @@ describe('Wer sie sieht', () => {
   });
 });
 
-describe('Unter Postgres gibt es den Bilanzlauf gar nicht', () => {
+describe('Den Bilanzlauf gibt es nicht mehr', () => {
   /*
     DER BEFUND AUS DEM BETRIEB. Auf der Startseite stand dauerhaft „Ein
     nächtlicher Lauf steht aus", verlinkt auf die Monatsbilanzen. Er war
-    tatsächlich nie durchgelaufen und wird es nie: unter Postgres ist
-    `monthly_stats` eine SICHT, es gibt nichts nachzuziehen, keinen Lauf und
-    keinen Eintrag in `cron`. Die Einstellungen sagen das auch so — nur die
-    Startseite fragte weiter danach.
+    tatsächlich nie durchgelaufen und wird es nie: `monthly_stats` ist eine
+    SICHT, es gibt nichts nachzuziehen, keinen Lauf und keinen Eintrag in
+    `cron`. Die Einstellungen sagten das auch so — nur die Startseite fragte
+    weiter danach.
 
     Eine Warnung, die niemand abstellen kann, ist schlimmer als keine: sie
     bringt einem bei, die Stelle zu übersehen, an der eines Tages die
     ausgefallene SICHERUNG steht.
   */
-  beforeEach(() => { postgres = true; });
-
   it('fragt gar nicht erst nach ihm', async () => {
     laeufe = { ausleitung: lauf('ausleitung', 6) };
     zeige();

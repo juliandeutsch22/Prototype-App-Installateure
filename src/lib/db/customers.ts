@@ -15,59 +15,49 @@
  */
 import type { Customer, Project } from '@/types';
 import { KUNDEN_GRENZE } from '@/lib/listengrenzen';
-import { nutztPostgres } from './quelle';
 import type { WithId } from './core';
-import * as fs from './fs/customers';
 import * as pg from './pg/customers';
 
 export type NewCustomer = Omit<Customer, 'id' | 'companyId' | 'createdAt'>;
 
 export function listCustomers(companyId: string, max = KUNDEN_GRENZE): Promise<WithId<Customer>[]> {
-  return nutztPostgres() ? pg.listCustomers(companyId, max) : fs.listCustomers(companyId, max);
+  return pg.listCustomers(companyId, max);
 }
 
 export function listCustomersByIds(companyId: string, ids: string[]): Promise<WithId<Customer>[]> {
-  return nutztPostgres() ? pg.listCustomersByIds(companyId, ids) : fs.listCustomersByIds(companyId, ids);
+  return pg.listCustomersByIds(companyId, ids);
 }
 
 export function listProjectsForCustomer(
   companyId: string, customerId: string, max = 300,
 ): Promise<WithId<Project>[]> {
-  return nutztPostgres()
-    ? pg.listProjectsForCustomer(companyId, customerId, max)
-    : fs.listProjectsForCustomer(companyId, customerId, max);
+  return pg.listProjectsForCustomer(companyId, customerId, max);
 }
 
 export function listUnlinkedProjectsByName(
   companyId: string, customerName: string, max = 50,
 ): Promise<WithId<Project>[]> {
-  return nutztPostgres()
-    ? pg.listUnlinkedProjectsByName(companyId, customerName, max)
-    : fs.listUnlinkedProjectsByName(companyId, customerName, max);
+  return pg.listUnlinkedProjectsByName(companyId, customerName, max);
 }
 
 export function createCustomer(companyId: string, c: NewCustomer): Promise<string> {
-  return nutztPostgres() ? pg.createCustomer(companyId, c) : fs.createCustomer(companyId, c);
+  return pg.createCustomer(companyId, c);
 }
 
 export function updateCustomer(
   companyId: string, id: string, data: Partial<NewCustomer>,
 ): Promise<number> {
-  return nutztPostgres()
-    ? pg.updateCustomer(companyId, id, data)
-    : fs.updateCustomer(companyId, id, data);
+  return pg.updateCustomer(companyId, id, data);
 }
 
 export function deleteCustomer(companyId: string, id: string): Promise<void> {
-  return nutztPostgres() ? pg.deleteCustomer(companyId, id) : fs.deleteCustomer(companyId, id);
+  return pg.deleteCustomer(companyId, id);
 }
 
 export function assignProjectToCustomer(
   projectId: string, customerId: string, customerName: string,
 ): Promise<void> {
-  return nutztPostgres()
-    ? pg.assignProjectToCustomer(projectId, customerId, customerName)
-    : fs.assignProjectToCustomer(projectId, customerId, customerName);
+  return pg.assignProjectToCustomer(projectId, customerId, customerName);
 }
 
 export type { WithId };
@@ -86,7 +76,5 @@ export type { WithId };
 export function searchCustomers(
   companyId: string, begriff: string, max = KUNDEN_GRENZE,
 ): Promise<WithId<Customer>[]> {
-  return nutztPostgres()
-    ? pg.searchCustomers(companyId, begriff, max)
-    : fs.searchCustomers(companyId, begriff, max);
+  return pg.searchCustomers(companyId, begriff, max);
 }

@@ -1,9 +1,8 @@
 /**
  * Kundenstammdaten — auf Postgres.
  *
- * Gleiche Aussenseite wie `fs/customers.ts`, anderes Inneres. Zwei Stellen
- * werden dabei nicht nur übersetzt, sondern richtig gestellt; beide sind unten
- * kommentiert.
+ * Zwei Stellen wurden beim Umzug von Firestore nicht nur übersetzt, sondern
+ * richtig gestellt; beide sind unten kommentiert.
  */
 import type { Customer, Project } from '@/types';
 import { KUNDEN_GRENZE } from '@/lib/listengrenzen';

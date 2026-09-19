@@ -1,4 +1,3 @@
-import { VOICE_ENABLED } from './features';
 
 /**
  * Module: welche Teile der App ein Betrieb überhaupt benutzt.
@@ -35,8 +34,7 @@ export type ModulId =
   | 'rechnungen'
   | 'nachkalkulation'
   | 'wartung'
-  | 'zeitkonten'
-  | 'ki';
+  | 'zeitkonten';
 
 export interface Modul {
   id: ModulId;
@@ -55,14 +53,6 @@ export interface Modul {
   abhaengigVon?: ModulId[];
   /** Was in der Navigation verschwindet — für die Anzeige im Panel. */
   betrifft: string[];
-  /**
-   * Technisch überhaupt möglich?
-   *
-   * Getrennt von „eingeschaltet": die KI-Erfassung braucht hinterlegte
-   * Zugänge. Ohne sie führt der Knopf nur in eine Fehlermeldung, und ein
-   * Schalter, der nichts bewirkt, ist schlimmer als keiner.
-   */
-  verfuegbar?: () => boolean;
 }
 
 /**
@@ -148,23 +138,23 @@ export const MODULE: Modul[] = [
     standard: true,
     betrifft: ['Mitarbeiterübersicht'],
   },
-  {
-    id: 'ki',
-    name: 'KI-Spracherfassung',
-    zweck: 'Zeiteintrag diktieren statt tippen.',
-    standard: false,
-    betrifft: ['KI-Erfassung'],
-    verfuegbar: () => VOICE_ENABLED,
-  },
 ];
 
 const NACH_ID = new Map(MODULE.map((m) => [m.id, m]));
 
-/** Ist dieses Modul technisch überhaupt möglich? */
-export function istVerfuegbar(id: ModulId): boolean {
-  const m = NACH_ID.get(id);
-  return m ? (m.verfuegbar ? m.verfuegbar() : true) : false;
-}
+/*
+  HIER STAND EIN DRITTER ZUSTAND: „technisch nicht eingerichtet".
+
+  Er hatte genau einen Nutzer, die KI-Spracherfassung — sie brauchte
+  hinterlegte Zugänge zu zwei fremden Diensten, und ohne sie führte der
+  Schalter nur in eine Fehlermeldung. Mit ihr ist er am 19.09. gefallen.
+
+  ERSATZLOS UND NICHT VORSORGLICH STEHENGELASSEN. Ein Mechanismus, den kein
+  Modul mehr benutzt, lässt sich nicht prüfen; die Oberfläche dazu („nicht
+  eingerichtet", der gesperrte Schalter, der erklärende Satz) wäre eine
+  Zusage, für die niemand mehr geradesteht. Braucht ein künftiges Modul eine
+  Voraussetzung, sind es fünf Zeilen — und dann wieder mit einer Prüfung.
+*/
 
 /**
  * Welche Module gelten tatsächlich?
@@ -173,8 +163,8 @@ export function istVerfuegbar(id: ModulId): boolean {
  *
  *   1. der Standard des Moduls
  *   2. die Festlegung des Betriebs (nur die Abweichungen sind gespeichert)
- *   3. die Wirklichkeit: technisch nicht verfügbar oder eine Abhängigkeit
- *      fehlt -> aus, egal was jemand eingestellt hat
+ *   3. die Wirklichkeit: fehlt eine Abhängigkeit, ist es aus — egal was
+ *      jemand eingestellt hat
  *
  * Stufe 3 ist der Grund, warum es diese Funktion gibt und nicht nur ein
  * Nachschlagen im Firmendokument. Wer die Rechnungen abschaltet und die
@@ -186,7 +176,7 @@ export function aktiveModule(festlegung: Record<string, boolean> | undefined): S
   const an = new Set<ModulId>();
   for (const m of MODULE) {
     const gewollt = festlegung?.[m.id] ?? m.standard;
-    if (gewollt && istVerfuegbar(m.id)) an.add(m.id);
+    if (gewollt) an.add(m.id);
   }
 
   /**

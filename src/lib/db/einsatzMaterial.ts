@@ -13,18 +13,14 @@
  * jetzt in `fs/einsatzMaterial.ts`, wo sie gebraucht wird und stimmt.
  */
 import type { EinsatzMaterial, RuestPosition } from '@/types';
-import { nutztPostgres } from './quelle';
 import type { WithId } from './core';
-import * as fs from './fs/einsatzMaterial';
 import * as pg from './pg/einsatzMaterial';
 
 export function listEinsatzMaterialForDate(
   companyId: string,
   date: string,
 ): Promise<WithId<EinsatzMaterial>[]> {
-  return nutztPostgres()
-    ? pg.listEinsatzMaterialForDate(companyId, date)
-    : fs.listEinsatzMaterialForDate(companyId, date);
+  return pg.listEinsatzMaterialForDate(companyId, date);
 }
 
 export function subscribeEinsatzMaterialForDate(
@@ -33,9 +29,7 @@ export function subscribeEinsatzMaterialForDate(
   cb: (rows: WithId<EinsatzMaterial>[]) => void,
   onError: (e: Error) => void,
 ): () => void {
-  return nutztPostgres()
-    ? pg.subscribeEinsatzMaterialForDate(companyId, date, cb, onError)
-    : fs.subscribeEinsatzMaterialForDate(companyId, date, cb, onError);
+  return pg.subscribeEinsatzMaterialForDate(companyId, date, cb, onError);
 }
 
 export function getEinsatzMaterial(
@@ -43,9 +37,7 @@ export function getEinsatzMaterial(
   date: string,
   projectNumber: string,
 ): Promise<WithId<EinsatzMaterial> | null> {
-  return nutztPostgres()
-    ? pg.getEinsatzMaterial(companyId, date, projectNumber)
-    : fs.getEinsatzMaterial(companyId, date, projectNumber);
+  return pg.getEinsatzMaterial(companyId, date, projectNumber);
 }
 
 export function saveEinsatzMaterial(
@@ -56,9 +48,7 @@ export function saveEinsatzMaterial(
   uids: string[],
   updatedBy: string,
 ): Promise<void> {
-  return nutztPostgres()
-    ? pg.saveEinsatzMaterial(companyId, date, projectNumber, positionen, uids, updatedBy)
-    : fs.saveEinsatzMaterial(companyId, date, projectNumber, positionen, uids, updatedBy);
+  return pg.saveEinsatzMaterial(companyId, date, projectNumber, positionen, uids, updatedBy);
 }
 
 export function ladenUmschalten(
@@ -69,9 +59,7 @@ export function ladenUmschalten(
   an: boolean,
   vonName: string,
 ): Promise<void> {
-  return nutztPostgres()
-    ? pg.ladenUmschalten(companyId, date, projectNumber, positionId, an, vonName)
-    : fs.ladenUmschalten(companyId, date, projectNumber, positionId, an, vonName);
+  return pg.ladenUmschalten(companyId, date, projectNumber, positionId, an, vonName);
 }
 
 export type { WithId };

@@ -63,15 +63,10 @@ const NUR_ADMIN: Role[] = ['Administrator'];
 export const NAV: NavItem[] = [
   { path: '/', label: 'Dashboard', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
 
-  // Zeiterfassung + KI-Erfassung: JEDE Rolle muss die eigene Zeit buchen können
-  // (auch Buchhaltung: Krankenstand/Urlaub). Legacy setzt den Tab unbedingt,
-  // ohne Rollenprüfung (perl-installateur-web-app.html:1954).
+  // JEDE Rolle muss die eigene Zeit buchen können (auch die Buchhaltung:
+  // Krankenstand und Urlaub). Legacy setzt den Tab unbedingt, ohne
+  // Rollenprüfung (perl-installateur-web-app.html:1954).
   { path: '/time', label: 'Zeiterfassung', short: 'Zeit', icon: 'clock', roles: ALL, group: 'Außendienst' },
-  // Die KI-Erfassung stand frueher als Sonderfall per Umgebungsschalter in
-  // dieser Liste. Sie ist jetzt ein Modul wie jedes andere — mit dem
-  // Unterschied, dass sie ohne hinterlegte Zugaenge gar nicht erst waehlbar
-  // ist (siehe `verfuegbar` in lib/module.ts).
-  { path: '/voice', label: 'KI-Erfassung', short: 'KI', icon: 'mic', roles: ALL, group: 'Außendienst', modul: 'ki' },
   /*
    * MATERIAL SIND DREI EIGENE BEREICHE, KEIN REITER MIT UNTERREITERN.
    *

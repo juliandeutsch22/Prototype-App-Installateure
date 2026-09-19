@@ -128,6 +128,90 @@ describe('Zeilenschutz', () => {
   });
 });
 
+describe('Indizes', () => {
+  /*
+    DIE FRAGE, DIE MIT FIRESTORE NICHT VERSCHWUNDEN IST.
+
+    Bis zum 19.09.2026 stellte sie `tests/unit/indexabgleich.test.ts`: hat jede
+    Abfrage den zusammengesetzten Index, den sie in Produktion braucht? Dort
+    war sie dringend, weil eine Abfrage ohne Index in Firestore HART
+    SCHEITERT — „The query requires an index", und die Ansicht steht leer da.
+    Genau so ist einmal die Kundenakte ausgefallen.
+
+    POSTGRES SCHEITERT NICHT, ES WIRD LANGSAM. Das ist die unangenehmere
+    Sorte: bei zwanzig Testzeilen fällt nichts auf, und der sequenzielle Scan
+    zeigt sich erst beim Kunden mit vier Jahren Historie. Ein Test kann das
+    nicht messen — was er prüfen kann, ist die Voraussetzung.
+
+    JEDE ABFRAGE DIESER APP FILTERT AUF `company_id`; das ist die
+    Mandantentrennung und keine Wahl. Eine Stammtabelle ohne Index, der mit
+    dieser Spalte ANFÄNGT, liest bei jeder einzelnen Abfrage die Zeilen aller
+    Betriebe. Geprüft wird deshalb die ERSTE Spalte und nicht bloss das
+    Vorkommen: ein Index auf `(status, company_id)` hilft dieser Abfrage
+    nicht.
+
+    KINDTABELLEN SIND DIE AUSNAHME, UND ZWAR EINE ECHTE. Die Zeilen einer
+    Rechnung, die Stunden eines Scheins, die Positionen einer Rüstliste werden
+    über ihren ELTERNSCHLÜSSEL geholt, nie über den Betrieb allein; für sie
+    wäre ein führendes `company_id` der falsche Index. Sie tragen `company_id`
+    trotzdem, weil der Zeilenschutz es braucht.
+
+    Beim ersten Lauf hat genau das die strengere Fassung dieser Prüfung
+    gemeldet — acht Tabellen, alle mit dem richtigen Index auf dem
+    Elternschlüssel. Die Regel wurde also nicht aufgeweicht, sondern
+    richtiggestellt: verlangt wird ein Index, der mit `company_id` ODER mit
+    einem Fremdschlüssel beginnt. Ohne beides liest die Tabelle sequenziell.
+  */
+  it('hat auf jeder Betriebstabelle einen Index für den Weg, auf dem sie gelesen wird', async () => {
+    const ohne = await zeilen<{ tabelle: string }>(`
+      with betriebstabellen as (
+        select c.table_name as tabelle
+          from information_schema.columns c
+          join pg_tables t
+            on t.schemaname = 'public' and t.tablename = c.table_name
+         where c.table_schema = 'public' and c.column_name = 'company_id'
+      ),
+      fremdschluessel as (
+        select con.conrelid as tabelle_oid, unnest(con.conkey) as spalte
+          from pg_constraint con
+         where con.contype = 'f'
+      ),
+      brauchbar as (
+        select t.relname as tabelle
+          from pg_index i
+          join pg_class  ix on ix.oid = i.indexrelid
+          join pg_class  t  on t.oid  = i.indrelid
+          join pg_namespace n on n.oid = t.relnamespace
+          join pg_attribute a
+            on a.attrelid = t.oid and a.attnum = i.indkey[0]
+         where n.nspname = 'public'
+           and (
+             a.attname = 'company_id'
+             or exists (
+               select 1 from fremdschluessel f
+                where f.tabelle_oid = t.oid and f.spalte = a.attnum
+             )
+           )
+      )
+      select b.tabelle from betriebstabellen b
+       where b.tabelle not in (select tabelle from brauchbar)
+       order by 1
+    `);
+    expect(ohne.map((r) => r.tabelle)).toEqual([]);
+  });
+
+  it('findet überhaupt Betriebstabellen — sonst prüft die Zeile darüber nichts', async () => {
+    // Der Wächter über den Wächter: eine Abfrage, die nichts findet, meldet
+    // fröhlich grün. Die Zahl darf wachsen, aber nicht auf null fallen.
+    const alle = await zeilen<{ n: string }>(`
+      select count(*)::text as n
+        from information_schema.columns
+       where table_schema = 'public' and column_name = 'company_id'
+    `);
+    expect(Number(alle[0].n)).toBeGreaterThanOrEqual(15);
+  });
+});
+
 describe('Live-Abonnements', () => {
   it('veröffentlicht keine Tabelle ohne Leserichtlinie', async () => {
     // Der gefährlichste Einzelfehler dieses Umzugs: Abfrage und Meldeweg sind

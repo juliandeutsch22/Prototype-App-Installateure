@@ -8,6 +8,7 @@ src/lib/db/assignments.ts#subscribeAssignmentsInRange: (companyId: string, from:
 src/lib/db/benutzerVorgaben.ts#DEFAULT_VACATION_DAYS: 25
 src/lib/db/benutzerVorgaben.ts#DEFAULT_WEEKLY_HOURS: 40
 src/lib/db/benutzerVorgaben.ts#DEFAULT_WORK_DAYS: number[]
+src/lib/db/company.ts#auszug: () => Promise<pg.BetriebsAuszug>
 src/lib/db/company.ts#getCompany: (companyId: string) => Promise<Company | null>
 src/lib/db/company.ts#updateCompany: (companyId: string, data: Partial<Omit<Company, "id">>) => Promise<void>
 src/lib/db/customers.ts#assignProjectToCustomer: (projectId: string, customerId: string, customerName: string) => Promise<void>
@@ -17,6 +18,7 @@ src/lib/db/customers.ts#listCustomers: (companyId: string, max?: number) => Prom
 src/lib/db/customers.ts#listCustomersByIds: (companyId: string, ids: string[]) => Promise<WithId<Customer>[]>
 src/lib/db/customers.ts#listProjectsForCustomer: (companyId: string, customerId: string, max?: number) => Promise<WithId<Project>[]>
 src/lib/db/customers.ts#listUnlinkedProjectsByName: (companyId: string, customerName: string, max?: number) => Promise<WithId<Project>[]>
+src/lib/db/customers.ts#searchCustomers: (companyId: string, begriff: string, max?: number) => Promise<WithId<Customer>[]>
 src/lib/db/customers.ts#updateCustomer: (companyId: string, id: string, data: Partial<NewCustomer>) => Promise<number>
 src/lib/db/einsatzMaterial.ts#getEinsatzMaterial: (companyId: string, date: string, projectNumber: string) => Promise<WithId<EinsatzMaterial> | null>
 src/lib/db/einsatzMaterial.ts#ladenUmschalten: (companyId: string, date: string, projectNumber: string, positionId: string, an: boolean, vonName: string) => Promise<void>
@@ -42,9 +44,11 @@ src/lib/db/invoices.ts#reactivateInvoice: (inv: WithId<Invoice>) => Promise<void
 src/lib/db/invoices.ts#reserveInvoiceNumber: (companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string; }) => Promise<string>
 src/lib/db/invoices.ts#subscribeRecentInvoices: (companyId: string, max: number, cb: (rows: WithId<Invoice>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/invoices.ts#updateInvoiceStatus: (id: string, paymentStatus: Invoice["paymentStatus"]) => Promise<void>
+src/lib/db/laeufe.ts#ausleitungJetzt: () => Promise<pg.AusleitungsBilanz>
 src/lib/db/laeufe.ts#ladeLauf: <A extends LaufArt>(companyId: string, art: A) => Promise<Lauf<A> | undefined>
 src/lib/db/materialOrders.ts#ORDER_STATUS_FLOW: ("Offen" | "In Bearbeitung" | "Abholbereit" | "Erledigt")[]
 src/lib/db/materialOrders.ts#createMaterialOrder: (companyId: string, order: NewMaterialOrder) => Promise<string>
+src/lib/db/materialOrders.ts#createMaterialOrderOhneEmpfang: (companyId: string, order: NewMaterialOrder) => Promise<WriteOutcome>
 src/lib/db/materialOrders.ts#createReturn: (companyId: string, ret: Omit<NewMaterialOrder, "status" | "transactionType"> & { condition: string; }) => Promise<string>
 src/lib/db/materialOrders.ts#deleteOrder: (orderId: string) => Promise<void>
 src/lib/db/materialOrders.ts#listOpenOrders: (companyId: string) => Promise<WithId<MaterialOrder>[]>
@@ -65,6 +69,8 @@ src/lib/db/meldungsvorgaben.ts#PREFS_DEFAULTS: NotifyPrefs
 src/lib/db/monatsbilanzen.ts#bilanzMarker: (companyId: string, uid: string) => Promise<{ vollstaendigAb: string; } | null>
 src/lib/db/monatsbilanzen.ts#listBilanzen: (companyId: string, uid: string, abMonat: string) => Promise<Monatsbilanz[]>
 src/lib/db/monatsbilanzen.ts#monatVon: (datum: string) => string
+src/lib/db/offenePosten.ts#ladeOffenePosten: (heute: string) => Promise<pg.OffenePosten | undefined>
+src/lib/db/plattform.ts#betriebAnlegen: (daten: { name: string; companyId: string; adminEmail: string; adminName: string; }) => Promise<pg.BetriebAngelegt>
 src/lib/db/prefs.ts#PREFS_DEFAULTS: NotifyPrefs
 src/lib/db/prefs.ts#addPushToken: (companyId: string, uid: string, token: string) => Promise<void>
 src/lib/db/prefs.ts#getPrefs: (uid: string) => Promise<UserPrefs | null>
@@ -73,14 +79,15 @@ src/lib/db/prefs.ts#savePrefs: (companyId: string, uid: string, prefs: NotifyPre
 src/lib/db/prefs.ts#subscribePrefs: (uid: string, cb: (p: UserPrefs | null) => void, onError?: (e: Error) => void) => () => void
 src/lib/db/projects.ts#createProject: (companyId: string, p: NewProject) => Promise<string>
 src/lib/db/projects.ts#deleteProject: (id: string) => Promise<void>
-src/lib/db/projects.ts#findProjectsByNumber: (companyId: string, formen: string[]) => Promise<WithId<Project>[]>
 src/lib/db/projects.ts#listActiveProjects: (companyId: string, max?: number) => Promise<WithId<Project>[]>
+src/lib/db/projects.ts#listProjectsByIds: (companyId: string, ids: string[]) => Promise<WithId<Project>[]>
 src/lib/db/projects.ts#listProjectsByNumbers: (companyId: string, numbers: string[]) => Promise<WithId<Project>[]>
 src/lib/db/projects.ts#listProjectsForEmployee: (companyId: string, uid: string) => Promise<WithId<Project>[]>
 src/lib/db/projects.ts#listRecentProjects: (companyId: string, max: number) => Promise<WithId<Project>[]>
+src/lib/db/projects.ts#reserveProjectNumber: (companyId: string, opts: { seedFrom: number; praefix?: string; }) => Promise<string | null>
+src/lib/db/projects.ts#searchProjects: (companyId: string, begriff: string, max?: number) => Promise<WithId<Project>[]>
 src/lib/db/projects.ts#subscribeRecentProjects: (companyId: string, max: number, cb: (rows: WithId<Project>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/projects.ts#updateProject: (id: string, data: Partial<Project>) => Promise<void>
-src/lib/db/quelle.ts#nutztPostgres: () => boolean
 src/lib/db/quotes.ts#createQuote: (companyId: string, q: NewQuote) => Promise<string>
 src/lib/db/quotes.ts#deleteQuote: (id: string) => Promise<void>
 src/lib/db/quotes.ts#listQuotesForCustomer: (companyId: string, customerId: string, max?: number) => Promise<WithId<Quote>[]>
@@ -93,14 +100,17 @@ src/lib/db/scheinFotos.ts#fotoHochladen: (companyId: string, scheinId: string, d
 src/lib/db/scheinFotos.ts#komprimiere: (datei: Blob) => Promise<Blob>
 src/lib/db/timeEntries.ts#DuplicateEntryError: typeof DuplicateEntryError
 src/lib/db/timeEntries.ts#createTimeEntry: (companyId: string, entry: NewTimeEntry) => Promise<string>
+src/lib/db/timeEntries.ts#createTimeEntryOhneEmpfang: (companyId: string, entry: NewTimeEntry) => Promise<WriteOutcome>
 src/lib/db/timeEntries.ts#deleteTimeEntry: (id: string) => Promise<void>
 src/lib/db/timeEntries.ts#eintraegeAmTag: (companyId: string, uid: string, date: string, exceptId?: string) => Promise<WithId<TimeEntry>[]>
 src/lib/db/timeEntries.ts#listEntriesForProjects: (companyId: string, projectNumbers: string[]) => Promise<WithId<TimeEntry>[]>
 src/lib/db/timeEntries.ts#listEntriesInRange: (companyId: string, from: string, to: string) => Promise<WithId<TimeEntry>[]>
 src/lib/db/timeEntries.ts#listOwnEntriesSince: (companyId: string, uid: string, from: string) => Promise<WithId<TimeEntry>[]>
+src/lib/db/timeEntries.ts#listUrlaubstage: (companyId: string, from: string, to: string) => Promise<WithId<TimeEntry>[]>
 src/lib/db/timeEntries.ts#subscribeEntriesInRange: (companyId: string, from: string, to: string, cb: (rows: WithId<TimeEntry>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/timeEntries.ts#subscribeOwnEntriesInRange: (companyId: string, uid: string, from: string, to: string, cb: (rows: WithId<TimeEntry>[]) => void, onError: (e: Error) => void) => () => void
 src/lib/db/timeEntries.ts#updateTimeEntry: (id: string, data: Partial<TimeEntry>, owner: { companyId: string; userId: string; }) => Promise<void>
+src/lib/db/timeEntries.ts#updateTimeEntryOhneEmpfang: (id: string, data: Partial<TimeEntry>, owner: { companyId: string; userId: string; }) => Promise<WriteOutcome>
 src/lib/db/users.ts#DEFAULT_VACATION_DAYS: 25
 src/lib/db/users.ts#DEFAULT_WEEKLY_HOURS: 40
 src/lib/db/users.ts#DEFAULT_WORK_DAYS: number[]
@@ -110,6 +120,7 @@ src/lib/db/users.ts#listUsers: (companyId: string) => Promise<AppUser[]>
 src/lib/db/users.ts#updateUserProfile: (uid: string, p: Partial<UserProfileInput>) => Promise<void>
 src/lib/db/vacations.ts#createVacation: (companyId: string, v: NewVacation) => Promise<string>
 src/lib/db/vacations.ts#deleteVacation: (id: string) => Promise<void>
+src/lib/db/vacations.ts#entscheiden: (daten: { vacationId: string; entscheidung: "Genehmigt" | "Abgelehnt" | "Storniert"; grund?: string; entscheiderName?: string; }) => Promise<UrlaubsEntscheidung>
 src/lib/db/vacations.ts#listApprovedVacationsInRange: (companyId: string, vonIso: string, bisIso: string, max?: number) => Promise<WithId<Vacation>[]>
 src/lib/db/vacations.ts#listOpenVacations: (companyId: string, max?: number) => Promise<WithId<Vacation>[]>
 src/lib/db/vacations.ts#listOwnVacations: (companyId: string, uid: string, max?: number) => Promise<WithId<Vacation>[]>
@@ -118,6 +129,7 @@ src/lib/db/wartungen.ts#deleteWartung: (id: string) => Promise<void>
 src/lib/db/wartungen.ts#listFaelligeWartungen: (companyId: string, bis: string, max?: number) => Promise<WithId<Wartung>[]>
 src/lib/db/wartungen.ts#listWartungen: (companyId: string, max?: number) => Promise<WithId<Wartung>[]>
 src/lib/db/wartungen.ts#listWartungenForCustomer: (companyId: string, customerId: string, max?: number) => Promise<WithId<Wartung>[]>
+src/lib/db/wartungen.ts#searchWartungen: (companyId: string, begriff: string, max?: number) => Promise<WithId<Wartung>[]>
 src/lib/db/wartungen.ts#updateWartung: (id: string, data: Partial<NewWartung>) => Promise<void>
 src/lib/db/wartungen.ts#wartungEingeplant: (id: string, projectNumber: string) => Promise<void>
 src/lib/db/wartungen.ts#wartungErledigt: (id: string, args: { erledigtAm: string; intervallMonate: number; projectNumber?: string; }) => Promise<void>
@@ -134,3 +146,4 @@ src/lib/db/workSheets.ts#listWorkSheetsInRange: (companyId: string, von: string,
 src/lib/db/workSheets.ts#restoreWorkSheetDraft: (id: string) => Promise<void>
 src/lib/db/workSheets.ts#signWorkSheet: (id: string, monteur: WorkSheetUnterschrift, kunde: WorkSheetUnterschrift) => Promise<void>
 src/lib/db/workSheets.ts#updateWorkSheetDraft: (id: string, data: Partial<NewWorkSheet>) => Promise<void>
+src/lib/db/workSheets.ts#vorbereiten: (projectNumber: string, datum: string) => Promise<{ zeiten: pg.ScheinZeit[]; }>

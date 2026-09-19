@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { callBetriebAnlegen } from '@/lib/functions';
+import { betriebAnlegen } from '@/lib/db/plattform';
 import { betriebFehler, type NeuerBetrieb } from '@shared/plattform';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
@@ -59,7 +59,7 @@ export default function PlattformView() {
     setFehler(null);
     setLaeuft(true);
     try {
-      const { data } = await callBetriebAnlegen(form);
+      const data = await betriebAnlegen(form);
       setAngelegt((bisher) => [
         {
           companyId: data.companyId,

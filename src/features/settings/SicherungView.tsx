@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { callDatenAusleitungJetzt, callExportCompanyData } from '@/lib/functions';
+import { ausleitungJetzt } from '@/lib/db/laeufe';
+import { auszug } from '@/lib/db/company';
 import { mitFrist, FristAbgelaufen } from '@/lib/frist';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -54,7 +55,7 @@ export default function SicherungView() {
     setLaeuft('sicherung');
     setFehler(null);
     try {
-      const { data } = await mitFrist(callDatenAusleitungJetzt({}), FRIST_MS);
+      const data = await mitFrist(ausleitungJetzt(), FRIST_MS);
       setLetzte({
         zeilen: data.zeilen, bytes: data.bytes, ziel: data.ziel,
         dateien: data.dateien, dateienOffen: data.dateienOffen,
@@ -80,7 +81,7 @@ export default function SicherungView() {
     setLaeuft('download');
     setFehler(null);
     try {
-      const { data } = await mitFrist(callExportCompanyData({}), FRIST_MS);
+      const data = await mitFrist(auszug(), FRIST_MS);
       const inhalt = JSON.stringify(data, null, 2);
       const url = URL.createObjectURL(new Blob([inhalt], { type: 'application/json' }));
       const a = document.createElement('a');

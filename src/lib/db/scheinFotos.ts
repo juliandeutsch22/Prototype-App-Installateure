@@ -13,8 +13,6 @@
  */
 import type { WorkSheetFoto } from '@/types';
 import { zielMasse, GUETE } from '@/features/worksheets/fotos';
-import { nutztPostgres } from './quelle';
-import * as fs from './fs/scheinFotos';
 import * as pg from './pg/scheinFotos';
 
 /**
@@ -60,15 +58,13 @@ export function fotoHochladen(
   daten: Blob,
   geraetZeit: number,
 ): Promise<WorkSheetFoto> {
-  return nutztPostgres()
-    ? pg.fotoHochladen(companyId, scheinId, daten, geraetZeit)
-    : fs.fotoHochladen(companyId, scheinId, daten, geraetZeit);
+  return pg.fotoHochladen(companyId, scheinId, daten, geraetZeit);
 }
 
 export function fotoAdresse(pfad: string): Promise<string> {
-  return nutztPostgres() ? pg.fotoAdresse(pfad) : fs.fotoAdresse(pfad);
+  return pg.fotoAdresse(pfad);
 }
 
 export function fotoEntfernen(pfad: string): Promise<void> {
-  return nutztPostgres() ? pg.fotoEntfernen(pfad) : fs.fotoEntfernen(pfad);
+  return pg.fotoEntfernen(pfad);
 }

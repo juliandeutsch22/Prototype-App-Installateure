@@ -62,8 +62,8 @@ vi.mock('@/lib/db/projects', () => ({
     loesche(id);
     return Promise.resolve();
   },
-  findProjectsByNumber: (c: string, formen: string[]) => {
-    gefragtMit(c, formen);
+  searchProjects: (c: string, begriff: string) => {
+    gefragtMit(c, begriff);
     return serverFehler ? Promise.reject(new Error('kein Netz')) : Promise.resolve(serverBaustellen);
   },
 }));
@@ -404,18 +404,23 @@ describe('Wie weit die Baustellenliste reicht', () => {
     expect(screen.queryByRole('button', { name: /Weitere Baustellen laden/ })).not.toBeInTheDocument();
   });
 
-  it('sagt es, sobald die Grenze erreicht ist — samt Hinweis auf die Suche', async () => {
+  it('sagt es, sobald die Grenze erreicht ist — OHNE den alten Suchsatz', async () => {
+    /*
+      DER SATZ IST AM 19.09. GEFALLEN. Er lautete „Nach Kunde und Adresse wird
+      nur in diesen gesucht; eine Baustellennummer geht auf den Server" und
+      war unter Firestore genau richtig: dort ging wirklich nur die Nummer an
+      den Server.
+
+      Jetzt geht jede Eingabe hin und sucht über Nummer, Kunde und Adresse im
+      ganzen Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
+      angezeigt wird — der Knopf bleibt deshalb stehen, der Satz nicht.
+    */
     baustellen = viele(300);
     zeige();
     await screen.findByText(/Alle Baustellen/);
     expect(screen.getByRole('button', { name: /Weitere Baustellen laden/ })).toBeInTheDocument();
-    /*
-      Der zweite Satz ist der wichtigere: wer eine alte Baustelle sucht und
-      nichts findet, soll nicht schliessen, es gebe sie nicht. Er sagt
-      seither auch, was WEITER reicht — die Nummer geht auf den Server.
-    */
-    const satz = screen.getByText(/nur in diesen gesucht/);
-    expect(satz.textContent).toMatch(/Baustellennummer geht auf den Server/);
+    expect(screen.queryByText(/nur in diesen gesucht/)).toBeNull();
+    expect(screen.queryByText(/Baustellennummer geht auf den Server/)).toBeNull();
   });
 
   it('holt beim Nachladen tatsächlich mehr', async () => {
@@ -464,28 +469,35 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
     status: 'Abgeschlossen',
   } as Project & { id: string };
 
-  it('fragt den Server, sobald der Begriff eine Nummer ist', async () => {
+  it('fragt den Server bei JEDER Eingabe', async () => {
     baustellen = geladene(10);
     const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     zeige();
     await nutzer.type(await screen.findByLabelText('Suche'), '2022-007');
 
-    // Beide Schreibweisen, sonst fänden sich ausgerechnet die Altbestände nicht.
-    await waitFor(() =>
-      expect(gefragtMit).toHaveBeenCalledWith('perl', ['2022-007', 'PR-2022-007']),
-    );
+    await waitFor(() => expect(gefragtMit).toHaveBeenCalledWith('perl', '2022-007'));
   });
 
-  it('fragt NICHT bei Kunde oder Adresse', async () => {
-    // Eine Abfrage, die verlässlich nichts findet, wäre nur ein falsches
-    // Versprechen über der örtlichen Suche.
+  it('auch bei Kunde oder Adresse — und das ist der Gewinn', async () => {
+    /*
+      BIS ZUM 19.09. STAND HIER DAS GEGENTEIL: „fragt NICHT bei Kunde oder
+      Adresse". Firestore konnte nur Anfänge einer sortierten Spalte
+      vergleichen, also ging eine BAUSTELLENNUMMER an den Server und
+      „Seestraße" nicht — eine Abfrage danach hätte verlässlich nichts
+      gefunden und wäre ein falsches Versprechen über der örtlichen Suche
+      gewesen.
+
+      Die Datenbank sucht über Nummer, Kunde und Adresse, auch mitten im
+      Wort. Mit der Einschränkung ist auch der Hinweissatz gefallen, der sie
+      erklärte.
+    */
     baustellen = geladene(10);
     const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     zeige();
     await nutzer.type(await screen.findByLabelText('Suche'), 'Berger');
 
-    expect(await screen.findByText(/nur im geladenen Bestand/)).toBeInTheDocument();
-    expect(gefragtMit).not.toHaveBeenCalled();
+    await waitFor(() => expect(gefragtMit).toHaveBeenCalledWith('perl', 'Berger'));
+    expect(screen.queryByText(/nur im geladenen Bestand/)).toBeNull();
   });
 
   it('zeigt die gefundene Baustelle, obwohl sie nicht geladen ist', async () => {

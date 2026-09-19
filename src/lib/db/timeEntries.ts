@@ -13,10 +13,8 @@
 import type { TimeEntry } from '@/types';
 import { mitFristOder } from '@/lib/frist';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
-import { nutztPostgres } from './quelle';
 import type { WithId } from './core';
 import type { WriteOutcome } from '@/lib/sync/ausgangsfach';
-import * as fs from './fs/timeEntries';
 import * as pg from './pg/timeEntries';
 
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'companyId' | 'createdAt'>;
@@ -24,9 +22,7 @@ export type NewTimeEntry = Omit<TimeEntry, 'id' | 'companyId' | 'createdAt'>;
 export function listOwnEntriesSince(
   companyId: string, uid: string, from: string,
 ): Promise<WithId<TimeEntry>[]> {
-  return nutztPostgres()
-    ? pg.listOwnEntriesSince(companyId, uid, from)
-    : fs.listOwnEntriesSince(companyId, uid, from);
+  return pg.listOwnEntriesSince(companyId, uid, from);
 }
 
 export function subscribeOwnEntriesInRange(
@@ -37,9 +33,7 @@ export function subscribeOwnEntriesInRange(
   cb: (rows: WithId<TimeEntry>[]) => void,
   onError: (e: Error) => void,
 ): () => void {
-  return nutztPostgres()
-    ? pg.subscribeOwnEntriesInRange(companyId, uid, from, to, cb, onError)
-    : fs.subscribeOwnEntriesInRange(companyId, uid, from, to, cb, onError);
+  return pg.subscribeOwnEntriesInRange(companyId, uid, from, to, cb, onError);
 }
 
 export function subscribeEntriesInRange(
@@ -49,17 +43,13 @@ export function subscribeEntriesInRange(
   cb: (rows: WithId<TimeEntry>[]) => void,
   onError: (e: Error) => void,
 ): () => void {
-  return nutztPostgres()
-    ? pg.subscribeEntriesInRange(companyId, from, to, cb, onError)
-    : fs.subscribeEntriesInRange(companyId, from, to, cb, onError);
+  return pg.subscribeEntriesInRange(companyId, from, to, cb, onError);
 }
 
 export function listEntriesInRange(
   companyId: string, from: string, to: string,
 ): Promise<WithId<TimeEntry>[]> {
-  return nutztPostgres()
-    ? pg.listEntriesInRange(companyId, from, to)
-    : fs.listEntriesInRange(companyId, from, to);
+  return pg.listEntriesInRange(companyId, from, to);
 }
 
 /**
@@ -74,25 +64,19 @@ export function listEntriesInRange(
 export function listUrlaubstage(
   companyId: string, from: string, to: string,
 ): Promise<WithId<TimeEntry>[]> {
-  return nutztPostgres()
-    ? pg.listUrlaubstage(companyId, from, to)
-    : fs.listUrlaubstage(companyId, from, to);
+  return pg.listUrlaubstage(companyId, from, to);
 }
 
 export function listEntriesForProjects(
   companyId: string, projectNumbers: string[],
 ): Promise<WithId<TimeEntry>[]> {
-  return nutztPostgres()
-    ? pg.listEntriesForProjects(companyId, projectNumbers)
-    : fs.listEntriesForProjects(companyId, projectNumbers);
+  return pg.listEntriesForProjects(companyId, projectNumbers);
 }
 
 export function eintraegeAmTag(
   companyId: string, uid: string, date: string, exceptId?: string,
 ): Promise<WithId<TimeEntry>[]> {
-  return nutztPostgres()
-    ? pg.eintraegeAmTag(companyId, uid, date, exceptId)
-    : fs.eintraegeAmTag(companyId, uid, date, exceptId);
+  return pg.eintraegeAmTag(companyId, uid, date, exceptId);
 }
 
 /**
@@ -148,7 +132,7 @@ export async function createTimeEntry(companyId: string, entry: NewTimeEntry): P
   );
   const grund = buchungKonflikt(entry, vorhandene);
   if (grund) throw new DuplicateEntryError(entry.date, grund);
-  return nutztPostgres() ? pg.anlegen(companyId, entry) : fs.anlegen(companyId, entry);
+  return pg.anlegen(companyId, entry);
 }
 
 /**
@@ -176,7 +160,6 @@ export async function createTimeEntryOhneEmpfang(
   const grund = buchungKonflikt(entry, vorhandene);
   if (grund) throw new DuplicateEntryError(entry.date, grund);
 
-  if (!nutztPostgres()) return fs.anlegenOhneEmpfang(companyId, entry);
   const { stand } = await pg.anlegenOhneEmpfang(companyId, entry);
   return stand;
 }
@@ -198,9 +181,7 @@ export async function updateTimeEntryOhneEmpfang(
     );
     if (grund) throw new DuplicateEntryError(data.date, grund);
   }
-  return nutztPostgres()
-    ? pg.aendernOhneEmpfang(id, data)
-    : fs.aendernOhneEmpfang(id, data);
+  return pg.aendernOhneEmpfang(id, data);
 }
 
 /**
@@ -233,9 +214,9 @@ export async function updateTimeEntry(
     );
     if (grund) throw new DuplicateEntryError(data.date, grund);
   }
-  return nutztPostgres() ? pg.aendern(id, data) : fs.aendern(id, data);
+  return pg.aendern(id, data);
 }
 
 export function deleteTimeEntry(id: string): Promise<void> {
-  return nutztPostgres() ? pg.loeschen(id) : fs.loeschen(id);
+  return pg.loeschen(id);
 }

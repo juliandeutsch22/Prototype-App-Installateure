@@ -3612,6 +3612,33 @@ Liste sehen im Licht des Quelltextes anders aus:
 
 ---
 
+### Einstellbar, und wo nicht — der Maßstab für alles Folgende
+
+**Nachtrag vom 19.09.** Die Vorgabe lautet: nichts soll entweder-oder sein,
+sondern je Betrieb einstellbar. Das ist richtig und hat eine Grenze. Die
+Punkte fallen in drei Fächer, und das dritte ist der Grund, warum es diesen
+Absatz gibt:
+
+| Fach | Wofür | Beispiele |
+| --- | --- | --- |
+| **Modul** (an/aus) | Was ein Betrieb gar nicht hat | E-Rechnung, Wartungsprotokolle, Dokumentenablage |
+| **Einstellung** (ein Wert) | Was jeder hat, aber anders | Urlaubsjahr, Zahlungsarten, Mahnspesen, Vorsätze |
+| **Fest** | Wo „anders" schlicht „falsch" heisst | Die Zwölfstundengrenze, die USt auf den Rücklass, die Steuerschuld kraft Rechnungslegung |
+
+Die Zwölfstundengrenze ist **kein Geschmack, sondern § 9 AZG**. Sie
+einstellbar zu machen hiesse, einem Betrieb anzubieten, sie falsch zu setzen —
+und dann steht die App im Prüfbericht. Dasselbe beim Rücklass: „Umsatzsteuer
+auf den vollen Betrag" ist keine Vorliebe, und ein Schalter dafür wäre ein
+Schalter für eine falsche Umsatzsteuervoranmeldung.
+
+Und der Preis, der bei jeder Einstellung mitläuft: **ein Schalter ist ein
+Zweig, der in beiden Stellungen geprüft, dokumentiert und im Support
+beantwortet werden muss.** Zehn Schalter sind tausend Kombinationen. Deshalb
+nur dort, wo Betriebe sich wirklich unterscheiden — und dort dann vollständig,
+nicht halb.
+
+---
+
 ### Die Reihenfolge, und warum sie so ist
 
 Nicht nach Aufwand und nicht nach Vorschriftennähe, sondern danach, **was
@@ -3715,26 +3742,32 @@ Regeln, die heute alle gleich behandelt werden:
   regelmäßig unwirksam** — § 1333 Abs 2 ABGB verlangt Angemessenheit und ein
   Verhältnis zur Forderung. Dieselbe Staffel für beide anzuwenden ist die
   Sorte Fehler, die einen Konsumentenschutzbrief auslöst.
-- **Verzugszinsen:** B2B 9,2 Prozentpunkte über dem Basiszinssatz (§ 456
-  UGB), B2C 4 % (§ 1000 ABGB).
 - **Reverse Charge** ist bei einem Verbraucher von vornherein ausgeschlossen —
   heute lässt sich der Haken bei jedem Kunden setzen.
-- **Die Falle beim Zins:** der Basiszinssatz ändert sich halbjährlich, und es
-  gilt der Satz zu Beginn des Halbjahres, in dem der Verzug eintrat — für
-  dieses Halbjahr unverändert. Ein einzelnes Feld „aktueller Satz" rechnet
-  jede ältere Forderung falsch. Es braucht eine kleine Tabelle
-  `(gueltigAb, satz)`, sonst bleibt die heutige Entscheidung richtig, gar
-  keine Zinsen auszuweisen.
+- **Das Zahlungsziel** darf sich unterscheiden.
+
+> **NACHTRAG 19.09. — Verzugszinsen werden NICHT gerechnet.** Eine frühere
+> Fassung dieses Abschnitts schlug es vor; zu Ende gedacht trägt es nicht.
+> B2B sind es 9,2 Prozentpunkte über dem Basiszinssatz (§ 456 UGB), B2C 4 %
+> (§ 1000 ABGB) — und der Basiszinssatz ändert sich halbjährlich, wobei der
+> Satz zu Beginn des Halbjahres gilt, in dem der Verzug eintrat. Das braucht
+> eine Tabelle `(gueltigAb, satz)` und eine Halbjahreslogik, **für eine Zahl,
+> die nach der bestehenden Entscheidung ohnehin auf keiner Mahnung steht.**
+> Was bleibt, ist das Kennzeichen am Kunden: ein Feld, drei Wirkungen.
 
 #### 10.5 UID prüfen — und warum VIES die Frage nicht beantwortet
 
 Zwei verschiedene Dinge, die leicht verwechselt werden:
 
-- **Ist die UID gültig?** Das beantwortet VIES, und eine Prüfung der Stufe 2
-  (Name und Anschrift stimmen überein) ist als Beleg etwas wert. Technisch aus
-  einer Edge Function, nie aus dem Browser, Ergebnis mit Zeitstempel am Kunden
-  gespeichert. **„Nicht geprüft" muss von „geprüft und ungültig" unterscheidbar
-  bleiben**, und ein Ausfall von VIES darf keine Rechnung blockieren.
+- **Ist die UID gültig?** Das beantwortet VIES.
+  **NACHTRAG 19.09. — wird trotzdem nicht gebaut.** Eine frühere Fassung
+  empfahl die Abfrage; zu Ende gedacht kostet sie eine Edge Function, einen
+  Zwischenspeicher, drei Zustände in der Oberfläche („nicht geprüft" muss von
+  „geprüft und ungültig" unterscheidbar bleiben) und einen Ausfallweg, weil
+  VIES regelmäßig nicht antwortet — für fünf Eingaben im Jahr, und ohne die
+  entscheidende Frage zu beantworten. Gebaut wird stattdessen eine
+  **Formatprüfung** (ATU plus acht Stellen plus Prüfziffer): zwanzig Zeilen,
+  die den Fehler fangen, der wirklich vorkommt — den Tippfehler.
 - **Ist der Empfänger Bauleister?** Davon hängt § 19 Abs 1a ab, und **das sagt
   VIES nicht.** Das ist eine Erklärung des Kunden. Sie gehört als solche
   festgehalten: wer sie wann abgegeben hat, mit Feld für das Schreiben des
@@ -3825,7 +3858,7 @@ Nichts davon sieht ein Monteur. Alles davon merkt man erst, wenn es fehlt.
 | **SMTP mit SPF/DKIM/DMARC** | Eigener Versender | Der Supabase-Standardversand ist stark gedrosselt — und „Passwort vergessen" ist nach **jedem** Rücklauf für **jeden** Zugang Pflicht |
 | **Tarif, Region, PITR** | Pro-Tarif, EU-Region nachweisbar, kein Pausieren | Der kostenlose Tarif **pausiert nach sieben Tagen ohne Zugriff**. Über Weihnachten steht die App |
 | **2FA** | TOTP für Leitung, Verwaltung, Buchhaltung | Nur wirksam, wenn der **Zeilenschutz** die Stufe prüft (`aal2`), nicht das Formular. Sonst ist es Zierde |
-| **Staging/Produktion** | Zweites Projekt, Migrationen vorwärts-only | Heute läuft jede Migration zuerst beim Kunden |
+| **Migrations-Probelauf** | **NACHTRAG 19.09.:** kein zweites Projekt, sondern ein Skript — Kopie des Produktivbestands, Migration darüber, Testlauf. Ein Staging-Projekt verdoppelt Konfiguration und Migrationstanz; das Risiko liegt aber nicht im Code (2 766 Prüfungen, davon 725 gegen eine echte Datenbank), sondern in Migrationen gegen ECHTE DATEN — und genau die hat ein leeres Staging-Projekt nicht | Heute läuft jede Migration zuerst beim Kunden |
 | **Fehler-Tracking** | Sentry EU, Statusseite, Uptime | **Mit vorher eingerichteter Feldbereinigung** — ein Tracker, der Kundennamen und Adressen mitschickt, ist selbst ein Datenschutzproblem |
 | **CSP und Kopfzeilen** | Erst `report-only`, dann scharf | Eine zu enge Richtlinie bricht die App still — auf dem Telefon sieht man nur eine leere Seite |
 | **DSGVO-Paket** | AV-Vertrag, Unterauftragsverarbeiter, TOMs, Verarbeitungsverzeichnis | Ohne AV-Vertrag darf ein zweiter Betrieb die App nicht einsetzen |

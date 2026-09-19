@@ -4,7 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import { listAssignmentsForUserInRange } from '@/lib/db/assignments';
 import { listProjectsByNumbers } from '@/lib/db/projects';
 import { listMaterials } from '@/lib/db/materials';
-import { callScheinVorbereiten } from '@/lib/functions';
+import { vorbereiten as scheinVorbereiten } from '@/lib/db/workSheets';
 import {
   createWorkSheet,
   getWorkSheet,
@@ -377,8 +377,8 @@ export default function WorkSheetView() {
         new Promise<never>((_, ab) => setTimeout(() => ab(new Error('Zeit abgelaufen')), ms)),
       ]);
 
-    mitFrist(callScheinVorbereiten({ projectNumber, datum }))
-      .then(({ data }) => {
+    mitFrist(scheinVorbereiten(projectNumber, datum))
+      .then((data) => {
         if (verworfen) return;
         /*
           DIE VOR ORT GETIPPTEN ZEILEN ÜBERLEBEN DIE VORAUSFÜLLUNG.

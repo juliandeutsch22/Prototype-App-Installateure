@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { nutztPostgres } from '@/lib/db/quelle';
 import { nachsendenJetzt } from '@/lib/db/pg/ohneEmpfang';
 
 /**
@@ -22,14 +21,12 @@ import { nachsendenJetzt } from '@/lib/db/pg/ohneEmpfang';
  *   unzuverlässig ist. Ein Gerät, das im Funkloch stand und wieder Empfang
  *   hat, meldet das Ereignis nicht immer — die Rückkehr zur App aber schon.
  *
- * WARUM NUR UNTER POSTGRES: unter Firestore erledigt das SDK das Nachsenden
- * selbst, und ein zweiter Nachsender daneben wäre eine zweite Warteschlange
- * für dieselbe Zusage. Diese Abfrage fällt mit Stufe 9 weg.
+ * WARUM ES IHN ÜBERHAUPT GIBT: Supabase bringt kein Nachsenden mit. Das
+ * Ausgangsfach hält den Vorgang, dieser Bestandteil stösst das Senden an —
+ * ohne ihn läge eine Buchung im Gerät und niemand holte sie ab.
  */
 export default function Nachsender() {
   useEffect(() => {
-    if (!nutztPostgres()) return;
-
     /*
       FEHLER WERDEN HIER GESCHLUCKT, UND ZWAR ABSICHTLICH. Der Nachsendelauf
       meldet einen endgültig verlorenen Vorgang über

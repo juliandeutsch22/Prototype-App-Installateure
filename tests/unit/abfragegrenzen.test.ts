@@ -52,8 +52,17 @@ const AUSNAHMEN: Record<string, string> = {
   */
   // Nachfassungen sind per Status begrenzt: erledigte fallen heraus.
   listOpenFollowUps: 'Nur offene — per Status begrenzt',
-  // Einstellungen und Stammdaten des Mandanten: ein Dokument.
-  subscribePrefs: 'Ein Dokument je Mandant',
+  /*
+    `subscribePrefs` STAND HIER BIS ZUM 19.09. und ist ersatzlos gefallen.
+
+    Die Firestore-Fassung hörte mit `onSnapshot` auf ein Dokument — der
+    Wächter sah das `onSnapshot(` und verlangte eine Grenze, obwohl es um
+    genau eine Zeile ging. Die Postgres-Fassung ruft `getPrefs`, und das holt
+    mit `.maybeSingle()` genau eine Zeile: der Wächter erkennt das von selbst
+    und braucht die Ausnahme nicht mehr.
+
+    Eine Regel, die trägt, statt einer Liste, die jemand pflegt.
+  */
 };
 
 /**
@@ -128,16 +137,16 @@ function sammleAbfragen(): Abfrage[] {
   /*
    * DER WÄCHTER FOLGT DEM CODE.
    *
-   * Mit dem Umzug liegt dieselbe Abfrage mal in `db/x.ts`, mal in `db/fs/x.ts`
-   * und mal in `db/pg/x.ts`. Ein Wächter, der nur das obere Verzeichnis
-   * kennt, findet nach dem ersten Umzug weniger Abfragen als vorher und
-   * meldet trotzdem grün. Genau das ist passiert: von 46 Prüfungen blieben
-   * 40 übrig, ohne dass eine einzige rot wurde.
+   * Beim Umzug lag dieselbe Abfrage eine Zeit lang mal in `db/x.ts`, mal in
+   * `db/fs/x.ts` und mal in `db/pg/x.ts`. Ein Wächter, der nur das obere
+   * Verzeichnis kannte, fand danach weniger Abfragen als vorher und meldete
+   * trotzdem grün: von 46 Prüfungen blieben 40 übrig, ohne dass eine einzige
+   * rot wurde.
    *
    * Deshalb wird auch die ANZAHL geprüft (siehe unten): ein Wächter, der
    * still weniger bewacht, ist schlimmer als keiner.
    */
-  const verzeichnisse = [DB_VERZEICHNIS, join(DB_VERZEICHNIS, 'fs'), join(DB_VERZEICHNIS, 'pg')];
+  const verzeichnisse = [DB_VERZEICHNIS, join(DB_VERZEICHNIS, 'pg')];
   const dateien: Array<{ datei: string; pfad: string }> = [];
   for (const v of verzeichnisse) {
     let inhalt: string[];
@@ -154,7 +163,7 @@ function sammleAbfragen(): Abfrage[] {
     // core.ts und kern.ts halten die Bausteine selbst — dort steht die Grenze
     // naturgemäß nicht, sie wird von den Aufrufern mitgegeben.
     if (datei === 'core.ts' || datei === 'pg/kern.ts') continue;
-    // Die Weichen entscheiden nur; die Abfrage steht in fs/ oder pg/.
+    // Die Weichen reichen nur weiter; die Abfrage steht in pg/.
     if (/from '\.\/pg\//.test(readFileSync(pfad, 'utf8'))) continue;
     const text = readFileSync(pfad, 'utf8');
 
@@ -254,9 +263,16 @@ describe('Abfragegrenzen in der Datenschicht', () => {
  * Die Zahl unten ist deshalb Teil der Zusage. Sie darf steigen; sinkt sie,
  * muss jemand hinsehen und sie bewusst nachziehen.
  */
-const MINDESTENS = 93;
+const MINDESTENS = 46;
 
 /*
+  AM 19.09.2026 FIEL SIE VON 93 AUF 46, und das ist der eine Fall, in dem das
+  richtig ist: der Firestore-Zweig ist abgebaut. Nachgerechnet, nicht
+  angenommen — vor dem Abbau fand der Wächter 50 Abfragen in `fs/` und 47 in
+  `pg/`; dazu ist `findProjectsByNumber` entfallen, weil die Serversuche sie
+  überflüssig gemacht hat. 47 − 1 = 46. Jede einzelne der verschwundenen
+  Abfragen ist damit benannt.
+
   Am 12.09.2026 sprang die Zahl von 49 auf 74 — ohne dass eine einzige
   Abfrage hinzugekommen wäre. Das Muster für die Postgres-Schicht verlangte
   eine Klammer unmittelbar hinter `abfragen`, die Aufrufe tragen aber fast
@@ -273,11 +289,20 @@ describe('Der Wächter bewacht noch, was er bewachen soll', () => {
     expect(sammleAbfragen().length).toBeGreaterThanOrEqual(MINDESTENS);
   });
 
-  it('findet Abfragen in fs/ UND in pg/', () => {
-    // Sonst wäre die Zahl oben auch dann erfüllt, wenn eine ganze Seite
-    // fehlte — solange die andere genug liefert.
+  it('findet sie über die ganze Breite der Datenschicht', () => {
+    /*
+      BIS ZUM 19.09. STAND HIER „in fs/ UND in pg/" — die Zahl oben wäre sonst
+      auch dann erfüllt gewesen, wenn eine ganze Seite fehlte, solange die
+      andere genug liefert. Mit dem Abbau von Firestore gibt es nur noch eine
+      Seite, und dieselbe Gefahr besteht weiter: ein Muster, das nur noch in
+      einer Datei greift, käme bei achtzehn Modulen nie auf die Zahl — aber
+      ein Muster, das in zwei greift, womöglich schon.
+
+      Geprüft wird deshalb die STREUUNG: die Abfragen müssen aus vielen
+      Modulen kommen, nicht aus wenigen.
+    */
     const dateien = new Set(sammleAbfragen().map((a) => a.datei));
-    expect([...dateien].some((d) => d.startsWith('fs/'))).toBe(true);
-    expect([...dateien].some((d) => d.startsWith('pg/'))).toBe(true);
+    expect(dateien.size).toBeGreaterThanOrEqual(15);
+    expect([...dateien].every((d) => d.startsWith('pg/'))).toBe(true);
   });
 });

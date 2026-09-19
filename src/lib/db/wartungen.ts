@@ -2,56 +2,48 @@
  * Wiederkehrende Wartungen — nur die Weiche.
  */
 import type { Wartung } from '@/types';
-import { nutztPostgres } from './quelle';
 import type { WithId } from './core';
-import * as fs from './fs/wartungen';
 import * as pg from './pg/wartungen';
 
 export type NewWartung = Omit<Wartung, 'id' | 'companyId' | 'createdAt' | 'updatedAt'>;
 
 export function listWartungen(companyId: string, max = 500): Promise<WithId<Wartung>[]> {
-  return nutztPostgres() ? pg.listWartungen(companyId, max) : fs.listWartungen(companyId, max);
+  return pg.listWartungen(companyId, max);
 }
 
 export function listFaelligeWartungen(
   companyId: string, bis: string, max = 200,
 ): Promise<WithId<Wartung>[]> {
-  return nutztPostgres()
-    ? pg.listFaelligeWartungen(companyId, bis, max)
-    : fs.listFaelligeWartungen(companyId, bis, max);
+  return pg.listFaelligeWartungen(companyId, bis, max);
 }
 
 export function listWartungenForCustomer(
   companyId: string, customerId: string, max = 100,
 ): Promise<WithId<Wartung>[]> {
-  return nutztPostgres()
-    ? pg.listWartungenForCustomer(companyId, customerId, max)
-    : fs.listWartungenForCustomer(companyId, customerId, max);
+  return pg.listWartungenForCustomer(companyId, customerId, max);
 }
 
 export function createWartung(companyId: string, w: NewWartung): Promise<string> {
-  return nutztPostgres() ? pg.createWartung(companyId, w) : fs.createWartung(companyId, w);
+  return pg.createWartung(companyId, w);
 }
 
 export function updateWartung(id: string, data: Partial<NewWartung>): Promise<void> {
-  return nutztPostgres() ? pg.updateWartung(id, data) : fs.updateWartung(id, data);
+  return pg.updateWartung(id, data);
 }
 
 export function deleteWartung(id: string): Promise<void> {
-  return nutztPostgres() ? pg.deleteWartung(id) : fs.deleteWartung(id);
+  return pg.deleteWartung(id);
 }
 
 export function wartungErledigt(
   id: string,
   args: { erledigtAm: string; intervallMonate: number; projectNumber?: string },
 ): Promise<void> {
-  return nutztPostgres() ? pg.wartungErledigt(id, args) : fs.wartungErledigt(id, args);
+  return pg.wartungErledigt(id, args);
 }
 
 export function wartungEingeplant(id: string, projectNumber: string): Promise<void> {
-  return nutztPostgres()
-    ? pg.wartungEingeplant(id, projectNumber)
-    : fs.wartungEingeplant(id, projectNumber);
+  return pg.wartungEingeplant(id, projectNumber);
 }
 
 export type { WithId };
@@ -70,7 +62,5 @@ export type { WithId };
 export function searchWartungen(
   companyId: string, begriff: string, max = 500,
 ): Promise<WithId<Wartung>[]> {
-  return nutztPostgres()
-    ? pg.searchWartungen(companyId, begriff, max)
-    : fs.searchWartungen(companyId, begriff, max);
+  return pg.searchWartungen(companyId, begriff, max);
 }

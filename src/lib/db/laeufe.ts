@@ -6,26 +6,24 @@
  * Lauf ist nichts bekannt" und ausdrücklich NICHT „alles in Ordnung".
  */
 import type { Lauf, LaufArt } from '@shared/laufStatus';
-import { nutztPostgres } from './quelle';
-import * as fs from './fs/laeufe';
 import * as pg from './pg/laeufe';
 
 export function ladeLauf<A extends LaufArt>(
   companyId: string, art: A,
 ): Promise<Lauf<A> | undefined> {
-  return nutztPostgres() ? pg.ladeLauf(companyId, art) : fs.ladeLauf(companyId, art);
+  return pg.ladeLauf(companyId, art);
 }
 
 /**
  * Die Sicherung sofort erstellen.
  *
- * Unter Firestore tut das die Cloud Function `datenAusleitungJetzt` — der
- * Aufrufer findet beide Wege über `lib/functions.ts:callDatenAusleitungJetzt`.
+ * Dieselbe Edge Function, die nachts läuft — zwei Wege hinein, weil es zwei
+ * Fragen sind: der Zeitplan ruft mit dem Dienstschlüssel und nimmt alle
+ * Betriebe, der Knopf mit dem Token eines Menschen und nimmt nur dessen
+ * eigenen. Zwei getrennte Fassungen wären zwei Gelegenheiten, dass die eine
+ * ausleitet, was die andere auslässt.
  */
 export function ausleitungJetzt(): Promise<pg.AusleitungsBilanz> {
-  if (!nutztPostgres()) {
-    throw new Error('Unter Firestore leitet die Cloud Function aus — siehe lib/functions.ts.');
-  }
   return pg.ausleitungJetzt();
 }
 

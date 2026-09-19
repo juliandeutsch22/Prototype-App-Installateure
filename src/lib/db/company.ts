@@ -8,30 +8,26 @@
  * Geschäftsführung fest.
  */
 import type { Company } from '@/types';
-import { nutztPostgres } from './quelle';
-import * as fs from './fs/company';
 import * as pg from './pg/company';
 
 export function getCompany(companyId: string): Promise<Company | null> {
-  return nutztPostgres() ? pg.getCompany(companyId) : fs.getCompany(companyId);
+  return pg.getCompany(companyId);
 }
 
 export function updateCompany(
   companyId: string, data: Partial<Omit<Company, 'id'>>,
 ): Promise<void> {
-  return nutztPostgres() ? pg.updateCompany(companyId, data) : fs.updateCompany(companyId, data);
+  return pg.updateCompany(companyId, data);
 }
 
 /**
  * Der ganze Bestand eines Betriebs in einer Antwort (DSGVO Art. 15/20).
  *
- * Unter Firestore tut das die Cloud Function `exportCompanyData` — der
- * Aufrufer findet beide Wege über `lib/functions.ts:callExportCompanyData`.
+ * Eine Abfrage mit erhöhten Rechten, und die Sammlungsliste kommt aus dem
+ * Katalog der Datenbank statt aus einer Datei, die jemand pflegen muss — eine
+ * vergessene Tabelle wäre sonst eine unvollständige Auskunft.
  */
 export function auszug(): Promise<pg.BetriebsAuszug> {
-  if (!nutztPostgres()) {
-    throw new Error('Unter Firestore holt die Cloud Function den Auszug — siehe lib/functions.ts.');
-  }
   return pg.auszug();
 }
 
