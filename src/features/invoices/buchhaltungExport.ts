@@ -1,5 +1,6 @@
 import type { Customer, Invoice } from '@/types';
 import { invoiceSeqOf } from '@/lib/invoiceNumbers';
+import { zahlstand } from './zahlstand';
 
 /**
  * Rechnungsausgangsbuch für den Steuerberater.
@@ -86,6 +87,22 @@ const KOPF = [
   'Reverse Charge',
   'Brutto',
   'Zahlungsstatus',
+  /*
+    DER ZAHLUNGSSTAND GEHÖRT INS JOURNAL, nicht nur in die App.
+
+    Die Kanzlei führt die offenen Posten mit — das ist der halbe Grund, aus
+    dem sie diese Datei bekommt. Ohne diese beiden Spalten steht dort zu jeder
+    Rechnung der volle Betrag als Forderung, auch wenn die Hälfte längst da
+    ist, und der Abgleich mit dem Bankkonto beginnt wieder beim Abtippen.
+
+    ZWEI SPALTEN UND NICHT EINE: „bezahlt" und „offen" sind zwei Aussagen. Aus
+    einer liesse sich die andere zwar rechnen, aber nur, wenn man weiss, ob
+    storniert wurde — und bei einer stornierten Rechnung mit Zahlung ist der
+    offene Rest null UND der bezahlte Betrag positiv. Genau dieser Fall ist
+    es, den ein Steuerberater sehen muss: dort liegt ein Guthaben.
+  */
+  'Bezahlt',
+  'Offener Rest',
   'Storniert',
   'Stornogrund',
 ];
@@ -148,6 +165,8 @@ export function buildInvoiceCsv(
         i.reverseCharge ? 'ja' : 'nein',
         num(i.totalBrutto),
         i.paymentStatus,
+        num(zahlstand(i).bezahlt),
+        num(zahlstand(i).rest),
         storniert ? 'ja' : 'nein',
         i.cancellationNote ?? '',
       ]),
@@ -163,9 +182,28 @@ export function buildInvoiceCsv(
     }
   }
 
-  // Summenzeile, damit sich der Export gegen die Voranmeldung abgleichen lässt.
+  /*
+    Summenzeile, damit sich der Export gegen die Voranmeldung abgleichen lässt.
+
+    DIE SUMMEN STEHEN UNTER IHREN SPALTEN, und das war bis zum 19.09.2026
+    nicht so: die Nettosumme sass unter „UID-Nummer", die Bruttosumme unter
+    „USt-Satz %". Wer die Datei in einer Tabellenkalkulation öffnet und die
+    Spalte markiert, bekommt damit eine Summe, die nicht zu ihr gehört.
+    Aufgefallen ist es beim Einfügen zweier neuer Spalten — die Zeile wurde
+    von Hand mit leeren Feldern aufgefüllt, und eine solche Zählung stimmt
+    genau bis zur nächsten Änderung.
+
+    Deshalb jetzt über die Kopfzeile ausgerichtet: die Position kommt aus dem
+    Namen, nicht aus abgezählten Strichen.
+  */
+  const summenzeile = KOPF.map((spalte) => {
+    if (spalte === 'Rechnungsnummer') return 'Summe (ohne Storni)';
+    if (spalte === 'Netto') return num(summeNetto);
+    if (spalte === 'Brutto') return num(summeBrutto);
+    return '';
+  });
   zeilen.push(row([]));
-  zeilen.push(row(['Summe (ohne Storni)', '', '', '', '', '', num(summeNetto), '', '', num(summeBrutto)]));
+  zeilen.push(row(summenzeile));
 
   return {
     csv: zeilen.join('\n'),

@@ -163,6 +163,25 @@ vi.mock('@/lib/db/invoices', async () => {
   };
 });
 
+/*
+  DIE ZAHLUNGSSCHICHT ALS DOPPELGÄNGER. Was sie in der Datenbank auslöst — der
+  abgeleitete Zahlungsstand — ist dort geprüft (`tests/supabase/zahlungen`).
+  Hier geht es um die Verdrahtung: kommt beim Speichern an, was im Formular
+  steht, und zeigt die Zeile danach den richtigen Rest.
+*/
+let erfassteZahlungen: Array<Record<string, unknown>> = [];
+const createZahlung = vi.fn(async (_c: string, z: Record<string, unknown>) => {
+  erfassteZahlungen.push(z);
+  return 'z-neu';
+});
+const listZahlungen = vi.fn(async () => bisherigeZahlungen);
+let bisherigeZahlungen: Array<Record<string, unknown>> = [];
+vi.mock('@/lib/db/zahlungen', () => ({
+  listZahlungen: (...a: unknown[]) => listZahlungen(...(a as [])),
+  createZahlung: (...a: unknown[]) => createZahlung(...(a as [string, Record<string, unknown>])),
+  deleteZahlung: vi.fn(async () => undefined),
+}));
+
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => [PROJEKT]),
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
@@ -1437,5 +1456,104 @@ describe('Wenn die offenen Forderungen nicht kommen', () => {
     expect(
       screen.queryByText(/offenen Forderungen konnten nicht geladen werden/),
     ).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Zahlungseingänge (Stufe 10.1).
+ *
+ * WAS ES VORHER GAB: einen Haken. Jemand stellte „Bezahlt" ein, und damit war
+ * die Rechnung erledigt — ohne Datum, ohne Betrag, ohne Teilzahlung. Der
+ * Mahnlauf rechnete danach weiter mit dem Bruttobetrag, und wer 400 von
+ * 1.000 € überwiesen hatte, wurde über 1.000 € gemahnt.
+ */
+describe('Zahlungen erfassen', () => {
+  const offeneRechnung = (p: Partial<Invoice> = {}): Invoice & { id: string } =>
+    ({
+      id: 'r-zahl',
+      companyId: 'perl',
+      invoiceNumber: 'RE-2026-0042',
+      projectNumber: '2026-042',
+      customerName: 'Familie Huber',
+      invoiceDate: '2026-07-01',
+      dueDate: '2026-07-15',
+      totalNetto: 1000,
+      totalVat: 200,
+      totalBrutto: 1200,
+      vatRate: 0.2,
+      paymentStatus: 'Offen',
+      ...p,
+    }) as unknown as Invoice & { id: string };
+
+  beforeEach(() => {
+    erfassteZahlungen = [];
+    bisherigeZahlungen = [];
+  });
+
+  it('schreibt Datum, Betrag und Art so, wie sie im Formular stehen', async () => {
+    rechnungen = [offeneRechnung()];
+    zeige();
+    await screen.findByText(/RE-2026-0042/);
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+
+    /*
+      DER OFFENE REST STEHT VORAUSGEFÜLLT DA. Er ist in den allermeisten
+      Fällen der richtige Betrag; die Teilzahlung ist die Ausnahme und
+      überschreibt ihn.
+    */
+    const betrag = await screen.findByLabelText(/^Betrag/);
+    expect((betrag as HTMLInputElement).value).toBe('1200');
+
+    await userEvent.clear(betrag);
+    await userEvent.type(betrag, '400');
+    await userEvent.click(screen.getByRole('button', { name: 'Zahlung eintragen' }));
+
+    await waitFor(() => expect(createZahlung).toHaveBeenCalled());
+    expect(erfassteZahlungen[0]).toMatchObject({
+      invoiceId: 'r-zahl',
+      betrag: 400,
+      art: 'Überweisung',
+    });
+  });
+
+  /*
+    DIE ZEILE SAGT, WAS SCHON DA IST. Ohne diese Angabe müsste jemand die
+    Rechnung öffnen, um zu sehen, warum der Mahnlauf einen anderen Betrag
+    fordert als die Liste zeigt.
+  */
+  it('zeigt bei einer Teilzahlung, was bezahlt und was offen ist', async () => {
+    rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400 })];
+    zeige();
+    expect(await screen.findByText(/400,00 bezahlt · € 800,00 offen/)).toBeInTheDocument();
+  });
+
+  /*
+    EINE STORNIERTE RECHNUNG MIT ZAHLUNG IST EIN GUTHABEN. Sie als „nichts
+    offen" zu zeigen wäre richtig und würde trotzdem das Wesentliche
+    verschweigen: der Betrieb schuldet dem Kunden Geld.
+  */
+  it('nennt das Guthaben nach einem Storno beim Namen', async () => {
+    rechnungen = [offeneRechnung({ paymentStatus: 'Storniert', bezahltBetrag: 1200 })];
+    zeige();
+    expect(await screen.findByText(/Guthaben des Kunden/)).toBeInTheDocument();
+  });
+
+  /*
+    DER HAKEN IST WEG, und das gehört geprüft: bliebe der Menüpunkt stehen,
+    wäre er eine Sackgasse — die Datenbank weist den Schreibversuch ab.
+  */
+  it('bietet „Auf Bezahlt setzen" nicht mehr an', async () => {
+    rechnungen = [offeneRechnung()];
+    zeige();
+    await screen.findByText(/RE-2026-0042/);
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
+    );
+    expect(screen.queryByRole('menuitem', { name: /Auf „Bezahlt" setzen/ })).toBeNull();
+    expect(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' })).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import { TEXTE, spesenFuer, type Mahnstufe } from './mahnung';
+import { zahlstand } from './zahlstand';
 import type { Company, Invoice } from '@/types';
 
 /**
@@ -91,11 +92,24 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
     sie da.
   */
   const spesen = spesenFuer(o.stufe, o.company.rates?.mahnspesen);
+  const stand = zahlstand(o.invoice);
   const zeilen: [string, string][] = [
     ['Rechnungsdatum', fmtDatum(o.invoice.invoiceDate)],
     ['Ursprüngliches Zahlungsziel', fmtDatum(o.invoice.dueDate)],
     ['Rechnungsbetrag', `${fmtEUR(o.invoice.totalBrutto)} €`],
   ];
+  /*
+    TEILZAHLUNGEN GEHÖREN AUF DIE MAHNUNG, und zwar als eigene Zeile.
+
+    Der Kunde, der 400 von 1.000 € überwiesen hat, prüft als Erstes, ob der
+    Betrieb seine Zahlung überhaupt bemerkt hat. Stünde nur der Restbetrag da,
+    sähe die Mahnung aus wie eine über eine andere, kleinere Rechnung; stünde
+    nur das Brutto da, wäre sie schlicht falsch. Beides zusammen mit dem
+    Abzug dazwischen ist die einzige Fassung, die er nachrechnen kann.
+  */
+  if (stand.bezahlt > 0) {
+    zeilen.push(['Bereits bezahlt', `− ${fmtEUR(stand.bezahlt)} €`]);
+  }
   if (spesen > 0) zeilen.push(['Mahnspesen', `${fmtEUR(spesen)} €`]);
 
   for (const [k, v] of zeilen) {
@@ -106,7 +120,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
 
   doc.setFont('helvetica', 'bold');
   doc.text('Offener Betrag:', rand, y);
-  doc.text(`${fmtEUR(o.invoice.totalBrutto + spesen)} €`, rand + 70, y);
+  doc.text(`${fmtEUR(stand.rest + spesen)} €`, rand + 70, y);
   doc.setFont('helvetica', 'normal');
   y += 12;
 

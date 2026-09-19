@@ -55,8 +55,10 @@ export function createInvoice(companyId: string, inv: NewInvoice): Promise<strin
   return pg.createInvoice(companyId, inv);
 }
 
+export type { SetzbarerStand } from './pg/invoices';
+
 export function updateInvoiceStatus(
-  id: string, paymentStatus: Invoice['paymentStatus'],
+  id: string, paymentStatus: pg.SetzbarerStand,
 ): Promise<void> {
   return pg.updateInvoiceStatus(id, paymentStatus);
 }
@@ -71,7 +73,10 @@ export function reactivateInvoice(inv: WithId<Invoice>): Promise<void> {
 
 export function mahnungFesthalten(
   id: string,
-  daten: { stufe: number; gemahntAm: string; frist: string; spesen: number },
+  daten: {
+    stufe: number; gemahntAm: string; frist: string; spesen: number;
+    standJetzt: Invoice['paymentStatus'];
+  },
 ): Promise<void> {
   return pg.mahnungFesthalten(id, daten);
 }

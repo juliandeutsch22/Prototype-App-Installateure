@@ -37,13 +37,13 @@ src/lib/db/invoices.ts#invoiceSeqOf: (number: string) => number | null
 src/lib/db/invoices.ts#isInvoiceNumberTaken: (existing: Pick<Invoice, "invoiceNumber">[] & { id?: string; }[], number: string, exceptId?: string) => boolean
 src/lib/db/invoices.ts#listInvoicesInRange: (companyId: string, von: string, bis: string) => Promise<WithId<Invoice>[]>
 src/lib/db/invoices.ts#listUnpaidInvoices: (companyId: string) => Promise<WithId<Invoice>[]>
-src/lib/db/invoices.ts#mahnungFesthalten: (id: string, daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; }) => Promise<void>
+src/lib/db/invoices.ts#mahnungFesthalten: (id: string, daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; standJetzt: Invoice["paymentStatus"]; }) => Promise<void>
 src/lib/db/invoices.ts#markBilled: (coll: string, ids: string[], invoiceNumber: string) => Promise<void>
 src/lib/db/invoices.ts#nextInvoiceNumber: (existing: Pick<Invoice, "invoiceNumber">[], praefix?: string) => string
 src/lib/db/invoices.ts#reactivateInvoice: (inv: WithId<Invoice>) => Promise<void>
 src/lib/db/invoices.ts#reserveInvoiceNumber: (companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string; }) => Promise<string>
 src/lib/db/invoices.ts#subscribeRecentInvoices: (companyId: string, max: number, cb: (rows: WithId<Invoice>[]) => void, onError: (e: Error) => void) => () => void
-src/lib/db/invoices.ts#updateInvoiceStatus: (id: string, paymentStatus: Invoice["paymentStatus"]) => Promise<void>
+src/lib/db/invoices.ts#updateInvoiceStatus: (id: string, paymentStatus: pg.SetzbarerStand) => Promise<void>
 src/lib/db/laeufe.ts#ausleitungJetzt: () => Promise<pg.AusleitungsBilanz>
 src/lib/db/laeufe.ts#ladeLauf: <A extends LaufArt>(companyId: string, art: A) => Promise<Lauf<A> | undefined>
 src/lib/db/materialOrders.ts#ORDER_STATUS_FLOW: ("Offen" | "In Bearbeitung" | "Abholbereit" | "Erledigt")[]
@@ -147,3 +147,8 @@ src/lib/db/workSheets.ts#restoreWorkSheetDraft: (id: string) => Promise<void>
 src/lib/db/workSheets.ts#signWorkSheet: (id: string, monteur: WorkSheetUnterschrift, kunde: WorkSheetUnterschrift) => Promise<void>
 src/lib/db/workSheets.ts#updateWorkSheetDraft: (id: string, data: Partial<NewWorkSheet>) => Promise<void>
 src/lib/db/workSheets.ts#vorbereiten: (projectNumber: string, datum: string) => Promise<{ zeiten: pg.ScheinZeit[]; }>
+src/lib/db/zahlungen.ts#createZahlung: (companyId: string, z: pg.NeueZahlung) => Promise<string>
+src/lib/db/zahlungen.ts#deleteZahlung: (id: string) => Promise<void>
+src/lib/db/zahlungen.ts#listZahlungen: (companyId: string, invoiceId: string, max?: number) => Promise<pg.WithId<import("src/types/index").Zahlungseingang>[]>
+src/lib/db/zahlungen.ts#listZahlungenImZeitraum: (companyId: string, von: string, bis: string, max?: number) => Promise<pg.WithId<import("src/types/index").Zahlungseingang>[]>
+src/lib/db/zahlungen.ts#updateZahlung: (id: string, daten: Partial<pg.NeueZahlung>) => Promise<void>

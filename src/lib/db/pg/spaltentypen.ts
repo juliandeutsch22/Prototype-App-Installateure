@@ -58,6 +58,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   vacations: { created_at: 'zeitpunkt', entschieden_am: 'zeitpunkt', updated_at: 'zeitpunkt' },
   wartungen: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   work_sheet_hours: { bis: 'uhrzeit', von: 'uhrzeit' },
+  zahlungseingaenge: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   work_sheet_photos: { geraet_zeit: 'zeitpunkt' },
   work_sheets: { created_at: 'zeitpunkt', unterschrieben_am: 'zeitpunkt', updated_at: 'zeitpunkt' },
 };

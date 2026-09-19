@@ -1,4 +1,5 @@
 import type { Invoice } from '@/types';
+import { offenerRest } from './zahlstand';
 
 /**
  * Mahnwesen — was mit einer Rechnung geschieht, die nicht bezahlt wird.
@@ -95,14 +96,36 @@ export interface MahnPruefung {
  * Anzeige, das Datum ist die Tatsache.
  */
 export function darfMahnen(
-  inv: Pick<Invoice, 'paymentStatus' | 'dueDate' | 'mahnstufe' | 'gemahntAm' | 'mahnfrist'>,
+  inv: Pick<
+    Invoice,
+    'paymentStatus' | 'dueDate' | 'mahnstufe' | 'gemahntAm' | 'mahnfrist'
+    | 'totalBrutto' | 'bezahltBetrag'
+  >,
   heute: string,
 ): MahnPruefung {
-  if (inv.paymentStatus === 'Bezahlt') {
-    return { moeglich: false, grund: 'Die Rechnung ist bezahlt.' };
-  }
   if (inv.paymentStatus === 'Storniert') {
     return { moeglich: false, grund: 'Die Rechnung ist storniert.' };
+  }
+  /*
+    BEIDE MÜSSEN „OFFEN" SAGEN — der Status UND die Zahl.
+
+    „Teilbezahlt" ist mahnbar, der Kunde schuldet ja noch etwas; das ist der
+    Grund für Stufe 10.1, denn vorher wurde eine Rechnung über 1.000 €, auf
+    die 400 gekommen sind, über den vollen Betrag gemahnt.
+
+    WARUM NICHT ALLEIN DIE ZAHL, obwohl sie die genauere wäre: Rechnungen aus
+    der Zeit vor den Zahlungseingängen tragen „Bezahlt" und einen bezahlten
+    Betrag von null — den Betrag hat damals niemand erfasst, weil es das Feld
+    nicht gab. Wer hier nur rechnet, mahnt beim ersten Lauf den gesamten
+    Altbestand. Die Migration trägt den Betrag zwar nach (siehe
+    `20260919120000_zahlungseingaenge.sql`), aber eine Regel, die nur mit
+    geglückter Migration richtig ist, ist keine Regel, sondern eine Annahme.
+  */
+  if (inv.paymentStatus === 'Bezahlt' || inv.paymentStatus === 'Überzahlt') {
+    return { moeglich: false, grund: 'Die Rechnung ist bezahlt.' };
+  }
+  if (offenerRest(inv) <= 0) {
+    return { moeglich: false, grund: 'Die Rechnung ist bezahlt.' };
   }
   if (!inv.dueDate || inv.dueDate >= heute) {
     return { moeglich: false, grund: 'Das Zahlungsziel ist noch nicht abgelaufen.' };

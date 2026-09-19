@@ -172,12 +172,65 @@ describe('Der Leistungszeitraum im Journal', () => {
       'Reverse Charge',
       'Brutto',
       'Zahlungsstatus',
+      'Bezahlt',
+      'Offener Rest',
       'Storniert',
       'Stornogrund',
     ]);
     const felder = zeile.split(';');
     expect(felder[2]).toBe('03.12.2026');
     expect(felder[3]).toBe('19.12.2026');
+  });
+
+  /*
+    DIE ZAHLEN, WEGEN DERER DIE KANZLEI DIESE DATEI ÜBERHAUPT BEKOMMT. Ohne
+    sie steht dort zu jeder Rechnung der volle Betrag als Forderung, auch wenn
+    die Hälfte längst auf dem Konto ist.
+  */
+  it('führt Bezahltes und offenen Rest getrennt', () => {
+    const teil = buildInvoiceCsv(
+      [{ ...re('RE-2026-0001', 1000), totalBrutto: 1000, bezahltBetrag: 400 }],
+      [], '2026-01-01', '2026-12-31',
+    );
+    const felder = teil.csv.split('\n')[1].split(';');
+    expect(felder[14]).toBe('400,00');
+    expect(felder[15]).toBe('600,00');
+  });
+
+  /*
+    DER FALL, DEN EINE EINZELNE SPALTE NICHT AUSDRÜCKEN KÖNNTE: storniert und
+    trotzdem bezahlt. Die Forderung ist weg, das Geld ist da — das ist ein
+    Guthaben des Kunden und keine offene Position.
+  */
+  it('zeigt bei einer stornierten Rechnung mit Zahlung keinen offenen Rest', () => {
+    const storno = buildInvoiceCsv(
+      [{
+        ...re('RE-2026-0001', 1000, 'Storniert'),
+        totalBrutto: 1000,
+        bezahltBetrag: 1000,
+      }],
+      [], '2026-01-01', '2026-12-31',
+    );
+    const felder = storno.csv.split('\n')[1].split(';');
+    expect(felder[14]).toBe('1000,00');
+    expect(felder[15]).toBe('0,00');
+  });
+
+  /*
+    EINE SUMME UNTER DER FALSCHEN SPALTE IST SCHLIMMER ALS KEINE: sie sieht
+    richtig aus. Bis zum 19.09.2026 stand die Nettosumme unter „UID-Nummer".
+  */
+  it('stellt die Summen unter ihre eigenen Spalten', () => {
+    const e = buildInvoiceCsv(
+      [re('RE-2026-0001', 100), re('RE-2026-0002', 200)],
+      [], '2026-01-01', '2026-12-31',
+    );
+    const zeilen = e.csv.split('\n');
+    const kopf = zeilen[0].split(';');
+    const summe = zeilen[zeilen.length - 1].split(';');
+    expect(summe[kopf.indexOf('Netto')]).toBe('300,00');
+    expect(summe[kopf.indexOf('Brutto')]).toBe('360,00');
+    expect(summe[kopf.indexOf('UID-Nummer')]).toBe('');
   });
 
   it('bleibt leer, wenn er nicht angegeben ist', async () => {

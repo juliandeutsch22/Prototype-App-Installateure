@@ -22,7 +22,15 @@ const STATUS_STAND: Record<string, Stand> = {
   Erledigt: 'gut',
   // Rechnungs-Status
   Überfällig: 'schlecht',
+  /*
+    „Teilbezahlt" läuft, es ist weder gut noch schlecht: Geld ist gekommen,
+    die Forderung besteht weiter. „Überzahlt" bekommt dagegen Achtung —
+    dahinter steht eine Rückzahlung, die jemand veranlassen muss, und sie
+    fällt sonst niemandem auf ausser dem Kunden.
+  */
+  Teilbezahlt: 'laeuft',
   Bezahlt: 'gut',
+  Überzahlt: 'achtung',
   Storniert: 'ruht',
   // Baustellen-Status
   Aktiv: 'gut',
