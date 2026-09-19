@@ -6,9 +6,8 @@
  * der NAHT — die Genehmigung schreibt Tage, die der Saldo anders zählt —
  * fällt keiner davon auf.
  *
- * SIE GEHT DURCH DIE WEICHE, nicht an ihr vorbei: `VITE_DATENQUELLE` steht
- * auf `postgres`, und importiert wird `@/lib/db/…`, nicht `@/lib/db/pg/…`.
- * Damit ist mitgeprüft, dass der Schalter in Stufe 8 die Kette tatsächlich
+ * SIE GEHT DURCH DIE WEICHE, nicht an ihr vorbei: importiert wird
+ * `@/lib/db/…`, nicht `@/lib/db/pg/…`. Damit ist mitgeprüft, dass die Kette
  * trägt und nicht nur die einzelnen Module.
  *
  * DIE FIRESTORE-FASSUNG (`tests/durchstich.test.ts`) STELLT DIE GENEHMIGUNG
@@ -21,7 +20,6 @@ import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import type { AppUser, TimeEntry } from '@/types';
 
-vi.stubEnv('VITE_DATENQUELLE', 'postgres');
 
 const zeiten = await import('@/lib/db/timeEntries');
 const urlaubeDb = await import('@/lib/db/vacations');
@@ -65,7 +63,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   clientEinreichen(null);
-  vi.unstubAllEnvs();
 });
 
 afterEach(() => {

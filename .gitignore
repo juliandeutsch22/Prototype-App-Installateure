@@ -1,10 +1,8 @@
 # Dependencies
 node_modules
-functions/node_modules
 
 # Build output
 dist
-functions/lib
 *.tsbuildinfo
 # Von `tsc -b` aus vite.config.ts erzeugte Artefakte
 vite.config.js
@@ -14,18 +12,12 @@ vite.config.d.ts
 .env
 .env.local
 .env.*.local
-functions/.env
-functions/.env.local
-functions/.env.*.local
 !.env.example
-!functions/.env.example
 *.serviceaccount.json
 
-# Firebase
+# Firebase Hosting
 .firebase
 firebase-debug.log
-firestore-debug.log
-ui-debug.log
 
 # Editor / OS
 .DS_Store
@@ -33,15 +25,9 @@ ui-debug.log
 !.vscode/extensions.json
 *.log
 
-# Lokale Emulator-Secrets
-functions/.secret.local
-
 # Service-Account-Schlüssel (Bootstrap/Produktion) — NIE committen
 serviceAccount*.json
 *serviceaccount*.json
-
-# Aus shared/ erzeugte Kopien — siehe functions/scripts/shared-uebernehmen.mjs
-functions/src/generated
 
 # ProjectAtlas: lokaler Index (SQLite, 32 MB) — gehoert nicht ins Repo.
 # Neu erzeugt mit `projectatlas init`. Die MCP-Konfiguration bleibt dagegen
@@ -56,6 +42,7 @@ functions/src/generated
 .projectatlas/projectatlas.claude.mcp.json
 .projectatlas/projectatlas.mcp.json
 .projectatlas/projectatlas.opencode.json
+# Aus shared/ erzeugte Kopien — siehe scripts/edge-shared-uebernehmen.mjs
 supabase/functions/_shared/
 
 # Durchklick (Playwright): Bilder, Spuren und Berichte eines Laufs. Sie sind

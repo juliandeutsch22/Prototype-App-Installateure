@@ -7,12 +7,11 @@
  * Firebase gekommen, und keine einzige Zeilenregel hätte gegriffen.
  *
  * GEPRÜFT WIRD DURCH DIE WEICHE, nicht an ihr vorbei — importiert wird
- * `@/lib/auth/sitzung`, und `VITE_DATENQUELLE` steht auf `postgres`.
+ * `@/lib/auth/sitzung` und nicht `@/lib/auth/pg/sitzung`.
  */
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { admin, betriebAnlegen } from './helfer';
 
-vi.stubEnv('VITE_DATENQUELLE', 'postgres');
 
 const sitzung = await import('@/lib/auth/sitzung');
 const { InactiveUserError } = sitzung;

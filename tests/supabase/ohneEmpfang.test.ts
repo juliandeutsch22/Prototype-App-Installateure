@@ -20,14 +20,13 @@
  * Einordnung der Fehler überspringen — und genau dort entscheidet sich, ob
  * ein Vorgang wartet oder verloren gilt.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import { admin, ANON, betriebAnlegen, konto, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import { lagerEinreichen, nachsendenJetzt } from '@/lib/db/pg/ohneEmpfang';
 import type { Lager, Vormerkung } from '@/lib/sync/ausgangsfach';
 
-vi.stubEnv('VITE_DATENQUELLE', 'postgres');
 
 const zeiten = await import('@/lib/db/timeEntries');
 

@@ -1,21 +1,25 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth';
-import {
-  initializeFirestore,
-  connectFirestoreEmulator,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-  persistentSingleTabManager,
-  disableNetwork,
-  enableNetwork,
-  getPersistentCacheIndexManager,
-  enablePersistentCacheIndexAutoCreation,
-} from 'firebase/firestore';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 /**
- * Firebase-Initialisierung — Konfiguration AUSSCHLIESSLICH aus ENV.
- * Kein kundenspezifischer Wert ist hartkodiert (vgl. Spec §11).
+ * Was von Firebase übrig ist: der Versandweg für Push-Meldungen.
+ *
+ * AM 19.09.2026 IST DER REST ABGEBAUT WORDEN — Firestore, die Anmeldung und
+ * vierzehn Cloud Functions. Die Daten liegen in Postgres, die Anmeldung bei
+ * Supabase Auth, und was die Functions taten, tun jetzt Datenbankfunktionen,
+ * Trigger, `pg_cron` und drei Edge Functions.
+ *
+ * WARUM FIREBASE TROTZDEM NICHT GANZ GEHT. Eine Push-Meldung an ein Telefon
+ * braucht einen Dienst, den Apple und Google akzeptieren; Supabase hat dafür
+ * keinen Ersatz. Der VERSAND läuft deshalb weiter über FCM — ausgelöst von
+ * einem Postgres-Trigger, verschickt von der Edge Function `push-melden`.
+ *
+ * WAS DIESE DATEI NOCH TUT, ist die andere Hälfte davon: der Browser muss
+ * sein Gerät bei FCM anmelden und bekommt dafür eine Kennung, die in
+ * `user_prefs` landet. Dafür braucht das SDK eine eingerichtete App — mehr
+ * nicht. Siehe `lib/push.ts`.
+ *
+ * DIE KONFIGURATION KOMMT AUSSCHLIESSLICH AUS DER UMGEBUNG. Kein
+ * kundenspezifischer Wert steht im Quelltext.
  */
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -26,191 +30,29 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const FUNCTIONS_REGION = import.meta.env.VITE_FUNCTIONS_REGION || 'europe-west3';
+/*
+  OHNE SCHLÜSSEL KEINE AUSNAHME, SONDERN KEIN PUSH.
 
-if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-  // Sichtbarer Fehler statt stillem Abbruch.
-  throw new Error(
-    'Firebase-Konfiguration fehlt. Bitte .env aus .env.example erstellen und die VITE_FIREBASE_*-Werte setzen.',
-  );
+  Bis zum Abbau warf diese Datei beim Laden, wenn die Konfiguration fehlte —
+  richtig, solange die halbe App daran hing: eine App, die ohne Datenbank
+  startet und erst beim ersten Speichern scheitert, kostet mehr Zeit.
+
+  Jetzt hängt nur noch die Push-Anmeldung daran. Ein Betrieb, der keine
+  Meldungen aufs Telefon will, soll die App deshalb nicht weniger benutzen
+  können — er bekommt schlicht keine. `lib/push.ts` fragt `istEingerichtet()`
+  und meldet dem Benutzer „nicht verfügbar", statt die App anzuhalten.
+*/
+export function istEingerichtet(): boolean {
+  return Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 }
 
-export const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+let zwischengespeichert: FirebaseApp | null = null;
 
-export const auth = getAuth(app);
-
-/**
- * Firestore MIT lokalem Zwischenspeicher.
- *
- * Ohne den steht ein Monteur im Keller, im Rohbau oder in der Tiefgarage vor
- * einer leeren App, und eine Buchung schlägt fehl statt nachgereicht zu
- * werden. Für diese Zielgruppe ist fehlender Empfang kein Randfall, sondern
- * Alltag. Mit dem Zwischenspeicher bleiben bereits geladene Daten lesbar und
- * Schreibvorgänge gehen raus, sobald das Netz wieder da ist.
- *
- * `persistentMultipleTabManager` erlaubt mehrere offene Tabs — ohne ihn
- * bekommt nur der erste Tab den Speicher und die übrigen laufen ohne.
- *
- * Fällt die Einrichtung aus (privates Fenster, Browser ohne IndexedDB,
- * blockierte Website-Daten), läuft die App wie bisher rein online weiter:
- * lieber ohne Zwischenspeicher als gar nicht.
- */
-/**
- * Läuft die App als eigene Anwendung vom Startbildschirm?
- *
- * Dann gibt es genau EIN Fenster — und die Aushandlung darüber, welcher Tab
- * den Zwischenspeicher führen darf, ist Aufwand ohne Gegenwert.
- */
-function alsEigeneApp(): boolean {
-  if (typeof window === 'undefined') return false;
-  return (
-    window.matchMedia?.('(display-mode: standalone)').matches === true ||
-    // Safari auf iOS kennt `display-mode` nicht und meldet es hierüber.
-    (navigator as Navigator & { standalone?: boolean }).standalone === true
-  );
-}
-
-function createDb() {
-  try {
-    /**
-     * Mehrfenster-Aushandlung NUR im Browser, nicht in der Startbildschirm-App.
-     *
-     * `persistentMultipleTabManager` handelt über IndexedDB aus, welches
-     * Fenster den Zwischenspeicher führt. Der Führende hält dafür eine
-     * Reservierung, die ausläuft — wird ein Fenster ordentlich geschlossen,
-     * gibt es sie zurück. iOS beendet eine App im Hintergrund aber OHNE
-     * Aufräumen. Beim nächsten Start liegt die Reservierung des vorigen Laufs
-     * dann noch da, und der neue Lauf wartet, bis sie verfällt, bevor er ans
-     * Netz geht. Genau so sieht „lädt manchmal ewig" aus.
-     *
-     * In einer Startbildschirm-App gibt es ohnehin nur ein Fenster, also
-     * bringt die Aushandlung dort nichts und kostet nur.
-     *
-     * DER PREIS, ehrlich: hat jemand am Rechner die installierte App UND
-     * einen Browser-Tab derselben Adresse gleichzeitig offen, bekommt der
-     * zweite keinen dauerhaften Zwischenspeicher mehr — er läuft dann rein
-     * online weiter. Ein seltener Fall, und er bricht nichts.
-     */
-    return initializeFirestore(app, {
-      localCache: persistentLocalCache(
-        alsEigeneApp()
-          ? { tabManager: persistentSingleTabManager(undefined) }
-          : { tabManager: persistentMultipleTabManager() },
-      ),
-    });
-  } catch {
-    return initializeFirestore(app, {});
+/** Die eingerichtete App — `null`, wenn keine Zugangsdaten hinterlegt sind. */
+export function firebaseApp(): FirebaseApp | null {
+  if (!istEingerichtet()) return null;
+  if (!zwischengespeichert) {
+    zwischengespeichert = getApps().length ? getApp() : initializeApp(firebaseConfig);
   }
-}
-
-export const db = createDb();
-
-/**
- * Der Zwischenspeicher legt seine Indizes selbst an.
- *
- * DAS IST DIE STELLE, AN DER DIESE APP MIT DEN JAHREN TRÄGE GEWORDEN WÄRE.
- * Serverseitig hängt die Antwortzeit von Firestore an der ERGEBNISgrösse, nicht
- * an der Sammlungsgrösse — „die letzten fünfzig Rechnungen" ist bei
- * hunderttausend genauso schnell wie bei hundert. Im lokalen Zwischenspeicher
- * gilt das NICHT von selbst: ohne Index durchsucht das SDK dort den
- * zwischengespeicherten Bestand der Sammlung, und der wächst mit jedem Monat,
- * den ein Betrieb die App benutzt.
- *
- * Genau das ist die Bremse, die man für „zu viel Offline-Speicher" hält. Die
- * naheliegende Antwort — den Speicher kleiner machen — wäre die falsche: sie
- * nähme dem Monteur im Keller die Daten weg und liesse die Abfrage trotzdem
- * suchen. Die richtige ist, das Suchen überflüssig zu machen.
- *
- * `enablePersistentCacheIndexAutoCreation` überlässt dem SDK die Entscheidung,
- * WELCHE Indizes es anlegt: es beobachtet, welche Abfragen tatsächlich laufen.
- * Eine Liste von Hand gepflegter Indizes wäre eine zweite Wahrheit neben
- * `firestore.indexes.json` — und die beiden liefen auseinander.
- *
- * Ohne dauerhaften Zwischenspeicher (privates Fenster, blockierte
- * Website-Daten) gibt es nichts zu indizieren; dann steht hier `null` und es
- * bleibt beim bisherigen Verhalten.
- */
-function cacheIndizesEinschalten(): void {
-  try {
-    const verwalter = getPersistentCacheIndexManager(db);
-    if (verwalter) enablePersistentCacheIndexAutoCreation(verwalter);
-  } catch {
-    // Eine Beschleunigung, die beim Einrichten scheitert, darf die App nicht
-    // aufhalten — sie lief bisher auch ohne.
-  }
-}
-cacheIndizesEinschalten();
-export const functions = getFunctions(app, FUNCTIONS_REGION);
-
-// Im Dev-Modus optional gegen die lokalen Emulatoren laufen.
-// 127.0.0.1 statt "localhost" vermeidet IPv6-Auflösungsprobleme (::1).
-if (import.meta.env.VITE_USE_EMULATORS === 'true') {
-  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-  connectFirestoreEmulator(db, '127.0.0.1', 8080);
-  connectFunctionsEmulator(functions, '127.0.0.1', 5001);
-}
-
-/**
- * Nach dem Aufwecken die Verbindung erneuern.
- *
- * DAS PROBLEM. iOS friert eine Startbildschirm-App beim Wegschalten ein und
- * behält die Seite im Speicher. Kommt der Benutzer zurück, ist der
- * JavaScript-Zustand noch da — die Netzverbindungen sind es nicht. Firestore
- * merkt das nicht sofort: eine Abfrage, die in diesem Moment abgeschickt
- * wird, sitzt auf einem toten Kanal. Und weil Firestore-Abfragen keine
- * Zeitgrenze haben, wartet sie dort, bis der Client von selbst darauf kommt.
- *
- * Am Schreibtisch passiert das nie so — ein Browser-Tab wird eher komplett
- * neu geladen.
- *
- * DIE LÖSUNG: das Netz einmal aus- und wieder einschalten. Damit wirft der
- * Client den toten Kanal weg und baut sofort einen neuen auf, statt auf sein
- * eigenes Zeitfenster zu warten.
- *
- * NUR NACH LÄNGERER PAUSE. Beim kurzen Blick auf eine Meldung wäre das
- * unnötig — und in der Sekunde dazwischen kämen Abfragen aus dem
- * Zwischenspeicher statt vom Server.
- */
-const PAUSE_BIS_NEUVERBINDUNG_MS = 30_000;
-
-export function verbindungBeimAufwachenErneuern(): void {
-  if (typeof document === 'undefined') return;
-  let weggeschaltet = 0;
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      weggeschaltet = Date.now();
-      return;
-    }
-    if (!weggeschaltet || Date.now() - weggeschaltet < PAUSE_BIS_NEUVERBINDUNG_MS) return;
-    weggeschaltet = 0;
-    // Fehler hier sind belanglos: schlimmstenfalls bleibt es beim alten
-    // Verhalten. Der Benutzer soll davon nichts sehen.
-    void disableNetwork(db)
-      .then(() => enableNetwork(db))
-      .catch(() => undefined);
-  });
-}
-
-/**
- * Erzeugt eine zweite, isolierte Firebase-App-Instanz. Wird gebraucht, um
- * neue Benutzer per createUserWithEmailAndPassword anzulegen, OHNE die
- * aktuelle Admin-Session abzumelden (vgl. Legacy "secApp"-Muster).
- */
-export function getSecondaryApp(name = 'secondary'): FirebaseApp {
-  const existing = getApps().find((a) => a.name === name);
-  return existing ?? initializeApp(firebaseConfig, name);
-}
-
-/**
- * Auth-Instanz der Secondary-App (für Benutzeranlage). Bindet im Dev-Modus
- * denselben Emulator an wie die Primär-Auth.
- */
-export function getSecondaryAuth(): Auth {
-  const secAuth = getAuth(getSecondaryApp());
-  if (import.meta.env.VITE_USE_EMULATORS === 'true') {
-    // Mehrfaches connect ist idempotent (gleiche URL); Warnungen unterdrücken.
-    connectAuthEmulator(secAuth, 'http://127.0.0.1:9099', { disableWarnings: true });
-  }
-  return secAuth;
+  return zwischengespeichert;
 }

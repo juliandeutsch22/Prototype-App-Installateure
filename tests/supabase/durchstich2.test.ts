@@ -3,16 +3,14 @@
  * der nach der Unterschrift zu ist.
  *
  * Wie `durchstich1.test.ts` geht auch das hier durch die WEICHE und nicht an
- * ihr vorbei — importiert wird `@/lib/db/…`, `VITE_DATENQUELLE` steht auf
- * `postgres`. Was hier grün ist, hängt nach dem Umschalten tatsächlich
- * zusammen.
+ * ihr vorbei — importiert wird `@/lib/db/…`, nicht `@/lib/db/pg/…`. Was hier
+ * grün ist, hängt in der App tatsächlich zusammen.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { betriebAnlegen, konto, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import type { TimeEntry } from '@/types';
 
-vi.stubEnv('VITE_DATENQUELLE', 'postgres');
 
 const zeiten = await import('@/lib/db/timeEntries');
 const projekte = await import('@/lib/db/projects');
@@ -38,7 +36,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   clientEinreichen(null);
-  vi.unstubAllEnvs();
 });
 
 const arbeitstag = (datum: string) => ({

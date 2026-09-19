@@ -3579,6 +3579,97 @@ Namen finden, sind der Wächter dafür.
 
 ---
 
+## Erledigt: Firebase abgebaut — ein Datenmodell statt zwei (19.09.2026)
+
+Stufe 9 des Fahrplans, in zwei Zügen. Bedingung des Auftraggebers: *„wenn
+Funktionen dadurch nicht beschädigt oder verloren gehen, zieh durch, ansonsten
+lassen wir das hybride Datenbankmodell vorerst."* Sie war erfüllt, und zwar
+nachweislich:
+
+- **Produktiv lief die Firestore-Seite längst nicht mehr.** `deploy.yml` baute
+  seit Stufe 8 mit `VITE_DATENQUELLE` auf `postgres`. Was hier entfernt wurde,
+  war ausgelieferter, aber toter Code.
+- **Alle vierzehn Cloud Functions haben einen Ersatz mit Prüfung.** Nachgesehen
+  eine nach der anderen: Urlaubsentscheidung, Scheinvorbereitung,
+  Ansprüche ins Token, Monatszahlen, Push, Schein-Prüfsumme, Betriebsauszug,
+  nächtliche Ausleitung, Betrieb anlegen. Für jede steht der Nachweis in
+  `tests/supabase/`.
+
+### Was rausging
+
+Die Datenschicht (20 Weichen) zeigt jetzt direkt auf `pg/`; `db/fs/` (20
+Dateien), `auth/fs/`, `lib/db/quelle.ts`, `lib/functions.ts` und `lib/features.ts`
+sind weg. Dazu `functions/` mit vierzehn Functions, `firestore.rules`,
+`firestore.indexes.json`, `storage.rules`, zwei Workflows und die
+Emulator-Prüfungen. `lib/firebase.ts` ist von 137 auf 57 Zeilen geschrumpft
+und lädt seither **faul**: ohne Firebase-Werte startet die App vollständig,
+nur ohne Push.
+
+**Die KI-Spracherfassung ging in derselben Bewegung raus** — ersatzlos, wie
+geplant. Ein abgeschalteter Bereich, den niemand einschalten wird, ist Ballast.
+Zurück bleibt eine Folge, die hier benannt und nicht verschwiegen wird: die
+**Wiedervorlagen** (`follow_ups`) hatten nur dort ihren Eingang. Tabelle,
+Richtlinien und Datenschicht stehen, aber keine Ansicht schreibt mehr hinein.
+Entweder bekommt der Bereich einen echten Eingang oder er fällt weg; das ist
+eine Produktentscheidung. Steht in `UEBERGABE.md` §6.
+
+### Was dabei NICHT verlorengehen durfte
+
+Zwei Prüfungen hingen an Firestore-Dateien und hätten beim Löschen still an
+Wert verloren:
+
+- **`vollstaendigkeit.test.ts`** las die Titel aller 155 Regelprüfungen aus
+  `tests/firestore.rules.test.ts`, um zu beweisen, dass jede davon einen
+  Postgres-Nachfolger hat. Die Datei geht weg, die Beweislast nicht: die 155
+  Titel liegen jetzt eingefroren in `tests/supabase/regelnAusFirestore.txt`.
+  Ein Vergleich gegen eine gelöschte Datei wäre grün geworden, weil es nichts
+  mehr zu vergleichen gab — genau die Sorte Grün, die nichts festhält.
+- **Vier Unit-Tests auf Firestore-Nutzlasten** (Retoure, Scheinzustand,
+  Wartung erledigt, Indexabgleich) prüften, welche Felder geschrieben werden.
+  Postgres prüft dasselbe stärker — gegen eine echte Datenbank. Eine
+  Aussage fehlte dort: dass bei **zwei gleichnamigen Artikeln** gar nichts
+  zurückgebucht wird (`app.katalogeintrag` mit `having count(*) = 1` liefert
+  NULL). Sie ist nach `tests/supabase/modulLager.test.ts` übernommen worden.
+
+Neu dazu kam eine Indexregel in `schema.test.ts`: jede Mandantentabelle
+braucht einen Index mit `company_id` oder einem Fremdschlüssel als führender
+Spalte. Die erste Fassung war zu streng und meldete acht Kindtabellen, die
+ihren Index korrekt am Elternschlüssel hatten — korrigiert, nicht aufgeweicht.
+
+### Der tote Schalter
+
+`VITE_DATENQUELLE` war die Rückfalltür für Stufe 8. Mit der Firestore-Seite
+ist sie eine Zusage, die niemand mehr einlösen kann. Sie steht deshalb nirgends
+mehr — und `tests/unit/bauUmgebung.test.ts` hält fest, dass sie nicht
+zurückkommt. **Ein Schalter, der nichts mehr schaltet, ist gefährlicher als
+keiner:** der Nächste legt ihn im Ernstfall um und wundert sich.
+
+Dieselbe Prüfung fand beim Schreiben einen echten Fehler: die Vorabprüfung des
+Deploys hielt `VITE_FIREBASE_PROJECT_ID` für einen reinen Push-Wert. Sie steht
+aber im Deploy als `--project` und entscheidet, **wohin** veröffentlicht wird.
+Ohne sie wäre die Prüfung durchgelaufen, der Build gelungen und der letzte
+Schritt gescheitert. Jetzt ist sie Pflicht, und ein Test vergleicht die
+Prüfliste mit dem, was die Deploy-Schritte tatsächlich brauchen.
+
+### Die Dokumentation
+
+`README.md` (626 → 211 Zeilen), `docs/DEPLOYMENT.md` und `docs/UEBERGABE.md`
+beschrieben durchgehend das alte System — bis hin zu Einrichtungsschritten, die
+ins falsche Projekt führen. Alle drei neu geschrieben. Die teuer bezahlten
+Fallen aus der Firestore-Zeit sind dabei **nicht** gelöscht worden: vier davon
+stehen in `UEBERGABE.md` §4 als eigener Block, jede mit dem, was heute an ihrer
+Stelle steht. Eine Falle verliert ihren Wert nicht dadurch, dass die Technik
+gewechselt hat.
+
+### Geprüft
+
+1716 Unit- und Ansichtstests (142 Dateien), 728 Datenbanktests (50 Dateien),
+vier Wege im echten Browser, Lint, Typprüfung und Bau — alles grün. Kein
+`firebase/firestore`, `firebase/auth` oder `firebase/functions` mehr in `src/`,
+`tests/` oder `shared/`.
+
+---
+
 ## Der Weg zum Start in Österreich (Abgleich vom 18.09.2026)
 
 Dieser Abschnitt ist die Antwort auf eine durchgesehene Liste offener Punkte
@@ -3656,7 +3747,7 @@ woraufliegt**. Drei Ketten:
 
 ---
 
-### Stufe 9 — Firebase abbauen (läuft, Voraussetzung für alles)
+### Stufe 9 — Firebase abbauen (**ERLEDIGT am 19.09.2026**, siehe oben)
 
 Unverändert wie bisher geplant, mit **einer Ergänzung**: die KI-Erfassung geht
 in derselben Bewegung raus. Ein abgeschalteter Bereich, den niemand

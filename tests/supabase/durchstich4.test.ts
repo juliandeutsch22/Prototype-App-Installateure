@@ -19,12 +19,11 @@
  * Ein solcher Fehler ist im Ein-Betrieb-Betrieb UNSICHTBAR. Er erscheint am
  * Tag, an dem der zweite Kunde dazukommt.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import type { TimeEntry } from '@/types';
 
-vi.stubEnv('VITE_DATENQUELLE', 'postgres');
 
 const zeiten = await import('@/lib/db/timeEntries');
 const rechnungenDb = await import('@/lib/db/invoices');
@@ -60,7 +59,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   clientEinreichen(null);
-  vi.unstubAllEnvs();
 });
 
 const arbeit = (k: Konto, name: string, bis: string) => ({

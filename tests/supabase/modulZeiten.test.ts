@@ -6,7 +6,7 @@
  * auf dem neuen Weg greift, ist damit nicht selbstverständlich, sondern
  * geprüft.
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import * as zeiten from '@/lib/db/pg/timeEntries';
 import { clientEinreichen } from '@/lib/db/pg/kern';
@@ -188,34 +188,24 @@ describe('Zeiterfassung auf Postgres', () => {
   });
 });
 
-describe('Die Doppelbuchungsregel greift auch auf dem neuen Weg', () => {
+describe('Die Doppelbuchungsregel greift durch die Weiche', () => {
   /*
-   * Geprüft wird durch die WEICHE, mit umgelegtem Schalter. Die Regel steht
-   * nur einmal im Code — genau deshalb muss nachgewiesen sein, dass sie auf
-   * beiden Wegen wirkt und nicht nur auf dem alten.
+   * Geprüft wird über `@/lib/db/timeEntries` und nicht über `pg/timeEntries`.
+   * Die Regel steht nur einmal im Code, und der Weg dorthin führt über die
+   * Weiche — wer sie dort herausnimmt, muss hier rot werden.
    */
   it('blockt eine zweite Buchung auf dieselbe Baustelle am selben Tag', async () => {
-    vi.stubEnv('VITE_DATENQUELLE', 'postgres');
     const { createTimeEntry, DuplicateEntryError } = await import('@/lib/db/timeEntries');
-    try {
-      await createTimeEntry('zeit-a', buchung(monteur, '2026-09-07', { projectNumber: '2026-070' }));
-      await expect(
-        createTimeEntry('zeit-a', buchung(monteur, '2026-09-07', { projectNumber: '2026-070' })),
-      ).rejects.toBeInstanceOf(DuplicateEntryError);
-    } finally {
-      vi.unstubAllEnvs();
-    }
+    await createTimeEntry('zeit-a', buchung(monteur, '2026-09-07', { projectNumber: '2026-070' }));
+    await expect(
+      createTimeEntry('zeit-a', buchung(monteur, '2026-09-07', { projectNumber: '2026-070' })),
+    ).rejects.toBeInstanceOf(DuplicateEntryError);
   });
 
   it('lässt eine zweite Baustelle am selben Tag zu', async () => {
-    vi.stubEnv('VITE_DATENQUELLE', 'postgres');
     const { createTimeEntry } = await import('@/lib/db/timeEntries');
-    try {
-      const id = await createTimeEntry('zeit-a',
-        buchung(monteur, '2026-09-07', { projectNumber: '2026-071' }));
-      expect(id).toBeTruthy();
-    } finally {
-      vi.unstubAllEnvs();
-    }
+    const id = await createTimeEntry('zeit-a',
+      buchung(monteur, '2026-09-07', { projectNumber: '2026-071' }));
+    expect(id).toBeTruthy();
   });
 });

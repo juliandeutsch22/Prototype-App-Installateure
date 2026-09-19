@@ -1,15 +1,4 @@
 {
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
-  "storage": {
-    "rules": "storage.rules"
-  },
-  "functions": {
-    "source": "functions",
-    "runtime": "nodejs22"
-  },
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -43,22 +32,5 @@
         ]
       }
     ]
-  },
-  "emulators": {
-    "auth": {
-      "port": 9099
-    },
-    "firestore": {
-      "port": 8080
-    },
-    "functions": {
-      "port": 5001
-    },
-    "ui": {
-      "enabled": true
-    },
-    "storage": {
-      "port": 9199
-    }
   }
 }
