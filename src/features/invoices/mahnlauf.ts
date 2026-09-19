@@ -1,5 +1,6 @@
 import type { Invoice } from '@/types';
 import { darfMahnen, naechsteStufe, spesenFuer, type Mahnstufe } from './mahnung';
+import { offenerRest } from './zahlstand';
 
 /**
  * Der Mahnlauf — nicht Rechnung für Rechnung, sondern in einem Durchgang.
@@ -26,6 +27,16 @@ export interface MahnZeile {
   stufe: Mahnstufe;
   /** Wie viele Tage die Zahlungsfrist überschritten ist. */
   tageUeberfaellig: number;
+  /**
+   * Was auf diese Rechnung noch aussteht — NICHT der Rechnungsbetrag.
+   *
+   * Auf eine Rechnung über 1.000 €, auf die 400 gekommen sind, gehören 600 in
+   * die Mahnung. Der Bruttobetrag stünde dort als Forderung, die es nicht
+   * mehr gibt, und eine zu hohe Mahnung ist nicht bloss peinlich: der Kunde
+   * bestreitet sie zu Recht, und der Betrieb steht mit einer offenen
+   * Forderung da, die er selbst falsch beziffert hat.
+   */
+  offen: number;
   /** Was der Betrieb für diese Stufe verrechnet — 0, wenn nichts hinterlegt. */
   spesen: number;
 }
@@ -42,8 +53,8 @@ export interface Mahnlauf {
    * die ältesten Forderungen die unsichtbarsten.
    */
   ausgereizt: Array<Invoice & { id: string }>;
-  /** Summe der offenen Bruttobeträge im Lauf. */
-  summeBrutto: number;
+  /** Summe dessen, was dieser Lauf einfordert — Restbeträge, nicht Brutto. */
+  summeOffen: number;
   /** Summe der Spesen, die dieser Lauf verrechnen würde. */
   summeSpesen: number;
 }
@@ -63,7 +74,9 @@ function tageZwischen(vonIso: string, bisIso: string): number {
  * Oben steht, was am weitesten fortgeschritten ist: eine Forderung vor der
  * letzten Mahnung ist dringender als eine, die gerade erst die Frist
  * überschritten hat. Bei gleicher Stufe entscheidet das Alter, dann der
- * Betrag — 12.000 € gehen vor 80 €, wenn beide gleich lange offen sind.
+ * OFFENE Betrag — 12.000 € gehen vor 80 €, wenn beide gleich lange offen
+ * sind. „Offen" heisst hier der Rest nach Teilzahlungen, nicht der
+ * Rechnungsbetrag.
  *
  * Gerechnet wird gegen `heute` als Übergabewert, nicht gegen die Uhr des
  * Rechners: sonst hinge das Ergebnis daran, wann jemand die Seite geöffnet
@@ -86,7 +99,12 @@ export function mahnlauf(
         „braucht eine Entscheidung", und die Liste wäre nach einem Jahr
         unbrauchbar.
       */
-      if (inv.paymentStatus !== 'Bezahlt' && inv.paymentStatus !== 'Storniert') {
+      if (
+        inv.paymentStatus !== 'Storniert'
+        && inv.paymentStatus !== 'Bezahlt'
+        && inv.paymentStatus !== 'Überzahlt'
+        && offenerRest(inv) > 0
+      ) {
         ausgereizt.push(inv);
       }
       continue;
@@ -96,6 +114,7 @@ export function mahnlauf(
       rechnung: inv,
       stufe,
       tageUeberfaellig: inv.dueDate ? tageZwischen(inv.dueDate, heute) : 0,
+      offen: offenerRest(inv),
       spesen: spesenFuer(stufe, spesenSaetze),
     });
   }
@@ -104,13 +123,13 @@ export function mahnlauf(
     (a, b) =>
       b.stufe - a.stufe ||
       b.tageUeberfaellig - a.tageUeberfaellig ||
-      (b.rechnung.totalBrutto ?? 0) - (a.rechnung.totalBrutto ?? 0),
+      b.offen - a.offen,
   );
 
   return {
     zeilen,
     ausgereizt,
-    summeBrutto: runde(zeilen.reduce((s, z) => s + (z.rechnung.totalBrutto ?? 0), 0)),
+    summeOffen: runde(zeilen.reduce((s, z) => s + z.offen, 0)),
     summeSpesen: runde(zeilen.reduce((s, z) => s + z.spesen, 0)),
   };
 }

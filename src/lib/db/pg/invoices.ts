@@ -145,7 +145,13 @@ async function zusammensetzen(
  */
 export async function listUnpaidInvoices(companyId: string) {
   const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-    wo: [{ art: 'in', feld: 'paymentStatus', werte: ['Offen', 'Überfällig'] }],
+    /*
+      „Teilbezahlt" GEHÖRT HIERHER. Eine Rechnung, auf die 400 von 1.000 €
+      gekommen sind, ist unbezahlt — nur eben nicht ganz. Ohne sie fehlten
+      dem Mahnlauf und den Summen der Startseite ausgerechnet die Fälle, bei
+      denen schon einmal jemand nachgefragt hat.
+    */
+    wo: [{ art: 'in', feld: 'paymentStatus', werte: ['Offen', 'Überfällig', 'Teilbezahlt'] }],
   });
   return zusammensetzen(koepfe, companyId);
 }
@@ -304,9 +310,20 @@ export async function createInvoice(companyId: string, inv: NewInvoice): Promise
   return String(data);
 }
 
+/**
+ * Den Fälligkeitsstand setzen — und NUR den.
+ *
+ * „Bezahlt", „Teilbezahlt" und „Überzahlt" stehen hier bewusst nicht zur
+ * Auswahl: sie ergeben sich aus den Zahlungseingängen, und die Datenbank
+ * weist einen Schreibversuch von Hand ab (`app.rechnung_eingefroren`). Ein
+ * Aufruf, der dort scheitert, gehört gar nicht erst in den Typ — sonst sieht
+ * die Ansicht eine Möglichkeit, die es nicht gibt.
+ */
+export type SetzbarerStand = Extract<Invoice['paymentStatus'], 'Offen' | 'Überfällig'>;
+
 export function updateInvoiceStatus(
   id: string,
-  paymentStatus: Invoice['paymentStatus'],
+  paymentStatus: SetzbarerStand,
 ): Promise<void> {
   return aendern(RECHNUNGEN, id, { paymentStatus });
 }
@@ -347,15 +364,30 @@ export async function reactivateInvoice(inv: WithId<Invoice>): Promise<void> {
  */
 export function mahnungFesthalten(
   id: string,
-  daten: { stufe: number; gemahntAm: string; frist: string; spesen: number },
+  daten: {
+    stufe: number; gemahntAm: string; frist: string; spesen: number;
+    /** Wo die Rechnung gerade steht — entscheidet, ob „Überfällig" mitgeht. */
+    standJetzt: Invoice['paymentStatus'];
+  },
 ): Promise<void> {
+  /*
+    „ÜBERFÄLLIG" GEHT NUR MIT, WENN DIE RECHNUNG OFFEN IST.
+
+    Wer mahnt, hat den Verzug festgestellt — das war und bleibt der Grund für
+    diese Zeile. Bei einer TEILBEZAHLTEN Rechnung wäre sie aber ein
+    Rückschritt: „Teilbezahlt" sagt mehr als „Überfällig" (es ist beides), und
+    die Datenbank weist den Schreibversuch ohnehin ab, weil der Stand sich aus
+    den Zahlungseingängen ergibt. Ohne diese Unterscheidung liefe das Mahnen
+    einer angezahlten Rechnung in einen Fehler — und die Mahnung wäre
+    erzeugt, aber nirgends festgehalten.
+  */
+  const verzug = daten.standJetzt === 'Offen';
   return aendern(RECHNUNGEN, id, {
     mahnstufe: daten.stufe,
     gemahntAm: daten.gemahntAm,
     mahnfrist: daten.frist,
     mahnspesen: daten.spesen,
-    // Wer mahnt, hat den Verzug festgestellt.
-    paymentStatus: 'Überfällig',
+    ...(verzug ? { paymentStatus: 'Überfällig' as const } : {}),
   });
 }
 

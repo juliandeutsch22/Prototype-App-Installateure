@@ -10,6 +10,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { admin, betriebAnlegen, konto, buchung, type Konto } from './helfer';
 import * as rechnungen from '@/lib/db/pg/invoices';
+import * as zahlungen from '@/lib/db/pg/zahlungen';
 import * as angebote from '@/lib/db/pg/quotes';
 import { clientEinreichen, NACHFASSEN_MS, type WithId } from '@/lib/db/pg/kern';
 import type { Invoice } from '@/types';
@@ -250,20 +251,53 @@ describe('Eine ausgestellte Rechnung ist zu', () => {
 
   it('der Zahlungsstand und das Mahnwesen bewegen sich weiter', async () => {
     const r = await eine();
-    await rechnungen.updateInvoiceStatus(r.id, 'Bezahlt');
-    const { data: bezahlt } = await admin.from('invoices')
-      .select('payment_status').eq('id', r.id).single();
-    expect(bezahlt!.payment_status).toBe('Bezahlt');
 
+    /* Gemahnt wird zuerst — das ist die Reihenfolge des Alltags. */
     await rechnungen.mahnungFesthalten(r.id, {
       stufe: 1, gemahntAm: '2026-05-20', frist: '2026-06-03', spesen: 15,
+      standJetzt: 'Offen',
     });
     const [gemahnt] = await rechnungen.listUnpaidInvoices(BETRIEB);
     expect(gemahnt).toMatchObject({
       mahnstufe: 1, gemahntAm: '2026-05-20', mahnfrist: '2026-06-03',
       mahnspesen: 15, paymentStatus: 'Überfällig',
     });
-  });
+
+    /*
+      DER STAND KOMMT ÜBER EINE ZAHLUNG, nicht über einen Haken. Bis zum
+      19.09.2026 stand hier `updateInvoiceStatus(r.id, 'Bezahlt')`; seit
+      Stufe 10.1 weist die Datenbank das ab, und der Typ lässt es gar nicht
+      mehr zu. Was die Prüfung sagen will, bleibt dasselbe: eine ausgestellte
+      Rechnung ist eingefroren, ihr ZAHLUNGSSTAND aber nicht.
+    */
+    await zahlungen.createZahlung(BETRIEB, {
+      invoiceId: r.id, datum: '2026-05-25', betrag: 400, art: 'Überweisung',
+    });
+    const { data: teil } = await admin.from('invoices')
+      .select('payment_status, bezahlt_betrag').eq('id', r.id).single();
+    expect(teil!.payment_status).toBe('Teilbezahlt');
+    expect(Number(teil!.bezahlt_betrag)).toBe(400);
+
+    /*
+      UND EINE GEMAHNTE, TEILBEZAHLTE RECHNUNG LÄSST SICH WEITER MAHNEN. Genau
+      hier wäre der Fehler entstanden: „Überfällig" mitzuschreiben scheitert
+      an der Datenbank, und die zweite Mahnung wäre erzeugt, aber nirgends
+      festgehalten.
+    */
+    await rechnungen.mahnungFesthalten(r.id, {
+      stufe: 2, gemahntAm: '2026-06-10', frist: '2026-06-20', spesen: 25,
+      standJetzt: 'Teilbezahlt',
+    });
+    const [zweite] = await rechnungen.listUnpaidInvoices(BETRIEB);
+    expect(zweite).toMatchObject({ mahnstufe: 2, paymentStatus: 'Teilbezahlt' });
+
+    await zahlungen.createZahlung(BETRIEB, {
+      invoiceId: r.id, datum: '2026-06-25', betrag: r.totalBrutto - 400, art: 'Überweisung',
+    });
+    const { data: voll } = await admin.from('invoices')
+      .select('payment_status').eq('id', r.id).single();
+    expect(voll!.payment_status).toBe('Bezahlt');
+  }, 30_000);
 
   it('gelöscht wird keine — § 132 BAO', async () => {
     const r = await eine();
@@ -366,7 +400,10 @@ describe('Rechnungen lesen', () => {
     const bezahlt = await rechnungen.createInvoice(BETRIEB, rechnung({
       invoiceNumber: `RE-${JAHR}-1003`, invoiceDate: '2026-03-15',
     }));
-    await rechnungen.updateInvoiceStatus(bezahlt, 'Bezahlt');
+    /* Voll bezahlt — und damit fällt sie aus den offenen Forderungen. */
+    await zahlungen.createZahlung(BETRIEB, {
+      invoiceId: bezahlt, datum: '2026-03-20', betrag: 1200, art: 'Überweisung',
+    });
   }, 60_000);
 
   it('die unbezahlten sind die offenen Forderungen', async () => {

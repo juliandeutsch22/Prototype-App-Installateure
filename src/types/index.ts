@@ -884,7 +884,34 @@ export interface Invoice {
    */
   leistungVon?: string;
   leistungBis?: string;
-  paymentStatus: 'Offen' | 'Überfällig' | 'Bezahlt' | 'Storniert';
+  /**
+   * WO DIE RECHNUNG STEHT — abgeleitet, nicht gesetzt.
+   *
+   * Bis zum 19.09.2026 war das ein Haken: jemand stellte „Bezahlt" ein, und
+   * damit galt die Rechnung als erledigt. Seit es Zahlungseingänge gibt,
+   * rechnet die Datenbank diesen Wert aus ihnen (`app.zahlstand_setzen`), und
+   * ein Schreibversuch von Hand wird abgewiesen.
+   *
+   * Die einzigen beiden Ausnahmen sind kein Widerspruch: „Überfällig" hängt
+   * am Datum und nicht am Geld, und „Storniert" ist eine Entscheidung des
+   * Betriebs. Beide darf die Ansicht weiterhin setzen.
+   */
+  paymentStatus:
+    | 'Offen'
+    | 'Überfällig'
+    | 'Teilbezahlt'
+    | 'Bezahlt'
+    | 'Überzahlt'
+    | 'Storniert';
+  /**
+   * Summe aller Zahlungseingänge zu dieser Rechnung.
+   *
+   * Bewusst redundant zu `zahlungseingaenge` — und zwar aus demselben Grund
+   * wie `faelligAm` an der Wartung: die Liste zeigt dreihundert Rechnungen
+   * mit ihrem Restbetrag, und ohne diese Zahl wäre das je Zeile eine eigene
+   * Abfrage. Geschrieben wird sie NUR von der Datenbank.
+   */
+  bezahltBetrag?: number;
   linkedEntries?: string[];
   linkedOrders?: string[];
   /**
@@ -931,6 +958,38 @@ export interface Invoice {
  * sind fuer den Kunden nicht nachvollziehbar, und die Reihenfolge ihrer
  * Anwendung waere Auslegungssache.
  */
+/**
+ * Ein Zahlungseingang zu einer Rechnung.
+ *
+ * WARUM EINE EIGENE SAMMLUNG UND KEIN FELD AN DER RECHNUNG. Teilzahlungen
+ * sind im Handwerk der Normalfall — Anzahlung, Abschlag, Rest. Ein Betrag am
+ * Beleg könnte immer nur den letzten festhalten; die Frage „wann kam wie
+ * viel" wäre danach nicht mehr zu beantworten, und genau an ihr hängen
+ * Skonto, Verzugszinsen und eine ehrliche Liste offener Posten.
+ */
+export interface Zahlungseingang {
+  id: string;
+  companyId: string;
+  /** Die Rechnung, auf die gezahlt wurde. */
+  invoiceId: string;
+  /** Wertstellung laut Kontoauszug, nicht der Tag der Erfassung. */
+  datum: string;
+  /**
+   * Der Betrag in Euro. NEGATIV ist erlaubt und meint eine Rückzahlung —
+   * derselbe Vorgang mit umgekehrtem Vorzeichen. Ohne ihn bliebe eine
+   * überzahlte Rechnung für immer überzahlt.
+   */
+  betrag: number;
+  art: 'Überweisung' | 'Bar' | 'Karte' | 'Sonstiges';
+  /** Freitext: „Skonto gezogen", „Teilzahlung laut Vereinbarung". */
+  hinweis?: string;
+  /** Wer ihn erfasst hat — eine Zahl ohne Herkunft lässt sich nicht klären. */
+  erfasstVon?: string;
+  erfasstVonName?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 export interface InvoiceDiscount {
   mode: 'percent' | 'amount';
   value: number;

@@ -3579,6 +3579,90 @@ Namen finden, sind der Wächter dafür.
 
 ---
 
+## Erledigt: Der Zahlungseingang — die Wurzel von Stufe 10 (19.09.2026)
+
+Bis hierher war „Bezahlt" ein Haken. Kein Datum, kein Betrag, keine
+Teilzahlung. Das ist mehr als eine fehlende Angabe: **der Mahnlauf rechnete
+mit dem Bruttobetrag.** Wer auf eine Rechnung über 1.000 € vierhundert
+überweist, wurde über 1.000 € gemahnt — und eine zu hohe Mahnung bestreitet
+der Kunde zu Recht.
+
+### Eine eigene Tabelle, kein Feld an der Rechnung
+
+`zahlungseingaenge(rechnung, datum, betrag, art, hinweis)`. Teilzahlungen sind
+im Handwerk der Normalfall — Anzahlung, Abschlag, Rest —, und ein Betrag am
+Beleg könnte immer nur den letzten festhalten.
+
+**Negative Beträge sind erlaubt, null ist es nicht.** Eine Rückzahlung ist
+derselbe Vorgang mit umgekehrtem Vorzeichen; ohne sie bliebe eine überzahlte
+Rechnung für immer überzahlt. Ein Eingang über null ist dagegen kein Vorgang,
+sondern ein Vertipper.
+
+### Der Stand wird abgeleitet, nicht gesetzt
+
+`app.zahlstand_setzen` rechnet aus den Eingängen: **Offen → Teilbezahlt →
+Bezahlt → Überzahlt**, und „Storniert" bleibt „Storniert". Dazu zwei neue
+Zustände, beide eine Tatsache und keine Stimmung: „Teilbezahlt" ist weder
+offen noch bezahlt, und „Überzahlt" ist der Fall, den man nicht sehen will und
+deshalb sehen muss — es steht eine Rückzahlung aus.
+
+**Der Haken verschwindet in der DATENBANK, nicht nur in der Oberfläche.**
+`app.rechnung_eingefroren` weist einen Schreibversuch auf „Bezahlt",
+„Teilbezahlt" oder „Überzahlt" ab, ebenso jede Änderung am bezahlten Betrag.
+Was der Aufrufer weiterhin darf: „Offen" und „Überfällig" (das hängt am Datum,
+nicht am Geld) und den Storno. Stünde die Grenze nur in der Ansicht, wäre sie
+beim nächsten Formular wieder weg — und danach behaupteten zwei Quellen
+denselben Stand.
+
+### Drei Fallen, die dabei zugeschnappt sind
+
+1. **Der Altbestand.** Rechnungen aus der Zeit vor der Tabelle tragen
+   „Bezahlt" und einen bezahlten Betrag von null. Der Mahnlauf rechnet ab
+   jetzt mit dem Rest — ohne Nachtrag hätte der erste Lauf **den gesamten
+   Altbestand gemahnt.** Die Migration trägt die Summe nach; zusätzlich
+   verlangt `darfMahnen`, dass Status UND Zahl „offen" sagen. Eine Regel, die
+   nur mit geglückter Migration richtig ist, ist keine Regel, sondern eine
+   Annahme. **Zahlungseingänge erfindet die Migration dabei nicht** — ein
+   Eingang trägt ein Datum, und das weiss hier niemand.
+2. **Die Mahnung auf eine angezahlte Rechnung.** `mahnungFesthalten` schrieb
+   „Überfällig" mit. Bei einer teilbezahlten Rechnung weist die Datenbank das
+   jetzt ab — die Mahnung wäre erzeugt und nirgends festgehalten worden.
+   Gefunden hat es der Datenbanklauf, nicht das Nachdenken.
+3. **`get diagnostics` liest die LETZTE Anweisung.** Beim Umbau von
+   `rechnung_stornieren` stand das Zurücksetzen des Merkers zwischen dem
+   UPDATE und der Zeilenzählung — damit hätte ein Storno auf eine Rechnung,
+   die es nicht gibt, still durchgelaufen. Gemeldet von einer Prüfung, die es
+   seit dem 08.09.2026 gibt.
+
+### Was noch mitkam
+
+- **Der Buchhaltungs-Export** führt „Bezahlt" und „Offener Rest" als eigene
+  Spalten. Zwei und nicht eine: bei einer stornierten Rechnung mit Zahlung ist
+  der Rest null UND der bezahlte Betrag positiv — dort liegt ein Guthaben.
+- **Dabei gefunden:** die Summenzeile des Exports stand unter den falschen
+  Spalten (Netto unter „UID-Nummer", Brutto unter „USt-Satz %"). Sie richtet
+  sich jetzt nach der Kopfzeile aus, nicht nach abgezählten Strichen.
+- Die Kennzahlen der Rechnungsansicht und die Forderungen auf der Startseite
+  rechnen mit dem Rest; „Bezahlt" ist dort die Summe des tatsächlich
+  eingegangenen Geldes, auch aus Teilzahlungen.
+- Die Mahnung nennt „Bereits bezahlt" als eigene Zeile und fordert den Rest.
+  Nur den Rest zu nennen sähe aus wie eine Mahnung über eine andere Rechnung;
+  nur das Brutto wäre falsch.
+
+### Geprüft
+
+11 neue Datenbankprüfungen, davon sechs, die gegen absichtlich kaputte
+Datenbank fallen (Ableitung, beide Riegel, der Wächter über den Betrieb, das
+Storno-Aufheben). Vier Ansichtstests, alle vier gegen kaputten Code geprüft.
+Der Durchklick „Rechnung stellen" geht jetzt bis zur Teilzahlung durch — Zeit
+buchen, abrechnen, Geld erfassen, und der Stand steht in der Datenbank.
+
+**Offen aus 10.1:** Skonto und Verzugszinsen rechnen weiterhin nicht. Beide
+brauchen jetzt nur noch das, was hier entstanden ist — der Zahlungszeitpunkt
+steht fest.
+
+---
+
 ## Erledigt: Firebase abgebaut — ein Datenmodell statt zwei (19.09.2026)
 
 Stufe 9 des Fahrplans, in zwei Zügen. Bedingung des Auftraggebers: *„wenn
@@ -3796,7 +3880,7 @@ Die grösste **funktionale** Lücke, nicht die grösste rechtliche: ein Betrieb,
 der Baustellen abwickelt und keine Teilrechnung stellen kann, kann die App für
 Baustellen nicht verwenden.
 
-#### 10.1 Zahlungseingang (die Wurzel)
+#### 10.1 Zahlungseingang (die Wurzel) — **ERLEDIGT am 19.09.2026**, siehe oben
 
 Eine eigene Tabelle `zahlungseingaenge(rechnung, datum, betrag, art, hinweis)`
 statt eines Feldes an der Rechnung. Begründung: Teilzahlungen sind der

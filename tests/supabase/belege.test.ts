@@ -162,15 +162,34 @@ describe('Die Rechnung', () => {
     expect(nummer.error?.code).toBe('42501');
   });
 
-  it('lässt Zahlungsstand und Mahnwesen sehr wohl weiterlaufen', async () => {
+  it('lässt das Mahnwesen und den Verzug weiterlaufen', async () => {
     const id = await rechnungAnlegen('RE-2026-0011');
-    const bezahlt = await buch.client.from('invoices')
-      .update({ payment_status: 'Bezahlt' }).eq('id', id);
-    expect(bezahlt.error).toBeNull();
+
+    /*
+      „ÜBERFÄLLIG" HÄNGT AM DATUM und darf weiter von Hand gesetzt werden.
+      Die Ansicht tut genau das beim Laden, für jede Rechnung, deren Frist
+      abgelaufen ist.
+    */
+    const verzug = await buch.client.from('invoices')
+      .update({ payment_status: 'Überfällig' }).eq('id', id);
+    expect(verzug.error).toBeNull();
 
     const gemahnt = await buch.client.from('invoices')
       .update({ mahnstufe: 1, gemahnt_am: '2026-05-20' }).eq('id', id);
     expect(gemahnt.error).toBeNull();
+  });
+
+  /*
+    SEIT STUFE 10.1 IST „BEZAHLT" KEINE EINGABE MEHR, sondern ein Ergebnis.
+    Vorher stand an dieser Stelle die umgekehrte Zusage — der Haken liess sich
+    setzen —, und genau daran hing, dass eine Rechnung als erledigt galt, ohne
+    dass je ein Betrag oder ein Datum erfasst worden wäre.
+  */
+  it('lässt „Bezahlt" nicht mehr von Hand setzen', async () => {
+    const id = await rechnungAnlegen('RE-2026-0014');
+    const bezahlt = await buch.client.from('invoices')
+      .update({ payment_status: 'Bezahlt' }).eq('id', id);
+    expect(bezahlt.error?.code).toBe('42501');
   });
 
   it('wird storniert, nicht gelöscht', async () => {

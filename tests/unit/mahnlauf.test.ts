@@ -148,7 +148,7 @@ describe('Die ausgereizten Forderungen', () => {
  * Was der Lauf zusammenzählt.
  */
 describe('Die Summen', () => {
-  it('zählt Bruttobeträge und Spesen der Stufe', () => {
+  it('zählt offene Beträge und Spesen der Stufe', () => {
     const l = mahnlauf(
       [
         rechnung({ id: '1', totalBrutto: 1200 }),
@@ -157,9 +157,35 @@ describe('Die Summen', () => {
       HEUTE,
       [5, 10, 20],
     );
-    expect(l.summeBrutto).toBe(1500.5);
+    expect(l.summeOffen).toBe(1500.5);
     // Stufe 1 → 5 €, Stufe 2 → 10 €.
     expect(l.summeSpesen).toBe(15);
+  });
+
+  /*
+    DIE ZAHL, UM DIE ES IN STUFE 10.1 GEHT. Vorher stand hier der
+    Bruttobetrag, und der Mahnlauf forderte 1.000 €, obwohl 400 gekommen
+    waren. Die Prüfung steht bei den Summen und nicht bei den Zeilen, weil
+    genau die Summe auf dem Bildschirm des Büros steht.
+  */
+  it('rechnet mit dem Rest, nicht mit dem Rechnungsbetrag', () => {
+    const l = mahnlauf(
+      [rechnung({ id: '1', totalBrutto: 1000, bezahltBetrag: 400 })],
+      HEUTE,
+      undefined,
+    );
+    expect(l.zeilen[0].offen).toBe(600);
+    expect(l.summeOffen).toBe(600);
+  });
+
+  it('lässt eine vollständig bezahlte Rechnung ganz aus dem Lauf', () => {
+    const l = mahnlauf(
+      [rechnung({ id: '1', totalBrutto: 1000, bezahltBetrag: 1000 })],
+      HEUTE,
+      undefined,
+    );
+    expect(l.zeilen).toHaveLength(0);
+    expect(l.ausgereizt).toHaveLength(0);
   });
 
   it('rechnet ohne hinterlegte Spesen mit null, nicht mit einer Vorgabe', () => {

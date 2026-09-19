@@ -41,6 +41,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
 import { LoadingState } from '@/components/States';
 import { byNewest } from '@/lib/timestamps';
+import { offenerRest } from '@/features/invoices/zahlstand';
 
 /**
  * 'YYYY-MM-DD' -> 'Mo., 01.09.'
@@ -300,11 +301,21 @@ export default function DashboardView() {
           .sort((a, b) => byNewest(a, b));
 
         if (canInvoice(user.role)) {
-          const sum = (st: string) =>
+          /*
+            DER REST, NICHT DER RECHNUNGSBETRAG. Auf der Startseite steht,
+            wie viel Geld noch kommen muss; eine Teilzahlung mindert das.
+            „Teilbezahlt" zählt dabei zu „offen" — mit dem, was von ihr übrig
+            ist. Vorher stand dort die Summe der Bruttobeträge, und die war
+            nach jeder Anzahlung zu hoch.
+          */
+          const sum = (offenNichtUeberfaellig: boolean) =>
             invoices
-              .filter((i) => i.paymentStatus === st)
-              .reduce((a, i) => a + (i.totalBrutto ?? 0), 0);
-          out.invoiceSums = { open: sum('Offen'), overdue: sum('Überfällig') };
+              .filter((i) =>
+                offenNichtUeberfaellig
+                  ? i.paymentStatus !== 'Überfällig'
+                  : i.paymentStatus === 'Überfällig')
+              .reduce((a, i) => a + offenerRest(i), 0);
+          out.invoiceSums = { open: sum(true), overdue: sum(false) };
         }
 
         if (leitung) {

@@ -78,5 +78,35 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page }) =
   expect((zeiten ?? [])[0].is_billed).toBe(true);
   expect((zeiten ?? [])[0].invoice_number).toBeTruthy();
 
+  /*
+    UND JETZT KOMMT DAS GELD — der zweite Teil desselben Arbeitsablaufs.
+
+    Eine Rechnung zu stellen ist erst die Hälfte; erledigt ist sie, wenn sie
+    bezahlt ist. Genau diese Naht war bis Stufe 10.1 ein Haken ohne Beleg, und
+    genau sie prüft kein Ansichtstest: dass der Eintrag im Dialog bis in die
+    Datenbank durchgeht UND dort den Zahlungsstand der Rechnung ableitet.
+
+    Gezahlt wird die HÄLFTE, nicht alles. „Teilbezahlt" ist der Zustand, den
+    es vorher gar nicht geben konnte — und der, wegen dem der Mahnlauf früher
+    den vollen Betrag forderte.
+  */
+  const { data: vorher } = await admin
+    .from('invoices').select('id, total_brutto').eq('company_id', BETRIEB).single();
+  const haelfte = Math.round((Number(vorher!.total_brutto) / 2) * 100) / 100;
+
+  await page.getByRole('button', { name: /Weitere Aktionen für Rechnung/ }).first().click();
+  await page.getByRole('menuitem', { name: 'Zahlung erfassen' }).click();
+
+  const betrag = page.getByLabel(/^Betrag/);
+  await betrag.fill(String(haelfte));
+  await page.getByRole('button', { name: 'Zahlung eintragen' }).click();
+
+  await expect(async () => {
+    const { data } = await admin
+      .from('invoices').select('payment_status, bezahlt_betrag').eq('company_id', BETRIEB).single();
+    expect(data!.payment_status).toBe('Teilbezahlt');
+    expect(Number(data!.bezahlt_betrag)).toBe(haelfte);
+  }).toPass({ timeout: 25_000 });
+
   await keineFehlermeldung(page);
 });

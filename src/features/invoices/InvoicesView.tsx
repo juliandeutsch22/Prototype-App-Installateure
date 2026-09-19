@@ -16,6 +16,8 @@ import {
   markBilled,
   mahnungFesthalten,
 } from '@/lib/db/invoices';
+import { listZahlungen, createZahlung, deleteZahlung } from '@/lib/db/zahlungen';
+import { zahlstand } from './zahlstand';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listCustomers } from '@/lib/db/customers';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
@@ -40,7 +42,7 @@ import { scheinAbgleich } from './scheinAbgleich';
 import { discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtMin, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice, Project, WorkSheet } from '@/types';
+import type { Invoice, Project, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -132,6 +134,20 @@ export default function InvoicesView() {
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
   const [statusFilter, setStatusFilter] = useState<'alle' | Invoice['paymentStatus']>('alle');
+  /*
+    DER ZAHLUNGSDIALOG. Er hängt an EINER Rechnung und lädt deren Eingänge
+    beim Öffnen — nicht beim Laden der Liste. Dreihundert Rechnungen mal ihre
+    Zahlungen wären dreihundert Abfragen für eine Ansicht, die in den meisten
+    Fällen niemand aufklappt.
+  */
+  const [zahlungFuer, setZahlungFuer] = useState<(Invoice & { id: string }) | null>(null);
+  const [zahlungen, setZahlungen] = useState<WithId<Zahlungseingang>[] | null>(null);
+  const [zDatum, setZDatum] = useState(todayStr());
+  const [zBetrag, setZBetrag] = useState('');
+  const [zArt, setZArt] = useState<Zahlungseingang['art']>('Überweisung');
+  const [zHinweis, setZHinweis] = useState('');
+  const [zLoeschen, setZLoeschen] = useState<string | null>(null);
+  const [zFehler, setZFehler] = useState<string | null>(null);
   const [rechnungSuche, setRechnungSuche] = useState('');
   /** Anfangs sichtbare Rechnungen; der Rest kommt auf Wunsch. */
 
@@ -338,11 +354,85 @@ export default function InvoicesView() {
       ),
     );
   }, [sorted, statusFilter, rechnungSuche]);
+  /*
+    DIE KENNZAHLEN RECHNEN MIT DEM REST, nicht mit dem Rechnungsbetrag.
+
+    „Offen" beantwortet die Frage, wie viel Geld noch kommen muss. Solange
+    dort Bruttobeträge standen, war die Zahl bei jeder Teilzahlung zu hoch —
+    und zwar genau um das, was schon da war. „Teilbezahlt" zählt deshalb mit
+    seinem Rest unter „Offen" (bzw. „Überfällig", wenn die Frist abgelaufen
+    ist); eine eigene vierte Kachel wäre eine Unterscheidung ohne Folge.
+
+    „Bezahlt" ist dagegen die Summe des tatsächlich EINGEGANGENEN Geldes über
+    alle Rechnungen — auch die Teilzahlung auf eine noch offene. Sie als Summe
+    der vollständig bezahlten Rechnungen zu führen hiesse, das Geld erst zu
+    zählen, wenn der letzte Cent da ist.
+  */
   const stats = useMemo(() => {
-    const sum = (s: Invoice['paymentStatus']) =>
-      invoices.filter((i) => i.paymentStatus === s).reduce((a, i) => a + i.totalBrutto, 0);
-    return { offen: sum('Offen'), ueberfaellig: sum('Überfällig'), bezahlt: sum('Bezahlt') };
+    let offen = 0;
+    let ueberfaellig = 0;
+    let bezahlt = 0;
+    for (const i of invoices) {
+      const stand = zahlstand(i);
+      bezahlt += stand.bezahlt;
+      if (i.paymentStatus === 'Überfällig') ueberfaellig += stand.rest;
+      else if (i.paymentStatus !== 'Storniert') offen += stand.rest;
+    }
+    const runde = (n: number) => Math.round(n * 100) / 100;
+    return { offen: runde(offen), ueberfaellig: runde(ueberfaellig), bezahlt: runde(bezahlt) };
   }, [invoices]);
+
+  /**
+   * Den Zahlungsdialog öffnen.
+   *
+   * DER RESTBETRAG STEHT VORAUSGEFÜLLT DA, weil er in den allermeisten Fällen
+   * der richtige ist: der Kunde überweist, was auf der Rechnung steht.
+   * Änderbar bleibt er trotzdem — sonst wäre die Teilzahlung, wegen der es
+   * diesen Dialog gibt, die mühsamste Eingabe darin.
+   */
+  const zahlungOeffnen = async (inv: Invoice & { id: string }) => {
+    setZahlungFuer(inv);
+    setZahlungen(null);
+    setZFehler(null);
+    setZLoeschen(null);
+    setZDatum(todayStr());
+    setZArt('Überweisung');
+    setZHinweis('');
+    const rest = zahlstand(inv).rest;
+    setZBetrag(rest > 0 ? String(rest) : '');
+    try {
+      setZahlungen(await listZahlungen(inv.companyId, inv.id));
+    } catch {
+      /*
+        HIER IST STILLE FALSCH. Eine leere Liste sähe aus wie „keine Zahlung
+        erfasst" — und genau darauf würde jemand eine zweite Mahnung stützen.
+      */
+      setZFehler('Die bisherigen Zahlungen konnten nicht geladen werden.');
+    }
+  };
+
+  const zahlungSpeichern = async () => {
+    if (!zahlungFuer || !user) return;
+    const betrag = Number(zBetrag.replace(',', '.'));
+    if (!Number.isFinite(betrag) || betrag === 0) {
+      setZFehler('Ein Betrag von null ist kein Zahlungseingang.');
+      return;
+    }
+    await createZahlung(zahlungFuer.companyId, {
+      invoiceId: zahlungFuer.id,
+      datum: zDatum,
+      betrag: Math.round(betrag * 100) / 100,
+      art: zArt,
+      hinweis: zHinweis.trim() || undefined,
+      erfasstVon: user.uid,
+      erfasstVonName: user.name,
+    });
+    setZahlungen(await listZahlungen(zahlungFuer.companyId, zahlungFuer.id));
+    setZBetrag('');
+    setZHinweis('');
+    setZFehler(null);
+    toast.success('Zahlung erfasst');
+  };
 
   const numberTaken = invoiceNumber !== '' && isInvoiceNumberTaken(invoices, invoiceNumber);
 
@@ -680,7 +770,9 @@ export default function InvoicesView() {
       const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
       await shareOrDownloadPdf(blob, mahnungDateiname(inv, stufe));
 
-      await mahnungFesthalten(inv.id, { stufe, gemahntAm: heute, frist, spesen });
+      await mahnungFesthalten(inv.id, {
+        stufe, gemahntAm: heute, frist, spesen, standJetzt: inv.paymentStatus,
+      });
       // Das Abzeichen im Menü zählt mit: diese Rechnung ist bis zum Ablauf
       // der neuen Frist keine fällige Mahnung mehr.
       void postenNeuLaden();
@@ -1085,7 +1177,7 @@ export default function InvoicesView() {
           {lauf.zeilen.length > 0 ? (
             <>
               <p className="mb-3 text-sm text-ink">
-                <strong>{fmtEUR(lauf.summeBrutto)}</strong> offen
+                <strong>{fmtEUR(lauf.summeOffen)}</strong> offen
                 {lauf.summeSpesen > 0 ? ` · ${fmtEUR(lauf.summeSpesen)} Mahnspesen` : ''}
               </p>
               <List>
@@ -1104,8 +1196,13 @@ export default function InvoicesView() {
                     }
                     subtitle={
                       <span className="tnum">
-                        {z.rechnung.invoiceNumber} · {fmtEUR(z.rechnung.totalBrutto)} ·{' '}
-                        {z.tageUeberfaellig} Tage überfällig
+                        {z.rechnung.invoiceNumber} · {fmtEUR(z.offen)}
+                        {/* Teilzahlungen sichtbar machen: „600 von 1.000" sagt,
+                            warum hier eine andere Zahl steht als in der Liste. */}
+                        {z.offen !== z.rechnung.totalBrutto
+                          ? ` von ${fmtEUR(z.rechnung.totalBrutto)}`
+                          : ''}{' '}
+                        · {z.tageUeberfaellig} Tage überfällig
                         {z.spesen > 0 ? ` · ${fmtEUR(z.spesen)} Spesen` : ''}
                       </span>
                     }
@@ -1664,7 +1761,9 @@ export default function InvoicesView() {
             <option value="alle">Alle</option>
             <option value="Offen">Offen</option>
             <option value="Überfällig">Überfällig</option>
+            <option value="Teilbezahlt">Teilbezahlt</option>
             <option value="Bezahlt">Bezahlt</option>
+            <option value="Überzahlt">Überzahlt</option>
             <option value="Storniert">Storniert</option>
           </SelectField>
         }
@@ -1724,6 +1823,32 @@ export default function InvoicesView() {
                         {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} Spesen` : ''}
                       </span>
                     )}
+                    {/*
+                      WAS SCHON DA IST, STEHT IN DER ZEILE — aber nur, wenn es
+                      etwas zu sagen gibt. Bei einer unbezahlten Rechnung wäre
+                      „0 € bezahlt" eine Zeile ohne Inhalt, und bei einer ganz
+                      bezahlten sagt das Abzeichen schon alles. Übrig bleiben
+                      die beiden Fälle, die man sonst übersieht: die
+                      Teilzahlung und das Guthaben nach einem Storno.
+                    */}
+                    {(() => {
+                      const stand = zahlstand(inv);
+                      if (stand.guthaben > 0) {
+                        return (
+                          <span className="mt-1 block text-xs text-warning">
+                            Guthaben des Kunden: {fmtEUR(stand.guthaben)} — zurückzuzahlen
+                          </span>
+                        );
+                      }
+                      if (stand.bezahlt > 0 && stand.rest > 0) {
+                        return (
+                          <span className="mt-1 block text-xs text-ink-muted tnum">
+                            {fmtEUR(stand.bezahlt)} bezahlt · {fmtEUR(stand.rest)} offen
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
                     {inv.cancellationNote && (
                       <span className="mt-1 block text-xs text-ink-muted">
                         Storno: {inv.cancellationNote}
@@ -1768,10 +1893,38 @@ export default function InvoicesView() {
                           },
                         ]
                       : []),
+                    /*
+                      ZAHLUNG ERFASSEN STATT „AUF BEZAHLT SETZEN".
+
+                      Der Haken war eine Behauptung ohne Beleg: kein Datum,
+                      kein Betrag, keine Teilzahlung. „Bezahlt" ergibt sich
+                      jetzt aus den Eingängen, und die Datenbank weist einen
+                      Schreibversuch von Hand ab — der Menüpunkt wäre also
+                      nicht bloss überflüssig, sondern eine Sackgasse.
+
+                      Er steht AUCH bei einer stornierten Rechnung, und das
+                      ist kein Versehen: nach einem Storno kommt manchmal noch
+                      Geld an, und irgendwo muss es hin. Es wird dort zum
+                      Guthaben des Kunden.
+                    */
+                    {
+                      label: 'Zahlung erfassen',
+                      onSelect: () => void zahlungOeffnen(inv),
+                    },
                     ...(inv.paymentStatus !== 'Storniert'
                       ? [
-                          ...(['Offen', 'Überfällig', 'Bezahlt'] as const)
-                            .filter((s) => s !== inv.paymentStatus)
+                          /*
+                            Nur noch die beiden Zustände, die am DATUM hängen
+                            und nicht am Geld — und nur dort, wo die Rechnung
+                            gerade in einem von ihnen steht. Bei „Teilbezahlt"
+                            hätte „Auf Offen setzen" keine Wirkung: der Stand
+                            ergibt sich aus den Eingängen und käme sofort
+                            zurück.
+                          */
+                          ...(inv.paymentStatus === 'Offen' || inv.paymentStatus === 'Überfällig'
+                            ? (['Offen', 'Überfällig'] as const).filter((s) => s !== inv.paymentStatus)
+                            : []
+                          )
                             .map((s) => ({
                               label: `Auf „${s}" setzen`,
                               onSelect: async () => {
@@ -1860,6 +2013,132 @@ export default function InvoicesView() {
       >
         <InputField id="cancelnote" label="Grund (erscheint in der Liste)" value={cancelNote}
           onChange={(e) => setCancelNote(e.target.value)} placeholder="z. B. Falscher Kunde" />
+      </ConfirmDialog>
+
+      {/*
+        ZAHLUNGSEINGÄNGE — ERFASSEN UND NACHSEHEN IN EINEM FENSTER.
+
+        Getrennt wäre es zwei Wege für eine Frage: wer eine Zahlung einträgt,
+        will im selben Moment sehen, was schon da war — sonst bucht er die
+        Überweisung vom Dienstag ein zweites Mal ein.
+      */}
+      <ConfirmDialog
+        open={!!zahlungFuer}
+        title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}
+        message={
+          zahlungFuer
+            ? `${zahlungFuer.customerName} · Rechnungsbetrag ${fmtEUR(zahlungFuer.totalBrutto)}`
+              + (zahlstand(zahlungFuer).guthaben > 0
+                ? ` · Guthaben ${fmtEUR(zahlstand(zahlungFuer).guthaben)}`
+                : ` · offen ${fmtEUR(zahlstand(zahlungFuer).rest)}`)
+            : ''
+        }
+        confirmLabel="Zahlung eintragen"
+        confirmTone="primary"
+        onCancel={() => setZahlungFuer(null)}
+        onConfirm={zahlungSpeichern}
+      >
+        <FormGrid cols={2}>
+          <InputField
+            id="z-datum"
+            label="Datum"
+            type="date"
+            value={zDatum}
+            onChange={(e) => setZDatum(e.target.value)}
+            required
+            pflicht
+          />
+          <InputField
+            id="z-betrag"
+            label="Betrag (€)"
+            type="number"
+            step="0.01"
+            inputMode="decimal"
+            value={zBetrag}
+            onChange={(e) => setZBetrag(e.target.value)}
+            required
+            pflicht
+          />
+          <SelectField
+            id="z-art"
+            label="Art"
+            value={zArt}
+            onChange={(e) => setZArt(e.target.value as Zahlungseingang['art'])}
+          >
+            {(['Überweisung', 'Bar', 'Karte', 'Sonstiges'] as const).map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </SelectField>
+          <InputField
+            id="z-hinweis"
+            label="Hinweis"
+            value={zHinweis}
+            onChange={(e) => setZHinweis(e.target.value)}
+            placeholder="z. B. Skonto gezogen"
+          />
+        </FormGrid>
+        <InfoHint about="den Betrag">
+          Vorausgefüllt steht der offene Rest, weil er fast immer stimmt. Bei einer Teilzahlung
+          wird er überschrieben; ein negativer Betrag ist eine Rückzahlung an den Kunden.
+        </InfoHint>
+
+        {zFehler && <p className="mt-3 text-sm text-danger">{zFehler}</p>}
+
+        <div className="mt-4">
+          <p className="section-label">Bisher eingegangen</p>
+          {zahlungen === null ? (
+            <p className="text-sm text-ink-muted">Wird geladen …</p>
+          ) : zahlungen.length === 0 ? (
+            <p className="text-sm text-ink-muted">Auf diese Rechnung ist noch nichts eingegangen.</p>
+          ) : (
+            <List>
+              {zahlungen.map((z) => (
+                <ListRow
+                  key={z.id}
+                  title={<span className="tnum">{fmtEUR(z.betrag)}</span>}
+                  subtitle={
+                    <span className="tnum">
+                      {z.datum} · {z.art}
+                      {z.hinweis ? ` · ${z.hinweis}` : ''}
+                      {z.erfasstVonName ? ` · erfasst von ${z.erfasstVonName}` : ''}
+                    </span>
+                  }
+                >
+                  {/*
+                    ZWEI SCHRITTE STATT EINES NESTED DIALOGS. Ein Fenster im
+                    Fenster ist auf dem Telefon nicht zu bedienen; eine
+                    Rückfrage braucht es trotzdem, denn hier verschwindet
+                    Geld aus der Buchhaltung.
+                  */}
+                  {zLoeschen === z.id ? (
+                    <>
+                      <Button
+                        variant="danger"
+                        onClick={async () => {
+                          await deleteZahlung(z.id);
+                          if (zahlungFuer) {
+                            setZahlungen(await listZahlungen(zahlungFuer.companyId, zahlungFuer.id));
+                          }
+                          setZLoeschen(null);
+                          toast.success('Zahlung gelöscht');
+                        }}
+                      >
+                        Ja, löschen
+                      </Button>
+                      <Button variant="secondary" onClick={() => setZLoeschen(null)}>
+                        Abbrechen
+                      </Button>
+                    </>
+                  ) : (
+                    <Button variant="secondary" onClick={() => setZLoeschen(z.id)}>
+                      Löschen
+                    </Button>
+                  )}
+                </ListRow>
+              ))}
+            </List>
+          )}
+        </div>
       </ConfirmDialog>
 
       {/*
