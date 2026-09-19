@@ -62,9 +62,9 @@ const empty = {
  * Nachkalkulation rechnete ohne ihn und wies einen Deckungsbeitrag aus, der
  * systematisch zu hoch war. Dass die Verwaltung diesen Katalog pflegt und den
  * Einkaufspreis trotzdem nicht setzen darf, ist kein Widerspruch: die Grenze
- * läuft zwischen den FELDERN, nicht zwischen den Ansichten, und steht hart in
- * `firestore.rules`. Was sie nicht kann, ist das Lesen verhindern — Firestore
- * gibt ein Dokument ganz oder gar nicht heraus.
+ * läuft zwischen den FELDERN, nicht zwischen den Ansichten, und steht hart im
+ * Trigger `materials_felder`. Was sie nicht kann, ist das Lesen verhindern —
+ * der Zeilenschutz gibt eine Zeile ganz oder gar nicht heraus.
  */
 /**
  * @param zuBearbeiten Ein Artikel, der beim Öffnen sofort im Formular stehen
@@ -270,7 +270,7 @@ export default function MaterialCatalog({
               Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
               die Grundlage der Nachkalkulation, also Margendaten, und die
               sieht auch die Projektleitung nicht. Die harte Grenze steht in
-              `firestore.rules` — hier wird das Feld nur nicht angeboten.
+              der Datenbank — hier wird das Feld nur nicht angeboten.
             */}
             {darfKosten && (
               <InputField

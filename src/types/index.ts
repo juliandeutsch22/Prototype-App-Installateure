@@ -64,9 +64,8 @@ export interface Company {
     klassische Falle — wer es setzt, wundert sich, warum die Rechnung eine
     andere Steuer ausweist.
 
-    Bestehende Firmendokumente tragen es noch; Firestore stört das nicht, und
-    es aus ihnen zu entfernen wäre eine Wanderung durch fremde Daten für
-    nichts.
+    Bestehende Betriebe tragen es noch in ihren Stammdaten; es dort zu
+    entfernen wäre eine Wanderung durch fremde Daten für nichts.
   */
   /**
    * Die Vorsätze der Nummernkreise und des Fuhrparks.
@@ -192,7 +191,7 @@ export interface InvoiceRates {
 
 /** users/{docId} — Auth-Verknüpfung über `uid`, nicht Doc-ID. */
 export interface AppUser {
-  id: string; // Firestore-Doc-ID (in Legacy als docId gelesen)
+  id: string; // Kennung der Zeile (in der Altanwendung als docId gelesen)
   companyId: string;
   uid: string; // Firebase Auth UID
   name: string;
@@ -382,8 +381,8 @@ export interface WorkSheet {
    * Fotos vom Einsatz — FREIWILLIG, nie Voraussetzung.
    *
    * WARUM OPTIONAL UND NICHT PFLICHT. Der Schein muss im Keller ohne Netz
-   * unterschreibbar bleiben; Firestore hält einen Schreibvorgang offline vor,
-   * ein Storage-Upload nicht. Wäre auch nur ein Foto Bedingung, hinge der
+   * unterschreibbar bleiben; das Ausgangsfach hält einen Schreibvorgang ohne
+   * Empfang vor, ein Datei-Upload nicht. Wäre auch nur ein Foto Bedingung, hinge der
    * ganze Beleg an einem Balken Empfang — und der Monteur stünde mit einem
    * Kunden vor sich da, der unterschreiben will.
    *
@@ -421,13 +420,13 @@ export interface WorkSheetMaterial {
 /**
  * Ein Foto am Schein.
  *
- * DIE BILDDATEI LIEGT IN FIREBASE STORAGE, nicht in Firestore — ein Dokument
- * fasst 1 MB, ein Handyfoto ist drei- bis fünfmal so gross. Hier steht nur,
- * wo es liegt und was drinsteht.
+ * DIE BILDDATEI LIEGT IM DATEISPEICHER, nicht in der Tabelle — ein Handyfoto
+ * wiegt Megabyte, und die gehören nicht in eine Zeile, die bei jeder Abfrage
+ * mitkommt. Hier steht nur, wo es liegt und was drinsteht.
  *
  * `hash` IST DER GRUND, WARUM DAS FUNKTIONIERT. Die Prüfsumme des Scheins
- * kann die Bilddatei nicht mitrechnen, sie sieht nur Firestore. Ohne einen
- * Inhalts-Hash liesse sich die Datei im Storage nach der Unterschrift
+ * kann die Bilddatei nicht mitrechnen, sie sieht nur die Zeilen. Ohne einen
+ * Inhalts-Hash liesse sich die Datei im Speicher nach der Unterschrift
  * austauschen, ohne dass irgendetwas auffiele — der Beleg wäre dann genau
  * dort löchrig, wo er beweisen soll. Der Hash steht im Dokument, geht in die
  * Prüfsumme ein und ist damit vom Einfrieren mitgeschützt.
@@ -578,9 +577,9 @@ export interface Material {
    *
    * ÄNDERN DARF IHN NUR DIE GESCHÄFTSFÜHRUNG, nicht die Verwaltung, die den
    * Katalog sonst pflegt: er ist Margendaten. Die Grenze steht in
-   * `firestore.rules` und läuft zwischen den FELDERN, nicht zwischen den
-   * Rollen. Was sie NICHT kann, ist das Lesen verhindern — Firestore gibt ein
-   * Dokument ganz oder gar nicht heraus.
+   * `app.materialfelder_geschuetzt` und läuft zwischen den FELDERN, nicht
+   * zwischen den Rollen. Was sie NICHT kann, ist das Lesen verhindern — der
+   * Zeilenschutz gibt eine Zeile ganz oder gar nicht heraus.
    *
    * NICHT GESETZT heisst „nicht hinterlegt", nicht „kostet nichts". Die
    * Nachkalkulation nennt solche Artikel beim Namen, statt sie mit null
@@ -825,7 +824,8 @@ export interface Invoice {
   subtotalNetto?: number;
   /**
    * Gewaehrter Rabatt, wie er auf der Rechnung steht. `null` heisst
-   * ausdruecklich „kein Rabatt" — Firestore laesst undefined nicht zu.
+   * ausdruecklich „kein Rabatt": ein Feld, das gar nicht da ist, liesse sich
+   * von „ohne Rabatt ausgestellt" nicht unterscheiden.
    */
   discount?: InvoiceDiscount | null;
   /** Der daraus errechnete Abzug in Euro — festgehalten, nicht neu gerechnet. */

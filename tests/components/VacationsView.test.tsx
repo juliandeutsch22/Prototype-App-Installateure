@@ -52,17 +52,22 @@ const callUrlaubEntscheiden = vi.fn<
       entscheiderName?: string;
     },
   ],
-  Promise<{ data: { status: string; angelegt: number; uebersprungen: number; entfernt: number } }>
->(async () => ({ data: { status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 } }));
+  Promise<{ status: string; angelegt: number; uebersprungen: number; entfernt: number }>
+>(async () => ({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 }));
 
 vi.mock('@/lib/db/vacations', () => ({
   listOwnVacations: vi.fn(async () => antraege.filter((v) => v.userId === rolle.uid)),
   listOpenVacations: vi.fn(async () => antraege.filter((v) => v.status === 'Beantragt')),
   createVacation: (c: string, v: unknown) => createVacation(c, v),
   deleteVacation: (id: string) => deleteVacation(id),
-}));
-vi.mock('@/lib/functions', () => ({
-  callUrlaubEntscheiden: (a: unknown) =>
+  /*
+    DAS ENTSCHEIDEN LAG BIS ZUM 19.09. IN `lib/functions.ts`, weil es unter
+    Firestore eine Cloud Function war. Es ist ein Aufruf an die Datenbank
+    geworden und damit eine Funktion dieses Moduls — der Ersatz gehört
+    deshalb in DENSELBEN Mock. Zwei `vi.mock` für einen Pfad überschreiben
+    einander, und der zweite lud die echte Datei nach.
+  */
+  entscheiden: (a: unknown) =>
     callUrlaubEntscheiden(...([a] as Parameters<typeof callUrlaubEntscheiden>)),
 }));
 vi.mock('@/lib/db/users', () => ({
@@ -117,7 +122,7 @@ beforeEach(() => {
   deleteVacation.mockClear();
   callUrlaubEntscheiden
     .mockClear()
-    .mockResolvedValue({ data: { status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 } });
+    .mockResolvedValue({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 });
   antraege.length = 0;
   genehmiger = undefined;
   rolle = { ...rolle, uid: 'm1', name: 'Max Mustermann', role: 'Mitarbeiter', docId: 'm1' };
@@ -261,7 +266,7 @@ describe('Urlaub genehmigen', () => {
 
   it('meldet zurueck, wenn Tage uebersprungen wurden', async () => {
     callUrlaubEntscheiden.mockResolvedValue({
-      data: { status: 'Genehmigt', angelegt: 4, uebersprungen: 1, entfernt: 0 },
+      status: 'Genehmigt', angelegt: 4, uebersprungen: 1, entfernt: 0,
     });
     const nutzer = userEvent.setup();
     zeichne();

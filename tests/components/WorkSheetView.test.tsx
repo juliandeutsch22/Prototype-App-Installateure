@@ -96,6 +96,7 @@ vi.mock('@/lib/db/workSheets', () => ({
   signWorkSheet: () => signWorkSheet(),
   listWorkSheetsForProject: () => listWorkSheetsForProject(),
   fotosAmEntwurf: (...a: unknown[]) => fotosFestgeschrieben(...(a as [])),
+  vorbereiten: () => callScheinVorbereiten(),
 }));
 /*
   Die Foto-Schicht. Sie kapselt Canvas und Firebase Storage — beides gibt es
@@ -141,12 +142,10 @@ vi.mock('@/components/SignaturePad', () => ({
   }),
 }));
 
-const callScheinVorbereiten = vi.fn<[], Promise<{ data: { zeiten: WorkSheetZeit[] } }>>(
-  async () => ({ data: { zeiten: [] } }),
+const callScheinVorbereiten = vi.fn<[], Promise<{ zeiten: WorkSheetZeit[] }>>(
+  async () => ({ zeiten: [] }),
 );
-vi.mock('@/lib/functions', () => ({
-  callScheinVorbereiten: () => callScheinVorbereiten(),
-}));
+
 
 const authWert = {
   user: {
@@ -190,7 +189,7 @@ beforeEach(() => {
   listAssignmentsForUserInRange.mockClear().mockResolvedValue(einsaetze);
   listProjectsByNumbers.mockClear().mockResolvedValue(projekte);
   listActiveProjects.mockClear().mockResolvedValue(projekte);
-  callScheinVorbereiten.mockClear().mockResolvedValue({ data: { zeiten: [] } });
+  callScheinVorbereiten.mockClear().mockResolvedValue({ zeiten: [] });
   listMaterials.mockClear().mockResolvedValue(materialien);
   createWorkSheet.mockClear().mockResolvedValue('s1');
   updateWorkSheetDraft.mockClear();
@@ -1097,11 +1096,9 @@ describe('Zeit beim Kunden eintragen', () => {
     await zeileEintragen(nutzer);
 
     callScheinVorbereiten.mockResolvedValue({
-      data: {
-        zeiten: [
-          { datum: '2026-09-04', mitarbeiter: 'Kollege', von: '07:00', bis: '09:00', minuten: 120 },
-        ],
-      },
+      zeiten: [
+        { datum: '2026-09-04', mitarbeiter: 'Kollege', von: '07:00', bis: '09:00', minuten: 120 },
+      ],
     });
     await nutzer.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
 

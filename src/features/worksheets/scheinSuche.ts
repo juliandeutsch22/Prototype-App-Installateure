@@ -9,11 +9,15 @@ import { normProjectNumber } from '@/lib/time';
  * dazu, es lieferte einfach kein Ergebnis. Dieselbe Fehlerform wie beim
  * Buchhaltungs-Export damals: eine leere Antwort, die wie ein Befund aussieht.
  *
- * WARUM NICHT EINFACH ALLES SERVERSEITIG SUCHEN. Firestore kann keine
- * Volltextsuche. Nach einem Kundennamen liesse sich nur mit einem zusätzlich
- * gepflegten Feld (`nameLower`) suchen — und bis das auf jedem Altbestand
- * nachgetragen wäre, fände die Suche alte Scheine STILLSCHWEIGEND nicht.
- * Genau das Verhalten, das hier beseitigt werden soll.
+ * WARUM NICHT EINFACH ALLES SERVERSEITIG SUCHEN. Der Grund war Firestore:
+ * es kannte keine Volltextsuche, und nach einem Kundennamen liesse sich nur
+ * mit einem zusätzlich gepflegten Feld suchen. **Seit dem Umzug auf Postgres
+ * gilt er nicht mehr** — `customer_name` und `notizen` stehen als Spalten am
+ * Schein, und die Kunden-, Baustellen- und Wartungssuche macht genau das
+ * bereits über `ilike`. Hier ist es schlicht noch nicht nachgezogen; es steht
+ * als offener Punkt in ROADMAP.md.
+ *
+ * Solange es so ist, sagt die Ansicht es, statt es zu verschweigen.
  *
  * Deshalb die Trennung, und sie steht auch in der Oberfläche:
  *

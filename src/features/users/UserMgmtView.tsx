@@ -208,8 +208,8 @@ export default function UserMgmtView() {
               onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
               {/* Die Rolle Administrator vergibt nur ein Administrator.
                   Sonst koennte sich eine Geschaeftsfuehrung selbst zum
-                  Superuser machen. Dieselbe Grenze steht in firestore.rules —
-                  hier wird sie nur sichtbar gemacht. */}
+                  Superuser machen. Dieselbe Grenze steht im Trigger
+                  `users_adminrolle` — hier wird sie nur sichtbar gemacht. */}
               {ROLES.filter((r) => r !== 'Administrator' || canManageAdmins(user.role)).map(
                 (r) => <option key={r} value={r}>{r}</option>,
               )}

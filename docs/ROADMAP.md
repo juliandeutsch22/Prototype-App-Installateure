@@ -3579,6 +3579,519 @@ Namen finden, sind der Wächter dafür.
 
 ---
 
+## Erledigt: Firebase abgebaut — ein Datenmodell statt zwei (19.09.2026)
+
+Stufe 9 des Fahrplans, in zwei Zügen. Bedingung des Auftraggebers: *„wenn
+Funktionen dadurch nicht beschädigt oder verloren gehen, zieh durch, ansonsten
+lassen wir das hybride Datenbankmodell vorerst."* Sie war erfüllt, und zwar
+nachweislich:
+
+- **Produktiv lief die Firestore-Seite längst nicht mehr.** `deploy.yml` baute
+  seit Stufe 8 mit `VITE_DATENQUELLE` auf `postgres`. Was hier entfernt wurde,
+  war ausgelieferter, aber toter Code.
+- **Alle vierzehn Cloud Functions haben einen Ersatz mit Prüfung.** Nachgesehen
+  eine nach der anderen: Urlaubsentscheidung, Scheinvorbereitung,
+  Ansprüche ins Token, Monatszahlen, Push, Schein-Prüfsumme, Betriebsauszug,
+  nächtliche Ausleitung, Betrieb anlegen. Für jede steht der Nachweis in
+  `tests/supabase/`.
+
+### Was rausging
+
+Die Datenschicht (20 Weichen) zeigt jetzt direkt auf `pg/`; `db/fs/` (20
+Dateien), `auth/fs/`, `lib/db/quelle.ts`, `lib/functions.ts` und `lib/features.ts`
+sind weg. Dazu `functions/` mit vierzehn Functions, `firestore.rules`,
+`firestore.indexes.json`, `storage.rules`, zwei Workflows und die
+Emulator-Prüfungen. `lib/firebase.ts` ist von 137 auf 57 Zeilen geschrumpft
+und lädt seither **faul**: ohne Firebase-Werte startet die App vollständig,
+nur ohne Push.
+
+**Die KI-Spracherfassung ging in derselben Bewegung raus** — ersatzlos, wie
+geplant. Ein abgeschalteter Bereich, den niemand einschalten wird, ist Ballast.
+Zurück bleibt eine Folge, die hier benannt und nicht verschwiegen wird: die
+**Wiedervorlagen** (`follow_ups`) hatten nur dort ihren Eingang. Tabelle,
+Richtlinien und Datenschicht stehen, aber keine Ansicht schreibt mehr hinein.
+Entweder bekommt der Bereich einen echten Eingang oder er fällt weg; das ist
+eine Produktentscheidung. Steht in `UEBERGABE.md` §6.
+
+### Was dabei NICHT verlorengehen durfte
+
+Zwei Prüfungen hingen an Firestore-Dateien und hätten beim Löschen still an
+Wert verloren:
+
+- **`vollstaendigkeit.test.ts`** las die Titel aller 155 Regelprüfungen aus
+  `tests/firestore.rules.test.ts`, um zu beweisen, dass jede davon einen
+  Postgres-Nachfolger hat. Die Datei geht weg, die Beweislast nicht: die 155
+  Titel liegen jetzt eingefroren in `tests/supabase/regelnAusFirestore.txt`.
+  Ein Vergleich gegen eine gelöschte Datei wäre grün geworden, weil es nichts
+  mehr zu vergleichen gab — genau die Sorte Grün, die nichts festhält.
+- **Vier Unit-Tests auf Firestore-Nutzlasten** (Retoure, Scheinzustand,
+  Wartung erledigt, Indexabgleich) prüften, welche Felder geschrieben werden.
+  Postgres prüft dasselbe stärker — gegen eine echte Datenbank. Eine
+  Aussage fehlte dort: dass bei **zwei gleichnamigen Artikeln** gar nichts
+  zurückgebucht wird (`app.katalogeintrag` mit `having count(*) = 1` liefert
+  NULL). Sie ist nach `tests/supabase/modulLager.test.ts` übernommen worden.
+
+Neu dazu kam eine Indexregel in `schema.test.ts`: jede Mandantentabelle
+braucht einen Index mit `company_id` oder einem Fremdschlüssel als führender
+Spalte. Die erste Fassung war zu streng und meldete acht Kindtabellen, die
+ihren Index korrekt am Elternschlüssel hatten — korrigiert, nicht aufgeweicht.
+
+### Der tote Schalter
+
+`VITE_DATENQUELLE` war die Rückfalltür für Stufe 8. Mit der Firestore-Seite
+ist sie eine Zusage, die niemand mehr einlösen kann. Sie steht deshalb nirgends
+mehr — und `tests/unit/bauUmgebung.test.ts` hält fest, dass sie nicht
+zurückkommt. **Ein Schalter, der nichts mehr schaltet, ist gefährlicher als
+keiner:** der Nächste legt ihn im Ernstfall um und wundert sich.
+
+Dieselbe Prüfung fand beim Schreiben einen echten Fehler: die Vorabprüfung des
+Deploys hielt `VITE_FIREBASE_PROJECT_ID` für einen reinen Push-Wert. Sie steht
+aber im Deploy als `--project` und entscheidet, **wohin** veröffentlicht wird.
+Ohne sie wäre die Prüfung durchgelaufen, der Build gelungen und der letzte
+Schritt gescheitert. Jetzt ist sie Pflicht, und ein Test vergleicht die
+Prüfliste mit dem, was die Deploy-Schritte tatsächlich brauchen.
+
+### Die Dokumentation
+
+`README.md` (626 → 211 Zeilen), `docs/DEPLOYMENT.md`, `docs/UEBERGABE.md` und
+`docs/FUNKTIONEN.md` beschrieben durchgehend das alte System — bis hin zu Einrichtungsschritten, die
+ins falsche Projekt führen. Alle drei neu geschrieben. Die teuer bezahlten
+Fallen aus der Firestore-Zeit sind dabei **nicht** gelöscht worden: vier davon
+stehen in `UEBERGABE.md` §4 als eigener Block, jede mit dem, was heute an ihrer
+Stelle steht. Eine Falle verliert ihren Wert nicht dadurch, dass die Technik
+gewechselt hat.
+
+`FUNKTIONEN.md` trug seit dem 16.09.2026 einen Vorbehalt ganz oben: die Datei
+sei in der Firestore-Zeit geschrieben und werde **mit Stufe 9** umgeschrieben.
+Das ist eingelöst — samt der Spalte „Geprüft wodurch", deren Zahlen jetzt aus
+dem Prüflauf vom 19.09.2026 stammen und nicht aus dem Gedächtnis.
+
+### Zwei Sätze, die seit dem Umzug nicht mehr stimmten
+
+Beim Durchgehen der Kommentare fielen zwei Begründungen auf, die auf Firestore
+zeigten und deshalb keine mehr sind:
+
+- **`lib/frist.ts`** begründete die fehlende Frist bei Schreibvorgängen damit,
+  dass Firestore sie lokal annimmt und nachreicht. Das leistet heute das
+  Ausgangsfach — dieselbe Zusage, anderer Mechanismus.
+- **Die Scheinsuche** sagte, nach einem Kundennamen lasse sich nicht
+  serverseitig suchen, weil Firestore keine Volltextsuche kann. `customer_name`
+  und `notizen` stehen als Spalten am Schein, und die Kunden-, Baustellen- und
+  Wartungssuche macht genau das bereits über `ilike`. **Der Grund ist weg, die
+  Einschränkung noch da** — nachgezogen ist es nicht. Das steht jetzt so in der
+  Ansicht und als offener Punkt in `FUNKTIONEN.md`; es ist ein kleiner
+  Handgriff, aber einer mit eigener Prüfung, und der gehört nicht in denselben
+  Zug wie ein Abbau.
+
+Dazu ist `lib/offlineWrite.ts` gefallen: die Hülle, die auf Firestores
+Bestätigung wartete. Ihre einzige lebende Zeile war ein Fehlerkanal, den nichts
+mehr speiste; `tests/unit/ausgangsfachNaht.test.ts` hält jetzt fest, dass sie
+nicht zurückkommt. **Ein zweiter Weg, der dasselbe verspricht, wäre genau der,
+den niemand mehr nachsendet.**
+
+### Geprüft
+
+1710 Unit- und Ansichtstests (141 Dateien), 728 Datenbanktests (50 Dateien),
+vier Wege im echten Browser, Lint, Typprüfung und Bau — alles grün. Kein
+`firebase/firestore`, `firebase/auth` oder `firebase/functions` mehr in `src/`,
+`tests/` oder `shared/`.
+
+---
+
+## Der Weg zum Start in Österreich (Abgleich vom 18.09.2026)
+
+Dieser Abschnitt ist die Antwort auf eine durchgesehene Liste offener Punkte
+für einen Start in Österreich. Er steht hier und nicht in FUNKTIONEN.md, weil
+er **Vorhaben** beschreibt und keine Wirklichkeit.
+
+**Zuerst der Abgleich mit dem Code, nicht mit dem Handbuch.** Fünf Punkte der
+Liste sehen im Licht des Quelltextes anders aus:
+
+| Punkt | Wirklichkeit im Code |
+| --- | --- |
+| „Warnt erst ab 14 Stunden" | **Die Zeiterfassung warnt ab 12 h** (`LANGER_TAG_MIN`, § 9 AZG). Die 14 h sind die Rückfrage an der *Leistungszeit des Handwerksscheins* — eine andere Zahl mit einem anderen Zweck. Offen sind 60 h/Woche und die 11 h Ruhezeit. |
+| „Nummernkreise pro Jahr bzw. Präfix wählbar" | **Erledigt am 18.09.** `number_counters` zählt je Jahr, vier Vorsätze sind einstellbar. Offen bleibt das Briefpapier. |
+| „UID muss über 10.000 € auf der Rechnung stehen" | **Erledigt.** Offen ist das *Prüfen* der UID — und dafür ist VIES nicht das Werkzeug (siehe A4). |
+| „Änderungsprotokoll der Zeiteinträge" | Es gibt `lastEditedBy/At` — den **letzten** Bearbeiter, keine Historie. Der vorletzte Stand ist unwiederbringlich weg. |
+| „Wegzeit als Lohnart" | Die Wegzeit **wird erfasst und exportiert** (beide CSVs). Offen ist ihre *Bewertung* nach KV. |
+
+**Und ein Befund, der in der Liste fehlt und sie zugleich ordnet:**
+
+> ### Es gibt keinen Zahlungseingang.
+>
+> `paymentStatus` kennt „Bezahlt", aber **kein Datum und keinen Betrag**. Den
+> Haken setzt ein Mensch. Damit fehlt die Grundlage für vier Punkte der Liste
+> auf einmal: **Skonto** braucht den Zahlungstag, **Anzahlungen** brauchen
+> Teilbeträge, **Verzugszinsen** brauchen die Dauer des Verzugs, und die
+> **offenen Posten** rechnen heute mit dem Bruttobetrag statt mit dem, was
+> wirklich aussteht.
+>
+> Der Zahlungseingang ist deshalb **kein eigener Punkt, sondern die Wurzel von
+> A2, A3 und A6.** Er kommt zuerst, sonst baut man dreimal daneben.
+
+---
+
+### Einstellbar, und wo nicht — der Maßstab für alles Folgende
+
+**Nachtrag vom 19.09.** Die Vorgabe lautet: nichts soll entweder-oder sein,
+sondern je Betrieb einstellbar. Das ist richtig und hat eine Grenze. Die
+Punkte fallen in drei Fächer, und das dritte ist der Grund, warum es diesen
+Absatz gibt:
+
+| Fach | Wofür | Beispiele |
+| --- | --- | --- |
+| **Modul** (an/aus) | Was ein Betrieb gar nicht hat | E-Rechnung, Wartungsprotokolle, Dokumentenablage |
+| **Einstellung** (ein Wert) | Was jeder hat, aber anders | Urlaubsjahr, Zahlungsarten, Mahnspesen, Vorsätze |
+| **Fest** | Wo „anders" schlicht „falsch" heisst | Die Zwölfstundengrenze, die USt auf den Rücklass, die Steuerschuld kraft Rechnungslegung |
+
+Die Zwölfstundengrenze ist **kein Geschmack, sondern § 9 AZG**. Sie
+einstellbar zu machen hiesse, einem Betrieb anzubieten, sie falsch zu setzen —
+und dann steht die App im Prüfbericht. Dasselbe beim Rücklass: „Umsatzsteuer
+auf den vollen Betrag" ist keine Vorliebe, und ein Schalter dafür wäre ein
+Schalter für eine falsche Umsatzsteuervoranmeldung.
+
+Und der Preis, der bei jeder Einstellung mitläuft: **ein Schalter ist ein
+Zweig, der in beiden Stellungen geprüft, dokumentiert und im Support
+beantwortet werden muss.** Zehn Schalter sind tausend Kombinationen. Deshalb
+nur dort, wo Betriebe sich wirklich unterscheiden — und dort dann vollständig,
+nicht halb.
+
+---
+
+### Die Reihenfolge, und warum sie so ist
+
+Nicht nach Aufwand und nicht nach Vorschriftennähe, sondern danach, **was
+woraufliegt**. Drei Ketten:
+
+1. **Zahlungseingang → Anzahlung/Teil/Schluss → Rücklass/Skonto → Mahnwesen
+   B2B/B2C.** Jedes Glied braucht das vorige. Wer die Teilrechnung vor dem
+   Zahlungseingang baut, baut sie ein zweites Mal.
+2. **Firebase-Abbau → alles andere.** Jede Änderung am Datenmodell muss heute
+   in *zwei* Zweigen nachgezogen werden (`db/fs` und `db/pg`, 20 Dateien). Das
+   ist doppelte Arbeit für einen Zweig, der nie wieder läuft.
+3. **Betriebsbereitschaft → zweiter Betrieb → Abo.** Eine eigene Domain
+   nachträglich zu wechseln, nachdem der erste Monteur die App auf den
+   Startbildschirm gelegt hat, heisst: er behält die alte.
+
+---
+
+### Stufe 9 — Firebase abbauen (**ERLEDIGT am 19.09.2026**, siehe oben)
+
+Unverändert wie bisher geplant, mit **einer Ergänzung**: die KI-Erfassung geht
+in derselben Bewegung raus. Ein abgeschalteter Bereich, den niemand
+einschalten wird, ist Ballast, den jede spätere Änderung mitschleppt — und
+ein toter Pfad, der noch kompiliert, ist der, den jemand versehentlich wieder
+anschliesst.
+
+Dazu gehört ein Fund von heute: **`docs/DEPLOYMENT.md` beschreibt ein System,
+das es nicht mehr gibt.** Firestore-Region, Firebase-Auth, Bootstrap über ein
+Dienstkonto, und eine DSGVO-Checkliste, die auf Google als Auftragsverarbeiter
+zeigt. Wer danach ausliefert, richtet das falsche Projekt ein.
+
+---
+
+### Stufe 10 — Rechnung, wie Österreich sie verlangt
+
+Die grösste **funktionale** Lücke, nicht die grösste rechtliche: ein Betrieb,
+der Baustellen abwickelt und keine Teilrechnung stellen kann, kann die App für
+Baustellen nicht verwenden.
+
+#### 10.1 Zahlungseingang (die Wurzel)
+
+Eine eigene Tabelle `zahlungseingaenge(rechnung, datum, betrag, art, hinweis)`
+statt eines Feldes an der Rechnung. Begründung: Teilzahlungen sind der
+Normalfall, und ein Betrag am Beleg könnte nur den letzten festhalten.
+
+- `paymentStatus` wird **abgeleitet** statt gesetzt: offen / teilbezahlt /
+  bezahlt / überzahlt. Der Haken von Hand verschwindet.
+- Die Ansicht „offene Posten" und der Mahnlauf rechnen ab dann mit
+  **Restbetrag**, nicht mit Brutto.
+- **Die Falle:** eine stornierte Rechnung mit Zahlungseingang. Das Geld ist
+  da, die Forderung nicht mehr — das muss als Guthaben stehenbleiben und darf
+  nicht verschwinden.
+- **Fertig heisst:** eine Rechnung über 1.000 €, auf die 400 € eingehen,
+  erscheint im Mahnlauf mit 600 € und nicht mit 1.000 €.
+
+#### 10.2 Anzahlungs-, Teil- und Schlussrechnung
+
+`Invoice.art: 'einzel' | 'anzahlung' | 'teil' | 'schluss'` und
+`vorrechnungen: string[]` an der Schlussrechnung.
+
+- Die Schlussrechnung zieht die **bereits verrechneten Teilentgelte samt USt**
+  ab und weist sie einzeln aus. Ohne diesen Abzug schuldet der Betrieb die
+  Steuer zweimal (§ 11 Abs 12 UStG — Steuerschuld kraft Rechnungslegung).
+- **Die Anzahlung verbraucht nichts.** Sie ist ein freier Betrag ohne
+  Zeiteinträge und ohne Scheine. Täte sie es, wären die Stunden als
+  `isBilled` markiert und die Schlussrechnung fände sie nicht mehr.
+- **Die Falle, die niemand sieht:** die Nachkalkulation summiert heute
+  Rechnungsbeträge. Mit Anzahlung *und* Schlussrechnung stünde derselbe Erlös
+  zweimal da und die Baustelle sähe doppelt so gut aus, wie sie ist. Der
+  Deckungsbeitrag ist die Zahl, wegen der jemand diese Ansicht öffnet.
+- **Fertig heisst:** eine Baustelle mit 3.000 € Anzahlung und 10.000 €
+  Gesamtleistung zeigt in der Nachkalkulation 10.000 € Erlös, die
+  Schlussrechnung fordert 7.000 €, und die Summe der offenen Posten ist zu
+  keinem Zeitpunkt grösser als die Gesamtleistung.
+
+#### 10.3 Haft- und Deckungsrücklass, Skonto
+
+Alle drei mindern **den Zahlungsbetrag, nicht das Entgelt**. Genau daran
+scheitert die naheliegende Umsetzung:
+
+- Ein Rücklass als „Rabatt" gebucht würde die **Umsatzsteuer kürzen** — und
+  die ist auf den vollen Betrag geschuldet. Das ist kein Schönheitsfehler,
+  das ist eine falsche UVA.
+- Skonto mindert das Entgelt **erst, wenn es gezogen wird** (§ 16 UStG). Auf
+  der Rechnung steht deshalb eine Bedingung („bei Zahlung binnen 10 Tagen
+  3 %"), gebucht wird beim Zahlungseingang — was 10.1 voraussetzt.
+- **Die Hälfte, die alle weglassen:** der Haftrücklass wird nach Ablauf der
+  Gewährleistung fällig. Ohne Wiedervorlage merkt ihn niemand an, und 3 %
+  jeder Baustelle bleiben beim Kunden liegen. Die Erinnerung ist der
+  eigentliche Wert.
+- **Fertig heisst:** eine Rechnung mit 5 % Deckungsrücklass weist volle 20 %
+  USt aus, der Mahnlauf mahnt den Rücklass nicht, und drei Jahre später steht
+  er als fälliger Posten auf der Startseite.
+
+#### 10.4 Unternehmer oder Verbraucher — und was daran hängt
+
+`Customer.istUnternehmer` fehlt, und an dieser einen Angabe hängen drei
+Regeln, die heute alle gleich behandelt werden:
+
+- **Mahnspesen:** B2B trägt § 458 UGB (40 € Pauschale zusätzlich zu den
+  tatsächlichen Kosten). Beim **Verbraucher sind pauschale Mahnspesen
+  regelmäßig unwirksam** — § 1333 Abs 2 ABGB verlangt Angemessenheit und ein
+  Verhältnis zur Forderung. Dieselbe Staffel für beide anzuwenden ist die
+  Sorte Fehler, die einen Konsumentenschutzbrief auslöst.
+- **Reverse Charge** ist bei einem Verbraucher von vornherein ausgeschlossen —
+  heute lässt sich der Haken bei jedem Kunden setzen.
+- **Das Zahlungsziel** darf sich unterscheiden.
+
+> **NACHTRAG 19.09. — Verzugszinsen werden NICHT gerechnet.** Eine frühere
+> Fassung dieses Abschnitts schlug es vor; zu Ende gedacht trägt es nicht.
+> B2B sind es 9,2 Prozentpunkte über dem Basiszinssatz (§ 456 UGB), B2C 4 %
+> (§ 1000 ABGB) — und der Basiszinssatz ändert sich halbjährlich, wobei der
+> Satz zu Beginn des Halbjahres gilt, in dem der Verzug eintrat. Das braucht
+> eine Tabelle `(gueltigAb, satz)` und eine Halbjahreslogik, **für eine Zahl,
+> die nach der bestehenden Entscheidung ohnehin auf keiner Mahnung steht.**
+> Was bleibt, ist das Kennzeichen am Kunden: ein Feld, drei Wirkungen.
+
+#### 10.5 UID prüfen — und warum VIES die Frage nicht beantwortet
+
+Zwei verschiedene Dinge, die leicht verwechselt werden:
+
+- **Ist die UID gültig?** Das beantwortet VIES.
+  **NACHTRAG 19.09. — wird trotzdem nicht gebaut.** Eine frühere Fassung
+  empfahl die Abfrage; zu Ende gedacht kostet sie eine Edge Function, einen
+  Zwischenspeicher, drei Zustände in der Oberfläche („nicht geprüft" muss von
+  „geprüft und ungültig" unterscheidbar bleiben) und einen Ausfallweg, weil
+  VIES regelmäßig nicht antwortet — für fünf Eingaben im Jahr, und ohne die
+  entscheidende Frage zu beantworten. Gebaut wird stattdessen eine
+  **Formatprüfung** (ATU plus acht Stellen plus Prüfziffer): zwanzig Zeilen,
+  die den Fehler fangen, der wirklich vorkommt — den Tippfehler.
+- **Ist der Empfänger Bauleister?** Davon hängt § 19 Abs 1a ab, und **das sagt
+  VIES nicht.** Das ist eine Erklärung des Kunden. Sie gehört als solche
+  festgehalten: wer sie wann abgegeben hat, mit Feld für das Schreiben des
+  Kunden. Eine geprüfte UID als Beleg für Reverse Charge auszugeben wäre eine
+  Sicherheit, die nicht besteht.
+
+#### 10.6 Zwei billige Felder jetzt, damit später keine Wanderung nötig ist
+
+`auftragsreferenz` (Bestellnummer des Kunden) und `lieferantennummer`. Beide
+sind in **ebInterface** Pflicht- bzw. Schlüsselfelder. Sie jetzt mitzunehmen
+kostet eine Migration; sie später nachzurüsten heisst, durch alle bestehenden
+Rechnungen zu wandern.
+
+---
+
+### Stufe 11 — Arbeitszeit und Urlaub, wie das Gesetz sie verlangt
+
+#### 11.1 Die Grenzen, die noch fehlen
+
+12 h/Tag steht. Es fehlen **60 h/Woche** (§ 9 AZG), **11 h Ruhezeit** zwischen
+zwei Arbeitstagen (§ 12 AZG) und die **36 h Wochenruhe** (§ 3 ARG).
+
+- **Die Falle:** die Ruhezeit wird über Mitternacht gerechnet. Genau die
+  Nächte, um die es geht — Notdienst —, sind die, bei denen `endTime <
+  startTime` gilt. Die bestehende Mitternachtslogik muss die Grundlage sein,
+  nicht eine zweite Rechnung daneben.
+- **Und der wichtigere Teil:** die Warnung gehört **ins Büro**, nicht nur in
+  die Maske des Monteurs. Das Arbeitsinspektorat fragt den Arbeitgeber. Also
+  eine Liste „Grenzwerte überschritten" in der Mitarbeiterübersicht, je Fall
+  mit **Begründungsfeld** — Notdienst und Gefahr in Verzug sind zulässige
+  Ausnahmen, aber nur begründet.
+
+#### 11.2 Das Änderungsprotokoll
+
+Append-only, geschrieben von einem **Datenbank-Trigger**, nicht vom Browser.
+Ein Protokoll, das der Client schreibt, beweist nichts.
+
+- Alt- und Neuwert, wer, wann, aus welcher Rolle.
+- Zeilenschutz: einfügen darf nur der Trigger, lesen nur Buchhaltung und
+  Leitung, löschen niemand.
+- **Die Lücke, die man dabei übersieht:** die nächtliche Ausleitung muss das
+  Protokoll mitnehmen. Sonst überlebt der Bestand einen Rücklauf und der
+  Nachweis nicht — und der Nachweis ist der Grund, warum es das Protokoll
+  gibt.
+
+#### 11.3 Urlaub nach UrlG
+
+Drei Abweichungen, alle in dieselbe Richtung — **die App gibt zu viel**:
+
+- **Aliquot im Eintrittsjahr.** Heute bekommt jeder den vollen
+  Jahresanspruch. Nach § 2 Abs 2 UrlG entsteht er im ersten Arbeitsjahr
+  aliquot. Wer im November eintritt, hat nicht 25 Tage.
+- **Urlaubsjahr = Arbeitsjahr oder Kalenderjahr.** Das Gesetz sagt
+  Arbeitsjahr, die Praxis rechnet oft auf Kalenderjahr um. Die App rechnet
+  still auf Kalenderjahr. Das gehört zur Einstellung, nicht zur Annahme.
+- **Werktage gegen Arbeitstage.** 25 Arbeitstage stimmen bei der
+  Fünftagewoche und nur dort. `workDays` steht je Person längst da — der
+  Anspruch gehört daraus gerechnet (fünf Wochen), statt eine Zahl zu setzen.
+- **Sechste Woche nach 25 Dienstjahren:** braucht Vordienstzeiten, die
+  niemand erfasst hat. Deshalb **vorschlagen und begründen, nicht rechnen** —
+  der Anspruch bleibt je Person überschreibbar, wie heute.
+
+#### 11.4 Lohnarten für den KV — die Daten, nicht die Beträge
+
+Was die App liefern kann, ohne sich zu verheben: **die Grundlagen je Lohnart**
+in die Ausleitung, mit einer Zuordnung zu den Lohnartennummern der
+Lohnverrechnung. Was sie **nicht** tun darf: Kollektivvertragsbeträge rechnen.
+Dieselbe Begründung wie beim Nachtzuschlag — eine geschätzte Zahl, die in
+einem Lohnzettel landet, ist schlimmer als keine.
+
+- **Kilometergeld** braucht ein Feld, das es nicht gibt: gefahrene Kilometer.
+- **Taggeld** braucht Abwesenheitsdauer (aus Von/Bis ableitbar) und die
+  Reiseart; die Regel selbst gehört in die Betriebseinstellungen.
+- **Durchrechnung und Gleitzeit bleiben draussen.** Sie schreiben die
+  Saldenrechnung neu — Durchrechnungszeitraum, Übertragsgrenzen, Verfall. Das
+  an den heutigen Monatssaldo anzuflanschen wäre genau die halbe Sache, die
+  hier nichts verloren hat. Eigene Stufe, wenn ein Betrieb danach fragt.
+
+---
+
+### Stufe 12 — Betriebsbereit (die Stufe ohne sichtbare Funktion)
+
+Nichts davon sieht ein Monteur. Alles davon merkt man erst, wenn es fehlt.
+
+| Punkt | Was wirklich zu tun ist | Warum es blockiert |
+| --- | --- | --- |
+| **Eigene Domain** | Domain + Absenderdomain, *vor* dem ersten Startbildschirm-Symbol | Ein späterer Wechsel lässt jede installierte App auf der alten Adresse stehen |
+| **SMTP mit SPF/DKIM/DMARC** | Eigener Versender | Der Supabase-Standardversand ist stark gedrosselt — und „Passwort vergessen" ist nach **jedem** Rücklauf für **jeden** Zugang Pflicht |
+| **Tarif, Region, PITR** | Pro-Tarif, EU-Region nachweisbar, kein Pausieren | Der kostenlose Tarif **pausiert nach sieben Tagen ohne Zugriff**. Über Weihnachten steht die App |
+| **2FA** | TOTP für Leitung, Verwaltung, Buchhaltung | Nur wirksam, wenn der **Zeilenschutz** die Stufe prüft (`aal2`), nicht das Formular. Sonst ist es Zierde |
+| **Migrations-Probelauf** | **NACHTRAG 19.09.:** kein zweites Projekt, sondern ein Skript — Kopie des Produktivbestands, Migration darüber, Testlauf. Ein Staging-Projekt verdoppelt Konfiguration und Migrationstanz; das Risiko liegt aber nicht im Code (2 766 Prüfungen, davon 725 gegen eine echte Datenbank), sondern in Migrationen gegen ECHTE DATEN — und genau die hat ein leeres Staging-Projekt nicht | Heute läuft jede Migration zuerst beim Kunden |
+| **Fehler-Tracking** | Sentry EU, Statusseite, Uptime | **Mit vorher eingerichteter Feldbereinigung** — ein Tracker, der Kundennamen und Adressen mitschickt, ist selbst ein Datenschutzproblem |
+| **CSP und Kopfzeilen** | Erst `report-only`, dann scharf | Eine zu enge Richtlinie bricht die App still — auf dem Telefon sieht man nur eine leere Seite |
+| **DSGVO-Paket** | AV-Vertrag, Unterauftragsverarbeiter, TOMs, Verarbeitungsverzeichnis | Ohne AV-Vertrag darf ein zweiter Betrieb die App nicht einsetzen |
+| **§ 96 ArbVG** | Reine Zeiterfassung ist unkritisch | **Als Sperre festhalten:** kein GPS, solange keine Betriebsvereinbarung vorliegt. Eine Ortung nachzurüsten ist technisch eine Stunde und rechtlich ein halbes Jahr |
+
+#### 12.x Die Warteschlange und der Fassungswechsel
+
+Der Punkt aus der Liste, der am leichtesten übersehen wird und am teuersten
+ist: eine Vormerkung im Ausgangsfach trägt heute **`daten: Record<string,
+unknown>` ohne jede Fassungsangabe**. Wird zwischen Erfassung und Nachsenden
+eine Schemaänderung eingespielt, geht die Buchung still verloren.
+
+- Jede Vormerkung bekommt die **Fassung** der App, die sie erzeugt hat.
+- Migrationen bleiben für eine Fassung **additiv** — neue Spalten dürfen nicht
+  sofort Pflicht werden.
+- Und der ehrliche Teil: passt eine Vormerkung nicht mehr, wird sie **nicht
+  stillschweigend verworfen**, sondern dem Monteur mit ihrem Inhalt gezeigt.
+  Eine verlorene Zeitbuchung, von der niemand erfährt, ist der Fehler, wegen
+  dem man einer App nicht mehr traut.
+
+#### 12.y Aufbewahrung — was die Sicherung nicht leistet
+
+§ 132 BAO verlangt **sieben Jahre**, bei Grundstücken reichen die Fristen der
+Vorsteuerberichtigung deutlich weiter (§ 18 Abs 10 UStG, bis 22 Jahre).
+
+**Die nächtliche Ausleitung erfüllt das nicht** — sie hält dreissig Stände und
+rollt. Das ist eine Sicherung gegen Ausfall und kein Archiv. Was fehlt, ist
+ein **Jahresabschluss-Export**: einmal je Jahr, unveränderlich, in sich
+vollständig (Belege als PDF plus Journal als CSV), unabhängig davon, ob der
+Betrieb die App noch benutzt. Er ist zugleich die Antwort auf „Kündigung mit
+Datenexport" aus Punkt C.
+
+#### 12.z Der Praxistest auf echten Geräten
+
+Steht seit Wochen als offen im Handbuch und bleibt es, bis es jemand tut:
+Push unter iOS **nur vom Startbildschirm aus** (seit iOS 16.4), Kamera,
+Unterschrift, Fassungswechsel über einen echten Deploy, Startzeit im
+Mobilfunknetz. Drei Geräte, eine Stunde, ein geschriebenes Ergebnis.
+
+---
+
+### Stufe 13 — Der zweite Betrieb, in echt
+
+- **Erstanlage im Live-Projekt** einmal ganz durchspielen. Im Code ist der
+  schärfste Fall geprüft; die Auslieferung ist es nie.
+- **Supportzugang.** Der globale Administrator sieht bewusst in keinen
+  Betrieb — und damit kann beim Anruf niemand helfen. Die Lösung ist **kein
+  Generalschlüssel**, sondern ein Zugang, den *der Betrieb* erteilt: befristet,
+  mit Grund, jederzeit widerrufbar, jeder Zugriff protokolliert und für den
+  Betrieb einsehbar, und im Supportfenster ein Band, das dauerhaft sagt, in
+  wessen Daten man gerade sieht.
+- **Datenübernahme per CSV.** Der Unterschied zwischen brauchbar und
+  gefährlich ist der **Probelauf**: erst ein Bericht („412 Zeilen, 3
+  Dubletten, 2 ohne Pflichtfeld"), dann alles oder nichts. Und:
+  übernommene Rechnungen bekommen eine **eigene Herkunft** und ziehen **keine
+  Nummer aus dem laufenden Kreis** — sonst reisst der Import genau die Lücke
+  in die Nummerierung, die niemand erklären will.
+- **Briefpapier.** Ränder und ein Schalter „Kopf und Fuss weglassen" für
+  vorgedrucktes Papier. Kleine Sache, und das Erste, was ein Betrieb sieht.
+
+---
+
+### Stufe 14 — Abrechnung des Abos (erst wenn es jemanden zu verrechnen gibt)
+
+Bewusst **nach** dem zweiten Betrieb. Die ersten Betriebe von Hand zu
+verrechnen kostet eine Stunde im Monat; Stripe zu bauen, bevor das
+Preismodell feststeht, kostet eine Woche und wird danach umgebaut.
+
+Wenn es kommt, zählen drei Dinge:
+
+- **Die Lizenzzählung muss ein Monatsstand sein**, kein Blick auf jetzt —
+  sonst wird für den Stichtag deaktiviert. Dasselbe Muster wie die
+  Monatsbilanz.
+- **Die Sperre gehört in den Zeilenschutz**, nicht in die Oberfläche.
+- **Der Export bleibt immer offen.** Wer nicht zahlt, verliert den Zugang zum
+  Arbeiten, nicht den zu seinen Daten. Das ist Artikel 20 DSGVO und im Übrigen
+  Anstand.
+
+---
+
+### Stufe 15 — Wettbewerbsfähigkeit
+
+In dieser Reihenfolge, nach Nutzen je Aufwand:
+
+1. **Dokumentenablage je Baustelle.** Der Speicher, die Regeln und der Schutz
+   vor verwaisten Dateien stehen von den Scheinfotos her schon. Das ist die
+   billigste der vier und die, nach der am häufigsten gefragt wird.
+2. **Wartungsprotokolle als Checkliste.** Am nächsten an dem, was es gibt:
+   Wartung, Schein, Unterschrift, PDF. **Wichtig:** je Betrieb eine *Vorlage*
+   und kein festes Formular — der Inhalt von Abgasmessung und
+   Gasgeräteprüfung steht in landesrechtlichen Verordnungen, und ein
+   mitgeliefertes Formular würde eine Vollständigkeit behaupten, für die
+   niemand geradesteht.
+3. **IDS-Connect/OCI.** Der eigentliche Wettbewerbsvorteil, aber er braucht
+   je Betrieb einen Händlervertrag und Zugangsdaten. OCI ist der einfachere
+   Weg und würde zuerst gebaut.
+4. **ÖNORM A 2063 und Aufmaß.** Nur sinnvoll, wenn öffentlich ausgeschrieben
+   angeboten wird. **Erst bauen, wenn ein Betrieb es verlangt** — sonst ist es
+   die aufwendigste Funktion für den seltensten Fall.
+
+---
+
+### Was du entscheiden musst, bevor ich anfange
+
+| Frage | Warum sie jetzt fällt |
+| --- | --- |
+| **Wird über Senklot bar oder mit Karte vor Ort kassiert?** | Wenn ja, braucht es eine RKSV-Lösung: Signatureinheit, DEP, Startbeleg, FinanzOnline. Das ist eine eigene Stufe in der Grössenordnung von Stufe 10. Wenn nein, baue ich die **Sperre**: eine Zahlungsart, die Barzahlung ausschliesst, und ein PDF, das nie wie ein Barbeleg aussieht. Beides ist sauber — nur „nicht daran denken" ist es nicht, denn die Belegerteilungspflicht (§ 132a BAO) gilt ab dem ersten Euro bar |
+| **Rechnet Perl an den Bund oder an Gemeinden?** | Nur dann ist ebInterface/Peppol ein Startthema. Die beiden Felder aus 10.6 nehme ich so oder so mit |
+| **Urlaubsjahr: Kalenderjahr oder Arbeitsjahr?** | Bestimmt, ob 11.3 eine Einstellung oder eine Umstellung wird |
+| **Gilt bei Perl Normalarbeitszeit, Gleitzeit oder Durchrechnung?** | Entscheidet, ob die Saldenrechnung bleiben kann, wie sie ist |
+| **Soll ich die Stufen 10 und 11 vor oder nach Stufe 12 bauen?** | 10/11 machen die App *richtiger*, 12 macht sie *auslieferbar*. Meine Empfehlung: **erst 9, dann 12, dann 10, dann 11** — weil ein Fehler in Stufe 12 den Betrieb lahmlegt, ein Fehler in Stufe 10 dagegen auffällt und sich korrigieren lässt |
+
+---
+
 ## Wartet auf eine Entscheidung
 
 ### Lager und Warenwirtschaft

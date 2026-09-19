@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { beiVorgemerktemFehlschlag } from '@/lib/offlineWrite';
 import { beiVormerkungFehlgeschlagen } from '@/lib/sync/ausgangsfach';
 import { useToast } from '@/components/Toast';
 
@@ -7,11 +6,12 @@ import { useToast } from '@/components/Toast';
  * Sagt Bescheid, wenn eine vorgemerkte Buchung doch nicht durchgekommen ist.
  *
  * WARUM ES DAS BRAUCHT. „Ohne Verbindung gespeichert, wird automatisch
- * gesendet" ist ein Versprechen, das die App dem Monteur im Keller gibt.
- * Firestore hält es fast immer — aber nicht, wenn der Server den Vorgang am
- * Ende ablehnt. Solche Schreibvorgänge sind endgültig verloren, und bisher
- * erfuhr das niemand: der Fehler wurde verschluckt, damit kein unbehandelter
- * Abbruch übrig bleibt.
+ * gesendet" ist ein Versprechen, das die App dem Monteur im Keller gibt. Das
+ * Ausgangsfach hält es fast immer — aber nicht, wenn der Server den Vorgang
+ * am Ende ablehnt: eine Richtlinie, die nicht greift, ein inzwischen
+ * gesperrtes Konto. Solche Schreibvorgänge sind endgültig verloren, und
+ * bisher erfuhr das niemand: der Fehler wurde verschluckt, damit kein
+ * unbehandelter Abbruch übrig bleibt.
  *
  * Eine Zeitbuchung, die scheinbar gespeichert wurde und in Wahrheit fehlt,
  * ist genau die Sorte Fehler, wegen der man einer App nicht mehr traut. Die
@@ -21,11 +21,10 @@ import { useToast } from '@/components/Toast';
  * sie gelesen hat, und es gibt nichts zu tun ausser nachzusehen. Deshalb ein
  * Hinweis, der stehen bleibt, bis die App neu geladen wird.
  *
- * ZWEI QUELLEN, EINE MELDUNG. Unter Firestore kommt der Fehlschlag aus dem
- * SDK (`offlineWrite`), unter Postgres aus dem eigenen Ausgangsfach
- * (`sync/ausgangsfach`). Beide werden hier gehört: welche Datenquelle gerade
- * gilt, ist für den Monteur keine Information — er will wissen, dass seine
- * Buchung fehlt. Die zweite Zeile fällt mit Stufe 9 weg.
+ * EINE QUELLE, SEIT STUFE 9. Bis zum Abbau von Firestore kam derselbe
+ * Fehlschlag auch aus dem SDK (`lib/offlineWrite.ts`); diesen Weg gibt es
+ * nicht mehr, und die Datei mit ihm. Gehört wird jetzt nur noch das eigene
+ * Ausgangsfach.
  */
 export default function VerloreneBuchung() {
   const toast = useToast();
@@ -36,12 +35,8 @@ export default function VerloreneBuchung() {
         'Eine vorgemerkte Buchung konnte nicht gesendet werden. Bitte in der Übersicht nachsehen und gegebenenfalls neu erfassen.',
       );
     };
-    beiVorgemerktemFehlschlag(melden);
     beiVormerkungFehlgeschlagen(melden);
-    return () => {
-      beiVorgemerktemFehlschlag(null);
-      beiVormerkungFehlgeschlagen(null);
-    };
+    return () => beiVormerkungFehlgeschlagen(null);
   }, [toast]);
 
   return null;

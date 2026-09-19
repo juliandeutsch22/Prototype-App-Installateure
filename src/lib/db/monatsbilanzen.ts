@@ -1,20 +1,22 @@
 /**
- * Monatsbilanzen — nur die Weiche.
+ * Monatsbilanzen.
  *
- * Unter Firestore ein nächtlich vorgerechneter Bestand, der unvollständig
- * sein konnte; deshalb der Vollständigkeits-Marker und der Rückfall auf die
- * direkte Rechnung. Unter Postgres eine Sicht über die Zeitbuchungen, die
- * nicht unvollständig sein kann. Die Ansicht merkt den Unterschied nicht —
- * sie fragt in beiden Fällen denselben Marker.
+ * FRÜHER EIN VORGERECHNETER BESTAND, HEUTE EINE SICHT. Der alte Weg legte je
+ * Mitarbeiter und Monat ein Dokument ab, und eine fehlende Bilanz war von
+ * einem Monat ohne Buchungen nicht zu unterscheiden — deshalb der
+ * Vollständigkeits-Marker und der Rückfall auf die direkte Rechnung.
+ *
+ * `monthly_stats` rechnet bei jeder Abfrage neu und kann nicht unvollständig
+ * sein. Der Marker steht trotzdem noch im Vertrag mit der Ansicht: sie fragt
+ * ihn, er antwortet immer „vollständig", und der Rückfallweg bleibt damit
+ * eine Zeile, die niemand mehr braucht und niemandem schadet.
  */
-import { nutztPostgres } from './quelle';
-import * as fs from './fs/monatsbilanzen';
 import * as pg from './pg/monatsbilanzen';
 
-export type { Monatsbilanz } from './fs/monatsbilanzen';
-import type { Monatsbilanz } from './fs/monatsbilanzen';
+export type { Monatsbilanz } from './pg/monatsbilanzen';
+import type { Monatsbilanz } from './pg/monatsbilanzen';
 
-/** 'YYYY-MM' aus einem ISO-Datum. Reine Rechnung, für beide Datenquellen. */
+/** 'YYYY-MM' aus einem ISO-Datum. Reine Rechnung. */
 export function monatVon(datum: string): string {
   return datum.slice(0, 7);
 }
@@ -22,13 +24,11 @@ export function monatVon(datum: string): string {
 export function bilanzMarker(
   companyId: string, uid: string,
 ): Promise<{ vollstaendigAb: string } | null> {
-  return nutztPostgres() ? pg.bilanzMarker(companyId, uid) : fs.bilanzMarker(companyId, uid);
+  return pg.bilanzMarker(companyId, uid);
 }
 
 export function listBilanzen(
   companyId: string, uid: string, abMonat: string,
 ): Promise<Monatsbilanz[]> {
-  return nutztPostgres()
-    ? pg.listBilanzen(companyId, uid, abMonat)
-    : fs.listBilanzen(companyId, uid, abMonat);
+  return pg.listBilanzen(companyId, uid, abMonat);
 }

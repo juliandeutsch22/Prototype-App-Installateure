@@ -23,8 +23,7 @@ export function neueKennung(): string {
  * Was gespeichert wird.
  *
  * Die Kennung fällt weg, und `einheit` wird nur gesetzt, wenn es sie gibt:
- * ein ausdrückliches `undefined` lehnt Firestore ab, und eine leere Einheit
- * stünde sonst als „ Stück"-Lücke auf dem PDF.
+ * eine leere Einheit stünde sonst als „ Stück"-Lücke auf dem PDF.
  */
 export function ohneKennung(zeilen: MaterialZeile[]): WorkSheetMaterial[] {
   return zeilen.map((z) => {

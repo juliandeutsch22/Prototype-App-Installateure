@@ -10,11 +10,10 @@
  * Stellen, an denen eine Suche still falsch wird: Treffer jenseits der alten
  * Grenze, Sonderzeichen im Suchbegriff, und die Mandantengrenze.
  */
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 
-vi.stubEnv('VITE_DATENQUELLE', 'postgres');
 
 const kunden = await import('@/lib/db/customers');
 const baustellen = await import('@/lib/db/projects');

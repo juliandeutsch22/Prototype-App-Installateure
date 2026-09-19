@@ -21,11 +21,6 @@ import LaufStatus from '@/features/settings/LaufStatus';
 const ausleitung = vi.fn();
 const export_ = vi.fn();
 
-vi.mock('@/lib/functions', () => ({
-  callDatenAusleitungJetzt: (...a: unknown[]) => ausleitung(...a),
-  callExportCompanyData: (...a: unknown[]) => export_(...a),
-}));
-
 /** Was die Überwachung über den letzten Lauf weiss. */
 let letzterLauf:
   | {
@@ -37,6 +32,10 @@ let letzterLauf:
   | undefined;
 vi.mock('@/lib/db/laeufe', () => ({
   ladeLauf: vi.fn(async () => (letzterLauf ? { companyId: 'perl', art: 'ausleitung', ...letzterLauf } : undefined)),
+  ausleitungJetzt: (...a: unknown[]) => ausleitung(...a),
+}));
+vi.mock('@/lib/db/company', () => ({
+  auszug: (...a: unknown[]) => export_(...a),
 }));
 
 vi.mock('@/app/AuthContext', () => ({
@@ -68,7 +67,7 @@ describe('Datensicherung', () => {
      * Bestätigung und einem Beleg.
      */
     ausleitung.mockResolvedValue({
-      data: { companyId: 'perl', zeilen: 4211, bytes: 2_500_000, pfad: 'x', geraeumt: 1, ziel: 'Standard-Bucket des Projekts' },
+      companyId: 'perl', zeilen: 4211, bytes: 2_500_000, pfad: 'x', geraeumt: 1, ziel: 'Standard-Bucket des Projekts',
     });
     zeige();
     await userEvent.click(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' }));
@@ -90,11 +89,9 @@ describe('Datensicherung', () => {
       Beweis am Handwerksschein.
     */
     ausleitung.mockResolvedValue({
-      data: {
-        companyId: 'perl', zeilen: 12, bytes: 1000, pfad: 'x', geraeumt: 0,
-        ziel: 'eimer/ausleitung/perl/2026-09-16/023007.jsonl',
-        dateien: 200, dateienOffen: 3041,
-      },
+      companyId: 'perl', zeilen: 12, bytes: 1000, pfad: 'x', geraeumt: 0,
+      ziel: 'eimer/ausleitung/perl/2026-09-16/023007.jsonl',
+      dateien: 200, dateienOffen: 3041,
     });
     zeige();
     await userEvent.click(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' }));
@@ -108,10 +105,8 @@ describe('Datensicherung', () => {
     // „0 noch offen" wäre dieselbe Auskunft und die schlechtere: eine Null
     // liest sich wie ein Zähler, der noch nicht gelaufen ist.
     ausleitung.mockResolvedValue({
-      data: {
-        companyId: 'perl', zeilen: 12, bytes: 1000, pfad: 'x', geraeumt: 0, ziel: 'z',
-        dateien: 4, dateienOffen: 0,
-      },
+      companyId: 'perl', zeilen: 12, bytes: 1000, pfad: 'x', geraeumt: 0, ziel: 'z',
+      dateien: 4, dateienOffen: 0,
     });
     zeige();
     await userEvent.click(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' }));
@@ -128,7 +123,7 @@ describe('Datensicherung', () => {
       Fassung und eine Falschaussage: „nicht gesagt" ist nicht „nichts offen".
     */
     ausleitung.mockResolvedValue({
-      data: { companyId: 'perl', zeilen: 12, bytes: 1000, pfad: 'x', geraeumt: 0, ziel: 'z' },
+      companyId: 'perl', zeilen: 12, bytes: 1000, pfad: 'x', geraeumt: 0, ziel: 'z',
     });
     zeige();
     await userEvent.click(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' }));
@@ -168,7 +163,7 @@ describe('Datensicherung', () => {
     expect(screen.getByRole('button', { name: 'Sicherung läuft …' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Alle Daten herunterladen' })).toBeDisabled();
 
-    loesen({ data: { companyId: 'perl', zeilen: 1, bytes: 10, pfad: 'x', geraeumt: 0, ziel: 'z' } });
+    loesen({ companyId: 'perl', zeilen: 1, bytes: 10, pfad: 'x', geraeumt: 0, ziel: 'z' });
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' })).toBeEnabled(),
     );

@@ -1,20 +1,22 @@
 /**
  * Eine Frist um ein Versprechen legen.
  *
- * WARUM DAS EINE EIGENE DATEI IST. Firestore-Abfragen und Cloud-Function-
- * Aufrufe haben **keine Zeitgrenze**. Sie werfen keinen Fehler und brechen
- * nicht ab — sie warten, bis eine Antwort kommt. Ist die Verbindung tot,
- * ohne dass der Client es schon gemerkt hat, wartet der Aufrufer unbegrenzt,
- * und der Benutzer sieht einen Ladebalken ohne Ende.
+ * WARUM DAS EINE EIGENE DATEI IST. Eine Datenbankabfrage hat **keine
+ * Zeitgrenze** — unter Firestore nicht und über `fetch` genauso wenig. Sie
+ * wirft keinen Fehler und bricht nicht ab; sie wartet, bis eine Antwort
+ * kommt. Ist die Verbindung tot, ohne dass der Client es schon gemerkt hat,
+ * wartet der Aufrufer unbegrenzt, und der Benutzer sieht einen Ladebalken
+ * ohne Ende.
  *
  * Genau das war zweimal ein gemeldeter Fehler: „der Schein lädt ewig" und
  * „auf dem iPhone lädt es manchmal gar nicht". Beide Male dieselbe Ursache,
  * beide Male an anderer Stelle. Deshalb steht die Frist jetzt hier und nicht
  * noch einmal im nächsten Formular.
  *
- * WANN MAN SIE NICHT BRAUCHT: bei Schreibvorgängen. Firestore nimmt eine
- * Schreiboperation lokal an und reicht sie nach, sobald das Netz wieder da
- * ist — dort wäre eine Frist ein Rückschritt.
+ * WANN MAN SIE NICHT BRAUCHT: bei Schreibvorgängen. Ein Schreibvorgang ohne
+ * Empfang gehört nicht abgebrochen, sondern vorgemerkt — das erledigt
+ * `lib/sync/ausgangsfach.ts`. Eine Frist wäre dort ein Rückschritt: sie
+ * verlöre die Buchung, statt sie nachzureichen.
  */
 
 /** Fehler, den eine abgelaufene Frist wirft. Unterscheidbar von echten Fehlern. */

@@ -1,5 +1,5 @@
 import { getMessaging, getToken, deleteToken, isSupported } from 'firebase/messaging';
-import { app } from '@/lib/firebase';
+import { firebaseApp, istEingerichtet } from '@/lib/firebase';
 import { addPushToken, removePushToken } from '@/lib/db/prefs';
 
 /**
@@ -43,7 +43,9 @@ function isIosBrowserWithoutInstall(): boolean {
 
 /** Was gilt gerade — ohne etwas zu verändern oder nachzufragen. */
 export async function getPushState(): Promise<PushState> {
-  if (!VAPID_KEY) return 'nicht-konfiguriert';
+  // Ohne Zugangsdaten gibt es keinen Versandweg — dasselbe Ergebnis wie ohne
+  // VAPID-Schlüssel, und für den Benutzer dieselbe Auskunft.
+  if (!VAPID_KEY || !istEingerichtet()) return 'nicht-konfiguriert';
   if (!(await isSupported().catch(() => false))) {
     return isIosBrowserWithoutInstall() ? 'ios-installation-noetig' : 'nicht-unterstuetzt';
   }
@@ -58,7 +60,8 @@ export async function getPushState(): Promise<PushState> {
  * Gibt das Token zurück oder null, wenn es nicht geklappt hat.
  */
 export async function enablePush(companyId: string, uid: string): Promise<string | null> {
-  if (!VAPID_KEY) return null;
+  const app = firebaseApp();
+  if (!VAPID_KEY || !app) return null;
   if (!(await isSupported().catch(() => false))) return null;
 
   const permission = await Notification.requestPermission();
@@ -94,6 +97,8 @@ export async function enablePush(companyId: string, uid: string): Promise<string
  * mehr anzeigen will, und liefe irgendwann in Zustellfehler.
  */
 export async function disablePush(uid: string): Promise<void> {
+  const app = firebaseApp();
+  if (!app) return;
   if (!(await isSupported().catch(() => false))) return;
   const messaging = getMessaging(app);
   const token = await getToken(messaging, { vapidKey: VAPID_KEY }).catch(() => null);

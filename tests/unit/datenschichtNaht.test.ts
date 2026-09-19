@@ -29,24 +29,27 @@ describe('Die Naht der Datenschicht', () => {
   });
 
   it('kein Modul spricht Firestore an', () => {
-    // Ein pg-Modul, das noch irgendwo Firestore berührt, wäre der Anfang des
-    // Parallelbetriebs, den der Fahrplan ausdrücklich ausschliesst.
+    /*
+      Firestore ist am 19.09. abgebaut worden. Diese Zeile bleibt trotzdem
+      stehen: sie fängt die Rückkehr. Ein einzelner Import wäre der Anfang
+      eines Parallelbetriebs, den niemand beschlossen hat.
+    */
     const gemischt = dateien()
       .filter((d) => /from 'firebase\/|from '@\/lib\/firebase'/.test(readFileSync(resolve(PG, d), 'utf8')));
     expect(gemischt).toEqual([]);
   });
 
-  it('die Mitte kennt keine der beiden Datenbanken', () => {
+  it('die Mitte kennt die Datenbank nicht unmittelbar', () => {
     /*
-      WAS „DIE MITTE" IST: die Dateien unmittelbar in `src/lib/db/`, die keine
-      Weiche sind — `core.ts` mit der Kennung, `quelle.ts` mit dem Schalter,
-      und die Module mit den Vorgaben des Betriebs.
+      WAS „DIE MITTE" IST: die Dateien unmittelbar in `src/lib/db/`, die nicht
+      weiterreichen — `core.ts` mit der Kennung und die Module mit den
+      Vorgaben des Betriebs.
 
       `core.ts` trug bis zum 12.09.2026 die Firestore-Helfer. Damit zog jede
-      der zwanzig Ansichten, die von dort nur `WithId` holte, das
-      Firestore-SDK in ihren Typgraphen — und der Rückbau in Stufe 7 hätte an
-      zwanzig Stellen angefangen statt an einer. Die Helfer liegen jetzt in
-      `fs/core.ts`; damit das so bleibt, steht es hier.
+      der zwanzig Ansichten, die von dort nur `WithId` holte, das SDK in ihren
+      Typgraphen — ein Rückbau hätte an zwanzig Stellen angefangen statt an
+      einer. Genau das hat den Abbau am 19.09. billig gemacht, und genau
+      deshalb steht die Regel hier weiter: sie gilt jetzt für Supabase.
     */
     const WURZEL = resolve(process.cwd(), 'src/lib/db');
     const mitte = readdirSync(WURZEL)
@@ -69,7 +72,6 @@ describe('Die Naht der Datenschicht', () => {
 
     // Und der Wächter über den Wächter: findet er die Mitte überhaupt?
     expect(mitte).toContain('core.ts');
-    expect(mitte).toContain('quelle.ts');
     expect(mitte).not.toContain('scheinFotos.ts');
   });
 

@@ -6,7 +6,6 @@ import { ToastProvider } from './components/Toast';
 import NeueFassung from './components/NeueFassung';
 import VerloreneBuchung from './components/VerloreneBuchung';
 import Nachsender from './components/Nachsender';
-import { verbindungBeimAufwachenErneuern } from './lib/firebase';
 import { nachladefehlerBeobachten } from './lib/nachladen';
 // Poppins self-gehostet (kein Google-CDN -> keine IP-Übermittlung an Google, DSGVO).
 // Nur die tatsächlich genutzten Schnitte, damit der Erstaufruf auf der Baustelle
@@ -16,11 +15,6 @@ import '@fontsource/poppins/latin-500.css';
 import '@fontsource/poppins/latin-600.css';
 import '@fontsource/poppins/latin-700.css';
 import './index.css';
-
-// Nach laengerem Wegschalten die Firestore-Verbindung erneuern — siehe
-// lib/firebase.ts. Muss vor dem ersten Rendern stehen, damit auch ein sofort
-// weggeschaltetes Fenster erfasst wird.
-verbindungBeimAufwachenErneuern();
 
 // Scheitert nach einem Deploy das Nachladen einer Ansicht, einmal neu laden —
 // bevor daraus eine Fehlertafel wird. Siehe lib/nachladen.ts.

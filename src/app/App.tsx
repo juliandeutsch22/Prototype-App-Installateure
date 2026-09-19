@@ -32,7 +32,6 @@ const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
 const PlattformView = lazy(() => import('@/features/plattform/PlattformView'));
 const DashboardView = lazy(() => import('@/features/dashboard/DashboardView'));
 const TimeView = lazy(() => import('@/features/time/TimeView'));
-const VoiceView = lazy(() => import('@/features/voice/VoiceView'));
 const OrderView = lazy(() => import('@/features/orders/OrderView'));
 const AdminOrdersView = lazy(() => import('@/features/orders/AdminOrdersView'));
 const StockView = lazy(() => import('@/features/orders/StockView'));
@@ -62,8 +61,8 @@ const NotificationSettings = lazy(() => import('@/features/settings/Notification
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
- * RequireAuth; rollenspezifische hinter RequireRole. Server-seitig setzen
- * firestore.rules dieselben Grenzen durch (Spec §7).
+ * RequireAuth; rollenspezifische hinter RequireRole. Serverseitig setzt der
+ * Zeilenschutz der Datenbank dieselben Grenzen durch.
  */
 export default function App() {
   return (
@@ -82,9 +81,9 @@ export default function App() {
  * Layout und ohne Navigation.
  *
  * Das ist die sichtbare Form der Zusage: dieses Konto legt Betriebe an und
- * sieht in keinen hinein. Die Grenze selbst steht nicht hier, sondern in den
- * firestore.rules (jede Regel verlangt eine `companyId` im Token, und er hat
- * keine) und in der Function, die den Betrieb anlegt.
+ * sieht in keinen hinein. Die Grenze selbst steht nicht hier, sondern im
+ * Zeilenschutz (jede Richtlinie verlangt einen Betrieb im Token, und er hat
+ * keinen) und in der Edge Function, die den Betrieb anlegt.
  */
 function AppInhalt() {
   const { plattformAdmin, loading } = useAuth();
@@ -151,15 +150,10 @@ function AppRoutes() {
       <Route path="/" element={<RequireNav path="/"><DashboardView /></RequireNav>} />
 
       {/* Außendienst */}
-      {/* Zeit- und KI-Erfassung stehen JEDER Rolle offen (auch Buchhaltung:
-          Krankenstand/Urlaub) — wie Legacy:1954, das den Tab ungeprüft setzt. */}
+      {/* Die Zeiterfassung steht JEDER Rolle offen (auch der Buchhaltung:
+          Krankenstand und Urlaub) — wie Legacy:1954, das den Tab ungeprüft
+          setzt. */}
       <Route path="/time" element={<RequireNav path="/time"><TimeView /></RequireNav>} />
-      {/*
-        Die KI-Erfassung haengt nicht mehr am Umgebungsschalter, sondern am
-        Modul „ki" — und das ist nur waehlbar, wenn die Zugaenge hinterlegt
-        sind. Ein Sonderweg weniger.
-      */}
-      <Route path="/voice" element={<RequireNav path="/voice"><VoiceView /></RequireNav>} />
       {/*
         Drei eigene Bereiche statt eines Reiters mit Unterreitern — drei
         Tätigkeiten von drei verschiedenen Leuten. Die Rollen stehen in
@@ -188,7 +182,7 @@ function AppRoutes() {
       {/*
         Urlaub beantragen darf jede Rolle — auch Buchhaltung und Verwaltung
         nehmen Urlaub. Wer entscheiden darf, entscheidet die Ansicht selbst
-        anhand der Rolle; die harte Grenze steht in firestore.rules.
+        anhand der Rolle; die harte Grenze steht in der Datenbank.
       */}
       <Route path="/vacations" element={<RequireNav path="/vacations"><VacationsView /></RequireNav>} />
       <Route

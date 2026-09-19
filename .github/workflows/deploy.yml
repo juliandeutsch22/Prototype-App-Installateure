@@ -36,15 +36,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      # Der Firestore-Emulator ist ein Java-Programm. Ohne JDK laufen die
-      # Security-Rules-Tests nicht. Mindestens 21: firebase-tools bricht seit
-      # Version 15 mit älteren JDKs ab ("no longer supports Java version
-      # before 21").
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
       - run: npm ci
 
       - name: Typprüfung
@@ -56,17 +47,20 @@ jobs:
       - name: Unit-Tests
         run: npm test
 
-      # Zwei Fragen, ein Emulator, der nur für diesen Befehl startet:
+      # DIESELBEN ZWEI FRAGEN STELLT JETZT DER MIGRATIONS-WORKFLOW.
       #
-      #  1. Regeln — kommt Firma B an ein Dokument von Firma A? (Nein.)
+      # Hier lief bis zum 19.09.2026 ein Firestore-Emulator gegen
+      # `firestore.rules.test.ts` und `abfragen.smoke.test.ts`. Beide sind mit
+      # Firestore gefallen; ihre Fragen nicht:
+      #
+      #  1. Zeilenschutz — kommt Betrieb B an eine Zeile von Betrieb A? (Nein.)
       #  2. Abfragen — läuft das, was die App tatsächlich absetzt, für die
       #     Rolle, die es absetzt?
       #
-      # Die zweite Frage beantwortet kein Komponententest: dort ist jeder
-      # Datenbankzugriff ersetzt, und eine Abfrage, die an den Regeln
-      # scheitert, sieht dann aus wie ein Erfolg mit leerem Ergebnis.
-      - name: Regeln und Abfragen gegen den Emulator
-        run: npx --yes firebase-tools@15 emulators:exec --only firestore --project demo-ci "npm run rules:test"
+      # Beides beantwortet `.github/workflows/supabase-migrationen.yml` gegen
+      # eine echte Postgres-Datenbank, von null aufgebaut. Dass beim Umzug
+      # keine der 155 Regelprüfungen verlorenging, hält
+      # `tests/supabase/vollstaendigkeit.test.ts` maschinell fest.
 
   deploy:
     name: Auf Firebase Hosting veröffentlichen
@@ -84,31 +78,32 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      # Fehlt ein Wert, entsteht sonst ein Build, der erst im Browser des
-      # Kunden mit "Firebase-Konfiguration fehlt" abbricht. Lieber hier laut
-      # scheitern als still etwas Kaputtes veröffentlichen.
-      # Geprüft werden ALLE sechs Werte, nicht nur die, ohne die der Build
-      # abbricht. Fehlte etwa die authDomain, liefe der Deploy durch und die
-      # Anmeldung wäre beim Kunden kaputt — die Lücke fiele erst beim ersten
-      # Anmeldeversuch auf.
+      # LAUT SCHEITERN STATT STILL ETWAS KAPUTTES VERÖFFENTLICHEN. Geprüft
+      # wird, was die App zum Laufen und der Deploy zum Stattfinden braucht —
+      # und das ist seit dem Abbau von Firestore etwas anderes als vorher.
+      #
+      # PFLICHT sind die beiden Supabase-Werte: ohne sie startet die App gar
+      # nicht. Dazu der Firebase-Dienstschlüssel und die Projektkennung —
+      # ohne beides kann der Deploy selbst nicht stattfinden. Die Kennung
+      # steht im selben Secret wie für den Build, wird hier aber aus dem
+      # anderen Grund verlangt.
+      #
+      # DIE ÜBRIGEN FÜNF FIREBASE-WEB-WERTE SIND ES NICHT MEHR. Sie richten
+      # nur noch die Push-Anmeldung ein; fehlen sie, läuft die App vollständig
+      # und es gibt keine Meldungen aufs Telefon. Den Deploy dafür abzubrechen
+      # hiesse, eine Nebenfunktion über die Hauptsache zu stellen.
       - name: Zugangsdaten vollständig?
         env:
           SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-          AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-          SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-          APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
           missing=""
           [ -n "$SERVICE_ACCOUNT" ] || missing="$missing FIREBASE_SERVICE_ACCOUNT"
-          [ -n "$API_KEY" ]         || missing="$missing VITE_FIREBASE_API_KEY"
-          [ -n "$AUTH_DOMAIN" ]     || missing="$missing VITE_FIREBASE_AUTH_DOMAIN"
           [ -n "$PROJECT_ID" ]      || missing="$missing VITE_FIREBASE_PROJECT_ID"
-          [ -n "$STORAGE_BUCKET" ]  || missing="$missing VITE_FIREBASE_STORAGE_BUCKET"
-          [ -n "$SENDER_ID" ]       || missing="$missing VITE_FIREBASE_MESSAGING_SENDER_ID"
-          [ -n "$APP_ID" ]          || missing="$missing VITE_FIREBASE_APP_ID"
+          [ -n "$SUPABASE_URL" ]    || missing="$missing VITE_SUPABASE_URL"
+          [ -n "$SUPABASE_ANON" ]   || missing="$missing VITE_SUPABASE_ANON_KEY"
           if [ -n "$missing" ]; then
             echo "::error::Diese Repository-Secrets fehlen:$missing"
             echo "Anzulegen unter: Settings > Secrets and variables > Actions > New repository secret."
@@ -131,29 +126,22 @@ jobs:
           # Ohne diesen Schluessel laeuft die App normal, nur ohne Push —
           # deshalb kein Abbruch in der Vorabpruefung, sondern optional.
           VITE_FIREBASE_VAPID_KEY: ${{ secrets.VITE_FIREBASE_VAPID_KEY }}
-          VITE_FUNCTIONS_REGION: ${{ vars.VITE_FUNCTIONS_REGION || 'europe-west3' }}
-          # Im Produktivbuild niemals gegen die lokalen Emulatoren zeigen.
-          VITE_USE_EMULATORS: 'false'
-          # SUPABASE — DER SCHALTER STEHT AUF POSTGRES (Stufe 8).
+          # DIE RÜCKFALLTÜR IST AM 19.09.2026 ZUGEGANGEN.
           #
-          # Beides liegt weiter im Bundle, benutzt wird aber nur eines.
-          # Welches, entscheidet `VITE_DATENQUELLE`: alles ausser `postgres`
-          # heisst Firestore.
+          # Hier stand `VITE_DATENQUELLE`: alles ausser `postgres` baute die
+          # Firestore-Seite. Das war der Rückweg für Stufe 8 — ein Umzug ohne
+          # Rückweg wäre eine Wette gewesen.
           #
-          # DIE RÜCKFALLTÜR IST EINE VARIABLE, KEIN REVERT: steht die
-          # Repository-Variable `VITE_DATENQUELLE` auf `firestore`, baut der
-          # nächste Lauf wieder die alte Seite — ohne dass jemand unter Druck
-          # einen Commit zurücknehmen muss. Sie bleibt offen, bis Stufe 9 die
-          # Firestore-Hälfte ausbaut; vorher wäre ein Umzug ohne Rückweg eine
-          # Wette.
+          # Mit Stufe 9 ist die Firestore-Hälfte ausgebaut, und damit ist die
+          # Variable eine Zusage, die niemand mehr einlösen könnte. Sie steht
+          # deshalb nicht mehr da: ein Schalter, der nichts mehr schaltet, ist
+          # gefährlicher als keiner.
           #
           # OHNE DIE BEIDEN GEHEIMNISSE startet die App nicht still falsch,
           # sondern gar nicht: `supabaseClient()` wirft mit einer Meldung, die
-          # sagt, was fehlt. Eine App, die sich ohne Zugangsdaten startet und
-          # erst beim ersten Speichern scheitert, kostet mehr Zeit.
+          # sagt, was fehlt.
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_DATENQUELLE: ${{ vars.VITE_DATENQUELLE || 'postgres' }}
         run: npm run build
 
       # Der Schlüssel landet außerhalb des Arbeitsverzeichnisses, damit er
@@ -165,27 +153,22 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
           chmod 600 "$RUNNER_TEMP/service-account.json"
 
-      # Hosting UND Firestore-Regeln zusammen: eine neue Oberfläche ohne die
-      # passenden Regeln wäre entweder gesperrt oder – schlimmer – offen.
-      # Indizes gehören dazu, sonst laufen Abfragen produktiv ins Leere, die
-      # lokal gegen den Emulator noch funktioniert haben.
+      # NUR NOCH HOSTING. Regeln, Indizes und Speicherplatz liegen seit dem
+      # 19.09.2026 bei Supabase; sie gehen über
+      # `.github/workflows/supabase-migrationen.yml` live.
       #
-      # STORAGE-REGELN AUS DEMSELBEN GRUND, seit die Handwerksscheine Fotos
-      # tragen. Fehlten sie hier, gälten in Produktion die Voreinstellungen —
-      # und die sperren jeden Zugriff vom Gerät. Das Aufnehmen eines Fotos
-      # schlüge dann fehl, und zwar erst beim Monteur auf der Baustelle.
-      #
-      # VORAUSSETZUNG, die nur EINMAL von Hand geht: der Standard-Bucket muss
-      # in der Firebase-Konsole unter „Storage" angelegt sein. Ohne ihn hat
-      # dieser Schritt kein Ziel und bricht ab — mit einer Meldung, die genau
-      # das sagt.
+      # DASS BEIDES GETRENNT LÄUFT, IST EINE ZUSAGE MIT KANTE: eine neue
+      # Oberfläche kann jetzt vor ihrer Migration ankommen. Deshalb gilt die
+      # Reihenfolge — erst die Migration, dann die Oberfläche —, und deshalb
+      # verträgt jede Migration den alten Stand der App. Wer eine Spalte
+      # umbenennt, legt sie in zwei Schritten um.
       - name: Deploy
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
         run: |
           npx --yes firebase-tools@15 deploy \
-            --only hosting,firestore:rules,firestore:indexes,storage \
+            --only hosting \
             --project "$PROJECT_ID" \
             --non-interactive \
             --message "${GITHUB_SHA::7} von ${GITHUB_ACTOR}"

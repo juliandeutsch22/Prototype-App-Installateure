@@ -215,9 +215,8 @@ export default function WartungenView() {
     sie ersetzen, schrumpfte beim Tippen auch die Anstehend-Karte — und wer
     nach einem Kunden sucht, bekäme den Eindruck, es sei nichts mehr fällig.
 
-    Deshalb eine zweite Abfrage. Unter Postgres sucht sie über den ganzen
-    Bestand und findet auch mitten im Wort; unter Firestore filtert sie die
-    ersten `max` Zeilen im Browser, wie bisher.
+    Deshalb eine zweite Abfrage. Sie sucht über den ganzen Bestand und findet
+    auch mitten im Wort.
   */
   const [gesucht, setGesucht] = useState<WithId<Wartung>[]>([]);
   const [suchtGerade, setSuchtGerade] = useState(false);
@@ -360,9 +359,11 @@ export default function WartungenView() {
    * auf eine Baustelle, die es nicht gibt, und der Monteur bekäme einen
    * Einsatz auf eine Nummer, unter der nichts steht.
    *
-   * Eine Transaktion über beide wäre die saubere Antwort. Sie geht hier nicht:
-   * Firestore-Transaktionen brauchen die Dokument-ID vorab, und die Nummer
-   * ist ein Geschäftsschlüssel, kein Dokumentpfad.
+   * Eine Transaktion über beide wäre die saubere Antwort, und seit dem Umzug
+   * wäre sie auch möglich — eine Datenbankfunktion, die Baustelle und Termin
+   * in einem Zug schreibt. Sie ist noch nicht gebaut; bis dahin gilt die
+   * Reihenfolge unten, und der schlimmste Ausgang ist eine Baustelle ohne
+   * nachgerückten Termin, nicht ein Termin ohne Baustelle.
    */
   const einplanenSpeichern = async () => {
     if (!einplanung || !companyId) return;

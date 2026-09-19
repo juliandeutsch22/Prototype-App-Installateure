@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { callDatenAusleitungJetzt, callExportCompanyData } from '@/lib/functions';
+import { ausleitungJetzt } from '@/lib/db/laeufe';
+import { auszug } from '@/lib/db/company';
 import { mitFrist, FristAbgelaufen } from '@/lib/frist';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -13,8 +14,8 @@ import { useToast } from '@/components/Toast';
 /**
  * Datensicherung und Auskunft.
  *
- * WOFÜR DIESE ANSICHT DA IST. Es gab die Cloud Function für den Datenexport
- * seit Langem — nur rief sie niemand auf. Eine Ausleitung, die niemand
+ * WOFÜR DIESE ANSICHT DA IST. Den Datenexport gab es seit Langem — nur rief
+ * ihn niemand auf. Eine Ausleitung, die niemand
  * auslösen kann, ist ein Versprechen und keine Sicherung; und eine, die
  * niemand je geprüft hat, ist auch keine. Hier steht beides: der Knopf, der
  * den nächtlichen Lauf sofort ausführt, und der, der den Bestand
@@ -54,7 +55,7 @@ export default function SicherungView() {
     setLaeuft('sicherung');
     setFehler(null);
     try {
-      const { data } = await mitFrist(callDatenAusleitungJetzt({}), FRIST_MS);
+      const data = await mitFrist(ausleitungJetzt(), FRIST_MS);
       setLetzte({
         zeilen: data.zeilen, bytes: data.bytes, ziel: data.ziel,
         dateien: data.dateien, dateienOffen: data.dateienOffen,
@@ -80,7 +81,7 @@ export default function SicherungView() {
     setLaeuft('download');
     setFehler(null);
     try {
-      const { data } = await mitFrist(callExportCompanyData({}), FRIST_MS);
+      const data = await mitFrist(auszug(), FRIST_MS);
       const inhalt = JSON.stringify(data, null, 2);
       const url = URL.createObjectURL(new Blob([inhalt], { type: 'application/json' }));
       const a = document.createElement('a');

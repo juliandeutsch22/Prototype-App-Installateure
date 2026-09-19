@@ -7,15 +7,12 @@ import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { isTopLevel } from '@/lib/permissions';
 import type { AppUser, InvoiceRates } from '@/types';
 import Card from '@/components/Card';
-import LaufStatus from './LaufStatus';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
-import { callBilanzenNeuAufbauen } from '@/lib/functions';
-import { nutztPostgres } from '@/lib/db/quelle';
 
 const fmtEUR = (n: number) =>
   new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -49,9 +46,6 @@ const MONATE = [
 
 export default function SettingsView() {
   const { user, company, reloadCompany } = useAuth();
-  /** Erstaufbau der Monatsbilanzen — Zustand des einmaligen Laufs. */
-  const [aufbauLaeuft, setAufbauLaeuft] = useState(false);
-  const [aufbauErgebnis, setAufbauErgebnis] = useState<string | null>(null);
   const toast = useToast();
   const [rates, setRates] = useState<InvoiceRates>(INVOICE_DEFAULTS);
   /**
@@ -737,7 +731,7 @@ export default function SettingsView() {
         Wer Urlaub genehmigt — der Geschaeftsfuehrung vorbehalten.
         Duerfte die Projektleitung sie aendern, koennte sie sich selbst
         eintragen und ueber die Urlaube derer entscheiden, die sie einteilt.
-        Dieselbe Grenze steht in firestore.rules.
+        Dieselbe Grenze steht im Trigger `companies_einstellungen`.
       */}
       {darfGenehmigerSetzen && (
         <Card
@@ -784,87 +778,26 @@ export default function SettingsView() {
       )}
 
       {/*
-        DIESE KARTE IST EINE NARBE, UND SIE VERSCHWINDET MIT DEM UMSCHALTEN.
+        HIER STAND EIN KNOPF, UND DASS ER WEG IST, IST DIE AUSKUNFT.
 
-        Unter Firestore mussten die Monatsbilanzen vorgerechnet und abgelegt
-        werden — eine Sammlung, ein Aufbaulauf, ein Trigger zum Nachziehen,
-        ein Nachtlauf zum Ausgleichen und ein Marker für die Vollständigkeit.
-        Eine Bilanz war dadurch immer nur IRGENDWANN richtig, und eine
-        fehlende war von einem Monat ohne Buchungen nicht zu unterscheiden.
+        Die Monatsbilanzen mussten früher vorgerechnet und abgelegt werden —
+        eine Sammlung, ein Aufbaulauf, ein Trigger zum Nachziehen, ein
+        Nachtlauf zum Ausgleichen und ein Marker für die Vollständigkeit. Eine
+        Bilanz war dadurch immer nur IRGENDWANN richtig, und eine fehlende war
+        von einem Monat ohne Buchungen nicht zu unterscheiden.
 
-        Unter Postgres ist `monthly_stats` eine SICHT. Sie rechnet bei jeder
-        Abfrage neu und kann nicht unvollständig sein — es gibt nichts
-        aufzubauen, nichts nachzuziehen und nichts auszugleichen.
-
-        Der Knopf riefe nach dem Umschalten eine Cloud Function, die es dann
-        nicht mehr gibt. Er bleibt deshalb nicht stehen und wird auch nicht
-        stillgelegt: er ist WEG, und an seiner Stelle steht, warum.
+        `monthly_stats` ist eine SICHT. Sie rechnet bei jeder Abfrage neu und
+        kann nicht unvollständig sein. Der Knopf wurde deshalb nicht
+        stillgelegt, sondern entfernt — und an seiner Stelle steht, warum. Wer
+        ihn sucht, soll die Antwort dort finden, wo er ihn vermutet.
       */}
-      {nutztPostgres() ? (
-        <Card title="Monatsbilanzen">
-          <p className="text-sm text-ink">
-            Die Monatsbilanzen sind eine Sicht auf die Zeitbuchungen: sie rechnen bei jeder
-            Abfrage neu. Es gibt nichts aufzubauen und nichts nachzuziehen — und damit auch
-            keinen Stand, der stillstehen und auf einem Lohnzettel landen könnte.
-          </p>
-        </Card>
-      ) : (
-      <Card
-        title="Monatsbilanzen"
-        hint={
-          <>
-            Das Zeitkonto lädt danach ein Dokument je Monat statt aller Buchungen seit Eintritt —
-            bei langer Betriebszugehörigkeit der Unterschied zwischen ein paar hundert und ein
-            paar tausend Dokumenten. Danach wird jede Bilanz bei jeder Buchung nachgezogen, und
-            ein nächtlicher Lauf gleicht Abweichungen von selbst aus. Solange der Aufbau nicht
-            gelaufen ist, rechnet das Zeitkonto wie bisher — die angezeigten Salden ändern sich
-            durch den Aufbau nicht.
-          </>
-        }
-      >
+      <Card title="Monatsbilanzen">
         <p className="text-sm text-ink">
-          Verdichtet die Zeitbuchungen zu einer Bilanz je Mitarbeiter und Monat. Einmalig
-          anzustoßen.
+          Die Monatsbilanzen sind eine Sicht auf die Zeitbuchungen: sie rechnen bei jeder
+          Abfrage neu. Es gibt nichts aufzubauen und nichts nachzuziehen — und damit auch
+          keinen Stand, der stillstehen und auf einem Lohnzettel landen könnte.
         </p>
-        {/*
-          DER NÄCHTLICHE LAUF war die stillste Stelle der ganzen App. Er
-          gleicht Abweichungen aus; fällt er aus, steht ein Saldo still
-          daneben und landet auf einem Lohnzettel. Bemerkt hätte das niemand.
-        */}
-        <div className="mt-3">
-          <LaufStatus art="bilanzen" />
-        </div>
-        {aufbauErgebnis && (
-          <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-success">
-            {aufbauErgebnis}
-          </p>
-        )}
-        <div className="mt-4">
-          <Button
-            type="button"
-            variant="secondary"
-            loading={aufbauLaeuft}
-            onClick={async () => {
-              setAufbauLaeuft(true);
-              setAufbauErgebnis(null);
-              try {
-                const { data } = await callBilanzenNeuAufbauen({});
-                setAufbauErgebnis(
-                  `${data.bilanzen} Bilanzen für ${data.mitarbeiter} Mitarbeiter aufgebaut.`,
-                );
-                toast.success('Monatsbilanzen aufgebaut');
-              } catch {
-                setError('Der Aufbau ist fehlgeschlagen. Bitte später erneut versuchen.');
-              } finally {
-                setAufbauLaeuft(false);
-              }
-            }}
-          >
-            Monatsbilanzen aufbauen
-          </Button>
-        </div>
       </Card>
-      )}
     </div>
   );
 }

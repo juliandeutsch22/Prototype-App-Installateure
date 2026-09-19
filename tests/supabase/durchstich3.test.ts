@@ -18,7 +18,6 @@ import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import type { AppUser, TimeEntry } from '@/types';
 
-vi.stubEnv('VITE_DATENQUELLE', 'postgres');
 
 const zeiten = await import('@/lib/db/timeEntries');
 const einsaetzeDb = await import('@/lib/db/assignments');
@@ -63,7 +62,6 @@ beforeAll(async () => {
 
 afterAll(() => {
   clientEinreichen(null);
-  vi.unstubAllEnvs();
 });
 
 afterEach(() => {

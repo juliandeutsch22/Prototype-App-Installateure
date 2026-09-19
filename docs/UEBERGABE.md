@@ -1,6 +1,6 @@
 # Übergabe
 
-Stand: 02.09.2026.
+Stand: 19.09.2026.
 
 **Wofür dieses Dokument da ist.** Es soll jemanden, der die App noch nie
 gesehen hat, in einer halben Stunde arbeitsfähig machen — und zwar so, dass er
@@ -11,8 +11,9 @@ rückgängig zu machen. Es ersetzt nicht:
 |---|---|
 | [`FUNKTIONEN.md`](./FUNKTIONEN.md) | *Was gibt es, wer darf was, worauf kann ich mich verlassen?* Eine Zeile je Bereich, inklusive der Lücken. |
 | [`ROADMAP.md`](./ROADMAP.md) | *Was wurde wann warum gebaut?* Änderungsprotokoll, neueste Einträge oben. |
-| [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Einrichtung von Firebase, Secrets, Scheduler. |
+| [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Ein Supabase-Projekt einrichten, Secrets setzen, ausliefern. |
 | [`LEGACY-ANALYSIS.md`](./LEGACY-ANALYSIS.md) | Das Datenmodell und die Geschäftslogik aus der alten Einzeldatei. |
+| [`MIGRATION-SUPABASE.md`](./MIGRATION-SUPABASE.md) | Der Umzug von Firestore nach Postgres: Entscheidung, Reihenfolge, was dabei gelernt wurde. |
 
 Wer schnell etwas sucht: **Funktionsfrage → `FUNKTIONEN.md`. Warum-Frage →
 `ROADMAP.md` oder der Kommentar direkt über dem Code.** Die Kommentare in
@@ -24,11 +25,12 @@ bleiben.
 ## 1. Worum es geht
 
 Betriebssoftware für einen österreichischen Installationsbetrieb (Perl
-Installationen): Zeiterfassung, Baustellen, Material, Einsatzplanung,
-Angebote, Rechnungen, Handwerksscheine, Urlaub.
+Installationen), als Produkt **Senklot**: Zeiterfassung, Baustellen, Material,
+Einsatzplanung, Angebote, Rechnungen, Mahnwesen, Handwerksscheine, Urlaub,
+Wartungen.
 
-**Mandantenfähig** — jedes Dokument trägt eine `companyId`, und die Trennung
-wird serverseitig erzwungen, nicht nur in der Oberfläche.
+**Mandantenfähig** — jede Zeile trägt eine `companyId`, und die Trennung wird
+in der Datenbank erzwungen, nicht in der Oberfläche.
 
 Zwei Dinge, die den Zuschnitt bestimmen und bei jeder Entscheidung mitgedacht
 gehören:
@@ -38,9 +40,9 @@ gehören:
    (`min-h-touch`), keine Sprechblasen, die Formularfelder verdecken, keine
    Ansicht, die ohne Verbindung stumm bleibt.
 2. **Es geht um Geld und um Gesundheitsdaten.** Zeiteinträge tragen
-   Krankenstände und Urlaub — Art. 9 DSGVO. Deshalb liegen alle Cloud
-   Functions in `europe-west3`, und deshalb entscheiden mehrere Abläufe
-   serverseitig statt im Browser (siehe §5).
+   Krankenstände und Urlaub — Art. 9 DSGVO. Deshalb liegt das Supabase-Projekt
+   in der EU-Region, und deshalb entscheiden mehrere Abläufe in der Datenbank
+   statt im Browser (siehe §5).
 
 **Was ausdrücklich NICHT das Ziel ist:** Funktionsgleichstand mit einer
 dreißig Jahre alten Handwerkersoftware. Deren Büroseite ist mächtig, und ihre
@@ -51,7 +53,11 @@ Monteure tragen trotzdem wieder Zettel ins Auto.
 ## 2. Stack und Aufbau
 
 React 18 + TypeScript (strict) + Vite, Tailwind mit eigenen Design-Tokens.
-Firebase: Firestore, Auth mit Custom Claims, Cloud Functions v2, Hosting.
+**Supabase**: Postgres mit Zeilenschutz (RLS), Supabase Auth mit Ansprüchen im
+Token, Supabase Storage, `pg_cron`, vier Edge Functions. Von Firebase sind nur
+noch **Hosting** und **Cloud Messaging** übrig; Firestore, die Firebase-
+Anmeldung und vierzehn Cloud Functions sind am 19.09.2026 abgebaut worden
+(siehe `MIGRATION-SUPABASE.md`).
 
 ```
 src/
@@ -59,31 +65,39 @@ src/
                 navigation.ts  ← DIE Liste, wer wohin darf
   features/     ein Verzeichnis je Bereich (time, invoices, vacations, …)
   lib/
-    db/         die EINZIGE Stelle mit rohen Firestore-Aufrufen
+    db/         die EINZIGE Stelle mit rohen Datenbankaufrufen:
+                je Bereich eine Weiche, darunter pg/ mit der Umsetzung
+    auth/       Anmeldung, Sitzung, Ansprüche aus dem Token
     permissions.ts   Knopf-Freigaben je Rolle
     module.ts        welche Bereiche der Betrieb benutzt
     time.ts          Feiertage, Tagessoll, Saldo
   components/   wiederverwendbare Bausteine (Card, Button, InfoHint, …)
   types/        zentrale Datentypen
 shared/         Logik, die Browser UND Server brauchen (Feiertage,
-                Arbeitszeit, Monatsbilanz, Schein-Prüfsumme)
-functions/src/  Cloud Functions; `shared/` wird beim Bauen nach
-                functions/src/generated/ kopiert
-firestore.rules Die eigentliche Sicherheitsgrenze
+                Arbeitszeit, Schein-Prüfsumme) — wird beim Bauen nach
+                supabase/functions/_shared/ kopiert
+supabase/
+  migrations/   Schema, Zeilenschutz, Datenbankfunktionen, Trigger
+                — DIE eigentliche Sicherheitsgrenze
+  functions/    die vier Edge Functions
 tests/          siehe §6
 ```
 
 **Zwei Regeln, die durchgehalten wurden:**
 
-- Rohe Firestore-Aufrufe **nur** in `src/lib/db/`. Ein Test (`abfragegrenzen`)
-  erzwingt außerdem, dass dort jede Abfrage eine **Grenze** hat. Das ist
-  bewusst weiter gefasst als `limit()`: ein Zeitraum oder ein Gleichheitsfilter
-  auf eine von Natur aus kleine Menge zählt auch. Wer die Regel für „überall
-  ein `limit()`" hält, hält die Bremse für dichter, als sie ist — durch genau
-  diese Öffnung passt der Projekt-Radar, siehe §6.
+- Rohe Datenbankaufrufe **nur** in `src/lib/db/`. Ein Test
+  (`abfragegrenzen`) erzwingt außerdem, dass dort jede Abfrage eine **Grenze**
+  hat. Das ist bewusst weiter gefasst als `limit()`: ein Zeitraum oder ein
+  Gleichheitsfilter auf eine von Natur aus kleine Menge zählt auch. Wer die
+  Regel für „überall ein `limit()`" hält, hält die Bremse für dichter, als sie
+  ist — durch genau diese Öffnung passt der Projekt-Radar, siehe §6.
 - Logik, die Browser und Server beide brauchen, liegt in `shared/` und wird
   kopiert — nicht abgeschrieben. Zwei Implementierungen derselben Zahl wären
   der gefährlichste Fehler dieses Projekts: sie geht auf den Lohnzettel.
+  Für die Datenbank gilt dasselbe noch schärfer: wo eine Formel in SQL
+  nachgebaut ist (`app.arbeitsminuten`, `app.ist_feiertag`,
+  `app.schein_kanonisch`), steht daneben ein Test, der sie gegen die
+  JavaScript-Fassung rechnet (`app.zahl_wie_js`, `app.text_wie_js`).
 
 ### Sechs Rollen
 
@@ -94,23 +108,29 @@ Die feinen Unterschiede, die immer wieder Fragen aufwerfen:
 
 - **`isGF()` schließt die Projektleitung ein, `isTopLevel()` nicht.** Ersteres
   gilt für Baustellen, Planung, Material; letzteres für Geld, Rollen und
-  Betriebseinstellungen.
+  Betriebseinstellungen. In der Datenbank heißen dieselben zwei Grenzen
+  `app.ist_fuehrung()` und `app.ist_spitze()`.
 - Die **Projektleitung** plant und führt Baustellen, sieht aber **keine**
   Rechnungen, **keine** Zeitkonten, **keine** Margen und vergibt **keine**
   Rollen.
 - Die **Buchhaltung** rechnet ab und darf fremde Zeiteinträge korrigieren,
   verwaltet aber keine Baustellen.
 - **Administrator anlegen oder ändern darf nur ein Administrator** — sonst
-  könnte sich eine Geschäftsführung zum Superuser machen.
+  könnte sich eine Geschäftsführung zum Superuser machen. Durchgesetzt vom
+  Trigger `users_adminrolle`, nicht nur von der Oberfläche.
+
+Dazu kommt eine Rolle, die in keinem Betrieb steht: der **Plattformverwalter**
+(`platform_admins`). Sein Token trägt **keine `companyId`** — er legt Betriebe
+an und sieht in keinen hinein. Siehe `README.md` und §5.
 
 ### Neun abschaltbare Module
 
 `einsatzplanung` · `material` · `urlaub` · `scheine` · `angebote` ·
-`rechnungen` · `nachkalkulation` (hängt an `rechnungen`) · `zeitkonten` ·
-`ki` (nur mit hinterlegten Zugängen wählbar)
+`rechnungen` · `nachkalkulation` (hängt an `rechnungen`) · `wartung` ·
+`zeitkonten`
 
-Geschaltet unter **Einstellungen → Module**, gespeichert in
-`companies/{id}.modules`, änderbar nur durch Geschäftsführung/Administrator.
+Geschaltet unter **Einstellungen → Module**, gespeichert in `companies.modules`
+(JSON), änderbar nur durch Geschäftsführung/Administrator.
 
 > **Ein Modul ist KEINE Sicherheitsgrenze.** Wer die Rolle hat, dürfte die
 > Daten ohnehin — ein abgeschaltetes Modul nimmt nur den Weg dorthin weg.
@@ -126,23 +146,24 @@ den Einstellungen aussperrt, ist kein Freiheitsgrad.
 
 ```bash
 npm install
-npm run dev          # Vite
+cp .env.example .env   # Supabase-Werte eintragen, Firebase nur für Push
+npm run dev            # Vite
 
-npm run typecheck    # tsc --noEmit
-npm run lint         # eslint, --max-warnings 0
-npm test             # 590 Tests ohne Emulator
+npm run typecheck      # tsc --noEmit
+npm run lint           # eslint, --max-warnings 0
+npm test               # 1716 Tests: Rechnung und Ansichten, ohne Datenbank
 
-# Die Emulator-Tests brauchen einen laufenden Firestore-Emulator:
-npx firebase emulators:start --project demo-test --only firestore
-npm run rules:test   # 148 Tests gegen den Emulator
+# Die Datenbankprüfungen brauchen den lokalen Stack (Docker):
+npm run stack          # Supabase lokal hochfahren, Migrationen einspielen
+npm run supabase:test  # 728 Tests gegen eine ECHTE Postgres-Datenbank
+
+npm run durchklick     # vier Wege im echten Browser (Playwright)
 ```
 
-**Der Emulator braucht eine `--project`-Angabe**, sonst bricht er mit „No
-currently active project" ab. `npm run emulators` allein genügt nicht.
-
-**Vor jedem Commit:** `npm run typecheck && npm run lint && npm test`. Die CI
-prüft dasselbe plus die Emulator-Tests und lässt ohne grünes Ergebnis nichts
-live.
+**Vor jedem Commit:** `npm run typecheck && npm run lint && npm test`. Wer am
+Schema, an einer Richtlinie oder an der Datenschicht war, zusätzlich
+`npm run supabase:test`. Die CI prüft alles und lässt ohne grünes Ergebnis
+nichts live.
 
 ### Deploy
 
@@ -150,16 +171,16 @@ Zwei Workflows, beide auf `main`:
 
 | Workflow | Was |
 |---|---|
-| `deploy.yml` | Tests → Hosting + `firestore:rules` + `firestore:indexes` |
-| `deploy-functions.yml` | Cloud Functions |
+| `deploy.yml` | Typprüfung, Lint, Tests → Firebase Hosting (`--only hosting`) |
+| `supabase-migrationen.yml` | Migrationen und Edge Functions: auf jedem Pull Request gegen eine **frische** Datenbank, auf `main` ins echte Projekt |
 
-Regeln und **Indizes** gehen mit dem Frontend zusammen live. Das ist wichtig:
-eine neue Abfrage ohne ihren Index läuft lokal (der Emulator legt Indizes
-still selbst an) und scheitert produktiv.
+Die Prüfung steht **vor** dem Einspielen. Das ist wichtig: eine Migration, die
+einmal im Projekt liegt, ist dort — anders als ein Frontend-Deploy lässt sie
+sich nicht einfach zurückrollen.
 
 ### Branch-Regeln
 
-Entwickelt wird auf `claude/epic-bardeen-d6x1jc`, gemergt per PR nach `main`.
+Entwickelt wird auf einem Zweig, gemergt per PR nach `main`.
 **Ist der PR eines Zweigs bereits gemergt, wird nicht darauf aufgebaut** —
 dann den Zweig frisch von `main` starten (gleicher Name) und einen neuen PR
 öffnen.
@@ -172,37 +193,48 @@ Diese Liste ist teuer bezahlt. Wer sie liest, spart sich die Wiederholung.
 
 | Falle | Was passiert |
 |---|---|
-| **Der Emulator legt fehlende Indizes still selbst an.** | Lokal läuft alles, produktiv bleibt die Ansicht leer. So entstand „Kundenakte ohne Baustellen". Dagegen steht `tests/unit/indexabgleich.test.ts`, rein statisch. |
-| **Ein fehlendes Dokument wird ABGELEHNT, nicht leer beantwortet.** | `ownsExisting()` liest `resource.data.companyId`; fehlt das Dokument, ist `resource` null. `getUserByUid` gibt also nicht `null` zurück — es wirft. |
-| **`vi.useFakeTimers()` ohne Einschränkung friert den Firestore-Client ein.** | Alle Emulator-Tests laufen in die Zeitgrenze. Richtig: `vi.useFakeTimers({ toFake: ['Date'] })`. |
 | **`canvas.width = …` löscht die Zeichenfläche.** | Die Unterschrift verschwand bei jedem Neuberechnen der Größe. `SignaturePad` sichert und stellt jetzt wieder her — und reagiert auf `ResizeObserver` statt auf `window.resize`. |
 | **`catch(() => undefined)` versteckt vier Zustände hinter einem.** | „lädt", „leer", „Fehler", „fertig" sahen alle gleich aus. Deshalb `BaustellenSelect` als eigene Komponente, die nie stumm leer bleibt. |
-| **Ein Cloud-Function-Aufruf ohne Frist wartet ewig.** | „Es lädt ewig" beim Handwerksschein. Jetzt eine 12-Sekunden-Frist mit Wiederholungsknopf. |
+| **Ein Serveraufruf ohne Frist wartet ewig.** | Weder eine Firestore-Abfrage noch ein `fetch` bricht von selbst ab — sie warten, bis eine Antwort kommt, und auf einer toten Verbindung wartet der Aufrufer unbegrenzt. Zweimal als Fehler gemeldet („Schein lädt ewig", „iPhone lädt gar nicht"). Dagegen steht `lib/frist.ts`, gesetzt dort, wo ein Warten den Benutzer festhält — siehe §5. |
 | **Dieselbe Aussage an zwei Stellen läuft auseinander.** | Wer wohin darf, stand dreimal geschrieben; an sieben Stellen widersprachen sich die Listen. Siehe §5. |
-| **Firestore-Trigger laufen MINDESTENS einmal, nicht genau einmal.** | Ein `+= delta` verzählt sich beim Wiederholungslauf. Die Monatsbilanz rechnet den betroffenen Monat deshalb komplett neu. |
-| **Firestore-Abfragen haben KEINE Zeitgrenze.** | Sie werfen keinen Fehler und brechen nicht ab — sie warten. Auf einer toten Verbindung wartet der Aufrufer unbegrenzt. Zweimal als Fehler gemeldet („Schein lädt ewig", „iPhone lädt gar nicht"). Dagegen steht `lib/frist.ts`. |
-| **iOS friert eine Startbildschirm-App ein, statt sie neu zu laden.** | Beim Zurückkommen ist der JavaScript-Zustand noch da, die Netzverbindungen nicht. Ein Browser-Tab am Schreibtisch wird stattdessen neu geladen — deshalb sieht man es dort nie. |
+| **Ein Filter auf „ungleich" überspringt Zeilen OHNE Wert.** | Der nächtliche Bilanzlauf fragte `active != false` und übersprang damit stillschweigend jeden übernommenen Altbestand ohne `active`. In SQL ist es dieselbe Falle mit anderem Mechanismus: `active <> false` ist für `NULL` weder wahr noch falsch, die Zeile fällt heraus. In dieser App heißt „kein Wert" **aktiv** — wer darauf filtert, schreibt `coalesce(active, true)` oder `active is not false`. So steht es auch in `app.aktiv()`, das den fehlenden Anspruch im Token als aktiv liest: ein Deploy darf nicht den ganzen Betrieb aussperren. |
+| **iOS friert eine Startbildschirm-App ein, statt sie neu zu laden.** | Beim Zurückkommen ist der JavaScript-Zustand noch da, die Netzverbindungen nicht. Ein Browser-Tab am Schreibtisch wird stattdessen neu geladen — deshalb sieht man es dort nie. Unter Firestore brauchte es dafür eine eigene Erneuerung der Dauerverbindung; Postgres-Abfragen gehen über gewöhnliche Anfragen, die beim Aufwachen neu aufgebaut werden. **Die Live-Verbindung (Realtime) tut es nicht von selbst** — sie meldet sich über ihren eigenen Zustand zurück. |
 | **Die Fassungsnummer eines Service Workers darf nicht aus dem Bundle kommen.** | Sie käme aus der ALTEN Fassung, der Worker meldete sich unter der alten Adresse an und erneuerte sich nie. Nur der Server weiß, ob es etwas Neues gibt — deshalb vergleicht der Worker die ausgelieferte `index.html` mit der gespeicherten. |
 | **Ein Service Worker darf beendet werden, sobald er geantwortet hat.** | Ohne `event.waitUntil` bricht die Hintergrundprüfung mitten im Laden ab — auf dem Telefon also fast immer, und der Deploy fällt nie auf. |
 | **Die alten Bausteine wegzuwerfen, sobald ein Deploy erkannt wird, bricht die laufende Seite.** | Sie ist noch die alte und fordert die alten Namen an — im Speicher gelöscht, auf dem Server nach dem Deploy nicht mehr vorhanden. Seit dem Code-Splitting lädt jede Ansicht erst beim Öffnen nach; wer auf „Später" tippt, bekommt danach eine Fehlermeldung statt der Ansicht. Aufgeräumt wird beim Übernehmen. |
 | **Es gibt keinen 404 für eine fehlende Datei.** | Der Hosting-Rewrite `"source": "**"` schickt JEDE unbekannte Adresse auf `index.html` — Status 200, `text/html`. Eine Bausteindatei, die es nach einem Deploy nicht mehr gibt, sieht damit aus wie ein Erfolg. Der Service Worker hat die Startseite daraufhin unter dem Namen der JavaScript-Datei gespeichert, und der Fehler blieb stehen. Gemeldet als „'text/html' is not a valid JavaScript MIME type". |
 | **Eine Fehlererkennung nach Wortlaut ist immer zu kurz.** | Dieselbe Meldung heißt in Safari, Chrome und Firefox anders. Die erste Fassung der Nachlade-Erkennung traf die Safari-Formulierung nicht — die Selbstheilung lief deshalb nicht an, und der Monteur bekam die Tafel mit dem Knopf, der nicht wirken kann. Erkennung UND ein sauberer Fehlschlag aus dem Worker, nicht eines von beiden. |
-| **Ein Firestore-Schnappschuss kommt zweimal.** | Einmal sofort aus dem lokalen Zwischenspeicher, einmal nach der Bestätigung des Servers — mit gleichem Inhalt, aber neuem Array. Ein Effekt, der an der Array-Identität hängt, rechnet damit alles doppelt. |
 | **„Erneut versuchen" kann einen Nachladefehler nicht heilen.** | React merkt sich das abgelehnte Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz zu fragen. Nur ein echtes Neuladen hilft — die Fehlergrenze tut das jetzt selbst. |
-| **`where('feld', '!=', wert)` überspringt Dokumente OHNE das Feld.** | Der nächtliche Bilanzlauf fragte `where('active', '!=', false)` und übersprang damit stillschweigend jeden übernommenen Altbestand ohne `active`. Überall sonst heißt „kein Feld" aktiv. Filtern gehört in diesem Fall in den Code, nicht in die Abfrage. |
-| **Ein Pfadfilter im Workflow ist eine Aussage über Abhängigkeiten.** | `deploy-functions.yml` hörte nur auf `functions/**`. `shared/` wird beim Bauen dorthin kopiert, liegt aber daneben — eine Änderung ging damit ins Hosting und nicht in die Functions. |
+| **Ein Pfadfilter im Workflow ist eine Aussage über Abhängigkeiten.** | Der alte Functions-Deploy hörte nur auf `functions/**`. `shared/` wird beim Bauen dorthin kopiert, liegt aber daneben — eine Änderung ging damit ins Hosting und nicht in die Functions. Dieselbe Abhängigkeit besteht heute zwischen `shared/` und `supabase/functions/_shared/`. |
 | **Ein `pointercancel` beendet die Zeigerspur endgültig, die Berührungsspur läuft weiter.** | Beansprucht der Browser die Geste für sich, kommt kein `pointermove` mehr — die Unterschrift blieb ein Punkt. In derselben Geste kamen noch neun `touchmove` an. Wer mit dem Finger zeichnet, gehört deshalb an `touchstart`/`touchmove`, nicht an die Zeigerereignisse. Nachgemessen in einem echten Browser: 8285 gezeichnete Pixel ungestört, 36 nach dem Abbruch. |
 | **React meldet Berührungsereignisse an der Wurzel als PASSIV an.** | In einem passiven Listener ist `preventDefault()` wirkungslos, und ohne das scrollt die Seite unter dem Finger weg, statt dass er zeichnet. Wer eine Berührung abfangen muss, hängt den Listener nativ ans Element mit `{ passive: false }` — nicht über `onTouchStart`. |
 | **`setPointerCapture` ist auf WebKit keine Hilfe, sondern ein Verdächtiger.** | Es sollte den Strich über den Feldrand halten. Dieselbe Aufgabe erledigen Listener am FENSTER, solange ein Strich läuft — ohne die Nebenwirkung. |
 | **Ein Probestand ohne die echte CSS misst den eigenen Aufbau, nicht die App.** | Der erste Messlauf zeigte den Fehler sofort — aber nur, weil die Stylesheets 404 gaben und damit `touch-action: none` fehlte. Mit geladener CSS lief alles. Erst danach war die Messung etwas wert. Genauso: Vite liefert aus dem Zwischenspeicher, ein Wechsel der Fassung auf der Platte kommt ohne Neustart NICHT im Browser an — zwei Läufe lieferten deshalb identische Zahlen für zwei verschiedene Stände. |
-| **„Der Eigentümer darf seinen eigenen Beleg ändern" ist keine Grenze, solange nicht dabeisteht: WELCHES FELD.** | `isBilled` und `invoiceNumber` entscheiden, ob eine Stunde je auf eine Rechnung kommt. Der Eigentümer konnte sie an seinem eigenen Zeiteintrag setzen und damit seine Arbeitszeit aus der Verrechnung nehmen — ohne Fehlermeldung, und die Zeile steht im Zeitkonto ganz normal weiter. Wo eine Rolle ein Dokument nur teilweise bearbeiten darf, gehört die Feldliste in die Regel. |
+| **„Der Eigentümer darf seinen eigenen Beleg ändern" ist keine Grenze, solange nicht dabeisteht: WELCHES FELD.** | `isBilled` und `invoiceNumber` entscheiden, ob eine Stunde je auf eine Rechnung kommt. Der Eigentümer konnte sie an seinem eigenen Zeiteintrag setzen und damit seine Arbeitszeit aus der Verrechnung nehmen — ohne Fehlermeldung, und die Zeile steht im Zeitkonto ganz normal weiter. Wo eine Rolle eine Zeile nur teilweise bearbeiten darf, gehört die Feldliste in die Regel: `app.nur_diese_felder()`, angewandt im Trigger `time_entries_verrechnung`. |
 | **Ein Test, der prüft, dass etwas VERBOTEN ist, ist erst die halbe Miete.** | Zu jedem neuen Riegel gehört die Gegenprobe, dass die echten Arbeitswege weiter durchgehen. Beim Materialstamm fehlte sie, und ein Knopf tat drei Wochen lang nichts. Beim Verrechnet-Kennzeichen waren es vier Verbots- und **sieben** Gegenprobe-Tests — und zwei davon schlugen sofort fehl (falsche Benutzerkennung im Testdatensatz). Ohne sie hätte ich es nicht gemerkt. |
-| **Eine Regel einzugrenzen heißt, jeden Schreibweg zu kennen — auch die unsichtbaren.** | Der Materialstamm wurde auf Verwaltung und Leitung eingegrenzt, mit der Begründung, gebucht werde ohnehin nur unter „Material → Lager". Falsch: der Monteur bewegt den Bestand beim Abholen und bei jeder Retoure, aus einer Transaktion heraus, die Anforderung UND Bestand zusammen schreibt. Der Bestandsteil scheiterte, also scheiterte alles — der Knopf tat nichts, ohne Meldung. Wo eine Rolle nur EIN Feld bewegen darf, ist `hasOnly(['feld'])` die Grenze, nicht die Rolle. |
+| **Eine Regel einzugrenzen heißt, jeden Schreibweg zu kennen — auch die unsichtbaren.** | Der Materialstamm wurde auf Verwaltung und Leitung eingegrenzt, mit der Begründung, gebucht werde ohnehin nur unter „Material → Lager". Falsch: der Monteur bewegt den Bestand beim Abholen und bei jeder Retoure, aus einem Vorgang heraus, der Anforderung UND Bestand zusammen schreibt. Der Bestandsteil scheiterte, also scheiterte alles — der Knopf tat nichts, ohne Meldung. Wo eine Rolle nur EIN Feld bewegen darf, ist die Feldliste die Grenze, nicht die Rolle. |
 | **Ein grüner Regeltest kann den Irrtum mitschreiben, den er prüfen sollte.** | Zur Regel oben gehörte ein Test „der Monteur ändert den Bestand nicht". Er war grün und hat die falsche Annahme drei Wochen festgehalten. Ein Regeltest ist erst dann etwas wert, wenn die Annahme dahinter am ABLAUF geprüft wurde — nicht am Kommentar über der Regel. |
-| **Zwei Schreibvorgänge hintereinander sind kein Vorgang.** | Die Retoure schrieb erst den Beleg, dann die Gutschrift. Scheiterte die zweite, stand der Beleg da (mit `processed: true`) und der Bestand war nicht erhöht — die Meldung „konnte nicht erfasst werden" war eine Lüge, und der zweite Versuch legte einen zweiten Beleg an. Was zusammengehört, gehört in EINE Transaktion. |
+| **Zwei Schreibvorgänge hintereinander sind kein Vorgang.** | Die Retoure schrieb erst den Beleg, dann die Gutschrift. Scheiterte die zweite, stand der Beleg da (mit `processed: true`) und der Bestand war nicht erhöht — die Meldung „konnte nicht erfasst werden" war eine Lüge, und der zweite Versuch legte einen zweiten Beleg an. Was zusammengehört, gehört in EINEN Vorgang: heute eine Datenbankfunktion (`public.retoure_anlegen`), die entweder ganz oder gar nicht durchgeht. |
 | **Ein Bestätigungsdialog ohne `confirmLabel` sagt „Löschen".** | Zweimal aufgetreten: unter „Material abgeholt?" und unter „Benutzer deaktivieren?" stand je ein roter Löschen-Knopf — bei der Benutzerverwaltung in einer Ansicht, die per Entscheidung NIE etwas löscht. Wer das liest, tippt nicht darauf und meldet, die Aktion lasse sich nicht bestätigen. Bei jedem `ConfirmDialog` gehört `confirmLabel` gesetzt. |
 | **`Number(x) \|\| VORGABE` verschluckt die eingetragene Null.** | In JavaScript ist die Null unwahr. Wer null Wochenstunden einträgt, bekam vierzig — und danach rund 170 Minusstunden im Monat, auf dem Lohnzettel. Der Rückfall darf nur bei LEERER oder unbrauchbarer Eingabe greifen, denn leer heißt „nicht entschieden", null heißt „null". |
-| **Ein deaktiviertes Konto war nur im Browser deaktiviert.** | `firestore.rules` kannte `active` nicht, und `syncUserClaims` setzte die Claims unabhängig davon. Wer ausschied, behielt ein gültiges Konto und kam am UI vorbei an alles. Die Prüfung steht jetzt in `signedIn()`, plus gesperrtes Auth-Konto und widerrufene Token. |
+| **Ein deaktiviertes Konto war nur im Browser deaktiviert.** | Die Sicherheitsregeln kannten `active` nicht, und die Ansprüche wurden unabhängig davon gesetzt. Wer ausschied, behielt ein gültiges Konto und kam am UI vorbei an alles. Heute prüft `app.angemeldet()` den Aktiv-Zustand — also unter jeder Richtlinie — und `app.konto_sperren()` sperrt zusätzlich das Anmeldekonto. |
+| **Ein Anspruch im Token ist bis zu einer Stunde alt.** | Wer die Rolle wechselt oder deaktiviert wird, trägt sein altes Token weiter. Deshalb hängt der Aktiv-Zustand nicht nur am Token: die Sperre steht zusätzlich in der Datenbank, und das Anmeldekonto wird gesperrt. Drei Riegel, weil jeder für sich eine Lücke lässt. |
+| **Ein neuer Schlüsseltyp ist kein JWT.** | Ein `sb_secret_…` gehört nur in den `apikey`-Kopf; im `Authorization`-Kopf prüft das Tor ihn als JWT und weist ihn ab. Dieselbe Regel steht in `shared/dienstSchluessel.ts`, in `scripts/bootstrap-postgres.mjs` und in `app.anstoss_kopfzeilen()`. |
+| **`having count(*) = 1` gibt bei Mehrdeutigkeit NULL zurück, nicht einen Fehler.** | `app.katalogeintrag` sucht den Lagerartikel zum Namen einer Position. Tragen zwei Artikel denselben Namen, ist das Ergebnis leer — die Retoure geht durch und schreibt **keinen** Bestand zurück. Festgehalten in `tests/supabase/modulLager.test.ts`; die Lösung (Artikelnummer statt Name) steht auf der Roadmap. |
+
+### Fallen aus der Firestore-Zeit — was davon bleibt
+
+Diese vier waren teuer und sind mit dem Umzug gegenstandslos geworden. Sie
+stehen hier, weil die Frage dahinter jedes Mal wiederkommt, wenn jemand eine
+neue Technik einführt.
+
+| Falle von damals | Was heute an ihrer Stelle steht |
+|---|---|
+| **Der Emulator legt fehlende Indizes still selbst an** — lokal lief alles, produktiv blieb die Ansicht leer („Kundenakte ohne Baustellen"). | Postgres kennt keine Pflichtindizes; eine Abfrage ohne Index ist langsam, nicht leer. Dafür wacht `tests/supabase/schema.test.ts` darüber, dass jede Mandantentabelle einen Index mit `company_id` oder einem Fremdschlüssel als führender Spalte hat. **Die Lehre bleibt: ein lokaler Stand, der mehr verzeiht als der echte, ist eine Falle.** |
+| **Ein fehlendes Dokument wurde ABGELEHNT, nicht leer beantwortet** — `getUserByUid` warf, statt `null` zu liefern. | Unter dem Zeilenschutz ist es genau umgekehrt und das ist die bessere Eigenschaft: eine Zeile, die man nicht sehen darf, ist nicht „verboten", sondern nicht vorhanden. Fehlender und fremder Datensatz sehen von aussen gleich aus. |
+| **`vi.useFakeTimers()` ohne Einschränkung fror den Firestore-Client ein.** | Der Supabase-Client hängt an `fetch`, nicht an eigenen Zeitgebern. `vi.useFakeTimers({ toFake: ['Date'] })` steht trotzdem überall, wo Zeit gestellt wird — es ist die richtige Gewohnheit. |
+| **Trigger liefen MINDESTENS einmal, nicht genau einmal** — ein `+= delta` verzählte sich beim Wiederholungslauf, deshalb rechnete die Monatsbilanz jeden betroffenen Monat komplett neu. | Postgres-Trigger laufen im selben Vorgang wie die Änderung, also genau einmal. Die verdichteten Monatszahlen sind heute die Sicht `monthly_stats` — sie rechnet bei der Abfrage und kann sich gar nicht mehr verzählen. |
+| **Ein Schnappschuss kam zweimal** — einmal aus dem lokalen Zwischenspeicher, einmal vom Server, mit gleichem Inhalt und neuem Array. | Die Live-Verbindung liefert einzelne Änderungen, keine ganzen Listen. Wer einen Effekt an die Identität eines Arrays hängt, rechnet trotzdem doppelt — das ist eine React-Falle, keine Datenbank-Falle. |
 
 ---
 
@@ -210,9 +242,12 @@ Diese Liste ist teuer bezahlt. Wer sie liest, spart sich die Wiederholung.
 
 Wer hieran etwas ändert, sollte wissen, warum es so ist.
 
-**Die Sicherheitsgrenze steht in `firestore.rules`, nirgends sonst.**
-Navigation, Wächter und Knopf-Freigaben sind Bedienführung. Jede Regel hat
-einen Kommentar, der sagt, wovor sie schützt.
+**Die Sicherheitsgrenze steht in der Datenbank, nirgends sonst.** Jede Tabelle
+trägt Zeilenschutz, jede Richtlinie prüft den Betrieb aus dem Token. Navigation,
+Wächter und Knopf-Freigaben sind Bedienführung. Jede Richtlinie hat einen
+Kommentar, der sagt, wovor sie schützt — und `tests/supabase/schema.test.ts`
+fragt die Datenbank nach ihren Tabellen, statt eine Liste zu pflegen: eine neue
+Tabelle ist damit automatisch geprüft oder fällt durch.
 
 **Wer wohin darf, steht NUR in `src/app/navigation.ts`.** `RequireNav` liest
 Rolle *und* Modul aus demselben Eintrag, aus dem auch der Reiter gebaut wird.
@@ -222,45 +257,57 @@ sagten. **Nicht wieder auseinanderziehen.** Ein statischer Test wacht darüber.
 
 **Was der Server tut, statt der Browser — und warum:**
 
-| Cloud Function | Warum nicht im Browser |
+| Wo | Warum nicht im Browser |
 |---|---|
-| `urlaubEntscheiden` | Muss fremde Zeiteinträge lesen und schreiben. Die enthalten Krankenstände (Art. 9 DSGVO); ein Genehmigender darf sie nicht sehen. |
-| `scheinVorbereiten` | Füllt den Schein aus fremden Zeiteinträgen vor — dieselbe Grenze. |
-| `syncUserClaims` | Setzt `companyId` und `role` ins Auth-Token. Ohne sie hat ein neuer Benutzer keine Rechte. |
-| `bilanzNachziehen` / `bilanzenNachtlauf` | Verdichtete Zeitkonten, damit der Saldo nicht die ganze Historie lädt. |
-| `notifyNewOrder` / `notifyOrderReady` | Push. |
-| `scheinPruefsumme` | Friert den unterschriebenen Schein ein. |
-| `exportCompanyData` | Auskunft nach Art. 15 DSGVO: der ganze Bestand als Datei. Liest den Mandanten seitenweise; die Antwort ist bei 10 MB gedeckelt, deshalb ist sie NICHT die Sicherung. |
-| `datenAusleitung` / `datenAusleitungJetzt` | Die Sicherung: schreibt jede Nacht um 02:30 den Bestand jedes Mandanten zeilenweise weg und räumt alte Stände auf. Von Hand anstoßbar, damit sich überhaupt prüfen lässt, ob sie läuft. |
+| `public.urlaub_entscheiden` (Datenbankfunktion) | Schreibt fremde Zeiteinträge. Die enthalten Krankenstände (Art. 9 DSGVO); ein Genehmigender darf sie nicht sehen. Die Funktion läuft mit erhöhten Rechten und prüft selbst, wer sie ruft (`app.darf_urlaub_entscheiden`). |
+| `public.schein_vorbereiten` | Füllt den Schein aus fremden Zeiteinträgen vor — dieselbe Grenze. |
+| Trigger `users_ansprueche` und `users_adminrolle` | Setzen Betrieb, Rolle und Aktiv-Zustand ins Token. Ohne sie hat ein neuer Benutzer keine Rechte. Und: wer Administratoren ernennen darf, entscheidet die Datenbank, nicht das Formular. |
+| Sicht `monthly_stats` | Verdichtete Zeitkonten, damit der Saldo nicht die ganze Historie lädt. Früher ein nächtlicher Lauf mit eigenem Zählwerk — heute rechnet die Datenbank es bei der Abfrage. |
+| Trigger `material_orders_push` → Edge Function `push-melden` | Push. Der Auslöser gehört an die Änderung, nicht an den Browser, der sie ausgelöst hat: der kann weg sein, bevor die Meldung raus ist. |
+| `app.schein_pruefsumme_setzen` (Trigger) | Friert den unterschriebenen Schein ein. Eine Prüfsumme, die der Browser rechnet, beweist nichts. |
+| `public.betrieb_auszug` | Auskunft nach Art. 15 DSGVO: der ganze Bestand als Datei. Seitenweise gelesen und gedeckelt — deshalb ist sie NICHT die Sicherung. |
+| Edge Function `daten-ausleitung` + `pg_cron` | Die Sicherung: schreibt jede Nacht den Bestand jedes Mandanten zeilenweise weg, samt Dateien, und räumt alte Stände auf. Von Hand anstoßbar, damit sich überhaupt prüfen lässt, ob sie läuft. |
+| Edge Function `mitarbeiter-anlegen` | Ein Anmeldekonto anlegen braucht den Dienstschlüssel. Der steht sonst im ausgelieferten JavaScript. Die Zeile in der Belegschaft schreibt weiterhin der Browser — siehe `README.md`, das ist Absicht. |
+| Edge Function `betrieb-anlegen` | Legt einen ganzen Mandanten an. Lässt nur herein, wer in `platform_admins` steht. |
 
 **Nur das Ist speichern, nie den Saldo.** Der Saldo hängt an Wochenstunden,
 Arbeitstagen, Eintrittsdatum und Feiertagen. Ändert die Geschäftsführung
 jemandes Wochenstunden, ändert sich rückwirkend jeder Tag — ein gespeicherter
 Saldo wäre ab dem Moment falsch.
 
-**Nummernkreise nur steigend.** `counters` darf nicht gelöscht werden: ein neu
-angelegter Zähler begänne wieder von vorn, und der Betrieb hätte zwei
-Rechnungen mit derselben Nummer in den Büchern.
+**Nummernkreise nur steigend.** `public.naechste_nummer` zählt in einer
+eigenen Tabelle hoch, und die darf nicht geleert werden: ein neu angelegter
+Zähler begänne wieder von vorn, und der Betrieb hätte zwei Rechnungen mit
+derselben Nummer in den Büchern.
 
 **Erklärungen hinter das „i" (`InfoHint`), Zustandsmeldungen nicht.** Was
 immer gilt, klappt auf Tipp auf. Was gerade passiert oder gleich passieren
 wird — eine Warnung vor doppelten Datensätzen, die Folgen eines Stornos —
 bleibt sichtbar. **Eine Folge hinter einem Aufklapper ist keine Warnung.**
 
-**Jedes Warten hat eine Grenze.** Firestore und die Cloud Functions kennen
-keine; `lib/frist.ts` legt sie darum. Der Start der App weicht nach acht
-Sekunden auf den Zwischenspeicher aus, statt weiter zu warten. Schreibvorgänge
-sind ausgenommen — die nimmt Firestore lokal an und reicht sie nach, dort wäre
-eine Frist ein Rückschritt.
+**Ein Warten, das den Benutzer festhält, bekommt eine Grenze.** `lib/frist.ts`
+legt sie, und sie steht an drei Stellen: der Start der App weicht nach acht
+Sekunden auf den gespeicherten Anspruch aus, statt weiter zu warten; die
+Prüfung auf Doppelbuchung gibt vor dem Buchen auf, statt die Buchung zu
+verhindern; und die von Hand angestossene Sicherung meldet, dass keine Antwort
+kam, statt endlos zu drehen. **Nicht jede Abfrage trägt eine Frist** — eine
+Liste, die lädt, darf laden.
 
-**Zugang endet serverseitig, nicht in der Oberfläche.** `active` steht als
-Claim im Token und wird in `signedIn()` geprüft — also unter jeder Regel
-dieser Datei, damit eine neue Sammlung die Sperre nicht vergessen kann. Dazu
-sperrt `syncUserClaims` das Auth-Konto und widerruft die Token. Drei Riegel,
-weil jeder für sich eine Lücke lässt: die Kontosperre wirkt erst beim nächsten
-Anmelden, ein ausgestelltes Token liefe bis zu einer Stunde weiter, und der
-Claim greift auch dort. **Fehlt der Claim, gilt aktiv** — bestehende Token
-tragen ihn nicht, und ein Deploy darf nicht den ganzen Betrieb aussperren.
+**Schreibvorgänge tragen nie eine Frist, sondern ein Ausgangsfach.** Firestore
+nahm einen Schreibvorgang ohne Netz lokal an und reichte ihn nach; Supabase tut
+das nicht. `lib/sync/ausgangsfach.ts` baut die Eigenschaft nach — für die zwei
+Dinge, die der Monteur ohne Empfang tut: **Zeit buchen** und **Material
+anfordern**. Die Kennung der Zeile kommt dabei vom Gerät, damit derselbe
+Vorgang zweimal ankommen darf, ohne zweimal zu landen, und eine späte Ablehnung
+erreicht ihn über `VerloreneBuchung`. Ein **Empfang** für fremde Änderungen
+gehört ausdrücklich nicht dazu: das Ausgangsfach sendet, es gleicht nicht ab.
+
+**Zugang endet serverseitig, nicht in der Oberfläche.** Der Aktiv-Zustand
+steht als Anspruch im Token und wird in `app.angemeldet()` geprüft — also
+unter jeder Richtlinie, damit eine neue Tabelle die Sperre nicht vergessen
+kann. Dazu sperrt `app.konto_sperren()` das Anmeldekonto. Zwei Riegel, weil
+jeder für sich eine Lücke lässt: die Kontosperre wirkt erst beim nächsten
+Anmelden, ein ausgestelltes Token liefe bis zu einer Stunde weiter.
 
 **Farbe, Verlauf und Fläche kommen aus Tokens, nicht aus der Aufrufstelle.**
 Alles Sichtbare liegt in `src/index.css` (`:root`) und wird über
@@ -268,7 +315,7 @@ Alles Sichtbare liegt in `src/index.css` (`:root`) und wird über
 `text-ink-muted`, `bg-grad-brand`. Wer in einer Ansicht einen Hexwert oder ein
 eigenes `linear-gradient(...)` schreibt, nimmt diese Fläche aus der
 Mandantenfähigkeit heraus — `applyBranding` setzt `--brand` und `--accent` zur
-Laufzeit aus `companies/{id}` — und aus jeder künftigen Änderung des
+Laufzeit aus den Stammdaten des Betriebs — und aus jeder künftigen Änderung des
 Erscheinungsbilds.
 
 Drei Flächen tragen die ganze App, alle drei stehen in `index.css` unter
@@ -355,10 +402,9 @@ Vorlage, bei #12889b (4,2:1).
 Datei erklärt an Ort und Stelle, was sonst passiert. **Nicht zurück auf
 Strings setzen.**
 
-**Der Service Worker fasst nur eigene Dateien an.** Firestore, Auth und die
-Cloud Functions gehen unberührt durch. Eine vorgehaltene Datenbankantwort wäre
-ein falscher Kontostand — und der Firestore-Client hat seinen eigenen,
-richtigen Zwischenspeicher. Ein Test in `tests/unit/serviceWorker.test.ts`
+**Der Service Worker fasst nur eigene Dateien an.** Datenbank-, Anmelde- und
+Function-Aufrufe gehen unberührt durch. Eine vorgehaltene Datenbankantwort
+wäre ein falscher Kontostand. Ein Test in `tests/unit/serviceWorker.test.ts`
 lädt die echte `public/sw.js` in eine Sandbox und hält genau das fest.
 
 ---
@@ -367,64 +413,57 @@ lädt die echte `public/sw.js` in eine Sandbox und hält genau das fest.
 
 Ehrlich und in der Reihenfolge, in der sie wehtun.
 
-### Ungetestete Ansichten — kleiner geworden, nicht weg
+### Ansichtstests: vollständig, aber flach
 
-Die vier wichtigsten sind seit dem 02.09.2026 abgedeckt: **Zeiterfassung**
-(meistbenutzt), **Rechnungen** (Geld), **Einsatzplanung** (löscht Daten),
-**Baustellen**. Danach der **Materialablauf** als ganzer Weg — anfordern,
-bearbeiten, Bestand führen — und die **Benutzerverwaltung**. Bleiben
-**6 von 27** ohne eigenen Test — die kleineren.
-
-Der Materialablauf ist bewusst als ABLAUF geprüft worden und nicht Ansicht für
-Ansicht, und das hat sich sofort ausgezahlt: der Fehler, den er zutage
-gefördert hat, lag in keiner der drei Ansichten, sondern in der Regel darunter.
-Wer eine Ansicht allein prüft, sieht so etwas nie.
+**Alle 28 Ansichten haben einen eigenen Test.** Der Materialablauf ist
+zusätzlich als ganzer ABLAUF geprüft — anfordern, bearbeiten, Bestand führen —
+und das hat sich sofort ausgezahlt: der Fehler, den er zutage gefördert hat,
+lag in keiner der drei Ansichten, sondern in der Regel darunter. Wer eine
+Ansicht allein prüft, sieht so etwas nie.
 
 **Die Einschränkung gilt unverändert:** in jedem dieser Tests ist jeder
 Datenbankzugriff ersetzt. Sie finden Bedienfehler und falsche Verdrahtung,
 keine Datenfehler. Jeder aus dem Betrieb gemeldete Fehler lag bisher in genau
 den Nähten, die sie per Konstruktion nicht sehen — dafür sind die
-Emulator-Tests da, und für den Rest fehlt weiterhin ein echter Browser.
+Datenbanktests da (`tests/supabase/`, gegen eine echte Postgres-Instanz) und
+der Durchklick im echten Browser.
 
-### Kein echter Browser in der CI — und was das dreimal gekostet hat
+### Der echte Browser deckt vier Wege ab, nicht alle
 
-Kein Playwright, kein Ende-zu-Ende-Test **im Testlauf**. Drei gemeldete Fehler
-wären damit gefunden worden und sind es nicht: die Unterschrift auf dem
-Telefon (dreimal gemeldet), das endlose Laden, der weiße Bildschirm nach einem
-Deploy. Alle repariert, alle ungeschützt gegen Rückfall.
+`npm run durchklick` fährt vier Wege in einem echten Chromium gegen den
+lokalen Stack: **Zeit buchen**, **Material anfordern**, **Schein
+unterschreiben**, **Rechnung stellen**. Genau die drei gemeldeten Fehler, die
+kein Ansichtstest je gefunden hätte (Unterschrift am Telefon, endloses Laden,
+weißer Bildschirm nach einem Deploy), liegen damit unter Beobachtung.
 
-**Das Unterschriftsfeld ist der Beleg dafür, dass hier eine echte Lücke ist.**
-Es wurde zweimal „repariert" und war zweimal weiter kaputt, weil jeder
-Ansichtstest den Eingabeweg nur nachstellt: jsdom kennt kein `pointercancel`,
-das eine echte Geste abräumt, und `setPointerCapture` ist dort eine Attrappe,
-die nie etwas auslöst. Erst als die Komponente in einem echten Browser mit
-echter Fingereingabe lief, war die Ursache in zehn Minuten sichtbar.
+*Bleibt offen:* Chromium ist nicht Safari, und der Durchklick läuft nicht auf
+einem echten Telefon. Die Unterschrift ist im Mechanismus nachgewiesen, die
+Bestätigung auf einem iPhone steht weiter aus.
 
-**Wie es gemessen wurde**, falls es jemand wiederholen muss: eine kleine
-Seite, die nur diese eine Komponente rendert, über den Vite-Dev-Server; dazu
-`playwright-core` gegen das vorhandene Chromium und `Input.dispatchTouchEvent`
-über das CDP für echte Berührungen. Das ist keine halbe Stunde Arbeit. **Zwei
+**Wie die Fingereingabe gemessen wurde**, falls es jemand wiederholen muss:
+eine kleine Seite, die nur diese eine Komponente rendert, über den
+Vite-Dev-Server; dazu `playwright-core` gegen das vorhandene Chromium und
+`Input.dispatchTouchEvent` über das CDP für echte Berührungen. **Zwei
 Fallstricke dabei**, beide selbst hineingetappt: ohne die echte CSS fehlt
 `touch-action: none` und man misst seinen eigenen Aufbau statt der App; und
 Vite liefert aus dem Zwischenspeicher — ohne Neustart zeigen zwei Läufe für
 zwei verschiedene Codestände dieselben Zahlen.
 
-*Bleibt trotzdem offen:* Chromium ist nicht Safari. Der Mechanismus ist
-nachgewiesen, die Bestätigung auf einem iPhone steht aus.
+### Die vier Edge Functions laufen ungetestet
 
-### Cloud Functions laufen ungetestet
-
-Ihre Wirkung wird in den Durchstich-Tests **nachgestellt**, nicht ausgeführt.
-`bilanzNachziehen` und `bilanzenNachtlauf` laufen produktiv, ohne dass ein
-Test sie je gestartet hat.
+Was sie tun, ist geprüft — aber an der Datenbank, nicht an der Function:
+`betrieb-anlegen` und `mitarbeiter-anlegen` haben ihre Tests auf der
+Datenbankfunktion darunter, die Ausleitung auf ihren Entscheidungen (welcher
+Pfad, was darf gelöscht werden, wie sieht eine Zeile aus), die Push-Meldung
+auf dem Auslöser und dem Empfängerkreis. **Das Lesen und Schreiben der
+Function selbst hat nie ein Test ausgeführt.** Das ist die grösste
+verbliebene Lücke im Prüfnetz.
 
 ### Toter oder unerreichbarer Code
 
 | Was | Zustand |
 |---|---|
-| **KI-Spracherfassung** (`/voice`, `voiceExtract`) | Vollständig gebaut, als Modul aus. Ohne Schlüssel führt sie nur in eine Fehlermeldung, und Sprachaufnahmen von Mitarbeitern gingen an US-Anbieter — das braucht vorher Auftragsverarbeitungsverträge. |
-| **Wiedervorlagen** (`followUps`) | Sammlung, Regeln und Abfragen existieren; geschrieben wird nur aus der KI-Erfassung. Also faktisch tot, solange die aus ist. |
-| **`exportCompanyData`** | Nicht mehr tot: vollständig und unter Einstellungen → Datensicherung erreichbar. |
+| **Wiedervorlagen** (`follow_ups`) | Tabelle, Richtlinien und Datenschicht existieren; geschrieben wurde nur aus der KI-Spracherfassung, und die ist am 19.09.2026 ersatzlos entfernt worden. Damit ist der Bereich unerreichbar — keine Ansicht liest oder schreibt ihn. Entweder bekommt er einen echten Eingang (Wiedervorlage aus Angebot oder Mahnung) oder er fällt weg; beides ist eine Produktentscheidung, keine Programmierfrage. |
 
 ### Eine offene Produktfrage
 
@@ -437,58 +476,47 @@ mitkalkulieren soll. Muss der Auftraggeber entscheiden.
 
 ### Skalierbarkeit: die eine verbleibende Ausnahme
 
-Jede Abfrage ist begrenzt, aber der Projekt-Radar lädt für **eine** lange
-laufende Baustelle weiterhin deren gesamte Stundenhistorie. Bei der Messung
-lagen alle 15.660 Einträge auf einer aktiven Baustelle — dort brachte die
-Begrenzung nichts. Unrealistisch, aber es zeigt, wo die Lösung endet.
+Jede Abfrage ist begrenzt, aber der Projekt-Radar
+(`listEntriesForProjects`) lädt die Stunden der Baustellen **mit Budget** in
+einem Zug — begrenzt durch die Zahl dieser Baustellen, nicht durch eine
+Zeilenzahl. Bei der Messung lagen alle 15.660 Einträge auf einer aktiven
+Baustelle; dort bringt die Begrenzung nichts. Unrealistisch, aber es zeigt,
+wo die Lösung endet.
 
-### Der zweite Datenstandort ist erst zur Hälfte gewonnen
+### Der zweite Datenstandort
 
-Seit dem 02.09.2026 schreibt `datenAusleitung` jede Nacht den kompletten
-Bestand jedes Mandanten weg — zeilenweise, mit Aufbewahrung, von Hand
-anstoßbar. Gegen einen Fehlgriff, eine kaputte Migration oder eine
-versehentlich geleerte Sammlung hilft das ab sofort.
+`daten-ausleitung` schreibt jede Nacht den kompletten Bestand jedes Mandanten
+weg — zeilenweise, mit Aufbewahrung, samt Scheinfotos, von Hand anstoßbar, und
+mit einem Wächter, der meldet, wenn ein Lauf ausbleibt. Der Rücklauf
+(aus der Sicherung wird wieder ein Betrieb) ist gebaut und getestet.
 
-**Gegen den Fall, um den es eigentlich ging, noch nicht.** Ohne die
-Repository-Variable `AUSLEITUNG_BUCKET` landet der Stand im Standard-Bucket
-DESSELBEN Google-Projekts. Fällt das Projekt aus oder wird der Zugang
-gesperrt, ist die Sicherung genauso weg wie die Daten. Der Handgriff dagegen
-ist klein und steht in `DEPLOYMENT.md`; er braucht eine Entscheidung darüber,
-wohin — und ein Konto dort.
-
-Ungetestet ist der Lauf selbst: geprüft sind die Entscheidungen (welcher Pfad,
-was darf gelöscht werden, wie sieht eine Zeile aus), nicht das Lesen und
-Schreiben. Wie bei allen Cloud Functions.
+**Wohin geschrieben wird, entscheidet ein Secret.** Ohne einen gesetzten
+externen Speicherort landet der Stand im Storage DESSELBEN Supabase-Projekts.
+Fällt das Projekt aus oder wird der Zugang gesperrt, ist die Sicherung genauso
+weg wie die Daten. Der Handgriff dagegen steht in `DEPLOYMENT.md`; er braucht
+eine Entscheidung darüber, wohin — und ein Konto dort. **Die Zugangsdaten
+dafür gehören ausschliesslich in die Edge-Function-Secrets des
+Supabase-Projekts**, nicht ins Repository, nicht in GitHub-Secrets.
 
 ---
 
 ## 7. Nächste Schritte
 
-In dieser Reihenfolge, mit Begründung.
+Der vollständige Fahrplan mit Begründung je Stufe steht in `ROADMAP.md`
+unter „Der Weg zum Start in Österreich". Die Reihenfolge dort, kurz:
 
-1. **Ende-zu-Ende-Test mit echtem Browser** für die zwei Wege, die schon
-   einmal am Telefon gebrochen sind: Schein unterschreiben, Zeit buchen. Seit
-   die vier Kernansichten Tests haben (02.09.2026), ist das die größte
-   verbliebene Lücke — und die einzige, die die Unterschrift auf dem Telefon
-   je abdecken kann.
-2. **`AUSLEITUNG_BUCKET` auf einen Speicherort ausserhalb dieses Projekts
-   setzen.** Der nächtliche Lauf existiert seit dem 02.09.2026 und
-   funktioniert; er schreibt nur noch an die falsche Stelle, nämlich in
-   dasselbe Google-Projekt. Kein Programmieraufwand mehr, sondern eine
-   Entscheidung plus ein Konto. Siehe §6.
-3. **Ansichtstests für die verbliebenen zehn Ansichten** — deutlich kleinere
-   Stücke als die vier Kernansichten, und mit denen als Vorlage schnell
-   geschrieben.
-4. **Handwerksschein Stufen 2–4** — Fotos, Versand an den Kunden, Verbindung
-   zur Rechnung. Der Fahrplan steht in `ROADMAP.md`.
-5. **Wartungsverträge und wiederkehrende Termine.** Die jährliche
-   Thermenwartung ist planbare Auslastung — betriebswirtschaftlich der
-   nächstgrößte Hebel.
-6. **Prüfungen gegen das Arbeitszeitgesetz** (Höchstarbeitszeit, Ruhezeiten).
-   Bei Notdiensten über Mitternacht kein akademischer Punkt.
-7. Kleineres, aufgeschoben: halbe Urlaubstage, Urlaubsübertrag ins Folgejahr,
-   Meldung an den Antragsteller bei einer Urlaubsentscheidung, Fahrzeug- und
-   Werkzeugverwaltung.
+1. **Zahlungseingang** — Datum und Betrag je Rechnung. Daran hängen Skonto,
+   Anzahlung, Verzugszinsen und überhaupt eine ehrliche Liste offener Posten.
+   Ohne das ist „Bezahlt" ein Häkchen ohne Beleg.
+2. **Rechnungsmerkmale nach § 11 UStG vollständig** — Bauleistung mit
+   Übergang der Steuerschuld, Rücklass, innergemeinschaftliche Leistung.
+3. **Arbeitszeit: Gleitzeit oder Durchrechnung** — nur, wenn der Betrieb eine
+   entsprechende Vereinbarung hat. Die Frage ist gestellt und noch offen.
+4. **Registrierkasse** — erst zu klären, ob der Betrieb überhaupt
+   Barumsätze hat. Wenn nein, entfällt die ganze Stufe.
+5. **Ansichtstests sind fertig; als Nächstes Prüfnetz für die Edge Functions**
+   (siehe §6) und ein zweiter Betrieb von Hand, um die Mandantentrennung
+   einmal von aussen zu sehen.
 
 ---
 
@@ -509,10 +537,12 @@ Praktisch heißt das:
   geprüft, muss stimmen.
 - **Kommentare erklären, warum.** Bei jeder nicht offensichtlichen
   Entscheidung steht daneben, welcher Fehler sie verhindert. Das ist kein
-  Schmuck: mehrere Regeln in `firestore.rules` sehen ohne den Kommentar
+  Schmuck: mehrere Richtlinien in den Migrationen sehen ohne den Kommentar
   willkürlich aus.
 - **Deutsche Bezeichner in neuem Code**, wo sie den Fachbegriff treffen
   (`urlaubsTage`, `aktiveModule`, `zieheMit`). Älterer Code ist gemischt; das
   ist kein Grund, ihn anzufassen.
 - **Ein Test, der eine Funktion prüft, die niemand aufruft, prüft nichts.**
   `canAccess()` war so ein Fall und ist es nicht mehr.
+- **Jeder neue Test muss gegen absichtlich kaputten Code fehlschlagen.** Ein
+  Test, der auch dann grün bleibt, hält nichts fest — er beruhigt nur.

@@ -225,4 +225,34 @@ describe('Retoure', () => {
 
     expect(await bestand(artikel)).toBe(5);
   });
+
+  it('bucht NICHTS zurück, wenn zwei Einträge denselben Namen tragen', async () => {
+    /*
+      WELCHER GEMEINT WAR, IST NICHT ENTSCHEIDBAR. Dann lieber gar nichts
+      gutschreiben als das Falsche: eine stille Gutschrift auf den falschen
+      Artikel macht zwei Bestände falsch statt einen, und beide sehen richtig
+      aus.
+
+      `app.katalogeintrag` löst das mit `having count(*) = 1` — bei zwei
+      Treffern kommt keine Zeile und damit NULL zurück. Der Beleg entsteht
+      trotzdem: der Monteur hat etwas zurückgebracht, und das gehört
+      festgehalten, auch wenn niemand weiss, auf welchen Artikel.
+
+      DIESE ZUSICHERUNG STAND BIS ZUM 19.09. IM FIRESTORE-EINHEITENTEST
+      `materialRetoure.test.ts`. Mit dem Abbau ist sie hierher gewandert — auf
+      den Weg, den die App wirklich geht, und gegen eine echte Datenbank.
+    */
+    await material.createMaterial('lager-a', { name: 'Zwilling', stock: 7 });
+    const zweiter = await material.createMaterial('lager-a', { name: 'Zwilling', stock: 7 });
+    clientEinreichen(monteur.client);
+    const id = await anforderungen.createReturn('lager-a', {
+      materialName: 'Zwilling', quantity: 3,
+      userId: monteur.uid, condition: 'neu',
+    } as Parameters<typeof anforderungen.createReturn>[1]);
+    clientEinreichen(verwaltung.client);
+
+    expect(await bestand(zweiter)).toBe(7);
+    const { data } = await admin.from('material_orders').select('material_id').eq('id', id).single();
+    expect(data?.material_id).toBeNull();
+  });
 });

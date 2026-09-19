@@ -4,7 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import { listAssignmentsForUserInRange } from '@/lib/db/assignments';
 import { listProjectsByNumbers } from '@/lib/db/projects';
 import { listMaterials } from '@/lib/db/materials';
-import { callScheinVorbereiten } from '@/lib/functions';
+import { vorbereiten as scheinVorbereiten } from '@/lib/db/workSheets';
 import {
   createWorkSheet,
   getWorkSheet,
@@ -138,7 +138,7 @@ export default function WorkSheetView() {
   /*
     Dieselbe Menge als Ref. Der Vorausfüll-Effekt braucht sie beim Eintreffen
     der Antwort, darf aber nicht an ihr HÄNGEN — sonst liefe er bei jeder
-    getippten Zeile neu und holte die Cloud Function ein zweites Mal.
+    getippten Zeile neu und holte die Vorausfüllung ein zweites Mal.
   */
   const selbstErfasstRef = useRef<Set<number>>(new Set());
   /** Hat der Monteur die Warnung „Fotos fehlen" schon gesehen? */
@@ -365,11 +365,11 @@ export default function WorkSheetView() {
     /**
      * Die Vorausfüllung bekommt eine FRIST.
      *
-     * Sie läuft über eine Cloud Function, und die startet kalt schon einmal
-     * mehrere Sekunden. Im Keller mit einem Balken LTE kann sie beliebig
-     * lange brauchen — und tat das vorher hinter einem Kreisel ohne Ende und
-     * ohne Ausweg. Nach der Frist steht da, was los ist, mit einem Knopf zum
-     * Erneut-Versuchen.
+     * Sie läuft über die Datenbankfunktion `schein_vorbereiten`, und die liest
+     * fremde Zeiteinträge — mehr Arbeit als eine Liste zu holen. Im Keller mit
+     * einem Balken LTE kann das beliebig lange brauchen, und tat es vorher
+     * hinter einem Kreisel ohne Ende und ohne Ausweg. Nach der Frist steht da,
+     * was los ist, mit einem Knopf zum Erneut-Versuchen.
      */
     const mitFrist = <T,>(p: Promise<T>, ms = 12000) =>
       Promise.race([
@@ -377,8 +377,8 @@ export default function WorkSheetView() {
         new Promise<never>((_, ab) => setTimeout(() => ab(new Error('Zeit abgelaufen')), ms)),
       ]);
 
-    mitFrist(callScheinVorbereiten({ projectNumber, datum }))
-      .then(({ data }) => {
+    mitFrist(scheinVorbereiten(projectNumber, datum))
+      .then((data) => {
         if (verworfen) return;
         /*
           DIE VOR ORT GETIPPTEN ZEILEN ÜBERLEBEN DIE VORAUSFÜLLUNG.
@@ -1027,8 +1027,8 @@ export default function WorkSheetView() {
             FOTOS — FREIWILLIG, und das steht auch da.
 
             Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
-            Firestore hält einen Schreibvorgang offline vor, Firebase Storage
-            tut das nicht. Wäre ein Foto Bedingung, hinge der ganze Beleg an
+            Das Ausgangsfach hält einen Schreibvorgang ohne Empfang vor, der
+            Dateispeicher tut das nicht. Wäre ein Foto Bedingung, hinge der Beleg an
             einem Balken Empfang — und der Monteur stünde mit einem Kunden vor
             sich da, der unterschreiben will.
 

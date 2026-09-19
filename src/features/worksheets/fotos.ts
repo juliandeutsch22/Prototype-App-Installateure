@@ -10,8 +10,9 @@ import type { WorkSheetFoto } from '@/types';
  *
  * SIE SIND FREIWILLIG, und das ist eine bewusste Entscheidung, keine
  * Sparsamkeit. Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
- * Firestore hält einen Schreibvorgang offline vor und schickt ihn nach,
- * Firebase Storage tut das NICHT. Wäre auch nur ein Foto Bedingung, hinge der
+ * Das Ausgangsfach hält einen Schreibvorgang ohne Empfang vor und schickt
+ * ihn nach, der Dateispeicher tut das NICHT. Wäre auch nur ein Foto
+ * Bedingung, hinge der
  * ganze Beleg an einem Balken Empfang — und der Monteur stünde mit einem
  * Kunden vor sich da, der unterschreiben will.
  *
@@ -79,7 +80,7 @@ export function fotoPfad(companyId: string, scheinId: string, name: string): str
  * Der Inhalts-Hash eines Bildes, hexadezimal.
  *
  * ER IST DER GRUND, WARUM DIE FOTOS ÜBERHAUPT BEWEISKRAFT HABEN. Die
- * Prüfsumme des Scheins sieht nur Firestore, nicht die Bilddatei im Storage.
+ * Prüfsumme des Scheins sieht nur seine Zeilen, nicht die Bilddatei.
  * Ohne diesen Hash liesse sich das Bild nach der Unterschrift austauschen,
  * ohne dass irgendetwas auffiele.
  */

@@ -1,0 +1,155 @@
+Firma A darf eigene Projekte lesen
+Firma B darf KEIN Projekt von Firma A lesen
+Firma B darf KEINEN Zeiteintrag von Firma A lesen
+Firma B darf KEIN Firmendokument von Firma A lesen
+Nicht angemeldet: kein Zugriff
+Mitarbeiter darf eigenen Zeiteintrag mit eigener companyId anlegen
+Mitarbeiter darf KEINEN Eintrag mit fremder companyId schreiben
+Mitarbeiter darf KEINEN Zeiteintrag für einen anderen Nutzer anlegen
+Mitarbeiter darf KEIN Projekt anlegen (nur Leitung)
+Administrator der Firma A darf ein Projekt anlegen
+Mitarbeiter darf KEINE Rechnung lesen
+Administrator darf KEINEN Benutzer mit unbekannter Rolle anlegen
+Mitarbeiter darf den Zeiteintrag eines KOLLEGEN nicht lesen
+Mitarbeiter darf den EIGENEN Zeiteintrag lesen
+Buchhaltung darf fremde Zeiteinträge lesen (Lohnverrechnung)
+Mitarbeiter darf die Bestellung eines Kollegen nicht lesen
+Administrator darf einen Benutzer mit gültiger Rolle anlegen
+Geschäftsführung darf die Sätze der eigenen Firma ändern
+Mitarbeiter darf die Sätze NICHT ändern
+Firma B darf die Sätze von Firma A NICHT ändern
+Auch die Leitung darf ihre Firma nicht löschen
+darf das eigene Dokument anlegen und lesen
+darf das Dokument eines KOLLEGEN nicht lesen
+darf sich kein Token in ein fremdes Dokument schreiben
+auch der Administrator kommt nicht an fremde Tokens
+Firma B kommt nicht an Einstellungen aus Firma A
+niemand darf Einstellungen loeschen
+darf Baustellen anlegen
+darf Material pflegen
+darf FREMDE Zeiteintraege NICHT lesen
+darf fremde Zeiteintraege auch nicht anlegen
+darf die eigene Zeit sehr wohl buchen
+Geschaeftsfuehrung darf KEINEN Administrator anlegen
+Geschaeftsfuehrung darf einen bestehenden Administrator nicht aendern
+Administrator darf einen Administrator anlegen
+Geschaeftsfuehrung darf weiterhin normale Rollen vergeben
+Buchhaltung darf den Zaehler anlegen und hochzaehlen
+der Zaehler darf NICHT zurueckgesetzt werden
+der Zaehler darf nicht geloescht werden
+ein Monteur kommt an den Zaehler nicht heran
+eine fremde Firma kommt an den Zaehler nicht heran
+ein Monteur stellt einen Antrag fuer sich selbst
+aber nicht fuer jemand anderen
+und nicht gleich als genehmigt
+ein Monteur genehmigt seinen eigenen Urlaub NICHT
+ein Monteur darf seinen offenen Antrag noch aendern
+aber nicht mehr, nachdem entschieden wurde
+die Geschaeftsfuehrung genehmigt
+die Projektleitung SIEHT den Urlaub, entscheidet aber nicht
+ein entschiedener Antrag wird nicht geloescht
+eine fremde Firma sieht den Antrag nicht
+ohne Festlegung entscheidet die Buchhaltung wie bisher
+mit Festlegung entscheidet, wer daraufsteht — auch die Verwaltung
+und die Buchhaltung dann NICHT mehr, wenn sie nicht daraufsteht
+die Geschaeftsfuehrung entscheidet IMMER, auch ausserhalb der Liste
+ein Monteur kommt auch mit Liste nicht an die Genehmigung
+die Liste aendert nur die Geschaeftsfuehrung
+die Projektleitung aendert die Liste NICHT
+die Projektleitung aendert am Firmendokument gar nichts mehr
+der Administrator schaltet ein Modul ab
+die Geschaeftsfuehrung NICHT
+die Projektleitung schaltet sich NICHTS frei
+die Buchhaltung auch nicht
+ein Monteur kommt an die Firmendaten ohnehin nicht
+eine fremde Firma aendert die Liste nicht
+auch nicht als Beifang in einem sonst erlaubten Schreibvorgang
+die Geschaeftsfuehrung darf alles ANDERE weiterhin aendern
+die Geschaeftsfuehrung legt einen Benutzer an
+die Projektleitung NICHT
+die Projektleitung stuft auch niemanden hoch
+die Buchhaltung erst recht nicht
+lesen darf die Projektleitung weiterhin
+einen Administrator legt nur ein Administrator an
+liest die eigenen Zeiteintraege NICHT mehr
+liest keine Baustellen und keine Firmendaten mehr
+schreibt auch nichts mehr
+das aktive Konto derselben Person arbeitet weiter
+ein Token OHNE das Merkmal gilt als aktiv
+der Monteur sieht die Einteilung
+der Monteur setzt sich NICHT selbst auf eine andere Baustelle
+der Monteur legt keine Einteilung an und loescht keine
+die Projektleitung plant, anlegen bis loeschen
+die fremde Firma kommt nicht heran
+die Projektleitung legt an, ändert und löscht
+der eingeteilte Monteur hakt ab
+der eingeteilte Monteur ändert die LISTE nicht
+ein NICHT eingeteilter Mitarbeiter hakt nichts ab
+der Monteur legt keine Liste an und löscht keine
+die Buchhaltung sieht die Liste, plant sie aber nicht
+der Monteur setzt es an seinem EIGENEN Zeiteintrag NICHT
+der Monteur schmuggelt es nicht neben einer echten Korrektur mit
+der Monteur legt keinen bereits verrechneten Eintrag an
+der Monteur setzt es auch an seiner eigenen Anforderung NICHT
+die Buchhaltung setzt es — sie stellt die Rechnung
+die Buchhaltung gibt einen Storno auch wieder frei
+der Monteur korrigiert seine Zeit unverändert
+der Monteur bucht weiterhin eine neue Zeit
+der Monteur bestätigt weiterhin seine Abholung
+der Monteur gibt weiterhin eine Anforderung auf
+die Buchhaltung korrigiert einen fremden Eintrag weiterhin
+der Monteur sieht den Katalog
+der Monteur bucht seine Abholung vom Bestand ab
+der Monteur schreibt eine Retoure zurück
+der Monteur ändert die Bezeichnung NICHT
+der Monteur ändert den Preis NICHT
+der Monteur schmuggelt den Preis NICHT neben dem Bestand mit
+der Monteur legt kein Material an und löscht keines
+der fremde Betrieb bewegt den Bestand NICHT
+die Verwaltung pflegt den Katalog vollständig
+die Verwaltung setzt den Einkaufspreis NICHT
+die Verwaltung schmuggelt ihn auch nicht neben der Bezeichnung mit
+die Verwaltung legt auch kein neues Material MIT Einkaufspreis an
+die Projektleitung ebenfalls nicht — sie sieht keine Marge
+die Geschäftsführung setzt ihn — beim Anlegen wie beim Ändern
+die Verwaltung pflegt weiter, was neben einem gesetzten Einkaufspreis steht
+eine offene Rechnung bleibt stehen
+eine bezahlte auch
+und die stornierte ebenfalls
+auch die Administration kommt nicht daran vorbei
+stornieren geht weiter — das ist die Korrektur
+die Leitung zaehlt im laufenden Jahr hoch
+zurueck geht im laufenden Jahr NICHT
+zum Jahreswechsel beginnt er bei genau 1
+der Jahreswechsel ist kein Freibrief fuer irgendeine Zahl
+der Rechnungskreis laeuft ueber den Jahreswechsel weiter
+der Entwurf laesst sich verwerfen
+der verworfene Entwurf kommt zurueck
+beim Zurueckholen darf sich der Inhalt NICHT aendern
+aus dem verworfenen Entwurf wird KEIN unterschriebener Schein
+der UNTERSCHRIEBENE Schein bleibt unveraenderbar
+die Fotoliste laesst sich beim Storno nicht mitaendern
+der Storno geht mit unveraenderter Fotoliste durch
+und der Storno eines Scheins OHNE Fotofeld geht weiterhin
+auch die Geschaeftsfuehrung kann den unterschriebenen Schein nicht verwerfen
+der stornierte Schein bleibt eingefroren
+geloescht wird kein Schein, in keinem Zustand
+die fremde Firma kommt an den Schein nicht heran
+die Geschäftsführung darf ihn nicht löschen
+ein Administrator darf
+die Geschäftsführung kann sich auch nicht selbst befördern
+die Leitung darf den Zustand lesen
+der Monteur nicht
+NIEMAND darf schreiben — auch die Administration nicht
+und keiner legt einen eigenen an
+die fremde Firma sieht nichts
+der Monteur darf lesen — er fährt hin
+aber nicht schreiben
+die Leitung darf anlegen, ändern und löschen
+die fremde Firma sieht und ändert nichts
+und niemand schiebt eine Wartung in eine fremde Firma
+kommt an kein Dokument eines Betriebs
+schreibt auch nichts hinein
+kommt nicht einmal an seine eigene Ernennung
+liest auch das Anlageprotokoll nicht
+und ein Betrieb sieht das Anlageprotokoll ebenso wenig

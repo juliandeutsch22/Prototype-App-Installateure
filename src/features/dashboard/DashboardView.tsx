@@ -37,7 +37,6 @@ import { Marke, Warnung, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import LaufWarnung from './LaufWarnung';
 import WartungHinweis from './WartungHinweis';
-import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
 import { LoadingState } from '@/components/States';
@@ -188,7 +187,6 @@ export default function DashboardView() {
   const scheineAn = useModul('scheine');
   const materialAn = useModul('material');
   const rechnungenAn = useModul('rechnungen');
-  const kiAn = useModul('ki');
   const [data, setData] = useState<DashData>({});
   const [laden, setLaden] = useState({ persoenlich: true, betrieblich: true, team: true });
   /*
@@ -591,23 +589,6 @@ export default function DashboardView() {
             </Link>
           </p>
         </div>
-      )}
-
-      {kiAn && (
-        <Link
-          to="/voice"
-          className="flex min-h-touch items-center gap-3 rounded-lg bg-brand px-4 py-3 text-brand-fg shadow transition hover:opacity-95 active:scale-[0.99] sm:gap-4"
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 sm:h-12 sm:w-12">
-            <Icon name="mic" size={22} />
-          </span>
-          <span className="min-w-0">
-            <span className="block font-semibold">Spracherfassung starten</span>
-            <span className="mt-1 hidden text-sm text-brand-fg/80 sm:block">
-              15 Sekunden sprechen → Zeit, Material, Folgetermin als bestätigbare Karten
-            </span>
-          </span>
-        </Link>
       )}
 
       {/*

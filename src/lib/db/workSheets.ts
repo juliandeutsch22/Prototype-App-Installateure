@@ -19,9 +19,7 @@
  * steht, und niemand könnte den Unterschied nachweisen.
  */
 import type { WorkSheet, WorkSheetFoto, WorkSheetUnterschrift } from '@/types';
-import { nutztPostgres } from './quelle';
 import type { WithId } from './core';
-import * as fs from './fs/workSheets';
 import * as pg from './pg/workSheets';
 
 export type NewWorkSheet = Omit<WorkSheet, 'id' | 'companyId' | 'createdAt'>;
@@ -29,97 +27,81 @@ export type NewWorkSheet = Omit<WorkSheet, 'id' | 'companyId' | 'createdAt'>;
 export function listRecentWorkSheets(
   companyId: string, max = 100,
 ): Promise<WithId<WorkSheet>[]> {
-  return nutztPostgres()
-    ? pg.listRecentWorkSheets(companyId, max)
-    : fs.listRecentWorkSheets(companyId, max);
+  return pg.listRecentWorkSheets(companyId, max);
 }
 
 export function listOwnWorkSheetsSince(
   companyId: string, uid: string, abDatum: string, max = 20,
 ): Promise<WithId<WorkSheet>[]> {
-  return nutztPostgres()
-    ? pg.listOwnWorkSheetsSince(companyId, uid, abDatum, max)
-    : fs.listOwnWorkSheetsSince(companyId, uid, abDatum, max);
+  return pg.listOwnWorkSheetsSince(companyId, uid, abDatum, max);
 }
 
 export function listSignedWorkSheetsInRange(
   companyId: string, von: string, bis: string, max = 150,
 ): Promise<WithId<WorkSheet>[]> {
-  return nutztPostgres()
-    ? pg.listSignedWorkSheetsInRange(companyId, von, bis, max)
-    : fs.listSignedWorkSheetsInRange(companyId, von, bis, max);
+  return pg.listSignedWorkSheetsInRange(companyId, von, bis, max);
 }
 
 export function listWorkSheetsForProject(
   companyId: string, projectNumber: string, max = 100,
 ): Promise<WithId<WorkSheet>[]> {
-  return nutztPostgres()
-    ? pg.listWorkSheetsForProject(companyId, projectNumber, max)
-    : fs.listWorkSheetsForProject(companyId, projectNumber, max);
+  return pg.listWorkSheetsForProject(companyId, projectNumber, max);
 }
 
 export function listWorkSheetsInRange(
   companyId: string, von: string, bis: string, max = 150,
 ): Promise<WithId<WorkSheet>[]> {
-  return nutztPostgres()
-    ? pg.listWorkSheetsInRange(companyId, von, bis, max)
-    : fs.listWorkSheetsInRange(companyId, von, bis, max);
+  return pg.listWorkSheetsInRange(companyId, von, bis, max);
 }
 
 export function getWorkSheet(id: string): Promise<WithId<WorkSheet> | undefined> {
-  return nutztPostgres() ? pg.getWorkSheet(id) : fs.getWorkSheet(id);
+  return pg.getWorkSheet(id);
 }
 
 export function createWorkSheet(companyId: string, s: NewWorkSheet): Promise<string> {
-  return nutztPostgres() ? pg.createWorkSheet(companyId, s) : fs.createWorkSheet(companyId, s);
+  return pg.createWorkSheet(companyId, s);
 }
 
 export function updateWorkSheetDraft(
   id: string, data: Partial<NewWorkSheet>,
 ): Promise<void> {
-  return nutztPostgres() ? pg.updateWorkSheetDraft(id, data) : fs.updateWorkSheetDraft(id, data);
+  return pg.updateWorkSheetDraft(id, data);
 }
 
 export function fotosAmEntwurf(id: string, fotos: WorkSheetFoto[]): Promise<void> {
-  return nutztPostgres() ? pg.fotosAmEntwurf(id, fotos) : fs.fotosAmEntwurf(id, fotos);
+  return pg.fotosAmEntwurf(id, fotos);
 }
 
 export function signWorkSheet(
   id: string, monteur: WorkSheetUnterschrift, kunde: WorkSheetUnterschrift,
 ): Promise<void> {
-  return nutztPostgres()
-    ? pg.signWorkSheet(id, monteur, kunde)
-    : fs.signWorkSheet(id, monteur, kunde);
+  return pg.signWorkSheet(id, monteur, kunde);
 }
 
 export function cancelWorkSheet(id: string, grund: string, vonName: string): Promise<void> {
-  return nutztPostgres()
-    ? pg.cancelWorkSheet(id, grund, vonName)
-    : fs.cancelWorkSheet(id, grund, vonName);
+  return pg.cancelWorkSheet(id, grund, vonName);
 }
 
 export function discardWorkSheetDraft(id: string, vonName: string): Promise<void> {
-  return nutztPostgres()
-    ? pg.discardWorkSheetDraft(id, vonName)
-    : fs.discardWorkSheetDraft(id, vonName);
+  return pg.discardWorkSheetDraft(id, vonName);
 }
 
 export function restoreWorkSheetDraft(id: string): Promise<void> {
-  return nutztPostgres() ? pg.restoreWorkSheetDraft(id) : fs.restoreWorkSheetDraft(id);
+  return pg.restoreWorkSheetDraft(id);
 }
 
 /**
  * Die Stunden der ganzen Mannschaft für einen Schein.
  *
- * Unter Firestore tut das die Cloud Function `scheinVorbereiten` — der
- * Aufrufer findet beide Wege über `lib/functions.ts:callScheinVorbereiten`.
+ * Eine Abfrage mit erhöhten Rechten: der Schein braucht die Stunden aller, ein
+ * Monteur darf die Zeiteinträge seiner Kollegen aber nicht lesen — in
+ * derselben Ablage stehen Kranken- und Urlaubstage, also Gesundheitsdaten nach
+ * Art. 9 DSGVO. Zurück kommen nur Anwesenheitszeiten EINER Baustelle an EINEM
+ * Tag; die Datenschutzgrenze bleibt, wo sie ist.
  */
 export function vorbereiten(
   projectNumber: string, datum: string,
 ): Promise<{ zeiten: pg.ScheinZeit[] }> {
-  if (!nutztPostgres()) {
-    throw new Error('Unter Firestore bereitet die Cloud Function vor — siehe lib/functions.ts.');
-  }
   return pg.vorbereiten(projectNumber, datum);
 }
 

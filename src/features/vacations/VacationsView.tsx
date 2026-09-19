@@ -5,9 +5,9 @@ import {
   listOpenVacations,
   createVacation,
   deleteVacation,
+  entscheiden as urlaubEntscheiden,
 } from '@/lib/db/vacations';
 import { getUserByUid } from '@/lib/db/users';
-import { callUrlaubEntscheiden } from '@/lib/functions';
 import { darfUrlaubEntscheiden } from '@/lib/permissions';
 import { postenNeuLaden } from '@/app/offenePosten';
 import { todayStr, urlaubsTage, urlaubsStand, uebertragsRegel } from '@/lib/time';
@@ -80,8 +80,8 @@ export default function VacationsView() {
    * In dem einen Betrieb entscheidet die Buchhaltung, im anderen ein
    * Vorarbeiter, im dritten ausschließlich der Chef. Geschäftsführung und
    * Administration können immer; ohne Festlegung bleibt es beim
-   * Ausgangszustand. Dieselbe Regel steht in firestore.rules und in der
-   * Cloud Function, die tatsächlich entscheidet.
+   * Ausgangszustand. Dieselbe Regel steht in `app.darf_urlaub_entscheiden()`
+   * und damit in der Datenbankfunktion, die tatsächlich entscheidet.
    */
   const darfEntscheiden = user
     ? darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers)
@@ -241,7 +241,7 @@ export default function VacationsView() {
     setArbeitet(antrag.id);
     setError(null);
     try {
-      const { data } = await callUrlaubEntscheiden({
+      const data = await urlaubEntscheiden({
         vacationId: antrag.id,
         entscheidung,
         grund,

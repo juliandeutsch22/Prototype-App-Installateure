@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { isTopLevel } from '@/lib/permissions';
 import { ladeLauf } from '@/lib/db/laeufe';
-import { nutztPostgres } from '@/lib/db/quelle';
 import { beurteile, type NachtLaufArt } from '@shared/laufStatus';
 
 /**
@@ -48,16 +47,10 @@ const WOHIN: Record<NachtLaufArt, { pfad: string; wort: string }> = {
  * bringt einem bei, die Stelle zu übersehen, an der eines Tages die
  * ausgefallene SICHERUNG steht.
  *
- * Mit Stufe 9 fällt die Firestore-Seite weg und mit ihr diese Fallunterscheidung.
- *
- * ALS FUNKTION UND NICHT ALS KONSTANTE: eine Konstante läse die Umgebung
- * EINMAL beim Laden des Moduls. Das ist in der App dasselbe Ergebnis und im
- * Prüflauf ein anderes — dort entschiede die Reihenfolge der Importe darüber,
- * welcher Zweig überhaupt geprüft werden kann.
+ * ÜBERWACHT WIRD DESHALB NUR, WAS ES GIBT: die Sicherung. Kommt ein zweiter
+ * Nachtlauf dazu, gehört er in diese Liste — und nur dann.
  */
-function arten(): NachtLaufArt[] {
-  return nutztPostgres() ? ['ausleitung'] : ['ausleitung', 'bilanzen'];
-}
+const ARTEN: NachtLaufArt[] = ['ausleitung'];
 
 export default function LaufWarnung() {
   const { user } = useAuth();
@@ -81,7 +74,7 @@ export default function LaufWarnung() {
         gar nichts zu tun hatte.
       */
       const gemeldet: Array<{ art: NachtLaufArt; text: string }> = [];
-      for (const art of arten()) {
+      for (const art of ARTEN) {
         const u = beurteile(await ladeLauf(companyId, art), Date.now());
         // „Unbekannt" wird MITGEMELDET. Ein Betrieb ohne Aufzeichnung sieht
         // genauso aus wie einer, bei dem nie etwas lief — und beides heisst:

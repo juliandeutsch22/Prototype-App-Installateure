@@ -15,8 +15,8 @@ import { ToastProvider } from '@/components/Toast';
  */
 
 const anlegen = vi.fn();
-vi.mock('@/lib/functions', () => ({
-  callBetriebAnlegen: (daten: unknown) => anlegen(daten),
+vi.mock('@/lib/db/plattform', () => ({
+  betriebAnlegen: (daten: unknown) => anlegen(daten),
 }));
 
 const abmelden = vi.fn();
@@ -44,7 +44,7 @@ async function ausfuellen(nutzer: ReturnType<typeof userEvent.setup>) {
 beforeEach(() => {
   anlegen.mockReset();
   anlegen.mockResolvedValue({
-    data: { companyId: 'perl', ersterAdminUid: 'neu1', passwortLink: 'https://x.invalid/pw' },
+    companyId: 'perl', ersterAdminUid: 'neu1', passwortLink: 'https://x.invalid/pw',
   });
   abmelden.mockClear();
 });

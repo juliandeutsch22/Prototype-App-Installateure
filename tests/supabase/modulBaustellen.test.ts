@@ -71,7 +71,6 @@ describe('Baustellen auf Postgres', () => {
     try {
       expect(await baustellen.listProjectsByNumbers('bau-a', [])).toEqual([]);
       expect(await baustellen.listProjectsByNumbers('bau-a', ['', ''])).toEqual([]);
-      expect(await baustellen.findProjectsByNumber('bau-a', [])).toEqual([]);
       expect(gefragt).toBe(0);
     } finally {
       clientEinreichen(leitung.client);
@@ -166,11 +165,24 @@ describe('Baustellen auf Postgres', () => {
   });
 
   it('findet eine alte Baustelle über ihre Nummer, in beiden Schreibweisen', async () => {
+    /*
+      DIESE ZUSICHERUNG HING BIS ZUM 19.09. AN `findProjectsByNumber`, einer
+      zweiten Suche neben dieser. Sie gab es nur, weil Firestore Zeichenketten
+      GENAU verglich: eine Baustelle „PR-2022-007" war über „2022-007" nicht
+      auffindbar, also musste die Abfrage beide Schreibweisen aufzählen.
+
+      `searchProjects` vergleicht mit `ilike %begriff%` und trifft die lange
+      Form über die kurze von selbst. Die zweite Suche ist damit überflüssig
+      geworden und entfernt — die Zusicherung nicht: sie steht hier, auf dem
+      Weg, den die App wirklich geht.
+    */
     await baustellen.createProject('bau-a', {
       projectNumber: 'PR-2022-007', customerName: 'Von früher', status: 'Abgeschlossen',
     });
-    const treffer = await baustellen.findProjectsByNumber('bau-a', ['2022-007', 'PR-2022-007']);
-    expect(treffer.map((b) => b.customerName)).toEqual(['Von früher']);
+    for (const eingabe of ['2022-007', 'PR-2022-007', 'pr-2022-007']) {
+      const treffer = await baustellen.searchProjects('bau-a', eingabe);
+      expect(treffer.map((b) => b.customerName), `Eingabe „${eingabe}"`).toEqual(['Von früher']);
+    }
   });
 
   it('zeigt die jüngsten zuerst', async () => {
@@ -204,7 +216,7 @@ describe('Baustellen auf Postgres', () => {
     clientEinreichen(fremd.client);
     try {
       expect(await baustellen.listActiveProjects('bau-a')).toEqual([]);
-      expect(await baustellen.findProjectsByNumber('bau-a', ['2022-007'])).toEqual([]);
+      expect(await baustellen.searchProjects('bau-a', '2022-007')).toEqual([]);
       // Auch nicht über die Kennung: der neue Leseweg muss dieselbe Grenze
       // tragen wie die alten, sonst ist die Akte das Loch in der Wand.
       expect(await baustellen.listProjectsByIds('bau-a', [fremdeKennung])).toEqual([]);

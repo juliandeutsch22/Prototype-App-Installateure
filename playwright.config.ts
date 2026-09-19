@@ -28,18 +28,12 @@ const STAPEL = {
   VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
   VITE_SUPABASE_ANON_KEY:
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0',
-  VITE_DATENQUELLE: 'postgres',
   /*
-    PLATZHALTER FÜR FIREBASE — dieselbe Lage wie in `vitest.supabase.config.ts`:
-    solange die Weiche beide Seiten hochzieht, verlangt `lib/firebase.ts` beim
-    Laden Zugangsdaten. Verbunden wird damit nichts. Fällt mit Stufe 9 weg.
+    KEINE FIREBASE-WERTE. Die App braucht sie nur für Push, und `lib/firebase.ts`
+    lädt seit Stufe 9 erst dann, wenn sie da sind. Ohne sie meldet sich das
+    Gerät nicht für Meldungen an — alles andere läuft. Genau das ist hier der
+    gewollte Zustand: der Durchklick prüft die App, nicht die Push-Zustellung.
   */
-  VITE_FIREBASE_API_KEY: 'nur-zum-laden',
-  VITE_FIREBASE_PROJECT_ID: 'nur-zum-laden',
-  VITE_FIREBASE_AUTH_DOMAIN: 'nur-zum-laden',
-  VITE_FIREBASE_STORAGE_BUCKET: 'nur-zum-laden',
-  VITE_FIREBASE_MESSAGING_SENDER_ID: 'nur-zum-laden',
-  VITE_FIREBASE_APP_ID: 'nur-zum-laden',
 };
 
 export default defineConfig({

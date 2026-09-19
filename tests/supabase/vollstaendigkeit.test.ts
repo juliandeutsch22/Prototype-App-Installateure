@@ -2,14 +2,23 @@
  * Ist beim Portieren etwas unter den Tisch gefallen?
  *
  * Die Vorgabe für den Umzug lautet: keine bestehende Funktion darf fehlen.
- * Für das Prüfnetz heisst das, dass jede der 155 Prüfungen aus
- * `tests/firestore.rules.test.ts` eine Entsprechung haben muss.
+ * Für das Prüfnetz heisst das, dass jede der 155 Regelprüfungen aus Firestore
+ * eine Entsprechung haben muss.
  *
  * Diese Datei prüft das MASCHINELL, statt sich darauf zu verlassen, dass
- * jemand beim Abhaken aufmerksam war. Sie liest beide Dateien, zieht die
- * Titel heraus und vergleicht. Eine Prüfung, die drüben steht und hier nicht,
- * lässt diesen Test fallen — es sei denn, sie steht unten als Ausnahme mit
- * einem Grund.
+ * jemand beim Abhaken aufmerksam war.
+ *
+ * DIE GEGENSEITE IST SEIT DEM 19.09.2026 EINE TEXTFASSUNG. Bis dahin las
+ * dieser Test die Titel unmittelbar aus `tests/firestore.rules.test.ts`.
+ * Diese Datei ist mit Firestore gefallen — und hätte sie den Beweis
+ * mitgenommen, wäre ausgerechnet die Zusicherung verschwunden, dass beim
+ * Umzug nichts verlorenging.
+ *
+ * `regelnAusFirestore.txt` hält die 155 Titel deshalb wörtlich fest. Sie sind
+ * eine TATSACHE über den Umzug und keine Eigenschaft von Firestore: was
+ * damals galt, muss weiter gelten, auch wenn die Datenbank, für die es
+ * geschrieben wurde, nicht mehr läuft. Die Liste ändert sich nie wieder —
+ * wer sie anfasst, verschiebt die Messlatte und muss das begründen.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -23,6 +32,13 @@ function titel(datei: string): string[] {
   return raus;
 }
 
+/** Die festgehaltenen Titel der Firestore-Regelprüfungen. */
+function ausFirestore(): string[] {
+  return readFileSync(resolve(process.cwd(), 'tests/supabase/regelnAusFirestore.txt'), 'utf8')
+    .trim()
+    .split('\n');
+}
+
 /**
  * Prüfungen, die bewusst NICHT eins zu eins portiert sind, mit Grund.
  *
@@ -34,7 +50,7 @@ const ANDERS_GELOEST: Record<string, string> = {};
 
 describe('Das Prüfnetz ist vollständig umgezogen', () => {
   it('jede Regelprüfung aus Firestore hat eine Entsprechung', () => {
-    const firestore = titel('tests/firestore.rules.test.ts');
+    const firestore = ausFirestore();
     const postgres = new Set(titel('tests/supabase/regeln.test.ts'));
 
     const fehlend = firestore
@@ -45,9 +61,9 @@ describe('Das Prüfnetz ist vollständig umgezogen', () => {
   });
 
   it('und es sind wirklich 155', () => {
-    // Fällt drüben eine Prüfung weg, soll das auffallen und nicht still
-    // die Messlatte senken.
-    expect(titel('tests/firestore.rules.test.ts')).toHaveLength(155);
+    // Der Wächter über den Wächter: wird die Liste gekürzt, sinkt die
+    // Messlatte still. Diese Zahl steht der Kürzung im Weg.
+    expect(ausFirestore()).toHaveLength(155);
   });
 
   it('jede erklärte Ausnahme trägt auch eine Erklärung', () => {

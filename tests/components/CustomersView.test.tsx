@@ -308,11 +308,21 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
     expect(screen.queryByRole('button', { name: /Weitere Kunden laden/ })).not.toBeInTheDocument();
   });
 
-  it('sagt es, sobald die Grenze erreicht ist — samt Hinweis auf die Suche', async () => {
+  it('sagt es, sobald die Grenze erreicht ist — OHNE den alten Suchsatz', async () => {
+    /*
+      DER SATZ IST AM 19.09. GEFALLEN, und das ist der Punkt dieser Prüfung.
+      „Die Suche geht nur über diese" war unter Firestore richtig: dort lud
+      die Ansicht die ersten paar hundert Zeilen und filterte im Browser.
+
+      Die Datenbank sucht über den GANZEN Bestand; die Grenze gilt nur noch
+      für das, was OHNE Suchbegriff angezeigt wird. Der Knopf bleibt deshalb
+      stehen, der Satz nicht — eine Auskunft, die einmal danebenlag, wird beim
+      nächsten Mal nicht mehr geglaubt.
+    */
     searchCustomers.mockResolvedValue(volleSeite());
     zeichne();
     expect(await screen.findByRole('button', { name: 'Weitere Kunden laden' })).toBeInTheDocument();
-    expect(screen.getByText(/Suche geht nur über diese/)).toBeInTheDocument();
+    expect(screen.queryByText(/Suche geht nur über diese/)).toBeNull();
   });
 
   it('lädt auf Wunsch weiter', async () => {

@@ -6,14 +6,13 @@
  * ausserhalb der Datenschicht in dieser ganzen Stufe gewesen — und die Zusage
  * lautet, dass keine Ansicht angefasst wird.
  *
- * WAS FRÜHER HIER STAND, liegt jetzt in `fs/core.ts`: die Firestore-Helfer
- * (`queryTenant`, `createInTenant` und die durchgereichten Bausteine des
- * SDK). Sie gehören zur Firestore-Seite und nicht in die Mitte; solange sie
+ * WAS FRÜHER HIER STAND, sind die Firestore-Helfer (`queryTenant`,
+ * `createInTenant` und die durchgereichten Bausteine des SDK). Solange sie
  * hier standen, zog jede Ansicht, die nur `WithId` brauchte, das
- * Firestore-SDK in ihren Typgraphen.
+ * Firestore-SDK in ihren Typgraphen; mit Stufe 9 sind sie ganz weg.
  *
- * Das Gegenstück auf der Postgres-Seite ist `pg/kern.ts`. Beide benutzen
- * DIESE Kennung, damit es nicht zwei gibt, die zufällig gleich aussehen.
+ * Die Arbeit macht heute `pg/kern.ts`. Diese Kennung bleibt hier, damit es
+ * nicht zwei gibt, die zufällig gleich aussehen.
  */
 
 /** Ein Datensatz samt seiner Kennung. */
