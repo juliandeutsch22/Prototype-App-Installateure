@@ -246,6 +246,31 @@ export async function listInvoicesInRange(companyId: string, von: string, bis: s
 }
 
 /**
+ * Alle Rechnungen EINER BAUSTELLE — ohne Zeitgrenze und ohne Statusfilter.
+ *
+ * Gebraucht für den Abzug auf der Schlussrechnung: abgezogen wird eine
+ * Anzahlung, die der Kunde längst BEZAHLT hat. Sie steht damit weder in den
+ * offenen Posten noch verlässlich in der Liste der jüngsten Rechnungen — bei
+ * einer Baustelle über vier Monate liegen Dutzende andere dazwischen. Ohne
+ * diese Abfrage stünde die eine Rechnung, um die es geht, nicht zur Auswahl.
+ *
+ * Nach mehreren SCHREIBWEISEN gesucht, wie bei den Zeiteinträgen: Altbestände
+ * schreiben die Nummer mal mit, mal ohne „PR-".
+ */
+export async function listInvoicesForProject(
+  companyId: string,
+  projectNumber: string,
+): Promise<WithId<Invoice>[]> {
+  const blank = (projectNumber ?? '').trim().replace(/^PR-/i, '');
+  if (!blank) return [];
+  const formen = [...new Set([projectNumber.trim(), blank, `PR-${blank}`])];
+  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+    wo: [{ art: 'in', feld: 'projectNumber', werte: formen }],
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
  * Reserviert eine Rechnungsnummer verbindlich.
  *
  * Die Transaktion, die in der Firestore-Fassung von Hand geschrieben war,

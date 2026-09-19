@@ -10,6 +10,7 @@ import {
   highestInvoiceSeq,
   invoiceSeqOf,
   createInvoice,
+  listInvoicesForProject,
   updateInvoiceStatus,
   cancelInvoice,
   reactivateInvoice,
@@ -38,11 +39,12 @@ import {
 import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
+import { abziehbar, alsVorrechnung, mitAbzug } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
-import { discountLabel, type InvoicePosition } from './totals';
+import { calcTotals, discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtMin, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Invoice, Project, WorkSheet, Zahlungseingang } from '@/types';
+import type { Invoice, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -153,6 +155,23 @@ export default function InvoicesView() {
 
   // Entwurf
   const [projectNumber, setProjectNumber] = useState('');
+  /*
+    DIE ART WIRD VOR DEM ZUSAMMENSTELLEN GEWÄHLT, nicht danach.
+
+    Sie entscheidet, WORAUS die Vorschau entsteht: eine Anzahlung kommt nicht
+    aus Zeiteinträgen, es gibt noch keine. Nachträglich umzustellen hiesse,
+    die Positionen unter der Hand auszutauschen.
+  */
+  const [art, setArt] = useState<RechnungsArt>('einzel');
+  /** Rechnungen dieser Baustelle, die sich noch abziehen lassen. */
+  const [abzugsfaehig, setAbzugsfaehig] = useState<WithId<Invoice>[]>([]);
+  const [gewaehlteAbzuege, setGewaehlteAbzuege] = useState<string[]>([]);
+  /*
+    Scheitert die Abfrage, wird sie NICHT verschwiegen: eine Schlussrechnung
+    ohne ihre Anzahlungen weist dieselbe Steuer zweimal aus (§ 11 Abs 12
+    UStG), und der Betrieb schuldet sie zweimal, bis er berichtigt.
+  */
+  const [abzugFehler, setAbzugFehler] = useState(false);
   const [preview, setPreview] = useState<AssembledInvoice | null>(null);
   /**
    * Der Leistungszeitraum, wie er auf die Rechnung kommt.
@@ -537,6 +556,37 @@ export default function InvoicesView() {
     setBusy(true);
     setError(null);
     try {
+      /*
+        EINE ANZAHLUNG KOMMT NICHT AUS DEN ZEITEINTRÄGEN — es gibt noch keine.
+
+        Sie ist Geld auf eine Leistung, die erst kommt; sie verbraucht deshalb
+        auch keine Belege. Genau daran hängt später der Abzug: nur eine
+        Rechnung, die nichts verbraucht hat, darf die Schlussrechnung kürzen.
+        Stünden hier Stunden drin, wären sie als verrechnet markiert, fielen
+        aus der Schlussrechnung heraus — und der Abzug zöge sie ein zweites
+        Mal ab.
+
+        Der Betrag steht auf null und ist in der Positionszeile zu setzen. Die
+        Null ist dort rot: sie sieht aus wie ein Preis, ist aber eine fehlende
+        Entscheidung.
+      */
+      if (art === 'anzahlung') {
+        const zeile = { label: 'Anzahlung gemäß Vereinbarung', qty: 1, unit: 'Pauschale', unitPrice: 0, netto: 0 };
+        await vorschauUebernehmen({
+          positions: [zeile],
+          ...calcTotals([zeile], satz),
+          discount: null,
+          linkedEntries: [],
+          linkedOrders: [],
+          linkedWorkSheets: [],
+          // Kein Leistungszeitraum: die Leistung ist noch nicht erbracht, und
+          // einen zu behaupten wäre gegenüber dem Finanzamt falsch.
+          leistung: null,
+          materialOhnePreis: [],
+          entries: [],
+        });
+        return;
+      }
       /**
        * Nur die Eintraege DIESER Baustelle.
        *
@@ -582,23 +632,7 @@ export default function InvoicesView() {
         setError('Keine offenen Stunden und kein offenes Material für diese Baustelle.');
         return;
       }
-      setPreview(assembled);
-      setLeistungVon(assembled.leistung?.von ?? '');
-      setLeistungBis(assembled.leistung?.bis ?? '');
-      /*
-        Die UID aus den Kundenstammdaten vorbelegen — über den Namen, wie es
-        der Buchhaltungs-Export auch tut. Bei verknüpften Baustellen ist er
-        aus den Stammdaten kopiert und damit verlässlich gleich geschrieben.
-        Findet sich nichts, bleibt das Feld leer und will ausgefüllt werden.
-      */
-      const kunde = projects.find((x) => x.projectNumber === projectNumber)?.customerName ?? '';
-      const treffer = kunden.find(
-        (k) => k.name.trim().toLowerCase() === kunde.trim().toLowerCase(),
-      );
-      setKundenUid(treffer?.vatId?.trim() ?? '');
-      const vorschlag = nextInvoiceNumber(invoices, vorsaetze.rechnung);
-      setSuggestedNumber(vorschlag);
-      setInvoiceNumber(vorschlag);
+      await vorschauUebernehmen(assembled);
     } catch {
       setError('Die Positionen konnten nicht geladen werden.');
     } finally {
@@ -606,8 +640,61 @@ export default function InvoicesView() {
     }
   }
 
+  /**
+   * Der gemeinsame Schluss jeder Vorschau — gleich, woraus sie entstanden ist.
+   *
+   * Hier wird auch geholt, was sich abziehen lässt. Das gehört NEBEN die
+   * Positionen und nicht in die Rechnungsliste der Ansicht: abgezogen wird
+   * eine Anzahlung, die der Kunde längst bezahlt hat. Sie steht damit weder in
+   * den offenen Posten noch verlässlich unter den jüngsten Rechnungen.
+   */
+  async function vorschauUebernehmen(assembled: AssembledInvoice) {
+    setPreview(assembled);
+    setLeistungVon(assembled.leistung?.von ?? '');
+    setLeistungBis(assembled.leistung?.bis ?? '');
+    setGewaehlteAbzuege([]);
+    if (!user) return;
+    try {
+      const derBaustelle = await listInvoicesForProject(user.companyId, projectNumber);
+      setAbzugsfaehig(abziehbar(derBaustelle, projectNumber));
+      setAbzugFehler(false);
+    } catch {
+      setAbzugsfaehig([]);
+      setAbzugFehler(true);
+    }
+    /*
+      Die UID aus den Kundenstammdaten vorbelegen — über den Namen, wie es
+      der Buchhaltungs-Export auch tut. Bei verknüpften Baustellen ist er
+      aus den Stammdaten kopiert und damit verlässlich gleich geschrieben.
+      Findet sich nichts, bleibt das Feld leer und will ausgefüllt werden.
+    */
+    const kunde = projects.find((x) => x.projectNumber === projectNumber)?.customerName ?? '';
+    const treffer = kunden.find(
+      (k) => k.name.trim().toLowerCase() === kunde.trim().toLowerCase(),
+    );
+    setKundenUid(treffer?.vatId?.trim() ?? '');
+    const vorschlag = nextInvoiceNumber(invoices, vorsaetze.rechnung);
+    setSuggestedNumber(vorschlag);
+    setInvoiceNumber(vorschlag);
+  }
+
   async function confirmInvoice() {
-    if (!user || !company || !preview || !invoiceNumber || numberTaken) return;
+    if (!user || !company || !preview || !summen || !invoiceNumber || numberTaken) return;
+    /*
+      EINE NEGATIVE SCHLUSSRECHNUNG IST EINE GUTSCHRIFT, und die gibt es hier
+      noch nicht: Zahlungsstand, offene Posten und Mahnlauf rechnen alle mit
+      einer Forderung, die man begleichen kann. Abgewiesen statt auf null
+      gekappt — gekappt verschwände der Betrag, den der Betrieb dem Kunden
+      zurückschuldet, lautlos und zu seinen Gunsten. Die Datenbank weist es
+      ebenso ab; hier steht der Grund, bevor die Nummer verbraucht ist.
+    */
+    if (summen.gutschrift) {
+      setError(
+        'Die abgezogenen Rechnungen übersteigen die Gesamtleistung. Das wäre eine Gutschrift, '
+          + 'und die kann diese App noch nicht — bitte im Büro von Hand klären.',
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -665,9 +752,24 @@ export default function InvoicesView() {
         // Zeile stehen, nicht als fehlendes Feld.
         discount: rabatt,
         discountAmount: preview.discountAmount,
-        totalNetto: preview.totalNetto,
-        totalVat: preview.totalVat,
-        totalBrutto: preview.totalBrutto,
+        /*
+          DIE FORDERUNG IST DER REST, nicht die volle Leistung. Daran hängen
+          offene Posten, Mahnlauf und Zahlungsstand: sie dürfen nicht
+          einfordern, was der Kunde auf die Anzahlung längst bezahlt hat.
+
+          Die volle Leistung steht getrennt daneben — sie gehört auf den
+          Beleg und in keine Summe der offenen Forderungen. Ohne Abzug bleibt
+          sie leer: sie wäre dieselbe Zahl, und die Datenbank weist eine
+          zweite Wahrheit über denselben Betrag ab.
+        */
+        totalNetto: summen.totalNetto,
+        totalVat: summen.totalVat,
+        totalBrutto: summen.totalBrutto,
+        art,
+        vorrechnungen: abzuege.length > 0 ? abzuege : undefined,
+        gesamtNetto: abzuege.length > 0 ? summen.gesamtNetto : undefined,
+        gesamtVat: abzuege.length > 0 ? summen.gesamtVat : undefined,
+        gesamtBrutto: abzuege.length > 0 ? summen.gesamtBrutto : undefined,
         paymentStatus: 'Offen',
         // Leerstring statt undefined: ein leeres Feld sagt ehrlich
         // „nicht angegeben".
@@ -702,6 +804,10 @@ export default function InvoicesView() {
         appendDetail,
         vatRate: satz,
         reverseCharge,
+        // `assembled` trägt die volle Leistung; den Rest rechnet das PDF
+        // daraus selbst — so können Beleg und Datensatz nicht auseinanderlaufen.
+        art,
+        vorrechnungen: abzuege,
         /*
           IMMER MITGESCHRIEBEN, nicht nur bei Reverse Charge. Vorher wurde die
           UID aus dem Kundenstamm geladen, im Formular angezeigt — und beim
@@ -717,6 +823,9 @@ export default function InvoicesView() {
       setDiscount({ mode: 'percent', value: '', label: '' });
       setReverseCharge(false);
       setKundenUid('');
+      setArt('einzel');
+      setAbzugsfaehig([]);
+      setGewaehlteAbzuege([]);
       toast.success(`Rechnung ${reserved} erstellt`);
     } catch (e) {
       // Die Nummernvergabe sagt genau, welche Nummer belegt ist und welche
@@ -810,9 +919,18 @@ export default function InvoicesView() {
         subtotalNetto: inv.subtotalNetto ?? inv.totalNetto,
         discount: inv.discount ?? null,
         discountAmount: inv.discountAmount ?? 0,
-        totalNetto: inv.totalNetto,
-        totalVat: inv.totalVat,
-        totalBrutto: inv.totalBrutto,
+        /*
+          DIE VOLLE LEISTUNG, nicht die Forderung.
+
+          Gespeichert ist beides: `total*` ist, was diese Rechnung fordert,
+          `gesamt*` die Leistung davor. Das PDF bekommt die Leistung und zieht
+          selbst ab — bekäme es die Forderung, zöge es ein zweites Mal ab, und
+          der zweite Druck einer Schlussrechnung wäre ein anderer Beleg über
+          dieselbe Nummer. Ohne Abzug sind beide gleich.
+        */
+        totalNetto: inv.gesamtNetto ?? inv.totalNetto,
+        totalVat: inv.gesamtVat ?? inv.totalVat,
+        totalBrutto: inv.gesamtBrutto ?? inv.totalBrutto,
         linkedEntries: inv.linkedEntries ?? [],
         linkedOrders: inv.linkedOrders ?? [],
         linkedWorkSheets: inv.linkedWorkSheets ?? [],
@@ -836,6 +954,8 @@ export default function InvoicesView() {
       */
       reverseCharge: inv.reverseCharge,
       customerVatId: inv.customerVatId,
+      art: inv.art,
+      vorrechnungen: inv.vorrechnungen,
     });
     toast.success('PDF erneut erzeugt');
   }
@@ -873,6 +993,32 @@ export default function InvoicesView() {
     () => unverrechneteScheine(scheineAllerBaustellen, [...invoices, ...offeneRechnungen], todayStr()),
     [scheineAllerBaustellen, invoices, offeneRechnungen],
   );
+
+  /**
+   * Die gewählten Abzüge als Kopie, wie sie auf dem Beleg stehen.
+   *
+   * Aus `abzugsfaehig` und nicht aus der Rechnungsliste der Ansicht: nur die
+   * Baustellenabfrage kennt auch die längst bezahlte Anzahlung.
+   */
+  const abzuege = useMemo(
+    () => abzugsfaehig.filter((r) => gewaehlteAbzuege.includes(r.id)).map(alsVorrechnung),
+    [abzugsfaehig, gewaehlteAbzuege],
+  );
+
+  /**
+   * Was diese Rechnung fordert — die volle Leistung minus die Abzüge.
+   *
+   * EINE STELLE, DREI VERWENDUNGEN: Vorschau, gespeicherte Rechnung und PDF.
+   * Rechnete jede für sich, stünde auf dem Beleg irgendwann eine andere Zahl
+   * als in den offenen Posten.
+   */
+  const summen = useMemo(
+    () => (preview ? mitAbzug(preview, abzuege) : null),
+    [preview, abzuege],
+  );
+
+  /** Abgezogen wird nur, wo es etwas abzuziehen gibt. */
+  const zieheAb = art === 'teil' || art === 'schluss';
 
   /*
     Der Abgleich hängt an der Vorschau, nicht an der Liste: verglichen wird,
@@ -1259,10 +1405,40 @@ export default function InvoicesView() {
               }}
             />
           </div>
+          {/*
+            DIE ART STEHT VOR DEM ZUSAMMENSTELLEN, nicht danach: sie
+            entscheidet, woraus die Positionen entstehen. Eine Anzahlung kommt
+            nicht aus Zeiteinträgen — es gibt noch keine.
+          */}
+          <div className="sm:w-56">
+            <SelectField
+              id="inv-art"
+              label="Art der Rechnung"
+              value={art}
+              onChange={(e) => {
+                setArt(e.target.value as RechnungsArt);
+                setPreview(null);
+                setGewaehlteAbzuege([]);
+                setError(null);
+              }}
+            >
+              <option value="einzel">Rechnung (ganze Leistung)</option>
+              <option value="anzahlung">Anzahlung (Leistung kommt noch)</option>
+              <option value="teil">Teilrechnung (Bauabschnitt)</option>
+              <option value="schluss">Schlussrechnung (zieht Anzahlungen ab)</option>
+            </SelectField>
+          </div>
           <Button onClick={buildPreview} loading={busy && !preview} disabled={!projectNumber}>
-            Positionen zusammenstellen
+            {art === 'anzahlung' ? 'Anzahlung vorbereiten' : 'Positionen zusammenstellen'}
           </Button>
         </div>
+        {art === 'anzahlung' && (
+          <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+            Eine Anzahlung verrechnet noch keine Leistung: sie nimmt keine Stunden und kein
+            Material auf und sperrt deshalb auch keine Belege. Die Schlussrechnung führt später
+            die ganze Leistung an und zieht diese Anzahlung samt Umsatzsteuer wieder ab.
+          </p>
+        )}
 
         <details className="mt-4">
           <summary className="min-h-touch cursor-pointer text-sm font-medium text-brand underline">
@@ -1364,7 +1540,13 @@ export default function InvoicesView() {
               onChange={(e) => setLeistungBis(e.target.value)}
             />
           </div>
-          {(!leistungVon || !leistungBis) && (
+          {/*
+            BEI EINER ANZAHLUNG IST DER LEERE ZEITRAUM KEIN MANGEL, sondern
+            die Wahrheit: die Leistung ist noch nicht erbracht. Die Warnung
+            stünde hier gegen den Beleg — und wer sie befolgt, trägt ein
+            Datum ein, das es nicht gibt.
+          */}
+          {art !== 'anzahlung' && (!leistungVon || !leistungBis) && (
             <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
               Ohne Leistungszeitraum ist die Rechnung nach § 11 UStG unvollständig — beim Kunden
               wackelt damit der Vorsteuerabzug.
@@ -1566,13 +1748,36 @@ export default function InvoicesView() {
                   </td>
                   <td />
                 </tr>
-                <tr className="font-bold">
+                <tr className={abzuege.length > 0 ? '' : 'font-bold'}>
                   <td colSpan={4} className="text-right">
-                    {reverseCharge ? 'Rechnungsbetrag' : 'Brutto'}
+                    {/* Wo abgezogen wird, ist diese Zeile nicht der
+                        Rechnungsbetrag, sondern die volle Leistung. */}
+                    {abzuege.length > 0
+                      ? 'Gesamtleistung brutto'
+                      : reverseCharge
+                        ? 'Rechnungsbetrag'
+                        : 'Brutto'}
                   </td>
                   <td className="tnum pr-3 text-right">{fmtEUR(preview.totalBrutto)}</td>
                   <td />
                 </tr>
+                {abzuege.map((v) => (
+                  <tr key={v.invoiceId} className="text-danger">
+                    <td colSpan={4} className="text-right">
+                      abzüglich {v.invoiceNumber} vom {v.invoiceDate} (netto {fmtEUR(v.netto)} +
+                      USt {fmtEUR(v.vat)})
+                    </td>
+                    <td className="tnum pr-3 text-right">−{fmtEUR(v.brutto)}</td>
+                    <td />
+                  </tr>
+                ))}
+                {abzuege.length > 0 && summen && (
+                  <tr className="font-bold">
+                    <td colSpan={4} className="text-right">Restforderung brutto</td>
+                    <td className="tnum pr-3 text-right">{fmtEUR(summen.totalBrutto)}</td>
+                    <td />
+                  </tr>
+                )}
               </tfoot>
             </table>
           </div>
@@ -1585,6 +1790,68 @@ export default function InvoicesView() {
               Anfahrt
             </Button>
           </div>
+
+          {/*
+            DER ABZUG DER VORRECHNUNGEN — § 11 Abs 12 UStG.
+
+            Wer eine Steuer ausweist, schuldet sie. Steht die Steuer der
+            Anzahlung ein zweites Mal auf der Schlussrechnung, schuldet der
+            Betrieb sie zweimal, bis er berichtigt. Deshalb steht die Auswahl
+            NEBEN den Positionen und nicht in einem Untermenü.
+
+            Angeboten wird nur, was keine Belege verbraucht hat: eine
+            Teilrechnung über einen abgeschlossenen Bauabschnitt hat ihre
+            Stunden mitgenommen, sie stehen in dieser Rechnung gar nicht mehr
+            — ein Abzug zöge sie ein zweites Mal ab.
+          */}
+          {zieheAb && (
+            <div className="mt-4 rounded border border-line bg-surface-2 p-4">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="section-label">Bereits verrechnet — abziehen</span>
+                <InfoHint about="den Abzug der Vorrechnungen">
+                  Eine Anzahlung ist samt ihrer Umsatzsteuer schon in Rechnung gestellt. Steht sie
+                  hier nicht mit Abzug, weist der Betrieb dieselbe Steuer zweimal aus und schuldet
+                  sie zweimal (§ 11 Abs 12 UStG). Angeboten wird nur, was keine Stunden und kein
+                  Material verbraucht hat.
+                </InfoHint>
+              </div>
+              {abzugFehler ? (
+                <p className="text-sm text-danger" role="alert">
+                  Die bisherigen Rechnungen dieser Baustelle konnten nicht geladen werden. Eine
+                  Schlussrechnung ohne ihre Anzahlungen wäre steuerlich falsch — bitte noch einmal
+                  zusammenstellen.
+                </p>
+              ) : abzugsfaehig.length === 0 ? (
+                <p className="text-sm text-ink-muted">
+                  Auf dieser Baustelle gibt es nichts abzuziehen: keine Anzahlung, die nicht schon
+                  abgezogen wäre.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {abzugsfaehig.map((r) => (
+                    <CheckboxField
+                      key={r.id}
+                      id={`abzug-${r.id}`}
+                      label={`${r.invoiceNumber} vom ${r.invoiceDate} — ${fmtEUR(r.totalBrutto)} brutto (davon ${fmtEUR(r.totalVat)} USt)`}
+                      checked={gewaehlteAbzuege.includes(r.id)}
+                      onChange={(e) =>
+                        setGewaehlteAbzuege((alt) =>
+                          e.target.checked ? [...alt, r.id] : alt.filter((x) => x !== r.id),
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+              {summen?.gutschrift && (
+                <p className="mt-3 text-sm font-medium text-danger" role="alert">
+                  Die Abzüge übersteigen die Gesamtleistung um {fmtEUR(-summen.totalBrutto)}. Das
+                  wäre eine Gutschrift, und die kann diese App noch nicht — sie lässt sich hier
+                  nicht anlegen.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Rabatt auf das Netto, nicht auf das Brutto: die Umsatzsteuer
               bemisst sich am tatsaechlich vereinbarten Entgelt. */}
@@ -1731,7 +1998,9 @@ export default function InvoicesView() {
               <Button
                 onClick={confirmInvoice}
                 loading={busy}
-                disabled={numberTaken || !invoiceNumber || !rcPruefung.vollstaendig}
+                disabled={
+                  numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || !!summen?.gutschrift
+                }
                 className="w-full sm:w-auto">
                 Rechnung erstellen &amp; PDF
               </Button>

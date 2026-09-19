@@ -84,6 +84,13 @@ const reihenfolge: string[] = [];
 let offene: (Invoice & { id: string })[] = [];
 let imZeitraum: (Invoice & { id: string })[] = [];
 const listUnpaidInvoices = vi.fn(async () => offene);
+/** Was auf dieser Baustelle schon verrechnet ist — Grundlage des Abzugs. */
+let derBaustelle: (Invoice & { id: string })[] = [];
+let baustellenAbfrageWirft = false;
+const listInvoicesForProject = vi.fn(async () => {
+  if (baustellenAbfrageWirft) throw new Error('offline');
+  return derBaustelle;
+});
 const listInvoicesInRange = vi.fn<[string, string, string], Promise<(Invoice & { id: string })[]>>(
   async () => imZeitraum,
 );
@@ -152,6 +159,12 @@ vi.mock('@/lib/db/invoices', async () => {
       lege(inv);
       return Promise.resolve('neu');
     },
+    /*
+      Die Rechnungen EINER BAUSTELLE — für den Abzug auf der Schlussrechnung.
+      Eigene Abfrage, weil eine bezahlte Anzahlung weder in den offenen Posten
+      noch verlässlich unter den jüngsten Rechnungen steht.
+    */
+    listInvoicesForProject: () => listInvoicesForProject(),
     updateInvoiceStatus: vi.fn(async () => undefined),
     mahnungFesthalten: (...a: unknown[]) => {
       mahnFolge.push('vermerk');
@@ -256,11 +269,21 @@ function zeige() {
 }
 
 /** Baustelle wählen und die Positionen zusammenstellen lassen. */
-async function bisZurVorschau() {
+async function bisZurVorschau(art?: string) {
   zeige();
   const auswahl = await screen.findByRole("combobox", { name: /Baustelle/ });
   await userEvent.selectOptions(auswahl, '2026-042');
-  await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+  if (art) {
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: /Art der Rechnung/ }),
+      art,
+    );
+  }
+  await userEvent.click(
+    screen.getByRole('button', {
+      name: art === 'anzahlung' ? 'Anzahlung vorbereiten' : 'Positionen zusammenstellen',
+    }),
+  );
   return screen.findByRole('button', { name: /Rechnung erstellen/ });
 }
 
@@ -271,6 +294,9 @@ beforeEach(() => {
   alleScheine = [];
   offene = [];
   imZeitraum = [];
+  derBaustelle = [];
+  baustellenAbfrageWirft = false;
+  listInvoicesForProject.mockClear();
   listUnpaidInvoices.mockClear();
   listInvoicesInRange.mockClear();
   listRecentWorkSheets.mockClear();
@@ -1555,5 +1581,177 @@ describe('Zahlungen erfassen', () => {
     );
     expect(screen.queryByRole('menuitem', { name: /Auf „Bezahlt" setzen/ })).toBeNull();
     expect(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' })).toBeInTheDocument();
+  });
+});
+
+describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
+  /** Eine bezahlte Anzahlung über 1.200 € brutto auf derselben Baustelle. */
+  const ANZAHLUNG: Invoice & { id: string } = {
+    id: 'a1',
+    companyId: 'perl',
+    invoiceNumber: 'RE-2026-1001',
+    projectNumber: '2026-042',
+    customerName: 'Familie Huber',
+    invoiceDate: '2026-05-02',
+    dueDate: '2026-05-16',
+    art: 'anzahlung',
+    totalNetto: 1000,
+    totalVat: 200,
+    totalBrutto: 1200,
+    paymentStatus: 'Bezahlt',
+  } as Invoice & { id: string };
+
+  it('stellt eine Anzahlung ohne Stunden und ohne Belege zusammen', async () => {
+    /*
+      Eine Anzahlung ist Geld auf eine Leistung, die erst kommt. Nähme sie
+      Stunden mit, wären die als verrechnet gesperrt, fielen aus der
+      Schlussrechnung heraus — und der Abzug zöge sie ein zweites Mal ab.
+    */
+    const bestaetigen = await bisZurVorschau('anzahlung');
+    expect(screen.getByDisplayValue('Anzahlung gemäß Vereinbarung')).toBeTruthy();
+    expect(screen.queryByDisplayValue(/Facharbeiterstunden/)).toBeNull();
+
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const inv = lege.mock.calls[0][0] as Invoice;
+    expect(inv.art).toBe('anzahlung');
+    expect(inv.linkedEntries).toEqual([]);
+    // Gesperrt wird nichts: die Liste, die zum Sperren geht, ist leer.
+    expect(markiere).toHaveBeenCalledWith('timeEntries', [], 'RE-2026-1099');
+  });
+
+  it('verlangt für die Anzahlung keinen Leistungszeitraum', async () => {
+    // Die Leistung ist noch nicht erbracht — ein Datum wäre erfunden.
+    await bisZurVorschau('anzahlung');
+    expect(screen.queryByText(/Ohne Leistungszeitraum/)).toBeNull();
+  });
+
+  it('bietet die Anzahlung der Baustelle zum Abzug an und rechnet den Rest aus', async () => {
+    derBaustelle = [ANZAHLUNG];
+    await bisZurVorschau('schluss');
+
+    const haken = await screen.findByRole('checkbox', { name: /RE-2026-1001/ });
+    await userEvent.click(haken);
+
+    /*
+      DIE STEUERFALLE: ohne Abzug stünde die Steuer der Anzahlung ein zweites
+      Mal auf einem Beleg desselben Betriebs — und er schuldete sie zweimal
+      (§ 11 Abs 12 UStG).
+    */
+    expect(screen.getByText(/Gesamtleistung brutto/)).toBeTruthy();
+    expect(screen.getByText(/Restforderung brutto/)).toBeTruthy();
+  });
+
+  it('schreibt Forderung und Gesamtleistung getrennt in die Rechnung', async () => {
+    /*
+      Acht Stunden Facharbeit zu 65 € sind 520 € netto, 104 € USt, 624 €
+      brutto. Die Anzahlung über 240 € brutto geht davon ab.
+    */
+    derBaustelle = [{ ...ANZAHLUNG, totalNetto: 200, totalVat: 40, totalBrutto: 240 }];
+    const bestaetigen = await bisZurVorschau('schluss');
+    await userEvent.click(await screen.findByRole('checkbox', { name: /RE-2026-1001/ }));
+    await userEvent.click(bestaetigen);
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const inv = lege.mock.calls[0][0] as Invoice;
+    expect(inv.art).toBe('schluss');
+    /*
+      DIE FORDERUNG IST DER REST, die Gesamtleistung steht daneben. An
+      `total*` hängen offene Posten, Mahnlauf und Zahlungsstand: stünde dort
+      die volle Leistung, mahnte der Betrieb 624 € ein, von denen 240 €
+      längst bezahlt sind.
+    */
+    expect(inv.totalNetto).toBe(320);
+    expect(inv.totalVat).toBe(64);
+    expect(inv.totalBrutto).toBe(384);
+    expect(inv.gesamtNetto).toBe(520);
+    expect(inv.gesamtVat).toBe(104);
+    expect(inv.gesamtBrutto).toBe(624);
+    expect(inv.vorrechnungen).toEqual([
+      {
+        invoiceId: 'a1',
+        invoiceNumber: 'RE-2026-1001',
+        invoiceDate: '2026-05-02',
+        netto: 200,
+        vat: 40,
+        brutto: 240,
+      },
+    ]);
+  });
+
+  it('lässt Art und Abzug beim erneuten Drucken nicht verschwinden', async () => {
+    /*
+      Der zweite Druck muss denselben Beleg ergeben wie der erste. Bekäme das
+      PDF die Forderung statt der Gesamtleistung, zöge es ein zweites Mal ab —
+      und über derselben Nummer stünde ein anderer Betrag.
+    */
+    rechnungen = [
+      {
+        id: 's1',
+        companyId: 'perl',
+        invoiceNumber: 'RE-2026-1050',
+        projectNumber: '2026-042',
+        customerName: 'Familie Huber',
+        invoiceDate: '2026-09-01',
+        dueDate: '2026-09-15',
+        art: 'schluss',
+        totalNetto: 2000, totalVat: 400, totalBrutto: 2400,
+        gesamtNetto: 3000, gesamtVat: 600, gesamtBrutto: 3600,
+        vorrechnungen: [
+          { invoiceId: 'a1', invoiceNumber: 'RE-2026-1001', invoiceDate: '2026-05-02', netto: 1000, vat: 200, brutto: 1200 },
+        ],
+        positions: [{ label: 'Facharbeiterstunden', qty: 40, unit: 'h', unitPrice: 75, netto: 3000 }],
+        paymentStatus: 'Offen',
+      } as Invoice & { id: string },
+    ];
+    zeige();
+    await screen.findByText(/RE-2026-1050/);
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1050/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'PDF erneut laden' }));
+
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    const opts = pdfAusgabe.mock.calls[0][0] as {
+      art: string;
+      vorrechnungen: unknown[];
+      assembled: { totalBrutto: number };
+    };
+    expect(opts.art).toBe('schluss');
+    expect(opts.vorrechnungen).toHaveLength(1);
+    // Die VOLLE Leistung — den Rest rechnet das PDF selbst.
+    expect(opts.assembled.totalBrutto).toBe(3600);
+  });
+
+  it('lässt keine Rechnung anlegen, die ins Minus liefe', async () => {
+    /*
+      Das wäre eine Gutschrift: Zahlungsstand, offene Posten und Mahnlauf
+      rechnen alle mit einer Forderung, die man begleichen kann. Auf null
+      gekappt verschwände der Betrag, den der Betrieb zurückschuldet.
+    */
+    derBaustelle = [{ ...ANZAHLUNG, totalNetto: 10000, totalVat: 2000, totalBrutto: 12000 }];
+    const bestaetigen = await bisZurVorschau('schluss');
+    await userEvent.click(await screen.findByRole('checkbox', { name: /RE-2026-1001/ }));
+
+    expect(screen.getByText(/wäre eine Gutschrift/)).toBeTruthy();
+    expect((bestaetigen as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('bietet keine Rechnung an, die Belege verbraucht hat', async () => {
+    // Ihre Stunden sind gesperrt und stehen in dieser Rechnung gar nicht mehr
+    // — ein Abzug zöge sie ein zweites Mal ab.
+    derBaustelle = [{ ...ANZAHLUNG, art: 'teil', linkedEntries: ['z9'] }];
+    await bisZurVorschau('schluss');
+    expect(await screen.findByText(/keine Anzahlung, die nicht schon abgezogen wäre/)).toBeTruthy();
+  });
+
+  it('meldet es, wenn die bisherigen Rechnungen nicht geladen werden konnten', async () => {
+    /*
+      Stillschweigen wäre hier das Teuerste: eine Schlussrechnung ohne ihre
+      Anzahlungen sieht vollständig aus und weist dieselbe Steuer zweimal aus.
+    */
+    baustellenAbfrageWirft = true;
+    await bisZurVorschau('schluss');
+    expect(await screen.findByText(/konnten nicht geladen werden/)).toBeTruthy();
   });
 });

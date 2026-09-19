@@ -18,8 +18,9 @@ function fmtDatum(iso: string): string {
     year: 'numeric',
   });
 }
-import type { Company, Project } from '@/types';
+import type { Company, Project, RechnungsArt, Vorrechnung } from '@/types';
 import { INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
+import { mitAbzug } from './vorrechnungen';
 import { calcWorkMin } from '@/lib/time';
 
 const fmtEUR = (n: number) =>
@@ -35,6 +36,89 @@ const fmtDate = (iso: string) =>
     month: '2-digit',
     year: 'numeric',
   });
+
+/**
+ * DIE ÜBERSCHRIFT SAGT, WAS DER BELEG IST.
+ *
+ * „Rechnung" über einer Anzahlung ist nicht bloss ungenau: der Kunde muss
+ * erkennen können, dass die Leistung noch aussteht — und bei der
+ * Schlussrechnung, dass hier abgerechnet und nicht ein zweites Mal gefordert
+ * wird.
+ */
+export const UEBERSCHRIFT: Record<RechnungsArt, string> = {
+  einzel: 'Rechnung',
+  anzahlung: 'Anzahlungsrechnung',
+  teil: 'Teilrechnung',
+  schluss: 'Schlussrechnung',
+};
+
+/**
+ * Die Summenzeilen unter der Positionstabelle.
+ *
+ * EIGENE FUNKTION, WEIL HIER DIE STEUER ENTSCHEIDET. Was unter der Tabelle
+ * steht, ist der Teil des Belegs, den das Finanzamt liest; `jspdf-autotable`
+ * lässt sich im Testlauf nicht zeichnen, diese Zeilen aber schon.
+ */
+export function summenZeilen(opts: {
+  assembled: AssembledInvoice;
+  vatRate: number;
+  /** Bauleistung mit Übergang der Steuerschuld. */
+  rc: boolean;
+  abzuege: Vorrechnung[];
+  /** Was nach Abzug übrig bleibt. */
+  forderung: number;
+}): string[][] {
+  const { assembled, vatRate, rc, abzuege, forderung } = opts;
+  return [
+    // Ein Rabatt gehoert auf die Rechnung, nicht in einen stillschweigend
+    // gekuerzten Nettobetrag: der Kunde muss sehen, was ihm nachgelassen
+    // wurde, und das Finanzamt, worauf die Steuer bemessen ist.
+    ...(assembled.discountAmount > 0 && assembled.discount
+      ? [
+          ['', '', '', 'Zwischensumme', fmtEUR(assembled.subtotalNetto)],
+          ['', '', '', discountLabel(assembled.discount), `- ${fmtEUR(assembled.discountAmount)}`],
+        ]
+      : []),
+    ['', '', '', 'Netto', fmtEUR(assembled.totalNetto)],
+    /*
+      BEI REVERSE CHARGE STEHT KEINE STEUER DA — auch keine „USt. 0 %".
+
+      Eine ausgewiesene Steuer schuldet der Betrieb kraft Rechnungslegung,
+      bis er berichtigt (§ 11 Abs 12 UStG). „0 %" ist ein Steuersatz und
+      etwas anderes als ein Übergang der Steuerschuld; die Zeile bekommt
+      deshalb den Grund statt einer Zahl.
+    */
+    ...(rc
+      ? [['', '', '', 'Umsatzsteuer', 'Übergang der Steuerschuld']]
+      : [['', '', '', `USt. ${Math.round(vatRate * 100)}%`, fmtEUR(assembled.totalVat)]]),
+    [
+      '',
+      '',
+      '',
+      // Wo abgezogen wird, ist diese Zeile nicht der Rechnungsbetrag,
+      // sondern die volle Leistung — die Beschriftung muss das sagen.
+      abzuege.length > 0 ? 'Gesamtleistung brutto' : rc ? 'Rechnungsbetrag' : 'Brutto',
+      fmtEUR(assembled.totalBrutto),
+    ],
+    /*
+      JEDE ABGEZOGENE VORRECHNUNG EINZELN, MIT IHRER STEUER.
+
+      § 11 Abs 12 UStG: wer eine Steuer ausweist, schuldet sie. Die Steuer der
+      Anzahlung ist bereits auf deren Beleg ausgewiesen und abgeführt; sie hier
+      nicht wieder herauszurechnen hiesse, sie zweimal zu schulden, bis der
+      Betrieb berichtigt. Der Kunde wiederum darf die Vorsteuer nur einmal
+      ziehen und braucht dafür genau diese Zeile.
+    */
+    ...abzuege.map((v) => [
+      `abzüglich ${v.invoiceNumber} vom ${fmtDatum(v.invoiceDate)}`,
+      '',
+      '',
+      rc ? 'netto' : `netto ${fmtEUR(v.netto)} + USt ${fmtEUR(v.vat)}`,
+      `- ${fmtEUR(v.brutto)}`,
+    ]),
+    ...(abzuege.length > 0 ? [['', '', '', 'Restforderung brutto', fmtEUR(forderung)]] : []),
+  ];
+}
 
 /**
  * Erzeugt das Rechnungs-PDF (jsPDF + autotable, docs §4.5). Kopf-/Bankdaten
@@ -53,12 +137,35 @@ export function generateInvoicePdf(opts: {
   reverseCharge?: boolean;
   /** UID des Leistungsempfängers — bei Reverse Charge Pflicht. */
   customerVatId?: string;
+  /** Einzel-, Anzahlungs-, Teil- oder Schlussrechnung. Ohne Angabe: einzel. */
+  art?: RechnungsArt;
+  /**
+   * Die abgezogenen Vorrechnungen.
+   *
+   * `assembled` trägt weiterhin die GESAMTE Leistung — die Forderung dieses
+   * Belegs rechnet dieses PDF daraus selbst aus. Der Aufrufer kann die beiden
+   * Zahlen damit nicht auseinanderlaufen lassen.
+   */
+  vorrechnungen?: Vorrechnung[];
 }) {
   const { company, project, invoiceNumber, invoiceDate, dueDate, assembled } = opts;
   const vatRate = opts.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const leistungVon = assembled.leistung?.von;
   const leistungBis = assembled.leistung?.bis;
   const rc = !!opts.reverseCharge;
+  const art = opts.art ?? 'einzel';
+  const abzuege = opts.vorrechnungen ?? [];
+  /*
+    DIE SUMMEN DES BELEGS ENTSTEHEN HIER, aus der vollen Leistung und den
+    Abzügen. `assembled` bleibt die volle Leistung; was gefordert wird, ist
+    der Rest. Beides aus einer Hand, damit auf dem Beleg nicht zwei Zahlen
+    stehen, die sich widersprechen.
+  */
+  const summen = mitAbzug(
+    { totalNetto: assembled.totalNetto, totalVat: assembled.totalVat, totalBrutto: assembled.totalBrutto },
+    abzuege,
+  );
+  const forderung = summen.totalBrutto;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const margin = 18;
 
@@ -76,7 +183,7 @@ export function generateInvoicePdf(opts: {
   doc.setDrawColor(0, 51, 102).line(margin, 37, 210 - margin, 37);
 
   // Empfänger + Rechnungsdaten
-  doc.setFontSize(11).setFont('helvetica', 'bold').text('Rechnung', margin, 50);
+  doc.setFontSize(11).setFont('helvetica', 'bold').text(UEBERSCHRIFT[art], margin, 50);
   doc.setFontSize(10).setFont('helvetica', 'normal');
   doc.text(project.customerName || '–', margin, 58);
   if (project.address) doc.text(project.address, margin, 63);
@@ -118,6 +225,14 @@ export function generateInvoicePdf(opts: {
         ? `Leistungsdatum: ${fmtDatum(leistungVon)}`
         : `Leistungszeitraum: ${fmtDatum(leistungVon)} – ${fmtDatum(leistungBis)}`;
     doc.text(text, rightX, 70, { align: 'right' });
+  } else if (art === 'anzahlung') {
+    /*
+      BEI EINER ANZAHLUNG GIBT ES NOCH KEINEN ZEITRAUM — und einen zu
+      erfinden wäre gegenüber dem Finanzamt falsch. Stattdessen steht da,
+      worauf die Zahlung geht; sonst liest sich der Beleg wie eine Rechnung
+      über eine Leistung, die niemand erbracht hat.
+    */
+    doc.text('Anzahlung auf eine noch zu erbringende Leistung', rightX, 70, { align: 'right' });
   }
 
   // Positionstabelle
@@ -131,36 +246,8 @@ export function generateInvoicePdf(opts: {
       fmtEUR(p.unitPrice),
       fmtEUR(p.netto),
     ]),
-    // Ein Rabatt gehoert auf die Rechnung, nicht in einen stillschweigend
-    // gekuerzten Nettobetrag: der Kunde muss sehen, was ihm nachgelassen
-    // wurde, und das Finanzamt, worauf die Steuer bemessen ist.
-    foot: [
-      ...(assembled.discountAmount > 0 && assembled.discount
-        ? [
-            ['', '', '', 'Zwischensumme', fmtEUR(assembled.subtotalNetto)],
-            [
-              '',
-              '',
-              '',
-              discountLabel(assembled.discount),
-              `- ${fmtEUR(assembled.discountAmount)}`,
-            ],
-          ]
-        : []),
-      ['', '', '', 'Netto', fmtEUR(assembled.totalNetto)],
-      /*
-        BEI REVERSE CHARGE STEHT KEINE STEUER DA — auch keine „USt. 0 %".
+    foot: summenZeilen({ assembled, vatRate, rc, abzuege, forderung }),
 
-        Eine ausgewiesene Steuer schuldet der Betrieb kraft Rechnungslegung,
-        bis er berichtigt (§ 11 Abs 12 UStG). „0 %" ist ein Steuersatz und
-        etwas anderes als ein Übergang der Steuerschuld; die Zeile bekommt
-        deshalb den Grund statt einer Zahl.
-      */
-      ...(rc
-        ? [['', '', '', 'Umsatzsteuer', 'Übergang der Steuerschuld']]
-        : [['', '', '', `USt. ${Math.round(vatRate * 100)}%`, fmtEUR(assembled.totalVat)]]),
-      ['', '', '', rc ? 'Rechnungsbetrag' : 'Brutto', fmtEUR(assembled.totalBrutto)],
-    ],
     headStyles: { fillColor: [0, 51, 102] },
     footStyles: { fontStyle: 'bold' },
     theme: 'grid',
@@ -173,7 +260,9 @@ export function generateInvoicePdf(opts: {
   // Betrag und Frist gehören in den Überweisungssatz — sonst muss der Kunde
   // sie sich aus der Tabelle zusammensuchen.
   doc.text(
-    `Bitte überweisen Sie ${fmtEUR(assembled.totalBrutto)} € bis ${fmtDatum(dueDate)}` +
+    // DER REST, nicht die Gesamtleistung: was schon bezahlt ist, wird nicht
+    // noch einmal eingefordert.
+    `Bitte überweisen Sie ${fmtEUR(forderung)} € bis ${fmtDatum(dueDate)}` +
       (company.iban ? ` auf IBAN ${company.iban}${company.bic ? ` / BIC ${company.bic}` : ''}` : '') +
       '.',
     margin,
