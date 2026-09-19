@@ -204,10 +204,9 @@ export async function saveEinsatzMaterial(
 ): Promise<void> {
   /*
     Der Betrieb steht im Anmeldekontext, die Datenbankfunktion holt ihn sich
-    dort (`app.betrieb()`). Der Parameter bleibt trotzdem in der Signatur:
-    sie ist für beide Datenquellen dieselbe, und die Firestore-Fassung braucht
-    ihn. Ihn hier wegzulassen hiesse, die Weiche könnte nicht mehr beide
-    Seiten bedienen.
+    dort (`app.betrieb()`). Der Parameter bleibt trotzdem in der Signatur: sie
+    ist der Vertrag mit den Ansichten (`tests/unit/datenschichtVertrag.test.ts`),
+    und ihn zu ändern wäre eine Änderung an jeder Aufrufstelle für nichts.
   */
   void companyId;
 
@@ -251,10 +250,9 @@ export async function ladenUmschalten(
 ): Promise<void> {
   /*
     Der Betrieb steht im Anmeldekontext, die Datenbankfunktion holt ihn sich
-    dort (`app.betrieb()`). Der Parameter bleibt trotzdem in der Signatur:
-    sie ist für beide Datenquellen dieselbe, und die Firestore-Fassung braucht
-    ihn. Ihn hier wegzulassen hiesse, die Weiche könnte nicht mehr beide
-    Seiten bedienen.
+    dort (`app.betrieb()`). Der Parameter bleibt trotzdem in der Signatur: sie
+    ist der Vertrag mit den Ansichten (`tests/unit/datenschichtVertrag.test.ts`),
+    und ihn zu ändern wäre eine Änderung an jeder Aufrufstelle für nichts.
   */
   void companyId;
 

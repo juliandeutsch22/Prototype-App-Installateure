@@ -29,7 +29,7 @@ import type { CurrentUser, Company } from '@/types';
  *
  * Acht Sekunden sind lang genug für ein schlechtes Mobilfunknetz und kurz
  * genug, dass niemand glaubt, die App sei kaputt. Vorher gab es hier gar
- * keine Grenze: Firestore-Abfragen laufen nicht in eine Zeitgrenze, sie
+ * keine Grenze: eine Datenbankabfrage läuft nicht in eine Zeitgrenze, sie
  * warten. Auf der iOS-Startbildschirm-App, die nach dem Aufwecken auf einer
  * toten Verbindung sitzt, hiess das „lädt gar nicht" — unbegrenzt.
  */
@@ -132,26 +132,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        * DER GLOBALE ADMINISTRATOR WIRD GEPRÜFT, BEVOR IRGENDETWAS GELESEN
        * WIRD — und das ist keine Beschleunigung, sondern der Kern.
        *
-       * Er hat absichtlich kein `users`-Dokument. Die Regel dafür lautet
-       * `allow read: if ownsExisting()`, und `ownsExisting()` liest
-       * `resource.data.companyId`. Bei einem Dokument, das es NICHT GIBT, ist
-       * `resource` leer: die Regel ist damit nicht erfüllt, und Firestore
-       * antwortet mit PERMISSION_DENIED. `getDoc` liefert also keinen leeren
-       * Schnappschuss, sondern WIRFT.
+       * Er hat absichtlich keine Zeile in der Belegschaft: er gehört zu
+       * keinem Betrieb. Wer zuerst sein Profil holt, bekommt für ihn nichts
+       * zurück und landet im Zweig „kein Profil gefunden" — auf dem
+       * Anmeldebildschirm stand dort einmal „Das liegt meist am Empfang".
+       * Eine Meldung, die auf ein Netzproblem zeigt, wo keines ist.
        *
-       * Genau daran ist der erste Anlauf gescheitert: die Prüfung stand
-       * hinter dem Abruf, im Zweig „kein Profil gefunden". Dorthin kam der
-       * globale Administrator nie — der Fehler landete im Auffangblock, und
-       * auf dem Anmeldebildschirm stand „Das liegt meist am Empfang". Eine
-       * Meldung, die auf ein Netzproblem zeigt, wo keines ist.
+       * Gefragt wird das bereits vorliegende Token, nicht die Datenbank: die
+       * Marke setzt der Trigger `platform_admins_anspruch`. Das kostet keine
+       * Netzrunde, und für alle anderen ändert sich nichts ausser einem
+       * aufgelösten Promise.
        *
-       * `getIdTokenResult()` liest das bereits vorliegende Token; ohne
-       * `forceRefresh` kostet das keine Netzrunde. Für alle anderen ändert
-       * sich damit nichts ausser einem aufgelösten Promise.
-       *
-       * Das ist eine ANZEIGEFRAGE, keine Sicherheitsgrenze: die steht in den
-       * firestore.rules und in der Function, die den Betrieb anlegt. Ein
-       * gefälschter Claim brächte hier nur eine Seite zum Vorschein, auf der
+       * Das ist eine ANZEIGEFRAGE, keine Sicherheitsgrenze: die steht im
+       * Zeilenschutz und in der Edge Function, die den Betrieb anlegt. Eine
+       * gefälschte Marke brächte hier nur eine Seite zum Vorschein, auf der
        * jeder Knopf serverseitig abgewiesen würde.
        */
       const plattformMarke = await istPlattformAdmin();

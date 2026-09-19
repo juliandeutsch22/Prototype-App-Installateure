@@ -81,11 +81,10 @@ export function deleteProject(id: string): Promise<void> {
 /**
  * Baustellen suchen.
  *
- * DIE EINE WEICHE, HINTER DER SICH ZWEI VERSCHIEDENE ZUSAGEN VERBERGEN — und
- * das steht hier, weil es sonst niemand wüsste. Unter Postgres sucht die
- * Datenbank über den ganzen Bestand und findet auch mitten im Wort. Unter
- * Firestore lädt die App die ersten `max` Zeilen und filtert im Browser: was
- * dahinter liegt, ist unauffindbar.
+ * DIE SUCHE LÄUFT IN DER DATENBANK, über den ganzen Bestand, und findet auch
+ * mitten im Wort. Bis zum Umzug lud die App die ersten `max` Zeilen und
+ * filterte im Browser: was dahinter lag, war unauffindbar, und die Ansicht
+ * sagte nichts dazu.
  *
  * Der Unterschied ist der Grund für den Umzug und nicht sein Nebenprodukt.
  */

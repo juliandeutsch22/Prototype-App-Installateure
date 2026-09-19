@@ -130,9 +130,9 @@ export default function WorkSheetsListView() {
     DIE KOLLEGENZEILE, AN DIE NIEMAND ERINNERT WIRD — nur fürs Büro.
 
     Der Nachtrag in der Zeiterfassung deckt nur die EIGENEN Zeilen des
-    Monteurs ab, und das muss so bleiben: in derselben Sammlung stehen
+    Monteurs ab, und das muss so bleiben: in derselben Tabelle stehen
     Kranken- und Urlaubstage der Kollegen, also Gesundheitsdaten nach Art. 9
-    DSGVO. Die Firestore-Regeln lassen den Monteur deshalb nur an die
+    DSGVO. Der Zeilenschutz lässt den Monteur deshalb nur an die
     eigenen Einträge.
 
     Trägt er auf dem Schein die Zeile eines Kollegen ein, hat sie damit
@@ -253,11 +253,11 @@ export default function WorkSheetsListView() {
     Dieselbe Fehlerform wie beim Buchhaltungs-Export damals: eine leere
     Antwort, die wie ein Befund aussieht.
 
-    Serverseitig geht, was Firestore ohne zusätzlich gepflegtes Feld hergibt —
-    Baustellennummer (exakt) und Zeitraum. Nach einem Kundennamen liesse sich
-    nur mit einem `nameLower` auf jedem Datensatz suchen, und bis das auf dem
-    Altbestand nachgetragen wäre, fände die Suche alte Scheine
-    STILLSCHWEIGEND nicht. Das steht in der Ansicht, statt es zu behaupten.
+    Serverseitig gehen Baustellennummer (exakt) und Zeitraum. Nach Kundenname
+    oder Notiz wird weiterhin nur im geladenen Bestand gesucht — nicht weil es
+    nicht ginge (die Spalten sind da, siehe `scheinSuche.ts`), sondern weil es
+    noch nicht nachgezogen ist. Das steht in der Ansicht, statt es zu
+    behaupten.
   */
   const [treffer, setTreffer] = useState<WithId<WorkSheet>[] | null>(null);
   const [trefferZu, setTrefferZu] = useState('');

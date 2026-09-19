@@ -20,8 +20,8 @@ export interface Angemeldet {
  * ausgeschiedener Mitarbeiter weiter anmelden.
  *
  * SIE IST NICHT DIE GRENZE, sondern die Anzeige. Die Grenze steht
- * serverseitig — unter Firestore in den Regeln, unter Postgres in
- * `app.aktiv()`, das die Belegschaft fragt und nicht das Token.
+ * serverseitig, in `app.aktiv()` — und das fragt die Belegschaft, nicht das
+ * Token.
  */
 export class InactiveUserError extends Error {
   constructor() {

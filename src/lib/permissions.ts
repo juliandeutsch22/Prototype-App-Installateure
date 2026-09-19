@@ -3,7 +3,7 @@ import type { Role } from '@/types';
 /**
  * Rollen-Prädikate, 1:1 aus der Legacy-App übernommen (docs §2).
  * Administrator ist Superuser; Geschäftsführung deckt die Leitungsfunktionen ab.
- * Diese Helfer steuern die UI — die HARTE Durchsetzung liegt in firestore.rules.
+ * Diese Helfer steuern die UI — die HARTE Durchsetzung liegt im Zeilenschutz.
  */
 export const isAdmin = (r: Role) => r === 'Administrator';
 
@@ -61,8 +61,8 @@ export const canEditTime = (r: Role) => isBuch(r) || isTopLevel(r);
  *     Leitung). Sonst hätte das Einführen dieser Einstellung bestehenden
  *     Betrieben stillschweigend Rechte entzogen.
  *
- * Dieselbe Regel steht in firestore.rules — hier steuert sie die Oberfläche,
- * dort wird sie durchgesetzt.
+ * Dieselbe Regel steht in `app.darf_urlaub_entscheiden()` — hier steuert sie
+ * die Oberfläche, dort wird sie durchgesetzt.
  */
 export function darfUrlaubEntscheiden(
   rolle: Role,
@@ -81,7 +81,7 @@ export const canManageProjects = (r: Role) => isGF(r);
  *
  * Wer Rollen vergibt, vergibt sie auch an sich: mit diesem Recht könnte sich
  * die Projektleitung zur Geschäftsführung machen und danach alles. Die
- * Firestore-Regel sagte im Kommentar seit jeher „nur GF/Admin", liess aber
+ * Regel in der Datenbank sagte im Kommentar seit jeher „nur GF/Admin", liess aber
  * `isLeadership()` zu; hier stand dieselbe Lücke.
  */
 export const canManageUsers = (r: Role) => isTopLevel(r);
@@ -91,14 +91,15 @@ export const canManageUsers = (r: Role) => isTopLevel(r);
  *
  * Sonst könnte sich eine Geschäftsführung selbst zum Superuser machen oder
  * den letzten Administrator entfernen — die Rollenhierarchie wäre damit
- * wirkungslos. Serverseitig steht dieselbe Grenze in firestore.rules.
+ * wirkungslos. Serverseitig steht dieselbe Grenze im Trigger
+ * `users_adminrolle`.
  */
 export const canManageAdmins = (r: Role) => isAdmin(r);
 
 /**
  * Rechnungen sehen und stellen — OHNE Projektleitung.
  *
- * So steht es auch in `firestore.rules`, und dort ist es die Wahrheit: die
+ * So steht es auch in den Richtlinien, und dort ist es die Wahrheit: die
  * Projektleitung kann Rechnungen nicht einmal lesen. Hier hiess es trotzdem
  * `isGF`, worin sie steckt — die Ansicht bot ihr also Knöpfe an, die
  * serverseitig scheitern mussten.

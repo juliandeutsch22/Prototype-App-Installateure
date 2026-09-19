@@ -50,8 +50,8 @@ function weekKey(d: Date): string {
 }
 
 /**
- * Zeiterfassung — der vertikale Schnitt (Spec §8, Phase 2): Mitarbeiter
- * erfasst -> Firestore -> hier live sichtbar, inkl. portiertem Saldo.
+ * Zeiterfassung — der vertikale Schnitt: Mitarbeiter erfasst -> Datenbank ->
+ * hier live sichtbar, inkl. portiertem Saldo.
  */
 export default function TimeView() {
   const { user } = useAuth();
@@ -178,11 +178,12 @@ export default function TimeView() {
   /**
    * Woran der Saldo TATSÄCHLICH hängt.
    *
-   * `entries` ist bei jedem Schnappschuss ein neues Array — auch dann, wenn
-   * sich inhaltlich nichts geändert hat. Firestore meldet nach einer Buchung
-   * zweimal: einmal sofort aus dem lokalen Zwischenspeicher, einmal nach der
-   * Bestätigung des Servers. An der Array-Identität hängend rechnete der
-   * Saldo deshalb zweimal — mit zwei vollen Abfragen je Buchung.
+   * `entries` ist bei jeder Meldung der Live-Verbindung ein neues Array —
+   * auch dann, wenn sich inhaltlich nichts geändert hat. An der
+   * Array-Identität hängend rechnete der Saldo deshalb doppelt, mit zwei
+   * vollen Abfragen je Buchung. Unter Firestore kam die Meldung sogar
+   * zweimal (Zwischenspeicher, dann Server); der Fehler wäre ohne das
+   * genauso da, nur seltener sichtbar.
    */
   const eintraegeSchluessel = useMemo(
     () =>

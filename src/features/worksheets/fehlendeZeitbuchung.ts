@@ -9,9 +9,9 @@ import { normProjectNumber } from '@/lib/time';
  * Zeiterfassung erinnert ihn danach daran, sie zu buchen. Dieser Hinweis
  * deckt aber nur SEINE EIGENEN Zeilen ab, und das ist keine Nachlässigkeit,
  * sondern eine Grenze, die so bleiben muss: ein Monteur darf fremde
- * Zeiteinträge weder lesen noch schreiben. In derselben Sammlung stehen
+ * Zeiteinträge weder lesen noch schreiben. In derselben Tabelle stehen
  * Kranken- und Urlaubstage der Kollegen — Gesundheitsdaten nach Art. 9
- * DSGVO. Die Firestore-Regeln lassen ihn deshalb nur an die eigenen, und das
+ * DSGVO. Der Zeilenschutz lässt ihn deshalb nur an die eigenen, und das
  * ist richtig so.
  *
  * DIE LÜCKE, DIE DABEI ENTSTEHT. Ein Schein deckt die ganze Partie ab. Trägt

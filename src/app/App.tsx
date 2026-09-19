@@ -61,8 +61,8 @@ const NotificationSettings = lazy(() => import('@/features/settings/Notification
 
 /**
  * App-Wurzel: Auth-Provider + Routing. Jede geschützte Route liegt hinter
- * RequireAuth; rollenspezifische hinter RequireRole. Server-seitig setzen
- * firestore.rules dieselben Grenzen durch (Spec §7).
+ * RequireAuth; rollenspezifische hinter RequireRole. Serverseitig setzt der
+ * Zeilenschutz der Datenbank dieselben Grenzen durch.
  */
 export default function App() {
   return (
@@ -81,9 +81,9 @@ export default function App() {
  * Layout und ohne Navigation.
  *
  * Das ist die sichtbare Form der Zusage: dieses Konto legt Betriebe an und
- * sieht in keinen hinein. Die Grenze selbst steht nicht hier, sondern in den
- * firestore.rules (jede Regel verlangt eine `companyId` im Token, und er hat
- * keine) und in der Function, die den Betrieb anlegt.
+ * sieht in keinen hinein. Die Grenze selbst steht nicht hier, sondern im
+ * Zeilenschutz (jede Richtlinie verlangt einen Betrieb im Token, und er hat
+ * keinen) und in der Edge Function, die den Betrieb anlegt.
  */
 function AppInhalt() {
   const { plattformAdmin, loading } = useAuth();
@@ -182,7 +182,7 @@ function AppRoutes() {
       {/*
         Urlaub beantragen darf jede Rolle — auch Buchhaltung und Verwaltung
         nehmen Urlaub. Wer entscheiden darf, entscheidet die Ansicht selbst
-        anhand der Rolle; die harte Grenze steht in firestore.rules.
+        anhand der Rolle; die harte Grenze steht in der Datenbank.
       */}
       <Route path="/vacations" element={<RequireNav path="/vacations"><VacationsView /></RequireNav>} />
       <Route

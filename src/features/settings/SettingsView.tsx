@@ -731,7 +731,7 @@ export default function SettingsView() {
         Wer Urlaub genehmigt — der Geschaeftsfuehrung vorbehalten.
         Duerfte die Projektleitung sie aendern, koennte sie sich selbst
         eintragen und ueber die Urlaube derer entscheiden, die sie einteilt.
-        Dieselbe Grenze steht in firestore.rules.
+        Dieselbe Grenze steht im Trigger `companies_einstellungen`.
       */}
       {darfGenehmigerSetzen && (
         <Card

@@ -1,16 +1,19 @@
 /**
- * Firestore-Zeitstempel in Millisekunden.
+ * Zeitstempel in Millisekunden.
  *
- * `serverTimestamp()` schreibt keinen Zahlenwert, sondern einen Timestamp;
- * beim Lesen kommt ein Objekt mit `toMillis()` zurück. Die Typen der App
- * deklarieren `createdAt?: number` — das ist eine Vereinfachung, die zur
+ * WARUM DAS NICHT EINFACH EINE ZAHL IST. Firestore schrieb mit
+ * `serverTimestamp()` keinen Zahlenwert, sondern ein Objekt mit `toMillis()`.
+ * Postgres liefert einen Zeitstempel als Text, den `pg/felder.ts` in eine
+ * Zahl übersetzt — aber Altbestände aus der Firestore-Zeit tragen die alte
+ * Form noch. Die Typen der App deklarieren `createdAt?: number`; das ist eine
+ * Vereinfachung, die zur
  * Laufzeit nicht stimmt.
  *
  * Der Schaden war unsichtbar und deshalb hartnäckig: `(b.createdAt ?? 0) -
  * (a.createdAt ?? 0)` ergibt mit zwei Timestamp-Objekten NaN. Ein Vergleich,
  * der NaN liefert, sortiert nicht falsch herum — er sortiert gar nicht, und
  * die Reihenfolge bleibt die zufällige aus der Datenbank. „Neueste zuerst"
- * stimmte damit nur, solange Firestore ohnehin so lieferte.
+ * stimmte damit nur, solange die Datenbank ohnehin so lieferte.
  */
 export function toMillis(v: unknown): number {
   if (typeof v === 'number') return v;

@@ -3653,17 +3653,45 @@ Prüfliste mit dem, was die Deploy-Schritte tatsächlich brauchen.
 
 ### Die Dokumentation
 
-`README.md` (626 → 211 Zeilen), `docs/DEPLOYMENT.md` und `docs/UEBERGABE.md`
-beschrieben durchgehend das alte System — bis hin zu Einrichtungsschritten, die
+`README.md` (626 → 211 Zeilen), `docs/DEPLOYMENT.md`, `docs/UEBERGABE.md` und
+`docs/FUNKTIONEN.md` beschrieben durchgehend das alte System — bis hin zu Einrichtungsschritten, die
 ins falsche Projekt führen. Alle drei neu geschrieben. Die teuer bezahlten
 Fallen aus der Firestore-Zeit sind dabei **nicht** gelöscht worden: vier davon
 stehen in `UEBERGABE.md` §4 als eigener Block, jede mit dem, was heute an ihrer
 Stelle steht. Eine Falle verliert ihren Wert nicht dadurch, dass die Technik
 gewechselt hat.
 
+`FUNKTIONEN.md` trug seit dem 16.09.2026 einen Vorbehalt ganz oben: die Datei
+sei in der Firestore-Zeit geschrieben und werde **mit Stufe 9** umgeschrieben.
+Das ist eingelöst — samt der Spalte „Geprüft wodurch", deren Zahlen jetzt aus
+dem Prüflauf vom 19.09.2026 stammen und nicht aus dem Gedächtnis.
+
+### Zwei Sätze, die seit dem Umzug nicht mehr stimmten
+
+Beim Durchgehen der Kommentare fielen zwei Begründungen auf, die auf Firestore
+zeigten und deshalb keine mehr sind:
+
+- **`lib/frist.ts`** begründete die fehlende Frist bei Schreibvorgängen damit,
+  dass Firestore sie lokal annimmt und nachreicht. Das leistet heute das
+  Ausgangsfach — dieselbe Zusage, anderer Mechanismus.
+- **Die Scheinsuche** sagte, nach einem Kundennamen lasse sich nicht
+  serverseitig suchen, weil Firestore keine Volltextsuche kann. `customer_name`
+  und `notizen` stehen als Spalten am Schein, und die Kunden-, Baustellen- und
+  Wartungssuche macht genau das bereits über `ilike`. **Der Grund ist weg, die
+  Einschränkung noch da** — nachgezogen ist es nicht. Das steht jetzt so in der
+  Ansicht und als offener Punkt in `FUNKTIONEN.md`; es ist ein kleiner
+  Handgriff, aber einer mit eigener Prüfung, und der gehört nicht in denselben
+  Zug wie ein Abbau.
+
+Dazu ist `lib/offlineWrite.ts` gefallen: die Hülle, die auf Firestores
+Bestätigung wartete. Ihre einzige lebende Zeile war ein Fehlerkanal, den nichts
+mehr speiste; `tests/unit/ausgangsfachNaht.test.ts` hält jetzt fest, dass sie
+nicht zurückkommt. **Ein zweiter Weg, der dasselbe verspricht, wäre genau der,
+den niemand mehr nachsendet.**
+
 ### Geprüft
 
-1716 Unit- und Ansichtstests (142 Dateien), 728 Datenbanktests (50 Dateien),
+1710 Unit- und Ansichtstests (141 Dateien), 728 Datenbanktests (50 Dateien),
 vier Wege im echten Browser, Lint, Typprüfung und Bau — alles grün. Kein
 `firebase/firestore`, `firebase/auth` oder `firebase/functions` mehr in `src/`,
 `tests/` oder `shared/`.

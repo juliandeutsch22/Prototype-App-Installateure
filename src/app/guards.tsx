@@ -88,8 +88,8 @@ export function RequireModul({ id, children }: { id: ModulId; children: ReactNod
  * Eintrag, aus dem auch der Reiter gebaut wird — ein Reiter ins Leere ist
  * damit nicht mehr möglich, sondern müsste erst erfunden werden.
  *
- * Was das NICHT ersetzt: `firestore.rules`. Das hier ist Bedienführung, die
- * Grenze steht auf dem Server.
+ * Was das NICHT ersetzt: den Zeilenschutz. Das hier ist Bedienführung, die
+ * Grenze steht in der Datenbank.
  */
 export function RequireNav({ path, children }: { path: string; children: ReactNode }) {
   const { user, company } = useAuth();

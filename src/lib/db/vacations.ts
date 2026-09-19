@@ -56,10 +56,9 @@ import type { UrlaubsEntscheidung } from './pg/vacations';
 /**
  * Über einen Antrag entscheiden.
  *
- * Unter Firestore eine Cloud Function, unter Postgres eine Datenbankfunktion —
- * in beiden Fällen serverseitig, und zwar aus demselben Grund: die Genehmigung
- * muss fremde Zeiteinträge lesen und schreiben, und das darf der
- * Genehmigende nicht.
+ * Eine Datenbankfunktion, und das war schon vor dem Umzug so (dort eine Cloud
+ * Function) — aus demselben Grund: die Genehmigung muss fremde Zeiteinträge
+ * lesen und schreiben, und das darf der Genehmigende nicht.
  *
  * DAS IST KEINE FUNCTION, SONDERN EIN AUFRUF AN DIE DATENBANK — in EINER
  * Transaktion statt in einem Stapel, den ein Abbruch halb stehen liesse.

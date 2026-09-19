@@ -80,8 +80,8 @@ export default function VacationsView() {
    * In dem einen Betrieb entscheidet die Buchhaltung, im anderen ein
    * Vorarbeiter, im dritten ausschließlich der Chef. Geschäftsführung und
    * Administration können immer; ohne Festlegung bleibt es beim
-   * Ausgangszustand. Dieselbe Regel steht in firestore.rules und in der
-   * Cloud Function, die tatsächlich entscheidet.
+   * Ausgangszustand. Dieselbe Regel steht in `app.darf_urlaub_entscheiden()`
+   * und damit in der Datenbankfunktion, die tatsächlich entscheidet.
    */
   const darfEntscheiden = user
     ? darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers)

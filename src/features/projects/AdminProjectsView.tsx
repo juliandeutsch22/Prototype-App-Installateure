@@ -274,7 +274,7 @@ export default function AdminProjectsView() {
     setForm((f) => (f.projectNumber === '' ? { ...f, projectNumber: nummernVorschlag } : f));
   }, [nummernVorschlag]);
 
-  // Neueste zuerst; ohne Sortierung ist die Reihenfolge von Firestore beliebig.
+  // Neueste zuerst; ohne Sortierung ist die Reihenfolge der Datenbank beliebig.
   const sorted = useMemo(
     () => [...projects].sort((a, b) => byNewest(a, b)),
     [projects],

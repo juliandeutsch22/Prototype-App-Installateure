@@ -560,7 +560,8 @@ export default function InvoicesView() {
         positions: preview.positions,
         vatRate: satz,
         reverseCharge,
-        // Leerstring statt undefined: Firestore lehnt undefined ab.
+        // Leerstring statt undefined: ein fehlendes Feld und ein leeres sind
+        // beim Lesen dasselbe — und „nicht angegeben" ist eine Aussage.
         /*
           IMMER MITGESCHRIEBEN, nicht nur bei Reverse Charge. Vorher wurde die
           UID aus dem Kundenstamm geladen, im Formular angezeigt — und beim
@@ -570,16 +571,16 @@ export default function InvoicesView() {
         */
         customerVatId: kundenUid.trim(),
         subtotalNetto: preview.subtotalNetto,
-        // null statt undefined: Firestore laesst undefined nicht zu, und
-        // "kein Rabatt" soll als bewusster Wert im Dokument stehen.
+        // null statt undefined: „kein Rabatt" soll als bewusster Wert in der
+        // Zeile stehen, nicht als fehlendes Feld.
         discount: rabatt,
         discountAmount: preview.discountAmount,
         totalNetto: preview.totalNetto,
         totalVat: preview.totalVat,
         totalBrutto: preview.totalBrutto,
         paymentStatus: 'Offen',
-        // Leerstring statt undefined: Firestore lehnt undefined ab, und ein
-        // leeres Feld sagt ehrlich „nicht angegeben".
+        // Leerstring statt undefined: ein leeres Feld sagt ehrlich
+        // „nicht angegeben".
         leistungVon,
         leistungBis,
         linkedEntries: preview.linkedEntries,

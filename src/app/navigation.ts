@@ -41,7 +41,7 @@ export interface NavItem {
 /**
  * Navigations- und Zugriffsmatrix für die 11 Screens (vgl. Spec §2).
  * Diese Liste steuert UI-Sichtbarkeit; die HARTE Durchsetzung erfolgt
- * zusätzlich serverseitig in firestore.rules (Spec §7).
+ * zusätzlich serverseitig im Zeilenschutz der Datenbank.
  */
 const ALL: Role[] = [
   'Mitarbeiter', 'Verwaltung', 'Buchhaltung', 'Projektleiter',
@@ -122,7 +122,7 @@ export const NAV: NavItem[] = [
 
   // Margen sind Geschaeftsfuehrungssache — die Projektleitung sieht sie nicht.
   { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'chart', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
-  // Rechnungen OHNE Projektleitung — so steht es auch in firestore.rules, und
+  // Rechnungen OHNE Projektleitung — so steht es auch in den Richtlinien, und
   // dort ist es die Wahrheit. Der Eintrag zeigte sie ihr trotzdem an; wer
   // klickte, landete in „Kein Zugriff".
   { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung', modul: 'rechnungen', hinweis: 'mahnungen' },
@@ -187,7 +187,7 @@ export const UNTER: Record<string, Unterseite[]> = {
     // Einstellungen. Sätze und Briefkopf ändert die Geschäftsführung im
     // Tagesgeschäft; ein abgeschaltetes Modul nimmt dagegen allen den Weg zu
     // ihrer Arbeit, und zwar unsichtbar: der Reiter ist einfach weg. Das ist
-    // Einrichtung, keine Führung. Dieselbe Grenze steht in `firestore.rules`
+    // Einrichtung, keine Führung. Dieselbe Grenze steht in der Datenbank
     // — die Oberfläche allein wäre keine.
     { pfad: 'module', label: 'Module', roles: NUR_ADMIN },
     // Die Sicherung gehoert hierher und nicht in eine eigene Ecke: sie ist

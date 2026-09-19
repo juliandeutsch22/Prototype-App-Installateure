@@ -116,9 +116,8 @@ export default function CustomersView() {
 
     Vorher wurden die ersten `grenze` Kunden geladen und im Browser gefiltert:
     wer den 501. suchte, fand ihn nicht, und die App sagte darüber nichts. Der
-    Suchbegriff geht jetzt mit in die Abfrage; unter Postgres sucht die
-    Datenbank über den ganzen Bestand, unter Firestore bleibt es beim Filtern
-    im Browser (dort gibt es keine Volltextsuche).
+    Suchbegriff geht jetzt mit in die Abfrage, und die Datenbank sucht über
+    den ganzen Bestand.
 
     WARUM NICHT BEI JEDEM TASTENDRUCK. Zwischen zwei Anschlägen liegen
     Millisekunden, eine Abfrage dauert länger — ohne Verzögerung stünden

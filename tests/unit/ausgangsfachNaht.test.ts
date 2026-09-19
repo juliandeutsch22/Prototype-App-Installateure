@@ -41,17 +41,16 @@ describe('Das Ausgangsfach hängt am Schreibweg', () => {
     expect(vorbei).toEqual([]);
   });
 
-  it('keine Ansicht verspricht mehr über den Firestore-Weg', () => {
+  it('den Firestore-Weg gibt es nicht mehr', () => {
     /*
-      `writeWithOfflineNotice` ist nicht falsch — unter Firestore hält das SDK
-      die Zusage. Falsch ist es NEBEN Postgres: dort sagt derselbe Satz etwas
-      zu, was niemand einlöst. Der Helfer darf deshalb nur noch im
-      Firestore-Zweig stehen, wo er hingehört, und fällt mit Stufe 9 weg.
+      `writeWithOfflineNotice` war nicht falsch — unter Firestore hielt das SDK
+      die Zusage „wird automatisch gesendet". Neben Postgres sagte derselbe
+      Satz etwas zu, was niemand einlöst. Mit Stufe 9 ist der Helfer weg; diese
+      Prüfung hält fest, dass er nicht zurückkommt. Ein zweiter Weg, der
+      dasselbe verspricht, wäre genau der, den niemand mehr nachsendet.
     */
-    const zweig = /^src\/lib\/(db\/fs\/|offlineWrite\.ts)/;
     const treffer = quelldateien('src')
-      .filter((d) => !zweig.test(d))
-      .filter((d) => /writeWithOfflineNotice|queuedMessage/.test(lies(d)));
+      .filter((d) => /writeWithOfflineNotice|queuedMessage|from '@\/lib\/offlineWrite'/.test(lies(d)));
     expect(treffer).toEqual([]);
   });
 
@@ -68,10 +67,9 @@ describe('Das Ausgangsfach hängt am Schreibweg', () => {
   });
 
   it('ein endgültig verlorener Vorgang erreicht den Bildschirm', () => {
-    // Beide Quellen: der Firestore-Weg und das Ausgangsfach. Hört die Anzeige
-    // nur auf eine, verschwindet die andere Meldung lautlos.
+    // Hört die Anzeige nicht zu, verschwindet die Meldung lautlos — und der
+    // Monteur behält die Bestätigung für eine Buchung, die nie ankam.
     const anzeige = lies('src/components/VerloreneBuchung.tsx');
-    expect(anzeige).toMatch(/beiVorgemerktemFehlschlag/);
     expect(anzeige).toMatch(/beiVormerkungFehlgeschlagen/);
   });
 });

@@ -34,8 +34,8 @@ export interface ProvisionResult {
  *    Verwaltung stünde als der neue Mitarbeiter da. Wie das verhindert wird,
  *    unterscheidet sich je Anmeldung und steht in der Naht.
  * 2) Die ZEILE IN DER BELEGSCHAFT mit dem Betrieb aus dem Kontext der
- *    Verwaltung. Erst daraus entstehen die Ansprüche — unter Firestore über
- *    `syncUserClaims`, unter Postgres über einen Trigger.
+ *    Verwaltung. Erst daraus entstehen die Ansprüche, gesetzt vom Trigger
+ *    `users_ansprueche`.
  * 3) Die Willkommensmail. Sie darf scheitern: das Konto steht, und das
  *    Anfangspasswort lässt sich durchgeben.
  *

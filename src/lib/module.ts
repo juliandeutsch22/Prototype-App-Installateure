@@ -19,10 +19,11 @@
  * aber bei JEDEM Schreibvorgang eine zusätzliche Leseoperation auf das
  * Firmendokument, und der Gewinn wäre gering: die Rolle darf es ja ohnehin.
  * Was sehr wohl serverseitig geschützt ist, ist die Modulliste SELBST —
- * sonst schaltete sich ein Monteur frei, was er will (`firestore.rules`).
+ * sonst schaltete sich ein Monteur frei, was er will (Trigger
+ * `companies_einstellungen`).
  *
  * Wer diesen Unterschied nicht kennt, hält Module für Rechteverwaltung. Die
- * steht woanders: in den Rollen und in den Rules.
+ * steht woanders: in den Rollen und im Zeilenschutz.
  */
 
 export type ModulId =

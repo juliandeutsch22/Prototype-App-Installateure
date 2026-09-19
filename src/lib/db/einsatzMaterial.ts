@@ -6,11 +6,10 @@
  * Kurz: `assignments` trägt eine Zeile je Mitarbeiter, die Kiste steht aber
  * nur einmal im Bus.
  *
- * `einsatzMaterialId` steht NICHT hier. Die berechenbare Dokumentkennung ist
+ * `einsatzMaterialId` steht NICHT hier. Die berechenbare Dokumentkennung war
  * ein Firestore-Kunstgriff (ein Dokument je Einsatz ohne Abfrage lesen); in
- * Postgres gibt es sie nicht, und eine Weiche, die unter der einen
- * Datenquelle etwas Falsches zurückgibt, ist schlimmer als keine. Sie lebt
- * jetzt in `fs/einsatzMaterial.ts`, wo sie gebraucht wird und stimmt.
+ * Postgres gibt es sie nicht, und mit dem Firestore-Zweig ist sie ganz
+ * weggefallen. Gesucht wird hier über Tag und Baustelle.
  */
 import type { EinsatzMaterial, RuestPosition } from '@/types';
 import type { WithId } from './core';

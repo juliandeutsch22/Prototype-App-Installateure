@@ -14,8 +14,8 @@ import { useToast } from '@/components/Toast';
 /**
  * Datensicherung und Auskunft.
  *
- * WOFÜR DIESE ANSICHT DA IST. Es gab die Cloud Function für den Datenexport
- * seit Langem — nur rief sie niemand auf. Eine Ausleitung, die niemand
+ * WOFÜR DIESE ANSICHT DA IST. Den Datenexport gab es seit Langem — nur rief
+ * ihn niemand auf. Eine Ausleitung, die niemand
  * auslösen kann, ist ein Versprechen und keine Sicherung; und eine, die
  * niemand je geprüft hat, ist auch keine. Hier steht beides: der Knopf, der
  * den nächtlichen Lauf sofort ausführt, und der, der den Bestand

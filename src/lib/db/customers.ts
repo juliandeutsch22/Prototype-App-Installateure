@@ -6,9 +6,9 @@
  * Wartungsverträge und ein Mahnwesen, das über die einzelne Rechnung
  * hinausgeht.
  *
- * DIESE DATEI IST NUR NOCH DIE WEICHE. Die Arbeit steht in `fs/customers.ts`
- * (Firestore) und `pg/customers.ts` (Postgres); welche gilt, entscheidet
- * `quelle.ts`. Stufe 9 löscht den einen Zweig und mit ihm diese Weiche.
+ * DIESE DATEI IST NUR NOCH DIE WEICHE. Die Arbeit steht in
+ * `pg/customers.ts`; hier stehen die Signaturen, auf die sich die Ansichten
+ * verlassen.
  *
  * Die Signaturen hier sind der Vertrag mit den Ansichten — siehe
  * `tests/unit/datenschichtVertrag.test.ts`. Sie ändern sich beim Umzug nicht.
@@ -65,11 +65,10 @@ export type { WithId };
 /**
  * Kunden suchen.
  *
- * DIE EINE WEICHE, HINTER DER SICH ZWEI VERSCHIEDENE ZUSAGEN VERBERGEN — und
- * das steht hier, weil es sonst niemand wüsste. Unter Postgres sucht die
- * Datenbank über den ganzen Bestand und findet auch mitten im Wort. Unter
- * Firestore lädt die App die ersten `max` Zeilen und filtert im Browser: was
- * dahinter liegt, ist unauffindbar.
+ * DIE SUCHE LÄUFT IN DER DATENBANK, über den ganzen Bestand, und findet auch
+ * mitten im Wort. Bis zum Umzug lud die App die ersten `max` Zeilen und
+ * filterte im Browser: was dahinter lag, war unauffindbar, und die Ansicht
+ * sagte nichts dazu.
  *
  * Der Unterschied ist der Grund für den Umzug und nicht sein Nebenprodukt.
  */

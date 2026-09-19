@@ -193,7 +193,8 @@ export default function KundenakteView() {
     „die Angebote konnte nicht geladen werden"; unter Firestore kam einfach
     nichts zurück, was wie „noch kein Angebot" aussah. Der Abschnitt hat also
     nie funktioniert, und der Umzug hat aus einer stillen Leere eine sichtbare
-    Meldung gemacht.
+    Meldung gemacht — genau der Grund, aus dem eine verschluckte Antwort
+    schlimmer ist als ein Fehler.
 
     Angebote tragen die Kennung (`QuotesView` setzt sie beim Anlegen aus dem
     gewählten Kunden), also wird danach gesucht.

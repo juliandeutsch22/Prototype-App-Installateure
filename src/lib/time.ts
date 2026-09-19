@@ -24,9 +24,9 @@ import {
 /**
  * Feiertage und Arbeitstage stehen in `shared/feiertage.ts`.
  *
- * Sie werden inzwischen auf BEIDEN Seiten gebraucht: der Browser zeigt beim
- * Urlaubsantrag die Arbeitstage, die Cloud Function schreibt bei der
- * Genehmigung genau diese Tage ins Zeitkonto. Hier stehen sie nur noch als
+ * Sie werden auf BEIDEN Seiten gebraucht: der Browser zeigt beim
+ * Urlaubsantrag die Arbeitstage, die Datenbank schreibt bei der Genehmigung
+ * genau diese Tage ins Zeitkonto (`app.ist_feiertag`, `app.urlaubstage`). Hier stehen sie nur noch als
  * Weiterreichung, damit die vorhandenen Importe unveraendert bleiben.
  */
 export {

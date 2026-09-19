@@ -6,7 +6,7 @@ import { nachsendenJetzt } from '@/lib/db/pg/ohneEmpfang';
  *
  * OHNE DIESE ZEILEN WÄRE DAS AUSGANGSFACH EIN GRAB. Vormerken allein hilft
  * niemandem: die Buchung läge sicher im Gerät und käme nie an. Firestore
- * sendete selbsttätig nach — unter Postgres muss jemand anstossen, und das
+ * sendete selbsttätig nach; seit dem Umzug muss jemand anstossen, und das
  * ist hier.
  *
  * DREI ANLÄSSE, und jeder deckt einen Fall ab, den die anderen nicht sehen:

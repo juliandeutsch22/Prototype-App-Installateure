@@ -2,7 +2,7 @@ import type { Invoice } from '@/types';
 import { belegNummer, lfdNummerVon, PRAEFIX_VORGABE } from './praefixe';
 
 /**
- * Rechnungsnummern — reine Rechenregeln, ohne Firestore.
+ * Rechnungsnummern — reine Rechenregeln, ohne Datenbank.
  *
  * Bewusst ein eigenes Modul: die Vergabe ist der Teil des Rechnungswesens,
  * bei dem ein Fehler nicht auffällt und trotzdem teuer wird (zwei Rechnungen
