@@ -243,6 +243,15 @@ describe('Eine ausgestellte Rechnung ist zu', () => {
       { vat_rate: 0 },
       { reverse_charge: true },
       { leistung_von: '2020-01-01' },
+      /*
+        Seit Stufe 10.2 gehören Art, Abzug und Gesamtleistung dazu. Sie stehen
+        auf dem Beleg, den der Kunde bekommen hat: wer aus einer Anzahlung
+        nachträglich eine Schlussrechnung macht, ändert, was abgezogen werden
+        darf — und die Steuer, die zweimal ausgewiesen ist.
+      */
+      { art: 'schluss' },
+      { vorrechnungen: [] },
+      { gesamt_brutto: 99 },
     ]) {
       const { error } = await buch.client.from('invoices').update(feld).eq('id', r.id);
       expect(error, JSON.stringify(feld)).not.toBeNull();
