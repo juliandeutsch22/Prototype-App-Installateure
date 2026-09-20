@@ -89,6 +89,8 @@ export default function SettingsView() {
   const [uebertrag, setUebertrag] = useState<'verjaehrung' | 'stichtag'>('verjaehrung');
   const [stichtagMonat, setStichtagMonat] = useState('03');
   const [stichtagTag, setStichtagTag] = useState('31');
+  const [beginnMonat, setBeginnMonat] = useState('01');
+  const [beginnTag, setBeginnTag] = useState('01');
   const [uebertragSpeichert, setUebertragSpeichert] = useState(false);
   /*
     DIE VIER VORSÄTZE. Was der Betrieb noch nicht festgelegt hat, kommt aus
@@ -111,6 +113,9 @@ export default function SettingsView() {
     // diese Zeile stünden hier die Vorgaben statt der gespeicherten Vorsätze.
     setVorsaetze(praefixeVon(company));
     setRechnungsarten(company?.rechnungsarten ?? false);
+    const beginn = company?.urlaubJahresbeginn ?? '01-01';
+    setBeginnMonat(beginn.slice(0, 2));
+    setBeginnTag(beginn.slice(3, 5));
     setUebertrag(company?.urlaubUebertrag ?? 'verjaehrung');
     if (company?.urlaubStichtag) {
       const [m, d] = company.urlaubStichtag.split('-');
@@ -230,6 +235,7 @@ export default function SettingsView() {
     setError(null);
     try {
       await updateCompany(user.companyId, {
+        urlaubJahresbeginn: `${beginnMonat}-${beginnTag}`,
         urlaubUebertrag: uebertrag,
         // `null` und nicht weglassen: wer von Stichtag auf Verjährung
         // zurückstellt, muss das alte Datum LOS werden. Ein weggelassenes
@@ -574,7 +580,7 @@ export default function SettingsView() {
       */}
       {darfGenehmigerSetzen && (
         <Card
-          title="Urlaub zum Jahreswechsel"
+          title="Urlaubsjahr und Übertrag"
           hint={
             <>
               Was am 31. Dezember offen ist, verschwindet nicht. Womit der Betrieb rechnet,
@@ -582,6 +588,55 @@ export default function SettingsView() {
             </>
           }
         >
+          {/*
+            DER BEGINN STEHT VOR DEM VERFALL, und das ist keine Anordnung nach
+            Wichtigkeit: der Verfallstag liegt IM Urlaubsjahr. Wo dieses Jahr
+            anfängt, entscheidet, in welchem Kalenderjahr der Verfallstag zu
+            suchen ist. Wer das Zweite einstellt, ohne das Erste gesehen zu
+            haben, stellt es im Blindflug ein.
+
+            BIS ZUM 20.09.2026 GAB ES DIESE ZEILE NICHT. Der Anspruch entstand
+            fest am 1. Jänner — für jeden Betrieb mit einem anderen
+            Urlaubsjahr rechnete die App still falsch.
+          */}
+          <div className="mb-4 flex flex-wrap items-end gap-3 rounded border border-line bg-surface-2 p-4">
+            <SelectField
+              id="urlaubsjahr-tag"
+              label="Urlaubsjahr beginnt am"
+              value={beginnTag}
+              onChange={(e) => setBeginnTag(e.target.value)}
+            >
+              {Array.from(
+                { length: MONATE.find((m) => m[0] === beginnMonat)?.[2] ?? 31 },
+                (_, i) => String(i + 1).padStart(2, '0'),
+              ).map((d) => (
+                <option key={d} value={d}>{Number(d)}.</option>
+              ))}
+            </SelectField>
+            <SelectField
+              id="urlaubsjahr-monat"
+              label="Monat"
+              value={beginnMonat}
+              onChange={(e) => {
+                const m = e.target.value;
+                setBeginnMonat(m);
+                const tage = MONATE.find((x) => x[0] === m)?.[2] ?? 31;
+                if (Number(beginnTag) > tage) setBeginnTag(String(tage));
+              }}
+            >
+              {MONATE.map(([wert, name]) => (
+                <option key={wert} value={wert}>{name}</option>
+              ))}
+            </SelectField>
+            <p className="w-full text-sm text-ink-muted">
+              An diesem Tag entsteht der neue Jahresanspruch. Beim Kalenderjahr — der Vorgabe —
+              ist das der 1. Jänner.{' '}
+              <strong className="text-ink">Nicht abgebildet:</strong> ein Urlaubsjahr, das für
+              jeden Mitarbeiter am Jahrestag seines Eintritts beginnt. Wer so rechnet, kann den
+              Urlaubsteil dieser App nicht verwenden.
+            </p>
+          </div>
+
           <fieldset className="flex flex-col gap-3">
             <legend className="sr-only">Wie Resturlaub übertragen wird</legend>
 

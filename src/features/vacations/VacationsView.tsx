@@ -10,7 +10,14 @@ import {
 import { getUserByUid } from '@/lib/db/users';
 import { darfUrlaubEntscheiden } from '@/lib/permissions';
 import { postenNeuLaden } from '@/app/offenePosten';
-import { todayStr, urlaubsTage, urlaubsStand, uebertragsRegel } from '@/lib/time';
+import {
+  todayStr,
+  urlaubsTage,
+  urlaubsStand,
+  uebertragsRegel,
+  urlaubsJahrVon,
+  JAHRESBEGINN_VORGABE,
+} from '@/lib/time';
 import type { AppUser, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
@@ -158,7 +165,16 @@ export default function VacationsView() {
    * Urlaubstage in der Zeiterfassung. Das sind zwei verschiedene Fragen —
    * „zugesagt" und „gebucht" —, und sie bleiben absichtlich getrennt.
    */
-  const jahr = new Date().getFullYear();
+  /*
+    DAS LAUFENDE URLAUBSJAHR, nicht das laufende Kalenderjahr.
+
+    Beginnt das Urlaubsjahr des Betriebs nicht am 1. Jänner, sind das zwei
+    verschiedene Zahlen — und die Kalenderjahreszahl zeigte im halben Jahr
+    einen Anspruch, der noch gar nicht entstanden ist. Bei der Vorgabe
+    (Kalenderjahr) kommt dieselbe Zahl heraus wie vorher.
+  */
+  const regel = useMemo(() => uebertragsRegel(company), [company]);
+  const jahr = urlaubsJahrVon(todayStr(), regel.jahresbeginn);
   const stand = useMemo(
     () =>
       urlaubsStand(
@@ -173,12 +189,26 @@ export default function VacationsView() {
         eigene
           .filter((v) => v.status === 'Genehmigt')
           .map((v) => ({ von: v.von, tage: v.tage })),
-        uebertragsRegel(company),
+        regel,
       ),
-    [eigene, jahr, profil, company],
+    [eigene, jahr, profil, regel],
   );
   const genommen = stand.genommen;
   const anspruch = stand.anspruch;
+
+  /**
+   * Wie das laufende Urlaubsjahr heisst.
+   *
+   * „In diesem Jahr" ist beim Kalenderjahr eindeutig und sonst nicht: wer im
+   * März liest, sein Anspruch gelte für „dieses Jahr", denkt an 2027 — dabei
+   * läuft bei einem Urlaubsjahr ab Juli noch das von 2026. Deshalb steht der
+   * Zeitraum dann ausgeschrieben da. Beim Kalenderjahr bleibt der Satz, wie
+   * er war; eine zusätzliche Angabe wäre dort nur Lärm.
+   */
+  const jahresName =
+    regel.jahresbeginn === JAHRESBEGINN_VORGABE
+      ? 'In diesem Jahr'
+      : `Im Urlaubsjahr ${jahr}/${String((jahr + 1) % 100).padStart(2, '0')}`;
 
   async function beantragen(e: FormEvent) {
     e.preventDefault();
@@ -406,7 +436,7 @@ export default function VacationsView() {
               Wer eine Woche mit Feiertag nimmt, verbraucht vier Tage, nicht fünf.
             </InfoHint>
             <span className="mt-1 block basis-full text-xs">
-              In diesem Jahr genehmigt: <span className="tnum">{genommen}</span> von{' '}
+              {jahresName} genehmigt: <span className="tnum">{genommen}</span> von{' '}
               <span className="tnum">{anspruch}</span> Tagen
               {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
                   falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
@@ -415,7 +445,7 @@ export default function VacationsView() {
               {stand.ausAnfangsbestand
                 ? ' (Restanspruch beim Umstieg).'
                 : stand.uebertrag > 0
-                  ? `, davon ${stand.uebertrag} aus dem Vorjahr.`
+                  ? `, davon ${stand.uebertrag} aus dem vorigen Urlaubsjahr.`
                   : '.'}
               {/* Verfallene Tage werden GENANNT. Sie lautlos abzuziehen wäre
                   genau die Sorte Zahl, über die sich jemand später beschwert
