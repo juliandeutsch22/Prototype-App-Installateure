@@ -253,6 +253,12 @@ const authWert = {
     id: 'perl',
     name: 'Perl Installationen',
     rates: undefined,
+    /*
+      AB WERK AUS. Die meisten Prüfungen hier beschreiben den Alltag: eine
+      Rechnung aus einer Baustelle. Der Betrieb, der Anzahlungen stellt, ist
+      der Sonderfall und schaltet sie unten ausdrücklich ein.
+    */
+    rechnungsarten: false,
     // Ohne eigene UID ist keine Reverse-Charge-Rechnung vollständig — sie
     // gehört zu den Firmendaten und steht auf jeder Rechnung in der Fusszeile.
     vatId: 'ATU12345678',
@@ -296,6 +302,7 @@ beforeEach(() => {
   imZeitraum = [];
   derBaustelle = [];
   baustellenAbfrageWirft = false;
+  authWert.company.rechnungsarten = false;
   listInvoicesForProject.mockClear();
   listUnpaidInvoices.mockClear();
   listInvoicesInRange.mockClear();
@@ -1584,7 +1591,31 @@ describe('Zahlungen erfassen', () => {
   });
 });
 
+describe('Ohne Anzahlungen bleibt die Maske, wie sie war', () => {
+  it('zeigt gar keine Auswahl der Rechnungsart', async () => {
+    /*
+      DER NORMALFALL, und er ist der häufigste: ein Betrieb, der schlicht
+      Rechnungen stellt. Für ihn darf Stufe 10.2 nicht einmal sichtbar sein.
+    */
+    zeige();
+    await screen.findByRole('combobox', { name: /Baustelle/ });
+    expect(screen.queryByRole('combobox', { name: /Art der Rechnung/ })).toBeNull();
+  });
+
+  it('legt trotzdem eine Einzelrechnung an', async () => {
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).art).toBe('einzel');
+  });
+});
+
 describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
+  // Dieser Betrieb hat die Arten in den Einstellungen eingeschaltet.
+  beforeEach(() => {
+    authWert.company.rechnungsarten = true;
+  });
+
   /** Eine bezahlte Anzahlung über 1.200 € brutto auf derselben Baustelle. */
   const ANZAHLUNG: Invoice & { id: string } = {
     id: 'a1',
@@ -1743,6 +1774,36 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     derBaustelle = [{ ...ANZAHLUNG, art: 'teil', linkedEntries: ['z9'] }];
     await bisZurVorschau('schluss');
     expect(await screen.findByText(/keine Anzahlung, die nicht schon abgezogen wäre/)).toBeTruthy();
+  });
+
+  it('fällt auf die Einzelrechnung zurück, wenn der Betrieb die Arten abdreht', async () => {
+    /*
+      Die Einstellung kann sich ändern, während jemand eine Rechnung
+      vorbereitet — sie kommt aus den Betriebsdaten und nicht aus dieser
+      Maske. Bliebe die Auswahl dann im Zustand stehen, entstünde ein Beleg
+      über eine Einstellung, die es nicht mehr gibt. Deshalb ist die Art
+      ABGELEITET und nicht bloss ausgeblendet.
+    */
+    const { rerender } = zeige();
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: /Baustelle/ }),
+      '2026-042',
+    );
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: /Art der Rechnung/ }),
+      'anzahlung',
+    );
+
+    authWert.company.rechnungsarten = false;
+    rerender(
+      <ToastProvider>
+        <InvoicesView />
+      </ToastProvider>,
+    );
+
+    expect(screen.queryByRole('combobox', { name: /Art der Rechnung/ })).toBeNull();
+    // Der Knopf heisst wieder wie bei einer gewöhnlichen Rechnung.
+    expect(screen.getByRole('button', { name: 'Positionen zusammenstellen' })).toBeTruthy();
   });
 
   it('meldet es, wenn die bisherigen Rechnungen nicht geladen werden konnten', async () => {

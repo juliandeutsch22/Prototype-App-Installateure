@@ -17,6 +17,12 @@ import { anmelden, keineFehlermeldung } from './helfer';
  * prüft den Teil ohnehin schon.
  */
 test.beforeEach(async () => {
+  /*
+    AB WERK OHNE RECHNUNGSARTEN. Der erste Weg unten ist der Alltag: eine
+    Rechnung aus einer Baustelle. Dass die Auswahl dort gar nicht auftaucht,
+    ist Teil der Zusage — der zweite Weg schaltet sie ausdrücklich ein.
+  */
+  await admin.from('companies').update({ rechnungsarten: false }).eq('id', BETRIEB);
   await admin.from('invoices').delete().eq('company_id', BETRIEB);
   await admin.from('time_entries').delete().eq('company_id', BETRIEB);
 
@@ -49,6 +55,12 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page }) =
   // Zwei Baustellen-Auswahlen auf der Seite: die Rechnung und daneben der
   // Zeitraum-Auszug. Gemeint ist die im Kasten „Neue Rechnung aus Baustelle".
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
+  /*
+    UND DIE AUSWAHL DER ART IST GAR NICHT DA. Für einen Betrieb, der keine
+    Anzahlungen stellt, sieht diese Maske aus wie vor Stufe 10.2 — das ist
+    keine Kosmetik, sondern die Zusage, die den Schalter rechtfertigt.
+  */
+  await expect(page.locator('#inv-art')).toHaveCount(0);
   await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
 
   await page.getByRole('button', { name: /Rechnung erstellen/ }).click();
@@ -124,6 +136,9 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page }) =
  * zweimal aus und schuldet sie zweimal (§ 11 Abs 12 UStG).
  */
 test('Erst die Anzahlung, dann die Schlussrechnung mit Abzug', async ({ page }) => {
+  // Dieser Betrieb arbeitet mit Anzahlungen und hat sie eingeschaltet.
+  await admin.from('companies').update({ rechnungsarten: true }).eq('id', BETRIEB);
+
   await anmelden(page, BUERO.email);
   await page.getByRole('link', { name: 'Rechnungen' }).first().click();
 

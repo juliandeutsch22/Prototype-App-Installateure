@@ -3946,6 +3946,67 @@ nicht halb.
 
 ---
 
+### Was aktiv ist und was wartet (Entscheidung vom 20.09.2026)
+
+**Der Anlass.** Der Auftraggeber hat diese Liste gelesen und gesagt, sie mache
+aus einer fast startbereiten Software wieder eine rohe. Er hat damit an einer
+Stelle recht, und es ist die wichtige: **diese Liste war nie ein Startplan,
+sondern eine Vollständigkeitsliste.** Sie sagt, was ein Installateursbetrieb
+irgendwann brauchen könnte — nicht, was Perl am Montag braucht. Eine Liste
+ohne Ende erzeugt zwangsläufig das Gefühl, nie fertig zu werden, und sie
+verleitet dazu, gegen eine Liste zu bauen statt gegen einen Betrieb.
+
+**Was „fertig" ab jetzt heisst** — eine Zahl, kein Gefühl:
+
+> Perl rechnet einen vollen Monat über Senklot ab und braucht Excel kein
+> einziges Mal.
+
+**AKTIV — das ist der Start:**
+
+| Was | Wo es steht |
+| --- | --- |
+| Eine Woche echter Betrieb bei Perl, danach richtet sich alles nach dem, was dabei weh tut | neu, siehe unten |
+| Betriebsbereitschaft: Domain, Versand, Tarif, 2FA, Migrations-Probelauf, Fehler-Tracking, DSGVO-Paket | Stufe 12 |
+| Praxistest auf echten Geräten | 12.z |
+| Der zweite Betrieb in echt, Supportzugang, Datenübernahme | Stufe 13 |
+| Rücklauf einer Sicherung unter Ernstfall-Bedingungen erprobt | neu, siehe unten |
+| Prüfnetz für die vier Edge Functions | offen seit Stufe 9 |
+
+**EINE KORREKTUR DAZU, damit sie nicht untergeht:** beim Aufräumen war die
+erste Vermutung, auch Stufe 12 gehöre auf den Wartestapel. Das war falsch, und
+zwar deutlich. Stufe 12 enthält keine einzige Funktion — sie enthält die
+Bedingungen, ohne die ein Start nicht stattfinden kann. Der kostenlose Tarif
+**pausiert nach sieben Tagen ohne Zugriff**; ohne AV-Vertrag darf ein zweiter
+Betrieb die App gar nicht einsetzen; eine Domain nachträglich zu wechseln
+lässt jede installierte App auf der alten Adresse stehen. Das ist nicht
+Umfang, das ist der Start selbst.
+
+**WARTET — erst, wenn ein Betrieb es verlangt:**
+
+| Was | Warum es wartet |
+| --- | --- |
+| **10.3** Haft- und Deckungsrücklass, Skonto | Niemand hat gesagt, dass Perl Rücklässe vereinbart oder Skonto gewährt. Beides bedeutet eine zusätzliche Zeile auf jeder Rechnung und eine Wiedervorlage nach Jahren |
+| **10.4–10.6** Unternehmer/Verbraucher, UID-Prüfung, Vorratsfelder | Hängen an einer B2B-Praxis, die noch niemand beschrieben hat |
+| **Stufe 11** Arbeitszeitgrenzen, Änderungsprotokoll, Urlaub nach UrlG, Lohnarten | Die Frage nach einer Gleitzeit- oder Durchrechnungsvereinbarung ist seit Wochen gestellt und unbeantwortet. Ohne die Antwort wäre es ein Feature für einen erfundenen Betrieb |
+| **Stufe 14** Abrechnung des Abos | Es gibt niemanden zu verrechnen |
+
+Was hier steht, ist **nicht gestrichen und nicht falsch** — die Überlegungen
+darin sind weiterhin gültig und stehen bereit. Sie sind nur kein Auftrag mehr.
+Wer eine davon wieder aufnimmt, soll das tun, weil ein Betrieb danach gefragt
+hat, und nicht, weil sie auf einer Liste stand.
+
+**Und die Urlaubsfrage, die dabei herauskam** (20.09.2026): beim Einrichten
+fiel auf, dass der Tag, an dem der Urlaubsanspruch ENTSTEHT, fest der
+1. Jänner ist — nicht einstellbar und nirgends erwähnt. Führt ein Betrieb sein
+Urlaubsjahr anders, rechnet die App still falsch. Das ist kein Feature,
+sondern ein stiller Fehler, und deshalb steht es im aktiven Teil (U3/U4).
+Die Grenze dabei: das **Arbeitsjahr je Mitarbeiter** (Jahrestag des Eintritts)
+wird NICHT gebaut — dort bedeutet „das Jahr" für jede Person etwas anderes,
+und die Jahresauswertung verlöre ihren Sinn. Das ist als Grenze benannt und
+nicht halb umgesetzt.
+
+---
+
 ### Die Reihenfolge, und warum sie so ist
 
 Nicht nach Aufwand und nicht nach Vorschriftennähe, sondern danach, **was
@@ -4020,7 +4081,7 @@ Normalfall, und ein Betrag am Beleg könnte nur den letzten festhalten.
   Schlussrechnung fordert 7.000 €, und die Summe der offenen Posten ist zu
   keinem Zeitpunkt grösser als die Gesamtleistung.
 
-#### 10.3 Haft- und Deckungsrücklass, Skonto
+#### 10.3 Haft- und Deckungsrücklass, Skonto — **WARTET** (erst auf Anforderung)
 
 Alle drei mindern **den Zahlungsbetrag, nicht das Entgelt**. Genau daran
 scheitert die naheliegende Umsetzung:
@@ -4039,7 +4100,7 @@ scheitert die naheliegende Umsetzung:
   USt aus, der Mahnlauf mahnt den Rücklass nicht, und drei Jahre später steht
   er als fälliger Posten auf der Startseite.
 
-#### 10.4 Unternehmer oder Verbraucher — und was daran hängt
+#### 10.4 Unternehmer oder Verbraucher — und was daran hängt — **WARTET**
 
 `Customer.istUnternehmer` fehlt, und an dieser einen Angabe hängen drei
 Regeln, die heute alle gleich behandelt werden:
@@ -4062,7 +4123,7 @@ Regeln, die heute alle gleich behandelt werden:
 > die nach der bestehenden Entscheidung ohnehin auf keiner Mahnung steht.**
 > Was bleibt, ist das Kennzeichen am Kunden: ein Feld, drei Wirkungen.
 
-#### 10.5 UID prüfen — und warum VIES die Frage nicht beantwortet
+#### 10.5 UID prüfen — und warum VIES die Frage nicht beantwortet — **WARTET**
 
 Zwei verschiedene Dinge, die leicht verwechselt werden:
 
@@ -4081,7 +4142,7 @@ Zwei verschiedene Dinge, die leicht verwechselt werden:
   Kunden. Eine geprüfte UID als Beleg für Reverse Charge auszugeben wäre eine
   Sicherheit, die nicht besteht.
 
-#### 10.6 Zwei billige Felder jetzt, damit später keine Wanderung nötig ist
+#### 10.6 Zwei billige Felder jetzt, damit später keine Wanderung nötig ist — **WARTET**
 
 `auftragsreferenz` (Bestellnummer des Kunden) und `lieferantennummer`. Beide
 sind in **ebInterface** Pflicht- bzw. Schlüsselfelder. Sie jetzt mitzunehmen
@@ -4090,7 +4151,7 @@ Rechnungen zu wandern.
 
 ---
 
-### Stufe 11 — Arbeitszeit und Urlaub, wie das Gesetz sie verlangt
+### Stufe 11 — Arbeitszeit und Urlaub, wie das Gesetz sie verlangt — **WARTET** (die Frage nach Gleitzeit/Durchrechnung ist unbeantwortet)
 
 #### 11.1 Die Grenzen, die noch fehlen
 
@@ -4155,7 +4216,7 @@ einem Lohnzettel landet, ist schlimmer als keine.
 
 ---
 
-### Stufe 12 — Betriebsbereit (die Stufe ohne sichtbare Funktion)
+### Stufe 12 — Betriebsbereit (die Stufe ohne sichtbare Funktion) — **AKTIV: das ist der Start**
 
 Nichts davon sieht ein Monteur. Alles davon merkt man erst, wenn es fehlt.
 
@@ -4207,7 +4268,7 @@ Mobilfunknetz. Drei Geräte, eine Stunde, ein geschriebenes Ergebnis.
 
 ---
 
-### Stufe 13 — Der zweite Betrieb, in echt
+### Stufe 13 — Der zweite Betrieb, in echt — **AKTIV**
 
 - **Erstanlage im Live-Projekt** einmal ganz durchspielen. Im Code ist der
   schärfste Fall geprüft; die Auslieferung ist es nie.
@@ -4228,7 +4289,7 @@ Mobilfunknetz. Drei Geräte, eine Stunde, ein geschriebenes Ergebnis.
 
 ---
 
-### Stufe 14 — Abrechnung des Abos (erst wenn es jemanden zu verrechnen gibt)
+### Stufe 14 — Abrechnung des Abos — **WARTET** (erst, wenn es jemanden zu verrechnen gibt)
 
 Bewusst **nach** dem zweiten Betrieb. Die ersten Betriebe von Hand zu
 verrechnen kostet eine Stunde im Monat; Stripe zu bauen, bevor das

@@ -9,7 +9,7 @@ import type { AppUser, InvoiceRates } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
-import { InputField, SelectField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
@@ -85,6 +85,7 @@ export default function SettingsView() {
    * type="date">` ein Jahr verlangt — und das Jahr wäre hier eine Lüge: die
    * Regel wiederholt sich jedes Jahr.
    */
+  const [rechnungsarten, setRechnungsarten] = useState(false);
   const [uebertrag, setUebertrag] = useState<'verjaehrung' | 'stichtag'>('verjaehrung');
   const [stichtagMonat, setStichtagMonat] = useState('03');
   const [stichtagTag, setStichtagTag] = useState('31');
@@ -109,6 +110,7 @@ export default function SettingsView() {
     // Der Betrieb kommt womöglich erst nach dem ersten Zeichnen an; ohne
     // diese Zeile stünden hier die Vorgaben statt der gespeicherten Vorsätze.
     setVorsaetze(praefixeVon(company));
+    setRechnungsarten(company?.rechnungsarten ?? false);
     setUebertrag(company?.urlaubUebertrag ?? 'verjaehrung');
     if (company?.urlaubStichtag) {
       const [m, d] = company.urlaubStichtag.split('-');
@@ -264,6 +266,7 @@ export default function SettingsView() {
       const kostenGesetzt = costRates.fach.trim() !== '' && costRates.helper.trim() !== '';
       await updateCompany(user.companyId, {
         rates,
+        rechnungsarten,
         ...(kostenGesetzt
           ? { costRates: { fach: num(costRates.fach, 0), helper: num(costRates.helper, 0) } }
           : {}),
@@ -444,6 +447,32 @@ export default function SettingsView() {
               />
             ))}
           </FormGrid>
+
+          {/*
+            ANZAHLUNGEN SIND NICHT FÜR JEDEN BETRIEB EIN THEMA.
+
+            Die Auswahl „Art der Rechnung" steht sonst in der Maske, in der
+            JEDE Rechnung entsteht — auch die vierhundert im Jahr, die schlicht
+            Rechnungen sind. Wer nie eine Anzahlung stellt, bekäme ein Feld,
+            das er jedes Mal überliest. Deshalb steht der Haken hier und ist
+            ab Werk aus.
+          */}
+          <div className="mt-4 rounded-sm border border-line bg-surface-2 p-4">
+            <CheckboxField
+              id="rechnungsarten"
+              label="Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
+              checked={rechnungsarten}
+              onChange={(e) => setRechnungsarten(e.target.checked)}
+            />
+            <p className="mt-2 text-sm text-ink-muted">
+              Dann steht beim Anlegen einer Rechnung die Art zur Wahl, und die Schlussrechnung
+              zieht die Anzahlungen samt Umsatzsteuer wieder ab — ohne diesen Abzug wäre dieselbe
+              Steuer zweimal ausgewiesen und zweimal geschuldet (§ 11 Abs 12 UStG).{' '}
+              <strong>Bereits ausgestellte Belege bleiben, wie sie sind:</strong> sie behalten ihre
+              Art und ihre Abzüge und drucken unverändert, auch wenn der Haken später wieder
+              weggeht.
+            </p>
+          </div>
         </Card>
 
         {/*

@@ -137,6 +137,19 @@ export interface Company {
    * warf die App den Rest am 1. Jänner weg. Das als dritte Wahlmöglichkeit
    * anzubieten hiesse, einen Fehler zur Einstellung zu erklären.
    */
+  /**
+   * Zeigt beim Anlegen einer Rechnung die Auswahl Anzahlung / Teil / Schluss.
+   *
+   * AUS IST DIE VORGABE. Die Auswahl steht in der Maske, in der jede Rechnung
+   * dieses Betriebs entsteht — auch die vierhundert im Jahr, die schlicht
+   * Rechnungen sind. Ein Betrieb, der nie eine Anzahlung stellt, bekäme ein
+   * Feld, das er jedes Mal überliest.
+   *
+   * Bereits ausgestellte Belege bleiben unberührt: sie behalten ihre Art,
+   * ihre Abzüge und ihre Gesamtleistung und drucken unverändert, auch wenn
+   * der Betrieb die Arten später wieder abdreht.
+   */
+  rechnungsarten?: boolean;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
   /** 'MM-DD'. Nur bei `urlaubUebertrag === 'stichtag'` gesetzt. */
   urlaubStichtag?: string | null;

@@ -162,7 +162,7 @@ export default function InvoicesView() {
     aus Zeiteinträgen, es gibt noch keine. Nachträglich umzustellen hiesse,
     die Positionen unter der Hand auszutauschen.
   */
-  const [art, setArt] = useState<RechnungsArt>('einzel');
+  const [artWahl, setArtWahl] = useState<RechnungsArt>('einzel');
   /** Rechnungen dieser Baustelle, die sich noch abziehen lassen. */
   const [abzugsfaehig, setAbzugsfaehig] = useState<WithId<Invoice>[]>([]);
   const [gewaehlteAbzuege, setGewaehlteAbzuege] = useState<string[]>([]);
@@ -823,7 +823,7 @@ export default function InvoicesView() {
       setDiscount({ mode: 'percent', value: '', label: '' });
       setReverseCharge(false);
       setKundenUid('');
-      setArt('einzel');
+      setArtWahl('einzel');
       setAbzugsfaehig([]);
       setGewaehlteAbzuege([]);
       toast.success(`Rechnung ${reserved} erstellt`);
@@ -1016,6 +1016,18 @@ export default function InvoicesView() {
     () => (preview ? mitAbzug(preview, abzuege) : null),
     [preview, abzuege],
   );
+
+  /**
+   * Stellt dieser Betrieb überhaupt Anzahlungen und Teilrechnungen?
+   *
+   * Ist der Haken aus, gibt es die Auswahl nicht — und damit auch keine
+   * andere Art als die Einzelrechnung. ABGELEITET und nicht bloss
+   * ausgeblendet: dreht jemand die Einstellung ab, während hier eine
+   * Schlussrechnung vorbereitet wird, entstünde sonst ein Beleg über eine
+   * Einstellung, die es nicht mehr gibt.
+   */
+  const artWaehlbar = !!company?.rechnungsarten;
+  const art: RechnungsArt = artWaehlbar ? artWahl : 'einzel';
 
   /** Abgezogen wird nur, wo es etwas abzuziehen gibt. */
   const zieheAb = art === 'teil' || art === 'schluss';
@@ -1410,13 +1422,14 @@ export default function InvoicesView() {
             entscheidet, woraus die Positionen entstehen. Eine Anzahlung kommt
             nicht aus Zeiteinträgen — es gibt noch keine.
           */}
+          {artWaehlbar && (
           <div className="sm:w-56">
             <SelectField
               id="inv-art"
               label="Art der Rechnung"
               value={art}
               onChange={(e) => {
-                setArt(e.target.value as RechnungsArt);
+                setArtWahl(e.target.value as RechnungsArt);
                 setPreview(null);
                 setGewaehlteAbzuege([]);
                 setError(null);
@@ -1428,6 +1441,7 @@ export default function InvoicesView() {
               <option value="schluss">Schlussrechnung (zieht Anzahlungen ab)</option>
             </SelectField>
           </div>
+          )}
           <Button onClick={buildPreview} loading={busy && !preview} disabled={!projectNumber}>
             {art === 'anzahlung' ? 'Anzahlung vorbereiten' : 'Positionen zusammenstellen'}
           </Button>
