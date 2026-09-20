@@ -53,6 +53,8 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   projects: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   quotes: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   rabattsaetze: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  support_freigaben: { created_at: 'zeitpunkt', gilt_bis: 'zeitpunkt', widerrufen_am: 'zeitpunkt' },
+  support_zugriffe: { wann: 'zeitpunkt' },
   suppliers: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   system_laeufe: { updated_at: 'zeitpunkt', zuletzt_erfolg: 'zeitpunkt', zuletzt_versuch: 'zeitpunkt' },
   time_entries: { created_at: 'zeitpunkt', end_time: 'uhrzeit', start_time: 'uhrzeit', updated_at: 'zeitpunkt' },

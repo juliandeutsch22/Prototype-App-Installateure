@@ -83,7 +83,11 @@ const CHEFIN = {
   user: { uid: 'g1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as const },
   company: { id: 'perl', name: 'Perl Installationen' },
 };
-let authWert: typeof VERWALTUNG | typeof CHEFIN = VERWALTUNG;
+const ADMIN = {
+  user: { uid: 'a1', companyId: 'perl', name: 'Admin', role: 'Administrator' as const },
+  company: { id: 'perl', name: 'Perl Installationen' },
+};
+let authWert: typeof VERWALTUNG | typeof CHEFIN | typeof ADMIN = VERWALTUNG;
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 // Der Katalogimport hat einen eigenen Test; hier zählt nur, ob es ihn gibt.
@@ -287,5 +291,18 @@ describe('Wer den Katalog einspielen darf', () => {
     zeige();
     await userEvent.click(await screen.findByRole('tab', { name: 'Katalog einspielen' }));
     expect(await screen.findByText('Katalog einspielen (Inhalt)')).toBeInTheDocument();
+  });
+
+  it('zeigt ihn auch der Administration', async () => {
+    /*
+      SIE IST DIE ROLLE, DIE DEN BETRIEB EINRICHTET — und der Katalogimport ist
+      Einrichtung. Dieselbe Grenze zieht die Datenbank (`app.ist_spitze()`
+      umfasst Geschäftsführung UND Administration); stünde hier nur die
+      Geschäftsführung, hätte die Administration ein Recht, das sie nicht
+      erreichen kann.
+    */
+    authWert = ADMIN;
+    zeige();
+    expect(await screen.findByRole('tab', { name: 'Katalog einspielen' })).toBeInTheDocument();
   });
 });

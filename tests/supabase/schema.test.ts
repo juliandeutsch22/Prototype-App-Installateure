@@ -83,7 +83,19 @@ describe('Zeilenschutz', () => {
            select 1 from information_schema.columns col
             where col.table_schema = 'public' and col.table_name = p.tablename
               and col.column_name = 'company_id')
+         -- Drei Namen gelten, und alle drei nehmen die company_id DER ZEILE
+         -- entgegen: app.darf (der Regelfall), app.betriebsmitglied (die
+         -- strengere Haelfte davon, ohne den Supportzweig -- sie steht dort,
+         -- wo eine Regel auf app.darf zurueckfragen wuerde und sich im Kreis
+         -- drehte) und app.support_liest (der Supportzweig allein, gebunden
+         -- an eine gueltige Freigabe DIESES Betriebs).
+         --
+         -- Was hier NICHT stehen darf, ist app.ist_plattform(): das prueft
+         -- das Konto und nicht die Zeile -- und waere damit genau die offene
+         -- Richtlinie, die dieser Test sucht.
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.darf%'
+         and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.betriebsmitglied%'
+         and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.support_liest%'
        order by 1, 2
     `);
     expect(offen.map((r) => `${r.tabelle}.${r.richtlinie}`)).toEqual([]);
@@ -122,6 +134,39 @@ describe('Zeilenschutz', () => {
            select 1 from pg_trigger t
             where t.tgrelid = c.oid and not t.tgisinternal
               and pg_get_triggerdef(t.oid) like '%betrieb_unveraenderlich%')
+       order by 1
+    `);
+    expect(ohneRiegel.map((r) => r.tabelle)).toEqual([]);
+  });
+
+  it('lässt einen Supportzugang nirgends schreiben', async () => {
+    /*
+      DIESELBE BAUART WIE DER BETRIEBSRIEGEL DARÜBER, und aus demselben Grund:
+      die meisten Schreibregeln verlangen ohnehin eine Rolle, und ein
+      Plattformkonto hat keine. „Die meisten" ist aber keine Zusage. EINE
+      Regel, die zum Schreiben nur `app.darf` prüft, machte aus dem Lesezugang
+      einen Schreibzugang — unbemerkt, weil nichts scheitert.
+
+      Zwei Tabellen stehen absichtlich nicht in der Liste: das Protokoll
+      entsteht gerade durch den Supportzugang, und die Freigaben muss der
+      Notzugang schreiben können. Beide sind einzeln geregelt und in
+      `supportzugang.test.ts` einzeln geprüft.
+    */
+    const { rows: ohneRiegel } = await db.query<{ tabelle: string }>(`
+      select c.relname as tabelle
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public'
+         and c.relkind = 'r'
+         and c.relname not in ('support_zugriffe', 'support_freigaben')
+         and exists (
+           select 1 from information_schema.columns col
+            where col.table_schema = 'public' and col.table_name = c.relname
+              and col.column_name = 'company_id')
+         and not exists (
+           select 1 from pg_trigger t
+            where t.tgrelid = c.oid and not t.tgisinternal
+              and t.tgfoid = 'app.support_schreibt_nicht'::regproc)
        order by 1
     `);
     expect(ohneRiegel.map((r) => r.tabelle)).toEqual([]);
