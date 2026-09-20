@@ -144,3 +144,37 @@ describe('Interne Kostensätze', () => {
     expect(screen.queryByText(/Noch nicht hinterlegt/)).not.toBeInTheDocument();
   });
 });
+
+describe('Anzahlungen und Teilrechnungen', () => {
+  it('sind ab Werk aus — der Haken ist leer', async () => {
+    /*
+      Die Auswahl „Art der Rechnung" steht sonst in der Maske, in der JEDE
+      Rechnung entsteht. Wer nie eine Anzahlung stellt, soll dort kein Feld
+      bekommen, das er jedes Mal überliest.
+    */
+    zeige();
+    expect(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen').checked).toBe(false);
+  });
+
+  it('gehen mit dem Speichern der Sätze mit', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen'));
+    await nutzer.click(screen.getByRole('button', { name: 'Sätze speichern' }));
+
+    expect(updateCompany.mock.calls[0][1]).toMatchObject({ rechnungsarten: true });
+  });
+
+  it('zeigen den eingeschalteten Zustand des Betriebs', async () => {
+    firma = { id: 'perl', name: 'Perl Installationen', rechnungsarten: true };
+    zeige();
+    expect(feld('Wir stellen Anzahlungs-, Teil- und Schlussrechnungen').checked).toBe(true);
+  });
+
+  it('sagen, dass bestehende Belege unberührt bleiben', async () => {
+    // Ohne diesen Satz sähe das Abdrehen aus, als würde es an ausgestellten
+    // Rechnungen etwas ändern — und niemand traut sich, es zu probieren.
+    zeige();
+    expect(screen.getByText(/Bereits ausgestellte Belege bleiben, wie sie sind/)).toBeInTheDocument();
+  });
+});

@@ -246,6 +246,31 @@ export async function listInvoicesInRange(companyId: string, von: string, bis: s
 }
 
 /**
+ * Alle Rechnungen EINER BAUSTELLE — ohne Zeitgrenze und ohne Statusfilter.
+ *
+ * Gebraucht für den Abzug auf der Schlussrechnung: abgezogen wird eine
+ * Anzahlung, die der Kunde längst BEZAHLT hat. Sie steht damit weder in den
+ * offenen Posten noch verlässlich in der Liste der jüngsten Rechnungen — bei
+ * einer Baustelle über vier Monate liegen Dutzende andere dazwischen. Ohne
+ * diese Abfrage stünde die eine Rechnung, um die es geht, nicht zur Auswahl.
+ *
+ * Nach mehreren SCHREIBWEISEN gesucht, wie bei den Zeiteinträgen: Altbestände
+ * schreiben die Nummer mal mit, mal ohne „PR-".
+ */
+export async function listInvoicesForProject(
+  companyId: string,
+  projectNumber: string,
+): Promise<WithId<Invoice>[]> {
+  const blank = (projectNumber ?? '').trim().replace(/^PR-/i, '');
+  if (!blank) return [];
+  const formen = [...new Set([projectNumber.trim(), blank, `PR-${blank}`])];
+  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+    wo: [{ art: 'in', feld: 'projectNumber', werte: formen }],
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/**
  * Reserviert eine Rechnungsnummer verbindlich.
  *
  * Die Transaktion, die in der Firestore-Fassung von Hand geschrieben war,
@@ -282,11 +307,37 @@ export async function reserveInvoiceNumber(
 
 export type NewInvoice = Omit<Invoice, 'id' | 'companyId' | 'createdAt'>;
 
+/**
+ * Ein leeres Datumsfeld ist NICHT angegeben, nicht „der 1. Jänner".
+ *
+ * In der App heisst „nicht angegeben" ein Leerstring — so gibt es ein
+ * `<input type="date">` ein leeres Feld heraus, und so steht es im Zustand
+ * der Ansicht. Eine Datumsspalte kennt dafür nur NULL; `""` weist Postgres
+ * mit „invalid input syntax for type date" ab.
+ *
+ * WAS OHNE DIESE UMSETZUNG PASSIERTE: eine Rechnung ohne Leistungszeitraum
+ * liess sich gar nicht anlegen — und sie scheiterte an der SCHLECHTESTEN
+ * Stelle, nämlich nachdem die Nummer verbindlich gezogen und die Belege
+ * gesperrt waren. Zurück blieben eine verbrauchte Nummer und Zeiteinträge,
+ * die auf eine Rechnung verwiesen, die es nicht gibt. Aufgefallen ist es an
+ * der Anzahlung, die nie einen Leistungszeitraum hat; zu treffen war es aber
+ * schon vorher — das Feld ist änderbar, und der fehlende Zeitraum wird nur
+ * gemeldet, nicht erzwungen.
+ */
+function leerAlsNull(wert: string | undefined): string | null | undefined {
+  return wert === '' ? null : wert;
+}
+
 export async function createInvoice(companyId: string, inv: NewInvoice): Promise<string> {
   void companyId;
   const {
-    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, ...kopf
+    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, ...roh
   } = inv;
+  const kopf = {
+    ...roh,
+    leistungVon: leerAlsNull(roh.leistungVon),
+    leistungBis: leerAlsNull(roh.leistungBis),
+  };
 
   const belege: Record<string, string[]> = {};
   for (const [art, feld] of ABDECKUNGSARTEN) {

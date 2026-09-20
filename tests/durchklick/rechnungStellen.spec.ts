@@ -17,6 +17,12 @@ import { anmelden, keineFehlermeldung } from './helfer';
  * prüft den Teil ohnehin schon.
  */
 test.beforeEach(async () => {
+  /*
+    AB WERK OHNE RECHNUNGSARTEN. Der erste Weg unten ist der Alltag: eine
+    Rechnung aus einer Baustelle. Dass die Auswahl dort gar nicht auftaucht,
+    ist Teil der Zusage — der zweite Weg schaltet sie ausdrücklich ein.
+  */
+  await admin.from('companies').update({ rechnungsarten: false }).eq('id', BETRIEB);
   await admin.from('invoices').delete().eq('company_id', BETRIEB);
   await admin.from('time_entries').delete().eq('company_id', BETRIEB);
 
@@ -49,6 +55,12 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page }) =
   // Zwei Baustellen-Auswahlen auf der Seite: die Rechnung und daneben der
   // Zeitraum-Auszug. Gemeint ist die im Kasten „Neue Rechnung aus Baustelle".
   await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
+  /*
+    UND DIE AUSWAHL DER ART IST GAR NICHT DA. Für einen Betrieb, der keine
+    Anzahlungen stellt, sieht diese Maske aus wie vor Stufe 10.2 — das ist
+    keine Kosmetik, sondern die Zusage, die den Schalter rechtfertigt.
+  */
+  await expect(page.locator('#inv-art')).toHaveCount(0);
   await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
 
   await page.getByRole('button', { name: /Rechnung erstellen/ }).click();
@@ -107,6 +119,96 @@ test('Das Büro stellt aus der gebuchten Zeit eine Rechnung', async ({ page }) =
     expect(data!.payment_status).toBe('Teilbezahlt');
     expect(Number(data!.bezahlt_betrag)).toBe(haelfte);
   }).toPass({ timeout: 25_000 });
+
+  await keineFehlermeldung(page);
+});
+
+
+/**
+ * Anzahlung zuerst, Schlussrechnung danach — der lange Weg einer Baustelle.
+ *
+ * WARUM DAS IM ECHTEN BROWSER STEHT UND NICHT NUR IM ANSICHTSTEST: hier
+ * hängen drei Dinge aneinander, die jeweils einzeln geprüft sind und nur
+ * zusammen die Steuerfalle vermeiden. Die Anzahlung darf keine Belege
+ * verbrauchen, die Schlussrechnung muss sie zur Auswahl bekommen (aus einer
+ * eigenen Abfrage, nicht aus der geladenen Liste), und die Datenbank muss die
+ * Rechnung nachrechnen. Bricht eines davon, weist der Betrieb dieselbe Steuer
+ * zweimal aus und schuldet sie zweimal (§ 11 Abs 12 UStG).
+ */
+test('Erst die Anzahlung, dann die Schlussrechnung mit Abzug', async ({ page }) => {
+  // Dieser Betrieb arbeitet mit Anzahlungen und hat sie eingeschaltet.
+  await admin.from('companies').update({ rechnungsarten: true }).eq('id', BETRIEB);
+
+  await anmelden(page, BUERO.email);
+  await page.getByRole('link', { name: 'Rechnungen' }).first().click();
+
+  // --- Die Anzahlung: ein Betrag, keine Stunden.
+  await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
+  await page.locator('#inv-art').selectOption('anzahlung');
+  await page.getByRole('button', { name: 'Anzahlung vorbereiten' }).click();
+
+  /*
+    Klein gewählt, und das ist keine Willkür: die gebuchten achteinhalb
+    Stunden sind die ganze Leistung dieser Baustelle. Läge die Anzahlung
+    darüber, ginge die Schlussrechnung ins Minus — eine Gutschrift, die es
+    hier nicht gibt und die die App zu Recht abweist.
+  */
+  await page.getByLabel('Einzelpreis Position 1').fill('100');
+  await page.getByRole('button', { name: /Rechnung erstellen/ }).click();
+
+  await expect(async () => {
+    const { data } = await admin
+      .from('invoices').select('id, art, total_brutto').eq('company_id', BETRIEB);
+    expect(data ?? []).toHaveLength(1);
+    expect((data ?? [])[0].art).toBe('anzahlung');
+    expect(Number((data ?? [])[0].total_brutto)).toBe(120);
+  }).toPass({ timeout: 25_000 });
+
+  /*
+    UND SIE HAT NICHTS GESPERRT. Das ist die Bedingung für den Abzug: hätte
+    sie die Stunden mitgenommen, stünden sie in der Schlussrechnung nicht mehr
+    — und der Abzug zöge sie ein zweites Mal ab.
+  */
+  const { data: zeiten } = await admin
+    .from('time_entries').select('is_billed').eq('company_id', BETRIEB);
+  expect((zeiten ?? [])[0].is_billed).not.toBe(true);
+
+  // --- Die Schlussrechnung: die ganze Leistung, abzüglich der Anzahlung.
+  await page.locator('#invproj').selectOption(BAUSTELLE.nummer);
+  await page.locator('#inv-art').selectOption('schluss');
+  await page.getByRole('button', { name: 'Positionen zusammenstellen' }).click();
+
+  await page.getByRole('checkbox', { name: /brutto \(davon/ }).check();
+  await expect(page.getByText('Restforderung brutto')).toBeVisible();
+
+  await page.getByRole('button', { name: /Rechnung erstellen/ }).click();
+
+  await expect(async () => {
+    const { data } = await admin
+      .from('invoices')
+      .select('art, total_brutto, gesamt_brutto, vorrechnungen')
+      .eq('company_id', BETRIEB)
+      .eq('art', 'schluss');
+    expect(data ?? []).toHaveLength(1);
+    const r = (data ?? [])[0];
+    expect((r.vorrechnungen as unknown[]) ?? []).toHaveLength(1);
+    // Gefordert wird der Rest, ausgewiesen die ganze Leistung.
+    expect(Number(r.gesamt_brutto) - Number(r.total_brutto)).toBe(120);
+  }).toPass({ timeout: 25_000 });
+
+  /*
+    UND DIE SUMME DER FORDERUNGEN IST NIE GRÖSSER ALS DIE LEISTUNG. Das ist
+    die Zahl, an der es auffiele, wenn die Schlussrechnung die Anzahlung nicht
+    abzöge: der Betrieb forderte dann mehr, als er geleistet hat.
+  */
+  const { data: alle } = await admin
+    .from('invoices').select('total_brutto, gesamt_brutto').eq('company_id', BETRIEB);
+  const gefordert = (alle ?? []).reduce((sum, r) => sum + Number(r.total_brutto), 0);
+  const leistung = (alle ?? []).reduce(
+    (groesstes, r) => Math.max(groesstes, Number(r.gesamt_brutto ?? r.total_brutto)),
+    0,
+  );
+  expect(gefordert).toBeLessThanOrEqual(leistung);
 
   await keineFehlermeldung(page);
 });

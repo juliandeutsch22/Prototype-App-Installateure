@@ -112,6 +112,27 @@ export function rechneBaustelle(
   const eigene = invoices.filter(
     (i) => normProjectNumber(i.projectNumber) === pn && i.paymentStatus !== 'Storniert',
   );
+  /*
+    ANZAHLUNG UND SCHLUSSRECHNUNG WERDEN SCHLICHT ADDIERT — und das ist kein
+    Versehen, sondern der Grund, warum `total_netto` seit Stufe 10.2 die
+    RESTFORDERUNG ist und nicht die Gesamtleistung.
+
+    Eine Anzahlung über 1.000 € und eine Schlussrechnung über 3.000 €
+    Gesamtleistung ergeben zusammen 3.000 €: die Schlussrechnung trägt in
+    `totalNetto` nur die 2.000 €, die sie noch fordert. Stünde dort die volle
+    Leistung, zählte diese Summe 4.000 € — die Baustelle sähe um ein Drittel
+    einträglicher aus, als sie ist, und zwar in der teuersten Richtung.
+
+    `gesamtNetto` wird hier deshalb bewusst NICHT gelesen. Es steht auf dem
+    Beleg und gehört in keine Summe.
+
+    WAS DIESE ZAHL MITTEN IM PROJEKT TROTZDEM NICHT SAGT: eine Anzahlung ist
+    verrechnet, aber noch nicht verdient. Solange die Baustelle läuft, steht
+    ihr Betrag hier als Erlös, während die Kosten dafür erst entstehen — der
+    Deckungsbeitrag sieht dann besser aus, als er ist. Am Ende stimmt er; bis
+    dahin ist er eine Momentaufnahme und keine Bilanz. Das war schon bei
+    Teilrechnungen so und ist mit der Anzahlung deutlicher geworden.
+  */
   let erloes = 0;
   let erloesQuelle: Nachkalkulation['erloesQuelle'] = 'unbekannt';
   if (eigene.length > 0) {

@@ -45,6 +45,12 @@ export function listInvoicesInRange(
   return pg.listInvoicesInRange(companyId, von, bis);
 }
 
+export function listInvoicesForProject(
+  companyId: string, projectNumber: string,
+): Promise<WithId<Invoice>[]> {
+  return pg.listInvoicesForProject(companyId, projectNumber);
+}
+
 export function reserveInvoiceNumber(
   companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string },
 ): Promise<string> {

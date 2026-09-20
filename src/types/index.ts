@@ -137,6 +137,19 @@ export interface Company {
    * warf die App den Rest am 1. Jänner weg. Das als dritte Wahlmöglichkeit
    * anzubieten hiesse, einen Fehler zur Einstellung zu erklären.
    */
+  /**
+   * Zeigt beim Anlegen einer Rechnung die Auswahl Anzahlung / Teil / Schluss.
+   *
+   * AUS IST DIE VORGABE. Die Auswahl steht in der Maske, in der jede Rechnung
+   * dieses Betriebs entsteht — auch die vierhundert im Jahr, die schlicht
+   * Rechnungen sind. Ein Betrieb, der nie eine Anzahlung stellt, bekäme ein
+   * Feld, das er jedes Mal überliest.
+   *
+   * Bereits ausgestellte Belege bleiben unberührt: sie behalten ihre Art,
+   * ihre Abzüge und ihre Gesamtleistung und drucken unverändert, auch wenn
+   * der Betrieb die Arten später wieder abdreht.
+   */
+  rechnungsarten?: boolean;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
   /** 'MM-DD'. Nur bei `urlaubUebertrag === 'stichtag'` gesetzt. */
   urlaubStichtag?: string | null;
@@ -801,6 +814,45 @@ export interface Assignment {
 }
 
 /** invoices/{id} */
+/**
+ * Was eine Rechnung IST — und nicht bloss, wie sie heisst.
+ *
+ * `einzel` ist die ganze Leistung auf einem Beleg: der Normalfall beim
+ * Notdiensteinsatz. Die anderen drei gehören zu einer Baustelle, die über
+ * Monate läuft:
+ *
+ *   anzahlung  vor der Leistung, auf die künftige Leistung
+ *   teil       nach einem abgeschlossenen Bauabschnitt
+ *   schluss    zum Schluss — und sie MUSS die vorher verrechneten
+ *              Teilentgelte samt Steuer abziehen (§ 11 Abs 12 UStG)
+ *
+ * WARUM DAS EIN FELD IST UND KEIN TEXT IM BETREFF: an der Art hängt, ob die
+ * Schlussrechnung abziehen muss und ob die Nachkalkulation den Erlös doppelt
+ * zählt. Beides lässt sich einer Überschrift nicht ansehen.
+ */
+export type RechnungsArt = 'einzel' | 'anzahlung' | 'teil' | 'schluss';
+
+/**
+ * Eine abgezogene Vorrechnung, wie sie auf der Schlussrechnung steht.
+ *
+ * KOPIE, KEIN VERWEIS — aus demselben Grund wie die Positionen: der Abzug
+ * muss auch dann noch so auf dem Beleg stehen, wie der Kunde ihn bekommen
+ * hat, wenn die abgezogene Rechnung später storniert wird.
+ *
+ * `netto`, `vat` und `brutto` sind die Beträge der ABGEZOGENEN Rechnung,
+ * positiv aufgeschrieben. Abgezogen werden sie beim Rechnen; ein negatives
+ * Vorzeichen zusätzlich im Feld wäre eine Verneinung zu viel.
+ */
+export interface Vorrechnung {
+  /** Kennung der abgezogenen Rechnung — daran hängt die Prüfung auf Doppelabzug. */
+  invoiceId: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  netto: number;
+  vat: number;
+  brutto: number;
+}
+
 export interface Invoice {
   id: string;
   companyId: string;
@@ -809,9 +861,33 @@ export interface Invoice {
   customerName: string;
   invoiceDate: string;
   dueDate: string;
+  /**
+   * Was DIESE Rechnung fordert — nicht, was die Baustelle insgesamt kostet.
+   *
+   * Bei einer Schlussrechnung ist das der Rest nach Abzug der Teilentgelte.
+   * Daran hängen die offenen Posten, der Mahnlauf und der Zahlungsstand, und
+   * die dürfen nicht die volle Leistung ansetzen, von der drei Viertel längst
+   * verrechnet und bezahlt sind. Die volle Leistung steht in `gesamt*`.
+   */
   totalNetto: number;
   totalVat: number;
   totalBrutto: number;
+  /** Fehlt bei Altbestand — der ist durchwegs `einzel`, so wie die Vorgabe. */
+  art?: RechnungsArt;
+  /**
+   * Die abgezogenen Vorrechnungen. Nur bei einer Schluss- oder Teilrechnung
+   * belegt; sonst gar nicht da.
+   */
+  vorrechnungen?: Vorrechnung[];
+  /**
+   * Die GESAMTE Leistung der Baustelle, vor Abzug der Vorrechnungen.
+   *
+   * Steht nur auf einer Rechnung, die abzieht — sonst wäre sie dasselbe wie
+   * `total*` und damit eine zweite Wahrheit über dieselbe Zahl.
+   */
+  gesamtNetto?: number;
+  gesamtVat?: number;
+  gesamtBrutto?: number;
   /**
    * Positionen zum Zeitpunkt der Rechnungslegung. Eine Rechnung ist ein
    * Dokument, kein Blick auf die aktuellen Daten: würde man sie später aus
