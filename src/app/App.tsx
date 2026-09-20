@@ -56,6 +56,7 @@ const AccountingView = lazy(() => import('@/features/accounting/AccountingView')
 const UserMgmtView = lazy(() => import('@/features/users/UserMgmtView'));
 const BenutzerakteView = lazy(() => import('@/features/users/BenutzerakteView'));
 const SettingsView = lazy(() => import('@/features/settings/SettingsView'));
+const KontenrahmenView = lazy(() => import('@/features/settings/KontenrahmenView'));
 const FirmendatenView = lazy(() => import('@/features/settings/FirmendatenView'));
 const NotificationSettings = lazy(() => import('@/features/settings/NotificationSettings'));
 
@@ -307,6 +308,7 @@ function AppRoutes() {
                 meldungen: <NotificationSettings />,
                 firma: <FirmendatenView />,
                 saetze: <SettingsView />,
+                konten: <KontenrahmenView />,
                 module: <ModulesView />,
                 sicherung: <SicherungView />,
               }}

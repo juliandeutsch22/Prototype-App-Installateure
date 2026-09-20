@@ -38,6 +38,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   */
   ausleitung_dateien: { gesichert_am: 'zeitpunkt' },
   betriebsanlagen: { angelegt_am: 'zeitpunkt' },
+  buchungskonten: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   companies: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   customers: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   datanorm_laeufe: { abgeschlossen_am: 'zeitpunkt', created_at: 'zeitpunkt' },

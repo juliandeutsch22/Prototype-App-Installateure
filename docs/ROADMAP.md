@@ -3971,7 +3971,7 @@ verleitet dazu, gegen eine Liste zu bauen statt gegen einen Betrieb.
 | Der zweite Betrieb in echt, Supportzugang, Datenübernahme | Stufe 13 |
 | Rücklauf einer Sicherung unter Ernstfall-Bedingungen erprobt | neu, siehe unten |
 | Prüfnetz für die vier Edge Functions | offen seit Stufe 9 |
-| **Schnittstellen zum Umfeld: DATANORM eingespielt — BMD offen** | Stufe 16, siehe unten |
+| **Schnittstellen zum Umfeld: DATANORM und BMD stehen — beide warten auf echte Daten** | Stufe 16, siehe unten |
 
 **EINE KORREKTUR DAZU, damit sie nicht untergeht:** beim Aufräumen war die
 erste Vermutung, auch Stufe 12 gehöre auf den Wartestapel. Das war falsch, und
@@ -4011,7 +4011,7 @@ Artikelnummer noch eine Katalognummer. Dafür gibt es jetzt eine Erkennung,
 die die Übernahme sperrt; ob sie beim ersten echten Katalog anschlägt oder
 nicht, sagt erst dieser Katalog.
 
-**16.2 BMD NTCS — der Weg zum Steuerberater — OFFEN**
+**16.2 BMD NTCS — der Weg zum Steuerberater — FERTIG (20.09.2026)**
 
 Das Format ist der leichte Teil: `Sollkonto;Habenkonto;Belegdatum;
 Belegnummer;Buchungstext;Betrag;Steuercode`. Der schwere Teil sind die
@@ -4019,10 +4019,22 @@ KONTEN. Welches Erlöskonto für 20 %, welches für Reverse Charge, welcher
 Debitorennummernkreis, auf welches Konto erhaltene Anzahlungen — das sind
 Zahlen DIESES Betriebs und seines Steuerberaters, keine allgemeingültigen.
 
-Entschieden am 20.09.2026: sie kommen **als Betriebseinstellung**, pflegbar
-von Administrator, Geschäftsführung und Buchhaltung. Eine Vorbelegung gibt es,
-sie wird aber als VORSCHLAG gekennzeichnet und nicht als Tatsache — eine
-falsch kontierte Ausleitung fällt frühestens beim Jahresabschluss auf.
+Entschieden und gebaut am 20.09.2026: sie stehen **als Betriebseinstellung**
+unter Einstellungen → Kontenrahmen, gepflegt von Administrator,
+Geschäftsführung und Buchhaltung. Der Einheitskontenrahmen lässt sich als
+VORSCHLAG einsetzen und ist ausdrücklich keine Vorbelegung — wer eine
+Vorbelegung stehen lässt, bucht ein Jahr lang auf Konten, die er nie geprüft
+hat.
+
+Der Stapel selbst steht neben dem Rechnungsausgangsbuch in der
+Rechnungsansicht. **Fehlt ein Konto, entsteht keine Datei**, sondern eine
+Liste dessen, was fehlt: ein Stapel mit Lücken importiert sich fehlerfrei und
+bucht einen zu niedrigen Umsatz. Die Einzelheiten stehen in
+`docs/FUNKTIONEN.md` unter **Rechnungen**.
+
+**OFFEN BLEIBT DIE ABNAHME DURCH DIE KANZLEI.** Die Buchungslogik ist
+geprüft, die Kontonummern sind es nicht — sie kommen aus den Einstellungen
+und damit vom Betrieb. Der erste Stapel gehört vor dem Import angesehen.
 
 **16.3 DATEV — GESTRICHEN, nicht verschoben**
 
