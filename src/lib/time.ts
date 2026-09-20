@@ -57,6 +57,52 @@ export interface UebertragRegel {
    * Jahren offen ist.
    */
   stichtag?: string | null;
+  /**
+   * 'MM-DD' — der Tag, an dem das Urlaubsjahr BEGINNT und der neue Anspruch
+   * entsteht. Ohne Angabe der 1. Jänner.
+   *
+   * WARUM DAS HIERHER GEHÖRT UND NICHT NEBEN DIE REGEL. Beginn und Verfall
+   * sind zwei Enden derselben Sache: der Stichtag liegt IM Urlaubsjahr, und
+   * wo dieses Jahr anfängt, entscheidet, in welchem Kalenderjahr der Stichtag
+   * zu suchen ist. Lägen die beiden getrennt, könnte ein Aufrufer den einen
+   * mitgeben und den anderen vergessen — und bekäme eine Rechnung, die sich
+   * selbst widerspricht.
+   *
+   * WAS OHNE DIESES FELD PASSIERTE: der neue Anspruch entstand fest am
+   * 1. Jänner. Für einen Betrieb, der sein Urlaubsjahr anders führt, kam er
+   * damit zu früh und der Übertrag wurde im falschen Moment gemessen — ohne
+   * Warnung, ohne Einstellung, ohne dass es jemandem auffallen konnte.
+   */
+  jahresbeginn?: string;
+}
+
+/** Die Vorgabe: das Urlaubsjahr ist das Kalenderjahr. */
+export const JAHRESBEGINN_VORGABE = '01-01';
+
+/**
+ * In welchem Urlaubsjahr ein Datum liegt — benannt nach dem Kalenderjahr, in
+ * dem dieses Urlaubsjahr BEGINNT.
+ *
+ * Beginnt das Urlaubsjahr am 1. Juli, so gehört der 3. März 2027 in das
+ * Urlaubsjahr 2026 (1.7.2026 – 30.6.2027). Beim Kalenderjahr — der Vorgabe —
+ * ist die Antwort schlicht die Jahreszahl, und deshalb ändert sich für jeden
+ * Betrieb, der nichts einstellt, an keiner einzigen Zahl etwas.
+ */
+export function urlaubsJahrVon(iso: string, beginn: string = JAHRESBEGINN_VORGABE): number {
+  const jahr = Number(iso.slice(0, 4));
+  return iso.slice(5, 10) >= beginn ? jahr : jahr - 1;
+}
+
+/**
+ * Der Tag `mmdd` INNERHALB des Urlaubsjahres `jahr`, als volles Datum.
+ *
+ * Ein Urlaubsjahr, das nicht am 1. Jänner beginnt, liegt über zwei
+ * Kalenderjahren. Der Verfallstag 31. März gehört im Urlaubsjahr 2026
+ * (ab 1.7.) damit in den März 2027 — wer hier stur `2026-03-31` bildete,
+ * liesse den Stichtag VOR dem Beginn des Jahres liegen, und er träfe nie ein.
+ */
+function tagImUrlaubsjahr(jahr: number, mmdd: string, beginn: string): string {
+  return `${mmdd >= beginn ? jahr : jahr + 1}-${mmdd}`;
 }
 
 /**
@@ -83,12 +129,13 @@ export const UEBERTRAG_VORGABE: UebertragRegel = { art: 'verjaehrung' };
  * darauf VERLÄSST, ist eine Rechnung mit einer Annahme.
  */
 export function uebertragsRegel(
-  betrieb: Pick<Company, 'urlaubUebertrag' | 'urlaubStichtag'> | null | undefined,
+  betrieb: Pick<Company, 'urlaubUebertrag' | 'urlaubStichtag' | 'urlaubJahresbeginn'> | null | undefined,
 ): UebertragRegel {
+  const jahresbeginn = betrieb?.urlaubJahresbeginn || JAHRESBEGINN_VORGABE;
   if (betrieb?.urlaubUebertrag === 'stichtag' && betrieb.urlaubStichtag) {
-    return { art: 'stichtag', stichtag: betrieb.urlaubStichtag };
+    return { art: 'stichtag', stichtag: betrieb.urlaubStichtag, jahresbeginn };
   }
-  return UEBERTRAG_VORGABE;
+  return { ...UEBERTRAG_VORGABE, jahresbeginn };
 }
 
 /** Was für ein Jahr zur Verfügung steht, was weg ist, was bleibt. */
@@ -191,6 +238,7 @@ export function urlaubsStand(
   const jahresanspruch = Number(user.yearlyVacationDays ?? DEFAULT_URLAUBSTAGE) || DEFAULT_URLAUBSTAGE;
   const start = user.appStartDate ?? null;
   const bestand = user.initialVacationDays;
+  const beginn = regel.jahresbeginn ?? JAHRESBEGINN_VORGABE;
 
   /*
     „NICHT ANGEGEBEN" UND „NULL TAGE" SIND ZWEI VERSCHIEDENE AUSSAGEN — und
@@ -206,7 +254,7 @@ export function urlaubsStand(
   const bestandAngegeben =
     bestand !== null && bestand !== undefined && Number.isFinite(Number(bestand));
 
-  const startjahr = start !== null ? Number(start.slice(0, 4)) : jahr;
+  const startjahr = start !== null ? urlaubsJahrVon(start, beginn) : jahr;
   const ausAnfangsbestand = startjahr === jahr && bestandAngegeben;
 
   /*
@@ -215,7 +263,7 @@ export function urlaubsStand(
     dem Verhalten, das jede bestehende Zeile ohne Startdatum schon hatte.
   */
   if (start === null || startjahr > jahr) {
-    const genommen = summe(posten.filter((p) => imJahr(p, jahr)));
+    const genommen = summe(posten.filter((p) => imJahr(p, jahr, beginn)));
     return {
       anspruch: jahresanspruch, genommen, rest: jahresanspruch - genommen,
       ausAnfangsbestand: false, uebertrag: 0, verfallen: 0,
@@ -262,7 +310,7 @@ export function urlaubsStand(
     */
     const schnitt = j === startjahr && bestandAngegeben ? start : null;
     const desJahres = posten
-      .filter((p) => imJahr(p, j) && (schnitt === null || p.von >= schnitt))
+      .filter((p) => imJahr(p, j, beginn) && (schnitt === null || p.von >= schnitt))
       .slice()
       .sort((a, b) => (a.von < b.von ? -1 : a.von > b.von ? 1 : 0));
 
@@ -272,7 +320,7 @@ export function urlaubsStand(
       mehr. Die Reihenfolge ist deshalb Teil der Rechnung und kein Detail.
     */
     const stichtag = regel.art === 'stichtag' && regel.stichtag
-      ? `${j}-${regel.stichtag}`
+      ? tagImUrlaubsjahr(j, regel.stichtag, beginn)
       : null;
     let stichtagErledigt = stichtag === null || j === startjahr;
 
@@ -305,7 +353,8 @@ export function urlaubsStand(
   };
 }
 
-const imJahr = (p: UrlaubsPosten, jahr: number) => p.von.slice(0, 4) === String(jahr);
+const imJahr = (p: UrlaubsPosten, jahr: number, beginn: string) =>
+  urlaubsJahrVon(p.von, beginn) === jahr;
 const summe = (p: readonly UrlaubsPosten[]) => p.reduce((s, x) => s + x.tage, 0);
 const summeOffen = (g: readonly Jahrgang[]) => g.reduce((s, x) => s + x.offen, 0);
 
@@ -675,7 +724,20 @@ export function calcMonthStats(
   */
   const verlauf = urlaub.verlauf
     ?? yearEntries.filter((e) => e.status === 'Urlaub').map((e) => ({ von: e.date, tage: 1 }));
-  const stand = urlaubsStand(user, year, verlauf, urlaub.regel);
+  /*
+    DER URLAUBSSTAND AM MONATSENDE, nicht „im Kalenderjahr".
+
+    Führt ein Betrieb sein Urlaubsjahr nicht nach dem Kalender, liegt ein
+    Monat unter Umständen in einem anderen Urlaubsjahr als seine Jahreszahl —
+    und ein Monat am Rand sogar in beiden. Gefragt ist hier der Stand, mit dem
+    die Lohnverrechnung diesen Monat abschliesst; das ist der am letzten Tag.
+    Beim Kalenderjahr — der Vorgabe — ist das schlicht `year`.
+  */
+  const urlaubsjahr = urlaubsJahrVon(
+    localDateStr(monatsEnde),
+    urlaub.regel?.jahresbeginn ?? JAHRESBEGINN_VORGABE,
+  );
+  const stand = urlaubsStand(user, urlaubsjahr, verlauf, urlaub.regel);
 
   // Laufend heißt: der letzte Tag des Monats liegt noch vor uns.
   const heute = new Date();

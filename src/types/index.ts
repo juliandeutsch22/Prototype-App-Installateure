@@ -154,6 +154,19 @@ export interface Company {
   /** 'MM-DD'. Nur bei `urlaubUebertrag === 'stichtag'` gesetzt. */
   urlaubStichtag?: string | null;
   /**
+   * 'MM-DD' — wann das Urlaubsjahr BEGINNT und der neue Anspruch entsteht.
+   *
+   * Vorgabe `01-01`, also das Kalenderjahr; das ist der häufigste Fall, weil
+   * der Kollektivvertrag das Urlaubsjahr in vielen Branchen darauf umstellt.
+   * Bis zum 20.09.2026 war der 1. Jänner fest verdrahtet — für jeden Betrieb
+   * mit einem anderen Urlaubsjahr rechnete die App still falsch.
+   *
+   * NICHT ABGEBILDET: das Arbeitsjahr je Mitarbeiter (Jahrestag des
+   * Eintritts). Dort hätte jede Person ihren eigenen Stichtag. Das ist eine
+   * benannte Grenze, siehe die Migration.
+   */
+  urlaubJahresbeginn?: string;
+  /**
    * Welche Bereiche der App dieser Betrieb benutzt.
    *
    * Gespeichert werden nur die ABWEICHUNGEN vom Standard; was fehlt, gilt wie

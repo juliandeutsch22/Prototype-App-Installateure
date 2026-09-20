@@ -13,7 +13,7 @@
  *      hängt daran; eine Abfrage, die nur das Jahr liefert, ergäbe still
  *      immer null.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { admin, betriebAnlegen, konto, buchung, type Konto } from './helfer';
 import { getCompany, updateCompany } from '@/lib/db/pg/company';
 import { listUrlaubstage } from '@/lib/db/pg/timeEntries';
@@ -105,6 +105,75 @@ describe('Was die Datenbank an Stichtagen nicht zulässt', () => {
     await updateCompany(BETRIEB, { urlaubUebertrag: 'stichtag', urlaubStichtag: '06-30' });
     expect((await getCompany(BETRIEB))?.urlaubStichtag).toBe('06-30');
     await updateCompany(BETRIEB, { urlaubUebertrag: 'verjaehrung', urlaubStichtag: null });
+  });
+});
+
+describe('Der Beginn des Urlaubsjahres', () => {
+  afterEach(async () => {
+    await updateCompany(BETRIEB, { urlaubJahresbeginn: '01-01' });
+  });
+
+  it('steht ohne Zutun auf dem Kalenderjahr', async () => {
+    /*
+      DIE VORGABE ENTSCHEIDET ÜBER BESTEHENDE BETRIEBE. Stünde hier etwas
+      anderes, verschöbe sich mit dieser Migration bei jedem eingerichteten
+      Betrieb der Anspruch — ohne dass jemand etwas geändert hätte.
+    */
+    expect((await getCompany(BETRIEB))?.urlaubJahresbeginn).toBe('01-01');
+  });
+
+  it('nimmt einen echten Tag an', async () => {
+    clientEinreichen(chef.client);
+    await updateCompany(BETRIEB, { urlaubJahresbeginn: '07-01' });
+    expect((await getCompany(BETRIEB))?.urlaubJahresbeginn).toBe('07-01');
+  });
+
+  it('weist einen Tag ab, den es nicht gibt', async () => {
+    /*
+      `02-31` wäre ein Jahresbeginn, der nie eintritt — und damit ein
+      Urlaubsjahr, das nie anfängt. Derselbe stille Ausfall wie beim
+      Verfallstag, nur mit schwereren Folgen: ohne Jahresbeginn entsteht kein
+      Anspruch.
+    */
+    clientEinreichen(chef.client);
+    await expect(updateCompany(BETRIEB, { urlaubJahresbeginn: '02-31' })).rejects.toThrow();
+    await expect(updateCompany(BETRIEB, { urlaubJahresbeginn: '13-01' })).rejects.toThrow();
+    await expect(updateCompany(BETRIEB, { urlaubJahresbeginn: 'Juli' })).rejects.toThrow();
+  });
+
+  it('trägt bis in den Stand, den der Mitarbeiter sieht', async () => {
+    /*
+      DER DURCHSTICH FÜR DAS VERSCHOBENE JAHR. Gerechnet wird gegen eine Regel,
+      die wirklich in den Stammdaten steht.
+
+      Urlaubsjahr ab 1. Juli: der Urlaub vom 2. März 2026 gehört damit noch in
+      das Urlaubsjahr 2025 (1.7.2025 – 30.6.2026) und nicht in ein neues mit
+      vollem Anspruch. Mit dem Kalenderjahr gerechnet stünde der Mitarbeiter
+      im März wieder bei 25 Tagen.
+    */
+    clientEinreichen(chef.client);
+    await updateCompany(BETRIEB, { urlaubJahresbeginn: '07-01' });
+    await admin.from('time_entries').delete().eq('company_id', BETRIEB);
+    await admin.from('time_entries').insert([
+      { ...buchung(monteur, '2025-07-01'), status: 'Urlaub' },
+      { ...buchung(monteur, '2025-07-02'), status: 'Urlaub' },
+      { ...buchung(monteur, '2026-03-02'), status: 'Urlaub' },
+    ]);
+
+    const betrieb = await getCompany(BETRIEB);
+    const verlauf = (await listUrlaubstage(BETRIEB, '2025-01-01', '2026-12-31'))
+      .map((e) => ({ von: e.date, tage: 1 }));
+
+    const stand = urlaubsStand(
+      { yearlyVacationDays: 25, initialVacationDays: null, appStartDate: '2025-07-01' },
+      2025,
+      verlauf,
+      uebertragsRegel(betrieb),
+    );
+    // Alle drei Tage liegen im Urlaubsjahr 2025 — kein Übertrag, 22 offen.
+    expect(stand.genommen).toBe(3);
+    expect(stand.uebertrag).toBe(0);
+    expect(stand.rest).toBe(22);
   });
 });
 

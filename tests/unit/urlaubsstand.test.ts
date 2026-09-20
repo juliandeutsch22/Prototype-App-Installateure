@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { urlaubsStand, calcMonthStats, uebertragsRegel, type UebertragRegel } from '@/lib/time';
+import {
+  urlaubsStand,
+  calcMonthStats,
+  uebertragsRegel,
+  urlaubsJahrVon,
+  type UebertragRegel,
+} from '@/lib/time';
 import type { TimeEntry } from '@/types';
 
 /**
@@ -343,7 +349,18 @@ describe('Ohne Übertragsregel gilt das Gesetz', () => {
 describe('Die Regel aus den Stammdaten des Betriebs', () => {
   it('nimmt den Stichtag, wenn er gesetzt ist', () => {
     expect(uebertragsRegel({ urlaubUebertrag: 'stichtag', urlaubStichtag: '03-31' }))
-      .toEqual({ art: 'stichtag', stichtag: '03-31' });
+      .toEqual({ art: 'stichtag', stichtag: '03-31', jahresbeginn: '01-01' });
+  });
+
+  it('gibt ohne Angabe das Kalenderjahr als Urlaubsjahr aus', () => {
+    // Die Vorgabe ist der häufigste Fall — und die einzige, bei der sich für
+    // bestehende Betriebe keine einzige Zahl bewegt.
+    expect(uebertragsRegel(null).jahresbeginn).toBe('01-01');
+    expect(uebertragsRegel({}).jahresbeginn).toBe('01-01');
+  });
+
+  it('nimmt den eingestellten Beginn des Urlaubsjahres', () => {
+    expect(uebertragsRegel({ urlaubJahresbeginn: '07-01' }).jahresbeginn).toBe('07-01');
   });
 
   it('fällt ohne Einstellung auf das Gesetz zurück', () => {
@@ -360,5 +377,88 @@ describe('Die Regel aus den Stammdaten des Betriebs', () => {
     */
     expect(uebertragsRegel({ urlaubUebertrag: 'stichtag', urlaubStichtag: null }).art)
       .toBe('verjaehrung');
+  });
+});
+
+describe('Ein Urlaubsjahr, das nicht am 1. Jänner beginnt', () => {
+  /*
+    DER STILLE FEHLER, DEN DAS BEHEBT. Bis zum 20.09.2026 entstand der neue
+    Anspruch fest am 1. Jänner. Führt ein Betrieb sein Urlaubsjahr vom 1. Juli
+    bis zum 30. Juni, kam er damit ein halbes Jahr zu früh — und der Übertrag
+    wurde im falschen Moment gemessen. Auf dem Bildschirm stand eine Zahl, die
+    richtig aussah.
+  */
+  const JULI: UebertragRegel = { art: 'verjaehrung', jahresbeginn: '07-01' };
+  const person = { yearlyVacationDays: 25, initialVacationDays: null, appStartDate: '2026-07-01' };
+
+  it('ordnet ein Datum dem Jahr zu, in dem das Urlaubsjahr BEGINNT', () => {
+    // Der 3. März 2027 gehört in das Urlaubsjahr 2026 (1.7.2026 – 30.6.2027).
+    expect(urlaubsJahrVon('2027-03-03', '07-01')).toBe(2026);
+    expect(urlaubsJahrVon('2026-07-01', '07-01')).toBe(2026);
+    expect(urlaubsJahrVon('2026-06-30', '07-01')).toBe(2025);
+    // Und beim Kalenderjahr ist die Antwort schlicht die Jahreszahl.
+    expect(urlaubsJahrVon('2027-03-03')).toBe(2027);
+  });
+
+  it('zählt den Urlaub im März zum laufenden Urlaubsjahr, nicht zum nächsten', () => {
+    /*
+      GENAU HIER SASS DER FEHLER. Mit dem Kalenderjahr gerechnet fiele dieser
+      Urlaub in ein neues Jahr mit vollem Anspruch — der Mitarbeiter hätte im
+      März plötzlich wieder 25 Tage.
+    */
+    const stand = urlaubsStand(person, 2026, [{ von: '2027-03-03', tage: 5 }], JULI);
+    expect(stand.genommen).toBe(5);
+    expect(stand.rest).toBe(20);
+  });
+
+  it('lässt den neuen Anspruch erst am 1. Juli entstehen', () => {
+    const vorher = urlaubsStand(person, 2026, [{ von: '2027-06-30', tage: 25 }], JULI);
+    expect(vorher.rest).toBe(0);
+
+    // Einen Tag später beginnt das nächste Urlaubsjahr — und der Anspruch ist
+    // wieder da, ohne dass der alte Rest verschwindet.
+    const nachher = urlaubsStand(person, 2027, [{ von: '2027-06-30', tage: 25 }], JULI);
+    expect(nachher.rest).toBe(25);
+    expect(nachher.genommen).toBe(0);
+  });
+
+  it('sucht den Verfallstag IM Urlaubsjahr und nicht im Kalenderjahr', () => {
+    /*
+      DER FEHLER, DEN DAS ABFÄNGT, KOSTET DEM MITARBEITER TAGE.
+
+      Ein Stichtag 31. März liegt in einem Urlaubsjahr, das am 1. Juli
+      beginnt, im FOLGENDEN Kalenderjahr: das Urlaubsjahr 2027 läuft vom
+      1.7.2027 bis zum 30.6.2028, sein Stichtag ist der 31.3.2028. Wer stur
+      `2027-03-31` bildete, legte den Verfallstag VOR den Beginn des Jahres —
+      dann wäre jeder Urlaub des Jahres „nach dem Stichtag", und der alte
+      Jahrgang verfiele schon beim ersten Antrag im Juli.
+
+      Geprüft wird deshalb mit einem Urlaub DAZWISCHEN: am 1.9.2027 liegt er
+      nach dem falschen und vor dem richtigen Stichtag.
+    */
+    const stichtag: UebertragRegel = { art: 'stichtag', stichtag: '03-31', jahresbeginn: '07-01' };
+    const stand = urlaubsStand(person, 2027, [{ von: '2027-09-01', tage: 5 }], stichtag);
+
+    // Die fünf Tage zehren noch vom alten Jahrgang (ältester zuerst), und erst
+    // am 31.3.2028 verfallen die restlichen zwanzig.
+    expect(stand.verfallen).toBe(20);
+  });
+
+  it('nimmt das Urlaubsjahr des Startdatums, nicht dessen Jahreszahl', () => {
+    /*
+      Wer am 1.3.2027 auf die App umsteigt, steigt mitten im Urlaubsjahr 2026
+      ein (1.7.2026 – 30.6.2027). Zählte man das Startjahr aus der Jahreszahl,
+      läge es bei 2027 — also NACH dem angezeigten Jahr —, und die Rechnung
+      fiele auf „kein Verlauf, voller Jahresanspruch" zurück. Der mitgebrachte
+      Rest von sieben Tagen wäre damit auf 25 aufgeblasen.
+    */
+    const umsteiger = {
+      yearlyVacationDays: 25,
+      initialVacationDays: 7,
+      appStartDate: '2027-03-01',
+    };
+    const stand = urlaubsStand(umsteiger, 2026, [], JULI);
+    expect(stand.anspruch).toBe(7);
+    expect(stand.ausAnfangsbestand).toBe(true);
   });
 });

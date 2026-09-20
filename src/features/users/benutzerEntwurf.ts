@@ -14,7 +14,60 @@ import {
   DEFAULT_WORK_DAYS,
   type UserProfileInput,
 } from '@/lib/db/benutzerVorgaben';
-import { todayStr } from '@/lib/time';
+import { todayStr, urlaubsJahrVon, JAHRESBEGINN_VORGABE } from '@/lib/time';
+
+/**
+ * Was für ein Zugang hier entsteht — und es sind zwei verschiedene Dinge.
+ *
+ * `bestand`: die Person arbeitet schon im Betrieb, die App kommt dazu. Was
+ * sie mitbringt (Resturlaub, Überstundensaldo), weiss nur das Büro; die App
+ * kann es nicht ausrechnen und muss danach fragen.
+ *
+ * `neu`: die Person tritt ein. Sie bringt nichts mit — und genau hier sass
+ * die Falle: wer das Feld „Resturlaub" leer liess, was naheliegt, weil ja
+ * nichts mitzubringen ist, bekam den VOLLEN Jahresanspruch ab Tag eins. Wer
+ * am 1. Oktober anfängt, hatte damit 25 Tage statt rund sechs. Das stand
+ * nirgends und fiel erst auf, wenn jemand Urlaub einreicht, den er nicht hat.
+ */
+export type Eintrittsart = 'bestand' | 'neu';
+
+/** Der Vorschlag für ein angebrochenes erstes Urlaubsjahr. */
+export interface AliquoterAnspruch {
+  /** Tage, auf zwei Stellen gerundet. */
+  tage: number;
+  /** Wie viele Monate des Urlaubsjahres noch übrig sind (1–12). */
+  monate: number;
+}
+
+/**
+ * Der aliquote Urlaubsanspruch für ein angebrochenes erstes Urlaubsjahr.
+ *
+ * WARUM DAS EIN VORSCHLAG IST UND KEINE REGEL. § 2 Abs 2 UrlG rechnet im
+ * ersten ARBEITSJAHR aliquot und lässt den Anspruch nach sechs Monaten auf
+ * das volle Ausmass springen. Ist das Urlaubsjahr durch Kollektivvertrag auf
+ * das Kalenderjahr umgestellt, ist die übliche Praxis die Aliquotierung des
+ * angebrochenen Jahres. Welche Variante im Einzelfall gilt, entscheidet der
+ * Kollektivvertrag und nicht die Software. Eine erzwungene Zahl wäre eine
+ * Rechtsauskunft, die diese App nicht geben kann — ein Vorschlag mit
+ * offengelegter Rechnung ist ehrlich und im Zweifel zu korrigieren.
+ *
+ * GEZÄHLT WIRD IN GANZEN MONATEN, und der Eintrittsmonat zählt voll mit. Das
+ * ist die für den Mitarbeiter günstige Lesart und die in Kollektivverträgen
+ * übliche. Beginnt das Urlaubsjahr nicht am Monatsersten, wird die Zählung
+ * dadurch grob — auch deshalb bleibt die Zahl änderbar.
+ */
+export function aliquoterAnspruch(
+  jahresanspruch: number,
+  eintritt: string,
+  jahresbeginn: string = JAHRESBEGINN_VORGABE,
+): AliquoterAnspruch {
+  const jahr = urlaubsJahrVon(eintritt, jahresbeginn);
+  const beginnMonat = Number(jahresbeginn.slice(0, 2));
+  const vergangen = (Number(eintritt.slice(0, 4)) - jahr) * 12
+    + (Number(eintritt.slice(5, 7)) - beginnMonat);
+  const monate = Math.max(0, Math.min(12, 12 - vergangen));
+  return { monate, tage: Math.round((jahresanspruch * monate) / 12 * 100) / 100 };
+}
 
 /**
  * Die Wochentage, in der Reihenfolge, in der sie im Betrieb genannt werden —
