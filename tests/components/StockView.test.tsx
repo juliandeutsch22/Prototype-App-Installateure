@@ -70,11 +70,26 @@ vi.mock('@/features/orders/MaterialCatalog', () => ({
   default: () => <div>Katalogpflege</div>,
 }));
 
-const authWert = {
+/*
+  STABILE OBJEKTE JE ROLLE, keine frischen Literale: gäbe der Mock bei jedem
+  Aufruf ein neues Objekt zurück, liefe der Effekt, der an `user` hängt,
+  endlos — der Testlauf hängt dann ohne Fehlermeldung.
+*/
+const VERWALTUNG = {
   user: { uid: 'v1', companyId: 'perl', name: 'Verwaltung', role: 'Verwaltung' as const },
   company: { id: 'perl', name: 'Perl Installationen' },
 };
+const CHEFIN = {
+  user: { uid: 'g1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as const },
+  company: { id: 'perl', name: 'Perl Installationen' },
+};
+let authWert: typeof VERWALTUNG | typeof CHEFIN = VERWALTUNG;
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
+
+// Der Katalogimport hat einen eigenen Test; hier zählt nur, ob es ihn gibt.
+vi.mock('@/features/materials/KatalogImport', () => ({
+  default: () => <div>Katalog einspielen (Inhalt)</div>,
+}));
 
 function zeige() {
   return render(
@@ -89,6 +104,7 @@ beforeEach(() => {
   anforderungen = [];
   katalogFehler = null;
   anforderungsFehler = false;
+  authWert = VERWALTUNG;
   bestandAendern.mockReset();
   bestandAendern.mockResolvedValue(undefined);
   vi.restoreAllMocks();
@@ -250,5 +266,26 @@ describe('Lager — wenn ein Ladevorgang scheitert', () => {
     // Der leere Katalog verweist auf den Reiter, der ihn füllt.
     zeige();
     expect(await screen.findAllByText(/Noch kein Material im Katalog/)).not.toHaveLength(0);
+  });
+});
+
+describe('Wer den Katalog einspielen darf', () => {
+  /*
+    EINSPIELEN SETZT EINKAUFSPREISE — zu Zehntausenden. Von Hand darf das nur
+    die Geschäftsführung; die harte Grenze steht in der Datenbank. Der Reiter
+    wird deshalb nicht bloss deaktiviert, sondern gar nicht angeboten: ein
+    Knopf, der zuverlässig abweist, ist schlechter als keiner.
+  */
+  it('zeigt der Verwaltung den Reiter nicht', async () => {
+    zeige();
+    expect(await screen.findByRole('tab', { name: 'Katalog' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Katalog einspielen' })).toBeNull();
+  });
+
+  it('zeigt ihn der Geschäftsführung und öffnet ihn', async () => {
+    authWert = CHEFIN;
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Katalog einspielen' }));
+    expect(await screen.findByText('Katalog einspielen (Inhalt)')).toBeInTheDocument();
   });
 });

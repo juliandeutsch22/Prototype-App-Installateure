@@ -56,6 +56,12 @@ export default function MaterialErfassen({ materials, zeilen, onChange }: Props)
     const q = suche.trim().toLowerCase();
     if (!q) return [];
     return materials
+      /*
+        Ausgelaufene Artikel bleiben im Katalog, werden hier aber nicht mehr
+        vorgeschlagen: was der Grosshändler nicht mehr führt, kann heute
+        niemand mehr verbauen. Auf alten Scheinen steht er weiterhin.
+      */
+      .filter((m) => !m.ausgelaufen)
       .filter((m) => [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)))
       .slice(0, 8);
   }, [materials, suche]);

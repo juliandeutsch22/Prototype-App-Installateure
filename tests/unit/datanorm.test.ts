@@ -228,6 +228,25 @@ describe('Verdacht auf ein verschobenes Feldlayout', () => {
     expect(layoutWarnung(liesDatanorm(viele.join('\n')))).toBeUndefined();
   });
 
+  it('schweigt bei zwei krummen Zeilen in einer kleinen Nachlieferung', () => {
+    /*
+      ZWEI VON FÜNF SIND ANTEILIG VIEL UND ALS BEWEIS TROTZDEM NICHTS. Eine
+      Nachlieferung hat manchmal nur eine Handvoll Artikel; stünde der ganze
+      Import wegen zweier Datenfehler des Lieferanten, wäre die Warnung
+      schlimmer als das, wovor sie warnt. Die Zeilen stehen ohnehin im Befund.
+    */
+    const klein = [
+      'A;N;A1;0;Eckventil;;1;0;Stk;2350;10;0',
+      'A;N;A2;0;Kugelhahn;;1;0;Stk;1890;10;0',
+      'A;N;A3;0;Rohr;;1;0;m;450;10;0',
+      'A;N;;0;Ohne Nummer;;1;0;Stk;320;10;0',
+      'A;N;A5;0;Muffe;;1;0;Stk;PST;10;0',
+    ];
+    const e = liesDatanorm(klein.join('\n'));
+    expect(e.unverstanden).toHaveLength(2);
+    expect(layoutWarnung(e)).toBeUndefined();
+  });
+
   it('schlägt an, wenn die Artikelsätze reihenweise am gleichen Feld scheitern', () => {
     /*
       Das sind Zeilen aus einer Beispieldatei, die eine Stelle mehr führt als
@@ -239,6 +258,9 @@ describe('Verdacht auf ein verschobenes Feldlayout', () => {
       'A;N;100001;0;HTI-Sanitär-Großhandel GmbH;1;0;0;EUR;0',
       'A;A;100001;A;1029384;Eckventil 1/2 Zoll;verchromt mit Rosette;;1;PST;2350;10;0',
       'A;A;100001;A;1029385;Kugelhahn 1/2 Zoll;messing;;1;PST;1890;10;0',
+      'A;A;100001;A;1029386;Kupferrohr 15 mm;weich;;1;PST;450;10;0',
+      'A;A;100001;A;1029387;Bogen 90 Grad;;;1;PST;320;10;0',
+      'A;A;100001;A;1029388;Muffe;;;1;PST;210;10;0',
     ];
     expect(layoutWarnung(liesDatanorm(verschoben.join('\n')))).toMatch(/nichts übernommen/);
   });

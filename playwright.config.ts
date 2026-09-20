@@ -11,12 +11,18 @@ import { defineConfig, devices } from '@playwright/test';
  * abbricht. Genau diese Sorte hat der Rauchtest des Betriebs gefunden — drei
  * Stück an einem Nachmittag, keinen davon hat eine Prüfung vorher gesehen.
  *
- * WARUM NUR VIER WEGE. Ein Durchklick durch jede Ansicht kostet Stunden
+ * WARUM NUR FÜNF WEGE. Ein Durchklick durch jede Ansicht kostet Stunden
  * Rechenzeit und flattert: eine Prüfung, die mal fällt und mal nicht, wird
  * nach zwei Wochen ignoriert, und dann ist sie schlimmer als keine. Hier
  * stehen die Wege, bei denen ein Fehler Geld oder Arbeitszeit kostet:
  * Zeit buchen, Material anfordern, Schein unterschreiben, Rechnung stellen.
- * Die Anmeldung steht nicht daneben — jeder der vier beginnt damit.
+ * Die Anmeldung steht nicht daneben — jeder beginnt damit.
+ *
+ * DER FÜNFTE IST DER KATALOGIMPORT, und er steht hier aus demselben Grund
+ * wie die anderen vier, nicht aus Gewohnheit: ein verrutschtes Feld in einer
+ * DATANORM-Datei setzt zehntausend falsche Einkaufspreise auf einmal, und
+ * ab da rechnet jede Baustelle falsch. Gefunden hat dieser Weg schon bei
+ * seinem ersten Lauf etwas, das keine der anderen Prüfungen sah.
  *
  * KEIN ZWEITER LAUF NACH EINEM FEHLSCHLAG (`retries: 0`), auch nicht in der
  * CI. Ein Wiederholungslauf versteckt genau das Flattern, das man sehen will;

@@ -348,12 +348,18 @@ export function befunde(e: DatanormErgebnis): DatanormBefund {
  *
  * Zwei Spuren verraten es, ohne dass man die Datei kennen muss:
  *
- *  1. Ein grosser Teil der A-Sätze scheitert. Passt das Layout, scheitern
- *     einzelne Zeilen; passt es nicht, scheitern sie reihenweise am gleichen
- *     Feld.
+ *  1. Ein grosser Teil der A-Sätze scheitert — mindestens ein Viertel, und
+ *     mindestens drei. Passt das Layout, scheitern einzelne Zeilen; passt es
+ *     nicht, scheitern sie reihenweise am gleichen Feld.
  *  2. Die Artikelnummern wiederholen sich. Ein Katalog hat je Artikel eine
  *     Nummer; steht in dem Feld in Wahrheit die Katalog- oder
  *     Lieferantennummer, ist sie in jeder Zeile dieselbe.
+ *
+ * WARUM „UND MINDESTENS DREI". Der Anteil allein genügt nicht: in einer
+ * Nachlieferung mit acht Artikeln ist eine krumme Zeile schon ein Achtel, in
+ * einer mit vieren ein Viertel. Der ganze Import stünde dann wegen EINES
+ * Datenfehlers des Lieferanten — und die Zeile steht ohnehin im Befund. Ein
+ * verschobenes Layout scheitert nicht einmal, sondern reihenweise.
  *
  * Gibt diese Funktion einen Satz zurück, wird im Probelauf nicht übernommen.
  */
@@ -361,7 +367,7 @@ export function layoutWarnung(e: DatanormErgebnis): string | undefined {
   const aSaetze = e.artikel.length + e.unverstanden.length;
   if (aSaetze === 0) return undefined;
 
-  if (e.unverstanden.length * 4 >= aSaetze) {
+  if (e.unverstanden.length >= 3 && e.unverstanden.length * 4 >= aSaetze) {
     const anteil = Math.round((e.unverstanden.length / aSaetze) * 100);
     return (
       `${anteil} % der Artikelsätze (${e.unverstanden.length} von ${aSaetze}) wurden nicht ` +
