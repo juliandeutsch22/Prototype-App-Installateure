@@ -307,11 +307,37 @@ export async function reserveInvoiceNumber(
 
 export type NewInvoice = Omit<Invoice, 'id' | 'companyId' | 'createdAt'>;
 
+/**
+ * Ein leeres Datumsfeld ist NICHT angegeben, nicht „der 1. Jänner".
+ *
+ * In der App heisst „nicht angegeben" ein Leerstring — so gibt es ein
+ * `<input type="date">` ein leeres Feld heraus, und so steht es im Zustand
+ * der Ansicht. Eine Datumsspalte kennt dafür nur NULL; `""` weist Postgres
+ * mit „invalid input syntax for type date" ab.
+ *
+ * WAS OHNE DIESE UMSETZUNG PASSIERTE: eine Rechnung ohne Leistungszeitraum
+ * liess sich gar nicht anlegen — und sie scheiterte an der SCHLECHTESTEN
+ * Stelle, nämlich nachdem die Nummer verbindlich gezogen und die Belege
+ * gesperrt waren. Zurück blieben eine verbrauchte Nummer und Zeiteinträge,
+ * die auf eine Rechnung verwiesen, die es nicht gibt. Aufgefallen ist es an
+ * der Anzahlung, die nie einen Leistungszeitraum hat; zu treffen war es aber
+ * schon vorher — das Feld ist änderbar, und der fehlende Zeitraum wird nur
+ * gemeldet, nicht erzwungen.
+ */
+function leerAlsNull(wert: string | undefined): string | null | undefined {
+  return wert === '' ? null : wert;
+}
+
 export async function createInvoice(companyId: string, inv: NewInvoice): Promise<string> {
   void companyId;
   const {
-    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, ...kopf
+    positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, ...roh
   } = inv;
+  const kopf = {
+    ...roh,
+    leistungVon: leerAlsNull(roh.leistungVon),
+    leistungBis: leerAlsNull(roh.leistungBis),
+  };
 
   const belege: Record<string, string[]> = {};
   for (const [art, feld] of ABDECKUNGSARTEN) {

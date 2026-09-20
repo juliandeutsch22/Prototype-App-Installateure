@@ -105,6 +105,19 @@ const KOPF = [
   'Offener Rest',
   'Storniert',
   'Stornogrund',
+  /*
+    DIE RECHNUNGSART STEHT AM ENDE, und das ist Absicht: eine Kanzlei ordnet
+    die Spalten dieser Datei einmal beim Einrichten ihren Feldern zu. Eine
+    neue Spalte in der Mitte verschiebt jede Zuordnung danach — ein Fehler,
+    der beim ersten Import nach dem nächsten Deploy aufschlägt und wie ein
+    Zahlendreher aussieht.
+
+    Gebraucht wird sie, weil die Beträge allein nicht sagen, WAS der Beleg
+    ist. „Netto" einer Schlussrechnung ist das Restentgelt nach Abzug der
+    Anzahlungen — steuerlich richtig, aber nur erklärbar, wenn danebensteht,
+    dass abgezogen wurde.
+  */
+  'Rechnungsart',
 ];
 
 export interface RechnungsExport {
@@ -169,6 +182,8 @@ export function buildInvoiceCsv(
         num(zahlstand(i).rest),
         storniert ? 'ja' : 'nein',
         i.cancellationNote ?? '',
+        // Altbestand trägt keine Art — er ist durchwegs eine Einzelrechnung.
+        i.art ?? 'einzel',
       ]),
     );
     /**

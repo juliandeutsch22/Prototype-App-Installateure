@@ -88,6 +88,35 @@ describe('Nachkalkulation', () => {
     expect(k.erloesQuelle).toBe('Angebot');
   });
 
+  it('zählt Anzahlung und Schlussrechnung zusammen, nicht doppelt', () => {
+    /*
+      DER TEUERSTE FEHLER DIESER AUSWERTUNG WÄRE HIER.
+
+      Seit Stufe 10.2 trägt eine Schlussrechnung zwei Zahlen: `totalNetto` ist
+      die RESTFORDERUNG nach Abzug der Anzahlungen, `gesamtNetto` die volle
+      Leistung. Summierte diese Auswertung die Gesamtleistung, käme die
+      Anzahlung zweimal vor — die Baustelle sähe um ihren Betrag einträglicher
+      aus, als sie ist.
+
+      Anzahlung 1.000 + Schlussrechnung (Gesamt 3.000, Rest 2.000) = 3.000.
+    */
+    const anzahlung = { ...rechnung(1000), art: 'anzahlung' } as Invoice;
+    const schluss = {
+      ...rechnung(2000),
+      art: 'schluss',
+      gesamtNetto: 3000,
+      gesamtVat: 600,
+      gesamtBrutto: 3600,
+      vorrechnungen: [
+        { invoiceId: 'r1000', invoiceNumber: 'RE-2026-0001000', invoiceDate: '2026-08-20', netto: 1000, vat: 200, brutto: 1200 },
+      ],
+    } as Invoice;
+
+    const k = rechneBaustelle('B-001', 'Huber', [zeit(600)], [anzahlung, schluss], undefined, kosten);
+    expect(k.erloes).toBe(3000);
+    expect(k.erloesQuelle).toBe('Rechnungen');
+  });
+
   it('zählt stornierte Rechnungen nicht als Erlös', () => {
     const k = rechneBaustelle(
       'B-001',

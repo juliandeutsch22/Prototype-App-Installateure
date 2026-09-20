@@ -128,6 +128,27 @@ describe('Die Art einer Rechnung', () => {
   });
 });
 
+describe('Der Leistungszeitraum', () => {
+  it('darf fehlen — und die Rechnung entsteht trotzdem', async () => {
+    /*
+      EIN LEERES DATUMSFELD IST „NICHT ANGEGEBEN", und die App schickt dafür
+      einen Leerstring. Eine Datumsspalte kennt dafür nur NULL; `""` weist
+      Postgres ab.
+
+      Das war ein echter Fehler, und er schlug an der schlechtesten Stelle zu:
+      erst NACHDEM die Nummer gezogen und die Belege gesperrt waren. Zurück
+      blieben eine verbrauchte Nummer und Zeiteinträge, die auf eine Rechnung
+      verwiesen, die es nicht gibt. Die Anzahlung hat nie einen
+      Leistungszeitraum — aufgefallen ist es dort, zu treffen war es schon
+      vorher.
+    */
+    const id = await anlegen({ art: 'anzahlung', leistungVon: '', leistungBis: '' });
+    const r = await lesen(id);
+    expect(r.leistungVon).toBeUndefined();
+    expect(r.leistungBis).toBeUndefined();
+  });
+});
+
 describe('Der Abzug auf der Schlussrechnung', () => {
   it('steht mit Nummer, Datum und Beträgen auf dem Beleg', async () => {
     const anzahlung = await anlegen({ art: 'anzahlung' });
@@ -153,6 +174,48 @@ describe('Der Abzug auf der Schlussrechnung', () => {
     await schluss([abzug(anzahlung, nummer)]);
 
     await expect(schluss([abzug(anzahlung, nummer)])).rejects.toThrow(/bereits auf einer anderen/);
+  });
+
+  it('lässt die abgezogene Anzahlung nicht stornieren, solange der Abzug gilt', async () => {
+    /*
+      SONST VERSCHWINDEN DIE 1.200 € LAUTLOS. Die Schlussrechnung fordert nur
+      den Rest, weil die Anzahlung abgezogen ist; steht die Anzahlung danach
+      auf null, fordert sie niemand mehr — und der Betrag fehlt in der
+      Forderung, im Umsatz und in der Nachkalkulation.
+
+      Die Reihenfolge ist deshalb vorgegeben: erst die Schlussrechnung
+      stornieren, dann die Anzahlung. Der Abzug ist eine Kopie und bleibt
+      stehen; das ist richtig so, ein Beleg ist ein Dokument.
+    */
+    const anzahlung = await anlegen({ art: 'anzahlung' });
+    const nummer = (await lesen(anzahlung)).invoiceNumber;
+    const erste = await schluss([abzug(anzahlung, nummer)]);
+
+    await expect(
+      rechnungen.cancelInvoice({ id: anzahlung } as unknown as WithId<Invoice>, 'Irrtum'),
+    ).rejects.toThrow(/erst diese stornieren/);
+
+    // In der richtigen Reihenfolge geht beides.
+    await rechnungen.cancelInvoice({ id: erste } as unknown as WithId<Invoice>, 'Irrtum');
+    await rechnungen.cancelInvoice({ id: anzahlung } as unknown as WithId<Invoice>, 'Irrtum');
+    expect((await lesen(anzahlung)).paymentStatus).toBe('Storniert');
+  });
+
+  it('nimmt einen Storno nicht zurück, wenn der Abzug inzwischen vergeben ist', async () => {
+    /*
+      Sonst zögen zwei Rechnungen dieselbe Anzahlung ab: die stornierte gab
+      sie frei, die neue nahm sie — und die Aufhebung des Stornos brächte die
+      erste zurück.
+    */
+    const anzahlung = await anlegen({ art: 'anzahlung' });
+    const nummer = (await lesen(anzahlung)).invoiceNumber;
+    const erste = await schluss([abzug(anzahlung, nummer)]);
+    await rechnungen.cancelInvoice({ id: erste } as unknown as WithId<Invoice>, 'Zahlendreher');
+    await schluss([abzug(anzahlung, nummer)]);
+
+    await expect(
+      rechnungen.reactivateInvoice({ id: erste } as unknown as WithId<Invoice>),
+    ).rejects.toThrow(/bereits auf einer anderen/);
   });
 
   it('gibt die Anzahlung wieder frei, wenn die Schlussrechnung storniert wird', async () => {

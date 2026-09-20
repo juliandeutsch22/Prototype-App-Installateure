@@ -176,10 +176,36 @@ describe('Der Leistungszeitraum im Journal', () => {
       'Offener Rest',
       'Storniert',
       'Stornogrund',
+      /*
+        Die Rechnungsart steht am ENDE. Eine Kanzlei ordnet die Spalten einmal
+        beim Einrichten ihren Feldern zu; eine neue Spalte in der Mitte
+        verschiebt jede Zuordnung danach.
+      */
+      'Rechnungsart',
     ]);
     const felder = zeile.split(';');
     expect(felder[2]).toBe('03.12.2026');
     expect(felder[3]).toBe('19.12.2026');
+  });
+
+  it('sagt, was für ein Beleg es ist — und nennt Altbestand „einzel"', () => {
+    /*
+      „Netto" einer Schlussrechnung ist das Restentgelt nach Abzug der
+      Anzahlungen. Das ist steuerlich richtig und nur erklärbar, wenn
+      danebensteht, dass abgezogen wurde.
+    */
+    const r = buildInvoiceCsv(
+      [
+        { ...re('RE-2026-0001', 1000), art: 'anzahlung' },
+        // Ohne Angabe: der Bestand vor Stufe 10.2 ist durchwegs eine
+        // Einzelrechnung, und ein leeres Feld liesse offen, ob es fehlt.
+        re('RE-2026-0002', 2000),
+      ],
+      [], '2026-01-01', '2026-12-31',
+    );
+    const [, erste, zweite] = r.csv.split('\n');
+    expect(erste.split(';').pop()).toBe('anzahlung');
+    expect(zweite.split(';').pop()).toBe('einzel');
   });
 
   /*

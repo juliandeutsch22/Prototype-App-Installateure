@@ -265,6 +265,8 @@ sagten. **Nicht wieder auseinanderziehen.** Ein statischer Test wacht darüber.
 | Sicht `monthly_stats` | Verdichtete Zeitkonten, damit der Saldo nicht die ganze Historie lädt. Früher ein nächtlicher Lauf mit eigenem Zählwerk — heute rechnet die Datenbank es bei der Abfrage. |
 | Trigger `material_orders_push` → Edge Function `push-melden` | Push. Der Auslöser gehört an die Änderung, nicht an den Browser, der sie ausgelöst hat: der kann weg sein, bevor die Meldung raus ist. |
 | `app.schein_pruefsumme_setzen` (Trigger) | Friert den unterschriebenen Schein ein. Eine Prüfsumme, die der Browser rechnet, beweist nichts. |
+| `app.zahlstand_setzen` (Trigger) | Leitet den Zahlungsstand einer Rechnung aus ihren Eingängen ab. Ein Haken von Hand wird abgewiesen: „Bezahlt" ist eine Zahl, keine Meinung. |
+| `app.vorrechnungen_pruefen` (Trigger) | Der Abzug auf der Schlussrechnung. Der teure Fehler ist der doppelte Abzug — der Kunde zahlt zu wenig, und es fällt beim Jahresabschluss auf. Eine Prüfung im Browser sähe nur, was gerade geladen ist. Geprüft wird ausserdem, dass die Rechnung aufgeht: Gesamtleistung − Abzüge = Rechnungsbetrag. |
 | `public.betrieb_auszug` | Auskunft nach Art. 15 DSGVO: der ganze Bestand als Datei. Seitenweise gelesen und gedeckelt — deshalb ist sie NICHT die Sicherung. |
 | Edge Function `daten-ausleitung` + `pg_cron` | Die Sicherung: schreibt jede Nacht den Bestand jedes Mandanten zeilenweise weg, samt Dateien, und räumt alte Stände auf. Von Hand anstoßbar, damit sich überhaupt prüfen lässt, ob sie läuft. |
 | Edge Function `mitarbeiter-anlegen` | Ein Anmeldekonto anlegen braucht den Dienstschlüssel. Der steht sonst im ausgelieferten JavaScript. Die Zeile in der Belegschaft schreibt weiterhin der Browser — siehe `README.md`, das ist Absicht. |
@@ -505,16 +507,21 @@ Supabase-Projekts**, nicht ins Repository, nicht in GitHub-Secrets.
 Der vollständige Fahrplan mit Begründung je Stufe steht in `ROADMAP.md`
 unter „Der Weg zum Start in Österreich". Die Reihenfolge dort, kurz:
 
-1. **Zahlungseingang** — Datum und Betrag je Rechnung. Daran hängen Skonto,
-   Anzahlung, Verzugszinsen und überhaupt eine ehrliche Liste offener Posten.
-   Ohne das ist „Bezahlt" ein Häkchen ohne Beleg.
-2. **Rechnungsmerkmale nach § 11 UStG vollständig** — Bauleistung mit
-   Übergang der Steuerschuld, Rücklass, innergemeinschaftliche Leistung.
-3. **Arbeitszeit: Gleitzeit oder Durchrechnung** — nur, wenn der Betrieb eine
+1. ~~**Zahlungseingang**~~ — **erledigt am 19.09.2026.** Datum, Betrag und
+   Art je Rechnung; der Zahlungsstand wird daraus abgeleitet und lässt sich
+   nicht mehr von Hand setzen.
+2. ~~**Anzahlung, Teilrechnung, Schlussrechnung**~~ — **erledigt am
+   20.09.2026.** Die Schlussrechnung zieht die Anzahlungen samt Steuer ab
+   (§ 11 Abs 12 UStG). `total_*` ist die Restforderung, `gesamt_*` die volle
+   Leistung; abgezogen wird nur, was keine Belege verbraucht hat.
+3. **Was von Stufe 10 noch offen ist** — Skonto und Verzugszinsen (beide
+   hängen am Zahlungseingang und sind damit jetzt baubar), der Rücklass, die
+   Gutschrift und die innergemeinschaftliche Leistung.
+4. **Arbeitszeit: Gleitzeit oder Durchrechnung** — nur, wenn der Betrieb eine
    entsprechende Vereinbarung hat. Die Frage ist gestellt und noch offen.
-4. **Registrierkasse** — erst zu klären, ob der Betrieb überhaupt
+5. **Registrierkasse** — erst zu klären, ob der Betrieb überhaupt
    Barumsätze hat. Wenn nein, entfällt die ganze Stufe.
-5. **Ansichtstests sind fertig; als Nächstes Prüfnetz für die Edge Functions**
+6. **Ansichtstests sind fertig; als Nächstes Prüfnetz für die Edge Functions**
    (siehe §6) und ein zweiter Betrieb von Hand, um die Mandantentrennung
    einmal von aussen zu sehen.
 

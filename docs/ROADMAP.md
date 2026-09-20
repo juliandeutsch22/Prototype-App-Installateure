@@ -3579,6 +3579,110 @@ Namen finden, sind der Wächter dafür.
 
 ---
 
+## Erledigt: Anzahlung, Teilrechnung, Schlussrechnung (20.09.2026)
+
+Ein Betrieb, der Baustellen abwickelt und keine Teilrechnung stellen kann,
+muss bei einer Sanierung über vier Monate vorfinanzieren. Bis hierher kannte
+diese App nur die eine Rechnung über alles.
+
+### Die Steuerfalle ist der eigentliche Grund
+
+§ 11 Abs 12 UStG: **wer eine Steuer ausweist, schuldet sie.** Eine
+Anzahlungsrechnung über 3.000 € mit 500 € USt und danach eine Schlussrechnung
+über die volle Leistung mit der vollen Steuer — das ist dieselbe Steuer
+zweimal ausgewiesen und zweimal geschuldet, bis der Betrieb berichtigt. Die
+Schlussrechnung MUSS die bereits verrechneten Teilentgelte samt Steuer
+abziehen und einzeln ausweisen.
+
+### Die Forderung bleibt die Forderung
+
+`total_netto/vat/brutto` ist weiterhin das, was DIESE Rechnung verlangt — bei
+einer Schlussrechnung also der Rest nach Abzug. Die volle Leistung steht
+getrennt daneben in `gesamt_*`.
+
+Das war die wichtigste Entscheidung dieser Stufe, und sie hat drei Dinge
+gerettet, die sonst nachzuziehen gewesen wären: **offene Posten, Mahnlauf und
+Zahlungsstand** rechnen unverändert weiter und fordern nicht ein, was der
+Kunde auf die Anzahlung längst bezahlt hat. Und **die Nachkalkulation zählt
+den Erlös nicht doppelt** — Anzahlung 1.000 plus Schlussrechnung (Gesamt
+3.000, Rest 2.000) ergibt 3.000. Die Falle, die der Fahrplan hier vermutet
+hatte, entstand damit gar nicht erst; geprüft ist sie trotzdem, denn die
+nächste Änderung an dieser Summe soll auffallen.
+
+### Abgezogen wird nicht nach Art, sondern nach verbrauchten Belegen
+
+Das ist die Stelle, an der eine Schlussrechnung sonst **doppelt kürzt**:
+
+- Eine **Anzahlung** verbraucht nichts. Sie ist Geld auf eine Leistung, die
+  noch kommt; die Leistung steht später ganz in der Schlussrechnung. Sie MUSS
+  abgezogen werden.
+- Eine **Teilrechnung über einen abgeschlossenen Bauabschnitt** hat dessen
+  Zeiteinträge und Scheine verbraucht — sie sind als verrechnet markiert und
+  tauchen in der Schlussrechnung gar nicht mehr auf. Ihre Summe ist schon
+  heraussen. Zöge man sie zusätzlich ab, fehlte sie zweimal, und der Betrieb
+  schenkte dem Kunden seine eigene Leistung.
+
+Unterschieden wird deshalb an `invoice_coverage`: abgezogen wird nur, was
+keine Belege verbraucht hat. Die Ansicht bietet auch nur das an.
+
+### Was die Datenbank zusagt
+
+`app.vorrechnungen_pruefen` prüft bei jedem Schreibweg — auch beim Rücklauf
+einer Sicherung:
+
+1. Abgezogen wird nur eine Rechnung **desselben Betriebs auf derselben
+   Baustelle**. Sonst wanderte Erlös zwischen zwei Baustellen.
+2. **Keine zweimal.** Der doppelte Abzug ist der teure Fehler: der Kunde zahlt
+   zu wenig, und es fällt beim Jahresabschluss auf.
+3. Nur, **was keine Belege verbraucht hat** (siehe oben).
+4. Die Kopie auf dem Beleg muss **die Originalbeträge tragen**. Ein
+   Zahlendreher hier wäre einer für immer.
+5. **Die Rechnung muss aufgehen:** Gesamtleistung − Abzüge = Rechnungsbetrag,
+   für Netto, Steuer und Brutto einzeln.
+6. **Keine Rechnung ins Minus.** Das wäre eine Gutschrift, und die gibt es
+   hier noch nicht — abgewiesen statt auf null gekappt, denn gekappt
+   verschwände der Betrag, den der Betrieb dem Kunden zurückschuldet.
+
+Dazu: **eine abgezogene Anzahlung lässt sich nicht stornieren**, solange der
+Abzug gilt. Sonst stünde sie auf null, während die Schlussrechnung ihren
+Betrag weiterhin nicht fordert — er verschwände lautlos aus Forderung, Umsatz
+und Nachkalkulation. Erst die Schlussrechnung stornieren, dann die Anzahlung.
+
+### Auf dem Beleg
+
+Die Überschrift sagt, was der Beleg ist — „Anzahlungsrechnung" statt
+„Rechnung". Eine Anzahlung trägt keinen Leistungszeitraum, weil es keinen
+gibt; statt eines erfundenen Datums steht dort, worauf die Zahlung geht. Die
+Schlussrechnung weist die Gesamtleistung aus, darunter jede abgezogene
+Vorrechnung einzeln mit Nummer, Datum, Entgelt und Steuer, darunter die
+Restforderung. Der zweite Druck ergibt denselben Beleg: das PDF bekommt die
+Gesamtleistung und rechnet den Rest selbst aus.
+
+### Geprüft
+
+18 Datenbankprüfungen zu den Rechnungsarten, 12 zum Rechenteil, sechs zu den
+Summenzeilen des Belegs, acht in der Ansicht, dazu der Durchklick im echten
+Browser von der Anzahlung bis zur Schlussrechnung mit Abzug. **Jeder einzelne
+Wächter fällt gegen absichtlich kaputten Code** — geprüft wurde das Stück für
+Stück, indem die Bedingung entfernt und der Lauf wiederholt wurde.
+
+**Der Durchklick hat sofort einen alten Fehler gefunden:** eine Rechnung ohne
+Leistungszeitraum liess sich gar nicht anlegen — `""` ist kein Datum, und
+Postgres wies sie ab. Sie scheiterte dabei an der schlechtesten Stelle:
+nachdem die Nummer verbindlich gezogen und die Belege gesperrt waren. Zurück
+blieben eine verbrauchte Nummer und Zeiteinträge, die auf eine Rechnung
+verwiesen, die es nicht gibt. Die Anzahlung hat nie einen Leistungszeitraum;
+zu treffen war es aber schon vorher, denn das Feld ist änderbar und der
+fehlende Zeitraum wird nur gemeldet, nicht erzwungen.
+
+**Offen aus 10.2:** die Gutschrift gibt es nicht. Und mitten im Projekt zählt
+die Nachkalkulation eine Anzahlung als Erlös, deren Kosten erst entstehen —
+der Deckungsbeitrag sieht dann besser aus, als er ist. Am Ende stimmt er; bis
+dahin ist er eine Momentaufnahme. Das war bei Teilrechnungen schon so und ist
+mit der Anzahlung deutlicher geworden.
+
+---
+
 ## Erledigt: Der Zahlungseingang — die Wurzel von Stufe 10 (19.09.2026)
 
 Bis hierher war „Bezahlt" ein Haken. Kein Datum, kein Betrag, keine
@@ -3896,7 +4000,7 @@ Normalfall, und ein Betrag am Beleg könnte nur den letzten festhalten.
 - **Fertig heisst:** eine Rechnung über 1.000 €, auf die 400 € eingehen,
   erscheint im Mahnlauf mit 600 € und nicht mit 1.000 €.
 
-#### 10.2 Anzahlungs-, Teil- und Schlussrechnung
+#### 10.2 Anzahlungs-, Teil- und Schlussrechnung — **ERLEDIGT am 20.09.2026**, siehe oben
 
 `Invoice.art: 'einzel' | 'anzahlung' | 'teil' | 'schluss'` und
 `vorrechnungen: string[]` an der Schlussrechnung.
