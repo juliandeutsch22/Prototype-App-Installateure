@@ -18,13 +18,16 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { anlegeFehler } from './anlegeFehler';
 import {
-  WEEKDAYS, leererEntwurf, alsProfil, type BenutzerEntwurf,
+  WEEKDAYS, leererEntwurf, alsProfil, aliquoterAnspruch, zahlOderVorgabe,
+  type BenutzerEntwurf, type Eintrittsart,
 } from './benutzerEntwurf';
+import { DEFAULT_VACATION_DAYS } from '@/lib/db/benutzerVorgaben';
+import { JAHRESBEGINN_VORGABE } from '@/lib/time';
 
 
 /** Benutzerverwaltung (GF/Admin): anlegen, Stammdaten und Rollen pflegen. */
 export default function UserMgmtView() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +42,33 @@ export default function UserMgmtView() {
   */
   const [formOffen, setFormOffen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  /*
+    TRITT DIE PERSON EIN, ODER IST SIE SCHON DA?
+
+    Zwei verschiedene Sachverhalte, die bis zum 20.09.2026 dieselben drei
+    Felder bekamen — und deren Vorbelegung nur für einen der beiden stimmte.
+    `bestand` ist die Vorgabe: es ist der Fall beim Einrichten, und es ist
+    genau das Verhalten von vorher.
+  */
+  const [eintritt, setEintritt] = useState<Eintrittsart>('bestand');
   const [suche, setSuche] = useState('');
   const [status, setStatus] = useState<'aktiv' | 'inaktiv' | 'alle'>('aktiv');
+  /**
+   * Der aliquote Vorschlag für einen Neueintritt.
+   *
+   * Als Funktion und nicht als abgeleiteter Wert: er wird an drei Stellen
+   * gebraucht (beim Umschalten, beim Ändern des Eintrittsdatums und beim
+   * Ändern des Jahresanspruchs), und an allen dreien mit FRISCHEN Werten —
+   * der Zustand von React ist im selben Durchlauf noch der alte.
+   */
+  const jahresbeginn = company?.urlaubJahresbeginn ?? JAHRESBEGINN_VORGABE;
+  const vorschlag = (datum: string, jahresTage: string) =>
+    aliquoterAnspruch(
+      zahlOderVorgabe(jahresTage, DEFAULT_VACATION_DAYS),
+      datum,
+      jahresbeginn,
+    );
+
   /** Initialpasswort, falls die Willkommens-Mail nicht zugestellt werden konnte. */
   const [handoverPassword, setHandoverPassword] = useState<{ name: string; pw: string } | null>(null);
 
@@ -131,6 +159,7 @@ export default function UserMgmtView() {
         setHandoverPassword({ name: form.name, pw: res.tempPassword });
       }
       setForm(leererEntwurf());
+      setEintritt('bestand');
       setShowDetails(false);
       setFormOffen(false);
       await reload();
@@ -222,6 +251,86 @@ export default function UserMgmtView() {
           </FormGrid>
 
           {/* Zeitkonto-Details sind vorbelegt — für den Normalfall reicht oben. */}
+          {/*
+            DIE WAHL STEHT AUSSERHALB DES AUFKLAPPERS, und das ist der Punkt.
+
+            Die Zeitkonto-Felder sind eingeklappt — wer sie nie öffnet, bekam
+            bisher stillschweigend die Vorbelegung. Für einen Bestandsmitarbeiter
+            ist das richtig; für einen Neueintritt bedeutete es den VOLLEN
+            Jahresanspruch ab Tag eins. Wer am 1. Oktober anfängt, hatte damit
+            25 Tage statt rund sechs, und es fiel erst auf, wenn er Urlaub
+            einreicht, den er nicht hat. Die Frage muss deshalb gestellt
+            werden, bevor jemand entscheidet, ob er aufklappt.
+          */}
+          <fieldset className="rounded border border-line bg-surface-2 p-4">
+            <legend className="section-label px-1">Was für ein Zugang ist das?</legend>
+            <div className="flex flex-col gap-2">
+              <label className="flex min-h-touch items-start gap-3 py-1">
+                <input
+                  type="radio"
+                  name="eintritt"
+                  id="eintritt-bestand"
+                  className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                  checked={eintritt === 'bestand'}
+                  onChange={() => {
+                    setEintritt('bestand');
+                    // Zurück auf die Vorbelegung: „nicht angegeben" heisst beim
+                    // Umstieg voller Jahresanspruch, und das ist hier richtig.
+                    setForm((f) => ({ ...f, initialVacationDays: '', initialOvertime: '0' }));
+                  }}
+                />
+                <span className="text-sm">
+                  <strong className="text-ink">Arbeitet schon im Betrieb</strong>
+                  <span className="mt-1 block text-ink-muted">
+                    Der Umstieg auf Senklot. Resturlaub und Überstundensaldo bringt die Person
+                    mit — die App kann beides nicht wissen und fragt danach.
+                  </span>
+                </span>
+              </label>
+              <label className="flex min-h-touch items-start gap-3 py-1">
+                <input
+                  type="radio"
+                  name="eintritt"
+                  id="eintritt-neu"
+                  className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                  checked={eintritt === 'neu'}
+                  onChange={() => {
+                    setEintritt('neu');
+                    setForm((f) => ({
+                      ...f,
+                      initialOvertime: '0',
+                      initialVacationDays: String(
+                        vorschlag(f.appStartDate, f.yearlyVacationDays).tage,
+                      ),
+                    }));
+                  }}
+                />
+                <span className="text-sm">
+                  <strong className="text-ink">Tritt neu ein</strong>
+                  <span className="mt-1 block text-ink-muted">
+                    Bringt nichts mit. Für das angebrochene erste Urlaubsjahr schlägt die App
+                    den aliquoten Anspruch vor.
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            {eintritt === 'neu' && (
+              <p className="mt-3 rounded-sm border border-line bg-surface px-3 py-2 text-sm text-ink-muted">
+                Vorschlag für {form.appStartDate || 'das Eintrittsdatum'}:{' '}
+                <strong className="tnum text-ink">
+                  {vorschlag(form.appStartDate, form.yearlyVacationDays).tage}
+                </strong>{' '}
+                Tage —{' '}
+                {zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS)} ×{' '}
+                {vorschlag(form.appStartDate, form.yearlyVacationDays).monate} von 12 Monaten.{' '}
+                <strong className="text-ink">Änderbar:</strong> ob im ersten Arbeitsjahr aliquot
+                oder nach sechs Monaten voll gerechnet wird, entscheidet der Kollektivvertrag —
+                nicht diese App.
+              </p>
+            )}
+          </fieldset>
+
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
@@ -238,19 +347,54 @@ export default function UserMgmtView() {
                   onChange={(e) => setForm({ ...form, weeklyTargetHours: e.target.value })} />
                 <InputField id="uvac" label="Urlaubstage pro Jahr" type="number" min="0"
                   value={form.yearlyVacationDays}
-                  onChange={(e) => setForm({ ...form, yearlyVacationDays: e.target.value })} />
-                <InputField id="ustart" label="Saldo-Startdatum" type="date"
+                  onChange={(e) => {
+                    const jahresTage = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      yearlyVacationDays: jahresTage,
+                      // Der Vorschlag hängt am Jahresanspruch — ihn stehen zu
+                      // lassen hiesse, eine Zahl aus einer alten Rechnung zu
+                      // zeigen.
+                      ...(eintritt === 'neu'
+                        ? { initialVacationDays: String(vorschlag(f.appStartDate, jahresTage).tage) }
+                        : {}),
+                    }));
+                  }} />
+                <InputField
+                  id="ustart"
+                  label={eintritt === 'neu' ? 'Eintrittsdatum' : 'Saldo-Startdatum'}
+                  type="date"
                   value={form.appStartDate}
-                  onChange={(e) => setForm({ ...form, appStartDate: e.target.value })} />
-                <InputField id="uinit" label="Start-Saldo (Stunden)" type="number" step="0.25"
-                  value={form.initialOvertime}
-                  onChange={(e) => setForm({ ...form, initialOvertime: e.target.value })} />
+                  onChange={(e) => {
+                    const datum = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      appStartDate: datum,
+                      ...(eintritt === 'neu'
+                        ? { initialVacationDays: String(vorschlag(datum, f.yearlyVacationDays).tage) }
+                        : {}),
+                    }));
+                  }} />
+                {/*
+                  KEIN STARTSALDO BEIM NEUEINTRITT. Wer eintritt, bringt keine
+                  Überstunden mit — ein Feld, in das nur eine 0 gehört, ist
+                  eine Gelegenheit für einen Tippfehler und sonst nichts.
+                */}
+                {eintritt === 'bestand' && (
+                  <InputField id="uinit" label="Start-Saldo (Stunden)" type="number" step="0.25"
+                    value={form.initialOvertime}
+                    onChange={(e) => setForm({ ...form, initialOvertime: e.target.value })} />
+                )}
                 <InputField
                   id="uvacinit"
-                  label="Resturlaub beim Umstieg (Tage)"
+                  label={
+                    eintritt === 'neu'
+                      ? 'Urlaub im ersten Jahr (Tage)'
+                      : 'Resturlaub beim Umstieg (Tage)'
+                  }
                   type="number"
                   step="0.5"
-                  placeholder="leer = voller Jahresanspruch"
+                  placeholder={eintritt === 'neu' ? '' : 'leer = voller Jahresanspruch'}
                   value={form.initialVacationDays}
                   onChange={(e) => setForm({ ...form, initialVacationDays: e.target.value })} />
               </FormGrid>

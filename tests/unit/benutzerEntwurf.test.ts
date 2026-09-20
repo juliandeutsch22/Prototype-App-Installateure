@@ -9,7 +9,13 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  zahlOderVorgabe, zahlOderNull, alsEntwurf, alsProfil, gleich, leererEntwurf,
+  zahlOderVorgabe,
+  zahlOderNull,
+  alsEntwurf,
+  alsProfil,
+  gleich,
+  leererEntwurf,
+  aliquoterAnspruch,
 } from '@/features/users/benutzerEntwurf';
 import type { AppUser } from '@/types';
 
@@ -133,5 +139,51 @@ describe('Ob sich etwas geändert hat', () => {
     expect(gleich(a, { ...a, workDays: [1, 2, 3, 4] })).toBe(false);
     expect(gleich(a, { ...a, workDays: [1, 2, 3, 4, 5, 6] })).toBe(false);
     expect(gleich(a, { ...a, workDays: [1, 2, 3, 4, 6] })).toBe(false);
+  });
+});
+
+describe('Der aliquote Anspruch im angebrochenen ersten Urlaubsjahr', () => {
+  /*
+    DIE FALLE, DIE DAS SCHLIESST. Wer bei einem Neueintritt das Feld
+    „Resturlaub" leer liess — was naheliegt, weil ja nichts mitzubringen ist —,
+    bekam den VOLLEN Jahresanspruch ab Tag eins. Wer am 1. Oktober anfängt,
+    hatte damit 25 Tage statt rund sechs. Das stand nirgends und fiel erst
+    auf, wenn jemand Urlaub einreicht, den er nicht hat.
+  */
+  it('rechnet die Monate bis zum Ende des Urlaubsjahres', () => {
+    // Eintritt im Oktober, Kalenderjahr: Oktober, November, Dezember.
+    expect(aliquoterAnspruch(25, '2026-10-15')).toEqual({ monate: 3, tage: 6.25 });
+  });
+
+  it('zählt den Eintrittsmonat voll mit', () => {
+    /*
+      Die für den Mitarbeiter günstige Lesart, und die in Kollektivverträgen
+      übliche. Wer am 31. Oktober anfängt, bekommt denselben Vorschlag wie
+      wer am 1. Oktober anfängt — beim Urlaub in die für den Betrieb günstige
+      Richtung zu irren ist keine Näherung, sondern ein Fehler.
+    */
+    expect(aliquoterAnspruch(25, '2026-10-31').monate).toBe(3);
+    expect(aliquoterAnspruch(25, '2026-10-01').monate).toBe(3);
+  });
+
+  it('gibt am ersten Tag des Urlaubsjahres den vollen Anspruch', () => {
+    // Dann ist nichts angebrochen, und der Vorschlag ist der Jahresanspruch.
+    expect(aliquoterAnspruch(25, '2026-01-01')).toEqual({ monate: 12, tage: 25 });
+  });
+
+  it('richtet sich nach dem Urlaubsjahr des Betriebs, nicht nach dem Kalender', () => {
+    /*
+      Bei einem Urlaubsjahr ab 1. Juli liegt der Eintritt im Oktober 2026 im
+      Urlaubsjahr 2026 (1.7.2026 – 30.6.2027) — es bleiben neun Monate, nicht
+      drei. Nach dem Kalender gerechnet bekäme die Person ein Dreivierteljahr
+      Urlaub zu wenig.
+    */
+    expect(aliquoterAnspruch(25, '2026-10-15', '07-01')).toEqual({ monate: 9, tage: 18.75 });
+    // Und ein Eintritt im März gehört noch ins Urlaubsjahr davor.
+    expect(aliquoterAnspruch(25, '2027-03-01', '07-01').monate).toBe(4);
+  });
+
+  it('rundet auf zwei Stellen und erfindet nichts dazu', () => {
+    expect(aliquoterAnspruch(25, '2026-08-10').tage).toBe(10.42);
   });
 });

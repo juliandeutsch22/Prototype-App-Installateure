@@ -62,7 +62,14 @@ vi.mock('@/lib/auth/provisionUser', () => ({
 let angemeldet = {
   uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' as AppUser['role'],
 };
-vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: angemeldet }) }));
+/*
+  Der Betrieb kommt mit: an ihm hängt der Beginn des Urlaubsjahres, und davon
+  hängt der aliquote Vorschlag beim Neueintritt ab.
+*/
+let betrieb: Record<string, unknown> = { id: 'perl', name: 'Perl Installationen' };
+vi.mock('@/app/AuthContext', () => ({
+  useAuth: () => ({ user: angemeldet, company: betrieb }),
+}));
 
 function zeige() {
   return render(
@@ -91,6 +98,7 @@ beforeEach(() => {
   ladefehler = null;
   mailGeht = true;
   angemeldet = { uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' };
+  betrieb = { id: 'perl', name: 'Perl Installationen' };
   profilAendern.mockReset().mockResolvedValue(undefined);
   anlegen.mockReset();
   passwortMail.mockReset();
@@ -322,5 +330,120 @@ describe('Benutzerverwaltung — die Liste', () => {
     ladefehler = 'Fehlende Berechtigung';
     zeige();
     expect(await screen.findByText(/Fehlende Berechtigung/)).toBeInTheDocument();
+  });
+});
+
+describe('Neueintritt oder Bestand', () => {
+  it('fragt danach, bevor jemand die Zeitkonto-Felder überhaupt aufklappt', async () => {
+    /*
+      DIE FALLE SASS IM EINGEKLAPPTEN TEIL. Wer ihn nie öffnete, bekam die
+      Vorbelegung — für einen Bestandsmitarbeiter richtig, für einen
+      Neueintritt der VOLLE Jahresanspruch ab Tag eins.
+    */
+    zeige();
+    await formOeffnen();
+    expect(await screen.findByLabelText(/Tritt neu ein/)).toBeInTheDocument();
+    // Und die Vorgabe ist der Bestand — also das Verhalten von vorher.
+    expect((screen.getByLabelText(/Arbeitet schon im Betrieb/) as HTMLInputElement).checked)
+      .toBe(true);
+  });
+
+  it('legt einen Bestandsmitarbeiter an wie bisher: Resturlaub bleibt leer', async () => {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Berta Bestand');
+    await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'berta@perl.at');
+    await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
+
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][1]).toMatchObject({ initialVacationDays: null });
+  });
+
+  it('schlägt beim Neueintritt den aliquoten Anspruch vor und zeigt die Rechnung', async () => {
+    zeige();
+    await formOeffnen();
+    await userEvent.click(screen.getByLabelText(/Tritt neu ein/));
+    await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
+
+    const eintritt = await screen.findByLabelText('Eintrittsdatum');
+    await userEvent.clear(eintritt);
+    await userEvent.type(eintritt, '2026-10-15');
+
+    // 25 × 3 von 12 Monaten = 6,25 — und die Rechnung steht daneben.
+    expect((screen.getByLabelText(/Urlaub im ersten Jahr/) as HTMLInputElement).value).toBe('6.25');
+    expect(screen.getByText(/3 von 12 Monaten/)).toBeInTheDocument();
+  });
+
+  it('trägt den Vorschlag sofort beim Umschalten ein, nicht erst beim Datum', async () => {
+    /*
+      SONST BLIEBE DAS FELD LEER — und leer heisst in `alsProfil` „nicht
+      angegeben", also voller Jahresanspruch. Genau die Falle, die diese Wahl
+      schliessen soll, wäre damit zurück: wer auf „tritt neu ein" klickt und
+      das vorbelegte Datum stehen lässt, bekäme wieder 25 Tage.
+
+      Geprüft wird nur, DASS eine Zahl drinsteht — welche, hängt am heutigen
+      Tag und gehört in die Rechenprüfung, nicht hierher.
+    */
+    zeige();
+    await formOeffnen();
+    await userEvent.click(screen.getByLabelText(/Tritt neu ein/));
+    await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
+
+    const feld = (await screen.findByLabelText(/Urlaub im ersten Jahr/)) as HTMLInputElement;
+    expect(feld.value).not.toBe('');
+    expect(Number(feld.value)).not.toBeNaN();
+  });
+
+  it('verlangt beim Neueintritt keinen Überstundensaldo', async () => {
+    // Wer eintritt, bringt keine mit. Ein Feld, in das nur eine 0 gehört, ist
+    // eine Gelegenheit für einen Tippfehler und sonst nichts.
+    zeige();
+    await formOeffnen();
+    await userEvent.click(screen.getByLabelText(/Tritt neu ein/));
+    await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
+
+    expect(await screen.findByLabelText('Eintrittsdatum')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Start-Saldo/)).toBeNull();
+  });
+
+  it('rechnet den Vorschlag nach dem Urlaubsjahr des Betriebs', async () => {
+    /*
+      Bei einem Urlaubsjahr ab 1. Juli liegt ein Eintritt im Oktober im
+      Urlaubsjahr, das noch neun Monate läuft — nach dem Kalender gerechnet
+      bekäme die Person ein Dreivierteljahr Urlaub zu wenig.
+    */
+    betrieb = { id: 'perl', name: 'Perl Installationen', urlaubJahresbeginn: '07-01' };
+    zeige();
+    await formOeffnen();
+    await userEvent.click(screen.getByLabelText(/Tritt neu ein/));
+    await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
+
+    const eintritt = await screen.findByLabelText('Eintrittsdatum');
+    await userEvent.clear(eintritt);
+    await userEvent.type(eintritt, '2026-10-15');
+
+    expect((screen.getByLabelText(/Urlaub im ersten Jahr/) as HTMLInputElement).value)
+      .toBe('18.75');
+  });
+
+  it('schreibt den Vorschlag auch wirklich in die Anlage', async () => {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Nico Neu');
+    await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'nico@perl.at');
+    await userEvent.click(screen.getByLabelText(/Tritt neu ein/));
+    await userEvent.click(screen.getByRole('button', { name: /Zeitkonto-Einstellungen/ }));
+
+    const eintritt = await screen.findByLabelText('Eintrittsdatum');
+    await userEvent.clear(eintritt);
+    await userEvent.type(eintritt, '2026-10-15');
+    await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
+
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][1]).toMatchObject({
+      initialVacationDays: 6.25,
+      appStartDate: '2026-10-15',
+      initialOvertime: 0,
+    });
   });
 });
