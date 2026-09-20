@@ -201,6 +201,7 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       'firma',
       'saetze',
       'konten',
+      'support',
       // „module" steht hier NICHT: siehe der eigene Fall weiter unten.
       'sicherung',
     ]);

@@ -14,6 +14,7 @@ import Avatar from '@/components/Avatar';
 import BrandLogo from '@/components/BrandLogo';
 import ProduktMarke from '@/components/ProduktMarke';
 import Verbindungsband from '@/components/Verbindungsband';
+import Supportband from '@/components/Supportband';
 import BottomSheet from '@/components/BottomSheet';
 import AppErneuern from '@/components/AppErneuern';
 
@@ -276,6 +277,12 @@ export default function Layout({ children }: { children: ReactNode }) {
         {/* Ganz oben im Inhalt, nicht in der Kopfleiste: dort wäre es auf dem
             Schreibtisch gar nicht zu sehen, wo es keine mobile Top-Bar gibt. */}
         <Verbindungsband />
+        {/*
+          Das Supportband steht UNTER dem Verbindungsband: fällt das Netz aus,
+          ist das die dringendere Auskunft, und zwei Bänder übereinander
+          sortieren sich dann von selbst nach Dringlichkeit.
+        */}
+        <Supportband />
         <div className="mx-auto max-w-5xl p-4 md:p-6">{children}</div>
       </main>
 

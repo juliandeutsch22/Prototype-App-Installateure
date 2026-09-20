@@ -141,14 +141,12 @@ export async function notzugang(
 export async function zugriffMelden(
   companyId: string,
   freigabeId: string,
-  adminUid: string,
   bereich: string,
   client?: SupabaseClient,
 ): Promise<void> {
   const { error } = await derClient(client).from('support_zugriffe').insert({
     company_id: companyId,
     freigabe_id: freigabeId,
-    admin_uid: adminUid,
     bereich,
   });
   if (error) throw new Error(error.message);

@@ -36,7 +36,7 @@ function zeige() {
 
 async function ausfuellen(nutzer: ReturnType<typeof userEvent.setup>) {
   await nutzer.type(screen.getByLabelText(/Name des Betriebs/), 'Perl Installationen');
-  await nutzer.type(screen.getByLabelText(/^Kennung/), 'perl');
+  await nutzer.type(screen.getByLabelText('Kennung'), 'perl');
   await nutzer.type(screen.getByLabelText(/Erster Administrator/), 'Petra Perl');
   await nutzer.type(screen.getByLabelText(/Dessen E-Mail/), 'petra@perl.at');
 }
@@ -73,7 +73,7 @@ describe('Die Plattformseite', () => {
     expect(screen.getByText(/braucht einen Namen/)).toBeInTheDocument();
 
     await nutzer.type(screen.getByLabelText(/Name des Betriebs/), 'Perl Installationen');
-    await nutzer.type(screen.getByLabelText(/^Kennung/), 'Perl GmbH');
+    await nutzer.type(screen.getByLabelText('Kennung'), 'Perl GmbH');
     expect(screen.getByText(/Kleinbuchstaben, Ziffern und Bindestrichen/)).toBeInTheDocument();
     expect(knopf).toBeDisabled();
   });
@@ -103,7 +103,7 @@ describe('Die Plattformseite', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Betrieb anlegen' }));
 
     await screen.findByText(/nur jetzt hier/);
-    expect((screen.getByLabelText(/^Kennung/) as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('Kennung') as HTMLInputElement).value).toBe('');
   });
 
   it('reicht die Absage der Function durch, statt sie zu ersetzen', async () => {

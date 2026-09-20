@@ -214,7 +214,12 @@ create table if not exists support_zugriffe (
   id          uuid primary key default gen_random_uuid(),
   company_id  text not null references companies (id),
   freigabe_id uuid not null references support_freigaben (id) on delete cascade,
-  admin_uid   uuid not null,
+  /*
+    AUS DEM TOKEN UND NICHT AUS DER ANSICHT. Die Regel verlangt ohnehin
+    `admin_uid = auth.uid()`; sie zusätzlich mitschicken zu müssen wäre eine
+    Gelegenheit, es falsch zu machen, und sonst nichts.
+  */
+  admin_uid   uuid not null default auth.uid(),
   /* Welcher Bereich geöffnet wurde, z. B. „Rechnungen". */
   bereich     text not null,
   wann        timestamptz not null default now()

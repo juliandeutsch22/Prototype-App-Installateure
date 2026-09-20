@@ -3968,7 +3968,7 @@ verleitet dazu, gegen eine Liste zu bauen statt gegen einen Betrieb.
 | Eine Woche echter Betrieb bei Perl, danach richtet sich alles nach dem, was dabei weh tut | neu, siehe unten |
 | Betriebsbereitschaft: Domain, Versand, Tarif, 2FA, Migrations-Probelauf, Fehler-Tracking, DSGVO-Paket | Stufe 12 |
 | Praxistest auf echten Geräten | 12.z |
-| Der zweite Betrieb in echt, Supportzugang, Datenübernahme | Stufe 13 |
+| Der zweite Betrieb in echt, Datenübernahme | Stufe 13 (**Supportzugang steht seit 20.09.2026**) |
 | Rücklauf einer Sicherung unter Ernstfall-Bedingungen erprobt | neu, siehe unten |
 | Prüfnetz für die vier Edge Functions | offen seit Stufe 9 |
 | **Schnittstellen zum Umfeld: DATANORM und BMD stehen — beide warten auf echte Daten** | Stufe 16, siehe unten |

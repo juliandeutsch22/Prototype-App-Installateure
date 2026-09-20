@@ -187,6 +187,12 @@ export const UNTER: Record<string, Unterseite[]> = {
       zu öffnen.
     */
     { pfad: 'konten', label: 'Kontenrahmen', roles: [...TOP, 'Buchhaltung'] },
+    /*
+      Einblick in den ganzen Betrieb zu gewähren ist eine Entscheidung der
+      Spitze — dieselbe Grenze zieht die Datenbank. Sie steht am Ende der
+      Einstellungen, weil sie selten gebraucht wird und nie beiläufig.
+    */
+    { pfad: 'support', label: 'Supportzugang', roles: TOP },
     // Welche Bereiche der Betrieb überhaupt benutzt. Diese Unterseite trägt
     // bewusst KEIN Modul: wäre die Modulverwaltung selbst abschaltbar, könnte
     // man sich aussperren und nie wieder hineinkommen.
