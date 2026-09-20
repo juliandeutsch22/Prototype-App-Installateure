@@ -273,20 +273,33 @@ Datenbank tut es nicht.
 ### Der Weg, kurz
 
 ```
-Branch  →  Pull Request  →  grüne Prüfungen  →  Merge nach main  →  zwei Abläufe
+Branch → Pull Request → grüne Prüfungen → Merge nach main → Schema → App
 ```
 
-Auf `main` starten **zwei Workflows**:
+Auf `main` laufen **zwei Workflows nacheinander**, nicht nebeneinander:
 
-| Ablauf | Was er tut | Dauer |
-| --- | --- | --- |
-| `deploy.yml` | Typen, Lint, alle Bausteinprüfungen, Bauen, Deploy auf Firebase Hosting | ~3 min |
-| `supabase-migrationen.yml` | Migrationen **von null an** gegen eine frische Datenbank + alle Datenbankprüfungen, **danach** `db push` ins echte Projekt und Edge Functions | ~7 min |
+| Schritt | Ablauf | Was er tut | Dauer |
+| --- | --- | --- | --- |
+| 1 | `supabase-migrationen.yml` | Migrationen **von null an** gegen eine frische Datenbank + alle Datenbankprüfungen, **danach** `db push` ins echte Projekt und Edge Functions | ~7 min |
+| 2 | `deploy.yml` | Typen, Lint, alle Bausteinprüfungen, Bauen, Deploy auf Firebase Hosting | ~3 min |
 
-Der zweite läuft nur, wenn sich unter `supabase/**` etwas geändert hat.
+Der zweite startet auf `main` **nicht selbst**: er hängt per `workflow_run` am
+ersten und läuft nur, wenn der mit `success` endet. Zusammen also **rund
+zehn Minuten** vom Merge bis auf die Telefone.
+
+> **Scheitert eine Migration, geht die App gar nicht erst live.** Vorher wäre
+> sie gestartet und hätte auf ein Schema getroffen, das nie kam.
 
 > **Die Prüfung steht VOR dem Einspielen, nicht daneben.** Eine Migration, die
 > einmal im Projekt liegt, ist dort — ein `git revert` holt sie nicht zurück.
+
+Der Migrationslauf hat auf `main` deshalb **keinen Pfadfilter** mehr. Ein
+übersprungener Lauf löst kein `workflow_run` aus; mit Filter bliebe jede
+Änderung, die `supabase/` nicht berührt, stillschweigend liegen. Der Preis
+sind ein paar Minuten je Auslieferung — `db push` findet dann nichts Neues.
+
+**Hängt die Kette einmal**, gibt es den Deploy von Hand: *Actions → „Test und
+Deploy" → Run workflow* auf `main`.
 
 ### Was der Betrieb davon merkt
 
@@ -303,13 +316,18 @@ und Bauzeit). Steckt ein Telefon fest, gibt es dort auch „App erneuern“.
 
 ### DIE REGEL, AN DER ALLES HÄNGT: abwärtskompatibel migrieren
 
-**Datenbank und App gehen gleichzeitig los, aber sie kommen nicht gleichzeitig
-an.** Gemessen am Lauf vom 20.09.2026: die App war nach 3 Minuten draußen, die
-Migrationen nach 7. Dazwischen lief **neue App gegen altes Schema**. Und auf
-den Telefonen läuft die alte Fassung ohnehin weiter, bis jemand die App neu
-öffnet — also auch **alte App gegen neues Schema**.
+**Eine Richtung ist seit dem 20.09.2026 zugemacht, die andere bleibt offen.**
 
-Jede Änderung muss deshalb **beide Richtungen aushalten**:
+Bis dahin gingen Datenbank und App *gleichzeitig los* — und kamen nicht
+gleichzeitig an: die App nach 3 Minuten, die Migrationen nach 7. Dazwischen
+lief vier Minuten lang **neue App gegen altes Schema**. Seit der Deploy hinter
+den Migrationen hängt, gibt es dieses Fenster nicht mehr.
+
+**Die Gegenrichtung lässt sich nicht zumachen.** Auf den Telefonen läuft die
+alte Fassung weiter, bis jemand die App neu öffnet — im Zweifel Tage. Also
+läuft dort **alte App gegen neues Schema**, und zwar so lange, wie es dauert.
+
+Jede Änderung muss deshalb **diese Richtung aushalten**:
 
 | Geht immer | Geht nur in zwei Schritten |
 | --- | --- |
@@ -324,10 +342,10 @@ Fassung haben — die alte Form entfernen. Eine Woche dazwischen ist ein
 brauchbares Mass; auf einem Telefon, das im Urlaub liegt, läuft die alte
 Fassung länger.
 
-> **Offen und bewusst benannt:** die Reihenfolge ist heute *App zuerst,
-> Datenbank danach* — also genau die ungünstige. Solange alle Änderungen der
-> Tabelle oben folgen, ist das harmlos. Den Deploy an die Migrationen zu
-> hängen wäre die saubere Lösung und ist nicht gebaut.
+> **Die Tabelle gilt weiter, auch mit der Kette.** Sie schützt nicht mehr vor
+> den vier Minuten zwischen zwei Abläufen — die gibt es nicht mehr —, sondern
+> vor dem Telefon, das seit Freitag im Auto liegt. Wer eine Spalte umbenennt
+> und sich auf die Reihenfolge verlässt, hat den falschen Gegner im Blick.
 
 ### Wenn etwas schiefgeht
 

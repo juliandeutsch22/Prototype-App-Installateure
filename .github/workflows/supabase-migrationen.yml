@@ -13,12 +13,21 @@ name: Supabase-Migrationen
 # Migration, die einmal im Projekt liegt, ist dort. Es gibt kein Zurück durch
 # ein `git revert` — die Tabelle ist geändert, die Daten sind es womöglich
 # auch. Was ins Projekt geht, muss vorher von null an gelaufen sein.
+#
+# AUF MAIN OHNE PFADFILTER, SEIT DEM 20.09.2026. Hier stand `paths:
+# supabase/**` — sinnvoll, solange dieser Ablauf für sich stand. Seitdem hängt
+# "Test und Deploy" per `workflow_run` HINTER diesem hier, und ein
+# übersprungener Lauf löst kein `workflow_run` aus. Mit Filter würde also jede
+# Änderung, die `supabase/` nicht berührt, NIE ausgeliefert — eine
+# Tippfehlerkorrektur in einer Ansicht bliebe stillschweigend liegen.
+#
+# Der Preis sind ein paar Minuten je Auslieferung: `db push` findet nichts
+# Neues und tut nichts, die Functions gehen unverändert noch einmal raus. Das
+# ist billiger als eine Auslieferung, die niemand vermisst, weil niemand sie
+# erwartet hat.
 on:
   push:
     branches: [main]
-    paths:
-      - 'supabase/**'
-      - '.github/workflows/supabase-migrationen.yml'
   pull_request:
     paths:
       - 'supabase/**'
