@@ -1,10 +1,10 @@
 name: Durchklick
 
-# DIE APP IM ECHTEN BROWSER, auf den vier Wegen, bei denen ein Fehler Geld
+# DIE APP IM ECHTEN BROWSER, auf den fünf Wegen, bei denen ein Fehler Geld
 # oder Arbeitszeit kostet: Zeit buchen, Material anfordern, Schein
-# unterschreiben, Rechnung stellen. Die Anmeldung steht nicht daneben — jeder
-# der vier beginnt damit, und zwar über die Maske, nicht über eine
-# untergeschobene Sitzung.
+# unterschreiben, Rechnung stellen, Katalog einspielen. Die Anmeldung steht
+# nicht daneben — jeder der fünf beginnt damit, und zwar über die Maske,
+# nicht über eine untergeschobene Sitzung.
 #
 # WARUM ES DIESEN AUFTRAG NEBEN DEN ANDEREN GIBT. „Typen, Lint und Tests"
 # prüft Bausteine mit nachgebauter Umgebung, „Migrationen von null an" die
@@ -43,7 +43,7 @@ env:
 
 jobs:
   durchklicken:
-    name: Die vier Wege im Browser
+    name: Die fünf Wege im Browser
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
