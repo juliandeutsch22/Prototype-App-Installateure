@@ -179,6 +179,20 @@ export const UNTER: Record<string, Unterseite[]> = {
     // hat sie niemand vermutet; gefragt wurde stattdessen, wo das Feld
     // überhaupt sei.
     { pfad: 'saetze', label: 'Sätze und Kosten', roles: TOP },
+    /*
+      Der Kontenrahmen steht NEBEN den Sätzen und nicht darin: er gehört
+      einer anderen Rolle. Welche Konten die Kanzlei bebucht, pflegt die
+      BUCHHALTUNG — sie ist die Rolle, die mit ihr spricht. Sie dafür in die
+      Sätze und Kostensätze zu lassen hiesse, ihr die Margendaten des Betriebs
+      zu öffnen.
+    */
+    { pfad: 'konten', label: 'Kontenrahmen', roles: [...TOP, 'Buchhaltung'] },
+    /*
+      Einblick in den ganzen Betrieb zu gewähren ist eine Entscheidung der
+      Spitze — dieselbe Grenze zieht die Datenbank. Sie steht am Ende der
+      Einstellungen, weil sie selten gebraucht wird und nie beiläufig.
+    */
+    { pfad: 'support', label: 'Supportzugang', roles: TOP },
     // Welche Bereiche der Betrieb überhaupt benutzt. Diese Unterseite trägt
     // bewusst KEIN Modul: wäre die Modulverwaltung selbst abschaltbar, könnte
     // man sich aussperren und nie wieder hineinkommen.

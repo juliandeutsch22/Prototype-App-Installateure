@@ -612,6 +612,16 @@ export interface Material {
    * anzusetzen.
    */
   einkaufspreis?: number;
+  /**
+   * Der Grosshändler führt den Artikel nicht mehr.
+   *
+   * GELÖSCHT WIRD ER TROTZDEM NICHT. Ein Löschsatz im DATANORM-Katalog sagt
+   * nur, dass es ihn dort nicht mehr gibt — nicht, dass er nie auf einem
+   * Handwerksschein oder einer Rechnung stand. Verschwände er, fehlte er
+   * rückwirkend in jeder Auswertung. Er bleibt also im Katalog, wird dort
+   * gekennzeichnet und für NEUE Erfassungen nicht mehr angeboten.
+   */
+  ausgelaufen?: boolean;
 }
 
 /**

@@ -22,6 +22,8 @@ import { zahlstand } from './zahlstand';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listCustomers } from '@/lib/db/customers';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
+import { buildBmdCsv, bmdCsvFilename } from './bmdExport';
+import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workSheets';
@@ -130,6 +132,12 @@ export default function InvoicesView() {
     leere Datei, die wie ein Erfolg aussah.
   */
   const [exportZeilen, setExportZeilen] = useState<WithId<Invoice>[] | null>(null);
+  /*
+    Der Kontenrahmen des Betriebs — ohne ihn gibt es keinen Buchungsstapel.
+    Er wird einmal geladen und nicht abonniert: er ändert sich einmal beim
+    Einrichten und danach so gut wie nie.
+  */
+  const [konten, setKonten] = useState<Buchungskonto[]>([]);
   const [exportLaeuft, setExportLaeuft] = useState(false);
   const [exportFehler, setExportFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -259,6 +267,12 @@ export default function InvoicesView() {
       .catch(() => setNebenFehler('Die Baustellen'));
     // Fuer die UID-Nummer im Buchhaltungs-Export.
     listCustomers(user.companyId).then(setKunden).catch(() => setNebenFehler('Die Kunden'));
+    /*
+      Der Kontenrahmen entscheidet, ob es den Buchungsstapel überhaupt gibt.
+      Scheitert er, bleibt die Liste leer — dann wird der Knopf nicht
+      angeboten, statt einen Stapel ohne Konten zu versprechen.
+    */
+    buchungskonten(user.companyId).then(setKonten).catch(() => setNebenFehler('Der Kontenrahmen'));
     const unsub = subscribeRecentInvoices(
       user.companyId,
       grenze,
@@ -1101,9 +1115,9 @@ export default function InvoicesView() {
           'Zahldatum. Stornierte sind enthalten und gekennzeichnet, zählen aber nicht in die ' +
           'Summe — sie gehören ins Ausgangsbuch, sonst fehlt eine Nummer in der Reihe. Die UID ' +
           'kommt aus dem Kundenstamm; fehlt sie dort, bleibt die Spalte leer. ' +
-          'Das Zielformat mit dem Steuerberater abstimmen: ein geratenes BMD- oder DATEV-Layout ' +
-          'sähe importierbar aus und bucht im Zweifel auf falsche Konten. Deshalb hier ein ' +
-          'dokumentiertes CSV mit allen Feldern, die beide brauchen.'
+          'Das ist eine LISTE, keine Buchung — sie beschreibt die Rechnungen und überlässt der ' +
+          'Kanzlei, worauf sie bucht. Wer den Kontenrahmen in den Einstellungen hinterlegt, ' +
+          'bekommt darunter zusätzlich den fertigen Buchungsstapel für BMD.'
         }
       >
         <FormGrid>
@@ -1195,7 +1209,7 @@ export default function InvoicesView() {
                   Übergabe an die Kanzlei geklärt sein.
                 </p>
               )}
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Button
                   variant="secondary"
                   disabled={e.anzahl === 0}
@@ -1206,6 +1220,47 @@ export default function InvoicesView() {
                 >
                   Als CSV herunterladen
                 </Button>
+                {/*
+                  DER BUCHUNGSSTAPEL STEHT NEBEN DEM JOURNAL, nicht an seiner
+                  Stelle. Beide beantworten verschiedene Fragen, und ein
+                  Betrieb ohne hinterlegten Kontenrahmen soll das Journal
+                  weiter bekommen, als wäre nichts gewesen.
+                */}
+                {konten.length > 0 && (() => {
+                  const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis);
+                  return (
+                    <>
+                      <Button
+                        variant="secondary"
+                        /* `fehlend` ist heute schon an den leeren Zeilen ablesbar —
+                           die Bedingung steht trotzdem da, weil sie die Absicht
+                           benennt und nicht auf eine Zusicherung von anderswo baut. */
+                        disabled={b.fehlend.length > 0 || b.zeilen.length === 0}
+                        onClick={() => {
+                          downloadCsv(b.csv, bmdCsvFilename(exportVon, exportBis));
+                          toast.success(`Buchungsstapel erzeugt — ${b.zeilen.length} Zeilen`);
+                        }}
+                      >
+                        Buchungsstapel für BMD
+                      </Button>
+                      <InfoHint about="den Buchungsstapel">
+                        Soll- und Habenkonto je Vorgang, brutto mit Steuercode — so, wie BMD es
+                        einliest. Anzahlungen gehen auf das Konto der erhaltenen Anzahlungen und
+                        werden mit der Schlussrechnung in den Erlös umgebucht; ein Storno kommt
+                        als Gegenbuchung am Stornotag. <strong>Der erste Stapel gehört vor dem
+                        Import von Ihrer Kanzlei geprüft</strong> — die Konten stehen in den
+                        Einstellungen und stammen von dort, nicht aus dieser App.
+                      </InfoHint>
+                      {b.fehlend.length > 0 && (
+                        <p className="mt-2 basis-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+                          <strong>Im Kontenrahmen fehlt:</strong> {b.fehlend.join('; ')}. Bis
+                          dahin gibt es keinen Buchungsstapel — einer mit Lücken importiert
+                          sich fehlerfrei und bucht einen zu niedrigen Umsatz.
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </>
           );

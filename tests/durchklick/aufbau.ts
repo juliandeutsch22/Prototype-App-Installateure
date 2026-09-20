@@ -32,6 +32,12 @@ export const MONTEUR = { email: 'monteur@durchklick.test', name: 'Max Monteur' }
   diesen Benutzer richtigerweise nicht gibt.
 */
 export const BUERO = { email: 'buero@durchklick.test', name: 'Berta Büro' };
+/*
+  DIE CHEFIN GIBT ES WEGEN DES KATALOGIMPORTS. Er setzt Einkaufspreise, und
+  die setzt nur die Geschäftsführung — mit der Buchhaltungsrolle fehlt der
+  Reiter, richtigerweise.
+*/
+export const CHEFIN = { email: 'chefin@durchklick.test', name: 'Carla Chefin' };
 
 export const BAUSTELLE = { nummer: 'B-2026-0001', kunde: 'Familie Huber' };
 export const ARTIKEL = { name: 'Kupferrohr 15mm', einheit: 'm' };
@@ -40,7 +46,13 @@ export const ARTIKEL = { name: 'Kupferrohr 15mm', einheit: 'm' };
 async function konto(
   email: string, name: string, rolle: string,
 ): Promise<string> {
-  const vorhanden = await admin.auth.admin.listUsers();
+  /*
+    MIT SEITENGRÖSSE. `listUsers()` liefert ohne Angabe die ersten fünfzig —
+    auf einem Entwicklungsstapel, auf dem sich Konten angesammelt haben, ist
+    das vorhandene Konto dann nicht dabei, und das Anlegen scheitert mit
+    „already been registered". Auf einer frischen Datenbank fiel das nie auf.
+  */
+  const vorhanden = await admin.auth.admin.listUsers({ perPage: 1000 });
   const alt = vorhanden.data.users.find((u) => u.email === email);
   if (alt) await admin.auth.admin.deleteUser(alt.id);
 
@@ -67,13 +79,15 @@ export default async function aufbau(): Promise<void> {
   for (const t of [
     'work_sheet_zeiten', 'work_sheet_material', 'work_sheet_fotos', 'work_sheets',
     'invoice_positions', 'invoices', 'material_orders', 'time_entries',
-    'assignments', 'materials', 'projects', 'customers',
+    'assignments', 'datanorm_zeilen', 'datanorm_laeufe', 'material_prices',
+    'rabattsaetze', 'materials', 'projects', 'customers', 'suppliers',
   ]) {
     await admin.from(t).delete().eq('company_id', BETRIEB);
   }
 
   await konto(MONTEUR.email, MONTEUR.name, 'Mitarbeiter');
   await konto(BUERO.email, BUERO.name, 'Buchhaltung');
+  await konto(CHEFIN.email, CHEFIN.name, 'Geschäftsführung');
 
   const { error: kundeFehler } = await admin.from('customers').insert({
     company_id: BETRIEB, name: BAUSTELLE.kunde, address: 'Hauptstrasse 1, 1010 Wien',

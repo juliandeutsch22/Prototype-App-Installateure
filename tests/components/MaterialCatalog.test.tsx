@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { Material, Role } from '@/types';
@@ -208,5 +208,26 @@ describe('Materialkatalog — wie weit die Liste reicht', () => {
 
     await nutzer.click(screen.getByRole('button', { name: /Weitere Artikel laden/ }));
     expect(letzteGrenze).toBe(6);
+  });
+});
+
+describe('Ausgelaufene Artikel im Katalog', () => {
+  it('kennzeichnet sie, statt sie zu verstecken', async () => {
+    /*
+      Sie BLEIBEN im Katalog — sie stehen auf alten Scheinen und Rechnungen.
+      Dass sie in der Materialerfassung nicht mehr auftauchen, braucht hier
+      eine Erklärung, sonst sucht jemand einen Artikel, den er sieht.
+    */
+    materialien = [
+      { id: 'm1', companyId: 'perl', name: 'Eckventil alt', stock: 3, ausgelaufen: true },
+      { id: 'm2', companyId: 'perl', name: 'Eckventil neu', stock: 30 },
+    ] as WithId<Material>[];
+    zeige();
+
+    const alt = (await screen.findByText('Eckventil alt')).closest('li') as HTMLElement;
+    expect(within(alt).getByText('ausgelaufen')).toBeInTheDocument();
+
+    const neu = screen.getByText('Eckventil neu').closest('li') as HTMLElement;
+    expect(within(neu).queryByText('ausgelaufen')).toBeNull();
   });
 });

@@ -3968,9 +3968,10 @@ verleitet dazu, gegen eine Liste zu bauen statt gegen einen Betrieb.
 | Eine Woche echter Betrieb bei Perl, danach richtet sich alles nach dem, was dabei weh tut | neu, siehe unten |
 | Betriebsbereitschaft: Domain, Versand, Tarif, 2FA, Migrations-Probelauf, Fehler-Tracking, DSGVO-Paket | Stufe 12 |
 | Praxistest auf echten Geräten | 12.z |
-| Der zweite Betrieb in echt, Supportzugang, Datenübernahme | Stufe 13 |
+| Der zweite Betrieb in echt, Datenübernahme | Stufe 13 (**Supportzugang steht seit 20.09.2026**) |
 | Rücklauf einer Sicherung unter Ernstfall-Bedingungen erprobt | neu, siehe unten |
 | Prüfnetz für die vier Edge Functions | offen seit Stufe 9 |
+| **Schnittstellen zum Umfeld: DATANORM und BMD stehen — beide warten auf echte Daten** | Stufe 16, siehe unten |
 
 **EINE KORREKTUR DAZU, damit sie nicht untergeht:** beim Aufräumen war die
 erste Vermutung, auch Stufe 12 gehöre auf den Wartestapel. Das war falsch, und
@@ -3980,6 +3981,69 @@ Bedingungen, ohne die ein Start nicht stattfinden kann. Der kostenlose Tarif
 Betrieb die App gar nicht einsetzen; eine Domain nachträglich zu wechseln
 lässt jede installierte App auf der alten Adresse stehen. Das ist nicht
 Umfang, das ist der Start selbst.
+
+### Stufe 16 — Die Schnittstellen zum Umfeld — **TEILWEISE FERTIG**
+
+Ein Installateurbetrieb steht nicht allein da. Er kauft bei einem
+Grosshändler ein und gibt seine Belege einem Steuerberater. Beide sprechen
+ein Format, und solange Senklot keines davon spricht, tippt das Büro ab.
+
+**16.1 DATANORM — der Artikelkatalog des Grosshändlers — FERTIG (20.09.2026)**
+
+DIE WICHTIGSTE DER DREI, weil der Materialstamm bis heute von Hand gepflegt
+wird. Ein Installateur führt aber nicht dreissig Artikel, sondern die
+Preisliste seines Grosshändlers — Zehntausende. Ohne Katalog steht auf jeder
+Rechnung Material mit 0,00 €, und die Nachkalkulation weist einen
+Deckungsbeitrag aus, der um die Materialkosten zu hoch ist. Genau die Lücke,
+die `materialLuecken` bisher nur BENANNT hat.
+
+Gebaut in drei Teilen: der Leser (`features/materials/datanorm.ts`), die
+Serverseite (Zwischenlager, Rabattsätze, Alles-oder-nichts-Übernahme) und der
+Probelauf im Lager, sichtbar nur für die Geschäftsführung. Was dabei die
+eigentliche Arbeit war, steht in `docs/FUNKTIONEN.md` unter **Lager**;
+kurz: nichts wird geraten, nichts wird gelöscht, und ein Listenpreis wird
+ohne hinterlegten Rabattsatz nicht zum Einkaufspreis.
+
+**OFFEN BLEIBT DIE PROBE AN ECHTEN DATEN.** Geprüft ist der Leser gegen die
+Norm, nicht gegen eine Datei von Perls Grosshändler. Die Beispieldatei, mit
+der die Arbeit begann, passte NICHT zur Norm — sie führte vor der
+Artikelnummer noch eine Katalognummer. Dafür gibt es jetzt eine Erkennung,
+die die Übernahme sperrt; ob sie beim ersten echten Katalog anschlägt oder
+nicht, sagt erst dieser Katalog.
+
+**16.2 BMD NTCS — der Weg zum Steuerberater — FERTIG (20.09.2026)**
+
+Das Format ist der leichte Teil: `Sollkonto;Habenkonto;Belegdatum;
+Belegnummer;Buchungstext;Betrag;Steuercode`. Der schwere Teil sind die
+KONTEN. Welches Erlöskonto für 20 %, welches für Reverse Charge, welcher
+Debitorennummernkreis, auf welches Konto erhaltene Anzahlungen — das sind
+Zahlen DIESES Betriebs und seines Steuerberaters, keine allgemeingültigen.
+
+Entschieden und gebaut am 20.09.2026: sie stehen **als Betriebseinstellung**
+unter Einstellungen → Kontenrahmen, gepflegt von Administrator,
+Geschäftsführung und Buchhaltung. Der Einheitskontenrahmen lässt sich als
+VORSCHLAG einsetzen und ist ausdrücklich keine Vorbelegung — wer eine
+Vorbelegung stehen lässt, bucht ein Jahr lang auf Konten, die er nie geprüft
+hat.
+
+Der Stapel selbst steht neben dem Rechnungsausgangsbuch in der
+Rechnungsansicht. **Fehlt ein Konto, entsteht keine Datei**, sondern eine
+Liste dessen, was fehlt: ein Stapel mit Lücken importiert sich fehlerfrei und
+bucht einen zu niedrigen Umsatz. Die Einzelheiten stehen in
+`docs/FUNKTIONEN.md` unter **Rechnungen**.
+
+**OFFEN BLEIBT DIE ABNAHME DURCH DIE KANZLEI.** Die Buchungslogik ist
+geprüft, die Kontonummern sind es nicht — sie kommen aus den Einstellungen
+und damit vom Betrieb. Der erste Stapel gehört vor dem Import angesehen.
+
+**16.3 DATEV — GESTRICHEN, nicht verschoben**
+
+DATEV ist der deutsche Markt: SKR03/SKR04, § 13b UStG, Format 700. Perl ist
+Österreich und arbeitet mit BMD. Eine DATEV-Schnittstelle wäre eine
+Schnittstelle für einen erfundenen Kunden. Entschieden am 20.09.2026:
+**Zielmarkt ist Österreich**, und das steht ab sofort auch in
+`docs/FUNKTIONEN.md` und im Handbuch — nicht als Einschränkung, sondern
+damit niemand annimmt, eine deutsche Fassung sei ein Sprachschalter.
 
 **WARTET — erst, wenn ein Betrieb es verlangt:**
 

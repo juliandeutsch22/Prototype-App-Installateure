@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import {
   subscribeMaterials,
@@ -21,7 +21,13 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
 
-type Tab = 'bestand' | 'katalog';
+/*
+  Der Katalogimport wird erst beim Öffnen geladen. Er bringt den
+  DATANORM-Leser mit, und den braucht niemand, der nur den Bestand nachsieht.
+*/
+const KatalogImport = lazy(() => import('@/features/materials/KatalogImport'));
+
+type Tab = 'bestand' | 'katalog' | 'import';
 
 /**
  * Lager — eigener Bereich statt versteckter vierter Reiter unter
@@ -45,6 +51,7 @@ export default function StockView() {
   const { user } = useAuth();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('bestand');
+  const darfEinspielen = user?.role === 'Geschäftsführung' || user?.role === 'Administrator';
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,6 +190,13 @@ export default function StockView() {
         {([
           { key: 'bestand' as Tab, label: 'Bestand' },
           { key: 'katalog' as Tab, label: 'Katalog' },
+          /*
+            EINSPIELEN DARF NUR, WER AUCH EINZELN EINKAUFSPREISE SETZEN DARF.
+            Dieselbe Grenze steht in der Datenbank; hier wird der Reiter nur
+            nicht angeboten — für die Verwaltung wäre er ein Knopf, der
+            zuverlässig abweist.
+          */
+          ...(darfEinspielen ? [{ key: 'import' as Tab, label: 'Katalog einspielen' }] : []),
         ]).map((t) => (
           <button
             key={t.key}
@@ -202,7 +216,11 @@ export default function StockView() {
 
       {error && <ErrorState message={error} />}
 
-      {tab === 'katalog' ? (
+      {tab === 'import' ? (
+        <Suspense fallback={<SkeletonList rows={3} />}>
+          <KatalogImport />
+        </Suspense>
+      ) : tab === 'katalog' ? (
         <MaterialCatalog
           zuBearbeiten={zuBearbeiten}
           onUebernommen={() => setZuBearbeiten(null)}

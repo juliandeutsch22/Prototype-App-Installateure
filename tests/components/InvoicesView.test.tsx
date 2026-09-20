@@ -201,6 +201,12 @@ vi.mock('@/lib/db/projects', () => ({
 }));
 let kunden: Array<{ name: string; vatId?: string }> = [];
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
+/*
+  Der Kontenrahmen. Leer ist der Regelfall: ohne hinterlegte Konten gibt es
+  keinen Buchungsstapel, und die Ansicht muss trotzdem vollständig sein.
+*/
+let konten: Array<Record<string, unknown>> = [];
+vi.mock('@/lib/db/konten', () => ({ buchungskonten: vi.fn(async () => konten) }));
 vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesForProjects: vi.fn(async () => zeiten),
 }));
@@ -302,6 +308,7 @@ beforeEach(() => {
   imZeitraum = [];
   derBaustelle = [];
   baustellenAbfrageWirft = false;
+  konten = [];
   authWert.company.rechnungsarten = false;
   listInvoicesForProject.mockClear();
   listUnpaidInvoices.mockClear();
@@ -1287,8 +1294,58 @@ describe('Der Buchhaltungs-Export', () => {
       totalNetto: 1000,
       totalVat: 200,
       totalBrutto: 1200,
+      vatRate: 0.2,
       paymentStatus: 'Bezahlt',
     }) as unknown as Invoice & { id: string };
+
+  /*
+    DER BUCHUNGSSTAPEL STEHT NEBEN DEM JOURNAL.
+
+    Das Journal BESCHREIBT Rechnungen, der Stapel BUCHT sie. Der Unterschied
+    ist die ganze Gefahr: eine falsch kontierte Zeile importiert sich
+    fehlerfrei und fällt frühestens beim Jahresabschluss auf. Deshalb gibt es
+    ihn nur, wenn der Betrieb seinen Kontenrahmen hinterlegt hat — und
+    deshalb gibt es ihn GAR NICHT, solange daran etwas fehlt.
+  */
+  const KONTEN = [
+    { zweck: 'debitoren', konto: '2000' },
+    { zweck: 'erloes', ustSatz: 0.2, konto: '4000', steuercode: 'M20' },
+  ];
+
+  it('bietet ohne hinterlegten Kontenrahmen keinen Buchungsstapel an', async () => {
+    // Das Journal bleibt davon unberührt: ein Betrieb ohne Kontenrahmen soll
+    // es weiter bekommen, als wäre nichts gewesen.
+    konten = [];
+    imZeitraum = [journal('0001', '2026-09-01')];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+
+    expect(await screen.findByRole('button', { name: 'Als CSV herunterladen' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /Buchungsstapel/ })).toBeNull();
+  });
+
+  it('bietet ihn an, sobald die Konten stehen', async () => {
+    konten = KONTEN;
+    imZeitraum = [journal('0001', '2026-09-01')];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+    expect(await screen.findByRole('button', { name: /Buchungsstapel für BMD/ })).toBeEnabled();
+  });
+
+  it('sperrt ihn und sagt, WELCHES Konto fehlt', async () => {
+    /*
+      Ein Stapel mit Lücken importiert sich fehlerfrei und bucht einen zu
+      niedrigen Umsatz — niemand sucht danach, weil der Import ja geklappt
+      hat. Ein gesperrter Knopf mit Klartext ist die einzige richtige Antwort.
+    */
+    konten = [{ zweck: 'debitoren', konto: '2000' }];
+    imZeitraum = [journal('0001', '2026-09-01')];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+
+    expect(await screen.findByRole('button', { name: /Buchungsstapel für BMD/ })).toBeDisabled();
+    expect(screen.getByText(/Erlöskonto für 20 % Umsatzsteuer/)).toBeInTheDocument();
+  });
 
   it('rechnet nicht über die Liste, sondern holt den Zeitraum', async () => {
     // Die Arbeitsliste ist LEER — und das Journal trotzdem vollständig.

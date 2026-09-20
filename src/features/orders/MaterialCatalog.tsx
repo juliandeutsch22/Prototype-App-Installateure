@@ -348,6 +348,13 @@ export default function MaterialCatalog({
                         .join(' · ') || undefined
                     }
                   >
+                    {/*
+                      „Ausgelaufen" steht VOR dem Bestand: es erklärt, warum
+                      der Artikel in der Materialerfassung nicht mehr
+                      auftaucht, und das ist die Frage, mit der jemand hier
+                      nachsieht.
+                    */}
+                    {m.ausgelaufen && <Warnung>ausgelaufen</Warnung>}
                     {low ? (
                       <Warnung>{m.stock ?? 0} {m.unit ?? 'Stk'}</Warnung>
                     ) : (

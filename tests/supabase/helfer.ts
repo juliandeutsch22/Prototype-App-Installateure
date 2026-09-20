@@ -86,6 +86,35 @@ export async function konto(
 }
 
 /**
+ * Ein Plattformkonto — es gehört zu KEINEM Betrieb.
+ *
+ * Kein `users`-Eintrag, kein `company_id`, keine Rolle: daran hängt, dass es
+ * von sich aus nirgends hineinsieht. Den Anspruch `plattform_admin` setzt der
+ * Auslöser an `platform_admins`, nicht dieser Helfer — geprüft wird also der
+ * echte Weg und nicht ein nachgebauter.
+ */
+export async function plattformkonto(marke: string): Promise<Konto> {
+  const email = `${marke}-${crypto.randomUUID().slice(0, 8)}@plattform.test`;
+  const { data, error } = await admin.auth.admin.createUser({
+    email, password: PASSWORT, email_confirm: true,
+  });
+  if (error) throw error;
+  const uid = data.user!.id;
+  const { error: fehler } = await admin
+    .from('platform_admins').upsert({ id: uid, name: marke });
+  if (fehler) throw new Error(fehler.message);
+
+  const client = createClient(API, ANON, { auth: { persistSession: false } });
+  const an = await client.auth.signInWithPassword({ email, password: PASSWORT });
+  if (an.error) throw an.error;
+  await client.realtime.setAuth(an.data.session!.access_token);
+  return {
+    client, uid, betrieb: '', rolle: 'Administrator',
+    token: an.data.session!.access_token,
+  };
+}
+
+/**
  * Ein Konto wirklich deaktivieren — so, wie es die Verwaltung tut.
  *
  * Der Trigger an der Belegschaft zieht daraus alles Weitere: die Ansprüche,

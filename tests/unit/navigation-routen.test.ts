@@ -200,6 +200,8 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       // Was auf den Belegen steht — Briefkopf, Logo, UID, Bankverbindung.
       'firma',
       'saetze',
+      'konten',
+      'support',
       // „module" steht hier NICHT: siehe der eigene Fall weiter unten.
       'sicherung',
     ]);
@@ -207,6 +209,22 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
     // Rechnungen, und beides geht sie nichts an.
     expect(unterseitenFuer('/settings', 'Projektleiter').map((s) => s.pfad)).toEqual([
       'meldungen',
+    ]);
+  });
+
+  it('gibt der Buchhaltung den KONTENRAHMEN und sonst nichts aus den Einstellungen', () => {
+    /*
+      SIE IST DIE ROLLE, DIE MIT DER KANZLEI SPRICHT. Welche Konten der
+      Betrieb bebucht, klärt sie dort — dafür jedes Mal die Chefin zu holen,
+      wäre eine Grenze ohne Zweck.
+
+      Die Sätze und Kostensätze bleiben ihr trotzdem verschlossen: dort stehen
+      die internen Kostensätze, also die Margendaten des Betriebs. Und die
+      Sicherung erst recht nicht.
+    */
+    expect(unterseitenFuer('/settings', 'Buchhaltung').map((s) => s.pfad)).toEqual([
+      'meldungen',
+      'konten',
     ]);
   });
 

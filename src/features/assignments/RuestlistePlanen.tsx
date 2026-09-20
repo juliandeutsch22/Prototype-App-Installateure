@@ -68,6 +68,9 @@ export default function RuestlistePlanen({
     if (!q) return [];
     const drin = new Set(positionen.map((p) => p.materialId).filter(Boolean));
     return materials
+      // Was der Grosshändler nicht mehr führt, packt heute niemand mehr auf
+      // den Wagen. Im Katalog bleibt der Artikel, hier verschwindet er.
+      .filter((m) => !m.ausgelaufen)
       .filter((m) => !drin.has(m.id))
       .filter((m) =>
         [m.name, m.category, m.articleNumber].some((v) => v?.toLowerCase().includes(q)),
