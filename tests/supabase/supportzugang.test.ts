@@ -500,3 +500,79 @@ describe('Welche Betriebe gerade Einblick gewähren', () => {
     expect(data).toEqual([]);
   });
 });
+
+describe('Was in einem Zugang angesehen wurde', () => {
+  /*
+    GEZÄHLT STATT AUFGEZÄHLT. Die Ansicht listete jeden einzelnen Aufruf; zwei
+    Minuten Support ergaben vierzehn Zeilen, und nach einem halben Jahr liest
+    die niemand mehr. Gezählt wird deshalb in der Datenbank — im Browser
+    hiesse zählen: erst alle Zeilen holen, und genau die sind zu viele.
+  */
+  async function oeffnen(freigabe: string, bereich: string) {
+    const { error } = await plattform.client.from('support_zugriffe').insert({
+      company_id: BETRIEB, freigabe_id: freigabe, bereich,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  it('zählt je Bereich, statt jeden Aufruf einzeln zu nennen', async () => {
+    const f = await freigeben();
+    await oeffnen(f, 'Rechnungen');
+    await oeffnen(f, 'Rechnungen');
+    await oeffnen(f, 'Rechnungen');
+    await oeffnen(f, 'Baustellen');
+
+    const { data, error } = await chefin.client.rpc('support_bereiche', {
+      p_company: BETRIEB,
+    });
+    expect(error).toBeNull();
+    expect(data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ freigabe_id: f, bereich: 'Rechnungen', anzahl: 3 }),
+        expect.objectContaining({ freigabe_id: f, bereich: 'Baustellen', anzahl: 1 }),
+      ]),
+    );
+    expect((data as unknown[]).length).toBe(2);
+  });
+
+  it('hält die Zahlen am Zugang fest, zu dem sie gehören', async () => {
+    /*
+      Zwei Zugänge nacheinander — der Betrieb muss unterscheiden können, was
+      im Zugang „wegen der Rechnung" und was im Zugang von letzter Woche
+      angesehen wurde. Eine Gesamtzahl über alles beantwortet seine Frage
+      nicht.
+    */
+    const erster = await freigeben();
+    await oeffnen(erster, 'Rechnungen');
+    await plattform.client.from('support_zugriffe').select('id').limit(1);
+    const { error: wf } = await chefin.client
+      .from('support_freigaben')
+      .update({ widerrufen_am: new Date().toISOString(), widerrufen_von: chefin.uid })
+      .eq('id', erster);
+    expect(wf).toBeNull();
+
+    const zweiter = await freigeben();
+    await oeffnen(zweiter, 'Benutzer');
+    await oeffnen(zweiter, 'Benutzer');
+
+    const { data } = await chefin.client.rpc('support_bereiche', { p_company: BETRIEB });
+    const zeilen = data as Array<{ freigabe_id: string; bereich: string; anzahl: number }>;
+    expect(zeilen.find((z) => z.freigabe_id === erster)).toMatchObject({
+      bereich: 'Rechnungen', anzahl: 1,
+    });
+    expect(zeilen.find((z) => z.freigabe_id === zweiter)).toMatchObject({
+      bereich: 'Benutzer', anzahl: 2,
+    });
+  });
+
+  it('gibt einem fremden Betrieb nichts heraus', async () => {
+    // Die Funktion laeuft mit den Rechten des Aufrufers: der Zeilenschutz auf
+    // `support_zugriffe` bleibt in Kraft. Ohne diese Pruefung waere eine
+    // `security definer`-Fassung ein Fenster in fremde Protokolle.
+    const f = await freigeben();
+    await oeffnen(f, 'Rechnungen');
+
+    const { data } = await anderChef.client.rpc('support_bereiche', { p_company: BETRIEB });
+    expect(data).toEqual([]);
+  });
+});

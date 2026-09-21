@@ -5,9 +5,9 @@ import {
   freigabeWiderrufen,
   freigaben,
   istOffen,
-  zugriffe,
+  bereiche,
   type SupportFreigabe,
-  type SupportZugriff,
+  type SupportBereich,
 } from '@/lib/db/support';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -17,6 +17,7 @@ import { InputField, SelectField } from '@/components/Field';
 import { Marke, Warnung } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
 import { ErrorState, SkeletonList } from '@/components/States';
+import { SUPPORT_GEAENDERT } from '@/components/Supportband';
 
 /**
  * Einblick gewähren — und wieder beenden.
@@ -51,7 +52,7 @@ export default function SupportzugangView() {
   const betrieb = user?.companyId ?? '';
 
   const [liste, setListe] = useState<WithId<SupportFreigabe>[] | null>(null);
-  const [protokoll, setProtokoll] = useState<WithId<SupportZugriff>[]>([]);
+  const [gesehen, setGesehen] = useState<SupportBereich[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [grund, setGrund] = useState('');
   const [stunden, setStunden] = useState('24');
@@ -59,9 +60,9 @@ export default function SupportzugangView() {
 
   async function laden() {
     if (!betrieb) return;
-    const [f, z] = await Promise.all([freigaben(betrieb), zugriffe(betrieb)]);
+    const [f, b] = await Promise.all([freigaben(betrieb), bereiche(betrieb)]);
     setListe(f);
-    setProtokoll(z);
+    setGesehen(b);
   }
 
   useEffect(() => {
@@ -83,6 +84,9 @@ export default function SupportzugangView() {
       await freigabeGeben(betrieb, user.uid, grund, Number(stunden));
       setGrund('');
       await laden();
+      /* Das Band auf DIESEM Geraet nicht bis zum naechsten Takt warten
+         lassen — siehe `Supportband`. */
+      window.dispatchEvent(new Event(SUPPORT_GEAENDERT));
       toast.success('Einblick gewährt');
     } catch (err) {
       setFehler((err as Error).message);
@@ -98,6 +102,7 @@ export default function SupportzugangView() {
     try {
       await freigabeWiderrufen(id, user.uid);
       await laden();
+      window.dispatchEvent(new Event(SUPPORT_GEAENDERT));
       toast.success('Zugang beendet');
     } catch (err) {
       setFehler((err as Error).message);
@@ -120,9 +125,9 @@ export default function SupportzugangView() {
             Der Support kann Ihre Daten <strong>nur sehen, wenn Sie es erlauben</strong>, und auch
             dann nur <strong>lesen</strong> — geändert wird nichts. Nicht sichtbar sind
             Zeitbuchungen, Urlaube und Fotos von Baustellen: dort stehen Kranken- und
-            Urlaubstage Ihrer Mitarbeiter und Aufnahmen aus Kundenwohnungen. Jeder Zugriff
-            steht unten im Protokoll, und solange ein Zugang offen ist, sieht jeder in Ihrem
-            Betrieb ein Band über der App.
+            Urlaubstage Ihrer Mitarbeiter und Aufnahmen aus Kundenwohnungen. Was in einem
+            Zugang geöffnet wurde, steht unten bei diesem Zugang — und solange einer offen ist,
+            sieht jeder in Ihrem Betrieb ein Band über der App.
           </>
         }
       >
@@ -175,41 +180,70 @@ export default function SupportzugangView() {
       </Card>
 
       <Card
-        title={`Protokoll (${protokoll.length})`}
-        hint="Festgehalten wird, WER wann WELCHEN Bereich geöffnet hat — nicht jede gelesene Zeile. Angehängt wird, geändert nie: auch wir können hier nichts nachbessern."
+        title={`Bisherige Zugänge (${(liste ?? []).length})`}
+        hint="Je Zugang steht hier, WOFÜR er gewährt wurde, WIE LANGE er galt — und welche Bereiche darin geöffnet wurden. Gezählt wird jeder einzelne Aufruf; angehängt wird, geändert nie. Auch wir können hier nichts nachbessern."
       >
-        {protokoll.length === 0 ? (
+        {(liste ?? []).length === 0 ? (
           <p className="text-sm text-ink-muted">
-            Noch kein Zugriff. Hier steht später, was der Support angesehen hat.
+            Noch nie Einblick gewährt. Hier steht später jeder Zugang mit dem, was darin
+            angesehen wurde.
           </p>
         ) : (
-          <ul className="space-y-2 text-sm">
-            {protokoll.map((z) => (
-              <li key={z.id} className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-medium">{z.bereich}</span>
-                <span className="text-ink-muted">{zeit(z.wann)}</span>
-              </li>
-            ))}
+          /*
+            EINE ZEILE JE ZUGANG, NICHT JE KLICK.
+
+            Hier standen zwei Karten: eine Aufzählung der einzelnen Aufrufe
+            („Baustellen 20:58", „Rechnungen 20:58", „Baustellen 20:58" …) und
+            darunter getrennt die Liste der Freigaben. Zwei Minuten Support
+            ergaben vierzehn Zeilen; nach einem halben Jahr liest die niemand
+            mehr, und eine Liste, die niemand liest, ist keine Kontrolle.
+
+            Der Betrieb fragt nicht „welche Klicks", sondern „was hat der
+            Support in diesem Zugang gesehen". Genau das steht jetzt unter dem
+            Zugang, zu dem es gehört — gezählt, nicht aufgezählt.
+          */
+          <ul className="space-y-4 text-sm">
+            {(liste ?? []).map((f) => {
+              const dazu = gesehen
+                .filter((b) => b.freigabe_id === f.id)
+                .sort((a, b) => b.anzahl - a.anzahl);
+              const laeuft = istOffen(f);
+              return (
+                <li key={f.id} className="border-t border-line pt-3 first:border-0 first:pt-0">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
+                    {laeuft ? <Marke>läuft</Marke> : null}
+                    <span className="font-medium text-ink">{f.grund}</span>
+                  </div>
+                  <p className="mt-1 text-ink-muted">
+                    {f.createdAt ? `${zeit(f.createdAt)} · ` : ''}
+                    {f.widerrufenAm
+                      ? `beendet am ${zeit(f.widerrufenAm)}`
+                      : laeuft
+                        ? `läuft bis ${zeit(f.giltBis)}`
+                        : `abgelaufen am ${zeit(f.giltBis)}`}
+                  </p>
+                  {/*
+                    „Nichts angesehen" ist eine eigene Aussage und die
+                    beruhigendste von allen: gewährt, aber nie benutzt. Sie
+                    wegzulassen hiesse, sie mit „noch nicht geladen" zu
+                    verwechseln.
+                  */}
+                  <p className="mt-1 text-ink-muted">
+                    {dazu.length === 0
+                      ? 'Nichts angesehen.'
+                      : `Angesehen: ${dazu
+                          .map((b) => `${b.bereich} ${b.anzahl}×`)
+                          .join(' · ')} — zuletzt ${zeit(
+                          Math.max(...dazu.map((b) => Date.parse(b.zuletzt))),
+                        )}`}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>
-
-      {(liste ?? []).length > 0 && (
-        <Card title="Bisher gewährt">
-          <ul className="space-y-2 text-sm">
-            {(liste ?? []).map((f) => (
-              <li key={f.id} className="flex flex-wrap items-baseline gap-x-2">
-                {f.notzugang ? <Warnung>Notzugang</Warnung> : <Marke>gewährt</Marke>}
-                <span>{f.grund}</span>
-                <span className="text-ink-muted">
-                  bis {zeit(f.giltBis)}
-                  {f.widerrufenAm ? ` · beendet am ${zeit(f.widerrufenAm)}` : ''}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
     </div>
   );
 }

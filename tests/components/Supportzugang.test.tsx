@@ -15,7 +15,7 @@ import Supportband from '@/components/Supportband';
  */
 
 let vorhanden: Array<Record<string, unknown>> = [];
-let protokoll: Array<Record<string, unknown>> = [];
+let angesehen: Array<Record<string, unknown>> = [];
 const geben = vi.fn();
 const widerrufen = vi.fn();
 
@@ -24,7 +24,7 @@ vi.mock('@/lib/db/support', async (echt) => {
   return {
     ...e,
     freigaben: vi.fn(async () => vorhanden),
-    zugriffe: vi.fn(async () => protokoll),
+    bereiche: vi.fn(async () => angesehen),
     freigabeGeben: (...a: unknown[]) => geben(...a),
     freigabeWiderrufen: (...a: unknown[]) => widerrufen(...a),
   };
@@ -54,7 +54,7 @@ function zeige() {
 
 beforeEach(() => {
   vorhanden = [];
-  protokoll = [];
+  angesehen = [];
   geben.mockReset().mockResolvedValue('neu');
   widerrufen.mockReset().mockResolvedValue(undefined);
 });
@@ -168,5 +168,46 @@ describe('Das Band über der App', () => {
     vi.mocked(support.freigaben).mockRejectedValueOnce(new Error('kein Netz'));
     const { container } = render(<Supportband />);
     await waitFor(() => expect(container).toBeEmptyDOMElement());
+  });
+});
+
+describe('Was in einem Zugang angesehen wurde', () => {
+  /*
+    EINE ZEILE JE ZUGANG, NICHT JE KLICK. Hier stand eine Aufzählung der
+    einzelnen Aufrufe; zwei Minuten Support ergaben vierzehn Zeilen. Der
+    Betrieb fragt aber nicht „welche Klicks", sondern „was hat der Support in
+    diesem Zugang gesehen".
+  */
+  it('fasst die Aufrufe je Bereich zusammen', async () => {
+    vorhanden = [freigabe({ widerrufenAm: Date.now(), giltBis: inStunden(-1) })];
+    angesehen = [
+      { freigabe_id: 'f1', bereich: 'Rechnungen', anzahl: 3, zuletzt: new Date().toISOString() },
+      { freigabe_id: 'f1', bereich: 'Baustellen', anzahl: 1, zuletzt: new Date().toISOString() },
+    ];
+    render(
+      <ToastProvider>
+        <SupportzugangView />
+      </ToastProvider>,
+    );
+
+    await screen.findByText(/Rechnungen 3×/);
+    expect(screen.getByText(/Baustellen 1×/)).toBeInTheDocument();
+  });
+
+  it('sagt ausdrücklich, wenn nichts angesehen wurde', async () => {
+    /*
+      „Nichts angesehen" ist die beruhigendste Aussage von allen: gewährt,
+      aber nie benutzt. Sie wegzulassen hiesse, sie mit „noch nicht geladen"
+      zu verwechseln.
+    */
+    vorhanden = [freigabe({ widerrufenAm: Date.now(), giltBis: inStunden(-1) })];
+    angesehen = [];
+    render(
+      <ToastProvider>
+        <SupportzugangView />
+      </ToastProvider>,
+    );
+
+    await screen.findByText('Nichts angesehen.');
   });
 });

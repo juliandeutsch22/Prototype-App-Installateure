@@ -18,8 +18,18 @@ import { freigaben, istOffen } from '@/lib/db/support';
  *
  * SCHEITERT DIE ABFRAGE, ERSCHEINT NICHTS. Ein Band, das bei jedem Wackler
  * „Support sieht mit" behauptete, wäre schlimmer als keines.
+ *
+ * AUF DEM EIGENEN GERÄT GILT DER TAKT NICHT. Wer gerade selbst „Zugang
+ * sofort beenden" gedrückt hat, darf nicht bis zu einer Minute lang weiter
+ * lesen, der Support sehe mit — das ist genau der Moment, in dem jemand
+ * Gewissheit braucht. Die Supportseite meldet ihre Änderung deshalb sofort
+ * über ein Fensterereignis; die anderen Geräte im Betrieb erfahren es beim
+ * nächsten Takt, und dort ist eine Minute wirklich bedeutungslos.
  */
 const TAKT_MS = 60_000;
+
+/** Gewährt oder beendet — bitte sofort nachsehen. */
+export const SUPPORT_GEAENDERT = 'senklot:supportzugang';
 
 export default function Supportband() {
   const { user } = useAuth();
@@ -43,9 +53,12 @@ export default function Supportband() {
 
     void nachsehen();
     const uhr = window.setInterval(() => void nachsehen(), TAKT_MS);
+    const sofort = () => void nachsehen();
+    window.addEventListener(SUPPORT_GEAENDERT, sofort);
     return () => {
       wach = false;
       window.clearInterval(uhr);
+      window.removeEventListener(SUPPORT_GEAENDERT, sofort);
     };
   }, [user]);
 
