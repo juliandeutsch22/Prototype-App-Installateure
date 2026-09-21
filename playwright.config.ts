@@ -11,7 +11,7 @@ import { defineConfig, devices } from '@playwright/test';
  * abbricht. Genau diese Sorte hat der Rauchtest des Betriebs gefunden — drei
  * Stück an einem Nachmittag, keinen davon hat eine Prüfung vorher gesehen.
  *
- * WARUM NUR FÜNF WEGE. Ein Durchklick durch jede Ansicht kostet Stunden
+ * WARUM NUR SECHS WEGE. Ein Durchklick durch jede Ansicht kostet Stunden
  * Rechenzeit und flattert: eine Prüfung, die mal fällt und mal nicht, wird
  * nach zwei Wochen ignoriert, und dann ist sie schlimmer als keine. Hier
  * stehen die Wege, bei denen ein Fehler Geld oder Arbeitszeit kostet:
@@ -23,6 +23,14 @@ import { defineConfig, devices } from '@playwright/test';
  * DATANORM-Datei setzt zehntausend falsche Einkaufspreise auf einmal, und
  * ab da rechnet jede Baustelle falsch. Gefunden hat dieser Weg schon bei
  * seinem ersten Lauf etwas, das keine der anderen Prüfungen sah.
+ *
+ * DER SECHSTE IST DER ALLERERSTE BESUCH — Link, Passwort vergeben, am
+ * nächsten Tag wieder herein. Er kam am 20.09.2026 dazu, weil der
+ * Probelauf eines echten Betriebs zeigte, dass es diese Stelle gar nicht
+ * gab: der Rücksetzlink meldete den Empfänger an und liess ihn ohne
+ * Passwort stehen. Alle anderen Wege melden sich mit einem Passwort an,
+ * das der Aufbau gesetzt hat, und keiner meldet sich ZWEIMAL an — deshalb
+ * hat keiner es gesehen.
  *
  * KEIN ZWEITER LAUF NACH EINEM FEHLSCHLAG (`retries: 0`), auch nicht in der
  * CI. Ein Wiederholungslauf versteckt genau das Flattern, das man sehen will;

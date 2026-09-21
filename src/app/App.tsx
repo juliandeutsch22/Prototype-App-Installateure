@@ -1,6 +1,7 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
+import { beiPasswortRuecksetzung } from '@/lib/auth/sitzung';
 import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
 import ErrorBoundary from './ErrorBoundary';
 import Unterreiter from '@/components/Unterreiter';
@@ -29,6 +30,13 @@ import { SCHEIN_ROLLEN } from '@/lib/permissions';
  * Besuch vorhaelt.
  */
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+/*
+  NICHT NACHGELADEN. Die Passwortmaske steht am Anfang jeder Kette — nach dem
+  Rücksetzlink UND unter „Mein Konto". Ein Nachladen ausgerechnet dort wäre
+  ein zusätzlicher Schritt an der Stelle, an der jemand gerade nicht
+  weiterkommt; sie ist dafür klein genug.
+*/
+import PasswortAendern from '@/features/auth/PasswortAendern';
 const PlattformView = lazy(() => import('@/features/plattform/PlattformView'));
 const DashboardView = lazy(() => import('@/features/dashboard/DashboardView'));
 const TimeView = lazy(() => import('@/features/time/TimeView'));
@@ -89,6 +97,38 @@ export default function App() {
  */
 function AppInhalt() {
   const { plattformAdmin, loading } = useAuth();
+
+  /*
+    WER ÜBER EINEN RÜCKSETZLINK KOMMT, WIRD ZUERST NACH EINEM PASSWORT
+    GEFRAGT — vor der App, vor der Plattformseite, vor allem.
+
+    Bis zum 20.09.2026 fehlte diese Seite ganz. Der Link meldete den
+    Empfänger an und liess ihn stehen: drin, aber ohne je ein Passwort zu
+    kennen. Beim nächsten Start hatte er nichts einzutippen. Für den ersten
+    Administrator eines neuen Betriebs war das ein einziger Besuch und danach
+    ausgesperrt; für jeden Mitarbeiter dasselbe, denn die Willkommensmail ist
+    derselbe Link.
+
+    DAS HORCHEN MUSS BEIM ERSTEN AUFBAU STEHEN. `supabase-js` liest den
+    Verweis aus der Adresse, sobald der Client entsteht, und meldet
+    `PASSWORD_RECOVERY` genau einmal. Wer sich später anhängt, verpasst es.
+  */
+  const [passwortFaellig, setPasswortFaellig] = useState(false);
+  useEffect(() => beiPasswortRuecksetzung(() => setPasswortFaellig(true)), []);
+
+  if (passwortFaellig) {
+    return (
+      <div className="mx-auto max-w-xl space-y-6 p-4 sm:p-6">
+        <header className="space-y-1">
+          <h1 className="text-xl font-bold text-ink">Willkommen</h1>
+          <p className="text-sm text-ink-muted">
+            Vergib zuerst ein Passwort. Danach geht es weiter.
+          </p>
+        </header>
+        <PasswortAendern erstmalig onFertig={() => setPasswortFaellig(false)} />
+      </div>
+    );
+  }
 
   if (!loading && plattformAdmin) {
     return (

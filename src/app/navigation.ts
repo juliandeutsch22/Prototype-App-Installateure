@@ -168,8 +168,11 @@ export const UNTER: Record<string, Unterseite[]> = {
     { pfad: 'woche', label: 'Wochenplan' },
   ],
   '/settings': [
-    // Meldungen zuerst: das Einzige, was jede Rolle hier hat.
-    { pfad: 'meldungen', label: 'Meldungen' },
+    // MEIN KONTO ZUERST: das Einzige, was jede Rolle hier hat — das eigene
+    // Passwort und die eigenen Meldungen. Der Pfad heißt weiterhin
+    // `meldungen`: er steht in Lesezeichen und in verschickten Meldungen,
+    // und eine tote Adresse dafür wäre ein Fehler ohne Not.
+    { pfad: 'meldungen', label: 'Mein Konto' },
     // Was auf den Belegen steht — Briefkopf, Logo, UID, Bankverbindung.
     // Vor den Saetzen, weil es einmal beim Einrichten gebraucht wird und
     // danach selten: wer den Reiter oeffnet, sucht meistens genau das.

@@ -15,6 +15,7 @@ import { admin, betriebAnlegen, konto, type Konto } from './helfer';
 import { createUserDoc, getUserByUid, updateUserProfile, listUsers } from '@/lib/db/pg/users';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import { urlaubsStand } from '@/lib/time';
+import { aliquoterAnspruch } from '@/features/users/benutzerEntwurf';
 
 const BETRIEB = 'urlaub-bestand';
 
@@ -130,5 +131,48 @@ describe('Der Anfangsbestand übersteht den Weg', () => {
     ]);
     expect(ohneBestand.anspruch).toBe(25);
     expect(ohneBestand.rest).toBe(21);
+  });
+
+  /*
+    ANTEILIGE TAGE — DIE LÜCKE, DIE DIESE DATEI HATTE.
+
+    Alle Fälle oben rechnen mit ganzen Tagen: 7, 3, null. Genau deshalb ist
+    unbemerkt geblieben, dass `initial_vacation_days` `integer` war, während
+    die Anlagemaske für einen Neueintritt `Jahresanspruch × Monate / 12`
+    vorschlägt — für den 20.09. also 8,33. Die Datenbank wies das ab, das
+    Anmeldekonto war da schon angelegt, und die Adresse war verbrannt.
+
+    Gefunden hat es der Probelauf eines echten Betriebs. Die Prüfung nimmt
+    ihre Zahl deshalb NICHT von Hand, sondern aus derselben Funktion, aus der
+    sie die Maske nimmt: eine hier eingetippte 8.33 wäre in dem Moment
+    wertlos, in dem sich die Rechnung ändert.
+  */
+  it('nimmt den anteiligen Vorschlag eines Neueintritts an', async () => {
+    const vorschlag = aliquoterAnspruch(25, '2026-09-20').tage;
+    expect(vorschlag).not.toBe(Math.round(vorschlag)); // sonst prüft der Fall nichts
+
+    const uid = await frischeKennung();
+    await createUserDoc(BETRIEB, uid, profil(uid, {
+      yearlyVacationDays: 25,
+      initialVacationDays: vorschlag,
+    }));
+
+    expect((await getUserByUid(BETRIEB, uid))?.initialVacationDays).toBe(vorschlag);
+  });
+
+  it('rechnet mit den Nachkommastellen weiter, statt sie zu runden', async () => {
+    // 8,33 Tage Anspruch, 4 genommen: 4,33 übrig. Würde die Spalte runden,
+    // stünden hier 4 — ein Drittel Tag, den niemand verschenkt hat.
+    const uid = await frischeKennung();
+    await createUserDoc(BETRIEB, uid, profil(uid, {
+      yearlyVacationDays: 25,
+      initialVacationDays: aliquoterAnspruch(25, '2026-09-20').tage,
+    }));
+
+    const stand = urlaubsStand((await getUserByUid(BETRIEB, uid))!, 2026, [
+      { von: '2026-10-05', tage: 4 },
+    ]);
+    expect(stand.anspruch).toBe(8.33);
+    expect(stand.rest).toBe(4.33);
   });
 });

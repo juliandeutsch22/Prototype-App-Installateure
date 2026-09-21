@@ -397,11 +397,13 @@ function StammdatenFormular({
             value={entwurf.initialOvertime}
             onChange={(e) => setze('initialOvertime', e.target.value)}
           />
+          {/* Zwei Nachkommastellen wie in der Anlage: der aliquote Anspruch
+              eines Neueintritts ist selten ein halber Tag. */}
           <InputField
             id="b-resturlaub"
             label="Resturlaub beim Umstieg (Tage)"
             type="number"
-            step="0.5"
+            step="0.01"
             placeholder="leer = voller Jahresanspruch"
             value={entwurf.initialVacationDays}
             onChange={(e) => setze('initialVacationDays', e.target.value)}

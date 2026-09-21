@@ -9,6 +9,7 @@ import Card from '@/components/Card';
 import { InputField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { Marke, Warnung } from '@/components/Badge';
+import PasswortAendern from '@/features/auth/PasswortAendern';
 
 /**
  * Die einzige Seite des globalen Administrators.
@@ -353,6 +354,14 @@ export default function PlattformView() {
           </ul>
         </Card>
       )}
+
+      {/*
+        AUCH DIESES KONTO MUSS SEIN PASSWORT ÄNDERN KÖNNEN. Es sieht keine
+        Einstellungen — es sieht überhaupt nur diese eine Seite. Ohne die
+        Karte hier gäbe es für den Support genau denselben Weg wie für jeden
+        Betrieb vorher: einmal per Link hinein und danach nie wieder.
+      */}
+      <PasswortAendern />
 
       <div className="border-t border-line pt-4">
         <Button variant="ghost" onClick={() => void signOut()}>

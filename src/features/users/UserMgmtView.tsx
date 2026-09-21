@@ -385,6 +385,14 @@ export default function UserMgmtView() {
                     value={form.initialOvertime}
                     onChange={(e) => setForm({ ...form, initialOvertime: e.target.value })} />
                 )}
+                {/*
+                  ZWEI NACHKOMMASTELLEN, NICHT HALBE TAGE. Hier stand
+                  `step="0.5"` — und der eigene Vorschlag der App verstösst
+                  dagegen: 25 × 4/12 sind 8,33 Tage. Solange der Aufklapper zu
+                  ist, steht das Feld nicht im Formular und der Browser prüft
+                  es nicht; wer ihn öffnete, bekam eine Maske, die den von ihr
+                  selbst vorgeschlagenen Wert abwies.
+                */}
                 <InputField
                   id="uvacinit"
                   label={
@@ -393,7 +401,7 @@ export default function UserMgmtView() {
                       : 'Resturlaub beim Umstieg (Tage)'
                   }
                   type="number"
-                  step="0.5"
+                  step="0.01"
                   placeholder={eintritt === 'neu' ? '' : 'leer = voller Jahresanspruch'}
                   value={form.initialVacationDays}
                   onChange={(e) => setForm({ ...form, initialVacationDays: e.target.value })} />

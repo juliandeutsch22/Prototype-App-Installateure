@@ -33,6 +33,14 @@ export function passwortZuruecksetzen(email: string): Promise<void> {
   return pg.passwortZuruecksetzen(email);
 }
 
+export function passwortSetzen(neu: string): Promise<void> {
+  return pg.passwortSetzen(neu);
+}
+
+export function beiPasswortRuecksetzung(ruf: () => void): () => void {
+  return pg.beiPasswortRuecksetzung(ruf);
+}
+
 export function istPlattformAdmin(): Promise<boolean> {
   return pg.istPlattformAdmin();
 }
