@@ -96,7 +96,7 @@ export default function App() {
  * keinen) und in der Edge Function, die den Betrieb anlegt.
  */
 function AppInhalt() {
-  const { plattformAdmin, loading } = useAuth();
+  const { plattformAdmin, loading, einblick } = useAuth();
 
   /*
     WER ÜBER EINEN RÜCKSETZLINK KOMMT, WIRD ZUERST NACH EINEM PASSWORT
@@ -130,7 +130,20 @@ function AppInhalt() {
     );
   }
 
-  if (!loading && plattformAdmin) {
+  /*
+    DAS PLATTFORMKONTO SIEHT SEINE EINE SEITE — SOLANGE ES NICHT IN EINEM
+    BETRIEB IST.
+
+    Läuft ein Einblick, fällt es durch auf den gewöhnlichen Weg und bekommt
+    die ECHTE App: dieselben Ansichten, dieselben Reiter, dieselbe
+    Datenschicht. Sein Profil setzt `AuthContext` dafür zusammen; was davon
+    wirklich geht, entscheidet die Datenbank.
+
+    Bis zum 21.09.2026 stand hier eine zweite, eigene Oberfläche mit vier
+    Listen ohne Details. Sie beantwortete die Frage nicht, mit der ein Betrieb
+    anruft — und wäre jeder Änderung an der App hinterhergelaufen.
+  */
+  if (!loading && plattformAdmin && !einblick) {
     return (
       <Suspense fallback={<LoadingState label="Wird geladen …" />}>
         <PlattformView />

@@ -15,6 +15,7 @@ import BrandLogo from '@/components/BrandLogo';
 import ProduktMarke from '@/components/ProduktMarke';
 import Verbindungsband from '@/components/Verbindungsband';
 import Supportband from '@/components/Supportband';
+import Supportsitzung from '@/components/Supportsitzung';
 import BottomSheet from '@/components/BottomSheet';
 import AppErneuern from '@/components/AppErneuern';
 
@@ -283,6 +284,12 @@ export default function Layout({ children }: { children: ReactNode }) {
           sortieren sich dann von selbst nach Dringlichkeit.
         */}
         <Supportband />
+        {/*
+          FÜR DEN SUPPORT SELBST, nicht für den Betrieb. Es zeigt sich nur
+          während eines Einblicks und sagt, in wessen Daten man gerade
+          arbeitet — die Oberfläche sieht sonst aus wie jede andere.
+        */}
+        <Supportsitzung />
         <div className="mx-auto max-w-5xl p-4 md:p-6">{children}</div>
       </main>
 

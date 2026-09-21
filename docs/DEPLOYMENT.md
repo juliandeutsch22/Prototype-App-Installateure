@@ -220,35 +220,67 @@ danach erscheint, entscheidet der Anspruch im Token:
 
 - Token **mit** `company_id` → die App, mit Navigation und Reitern nach Rolle.
 - Token mit `plattform_admin` → **eine einzige Seite ohne Navigation**:
-  „Betriebe anlegen“, darunter „Einblick gewährt“ und „Notzugang“.
+  „Betriebe anlegen", darunter „Einblick gewährt" und „Notzugang".
 
-Kein Rollenwechsler, kein „als Betrieb X anmelden“. Ein Plattformkonto
+Kein Rollenwechsler, kein „als Betrieb X anmelden". Ein Plattformkonto
 *wird* nie zu einem Betriebskonto; es bekommt nur für die Dauer einer
-Freigabe Leserecht auf einen Betrieb.
+Freigabe Zugang zu **einem** Betrieb.
+
+### Zwei Stufen — der Betrieb wählt beim Gewähren
+
+| Stufe | Was der Support kann | Wie lange |
+| --- | --- | --- |
+| **Ansehen** (Vorgabe) | Den Betrieb sehen wie ein Administrator — alle Listen, alle Detailansichten. Ändern: nichts | bis 7 Tage |
+| **Mitarbeiten** | Dasselbe, und **ändern** — wie ein Administrator | höchstens **24 Stunden** |
+
+**Wer nichts ankreuzt, gibt kein Schreibrecht.** Die harmlosere Antwort ist
+die Vorgabe; eine Maske, bei der Wegklicken das mehr erlaubt, wäre falsch
+herum gebaut. Die Stufe steht mit dem Gewähren fest und lässt sich
+nachträglich nicht anheben — sonst bezöge sich die Zustimmung auf etwas
+anderes als das, was danach gilt.
+
+**Der Support arbeitet in der ECHTEN App**, nicht in einem Nachbau: „Öffnen"
+setzt ihn in den Betrieb, mit denselben Reitern und denselben Ansichten, die
+der Betrieb sieht. Ganz oben steht dabei ein Band mit dem Namen des Betriebs
+— bei „Mitarbeiten" in Rot, weil die Oberfläche sonst aussieht wie jede
+andere und genau daraus der Fehler entsteht, der weh tut.
+
+> Bis zum 21.09.2026 gab es dafür eine zweite, eigene Oberfläche mit vier
+> Listen ohne Details. Sie beantwortete die Frage nicht, mit der ein Betrieb
+> anruft („die Rechnung stimmt nicht" — welche Position denn?), und sie wäre
+> jeder Änderung an der App hinterhergelaufen.
 
 ### Wie ein Supportfall abläuft
 
 1. **Der Betrieb ruft an.** „Die Rechnung RE-2026-0042 stimmt nicht.“
 2. **Der Betrieb gewährt** — *Einstellungen → Supportzugang*, nur
-   Geschäftsführung/Administration: Grund eintragen, Dauer wählen (4 h …
-   7 Tage), freigeben. Ab diesem Moment steht **in seiner App ein Band über
-   dem Inhalt**, für jeden Mitarbeiter, mit dem Grund darin.
+   Geschäftsführung/Administration: Grund eintragen, **Stufe** wählen
+   (Ansehen oder Mitarbeiten), Dauer wählen, freigeben. Ab diesem Moment
+   steht **in seiner App ein Band über dem Inhalt**, für jeden Mitarbeiter,
+   mit dem Grund darin — bei „Mitarbeiten" in Rot und mit dem Zusatz, dass
+   der Support auch ändern kann.
 3. **Der Support meldet sich an** und sieht den Betrieb unter „Einblick
-   gewährt“ — mit Grund und Frist. „Öffnen“ führt zu vier Listen: Betrieb,
-   Benutzer, Baustellen, Rechnungen. **Keine Knöpfe**, weil es nichts zu
-   ändern gibt.
+   gewährt" — mit Grund, Stufe und Frist. „Öffnen" setzt ihn **in die echte
+   App** dieses Betriebs.
 4. **Jeder geöffnete Bereich wird protokolliert**, und zwar *bevor* er geladen
-   wird: scheitert die Meldung, wird nichts gezeigt.
+   wird: scheitert die Meldung, beginnt der Einblick gar nicht.
 5. **Der Betrieb beendet** — ein Klick, sofort wirksam — oder die Frist
    läuft ab. Beides nimmt das Leserecht in derselben Sekunde weg.
 
 ### Was ein Supportzugang nicht kann
 
-- **Schreiben.** Nirgends. Der Riegel liegt als Auslöser vor *jeder* Tabelle
-  mit `company_id`, nicht in der Oberfläche; ein Schema-Wächter prüft, dass
-  keine fehlt.
-- **Zeitbuchungen, Urlaube, Scheinfotos lesen.** Dort stehen Kranken- und
-  Urlaubstage (Art. 9 DSGVO) und Aufnahmen aus Kundenwohnungen.
+- **Zeitbuchungen, Urlaube, Scheinfotos lesen — in BEIDEN Stufen.** Dort
+  stehen Kranken- und Urlaubstage (Art. 9 DSGVO) und Aufnahmen aus
+  Kundenwohnungen. Sie sind zusätzlich auch gegen Schreiben verriegelt: blind
+  ändern zu können, was man nicht sehen darf, wäre die schlechteste aller
+  Kombinationen.
+- **Bei „Ansehen" schreiben.** Nirgends. Der Riegel liegt als Auslöser vor
+  *jeder* Tabelle mit `company_id`, nicht in der Oberfläche; ein
+  Schema-Wächter prüft, dass keine fehlt.
+- **Einen anderen Betrieb erreichen.** Auch mit „Mitarbeiten" nicht: die
+  Rollenfunktion sagt dann zwar „ja", aber jede Richtlinie prüft daneben den
+  Betrieb der Zeile, und der ist an die Freigabe gebunden. Dass wirklich
+  JEDE das tut, hält ein eigener Wächter fest.
 - **Sich selbst freigeben.** Der gewöhnliche Weg ist für ein Plattformkonto
   gesperrt.
 
@@ -257,8 +289,13 @@ Freigabe Leserecht auf einen Betrieb.
 Nur, wenn der Betrieb **selbst nicht mehr freigeben kann**: der letzte
 Administrator ist weg, die Anmeldung klemmt. Er läuft ohne Zustimmung, aber
 nicht heimlich — gekennzeichnet, höchstens 24 Stunden, im Protokoll des
-Betriebs, mit demselben Band in seiner App, vom Betrieb jederzeit beendbar,
-und ebenso wenig schreibberechtigt.
+Betriebs, mit demselben Band in seiner App, vom Betrieb jederzeit beendbar.
+
+**Ein Notzugang ist immer „Ansehen".** Schreibrechte ohne Zustimmung wären
+genau der Generalschlüssel, den dieser ganze Bau vermeiden soll. Damit bleibt
+ein Fall offen und er sei hier benannt: ist der letzte Administrator eines
+Betriebs weg, kann ihm auch der Support keinen neuen anlegen. Heute hilft nur
+der Dienstschlüssel von Hand — schriftlich festgehalten, siehe unten.
 
 **Der Dienstschlüssel bleibt trotzdem, was er ist.** Er liegt in den
 Serverfunktionen und im nächtlichen Lauf und kann weiterhin alles. Er ist nur

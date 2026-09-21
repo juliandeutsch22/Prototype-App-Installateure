@@ -40,7 +40,8 @@ const inStunden = (n: number) => Date.now() + n * 3_600_000;
 
 const freigabe = (p: Record<string, unknown> = {}) => ({
   id: 'f1', companyId: 'perl', gewaehrtVon: 'g1', grund: 'Rechnung RE-2026-0042',
-  notzugang: false, giltBis: inStunden(4), widerrufenAm: null, createdAt: Date.now(),
+  notzugang: false, stufe: 'ansehen', giltBis: inStunden(4), widerrufenAm: null,
+  createdAt: Date.now(),
   ...p,
 });
 
@@ -72,14 +73,36 @@ describe('Einblick gewähren', () => {
     expect(screen.getByRole('button', { name: 'Einblick gewähren' })).toBeEnabled();
   });
 
-  it('gibt Grund und Dauer so weiter, wie sie dastehen', async () => {
+  it('gibt Grund, Dauer und Stufe so weiter, wie sie dastehen', async () => {
     zeige();
     await userEvent.type(await screen.findByLabelText('Wofür'), 'Rechnung stimmt nicht');
     await userEvent.selectOptions(screen.getByLabelText('Wie lange'), '4');
     await userEvent.click(screen.getByRole('button', { name: 'Einblick gewähren' }));
 
     await waitFor(() => expect(geben).toHaveBeenCalled());
-    expect(geben).toHaveBeenCalledWith('perl', 'g1', 'Rechnung stimmt nicht', 4);
+    // WER NICHTS ANKREUZT, GIBT KEIN SCHREIBRECHT. Die harmlosere der beiden
+    // Antworten ist die Vorgabe — eine Maske, bei der Wegklicken das mehr
+    // erlaubt, wäre falsch herum gebaut.
+    expect(geben).toHaveBeenCalledWith('perl', 'g1', 'Rechnung stimmt nicht', 4, 'ansehen');
+  });
+
+  it('gibt „mitarbeiten" nur weiter, wenn es jemand ausdrücklich wählt', async () => {
+    zeige();
+    await userEvent.type(await screen.findByLabelText('Wofür'), 'Bitte richtigstellen');
+    await userEvent.click(screen.getByRole('radio', { name: /Mitarbeiten/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Einblick gewähren' }));
+
+    await waitFor(() => expect(geben).toHaveBeenCalled());
+    expect(geben).toHaveBeenCalledWith('perl', 'g1', 'Bitte richtigstellen', 24, 'mitarbeiten');
+  });
+
+  it('bietet für „mitarbeiten" keine sieben Tage an', async () => {
+    // Die Datenbank weist sie ab. Eine Auswahl anzubieten, die gleich darauf
+    // scheitert, ist eine Fehlermeldung mit Umweg.
+    zeige();
+    await userEvent.click(await screen.findByRole('radio', { name: /Mitarbeiten/ }));
+    const dauer = screen.getByLabelText('Wie lange') as HTMLSelectElement;
+    expect([...dauer.options].map((o) => o.value)).toEqual(['4', '24']);
   });
 
   it('zeigt statt des Formulars den offenen Zugang, sobald einer gilt', async () => {

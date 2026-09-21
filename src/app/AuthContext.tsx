@@ -22,6 +22,7 @@ import { getCompany } from '@/lib/db/company';
 import { applyBranding } from '@/lib/tenant';
 import { mitFristOder } from '@/lib/frist';
 import type { CurrentUser, Company } from '@/types';
+import { offeneFreigaben, zugriffMelden, type OffeneFreigabe } from '@/lib/db/support';
 
 /**
  * Wie lange der Start auf das Netz wartet, bevor er den Zwischenspeicher
@@ -47,6 +48,16 @@ const START_FRIST_MS = 8000;
  * nicht mit dem Profil überein, wird die richtige Firma nachgeladen.
  */
 const FIRMA_MERKER = 'perl.letzteFirma';
+
+/**
+ * Welcher Einblick gerade läuft — nur die Kennung der Freigabe.
+ *
+ * Mehr braucht es nicht, und mehr soll auch nicht dastehen: beim
+ * Wiederherstellen wird ohnehin gefragt, ob die Freigabe noch gilt. Ein
+ * gemerkter Betriebsname wäre eine zweite Wahrheit, die nach einem Widerruf
+ * weiterbehäuptet.
+ */
+const EINBLICK_MERKER = 'senklot.einblick';
 
 function gemerkteFirma(uid: string): string | null {
   try {
@@ -102,6 +113,24 @@ interface AuthState {
    * `shared/plattform.ts`.
    */
   plattformAdmin: boolean;
+  /**
+   * In welchen Betrieb ein Supportzugang GERADE hineinsieht — und mit
+   * welcher Stufe.
+   *
+   * SOLANGE DAS GESETZT IST, IST `user` NICHT NULL: das Plattformkonto
+   * bekommt für die Dauer ein zusammengesetztes Profil mit dem Betrieb der
+   * Freigabe und der Rolle Administrator. Damit läuft die ECHTE App —
+   * dieselben Ansichten, dieselben Wege, dieselbe Datenschicht.
+   *
+   * WARUM NICHT EINE ZWEITE, EIGENE OBERFLÄCHE. Es gab eine: vier Listen
+   * ohne Details. Sie beantwortete die Frage nicht, mit der ein Betrieb
+   * anruft, und sie wäre jeder Änderung an der App hinterhergelaufen. Die
+   * Grenze steht ohnehin nicht in der Oberfläche, sondern im Zeilenschutz
+   * und in den Riegeln der Datenbank.
+   */
+  einblick: OffeneFreigabe | null;
+  einblickStarten: (f: OffeneFreigabe) => void;
+  einblickBeenden: () => void;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -110,6 +139,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [plattformAdmin, setPlattformAdmin] = useState(false);
+  const [einblick, setEinblick] = useState<OffeneFreigabe | null>(null);
+  const [einblickFirma, setEinblickFirma] = useState<Company | null>(null);
+  /*
+    Die Kennung des Plattformkontos. Sie steht sonst nirgends: `user` bleibt
+    für dieses Konto `null`, und während eines Einblicks braucht das
+    zusammengesetzte Profil sie — alles, was dabei entsteht, soll sie tragen.
+  */
+  const [plattformKonto, setPlattformKonto] = useState<{ uid: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -124,6 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       setPlattformAdmin(false);
+      setPlattformKonto(null);
+      setEinblick(null);
+      setEinblickFirma(null);
       // Während das Profil geladen wird, "loading" halten, damit der
       // Auth-Guard nicht fälschlich auf /login zurückspringt.
       setLoading(true);
@@ -151,6 +191,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const plattformMarke = await istPlattformAdmin();
       if (plattformMarke) {
         setPlattformAdmin(true);
+        setPlattformKonto({ uid: wer.uid, email: wer.email });
+        /*
+          EINEN LAUFENDEN EINBLICK WIEDERHERSTELLEN.
+
+          Ohne das überlebt er kein Neuladen: wer einen Link öffnet, den
+          Zurück-Knopf drückt oder die Seite aktualisiert, steht wieder auf
+          der Plattformseite. Beim ersten Versuch fiel das auf, weil JEDE
+          Ansicht leer blieb — die App war gar nicht mehr die App.
+
+          GEPRÜFT WIRD DABEI NEU, ob die Freigabe überhaupt noch gilt: gelesen
+          wird aus `support_freigaben_offen`, nicht aus dem Merker. Ein
+          widerrufener Zugang käme sonst durch einen Tastendruck zurück.
+
+          `sessionStorage` und nicht `localStorage`: ein Supportfall endet
+          mit dem Fenster, nicht mit dem Kalender.
+        */
+        try {
+          const gemerkt = sessionStorage.getItem(EINBLICK_MERKER);
+          if (gemerkt) {
+            const offen = await offeneFreigaben();
+            const wieder = offen.find((f) => f.id === gemerkt);
+            if (wieder) {
+              const comp = await getCompany(wieder.company_id);
+              setEinblickFirma(comp);
+              if (comp) applyBranding(comp);
+              setEinblick(wieder);
+            } else {
+              sessionStorage.removeItem(EINBLICK_MERKER);
+            }
+          }
+        } catch {
+          /* Privates Fenster oder abgelehnte Abfrage: dann eben ohne. */
+        }
         setUser(null);
         setCompany(null);
         setLoading(false);
@@ -296,11 +369,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (comp) applyBranding(comp);
   }, [user]);
 
+  /*
+    EINEN EINBLICK BEGINNEN — UND IHN ZUERST MELDEN.
+
+    Das Protokoll entsteht VOR dem ersten gelesenen Datensatz: scheitert die
+    Meldung, beginnt der Einblick gar nicht. Ein Zugang, der sich nicht
+    protokollieren lässt, ist genau der Generalschlüssel, den dieser Bau
+    vermeiden soll.
+  */
+  const einblickStarten = useCallback((f: OffeneFreigabe) => {
+    void (async () => {
+      try {
+        await zugriffMelden(f.company_id, f.id, 'Betrieb');
+        const comp = await getCompany(f.company_id);
+        setEinblickFirma(comp);
+        if (comp) applyBranding(comp);
+        setEinblick(f);
+        try {
+          sessionStorage.setItem(EINBLICK_MERKER, f.id);
+        } catch {
+          /* Ohne Merker überlebt der Einblick kein Neuladen — mehr nicht. */
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Der Einblick liess sich nicht beginnen.');
+      }
+    })();
+  }, []);
+
+  const einblickBeenden = useCallback(() => {
+    setEinblick(null);
+    setEinblickFirma(null);
+    try {
+      sessionStorage.removeItem(EINBLICK_MERKER);
+    } catch {
+      /* siehe oben */
+    }
+  }, []);
+
+  /*
+    DAS ZUSAMMENGESETZTE PROFIL EINER SUPPORTSITZUNG.
+
+    Es steht NUR hier und nur, solange ein Einblick läuft. Die Kennung bleibt
+    die des Plattformkontos — alles, was dabei entsteht, trägt sie, und genau
+    das soll es. Die Rolle ist Administrator, damit die Navigation zeigt, was
+    ein Administrator sieht; was davon wirklich geht, entscheidet die
+    Datenbank und nicht diese Zeile. Bei der Stufe „ansehen" weist sie jede
+    Änderung ab.
+  */
+  const supportProfil: CurrentUser | null = einblick
+    ? {
+        uid: plattformKonto?.uid ?? '',
+        email: plattformKonto?.email ?? '',
+        name: 'Senklot Support',
+        role: 'Administrator',
+        companyId: einblick.company_id,
+        docId: plattformKonto?.uid ?? '',
+      }
+    : null;
+
   return (
     <AuthContext.Provider
       value={{
-        user,
-        company,
+        user: supportProfil ?? user,
+        company: einblick ? einblickFirma : company,
         loading,
         error,
         signIn,
@@ -308,6 +439,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resetPassword,
         reloadCompany,
         plattformAdmin,
+        einblick,
+        einblickStarten,
+        einblickBeenden,
       }}
     >
       {children}

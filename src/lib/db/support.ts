@@ -6,7 +6,9 @@
  */
 import * as pg from './pg/support';
 
-export type { SupportFreigabe, SupportZugriff, SupportBereich, OffeneFreigabe } from './pg/support';
+export type {
+  SupportFreigabe, SupportZugriff, SupportBereich, SupportStufe, OffeneFreigabe,
+} from './pg/support';
 export const freigaben = pg.freigaben;
 export const istOffen = pg.istOffen;
 export const freigabeGeben = pg.freigabeGeben;

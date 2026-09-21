@@ -10,12 +10,23 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { abfragen, aendern, anlegen, derClient, type WithId } from './kern';
 
+/**
+ * Wie weit ein Zugang reicht.
+ *
+ * `ansehen` ist der Normalfall und die Vorgabe: lesen, sonst nichts, bis zu
+ * sieben Tage. `mitarbeiten` ist der Ernstfall — wie ein Administrator im
+ * Betrieb, höchstens 24 Stunden, eigens gekennzeichnet. Zeitbuchungen,
+ * Urlaube und Scheinfotos bleiben in BEIDEN Stufen verschlossen.
+ */
+export type SupportStufe = 'ansehen' | 'mitarbeiten';
+
 export interface SupportFreigabe {
   companyId: string;
   /** Wer sie gewährt hat — leer beim Notzugang. */
   gewaehrtVon?: string | null;
   grund: string;
   notzugang: boolean;
+  stufe: SupportStufe;
   giltBis: number;
   widerrufenAm?: number | null;
   widerrufenVon?: string | null;
@@ -52,6 +63,7 @@ export interface OffeneFreigabe {
   name: string;
   grund: string;
   notzugang: boolean;
+  stufe: SupportStufe;
   gilt_bis: string;
 }
 
@@ -80,6 +92,7 @@ export function freigabeGeben(
   uid: string,
   grund: string,
   stunden: number,
+  stufe: SupportStufe = 'ansehen',
   client?: SupabaseClient,
 ): Promise<string> {
   return anlegen(
@@ -88,6 +101,7 @@ export function freigabeGeben(
     {
       gewaehrtVon: uid,
       grund: grund.trim(),
+      stufe,
       giltBis: new Date(Date.now() + stunden * 3_600_000).toISOString(),
     },
     client,

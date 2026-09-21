@@ -32,9 +32,10 @@ const TAKT_MS = 60_000;
 export const SUPPORT_GEAENDERT = 'senklot:supportzugang';
 
 export default function Supportband() {
-  const { user } = useAuth();
+  const { user, einblick } = useAuth();
   const [grund, setGrund] = useState<string | null>(null);
   const [notzugang, setNotzugang] = useState(false);
+  const [schreibt, setSchreibt] = useState(false);
 
   useEffect(() => {
     if (!user?.companyId) return undefined;
@@ -46,6 +47,7 @@ export default function Supportband() {
         if (!wach) return;
         setGrund(offen ? offen.grund : null);
         setNotzugang(!!offen?.notzugang);
+        setSchreibt(offen?.stufe === 'mitarbeiten');
       } catch {
         // Siehe oben: lieber kein Band als ein erfundenes.
       }
@@ -62,16 +64,29 @@ export default function Supportband() {
     };
   }, [user]);
 
+  /*
+    WÄHREND EINER SUPPORTSITZUNG NICHT. Der Support hat sein eigenes Band
+    (`Supportsitzung`), das sagt, wo er ist. Dieses hier richtet sich an den
+    Betrieb; ihm beides übereinander zu zeigen, hiesse dieselbe Nachricht
+    zweimal in zwei Rollen.
+  */
+  if (einblick) return null;
   if (!grund) return null;
 
   return (
     <div
       role="status"
-      className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 bg-warning-bg px-4 py-2 text-center text-sm font-medium text-warning"
+      className={[
+        'flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2 text-center text-sm',
+        // „Er kann auch ändern" ist eine andere Nachricht als „er sieht zu"
+        // und bekommt deshalb eine andere Farbe. Eine Warnfarbe für beides
+        // hiesse: die eine stumpft die andere ab.
+        schreibt ? 'bg-danger-bg font-bold text-danger' : 'bg-warning-bg font-medium text-warning',
+      ].join(' ')}
     >
       <span>
-        {notzugang ? 'Notzugang: ' : ''}Der Support hat gerade Einblick in Ihren Betrieb —
-        lesend. Grund: {grund}
+        {notzugang ? 'Notzugang: ' : ''}Der Support hat gerade Einblick in Ihren Betrieb —{' '}
+        {schreibt ? 'er kann auch ändern' : 'lesend'}. Grund: {grund}
       </span>
     </div>
   );

@@ -251,3 +251,34 @@ describe('Ein Plattformkonto gehört zu keinem Betrieb', () => {
     expect((await ansprueche(uid)).plattform_admin).toBeUndefined();
   }, 30_000);
 });
+
+describe('Ein Administratorkonto lässt sich auch wieder entfernen', () => {
+  /*
+    GEFUNDEN BEIM PROBELAUF, NICHT HIER — und das ist der Punkt dieser Prüfung.
+
+    `auth.users` löschen kaskadiert auf `public.users`; dort feuert
+    `app.adminrolle_geschuetzt()`. Dessen Vorbeiweg für den Dienstschlüssel
+    ruft `app.ist_dienst()` auf. GoTrue löscht aber als
+    `supabase_auth_admin`, und dieser Rolle fehlte das `usage` auf dem Schema
+    `app`: der Aufruf scheiterte mit „permission denied", der Vorbeiweg kam
+    nie zustande, und der Riegel dahinter verweigerte.
+
+    Ergebnis: das Anmeldekonto eines Administrators war nicht mehr löschbar —
+    von niemandem. Ein Kunde, der geht, hätte es behalten.
+
+    GEPRÜFT WIRD DER ECHTE WEG (`auth.admin.deleteUser`) und nicht ein
+    `delete from public.users`: der Fehler lag genau in der Rolle, unter der
+    der echte Weg läuft.
+  */
+  it('entfernt das Anmeldekonto samt Belegschaftszeile', async () => {
+    const betrieb = 'admin-weg';
+    await betriebAnlegen(betrieb);
+    const chef = await konto(betrieb, 'Administrator', 'adminweg');
+
+    const { error } = await admin.auth.admin.deleteUser(chef.uid);
+    expect(error).toBeNull();
+
+    const { data } = await admin.from('users').select('id').eq('id', chef.uid);
+    expect(data).toEqual([]);
+  });
+});
