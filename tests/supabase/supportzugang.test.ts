@@ -500,3 +500,235 @@ describe('Welche Betriebe gerade Einblick gewähren', () => {
     expect(data).toEqual([]);
   });
 });
+
+describe('Was in einem Zugang angesehen wurde', () => {
+  /*
+    GEZÄHLT STATT AUFGEZÄHLT. Die Ansicht listete jeden einzelnen Aufruf; zwei
+    Minuten Support ergaben vierzehn Zeilen, und nach einem halben Jahr liest
+    die niemand mehr. Gezählt wird deshalb in der Datenbank — im Browser
+    hiesse zählen: erst alle Zeilen holen, und genau die sind zu viele.
+  */
+  async function oeffnen(freigabe: string, bereich: string) {
+    const { error } = await plattform.client.from('support_zugriffe').insert({
+      company_id: BETRIEB, freigabe_id: freigabe, bereich,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  it('zählt je Bereich, statt jeden Aufruf einzeln zu nennen', async () => {
+    const f = await freigeben();
+    await oeffnen(f, 'Rechnungen');
+    await oeffnen(f, 'Rechnungen');
+    await oeffnen(f, 'Rechnungen');
+    await oeffnen(f, 'Baustellen');
+
+    const { data, error } = await chefin.client.rpc('support_bereiche', {
+      p_company: BETRIEB,
+    });
+    expect(error).toBeNull();
+    expect(data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ freigabe_id: f, bereich: 'Rechnungen', anzahl: 3 }),
+        expect.objectContaining({ freigabe_id: f, bereich: 'Baustellen', anzahl: 1 }),
+      ]),
+    );
+    expect((data as unknown[]).length).toBe(2);
+  });
+
+  it('hält die Zahlen am Zugang fest, zu dem sie gehören', async () => {
+    /*
+      Zwei Zugänge nacheinander — der Betrieb muss unterscheiden können, was
+      im Zugang „wegen der Rechnung" und was im Zugang von letzter Woche
+      angesehen wurde. Eine Gesamtzahl über alles beantwortet seine Frage
+      nicht.
+    */
+    const erster = await freigeben();
+    await oeffnen(erster, 'Rechnungen');
+    await plattform.client.from('support_zugriffe').select('id').limit(1);
+    const { error: wf } = await chefin.client
+      .from('support_freigaben')
+      .update({ widerrufen_am: new Date().toISOString(), widerrufen_von: chefin.uid })
+      .eq('id', erster);
+    expect(wf).toBeNull();
+
+    const zweiter = await freigeben();
+    await oeffnen(zweiter, 'Benutzer');
+    await oeffnen(zweiter, 'Benutzer');
+
+    const { data } = await chefin.client.rpc('support_bereiche', { p_company: BETRIEB });
+    const zeilen = data as Array<{ freigabe_id: string; bereich: string; anzahl: number }>;
+    expect(zeilen.find((z) => z.freigabe_id === erster)).toMatchObject({
+      bereich: 'Rechnungen', anzahl: 1,
+    });
+    expect(zeilen.find((z) => z.freigabe_id === zweiter)).toMatchObject({
+      bereich: 'Benutzer', anzahl: 2,
+    });
+  });
+
+  it('gibt einem fremden Betrieb nichts heraus', async () => {
+    // Die Funktion laeuft mit den Rechten des Aufrufers: der Zeilenschutz auf
+    // `support_zugriffe` bleibt in Kraft. Ohne diese Pruefung waere eine
+    // `security definer`-Fassung ein Fenster in fremde Protokolle.
+    const f = await freigeben();
+    await oeffnen(f, 'Rechnungen');
+
+    const { data } = await anderChef.client.rpc('support_bereiche', { p_company: BETRIEB });
+    expect(data).toEqual([]);
+  });
+});
+
+describe('Die Stufe „mitarbeiten"', () => {
+  /*
+    ZWEI STUFEN, WEIL ZWEI FÄLLE. „Die Rechnung stimmt nicht — schauen Sie
+    bitte nach" ist der eine; „können Sie das bitte richtigstellen" der
+    andere. Bis zum 21.09.2026 gab es nur den ersten, und die vier Listen
+    ohne Details beantworteten nicht einmal den.
+
+    Was hier geprüft wird, ist die Kante zwischen beiden: eine Lesefreigabe
+    darf durch die neue Tür NICHT hindurch, und eine Schreibfreigabe darf
+    nicht mehr aufmachen als den einen Betrieb, für den sie gilt.
+  */
+  async function freigebenMit(stufe: string, stunden = 4, betrieb = BETRIEB, wer: Konto = chefin) {
+    const { data, error } = await wer.client
+      .from('support_freigaben')
+      .insert({
+        company_id: betrieb,
+        gewaehrt_von: wer.uid,
+        grund: 'Rechnung RE-2026-0042 stimmt nicht',
+        gilt_bis: inStunden(stunden),
+        stufe,
+      })
+      .select('id')
+      .single();
+    if (error) throw new Error(error.message);
+    return (data as { id: string }).id;
+  }
+
+  /**
+   * Eine Änderung, wie der Support sie im Ernstfall macht.
+   *
+   * GEPRÜFT WIRD DAS ERGEBNIS, NICHT DER FEHLER. Eine vom Zeilenschutz
+   * abgewiesene Änderung trifft NULL Zeilen und meldet KEINEN Fehler — der
+   * erste Anlauf dieser Prüfung hielt genau deshalb ein sauberes „nichts
+   * passiert" für einen Erfolg. Gelesen wird über den Dienstzugang: was der
+   * Support danach selbst sieht, ist die falsche Frage.
+   */
+  async function kundeUmbenennen(betrieb = BETRIEB) {
+    const name = `Support ${crypto.randomUUID().slice(0, 8)}`;
+    const { data } = await admin
+      .from('customers').select('id').eq('company_id', betrieb).limit(1);
+    const id = (data ?? [])[0]?.id as string | undefined;
+    if (!id) throw new Error(`Kein Kunde in ${betrieb} — die Prüfung liefe ins Leere`);
+
+    const { error } = await plattform.client
+      .from('customers').update({ contact_name: name }).eq('id', id);
+
+    const { data: danach } = await admin
+      .from('customers').select('contact_name').eq('id', id).single();
+    return {
+      erreicht: (danach as { contact_name: string }).contact_name === name,
+      fehler: error?.message ?? null,
+    };
+  }
+
+  it('ist ab Werk „ansehen" — wer nichts sagt, gibt kein Schreibrecht', async () => {
+    const id = await freigeben();
+    const { data } = await admin.from('support_freigaben').select('stufe').eq('id', id).single();
+    expect((data as { stufe: string }).stufe).toBe('ansehen');
+  });
+
+  it('lässt eine Lesefreigabe nach wie vor nichts ändern', async () => {
+    /*
+      OHNE FEHLERMELDUNG, UND DAS IST RICHTIG SO: hier weist schon die
+      Richtlinie ab, und eine abgewiesene Änderung trifft null Zeilen, ohne
+      etwas zu melden. Der Riegel dahinter kommt gar nicht mehr zum Zug. Wer
+      hier eine Meldung erwartet, prüft den zweiten Türsteher und übersieht,
+      dass der erste schon zugemacht hat.
+    */
+    await freigebenMit('ansehen');
+    const { erreicht } = await kundeUmbenennen();
+    expect(erreicht).toBe(false);
+  });
+
+  it('lässt eine Schreibfreigabe ändern', async () => {
+    await freigebenMit('mitarbeiten');
+    const { erreicht, fehler } = await kundeUmbenennen();
+    expect(fehler).toBeNull();
+    expect(erreicht).toBe(true);
+
+    expect(fehler).toBeNull();
+  });
+
+  it('macht mit einer Schreibfreigabe NUR diesen einen Betrieb auf', async () => {
+    /*
+      DER GEFÄHRLICHSTE FALL DER GANZEN DATEI. `app.ist_spitze()` sagt bei
+      einer Schreibfreigabe „ja", und zwar ohne Betrieb — die Rollenfunktionen
+      der App kennen keinen. Dass daraus kein Generalschlüssel wird, hängt
+      allein daran, dass JEDE Richtlinie daneben den Betrieb der Zeile prüft.
+      Genau das steht hier auf dem Prüfstand.
+    */
+    await freigebenMit('mitarbeiten', 4, BETRIEB);
+    const fremd = await kundeUmbenennen(ANDERER);
+    expect(fremd.erreicht).toBe(false);
+  });
+
+  it('endet mit dem Widerruf, wie jede andere Freigabe auch', async () => {
+    const id = await freigebenMit('mitarbeiten');
+    await chefin.client
+      .from('support_freigaben')
+      .update({ widerrufen_am: new Date().toISOString(), widerrufen_von: chefin.uid })
+      .eq('id', id);
+
+    const { erreicht } = await kundeUmbenennen();
+    expect(erreicht).toBe(false);
+  });
+
+  it('gilt höchstens 24 Stunden, nicht sieben Tage', async () => {
+    // Eine Woche Schreibrecht ist kein Supportfall mehr, sondern ein zweiter
+    // Administrator, den niemand auf der Gehaltsliste hat.
+    await expect(freigebenMit('mitarbeiten', 48)).rejects.toThrow(/höchstens/);
+    await expect(freigebenMit('ansehen', 48)).resolves.toBeTruthy();
+  });
+
+  it('lässt die Stufe nachträglich nicht anheben', async () => {
+    // Sonst bezöge sich die Zustimmung des Betriebs auf etwas anderes als
+    // das, was danach gilt.
+    const id = await freigebenMit('ansehen');
+    const { error } = await chefin.client
+      .from('support_freigaben').update({ stufe: 'mitarbeiten' }).eq('id', id);
+    expect(error?.message).toMatch(/nur der Widerruf/);
+  });
+
+  it('lässt einen Notzugang nicht schreiben', async () => {
+    // Er läuft ohne Zustimmung. Schreibrechte ohne Zustimmung wären genau der
+    // Generalschlüssel, den dieser ganze Bau vermeiden soll.
+    const { error } = await plattform.client.rpc('support_notzugang', {
+      p_company: BETRIEB, p_grund: 'Letzter Administrator ausgesperrt', p_stunden: 4,
+    });
+    expect(error).toBeNull();
+    const { erreicht } = await kundeUmbenennen();
+    expect(erreicht).toBe(false);
+  });
+
+  it('kommt auch mit Schreibfreigabe an Zeitbuchungen und Urlaube nicht heran', async () => {
+    /*
+      DIE GRENZE, DIE AUCH „MITARBEITEN" NICHT VERSCHIEBT. Dort stehen
+      Kranken- und Urlaubstage (Art. 9 DSGVO) und Aufnahmen aus
+      Kundenwohnungen. Lesen darf der Support sie ohnehin nicht — sie
+      trotzdem schreibbar zu lassen hiesse: blind ändern können, was man
+      nicht sehen darf.
+    */
+    await freigebenMit('mitarbeiten');
+    const { error } = await plattform.client.from('time_entries').insert({
+      id: crypto.randomUUID(), company_id: BETRIEB, user_id: chefin.uid,
+      date: '2026-09-21', status: 'Anwesend',
+    });
+    expect(error?.message).toMatch(/verschlossen/);
+
+    const { error: u } = await plattform.client.from('vacations').insert({
+      company_id: BETRIEB, user_id: chefin.uid, user_name: 'Chefin',
+      von: '2026-10-01', bis: '2026-10-02', tage: 2, status: 'Offen',
+    });
+    expect(u?.message).toMatch(/verschlossen/);
+  });
+});

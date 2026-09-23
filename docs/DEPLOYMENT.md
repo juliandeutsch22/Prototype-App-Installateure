@@ -189,6 +189,222 @@ statt kaputt.
 
 ---
 
+## 7 · Support: hineinsehen, ohne einen Generalschlüssel zu haben
+
+**Es gibt kein Konto, das überall hineinsieht — und das ist keine Askese,
+sondern die Folge einer unangenehmen Feststellung:** der Generalschlüssel
+existierte längst. Er heisst `service_role`, liegt in den
+Edge-Function-Secrets, umgeht jeden Zeilenschutz, erreicht jeden Mandanten und
+hinterlässt keine Spur. Ihn als Supportweg zu benutzen hiesse: bei jeder
+Nachfrage eines Betriebs in ALLE Betriebe schauen zu können, ohne dass es
+irgendwo stünde.
+
+Der Supportzugang ersetzt genau das.
+
+### Die zwei Konten
+
+| Konto | Wofür | Was es sieht |
+| --- | --- | --- |
+| **Plattformkonto** (`platform_admins`) | Betriebe anlegen, Support | Von sich aus: **nichts**. Erst mit einer Freigabe den einen Betrieb, der sie erteilt hat |
+| **Betriebskonto** (`users`) | Arbeiten | Den eigenen Betrieb, nach Rolle |
+
+Dieselbe Anmeldekennung kann **nie beides** sein; zwei Auslöser in der
+Datenbank verhindern es in beide Richtungen. Gäbe es für eine Kennung beides,
+entschiede allein die Reihenfolge der Auslöser, welche Ansprüche am Ende
+stehen — und mit einem Betrieb im Token greift jede Leseregel.
+
+### Wie die Anmeldung aussieht
+
+**Es gibt nur eine Anmeldemaske**, dieselbe Adresse, dasselbe Formular. Was
+danach erscheint, entscheidet der Anspruch im Token:
+
+- Token **mit** `company_id` → die App, mit Navigation und Reitern nach Rolle.
+- Token mit `plattform_admin` → **eine einzige Seite ohne Navigation**:
+  „Betriebe anlegen", darunter „Einblick gewährt" und „Notzugang".
+
+Kein Rollenwechsler, kein „als Betrieb X anmelden". Ein Plattformkonto
+*wird* nie zu einem Betriebskonto; es bekommt nur für die Dauer einer
+Freigabe Zugang zu **einem** Betrieb.
+
+### Zwei Stufen — der Betrieb wählt beim Gewähren
+
+| Stufe | Was der Support kann | Wie lange |
+| --- | --- | --- |
+| **Ansehen** (Vorgabe) | Den Betrieb sehen wie ein Administrator — alle Listen, alle Detailansichten. Ändern: nichts | bis 7 Tage |
+| **Mitarbeiten** | Dasselbe, und **ändern** — wie ein Administrator | höchstens **24 Stunden** |
+
+**Wer nichts ankreuzt, gibt kein Schreibrecht.** Die harmlosere Antwort ist
+die Vorgabe; eine Maske, bei der Wegklicken das mehr erlaubt, wäre falsch
+herum gebaut. Die Stufe steht mit dem Gewähren fest und lässt sich
+nachträglich nicht anheben — sonst bezöge sich die Zustimmung auf etwas
+anderes als das, was danach gilt.
+
+**Der Support arbeitet in der ECHTEN App**, nicht in einem Nachbau: „Öffnen"
+setzt ihn in den Betrieb, mit denselben Reitern und denselben Ansichten, die
+der Betrieb sieht. Ganz oben steht dabei ein Band mit dem Namen des Betriebs
+— bei „Mitarbeiten" in Rot, weil die Oberfläche sonst aussieht wie jede
+andere und genau daraus der Fehler entsteht, der weh tut.
+
+> Bis zum 21.09.2026 gab es dafür eine zweite, eigene Oberfläche mit vier
+> Listen ohne Details. Sie beantwortete die Frage nicht, mit der ein Betrieb
+> anruft („die Rechnung stimmt nicht" — welche Position denn?), und sie wäre
+> jeder Änderung an der App hinterhergelaufen.
+
+### Wie ein Supportfall abläuft
+
+1. **Der Betrieb ruft an.** „Die Rechnung RE-2026-0042 stimmt nicht.“
+2. **Der Betrieb gewährt** — *Einstellungen → Supportzugang*, nur
+   Geschäftsführung/Administration: Grund eintragen, **Stufe** wählen
+   (Ansehen oder Mitarbeiten), Dauer wählen, freigeben. Ab diesem Moment
+   steht **in seiner App ein Band über dem Inhalt**, für jeden Mitarbeiter,
+   mit dem Grund darin — bei „Mitarbeiten" in Rot und mit dem Zusatz, dass
+   der Support auch ändern kann.
+3. **Der Support meldet sich an** und sieht den Betrieb unter „Einblick
+   gewährt" — mit Grund, Stufe und Frist. „Öffnen" setzt ihn **in die echte
+   App** dieses Betriebs.
+4. **Jeder geöffnete Bereich wird protokolliert**, und zwar *bevor* er geladen
+   wird: scheitert die Meldung, beginnt der Einblick gar nicht.
+5. **Der Betrieb beendet** — ein Klick, sofort wirksam — oder die Frist
+   läuft ab. Beides nimmt das Leserecht in derselben Sekunde weg.
+
+### Was ein Supportzugang nicht kann
+
+- **Zeitbuchungen, Urlaube, Scheinfotos lesen — in BEIDEN Stufen.** Dort
+  stehen Kranken- und Urlaubstage (Art. 9 DSGVO) und Aufnahmen aus
+  Kundenwohnungen. Sie sind zusätzlich auch gegen Schreiben verriegelt: blind
+  ändern zu können, was man nicht sehen darf, wäre die schlechteste aller
+  Kombinationen.
+- **Bei „Ansehen" schreiben.** Nirgends. Der Riegel liegt als Auslöser vor
+  *jeder* Tabelle mit `company_id`, nicht in der Oberfläche; ein
+  Schema-Wächter prüft, dass keine fehlt.
+- **Einen anderen Betrieb erreichen.** Auch mit „Mitarbeiten" nicht: die
+  Rollenfunktion sagt dann zwar „ja", aber jede Richtlinie prüft daneben den
+  Betrieb der Zeile, und der ist an die Freigabe gebunden. Dass wirklich
+  JEDE das tut, hält ein eigener Wächter fest.
+- **Sich selbst freigeben.** Der gewöhnliche Weg ist für ein Plattformkonto
+  gesperrt.
+
+### Der Notzugang — und wann er benutzt wird
+
+Nur, wenn der Betrieb **selbst nicht mehr freigeben kann**: der letzte
+Administrator ist weg, die Anmeldung klemmt. Er läuft ohne Zustimmung, aber
+nicht heimlich — gekennzeichnet, höchstens 24 Stunden, im Protokoll des
+Betriebs, mit demselben Band in seiner App, vom Betrieb jederzeit beendbar.
+
+**Ein Notzugang ist immer „Ansehen".** Schreibrechte ohne Zustimmung wären
+genau der Generalschlüssel, den dieser ganze Bau vermeiden soll. Damit bleibt
+ein Fall offen und er sei hier benannt: ist der letzte Administrator eines
+Betriebs weg, kann ihm auch der Support keinen neuen anlegen. Heute hilft nur
+der Dienstschlüssel von Hand — schriftlich festgehalten, siehe unten.
+
+**Der Dienstschlüssel bleibt trotzdem, was er ist.** Er liegt in den
+Serverfunktionen und im nächtlichen Lauf und kann weiterhin alles. Er ist nur
+nicht mehr der Supportweg. Wer ihn im Ernstfall doch braucht (Rettung einer
+Datenbank, Migration von Hand), sollte das schriftlich festhalten — die
+Datenbank tut es nicht.
+
+---
+
+## 8 · Änderungen im laufenden Betrieb einspielen
+
+### Der Weg, kurz
+
+```
+Branch → Pull Request → grüne Prüfungen → Merge nach main → Schema → App
+```
+
+Auf `main` laufen **zwei Workflows nacheinander**, nicht nebeneinander:
+
+| Schritt | Ablauf | Was er tut | Dauer |
+| --- | --- | --- | --- |
+| 1 | `supabase-migrationen.yml` | Migrationen **von null an** gegen eine frische Datenbank + alle Datenbankprüfungen, **danach** `db push` ins echte Projekt und Edge Functions | ~7 min |
+| 2 | `deploy.yml` | Typen, Lint, alle Bausteinprüfungen, Bauen, Deploy auf Firebase Hosting | ~3 min |
+
+Der zweite startet auf `main` **nicht selbst**: er hängt per `workflow_run` am
+ersten und läuft nur, wenn der mit `success` endet. Zusammen also **rund
+zehn Minuten** vom Merge bis auf die Telefone.
+
+> **Scheitert eine Migration, geht die App gar nicht erst live.** Vorher wäre
+> sie gestartet und hätte auf ein Schema getroffen, das nie kam.
+
+> **Die Prüfung steht VOR dem Einspielen, nicht daneben.** Eine Migration, die
+> einmal im Projekt liegt, ist dort — ein `git revert` holt sie nicht zurück.
+
+Der Migrationslauf hat auf `main` deshalb **keinen Pfadfilter** mehr. Ein
+übersprungener Lauf löst kein `workflow_run` aus; mit Filter bliebe jede
+Änderung, die `supabase/` nicht berührt, stillschweigend liegen. Der Preis
+sind ein paar Minuten je Auslieferung — `db push` findet dann nichts Neues.
+
+**Hängt die Kette einmal**, gibt es den Deploy von Hand: *Actions → „Test und
+Deploy" → Run workflow* auf `main`.
+
+### Was der Betrieb davon merkt
+
+**Beim Kaltstart nichts:** wer die App öffnet, bekommt die neue Fassung ohne
+Rückfrage. Es kann nichts verlorengehen, weil noch nichts eingegeben wurde.
+
+**Beim Fortsetzen wird gefragt.** Wer mitten in einem Handwerksschein steht,
+bekommt eine Leiste „neue Fassung“ und entscheidet selbst — ein
+selbsttätiger Neustart würfe ihm die Unterschrift weg, ausgelöst von einem
+Deploy, mit dem er nichts zu tun hat.
+
+**Nachsehen, was wirklich läuft:** im Kopf der App steht die Fassung (Commit
+und Bauzeit). Steckt ein Telefon fest, gibt es dort auch „App erneuern“.
+
+### DIE REGEL, AN DER ALLES HÄNGT: abwärtskompatibel migrieren
+
+**Eine Richtung ist seit dem 20.09.2026 zugemacht, die andere bleibt offen.**
+
+Bis dahin gingen Datenbank und App *gleichzeitig los* — und kamen nicht
+gleichzeitig an: die App nach 3 Minuten, die Migrationen nach 7. Dazwischen
+lief vier Minuten lang **neue App gegen altes Schema**. Seit der Deploy hinter
+den Migrationen hängt, gibt es dieses Fenster nicht mehr.
+
+**Die Gegenrichtung lässt sich nicht zumachen.** Auf den Telefonen läuft die
+alte Fassung weiter, bis jemand die App neu öffnet — im Zweifel Tage. Also
+läuft dort **alte App gegen neues Schema**, und zwar so lange, wie es dauert.
+
+Jede Änderung muss deshalb **diese Richtung aushalten**:
+
+| Geht immer | Geht nur in zwei Schritten |
+| --- | --- |
+| Spalte **hinzufügen** (nullable oder mit Vorgabe) | Spalte **umbenennen** |
+| Tabelle hinzufügen | Spalte **löschen** |
+| Neue Funktion, neue Regel | Spalte **verpflichtend** machen |
+| Prüfung **lockern** | Prüfung **verschärfen** bei Bestandsdaten |
+
+**Zwei Schritte heisst:** erstens die neue Form daneben anlegen und beides
+schreiben; zweitens — in einem späteren Deploy, wenn alle Geräte die neue
+Fassung haben — die alte Form entfernen. Eine Woche dazwischen ist ein
+brauchbares Mass; auf einem Telefon, das im Urlaub liegt, läuft die alte
+Fassung länger.
+
+> **Die Tabelle gilt weiter, auch mit der Kette.** Sie schützt nicht mehr vor
+> den vier Minuten zwischen zwei Abläufen — die gibt es nicht mehr —, sondern
+> vor dem Telefon, das seit Freitag im Auto liegt. Wer eine Spalte umbenennt
+> und sich auf die Reihenfolge verlässt, hat den falschen Gegner im Blick.
+
+### Wenn etwas schiefgeht
+
+- **Code kaputt** → `git revert` auf `main`, der Deploy läuft von selbst
+  wieder. Drei Minuten.
+- **Migration kaputt** → **kein Zurück durch `git revert`.** Es braucht eine
+  NEUE Migration, die zurücknimmt, was die kaputte getan hat. Deshalb laufen
+  die Migrationen vorher von null an gegen eine frische Datenbank.
+- **Daten kaputt** → Point-in-Time-Recovery im Supabase-Projekt (kostenpflichtiger
+  Zusatz, siehe Checkliste) oder der nächtliche Stand aus der Sicherung. Der
+  Rücklauf füllt eine Datenbank, er baut keine: zuerst ein frisches Projekt
+  mit den Migrationen, dann der Rücklauf.
+
+### Wann eingespielt wird
+
+**Nicht Freitag um 16 Uhr, und nicht während der Monatsabrechnung.** Der
+Vormittag ist die ungünstigste Zeit — da sind die Monteure auf der Baustelle
+und buchen. Am ruhigsten ist der frühe Nachmittag: die Werkstatt ist unterwegs,
+das Büro ist da und erreichbar, falls etwas auffällt.
+
+---
+
 ## DSGVO-Checkliste vor dem echten Betrieb
 
 - ☐ **Supabase-Projekt in der EU**, nachweisbar für den AV-Vertrag.

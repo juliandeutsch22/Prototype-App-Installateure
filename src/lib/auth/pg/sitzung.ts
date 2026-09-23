@@ -83,6 +83,45 @@ export async function passwortZuruecksetzen(email: string): Promise<void> {
 }
 
 /**
+ * Ein neues Passwort für das gerade angemeldete Konto.
+ *
+ * DAS FEHLTE BIS ZUM 20.09.2026 GANZ, und es war der teuerste Fehler dieses
+ * Bestands. Der Rücksetzlink meldete den Empfänger an — und damit war er
+ * drin, ohne je ein Passwort zu kennen. Beim nächsten Start stand er vor der
+ * Maske und hatte nichts einzutippen. Für den ersten Administrator eines
+ * neuen Betriebs hiess das: ein einziger Besuch, dann ausgesperrt.
+ *
+ * `updateUser` braucht KEINE Bestätigung des alten Passworts, und genau das
+ * ist hier richtig: wer über einen Rücksetzlink kommt, kennt das alte nicht.
+ * Die Sicherheit liegt im Besitz einer gültigen Sitzung — entweder frisch
+ * angemeldet oder eben über den Link, den nur das Postfach bekommen hat.
+ */
+export async function passwortSetzen(neu: string): Promise<void> {
+  const { error } = await supabaseClient().auth.updateUser({ password: neu });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Meldet sich, wenn eine Sitzung aus einem RÜCKSETZLINK entstanden ist.
+ *
+ * WARUM ALS EIGENER WEG und nicht über `beiAenderung`: dort zählt nur, WER
+ * angemeldet ist. Hier zählt, WIE — und das steht ausschliesslich im
+ * Ereignisnamen. `supabase-js` liest den Verweis beim Start aus der Adresse,
+ * legt die Sitzung an und meldet einmal `PASSWORD_RECOVERY`; danach ist der
+ * Unterschied zu einer gewöhnlichen Anmeldung nicht mehr feststellbar.
+ *
+ * DESHALB MUSS DER AUFRUFER FRÜH HORCHEN. Wer sich erst nach dem Start
+ * anhängt, verpasst das Ereignis — und der Empfänger landet wieder auf der
+ * Startseite, ohne je nach einem Passwort gefragt worden zu sein.
+ */
+export function beiPasswortRuecksetzung(ruf: () => void): () => void {
+  const { data } = supabaseClient().auth.onAuthStateChange((ereignis) => {
+    if (ereignis === 'PASSWORD_RECOVERY') ruf();
+  });
+  return () => data.subscription.unsubscribe();
+}
+
+/**
  * Trägt das vorliegende Token den Plattform-Anspruch?
  *
  * Gelesen wird die Sitzung, die ohnehin im Speicher liegt — keine Netzrunde.

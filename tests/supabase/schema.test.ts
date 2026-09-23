@@ -151,6 +151,15 @@ describe('Zeilenschutz', () => {
       entsteht gerade durch den Supportzugang, und die Freigaben muss der
       Notzugang schreiben können. Beide sind einzeln geregelt und in
       `supportzugang.test.ts` einzeln geprüft.
+
+      ZWEI RIEGEL SIND ERLAUBT, und der Unterschied ist die Stufe.
+      `support_schreibt_nicht` lässt eine Freigabe der Stufe „mitarbeiten"
+      durch; `support_niemals` tut das nicht und liegt deshalb auf den drei
+      Tabellen, die ein Supportzugang nicht einmal LESEN darf —
+      Zeitbuchungen, Urlaube, Scheinfotos. Blind ändern zu können, was man
+      nicht sehen darf, wäre die schlechteste aller Kombinationen. Gefragt
+      ist hier, dass ÜBERHAUPT einer der beiden daliegt: eine Tabelle ganz
+      ohne Riegel ist die Lücke, um die es geht.
     */
     const { rows: ohneRiegel } = await db.query<{ tabelle: string }>(`
       select c.relname as tabelle
@@ -166,7 +175,9 @@ describe('Zeilenschutz', () => {
          and not exists (
            select 1 from pg_trigger t
             where t.tgrelid = c.oid and not t.tgisinternal
-              and t.tgfoid = 'app.support_schreibt_nicht'::regproc)
+              and t.tgfoid in (
+                'app.support_schreibt_nicht'::regproc,
+                'app.support_niemals'::regproc))
        order by 1
     `);
     expect(ohneRiegel.map((r) => r.tabelle)).toEqual([]);

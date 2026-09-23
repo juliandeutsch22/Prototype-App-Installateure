@@ -2,13 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { betriebAnlegen } from '@/lib/db/plattform';
 import { notzugang, offeneFreigaben, type OffeneFreigabe } from '@/lib/db/support';
-import SupportEinblick from './SupportEinblick';
 import { betriebFehler, type NeuerBetrieb } from '@shared/plattform';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { InputField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { Marke, Warnung } from '@/components/Badge';
+import PasswortAendern from '@/features/auth/PasswortAendern';
 
 /**
  * Die einzige Seite des globalen Administrators.
@@ -46,7 +46,7 @@ interface Angelegt {
 }
 
 export default function PlattformView() {
-  const { signOut } = useAuth();
+  const { signOut, einblickStarten } = useAuth();
   const [form, setForm] = useState<NeuerBetrieb>(LEER);
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
@@ -57,9 +57,8 @@ export default function PlattformView() {
   */
   const [angelegt, setAngelegt] = useState<Angelegt[]>([]);
 
-  /* Wer gerade Einblick gewährt — und in welchen Betrieb gerade gesehen wird. */
+  /* Wer gerade Einblick gewährt. */
   const [offen, setOffen] = useState<OffeneFreigabe[]>([]);
-  const [einblick, setEinblick] = useState<OffeneFreigabe | null>(null);
   const [notForm, setNotForm] = useState({ companyId: '', grund: '', stunden: '4' });
   const [notLaeuft, setNotLaeuft] = useState(false);
   const [notFehler, setNotFehler] = useState<string | null>(null);
@@ -124,20 +123,6 @@ export default function PlattformView() {
     } finally {
       setLaeuft(false);
     }
-  }
-
-  if (einblick) {
-    return (
-      <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
-        <SupportEinblick
-          freigabe={einblick}
-          onZurueck={() => {
-            setEinblick(null);
-            void freigabenLaden();
-          }}
-        />
-      </div>
-    );
   }
 
   return (
@@ -242,7 +227,8 @@ export default function PlattformView() {
           <ul className="space-y-3 text-sm">
             {offen.map((f) => (
               <li key={f.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                {f.notzugang ? <Warnung>Notzugang</Warnung> : <Marke>gewährt</Marke>}
+                {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
+                {f.stufe === 'mitarbeiten' ? <Warnung>mitarbeiten</Warnung> : <Marke>ansehen</Marke>}
                 <span className="font-medium">{f.name}</span>
                 <span className="text-ink-muted">{f.grund}</span>
                 <span className="text-ink-muted">
@@ -250,7 +236,13 @@ export default function PlattformView() {
                     day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
                   })}
                 </span>
-                <Button variant="secondary" onClick={() => setEinblick(f)}>
+                {/*
+                  ÖFFNEN HEISST: die echte App unter diesem Betrieb. Kein
+                  zweiter Nachbau mehr — was der Support sieht, ist das, was
+                  der Betrieb sieht, und was er darf, entscheidet die
+                  Datenbank.
+                */}
+                <Button variant="secondary" onClick={() => einblickStarten(f)}>
                   Öffnen
                 </Button>
               </li>
@@ -353,6 +345,14 @@ export default function PlattformView() {
           </ul>
         </Card>
       )}
+
+      {/*
+        AUCH DIESES KONTO MUSS SEIN PASSWORT ÄNDERN KÖNNEN. Es sieht keine
+        Einstellungen — es sieht überhaupt nur diese eine Seite. Ohne die
+        Karte hier gäbe es für den Support genau denselben Weg wie für jeden
+        Betrieb vorher: einmal per Link hinein und danach nie wieder.
+      */}
+      <PasswortAendern />
 
       <div className="border-t border-line pt-4">
         <Button variant="ghost" onClick={() => void signOut()}>

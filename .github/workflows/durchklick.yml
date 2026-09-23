@@ -1,9 +1,10 @@
 name: Durchklick
 
-# DIE APP IM ECHTEN BROWSER, auf den vier Wegen, bei denen ein Fehler Geld
+# DIE APP IM ECHTEN BROWSER, auf den sechs Wegen, bei denen ein Fehler Geld
 # oder Arbeitszeit kostet: Zeit buchen, Material anfordern, Schein
-# unterschreiben, Rechnung stellen. Die Anmeldung steht nicht daneben — jeder
-# der vier beginnt damit, und zwar über die Maske, nicht über eine
+# unterschreiben, Rechnung stellen, Katalog einspielen — und der allererste
+# Besuch, an dem alle anderen hängen. Die Anmeldung steht nicht daneben:
+# jeder Weg beginnt damit, und zwar über die Maske, nicht über eine
 # untergeschobene Sitzung.
 #
 # WARUM ES DIESEN AUFTRAG NEBEN DEN ANDEREN GIBT. „Typen, Lint und Tests"
@@ -43,7 +44,7 @@ env:
 
 jobs:
   durchklicken:
-    name: Die vier Wege im Browser
+    name: Die sechs Wege im Browser
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,7 +69,7 @@ jobs:
         run: supabase start
 
       # NUR CHROMIUM, nicht alle drei Browser: jeder weitere kostet Minuten
-      # Ladezeit für einen Erkenntnisgewinn, den diese fünf Wege nicht
+      # Ladezeit für einen Erkenntnisgewinn, den diese sechs Wege nicht
       # hergeben — sie prüfen Abläufe, nicht Darstellung.
       - name: Browser holen
         run: npx playwright install --with-deps chromium

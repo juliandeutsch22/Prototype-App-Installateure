@@ -10,12 +10,23 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { abfragen, aendern, anlegen, derClient, type WithId } from './kern';
 
+/**
+ * Wie weit ein Zugang reicht.
+ *
+ * `ansehen` ist der Normalfall und die Vorgabe: lesen, sonst nichts, bis zu
+ * sieben Tage. `mitarbeiten` ist der Ernstfall — wie ein Administrator im
+ * Betrieb, höchstens 24 Stunden, eigens gekennzeichnet. Zeitbuchungen,
+ * Urlaube und Scheinfotos bleiben in BEIDEN Stufen verschlossen.
+ */
+export type SupportStufe = 'ansehen' | 'mitarbeiten';
+
 export interface SupportFreigabe {
   companyId: string;
   /** Wer sie gewährt hat — leer beim Notzugang. */
   gewaehrtVon?: string | null;
   grund: string;
   notzugang: boolean;
+  stufe: SupportStufe;
   giltBis: number;
   widerrufenAm?: number | null;
   widerrufenVon?: string | null;
@@ -30,6 +41,21 @@ export interface SupportZugriff {
   wann: number;
 }
 
+/**
+ * Was in EINEM Zugang angesehen wurde — je Bereich gezählt.
+ *
+ * Die Ansicht zeigt das statt der einzelnen Klicks: zwei Minuten Support
+ * ergaben vierzehn Zeilen, und nach einem halben Jahr liest die niemand
+ * mehr. Gezählt wird in der Datenbank, damit keine Lesegrenze die Zahlen
+ * still verfälscht.
+ */
+export interface SupportBereich {
+  freigabe_id: string;
+  bereich: string;
+  anzahl: number;
+  zuletzt: string;
+}
+
 /** Eine offene Freigabe, so wie die Plattformseite sie sieht. */
 export interface OffeneFreigabe {
   id: string;
@@ -37,6 +63,7 @@ export interface OffeneFreigabe {
   name: string;
   grund: string;
   notzugang: boolean;
+  stufe: SupportStufe;
   gilt_bis: string;
 }
 
@@ -65,6 +92,7 @@ export function freigabeGeben(
   uid: string,
   grund: string,
   stunden: number,
+  stufe: SupportStufe = 'ansehen',
   client?: SupabaseClient,
 ): Promise<string> {
   return anlegen(
@@ -73,6 +101,7 @@ export function freigabeGeben(
     {
       gewaehrtVon: uid,
       grund: grund.trim(),
+      stufe,
       giltBis: new Date(Date.now() + stunden * 3_600_000).toISOString(),
     },
     client,
@@ -103,6 +132,17 @@ export function zugriffe(
     { sortiere: { feld: 'wann', absteigend: true }, grenze },
     client,
   );
+}
+
+export async function bereiche(
+  companyId: string,
+  client?: SupabaseClient,
+): Promise<SupportBereich[]> {
+  const { data, error } = await derClient(client).rpc('support_bereiche', {
+    p_company: companyId,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SupportBereich[];
 }
 
 /* ------------------------------------------------------------------ */
