@@ -10,6 +10,7 @@ import {
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
 import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
+import { bearbeitungsvermerk } from './bearbeitungsvermerk';
 import { istAussendienst, canExtendTimeEntry } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
@@ -322,10 +323,7 @@ export default function TimeForm({
       if (isEdit) {
         // userId/userName bleiben unangetastet — der Eintrag gehört weiter dem
         // Mitarbeiter, auch wenn die Buchhaltung ihn korrigiert (Legacy:2700-2706).
-        const audit =
-          entry.userId !== user.uid
-            ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
-            : {};
+        const audit = entry.userId !== user.uid ? bearbeitungsvermerk(user) : {};
         // Geprüft wird gegen die Tage des EIGENTÜMERS, nicht gegen die des
         // Bearbeiters — die Buchhaltung korrigiert fremde Einträge.
         const stand = await updateTimeEntryOhneEmpfang(
@@ -344,9 +342,7 @@ export default function TimeForm({
           userId: owner.uid,
           userName: owner.name,
           source: 'manual',
-          ...(target
-            ? { lastEditedBy: user.name, lastEditedByUid: user.uid, lastEditedAt: Date.now() }
-            : {}),
+          ...(target ? bearbeitungsvermerk(user) : {}),
         });
         if (stand === 'queued') toast.info(vorgemerktMeldung('Zeit gebucht'));
         else toast.success(target ? `Zeit für ${target.name} gebucht` : 'Zeit gebucht');

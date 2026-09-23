@@ -764,7 +764,6 @@ export interface TimeEntry {
   createdAt?: number;
   lastEditedBy?: string;
   lastEditedByUid?: string;
-  lastEditedAt?: number;
   /**
    * Aus welchem genehmigten Urlaubsantrag dieser Eintrag entstanden ist.
    *

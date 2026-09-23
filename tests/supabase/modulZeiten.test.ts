@@ -209,3 +209,56 @@ describe('Die Doppelbuchungsregel greift durch die Weiche', () => {
     expect(id).toBeTruthy();
   });
 });
+
+describe('Das Büro bucht für einen Monteur', () => {
+  /*
+   * GEFUNDEN IM BETRIEB: in der Mitarbeiterübersicht erfasste die Buchhaltung
+   * Zeit für einen Monteur, die App meldete „gespeichert", und nichts kam an.
+   * Der Vermerk trug `lastEditedAt`, und eine solche Spalte gibt es nicht —
+   * PostgREST wies jede Fremdbuchung mit PGRST204 ab. Keine Prüfung hatte je
+   * FÜR JEMAND ANDEREN gebucht.
+   *
+   * Geschrieben wird durch die Weiche und mit genau dem Vermerk, den die Maske
+   * schreibt (`bearbeitungsvermerk`) — ein Feld, das dort dazukommt und keine
+   * Spalte hat, macht diese Prüfung rot.
+   */
+  it('legt den Eintrag beim Monteur an, mit Vermerk, wer gebucht hat', async () => {
+    const { createTimeEntry } = await import('@/lib/db/timeEntries');
+    const { bearbeitungsvermerk } = await import('@/features/time/bearbeitungsvermerk');
+    clientEinreichen(buch.client);
+    try {
+      const id = await createTimeEntry('zeit-a', {
+        ...buchung(monteur, '2026-10-05'),
+        userName: 'Max Monteur',
+        source: 'manual',
+        ...bearbeitungsvermerk({ uid: buch.uid, name: 'Brigitte Büro' }),
+      });
+      const { data } = await admin
+        .from('time_entries').select('user_id, last_edited_by, last_edited_by_uid').eq('id', id).single();
+      expect(data).toEqual({
+        user_id: monteur.uid,
+        last_edited_by: 'Brigitte Büro',
+        last_edited_by_uid: buch.uid,
+      });
+    } finally {
+      clientEinreichen(monteur.client);
+    }
+  });
+
+  it('korrigiert einen Eintrag des Monteurs mit demselben Vermerk', async () => {
+    const { bearbeitungsvermerk } = await import('@/features/time/bearbeitungsvermerk');
+    const [eintrag] = await zeiten.listOwnEntriesSince('zeit-a', monteur.uid, '2026-10-05');
+    clientEinreichen(buch.client);
+    try {
+      await zeiten.aendern(eintrag.id, {
+        comment: 'Pause nachgetragen',
+        ...bearbeitungsvermerk({ uid: buch.uid, name: 'Brigitte Büro' }),
+      });
+      const { data } = await admin
+        .from('time_entries').select('comment, last_edited_by').eq('id', eintrag.id).single();
+      expect(data).toEqual({ comment: 'Pause nachgetragen', last_edited_by: 'Brigitte Büro' });
+    } finally {
+      clientEinreichen(monteur.client);
+    }
+  });
+});
