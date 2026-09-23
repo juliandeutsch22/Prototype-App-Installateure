@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  naechsteProjektnummer,
   nummerFrei,
   baustelleAusWartung,
 } from '@/features/maintenance/wartungBaustelle';
@@ -27,42 +26,10 @@ const wartung = (p: Partial<Wartung> = {}): Wartung =>
     ...p,
   }) as Wartung;
 
-describe('Der Vorschlag für die Projektnummer', () => {
-  it('zählt die höchste des Jahres hoch', () => {
-    expect(naechsteProjektnummer(['2026-001', '2026-014', '2026-009'], 2026)).toBe('2026-015');
-  });
-
-  it('beginnt beim ersten, wenn das Jahr noch leer ist', () => {
-    // Der Jahreswechsel: 2025 lief bis 087, 2026 fängt wieder bei 001 an.
-    expect(naechsteProjektnummer(['2025-087'], 2026)).toBe('2026-001');
-  });
-
-  it('übernimmt die Stellenzahl aus dem Bestand', () => {
-    // Wer vierstellig führt, bekommt vierstellig zurück — sonst sortiert die
-    // Liste als Text falsch, sobald 2026-999 überschritten wird.
-    expect(naechsteProjektnummer(['2026-0087'], 2026)).toBe('2026-0088');
-  });
-
-  /*
-    FREMDE MUSTER SIND KEIN FEHLER. Projektnummern vergibt der Betrieb frei;
-    in manchen hängt sie am Auftrag des Kunden. Ein Zähler würde diese
-    Freiheit stillschweigend abschaffen — deshalb ist es ein Vorschlag in
-    einem Feld, das man überschreibt.
-  */
-  it('lässt sich von einem fremden Muster nicht aus dem Tritt bringen', () => {
-    expect(naechsteProjektnummer(['Huber-Therme', 'W-2026-3', ''], 2026)).toBe('2026-001');
-  });
-
-  it('zählt nur, was wirklich diesem Jahr gehört', () => {
-    expect(naechsteProjektnummer(['2026-003', '2027-100', '2025-500'], 2026)).toBe('2026-004');
-  });
-});
-
 describe('Die Prüfung auf eine freie Nummer', () => {
   /*
-    SIE ERSETZT DEN ZÄHLER, DEN ES BEWUSST NICHT GIBT. Der Vorschlag kann
-    doppelt sein, wenn zwei Leute gleichzeitig anlegen — oder wenn jemand ihn
-    überschreibt. Zwei Baustellen mit derselben Nummer wären der teuerste
+    SIE STEHT HINTER DEM ZÄHLER. Wer die vorgeschlagene Nummer überschreibt,
+    geht am Zähler vorbei — und kann eine erwischen, die es schon gibt. Zwei Baustellen mit derselben Nummer wären der teuerste
     Fehler dieser Kette: Zeiten, Scheine und Rechnungen hängen an der Nummer,
     nicht an der Dokument-ID.
   */

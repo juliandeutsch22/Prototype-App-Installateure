@@ -8,7 +8,12 @@ import {
   reserveQuoteNumber,
 } from '@/lib/db/quotes';
 import { listCustomers } from '@/lib/db/customers';
-import { createProject, listActiveProjects } from '@/lib/db/projects';
+import {
+  createProject,
+  listActiveProjects,
+  reserveProjectNumber,
+  type NewProject,
+} from '@/lib/db/projects';
 import { calcTotals, cent, positionNetto, type InvoicePosition } from '@/features/invoices/totals';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { todayStr, localDateStr } from '@/lib/time';
@@ -23,7 +28,7 @@ import Icon from '@/components/Icon';
 import { Zustand, type Stand } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
-import { praefixeVon } from '@/lib/praefixe';
+import { belegNummer, hoechsteLfd, praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -58,6 +63,28 @@ interface ZeilenEingabe {
   unitPrice: string;
   /** Zählt diese Zeile als Facharbeiterstunde ins Budget? */
   istArbeitszeit: boolean;
+  /**
+   * Hat jemand den Haken selbst gesetzt oder entfernt? Solange nicht, folgt
+   * er der Einheit — siehe `istStundenEinheit`.
+   */
+  hakenVonHand?: boolean;
+}
+
+/*
+  DER HAKEN FOLGT DER EINHEIT, BIS JEMAND IHN ANFASST.
+
+  Jede neue Position beginnt mit „h" und angehaktem „Zählt als Arbeitszeit".
+  Wer die Einheit auf „Stk" änderte, behielt den Haken — und die Armatur
+  zählte als Stunde. Im Probelauf: 16 Stunden Montage plus eine Armatur
+  ergaben ein Budget von 17 h; zwanzig Rohrschellen wären zwanzig Stunden
+  gewesen. Die Ampel der Baustelle misst danach gegen ein Budget, das es nie
+  gab, und bleibt grün, während der Auftrag reisst.
+
+  Wer den Haken von Hand setzt oder entfernt, behält ihn: die
+  Anfahrtspauschale in „h" ist genau der Fall, für den es ihn gibt.
+*/
+function istStundenEinheit(einheit: string): boolean {
+  return /^(h|std\.?|stunden?)$/i.test(einheit.trim());
 }
 
 const LEERE_ZEILE: ZeilenEingabe = {
@@ -243,15 +270,25 @@ export default function QuotesView() {
         bestimmten Anfang zu hoffen.
       */
       const rumpf = q.quoteNumber.replace(/^.*?(?=\d{4}-)/, '');
-      const projectNumber = vorsaetze.baustelle
+      const abgeleitet = vorsaetze.baustelle
         ? `${vorsaetze.baustelle}-${rumpf}`
         : rumpf;
-      if (vorhandene.some((p) => p.projectNumber === projectNumber)) {
-        setError(`Baustelle ${projectNumber} gibt es bereits.`);
-        return;
-      }
-      await createProject(user.companyId, {
-        projectNumber,
+      /*
+        IST DIE ABGELEITETE NUMMER VERGEBEN, KOMMT DIE NÄCHSTE FREIE.
+
+        Angebote und Baustellen zählen getrennt. Wer Baustellen auch von Hand
+        anlegt — also jeder Betrieb —, hat nach dem ersten Monat B-2026-0003,
+        während das dritte Angebot AN-2026-0003 heisst. Bisher stand dann
+        „Baustelle B-2026-0003 gibt es bereits" da, und das Angebot liess sich
+        GAR NICHT annehmen; im Probelauf gleich beim ersten. Eine abgeschlossene
+        Baustelle mit der Nummer fiel sogar erst an der Datenbank auf, mit der
+        allgemeinen Meldung.
+
+        Jetzt vergibt der Zähler die Nummer — derselbe Weg wie bei der
+        Baustellenanlage. Zuordenbar bleibt das Angebot über die Beschreibung
+        der Baustelle und die Nummer, die am Angebot vermerkt wird.
+      */
+      const daten: Omit<NewProject, 'projectNumber'> = {
         customerId: q.customerId,
         customerName: q.customerName,
         address: q.address,
@@ -261,9 +298,30 @@ export default function QuotesView() {
         description: `Aus Angebot ${q.quoteNumber}`,
         projectManagers: [],
         assignedEmployees: [],
-      });
+      };
+      let projectNumber = abgeleitet;
+      const belegt = vorhandene.some((p) => p.projectNumber === abgeleitet);
+      try {
+        if (belegt) throw new Error('projects_nummer_je_betrieb');
+        await createProject(user.companyId, { ...daten, projectNumber });
+      } catch (e) {
+        if (!/projects_nummer_je_betrieb|duplicate key/i.test((e as Error).message)) throw e;
+        const hoechste = hoechsteLfd(vorhandene.map((p) => p.projectNumber));
+        // `null` heisst „kein Zähler erreichbar" — dann gilt der örtliche
+        // Vorschlag, wie in der Baustellenanlage.
+        projectNumber =
+          (await reserveProjectNumber(user.companyId, {
+            seedFrom: hoechste,
+            praefix: vorsaetze.baustelle,
+          })) ?? belegNummer(vorsaetze.baustelle, new Date().getFullYear(), hoechste + 1);
+        await createProject(user.companyId, { ...daten, projectNumber });
+      }
       await updateQuote(q.id, { status: 'Angenommen', projectNumber });
-      toast.success(`Baustelle ${projectNumber} angelegt`);
+      toast.success(
+        projectNumber === abgeleitet
+          ? `Baustelle ${projectNumber} angelegt`
+          : `Baustelle ${projectNumber} angelegt — ${abgeleitet} war schon vergeben`,
+      );
       await laden();
     } catch {
       setError('Die Baustelle konnte nicht angelegt werden.');
@@ -285,6 +343,14 @@ export default function QuotesView() {
           ) : undefined
         }
       />
+
+      {/*
+        DIE MELDUNG STAND NUR IM AUFGEKLAPPTEN FORMULAR. Annehmen passiert aber
+        in der Liste, bei zugeklapptem Formular — scheiterte es, geschah für
+        den Betrachter schlicht nichts. Gefunden beim Probelauf; ein Ladefehler
+        der Liste blieb auf dieselbe Weise unsichtbar.
+      */}
+      {error && !formOffen && <ErrorState message={error} />}
 
       {darfAendern && formOffen && (
         <Card title="Neues Angebot">
@@ -353,7 +419,19 @@ export default function QuotesView() {
                       label="Einheit"
                       value={z.unit}
                       onChange={(e) =>
-                        setZeilen((v) => v.map((x, j) => (j === i ? { ...x, unit: e.target.value } : x)))
+                        setZeilen((v) =>
+                          v.map((x, j) =>
+                            j === i
+                              ? {
+                                  ...x,
+                                  unit: e.target.value,
+                                  istArbeitszeit: x.hakenVonHand
+                                    ? x.istArbeitszeit
+                                    : istStundenEinheit(e.target.value),
+                                }
+                              : x,
+                          ),
+                        )
                       }
                     />
                     <InputField
@@ -380,7 +458,9 @@ export default function QuotesView() {
                       checked={z.istArbeitszeit}
                       onChange={(e) =>
                         setZeilen((v) =>
-                          v.map((x, j) => (j === i ? { ...x, istArbeitszeit: e.target.checked } : x)),
+                          v.map((x, j) =>
+                            j === i ? { ...x, istArbeitszeit: e.target.checked, hakenVonHand: true } : x,
+                          ),
                         )
                       }
                       className="checkbox"

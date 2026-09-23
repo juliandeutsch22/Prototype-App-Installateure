@@ -12,7 +12,8 @@ import {
 } from '@/lib/db/wartungen';
 import { wartungEingeplant } from '@/lib/db/wartungen';
 import { listCustomers } from '@/lib/db/customers';
-import { listRecentProjects, createProject } from '@/lib/db/projects';
+import { listRecentProjects, createProject, reserveProjectNumber } from '@/lib/db/projects';
+import { belegNummer, hoechsteLfd, praefixeVon } from '@/lib/praefixe';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
 import type { Customer, Wartung } from '@/types';
@@ -26,7 +27,6 @@ import {
   type Dringlichkeit,
 } from './wartungsplan';
 import {
-  naechsteProjektnummer,
   nummerFrei,
   baustelleAusWartung,
 } from './wartungBaustelle';
@@ -89,6 +89,8 @@ interface Erledigung {
 interface Einplanung {
   wartung: WithId<Wartung>;
   nummer: string;
+  /** Der Vorschlag, wie er ins Feld kam — bleibt er stehen, vergibt der Zähler. */
+  vorschlag: string;
 }
 
 /**
@@ -115,7 +117,8 @@ interface Einplanung {
 const WARTUNGEN_JE_SEITE = 200;
 
 export default function WartungenView() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
+  const vorsaetze = praefixeVon(company);
   const toast = useToast();
   const [wartungen, setWartungen] = useState<WithId<Wartung>[]>([]);
   const [kunden, setKunden] = useState<WithId<Customer>[]>([]);
@@ -130,10 +133,9 @@ export default function WartungenView() {
   const [einplanung, setEinplanung] = useState<Einplanung | null>(null);
   /*
     Die vorhandenen Projektnummern — für den Vorschlag UND für die Prüfung,
-    ob die Nummer noch frei ist. Es gibt für Baustellen bewusst keinen Zähler
-    (siehe `wartungBaustelle.ts`); zwei Baustellen mit derselben Nummer wären
-    aber der teuerste Fehler dieser Kette, weil Zeiten, Scheine und Rechnungen
-    an der Nummer hängen und nicht an der Dokument-ID.
+    ob die Nummer noch frei ist. Zwei Baustellen mit derselben Nummer wären
+    der teuerste Fehler dieser Kette, weil Zeiten, Scheine und Rechnungen an
+    der Nummer hängen und nicht an der Dokument-ID.
   */
   const [nummern, setNummern] = useState<string[]>([]);
   /*
@@ -367,17 +369,32 @@ export default function WartungenView() {
    */
   const einplanenSpeichern = async () => {
     if (!einplanung || !companyId) return;
-    const nummer = einplanung.nummer.trim();
+    let nummer = einplanung.nummer.trim();
     if (!nummer) {
       toast.error('Ohne Projektnummer gibt es keine Baustelle.');
       return;
     }
-    if (!nummerFrei(nummer, nummern)) {
-      toast.error(`${nummer} ist schon vergeben. Bitte eine andere Nummer.`);
-      return;
-    }
     setSpeichert(true);
     try {
+      /*
+        DERSELBE WEG WIE BEI „NEUE BAUSTELLE". Blieb der Vorschlag stehen,
+        vergibt der Zähler die verbindliche Nummer — mit dem Vorsatz, den der
+        Betrieb eingestellt hat. Vorher schlug diese Stelle „2026-001" vor,
+        während jede andere Anlage „B-2026-0001" schrieb: die eingestellten
+        Vorsätze galten hier nicht, und neben B-2026-0014 stand plötzlich
+        2026-015. Wer eine eigene Nummer tippt, behält sie.
+      */
+      if (nummer === einplanung.vorschlag) {
+        const vergeben = await reserveProjectNumber(companyId, {
+          seedFrom: hoechsteLfd(nummern),
+          praefix: vorsaetze.baustelle,
+        });
+        if (vergeben) nummer = vergeben;
+      }
+      if (!nummerFrei(nummer, nummern)) {
+        toast.error(`${nummer} ist schon vergeben. Bitte eine andere Nummer.`);
+        return;
+      }
       const kunde = kunden.find((k) => k.id === einplanung.wartung.customerId);
       await createProject(
         companyId,
@@ -476,10 +493,14 @@ export default function WartungenView() {
             {!w.offeneBaustelle && u.stand !== 'später' && u.stand !== 'ruht' && (
               <Button
                 onClick={() =>
-                  setEinplanung({
-                    wartung: w,
-                    nummer: naechsteProjektnummer(nummern, new Date().getFullYear()),
-                  })
+                  (() => {
+                    const vorschlag = belegNummer(
+                      vorsaetze.baustelle,
+                      new Date().getFullYear(),
+                      hoechsteLfd(nummern) + 1,
+                    );
+                    setEinplanung({ wartung: w, nummer: vorschlag, vorschlag });
+                  })()
                 }
               >
                 Baustelle anlegen
@@ -742,7 +763,7 @@ export default function WartungenView() {
               gespeichert wird, und dabei wird sie noch einmal geprüft.
             */}
             <p className="text-sm text-ink-muted">
-              Vorgeschlagen aus den vorhandenen Nummern — änderbar. Die Baustelle entsteht mit
+              Vorgeschlagen nach dem Schema des Betriebs — änderbar. Die Baustelle entsteht mit
               Kunde, Standort und der Anlage in der Beschreibung; einzuteilen ist sie danach im
               Einsatzplan. Die Abrechnungsart bleibt offen: was im Wartungsvertrag steht, weiß
               diese App nicht.

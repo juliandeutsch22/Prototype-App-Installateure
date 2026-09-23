@@ -77,9 +77,13 @@ const createProject = vi.fn<[string, Record<string, unknown>], Promise<string>>(
   async () => 'p-neu',
 );
 const listRecentProjects = vi.fn(async () => baustellen);
+const reserveProjectNumber = vi.fn<[string, unknown], Promise<string | null>>(
+  async () => 'B-2026-0015',
+);
 vi.mock('@/lib/db/projects', () => ({
   listRecentProjects: () => listRecentProjects(),
   createProject: (c: string, p: Record<string, unknown>) => createProject(c, p),
+  reserveProjectNumber: (c: string, o: unknown) => reserveProjectNumber(c, o),
 }));
 
 const kunden: (Customer & { id: string })[] = [
@@ -302,6 +306,9 @@ describe('Wartungen', () => {
  */
 describe('Baustelle aus einer Wartung', () => {
   it('legt sie mit Kunde, Standort und Anlage an und merkt sie vor', async () => {
+    // Der Bestand nach dem Schema des Betriebs — Vorsatz B, wie ab Werk.
+    listRecentProjects.mockResolvedValue([{ projectNumber: 'B-2026-0014' }]);
+    reserveProjectNumber.mockClear();
     bestand = [
       wartung('w1', 'Bäckerei Stein', '2026-04-10', {
         address: 'Lindengasse 4/12',
@@ -314,29 +321,52 @@ describe('Baustelle aus einer Wartung', () => {
     await screen.findAllByText(/Bäckerei Stein/);
     await nutzer.click((await screen.findAllByRole('button', { name: 'Baustelle anlegen' }))[0]);
 
-    // Vorgeschlagen aus dem Bestand (2026-014 ist die höchste des Jahres).
+    /*
+      VORGESCHLAGEN NACH DEM SCHEMA DES BETRIEBS, vergeben aus dem Zähler —
+      derselbe Weg wie bei „Neue Baustelle". Bis zum 23.09.2026 stand hier
+      „2026-015": ohne den Vorsatz, den der Betrieb eingestellt hat.
+    */
     const feld = await screen.findByLabelText(/Projektnummer/);
-    expect(feld).toHaveValue('2026-015');
+    expect(feld).toHaveValue('B-2026-0015');
 
     await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
 
     await vi.waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(reserveProjectNumber).toHaveBeenCalledWith('perl', { seedFrom: 14, praefix: 'B' });
     expect(createProject.mock.calls[0][1]).toMatchObject({
-      projectNumber: '2026-015',
+      projectNumber: 'B-2026-0015',
       customerName: 'Bäckerei Stein',
       address: 'Lindengasse 4/12',
       status: 'Aktiv',
     });
     // Und die Wartung weiss davon — sonst stünde sie morgen wieder als
     // „nichts passiert" da und die Baustelle entstünde ein zweites Mal.
-    expect(wartungEingeplant).toHaveBeenCalledWith('w1', '2026-015');
+    expect(wartungEingeplant).toHaveBeenCalledWith('w1', 'B-2026-0015');
+  });
+
+  it('lässt eine eigene Nummer stehen und fasst den Zähler nicht an', async () => {
+    // Manche Betriebe führen die Nummer des Auftraggebers.
+    reserveProjectNumber.mockClear();
+    bestand = [wartung('w1', 'Bäckerei Stein', '2026-04-10')];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findAllByText(/Bäckerei Stein/);
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Baustelle anlegen' }))[0]);
+    const feld = await screen.findByLabelText(/Projektnummer/);
+    await nutzer.clear(feld);
+    await nutzer.type(feld, 'HV-Nord-7');
+    await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
+
+    await vi.waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(reserveProjectNumber).not.toHaveBeenCalled();
+    expect(createProject.mock.calls[0][1]).toMatchObject({ projectNumber: 'HV-Nord-7' });
   });
 
   /*
     ZWEI BAUSTELLEN MIT DERSELBEN NUMMER wären der teuerste Fehler dieser
     Kette: Zeiten, Scheine und Rechnungen hängen an der Nummer, nicht an der
-    Dokument-ID. Für Baustellen gibt es bewusst keinen Zähler — deshalb muss
-    beim Speichern noch einmal geprüft werden.
+    Dokument-ID. Wer die Nummer von Hand überschreibt, geht am Zähler vorbei
+    — deshalb wird beim Speichern noch einmal geprüft.
   */
   it('legt keine Baustelle auf eine schon vergebene Nummer', async () => {
     bestand = [wartung('w1', 'Bäckerei Stein', '2026-04-10')];
