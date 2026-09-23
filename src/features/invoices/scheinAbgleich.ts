@@ -33,6 +33,13 @@ export interface ScheinAbgleich {
   mehrMin: number;
   /** Ob die Abweichung gross genug ist, um zu warnen. */
   auffaellig: boolean;
+  /**
+   * Um wie viel die Rechnung UNTER den noch nicht verrechneten Scheinen liegt
+   * — 0, wenn sie es nicht tut oder keine offenen Scheine bekannt sind.
+   */
+  wenigerMin: number;
+  /** Ob das gross genug ist, um zu warnen. */
+  zuWenig: boolean;
 }
 
 /**
@@ -59,11 +66,32 @@ export const AUFFAELLIG_AB_ANTEIL = 0.25;
  * 0" wäre bei jeder Baustelle ohne Schein zu lesen und nach zwei Tagen
  * weggeklickt.
  */
+/*
+ * DIE GEGENRICHTUNG — WENIGER VERRECHNET, ALS UNTERSCHRIEBEN IST.
+ *
+ * Gefunden beim Probelauf: Schein über acht Stunden unterschrieben, die Zeit
+ * aber noch nicht gebucht (der Nachtrag lag beim Monteur). Die Rechnung nahm
+ * null Stunden, der Abgleich stand in unauffälligem Grau darüber, und die
+ * Rechnung ging mit Material und ohne Arbeit hinaus. Verloren ist die Zeit
+ * nicht — gebucht kommt sie auf die nächste Rechnung —, aber der Kunde
+ * bekommt zwei Rechnungen für einen Einsatz, und die zweite erklärt sich
+ * nicht von selbst.
+ *
+ * HIER ZÄHLEN NUR SCHEINE, DIE NOCH AUF KEINER RECHNUNG STEHEN (`offen`).
+ * Mit allen Scheinen der Baustelle schlüge jede Folgerechnung Alarm: die
+ * Stunden der ersten sind verrechnet, ihr Schein zählte aber weiter mit. Für
+ * die Richtung „mehr" bleibt es bei allen — das ist die ältere, vorsichtige
+ * Zusage, und sie wird hier nicht angefasst.
+ *
+ * Dieselben Schwellen wie oben, aus demselben Grund.
+ */
 export function scheinAbgleich(
   projectNumber: string,
   /** Die Einträge, die in diese Rechnung eingehen — aus `assembleInvoice`. */
   eintraege: TimeEntry[],
   scheine: Array<WorkSheet & { id: string }>,
+  /** Kennungen der unterschriebenen Scheine, die auf keiner Rechnung stehen. */
+  offen?: ReadonlySet<string>,
 ): ScheinAbgleich {
   const pn = normProjectNumber(projectNumber);
 
@@ -79,6 +107,16 @@ export function scheinAbgleich(
 
   const mehrMin = Math.max(verrechnetMin - bestaetigtMin, 0);
 
+  const offenBestaetigtMin = offen
+    ? eigene
+        .filter((schein) => offen.has(schein.id))
+        .reduce(
+          (s, schein) => s + (schein.zeiten ?? []).reduce((z, zeile) => z + Math.max(zeile.minuten, 0), 0),
+          0,
+        )
+    : 0;
+  const wenigerMin = Math.max(offenBestaetigtMin - verrechnetMin, 0);
+
   return {
     verrechnetMin,
     bestaetigtMin,
@@ -88,5 +126,8 @@ export function scheinAbgleich(
       bestaetigtMin > 0 &&
       mehrMin >= AUFFAELLIG_AB_MINUTEN &&
       mehrMin >= bestaetigtMin * AUFFAELLIG_AB_ANTEIL,
+    wenigerMin,
+    zuWenig:
+      wenigerMin >= AUFFAELLIG_AB_MINUTEN && wenigerMin >= offenBestaetigtMin * AUFFAELLIG_AB_ANTEIL,
   };
 }

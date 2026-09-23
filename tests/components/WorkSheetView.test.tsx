@@ -951,6 +951,58 @@ describe('Zeit beim Kunden eintragen', () => {
   });
 
   /*
+    GEFUNDEN BEIM PROBELAUF. Von und Bis eingetippt, dann nach unten zum
+    Unterschreiben — die naheliegende Reihenfolge. Die Zeit kam nie auf den
+    Schein, weil „Zeile hinzufügen" fehlte, und der Kunde unterschrieb einen
+    Beleg, auf dem nur das Material stand.
+  */
+  it('lässt nicht unterschreiben, solange eine eingetippte Zeit nicht übernommen ist', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Zeit beim Kunden eintragen/);
+    await nutzer.clear(screen.getByLabelText('Von'));
+    await nutzer.type(screen.getByLabelText('Von'), '07:00');
+    await nutzer.type(screen.getByLabelText('Bis'), '15:30');
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
+
+    const knopf = screen.getByRole('button', { name: 'Unterschreiben und abschließen' });
+    expect(knopf).toBeDisabled();
+    expect(screen.getByText(/Noch nicht auf dem Schein/).parentElement).toHaveTextContent(
+      /die Zeit 07:00–15:30/,
+    );
+
+    await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
+    expect(screen.queryByText(/Noch nicht auf dem Schein/)).not.toBeInTheDocument();
+    await nutzer.click(knopf);
+    await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
+    // Unterschrieben wird der Stand, der zuletzt geschrieben wurde — beim
+    // ersten Mal ist das die Anlage, danach die Aktualisierung.
+    const letzte = [...createWorkSheet.mock.calls, ...updateWorkSheetDraft.mock.calls].pop();
+    const zeiten = letzte?.[1].zeiten ?? [];
+    expect(zeiten).toHaveLength(1);
+    expect(zeiten[0].minuten).toBe(510);
+  });
+
+  it('lässt nicht unterschreiben, solange eine freie Materialzeile nur eingetippt ist', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/Verbautes Material/);
+    await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Silikon sanitär');
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
+
+    expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
+    expect(screen.getByText(/Noch nicht auf dem Schein/).parentElement).toHaveTextContent(
+      /das Material „Silikon sanitär"/,
+    );
+
+    // Leeren reicht auch — wer es sich anders überlegt hat, muss nichts übernehmen.
+    await nutzer.clear(screen.getByLabelText(/Freie Zeile/));
+    expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeEnabled();
+  });
+
+  /*
     „BIS" VOR „VON" IST HIER KEIN FEHLER, SONDERN EINE NACHT.
 
     `calcWorkMin` behandelt eine Endzeit vor der Startzeit als Einsatz über

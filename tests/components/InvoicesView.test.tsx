@@ -1457,6 +1457,38 @@ describe('Rechnung gegen Schein', () => {
   });
 
   /*
+    DIE GEGENRICHTUNG, gefunden beim Probelauf: der Kunde hat sechzehn Stunden
+    unterschrieben, gebucht sind erst acht. Die Rechnung ginge mit der Hälfte
+    hinaus — und der Abgleich stand bisher in Grau darüber.
+  */
+  it('warnt, wenn deutlich weniger verrechnet wird als auf offenen Scheinen steht', async () => {
+    alleScheine = [mitZeiten([960])];
+    await bisZurVorschau();
+
+    expect(
+      screen.getByText(/weniger, als auf noch nicht verrechneten Scheinen unterschrieben ist/),
+    ).toBeInTheDocument();
+  });
+
+  it('schweigt, wenn der Schein schon auf einer Rechnung steht', async () => {
+    // Folgerechnung: die sechzehn Stunden sind verrechnet, der Schein steht
+    // auf der ersten Rechnung. Sonst schlüge jede zweite Rechnung Alarm.
+    alleScheine = [mitZeiten([960])];
+    offene = [
+      {
+        id: 'r0', companyId: 'perl', invoiceNumber: 'RE-2026-0001', projectNumber: '2026-042',
+        customerName: 'Baumeister Gruber', paymentStatus: 'Offen', linkedWorkSheets: ['sa1'],
+        totalNetto: 100, totalVat: 20, totalBrutto: 120, invoiceDate: '2026-08-25',
+        dueDate: '2026-09-08',
+      } as unknown as Invoice & { id: string },
+    ];
+    await bisZurVorschau();
+
+    expect(screen.getByText(/Ein Schein bestätigt/)).toBeInTheDocument();
+    expect(screen.queryByText(/weniger, als auf noch nicht verrechneten/)).not.toBeInTheDocument();
+  });
+
+  /*
     OHNE SCHEIN GIBT ES NICHTS ZU VERGLEICHEN. „Sie verrechnen 8 Stunden,
     bestätigt sind 0" stünde sonst bei jeder Baustelle ohne Schein da.
   */

@@ -132,3 +132,51 @@ describe('Rechnung gegen unterschriebenen Schein', () => {
     expect(a.auffaellig).toBe(false);
   });
 });
+
+/**
+ * Die Gegenrichtung: weniger verrechnet, als unterschrieben ist.
+ *
+ * GEFUNDEN BEIM PROBELAUF. Schein über acht Stunden unterschrieben, die Zeit
+ * noch nicht gebucht — die Rechnung nahm null Stunden, der Abgleich stand in
+ * Grau darüber, und die Rechnung ging ohne Arbeitszeit hinaus.
+ */
+describe('Rechnung unter dem unterschriebenen Schein', () => {
+  it('warnt, wenn die Stunden eines offenen Scheins fehlen', () => {
+    const a = scheinAbgleich('2026-042', [], [schein([480])], new Set(['s1']));
+    expect(a.wenigerMin).toBe(480);
+    expect(a.zuWenig).toBe(true);
+  });
+
+  it('schweigt bei einer Folgerechnung — ein schon verrechneter Schein zählt nicht', () => {
+    // Sonst schlüge jede zweite Rechnung einer Baustelle Alarm: die Stunden
+    // der ersten sind verrechnet, ihr Schein stünde aber weiter da.
+    const a = scheinAbgleich('2026-042', [eintrag(120)], [schein([480])], new Set());
+    expect(a.wenigerMin).toBe(0);
+    expect(a.zuWenig).toBe(false);
+  });
+
+  it('bleibt ohne Liste der offenen Scheine beim alten Verhalten', () => {
+    const a = scheinAbgleich('2026-042', [], [schein([480])]);
+    expect(a.zuWenig).toBe(false);
+  });
+
+  it('meldet eine kleine Abweichung nicht', () => {
+    // Eine halbe Stunde unter acht: Rundung, eine vergessene Minute — kein Fall.
+    const a = scheinAbgleich('2026-042', [eintrag(450)], [schein([480])], new Set(['s1']));
+    expect(a.wenigerMin).toBe(30);
+    expect(a.zuWenig).toBe(false);
+  });
+
+  it('zählt nur die Scheine derselben Baustelle', () => {
+    const fremd = schein([480], { id: 's2', projectNumber: '2026-099' });
+    const a = scheinAbgleich('2026-042', [], [fremd], new Set(['s2']));
+    expect(a.zuWenig).toBe(false);
+  });
+
+  it('lässt die Richtung „mehr" unverändert', () => {
+    const offen = scheinAbgleich('2026-042', [eintrag(600)], [schein([240])], new Set(['s1']));
+    const ohne = scheinAbgleich('2026-042', [eintrag(600)], [schein([240])]);
+    expect(offen.mehrMin).toBe(ohne.mehrMin);
+    expect(offen.auffaellig).toBe(ohne.auffaellig);
+  });
+});

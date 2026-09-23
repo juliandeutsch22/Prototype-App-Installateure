@@ -1053,9 +1053,17 @@ export default function InvoicesView() {
   const abgleich = useMemo(
     () =>
       preview
-        ? scheinAbgleich(projectNumber, preview.entries, scheineAllerBaustellen)
-        : { verrechnetMin: 0, bestaetigtMin: 0, scheine: 0, mehrMin: 0, auffaellig: false },
-    [preview, projectNumber, scheineAllerBaustellen],
+        ? scheinAbgleich(
+            projectNumber,
+            preview.entries,
+            scheineAllerBaustellen,
+            new Set(offeneLeistung.map((o) => o.schein.id)),
+          )
+        : {
+            verrechnetMin: 0, bestaetigtMin: 0, scheine: 0, mehrMin: 0, auffaellig: false,
+            wenigerMin: 0, zuWenig: false,
+          },
+    [preview, projectNumber, scheineAllerBaustellen, offeneLeistung],
   );
 
   if (!user) return null;
@@ -1657,7 +1665,7 @@ export default function InvoicesView() {
           {abgleich.scheine > 0 && (
             <p
               className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
-                abgleich.auffaellig
+                abgleich.auffaellig || abgleich.zuWenig
                   ? 'border border-line bg-surface-2 text-warning'
                   : 'border-line bg-surface-2 text-ink-muted'
               }`}
@@ -1672,6 +1680,15 @@ export default function InvoicesView() {
                   Das kann stimmen: Vorfertigung in der Werkstatt und der Weg zum Grosshändler
                   zählen auf die Baustelle, stehen aber auf keinem Schein. Nur wird der Kunde
                   danach fragen — besser jetzt als nach dem Versand.
+                </>
+              ) : abgleich.zuWenig ? (
+                <>
+                  {' '}
+                  — <strong>{fmtMin(abgleich.wenigerMin)} weniger, als auf noch nicht verrechneten
+                  Scheinen unterschrieben ist.</strong>{' '}
+                  Meist ist die Zeit noch nicht gebucht: der Nachtrag steht beim Monteur in der
+                  Zeiterfassung offen. Gebucht kommt sie auf die nächste Rechnung dieser Baustelle —
+                  dann bekommt der Kunde für einen Einsatz zwei.
                 </>
               ) : (
                 '.'
