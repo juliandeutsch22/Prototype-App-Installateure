@@ -591,3 +591,52 @@ describe('Angebote', () => {
     expect(await angebote.getQuote(BETRIEB, q.id as string)).toBeNull();
   });
 });
+
+describe('Angebote bearbeiten — nur der Entwurf ändert seinen Inhalt', () => {
+  beforeAll(() => clientEinreichen(chef.client));
+  afterEach(() => clientEinreichen(chef.client));
+
+  it('merkt sich je Position, ob sie Arbeitszeit ist', async () => {
+    await leeren();
+    const id = await angebote.createQuote(BETRIEB, angebot({
+      positions: [
+        { label: 'Montage', qty: 16, unit: 'h', unitPrice: 70, netto: 1120, istArbeitszeit: true },
+        { label: 'Anfahrt', qty: 1, unit: 'h', unitPrice: 45, netto: 45, istArbeitszeit: false },
+      ],
+    }));
+    const a = await angebote.getQuote(BETRIEB, id);
+    expect(a!.positions.map((p) => p.istArbeitszeit)).toEqual([true, false]);
+  });
+
+  it('der Entwurf lässt sich ändern', async () => {
+    await leeren();
+    const id = await angebote.createQuote(BETRIEB, angebot());
+    await angebote.updateQuote(id, { notes: 'Nachgetragen', kalkulierteStunden: 70 });
+    const a = await angebote.getQuote(BETRIEB, id);
+    expect(a).toMatchObject({ notes: 'Nachgetragen', kalkulierteStunden: 70 });
+  });
+
+  it('ein versendetes Angebot behält Positionen und Preise', async () => {
+    await leeren();
+    const id = await angebote.createQuote(BETRIEB, angebot());
+    await angebote.updateQuote(id, { status: 'Versendet' });
+
+    await expect(angebote.updateQuote(id, {
+      positions: [{ label: 'Billiger', qty: 1, unit: 'Pauschale', unitPrice: 1, netto: 1 }],
+    })).rejects.toThrow(/Nur ein Entwurf/);
+    await expect(angebote.updateQuote(id, { totalBrutto: 1 })).rejects.toThrow(/Nur ein Entwurf/);
+
+    const a = await angebote.getQuote(BETRIEB, id);
+    expect(a!.positions.map((p) => p.label)).toEqual(['Badsanierung']);
+    expect(a!.totalBrutto).toBe(9600);
+  });
+
+  it('Status und Baustelle darf ein versendetes Angebot weiter ändern', async () => {
+    await leeren();
+    const id = await angebote.createQuote(BETRIEB, angebot());
+    await angebote.updateQuote(id, { status: 'Versendet' });
+    await angebote.updateQuote(id, { status: 'Angenommen', projectNumber: `B-${JAHR}-0099` });
+    const a = await angebote.getQuote(BETRIEB, id);
+    expect(a).toMatchObject({ status: 'Angenommen', projectNumber: `B-${JAHR}-0099` });
+  });
+});

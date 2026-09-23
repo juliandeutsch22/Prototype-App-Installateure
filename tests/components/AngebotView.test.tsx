@@ -200,6 +200,19 @@ describe('Weiter mit dem Angebot', () => {
     expect(await screen.findByText('Angebotsliste')).toBeInTheDocument();
   });
 
+  it('führt einen Entwurf zum Bearbeiten — ein versendetes Angebot nicht', async () => {
+    angebot = { ...ANGEBOT, status: 'Entwurf' };
+    const { unmount } = zeige();
+    expect(await screen.findByRole('link', { name: 'Bearbeiten' }))
+      .toHaveAttribute('href', `/quotes?bearbeiten=${ANGEBOT.id}`);
+    unmount();
+
+    angebot = { ...ANGEBOT, status: 'Versendet' };
+    zeige();
+    await screen.findByRole('button', { name: /Annehmen/ });
+    expect(screen.queryByRole('link', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+  });
+
   it('bietet ein angenommenes Angebot nicht noch einmal zum Annehmen an', async () => {
     angebot = { ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007' };
     zeige();

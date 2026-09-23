@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentQuotes,
@@ -120,8 +120,22 @@ export default function QuotesView() {
   });
   const [notes, setNotes] = useState('');
   const [zeilen, setZeilen] = useState<ZeilenEingabe[]>([{ ...LEERE_ZEILE }]);
+  /**
+   * Der Entwurf, der gerade bearbeitet wird — oder `null` beim Anlegen.
+   *
+   * Nur Entwürfe: was beim Kunden liegt, ändert sich nicht mehr. Dieselbe
+   * Grenze steht in `angebot_speichern`.
+   */
+  const [bearbeitet, setBearbeitet] = useState<WithId<Quote> | null>(null);
+  /** Gespeicherte Stunden eines alten Angebots, dessen Haken abgeleitet wurden. */
+  const [stundenVorher, setStundenVorher] = useState<number | null>(null);
+  const [suchParameter, setSuchParameter] = useSearchParams();
 
-  const vatRate = company?.rates?.vatRate ?? INVOICE_DEFAULTS.vatRate;
+  /*
+    DER STEUERSATZ DES ANGEBOTS, nicht der heutige des Betriebs. Ein Entwurf
+    vom Juni rechnet beim Bearbeiten mit dem Satz, mit dem er entstand.
+  */
+  const vatRate = bearbeitet?.vatRate ?? company?.rates?.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const darfAendern = user ? isGF(user.role) : false;
 
   const laden = useMemo(
@@ -162,12 +176,16 @@ export default function QuotesView() {
             unit: z.unit,
             unitPrice,
             netto: positionNetto(qty, unitPrice),
+            // Gespeichert, damit ein wieder geöffneter Entwurf ihn nicht raten muss.
+            istArbeitszeit: z.istArbeitszeit,
           };
         }),
     [zeilen],
   );
 
-  const summen = useMemo(() => calcTotals(positionen, vatRate), [positionen, vatRate]);
+  // Ein Rabatt, den der Entwurf schon trägt, bleibt beim Bearbeiten stehen.
+  const rabatt = bearbeitet?.discount ?? null;
+  const summen = useMemo(() => calcTotals(positionen, vatRate, rabatt), [positionen, vatRate, rabatt]);
 
   /**
    * Die kalkulierten Facharbeiterstunden — nur aus Zeilen, die tatsächlich
@@ -193,6 +211,83 @@ export default function QuotesView() {
     setAddress('');
     setNotes('');
     setZeilen([{ ...LEERE_ZEILE }]);
+    setBearbeitet(null);
+    setStundenVorher(null);
+  }
+
+  /** Einen Entwurf ins Formular holen. */
+  function bearbeiten(q: WithId<Quote>) {
+    setCustomerId(q.customerId ?? '');
+    setAddress(q.address ?? '');
+    setValidUntil(q.validUntil);
+    setNotes(q.notes ?? '');
+    /*
+      DER HAKEN „ARBEITSZEIT" STEHT ERST SEIT DEM 24.09. AN DER POSITION.
+      Fehlt er, wird er aus der Einheit abgeleitet — und die Ansicht sagt
+      das, samt der Stundenzahl, die bisher gespeichert war. Sonst würde aus
+      einer Anfahrtspauschale in „h" beim Speichern still Budget.
+    */
+    const geraten = q.positions.some((p) => p.istArbeitszeit === undefined);
+    setStundenVorher(geraten ? q.kalkulierteStunden : null);
+    setZeilen(
+      q.positions.length
+        ? q.positions.map((p) => ({
+            label: p.label,
+            qty: String(p.qty).replace('.', ','),
+            unit: p.unit,
+            unitPrice: String(p.unitPrice).replace('.', ','),
+            istArbeitszeit: p.istArbeitszeit ?? istStundenEinheit(p.unit),
+            hakenVonHand: p.istArbeitszeit !== undefined,
+          }))
+        : [{ ...LEERE_ZEILE }],
+    );
+    setBearbeitet(q);
+    setError(null);
+    setFormOffen(true);
+    window.scrollTo?.({ top: 0 });
+  }
+
+  /*
+    VON DER ANGEBOTSSEITE KOMMEND: `/quotes?bearbeiten=<id>`. Geöffnet wird
+    erst, wenn die Liste da ist — und nur ein Entwurf. Der Parameter geht
+    danach weg, sonst öffnete jedes Neuladen die Maske wieder.
+  */
+  const zuBearbeiten = suchParameter.get('bearbeiten');
+  useEffect(() => {
+    if (!zuBearbeiten || loading) return;
+    const q = angebote.find((a) => a.id === zuBearbeiten);
+    if (q && q.status === 'Entwurf' && darfAendern) bearbeiten(q);
+    setSuchParameter({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zuBearbeiten, loading, angebote]);
+
+  async function aenderungenSpeichern() {
+    if (!bearbeitet || !kunde || positionen.length === 0) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await updateQuote(bearbeitet.id, {
+        customerId: kunde.id,
+        customerName: kunde.name,
+        address,
+        validUntil,
+        positions: positionen,
+        discount: rabatt,
+        ...summen,
+        vatRate,
+        kalkulierteStunden,
+        notes,
+      });
+      toast.success(`Angebot ${bearbeitet.quoteNumber} gespeichert`);
+      formularLeeren();
+      setFormOffen(false);
+      await laden();
+    } catch (e) {
+      // Die Datenbank sagt, warum — etwa „Nur ein Entwurf lässt sich ändern".
+      setError(e instanceof Error && e.message ? e.message : 'Das Angebot konnte nicht gespeichert werden.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function anlegen() {
@@ -286,7 +381,7 @@ export default function QuotesView() {
       {error && !formOffen && <ErrorState message={error} />}
 
       {darfAendern && formOffen && (
-        <Card title="Neues Angebot">
+        <Card title={bearbeitet ? `Angebot ${bearbeitet.quoteNumber} bearbeiten` : 'Neues Angebot'}>
           <FormGrid>
             <SelectField
               id="anqk"
@@ -463,18 +558,34 @@ export default function QuotesView() {
             </p>
           </div>
 
+          {stundenVorher !== null && (
+            <p className="mt-3 rounded border border-line bg-surface-2 p-3 text-sm text-warning" role="status">
+              Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen.
+              Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher kalkuliert:{' '}
+              <strong className="tnum">{stundenVorher} h</strong>.
+            </p>
+          )}
+
           {error && <div className="mt-3"><ErrorState message={error} /></div>}
 
           <div className="mt-4">
             <Button
-              onClick={anlegen}
+              onClick={bearbeitet ? aenderungenSpeichern : anlegen}
               loading={busy}
               disabled={!customerId || positionen.length === 0}
             >
-              Angebot anlegen
+              {bearbeitet ? 'Änderungen speichern' : 'Angebot anlegen'}
             </Button>
             {/* Der Weg zurück zur Liste. */}
-            <Button type="button" variant="ghost" onClick={() => setFormOffen(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                // Ein halb bearbeiteter Entwurf bleibt nicht im Formular stehen.
+                if (bearbeitet) formularLeeren();
+                setFormOffen(false);
+              }}
+            >
               Abbrechen
             </Button>
           </div>
@@ -509,13 +620,18 @@ export default function QuotesView() {
               >
                 <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
                 {darfAendern && q.status === 'Entwurf' && (
-                  <Button
-                    variant="ghost"
-                    loading={busy}
-                    onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
-                  >
-                    Versendet
-                  </Button>
+                  <>
+                    <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
+                      Bearbeiten
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      loading={busy}
+                      onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
+                    >
+                      Versendet
+                    </Button>
+                  </>
                 )}
                 {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
                   <>

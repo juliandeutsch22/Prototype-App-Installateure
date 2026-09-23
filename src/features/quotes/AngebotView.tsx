@@ -293,13 +293,22 @@ export default function AngebotView() {
         <Card title="Weiter">
           <div className="flex flex-wrap gap-2">
             {q.status === 'Entwurf' && (
-              <Button
-                variant="ghost"
-                loading={busy}
-                onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
-              >
-                Als versendet markieren
-              </Button>
+              <>
+                {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
+                <Link
+                  to={`/quotes?bearbeiten=${q.id}`}
+                  className="inline-flex min-h-touch items-center px-4 text-sm font-semibold text-brand underline"
+                >
+                  Bearbeiten
+                </Link>
+                <Button
+                  variant="ghost"
+                  loading={busy}
+                  onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
+                >
+                  Als versendet markieren
+                </Button>
+              </>
             )}
             <Button variant="ghost" loading={busy} onClick={() => void annehmen(q)}>
               Annehmen → Baustelle

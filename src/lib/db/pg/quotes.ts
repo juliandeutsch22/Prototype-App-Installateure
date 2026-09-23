@@ -47,7 +47,10 @@ async function zusammensetzen(
   const nachAngebot = new Map<string, Position[]>();
   for (const z of zeilen) {
     const liste = nachAngebot.get(z.quoteId) ?? [];
-    liste.push({ label: z.label, qty: z.qty, unit: z.unit, unitPrice: z.unitPrice, netto: z.netto });
+    const pos: Position = { label: z.label, qty: z.qty, unit: z.unit, unitPrice: z.unitPrice, netto: z.netto };
+    // NULL heisst „unbekannt" und bleibt weg — nicht als `false` durchreichen.
+    if (typeof z.istArbeitszeit === 'boolean') pos.istArbeitszeit = z.istArbeitszeit;
+    liste.push(pos);
     nachAngebot.set(z.quoteId, liste);
   }
 

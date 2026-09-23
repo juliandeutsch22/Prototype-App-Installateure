@@ -343,7 +343,18 @@ export interface Quote {
   /** Bindefrist. Ein Angebot ohne Ablauf bindet den Betrieb unbegrenzt an seine Preise. */
   validUntil: string;
   status: 'Entwurf' | 'Versendet' | 'Angenommen' | 'Abgelehnt';
-  positions: { label: string; qty: number; unit: string; unitPrice: number; netto: number }[];
+  positions: {
+    label: string;
+    qty: number;
+    unit: string;
+    unitPrice: number;
+    netto: number;
+    /**
+     * Zählt diese Position ins Stundenbudget? Fehlt bei Angeboten von vor dem
+     * 24.09.2026 — dann ist es unbekannt, nicht „nein".
+     */
+    istArbeitszeit?: boolean;
+  }[];
   discount?: InvoiceDiscount | null;
   discountAmount?: number;
   subtotalNetto: number;

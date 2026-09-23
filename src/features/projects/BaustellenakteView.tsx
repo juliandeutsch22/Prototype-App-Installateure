@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
-import { listProjectsByIds, updateProject } from '@/lib/db/projects';
+import { baustelleUmnummern, listProjectsByIds, updateProject } from '@/lib/db/projects';
 import { alsEntwurf, gleich, type BaustellenEntwurf } from './baustellenEntwurf';
 import BaustellenPlaene from './BaustellenPlaene';
 import { listUsers } from '@/lib/db/users';
@@ -18,6 +18,7 @@ import { Marke } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import PersonPicker from '@/components/PersonPicker';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
@@ -73,6 +74,8 @@ export default function BaustellenakteView() {
   const [entwurf, setEntwurf] = useState<BaustellenEntwurf | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
+  /** Eine geänderte Nummer wird erst nach Rückfrage gespeichert. */
+  const [nummerFragen, setNummerFragen] = useState<{ alt: string; neu: string } | null>(null);
 
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
@@ -197,8 +200,8 @@ export default function BaustellenakteView() {
 
   const namen = useMemo(() => new Map(users.map((u) => [u.uid, u.name])), [users]);
 
-  async function stammdatenSpeichern(): Promise<void> {
-    if (!companyId || !id || !entwurf) return;
+  async function stammdatenSpeichern(nummerBestaetigt = false): Promise<void> {
+    if (!companyId || !id || !entwurf || !daten) return;
     if (!entwurf.projectNumber.trim()) {
       setSpeicherFehler('Ohne Projektnummer geht es nicht — daran hängen Zeitbuchungen und Scheine.');
       return;
@@ -207,11 +210,31 @@ export default function BaustellenakteView() {
       setSpeicherFehler('Ohne Kunden geht es nicht — die Rechnung weiss sonst nicht, an wen.');
       return;
     }
+    const neueNummer = entwurf.projectNumber.trim();
+    const nummerNeu = neueNummer !== daten.projectNumber;
+    if (nummerNeu && !nummerBestaetigt) {
+      setNummerFragen({ alt: daten.projectNumber, neu: neueNummer });
+      return;
+    }
     setSpeichert(true);
     setSpeicherFehler(null);
+    /*
+      DIE NUMMER GEHT EIGENE WEGE. An ihr hängen Buchungen, Scheine und
+      Einsätze als Text; `baustelle_umnummern` zieht sie in einem Schritt
+      nach oder lehnt mit Grund ab. Über `updateProject` gewechselt, blieben
+      sie auf der alten Nummer stehen — genau so war es bis zum 23.09.
+    */
+    if (nummerNeu) {
+      try {
+        await baustelleUmnummern(id, neueNummer);
+      } catch (e) {
+        setSpeicherFehler(e instanceof Error ? e.message : 'Die Nummer konnte nicht geändert werden.');
+        setSpeichert(false);
+        return;
+      }
+    }
     try {
       await updateProject(id, {
-        projectNumber: entwurf.projectNumber.trim(),
         customerId: entwurf.customerId || undefined,
         customerName: entwurf.customerName,
         address: entwurf.address,
@@ -232,10 +255,16 @@ export default function BaustellenakteView() {
         assignedEmployees: entwurf.assignedEmployees,
         projectManagers: entwurf.projectManagers,
       });
-      toast.success('Baustelle gespeichert');
+      toast.success(nummerNeu ? `Baustelle gespeichert — jetzt ${neueNummer}` : 'Baustelle gespeichert');
       setVersuch((v) => v + 1);
     } catch {
-      setSpeicherFehler('Die Baustelle konnte nicht gespeichert werden.');
+      setSpeicherFehler(
+        nummerNeu
+          ? `Die Nummer ist auf ${neueNummer} geändert, die übrigen Angaben aber nicht gespeichert.`
+          : 'Die Baustelle konnte nicht gespeichert werden.',
+      );
+      // Die Nummer steht bereits neu — die Akte muss sie zeigen.
+      if (nummerNeu) setVersuch((v) => v + 1);
     } finally {
       setSpeichert(false);
     }
@@ -319,6 +348,23 @@ export default function BaustellenakteView() {
           <StammdatenLesen b={b} namen={namen} />
         )}
       </Card>
+
+      <ConfirmDialog
+        open={!!nummerFragen}
+        title="Projektnummer ändern?"
+        confirmLabel="Nummer ändern"
+        confirmTone="primary"
+        message={
+          nummerFragen
+            ? `Aus ${nummerFragen.alt} wird ${nummerFragen.neu}. Zeitbuchungen, Einsätze, Rüstlisten, Schein-Entwürfe, Anforderungen und Angebote wandern mit. Steht die Nummer schon auf einer Rechnung oder einem unterschriebenen Schein, bleibt sie.`
+            : ''
+        }
+        onCancel={() => setNummerFragen(null)}
+        onConfirm={() => {
+          setNummerFragen(null);
+          void stammdatenSpeichern(true);
+        }}
+      />
 
       {user && (
         <Card title="Pläne und Dokumente">

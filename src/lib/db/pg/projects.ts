@@ -161,6 +161,23 @@ export function updateProject(id: string, data: Partial<Project>) {
   return aendern(BAUSTELLEN, id, rein as Partial<Project>);
 }
 
+/**
+ * Die Nummer einer Baustelle ändern — mit allem, was an ihr hängt.
+ *
+ * Buchungen, Einsätze, Rüstlisten, Schein-Entwürfe, Anforderungen, Angebote
+ * und Wiedervorlagen tragen die Nummer als Text; ein einfaches `update` der
+ * Baustelle liesse sie auf der alten stehen. Die Datenbankfunktion zieht
+ * alles in EINEM Schritt nach — oder lehnt mit Grund ab, sobald die Nummer
+ * auf einer Rechnung oder einem unterschriebenen Schein steht.
+ */
+export async function baustelleUmnummern(id: string, neu: string): Promise<void> {
+  const { error } = await derClient().rpc('baustelle_umnummern', {
+    p_projekt: id,
+    p_neu: neu,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export function deleteProject(id: string) {
   return loeschen(BAUSTELLEN, id);
 }

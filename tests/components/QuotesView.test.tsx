@@ -100,6 +100,8 @@ beforeEach(() => {
   createProject.mockReset().mockResolvedValue('p1');
   aktiveBaustellen = [];
   angebote.length = 0;
+  // Bearbeiten scrollt zum Formular hinauf; jsdom kennt das nicht.
+  window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
 });
 
 /** Ein versendetes Angebot AN-2026-0007 über 20 kalkulierte Stunden. */
@@ -382,5 +384,86 @@ describe('Die Liste führt zum Angebot', () => {
     await screen.findByText(/AN-2026-0007/);
     await nutzer.click(screen.getByRole('button', { name: 'Abgelehnt' }));
     expect(await screen.findByText('Der Status konnte nicht gespeichert werden.')).toBeInTheDocument();
+  });
+});
+
+describe('Einen Entwurf bearbeiten', () => {
+  /** Ein Entwurf mit Montage (Arbeitszeit) und Anfahrt in „h" (keine). */
+  function entwurf(mitHaken: boolean) {
+    angebote.push({
+      id: 'q2',
+      companyId: 'perl',
+      quoteNumber: 'AN-2026-0008',
+      customerId: 'k1',
+      customerName: 'Gemeinde Neudorf',
+      address: 'Rathausplatz 1',
+      quoteDate: '2026-09-01',
+      validUntil: '2026-10-01',
+      status: 'Entwurf',
+      positions: [
+        { label: 'Montage', qty: 16, unit: 'h', unitPrice: 70, netto: 1120, ...(mitHaken ? { istArbeitszeit: true } : {}) },
+        { label: 'Anfahrt', qty: 1, unit: 'h', unitPrice: 45, netto: 45, ...(mitHaken ? { istArbeitszeit: false } : {}) },
+      ],
+      subtotalNetto: 1165,
+      totalNetto: 1165,
+      totalVat: 233,
+      totalBrutto: 1398,
+      vatRate: 20,
+      kalkulierteStunden: 16,
+      notes: 'Steigleitung',
+    });
+  }
+
+  it('holt den Entwurf ins Formular und speichert Änderungen am selben Angebot', async () => {
+    entwurf(true);
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+
+    expect(screen.getByText('Angebot AN-2026-0008 bearbeiten')).toBeInTheDocument();
+    expect(screen.getByLabelText('Anmerkungen')).toHaveValue('Steigleitung');
+    // Der gespeicherte Haken kommt mit — die Anfahrt bleibt KEINE Arbeitszeit.
+    expect(screen.getByText('16 h')).toBeInTheDocument();
+
+    const menge = screen.getByLabelText('Menge', { selector: '#anqqty0' });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '20');
+    await userEvent.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+
+    await vi.waitFor(() => expect(updateQuote).toHaveBeenCalled());
+    expect(createQuote).not.toHaveBeenCalled();
+    const [id, daten] = updateQuote.mock.calls[0] as [string, Record<string, unknown>];
+    expect(id).toBe('q2');
+    expect(daten).toMatchObject({ kalkulierteStunden: 20, vatRate: 20 });
+    expect((daten.positions as { istArbeitszeit?: boolean }[]).map((p) => p.istArbeitszeit))
+      .toEqual([true, false]);
+  });
+
+  it('sagt es, wenn der Haken bei einem alten Angebot aus der Einheit abgeleitet wurde', async () => {
+    entwurf(false);
+    zeichne();
+    await userEvent.click(await screen.findByRole('button', { name: 'Bearbeiten' }));
+    expect(screen.getByText(/aus der Einheit abgeleitet — bitte prüfen/)).toBeInTheDocument();
+    // Abgeleitet zählt auch die Anfahrt — genau deshalb der Hinweis.
+    expect(screen.getByText('17 h')).toBeInTheDocument();
+  });
+
+  it('bietet Bearbeiten nur beim Entwurf an', async () => {
+    versendetesAngebot();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+  });
+
+  it('speichert jedes neue Angebot mit dem Haken an der Position', async () => {
+    zeichne();
+    await formOeffnen();
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Montage');
+    await userEvent.type(screen.getByLabelText('Menge'), '8');
+    await userEvent.type(screen.getByLabelText('Einzelpreis netto'), '70');
+    await userEvent.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
+    await vi.waitFor(() => expect(createQuote).toHaveBeenCalled());
+    const daten = createQuote.mock.calls[0][1] as { positions: { istArbeitszeit?: boolean }[] };
+    expect(daten.positions[0].istArbeitszeit).toBe(true);
   });
 });
