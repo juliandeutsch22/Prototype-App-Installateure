@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   listRecentQuotes,
@@ -8,12 +9,7 @@ import {
   reserveQuoteNumber,
 } from '@/lib/db/quotes';
 import { listCustomers } from '@/lib/db/customers';
-import {
-  createProject,
-  listActiveProjects,
-  reserveProjectNumber,
-  type NewProject,
-} from '@/lib/db/projects';
+import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
 import { calcTotals, cent, positionNetto, type InvoicePosition } from '@/features/invoices/totals';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { todayStr, localDateStr } from '@/lib/time';
@@ -25,10 +21,11 @@ import KundenGrenze from '@/components/AuswahlGrenze';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Icon from '@/components/Icon';
-import { Zustand, type Stand } from '@/components/Badge';
+import { Zustand } from '@/components/Badge';
+import { STAND } from './stand';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
-import { belegNummer, hoechsteLfd, praefixeVon } from '@/lib/praefixe';
+import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -37,18 +34,6 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
-
-/*
-  „Abgelehnt" war rot. Es ist ein ENDZUSTAND und keine Störung: der Kunde hat
-  entschieden, zu tun ist nichts mehr. Rot hiesse „hier ist etwas für dich"
-  und schickte jemanden auf eine Liste, an der er nichts ändern kann.
-*/
-const STAND: Record<Quote['status'], Stand> = {
-  Entwurf: 'ruht',
-  Versendet: 'laeuft',
-  Angenommen: 'gut',
-  Abgelehnt: 'ruht',
-};
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
 function num(v: string): number {
@@ -244,84 +229,32 @@ export default function QuotesView() {
     }
   }
 
-  /**
-   * Annehmen — und daraus die Baustelle machen.
-   *
-   * Der eigentliche Zweck des ganzen Schritts. Die kalkulierten Stunden
-   * wandern als Stundenbudget mit; die Budget-Ampel misst danach gegen eine
-   * Zahl, die aus der Kalkulation stammt und nicht aus einem Gedächtnis.
-   */
+  /*
+    STATUS SETZEN MIT MELDUNG. Die Knöpfe riefen `updateQuote` ohne Fang auf:
+    scheiterte es, geschah für den Betrachter nichts, und der Fehler landete
+    unbemerkt in der Konsole.
+  */
+  async function status(q: WithId<Quote>, neu: Quote['status'], meldung: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await updateQuote(q.id, { status: neu });
+      toast.success(meldung);
+      await laden();
+    } catch {
+      setError('Der Status konnte nicht gespeichert werden.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Annehmen — der Ablauf steht in `angebotAnnehmen`, für Liste und Angebotsseite. */
   async function annehmen(q: WithId<Quote>) {
     if (!user) return;
     setBusy(true);
     setError(null);
     try {
-      const vorhandene = await listActiveProjects(user.companyId);
-      /*
-        BAUSTELLENNUMMER AUS DER ANGEBOTSNUMMER — damit beide ohne weiteres
-        Zutun einander zuordenbar bleiben.
-
-        Hier stand `replace(/^AN-/, 'B-')`, also beide Vorsätze fest im Code.
-        Seit der Betrieb sie selbst festlegt, wird der eigene Vorsatz des
-        Angebots abgezogen und der eigene der Baustelle gesetzt. Abgezogen wird
-        die Nummer, wie sie WIRKLICH DASTEHT: ein Angebot von vor der Umstellung
-        trägt noch den alten Vorsatz, und den kennt diese Ansicht nicht mehr.
-        Deshalb wird alles vor der Jahreszahl ersetzt, statt auf einen
-        bestimmten Anfang zu hoffen.
-      */
-      const rumpf = q.quoteNumber.replace(/^.*?(?=\d{4}-)/, '');
-      const abgeleitet = vorsaetze.baustelle
-        ? `${vorsaetze.baustelle}-${rumpf}`
-        : rumpf;
-      /*
-        IST DIE ABGELEITETE NUMMER VERGEBEN, KOMMT DIE NÄCHSTE FREIE.
-
-        Angebote und Baustellen zählen getrennt. Wer Baustellen auch von Hand
-        anlegt — also jeder Betrieb —, hat nach dem ersten Monat B-2026-0003,
-        während das dritte Angebot AN-2026-0003 heisst. Bisher stand dann
-        „Baustelle B-2026-0003 gibt es bereits" da, und das Angebot liess sich
-        GAR NICHT annehmen; im Probelauf gleich beim ersten. Eine abgeschlossene
-        Baustelle mit der Nummer fiel sogar erst an der Datenbank auf, mit der
-        allgemeinen Meldung.
-
-        Jetzt vergibt der Zähler die Nummer — derselbe Weg wie bei der
-        Baustellenanlage. Zuordenbar bleibt das Angebot über die Beschreibung
-        der Baustelle und die Nummer, die am Angebot vermerkt wird.
-      */
-      const daten: Omit<NewProject, 'projectNumber'> = {
-        customerId: q.customerId,
-        customerName: q.customerName,
-        address: q.address,
-        status: 'Aktiv',
-        billingMode: 'Pauschal',
-        estimatedHours: q.kalkulierteStunden > 0 ? q.kalkulierteStunden : undefined,
-        description: `Aus Angebot ${q.quoteNumber}`,
-        projectManagers: [],
-        assignedEmployees: [],
-      };
-      let projectNumber = abgeleitet;
-      const belegt = vorhandene.some((p) => p.projectNumber === abgeleitet);
-      try {
-        if (belegt) throw new Error('projects_nummer_je_betrieb');
-        await createProject(user.companyId, { ...daten, projectNumber });
-      } catch (e) {
-        if (!/projects_nummer_je_betrieb|duplicate key/i.test((e as Error).message)) throw e;
-        const hoechste = hoechsteLfd(vorhandene.map((p) => p.projectNumber));
-        // `null` heisst „kein Zähler erreichbar" — dann gilt der örtliche
-        // Vorschlag, wie in der Baustellenanlage.
-        projectNumber =
-          (await reserveProjectNumber(user.companyId, {
-            seedFrom: hoechste,
-            praefix: vorsaetze.baustelle,
-          })) ?? belegNummer(vorsaetze.baustelle, new Date().getFullYear(), hoechste + 1);
-        await createProject(user.companyId, { ...daten, projectNumber });
-      }
-      await updateQuote(q.id, { status: 'Angenommen', projectNumber });
-      toast.success(
-        projectNumber === abgeleitet
-          ? `Baustelle ${projectNumber} angelegt`
-          : `Baustelle ${projectNumber} angelegt — ${abgeleitet} war schon vergeben`,
-      );
+      toast.success(annahmeMeldung(await angebotAnnehmen(user.companyId, q, vorsaetze.baustelle)));
       await laden();
     } catch {
       setError('Die Baustelle konnte nicht angelegt werden.');
@@ -494,10 +427,18 @@ export default function QuotesView() {
             </div>
           </div>
 
-          <div className="mt-4">
-            <InputField
+          {/*
+            MEHRZEILIG: die Anmerkungen werden beim Annehmen zum Auftragsumfang
+            der Baustelle — und der ist oft eine Liste. Dasselbe Feld wie dort.
+          */}
+          <div className="mt-4 flex flex-col gap-1">
+            <label htmlFor="anqnotes" className="text-sm font-medium text-ink">
+              Anmerkungen
+            </label>
+            <textarea
               id="anqnotes"
-              label="Anmerkungen"
+              rows={3}
+              className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -551,9 +492,10 @@ export default function QuotesView() {
               <ListRow
                 key={q.id}
                 title={
-                  <span>
+                  // Die Nummer führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
+                  <Link to={`/quotes/${q.id}`} className="text-brand underline">
                     {q.quoteNumber} · {q.customerName}
-                  </span>
+                  </Link>
                 }
                 subtitle={
                   <>
@@ -570,11 +512,7 @@ export default function QuotesView() {
                   <Button
                     variant="ghost"
                     loading={busy}
-                    onClick={async () => {
-                      await updateQuote(q.id, { status: 'Versendet' });
-                      toast.success('Als versendet markiert');
-                      await laden();
-                    }}
+                    onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
                   >
                     Versendet
                   </Button>
@@ -587,11 +525,7 @@ export default function QuotesView() {
                     <Button
                       variant="ghost"
                       loading={busy}
-                      onClick={async () => {
-                        await updateQuote(q.id, { status: 'Abgelehnt' });
-                        toast.success('Als abgelehnt vermerkt');
-                        await laden();
-                      }}
+                      onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
                     >
                       Abgelehnt
                     </Button>
@@ -620,12 +554,16 @@ export default function QuotesView() {
         message={toDelete ? `${toDelete.quoteNumber} wird entfernt. Nur Entwürfe sind löschbar.` : ''}
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
-          if (toDelete) {
-            await deleteQuote(toDelete.id);
+          const weg = toDelete;
+          setToDelete(null);
+          if (!weg) return;
+          try {
+            await deleteQuote(weg.id);
             toast.success('Angebot gelöscht');
             await laden();
+          } catch {
+            setError('Das Angebot konnte nicht gelöscht werden.');
           }
-          setToDelete(null);
         }}
       />
     </div>

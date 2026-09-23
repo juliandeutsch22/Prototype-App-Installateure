@@ -9,7 +9,9 @@ import { mapsUrl } from '@/lib/kontakt';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke } from '@/components/Badge';
-import { LoadingState, ErrorState, EmptyState } from '@/components/States';
+import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
+import PlaeneListe from './PlaeneListe';
+import { planeVon, usePlaene } from './usePlaene';
 
 /** 'YYYY-MM-DD' -> '27.08.2026'; leer bleibt leer. */
 function fmt(d?: string): string {
@@ -46,6 +48,16 @@ export default function MyProjectsView() {
     [projects],
   );
 
+  /*
+    DIE PLÄNE, die das Büro an die Baustelle gehängt hat — in einer Abfrage
+    für alle Karten. Ohne Pläne steht dazu nichts da: eine leere Rubrik auf
+    jeder Karte wäre Lärm.
+  */
+  const { stand: plaene, neuLaden: plaeneNeu } = usePlaene(
+    user?.companyId,
+    active.map((p) => p.id),
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader title="Meine Baustellen" subtitle="Baustellen, denen du zugeordnet bist" />
@@ -58,6 +70,7 @@ export default function MyProjectsView() {
         <Card><EmptyState>Dir sind aktuell keine Baustellen zugeordnet. Die Einteilung macht die Projektleitung.</EmptyState></Card>
       ) : (
         <div className="space-y-4">
+          {plaene.zustand === 'fehler' && <TeilFehler was="Die Pläne" onRetry={plaeneNeu} />}
           {active.map((p) => (
             <Card
               key={p.id}
@@ -65,7 +78,15 @@ export default function MyProjectsView() {
               action={<StatusBadge status={p.status} />}
             >
               <p className="tnum text-sm text-ink-muted">{p.projectNumber}</p>
-              {p.description && <p className="mt-2 text-ink">{p.description}</p>}
+              {/* Zeilenumbrüche bleiben: der Auftragsumfang aus dem Angebot ist oft eine Liste. */}
+              {p.description && <p className="mt-2 whitespace-pre-line text-ink">{p.description}</p>}
+
+              {plaene.zustand === 'bereit' && planeVon(plaene, p.id).length > 0 && (
+                <div className="mt-3">
+                  <p className="section-label">Pläne und Dokumente</p>
+                  <PlaeneListe dokumente={planeVon(plaene, p.id)} adressen={plaene.adressen} />
+                </div>
+              )}
 
               {(p.startDate || p.endDate) && (
                 <p className="mt-2 text-sm text-ink-muted">

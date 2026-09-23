@@ -1,4 +1,15 @@
-import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
+import {
+  briefkopf,
+  empfaenger,
+  fusszeilen,
+  GRAU,
+  kopfdaten,
+  RAND,
+  RECHTS,
+  TABELLE_AB,
+  TINTE,
+  titel,
+} from '@/lib/belegLayout';
 import { TEXTE, spesenFuer, type Mahnstufe } from './mahnung';
 import { zahlstand } from './zahlstand';
 import type { Company, Invoice } from '@/types';
@@ -54,35 +65,32 @@ export interface MahnungOptionen {
 export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
   const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const rand = 18;
-  const rechts = 210 - rand;
+  const rand = RAND;
+  const rechts = RECHTS;
   const text = TEXTE[o.stufe];
 
-  // Briefkopf — derselbe wie auf Rechnung und Schein.
-  logoZeichnen(doc, o.company, rechts, 18);
-  doc.setFontSize(16).setFont('helvetica', 'bold');
-  doc.text(o.company.name || 'Firma', rand, 22);
-  doc.setFontSize(9).setFont('helvetica', 'normal');
-  firmenZeilen(o.company).forEach((z, i) => doc.text(z, rand, 28 + i * 5));
-  doc.setDrawColor(0, 51, 102).line(rand, 37, rechts, 37);
+  // Briefkopf, Empfänger und Kopfdaten — dieselben wie auf der Rechnung.
+  briefkopf(doc, o.company);
+  empfaenger(doc, o.company, { name: o.invoice.customerName, adresse: o.adresse, uid: o.kundenUid });
+  kopfdaten(doc, [
+    ['Datum', fmtDatum(o.datum)],
+    ['Rechnung', o.invoice.invoiceNumber],
+    ['Baustelle', o.invoice.projectNumber],
+  ]);
+  titel(doc, text.titel);
 
-  // Empfänger
-  doc.setFontSize(11).setFont('helvetica', 'bold').text(text.titel, rand, 50);
-  doc.setFontSize(10).setFont('helvetica', 'normal');
-  doc.text(o.invoice.customerName || '–', rand, 58);
-  if (o.adresse) doc.text(o.adresse, rand, 63);
-  if (o.kundenUid?.trim()) doc.text(`UID: ${o.kundenUid.trim()}`, rand, o.adresse ? 68 : 63);
+  const breite = rechts - rand;
+  /** Text umbrechen, schreiben und die Zeile danach zurückgeben. */
+  const absatz = (inhalt: string, y: number, zeilenhoehe = 5): number => {
+    const zeilen = doc.splitTextToSize(inhalt, breite) as string[];
+    doc.text(zeilen, rand, y);
+    return y + zeilen.length * zeilenhoehe;
+  };
 
-  doc.text(`Datum: ${fmtDatum(o.datum)}`, rechts, 50, { align: 'right' });
-  doc.text(`Rechnung: ${o.invoice.invoiceNumber}`, rechts, 55, { align: 'right' });
-  doc.text(`Baustelle: ${o.invoice.projectNumber}`, rechts, 60, { align: 'right' });
-
-  let y = 82;
-  doc.setFontSize(10);
+  let y = TABELLE_AB + 4;
+  doc.setFontSize(10).setTextColor(...TINTE);
   doc.text('Sehr geehrte Damen und Herren,', rand, y);
-  y += 7;
-  doc.text(text.anrede, rand, y, { maxWidth: rechts - rand });
-  y += 14;
+  y = absatz(text.anrede, y + 7) + 5;
 
   /*
     DIE ZAHLEN ALS BLOCK, nicht im Fliesstext.
@@ -108,35 +116,36 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
     Abzug dazwischen ist die einzige Fassung, die er nachrechnen kann.
   */
   if (stand.bezahlt > 0) {
-    zeilen.push(['Bereits bezahlt', `− ${fmtEUR(stand.bezahlt)} €`]);
+    // Ein ASCII-Minus: das typografische „−" fehlt in der Standardschrift des
+    // PDFs, und jsPDF schrieb die ganze Zeile dann als Zeichensalat.
+    zeilen.push(['Bereits bezahlt', `- ${fmtEUR(stand.bezahlt)} €`]);
   }
   if (spesen > 0) zeilen.push(['Mahnspesen', `${fmtEUR(spesen)} €`]);
 
+  // Beträge rechtsbündig untereinander, damit man sie nachrechnen kann.
+  const betragX = rand + 110;
   for (const [k, v] of zeilen) {
-    doc.setFont('helvetica', 'normal').text(`${k}:`, rand, y);
-    doc.text(v, rand + 70, y);
+    doc.setFont('helvetica', 'normal').setTextColor(...GRAU).text(k, rand, y);
+    doc.setTextColor(...TINTE).text(v, betragX, y, { align: 'right' });
     y += 6;
   }
 
+  doc.setDrawColor(...TINTE).setLineWidth(0.35).line(rand, y - 3.5, betragX, y - 3.5);
   doc.setFont('helvetica', 'bold');
-  doc.text('Offener Betrag:', rand, y);
-  doc.text(`${fmtEUR(stand.rest + spesen)} €`, rand + 70, y);
+  doc.text('Offener Betrag', rand, y + 1);
+  doc.text(`${fmtEUR(stand.rest + spesen)} €`, betragX, y + 1, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   y += 12;
 
-  doc.text(text.frist(fmtDatum(o.frist)), rand, y, { maxWidth: rechts - rand });
-  y += 12;
+  y = absatz(text.frist(fmtDatum(o.frist)), y) + 5;
 
   if (o.company.iban) {
-    doc.text(
+    y = absatz(
       `Bankverbindung: IBAN ${o.company.iban}` +
         (o.company.bic ? ` / BIC ${o.company.bic}` : '') +
         (o.company.bankName ? ` (${o.company.bankName})` : ''),
-      rand,
       y,
-      { maxWidth: rechts - rand },
     );
-    y += 6;
   }
   doc.text(`Verwendungszweck: ${o.invoice.invoiceNumber}`, rand, y);
   y += 12;
@@ -148,24 +157,17 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
     zahlen die meisten. Ohne diesen Satz bekommt jemand eine Mahnung für etwas,
     das er längst überwiesen hat — und ruft verärgert an.
   */
-  doc.setFontSize(9).setTextColor(110, 110, 110);
-  doc.text(
+  doc.setFontSize(9).setTextColor(...GRAU);
+  absatz(
     'Sollte sich Ihre Zahlung mit diesem Schreiben überschnitten haben, betrachten Sie es ' +
       'bitte als gegenstandslos.',
-    rand,
     y,
-    { maxWidth: rechts - rand },
+    4.5,
   );
-  doc.setTextColor(0, 0, 0).setFontSize(10);
+  doc.setTextColor(...TINTE).setFontSize(10);
 
-  // Fusszeile mit den Pflichtangaben — wie auf der Rechnung.
-  const fuss = [o.company.vatId && `UID: ${o.company.vatId}`, o.company.companyRegister]
-    .filter(Boolean)
-    .join(' · ');
-  if (fuss) {
-    doc.setFontSize(8).setTextColor(120);
-    doc.text(fuss, rand, 285);
-  }
+  // Fusszeile mit Bank und Pflichtangaben — wie auf der Rechnung.
+  fusszeilen(doc, o.company);
 
   return doc.output('blob');
 }

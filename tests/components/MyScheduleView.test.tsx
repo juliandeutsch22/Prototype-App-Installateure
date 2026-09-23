@@ -48,6 +48,14 @@ vi.mock('@/lib/db/einsatzMaterial', () => ({
   ladenUmschalten: vi.fn(async () => undefined),
 }));
 
+/** Pläne, die das Büro an Baustellen gehängt hat. */
+const plaene: { wert: { id: string; projectId: string; pfad: string; dateiname: string; mime: string; bytes: number }[] } = { wert: [] };
+vi.mock('@/lib/db/baustellenDokumente', () => ({
+  listDokumente: vi.fn(async (_c: string, ids: string[]) => plaene.wert.filter((d) => ids.includes(d.projectId))),
+  dokumentAdressen: vi.fn(async (d: { pfad: string }[]) => new Map(d.map((x) => [x.pfad, `https://speicher/${x.pfad}`]))),
+  GUELTIG_SEKUNDEN: 3600,
+}));
+
 const authWert = {
   user: { uid: 'm1', email: 'm1@perl.at', name: 'Anton Berger', role: 'Mitarbeiter' as const, companyId: 'perl', docId: 'm1' },
   company: { id: 'perl', name: 'Perl Installationen' },
@@ -75,6 +83,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 8, 15, 8, 0, 0));
   geholt.tage = [];
   for (const k of Object.keys(listen)) delete listen[k];
+  plaene.wert = [];
 });
 
 afterEach(() => {
@@ -135,5 +144,28 @@ describe('Mein Einsatzplan — die Rüstliste', () => {
     zeichne();
     await screen.findByText('Bad');
     expect(screen.queryByText('Material')).toBeNull();
+  });
+});
+
+/*
+  GEMELDET: „Baustellen sollte man Dokumente oder Bilder hinzufügen können,
+  damit der Monteur Zugriff darauf hat." Wer eingeteilt ist, sieht sie am
+  Einsatz — ob er im Team der Baustelle steht, entscheidet die Datenbank.
+*/
+describe('Mein Einsatzplan — die Pläne der Baustelle', () => {
+  it('zeigt den Plan am Einsatz, zum Öffnen', async () => {
+    plaene.wert = [
+      { id: 'd1', projectId: 'p1', pfad: 'baustellen/perl/p1/a.pdf', dateiname: 'Grundriss EG.pdf', mime: 'application/pdf', bytes: 120_000 },
+    ];
+    zeichne();
+    const link = await screen.findByRole('link', { name: 'Grundriss EG.pdf' });
+    expect(link).toHaveAttribute('href', 'https://speicher/baustellen/perl/p1/a.pdf');
+    expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('zeigt ohne Pläne auch keine leere Rubrik', async () => {
+    zeichne();
+    await screen.findAllByText(/Familie Huber/);
+    expect(screen.queryByText('Pläne und Dokumente')).toBeNull();
   });
 });

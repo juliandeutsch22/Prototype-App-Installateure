@@ -3,11 +3,14 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listProjectsByIds, updateProject } from '@/lib/db/projects';
 import { alsEntwurf, gleich, type BaustellenEntwurf } from './baustellenEntwurf';
+import BaustellenPlaene from './BaustellenPlaene';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
+import { listQuotesForProject } from '@/lib/db/quotes';
+import { canAccess } from '@/app/navigation';
 import { isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
-import type { Project, AppUser, Customer } from '@/types';
+import type { Project, AppUser, Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
@@ -49,9 +52,16 @@ const fmtDatum = (iso?: string) =>
 
 export default function BaustellenakteView() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
   const scheineAn = useModul('scheine');
+  /*
+    Angebote tragen Preise und sind Büro und Leitung vorbehalten (Zeilenschutz
+    `quotes_lesen`). Wer sie nicht sehen darf, bekommt auch keinen Verweis —
+    und die Abfrage wird gar nicht erst gestellt.
+  */
+  const angeboteSichtbar = user ? canAccess(user.role, '/quotes', company?.modules) : false;
+  const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
 
   const [baustelle, setBaustelle] = useState<Teil<WithId<Project> | null>>(LAEDT);
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -119,6 +129,29 @@ export default function BaustellenakteView() {
   }, [companyId, darfAendern]);
 
   const daten = baustelle.zustand === 'bereit' ? baustelle.daten : null;
+
+  /*
+    DAS ANGEBOT, AUS DEM DIE BAUSTELLE ENTSTAND. Gemeldet: in der Beschreibung
+    stand nur „Aus Angebot AN-…", und das Angebot war von hier aus nicht zu
+    erreichen. Gesucht wird über die Kennung der Baustelle, nicht ihre Nummer —
+    die lässt sich oben in der Akte ändern.
+  */
+  const baustellenId = daten?.id;
+  useEffect(() => {
+    if (!companyId || !baustellenId || !angeboteSichtbar) return;
+    let weg = false;
+    void (async () => {
+      try {
+        const q = await listQuotesForProject(companyId, baustellenId);
+        if (!weg) setAngebote(q);
+      } catch {
+        if (!weg) setNebenFehler('Das Angebot zu dieser Baustelle');
+      }
+    })();
+    return () => {
+      weg = true;
+    };
+  }, [companyId, baustellenId, angeboteSichtbar]);
 
   /*
     Der Entwurf folgt der geladenen Baustelle — aber NUR, wenn diese sich
@@ -287,6 +320,17 @@ export default function BaustellenakteView() {
         )}
       </Card>
 
+      {user && (
+        <Card title="Pläne und Dokumente">
+          <BaustellenPlaene
+            companyId={user.companyId}
+            projectId={b.id}
+            darfAendern={darfAendern}
+            meinName={user.name}
+          />
+        </Card>
+      )}
+
       {/*
         DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
         Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
@@ -316,6 +360,11 @@ export default function BaustellenakteView() {
               Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
             </span>
           )}
+          {angebote.map((q) => (
+            <Link key={q.id} to={`/quotes/${q.id}`} className="text-brand underline">
+              Angebot {q.quoteNumber}
+            </Link>
+          ))}
           {scheineAn && (
             <Link
               to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}

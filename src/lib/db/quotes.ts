@@ -12,7 +12,7 @@ import type { Quote } from '@/types';
 import type { WithId } from './core';
 import * as pg from './pg/quotes';
 
-export type NewQuote = Omit<Quote, 'id' | 'companyId' | 'createdAt'>;
+export type NewQuote = Omit<Quote, 'id' | 'companyId' | 'createdAt' | 'projectId'>;
 
 export function listRecentQuotes(companyId: string, max = 100): Promise<WithId<Quote>[]> {
   return pg.listRecentQuotes(companyId, max);
@@ -22,6 +22,14 @@ export function listQuotesForCustomer(
   companyId: string, customerId: string, max = 100,
 ): Promise<WithId<Quote>[]> {
   return pg.listQuotesForCustomer(companyId, customerId, max);
+}
+
+export function getQuote(companyId: string, id: string): Promise<WithId<Quote> | null> {
+  return pg.getQuote(companyId, id);
+}
+
+export function listQuotesForProject(companyId: string, projectId: string): Promise<WithId<Quote>[]> {
+  return pg.listQuotesForProject(companyId, projectId);
 }
 
 export function createQuote(companyId: string, q: NewQuote): Promise<string> {

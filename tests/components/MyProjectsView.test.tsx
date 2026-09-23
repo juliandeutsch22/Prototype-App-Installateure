@@ -21,6 +21,17 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsForEmployee: () => listProjectsForEmployee(),
 }));
 
+const plaene: { wert: { id: string; projectId: string; pfad: string; dateiname: string; mime: string; bytes: number }[] } = { wert: [] };
+let plaeneScheitern = false;
+vi.mock('@/lib/db/baustellenDokumente', () => ({
+  listDokumente: vi.fn(async (_c: string, ids: string[]) => {
+    if (plaeneScheitern) throw new Error('kein Netz');
+    return plaene.wert.filter((d) => ids.includes(d.projectId));
+  }),
+  dokumentAdressen: vi.fn(async (d: { pfad: string }[]) => new Map(d.map((x) => [x.pfad, `https://speicher/${x.pfad}`]))),
+  GUELTIG_SEKUNDEN: 3600,
+}));
+
 const NUTZER = {
   uid: 'm1',
   email: 'max@perl.at',
@@ -49,6 +60,8 @@ const baustelle = (over: Partial<Project> = {}): Project =>
 beforeEach(() => {
   baustellen = [];
   faellt = false;
+  plaene.wert = [];
+  plaeneScheitern = false;
   listProjectsForEmployee.mockClear();
 });
 
@@ -127,5 +140,41 @@ describe('Meine Baustellen', () => {
     expect(bereich.getByText('2026-001')).toBeInTheDocument();
     expect(bereich.getByText('03.08.2026 – 21.08.2026')).toBeInTheDocument();
     expect(bereich.getByText('40 h kalkuliert')).toBeInTheDocument();
+  });
+});
+
+describe('Der Auftragsumfang', () => {
+  it('behält seine Zeilen — aus dem Angebot kommt oft eine Liste', async () => {
+    baustellen = [baustelle({ description: 'Bad erneuern:\n- WC tauschen\n\nAus Angebot AN-2026-0001' })];
+    render(<MyProjectsView />);
+    const text = await screen.findByText(/Bad erneuern:/);
+    expect(text.textContent).toBe('Bad erneuern:\n- WC tauschen\n\nAus Angebot AN-2026-0001');
+    // Ohne diese Klasse fasst der Browser die Umbrüche zu Leerzeichen zusammen.
+    expect(text).toHaveClass('whitespace-pre-line');
+  });
+});
+
+describe('Die Pläne der Baustelle', () => {
+  it('stehen an der Karte ihrer Baustelle — und nur dort', async () => {
+    baustellen = [baustelle(), baustelle({ id: 'p2', projectNumber: '2026-002', customerName: 'Gemeinde Neudorf' })];
+    plaene.wert = [
+      { id: 'd1', projectId: 'p1', pfad: 'baustellen/perl/p1/a.pdf', dateiname: 'Grundriss EG.pdf', mime: 'application/pdf', bytes: 2_500_000 },
+      { id: 'd2', projectId: 'p1', pfad: 'baustellen/perl/p1/b.jpg', dateiname: 'Foto Schacht.jpg', mime: 'image/jpeg', bytes: 300_000 },
+    ];
+    render(<MyProjectsView />);
+    const link = await screen.findByRole('link', { name: 'Grundriss EG.pdf' });
+    const karte = link.closest('section')!;
+    expect(within(karte).getByText(/Familie Huber/)).toBeInTheDocument();
+    expect(within(karte).getByRole('link', { name: 'Foto Schacht.jpg' })).toBeInTheDocument();
+    expect(within(karte).getByText(/2,4 MB/)).toBeInTheDocument();
+    // Die zweite Baustelle hat keine Pläne — und damit auch keine Rubrik.
+    expect(screen.getAllByText('Pläne und Dokumente')).toHaveLength(1);
+  });
+
+  it('sagt es, wenn die Pläne nicht geladen werden konnten', async () => {
+    baustellen = [baustelle()];
+    plaeneScheitern = true;
+    render(<MyProjectsView />);
+    expect(await screen.findByText(/Die Pläne konnte nicht geladen werden/)).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import Metric, { MetricRow, GUTER_RAND } from '@/components/Metric';
 import { SkeletonMetrics } from '@/components/States';
 import Card from '@/components/Card';
@@ -86,5 +87,24 @@ describe('Die Kennzahlen-Leiste', () => {
     expect(screen.getByText('Überfällig')).toBeInTheDocument();
     expect(screen.getByText('€ 12,00')).toBeInTheDocument();
     expect(screen.getByText('seit 30 Tagen')).toBeInTheDocument();
+  });
+});
+
+describe('Eine Kennzahl mit Ziel', () => {
+  it('ist ein Link dorthin', () => {
+    render(
+      <MemoryRouter>
+        <Metric label="Überfällig" value="€ 800,00" to="/invoices?status=%C3%9Cberf%C3%A4llig" />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: /Überfällig/ })).toHaveAttribute(
+      'href',
+      '/invoices?status=%C3%9Cberf%C3%A4llig',
+    );
+  });
+
+  it('und ohne Ziel keiner', () => {
+    render(<Metric label="Offen" value="€ 0,00" />);
+    expect(screen.queryByRole('link')).toBeNull();
   });
 });

@@ -21,6 +21,7 @@ import { fmtMin, tageWort, todayStr } from '@/lib/time';
 import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -333,19 +334,27 @@ export default function WorkSheetsListView() {
 
   return (
     <div className="space-y-6">
+      {/*
+        DER KNOPF STEHT IM KOPF, wie „Neues Angebot" und „Neue Wartung".
+        Gemeldet: „der Tab sieht vom Aufbau her ganz anders aus — der Button
+        erstreckt sich über die ganze Zeile". Er stand als einzige Anlage-
+        Aktion der App in einer eigenen Karte über volle Breite. Ein Link und
+        kein Knopf, weil er eine andere Seite öffnet; er sieht aus wie der
+        Hauptknopf der anderen Listen.
+      */}
       <PageHeader
         title="Handwerksscheine"
         subtitle="Unterschriebene Leistungsnachweise der Baustellen"
+        action={
+          <Link
+            to="/worksheet"
+            className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
+          >
+            <Icon name="plus" size={18} />
+            Neuer Schein
+          </Link>
+        }
       />
-
-      <Card>
-        <Link
-          to="/worksheet"
-          className="flex min-h-touch items-center justify-center rounded bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
-        >
-          Neuen Schein erstellen
-        </Link>
-      </Card>
 
       {/*
         NUR FÜRS BÜRO — `canEditTime` ist die Rolle, die fremde Zeiteinträge

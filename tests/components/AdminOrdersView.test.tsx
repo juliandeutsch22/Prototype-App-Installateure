@@ -211,6 +211,29 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
   });
 });
 
+describe('Anforderungen — die Notiz des Monteurs', () => {
+  it('steht in einer eigenen Zeile, mit „Notiz:" davor', async () => {
+    /*
+      GEMELDET: „die Notiz wird nirgends angezeigt". Sie hing im selben Grau
+      an Name und Baustelle und ging darin unter.
+    */
+    anforderungen = [anforderung({ id: 'o1', note: 'Bitte bis Donnerstag', projectNumber: 'B-2026-0001' })];
+    zeige();
+
+    const notiz = await screen.findByText('Bitte bis Donnerstag', { exact: false });
+    expect(notiz.tagName).toBe('SPAN');
+    expect(notiz).toHaveTextContent(/^Notiz: Bitte bis Donnerstag$/);
+    expect(notiz.className).toMatch(/\bblock\b/);
+  });
+
+  it('lässt die Zeile weg, wenn es keine Notiz gibt', async () => {
+    anforderungen = [anforderung({ id: 'o1' })];
+    zeige();
+    await screen.findByText('Kupferrohr 15mm');
+    expect(screen.queryByText(/Notiz:/)).toBeNull();
+  });
+});
+
 describe('Anforderungen — suchen und filtern', () => {
   it('durchsucht Material, Besteller, Baustelle und Notiz', async () => {
     anforderungen = Array.from({ length: 10 }, (_, i) =>

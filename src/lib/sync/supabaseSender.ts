@@ -24,7 +24,26 @@ import type { Sendeergebnis, Sender, Sendung } from './ausgangsfach';
  */
 function istEndgueltig(code: string | undefined): boolean {
   if (!code) return false;
-  return code === '42501' || code.startsWith('23') || code.startsWith('22');
+  return (
+    code === '42501' ||
+    code.startsWith('23') ||
+    code.startsWith('22') ||
+    /*
+      DIE ANFRAGE PASST NICHT ZUM SCHEMA — auch das ändert kein zweiter
+      Versuch. `PGRST1xx` sind Anfragefehler, `PGRST2xx` Schemafehler
+      („Spalte gibt es nicht", PGRST204); 42703 und 42P01 sagen dasselbe aus
+      der Datenbank selbst. Bis zum 23.09.2026 landeten sie unter „unklar":
+      die Maske meldete „gespeichert, wird gesendet", das Fach versuchte es
+      fünfmal und gab dann still auf. So ging jede Fremdbuchung der
+      Buchhaltung verloren (siehe `bearbeitungsvermerk.ts`).
+
+      NICHT dabei: `PGRST0xx` (Verbindung zur Datenbank, Schemacache lädt
+      noch) und `PGRST3xx` (abgelaufene Anmeldung) — die heilen sich.
+    */
+    /^PGRST[12]\d\d$/.test(code) ||
+    code === '42703' ||
+    code === '42P01'
+  );
 }
 
 /**

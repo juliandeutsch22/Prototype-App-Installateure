@@ -50,6 +50,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   materials: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   number_counters: { updated_at: 'zeitpunkt' },
   platform_admins: { created_at: 'zeitpunkt' },
+  project_documents: { created_at: 'zeitpunkt' },
   projects: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   quotes: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   rabattsaetze: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },

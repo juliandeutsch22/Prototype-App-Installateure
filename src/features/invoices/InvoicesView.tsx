@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   subscribeRecentInvoices,
@@ -18,7 +19,7 @@ import {
   mahnungFesthalten,
 } from '@/lib/db/invoices';
 import { listZahlungen, createZahlung, deleteZahlung } from '@/lib/db/zahlungen';
-import { zahlstand } from './zahlstand';
+import { istUeberfaellig, zahlstand } from './zahlstand';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listCustomers } from '@/lib/db/customers';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
@@ -89,6 +90,9 @@ const fmtEUR = (n: number) =>
 /** Wie viele Rechnungen die Liste zunaechst zeigt. */
 const RECHNUNGEN_JE_SEITE = 50;
 
+/** Die Zahlstände, nach denen die Liste filtert — auch über `?status=`. */
+const FILTERSTATI = ['Offen', 'Überfällig', 'Teilbezahlt', 'Bezahlt', 'Überzahlt', 'Storniert'] as const satisfies readonly Invoice['paymentStatus'][];
+
 export default function InvoicesView() {
   const { user, company } = useAuth();
   // Die Vorsätze des Betriebs — `RE-` stand hier bisher fest im Code.
@@ -144,6 +148,20 @@ export default function InvoicesView() {
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
   const [statusFilter, setStatusFilter] = useState<'alle' | Invoice['paymentStatus']>('alle');
+  /*
+    DER FILTER KANN AUS DER ADRESSE KOMMEN — die Startseite verlinkt ihre
+    Kachel „Überfällig" hierher. Ohne das landete man in der vollen Liste und
+    musste die Rechnungen, deren Summe man eben gesehen hat, selbst suchen.
+    Nur bekannte Werte: ein Tippfehler in der Adresse filtert nicht auf
+    „nichts", sondern zeigt alle.
+  */
+  const [suchparameter] = useSearchParams();
+  const statusAusAdresse = suchparameter.get('status');
+  useEffect(() => {
+    if (statusAusAdresse && (FILTERSTATI as readonly string[]).includes(statusAusAdresse)) {
+      setStatusFilter(statusAusAdresse as Invoice['paymentStatus']);
+    }
+  }, [statusAusAdresse]);
   /*
     DER ZAHLUNGSDIALOG. Er hängt an EINER Rechnung und lädt deren Eingänge
     beim Öffnen — nicht beim Laden der Liste. Dreihundert Rechnungen mal ihre
@@ -374,8 +392,14 @@ export default function InvoicesView() {
     [invoices],
   );
   const visible = useMemo(() => {
+    const heute = todayStr();
     const nachStatus =
-      statusFilter === 'alle' ? sorted : sorted.filter((i) => i.paymentStatus === statusFilter);
+      statusFilter === 'alle'
+        ? sorted
+        : sorted.filter((i) =>
+            // „Überfällig" zeigt auch die angezahlten, deren Ziel vorbei ist.
+            statusFilter === 'Überfällig' ? istUeberfaellig(i, heute) : i.paymentStatus === statusFilter,
+          );
     // Nach ein paar Jahren stehen hier hunderte Rechnungen. Gesucht wird nach
     // Nummer oder Kunde — beides steht in der Zeile, aber niemand scrollt
     // dafuer durch drei Jahrgaenge.
@@ -405,10 +429,12 @@ export default function InvoicesView() {
     let offen = 0;
     let ueberfaellig = 0;
     let bezahlt = 0;
+    const heute = todayStr();
     for (const i of invoices) {
       const stand = zahlstand(i);
       bezahlt += stand.bezahlt;
-      if (i.paymentStatus === 'Überfällig') ueberfaellig += stand.rest;
+      // Nach dem ZIEL, nicht nach dem Stand — siehe `istUeberfaellig`.
+      if (istUeberfaellig(i, heute)) ueberfaellig += stand.rest;
       else if (i.paymentStatus !== 'Storniert') offen += stand.rest;
     }
     const runde = (n: number) => Math.round(n * 100) / 100;
@@ -2114,12 +2140,7 @@ export default function InvoicesView() {
           <SelectField id="invfilter" label="" className="py-1 text-sm" value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
             <option value="alle">Alle</option>
-            <option value="Offen">Offen</option>
-            <option value="Überfällig">Überfällig</option>
-            <option value="Teilbezahlt">Teilbezahlt</option>
-            <option value="Bezahlt">Bezahlt</option>
-            <option value="Überzahlt">Überzahlt</option>
-            <option value="Storniert">Storniert</option>
+            {FILTERSTATI.map((st) => <option key={st} value={st}>{st}</option>)}
           </SelectField>
         }
       >
@@ -2199,6 +2220,11 @@ export default function InvoicesView() {
                         return (
                           <span className="mt-1 block text-xs text-ink-muted tnum">
                             {fmtEUR(stand.bezahlt)} bezahlt · {fmtEUR(stand.rest)} offen
+                            {/* Das Abzeichen sagt „Teilbezahlt" — dass der Rest
+                                schon fällig war, sagt es nicht. */}
+                            {istUeberfaellig(inv, todayStr()) && (
+                              <span className="text-warning"> · überfällig</span>
+                            )}
                           </span>
                         );
                       }

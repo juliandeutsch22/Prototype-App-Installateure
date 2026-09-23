@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -71,6 +71,46 @@ vi.mock('@/lib/db/customers', () => ({
   },
 }));
 
+/** Pläne an der Baustelle. */
+type Plan = { id: string; projectId: string; pfad: string; dateiname: string; mime: string; bytes: number };
+let plaene: Plan[] = [];
+const hochgeladen: File[] = [];
+const geloescht: string[] = [];
+vi.mock('@/lib/db/baustellenDokumente', async () => {
+  const echt = await vi.importActual<typeof import('@/lib/db/pg/baustellenDokumente')>(
+    '@/lib/db/pg/baustellenDokumente',
+  );
+  return {
+    listDokumente: vi.fn(async () => plaene),
+    dokumentAdressen: vi.fn(async (d: Plan[]) => new Map(d.map((x) => [x.pfad, `https://speicher/${x.pfad}`]))),
+    dokumentHochladen: vi.fn(async (_c: string, projectId: string, datei: File) => {
+      hochgeladen.push(datei);
+      const neu = { id: `d${hochgeladen.length}`, projectId, pfad: `baustellen/perl/${projectId}/${hochgeladen.length}.pdf`, dateiname: datei.name, mime: 'application/pdf', bytes: datei.size };
+      plaene = [neu, ...plaene];
+      return neu;
+    }),
+    dokumentLoeschen: vi.fn(async (d: Plan) => {
+      geloescht.push(d.id);
+      plaene = plaene.filter((x) => x.id !== d.id);
+      return { dateiBlieb: false };
+    }),
+    // Die Prüfung der Datei ist die echte — sie ist Teil dessen, was hier gilt.
+    dateiPruefen: echt.dateiPruefen,
+    GUELTIG_SEKUNDEN: 3600,
+  };
+});
+
+/** Angebote zur Baustelle — gesucht über ihre Kennung. */
+let angebote: { id: string; quoteNumber: string }[] = [];
+let angeboteScheitern = false;
+const listQuotesForProject = vi.fn<[string, string], Promise<typeof angebote>>(async () => {
+  if (angeboteScheitern) throw new Error('kaputt');
+  return angebote;
+});
+vi.mock('@/lib/db/quotes', () => ({
+  listQuotesForProject: (c: string, p: string) => listQuotesForProject(c, p),
+}));
+
 /*
   Die Stundenauswertung hat einen eigenen Ansichtstest. Hier steht sie als
   Platzhalter: geprüft wird, DASS die Akte sie zeigt, nicht was sie rechnet.
@@ -123,6 +163,12 @@ beforeEach(() => {
   nutzer = NUTZER();
   listProjectsByIds.mockClear();
   updateProject.mockClear();
+  angebote = [];
+  angeboteScheitern = false;
+  plaene = [];
+  hochgeladen.length = 0;
+  geloescht.length = 0;
+  listQuotesForProject.mockClear();
 });
 
 describe('Die Stammdaten für alle, die nur lesen', () => {
@@ -343,5 +389,94 @@ describe('Was die Akte sonst noch zeigt', () => {
     baustellen = [];
     zeige();
     expect(await screen.findByText(/gibt es nicht/)).toBeInTheDocument();
+  });
+});
+
+/*
+  GEMELDET: in der Baustelle stand nur „Aus Angebot AN-2026-0001", und das
+  Angebot war von hier aus nirgends zu erreichen.
+*/
+describe('Das Angebot hinter der Baustelle', () => {
+  it('ist von der Akte aus verlinkt', async () => {
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007' }];
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Angebot AN-2026-0007' })).toHaveAttribute(
+      'href',
+      '/quotes/q7',
+    );
+    // Über die Kennung gesucht, nicht über die änderbare Nummer.
+    expect(listQuotesForProject).toHaveBeenCalledWith('perl', BAUSTELLE.id);
+  });
+
+  it('wird für jemanden ohne Zugang zu Angeboten gar nicht erst gesucht', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007' }];
+    zeige();
+    await screen.findByText('Stundenauswertung');
+    expect(listQuotesForProject).not.toHaveBeenCalled();
+    expect(screen.queryByRole('link', { name: /Angebot AN/ })).toBeNull();
+  });
+
+  it('sagt es, wenn das Angebot nicht geladen werden konnte', async () => {
+    angeboteScheitern = true;
+    zeige();
+    expect(await screen.findByText(/Das Angebot zu dieser Baustelle konnte nicht geladen werden/)).toBeInTheDocument();
+  });
+});
+
+/*
+  GEMELDET: „Baustellen sollte man Dokumente oder Bilder hinzufügen können,
+  für Baupläne oder ähnliches, damit der Monteur Zugriff darauf hat."
+*/
+describe('Pläne und Dokumente', () => {
+  const pdf = (name: string, groesse = 1000) =>
+    new File([new Uint8Array(groesse)], name, { type: 'application/pdf' });
+
+  it('lädt hoch und zeigt den Plan sofort', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await screen.findByText('Noch keine Pläne oder Dokumente.');
+    await nutzer.upload(screen.getByLabelText('Pläne oder Bilder auswählen'), pdf('Grundriss EG.pdf'));
+    expect(hochgeladen.map((d) => d.name)).toEqual(['Grundriss EG.pdf']);
+    expect(await screen.findByRole('link', { name: 'Grundriss EG.pdf' })).toHaveAttribute(
+      'href',
+      'https://speicher/baustellen/perl/b1/1.pdf',
+    );
+  });
+
+  it('lädt von mehreren Dateien die guten hoch und nennt die schlechte', async () => {
+    const nutzer = userEvent.setup({ applyAccept: false });
+    zeige();
+    await screen.findByText('Noch keine Pläne oder Dokumente.');
+    await nutzer.upload(screen.getByLabelText('Pläne oder Bilder auswählen'), [
+      pdf('Plan 1.pdf'),
+      new File([new Uint8Array(10)], 'Zeichnung.dwg', { type: '' }),
+      pdf('Plan 2.pdf'),
+    ]);
+    expect(hochgeladen.map((d) => d.name)).toEqual(['Plan 1.pdf', 'Plan 2.pdf']);
+    expect(await screen.findByText(/Zeichnung.dwg.*nur PDF und Bilder/)).toBeInTheDocument();
+  });
+
+  it('löscht erst nach Rückfrage', async () => {
+    plaene = [{ id: 'd9', projectId: 'b1', pfad: 'baustellen/perl/b1/x.pdf', dateiname: 'Alt.pdf', mime: 'application/pdf', bytes: 500 }];
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Alt.pdf löschen' }));
+    expect(geloescht).toEqual([]);
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.click(within(dialog).getByRole('button', { name: /Löschen|Bestätigen|Ja/ }));
+    expect(geloescht).toEqual(['d9']);
+    expect(await screen.findByText('Noch keine Pläne oder Dokumente.')).toBeInTheDocument();
+  });
+
+  it('lässt wer nur liest die Pläne sehen, aber nichts hochladen oder löschen', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    plaene = [{ id: 'd9', projectId: 'b1', pfad: 'baustellen/perl/b1/x.pdf', dateiname: 'Alt.pdf', mime: 'application/pdf', bytes: 500 }];
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Alt.pdf' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Plan oder Bild hinzufügen/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Alt.pdf löschen' })).toBeNull();
   });
 });

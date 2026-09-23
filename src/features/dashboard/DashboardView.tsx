@@ -41,7 +41,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
 import { LoadingState } from '@/components/States';
 import { byNewest } from '@/lib/timestamps';
-import { offenerRest } from '@/features/invoices/zahlstand';
+import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
 
 /**
  * 'YYYY-MM-DD' -> 'Mo., 01.09.'
@@ -308,12 +308,12 @@ export default function DashboardView() {
             ist. Vorher stand dort die Summe der Bruttobeträge, und die war
             nach jeder Anzahlung zu hoch.
           */
+          // Überfällig nach dem ZIEL, nicht nach dem Stand: eine angezahlte
+          // Rechnung heisst „Teilbezahlt" und kann trotzdem längst fällig sein.
+          const heute = todayStr();
           const sum = (offenNichtUeberfaellig: boolean) =>
             invoices
-              .filter((i) =>
-                offenNichtUeberfaellig
-                  ? i.paymentStatus !== 'Überfällig'
-                  : i.paymentStatus === 'Überfällig')
+              .filter((i) => istUeberfaellig(i, heute) !== offenNichtUeberfaellig)
               .reduce((a, i) => a + offenerRest(i), 0);
           out.invoiceSums = { open: sum(true), overdue: sum(false) };
         }
@@ -724,13 +724,23 @@ export default function DashboardView() {
           (data.invoiceSums?.overdue ?? 0) > 0) && (
           <MetricRow>
             {data.ownOpenOrders !== undefined && data.ownOpenOrders > 0 && (
-              <Metric label="Material" value={data.ownOpenOrders} hint="von dir angefordert" />
+              <Metric
+                label="Material"
+                value={data.ownOpenOrders}
+                hint="von dir angefordert"
+                to="/material"
+              />
             )}
             {data.invoiceSums && data.invoiceSums.overdue > 0 && (
-              <Metric label="Überfällig" tone="danger" value={fmtEUR(data.invoiceSums.overdue)} />
+              <Metric
+                label="Überfällig"
+                tone="danger"
+                value={fmtEUR(data.invoiceSums.overdue)}
+                to="/invoices?status=%C3%9Cberf%C3%A4llig"
+              />
             )}
             {data.invoiceSums && data.invoiceSums.open > 0 && (
-              <Metric label="Offene Rechnungen" value={fmtEUR(data.invoiceSums.open)} />
+              <Metric label="Offene Rechnungen" value={fmtEUR(data.invoiceSums.open)} to="/invoices" />
             )}
           </MetricRow>
         )}

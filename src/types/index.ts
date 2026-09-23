@@ -359,8 +359,37 @@ export interface Quote {
   notes?: string;
   /** Bei Annahme: die Baustelle, die daraus entstanden ist. */
   projectNumber?: string;
+  /**
+   * Dieselbe Baustelle als Kennung — die Datenbank löst sie beim Schreiben
+   * aus `projectNumber` auf. Nur lesen: sie überlebt ein späteres Umbenennen
+   * der Baustellennummer, die Nummer am Angebot nicht.
+   */
+  projectId?: string;
   createdAt?: number;
   updatedAt?: number;
+}
+
+/**
+ * Ein Plan, Foto oder Dokument an einer Baustelle.
+ *
+ * Das Büro lädt hoch, der Monteur sieht die Pläne der Baustellen, auf die er
+ * gehört — Team, Leitung oder ein Einsatz dort. Die Datei liegt im Speicher
+ * (`baustellendokumente`), die Zeile sagt, wo.
+ */
+export interface BaustellenDokument {
+  id: string;
+  companyId: string;
+  /** Die Baustelle als Kennung — übersteht ein Umbenennen der Nummer. */
+  projectId: string;
+  /** `baustellen/{betrieb}/{baustelle}/{kennung}.{endung}` */
+  pfad: string;
+  /** Der Name, unter dem die Datei hochgeladen wurde. */
+  dateiname: string;
+  mime: string;
+  bytes: number;
+  hochgeladenVon?: string;
+  hochgeladenVonName?: string;
+  createdAt?: number;
 }
 
 export interface WorkSheet {
@@ -764,7 +793,6 @@ export interface TimeEntry {
   createdAt?: number;
   lastEditedBy?: string;
   lastEditedByUid?: string;
-  lastEditedAt?: number;
   /**
    * Aus welchem genehmigten Urlaubsantrag dieser Eintrag entstanden ist.
    *

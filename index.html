@@ -33,6 +33,14 @@
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!--
+      DER NAME AUF DEM HOME-BILDSCHIRM. Ohne diese Zeile schlägt iOS beim
+      Hinzufügen den Seitentitel vor. Einmal vergeben, behält iOS den Namen —
+      auch in jeder Push-Meldung. Ein Gerät, das die App noch unter altem
+      Namen führt, bekommt den neuen erst nach Entfernen und neu Hinzufügen.
+    -->
+    <meta name="apple-mobile-web-app-title" content="Senklot" />
+    <meta name="application-name" content="Senklot" />
     <title>Senklot</title>
     <!--
       Hinweis: Das früher hier injizierte Kaspersky-Script

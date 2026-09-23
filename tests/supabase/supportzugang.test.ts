@@ -462,6 +462,33 @@ describe('Wie weit der Einblick reicht', () => {
     await admin.from('work_sheets').delete().eq('company_id', BETRIEB);
   });
 
+  /*
+    DIE DATEIEN SELBST, nicht nur ihre Liste. Die Tabelle `work_sheet_photos`
+    war seit dem Supportzugang zu — die Regeln des Dateispeichers hingen aber
+    weiter an `app.darf`, und das schliesst den Support ein. Wer die Kennung
+    eines Scheins kannte (Scheine sieht der Support), konnte den Ordner
+    auflisten und jedes Bild laden. Gefunden beim Bau der Baustellenpläne.
+  */
+  it('kommt auch an die Bilddateien im Speicher nicht heran', async () => {
+    const ordner = `scheine/${BETRIEB}/${crypto.randomUUID()}`;
+    const bild = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' });
+    const { error: hoch } = await admin.storage.from('scheinfotos')
+      .upload(`${ordner}/bild.jpg`, bild, { contentType: 'image/jpeg', upsert: true });
+    expect(hoch).toBeNull();
+
+    await freigeben();
+    const liste = await plattform.client.storage.from('scheinfotos').list(ordner);
+    expect(liste.data ?? []).toEqual([]);
+    const laden = await plattform.client.storage.from('scheinfotos').download(`${ordner}/bild.jpg`);
+    expect(laden.data).toBeNull();
+
+    // Die Gegenprobe: der Betrieb selbst sieht sein Bild.
+    const eigene = await chefin.client.storage.from('scheinfotos').list(ordner);
+    expect((eigene.data ?? []).map((d) => d.name)).toEqual(['bild.jpg']);
+
+    await admin.storage.from('scheinfotos').remove([`${ordner}/bild.jpg`]);
+  });
+
   it('sieht dagegen die Rechnungen — dafür ist der Zugang da', async () => {
     // Die Gegenprobe zum Ganzen: wäre auch das zu, wäre der Supportzugang
     // eine Kulisse.

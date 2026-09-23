@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | Daten, Zeilenschutz, Auswertungen | **Supabase Postgres** | Jede Grenze steht als Richtlinie in der Datenbank, nicht im Browser |
 | Anmeldung | **Supabase Auth** | Rolle und Betrieb stehen im `app_metadata`, gesetzt von zwei Triggern |
-| Dateien (Scheinfotos, Logo) | **Supabase Storage** | |
+| Dateien (Scheinfotos, Pläne an der Baustelle, Logo) | **Supabase Storage** | |
 | Serverlogik | **Postgres-Funktionen, Trigger, `pg_cron`** | Was früher vierzehn Cloud Functions taten |
 | Konten anlegen, Betrieb anlegen, Sicherung, Push-Versand | **Supabase Edge Functions** | `mitarbeiter-anlegen`, `betrieb-anlegen`, `daten-ausleitung`, `push-melden` |
 | Auslieferung der App | **Firebase Hosting** | Nur statische Dateien |

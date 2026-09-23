@@ -40,7 +40,7 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   await anmelden(page, MONTEUR.email);
 
   await page.getByRole('link', { name: 'Handwerksscheine' }).first().click();
-  await page.getByRole('link', { name: 'Neuen Schein erstellen' }).click();
+  await page.getByRole('link', { name: 'Neuer Schein' }).click();
 
   await page.getByLabel('Baustelle').selectOption(BAUSTELLE.nummer);
   await page.getByLabel('Tätigkeit (optional)').fill('Bad entkernt, Leitungen neu verlegt.');

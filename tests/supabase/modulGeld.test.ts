@@ -544,10 +544,50 @@ describe('Angebote', () => {
     expect(await angebote.listRecentQuotes(BETRIEB)).toEqual([]);
   });
 
+  it('ein Angebot für sich — und „gibt es nicht" statt eines Fehlers', async () => {
+    await leeren();
+    const id = await angebote.createQuote(BETRIEB, angebot());
+    const a = await angebote.getQuote(BETRIEB, id);
+    expect(a?.quoteNumber).toBe(`AN-${JAHR}-0001`);
+    expect(a?.positions).toHaveLength(1);
+    // Eine fremde Kennung und eine, die gar keine uuid ist (altes Lesezeichen).
+    expect(await angebote.getQuote(BETRIEB, '00000000-0000-0000-0000-000000000000')).toBeNull();
+    expect(await angebote.getQuote(BETRIEB, 'kaputt')).toBeNull();
+  });
+
+  /*
+    DIE BAUSTELLE FINDET IHR ANGEBOT AUCH NACH DEM UMBENENNEN. Die Nummer der
+    Baustelle lässt sich in der Akte ändern; am Angebot bliebe die alte
+    stehen. Die Kennung, die die Datenbank beim Annehmen aus der Nummer
+    auflöst, zeigt weiter auf dieselbe Baustelle.
+  */
+  it('die Angebote einer Baustelle, über ihre Kennung', async () => {
+    await leeren();
+    await admin.from('projects').delete().eq('company_id', BETRIEB);
+    const { data: p } = await admin.from('projects')
+      .insert({ company_id: BETRIEB, project_number: 'B-ANG-1', customer_name: 'Huber', status: 'Aktiv' })
+      .select('id').single();
+    const id = await angebote.createQuote(BETRIEB, angebot());
+    await angebote.updateQuote(id, { status: 'Angenommen', projectNumber: 'B-ANG-1' });
+
+    let rows = await angebote.listQuotesForProject(BETRIEB, p!.id as string);
+    expect(rows.map((a) => a.id)).toEqual([id]);
+    expect(rows[0].projectId).toBe(p!.id);
+
+    await admin.from('projects').update({ project_number: 'B-ANG-1-NEU' }).eq('id', p!.id);
+    rows = await angebote.listQuotesForProject(BETRIEB, p!.id as string);
+    expect(rows.map((a) => a.id)).toEqual([id]);
+    await admin.from('quotes').delete().eq('company_id', BETRIEB);
+    await admin.from('projects').delete().eq('company_id', BETRIEB);
+  });
+
   it('ein Monteur sieht keine Angebote', async () => {
     await leeren();
     await angebote.createQuote(BETRIEB, angebot());
     clientEinreichen(anton.client);
     expect(await angebote.listRecentQuotes(BETRIEB)).toEqual([]);
+    // Auch nicht über die neue Einzelabfrage der Angebotsseite.
+    const [q] = (await admin.from('quotes').select('id').eq('company_id', BETRIEB)).data!;
+    expect(await angebote.getQuote(BETRIEB, q.id as string)).toBeNull();
   });
 });

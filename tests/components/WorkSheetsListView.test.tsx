@@ -182,6 +182,21 @@ beforeEach(() => {
 });
 
 describe('Liste der Handwerksscheine', () => {
+  it('hat den Knopf für einen neuen Schein im Kopf — wie die anderen Listen', async () => {
+    /*
+      Gemeldet: „der Tab sieht ganz anders aus — der Button erstreckt sich
+      über die ganze Zeile". Er stand als einzige Anlage-Aktion der App in
+      einer eigenen Karte.
+    */
+    zeichne();
+    const neu = await screen.findByRole('link', { name: 'Neuer Schein' });
+    expect(neu).toHaveAttribute('href', '/worksheet');
+    // Er steht neben der Überschrift, nicht in einer Karte darunter.
+    expect(neu.closest('section')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Handwerksscheine' }).parentElement?.parentElement)
+      .toContainElement(neu);
+  });
+
   it('führt aus einem Entwurf zurück ins Formular — mit seiner Kennung', async () => {
     /*
       Die Kennung ist der Punkt. Ohne sie öffnete der Knopf ein LEERES

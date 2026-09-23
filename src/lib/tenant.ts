@@ -19,5 +19,11 @@ export function applyBranding(
   set('--brand-fg', company.brandForeground);
   set('--accent', company.accentColor);
   set('--accent-fg', company.accentForeground);
-  if (company.name) document.title = company.name;
+  /*
+    DER TITEL BLEIBT „Senklot" (aus `index.html`). Hier stand
+    `document.title = company.name` — der Browserreiter hiess damit
+    „Perl Installationen GmbH", und iOS schlug beim „Zum Home-Bildschirm"
+    genau diesen Titel als Namen der App vor. Wie der Betrieb heisst, steht
+    im Kopf der App; der Name der App ist Senklot.
+  */
 }
