@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser } from '@/types';
 import UserMgmtView from '@/features/users/UserMgmtView';
+import { istBenutzerkonto, kunstadresse } from '@shared/benutzername';
 
 /**
  * Benutzerverwaltung — wer im Betrieb was darf, und wer noch hinein kommt.
@@ -51,7 +52,11 @@ vi.mock('@/lib/db/users', () => ({
 vi.mock('@/lib/auth/provisionUser', () => ({
   provisionUser: (...a: unknown[]) => {
     anlegen(...a);
-    return Promise.resolve({ mailSent: mailGeht, tempPassword: 'Kupfer-7742-Rohr' });
+    // Wie das Original: eine Kunstadresse bekommt keine Mail.
+    const benutzerkonto = istBenutzerkonto((a[1] as { email?: string })?.email);
+    return Promise.resolve({
+      mailSent: mailGeht && !benutzerkonto, tempPassword: 'Kupfer-7742-Rohr', benutzerkonto,
+    });
   },
   resendPasswordReset: (...a: unknown[]) => {
     passwortMail(...a);
@@ -445,5 +450,47 @@ describe('Neueintritt oder Bestand', () => {
       appStartDate: '2026-10-15',
       initialOvertime: 0,
     });
+  });
+});
+
+describe('Anlegen mit Benutzername statt E-Mail', () => {
+  async function mitBenutzername(name: string) {
+    zeige();
+    await formOeffnen();
+    await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Manfred Huber');
+    await userEvent.selectOptions(screen.getByLabelText('Anmeldung mit'), 'benutzername');
+    expect(screen.queryByRole('textbox', { name: /E-Mail/ })).not.toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', { name: /Benutzername/ }), name);
+    await userEvent.click(screen.getByRole('button', { name: 'Benutzer anlegen' }));
+  }
+
+  it('legt das Konto unter der Kunstadresse an — klein geschrieben', async () => {
+    await mitBenutzername('Manfred.Huber');
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect((anlegen.mock.calls[0][1] as { email: string }).email)
+      .toBe(kunstadresse('manfred.huber'));
+  });
+
+  it('nennt Benutzername und Startpasswort — ohne von einer gescheiterten Mail zu reden', async () => {
+    await mitBenutzername('manfred.huber');
+    const hinweis = await screen.findByRole('alert');
+    expect(within(hinweis).getByText('Kupfer-7742-Rohr')).toBeInTheDocument();
+    expect(within(hinweis).getByText('manfred.huber')).toBeInTheDocument();
+    expect(within(hinweis).getByText(/Zugangsdaten für Manfred Huber/)).toBeInTheDocument();
+    expect(within(hinweis).queryByText(/konnte nicht gesendet/)).not.toBeInTheDocument();
+  });
+
+  it('weist einen unbrauchbaren Namen ab, bevor etwas angelegt wird', async () => {
+    await mitBenutzername('jürgen');
+    expect(await screen.findByText(/„ue" statt „ü"/)).toBeInTheDocument();
+    expect(anlegen).not.toHaveBeenCalled();
+  });
+
+  it('zeigt in der Liste den Benutzernamen statt der Kunstadresse', async () => {
+    leute = [person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') })];
+    zeige();
+    await screen.findByText('Hans Helfer');
+    expect(screen.getByText('hans')).toBeInTheDocument();
+    expect(screen.queryByText(/senklot\.invalid/)).not.toBeInTheDocument();
   });
 });

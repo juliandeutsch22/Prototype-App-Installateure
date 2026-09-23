@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { kontoAnzeige } from '@shared/benutzername';
 import {
   navGroupsForRole, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, type NavItem,
 } from './navigation';
@@ -417,7 +418,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div className="min-w-0">
             <p className="truncate text-base font-bold text-ink">{user.name}</p>
             <p className="truncate text-sm text-ink-muted">{user.role}</p>
-            <p className="truncate text-sm text-ink-muted">{user.email}</p>
+            <p className="truncate text-sm text-ink-muted">{kontoAnzeige(user.email)}</p>
           </div>
         </div>
         <div className="mt-4 flex flex-col gap-1 border-t border-line pt-3">

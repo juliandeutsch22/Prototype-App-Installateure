@@ -1,5 +1,6 @@
 import { kontoAnlegen, passwortZuruecksetzen } from '@/lib/auth/sitzung';
 import { createUserDoc, type UserProfileInput } from '@/lib/db/users';
+import { istBenutzerkonto, kontoAnzeige } from '@shared/benutzername';
 
 const PW_ALPHABET = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -9,7 +10,7 @@ const PW_ALPHABET = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
  * Verwechselbare Zeichen (0/O, 1/l/I) sind ausgelassen, weil das Passwort
  * am Telefon durchgegeben werden kann, wenn die Mail nicht ankommt.
  */
-function generatePassword(length = 12): string {
+export function generatePassword(length = 12): string {
   const bytes = new Uint32Array(length);
   crypto.getRandomValues(bytes);
   let out = '';
@@ -21,8 +22,13 @@ export interface ProvisionResult {
   uid: string;
   /** Initialpasswort — anzeigen, falls die Willkommens-Mail nicht ankommt. */
   tempPassword: string;
-  /** false = Mailversand schlug fehl, Passwort muss weitergegeben werden. */
+  /** false = keine Mail ging hinaus, das Passwort muss weitergegeben werden. */
   mailSent: boolean;
+  /**
+   * Anmeldung mit Benutzername: es gibt keine Mail, und das ist kein Fehler.
+   * Die Ansicht sagt dann nicht „konnte nicht gesendet werden".
+   */
+  benutzerkonto: boolean;
 }
 
 /**
@@ -74,9 +80,14 @@ export async function provisionUser(
     */
     const grund = e instanceof Error ? e.message : 'Unbekannter Fehler';
     throw new Error(
-      `Das Konto zu ${profile.email} wurde angelegt, das Profil aber nicht: ${grund}. ` +
-        'Bitte an die Entwicklung wenden — mit dieser Adresse lässt sich kein zweites anlegen.',
+      `Das Konto zu ${kontoAnzeige(profile.email)} wurde angelegt, das Profil aber nicht: ${grund}. ` +
+        'Bitte an die Entwicklung wenden — damit lässt sich kein zweites anlegen.',
     );
+  }
+
+  // Eine Kunstadresse bekommt keine Mail — sie käme nie an.
+  if (istBenutzerkonto(profile.email)) {
+    return { uid: newUid, tempPassword, mailSent: false, benutzerkonto: true };
   }
 
   let mailSent = true;
@@ -87,7 +98,7 @@ export async function provisionUser(
     // als erfolgt, und die Ansicht zeigt das Anfangspasswort zur Weitergabe.
     mailSent = false;
   }
-  return { uid: newUid, tempPassword, mailSent };
+  return { uid: newUid, tempPassword, mailSent, benutzerkonto: false };
 }
 
 /** Die Willkommensmail erneut senden. */

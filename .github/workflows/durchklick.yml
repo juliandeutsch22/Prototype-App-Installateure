@@ -1,9 +1,9 @@
 name: Durchklick
 
-# DIE APP IM ECHTEN BROWSER, auf den sechs Wegen, bei denen ein Fehler Geld
+# DIE APP IM ECHTEN BROWSER, auf den sieben Wegen, bei denen ein Fehler Geld
 # oder Arbeitszeit kostet: Zeit buchen, Material anfordern, Schein
-# unterschreiben, Rechnung stellen, Katalog einspielen — und der allererste
-# Besuch, an dem alle anderen hängen. Die Anmeldung steht nicht daneben:
+# unterschreiben, Rechnung stellen, Katalog einspielen — der allererste
+# Besuch, an dem alle anderen hängen, und die Anmeldung mit Benutzername. Die Anmeldung steht nicht daneben:
 # jeder Weg beginnt damit, und zwar über die Maske, nicht über eine
 # untergeschobene Sitzung.
 #
@@ -44,6 +44,9 @@ env:
 
 jobs:
   durchklicken:
+    # DER NAME BLEIBT, obwohl es inzwischen sieben Wege sind: unter ihm kann
+    # die Prüfung als Pflicht für den Merge hinterlegt sein, und ein neuer
+    # Name hiesse eine Pflichtprüfung, die nie mehr berichtet.
     name: Die sechs Wege im Browser
     runs-on: ubuntu-latest
     steps:
@@ -69,7 +72,7 @@ jobs:
         run: supabase start
 
       # NUR CHROMIUM, nicht alle drei Browser: jeder weitere kostet Minuten
-      # Ladezeit für einen Erkenntnisgewinn, den diese sechs Wege nicht
+      # Ladezeit für einen Erkenntnisgewinn, den diese sieben Wege nicht
       # hergeben — sie prüfen Abläufe, nicht Darstellung.
       - name: Browser holen
         run: npx playwright install --with-deps chromium

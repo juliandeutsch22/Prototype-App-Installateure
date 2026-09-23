@@ -23,9 +23,9 @@ Wartungen. Entstanden aus einer monolithischen Einzeldatei
 - **Frontend:** React + TypeScript (strict) + Vite, Tailwind
 - **Daten, Anmeldung, Dateien:** **Supabase** (Postgres mit Zeilenschutz,
   Supabase Auth, Supabase Storage) — EU-Region
-- **Serverlogik:** Postgres-Funktionen, Trigger, `pg_cron` und vier Edge
-  Functions (`mitarbeiter-anlegen`, `betrieb-anlegen`, `daten-ausleitung`,
-  `push-melden`)
+- **Serverlogik:** Postgres-Funktionen, Trigger, `pg_cron` und fünf Edge
+  Functions (`mitarbeiter-anlegen`, `passwort-vergeben`, `betrieb-anlegen`,
+  `daten-ausleitung`, `push-melden`)
 - **Auslieferung:** Firebase Hosting
 - **Push aufs Telefon:** Firebase Cloud Messaging
 

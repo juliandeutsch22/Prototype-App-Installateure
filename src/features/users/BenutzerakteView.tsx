@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { getUserByUid, updateUserProfile } from '@/lib/db/users';
-import { resendPasswordReset } from '@/lib/auth/provisionUser';
+import { generatePassword, resendPasswordReset } from '@/lib/auth/provisionUser';
+import { passwortVergeben } from '@/lib/auth/sitzung';
+import { istBenutzerkonto, kontoAnzeige } from '@shared/benutzername';
 import { canManageAdmins } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
@@ -55,6 +57,10 @@ export default function BenutzerakteView() {
   const [speichert, setSpeichert] = useState(false);
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
   const [umschalten, setUmschalten] = useState(false);
+  const [neuesPasswortFragen, setNeuesPasswortFragen] = useState(false);
+  const [vergibt, setVergibt] = useState(false);
+  /** Nur für diesen Augenblick sichtbar — nirgends gespeichert. */
+  const [vergeben, setVergeben] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
 
   const companyId = user?.companyId;
@@ -114,6 +120,20 @@ export default function BenutzerakteView() {
       setSpeicherFehler('Die Änderungen konnten nicht gespeichert werden.');
     } finally {
       setSpeichert(false);
+    }
+  }
+
+  async function startpasswortVergeben(): Promise<void> {
+    if (!uid) return;
+    setVergibt(true);
+    const pw = generatePassword();
+    try {
+      await passwortVergeben(uid, pw);
+      setVergeben(pw);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Das Passwort konnte nicht vergeben werden.');
+    } finally {
+      setVergibt(false);
     }
   }
 
@@ -218,19 +238,41 @@ export default function BenutzerakteView() {
             Akte ist man bei genau dieser Person und hat es so gemeint.
           */}
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              variant="secondary"
-              onClick={async () => {
-                try {
-                  await resendPasswordReset(p.email);
-                  toast.success(`Passwort-Mail an ${p.email} gesendet`);
-                } catch {
-                  toast.error('Die Passwort-Mail konnte nicht gesendet werden.');
-                }
-              }}
-            >
-              Passwort-Mail senden
-            </Button>
+            {/*
+              EIN BENUTZERNAME HAT KEIN POSTFACH. Der Knopf für die Mail wäre
+              hier ein Versprechen ohne Empfänger — an seiner Stelle vergibt
+              das Büro ein neues Startpasswort. Das eigene nicht: das steht
+              unter „Mein Konto", mit zweiter Eingabe.
+            */}
+            {istBenutzerkonto(p.email) ? (
+              eigenesKonto ? (
+                <span className="text-sm text-ink-muted">
+                  Das eigene Passwort unter „Mein Konto" ändern.
+                </span>
+              ) : (
+                <Button
+                  variant="secondary"
+                  loading={vergibt}
+                  onClick={() => setNeuesPasswortFragen(true)}
+                >
+                  Neues Startpasswort vergeben
+                </Button>
+              )
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  try {
+                    await resendPasswordReset(p.email);
+                    toast.success(`Passwort-Mail an ${p.email} gesendet`);
+                  } catch {
+                    toast.error('Die Passwort-Mail konnte nicht gesendet werden.');
+                  }
+                }}
+              >
+                Passwort-Mail senden
+              </Button>
+            )}
             {eigenesKonto ? (
               // Wer sich selbst sperrt, ist ausgesperrt — und niemand sonst
               // muss den Fehler beheben können.
@@ -246,6 +288,23 @@ export default function BenutzerakteView() {
               </Button>
             )}
           </div>
+          {vergeben && (
+            <div className="mt-4 rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
+              <p className="font-semibold">Neues Startpasswort für {p.name}</p>
+              <p className="mt-1 text-sm">
+                Bitte persönlich weitergeben — es wird nur jetzt angezeigt. Beim nächsten
+                Anmelden vergibt {p.name} ein eigenes.
+              </p>
+              <p className="mt-2 text-sm text-ink">
+                Benutzername:{' '}
+                <span className="select-all font-semibold">{kontoAnzeige(p.email)}</span>
+              </p>
+              <p className="mt-2 select-all tnum text-lg font-semibold">{vergeben}</p>
+              <Button variant="ghost" className="mt-2" onClick={() => setVergeben(null)}>
+                Verstanden
+              </Button>
+            </div>
+          )}
           {/* Bewusst kein Löschen: Zeiteinträge, Bestellungen und Einsätze
               verweisen auf die Kennung und würden verwaisen. */}
           <p className="mt-3 text-sm text-ink-muted">
@@ -255,6 +314,18 @@ export default function BenutzerakteView() {
           </p>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={neuesPasswortFragen}
+        title="Neues Startpasswort vergeben?"
+        confirmLabel="Vergeben"
+        message={`Das bisherige Passwort von ${p.name} gilt danach nicht mehr. Bereits angemeldete Geräte bleiben angemeldet — wer ein verlorenes Telefon sperren will, deaktiviert das Konto.`}
+        onCancel={() => setNeuesPasswortFragen(false)}
+        onConfirm={() => {
+          setNeuesPasswortFragen(false);
+          void startpasswortVergeben();
+        }}
+      />
 
       <ConfirmDialog
         open={umschalten}
@@ -283,7 +354,11 @@ export default function BenutzerakteView() {
 function StammdatenLesen({ p }: { p: AppUser }) {
   return (
     <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-      <Angabe wort="E-Mail"><MailLink adresse={p.email} /></Angabe>
+      {istBenutzerkonto(p.email) ? (
+        <Angabe wort="Benutzername">{kontoAnzeige(p.email)}</Angabe>
+      ) : (
+        <Angabe wort="E-Mail"><MailLink adresse={p.email} /></Angabe>
+      )}
       <Angabe wort="Rolle">{p.role}</Angabe>
       <Angabe wort="Zustand">
         {p.active === false
@@ -347,11 +422,19 @@ function StammdatenFormular({
           zweites Konto anzulegen und das erste stehen zu lassen — sie steht
           deshalb nur da.
         */}
-        <InputField
-          id="b-mail" label="E-Mail" value={entwurf.email} disabled
-          title="Die E-Mail-Adresse ist das Anmeldekonto und kann hier nicht geändert werden."
-          onChange={() => undefined}
-        />
+        {istBenutzerkonto(entwurf.email) ? (
+          <InputField
+            id="b-mail" label="Benutzername" value={kontoAnzeige(entwurf.email)} disabled
+            title="Der Benutzername ist das Anmeldekonto und kann hier nicht geändert werden."
+            onChange={() => undefined}
+          />
+        ) : (
+          <InputField
+            id="b-mail" label="E-Mail" value={entwurf.email} disabled
+            title="Die E-Mail-Adresse ist das Anmeldekonto und kann hier nicht geändert werden."
+            onChange={() => undefined}
+          />
+        )}
         <SelectField
           id="b-rolle" label="Rolle" value={entwurf.role}
           onChange={(e) => setze('role', e.target.value as Role)}

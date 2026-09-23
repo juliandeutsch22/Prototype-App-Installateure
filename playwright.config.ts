@@ -11,7 +11,7 @@ import { defineConfig, devices } from '@playwright/test';
  * abbricht. Genau diese Sorte hat der Rauchtest des Betriebs gefunden — drei
  * Stück an einem Nachmittag, keinen davon hat eine Prüfung vorher gesehen.
  *
- * WARUM NUR SECHS WEGE. Ein Durchklick durch jede Ansicht kostet Stunden
+ * WARUM NUR SIEBEN WEGE. Ein Durchklick durch jede Ansicht kostet Stunden
  * Rechenzeit und flattert: eine Prüfung, die mal fällt und mal nicht, wird
  * nach zwei Wochen ignoriert, und dann ist sie schlimmer als keine. Hier
  * stehen die Wege, bei denen ein Fehler Geld oder Arbeitszeit kostet:
@@ -31,6 +31,13 @@ import { defineConfig, devices } from '@playwright/test';
  * Passwort stehen. Alle anderen Wege melden sich mit einem Passwort an,
  * das der Aufbau gesetzt hat, und keiner meldet sich ZWEIMAL an — deshalb
  * hat keiner es gesehen.
+ *
+ * DER SIEBTE IST DIE ANMELDUNG MIT BENUTZERNAMEN (23.09.2026): anlegen,
+ * erstes Anmelden mit dem Startpasswort, eigenes vergeben, am nächsten Tag
+ * ohne Rückfrage wieder herein, und ein neues Startpasswort aus der Akte.
+ * Jedes Stück ist einzeln geprüft; die Naht — derselbe Name beim Anlegen
+ * und beim Anmelden, die Frage nach dem eigenen Passwort genau einmal — nur
+ * hier.
  *
  * KEIN ZWEITER LAUF NACH EINEM FEHLSCHLAG (`retries: 0`), auch nicht in der
  * CI. Ein Wiederholungslauf versteckt genau das Flattern, das man sehen will;

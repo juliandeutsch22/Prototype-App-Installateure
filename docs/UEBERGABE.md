@@ -270,6 +270,7 @@ sagten. **Nicht wieder auseinanderziehen.** Ein statischer Test wacht darüber.
 | `public.betrieb_auszug` | Auskunft nach Art. 15 DSGVO: der ganze Bestand als Datei. Seitenweise gelesen und gedeckelt — deshalb ist sie NICHT die Sicherung. |
 | Edge Function `daten-ausleitung` + `pg_cron` | Die Sicherung: schreibt jede Nacht den Bestand jedes Mandanten zeilenweise weg, samt Dateien, und räumt alte Stände auf. Von Hand anstoßbar, damit sich überhaupt prüfen lässt, ob sie läuft. |
 | Edge Function `mitarbeiter-anlegen` | Ein Anmeldekonto anlegen braucht den Dienstschlüssel. Der steht sonst im ausgelieferten JavaScript. Die Zeile in der Belegschaft schreibt weiterhin der Browser — siehe `README.md`, das ist Absicht. |
+| Edge Function `passwort-vergeben` | Ein neues Startpasswort für ein Konto, das sich mit **Benutzernamen** anmeldet — es hat kein Postfach für einen Rücksetzlink. Nur Geschäftsführung/Administration, nur im eigenen Betrieb, einem Administrator nur durch einen Administrator, und **nie für ein Konto mit E-Mail-Adresse** (sonst könnte das Büro sich still in das Konto eines Kollegen setzen). |
 | Edge Function `betrieb-anlegen` | Legt einen ganzen Mandanten an. Lässt nur herein, wer in `platform_admins` steht. |
 
 **Nur das Ist speichern, nie den Saldo.** Der Saldo hängt an Wochenstunden,
