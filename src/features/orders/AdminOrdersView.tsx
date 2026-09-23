@@ -276,7 +276,18 @@ export default function AdminOrdersView() {
                             {o.userName}
                             {o.projectNumber && ` · ${o.projectNumber}`}
                             {o.condition && ` · ${CONDITION_LABEL[o.condition] ?? o.condition}`}
-                            {o.note && ` · ${o.note}`}
+                            {/*
+                              DIE NOTIZ BEKOMMT EINE EIGENE ZEILE. Angehängt an
+                              Name und Baustelle, im selben Grau, ging sie unter —
+                              gemeldet als „wird nirgends angezeigt". Sie ist oft
+                              das Einzige, was die Projektleitung wirklich lesen
+                              muss („bis Donnerstag", „Kiste im Keller").
+                            */}
+                            {o.note && (
+                              <span className="mt-1 block text-ink">
+                                <span className="font-medium">Notiz:</span> {o.note}
+                              </span>
+                            )}
                           </>
                         }
                       >
