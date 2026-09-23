@@ -63,7 +63,7 @@ try {
 
     firebase.messaging().onBackgroundMessage((payload) => {
       const { title, body, link } = payload.data ?? {};
-      self.registration.showNotification(title || 'Perl Zeiterfassung', {
+      self.registration.showNotification(title || 'Senklot', {
         body: body || '',
         icon: '/icon-192.png',
         badge: '/favicon-64.png',
