@@ -129,3 +129,14 @@ describe('Meine Baustellen', () => {
     expect(bereich.getByText('40 h kalkuliert')).toBeInTheDocument();
   });
 });
+
+describe('Der Auftragsumfang', () => {
+  it('behält seine Zeilen — aus dem Angebot kommt oft eine Liste', async () => {
+    baustellen = [baustelle({ description: 'Bad erneuern:\n- WC tauschen\n\nAus Angebot AN-2026-0001' })];
+    render(<MyProjectsView />);
+    const text = await screen.findByText(/Bad erneuern:/);
+    expect(text.textContent).toBe('Bad erneuern:\n- WC tauschen\n\nAus Angebot AN-2026-0001');
+    // Ohne diese Klasse fasst der Browser die Umbrüche zu Leerzeichen zusammen.
+    expect(text).toHaveClass('whitespace-pre-line');
+  });
+});

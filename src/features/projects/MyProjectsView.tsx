@@ -65,7 +65,8 @@ export default function MyProjectsView() {
               action={<StatusBadge status={p.status} />}
             >
               <p className="tnum text-sm text-ink-muted">{p.projectNumber}</p>
-              {p.description && <p className="mt-2 text-ink">{p.description}</p>}
+              {/* Zeilenumbrüche bleiben: der Auftragsumfang aus dem Angebot ist oft eine Liste. */}
+              {p.description && <p className="mt-2 whitespace-pre-line text-ink">{p.description}</p>}
 
               {(p.startDate || p.endDate) && (
                 <p className="mt-2 text-sm text-ink-muted">

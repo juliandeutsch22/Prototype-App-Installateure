@@ -434,7 +434,7 @@ export default function KundenakteView() {
             <ul className="divide-y divide-line">
               {angebote.daten.map((q) => (
                 <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <Link to="/quotes" className="truncate text-sm text-brand underline">
+                  <Link to={`/quotes/${q.id}`} className="truncate text-sm text-brand underline">
                     {q.quoteNumber}
                   </Link>
                   <span className="tnum text-sm text-ink-muted">

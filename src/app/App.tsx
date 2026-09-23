@@ -49,6 +49,7 @@ const CustomersView = lazy(() => import('@/features/customers/CustomersView'));
 const KundenakteView = lazy(() => import('@/features/customers/KundenakteView'));
 const WartungenView = lazy(() => import('@/features/maintenance/WartungenView'));
 const QuotesView = lazy(() => import('@/features/quotes/QuotesView'));
+const AngebotView = lazy(() => import('@/features/quotes/AngebotView'));
 const NachkalkulationView = lazy(() => import('@/features/costing/NachkalkulationView'));
 const WorkSheetView = lazy(() => import('@/features/worksheets/WorkSheetView'));
 const VacationsView = lazy(() => import('@/features/vacations/VacationsView'));
@@ -274,6 +275,15 @@ function AppRoutes() {
       {/* Verwaltung */}
       <Route path="/costing" element={<RequireNav path="/costing"><NachkalkulationView /></RequireNav>} />
       <Route path="/quotes" element={<RequireNav path="/quotes"><QuotesView /></RequireNav>} />
+      {/* Ein Angebot — dieselbe Prüfung wie die Liste, aus demselben Grund wie bei den Akten. */}
+      <Route
+        path="/quotes/:id"
+        element={
+          <RequireNav path="/quotes">
+            <AngebotView />
+          </RequireNav>
+        }
+      />
       <Route path="/customers" element={<RequireNav path="/customers"><CustomersView /></RequireNav>} />
       {/*
         Die Akte eines Kunden. Sie hängt an derselben Prüfung wie die Liste

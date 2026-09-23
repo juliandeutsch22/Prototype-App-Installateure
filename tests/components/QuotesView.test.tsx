@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Quote } from '@/types';
 
@@ -72,9 +73,11 @@ const { default: QuotesView } = await import('@/features/quotes/QuotesView');
 
 function zeichne() {
   return render(
-    <ToastProvider>
-      <QuotesView />
-    </ToastProvider>,
+    <MemoryRouter>
+      <ToastProvider>
+        <QuotesView />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -325,5 +328,59 @@ describe('Angebot kalkulieren', () => {
     await screen.findByText(/Die Baustelle konnte nicht angelegt werden/);
     expect(reserveProjectNumber).not.toHaveBeenCalled();
     expect(updateQuote).not.toHaveBeenCalled();
+  });
+});
+
+/*
+  GEMELDET: „wenn ein Angebot angenommen wird, steht in der Baustelle nur ‚Aus
+  Angebot AN-2026-0001'". Die Anmerkungen — das, was gemacht werden soll —
+  gingen verloren; der Monteur sieht Angebote gar nicht.
+*/
+describe('Aus dem Angebot wird die Baustelle', () => {
+  it('übernimmt die Anmerkungen als Auftragsumfang, mit Verweis aufs Angebot', async () => {
+    versendetesAngebot();
+    angebote[0].notes = 'Bad komplett erneuern:\n- WC tauschen\n- Dusche bodengleich';
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+
+    const projekt = createProject.mock.calls[0]?.[1] as { description?: string };
+    expect(projekt.description).toBe(
+      'Bad komplett erneuern:\n- WC tauschen\n- Dusche bodengleich\n\nAus Angebot AN-2026-0007',
+    );
+  });
+
+  it('schreibt ohne Anmerkungen nur den Verweis', async () => {
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+
+    const projekt = createProject.mock.calls[0]?.[1] as { description?: string };
+    expect(projekt.description).toBe('Aus Angebot AN-2026-0007');
+  });
+});
+
+describe('Die Liste führt zum Angebot', () => {
+  it('verlinkt jedes Angebot auf seine eigene Seite', async () => {
+    versendetesAngebot();
+    zeichne();
+    expect(await screen.findByRole('link', { name: /AN-2026-0007/ })).toHaveAttribute(
+      'href',
+      '/quotes/q1',
+    );
+  });
+
+  it('meldet, wenn ein Status nicht gespeichert werden kann', async () => {
+    // Vorher: kein Fang, keine Meldung — der Klick tat für den Betrachter nichts.
+    versendetesAngebot();
+    updateQuote.mockRejectedValueOnce(new Error('kein Netz'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: 'Abgelehnt' }));
+    expect(await screen.findByText('Der Status konnte nicht gespeichert werden.')).toBeInTheDocument();
   });
 });

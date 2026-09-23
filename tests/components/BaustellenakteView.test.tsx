@@ -71,6 +71,17 @@ vi.mock('@/lib/db/customers', () => ({
   },
 }));
 
+/** Angebote zur Baustelle — gesucht über ihre Kennung. */
+let angebote: { id: string; quoteNumber: string }[] = [];
+let angeboteScheitern = false;
+const listQuotesForProject = vi.fn<[string, string], Promise<typeof angebote>>(async () => {
+  if (angeboteScheitern) throw new Error('kaputt');
+  return angebote;
+});
+vi.mock('@/lib/db/quotes', () => ({
+  listQuotesForProject: (c: string, p: string) => listQuotesForProject(c, p),
+}));
+
 /*
   Die Stundenauswertung hat einen eigenen Ansichtstest. Hier steht sie als
   Platzhalter: geprüft wird, DASS die Akte sie zeigt, nicht was sie rechnet.
@@ -123,6 +134,9 @@ beforeEach(() => {
   nutzer = NUTZER();
   listProjectsByIds.mockClear();
   updateProject.mockClear();
+  angebote = [];
+  angeboteScheitern = false;
+  listQuotesForProject.mockClear();
 });
 
 describe('Die Stammdaten für alle, die nur lesen', () => {
@@ -343,5 +357,38 @@ describe('Was die Akte sonst noch zeigt', () => {
     baustellen = [];
     zeige();
     expect(await screen.findByText(/gibt es nicht/)).toBeInTheDocument();
+  });
+});
+
+/*
+  GEMELDET: in der Baustelle stand nur „Aus Angebot AN-2026-0001", und das
+  Angebot war von hier aus nirgends zu erreichen.
+*/
+describe('Das Angebot hinter der Baustelle', () => {
+  it('ist von der Akte aus verlinkt', async () => {
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007' }];
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Angebot AN-2026-0007' })).toHaveAttribute(
+      'href',
+      '/quotes/q7',
+    );
+    // Über die Kennung gesucht, nicht über die änderbare Nummer.
+    expect(listQuotesForProject).toHaveBeenCalledWith('perl', BAUSTELLE.id);
+  });
+
+  it('wird für jemanden ohne Zugang zu Angeboten gar nicht erst gesucht', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007' }];
+    zeige();
+    await screen.findByText('Stundenauswertung');
+    expect(listQuotesForProject).not.toHaveBeenCalled();
+    expect(screen.queryByRole('link', { name: /Angebot AN/ })).toBeNull();
+  });
+
+  it('sagt es, wenn das Angebot nicht geladen werden konnte', async () => {
+    angeboteScheitern = true;
+    zeige();
+    expect(await screen.findByText(/Das Angebot zu dieser Baustelle konnte nicht geladen werden/)).toBeInTheDocument();
   });
 });

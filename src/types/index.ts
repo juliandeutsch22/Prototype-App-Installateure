@@ -359,6 +359,12 @@ export interface Quote {
   notes?: string;
   /** Bei Annahme: die Baustelle, die daraus entstanden ist. */
   projectNumber?: string;
+  /**
+   * Dieselbe Baustelle als Kennung — die Datenbank löst sie beim Schreiben
+   * aus `projectNumber` auf. Nur lesen: sie überlebt ein späteres Umbenennen
+   * der Baustellennummer, die Nummer am Angebot nicht.
+   */
+  projectId?: string;
   createdAt?: number;
   updatedAt?: number;
 }

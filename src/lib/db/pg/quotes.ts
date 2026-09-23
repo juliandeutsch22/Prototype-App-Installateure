@@ -86,7 +86,34 @@ export async function listQuotesForCustomer(companyId: string, customerId: strin
   return zusammensetzen(koepfe, companyId);
 }
 
-export type NewQuote = Omit<Quote, 'id' | 'companyId' | 'createdAt'>;
+/** EIN Angebot — für seine eigene Seite. `null`, wenn es das nicht (mehr) gibt. */
+export async function getQuote(companyId: string, id: string): Promise<WithId<Quote> | null> {
+  // Eine Kennung, die keine uuid ist (altes Lesezeichen, Tippfehler in der
+  // Adresse), ist „gibt es nicht" — nicht ein Datenbankfehler.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return null;
+  const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [{ art: 'gleich', feld: 'id', wert: id }],
+    grenze: 1,
+  });
+  return (await zusammensetzen(koepfe, companyId))[0] ?? null;
+}
+
+/**
+ * Die Angebote, aus denen eine Baustelle entstanden ist.
+ *
+ * ÜBER DIE KENNUNG, NICHT DIE NUMMER. Die Baustellennummer lässt sich in der
+ * Akte ändern; `project_number` am Angebot bliebe dann stehen, `project_id`
+ * zeigt weiter auf dieselbe Baustelle.
+ */
+export async function listQuotesForProject(companyId: string, projectId: string) {
+  const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [{ art: 'gleich', feld: 'projectId', wert: projectId }],
+    grenze: 20,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+export type NewQuote = Omit<Quote, 'id' | 'companyId' | 'createdAt' | 'projectId'>;
 
 /** Der Aufruf der Datenbankfunktion — eine Stelle für Anlegen und Ändern. */
 async function speichern(id: string | null, daten: Partial<NewQuote>): Promise<string> {

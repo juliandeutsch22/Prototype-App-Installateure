@@ -2,11 +2,11 @@ import jsPDF from 'jspdf';
 import {
   briefkopf,
   empfaenger,
-  fmtMenge,
   fusszeilen,
   GRAU,
   kopfdaten,
   platzFuer,
+  positionsTabelle,
   RAND,
   RECHTS,
   TABELLE_AB,
@@ -15,8 +15,11 @@ import {
   titel,
 } from '@/lib/belegLayout';
 import autoTable from 'jspdf-autotable';
-import { discountLabel } from './totals';
+import { summenZeilen } from './summenZeilen';
 import { RC_HINWEIS } from './reverseCharge';
+
+// Hier weiterhin erreichbar — die Prüfungen und das Angebot lesen sie so.
+export { summenZeilen };
 
 /**
  * '2026-09-14' -> '14.09.2026'.
@@ -65,74 +68,6 @@ export const UEBERSCHRIFT: Record<RechnungsArt, string> = {
   teil: 'Teilrechnung',
   schluss: 'Schlussrechnung',
 };
-
-/**
- * Die Summenzeilen unter der Positionstabelle.
- *
- * EIGENE FUNKTION, WEIL HIER DIE STEUER ENTSCHEIDET. Was unter der Tabelle
- * steht, ist der Teil des Belegs, den das Finanzamt liest; `jspdf-autotable`
- * lässt sich im Testlauf nicht zeichnen, diese Zeilen aber schon.
- */
-export function summenZeilen(opts: {
-  assembled: AssembledInvoice;
-  vatRate: number;
-  /** Bauleistung mit Übergang der Steuerschuld. */
-  rc: boolean;
-  abzuege: Vorrechnung[];
-  /** Was nach Abzug übrig bleibt. */
-  forderung: number;
-}): string[][] {
-  const { assembled, vatRate, rc, abzuege, forderung } = opts;
-  return [
-    // Ein Rabatt gehoert auf die Rechnung, nicht in einen stillschweigend
-    // gekuerzten Nettobetrag: der Kunde muss sehen, was ihm nachgelassen
-    // wurde, und das Finanzamt, worauf die Steuer bemessen ist.
-    ...(assembled.discountAmount > 0 && assembled.discount
-      ? [
-          ['', '', '', 'Zwischensumme', fmtEUR(assembled.subtotalNetto)],
-          ['', '', '', discountLabel(assembled.discount), `- ${fmtEUR(assembled.discountAmount)}`],
-        ]
-      : []),
-    ['', '', '', 'Netto', fmtEUR(assembled.totalNetto)],
-    /*
-      BEI REVERSE CHARGE STEHT KEINE STEUER DA — auch keine „USt. 0 %".
-
-      Eine ausgewiesene Steuer schuldet der Betrieb kraft Rechnungslegung,
-      bis er berichtigt (§ 11 Abs 12 UStG). „0 %" ist ein Steuersatz und
-      etwas anderes als ein Übergang der Steuerschuld; die Zeile bekommt
-      deshalb den Grund statt einer Zahl.
-    */
-    ...(rc
-      ? [['', '', '', 'Umsatzsteuer', 'Übergang der Steuerschuld']]
-      : [['', '', '', `USt. ${Math.round(vatRate * 100)}%`, fmtEUR(assembled.totalVat)]]),
-    [
-      '',
-      '',
-      '',
-      // Wo abgezogen wird, ist diese Zeile nicht der Rechnungsbetrag,
-      // sondern die volle Leistung — die Beschriftung muss das sagen.
-      abzuege.length > 0 ? 'Gesamtleistung brutto' : rc ? 'Rechnungsbetrag' : 'Brutto',
-      fmtEUR(assembled.totalBrutto),
-    ],
-    /*
-      JEDE ABGEZOGENE VORRECHNUNG EINZELN, MIT IHRER STEUER.
-
-      § 11 Abs 12 UStG: wer eine Steuer ausweist, schuldet sie. Die Steuer der
-      Anzahlung ist bereits auf deren Beleg ausgewiesen und abgeführt; sie hier
-      nicht wieder herauszurechnen hiesse, sie zweimal zu schulden, bis der
-      Betrieb berichtigt. Der Kunde wiederum darf die Vorsteuer nur einmal
-      ziehen und braucht dafür genau diese Zeile.
-    */
-    ...abzuege.map((v) => [
-      `abzüglich ${v.invoiceNumber} vom ${fmtDatum(v.invoiceDate)}`,
-      '',
-      '',
-      rc ? 'netto' : `netto ${fmtEUR(v.netto)} + USt ${fmtEUR(v.vat)}`,
-      `- ${fmtEUR(v.brutto)}`,
-    ]),
-    ...(abzuege.length > 0 ? [['', '', '', 'Restforderung brutto', fmtEUR(forderung)]] : []),
-  ];
-}
 
 /**
  * Erzeugt das Rechnungs-PDF (jsPDF + autotable, docs §4.5). Kopf-/Bankdaten
@@ -232,48 +167,10 @@ export function generateInvoicePdf(opts: {
   }
 
   // Positionstabelle
-  const fuss = summenZeilen({ assembled, vatRate, rc, abzuege, forderung });
-  /** Die Zeile, die der Kunde zahlt — sie trägt den Strich darüber und Fettschrift. */
-  const endsumme = fuss.length - 1;
-  autoTable(doc, {
-    ...TABELLENSTIL,
+  positionsTabelle(doc, autoTable, {
+    positions: assembled.positions,
+    fuss: summenZeilen({ assembled, vatRate, rc, abzuege, forderung }),
     startY: TABELLE_AB + 3,
-    head: [['Bezeichnung', 'Menge', 'Einheit', 'Einzelpreis €', 'Netto €']],
-    body: assembled.positions.map((p) => [
-      p.label,
-      fmtMenge(p.qty),
-      p.unit,
-      fmtEUR(p.unitPrice),
-      fmtEUR(p.netto),
-    ]),
-    foot: fuss,
-    columnStyles: {
-      1: { halign: 'right', cellWidth: 17 },
-      2: { cellWidth: 17 },
-      3: { halign: 'right', cellWidth: 27 },
-      4: { halign: 'right', cellWidth: 27 },
-    },
-    didParseCell: (d) => {
-      // Die Kopfzeile folgt der Ausrichtung ihrer Spalte, sonst stehen die
-      // Beträge rechts und ihre Überschrift links darüber.
-      if (d.section === 'head' && d.column.index !== 0 && d.column.index !== 2) {
-        d.cell.styles.halign = 'right';
-      }
-      if (d.section !== 'foot') return;
-      if (d.column.index >= 3) d.cell.styles.halign = 'right';
-      /*
-        Die Beschriftung einer Summenzeile („netto 1 000,00 + USt 200,00")
-        darf über die leeren Spalten links von ihr hinausreichen, statt in
-        ihrer schmalen Spalte umzubrechen.
-      */
-      if (d.column.index === 3) d.cell.styles.overflow = 'visible';
-      if (d.row.index === 0) d.cell.styles.lineWidth = { top: 0.35 };
-      if (d.row.index === endsumme) {
-        d.cell.styles.fontStyle = 'bold';
-        d.cell.styles.fontSize = 10;
-        if (d.column.index >= 3) d.cell.styles.lineWidth = { top: 0.35 };
-      }
-    },
   });
 
   // Zahlungshinweis + Bankdaten

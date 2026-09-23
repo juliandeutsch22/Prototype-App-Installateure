@@ -1,4 +1,5 @@
 import type jsPDF from 'jspdf';
+import type autoTableFn from 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 import type { Company } from '@/types';
 import { firmenZeilen, logoZeichnen } from './pdfBriefkopf';
@@ -200,4 +201,80 @@ export const TABELLENSTIL: Partial<UserOptions> = {
 /** Deutsche Zahl ohne erzwungene Nachkommastellen: 8,5 statt „8.5". */
 export function fmtMenge(n: number): string {
   return new Intl.NumberFormat('de-AT', { maximumFractionDigits: 3 }).format(n);
+}
+
+const fmtEUR = (n: number) =>
+  new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+/** Eine Zeile der Positionstabelle — Rechnung und Angebot haben dieselbe. */
+export interface BelegPosition {
+  label: string;
+  qty: number;
+  unit: string;
+  unitPrice: number;
+  netto: number;
+}
+
+/**
+ * Die Positionstabelle samt Summen darunter.
+ *
+ * `autoTable` wird hereingereicht und nicht hier importiert: die Mahnung und
+ * das Angebot laden jsPDF erst, wenn wirklich ein Beleg entsteht, und diese
+ * Datei soll das nicht aushebeln.
+ *
+ * Die LETZTE Summenzeile ist die, die der Kunde zahlt — sie steht fett und
+ * mit einem Strich darüber.
+ */
+export function positionsTabelle(
+  doc: jsPDF,
+  autoTable: typeof autoTableFn,
+  o: { positions: BelegPosition[]; fuss: string[][]; startY: number },
+): void {
+  const endsumme = o.fuss.length - 1;
+  autoTable(doc, {
+    ...TABELLENSTIL,
+    startY: o.startY,
+    head: [['Bezeichnung', 'Menge', 'Einheit', 'Einzelpreis €', 'Netto €']],
+    body: o.positions.map((p) => [
+      p.label,
+      fmtMenge(p.qty),
+      p.unit,
+      fmtEUR(p.unitPrice),
+      fmtEUR(p.netto),
+    ]),
+    foot: o.fuss,
+    columnStyles: {
+      1: { halign: 'right', cellWidth: 17 },
+      2: { cellWidth: 17 },
+      3: { halign: 'right', cellWidth: 27 },
+      4: { halign: 'right', cellWidth: 27 },
+    },
+    didParseCell: (d) => {
+      // Die Kopfzeile folgt der Ausrichtung ihrer Spalte, sonst stehen die
+      // Beträge rechts und ihre Überschrift links darüber.
+      if (d.section === 'head' && d.column.index !== 0 && d.column.index !== 2) {
+        d.cell.styles.halign = 'right';
+      }
+      if (d.section !== 'foot') return;
+      if (d.column.index >= 3) d.cell.styles.halign = 'right';
+      /*
+        Die Beschriftung einer Summenzeile („netto 1 000,00 + USt 200,00")
+        darf über die leeren Spalten links von ihr hinausreichen, statt in
+        ihrer schmalen Spalte umzubrechen.
+      */
+      if (d.column.index === 3) d.cell.styles.overflow = 'visible';
+      if (d.row.index === 0) d.cell.styles.lineWidth = { top: 0.35 };
+      if (d.row.index === endsumme) {
+        d.cell.styles.fontStyle = 'bold';
+        d.cell.styles.fontSize = 10;
+        if (d.column.index >= 3) d.cell.styles.lineWidth = { top: 0.35 };
+      }
+    },
+  });
+}
+
+/** Wo es nach der letzten Tabelle weitergeht. */
+export function nachTabelle(doc: jsPDF, abstand = 12): number {
+  const letzte = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
+  return (letzte?.finalY ?? 120) + abstand;
 }
