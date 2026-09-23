@@ -16,10 +16,10 @@ name: Supabase-Migrationen
 #
 # AUF MAIN OHNE PFADFILTER, SEIT DEM 20.09.2026. Hier stand `paths:
 # supabase/**` — sinnvoll, solange dieser Ablauf für sich stand. Seitdem hängt
-# "Test und Deploy" per `workflow_run` HINTER diesem hier, und ein
-# übersprungener Lauf löst kein `workflow_run` aus. Mit Filter würde also jede
-# Änderung, die `supabase/` nicht berührt, NIE ausgeliefert — eine
-# Tippfehlerkorrektur in einer Ansicht bliebe stillschweigend liegen.
+# die Auslieferung der App HINTER diesem hier (Auftrag `app` ganz unten). Mit
+# Filter würde also jede Änderung, die `supabase/` nicht berührt, NIE
+# ausgeliefert — eine Tippfehlerkorrektur in einer Ansicht bliebe
+# stillschweigend liegen.
 #
 # Der Preis sind ein paar Minuten je Auslieferung: `db push` findet nichts
 # Neues und tut nichts, die Functions gehen unverändert noch einmal raus. Das
@@ -138,3 +138,23 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: supabase functions deploy --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+  # ERST DAS SCHEMA, DANN DIE APP — als Auftrag in DIESEM Lauf.
+  #
+  # Vom 21. bis 23.09.2026 hing "Test und Deploy" per `workflow_run` hinter
+  # diesem Ablauf. Beim ersten echten Merge ist es nie angesprungen: GitHub
+  # liest `workflow_run` ausschliesslich aus der Fassung auf dem
+  # STANDARDBRANCH des Repositorys, und der war nicht `main`, sondern ein
+  # alter Arbeitszweig, auf dem noch `push: main` stand. Schema und Functions
+  # gingen live, die App nicht; keine Prüfung konnte das sehen, weil ein Pull
+  # Request `workflow_run` gar nicht auslöst.
+  #
+  # Ein Aufruf per `uses:` hängt an keiner Einstellung: die Datei kommt aus
+  # demselben Commit wie dieser Lauf, und `needs` wartet auf den Erfolg.
+  # Scheitert das Einspielen, wird die App gar nicht erst gebaut.
+  app:
+    name: App ausliefern
+    needs: einspielen
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit

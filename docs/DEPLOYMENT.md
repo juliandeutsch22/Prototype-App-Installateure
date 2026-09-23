@@ -313,16 +313,23 @@ Datenbank tut es nicht.
 Branch → Pull Request → grüne Prüfungen → Merge nach main → Schema → App
 ```
 
-Auf `main` laufen **zwei Workflows nacheinander**, nicht nebeneinander:
+Auf `main` läuft **ein Workflow, drei Aufträge nacheinander**, nicht nebeneinander:
 
-| Schritt | Ablauf | Was er tut | Dauer |
+| Schritt | Auftrag in `supabase-migrationen.yml` | Was er tut | Dauer |
 | --- | --- | --- | --- |
-| 1 | `supabase-migrationen.yml` | Migrationen **von null an** gegen eine frische Datenbank + alle Datenbankprüfungen, **danach** `db push` ins echte Projekt und Edge Functions | ~7 min |
-| 2 | `deploy.yml` | Typen, Lint, alle Bausteinprüfungen, Bauen, Deploy auf Firebase Hosting | ~3 min |
+| 1 | „Migrationen von null an" | Migrationen **von null an** gegen eine frische Datenbank + alle Datenbankprüfungen | ~6 min |
+| 2 | „Ins Projekt einspielen" | `db push` ins echte Projekt, danach die Edge Functions | ~3 min |
+| 3 | „App ausliefern" | ruft `deploy.yml` auf: Typen, Lint, alle Bausteinprüfungen, Bauen, Deploy auf Firebase Hosting | ~3 min |
 
-Der zweite startet auf `main` **nicht selbst**: er hängt per `workflow_run` am
-ersten und läuft nur, wenn der mit `success` endet. Zusammen also **rund
-zehn Minuten** vom Merge bis auf die Telefone.
+`deploy.yml` startet auf `main` **nicht selbst**; die Migrationen rufen es per
+`workflow_call` auf, und zwar erst, wenn das Einspielen gelungen ist. Zusammen
+also **gut zehn Minuten** vom Merge bis auf die Telefone.
+
+> **Nicht per `workflow_run`.** Das stand zwei Tage lang da und ist beim ersten
+> Merge nie angesprungen: GitHub liest `workflow_run` nur aus der Fassung auf
+> dem **Standardbranch** des Repositorys — und der war nicht `main`. Ein Aufruf
+> per `uses:` kommt aus demselben Commit und hängt an keiner Einstellung.
+> `tests/unit/auslieferungsKette.test.ts` hält die Kette fest.
 
 > **Scheitert eine Migration, geht die App gar nicht erst live.** Vorher wäre
 > sie gestartet und hätte auf ein Schema getroffen, das nie kam.
@@ -330,9 +337,9 @@ zehn Minuten** vom Merge bis auf die Telefone.
 > **Die Prüfung steht VOR dem Einspielen, nicht daneben.** Eine Migration, die
 > einmal im Projekt liegt, ist dort — ein `git revert` holt sie nicht zurück.
 
-Der Migrationslauf hat auf `main` deshalb **keinen Pfadfilter** mehr. Ein
-übersprungener Lauf löst kein `workflow_run` aus; mit Filter bliebe jede
-Änderung, die `supabase/` nicht berührt, stillschweigend liegen. Der Preis
+Der Migrationslauf hat auf `main` deshalb **keinen Pfadfilter** mehr. Die App
+geht nur über ihn live; mit Filter bliebe jede Änderung, die `supabase/` nicht
+berührt, stillschweigend liegen. Der Preis
 sind ein paar Minuten je Auslieferung — `db push` findet dann nichts Neues.
 
 **Hängt die Kette einmal**, gibt es den Deploy von Hand: *Actions → „Test und

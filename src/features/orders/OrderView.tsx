@@ -33,9 +33,14 @@ interface CartLine {
   materialId: string;
   materialName: string;
   quantity: number;
-  /** Baustelle und Notiz je Position — sonst landen Kosten auf der falschen Rechnung. */
+  /** Baustelle je Position — sonst landen Kosten auf der falschen Rechnung. */
   projectNumber: string;
-  note: string;
+  /**
+   * Nur noch in Körben, die vor dem Umbau gespeichert wurden. Die Notiz gilt
+   * für die ganze Anforderung und wird beim Absenden genommen (siehe
+   * `submitCart`); an der Position ging sie verloren.
+   */
+  note?: string;
   /** Eilzustellung — nur mit gewählter Baustelle möglich. */
   isUrgent?: boolean;
 }
@@ -203,7 +208,6 @@ export default function OrderView() {
         (l) =>
           l.materialId === m.id &&
           l.projectNumber === projectNumber &&
-          l.note === note &&
           !!l.isUrgent === (urgent && !!projectNumber),
       );
       if (i >= 0) {
@@ -218,7 +222,6 @@ export default function OrderView() {
           materialName: m.name,
           quantity: qty,
           projectNumber,
-          note,
           // Ohne Baustelle gibt es keine zustaendige Projektleitung, also
           // auch keine Eilzustellung — der Haken wird dann nicht uebernommen.
           isUrgent: urgent && !!projectNumber,
@@ -245,7 +248,12 @@ export default function OrderView() {
           materialId: line.materialId,
           materialName: line.materialName,
           quantity: line.quantity,
-          note: line.note,
+          // DIE NOTIZ WIRD HIER GENOMMEN, NICHT BEIM HINZUFÜGEN. Das Feld
+          // erscheint erst, wenn schon etwas im Korb liegt — eine Notiz, die
+          // beim Hinzufügen an die Position gehängt wurde, war also immer
+          // leer, und was danach getippt wurde, ging beim Absenden still
+          // verloren. Gefunden beim Probelauf.
+          note: note.trim() || line.note || '',
           projectNumber: line.projectNumber,
           isUrgent: !!line.isUrgent,
           status: 'Offen',
