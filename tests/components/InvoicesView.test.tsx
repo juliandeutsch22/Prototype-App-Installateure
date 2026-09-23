@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
@@ -272,11 +273,13 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
-function zeige() {
+function zeige(adresse = '/invoices') {
   return render(
-    <ToastProvider>
-      <InvoicesView />
-    </ToastProvider>,
+    <MemoryRouter initialEntries={[adresse]}>
+      <ToastProvider>
+        <InvoicesView />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -1654,6 +1657,61 @@ describe('Zahlungen erfassen', () => {
   });
 
   /*
+    GEMELDET: „nach einer Teilzahlung lässt sich nicht mehr mahnen". Mahnen
+    ging — man sah nur nicht mehr, dass man sollte: das Abzeichen sagt
+    „Teilbezahlt", und der Rest stand unter „Offen" statt „Überfällig".
+  */
+  it('führt eine angezahlte Rechnung nach Ablauf des Ziels als überfällig', async () => {
+    rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400, dueDate: '2026-07-15' })];
+    zeige();
+    expect(await screen.findByText(/800,00 offen/)).toHaveTextContent(/offen · überfällig$/);
+
+    const kachel = screen.getAllByText('Überfällig').find((e) => e.tagName === 'P')!.parentElement!;
+    expect(kachel).toHaveTextContent('€ 800,00');
+
+    // Auch der Filter „Überfällig" zeigt sie.
+    await userEvent.selectOptions(document.getElementById('invfilter')!, 'Überfällig');
+    expect(screen.getByText(/RE-2026-0042/)).toBeInTheDocument();
+    // Und die Zahlungserinnerung steht im Menü.
+    await userEvent.click(screen.getByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }));
+    expect(await screen.findByRole('menuitem', { name: /Zahlungserinnerung erzeugen/ })).toBeInTheDocument();
+  });
+
+  /*
+    Die Startseite verlinkt ihre Kachel „Überfällig" mit `?status=`. Ohne
+    den Filter landete man in der vollen Liste und suchte selbst.
+  */
+  it('übernimmt den Filter aus der Adresse, mit der die Startseite hierher verlinkt', async () => {
+    rechnungen = [
+      offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400 }),
+      offeneRechnung({ id: 'r-frisch', invoiceNumber: 'RE-2026-0043', dueDate: '2099-01-15' }),
+    ];
+    zeige('/invoices?status=%C3%9Cberf%C3%A4llig');
+    expect(await screen.findByText(/RE-2026-0042/)).toBeInTheDocument();
+    expect(screen.queryByText(/RE-2026-0043/)).toBeNull();
+    expect((document.getElementById('invfilter') as HTMLSelectElement).value).toBe('Überfällig');
+  });
+
+  it('zeigt bei einem unbekannten Filter in der Adresse alle', async () => {
+    rechnungen = [
+      offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400 }),
+      offeneRechnung({ id: 'r-frisch', invoiceNumber: 'RE-2026-0043', dueDate: '2099-01-15' }),
+    ];
+    zeige('/invoices?status=kaputt');
+    expect(await screen.findByText(/RE-2026-0043/)).toBeInTheDocument();
+    expect(screen.getByText(/RE-2026-0042/)).toBeInTheDocument();
+    expect((document.getElementById('invfilter') as HTMLSelectElement).value).toBe('alle');
+  });
+
+  it('sagt nichts von überfällig, solange das Ziel noch läuft', async () => {
+    rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400, dueDate: '2099-01-15' })];
+    zeige();
+    expect(await screen.findByText(/800,00 offen/)).not.toHaveTextContent(/überfällig/);
+    const kachel = screen.getAllByText('Überfällig').find((e) => e.tagName === 'P')!.parentElement!;
+    expect(kachel).toHaveTextContent('€ 0,00');
+  });
+
+  /*
     EINE STORNIERTE RECHNUNG MIT ZAHLUNG IST EIN GUTHABEN. Sie als „nichts
     offen" zu zeigen wäre richtig und würde trotzdem das Wesentliche
     verschweigen: der Betrieb schuldet dem Kunden Geld.
@@ -1885,9 +1943,11 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
 
     authWert.company.rechnungsarten = false;
     rerender(
-      <ToastProvider>
-        <InvoicesView />
-      </ToastProvider>,
+      <MemoryRouter>
+        <ToastProvider>
+          <InvoicesView />
+        </ToastProvider>
+      </MemoryRouter>,
     );
 
     expect(screen.queryByRole('combobox', { name: /Art der Rechnung/ })).toBeNull();

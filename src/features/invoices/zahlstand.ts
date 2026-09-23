@@ -48,3 +48,27 @@ export function zahlstand(inv: Rechnung): Zahlstand {
 export function offenerRest(inv: Rechnung): number {
   return zahlstand(inv).rest;
 }
+
+/**
+ * Ist diese Rechnung überfällig — unabhängig davon, ob schon etwas kam?
+ *
+ * GEMELDET: „sobald eine Teilzahlung abgeschlossen wurde, lässt sich die
+ * Rechnung nicht mehr mahnen". Mahnen liess sie sich — aber man sah nicht
+ * mehr, dass man sollte. Der Stand ergibt sich aus den Zahlungseingängen,
+ * und nach der ersten Teilzahlung heisst er „Teilbezahlt", nie wieder
+ * „Überfällig". Abzeichen, Filter, die Summe „Überfällig" und die Startseite
+ * fragten nur den Stand — und führten den Rest einer längst fälligen
+ * Rechnung als „offen", also als etwas, das noch Zeit hat.
+ *
+ * DIE FRAGE IST: gibt es einen Rest, und ist das Zahlungsziel vorbei? Das
+ * gilt auch für „Offen": die Liste stellt den Stand beim Öffnen um, die
+ * Startseite sieht ihn womöglich vorher.
+ */
+export function istUeberfaellig(
+  inv: Pick<Invoice, 'paymentStatus' | 'dueDate' | 'totalBrutto' | 'bezahltBetrag'>,
+  heute: string,
+): boolean {
+  if (inv.paymentStatus === 'Überfällig') return offenerRest(inv) > 0;
+  if (inv.paymentStatus !== 'Offen' && inv.paymentStatus !== 'Teilbezahlt') return false;
+  return !!inv.dueDate && inv.dueDate < heute && offenerRest(inv) > 0;
+}

@@ -157,8 +157,10 @@ vi.mock('@/lib/db/materialOrders', () => ({
   }),
   listOwnOpenOrders: vi.fn(async () => [] as MaterialOrder[]),
 }));
+/** Die offenen Forderungen, wie `listUnpaidInvoices` sie liefert. */
+const offeneRechnungen: { wert: unknown[] } = { wert: [] };
 vi.mock('@/lib/db/invoices', () => ({
-  listUnpaidInvoices: vi.fn(async () => []),
+  listUnpaidInvoices: vi.fn(async () => offeneRechnungen.wert),
 }));
 
 /** Die Rüstliste zur ersten Baustelle — Material, das mitkommen soll. */
@@ -218,6 +220,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  offeneRechnungen.wert = [];
   rolle.wert = 'Mitarbeiter';
 });
 
@@ -549,5 +552,39 @@ describe('Startseite — wie viele Zeilen je Karte', () => {
     expect(screen.getByText(/Kunde 011/)).toBeInTheDocument();
     expect(screen.queryByText(/Kunde 012/)).not.toBeInTheDocument();
     expect(screen.getByText(/und 18 weitere/)).toBeInTheDocument();
+  });
+});
+
+/*
+  GEMELDET: „im Dashboard steht nur der Betrag der offenen Rechnungen ohne
+  irgendwelche Quick Links". Eine Summe, hinter der Arbeit steht, ohne Weg
+  dorthin, lässt einen suchen.
+*/
+describe('Startseite — offene Rechnungen', () => {
+  beforeEach(() => {
+    rolle.wert = 'Geschäftsführung';
+    offeneRechnungen.wert = [
+      // Angezahlt und seit Juli fällig: der Rest ist ÜBERFÄLLIG, obwohl der
+      // Stand „Teilbezahlt" heisst.
+      { id: 'r1', paymentStatus: 'Teilbezahlt', dueDate: '2026-07-15', totalBrutto: 1200, bezahltBetrag: 400 },
+      // Ziel läuft noch.
+      { id: 'r2', paymentStatus: 'Offen', dueDate: '2026-10-01', totalBrutto: 300 },
+    ];
+  });
+
+  it('zählt den Rest einer angezahlten, fälligen Rechnung als überfällig', async () => {
+    zeichne();
+    const ueberfaellig = await screen.findByRole('link', { name: /Überfällig/ });
+    expect(ueberfaellig).toHaveTextContent(/€\s800$/);
+    expect(screen.getByRole('link', { name: /Offene Rechnungen/ })).toHaveTextContent(/€\s300$/);
+  });
+
+  it('führt von jeder Summe in die passend gefilterte Rechnungsliste', async () => {
+    zeichne();
+    expect(await screen.findByRole('link', { name: /Überfällig/ })).toHaveAttribute(
+      'href',
+      '/invoices?status=%C3%9Cberf%C3%A4llig',
+    );
+    expect(screen.getByRole('link', { name: /Offene Rechnungen/ })).toHaveAttribute('href', '/invoices');
   });
 });

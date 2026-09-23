@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
 type Tone = 'default' | 'success' | 'danger' | 'warning' | 'brand';
 
@@ -7,6 +8,11 @@ interface MetricProps {
   value: ReactNode;
   hint?: string;
   tone?: Tone;
+  /**
+   * Wohin ein Tipp auf die Kachel führt. Eine Zahl, hinter der Arbeit steht
+   * („€ 800 überfällig"), ohne Weg dorthin, lässt einen suchen.
+   */
+  to?: string;
 }
 
 /**
@@ -91,12 +97,17 @@ export function MetricRow({ children }: { children: ReactNode }) {
   );
 }
 
-export default function Metric({ label, value, hint, tone = 'default' }: MetricProps) {
-  return (
-    // min-w-0 ist hier entscheidend: ohne das weigert sich die Spalte zu
-    // schrumpfen, und eine lange Zahl schiebt die Nachbarn aus der Reihe.
-    <div className="min-w-0 sm:flex-1 sm:px-3 sm:first:pl-0 sm:last:pr-0">
-      <p className="section-label truncate">{label}</p>
+export default function Metric({ label, value, hint, tone = 'default', to }: MetricProps) {
+  // min-w-0 ist hier entscheidend: ohne das weigert sich die Spalte zu
+  // schrumpfen, und eine lange Zahl schiebt die Nachbarn aus der Reihe.
+  const rahmen = 'min-w-0 sm:flex-1 sm:px-3 sm:first:pl-0 sm:last:pr-0';
+  const inhalt = (
+    <>
+      <p className="section-label truncate">
+        {label}
+        {/* Das Zeichen sagt, dass es weitergeht — ohne Rahmen um die Zahl. */}
+        {to && <span aria-hidden="true"> ›</span>}
+      </p>
       {/* `font-bold` und nicht `font-extrabold`: von Poppins sind 400 bis 700
           geladen, und 800 rendert nachgemessen identisch zu 700. Das Wort
           „extrabold" versprach eine Stufe, die es in dieser App nicht gibt. */}
@@ -111,6 +122,17 @@ export default function Metric({ label, value, hint, tone = 'default' }: MetricP
         {value}
       </p>
       {hint && <p className="mt-1 text-xs leading-snug text-ink-muted">{hint}</p>}
-    </div>
+    </>
   );
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className={`${rahmen} block rounded-sm hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand`}
+      >
+        {inhalt}
+      </Link>
+    );
+  }
+  return <div className={rahmen}>{inhalt}</div>;
 }
