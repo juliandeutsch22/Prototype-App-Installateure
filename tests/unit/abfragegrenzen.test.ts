@@ -53,6 +53,13 @@ const AUSNAHMEN: Record<string, string> = {
   // Nachfassungen sind per Status begrenzt: erledigte fallen heraus.
   listOpenFollowUps: 'Nur offene — per Status begrenzt',
   /*
+    Die Pläne hängen an den Baustellen, nach denen gefragt wird — und gefragt
+    wird nur nach denen, die gerade auf dem Schirm stehen. Eine Mengengrenze
+    schnitte still ab: der zwanzigste Plan einer Baustelle fehlte, ohne dass
+    es jemand merkt. Die Abfrage blättert stattdessen vollständig.
+  */
+  listDokumente: 'Begrenzt durch die Baustellen auf dem Schirm — eine Handvoll je Baustelle',
+  /*
     `subscribePrefs` STAND HIER BIS ZUM 19.09. und ist ersatzlos gefallen.
 
     Die Firestore-Fassung hörte mit `onSnapshot` auf ein Dokument — der

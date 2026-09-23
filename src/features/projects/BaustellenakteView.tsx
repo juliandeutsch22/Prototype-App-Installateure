@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listProjectsByIds, updateProject } from '@/lib/db/projects';
 import { alsEntwurf, gleich, type BaustellenEntwurf } from './baustellenEntwurf';
+import BaustellenPlaene from './BaustellenPlaene';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
 import { listQuotesForProject } from '@/lib/db/quotes';
@@ -318,6 +319,17 @@ export default function BaustellenakteView() {
           <StammdatenLesen b={b} namen={namen} />
         )}
       </Card>
+
+      {user && (
+        <Card title="Pläne und Dokumente">
+          <BaustellenPlaene
+            companyId={user.companyId}
+            projectId={b.id}
+            darfAendern={darfAendern}
+            meinName={user.name}
+          />
+        </Card>
+      )}
 
       {/*
         DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der

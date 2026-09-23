@@ -369,6 +369,29 @@ export interface Quote {
   updatedAt?: number;
 }
 
+/**
+ * Ein Plan, Foto oder Dokument an einer Baustelle.
+ *
+ * Das Büro lädt hoch, der Monteur sieht die Pläne der Baustellen, auf die er
+ * gehört — Team, Leitung oder ein Einsatz dort. Die Datei liegt im Speicher
+ * (`baustellendokumente`), die Zeile sagt, wo.
+ */
+export interface BaustellenDokument {
+  id: string;
+  companyId: string;
+  /** Die Baustelle als Kennung — übersteht ein Umbenennen der Nummer. */
+  projectId: string;
+  /** `baustellen/{betrieb}/{baustelle}/{kennung}.{endung}` */
+  pfad: string;
+  /** Der Name, unter dem die Datei hochgeladen wurde. */
+  dateiname: string;
+  mime: string;
+  bytes: number;
+  hochgeladenVon?: string;
+  hochgeladenVonName?: string;
+  createdAt?: number;
+}
+
 export interface WorkSheet {
   id: string;
   companyId: string;

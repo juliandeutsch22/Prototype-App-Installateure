@@ -41,6 +41,7 @@ const TABELLE_VON: Record<string, string> = {
   Zahlungseingang: 'zahlungseingaenge',
   Wartung: 'wartungen',
   FollowUp: 'follow_ups',
+  BaustellenDokument: 'project_documents',
 };
 
 /**

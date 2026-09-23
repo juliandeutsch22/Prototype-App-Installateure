@@ -10,6 +10,8 @@ import { listOwnVacations } from '@/lib/db/vacations';
 import { useModul } from '@/lib/useModule';
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import RuestlisteAbhaken from './RuestlisteAbhaken';
+import PlaeneListe from '@/features/projects/PlaeneListe';
+import { planeVon, usePlaene } from '@/features/projects/usePlaene';
 import type { Assignment, Project, Vacation, EinsatzMaterial } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { todayStr } from '@/lib/time';
@@ -137,6 +139,17 @@ export default function MyScheduleView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, nummernSchluessel]);
 
+  /*
+    DIE PLÄNE DER BAUSTELLEN AUF DEM SCHIRM. Eingeteilt zu sein reicht, um
+    sie zu sehen — die Datenbank lässt einen Monteur die Pläne jeder
+    Baustelle lesen, auf der er einen Einsatz hat, auch ohne im Team zu
+    stehen.
+  */
+  const { stand: plaene, neuLaden: plaeneNeu } = usePlaene(
+    user?.companyId,
+    projects.map((p) => p.id),
+  );
+
   /** Einsätze je Tag des angezeigten Monats — die Zahlen im Kalender. */
   const marks = useMemo(() => {
     const m = new Map<string, number>();
@@ -209,6 +222,7 @@ export default function MyScheduleView() {
       <PageHeader title="Mein Einsatzplan" subtitle="Deine geplanten Einsätze" />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
+      {plaene.zustand === 'fehler' && <TeilFehler was="Die Pläne" onRetry={plaeneNeu} />}
 
       {loading ? (
         <LoadingState />
@@ -321,6 +335,17 @@ export default function MyScheduleView() {
                           );
                         })()}
 
+
+                        {(() => {
+                          const eigene = planeVon(plaene, proj?.id);
+                          if (plaene.zustand !== 'bereit' || eigene.length === 0) return null;
+                          return (
+                            <div className="mt-3">
+                              <p className="section-label">Pläne und Dokumente</p>
+                              <PlaeneListe dokumente={eigene} adressen={plaene.adressen} />
+                            </div>
+                          );
+                        })()}
 
                         <div className="mt-3 flex flex-wrap gap-2">
                           {/* Übernimmt Baustelle und Helfer-Rolle ins

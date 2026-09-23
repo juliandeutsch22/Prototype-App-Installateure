@@ -691,11 +691,25 @@ export default function AdminProjectsView() {
         message={toDelete ? `${toDelete.customerName} (${toDelete.projectNumber}) wird entfernt.` : ''}
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
-          if (toDelete) {
-            await deleteProject(toDelete.id);
-            toast.success('Baustelle gelöscht');
-          }
+          const weg = toDelete;
           setToDelete(null);
+          if (!weg) return;
+          /*
+            SCHEITERN WIRD GESAGT. Hier stand kein Fang: an einer Baustelle mit
+            Buchungen, Scheinen, Rechnungen oder Plänen verweigert die
+            Datenbank das Löschen — und der Dialog blieb einfach offen, ohne ein
+            Wort. Richtig ist dann das Abschliessen, nicht das Löschen.
+          */
+          try {
+            await deleteProject(weg.id);
+            toast.success('Baustelle gelöscht');
+          } catch (e) {
+            toast.error(
+              /foreign key|violates|verweis/i.test((e as Error).message)
+                ? `${weg.projectNumber} lässt sich nicht löschen — an ihr hängen schon Buchungen, Scheine, Rechnungen oder Pläne. Setze sie stattdessen auf „Abgeschlossen".`
+                : `${weg.projectNumber} konnte nicht gelöscht werden.`,
+            );
+          }
         }}
       />
     </div>

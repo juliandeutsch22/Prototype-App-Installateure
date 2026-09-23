@@ -36,6 +36,8 @@ const gefragtMit = vi.fn();
 const lege = vi.fn();
 const aendere = vi.fn();
 const loesche = vi.fn();
+/** Womit die Datenbank das Löschen abweist — `null` heisst: sie nimmt es an. */
+let loeschFehler: string | null = null;
 
 /* Mit welcher Grenze zuletzt abonniert wurde — der Nachladeknopf hebt sie an. */
 let letzteGrenze = 0;
@@ -60,7 +62,7 @@ vi.mock('@/lib/db/projects', () => ({
   },
   deleteProject: (id: string) => {
     loesche(id);
-    return Promise.resolve();
+    return loeschFehler ? Promise.reject(new Error(loeschFehler)) : Promise.resolve();
   },
   searchProjects: (c: string, begriff: string) => {
     gefragtMit(c, begriff);
@@ -129,6 +131,7 @@ async function formOeffnen() {
 }
 
 beforeEach(() => {
+  loeschFehler = null;
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   baustellen = [];
@@ -358,6 +361,30 @@ describe('Baustellen — löschen', () => {
     expect(loesche).not.toHaveBeenCalled();
     await userEvent.click(within(dialog).getByRole('button', { name: /löschen/i }));
     await waitFor(() => expect(loesche).toHaveBeenCalledWith('p1'));
+  });
+
+  it('sagt, warum eine Baustelle mit Buchungen nicht gelöscht wird', async () => {
+    /*
+      Vorher blieb der Dialog einfach offen, ohne ein Wort — die Datenbank
+      hatte das Löschen verweigert, weil Zeiten, Scheine, Rechnungen oder
+      Pläne an der Baustelle hängen.
+    */
+    loeschFehler = 'update or delete on table "projects" violates foreign key constraint';
+    baustellen = [
+      {
+        id: 'p1', companyId: 'perl', projectNumber: '2026-042',
+        customerName: 'Familie Huber', status: 'Aktiv',
+      } as Project & { id: string },
+    ];
+    zeige();
+    const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
+    await userEvent.click(
+      within(zeile).getByRole('button', { name: /Weitere Aktionen für Baustelle 2026-042/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Löschen' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /löschen/i }));
+    expect(await screen.findByText(/lässt sich nicht löschen.*Abgeschlossen/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 
