@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { calcWorkMin } from '@/lib/time';
 import { fmtMin } from '@/lib/time';
 import type { WorkSheetZeit } from '@/types';
@@ -52,13 +52,31 @@ export const NACHFRAGE_AB_MINUTEN = 14 * 60;
 export default function LeistungszeitErfassen({
   eigenerName,
   onHinzufuegen,
+  onOffen,
 }: {
   /** Vorschlag für das Namensfeld — meist steht der Monteur selbst dort. */
   eigenerName: string;
   onHinzufuegen: (zeile: WorkSheetZeit) => void;
+  /**
+   * Meldet eine eingetippte, aber noch nicht übernommene Spanne („07:00–15:30")
+   * oder `null`. Der Schein sperrt damit das Unterschreiben — siehe dort.
+   */
+  onOffen?: (offen: string | null) => void;
 }) {
   const [form, setForm] = useState({ ...LEER, mitarbeiter: eigenerName });
   const [fehler, setFehler] = useState<string | null>(null);
+
+  /*
+    „Bis" ist das Feld, an dem man es erkennt: „Von" steht ab Werk auf 08:00,
+    „Bis" ist leer, bis jemand eine Zeit einträgt. Steht dort etwas, ist das
+    eine Absicht, die noch nicht auf dem Schein steht.
+  */
+  const offen = form.bis ? `${form.von || '?'}–${form.bis}` : null;
+  useEffect(() => {
+    onOffen?.(offen);
+  }, [offen, onOffen]);
+  // Verschwindet das Feld (andere Baustelle, Modul aus), ist auch nichts offen.
+  useEffect(() => () => onOffen?.(null), [onOffen]);
 
   const minuten = calcWorkMin({
     status: 'Anwesend',

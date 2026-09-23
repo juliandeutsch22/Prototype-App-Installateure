@@ -491,6 +491,24 @@ export default function WorkSheetView() {
   const bereit =
     !!projekt && monteurGesetzt && kundeGesetzt && kundeName.trim().length > 1;
 
+  /*
+    EINGETIPPT, ABER NICHT ÜBERNOMMEN. Leistungszeit und freie Materialzeile
+    kommen erst mit „Zeile hinzufügen" bzw. „Hinzufügen" auf den Schein. Wer
+    Von und Bis eintippt und dann nach unten zum Unterschreiben geht — die
+    naheliegende Reihenfolge —, bekam einen Schein OHNE Leistungszeit, und
+    der Kunde unterschrieb einen Beleg, auf dem nur das Material stand.
+    Gefunden beim Probelauf; nichts hatte davor gewarnt.
+
+    NICHT STILL ÜBERNOMMEN, sondern angehalten: ein halb getippter Wert soll
+    nicht ungefragt auf einem Beleg landen, der gleich eingefroren wird.
+  */
+  const [offeneZeit, setOffeneZeit] = useState<string | null>(null);
+  const [offenesMaterial, setOffenesMaterial] = useState<string | null>(null);
+  const nichtUebernommen = [
+    offeneZeit && `die Zeit ${offeneZeit} („Zeile hinzufügen")`,
+    offenesMaterial && `das Material ${offenesMaterial} („Hinzufügen")`,
+  ].filter(Boolean);
+
   /**
    * Ein Foto aufnehmen: verkleinern, hochladen, ans Formular hängen.
    *
@@ -964,6 +982,7 @@ export default function WorkSheetView() {
                     return [...z, { ...zeile, datum }];
                   })
                 }
+                onOffen={setOffeneZeit}
               />
             </div>
           </Card>
@@ -974,7 +993,12 @@ export default function WorkSheetView() {
             hier würde ihn warten lassen, obwohl er sofort tippen könnte.
           */}
           <Card title={`Verbautes Material (${material.length})`}>
-            <MaterialErfassen materials={materials} zeilen={material} onChange={setMaterial} />
+            <MaterialErfassen
+              materials={materials}
+              zeilen={material}
+              onChange={setMaterial}
+              onOffen={setOffenesMaterial}
+            />
           </Card>
 
           {/*
@@ -1240,7 +1264,7 @@ export default function WorkSheetView() {
               <Button
                 onClick={unterschreibenUndEinfrieren}
                 loading={speichert}
-                disabled={!bereit || entwurfLaedt}
+                disabled={!bereit || entwurfLaedt || nichtUebernommen.length > 0}
                 className="w-full sm:w-auto"
               >
                 Unterschreiben und abschließen
@@ -1255,6 +1279,13 @@ export default function WorkSheetView() {
                 {scheinId ? 'Entwurf aktualisieren' : 'Als Entwurf speichern'}
               </Button>
             </div>
+            {nichtUebernommen.length > 0 && (
+              <p className="mt-2 text-sm text-warning" role="alert">
+                <strong>Noch nicht auf dem Schein:</strong> {nichtUebernommen.join(' und ')}.
+                Bitte übernehmen oder das Feld leeren — unterschrieben wird nur, was oben in
+                der Liste steht.
+              </p>
+            )}
             {!bereit && projectNumber && (
               <p className="mt-2 text-sm text-ink-muted">
                 {!projekt

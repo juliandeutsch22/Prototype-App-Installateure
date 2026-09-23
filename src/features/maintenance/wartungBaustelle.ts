@@ -16,42 +16,13 @@ import type { Customer, Project, Wartung } from '@/types';
  * Durchgang entsteht die Baustelle ein zweites Mal.
  */
 
-/** Wie eine Projektnummer aussieht, wenn sie unserem Muster folgt: 2026-014. */
-const MUSTER = /^(\d{4})-(\d+)$/;
-
-/**
- * Ein VORSCHLAG für die nächste Projektnummer — kein gezogener Zähler.
- *
- * DAS IST EIN BEWUSSTER UNTERSCHIED ZUR RECHNUNG. Rechnungsnummern kommen aus
- * `counters`, weil eine doppelte oder fehlende Nummer dort ein Mangel der
- * Buchhaltung ist (§ 11 UStG). Projektnummern vergibt der Betrieb frei — hier
- * ist auch „W-2026-3" oder „Huber-Therme" gültig, und in manchen Betrieben
- * hängt die Nummer am Auftrag des Kunden.
- *
- * Ein Zähler würde diese Freiheit stillschweigend abschaffen. Deshalb: das
- * Muster wird ERKANNT, wenn es da ist, und der Vorschlag steht danach in
- * einem Feld, das man überschreiben kann. Folgt keine vorhandene Nummer dem
- * Muster, beginnt der Vorschlag beim ersten des Jahres — dann hat der Betrieb
- * ein eigenes System, und die Zahl ist ohnehin nur ein Startwert.
- *
- * Weil es kein Zähler ist, kann der Vorschlag doppelt sein, wenn zwei Leute
- * gleichzeitig anlegen. Genau deshalb prüft der Aufrufer die Nummer noch
- * einmal gegen die vorhandenen, bevor er speichert — siehe `nummerFrei`.
+/*
+ * DIE NUMMER KOMMT NICHT MEHR VON HIER. Bis zum 23.09.2026 stand hier ein
+ * eigener Vorschlag nach dem Muster „2026-014" — ohne den Vorsatz, den der
+ * Betrieb eingestellt hat. Die Wartung nutzt jetzt denselben Weg wie „Neue
+ * Baustelle": Vorschlag nach dem Schema des Betriebs, verbindlich aus dem
+ * Zähler, eine eigene Nummer bleibt erlaubt (siehe `WartungenView`).
  */
-export function naechsteProjektnummer(vorhandene: string[], jahr: number): string {
-  let hoechste = 0;
-  let stellen = 3;
-  for (const nr of vorhandene) {
-    const treffer = MUSTER.exec(nr.trim());
-    if (!treffer || Number(treffer[1]) !== jahr) continue;
-    const laufend = Number(treffer[2]);
-    if (laufend > hoechste) hoechste = laufend;
-    // Die Breite vom Bestand übernehmen: wer dreistellig führt, bekommt
-    // dreistellig zurück, und die Liste sortiert weiter als Text richtig.
-    if (treffer[2].length > stellen) stellen = treffer[2].length;
-  }
-  return `${jahr}-${String(hoechste + 1).padStart(stellen, '0')}`;
-}
 
 /** Ist die Nummer noch frei? Gross-/Kleinschreibung und Leerraum ignoriert. */
 export function nummerFrei(nummer: string, vorhandene: string[]): boolean {

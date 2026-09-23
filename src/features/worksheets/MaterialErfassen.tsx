@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Material } from '@/types';
 import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
@@ -41,11 +41,25 @@ interface Props {
   materials: WithId<Material>[];
   zeilen: MaterialZeile[];
   onChange: (next: MaterialZeile[]) => void;
+  /**
+   * Meldet eine eingetippte, aber noch nicht hinzugefügte freie Zeile oder
+   * `null`. Der Schein sperrt damit das Unterschreiben — siehe dort.
+   */
+  onOffen?: (offen: string | null) => void;
 }
 
-export default function MaterialErfassen({ materials, zeilen, onChange }: Props) {
+export default function MaterialErfassen({ materials, zeilen, onChange, onOffen }: Props) {
   const [suche, setSuche] = useState('');
   const [freierName, setFreierName] = useState('');
+
+  // Nur die freie Zeile: ein Suchbegriff ist noch keine Absicht, ein
+  // eingetippter Artikelname schon.
+  const offen = freierName.trim() ? `„${freierName.trim()}"` : null;
+  useEffect(() => {
+    onOffen?.(offen);
+  }, [offen, onOffen]);
+  // Verschwindet das Feld (andere Baustelle, Modul aus), ist auch nichts offen.
+  useEffect(() => () => onOffen?.(null), [onOffen]);
 
   /**
    * Dieselbe Suche wie bei der Retoure und der Rüstliste — Bezeichnung,

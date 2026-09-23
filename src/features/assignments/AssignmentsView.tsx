@@ -109,6 +109,8 @@ export default function AssignmentsView() {
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [tagesListen, setTagesListen] = useState<WithId<EinsatzMaterial>[]>([]);
   const [ruestliste, setRuestliste] = useState<RuestPosition[]>([]);
+  /** Eine freie Zeile der Rüstliste, die eingetippt, aber nicht hinzugefügt ist. */
+  const [offeneRuestzeile, setOffeneRuestzeile] = useState<string | null>(null);
   const [ruestFehler, setRuestFehler] = useState<string | null>(null);
   const [anforderungLaeuft, setAnforderungLaeuft] = useState(false);
 
@@ -630,6 +632,7 @@ export default function AssignmentsView() {
                 onChange={setRuestliste}
                 onAnforderung={anforderungAnlegen}
                 anforderungLaeuft={anforderungLaeuft}
+                onOffen={setOffeneRuestzeile}
               />
               {/*
                 Der Fehler der ANFORDERUNG steht weiter hier — sie ist ein
@@ -654,7 +657,23 @@ export default function AssignmentsView() {
           */}
           <div>
             {error && <div className="mb-3"><ErrorState message={error} /></div>}
-            <Button onClick={save} loading={saving} disabled={!projectNumber}>
+            {/*
+              EINGETIPPT, ABER NICHT HINZUGEFÜGT — wie am Handwerksschein. Die
+              freie Zeile kommt erst mit „Hinzufügen" auf die Rüstliste; wer
+              sie eintippt und gleich speichert, verlor sie still, und der
+              Monteur stand ohne das Leihgerät auf der Baustelle.
+            */}
+            {offeneRuestzeile && materialAn && (
+              <p className="mb-3 text-sm text-warning" role="alert">
+                <strong>Noch nicht auf der Rüstliste:</strong> {offeneRuestzeile}. Bitte
+                „Hinzufügen" oder das Feld leeren.
+              </p>
+            )}
+            <Button
+              onClick={save}
+              loading={saving}
+              disabled={!projectNumber || (materialAn && !!offeneRuestzeile)}
+            >
               {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
             </Button>
           </div>

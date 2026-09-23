@@ -5,8 +5,9 @@ name: Test und Deploy
 # Zeitberechnungs-Test rot, geht nichts live. Eine kaputte Zeiterfassung im
 # Betrieb kostet mehr, als ein paar Minuten CI je sparen.
 #
-# DIESER ABLAUF STARTET AUF MAIN NICHT SELBST, SONDERN ERST, WENN DIE
-# MIGRATIONEN DURCH SIND.
+# DIESER ABLAUF STARTET AUF MAIN NICHT SELBST, SONDERN WIRD VON
+# "Supabase-Migrationen" AUFGERUFEN, wenn Schema und Functions eingespielt
+# sind (Auftrag `app` dort).
 #
 # Bis zum 20.09.2026 hing er hier an `push: branches: [main]` — gleichzeitig
 # mit "Supabase-Migrationen". Gleichzeitig los heisst nicht gleichzeitig an:
@@ -15,25 +16,23 @@ name: Test und Deploy
 # Oberfläche gegen eine alte Datenbank — also genau die Reihenfolge, von der
 # die Dokumentation sagte, sie sei die falsche.
 #
-# Jetzt ist die Kette gebaut: `workflow_run` wartet auf "Supabase-Migrationen"
-# und läuft nur bei `success`. Das kostet die App ein paar Minuten und kauft
-# dafür zweierlei:
+# Die Kette bringt zweierlei:
 #
 #  1. Das Schema ist da, bevor die Oberfläche es braucht.
 #  2. SCHEITERT EINE MIGRATION, GEHT DIE APP GAR NICHT LIVE. Vorher wäre sie
 #     gestartet und hätte auf ein Schema getroffen, das nie kam.
+#
+# NICHT MEHR PER `workflow_run`. Das stand hier zwei Tage lang und ist beim
+# ersten Merge nie angesprungen — warum, steht beim Auftrag `app` in
+# `supabase-migrationen.yml`. Ein Aufruf per `workflow_call` kommt aus
+# demselben Commit und braucht keine Einstellung im Repository.
 #
 # Die Gegenrichtung — ALTE App gegen NEUES Schema — bleibt und ist nicht zu
 # vermeiden: auf den Telefonen läuft die alte Fassung weiter, bis jemand die
 # App neu öffnet. Deshalb gilt die Regel aus `docs/DEPLOYMENT.md` unverändert:
 # wer eine Spalte umbenennt, legt sie in zwei Schritten um.
 on:
-  workflow_run:
-    workflows: ["Supabase-Migrationen"]
-    types: [completed]
-    # NUR MAIN. Ohne diesen Filter löste jeder Migrationslauf eines Pull
-    # Requests hier einen Leerlauf aus, der sofort wieder übersprungen wird.
-    branches: [main]
+  workflow_call:
   pull_request:
   # Erlaubt einen Deploy von Hand über "Actions" > "Run workflow" — die
   # Nottaste, wenn die Kette einmal hängt.
@@ -56,16 +55,8 @@ jobs:
   test:
     name: Typen, Lint und Tests
     runs-on: ubuntu-latest
-    # Ein Lauf, den gescheiterte Migrationen ausgelöst haben, prüft nichts mehr
-    # — es gibt nichts auszuliefern.
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
-        with:
-          # Bei `workflow_run` zeigt der Vorgabe-Verweis auf die Spitze von
-          # main, nicht zwingend auf den Stand, der die Migrationen ausgelöst
-          # hat. Geprüft und ausgeliefert wird genau dieser Stand.
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
 
       - uses: actions/setup-node@v4
         with:
@@ -102,18 +93,15 @@ jobs:
     name: Auf Firebase Hosting veröffentlichen
     needs: test
     # Ausschließlich main geht live — auch bei einem Deploy von Hand. Sonst
-    # könnte ein halbfertiger Zweig versehentlich beim Kunden landen. Der
-    # `workflow_run`-Zweig ist oben schon auf main gefiltert und hier auf
-    # `success` geprüft; ein Pull Request erreicht diesen Auftrag nie.
-    if: >-
-      github.event_name == 'workflow_run'
-      || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    # könnte ein halbfertiger Zweig versehentlich beim Kunden landen. Beim
+    # Aufruf aus "Supabase-Migrationen" sind `github.ref` und
+    # `github.event_name` die des AUFRUFERS: dort ein Push oder ein Start von
+    # Hand auf main. Ein Pull Request erreicht diesen Auftrag nie.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: production
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
 
       - uses: actions/setup-node@v4
         with:
@@ -202,16 +190,15 @@ jobs:
       # jede Migration trotzdem den alten Stand der App verträgt, bleibt
       # Pflicht: auf den Telefonen läuft er weiter.
       #
-      # Die Meldung trägt den Stand, der wirklich ausgeliefert wird. Bei einem
-      # `workflow_run` ist das NICHT `GITHUB_SHA` — das zeigt auf die Spitze
-      # von main. Stimmte die Meldung nicht, wäre die Fassungsanzeige in der
-      # App eine Höflichkeitslüge.
+      # Die Meldung trägt den Stand, der wirklich ausgeliefert wird — beim
+      # Aufruf aus den Migrationen ist `github.sha` der Commit, der sie
+      # ausgelöst hat.
       - name: Deploy
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/service-account.json
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          STAND: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
-          WER: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.actor.login || github.actor }}
+          STAND: ${{ github.sha }}
+          WER: ${{ github.actor }}
         run: |
           npx --yes firebase-tools@15 deploy \
             --only hosting \

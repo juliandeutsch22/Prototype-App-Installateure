@@ -39,9 +39,14 @@ vi.mock('@/lib/db/quotes', () => ({
   reserveQuoteNumber: vi.fn(async () => 'AN-2026-0001'),
 }));
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
+let aktiveBaustellen: { projectNumber: string }[] = [];
+const reserveProjectNumber = vi.fn<[string, unknown], Promise<string | null>>(
+  async () => 'B-2026-0012',
+);
 vi.mock('@/lib/db/projects', () => ({
   createProject: (c: string, p: unknown) => createProject(c, p),
-  listActiveProjects: vi.fn(async () => []),
+  listActiveProjects: vi.fn(async () => aktiveBaustellen),
+  reserveProjectNumber: (c: string, o: unknown) => reserveProjectNumber(c, o),
 }));
 
 const authWert = {
@@ -88,8 +93,33 @@ beforeEach(() => {
   createQuote.mockClear();
   createProject.mockClear();
   updateQuote.mockClear();
+  reserveProjectNumber.mockClear();
+  createProject.mockReset().mockResolvedValue('p1');
+  aktiveBaustellen = [];
   angebote.length = 0;
 });
+
+/** Ein versendetes Angebot AN-2026-0007 über 20 kalkulierte Stunden. */
+function versendetesAngebot() {
+  angebote.push({
+    id: 'q1',
+    companyId: 'perl',
+    quoteNumber: 'AN-2026-0007',
+    customerId: 'k1',
+    customerName: 'Gemeinde Neudorf',
+    address: 'Rathausplatz 1',
+    quoteDate: '2026-09-01',
+    validUntil: '2026-10-01',
+    status: 'Versendet',
+    positions: [],
+    subtotalNetto: 1300,
+    totalNetto: 1300,
+    totalVat: 260,
+    totalBrutto: 1560,
+    vatRate: 0.2,
+    kalkulierteStunden: 20,
+  });
+}
 
 describe('Angebot kalkulieren', () => {
   it('zeigt die Liste zuerst, nicht die leere Kalkulation', async () => {
@@ -202,5 +232,98 @@ describe('Angebot kalkulieren', () => {
       status: 'Angenommen',
       projectNumber: 'B-2026-0007',
     });
+  });
+
+  /*
+    GEFUNDEN BEIM PROBELAUF. Jede neue Position beginnt mit „h" und dem Haken
+    „Arbeitszeit". Wer auf „Stk" umstellte, behielt ihn — 16 Stunden Montage
+    und eine Armatur ergaben 17 h Budget.
+  */
+  it('zählt eine Position in Stück nicht als Arbeitszeit', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Montage');
+    await nutzer.type(screen.getByLabelText('Menge'), '16');
+    await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '68');
+
+    await nutzer.click(screen.getByRole('button', { name: 'Position hinzufügen' }));
+    await nutzer.type(screen.getAllByLabelText('Bezeichnung')[1], 'Rohrschelle');
+    await nutzer.type(screen.getAllByLabelText('Menge')[1], '20');
+    await nutzer.clear(screen.getAllByLabelText('Einheit')[1]);
+    await nutzer.type(screen.getAllByLabelText('Einheit')[1], 'Stk');
+    await nutzer.type(screen.getAllByLabelText('Einzelpreis netto')[1], '3');
+
+    expect(screen.getAllByRole('checkbox')[1]).not.toBeChecked();
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
+  });
+
+  it('lässt einen von Hand gesetzten Haken stehen, auch wenn die Einheit wechselt', async () => {
+    // Eine Pauschale, die trotzdem Arbeitszeit ist — der Mensch hat entschieden.
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.clear(screen.getByLabelText('Einheit'));
+    await nutzer.type(screen.getByLabelText('Einheit'), 'Pausch');
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    await nutzer.click(screen.getByRole('checkbox'));
+    await nutzer.clear(screen.getByLabelText('Einheit'));
+    await nutzer.type(screen.getByLabelText('Einheit'), 'Stk');
+    expect(screen.getByRole('checkbox')).toBeChecked();
+  });
+
+  /*
+    GEFUNDEN BEIM PROBELAUF. Angebote und Baustellen zählen getrennt; aus
+    AN-2026-0007 wird B-2026-0007, und die gab es schon. Dann stand „gibt es
+    bereits" da, und das Angebot liess sich gar nicht annehmen.
+  */
+  it('nimmt beim Annehmen die nächste freie Nummer, wenn die abgeleitete vergeben ist', async () => {
+    aktiveBaustellen = [{ projectNumber: 'B-2026-0007' }, { projectNumber: 'B-2026-0011' }];
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+
+    await screen.findByText(/B-2026-0012 angelegt — B-2026-0007 war schon vergeben/);
+    // Aus demselben Zähler wie die Baustellenanlage, mit dem Bestand als Untergrenze.
+    expect(reserveProjectNumber).toHaveBeenCalledWith('perl', { seedFrom: 11, praefix: 'B' });
+    const projekt = createProject.mock.calls[0]?.[1] as { projectNumber: string; estimatedHours?: number };
+    expect(projekt.projectNumber).toBe('B-2026-0012');
+    expect(projekt.estimatedHours).toBe(20);
+    expect(updateQuote).toHaveBeenCalledWith('q1', { status: 'Angenommen', projectNumber: 'B-2026-0012' });
+  });
+
+  it('weicht auch aus, wenn erst die Datenbank die Nummer abweist', async () => {
+    // Eine ABGESCHLOSSENE Baustelle steht nicht in der Liste der aktiven —
+    // die Nummer fällt erst am eindeutigen Index auf.
+    createProject
+      .mockRejectedValueOnce(
+        new Error('duplicate key value violates unique constraint "projects_nummer_je_betrieb"'),
+      )
+      .mockResolvedValueOnce('p1');
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+
+    await screen.findByText(/B-2026-0012 angelegt/);
+    expect(createProject).toHaveBeenCalledTimes(2);
+    expect((createProject.mock.calls[1]?.[1] as { projectNumber: string }).projectNumber).toBe('B-2026-0012');
+  });
+
+  it('meldet einen anderen Fehler weiter, statt eine Nummer zu verbrauchen', async () => {
+    createProject.mockRejectedValueOnce(new Error('kein Netz'));
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+
+    await screen.findByText(/Die Baustelle konnte nicht angelegt werden/);
+    expect(reserveProjectNumber).not.toHaveBeenCalled();
+    expect(updateQuote).not.toHaveBeenCalled();
   });
 });

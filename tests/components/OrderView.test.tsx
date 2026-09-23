@@ -137,6 +137,29 @@ describe('Material anfordern — der Warenkorb', () => {
     });
   });
 
+  it('schickt die Notiz mit, die nach dem Hinzufügen getippt wurde', async () => {
+    /*
+      GEFUNDEN BEIM PROBELAUF. Das Notizfeld erscheint erst, wenn schon etwas
+      im Korb liegt — die Notiz hing aber an der Position und wurde beim
+      Hinzufügen übernommen. Was danach getippt wurde (also immer), kam nie
+      an, und das Feld war nach dem Absenden leer.
+    */
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm anfordern/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Dichtung .* anfordern/ }));
+    await userEvent.type(
+      screen.getByRole('textbox', { name: /Notiz für die Projektleitung/ }),
+      'Bitte bis Donnerstag',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Bestellung aufgeben' }));
+
+    await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(2));
+    expect(anlegen.mock.calls.map((c) => (c[1] as { note: string }).note)).toEqual([
+      'Bitte bis Donnerstag',
+      'Bitte bis Donnerstag',
+    ]);
+  });
+
   it('nimmt eine frei eingetippte Menge', async () => {
     /**
      * AUS DEM BETRIEB GEWUENSCHT. Vorher gab es nur „noch eins": wer dreissig

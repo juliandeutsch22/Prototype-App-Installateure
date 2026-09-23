@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Material, RuestPosition } from '@/types';
 import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
@@ -44,6 +44,11 @@ interface Props {
   onAnforderung?: (position: RuestPosition, fehlmenge: number) => void;
   /** Läuft gerade eine Anforderung? Dann keinen zweiten Tipp annehmen. */
   anforderungLaeuft?: boolean;
+  /**
+   * Meldet eine eingetippte, aber noch nicht hinzugefügte freie Zeile oder
+   * `null` — dieselbe Naht wie am Handwerksschein (`MaterialErfassen`).
+   */
+  onOffen?: (offen: string | null) => void;
 }
 
 export default function RuestlistePlanen({
@@ -52,9 +57,17 @@ export default function RuestlistePlanen({
   onChange,
   onAnforderung,
   anforderungLaeuft = false,
+  onOffen,
 }: Props) {
   const [suche, setSuche] = useState('');
   const [freierName, setFreierName] = useState('');
+
+  const offen = freierName.trim() ? `„${freierName.trim()}"` : null;
+  useEffect(() => {
+    onOffen?.(offen);
+  }, [offen, onOffen]);
+  // Verschwindet das Feld (andere Baustelle, Modul aus), ist auch nichts offen.
+  useEffect(() => () => onOffen?.(null), [onOffen]);
 
   const nachId = useMemo(() => new Map(materials.map((m) => [m.id, m])), [materials]);
 

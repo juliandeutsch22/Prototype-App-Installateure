@@ -45,6 +45,14 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   await page.getByLabel('Baustelle').selectOption(BAUSTELLE.nummer);
   await page.getByLabel('Tätigkeit (optional)').fill('Bad entkernt, Leitungen neu verlegt.');
   await page.getByLabel(/^Bis/).fill('16:00');
+  /*
+    ERST ÜBERNEHMEN, DANN UNTERSCHREIBEN. Bis zum 23.09.2026 stand hier kein
+    Klick — und dieser Weg unterschrieb einen Schein OHNE Leistungszeit, ohne
+    dass es jemand merkte, weil nur die Unterschriften geprüft wurden. Heute
+    sperrt der Schein das Unterschreiben, solange eine eingetippte Zeit nicht
+    auf ihm steht; die Stunden werden unten nachgesehen.
+  */
+  await page.getByRole('button', { name: 'Zeile hinzufügen' }).click();
 
   /*
     DER NAME DES KUNDEN IN DRUCKBUCHSTABEN IST PFLICHT, und der Knopf bleibt
@@ -83,6 +91,12 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
     expect((schein.unterschrift_kunde as { bild?: string })?.bild)
       .not.toBe((schein.unterschrift_monteur as { bild?: string })?.bild);
   }).toPass({ timeout: 20_000 });
+
+  // Und die Zeit steht darauf: 08:00 bis 16:00, ohne Pause.
+  const { data: stunden } = await admin
+    .from('work_sheet_hours').select('von, bis, minuten').eq('company_id', BETRIEB);
+  expect(stunden ?? []).toHaveLength(1);
+  expect((stunden ?? [])[0].minuten).toBe(480);
 
   await keineFehlermeldung(page);
 });

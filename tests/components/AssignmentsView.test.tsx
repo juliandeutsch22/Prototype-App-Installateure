@@ -483,6 +483,29 @@ describe('Einsatzplanung — Rüstliste', () => {
     expect(screen.queryByText(/Im Lager fehlen/)).toBeNull();
   });
 
+  it('speichert nicht, solange eine freie Zeile nur eingetippt ist', async () => {
+    /*
+      Dieselbe Naht wie am Handwerksschein, gefunden beim Probelauf: die
+      freie Zeile kommt erst mit „Hinzufügen" auf die Liste. Wer sie eintippt
+      und gleich speichert, verlor sie still — und der Monteur stand ohne das
+      Leihgerät auf der Baustelle.
+    */
+    zeige();
+    await baustelleWaehlen();
+    const feld = await screen.findByRole('textbox', { name: /Freie Zeile/ });
+    await userEvent.type(feld, 'Leihgerät Kernbohrer');
+
+    const knopf = screen.getByRole('button', { name: 'Einsatz und Rüstliste speichern' });
+    expect(knopf).toBeDisabled();
+    expect(screen.getByText(/Noch nicht auf der Rüstliste/).parentElement).toHaveTextContent(
+      /„Leihgerät Kernbohrer"/,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+    expect(screen.queryByText(/Noch nicht auf der Rüstliste/)).toBeNull();
+    expect(knopf).toBeEnabled();
+  });
+
   it('gibt der Liste die Mannschaft aus DEMSELBEN Speichern mit', async () => {
     /*
       DIE REIHENFOLGE, DIE ES VORHER GAB, IST DAMIT WEG.
