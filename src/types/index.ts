@@ -699,6 +699,17 @@ export interface MaterialOrder {
   isBilled?: boolean;
   invoiceNumber?: string;
   source?: EntrySource;
+  /**
+   * Woher das Material kommt: `lager` aus dem Regal, `einkauf` über die
+   * Einkaufsliste beim Grosshändler. Fehlt, solange niemand nachgesehen hat.
+   */
+  beschaffung?: 'lager' | 'einkauf' | null;
+  /** Bei welchem Grosshändler eingekauft wird. */
+  supplierId?: string | null;
+  /** Wann die Einkaufsliste mit dieser Zeile hinausging. */
+  bestelltAm?: number | null;
+  /** Wann die Ware eingetroffen ist — ab da liegt sie im Lager. */
+  geliefertAm?: number | null;
   createdAt?: number;
   updatedAt?: number;
 }

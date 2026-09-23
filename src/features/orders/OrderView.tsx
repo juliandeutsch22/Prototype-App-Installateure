@@ -545,7 +545,20 @@ export default function OrderView() {
                         {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
-                    subtitle={[o.projectNumber, o.note].filter(Boolean).join(' · ')}
+                    subtitle={[
+                      o.projectNumber,
+                      o.note,
+                      /*
+                        WARUM ES DAUERT. Liegt es nicht im Lager, wird es beim
+                        Grosshändler bestellt — das sagt dem Monteur, dass er
+                        nicht vergeblich ins Lager fährt.
+                      */
+                      o.beschaffung === 'einkauf' && !o.geliefertAm
+                        ? o.bestelltAm
+                          ? 'beim Grosshändler bestellt'
+                          : 'nicht im Lager — wird bestellt'
+                        : '',
+                    ].filter(Boolean).join(' · ')}
                   >
                     {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
                     <StatusBadge status={o.status} />

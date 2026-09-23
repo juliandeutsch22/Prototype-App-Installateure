@@ -8,6 +8,15 @@ import {
   ORDER_STATUS_FLOW,
 } from '@/lib/db/materialOrders';
 import type { WithId } from '@/lib/db/core';
+import {
+  listGrosshaendler,
+  ausLager,
+  aufEinkaufsliste,
+  lieferantVorschlag,
+  type Grosshaendler,
+} from '@/lib/db/einkauf';
+import Einkaufsliste from './Einkaufsliste';
+import { aufEinkaufsliste as aufDerListe } from './einkauf';
 import type { MaterialOrder } from '@/types';
 import Card from '@/components/Card';
 import Nachladen from '@/components/Nachladen';
@@ -23,7 +32,7 @@ import { byNewest, dayKey, dayHeading } from '@/lib/timestamps';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 
-type Tab = 'aktiv' | 'retouren' | 'archiv';
+type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
 const CONDITION_LABEL: Record<string, string> = {
   neu: 'Neu / OVP',
@@ -42,8 +51,17 @@ const CONDITION_LABEL: Record<string, string> = {
 const ANFORDERUNGEN_JE_SEITE = 200;
 
 export default function AdminOrdersView() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
+  /*
+    DIE GROSSHÄNDLER — für „Nicht auf Lager" und die Einkaufsliste. Scheitert
+    das Laden, bleibt die Liste leer und die Zeile kommt „ohne Grosshändler"
+    auf die Einkaufsliste; zugeordnet wird dann dort.
+  */
+  const [grosshaendler, setGrosshaendler] = useState<WithId<Grosshaendler>[]>([]);
+  const [ghStand, setGhStand] = useState(0);
+  /** „Nicht auf Lager" — bei welchem Grosshändler eingekauft wird. */
+  const [einkaufFragen, setEinkaufFragen] = useState<{ o: WithId<MaterialOrder>; bei: string } | null>(null);
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +112,25 @@ export default function AdminOrdersView() {
     return unsub;
   }, [user, holgrenze]);
 
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    void listGrosshaendler(user.companyId)
+      .then((g) => {
+        if (!weg) setGrosshaendler(g);
+      })
+      .catch(() => undefined);
+    return () => {
+      weg = true;
+    };
+  }, [user, ghStand]);
+
   const purchases = useMemo(() => orders.filter((o) => o.transactionType !== 'return'), [orders]);
+  /** Wie viele Anforderungen auf der Einkaufsliste noch nicht bestellt sind. */
+  const zuBestellen = useMemo(
+    () => purchases.filter((o) => aufDerListe(o) && !o.bestelltAm).length,
+    [purchases],
+  );
   const returns = useMemo(() => orders.filter((o) => o.transactionType === 'return'), [orders]);
 
   const projectOptions = useMemo(
@@ -176,10 +212,37 @@ export default function AdminOrdersView() {
     }
   }
 
+  async function nimmAusLager(o: WithId<MaterialOrder>) {
+    setBusyId(o.id);
+    try {
+      await ausLager(o.id);
+      void postenNeuLaden();
+      toast.success(`${o.materialName}: aus dem Lager — abholbereit`);
+    } catch {
+      toast.error('Das konnte nicht gespeichert werden.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function fragEinkauf(o: WithId<MaterialOrder>) {
+    // Vorschlag: bei wem der Artikel zuletzt einen Preis hatte. Ein Vorschlag
+    // — der Lagerist sieht ihn und kann ihn ändern.
+    let vorschlag: string | null = null;
+    try {
+      vorschlag = o.materialId ? await lieferantVorschlag(o.companyId, o.materialId) : null;
+    } catch {
+      vorschlag = null;
+    }
+    const bekannt = vorschlag && grosshaendler.some((g) => g.id === vorschlag) ? vorschlag : '';
+    setEinkaufFragen({ o, bei: bekannt || (grosshaendler.length === 1 ? grosshaendler[0].id : '') });
+  }
+
   if (!user) return null;
 
   const TABS: { key: Tab; label: string; count?: number }[] = [
     { key: 'aktiv', label: 'Offen', count: activeCount },
+    { key: 'einkauf', label: 'Einkauf', count: zuBestellen },
     { key: 'retouren', label: 'Retouren', count: returns.length },
     { key: 'archiv', label: 'Erledigt' },
   ];
@@ -200,7 +263,7 @@ export default function AdminOrdersView() {
             role="tab"
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-4 py-2 text-sm transition ${
+            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 sm:px-4 text-sm transition ${
               tab === t.key
                 ? 'border-b-accent-deep font-bold text-accent-deep'
                 : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
@@ -212,7 +275,15 @@ export default function AdminOrdersView() {
         ))}
       </div>
 
-      {(
+      {tab === 'einkauf' && company ? (
+        <Einkaufsliste
+          company={company}
+          meinName={user.name}
+          anforderungen={purchases}
+          grosshaendler={grosshaendler}
+          onGrosshaendlerGeaendert={() => setGhStand((n) => n + 1)}
+        />
+      ) : (
         <Card
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}
           action={
@@ -292,6 +363,45 @@ export default function AdminOrdersView() {
                         }
                       >
                         {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
+                        {o.beschaffung === 'lager' && <Marke>aus Lager</Marke>}
+                        {o.beschaffung === 'einkauf' && (
+                          <Marke>
+                            {o.geliefertAm
+                              ? 'geliefert'
+                              : o.bestelltAm
+                                ? 'bestellt'
+                                : 'Einkaufsliste'}
+                            {o.supplierId && grosshaendler.find((g) => g.id === o.supplierId)
+                              ? ` · ${grosshaendler.find((g) => g.id === o.supplierId)!.name}`
+                              : ''}
+                          </Marke>
+                        )}
+                        {/*
+                          DER LAGERIST HAKT AB. Liegt es im Regal, ist es gleich
+                          abholbereit (und der Monteur bekommt die Meldung); fehlt
+                          es, kommt es auf die Einkaufsliste. Nur solange noch
+                          niemand nachgesehen hat.
+                        */}
+                        {o.transactionType !== 'return' &&
+                          !o.beschaffung &&
+                          (o.status === 'Offen' || o.status === 'In Bearbeitung') && (
+                            <>
+                              <Button
+                                variant="secondary"
+                                loading={busyId === o.id}
+                                onClick={() => void nimmAusLager(o)}
+                              >
+                                Aus Lager
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                disabled={busyId === o.id}
+                                onClick={() => void fragEinkauf(o)}
+                              >
+                                Nicht auf Lager
+                              </Button>
+                            </>
+                          )}
                         {o.transactionType === 'return' ? (
                           <Marke>Retoure</Marke>
                         ) : (
@@ -358,6 +468,45 @@ export default function AdminOrdersView() {
           )}
         </Card>
       )}
+
+      <ConfirmDialog
+        open={!!einkaufFragen}
+        title="Auf die Einkaufsliste?"
+        confirmLabel="Auf die Liste"
+        confirmTone="primary"
+        message={
+          einkaufFragen
+            ? `„${einkaufFragen.o.materialName}" ×${einkaufFragen.o.quantity} ist nicht im Lager und wird beim Grosshändler bestellt.`
+            : ''
+        }
+        onCancel={() => setEinkaufFragen(null)}
+        onConfirm={async () => {
+          const f = einkaufFragen;
+          setEinkaufFragen(null);
+          if (!f) return;
+          try {
+            await aufEinkaufsliste(f.o.id, f.bei || null);
+            void postenNeuLaden();
+            toast.success('Auf der Einkaufsliste');
+          } catch {
+            toast.error('Das konnte nicht gespeichert werden.');
+          }
+        }}
+      >
+        {einkaufFragen && (
+          <SelectField
+            id="einkauf-bei"
+            label="Grosshändler"
+            value={einkaufFragen.bei}
+            onChange={(e) => setEinkaufFragen({ ...einkaufFragen, bei: e.target.value })}
+          >
+            <option value="">— später zuordnen —</option>
+            {grosshaendler.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </SelectField>
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={!!toComplete}
