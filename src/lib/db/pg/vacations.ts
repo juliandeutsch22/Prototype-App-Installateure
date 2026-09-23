@@ -126,11 +126,18 @@ export async function entscheiden(daten: {
   return data as UrlaubsEntscheidung;
 }
 
-/** Eine Abwesenheit, wie der Wochenplan sie zeigt — ohne Grund. */
+/** Eine Abwesenheit, wie der Wochenplan sie zeigt. */
 export interface Abwesenheit {
   userId: string;
   von: string;
   bis: string;
+  /**
+   * „Urlaub", „ZA" oder „Krank" — nur für den, der den Grund sehen darf
+   * (die Datenbank entscheidet). Sonst `null`: „abwesend".
+   */
+  grund: string | null;
+  /** Stundenweise: „13:00–17:00". Sonst `null`: ganztags. */
+  zeiten: string | null;
 }
 
 /**
@@ -138,8 +145,9 @@ export interface Abwesenheit {
  *
  * ÜBER EINE EIGENE FUNKTION, nicht über die Urlaubstabelle. Deren Zeilen
  * darf ein Monteur für andere nicht lesen, und das bleibt so; die Funktion
- * gibt nur heraus, wer von wann bis wann fehlt. Ohne den Schalter
- * „Wochenplan für alle" bekommt ein Monteur eine leere Antwort.
+ * gibt nur heraus, wer von wann bis wann fehlt — und den Grund nur dem, der
+ * ihn sehen darf. Ohne den Schalter „Wochenplan für alle" bekommt ein
+ * Monteur eine leere Antwort.
  */
 export async function listAbwesendInRange(vonIso: string, bisIso: string): Promise<Abwesenheit[]> {
   const { data, error } = await derClient().rpc('wochenplan_abwesend', {
@@ -147,9 +155,13 @@ export async function listAbwesendInRange(vonIso: string, bisIso: string): Promi
     p_bis: bisIso,
   });
   if (error) throw new Error(error.message);
-  return ((data ?? []) as { user_id: string; von: string; bis: string }[]).map((z) => ({
+  return ((data ?? []) as {
+    user_id: string; von: string; bis: string; grund: string | null; zeiten: string | null;
+  }[]).map((z) => ({
     userId: z.user_id,
     von: z.von,
     bis: z.bis,
+    grund: z.grund ?? null,
+    zeiten: z.zeiten ?? null,
   }));
 }

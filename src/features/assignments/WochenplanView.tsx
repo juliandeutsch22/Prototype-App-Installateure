@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
-import { listApprovedVacationsInRange, listAbwesendInRange } from '@/lib/db/vacations';
+import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
+import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 import { subscribeAssignmentsInRange } from '@/lib/db/assignments';
 import { todayStr, getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
-import type { Project, AppUser, Assignment, Vacation } from '@/types';
+import type { Project, AppUser, Assignment, Betriebsurlaub } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
@@ -46,15 +47,30 @@ function tagKurz(iso: string): { wochentag: string; datum: string } {
 interface Zelle {
   /** Kundennamen der Baustellen, auf denen diese Person an dem Tag steht. */
   baustellen: { nummer: string; name: string; helfer: boolean }[];
+  /** Den ganzen Tag weg — Urlaub, ganztägiger ZA, krank. */
   imUrlaub: boolean;
+  /** Was in der Zelle steht: „Urlaub", „ZA", „Krank" — oder „abwesend". */
+  abwesendText: string | null;
+}
+
+/**
+ * „Urlaub", „ZA 13:00–17:00", „abwesend".
+ *
+ * Den GRUND liefert die Datenbank nur dem, der ihn sehen darf; allen anderen
+ * `null` — dann heisst es „abwesend". Die Uhrzeit bekommt jeder: „ab 13 Uhr
+ * weg" ist eine Auskunft über die Verfügbarkeit, kein Grund.
+ */
+function abwesendText(a: Pick<Abwesenheit, 'grund' | 'zeiten'>): string {
+  return [a.grund ?? 'abwesend', a.zeiten].filter(Boolean).join(' ');
 }
 
 /**
  * `nurLesen`: die Team-Woche für alle Mitarbeiter (Betriebseinstellung
  * „Wochenplan für alle"). Dieselbe Rechnung, dieselben Daten — aber nichts zum
- * Antippen, kein „frei" (das ist eine Frage der Planung, nicht des Teams) und
- * Urlaub als „abwesend", ohne Grund. Die Abwesenheiten kommen dafür aus
- * `wochenplan_abwesend`, das nur Wer/Von/Bis herausgibt.
+ * Antippen und kein „frei" (das ist eine Frage der Planung, nicht des Teams).
+ * Die Abwesenheiten kommen in beiden Fassungen aus `wochenplan_abwesend`; den
+ * Grund gibt die Datenbank nur dem heraus, der ihn sehen darf — dem Monteur
+ * nie, dort steht „abwesend".
  */
 export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolean }) {
   const { user } = useAuth();
@@ -64,7 +80,8 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
   const [users, setUsers] = useState<AppUser[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [einsaetze, setEinsaetze] = useState<WithId<Assignment>[]>([]);
-  const [urlaube, setUrlaube] = useState<Pick<Vacation, 'userId' | 'von' | 'bis'>[]>([]);
+  const [urlaube, setUrlaube] = useState<Abwesenheit[]>([]);
+  const [betriebsurlaube, setBetriebsurlaube] = useState<Betriebsurlaub[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
 
@@ -87,18 +104,20 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
   }, [user, montag, bis]);
 
   /**
-   * Der genehmigte Urlaub der Woche.
+   * Wer in der Woche fehlt: genehmigter Urlaub und Zeitausgleich,
+   * Krankmeldungen.
    *
-   * Nur der GENEHMIGTE: ein beantragter ist noch keiner, und ihn hier als
+   * Nur GENEHMIGTES: ein beantragter Urlaub ist noch keiner, und ihn hier als
    * Abwesenheit zu zeigen hieße, die Entscheidung vorwegzunehmen.
+   *
+   * FÜR BEIDE FASSUNGEN DIESELBE ABFRAGE. Sie gibt den Grund nur heraus, wo er
+   * gesehen werden darf: der Projektleitung Urlaub und ZA, einen
+   * Krankenstand nur dem Büro — sonst „abwesend".
    */
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
-    (nurLesen
-      ? listAbwesendInRange(montag, bis)
-      : listApprovedVacationsInRange(user.companyId, montag, bis)
-    )
+    listAbwesendInRange(montag, bis)
       .then((r) => {
         if (!verworfen) setUrlaube(r);
       })
@@ -110,7 +129,32 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     return () => {
       verworfen = true;
     };
-  }, [user, montag, bis, nurLesen]);
+  }, [user, montag, bis]);
+
+  /** Der Betrieb hat zu — an diesen Tagen ist niemand „frei". */
+  useEffect(() => {
+    if (!user) return;
+    let verworfen = false;
+    listBetriebsurlaubeImZeitraum(user.companyId, montag, bis)
+      .then((r) => {
+        if (!verworfen) setBetriebsurlaube(r);
+      })
+      .catch(() => {
+        if (!verworfen) setBetriebsurlaube([]);
+      });
+    return () => {
+      verworfen = true;
+    };
+  }, [user, montag, bis]);
+
+  /** Tag -> Bezeichnung des Betriebsurlaubs, falls einer ist. */
+  const zuAm = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const b of betriebsurlaube) {
+      for (const tag of tage) if (b.von <= tag && b.bis >= tag) m.set(tag, b.bezeichnung);
+    }
+    return m;
+  }, [betriebsurlaube, tage]);
 
   // Nur Außendienst wird eingeplant — dieselbe Auswahl wie in der Tagesplanung.
   const staff = useMemo(
@@ -127,7 +171,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     const hole = (uid: string, tag: string): Zelle => {
       const proTag = m.get(uid) ?? new Map<string, Zelle>();
       m.set(uid, proTag);
-      const z = proTag.get(tag) ?? { baustellen: [], imUrlaub: false };
+      const z = proTag.get(tag) ?? { baustellen: [], imUrlaub: false, abwesendText: null };
       proTag.set(tag, z);
       return z;
     };
@@ -141,7 +185,13 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     }
     for (const v of urlaube) {
       for (const tag of tage) {
-        if (v.von <= tag && v.bis >= tag) hole(v.userId, tag).imUrlaub = true;
+        if (v.von <= tag && v.bis >= tag) {
+          const z = hole(v.userId, tag);
+          // Stundenweise (mit Uhrzeit) ist man nur teilweise weg: die Zelle
+          // nennt es, eingeteilt werden kann trotzdem.
+          if (!v.zeiten) z.imUrlaub = true;
+          z.abwesendText = abwesendText(v);
+        }
       }
     }
     return m;
@@ -170,14 +220,18 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
       >();
       const frei: string[] = [];
       const urlaub: string[] = [];
+      const zu = zuAm.has(tag);
       for (const u of staff) {
         const z = brett.get(u.uid)?.get(tag);
-        if (z?.imUrlaub) {
-          urlaub.push(u.name);
-          continue;
+        // Ohne Grund steht nur der Name da — „Erna (abwesend)" hinter
+        // „Abwesend:" wäre doppelt.
+        if (z?.abwesendText) {
+          urlaub.push(z.abwesendText === 'abwesend' ? u.name : `${u.name} (${z.abwesendText})`);
         }
+        if (z?.imUrlaub) continue;
         if (!z || z.baustellen.length === 0) {
-          frei.push(u.name);
+          // Am Betriebsurlaub ist niemand „frei" — der Betrieb hat zu.
+          if (!zu) frei.push(u.name);
           continue;
         }
         for (const b of z.baustellen) {
@@ -199,7 +253,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
       });
     }
     return m;
-  }, [tage, staff, brett]);
+  }, [tage, staff, brett, zuAm]);
 
   /** Wie viele sind an diesem Tag frei — die Zahl, um die es geht. */
   const freiJeTag = useMemo(() => {
@@ -319,11 +373,12 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     const feiertag = getAustrianHolidayName(new Date(`${tag}T00:00:00`));
                     const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
                     const frei = freiJeTag.get(tag) ?? 0;
+                    const zu = zuAm.get(tag);
                     return (
                       <th
                         key={tag}
                         className={`border-b border-line p-2 text-center font-normal ${
-                          feiertag ? 'bg-warning-bg' : wochenende ? 'bg-surface-2' : ''
+                          feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''
                         }`}
                       >
                         {nurLesen ? (
@@ -336,6 +391,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                               {wochentag}
                             </span>
                             <span className="tnum block text-xs text-ink-muted">{datum}</span>
+                            {zu && <span className="mt-1 block text-xs text-ink-muted">{zu}</span>}
                           </span>
                         ) : (
                         <button
@@ -354,7 +410,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           <span className="tnum block text-xs text-ink-muted">{datum}</span>
                           {/* Die Zahl, wegen der es dieses Brett gibt. */}
                           <span className="mt-1 block text-xs text-ink-muted">
-                            {frei} frei
+                            {zu ?? `${frei} frei`}
                           </span>
                         </button>
                         )}
@@ -377,16 +433,34 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                       const feiertag = !!getAustrianHolidayName(new Date(`${tag}T00:00:00`));
                       const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
                       const leer = !z || (z.baustellen.length === 0 && !z.imUrlaub);
+                      const zu = zuAm.get(tag);
                       return (
                         <td
                           key={tag}
                           className={`border-b border-line p-1 align-top ${
-                            feiertag ? 'bg-warning-bg' : wochenende ? 'bg-surface-2' : ''
+                            feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''
                           }`}
                         >
-                          {z?.imUrlaub ? (
+                          {/*
+                            STUNDENWEISE WEG steht über dem, was sonst in der
+                            Zelle steht: vormittags eingeteilt, nachmittags ZA.
+                          */}
+                          {z?.abwesendText && !z.imUrlaub && (
+                            <span className="mb-1 block text-center text-xs text-info">{z.abwesendText}</span>
+                          )}
+                          {zu && (!z || z.baustellen.length === 0) ? (
+                            /*
+                              DER BETRIEB HAT ZU — für alle derselbe graue
+                              Block, auch für den, der dabei persönlich Urlaub
+                              gebucht bekam. Wer trotzdem eingeteilt ist (etwa
+                              ein Notdienst), steht mit seiner Baustelle da.
+                            */
+                            <span className="block rounded-sm bg-surface-2 px-2 py-1 text-center text-xs text-ink-muted">
+                              Betriebsurlaub
+                            </span>
+                          ) : z?.imUrlaub ? (
                             <span className="block rounded-sm border border-line bg-surface-2 px-2 py-1 text-center text-xs text-info">
-                              {nurLesen ? 'abwesend' : 'Urlaub'}
+                              {z.abwesendText}
                             </span>
                           ) : leer && nurLesen ? (
                             <span className="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">
@@ -471,14 +545,16 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                   key={tag}
                   className={`rounded-sm border ${
                     tag === heute ? 'border-brand' : 'border-line'
-                  } ${feiertag ? 'bg-warning-bg' : wochenende ? 'bg-surface-2' : ''}`}
+                  } ${feiertag ? 'bg-warning-bg' : wochenende || zuAm.has(tag) ? 'bg-surface-2' : ''}`}
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-3 py-2">
                     <span className="font-semibold text-ink">
                       {wochentag}, {datum}
                       {tag === heute && <span className="ml-2 text-sm text-brand">heute</span>}
                     </span>
-                    {!nurLesen && (
+                    {zuAm.has(tag) ? (
+                      <span className="text-sm text-ink-muted">Betriebsurlaub</span>
+                    ) : !nurLesen && (
                       <span className="text-sm text-ink-muted">
                         {(t?.frei.length ?? 0)} frei
                       </span>
@@ -517,6 +593,8 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                         </button>
                         ),
                       )
+                    ) : zuAm.has(tag) ? (
+                      <p className="text-sm text-ink-muted">Betriebsurlaub — {zuAm.get(tag)}.</p>
                     ) : (
                       <p className="text-sm text-ink-muted">Nichts geplant.</p>
                     )}
@@ -528,7 +606,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     )}
                     {t && t.urlaub.length > 0 && (
                       <p className="text-sm text-ink-muted">
-                        <span className="font-medium text-ink">{nurLesen ? 'Abwesend:' : 'Urlaub:'}</span>{' '}
+                        <span className="font-medium text-ink">Abwesend:</span>{' '}
                         {t.urlaub.join(', ')}
                       </p>
                     )}

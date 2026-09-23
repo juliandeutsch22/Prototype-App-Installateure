@@ -48,8 +48,21 @@ vi.mock('@/lib/db/projects', () => ({
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
 }));
 vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => [MONTEUR, KOLLEGE]) }));
+/*
+  DIE ABWESENHEITEN kommen aus `wochenplan_abwesend`: Urlaub, Zeitausgleich,
+  Krankmeldung — mit Grund, wo er gesehen werden darf. Die Testdaten bleiben
+  Urlaubsanträge; umgerechnet wird hier wie in der Datenbank.
+*/
+let betriebsurlaube: { id: string; von: string; bis: string; bezeichnung: string }[] = [];
+let weitereAbwesend: { userId: string; von: string; bis: string; grund: string | null; zeiten: string | null }[] = [];
 vi.mock('@/lib/db/vacations', () => ({
-  listApprovedVacationsInRange: vi.fn(async () => urlaube),
+  listAbwesendInRange: vi.fn(async () => [
+    ...urlaube.map((v) => ({ userId: v.userId, von: v.von, bis: v.bis, grund: 'Urlaub', zeiten: null })),
+    ...weitereAbwesend,
+  ]),
+}));
+vi.mock('@/lib/db/abwesenheiten', () => ({
+  listBetriebsurlaubeImZeitraum: vi.fn(async () => betriebsurlaube),
 }));
 vi.mock('@/lib/db/assignments', () => ({
   subscribeAssignmentsForMonth: (
@@ -131,6 +144,8 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   einsaetze = [];
   urlaube = [];
+  betriebsurlaube = [];
+  weitereAbwesend = [];
   ruestlisten = [];
   ladefehler = false;
   loeschenScheitert = false;
@@ -239,8 +254,8 @@ describe('Einsatzplanung — Urlaub', () => {
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
 
-    expect(await screen.findByText(/im genehmigten/)).toBeInTheDocument();
-    expect(screen.getByText('Max Mustermann', { selector: 'strong' })).toBeInTheDocument();
+    expect(await screen.findByText(/an diesem Tag abwesend/)).toBeInTheDocument();
+    expect(screen.getByText('Max Mustermann (Urlaub)', { selector: 'strong' })).toBeInTheDocument();
   });
 
   it('warnt NICHT bei jemandem, der nicht im Urlaub ist', async () => {
@@ -254,7 +269,33 @@ describe('Einsatzplanung — Urlaub', () => {
     await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
     await userEvent.click(screen.getByRole('checkbox', { name: /^Erna Beispiel/ }));
 
-    expect(screen.queryByText(/im genehmigten/)).toBeNull();
+    expect(screen.queryByText(/an diesem Tag abwesend/)).toBeNull();
+  });
+});
+
+describe('Einsatzplanung — Krankenstand, Zeitausgleich, Betriebsurlaub', () => {
+  it('nennt einen Krankenstand als „abwesend" — ohne Grund, wie die Datenbank ihn liefert', async () => {
+    weitereAbwesend = [{ userId: 'u2', von: HEUTE, bis: HEUTE, grund: null, zeiten: null }];
+    zeige();
+    expect((await screen.findByText(/Abwesend an diesem Tag:/)).parentElement).toHaveTextContent('Erna Beispiel (abwesend)');
+  });
+
+  it('stundenweiser ZA: Hinweis am Namen, aber keine Abwesenheitswarnung', async () => {
+    weitereAbwesend = [{ userId: 'u2', von: HEUTE, bis: HEUTE, grund: 'ZA', zeiten: '13:00–17:00' }];
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    expect(screen.getByText(/ZA 13:00–17:00/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Erna Beispiel/ }));
+    expect(screen.queryByText(/an diesem Tag abwesend/)).toBeNull();
+    expect(screen.queryByText(/Abwesend an diesem Tag:/)).toBeNull();
+  });
+
+  it('warnt am Betriebsurlaub — und lässt einteilen', async () => {
+    betriebsurlaube = [{ id: 'b1', von: '2026-08-31', bis: '2026-09-04', bezeichnung: 'Sommersperre' }];
+    zeige();
+    expect(await screen.findByText(/Der Betrieb hat an diesem Tag/)).toHaveTextContent('Sommersperre');
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeEnabled();
   });
 });
 

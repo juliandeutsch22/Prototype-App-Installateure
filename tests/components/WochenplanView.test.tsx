@@ -32,8 +32,15 @@ vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => [mk('u1', 'Max Mustermann'), mk('u2', 'Erna Beispiel')]),
 }));
 vi.mock('@/lib/db/projects', () => ({ listActiveProjects: vi.fn(async () => BAUSTELLEN) }));
-/** Was die Team-Woche über Abwesenheiten erfährt — nur Wer/Von/Bis. */
-let abwesend: { userId: string; von: string; bis: string }[] = [];
+/**
+ * Was der Wochenplan über Abwesenheiten erfährt. Den Grund liefert die
+ * Datenbank nur dem, der ihn sehen darf — der Monteur bekommt `null`.
+ */
+let abwesend: { userId: string; von: string; bis: string; grund?: string | null; zeiten?: string | null }[] = [];
+let betriebsurlaube: { id: string; von: string; bis: string; bezeichnung: string }[] = [];
+vi.mock('@/lib/db/abwesenheiten', () => ({
+  listBetriebsurlaubeImZeitraum: vi.fn(async () => betriebsurlaube),
+}));
 const vollerUrlaubGeholt = vi.fn();
 vi.mock('@/lib/db/vacations', () => ({
   listApprovedVacationsInRange: vi.fn(async () => {
@@ -100,6 +107,8 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 8, 2, 9, 0, 0));
   einsaetze = [];
   urlaube = [];
+  abwesend = [];
+  betriebsurlaube = [];
   gefahren.zu = null;
   gefahren.zustand = null;
 });
@@ -158,12 +167,7 @@ describe('Wochenplan — wer ist wo', () => {
   it('zeigt genehmigten Urlaub und zaehlt ihn NICHT als frei', async () => {
     // Wer frei hat, ist nicht verfuegbar, sondern abwesend. Ihn als frei zu
     // zaehlen hiesse, die Planung auf eine Zahl zu stuetzen, die luegt.
-    urlaube = [
-      {
-        id: 'v1', companyId: 'perl', userId: 'u2', userName: 'Erna Beispiel',
-        von: '2026-08-31', bis: '2026-09-04', status: 'Genehmigt', tage: 5,
-      } as Vacation & { id: string },
-    ];
+    abwesend = [{ userId: 'u2', von: '2026-08-31', bis: '2026-09-04', grund: 'Urlaub', zeiten: null }];
     zeige();
     const zeile = await screen.findByRole('row', { name: /Erna Beispiel/ });
     expect(within(zeile).getAllByText('Urlaub').length).toBeGreaterThan(0);
@@ -263,15 +267,11 @@ describe('Wochenplan — die Tagesliste auf dem Telefon', () => {
   });
 
   it('nennt den Urlaub beim Namen', async () => {
-    urlaube = [
-      {
-        id: 'v1', companyId: 'perl', userId: 'u2', userName: 'Erna Beispiel',
-        von: '2026-08-31', bis: '2026-09-04', status: 'Genehmigt', tage: 5,
-      } as Vacation & { id: string },
-    ];
+    abwesend = [{ userId: 'u2', von: '2026-08-31', bis: '2026-09-04', grund: 'Urlaub', zeiten: null }];
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    expect(liste().getAllByText(/Urlaub:/).length).toBeGreaterThan(0);
+    expect(liste().getAllByText(/Abwesend:/).length).toBeGreaterThan(0);
+    expect(liste().getAllByText(/Erna Beispiel \(Urlaub\)/).length).toBeGreaterThan(0);
   });
 
   it('sagt es, wenn an einem Tag nichts geplant ist', async () => {
@@ -340,5 +340,50 @@ describe('Team-Woche (nur lesen)', () => {
     await screen.findByRole('heading', { name: 'Team-Woche' });
     expect(screen.queryByText(/\d+ frei/)).toBeNull();
     expect(screen.queryByText('Frei:')).toBeNull();
+  });
+});
+
+/**
+ * ZEITAUSGLEICH, KRANKENSTAND, BETRIEBSURLAUB im Wochenplan.
+ *
+ * Gewünscht: der Betriebsurlaub sperrt den Plan für alle als grauer Block;
+ * die Planung sieht den Grund („ZA – 4 Std.", „Urlaub"), Kollegen nur
+ * „abwesend". Wer den Grund bekommt, entscheidet die Datenbank — hier wird
+ * geprüft, dass die Ansicht zeigt, was sie bekommt, und richtig zählt.
+ */
+describe('Wochenplan — Abwesenheiten mit Grund', () => {
+  it('stundenweiser ZA: steht in der Zelle, der Mitarbeiter bleibt einplanbar', async () => {
+    abwesend = [{ userId: 'u2', von: MITTWOCH, bis: MITTWOCH, grund: 'ZA', zeiten: '13:00–17:00' }];
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Erna Beispiel/ });
+    expect(within(zeile).getByText('ZA 13:00–17:00')).toBeInTheDocument();
+    // Beide frei: vormittags ist Erna da.
+    expect(tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ })).toHaveTextContent('2 frei');
+  });
+
+  it('ganztägig abwesend ohne Grund heisst „abwesend" — und zählt nicht als frei', async () => {
+    // So sieht die Projektleitung einen Krankenstand.
+    abwesend = [{ userId: 'u2', von: MITTWOCH, bis: MITTWOCH, grund: null, zeiten: null }];
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Erna Beispiel/ });
+    expect(within(zeile).getByText('abwesend')).toBeInTheDocument();
+    expect(tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ })).toHaveTextContent('1 frei');
+  });
+
+  it('Betriebsurlaub: grauer Block für alle, niemand frei — ausser wer eingeteilt ist', async () => {
+    betriebsurlaube = [{ id: 'b1', von: MITTWOCH, bis: MITTWOCH, bezeichnung: 'Betriebsurlaub' }];
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    zeige();
+    const erna = await screen.findByRole('row', { name: /Erna Beispiel/ });
+    expect(within(erna).getByText('Betriebsurlaub')).toBeInTheDocument();
+    const max = screen.getByRole('row', { name: /Max Mustermann/ });
+    expect(within(max).getAllByText('Familie Huber').length).toBeGreaterThan(0);
+    const kopf = tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ });
+    expect(kopf).toHaveTextContent('Betriebsurlaub');
+    expect(kopf).not.toHaveTextContent('frei');
+    const mittwoch = liste().getByText('Mi, 02.09.').closest('div')!.parentElement!;
+    expect(mittwoch).not.toHaveTextContent('Frei:');
   });
 });

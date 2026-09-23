@@ -72,6 +72,27 @@ vi.mock('@/lib/db/vacations', () => ({
 }));
 vi.mock('@/lib/db/users', () => ({
   getUserByUid: vi.fn(async () => monteur),
+  listUsers: vi.fn(async () => [monteur]),
+}));
+
+const krankmeldungSpeichern = vi.fn<[unknown], Promise<unknown>>(
+  async () => ({ id: 'k1', angelegt: 3, entfernt: 0, uebersprungen: 0 }),
+);
+let eigeneKrank: unknown[] = [];
+let betriebsurlaube: unknown[] = [];
+vi.mock('@/lib/db/abwesenheiten', () => ({
+  listEigeneKrankmeldungen: vi.fn(async () => eigeneKrank),
+  listKrankmeldungenAb: vi.fn(async () => []),
+  krankmeldungSpeichern: (a: unknown) => krankmeldungSpeichern(a),
+  krankmeldungLoeschen: vi.fn(async () => 0),
+  listBetriebsurlaubeAb: vi.fn(async () => betriebsurlaube),
+  betriebsurlaubAnlegen: vi.fn(),
+  betriebsurlaubLoeschen: vi.fn(),
+}));
+
+let guthabenH = 10;
+vi.mock('@/features/vacations/zeitguthaben', () => ({
+  zeitguthabenLaden: vi.fn(async () => ({ saldoH: guthabenH, hasConfig: true, daysWithoutEntry: 0 })),
 }));
 
 /** Wer die Genehmigenden sind — je Test umgestellt. */
@@ -125,6 +146,10 @@ beforeEach(() => {
     .mockResolvedValue({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 });
   antraege.length = 0;
   genehmiger = undefined;
+  krankmeldungSpeichern.mockClear();
+  eigeneKrank = [];
+  betriebsurlaube = [];
+  guthabenH = 10;
   rolle = { ...rolle, uid: 'm1', name: 'Max Mustermann', role: 'Mitarbeiter', docId: 'm1' };
 });
 
@@ -428,5 +453,132 @@ describe('Einen eigenen Antrag zurückziehen', () => {
     await nutzer.click(within(dialog).getByRole('button', { name: /Abbrechen/i }));
 
     expect(deleteVacation).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * ZEITAUSGLEICH UND KRANKMELDUNG über dieselbe Maske.
+ *
+ * Gewünscht: Antragstyp Urlaub | ZA (ganzer Tag oder Stunden) |
+ * Krankmeldung ohne Genehmigung; beim ZA ein Blick aufs Guthaben, grün wenn
+ * es reicht, eine Warnung wenn nicht — aber keine Sperre.
+ */
+describe('Zeitausgleich beantragen', () => {
+  async function zaWaehlen() {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByLabelText('Von');
+    await nutzer.selectOptions(screen.getByLabelText('Art'), 'Zeitausgleich');
+    return nutzer;
+  }
+
+  it('stundenweise: ein Tag, Von–Bis, die Stunden und das Guthaben gehen mit', async () => {
+    const nutzer = await zaWaehlen();
+    await nutzer.click(screen.getByLabelText(/Nur einige Stunden/));
+    await datum('Tag', '2026-10-27');
+    expect(await screen.findByText('ausreichend Zeitguthaben')).toBeInTheDocument();
+    expect(screen.getByText('4 Std.')).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    const v = createVacation.mock.calls[0][1] as Vacation;
+    expect(v).toMatchObject({
+      art: 'Zeitausgleich', von: '2026-10-27', bis: '2026-10-27', tage: 1,
+      zaVon: '13:00', zaBis: '17:00', zaStunden: 4, saldoBeiAntrag: 10, status: 'Beantragt',
+    });
+  });
+
+  it('ganztags: Arbeitstage mal Tagessoll', async () => {
+    const nutzer = await zaWaehlen();
+    await datum('Von', '2026-10-27');
+    await datum('Bis (einschließlich)', '2026-10-28');
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    const v = createVacation.mock.calls[0][1] as Vacation;
+    expect(v).toMatchObject({ art: 'Zeitausgleich', tage: 2, zaStunden: 16, zaVon: null, zaBis: null });
+  });
+
+  it('warnt, wenn das Guthaben nicht reicht — und lässt trotzdem beantragen', async () => {
+    guthabenH = 2;
+    const nutzer = await zaWaehlen();
+    await datum('Von', '2026-10-27');
+    await datum('Bis (einschließlich)', '2026-10-27');
+    expect(await screen.findByText(/reicht nicht/)).toBeInTheDocument();
+    expect(screen.queryByText('ausreichend Zeitguthaben')).not.toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    expect(createVacation).toHaveBeenCalledTimes(1);
+  });
+
+  it('zählt einen genehmigten ZA nicht gegen den Urlaubsanspruch', async () => {
+    antraege.push(
+      { id: 'z', companyId: 'perl', userId: 'm1', userName: 'Max', von: '2026-03-02', bis: '2026-03-03',
+        tage: 2, status: 'Genehmigt', art: 'Zeitausgleich', zaStunden: 16 },
+      { id: 'u', companyId: 'perl', userId: 'm1', userName: 'Max', von: '2026-03-04', bis: '2026-03-04',
+        tage: 1, status: 'Genehmigt', art: 'Urlaub' },
+    );
+    zeichne();
+    expect(await screen.findByText(/genehmigt:/)).toHaveTextContent(/genehmigt: 1 von/);
+    expect(screen.getByText(/ZA – 2 Tage \(16 Std\.\)/)).toBeInTheDocument();
+  });
+
+  it('zeigt dem Genehmigenden die Stunden und das Guthaben beim Antrag', async () => {
+    rolle = { ...rolle, uid: 'chef', name: 'Chefin', role: 'Geschäftsführung', docId: 'chef' };
+    antraege.push({
+      id: 'z1', companyId: 'perl', userId: 'm1', userName: 'Max Mustermann', von: '2026-10-27',
+      bis: '2026-10-27', tage: 1, status: 'Beantragt', art: 'Zeitausgleich',
+      zaVon: '13:00', zaBis: '17:00', zaStunden: 4, saldoBeiAntrag: 2.5,
+    });
+    zeichne();
+    expect(await screen.findByText(/ZA – 4 Std\. \(13:00–17:00\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Zeitguthaben beim Antrag: \+02:30 Std\. — reicht nicht/)).toBeInTheDocument();
+  });
+});
+
+describe('Krank melden', () => {
+  it('geht ohne Antrag direkt ins Zeitkonto', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByLabelText('Von');
+    await nutzer.selectOptions(screen.getByLabelText('Art'), 'Krank');
+    await datum('Krank ab', '2026-10-27');
+    await datum('Voraussichtlich bis', '2026-10-29');
+    await nutzer.click(screen.getByRole('button', { name: 'Krank melden' }));
+    expect(krankmeldungSpeichern).toHaveBeenCalledWith(
+      expect.objectContaining({ von: '2026-10-27', bis: '2026-10-29' }),
+    );
+    expect(createVacation).not.toHaveBeenCalled();
+    expect(await screen.findByText(/3 Tage eingetragen/)).toBeInTheDocument();
+  });
+
+  it('zeigt die eigenen Krankmeldungen', async () => {
+    eigeneKrank = [{ id: 'k1', companyId: 'perl', userId: 'm1', userName: 'Max', von: '2026-10-27', bis: '2026-10-29' }];
+    zeichne();
+    expect(await screen.findByText('Meine Krankmeldungen')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ende ändern' })).toBeInTheDocument();
+  });
+});
+
+describe('Reiter und Betriebsurlaub', () => {
+  it('der Monteur sieht keine Büro-Reiter', async () => {
+    zeichne();
+    await screen.findByLabelText('Von');
+    expect(screen.queryByRole('tab', { name: 'Krankenstände' })).not.toBeInTheDocument();
+  });
+
+  it('die Buchhaltung sieht Anträge, Krankenstände und Betriebsurlaub', async () => {
+    rolle = { ...rolle, uid: 'bu', name: 'Brigitte', role: 'Buchhaltung', docId: 'bu' };
+    const nutzer = userEvent.setup();
+    zeichne();
+    expect(await screen.findByRole('tab', { name: 'Anträge' })).toHaveAttribute('aria-selected', 'true');
+    await nutzer.click(screen.getByRole('tab', { name: 'Betriebsurlaub' }));
+    expect(await screen.findByLabelText(/Urlaubskonto aller aktiven Mitarbeiter belasten/)).toBeChecked();
+    await nutzer.click(screen.getByRole('tab', { name: 'Krankenstände' }));
+    expect(await screen.findByRole('button', { name: 'Krankmeldung erfassen' })).toBeInTheDocument();
+  });
+
+  it('nennt einen kommenden Betriebsurlaub beim Antrag', async () => {
+    betriebsurlaube = [{ id: 'b1', companyId: 'perl', von: '2026-12-28', bis: '2026-12-31',
+      bezeichnung: 'Weihnachten', urlaubAbbuchen: true }];
+    zeichne();
+    expect(await screen.findByText('Weihnachten')).toBeInTheDocument();
+    expect(screen.getByText(/wird vom Urlaub abgebucht/)).toBeInTheDocument();
   });
 });

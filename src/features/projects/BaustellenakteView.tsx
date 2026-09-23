@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import { baustelleUmnummern, listProjectsByIds, updateProject } from '@/lib/db/projects';
 import { alsEntwurf, gleich, type BaustellenEntwurf } from './baustellenEntwurf';
 import BaustellenPlaene from './BaustellenPlaene';
@@ -485,6 +486,7 @@ function StammdatenFormular({
 }: FormularProps) {
   const setze = <F extends keyof BaustellenEntwurf>(feld: F, wert: BaustellenEntwurf[F]) =>
     setEntwurf({ ...entwurf, [feld]: wert });
+  const companyId = useAuth().user?.companyId;
 
   return (
     <div className="flex flex-col gap-4">
@@ -576,6 +578,7 @@ function StammdatenFormular({
           onChange={(e) => setze('contactPhone', e.target.value)}
         />
       </FormGrid>
+      <BetriebsurlaubHinweis companyId={companyId} von={entwurf.startDate} bis={entwurf.endDate} />
 
       <div className="flex flex-col gap-1">
         <label htmlFor="b-beschreibung" className="text-sm font-medium text-ink">
