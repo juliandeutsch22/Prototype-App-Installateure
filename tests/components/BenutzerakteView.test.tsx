@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser } from '@/types';
+import { kunstadresse } from '@shared/benutzername';
 
 /**
  * Die Benutzerakte.
@@ -47,6 +48,12 @@ vi.mock('@/lib/db/users', () => ({
 
 vi.mock('@/lib/auth/provisionUser', () => ({
   resendPasswordReset: (...a: unknown[]) => passwortMail(...(a as [])),
+  generatePassword: () => 'Messing-3319-Bogen',
+}));
+
+const vergeben = vi.fn<[string, string], Promise<void>>(async () => undefined);
+vi.mock('@/lib/auth/sitzung', () => ({
+  passwortVergeben: (uid: string, pw: string) => vergeben(uid, pw),
 }));
 
 let angemeldet = {
@@ -80,6 +87,7 @@ beforeEach(() => {
   angemeldet = { uid: 'gf1', companyId: 'perl', name: 'Chefin', role: 'Geschäftsführung' };
   profilAendern.mockClear();
   passwortMail.mockClear();
+  vergeben.mockReset().mockResolvedValue(undefined);
 });
 
 describe('Die Stammdaten in der Akte', () => {
@@ -296,5 +304,58 @@ describe('Wenn es die Person nicht gibt', () => {
     ladefehler = true;
     zeige();
     expect(await screen.findByText(/konnte nicht geladen werden/)).toBeInTheDocument();
+  });
+});
+
+describe('Ein Konto mit Benutzername', () => {
+  beforeEach(() => {
+    gefunden = person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') });
+  });
+
+  it('zeigt den Benutzernamen, nicht die Kunstadresse', async () => {
+    zeige('u3');
+    expect(await screen.findByRole('textbox', { name: /Benutzername/ })).toHaveValue('hans');
+    expect(screen.queryByDisplayValue(/senklot\.invalid/)).not.toBeInTheDocument();
+  });
+
+  it('bietet keine Passwort-Mail an — es gibt kein Postfach', async () => {
+    zeige('u3');
+    await screen.findByRole('button', { name: 'Neues Startpasswort vergeben' });
+    expect(screen.queryByRole('button', { name: /Passwort-Mail/ })).not.toBeInTheDocument();
+  });
+
+  it('vergibt nach Rückfrage ein Startpasswort und zeigt es genau einmal', async () => {
+    const nutzer = userEvent.setup();
+    zeige('u3');
+    await nutzer.click(await screen.findByRole('button', { name: 'Neues Startpasswort vergeben' }));
+    // Erst die Rückfrage — das alte Passwort gilt danach nicht mehr.
+    expect(vergeben).not.toHaveBeenCalled();
+    await nutzer.click(screen.getByRole('button', { name: 'Vergeben' }));
+
+    await waitFor(() => expect(vergeben).toHaveBeenCalledWith('u3', 'Messing-3319-Bogen'));
+    const hinweis = await screen.findByRole('alert');
+    expect(within(hinweis).getByText('Messing-3319-Bogen')).toBeInTheDocument();
+    expect(within(hinweis).getByText('hans')).toBeInTheDocument();
+
+    await nutzer.click(within(hinweis).getByRole('button', { name: 'Verstanden' }));
+    expect(screen.queryByText('Messing-3319-Bogen')).not.toBeInTheDocument();
+  });
+
+  it('sagt, wenn der Server ablehnt — und zeigt dann kein Passwort', async () => {
+    vergeben.mockRejectedValue(new Error('Das Passwort eines Administrators vergibt nur ein Administrator.'));
+    const nutzer = userEvent.setup();
+    zeige('u3');
+    await nutzer.click(await screen.findByRole('button', { name: 'Neues Startpasswort vergeben' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Vergeben' }));
+
+    expect(await screen.findByText(/vergibt nur ein Administrator/)).toBeInTheDocument();
+    expect(screen.queryByText('Messing-3319-Bogen')).not.toBeInTheDocument();
+  });
+
+  it('beim eigenen Konto: kein Knopf, sondern der Weg zu „Mein Konto"', async () => {
+    angemeldet = { ...angemeldet, uid: 'u3' };
+    zeige('u3');
+    expect(await screen.findByText(/Das eigene Passwort unter „Mein Konto" ändern/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Neues Startpasswort vergeben' })).not.toBeInTheDocument();
   });
 });

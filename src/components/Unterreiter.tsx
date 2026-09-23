@@ -30,8 +30,10 @@ export default function Unterreiter({
   /** Was unter welchem Pfadstück gezeigt wird. */
   elemente: Record<string, ReactNode>;
 }) {
-  const { user } = useAuth();
-  const sichtbar = user ? unterseitenFuer(basis, user.role) : [];
+  const { user, company } = useAuth();
+  const sichtbar = user
+    ? unterseitenFuer(basis, user.role, { wochenplanFuerAlle: !!company?.wochenplanFuerAlle })
+    : [];
 
   // Kann diese Rolle gar nichts davon sehen, ist der Reiter für sie falsch
   // zusammengesetzt. Zurück zur Startseite ist die einzige ehrliche Antwort.

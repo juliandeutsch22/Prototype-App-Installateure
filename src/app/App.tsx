@@ -1,7 +1,8 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
-import { beiPasswortRuecksetzung } from '@/lib/auth/sitzung';
+import { beiPasswortRuecksetzung, startpasswortOffen } from '@/lib/auth/sitzung';
+import { istBenutzerkonto } from '@shared/benutzername';
 import { RequireAuth, RequireRole, RequireModul, RequireNav } from './guards';
 import ErrorBoundary from './ErrorBoundary';
 import Unterreiter from '@/components/Unterreiter';
@@ -97,7 +98,7 @@ export default function App() {
  * keinen) und in der Edge Function, die den Betrieb anlegt.
  */
 function AppInhalt() {
-  const { plattformAdmin, loading, einblick } = useAuth();
+  const { plattformAdmin, loading, einblick, user } = useAuth();
 
   /*
     WER ÜBER EINEN RÜCKSETZLINK KOMMT, WIRD ZUERST NACH EINEM PASSWORT
@@ -114,8 +115,26 @@ function AppInhalt() {
     Verweis aus der Adresse, sobald der Client entsteht, und meldet
     `PASSWORD_RECOVERY` genau einmal. Wer sich später anhängt, verpasst es.
   */
-  const [passwortFaellig, setPasswortFaellig] = useState(false);
-  useEffect(() => beiPasswortRuecksetzung(() => setPasswortFaellig(true)), []);
+  const [passwortFaellig, setPasswortFaellig] = useState<false | 'link' | 'start'>(false);
+  useEffect(() => beiPasswortRuecksetzung(() => setPasswortFaellig('link')), []);
+
+  /*
+    DASSELBE NACH EINEM STARTPASSWORT DES BÜROS. Wer mit dem Passwort
+    hereinkommt, das die Geschäftsführung vergeben hat, vergibt zuerst ein
+    eigenes — sonst bliebe ein Passwort in Gebrauch, das jemand anderes
+    kennt. Die Marke setzen `mitarbeiter-anlegen` und `passwort-vergeben`.
+  */
+  const uid = user?.uid;
+  useEffect(() => {
+    if (!uid) return;
+    let weg = false;
+    void startpasswortOffen().then((offen) => {
+      if (offen && !weg) setPasswortFaellig((f) => f || 'start');
+    });
+    return () => {
+      weg = true;
+    };
+  }, [uid]);
 
   if (passwortFaellig) {
     return (
@@ -123,10 +142,17 @@ function AppInhalt() {
         <header className="space-y-1">
           <h1 className="text-xl font-bold text-ink">Willkommen</h1>
           <p className="text-sm text-ink-muted">
-            Vergib zuerst ein Passwort. Danach geht es weiter.
+            {passwortFaellig === 'start'
+              ? 'Du bist mit einem Startpasswort angemeldet. Vergib zuerst ein eigenes — danach geht es weiter.'
+              : 'Vergib zuerst ein Passwort. Danach geht es weiter.'}
           </p>
         </header>
-        <PasswortAendern erstmalig onFertig={() => setPasswortFaellig(false)} />
+        <PasswortAendern
+          erstmalig
+          nachStartpasswort={passwortFaellig === 'start'}
+          benutzerkonto={istBenutzerkonto(user?.email)}
+          onFertig={() => setPasswortFaellig(false)}
+        />
       </div>
     );
   }
@@ -232,8 +258,18 @@ function AppRoutes() {
       {/* Strikt nur reine Mitarbeiter (Legacy:1980) — GF/Admin nutzen die
           Verwaltungssicht. */}
       <Route
-        path="/my-schedule"
-        element={<RequireNav path="/my-schedule"><MyScheduleView /></RequireNav>}
+        path="/my-schedule/*"
+        element={
+          <RequireNav path="/my-schedule">
+            <Unterreiter
+              basis="/my-schedule"
+              elemente={{
+                mein: <MyScheduleView />,
+                team: <WochenplanView nurLesen />,
+              }}
+            />
+          </RequireNav>
+        }
       />
       {/*
         Urlaub beantragen darf jede Rolle — auch Buchhaltung und Verwaltung

@@ -37,6 +37,14 @@ export function passwortSetzen(neu: string): Promise<void> {
   return pg.passwortSetzen(neu);
 }
 
+export function startpasswortOffen(): Promise<boolean> {
+  return pg.startpasswortOffen();
+}
+
+export function passwortVergeben(uid: string, passwort: string): Promise<void> {
+  return pg.passwortVergeben(uid, passwort);
+}
+
 export function beiPasswortRuecksetzung(ruf: () => void): () => void {
   return pg.beiPasswortRuecksetzung(ruf);
 }

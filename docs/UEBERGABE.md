@@ -270,6 +270,7 @@ sagten. **Nicht wieder auseinanderziehen.** Ein statischer Test wacht darüber.
 | `public.betrieb_auszug` | Auskunft nach Art. 15 DSGVO: der ganze Bestand als Datei. Seitenweise gelesen und gedeckelt — deshalb ist sie NICHT die Sicherung. |
 | Edge Function `daten-ausleitung` + `pg_cron` | Die Sicherung: schreibt jede Nacht den Bestand jedes Mandanten zeilenweise weg, samt Dateien, und räumt alte Stände auf. Von Hand anstoßbar, damit sich überhaupt prüfen lässt, ob sie läuft. |
 | Edge Function `mitarbeiter-anlegen` | Ein Anmeldekonto anlegen braucht den Dienstschlüssel. Der steht sonst im ausgelieferten JavaScript. Die Zeile in der Belegschaft schreibt weiterhin der Browser — siehe `README.md`, das ist Absicht. |
+| Edge Function `passwort-vergeben` | Ein neues Startpasswort für ein Konto, das sich mit **Benutzernamen** anmeldet — es hat kein Postfach für einen Rücksetzlink. Nur Geschäftsführung/Administration, nur im eigenen Betrieb, einem Administrator nur durch einen Administrator, und **nie für ein Konto mit E-Mail-Adresse** (sonst könnte das Büro sich still in das Konto eines Kollegen setzen). |
 | Edge Function `betrieb-anlegen` | Legt einen ganzen Mandanten an. Lässt nur herein, wer in `platform_admins` steht. |
 
 **Nur das Ist speichern, nie den Saldo.** Der Saldo hängt an Wochenstunden,
@@ -451,15 +452,25 @@ Fallstricke dabei**, beide selbst hineingetappt: ohne die echte CSS fehlt
 Vite liefert aus dem Zwischenspeicher — ohne Neustart zeigen zwei Läufe für
 zwei verschiedene Codestände dieselben Zahlen.
 
-### Die vier Edge Functions laufen ungetestet
+### Die Edge Functions — was geprüft ist und was nicht
 
-Was sie tun, ist geprüft — aber an der Datenbank, nicht an der Function:
-`betrieb-anlegen` und `mitarbeiter-anlegen` haben ihre Tests auf der
-Datenbankfunktion darunter, die Ausleitung auf ihren Entscheidungen (welcher
-Pfad, was darf gelöscht werden, wie sieht eine Zeile aus), die Push-Meldung
-auf dem Auslöser und dem Empfängerkreis. **Das Lesen und Schreiben der
-Function selbst hat nie ein Test ausgeführt.** Das ist die grösste
-verbliebene Lücke im Prüfnetz.
+Überholt ist der frühere Satz „die Edge Functions laufen ungetestet": alle
+fünf (`mitarbeiter-anlegen`, `passwort-vergeben`, `betrieb-anlegen`,
+`daten-ausleitung`, `push-melden`) werden in `tests/supabase/` gegen den
+laufenden örtlichen Stapel aufgerufen — mit den Abweisungen, nicht nur dem
+glücklichen Fall. **Was kein Test erreicht, sind die Gegenstellen draussen:**
+der echte Versand an Firebase Cloud Messaging und das echte Sicherungsziel
+ausser Haus. Und die Functions laufen örtlich unter dem Supabase-CLI, nicht
+im gehosteten Projekt — ob dort dieselben Einstellungen gelten (etwa, ob der
+Anmeldedienst eine `.invalid`-Adresse beim Anlegen annimmt), zeigt erst der
+erste echte Aufruf.
+
+**Fallstrick beim örtlichen Prüfen:** `supabase start` liest die Liste der
+Functions beim Start. Eine NEUE Function ist bis zum Neustart „not found",
+und eine geänderte läuft im Edge-Worker noch mit dem alten Stand, bis der
+Container neu startet (`docker restart supabase_edge_runtime_…`). Eine
+Gegenprobe ohne Neustart ist deshalb wertlos — sie bleibt grün, weil der
+kaputte Code nie geladen wurde.
 
 ### Toter oder unerreichbarer Code
 

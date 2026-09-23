@@ -37,6 +37,9 @@ import {
   alleDienstSchluessel, dienstKopfzeilen, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
 import { mitCors } from '../_eigen/cors.ts';
+import {
+  benutzernameAus, benutzernameFehler, istBenutzerkonto,
+} from '../_shared/benutzername.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
 const SCHLUESSEL = alleDienstSchluessel(Deno.env.toObject());
@@ -102,6 +105,17 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   const email = String(eingabe?.email ?? '').trim().toLowerCase();
   const passwort = String(eingabe?.passwort ?? '');
   if (!email.includes('@')) return fehler('Die E-Mail-Adresse fehlt oder ist unbrauchbar.', 400);
+  /*
+    EIN BENUTZERNAME KOMMT ALS KUNSTADRESSE AN (`shared/benutzername.ts`).
+    Hier wird er noch einmal nach denselben Regeln geprüft wie im Browser —
+    wer die Function direkt ruft, soll keinen Namen durchbringen, den die
+    Anmeldemaske nie wieder trifft.
+  */
+  const benutzername = benutzernameAus(email);
+  if (istBenutzerkonto(email)) {
+    const warum = benutzernameFehler(benutzername ?? '');
+    if (warum) return fehler(warum, 400);
+  }
   if (passwort.length < 8) return fehler('Das Anfangspasswort ist zu kurz.', 400);
 
   /*
@@ -117,7 +131,18 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   const kontoAntwort = await fetch(`${URL_BASIS}/auth/v1/admin/users`, {
     method: 'POST',
     headers: alsDienst,
-    body: JSON.stringify({ email, password: passwort, email_confirm: true }),
+    /*
+      `startpasswort` — DAS ANFANGSPASSWORT IST NUR ZUM ERSTEN ANMELDEN.
+      Die App fragt danach sofort nach einem eigenen (`App.tsx`). Ohne die
+      Marke bliebe das Passwort, das das Büro kennt, für immer in Gebrauch —
+      bei einem Benutzernamen-Konto ist es ja der einzige Weg hinein.
+      In `user_metadata`, weil der Mitarbeiter sie beim Setzen seines
+      Passworts selbst löschen muss; eine Sicherheitsgrenze ist sie nicht.
+    */
+    body: JSON.stringify({
+      email, password: passwort, email_confirm: true,
+      user_metadata: { startpasswort: true },
+    }),
   });
   const konto = await kontoAntwort.json();
 
@@ -126,7 +151,9 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     const schonDa = kontoAntwort.status === 422 || /already|registered|exists/i.test(text);
     return fehler(
       schonDa
-        ? `Zu ${email} gibt es schon ein Konto.`
+        ? (benutzername
+          ? `Den Benutzernamen „${benutzername}" gibt es schon — bitte einen anderen wählen.`
+          : `Zu ${email} gibt es schon ein Konto.`)
         : (text || 'Das Konto liess sich nicht anlegen.'),
       schonDa ? 409 : 500,
     );

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
-import { listApprovedVacationsInRange } from '@/lib/db/vacations';
+import { listApprovedVacationsInRange, listAbwesendInRange } from '@/lib/db/vacations';
 import { subscribeAssignmentsInRange } from '@/lib/db/assignments';
 import { todayStr, getAustrianHolidayName, isWeekend } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
@@ -49,7 +49,14 @@ interface Zelle {
   imUrlaub: boolean;
 }
 
-export default function WochenplanView() {
+/**
+ * `nurLesen`: die Team-Woche für alle Mitarbeiter (Betriebseinstellung
+ * „Wochenplan für alle"). Dieselbe Rechnung, dieselben Daten — aber nichts zum
+ * Antippen, kein „frei" (das ist eine Frage der Planung, nicht des Teams) und
+ * Urlaub als „abwesend", ohne Grund. Die Abwesenheiten kommen dafür aus
+ * `wochenplan_abwesend`, das nur Wer/Von/Bis herausgibt.
+ */
+export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolean }) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -57,7 +64,7 @@ export default function WochenplanView() {
   const [users, setUsers] = useState<AppUser[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [einsaetze, setEinsaetze] = useState<WithId<Assignment>[]>([]);
-  const [urlaube, setUrlaube] = useState<WithId<Vacation>[]>([]);
+  const [urlaube, setUrlaube] = useState<Pick<Vacation, 'userId' | 'von' | 'bis'>[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
 
@@ -88,17 +95,22 @@ export default function WochenplanView() {
   useEffect(() => {
     if (!user) return;
     let verworfen = false;
-    listApprovedVacationsInRange(user.companyId, montag, bis)
+    (nurLesen
+      ? listAbwesendInRange(montag, bis)
+      : listApprovedVacationsInRange(user.companyId, montag, bis)
+    )
       .then((r) => {
         if (!verworfen) setUrlaube(r);
       })
       .catch(() => {
         if (!verworfen) setUrlaube([]);
+        // Ohne Hinweis sähe „niemand abwesend" aus wie eine Auskunft.
+        if (!verworfen) setNebenFehler('Die Abwesenheiten');
       });
     return () => {
       verworfen = true;
     };
-  }, [user, montag, bis]);
+  }, [user, montag, bis, nurLesen]);
 
   // Nur Außendienst wird eingeplant — dieselbe Auswahl wie in der Tagesplanung.
   const staff = useMemo(
@@ -218,8 +230,12 @@ export default function WochenplanView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Wochenplan"
-        subtitle="Wer ist diese Woche wo — und wer ist noch frei"
+        title={nurLesen ? 'Team-Woche' : 'Wochenplan'}
+        subtitle={
+          nurLesen
+            ? 'Wer ist diese Woche wo'
+            : 'Wer ist diese Woche wo — und wer ist noch frei'
+        }
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -228,6 +244,13 @@ export default function WochenplanView() {
       <Card
         title={`${tagKurz(montag).datum} – ${tagKurz(bis).datum}`}
         hint={
+          nurLesen ? (
+            <>
+              Zeigt, wer an welchem Tag auf welcher Baustelle eingeteilt ist. Geplant wird im
+              Büro; bei Fragen zur Einteilung bitte dort melden. Wer abwesend ist, steht ohne
+              Grund da.
+            </>
+          ) : (
           <>
             Der Wochenplan zeigt, was geplant IST. Geändert wird in der Tagesplanung — ein Tipp
             auf einen Tag oder eine Baustelle führt dorthin, mit beidem schon eingestellt.
@@ -237,6 +260,7 @@ export default function WochenplanView() {
             genehmigten Urlaub hat. Wochenende und Feiertage sind hinterlegt, aber nicht
             ausgenommen — an einem Notdienst wird auch sonntags gearbeitet.
           </>
+          )
         }
         action={
           /*
@@ -302,6 +326,18 @@ export default function WochenplanView() {
                           feiertag ? 'bg-warning-bg' : wochenende ? 'bg-surface-2' : ''
                         }`}
                       >
+                        {nurLesen ? (
+                          <span className="block px-1 py-1">
+                            <span
+                              className={`block font-semibold ${
+                                tag === heute ? 'text-brand underline' : 'text-ink'
+                              }`}
+                            >
+                              {wochentag}
+                            </span>
+                            <span className="tnum block text-xs text-ink-muted">{datum}</span>
+                          </span>
+                        ) : (
                         <button
                           type="button"
                           onClick={() => zurTagesplanung(tag)}
@@ -321,6 +357,7 @@ export default function WochenplanView() {
                             {frei} frei
                           </span>
                         </button>
+                        )}
                       </th>
                     );
                   })}
@@ -349,7 +386,11 @@ export default function WochenplanView() {
                         >
                           {z?.imUrlaub ? (
                             <span className="block rounded-sm border border-line bg-surface-2 px-2 py-1 text-center text-xs text-info">
-                              Urlaub
+                              {nurLesen ? 'abwesend' : 'Urlaub'}
+                            </span>
+                          ) : leer && nurLesen ? (
+                            <span className="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">
+                              –
                             </span>
                           ) : leer ? (
                             /*
@@ -367,7 +408,18 @@ export default function WochenplanView() {
                             </button>
                           ) : (
                             <span className="flex flex-col gap-1">
-                              {z!.baustellen.map((b) => (
+                              {z!.baustellen.map((b) =>
+                                nurLesen ? (
+                                  <span
+                                    key={b.nummer}
+                                    className={`block rounded-sm px-2 py-1 text-left text-xs ${
+                                      b.helfer ? 'bg-warning-bg text-warning' : 'bg-info-bg text-info'
+                                    }`}
+                                  >
+                                    <span className="block truncate font-medium">{b.name}</span>
+                                    {b.helfer && <span className="block">als Helfer</span>}
+                                  </span>
+                                ) : (
                                 <button
                                   key={b.nummer}
                                   type="button"
@@ -382,7 +434,8 @@ export default function WochenplanView() {
                                   <span className="block truncate font-medium">{b.name}</span>
                                   {b.helfer && <span className="block">als Helfer</span>}
                                 </button>
-                              ))}
+                                ),
+                              )}
                             </span>
                           )}
                         </td>
@@ -425,14 +478,29 @@ export default function WochenplanView() {
                       {wochentag}, {datum}
                       {tag === heute && <span className="ml-2 text-sm text-brand">heute</span>}
                     </span>
-                    <span className="text-sm text-ink-muted">
-                      {(t?.frei.length ?? 0)} frei
-                    </span>
+                    {!nurLesen && (
+                      <span className="text-sm text-ink-muted">
+                        {(t?.frei.length ?? 0)} frei
+                      </span>
+                    )}
                   </div>
 
                   <div className="space-y-2 p-3">
                     {t && t.baustellen.length > 0 ? (
-                      t.baustellen.map((b) => (
+                      t.baustellen.map((b) =>
+                        nurLesen ? (
+                          <div
+                            key={b.nummer}
+                            className="rounded-sm border border-line bg-surface-2 px-3 py-2"
+                          >
+                            <span className="block font-medium text-info">{b.name}</span>
+                            <span className="block text-sm text-info">
+                              {b.namen
+                                .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
+                                .join(', ')}
+                            </span>
+                          </div>
+                        ) : (
                         <button
                           key={b.nummer}
                           type="button"
@@ -447,30 +515,34 @@ export default function WochenplanView() {
                               .join(', ')}
                           </span>
                         </button>
-                      ))
+                        ),
+                      )
                     ) : (
                       <p className="text-sm text-ink-muted">Nichts geplant.</p>
                     )}
 
-                    {t && t.frei.length > 0 && (
+                    {!nurLesen && t && t.frei.length > 0 && (
                       <p className="text-sm text-ink-muted">
                         <span className="font-medium text-ink">Frei:</span> {t.frei.join(', ')}
                       </p>
                     )}
                     {t && t.urlaub.length > 0 && (
                       <p className="text-sm text-ink-muted">
-                        <span className="font-medium text-ink">Urlaub:</span> {t.urlaub.join(', ')}
+                        <span className="font-medium text-ink">{nurLesen ? 'Abwesend:' : 'Urlaub:'}</span>{' '}
+                        {t.urlaub.join(', ')}
                       </p>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() => zurTagesplanung(tag)}
-                      aria-label={`Am ${datum} einteilen`}
-                      className="min-h-touch w-full rounded-sm border border-dashed border-line text-sm text-ink-muted"
-                    >
-                      Einteilen
-                    </button>
+                    {!nurLesen && (
+                      <button
+                        type="button"
+                        onClick={() => zurTagesplanung(tag)}
+                        aria-label={`Am ${datum} einteilen`}
+                        className="min-h-touch w-full rounded-sm border border-dashed border-line text-sm text-ink-muted"
+                      >
+                        Einteilen
+                      </button>
+                    )}
                   </div>
                 </div>
               );

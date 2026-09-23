@@ -4,6 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import { InputField, CheckboxField } from '@/components/Field';
 import ProduktMarke from '@/components/ProduktMarke';
 import Button from '@/components/Button';
+import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
 
 /**
  * Anmeldung. Dunkles Kopfband mit der Produktmarke, darunter das Formular —
@@ -56,6 +57,18 @@ export default function LoginPage() {
     setSubmitting(true);
 
     if (resetMode) {
+      /*
+        EIN BENUTZERNAME BEKOMMT KEINEN LINK — und das wird gesagt, nicht
+        verschwiegen. Die übliche Antwort („wenn es ein Konto gibt, ist eine
+        Mail unterwegs") wäre hier eine Lüge: es gibt kein Postfach. Verraten
+        wird dabei nichts; die Auskunft folgt aus der Schreibweise, nicht
+        daraus, ob es den Namen gibt.
+      */
+      if (istBenutzerkonto(anmeldeAdresse(email))) {
+        setNotice(KEIN_MAILKONTO);
+        setSubmitting(false);
+        return;
+      }
       try {
         await resetPassword(email);
         setNotice(
@@ -78,7 +91,7 @@ export default function LoginPage() {
     try {
       await signIn(email, password, remember);
     } catch {
-      setError('Anmeldung fehlgeschlagen. E-Mail oder Passwort prüfen.');
+      setError('Anmeldung fehlgeschlagen. E-Mail bzw. Benutzername und Passwort prüfen.');
       setSubmitting(false);
     }
   }
@@ -112,17 +125,28 @@ export default function LoginPage() {
           </h1>
           <p className="mb-4 text-sm text-ink-muted">
             {resetMode
-              ? 'E-Mail-Adresse eingeben — du bekommst einen Link zugeschickt.'
+              ? 'E-Mail-Adresse eingeben — du bekommst einen Link zugeschickt. '
+                + 'Wer sich mit Benutzernamen anmeldet, bekommt ein neues Passwort vom Büro.'
               : 'Mit den Zugangsdaten deines Betriebs anmelden.'}
           </p>
 
           <div className="flex flex-col gap-4">
+            {/*
+              KEIN `type="email"` MEHR, auch nicht beim Zurücksetzen: der
+              Browser wiese einen Benutzernamen ohne `@` sonst schon vor dem
+              Absenden ab — und der Hinweis, dass es dafür keinen Link gibt,
+              käme nie an. `inputMode` behält die Tastatur mit dem `@`.
+            */}
             <InputField
               id="email"
-              label="E-Mail"
-              type="email"
+              label={resetMode ? 'E-Mail' : 'E-Mail oder Benutzername'}
+              type="text"
+              inputMode="email"
               autoComplete="username"
-              placeholder="name@firma.at"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={resetMode ? 'name@firma.at' : 'name@firma.at oder benutzername'}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

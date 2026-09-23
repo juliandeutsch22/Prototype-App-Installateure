@@ -32,8 +32,15 @@ vi.mock('@/lib/db/users', () => ({
   listUsers: vi.fn(async () => [mk('u1', 'Max Mustermann'), mk('u2', 'Erna Beispiel')]),
 }));
 vi.mock('@/lib/db/projects', () => ({ listActiveProjects: vi.fn(async () => BAUSTELLEN) }));
+/** Was die Team-Woche über Abwesenheiten erfährt — nur Wer/Von/Bis. */
+let abwesend: { userId: string; von: string; bis: string }[] = [];
+const vollerUrlaubGeholt = vi.fn();
 vi.mock('@/lib/db/vacations', () => ({
-  listApprovedVacationsInRange: vi.fn(async () => urlaube),
+  listApprovedVacationsInRange: vi.fn(async () => {
+    vollerUrlaubGeholt();
+    return urlaube;
+  }),
+  listAbwesendInRange: vi.fn(async () => abwesend),
 }));
 vi.mock('@/lib/db/assignments', () => ({
   subscribeAssignmentsInRange: (
@@ -281,5 +288,57 @@ describe('Wochenplan — die Tagesliste auf dem Telefon', () => {
     await userEvent.click(liste().getByRole('button', { name: 'Am 02.09. einteilen' }));
     expect(gefahren.zu).toBe('/assignments/tag');
     expect(gefahren.zustand).toEqual({ datum: MITTWOCH, projectNumber: undefined });
+  });
+});
+
+/*
+  DIE TEAM-WOCHE — der Wochenplan für alle Mitarbeiter, nur zum Lesen. Der
+  Betrieb schaltet sie ein; der Monteur sieht, wer wo ist, und wer abwesend
+  ist — ohne Grund.
+*/
+describe('Team-Woche (nur lesen)', () => {
+  function zeigeLesend() {
+    return render(
+      <MemoryRouter>
+        <WochenplanView nurLesen />
+      </MemoryRouter>,
+    );
+  }
+
+  beforeEach(() => {
+    abwesend = [];
+    vollerUrlaubGeholt.mockClear();
+  });
+
+  it('zeigt, wer wo ist — und bietet nichts zum Antippen an', async () => {
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' } as Assignment & { id: string },
+    ];
+    zeigeLesend();
+    expect(await screen.findByRole('heading', { name: 'Team-Woche' })).toBeInTheDocument();
+    expect((await tabelle().findAllByText('Familie Huber')).length).toBeGreaterThan(0);
+    expect(within(screen.getByRole('table', { name: 'Wochenplan als Tabelle' })).queryAllByRole('button')).toEqual([]);
+    expect(within(screen.getByRole('region', { name: 'Wochenplan als Liste' })).queryAllByRole('button')).toEqual([]);
+  });
+
+  it('sagt „abwesend" statt „Urlaub" — und holt die Urlaube nicht selbst', async () => {
+    einsaetze = [];
+    abwesend = [{ userId: 'u2', von: MITTWOCH, bis: MITTWOCH }];
+    zeigeLesend();
+    await screen.findByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect((await tabelle().findAllByText('abwesend')).length).toBe(1);
+    expect(tabelle().queryByText('Urlaub')).toBeNull();
+    expect(liste().getByText(/Abwesend:/)).toBeInTheDocument();
+    // Die volle Urlaubsabfrage wäre für den Monteur ohnehin leer — und
+    // brächte, wo sie es nicht wäre, mehr heraus als Wer/Von/Bis.
+    expect(vollerUrlaubGeholt).not.toHaveBeenCalled();
+  });
+
+  it('zählt nicht „frei" — das ist eine Frage der Planung, nicht des Teams', async () => {
+    einsaetze = [];
+    zeigeLesend();
+    await screen.findByRole('heading', { name: 'Team-Woche' });
+    expect(screen.queryByText(/\d+ frei/)).toBeNull();
+    expect(screen.queryByText('Frei:')).toBeNull();
   });
 });

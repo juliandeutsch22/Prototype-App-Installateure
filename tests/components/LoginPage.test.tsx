@@ -20,7 +20,8 @@ import type { CurrentUser } from '@/types';
  * Monteur, dessen Profil im Funkloch nicht geladen werden konnte.
  */
 
-const anmelden = vi.fn(async () => undefined);
+const anmelden = vi.fn<unknown[], Promise<undefined>>(async () => undefined);
+const zuruecksetzen = vi.fn<[string], Promise<undefined>>(async () => undefined);
 let authFehler: string | null = null;
 let angemeldet: CurrentUser | null = null;
 
@@ -29,7 +30,7 @@ vi.mock('@/app/AuthContext', () => ({
     signIn: anmelden,
     user: angemeldet,
     error: authFehler,
-    resetPassword: vi.fn(async () => undefined),
+    resetPassword: zuruecksetzen,
   }),
 }));
 /*
@@ -60,6 +61,7 @@ async function anmeldeversuch() {
 
 beforeEach(() => {
   anmelden.mockClear();
+  zuruecksetzen.mockClear();
   authFehler = null;
   angemeldet = null;
 });
@@ -140,7 +142,7 @@ describe('Der Anmeldeknopf', () => {
     zeige();
     await anmeldeversuch();
 
-    expect(await screen.findByText(/E-Mail oder Passwort prüfen/)).toBeInTheDocument();
+    expect(await screen.findByText(/Benutzername und Passwort prüfen/)).toBeInTheDocument();
     expect(knopf()).not.toBeDisabled();
   });
 });
@@ -163,5 +165,47 @@ describe('Die Marke über dem Formular', () => {
     // fremden Logo stehen. Vor der Anmeldung gehört gar keines auf die Seite.
     const { container } = zeige();
     expect(container.querySelectorAll('img')).toHaveLength(0);
+  });
+});
+
+describe('Anmelden mit Benutzername', () => {
+  it('nimmt einen Namen ohne @ an — der Browser weist ihn nicht vorher ab', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    const feld = screen.getByLabelText(/E-Mail oder Benutzername/);
+    expect(feld).toHaveAttribute('type', 'text');
+    await nutzer.type(feld, 'manfred.huber');
+    await nutzer.type(screen.getByLabelText(/Passwort/), 'geheim-123');
+    await nutzer.click(knopf());
+    // Umgesetzt wird der Name in der Anmeldeschicht (`pg/sitzung.ts`).
+    expect(anmelden).toHaveBeenCalledWith('manfred.huber', 'geheim-123', true);
+  });
+
+  it('bekommt beim Zurücksetzen keinen Link versprochen', async () => {
+    /*
+      Die übliche Antwort „wenn es ein Konto gibt, ist eine Mail unterwegs"
+      wäre hier falsch: es gibt kein Postfach.
+    */
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(screen.getByRole('button', { name: 'Passwort vergessen?' }));
+    const feld = screen.getByLabelText(/E-Mail/);
+    expect(feld).toHaveAttribute('type', 'text');
+    await nutzer.type(feld, 'manfred.huber');
+    await nutzer.click(screen.getByRole('button', { name: 'Link anfordern' }));
+
+    expect(await screen.findByText(/keinen Link per E-Mail/)).toBeInTheDocument();
+    expect(zuruecksetzen).not.toHaveBeenCalled();
+  });
+
+  it('schickt für eine Adresse den Link wie bisher', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(screen.getByRole('button', { name: 'Passwort vergessen?' }));
+    await nutzer.type(screen.getByLabelText(/E-Mail/), 'petra@perl.at');
+    await nutzer.click(screen.getByRole('button', { name: 'Link anfordern' }));
+
+    expect(await screen.findByText(/wurde eine E-Mail zum Zurücksetzen versendet/)).toBeInTheDocument();
+    expect(zuruecksetzen).toHaveBeenCalledWith('petra@perl.at');
   });
 });

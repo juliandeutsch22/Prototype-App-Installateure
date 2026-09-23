@@ -24,6 +24,7 @@
 import type { Company, CurrentUser, Role } from '@/types';
 import { supabaseClient, merkenSetzen } from '@/lib/supabase';
 import { InactiveUserError, type Angemeldet } from '../kern';
+import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
 
 /** Wo der eigene Zwischenspeicher liegt. */
 const SPEICHER = 'perl.sitzung';
@@ -66,8 +67,9 @@ export async function anmelden(
     schon wissen, wohin die Sitzung geschrieben wird, wenn sie entsteht.
   */
   merkenSetzen(merken);
+  // Ein Benutzername wird hier zur Kunstadresse — siehe `shared/benutzername.ts`.
   const { error } = await supabaseClient().auth.signInWithPassword({
-    email, password: passwort,
+    email: anmeldeAdresse(email), password: passwort,
   });
   if (error) throw new Error(error.message);
 }
@@ -78,7 +80,14 @@ export async function abmelden(): Promise<void> {
 }
 
 export async function passwortZuruecksetzen(email: string): Promise<void> {
-  const { error } = await supabaseClient().auth.resetPasswordForEmail(email);
+  /*
+    HIER UND NICHT ERST IN DER ANSICHT. Der Anmeldedienst nimmt die Anfrage
+    für eine Kunstadresse ohne Fehler an und schickt die Mail ins Leere —
+    jede Stelle, die diesen Weg geht, stünde danach mit „versendet" da.
+  */
+  const adresse = anmeldeAdresse(email);
+  if (istBenutzerkonto(adresse)) throw new Error(KEIN_MAILKONTO);
+  const { error } = await supabaseClient().auth.resetPasswordForEmail(adresse);
   if (error) throw new Error(error.message);
 }
 
@@ -97,8 +106,39 @@ export async function passwortZuruecksetzen(email: string): Promise<void> {
  * angemeldet oder eben über den Link, den nur das Postfach bekommen hat.
  */
 export async function passwortSetzen(neu: string): Promise<void> {
-  const { error } = await supabaseClient().auth.updateUser({ password: neu });
+  // Mit dem eigenen Passwort ist das Startpasswort des Büros erledigt.
+  const { error } = await supabaseClient().auth.updateUser({
+    password: neu, data: { startpasswort: false },
+  });
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Ist die laufende Sitzung mit einem STARTPASSWORT des Büros entstanden?
+ *
+ * Gesetzt von `mitarbeiter-anlegen` und `passwort-vergeben`, gelöscht von
+ * `passwortSetzen`. Gelesen aus der Sitzung im Speicher — keine Netzrunde.
+ * Keine Sicherheitsgrenze: wer die Marke umgeht, behält eben das Passwort,
+ * das das Büro kennt. Das ist seine Sache, und die Marke ist nur der Anstoss.
+ */
+export async function startpasswortOffen(): Promise<boolean> {
+  const { data } = await supabaseClient().auth.getSession();
+  return data.session?.user?.user_metadata?.startpasswort === true;
+}
+
+/**
+ * Das Büro vergibt einem Benutzernamen-Konto ein neues Startpasswort.
+ * Über die Edge Function — der Browser hat den Dienstschlüssel nicht.
+ */
+export async function passwortVergeben(uid: string, passwort: string): Promise<void> {
+  const { error } = await supabaseClient().functions.invoke('passwort-vergeben', {
+    body: { uid, passwort },
+  });
+  if (error) {
+    const rumpf = await (error as { context?: Response }).context?.json?.()
+      .catch(() => undefined);
+    throw new Error(rumpf?.error ?? error.message);
+  }
 }
 
 /**

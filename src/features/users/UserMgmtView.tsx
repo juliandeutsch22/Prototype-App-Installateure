@@ -23,6 +23,7 @@ import {
 } from './benutzerEntwurf';
 import { DEFAULT_VACATION_DAYS } from '@/lib/db/benutzerVorgaben';
 import { JAHRESBEGINN_VORGABE } from '@/lib/time';
+import { benutzernameFehler, kontoAnzeige, kunstadresse } from '@shared/benutzername';
 
 
 /** Benutzerverwaltung (GF/Admin): anlegen, Stammdaten und Rollen pflegen. */
@@ -70,7 +71,16 @@ export default function UserMgmtView() {
     );
 
   /** Initialpasswort, falls die Willkommens-Mail nicht zugestellt werden konnte. */
-  const [handoverPassword, setHandoverPassword] = useState<{ name: string; pw: string } | null>(null);
+  const [handoverPassword, setHandoverPassword] = useState<
+    { name: string; pw: string; benutzername?: string } | null
+  >(null);
+  /*
+    WOMIT SICH DIE PERSON ANMELDET. Neben dem Entwurf und nicht darin: die
+    Akte kennt nur das fertige Konto, und `gleich()` soll dort nichts
+    vergleichen, was sich nicht ändern lässt.
+  */
+  const [anmeldung, setAnmeldung] = useState<'email' | 'benutzername'>('email');
+  const [benutzername, setBenutzername] = useState('');
 
   async function reload() {
     if (!user) return;
@@ -102,7 +112,8 @@ export default function UserMgmtView() {
     const q = suche.trim().toLowerCase();
     return sorted.filter(
       (u) =>
-        (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
+        (!q || u.name.toLowerCase().includes(q)
+          || kontoAnzeige(u.email).toLowerCase().includes(q)) &&
         (status === 'alle' ||
           (status === 'aktiv' ? u.active !== false : u.active === false)),
     );
@@ -145,6 +156,16 @@ export default function UserMgmtView() {
       verschiedene Wochenstunden für denselben Menschen.
     */
     const profile = alsProfil(form);
+    if (anmeldung === 'benutzername') {
+      // Dieselbe Prüfung wie in der Edge Function — hier nur früher gesagt.
+      const warum = benutzernameFehler(benutzername);
+      if (warum) {
+        setError(warum);
+        setSaving(false);
+        return;
+      }
+      profile.email = kunstadresse(benutzername);
+    }
     try {
       /*
         DIESES FORMULAR LEGT NUR NOCH AN. Geändert wird in der Akte
@@ -156,9 +177,15 @@ export default function UserMgmtView() {
         toast.success(`${form.name} angelegt — Passwort-Mail versendet`);
       } else {
         toast.success(`${form.name} angelegt`);
-        setHandoverPassword({ name: form.name, pw: res.tempPassword });
+        setHandoverPassword({
+          name: form.name,
+          pw: res.tempPassword,
+          benutzername: res.benutzerkonto ? kontoAnzeige(profile.email) : undefined,
+        });
       }
       setForm(leererEntwurf());
+      setAnmeldung('email');
+      setBenutzername('');
       setEintritt('bestand');
       setShowDetails(false);
       setFormOffen(false);
@@ -199,11 +226,24 @@ export default function UserMgmtView() {
 
       {handoverPassword && (
         <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
-          <p className="font-semibold">Willkommens-Mail konnte nicht gesendet werden</p>
+          <p className="font-semibold">
+            {handoverPassword.benutzername
+              ? `Zugangsdaten für ${handoverPassword.name}`
+              : 'Willkommens-Mail konnte nicht gesendet werden'}
+          </p>
           <p className="mt-1 text-sm">
             Bitte {handoverPassword.name} dieses Startpasswort persönlich weitergeben. Es wird
-            nur jetzt angezeigt:
+            nur jetzt angezeigt
+            {handoverPassword.benutzername
+              ? ' — beim ersten Anmelden vergibt die Person ein eigenes:'
+              : ':'}
           </p>
+          {handoverPassword.benutzername && (
+            <p className="mt-2 text-sm text-ink">
+              Benutzername:{' '}
+              <span className="select-all font-semibold">{handoverPassword.benutzername}</span>
+            </p>
+          )}
           <p className="mt-2 select-all tnum text-lg font-semibold">{handoverPassword.pw}</p>
           <Button variant="ghost" className="mt-2" onClick={() => setHandoverPassword(null)}>
             Verstanden
@@ -230,9 +270,40 @@ export default function UserMgmtView() {
           <FormGrid>
             <InputField id="uname" label="Name" value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })} required pflicht />
-            <InputField id="uemail" label="E-Mail" type="email" value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              required pflicht />
+            <SelectField id="uanmeldung" label="Anmeldung mit" value={anmeldung}
+              onChange={(e) => setAnmeldung(e.target.value as 'email' | 'benutzername')}>
+              <option value="email">E-Mail-Adresse</option>
+              <option value="benutzername">Benutzername</option>
+            </SelectField>
+            {anmeldung === 'email' ? (
+              <InputField id="uemail" label="E-Mail" type="email" value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required pflicht />
+            ) : (
+              <div className="flex flex-col gap-1">
+                {/*
+                  KLEIN GESCHRIEBEN BEIM TIPPEN, nicht erst beim Speichern:
+                  was hier steht, ist genau das, was der Monteur später
+                  eintippt — und das soll er so auch weitergesagt bekommen.
+                */}
+                <InputField id="ubenutzername" label="Benutzername" value={benutzername}
+                  autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                  placeholder="z. B. manfred.huber"
+                  onChange={(e) => setBenutzername(e.target.value.toLowerCase().trim())}
+                  required pflicht />
+                <p className="flex items-center text-xs text-ink-muted">
+                  Ohne E-Mail: das Startpasswort gibst du persönlich weiter.
+                  <InfoHint about="Benutzername">
+                    Erlaubt sind Kleinbuchstaben a–z, Ziffern, Punkt, Bindestrich und
+                    Unterstrich, 3 bis 40 Zeichen — also „ue" statt „ü". Der Name gilt über
+                    alle Betriebe in Senklot; ist er schon vergeben, einfach einen anderen
+                    wählen. Ein vergessenes Passwort lässt sich nicht per Mail zurücksetzen:
+                    Geschäftsführung oder Administration vergeben in der Benutzerakte ein
+                    neues Startpasswort. Nachträglich auf E-Mail umstellen geht nicht.
+                  </InfoHint>
+                </p>
+              </div>
+            )}
             <SelectField id="urole" label="Rolle" value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
               {/* Die Rolle Administrator vergibt nur ein Administrator.
@@ -457,7 +528,12 @@ export default function UserMgmtView() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => { setFormOffen(false); setForm(leererEntwurf()); }}
+              onClick={() => {
+                setFormOffen(false);
+                setForm(leererEntwurf());
+                setAnmeldung('email');
+                setBenutzername('');
+              }}
               className="w-full sm:w-auto"
             >
               Abbrechen
@@ -489,7 +565,7 @@ export default function UserMgmtView() {
               id="usrsuche"
               label="Suche"
               type="search"
-              placeholder="Name oder E-Mail"
+              placeholder="Name, E-Mail oder Benutzername"
               value={suche}
               onChange={(e) => setSuche(e.target.value)}
             />
@@ -524,7 +600,7 @@ export default function UserMgmtView() {
                     {u.active === false && <Marke>inaktiv</Marke>}
                   </span>
                 }
-                subtitle={u.email}
+                subtitle={kontoAnzeige(u.email)}
               >
                 {/* Ein Administrator laesst sich nur von einem Administrator
                     anfassen — sonst koennte die Geschaeftsfuehrung den letzten

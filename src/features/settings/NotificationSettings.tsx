@@ -12,6 +12,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, TeilFehler } from '@/components/States';
 import PushStatus from './PushStatus';
 import PasswortAendern from '@/features/auth/PasswortAendern';
+import { istBenutzerkonto } from '@shared/benutzername';
 
 /** Was der Zustand für den Nutzer bedeutet — in seinen Worten, nicht in Fehlercodes. */
 const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus' }> = {
@@ -150,7 +151,7 @@ export default function NotificationSettings() {
         „Firmendaten" fände es kein Monteur, weil er diese Seiten gar nicht
         sieht. Hier steht es bei allem anderen, was ihm selbst gehört.
       */}
-      <PasswortAendern />
+      <PasswortAendern benutzerkonto={istBenutzerkonto(user?.email)} />
 
       <Card
         title="Wovon möchtest du erfahren?"

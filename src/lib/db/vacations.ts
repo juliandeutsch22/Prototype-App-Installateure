@@ -42,6 +42,13 @@ export function listApprovedVacationsInRange(
   return pg.listApprovedVacationsInRange(companyId, vonIso, bisIso, max);
 }
 
+/** Wer in diesem Zeitraum abwesend ist — ohne Grund; für den Wochenplan. */
+export function listAbwesendInRange(vonIso: string, bisIso: string): Promise<pg.Abwesenheit[]> {
+  return pg.listAbwesendInRange(vonIso, bisIso);
+}
+
+export type { Abwesenheit } from './pg/vacations';
+
 export function createVacation(companyId: string, v: NewVacation): Promise<string> {
   return pg.createVacation(companyId, v);
 }

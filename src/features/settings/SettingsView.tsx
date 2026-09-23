@@ -86,6 +86,8 @@ export default function SettingsView() {
    * Regel wiederholt sich jedes Jahr.
    */
   const [rechnungsarten, setRechnungsarten] = useState(false);
+  const [wochenplanFuerAlle, setWochenplanFuerAlle] = useState(false);
+  const [wochenplanSpeichert, setWochenplanSpeichert] = useState(false);
   const [uebertrag, setUebertrag] = useState<'verjaehrung' | 'stichtag'>('verjaehrung');
   const [stichtagMonat, setStichtagMonat] = useState('03');
   const [stichtagTag, setStichtagTag] = useState('31');
@@ -113,6 +115,7 @@ export default function SettingsView() {
     // diese Zeile stünden hier die Vorgaben statt der gespeicherten Vorsätze.
     setVorsaetze(praefixeVon(company));
     setRechnungsarten(company?.rechnungsarten ?? false);
+    setWochenplanFuerAlle(company?.wochenplanFuerAlle ?? false);
     const beginn = company?.urlaubJahresbeginn ?? '01-01';
     setBeginnMonat(beginn.slice(0, 2));
     setBeginnTag(beginn.slice(3, 5));
@@ -226,6 +229,21 @@ export default function SettingsView() {
       );
     } finally {
       setVorsaetzeSpeichert(false);
+    }
+  }
+
+  async function wochenplanSpeichern() {
+    if (!user) return;
+    setWochenplanSpeichert(true);
+    setError(null);
+    try {
+      await updateCompany(user.companyId, { wochenplanFuerAlle });
+      await reloadCompany();
+      toast.success(wochenplanFuerAlle ? 'Wochenplan für alle sichtbar' : 'Wochenplan nur fürs Büro');
+    } catch {
+      setError('Die Einstellung zum Wochenplan konnte nicht gespeichert werden.');
+    } finally {
+      setWochenplanSpeichert(false);
     }
   }
 
@@ -875,6 +893,35 @@ export default function SettingsView() {
         stillgelegt, sondern entfernt — und an seiner Stelle steht, warum. Wer
         ihn sucht, soll die Antwort dort finden, wo er ihn vermutet.
       */}
+      {/*
+        DER WOCHENPLAN FÜR ALLE — ein Schalter, ab Werk aus. Ob Kollegen
+        sehen sollen, wer wo ist, entscheidet der Betrieb. Wer abwesend ist,
+        steht dort ohne Grund: die Urlaube der anderen bleiben dem Monteur
+        verschlossen, die Datenbank gibt nur Wer/Von/Bis heraus.
+      */}
+      <Card
+        title="Wochenplan für alle"
+        hint={
+          <>
+            Eingeschaltet finden alle Mitarbeiter unter „Mein Einsatzplan" eine zweite Seite
+            „Team-Woche": wer an welchem Tag auf welcher Baustelle ist. Zu ändern gibt es dort
+            nichts. Wer Urlaub hat, steht als „abwesend" da — ohne Grund und ohne Antragsstand.
+          </>
+        }
+      >
+        <CheckboxField
+          id="wochenplanFuerAlle"
+          label="Alle Mitarbeiter sehen den Wochenplan (nur lesen)"
+          checked={wochenplanFuerAlle}
+          onChange={(e) => setWochenplanFuerAlle(e.target.checked)}
+        />
+        <div className="mt-4">
+          <Button type="button" loading={wochenplanSpeichert} onClick={wochenplanSpeichern}>
+            Speichern
+          </Button>
+        </div>
+      </Card>
+
       <Card title="Monatsbilanzen">
         <p className="text-sm text-ink">
           Die Monatsbilanzen sind eine Sicht auf die Zeitbuchungen: sie rechnen bei jeder

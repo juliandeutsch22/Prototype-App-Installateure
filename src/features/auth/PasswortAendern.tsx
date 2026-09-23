@@ -35,9 +35,18 @@ export default function PasswortAendern({
   erstmalig = false,
   /** Was nach dem Speichern geschehen soll — etwa die Sperrseite schliessen. */
   onFertig,
+  /**
+   * Anmeldung mit Benutzername: es gibt keinen Link per Mail. Der Satz dazu
+   * wäre sonst ein Versprechen, das diese Person nie einlösen kann.
+   */
+  benutzerkonto = false,
+  /** Erstmalig, aber nach einem Startpasswort des Büros statt nach einem Link. */
+  nachStartpasswort = false,
 }: {
   erstmalig?: boolean;
   onFertig?: () => void;
+  benutzerkonto?: boolean;
+  nachStartpasswort?: boolean;
 }) {
   const [neu, setNeu] = useState('');
   const [wieder, setWieder] = useState('');
@@ -87,16 +96,19 @@ export default function PasswortAendern({
           Angemeldete Geräte bleiben angemeldet; erst beim nächsten Anmelden zählt das neue.
           <br />
           <br />
-          <strong>Das Büro kann es nicht nachsehen.</strong> Es steht nirgends im Klartext. Wer
-          es vergisst, lässt sich über „Passwort vergessen?" einen neuen Link schicken.
+          <strong>Das Büro kann es nicht nachsehen.</strong> Es steht nirgends im Klartext.{' '}
+          {benutzerkonto
+            ? 'Wer es vergisst, bekommt von der Geschäftsführung oder Administration ein neues Startpasswort.'
+            : 'Wer es vergisst, lässt sich über „Passwort vergessen?" einen neuen Link schicken.'}
         </>
       }
     >
       <form onSubmit={speichern} className="space-y-4">
         {erstmalig && (
           <p className="text-sm text-ink-muted">
-            Damit kommst du beim nächsten Mal wieder herein. Ohne eigenes Passwort brauchst du
-            jedes Mal einen neuen Link per E-Mail.
+            {nachStartpasswort
+              ? 'Das Startpasswort kennt auch das Büro. Mit einem eigenen gehört der Zugang nur dir.'
+              : 'Damit kommst du beim nächsten Mal wieder herein. Ohne eigenes Passwort brauchst du jedes Mal einen neuen Link per E-Mail.'}
           </p>
         )}
 
