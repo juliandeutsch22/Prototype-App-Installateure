@@ -17,7 +17,7 @@ import type { UserPrefs } from '@/types';
 /** Die Meldungsarten, die jemand für sich ein- und ausschalten kann. */
 export type NotifyPrefs = Pick<
   UserPrefs,
-  'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery'
+  'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery' | 'notifyAbwesenheit'
 >;
 
 /** Vorgabe für jemanden, der noch nie etwas eingestellt hat. */
@@ -27,4 +27,5 @@ export const PREFS_DEFAULTS: NotifyPrefs = {
   notifyNewOrder: true,
   notifyOrderReady: true,
   notifyUrgentDelivery: true,
+  notifyAbwesenheit: true,
 };

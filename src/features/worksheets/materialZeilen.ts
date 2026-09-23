@@ -14,9 +14,15 @@ export interface MaterialZeile extends WorkSheetMaterial {
   id: string;
 }
 
-/** Eine neue, in dieser Liste eindeutige Kennung. */
+/**
+ * Eine neue, in dieser Liste eindeutige Kennung.
+ *
+ * Vorher Zeitstempel plus fünf Zufallszeichen: innerhalb derselben
+ * Millisekunde konnten zwei Zeilen gleich heissen — selten, aber die Prüfung
+ * darunter hat es erwischt.
+ */
 export function neueKennung(): string {
-  return `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  return `m${crypto.randomUUID()}`;
 }
 
 /**

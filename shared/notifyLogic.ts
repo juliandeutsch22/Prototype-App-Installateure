@@ -24,7 +24,11 @@ export interface OrderDoc {
   isUrgent?: boolean;
 }
 
-export type MeldungsArt = 'notifyNewOrder' | 'notifyOrderReady' | 'notifyUrgentDelivery';
+export type MeldungsArt =
+  | 'notifyNewOrder'
+  | 'notifyOrderReady'
+  | 'notifyUrgentDelivery'
+  | 'notifyAbwesenheit';
 
 /**
  * Eine Postgres-Zeile als `OrderDoc`.
@@ -211,4 +215,130 @@ export function toteTokens(
     if (code && ENDGUELTIG.has(code) && tokens[i]) tot.push(tokens[i]);
   });
   return [...new Set(tot)];
+}
+
+/* ------------------------------------------------------------------ */
+/* Abwesenheiten: Antrag, Entscheidung, Krankmeldung                   */
+/* ------------------------------------------------------------------ */
+
+/** Ein Urlaubs-/ZA-Antrag oder eine Krankmeldung, so weit die Meldung sie braucht. */
+export interface AbwesenheitDoc {
+  companyId?: string;
+  userId?: string;
+  userName?: string;
+  von?: string;
+  bis?: string;
+  art?: string;
+  status?: string;
+  zaVon?: string | null;
+  zaBis?: string | null;
+  zaStunden?: number | null;
+}
+
+/** Eine Postgres-Zeile (`vacations` oder `krankmeldungen`) als `AbwesenheitDoc`. */
+export function abwesenheitAusZeile(zeile: Record<string, unknown> | undefined): AbwesenheitDoc | undefined {
+  if (!zeile) return undefined;
+  return {
+    companyId: zeile.company_id as string | undefined,
+    userId: zeile.user_id as string | undefined,
+    userName: zeile.user_name as string | undefined,
+    von: zeile.von as string | undefined,
+    bis: zeile.bis as string | undefined,
+    art: (zeile.art as string | undefined) ?? undefined,
+    status: zeile.status as string | undefined,
+    zaVon: (zeile.za_von as string | null | undefined) ?? null,
+    zaBis: (zeile.za_bis as string | null | undefined) ?? null,
+    zaStunden: zeile.za_stunden === undefined || zeile.za_stunden === null ? null : Number(zeile.za_stunden),
+  };
+}
+
+export interface Belegschaftsmitglied {
+  uid: string;
+  role?: string;
+  active?: boolean;
+  /** Darf über Urlaub entscheiden — dieselbe Regel wie `app.darf_urlaub_entscheiden`. */
+  entscheidet?: boolean;
+  /** Buchhaltung, Geschäftsführung, Administration. */
+  buero?: boolean;
+}
+
+/**
+ * Wer von einem neuen Antrag erfährt: wer entscheidet — ausser dem
+ * Antragsteller selbst (eine Geschäftsführerin, die Urlaub beantragt,
+ * braucht keine Meldung über ihren eigenen Antrag).
+ */
+export function empfaengerAntrag(leute: Belegschaftsmitglied[], antragsteller?: string): string[] {
+  return leute
+    .filter((u) => u.active !== false && u.entscheidet && u.uid !== antragsteller)
+    .map((u) => u.uid);
+}
+
+/**
+ * Wer von einer Krankmeldung erfährt: das Büro — ohne den, der krank ist.
+ *
+ * Nicht die Projektleitung: ein Krankenstand ist ein Gesundheitsdatum, und
+ * sie sieht im Wochenplan ohnehin „abwesend".
+ */
+export function empfaengerKrankmeldung(leute: Belegschaftsmitglied[], person?: string): string[] {
+  return leute
+    .filter((u) => u.active !== false && u.buero && u.uid !== person)
+    .map((u) => u.uid);
+}
+
+/** '2026-10-27' -> '27.10.' — kurz, weil der Sperrbildschirm kurz ist. */
+function kurzTag(iso?: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? '');
+  return m ? `${m[3]}.${m[2]}.` : '';
+}
+
+function zeitraumKurz(a: AbwesenheitDoc): string {
+  if (!a.von) return '';
+  return !a.bis || a.bis === a.von ? kurzTag(a.von) : `${kurzTag(a.von)}–${kurzTag(a.bis)}`;
+}
+
+function istZa(a: AbwesenheitDoc): boolean {
+  return a.art === 'Zeitausgleich';
+}
+
+/** „27.10., 13:00–17:00 (4 Std.)" für ZA, sonst der Zeitraum. */
+function umfangKurz(a: AbwesenheitDoc): string {
+  const teile = [zeitraumKurz(a)];
+  if (istZa(a) && a.zaVon && a.zaBis) teile.push(`${a.zaVon.slice(0, 5)}–${a.zaBis.slice(0, 5)}`);
+  const text = teile.filter(Boolean).join(', ');
+  const std = istZa(a) && a.zaStunden ? ` (${String(a.zaStunden).replace('.', ',')} Std.)` : '';
+  return text + std;
+}
+
+export function textAntrag(a: AbwesenheitDoc, id: string): Meldung {
+  return {
+    title: istZa(a) ? 'Neuer Antrag auf Zeitausgleich' : 'Neuer Urlaubsantrag',
+    body: `${a.userName ?? 'Ein Mitarbeiter'}: ${umfangKurz(a)}`,
+    link: '/vacations',
+    tag: `antrag-${id}`,
+  };
+}
+
+export function textEntscheidung(a: AbwesenheitDoc, id: string): Meldung {
+  const was = istZa(a) ? 'Zeitausgleich' : 'Urlaub';
+  const wie = a.status === 'Genehmigt' ? 'genehmigt' : a.status === 'Abgelehnt' ? 'abgelehnt' : 'zurückgenommen';
+  return {
+    title: `${was} ${wie}`,
+    body: umfangKurz(a),
+    link: '/vacations',
+    // Dieselbe Kennung wie der Antrag: die Entscheidung ersetzt ihn.
+    tag: `antrag-${id}`,
+  };
+}
+
+/**
+ * Die Krankmeldung ans Büro. Der Titel sagt nur „Krankmeldung" — keine
+ * Anmerkung, nichts, was auf einem fremden Sperrbildschirm mehr verriete.
+ */
+export function textKrankmeldung(a: AbwesenheitDoc, id: string): Meldung {
+  return {
+    title: 'Krankmeldung',
+    body: `${a.userName ?? 'Ein Mitarbeiter'}: ${zeitraumKurz(a)}`,
+    link: '/vacations',
+    tag: `krank-${id}`,
+  };
 }

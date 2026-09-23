@@ -55,6 +55,7 @@ export default function NotificationSettings() {
   const [newOrder, setNewOrder] = useState(PREFS_DEFAULTS.notifyNewOrder ?? true);
   const [orderReady, setOrderReady] = useState(PREFS_DEFAULTS.notifyOrderReady ?? true);
   const [urgent, setUrgent] = useState(PREFS_DEFAULTS.notifyUrgentDelivery ?? true);
+  const [abwesenheit, setAbwesenheit] = useState(PREFS_DEFAULTS.notifyAbwesenheit ?? true);
   const [push, setPush] = useState<PushState>('aus');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +79,7 @@ export default function NotificationSettings() {
         setNewOrder(p.notifyNewOrder ?? true);
         setOrderReady(p.notifyOrderReady ?? true);
         setUrgent(p.notifyUrgentDelivery ?? true);
+        setAbwesenheit(p.notifyAbwesenheit ?? true);
       })
       // Stumm gescheitert saehen die Schalter aus wie „steht auf Standard",
       // und wer sie danach umlegt, ueberschreibt seine eigene Einstellung mit
@@ -86,15 +88,28 @@ export default function NotificationSettings() {
     getPushState().then(setPush).catch(() => setNebenFehler('Der Zustand der Meldungen'));
   }, [user]);
 
-  async function speichern(next: {
+  /*
+    EINE Änderung, ALLE Schalter: gespeichert wird immer die ganze Auswahl,
+    damit ein Schalter nie den Stand eines anderen überschreibt.
+  */
+  async function speichern(aenderung: Partial<{
     notifyNewOrder: boolean;
     notifyOrderReady: boolean;
     notifyUrgentDelivery: boolean;
-  }) {
+    notifyAbwesenheit: boolean;
+  }>) {
     if (!user) return;
+    const next = {
+      notifyNewOrder: newOrder,
+      notifyOrderReady: orderReady,
+      notifyUrgentDelivery: urgent,
+      notifyAbwesenheit: abwesenheit,
+      ...aenderung,
+    };
     setNewOrder(next.notifyNewOrder);
     setOrderReady(next.notifyOrderReady);
     setUrgent(next.notifyUrgentDelivery);
+    setAbwesenheit(next.notifyAbwesenheit);
     try {
       await savePrefs(user.companyId, user.uid, next);
     } catch {
@@ -163,13 +178,7 @@ export default function NotificationSettings() {
               id="n-new-order"
               label="Eine neue Materialanforderung geht ein"
               checked={newOrder}
-              onChange={(e) =>
-                void speichern({
-                  notifyNewOrder: e.target.checked,
-                  notifyOrderReady: orderReady,
-                  notifyUrgentDelivery: urgent,
-                })
-              }
+              onChange={(e) => void speichern({ notifyNewOrder: e.target.checked })}
             />
           )}
           {zeigeAbholbereit && (
@@ -177,13 +186,7 @@ export default function NotificationSettings() {
               id="n-order-ready"
               label="Mein angefordertes Material ist abholbereit"
               checked={orderReady}
-              onChange={(e) =>
-                void speichern({
-                  notifyNewOrder: newOrder,
-                  notifyOrderReady: e.target.checked,
-                  notifyUrgentDelivery: urgent,
-                })
-              }
+              onChange={(e) => void speichern({ notifyOrderReady: e.target.checked })}
             />
           )}
           {zeigeEil && (
@@ -192,13 +195,7 @@ export default function NotificationSettings() {
                 id="n-urgent"
                 label="Eilzustellung für meine Baustellen"
                 checked={urgent}
-                onChange={(e) =>
-                  void speichern({
-                    notifyNewOrder: newOrder,
-                    notifyOrderReady: orderReady,
-                    notifyUrgentDelivery: e.target.checked,
-                  })
-                }
+                onChange={(e) => void speichern({ notifyUrgentDelivery: e.target.checked })}
               />
               <InfoHint about="Eilzustellungen">
                 Zwei Meldungen je Anforderung: sobald sie eingeht, und noch einmal, sobald das
@@ -206,11 +203,22 @@ export default function NotificationSettings() {
               </InfoHint>
             </div>
           )}
-          {!zeigeNeueAnforderung && !zeigeAbholbereit && !zeigeEil && (
-            <p className="text-ink-muted">
-              Für deine Rolle gibt es derzeit keine Benachrichtigungen.
-            </p>
-          )}
+          {/*
+            FÜR JEDE ROLLE: jeder kann Urlaub oder Zeitausgleich beantragen
+            und bekommt die Entscheidung gemeldet.
+          */}
+          <div className="flex flex-wrap items-center gap-2">
+            <CheckboxField
+              id="n-abwesenheit"
+              label="Urlaub, Zeitausgleich und Krankmeldungen"
+              checked={abwesenheit}
+              onChange={(e) => void speichern({ notifyAbwesenheit: e.target.checked })}
+            />
+            <InfoHint about="Abwesenheiten">
+              Du erfährst, wenn über deinen Antrag entschieden ist. Wer Urlaub genehmigt, bekommt
+              neue Anträge gemeldet; Buchhaltung und Geschäftsführung zusätzlich Krankmeldungen.
+            </InfoHint>
+          </div>
         </div>
       </Card>
 

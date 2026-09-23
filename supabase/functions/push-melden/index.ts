@@ -1,6 +1,7 @@
 /**
- * Die Push-Meldungen rund um Materialanforderungen — angestossen von einem
- * Postgres-Trigger, verschickt über Firebase Cloud Messaging.
+ * Die Push-Meldungen rund um Materialanforderungen und Abwesenheiten —
+ * angestossen von einem Postgres-Trigger, verschickt über Firebase Cloud
+ * Messaging.
  *
  * WARUM FCM BLEIBT. Es hängt an keiner Datenbank und funktioniert; ein Umzug
  * dorthin wäre Arbeit ohne Gegenwert. Umgezogen ist nur, was den Versand
@@ -20,6 +21,13 @@
  * Grund, warum die sorgfältige Abwägung dort weiter gilt.
  */
 import {
+  abwesenheitAusZeile,
+  empfaengerAntrag,
+  empfaengerKrankmeldung,
+  textAntrag,
+  textEntscheidung,
+  textKrankmeldung,
+  type Belegschaftsmitglied,
   EMPFAENGER_NEUE_ANFORDERUNG,
   empfaengerNeueAnforderung,
   istEilRelevant,
@@ -138,6 +146,7 @@ async function tokensFuer(uids: string[], art: MeldungsArt): Promise<string[]> {
       notifyNewOrder: zeile.notify_new_order,
       notifyOrderReady: zeile.notify_order_ready,
       notifyUrgentDelivery: zeile.notify_urgent_delivery,
+      notifyAbwesenheit: zeile.notify_abwesenheit,
     };
     if (!willMeldung(vorgaben, art)) continue;
     for (const t of (zeile.push_tokens as string[] | null) ?? []) tokens.push(t);
@@ -165,34 +174,27 @@ async function senden(
   return antworten.filter((a) => !a.error).length;
 }
 
-Deno.serve(async (req: Request): Promise<Response> => {
-  if (req.method !== 'POST') return antwort({ error: 'Nur POST.' }, 405);
+type Auftrag = { art: MeldungsArt; uids: string[]; meldung: Meldung };
+/** Was der Trigger schickt — Zeilen aus `to_jsonb`, geprüft wird beim Lesen. */
+interface Ereignis {
+  quelle?: string;
+  art?: string;
+  vorher?: Record<string, unknown>;
+  nachher?: Record<string, unknown>;
+  zeile?: Record<string, unknown>;
+}
 
-  // Ohne eigenen Dienstschluessel koennte diese Function nicht einmal die
-  // Geraete nachschlagen. Das zu sagen ist ehrlicher, als jeden Anrufer
-  // abzuweisen, als waere seine Anmeldung das Problem.
-  if (!DIENST) return antwort({ error: SCHLUESSEL_FEHLT }, 503);
-
-  // Angestossen wird ausschliesslich vom Trigger, und der hat den
-  // Dienstschluessel. Ein Mensch hat hier nichts zu suchen.
-  const kopf = req.headers.get('Authorization') ?? '';
-  const apikeyKopf = req.headers.get('apikey') ?? '';
-  if (!rufDerMaschine(kopf, apikeyKopf, SCHLUESSEL)) {
-    return antwort({ error: 'Nur der Dienst.' }, 401);
-  }
-
-  const ereignis = await req.json().catch(() => null);
-  if (!ereignis) return antwort({ error: 'Kein lesbares Ereignis.' }, 400);
-
+/** Materialanforderungen: neu, abholbereit, Eilzustellung. */
+async function auftraegeAnforderung(ereignis: Ereignis): Promise<Auftrag[] | null> {
   const vorher = orderAusZeile(ereignis.vorher);
   const nachher = orderAusZeile(ereignis.nachher);
   const kennung = String(ereignis.nachher?.id ?? '');
-  if (!nachher) return antwort({ gesendet: 0, grund: 'keine Anforderung' });
+  if (!nachher) return null;
 
   /*
     WER WAS BEKOMMT — hier wird nichts entschieden, nur zusammengetragen.
   */
-  const auftraege: Array<{ art: MeldungsArt; uids: string[]; meldung: Meldung }> = [];
+  const auftraege: Auftrag[] = [];
 
   const empfaengerAntwort = await fetch(`${URL_BASIS}/rest/v1/rpc/push_empfaenger`, {
     method: 'POST',
@@ -247,6 +249,67 @@ Deno.serve(async (req: Request): Promise<Response> => {
       });
     }
   }
+  return auftraege;
+}
+
+/**
+ * Abwesenheiten: neuer Antrag an die Genehmigenden, die Entscheidung an den
+ * Antragsteller, eine Krankmeldung ans Büro. Wer wer ist, sagt
+ * `push_empfaenger_abwesenheit`; die Auswahl trifft `notifyLogic.ts`.
+ */
+async function auftraegeAbwesenheit(ereignis: Ereignis): Promise<Auftrag[] | null> {
+  const a = abwesenheitAusZeile(ereignis.zeile);
+  const kennung = String(ereignis.zeile?.id ?? '');
+  if (!a?.companyId) return null;
+
+  if (ereignis.art === 'entschieden') {
+    return a.userId
+      ? [{ art: 'notifyAbwesenheit', uids: [a.userId], meldung: textEntscheidung(a, kennung) }]
+      : [];
+  }
+
+  const r = await fetch(`${URL_BASIS}/rest/v1/rpc/push_empfaenger_abwesenheit`, {
+    method: 'POST',
+    headers: alsDienst,
+    body: JSON.stringify({ p_betrieb: a.companyId }),
+  });
+  const kreis = r.ok ? await r.json() : { belegschaft: [] };
+  const leute = (kreis.belegschaft ?? []) as Belegschaftsmitglied[];
+
+  if (ereignis.art === 'antrag') {
+    return [{ art: 'notifyAbwesenheit', uids: empfaengerAntrag(leute, a.userId), meldung: textAntrag(a, kennung) }];
+  }
+  if (ereignis.art === 'krank') {
+    return [{
+      art: 'notifyAbwesenheit', uids: empfaengerKrankmeldung(leute, a.userId), meldung: textKrankmeldung(a, kennung),
+    }];
+  }
+  return null;
+}
+
+Deno.serve(async (req: Request): Promise<Response> => {
+  if (req.method !== 'POST') return antwort({ error: 'Nur POST.' }, 405);
+
+  // Ohne eigenen Dienstschluessel koennte diese Function nicht einmal die
+  // Geraete nachschlagen. Das zu sagen ist ehrlicher, als jeden Anrufer
+  // abzuweisen, als waere seine Anmeldung das Problem.
+  if (!DIENST) return antwort({ error: SCHLUESSEL_FEHLT }, 503);
+
+  // Angestossen wird ausschliesslich vom Trigger, und der hat den
+  // Dienstschluessel. Ein Mensch hat hier nichts zu suchen.
+  const kopf = req.headers.get('Authorization') ?? '';
+  const apikeyKopf = req.headers.get('apikey') ?? '';
+  if (!rufDerMaschine(kopf, apikeyKopf, SCHLUESSEL)) {
+    return antwort({ error: 'Nur der Dienst.' }, 401);
+  }
+
+  const ereignis = await req.json().catch(() => null);
+  if (!ereignis) return antwort({ error: 'Kein lesbares Ereignis.' }, 400);
+
+  const auftraege = ereignis.quelle === 'abwesenheit'
+    ? await auftraegeAbwesenheit(ereignis)
+    : await auftraegeAnforderung(ereignis);
+  if (!auftraege) return antwort({ gesendet: 0, grund: 'kein Ereignis, das etwas meldet' });
 
   /*
     DIE GERÄTE WERDEN VOR DEM VERSAND GEZÄHLT, nicht dabei.

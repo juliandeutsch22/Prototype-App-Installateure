@@ -279,6 +279,11 @@ export interface UserPrefs {
    */
   notifyUrgentDelivery?: boolean;
   /**
+   * Abwesenheiten: neuer Urlaubs-/ZA-Antrag (wer entscheidet), die
+   * Entscheidung darüber (der Antragsteller), Krankmeldungen (das Büro).
+   */
+  notifyAbwesenheit?: boolean;
+  /**
    * Push-Token je Gerät. Ein Mensch hat Telefon und Rechner, beide sollen
    * die Meldung bekommen; ein abgemeldetes Gerät wird wieder entfernt.
    */
