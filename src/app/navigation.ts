@@ -149,6 +149,11 @@ export interface Unterseite {
   pfad: string;
   label: string;
   roles?: Role[];
+  /**
+   * Nur, wenn der Betrieb diese Einstellung eingeschaltet hat. Ohne sie gibt
+   * es die Unterseite nicht — auch nicht per Adresse.
+   */
+  nurMitSchalter?: 'wochenplanFuerAlle';
 }
 
 export const UNTER: Record<string, Unterseite[]> = {
@@ -166,6 +171,16 @@ export const UNTER: Record<string, Unterseite[]> = {
   '/assignments': [
     { pfad: 'tag', label: 'Tag planen' },
     { pfad: 'woche', label: 'Wochenplan' },
+  ],
+  /*
+   * MEIN EINSATZPLAN — und, wenn der Betrieb es will, die ganze Woche des
+   * Teams. Nur lesen: wer ist wo, wer ist abwesend (ohne Grund). Ohne den
+   * Schalter bleibt es EINE Seite und damit ohne Leiste — für den Monteur
+   * sieht alles aus wie bisher.
+   */
+  '/my-schedule': [
+    { pfad: 'mein', label: 'Meine Einsätze' },
+    { pfad: 'team', label: 'Team-Woche', nurMitSchalter: 'wochenplanFuerAlle' },
   ],
   '/settings': [
     // MEIN KONTO ZUERST: das Einzige, was jede Rolle hier hat — das eigene
@@ -216,8 +231,16 @@ export const UNTER: Record<string, Unterseite[]> = {
 };
 
 /** Die Unterseiten eines Reiters, die diese Rolle sehen darf. */
-export function unterseitenFuer(basis: string, role: Role): Unterseite[] {
-  return (UNTER[basis] ?? []).filter((s) => !s.roles || s.roles.includes(role));
+export function unterseitenFuer(
+  basis: string,
+  role: Role,
+  schalter?: Partial<Record<NonNullable<Unterseite['nurMitSchalter']>, boolean>>,
+): Unterseite[] {
+  return (UNTER[basis] ?? []).filter(
+    (s) =>
+      (!s.roles || s.roles.includes(role)) &&
+      (!s.nurMitSchalter || !!schalter?.[s.nurMitSchalter]),
+  );
 }
 
 /**

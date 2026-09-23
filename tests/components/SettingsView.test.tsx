@@ -178,3 +178,28 @@ describe('Anzahlungen und Teilrechnungen', () => {
     expect(screen.getByText(/Bereits ausgestellte Belege bleiben, wie sie sind/)).toBeInTheDocument();
   });
 });
+
+describe('Wochenplan für alle', () => {
+  it('ist ab Werk aus', async () => {
+    // Wer wo arbeitet, zeigt ein Betrieb seinen Leuten nur, wenn er es will.
+    zeige();
+    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(false);
+  });
+
+  it('schreibt nur den Schalter — nicht nebenbei die Sätze', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)'));
+    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(updateCompany).toHaveBeenCalledTimes(1);
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', { wochenplanFuerAlle: true }]);
+    expect(reloadCompany).toHaveBeenCalled();
+  });
+
+  it('zeigt den eingeschalteten Zustand des Betriebs', async () => {
+    firma = { id: 'perl', name: 'Perl Installationen', wochenplanFuerAlle: true };
+    zeige();
+    expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(true);
+  });
+});

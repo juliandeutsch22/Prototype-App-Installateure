@@ -125,3 +125,31 @@ export async function entscheiden(daten: {
   if (error) throw new Error(error.message);
   return data as UrlaubsEntscheidung;
 }
+
+/** Eine Abwesenheit, wie der Wochenplan sie zeigt — ohne Grund. */
+export interface Abwesenheit {
+  userId: string;
+  von: string;
+  bis: string;
+}
+
+/**
+ * Wer in diesem Zeitraum abwesend ist — für den Wochenplan.
+ *
+ * ÜBER EINE EIGENE FUNKTION, nicht über die Urlaubstabelle. Deren Zeilen
+ * darf ein Monteur für andere nicht lesen, und das bleibt so; die Funktion
+ * gibt nur heraus, wer von wann bis wann fehlt. Ohne den Schalter
+ * „Wochenplan für alle" bekommt ein Monteur eine leere Antwort.
+ */
+export async function listAbwesendInRange(vonIso: string, bisIso: string): Promise<Abwesenheit[]> {
+  const { data, error } = await derClient().rpc('wochenplan_abwesend', {
+    p_von: vonIso,
+    p_bis: bisIso,
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { user_id: string; von: string; bis: string }[]).map((z) => ({
+    userId: z.user_id,
+    von: z.von,
+    bis: z.bis,
+  }));
+}

@@ -232,8 +232,18 @@ function AppRoutes() {
       {/* Strikt nur reine Mitarbeiter (Legacy:1980) — GF/Admin nutzen die
           Verwaltungssicht. */}
       <Route
-        path="/my-schedule"
-        element={<RequireNav path="/my-schedule"><MyScheduleView /></RequireNav>}
+        path="/my-schedule/*"
+        element={
+          <RequireNav path="/my-schedule">
+            <Unterreiter
+              basis="/my-schedule"
+              elemente={{
+                mein: <MyScheduleView />,
+                team: <WochenplanView nurLesen />,
+              }}
+            />
+          </RequireNav>
+        }
       />
       {/*
         Urlaub beantragen darf jede Rolle — auch Buchhaltung und Verwaltung

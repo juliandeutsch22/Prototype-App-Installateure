@@ -150,6 +150,11 @@ export interface Company {
    * der Betrieb die Arten später wieder abdreht.
    */
   rechnungsarten?: boolean;
+  /**
+   * Alle Mitarbeiter sehen einen reinen Lese-Wochenplan: wer ist wo, und wer
+   * ist abwesend — ohne Grund. Ab Werk aus.
+   */
+  wochenplanFuerAlle?: boolean;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
   /** 'MM-DD'. Nur bei `urlaubUebertrag === 'stichtag'` gesetzt. */
   urlaubStichtag?: string | null;
