@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listActiveProjects } from '@/lib/db/projects';
@@ -113,6 +113,8 @@ export default function AssignmentsView() {
   const [offeneRuestzeile, setOffeneRuestzeile] = useState<string | null>(null);
   const [ruestFehler, setRuestFehler] = useState<string | null>(null);
   const [anforderungLaeuft, setAnforderungLaeuft] = useState(false);
+  /** Das Formular — „Bearbeiten“ in der Tagesübersicht springt dorthin. */
+  const formular = useRef<HTMLDivElement>(null);
 
   /**
    * Baustellen und Belegschaft — beides Auswahlfelder dieser Ansicht.
@@ -495,6 +497,7 @@ export default function AssignmentsView() {
         </div>
 
         <div className="space-y-6 lg:col-span-3">
+          <div ref={formular} className="scroll-mt-4">
           <Card title={`Einsatz planen — ${fmtDay(date)}`}>
             <BaustellenSelect
               id="aproj"
@@ -608,6 +611,7 @@ export default function AssignmentsView() {
               </p>
             )}
           </Card>
+          </div>
 
           {/*
             NACH dem Einsatz, VOR der Tagesübersicht. Erst steht fest, wer
@@ -687,6 +691,20 @@ export default function AssignmentsView() {
                   const proj = projects.find((p) => p.projectNumber === pn);
                   const fach = rows.filter((r) => !r.asHelper).length;
                   const helper = rows.filter((r) => r.asHelper).length;
+                  /*
+                    AUFGABE UND MATERIAL STEHEN HIER, nicht nur im Formular.
+                    Gemeldet: „man sieht nirgends ausser in der Bearbeitung,
+                    welche Materialien und welche Notiz eingegeben wurden."
+                    Die Aufgabe wird für alle Eingeteilten gemeinsam gesetzt
+                    und steht deshalb einmal am Kopf; eine abweichende (aus
+                    älteren Einteilungen) bleibt an der Person stehen.
+                  */
+                  const aufgabe = rows.find((r) => r.comment?.trim())?.comment?.trim() ?? '';
+                  const material = materialAn
+                    ? tagesListen.find((l) => l.projectNumber === pn)?.positionen ?? []
+                    : [];
+                  const geladen = tagesListen.find((l) => l.projectNumber === pn)?.geladen ?? {};
+                  const inBearbeitung = pn === projectNumber;
                   return (
                     <div key={pn} className="rounded-sm border border-line">
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2">
@@ -694,17 +712,65 @@ export default function AssignmentsView() {
                           {proj?.customerName ?? pn}{' '}
                           <span className="tnum text-sm text-ink-muted">({pn})</span>
                         </span>
-                        <span className="flex gap-2">
+                        <span className="flex flex-wrap items-center gap-2">
                           <Marke>{fach} Facharbeiter</Marke>
                           {helper > 0 && <Marke>{helper} Helfer</Marke>}
+                          {/*
+                            BEARBEITEN DIREKT HIER. Bisher ging das nur, indem
+                            man oben dieselbe Baustelle noch einmal wählte —
+                            oder über den Wochenplan. Das Formular übernimmt
+                            die vorhandene Planung samt Rüstliste von selbst.
+                          */}
+                          {inBearbeitung ? (
+                            <span className="text-sm text-ink-muted">wird oben bearbeitet</span>
+                          ) : (
+                            <Button
+                              variant="secondary"
+                              groesse="klein"
+                              onClick={() => {
+                                setProjectNumber(pn);
+                                formular.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+                              }}
+                            >
+                              Bearbeiten
+                            </Button>
+                          )}
                         </span>
                       </div>
+                      {(aufgabe || material.length > 0) && (
+                        <div className="space-y-2 border-b border-line px-3 py-2 text-sm">
+                          {aufgabe && (
+                            <p className="whitespace-pre-line text-ink">
+                              <span className="font-medium">Aufgabe:</span> {aufgabe}
+                            </p>
+                          )}
+                          {material.length > 0 && (
+                            <div>
+                              <p className="font-medium text-ink">Material:</p>
+                              <ul className="mt-1 space-y-0.5 text-ink">
+                                {material.map((m) => (
+                                  <li key={m.id} className="flex flex-wrap gap-x-2">
+                                    <span className="tnum">
+                                      {m.menge}
+                                      {m.einheit ? ` ${m.einheit}` : ''}
+                                    </span>
+                                    <span>{m.name}</span>
+                                    {geladen[m.id] && (
+                                      <span className="text-success">✓ eingeladen</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
                       <ul className="divide-y divide-line">
                         {rows.map((a) => (
                           <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2">
                             <span className="min-w-0">
                               <span className="block truncate text-ink">{a.userName}</span>
-                              {a.comment && (
+                              {a.comment?.trim() && a.comment.trim() !== aufgabe && (
                                 <span className="block truncate text-sm text-ink-muted">{a.comment}</span>
                               )}
                             </span>
@@ -765,11 +831,16 @@ export default function AssignmentsView() {
         }
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
-          if (toDelete) {
-            await deleteAssignment(toDelete.id);
-            toast.success('Einsatz gelöscht');
-          }
+          const weg = toDelete;
           setToDelete(null);
+          if (!weg) return;
+          // Scheitert es, wird es gesagt — vorher blieb der Dialog wortlos offen.
+          try {
+            await deleteAssignment(weg.id);
+            toast.success('Einsatz gelöscht');
+          } catch {
+            toast.error(`Der Einsatz von ${weg.userName} konnte nicht gelöscht werden.`);
+          }
         }}
       />
     </div>

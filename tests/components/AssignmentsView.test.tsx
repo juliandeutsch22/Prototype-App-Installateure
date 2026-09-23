@@ -35,6 +35,7 @@ const HEUTE = '2026-09-01';
 let einsaetze: (Assignment & { id: string })[] = [];
 let urlaube: (Vacation & { id: string })[] = [];
 let ladefehler = false;
+let loeschenScheitert = false;
 
 const speichere = vi.fn();
 const loesche = vi.fn();
@@ -66,7 +67,7 @@ vi.mock('@/lib/db/assignments', () => ({
   },
   deleteAssignment: (id: string) => {
     loesche(id);
-    return Promise.resolve();
+    return loeschenScheitert ? Promise.reject(new Error('kein Netz')) : Promise.resolve();
   },
 }));
 
@@ -132,6 +133,7 @@ beforeEach(() => {
   urlaube = [];
   ruestlisten = [];
   ladefehler = false;
+  loeschenScheitert = false;
   speichere.mockClear();
   loesche.mockClear();
   ruestSpeichern.mockClear();
@@ -617,5 +619,92 @@ describe('Einsatzplanung — Übergabe vom Wochenplan', () => {
   it('nimmt ohne Übergabe den heutigen Tag', async () => {
     zeige();
     expect(await screen.findByText(/Einsatz planen — Di\., 01\.09\.2026/)).toBeInTheDocument();
+  });
+});
+
+/*
+  GEMELDET: „Die geplanten Einsätze lassen sich nur über den Wochenplan
+  bearbeiten, und man sieht nirgends ausser in der Bearbeitung, welche
+  Materialien und welche Notiz eingegeben wurden."
+*/
+describe('Einsätze am Tag — ansehen und bearbeiten', () => {
+  const geplant = () => {
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann', comment: 'WC tauschen, Wasser abdrehen',
+      } as Assignment & { id: string },
+      {
+        id: 'a2', companyId: 'perl', date: HEUTE, projectNumber: '2026-042',
+        userId: 'u2', userName: 'Erna Beispiel', asHelper: true, comment: 'WC tauschen, Wasser abdrehen',
+      } as Assignment & { id: string },
+    ];
+    ruestlisten = [
+      {
+        id: 'perl_2026-09-01_2026-042', companyId: 'perl', date: HEUTE,
+        projectNumber: '2026-042', uids: ['u1', 'u2'],
+        positionen: [
+          { id: 'r1', materialId: 'm1', name: 'Eckventil 1/2', menge: 4, einheit: 'Stk' },
+          { id: 'r2', name: 'Leihgerät Rohrkamera', menge: 1 },
+        ],
+        geladen: { r1: { uid: 'u1', name: 'Max Mustermann', am: 1 } },
+      } as unknown as EinsatzMaterial & { id: string },
+    ];
+  };
+
+  it('zeigt Aufgabe und Material an der Baustelle — nicht erst in der Bearbeitung', async () => {
+    geplant();
+    zeige();
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    expect(within(karte).getByText(/WC tauschen, Wasser abdrehen/)).toBeInTheDocument();
+    // Die gemeinsame Aufgabe steht EINMAL da, nicht an jeder Person.
+    expect(within(karte).getAllByText(/WC tauschen/)).toHaveLength(1);
+    expect(within(karte).getByText('Eckventil 1/2')).toBeInTheDocument();
+    expect(within(karte).getByText('4 Stk')).toBeInTheDocument();
+    expect(within(karte).getByText('Leihgerät Rohrkamera')).toBeInTheDocument();
+    expect(within(karte).getByText(/eingeladen/)).toBeInTheDocument();
+  });
+
+  it('öffnet die Planung zum Bearbeiten — mit Mannschaft und Rüstliste', async () => {
+    geplant();
+    const nutzer = userEvent.setup();
+    zeige();
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    await nutzer.click(within(karte).getByRole('button', { name: 'Bearbeiten' }));
+
+    // Das Formular übernimmt die vorhandene Planung — sonst löschte das
+    // nächste Speichern die Mannschaft.
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: /^Max Mustermann/ })).toBeChecked());
+    expect(screen.getByRole('checkbox', { name: /^Erna Beispiel/ })).toBeChecked();
+    expect(screen.getByLabelText('Kommentar / Aufgabe')).toHaveValue('WC tauschen, Wasser abdrehen');
+    expect(await screen.findByDisplayValue('4')).toBeInTheDocument();
+    expect(within(karte).getByText('wird oben bearbeitet')).toBeInTheDocument();
+  });
+
+  it('zeigt eine abweichende Notiz an der Person weiter an', async () => {
+    geplant();
+    einsaetze[1] = { ...einsaetze[1], comment: 'Nur vormittags' };
+    zeige();
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    expect(within(karte).getByText('Nur vormittags')).toBeInTheDocument();
+  });
+});
+
+describe('Einsatz löschen', () => {
+  it('sagt es, wenn das Löschen scheitert', async () => {
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: HEUTE, projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann',
+      } as Assignment & { id: string },
+    ];
+    loeschenScheitert = true;
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: 'Einsatz von Max Mustermann löschen' }));
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.click(within(dialog).getByRole('button', { name: /löschen/i }));
+    expect(await screen.findByText(/konnte nicht gelöscht werden/)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
