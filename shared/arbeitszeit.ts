@@ -22,7 +22,7 @@
 
 /** Nur die Felder, die für die Rechnung zählen — bewusst schmal gehalten. */
 export interface Zeitangaben {
-  status: 'Anwesend' | 'Krank' | 'Urlaub';
+  status: 'Anwesend' | 'Krank' | 'Urlaub' | 'Zeitausgleich';
   startTime?: string;
   endTime?: string;
   breakDuration?: number;

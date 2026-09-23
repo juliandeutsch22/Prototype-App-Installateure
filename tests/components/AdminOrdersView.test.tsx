@@ -57,6 +57,26 @@ vi.mock('@/lib/db/materialOrders', () => ({
   deleteOrder: (...a: unknown[]) => loeschen(...a),
 }));
 
+const ausLager = vi.fn();
+const aufEinkaufsliste = vi.fn();
+let vorschlag: string | null = null;
+const grosshaendler = [
+  { id: 'gh1', companyId: 'perl', name: 'Holter', active: true, bestellEmail: 'vertreter@holter.test' },
+  { id: 'gh2', companyId: 'perl', name: 'Frauenthal', active: true },
+];
+vi.mock('@/lib/db/einkauf', () => ({
+  listGrosshaendler: () => Promise.resolve(grosshaendler),
+  ausLager: (...a: unknown[]) => ausLager(...a),
+  aufEinkaufsliste: (...a: unknown[]) => aufEinkaufsliste(...a),
+  lieferantVorschlag: () => Promise.resolve(vorschlag),
+  katalogFuer: () => Promise.resolve(new Map()),
+  alsBestelltMarkieren: vi.fn(),
+  geliefert: vi.fn(),
+  grosshaendlerSpeichern: vi.fn(),
+  grosshaendlerZuordnen: vi.fn(),
+  vonEinkaufslisteNehmen: vi.fn(),
+}));
+
 const authWert = {
   user: { uid: 'pl', companyId: 'perl', name: 'Planer', role: 'Projektleiter' as const },
   company: { id: 'perl', name: 'Perl Installationen' },
@@ -80,6 +100,11 @@ beforeEach(() => {
   statusSetzen.mockResolvedValue(undefined);
   loeschen.mockReset();
   loeschen.mockResolvedValue(undefined);
+  ausLager.mockReset();
+  ausLager.mockResolvedValue(undefined);
+  aufEinkaufsliste.mockReset();
+  aufEinkaufsliste.mockResolvedValue(undefined);
+  vorschlag = null;
 });
 
 afterEach(() => {
@@ -340,5 +365,69 @@ describe('Anforderungen — wie weit die Abfrage reicht', () => {
     expect(screen.getByText(/nur in diesen gesucht/)).toBeInTheDocument();
     await nutzer.click(screen.getByRole('button', { name: /Weitere Anforderungen laden/ }));
     expect(letzteHolgrenze).toBe(400);
+  });
+});
+
+/**
+ * DER LAGERIST HAKT AB. „Aus Lager" macht die Anforderung abholbereit (der
+ * Monteur bekommt seine Meldung), „Nicht auf Lager" schickt sie auf die
+ * Einkaufsliste. Beides nur, solange noch niemand nachgesehen hat.
+ */
+describe('Anforderungen — Lager oder Einkauf', () => {
+  it('„Aus Lager" bucht die Zeile als Lagerware', async () => {
+    anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Aus Lager' }));
+    await waitFor(() => expect(ausLager).toHaveBeenCalledWith('o1'));
+    expect(aufEinkaufsliste).not.toHaveBeenCalled();
+  });
+
+  it('„Nicht auf Lager" fragt nach dem Grosshändler — mit Vorschlag aus dem Katalog', async () => {
+    vorschlag = 'gh2';
+    anforderungen = [anforderung({ id: 'o1', materialId: 'm1' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Nicht auf Lager' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Grosshändler')).toHaveValue('gh2');
+    await userEvent.selectOptions(within(dialog).getByLabelText('Grosshändler'), 'gh1');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
+    await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', 'gh1'));
+  });
+
+  it('lässt den Grosshändler offen, wenn „später zuordnen" gewählt ist', async () => {
+    anforderungen = [anforderung({ id: 'o1' })];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Nicht auf Lager' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Grosshändler')).toHaveValue('');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Auf die Liste' }));
+    await waitFor(() => expect(aufEinkaufsliste).toHaveBeenCalledWith('o1', null));
+  });
+
+  it('bietet beides nicht mehr an, sobald entschieden ist — und zeigt, wie', async () => {
+    anforderungen = [
+      anforderung({ id: 'o1', materialName: 'Aus dem Regal', status: 'Abholbereit', beschaffung: 'lager' }),
+      anforderung({ id: 'o2', materialName: 'Beim Händler', status: 'In Bearbeitung',
+        beschaffung: 'einkauf', supplierId: 'gh1', bestelltAm: Date.now() as never }),
+    ];
+    zeige();
+    await screen.findByText('Aus dem Regal');
+    expect(screen.queryByRole('button', { name: 'Aus Lager' })).not.toBeInTheDocument();
+    expect(screen.getByText('aus Lager')).toBeInTheDocument();
+    expect(await screen.findByText('bestellt · Holter')).toBeInTheDocument();
+  });
+
+  it('zählt im Reiter „Einkauf", was noch zu bestellen ist', async () => {
+    anforderungen = [
+      anforderung({ id: 'o1', status: 'In Bearbeitung', beschaffung: 'einkauf', supplierId: 'gh1' }),
+      anforderung({ id: 'o2', status: 'In Bearbeitung', beschaffung: 'einkauf', supplierId: 'gh1',
+        bestelltAm: Date.now() as never }),
+    ];
+    zeige();
+    expect(await screen.findByRole('tab', { name: /Einkauf.*1/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /Einkauf/ }));
+    expect(await screen.findByText('Zu bestellen')).toBeInTheDocument();
+    expect(screen.getByText('Bestellt — noch nicht da')).toBeInTheDocument();
   });
 });

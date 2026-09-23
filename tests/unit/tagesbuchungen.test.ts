@@ -139,3 +139,54 @@ describe('Welche Tage sind WIRKLICH doppelt', () => {
     expect(t.size).toBe(0);
   });
 });
+
+/**
+ * ZEITAUSGLEICH: ganztags wie Urlaub, stundenweise ein Teil des Tages.
+ *
+ * Gefragt war „ZA von 13 bis 17 Uhr" — vormittags wird gearbeitet. Beides
+ * muss am selben Tag stehen können, ohne dass sich die Zeiten widersprechen.
+ */
+describe('buchungKonflikt — Zeitausgleich', () => {
+  const zaNachmittag = { status: 'Zeitausgleich' as const, startTime: '13:00', endTime: '17:00' };
+  const vormittag = { status: 'Anwesend' as const, startTime: '07:00', endTime: '12:00' };
+
+  it('ganztags sperrt den Tag wie Urlaub', () => {
+    expect(buchungKonflikt(vormittag, [{ status: 'Zeitausgleich' }])).toMatch(/ganzen Tag/);
+    expect(buchungKonflikt({ status: 'Zeitausgleich' }, [vormittag])).toMatch(/ganzen Tag/);
+  });
+
+  it('stundenweise darf neben gearbeiteter Zeit stehen — auch ohne Baustelle', () => {
+    expect(buchungKonflikt(zaNachmittag, [vormittag])).toBeNull();
+    expect(buchungKonflikt(vormittag, [zaNachmittag])).toBeNull();
+  });
+
+  it('aber nicht über ihr', () => {
+    const ganzerTag = { status: 'Anwesend' as const, startTime: '07:00', endTime: '16:00' };
+    expect(buchungKonflikt(zaNachmittag, [ganzerTag])).toMatch(/überschneiden/);
+    expect(buchungKonflikt(ganzerTag, [zaNachmittag])).toMatch(/überschneiden/);
+  });
+
+  it('einer je Tag', () => {
+    expect(buchungKonflikt({ ...zaNachmittag, startTime: '08:00', endTime: '10:00' }, [zaNachmittag]))
+      .toMatch(/bereits Zeitausgleich/);
+  });
+
+  it('nicht neben Krank oder Urlaub', () => {
+    expect(buchungKonflikt(zaNachmittag, [{ status: 'Urlaub' }])).toMatch(/Urlaub/);
+  });
+
+  it('die Baustellenregel gilt weiter unter der gearbeiteten Zeit', () => {
+    const baustelle = { ...vormittag, projectNumber: '2026-042' };
+    expect(buchungKonflikt({ status: 'Anwesend' }, [zaNachmittag, baustelle])).toMatch(/braucht eine Baustelle/);
+  });
+
+  it('zwei stundenweise ZA am selben Tag sind eine Doppelung', () => {
+    const t = tageMitEchterDoppelung([
+      { date: '2026-09-01', ...zaNachmittag },
+      { date: '2026-09-01', ...zaNachmittag },
+      { date: '2026-09-02', ...zaNachmittag },
+      { date: '2026-09-02', ...vormittag },
+    ]);
+    expect([...t]).toEqual(['2026-09-01']);
+  });
+});

@@ -646,6 +646,11 @@ export default function AccountingView() {
                         <p className="mt-3 text-sm text-ink-muted sm:mt-0 sm:shrink-0 sm:text-right">
                           <b className="font-semibold text-ink">{stats.krankDays}</b> Tage krank ·{' '}
                           <b className="font-semibold text-ink">{stats.urlaubDays}</b> Tage Urlaub ·{' '}
+                          {stats.zaMin > 0 && (
+                            <>
+                              <b className="font-semibold text-ink">{fmtMin(stats.zaMin)}</b> Std. ZA ·{' '}
+                            </>
+                          )}
                           <b
                             className={`font-semibold ${
                               stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'
@@ -815,6 +820,8 @@ export default function AccountingView() {
                             <Marke>Krank</Marke>
                           ) : x.entry.status === 'Urlaub' ? (
                             <Marke>Urlaub</Marke>
+                          ) : x.entry.status === 'Zeitausgleich' ? (
+                            <Marke>ZA</Marke>
                           ) : (
                             <span className="text-ink-muted">Anwesend</span>
                           );

@@ -176,7 +176,12 @@ export async function updateTimeEntryOhneEmpfang(
       DUPLIKAT_FRIST_MS,
     );
     const grund = buchungKonflikt(
-      { status: data.status ?? 'Anwesend', projectNumber: data.projectNumber },
+      {
+        status: data.status ?? 'Anwesend',
+        projectNumber: data.projectNumber,
+        startTime: data.startTime,
+        endTime: data.endTime,
+      },
       vorhandene,
     );
     if (grund) throw new DuplicateEntryError(data.date, grund);
@@ -209,7 +214,12 @@ export async function updateTimeEntry(
       DUPLIKAT_FRIST_MS,
     );
     const grund = buchungKonflikt(
-      { status: data.status ?? 'Anwesend', projectNumber: data.projectNumber },
+      {
+        status: data.status ?? 'Anwesend',
+        projectNumber: data.projectNumber,
+        startTime: data.startTime,
+        endTime: data.endTime,
+      },
       vorhandene,
     );
     if (grund) throw new DuplicateEntryError(data.date, grund);

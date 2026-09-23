@@ -74,6 +74,10 @@ export function updateProject(id: string, data: Partial<Project>): Promise<void>
   return pg.updateProject(id, data);
 }
 
+export function baustelleUmnummern(id: string, neu: string): Promise<void> {
+  return pg.baustelleUmnummern(id, neu);
+}
+
 export function deleteProject(id: string): Promise<void> {
   return pg.deleteProject(id);
 }

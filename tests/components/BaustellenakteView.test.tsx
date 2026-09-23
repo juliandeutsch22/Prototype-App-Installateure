@@ -53,10 +53,12 @@ let nebenladenScheitert = false;
 
 const listProjectsByIds = vi.fn(async () => baustellen);
 const updateProject = vi.fn(async () => undefined);
+const baustelleUmnummern = vi.fn<[string, string], Promise<void>>(async () => undefined);
 
 vi.mock('@/lib/db/projects', () => ({
   listProjectsByIds: () => listProjectsByIds(),
   updateProject: (...a: unknown[]) => updateProject(...(a as [])),
+  baustelleUmnummern: (id: string, neu: string) => baustelleUmnummern(id, neu),
 }));
 vi.mock('@/lib/db/users', () => ({
   listUsers: async () => {
@@ -163,6 +165,7 @@ beforeEach(() => {
   nutzer = NUTZER();
   listProjectsByIds.mockClear();
   updateProject.mockClear();
+  baustelleUmnummern.mockClear();
   angebote = [];
   angeboteScheitern = false;
   plaene = [];
@@ -317,6 +320,52 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
 
     expect(updateProject).not.toHaveBeenCalled();
     expect(await screen.findByRole('alert')).toHaveTextContent(/Ohne Projektnummer/);
+  });
+
+  it('ändert die Nummer über den eigenen Weg — erst nach Rückfrage', async () => {
+    /*
+      An der Nummer hängen Buchungen, Scheine und Einsätze als Text. Über
+      `updateProject` gewechselt, blieben sie auf der alten stehen — die
+      Baustelle zeigte danach null Stunden. So war es bis zum 23.09.
+    */
+    zeige();
+    const feld = await screen.findByLabelText(/Projektnummer/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '2026-110');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(await screen.findByText(/Aus 2026-101 wird 2026-110/)).toBeInTheDocument();
+    expect(baustelleUmnummern).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Nummer ändern' }));
+
+    await vi.waitFor(() => expect(baustelleUmnummern).toHaveBeenCalledWith('b1', '2026-110'));
+    await vi.waitFor(() => expect(updateProject).toHaveBeenCalled());
+    // Die Nummer geht NICHT noch einmal über den gewöhnlichen Weg.
+    expect((updateProject.mock.calls[0] as unknown[])[1]).not.toHaveProperty('projectNumber');
+  });
+
+  it('nennt den Grund, wenn die Nummer schon auf Belegen steht — und speichert dann nichts', async () => {
+    baustelleUmnummern.mockRejectedValueOnce(
+      new Error('Die Nummer steht schon auf Belegen und bleibt: 1 Rechnung(en)'),
+    );
+    zeige();
+    const feld = await screen.findByLabelText(/Projektnummer/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '2026-110');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Nummer ändern' }));
+
+    expect(await screen.findByText(/steht schon auf Belegen und bleibt: 1 Rechnung/)).toBeInTheDocument();
+    expect(updateProject).not.toHaveBeenCalled();
+  });
+
+  it('fragt bei unveränderter Nummer nicht nach', async () => {
+    zeige();
+    await userEvent.type(await screen.findByLabelText(/Baustellenadresse/), '!');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await vi.waitFor(() => expect(updateProject).toHaveBeenCalled());
+    expect(baustelleUmnummern).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Projektnummer ändern\?/)).not.toBeInTheDocument();
   });
 
   it('verwirft die Änderung auf Wunsch wieder', async () => {

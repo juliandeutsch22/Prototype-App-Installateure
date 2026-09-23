@@ -8,7 +8,12 @@ import {
   entscheiden as urlaubEntscheiden,
 } from '@/lib/db/vacations';
 import { getUserByUid } from '@/lib/db/users';
-import { darfUrlaubEntscheiden } from '@/lib/permissions';
+import {
+  krankmeldungSpeichern,
+  listEigeneKrankmeldungen,
+  listBetriebsurlaubeAb,
+} from '@/lib/db/abwesenheiten';
+import { darfUrlaubEntscheiden, canEditTime } from '@/lib/permissions';
 import { postenNeuLaden } from '@/app/offenePosten';
 import {
   todayStr,
@@ -17,8 +22,10 @@ import {
   uebertragsRegel,
   urlaubsJahrVon,
   JAHRESBEGINN_VORGABE,
+  fmtMin,
+  type SaldoResult,
 } from '@/lib/time';
-import type { AppUser, Vacation } from '@/types';
+import type { AppUser, Betriebsurlaub, Krankmeldung, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import Card from '@/components/Card';
@@ -26,10 +33,14 @@ import Button from '@/components/Button';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { zeitguthabenLaden } from './zeitguthaben';
+import { KrankmeldungListe, KrankenstaendeReiter } from './Krankmeldungen';
+import { ergebnisText } from './abwesenheitText';
+import BetriebsurlaubReiter from './BetriebsurlaubReiter';
 
 /** 'YYYY-MM-DD' -> '15.06.2026'. */
 function fmt(iso: string): string {
@@ -41,9 +52,43 @@ function fmt(iso: string): string {
   });
 }
 
-function zeitraum(v: Vacation): string {
+function zeitraum(v: Pick<Vacation, 'von' | 'bis'>): string {
   return v.von === v.bis ? fmt(v.von) : `${fmt(v.von)} – ${fmt(v.bis)}`;
 }
+
+const istZa = (v: Pick<Vacation, 'art'>) => v.art === 'Zeitausgleich';
+
+/** „13:00" aus „13:00" oder „13:00:00". */
+const hhmm = (t?: string | null) => (t ?? '').slice(0, 5);
+
+/** Stunden mit Komma: 4 → „4", 7,5 → „7,5". */
+const std = (h: number) => h.toLocaleString('de-AT', { maximumFractionDigits: 2 });
+
+/**
+ * Was ein ZA-Antrag kostet, in Worten — für die Listen.
+ *
+ * „ZA – 4 Std. (13:00–17:00)" oder „ZA – 2 Tage (16 Std.)". Beim Urlaub
+ * bleibt es bei den Arbeitstagen, wie bisher.
+ */
+function umfang(v: Vacation): string {
+  if (!istZa(v)) return `${v.tage} ${v.tage === 1 ? 'Arbeitstag' : 'Arbeitstage'}`;
+  const stunden = v.zaStunden != null ? `${std(Number(v.zaStunden))} Std.` : '';
+  if (v.zaVon && v.zaBis) return `ZA – ${stunden} (${hhmm(v.zaVon)}–${hhmm(v.zaBis)})`;
+  return `ZA – ${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}${stunden ? ` (${stunden})` : ''}`;
+}
+
+/** Minuten zwischen 'HH:MM' und 'HH:MM'; negativ, wenn verdreht. */
+function spanne(von: string, bis: string): number {
+  const [h1, m1] = von.split(':').map(Number);
+  const [h2, m2] = bis.split(':').map(Number);
+  return h2 * 60 + m2 - (h1 * 60 + m1);
+}
+
+/** Saldo in Stunden → „+12:30" / „−3:30". */
+const vorzeichen = (min: number) => (min >= 0 ? `+${fmtMin(min)}` : `−${fmtMin(-min)}`);
+
+type Art = 'Urlaub' | 'Zeitausgleich' | 'Krank';
+type Reiter = 'antraege' | 'krank' | 'betrieb';
 
 /*
   „Beantragt" bleibt der einzige Zustand mit Aufmerksamkeit: dort wartet eine
@@ -93,6 +138,9 @@ export default function VacationsView() {
   const darfEntscheiden = user
     ? darfUrlaubEntscheiden(user.role, user.uid, company?.vacationApprovers)
     : false;
+  /** Buchhaltung und Spitze: Krankenstände und Betriebsurlaub. */
+  const buero = user ? canEditTime(user.role) : false;
+  const [reiter, setReiter] = useState<Reiter>('antraege');
 
   const [eigene, setEigene] = useState<WithId<Vacation>[]>([]);
   const [offene, setOffene] = useState<WithId<Vacation>[]>([]);
@@ -107,6 +155,16 @@ export default function VacationsView() {
   const [bis, setBis] = useState(todayStr());
   const [notiz, setNotiz] = useState('');
   const [sendet, setSendet] = useState(false);
+
+  /** Urlaub, Zeitausgleich oder Krankmeldung. */
+  const [art, setArt] = useState<Art>('Urlaub');
+  const [zaStundenweise, setZaStundenweise] = useState(false);
+  const [zaVon, setZaVon] = useState('13:00');
+  const [zaBis, setZaBis] = useState('17:00');
+  /** Das eigene Zeitguthaben — geladen, sobald Zeitausgleich gewählt ist. */
+  const [guthaben, setGuthaben] = useState<SaldoResult | 'laedt' | 'fehler' | null>(null);
+  const [eigeneKrank, setEigeneKrank] = useState<WithId<Krankmeldung>[]>([]);
+  const [betriebsurlaube, setBetriebsurlaube] = useState<WithId<Betriebsurlaub>[]>([]);
 
   const laden_ = useMemo(
     () => async () => {
@@ -127,6 +185,17 @@ export default function VacationsView() {
         ]);
         setEigene(meine);
         setProfil(profilDaten ?? null);
+        /*
+          NEBENBEI, UND STILL BEI EINEM FEHLER: die eigenen Krankmeldungen und
+          der kommende Betriebsurlaub sind Zusatzauskünfte. Scheitern sie,
+          darf der Antrag trotzdem gehen.
+        */
+        listEigeneKrankmeldungen(user.companyId, user.uid)
+          .then(setEigeneKrank)
+          .catch(() => setEigeneKrank([]));
+        listBetriebsurlaubeAb(user.companyId, todayStr())
+          .then(setBetriebsurlaube)
+          .catch(() => setBetriebsurlaube([]));
         if (darfEntscheiden) {
           const warten = await listOpenVacations(user.companyId);
           // Ältester Antrag zuerst: wer am längsten wartet, wartet nicht noch länger.
@@ -187,7 +256,8 @@ export default function VacationsView() {
           anderen Stelle als vorher.
         */
         eigene
-          .filter((v) => v.status === 'Genehmigt')
+          // Zeitausgleich geht vom Zeitguthaben ab, nicht vom Urlaub.
+          .filter((v) => v.status === 'Genehmigt' && !istZa(v))
           .map((v) => ({ von: v.von, tage: v.tage })),
         regel,
       ),
@@ -210,9 +280,46 @@ export default function VacationsView() {
       ? 'In diesem Jahr'
       : `Im Urlaubsjahr ${jahr}/${String((jahr + 1) % 100).padStart(2, '0')}`;
 
+  useEffect(() => {
+    if (art !== 'Zeitausgleich' || !profil) return;
+    let weg = false;
+    setGuthaben('laedt');
+    zeitguthabenLaden(profil)
+      .then((g) => {
+        if (!weg) setGuthaben(g);
+      })
+      .catch(() => {
+        if (!weg) setGuthaben('fehler');
+      });
+    return () => {
+      weg = true;
+    };
+  }, [art, profil]);
+
+  /** Der Tag, an dem der stundenweise ZA liegt, muss ein Arbeitstag sein. */
+  const zaTage = useMemo(
+    () => (profil ? urlaubsTage(profil, von, zaStundenweise ? von : bis) : []),
+    [profil, von, bis, zaStundenweise],
+  );
+  const tagessollMin = profil
+    ? ((Number(profil.weeklyTargetHours ?? 40) || 40) / (profil.workDays?.length || 5)) * 60
+    : 0;
+  /** Was der Zeitausgleich an Zeitguthaben kostet, in Minuten. */
+  const zaMin = zaStundenweise
+    ? Math.max(0, spanne(zaVon, zaBis))
+    : Math.round(zaTage.length * tagessollMin);
+
   async function beantragen(e: FormEvent) {
     e.preventDefault();
     if (!user || !profil) return;
+    if (art === 'Krank') {
+      await krankMelden();
+      return;
+    }
+    if (art === 'Zeitausgleich') {
+      await zaBeantragen();
+      return;
+    }
     if (tage.length === 0) {
       setError(
         bis < von
@@ -241,6 +348,7 @@ export default function VacationsView() {
         bis,
         tage: tage.length,
         status: 'Beantragt',
+        art: 'Urlaub',
         notiz: notiz.trim(),
       });
       toast.success('Antrag eingereicht');
@@ -248,6 +356,89 @@ export default function VacationsView() {
       await laden_();
     } catch {
       setError('Der Antrag konnte nicht eingereicht werden.');
+    } finally {
+      setSendet(false);
+    }
+  }
+
+  /**
+   * Zeitausgleich beantragen — wie Urlaub, mit Stunden statt Tagen.
+   *
+   * Das Zeitguthaben wird GEZEIGT und mitgeschickt, aber nicht zur Sperre:
+   * ob jemand ins Minus gehen darf, entscheidet der Genehmigende. Er sieht
+   * die Zahl beim Antrag.
+   */
+  async function zaBeantragen() {
+    if (!user || !profil) return;
+    const bisTag = zaStundenweise ? von : bis;
+    if (zaTage.length === 0) {
+      setError(
+        bisTag < von
+          ? 'Das Ende liegt vor dem Beginn.'
+          : 'In diesem Zeitraum liegt kein Arbeitstag — da braucht es keinen Zeitausgleich.',
+      );
+      return;
+    }
+    if (zaStundenweise && spanne(zaVon, zaBis) <= 0) {
+      setError('„Frei bis" muss nach „Frei von" liegen.');
+      return;
+    }
+    const kollision = eigene.find(
+      (v) => (v.status === 'Beantragt' || v.status === 'Genehmigt') && v.von <= bisTag && v.bis >= von,
+    );
+    if (kollision) {
+      setError(`Überschneidet sich mit einem Antrag vom ${zeitraum(kollision)} (${kollision.status}).`);
+      return;
+    }
+    setSendet(true);
+    setError(null);
+    try {
+      await createVacation(user.companyId, {
+        userId: user.uid,
+        userName: user.name,
+        von,
+        bis: bisTag,
+        tage: zaTage.length,
+        status: 'Beantragt',
+        art: 'Zeitausgleich',
+        zaVon: zaStundenweise ? zaVon : null,
+        zaBis: zaStundenweise ? zaBis : null,
+        zaStunden: Math.round((zaMin / 60) * 100) / 100,
+        saldoBeiAntrag:
+          guthaben && typeof guthaben === 'object' && guthaben.hasConfig ? guthaben.saldoH : null,
+        notiz: notiz.trim(),
+      });
+      toast.success('Antrag auf Zeitausgleich eingereicht');
+      setNotiz('');
+      await laden_();
+    } catch {
+      setError('Der Antrag konnte nicht eingereicht werden.');
+    } finally {
+      setSendet(false);
+    }
+  }
+
+  /**
+   * Krank melden — ohne Genehmigung.
+   *
+   * Krank ist man; das beantragt niemand. Die Tage stehen sofort im
+   * Zeitkonto, das Büro sieht die Meldung.
+   */
+  async function krankMelden() {
+    if (!user) return;
+    if (bis < von) {
+      setError('Das Ende liegt vor dem Beginn.');
+      return;
+    }
+    setSendet(true);
+    setError(null);
+    try {
+      const r = await krankmeldungSpeichern({ von, bis, notiz: notiz.trim(), melderName: user.name });
+      toast.success(`Krankmeldung eingetragen — ${ergebnisText(r)}. Gute Besserung!`);
+      setNotiz('');
+      setEigeneKrank(await listEigeneKrankmeldungen(user.companyId, user.uid).catch(() => eigeneKrank));
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : 'Die Krankmeldung konnte nicht eingetragen werden.');
     } finally {
       setSendet(false);
     }
@@ -378,18 +569,132 @@ export default function VacationsView() {
       .map((v) => v.userName);
   }
 
+  /** Das Zeitguthaben beim ZA-Antrag — Zahl und Einschätzung. */
+  function guthabenZeile() {
+    if (guthaben === 'laedt' || guthaben === null) {
+      return <span className="block text-xs">Zeitguthaben wird geladen …</span>;
+    }
+    if (guthaben === 'fehler') {
+      return (
+        <span className="block text-xs text-warning">
+          Das Zeitguthaben konnte nicht geladen werden — der Antrag geht trotzdem.
+        </span>
+      );
+    }
+    if (!guthaben.hasConfig) {
+      return (
+        <span className="block text-xs">
+          Für dieses Konto wird kein Zeitguthaben geführt — der Genehmigende entscheidet ohne Zahl.
+        </span>
+      );
+    }
+    const jetzt = Math.round(guthaben.saldoH * 60);
+    const danach = jetzt - zaMin;
+    if (jetzt > 0 && danach >= 0) {
+      return (
+        <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+          <Zustand stand="gut">ausreichend Zeitguthaben</Zustand>
+          <span className="tnum">
+            {vorzeichen(jetzt)} Std., danach {vorzeichen(danach)} Std.
+          </span>
+        </span>
+      );
+    }
+    return (
+      <span className="mt-1 block text-xs font-medium text-warning" role="alert">
+        {jetzt <= 0
+          ? `Kein Zeitguthaben (${vorzeichen(jetzt)} Std.) — der Zeitausgleich ginge ins Minus.`
+          : `Das Zeitguthaben (${vorzeichen(jetzt)} Std.) reicht nicht — danach stünden ${vorzeichen(danach)} Std.`}{' '}
+        Beantragen geht trotzdem; entschieden wird bei der Genehmigung.
+      </span>
+    );
+  }
+
+  const REITER: { key: Reiter; label: string }[] = [
+    { key: 'antraege', label: 'Anträge' },
+    { key: 'krank', label: 'Krankenstände' },
+    { key: 'betrieb', label: 'Betriebsurlaub' },
+  ];
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Urlaub" subtitle="Beantragen, genehmigen, im Blick behalten" />
+      <PageHeader title="Urlaub" subtitle="Urlaub, Zeitausgleich und Krankmeldung" />
 
+      {/*
+        DIE BÜRO-REITER nur für Buchhaltung und Spitze: Krankenstände sind
+        Gesundheitsdaten, und den Betrieb zusperren ist deren Sache. Alle
+        anderen sehen die Seite wie bisher, ohne Reiterleiste.
+      */}
+      {buero && (
+        <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+          {REITER.map((r) => (
+            <button
+              key={r.key}
+              role="tab"
+              aria-selected={reiter === r.key}
+              onClick={() => setReiter(r.key)}
+              className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
+                reiter === r.key
+                  ? 'border-b-accent-deep font-bold text-accent-deep'
+                  : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {buero && reiter === 'krank' && <KrankenstaendeReiter companyId={user.companyId} meinName={user.name} />}
+      {buero && reiter === 'betrieb' && <BetriebsurlaubReiter companyId={user.companyId} meinName={user.name} />}
+
+      {(!buero || reiter === 'antraege') && (
+      <>
       {error && <ErrorState message={error} />}
 
-      <Card title="Urlaub beantragen">
+      <Card title={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'}>
+        {/*
+          KOMMENDER BETRIEBSURLAUB steht hier, wo jemand seinen Urlaub plant —
+          sonst beantragt er Tage, die ohnehin zu sind.
+        */}
+        {betriebsurlaube.length > 0 && (
+          <p className="mb-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+            {betriebsurlaube.map((b) => (
+              <span key={b.id} className="block">
+                <strong>{b.bezeichnung}</strong> {zeitraum(b)}
+                {b.urlaubAbbuchen ? ' — wird vom Urlaub abgebucht' : ''}
+              </span>
+            ))}
+          </p>
+        )}
         <form onSubmit={beantragen} className="space-y-4">
+          <SelectField
+            id="uart"
+            label="Art"
+            value={art}
+            onChange={(e) => {
+              setArt(e.target.value as Art);
+              setError(null);
+            }}
+          >
+            <option value="Urlaub">Urlaub</option>
+            <option value="Zeitausgleich">Zeitausgleich</option>
+            <option value="Krank">Krankmeldung</option>
+          </SelectField>
+
+          {art === 'Zeitausgleich' && (
+            <CheckboxField
+              id="uzastunden"
+              label="Nur einige Stunden (an einem Tag)"
+              checked={zaStundenweise}
+              onChange={(e) => setZaStundenweise(e.target.checked)}
+            />
+          )}
+
           <FormGrid>
             <InputField
               id="uvon"
-              label="Von"
+              label={art === 'Krank' ? 'Krank ab' : art === 'Zeitausgleich' && zaStundenweise ? 'Tag' : 'Von'}
               type="date"
               value={von}
               onChange={(e) => {
@@ -401,20 +706,44 @@ export default function VacationsView() {
               required
               pflicht
             />
-            <InputField
-              id="ubis"
-              label="Bis (einschließlich)"
-              type="date"
-              value={bis}
-              min={von}
-              onChange={(e) => setBis(e.target.value)}
-              required
-              pflicht
-            />
+            {!(art === 'Zeitausgleich' && zaStundenweise) && (
+              <InputField
+                id="ubis"
+                label={art === 'Krank' ? 'Voraussichtlich bis' : 'Bis (einschließlich)'}
+                type="date"
+                value={bis}
+                min={von}
+                onChange={(e) => setBis(e.target.value)}
+                required
+                pflicht
+              />
+            )}
           </FormGrid>
+          {art === 'Zeitausgleich' && zaStundenweise && (
+            <FormGrid>
+              <InputField
+                id="uzavon"
+                label="Frei von"
+                type="time"
+                value={zaVon}
+                onChange={(e) => setZaVon(e.target.value)}
+                required
+                pflicht
+              />
+              <InputField
+                id="uzabis"
+                label="Frei bis"
+                type="time"
+                value={zaBis}
+                onChange={(e) => setZaBis(e.target.value)}
+                required
+                pflicht
+              />
+            </FormGrid>
+          )}
           <InputField
             id="unotiz"
-            label="Anmerkung (freiwillig)"
+            label={art === 'Krank' ? 'Anmerkung (freiwillig, keine Diagnose)' : 'Anmerkung (freiwillig)'}
             value={notiz}
             onChange={(e) => setNotiz(e.target.value)}
           />
@@ -425,6 +754,7 @@ export default function VacationsView() {
             zustandekommt, steht hinter dem „i": das ist einmal interessant
             und danach nur noch lang.
           */}
+          {art === 'Urlaub' && (
           <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
             <strong className="tnum">
               {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
@@ -458,11 +788,45 @@ export default function VacationsView() {
               )}
             </span>
           </div>
+          )}
+
+          {art === 'Zeitausgleich' && (
+            <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+              <strong className="tnum">{std(zaMin / 60)} Std.</strong>
+              <span className="ml-1">
+                Zeitausgleich
+                {zaStundenweise
+                  ? ''
+                  : ` (${zaTage.length} ${zaTage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'})`}
+                .
+              </span>
+              <InfoHint about="Zeitausgleich">
+                Zeitausgleich geht vom Zeitguthaben (Überstunden), nicht vom Urlaub. Ein ganzer Tag
+                kostet das Tagessoll, stundenweise genau die freien Stunden. Nach der Genehmigung
+                steht er im Zeitkonto und im Wochenplan.
+              </InfoHint>
+              <span className="basis-full">{guthabenZeile()}</span>
+            </div>
+          )}
+
+          {art === 'Krank' && (
+            <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+              Eine Krankmeldung braucht keine Genehmigung: die Tage stehen sofort als „Krank" im
+              Zeitkonto, und das Büro sieht die Meldung. Ist das Ende noch offen, das
+              voraussichtliche eintragen — ändern geht jederzeit.
+            </p>
+          )}
 
           <Pflichthinweis />
 
-          <Button type="submit" loading={sendet} disabled={tage.length === 0}>
-            Antrag einreichen
+          <Button
+            type="submit"
+            loading={sendet}
+            disabled={
+              art === 'Urlaub' ? tage.length === 0 : art === 'Zeitausgleich' ? zaTage.length === 0 : false
+            }
+          >
+            {art === 'Krank' ? 'Krank melden' : 'Antrag einreichen'}
           </Button>
         </form>
       </Card>
@@ -474,10 +838,11 @@ export default function VacationsView() {
           title={`Offene Anträge (${offene.length})`}
           hint={
             <>
-              Eine Genehmigung trägt die Tage sofort ins Zeitkonto ein — als „Urlaub", mit vollem
-              Tagessoll. Deshalb erscheint der Urlaub weder als fehlende Zeit auf der Startseite
-              noch als Minus im Saldo. Tage, an denen bereits gebucht war, bleiben unangetastet,
-              und eine Rücknahme entfernt nur die Tage, die durch die Genehmigung entstanden sind.
+              Eine Genehmigung trägt die Tage sofort ins Zeitkonto ein — Urlaub mit vollem
+              Tagessoll, Zeitausgleich ohne Ist (er geht vom Zeitguthaben ab). Deshalb erscheint
+              beides weder als fehlende Zeit auf der Startseite noch als falsches Minus im Saldo.
+              Tage, an denen bereits gebucht war, bleiben unangetastet, und eine Rücknahme entfernt
+              nur die Tage, die durch die Genehmigung entstanden sind.
             </>
           }
         >
@@ -489,6 +854,8 @@ export default function VacationsView() {
             <List>
               {offene.map((v) => {
                 const parallel = gleichzeitig(v);
+                const saldoMin = v.saldoBeiAntrag != null ? Math.round(Number(v.saldoBeiAntrag) * 60) : null;
+                const kostet = v.zaStunden != null ? Math.round(Number(v.zaStunden) * 60) : 0;
                 return (
                   <ListRow
                     key={v.id}
@@ -496,9 +863,23 @@ export default function VacationsView() {
                     subtitle={
                       <>
                         <span className="tnum block">
-                          {zeitraum(v)} · {v.tage} {v.tage === 1 ? 'Tag' : 'Tage'}
+                          {zeitraum(v)} · {istZa(v) ? umfang(v) : `${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}`}
                         </span>
                         {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
+                        {/*
+                          DAS ZEITGUTHABEN BEIM ANTRAG — die Zahl, nach der
+                          beim Zeitausgleich entschieden wird.
+                        */}
+                        {istZa(v) && saldoMin !== null && (
+                          <span
+                            className={`tnum mt-1 block text-xs ${
+                              saldoMin - kostet < 0 ? 'font-medium text-warning' : 'text-ink-muted'
+                            }`}
+                          >
+                            Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std.
+                            {saldoMin - kostet < 0 ? ' — reicht nicht' : ''}
+                          </span>
+                        )}
                         {/*
                           Wer sonst noch weg ist. Ohne diese Zeile wäre die
                           Entscheidung ein Blindflug — und der zweite Monteur
@@ -537,7 +918,7 @@ export default function VacationsView() {
         {laden ? (
           <SkeletonList rows={3} />
         ) : eigene.length === 0 ? (
-          <EmptyState>Noch kein Urlaubsantrag gestellt.</EmptyState>
+          <EmptyState>Noch kein Antrag gestellt.</EmptyState>
         ) : (
           <List>
             {eigene.map((v) => (
@@ -547,7 +928,7 @@ export default function VacationsView() {
                 subtitle={
                   <>
                     <span className="block">
-                      {v.tage} {v.tage === 1 ? 'Arbeitstag' : 'Arbeitstage'}
+                      {umfang(v)}
                       {v.notiz ? ` · ${v.notiz}` : ''}
                     </span>
                     {/*
@@ -593,6 +974,21 @@ export default function VacationsView() {
         )}
       </Card>
 
+      {eigeneKrank.length > 0 && (
+        <Card title="Meine Krankmeldungen">
+          <KrankmeldungListe
+            meldungen={eigeneKrank}
+            mitNamen={false}
+            meinName={user.name}
+            onGeaendert={() =>
+              void listEigeneKrankmeldungen(user.companyId, user.uid)
+                .then(setEigeneKrank)
+                .catch(() => undefined)
+            }
+          />
+        </Card>
+      )}
+
       {zurueckzuziehen && (
         <ConfirmDialog
           open
@@ -608,7 +1004,8 @@ export default function VacationsView() {
           </p>
         </ConfirmDialog>
       )}
-
+      </>
+      )}
     </div>
   );
 }

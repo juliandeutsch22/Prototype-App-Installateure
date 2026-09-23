@@ -317,3 +317,64 @@ describe('Der Trigger stösst wirklich an', () => {
       [FUNKTION_INTERN]);
   }, 180_000);
 });
+
+/*
+  ABWESENHEITEN: der neue Antrag an die Genehmigenden, die Entscheidung an
+  den Antragsteller, die Krankmeldung ans Büro. Im Betrieb dieser Prüfung
+  ist niemand als Genehmigender festgelegt — also entscheidet das Büro, hier
+  die Buchhaltung.
+*/
+describe('Abwesenheiten melden', () => {
+  const zeile = (rest: Record<string, unknown> = {}) => ({
+    id: crypto.randomUUID(), company_id: BETRIEB, user_id: monteur.uid, user_name: 'Max Mustermann',
+    von: '2026-10-27', bis: '2026-10-29', art: 'Urlaub', status: 'Beantragt', ...rest,
+  });
+
+  it('ein neuer Antrag geht an die, die entscheiden — nicht an die Projektleitung', async () => {
+    const { daten } = await anstossen({ quelle: 'abwesenheit', art: 'antrag', zeile: zeile() });
+    expect(daten.geplant).toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 1 }]);
+  }, 120_000);
+
+  it('die Entscheidung geht an den Antragsteller', async () => {
+    const { daten } = await anstossen({
+      quelle: 'abwesenheit', art: 'entschieden', zeile: zeile({ status: 'Genehmigt' }),
+    });
+    expect(daten.geplant).toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 1 }]);
+  }, 120_000);
+
+  it('eine Krankmeldung geht ans Büro — nicht an Verwaltung oder Projektleitung', async () => {
+    const { daten } = await anstossen({
+      quelle: 'abwesenheit', art: 'krank', zeile: { ...zeile(), art: undefined, status: undefined },
+    });
+    expect(daten.geplant).toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 1 }]);
+  }, 120_000);
+
+  it('wer „Abwesenheiten" abgeschaltet hat, bekommt kein Gerät gezählt', async () => {
+    await admin.from('user_prefs').update({ notify_abwesenheit: false }).eq('user_id', monteur.uid);
+    const { daten } = await anstossen({
+      quelle: 'abwesenheit', art: 'entschieden', zeile: zeile({ status: 'Abgelehnt' }),
+    });
+    expect(daten.geplant).toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 0 }]);
+    await admin.from('user_prefs').update({ notify_abwesenheit: true }).eq('user_id', monteur.uid);
+  }, 120_000);
+
+  it('der Trigger stösst beim neuen Antrag an', async () => {
+    const vorher = (await db.query('select count(*)::int as n from net._http_response')).rows[0].n;
+    const { error } = await monteur.client.from('vacations').insert({
+      company_id: BETRIEB, user_id: monteur.uid, user_name: 'Max Mustermann',
+      von: '2026-11-02', bis: '2026-11-03', tage: 2, status: 'Beantragt',
+    });
+    expect(error).toBeNull();
+    let nachher = vorher;
+    for (let i = 0; i < 30 && nachher === vorher; i += 1) {
+      await new Promise((r) => setTimeout(r, 500));
+      nachher = (await db.query('select count(*)::int as n from net._http_response')).rows[0].n;
+    }
+    expect(nachher).toBeGreaterThan(vorher);
+    const letzte = await db.query(
+      'select content from net._http_response order by created desc limit 1',
+    );
+    expect(JSON.parse(letzte.rows[0].content).geplant)
+      .toEqual([{ art: 'notifyAbwesenheit', empfaenger: 1, geraete: 1 }]);
+  }, 180_000);
+});

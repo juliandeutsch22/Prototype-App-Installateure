@@ -11,7 +11,7 @@ import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
 import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
-import { istAussendienst, canExtendTimeEntry } from '@/lib/permissions';
+import { istAussendienst, canExtendTimeEntry, canEditTime } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import Icon from '@/components/Icon';
@@ -126,6 +126,10 @@ export default function TimeForm({
 
   const [date, setDate] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   const [status, setStatus] = useState<TimeEntry['status']>(entry?.status ?? 'Anwesend');
+  /** Zeitausgleich nur für einige Stunden (mit Von/Bis) statt für den ganzen Tag. */
+  const [zaStundenweise, setZaStundenweise] = useState(
+    entry?.status === 'Zeitausgleich' && !!entry.startTime && !!entry.endTime,
+  );
   const [startTime, setStartTime] = useState(entry?.startTime || vorbelegung?.startTime || '07:00');
   const [endTime, setEndTime] = useState(entry?.endTime || vorbelegung?.endTime || '16:00');
   const [breakDuration, setBreakDuration] = useState(
@@ -177,6 +181,15 @@ export default function TimeForm({
   );
   const canHaveProject = aussendienst || (darfErweitern && erweitert);
   const showWorkFields = status === 'Anwesend';
+  /** Trägt dieser Eintrag Von/Bis? Arbeitszeit immer, Zeitausgleich nur stundenweise. */
+  const mitZeiten = showWorkFields || (status === 'Zeitausgleich' && zaStundenweise);
+  /*
+    ZEITAUSGLEICH BUCHT DAS BÜRO — der Monteur BEANTRAGT ihn (Seite Urlaub).
+    Direkt gebucht wäre er am Genehmigenden vorbei. Ein bereits gebuchter ZA
+    bleibt in der Auswahl, damit er beim Bearbeiten nicht verschwindet.
+  */
+  const zaWaehlbar =
+    (!!user && canEditTime(user.role)) || entry?.status === 'Zeitausgleich';
 
   /**
    * Die Baustellen laedt `BaustellenSelect` selbst — samt Lade-, Fehler- und
@@ -256,9 +269,17 @@ export default function TimeForm({
   const konflikt = useMemo(
     () =>
       tagesEintraege
-        ? buchungKonflikt({ status, projectNumber: canHaveProject ? projectNumber : '' }, tagesEintraege)
+        ? buchungKonflikt(
+            {
+              status,
+              projectNumber: canHaveProject ? projectNumber : '',
+              startTime: mitZeiten ? startTime : undefined,
+              endTime: mitZeiten ? endTime : undefined,
+            },
+            tagesEintraege,
+          )
         : null,
-    [tagesEintraege, status, projectNumber, canHaveProject],
+    [tagesEintraege, status, projectNumber, canHaveProject, mitZeiten, startTime, endTime],
   );
 
   /**
@@ -285,6 +306,10 @@ export default function TimeForm({
       setError(konflikt);
       return;
     }
+    if (status === 'Zeitausgleich' && zaStundenweise && !(endTime > startTime)) {
+      setError('Beim Zeitausgleich muss „Frei bis" nach „Frei von" liegen.');
+      return;
+    }
 
     if (entry?.isBilled) {
       setError('Verrechnete Einträge können nicht geändert werden.');
@@ -301,9 +326,9 @@ export default function TimeForm({
       const payload = {
         date,
         status,
-        startTime: showWorkFields ? startTime : '',
-        endTime: showWorkFields ? endTime : '',
-        breakDuration: Number(breakDuration) || 0,
+        startTime: mitZeiten ? startTime : '',
+        endTime: mitZeiten ? endTime : '',
+        breakDuration: showWorkFields ? Number(breakDuration) || 0 : 0,
         travelTime: Number(travelTime) || 0,
         projectNumber: canHaveProject ? projectNumber : '',
         customerName: canHaveProject ? project?.customerName ?? '' : '',
@@ -439,6 +464,7 @@ export default function TimeForm({
           <option value="Anwesend">Anwesend</option>
           <option value="Krank">Krank</option>
           <option value="Urlaub">Urlaub</option>
+          {zaWaehlbar && <option value="Zeitausgleich">Zeitausgleich</option>}
         </SelectField>
       </FormGrid>
 
@@ -461,11 +487,47 @@ export default function TimeForm({
           Hinweis: {holidayName} — gesetzlicher Feiertag.
         </p>
       )}
-      {!showWorkFields && (
+      {!showWorkFields && status !== 'Zeitausgleich' && (
         <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
           {status}: Es werden keine Arbeitszeiten erfasst. Der Tag wird als voller
           Solltag gutgeschrieben.
         </p>
+      )}
+      {status === 'Zeitausgleich' && (
+        <div className="space-y-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+          <p>
+            Zeitausgleich: Es wird keine Arbeitszeit gutgeschrieben — das Zeitguthaben sinkt um die
+            freie Zeit{zaStundenweise ? '' : ' (einen ganzen Tag: um das Tagessoll)'}.
+          </p>
+          <CheckboxField
+            id="zaStundenweise"
+            label="Nur einige Stunden"
+            checked={zaStundenweise}
+            onChange={(e) => setZaStundenweise(e.target.checked)}
+          />
+          {zaStundenweise && (
+            <FormGrid>
+              <InputField
+                id="zaVon"
+                label="Frei von"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                required
+                pflicht
+              />
+              <InputField
+                id="zaBis"
+                label="Frei bis"
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                required
+                pflicht
+              />
+            </FormGrid>
+          )}
+        </div>
       )}
 
       {showWorkFields && (

@@ -38,6 +38,7 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   */
   ausleitung_dateien: { gesichert_am: 'zeitpunkt' },
   betriebsanlagen: { angelegt_am: 'zeitpunkt' },
+  betriebsurlaube: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   buchungskonten: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   companies: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   customers: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
@@ -45,7 +46,10 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   einsatz_material: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   follow_ups: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   invoices: { cancelled_at: 'zeitpunkt', created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
-  material_orders: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  krankmeldungen: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  material_orders: {
+    bestellt_am: 'zeitpunkt', created_at: 'zeitpunkt', geliefert_am: 'zeitpunkt', updated_at: 'zeitpunkt',
+  },
   material_prices: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   materials: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   number_counters: { updated_at: 'zeitpunkt' },
@@ -61,7 +65,10 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   time_entries: { created_at: 'zeitpunkt', end_time: 'uhrzeit', start_time: 'uhrzeit', updated_at: 'zeitpunkt' },
   user_prefs: { updated_at: 'zeitpunkt' },
   users: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
-  vacations: { created_at: 'zeitpunkt', entschieden_am: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  vacations: {
+    created_at: 'zeitpunkt', entschieden_am: 'zeitpunkt', updated_at: 'zeitpunkt',
+    za_bis: 'uhrzeit', za_von: 'uhrzeit',
+  },
   wartungen: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   work_sheet_hours: { bis: 'uhrzeit', von: 'uhrzeit' },
   zahlungseingaenge: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },

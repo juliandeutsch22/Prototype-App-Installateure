@@ -10,6 +10,13 @@ import {
   toteTokens,
   willMeldung,
   orderAusZeile,
+  abwesenheitAusZeile,
+  empfaengerAntrag,
+  empfaengerKrankmeldung,
+  textAntrag,
+  textEntscheidung,
+  textKrankmeldung,
+  type Belegschaftsmitglied,
 } from '@shared/notifyLogic';
 
 /**
@@ -265,5 +272,69 @@ describe('Eine Postgres-Zeile wird zur Anforderung', () => {
     // `!!undefined` wäre auch falsch-sicher; hier steht ausdrücklich `false`,
     // damit ein Vergleich auf `=== false` nicht danebenliegt.
     expect(orderAusZeile({ company_id: 'perl' })!.isUrgent).toBe(false);
+  });
+});
+
+/*
+  ABWESENHEITEN. Wer bekommt was — und was steht auf dem Sperrbildschirm.
+  Ein Krankenstand ist ein Gesundheitsdatum: er geht nur ans Büro, und die
+  Meldung sagt nicht mehr als Name und Zeitraum.
+*/
+describe('Abwesenheiten', () => {
+  const leute: Belegschaftsmitglied[] = [
+    { uid: 'gf', role: 'Geschäftsführung', active: true, entscheidet: true, buero: true },
+    { uid: 'bu', role: 'Buchhaltung', active: true, entscheidet: false, buero: true },
+    { uid: 'pl', role: 'Projektleiter', active: true, entscheidet: true, buero: false },
+    { uid: 'mo', role: 'Mitarbeiter', active: true, entscheidet: false, buero: false },
+    { uid: 'alt', role: 'Geschäftsführung', active: false, entscheidet: true, buero: true },
+  ];
+
+  it('einen Antrag bekommt, wer entscheidet — nicht der Antragsteller, nicht ein deaktiviertes Konto', () => {
+    expect(empfaengerAntrag(leute, 'mo')).toEqual(['gf', 'pl']);
+    expect(empfaengerAntrag(leute, 'gf')).toEqual(['pl']);
+  });
+
+  it('eine Krankmeldung bekommt nur das Büro — nicht die Projektleitung', () => {
+    expect(empfaengerKrankmeldung(leute, 'mo')).toEqual(['gf', 'bu']);
+    expect(empfaengerKrankmeldung(leute, 'bu')).toEqual(['gf']);
+  });
+
+  it('liest die Zeile aus Postgres — auch die ZA-Felder', () => {
+    const a = abwesenheitAusZeile({
+      company_id: 'perl', user_id: 'mo', user_name: 'Max', von: '2026-10-27', bis: '2026-10-27',
+      art: 'Zeitausgleich', status: 'Beantragt', za_von: '13:00:00', za_bis: '17:00:00', za_stunden: '4.00',
+    });
+    expect(a).toMatchObject({ companyId: 'perl', userId: 'mo', art: 'Zeitausgleich', zaStunden: 4 });
+    expect(textAntrag(a!, 'v1')).toMatchObject({
+      title: 'Neuer Antrag auf Zeitausgleich',
+      body: 'Max: 27.10., 13:00–17:00 (4 Std.)',
+      link: '/vacations',
+    });
+  });
+
+  it('nennt Urlaub und Entscheidung beim Namen', () => {
+    const u = abwesenheitAusZeile({
+      company_id: 'perl', user_id: 'mo', user_name: 'Max', von: '2026-12-21', bis: '2026-12-24',
+      art: 'Urlaub', status: 'Genehmigt',
+    })!;
+    expect(textAntrag(u, 'v2').title).toBe('Neuer Urlaubsantrag');
+    expect(textAntrag(u, 'v2').body).toBe('Max: 21.12.–24.12.');
+    expect(textEntscheidung(u, 'v2')).toMatchObject({ title: 'Urlaub genehmigt', tag: 'antrag-v2' });
+    expect(textEntscheidung({ ...u, status: 'Abgelehnt' }, 'v2').title).toBe('Urlaub abgelehnt');
+    expect(textEntscheidung({ ...u, status: 'Storniert' }, 'v2').title).toBe('Urlaub zurückgenommen');
+  });
+
+  it('die Krankmeldung verrät nicht mehr als Name und Zeitraum', () => {
+    const k = abwesenheitAusZeile({
+      company_id: 'perl', user_id: 'mo', user_name: 'Max', von: '2026-10-27', bis: '2026-10-29', notiz: 'Grippe',
+    })!;
+    const m = textKrankmeldung(k, 'k1');
+    expect(m).toMatchObject({ title: 'Krankmeldung', body: 'Max: 27.10.–29.10.' });
+    expect(JSON.stringify(m)).not.toContain('Grippe');
+  });
+
+  it('wer „Abwesenheiten" abschaltet, bekommt sie nicht', () => {
+    expect(willMeldung({ notifyAbwesenheit: false }, 'notifyAbwesenheit')).toBe(false);
+    expect(willMeldung({ notifyNewOrder: false }, 'notifyAbwesenheit')).toBe(true);
   });
 });

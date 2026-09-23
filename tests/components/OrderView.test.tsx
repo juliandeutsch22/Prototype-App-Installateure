@@ -466,6 +466,24 @@ describe('Material anfordern — die eigene Verfolgung', () => {
     expect(knoepfe).toHaveLength(2);
   });
 
+  it('sagt dem Monteur, wenn sein Material erst bestellt wird', async () => {
+    // Sonst fährt er ins Lager und findet nichts.
+    eigene = [
+      { id: 'o1', companyId: 'perl', materialName: 'Kupferrohr 15mm', quantity: 2, status: 'In Bearbeitung',
+        transactionType: 'order', userId: 'u1', beschaffung: 'einkauf' } as WithId<MaterialOrder>,
+      { id: 'o2', companyId: 'perl', materialName: 'Dichtung 1/2"', quantity: 5, status: 'In Bearbeitung',
+        transactionType: 'order', userId: 'u1', beschaffung: 'einkauf', bestelltAm: 1 } as WithId<MaterialOrder>,
+      { id: 'o3', companyId: 'perl', materialName: 'Hanf', quantity: 1, status: 'Abholbereit',
+        transactionType: 'order', userId: 'u1', beschaffung: 'einkauf', bestelltAm: 1, geliefertAm: 2 } as WithId<MaterialOrder>,
+    ];
+    zeige();
+    await userEvent.click(screen.getByRole('tab', { name: /Meine Bestellungen/ }));
+    expect(await screen.findByText('nicht im Lager — wird bestellt')).toBeInTheDocument();
+    expect(screen.getByText('beim Grosshändler bestellt')).toBeInTheDocument();
+    // Geliefert: kein Hinweis mehr — es liegt im Lager.
+    expect(screen.getAllByText(/bestellt/)).toHaveLength(2);
+  });
+
   it('bucht die Abholung erst nach der Bestätigung', async () => {
     eigene = [
       { id: 'o2', companyId: 'perl', materialName: 'Dichtung 1/2"', quantity: 5,

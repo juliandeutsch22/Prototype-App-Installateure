@@ -145,6 +145,10 @@ export function buildMonthCsv(rows: UserWithEntries[], year: number, month: numb
     row([
       'Name', 'Ist(Std)', 'Soll(Std)', 'Saldo(Std)', 'Krank-Tage', 'Urlaub-Tage', 'Resturlaub',
       'Nacht(Std)', 'Notdienst(Std)', 'davon beides(Std)',
+      // Hinten angehängt, nicht zwischen die Tage: eine Lohnverrechnung,
+      // die die Spalten nach ihrer Stelle liest, bekäme sonst verschobene
+      // Zahlen.
+      'Zeitausgleich(Std)',
     ]),
   );
   for (const { user, monthEntries, stats } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
@@ -164,6 +168,7 @@ export function buildMonthCsv(rows: UserWithEntries[], year: number, month: numb
         hours(z.nachtMin),
         hours(z.notdienstMin),
         hours(z.beidesMin),
+        hours(stats.zaMin),
       ]),
     );
   }
@@ -247,6 +252,7 @@ export function buildUserCsv(
   lines.push(row(['Urlaub (Monat)', `${stats.urlaubDays} Tage`]));
   lines.push(row([`Urlaub ${year} gesamt`, `${stats.yearlyUrlaubDays} Tage`]));
   lines.push(row(['Resturlaub', `${stats.urlaubRest} Tage`]));
+  lines.push(row(['Zeitausgleich', `${hours(stats.zaMin)} h`]));
 
   /*
     ZUSCHLÄGE STEHEN IMMER DA, auch mit null Stunden. Der Block ist die

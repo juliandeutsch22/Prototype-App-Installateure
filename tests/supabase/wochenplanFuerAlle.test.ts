@@ -76,7 +76,9 @@ describe('Mit Schalter', () => {
     const { data, error } = await abwesend(monteur);
     expect(error).toBeNull();
     // Auf die Woche zugeschnitten; kein Grund, keine Notiz, kein Status.
-    expect(data).toEqual([{ user_id: kollegin.uid, von: '2026-10-05', bis: '2026-10-07' }]);
+    expect(data).toEqual([
+      { user_id: kollegin.uid, von: '2026-10-05', bis: '2026-10-07', grund: null, zeiten: null },
+    ]);
   });
 
   it('zeigt nur GENEHMIGTEN Urlaub — ein Antrag ist noch keine Abwesenheit', async () => {

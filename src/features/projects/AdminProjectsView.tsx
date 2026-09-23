@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import {
   subscribeRecentProjects,
   createProject,
@@ -477,6 +478,7 @@ export default function AdminProjectsView() {
             <InputField id="pphone" label="Telefon vor Ort" type="tel" value={form.contactPhone}
               onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
           </FormGrid>
+          <BetriebsurlaubHinweis companyId={user?.companyId} von={form.startDate} bis={form.endDate} />
           <InputField id="pdesc" label="Beschreibung / Auftragsumfang" value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })} />
           <PersonPicker
