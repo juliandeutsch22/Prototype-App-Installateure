@@ -148,6 +148,24 @@ describe('Mahnspesen', () => {
   });
 });
 
+describe('Nach einer Teilzahlung', () => {
+  /*
+    GEFUNDEN BEIM NEUGESTALTEN DER BELEGE: die Zeile „Bereits bezahlt" trug
+    ein typografisches Minus (U+2212). Das gibt es in der Standardschrift des
+    PDFs nicht — jsPDF schrieb die Zeile dann in einer anderen Kodierung, und
+    auf dem Papier stand „"  4 0 0 , 0 0". Geprüft wird deshalb, dass der
+    Betrag als gewöhnlicher Text im Dokument steht.
+  */
+  const angezahlt = { ...rechnung, paymentStatus: 'Teilbezahlt', bezahltBetrag: 400 } as Invoice;
+
+  it('nennt die Zahlung lesbar und rechnet den Rest', async () => {
+    const s = await text({ invoice: angezahlt });
+    expect(s).toContain('Bereits bezahlt');
+    expect(s).toMatch(/\(- 400,00 /);
+    expect(s).toMatch(betrag('800,00'));
+  });
+});
+
 describe('Der Dateiname', () => {
   it('sagt, was drin ist', () => {
     // Nicht „download.pdf" im Ordner des Kunden.

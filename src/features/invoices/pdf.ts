@@ -1,5 +1,19 @@
 import jsPDF from 'jspdf';
-import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
+import {
+  briefkopf,
+  empfaenger,
+  fmtMenge,
+  fusszeilen,
+  GRAU,
+  kopfdaten,
+  platzFuer,
+  RAND,
+  RECHTS,
+  TABELLE_AB,
+  TABELLENSTIL,
+  TINTE,
+  titel,
+} from '@/lib/belegLayout';
 import autoTable from 'jspdf-autotable';
 import { discountLabel } from './totals';
 import { RC_HINWEIS } from './reverseCharge';
@@ -167,108 +181,119 @@ export function generateInvoicePdf(opts: {
   );
   const forderung = summen.totalBrutto;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const margin = 18;
 
-  // Briefkopf
-  /*
-    Das Logo oben RECHTS: dort ist der Kopf frei — der Empfängerblock
-    beginnt erst bei y = 50. Der Text darunter bleibt damit unverändert
-    stehen, und ohne Logo sieht die Rechnung aus wie bisher.
-  */
-  logoZeichnen(doc, company, 210 - margin, 18);
-  doc.setFontSize(16).setFont('helvetica', 'bold');
-  doc.text(company.name || 'Firma', margin, 22);
-  doc.setFontSize(9).setFont('helvetica', 'normal');
-  firmenZeilen(company).forEach((z, i) => doc.text(z, margin, 28 + i * 5));
-  doc.setDrawColor(0, 51, 102).line(margin, 37, 210 - margin, 37);
-
-  // Empfänger + Rechnungsdaten
-  doc.setFontSize(11).setFont('helvetica', 'bold').text(UEBERSCHRIFT[art], margin, 50);
-  doc.setFontSize(10).setFont('helvetica', 'normal');
-  doc.text(project.customerName || '–', margin, 58);
-  if (project.address) doc.text(project.address, margin, 63);
-  /*
-    DIE UID DES EMPFÄNGERS gehört zum Empfängerblock, nicht in die Fusszeile.
-
-    Bei Reverse Charge ist sie Pflicht — ohne sie ist der Übergang der
-    Steuerschuld nicht belegt, und der Empfänger kann seine eigene
-    Steuerschuld damit nicht zuordnen. Sie steht deshalb dort, wo er selbst
-    steht.
-  */
-  if (opts.customerVatId?.trim()) {
-    doc.text(`UID: ${opts.customerVatId.trim()}`, margin, project.address ? 68 : 63);
-  }
-
-  const rightX = 210 - margin;
-  doc.text(`Rechnungsnummer: ${invoiceNumber}`, rightX, 50, { align: 'right' });
-  doc.text(`Rechnungsdatum: ${fmtDatum(invoiceDate)}`, rightX, 55, { align: 'right' });
-  doc.text(`Zahlungsziel: ${fmtDatum(dueDate)}`, rightX, 60, { align: 'right' });
-  doc.text(`Baustelle: ${project.projectNumber}`, rightX, 65, { align: 'right' });
+  briefkopf(doc, company);
+  empfaenger(doc, company, {
+    name: project.customerName,
+    adresse: project.address,
+    /*
+      DIE UID DES EMPFÄNGERS gehört zum Empfängerblock, nicht in die Fusszeile.
+      Bei Reverse Charge ist sie Pflicht — ohne sie ist der Übergang der
+      Steuerschuld nicht belegt.
+    */
+    uid: opts.customerVatId,
+  });
 
   /*
-    DER LEISTUNGSZEITRAUM — Pflichtangabe nach § 11 Abs 1 Z 4 UStG.
-
-    Er fehlte auf jeder bisher geschriebenen Rechnung. Ohne ihn ist der Beleg
-    formal unvollständig, und beim Kunden wackelt der Vorsteuerabzug: er kann
-    nicht belegen, in welchen Zeitraum die Leistung fällt.
+    DER LEISTUNGSZEITRAUM — Pflichtangabe nach § 11 Abs 1 Z 4 UStG. Ohne ihn
+    wackelt beim Kunden der Vorsteuerabzug.
 
     EIN TAG HEISST „LEISTUNGSDATUM", nicht „Zeitraum vom 4. bis 4." — das ist
-    keine Kosmetik, sondern genau die Unterscheidung, die das Gesetz trifft
-    („der Tag ... oder der Zeitraum").
-
-    Die Zeile steht UNTER dem bisherigen Block und verschiebt nichts: die
-    Positionstabelle beginnt weiterhin bei y = 72, dazwischen war Platz.
+    genau die Unterscheidung, die das Gesetz trifft („der Tag ... oder der
+    Zeitraum"). Fehlt er, steht die Zeile nicht da: eine erfundene Angabe wäre
+    gegenüber dem Finanzamt falsch.
   */
+  const kopf: [string, string][] = [
+    ['Rechnungsnummer', invoiceNumber],
+    ['Rechnungsdatum', fmtDatum(invoiceDate)],
+    ['Zahlungsziel', fmtDatum(dueDate)],
+    ['Baustelle', project.projectNumber],
+  ];
   if (leistungVon && leistungBis) {
-    const text =
+    kopf.push(
       leistungVon === leistungBis
-        ? `Leistungsdatum: ${fmtDatum(leistungVon)}`
-        : `Leistungszeitraum: ${fmtDatum(leistungVon)} – ${fmtDatum(leistungBis)}`;
-    doc.text(text, rightX, 70, { align: 'right' });
-  } else if (art === 'anzahlung') {
+        ? ['Leistungsdatum', fmtDatum(leistungVon)]
+        : ['Leistungszeitraum', `${fmtDatum(leistungVon)} – ${fmtDatum(leistungBis)}`],
+    );
+  }
+  kopfdaten(doc, kopf);
+
+  titel(doc, UEBERSCHRIFT[art]);
+  if (!(leistungVon && leistungBis) && art === 'anzahlung') {
     /*
       BEI EINER ANZAHLUNG GIBT ES NOCH KEINEN ZEITRAUM — und einen zu
       erfinden wäre gegenüber dem Finanzamt falsch. Stattdessen steht da,
       worauf die Zahlung geht; sonst liest sich der Beleg wie eine Rechnung
       über eine Leistung, die niemand erbracht hat.
     */
-    doc.text('Anzahlung auf eine noch zu erbringende Leistung', rightX, 70, { align: 'right' });
+    doc.setFontSize(9).setTextColor(...GRAU);
+    doc.text('Anzahlung auf eine noch zu erbringende Leistung', RAND, 97);
+    doc.setTextColor(...TINTE);
   }
 
   // Positionstabelle
+  const fuss = summenZeilen({ assembled, vatRate, rc, abzuege, forderung });
+  /** Die Zeile, die der Kunde zahlt — sie trägt den Strich darüber und Fettschrift. */
+  const endsumme = fuss.length - 1;
   autoTable(doc, {
-    startY: 72,
-    head: [['Position', 'Menge', 'Einheit', 'EP €', 'Netto €']],
+    ...TABELLENSTIL,
+    startY: TABELLE_AB + 3,
+    head: [['Bezeichnung', 'Menge', 'Einheit', 'Einzelpreis €', 'Netto €']],
     body: assembled.positions.map((p) => [
       p.label,
-      String(p.qty),
+      fmtMenge(p.qty),
       p.unit,
       fmtEUR(p.unitPrice),
       fmtEUR(p.netto),
     ]),
-    foot: summenZeilen({ assembled, vatRate, rc, abzuege, forderung }),
-
-    headStyles: { fillColor: [0, 51, 102] },
-    footStyles: { fontStyle: 'bold' },
-    theme: 'grid',
+    foot: fuss,
+    columnStyles: {
+      1: { halign: 'right', cellWidth: 17 },
+      2: { cellWidth: 17 },
+      3: { halign: 'right', cellWidth: 27 },
+      4: { halign: 'right', cellWidth: 27 },
+    },
+    didParseCell: (d) => {
+      // Die Kopfzeile folgt der Ausrichtung ihrer Spalte, sonst stehen die
+      // Beträge rechts und ihre Überschrift links darüber.
+      if (d.section === 'head' && d.column.index !== 0 && d.column.index !== 2) {
+        d.cell.styles.halign = 'right';
+      }
+      if (d.section !== 'foot') return;
+      if (d.column.index >= 3) d.cell.styles.halign = 'right';
+      /*
+        Die Beschriftung einer Summenzeile („netto 1 000,00 + USt 200,00")
+        darf über die leeren Spalten links von ihr hinausreichen, statt in
+        ihrer schmalen Spalte umzubrechen.
+      */
+      if (d.column.index === 3) d.cell.styles.overflow = 'visible';
+      if (d.row.index === 0) d.cell.styles.lineWidth = { top: 0.35 };
+      if (d.row.index === endsumme) {
+        d.cell.styles.fontStyle = 'bold';
+        d.cell.styles.fontSize = 10;
+        if (d.column.index >= 3) d.cell.styles.lineWidth = { top: 0.35 };
+      }
+    },
   });
 
   // Zahlungshinweis + Bankdaten
   // @ts-expect-error lastAutoTable wird von autotable ergänzt
   let y = (doc.lastAutoTable?.finalY ?? 120) + 12;
-  doc.setFontSize(9);
-  // Betrag und Frist gehören in den Überweisungssatz — sonst muss der Kunde
-  // sie sich aus der Tabelle zusammensuchen.
-  doc.text(
-    // DER REST, nicht die Gesamtleistung: was schon bezahlt ist, wird nicht
-    // noch einmal eingefordert.
+  const breite = RECHTS - RAND;
+  doc.setFontSize(9.5).setFont('helvetica', 'normal').setTextColor(...TINTE);
+  const zahlung = doc.splitTextToSize(
+    // Betrag und Frist gehören in den Überweisungssatz — sonst muss der Kunde
+    // sie sich aus der Tabelle zusammensuchen. DER REST, nicht die
+    // Gesamtleistung: was schon bezahlt ist, wird nicht noch einmal gefordert.
     `Bitte überweisen Sie ${fmtEUR(forderung)} € bis ${fmtDatum(dueDate)}` +
       (company.iban ? ` auf IBAN ${company.iban}${company.bic ? ` / BIC ${company.bic}` : ''}` : '') +
       '.',
-    margin,
-    y,
-  );
-  doc.text(`Verwendungszweck: ${invoiceNumber} / ${project.projectNumber}`, margin, (y += 5));
+    breite,
+  ) as string[];
+  y = platzFuer(doc, y, zahlung.length * 5 + 5);
+  doc.text(zahlung, RAND, y);
+  y += zahlung.length * 5;
+  doc.text(`Verwendungszweck: ${invoiceNumber} / ${project.projectNumber}`, RAND, y);
 
   /*
     DER PFLICHTSATZ — § 11 Abs 1a UStG verlangt ihn im Wortlaut.
@@ -279,29 +304,34 @@ export function generateInvoicePdf(opts: {
     Kunde nach dem Betrag sucht.
   */
   if (rc) {
-    doc.setFont('helvetica', 'bold');
-    doc.text(RC_HINWEIS, margin, (y += 8), { maxWidth: 210 - 2 * margin });
+    const hinweis = doc.splitTextToSize(RC_HINWEIS, breite) as string[];
+    y = platzFuer(doc, y + 8, hinweis.length * 5);
+    doc.setFont('helvetica', 'bold').text(hinweis, RAND, y);
     doc.setFont('helvetica', 'normal');
+    y += (hinweis.length - 1) * 5;
   }
 
-  // Fußzeile mit den Pflichtangaben, unten auf der Rechnungsseite.
-  const footer = [company.vatId && `UID: ${company.vatId}`, company.companyRegister]
-    .filter(Boolean)
-    .join(' · ');
-  if (footer) {
-    doc.setFontSize(8).setTextColor(120);
-    doc.text(footer, margin, 285);
-    doc.setTextColor(0, 0, 0);
-  }
+  y = platzFuer(doc, y + 10, 5);
+  doc.text('Vielen Dank für Ihren Auftrag.', RAND, y);
 
-  // Optionaler Leistungsnachweis (Seite 2)
+  // Optionaler Leistungsnachweis (eigene Seite)
   if (opts.appendDetail && assembled.entries.length) {
     doc.addPage();
-    doc.setFontSize(12).setFont('helvetica', 'bold').text('Leistungsnachweis', margin, 22);
+    titel(doc, 'Leistungsnachweis', 25);
+    doc.setFontSize(9).setTextColor(...GRAU);
+    doc.text(
+      [`zu ${UEBERSCHRIFT[art]} ${invoiceNumber}`, `Baustelle ${project.projectNumber}`, project.customerName]
+        .filter(Boolean)
+        .join(' · '),
+      RAND,
+      31,
+    );
+    doc.setTextColor(...TINTE);
     const detail = [...assembled.entries].sort((a, b) => a.date.localeCompare(b.date));
     const totalMin = detail.reduce((s, e) => s + calcWorkMin(e), 0);
     autoTable(doc, {
-      startY: 28,
+      ...TABELLENSTIL,
+      startY: 38,
       // Ohne die Stundenspalte ist ein Leistungsnachweis als Beleg wertlos —
       // der Kunde kann die Rechnungssumme sonst nicht nachvollziehen.
       head: [['Datum', 'Mitarbeiter', 'Typ', 'Tätigkeit / Notiz', 'Std.']],
@@ -309,16 +339,31 @@ export function generateInvoicePdf(opts: {
         fmtDate(e.date),
         e.userName ?? '',
         e.isHelper ? 'Helfer' : 'Fachkraft',
-        (e.comment ?? '').slice(0, 60),
+        // Ganz, nicht auf 60 Zeichen gekappt: die Tabelle bricht jetzt um,
+        // und ein abgeschnittener Satz belegt nichts.
+        e.comment ?? '',
         fmtHours(calcWorkMin(e)),
       ]),
       foot: [['', '', '', 'Summe', fmtHours(totalMin)]],
-      headStyles: { fillColor: [0, 51, 102] },
-      footStyles: { fontStyle: 'bold' },
-      columnStyles: { 4: { halign: 'right', cellWidth: 18 } },
-      theme: 'grid',
+      columnStyles: {
+        0: { cellWidth: 22 },
+        1: { cellWidth: 38 },
+        2: { cellWidth: 19 },
+        4: { halign: 'right', cellWidth: 16 },
+      },
+      didParseCell: (d) => {
+        if (d.column.index === 4) d.cell.styles.halign = 'right';
+        if (d.section === 'foot') {
+          d.cell.styles.fontStyle = 'bold';
+          d.cell.styles.lineWidth = { top: 0.35 };
+          if (d.column.index === 3) d.cell.styles.halign = 'right';
+        }
+      },
     });
   }
+
+  // Fusszeile mit Bank und Pflichtangaben (UID, Firmenbuch) auf jeder Seite.
+  fusszeilen(doc, company);
 
   // Das Dokument wird zurückgegeben statt sofort gespeichert: nur so lässt
   // sich dieselbe Rechnung später erneut erzeugen und verschicken.
