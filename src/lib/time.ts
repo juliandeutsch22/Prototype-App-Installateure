@@ -470,6 +470,25 @@ export function fmtMin(m: number): string {
   return `${sign}${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
+/**
+ * Wie viele Minuten ein Zeitausgleich-Eintrag frei gibt.
+ *
+ * Mit Von/Bis genau diese Spanne; ohne den ganzen Tag, also das Tagessoll.
+ * Alles andere als Zeitausgleich: null.
+ */
+export function zeitausgleichMin(
+  e: Pick<TimeEntry, 'status' | 'startTime' | 'endTime'>,
+  tagessollH: number,
+): number {
+  if (e.status !== 'Zeitausgleich') return 0;
+  if (e.startTime && e.endTime) {
+    const [h1, m1] = e.startTime.split(':').map(Number);
+    const [h2, m2] = e.endTime.split(':').map(Number);
+    return Math.max(0, h2 * 60 + m2 - (h1 * 60 + m1));
+  }
+  return Math.round(tagessollH * 60);
+}
+
 export interface SaldoResult {
   saldoH: number;
   hasConfig: boolean;
@@ -630,6 +649,12 @@ export interface MonthStats {
   saldoMin: number;
   krankDays: number;
   urlaubDays: number;
+  /**
+   * Stunden Zeitausgleich im Monat, in Minuten — ganztags zum Tagessoll,
+   * stundenweise wie eingetragen. Nur eine AUSKUNFT: im Saldo stecken sie
+   * schon, weil ein ZA-Tag Soll ohne Ist ist.
+   */
+  zaMin: number;
   yearlyUrlaubDays: number;
   /** Tage, die in diesem Jahr zur Verfügung stehen — siehe `urlaubsStand`. */
   urlaubsAnspruch: number;
@@ -696,6 +721,7 @@ export function calcMonthStats(
   const krankDays = monthEntries.filter((e) => e.status === 'Krank').length;
   const urlaubDays = monthEntries.filter((e) => e.status === 'Urlaub').length;
   const istMin = monthEntries.reduce((s, e) => s + calcWorkMin(e), 0);
+  const zaMin = monthEntries.reduce((s, e) => s + zeitausgleichMin(e, dailyTargetH), 0);
 
   const requiredDays = Math.max(0, workdaysInMonth - krankDays - urlaubDays);
   const sollMin = Math.round(requiredDays * dailyTargetH * 60);
@@ -758,6 +784,7 @@ export function calcMonthStats(
     saldoMin: istMin - sollMin,
     krankDays,
     urlaubDays,
+    zaMin,
     yearlyUrlaubDays,
     urlaubRest: stand.rest,
     urlaubsAnspruch: stand.anspruch,

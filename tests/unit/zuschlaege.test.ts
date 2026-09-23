@@ -105,7 +105,7 @@ describe('Zuschläge in den Ausleitungen', () => {
 
   it('summiert sie je Mitarbeiter, samt Überschneidung', () => {
     const csv = buildMonthCsv([zeile()], 2025, 5);
-    expect(csv).toContain('Nacht(Std);Notdienst(Std);davon beides(Std)');
+    expect(csv).toContain('Nacht(Std);Notdienst(Std);davon beides(Std);Zeitausgleich(Std)');
     // 8 h Nacht (beide Einträge), 4 h Notdienst, davon 4 h beides.
     expect(csv).toContain('8,00;4,00;4,00');
   });

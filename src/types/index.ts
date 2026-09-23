@@ -794,7 +794,12 @@ export interface TimeEntry {
   id: string;
   companyId: string;
   date: string; // 'YYYY-MM-DD'
-  status: 'Anwesend' | 'Krank' | 'Urlaub';
+  /**
+   * `Zeitausgleich`: zählt null Stunden Ist; das Soll bleibt. Damit sinkt
+   * das Zeitguthaben um genau die Zeit, die jemand frei nimmt. Ohne Von/Bis
+   * gilt er für den ganzen Tag, mit Von/Bis für diese Stunden.
+   */
+  status: TagesStatus;
   startTime?: string; // 'HH:MM'
   endTime?: string; // 'HH:MM'
   breakDuration?: number; // Minuten
@@ -829,7 +834,11 @@ export interface TimeEntry {
    * müssen — ohne dass ein von Hand gebuchter Urlaubstag mit gelöscht wird.
    */
   vacationId?: string;
+  /** Aus welcher Krankmeldung dieser Eintrag entstanden ist — wie `vacationId`. */
+  krankmeldungId?: string;
 }
+
+export type TagesStatus = 'Anwesend' | 'Krank' | 'Urlaub' | 'Zeitausgleich';
 
 /**
  * vacations/{id} — ein Urlaubsantrag.
@@ -874,6 +883,54 @@ export interface Vacation {
    * bekommt, nicht von Willkür zu unterscheiden.
    */
   grund?: string;
+  createdAt?: number;
+  /**
+   * Urlaub oder Zeitausgleich. Fehlt das Feld (ältere Anträge), ist es Urlaub.
+   *
+   * Nur Urlaub zählt gegen den Urlaubsanspruch; Zeitausgleich geht vom
+   * Zeitguthaben ab.
+   */
+  art?: 'Urlaub' | 'Zeitausgleich';
+  /** Stundenweiser Zeitausgleich an einem Tag: 'HH:MM'. */
+  zaVon?: string | null;
+  zaBis?: string | null;
+  /** Wie viele Stunden der Zeitausgleich kostet. */
+  zaStunden?: number | null;
+  /** Das Zeitguthaben in Stunden, wie es der Antragsteller beim Antrag sah. */
+  saldoBeiAntrag?: number | null;
+  /** Gesetzt, wenn der Urlaub aus einem Betriebsurlaub stammt. */
+  betriebsurlaubId?: string | null;
+}
+
+/**
+ * krankmeldungen/{id} — ohne Genehmigung, mit den Krank-Tagen im Zeitkonto.
+ *
+ * Lesen dürfen nur die Person selbst und das Büro (Art. 9 DSGVO). Eine
+ * Diagnose gehört nicht hinein.
+ */
+export interface Krankmeldung {
+  id: string;
+  companyId: string;
+  userId: string;
+  userName: string;
+  von: string;
+  bis: string;
+  notiz?: string | null;
+  gemeldetVonUid?: string | null;
+  gemeldetVonName?: string | null;
+  createdAt?: number;
+}
+
+/** betriebsurlaube/{id} — der Betrieb hat zu. */
+export interface Betriebsurlaub {
+  id: string;
+  companyId: string;
+  von: string;
+  bis: string;
+  bezeichnung: string;
+  /** Wurde der Zeitraum allen aktiven Mitarbeitern als Urlaub gebucht? */
+  urlaubAbbuchen: boolean;
+  angelegtVonName?: string | null;
   createdAt?: number;
 }
 

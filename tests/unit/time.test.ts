@@ -231,6 +231,24 @@ describe('calcMonthStats', () => {
     expect(s.saldoMin).toBe(-17 * 8 * 60);
   });
 
+  it('Zeitausgleich: null Ist, volles Soll — und die freien Stunden stehen daneben', () => {
+    /*
+      Ein ganzer ZA-Tag kostet das Tagessoll, vier Stunden ZA am Nachmittag
+      kosten vier. Der Saldo sinkt um genau diese Zeit, weil ZA das Soll
+      NICHT reduziert (anders als Krank und Urlaub).
+    */
+    const month = [
+      entry({ date: '2025-06-02', status: 'Zeitausgleich' }),
+      entry({ date: '2025-06-03', status: 'Anwesend', startTime: '07:00', endTime: '11:00', breakDuration: 0 }),
+      entry({ date: '2025-06-03', status: 'Zeitausgleich', startTime: '13:00', endTime: '17:00' }),
+    ];
+    const s = calcMonthStats(staff(), month, month, JUNE.year, JUNE.month);
+    expect(s.requiredDays).toBe(19);
+    expect(s.istMin).toBe(4 * 60);
+    expect(s.zaMin).toBe(8 * 60 + 4 * 60);
+    expect(s.urlaubDays).toBe(0);
+  });
+
   it('rechnet den Resturlaub über das ganze Jahr', () => {
     const year = [
       entry({ date: '2025-03-10', status: 'Urlaub' }),

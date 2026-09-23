@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import autoTable from 'jspdf-autotable';
 import type { AppUser, Company, TimeEntry } from '@/types';
-import { calcWorkMin } from '@/lib/time';
+import { calcWorkMin, zeitausgleichMin } from '@/lib/time';
 import { BRAND_RGB, fmtDate, hours } from './export';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
 
@@ -86,7 +86,8 @@ export function generateHoursPdf(opts: {
     totalMin += wm;
     return [
       fmtDate(e.date),
-      e.status,
+      // Die Spalte ist schmal; „ZA" erklärt die Summenzeile darunter.
+      e.status === 'Zeitausgleich' ? 'ZA' : e.status,
       e.projectNumber || '–',
       e.customerName || '–',
       e.startTime && e.endTime ? `${e.startTime}–${e.endTime}` : '–',
@@ -135,9 +136,16 @@ export function generateHoursPdf(opts: {
 
   const krank = sorted.filter((e) => e.status === 'Krank').length;
   const urlaub = sorted.filter((e) => e.status === 'Urlaub').length;
+  const tagessoll =
+    (Number(user.weeklyTargetHours ?? 40) || 40) / (user.workDays?.length ? user.workDays.length : 5);
+  const zaMin = sorted.reduce((s, e) => s + zeitausgleichMin(e, tagessoll), 0);
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(100);
-  if (krank) doc.text(`Krankenstandstage: ${krank}`, margin, y + 12);
-  if (urlaub) doc.text(`Urlaubstage: ${urlaub}`, krank ? 60 : margin, y + 12);
+  const abwesend = [
+    krank ? `Krankenstandstage: ${krank}` : '',
+    urlaub ? `Urlaubstage: ${urlaub}` : '',
+    zaMin ? `Zeitausgleich (ZA): ${hours(zaMin)} h` : '',
+  ].filter(Boolean);
+  if (abwesend.length) doc.text(abwesend.join('    '), margin, y + 12);
 
   /*
     ZUSCHLAGSSTUNDEN, und nur wenn es welche gibt.
@@ -160,7 +168,7 @@ export function generateHoursPdf(opts: {
     doc.text(
       `Zuschlagsstunden (N = Nacht, ND = Notdienst) — ${teile.join(' · ')}`,
       margin,
-      y + (krank || urlaub ? 18 : 12),
+      y + (abwesend.length ? 18 : 12),
     );
   }
 

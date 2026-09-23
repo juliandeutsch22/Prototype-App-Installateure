@@ -611,7 +611,9 @@ export default function TimeView() {
                           ? e.startTime && e.endTime
                             ? `${e.startTime}–${e.endTime}`
                             : null
-                          : e.status;
+                          : e.status === 'Zeitausgleich' && e.startTime && e.endTime
+                            ? `Zeitausgleich ${e.startTime}–${e.endTime}`
+                            : e.status;
                       const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
                       return (
                         <ListRow

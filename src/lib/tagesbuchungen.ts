@@ -43,17 +43,45 @@ import { normProjectNumber } from './time';
 export interface Tagesbuchung {
   status: TimeEntry['status'];
   projectNumber?: string;
+  /** Nur für Zeitausgleich und Anwesenheit von Belang: stundenweise oder ganztags. */
+  startTime?: string;
+  endTime?: string;
 }
 
-/** Ganztägige Status: davon gibt es je Tag genau einen oder keinen. */
-function istGanztags(status: TimeEntry['status']): boolean {
-  return status === 'Krank' || status === 'Urlaub';
+/**
+ * Ganztägige Einträge: davon gibt es je Tag genau einen oder keinen.
+ *
+ * Zeitausgleich OHNE Uhrzeit ist ganztägig wie Urlaub. MIT Uhrzeit ist er
+ * ein Teil des Tages — vormittags gearbeitet, nachmittags frei — und darf
+ * neben gearbeiteter Zeit stehen. Er zählt null Stunden Ist; doppelt zählen
+ * kann er also nicht, und das ist der Grund, warum er hier anders behandelt
+ * wird als Urlaub.
+ */
+function istGanztags(e: Tagesbuchung): boolean {
+  return (
+    e.status === 'Krank' ||
+    e.status === 'Urlaub' ||
+    (e.status === 'Zeitausgleich' && !(e.startTime && e.endTime))
+  );
+}
+
+function minuten(hhmm?: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})/.exec(hhmm ?? '');
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/** Überschneiden sich zwei Zeitspannen am selben Tag? Über Mitternacht zählt nicht. */
+function ueberschneiden(a: Tagesbuchung, b: Tagesbuchung): boolean {
+  const [a1, a2, b1, b2] = [minuten(a.startTime), minuten(a.endTime), minuten(b.startTime), minuten(b.endTime)];
+  if (a1 === null || a2 === null || b1 === null || b2 === null) return false;
+  if (a2 <= a1 || b2 <= b1) return false;
+  return a1 < b2 && b1 < a2;
 }
 
 /**
  * Der Grund, warum diese Buchung nicht dazu darf — oder `null`, wenn sie darf.
  *
- * Ein TEXT statt eines Wahrheitswerts, weil die vier Fälle verschiedene
+ * Ein TEXT statt eines Wahrheitswerts, weil die Fälle verschiedene
  * Handlungen verlangen: einmal den bestehenden Eintrag bearbeiten, einmal
  * eine Baustelle wählen, einmal den ganzen Tag anders erfassen. Ein
  * gemeinsames „geht nicht" ließe den Monteur raten.
@@ -64,14 +92,36 @@ export function buchungKonflikt(
 ): string | null {
   if (vorhandene.length === 0) return null;
 
-  const ganztags = vorhandene.find((v) => istGanztags(v.status));
+  const ganztags = vorhandene.find(istGanztags);
   if (ganztags) {
     return `Für diesen Tag ist bereits „${ganztags.status}" eingetragen. ${ganztags.status} gilt für den ganzen Tag — zum Ändern bitte den bestehenden Eintrag bearbeiten.`;
   }
 
-  if (istGanztags(neu.status)) {
-    return `Für diesen Tag sind bereits Arbeitszeiten gebucht. „${neu.status}" gilt für den ganzen Tag — dafür müssen die gebuchten Zeiten zuerst gelöscht werden.`;
+  if (istGanztags(neu)) {
+    return `Für diesen Tag sind bereits Zeiten gebucht. „${neu.status}" gilt für den ganzen Tag — dafür müssen die gebuchten Zeiten zuerst gelöscht werden.`;
   }
+
+  /*
+    STUNDENWEISER ZEITAUSGLEICH: einer je Tag, und nicht über gearbeiteter
+    Zeit. „07:00–16:00 gearbeitet, 13:00–17:00 Zeitausgleich" ist ein
+    Widerspruch, den später niemand mehr auflöst.
+  */
+  const za = vorhandene.find((v) => v.status === 'Zeitausgleich');
+  if (neu.status === 'Zeitausgleich' && za) {
+    return 'Für diesen Tag ist bereits Zeitausgleich eingetragen — bitte den bestehenden Eintrag bearbeiten.';
+  }
+  // Alles, was hier noch übrig ist und kein Zeitausgleich ist, ist Arbeit —
+  // auch ein Eintrag ohne erkennbaren Status. Im Zweifel wie bisher prüfen.
+  const arbeit = vorhandene.filter((v) => v.status !== 'Zeitausgleich');
+  const gegen = neu.status === 'Zeitausgleich' ? arbeit : za ? [za] : [];
+  if (gegen.some((v) => ueberschneiden(neu, v))) {
+    return 'Die Zeiten überschneiden sich mit dem Zeitausgleich an diesem Tag.';
+  }
+  if (neu.status === 'Zeitausgleich') return null;
+
+  // Ab hier zählt nur gearbeitete Zeit: ein Zeitausgleich daneben ist keine
+  // zweite Buchung, die man mit dieser verwechseln könnte.
+  if (arbeit.length === 0) return null;
 
   /*
     OHNE BAUSTELLE KEINE ZWEITE BUCHUNG. Zwei Einträge ohne Baustelle sind
@@ -84,7 +134,7 @@ export function buchungKonflikt(
     return 'Für diesen Tag ist bereits gebucht. Eine weitere Buchung braucht eine Baustelle — sonst lassen sich die beiden Einträge nicht auseinanderhalten.';
   }
 
-  const gleiche = vorhandene.some((v) => normProjectNumber(v.projectNumber) === nummer);
+  const gleiche = arbeit.some((v) => normProjectNumber(v.projectNumber) === nummer);
   if (gleiche) {
     return 'Für diese Baustelle ist an diesem Tag bereits gebucht. Bitte den bestehenden Eintrag bearbeiten, statt ihn ein zweites Mal anzulegen.';
   }
@@ -103,14 +153,19 @@ export function buchungKonflikt(
  * wenn sie einmal recht hat.
  */
 export function tageMitEchterDoppelung(
-  entries: Array<{ date: string; status: TimeEntry['status']; projectNumber?: string }>,
+  entries: Array<{ date: string } & Tagesbuchung>,
 ): Set<string> {
   const gesehen = new Map<string, Set<string>>();
   const doppelt = new Set<string>();
   for (const e of entries) {
     // Ganztägige Status haben keine Baustelle; für sie ist jeder zweite
-    // Eintrag am selben Tag eine Doppelung, egal was daneben steht.
-    const schluessel = istGanztags(e.status) ? ' ganztags' : normProjectNumber(e.projectNumber);
+    // Eintrag am selben Tag eine Doppelung, egal was daneben steht. Ein
+    // stundenweiser Zeitausgleich hat seine eigene Stelle: einer je Tag.
+    const schluessel = istGanztags(e)
+      ? ' ganztags'
+      : e.status === 'Zeitausgleich'
+        ? ' zeitausgleich'
+        : normProjectNumber(e.projectNumber);
     const proTag = gesehen.get(e.date) ?? new Set<string>();
     if (proTag.has(schluessel)) doppelt.add(e.date);
     proTag.add(schluessel);
