@@ -75,6 +75,8 @@ export default function LeistungszeitErfassen({
   useEffect(() => {
     onOffen?.(offen);
   }, [offen, onOffen]);
+  // Verschwindet das Feld (andere Baustelle, Modul aus), ist auch nichts offen.
+  useEffect(() => () => onOffen?.(null), [onOffen]);
 
   const minuten = calcWorkMin({
     status: 'Anwesend',

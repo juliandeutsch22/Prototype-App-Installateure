@@ -58,6 +58,8 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
   useEffect(() => {
     onOffen?.(offen);
   }, [offen, onOffen]);
+  // Verschwindet das Feld (andere Baustelle, Modul aus), ist auch nichts offen.
+  useEffect(() => () => onOffen?.(null), [onOffen]);
 
   /**
    * Dieselbe Suche wie bei der Retoure und der Rüstliste — Bezeichnung,
