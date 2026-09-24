@@ -13,6 +13,7 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 const fmtEUR = (n: number) =>
   new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -173,8 +174,8 @@ export default function SettingsView() {
       await updateCompany(user.companyId, { vacationApprovers: genehmiger });
       await reloadCompany();
       toast.success('Genehmigende gespeichert');
-    } catch {
-      setError('Die Genehmigenden konnten nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Genehmigenden konnten nicht gespeichert werden.'));
     } finally {
       setGenehmigerSpeichert(false);
     }
@@ -223,9 +224,7 @@ export default function SettingsView() {
       toast.success('Nummernkreise gespeichert');
     } catch (e) {
       setError(
-        e instanceof Error && e.message
-          ? `Die Nummernkreise konnten nicht gespeichert werden: ${e.message}`
-          : 'Die Nummernkreise konnten nicht gespeichert werden.',
+        grundAus(e, 'Die Nummernkreise konnten nicht gespeichert werden.'),
       );
     } finally {
       setVorsaetzeSpeichert(false);
@@ -240,8 +239,8 @@ export default function SettingsView() {
       await updateCompany(user.companyId, { wochenplanFuerAlle });
       await reloadCompany();
       toast.success(wochenplanFuerAlle ? 'Wochenplan für alle sichtbar' : 'Wochenplan nur fürs Büro');
-    } catch {
-      setError('Die Einstellung zum Wochenplan konnte nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Einstellung zum Wochenplan konnte nicht gespeichert werden.'));
     } finally {
       setWochenplanSpeichert(false);
     }
@@ -264,9 +263,7 @@ export default function SettingsView() {
       toast.success('Urlaubsübertrag gespeichert');
     } catch (e) {
       setError(
-        e instanceof Error && e.message
-          ? `Der Urlaubsübertrag konnte nicht gespeichert werden: ${e.message}`
-          : 'Der Urlaubsübertrag konnte nicht gespeichert werden.',
+        grundAus(e, 'Der Urlaubsübertrag konnte nicht gespeichert werden.'),
       );
     } finally {
       setUebertragSpeichert(false);
@@ -297,8 +294,8 @@ export default function SettingsView() {
       });
       await reloadCompany();
       toast.success('Sätze gespeichert');
-    } catch {
-      setError('Die Einstellungen konnten nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Einstellungen konnten nicht gespeichert werden.'));
     } finally {
       setSaving(false);
     }

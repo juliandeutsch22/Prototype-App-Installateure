@@ -26,6 +26,7 @@ import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
 
@@ -313,8 +314,8 @@ export default function OrderView() {
           ? 'Retoure erfasst — Material wurde dem Lager gutgeschrieben'
           : 'Retoure erfasst',
       );
-    } catch {
-      setError('Die Retoure konnte nicht erfasst werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Retoure konnte nicht erfasst werden.'));
     } finally {
       setSaving(false);
     }
@@ -727,8 +728,8 @@ export default function OrderView() {
             try {
               await updateOrderStatus(toPickUp.id, 'Erledigt');
               toast.success('Abholung bestätigt');
-            } catch {
-              toast.error('Die Abholung konnte nicht gebucht werden.');
+            } catch (err) {
+              toast.error(grundAus(err, 'Die Abholung konnte nicht gebucht werden.'));
             }
           }
           setToPickUp(null);

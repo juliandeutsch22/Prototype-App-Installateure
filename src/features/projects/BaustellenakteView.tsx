@@ -25,6 +25,7 @@ import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Die Akte einer Baustelle — und die Stelle, an der sie bearbeitet wird.
@@ -229,7 +230,7 @@ export default function BaustellenakteView() {
       try {
         await baustelleUmnummern(id, neueNummer);
       } catch (e) {
-        setSpeicherFehler(e instanceof Error ? e.message : 'Die Nummer konnte nicht geändert werden.');
+        setSpeicherFehler(grundAus(e, 'Die Nummer konnte nicht geändert werden.'));
         setSpeichert(false);
         return;
       }

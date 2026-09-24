@@ -1,5 +1,5 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import {
@@ -31,6 +31,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, FormGrid, Pflichthinweis } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
+import { grundAus } from '@/lib/fehlerGrund';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 
 const empty = {
@@ -199,8 +200,10 @@ export default function AdminProjectsView() {
     if (!user) return;
     setSaving(true);
     setError(null);
+    const nummer = form.projectNumber.trim();
+    // Die Nummer, an der es scheitern kann — nach dem Zähler dessen Nummer.
+    let versucht = nummer;
     try {
-      const nummer = form.projectNumber.trim();
       const data = {
         ...form,
         projectNumber: nummer,
@@ -222,14 +225,18 @@ export default function AdminProjectsView() {
           praefix: vorsaetze.baustelle,
         });
         // `null` heisst „kein Zähler verfügbar" — dann gilt der Vorschlag.
-        if (vergeben) data.projectNumber = vergeben;
+        if (vergeben) data.projectNumber = versucht = vergeben;
       }
       await createProject(user.companyId, data);
       reset();
       setFormOffen(false);
       toast.success('Baustelle angelegt');
-    } catch {
-      setError('Die Baustelle konnte nicht gespeichert werden.');
+    } catch (err) {
+      setError(
+        grundAus(err, 'Die Baustelle konnte nicht gespeichert werden.', {
+          doppelt: `Die Nummer ${versucht} ist schon vergeben — bitte eine andere eintragen.`,
+        }),
+      );
     } finally {
       setSaving(false);
     }
@@ -270,9 +277,24 @@ export default function AdminProjectsView() {
     Liste und nach jedem Speichern. Wer den Vorschlag löscht, um seine eigene
     Nummer zu tippen, bekommt ihn nicht sofort zurück — die Wirkung hängt am
     Vorschlag selbst, und der ändert sich erst mit der Liste.
+
+    EIN STEHENGELASSENER VORSCHLAG ZIEHT MIT. Der erste Vorschlag entsteht,
+    bevor die Liste da ist, also aus nichts: „…-0001". Blieb er stehen, als
+    die Liste kam, galt er beim Speichern als eigene Nummer — der Zähler wurde
+    übergangen, und die Baustelle scheiterte an der schon vergebenen 0001
+    (Prüflauf 24.09.2026, F4). Deshalb merkt sich `letzterVorschlag`, was hier
+    eingesetzt wurde; steht genau das noch im Feld, gehört es nicht dem
+    Benutzer und wird ersetzt.
   */
+  const letzterVorschlag = useRef('');
   useEffect(() => {
-    setForm((f) => (f.projectNumber === '' ? { ...f, projectNumber: nummernVorschlag } : f));
+    // Vorher festhalten: die Funktion in `setForm` läuft erst beim nächsten
+    // Zeichnen, und dann stünde in der Ref schon der neue Vorschlag.
+    const alt = letzterVorschlag.current;
+    letzterVorschlag.current = nummernVorschlag;
+    setForm((f) =>
+      f.projectNumber === '' || f.projectNumber === alt ? { ...f, projectNumber: nummernVorschlag } : f,
+    );
   }, [nummernVorschlag]);
 
   // Neueste zuerst; ohne Sortierung ist die Reihenfolge der Datenbank beliebig.

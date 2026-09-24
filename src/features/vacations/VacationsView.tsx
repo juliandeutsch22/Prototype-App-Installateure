@@ -42,6 +42,7 @@ import { zeitguthabenLaden } from './zeitguthaben';
 import { KrankmeldungListe, KrankenstaendeReiter } from './Krankmeldungen';
 import { ergebnisText, tageText } from './abwesenheitText';
 import BetriebsurlaubReiter from './BetriebsurlaubReiter';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /** 'YYYY-MM-DD' -> '15.06.2026'. */
 function fmt(iso: string): string {
@@ -450,8 +451,8 @@ export default function VacationsView() {
       toast.success('Antrag eingereicht');
       setNotiz('');
       await laden_();
-    } catch {
-      setError('Der Antrag konnte nicht eingereicht werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Der Antrag konnte nicht eingereicht werden.'));
     } finally {
       setSendet(false);
     }
@@ -507,8 +508,8 @@ export default function VacationsView() {
       toast.success('Antrag auf Zeitausgleich eingereicht');
       setNotiz('');
       await laden_();
-    } catch {
-      setError('Der Antrag konnte nicht eingereicht werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Der Antrag konnte nicht eingereicht werden.'));
     } finally {
       setSendet(false);
     }
@@ -534,7 +535,7 @@ export default function VacationsView() {
       setNotiz('');
       setEigeneKrank(await listEigeneKrankmeldungen(user.companyId, user.uid).catch(() => eigeneKrank));
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : 'Die Krankmeldung konnte nicht eingetragen werden.');
+      setError(grundAus(err, 'Die Krankmeldung konnte nicht eingetragen werden.'));
     } finally {
       setSendet(false);
     }
@@ -641,8 +642,8 @@ export default function VacationsView() {
       await deleteVacation(antrag.id);
       toast.success('Antrag zurückgezogen');
       await laden_();
-    } catch {
-      setError('Der Antrag konnte nicht zurückgezogen werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Der Antrag konnte nicht zurückgezogen werden.'));
     } finally {
       setArbeitet(null);
       setZurueckzuziehen(null);

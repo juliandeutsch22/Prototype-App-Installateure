@@ -25,6 +25,7 @@ import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, Role } from '@/types';
 import { praefixeVon, ohneKennzeichenVorsatz, mitKennzeichenVorsatz } from '@/lib/praefixe';
+import { grundAus } from '@/lib/fehlerGrund';
 
 
 interface Props {
@@ -388,9 +389,7 @@ export default function TimeForm({
         onSaved();
       } catch (err) {
         setError(
-          err instanceof Error && err.message
-            ? err.message
-            : 'Der Urlaub konnte nicht eingetragen werden.',
+          grundAus(err, 'Der Urlaub konnte nicht eingetragen werden.'),
         );
       } finally {
         setSaving(false);
@@ -422,9 +421,7 @@ export default function TimeForm({
         // geht eine Krankmeldung nicht — sie legt Tage im Zeitkonto an, und
         // das tut nur der Server.
         setError(
-          err instanceof Error && err.message
-            ? err.message
-            : 'Die Krankmeldung konnte nicht erfasst werden. Bitte erneut versuchen.',
+          grundAus(err, 'Die Krankmeldung konnte nicht erfasst werden.'),
         );
       } finally {
         setSaving(false);
@@ -490,7 +487,7 @@ export default function TimeForm({
         // die Sperre kennt vier Faelle mit vier verschiedenen Handlungen.
         setError(err.grund);
       } else {
-        setError('Die Zeit konnte nicht gebucht werden. Bitte erneut versuchen.');
+        setError(grundAus(err, 'Die Zeit konnte nicht gebucht werden.'));
       }
     } finally {
       setSaving(false);

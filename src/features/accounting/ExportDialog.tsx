@@ -3,6 +3,7 @@ import type { AppUser } from '@/types';
 import Button from '@/components/Button';
 import { InputField, FormGrid } from '@/components/Field';
 import { localDateStr } from '@/lib/time';
+import { grundAus } from '@/lib/fehlerGrund';
 
 interface Props {
   user: AppUser;
@@ -54,7 +55,7 @@ export default function ExportDialog({
       else await onExportProjectCsv(from, to);
       onClose();
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'Der Export ist fehlgeschlagen.');
+      setMessage(grundAus(e, 'Der Export ist fehlgeschlagen.'));
     } finally {
       setBusy(null);
     }

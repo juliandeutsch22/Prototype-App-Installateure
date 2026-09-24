@@ -30,6 +30,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 const STAND: Record<WorkSheet['status'], Stand> = {
   Unterschrieben: 'gut',
@@ -806,8 +807,8 @@ export default function WorkSheetsListView() {
                           await restoreWorkSheetDraft(s.id);
                           toast.success('Entwurf wieder aufgenommen');
                           await laden();
-                        } catch {
-                          setError('Der Entwurf ließ sich nicht zurückholen.');
+                        } catch (err) {
+                          setError(grundAus(err, 'Der Entwurf ließ sich nicht zurückholen.'));
                         } finally {
                           setBusy(false);
                         }
@@ -904,8 +905,8 @@ export default function WorkSheetsListView() {
                   setStornoFuer(null);
                   setStornoGrund('');
                   await laden();
-                } catch {
-                  setError('Der Storno ist fehlgeschlagen.');
+                } catch (err) {
+                  setError(grundAus(err, 'Der Storno ist fehlgeschlagen.'));
                 } finally {
                   setBusy(false);
                 }

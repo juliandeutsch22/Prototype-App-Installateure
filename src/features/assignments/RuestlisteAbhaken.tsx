@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { ladenUmschalten } from '@/lib/db/einsatzMaterial';
 import type { EinsatzMaterial, RuestPosition } from '@/types';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Die Rüstliste aus der Sicht des Monteurs: was mitkommt, und was schon im
@@ -57,9 +58,9 @@ export default function RuestlisteAbhaken({
     setFehler(null);
     try {
       await ladenUmschalten(user.companyId, date, projectNumber, p.id, an, user.name);
-    } catch {
+    } catch (err) {
       setOertlich(vorher);
-      setFehler('Das konnte nicht gespeichert werden. Bitte noch einmal antippen.');
+      setFehler(grundAus(err, 'Das konnte nicht gespeichert werden. Bitte noch einmal antippen.'));
     }
   }
 

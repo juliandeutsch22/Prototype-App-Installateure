@@ -40,6 +40,7 @@ import {
   MAX_KANTE,
   type FotoEntwurf,
 } from './fotos';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Handwerksschein erstellen, unterschreiben lassen, einfrieren.
@@ -695,8 +696,8 @@ export default function WorkSheetView() {
 
       toast.success('Handwerksschein unterschrieben und eingefroren');
       navigate(`/worksheets?markiert=${id}`);
-    } catch {
-      setError('Der Schein konnte nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Der Schein konnte nicht gespeichert werden.'));
     } finally {
       setSpeichert(false);
     }
@@ -772,8 +773,8 @@ export default function WorkSheetView() {
       */
       toast.success(scheinId ? 'Entwurf aktualisiert' : 'Als Entwurf gespeichert');
       navigate('/worksheets');
-    } catch {
-      setError('Der Entwurf konnte nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Der Entwurf konnte nicht gespeichert werden.'));
     } finally {
       setSpeichert(false);
     }

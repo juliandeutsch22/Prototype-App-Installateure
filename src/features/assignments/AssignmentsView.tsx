@@ -37,6 +37,7 @@ import RuestlistePlanen from './RuestlistePlanen';
 import { useModul } from '@/lib/useModule';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /** 'YYYY-MM-DD' -> 'Fr., 28.08.2026'. */
 function fmtDay(iso: string): string {
@@ -429,8 +430,8 @@ export default function AssignmentsView() {
       }
 
       toast.success('Einsatz gespeichert');
-    } catch {
-      setError('Der Einsatz konnte nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Der Einsatz konnte nicht gespeichert werden.'));
     } finally {
       setSaving(false);
     }

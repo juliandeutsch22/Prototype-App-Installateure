@@ -131,6 +131,15 @@ export default function BaustellenSelect({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projekte, value]);
 
+  /*
+    Der eigene Satz macht das Feld ungültig, bis er wieder gelöscht wird —
+    auch wenn der Aufrufer die Baustelle danach selbst setzt (aus einem
+    Einsatz, per Link). Deshalb hängt das Löschen am Wert, nicht am Wählen.
+  */
+  useEffect(() => {
+    (document.getElementById(id) as HTMLSelectElement | null)?.setCustomValidity?.('');
+  }, [value, id]);
+
   if (zustand === 'fehler') {
     return (
       <div className="rounded-sm border border-line bg-surface-2 px-3 py-2">
@@ -161,6 +170,15 @@ export default function BaustellenSelect({
           onChange(nr, projekte.find((p) => p.projectNumber === nr));
         }}
         required={required}
+        /*
+          PFLICHT HEISST AUCH HIER: STERN UND EIN EIGENER SATZ. Vorher ging
+          `required` an den Browser, der Stern nicht mit — die Zeitmaske liess
+          sich nicht speichern, und niemand sah vorher, warum. Die Blase des
+          Browsers spricht seine Sprache und sagt „ein Element auswählen";
+          dieser Satz sagt, welches (Prüflauf 24.09.2026, F6).
+        */
+        pflicht={required}
+        onInvalid={(e) => e.currentTarget.setCustomValidity('Bitte eine Baustelle wählen.')}
         disabled={zustand === 'laedt'}
       >
         <option value="">{zustand === 'laedt' ? 'lädt …' : '— wählen —'}</option>

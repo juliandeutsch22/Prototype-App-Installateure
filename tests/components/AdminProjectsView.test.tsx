@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -39,6 +39,17 @@ const loesche = vi.fn();
 /** Womit die Datenbank das Löschen abweist — `null` heisst: sie nimmt es an. */
 let loeschFehler: string | null = null;
 
+/*
+  DIE LISTE KOMMT DRAUSSEN SPÄTER ALS DAS FORMULAR. Der Ersatz lieferte sie
+  bisher im selben Zug — deshalb sah keine Prüfung, dass der erste Vorschlag
+  aus der leeren Liste stehen blieb (Prüflauf 24.09.2026, F4). Mit `spaet`
+  hält er sie zurück, bis `liefern()` sie schickt.
+*/
+let spaet = false;
+let liefern: () => void = () => undefined;
+let anlegeFehler: string | null = null;
+const reserviere = vi.fn<[string, unknown], Promise<string | null>>(async () => null);
+
 /* Mit welcher Grenze zuletzt abonniert wurde — der Nachladeknopf hebt sie an. */
 let letzteGrenze = 0;
 
@@ -49,13 +60,15 @@ vi.mock('@/lib/db/projects', () => ({
     cb: (rows: (Project & { id: string })[]) => void,
   ) => {
     letzteGrenze = g;
-    cb(baustellen);
+    if (spaet) liefern = () => cb(baustellen);
+    else cb(baustellen);
     return () => undefined;
   },
   createProject: (c: string, data: unknown) => {
     lege(c, data);
-    return Promise.resolve('neu');
+    return anlegeFehler ? Promise.reject(new Error(anlegeFehler)) : Promise.resolve('neu');
   },
+  reserveProjectNumber: (c: string, opts: unknown) => reserviere(c, opts),
   updateProject: (id: string, data: unknown) => {
     aendere(id, data);
     return Promise.resolve();
@@ -132,6 +145,10 @@ async function formOeffnen() {
 
 beforeEach(() => {
   loeschFehler = null;
+  spaet = false;
+  anlegeFehler = null;
+  reserviere.mockReset();
+  reserviere.mockResolvedValue(null);
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   baustellen = [];
@@ -214,6 +231,65 @@ describe('Baustellen — anlegen', () => {
     await formOeffnen();
     const feld = await screen.findByLabelText('Projektnummer');
     expect((feld as HTMLInputElement).value).toMatch(/^B-\d{4}-\d{4}$/);
+  });
+
+  it('zieht den Vorschlag nach, wenn die Liste erst nach dem Formular kommt', async () => {
+    spaet = true;
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0001', customerName: 'Familie Huber',
+        customerId: 'k1', status: 'Aktiv' } as Project & { id: string },
+    ];
+    reserviere.mockResolvedValue('B-2026-0002');
+    zeige();
+    await formOeffnen();
+    const feld = (await screen.findByLabelText('Projektnummer')) as HTMLInputElement;
+    expect(feld.value).toBe('B-2026-0001');
+
+    act(() => liefern());
+    await waitFor(() => expect(feld.value).toBe('B-2026-0002'));
+
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+    // Stehengelassen heisst: der Zähler vergibt, nicht der Vorschlag.
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(reserviere).toHaveBeenCalledTimes(1);
+    expect(lege.mock.calls[0][1]).toMatchObject({ projectNumber: 'B-2026-0002' });
+  });
+
+  it('lässt eine getippte Nummer stehen, auch wenn die Liste danach kommt', async () => {
+    spaet = true;
+    baustellen = [
+      { id: 'p1', companyId: 'perl', projectNumber: 'B-2026-0001', customerName: 'Familie Huber',
+        customerId: 'k1', status: 'Aktiv' } as Project & { id: string },
+    ];
+    zeige();
+    await formOeffnen();
+    const feld = (await screen.findByLabelText('Projektnummer')) as HTMLInputElement;
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'BT-77');
+    act(() => liefern());
+    expect((await screen.findAllByText(/B-2026-0001/)).length).toBeGreaterThan(0);
+    expect(feld.value).toBe('BT-77');
+
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(reserviere).not.toHaveBeenCalled();
+    expect(lege.mock.calls[0][1]).toMatchObject({ projectNumber: 'BT-77' });
+  });
+
+  it('nennt eine vergebene Nummer beim Namen, statt „erneut versuchen"', async () => {
+    anlegeFehler = 'duplicate key value violates unique constraint "projects_nummer_je_betrieb"';
+    zeige();
+    await formOeffnen();
+    const feld = await screen.findByLabelText('Projektnummer');
+    await userEvent.clear(feld);
+    await userEvent.type(feld, 'BT-77');
+    await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
+    expect(
+      await screen.findByText('Die Nummer BT-77 ist schon vergeben — bitte eine andere eintragen.'),
+    ).toBeInTheDocument();
   });
 
   it('lässt ein leeres Stundenbudget UNGESETZT, statt 0 daraus zu machen', async () => {

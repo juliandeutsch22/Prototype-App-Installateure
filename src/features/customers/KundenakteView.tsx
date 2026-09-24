@@ -27,6 +27,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -387,8 +388,8 @@ export default function KundenakteView() {
                           await assignProjectToCustomer(p.id, k.id, k.name);
                           toast.success('Baustelle zugeordnet');
                           setVersuch((v) => v + 1);
-                        } catch {
-                          toast.error('Die Zuordnung ist fehlgeschlagen.');
+                        } catch (err) {
+                          toast.error(grundAus(err, 'Die Zuordnung ist fehlgeschlagen.'));
                         } finally {
                           setZuordnenLaeuft(null);
                         }

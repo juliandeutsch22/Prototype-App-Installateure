@@ -18,6 +18,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { ergebnisText, zeitraumText } from './abwesenheitText';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Krankmeldungen — die eigene Liste und die des Büros.
@@ -63,7 +64,7 @@ export function KrankmeldungListe({
       setBearbeitet(null);
       onGeaendert();
     } catch (e) {
-      setFehler(e instanceof Error && e.message ? e.message : 'Das Ende konnte nicht geändert werden.');
+      setFehler(grundAus(e, 'Das Ende konnte nicht geändert werden.'));
     } finally {
       setLaeuft(null);
     }
@@ -78,7 +79,7 @@ export function KrankmeldungListe({
       toast.success(`Krankmeldung gelöscht — ${n} ${n === 1 ? 'Tag' : 'Tage'} aus dem Zeitkonto entfernt`);
       onGeaendert();
     } catch (e) {
-      setFehler(e instanceof Error && e.message ? e.message : 'Die Krankmeldung konnte nicht gelöscht werden.');
+      setFehler(grundAus(e, 'Die Krankmeldung konnte nicht gelöscht werden.'));
     } finally {
       setLaeuft(null);
     }
@@ -292,7 +293,7 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
       setNotiz('');
       setStand((n) => n + 1);
     } catch (err) {
-      setFehler(err instanceof Error && err.message ? err.message : 'Die Krankmeldung konnte nicht erfasst werden.');
+      setFehler(grundAus(err, 'Die Krankmeldung konnte nicht erfasst werden.'));
     } finally {
       setSendet(false);
     }

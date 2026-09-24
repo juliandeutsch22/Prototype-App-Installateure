@@ -320,7 +320,7 @@ describe('Angebot kalkulieren', () => {
   });
 
   it('meldet einen anderen Fehler weiter, statt eine Nummer zu verbrauchen', async () => {
-    createProject.mockRejectedValueOnce(new Error('kein Netz'));
+    createProject.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     versendetesAngebot();
     const nutzer = userEvent.setup();
     zeichne();
@@ -378,12 +378,14 @@ describe('Die Liste führt zum Angebot', () => {
   it('meldet, wenn ein Status nicht gespeichert werden kann', async () => {
     // Vorher: kein Fang, keine Meldung — der Klick tat für den Betrachter nichts.
     versendetesAngebot();
-    updateQuote.mockRejectedValueOnce(new Error('kein Netz'));
+    updateQuote.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
     await nutzer.click(screen.getByRole('button', { name: 'Abgelehnt' }));
-    expect(await screen.findByText('Der Status konnte nicht gespeichert werden.')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/^Der Status konnte nicht gespeichert werden\. Keine Verbindung zum Server/),
+    ).toBeInTheDocument();
   });
 });
 

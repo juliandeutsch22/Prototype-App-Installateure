@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import Button from './Button';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Modaler Bestätigungsdialog für nicht-triviale/destruktive Aktionen
@@ -56,9 +57,7 @@ export default function ConfirmDialog({
       await onConfirm();
     } catch (e) {
       setError(
-        e instanceof Error && e.message
-          ? e.message
-          : 'Die Aktion konnte nicht ausgeführt werden. Bitte erneut versuchen.',
+        grundAus(e, 'Die Aktion konnte nicht ausgeführt werden.'),
       );
     } finally {
       setBusy(false);
