@@ -12,12 +12,13 @@ import {
   listGrosshaendler,
   ausLager,
   aufEinkaufsliste,
+  listLagerPosten,
   lieferantVorschlag,
   type Grosshaendler,
 } from '@/lib/db/einkauf';
 import Einkaufsliste from './Einkaufsliste';
 import { aufEinkaufsliste as aufDerListe } from './einkauf';
-import type { MaterialOrder } from '@/types';
+import type { EinkaufPosten, MaterialOrder } from '@/types';
 import Card from '@/components/Card';
 import Nachladen from '@/components/Nachladen';
 import { Marke, Warnung } from '@/components/Badge';
@@ -60,6 +61,14 @@ export default function AdminOrdersView() {
   */
   const [grosshaendler, setGrosshaendler] = useState<WithId<Grosshaendler>[]>([]);
   const [ghStand, setGhStand] = useState(0);
+  /**
+   * Die eigenen Posten des Büros auf der Einkaufsliste. Kein Live-Abo: sie
+   * ändern sich nur hier, und nach jeder Aktion wird neu geladen. Scheitert
+   * das Laden, fehlen sie auf der Liste — das sagt die Liste dann auch.
+   */
+  const [lagerPosten, setLagerPosten] = useState<WithId<EinkaufPosten>[]>([]);
+  const [lagerFehler, setLagerFehler] = useState(false);
+  const [lagerStand, setLagerStand] = useState(0);
   /** „Nicht auf Lager" — bei welchem Grosshändler eingekauft wird. */
   const [einkaufFragen, setEinkaufFragen] = useState<{ o: WithId<MaterialOrder>; bei: string } | null>(null);
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
@@ -125,11 +134,30 @@ export default function AdminOrdersView() {
     };
   }, [user, ghStand]);
 
+  useEffect(() => {
+    if (!user) return;
+    let weg = false;
+    void listLagerPosten(user.companyId)
+      .then((p) => {
+        if (weg) return;
+        setLagerPosten(p);
+        setLagerFehler(false);
+      })
+      .catch(() => {
+        if (!weg) setLagerFehler(true);
+      });
+    return () => {
+      weg = true;
+    };
+  }, [user, lagerStand]);
+
   const purchases = useMemo(() => orders.filter((o) => o.transactionType !== 'return'), [orders]);
   /** Wie viele Anforderungen auf der Einkaufsliste noch nicht bestellt sind. */
   const zuBestellen = useMemo(
-    () => purchases.filter((o) => aufDerListe(o) && !o.bestelltAm).length,
-    [purchases],
+    () =>
+      purchases.filter((o) => aufDerListe(o) && !o.bestelltAm).length +
+      lagerPosten.filter((p) => !p.bestelltAm && !p.geliefertAm).length,
+    [purchases, lagerPosten],
   );
   const returns = useMemo(() => orders.filter((o) => o.transactionType === 'return'), [orders]);
 
@@ -276,13 +304,21 @@ export default function AdminOrdersView() {
       </div>
 
       {tab === 'einkauf' && company ? (
-        <Einkaufsliste
-          company={company}
-          meinName={user.name}
-          anforderungen={purchases}
-          grosshaendler={grosshaendler}
-          onGrosshaendlerGeaendert={() => setGhStand((n) => n + 1)}
-        />
+        <>
+          {lagerFehler && (
+            <ErrorState message="Das eigene Material auf der Einkaufsliste konnte nicht geladen werden — die Liste zeigt nur die Anforderungen." />
+          )}
+          <Einkaufsliste
+            company={company}
+            meinUid={user.uid}
+            meinName={user.name}
+            anforderungen={purchases}
+            lagerPosten={lagerPosten}
+            grosshaendler={grosshaendler}
+            onGrosshaendlerGeaendert={() => setGhStand((n) => n + 1)}
+            onLagerGeaendert={() => setLagerStand((n) => n + 1)}
+          />
+        </>
       ) : (
         <Card
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}

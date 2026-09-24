@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
-import type { Company, MaterialOrder } from '@/types';
+import type { Company, EinkaufPosten, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import type { Grosshaendler } from '@/lib/db/einkauf';
 import Einkaufsliste from '@/features/orders/Einkaufsliste';
@@ -21,6 +21,12 @@ const zuordnen = vi.fn();
 const vonListe = vi.fn();
 const speichern = vi.fn();
 const pdf = vi.fn();
+const postenAnlegen = vi.fn();
+const postenBestellt = vi.fn();
+const postenLoeschen = vi.fn();
+const postenZuordnen = vi.fn();
+const suchen = vi.fn();
+const vorschlag = vi.fn();
 
 vi.mock('@/lib/db/einkauf', () => ({
   katalogFuer: () =>
@@ -30,6 +36,12 @@ vi.mock('@/lib/db/einkauf', () => ({
   grosshaendlerZuordnen: (...a: unknown[]) => zuordnen(...a),
   vonEinkaufslisteNehmen: (...a: unknown[]) => vonListe(...a),
   grosshaendlerSpeichern: (...a: unknown[]) => speichern(...a),
+  lagerPostenAnlegen: (...a: unknown[]) => postenAnlegen(...a),
+  lagerPostenBestellt: (...a: unknown[]) => postenBestellt(...a),
+  lagerPostenLoeschen: (...a: unknown[]) => postenLoeschen(...a),
+  lagerPostenZuordnen: (...a: unknown[]) => postenZuordnen(...a),
+  artikelSuchen: (...a: unknown[]) => suchen(...a),
+  lieferantVorschlag: (...a: unknown[]) => vorschlag(...a),
 }));
 vi.mock('@/features/orders/bestellungPdf', () => ({
   downloadBestellungPdf: (...a: unknown[]) => pdf(...a),
@@ -52,16 +64,32 @@ function anf(p: Partial<MaterialOrder> & { id: string }): WithId<MaterialOrder> 
   } as WithId<MaterialOrder>;
 }
 
-function zeige(anforderungen: WithId<MaterialOrder>[], gh = [HOLTER, FRAUENTHAL]) {
+function posten(p: Partial<EinkaufPosten> & { id: string }): WithId<EinkaufPosten> {
+  return {
+    companyId: 'perl', materialId: 'm1', materialName: 'Eckventil 1/2', menge: 10,
+    supplierId: 'gh1', angelegtVonName: 'Vera Verwaltung', ...p,
+  } as WithId<EinkaufPosten>;
+}
+
+const lagerGeaendert = vi.fn();
+
+function zeige(
+  anforderungen: WithId<MaterialOrder>[],
+  gh = [HOLTER, FRAUENTHAL],
+  lager: WithId<EinkaufPosten>[] = [],
+) {
   const geaendert = vi.fn();
   render(
     <ToastProvider>
       <Einkaufsliste
         company={company}
+        meinUid="u-vera"
         meinName="Petra Büro"
         anforderungen={anforderungen}
+        lagerPosten={lager}
         grosshaendler={gh}
         onGrosshaendlerGeaendert={geaendert}
+        onLagerGeaendert={lagerGeaendert}
       />
     </ToastProvider>,
   );
@@ -69,7 +97,12 @@ function zeige(anforderungen: WithId<MaterialOrder>[], gh = [HOLTER, FRAUENTHAL]
 }
 
 beforeEach(() => {
-  for (const f of [alsBestellt, geliefert, zuordnen, vonListe, speichern, pdf]) {
+  lagerGeaendert.mockReset();
+  suchen.mockReset();
+  suchen.mockResolvedValue([]);
+  vorschlag.mockReset();
+  vorschlag.mockResolvedValue(null);
+  for (const f of [alsBestellt, geliefert, zuordnen, vonListe, speichern, pdf, postenAnlegen, postenBestellt, postenLoeschen, postenZuordnen]) {
     f.mockReset();
     f.mockResolvedValue(undefined);
   }
@@ -197,5 +230,106 @@ describe('Einkaufsliste — die Grosshändler pflegen', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/keine|nicht wie eine E-Mail/);
     expect(speichern).not.toHaveBeenCalled();
+  });
+});
+
+describe('Einkaufsliste — eigenes Material des Büros', () => {
+  it('steht mit der Anforderung in EINER Zeile, Kommission „Lager"', async () => {
+    zeige([anf({ id: 'a', projectNumber: 'B-1' })], undefined, [posten({ id: 'p1' })]);
+    expect(await screen.findByText('12 Stk × Eckventil 1/2')).toBeInTheDocument();
+    expect(screen.getByText('Kommission B-1, Lager')).toBeInTheDocument();
+  });
+
+  it('zeigt freies Material mit seiner Einheit und schickt es mit auf die Mail', async () => {
+    zeige([], undefined, [posten({ id: 'p1', materialId: null, materialName: 'Kupferrohr 15', menge: 25, einheit: 'm' })]);
+    expect(await screen.findByText('25 m × Kupferrohr 15')).toBeInTheDocument();
+    const href = screen.getByRole('link', { name: /E-Mail an/ }).getAttribute('href')!;
+    expect(decodeURIComponent(href.split('&body=')[1])).toContain('- 25 m × Kupferrohr 15 (Kommission Lager)');
+  });
+
+  it('markiert Anforderungen UND eigene Posten als bestellt', async () => {
+    zeige([anf({ id: 'a' })], undefined, [posten({ id: 'p1' })]);
+    await userEvent.click(await screen.findByRole('button', { name: 'Als bestellt markieren' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Bestellt' }));
+    await waitFor(() => expect(postenBestellt).toHaveBeenCalledWith(['p1']));
+    expect(alsBestellt).toHaveBeenCalledWith(['a']);
+    expect(lagerGeaendert).toHaveBeenCalled();
+  });
+
+  it('nimmt eine Zeile von der Liste: Anforderung wieder offen, eigener Posten gelöscht', async () => {
+    zeige([anf({ id: 'a' })], undefined, [posten({ id: 'p1' })]);
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Eckventil 1/2 von der Einkaufsliste nehmen' }),
+    );
+    await waitFor(() => expect(postenLoeschen).toHaveBeenCalledWith(['p1']));
+    expect(vonListe).toHaveBeenCalledWith('a');
+  });
+
+  it('ordnet eigene Posten ohne Grosshändler mit zu', async () => {
+    zeige([], undefined, [posten({ id: 'p1', supplierId: null })]);
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: 'Grosshändler für Eckventil 1/2' }),
+      'gh2',
+    );
+    await waitFor(() => expect(postenZuordnen).toHaveBeenCalledWith(['p1'], 'gh2'));
+  });
+
+  it('bucht einen bestellten Posten als geliefert — „im Lager", nicht „abholbereit"', async () => {
+    zeige([], undefined, [posten({ id: 'p1', bestelltAm: Date.now() as never, notiz: 'Regal 3' })]);
+    expect(await screen.findByText(/fürs Lager · Regal 3/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Geliefert' }));
+    await waitFor(() => expect(geliefert).toHaveBeenCalledWith(['p1']));
+    expect(await screen.findByText(/ist da — im Lager/)).toBeInTheDocument();
+  });
+});
+
+describe('Einkaufsliste — Material dazusetzen', () => {
+  const KATALOGARTIKEL = { id: 'm1', companyId: 'perl', name: 'Eckventil 1/2', articleNumber: 'EV-12', unit: 'Stk', stock: 0 };
+
+  it('sucht im Katalog, übernimmt Einheit und vorgeschlagenen Grosshändler', async () => {
+    suchen.mockResolvedValue([KATALOGARTIKEL]);
+    vorschlag.mockResolvedValue('gh1');
+    zeige([]);
+    await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
+    await userEvent.type(screen.getByLabelText(/^Artikel/), 'Eck');
+    await userEvent.click(await screen.findByRole('button', { name: /Eckventil 1\/2/ }));
+    await waitFor(() => expect(screen.getByLabelText('Grosshändler')).toHaveValue('gh1'));
+    expect(screen.getByLabelText('Einheit')).toHaveValue('Stk');
+    await userEvent.clear(screen.getByLabelText(/^Menge/));
+    await userEvent.type(screen.getByLabelText(/^Menge/), '12');
+    await userEvent.click(screen.getByRole('button', { name: 'Auf die Einkaufsliste' }));
+    await waitFor(() =>
+      expect(postenAnlegen).toHaveBeenCalledWith('perl', expect.objectContaining({
+        materialId: 'm1', materialName: 'Eckventil 1/2', menge: 12, einheit: 'Stk',
+        supplierId: 'gh1', angelegtVonUid: 'u-vera',
+      })),
+    );
+    expect(suchen).toHaveBeenCalledWith('perl', 'Eck');
+    expect(lagerGeaendert).toHaveBeenCalled();
+  });
+
+  it('nimmt freien Text, wenn der Katalog nichts findet', async () => {
+    zeige([]);
+    await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
+    await userEvent.type(screen.getByLabelText(/^Artikel/), 'Sonderteil XY');
+    expect(await screen.findByText(/Nicht im Katalog/)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Einheit'), 'Stk');
+    await userEvent.click(screen.getByRole('button', { name: 'Auf die Einkaufsliste' }));
+    await waitFor(() =>
+      expect(postenAnlegen).toHaveBeenCalledWith('perl', expect.objectContaining({
+        materialId: null, materialName: 'Sonderteil XY', menge: 1, supplierId: null,
+      })),
+    );
+  });
+
+  it('weist eine Menge von null ab und legt nichts an', async () => {
+    zeige([]);
+    await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
+    await userEvent.type(screen.getByLabelText(/^Artikel/), 'Muffe');
+    await userEvent.clear(screen.getByLabelText(/^Menge/));
+    await userEvent.type(screen.getByLabelText(/^Menge/), '0');
+    await userEvent.click(screen.getByRole('button', { name: 'Auf die Einkaufsliste' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('grösser als null');
+    expect(postenAnlegen).not.toHaveBeenCalled();
   });
 });

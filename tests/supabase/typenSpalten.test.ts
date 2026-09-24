@@ -33,6 +33,7 @@ const TABELLE_VON: Record<string, string> = {
   Project: 'projects',
   Material: 'materials',
   MaterialOrder: 'material_orders',
+  EinkaufPosten: 'einkauf_posten',
   EinsatzMaterial: 'einsatz_material',
   TimeEntry: 'time_entries',
   Vacation: 'vacations',

@@ -1,4 +1,4 @@
-import type { Company, Material, MaterialOrder } from '@/types';
+import type { Company, EinkaufPosten, Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { fmtMenge } from '@/lib/belegLayout';
 
@@ -14,7 +14,14 @@ import { fmtMenge } from '@/lib/belegLayout';
  * Baustellen stehen als Kommission daneben, damit die Lieferung sich wieder
  * zuordnen lässt. Geliefert wird dagegen je Anforderung: jede hat ihren
  * Monteur, der eine Meldung bekommt.
+ *
+ * DAZU DIE EIGENEN POSTEN des Büros (etwa fürs Lager). Sie stehen in
+ * derselben Zeile wie gleiche Artikel aus Anforderungen — beim Grosshändler
+ * ist es eine Bestellung —, mit „Lager" als Kommission.
  */
+
+/** Die Kommission, unter der eigene Posten auf der Bestellung stehen. */
+export const LAGER_KOMMISSION = 'Lager';
 
 /** Eine Zeile der Bestellung beim Grosshändler. */
 export interface EinkaufsZeile {
@@ -28,6 +35,23 @@ export interface EinkaufsZeile {
   kommissionen: string[];
   /** Die Anforderungen dahinter — für „bestellt" und „geliefert". */
   anforderungen: string[];
+  /** Die eigenen Posten dahinter. */
+  posten: string[];
+}
+
+/** Bestellt und noch nicht da — eine Anforderung oder ein eigener Posten. */
+export interface Unterwegs {
+  id: string;
+  art: 'anforderung' | 'lager';
+  bezeichnung: string;
+  menge: number;
+  einheit?: string;
+  /** Wer wartet — der Monteur, oder beim eigenen Posten, wer ihn anlegte. */
+  wer?: string;
+  /** Die Baustelle der Anforderung; beim eigenen Posten „Lager". */
+  kommission?: string;
+  notiz?: string;
+  bestelltAm?: number | null;
 }
 
 /** Was je Grosshändler auf der Liste steht. */
@@ -35,8 +59,8 @@ export interface EinkaufsGruppe {
   /** `null`: noch keinem Grosshändler zugeordnet. */
   supplierId: string | null;
   zuBestellen: EinkaufsZeile[];
-  /** Bestellt, aber noch nicht eingetroffen — je Anforderung. */
-  unterwegs: WithId<MaterialOrder>[];
+  /** Bestellt, aber noch nicht eingetroffen — je Anforderung bzw. Posten. */
+  unterwegs: Unterwegs[];
 }
 
 /** Gehört diese Anforderung auf die Einkaufsliste? */
@@ -49,7 +73,7 @@ export function aufEinkaufsliste(o: MaterialOrder): boolean {
   );
 }
 
-function schluesselVon(o: MaterialOrder): string {
+function schluesselVon(o: { materialId?: string | null; materialName: string }): string {
   return o.materialId || `name:${o.materialName.trim().toLowerCase()}`;
 }
 
@@ -58,10 +82,13 @@ function schluesselVon(o: MaterialOrder): string {
  *
  * `katalog` liefert Artikelnummer und Einheit; fehlt ein Artikel darin (freie
  * Anforderung ohne Katalogeintrag), steht nur der Name da.
+ *
+ * `posten`: die offenen eigenen Posten des Büros.
  */
 export function einkaufsliste(
   anforderungen: WithId<MaterialOrder>[],
   katalog: Map<string, Pick<Material, 'articleNumber' | 'unit'>>,
+  posten: WithId<EinkaufPosten>[] = [],
 ): EinkaufsGruppe[] {
   const gruppen = new Map<string | null, EinkaufsGruppe>();
   const gruppe = (id: string | null) => {
@@ -73,13 +100,11 @@ export function einkaufsliste(
     return g;
   };
 
-  for (const o of anforderungen) {
-    if (!aufEinkaufsliste(o)) continue;
-    const g = gruppe(o.supplierId ?? null);
-    if (o.bestelltAm) {
-      g.unterwegs.push(o);
-      continue;
-    }
+  const zeile = (
+    g: EinkaufsGruppe,
+    o: { materialId?: string | null; materialName: string },
+    einheit?: string | null,
+  ): EinkaufsZeile => {
     const schluessel = schluesselVon(o);
     let z = g.zuBestellen.find((x) => x.schluessel === schluessel);
     if (!z) {
@@ -88,18 +113,61 @@ export function einkaufsliste(
         schluessel,
         bezeichnung: o.materialName.trim(),
         artikelnummer: k?.articleNumber || undefined,
-        einheit: k?.unit || undefined,
+        einheit: k?.unit || einheit || undefined,
         menge: 0,
         kommissionen: [],
         anforderungen: [],
+        posten: [],
       };
       g.zuBestellen.push(z);
     }
-    z.menge = Math.round((z.menge + (Number(o.quantity) || 0)) * 1000) / 1000;
-    if (o.projectNumber && !z.kommissionen.includes(o.projectNumber)) {
-      z.kommissionen.push(o.projectNumber);
+    return z;
+  };
+  const dazu = (z: EinkaufsZeile, menge: number, kommission?: string) => {
+    z.menge = Math.round((z.menge + (Number(menge) || 0)) * 1000) / 1000;
+    if (kommission && !z.kommissionen.includes(kommission)) z.kommissionen.push(kommission);
+  };
+
+  for (const o of anforderungen) {
+    if (!aufEinkaufsliste(o)) continue;
+    const g = gruppe(o.supplierId ?? null);
+    if (o.bestelltAm) {
+      g.unterwegs.push({
+        id: o.id,
+        art: 'anforderung',
+        bezeichnung: o.materialName,
+        menge: Number(o.quantity) || 0,
+        wer: o.userName,
+        kommission: o.projectNumber,
+        bestelltAm: o.bestelltAm,
+      });
+      continue;
     }
+    const z = zeile(g, o);
+    dazu(z, o.quantity, o.projectNumber);
     z.anforderungen.push(o.id);
+  }
+
+  for (const p of posten) {
+    if (p.geliefertAm) continue;
+    const g = gruppe(p.supplierId ?? null);
+    if (p.bestelltAm) {
+      g.unterwegs.push({
+        id: p.id,
+        art: 'lager',
+        bezeichnung: p.materialName,
+        menge: Number(p.menge) || 0,
+        einheit: p.einheit ?? undefined,
+        wer: p.angelegtVonName ?? undefined,
+        kommission: LAGER_KOMMISSION,
+        notiz: p.notiz ?? undefined,
+        bestelltAm: p.bestelltAm,
+      });
+      continue;
+    }
+    const z = zeile(g, p, p.einheit);
+    dazu(z, p.menge, LAGER_KOMMISSION);
+    z.posten.push(p.id);
   }
 
   for (const g of gruppen.values()) {

@@ -6,9 +6,10 @@
  * kommt nur hinzu, woher das Material kommt. „Abholbereit" bleibt der
  * Moment, in dem der Monteur seine Meldung bekommt.
  */
-import type { Material } from '@/types';
+import type { EinkaufPosten, Material } from '@/types';
 import { todayStr } from '@/lib/time';
 import { abfragen, anlegen, aendern, derClient, type WithId } from './kern';
+import { oderUeberSpalten } from './suche';
 
 const ANFORDERUNGEN = 'material_orders';
 
@@ -162,4 +163,104 @@ export async function lieferantVorschlag(
     grenze: 1,
   });
   return preise[0]?.supplierId ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Eigene Posten — Material, das das Büro selbst auf die Liste setzt
+// ---------------------------------------------------------------------------
+
+const POSTEN = 'einkauf_posten';
+
+/**
+ * Wie viele offene eigene Posten ein Betrieb hat — eine Einkaufsliste, kein
+ * Archiv. Gelieferte fallen heraus, und mehr als ein paar Dutzend offene
+ * sind schon viel.
+ */
+const POSTEN_GRENZE = 500;
+
+/** Die offenen eigenen Posten — was noch nicht geliefert ist. */
+export function listLagerPosten(companyId: string): Promise<WithId<EinkaufPosten>[]> {
+  return abfragen<EinkaufPosten>(POSTEN, companyId, {
+    wo: [{ art: 'leer', feld: 'geliefertAm' }],
+    sortiere: { feld: 'createdAt' },
+    grenze: POSTEN_GRENZE,
+  });
+}
+
+export type NeuerLagerPosten = Pick<
+  EinkaufPosten,
+  'materialId' | 'materialName' | 'menge' | 'einheit' | 'supplierId' | 'notiz'
+> & { angelegtVonUid: string; angelegtVonName: string };
+
+export function lagerPostenAnlegen(companyId: string, p: NeuerLagerPosten): Promise<string> {
+  return anlegen(POSTEN, companyId, {
+    materialId: p.materialId || null,
+    materialName: p.materialName.trim(),
+    menge: p.menge,
+    einheit: p.einheit?.trim() || null,
+    supplierId: p.supplierId || null,
+    notiz: p.notiz?.trim() || null,
+    angelegtVonUid: p.angelegtVonUid,
+    angelegtVonName: p.angelegtVonName,
+  });
+}
+
+/**
+ * Posten ändern — wie bei den Anforderungen mit `nurUnbestellt`, damit zwei
+ * Personen am selben Stand nicht beide „noch nicht bestellt" sehen.
+ */
+async function postenSchreiben(
+  ids: string[],
+  werte: Record<string, unknown>,
+  nurUnbestellt = false,
+): Promise<void> {
+  if (ids.length === 0) return;
+  const q = derClient().from(POSTEN).update(werte).in('id', ids);
+  const { error } = await (nurUnbestellt ? q.is('bestellt_am', null) : q);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Von der Liste nehmen — nur, solange nicht bestellt.
+ *
+ * Was schon beim Grosshändler liegt, kommt; den Posten zu löschen hiesse,
+ * eine Lieferung zu erwarten, von der die App nichts mehr weiss.
+ */
+export async function lagerPostenLoeschen(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const { error } = await derClient().from(POSTEN).delete().in('id', ids).is('bestellt_am', null);
+  if (error) throw new Error(error.message);
+}
+
+export function lagerPostenZuordnen(ids: string[], supplierId: string): Promise<void> {
+  return postenSchreiben(ids, { supplier_id: supplierId });
+}
+
+export function lagerPostenBestellt(ids: string[]): Promise<void> {
+  return postenSchreiben(ids, { bestellt_am: new Date().toISOString() }, true);
+}
+
+/** Wie viele Artikel die Suche zeigt — genug zum Wählen, nicht der Katalog. */
+const ARTIKEL_TREFFER = 20;
+
+/**
+ * Artikel im Katalog suchen — auf dem Server, nach Name und Artikelnummer.
+ *
+ * Nicht über das Katalog-Abo der Anforderungen: nach einem Datanorm-Import
+ * liegen dort zehntausende Artikel, und die Einkaufsliste braucht zwanzig
+ * passende, nicht alle. Ausgelaufene bleiben draussen — der Grosshändler
+ * führt sie nicht mehr.
+ */
+export async function artikelSuchen(
+  companyId: string,
+  begriff: string,
+): Promise<WithId<Material>[]> {
+  const oder = oderUeberSpalten(['name', 'article_number'], begriff);
+  if (!oder) return [];
+  return abfragen<Material>('materials', companyId, {
+    wo: [{ art: 'gleich', feld: 'ausgelaufen', wert: false }],
+    oder,
+    sortiere: { feld: 'name' },
+    grenze: ARTIKEL_TREFFER,
+  });
 }

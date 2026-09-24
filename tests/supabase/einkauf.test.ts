@@ -163,3 +163,124 @@ describe('Über die Einkaufsliste', () => {
     await expect(einkauf.aufEinkaufsliste(id, fremderHaendler)).rejects.toThrow(/Grosshändler/);
   });
 });
+
+/*
+  EIGENES MATERIAL DES BÜROS — etwa um das Lager aufzufüllen. Keine
+  Anforderung: „Geliefert" bucht ins Lager, und damit ist der Posten erledigt.
+*/
+describe('Eigenes Material auf der Einkaufsliste', () => {
+  const ICH = { angelegtVonUid: '', angelegtVonName: 'Vera Verwaltung' };
+
+  async function posten(id: string) {
+    const { data } = await admin.from('einkauf_posten')
+      .select('bestellt_am, geliefert_am, material_id').eq('id', id).single();
+    return data!;
+  }
+
+  it('legt die Verwaltung an, bestellt und bucht beim Eintreffen ins Lager — einmal', async () => {
+    const vorher = await bestand();
+    const id = await einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialId: artikel, materialName: 'Eckventil 1/2',
+      menge: 12, einheit: 'Stk', supplierId: grosshaendler, notiz: 'Regal 3',
+    });
+    expect((await einkauf.listLagerPosten(BETRIEB)).map((p) => p.id)).toContain(id);
+
+    await einkauf.lagerPostenBestellt([id]);
+    expect((await posten(id)).bestellt_am).not.toBeNull();
+
+    expect(await einkauf.geliefert([id])).toBe(1);
+    expect(await bestand()).toBe(vorher + 12);
+    // Zweimal gedrückt bucht nicht zweimal.
+    expect(await einkauf.geliefert([id])).toBe(0);
+    expect(await bestand()).toBe(vorher + 12);
+    expect((await einkauf.listLagerPosten(BETRIEB)).map((p) => p.id)).not.toContain(id);
+  });
+
+  it('findet freien Text im Katalog über den Namen — und bucht ohne Katalog nichts', async () => {
+    const vorher = await bestand();
+    const beimNamen = await einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialId: null, materialName: ' eckventil 1/2 ', menge: 3,
+    });
+    const frei = await einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialId: null, materialName: 'Sonderteil XY', menge: 2,
+    });
+    expect(await einkauf.geliefert([beimNamen, frei])).toBe(2);
+    expect(await bestand()).toBe(vorher + 3);
+    expect((await posten(beimNamen)).material_id).toBe(artikel);
+    expect((await posten(frei)).geliefert_am).not.toBeNull();
+  });
+
+  it('bucht Anforderung und eigenen Posten in EINEM Aufruf', async () => {
+    const vorher = await bestand();
+    const a = await anforderung(1);
+    await einkauf.aufEinkaufsliste(a, grosshaendler);
+    const p = await einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialId: artikel, materialName: 'Eckventil 1/2', menge: 4,
+    });
+    expect(await einkauf.geliefert([a, p])).toBe(2);
+    expect(await bestand()).toBe(vorher + 5);
+    expect((await zeile(a)).status).toBe('Abholbereit');
+  });
+
+  it('lässt löschen, solange nicht bestellt — danach nicht mehr, und geliefert schon gar nicht', async () => {
+    const offen = await einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialId: artikel, materialName: 'Eckventil 1/2', menge: 1,
+    });
+    await einkauf.lagerPostenLoeschen([offen]);
+    expect((await admin.from('einkauf_posten').select('id').eq('id', offen)).data).toHaveLength(0);
+
+    const bestellt = await einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialId: artikel, materialName: 'Eckventil 1/2', menge: 1,
+    });
+    await einkauf.lagerPostenBestellt([bestellt]);
+    await einkauf.lagerPostenLoeschen([bestellt]);
+    expect((await admin.from('einkauf_posten').select('id').eq('id', bestellt)).data).toHaveLength(1);
+
+    await einkauf.geliefert([bestellt]);
+    await lager.client.from('einkauf_posten').delete().eq('id', bestellt);
+    await lager.client.from('einkauf_posten').update({ menge: 99 }).eq('id', bestellt);
+    const { data } = await admin.from('einkauf_posten').select('menge').eq('id', bestellt).single();
+    expect(Number(data?.menge)).toBe(1);
+  });
+
+  it('sehen und schreiben nur Verwaltung und Leitung — nicht Monteur, nicht Buchhaltung', async () => {
+    const buch = await konto(BETRIEB, 'Buchhaltung', 'buch');
+    const pl = await konto(BETRIEB, 'Projektleiter', 'pl');
+    const id = await einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialId: artikel, materialName: 'Eckventil 1/2', menge: 1,
+    });
+    for (const k of [monteur, buch]) {
+      expect((await k.client.from('einkauf_posten').select('id').eq('id', id)).data).toEqual([]);
+      const { error } = await k.client.from('einkauf_posten').insert({
+        company_id: BETRIEB, material_name: 'Muffe', menge: 1,
+      });
+      expect(error).not.toBeNull();
+    }
+    expect((await pl.client.from('einkauf_posten').select('id').eq('id', id)).data).toHaveLength(1);
+    const { error } = await pl.client.from('einkauf_posten').insert({
+      company_id: BETRIEB, material_name: 'Muffe', menge: 1,
+    });
+    expect(error).toBeNull();
+  });
+
+  it('nimmt keinen fremden Grosshändler, keine Menge von null und keinen leeren Namen', async () => {
+    await expect(einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialName: 'Muffe', menge: 1, supplierId: fremderHaendler,
+    })).rejects.toThrow(/Grosshändler/);
+    await expect(einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialName: 'Muffe', menge: 0,
+    })).rejects.toThrow(/menge/);
+    await expect(einkauf.lagerPostenAnlegen(BETRIEB, {
+      ...ICH, angelegtVonUid: lager.uid, materialName: '   ', menge: 1,
+    })).rejects.toThrow(/name/);
+  });
+
+  it('sucht Artikel im Katalog nach Name und Nummer — ohne ausgelaufene', async () => {
+    await admin.from('materials').insert({
+      company_id: BETRIEB, name: 'Eckventil 3/8 alt', ausgelaufen: true, article_number: 'EV-38',
+    });
+    expect((await einkauf.artikelSuchen(BETRIEB, 'ev-12')).map((m) => m.id)).toEqual([artikel]);
+    expect((await einkauf.artikelSuchen(BETRIEB, 'Eckventil')).map((m) => m.name)).toEqual(['Eckventil 1/2']);
+    expect(await einkauf.artikelSuchen(BETRIEB, ' ')).toEqual([]);
+  });
+});
