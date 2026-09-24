@@ -51,6 +51,18 @@ export function listInvoicesForProject(
   return pg.listInvoicesForProject(companyId, projectNumber);
 }
 
+export const RECHNUNG_TREFFER = pg.RECHNUNG_TREFFER;
+
+export function sucheRechnungen(companyId: string, begriff: string): Promise<WithId<Invoice>[]> {
+  return pg.sucheRechnungen(companyId, begriff);
+}
+
+export function listInvoicesForCustomer(
+  companyId: string, customerId: string, projektIds: string[],
+): Promise<WithId<Invoice>[]> {
+  return pg.listInvoicesForCustomer(companyId, customerId, projektIds);
+}
+
 export function reserveInvoiceNumber(
   companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string },
 ): Promise<string> {

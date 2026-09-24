@@ -17,6 +17,8 @@ import {
   reactivateInvoice,
   markBilled,
   mahnungFesthalten,
+  sucheRechnungen,
+  RECHNUNG_TREFFER,
 } from '@/lib/db/invoices';
 import { listZahlungen, createZahlung, deleteZahlung } from '@/lib/db/zahlungen';
 import { istUeberfaellig, zahlstand } from './zahlstand';
@@ -176,7 +178,17 @@ export default function InvoicesView() {
   const [zHinweis, setZHinweis] = useState('');
   const [zLoeschen, setZLoeschen] = useState<string | null>(null);
   const [zFehler, setZFehler] = useState<string | null>(null);
-  const [rechnungSuche, setRechnungSuche] = useState('');
+  /*
+    DIE SUCHE KANN AUS DER ADRESSE KOMMEN — die Kundenakte verlinkt eine
+    Rechnung hierher, mit ihrer Nummer als Suchbegriff.
+  */
+  const [rechnungSuche, setRechnungSuche] = useState(() => suchparameter.get('suche') ?? '');
+  /**
+   * Die Treffer der Suche über ALLE Rechnungen — `null`, solange keine läuft
+   * oder die Antwort noch aussteht.
+   */
+  const [treffer, setTreffer] = useState<{ begriff: string; zeilen: WithId<Invoice>[] } | null>(null);
+  const [suchFehler, setSuchFehler] = useState(false);
   /** Anfangs sichtbare Rechnungen; der Rest kommt auf Wunsch. */
 
   // Entwurf
@@ -391,26 +403,63 @@ export default function InvoicesView() {
     () => [...invoices].sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber)),
     [invoices],
   );
+  /*
+    GESUCHT WIRD ÜBER ALLE RECHNUNGEN, auf dem Server. Bis die Antwort da ist
+    (und falls sie ausbleibt), filtert die Liste das bereits Geladene — so
+    steht beim Tippen sofort etwas da.
+  */
+  const suchbegriff = rechnungSuche.trim();
+  useEffect(() => {
+    if (!user || !suchbegriff) {
+      setSuchFehler(false);
+      return;
+    }
+    let weg = false;
+    const zeit = setTimeout(() => {
+      sucheRechnungen(user.companyId, suchbegriff)
+        .then((zeilen) => {
+          if (weg) return;
+          setTreffer({ begriff: suchbegriff, zeilen });
+          setSuchFehler(false);
+        })
+        .catch(() => {
+          if (!weg) setSuchFehler(true);
+        });
+    }, 300);
+    return () => {
+      weg = true;
+      clearTimeout(zeit);
+    };
+    // `invoices` als Auslöser: nach einer Zahlung oder einem Storno zeigen
+    // die Treffer den neuen Stand, nicht den vom Tippen.
+  }, [user, suchbegriff, invoices]);
+
+  const serverTreffer = useMemo(
+    () =>
+      treffer && suchbegriff && treffer.begriff === suchbegriff
+        ? [...treffer.zeilen].sort((a, b) => b.invoiceNumber.localeCompare(a.invoiceNumber))
+        : null,
+    [treffer, suchbegriff],
+  );
+
   const visible = useMemo(() => {
     const heute = todayStr();
-    const nachStatus =
-      statusFilter === 'alle'
-        ? sorted
-        : sorted.filter((i) =>
-            // „Überfällig" zeigt auch die angezahlten, deren Ziel vorbei ist.
-            statusFilter === 'Überfällig' ? istUeberfaellig(i, heute) : i.paymentStatus === statusFilter,
-          );
-    // Nach ein paar Jahren stehen hier hunderte Rechnungen. Gesucht wird nach
-    // Nummer oder Kunde — beides steht in der Zeile, aber niemand scrollt
-    // dafuer durch drei Jahrgaenge.
-    const q = rechnungSuche.trim().toLowerCase();
-    if (!q) return nachStatus;
-    return nachStatus.filter((i) =>
-      [i.invoiceNumber, i.customerName, i.projectNumber].some((v) =>
-        v?.toLowerCase().includes(q),
-      ),
-    );
-  }, [sorted, statusFilter, rechnungSuche]);
+    const q = suchbegriff.toLowerCase();
+    const grund = !q
+      ? sorted
+      : serverTreffer ??
+        sorted.filter((i) =>
+          [i.invoiceNumber, i.customerName, i.projectNumber].some((v) =>
+            v?.toLowerCase().includes(q),
+          ),
+        );
+    return statusFilter === 'alle'
+      ? grund
+      : grund.filter((i) =>
+          // „Überfällig" zeigt auch die angezahlten, deren Ziel vorbei ist.
+          statusFilter === 'Überfällig' ? istUeberfaellig(i, heute) : i.paymentStatus === statusFilter,
+        );
+  }, [sorted, statusFilter, suchbegriff, serverTreffer]);
   /*
     DIE KENNZAHLEN RECHNEN MIT DEM REST, nicht mit dem Rechnungsbetrag.
 
@@ -2133,8 +2182,8 @@ export default function InvoicesView() {
           '(sie darf in der Reihe nicht fehlen) und gibt die verrechneten Stunden und ' +
           'Materialien wieder frei, sodass sie auf eine neue Rechnung können; er lässt sich ' +
           'auch wieder aufheben. Gelöscht werden kann nur eine bereits stornierte Rechnung — ' +
-          'alles andere bleibt in den Büchern. Geladen werden die jüngsten Rechnungen; Suche und '
-          + 'Filter gelten für die geladenen — für ältere zuerst nachladen.'
+          'alles andere bleibt in den Büchern. Die Liste zeigt die jüngsten Rechnungen; die Suche ' +
+          'nach Nummer, Kunde oder Baustelle geht über alle.'
         }
         action={
           <SelectField id="invfilter" label="" className="py-1 text-sm" value={statusFilter}
@@ -2144,26 +2193,37 @@ export default function InvoicesView() {
           </SelectField>
         }
       >
-        {invoices.length >= 10 && (
-          <div className="mb-4">
-            <InputField
-              id="invsuche"
-              label="Suche"
-              type="search"
-              placeholder="Rechnungsnummer, Kunde oder Baustelle"
-              value={rechnungSuche}
-              onChange={(e) => setRechnungSuche(e.target.value)}
-            />
-          </div>
-        )}
+        <div className="mb-4">
+          <InputField
+            id="invsuche"
+            label="Suche"
+            type="search"
+            placeholder="Rechnungsnummer, Kunde oder Baustelle"
+            value={rechnungSuche}
+            onChange={(e) => setRechnungSuche(e.target.value)}
+          />
+          {suchbegriff && suchFehler && (
+            <p className="mt-1 text-xs text-warning">
+              Die Suche über alle Rechnungen ist gerade nicht erreichbar — gezeigt werden Treffer unter
+              den geladenen.
+            </p>
+          )}
+          {serverTreffer && serverTreffer.length >= RECHNUNG_TREFFER && (
+            <p className="mt-1 text-xs text-ink-muted">
+              Die {RECHNUNG_TREFFER} jüngsten Treffer — für ältere genauer suchen.
+            </p>
+          )}
+        </div>
         {loading ? (
           <SkeletonList rows={4} />
         ) : visible.length === 0 ? (
           <EmptyState>
-            {invoices.length === 0
-              ? 'Noch keine Rechnungen.'
-              : rechnungSuche
-                ? `Keine Rechnung passt zu „${rechnungSuche}".`
+            {suchbegriff
+              ? !serverTreffer && !suchFehler
+                ? 'Suche in allen Rechnungen …'
+                : `Keine Rechnung passt zu „${suchbegriff}".`
+              : invoices.length === 0
+                ? 'Noch keine Rechnungen.'
                 : 'Keine Rechnung in dieser Auswahl.'}
           </EmptyState>
         ) : (
@@ -2364,7 +2424,7 @@ export default function InvoicesView() {
           jemand eine alte Rechnungsnummer, findet nichts und schliesst
           daraus, es gebe sie nicht.
         */}
-        {invoices.length >= grenze && (
+        {!suchbegriff && invoices.length >= grenze && (
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <Button variant="secondary" onClick={() => setGrenze((n) => n + RECHNUNGEN_JE_SEITE)}>
               Ältere Rechnungen laden
