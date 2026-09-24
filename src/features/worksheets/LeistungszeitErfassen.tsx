@@ -119,27 +119,19 @@ export default function LeistungszeitErfassen({
       <p className="flex flex-wrap items-center gap-1 text-sm font-medium text-ink">
         Zeit beim Kunden eintragen
         <InfoHint about="die Leistungszeit">
-          <strong>Das ist die Zeit vor Ort, nicht der Arbeitstag.</strong> Ohne Anfahrt: die
-          Wegzeit gehört in die Zeiterfassung und zählt dort ausdrücklich nicht zur Arbeitszeit.
-          Damit steht hier genau die Zahl, die später auf der Rechnung landet — der Kunde
-          unterschreibt also das, was er auch verrechnet bekommt.
+          {/* Gekürzt (Prüflauf 24.09.2026, D9): vier Absätze, die auf dem
+              Telefon mehr Platz nahmen als das Formular darunter. */}
+          <strong>Die Zeit vor Ort, ohne Anfahrt</strong> — genau das, was der Kunde
+          unterschreibt und verrechnet bekommt.
           <br />
           <br />
-          <strong>Das ersetzt die Zeiterfassung nicht.</strong> Was du hier einträgst, ist ein
-          Beleg für den Kunden. Die Arbeitszeitaufzeichnung, aus der Saldo, Überstunden und
-          Lohnzettel entstehen, führst du weiterhin im Zeiterfassungs-Reiter — dort gehören
-          Anfahrt, Fahrzeug (Kennzeichen) und die Zuschläge dazu, die dieser Beleg nicht kennt.
+          <strong>Ersetzt die Zeiterfassung nicht.</strong> Nach dem Unterschreiben erscheint der
+          Einsatz dort als offener Nachtrag, mit Von, Bis und Pause schon ausgefüllt; Anfahrt,
+          Fahrzeug und Zuschläge ergänzt du dort.
           <br />
           <br />
-          <strong>Du wirst daran erinnert.</strong> Nach dem Unterschreiben erscheint dieser
-          Einsatz in der Zeiterfassung als offener Nachtrag, mit Von, Bis und Pause schon
-          ausgefüllt — bis du ihn gebucht hast. Vergessen kostet doppelt: die Stunde wird nie
-          verrechnet, und in deinem Zeitkonto fehlt sie auch.
-          <br />
-          <br />
-          <strong>Mehrere Zeilen sind normal.</strong> Waren Kollegen dabei, trag sie einzeln
-          ein — der Kunde unterschreibt für alle, die dort waren. Ihre Zeit buchen sie selbst;
-          du kannst und darfst das nicht für sie tun.
+          <strong>Kollegen</strong> trägst du je in eine eigene Zeile ein. Ihre Zeit buchen sie
+          selbst.
         </InfoHint>
       </p>
 
@@ -192,13 +184,9 @@ export default function LeistungszeitErfassen({
         <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
           Helferstunden werden anders verrechnet.
           <InfoHint about="den Helfer-Haken">
-            Auf der Rechnung gilt für Helferstunden ein eigener, niedrigerer Satz. Der Haken
-            gehört an die einzelne Zeile, nicht an die Person: derselbe Mann kann vormittags
-            als Facharbeiter und nachmittags als Helfer gearbeitet haben.
-            <br />
-            <br />
-            Ein vergessener Haken führt zum falschen Stundensatz — und zwar auf einem Beleg, den
-            der Kunde bereits unterschrieben hat.
+            Für Helferstunden gilt auf der Rechnung ein eigener, niedrigerer Satz. Der Haken gilt je
+            Zeile: derselbe Mann kann vormittags als Facharbeiter und nachmittags als Helfer
+            gearbeitet haben.
           </InfoHint>
         </p>
       </div>

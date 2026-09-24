@@ -37,7 +37,6 @@ import {
   fuerDenSchein,
   groesse,
   MAX_FOTOS,
-  MAX_KANTE,
   type FotoEntwurf,
 } from './fotos';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -930,9 +929,8 @@ export default function WorkSheetView() {
               </div>
             ) : zeiten.length === 0 ? (
               <EmptyState>
-                Für diesen Tag ist auf dieser Baustelle noch keine Zeit gebucht. Trag sie unten
-                ein — oder lass den Schein ohne Stunden, wenn ausschließlich Material geliefert
-                wurde.
+                Noch keine Zeit gebucht. Unten eintragen — oder ohne Stunden lassen, wenn nur
+                Material geliefert wurde.
               </EmptyState>
             ) : (
               <ul className="divide-y divide-line">
@@ -1072,34 +1070,25 @@ export default function WorkSheetView() {
               title={`Fotos (${fotos.length}/${MAX_FOTOS})`}
               hint={
                 <>
-                  Bilder sind kein Pflichtteil des Scheins — er ist auch ohne gültig. Sie
-                  belegen aber, was im Text nur behauptet steht: den Zustand vor dem Eingriff,
-                  eine verdeckte Leitung vor dem Verschliessen, den Zählerstand, einen Schaden,
-                  der nicht von uns stammt. Im Streitfall ist das der Unterschied zwischen
-                  Aussage und Beweis.
+                  {/* Gekürzt (Prüflauf 24.09.2026, D9) — und „Firebase Storage"
+                      gestrichen: die Bilder liegen seit dem Umzug im Speicher
+                      von Supabase. */}
+                  Bilder sind kein Pflichtteil, belegen aber, was im Text nur behauptet steht: den
+                  Zustand vor dem Eingriff, eine verdeckte Leitung, einen Schaden, der nicht von
+                  uns stammt.
                   <br />
                   <br />
-                  Jedes Bild wird noch am Gerät auf {MAX_KANTE} px lange Kante verkleinert,
-                  bevor es das Mobilfunknetz sieht — aus 4 MB werden rund 200 KB. Das spart
-                  Datenvolumen und Ladezeit beim späteren Öffnen des Scheins.
+                  Nach dem Unterschreiben lassen sie sich nicht mehr ändern — sie gehen in die
+                  Prüfsumme des Scheins ein.
                   <br />
                   <br />
-                  Die Bilder gehen in die Prüfsumme des Scheins ein: wird eines später
-                  ausgetauscht, stimmt die Summe nicht mehr und der Schein fällt bei der
-                  Prüfung auf. Deshalb lassen sie sich nach dem Unterschreiben nicht mehr
-                  ändern.
+                  Ohne Netz geht das Hochladen nicht. Der Schein lässt sich trotzdem unterschreiben,
+                  die Bilder müssten dann neu aufgenommen werden — im Keller also besser oben
+                  fotografieren.
                   <br />
                   <br />
-                  Ohne Netz geht das Hochladen nicht: anders als eine Buchung hält Firebase
-                  Storage nichts vor. Der Schein selbst lässt sich trotzdem unterschreiben und
-                  wird nachgereicht, sobald wieder Empfang da ist — die Bilder aber müssten
-                  dann neu aufgenommen werden. Wer im Keller arbeitet, fotografiert deshalb
-                  besser oben.
-                  <br />
-                  <br />
-                  Keine Personen fotografieren, wenn es nicht sein muss, und keine fremden
-                  Unterlagen. Was auf dem Bild ist, landet in der Firmenablage und bleibt dort
-                  sieben Jahre.
+                  Keine Personen und keine fremden Unterlagen, wenn es nicht sein muss: die Bilder
+                  bleiben sieben Jahre in der Firmenablage.
                 </>
               }
             >
@@ -1248,9 +1237,8 @@ export default function WorkSheetView() {
               </p>
             )}
             <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
-              Mit dem Unterschreiben wird der Schein <strong>eingefroren</strong>: Zeiten,
-              Material und Notizen lassen sich danach nicht mehr ändern. Eine Korrektur läuft über
-              einen Storno und einen neuen Schein.
+              Nach dem Unterschreiben ist der Schein <strong>eingefroren</strong>. Korrigiert wird
+              über Storno und neuen Schein.
             </p>
 
             {error && <div className="mt-3"><ErrorState message={error} /></div>}

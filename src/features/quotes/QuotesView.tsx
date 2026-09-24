@@ -535,7 +535,7 @@ export default function QuotesView() {
             <textarea
               id="anqnotes"
               rows={3}
-              className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand"
+              className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />

@@ -1059,7 +1059,7 @@ describe('Zeit beim Kunden eintragen', () => {
       GANZ enthält — sonst prüfte die Zusicherung ein Bruchstück.
     */
     const feld = await screen.findByText(
-      (_t, el) => el?.tagName === 'P' && /Was hier steht, sieht jeder im Betrieb/.test(el.textContent ?? ''),
+      (_t, el) => el?.tagName === 'SPAN' && /Was hier steht, sieht jeder im Betrieb/.test(el.textContent ?? ''),
     );
     const text = feld.textContent ?? '';
     expect(text).toMatch(/Gesundheit/);

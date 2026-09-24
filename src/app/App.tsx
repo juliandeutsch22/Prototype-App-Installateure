@@ -427,7 +427,9 @@ function AppRoutes() {
               elemente={{
                 meldungen: <NotificationSettings />,
                 firma: <FirmendatenView />,
-                saetze: <SettingsView />,
+                saetze: <SettingsView teil="saetze" />,
+                nummern: <SettingsView teil="nummern" />,
+                personal: <SettingsView teil="personal" />,
                 konten: <KontenrahmenView />,
                 support: <SupportzugangView />,
                 module: <ModulesView />,

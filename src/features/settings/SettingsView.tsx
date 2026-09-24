@@ -11,6 +11,7 @@ import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
+import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -45,7 +46,24 @@ const MONATE = [
   ['10', 'Oktober', 31], ['11', 'November', 30], ['12', 'Dezember', 31],
 ] as const;
 
-export default function SettingsView() {
+/**
+ * Welche Unterseite der Einstellungen diese Ansicht zeigt.
+ *
+ * BIS ZUM 24.09.2026 WAR DAS EINE SEITE: unter „Sätze und Kosten" standen
+ * auch Urlaubsjahr, Nummernkreise, Genehmigende und der Wochenplan — 5 000 px
+ * am Telefon mit sechs Speichern-Knöpfen, und die Überschrift hiess
+ * „Einstellungen" (Prüflauf, D10). Die Karten sind geblieben, wie sie waren;
+ * sie stehen jetzt dort, wo man sie sucht.
+ */
+export type EinstellungsTeil = 'saetze' | 'nummern' | 'personal';
+
+const KOPF: Record<EinstellungsTeil, { titel: string; unter: string }> = {
+  saetze: { titel: 'Sätze und Kosten', unter: 'Stundensätze, Zuschläge, Rechnungsvorgaben und Kostensätze' },
+  nummern: { titel: 'Nummernkreise', unter: 'Vorsätze für Rechnungen, Angebote, Baustellen und Kennzeichen' },
+  personal: { titel: 'Personal', unter: 'Urlaubsjahr, Genehmigung und Wochenplan' },
+};
+
+export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsTeil }) {
   const { user, company, reloadCompany } = useAuth();
   const toast = useToast();
   const [rates, setRates] = useState<InvoiceRates>(INVOICE_DEFAULTS);
@@ -67,7 +85,12 @@ export default function SettingsView() {
    */
   const [costRates, setCostRates] = useState({ fach: '', helper: '' });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  /*
+    DER FEHLER WEISS, WO ER HINGEHÖRT. Vorher gab es einen für die ganze
+    Seite, angezeigt unter „Sätze speichern" — scheiterte das Speichern der
+    Nummernkreise, stand die Meldung zwei Karten weiter oben.
+  */
+  const [error, setError] = useState<{ wo: string; text: string } | null>(null);
 
   /**
    * Wer Urlaub genehmigen darf — eine betriebliche Festlegung, keine
@@ -175,7 +198,7 @@ export default function SettingsView() {
       await reloadCompany();
       toast.success('Genehmigende gespeichert');
     } catch (err) {
-      setError(grundAus(err, 'Die Genehmigenden konnten nicht gespeichert werden.'));
+      setError({ wo: 'genehmiger', text: grundAus(err, 'Die Genehmigenden konnten nicht gespeichert werden.') });
     } finally {
       setGenehmigerSpeichert(false);
     }
@@ -208,7 +231,7 @@ export default function SettingsView() {
       .map((k) => praefixFehler(vorsaetze[k]))
       .find(Boolean);
     if (fehler) {
-      setError(fehler);
+      setError({ wo: 'nummern', text: fehler });
       return;
     }
     setVorsaetzeSpeichert(true);
@@ -223,9 +246,7 @@ export default function SettingsView() {
       await reloadCompany();
       toast.success('Nummernkreise gespeichert');
     } catch (e) {
-      setError(
-        grundAus(e, 'Die Nummernkreise konnten nicht gespeichert werden.'),
-      );
+      setError({ wo: 'nummern', text: grundAus(e, 'Die Nummernkreise konnten nicht gespeichert werden.') });
     } finally {
       setVorsaetzeSpeichert(false);
     }
@@ -240,7 +261,7 @@ export default function SettingsView() {
       await reloadCompany();
       toast.success(wochenplanFuerAlle ? 'Wochenplan für alle sichtbar' : 'Wochenplan nur fürs Büro');
     } catch (err) {
-      setError(grundAus(err, 'Die Einstellung zum Wochenplan konnte nicht gespeichert werden.'));
+      setError({ wo: 'wochenplan', text: grundAus(err, 'Die Einstellung zum Wochenplan konnte nicht gespeichert werden.') });
     } finally {
       setWochenplanSpeichert(false);
     }
@@ -262,9 +283,7 @@ export default function SettingsView() {
       await reloadCompany();
       toast.success('Urlaubsübertrag gespeichert');
     } catch (e) {
-      setError(
-        grundAus(e, 'Der Urlaubsübertrag konnte nicht gespeichert werden.'),
-      );
+      setError({ wo: 'uebertrag', text: grundAus(e, 'Der Urlaubsübertrag konnte nicht gespeichert werden.') });
     } finally {
       setUebertragSpeichert(false);
     }
@@ -295,7 +314,7 @@ export default function SettingsView() {
       await reloadCompany();
       toast.success('Sätze gespeichert');
     } catch (err) {
-      setError(grundAus(err, 'Die Einstellungen konnten nicht gespeichert werden.'));
+      setError({ wo: 'saetze', text: grundAus(err, 'Die Einstellungen konnten nicht gespeichert werden.') });
     } finally {
       setSaving(false);
     }
@@ -306,14 +325,14 @@ export default function SettingsView() {
   const nightFach = rates.fach * (1 + rates.nightSurcharge);
   const emergencyFach = rates.fach * (1 + rates.emergencySurcharge);
   const bothFach = rates.fach * (1 + rates.nightSurcharge + rates.emergencySurcharge);
+  const fehlerBei = (wo: string) =>
+    error?.wo === wo ? <div className="mt-3"><ErrorState message={error.text} /></div> : null;
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Einstellungen"
-        subtitle="Stundensätze und Zuschläge für die Rechnungsstellung"
-      />
+      <PageHeader title={KOPF[teil].titel} subtitle={KOPF[teil].unter} />
 
+      {teil === 'saetze' && (
       <form onSubmit={submit} className="space-y-6">
         <Card
           title="Stundensätze"
@@ -485,13 +504,18 @@ export default function SettingsView() {
               checked={rechnungsarten}
               onChange={(e) => setRechnungsarten(e.target.checked)}
             />
-            <p className="mt-2 text-sm text-ink-muted">
-              Dann steht beim Anlegen einer Rechnung die Art zur Wahl, und die Schlussrechnung
-              zieht die Anzahlungen samt Umsatzsteuer wieder ab — ohne diesen Abzug wäre dieselbe
-              Steuer zweimal ausgewiesen und zweimal geschuldet (§ 11 Abs 12 UStG).{' '}
-              <strong>Bereits ausgestellte Belege bleiben, wie sie sind:</strong> sie behalten ihre
-              Art und ihre Abzüge und drucken unverändert, auch wenn der Haken später wieder
-              weggeht.
+            <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
+              Die Schlussrechnung zieht die Anzahlungen samt Umsatzsteuer wieder ab.
+              <InfoHint about="Anzahlungs- und Schlussrechnungen">
+                Beim Anlegen einer Rechnung steht dann die Art zur Wahl. Ohne den Abzug in der
+                Schlussrechnung wäre dieselbe Steuer zweimal ausgewiesen und zweimal geschuldet
+                (§ 11 Abs 12 UStG).
+                <br />
+                <br />
+                <strong>Bereits ausgestellte Belege bleiben, wie sie sind:</strong> sie behalten
+                ihre Art und ihre Abzüge und drucken unverändert, auch wenn der Haken später
+                wieder weggeht.
+              </InfoHint>
             </p>
           </div>
         </Card>
@@ -554,7 +578,7 @@ export default function SettingsView() {
           )}
         </Card>
 
-        {error && <ErrorState message={error} />}
+        {fehlerBei('saetze')}
 
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button type="submit" loading={saving} className="w-full sm:w-auto">
@@ -570,6 +594,7 @@ export default function SettingsView() {
           </Button>
         </div>
       </form>
+      )}
 
       {/*
         Monatsbilanzen — der einmalige Erstaufbau.
@@ -593,13 +618,24 @@ export default function SettingsView() {
         nimmt nur den Weg weg, statt einen Knopf anzubieten, der abgewiesen
         wird.
       */}
-      {darfGenehmigerSetzen && (
+      {teil === 'personal' && darfGenehmigerSetzen && (
         <Card
           title="Urlaubsjahr und Übertrag"
           hint={
             <>
-              Was am 31. Dezember offen ist, verschwindet nicht. Womit der Betrieb rechnet,
-              steht hier — und danach richtet sich jeder Resturlaub, den die App anzeigt.
+              Was am Ende des Urlaubsjahrs offen ist, verschwindet nicht. Womit der Betrieb
+              rechnet, steht hier — und danach richtet sich jeder Resturlaub, den die App anzeigt.
+              <br />
+              <br />
+              <strong>Nicht abgebildet:</strong> ein Urlaubsjahr, das für jeden Mitarbeiter am
+              Jahrestag seines Eintritts beginnt. Wer so rechnet, kann den Urlaubsteil dieser App
+              nicht verwenden.
+              <br />
+              <br />
+              <strong>Was die App nicht entscheidet:</strong> ob ein vereinbarter Verfallstag im
+              Einzelfall trägt, ist eine arbeitsrechtliche Frage — die gesetzliche Verjährung steht
+              dem Mitarbeiter unabhängig davon zu. Die Einstellung legt fest, womit die App rechnet,
+              nicht was jemandem zusteht.
             </>
           }
         >
@@ -644,11 +680,7 @@ export default function SettingsView() {
               ))}
             </SelectField>
             <p className="w-full text-sm text-ink-muted">
-              An diesem Tag entsteht der neue Jahresanspruch. Beim Kalenderjahr — der Vorgabe —
-              ist das der 1. Jänner.{' '}
-              <strong className="text-ink">Nicht abgebildet:</strong> ein Urlaubsjahr, das für
-              jeden Mitarbeiter am Jahrestag seines Eintritts beginnt. Wer so rechnet, kann den
-              Urlaubsteil dieser App nicht verwenden.
+              An diesem Tag entsteht der neue Jahresanspruch — beim Kalenderjahr am 1. Jänner.
             </p>
           </div>
 
@@ -735,18 +767,12 @@ export default function SettingsView() {
             </div>
           )}
 
-          <p className="mt-4 text-sm text-ink-muted">
-            <strong className="text-ink">Was die App hier nicht entscheidet.</strong> Ob ein
-            vereinbarter Verfallstag im Einzelfall trägt, ist eine arbeitsrechtliche Frage — die
-            gesetzliche Verjährung steht dem Mitarbeiter unabhängig davon zu. Diese Einstellung
-            legt fest, womit die App rechnet und was sie anzeigt, nicht was jemandem zusteht.
-          </p>
-
           <div className="mt-4">
             <Button type="button" loading={uebertragSpeichert} onClick={uebertragSpeichern}>
               Urlaubsübertrag speichern
             </Button>
           </div>
+          {fehlerBei('uebertrag')}
         </Card>
       )}
 
@@ -761,10 +787,19 @@ export default function SettingsView() {
         lässt ohnehin nur sie an diese Tabelle, und ein Feld anzuzeigen, dessen
         Speichern der Server abweist, wäre ein Versprechen ohne Deckung.
       */}
-      {darfGenehmigerSetzen && (
+      {teil === 'nummern' && darfGenehmigerSetzen && (
         <Card
           title="Nummernkreise und Fuhrpark"
-          hint="Die Vorsätze gelten ab jetzt. Bereits ausgestellte Belege behalten ihre Nummer — eine Rechnung lässt sich nach § 132 BAO nicht mehr ändern."
+          hint={
+            <>
+              Die Vorsätze gelten ab jetzt. Bereits ausgestellte Belege behalten ihre Nummer — eine
+              Rechnung lässt sich nach § 132 BAO nicht mehr ändern.
+              <br />
+              <br />
+              Erlaubt sind Großbuchstaben, Ziffern und Bindestrich, weil der Vorsatz im Dateinamen
+              des Rechnungs-PDFs und in der Buchhaltungs-CSV steht.
+            </>
+          }
         >
           <FormGrid>
             {([
@@ -812,9 +847,8 @@ export default function SettingsView() {
           </FormGrid>
 
           <p className="mt-4 text-sm text-ink-muted">
-            Nur Großbuchstaben, Ziffern und Bindestrich, höchstens {PRAEFIX_MAX} Zeichen: der
-            Vorsatz steht im Dateinamen des Rechnungs-PDFs und in der Buchhaltungs-CSV.
-            Leer lassen heißt „kein Vorsatz" — dann zählt der Kreis als
+            Großbuchstaben, Ziffern, Bindestrich, höchstens {PRAEFIX_MAX} Zeichen. Leer heißt
+            „kein Vorsatz" — dann zählt der Kreis als
             <span className="tnum"> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
           </p>
 
@@ -823,6 +857,7 @@ export default function SettingsView() {
               Nummernkreise speichern
             </Button>
           </div>
+          {fehlerBei('nummern')}
         </Card>
       )}
 
@@ -832,7 +867,7 @@ export default function SettingsView() {
         eintragen und ueber die Urlaube derer entscheiden, die sie einteilt.
         Dieselbe Grenze steht im Trigger `companies_einstellungen`.
       */}
-      {darfGenehmigerSetzen && (
+      {teil === 'personal' && darfGenehmigerSetzen && (
         <Card
           title="Wer Urlaub genehmigt"
           hint={
@@ -873,6 +908,7 @@ export default function SettingsView() {
               Genehmigende speichern
             </Button>
           </div>
+          {fehlerBei('genehmiger')}
         </Card>
       )}
 
@@ -896,6 +932,7 @@ export default function SettingsView() {
         steht dort ohne Grund: die Urlaube der anderen bleiben dem Monteur
         verschlossen, die Datenbank gibt nur Wer/Von/Bis heraus.
       */}
+      {teil === 'personal' && (
       <Card
         title="Wochenplan für alle"
         hint={
@@ -917,8 +954,11 @@ export default function SettingsView() {
             Speichern
           </Button>
         </div>
+        {fehlerBei('wochenplan')}
       </Card>
+      )}
 
+      {teil === 'personal' && (
       <Card title="Monatsbilanzen">
         <p className="text-sm text-ink">
           Die Monatsbilanzen sind eine Sicht auf die Zeitbuchungen: sie rechnen bei jeder
@@ -926,6 +966,7 @@ export default function SettingsView() {
           keinen Stand, der stillstehen und auf einem Lohnzettel landen könnte.
         </p>
       </Card>
+      )}
     </div>
   );
 }
