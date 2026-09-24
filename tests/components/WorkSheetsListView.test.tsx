@@ -240,7 +240,7 @@ describe('Einen Entwurf aufgeben', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Verwerfen' }));
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Entwurf verwerfen');
-    expect(dialog).toHaveTextContent('Familie Huber, 2026-09-04');
+    expect(dialog).toHaveTextContent('Familie Huber, 04.09.2026');
     expect(verwerfen).not.toHaveBeenCalled();
   });
 

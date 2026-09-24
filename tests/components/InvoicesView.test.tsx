@@ -896,8 +896,8 @@ describe('Eine überfällige Rechnung mahnen', () => {
       { ...UEBERFAELLIG, mahnstufe: 2, gemahntAm: '2026-08-30', mahnfrist: '2026-09-06' },
     ];
     zeige();
-    expect(await screen.findByText(/Mahnung am 2026-08-30/)).toBeInTheDocument();
-    expect(screen.getByText(/Frist 2026-09-06/)).toBeInTheDocument();
+    expect(await screen.findByText(/Mahnung am 30\.08\.2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Frist 06\.09\.2026/)).toBeInTheDocument();
   });
 
   it('zeigt die Mahnung einer bezahlten Rechnung als Geschichte — ohne Frist, ohne Warnfarbe', async () => {
@@ -909,9 +909,9 @@ describe('Eine überfällige Rechnung mahnen', () => {
       },
     ];
     zeige();
-    const zeile = await screen.findByText(/Mahnung am 2026-08-30/);
+    const zeile = await screen.findByText(/Mahnung am 30\.08\.2026/);
     expect(zeile).not.toHaveClass('text-warning');
-    expect(screen.queryByText(/Frist 2026-09-06/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Frist 06\.09\.2026/)).not.toBeInTheDocument();
   });
 });
 

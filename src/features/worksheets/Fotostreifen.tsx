@@ -67,7 +67,7 @@ export default function Fotostreifen({ fotos }: { fotos: WorkSheetFoto[] }) {
                   …
                 </span>
               )}
-              <span className="mt-1 block font-mono text-[10px] text-ink-muted">
+              <span className="mt-1 block font-mono text-xs text-ink-muted">
                 {f.hash.slice(0, 12)}… · {groesse(f.bytes)}
               </span>
             </span>

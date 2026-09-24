@@ -176,7 +176,7 @@ export default function LeistungszeitErfassen({
         <InputField
           id="lz-taetigkeit"
           label="Tätigkeit (optional)"
-          placeholder="Therme entlüftet, Eckventil getauscht"
+          placeholder="z. B. Therme entlüftet, Eckventil getauscht"
           value={form.taetigkeit}
           onChange={(e) => setForm({ ...form, taetigkeit: e.target.value })}
         />

@@ -180,7 +180,7 @@ export default function PlattformView() {
             <InputField
               id="b-name"
               label="Name des Betriebs"
-              placeholder="Perl Installationen"
+              placeholder="Name des Betriebs"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
@@ -189,7 +189,7 @@ export default function PlattformView() {
             <InputField
               id="b-kennung"
               label="Kennung"
-              placeholder="perl"
+              placeholder="z. B. mustermann"
               value={form.companyId}
               onChange={(e) => setForm({ ...form, companyId: e.target.value })}
               required
@@ -198,7 +198,7 @@ export default function PlattformView() {
             <InputField
               id="b-adminname"
               label="Erster Administrator"
-              placeholder="Petra Perl"
+              placeholder="Vor- und Nachname"
               value={form.adminName}
               onChange={(e) => setForm({ ...form, adminName: e.target.value })}
               required
@@ -208,7 +208,7 @@ export default function PlattformView() {
               id="b-adminmail"
               label="Dessen E-Mail"
               type="email"
-              placeholder="petra@perl.at"
+              placeholder="name@betrieb.at"
               value={form.adminEmail}
               onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
               required
@@ -313,7 +313,7 @@ export default function PlattformView() {
             <InputField
               id="n-kennung"
               label="Kennung des Betriebs"
-              placeholder="perl"
+              placeholder="z. B. mustermann"
               value={notForm.companyId}
               onChange={(e) => setNotForm({ ...notForm, companyId: e.target.value })}
               required
@@ -334,7 +334,7 @@ export default function PlattformView() {
           <InputField
             id="n-grund"
             label="Grund"
-            placeholder="Betrieb ausgesperrt, Administrator verloren"
+            placeholder="z. B. Betrieb ausgesperrt"
             value={notForm.grund}
             onChange={(e) => setNotForm({ ...notForm, grund: e.target.value })}
             required

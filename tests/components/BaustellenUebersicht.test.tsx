@@ -154,7 +154,7 @@ describe('Baustellenübersicht', () => {
       eintrag({ id: 'b', date: '2026-09-03' }),
     ];
     zeige();
-    expect(await screen.findByText('Zuletzt gebucht am 3.9.2026.')).toBeInTheDocument();
+    expect(await screen.findByText('Zuletzt gebucht am 03.09.2026.')).toBeInTheDocument();
   });
 
   it('zählt abwesende Tage nicht mit', async () => {

@@ -196,7 +196,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       </header>
 
       {/* Desktop-Sidebar */}
-      <aside className="panel-dark hidden md:flex md:w-64 md:shrink-0 md:flex-col md:border-r-[3px] md:border-r-white md:p-3">
+      <aside className="panel-dark hidden md:flex md:w-64 lg:w-[17.5rem] md:shrink-0 md:flex-col md:border-r-[3px] md:border-r-white md:p-3">
         <div className="mb-4 px-2 pt-1">{BrandMarkSidebar}</div>
         <nav className="flex flex-col gap-4 overflow-y-auto" aria-label="Hauptnavigation">
           {groups.map(({ group, items: groupItems }) => (
@@ -306,7 +306,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Mobile Tab-Bar — dieselbe dunkle Trägerfläche wie die Kopfleiste, so
           dass der Inhalt oben und unten von der Marke eingefasst wird.
-          Aktiv = weiße Schrift in heller Pille, PLUS Fettung — auf 10 px
+          Aktiv = weiße Schrift in heller Pille, PLUS Fettung — auf 12 px
           Schrift ist Farbe allein zu wenig. */}
       <nav
         className="panel-dark fixed inset-x-0 bottom-0 z-30 md:hidden"
@@ -321,7 +321,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               to={item.path}
               end={item.path === '/'}
               className={({ isActive }) =>
-                `flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.65rem] font-bold ${
+                `flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-bold ${
                   isActive ? 'text-white' : 'text-white/70'
                 }`
               }
@@ -330,7 +330,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                 <>
                   {/*
                     AM TELEFON HAENGT DIE ZAHL AM SYMBOL, nicht hinter dem
-                    Wort: die Beschriftung darunter ist 10 px breit und schon
+                    Wort: die Beschriftung darunter ist 12 px hoch und oft
                     abgeschnitten („Rechnungen"), eine Zahl dahinter waere das
                     Erste, was wegfaellt. Ueber der rechten oberen Ecke ist sie
                     die gewohnte Stelle und kostet keinen Platz in der Zeile.
@@ -360,7 +360,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <button
               onClick={() => setMoreOpen(true)}
               aria-label="Weitere Bereiche"
-              className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-[0.65rem] font-bold ${
+              className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-bold ${
                 moreActive ? 'text-white' : 'text-white/70'
               }`}
             >

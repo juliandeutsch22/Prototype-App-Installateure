@@ -48,9 +48,10 @@ import {
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { datumAT } from '@/lib/datum';
 
 const fmtDatum = (iso?: string) =>
-  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT') : '—';
+  datumAT(iso) || '—';
 
 /*
   DIE LISTE IST DER AUFRUF, NICHT DIE ZEILE. „Überfällig" sagt, WO eine
@@ -561,7 +562,7 @@ export default function WartungenView() {
               <InputField id="w-anlage"
                 label="Anlage"
                 pflicht
-                placeholder="Therme Vaillant ecoTEC, Keller"
+                placeholder="z. B. Therme im Keller"
                 value={form.anlage}
                 onChange={(e) => setForm({ ...form, anlage: e.target.value })}
               />
@@ -597,7 +598,7 @@ export default function WartungenView() {
               />
               <InputField id="w-hinweis"
                 label="Hinweis"
-                placeholder="Schlüssel bei der Hausverwaltung"
+                placeholder="z. B. Schlüssel bei der Hausverwaltung"
                 value={form.hinweis ?? ''}
                 onChange={(e) => setForm({ ...form, hinweis: e.target.value })}
               />
@@ -721,7 +722,7 @@ export default function WartungenView() {
               </SelectField>
               <InputField id="e-baustelle"
                 label="Baustelle (optional)"
-                placeholder="2026-014"
+                placeholder="z. B. 2026-014"
                 value={erledigung.baustelle}
                 onChange={(e) => setErledigung({ ...erledigung, baustelle: e.target.value })}
               />

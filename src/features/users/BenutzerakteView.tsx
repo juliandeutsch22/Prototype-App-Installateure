@@ -21,6 +21,7 @@ import {
   alsEntwurf, alsProfil, gleich, WEEKDAYS, type BenutzerEntwurf,
 } from './benutzerEntwurf';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Die Akte eines Benutzers — und die Stelle, an der sie bearbeitet wird.
@@ -43,7 +44,7 @@ type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit
 const LAEDT = { zustand: 'laedt' } as const;
 
 const fmtDatum = (iso?: string | null) =>
-  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT') : '';
+  datumAT(iso);
 
 const tageText = (tage: number[]) =>
   WEEKDAYS.filter((d) => tage.includes(d.value)).map((d) => d.label).join(', ');
@@ -199,7 +200,7 @@ export default function BenutzerakteView() {
         title={p.name}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/user-mgmt" className="text-brand underline">← Zur Benutzerliste</Link>
+            <Link to="/user-mgmt" className="inline-flex min-h-touch items-center text-brand underline">← Zur Benutzerliste</Link>
             <Marke>{p.role}</Marke>
             {p.active === false && <Marke>inaktiv</Marke>}
           </span>

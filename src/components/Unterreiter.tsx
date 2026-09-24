@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { SelectField } from './Field';
 import { useAuth } from '@/app/AuthContext';
 import { unterseitenFuer } from '@/app/navigation';
 
@@ -35,11 +36,33 @@ export default function Unterreiter({
     ? unterseitenFuer(basis, user.role, { wochenplanFuerAlle: !!company?.wochenplanFuerAlle })
     : [];
 
+  const ort = useLocation();
+  const navigate = useNavigate();
+  const leiste = useRef<HTMLElement>(null);
+  const aktiv = ort.pathname.slice(basis.length + 1).split('/')[0];
+
+  /*
+    DER GEWÄHLTE REITER BLEIBT IM BILD. Bei acht Reitern der Einstellungen
+    lief die Leiste auch am Schreibtisch über, und „Fehler" stand abgeschnitten
+    am Rand (Prüflauf 24.09.2026, D5).
+  */
+  useEffect(() => {
+    leiste.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [aktiv]);
+
   // Kann diese Rolle gar nichts davon sehen, ist der Reiter für sie falsch
   // zusammengesetzt. Zurück zur Startseite ist die einzige ehrliche Antwort.
   if (sichtbar.length === 0) return <Navigate to="/" replace />;
 
   const ziel = `${basis}/${sichtbar[0].pfad}`;
+  /*
+    AM TELEFON AB VIER REITERN EINE AUSWAHL. Auf 375 px waren von acht
+    Reitern zweieinhalb zu sehen, und dass es mehr gibt, verriet nichts.
+    Eine Auswahlliste nennt alle und sagt, wo man ist.
+  */
+  const alsAuswahl = sichtbar.length > 3;
 
   return (
     <div>
@@ -49,15 +72,35 @@ export default function Unterreiter({
         Monteur sieht unter „Einstellungen" nur seine Meldungen — und damit
         einfach diese Seite.
       */}
+      {alsAuswahl && (
+        <div className="mb-4 sm:hidden">
+          <SelectField
+            id={`bereich-${basis.replace(/\W/g, '')}`}
+            label="Bereich"
+            value={sichtbar.some((s) => s.pfad === aktiv) ? aktiv : sichtbar[0].pfad}
+            onChange={(e) => navigate(`${basis}/${e.target.value}`)}
+          >
+            {sichtbar.map((s) => (
+              <option key={s.pfad} value={s.pfad}>
+                {s.label}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+      )}
       {sichtbar.length > 1 && (
-        <nav className="mb-4 flex gap-1 overflow-x-auto border-b border-line" aria-label="Bereiche">
+        <nav
+          ref={leiste}
+          className={`mb-4 gap-1 overflow-x-auto border-b border-line ${alsAuswahl ? 'hidden sm:flex' : 'flex'}`}
+          aria-label="Bereiche"
+        >
           {sichtbar.map((s) => (
             <NavLink
               key={s.pfad}
               to={`${basis}/${s.pfad}`}
               className={({ isActive }) =>
                 [
-                  'min-h-touch whitespace-nowrap border-b-2 px-4 py-2 text-sm transition',
+                  'min-h-touch whitespace-nowrap border-b-2 px-3 py-2 text-sm transition',
                   // Dieselbe Markierung wie bei den Reitern in Material,
                   // Lager und Anforderungen: Kante UNTEN, Text fett, beides im
                   // festen Türkis der Oberfläche.

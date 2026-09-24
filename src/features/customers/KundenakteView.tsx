@@ -28,6 +28,7 @@ import { AdresseLink, TelefonLink, MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -54,7 +55,7 @@ const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
 const fmtDatum = (iso?: string) =>
-  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT') : '—';
+  datumAT(iso) || '—';
 
 /** Ein Teil der Akte lädt für sich — ein Fehler nimmt nicht die ganze Seite. */
 /** Wie viele Rechnungen die Akte zuerst zeigt. */
@@ -301,7 +302,7 @@ export default function KundenakteView() {
       <PageHeader
         title={k.name}
         subtitle={
-          <Link to="/customers" className="text-brand underline">
+          <Link to="/customers" className="inline-flex min-h-touch items-center text-brand underline">
             ← Zur Kundenliste
           </Link>
         }
@@ -636,7 +637,7 @@ function StammdatenFormular({
         />
         <InputField
           id="k-uid" label="UID-Nummer" value={entwurf.vatId ?? ''}
-          placeholder="ATU12345678"
+          placeholder="z. B. ATU…"
           onChange={(e) => setze('vatId', e.target.value)}
         />
       </FormGrid>

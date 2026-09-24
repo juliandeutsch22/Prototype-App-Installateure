@@ -36,7 +36,8 @@ import { useToast } from '@/components/Toast';
 const FRIST_MS = 120_000;
 
 function mb(bytes: number): string {
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  // Mit Komma, wie überall sonst in der App — vorher stand hier „0.0 MB".
+  return `${(bytes / 1024 / 1024).toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`;
 }
 
 export default function SicherungView() {

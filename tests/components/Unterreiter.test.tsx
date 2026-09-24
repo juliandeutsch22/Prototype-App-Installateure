@@ -65,6 +65,22 @@ describe('Unterreiter', () => {
     expect(screen.queryByText('Meldungen-Inhalt')).not.toBeInTheDocument();
   });
 
+  it('bietet ab vier Unterseiten am Telefon eine Auswahl, die alle nennt', async () => {
+    // Prüflauf 24.09.2026, D5: auf 375 px waren von acht Reitern zweieinhalb
+    // zu sehen. Die Auswahl steht nur am Telefon (sm:hidden), die Leiste nur
+    // darüber — hier wird der Mechanismus geprüft.
+    rolle = 'Administrator';
+    zeige('/settings/meldungen');
+    const auswahl = (await screen.findByLabelText('Bereich')) as HTMLSelectElement;
+    expect(auswahl.value).toBe('meldungen');
+    expect(Array.from(auswahl.options).map((o) => o.textContent)).toEqual(
+      expect.arrayContaining(['Mein Konto', 'Module', 'Fehler']),
+    );
+    await userEvent.selectOptions(auswahl, 'module');
+    expect(await screen.findByText('Module-Inhalt')).toBeInTheDocument();
+    expect(auswahl.value).toBe('module');
+  });
+
   it('zeigt dem Monteur keine Leiste, weil er nur eine Unterseite hat', async () => {
     /**
      * Ein Reiter, der genau eine Wahlmöglichkeit anbietet, ist keine

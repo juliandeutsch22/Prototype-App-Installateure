@@ -1,6 +1,7 @@
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import IconButton from '@/components/IconButton';
+import { datumAusMs } from '@/lib/datum';
 
 /**
  * Pläne und Dokumente einer Baustelle als Liste — zum Antippen.
@@ -16,7 +17,7 @@ function groesse(bytes: number): string {
 }
 
 function datum(ms?: number): string {
-  return ms ? new Date(ms).toLocaleDateString('de-AT') : '';
+  return datumAusMs(ms);
 }
 
 export default function PlaeneListe({

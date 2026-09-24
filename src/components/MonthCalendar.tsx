@@ -183,7 +183,7 @@ export default function MonthCalendar({
               </span>
               {count > 0 && (
                 <span
-                  className={`tnum inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none ${
+                  className={`tnum inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold leading-none ${
                     past ? 'bg-line text-ink-muted' : 'bg-accent-deep text-white'
                   }`}
                 >

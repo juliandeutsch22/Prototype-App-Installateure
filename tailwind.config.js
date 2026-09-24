@@ -73,7 +73,7 @@ export default {
         accent: { DEFAULT: token('--accent'), fg: token('--accent-fg') },
         bg: token('--bg'),
         surface: { DEFAULT: token('--surface'), 2: token('--surface-2') },
-        ink: { DEFAULT: token('--text'), muted: token('--text-muted') },
+        ink: { DEFAULT: token('--text'), muted: token('--text-muted'), placeholder: token('--text-placeholder') },
         line: { DEFAULT: token('--border'), strong: token('--border-strong') },
         success: { DEFAULT: token('--success'), bg: token('--success-bg') },
         warning: { DEFAULT: token('--warning'), bg: token('--warning-bg') },

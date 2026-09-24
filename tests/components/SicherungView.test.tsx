@@ -90,7 +90,7 @@ describe('Datensicherung', () => {
     // verschwindet. Nach einem Lauf will man den Beleg noch sehen koennen.
     const beleg = await screen.findByText(/Zuletzt gesichert:/);
     expect(beleg).toHaveTextContent('4211');
-    expect(beleg).toHaveTextContent('2.4 MB');
+    expect(beleg).toHaveTextContent('2,4 MB');
     expect(beleg).toHaveTextContent('Standard-Bucket des Projekts');
   });
 

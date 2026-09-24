@@ -212,7 +212,7 @@ describe('Wartungen', () => {
       Wartung einträgt, verschiebt damit eine Zusage um ein Jahr; das soll
       nicht erst hinterher in der Liste auffallen.
     */
-    expect(screen.getByText(/Nächster Termin: 1\.6\.2027/)).toBeTruthy();
+    expect(screen.getByText(/Nächster Termin: 01\.06\.2027/)).toBeTruthy();
 
     await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
 
@@ -233,7 +233,7 @@ describe('Wartungen', () => {
 
     await nutzer.selectOptions(screen.getByLabelText('Intervall ab jetzt'), '24');
     // Zwei Jahre, nicht eines — und die Vorschau sagt es vor dem Bestätigen.
-    expect(screen.getByText(/Nächster Termin: 1\.6\.2028/)).toBeTruthy();
+    expect(screen.getByText(/Nächster Termin: 01\.06\.2028/)).toBeTruthy();
 
     await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
     expect(wartungErledigt).toHaveBeenCalledWith(

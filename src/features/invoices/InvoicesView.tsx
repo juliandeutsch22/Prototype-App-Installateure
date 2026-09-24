@@ -67,6 +67,7 @@ import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Ein Betrag MIT vorangestelltem Eurozeichen — „€ 22 104,60".
@@ -1432,7 +1433,7 @@ export default function InvoicesView() {
                 }
                 subtitle={
                   <span className="tnum">
-                    Baustelle {schein.projectNumber} · Leistung vom {schein.datum} ·{' '}
+                    Baustelle {schein.projectNumber} · Leistung vom {datumAT(schein.datum)} ·{' '}
                     {schein.abrechnung}
                   </span>
                 }
@@ -1953,7 +1954,7 @@ export default function InvoicesView() {
                 {abzuege.map((v) => (
                   <tr key={v.invoiceId} className="text-danger">
                     <td colSpan={4} className="text-right">
-                      abzüglich {v.invoiceNumber} vom {v.invoiceDate} (netto {fmtEUR(v.netto)} +
+                      abzüglich {v.invoiceNumber} vom {datumAT(v.invoiceDate)} (netto {fmtEUR(v.netto)} +
                       USt {fmtEUR(v.vat)})
                     </td>
                     <td className="tnum pr-3 text-right">−{fmtEUR(v.brutto)}</td>
@@ -2021,7 +2022,7 @@ export default function InvoicesView() {
                     <CheckboxField
                       key={r.id}
                       id={`abzug-${r.id}`}
-                      label={`${r.invoiceNumber} vom ${r.invoiceDate} — ${fmtEUR(r.totalBrutto)} brutto (davon ${fmtEUR(r.totalVat)} USt)`}
+                      label={`${r.invoiceNumber} vom ${datumAT(r.invoiceDate)} — ${fmtEUR(r.totalBrutto)} brutto (davon ${fmtEUR(r.totalVat)} USt)`}
                       checked={gewaehlteAbzuege.includes(r.id)}
                       onChange={(e) =>
                         setGewaehlteAbzuege((alt) =>
@@ -2155,7 +2156,7 @@ export default function InvoicesView() {
               <InputField
                 id="rc-uid"
                 label="UID-Nummer des Kunden"
-                placeholder="ATU12345678"
+                placeholder="z. B. ATU…"
                 value={kundenUid}
                 onChange={(e) => setKundenUid(e.target.value)}
                 pflicht={uidPruefung.pflicht}
@@ -2269,8 +2270,8 @@ export default function InvoicesView() {
                       Angabe mehr, sondern eine Zahlenfolge. Die Zeile darf
                       weiter umbrechen, aber nur ZWISCHEN den Angaben.
                     */}
-                    <span className="whitespace-nowrap">{inv.invoiceDate}</span> ·{' '}
-                    <span className="whitespace-nowrap">fällig {inv.dueDate}</span> ·{' '}
+                    <span className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</span> ·{' '}
+                    <span className="whitespace-nowrap">fällig {datumAT(inv.dueDate)}</span> ·{' '}
                     <span className="whitespace-nowrap">{fmtEUR(inv.totalBrutto)}</span>
                     {/*
                       WAS SCHON GEMAHNT WURDE, gehört in die Zeile.
@@ -2290,12 +2291,12 @@ export default function InvoicesView() {
                     {!!inv.mahnstufe &&
                       (['Bezahlt', 'Überzahlt', 'Storniert'].includes(inv.paymentStatus) ? (
                         <span className="mt-1 block text-xs text-ink-muted">
-                          {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {inv.gemahntAm}
+                          {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
                         </span>
                       ) : (
                         <span className="mt-1 block text-xs text-warning">
-                          {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {inv.gemahntAm}
-                          {inv.mahnfrist ? ` · Frist ${inv.mahnfrist}` : ''}
+                          {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
+                          {inv.mahnfrist ? ` · Frist ${datumAT(inv.mahnfrist)}` : ''}
                           {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} Spesen` : ''}
                         </span>
                       ))}
@@ -2579,7 +2580,7 @@ export default function InvoicesView() {
                   title={<span className="tnum">{fmtEUR(z.betrag)}</span>}
                   subtitle={
                     <span className="tnum">
-                      {z.datum} · {z.art}
+                      {datumAT(z.datum)} · {z.art}
                       {z.hinweis ? ` · ${z.hinweis}` : ''}
                       {z.erfasstVonName ? ` · erfasst von ${z.erfasstVonName}` : ''}
                     </span>
@@ -2644,7 +2645,7 @@ export default function InvoicesView() {
         message={
           mahnFuer
             ? `${mahnFuer.invoiceNumber} über ${fmtEUR(mahnFuer.totalBrutto)}, fällig war ` +
-              `${mahnFuer.dueDate}. Der Beleg wird als PDF erzeugt und heruntergeladen; ` +
+              `${datumAT(mahnFuer.dueDate)}. Der Beleg wird als PDF erzeugt und heruntergeladen; ` +
               'versendet wird er von Ihnen.'
             : undefined
         }
