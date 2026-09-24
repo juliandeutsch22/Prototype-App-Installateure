@@ -17,9 +17,22 @@ const listProjectsForEmployee = vi.fn(async () => {
   if (faellt) throw new Error('kein Netz');
   return baustellen;
 });
+/** Baustellen aus der Einteilung — die, die nicht im Team stehen. */
+let perNummer: Project[] = [];
+let einsaetze: { projectNumber: string; date: string }[] = [];
+const listProjectsByNumbers = vi.fn(async (_c: string, n: string[]) =>
+  perNummer.filter((p) => n.includes(p.projectNumber)));
 vi.mock('@/lib/db/projects', () => ({
   listProjectsForEmployee: () => listProjectsForEmployee(),
+  listProjectsByNumbers: (c: string, n: string[]) => listProjectsByNumbers(c, n),
 }));
+vi.mock('@/lib/db/assignments', () => ({
+  listUpcomingAssignments: vi.fn(async () => einsaetze),
+}));
+vi.mock('@/lib/time', async () => {
+  const echt = await vi.importActual<typeof import('@/lib/time')>('@/lib/time');
+  return { ...echt, todayStr: () => '2026-09-24' };
+});
 
 const plaene: { wert: { id: string; projectId: string; pfad: string; dateiname: string; mime: string; bytes: number }[] } = { wert: [] };
 let plaeneScheitern = false;
@@ -59,6 +72,9 @@ const baustelle = (over: Partial<Project> = {}): Project =>
 
 beforeEach(() => {
   baustellen = [];
+  perNummer = [];
+  einsaetze = [];
+  listProjectsByNumbers.mockClear();
   faellt = false;
   plaene.wert = [];
   plaeneScheitern = false;
@@ -127,7 +143,7 @@ describe('Meine Baustellen', () => {
     faellt = true;
     render(<MyProjectsView />);
     expect(await screen.findByText(/kein Netz/)).toBeInTheDocument();
-    expect(screen.queryByText(/keine Baustellen zugeordnet/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/keinem laufenden Baustelle|auf keiner laufenden Baustelle/)).not.toBeInTheDocument();
   });
 
   it('nennt Nummer, Zeitraum und kalkulierte Stunden', async () => {
@@ -176,5 +192,35 @@ describe('Die Pläne der Baustelle', () => {
     plaeneScheitern = true;
     render(<MyProjectsView />);
     expect(await screen.findByText(/Die Pläne konnte nicht geladen werden/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * Prüflauf L2 (24.09.2026): eingeteilt heisst für den Monteur zugeordnet.
+ * Die Baustelle stand unter „Mein Einsatzplan“, hier aber nicht.
+ */
+describe('Meine Baustellen — auch aus der Einteilung', () => {
+  it('zeigt eine Baustelle, auf die er nur eingeteilt ist, mit dem nächsten Einsatz', async () => {
+    perNummer = [baustelle({ id: 'p2', projectNumber: '2026-042', customerName: 'Gemeinde Neudorf' })];
+    einsaetze = [
+      { projectNumber: '2026-042', date: '2026-10-02' },
+      { projectNumber: '2026-042', date: '2026-09-28' },
+    ];
+    render(<MyProjectsView />);
+    expect(await screen.findByText('Gemeinde Neudorf')).toBeInTheDocument();
+    expect(screen.getByText('nächster Einsatz 28.09.2026')).toBeInTheDocument();
+  });
+
+  it('zeigt eine Baustelle aus Team UND Einteilung nur einmal — und fragt sie nicht doppelt ab', async () => {
+    baustellen = [baustelle()];
+    einsaetze = [{ projectNumber: '2026-001', date: '2026-09-25' }];
+    render(<MyProjectsView />);
+    expect(await screen.findAllByText('Familie Huber')).toHaveLength(1);
+    expect(listProjectsByNumbers).not.toHaveBeenCalled();
+  });
+
+  it('sagt ehrlich, wenn es weder noch gibt', async () => {
+    render(<MyProjectsView />);
+    expect(await screen.findByText(/auf keiner laufenden Baustelle und hast keinen kommenden Einsatz/)).toBeInTheDocument();
   });
 });

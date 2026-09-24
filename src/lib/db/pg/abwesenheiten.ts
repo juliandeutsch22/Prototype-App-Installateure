@@ -143,6 +143,8 @@ export async function betriebsurlaubAnlegen(daten: {
   bezeichnung: string;
   abbuchen: boolean;
   name?: string;
+  /** Kennungen der Mitarbeiter, die in diesem Zeitraum arbeiten. */
+  ausgenommen?: string[];
 }): Promise<BetriebsurlaubErgebnis> {
   const { data, error } = await derClient().rpc('betriebsurlaub_anlegen', {
     p_von: daten.von,
@@ -150,6 +152,7 @@ export async function betriebsurlaubAnlegen(daten: {
     p_bezeichnung: daten.bezeichnung,
     p_abbuchen: daten.abbuchen,
     p_name: daten.name ?? null,
+    p_ausgenommen: daten.ausgenommen ?? [],
   });
   if (error) throw new Error(error.message);
   return data as BetriebsurlaubErgebnis;

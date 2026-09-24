@@ -83,6 +83,7 @@ vi.mock('@/lib/time', async () => {
 });
 
 let rolle: 'Geschäftsführung' | 'Verwaltung' | 'Buchhaltung' = 'Geschäftsführung';
+let freigabe = false;
 const NUTZER = () => ({
   uid: 'chef',
   email: 'chefin@perl.at',
@@ -90,6 +91,7 @@ const NUTZER = () => ({
   role: rolle,
   companyId: 'perl',
   docId: 'chef',
+  kundenPflegen: freigabe,
 });
 let nutzer = NUTZER();
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => ({ user: nutzer }) }));
@@ -125,6 +127,7 @@ beforeEach(() => {
   listInvoicesForCustomer.mockClear();
   modulAn = true;
   rolle = 'Geschäftsführung';
+  freigabe = false;
   nutzer = NUTZER();
   nachgezogen = 0;
   listCustomersByIds.mockClear();
@@ -470,5 +473,41 @@ describe('Die Rechnungen der Akte', () => {
     await screen.findByRole('heading', { name: 'Angebote' });
     expect(screen.queryByRole('heading', { name: 'Rechnungen' })).not.toBeInTheDocument();
     expect(listInvoicesForCustomer).not.toHaveBeenCalled();
+  });
+});
+
+describe('Die Verwaltung mit der Freigabe „Kunden pflegen“', () => {
+  beforeEach(() => {
+    rolle = 'Verwaltung';
+    freigabe = true;
+    nutzer = NUTZER();
+  });
+
+  it('bearbeitet die Stammdaten in der Akte', async () => {
+    zeige();
+    expect(await screen.findByLabelText('UID-Nummer')).toHaveValue('ATU12345678');
+  });
+
+  it('ordnet aber keine Baustelle zu — das ändert die Baustelle', async () => {
+    namensgleich = [
+      { id: 'p9', companyId: 'perl', projectNumber: 'B-042', customerName: KUNDE.name, status: 'Aktiv' } as Project & { id: string },
+    ];
+    zeige();
+    await screen.findByText(/keinem Kunden zugeordnet/);
+    expect(screen.queryByRole('button', { name: 'Zuordnen' })).toBeNull();
+  });
+
+  it('und bekommt den Hinweis auf die Übernahme in der Kundenliste nicht, die sie nicht hat', async () => {
+    zeige();
+    await screen.findByLabelText('UID-Nummer');
+    expect(screen.queryByText(/Gesucht wurde nach exakt/)).not.toBeInTheDocument();
+  });
+
+  it('ohne Freigabe liest sie nur', async () => {
+    freigabe = false;
+    nutzer = NUTZER();
+    zeige();
+    await screen.findByText('Hausverwaltung Nord');
+    expect(screen.queryByLabelText('UID-Nummer')).not.toBeInTheDocument();
   });
 });

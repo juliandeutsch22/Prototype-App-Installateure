@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listActiveProjects } from '@/lib/db/projects';
@@ -156,6 +156,21 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     return m;
   }, [betriebsurlaube, tage]);
 
+  /**
+   * Hat der Betrieb an diesem Tag für DIESE Person zu?
+   *
+   * Wer beim Betriebsurlaub ausgenommen wurde, arbeitet in der Zeit (etwa
+   * Notdienst oder Lager) — er ist dann „frei“ und einteilbar wie an jedem
+   * anderen Tag. Die Spalte bleibt trotzdem grau: für den Betrieb ist zu.
+   */
+  const zuFuer = useCallback(
+    (uid: string, tag: string) =>
+      betriebsurlaube.some(
+        (b) => b.von <= tag && b.bis >= tag && !(b.ausgenommen ?? []).includes(uid),
+      ),
+    [betriebsurlaube],
+  );
+
   // Nur Außendienst wird eingeplant — dieselbe Auswahl wie in der Tagesplanung.
   const staff = useMemo(
     () =>
@@ -220,7 +235,6 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
       >();
       const frei: string[] = [];
       const urlaub: string[] = [];
-      const zu = zuAm.has(tag);
       for (const u of staff) {
         const z = brett.get(u.uid)?.get(tag);
         // Ohne Grund steht nur der Name da — „Erna (abwesend)" hinter
@@ -230,8 +244,8 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
         }
         if (z?.imUrlaub) continue;
         if (!z || z.baustellen.length === 0) {
-          // Am Betriebsurlaub ist niemand „frei" — der Betrieb hat zu.
-          if (!zu) frei.push(u.name);
+          // Am Betriebsurlaub ist niemand „frei" — ausser wer ausgenommen ist.
+          if (!zuFuer(u.uid, tag)) frei.push(u.name);
           continue;
         }
         for (const b of z.baustellen) {
@@ -253,7 +267,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
       });
     }
     return m;
-  }, [tage, staff, brett, zuAm]);
+  }, [tage, staff, brett, zuFuer]);
 
   /** Wie viele sind an diesem Tag frei — die Zahl, um die es geht. */
   const freiJeTag = useMemo(() => {
@@ -414,7 +428,9 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                               24.09.2026, D15). */}
                           {(zu || (!wochenende && !feiertag)) && (
                             <span className="mt-1 block text-xs text-ink-muted">
-                              {zu ?? `${frei} frei`}
+                              {/* Mit Ausgenommenen ist auch am Betriebsurlaub
+                                  jemand frei — dann steht beides da. */}
+                              {zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : `${frei} frei`}
                             </span>
                           )}
                         </button>
@@ -439,6 +455,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                       const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
                       const leer = !z || (z.baustellen.length === 0 && !z.imUrlaub);
                       const zu = zuAm.get(tag);
+                      const zuPerson = zuFuer(u.uid, tag);
                       return (
                         <td
                           key={tag}
@@ -453,11 +470,12 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           {z?.abwesendText && !z.imUrlaub && (
                             <span className="mb-1 block text-center text-xs text-info">{z.abwesendText}</span>
                           )}
-                          {zu && (!z || z.baustellen.length === 0) ? (
+                          {zuPerson && (!z || z.baustellen.length === 0) ? (
                             /*
                               DER BETRIEB HAT ZU — für alle derselbe graue
                               Block, auch für den, der dabei persönlich Urlaub
-                              gebucht bekam. Wer trotzdem eingeteilt ist (etwa
+                              gebucht bekam. Nicht für Ausgenommene: die
+                              arbeiten und sind einteilbar. Wer trotzdem eingeteilt ist (etwa
                               ein Notdienst), steht mit seiner Baustelle da.
                             */
                             <span className="block rounded-sm bg-surface-2 px-2 py-1 text-center text-xs text-ink-muted">

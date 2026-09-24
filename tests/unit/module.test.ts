@@ -133,6 +133,17 @@ describe('Die mobile Leiste ist ausgesucht, nicht abgeschnitten', () => {
     expect(unten.map((i) => i.path)).toEqual(['/', '/time', '/my-schedule', '/material']);
   });
 
+  it('gibt der Verwaltung ihre Arbeit unten: Anforderungen statt Anfordern', () => {
+    /**
+     * Prüflauf L1, entschieden am 24.09.2026. „Material anfordern“ ist
+     * Monteursarbeit; die Anforderungen mit ihrem Zähler lagen unter „Mehr“.
+     * Anfordern bleibt dort erreichbar.
+     */
+    const { unten, mehr } = tabBarForRole('Verwaltung', undefined);
+    expect(unten.map((i) => i.path)).toEqual(['/', '/anforderungen', '/customers', '/time']);
+    expect(mehr.map((i) => i.path)).toContain('/material');
+  });
+
   it('haelt die Leiste voll, wenn ein Modul fehlt', () => {
     /**
      * Faellt ein Wunscheintrag weg, rueckt der naechste nach. Eine Leiste mit

@@ -120,7 +120,16 @@ export interface BenutzerEntwurf {
   initialOvertime: string;
   initialVacationDays: string;
   workDays: number[];
+  /** Freigabe „Kunden pflegen“ — nur für Verwaltung und Buchhaltung angeboten. */
+  kundenPflegen: boolean;
+  /** Nur für die Geschäftsführung angeboten. */
+  fuehrtZeitkonto: boolean;
 }
+
+/** Für welche Rollen der Haken „Kunden pflegen“ etwas bedeutet. */
+export const mitKundenFreigabe = (r: Role) => r === 'Verwaltung' || r === 'Buchhaltung';
+/** Für welche Rolle das Zeitkonto wählbar ist — die anderen legt die Rolle fest. */
+export const mitZeitkontoWahl = (r: Role) => r === 'Geschäftsführung';
 
 export function leererEntwurf(): BenutzerEntwurf {
   return {
@@ -141,6 +150,8 @@ export function leererEntwurf(): BenutzerEntwurf {
     */
     initialVacationDays: '',
     workDays: DEFAULT_WORK_DAYS,
+    kundenPflegen: false,
+    fuehrtZeitkonto: false,
   };
 }
 
@@ -159,6 +170,8 @@ export function alsEntwurf(u: AppUser): BenutzerEntwurf {
         ? ''
         : String(u.initialVacationDays),
     workDays: u.workDays ?? DEFAULT_WORK_DAYS,
+    kundenPflegen: u.kundenPflegen === true,
+    fuehrtZeitkonto: u.fuehrtZeitkonto === true,
   };
 }
 
@@ -176,6 +189,13 @@ export function alsProfil(e: BenutzerEntwurf): UserProfileInput {
     initialVacationDays: zahlOderNull(e.initialVacationDays),
     // Eine leere Auswahl wäre ein Tagessoll von „Wochenstunden durch null".
     workDays: e.workDays.length ? e.workDays : DEFAULT_WORK_DAYS,
+    /*
+      NUR, WO DIE ROLLE ES ZULÄSST. Wird aus der Bürokraft ein Monteur, fällt
+      die Freigabe mit — sonst lebte sie unsichtbar weiter und wäre nach einem
+      Wechsel zurück plötzlich wieder da, ohne dass jemand sie erteilt hätte.
+    */
+    kundenPflegen: mitKundenFreigabe(e.role) && e.kundenPflegen,
+    fuehrtZeitkonto: mitZeitkontoWahl(e.role) && e.fuehrtZeitkonto,
   };
 }
 

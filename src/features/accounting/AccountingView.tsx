@@ -22,7 +22,7 @@ import {
 } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry } from '@/types';
-import { erscheintInAuswertung, shouldShowOvertime } from '@/lib/permissions';
+import { fuehrtZeitkonto } from '@/lib/permissions';
 import Card from '@/components/Card';
 import { Marke, Warnung, Zustand } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
@@ -241,7 +241,7 @@ export default function AccountingView() {
   const relevant = useMemo(
     () =>
       users
-        .filter((u) => erscheintInAuswertung(u.role) && u.active !== false)
+        .filter((u) => fuehrtZeitkonto(u) && u.active !== false)
         .sort((a, b) => a.name.localeCompare(b.name, 'de')),
     [users],
   );
@@ -468,10 +468,10 @@ export default function AccountingView() {
               WARUM DIESE UNTERSCHEIDUNG. „Keine aktiven Mitarbeiter mit
               Zeitkonto" stand hier auch dann, wenn der Betrieb sehr wohl
               Benutzer hat — nur eben keinen, der ein Zeitkonto FÜHRT.
-              Geschäftsführung und Administration tun das nicht (siehe
-              `erscheintInAuswertung`), sie erscheinen hier also nie, auch
-              nicht mit eigenen Buchungen. Die Projektleitung erscheint sehr
-              wohl — sie führt kein Zeitkonto, bucht aber Zeit.
+              Die Administration tut das nie, die Geschäftsführung nur, wenn
+              es in ihrer Benutzerakte eingeschaltet ist (siehe
+              `fuehrtZeitkonto`); ohne das erscheinen sie hier nicht, auch
+              nicht mit eigenen Buchungen.
 
               Aus dem Betrieb gemeldet: die Geschäftsführung bucht eine Zeit
               und liest danach, es gebe keine Mitarbeiter. Die Aussage war
@@ -481,7 +481,7 @@ export default function AccountingView() {
             {alleRows.length === 0
               ? users.length === 0
                 ? 'Noch keine Benutzer angelegt.'
-                : 'Kein Konto erscheint in dieser Auswertung. Geschäftsführung und Administration stehen hier nicht — auch nicht mit eigenen Buchungen. Monteure, Verwaltung, Buchhaltung und Projektleitung legst du unter Einstellungen → Benutzerverwaltung an.'
+                : 'Kein Konto erscheint in dieser Auswertung. Hier steht, wer ein Zeitkonto führt: Monteure, Verwaltung, Buchhaltung und Projektleitung, die Geschäftsführung nur, wenn es in ihrer Benutzerakte eingeschaltet ist. Die Administration steht hier nie.'
               : suche
                 ? `Kein Mitarbeiter passt zu „${suche}".`
                 : 'Alle Zeitkonten sind vollständig.'}
@@ -493,14 +493,13 @@ export default function AccountingView() {
               /*
                 Traegt dieser Mitarbeiter ueberhaupt einen Saldo?
 
-                Zwei Faelle, in denen die Zahl KEINE Aussage ist: die
-                Projektleitung fuehrt kein Zeitkonto (es gibt kein Soll), und
-                ohne hinterlegtes Eintrittsdatum laesst sich keines rechnen.
-                Beide sind unten je mit einem eigenen Kasten erklaert — die
-                Bedingung steht hier einmal, damit die grosse Zahl am Telefon
-                und der Kasten nicht auseinanderlaufen koennen.
+                Hier steht nur, wer ein Zeitkonto fuehrt. Ohne hinterlegtes
+                Eintrittsdatum laesst sich trotzdem keines rechnen — das ist
+                unten mit einem eigenen Kasten erklaert. Die Bedingung steht
+                hier einmal, damit die grosse Zahl am Telefon und der Kasten
+                nicht auseinanderlaufen koennen.
               */
-              const zeigtSaldo = shouldShowOvertime(u.role) && stats.hasConfig;
+              const zeigtSaldo = stats.hasConfig;
               return (
                 <div
                   key={u.uid}
@@ -546,16 +545,7 @@ export default function AccountingView() {
                         (Prüflauf 24.09.2026, D20). Hier rutschen sie in die
                         nächste Zeile.
                       */}
-                      {!shouldShowOvertime(u.role) ? (
-                        /*
-                          Ein Projektleiter hat kein Soll — „kein Eintritt
-                          hinterlegt" stünde hier also als Mangel, wo keiner
-                          ist, und schickte jemanden in die Stammdaten.
-                        */
-                        <Marke>führt kein Zeitkonto</Marke>
-                      ) : !stats.hasConfig ? (
-                        <Marke>kein Eintritt hinterlegt</Marke>
-                      ) : null}
+                      {!stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
                     </span>
                     <span className="flex shrink-0 items-center gap-3">
                       <span className="hidden text-right sm:block">
@@ -583,7 +573,7 @@ export default function AccountingView() {
                         00:00 — das sah aus wie ein gepflegter Datensatz und
                         verbarg, dass die Stammdaten unvollstaendig sind.
                       */}
-                      {!shouldShowOvertime(u.role) || !stats.hasConfig ? null : (
+                      {!stats.hasConfig ? null : (
                         /*
                           DER SALDO IST EINE ZAHL, KEINE AUFFORDERUNG. Er stand
                           als gefüllte Pille neben der Lückenmeldung, und zwei
@@ -720,13 +710,7 @@ export default function AccountingView() {
                           </>
                         )}
                       </p>
-                      {!shouldShowOvertime(u.role) ? (
-                        <p className="mt-2 rounded-sm border border-border bg-surface-2 px-3 py-2 text-sm text-ink-muted">
-                          Die Projektleitung führt kein Zeitkonto: es gibt kein Soll und damit
-                          weder Über- noch Unterstunden. Die gebuchten Stunden stehen trotzdem
-                          hier — sie gehören auf die Baustelle und in die Nachkalkulation.
-                        </p>
-                      ) : !stats.hasConfig ? (
+                      {!stats.hasConfig ? (
                         <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                           Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
                           sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,

@@ -242,6 +242,10 @@ export interface AppUser {
   initialVacationDays?: number | null;
   appStartDate?: string | null; // 'YYYY-MM-DD' ab dem Soll/Ist gilt
   workDays?: number[]; // 0=So..6=Sa, default [1,2,3,4,5]
+  /** Freigabe „Kunden pflegen“ — wirkt für Verwaltung und Buchhaltung (siehe `darfKundenPflegen`). */
+  kundenPflegen?: boolean;
+  /** Nur Geschäftsführung: führt ein Zeitkonto (siehe `fuehrtZeitkonto`). */
+  fuehrtZeitkonto?: boolean;
   createdAt?: number;
 }
 
@@ -253,6 +257,9 @@ export interface CurrentUser {
   role: Role;
   companyId: string;
   docId: string;
+  /** Aus der eigenen Zeile in `users`; die Grenze zieht die Datenbank. */
+  kundenPflegen?: boolean;
+  fuehrtZeitkonto?: boolean;
 }
 
 /**
@@ -978,6 +985,8 @@ export interface Betriebsurlaub {
   bezeichnung: string;
   /** Wurde der Zeitraum allen aktiven Mitarbeitern als Urlaub gebucht? */
   urlaubAbbuchen: boolean;
+  /** Wer in diesem Zeitraum arbeitet: kein Urlaub gebucht, in der Planung verfügbar. */
+  ausgenommen?: string[];
   angelegtVonName?: string | null;
   createdAt?: number;
 }

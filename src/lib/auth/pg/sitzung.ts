@@ -227,6 +227,8 @@ function profilAus(
     role,
     companyId,
     docId: uid,
+    kundenPflegen: zeile.kunden_pflegen === true,
+    fuehrtZeitkonto: zeile.fuehrt_zeitkonto === true,
   };
 }
 

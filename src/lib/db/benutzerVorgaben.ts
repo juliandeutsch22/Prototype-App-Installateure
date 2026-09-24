@@ -27,4 +27,8 @@ export interface UserProfileInput {
   initialOvertime?: number;
   /** Resturlaub am Startdatum. `null` = nicht angegeben (voller Jahresanspruch). */
   initialVacationDays?: number | null;
+  /** Freigabe „Kunden pflegen“ (Verwaltung, Buchhaltung). */
+  kundenPflegen?: boolean;
+  /** Nur Geschäftsführung: führt ein Zeitkonto. */
+  fuehrtZeitkonto?: boolean;
 }

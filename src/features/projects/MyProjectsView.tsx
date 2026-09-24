@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { listProjectsForEmployee } from '@/lib/db/projects';
+import { listProjectsByNumbers, listProjectsForEmployee } from '@/lib/db/projects';
+import { listUpcomingAssignments } from '@/lib/db/assignments';
+import { todayStr } from '@/lib/time';
 import type { Project } from '@/types';
 import Card from '@/components/Card';
 import Icon from '@/components/Icon';
@@ -31,13 +33,40 @@ function fmt(d?: string): string {
 export default function MyProjectsView() {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
+  /** Baustellennummer -> nächster Einsatztag, für Baustellen aus der Einteilung. */
+  const [naechsterEinsatz, setNaechsterEinsatz] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    listProjectsForEmployee(user.companyId, user.uid)
-      .then((rows) => setProjects(rows))
+    /*
+      ZWEI WEGE AUF EINE BAUSTELLE: das Team der Baustelle und die Einteilung.
+
+      Bis zum 24.09.2026 zählte nur das Team. Wer von der Projektleitung für
+      nächsten Montag eingeteilt wurde, sah die Baustelle unter „Mein
+      Einsatzplan“, hier aber „Dir sind aktuell keine Baustellen zugeordnet“
+      (Prüflauf L2) — für den Monteur ist „eingeteilt“ und „zugeordnet“
+      dasselbe. Jetzt stehen beide da, jede Baustelle einmal.
+    */
+    const heute = todayStr();
+    Promise.all([
+      listProjectsForEmployee(user.companyId, user.uid),
+      listUpcomingAssignments(user.companyId, user.uid, heute, 200),
+    ])
+      .then(async ([team, einsaetze]) => {
+        const naechster = new Map<string, string>();
+        for (const a of einsaetze) {
+          const bisher = naechster.get(a.projectNumber);
+          if (!bisher || a.date < bisher) naechster.set(a.projectNumber, a.date);
+        }
+        const fehlen = [...naechster.keys()].filter(
+          (n) => !team.some((p) => p.projectNumber === n),
+        );
+        const dazu = fehlen.length ? await listProjectsByNumbers(user.companyId, fehlen) : [];
+        setNaechsterEinsatz(naechster);
+        setProjects([...team, ...dazu]);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [user]);
@@ -60,14 +89,14 @@ export default function MyProjectsView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Meine Baustellen" subtitle="Baustellen, denen du zugeordnet bist" />
+      <PageHeader title="Meine Baustellen" subtitle="Aus deinem Team und aus deiner Einteilung" />
 
       {loading ? (
         <Card><LoadingState /></Card>
       ) : error ? (
         <Card><ErrorState message={error} /></Card>
       ) : active.length === 0 ? (
-        <Card><EmptyState>Dir sind aktuell keine Baustellen zugeordnet. Die Einteilung macht die Projektleitung.</EmptyState></Card>
+        <Card><EmptyState>Du bist auf keiner laufenden Baustelle und hast keinen kommenden Einsatz. Die Einteilung macht die Projektleitung.</EmptyState></Card>
       ) : (
         <div className="space-y-4">
           {plaene.zustand === 'fehler' && <TeilFehler was="Die Pläne" onRetry={plaeneNeu} />}
@@ -78,6 +107,11 @@ export default function MyProjectsView() {
               action={<StatusBadge status={p.status} />}
             >
               <p className="tnum text-sm text-ink-muted">{p.projectNumber}</p>
+              {naechsterEinsatz.has(p.projectNumber) && (
+                <p className="mt-1">
+                  <Marke>nächster Einsatz {fmt(naechsterEinsatz.get(p.projectNumber))}</Marke>
+                </p>
+              )}
               {/* Zeilenumbrüche bleiben: der Auftragsumfang aus dem Angebot ist oft eine Liste. */}
               {p.description && <p className="mt-2 whitespace-pre-line text-ink">{p.description}</p>}
 

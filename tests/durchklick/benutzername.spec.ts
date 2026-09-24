@@ -94,5 +94,12 @@ test('Benutzername: anlegen, erstes Anmelden, eigenes Passwort, vergessen, neues
   await mitNameAnmelden(danach, name, 'Noras-eigenes-1');
   await expect(danach.getByText(/Anmeldung fehlgeschlagen/)).toBeVisible({ timeout: 20_000 });
   await mitNameAnmelden(danach, name, start2);
+
+  // 7. Der Ausgang aus „Willkommen“ (Prüflauf L3): wer mit dem falschen Konto
+  //    drin ist, kommt ohne Passwort wieder hinaus — und danach normal herein.
+  await expect(danach.getByRole('heading', { name: 'Willkommen' })).toBeVisible({ timeout: 20_000 });
+  await danach.getByRole('button', { name: 'Abmelden' }).click();
+  await expect(danach.getByRole('button', { name: 'Anmelden' })).toBeVisible({ timeout: 20_000 });
+  await mitNameAnmelden(danach, name, start2);
   await eigenesVergeben(danach, 'Noras-zweites-2');
 });

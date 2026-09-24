@@ -1,5 +1,5 @@
 import type { AppUser, Company, TimeEntry } from '@/types';
-import { shouldShowOvertime } from './permissions';
+import { fuehrtZeitkonto } from './permissions';
 /*
   DIE VORGABE FÜR URLAUBSTAGE KOMMT AUS EINER QUELLE, NICHT AUS ZWEIEN.
 
@@ -516,7 +516,7 @@ export interface SaldoResult {
  * voller Solltag. saldoH = initial + (Ist − Soll)/60.
  */
 export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResult {
-  if (!shouldShowOvertime(user.role)) {
+  if (!fuehrtZeitkonto(user)) {
     return { saldoH: 0, hasConfig: false, daysWithoutEntry: 0 };
   }
 
@@ -584,7 +584,7 @@ export function saldoAusBilanzen(
   bilanzen: Array<{ monat: string; anwesendMin: number; krankTage: number; urlaubTage: number; tage: string[] }>,
   laufenderMonat: TimeEntry[],
 ): SaldoResult {
-  if (!shouldShowOvertime(user.role)) {
+  if (!fuehrtZeitkonto(user)) {
     return { saldoH: 0, hasConfig: false, daysWithoutEntry: 0 };
   }
   const initial = Number(user.initialOvertime ?? 0) || 0;

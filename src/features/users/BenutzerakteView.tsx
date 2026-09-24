@@ -18,7 +18,8 @@ import { MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import {
-  alsEntwurf, alsProfil, gleich, WEEKDAYS, type BenutzerEntwurf,
+  alsEntwurf, alsProfil, gleich, mitKundenFreigabe, mitZeitkontoWahl, WEEKDAYS,
+  type BenutzerEntwurf,
 } from './benutzerEntwurf';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
@@ -362,6 +363,12 @@ function StammdatenLesen({ p }: { p: AppUser }) {
         <Angabe wort="E-Mail"><MailLink adresse={p.email} /></Angabe>
       )}
       <Angabe wort="Rolle">{p.role}</Angabe>
+      {mitKundenFreigabe(p.role) && (
+        <Angabe wort="Kunden pflegen">{p.kundenPflegen ? 'ja' : 'nein'}</Angabe>
+      )}
+      {mitZeitkontoWahl(p.role) && (
+        <Angabe wort="Zeitkonto">{p.fuehrtZeitkonto ? 'ja' : 'nein'}</Angabe>
+      )}
       <Angabe wort="Zustand">
         {p.active === false
           ? <Zustand stand="ruht">inaktiv</Zustand>
@@ -455,12 +462,56 @@ function StammdatenFormular({
       </FormGrid>
 
       {/*
+        NUR DORT, WO DER HAKEN ETWAS BEDEUTET. Die Leitung pflegt Kunden
+        ohnehin, Monteure nie (siehe `darfKundenPflegen`) — ein Haken, der bei
+        ihnen nichts bewirkt, wäre eine Einstellung, die lügt.
+      */}
+      {mitKundenFreigabe(entwurf.role) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <CheckboxField
+              id="b-kunden"
+              label="Darf Kunden anlegen und ändern"
+              checked={entwurf.kundenPflegen}
+              onChange={(e) => setze('kundenPflegen', e.target.checked)}
+            />
+          </div>
+          <InfoHint about="Kunden anlegen und ändern">
+            Kunden anlegen, bearbeiten, löschen und aus einer Datei übernehmen. Baustellen einem
+            Kunden zuordnen bleibt bei der Leitung, die Kunden ohnehin pflegen darf.
+          </InfoHint>
+        </div>
+      )}
+
+      {/*
         DIE ZEITKONTO-FELDER STEHEN OFFEN. Im Anlege-Formular sind sie zu Recht
         eingeklappt — dort stimmen die Vorgaben meistens. Hier sind sie der
         Grund, warum jemand die Akte öffnet.
       */}
       <div className="space-y-4 rounded border border-line bg-surface-2 p-4">
         <p className="section-label">Zeitkonto</p>
+        {/*
+          Nur die Geschäftsführung wählt: der angestellte Geschäftsführer hat
+          ein Soll, der Inhaber meist nicht. Für alle anderen legt die Rolle
+          es fest (siehe `fuehrtZeitkonto`).
+        */}
+        {mitZeitkontoWahl(entwurf.role) && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <CheckboxField
+                id="b-zeitkonto"
+                label="Führt ein Zeitkonto"
+                checked={entwurf.fuehrtZeitkonto}
+                onChange={(e) => setze('fuehrtZeitkonto', e.target.checked)}
+              />
+            </div>
+            <InfoHint about="Zeitkonto der Geschäftsführung">
+              Mit Zeitkonto gibt es ein Soll und einen Saldo, die Person steht in der
+              Mitarbeiterübersicht, und die Startseite meldet Tage ohne Buchung. Ohne Zeitkonto
+              kann sie trotzdem Zeit buchen.
+            </InfoHint>
+          </div>
+        )}
         <FormGrid>
           <InputField
             id="b-stunden" label="Wochenstunden" type="number" step="0.5" min="0"

@@ -13,7 +13,7 @@ import { listQuotesForCustomer } from '@/lib/db/quotes';
 import { listInvoicesForCustomer } from '@/lib/db/invoices';
 import { listWartungenForCustomer } from '@/lib/db/wartungen';
 import { useModul } from '@/lib/useModule';
-import { canInvoice, isGF } from '@/lib/permissions';
+import { canInvoice, darfKundenPflegen, isGF } from '@/lib/permissions';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { todayStr } from '@/lib/time';
 import type { Customer, Invoice, Project, Quote, Wartung } from '@/types';
@@ -102,7 +102,9 @@ export default function KundenakteView() {
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
 
   const companyId = user?.companyId;
-  const darfAendern = user ? isGF(user.role) : false;
+  const darfAendern = user ? darfKundenPflegen(user) : false;
+  // Eine Baustelle zuordnen ändert die BAUSTELLE — das bleibt bei der Leitung.
+  const darfBaustellenZuordnen = user ? isGF(user.role) : false;
   /** Rechnungen liest nur, wer sie auch stellt — so steht es im Zeilenschutz. */
   const darfRechnungen = user ? canInvoice(user.role) : false;
   const heute = todayStr();
@@ -379,7 +381,7 @@ export default function KundenakteView() {
                   <span className="truncate text-sm text-ink">
                     {p.projectNumber} · {p.address ?? 'ohne Adresse'}
                   </span>
-                  {darfAendern && (
+                  {darfBaustellenZuordnen && (
                     <Button
                       variant="secondary"
                       loading={zuordnenLaeuft === p.id}
@@ -405,7 +407,8 @@ export default function KundenakteView() {
           </div>
         )}
 
-        {baustellen.zustand === 'bereit' &&
+        {darfBaustellenZuordnen &&
+          baustellen.zustand === 'bereit' &&
           baustellen.daten.length === 0 &&
           namensgleich.length === 0 && (
             <p className="mt-2 text-xs text-ink-muted">
