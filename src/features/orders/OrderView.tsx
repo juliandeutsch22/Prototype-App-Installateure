@@ -579,7 +579,7 @@ export default function OrderView() {
                       Der Abschluss zieht das Material vom Lager ab; deshalb
                       geht er weiterhin durch die Rückfrage.
                     */}
-                    <Button variant="accent" onClick={() => setToPickUp(o)}>
+                    <Button variant="primary" onClick={() => setToPickUp(o)}>
                       Abgeholt
                     </Button>
                   </ListRow>

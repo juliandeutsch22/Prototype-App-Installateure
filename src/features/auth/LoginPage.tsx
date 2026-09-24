@@ -121,7 +121,7 @@ export default function LoginPage() {
             zweite für dieselbe Sache. */}
 
         <form onSubmit={handleSubmit} className="bg-surface px-6 py-6">
-          <h1 className="mb-1 text-lg font-bold text-ink">
+          <h1 className="mb-1 text-xl font-semibold text-ink">
             {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
           </h1>
           <p className="mb-4 text-sm text-ink-muted">
@@ -188,7 +188,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              variant="accent"
+              variant="primary"
               loading={submitting}
               className="w-full justify-center"
             >

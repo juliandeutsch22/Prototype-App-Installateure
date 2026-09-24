@@ -306,8 +306,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       {/* Mobile Tab-Bar — dieselbe dunkle Trägerfläche wie die Kopfleiste, so
           dass der Inhalt oben und unten von der Marke eingefasst wird.
-          Aktiv = weiße Schrift in heller Pille, PLUS Fettung — auf 12 px
-          Schrift ist Farbe allein zu wenig. */}
+          Aktiv = helle Pille um das Symbol PLUS volles Weiss statt 70 % —
+          auf 12 px Schrift ist Farbe allein zu wenig. Die Beschriftung ist
+          halbfett für alle, nicht fett (Marke: „Fett wirkt laut";
+          Prüflauf 24.09.2026, C9). */}
       <nav
         className="panel-dark fixed inset-x-0 bottom-0 z-30 md:hidden"
         aria-label="Hauptnavigation"
@@ -321,7 +323,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               to={item.path}
               end={item.path === '/'}
               className={({ isActive }) =>
-                `flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-bold ${
+                `flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${
                   isActive ? 'text-white' : 'text-white/70'
                 }`
               }
@@ -360,7 +362,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <button
               onClick={() => setMoreOpen(true)}
               aria-label="Weitere Bereiche"
-              className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-bold ${
+              className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${
                 moreActive ? 'text-white' : 'text-white/70'
               }`}
             >

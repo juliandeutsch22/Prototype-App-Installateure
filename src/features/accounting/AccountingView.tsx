@@ -419,7 +419,7 @@ export default function AccountingView() {
           <span className="flex flex-wrap gap-2">
             {!creating && !editing && (
               <Button
-                variant="accent"
+                variant="primary"
                 onClick={() => {
                   setEditing(null);
                   setCreating(true);
@@ -526,7 +526,7 @@ export default function AccountingView() {
                     }`}
                   >
                     <span className="flex min-w-0 flex-wrap items-center gap-2">
-                      <span className="font-bold text-ink">{u.name}</span>
+                      <span className="font-semibold text-ink">{u.name}</span>
                       {/* „vollständig" braucht keine Pille — nur die Ausnahme
                           verdient Aufmerksamkeit. */}
                       {completeness.status === 'missing' ? (
@@ -642,11 +642,18 @@ export default function AccountingView() {
                           <p className="section-label">{zeigtSaldo ? 'Saldo' : 'Gebucht'}</p>
                           {zeigtSaldo ? (
                             <>
-                              <p
-                                className={`tnum mt-1 text-[2rem] font-bold leading-none tracking-tight ${
-                                  stats.saldoMin >= 0 ? 'text-success' : 'text-danger'
-                                }`}
-                              >
+                              {/*
+                                RUHIGER, NICHT KLEINER IN DER AUSSAGE. Hier stand
+                                die Zahl in 32 px, fett und rot — und direkt
+                                darunter die roten „Arbeitstage ohne Buchung".
+                                Aus dem Betrieb (24.09.2026): „überladen, der
+                                Saldo zu fett und gross, Rot auf Rot". Die Farbe
+                                trägt jetzt allein der Punkt in der Kopfzeile,
+                                wie überall in der App (Zustand = Punkt + Wort);
+                                die Zahl steht in Tinte, halbfett, eine Stufe
+                                kleiner.
+                              */}
+                              <p className="tnum mt-1 text-2xl font-semibold leading-none text-ink">
                                 {stats.saldoMin > 0 ? '+' : ''}
                                 {fmtMin(stats.saldoMin)}
                               </p>
@@ -663,7 +670,7 @@ export default function AccountingView() {
                               Mitarbeiter auszugeben. Gross steht dann, was
                               wirklich gemessen ist: die gebuchte Zeit.
                             */
-                            <p className="tnum mt-1 text-[2rem] font-bold leading-none tracking-tight text-ink">
+                            <p className="tnum mt-1 text-2xl font-semibold leading-none text-ink">
                               {fmtMin(stats.istMin)}
                             </p>
                           )}
@@ -696,7 +703,7 @@ export default function AccountingView() {
                         Uebrig bleibt das Wort „laufend"; warum das zaehlt,
                         sagt das „i" auf Wunsch.
                       */}
-                      <p className="mt-3 flex flex-wrap items-center gap-x-1 text-xs text-ink-muted">
+                      <p className="mt-3 text-xs text-ink-muted">
                         Tagessoll {stats.dailyTargetH.toFixed(2).replace('.', ',')} h ·
                         Wochenstunden {String(stats.weeklyTarget).replace('.', ',')} h ·{' '}
                         {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
@@ -745,8 +752,14 @@ export default function AccountingView() {
                           rechts und dreht sich beim Oeffnen — dieselbe
                           Bewegung wie eine Zeile hoeher.
                         */
-                        <details className="group mt-4 rounded border border-line bg-surface-2 text-sm text-danger">
-                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-semibold [&::-webkit-details-marker]:hidden">
+                        /*
+                          Kein Rot mehr: die fehlenden Tage sind eine Lücke in
+                          den Daten, keine Schuld — die Kopfzeile sagt es schon
+                          mit der Warnpille. Hier genügt die Warnfarbe am
+                          Titel; die Daten selbst stehen in normaler Schrift.
+                        */
+                        <details className="group mt-4 rounded border border-line bg-surface-2 text-sm">
+                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-medium text-warning [&::-webkit-details-marker]:hidden">
                             <span>
                               {completeness.missingCount === 1
                                 ? '1 Arbeitstag ohne Buchung'
@@ -758,7 +771,7 @@ export default function AccountingView() {
                               className="shrink-0 transition-transform duration-200 group-open:rotate-180"
                             />
                           </summary>
-                          <p className="px-3 pb-2 leading-relaxed">
+                          <p className="px-3 pb-2 leading-relaxed text-ink">
                             {completeness.missingDates.map((d) => dayLabel(d)).join(' · ')}
                           </p>
                         </details>
@@ -893,7 +906,7 @@ export default function AccountingView() {
                         return (
                           <div className="mt-4">
                             <details className="group">
-                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
+                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
                                 <span>
                                   Tagesnachweis ·{' '}
                                   <span className="whitespace-nowrap">
@@ -1048,7 +1061,7 @@ export default function AccountingView() {
                           <Icon name="download" size={16} className="mr-2 shrink-0" />
                           Monat als CSV
                         </Button>
-                        <Button variant="accent" onClick={() => setExportFor(u)}>
+                        <Button variant="primary" onClick={() => setExportFor(u)}>
                           Bericht für Zeitraum
                         </Button>
                         {/*

@@ -1,6 +1,22 @@
 import type { Company, WorkSheet } from '@/types';
 import { fmtMin } from '@/lib/time';
 import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
+import { GRAU, ROT, TABELLENSTIL, TINTE } from '@/lib/belegLayout';
+import { datumAT } from '@/lib/datum';
+
+/*
+  DER SCHEIN GEHT AN DEN KUNDEN — also dieselben Tabellen wie Rechnung und
+  Angebot: keine Flächenfarbe, feine Linien. Hier stand ein Kopfbalken in
+  #1e293b, dem Schiefergrau einer fremden Bibliothek (Prüflauf 24.09.2026,
+  C2). Nur Stil und Schrift kommen aus dem Belegschema; die Ränder des
+  Scheins bleiben seine eigenen.
+*/
+const SCHEIN_TABELLE = {
+  theme: TABELLENSTIL.theme,
+  styles: TABELLENSTIL.styles,
+  headStyles: TABELLENSTIL.headStyles,
+  bodyStyles: TABELLENSTIL.bodyStyles,
+};
 
 /**
  * Handwerksschein als PDF.
@@ -49,9 +65,9 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
   doc.text(betrieb.name || 'Installateur', 195, y + logoH, { align: 'right' });
 
   const zeilen = firmenZeilen(betrieb);
-  doc.setFontSize(8).setTextColor(110, 110, 110);
+  doc.setFontSize(8).setTextColor(...GRAU);
   zeilen.forEach((z, i) => doc.text(z, 195, y + logoH + 5 + i * 4, { align: 'right' }));
-  doc.setFontSize(10).setTextColor(0, 0, 0);
+  doc.setFontSize(10).setTextColor(...TINTE);
 
   y += 10 + logoH + zeilen.length * 4;
 
@@ -63,23 +79,23 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     sieht aus wie ein gueltiger Beleg. Deshalb steht es auf dem Papier.
   */
   if (schein.status === 'Verworfen') {
-    doc.setTextColor(120, 120, 120).setFont('helvetica', 'bold');
+    doc.setTextColor(...GRAU).setFont('helvetica', 'bold');
     doc.text('VERWORFENER ENTWURF — kein gültiger Beleg', rand, y);
-    doc.setTextColor(0, 0, 0).setFont('helvetica', 'normal');
+    doc.setTextColor(...TINTE).setFont('helvetica', 'normal');
     y += 8;
   }
 
   if (schein.status === 'Storniert') {
-    doc.setTextColor(180, 30, 30).setFont('helvetica', 'bold');
+    doc.setTextColor(...ROT).setFont('helvetica', 'bold');
     doc.text(`STORNIERT — ${schein.stornoGrund ?? 'ohne Angabe'}`, rand, y);
-    doc.setTextColor(0, 0, 0).setFont('helvetica', 'normal');
+    doc.setTextColor(...TINTE).setFont('helvetica', 'normal');
     y += 8;
   }
 
   const kopf: [string, string][] = [
     ['Kunde', schein.customerName],
     ['Baustelle', `${schein.projectNumber}${schein.address ? ` · ${schein.address}` : ''}`],
-    ['Leistungsdatum', schein.datum],
+    ['Leistungsdatum', datumAT(schein.datum)],
     ['Abrechnung', schein.abrechnung],
   ];
   for (const [k, v] of kopf) {
@@ -101,8 +117,7 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
         fmtMin(z.minuten),
         z.taetigkeit ?? '',
       ]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [30, 41, 59] },
+      ...SCHEIN_TABELLE,
     });
     // @ts-expect-error — autotable haengt lastAutoTable ans Dokument
     y = (doc.lastAutoTable?.finalY ?? y) + 6;
@@ -119,8 +134,7 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
       startY: y,
       head: [['Material', 'Menge']],
       body: schein.material.map((m) => [m.name, `${m.menge}${m.einheit ? ` ${m.einheit}` : ''}`]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [30, 41, 59] },
+      ...SCHEIN_TABELLE,
     });
     // @ts-expect-error — siehe oben
     y = (doc.lastAutoTable?.finalY ?? y) + 6;
@@ -176,7 +190,7 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     daneben, der belegt, dass es dasselbe ist.
   */
   if (schein.fotos?.length) {
-    doc.setFontSize(9).setTextColor(60, 60, 60);
+    doc.setFontSize(9).setTextColor(...GRAU);
     doc.text(
       `${schein.fotos.length} ${schein.fotos.length === 1 ? 'Foto' : 'Fotos'} zu diesem Schein — ` +
         'beim Betrieb hinterlegt, von der Prüfsumme mit erfasst.',
@@ -186,7 +200,7 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     y += 8;
   }
 
-  doc.setFontSize(7).setTextColor(120, 120, 120);
+  doc.setFontSize(7).setTextColor(...GRAU);
   const fuss = schein.inhaltHash
     ? `Prüfsumme (SHA-256): ${schein.inhaltHash}`
     : 'Prüfsumme wird nach der Übertragung ergänzt.';

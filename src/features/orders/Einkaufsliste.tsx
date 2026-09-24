@@ -744,7 +744,7 @@ function GrosshaendlerPflege({
             <InputField id="gh-kontakt" label="Kontakt (Vertreter, Telefon)" value={entwurf.contactLine}
               onChange={(e) => setEntwurf({ ...entwurf, contactLine: e.target.value })} />
           </FormGrid>
-          <p className="flex items-center text-xs text-ink-muted">
+          <p className="flex flex-wrap items-center text-xs text-ink-muted">
             Die Kontaktzeile steht auf der Bestellung als Empfänger.
             <InfoHint about="Kontaktzeile">
               Etwa „z. Hd. Herrn Maier, 0664 123 45 67". Eine Anschrift des Grosshändlers führt

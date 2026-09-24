@@ -66,7 +66,7 @@ export default function FehlerprotokollView() {
           </Button>
         }
       />
-      <div className="flex items-start gap-2 text-sm text-ink-muted">
+      <div className="flex flex-wrap items-center gap-x-2 text-sm text-ink-muted">
         <p>Festgehalten wird Technik, keine Inhalte.</p>
         <InfoHint about="das Fehlerprotokoll">
           Stürzt eine Ansicht ab, schreibt die App die Fehlermeldung, die Ansicht (ohne Kennungen

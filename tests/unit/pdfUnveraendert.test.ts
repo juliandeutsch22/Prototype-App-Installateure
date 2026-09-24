@@ -135,9 +135,10 @@ function ohneZeitstempel(s: string): string {
  * Ändert jemand ein Beleglayout ABSICHTLICH, ist die Datei neu zu erzeugen —
  * ein bewusster Schritt, und genau so soll es sein.
  *
- * Zuletzt geschehen für die Rechnung, als sie ihre Farbflächen verlor
- * (`src/lib/belegLayout.ts`). Der Teil des Stundenberichts blieb dabei
- * Zeichen für Zeichen, wie er war.
+ * Zuletzt geschehen am 24.09.2026, als die Belege die Farben der Oberfläche
+ * bekamen (Prüflauf, C1/C3). Ausser den Farbbefehlen (`rg`, `RG`, `g`) blieb
+ * dabei jede Zeile, wie sie war — nachgeprüft, bevor die Datei ersetzt wurde.
+ * Davor geschehen für die Rechnung, als sie ihre Farbflächen verlor.
  */
 const REFERENZ = readFileSync('tests/fixtures/pdfKopf.txt', 'utf8');
 

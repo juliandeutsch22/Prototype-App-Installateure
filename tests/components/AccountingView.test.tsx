@@ -180,6 +180,15 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
     expect(saldo).toHaveTextContent('00:00');
   });
 
+  it('setzt den Saldo ruhig — Tinte, halbfett, kein Rot (Rückmeldung 24.09.2026)', async () => {
+    // „Der Saldo zu fett und gross, und das Rot mit dem Rot direkt darunter."
+    // Die Farbe trägt der Punkt in der Kopfzeile, nicht die grosse Zahl.
+    await oeffneMitarbeiter();
+    const saldo = screen.getByText('Saldo').nextElementSibling as HTMLElement;
+    expect(saldo.className).toMatch(/text-ink/);
+    expect(saldo.className).not.toMatch(/text-(danger|success)|font-bold|text-\[2rem\]/);
+  });
+
   it('fuehrt keinen Tag vor dem Eintritt als fehlende Buchung', async () => {
     await oeffneMitarbeiter();
 

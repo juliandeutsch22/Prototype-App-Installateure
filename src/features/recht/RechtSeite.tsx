@@ -28,7 +28,7 @@ export default function RechtSeite({ titel, children }: { titel: string; childre
             eckigen Klammern werden ergänzt.
           </p>
         )}
-        <h1 className="text-2xl font-bold text-ink">{titel}</h1>
+        <h1 className="text-xl font-semibold text-ink sm:text-2xl">{titel}</h1>
         <div className="recht space-y-6 text-base leading-relaxed text-ink">{children}</div>
         <p className="text-sm text-ink-muted">Stand: {STAND}</p>
       </main>
@@ -40,7 +40,7 @@ export default function RechtSeite({ titel, children }: { titel: string; childre
 export function Abschnitt({ titel, children }: { titel: string; children: ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-lg font-bold text-ink">{titel}</h2>
+      <h2 className="text-lg font-semibold text-ink">{titel}</h2>
       {children}
     </section>
   );

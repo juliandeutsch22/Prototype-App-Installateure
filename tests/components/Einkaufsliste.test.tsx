@@ -131,6 +131,10 @@ describe('Einkaufsliste — zusammengefasst je Grosshändler', () => {
 
   it('öffnet die E-Mail an die Bestelladresse, mit Kundennummer und Liste', async () => {
     zeige([anf({ id: 'a' })]);
+    // Der Link steht schon, bevor der Katalog (Art.-Nr., Einheit) geladen ist;
+    // erst danach trägt der Text die volle Zeile. Ohne das Warten hing das
+    // Ergebnis davon ab, wer zuerst fertig ist (CI am 24.09.2026).
+    await screen.findByText('Art.-Nr. EV-12');
     const link = await screen.findByRole('link', { name: 'E-Mail an vertreter@holter.test' });
     const href = link.getAttribute('href')!;
     expect(href.startsWith('mailto:vertreter@holter.test?')).toBe(true);

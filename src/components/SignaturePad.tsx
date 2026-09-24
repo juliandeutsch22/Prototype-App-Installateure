@@ -117,7 +117,10 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
     c.lineWidth = 2;
     c.lineCap = 'round';
     c.lineJoin = 'round';
-    c.strokeStyle = '#111827';
+    // `--text` der Oberfläche statt des Graublaus einer fremden Bibliothek
+    // (#111827, Prüflauf C5). Ein Canvas liest keine CSS-Variablen; der
+    // Wert steht deshalb hier ausgeschrieben.
+    c.strokeStyle = '#0a2030';
   }, []);
 
   /**

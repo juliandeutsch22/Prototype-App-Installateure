@@ -151,13 +151,21 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
               pflicht
             />
           </FormGrid>
-          <div className="flex items-center">
-            <CheckboxField
-              id="bu-abbuchen"
-              label="Urlaubskonto aller aktiven Mitarbeiter belasten"
-              checked={abbuchen}
-              onChange={(e) => setAbbuchen(e.target.checked)}
-            />
+          {/*
+            UMBRECHEN UND DEM HAKEN DEN RAUM LASSEN. Ohne `flex-wrap` stand der
+            aufgeklappte Text als schmale Spalte neben dem Haken, ein Wort je
+            Zeile (Rückmeldung 24.09.2026); ohne `min-w-0 flex-1` rutschte das
+            „i" allein unter die Beschriftung.
+          */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <CheckboxField
+                id="bu-abbuchen"
+                label="Urlaubskonto aller aktiven Mitarbeiter belasten"
+                checked={abbuchen}
+                onChange={(e) => setAbbuchen(e.target.checked)}
+              />
+            </div>
             <InfoHint about="Urlaubskonto belasten">
               Mit Häkchen bekommt jeder aktive Mitarbeiter die Arbeitstage des Zeitraums als
               genehmigten Urlaub gebucht — nach seinen eigenen Arbeitstagen, ohne Feiertage. Tage, an

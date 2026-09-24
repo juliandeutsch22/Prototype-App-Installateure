@@ -49,7 +49,7 @@ export function InfoButton({ about, offen, onToggle, controls }: InfoButtonProps
     >
       <span
         aria-hidden="true"
-        className={`flex h-5 w-5 items-center justify-center rounded-full border text-[0.7rem] font-bold leading-none ${
+        className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs font-bold leading-none ${
           offen ? 'border-brand bg-brand text-brand-fg' : 'border-current'
         }`}
       >

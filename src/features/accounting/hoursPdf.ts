@@ -4,6 +4,7 @@ import autoTable from 'jspdf-autotable';
 import type { AppUser, Company, TimeEntry } from '@/types';
 import { calcWorkMin, zeitausgleichMin } from '@/lib/time';
 import { BRAND_RGB, fmtDate, hours } from './export';
+import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
 
 /** „N", „ND" oder „N+ND" — leer, wenn kein Kennzeichen gesetzt ist. */
@@ -47,7 +48,7 @@ export function generateHoursPdf(opts: {
   doc.text(company.name || 'Firma', margin, 20);
 
   doc.setFontSize(9).setFont('helvetica', 'normal');
-  doc.setTextColor(120, 120, 120);
+  doc.setTextColor(...GRAU);
   doc.text('Zeiterfassung & Stundenübersicht', margin, 27);
 
   /*
@@ -70,7 +71,7 @@ export function generateHoursPdf(opts: {
       day: '2-digit', month: '2-digit', year: 'numeric',
     })],
   ];
-  doc.setFontSize(11).setTextColor(0, 0, 0);
+  doc.setFontSize(11).setTextColor(...TINTE);
   meta.forEach(([label, value], i) => {
     // Um dieselbe Logohöhe nach unten wie die Trennlinie darüber — sonst
     // schöbe sich der Kopf in die Angaben.
@@ -104,7 +105,7 @@ export function generateHoursPdf(opts: {
     body,
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: BRAND_RGB, textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [245, 247, 250] },
+    alternateRowStyles: { fillColor: FLAECHE },
     columnStyles: {
       0: { cellWidth: 22 },
       1: { cellWidth: 20 },
@@ -116,7 +117,7 @@ export function generateHoursPdf(opts: {
       7: { cellWidth: 'auto' },
     },
     didDrawPage: () => {
-      doc.setFontSize(8).setTextColor(150);
+      doc.setFontSize(8).setTextColor(...GRAU);
       doc.text(`Seite ${doc.getCurrentPageInfo().pageNumber}`, rightX, 290, { align: 'right' });
     },
   });
@@ -131,7 +132,7 @@ export function generateHoursPdf(opts: {
   doc.setDrawColor(...BRAND_RGB).setLineWidth(0.3);
   doc.line(margin, y, rightX, y);
 
-  doc.setFontSize(10).setFont('helvetica', 'bold').setTextColor(0, 0, 0);
+  doc.setFontSize(10).setFont('helvetica', 'bold').setTextColor(...TINTE);
   doc.text(`Gesamtstunden: ${hours(totalMin)} h`, margin, y + 6);
 
   const krank = sorted.filter((e) => e.status === 'Krank').length;
@@ -139,7 +140,7 @@ export function generateHoursPdf(opts: {
   const tagessoll =
     (Number(user.weeklyTargetHours ?? 40) || 40) / (user.workDays?.length ? user.workDays.length : 5);
   const zaMin = sorted.reduce((s, e) => s + zeitausgleichMin(e, tagessoll), 0);
-  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(100);
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRAU);
   const abwesend = [
     krank ? `Krankenstandstage: ${krank}` : '',
     urlaub ? `Urlaubstage: ${urlaub}` : '',

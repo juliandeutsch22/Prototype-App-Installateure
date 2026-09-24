@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'accent' | 'danger' | 'ghost' | 'ghost-dark';
+type Variant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'ghost-dark';
 
 /**
  * `klein` ist für REIHEN VON SCHALTERN, nicht für Aktionen.
@@ -37,7 +37,12 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const variants: Record<Variant, string> = {
   primary: 'bg-brand text-brand-fg shadow-sm hover:opacity-95',
   secondary: 'border border-line bg-surface text-ink shadow-sm hover:bg-surface-2',
-  accent: 'bg-accent text-accent-fg shadow-sm hover:opacity-95',
+  /*
+    „accent" GIBT ES NICHT MEHR. Anmelden, Passwort setzen, Betrieb anlegen
+    und die Berichte trugen die Hauptaktion in Türkis, „Zeit buchen" in
+    Petrol — zwei Farben für dieselbe Rolle (Prüflauf 24.09.2026, C11). Eine
+    Hauptaktion ist `primary`, überall.
+  */
   danger: 'bg-danger text-white shadow-sm hover:opacity-90',
   ghost: 'bg-transparent text-ink-muted hover:bg-surface-2',
   // Derselbe zurückhaltende Knopf, aber auf einer dunklen Trägerfläche

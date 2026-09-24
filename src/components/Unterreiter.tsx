@@ -1,6 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { SelectField } from './Field';
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { unterseitenFuer } from '@/app/navigation';
 
@@ -37,15 +36,13 @@ export default function Unterreiter({
     : [];
 
   const ort = useLocation();
-  const navigate = useNavigate();
   const leiste = useRef<HTMLElement>(null);
   const aktiv = ort.pathname.slice(basis.length + 1).split('/')[0];
 
   /*
-    DER GEWÄHLTE REITER BLEIBT IM BILD — dort, wo die Leiste noch seitlich
-    schiebt (bis drei Reiter auf schmalen Schirmen). Bei acht Reitern der
-    Einstellungen stand „Fehler" abgeschnitten am Rand (Prüflauf 24.09.2026,
-    D5); die längeren Leisten brechen inzwischen um.
+    DER GEWÄHLTE REITER BLEIBT IM BILD — am Telefon, wo die Leiste seitlich
+    läuft. Sonst stünde „Fehler" abgeschnitten am Rand, und wer von dort kommt,
+    sähe nicht, wo er ist (Prüflauf 24.09.2026, D5).
   */
   useEffect(() => {
     leiste.current
@@ -58,12 +55,6 @@ export default function Unterreiter({
   if (sichtbar.length === 0) return <Navigate to="/" replace />;
 
   const ziel = `${basis}/${sichtbar[0].pfad}`;
-  /*
-    AM TELEFON AB VIER REITERN EINE AUSWAHL. Auf 375 px waren von acht
-    Reitern zweieinhalb zu sehen, und dass es mehr gibt, verriet nichts.
-    Eine Auswahlliste nennt alle und sagt, wo man ist.
-  */
-  const alsAuswahl = sichtbar.length > 3;
 
   return (
     <div>
@@ -72,34 +63,24 @@ export default function Unterreiter({
         Wahlmöglichkeit anbietet, ist keine Navigation, sondern Zierrat. Der
         Monteur sieht unter „Einstellungen" nur seine Meldungen — und damit
         einfach diese Seite.
+
+        KEINE AUSWAHLLISTE MEHR AM TELEFON. Mit Paket 6 stand dort ab vier
+        Unterseiten ein Feld „Bereich" statt der Reiter. Aus dem Betrieb
+        (24.09.2026): passt nicht zum Rest der App — Material, Lager und
+        Urlaub tragen am Telefon Reiter, die seitlich laufen. Dasselbe gilt
+        jetzt hier; der gewählte Reiter bleibt dabei im Bild.
       */}
-      {alsAuswahl && (
-        <div className="mb-4 sm:hidden">
-          <SelectField
-            id={`bereich-${basis.replace(/\W/g, '')}`}
-            label="Bereich"
-            value={sichtbar.some((s) => s.pfad === aktiv) ? aktiv : sichtbar[0].pfad}
-            onChange={(e) => navigate(`${basis}/${e.target.value}`)}
-          >
-            {sichtbar.map((s) => (
-              <option key={s.pfad} value={s.pfad}>
-                {s.label}
-              </option>
-            ))}
-          </SelectField>
-        </div>
-      )}
       {sichtbar.length > 1 && (
         <nav
           ref={leiste}
           /*
-            AB DEM TABLET UMBRECHEN STATT SCHIEBEN. Seit Nummernkreise und
-            Personal eigene Unterseiten sind, hat „Einstellungen" zehn Reiter;
-            bei 1280 px ragten zwei davon aus dem Bild. Eine zweite Zeile
-            zeigt alle — eine Leiste, die sich nur seitlich schieben lässt,
-            verrät nicht, dass dort noch etwas kommt.
+            AM TELEFON SEITLICH, AB DEM TABLET UMBRECHEN. Seit Nummernkreise
+            und Personal eigene Unterseiten sind, hat „Einstellungen" zehn
+            Reiter; bei 1280 px ragten zwei davon aus dem Bild. Am Schreibtisch
+            zeigt eine zweite Zeile alle — am Telefon wären es vier Zeilen,
+            dort läuft die Leiste wie die übrigen der App seitlich.
           */
-          className={`mb-4 gap-1 border-b border-line ${alsAuswahl ? 'hidden sm:flex sm:flex-wrap' : 'flex overflow-x-auto'}`}
+          className="mb-4 flex gap-1 overflow-x-auto border-b border-line sm:flex-wrap sm:overflow-visible"
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (
