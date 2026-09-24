@@ -44,7 +44,7 @@ export default function ProblemMelden({
         IN DEN KÖRPER DER SEITE, nicht an Ort und Stelle. Am Telefon steht der
         Knopf im Profilblatt, und das ist verschoben und scrollbar — ein
         `fixed` darin bezieht sich auf das Blatt statt auf den Bildschirm. Der
-        Dialog stand dadurch halb abgeschnitten im Blatt (Probelauf 25.09.).
+        Dialog stand dadurch halb abgeschnitten im Blatt (Probelauf 24.09.).
       */}
       {createPortal(
         <ConfirmDialog

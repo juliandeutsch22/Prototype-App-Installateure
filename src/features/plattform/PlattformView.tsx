@@ -37,7 +37,7 @@ import FehlerListe from '@/features/settings/FehlerListe';
  * nicht heimlich — gekennzeichnet, höchstens 24 Stunden, im Protokoll des
  * Betriebs und mit einem Band in seiner App.
  *
- * DIE DRITTE AUSNAHME, SEIT 25.09.2026: DIE FEHLER DER APP. Sie sind kein
+ * DIE DRITTE AUSNAHME, SEIT 24.09.2026: DIE FEHLER DER APP. Sie sind kein
  * Fenster in den Betrieb, sondern in die eigene Software — was abstürzt, in
  * welcher Fassung, auf welchem Gerät. Geputzt, ohne Person, ohne Kennungen in
  * der Ansicht. Eine von Hand geschriebene Meldung erscheint nur, wenn ihr
