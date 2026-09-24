@@ -26,6 +26,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import KundenImport from './KundenImport';
 
 const LEER: NewCustomer = {
   name: '',
@@ -434,6 +435,9 @@ export default function CustomersView() {
           )}
         </Card>
       )}
+
+      {/* Der Kundenstamm aus dem Altprogramm — beim Umstieg einmal, danach selten. */}
+      {darfAendern && <KundenImport onUebernommen={() => void laden()} />}
 
       <Card
         title={`Kunden (${kunden.length})`}

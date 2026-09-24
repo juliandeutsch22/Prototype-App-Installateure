@@ -375,3 +375,21 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
       expect(searchCustomers.mock.calls.some(([, b]) => b === 'Huber')).toBe(true));
   });
 });
+
+describe('Kunden aus einer Datei', () => {
+  it('steht für die Leitung da — und für die Buchhaltung nicht, die keine Kunden anlegt', async () => {
+    const { unmount } = zeichne();
+    expect(await screen.findByText('Kunden aus einer Datei')).toBeInTheDocument();
+    unmount();
+
+    const vorher = authWert.user.role;
+    (authWert.user as { role: string }).role = 'Buchhaltung';
+    try {
+      zeichne();
+      await screen.findByText('Hausverwaltung Nord');
+      expect(screen.queryByText('Kunden aus einer Datei')).not.toBeInTheDocument();
+    } finally {
+      (authWert.user as { role: string }).role = vorher;
+    }
+  });
+});
