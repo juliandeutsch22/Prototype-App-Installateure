@@ -25,3 +25,14 @@ export function ergebnisText(e: KrankmeldungErgebnis): string {
   }
   return teile.length ? teile.join(', ') : 'nichts im Zeitkonto geändert';
 }
+
+/**
+ * Urlaubstage als Text — „1 Tag", „6,5 Tage", „−2 Tage".
+ *
+ * Der Anspruch eines Neueintritts ist anteilig und damit oft keine ganze
+ * Zahl; mehr als zwei Nachkommastellen sagen aber niemandem etwas.
+ */
+export function tageText(n: number): string {
+  const zahl = new Intl.NumberFormat('de-AT', { maximumFractionDigits: 2 }).format(n);
+  return `${zahl.replace('-', '−')} ${Math.abs(n) === 1 ? 'Tag' : 'Tage'}`;
+}

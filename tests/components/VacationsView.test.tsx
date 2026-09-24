@@ -56,7 +56,9 @@ const callUrlaubEntscheiden = vi.fn<
 >(async () => ({ status: 'Genehmigt', angelegt: 5, uebersprungen: 0, entfernt: 0 }));
 
 vi.mock('@/lib/db/vacations', () => ({
-  listOwnVacations: vi.fn(async () => antraege.filter((v) => v.userId === rolle.uid)),
+  // Nach der GEFRAGTEN Person — die Genehmigenden laden auch die Urlaube
+  // der Antragsteller, für deren Resturlaub.
+  listOwnVacations: vi.fn(async (_b: string, uid: string) => antraege.filter((v) => v.userId === uid)),
   listOpenVacations: vi.fn(async () => antraege.filter((v) => v.status === 'Beantragt')),
   createVacation: (c: string, v: unknown) => createVacation(c, v),
   deleteVacation: (id: string) => deleteVacation(id),
@@ -580,5 +582,44 @@ describe('Reiter und Betriebsurlaub', () => {
     zeichne();
     expect(await screen.findByText('Weihnachten')).toBeInTheDocument();
     expect(screen.getByText(/wird vom Urlaub abgebucht/)).toBeInTheDocument();
+  });
+});
+
+describe('Resturlaub', () => {
+  const urlaub = (id: string, von: string, tage: number, status: Vacation['status'], userId = 'm1') =>
+    ({ id, companyId: 'perl', userId, userName: 'Max Mustermann', von, bis: von, tage, status, art: 'Urlaub' }) as Vacation & { id: string };
+
+  it('steht oben: was bleibt, und was noch beantragt ist', async () => {
+    antraege.push(urlaub('g', '2026-03-02', 3, 'Genehmigt'), urlaub('b', '2026-11-02', 2, 'Beantragt'));
+    zeichne();
+    expect(await screen.findByText('Resturlaub')).toBeInTheDocument();
+    expect(screen.getByText('22 Tage')).toBeInTheDocument();
+    expect(screen.getByText('3 von 25 genehmigt')).toBeInTheDocument();
+    expect(screen.getByText('noch nicht entschieden')).toBeInTheDocument();
+    expect(screen.getByText('2 Tage')).toBeInTheDocument();
+  });
+
+  it('sagt beim Antrag, was danach bleibt', async () => {
+    antraege.push(urlaub('g', '2026-03-02', 3, 'Genehmigt'));
+    zeichne();
+    await screen.findByLabelText('Von');
+    // Mo 26.10. bis Fr 30.10.2026 — mit Nationalfeiertag: vier Arbeitstage.
+    await datum('Von', '2026-10-26');
+    await datum('Bis (einschließlich)', '2026-10-30');
+    expect(screen.getByText(/danach bleiben 18 Tage/)).toBeInTheDocument();
+  });
+
+  it('zeigt dem Genehmigenden den Resturlaub des Antragstellers — vorher und nachher', async () => {
+    rolle = { ...rolle, uid: 'chef', name: 'Chefin', role: 'Geschäftsführung', docId: 'chef' };
+    antraege.push(urlaub('g', '2026-03-02', 20, 'Genehmigt'), urlaub('b', '2026-11-02', 3, 'Beantragt'));
+    zeichne();
+    expect(await screen.findByText(/Resturlaub: 5 Tage — nach Genehmigung 2 Tage/)).toBeInTheDocument();
+  });
+
+  it('warnt den Genehmigenden, wenn der Resturlaub nicht reicht', async () => {
+    rolle = { ...rolle, uid: 'chef', name: 'Chefin', role: 'Geschäftsführung', docId: 'chef' };
+    antraege.push(urlaub('g', '2026-03-02', 24, 'Genehmigt'), urlaub('b', '2026-11-02', 3, 'Beantragt'));
+    zeichne();
+    expect(await screen.findByText(/nach Genehmigung −2 Tage \(reicht nicht\)/)).toBeInTheDocument();
   });
 });

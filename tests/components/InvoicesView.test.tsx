@@ -65,6 +65,10 @@ const KATALOG: Material[] = [
 ];
 
 let rechnungen: (Invoice & { id: string })[] = [];
+/** Was die Suche über ALLE Rechnungen auf dem Server findet. */
+let suchTreffer: (Invoice & { id: string })[] = [];
+let sucheWirft = false;
+const suche = vi.fn();
 let zeiten: (TimeEntry & { id: string })[] = [];
 let scheine: (WorkSheet & { id: string })[] = [];
 let katalog: Material[] = [];
@@ -166,6 +170,11 @@ vi.mock('@/lib/db/invoices', async () => {
       noch verlässlich unter den jüngsten Rechnungen steht.
     */
     listInvoicesForProject: () => listInvoicesForProject(),
+    sucheRechnungen: (c: string, b: string) => {
+      suche(c, b);
+      return sucheWirft ? Promise.reject(new Error('weg')) : Promise.resolve(suchTreffer);
+    },
+    RECHNUNG_TREFFER: 100,
     updateInvoiceStatus: vi.fn(async () => undefined),
     mahnungFesthalten: (...a: unknown[]) => {
       mahnFolge.push('vermerk');
@@ -306,6 +315,9 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
   rechnungen = [];
+  suchTreffer = [];
+  sucheWirft = false;
+  suche.mockReset();
   alleScheine = [];
   offene = [];
   imZeitraum = [];
@@ -1963,5 +1975,40 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     baustellenAbfrageWirft = true;
     await bisZurVorschau('schluss');
     expect(await screen.findByText(/konnten nicht geladen werden/)).toBeTruthy();
+  });
+});
+
+describe('Rechnungen suchen — über alle, nicht nur die geladenen', () => {
+  const rechnung = (id: string, nummer: string, kunde: string) =>
+    ({
+      id, invoiceNumber: nummer, projectNumber: '2025-007', customerName: kunde,
+      invoiceDate: '2025-03-10', dueDate: '2025-03-24', positions: [], totalNetto: 100, totalVat: 20,
+      totalBrutto: 120, vatRate: 0.2, paymentStatus: 'Bezahlt',
+    }) as unknown as Invoice & { id: string };
+
+  it('steht immer da und findet auch eine Rechnung, die nicht geladen ist', async () => {
+    rechnungen = [rechnung('neu', 'RE-2026-1010', 'Familie Maier')];
+    suchTreffer = [rechnung('alt', 'RE-2025-1001', 'Familie Huber')];
+    zeige();
+    await userEvent.type(await screen.findByLabelText('Suche'), 'Huber');
+    expect(await screen.findByText('RE-2025-1001 · Familie Huber')).toBeInTheDocument();
+    expect(suche).toHaveBeenLastCalledWith('perl', 'Huber');
+    expect(screen.queryByText('RE-2026-1010 · Familie Maier')).not.toBeInTheDocument();
+  });
+
+  it('nimmt den Suchbegriff aus der Adresse — so verlinkt die Kundenakte', async () => {
+    suchTreffer = [rechnung('alt', 'RE-2025-1001', 'Familie Huber')];
+    zeige('/invoices?suche=RE-2025-1001');
+    expect(await screen.findByLabelText('Suche')).toHaveValue('RE-2025-1001');
+    expect(await screen.findByText('RE-2025-1001 · Familie Huber')).toBeInTheDocument();
+  });
+
+  it('sagt, wenn die Suche nicht erreichbar ist — und sucht im Geladenen', async () => {
+    sucheWirft = true;
+    rechnungen = [rechnung('neu', 'RE-2026-1010', 'Familie Maier')];
+    zeige();
+    await userEvent.type(await screen.findByLabelText('Suche'), 'Maier');
+    expect(await screen.findByText(/Suche über alle Rechnungen ist gerade nicht erreichbar/)).toBeInTheDocument();
+    expect(screen.getByText('RE-2026-1010 · Familie Maier')).toBeInTheDocument();
   });
 });

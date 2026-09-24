@@ -10,12 +10,13 @@ import {
   type NewCustomer,
 } from '@/lib/db/customers';
 import { listQuotesForCustomer } from '@/lib/db/quotes';
+import { listInvoicesForCustomer } from '@/lib/db/invoices';
 import { listWartungenForCustomer } from '@/lib/db/wartungen';
 import { useModul } from '@/lib/useModule';
-import { isGF } from '@/lib/permissions';
+import { canInvoice, isGF } from '@/lib/permissions';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { todayStr } from '@/lib/time';
-import type { Customer, Project, Quote, Wartung } from '@/types';
+import type { Customer, Invoice, Project, Quote, Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import { InputField, FormGrid, CheckboxField } from '@/components/Field';
@@ -55,6 +56,9 @@ const fmtDatum = (iso?: string) =>
   iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT') : '—';
 
 /** Ein Teil der Akte lädt für sich — ein Fehler nimmt nicht die ganze Seite. */
+/** Wie viele Rechnungen die Akte zuerst zeigt. */
+const RECHNUNGEN_KURZ = 5;
+
 type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit'; daten: T };
 
 const LAEDT = { zustand: 'laedt' } as const;
@@ -65,11 +69,15 @@ export default function KundenakteView() {
   const toast = useToast();
   const wartungAn = useModul('wartung');
   const angeboteAn = useModul('angebote');
+  const rechnungenAn = useModul('rechnungen');
 
   const [kunde, setKunde] = useState<Teil<WithId<Customer> | null>>(LAEDT);
   const [baustellen, setBaustellen] = useState<Teil<WithId<Project>[]>>(LAEDT);
   const [namensgleich, setNamensgleich] = useState<WithId<Project>[]>([]);
   const [angebote, setAngebote] = useState<Teil<WithId<Quote>[]>>(LAEDT);
+  const [rechnungen, setRechnungen] = useState<Teil<WithId<Invoice>[]>>(LAEDT);
+  /** Alle Rechnungen zeigen — sonst die jüngsten fünf; die Akte soll lesbar bleiben. */
+  const [alleRechnungen, setAlleRechnungen] = useState(false);
   const [wartungen, setWartungen] = useState<Teil<WithId<Wartung>[]>>(LAEDT);
   const [zuordnenLaeuft, setZuordnenLaeuft] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
@@ -93,6 +101,8 @@ export default function KundenakteView() {
 
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
+  /** Rechnungen liest nur, wer sie auch stellt — so steht es im Zeilenschutz. */
+  const darfRechnungen = user ? canInvoice(user.role) : false;
   const heute = todayStr();
 
   useEffect(() => {
@@ -209,6 +219,26 @@ export default function KundenakteView() {
       weg = true;
     };
   }, [companyId, id, angeboteAn, versuch]);
+
+  /*
+    DIE RECHNUNGEN DES KUNDEN — über seine Baustellen. Eine Rechnung trägt den
+    Kundennamen als Text, und ihr Kunde ergibt sich aus der Baustelle; siehe
+    `listInvoicesForCustomer`. Geladen wird deshalb erst, wenn die
+    Baustellen da sind.
+  */
+  const baustellenIds =
+    baustellen.zustand === 'bereit' ? baustellen.daten.map((b) => b.id).sort().join('|') : null;
+  useEffect(() => {
+    if (!companyId || !id || !rechnungenAn || !darfRechnungen || baustellenIds === null) return;
+    let weg = false;
+    setRechnungen(LAEDT);
+    listInvoicesForCustomer(companyId, id, baustellenIds ? baustellenIds.split('|') : [])
+      .then((r) => !weg && setRechnungen({ zustand: 'bereit', daten: r }))
+      .catch(() => !weg && setRechnungen({ zustand: 'fehler' }));
+    return () => {
+      weg = true;
+    };
+  }, [companyId, id, rechnungenAn, darfRechnungen, baustellenIds, versuch]);
 
   useEffect(() => {
     if (!companyId || !id || !wartungAn) return;
@@ -418,6 +448,46 @@ export default function KundenakteView() {
                 );
               })}
             </ul>
+          )}
+        </Card>
+      )}
+
+      {rechnungenAn && darfRechnungen && (
+        <Card title="Rechnungen">
+          {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
+            <SkeletonList rows={1} />
+          ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
+            <TeilFehler was="die Rechnungen" onRetry={() => setVersuch((v) => v + 1)} />
+          ) : rechnungen.daten.length === 0 ? (
+            <EmptyState>Noch keine Rechnung.</EmptyState>
+          ) : (
+            <>
+            <ul className="divide-y divide-line">
+              {(alleRechnungen ? rechnungen.daten : rechnungen.daten.slice(0, RECHNUNGEN_KURZ)).map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span className="min-w-0 text-sm">
+                    <Link
+                      to={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
+                      className="text-brand underline"
+                    >
+                      {r.invoiceNumber}
+                    </Link>
+                    <span className="ml-2 whitespace-nowrap text-xs text-ink-muted">
+                      {fmtDatum(r.invoiceDate)} · {r.projectNumber}
+                    </span>
+                  </span>
+                  <span className="tnum whitespace-nowrap text-sm text-ink-muted">
+                    {fmtEUR(r.totalBrutto)} brutto · {r.paymentStatus}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {rechnungen.daten.length > RECHNUNGEN_KURZ && (
+              <Button variant="ghost" className="mt-2" onClick={() => setAlleRechnungen((a) => !a)}>
+                {alleRechnungen ? 'Nur die jüngsten zeigen' : `Alle ${rechnungen.daten.length} zeigen`}
+              </Button>
+            )}
+            </>
           )}
         </Card>
       )}

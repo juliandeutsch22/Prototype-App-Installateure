@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { AppUser, Krankmeldung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import {
+  getKrankmeldung,
   krankmeldungLoeschen,
   krankmeldungSpeichern,
   listKrankmeldungenAb,
@@ -154,6 +155,69 @@ export function KrankmeldungListe({
         onConfirm={() => (loeschen ? loeschenBestaetigt(loeschen) : undefined)}
       />
     </>
+  );
+}
+
+/**
+ * Die Krankmeldung zu einem Krank-Tag — aus der Zeiterfassung heraus.
+ *
+ * KRANK ÄNDERT NUR NOCH DIE KRANKMELDUNG, und die Zeiterfassung ist der Ort,
+ * an dem jemand den Tag sieht. Hier stehen deshalb dieselben Handgriffe wie
+ * auf der Urlaubsseite („Ende ändern", „Löschen") — auch für einen Betrieb,
+ * der das Modul Urlaub abgeschaltet hat und die Seite gar nicht kennt.
+ */
+export function KrankmeldungKarte({
+  companyId,
+  id,
+  meinName,
+  mitNamen,
+  onGeaendert,
+  onSchliessen,
+}: {
+  companyId: string;
+  id: string;
+  meinName: string;
+  mitNamen: boolean;
+  onGeaendert: () => void;
+  onSchliessen: () => void;
+}) {
+  const [meldung, setMeldung] = useState<WithId<Krankmeldung> | null | 'laedt' | 'fehler'>('laedt');
+
+  useEffect(() => {
+    let weg = false;
+    setMeldung('laedt');
+    getKrankmeldung(companyId, id)
+      .then((k) => {
+        if (!weg) setMeldung(k);
+      })
+      .catch(() => {
+        if (!weg) setMeldung('fehler');
+      });
+    return () => {
+      weg = true;
+    };
+  }, [companyId, id]);
+
+  return (
+    <Card
+      title="Krankmeldung"
+      action={<Button variant="ghost" onClick={onSchliessen}>Schliessen</Button>}
+    >
+      {meldung === 'laedt' ? (
+        <SkeletonList rows={1} />
+      ) : meldung === 'fehler' ? (
+        <ErrorState message="Die Krankmeldung konnte nicht geladen werden." />
+      ) : meldung === null ? (
+        <EmptyState>Diese Krankmeldung gibt es nicht mehr.</EmptyState>
+      ) : (
+        <KrankmeldungListe
+          meldungen={[meldung]}
+          mitNamen={mitNamen}
+          meinName={meinName}
+          onGeaendert={onGeaendert}
+        />
+      )}
+    </Card>
   );
 }
 

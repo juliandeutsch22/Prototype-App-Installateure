@@ -41,6 +41,19 @@ export function listKrankmeldungenAb(companyId: string, abIso: string, max = 300
   });
 }
 
+/**
+ * Eine Krankmeldung — für die Zeiterfassung, die von einem Krank-Tag aus zu
+ * seiner Meldung führt. `null`, wenn es sie nicht (mehr) gibt oder sie nicht
+ * gelesen werden darf.
+ */
+export async function getKrankmeldung(companyId: string, id: string) {
+  const treffer = await abfragen<Krankmeldung>('krankmeldungen', companyId, {
+    wo: [{ art: 'gleich', feld: 'id', wert: id }],
+    grenze: 1,
+  });
+  return treffer[0] ?? null;
+}
+
 export async function krankmeldungSpeichern(daten: {
   id?: string | null;
   userId?: string | null;

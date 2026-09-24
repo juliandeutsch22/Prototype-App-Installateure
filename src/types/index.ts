@@ -680,6 +680,29 @@ export interface Material {
  * Eine „Bestellung" ist hier eine interne Anforderung des Monteurs an die
  * Projektleitung, keine Bestellung beim Lieferanten und kein Rechnungsposten.
  */
+/**
+ * Material, das das Büro selbst auf die Einkaufsliste setzt — etwa um das
+ * Lager aufzufüllen. Keine Anforderung: niemand wartet darauf, und „geliefert"
+ * heisst, es liegt im Lager.
+ */
+export interface EinkaufPosten {
+  id: string;
+  companyId: string;
+  supplierId?: string | null;
+  /** Katalogartikel; ohne ihn steht nur der Name da. */
+  materialId?: string | null;
+  materialName: string;
+  menge: number;
+  einheit?: string | null;
+  notiz?: string | null;
+  angelegtVonUid?: string | null;
+  angelegtVonName?: string | null;
+  bestelltAm?: number | null;
+  geliefertAm?: number | null;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 export interface MaterialOrder {
   id: string;
   companyId: string;

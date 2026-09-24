@@ -15,5 +15,11 @@ export {
   geliefert,
   katalogFuer,
   lieferantVorschlag,
+  listLagerPosten,
+  lagerPostenAnlegen,
+  lagerPostenLoeschen,
+  lagerPostenZuordnen,
+  lagerPostenBestellt,
+  artikelSuchen,
 } from './pg/einkauf';
-export type { Grosshaendler, GrosshaendlerDaten } from './pg/einkauf';
+export type { Grosshaendler, GrosshaendlerDaten, NeuerLagerPosten } from './pg/einkauf';

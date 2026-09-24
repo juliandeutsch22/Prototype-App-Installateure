@@ -161,7 +161,8 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
               Mit Häkchen bekommt jeder aktive Mitarbeiter die Arbeitstage des Zeitraums als
               genehmigten Urlaub gebucht — nach seinen eigenen Arbeitstagen, ohne Feiertage. Tage, an
               denen schon etwas gebucht ist (etwa ein Notdienst), bleiben unangetastet und werden
-              nicht abgezogen. Wer erst später eintritt, bekommt den Betriebsurlaub nicht
+              nicht abgezogen. Gezählt wird ab dem Starttag jedes Mitarbeiters; wer später
+              eintritt oder wieder aktiv wird, bekommt den Betriebsurlaub ab dann automatisch
               nachgebucht. Ohne Häkchen wird nichts gebucht: die Tage regelt dann jeder selbst,
               etwa als Zeitausgleich.
             </InfoHint>

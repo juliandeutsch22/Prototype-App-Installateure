@@ -38,6 +38,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
+import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
@@ -78,6 +79,8 @@ export default function TimeView() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
   const [toDelete, setToDelete] = useState<WithId<TimeEntry> | null>(null);
+  /** Die Krankmeldung, die gerade offen ist — von einem Krank-Tag aus. */
+  const [meldung, setMeldung] = useState<string | null>(null);
   /** Wie viele Monate zurück die Liste reicht. */
   const [monate, setMonate] = useState(MONATE_JE_SEITE);
 
@@ -586,6 +589,19 @@ export default function TimeView() {
         />
       </Card>
 
+      {meldung && (
+        <KrankmeldungKarte
+          key={meldung}
+          companyId={user.companyId}
+          id={meldung}
+          meinName={user.name}
+          mitNamen={false}
+          // Die Einträge kommen live nach; die Karte hat ihren Dienst getan.
+          onGeaendert={() => setMeldung(null)}
+          onSchliessen={() => setMeldung(null)}
+        />
+      )}
+
       <Card title="Meine Einträge">
         {loading ? (
           <SkeletonList rows={5} />
@@ -647,6 +663,12 @@ export default function TimeView() {
                               verschickten Rechnung und bleiben gesperrt. */}
                           {e.isBilled ? (
                             <Marke>verrechnet</Marke>
+                          ) : e.krankmeldungId ? (
+                            // Ein Tag einer Krankmeldung wird nur über sie
+                            // geändert — Ende ändern oder löschen.
+                            <Button variant="ghost" onClick={() => setMeldung(e.krankmeldungId!)}>
+                              Krankmeldung
+                            </Button>
                           ) : (
                             <>
                               <Button variant="ghost" onClick={() => setEditing(e)}>

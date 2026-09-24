@@ -62,7 +62,13 @@ export type Bedingung =
   | { art: 'ab'; feld: string; wert: unknown }
   | { art: 'bis'; feld: string; wert: unknown }
   /** Der Wert steht IN einem Feld, das eine Liste ist (Firestore: array-contains). */
-  | { art: 'enthaelt'; feld: string; wert: unknown };
+  | { art: 'enthaelt'; feld: string; wert: unknown }
+  /**
+   * Das Feld ist leer (`is null`) — etwa „noch nicht geliefert". Eigene Art,
+   * weil `gleich` mit `null` in PostgREST nichts findet: `= null` ist in SQL
+   * nie wahr.
+   */
+  | { art: 'leer'; feld: string };
 
 export interface Abfrage {
   wo?: readonly Bedingung[];
@@ -93,6 +99,7 @@ interface Filterbar {
   neq(spalte: string, wert: unknown): Filterbar;
   in(spalte: string, werte: unknown[]): Filterbar;
   contains(spalte: string, werte: unknown[]): Filterbar;
+  is(spalte: string, wert: null): Filterbar;
   gte(spalte: string, wert: unknown): Filterbar;
   lte(spalte: string, wert: unknown): Filterbar;
   order(spalte: string, wie: { ascending: boolean }): Filterbar;
@@ -110,6 +117,7 @@ function anwenden(bauer: Filterbar, abfrage: Abfrage, tabelle: string): Filterba
     else if (bed.art === 'in') b = b.in(spalte, bed.werte as unknown[]);
     else if (bed.art === 'ab') b = b.gte(spalte, bed.wert);
     else if (bed.art === 'bis') b = b.lte(spalte, bed.wert);
+    else if (bed.art === 'leer') b = b.is(spalte, null);
     else b = b.contains(spalte, [bed.wert]);
   }
   // VOR dem Sortieren und der Grenze: `or` ist ein Filter wie die anderen,
@@ -688,6 +696,10 @@ export function abonnieren<T>(
     const w = z as unknown as Record<string, unknown>;
     for (const bed of abfrage.wo ?? []) {
       const wert = w[bed.feld];
+      if (bed.art === 'leer') {
+        if (wert !== null && wert !== undefined) return false;
+        continue;
+      }
       if (bed.art === 'gleich' && wert !== bed.wert) return false;
       if (bed.art === 'ungleich' && wert === bed.wert) return false;
       if (bed.art === 'in' && !bed.werte.includes(wert)) return false;

@@ -1,12 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Company, Material, MaterialOrder } from '@/types';
+import type { Company, EinkaufPosten, Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import {
   alsBestelltMarkieren,
+  artikelSuchen,
   geliefert,
   grosshaendlerSpeichern,
   grosshaendlerZuordnen,
   katalogFuer,
+  lagerPostenAnlegen,
+  lagerPostenBestellt,
+  lagerPostenLoeschen,
+  lagerPostenZuordnen,
+  lieferantVorschlag,
   vonEinkaufslisteNehmen,
   type Grosshaendler,
 } from '@/lib/db/einkauf';
@@ -34,6 +40,10 @@ import { downloadBestellungPdf } from './bestellungPdf';
  * bestellt ist und noch nicht da; „Geliefert" bucht die Ware ins Lager und
  * macht die Anforderung abholbereit. Ganz unten die Grosshändler selbst:
  * ohne Bestelladresse keine E-Mail.
+ *
+ * Ganz oben setzt das Büro eigenes Material auf die Liste — etwa um das
+ * Lager aufzufüllen. Es steht mit „Lager" als Kommission neben den
+ * Anforderungen und geht beim Eintreffen ins Lager.
  */
 
 const fmtTag = (ms?: number | null) =>
@@ -50,16 +60,24 @@ function zeilenText(z: EinkaufsZeile): string {
 
 export default function Einkaufsliste({
   company,
+  meinUid,
   meinName,
   anforderungen,
+  lagerPosten,
   grosshaendler,
   onGrosshaendlerGeaendert,
+  onLagerGeaendert,
 }: {
   company: Company;
+  meinUid: string;
   meinName: string;
   anforderungen: WithId<MaterialOrder>[];
+  /** Die offenen eigenen Posten des Büros. */
+  lagerPosten: WithId<EinkaufPosten>[];
   grosshaendler: WithId<Grosshaendler>[];
   onGrosshaendlerGeaendert: () => void;
+  /** Eigene Posten haben sich geändert — neu laden. */
+  onLagerGeaendert: () => void;
 }) {
   const toast = useToast();
   const [katalog, setKatalog] = useState<Map<string, Pick<Material, 'articleNumber' | 'unit'>>>(new Map());
@@ -68,8 +86,17 @@ export default function Einkaufsliste({
   const [bestelltFragen, setBestelltFragen] = useState<EinkaufsGruppe | null>(null);
 
   const materialIds = useMemo(
-    () => [...new Set(anforderungen.map((o) => o.materialId).filter(Boolean))].sort().join('|'),
-    [anforderungen],
+    () =>
+      [
+        ...new Set(
+          [...anforderungen.map((o) => o.materialId), ...lagerPosten.map((p) => p.materialId ?? '')].filter(
+            Boolean,
+          ),
+        ),
+      ]
+        .sort()
+        .join('|'),
+    [anforderungen, lagerPosten],
   );
   useEffect(() => {
     let weg = false;
@@ -85,7 +112,10 @@ export default function Einkaufsliste({
     };
   }, [company.id, materialIds]);
 
-  const gruppen = useMemo(() => einkaufsliste(anforderungen, katalog), [anforderungen, katalog]);
+  const gruppen = useMemo(
+    () => einkaufsliste(anforderungen, katalog, lagerPosten),
+    [anforderungen, katalog, lagerPosten],
+  );
   const nachId = useMemo(() => new Map(grosshaendler.map((g) => [g.id, g])), [grosshaendler]);
 
   async function tun(schluessel: string, was: () => Promise<unknown>, erfolg: string) {
@@ -96,6 +126,8 @@ export default function Einkaufsliste({
       // „Zurück von der Liste" macht eine Anforderung wieder offen — der
       // Zähler am Menü soll das gleich wissen, nicht erst beim nächsten Laden.
       void postenNeuLaden();
+      // Die eigenen Posten kommen nicht über das Live-Abo der Anforderungen.
+      onLagerGeaendert();
       toast.success(erfolg);
     } catch (e) {
       setFehler(e instanceof Error && e.message ? e.message : 'Das hat nicht geklappt.');
@@ -108,11 +140,19 @@ export default function Einkaufsliste({
     <div className="space-y-6">
       {fehler && <ErrorState message={fehler} />}
 
+      <LagerPostenFormular
+        companyId={company.id}
+        meinUid={meinUid}
+        meinName={meinName}
+        grosshaendler={grosshaendler}
+        onAngelegt={onLagerGeaendert}
+      />
+
       {gruppen.length === 0 ? (
         <Card title="Einkaufsliste">
           <EmptyState>
             Nichts auf der Einkaufsliste. Fehlt ein Artikel im Lager, bei der Anforderung auf
-            „Nicht auf Lager" tippen.
+            „Nicht auf Lager" tippen — oder oben Material dazusetzen.
           </EmptyState>
         </Card>
       ) : (
@@ -172,7 +212,10 @@ export default function Einkaufsliste({
                               if (!ziel) return;
                               void tun(
                                 z.schluessel,
-                                () => grosshaendlerZuordnen(z.anforderungen, ziel),
+                                async () => {
+                                  await grosshaendlerZuordnen(z.anforderungen, ziel);
+                                  await lagerPostenZuordnen(z.posten, ziel);
+                                },
                                 'Grosshändler zugeordnet',
                               );
                             }}
@@ -191,8 +234,11 @@ export default function Einkaufsliste({
                               z.schluessel,
                               async () => {
                                 for (const id of z.anforderungen) await vonEinkaufslisteNehmen(id);
+                                await lagerPostenLoeschen(z.posten);
                               },
-                              'Wieder offen — zum Nachsehen im Lager',
+                              z.anforderungen.length > 0
+                                ? 'Von der Liste genommen — Anforderungen wieder offen'
+                                : 'Von der Einkaufsliste genommen',
                             )
                           }
                         >
@@ -277,7 +323,7 @@ export default function Einkaufsliste({
                           void tun(
                             `alle-${g.supplierId}`,
                             () => geliefert(g.unterwegs.map((o) => o.id)),
-                            'Alles geliefert — im Lager und abholbereit',
+                            'Alles geliefert — im Lager, Anforderungen abholbereit',
                           )
                         }
                       >
@@ -291,12 +337,13 @@ export default function Einkaufsliste({
                         key={o.id}
                         title={
                           <span className="tnum">
-                            {fmtMenge(Number(o.quantity) || 0)} × {o.materialName}
+                            {fmtMenge(o.menge)}
+                            {o.einheit ? ` ${o.einheit}` : ''} × {o.bezeichnung}
                           </span>
                         }
                         subtitle={[
-                          o.userName,
-                          o.projectNumber,
+                          o.art === 'lager' ? 'fürs Lager' : o.wer,
+                          o.art === 'lager' ? o.notiz : o.kommission,
                           o.bestelltAm ? `bestellt ${fmtTag(o.bestelltAm)}` : '',
                         ].filter(Boolean).join(' · ')}
                       >
@@ -304,7 +351,13 @@ export default function Einkaufsliste({
                           variant="secondary"
                           loading={laeuft === o.id}
                           onClick={() =>
-                            void tun(o.id, () => geliefert([o.id]), `${o.materialName} ist da — abholbereit`)
+                            void tun(
+                              o.id,
+                              () => geliefert([o.id]),
+                              o.art === 'lager'
+                                ? `${o.bezeichnung} ist da — im Lager`
+                                : `${o.bezeichnung} ist da — abholbereit`,
+                            )
                           }
                         >
                           Geliefert
@@ -344,12 +397,234 @@ export default function Einkaufsliste({
           if (!g) return;
           await tun(
             `bestellt-${g.supplierId}`,
-            () => alsBestelltMarkieren(g.zuBestellen.flatMap((z) => z.anforderungen)),
+            async () => {
+              await alsBestelltMarkieren(g.zuBestellen.flatMap((z) => z.anforderungen));
+              await lagerPostenBestellt(g.zuBestellen.flatMap((z) => z.posten));
+            },
             'Als bestellt markiert',
           );
         }}
       />
     </div>
+  );
+}
+
+/**
+ * Eigenes Material auf die Einkaufsliste — etwa um das Lager aufzufüllen.
+ *
+ * DER ARTIKEL KOMMT AUS DEM KATALOG, WENN ES IHN GIBT: dann stehen
+ * Artikelnummer und Einheit auf der Bestellung, und beim Eintreffen weiss
+ * das Lager, wohin die Ware gehört. Gesucht wird auf dem Server — nach einem
+ * Datanorm-Import liegen zehntausende Artikel im Katalog. Wer nichts findet,
+ * bestellt mit freiem Text; das steht dann so auf der Liste.
+ */
+function LagerPostenFormular({
+  companyId,
+  meinUid,
+  meinName,
+  grosshaendler,
+  onAngelegt,
+}: {
+  companyId: string;
+  meinUid: string;
+  meinName: string;
+  grosshaendler: WithId<Grosshaendler>[];
+  onAngelegt: () => void;
+}) {
+  const toast = useToast();
+  const [offen, setOffen] = useState(false);
+  const [suche, setSuche] = useState('');
+  const [treffer, setTreffer] = useState<WithId<Material>[]>([]);
+  const [sucht, setSucht] = useState(false);
+  const [gewaehlt, setGewaehlt] = useState<WithId<Material> | null>(null);
+  const [menge, setMenge] = useState('1');
+  const [einheit, setEinheit] = useState('');
+  const [bei, setBei] = useState('');
+  const [notiz, setNotiz] = useState('');
+  const [speichert, setSpeichert] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
+
+  // Suchen, sobald zwei Zeichen da sind — und erst, wenn das Tippen kurz ruht.
+  useEffect(() => {
+    if (!offen || gewaehlt) return;
+    const begriff = suche.trim();
+    if (begriff.length < 2) {
+      setTreffer([]);
+      return;
+    }
+    let weg = false;
+    const zeit = setTimeout(() => {
+      setSucht(true);
+      artikelSuchen(companyId, begriff)
+        .then((t) => {
+          if (!weg) setTreffer(t);
+        })
+        // Scheitert die Suche, bleibt der freie Text — bestellt werden kann trotzdem.
+        .catch(() => {
+          if (!weg) setTreffer([]);
+        })
+        .finally(() => {
+          if (!weg) setSucht(false);
+        });
+    }, 250);
+    return () => {
+      weg = true;
+      clearTimeout(zeit);
+    };
+  }, [companyId, suche, gewaehlt, offen]);
+
+  function leeren() {
+    setSuche('');
+    setTreffer([]);
+    setGewaehlt(null);
+    setMenge('1');
+    setEinheit('');
+    setBei('');
+    setNotiz('');
+    setFehler(null);
+  }
+
+  async function waehlen(m: WithId<Material>) {
+    setGewaehlt(m);
+    setSuche(m.name);
+    setTreffer([]);
+    setEinheit(m.unit ?? '');
+    // Ein Vorschlag, wo der Artikel zuletzt einen Preis hatte — gewählt wird
+    // vom Menschen. Ohne Vorschlag bleibt die Wahl, wie sie war.
+    try {
+      const vorschlag = await lieferantVorschlag(companyId, m.id);
+      if (vorschlag && grosshaendler.some((g) => g.id === vorschlag)) setBei(vorschlag);
+    } catch {
+      // nur ein Vorschlag
+    }
+  }
+
+  async function speichern() {
+    const name = (gewaehlt?.name ?? suche).trim();
+    const zahl = Number(menge.replace(',', '.'));
+    if (!name) {
+      setFehler('Welcher Artikel? Im Katalog suchen oder frei eintragen.');
+      return;
+    }
+    if (!Number.isFinite(zahl) || zahl <= 0) {
+      setFehler('Die Menge muss grösser als null sein.');
+      return;
+    }
+    setSpeichert(true);
+    setFehler(null);
+    try {
+      await lagerPostenAnlegen(companyId, {
+        materialId: gewaehlt?.id ?? null,
+        materialName: name,
+        menge: zahl,
+        einheit,
+        supplierId: bei || null,
+        notiz,
+        angelegtVonUid: meinUid,
+        angelegtVonName: meinName,
+      });
+      toast.success(`${fmtMenge(zahl)}${einheit.trim() ? ` ${einheit.trim()}` : ''} × ${name} auf der Einkaufsliste`);
+      leeren();
+      setOffen(false);
+      onAngelegt();
+    } catch (e) {
+      setFehler(e instanceof Error && e.message ? e.message : 'Das Material konnte nicht auf die Liste.');
+    } finally {
+      setSpeichert(false);
+    }
+  }
+
+  return (
+    <Card
+      title="Material dazusetzen"
+      hint={
+        <>
+          Für Material, das kein Monteur angefordert hat — etwa um das Lager aufzufüllen. Es steht
+          mit der Kommission „Lager" auf der Bestellung und kommt beim Eintreffen ins Lager.
+        </>
+      }
+      action={
+        !offen ? (
+          <Button variant="ghost" onClick={() => setOffen(true)}>+ Material</Button>
+        ) : undefined
+      }
+    >
+      {!offen ? (
+        <p className="text-sm text-ink-muted">
+          Eigenes Material auf die Einkaufsliste setzen, unabhängig von den Anforderungen.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <InputField
+              id="lp-artikel"
+              label="Artikel"
+              pflicht
+              placeholder="Name oder Artikelnummer"
+              value={suche}
+              onChange={(e) => {
+                setSuche(e.target.value);
+                setGewaehlt(null);
+              }}
+            />
+            {gewaehlt ? (
+              <p className="mt-1 text-xs text-ink-muted">
+                Aus dem Katalog{gewaehlt.articleNumber ? ` · Art.-Nr. ${gewaehlt.articleNumber}` : ''}
+              </p>
+            ) : suche.trim().length >= 2 && !sucht && treffer.length === 0 ? (
+              <p className="mt-1 text-xs text-ink-muted">
+                Nicht im Katalog — wird mit diesem Text bestellt.
+              </p>
+            ) : null}
+            {treffer.length > 0 && (
+              <ul className="mt-1 max-h-60 divide-y divide-line overflow-y-auto rounded border border-line" aria-label="Treffer im Katalog">
+                {treffer.map((m) => (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      className="flex min-h-touch w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-surface-2"
+                      onClick={() => void waehlen(m)}
+                    >
+                      <span className="min-w-0">{m.name}</span>
+                      <span className="shrink-0 text-xs text-ink-muted">
+                        {m.articleNumber ?? ''}{m.unit ? ` · ${m.unit}` : ''}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <FormGrid>
+            <InputField id="lp-menge" label="Menge" pflicht inputMode="decimal" value={menge}
+              onChange={(e) => setMenge(e.target.value)} />
+            <InputField id="lp-einheit" label="Einheit" placeholder="Stk, m, Pkg" value={einheit}
+              onChange={(e) => setEinheit(e.target.value)} />
+          </FormGrid>
+          <SelectField id="lp-bei" label="Grosshändler" value={bei} onChange={(e) => setBei(e.target.value)}>
+            <option value="">— später zuordnen —</option>
+            {grosshaendler.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </SelectField>
+          <InputField id="lp-notiz" label="Anmerkung (freiwillig)" value={notiz}
+            onChange={(e) => setNotiz(e.target.value)} />
+          {fehler && <p className="text-sm text-danger" role="alert">{fehler}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button loading={speichert} onClick={() => void speichern()}>Auf die Einkaufsliste</Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                leeren();
+                setOffen(false);
+              }}
+            >
+              Abbrechen
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 

@@ -60,6 +60,8 @@ vi.mock('@/lib/db/materialOrders', () => ({
 const ausLager = vi.fn();
 const aufEinkaufsliste = vi.fn();
 let vorschlag: string | null = null;
+let lagerPosten: unknown[] = [];
+let lagerFehler = false;
 const grosshaendler = [
   { id: 'gh1', companyId: 'perl', name: 'Holter', active: true, bestellEmail: 'vertreter@holter.test' },
   { id: 'gh2', companyId: 'perl', name: 'Frauenthal', active: true },
@@ -75,6 +77,13 @@ vi.mock('@/lib/db/einkauf', () => ({
   grosshaendlerSpeichern: vi.fn(),
   grosshaendlerZuordnen: vi.fn(),
   vonEinkaufslisteNehmen: vi.fn(),
+  listLagerPosten: () =>
+    lagerFehler ? Promise.reject(new Error('weg')) : Promise.resolve(lagerPosten),
+  lagerPostenAnlegen: vi.fn(),
+  lagerPostenBestellt: vi.fn(),
+  lagerPostenLoeschen: vi.fn(),
+  lagerPostenZuordnen: vi.fn(),
+  artikelSuchen: () => Promise.resolve([]),
 }));
 
 const authWert = {
@@ -105,6 +114,8 @@ beforeEach(() => {
   aufEinkaufsliste.mockReset();
   aufEinkaufsliste.mockResolvedValue(undefined);
   vorschlag = null;
+  lagerPosten = [];
+  lagerFehler = false;
 });
 
 afterEach(() => {
@@ -429,5 +440,23 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     await userEvent.click(screen.getByRole('tab', { name: /Einkauf/ }));
     expect(await screen.findByText('Zu bestellen')).toBeInTheDocument();
     expect(screen.getByText('Bestellt — noch nicht da')).toBeInTheDocument();
+  });
+  it('zählt eigenes Material des Büros im Reiter mit und zeigt es auf der Liste', async () => {
+    lagerPosten = [
+      { id: 'p1', companyId: 'perl', materialName: 'Kupferrohr 15', menge: 25, einheit: 'm', supplierId: 'gh1' },
+      { id: 'p2', companyId: 'perl', materialName: 'Muffe', menge: 5, supplierId: 'gh1', bestelltAm: Date.now() },
+    ];
+    zeige();
+    expect(await screen.findByRole('tab', { name: /Einkauf.*1/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /Einkauf/ }));
+    expect(await screen.findByText('25 m × Kupferrohr 15')).toBeInTheDocument();
+    expect(screen.getByText(/fürs Lager/)).toBeInTheDocument();
+  });
+
+  it('sagt, wenn das eigene Material nicht geladen werden konnte', async () => {
+    lagerFehler = true;
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: /Einkauf/ }));
+    expect(await screen.findByText(/eigene Material auf der Einkaufsliste konnte nicht geladen werden/)).toBeInTheDocument();
   });
 });

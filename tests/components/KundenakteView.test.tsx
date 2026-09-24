@@ -47,6 +47,12 @@ const listUnlinkedProjectsByName = vi.fn(async () => namensgleich);
 const assignProjectToCustomer = vi.fn(async () => undefined);
 const listQuotesForCustomer = vi.fn(async () => angebote);
 const listWartungenForCustomer = vi.fn(async () => wartungen);
+let rechnungen: unknown[] = [];
+let rechnungenWirft = false;
+const listInvoicesForCustomer = vi.fn<[string, string, string[]], Promise<unknown[]>>(async () => {
+  if (rechnungenWirft) throw new Error('weg');
+  return rechnungen;
+});
 /** Wie viele Baustellen beim Umbenennen nachgezogen wurden. */
 let nachgezogen = 0;
 const updateCustomer = vi.fn(async () => nachgezogen);
@@ -61,6 +67,9 @@ vi.mock('@/lib/db/customers', () => ({
 vi.mock('@/lib/db/quotes', () => ({
   listQuotesForCustomer: (...a: unknown[]) => listQuotesForCustomer(...(a as [])),
 }));
+vi.mock('@/lib/db/invoices', () => ({
+  listInvoicesForCustomer: (b: string, k: string, p: string[]) => listInvoicesForCustomer(b, k, p),
+}));
 vi.mock('@/lib/db/wartungen', () => ({
   listWartungenForCustomer: () => listWartungenForCustomer(),
 }));
@@ -73,7 +82,7 @@ vi.mock('@/lib/time', async () => {
   return { ...echt, todayStr: () => '2026-06-01' };
 });
 
-let rolle: 'Geschäftsführung' | 'Verwaltung' = 'Geschäftsführung';
+let rolle: 'Geschäftsführung' | 'Verwaltung' | 'Buchhaltung' = 'Geschäftsführung';
 const NUTZER = () => ({
   uid: 'chef',
   email: 'chefin@perl.at',
@@ -111,6 +120,9 @@ beforeEach(() => {
   namensgleich = [];
   angebote = [];
   wartungen = [];
+  rechnungen = [];
+  rechnungenWirft = false;
+  listInvoicesForCustomer.mockClear();
   modulAn = true;
   rolle = 'Geschäftsführung';
   nutzer = NUTZER();
@@ -411,5 +423,52 @@ describe('Die Angebote der Akte', () => {
     zeige();
     await screen.findByText('Stammdaten');
     expect(listQuotesForCustomer).toHaveBeenCalledWith('perl', 'k1');
+  });
+});
+
+describe('Die Rechnungen der Akte', () => {
+  it('zeigt sie — gesucht über die Baustellen des Kunden, verlinkt in die Rechnungsliste', async () => {
+    zugeordnet = [{ id: 'p1', projectNumber: '2026-001', customerName: 'Familie Huber', customerId: 'k1' } as Project & { id: string }];
+    rechnungen = [{
+      id: 'r1', invoiceNumber: 'RE-2026-1001', invoiceDate: '2026-09-10', projectNumber: '2026-001',
+      totalBrutto: 1200, paymentStatus: 'Teilbezahlt',
+    }];
+    zeige();
+    const link = await screen.findByRole('link', { name: 'RE-2026-1001' });
+    expect(link).toHaveAttribute('href', '/invoices?suche=RE-2026-1001');
+    expect(screen.getByText(/1.200,00 brutto · Teilbezahlt/)).toBeInTheDocument();
+    expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1', ['p1']);
+  });
+
+  it('zeigt die jüngsten fünf — alle erst auf Wunsch', async () => {
+    rechnungen = Array.from({ length: 7 }, (_, i) => ({
+      id: `r${i}`, invoiceNumber: `RE-2026-10${i}`, invoiceDate: '2026-09-10', projectNumber: '2026-001',
+      totalBrutto: 100, paymentStatus: 'Bezahlt',
+    }));
+    zeige();
+    await screen.findByRole('link', { name: 'RE-2026-100' });
+    expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(5);
+    await userEvent.click(screen.getByRole('button', { name: 'Alle 7 zeigen' }));
+    expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(7);
+  });
+
+  it('sagt, wenn es noch keine gibt — und wenn sie nicht geladen werden konnten', async () => {
+    zeige();
+    expect(await screen.findByText('Noch keine Rechnung.')).toBeInTheDocument();
+  });
+
+  it('meldet einen Ladefehler, statt eine leere Liste vorzutäuschen', async () => {
+    rechnungenWirft = true;
+    zeige();
+    expect(await screen.findByText(/die Rechnungen/)).toBeInTheDocument();
+  });
+
+  it('zeigt sie nur, wer Rechnungen stellt — die Verwaltung nicht', async () => {
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    zeige();
+    await screen.findByRole('heading', { name: 'Angebote' });
+    expect(screen.queryByRole('heading', { name: 'Rechnungen' })).not.toBeInTheDocument();
+    expect(listInvoicesForCustomer).not.toHaveBeenCalled();
   });
 });

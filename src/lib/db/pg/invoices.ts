@@ -16,6 +16,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Invoice, InvoiceDiscount } from '@/types';
 import { abfragen, aendern, derClient, kanalHalten, NACHFASSEN_MS, type WithId } from './kern';
 import { objektAlsZeile } from './felder';
+import { oderUeberSpalten } from './suche';
 import { belegNummer, PRAEFIX_VORGABE } from '@/lib/praefixe';
 
 const RECHNUNGEN = 'invoices';
@@ -266,6 +267,66 @@ export async function listInvoicesForProject(
   const formen = [...new Set([projectNumber.trim(), blank, `PR-${blank}`])];
   const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
     wo: [{ art: 'in', feld: 'projectNumber', werte: formen }],
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
+export const RECHNUNG_TREFFER = 100;
+
+/**
+ * Rechnungen suchen — ÜBER ALLE, auf dem Server.
+ *
+ * Die Liste lädt nur die jüngsten; die Suche lief bisher im Browser über
+ * genau diese. Wer eine Rechnung aus dem Vorjahr suchte, fand sie nicht und
+ * musste erst „Ältere laden" drücken — ohne zu wissen, wie oft. Gesucht wird
+ * nach Nummer, Kunde und Baustelle, auch mitten im Wort, jüngste zuerst.
+ */
+export async function sucheRechnungen(
+  companyId: string,
+  begriff: string,
+  max = RECHNUNG_TREFFER,
+): Promise<WithId<Invoice>[]> {
+  const oder = oderUeberSpalten(['invoice_number', 'customer_name', 'project_number'], begriff);
+  if (!oder) return [];
+  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+    oder,
+    sortiere: { feld: 'invoiceDate', absteigend: true },
+    grenze: max,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
+/** Wie viele Rechnungen die Kundenakte zeigt — die jüngsten zuerst. */
+const RECHNUNGEN_JE_KUNDE = 500;
+
+const KENNUNG = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Die Rechnungen EINES KUNDEN — für die Kundenakte.
+ *
+ * NICHT NUR ÜBER DIE KUNDENKENNUNG: die App schreibt auf eine Rechnung den
+ * Namen, nicht die Kennung — ihr Kunde ergibt sich aus der Baustelle. Gesucht
+ * wird deshalb über beides: die Kennung, wo sie steht, und die Baustellen
+ * des Kunden. Nach dem Namen gerade NICHT: ein umbenannter Kunde behält auf
+ * seinen alten Rechnungen den alten Namen, und zwei Kunden gleichen Namens
+ * sähen die Rechnungen des anderen.
+ */
+export async function listInvoicesForCustomer(
+  companyId: string,
+  customerId: string,
+  projektIds: string[],
+): Promise<WithId<Invoice>[]> {
+  // Die Kennungen stehen in einer `or`-Zeichenkette — nur, was wirklich eine
+  // Kennung ist, kommt hinein.
+  const ids = projektIds.filter((id) => KENNUNG.test(id));
+  if (!KENNUNG.test(customerId)) return [];
+  const teile = [`customer_id.eq.${customerId}`];
+  if (ids.length > 0) teile.push(`project_id.in.(${ids.join(',')})`);
+  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+    oder: teile.join(','),
+    sortiere: { feld: 'invoiceDate', absteigend: true },
+    grenze: RECHNUNGEN_JE_KUNDE,
   });
   return zusammensetzen(koepfe, companyId);
 }
