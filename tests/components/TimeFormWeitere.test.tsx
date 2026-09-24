@@ -15,9 +15,12 @@ import type { AppUser, TimeEntry } from '@/types';
  * findet sie offen vor.
  */
 
-const createTimeEntryOhneEmpfang = vi.fn(async (..._a: unknown[]) => 'confirmed');
+const createTimeEntryOhneEmpfang = vi.fn<[string, Partial<TimeEntry>], Promise<string>>(
+  async () => 'confirmed',
+);
 vi.mock('@/lib/db/timeEntries', () => ({
-  createTimeEntryOhneEmpfang: (...a: unknown[]) => createTimeEntryOhneEmpfang(...a),
+  createTimeEntryOhneEmpfang: (firma: string, daten: Partial<TimeEntry>) =>
+    createTimeEntryOhneEmpfang(firma, daten),
   updateTimeEntryOhneEmpfang: vi.fn(async () => 'confirmed'),
   eintraegeAmTag: vi.fn(async () => []),
   DuplicateEntryError: class extends Error {},
@@ -98,7 +101,7 @@ describe('Weitere Angaben', () => {
     expect(zeile()).toHaveTextContent('Fahrzeug WZ-123AB · Nachtarbeit');
 
     await nutzer.click(screen.getByRole('button', { name: 'Zeit buchen' }));
-    const daten = createTimeEntryOhneEmpfang.mock.calls[0][1] as Partial<TimeEntry>;
+    const daten = createTimeEntryOhneEmpfang.mock.calls[0][1];
     expect(daten).toMatchObject({ vehiclePlate: 'WZ-123AB', isNightWork: true, projectNumber: 'B-1' });
   });
 
