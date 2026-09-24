@@ -7,6 +7,7 @@
 export {
   listEigeneKrankmeldungen,
   listKrankmeldungenAb,
+  getKrankmeldung,
   krankmeldungSpeichern,
   krankmeldungLoeschen,
   listBetriebsurlaubeAb,

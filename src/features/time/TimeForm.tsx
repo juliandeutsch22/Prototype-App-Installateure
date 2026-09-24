@@ -8,6 +8,8 @@ import {
   DuplicateEntryError,
 } from '@/lib/db/timeEntries';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
+import { krankmeldungSpeichern } from '@/lib/db/abwesenheiten';
+import { ergebnisText } from '@/features/vacations/abwesenheitText';
 import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
 import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
@@ -138,6 +140,8 @@ export default function TimeForm({
   const [travelTime, setTravelTime] = useState(String(entry?.travelTime ?? 0));
   const [projectNumber, setProjectNumber] = useState(entry?.projectNumber ?? prefill?.projectNumber ?? '');
   const [comment, setComment] = useState(entry?.comment ?? '');
+  /** Krank bis (einschließlich) — Krank wird als Krankmeldung erfasst. */
+  const [krankBis, setKrankBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   const [isHelper, setIsHelper] = useState(entry?.isHelper ?? asHelperVorschlag ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
   // Zuschläge werden bewusst gesetzt, nicht aus der Uhrzeit geraten: ob ein
@@ -190,6 +194,17 @@ export default function TimeForm({
   */
   const zaWaehlbar =
     (!!user && canEditTime(user.role)) || entry?.status === 'Zeitausgleich';
+  /*
+    KRANK IST EINE KRANKMELDUNG. Die Zeiterfassung legt sie an (auch über
+    mehrere Tage) — so steht sie im Wochenplan und bei den Krankenständen
+    des Büros, und nicht nur im Zeitkonto. Ein Tag, der zu einer Meldung
+    gehört, wird nur über die Meldung geändert; die Datenbank lässt es
+    anders nicht zu. Einen bestehenden Eintrag zu „Krank" umzubauen geht
+    deshalb nicht: den Eintrag löschen und neu krank melden.
+  */
+  const meldungsTag = !!entry?.krankmeldungId;
+  const krankWaehlbar = !isEdit || entry?.status === 'Krank';
+  const alsKrankmeldung = !isEdit && status === 'Krank';
 
   /**
    * Die Baustellen laedt `BaustellenSelect` selbst — samt Lade-, Fehler- und
@@ -315,12 +330,54 @@ export default function TimeForm({
       setError('Verrechnete Einträge können nicht geändert werden.');
       return;
     }
+    if (meldungsTag) {
+      setError('Dieser Tag gehört zu einer Krankmeldung — bitte dort das Ende ändern oder die Meldung löschen.');
+      return;
+    }
+    if (alsKrankmeldung && krankBis < date) {
+      setError('„Krank bis" liegt vor dem Datum.');
+      return;
+    }
     if (staff && !isEdit && !targetUid) {
       setError('Bitte einen Mitarbeiter auswählen.');
       return;
     }
 
     setSaving(true);
+    if (alsKrankmeldung) {
+      try {
+        // Die Meldung gehört dem Mitarbeiter, für den gebucht wird — ohne
+        // Auswahl dem Angemeldeten selbst.
+        const r = await krankmeldungSpeichern({
+          userId: target?.uid ?? null,
+          von: date,
+          bis: krankBis,
+          notiz: comment.trim(),
+          melderName: user.name,
+        });
+        toast.success(
+          `${target ? `Krankmeldung für ${target.name}` : 'Krankmeldung'} erfasst — ${ergebnisText(r)}`,
+        );
+        setComment('');
+        // Zurück auf den Normalfall: die Maske steht für die nächste Buchung
+        // bereit, nicht für eine zweite Krankmeldung über dieselben Tage.
+        setStatus('Anwesend');
+        onSaved();
+      } catch (err) {
+        // Der Grund des Servers zählt: eine Überschneidung nennt die andere
+        // Meldung, ein Zeitraum ohne Arbeitstag sagt genau das. Ohne Netz
+        // geht eine Krankmeldung nicht — sie legt Tage im Zeitkonto an, und
+        // das tut nur der Server.
+        setError(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Die Krankmeldung konnte nicht erfasst werden. Bitte erneut versuchen.',
+        );
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     try {
       const project = projects.find((p) => p.projectNumber === projectNumber);
       const payload = {
@@ -388,6 +445,7 @@ export default function TimeForm({
   }
 
   const billed = !!entry?.isBilled;
+  const gesperrt = billed || meldungsTag;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -397,6 +455,12 @@ export default function TimeForm({
         <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
           Dieser Eintrag ist mit Rechnung {entry?.invoiceNumber || '—'} verrechnet und kann nicht
           mehr geändert werden. Dafür muss zuerst die Rechnung storniert werden.
+        </p>
+      )}
+      {meldungsTag && (
+        <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
+          Dieser Tag gehört zu einer Krankmeldung und wird nur über sie geändert: in der Liste auf
+          „Krankmeldung" tippen und dort das Ende ändern oder die Meldung löschen.
         </p>
       )}
 
@@ -451,7 +515,11 @@ export default function TimeForm({
           label="Datum"
           type="date"
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={(e) => {
+            setDate(e.target.value);
+            // Das Krank-Ende mitziehen, solange es davor läge.
+            if (krankBis < e.target.value) setKrankBis(e.target.value);
+          }}
           required
           pflicht
         />
@@ -462,7 +530,7 @@ export default function TimeForm({
           onChange={(e) => setStatus(e.target.value as TimeEntry['status'])}
         >
           <option value="Anwesend">Anwesend</option>
-          <option value="Krank">Krank</option>
+          {krankWaehlbar && <option value="Krank">Krank</option>}
           <option value="Urlaub">Urlaub</option>
           {zaWaehlbar && <option value="Zeitausgleich">Zeitausgleich</option>}
         </SelectField>
@@ -487,7 +555,26 @@ export default function TimeForm({
           Hinweis: {holidayName} — gesetzlicher Feiertag.
         </p>
       )}
-      {!showWorkFields && status !== 'Zeitausgleich' && (
+      {alsKrankmeldung && (
+        <div className="space-y-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+          <p>
+            Wird als Krankmeldung erfasst: die Arbeitstage bis zum Ende stehen als „Krank" im
+            Zeitkonto, das Büro sieht die Meldung. Ist das Ende noch offen, das voraussichtliche
+            eintragen — ändern geht später über die Meldung.
+          </p>
+          <InputField
+            id="krankBis"
+            label="Krank bis (voraussichtlich)"
+            type="date"
+            value={krankBis}
+            min={date}
+            onChange={(e) => setKrankBis(e.target.value)}
+            required
+            pflicht
+          />
+        </div>
+      )}
+      {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && (
         <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
           {status}: Es werden keine Arbeitszeiten erfasst. Der Tag wird als voller
           Solltag gutgeschrieben.
@@ -711,7 +798,7 @@ export default function TimeForm({
 
       <InputField
         id="comment"
-        label="Kommentar / Tätigkeiten"
+        label={status === 'Krank' ? 'Anmerkung (freiwillig, keine Diagnose)' : 'Kommentar / Tätigkeiten'}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
       />
@@ -758,8 +845,8 @@ export default function TimeForm({
       {error && <ErrorState message={error} />}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" loading={saving} disabled={!!konflikt || billed} className="w-full sm:w-auto">
-          {isEdit ? 'Änderungen speichern' : 'Zeit buchen'}
+        <Button type="submit" loading={saving} disabled={!!konflikt || gesperrt} className="w-full sm:w-auto">
+          {isEdit ? 'Änderungen speichern' : alsKrankmeldung ? 'Krank melden' : 'Zeit buchen'}
         </Button>
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel} className="w-full sm:w-auto">

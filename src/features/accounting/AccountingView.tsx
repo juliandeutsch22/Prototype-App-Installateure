@@ -32,6 +32,7 @@ import Icon from '@/components/Icon';
 import ExportDialog from './ExportDialog';
 import ProjectSummary from './ProjectSummary';
 import TimeForm from '@/features/time/TimeForm';
+import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
@@ -100,6 +101,8 @@ export default function AccountingView() {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<WithId<TimeEntry> | null>(null);
   const [toDelete, setToDelete] = useState<WithId<TimeEntry> | null>(null);
+  /** Die Krankmeldung, die gerade offen ist — von einem Krank-Tag aus. */
+  const [meldung, setMeldung] = useState<string | null>(null);
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -394,6 +397,18 @@ export default function AccountingView() {
             }}
           />
         </Card>
+      )}
+
+      {meldung && user && (
+        <KrankmeldungKarte
+          key={meldung}
+          companyId={user.companyId}
+          id={meldung}
+          meinName={user.name}
+          mitNamen
+          onGeaendert={() => setMeldung(null)}
+          onSchliessen={() => setMeldung(null)}
+        />
       )}
 
       <Card
@@ -831,6 +846,18 @@ export default function AccountingView() {
                             // Verrechnete Einträge sind Rechnungsgrundlage
                             // und bleiben unangetastet.
                             <Marke>verrechnet</Marke>
+                          ) : e.krankmeldungId ? (
+                            // Ein Tag einer Krankmeldung wird nur über sie
+                            // geändert — Ende ändern oder löschen.
+                            <Button
+                              variant="ghost"
+                              onClick={() => {
+                                setMeldung(e.krankmeldungId!);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                            >
+                              Krankmeldung
+                            </Button>
                           ) : (
                             <>
                               <Button
