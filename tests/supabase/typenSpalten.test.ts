@@ -34,6 +34,7 @@ const TABELLE_VON: Record<string, string> = {
   Material: 'materials',
   MaterialOrder: 'material_orders',
   EinkaufPosten: 'einkauf_posten',
+  FehlerEintrag: 'fehlerprotokoll',
   EinsatzMaterial: 'einsatz_material',
   TimeEntry: 'time_entries',
   Vacation: 'vacations',

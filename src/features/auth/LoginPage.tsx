@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { InputField, CheckboxField } from '@/components/Field';
 import ProduktMarke from '@/components/ProduktMarke';
+import RechtLinks from '@/components/RechtLinks';
 import Button from '@/components/Button';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
 
@@ -97,7 +98,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-bg p-4">
+    <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-bg p-4">
       <div className="panel w-full max-w-sm overflow-hidden shadow-lg">
         {/* Markenband: dieselbe dunkle Trägerfläche wie Seitenleiste und
             Tableiste. Die Marke steht ohne weitere Fassung darauf. */}
@@ -210,6 +211,8 @@ export default function LoginPage() {
           </p>
         </form>
       </div>
+      {/* Vor der Anmeldung erreichbar — das Impressum verlangt es (§ 5 ECG). */}
+      <RechtLinks className="text-xs text-ink-muted" />
     </div>
   );
 }

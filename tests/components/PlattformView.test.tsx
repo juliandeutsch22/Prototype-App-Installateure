@@ -19,6 +19,11 @@ vi.mock('@/lib/db/plattform', () => ({
   betriebAnlegen: (daten: unknown) => anlegen(daten),
 }));
 
+const plattformFehler = vi.fn();
+vi.mock('@/lib/db/fehlerprotokoll', () => ({
+  plattformFehler: (...a: unknown[]) => plattformFehler(...a),
+}));
+
 const abmelden = vi.fn();
 vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({ signOut: abmelden }),
@@ -42,6 +47,8 @@ async function ausfuellen(nutzer: ReturnType<typeof userEvent.setup>) {
 }
 
 beforeEach(() => {
+  plattformFehler.mockReset();
+  plattformFehler.mockResolvedValue([]);
   anlegen.mockReset();
   anlegen.mockResolvedValue({
     companyId: 'perl', ersterAdminUid: 'neu1', passwortLink: 'https://x.invalid/pw',
@@ -130,5 +137,25 @@ describe('Die Plattformseite', () => {
     // Betriebe — und dann hätte dieses Konto genau das, was es nicht haben soll.
     zeige();
     expect(screen.queryByText(/In dieser Sitzung angelegt/)).not.toBeInTheDocument();
+  });
+});
+
+describe('Fehler aus den Betrieben', () => {
+  it('zeigt Abstürze mit dem Betrieb und Meldungen, die an den Support gingen', async () => {
+    plattformFehler.mockResolvedValue([
+      { id: '1', companyId: 'perl', betrieb: 'Perl Installationen', art: 'absturz', nachricht: 'x is undefined', stapel: null, pfad: '/time', fassung: 'a1', geraet: null, beschreibung: null, createdAt: Date.UTC(2026, 8, 24, 7) },
+      { id: '2', companyId: 'mayr', betrieb: 'Mayr Bad', art: 'absturz', nachricht: 'x is undefined', stapel: null, pfad: '/time', fassung: 'a1', geraet: null, beschreibung: null, createdAt: Date.UTC(2026, 8, 24, 8) },
+      { id: '3', companyId: 'perl', betrieb: 'Perl Installationen', art: 'meldung', nachricht: null, stapel: null, pfad: '/invoices', fassung: 'a1', geraet: null, beschreibung: 'Rechnung druckt nicht', createdAt: Date.UTC(2026, 8, 24, 9) },
+    ]);
+    zeige();
+    expect(await screen.findByText('Rechnung druckt nicht')).toBeInTheDocument();
+    expect(screen.getByText(/2 betroffen/)).toBeInTheDocument();
+    expect(plattformFehler).toHaveBeenCalledWith(14);
+  });
+
+  it('sagt es, wenn das Protokoll nicht geladen werden kann', async () => {
+    plattformFehler.mockRejectedValue(new Error('Netz weg'));
+    zeige();
+    expect(await screen.findByText(/Netz weg/)).toBeInTheDocument();
   });
 });

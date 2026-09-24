@@ -9,6 +9,8 @@ import { InputField, FormGrid } from '@/components/Field';
 import { ErrorState } from '@/components/States';
 import { Marke, Warnung } from '@/components/Badge';
 import PasswortAendern from '@/features/auth/PasswortAendern';
+import { plattformFehler, type PlattformFehler } from '@/lib/db/fehlerprotokoll';
+import FehlerListe from '@/features/settings/FehlerListe';
 
 /**
  * Die einzige Seite des globalen Administrators.
@@ -34,6 +36,13 @@ import PasswortAendern from '@/features/auth/PasswortAendern';
  * ausgesperrt hat, kann nichts mehr freigeben. Er läuft ohne Zustimmung, aber
  * nicht heimlich — gekennzeichnet, höchstens 24 Stunden, im Protokoll des
  * Betriebs und mit einem Band in seiner App.
+ *
+ * DIE DRITTE AUSNAHME, SEIT 24.09.2026: DIE FEHLER DER APP. Sie sind kein
+ * Fenster in den Betrieb, sondern in die eigene Software — was abstürzt, in
+ * welcher Fassung, auf welchem Gerät. Geputzt, ohne Person, ohne Kennungen in
+ * der Ansicht. Eine von Hand geschriebene Meldung erscheint nur, wenn ihr
+ * Verfasser sie ausdrücklich auch an den Support geschickt hat. Die Grenze
+ * steht in `fehlerprotokoll_plattform`, nicht hier.
  */
 
 const LEER: NeuerBetrieb = { name: '', companyId: '', adminEmail: '', adminName: '' };
@@ -69,6 +78,21 @@ export default function PlattformView() {
 
   useEffect(() => {
     freigabenLaden().catch(() => setOffen([]));
+  }, []);
+
+  /* Was in den letzten zwei Wochen in den Betrieben abgestürzt ist. */
+  const [fehlerListe, setFehlerListe] = useState<PlattformFehler[] | null>(null);
+  const [fehlerFehler, setFehlerFehler] = useState<string | null>(null);
+  async function fehlerLaden() {
+    setFehlerFehler(null);
+    try {
+      setFehlerListe(await plattformFehler(14));
+    } catch (e) {
+      setFehlerFehler(e instanceof Error ? e.message : 'Das Fehlerprotokoll konnte nicht geladen werden.');
+    }
+  }
+  useEffect(() => {
+    void fehlerLaden();
   }, []);
 
   async function notzugangOeffnen(e: FormEvent) {
@@ -250,6 +274,22 @@ export default function PlattformView() {
           </ul>
         )}
       </Card>
+
+      {/*
+        FEHLER DER APP, nicht der Betriebe: gebündelt nach Meldung, mit dem
+        Betrieb daneben, damit ein Absturz nach einem Deploy auffällt, bevor
+        jemand anruft.
+      */}
+      <section aria-label="Fehler aus den Betrieben" className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-bold text-ink">Fehler aus den Betrieben (14 Tage)</h2>
+          <Button variant="secondary" onClick={() => void fehlerLaden()}>
+            Neu laden
+          </Button>
+        </div>
+        {fehlerFehler && <ErrorState message={fehlerFehler} onRetry={() => void fehlerLaden()} />}
+        {fehlerListe && <FehlerListe zeilen={fehlerListe} />}
+      </section>
 
       {/*
         DER NOTZUGANG IST DIE AUSNAHME UND SOLL SICH AUCH SO ANFÜHLEN: eigene

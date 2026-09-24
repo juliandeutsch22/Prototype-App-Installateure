@@ -2,6 +2,8 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { darfNeuLaden, istNachladeFehler } from '@/lib/nachladen';
 import { huelleErneuernUndNeuLaden } from '@/lib/sw';
 import { FASSUNG } from '@/lib/fassung';
+import { fehlerErfassen } from '@/lib/fehlerprotokoll';
+import ProblemMelden from '@/components/ProblemMelden';
 
 interface Props {
   children: ReactNode;
@@ -37,8 +39,13 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Kein externer Dienst: die Meldung bleibt im Gerät des Nutzers (DSGVO).
     console.error('Unerwarteter Fehler:', error, info.componentStack);
+    /*
+      INS EIGENE PROTOKOLL, NICHT ZU EINEM FREMDEN DIENST — geputzt, ohne
+      Inhaltsdaten (lib/fehlerprotokoll.ts). Ein Nachladefehler geht nicht
+      hinein: er heilt durch Neuladen und ist nach jedem Deploy zu erwarten.
+    */
+    fehlerErfassen('absturz', error, info.componentStack ?? undefined);
 
     /**
      * EIN NACHLADEFEHLER HEILT NUR DURCH NEULADEN.
@@ -120,6 +127,18 @@ export default class ErrorBoundary extends Component<Props, State> {
               Zur Startseite
             </button>
           </div>
+          {/* Hier entsteht die Frage „wem sage ich das?" — die Antwort steht daneben. */}
+          <ProblemMelden
+            ausloeser={(oeffnen) => (
+              <button
+                type="button"
+                onClick={oeffnen}
+                className="mt-3 min-h-touch text-sm font-medium text-brand underline"
+              >
+                Problem melden
+              </button>
+            )}
+          />
           <details className="mt-4 text-xs text-ink-muted">
             <summary className="cursor-pointer">Technische Details</summary>
             <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">

@@ -61,6 +61,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Dasselbe, aber ohne zu werfen, wenn kein Anbieter da ist.
+ *
+ * Für Bausteine, die auf der FEHLERTAFEL stehen: dort darf nichts mehr
+ * scheitern, sonst wird aus der Tafel doch noch die weisse Seite.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useToastWennDa(): ToastApi | null {
+  return useContext(ToastContext) ?? null;
+}
+
 // eslint-disable-next-line react-refresh/only-export-components
 export function useToast(): ToastApi {
   const ctx = useContext(ToastContext);

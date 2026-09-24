@@ -146,6 +146,40 @@ export function assignProjectToCustomer(
   return aendern(BAUSTELLEN, projectId, { customerId, customerName });
 }
 
+/**
+ * Welche dieser Kunden es im Betrieb schon gibt — Stellen in der Liste, ab 0.
+ *
+ * Die Datenbank beantwortet das und nicht der Browser: sie kennt den ganzen
+ * Bestand, auch den, der nie geladen wurde. Bei der Übernahme gilt dieselbe
+ * Antwort (`kunden_einspielen`).
+ */
+export async function kundenVorhanden(kunden: Pick<NewCustomer, 'name'>[]): Promise<number[]> {
+  const { data, error } = await derClient().rpc('kunden_einspielen', {
+    p_kunden: kunden.map((k) => ({ name: k.name })),
+    p_nur_pruefen: true,
+  });
+  if (error) throw new Error(error.message);
+  return ((data as { vorhanden?: number[] } | null)?.vorhanden ?? []).map(Number);
+}
+
+/**
+ * Kunden in EINER Transaktion übernehmen — alle oder keiner.
+ *
+ * Schon vorhandene überspringt die Datenbank, auch wenn sie erst nach dem
+ * Probelauf angelegt wurden.
+ */
+export async function kundenEinspielen(
+  kunden: NewCustomer[],
+): Promise<{ angelegt: number; uebersprungen: number }> {
+  const { data, error } = await derClient().rpc('kunden_einspielen', {
+    p_kunden: kunden,
+    p_nur_pruefen: false,
+  });
+  if (error) throw new Error(error.message);
+  const d = data as { angelegt: number; uebersprungen: number };
+  return { angelegt: Number(d.angelegt), uebersprungen: Number(d.uebersprungen) };
+}
+
 export type { WithId };
 
 /**

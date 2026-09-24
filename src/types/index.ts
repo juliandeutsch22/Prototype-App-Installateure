@@ -703,6 +703,26 @@ export interface EinkaufPosten {
   updatedAt?: number;
 }
 
+/**
+ * Ein Eintrag im Fehlerprotokoll — ein Absturz, ein unbehandelter Fehler oder
+ * ein von Hand gemeldetes Problem. Ohne Inhaltsdaten; nur `beschreibung` ist
+ * frei getippt.
+ */
+export interface FehlerEintrag {
+  id: string;
+  companyId: string;
+  userId?: string | null;
+  art: 'absturz' | 'fehler' | 'meldung';
+  nachricht?: string | null;
+  stapel?: string | null;
+  pfad?: string | null;
+  fassung?: string | null;
+  geraet?: string | null;
+  beschreibung?: string | null;
+  anSupport?: boolean;
+  createdAt?: number;
+}
+
 export interface MaterialOrder {
   id: string;
   companyId: string;

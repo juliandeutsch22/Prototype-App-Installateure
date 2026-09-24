@@ -77,3 +77,15 @@ export function searchCustomers(
 ): Promise<WithId<Customer>[]> {
   return pg.searchCustomers(companyId, begriff, max);
 }
+
+/** Welche dieser Kunden es schon gibt (Stellen in der Liste) — für den Probelauf des Imports. */
+export function kundenVorhanden(kunden: Pick<NewCustomer, 'name'>[]): Promise<number[]> {
+  return pg.kundenVorhanden(kunden);
+}
+
+/** Kunden aus einer Datei übernehmen — alle oder keiner, vorhandene übersprungen. */
+export function kundenEinspielen(
+  kunden: NewCustomer[],
+): Promise<{ angelegt: number; uebersprungen: number }> {
+  return pg.kundenEinspielen(kunden);
+}

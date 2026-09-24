@@ -31,6 +31,9 @@ import { SCHEIN_ROLLEN } from '@/lib/permissions';
  * Besuch vorhaelt.
  */
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+// Ausserhalb der Anmeldung: das Impressum muss jeder lesen können, auch ohne Konto.
+const ImpressumView = lazy(() => import('@/features/recht/ImpressumView'));
+const DatenschutzView = lazy(() => import('@/features/recht/DatenschutzView'));
 /*
   NICHT NACHGELADEN. Die Passwortmaske steht am Anfang jeder Kette — nach dem
   Rücksetzlink UND unter „Mein Konto". Ein Nachladen ausgerechnet dort wäre
@@ -56,6 +59,7 @@ const WorkSheetView = lazy(() => import('@/features/worksheets/WorkSheetView'));
 const VacationsView = lazy(() => import('@/features/vacations/VacationsView'));
 const ModulesView = lazy(() => import('@/features/modules/ModulesView'));
 const SicherungView = lazy(() => import('@/features/settings/SicherungView'));
+const FehlerprotokollView = lazy(() => import('@/features/settings/FehlerprotokollView'));
 const WorkSheetsListView = lazy(() => import('@/features/worksheets/WorkSheetsListView'));
 const MyProjectsView = lazy(() => import('@/features/projects/MyProjectsView'));
 const AssignmentsView = lazy(() => import('@/features/assignments/AssignmentsView'));
@@ -186,6 +190,22 @@ function AppInhalt() {
           element={
             <Suspense fallback={<LoadingState label="Anmeldung wird geladen …" />}>
               <LoginPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/impressum"
+          element={
+            <Suspense fallback={<LoadingState label="Wird geladen …" />}>
+              <ImpressumView />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/datenschutz"
+          element={
+            <Suspense fallback={<LoadingState label="Wird geladen …" />}>
+              <DatenschutzView />
             </Suspense>
           }
         />
@@ -412,6 +432,7 @@ function AppRoutes() {
                 support: <SupportzugangView />,
                 module: <ModulesView />,
                 sicherung: <SicherungView />,
+                fehler: <FehlerprotokollView />,
               }}
             />
           </RequireNav>
