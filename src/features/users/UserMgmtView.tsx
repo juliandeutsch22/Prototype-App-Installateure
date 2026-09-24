@@ -291,7 +291,7 @@ export default function UserMgmtView() {
                   placeholder="z. B. manfred.huber"
                   onChange={(e) => setBenutzername(e.target.value.toLowerCase().trim())}
                   required pflicht />
-                <p className="flex items-center text-xs text-ink-muted">
+                <p className="flex flex-wrap items-center text-xs text-ink-muted">
                   Ohne E-Mail: das Startpasswort gibst du persönlich weiter.
                   <InfoHint about="Benutzername">
                     Erlaubt sind Kleinbuchstaben a–z, Ziffern, Punkt, Bindestrich und

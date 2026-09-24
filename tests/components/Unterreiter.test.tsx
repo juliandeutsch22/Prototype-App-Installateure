@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import type { Role } from '@/types';
@@ -65,20 +65,20 @@ describe('Unterreiter', () => {
     expect(screen.queryByText('Meldungen-Inhalt')).not.toBeInTheDocument();
   });
 
-  it('bietet ab vier Unterseiten am Telefon eine Auswahl, die alle nennt', async () => {
-    // Prüflauf 24.09.2026, D5: auf 375 px waren von acht Reitern zweieinhalb
-    // zu sehen. Die Auswahl steht nur am Telefon (sm:hidden), die Leiste nur
-    // darüber — hier wird der Mechanismus geprüft.
+  it('zeigt auch bei vielen Unterseiten Reiter, keine Auswahlliste', async () => {
+    // Paket 6 hatte am Telefon ab vier Unterseiten ein Feld „Bereich" statt
+    // der Reiter. Aus dem Betrieb (24.09.2026): passt nicht zum Rest der App.
+    // Die Leiste läuft am Telefon seitlich wie Material, Lager und Urlaub.
     rolle = 'Administrator';
     zeige('/settings/meldungen');
-    const auswahl = (await screen.findByLabelText('Bereich')) as HTMLSelectElement;
-    expect(auswahl.value).toBe('meldungen');
-    expect(Array.from(auswahl.options).map((o) => o.textContent)).toEqual(
-      expect.arrayContaining(['Mein Konto', 'Module', 'Fehler']),
-    );
-    await userEvent.selectOptions(auswahl, 'module');
+    const leiste = await screen.findByRole('navigation', { name: 'Bereiche' });
+    expect(screen.queryByLabelText('Bereich')).toBeNull();
+    expect(leiste.className).toMatch(/overflow-x-auto/);
+    expect(leiste.className).not.toMatch(/(^|\s)hidden(\s|$)/);
+    const namen = within(leiste).getAllByRole('link').map((l) => l.textContent);
+    expect(namen).toEqual(expect.arrayContaining(['Mein Konto', 'Module', 'Fehler']));
+    await userEvent.click(within(leiste).getByRole('link', { name: 'Module' }));
     expect(await screen.findByText('Module-Inhalt')).toBeInTheDocument();
-    expect(auswahl.value).toBe('module');
   });
 
   it('zeigt dem Monteur keine Leiste, weil er nur eine Unterseite hat', async () => {
