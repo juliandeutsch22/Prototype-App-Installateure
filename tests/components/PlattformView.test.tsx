@@ -75,9 +75,15 @@ describe('Die Plattformseite', () => {
     const knopf = screen.getByRole('button', { name: 'Betrieb anlegen' });
     expect(knopf).toBeDisabled();
 
+    // Vor der ersten Eingabe die Anleitung statt einer Rüge (Prüflauf, D19).
+    expect(screen.getByText(/Alle vier Felder ausfüllen/)).toBeInTheDocument();
+    expect(screen.queryByText(/braucht einen Namen/)).toBeNull();
+
     // Der Reihe nach: die Meldung nennt immer den ERSTEN offenen Punkt, sonst
     // stünden vier Sätze übereinander und keiner sagt, wo man anfängt.
+    await nutzer.type(screen.getByLabelText(/Erster Administrator/), 'P');
     expect(screen.getByText(/braucht einen Namen/)).toBeInTheDocument();
+    await nutzer.clear(screen.getByLabelText(/Erster Administrator/));
 
     await nutzer.type(screen.getByLabelText(/Name des Betriebs/), 'Perl Installationen');
     await nutzer.type(screen.getByLabelText('Kennung'), 'Perl GmbH');

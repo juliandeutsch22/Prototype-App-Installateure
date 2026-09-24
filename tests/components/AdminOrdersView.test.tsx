@@ -122,15 +122,21 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/**
+ * Den Status über das „⋯" der Zeile setzen — seit dem Prüflauf (D11) steht
+ * dort, was vorher als Auswahl in jeder Zeile stand.
+ */
+async function statusWaehlen(status: string) {
+  await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für/ }));
+  await userEvent.click(screen.getByRole('menuitem', { name: `Auf „${status}" setzen` }));
+}
+
 describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
   it('fragt vor „Erledigt" nach und bucht erst nach der Bestätigung', async () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit' })];
     zeige();
 
-    await userEvent.selectOptions(
-      await screen.findByRole('combobox', { name: '' }).catch(() => screen.getAllByRole('combobox')[0]),
-      'Erledigt',
-    );
+    await statusWaehlen('Erledigt');
 
     expect(await screen.findByText(/vom Lagerbestand abgezogen/)).toBeInTheDocument();
     expect(statusSetzen).not.toHaveBeenCalled();
@@ -144,7 +150,7 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Abholbereit' })];
     zeige();
 
-    await userEvent.selectOptions(screen.getAllByRole('combobox')[0], 'Erledigt');
+    await statusWaehlen('Erledigt');
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
 
@@ -161,7 +167,7 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
     zeige();
 
-    await userEvent.selectOptions(screen.getAllByRole('combobox')[0], 'In Bearbeitung');
+    await statusWaehlen('In Bearbeitung');
     await waitFor(() => expect(statusSetzen).toHaveBeenCalledWith('o1', 'In Bearbeitung'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -173,7 +179,7 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
     anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
     zeige();
 
-    await userEvent.selectOptions(screen.getAllByRole('combobox')[0], 'In Bearbeitung');
+    await statusWaehlen('In Bearbeitung');
     expect(await screen.findByText(/konnte nicht geändert werden/)).toBeInTheDocument();
   });
 });
@@ -319,7 +325,8 @@ describe('Anforderungen — löschen', () => {
     anforderungen = [anforderung({ id: 'o1' })];
     zeige();
 
-    await userEvent.click(await screen.findByRole('button', { name: /Kupferrohr 15mm löschen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Kupferrohr 15mm/ }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Löschen' }));
     expect(loeschen).not.toHaveBeenCalled();
 
     const dialog = screen.getByRole('dialog');
@@ -472,5 +479,22 @@ describe('Anforderungen — Lager oder Einkauf', () => {
     zeige();
     await userEvent.click(await screen.findByRole('tab', { name: /Einkauf/ }));
     expect(await screen.findByText(/eigene Material auf der Einkaufsliste konnte nicht geladen werden/)).toBeInTheDocument();
+  });
+});
+
+describe('Anforderungen — eine ruhige Zeile (Prüflauf 24.09.2026, D11)', () => {
+  it('zeigt den Zustand einmal und legt Status und Löschen ins Menü', async () => {
+    anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
+    zeige();
+    await screen.findByRole('button', { name: 'Aus Lager' });
+    // Keine Statusauswahl mehr in der Zeile — nur der Filter oben ist eine.
+    expect(screen.queryByRole('button', { name: /Kupferrohr 15mm löschen/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /Weitere Aktionen für Kupferrohr 15mm/ }));
+    const menue = screen.getByRole('menu');
+    const punkte = within(menue).getAllByRole('menuitem').map((m) => m.textContent);
+    // Der aktuelle Status steht nicht zur Wahl, alle anderen schon.
+    expect(punkte).not.toContain('Auf „Offen" setzen');
+    expect(punkte).toContain('Auf „Erledigt" setzen');
+    expect(punkte[punkte.length - 1]).toBe('Löschen');
   });
 });

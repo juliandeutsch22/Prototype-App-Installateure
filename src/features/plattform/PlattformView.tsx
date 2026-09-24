@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import MarkenBand from '@/components/MarkenBand';
 import { useAuth } from '@/app/AuthContext';
 import { betriebAnlegen } from '@/lib/db/plattform';
 import { notzugang, offeneFreigaben, type OffeneFreigabe } from '@/lib/db/support';
@@ -151,6 +152,7 @@ export default function PlattformView() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
+      <MarkenBand />
       <header className="space-y-1">
         <h1 className="text-xl font-bold text-ink">Betriebe anlegen</h1>
         <p className="text-sm text-ink-muted">
@@ -223,8 +225,17 @@ export default function PlattformView() {
             erst nach dem Drücken. Ein Knopf, der nicht geht und nicht sagt
             warum, ist die unangenehmste Form einer Fehlermeldung.
           */}
+          {/*
+            Vor der ersten Eingabe kein Fehler, sondern die Anleitung: „Der
+            Betrieb braucht einen Namen." über einer leeren Maske las sich
+            wie eine Rüge für etwas, das noch niemand versucht hat (D19).
+          */}
           {eingabeFehler && !fehler && (
-            <p className="text-sm text-ink-muted">{eingabeFehler}</p>
+            <p className="text-sm text-ink-muted">
+              {Object.values(form).some((v) => String(v ?? '').trim() !== '')
+                ? eingabeFehler
+                : 'Alle vier Felder ausfüllen — dann lässt sich der Betrieb anlegen.'}
+            </p>
           )}
 
           <Button type="submit" variant="accent" loading={laeuft} disabled={!!eingabeFehler}>

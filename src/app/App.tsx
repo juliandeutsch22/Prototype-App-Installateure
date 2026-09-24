@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
+import MarkenBand from '@/components/MarkenBand';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import { beiPasswortRuecksetzung, startpasswortOffen } from '@/lib/auth/sitzung';
@@ -143,6 +144,7 @@ function AppInhalt() {
   if (passwortFaellig) {
     return (
       <div className="mx-auto max-w-xl space-y-6 p-4 sm:p-6">
+        <MarkenBand />
         <header className="space-y-1">
           <h1 className="text-xl font-bold text-ink">Willkommen</h1>
           <p className="text-sm text-ink-muted">

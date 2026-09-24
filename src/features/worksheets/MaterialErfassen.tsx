@@ -135,7 +135,7 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
           id="wsmsuche"
           label="Artikel aus dem Lager"
           type="search"
-          placeholder="Bezeichnung, Kategorie oder Artikelnummer"
+          placeholder="Name, Kategorie oder Art.-Nr."
           value={suche}
           onChange={(e) => setSuche(e.target.value)}
         />
@@ -165,9 +165,7 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
                   <ListRow
                     key={m.id}
                     title={m.name}
-                    subtitle={[m.category || 'ohne Kategorie', m.articleNumber]
-                      .filter(Boolean)
-                      .join(' · ')}
+                    subtitle={[m.category, m.articleNumber].filter(Boolean).join(' · ') || undefined}
                   >
                     <Button
                       variant="secondary"

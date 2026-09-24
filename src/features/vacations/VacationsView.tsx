@@ -161,6 +161,13 @@ export default function VacationsView() {
 
   const [von, setVon] = useState(todayStr());
   const [bis, setBis] = useState(todayStr());
+  /*
+    Erst rechnen, wenn jemand einen Zeitraum GEWÄHLT hat. Vorbelegt ist
+    heute–heute, und die Maske sagte schon vor jeder Eingabe „1 Arbeitstag —
+    danach bleiben 24 Tage" (Prüflauf 24.09.2026, D17): eine Antwort auf eine
+    Frage, die noch niemand gestellt hat.
+  */
+  const [zeitraumGewaehlt, setZeitraumGewaehlt] = useState(false);
   const [notiz, setNotiz] = useState('');
   const [sendet, setSendet] = useState(false);
 
@@ -831,6 +838,7 @@ export default function VacationsView() {
               value={von}
               onChange={(e) => {
                 setVon(e.target.value);
+                setZeitraumGewaehlt(true);
                 // Das Ende mitziehen, solange es davor läge — sonst steht dort
                 // ein Zeitraum, den niemand so gemeint hat.
                 if (bis < e.target.value) setBis(e.target.value);
@@ -845,7 +853,10 @@ export default function VacationsView() {
                 type="date"
                 value={bis}
                 min={von}
-                onChange={(e) => setBis(e.target.value)}
+                onChange={(e) => {
+                  setBis(e.target.value);
+                  setZeitraumGewaehlt(true);
+                }}
                 required
                 pflicht
               />
@@ -888,20 +899,24 @@ export default function VacationsView() {
           */}
           {art === 'Urlaub' && (
           <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-            <strong className="tnum">
-              {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
-            </strong>
-            <span className="ml-1">in diesem Zeitraum</span>
-            <span className="tnum ml-1">
-              — danach bleiben {tageText(restImAntragsjahr - tage.length)}
-              {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
-            </span>
-            <InfoHint about="Arbeitstage">
-              Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
-              Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
-              Wer eine Woche mit Feiertag nimmt, verbraucht vier Tage, nicht fünf.
-            </InfoHint>
-            <span className="mt-1 block basis-full text-xs">
+            {zeitraumGewaehlt && (
+              <>
+                <strong className="tnum">
+                  {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
+                </strong>
+                <span className="ml-1">in diesem Zeitraum</span>
+                <span className="tnum ml-1">
+                  — danach bleiben {tageText(restImAntragsjahr - tage.length)}
+                  {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
+                </span>
+                <InfoHint about="Arbeitstage">
+                  Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
+                  Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
+                  Wer eine Woche mit Feiertag nimmt, verbraucht vier Tage, nicht fünf.
+                </InfoHint>
+              </>
+            )}
+            <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
               {jahresName} genehmigt: <span className="tnum">{genommen}</span> von{' '}
               <span className="tnum">{anspruch}</span> Tagen
               {/* Eine richtige Zahl mit falscher Erklärung ist auch eine

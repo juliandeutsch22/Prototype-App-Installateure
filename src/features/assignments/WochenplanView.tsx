@@ -408,10 +408,15 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                             {wochentag}
                           </span>
                           <span className="tnum block text-xs text-ink-muted">{datum}</span>
-                          {/* Die Zahl, wegen der es dieses Brett gibt. */}
-                          <span className="mt-1 block text-xs text-ink-muted">
-                            {zu ?? `${frei} frei`}
-                          </span>
+                          {/* Die Zahl, wegen der es dieses Brett gibt — an
+                              Wochenende und Feiertag nicht: dort ist niemand
+                              „frei", sondern keiner im Dienst (Prüflauf
+                              24.09.2026, D15). */}
+                          {(zu || (!wochenende && !feiertag)) && (
+                            <span className="mt-1 block text-xs text-ink-muted">
+                              {zu ?? `${frei} frei`}
+                            </span>
+                          )}
                         </button>
                         )}
                       </th>
@@ -554,7 +559,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     </span>
                     {zuAm.has(tag) ? (
                       <span className="text-sm text-ink-muted">Betriebsurlaub</span>
-                    ) : !nurLesen && (
+                    ) : !nurLesen && !wochenende && !feiertag && (
                       <span className="text-sm text-ink-muted">
                         {(t?.frei.length ?? 0)} frei
                       </span>
@@ -599,7 +604,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                       <p className="text-sm text-ink-muted">Nichts geplant.</p>
                     )}
 
-                    {!nurLesen && t && t.frei.length > 0 && (
+                    {!nurLesen && !wochenende && !feiertag && t && t.frei.length > 0 && (
                       <p className="text-sm text-ink-muted">
                         <span className="font-medium text-ink">Frei:</span> {t.frei.join(', ')}
                       </p>

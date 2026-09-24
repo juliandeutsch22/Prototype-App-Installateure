@@ -448,8 +448,16 @@ export default function WartungenView() {
   if (!user) return null;
   if (error) return <ErrorState message={error} />;
 
-  const zeile = (w: WithId<Wartung>) => {
+  /*
+    WAS OBEN UNTER „STEHT AN" STEHT, trägt unten nur „Bearbeiten". Vorher
+    stand jede fällige Wartung zweimal mit denselben drei Knöpfen
+    (Prüflauf 24.09.2026, D14) — und wer unten „Erledigt" drückte, suchte
+    danach oben, warum sie noch dasteht.
+  */
+  const obenGezeigt = new Set(anstehend.map((w) => w.id));
+  const zeile = (w: WithId<Wartung>, inGesamtliste = false) => {
     const u = beurteile(w, heute);
+    const nurBearbeiten = inGesamtliste && obenGezeigt.has(w.id);
     return (
       <ListRow
         key={w.id}
@@ -491,7 +499,7 @@ export default function WartungenView() {
               die erst in acht Monaten fällig wird, wäre der Knopf eine
               Einladung, Baustellen auf Vorrat anzulegen.
             */}
-            {!w.offeneBaustelle && u.stand !== 'später' && u.stand !== 'ruht' && (
+            {!nurBearbeiten && !w.offeneBaustelle && u.stand !== 'später' && u.stand !== 'ruht' && (
               <Button
                 onClick={() =>
                   (() => {
@@ -507,6 +515,7 @@ export default function WartungenView() {
                 Baustelle anlegen
               </Button>
             )}
+            {!nurBearbeiten && (
             <Button
               variant="secondary"
               onClick={() =>
@@ -522,6 +531,7 @@ export default function WartungenView() {
             >
               Erledigt
             </Button>
+            )}
             <Button variant="ghost" onClick={() => formOeffnen(w)}>
               Bearbeiten
             </Button>
@@ -645,7 +655,7 @@ export default function WartungenView() {
             In den nächsten {VORLAUF_TAGE} Tagen steht keine Wartung an.
           </EmptyState>
         ) : (
-          <List>{anstehend.map(zeile)}</List>
+          <List>{anstehend.map((w) => zeile(w))}</List>
         )}
       </Card>
 
@@ -676,7 +686,7 @@ export default function WartungenView() {
               : 'Kein Treffer für diese Suche.'}
           </EmptyState>
         ) : (
-          <List>{gefiltert.map(zeile)}</List>
+          <List>{gefiltert.map((w) => zeile(w, true))}</List>
         )}
         {!loading && (
           <Nachladen

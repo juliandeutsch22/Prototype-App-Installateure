@@ -164,6 +164,16 @@ describe('Wochenplan — wer ist wo', () => {
     );
   });
 
+  it('zaehlt am Wochenende niemanden als frei (Prüflauf 24.09.2026, D15)', async () => {
+    // Samstag „2 frei" las sich, als stünden zwei Leute zur Verfügung — es
+    // ist aber schlicht niemand im Dienst.
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(tabelle().getByRole('button', { name: /Sa.*05\.09.*Tagesplanung/ })).not.toHaveTextContent(
+      'frei',
+    );
+  });
+
   it('zeigt genehmigten Urlaub und zaehlt ihn NICHT als frei', async () => {
     // Wer frei hat, ist nicht verfuegbar, sondern abwesend. Ihn als frei zu
     // zaehlen hiesse, die Planung auf eine Zahl zu stuetzen, die luegt.

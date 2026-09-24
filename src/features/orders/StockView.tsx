@@ -256,7 +256,7 @@ export default function StockView() {
             <InputField
               id="stocksearch"
               label="Suche"
-              placeholder="Bezeichnung, Kategorie oder Artikelnummer"
+              placeholder="Name, Kategorie oder Art.-Nr."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -278,17 +278,19 @@ export default function StockView() {
                         key={m.id}
                         title={m.name}
                         subtitle={
+                          (m.category || m.reserved > 0) && (
                           <>
-                            {m.category || 'ohne Kategorie'}
+                            {m.category}
                             {m.reserved > 0 && (
                               <>
-                                {' · '}
+                                {m.category && ' · '}
                                 <span className="tnum">
                                   {m.stock ?? 0} im Lager, {m.reserved} reserviert
                                 </span>
                               </>
                             )}
                           </>
+                          )
                         }
                       >
                         {low ? (
