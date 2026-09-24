@@ -101,7 +101,9 @@ export const NAV: NavItem[] = [
   { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'users', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Verwaltung' },
   // Wartungen bei den Kunden, nicht bei den Baustellen: eine Vereinbarung
   // gehört dem Kunden und überlebt jede einzelne Baustelle. Die Verwaltung
-  // sieht sie mit — sie ruft an und vereinbart den Termin.
+  // sieht sie mit, NUR LESEND — anlegen, ändern und „erledigt“ bleiben bei
+  // der Leitung (entschieden vom Betrieb am 24.09.2026, Prüflauf L4). Hier
+  // stand vorher, sie „vereinbare den Termin“ — ohne einen einzigen Knopf dafür.
   { path: '/wartungen', label: 'Wartungen', short: 'Wartung', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'wartung' },
   { path: '/anforderungen', label: 'Anforderungen', short: 'Anford.', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material', hinweis: 'anforderungen' },
   { path: '/lager', label: 'Lager', short: 'Lager', icon: 'package', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
@@ -281,8 +283,11 @@ const LEISTE: Record<Role, string[]> = {
   // fordert er unterwegs an. Der Schein liegt unter „Mehr" — er entsteht am
   // Ende eines Einsatzes und ist von dort aus verlinkt.
   Mitarbeiter: ['/', '/time', '/my-schedule', '/material'],
-  // Das Buero bearbeitet Anforderungen und pflegt Kunden.
-  Verwaltung: ['/', '/material', '/customers', '/time'],
+  // Das Büro arbeitet Anforderungen ab und schlägt Kunden nach. „Material
+  // anfordern“ stand hier bis zum 24.09.2026 — das ist Monteursarbeit, und die
+  // eigentliche Arbeit samt Zähler lag unter „Mehr“ (Prüflauf L1). Anfordern
+  // bleibt unter „Mehr“ erreichbar.
+  Verwaltung: ['/', '/anforderungen', '/customers', '/time'],
   // Die Buchhaltung lebt in den Rechnungen — die standen vorher unter „Mehr".
   Buchhaltung: ['/', '/invoices', '/accounting', '/time'],
   // Die Projektleitung plant und schaut auf Baustellen.

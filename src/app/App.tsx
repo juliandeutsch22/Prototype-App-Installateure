@@ -103,7 +103,7 @@ export default function App() {
  * keinen) und in der Edge Function, die den Betrieb anlegt.
  */
 function AppInhalt() {
-  const { plattformAdmin, loading, einblick, user } = useAuth();
+  const { plattformAdmin, loading, einblick, user, signOut } = useAuth();
 
   /*
     WER ÜBER EINEN RÜCKSETZLINK KOMMT, WIRD ZUERST NACH EINEM PASSWORT
@@ -159,6 +159,24 @@ function AppInhalt() {
           benutzerkonto={istBenutzerkonto(user?.email)}
           onFertig={() => setPasswortFaellig(false)}
         />
+        {/*
+          EIN AUSGANG. Wer auf einem gemeinsamen Gerät mit dem falschen Konto
+          hereinkommt — der Kollege hatte sich nicht abgemeldet, oder der Link
+          war für jemand anderen —, stand hier fest: nur das Passwortformular,
+          kein Weg hinaus (Prüflauf L3). Abmelden verlangt kein Passwort.
+        */}
+        <p className="text-sm text-ink-muted">
+          Nicht dein Konto?{' '}
+          <button
+            type="button"
+            className="inline-flex min-h-touch items-center font-medium text-brand underline"
+            onClick={() => {
+              void signOut().finally(() => setPasswortFaellig(false));
+            }}
+          >
+            Abmelden
+          </button>
+        </p>
       </div>
     );
   }
