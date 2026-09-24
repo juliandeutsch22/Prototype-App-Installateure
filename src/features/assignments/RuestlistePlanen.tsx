@@ -202,7 +202,7 @@ export default function RuestlistePlanen({
           id="rsuche"
           label="Artikel aus dem Lager"
           type="search"
-          placeholder="Bezeichnung, Kategorie oder Artikelnummer"
+          placeholder="Name, Kategorie oder Art.-Nr."
           value={suche}
           onChange={(e) => setSuche(e.target.value)}
         />
@@ -227,7 +227,7 @@ export default function RuestlistePlanen({
                   <ListRow
                     key={m.id}
                     title={m.name}
-                    subtitle={[m.category || 'ohne Kategorie', `Lager: ${m.stock ?? 0}`].join(' · ')}
+                    subtitle={[m.category, `Lager: ${m.stock ?? 0}`].filter(Boolean).join(' · ')}
                   >
                     <Button
                       variant="secondary"

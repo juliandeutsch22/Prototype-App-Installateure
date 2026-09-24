@@ -207,6 +207,9 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       // Was auf den Belegen steht — Briefkopf, Logo, UID, Bankverbindung.
       'firma',
       'saetze',
+      // Seit dem 24.09.2026 eigene Unterseiten statt Karten unter den Sätzen.
+      'nummern',
+      'personal',
       'konten',
       'support',
       // „module" steht hier NICHT: siehe der eigene Fall weiter unten.

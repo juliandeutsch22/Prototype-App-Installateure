@@ -27,6 +27,7 @@ import {
   NACHTRAG_TAGE,
 } from '@/features/worksheets/zeitNachtrag';
 import InfoHint from '@/components/InfoHint';
+import Icon from '@/components/Icon';
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Marke, Warnung } from '@/components/Badge';
@@ -390,6 +391,20 @@ export default function TimeView() {
     <div className="space-y-6">
       <PageHeader title="Zeiterfassung" subtitle="Deine gebuchten Zeiten und dein Saldo" />
 
+      {/*
+        AM TELEFON STEHT DIE LISTE WEIT UNTEN — unter Saldo und Maske. Wer nur
+        nachsehen will, was er gestern gebucht hat, springt hierüber hin
+        (Prüflauf 24.09.2026, D8). Am Schreibtisch ist der Weg kurz genug.
+      */}
+      <button
+        type="button"
+        onClick={() => document.getElementById('meine-eintraege')?.scrollIntoView({ behavior: 'smooth' })}
+        className="inline-flex min-h-touch items-center gap-1 text-sm font-medium text-brand sm:hidden"
+      >
+        Zu meinen Einträgen
+        <Icon name="chevron" size={16} />
+      </button>
+
       {profilFehler && <TeilFehler was="Dein Stammdatenblatt" onRetry={profilLaden} />}
 
       {/*
@@ -441,7 +456,7 @@ export default function TimeView() {
               <strong>Was der Knopf tut.</strong> Er öffnet das Formular mit Datum, Baustelle,
               Von, Bis und Pause vom Schein. Ergänzen musst du{' '}
               <strong>Anfahrt, Fahrzeug (Kennzeichen)</strong> und die Haken für Nacht,
-              Notdienst und Helfer — alles unter „Erweiterte Erfassung".
+              Notdienst und Helfer — unter „Weitere Angaben".
               <br />
               <br />
               <strong>Der Hinweis verschwindet von selbst</strong>, sobald für diesen Tag und
@@ -495,7 +510,7 @@ export default function TimeView() {
               : `An ${doppelteTage.size} Tagen steht dieselbe Buchung zweimal.`}
           </strong>{' '}
           Der Saldo zählt beide. Betroffen:{' '}
-          {[...doppelteTage].sort().join(', ')} — bitte unten in der Liste den
+          {[...doppelteTage].sort().map(datumAT).join(', ')} — bitte unten in der Liste den
           überflüssigen Eintrag löschen. Mehrere Baustellen an einem Tag sind
           dagegen in Ordnung und stehen hier nicht.
         </p>
@@ -620,7 +635,7 @@ export default function TimeView() {
         />
       )}
 
-      <Card title="Meine Einträge">
+      <Card title="Meine Einträge" id="meine-eintraege">
         {loading ? (
           <SkeletonList rows={5} />
         ) : error ? (

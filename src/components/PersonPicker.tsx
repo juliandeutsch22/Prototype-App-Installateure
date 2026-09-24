@@ -179,7 +179,7 @@ export default function PersonPicker({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Name suchen"
-                className="min-h-touch w-full rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                className="min-h-touch w-full rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
               />
             </div>
           )}

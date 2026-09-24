@@ -1184,174 +1184,6 @@ export default function InvoicesView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      {/*
-        Buchhaltungs-Export.
-
-        Bisher bekam der Steuerberater PDFs und tippte jede Rechnung ab —
-        Kosten, Zeit, und jede Abtipperei eine Gelegenheit fuer einen
-        Zahlendreher, ausgerechnet bei den Zahlen fuer die
-        Umsatzsteuervoranmeldung.
-      */}
-      <Card
-        title="Buchhaltungs-Export"
-        hint={
-          'Rechnungsausgangsbuch als CSV — Nummer, Datum, Kunde, UID, Netto, USt, Brutto. ' +
-          'Ausgegeben wird jede Rechnung, deren RECHNUNGSDATUM im Zeitraum liegt, nicht das ' +
-          'Zahldatum. Stornierte sind enthalten und gekennzeichnet, zählen aber nicht in die ' +
-          'Summe — sie gehören ins Ausgangsbuch, sonst fehlt eine Nummer in der Reihe. Die UID ' +
-          'kommt aus dem Kundenstamm; fehlt sie dort, bleibt die Spalte leer. ' +
-          'Das ist eine LISTE, keine Buchung — sie beschreibt die Rechnungen und überlässt der ' +
-          'Kanzlei, worauf sie bucht. Wer den Kontenrahmen in den Einstellungen hinterlegt, ' +
-          'bekommt darunter zusätzlich den fertigen Buchungsstapel für BMD.'
-        }
-      >
-        <FormGrid>
-          <InputField
-            id="expvon"
-            label="Von"
-            type="date"
-            value={exportVon}
-            onChange={(e) => {
-              setExportVon(e.target.value);
-              // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
-              // im Feld, ist die gefährlichste Anzeige von allen.
-              setExportZeilen(null);
-            }}
-          />
-          <InputField
-            id="expbis"
-            label="Bis"
-            type="date"
-            value={exportBis}
-            onChange={(e) => {
-              setExportBis(e.target.value);
-              // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
-              // im Feld, ist die gefährlichste Anzeige von allen.
-              setExportZeilen(null);
-            }}
-          />
-        </FormGrid>
-        {/*
-          DER ZEITRAUM WIRD GEHOLT, NICHT GEFILTERT.
-
-          Vorher stand hier `buildInvoiceCsv(invoices, …)` — die geladene
-          Arbeitsliste, nach Datum gefiltert. Die reicht voreingestellt fünfzig
-          Rechnungen zurück. Ein Export für einen älteren Monat lieferte damit
-          eine LEERE Datei, und zwar eine, die wie ein erfolgreicher Export
-          aussah: „0 Rechnungen", keine Lücken, Knopf grau.
-
-          Schlimmer war die Lückenprüfung: sie meldete Lücken, die keine sind,
-          weil die fehlenden Nummern schlicht nicht geladen waren. Ein Befund,
-          den es nicht gibt, kostet in einer Kanzlei einen halben Tag.
-
-          Deshalb ist der Export jetzt ein bewusster Schritt: Zeitraum wählen,
-          holen, ansehen, herunterladen. Das Nachladen dauert einen Moment —
-          und ein Moment ist billiger als ein falsches Journal.
-        */}
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button
-            variant="secondary"
-            loading={exportLaeuft}
-            disabled={!exportVon || !exportBis || exportVon > exportBis}
-            onClick={() => void exportHolen()}
-          >
-            Zeitraum zusammenstellen
-          </Button>
-          {exportVon > exportBis && (
-            <span className="text-sm text-warning">„Von" liegt nach „Bis".</span>
-          )}
-        </div>
-        {exportFehler && <div className="mt-3"><ErrorState message={exportFehler} /></div>}
-        {exportZeilen !== null && (() => {
-          const e = buildInvoiceCsv(exportZeilen, kunden, exportVon, exportBis);
-          return (
-            <>
-              <p className="mt-3 text-sm text-ink">
-                {e.anzahl} {e.anzahl === 1 ? 'Rechnung' : 'Rechnungen'} · Netto{' '}
-                {fmtEUR(e.summeNetto)} · Brutto {fmtEUR(e.summeBrutto)}
-              </p>
-              {/*
-                NULL RECHNUNGEN IST EINE AUSSAGE, keine Panne — aber nur, wenn
-                dabeisteht, dass wirklich nachgesehen wurde. Genau daran fehlte
-                es vorher: eine leere Ausgabe sah aus wie ein leerer Monat.
-              */}
-              {e.anzahl === 0 && (
-                <p className="mt-1 text-sm text-ink-muted">
-                  In diesem Zeitraum wurde keine Rechnung geschrieben. Nachgesehen wurde im
-                  gesamten Bestand, nicht nur in der Liste unten.
-                </p>
-              )}
-              {/*
-                Eine Luecke im Nummernkreis ist bei jeder Pruefung ein Befund:
-                entweder fehlt eine Rechnung, oder sie wurde geloescht statt
-                storniert. Das gehoert geklaert, BEVOR der Export in die
-                Kanzlei geht — nicht danach.
-              */}
-              {e.luecken.length > 0 && (
-                <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                  <strong>Lücke im Nummernkreis:</strong> {e.luecken.join(', ')}. Entweder fehlt
-                  eine Rechnung, oder sie wurde gelöscht statt storniert. Das sollte vor der
-                  Übergabe an die Kanzlei geklärt sein.
-                </p>
-              )}
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Button
-                  variant="secondary"
-                  disabled={e.anzahl === 0}
-                  onClick={() => {
-                    downloadCsv(e.csv, invoiceCsvFilename(exportVon, exportBis));
-                    toast.success('Rechnungsausgangsbuch erzeugt');
-                  }}
-                >
-                  Als CSV herunterladen
-                </Button>
-                {/*
-                  DER BUCHUNGSSTAPEL STEHT NEBEN DEM JOURNAL, nicht an seiner
-                  Stelle. Beide beantworten verschiedene Fragen, und ein
-                  Betrieb ohne hinterlegten Kontenrahmen soll das Journal
-                  weiter bekommen, als wäre nichts gewesen.
-                */}
-                {konten.length > 0 && (() => {
-                  const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis);
-                  return (
-                    <>
-                      <Button
-                        variant="secondary"
-                        /* `fehlend` ist heute schon an den leeren Zeilen ablesbar —
-                           die Bedingung steht trotzdem da, weil sie die Absicht
-                           benennt und nicht auf eine Zusicherung von anderswo baut. */
-                        disabled={b.fehlend.length > 0 || b.zeilen.length === 0}
-                        onClick={() => {
-                          downloadCsv(b.csv, bmdCsvFilename(exportVon, exportBis));
-                          toast.success(`Buchungsstapel erzeugt — ${b.zeilen.length} Zeilen`);
-                        }}
-                      >
-                        Buchungsstapel für BMD
-                      </Button>
-                      <InfoHint about="den Buchungsstapel">
-                        Soll- und Habenkonto je Vorgang, brutto mit Steuercode — so, wie BMD es
-                        einliest. Anzahlungen gehen auf das Konto der erhaltenen Anzahlungen und
-                        werden mit der Schlussrechnung in den Erlös umgebucht; ein Storno kommt
-                        als Gegenbuchung am Stornotag. <strong>Der erste Stapel gehört vor dem
-                        Import von Ihrer Kanzlei geprüft</strong> — die Konten stehen in den
-                        Einstellungen und stammen von dort, nicht aus dieser App.
-                      </InfoHint>
-                      {b.fehlend.length > 0 && (
-                        <p className="mt-2 basis-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                          <strong>Im Kontenrahmen fehlt:</strong> {b.fehlend.join('; ')}. Bis
-                          dahin gibt es keinen Buchungsstapel — einer mit Lücken importiert
-                          sich fehlerfrei und bucht einen zu niedrigen Umsatz.
-                        </p>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            </>
-          );
-        })()}
-      </Card>
-
       <MetricRow>
         <Metric label="Offen" value={fmtEUR(stats.offen)} />
         <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'}
@@ -1563,7 +1395,9 @@ export default function InvoicesView() {
             nicht aus Zeiteinträgen — es gibt noch keine.
           */}
           {artWaehlbar && (
-          <div className="sm:w-56">
+          /* So breit wie die längste Art: mit fester Breite stand am
+             Schreibtisch „Schlussrechnung (zieh…" (Prüflauf, D12). */
+          <div className="sm:w-auto sm:min-w-56">
             <SelectField
               id="inv-art"
               label="Art der Rechnung"
@@ -2473,6 +2307,177 @@ export default function InvoicesView() {
             <span className="text-sm text-ink-muted">{grenze} jüngste geladen</span>
           </div>
         )}
+      </Card>
+
+      {/*
+        Buchhaltungs-Export.
+
+        AM ENDE DER SEITE, nicht mehr am Anfang (Prüflauf 24.09.2026, D12):
+        er wird einmal im Monat gebraucht, Liste und „Neue Rechnung" täglich.
+
+        Bisher bekam der Steuerberater PDFs und tippte jede Rechnung ab —
+        Kosten, Zeit, und jede Abtipperei eine Gelegenheit fuer einen
+        Zahlendreher, ausgerechnet bei den Zahlen fuer die
+        Umsatzsteuervoranmeldung.
+      */}
+      <Card
+        title="Buchhaltungs-Export"
+        hint={
+          'Rechnungsausgangsbuch als CSV — Nummer, Datum, Kunde, UID, Netto, USt, Brutto. ' +
+          'Ausgegeben wird jede Rechnung, deren RECHNUNGSDATUM im Zeitraum liegt, nicht das ' +
+          'Zahldatum. Stornierte sind enthalten und gekennzeichnet, zählen aber nicht in die ' +
+          'Summe — sie gehören ins Ausgangsbuch, sonst fehlt eine Nummer in der Reihe. Die UID ' +
+          'kommt aus dem Kundenstamm; fehlt sie dort, bleibt die Spalte leer. ' +
+          'Das ist eine LISTE, keine Buchung — sie beschreibt die Rechnungen und überlässt der ' +
+          'Kanzlei, worauf sie bucht. Wer den Kontenrahmen in den Einstellungen hinterlegt, ' +
+          'bekommt darunter zusätzlich den fertigen Buchungsstapel für BMD.'
+        }
+      >
+        <FormGrid>
+          <InputField
+            id="expvon"
+            label="Von"
+            type="date"
+            value={exportVon}
+            onChange={(e) => {
+              setExportVon(e.target.value);
+              // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
+              // im Feld, ist die gefährlichste Anzeige von allen.
+              setExportZeilen(null);
+            }}
+          />
+          <InputField
+            id="expbis"
+            label="Bis"
+            type="date"
+            value={exportBis}
+            onChange={(e) => {
+              setExportBis(e.target.value);
+              // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
+              // im Feld, ist die gefährlichste Anzeige von allen.
+              setExportZeilen(null);
+            }}
+          />
+        </FormGrid>
+        {/*
+          DER ZEITRAUM WIRD GEHOLT, NICHT GEFILTERT.
+
+          Vorher stand hier `buildInvoiceCsv(invoices, …)` — die geladene
+          Arbeitsliste, nach Datum gefiltert. Die reicht voreingestellt fünfzig
+          Rechnungen zurück. Ein Export für einen älteren Monat lieferte damit
+          eine LEERE Datei, und zwar eine, die wie ein erfolgreicher Export
+          aussah: „0 Rechnungen", keine Lücken, Knopf grau.
+
+          Schlimmer war die Lückenprüfung: sie meldete Lücken, die keine sind,
+          weil die fehlenden Nummern schlicht nicht geladen waren. Ein Befund,
+          den es nicht gibt, kostet in einer Kanzlei einen halben Tag.
+
+          Deshalb ist der Export jetzt ein bewusster Schritt: Zeitraum wählen,
+          holen, ansehen, herunterladen. Das Nachladen dauert einen Moment —
+          und ein Moment ist billiger als ein falsches Journal.
+        */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            loading={exportLaeuft}
+            disabled={!exportVon || !exportBis || exportVon > exportBis}
+            onClick={() => void exportHolen()}
+          >
+            Zeitraum zusammenstellen
+          </Button>
+          {exportVon > exportBis && (
+            <span className="text-sm text-warning">„Von" liegt nach „Bis".</span>
+          )}
+        </div>
+        {exportFehler && <div className="mt-3"><ErrorState message={exportFehler} /></div>}
+        {exportZeilen !== null && (() => {
+          const e = buildInvoiceCsv(exportZeilen, kunden, exportVon, exportBis);
+          return (
+            <>
+              <p className="mt-3 text-sm text-ink">
+                {e.anzahl} {e.anzahl === 1 ? 'Rechnung' : 'Rechnungen'} · Netto{' '}
+                {fmtEUR(e.summeNetto)} · Brutto {fmtEUR(e.summeBrutto)}
+              </p>
+              {/*
+                NULL RECHNUNGEN IST EINE AUSSAGE, keine Panne — aber nur, wenn
+                dabeisteht, dass wirklich nachgesehen wurde. Genau daran fehlte
+                es vorher: eine leere Ausgabe sah aus wie ein leerer Monat.
+              */}
+              {e.anzahl === 0 && (
+                <p className="mt-1 text-sm text-ink-muted">
+                  In diesem Zeitraum wurde keine Rechnung geschrieben. Nachgesehen wurde im
+                  gesamten Bestand, nicht nur in der Liste unten.
+                </p>
+              )}
+              {/*
+                Eine Luecke im Nummernkreis ist bei jeder Pruefung ein Befund:
+                entweder fehlt eine Rechnung, oder sie wurde geloescht statt
+                storniert. Das gehoert geklaert, BEVOR der Export in die
+                Kanzlei geht — nicht danach.
+              */}
+              {e.luecken.length > 0 && (
+                <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+                  <strong>Lücke im Nummernkreis:</strong> {e.luecken.join(', ')}. Entweder fehlt
+                  eine Rechnung, oder sie wurde gelöscht statt storniert. Das sollte vor der
+                  Übergabe an die Kanzlei geklärt sein.
+                </p>
+              )}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button
+                  variant="secondary"
+                  disabled={e.anzahl === 0}
+                  onClick={() => {
+                    downloadCsv(e.csv, invoiceCsvFilename(exportVon, exportBis));
+                    toast.success('Rechnungsausgangsbuch erzeugt');
+                  }}
+                >
+                  Als CSV herunterladen
+                </Button>
+                {/*
+                  DER BUCHUNGSSTAPEL STEHT NEBEN DEM JOURNAL, nicht an seiner
+                  Stelle. Beide beantworten verschiedene Fragen, und ein
+                  Betrieb ohne hinterlegten Kontenrahmen soll das Journal
+                  weiter bekommen, als wäre nichts gewesen.
+                */}
+                {konten.length > 0 && (() => {
+                  const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis);
+                  return (
+                    <>
+                      <Button
+                        variant="secondary"
+                        /* `fehlend` ist heute schon an den leeren Zeilen ablesbar —
+                           die Bedingung steht trotzdem da, weil sie die Absicht
+                           benennt und nicht auf eine Zusicherung von anderswo baut. */
+                        disabled={b.fehlend.length > 0 || b.zeilen.length === 0}
+                        onClick={() => {
+                          downloadCsv(b.csv, bmdCsvFilename(exportVon, exportBis));
+                          toast.success(`Buchungsstapel erzeugt — ${b.zeilen.length} Zeilen`);
+                        }}
+                      >
+                        Buchungsstapel für BMD
+                      </Button>
+                      <InfoHint about="den Buchungsstapel">
+                        Soll- und Habenkonto je Vorgang, brutto mit Steuercode — so, wie BMD es
+                        einliest. Anzahlungen gehen auf das Konto der erhaltenen Anzahlungen und
+                        werden mit der Schlussrechnung in den Erlös umgebucht; ein Storno kommt
+                        als Gegenbuchung am Stornotag. <strong>Der erste Stapel gehört vor dem
+                        Import von Ihrer Kanzlei geprüft</strong> — die Konten stehen in den
+                        Einstellungen und stammen von dort, nicht aus dieser App.
+                      </InfoHint>
+                      {b.fehlend.length > 0 && (
+                        <p className="mt-2 basis-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+                          <strong>Im Kontenrahmen fehlt:</strong> {b.fehlend.join('; ')}. Bis
+                          dahin gibt es keinen Buchungsstapel — einer mit Lücken importiert
+                          sich fehlerfrei und bucht einen zu niedrigen Umsatz.
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </>
+          );
+        })()}
       </Card>
 
       <ConfirmDialog

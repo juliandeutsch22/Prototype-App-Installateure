@@ -6,7 +6,6 @@ import { mitFrist, FristAbgelaufen } from '@/lib/frist';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
-import InfoHint from '@/components/InfoHint';
 import { ErrorState } from '@/components/States';
 import LaufStatus from './LaufStatus';
 import { useToast } from '@/components/Toast';
@@ -118,16 +117,22 @@ export default function SicherungView() {
 
       {fehler && <ErrorState message={fehler} />}
 
-      <Card>
+      {/*
+        Kartentitel wie überall, nicht als eigene Überschrift: vorher stand
+        hier eine fette h2 mit dem „i" darin, und der aufgeklappte Text erbte
+        die Fettschrift (Prüflauf 24.09.2026, D18).
+      */}
+      <Card
+        title="Nächtliche Sicherung"
+        hint={
+          <>
+            Jede Nacht um 02:30 schreibt die App den kompletten Bestand jedes Betriebs an einen
+            zweiten Ort — Kunden, Baustellen, Zeiten, Rechnungen, Scheine und die Nummernkreise.
+            Aufbewahrt werden die letzten dreißig Stände, der jüngste immer.
+          </>
+        }
+      >
         <div className="space-y-3">
-          <h2 className="font-semibold text-ink">
-            Nächtliche Sicherung
-            <InfoHint about="die nächtliche Sicherung">
-              Jede Nacht um 02:30 schreibt die App den kompletten Bestand jedes Betriebs an
-              einen zweiten Ort — Kunden, Baustellen, Zeiten, Rechnungen, Scheine und die
-              Nummernkreise. Aufbewahrt werden die letzten dreißig Stände, der jüngste immer.
-            </InfoHint>
-          </h2>
           {/* Der Knopf darunter sagt bereits, was er tut. Uebrig bleibt der
               eine Satz, der jemanden davon abhaelt, ihn fuer noetig zu
               halten — das Warum steht im „i" darueber. */}
@@ -171,17 +176,18 @@ export default function SicherungView() {
         </div>
       </Card>
 
-      <Card>
+      <Card
+        title="Daten herunterladen"
+        hint={
+          <>
+            Der komplette Bestand als Datei, für eine Auskunft nach Art. 15 DSGVO oder für den
+            Umzug zu einem anderen Anbieter. Bei einem großen Betrieb kann der Download an seine
+            Grenze stoßen — dann ist die nächtliche Sicherung der vollständige Weg, und die
+            Meldung sagt das auch.
+          </>
+        }
+      >
         <div className="space-y-3">
-          <h2 className="flex flex-wrap items-center font-semibold text-ink">
-            Daten herunterladen
-            <InfoHint about="das Herunterladen">
-              Der komplette Bestand als Datei, für eine Auskunft nach Art. 15 DSGVO oder für den
-              Umzug zu einem anderen Anbieter. Bei einem großen Betrieb kann der Download an
-              seine Grenze stoßen — dann ist die nächtliche Sicherung der vollständige Weg, und
-              die Meldung sagt das auch.
-            </InfoHint>
-          </h2>
           <Button variant="ghost" onClick={() => void herunterladen()} disabled={laeuft !== null}>
             {laeuft === 'download' ? 'Wird zusammengestellt …' : 'Alle Daten herunterladen'}
           </Button>

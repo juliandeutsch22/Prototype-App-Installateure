@@ -310,7 +310,7 @@ export default function MaterialCatalog({
         <InputField
           id="msearch"
           label="Suche"
-          placeholder="Bezeichnung, Kategorie oder Artikelnummer"
+          placeholder="Name, Kategorie oder Art.-Nr."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />

@@ -255,6 +255,16 @@ describe('Wartungen', () => {
     expect(listWartungen).toHaveBeenCalledTimes(2);
   });
 
+  it('trägt eine fällige Wartung nur einmal mit ihren Knöpfen (Prüflauf 24.09.2026, D14)', async () => {
+    zeichne();
+    await anstehendeZeilen();
+    const alle = screen.getByText(/^Alle Vereinbarungen/).closest('section') as HTMLElement;
+    const unten = within(alle).getByText(/Bäckerei Stein/).closest('li') as HTMLElement;
+    // Unten nur noch „Bearbeiten" — „Erledigt" steht oben unter „Steht an".
+    expect(within(unten).queryByRole('button', { name: 'Erledigt' })).toBeNull();
+    expect(within(unten).getByRole('button', { name: 'Bearbeiten' })).toBeTruthy();
+  });
+
   it('bietet der Verwaltung kein Eintragen an — sie darf es serverseitig nicht', async () => {
     rolle = 'Verwaltung';
     zeichne();

@@ -539,6 +539,23 @@ export default function AccountingView() {
                            Tag — er füllt sich von selbst bis zum Feierabend. */
                         <Marke>{STATUS_LABEL[completeness.status]}</Marke>
                       ) : null}
+                      {/*
+                        DIE MARKEN OHNE SALDO STEHEN BEIM NAMEN, nicht rechts.
+                        Rechts sind sie nicht schrumpfbar, und auf 375 px brach
+                        der Name daneben mitten im Wort: „Projektleite|r"
+                        (Prüflauf 24.09.2026, D20). Hier rutschen sie in die
+                        nächste Zeile.
+                      */}
+                      {!shouldShowOvertime(u.role) ? (
+                        /*
+                          Ein Projektleiter hat kein Soll — „kein Eintritt
+                          hinterlegt" stünde hier also als Mangel, wo keiner
+                          ist, und schickte jemanden in die Stammdaten.
+                        */
+                        <Marke>führt kein Zeitkonto</Marke>
+                      ) : !stats.hasConfig ? (
+                        <Marke>kein Eintritt hinterlegt</Marke>
+                      ) : null}
                     </span>
                     <span className="flex shrink-0 items-center gap-3">
                       <span className="hidden text-right sm:block">
@@ -566,16 +583,7 @@ export default function AccountingView() {
                         00:00 — das sah aus wie ein gepflegter Datensatz und
                         verbarg, dass die Stammdaten unvollstaendig sind.
                       */}
-                      {!shouldShowOvertime(u.role) ? (
-                        /*
-                          Ein Projektleiter hat kein Soll — „kein Eintritt
-                          hinterlegt" stünde hier also als Mangel, wo keiner
-                          ist, und schickte jemanden in die Stammdaten.
-                        */
-                        <Marke>führt kein Zeitkonto</Marke>
-                      ) : !stats.hasConfig ? (
-                        <Marke>kein Eintritt hinterlegt</Marke>
-                      ) : (
+                      {!shouldShowOvertime(u.role) || !stats.hasConfig ? null : (
                         /*
                           DER SALDO IST EINE ZAHL, KEINE AUFFORDERUNG. Er stand
                           als gefüllte Pille neben der Lückenmeldung, und zwei
@@ -888,9 +896,11 @@ export default function AccountingView() {
                               <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-semibold text-ink [&::-webkit-details-marker]:hidden">
                                 <span>
                                   Tagesnachweis ·{' '}
-                                  {monthEntries.length === 1
-                                    ? '1 Eintrag'
-                                    : `${monthEntries.length} Einträge`}
+                                  <span className="whitespace-nowrap">
+                                    {monthEntries.length === 1
+                                      ? '1 Eintrag'
+                                      : `${monthEntries.length} Einträge`}
+                                  </span>
                                 </span>
                                 <span className="flex shrink-0 items-center gap-2">
                                   <span className="tnum font-normal text-ink-muted">
@@ -1039,7 +1049,7 @@ export default function AccountingView() {
                           Monat als CSV
                         </Button>
                         <Button variant="accent" onClick={() => setExportFor(u)}>
-                          Bericht für Zeitraum …
+                          Bericht für Zeitraum
                         </Button>
                         {/*
                           „Einklappen" ist entfallen. Der Knopf machte dasselbe

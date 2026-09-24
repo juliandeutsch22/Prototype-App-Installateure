@@ -634,3 +634,16 @@ describe('Resturlaub', () => {
     expect(await screen.findByText(/nach Genehmigung −2 Tage \(reicht nicht\)/)).toBeInTheDocument();
   });
 });
+
+describe('Urlaub — erst rechnen, wenn ein Zeitraum gewählt ist (Prüflauf 24.09.2026, D17)', () => {
+  it('nennt vor jeder Eingabe keine Arbeitstage, danach schon', async () => {
+    zeichne();
+    await screen.findByLabelText('Von');
+    // Vorbelegt ist heute–heute; „1 Arbeitstag — danach bleiben …" wäre eine
+    // Antwort auf eine Frage, die noch niemand gestellt hat.
+    expect(screen.queryByText(/danach bleiben/)).toBeNull();
+    await datum('Von', '2026-10-26');
+    await datum('Bis (einschließlich)', '2026-10-30');
+    expect(screen.getByText(/4 Arbeitstage/)).toBeInTheDocument();
+  });
+});

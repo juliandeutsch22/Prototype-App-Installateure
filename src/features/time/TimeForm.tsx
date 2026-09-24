@@ -187,6 +187,23 @@ export default function TimeForm({
       !!(entry.projectNumber || entry.isEmergency || entry.isNightWork || entry.isHelper),
   );
   const canHaveProject = aussendienst || (darfErweitern && erweitert);
+  /*
+    WEITERE ANGABEN — Wegzeit, Fahrzeug, Helfername, Zuschläge — stehen beim
+    Monteur hinter einer Zeile. Vierzehn Felder bei jeder Buchung schoben
+    „Meine Einträge" am Telefon auf 2 000 px hinunter (Prüflauf 24.09.2026,
+    D8), und die meisten Tage brauchen keines davon.
+
+    ZUGEKLAPPT HEISST NICHT UNSICHTBAR: was gesetzt ist, steht in der Zeile
+    („Fahrzeug WZ-12345A · Nachtarbeit"). Offen startet sie, wenn der Eintrag
+    solche Angaben trägt oder der letzte welche trug — wer täglich sein
+    Kennzeichen einträgt, soll nicht täglich aufklappen.
+
+    Der Helfer-Haken bleibt draussen: er ändert den Stundensatz auf der
+    Rechnung und kommt oft aus dem Einsatzplan vorbelegt.
+  */
+  const [weitereOffen, setWeitereOffen] = useState(
+    () => hatWeitereAngaben(entry) || (!entry && hatWeitereAngaben(lastEntry)),
+  );
   const showWorkFields = status === 'Anwesend';
   /** Trägt dieser Eintrag Von/Bis? Arbeitszeit immer, Zeitausgleich nur stundenweise. */
   const mitZeiten = showWorkFields || (status === 'Zeitausgleich' && zaStundenweise);
@@ -494,6 +511,93 @@ export default function TimeForm({
     }
   }
 
+  const weitereWerte = [
+    Number(travelTime) > 0 && `Wegzeit ${travelTime} Min.`,
+    vehiclePlate && `Fahrzeug ${mitKennzeichenVorsatz(vehiclePlate, kennzeichenVorsatz)}`,
+    helperName.trim() && `Helfer ${helperName.trim()}`,
+    isNightWork && 'Nachtarbeit',
+    isEmergency && 'Notdienst',
+  ].filter(Boolean) as string[];
+
+  const weitereFelder = (
+    <>
+      <FormGrid>
+        <InputField
+          id="travelTime"
+          label="Wegzeit (Min.)"
+          type="number"
+          min="0"
+          value={travelTime}
+          onChange={(e) => setTravelTime(e.target.value)}
+        />
+        {/* „WZ-" fest davor statt als Platzhalter: der Fuhrpark ist
+            in Wiener Neustadt zugelassen, und getippt wurde es bisher
+            mal mit, mal ohne Bindestrich, mal gar nicht. Dieselbe
+            Lösung wie im Prototyp (Zeile 940). */}
+        <div className="flex flex-col gap-1">
+          <label htmlFor="vehiclePlate" className="text-sm font-medium text-ink">
+            Fahrzeug (Kennzeichen)
+          </label>
+          <div className="flex">
+            {/*
+              DAS GRAUE KAESTCHEN STEHT NUR DA, WENN ES ETWAS ZU SAGEN
+              HAT. Ohne festgelegten Bezirkskenner waere es ein leeres
+              Feld vor einem Feld — dann traegt das Eingabefeld allein
+              das ganze Kennzeichen, und die Rundung links kommt
+              zurueck.
+            */}
+            {kennzeichenVorsatz && (
+              <span
+                aria-hidden
+                className="flex min-h-touch shrink-0 items-center rounded-l border border-r-0 border-line bg-surface-2 px-3 font-medium text-ink-muted"
+              >
+                {kennzeichenVorsatz}-
+              </span>
+            )}
+            <input
+              id="vehiclePlate"
+              className={`min-h-touch w-full border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand ${
+                kennzeichenVorsatz ? 'rounded-r' : 'rounded'
+              }`}
+              placeholder={kennzeichenVorsatz ? 'z. B. 12345A' : 'z. B. W-12345A'}
+              value={vehiclePlate}
+              onChange={(e) =>
+                setVehiclePlate(ohneKennzeichenVorsatz(e.target.value, kennzeichenVorsatz))}
+            />
+          </div>
+        </div>
+      </FormGrid>
+      <InputField
+        id="helperName"
+        label="Name des Helfers (optional)"
+        value={helperName}
+        onChange={(e) => setHelperName(e.target.value)}
+      />
+
+      <fieldset className="rounded-sm border border-line bg-surface-2 p-3">
+        <legend className="px-1 section-label">Zuschläge</legend>
+        <CheckboxField
+          id="isNightWork"
+          label="Nachtarbeit"
+          checked={isNightWork}
+          onChange={(e) => setIsNightWork(e.target.checked)}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <CheckboxField
+            id="isEmergency"
+            label="Notdienst / Störungseinsatz"
+            checked={isEmergency}
+            onChange={(e) => setIsEmergency(e.target.checked)}
+          />
+          <InfoHint about="Notdienst">
+            Nur ankreuzen, wenn der Zuschlag wirklich verrechnet wird. Die Höhe legt die
+            Geschäftsführung in den Einstellungen fest.
+          </InfoHint>
+        </div>
+      </fieldset>
+    </>
+  );
+
   const billed = !!entry?.isBilled;
   const gesperrt = billed || meldungsTag || antragsTag;
 
@@ -542,7 +646,9 @@ export default function TimeForm({
           className="flex min-h-touch w-full items-center gap-2 rounded border border-dashed border-brand/40 bg-info-bg px-3 py-2 text-left text-sm font-medium text-brand transition hover:border-brand active:scale-[0.99]"
         >
           <Icon name="clock" size={18} className="shrink-0" />
-          <span className="min-w-0 truncate">
+          {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
+              den Eintrag wiedererkennt. */}
+          <span className="min-w-0">
             Wie zuletzt: {lastEntry.startTime}–{lastEntry.endTime}
             {lastEntry.customerName ? ` · ${lastEntry.customerName}` : ''}
           </span>
@@ -820,52 +926,6 @@ export default function TimeForm({
                 required
               />
 
-              <FormGrid>
-                <InputField
-                  id="travelTime"
-                  label="Wegzeit (Min.)"
-                  type="number"
-                  min="0"
-                  value={travelTime}
-                  onChange={(e) => setTravelTime(e.target.value)}
-                />
-                {/* „WZ-" fest davor statt als Platzhalter: der Fuhrpark ist
-                    in Wiener Neustadt zugelassen, und getippt wurde es bisher
-                    mal mit, mal ohne Bindestrich, mal gar nicht. Dieselbe
-                    Lösung wie im Prototyp (Zeile 940). */}
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="vehiclePlate" className="text-sm font-medium text-ink">
-                    Fahrzeug (Kennzeichen)
-                  </label>
-                  <div className="flex">
-                    {/*
-                      DAS GRAUE KAESTCHEN STEHT NUR DA, WENN ES ETWAS ZU SAGEN
-                      HAT. Ohne festgelegten Bezirkskenner waere es ein leeres
-                      Feld vor einem Feld — dann traegt das Eingabefeld allein
-                      das ganze Kennzeichen, und die Rundung links kommt
-                      zurueck.
-                    */}
-                    {kennzeichenVorsatz && (
-                      <span
-                        aria-hidden
-                        className="flex min-h-touch shrink-0 items-center rounded-l border border-r-0 border-line bg-surface-2 px-3 font-medium text-ink-muted"
-                      >
-                        {kennzeichenVorsatz}-
-                      </span>
-                    )}
-                    <input
-                      id="vehiclePlate"
-                      className={`min-h-touch w-full border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand ${
-                        kennzeichenVorsatz ? 'rounded-r' : 'rounded'
-                      }`}
-                      placeholder={kennzeichenVorsatz ? 'z. B. 12345A' : 'z. B. W-12345A'}
-                      value={vehiclePlate}
-                      onChange={(e) =>
-                        setVehiclePlate(ohneKennzeichenVorsatz(e.target.value, kennzeichenVorsatz))}
-                    />
-                  </div>
-                </div>
-              </FormGrid>
             </>
           )}
         </>
@@ -886,34 +946,38 @@ export default function TimeForm({
             checked={isHelper}
             onChange={(e) => setIsHelper(e.target.checked)}
           />
-          <InputField
-            id="helperName"
-            label="Name des Helfers (optional)"
-            value={helperName}
-            onChange={(e) => setHelperName(e.target.value)}
-          />
-
-          <fieldset className="rounded-sm border border-line bg-surface-2 p-3">
-            <legend className="px-1 section-label">Zuschläge</legend>
-            <CheckboxField
-              id="isNightWork"
-              label="Nachtarbeit"
-              checked={isNightWork}
-              onChange={(e) => setIsNightWork(e.target.checked)}
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <CheckboxField
-                id="isEmergency"
-                label="Notdienst / Störungseinsatz"
-                checked={isEmergency}
-                onChange={(e) => setIsEmergency(e.target.checked)}
-              />
-              <InfoHint about="Notdienst">
-                Nur ankreuzen, wenn der Zuschlag wirklich verrechnet wird. Die Höhe legt die
-                Geschäftsführung in den Einstellungen fest.
-              </InfoHint>
+          {aussendienst ? (
+            <div className="rounded-sm border border-line">
+              <button
+                type="button"
+                aria-expanded={weitereOffen}
+                aria-controls="weitere-angaben"
+                onClick={() => setWeitereOffen((o) => !o)}
+                className="flex min-h-touch w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm"
+              >
+                <span className="min-w-0">
+                  <span className="block font-medium text-ink">Weitere Angaben</span>
+                  <span className="block text-ink-muted">
+                    {weitereWerte.length > 0
+                      ? weitereWerte.join(' · ')
+                      : 'Wegzeit, Fahrzeug, Helfername, Zuschläge'}
+                  </span>
+                </span>
+                <Icon
+                  name="chevron"
+                  size={18}
+                  className={`shrink-0 text-ink-muted transition-transform ${weitereOffen ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {weitereOffen && (
+                <div id="weitere-angaben" className="space-y-4 border-t border-line p-3">
+                  {weitereFelder}
+                </div>
+              )}
             </div>
-          </fieldset>
+          ) : (
+            weitereFelder
+          )}
         </>
       )}
 
@@ -937,4 +1001,9 @@ export default function TimeForm({
       </div>
     </form>
   );
+}
+
+/** Trägt ein Eintrag Angaben, die hinter „Weitere Angaben" stehen? */
+function hatWeitereAngaben(e?: Partial<TimeEntry>): boolean {
+  return !!e && !!(e.travelTime || e.vehiclePlate || e.helperName || e.isNightWork || e.isEmergency);
 }

@@ -14,6 +14,8 @@ interface CardProps {
    */
   hint?: ReactNode;
   footer?: ReactNode;
+  /** Sprungziel, etwa für „Zu meinen Einträgen". */
+  id?: string;
 }
 
 /**
@@ -42,12 +44,13 @@ export default function Card({
   action,
   hint,
   footer,
+  id,
 }: CardProps) {
   const [hinweisOffen, setHinweisOffen] = useState(false);
   const hinweisId = useId();
 
   return (
-    <section className={`panel overflow-hidden ${className}`}>
+    <section id={id} className={`panel overflow-hidden ${className}`}>
       {title && (
         // Der Kartenkopf sitzt eine Spur kühler als der Körper — so ist er
         // auch dann als Kopf zu lesen, wenn der Titel kurz ist.

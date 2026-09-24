@@ -42,9 +42,10 @@ export default function Unterreiter({
   const aktiv = ort.pathname.slice(basis.length + 1).split('/')[0];
 
   /*
-    DER GEWÄHLTE REITER BLEIBT IM BILD. Bei acht Reitern der Einstellungen
-    lief die Leiste auch am Schreibtisch über, und „Fehler" stand abgeschnitten
-    am Rand (Prüflauf 24.09.2026, D5).
+    DER GEWÄHLTE REITER BLEIBT IM BILD — dort, wo die Leiste noch seitlich
+    schiebt (bis drei Reiter auf schmalen Schirmen). Bei acht Reitern der
+    Einstellungen stand „Fehler" abgeschnitten am Rand (Prüflauf 24.09.2026,
+    D5); die längeren Leisten brechen inzwischen um.
   */
   useEffect(() => {
     leiste.current
@@ -91,7 +92,14 @@ export default function Unterreiter({
       {sichtbar.length > 1 && (
         <nav
           ref={leiste}
-          className={`mb-4 gap-1 overflow-x-auto border-b border-line ${alsAuswahl ? 'hidden sm:flex' : 'flex'}`}
+          /*
+            AB DEM TABLET UMBRECHEN STATT SCHIEBEN. Seit Nummernkreise und
+            Personal eigene Unterseiten sind, hat „Einstellungen" zehn Reiter;
+            bei 1280 px ragten zwei davon aus dem Bild. Eine zweite Zeile
+            zeigt alle — eine Leiste, die sich nur seitlich schieben lässt,
+            verrät nicht, dass dort noch etwas kommt.
+          */
+          className={`mb-4 gap-1 border-b border-line ${alsAuswahl ? 'hidden sm:flex sm:flex-wrap' : 'flex overflow-x-auto'}`}
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (

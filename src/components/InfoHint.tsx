@@ -68,13 +68,19 @@ export function InfoPanel({
   className?: string;
   children: ReactNode;
 }) {
+  /*
+    EIN <span> ALS BLOCK, KEIN <p>. Das „i" steht oft mitten in einem Absatz
+    (Nachträge, Leistungszeit am Schein) — ein <p> darin ist kein gültiges
+    HTML, der Browser schliesst den äusseren Absatz vorzeitig, und React
+    meldete es bei jedem Öffnen in der Konsole (Prüflauf 24.09.2026, F16).
+  */
   return (
-    <p
+    <span
       id={id}
-      className={`rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted ${className}`}
+      className={`block rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted ${className}`}
     >
       {children}
-    </p>
+    </span>
   );
 }
 

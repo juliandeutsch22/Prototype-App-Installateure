@@ -420,7 +420,7 @@ export default function OrderView() {
 
           <Card title="Katalog">
             <InputField id="search" label="Suche"
-              placeholder="Bezeichnung, Kategorie oder Artikelnummer"
+              placeholder="Name, Kategorie oder Art.-Nr."
               value={search} onChange={(e) => setSearch(e.target.value)} />
             <div className="mt-4">
               {loading ? (
@@ -441,8 +441,10 @@ export default function OrderView() {
                         title={m.name}
                         subtitle={
                           <>
-                            {m.category || 'ohne Kategorie'}
-                            {' · '}
+                            {/* Ohne Kategorie steht nichts davor — „ohne
+                                Kategorie" unter jedem Artikel eines Katalogs,
+                                der keine pflegt, war nur Rauschen (D16). */}
+                            {m.category && `${m.category} · `}
                             <span className={low ? 'font-semibold text-warning' : undefined}>
                               Lager: {m.stock ?? 0} {m.unit ?? 'Stk'}
                               {low && ' (knapp)'}
@@ -476,7 +478,7 @@ export default function OrderView() {
           <Card title={`Anforderung (${cart.length})`}>
             {cart.length === 0 ? (
               <EmptyState>
-                Noch nichts ausgewählt. Im Katalog oben auf „+" tippen.
+                Noch nichts ausgewählt. Im Katalog oben beim Artikel auf „Anfordern" tippen.
               </EmptyState>
             ) : (
               <>
@@ -626,8 +628,7 @@ export default function OrderView() {
                   <span className="section-label block">Material</span>
                   <span className="font-semibold text-ink">{retGewaehlt.name}</span>
                   <span className="block text-sm text-ink-muted">
-                    {retGewaehlt.category || 'ohne Kategorie'}
-                    {retGewaehlt.articleNumber ? ` · ${retGewaehlt.articleNumber}` : ''}
+                    {[retGewaehlt.category, retGewaehlt.articleNumber].filter(Boolean).join(' · ')}
                   </span>
                 </div>
                 <Button
@@ -646,7 +647,7 @@ export default function OrderView() {
                   id="retmat"
                   label="Material"
                   type="search"
-                  placeholder="Bezeichnung, Kategorie oder Artikelnummer"
+                  placeholder="Name, Kategorie oder Art.-Nr."
                   value={retSuche}
                   onChange={(e) => setRetSuche(e.target.value)}
                 />
@@ -660,7 +661,7 @@ export default function OrderView() {
                           <ListRow
                             key={m.id}
                             title={m.name}
-                            subtitle={m.category || 'ohne Kategorie'}
+                            subtitle={[m.category, m.articleNumber].filter(Boolean).join(' · ') || undefined}
                           >
                             <Button
                               variant="secondary"

@@ -24,7 +24,7 @@ import { beurteile, type NachtLaufArt } from '@shared/laufStatus';
 
 const WOHIN: Record<NachtLaufArt, { pfad: string; wort: string }> = {
   ausleitung: { pfad: '/settings/sicherung', wort: 'Zur Datensicherung' },
-  bilanzen: { pfad: '/settings/saetze', wort: 'Zu den Monatsbilanzen' },
+  bilanzen: { pfad: '/settings/personal', wort: 'Zu den Monatsbilanzen' },
 };
 
 /**

@@ -22,12 +22,12 @@ import type { EinkaufPosten, MaterialOrder } from '@/types';
 import Card from '@/components/Card';
 import Nachladen from '@/components/Nachladen';
 import { Marke, Warnung } from '@/components/Badge';
-import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField } from '@/components/Field';
+import RowMenu from '@/components/RowMenu';
 import Button from '@/components/Button';
 import { byNewest, dayKey, dayHeading } from '@/lib/timestamps';
 import { useToast } from '@/components/Toast';
@@ -453,37 +453,30 @@ export default function AdminOrdersView() {
                           <StatusBadge status={o.status} />
                         )}
 
-                        {/* Freie Statuswahl statt nur "einen Schritt vor": eine
-                            versehentlich abgeschlossene Bestellung war sonst
-                            nicht mehr zurueckzuholen. */}
-                        {o.transactionType !== 'return' && (
-                          <SelectField
-                            id={`st-${o.id}`}
-                            label=""
-                            className="py-1 text-sm"
-                            value={o.status}
-                            disabled={busyId === o.id}
-                            onChange={(e) => {
-                              const next = e.target.value as MaterialOrder['status'];
-                              if (next === 'Erledigt') setToComplete(o);
-                              else void setStatus(o, next);
-                            }}
-                          >
-                            {ORDER_STATUS_FLOW.map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </SelectField>
-                        )}
-
-                        <IconButton
-                          label={`${o.materialName} löschen`}
-                          tone="danger"
-                          onClick={() => setToDelete(o)}
-                        >
-                          ✕
-                        </IconButton>
+                        {/*
+                          STATUS UND LÖSCHEN IM „⋯". Vorher standen je Zeile bis
+                          zu sechs Bedienelemente über zwei unruhige Zeilen, und
+                          der Zustand doppelt: als Punkt und als Auswahl
+                          (Prüflauf 24.09.2026, D11). Sichtbar bleibt, was der
+                          Lagerist täglich tut; die freie Statuswahl bleibt
+                          erhalten — eine versehentlich abgeschlossene
+                          Anforderung lässt sich weiter zurückholen.
+                        */}
+                        <RowMenu
+                          about={o.materialName}
+                          items={[
+                            ...(o.transactionType !== 'return' && busyId !== o.id
+                              ? ORDER_STATUS_FLOW.filter((st) => st !== o.status).map((st) => ({
+                                  label: `Auf „${st}" setzen`,
+                                  onSelect: () => {
+                                    if (st === 'Erledigt') setToComplete(o);
+                                    else void setStatus(o, st);
+                                  },
+                                }))
+                              : []),
+                            { label: 'Löschen', onSelect: () => setToDelete(o), danger: true },
+                          ]}
+                        />
                       </ListRow>
                     ))}
                   </List>

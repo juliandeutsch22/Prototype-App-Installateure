@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { Company } from '@/types';
@@ -61,10 +61,10 @@ vi.mock('@/app/AuthContext', () => ({
 
 const { default: SettingsView } = await import('@/features/settings/SettingsView');
 
-function zeige() {
+function zeige(teil: 'saetze' | 'nummern' | 'personal' = 'saetze') {
   return render(
     <ToastProvider>
-      <SettingsView />
+      <SettingsView teil={teil} />
     </ToastProvider>,
   );
 }
@@ -174,7 +174,10 @@ describe('Anzahlungen und Teilrechnungen', () => {
   it('sagen, dass bestehende Belege unberührt bleiben', async () => {
     // Ohne diesen Satz sähe das Abdrehen aus, als würde es an ausgestellten
     // Rechnungen etwas ändern — und niemand traut sich, es zu probieren.
+    // Der Satz steht seit dem Prüflauf (D10) im „i" neben dem Haken.
+    const nutzer = userEvent.setup();
     zeige();
+    await nutzer.click(screen.getByRole('button', { name: /Anzahlungs- und Schlussrechnungen/ }));
     expect(screen.getByText(/Bereits ausgestellte Belege bleiben, wie sie sind/)).toBeInTheDocument();
   });
 });
@@ -182,13 +185,13 @@ describe('Anzahlungen und Teilrechnungen', () => {
 describe('Wochenplan für alle', () => {
   it('ist ab Werk aus', async () => {
     // Wer wo arbeitet, zeigt ein Betrieb seinen Leuten nur, wenn er es will.
-    zeige();
+    zeige('personal');
     expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(false);
   });
 
   it('schreibt nur den Schalter — nicht nebenbei die Sätze', async () => {
     const nutzer = userEvent.setup();
-    zeige();
+    zeige('personal');
     await nutzer.click(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)'));
     await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
 
@@ -199,7 +202,46 @@ describe('Wochenplan für alle', () => {
 
   it('zeigt den eingeschalteten Zustand des Betriebs', async () => {
     firma = { id: 'perl', name: 'Perl Installationen', wochenplanFuerAlle: true };
-    zeige();
+    zeige('personal');
     expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(true);
+  });
+});
+
+describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
+  it('trägt jede ihre eigene Überschrift und nur ihre eigenen Karten', () => {
+    const { unmount } = zeige('saetze');
+    expect(screen.getByRole('heading', { level: 1, name: 'Sätze und Kosten' })).toBeInTheDocument();
+    expect(screen.getByText('Stundensätze')).toBeInTheDocument();
+    expect(screen.queryByText('Nummernkreise und Fuhrpark')).toBeNull();
+    expect(screen.queryByText('Urlaubsjahr und Übertrag')).toBeNull();
+    expect(screen.queryByText('Wochenplan für alle')).toBeNull();
+    unmount();
+
+    const n = zeige('nummern');
+    expect(screen.getByRole('heading', { level: 1, name: 'Nummernkreise' })).toBeInTheDocument();
+    expect(screen.getByText('Nummernkreise und Fuhrpark')).toBeInTheDocument();
+    expect(screen.queryByText('Stundensätze')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sätze speichern' })).toBeNull();
+    n.unmount();
+
+    zeige('personal');
+    expect(screen.getByRole('heading', { level: 1, name: 'Personal' })).toBeInTheDocument();
+    for (const t of ['Urlaubsjahr und Übertrag', 'Wer Urlaub genehmigt', 'Wochenplan für alle', 'Monatsbilanzen']) {
+      expect(screen.getByText(t)).toBeInTheDocument();
+    }
+    expect(screen.queryByText('Nummernkreise und Fuhrpark')).toBeNull();
+  });
+
+  it('zeigt einen Fehler an der Karte, deren Speichern scheiterte', async () => {
+    // Vorher stand jede Meldung unter „Sätze speichern" — auch die der
+    // Genehmigenden, drei Karten weiter unten.
+    updateCompany.mockRejectedValueOnce(new Error('Dafür fehlt die Berechtigung.'));
+    const nutzer = userEvent.setup();
+    zeige('personal');
+    await nutzer.click(screen.getByRole('button', { name: 'Genehmigende speichern' }));
+    const karte = screen.getByText('Wer Urlaub genehmigt').closest('section') as HTMLElement;
+    expect(await within(karte).findByText(/Dafür fehlt die Berechtigung/)).toBeInTheDocument();
+    const wochenplan = screen.getByText('Wochenplan für alle').closest('section') as HTMLElement;
+    expect(within(wochenplan).queryByText(/Dafür fehlt die Berechtigung/)).toBeNull();
   });
 });

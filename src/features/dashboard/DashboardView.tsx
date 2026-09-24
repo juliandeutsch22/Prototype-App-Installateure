@@ -536,7 +536,12 @@ export default function DashboardView() {
         title={heuteKopf.datum}
         subtitle={
           <>
-            KW {heuteKopf.kw} · {company?.name ?? 'Installateur-App'} · Rolle: {user.role}
+            {/* Umbrechen nur zwischen den Teilen: auf 375 px stand sonst
+                „Rolle:" am Zeilenende und die Rolle allein darunter
+                (Prüflauf 24.09.2026, D13). */}
+            <span className="whitespace-nowrap">KW {heuteKopf.kw}</span> ·{' '}
+            {company?.name ?? 'Installateur-App'} ·{' '}
+            <span className="whitespace-nowrap">Rolle: {user.role}</span>
             {heuteKopf.feiertag && (
               <>
                 {' · '}
