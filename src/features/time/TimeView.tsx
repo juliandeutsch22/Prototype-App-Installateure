@@ -17,7 +17,7 @@ import {
   tageWort,
 } from '@/lib/time';
 import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
-import { shouldShowOvertime } from '@/lib/permissions';
+import { fuehrtZeitkonto } from '@/lib/permissions';
 import { bilanzMarker, listBilanzen, monatVon, type Monatsbilanz } from '@/lib/db/monatsbilanzen';
 import type { WithId } from '@/lib/db/core';
 import type { TimeEntry, AppUser, WorkSheet } from '@/types';
@@ -527,13 +527,15 @@ export default function TimeView() {
             gebucht wurde, ist kein Befund über den Mitarbeiter, sondern eine
             Datenlücke; rot dargestellt behauptete er das Gegenteil. */}
         {/*
-          Die Saldo-Kachel nur fuer Rollen, die ein Zeitkonto FUEHREN.
-          Geschaeftsfuehrung und Projektleitung haben kein Soll/Ist — bei
-          ihnen stand dort dauerhaft „—  Kein Startdatum konfiguriert", was
-          wie ein Einrichtungsfehler aussieht, den niemand beheben kann.
-          Buchen koennen sie trotzdem, etwa fuer einen Notdienst.
+          Die Saldo-Kachel nur fuer alle, die ein Zeitkonto FUEHREN (siehe
+          `fuehrtZeitkonto`). Wer keines hat — die Administration, eine
+          Geschaeftsfuehrung ohne Zeitkonto —, sah dort dauerhaft „— Kein
+          Startdatum konfiguriert", was wie ein Einrichtungsfehler aussieht,
+          den niemand beheben kann. Buchen koennen sie trotzdem.
         */}
-        {shouldShowOvertime(user.role) && (
+        {/* Die frische Zeile vor dem gemerkten Profil: schaltet die
+            Geschäftsführung ihr Zeitkonto um, soll es ohne Neuanmeldung gelten. */}
+        {fuehrtZeitkonto(profile ?? user) && (
         <Metric
           label="Saldo"
           tone={

@@ -87,8 +87,16 @@ describe('Übernahme', () => {
       const { error } = await k.client.rpc('kunden_einspielen', {
         p_kunden: [kunde('Schleichweg')], p_nur_pruefen: false,
       });
-      expect(error?.message).toMatch(/Projektleitung, Geschäftsführung und Administration/);
+      expect(error?.message).toMatch(/wer Kunden anlegen darf/);
     }
+    // Mit der Freigabe „Kunden pflegen“ darf das Büro auch übernehmen.
+    const buero = await konto(BETRIEB, 'Verwaltung', 'kifrei');
+    await admin.from('users').update({ kunden_pflegen: true }).eq('id', buero.uid);
+    const frei = await buero.client.rpc('kunden_einspielen', {
+      p_kunden: [kunde('Vom Büro')], p_nur_pruefen: false,
+    });
+    expect(frei.error).toBeNull();
+    expect(await namen()).toContain('Vom Büro');
     const leitung = await konto(BETRIEB, 'Projektleiter', 'kipl');
     const { error } = await leitung.client.rpc('kunden_einspielen', {
       p_kunden: [kunde('Von der Leitung')], p_nur_pruefen: false,

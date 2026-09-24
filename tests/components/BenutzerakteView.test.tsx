@@ -359,3 +359,52 @@ describe('Ein Konto mit Benutzername', () => {
     expect(screen.queryByRole('button', { name: 'Neues Startpasswort vergeben' })).not.toBeInTheDocument();
   });
 });
+
+/**
+ * Zwei Schalter, entschieden am 24.09.2026 (Prüflauf F11, F12, F17).
+ *
+ * „Darf Kunden anlegen und ändern“ gibt es nur bei Verwaltung und
+ * Buchhaltung, „Führt ein Zeitkonto“ nur bei der Geschäftsführung — bei allen
+ * anderen legt die Rolle fest, was gilt, und ein Haken ohne Wirkung wäre eine
+ * Einstellung, die lügt.
+ */
+describe('Kunden pflegen und Zeitkonto', () => {
+  it('bietet der Verwaltung die Kundenfreigabe an — und speichert sie', async () => {
+    gefunden = person({ uid: 'u2', name: 'Vera Büro', role: 'Verwaltung' });
+    zeige();
+    const haken = await screen.findByRole('checkbox', { name: 'Darf Kunden anlegen und ändern' });
+    expect(haken).not.toBeChecked();
+    expect(screen.queryByRole('checkbox', { name: 'Führt ein Zeitkonto' })).not.toBeInTheDocument();
+
+    await userEvent.click(haken);
+    await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toMatchObject({ kundenPflegen: true, fuehrtZeitkonto: false });
+  });
+
+  it('bietet sie dem Monteur nicht an', async () => {
+    gefunden = person({ uid: 'u2', role: 'Mitarbeiter' });
+    zeige();
+    await screen.findByRole('textbox', { name: /^Name/ });
+    expect(screen.queryByRole('checkbox', { name: 'Darf Kunden anlegen und ändern' })).not.toBeInTheDocument();
+  });
+
+  it('lässt die Geschäftsführung ihr Zeitkonto wählen', async () => {
+    gefunden = person({ uid: 'u2', name: 'Gabi Chef', role: 'Geschäftsführung' });
+    zeige();
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Führt ein Zeitkonto' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toMatchObject({ fuehrtZeitkonto: true, kundenPflegen: false });
+  });
+
+  it('nimmt die Freigabe beim Wechsel zum Monteur mit weg', async () => {
+    gefunden = person({ uid: 'u2', role: 'Verwaltung', kundenPflegen: true });
+    zeige();
+    await screen.findByRole('checkbox', { name: 'Darf Kunden anlegen und ändern' });
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: /Rolle/ }), 'Mitarbeiter');
+    await userEvent.click(await screen.findByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toMatchObject({ role: 'Mitarbeiter', kundenPflegen: false });
+  });
+});

@@ -10,7 +10,7 @@ import {
   type NewCustomer,
 } from '@/lib/db/customers';
 import { listRecentProjects } from '@/lib/db/projects';
-import { isGF } from '@/lib/permissions';
+import { darfKundenPflegen, isGF } from '@/lib/permissions';
 import type { Customer, Project } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -100,7 +100,15 @@ export default function CustomersView() {
   const [speichert, setSpeichert] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Customer> | null>(null);
 
-  const darfAendern = user ? isGF(user.role) : false;
+  /*
+    ZWEI RECHTE, NICHT EINES. Kunden pflegt, wer die Freigabe hat (siehe
+    `darfKundenPflegen`) — die Bürokraft ebenso wie die Leitung. „Bestehende
+    Baustellen übernehmen“ ordnet dagegen BAUSTELLEN zu, und die ändert nur
+    die Leitung; bekäme die Bürokraft den Knopf, schlüge er in der
+    Datenbank fehl.
+  */
+  const darfAendern = user ? darfKundenPflegen(user) : false;
+  const darfBaustellenZuordnen = user ? isGF(user.role) : false;
 
   /*
     WIE VIELE KUNDEN GELADEN SIND — als Zustand, nicht als feste Zahl.
@@ -371,7 +379,7 @@ export default function CustomersView() {
       )}
 
       {/* Übernahme der Altbestände — nur solange es etwas zu übernehmen gibt. */}
-      {darfAendern && (
+      {darfBaustellenZuordnen && (
         <Card
           title="Bestehende Baustellen übernehmen"
           hint={

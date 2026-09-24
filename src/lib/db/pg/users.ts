@@ -90,6 +90,7 @@ export function updateUserProfile(uid: string, p: Partial<UserProfileInput>): Pr
   for (const feld of [
     'name', 'role', 'active', 'weeklyTargetHours', 'yearlyVacationDays',
     'workDays', 'appStartDate', 'initialOvertime', 'initialVacationDays',
+    'kundenPflegen', 'fuehrtZeitkonto',
   ] as const) {
     daten[feld] = p[feld];
   }

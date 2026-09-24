@@ -377,7 +377,7 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
 });
 
 describe('Kunden aus einer Datei', () => {
-  it('steht für die Leitung da — und für die Buchhaltung nicht, die keine Kunden anlegt', async () => {
+  it('steht für die Leitung da — und für die Buchhaltung ohne Freigabe nicht', async () => {
     const { unmount } = zeichne();
     expect(await screen.findByText('Kunden aus einer Datei')).toBeInTheDocument();
     unmount();
@@ -391,5 +391,48 @@ describe('Kunden aus einer Datei', () => {
     } finally {
       (authWert.user as { role: string }).role = vorher;
     }
+  });
+});
+
+/**
+ * „Kunden pflegen“ als Freigabe je Person (Prüflauf F11, entschieden am
+ * 24.09.2026). Mit dem Haken legt das Büro Kunden an und übernimmt sie aus
+ * einer Datei; Baustellen zuordnen ändert Baustellen und bleibt bei der
+ * Leitung.
+ */
+describe('Das Büro mit der Freigabe „Kunden pflegen“', () => {
+  async function alsBuero(freigabe: boolean, pruefung: () => Promise<void>) {
+    const u = authWert.user as { role: string; kundenPflegen?: boolean };
+    const vorher = { role: u.role, kundenPflegen: u.kundenPflegen };
+    u.role = 'Verwaltung';
+    u.kundenPflegen = freigabe;
+    try {
+      zeichne();
+      await screen.findByText('Hausverwaltung Nord');
+      await pruefung();
+    } finally {
+      u.role = vorher.role;
+      u.kundenPflegen = vorher.kundenPflegen;
+    }
+  }
+
+  it('ohne Freigabe: nur lesen', async () => {
+    await alsBuero(false, async () => {
+      expect(screen.queryByRole('button', { name: /Neuer Kunde/ })).not.toBeInTheDocument();
+      expect(screen.queryByText('Kunden aus einer Datei')).not.toBeInTheDocument();
+    });
+  });
+
+  it('mit Freigabe: anlegen und aus einer Datei übernehmen', async () => {
+    await alsBuero(true, async () => {
+      expect(screen.getByRole('button', { name: /Neuer Kunde/ })).toBeInTheDocument();
+      expect(screen.getByText('Kunden aus einer Datei')).toBeInTheDocument();
+    });
+  });
+
+  it('aber keine Baustellen übernehmen — die ändert nur die Leitung', async () => {
+    await alsBuero(true, async () => {
+      expect(screen.queryByText('Bestehende Baustellen übernehmen')).not.toBeInTheDocument();
+    });
   });
 });

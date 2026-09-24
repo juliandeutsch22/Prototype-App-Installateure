@@ -242,8 +242,8 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
  * Was dasteht, wenn die Liste leer ist.
  *
  * AUS DEM BETRIEB GEMELDET: die Geschäftsführung bucht eine Zeit und liest
- * danach, es gebe keine Mitarbeiter. Die Aussage war richtig — ein
- * Geschäftsführungskonto führt kein Zeitkonto und erscheint hier nie —, aber
+ * danach, es gebe keine Mitarbeiter. Die Aussage war richtig — ohne
+ * eingeschaltetes Zeitkonto erscheint die Geschäftsführung hier nicht —, aber
  * sie klang nach einem Fehler, wo eine Erklärung hingehört.
  */
 /**
@@ -338,20 +338,18 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
     );
 
     expect(await screen.findByText(/Kein Konto erscheint in dieser Auswertung/)).toBeInTheDocument();
-    expect(screen.getByText(/Geschäftsführung und Administration/)).toBeInTheDocument();
+    expect(screen.getByText(/Die Administration steht hier nie/)).toBeInTheDocument();
+    expect(screen.getByText(/Geschäftsführung nur, wenn es in ihrer Benutzerakte eingeschaltet ist/)).toBeInTheDocument();
   });
 
   /*
-    DIE PROJEKTLEITUNG STAND HIER NICHT — UND HAT GEBUCHT.
+    DIE PROJEKTLEITUNG FÜHRT EIN ZEITKONTO — entschieden am 24.09.2026.
 
-    Sie führt kein Zeitkonto: kein Soll, also weder Über- noch Unterstunden.
-    Daraus war geschlossen worden, sie gehöre auch nicht in die Auswertung.
-    Das ist zweierlei: bei einem Notdienst fährt sie selbst hinaus, und ihre
-    Stunden stehen auf einer Baustelle und in einer Nachkalkulation.
-
-    Aus dem Betrieb gemeldet: der Projektleiter bucht und taucht nirgends auf.
+    Vorher stand sie hier als „führt kein Zeitkonto“ und bekam trotzdem
+    „17 Tage fehlen“ (Prüflauf F12). Jetzt hat sie ein Soll und einen Saldo
+    wie alle, die Zeit buchen.
   */
-  it('zeigt die Projektleitung — mit Stunden, ohne Saldo', async () => {
+  it('zeigt die Projektleitung mit Saldo, wie jedes Zeitkonto', async () => {
     const pl: AppUser = {
       ...monteur,
       id: 'pl', uid: 'pl', name: 'Paula Leiter', role: 'Projektleiter',
@@ -364,13 +362,35 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
     );
 
     expect(await screen.findByText('Paula Leiter')).toBeInTheDocument();
-    // Kein Saldo, aber auch kein falscher Mangel: „kein Eintritt hinterlegt"
-    // schickte sonst jemanden in die Stammdaten, wo nichts fehlt.
-    expect(screen.getByText('führt kein Zeitkonto')).toBeInTheDocument();
+    expect(screen.queryByText('führt kein Zeitkonto')).not.toBeInTheDocument();
     expect(screen.queryByText('kein Eintritt hinterlegt')).not.toBeInTheDocument();
+    expect(screen.queryByText('Julian Deutsch')).not.toBeInTheDocument();
   });
 
-  it('und die Geschäftsführung weiterhin nicht', async () => {
+  it('zeigt die Geschäftsführung, wenn ihr Zeitkonto eingeschaltet ist', async () => {
+    benutzer = [{ ...gf, fuehrtZeitkonto: true }];
+    render(
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>,
+    );
+
+    expect(await screen.findByText('Julian Deutsch')).toBeInTheDocument();
+  });
+
+  it('und die Administration nie — auch nicht mit gesetztem Haken', async () => {
+    benutzer = [{ ...gf, id: 'ad', uid: 'ad', name: 'Ada Admin', role: 'Administrator', fuehrtZeitkonto: true }];
+    render(
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>,
+    );
+
+    await screen.findByText(/Kein Konto erscheint in dieser Auswertung/);
+    expect(screen.queryByText('Ada Admin')).not.toBeInTheDocument();
+  });
+
+  it('und die Geschäftsführung ohne Zeitkonto weiterhin nicht', async () => {
     benutzer = [gf];
     render(
       <ToastProvider>

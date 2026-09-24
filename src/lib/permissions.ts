@@ -153,26 +153,41 @@ export const istAussendienst = (r: Role) => r === 'Mitarbeiter';
 export const canExtendTimeEntry = (r: Role) =>
   r === 'Geschäftsführung' || r === 'Projektleiter' || r === 'Administrator';
 
-/** Soll/Ist-Saldo gilt nur für diese Rollen (Leitung ausgenommen). */
-export const shouldShowOvertime = (r: Role) =>
-  r === 'Mitarbeiter' || r === 'Verwaltung' || r === 'Buchhaltung';
+/**
+ * Wer ein Zeitkonto führt — also ein Soll hat, einen Saldo, und in der
+ * Mitarbeiterübersicht steht.
+ *
+ * ENTSCHIEDEN VOM BETRIEB AM 24.09.2026 (Prüflauf F12, F17). Vorher hing es
+ * allein an der Rolle, und die Projektleitung stand in einer Zwischenlage:
+ * in der Übersicht, weil sie Zeit bucht, aber „führt kein Zeitkonto“ — und
+ * trotzdem mit „17 Tage fehlen“. Jetzt:
+ *
+ *   Monteur, Verwaltung, Buchhaltung, Projektleitung — ja.
+ *   Administration — nein. Sie ist eine Funktion im System, kein
+ *                    Arbeitsverhältnis mit Stundensoll.
+ *   Geschäftsführung — je Person, in der Benutzerakte. Der angestellte
+ *                    Geschäftsführer hat ein Soll, der Inhaber meist nicht.
+ *
+ * Wer ein Zeitkonto führt, erscheint auch in der Mitarbeiterübersicht, und
+ * nur ihn mahnt die Startseite wegen fehlender Tage. Beides war früher eine
+ * eigene Regel und konnte auseinanderlaufen — genau das war F12.
+ */
+export const fuehrtZeitkonto = (p: { role: Role; fuehrtZeitkonto?: boolean }) =>
+  p.role === 'Mitarbeiter' || p.role === 'Verwaltung' || p.role === 'Buchhaltung'
+  || p.role === 'Projektleiter'
+  || (p.role === 'Geschäftsführung' && p.fuehrtZeitkonto === true);
 
 /**
- * Wer in der Mitarbeiterübersicht erscheint.
+ * Wer Kunden anlegen, ändern, löschen und aus einer Datei übernehmen darf.
  *
- * DAS IST EINE ANDERE FRAGE ALS DIE NACH DEM SALDO, und sie war bisher
- * dieselbe. Ein Projektleiter führt kein Zeitkonto — er hat kein Soll, also
- * auch keine Über- oder Unterstunden. Er BUCHT aber Zeit: bei einem Notdienst
- * fährt er selbst hinaus, und `canExtendTimeEntry` gibt ihm dafür
- * ausdrücklich die vollen Felder.
+ * Die Leitung immer. Verwaltung und Buchhaltung, wenn die Geschäftsführung
+ * es in der Benutzerakte freigegeben hat (entschieden am 24.09.2026,
+ * Prüflauf F11). Monteure nie. Die Grenze zieht `app.darf_kunden_pflegen()`
+ * in der Datenbank; das hier entscheidet nur, welche Knöpfe erscheinen.
  *
- * Seine Stunden gehören damit in die Monatsauswertung — sie stehen auf einer
- * Baustelle und in einer Nachkalkulation. Aus dem Betrieb gemeldet: der
- * Projektleiter bucht und taucht nirgends auf.
- *
- * Geschäftsführung und Administration bleiben draussen. Sie buchen im
- * Regelfall nicht, und eine Zeile ohne Zahlen ist in einer Auswertung kein
- * Gewinn, sondern eine Zeile mehr.
+ * Baustellen einem Kunden zuordnen gehört NICHT dazu: das ändert die
+ * Baustelle, und die ändert weiterhin nur die Leitung.
  */
-export const erscheintInAuswertung = (r: Role) =>
-  shouldShowOvertime(r) || r === 'Projektleiter';
+export const darfKundenPflegen = (p: { role: Role; kundenPflegen?: boolean }) =>
+  isGF(p.role)
+  || ((p.role === 'Verwaltung' || p.role === 'Buchhaltung') && p.kundenPflegen === true);

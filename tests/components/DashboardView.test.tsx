@@ -109,7 +109,9 @@ const rolle = { wert: 'Mitarbeiter' as string };
 let zeitenJeBaustelle: (TimeEntry & { id: string })[] = [];
 
 vi.mock('@/lib/db/users', () => ({
-  getUserByUid: vi.fn(async () => monteur),
+  // Die eigene Zeile trägt die Rolle der Anmeldung — die Startseite fragt sie
+  // nach dem Zeitkonto.
+  getUserByUid: vi.fn(async () => ({ ...monteur, role: rolle.wert })),
   listUsers: vi.fn(async () => [monteur]),
 }));
 /*
@@ -269,6 +271,27 @@ describe('Startseite — Monteur', () => {
     expect(hinweis).toHaveTextContent(/\d{2}\.\d{2}\./);
     // Und ausdrücklich KEIN Saldo mehr.
     expect(screen.queryByText(/Saldo/i)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Wer wegen fehlender Tage gemahnt wird (Prüflauf F17, entschieden am
+ * 24.09.2026): nur, wer ein Zeitkonto führt. Die Administration sah bisher
+ * „25 Tage ohne Buchung · Jetzt nachtragen“, obwohl sie kein Soll hat — sie
+ * landet im persönlichen Teil, weil sie ihre Einsätze sehen soll.
+ */
+describe('Startseite — fehlende Tage nur mit Zeitkonto', () => {
+  it('die Administration sieht ihre Einsätze, aber keine fehlenden Tage', async () => {
+    rolle.wert = 'Administrator';
+    zeichne();
+    await screen.findByText(/Heute — 2 Baustellen/i);
+    expect(screen.queryByText(/Tage ohne Buchung/)).not.toBeInTheDocument();
+  });
+
+  it('die Projektleitung führt jetzt ein Zeitkonto und wird gemahnt', async () => {
+    rolle.wert = 'Projektleiter';
+    zeichne();
+    expect(await screen.findByText(/Tage ohne Buchung/)).toBeInTheDocument();
   });
 });
 

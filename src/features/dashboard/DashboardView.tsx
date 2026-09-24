@@ -23,7 +23,7 @@ import {
 } from '@/lib/time';
 import { getAustrianHolidayName } from '@shared/feiertage';
 import {
-  shouldShowOvertime,
+  fuehrtZeitkonto,
   canProcessOrders,
   isGF,
   canInvoice,
@@ -206,7 +206,7 @@ export default function DashboardView() {
     hin, wenn sie etwas zu sagen hat.
   */
   const [nichtGeladen, setNichtGeladen] = useState<string[]>([]);
-  const fuehrtZeitkonto = user ? shouldShowOvertime(user.role) : false;
+  const mitZeitkonto = user ? fuehrtZeitkonto(user) : false;
   const mgmt = user ? canProcessOrders(user.role) || isGF(user.role) : false;
   const leitung = user ? isGF(user.role) : false;
 
@@ -223,7 +223,7 @@ export default function DashboardView() {
     /** Persoenliches: fehlende Zeiten und die heutigen Einsaetze. */
     const persoenlich = async () => {
       const out: DashData = {};
-      if (fuehrtZeitkonto || isMitarbeiter(user.role)) {
+      if (mitZeitkonto || isMitarbeiter(user.role)) {
         const fenster = new Date();
         fenster.setDate(fenster.getDate() - LUECKEN_TAGE);
         const ab = localDateStr(fenster);
@@ -234,7 +234,15 @@ export default function DashboardView() {
           listUpcomingAssignments(user.companyId, user.uid, todayStr(), 20),
         ]);
 
-        if (profile) {
+        /*
+          FEHLENDE TAGE NUR MIT ZEITKONTO. Die Administration landet hier, weil
+          sie auch ihre Einsätze sehen soll (`isMitarbeiter` schliesst sie
+          ein) — und bekam bisher „25 Tage ohne Buchung“ dazu, obwohl sie kein
+          Soll hat (Prüflauf F17). Gefragt wird die frische Zeile, nicht das
+          gemerkte Profil: schaltet die Geschäftsführung ihr Zeitkonto um,
+          soll die Startseite es beim nächsten Laden wissen.
+        */
+        if (profile && fuehrtZeitkonto(profile)) {
           out.hatEintritt = !!profile.appStartDate;
           out.fehlendeTage = offeneWerktage(profile, entries, fenster, new Date());
         }
@@ -412,7 +420,7 @@ export default function DashboardView() {
       const out: DashData = {};
       if (canEditTime(user.role)) {
         const alle = await listUsers(user.companyId);
-        const zeitkonten = alle.filter((u) => shouldShowOvertime(u.role) && u.active !== false);
+        const zeitkonten = alle.filter((u) => fuehrtZeitkonto(u) && u.active !== false);
 
         const fenster = new Date();
         fenster.setDate(fenster.getDate() - LUECKEN_TAGE);
@@ -469,7 +477,7 @@ export default function DashboardView() {
     return () => {
       cancelled = true;
     };
-  }, [user, fuehrtZeitkonto, mgmt, leitung, materialAn]);
+  }, [user, mitZeitkonto, mgmt, leitung, materialAn]);
 
   /**
    * Grundregel gegen ein ueberladenes wie gegen ein leeres Dashboard: jede
@@ -579,10 +587,10 @@ export default function DashboardView() {
       */}
       {/*
         Kein Eintrittsdatum: ausdruecklich sagen statt schweigen. Nur fuer
-        Rollen, die ein Zeitkonto FUEHREN — die Geschaeftsfuehrung hat keines
-        und braucht den Hinweis nicht.
+        alle, die ein Zeitkonto FUEHREN — die Administration hat keines und
+        braucht den Hinweis nicht.
       */}
-      {fuehrtZeitkonto && data.hatEintritt === false && (
+      {mitZeitkonto && data.hatEintritt === false && (
         <div className="rounded border border-line bg-surface-2 p-4 text-info">
           <p className="font-semibold">Kein Eintrittsdatum hinterlegt</p>
           <p className="mt-1 text-sm">
