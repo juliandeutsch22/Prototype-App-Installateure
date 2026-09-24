@@ -28,6 +28,7 @@ import {
 import type { AppUser, Betriebsurlaub, Krankmeldung, Vacation } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
+import Metric, { MetricRow } from '@/components/Metric';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Zustand, type Stand } from '@/components/Badge';
@@ -39,7 +40,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { zeitguthabenLaden } from './zeitguthaben';
 import { KrankmeldungListe, KrankenstaendeReiter } from './Krankmeldungen';
-import { ergebnisText } from './abwesenheitText';
+import { ergebnisText, tageText } from './abwesenheitText';
 import BetriebsurlaubReiter from './BetriebsurlaubReiter';
 
 /** 'YYYY-MM-DD' -> '15.06.2026'. */
@@ -265,6 +266,101 @@ export default function VacationsView() {
   );
   const genommen = stand.genommen;
   const anspruch = stand.anspruch;
+
+  /** Eigene Urlaubsanträge, über die noch niemand entschieden hat. */
+  const beantragt = useMemo(
+    () =>
+      eigene
+        .filter((v) => v.status === 'Beantragt' && !istZa(v))
+        .reduce((summe, v) => summe + (Number(v.tage) || 0), 0),
+    [eigene],
+  );
+
+  /*
+    DER REST IM URLAUBSJAHR DES ANTRAGS. Wer im Dezember für Jänner plant,
+    zieht vom neuen Anspruch ab, nicht vom alten — bei einem Urlaubsjahr ab
+    Juli entsprechend. Liegt der Antrag im laufenden Jahr, ist es dieselbe
+    Zahl wie oben.
+  */
+  const antragsJahr = urlaubsJahrVon(von, regel.jahresbeginn);
+  const restImAntragsjahr = useMemo(
+    () =>
+      antragsJahr === jahr || !profil
+        ? stand.rest
+        : urlaubsStand(
+            profil,
+            antragsJahr,
+            eigene
+              .filter((v) => v.status === 'Genehmigt' && !istZa(v))
+              .map((v) => ({ von: v.von, tage: v.tage })),
+            regel,
+          ).rest,
+    [antragsJahr, jahr, profil, stand.rest, eigene, regel],
+  );
+
+  /**
+   * DER RESTURLAUB DER ANTRAGSTELLER — für die, die entscheiden.
+   *
+   * Ohne ihn genehmigt man blind: ob der Monteur noch drei oder dreissig Tage
+   * hat, stand bisher nirgends auf dieser Seite. Gerechnet wird wie beim
+   * Antragsteller selbst (`urlaubsStand`); lesen dürfen es die Genehmigenden
+   * ohnehin — Profil und Urlaube der Belegschaft.
+   */
+  const [antragsteller, setAntragsteller] = useState<
+    Record<string, { profil: AppUser; genehmigt: { von: string; tage: number }[] } | 'fehler'>
+  >({});
+  useEffect(() => {
+    if (!user || !darfEntscheiden) return;
+    const uids = [...new Set(offene.filter((v) => !istZa(v)).map((v) => v.userId))];
+    if (uids.length === 0) return;
+    let weg = false;
+    void Promise.all(
+      uids.map(async (uid) => {
+        try {
+          const [p, urlaube] = await Promise.all([
+            getUserByUid(user.companyId, uid),
+            listOwnVacations(user.companyId, uid, 500),
+          ]);
+          if (!p) return [uid, 'fehler'] as const;
+          return [
+            uid,
+            {
+              profil: p,
+              genehmigt: urlaube
+                .filter((v) => v.status === 'Genehmigt' && !istZa(v))
+                .map((v) => ({ von: v.von, tage: v.tage })),
+            },
+          ] as const;
+        } catch {
+          return [uid, 'fehler'] as const;
+        }
+      }),
+    ).then((paare) => {
+      if (!weg) setAntragsteller(Object.fromEntries(paare));
+    });
+    return () => {
+      weg = true;
+    };
+  }, [user, darfEntscheiden, offene]);
+
+  /** Resturlaub vor und nach diesem Antrag, im Urlaubsjahr seines Beginns. */
+  function restZeile(v: WithId<Vacation>) {
+    const a = antragsteller[v.userId];
+    if (!a) return null;
+    if (a === 'fehler') {
+      return (
+        <span className="mt-1 block text-xs text-ink-muted">Resturlaub konnte nicht ermittelt werden.</span>
+      );
+    }
+    const rest = urlaubsStand(a.profil, urlaubsJahrVon(v.von, regel.jahresbeginn), a.genehmigt, regel).rest;
+    const danach = rest - (Number(v.tage) || 0);
+    return (
+      <span className={`tnum mt-1 block text-xs ${danach < 0 ? 'font-medium text-warning' : 'text-ink-muted'}`}>
+        Resturlaub: {tageText(rest)} — nach Genehmigung {tageText(danach)}
+        {danach < 0 ? ' (reicht nicht)' : ''}
+      </span>
+    );
+  }
 
   /**
    * Wie das laufende Urlaubsjahr heisst.
@@ -652,6 +748,25 @@ export default function VacationsView() {
       <>
       {error && <ErrorState message={error} />}
 
+      {/*
+        DER EIGENE RESTURLAUB, gleich oben: das ist die Frage, mit der man
+        diese Seite öffnet. Wie er zustande kommt (Übertrag, Anfangsbestand,
+        verfallene Tage), steht beim Antrag darunter.
+      */}
+      {profil && !laden && (
+        <MetricRow>
+          <Metric
+            label="Resturlaub"
+            value={tageText(stand.rest)}
+            tone={stand.rest < 0 ? 'warning' : 'brand'}
+            hint={`${genommen} von ${anspruch} genehmigt`}
+          />
+          {beantragt > 0 && (
+            <Metric label="Beantragt" value={tageText(beantragt)} hint="noch nicht entschieden" />
+          )}
+        </MetricRow>
+      )}
+
       <Card title={art === 'Krank' ? 'Krank melden' : 'Antrag stellen'}>
         {/*
           KOMMENDER BETRIEBSURLAUB steht hier, wo jemand seinen Urlaub plant —
@@ -759,7 +874,11 @@ export default function VacationsView() {
             <strong className="tnum">
               {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
             </strong>
-            <span className="ml-1">in diesem Zeitraum.</span>
+            <span className="ml-1">in diesem Zeitraum</span>
+            <span className="tnum ml-1">
+              — danach bleiben {tageText(restImAntragsjahr - tage.length)}
+              {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
+            </span>
             <InfoHint about="Arbeitstage">
               Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
               Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
@@ -866,6 +985,7 @@ export default function VacationsView() {
                           {zeitraum(v)} · {istZa(v) ? umfang(v) : `${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}`}
                         </span>
                         {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
+                        {!istZa(v) && restZeile(v)}
                         {/*
                           DAS ZEITGUTHABEN BEIM ANTRAG — die Zahl, nach der
                           beim Zeitausgleich entschieden wird.
