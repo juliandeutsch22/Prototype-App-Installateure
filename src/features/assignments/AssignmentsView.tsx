@@ -551,6 +551,13 @@ export default function AssignmentsView() {
               <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
                 <strong>{betriebsurlaubHeute.bezeichnung}:</strong> Der Betrieb hat an diesem Tag
                 zu. Einteilen geht trotzdem — etwa für einen Notdienst.
+                {/* Wer ausgenommen ist, arbeitet — das gehört an dieselbe Stelle. */}
+                {(betriebsurlaubHeute.ausgenommen ?? []).length > 0 && (
+                  <>
+                    {' '}Es arbeiten:{' '}
+                    {(betriebsurlaubHeute.ausgenommen ?? []).map(nameVon).join(', ')}.
+                  </>
+                )}
               </p>
             )}
             {imUrlaub.size > 0 && (

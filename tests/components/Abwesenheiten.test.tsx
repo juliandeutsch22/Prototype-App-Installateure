@@ -138,6 +138,30 @@ describe('Betriebsurlaub', () => {
     await waitFor(() => expect(buAnlegen).toHaveBeenCalledWith(expect.objectContaining({ abbuchen: false })));
   });
 
+  it('nimmt einzelne Mitarbeiter aus — Rückfrage und Aufruf nennen sie', async () => {
+    zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);
+    // Zugeklappt: meistens hat der ganze Betrieb zu.
+    expect(screen.queryByLabelText('Max Monteur')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Mitarbeiter ausnehmen/ }));
+    // Nur aktive stehen zur Wahl.
+    expect(screen.queryByLabelText('Alt Ausgeschieden')).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByLabelText('Max Monteur'));
+    await userEvent.click(screen.getByRole('button', { name: 'Betriebsurlaub anlegen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(/ausser den Ausgenommenen/);
+    expect(dialog).toHaveTextContent(/Arbeiten in dieser Zeit: Max Monteur/);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Anlegen' }));
+    await waitFor(() =>
+      expect(buAnlegen).toHaveBeenCalledWith(expect.objectContaining({ ausgenommen: ['m1'] })),
+    );
+  });
+
+  it('zeigt in der Liste, wer arbeitet', async () => {
+    urlaube = [{ id: 'b1', companyId: 'perl', von: '2026-12-28', bis: '2026-12-31', bezeichnung: 'Weihnachten', urlaubAbbuchen: true, ausgenommen: ['m1'] }];
+    zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);
+    expect(await screen.findByText(/arbeiten: Max Monteur/)).toBeInTheDocument();
+  });
+
   it('löscht erst nach der Rückfrage, die sagt, was zurückgenommen wird', async () => {
     urlaube = [{ id: 'b1', companyId: 'perl', von: '2026-12-28', bis: '2026-12-31', bezeichnung: 'Weihnachten', urlaubAbbuchen: true }];
     zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);

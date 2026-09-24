@@ -985,6 +985,8 @@ export interface Betriebsurlaub {
   bezeichnung: string;
   /** Wurde der Zeitraum allen aktiven Mitarbeitern als Urlaub gebucht? */
   urlaubAbbuchen: boolean;
+  /** Wer in diesem Zeitraum arbeitet: kein Urlaub gebucht, in der Planung verfügbar. */
+  ausgenommen?: string[];
   angelegtVonName?: string | null;
   createdAt?: number;
 }

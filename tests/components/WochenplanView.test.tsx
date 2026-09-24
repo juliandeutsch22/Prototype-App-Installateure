@@ -37,7 +37,7 @@ vi.mock('@/lib/db/projects', () => ({ listActiveProjects: vi.fn(async () => BAUS
  * Datenbank nur dem, der ihn sehen darf — der Monteur bekommt `null`.
  */
 let abwesend: { userId: string; von: string; bis: string; grund?: string | null; zeiten?: string | null }[] = [];
-let betriebsurlaube: { id: string; von: string; bis: string; bezeichnung: string }[] = [];
+let betriebsurlaube: { id: string; von: string; bis: string; bezeichnung: string; ausgenommen?: string[] }[] = [];
 vi.mock('@/lib/db/abwesenheiten', () => ({
   listBetriebsurlaubeImZeitraum: vi.fn(async () => betriebsurlaube),
 }));
@@ -395,5 +395,23 @@ describe('Wochenplan — Abwesenheiten mit Grund', () => {
     expect(kopf).not.toHaveTextContent('frei');
     const mittwoch = liste().getByText('Mi, 02.09.').closest('div')!.parentElement!;
     expect(mittwoch).not.toHaveTextContent('Frei:');
+  });
+
+  /*
+    AUSGENOMMEN (gewünscht am 24.09.2026): wer beim Betriebsurlaub
+    ausgenommen ist, arbeitet — er ist frei und einteilbar, die anderen
+    haben weiter den grauen Block.
+  */
+  it('Betriebsurlaub mit Ausnahme: der Ausgenommene ist frei und einteilbar', async () => {
+    betriebsurlaube = [{ id: 'b1', von: MITTWOCH, bis: MITTWOCH, bezeichnung: 'Betriebsurlaub', ausgenommen: ['u2'] }];
+    zeige();
+    const erna = await screen.findByRole('row', { name: /Erna Beispiel/ });
+    expect(within(erna).queryByText('Betriebsurlaub')).not.toBeInTheDocument();
+    const max = screen.getByRole('row', { name: /Max Mustermann/ });
+    expect(within(max).getByText('Betriebsurlaub')).toBeInTheDocument();
+    const kopf = tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ });
+    expect(kopf).toHaveTextContent('Betriebsurlaub · 1 frei');
+    const mittwoch = liste().getByText('Mi, 02.09.').closest('div')!.parentElement!;
+    expect(mittwoch).toHaveTextContent('Frei: Erna Beispiel');
   });
 });

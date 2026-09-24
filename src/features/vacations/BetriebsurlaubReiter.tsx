@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import type { Betriebsurlaub } from '@/types';
+import type { AppUser, Betriebsurlaub } from '@/types';
 import type { WithId } from '@/lib/db/core';
+import { listUsers } from '@/lib/db/users';
 import {
   betriebsurlaubAnlegen,
   betriebsurlaubLoeschen,
@@ -25,6 +26,10 @@ import { grundAus } from '@/lib/fehlerGrund';
  * Er sperrt die Planung (Wochenplan grau, Warnung in der Einsatzplanung und
  * bei Baustellendaten) und bucht auf Wunsch jedem aktiven Mitarbeiter die
  * Arbeitstage als Urlaub. Löschen nimmt genau das wieder zurück.
+ *
+ * AUSNAHMEN (seit 24.09.2026, gewünscht vom Betrieb): wer in der Zeit
+ * arbeitet — Notdienst, Lager —, wird beim Anlegen ausgenommen. Er bekommt
+ * keinen Urlaub gebucht und gilt in der Planung als verfügbar.
  */
 export default function BetriebsurlaubReiter({ companyId, meinName }: { companyId: string; meinName: string }) {
   const toast = useToast();
@@ -39,6 +44,31 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
   const [abbuchen, setAbbuchen] = useState(true);
   const [fragen, setFragen] = useState(false);
   const [loeschen, setLoeschen] = useState<WithId<Betriebsurlaub> | null>(null);
+  const [leute, setLeute] = useState<AppUser[]>([]);
+  const [ausgenommen, setAusgenommen] = useState<string[]>([]);
+  // Zugeklappt: meistens hat der ganze Betrieb zu, und die Liste aller
+  // Mitarbeiter wäre dann nur Länge.
+  const [ausnahmenOffen, setAusnahmenOffen] = useState(false);
+
+  useEffect(() => {
+    let weg = false;
+    listUsers(companyId)
+      .then((l) => {
+        if (!weg) {
+          setLeute(
+            l.filter((u) => u.active !== false).sort((a, b) => a.name.localeCompare(b.name, 'de')),
+          );
+        }
+      })
+      // Ohne die Liste lässt sich niemand ausnehmen — anlegen geht trotzdem.
+      .catch(() => undefined);
+    return () => {
+      weg = true;
+    };
+  }, [companyId]);
+
+  const nameVon = (uid: string) => leute.find((u) => u.uid === uid)?.name ?? 'ehemaliger Mitarbeiter';
+  const ausgenommenText = ausgenommen.map(nameVon).join(', ');
 
   // Ein Jahr zurück: ein gelöschter Betriebsurlaub bucht auch rückwirkend
   // aus, und wer im Jänner den Weihnachtsurlaub korrigiert, braucht ihn noch.
@@ -81,12 +111,14 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
     try {
       const r = await betriebsurlaubAnlegen({
         von, bis, bezeichnung: bezeichnung.trim() || 'Betriebsurlaub', abbuchen, name: meinName,
+        ausgenommen,
       });
       toast.success(
         abbuchen
           ? `Betriebsurlaub angelegt — ${r.tage} ${r.tage === 1 ? 'Urlaubstag' : 'Urlaubstage'} für ${r.mitarbeiter} Mitarbeiter gebucht${r.uebersprungen ? `, ${r.uebersprungen} übersprungen (dort war schon gebucht)` : ''}`
           : 'Betriebsurlaub angelegt — die Planung ist gesperrt, gebucht wurde nichts',
       );
+      setAusgenommen([]);
       setStand((n) => n + 1);
     } catch (err) {
       setFehler(grundAus(err, 'Der Betriebsurlaub konnte nicht angelegt werden.'));
@@ -176,6 +208,53 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
               etwa als Zeitausgleich.
             </InfoHint>
           </div>
+          <div>
+            <button
+              type="button"
+              className="flex min-h-touch items-center gap-2 text-sm font-medium text-brand"
+              aria-expanded={ausnahmenOffen}
+              aria-controls="bu-ausnahmen"
+              onClick={() => setAusnahmenOffen((o) => !o)}
+            >
+              <span aria-hidden="true">{ausnahmenOffen ? '▾' : '▸'}</span>
+              Mitarbeiter ausnehmen
+              {ausgenommen.length > 0 && (
+                <span className="tnum font-normal text-ink-muted">({ausgenommen.length})</span>
+              )}
+            </button>
+            {/* Zugeklappt steht trotzdem da, wer ausgenommen ist — sonst ginge
+                eine Ausnahme unbemerkt mit in den Betriebsurlaub. */}
+            {!ausnahmenOffen && ausgenommen.length > 0 && (
+              <p className="text-sm text-ink-muted">Arbeiten in dieser Zeit: {ausgenommenText}</p>
+            )}
+            {ausnahmenOffen && (
+              <fieldset id="bu-ausnahmen" className="mt-1">
+                <legend className="text-sm text-ink-muted">
+                  Wer hier angehakt ist, arbeitet in dieser Zeit: kein Urlaub gebucht, in der
+                  Planung verfügbar.
+                </legend>
+                {leute.length === 0 ? (
+                  <p className="mt-2 text-sm text-ink-muted">Die Mitarbeiter konnten nicht geladen werden.</p>
+                ) : (
+                  <div className="mt-1 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                    {leute.map((u) => (
+                      <CheckboxField
+                        key={u.uid}
+                        id={`bu-aus-${u.uid}`}
+                        label={u.name}
+                        checked={ausgenommen.includes(u.uid)}
+                        onChange={(e) =>
+                          setAusgenommen((a) =>
+                            e.target.checked ? [...a, u.uid] : a.filter((x) => x !== u.uid),
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </fieldset>
+            )}
+          </div>
           <Button type="submit">Betriebsurlaub anlegen</Button>
         </form>
       </Card>
@@ -196,7 +275,12 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
                     <span className="tnum text-ink-muted">{zeitraumText(b.von, b.bis)}</span>
                   </span>
                 }
-                subtitle={b.angelegtVonName ? `angelegt von ${b.angelegtVonName}` : undefined}
+                subtitle={
+                  [
+                    b.angelegtVonName ? `angelegt von ${b.angelegtVonName}` : null,
+                    b.ausgenommen?.length ? `arbeiten: ${b.ausgenommen.map(nameVon).join(', ')}` : null,
+                  ].filter(Boolean).join(' · ') || undefined
+                }
               >
                 <Marke>{b.urlaubAbbuchen ? 'vom Urlaub abgebucht' : 'nur Planungssperre'}</Marke>
                 <Button variant="ghost" onClick={() => setLoeschen(b)}>Löschen</Button>
@@ -213,9 +297,11 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
         confirmTone="primary"
         message={`${bezeichnung.trim() || 'Betriebsurlaub'}, ${zeitraumText(von, bis)}. ${
           abbuchen
-            ? 'Allen aktiven Mitarbeitern werden die Arbeitstage als Urlaub gebucht.'
+            ? ausgenommen.length
+              ? 'Allen aktiven Mitarbeitern ausser den Ausgenommenen werden die Arbeitstage als Urlaub gebucht.'
+              : 'Allen aktiven Mitarbeitern werden die Arbeitstage als Urlaub gebucht.'
             : 'Es wird kein Urlaub gebucht — nur die Planung ist gesperrt.'
-        }`}
+        }${ausgenommen.length ? ` Arbeiten in dieser Zeit: ${ausgenommenText}.` : ''}`}
         onCancel={() => setFragen(false)}
         onConfirm={anlegen}
       />
