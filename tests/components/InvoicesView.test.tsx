@@ -899,6 +899,20 @@ describe('Eine überfällige Rechnung mahnen', () => {
     expect(await screen.findByText(/Mahnung am 2026-08-30/)).toBeInTheDocument();
     expect(screen.getByText(/Frist 2026-09-06/)).toBeInTheDocument();
   });
+
+  it('zeigt die Mahnung einer bezahlten Rechnung als Geschichte — ohne Frist, ohne Warnfarbe', async () => {
+    // Prüflauf 24.09.2026, F14.
+    rechnungen = [
+      {
+        ...UEBERFAELLIG, paymentStatus: 'Bezahlt', mahnstufe: 2, gemahntAm: '2026-08-30',
+        mahnfrist: '2026-09-06',
+      },
+    ];
+    zeige();
+    const zeile = await screen.findByText(/Mahnung am 2026-08-30/);
+    expect(zeile).not.toHaveClass('text-warning');
+    expect(screen.queryByText(/Frist 2026-09-06/)).not.toBeInTheDocument();
+  });
 });
 
 /**

@@ -178,6 +178,20 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
   });
 });
 
+describe('Anforderungen — Reiter und Abzeichen widersprechen sich nicht', () => {
+  it('nennt den Reiter „Laufend", weil er mehr zählt als das „offen" im Menü', async () => {
+    // Prüflauf 24.09.2026, F13: Menü „1 offene", Reiter „Offen 3".
+    anforderungen = [
+      anforderung({ id: 'a', status: 'Offen' }),
+      anforderung({ id: 'b', status: 'In Bearbeitung' }),
+      anforderung({ id: 'c', status: 'Abholbereit' }),
+    ];
+    zeige();
+    expect(await screen.findByRole('tab', { name: /^Laufend\s*3$/ })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /^Offen/ })).not.toBeInTheDocument();
+  });
+});
+
 describe('Anforderungen — die Reihenfolge der Arbeit', () => {
   it('stellt Eilzustellungen an den Anfang ihrer Gruppe', async () => {
     /**

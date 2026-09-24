@@ -60,6 +60,20 @@ beforeEach(() => {
 });
 
 describe('Datensicherung', () => {
+  it('liest den Stand neu, sobald die Sicherung von Hand durch ist', async () => {
+    // Prüflauf 24.09.2026, F9: direkt über „Sicherung erstellt" stand weiter
+    // „noch nie durchgelaufen" in Warnfarbe — die Zeile las nur beim Öffnen.
+    ausleitung.mockImplementation(async () => {
+      letzterLauf = { zuletztErfolg: Date.now(), kennzahl: 21, kennzahlEinheit: 'Zeilen' };
+      return { companyId: 'perl', zeilen: 21, bytes: 1000, pfad: 'x', geraeumt: 0, ziel: 'Standard-Bucket des Projekts' };
+    });
+    zeige();
+    expect(await screen.findByText(/noch nie durchgelaufen/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Sicherung jetzt erstellen' }));
+    expect(await screen.findByText(/lief zuletzt vor/)).toBeInTheDocument();
+    expect(screen.queryByText(/noch nie durchgelaufen/)).not.toBeInTheDocument();
+  });
+
   it('sagt nach dem Lauf, WIE VIEL gesichert wurde', async () => {
     /**
      * „Erledigt" allein ist wertlos: eine Sicherung, die null Datensätze

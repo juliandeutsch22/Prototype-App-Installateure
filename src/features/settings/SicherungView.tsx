@@ -45,6 +45,7 @@ export default function SicherungView() {
 
   const [laeuft, setLaeuft] = useState<'sicherung' | 'download' | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+  const [laufStand, setLaufStand] = useState(0);
   const [letzte, setLetzte] = useState<
     { zeilen: number; bytes: number; ziel: string; dateien?: number; dateienOffen?: number } | null
   >(null);
@@ -61,6 +62,7 @@ export default function SicherungView() {
         dateien: data.dateien, dateienOffen: data.dateienOffen,
       });
       toast.success(`Sicherung erstellt: ${data.zeilen} Datensätze`);
+      setLaufStand((n) => n + 1);
     } catch (e) {
       // Der Text der Function ist bewusst verständlich gehalten — sie sagt
       // etwa, dass der Bestand zu gross ist. Ihn zu verschlucken und durch
@@ -136,7 +138,7 @@ export default function SicherungView() {
             Sicherung konnte wochenlang ausfallen; bemerkt hätte man es an dem
             Tag, an dem man sie braucht.
           */}
-          <LaufStatus art="ausleitung" />
+          <LaufStatus art="ausleitung" stand={laufStand} />
           <Button onClick={() => void sicherungJetzt()} disabled={laeuft !== null}>
             {laeuft === 'sicherung' ? 'Sicherung läuft …' : 'Sicherung jetzt erstellen'}
           </Button>

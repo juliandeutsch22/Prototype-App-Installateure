@@ -20,7 +20,7 @@ import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
-import { grundAus } from '@/lib/fehlerGrund';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 /*
   Der Katalogimport wird erst beim Öffnen geladen. Er bringt den
@@ -153,29 +153,38 @@ export default function StockView() {
     [rows],
   );
 
-  /** Wareneingang oder Korrektur, atomar über increment. */
-  async function change(m: WithId<Material>, delta: number) {
-    setBusyId(m.id);
-    try {
-      await adjustStock(m.id, delta);
-    } catch (err) {
-      setError(grundAus(err, 'Der Bestand konnte nicht geändert werden.'));
-    } finally {
-      setBusyId(null);
-    }
+  /*
+    DER WARENEINGANG FRAGT IN EINEM DIALOG DER APP, nicht über
+    `window.prompt`: der liess sich nicht gestalten und tat, wo der Browser
+    ihn unterdrückt, beim Klick gar nichts (Prüflauf 24.09.2026, F7). Und
+    ein Fehlschlag meldete sich vorher unten auf der Seite, während oben
+    trotzdem „eingebucht" stand — jetzt bleibt der Dialog offen und sagt es.
+  */
+  const [eingang, setEingang] = useState<WithId<Material> | null>(null);
+  const [eingangMenge, setEingangMenge] = useState('1');
+
+  function book(m: WithId<Material>) {
+    setEingangMenge('1');
+    setEingang(m);
   }
 
-  async function book(m: WithId<Material>) {
-    const eingabe = window.prompt(`Wareneingang für „${m.name}" — wie viele ${m.unit ?? 'Stk'}?`, '1');
-    if (eingabe === null) return;
-    const n = Math.floor(Number(eingabe.replace(',', '.')));
+  /** Wareneingang, atomar über increment. */
+  async function eingangBuchen() {
+    if (!eingang) return;
+    const m = eingang;
+    const n = Math.floor(Number(eingangMenge.replace(',', '.')));
     // Ohne diese Prüfung ginge eine negative oder krumme Zahl als
     // increment() durch und der Wareneingang würde den Bestand senken.
     if (!Number.isFinite(n) || n < 1) {
-      setError('Bitte eine ganze Menge von mindestens 1 angeben.');
-      return;
+      throw new Error('Bitte eine ganze Menge von mindestens 1 angeben.');
     }
-    await change(m, n);
+    setBusyId(m.id);
+    try {
+      await adjustStock(m.id, n);
+    } finally {
+      setBusyId(null);
+    }
+    setEingang(null);
     toast.success(`${n} ${m.unit ?? 'Stk'} ${m.name} eingebucht`);
   }
 
@@ -290,7 +299,7 @@ export default function StockView() {
                         <Button
                           variant="ghost"
                           loading={busyId === m.id}
-                          onClick={() => void book(m)}
+                          onClick={() => book(m)}
                         >
                           Wareneingang
                         </Button>
@@ -325,6 +334,30 @@ export default function StockView() {
             </div>
           </Card>
         </>
+      )}
+
+      {eingang && (
+        <ConfirmDialog
+          open
+          title={`Wareneingang: ${eingang.name}`}
+          message="Die Menge kommt zum Bestand dazu."
+          confirmLabel="Einbuchen"
+          confirmTone="primary"
+          onConfirm={eingangBuchen}
+          onCancel={() => setEingang(null)}
+        >
+          <InputField
+            id="eingang-menge"
+            label={`Menge (${eingang.unit ?? 'Stk'})`}
+            type="number"
+            inputMode="numeric"
+            min={1}
+            step={1}
+            pflicht
+            value={eingangMenge}
+            onChange={(e) => setEingangMenge(e.target.value)}
+          />
+        </ConfirmDialog>
       )}
     </div>
   );

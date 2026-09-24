@@ -194,45 +194,63 @@ describe('Lager — was ist wirklich frei?', () => {
 });
 
 describe('Lager — Wareneingang', () => {
+  /*
+    SEIT 24.09.2026 EIN DIALOG DER APP statt `window.prompt` — der liess sich
+    nicht gestalten und tat, wo der Browser ihn unterdrückt, gar nichts
+    (Prüflauf, F7).
+  */
+  async function eingangMit(menge: string) {
+    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
+    const dialog = await screen.findByRole('dialog');
+    const feld = within(dialog).getByLabelText(/^Menge/);
+    await userEvent.clear(feld);
+    if (menge) await userEvent.type(feld, menge);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    return dialog;
+  }
+
   it('bucht die eingegebene Menge auf', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
-    vi.spyOn(window, 'prompt').mockReturnValue('12');
     zeige();
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
+    await eingangMit('12');
     await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith('m1', 12));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('weist eine negative Menge ab, statt den Bestand zu senken', async () => {
     // Ohne diese Prüfung ginge sie als `increment(-n)` durch: ein
     // Wareneingang, der das Lager leert.
     materialien = [material({ id: 'm1', stock: 20 })];
-    vi.spyOn(window, 'prompt').mockReturnValue('-5');
     zeige();
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
-    expect(await screen.findByText(/ganze Menge von mindestens 1/)).toBeInTheDocument();
+    const dialog = await eingangMit('-5');
+    expect(await within(dialog).findByText(/ganze Menge von mindestens 1/)).toBeInTheDocument();
     expect(bestandAendern).not.toHaveBeenCalled();
   });
 
-  it('weist eine krumme Menge ab', async () => {
+  it('weist eine leere Menge ab', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
-    vi.spyOn(window, 'prompt').mockReturnValue('Kiste');
     zeige();
-
-    await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
-    expect(await screen.findByText(/ganze Menge von mindestens 1/)).toBeInTheDocument();
+    const dialog = await eingangMit('');
+    expect(await within(dialog).findByText(/ganze Menge von mindestens 1/)).toBeInTheDocument();
     expect(bestandAendern).not.toHaveBeenCalled();
   });
 
   it('bucht nichts, wenn der Dialog abgebrochen wird', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
-    vi.spyOn(window, 'prompt').mockReturnValue(null);
     zeige();
-
     await userEvent.click(await screen.findByRole('button', { name: 'Wareneingang' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Abbrechen' }));
     expect(bestandAendern).not.toHaveBeenCalled();
-    expect(screen.queryByText(/ganze Menge von mindestens 1/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('bleibt bei einem Fehlschlag offen und sagt es — statt „eingebucht" zu melden', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    bestandAendern.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    zeige();
+    const dialog = await eingangMit('3');
+    expect(await within(dialog).findByText(/Keine Verbindung zum Server/)).toBeInTheDocument();
+    expect(screen.queryByText(/eingebucht/)).not.toBeInTheDocument();
   });
 });
 

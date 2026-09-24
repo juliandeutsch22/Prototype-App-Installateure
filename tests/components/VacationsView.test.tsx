@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Vacation } from '@/types';
@@ -309,25 +309,36 @@ describe('Urlaub genehmigen', () => {
     expect(await screen.findByText(/1 übersprungen/)).toBeInTheDocument();
   });
 
-  it('verlangt fuer eine Ablehnung einen Grund', async () => {
+  it('verlangt fuer eine Ablehnung einen Grund — im Dialog der App', async () => {
+    // Seit 24.09.2026 kein `window.prompt` mehr (Prüflauf, F7).
     const nutzer = userEvent.setup();
-    // Der Genehmigende bricht die Nachfrage ab.
-    vi.spyOn(window, 'prompt').mockReturnValueOnce(null);
     zeichne();
     await screen.findByText('Max Mustermann');
 
+    // Abgebrochen: nichts entschieden.
     await nutzer.click(screen.getByRole('button', { name: 'Ablehnen' }));
+    await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Abbrechen' }));
     expect(callUrlaubEntscheiden).not.toHaveBeenCalled();
 
-    // Und mit Grund geht es durch.
-    vi.spyOn(window, 'prompt').mockReturnValueOnce('Baustelle Neudorf läuft an.');
+    // Ohne Grund: der Dialog bleibt offen und sagt es.
     await nutzer.click(screen.getByRole('button', { name: 'Ablehnen' }));
-    expect(callUrlaubEntscheiden).toHaveBeenCalledWith({
-      vacationId: 'v9',
-      entscheidung: 'Abgelehnt',
-      grund: 'Baustelle Neudorf läuft an.',
-      entscheiderName: 'Julian Deutsch',
-    });
+    let dialog = await screen.findByRole('dialog');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Ablehnen' }));
+    expect(await within(dialog).findByText(/Bitte einen Grund angeben/)).toBeInTheDocument();
+    expect(callUrlaubEntscheiden).not.toHaveBeenCalled();
+
+    // Mit Grund geht es durch.
+    dialog = screen.getByRole('dialog');
+    await nutzer.type(within(dialog).getByLabelText('Grund'), 'Baustelle Neudorf läuft an.');
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Ablehnen' }));
+    await waitFor(() =>
+      expect(callUrlaubEntscheiden).toHaveBeenCalledWith({
+        vacationId: 'v9',
+        entscheidung: 'Abgelehnt',
+        grund: 'Baustelle Neudorf läuft an.',
+        entscheiderName: 'Julian Deutsch',
+      }),
+    );
   });
 });
 

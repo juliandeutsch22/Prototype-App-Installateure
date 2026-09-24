@@ -546,7 +546,18 @@ function LagerPostenFormular({
       }
       action={
         !offen ? (
-          <Button variant="ghost" onClick={() => setOffen(true)}>+ Material</Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              // Gibt es nur einen Grosshändler, ist er gemeint — wie bei „Nicht
+              // auf Lager". Sonst landete die Zeile unter „Ohne Grosshändler"
+              // und musste erst zugeordnet werden (Prüflauf 24.09.2026, L6).
+              if (!bei && grosshaendler.length === 1) setBei(grosshaendler[0].id);
+              setOffen(true);
+            }}
+          >
+            + Material
+          </Button>
         ) : undefined
       }
     >

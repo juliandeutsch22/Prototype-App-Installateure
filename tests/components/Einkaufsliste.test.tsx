@@ -322,6 +322,19 @@ describe('Einkaufsliste — Material dazusetzen', () => {
     );
   });
 
+  it('wählt den einzigen Grosshändler vor — wie bei „Nicht auf Lager"', async () => {
+    // Prüflauf 24.09.2026, L6: sonst landete die Zeile unter „Ohne Grosshändler".
+    zeige([], [HOLTER]);
+    await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
+    expect(screen.getByLabelText('Grosshändler')).toHaveValue('gh1');
+  });
+
+  it('wählt bei mehreren Grosshändlern nichts vor', async () => {
+    zeige([]);
+    await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));
+    expect(screen.getByLabelText('Grosshändler')).toHaveValue('');
+  });
+
   it('weist eine Menge von null ab und legt nichts an', async () => {
     zeige([]);
     await userEvent.click(await screen.findByRole('button', { name: '+ Material' }));

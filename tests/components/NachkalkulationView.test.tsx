@@ -284,6 +284,22 @@ describe('Mit Kostensätzen', () => {
     expect(await screen.findByText(/Deckungsbeitrag, nicht Gewinn/)).toBeInTheDocument();
   });
 
+  it('beginnt bei den laufenden, solange keine Baustelle abgeschlossen ist', async () => {
+    // Prüflauf 24.09.2026, L7: ein neuer Betrieb sah „Keine Baustelle in
+    // dieser Auswahl", obwohl laufende Baustellen Zahlen hätten.
+    projekte = [projekt('2026-003', 'Aktiv')];
+    zeige();
+    await waitFor(() => expect(screen.getByLabelText('Baustellen')).toHaveValue('Aktiv'));
+    expect(await screen.findByText(/Zwischenstand — es kommen noch Stunden dazu/)).toBeInTheDocument();
+  });
+
+  it('bleibt bei „Abgeschlossen", sobald es eine abgeschlossene gibt', async () => {
+    projekte = [projekt('2026-001'), projekt('2026-003', 'Aktiv')];
+    zeige();
+    await screen.findByText('Ergebnis je Baustelle');
+    expect(screen.getByLabelText('Baustellen')).toHaveValue('Abgeschlossen');
+  });
+
   it('sagt bei leerer Auswahl, dass nichts da ist', async () => {
     zeige();
     expect(await screen.findByText('Keine Baustelle in dieser Auswahl.')).toBeInTheDocument();
