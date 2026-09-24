@@ -263,7 +263,7 @@ export default function KontenrahmenView() {
               <InputField
                 id="k-anzahlung-code"
                 label="Steuercode"
-                placeholder="M20"
+                placeholder="z. B. M20"
                 value={anzahlung.steuercode}
                 onChange={(e) => setAnzahlung({ ...anzahlung, steuercode: e.target.value })}
               />
@@ -291,7 +291,7 @@ export default function KontenrahmenView() {
               <InputField
                 id="k-rc-code"
                 label="Steuercode"
-                placeholder="M00"
+                placeholder="z. B. M00"
                 value={reverse.steuercode}
                 onChange={(e) => setReverse({ ...reverse, steuercode: e.target.value })}
               />
@@ -345,7 +345,7 @@ export default function KontenrahmenView() {
                   <InputField
                     id={`k-code-${n}`}
                     label="Steuercode"
-                    placeholder="M20"
+                    placeholder="z. B. M20"
                     value={s.steuercode}
                     onChange={(e) =>
                       setSaetze(

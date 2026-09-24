@@ -54,7 +54,10 @@ export default function Card({
         <header className="border-b border-line bg-surface-2/70 px-4 py-3">
           {/* Auf schmalen Schirmen Titel und Aktionen untereinander: sonst
               überlagern breite Aktionen (mehrere Knöpfe) den Titel. */}
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          {/* Ein Link als Kartenaktion („Zur Einsatzplanung") bekommt dieselbe
+              Höhe wie ein Knopf: 20 px Text sind mit dem Daumen kaum zu
+              treffen (Prüflauf 24.09.2026, D6). */}
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 [&>a]:inline-flex [&>a]:min-h-touch [&>a]:items-center">
             {/* Kartentitel sind im Prototyp klein, fett und versal gesetzt —
                 sie ordnen den Inhalt, ohne mit der Seitenüberschrift zu
                 konkurrieren. Das „i" gehört zum Titel, nicht zu den

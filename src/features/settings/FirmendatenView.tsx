@@ -149,14 +149,14 @@ export default function FirmendatenView() {
             <InputField
               id="fd-adresse"
               label="Anschrift (eine Zeile)"
-              placeholder="Musterstraße 1 · 2700 Wiener Neustadt"
+              placeholder="z. B. Musterstraße 1 · 2700 Wiener Neustadt"
               value={addressLine}
               onChange={(e) => setAddressLine(e.target.value)}
             />
             <InputField
               id="fd-kontakt"
               label="Kontakt (eine Zeile)"
-              placeholder="02622 12345 · office@betrieb.at · www.betrieb.at"
+              placeholder="z. B. 02622 12345 · office@betrieb.at"
               value={contactLine}
               onChange={(e) => setContactLine(e.target.value)}
             />
@@ -225,14 +225,14 @@ export default function FirmendatenView() {
             <InputField
               id="fd-uid"
               label="UID-Nummer"
-              placeholder="ATU12345678"
+              placeholder="z. B. ATU…"
               value={vatId}
               onChange={(e) => setVatId(e.target.value)}
             />
             <InputField
               id="fd-fn"
               label="Firmenbuchnummer"
-              placeholder="FN 123456a"
+              placeholder="z. B. FN 123456a"
               value={companyRegister}
               onChange={(e) => setCompanyRegister(e.target.value)}
             />

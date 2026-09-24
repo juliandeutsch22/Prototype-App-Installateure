@@ -17,6 +17,7 @@ import {
   liesDatanorm,
   type DatanormErgebnis,
 } from './datanorm';
+import { datumAusMs } from '@/lib/datum';
 
 /**
  * Den Artikelkatalog des Grosshändlers einspielen — erst ansehen, dann
@@ -454,7 +455,7 @@ function Protokoll({ laeufe }: { laeufe: WithId<dn.Lauf>[] }) {
             <li key={l.id} className="flex flex-wrap items-baseline gap-x-2">
               <span className="font-medium">{l.dateiname ?? 'ohne Dateiname'}</span>
               <span className="text-ink-muted">
-                {l.createdAt ? new Date(l.createdAt).toLocaleDateString('de-AT') : ''}
+                {datumAusMs(l.createdAt)}
                 {l.status === 'uebernommen' && u
                   ? ` · ${u.angelegt} neu, ${u.geaendert} aktualisiert`
                   : l.status === 'verworfen'

@@ -50,6 +50,7 @@ import {
   entriesInRange,
 } from './export';
 import AntragKnopf from '@/features/time/AntragKnopf';
+import { datumAT } from '@/lib/datum';
 
 const MONTHS = [
   'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -1070,7 +1071,7 @@ export default function AccountingView() {
         title="Eintrag löschen?"
         message={
           toDelete
-            ? `Der Eintrag von ${toDelete.userName ?? 'Mitarbeiter'} vom ${toDelete.date} wird endgültig entfernt.`
+            ? `Der Eintrag von ${toDelete.userName ?? 'Mitarbeiter'} vom ${datumAT(toDelete.date)} wird endgültig entfernt.`
             : ''
         }
         onCancel={() => setToDelete(null)}

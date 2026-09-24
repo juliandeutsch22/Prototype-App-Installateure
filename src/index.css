@@ -83,6 +83,10 @@
    * Sonne auf dem Display. Über 7:1 (AAA) auf ALLEN drei Flächen:
    * Weiß 8,46, surface-2 7,88, Grund 7,73. */
   --text-muted: #38505f;
+  /* Platzhalter sichtbar HELLER als Eingegebenes, aber noch lesbar (4,9:1 auf
+   * Weiß). Mit dem Ton des Nebentexts sahen Beispiele wie „ATU12345678" wie
+   * ausgefüllte Werte aus (Prüflauf 24.09.2026, D4). */
+  --text-placeholder: #5f7482;
   /* Linien tragen einen Hauch Cyan statt neutralem Grau — dadurch gehören
    * Rahmen, Trennstriche und Flächen sichtbar zusammen. */
   --border: #cfe3e9;
@@ -210,6 +214,15 @@ body {
    * Auslassungspunkten, weil `white-space: nowrap` jeden Umbruch verbietet.
    */
   overflow-wrap: anywhere;
+  /*
+    MIT TRENNSTRICH, WO ES GEHT. `anywhere` allein brach
+    „Wohnungseigentümergemein|schaft" ohne jedes Zeichen um (Prüflauf
+    24.09.2026, D3). `lang="de"` steht am Dokument; der Browser trennt damit
+    nach deutschen Regeln und fällt nur dort auf `anywhere` zurück, wo er
+    keine Trennstelle kennt.
+  */
+  hyphens: auto;
+  -webkit-hyphens: auto;
   background-color: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -394,7 +407,10 @@ textarea:focus {
  * einen Ruf. 600 lässt sie begleiten.
  */
 .section-label {
-  font-size: 0.7rem;
+  /* 12 px und nicht weniger: hier stehen auch Werte („120 H BUDGET",
+     „8 STK"), und 11 px in Versalien waren am Telefon kaum lesbar
+     (Prüflauf 24.09.2026, D2). */
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;

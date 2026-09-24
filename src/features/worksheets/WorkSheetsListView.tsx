@@ -31,6 +31,7 @@ import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAT } from '@/lib/datum';
 
 const STAND: Record<WorkSheet['status'], Stand> = {
   Unterschrieben: 'gut',
@@ -510,7 +511,7 @@ export default function WorkSheetsListView() {
                 subtitle={
                   <>
                     <span className="tnum">
-                      Baustelle {schein.projectNumber} · Leistung vom {schein.datum}
+                      Baustelle {schein.projectNumber} · Leistung vom {datumAT(schein.datum)}
                     </span>
                     <span className="mt-1 block">
                       {zeilen.map((z) => (
@@ -660,7 +661,7 @@ export default function WorkSheetsListView() {
                   }
                   subtitle={
                     <>
-                      {s.datum} · {fmtMin(gesamt)} · {s.abrechnung}
+                      {datumAT(s.datum)} · {fmtMin(gesamt)} · {s.abrechnung}
                       {s.unterschriften?.kunde && (
                         <span className="mt-1 block text-xs text-ink-muted">
                           Unterschrieben von {s.unterschriften.kunde.name}
@@ -854,7 +855,7 @@ export default function WorkSheetsListView() {
         title="Entwurf verwerfen"
         message={
           verwerfenFuer
-            ? `${verwerfenFuer.customerName}, ${verwerfenFuer.datum} · ` +
+            ? `${verwerfenFuer.customerName}, ${datumAT(verwerfenFuer.datum)} · ` +
               `${fmtMin(verwerfenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
               `${verwerfenFuer.material.length} Materialposten. Der Entwurf verschwindet aus ` +
               'der Arbeitsliste, bleibt aber erhalten und lässt sich wieder aufnehmen.'
@@ -878,7 +879,7 @@ export default function WorkSheetsListView() {
         Ein spurlos gelöschter Schein wäre schlimmer als ein falscher.
       */}
       {stornoFuer && (
-        <Card title={`Schein stornieren — ${stornoFuer.customerName}, ${stornoFuer.datum}`}>
+        <Card title={`Schein stornieren — ${stornoFuer.customerName}, ${datumAT(stornoFuer.datum)}`}>
           <p className="text-sm text-ink-muted">
             Der Schein bleibt erhalten und sichtbar, wird aber als storniert gekennzeichnet. Für
             eine Korrektur ist danach ein neuer Schein zu erstellen.

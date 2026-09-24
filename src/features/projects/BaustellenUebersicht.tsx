@@ -3,6 +3,7 @@ import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { groupProjectHours, calcBudgetState, calcWorkMin, fmtStd } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
 import { TeilFehler } from '@/components/States';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Wie eine einzelne Baustelle steht — an der Baustelle, nicht im Monatsbericht.
@@ -47,7 +48,7 @@ type Stand =
     };
 
 /** 'YYYY-MM-DD' -> '15.06.2026'. */
-const fmtDatum = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT');
+const fmtDatum = (iso: string) => datumAT(iso);
 
 export default function BaustellenUebersicht({
   companyId,

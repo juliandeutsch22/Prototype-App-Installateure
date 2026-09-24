@@ -32,6 +32,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAT } from '@/lib/datum';
 
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
@@ -611,7 +612,7 @@ export default function QuotesView() {
                 }
                 subtitle={
                   <>
-                    {q.quoteDate} · gültig bis {q.validUntil} · {fmtEUR(q.totalBrutto)} brutto
+                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)} · {fmtEUR(q.totalBrutto)} brutto
                     <span className="mt-1 block text-xs text-ink-muted">
                       {q.kalkulierteStunden} h kalkuliert
                       {q.projectNumber ? ` · Baustelle ${q.projectNumber}` : ''}

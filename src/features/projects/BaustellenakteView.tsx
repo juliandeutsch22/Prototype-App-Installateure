@@ -26,6 +26,7 @@ import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Die Akte einer Baustelle — und die Stelle, an der sie bearbeitet wird.
@@ -51,7 +52,7 @@ type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit
 const LAEDT = { zustand: 'laedt' } as const;
 
 const fmtDatum = (iso?: string) =>
-  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT') : '';
+  datumAT(iso);
 
 export default function BaustellenakteView() {
   const { id } = useParams<{ id: string }>();
@@ -322,7 +323,7 @@ export default function BaustellenakteView() {
         title={b.customerName}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/admin-projects" className="text-brand underline">← Zur Baustellenliste</Link>
+            <Link to="/admin-projects" className="inline-flex min-h-touch items-center text-brand underline">← Zur Baustellenliste</Link>
             <span className="tnum text-ink-muted">{b.projectNumber}</span>
             <StatusBadge status={b.status} />
             {b.estimatedHours ? <Marke>{b.estimatedHours} h Budget</Marke> : null}

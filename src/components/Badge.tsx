@@ -230,7 +230,7 @@ export function Zaehler({
     : 'bg-accent-deep text-white';
   return (
     <span
-      className={`tnum inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-[0.7rem] font-bold leading-none ${ton}`}
+      className={`tnum inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-bold leading-none ${ton}`}
     >
       <span aria-hidden="true">{anzahl > 99 ? '99+' : anzahl}</span>
       <span className="sr-only">{`${anzahl} ${was}`}</span>

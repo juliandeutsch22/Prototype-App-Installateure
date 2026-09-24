@@ -15,7 +15,7 @@ import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react
  * zusaetzlich das Schrumpfen, wo ein Feld in einer Flex-Zeile sitzt.
  */
 const fieldBase =
-  'min-h-touch min-w-0 max-w-full rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand';
+  'min-h-touch min-w-0 max-w-full rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand';
 
 /**
  * Pflichtfelder kennzeichnen — der Stern und was daran hängt.

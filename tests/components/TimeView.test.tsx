@@ -201,14 +201,14 @@ describe('Zeiterfassung — verrechnete Einträge', () => {
     ];
     zeige();
 
-    const gesperrt = (await screen.findByText('2026-09-01')).closest('li') as HTMLElement;
+    const gesperrt = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
     expect(within(gesperrt).getByText('verrechnet')).toBeInTheDocument();
     expect(within(gesperrt).queryByRole('button', { name: 'Bearbeiten' })).toBeNull();
     expect(within(gesperrt).queryByRole('button', { name: 'Löschen' })).toBeNull();
 
     // Der offene daneben bleibt bearbeitbar — sonst prüfte der Test nur, dass
     // es überhaupt keine Knöpfe gibt.
-    const offen = screen.getByText('2026-08-31').closest('li') as HTMLElement;
+    const offen = screen.getByText('31.08.2026').closest('li') as HTMLElement;
     expect(within(offen).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
   });
 });

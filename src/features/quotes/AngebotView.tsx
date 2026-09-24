@@ -22,6 +22,7 @@ import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
 import { downloadAngebotPdf } from './angebotPdf';
 import { STAND } from './stand';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Ein Angebot auf seiner eigenen Seite.
@@ -41,7 +42,7 @@ const fmtEUR = (n: number) =>
 const fmtMenge = (n: number) => new Intl.NumberFormat('de-AT', { maximumFractionDigits: 3 }).format(n);
 
 const fmtDatum = (iso?: string) =>
-  iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT') : '';
+  datumAT(iso);
 
 type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit'; daten: T };
 const LAEDT = { zustand: 'laedt' } as const;
@@ -152,7 +153,7 @@ export default function AngebotView() {
   if (!user) return null;
 
   const zurueck = (
-    <Link to="/quotes" className="text-brand underline">← Zu den Angeboten</Link>
+    <Link to="/quotes" className="inline-flex min-h-touch items-center text-brand underline">← Zu den Angeboten</Link>
   );
 
   if (angebot.zustand === 'laedt') {

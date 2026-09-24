@@ -858,7 +858,7 @@ export default function TimeForm({
                       className={`min-h-touch w-full border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-muted focus:border-brand focus:ring-1 focus:ring-brand ${
                         kennzeichenVorsatz ? 'rounded-r' : 'rounded'
                       }`}
-                      placeholder={kennzeichenVorsatz ? '12345A' : 'W-12345A'}
+                      placeholder={kennzeichenVorsatz ? 'z. B. 12345A' : 'z. B. W-12345A'}
                       value={vehiclePlate}
                       onChange={(e) =>
                         setVehiclePlate(ohneKennzeichenVorsatz(e.target.value, kennzeichenVorsatz))}

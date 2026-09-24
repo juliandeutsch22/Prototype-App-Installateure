@@ -41,6 +41,7 @@ import TimeForm from './TimeForm';
 import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import AntragKnopf from '@/features/time/AntragKnopf';
+import { datumAT } from '@/lib/datum';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
@@ -453,7 +454,7 @@ export default function TimeView() {
             {nachtraege.map((n) => (
               <li key={n.schein.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-ink">
-                  {n.schein.datum} · {n.schein.customerName} · Baustelle{' '}
+                  {datumAT(n.schein.datum)} · {n.schein.customerName} · Baustelle{' '}
                   {n.schein.projectNumber} · {fmtMin(n.minuten)} beim Kunden
                 </span>
                 <Button
@@ -653,7 +654,7 @@ export default function TimeView() {
                           key={e.id}
                           title={
                             <span>
-                              {e.date}
+                              {datumAT(e.date)}
                               {e.customerName && ` · ${e.customerName}`}
                             </span>
                           }
@@ -729,7 +730,7 @@ export default function TimeView() {
       <ConfirmDialog
         open={!!toDelete}
         title="Eintrag löschen?"
-        message={toDelete ? `Der Eintrag vom ${toDelete.date} wird endgültig entfernt.` : ''}
+        message={toDelete ? `Der Eintrag vom ${datumAT(toDelete.date)} wird endgültig entfernt.` : ''}
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
           if (toDelete) {
