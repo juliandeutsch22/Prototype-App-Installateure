@@ -9,6 +9,7 @@ import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Module ein- und ausschalten.
@@ -73,8 +74,8 @@ export default function ModulesView() {
       await updateCompany(user.companyId, { modules: entwurf });
       await reloadCompany();
       toast.success('Module gespeichert');
-    } catch {
-      setError('Die Module konnten nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Module konnten nicht gespeichert werden.'));
     } finally {
       setSpeichert(false);
     }

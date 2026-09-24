@@ -20,6 +20,7 @@ import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import {
   alsEntwurf, alsProfil, gleich, WEEKDAYS, type BenutzerEntwurf,
 } from './benutzerEntwurf';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Die Akte eines Benutzers — und die Stelle, an der sie bearbeitet wird.
@@ -131,7 +132,7 @@ export default function BenutzerakteView() {
       await passwortVergeben(uid, pw);
       setVergeben(pw);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Das Passwort konnte nicht vergeben werden.');
+      toast.error(grundAus(e, 'Das Passwort konnte nicht vergeben werden.'));
     } finally {
       setVergibt(false);
     }
@@ -265,8 +266,8 @@ export default function BenutzerakteView() {
                   try {
                     await resendPasswordReset(p.email);
                     toast.success(`Passwort-Mail an ${p.email} gesendet`);
-                  } catch {
-                    toast.error('Die Passwort-Mail konnte nicht gesendet werden.');
+                  } catch (err) {
+                    toast.error(grundAus(err, 'Die Passwort-Mail konnte nicht gesendet werden.'));
                   }
                 }}
               >

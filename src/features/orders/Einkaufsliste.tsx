@@ -31,6 +31,7 @@ import { useToast } from '@/components/Toast';
 import { fmtMenge } from '@/lib/belegLayout';
 import { bestellMail, bestellText, einkaufsliste, type EinkaufsGruppe, type EinkaufsZeile } from './einkauf';
 import { downloadBestellungPdf } from './bestellungPdf';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Die Einkaufsliste im Reiter „Einkauf" der Anforderungen.
@@ -130,7 +131,7 @@ export default function Einkaufsliste({
       onLagerGeaendert();
       toast.success(erfolg);
     } catch (e) {
-      setFehler(e instanceof Error && e.message ? e.message : 'Das hat nicht geklappt.');
+      setFehler(grundAus(e, 'Das hat nicht geklappt.'));
     } finally {
       setLaeuft(null);
     }
@@ -528,7 +529,7 @@ function LagerPostenFormular({
       setOffen(false);
       onAngelegt();
     } catch (e) {
-      setFehler(e instanceof Error && e.message ? e.message : 'Das Material konnte nicht auf die Liste.');
+      setFehler(grundAus(e, 'Das Material konnte nicht auf die Liste.'));
     } finally {
       setSpeichert(false);
     }
@@ -676,8 +677,8 @@ function GrosshaendlerPflege({
       toast.success('Grosshändler gespeichert');
       setBearbeitet(null);
       onGeaendert();
-    } catch {
-      setFehler('Der Grosshändler konnte nicht gespeichert werden.');
+    } catch (err) {
+      setFehler(grundAus(err, 'Der Grosshändler konnte nicht gespeichert werden.'));
     } finally {
       setSpeichert(false);
     }

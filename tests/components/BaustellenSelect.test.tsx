@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import type { Project } from '@/types';
 
 /**
@@ -46,6 +47,41 @@ beforeEach(() => {
 });
 
 describe('Baustellenauswahl', () => {
+  it('kennzeichnet eine Pflichtauswahl und sagt selbst, was fehlt', async () => {
+    /*
+      Prüflauf 24.09.2026, F6: die Zeitmaske liess sich ohne Baustelle nicht
+      speichern, aber das Feld trug keinen Stern, und der Browser meldete
+      nur „ein Element auswählen" — in seiner Sprache, nicht in der der App.
+    */
+    function Maske() {
+      const [nr, setNr] = useState('');
+      return (
+        <form>
+          <BaustellenSelect companyId="perl" value={nr} onChange={setNr} required />
+        </form>
+      );
+    }
+    const { container } = render(<Maske />);
+    const feld = (await screen.findByLabelText('Baustelle')) as HTMLSelectElement;
+    await screen.findByRole('option', { name: /Familie Huber/ });
+    expect(feld).toHaveAttribute('aria-required', 'true');
+    expect(container.querySelector('span[aria-hidden="true"]')?.textContent).toBe('*');
+
+    expect(feld.checkValidity()).toBe(false);
+    expect(feld.validationMessage).toBe('Bitte eine Baustelle wählen.');
+
+    // Wer wählt, ist die Meldung los — sonst bliebe das Feld für immer ungültig.
+    await userEvent.selectOptions(feld, 'B-001');
+    expect(feld.validationMessage).toBe('');
+    expect(feld.checkValidity()).toBe(true);
+  });
+
+  it('ohne Pflicht kein Stern', async () => {
+    const { container } = render(<BaustellenSelect companyId="perl" value="" onChange={vi.fn()} />);
+    await screen.findByRole('option', { name: /Familie Huber/ });
+    expect(container.querySelector('span[aria-hidden="true"]')).toBeNull();
+  });
+
   it('zeigt die laufenden Baustellen', async () => {
     render(<BaustellenSelect companyId="perl" value="" onChange={vi.fn()} />);
     expect(await screen.findByRole('option', { name: /Familie Huber/ })).toBeInTheDocument();

@@ -11,6 +11,7 @@ import PageHeader from '@/components/PageHeader';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Die Stammdaten des Betriebs — was auf Rechnung, Stundenbericht und
@@ -117,8 +118,8 @@ export default function FirmendatenView() {
       });
       await reloadCompany();
       toast.success('Firmendaten gespeichert');
-    } catch {
-      setError('Die Firmendaten konnten nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Firmendaten konnten nicht gespeichert werden.'));
     } finally {
       setSaving(false);
     }

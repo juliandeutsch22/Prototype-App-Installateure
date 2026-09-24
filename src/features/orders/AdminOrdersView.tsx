@@ -32,6 +32,7 @@ import Button from '@/components/Button';
 import { byNewest, dayKey, dayHeading } from '@/lib/timestamps';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -231,10 +232,10 @@ export default function AdminOrdersView() {
       // Das Abzeichen im Menü zählt mit — „Offen" ist genau das, was es zählt.
       void postenNeuLaden();
       toast.success(`Status: ${next}`);
-    } catch {
+    } catch (err) {
       // Ohne diesen Zweig blieb ein fehlgeschlagenes Update unbemerkt: der
       // Status sprang nicht um, der Nutzer sah aber keinerlei Hinweis.
-      toast.error('Der Status konnte nicht geändert werden.');
+      toast.error(grundAus(err, 'Der Status konnte nicht geändert werden.'));
     } finally {
       setBusyId(null);
     }
@@ -246,8 +247,8 @@ export default function AdminOrdersView() {
       await ausLager(o.id);
       void postenNeuLaden();
       toast.success(`${o.materialName}: aus dem Lager — abholbereit`);
-    } catch {
-      toast.error('Das konnte nicht gespeichert werden.');
+    } catch (err) {
+      toast.error(grundAus(err, 'Das konnte nicht gespeichert werden.'));
     } finally {
       setBusyId(null);
     }
@@ -524,8 +525,8 @@ export default function AdminOrdersView() {
             await aufEinkaufsliste(f.o.id, f.bei || null);
             void postenNeuLaden();
             toast.success('Auf der Einkaufsliste');
-          } catch {
-            toast.error('Das konnte nicht gespeichert werden.');
+          } catch (err) {
+            toast.error(grundAus(err, 'Das konnte nicht gespeichert werden.'));
           }
         }}
       >

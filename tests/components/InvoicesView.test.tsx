@@ -860,7 +860,7 @@ describe('Eine überfällige Rechnung mahnen', () => {
       Mahnung, die der Kunde nie bekommen hat.
     */
     rechnungen = [UEBERFAELLIG];
-    mahnungPdf.mockRejectedValueOnce(new Error('jsPDF weg'));
+    mahnungPdf.mockRejectedValueOnce(new Error('Invalid argument passed to jsPDF.text'));
     await menue();
     await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));

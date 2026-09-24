@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Role, TimeEntry } from '@/types';
+import { einblickNurLesend } from '@/lib/fehlerGrund';
 
 /**
  * Urlaub in der Zeiterfassung — nur noch als Antrag.
@@ -113,6 +114,23 @@ describe('Urlaub in der Zeiterfassung', () => {
       vacationId: 'v1' } as TimeEntry & { id: string } });
     expect(screen.getByText(/gehört zu einem genehmigten Antrag und ändert sich nur über ihn/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Änderungen speichern' })).toBeDisabled();
+  });
+
+  it('nennt im Einblick den Einblick, statt „bitte erneut versuchen"', async () => {
+    // Prüflauf 24.09.2026, F8: der Supportzugang buchte, bekam 403 und las
+    // „Die Zeit konnte nicht gebucht werden. Bitte erneut versuchen."
+    einblickNurLesend(true);
+    try {
+      anlegen.mockRejectedValueOnce(new Error('new row violates row-level security policy for table "time_entries"'));
+      zeichne({ staff: [max] });
+      await userEvent.selectOptions(screen.getByLabelText(/^Mitarbeiter/), 'max');
+      await userEvent.selectOptions(screen.getByLabelText('Status'), 'Zeitausgleich');
+      await userEvent.click(screen.getByRole('button', { name: 'Zeit buchen' }));
+      expect(await screen.findByText(/^Im Einblick wird nur gelesen/)).toBeInTheDocument();
+      expect(gespeichert).not.toHaveBeenCalled();
+    } finally {
+      einblickNurLesend(false);
+    }
   });
 
   it('bucht einen ganztägigen Zeitausgleich ohne Uhrzeiten', async () => {

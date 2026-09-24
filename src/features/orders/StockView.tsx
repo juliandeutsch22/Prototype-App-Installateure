@@ -20,6 +20,7 @@ import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /*
   Der Katalogimport wird erst beim Öffnen geladen. Er bringt den
@@ -157,8 +158,8 @@ export default function StockView() {
     setBusyId(m.id);
     try {
       await adjustStock(m.id, delta);
-    } catch {
-      setError('Der Bestand konnte nicht geändert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Der Bestand konnte nicht geändert werden.'));
     } finally {
       setBusyId(null);
     }

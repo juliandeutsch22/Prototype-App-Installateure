@@ -21,6 +21,7 @@ import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/S
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
 import { downloadAngebotPdf } from './angebotPdf';
 import { STAND } from './stand';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Ein Angebot auf seiner eigenen Seite.
@@ -114,8 +115,8 @@ export default function AngebotView() {
       await updateQuote(q.id, { status: neu });
       toast.success(meldung);
       setVersuch((v) => v + 1);
-    } catch {
-      setFehler('Der Status konnte nicht gespeichert werden.');
+    } catch (err) {
+      setFehler(grundAus(err, 'Der Status konnte nicht gespeichert werden.'));
     } finally {
       setBusy(false);
     }
@@ -128,8 +129,8 @@ export default function AngebotView() {
     try {
       toast.success(annahmeMeldung(await angebotAnnehmen(companyId, q, praefixeVon(company).baustelle)));
       setVersuch((v) => v + 1);
-    } catch {
-      setFehler('Die Baustelle konnte nicht angelegt werden.');
+    } catch (err) {
+      setFehler(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));
     } finally {
       setBusy(false);
     }
@@ -341,8 +342,8 @@ export default function AngebotView() {
             await deleteQuote(q.id);
             toast.success('Angebot gelöscht');
             navigate('/quotes');
-          } catch {
-            setFehler('Das Angebot konnte nicht gelöscht werden.');
+          } catch (err) {
+            setFehler(grundAus(err, 'Das Angebot konnte nicht gelöscht werden.'));
           }
         }}
       />

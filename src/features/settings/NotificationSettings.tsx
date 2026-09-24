@@ -13,6 +13,7 @@ import { ErrorState, TeilFehler } from '@/components/States';
 import PushStatus from './PushStatus';
 import PasswortAendern from '@/features/auth/PasswortAendern';
 import { istBenutzerkonto } from '@shared/benutzername';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /** Was der Zustand für den Nutzer bedeutet — in seinen Worten, nicht in Fehlercodes. */
 const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus' }> = {
@@ -112,8 +113,8 @@ export default function NotificationSettings() {
     setAbwesenheit(next.notifyAbwesenheit);
     try {
       await savePrefs(user.companyId, user.uid, next);
-    } catch {
-      setError('Die Einstellung konnte nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Einstellung konnte nicht gespeichert werden.'));
     }
   }
 
@@ -128,8 +129,8 @@ export default function NotificationSettings() {
       if (token) toast.success('Dieses Gerät bekommt jetzt Meldungen');
       else if (state === 'blockiert') setError(PUSH_TEXT.blockiert.text);
       else setError('Das Gerät konnte nicht angemeldet werden.');
-    } catch {
-      setError('Das Gerät konnte nicht angemeldet werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Das Gerät konnte nicht angemeldet werden.'));
     } finally {
       setBusy(false);
     }

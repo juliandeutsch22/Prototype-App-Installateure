@@ -27,6 +27,7 @@ import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import KundenImport from './KundenImport';
+import { grundAus } from '@/lib/fehlerGrund';
 
 const LEER: NewCustomer = {
   name: '',
@@ -191,8 +192,8 @@ export default function CustomersView() {
       setBearbeitet(null);
       setFormOffen(false);
       await laden();
-    } catch {
-      setError('Der Kunde konnte nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Der Kunde konnte nicht gespeichert werden.'));
     } finally {
       setSpeichert(false);
     }
@@ -267,8 +268,8 @@ export default function CustomersView() {
       toast.success(`${neu} Kunden angelegt, ${zugeordnet} Baustellen zugeordnet`);
       setUebernahme(null);
       await laden();
-    } catch {
-      setError('Die Übernahme ist fehlgeschlagen.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Übernahme ist fehlgeschlagen.'));
     } finally {
       setUebernahmeLaeuft(false);
     }

@@ -23,6 +23,7 @@ import { applyBranding } from '@/lib/tenant';
 import { mitFristOder } from '@/lib/frist';
 import type { CurrentUser, Company } from '@/types';
 import { offeneFreigaben, zugriffMelden, type OffeneFreigabe } from '@/lib/db/support';
+import { einblickNurLesend } from '@/lib/fehlerGrund';
 
 /**
  * Wie lange der Start auf das Netz wartet, bevor er den Zwischenspeicher
@@ -148,6 +149,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   */
   const [plattformKonto, setPlattformKonto] = useState<{ uid: string; email: string } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Damit eine abgewiesene Änderung im Einblick als solche benannt wird und
+  // nicht als fehlendes Recht (siehe `lib/fehlerGrund.ts`).
+  useEffect(() => {
+    einblickNurLesend(!!einblick && einblick.stufe !== 'mitarbeiten');
+  }, [einblick]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {

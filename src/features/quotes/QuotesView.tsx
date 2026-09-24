@@ -31,6 +31,7 @@ import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
@@ -284,7 +285,7 @@ export default function QuotesView() {
       await laden();
     } catch (e) {
       // Die Datenbank sagt, warum — etwa „Nur ein Entwurf lässt sich ändern".
-      setError(e instanceof Error && e.message ? e.message : 'Das Angebot konnte nicht gespeichert werden.');
+      setError(grundAus(e, 'Das Angebot konnte nicht gespeichert werden.'));
     } finally {
       setBusy(false);
     }
@@ -317,8 +318,8 @@ export default function QuotesView() {
       formularLeeren();
       setFormOffen(false);
       await laden();
-    } catch {
-      setError('Das Angebot konnte nicht angelegt werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Das Angebot konnte nicht angelegt werden.'));
     } finally {
       setBusy(false);
     }
@@ -336,8 +337,8 @@ export default function QuotesView() {
       await updateQuote(q.id, { status: neu });
       toast.success(meldung);
       await laden();
-    } catch {
-      setError('Der Status konnte nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Der Status konnte nicht gespeichert werden.'));
     } finally {
       setBusy(false);
     }
@@ -351,8 +352,8 @@ export default function QuotesView() {
     try {
       toast.success(annahmeMeldung(await angebotAnnehmen(user.companyId, q, vorsaetze.baustelle)));
       await laden();
-    } catch {
-      setError('Die Baustelle konnte nicht angelegt werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));
     } finally {
       setBusy(false);
     }
@@ -677,8 +678,8 @@ export default function QuotesView() {
             await deleteQuote(weg.id);
             toast.success('Angebot gelöscht');
             await laden();
-          } catch {
-            setError('Das Angebot konnte nicht gelöscht werden.');
+          } catch (err) {
+            setError(grundAus(err, 'Das Angebot konnte nicht gelöscht werden.'));
           }
         }}
       />

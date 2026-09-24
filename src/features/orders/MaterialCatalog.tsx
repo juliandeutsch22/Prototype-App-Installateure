@@ -22,6 +22,7 @@ import InfoHint from '@/components/InfoHint';
 import Nachladen from '@/components/Nachladen';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Die ueblichen Mengeneinheiten im Sanitaer- und Heizungsbau.
@@ -200,8 +201,8 @@ export default function MaterialCatalog({
       else await createMaterial(user.companyId, data);
       toast.success(editId ? 'Material gespeichert' : 'Material angelegt');
       reset();
-    } catch {
-      setError('Das Material konnte nicht gespeichert werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Das Material konnte nicht gespeichert werden.'));
     } finally {
       setSaving(false);
     }

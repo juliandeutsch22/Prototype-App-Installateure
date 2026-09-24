@@ -169,7 +169,7 @@ describe('Anforderungen — der Abschluss zieht vom Lager ab', () => {
   it('meldet einen gescheiterten Statuswechsel, statt ihn zu verschlucken', async () => {
     // Ohne Meldung sprang der Status nicht um und der Nutzer sah nichts —
     // er hielt die Anforderung für erledigt.
-    statusSetzen.mockRejectedValueOnce(new Error('kein Netz'));
+    statusSetzen.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     anforderungen = [anforderung({ id: 'o1', status: 'Offen' })];
     zeige();
 

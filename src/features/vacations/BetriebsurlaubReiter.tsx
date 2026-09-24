@@ -17,6 +17,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import { useToast } from '@/components/Toast';
 import { zeitraumText } from './abwesenheitText';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Betriebsurlaub — der Betrieb hat zu.
@@ -88,7 +89,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
       );
       setStand((n) => n + 1);
     } catch (err) {
-      setFehler(err instanceof Error && err.message ? err.message : 'Der Betriebsurlaub konnte nicht angelegt werden.');
+      setFehler(grundAus(err, 'Der Betriebsurlaub konnte nicht angelegt werden.'));
     }
   }
 
@@ -103,7 +104,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
       );
       setStand((n) => n + 1);
     } catch (err) {
-      setFehler(err instanceof Error && err.message ? err.message : 'Der Betriebsurlaub konnte nicht gelöscht werden.');
+      setFehler(grundAus(err, 'Der Betriebsurlaub konnte nicht gelöscht werden.'));
     }
   }
 

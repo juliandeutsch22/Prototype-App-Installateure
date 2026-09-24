@@ -66,6 +66,7 @@ import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import { grundAus } from '@/lib/fehlerGrund';
 
 /**
  * Ein Betrag MIT vorangestelltem Eurozeichen — „€ 22 104,60".
@@ -976,8 +977,8 @@ export default function InvoicesView() {
       void postenNeuLaden();
       toast.success(`${TEXTE[stufe].titel} erzeugt`);
       setMahnFuer(null);
-    } catch {
-      setError('Die Mahnung konnte nicht erzeugt werden.');
+    } catch (err) {
+      setError(grundAus(err, 'Die Mahnung konnte nicht erzeugt werden.'));
     } finally {
       setBusy(false);
     }
