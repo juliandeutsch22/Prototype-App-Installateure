@@ -1137,7 +1137,7 @@ export default function InvoicesView() {
           )
         : {
             verrechnetMin: 0, bestaetigtMin: 0, scheine: 0, mehrMin: 0, auffaellig: false,
-            wenigerMin: 0, zuWenig: false,
+            wenigerMin: 0, zuWenig: false, fehlend: [],
           },
     [preview, projectNumber, scheineAllerBaustellen, offeneLeistung],
   );
@@ -1741,7 +1741,7 @@ export default function InvoicesView() {
           {abgleich.scheine > 0 && (
             <p
               className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
-                abgleich.auffaellig || abgleich.zuWenig
+                abgleich.auffaellig || abgleich.zuWenig || abgleich.fehlend.length > 0
                   ? 'border border-line bg-surface-2 text-warning'
                   : 'border-line bg-surface-2 text-ink-muted'
               }`}
@@ -1766,8 +1766,35 @@ export default function InvoicesView() {
                   Zeiterfassung offen. Gebucht kommt sie auf die nächste Rechnung dieser Baustelle —
                   dann bekommt der Kunde für einen Einsatz zwei.
                 </>
+              ) : abgleich.fehlend.length > 0 ? (
+                ' — aber nicht jede unterschriebene Stunde steht darauf:'
               ) : (
                 '.'
+              )}
+              {/*
+                JE PERSON, TAG UND SATZ. Die Summe oben kann stimmen und trotzdem
+                einen Verlust verdecken: fehlen die Facharbeiterstunden vom 24.,
+                während Helferstunden vom 21. gebucht sind, ist sie gleich —
+                und der Kunde hat für die einen unterschrieben, nicht für die
+                anderen (Prüflauf 24.09.2026).
+              */}
+              {abgleich.fehlend.length > 0 && (
+                <span className="mt-1 block">
+                  {abgleich.fehlend.map((f) => (
+                    <span key={`${f.datum}|${f.name}|${f.helfer}`} className="block">
+                      {f.datum.slice(8, 10)}.{f.datum.slice(5, 7)}. · {f.name} ·{' '}
+                      {f.helfer ? 'Helfer' : 'Facharbeiter'}: unterschrieben{' '}
+                      <strong>{fmtMin(f.bestaetigtMin)}</strong>, verrechnet{' '}
+                      <strong>{fmtMin(f.verrechnetMin)}</strong>
+                      {f.andererSatzMin > 0 &&
+                        ` (als ${f.helfer ? 'Facharbeiter' : 'Helfer'} ${fmtMin(f.andererSatzMin)})`}
+                    </span>
+                  ))}
+                  <span className="mt-1 block">
+                    Meist ist die Zeit noch nicht oder zum anderen Satz gebucht. Nachbuchen oder
+                    berichtigen, dann die Positionen neu zusammenstellen.
+                  </span>
+                </span>
               )}
             </p>
           )}

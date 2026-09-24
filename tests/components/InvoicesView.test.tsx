@@ -1485,6 +1485,26 @@ describe('Rechnung gegen Schein', () => {
     ).toBeInTheDocument();
   });
 
+  /*
+    JE PERSON, TAG UND SATZ — Prüflauf 24.09.2026, F5. Die Summe stimmt
+    (8 h bestätigt, 8 h verrechnet), aber die acht Stunden auf dem Schein
+    sind Manfreds vom 21., und verrechnet werden Max' vom 20.
+  */
+  it('nennt unterschriebene Stunden, die trotz gleicher Summe fehlen', async () => {
+    alleScheine = [
+      {
+        ...mitZeiten([]),
+        datum: '2026-08-21',
+        zeiten: [{ datum: '2026-08-21', mitarbeiter: 'Manfred Monteur', minuten: 480 }],
+      },
+    ];
+    await bisZurVorschau();
+
+    expect(screen.getByText(/aber nicht jede unterschriebene Stunde steht darauf/)).toBeInTheDocument();
+    expect(screen.getByText(/21\.08\. · Manfred Monteur · Facharbeiter: unterschrieben/)).toBeInTheDocument();
+    expect(screen.queryByText(/mehr, als der Kunde unterschrieben hat/)).not.toBeInTheDocument();
+  });
+
   it('schweigt, wenn der Schein schon auf einer Rechnung steht', async () => {
     // Folgerechnung: die sechzehn Stunden sind verrechnet, der Schein steht
     // auf der ersten Rechnung. Sonst schlüge jede zweite Rechnung Alarm.
