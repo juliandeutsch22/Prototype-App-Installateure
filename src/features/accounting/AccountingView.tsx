@@ -49,6 +49,7 @@ import {
   downloadCsv,
   entriesInRange,
 } from './export';
+import AntragKnopf from '@/features/time/AntragKnopf';
 
 const MONTHS = [
   'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -858,6 +859,10 @@ export default function AccountingView() {
                             >
                               Krankmeldung
                             </Button>
+                          ) : e.vacationId ? (
+                            // Ein Tag aus einem genehmigten Antrag ändert sich
+                            // nur über den Antrag.
+                            <AntragKnopf eintrag={e} />
                           ) : (
                             <>
                               <Button

@@ -241,13 +241,29 @@ describe('Durchstich 6: mehrere Baustellen an einem Tag', () => {
       Eintrag einen. Ein zweiter Urlaubseintrag am selben Tag wäre ein zweiter
       Urlaubstag — im Saldo, im Monatsbericht und im Resturlaub.
     */
-    clientEinreichen(monteur.client);
-    const urlaubstag = {
-      date: '2026-09-14', status: 'Urlaub' as const,
+    /*
+      Seit 24.09.2026 entsteht ein Urlaubstag nur noch über einen Antrag —
+      hier trägt ihn das Büro direkt als genehmigt ein. Ein zweiter
+      ganztägiger Eintrag am selben Tag scheitert weiterhin an der
+      Tagesregel, ein direkt gebuchter Urlaub schon vorher am Wächter.
+    */
+    const { error: eingetragen } = await buch.client.rpc('urlaub_eintragen', {
+      p_user: monteur.uid, p_von: '2026-09-14', p_bis: '2026-09-14', p_notiz: null, p_name: 'Büro',
+    });
+    expect(eingetragen).toBeNull();
+
+    clientEinreichen(buch.client);
+    await expect(zeiten.createTimeEntry(BETRIEB, {
+      date: '2026-09-14', status: 'Zeitausgleich' as const,
       userId: monteur.uid, userName: 'Max Mustermann',
-    };
-    await zeiten.createTimeEntry(BETRIEB, urlaubstag);
-    await expect(zeiten.createTimeEntry(BETRIEB, urlaubstag)).rejects.toThrow(/ganzen Tag/i);
+    })).rejects.toThrow(/ganzen Tag/i);
+
+    // Und an einem freien Tag darf der Monteur Urlaub nicht selbst buchen.
+    clientEinreichen(monteur.client);
+    await expect(zeiten.createTimeEntry(BETRIEB, {
+      date: '2026-09-15', status: 'Urlaub' as const,
+      userId: monteur.uid, userName: 'Max Mustermann',
+    })).rejects.toThrow(/beantragt und genehmigt/i);
 
     clientEinreichen(buch.client);
     const alle = (await zeiten.listEntriesInRange(BETRIEB, '2026-09-14', '2026-09-14'))

@@ -108,7 +108,20 @@ export function objektAlsZeile(
   for (const [feld, wert] of Object.entries(daten)) {
     if (wert === undefined) continue;
     const spalte = alsSpalte(feld);
-    raus[spalte] = arten[spalte] === 'zeitpunkt' ? alsZeitpunktFuerDB(wert) : wert;
+    /*
+      EINE LEERE UHRZEIT IST KEINE UHRZEIT. Ein Zeitfeld, das niemand
+      ausfüllt, liefert `''`, und Postgres nimmt das für eine `time`-Spalte
+      nicht an. Aufgefallen am Urlaubstag in der Zeiterfassung: er trägt keine
+      Zeiten, schickte `''`, und das Speichern scheiterte jedes Mal mit „bitte
+      erneut versuchen". Hier, weil es jede Uhrzeitspalte betrifft — nicht nur
+      die eine Maske, bei der es zuerst aufgefallen ist.
+    */
+    raus[spalte] =
+      arten[spalte] === 'zeitpunkt'
+        ? alsZeitpunktFuerDB(wert)
+        : arten[spalte] === 'uhrzeit' && wert === ''
+          ? null
+          : wert;
   }
   return raus;
 }

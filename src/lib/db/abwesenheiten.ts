@@ -10,6 +10,7 @@ export {
   getKrankmeldung,
   krankmeldungSpeichern,
   krankmeldungLoeschen,
+  urlaubEintragen,
   listBetriebsurlaubeAb,
   listBetriebsurlaubeImZeitraum,
   betriebsurlaubAnlegen,

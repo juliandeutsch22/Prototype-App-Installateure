@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useEffect } from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, TimeEntry, Role, WorkSheet } from '@/types';
 import TimeView from '@/features/time/TimeView';
@@ -603,5 +604,42 @@ describe('Zuschlagsstunden', () => {
 
     await screen.findByText('Einträge');
     expect(screen.queryByText('Zuschlag')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Was kommt, steht in der Liste — und ein Tag aus einem Antrag führt zum Antrag.
+ *
+ * Gefunden im Prüflauf vom 24.09.2026: die Liste lud nur bis heute. Eine
+ * Krankmeldung bis Freitag oder ein Urlaub im nächsten Monat standen im
+ * Zeitkonto, aber nirgends zu sehen — und der Hinweis in der Maske, in der
+ * Liste auf „Krankmeldung" zu tippen, lief ins Leere.
+ */
+describe('Zeiterfassung — Abwesenheiten, die noch kommen', () => {
+  function zeigeMitRouter() {
+    return render(
+      <MemoryRouter>
+        <ToastProvider>
+          <TimeView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+  }
+
+  it('lädt ein Jahr voraus', async () => {
+    zeigeMitRouter();
+    await screen.findByText('Meine Einträge');
+    const [, bis] = abo.mock.calls[abo.mock.calls.length - 1] as [string, string];
+    const inElfMonaten = new Date();
+    inElfMonaten.setMonth(inElfMonaten.getMonth() + 11);
+    expect(bis > inElfMonaten.toISOString().slice(0, 10)).toBe(true);
+  });
+
+  it('bietet bei einem Tag aus einem genehmigten Antrag den Antrag an — nicht Bearbeiten und Löschen', async () => {
+    eintraege = [eintrag({ id: 'u1', status: 'Urlaub', startTime: undefined, endTime: undefined, vacationId: 'v1' })];
+    zeigeMitRouter();
+    expect(await screen.findByRole('button', { name: 'Urlaubsantrag' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
   });
 });

@@ -8,7 +8,7 @@ import {
   DuplicateEntryError,
 } from '@/lib/db/timeEntries';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
-import { krankmeldungSpeichern } from '@/lib/db/abwesenheiten';
+import { krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
 import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
 import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
@@ -142,6 +142,8 @@ export default function TimeForm({
   const [comment, setComment] = useState(entry?.comment ?? '');
   /** Krank bis (einschließlich) — Krank wird als Krankmeldung erfasst. */
   const [krankBis, setKrankBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
+  /** Urlaub bis (einschließlich) — das Büro trägt ihn als genehmigten Antrag ein. */
+  const [urlaubBis, setUrlaubBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   const [isHelper, setIsHelper] = useState(entry?.isHelper ?? asHelperVorschlag ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
   // Zuschläge werden bewusst gesetzt, nicht aus der Uhrzeit geraten: ob ein
@@ -205,6 +207,20 @@ export default function TimeForm({
   const meldungsTag = !!entry?.krankmeldungId;
   const krankWaehlbar = !isEdit || entry?.status === 'Krank';
   const alsKrankmeldung = !isEdit && status === 'Krank';
+  /*
+    URLAUB IST EIN ANTRAG, wie Krank eine Meldung ist. Der Monteur beantragt
+    ihn auf der Seite Urlaub; das Büro trägt ihn hier ein, und daraus wird ein
+    genehmigter Antrag — sonst stünde neben den Anträgen ein zweiter
+    Resturlaub. Ein Tag aus einem genehmigten Antrag (Urlaub oder
+    Zeitausgleich) ändert sich nur über den Antrag; die Datenbank lässt es
+    anders nicht zu.
+  */
+  const antragsTag = !!entry?.vacationId;
+  // Einen bestehenden Eintrag zu Urlaub umzubauen geht nicht — wie bei Krank:
+  // den Eintrag löschen und den Urlaub eintragen.
+  const urlaubWaehlbar =
+    (!isEdit && !!user && canEditTime(user.role)) || entry?.status === 'Urlaub';
+  const alsUrlaubEintrag = !isEdit && status === 'Urlaub';
 
   /**
    * Die Baustellen laedt `BaustellenSelect` selbst — samt Lade-, Fehler- und
@@ -334,8 +350,16 @@ export default function TimeForm({
       setError('Dieser Tag gehört zu einer Krankmeldung — bitte dort das Ende ändern oder die Meldung löschen.');
       return;
     }
+    if (antragsTag) {
+      setError('Dieser Tag gehört zu einem genehmigten Antrag — er ändert sich nur über den Antrag auf der Seite Urlaub.');
+      return;
+    }
     if (alsKrankmeldung && krankBis < date) {
       setError('„Krank bis" liegt vor dem Datum.');
+      return;
+    }
+    if (alsUrlaubEintrag && urlaubBis < date) {
+      setError('„Urlaub bis" liegt vor dem Datum.');
       return;
     }
     if (staff && !isEdit && !targetUid) {
@@ -344,6 +368,35 @@ export default function TimeForm({
     }
 
     setSaving(true);
+    if (alsUrlaubEintrag) {
+      try {
+        const r = await urlaubEintragen({
+          userId: target?.uid ?? user.uid,
+          von: date,
+          bis: urlaubBis,
+          notiz: comment.trim(),
+          name: user.name,
+        });
+        const tage = r.tage === 1 ? '1 Tag' : `${r.tage} Tage`;
+        const uebersprungen =
+          r.uebersprungen > 0 ? `, ${r.uebersprungen} schon gebucht und übersprungen` : '';
+        toast.success(
+          `${target ? `Urlaub für ${target.name}` : 'Urlaub'} eingetragen — ${tage}${uebersprungen}`,
+        );
+        setComment('');
+        setStatus('Anwesend');
+        onSaved();
+      } catch (err) {
+        setError(
+          err instanceof Error && err.message
+            ? err.message
+            : 'Der Urlaub konnte nicht eingetragen werden.',
+        );
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (alsKrankmeldung) {
       try {
         // Die Meldung gehört dem Mitarbeiter, für den gebucht wird — ohne
@@ -445,7 +498,7 @@ export default function TimeForm({
   }
 
   const billed = !!entry?.isBilled;
-  const gesperrt = billed || meldungsTag;
+  const gesperrt = billed || meldungsTag || antragsTag;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -461,6 +514,12 @@ export default function TimeForm({
         <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
           Dieser Tag gehört zu einer Krankmeldung und wird nur über sie geändert: in der Liste auf
           „Krankmeldung" tippen und dort das Ende ändern oder die Meldung löschen.
+        </p>
+      )}
+      {antragsTag && (
+        <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
+          Dieser Tag gehört zu einem genehmigten Antrag und ändert sich nur über ihn: auf der Seite
+          Urlaub den Antrag zurücknehmen.
         </p>
       )}
 
@@ -517,8 +576,9 @@ export default function TimeForm({
           value={date}
           onChange={(e) => {
             setDate(e.target.value);
-            // Das Krank-Ende mitziehen, solange es davor läge.
+            // Das Krank- und das Urlaubsende mitziehen, solange es davor läge.
             if (krankBis < e.target.value) setKrankBis(e.target.value);
+            if (urlaubBis < e.target.value) setUrlaubBis(e.target.value);
           }}
           required
           pflicht
@@ -531,7 +591,7 @@ export default function TimeForm({
         >
           <option value="Anwesend">Anwesend</option>
           {krankWaehlbar && <option value="Krank">Krank</option>}
-          <option value="Urlaub">Urlaub</option>
+          {urlaubWaehlbar && <option value="Urlaub">Urlaub</option>}
           {zaWaehlbar && <option value="Zeitausgleich">Zeitausgleich</option>}
         </SelectField>
       </FormGrid>
@@ -574,7 +634,25 @@ export default function TimeForm({
           />
         </div>
       )}
-      {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && (
+      {alsUrlaubEintrag && (
+        <div className="space-y-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+          <p>
+            Wird als genehmigter Urlaub eingetragen: die freien Arbeitstage bis zum Ende stehen als
+            „Urlaub" im Zeitkonto und zählen beim Resturlaub. Schon gebuchte Tage bleiben.
+          </p>
+          <InputField
+            id="urlaubBis"
+            label="Urlaub bis"
+            type="date"
+            value={urlaubBis}
+            min={date}
+            onChange={(e) => setUrlaubBis(e.target.value)}
+            required
+            pflicht
+          />
+        </div>
+      )}
+      {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && !alsUrlaubEintrag && (
         <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
           {status}: Es werden keine Arbeitszeiten erfasst. Der Tag wird als voller
           Solltag gutgeschrieben.
@@ -846,7 +924,13 @@ export default function TimeForm({
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button type="submit" loading={saving} disabled={!!konflikt || gesperrt} className="w-full sm:w-auto">
-          {isEdit ? 'Änderungen speichern' : alsKrankmeldung ? 'Krank melden' : 'Zeit buchen'}
+          {isEdit
+            ? 'Änderungen speichern'
+            : alsKrankmeldung
+              ? 'Krank melden'
+              : alsUrlaubEintrag
+                ? 'Urlaub eintragen'
+                : 'Zeit buchen'}
         </Button>
         {onCancel && (
           <Button type="button" variant="ghost" onClick={onCancel} className="w-full sm:w-auto">

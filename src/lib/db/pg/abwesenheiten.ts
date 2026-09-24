@@ -74,6 +74,32 @@ export async function krankmeldungSpeichern(daten: {
   return data as KrankmeldungErgebnis;
 }
 
+/**
+ * Das Büro trägt Urlaub direkt ein — als genehmigten Antrag.
+ *
+ * Nicht als Tagesstatus in der Zeiterfassung: der stünde neben den Anträgen,
+ * und die Urlaubsseite zeigte einen anderen Resturlaub als die
+ * Mitarbeiterübersicht. Gebucht werden die freien Arbeitstage der Person.
+ */
+export async function urlaubEintragen(daten: {
+  userId: string;
+  von: string;
+  bis: string;
+  notiz?: string;
+  name?: string;
+}): Promise<{ id: string; tage: number; uebersprungen: number }> {
+  const { data, error } = await derClient().rpc('urlaub_eintragen', {
+    p_user: daten.userId,
+    p_von: daten.von,
+    p_bis: daten.bis,
+    p_notiz: daten.notiz ?? null,
+    p_name: daten.name ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const d = data as { id: string; tage: number; uebersprungen: number };
+  return { id: d.id, tage: Number(d.tage), uebersprungen: Number(d.uebersprungen) };
+}
+
 /** Löscht die Meldung samt ihrer Krank-Tage; zurück kommt deren Zahl. */
 export async function krankmeldungLoeschen(id: string): Promise<number> {
   const { data, error } = await derClient().rpc('krankmeldung_loeschen', { p_id: id });
