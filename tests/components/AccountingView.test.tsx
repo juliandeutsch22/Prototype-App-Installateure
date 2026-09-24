@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
 import type { AppUser, TimeEntry } from '@/types';
@@ -383,5 +384,37 @@ describe('Mitarbeiteruebersicht — die leere Liste erklaert sich', () => {
     );
 
     expect(await screen.findByText('Noch keine Benutzer angelegt.')).toBeInTheDocument();
+  });
+});
+
+/**
+ * Soll bisher mit Abwesenheiten — und ein Tag aus einem Antrag.
+ *
+ * Gefunden im Prüflauf vom 24.09.2026: vom Soll bis gestern wurden die
+ * Krank- und Urlaubstage des GANZEN Monats abgezogen, auch die, die noch
+ * kommen. Hier: Urlaub am 28. (im Soll), krank heute am 31. (noch nicht im
+ * Soll). Richtig sind 9 Solltage, also 72:00 — vorher standen 64:00 da.
+ */
+describe('Mitarbeiteruebersicht — Abwesenheiten im Soll', () => {
+  it('zieht nur ab, was im Soll steckt, und führt beim Antragstag zum Antrag', async () => {
+    buchungen = [
+      ...eintraege.slice(0, 9),
+      { ...eintrag('2026-08-28'), id: 'u-28', status: 'Urlaub', startTime: undefined, endTime: undefined, vacationId: 'v1' },
+      { ...eintrag('2026-08-31'), id: 'k-31', status: 'Krank', startTime: undefined, endTime: undefined, krankmeldungId: 'k1' },
+    ];
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(
+      <MemoryRouter>
+        <ToastProvider>
+          <AccountingView />
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+    await nutzer.click(await screen.findByRole('button', { name: /Neu Eingestellt/ }));
+
+    expect(screen.getByText(/von 72:00 Soll/)).toBeInTheDocument();
+    const tabelle = screen.getByRole('table');
+    expect(within(tabelle).getByRole('button', { name: 'Urlaubsantrag' })).toBeInTheDocument();
+    expect(within(tabelle).getAllByRole('button', { name: 'Bearbeiten' })).toHaveLength(9);
   });
 });

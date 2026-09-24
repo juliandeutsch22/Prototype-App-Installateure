@@ -40,6 +40,7 @@ import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
 import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import AntragKnopf from '@/features/time/AntragKnopf';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
@@ -115,7 +116,17 @@ export default function TimeView() {
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    const bis = todayStr();
+    /*
+      AUCH WAS NOCH KOMMT. Eine Krankmeldung bis Freitag, ein genehmigter
+      Urlaub im nächsten Monat — beides steht schon im Zeitkonto, und die
+      Liste ist der Ort, an dem man es sieht und von dem aus man zur Meldung
+      kommt. Bis heute geladen, fehlte beides; der Hinweis in der Maske („in
+      der Liste auf Krankmeldung tippen") lief ins Leere. Ein Jahr voraus
+      reicht für jeden Urlaub. Der Saldo zählt Künftiges nicht mit.
+    */
+    const voraus = new Date();
+    voraus.setFullYear(voraus.getFullYear() + 1);
+    const bis = localDateStr(voraus);
     const ab = new Date();
     ab.setMonth(ab.getMonth() - monate);
     return subscribeOwnEntriesInRange(
@@ -172,6 +183,12 @@ export default function TimeView() {
    * obere Grenze und zählte auch Buchungen in der ZUKUNFT mit, für die noch
    * gar kein Soll besteht. Der Saldo sah dadurch zu gut aus.
    */
+  /** Wie viele Einträge bis heute — die kommenden Abwesenheiten zählen hier nicht. */
+  const bisHeute = useMemo(() => {
+    const heute = todayStr();
+    return entries.filter((e) => e.date <= heute).length;
+  }, [entries]);
+
   const laufendeEintraege = useMemo(() => {
     const jetzt = new Date();
     const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
@@ -486,7 +503,7 @@ export default function TimeView() {
       <MetricRow>
         <Metric
           label="Einträge"
-          value={entries.length}
+          value={bisHeute}
           hint={`letzte ${monate} Monate`}
         />
         {/* Dieselbe Zahl wie auf dem Dashboard — und deshalb auch mit
@@ -669,6 +686,10 @@ export default function TimeView() {
                             <Button variant="ghost" onClick={() => setMeldung(e.krankmeldungId!)}>
                               Krankmeldung
                             </Button>
+                          ) : e.vacationId ? (
+                            // Ein Tag aus einem genehmigten Antrag ändert sich
+                            // nur über den Antrag.
+                            <AntragKnopf eintrag={e} />
                           ) : (
                             <>
                               <Button variant="ghost" onClick={() => setEditing(e)}>

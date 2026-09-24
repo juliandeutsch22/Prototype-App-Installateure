@@ -530,8 +530,15 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
   // Ist
   let istMin = 0;
   const bookedDates = new Set<string>();
+  /*
+    NICHTS AUS DER ZUKUNFT. Eine Krankmeldung oder ein Urlaub über die
+    nächsten Wochen steht schon im Zeitkonto; gutgeschrieben würde jeder Tag
+    davon, das Soll dafür entsteht aber erst, wenn er vorbei ist. Der Saldo
+    sähe bis dahin zu gut aus.
+  */
+  const heuteIso = todayStr();
   for (const e of entries) {
-    if (e.date < user.appStartDate) continue;
+    if (e.date < user.appStartDate || e.date > heuteIso) continue;
     bookedDates.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
     else if (e.status === 'Krank' || e.status === 'Urlaub') istMin += dailyH * 60;
@@ -605,8 +612,10 @@ export function saldoAusBilanzen(
     }
   }
 
+  const heuteIso = todayStr();
   for (const e of laufenderMonat) {
-    if (e.date < user.appStartDate) continue;
+    // Nichts aus der Zukunft — siehe `calcOverallSaldo`.
+    if (e.date < user.appStartDate || e.date > heuteIso) continue;
     gebucht.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
     else if (e.status === 'Krank' || e.status === 'Urlaub') istMin += dailyH * 60;
@@ -715,15 +724,30 @@ export function calcMonthStats(
    */
   const monatsStart = new Date(year, month, 1);
   const monatsEnde = new Date(year, month + 1, 0);
-  const workdaysInMonth = pflichtTage(user, monatsStart, monatsEnde).length;
+  const pflichtImMonat = pflichtTage(user, monatsStart, monatsEnde);
+  const workdaysInMonth = pflichtImMonat.length;
   const holidaysInMonth = feiertageImZeitraum(user, monatsStart, monatsEnde);
 
   const krankDays = monthEntries.filter((e) => e.status === 'Krank').length;
   const urlaubDays = monthEntries.filter((e) => e.status === 'Urlaub').length;
+  /*
+    VOM SOLL GEHT NUR AB, WAS AUCH IM SOLL STECKT. Die Pflichttage reichen im
+    laufenden Monat bis gestern; die Krank- und Urlaubstage des ganzen Monats
+    davon abzuziehen, zog auch die künftigen ab. Gefunden im Prüflauf vom
+    24.09.2026: eine Krankmeldung bis Monatsende machte „Soll bisher" um
+    15 Stunden zu klein und den Saldo um genauso viel zu gut. Aus demselben
+    Grund zählt ein Krank-Tag an einem freien Tag nicht.
+  */
+  const imSoll = new Set(pflichtImMonat);
+  const abwesendImSoll = new Set(
+    monthEntries
+      .filter((e) => (e.status === 'Krank' || e.status === 'Urlaub') && imSoll.has(e.date))
+      .map((e) => e.date),
+  ).size;
   const istMin = monthEntries.reduce((s, e) => s + calcWorkMin(e), 0);
   const zaMin = monthEntries.reduce((s, e) => s + zeitausgleichMin(e, dailyTargetH), 0);
 
-  const requiredDays = Math.max(0, workdaysInMonth - krankDays - urlaubDays);
+  const requiredDays = Math.max(0, workdaysInMonth - abwesendImSoll);
   const sollMin = Math.round(requiredDays * dailyTargetH * 60);
 
   /*
