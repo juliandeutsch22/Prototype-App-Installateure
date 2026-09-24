@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listRecentProjects } from '@/lib/db/projects';
@@ -54,6 +54,13 @@ export default function NachkalkulationView() {
   const [katalog, setKatalog] = useState<Material[]>([]);
   const [ergebnisse, setErgebnisse] = useState<Nachkalkulation[] | null>(null);
   const [status, setStatus] = useState<'Aktiv' | 'Abgeschlossen'>('Abgeschlossen');
+  /*
+    OHNE ABGESCHLOSSENE BAUSTELLE BEGINNT DIE ANSICHT BEI DEN LAUFENDEN.
+    Ein neuer Betrieb sah sonst „Keine Baustelle in dieser Auswahl", obwohl
+    zwei laufende Baustellen Zahlen hätten (Prüflauf 24.09.2026, L7). Hat
+    jemand selbst gewählt, bleibt seine Wahl.
+  */
+  const selbstGewaehlt = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +76,13 @@ export default function NachkalkulationView() {
     ])
       .then(([p, q, m]) => {
         setProjekte(p);
+        if (
+          !selbstGewaehlt.current &&
+          !p.some((x) => x.status === 'Abgeschlossen') &&
+          p.some((x) => x.status === 'Aktiv')
+        ) {
+          setStatus('Aktiv');
+        }
         setAngebote(q);
         setKatalog(m);
       })
@@ -229,7 +243,10 @@ export default function NachkalkulationView() {
               id="nkstatus"
               label="Baustellen"
               value={status}
-              onChange={(e) => setStatus(e.target.value as 'Aktiv' | 'Abgeschlossen')}
+              onChange={(e) => {
+                selbstGewaehlt.current = true;
+                setStatus(e.target.value as 'Aktiv' | 'Abgeschlossen');
+              }}
             >
               <option value="Abgeschlossen">Abgeschlossen</option>
               <option value="Aktiv">Laufend</option>

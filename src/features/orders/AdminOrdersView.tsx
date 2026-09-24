@@ -33,6 +33,7 @@ import { byNewest, dayKey, dayHeading } from '@/lib/timestamps';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import { abschlussText } from './abschlussText';
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -269,8 +270,15 @@ export default function AdminOrdersView() {
 
   if (!user) return null;
 
+  /*
+    „LAUFEND", NICHT „OFFEN". Der Reiter zählt alles, was noch nicht erledigt
+    ist — offen, in Bearbeitung, abholbereit. Das Abzeichen im Menü zählt nur
+    die noch unberührten, die auf jemanden warten. Hiessen beide „offen",
+    stünde im Menü 1 und am Reiter 3, und eine der beiden Zahlen sähe falsch
+    aus (Prüflauf 24.09.2026, F13).
+  */
   const TABS: { key: Tab; label: string; count?: number }[] = [
-    { key: 'aktiv', label: 'Offen', count: activeCount },
+    { key: 'aktiv', label: 'Laufend', count: activeCount },
     { key: 'einkauf', label: 'Einkauf', count: zuBestellen },
     { key: 'retouren', label: 'Retouren', count: returns.length },
     { key: 'archiv', label: 'Erledigt' },
@@ -552,7 +560,7 @@ export default function AdminOrdersView() {
         confirmTone="primary"
         message={
           toComplete
-            ? `„${toComplete.materialName}" ×${toComplete.quantity} wird als erledigt gebucht und vom Lagerbestand abgezogen.`
+            ? abschlussText(toComplete)
             : ''
         }
         onCancel={() => setToComplete(null)}

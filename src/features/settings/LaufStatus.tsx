@@ -20,7 +20,18 @@ import { beurteile, type Lauf, type NachtLaufArt } from '@shared/laufStatus';
  * aus wie einer, bei dem nie etwas lief — und beides heisst: es gibt keine
  * Sicherung, von der jemand weiss.
  */
-export default function LaufStatus({ art }: { art: NachtLaufArt }) {
+export default function LaufStatus({
+  art,
+  stand = 0,
+}: {
+  art: NachtLaufArt;
+  /**
+   * Hochgezählt, sobald ein Lauf von Hand durch ist — dann wird neu gelesen.
+   * Vorher stand direkt über „Sicherung erstellt: 21 Datensätze" weiter „noch
+   * nie durchgelaufen" in Warnfarbe (Prüflauf 24.09.2026, F9).
+   */
+  stand?: number;
+}) {
   const { user } = useAuth();
   const [lauf, setLauf] = useState<Lauf<NachtLaufArt> | undefined>();
   const [geladen, setGeladen] = useState(false);
@@ -47,7 +58,7 @@ export default function LaufStatus({ art }: { art: NachtLaufArt }) {
     return () => {
       weg = true;
     };
-  }, [companyId, art]);
+  }, [companyId, art, stand]);
 
   // Solange nichts geladen ist, wird auch nichts behauptet: eine Zeile
   // „unbekannt", die gleich zu „gut" wird, ist ein Fehlalarm im Sekundentakt.

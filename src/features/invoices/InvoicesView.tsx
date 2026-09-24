@@ -2280,13 +2280,25 @@ export default function InvoicesView() {
                       vorher. Zwei Erinnerungen an denselben Kunden in einer
                       Woche sind peinlicher als gar keine.
                     */}
-                    {!!inv.mahnstufe && (
-                      <span className="mt-1 block text-xs text-warning">
-                        {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {inv.gemahntAm}
-                        {inv.mahnfrist ? ` · Frist ${inv.mahnfrist}` : ''}
-                        {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} Spesen` : ''}
-                      </span>
-                    )}
+                    {/*
+                      IST SIE ERLEDIGT, IST DIE MAHNUNG GESCHICHTE. Sie bleibt
+                      stehen — man soll sehen, dass es eine gab —, aber ohne
+                      Frist und nicht in Warnfarbe: eine bezahlte Rechnung mit
+                      „Frist 08.10." in Gelb sah aus, als sei noch etwas zu tun
+                      (Prüflauf 24.09.2026, F14).
+                    */}
+                    {!!inv.mahnstufe &&
+                      (['Bezahlt', 'Überzahlt', 'Storniert'].includes(inv.paymentStatus) ? (
+                        <span className="mt-1 block text-xs text-ink-muted">
+                          {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {inv.gemahntAm}
+                        </span>
+                      ) : (
+                        <span className="mt-1 block text-xs text-warning">
+                          {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {inv.gemahntAm}
+                          {inv.mahnfrist ? ` · Frist ${inv.mahnfrist}` : ''}
+                          {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} Spesen` : ''}
+                        </span>
+                      ))}
                     {/*
                       WAS SCHON DA IST, STEHT IN DER ZEILE — aber nur, wenn es
                       etwas zu sagen gibt. Bei einer unbezahlten Rechnung wäre

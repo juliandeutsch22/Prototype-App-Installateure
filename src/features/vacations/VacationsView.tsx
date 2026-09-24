@@ -152,6 +152,12 @@ export default function VacationsView() {
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   /** Welcher eigene Antrag zurückgezogen werden soll — null heisst: keiner. */
   const [zurueckzuziehen, setZurueckzuziehen] = useState<WithId<Vacation> | null>(null);
+  /** Ablehnen und Zurücknehmen brauchen einen Grund — erfragt im Dialog der App. */
+  const [begruenden, setBegruenden] = useState<{
+    antrag: WithId<Vacation>;
+    art: 'Abgelehnt' | 'Storniert';
+  } | null>(null);
+  const [begruendung, setBegruendung] = useState('');
 
   const [von, setVon] = useState(todayStr());
   const [bis, setBis] = useState(todayStr());
@@ -586,40 +592,50 @@ export default function VacationsView() {
         ist schlimmer als keiner: beim nächsten Mal glaubt man ihm nicht.
       */
       void postenNeuLaden();
-    } catch {
+    } catch (err) {
       setError(
-        entscheidung === 'Genehmigt'
-          ? 'Die Genehmigung ist fehlgeschlagen.'
-          : 'Die Entscheidung konnte nicht gespeichert werden.',
+        grundAus(
+          err,
+          entscheidung === 'Genehmigt'
+            ? 'Die Genehmigung ist fehlgeschlagen.'
+            : 'Die Entscheidung konnte nicht gespeichert werden.',
+        ),
       );
     } finally {
       setArbeitet(null);
     }
   }
 
-  async function ablehnen(antrag: WithId<Vacation>) {
-    // Pflichtgrund: eine Ablehnung ohne Begründung ist für den, der sie
-    // bekommt, nicht von Willkür zu unterscheiden. Der Server verlangt ihn
-    // ebenfalls — hier steht er nur früher.
-    const grund = window.prompt(`Warum wird der Urlaub von ${antrag.userName} abgelehnt?`);
-    if (grund === null) return;
-    if (grund.trim().length < 3) {
-      setError('Bitte einen Grund angeben.');
-      return;
-    }
-    await entscheiden(antrag, 'Abgelehnt', grund.trim());
+  /*
+    DER GRUND KOMMT AUS EINEM DIALOG DER APP, nicht aus `window.prompt`.
+    Der Browserdialog liess sich nicht gestalten, und wo er unterdrückt wird
+    — in manchen eingebetteten Ansichten sofort — passierte beim Klick auf
+    „Ablehnen" gar nichts: keine Meldung, der Antrag blieb offen (Prüflauf
+    24.09.2026, F7).
+
+    Pflichtgrund: eine Ablehnung ohne Begründung ist für den, der sie
+    bekommt, nicht von Willkür zu unterscheiden. Der Server verlangt ihn
+    ebenfalls — hier steht er nur früher.
+  */
+  function ablehnen(antrag: WithId<Vacation>) {
+    setBegruendung('');
+    setBegruenden({ antrag, art: 'Abgelehnt' });
   }
 
-  async function zuruecknehmen(antrag: WithId<Vacation>) {
-    const grund = window.prompt(
-      `Warum wird der genehmigte Urlaub von ${antrag.userName} zurückgenommen?`,
-    );
-    if (grund === null) return;
-    if (grund.trim().length < 3) {
-      setError('Bitte einen Grund angeben.');
-      return;
+  function zuruecknehmen(antrag: WithId<Vacation>) {
+    setBegruendung('');
+    setBegruenden({ antrag, art: 'Storniert' });
+  }
+
+  async function begruendetEntscheiden() {
+    if (!begruenden) return;
+    if (begruendung.trim().length < 3) {
+      // Geworfen, damit der Dialog offen bleibt und es selbst sagt.
+      throw new Error('Bitte einen Grund angeben — mindestens drei Zeichen.');
     }
-    await entscheiden(antrag, 'Storniert', grund.trim());
+    const { antrag, art } = begruenden;
+    setBegruenden(null);
+    await entscheiden(antrag, art, begruendung.trim());
   }
 
   /**
@@ -1108,6 +1124,33 @@ export default function VacationsView() {
             }
           />
         </Card>
+      )}
+
+      {begruenden && (
+        <ConfirmDialog
+          open
+          title={
+            begruenden.art === 'Abgelehnt'
+              ? `Antrag von ${begruenden.antrag.userName} ablehnen?`
+              : `Urlaub von ${begruenden.antrag.userName} zurücknehmen?`
+          }
+          message={
+            begruenden.art === 'Abgelehnt'
+              ? `${zeitraum(begruenden.antrag)} — der Grund geht an ${begruenden.antrag.userName}.`
+              : `${zeitraum(begruenden.antrag)} — die Tage verschwinden aus dem Zeitkonto; der Grund geht an ${begruenden.antrag.userName}.`
+          }
+          confirmLabel={begruenden.art === 'Abgelehnt' ? 'Ablehnen' : 'Zurücknehmen'}
+          onConfirm={begruendetEntscheiden}
+          onCancel={() => setBegruenden(null)}
+        >
+          <InputField
+            id="entscheid-grund"
+            label="Grund"
+            pflicht
+            value={begruendung}
+            onChange={(e) => setBegruendung(e.target.value)}
+          />
+        </ConfirmDialog>
       )}
 
       {zurueckzuziehen && (

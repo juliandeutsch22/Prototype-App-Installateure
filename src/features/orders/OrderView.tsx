@@ -27,6 +27,7 @@ import { useToast } from '@/components/Toast';
 import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import { abschlussText } from './abschlussText';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
 
@@ -719,7 +720,7 @@ export default function OrderView() {
         confirmTone="primary"
         message={
           toPickUp
-            ? `„${toPickUp.materialName}" ×${toPickUp.quantity} wird als erledigt gebucht und vom Lagerbestand abgezogen.`
+            ? abschlussText(toPickUp)
             : ''
         }
         onCancel={() => setToPickUp(null)}
