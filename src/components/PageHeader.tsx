@@ -34,7 +34,7 @@ export default function PageHeader({
           der Seite — die naechstkleinere Schrift ist der Fliesstext mit
           1 rem.
         */}
-        <h1 className="text-xl font-bold text-ink sm:text-2xl">{title}</h1>
+        <h1 className="text-xl font-semibold text-ink sm:text-2xl">{title}</h1>
         <div className="mt-2 h-[3px] w-12 rounded-pill bg-brand-fixed" aria-hidden="true" />
         {subtitle && <p className="mt-2 text-sm text-ink-muted">{subtitle}</p>}
       </div>

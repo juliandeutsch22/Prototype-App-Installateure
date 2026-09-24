@@ -1,4 +1,5 @@
 import type { AppUser, TimeEntry } from '@/types';
+import { PETROL } from '@/lib/belegLayout';
 import { calcWorkMin, calcMonthStats, type MonthStats } from '@/lib/time';
 import { zuschlagszeit, kennzeichen } from './zuschlaege';
 
@@ -23,7 +24,12 @@ const MONTHS = [
   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
 ];
 
-export const BRAND_RGB: [number, number, number] = [0, 51, 102];
+/*
+  Die Produktfarbe Petrol (`--brand-fixed`). Hier stand #003366, das Marineblau
+  einer älteren Fassung — das einzige Blau in der ganzen App (Prüflauf
+  24.09.2026, C1).
+*/
+export const BRAND_RGB: [number, number, number] = PETROL;
 
 /** Deutsche Dezimalzahl mit zwei Nachkommastellen. */
 function num(n: number): string {

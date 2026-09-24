@@ -15,13 +15,17 @@ interface ToastApi {
 
 const ToastContext = createContext<ToastApi | undefined>(undefined);
 
+/*
+  WEISSE KARTE MIT FARBIGER KANTE, keine gesättigte Fläche. Grün und Rot
+  vollflächig waren die einzigen lauten Farbflächen der ganzen App ausser
+  Petrol — dieselbe Regel, nach der Abzeichen einen Punkt tragen statt einer
+  Pille (Prüflauf 24.09.2026, C14; siehe `Badge.tsx`). Die Kante trägt den
+  Ton, der Text bleibt dunkel und lesbar.
+*/
 const toneClasses: Record<ToastTone, string> = {
-  success: 'bg-success text-white',
-  error: 'bg-danger text-white',
-  // Der neutrale Ton ist das Tintenblau der Leisten — damit eine Meldung
-  // sichtbar zur App gehört. Einfarbig: auf einem Streifen von 44 px Höhe
-  // trüge ein Verlauf nichts bei.
-  info: 'bg-ink-deep text-white',
+  success: 'border-l-success',
+  error: 'border-l-danger',
+  info: 'border-l-brand-fixed',
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -51,7 +55,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto w-full max-w-sm rounded px-4 py-3 text-sm font-medium shadow-lg ${toneClasses[t.tone]}`}
+            className={`pointer-events-auto w-full max-w-sm rounded border border-l-4 border-line bg-surface px-4 py-3 text-sm font-medium text-ink shadow-lg ${toneClasses[t.tone]}`}
           >
             {t.message}
           </div>

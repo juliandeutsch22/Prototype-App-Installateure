@@ -90,7 +90,13 @@
   /* Linien tragen einen Hauch Cyan statt neutralem Grau — dadurch gehören
    * Rahmen, Trennstriche und Flächen sichtbar zusammen. */
   --border: #cfe3e9;
-  --border-strong: rgba(24, 180, 201, 0.34);
+  /* Aus `--accent-bright` (#12b0c6) abgeleitet. Hier stand #18b4c9 — ein
+   * Türkis, das es als Token nicht gab (Prüflauf 24.09.2026, C7). */
+  --border-strong: rgba(18, 176, 198, 0.34);
+  /* Der weiche Ring um ein Feld mit Fokus — derselbe Ton, schwächer. */
+  --focus-ring: rgba(18, 176, 198, 0.22);
+  /* Grund der Lade-Platzhalter: eine Stufe dunkler als `--surface-2`. */
+  --surface-3: #dceaef;
 
   /* Semantische Zustände (Text + Fläche).
    * „info" liegt jetzt im Türkis der Marke statt im alten Blau: die
@@ -231,13 +237,14 @@ body {
   font-family: Poppins, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Überschriften: enger gesetzt und fast schwarz — wie im Prototyp, wo sie
- * damit deutlich fester wirken als der Fließtext. */
+/* Überschriften fast schwarz, in normaler Laufweite und halbfett. Bis zum
+ * 24.09.2026 standen sie eng gesetzt (-0,02 em) und fett — die Marke sagt
+ * aber: „Mittlere Schriftstärke, offene Laufweite. Fett und eng gesetzt
+ * wirkt laut" (marke/LIESMICH.md; Prüflauf, C9). */
 h1,
 h2,
 h3,
 h4 {
-  letter-spacing: -0.02em;
   color: var(--ink-deep);
 }
 
@@ -255,7 +262,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(18, 176, 198, 0.22);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 /*
@@ -453,7 +460,7 @@ table th {
  * „hier steht gleich Text" statt „hier ist ein leeres Kästchen".
  */
 .skeleton {
-  background-color: #dceaef;
+  background-color: var(--surface-3);
   background-image: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,

@@ -63,7 +63,7 @@ export default function ExportDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(0,10,30,0.65)] p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="export-title"
@@ -73,7 +73,7 @@ export default function ExportDialog({
         className="max-h-[92vh] w-full overflow-y-auto rounded-t-lg bg-surface p-4 shadow-lg sm:max-w-md sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="export-title" className="text-lg font-bold text-ink">
+        <h2 id="export-title" className="text-lg font-semibold text-ink">
           Bericht exportieren
         </h2>
         <p className="mt-1 text-sm text-ink-muted">{user.name}</p>
@@ -104,7 +104,7 @@ export default function ExportDialog({
 
         <div className="mt-4 flex flex-col gap-2">
           <Button
-            variant="accent"
+            variant="primary"
             className="w-full justify-center"
             loading={busy === 'pdf'}
             disabled={invalid || busy !== null}

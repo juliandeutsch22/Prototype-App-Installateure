@@ -155,7 +155,7 @@ export default function PasswortAendern({
           </p>
         )}
 
-        <Button type="submit" variant="accent" loading={laeuft} disabled={!!hindernis}>
+        <Button type="submit" variant="primary" loading={laeuft} disabled={!!hindernis}>
           {erstmalig ? 'Passwort vergeben' : 'Passwort ändern'}
         </Button>
       </form>

@@ -419,7 +419,7 @@ export default function AccountingView() {
           <span className="flex flex-wrap gap-2">
             {!creating && !editing && (
               <Button
-                variant="accent"
+                variant="primary"
                 onClick={() => {
                   setEditing(null);
                   setCreating(true);
@@ -1048,7 +1048,7 @@ export default function AccountingView() {
                           <Icon name="download" size={16} className="mr-2 shrink-0" />
                           Monat als CSV
                         </Button>
-                        <Button variant="accent" onClick={() => setExportFor(u)}>
+                        <Button variant="primary" onClick={() => setExportFor(u)}>
                           Bericht für Zeitraum
                         </Button>
                         {/*

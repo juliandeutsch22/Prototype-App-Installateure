@@ -154,7 +154,7 @@ export default function PlattformView() {
     <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
       <MarkenBand />
       <header className="space-y-1">
-        <h1 className="text-xl font-bold text-ink">Betriebe anlegen</h1>
+        <h1 className="text-xl font-semibold text-ink">Betriebe anlegen</h1>
         <p className="text-sm text-ink-muted">
           Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb und
           sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat.
@@ -238,7 +238,7 @@ export default function PlattformView() {
             </p>
           )}
 
-          <Button type="submit" variant="accent" loading={laeuft} disabled={!!eingabeFehler}>
+          <Button type="submit" variant="primary" loading={laeuft} disabled={!!eingabeFehler}>
             Betrieb anlegen
           </Button>
         </form>
@@ -293,7 +293,7 @@ export default function PlattformView() {
       */}
       <section aria-label="Fehler aus den Betrieben" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-bold text-ink">Fehler aus den Betrieben (14 Tage)</h2>
+          <h2 className="text-lg font-semibold text-ink">Fehler aus den Betrieben (14 Tage)</h2>
           <Button variant="secondary" onClick={() => void fehlerLaden()}>
             Neu laden
           </Button>

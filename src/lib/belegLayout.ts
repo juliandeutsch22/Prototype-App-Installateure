@@ -30,10 +30,24 @@ export const RECHTS = 210 - RAND;
 /** Ab hier gehört die Seite der Fusszeile. */
 export const FUSS_OBEN = 274;
 
-type Rgb = [number, number, number];
-export const TINTE: Rgb = [33, 37, 41];
-export const GRAU: Rgb = [108, 117, 125];
-export const LINIE: Rgb = [206, 212, 218];
+/*
+  DIE FARBEN DER OBERFLÄCHE, NICHT DIE VON BOOTSTRAP. Hier standen #212529,
+  #6c757d und #ced4da — die Grautöne einer fremden Bibliothek; kein Beleg
+  trug die Markenfarbe (Prüflauf 24.09.2026, C3). Jetzt dieselben Werte wie
+  `--text`, `--text-muted` und `--border` in `index.css`. Auf Papier bleiben
+  sie ein ruhiges Fast-Schwarz und Grau — ein Geschäftsbrief bekommt dadurch
+  keine Farbflächen, nur denselben Ton wie die App.
+*/
+export type Rgb = [number, number, number];
+export const TINTE: Rgb = [10, 32, 48];
+export const GRAU: Rgb = [56, 80, 95];
+export const LINIE: Rgb = [207, 227, 233];
+/** `--danger` — für „STORNIERT" auf einem Beleg. */
+export const ROT: Rgb = [173, 26, 26];
+/** `--brand-fixed`, die Produktfarbe Petrol — für interne Auswertungen. */
+export const PETROL: Rgb = [15, 69, 82];
+/** `--surface-2` — Zebrastreifen interner Tabellen. */
+export const FLAECHE: Rgb = [241, 248, 250];
 
 /** Wo die Positionstabelle frühestens beginnt — unter Titel und Kopfdaten. */
 export const TABELLE_AB = 100;

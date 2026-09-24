@@ -146,7 +146,7 @@ function AppInhalt() {
       <div className="mx-auto max-w-xl space-y-6 p-4 sm:p-6">
         <MarkenBand />
         <header className="space-y-1">
-          <h1 className="text-xl font-bold text-ink">Willkommen</h1>
+          <h1 className="text-xl font-semibold text-ink">Willkommen</h1>
           <p className="text-sm text-ink-muted">
             {passwortFaellig === 'start'
               ? 'Du bist mit einem Startpasswort angemeldet. Vergib zuerst ein eigenes — danach geht es weiter.'
