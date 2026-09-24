@@ -1,5 +1,6 @@
 import type { TimeEntry, WorkSheet } from '@/types';
 import { calcWorkMin, normProjectNumber } from '@/lib/time';
+import { normName } from './materialPositionen';
 
 /**
  * Was die Rechnung verrechnet, gegen das, was der Kunde unterschrieben hat.
@@ -40,6 +41,23 @@ export interface ScheinAbgleich {
   wenigerMin: number;
   /** Ob das gross genug ist, um zu warnen. */
   zuWenig: boolean;
+  /**
+   * Unterschriebene Stunden, die auf dieser Rechnung fehlen — je Person, Tag
+   * und Satz. Leer, wenn alles da ist oder keine offenen Scheine bekannt sind.
+   */
+  fehlend: FehlendeStunden[];
+}
+
+export interface FehlendeStunden {
+  datum: string;
+  /** So, wie er auf dem Schein steht. */
+  name: string;
+  helfer: boolean;
+  bestaetigtMin: number;
+  /** Was diese Rechnung für Person, Tag und Satz verrechnet. */
+  verrechnetMin: number;
+  /** Was sie für dieselbe Person am selben Tag zum ANDEREN Satz verrechnet. */
+  andererSatzMin: number;
 }
 
 /**
@@ -117,7 +135,58 @@ export function scheinAbgleich(
     : 0;
   const wenigerMin = Math.max(offenBestaetigtMin - verrechnetMin, 0);
 
+  /*
+    JE PERSON, TAG UND SATZ — NICHT NUR DIE SUMME.
+
+    Die Summe allein deckte im Prüflauf vom 24.09.2026 einen echten Verlust
+    zu: acht unterschriebene Facharbeiterstunden vom 24. standen nicht auf der
+    Rechnung, acht gebuchte Helferstunden vom 21. aber schon — „Ein Schein
+    bestätigt 08:00, verrechnet werden 08:00", und 128 € netto fehlten. Der
+    Schein ist die Unterschrift des Kunden für genau diese Person an genau
+    diesem Tag; daran wird jetzt gemessen.
+
+    Verglichen wird nur gegen OFFENE Scheine, aus demselben Grund wie oben:
+    was schon auf einer Rechnung steht, fehlt auf dieser nicht. Die Namen
+    werden so angeglichen wie beim Nachtrag (`normName`) — der Schein trägt
+    den Namen, die Buchung den Namen des Kontos.
+  */
+  const schluessel = (datum: string, name: string, helfer: boolean) =>
+    `${datum}|${normName(name)}|${helfer ? 'h' : 'f'}`;
+  const verrechnetJe = new Map<string, number>();
+  for (const e of eintraege) {
+    const k = schluessel(e.date, e.userName ?? '', !!e.isHelper);
+    verrechnetJe.set(k, (verrechnetJe.get(k) ?? 0) + Math.max(calcWorkMin(e), 0));
+  }
+  const bestaetigtJe = new Map<string, { datum: string; name: string; helfer: boolean; min: number }>();
+  for (const schein of eigene) {
+    if (!offen?.has(schein.id)) continue;
+    for (const z of schein.zeiten ?? []) {
+      if (z.minuten <= 0 || !normName(z.mitarbeiter)) continue;
+      const datum = z.datum || schein.datum;
+      const k = schluessel(datum, z.mitarbeiter, !!z.helfer);
+      const bisher = bestaetigtJe.get(k);
+      if (bisher) bisher.min += z.minuten;
+      else bestaetigtJe.set(k, { datum, name: z.mitarbeiter.trim(), helfer: !!z.helfer, min: z.minuten });
+    }
+  }
+  const fehlend: FehlendeStunden[] = [];
+  for (const [k, b] of bestaetigtJe) {
+    const verrechnet = verrechnetJe.get(k) ?? 0;
+    const fehlt = b.min - verrechnet;
+    if (fehlt < AUFFAELLIG_AB_MINUTEN || fehlt < b.min * AUFFAELLIG_AB_ANTEIL) continue;
+    fehlend.push({
+      datum: b.datum,
+      name: b.name,
+      helfer: b.helfer,
+      bestaetigtMin: b.min,
+      verrechnetMin: verrechnet,
+      andererSatzMin: verrechnetJe.get(schluessel(b.datum, b.name, !b.helfer)) ?? 0,
+    });
+  }
+  fehlend.sort((a, b) => a.datum.localeCompare(b.datum) || a.name.localeCompare(b.name, 'de'));
+
   return {
+    fehlend,
     verrechnetMin,
     bestaetigtMin,
     scheine: eigene.length,

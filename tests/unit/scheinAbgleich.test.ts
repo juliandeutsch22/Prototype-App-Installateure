@@ -180,3 +180,60 @@ describe('Rechnung unter dem unterschriebenen Schein', () => {
     expect(offen.auffaellig).toBe(ohne.auffaellig);
   });
 });
+
+/*
+  JE PERSON, TAG UND SATZ — Prüflauf 24.09.2026, F5. Manfred (Facharbeiter)
+  hat am 24. acht Stunden auf dem Schein, gebucht aber nicht; Hans (Helfer)
+  hat am 21. acht Stunden gebucht. Die Summe stimmte, 128 € fehlten.
+*/
+describe('Rechnung gegen Schein — je Person, Tag und Satz', () => {
+  const manfredsSchein = schein([], {
+    id: 'sm',
+    datum: '2026-09-24',
+    zeiten: [{ datum: '2026-09-24', mitarbeiter: 'Manfred Monteur', minuten: 480 }],
+  });
+  const hansGebucht = eintrag(480, { date: '2026-09-21', userName: 'Hans Helfer', isHelper: true });
+
+  it('findet die unterschriebenen Stunden, die trotz gleicher Summe fehlen', () => {
+    const a = scheinAbgleich('2026-042', [hansGebucht], [manfredsSchein], new Set(['sm']));
+    expect(a.verrechnetMin).toBe(a.bestaetigtMin);
+    expect(a.fehlend).toEqual([
+      { datum: '2026-09-24', name: 'Manfred Monteur', helfer: false, bestaetigtMin: 480, verrechnetMin: 0, andererSatzMin: 0 },
+    ]);
+  });
+
+  it('schweigt, wenn Person, Tag und Satz passen — auch bei anderer Schreibweise', () => {
+    const gebucht = eintrag(480, { date: '2026-09-24', userName: '  manfred   MONTEUR ' });
+    const a = scheinAbgleich('2026-042', [gebucht], [manfredsSchein], new Set(['sm']));
+    expect(a.fehlend).toEqual([]);
+  });
+
+  it('nennt den anderen Satz, wenn die Zeit als Helfer gebucht ist', () => {
+    const alsHelfer = eintrag(480, { date: '2026-09-24', userName: 'Manfred Monteur', isHelper: true });
+    const a = scheinAbgleich('2026-042', [alsHelfer], [manfredsSchein], new Set(['sm']));
+    expect(a.fehlend).toHaveLength(1);
+    expect(a.fehlend[0]).toMatchObject({ helfer: false, verrechnetMin: 0, andererSatzMin: 480 });
+  });
+
+  it('vergleicht nur gegen Scheine, die noch auf keiner Rechnung stehen', () => {
+    expect(scheinAbgleich('2026-042', [], [manfredsSchein], new Set()).fehlend).toEqual([]);
+    expect(scheinAbgleich('2026-042', [], [manfredsSchein]).fehlend).toEqual([]);
+  });
+
+  it('schweigt bei einer halben Stunde Unterschied an einem langen Tag', () => {
+    const fast = eintrag(450, { date: '2026-09-24', userName: 'Manfred Monteur' });
+    expect(scheinAbgleich('2026-042', [fast], [manfredsSchein], new Set(['sm'])).fehlend).toEqual([]);
+  });
+
+  it('fasst mehrere Spannen derselben Person am selben Tag zusammen', () => {
+    const zweiSpannen = schein([], {
+      id: 'sz',
+      zeiten: [
+        { datum: '2026-09-24', mitarbeiter: 'Manfred Monteur', minuten: 240 },
+        { datum: '2026-09-24', mitarbeiter: 'Manfred Monteur', minuten: 240 },
+      ],
+    });
+    const gebucht = eintrag(480, { date: '2026-09-24', userName: 'Manfred Monteur' });
+    expect(scheinAbgleich('2026-042', [gebucht], [zweiSpannen], new Set(['sz'])).fehlend).toEqual([]);
+  });
+});

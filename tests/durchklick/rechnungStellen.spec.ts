@@ -163,6 +163,13 @@ test('Erst die Anzahlung, dann die Schlussrechnung mit Abzug', async ({ page }) 
     expect((data ?? [])[0].art).toBe('anzahlung');
     expect(Number((data ?? [])[0].total_brutto)).toBe(120);
   }).toPass({ timeout: 25_000 });
+  /*
+    ERST WENN DIE MASKE FERTIG IST, weiterwählen. Die Rechnung steht in der
+    Datenbank, bevor die Maske sich leert; wer dazwischen die nächste
+    Baustelle wählt, verliert die Wahl an das Leeren — unter Last einmal
+    geschehen, und dann wartete der Test eine Minute auf einen gesperrten Knopf.
+  */
+  await expect(page.getByText(/^Rechnung .+ erstellt$/)).toBeVisible();
 
   /*
     UND SIE HAT NICHTS GESPERRT. Das ist die Bedingung für den Abzug: hätte
