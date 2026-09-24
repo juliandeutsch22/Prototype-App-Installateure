@@ -7,6 +7,7 @@ import NeueFassung from './components/NeueFassung';
 import VerloreneBuchung from './components/VerloreneBuchung';
 import Nachsender from './components/Nachsender';
 import { nachladefehlerBeobachten } from './lib/nachladen';
+import { fehlerBeobachten } from './lib/fehlerprotokoll';
 // Poppins self-gehostet (kein Google-CDN -> keine IP-Übermittlung an Google, DSGVO).
 // Nur die tatsächlich genutzten Schnitte, damit der Erstaufruf auf der Baustelle
 // (schlechtes Netz) schlank bleibt.
@@ -19,6 +20,10 @@ import './index.css';
 // Scheitert nach einem Deploy das Nachladen einer Ansicht, einmal neu laden —
 // bevor daraus eine Fehlertafel wird. Siehe lib/nachladen.ts.
 nachladefehlerBeobachten();
+
+// Was an der Fehlergrenze vorbeigeht — ein Fehler in einem Klick, ein
+// unbehandeltes Versprechen — ins eigene Protokoll. Siehe lib/fehlerprotokoll.ts.
+fehlerBeobachten();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

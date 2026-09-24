@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+const erfasst = vi.fn();
+const gemeldet = vi.fn();
+vi.mock('@/lib/fehlerprotokoll', () => ({
+  fehlerErfassen: (...a: unknown[]) => erfasst(...a),
+  problemMelden: (...a: unknown[]) => gemeldet(...a),
+}));
+
 import ErrorBoundary, { istNachladeFehler } from '@/app/ErrorBoundary';
 
 /**
@@ -51,6 +60,8 @@ beforeEach(() => {
     value: { ...echteLocation, reload },
   });
   sessionStorage.clear();
+  erfasst.mockReset();
+  gemeldet.mockReset();
 });
 
 afterEach(() => {
@@ -152,5 +163,31 @@ describe('Welche Fassung laeuft', () => {
       </ErrorBoundary>,
     );
     expect(await screen.findByText(/^Fassung /)).toBeInTheDocument();
+  });
+});
+
+describe('Ins Fehlerprotokoll', () => {
+  it('hält einen Absturz samt Komponentenstapel fest', () => {
+    const fehler = new Error('x is undefined');
+    render(
+      <ErrorBoundary>
+        <Wirft fehler={fehler} />
+      </ErrorBoundary>,
+    );
+    expect(erfasst).toHaveBeenCalledWith('absturz', fehler, expect.stringContaining('Wirft'));
+  });
+
+  it('bietet auf der Tafel „Problem melden" an — und die Meldung geht ab', async () => {
+    gemeldet.mockResolvedValue(undefined);
+    const nutzer = userEvent.setup();
+    render(
+      <ErrorBoundary>
+        <Wirft fehler={new Error('irgendein Fehler')} />
+      </ErrorBoundary>,
+    );
+    await nutzer.click(screen.getByRole('button', { name: 'Problem melden' }));
+    await nutzer.type(screen.getByLabelText('Was ist passiert?'), 'Beim Öffnen der Zeiterfassung');
+    await nutzer.click(screen.getByRole('button', { name: 'Senden' }));
+    await waitFor(() => expect(gemeldet).toHaveBeenCalledWith('Beim Öffnen der Zeiterfassung', false));
   });
 });
