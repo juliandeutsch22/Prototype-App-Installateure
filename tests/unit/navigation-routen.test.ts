@@ -37,14 +37,21 @@ import {
 const APP = readFileSync(resolve(__dirname, '../../src/app/App.tsx'), 'utf8');
 
 /**
- * Alle `path="…"` aus den `<Route>`-Zeilen, ohne Sammel- und Login-Route.
+ * Was ohne Anmeldung erreichbar sein MUSS: die Anmeldung selbst, und
+ * Impressum und Datenschutz — beide verlangt das Gesetz vor dem ersten Login
+ * (§ 5 ECG, Art. 13 DSGVO). Sie zeigen keine Daten eines Betriebs.
+ */
+const OEFFENTLICH = ['/login', '/impressum', '/datenschutz'];
+
+/**
+ * Alle `path="…"` aus den `<Route>`-Zeilen, ohne Sammel- und die öffentlichen Routen.
  *
  * `/material/*` zählt als `/material`: der Reiter heißt so, die Unterseiten
  * hängen darunter.
  */
 const ROUTEN_PFADE = [...APP.matchAll(/<Route\s+path="([^"]+)"/g)]
   .map((m) => m[1].replace(/\/\*$/, ''))
-  .filter((p) => p !== '*' && p !== '' && p !== '/login');
+  .filter((p) => p !== '*' && p !== '' && !OEFFENTLICH.includes(p));
 
 /** Alle Pfade, die per `RequireNav path="…"` bewacht werden. */
 const BEWACHT = [...APP.matchAll(/<RequireNav path="([^"]+)"/g)].map((m) => m[1]);
@@ -204,6 +211,8 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       'support',
       // „module" steht hier NICHT: siehe der eigene Fall weiter unten.
       'sicherung',
+      // Wer wann wo hängengeblieben ist — dieselbe Grenze wie in der Datenbank.
+      'fehler',
     ]);
     // Auch die Projektleitung nicht: die Sicherung enthaelt Zeitkonten und
     // Rechnungen, und beides geht sie nichts an.

@@ -19,6 +19,8 @@ import Supportband from '@/components/Supportband';
 import Supportsitzung from '@/components/Supportsitzung';
 import BottomSheet from '@/components/BottomSheet';
 import AppErneuern from '@/components/AppErneuern';
+import ProblemMelden from '@/components/ProblemMelden';
+import RechtLinks from '@/components/RechtLinks';
 
 /**
  * Der aktive Eintrag wird über die KANTE markiert, nicht über eine volle
@@ -227,9 +229,16 @@ export default function Layout({ children }: { children: ReactNode }) {
               <p className="truncate text-xs text-white/70">{user.role}</p>
             </div>
           </div>
+          <ProblemMelden
+            ausloeser={(oeffnen) => (
+              <Button variant="ghost-dark" className="mt-2 w-full justify-start" onClick={oeffnen}>
+                Problem melden
+              </Button>
+            )}
+          />
           <Button
             variant="ghost-dark"
-            className="mt-2 w-full justify-start"
+            className="w-full justify-start"
             onClick={() => void signOut()}
           >
             Abmelden
@@ -252,6 +261,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             */}
             <ProduktMarke hoehe={20} />
           </p>
+          <RechtLinks className="mt-2 px-3 text-xs text-white/60" />
         </div>
       </aside>
 
@@ -426,6 +436,14 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Icon name="bell" size={20} className="shrink-0" />
             <span>Benachrichtigungen</span>
           </NavLink>
+          <ProblemMelden
+            ausloeser={(oeffnen) => (
+              <button type="button" onClick={oeffnen} className={sideLink({ isActive: false })}>
+                <Icon name="mail" size={20} className="shrink-0" />
+                <span>Problem melden</span>
+              </button>
+            )}
+          />
         </div>
         <Button
           variant="secondary"
@@ -452,6 +470,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             sein.
           */}
           <AppErneuern />
+          <RechtLinks className="mt-3 text-center text-xs text-ink-muted" />
         </div>
       </BottomSheet>
 

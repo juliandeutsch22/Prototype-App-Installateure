@@ -215,3 +215,17 @@ describe('Die Abzeichen für offene Posten', () => {
     await waitFor(() => expect(ladenMock).toHaveBeenCalledTimes(2));
   });
 });
+
+describe('Hilfe und Rechtliches in der Hülle', () => {
+  it('bietet „Problem melden" und die Rechtsseiten in Seitenleiste und Profilblatt', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    // Seitenleiste
+    expect(await screen.findByRole('button', { name: 'Problem melden' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Impressum' })).toHaveLength(1);
+    // Profilblatt am Telefon
+    await nutzer.click(screen.getByRole('button', { name: /Profil öffnen/ }));
+    expect(screen.getAllByRole('button', { name: 'Problem melden' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Datenschutz' })).toHaveLength(2);
+  });
+});

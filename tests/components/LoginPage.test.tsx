@@ -209,3 +209,11 @@ describe('Anmelden mit Benutzername', () => {
     expect(zuruecksetzen).toHaveBeenCalledWith('petra@perl.at');
   });
 });
+
+describe('Vor der Anmeldung erreichbar', () => {
+  it('verlinkt Datenschutz und Impressum — das Impressum verlangt es (§ 5 ECG)', () => {
+    zeige();
+    expect(screen.getByRole('link', { name: 'Impressum' })).toHaveAttribute('href', '/impressum');
+    expect(screen.getByRole('link', { name: 'Datenschutz' })).toHaveAttribute('href', '/datenschutz');
+  });
+});
