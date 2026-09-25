@@ -59,7 +59,13 @@ export function baustelleAusWartung(
     // Baustelle in der Kundenakte nicht mit drin, und genau dort sucht sie
     // jemand, der den Kunden am Telefon hat.
     customerId: wartung.customerId || undefined,
-    customerName: wartung.customerName,
+    /*
+      DER NAME VON HEUTE, nicht der beim Anlegen der Wartung (Prüflauf
+      25.09.2026, P2-18). Die Wartung trägt eine Kopie; heisst der Kunde
+      inzwischen anders, stünde der alte Name auf Baustelle, Schein und
+      Rechnung. Ohne Stammsatz bleibt die Kopie.
+    */
+    customerName: kunde?.name ?? wartung.customerName,
     address: wartung.address?.trim() || kunde?.address || undefined,
     description: beschreibung,
     status: 'Aktiv',

@@ -76,6 +76,19 @@ describe('Die Baustelle aus der Wartung', () => {
     expect(p.address).toBe('Ringstraße 1');
   });
 
+  /*
+    PRÜFLAUF 25.09.2026, P2-18: der Name kam aus der Kopie in der Wartung.
+    Wurde der Kunde seither umbenannt, stand der alte Name auf der Baustelle.
+  */
+  it('nimmt den heutigen Namen aus dem Kundenstamm', () => {
+    const p = baustelleAusWartung(
+      wartung(),
+      { id: 'k1', companyId: 'perl', name: 'Hausverwaltung Stein & Partner' } as Customer,
+      '2026-015',
+    );
+    expect(p.customerName).toBe('Hausverwaltung Stein & Partner');
+  });
+
   it('kommt auch ohne Kundenstammsatz zurecht', () => {
     const p = baustelleAusWartung(wartung({ address: undefined }), undefined, '2026-015');
     expect(p.address).toBeUndefined();
