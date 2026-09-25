@@ -194,6 +194,8 @@ export default function AngebotView() {
 
   const offen = q.status === 'Entwurf' || q.status === 'Versendet';
   const abgelaufen = offen && q.validUntil < todayStr();
+  /** Rechts steht nur, was man mit dem Angebot noch tun kann — sonst bleibt es eine Spalte. */
+  const weiterSichtbar = darfAendern && offen;
 
   return (
     <div className="space-y-6">
@@ -226,105 +228,118 @@ export default function AngebotView() {
       )}
       {fehler && <ErrorState message={fehler} />}
 
-      <Card title="Angaben">
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Angabe wort="Kunde">
-            {q.customerId ? (
-              <Link to={`/customers/${q.customerId}`} className="textlink">
-                {q.customerName}
-              </Link>
-            ) : (
-              q.customerName
-            )}
-          </Angabe>
-          <Angabe wort="Ort der Leistung">{q.address}</Angabe>
-          <Angabe wort="Angebotsdatum">{fmtDatum(q.quoteDate)}</Angabe>
-          <Angabe wort="Gültig bis">{fmtDatum(q.validUntil)}</Angabe>
-          <Angabe wort="Kalkulierte Arbeitszeit">
-            {/* Intern: steht nicht auf dem PDF, wird beim Annehmen zum Budget. */}
-            <span>{fmtMenge(q.kalkulierteStunden)} h</span>
-          </Angabe>
-          <Angabe wort="Baustelle">
-            {q.projectNumber ? (
-              q.projectId && baustellenSichtbar ? (
-                <Link to={`/admin-projects/${q.projectId}`} className="textlink">
-                  {q.projectNumber}
-                </Link>
-              ) : (
-                <span>{q.projectNumber}</span>
-              )
-            ) : null}
-          </Angabe>
-        </dl>
-      </Card>
+      {/*
+        AM SCHREIBTISCH ZWEI SPALTEN (`.akte`): links das Angebot selbst —
+        Angaben, Positionen mit Summen, Anmerkungen —, rechts, was daraus
+        folgt: versenden, annehmen, ablehnen. Gibt es dort nichts zu tun,
+        nimmt das Angebot die ganze Breite (`.akte-einspaltig`) statt neben
+        einer leeren Spalte zu stehen.
+      */}
+      <div className={weiterSichtbar ? 'akte' : 'akte-einspaltig'}>
+        <div className="akte-links">
+          <Card title="Angaben">
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+              <Angabe wort="Kunde">
+                {q.customerId ? (
+                  <Link to={`/customers/${q.customerId}`} className="textlink">
+                    {q.customerName}
+                  </Link>
+                ) : (
+                  q.customerName
+                )}
+              </Angabe>
+              <Angabe wort="Ort der Leistung">{q.address}</Angabe>
+              <Angabe wort="Angebotsdatum">{fmtDatum(q.quoteDate)}</Angabe>
+              <Angabe wort="Gültig bis">{fmtDatum(q.validUntil)}</Angabe>
+              <Angabe wort="Kalkulierte Arbeitszeit">
+                {/* Intern: steht nicht auf dem PDF, wird beim Annehmen zum Budget. */}
+                <span>{fmtMenge(q.kalkulierteStunden)} h</span>
+              </Angabe>
+              <Angabe wort="Baustelle">
+                {q.projectNumber ? (
+                  q.projectId && baustellenSichtbar ? (
+                    <Link to={`/admin-projects/${q.projectId}`} className="textlink">
+                      {q.projectNumber}
+                    </Link>
+                  ) : (
+                    <span>{q.projectNumber}</span>
+                  )
+                ) : null}
+              </Angabe>
+            </dl>
+          </Card>
 
-      <Card title={`Positionen (${q.positions.length})`}>
-        <List>
-          {q.positions.map((p, i) => (
-            <ListRow
-              key={i}
-              title={p.label}
-              subtitle={`${fmtMenge(p.qty)} ${p.unit} × ${fmtEUR(p.unitPrice)}`}
-              wert={fmtEUR(p.netto)}
-            />
-          ))}
-        </List>
-        <dl className="mt-3 space-y-1 border-t border-ink pt-3 text-sm">
-          {(q.discountAmount ?? 0) > 0 && q.discount && (
-            <>
-              <Summe wort="Zwischensumme">{fmtEUR(q.subtotalNetto)}</Summe>
-              <Summe wort={discountLabel(q.discount)}>- {fmtEUR(q.discountAmount ?? 0)}</Summe>
-            </>
+          <Card title={`Positionen (${q.positions.length})`}>
+            <List>
+              {q.positions.map((p, i) => (
+                <ListRow
+                  key={i}
+                  title={p.label}
+                  subtitle={`${fmtMenge(p.qty)} ${p.unit} × ${fmtEUR(p.unitPrice)}`}
+                  wert={fmtEUR(p.netto)}
+                />
+              ))}
+            </List>
+            <dl className="mt-3 space-y-1 border-t border-ink pt-3 text-sm">
+              {(q.discountAmount ?? 0) > 0 && q.discount && (
+                <>
+                  <Summe wort="Zwischensumme">{fmtEUR(q.subtotalNetto)}</Summe>
+                  <Summe wort={discountLabel(q.discount)}>- {fmtEUR(q.discountAmount ?? 0)}</Summe>
+                </>
+              )}
+              <Summe wort="Netto">{fmtEUR(q.totalNetto)}</Summe>
+              <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{fmtEUR(q.totalVat)}</Summe>
+              <Summe wort="Brutto" fett>{fmtEUR(q.totalBrutto)}</Summe>
+            </dl>
+          </Card>
+
+          {q.notes?.trim() && (
+            <Card title="Anmerkungen">
+              <p className="whitespace-pre-line text-sm text-ink">{q.notes}</p>
+            </Card>
           )}
-          <Summe wort="Netto">{fmtEUR(q.totalNetto)}</Summe>
-          <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{fmtEUR(q.totalVat)}</Summe>
-          <Summe wort="Brutto" fett>{fmtEUR(q.totalBrutto)}</Summe>
-        </dl>
-      </Card>
+        </div>
 
-      {q.notes?.trim() && (
-        <Card title="Anmerkungen">
-          <p className="whitespace-pre-line text-sm text-ink">{q.notes}</p>
-        </Card>
-      )}
-
-      {darfAendern && offen && (
-        <Card title="Weiter">
-          <div className="flex flex-wrap gap-2">
-            {q.status === 'Entwurf' && (
-              <>
-                {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
-                <Link to={`/quotes?bearbeiten=${q.id}`} className="textlink-allein">
-                  Bearbeiten
-                </Link>
+        {weiterSichtbar && (
+          <div className="akte-rechts">
+            <Card title="Weiter">
+              <div className="flex flex-wrap gap-2">
+                {q.status === 'Entwurf' && (
+                  <>
+                    {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
+                    <Link to={`/quotes?bearbeiten=${q.id}`} className="textlink-allein">
+                      Bearbeiten
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      loading={busy}
+                      onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
+                    >
+                      Als versendet markieren
+                    </Button>
+                  </>
+                )}
+                <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(true)}>
+                  Annehmen → Baustelle
+                </Button>
                 <Button
                   variant="ghost"
                   loading={busy}
-                  onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
+                  onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
                 >
-                  Als versendet markieren
+                  Abgelehnt
                 </Button>
-              </>
-            )}
-            <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(true)}>
-              Annehmen → Baustelle
-            </Button>
-            <Button
-              variant="ghost"
-              loading={busy}
-              onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
-            >
-              Abgelehnt
-            </Button>
-            {/* Löschen nur im Entwurf: alles Versendete bleibt nachvollziehbar. */}
-            {q.status === 'Entwurf' && (
-              <Button variant="ghost" onClick={() => setLoeschenFragen(true)}>
-                Löschen
-              </Button>
-            )}
+                {/* Löschen nur im Entwurf: alles Versendete bleibt nachvollziehbar. */}
+                {q.status === 'Entwurf' && (
+                  <Button variant="ghost" onClick={() => setLoeschenFragen(true)}>
+                    Löschen
+                  </Button>
+                )}
+              </div>
+            </Card>
           </div>
-        </Card>
-      )}
+        )}
+      </div>
 
       {/* Erst fragen, dann anlegen (Launch-Check, M8) — wie in der Liste. */}
       <ConfirmDialog
