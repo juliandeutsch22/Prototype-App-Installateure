@@ -160,7 +160,7 @@ export function Warnung({
   const ton = stufe === 'dringend' ? 'text-danger' : 'text-warning';
   return (
     <span
-      className={`tnum inline-block whitespace-nowrap rounded-pill border-[1.5px] border-current bg-surface px-2.5 py-0.5 text-xs font-semibold ${ton}`}
+      className={`inline-block whitespace-nowrap rounded-pill border-[1.5px] border-current bg-surface px-2.5 py-0.5 text-xs font-semibold ${ton}`}
     >
       {children}
     </span>
@@ -230,7 +230,7 @@ export function Zaehler({
     : 'bg-accent-deep text-white';
   return (
     <span
-      className={`tnum inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-bold leading-none ${ton}`}
+      className={`inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-bold leading-none ${ton}`}
     >
       <span aria-hidden="true">{anzahl > 99 ? '99+' : anzahl}</span>
       <span className="sr-only">{`${anzahl} ${was}`}</span>

@@ -244,7 +244,7 @@ export default function UserMgmtView() {
               <span className="select-all font-semibold">{handoverPassword.benutzername}</span>
             </p>
           )}
-          <p className="mt-2 select-all tnum text-lg font-semibold">{handoverPassword.pw}</p>
+          <p className="mt-2 select-all text-lg font-semibold">{handoverPassword.pw}</p>
           <Button variant="ghost" className="mt-2" onClick={() => setHandoverPassword(null)}>
             Verstanden
           </Button>
@@ -389,7 +389,7 @@ export default function UserMgmtView() {
             {eintritt === 'neu' && (
               <p className="mt-3 rounded-sm border border-line bg-surface px-3 py-2 text-sm text-ink-muted">
                 Vorschlag für {form.appStartDate || 'das Eintrittsdatum'}:{' '}
-                <strong className="tnum text-ink">
+                <strong className="text-ink">
                   {vorschlag(form.appStartDate, form.yearlyVacationDays).tage}
                 </strong>{' '}
                 Tage —{' '}
@@ -489,7 +489,7 @@ export default function UserMgmtView() {
                   <p className="mt-2">
                     <strong>Resturlaub beim Umstieg</strong> gilt nur für das Jahr, in dem der
                     Saldo startet. Wer im September umsteigt und schon 18 von 25 Tagen genommen
-                    hat, trägt hier <span className="tnum">7</span> ein — sonst zeigt die App
+                    hat, trägt hier <span>7</span> ein — sonst zeigt die App
                     weiterhin 25, weil die Tage davor in keiner Buchung stehen.
                   </p>
                   <p className="mt-2">
@@ -586,7 +586,7 @@ export default function UserMgmtView() {
               <div key={g.rolle}>
                 <h3 className="section-label mb-1 flex items-center justify-between">
                   <span>{g.rolle}</span>
-                  <span className="tnum font-normal text-ink-muted">{g.leute.length}</span>
+                  <span className="font-normal text-ink-muted">{g.leute.length}</span>
                 </h3>
                 <List>
             {g.leute.map((u) => (

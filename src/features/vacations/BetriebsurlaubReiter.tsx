@@ -219,7 +219,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
               <span aria-hidden="true">{ausnahmenOffen ? '▾' : '▸'}</span>
               Mitarbeiter ausnehmen
               {ausgenommen.length > 0 && (
-                <span className="tnum font-normal text-ink-muted">({ausgenommen.length})</span>
+                <span className="font-normal text-ink-muted">({ausgenommen.length})</span>
               )}
             </button>
             {/* Zugeklappt steht trotzdem da, wer ausgenommen ist — sonst ginge
@@ -272,7 +272,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
                 title={
                   <span>
                     {b.bezeichnung}{' '}
-                    <span className="tnum text-ink-muted">{zeitraumText(b.von, b.bis)}</span>
+                    <span className="text-ink-muted">{zeitraumText(b.von, b.bis)}</span>
                   </span>
                 }
                 subtitle={

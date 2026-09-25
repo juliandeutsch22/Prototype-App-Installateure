@@ -958,7 +958,7 @@ export default function WorkSheetView() {
                     }`}
                   >
                     {e.name}
-                    <span className="tnum ml-1 opacity-70">({e.projectNumber})</span>
+                    <span className="ml-1 opacity-70">({e.projectNumber})</span>
                   </button>
                 ))}
               </div>
@@ -1060,7 +1060,7 @@ export default function WorkSheetView() {
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       {z.helfer && <Marke>Helfer</Marke>}
-                      <span className="tnum font-medium text-ink">{fmtMin(z.minuten)}</span>
+                      <span className="font-medium text-ink">{fmtMin(z.minuten)}</span>
                     </span>
                     {/*
                       WEGNEHMEN NUR, WAS HIER EINGETRAGEN WURDE. Zeilen aus

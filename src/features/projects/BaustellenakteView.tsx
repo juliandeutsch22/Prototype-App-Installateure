@@ -325,7 +325,7 @@ export default function BaustellenakteView() {
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link to="/admin-projects" className="link inline-flex min-h-touch items-center">← Zur Baustellenliste</Link>
-            <span className="tnum text-ink-muted">{b.projectNumber}</span>
+            <span className="text-ink-muted">{b.projectNumber}</span>
             <StatusBadge status={b.status} />
             {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
           </span>
@@ -436,7 +436,7 @@ function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> 
   return (
     <>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-        <Angabe wort="Projektnummer"><span className="tnum">{b.projectNumber}</span></Angabe>
+        <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
         <Angabe wort="Kunde">{b.customerName}</Angabe>
         <Angabe wort="Baustellenadresse">
           {b.address ? <AdresseLink adresse={b.address} /> : null}

@@ -273,14 +273,14 @@ export default function NachkalkulationView() {
                       title={
                         <span>
                           {k.customerName}{' '}
-                          <span className="tnum text-sm font-normal text-ink-muted">
+                          <span className="text-sm font-normal text-ink-muted">
                             ({k.projectNumber})
                           </span>
                         </span>
                       }
                       subtitle={
                         <>
-                          <span className="tnum block">
+                          <span className="block">
                             Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)}
                             {/*
                               Material steht nur da, wenn welches bekannt ist.

@@ -305,7 +305,7 @@ export default function MyScheduleView() {
                             {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname
                                 da ist — sonst stünde sie doppelt. */}
                             {proj?.customerName && (
-                              <span className="tnum ml-1 text-sm font-normal text-ink-muted">
+                              <span className="ml-1 text-sm font-normal text-ink-muted">
                                 ({a.projectNumber})
                               </span>
                             )}
@@ -443,11 +443,11 @@ export default function MyScheduleView() {
                 <ul className="divide-y divide-line">
                   {kommendeUrlaube.map((v) => (
                     <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                      <span className="tnum text-ink">
+                      <span className="text-ink">
                         {v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
                       </span>
                       <span className="flex items-center gap-2">
-                        <span className="tnum text-xs text-ink-muted">
+                        <span className="text-xs text-ink-muted">
                           {v.tage} {v.tage === 1 ? 'Tag' : 'Tage'}
                         </span>
                         <Zustand stand={v.status === 'Genehmigt' ? 'gut' : 'achtung'}>

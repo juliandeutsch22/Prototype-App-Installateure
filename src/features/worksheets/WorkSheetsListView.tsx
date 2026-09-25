@@ -510,7 +510,7 @@ export default function WorkSheetsListView() {
                 }
                 subtitle={
                   <>
-                    <span className="tnum">
+                    <span>
                       Baustelle {schein.projectNumber} · Leistung vom {datumAT(schein.datum)}
                     </span>
                     <span className="mt-1 block">
@@ -651,17 +651,19 @@ export default function WorkSheetsListView() {
               return (
                 <ListRow
                   key={s.id}
+                  wert={fmtDauer(gesamt)}
+                  zustand={<Zustand stand={STAND[s.status]}>{s.status}</Zustand>}
                   title={
                     <span>
                       {s.customerName}{' '}
-                      <span className="tnum text-sm font-normal text-ink-muted">
+                      <span className="text-sm font-normal text-ink-muted">
                         ({s.projectNumber})
                       </span>
                     </span>
                   }
                   subtitle={
                     <>
-                      {datumAT(s.datum)} · {fmtDauer(gesamt)} · {s.abrechnung}
+                      {datumAT(s.datum)} · {s.abrechnung}
                       {s.unterschriften?.kunde && (
                         <span className="mt-1 block text-xs text-ink-muted">
                           Unterschrieben von {s.unterschriften.kunde.name}
@@ -766,7 +768,6 @@ export default function WorkSheetsListView() {
                     </>
                   }
                 >
-                  <Zustand stand={STAND[s.status]}>{s.status}</Zustand>
                   <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
                     {auf ? 'Zuklappen' : 'Details'}
                   </Button>

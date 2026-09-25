@@ -8,11 +8,21 @@ import type { ReactNode } from 'react';
 export function ListRow({
   title,
   subtitle,
+  zustand,
+  wert,
   children,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
-  children?: ReactNode; // rechte Seite (Status, Aktionen)
+  /**
+   * Betrag oder Stunden der Zeile — steht RECHTS, vor Status und Aktionen.
+   * Im Untertitel lief die Zahl mit der Länge des Datums davor hin und her;
+   * rechtsbündig stehen die Beträge untereinander und lassen sich vergleichen.
+   */
+  wert?: ReactNode;
+  /** Status der Zeile — steht VOR dem Wert, damit der Wert am rechten Rand fluchtet. */
+  zustand?: ReactNode;
+  children?: ReactNode; // rechte Seite (Aktionen)
 }) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3">
@@ -33,13 +43,15 @@ export function ListRow({
           hier stehen 324 zur Verfügung, und kleiner zu setzen verschiebt das
           Problem nur auf das nächste längere Wort. Wo es mehr als zwei
           Aktionen gibt, gehört alles Seltene in ein RowMenu. */}
-      {children && (
+      {(zustand || wert != null || children) && (
         // Knoepfe in einer Listenzeile sind Nebenhandlungen, keine
         // Hauptaktionen: kleinere Schrift und schmalere Polsterung. Die
         // Tasthoehe bleibt bei 44 px, also innerhalb dessen, was die
         // Plattformrichtlinien verlangen. Symbolknoepfe sind ausgenommen,
         // sonst schruempfte das Symbol mit.
-        <div className="flex max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 [&>button:not([data-icon])]:min-h-[2.75rem] [&>button:not([data-icon])]:px-3 [&>button:not([data-icon])]:text-sm">
+        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 [&>button:not([data-icon])]:min-h-[2.75rem] [&>button:not([data-icon])]:px-3 [&>button:not([data-icon])]:text-sm">
+          {zustand}
+          {wert != null && <span className="whitespace-nowrap text-right font-medium text-ink">{wert}</span>}
           {children}
         </div>
       )}

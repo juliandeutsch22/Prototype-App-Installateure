@@ -91,7 +91,7 @@ export default function LaufStatus({
       {lauf?.kennzahl != null && lauf.kennzahl > 0 && u.stand === 'gut' && (
         <>
           {' '}
-          <span className="tnum">{lauf.kennzahl.toLocaleString('de-AT')}</span>{' '}
+          <span>{lauf.kennzahl.toLocaleString('de-AT')}</span>{' '}
           {lauf.kennzahlEinheit}.
         </>
       )}

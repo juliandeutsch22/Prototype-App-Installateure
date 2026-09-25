@@ -284,7 +284,7 @@ export default function StockView() {
                             {m.reserved > 0 && (
                               <>
                                 {m.category && ' · '}
-                                <span className="tnum">
+                                <span>
                                   {m.stock ?? 0} im Lager, {m.reserved} reserviert
                                 </span>
                               </>

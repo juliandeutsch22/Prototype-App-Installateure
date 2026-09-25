@@ -389,7 +389,7 @@ export default function VacationsView() {
     const rest = urlaubsStand(a.profil, urlaubsJahrVon(v.von, regel.jahresbeginn), a.genehmigt, regel).rest;
     const danach = rest - (Number(v.tage) || 0);
     return (
-      <span className={`tnum mt-1 block text-xs ${danach < 0 ? 'font-medium text-warning' : 'text-ink-muted'}`}>
+      <span className={`mt-1 block text-xs ${danach < 0 ? 'font-medium text-warning' : 'text-ink-muted'}`}>
         Resturlaub: {tageText(rest)} — nach Genehmigung {tageText(danach)}
         {danach < 0 ? ' (reicht nicht)' : ''}
       </span>
@@ -769,7 +769,7 @@ export default function VacationsView() {
       return (
         <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
           <Zustand stand="gut">ausreichend Zeitguthaben</Zustand>
-          <span className="tnum">
+          <span>
             {vorzeichen(jetzt)} Std, danach {vorzeichen(danach)} Std
           </span>
         </span>
@@ -959,11 +959,11 @@ export default function VacationsView() {
             )}
             {zeitraumGewaehlt && !ueberschneidung && (
               <>
-                <strong className="tnum">
+                <strong>
                   {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
                 </strong>
                 <span className="ml-1">in diesem Zeitraum</span>
-                <span className="tnum ml-1">
+                <span className="ml-1">
                   — danach bleiben {tageText(restImAntragsjahr - tage.length)}
                   {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
                 </span>
@@ -975,8 +975,8 @@ export default function VacationsView() {
               </>
             )}
             <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
-              {jahresName} genehmigt: <span className="tnum">{genommen}</span> von{' '}
-              <span className="tnum">{anspruch}</span> Tagen
+              {jahresName} genehmigt: <span>{genommen}</span> von{' '}
+              <span>{anspruch}</span> Tagen
               {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
                   falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
                   (dort sind es die mitgebrachten Tage) noch dort, wo ein
@@ -991,7 +991,7 @@ export default function VacationsView() {
                   — und dann ist es ein Streit statt einer Auskunft. */}
               {stand.verfallen > 0 && (
                 <span className="mt-1 block">
-                  <span className="tnum">{stand.verfallen}</span>
+                  <span>{stand.verfallen}</span>
                   {stand.verfallen === 1 ? ' Tag ist' : ' Tage sind'} heuer verfallen.
                 </span>
               )}
@@ -1001,7 +1001,7 @@ export default function VacationsView() {
 
           {art === 'Zeitausgleich' && (
             <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-              <strong className="tnum">{fmtDauer(zaMin)}</strong>
+              <strong>{fmtDauer(zaMin)}</strong>
               <span className="ml-1">
                 Zeitausgleich
                 {zaStundenweise
@@ -1074,7 +1074,7 @@ export default function VacationsView() {
                     title={v.userName}
                     subtitle={
                       <>
-                        <span className="tnum block">
+                        <span className="block">
                           {zeitraum(v)} · {istZa(v) ? umfang(v) : `${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}`}
                         </span>
                         {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
@@ -1085,7 +1085,7 @@ export default function VacationsView() {
                         */}
                         {istZa(v) && saldoMin !== null && (
                           <span
-                            className={`tnum mt-1 block text-xs ${
+                            className={`mt-1 block text-xs ${
                               saldoMin - kostet < 0 ? 'font-medium text-warning' : 'text-ink-muted'
                             }`}
                           >
@@ -1143,7 +1143,7 @@ export default function VacationsView() {
             {eigene.map((v) => (
               <ListRow
                 key={v.id}
-                title={<span className="tnum">{zeitraum(v)}</span>}
+                title={<span>{zeitraum(v)}</span>}
                 subtitle={
                   <>
                     <span className="block">

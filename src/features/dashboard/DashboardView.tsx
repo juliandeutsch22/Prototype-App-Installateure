@@ -640,7 +640,7 @@ export default function DashboardView() {
                   {e.customerName}
                   {e.asHelper && <Marke>Helfer</Marke>}
                 </p>
-                <p className="tnum text-sm text-ink-muted">{e.projectNumber}</p>
+                <p className="text-sm text-ink-muted">{e.projectNumber}</p>
                 {e.comment && (
                   <p className="mt-2 rounded-sm bg-surface-2 p-2 text-sm text-ink">{e.comment}</p>
                 )}
@@ -712,7 +712,7 @@ export default function DashboardView() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-semibold text-ink">
                     {b.customerName}{' '}
-                    <span className="tnum text-sm font-normal text-ink-muted">
+                    <span className="text-sm font-normal text-ink-muted">
                       ({b.projectNumber})
                     </span>
                   </span>
@@ -796,7 +796,7 @@ export default function DashboardView() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-medium text-ink">
                     {pr.customerName}{' '}
-                    <span className="tnum text-sm font-normal text-ink-muted">
+                    <span className="text-sm font-normal text-ink-muted">
                       ({pr.projectNumber})
                     </span>
                   </span>

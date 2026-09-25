@@ -660,7 +660,7 @@ export default function TimeView() {
                 <div key={week}>
                   <h3 className="mb-1 flex items-center justify-between text-sm font-semibold text-ink-muted">
                     <span>{week}</span>
-                    <span className="tnum">{fmtMin(weekMin)}</span>
+                    <span>{fmtMin(weekMin)}</span>
                   </h3>
                   <List>
                     {rows.map((e) => {
@@ -699,7 +699,7 @@ export default function TimeView() {
                           )}
                           {e.source === 'voice' && <Marke>KI</Marke>}
                           <Zeitmarker eintrag={e} />
-                          <span className="tnum font-medium text-ink">
+                          <span className="font-medium text-ink">
                             {fmtMin(calcWorkMin(e))}
                           </span>
                           {/* Verrechnete Einträge sind Grundlage einer

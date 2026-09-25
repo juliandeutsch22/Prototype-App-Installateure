@@ -439,15 +439,22 @@ textarea:focus {
 }
 
 /*
- * Ziffern mit fester Breite. Zahlen stehen hier in Spalten übereinander —
- * Salden, Stunden, Beträge. In Proportionalschrift ist die 1 schmaler als
- * die 8, dadurch wackelt die Spalte bei jeder Aktualisierung und beim
- * Vergleichen zweier Zeilen rutschen die Kommastellen gegeneinander.
+ * ZIFFERN MIT FESTER BREITE — ÜBERALL, nicht mehr Stelle für Stelle.
+ *
+ * Zahlen stehen hier in Spalten übereinander — Salden, Stunden, Beträge. In
+ * Proportionalschrift ist die 1 schmaler als die 8, dadurch wackelt die
+ * Spalte bei jeder Aktualisierung, und beim Vergleichen zweier Zeilen
+ * rutschen die Kommastellen gegeneinander.
+ *
+ * Bis zum 25.09.2026 trug jede Zahl dafür einzeln die Klasse `.tnum` — an
+ * 136 Stellen, und an jeder neuen fehlte sie wieder. Jetzt erbt es alles vom
+ * `body`. Eingabefelder erben Schrifteigenschaften nicht von selbst, deshalb
+ * stehen sie ausdrücklich daneben: gerade dort tippt man Beträge.
  */
-.tnum,
-.font-mono,
-table td,
-table th {
+body,
+input,
+select,
+textarea {
   font-variant-numeric: tabular-nums;
 }
 

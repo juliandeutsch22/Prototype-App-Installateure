@@ -604,7 +604,7 @@ export default function AdminProjectsView() {
                   key={p.id}
                   title={
                     <span>
-                      {p.customerName} <span className="tnum text-ink-muted">({p.projectNumber})</span>
+                      {p.customerName} <span className="text-ink-muted">({p.projectNumber})</span>
                     </span>
                   }
                   subtitle={

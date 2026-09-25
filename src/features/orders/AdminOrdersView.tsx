@@ -375,7 +375,7 @@ export default function AdminOrdersView() {
                       eine Ordnung, die man ueberfliegen kann. */}
                   <h3 className="section-label mb-1 flex items-center justify-between">
                     <span>{g.titel}</span>
-                    <span className="tnum font-normal text-ink-muted">{g.zeilen.length}</span>
+                    <span className="font-normal text-ink-muted">{g.zeilen.length}</span>
                   </h3>
                   <List>
                     {g.zeilen.map((o) => (
@@ -384,7 +384,7 @@ export default function AdminOrdersView() {
                         title={
                           <span>
                             {o.materialName}{' '}
-                            <span className="tnum text-ink-muted">×{o.quantity}</span>
+                            <span className="text-ink-muted">×{o.quantity}</span>
                           </span>
                         }
                         subtitle={

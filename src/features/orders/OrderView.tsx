@@ -545,7 +545,7 @@ export default function OrderView() {
                       title={
                         <span>
                           {line.materialName}{' '}
-                          <span className="tnum text-ink-muted">×{line.quantity}</span>
+                          <span className="text-ink-muted">×{line.quantity}</span>
                         </span>
                       }
                       subtitle={
@@ -597,7 +597,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[
@@ -649,7 +649,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[
@@ -831,7 +831,7 @@ function QtyAdder({
   return (
     <div className="flex items-center gap-1">
       {added > 0 && (
-        <span className="tnum mr-1 text-sm font-bold text-brand" aria-live="polite">
+        <span className="mr-1 text-sm font-bold text-brand" aria-live="polite">
           ×{added}
         </span>
       )}
@@ -858,7 +858,7 @@ function QtyAdder({
         onChange={(e) => setMenge(e.target.value)}
         onFocus={(e) => e.currentTarget.select()}
         aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
-        className={`tnum h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
+        className={`h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
           gueltig ? 'border-line text-ink' : 'border-danger text-danger'
         }`}
       />

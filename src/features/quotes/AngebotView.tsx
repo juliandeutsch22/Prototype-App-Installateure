@@ -243,16 +243,16 @@ export default function AngebotView() {
           <Angabe wort="Gültig bis">{fmtDatum(q.validUntil)}</Angabe>
           <Angabe wort="Kalkulierte Arbeitszeit">
             {/* Intern: steht nicht auf dem PDF, wird beim Annehmen zum Budget. */}
-            <span className="tnum">{fmtMenge(q.kalkulierteStunden)} h</span>
+            <span>{fmtMenge(q.kalkulierteStunden)} h</span>
           </Angabe>
           <Angabe wort="Baustelle">
             {q.projectNumber ? (
               q.projectId && baustellenSichtbar ? (
-                <Link to={`/admin-projects/${q.projectId}`} className="link tnum">
+                <Link to={`/admin-projects/${q.projectId}`} className="link">
                   {q.projectNumber}
                 </Link>
               ) : (
-                <span className="tnum">{q.projectNumber}</span>
+                <span>{q.projectNumber}</span>
               )
             ) : null}
           </Angabe>
@@ -265,15 +265,15 @@ export default function AngebotView() {
             <li key={i} className="flex items-start justify-between gap-3 py-2">
               <div className="min-w-0">
                 <p className="text-sm text-ink">{p.label}</p>
-                <p className="tnum text-xs text-ink-muted">
+                <p className="text-xs text-ink-muted">
                   {fmtMenge(p.qty)} {p.unit} × {fmtEUR(p.unitPrice)}
                 </p>
               </div>
-              <span className="tnum shrink-0 text-sm text-ink">{fmtEUR(p.netto)}</span>
+              <span className="shrink-0 text-sm text-ink">{fmtEUR(p.netto)}</span>
             </li>
           ))}
         </ul>
-        <dl className="tnum mt-3 space-y-1 border-t border-ink pt-3 text-sm">
+        <dl className="mt-3 space-y-1 border-t border-ink pt-3 text-sm">
           {(q.discountAmount ?? 0) > 0 && q.discount && (
             <>
               <Summe wort="Zwischensumme">{fmtEUR(q.subtotalNetto)}</Summe>
