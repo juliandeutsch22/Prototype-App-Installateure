@@ -1153,10 +1153,23 @@ textarea {
 
   /* ── Listenzeile ────────────────────────────────────────────────────── */
 
-  /* Der letzte Pixel ist die Unterkante der letzten Zeile — abgeschnitten,
-     damit die Liste nicht mit einer Linie endet. */
+  /*
+   * DIE LISTE ENDET NICHT MIT EINER LINIE — ohne „jede außer der letzten“.
+   *
+   * Jede Zeile trägt ihre Linie unten und greift mit `margin-bottom: -1px`
+   * einen Pixel in die nächste. Die Liste ist damit im Layout genau so hoch,
+   * dass die Linie der letzten Zeile unter ihr liegt, und schneidet sie
+   * senkrecht ab. Ein `clip-path` von einem Pixel tat das nicht verlässlich:
+   * die Linie wird auf ganze Pixel gezeichnet, der Beschnitt nicht, und bei
+   * krummen Positionen blieb ein Rest stehen. Waagrecht wird nicht
+   * geschnitten — Fokusringe am Rand bleiben sichtbar.
+   */
+  /* `flow-root`, weil der negative Außenabstand der letzten Zeile sonst durch
+     die Liste hindurchfällt und sie gar nicht kürzer macht. */
   .liste {
-    clip-path: inset(0 0 1px 0);
+    display: flow-root;
+    overflow-x: visible;
+    overflow-y: clip;
   }
 
   .zeile {
@@ -1167,6 +1180,7 @@ textarea {
     column-gap: 0.75rem;
     row-gap: 0.5rem;
     border-bottom: 1px solid var(--border);
+    margin-bottom: -1px;
     padding-block: 0.75rem;
   }
 
@@ -1588,6 +1602,7 @@ textarea {
     justify-content: space-between;
     gap: 1rem;
     border-bottom: 1px solid var(--border);
+    margin-bottom: -1px;
     padding-block: 0.75rem;
   }
 
