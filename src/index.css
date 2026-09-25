@@ -95,7 +95,8 @@
   --border-strong: rgba(18, 176, 198, 0.34);
   /* Der weiche Ring um ein Feld mit Fokus — derselbe Ton, schwächer. */
   --focus-ring: rgba(18, 176, 198, 0.22);
-  /* Grund der Lade-Platzhalter: eine Stufe dunkler als `--surface-2`. */
+  /* Eine Stufe dunkler als `--surface-2`, deckend: Lade-Platzhalter, die
+   * Schiene der Budgetbalken, Hover auf schon getönter Fläche. */
   --surface-3: #dceaef;
 
   /* Semantische Zustände (Text + Fläche).

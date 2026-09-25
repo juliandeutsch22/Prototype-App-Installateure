@@ -122,7 +122,7 @@ export default function BaustellenUebersicht({
 
       {budget.pct !== null ? (
         <div className="flex items-center gap-2">
-          <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
+          <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
             <span
               className={`block h-full ${BAR_TONE[budget.tone]}`}
               style={{ width: balkenBreite(budget.pct) }}

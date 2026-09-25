@@ -1116,7 +1116,7 @@ export default function WorkSheetView() {
                         aria-label="Foto entfernen"
                         title="Foto entfernen"
                         onClick={() => void fotoWegnehmen(f)}
-                        className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-surface/90 text-sm text-danger shadow-sm"
+                        className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-surface text-sm text-danger shadow-sm"
                       >
                         ✕
                       </button>

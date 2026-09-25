@@ -66,7 +66,7 @@ export type Stand =
 const punkt: Record<Stand, string> = {
   gut: 'bg-success',
   laeuft: 'bg-accent-deep',
-  ruht: 'bg-ink-muted/50',
+  ruht: 'bg-ink-placeholder',
   achtung: 'bg-warning',
   schlecht: 'bg-danger',
 };

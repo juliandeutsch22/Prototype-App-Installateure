@@ -47,12 +47,15 @@ const sideLink = ({ isActive }: { isActive: boolean }) =>
  * Verlauf mehr), hat Cyan dort auch keinen Ton mehr, an den es anschliesst.
  * Getragen wird der Zustand ohnehin dreifach: Fläche, Fettung, Textfarbe.
  * Der Strich ist der vierte Hinweis und nie der einzige.
+ *
+ * Die Fläche ist deckendes `--ink-deep`, eine Stufe dunkler als die Leiste —
+ * keine halbtransparente Weiß-Tönung. Weiß darauf steht bei über 16:1.
  */
 const sideLinkDark = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-white bg-white/10 font-bold text-white'
-      : 'border-l-transparent font-medium text-white/75 hover:bg-white/10 hover:text-white'
+      ? 'border-l-white bg-ink-deep font-bold text-white'
+      : 'border-l-transparent font-medium text-white/75 hover:bg-ink-deep hover:text-white'
   }`;
 
 /**
@@ -339,7 +342,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   */}
                   <span
                     className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                      isActive ? 'bg-white/15' : ''
+                      isActive ? 'bg-ink-deep' : ''
                     }`}
                   >
                     <Icon name={item.icon} size={20} />
@@ -368,7 +371,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             >
               <span
                 className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                  moreActive ? 'bg-white/15' : ''
+                  moreActive ? 'bg-ink-deep' : ''
                 }`}
               >
                 <Icon name="more" size={20} />

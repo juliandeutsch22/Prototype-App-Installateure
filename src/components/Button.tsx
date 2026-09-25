@@ -50,7 +50,7 @@ const variants: Record<Variant, string> = {
   // zwei Textfarben in einem class-Attribut entscheidet nicht die
   // Reihenfolge im Attribut, sondern die im erzeugten Stylesheet — das
   // wäre stiller Zufall.
-  'ghost-dark': 'bg-transparent text-white/80 hover:bg-white/10 hover:text-white',
+  'ghost-dark': 'bg-transparent text-white/80 hover:bg-ink-deep hover:text-white',
 };
 
 /**
