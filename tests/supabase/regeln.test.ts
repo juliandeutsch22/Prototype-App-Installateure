@@ -861,9 +861,29 @@ describe('Verrechnet-Kennzeichen — setzt nur, wer abrechnet', () => {
   });
 
   it('der Monteur bestätigt weiterhin seine Abholung', async () => {
-    const { error } = await a.client.from('material_orders')
-      .update({ status: 'Erledigt' }).eq('id', eigeneAnforderung);
+    /*
+      ÜBER „ABGEHOLT“, NICHT ÜBER DEN STATUS. Bis zum Prüflauf vom 25.09.2026
+      stand hier ein direktes `status: 'Erledigt'` — damit schloss der Monteur
+      seine Anforderung ab, ohne dass der Bestand sich bewegte. Die App geht
+      seit jeher über `anforderung_abschliessen`; das ist der Weg, den dieser
+      Test jetzt prüft (P1-11/P3-17).
+    */
+    const { error } = await a.client.rpc('anforderung_abschliessen', { p_order: eigeneAnforderung });
     expect(error).toBeNull();
+    const { data } = await admin.from('material_orders')
+      .select('status, processed').eq('id', eigeneAnforderung).single();
+    expect(data).toEqual({ status: 'Erledigt', processed: true });
+  });
+
+  it('den Stand seiner Anforderung setzt der Monteur nicht von Hand', async () => {
+    const id = crypto.randomUUID();
+    await a.client.from('material_orders').insert({
+      id, company_id: 'firma-a', material_name: 'Winkel', quantity: 2,
+      status: 'Offen', transaction_type: 'order', user_id: a.uid,
+    });
+    const { error } = await a.client.from('material_orders')
+      .update({ status: 'Erledigt', processed: true }).eq('id', id);
+    expect(error?.code).toBe('42501');
   });
 
   it('der Monteur gibt weiterhin eine Anforderung auf', async () => {
@@ -883,7 +903,7 @@ describe('Verrechnet-Kennzeichen — setzt nur, wer abrechnet', () => {
   });
 });
 
-describe('Materialstamm — Bestand bewegt jeder, gepflegt wird er von der Verwaltung', () => {
+describe('Materialstamm — den Bestand bewegen Abholung und Retoure, gepflegt wird er von der Verwaltung', () => {
   let artikel: string;
 
   it('der Monteur sieht den Katalog', async () => {
@@ -895,16 +915,46 @@ describe('Materialstamm — Bestand bewegt jeder, gepflegt wird er von der Verwa
     expect((await a.client.from('materials').select('id').eq('id', artikel)).data).toHaveLength(1);
   });
 
+  /*
+    BIS ZUM PRÜFLAUF VOM 25.09.2026 (P1-11/P3-17) setzten die beiden Prüfungen
+    hier den Bestand DIREKT — genau das Loch: wer „95“ schreiben durfte,
+    durfte auch „0“ oder „9999“ schreiben. Abholung und Retoure gehen in der
+    App über ihre Datenbankfunktionen, und die prüft dieser Abschnitt jetzt.
+  */
   it('der Monteur bucht seine Abholung vom Bestand ab', async () => {
-    const { error } = await a.client.from('materials')
-      .update({ stock: 95 }).eq('id', artikel);
+    const id = crypto.randomUUID();
+    const { error: angelegt } = await a.client.from('material_orders').insert({
+      id, company_id: 'firma-a', material_id: artikel, material_name: 'Kupferrohr 15mm',
+      quantity: 5, status: 'Offen', transaction_type: 'order', user_id: a.uid,
+    });
+    expect(angelegt).toBeNull();
+    const { error } = await a.client.rpc('anforderung_abschliessen', { p_order: id });
     expect(error).toBeNull();
+    const { data } = await admin.from('materials').select('stock').eq('id', artikel).single();
+    expect(Number(data!.stock)).toBe(95);
   });
 
   it('der Monteur schreibt eine Retoure zurück', async () => {
-    const { error } = await a.client.from('materials')
-      .update({ stock: 97 }).eq('id', artikel);
+    const { error } = await a.client.rpc('retoure_anlegen', {
+      p_beleg: {
+        id: crypto.randomUUID(), company_id: 'firma-a', material_id: artikel,
+        material_name: 'Kupferrohr 15mm', quantity: 2, condition: 'neu', user_id: a.uid,
+      },
+    });
     expect(error).toBeNull();
+    const { data } = await admin.from('materials').select('stock').eq('id', artikel).single();
+    expect(Number(data!.stock)).toBe(97);
+  });
+
+  it('den Bestand selbst setzt der Monteur NICHT — weder über die Tabelle noch über die Funktion', async () => {
+    const direkt = await a.client.from('materials').update({ stock: 9999 }).eq('id', artikel);
+    expect(direkt.error?.code).toBe('42501');
+    const ueberFunktion = await a.client.rpc('bestand_anpassen', { p_material: artikel, p_delta: -97 });
+    expect(ueberFunktion.error?.code).toBe('42501');
+    const ausgelaufen = await a.client.from('materials').update({ ausgelaufen: true }).eq('id', artikel);
+    expect(ausgelaufen.error?.code).toBe('42501');
+    const { data } = await admin.from('materials').select('stock, ausgelaufen').eq('id', artikel).single();
+    expect({ stock: Number(data!.stock), ausgelaufen: data!.ausgelaufen }).toEqual({ stock: 97, ausgelaufen: false });
   });
 
   it('der Monteur ändert die Bezeichnung NICHT', async () => {
