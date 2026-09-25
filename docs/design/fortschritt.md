@@ -19,10 +19,15 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
 | 1.7 Wochenplan | erledigt | `24a9593` |
 | 1.8 Projektauswertung | erledigt | `18abd9d` |
 | 1.9 Anrede „du“ | erledigt | `8e0d098` |
-| 2 Gemeinsame Bausteine | erledigt (Restbausteine laufen) | `eb7e004`, `ea47726`, `67cad78`, `f87e050` + Umstellung je Bereich (siehe unten) |
+| 2 Gemeinsame Bausteine | erledigt | `eb7e004`, `ea47726`, `67cad78`, `f87e050`, `da377a4`, `5f240bf`, `194db9d`, `24abb1c`, `0219c66` + Umstellung je Bereich (siehe unten) |
 | 4 Handwerksschein als Schrittfolge | erledigt (ohne Querformat, siehe Offene Punkte) | `ac7690b`, `14c3c3b`, `b3713a1`, `4b3ce53` |
 | 3a Monteur-Start | erledigt | `40d6851`, `12c12bf` |
 | 3b Büro-Startseite | erledigt | `57d5155` |
+| 3c Desktop-Listen als Tabelle | erledigt (ab 1280 px) | `cab3cca`, `fb4d312`, `205b5b8`, `71f5260`, `52858f7`, `91d51d5`, `11ed4b2` |
+| 3d Akten zweispaltig | erledigt (ab 1280 px) | `7c8e421`, `624db5f`, `352b908`, `339597a` |
+| 3e Zeiterfassung, Material, Urlaub | erledigt | `9713fdf`, `3239e56`, `da85121`, `498ac91`, `78defdd` |
+| 3f Mein Einsatzplan, Meine Baustellen, Einstellungen | erledigt | `6a4d906`, `ce63368`, `d1333e2` |
+| Abschluss: Kontrast Monatskalender | erledigt | `9ecb974` |
 
 ## Offene Punkte
 
@@ -103,6 +108,31 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
 18. **Startseiten-Test „kein Saldo“ umgestellt:** Der Auftrag verlangt in
     „Diese Woche“ den Saldo; es ist der des Monats. Der Test prüft jetzt,
     dass genau dieser erscheint und kein Saldo seit Eintritt.
+19. **Tabellen und Akten erst ab 1280 px** statt ab `lg` (1024). Neben der
+    Seitenleiste blieben auf 1024 px rund 660 px: Namen brachen mitten im
+    Wort, die Lagerknöpfe der Anforderungen standen übereinander, zwei Felder
+    der Stammdaten brachen um. Der Handwerksschein bleibt bei 1024 px.
+20. **Silbentrennung in der Vorschau nicht sichtbar.** `hyphens: auto` mit
+    `lang="de"` steht global; das Headless-Chromium der Aufnahmen hat keine
+    deutschen Trennmuster und bricht lange Namen
+    („Wohnungseigentümergemeinschaft“) ohne Strich. Vorschlag: auf echtem
+    Telefon und Tablet ansehen; falls nötig Mindestbreite von `.zeile-text`.
+21. **Reiterleisten** in Material, Urlaub, Lager und Anforderungen sind noch
+    Tailwind-Hilfsklassen. Vorschlag: ein Baustein mit Klasse je Zustand,
+    alle vier in einem Zug umstellen (einzeln ergäbe zwei Varianten).
+22. **Dateiwahl-Feld** (Firmendaten, Katalog- und Kundenimport) ohne
+    gemeinsamen Baustein. Vorschlag: `.feld-datei`, alle drei zugleich.
+23. **„Ältere Einträge laden“ / `Nachladen`**: Vorschlag, beide als
+    Kartenfuß (`Card footer`) — dann einheitlich.
+24. **Letzte Tabellenzeile** behält ihre untere Linie über der Kartenkante;
+    sie wegzunehmen bräuchte einen positionsabhängigen Selektor.
+25. **Kontaktknöpfe vor der Hauptaktion** (Mockup Mein Einsatzplan) nicht
+    umgesetzt: die bestehende Reihenfolge bleibt, die Hauptaktion wird
+    nicht ohne Grund verschoben.
+26. **Wochensumme und Zeilenwerte in der Zeiterfassung** tragen jetzt
+    „Std“ (Dauer); die Kennzahlen oben bleiben `HH:MM`, weil ein Test genau
+    darauf prüft. Vorschlag: im selben Zug angleichen, wenn der Test
+    angepasst werden darf.
 
 ---
 
@@ -417,3 +447,44 @@ bereits geladene Daten.
 ### 3b Büro-Startseite — erledigt (`57d5155`)
 Die vorhandenen Kennzahlen stehen oben als Links; die Karten mit
 Obergrenze laufen über `Grenzliste`.
+
+### 3c Desktop-Listen — erledigt (ab 1280 px)
+Rechnungen, Anforderungen, Kunden, Baustellen, Mitarbeiterübersicht stehen
+am Schreibtisch als Tabelle mit denselben Aktionen (`RowMenu`, „Akte“,
+„Aus Lager“, Aufklappen). Eine Breitenweiche `useAbBreite` legt genau EINE
+Form ins DOM; ohne `matchMedia` (jsdom) bleibt die Listenform. Beträge,
+Mengen, Stunden rechtsbündig; Datum, Telefon, Status brechen nicht um.
+Neue Tests je Ansicht („am Schreibtisch“) und für die Weiche.
+
+### 3d Akten — erledigt (ab 1280 px)
+Kunde, Baustelle, Angebot: Stammdaten links (3 fr), Zugehöriges rechts
+(2 fr), darunter einspaltig in bisheriger Reihenfolge. Die Aktionsleiste im
+Stammdaten-Formular klebt weiter.
+
+### 3e Zeiterfassung, Material, Urlaub — erledigt
+Dauern mit „Std“, Marker am Titel statt rechts (am Telefon rutschte sonst
+„Löschen“ in eine eigene Reihe). „Nicht im Katalog?“ schob auf 390 px das
+Mengenfeld aus der Karte — behoben. Retoure, Urlaubsantrag und
+Betriebsurlaub mit Aktionsleiste. Einkaufsliste ohne `divide-y`, Fehler als
+Meldung. Überschneidung im Urlaub als Warnmeldung; „Mitarbeiter ausnehmen“
+als Aufklappkopf wie „Weitere Angaben“.
+
+### 3f Mein Einsatzplan, Meine Baustellen, Einstellungen — erledigt
+Einsatz wie am Monteur-Start (Kunde, „Nummer · Aufgabe“, Knöpfe,
+Kontaktzeile); „Nächste Einsätze“ mit Baustellennummer. Meine Baustellen ab
+1280 px zweispaltig, Leer- und Ladezustand als ruhige Zeile. Kontenrahmen
+und Nummernkreise mit Aktionsleiste. Material am Schein ohne `divide-y`.
+
+## Abschlussprüfung (25.09.2026)
+
+- `npm run typecheck`, `npm run lint`: grün. `npm test`: 189 Dateien,
+  2422 Tests grün. `vite build`: grün.
+- Aufnahmen aller Routen × Rollen × 390/834/1440: 339 Bilder,
+  0 mit seitlichem Scrollen, 0 mit JS-Fehlern (vorher ebenso 339/0/0).
+- Rückstandssuche: keine gestrichelten/gepunkteten Linien, keine Verläufe,
+  keine Emojis. Halbtransparent nur noch die Abdunkler hinter Dialogen
+  (Punkt 5), Linien mit Deckkraft (`border-white/15`, `border-line/60`,
+  `border-brand/30`) und weiße Schrift mit Deckkraft auf der dunklen
+  Seitenleiste (gemessen ≥ 4,9 : 1). Alle 163 Klassen aus `index.css`
+  werden im Quelltext wörtlich verwendet.
+- Datenbank-Prüfungen und Browserwege: in der CI des Pull-Requests.
