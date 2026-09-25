@@ -239,15 +239,19 @@ export default function NachkalkulationView() {
         </Card>
       ) : (
         <>
+          {error && <ErrorState message={error} />}
+
           {/*
-            Der Hinweis zur Auswahl stand hier dauerhaft unter dem Feld. Beim
-            ersten Mal erklärt er etwas, ab dem zweiten Mal steht er im Weg —
-            deshalb hinter dem „i". Was sich MIT der Auswahl ändert (laufend
-            oder abgeschlossen), bleibt sichtbar: das ist keine Erklärung,
-            sondern eine Aussage über das, was gerade auf dem Schirm steht.
+            DIE AUSWAHL STEHT RECHTS IM KARTENTITEL, wie der Filter jeder
+            Liste (docs/design/linie.md 2) — vorher eine eigene Karte
+            „Auswahl" mit einem einzigen Feld über der Liste. Ihr Hinweis
+            steht jetzt im „i" dieser Karte. Was sich MIT der Auswahl ändert
+            (laufend oder abgeschlossen), bleibt sichtbar als erste Zeile: das
+            ist keine Erklärung, sondern eine Aussage über das, was gerade auf
+            dem Schirm steht.
           */}
           <Card
-            title="Auswahl"
+            title="Ergebnis je Baustelle"
             hint={
               <>
                 Ein <strong>laufender</strong> Stand ist ein Zwischenstand: es kommen noch
@@ -256,27 +260,30 @@ export default function NachkalkulationView() {
                 werden jeweils die {BAUSTELLEN_JE_LAUF} jüngsten.
               </>
             }
+            action={
+              <div className="liste-kopf-rechts">
+                {!loading && ergebnisse !== null && (
+                  <span className="liste-anzahl">{ergebnisse.length}</span>
+                )}
+                <SelectField
+                  id="nkstatus"
+                  label=""
+                  aria-label="Baustellen"
+                  value={status}
+                  onChange={(e) => {
+                    selbstGewaehlt.current = true;
+                    setStatus(e.target.value as 'Aktiv' | 'Abgeschlossen');
+                  }}
+                >
+                  <option value="Abgeschlossen">Abgeschlossen</option>
+                  <option value="Aktiv">Laufend</option>
+                </SelectField>
+              </div>
+            }
           >
-            <SelectField
-              id="nkstatus"
-              label="Baustellen"
-              value={status}
-              onChange={(e) => {
-                selbstGewaehlt.current = true;
-                setStatus(e.target.value as 'Aktiv' | 'Abgeschlossen');
-              }}
-            >
-              <option value="Abgeschlossen">Abgeschlossen</option>
-              <option value="Aktiv">Laufend</option>
-            </SelectField>
             {status === 'Aktiv' && (
-              <p className="mt-2 text-sm text-warning">Zwischenstand — es kommen noch Stunden dazu.</p>
+              <p className="mb-3 text-sm text-warning">Zwischenstand — es kommen noch Stunden dazu.</p>
             )}
-          </Card>
-
-          {error && <ErrorState message={error} />}
-
-          <Card title="Ergebnis je Baustelle">
             {loading || ergebnisse === null ? (
               <SkeletonList rows={4} />
             ) : ergebnisse.length === 0 ? (
@@ -320,11 +327,12 @@ export default function NachkalkulationView() {
                                 </span>
                               )}
                             </td>
-                            <td className="tabelle-zahl">{fmtEUR(k.erloes)}</td>
-                            <td className="tabelle-zahl">{fmtEUR(k.personalkosten)}</td>
+                            {/* Zahlen rechtsbündig und fett (Linie, 4). */}
+                            <td className="tabelle-zahl-stark">{fmtEUR(k.erloes)}</td>
+                            <td className="tabelle-zahl-stark">{fmtEUR(k.personalkosten)}</td>
                             {/* Ohne bekannte Materialkosten ein Strich, keine
                                 „0,00" — siehe die Rechenzeile der Liste. */}
-                            <td className="tabelle-zahl">
+                            <td className="tabelle-zahl-stark">
                               {k.materialkosten > 0 ? fmtEUR(k.materialkosten) : '–'}
                             </td>
                             <td className="tabelle-zahl-stark">{fmtEUR(k.deckungsbeitrag)}</td>
@@ -345,17 +353,15 @@ export default function NachkalkulationView() {
                     {ergebnisse.map((k) => (
                       <ListRow
                         key={k.projectNumber}
-                        title={
-                          <span>
-                            {k.customerName}{' '}
-                            <span className="text-sm font-normal text-ink-muted">
-                              ({k.projectNumber})
-                            </span>
-                          </span>
-                        }
+                        title={k.customerName}
+                        /* Nach der Linie (3): die Nummer vorn in der
+                           Unterzeile, wie in der Tabelle unter dem Kunden. */
                         subtitle={
                           <>
                             <span className="block">
+                              {k.projectNumber} · {herkunft(k)}
+                            </span>
+                            <span className="mt-1 block">
                               Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)}
                               {/*
                                 Material steht nur da, wenn welches bekannt ist.
@@ -373,9 +379,6 @@ export default function NachkalkulationView() {
                                 Betrag zu hoch.
                               </span>
                             )}
-                            <span className="mt-1 block text-xs text-ink-muted">
-                              {herkunft(k)}
-                            </span>
                           </>
                         }
                         zustand={
