@@ -416,7 +416,20 @@ export default function TimeView() {
       */}
       <button
         type="button"
-        onClick={() => document.getElementById('meine-eintraege')?.scrollIntoView({ behavior: 'smooth' })}
+        onClick={() => {
+          const ziel = document.getElementById('meine-eintraege');
+          if (!ziel) return;
+          ziel.scrollIntoView({ behavior: 'smooth' });
+          /*
+            DER FOKUS GEHT MIT. Vorher rollte nur das Bild; Tastatur und
+            Vorlesehilfe standen weiter oben am Knopf, und der nächste Tab
+            führte durch die ganze Maske, über die man gerade gesprungen war
+            (Prüflauf 25.09.2026, P4-16). `tabindex=-1`: fokussierbar per
+            Programm, aber kein eigener Tab-Stopp.
+          */
+          ziel.setAttribute('tabindex', '-1');
+          ziel.focus({ preventScroll: true });
+        }}
         className="inline-flex min-h-touch items-center gap-1 text-sm font-medium text-brand sm:hidden"
       >
         Zu meinen Einträgen

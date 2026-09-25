@@ -695,3 +695,28 @@ describe('Zeiterfassung — vom Büro gebuchter Zeitausgleich (Prüflauf 25.09.2
     expect(within(za).getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
   });
 });
+
+describe('Zeiterfassung — „Zu meinen Einträgen" (Prüflauf 25.09.2026, P4-16)', () => {
+  it('rollt nicht nur hin, sondern nimmt den Fokus mit', async () => {
+    /*
+      Vorher rollte nur das Bild. Tastatur und Vorlesehilfe blieben oben am
+      Knopf, und der nächste Tab ging durch die ganze Maske, über die man
+      gerade gesprungen war.
+    */
+    const rollen = vi.fn();
+    const vorher = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = rollen;
+    try {
+      const { container } = zeige();
+      await userEvent.click(await screen.findByRole('button', { name: /Zu meinen Einträgen/ }));
+      const ziel = container.querySelector('#meine-eintraege') as HTMLElement;
+      expect(rollen).toHaveBeenCalled();
+      expect(ziel).toHaveFocus();
+      // Fokussierbar per Programm, aber kein eigener Tab-Stopp.
+      expect(ziel).toHaveAttribute('tabindex', '-1');
+    } finally {
+      Element.prototype.scrollIntoView = vorher;
+    }
+  });
+});
+
