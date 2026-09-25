@@ -1498,7 +1498,7 @@ export default function InvoicesView() {
 
       {!forderungenFehler && auffaellige(offeneLeistung).length > 0 && (
         <Card
-          title={`Nicht verrechnete Leistung (${auffaellige(offeneLeistung).length})`}
+          title="Nicht verrechnete Leistung" anzahl={auffaellige(offeneLeistung).length}
           hint={
             'Unterschriebene Handwerksscheine, die auf keiner gültigen Rechnung stehen und ' +
             `älter als ${AUFFAELLIG_AB_TAGEN} Tage sind — älteste zuerst. Wird eine Rechnung ` +
@@ -1547,7 +1547,7 @@ export default function InvoicesView() {
 
       {!forderungenFehler && (lauf.zeilen.length > 0 || lauf.ausgereizt.length > 0) && (
         <Card
-          title={`Mahnlauf (${lauf.zeilen.length})`}
+          title="Mahnlauf" anzahl={lauf.zeilen.length}
           hint={
             'Was heute gemahnt werden kann — die weit fortgeschrittenen Forderungen oben, denn ' +
             'eine Rechnung vor der letzten Mahnung ist dringender als eine, die gerade erst die ' +
@@ -2371,7 +2371,7 @@ export default function InvoicesView() {
       )}
 
       <Card
-        title={`Alle Rechnungen (${visible.length})`}
+        title="Alle Rechnungen" anzahl={visible.length}
         hint={
           'Der Status „Überfällig“ wird beim Öffnen dieser Ansicht automatisch gesetzt, ' +
           'sobald das Zahlungsziel überschritten ist — „Bezahlt“ trägt jemand von Hand ein. ' +

@@ -521,7 +521,7 @@ export default function OrderView() {
             </div>
           </Card>
 
-          <Card title={`Anforderung (${cart.length})`}>
+          <Card title="Anforderung" anzahl={cart.length}>
             {cart.length === 0 ? (
               <EmptyState>
                 Noch nichts ausgewählt. Im Katalog oben beim Artikel auf „Anfordern" tippen.
@@ -588,7 +588,7 @@ export default function OrderView() {
 
       {tab === 'meine' && (
         <>
-          <Card title={`Offen (${activeOrders.length})`}>
+          <Card title="Offen" anzahl={activeOrders.length}>
             {activeOrders.length === 0 ? (
               <EmptyState>Keine offenen Bestellungen.</EmptyState>
             ) : (
@@ -643,7 +643,7 @@ export default function OrderView() {
             )}
           </Card>
 
-          <Card title={`Erledigt (${doneOrders.length})`}>
+          <Card title="Erledigt" anzahl={doneOrders.length}>
             {doneOrders.length === 0 ? (
               <EmptyState>Noch nichts erledigt.</EmptyState>
             ) : (

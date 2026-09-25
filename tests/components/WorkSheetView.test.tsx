@@ -8,6 +8,7 @@ import type { Assignment, Material, Project, WorkSheet, WorkSheetZeit } from '@/
 import { todayStr } from '@/lib/time';
 import type { NewWorkSheet } from '@/lib/db/workSheets';
 import { kanonischerInhalt } from '@shared/scheinHash';
+import { karteZaehlt } from './kartenZahl';
 
 /**
  * Der Handwerksschein war ein Formular ohne Anschluss: er stand in einem
@@ -702,7 +703,7 @@ describe('Fotos', () => {
   async function fotoWaehlen(nutzer: ReturnType<typeof userEvent.setup>) {
     // Erst wenn die Baustelle steht, gibt es den Abschnitt: ein Foto ohne
     // Schein hat keinen Ort, an den es gehört.
-    await screen.findByText(/^Fotos \(/);
+    await karteZaehlt(/Fotos/, /^\d+ von 8$/);
     await zuSchritt(nutzer, 'Fotos');
     // Beschriftung des versteckten Dateifelds ist der Knopftext, und der
     // wechselt mit dem Zustand: erstes Bild, weiteres, Fach voll.
@@ -740,7 +741,7 @@ describe('Fotos', () => {
   */
   it('steht in einer eigenen Karte, nicht bei den Unterschriften', async () => {
     zeichne();
-    await screen.findByText(/^Fotos \(/);
+    await karteZaehlt(/Fotos/, /^\d+ von 8$/);
 
     const namensfeld = screen.getByLabelText(/Monteur \(Name in Druckbuchstaben\)/);
     const unterschriften = namensfeld.closest('section');
@@ -760,13 +761,13 @@ describe('Fotos', () => {
   it('beschriftet den Knopf nach dem Stand und zählt im Kartentitel mit', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await screen.findByText('Fotos (0/8)');
+    await karteZaehlt(/Fotos/, '0 von 8');
     expect(screen.getByLabelText('Foto aufnehmen')).toBeInTheDocument();
 
     await fotoWaehlen(nutzer);
     await waitFor(() => expect(fotoHochladen).toHaveBeenCalled());
 
-    expect(await screen.findByText('Fotos (1/8)')).toBeInTheDocument();
+    await karteZaehlt(/Fotos/, '1 von 8');
     expect(screen.getByLabelText('Weiteres Foto')).toBeInTheDocument();
   });
 

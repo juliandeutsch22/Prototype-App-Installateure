@@ -3,6 +3,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Assignment, MaterialOrder, Project, TimeEntry } from '@/types';
+import { karteMitZahl, karteZaehlt } from './kartenZahl';
 
 /**
  * Die Startseite hatte bis hierher KEINEN Test.
@@ -358,7 +359,7 @@ describe('Startseite — Geschäftsführung', () => {
 
   it('listet alle aktiven Baustellen, aber keine abgeschlossene', async () => {
     zeichne();
-    const karte = (await screen.findByText(/Aktive Baustellen \(2\)/i)).closest('section')!;
+    const karte = await karteMitZahl(/^Aktive Baustellen/, 2);
     expect(within(karte).getByText(/Familie Huber/)).toBeInTheDocument();
     expect(within(karte).getByText(/Gemeinde Neudorf/)).toBeInTheDocument();
     // Die abgeschlossene Baustelle gehört hier nicht hin — sie macht mit den
@@ -616,7 +617,7 @@ describe('Startseite — wie viele Zeilen je Karte', () => {
     rolle.wert = 'Geschäftsführung';
     zeichne();
 
-    expect(await screen.findByText(/Aktive Baustellen \(5\)/)).toBeInTheDocument();
+    await karteZaehlt(/^Aktive Baustellen/, 5);
     expect(screen.getByText(/Kunde 004/)).toBeInTheDocument();
     expect(screen.queryByText(/weitere/)).not.toBeInTheDocument();
   });
@@ -627,7 +628,7 @@ describe('Startseite — wie viele Zeilen je Karte', () => {
     zeichne();
 
     // Die Zahl im Titel bleibt die WAHRE — sie ist die Aussage der Karte.
-    expect(await screen.findByText(/Aktive Baustellen \(30\)/)).toBeInTheDocument();
+    await karteZaehlt(/^Aktive Baustellen/, 30);
     expect(screen.getByText(/Kunde 011/)).toBeInTheDocument();
     expect(screen.queryByText(/Kunde 012/)).not.toBeInTheDocument();
     expect(screen.getByText(/und 18 weitere/)).toBeInTheDocument();

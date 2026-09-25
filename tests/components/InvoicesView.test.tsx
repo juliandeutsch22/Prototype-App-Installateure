@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
 import { mitSchreibtisch } from './schreibtisch';
+import { karteMitZahl, karteZaehlt } from './kartenZahl';
 
 /**
  * Die Rechnungsansicht — bis jetzt ohne eigenen Test, und dabei die Ansicht,
@@ -1141,7 +1142,7 @@ describe('Der Mahnlauf', () => {
     offene = [offen('0001'), offen('0002', { totalBrutto: 300 })];
     zeige();
 
-    const karte = (await screen.findByText(/^Mahnlauf \(2\)/)).closest('section')!;
+    const karte = await karteMitZahl(/^Mahnlauf/, 2);
     // Trennzeichen raus: de-AT setzt hier je nach Umgebung Punkt oder ein
     // geschütztes Leerzeichen, und darum geht es hier nicht.
     expect(karte.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1500,00');
@@ -1211,7 +1212,7 @@ describe('Der Mahnlauf', () => {
     rechnungen = [];
     offene = [offen('0001', { dueDate: '2024-03-01' })];
     zeige();
-    expect(await screen.findByText(/^Mahnlauf \(1\)/)).toBeInTheDocument();
+    await karteZaehlt(/^Mahnlauf/, 1);
   });
 });
 
@@ -1250,7 +1251,7 @@ describe('Nicht verrechnete Leistung', () => {
     alleScheine = [schein('s1', '2026-06-01')];
     zeige();
 
-    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+    await karteZaehlt(/^Nicht verrechnete Leistung/, 1);
     expect(screen.getByText(/92 Tage/)).toBeInTheDocument();
   });
 
@@ -1305,7 +1306,7 @@ describe('Nicht verrechnete Leistung', () => {
       } as unknown as Invoice & { id: string },
     ];
     zeige();
-    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
+    await karteZaehlt(/^Nicht verrechnete Leistung/, 1);
   });
 
   it('führt Entwürfe gar nicht — sie sind noch keine Leistung', async () => {

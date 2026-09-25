@@ -902,7 +902,7 @@ export default function DashboardView() {
           leitung && data.aktiveBaustellen && data.aktiveBaustellen.length > 0 && (
             <Card
               key="baustellen"
-              title={`Aktive Baustellen (${data.aktiveBaustellen.length})`}
+              title="Aktive Baustellen" anzahl={data.aktiveBaustellen.length}
               action={
                 <Link to="/admin-projects" className="textlink-allein">
                   Baustellen verwalten
@@ -989,7 +989,7 @@ export default function DashboardView() {
           materialAn && data.openOrders && data.openOrders.length > 0 && (
             <Card
               key="material"
-              title={`Material angefordert (${data.openOrders.length})`}
+              title="Material angefordert" anzahl={data.openOrders.length}
               action={
                 <Link to="/material/anforderungen" className="textlink-allein">
                   Bearbeiten

@@ -24,7 +24,7 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
 
   return (
     <>
-      <Card title={`Gemeldete Probleme (${gemeldet.length})`}>
+      <Card title="Gemeldete Probleme" anzahl={gemeldet.length}>
         {gemeldet.length === 0 ? (
           <EmptyState>Niemand hat ein Problem gemeldet.</EmptyState>
         ) : (
@@ -52,7 +52,7 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
         )}
       </Card>
 
-      <Card title={`Technische Fehler (${gruppen.length})`}>
+      <Card title="Technische Fehler" anzahl={gruppen.length}>
         {gruppen.length === 0 ? (
           <EmptyState>Keine Abstürze und keine unbehandelten Fehler.</EmptyState>
         ) : (

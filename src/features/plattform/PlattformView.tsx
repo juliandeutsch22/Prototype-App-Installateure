@@ -257,7 +257,7 @@ export default function PlattformView() {
           der Liste, und wer widerruft, verschwindet daraus.
         */}
         <Card
-          title={`Einblick gewährt (${offen.length})`}
+          title="Einblick gewährt" anzahl={offen.length}
           hint="Der Zugang ist LESEND. Zeitbuchungen, Urlaube und Fotos von Baustellen bleiben auch damit verschlossen — dort stehen Kranken- und Urlaubstage von Mitarbeitern und Aufnahmen aus Kundenwohnungen. Jeder geöffnete Bereich steht im Protokoll des Betriebs."
         >
           {offen.length === 0 ? (
@@ -380,7 +380,7 @@ export default function PlattformView() {
         </Card>
 
         {angelegt.length > 0 && (
-          <Card title={`In dieser Sitzung angelegt (${angelegt.length})`}>
+          <Card title="In dieser Sitzung angelegt" anzahl={angelegt.length}>
             {/*
               DER RÜCKSETZLINK STEHT NUR HIER UND NUR JETZT.
 

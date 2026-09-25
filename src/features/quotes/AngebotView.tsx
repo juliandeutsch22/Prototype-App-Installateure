@@ -277,7 +277,7 @@ export default function AngebotView() {
             </dl>
           </Card>
 
-          <Card title={`Positionen (${q.positions.length})`}>
+          <Card title="Positionen" anzahl={q.positions.length}>
             <List>
               {q.positions.map((p, i) => (
                 <ListRow

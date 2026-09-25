@@ -1499,7 +1499,7 @@ export default function WorkSheetView() {
               ) : (
                 <div className="schein-stapel">
                   {projekt && (
-                    <Card title={`Fotos (${fotos.length}/${MAX_FOTOS})`} hint={fotoHinweis}>
+                    <Card title="Fotos" anzahl={`${fotos.length} von ${MAX_FOTOS}`} hint={fotoHinweis}>
                       <p className="schein-leise">
                         Freiwillig. Höchstens {MAX_FOTOS} Stück, am Gerät verkleinert.
                       </p>

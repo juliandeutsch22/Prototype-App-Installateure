@@ -256,7 +256,7 @@ export default function SupportzugangView() {
       </Card>
 
       <Card
-        title={`Bisherige Zugänge (${(liste ?? []).length})`}
+        title="Bisherige Zugänge" anzahl={(liste ?? []).length}
         hint="Je Zugang steht hier, WOFÜR er gewährt wurde, WIE LANGE er galt — und welche Bereiche darin geöffnet wurden. Gezählt wird jeder einzelne Aufruf; angehängt wird, geändert nie. Auch wir können hier nichts nachbessern."
       >
         {(liste ?? []).length === 0 ? (

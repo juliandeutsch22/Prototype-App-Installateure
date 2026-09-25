@@ -187,7 +187,7 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
       </Card>
 
       {nichtUebernommen.length > 0 && (
-        <Card title={`Nicht übernommen (${nichtUebernommen.length})`}>
+        <Card title="Nicht übernommen" anzahl={nichtUebernommen.length}>
           <Grenzliste
             eintraege={nichtUebernommen}
             grenze={ZEIGE_ZEILEN}

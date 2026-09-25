@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Quote } from '@/types';
+import { karteMitZahl, karteZaehlt } from './kartenZahl';
 
 /**
  * Die Angebotsseite.
@@ -119,7 +120,7 @@ beforeEach(() => {
 describe('Ein Angebot ansehen', () => {
   it('zeigt Positionen, Summen und Anmerkungen', async () => {
     zeige();
-    const positionen = (await screen.findByText(/Positionen \(2\)/)).closest('section')!;
+    const positionen = await karteMitZahl(/^Positionen/, 2);
     expect(within(positionen).getByText('Facharbeiterstunden')).toBeInTheDocument();
     expect(within(positionen).getByText('Geberit Duofix')).toBeInTheDocument();
     expect(within(positionen).getByText(/16 h ×/)).toBeInTheDocument();
@@ -157,7 +158,7 @@ describe('Das PDF', () => {
   it('geht mit der Anschrift aus dem Kundenstamm hinaus', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await screen.findByText(/Positionen \(2\)/);
+    await karteZaehlt(/^Positionen/, 2);
     await nutzer.click(screen.getByRole('button', { name: /PDF herunterladen/ }));
     expect(pdf).toHaveBeenCalledTimes(1);
     const o = pdf.mock.calls[0][0] as { quote: Quote; kunde: Customer };
