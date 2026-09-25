@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { groupProjectHours, calcBudgetState, calcWorkMin, fmtStd, balkenBreite, fmtStunden } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
-import { TeilFehler } from '@/components/States';
+import { EmptyState, TeilFehler } from '@/components/States';
 import { datumAT } from '@/lib/datum';
 
 /**
@@ -95,9 +95,7 @@ export default function BaustellenUebersicht({
 
   if (stand.fachMin === 0 && stand.helperMin === 0) {
     return (
-      <p className="text-sm text-ink-muted">
-        Auf diese Baustelle ist noch keine Stunde gebucht.
-      </p>
+      <EmptyState>Auf diese Baustelle ist noch keine Stunde gebucht.</EmptyState>
     );
   }
 

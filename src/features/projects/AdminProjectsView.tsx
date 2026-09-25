@@ -32,6 +32,8 @@ import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import Meldung from '@/components/Meldung';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { fmtStunden } from '@/lib/time';
 
 const empty = {
@@ -463,7 +465,7 @@ export default function AdminProjectsView() {
               <p className="text-sm text-warning sm:col-span-2">
                 Bisher als Text hinterlegt: „{form.customerName}". Bitte den passenden Kunden
                 wählen — oder in der{' '}
-                <Link to="/customers" className="font-semibold underline">
+                <Link to="/customers" className="textlink">
                   Kundenverwaltung
                 </Link>{' '}
                 anlegen und die Baustellen übernehmen.
@@ -472,7 +474,7 @@ export default function AdminProjectsView() {
             {kunden.length === 0 && (
               <p className="text-sm text-ink-muted sm:col-span-2">
                 Noch keine Kunden angelegt.{' '}
-                <Link to="/customers" className="font-semibold text-brand underline">
+                <Link to="/customers" className="textlink">
                   Zur Kundenverwaltung
                 </Link>
               </p>
@@ -522,14 +524,16 @@ export default function AdminProjectsView() {
           {/* Ohne Zustaendige laeuft eine Eilbestellung ins Leere — das gehoert
               beim Anlegen gesagt, nicht erst, wenn ein Monteur wartet. */}
           {managers.length === 0 && (
-            <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+            <Meldung ton="warnung">
               Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
               niemanden. Die Verwaltung wird weiterhin verständigt.
-            </p>
+            </Meldung>
           )}
           <Pflichthinweis />
           {error && <ErrorState message={error} />}
-          <div className="flex gap-3">
+          {/* Das Formular ist am Telefon mehrere Bildschirme lang — die Leiste
+              hält „Anlegen" erreichbar. */}
+          <Aktionsleiste>
             <Button type="submit" loading={saving}>Anlegen</Button>
             {/* Der Weg zurück zur Liste — vorher gab es ihn nicht, weil das
                 Formular gar nicht zuging. */}
@@ -540,7 +544,7 @@ export default function AdminProjectsView() {
             >
               Abbrechen
             </Button>
-          </div>
+          </Aktionsleiste>
         </form>
       </Card>
       )}
@@ -548,7 +552,7 @@ export default function AdminProjectsView() {
       <Card
         title={`Alle Baustellen (${visible.length})`}
         action={
-          <SelectField id="pfilter" label="" className="py-1 text-sm" value={filter}
+          <SelectField id="pfilter" label="" value={filter}
             onChange={(e) => setFilter(e.target.value as typeof filter)}>
             <option value="offen">Aktiv &amp; pausiert</option>
             <option value="alle">Alle</option>
@@ -629,9 +633,13 @@ export default function AdminProjectsView() {
                       </span>
                     </>
                   }
+                  zustand={
+                    <>
+                      {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h Budget</Marke> : null}
+                      <StatusBadge status={p.status} />
+                    </>
+                  }
                 >
-                  {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h Budget</Marke> : null}
-                  <StatusBadge status={p.status} />
                   {/*
                     EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine
                     Auswertung in die Liste) und „Bearbeiten" (sprang in das
@@ -641,7 +649,7 @@ export default function AdminProjectsView() {
                   */}
                   <Link
                     to={`/admin-projects/${p.id}`}
-                    className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                    className="textlink-allein"
                   >
                     Akte
                   </Link>

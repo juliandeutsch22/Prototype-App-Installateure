@@ -53,20 +53,20 @@ export default function PlaeneListe({
                 {kuerzel}
               </span>
             )}
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 text-sm">
               {url ? (
                 <a
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block truncate text-sm text-brand underline"
+                  className="textlink block truncate"
                 >
                   {d.dateiname}
                 </a>
               ) : (
                 // Ohne Adresse lässt sich die Datei nicht öffnen — das wird
                 // gesagt, statt einen Link zu zeigen, der ins Leere führt.
-                <span className="block truncate text-sm text-ink">
+                <span className="block truncate text-ink">
                   {d.dateiname} <span className="text-warning">(gerade nicht abrufbar)</span>
                 </span>
               )}

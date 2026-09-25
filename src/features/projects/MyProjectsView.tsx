@@ -136,7 +136,7 @@ export default function MyProjectsView() {
 
               {/* Ansprechpartner: ohne Nummer steht der Monteur vor Ort ohne
                   Kontakt da — deshalb wird ein fehlender Eintrag angemahnt. */}
-              <div className="mt-4 rounded-sm border border-line bg-surface-2 p-3">
+              <div className="kasten mt-4">
                 <p className="section-label">Ansprechpartner</p>
                 {p.contactName || p.contactPhone ? (
                   <div className="mt-1">
@@ -159,7 +159,7 @@ export default function MyProjectsView() {
                   href={mapsUrl(p.address)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 flex min-h-touch items-center justify-center gap-2 rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
+                  className="knopf-primaer mt-3 w-full"
                 >
                   <Icon name="pin" size={18} aria-hidden />
                   Route: {p.address}
