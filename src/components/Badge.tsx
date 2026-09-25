@@ -78,19 +78,11 @@ const punkt: Record<Stand, string> = {
  * ordnen sich dem unter, wonach jemand in der Zeile sucht: dem Namen, der
  * Nummer, dem Betrag. Als gefüllte Pille standen sie gleichauf mit ihm.
  *
- * Die Stimme ist die der Kartentitel (`section-label`) — dieselbe Rolle im
- * Satzbild: eine Beschriftung, die begleitet, statt zu rufen.
+ * Die Stimme ist die der Dachzeilen (`section-label`) — dieselbe Rolle im
+ * Satzbild: eine Beschriftung, die begleitet, statt zu rufen. Seit dem
+ * 25.09.2026 ohne Versalien: „40 h Budget" statt „40 H BUDGET".
  */
 export function Marke({ children }: { children: ReactNode }) {
-  /*
-    VERSALIEN UND SPERRUNG KOMMEN AUS `section-label` UND BLEIBEN. Hier stand
-    kurz `normal-case tracking-normal` daneben, um beides wegzunehmen — die
-    Klassen sind wirkungslos: `.section-label` steht in `index.css` ausserhalb
-    jeder Ebene und schlägt damit die Tailwind-Hilfsklassen. Am Bildschirm
-    nachgesehen, statt es anzunehmen: die Versalien lesen sich in der Zeile
-    gut und binden die Marke an die Kartentitel. Zwei Klassen, die nichts tun,
-    aber etwas behaupten, wären schlimmer als keine.
-  */
   return <span className="section-label whitespace-nowrap">{children}</span>;
 }
 

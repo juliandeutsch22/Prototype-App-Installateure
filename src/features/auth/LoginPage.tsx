@@ -110,7 +110,7 @@ export default function LoginPage() {
               Markenfarbe des Mandanten traegt, sondern die feste dunkle
               Flaeche — die Kontrastfarbe dazu ist Weiss, unabhaengig davon,
               was der Betrieb als Marke hinterlegt hat. */}
-          <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-white">
+          <p className="mt-3 text-sm font-semibold text-white">
             Mitarbeiter-Portal
           </p>
         </div>
