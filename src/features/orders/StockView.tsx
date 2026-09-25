@@ -15,6 +15,7 @@ import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
+import { Reiter, Reiterleiste } from '@/components/Reiter';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
@@ -196,7 +197,7 @@ export default function StockView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <Reiterleiste>
         {([
           { key: 'bestand' as Tab, label: 'Bestand' },
           { key: 'katalog' as Tab, label: 'Katalog' },
@@ -208,21 +209,11 @@ export default function StockView() {
           */
           ...(darfEinspielen ? [{ key: 'import' as Tab, label: 'Katalog einspielen' }] : []),
         ]).map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
-              tab === t.key
-                ? 'border-b-accent-deep font-bold text-accent-deep'
-                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
-            }`}
-          >
+          <Reiter key={t.key} aktiv={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
-          </button>
+          </Reiter>
         ))}
-      </div>
+      </Reiterleiste>
 
       {error && <ErrorState message={error} />}
 

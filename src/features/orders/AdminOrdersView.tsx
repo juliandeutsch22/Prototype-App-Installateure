@@ -24,6 +24,7 @@ import Nachladen from '@/components/Nachladen';
 import { Marke, Warnung } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
+import { Reiter, Reiterleiste } from '@/components/Reiter';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField } from '@/components/Field';
@@ -405,26 +406,16 @@ export default function AdminOrdersView() {
         subtitle="Materialanforderungen der Monteure bearbeiten und Rückgaben sichten"
       />
 
-      {/* Aktiver Reiter mit Akzentkante unten — gleiche Markierung wie in
-          Unterreiter. */}
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      {/* Aktiver Reiter mit Akzentkante unten — dieselbe Leiste wie in
+          Unterreiter (`Reiter.tsx`). */}
+      <Reiterleiste>
         {TABS.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 sm:px-4 text-sm transition ${
-              tab === t.key
-                ? 'border-b-accent-deep font-bold text-accent-deep'
-                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
-            }`}
-          >
+          <Reiter key={t.key} aktiv={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
             {t.count !== undefined && t.count > 0 && <Marke>{t.count}</Marke>}
-          </button>
+          </Reiter>
         ))}
-      </div>
+      </Reiterleiste>
 
       {tab === 'einkauf' && company ? (
         <>

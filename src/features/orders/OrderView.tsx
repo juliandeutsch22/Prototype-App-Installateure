@@ -19,6 +19,7 @@ import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
+import { Reiter, Reiterleiste } from '@/components/Reiter';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -365,24 +366,14 @@ export default function OrderView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <Reiterleiste>
         {TABS.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
-              tab === t.key
-                ? 'border-b-accent-deep font-bold text-accent-deep'
-                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
-            }`}
-          >
+          <Reiter key={t.key} aktiv={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
             {t.count !== undefined && t.count > 0 && <Marke>{t.count}</Marke>}
-          </button>
+          </Reiter>
         ))}
-      </div>
+      </Reiterleiste>
 
       {error && <ErrorState message={error} />}
 

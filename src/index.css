@@ -298,29 +298,6 @@ textarea:focus {
  */
 @layer components {
   /*
-    REITERLEISTEN, DIE SEITLICH LAUFEN — OHNE SCROLLLEISTE. Unter Windows
-    zeichnete der Browser darunter eine volle Scrollleiste mit Pfeilen, die
-    den gewählten Reiter anschnitt (Launch-Check 25.09.2026). Danach stand
-    hier eine schmale, „damit Mausnutzer etwas zum Ziehen haben". Die
-    Design-Überarbeitung (Punkt 6) blendet auch sie aus: unter der Kante des
-    gewählten Reiters soll kein zweiter Strich stehen.
-
-    Die Orientierung gibt jetzt der Reiter selbst: `Unterreiter` rollt den
-    gewählten beim Öffnen und bei jedem Wechsel ganz ins Bild. Gewischt wird
-    wie zuvor. Zum Ziehen mit der Maus braucht es die Leiste nicht: die
-    Leisten aus `Unterreiter` (Einstellungen, Einsatzplanung, Mein
-    Einsatzplan) brechen ab 640 px in eine zweite Zeile um, statt zu laufen,
-    und die übrigen (Material, Lager, Anforderungen, Urlaub) haben zwei bis
-    vier kurze Reiter, die ab dem Tablet nebeneinander Platz finden.
-  */
-  .reiterleiste {
-    scrollbar-width: none;
-  }
-  .reiterleiste::-webkit-scrollbar {
-    display: none;
-  }
-
-  /*
    * DIE DUNKLE TRÄGERFLÄCHE — flach, in der Farbe des App-Zeichens.
    *
    * Hier lagen ein Verlauf und ein Mint-Cyan-Schleier darüber, „damit das
@@ -1442,6 +1419,79 @@ textarea {
     min-width: 12rem;
     align-items: center;
     gap: 0.5rem;
+  }
+}
+
+/*
+ * REITER — eine Leiste, eine Sprache. Die Unterseiten aus `Unterreiter`
+ * (Einstellungen, Einsatzplanung, Mein Einsatzplan: Links) und die Reiter
+ * innerhalb einer Seite (Material, Lager, Anforderungen, Urlaub:
+ * Schaltflächen, `Reiter.tsx`) tragen dieselben Klassen. Vorher stand das
+ * Aussehen fünfmal als Kette von Hilfsklassen im Markup, mit kleinen
+ * Abweichungen (16 statt 12 px Polsterung ab dem Tablet).
+ *
+ * SEITLICH LAUFEN, OHNE SCROLLLEISTE. Unter Windows zeichnete der Browser
+ * darunter eine volle Scrollleiste mit Pfeilen, die den gewählten Reiter
+ * anschnitt (Launch-Check 25.09.2026); unter der Kante des gewählten Reiters
+ * soll kein zweiter Strich stehen. Gewischt wird wie zuvor. Ab 640 px bricht
+ * die Leiste in eine zweite Zeile um, statt zu laufen — so braucht es auch
+ * zum Ziehen mit der Maus keine Leiste. Die kurzen Leisten (zwei bis vier
+ * Reiter) passen dort ohnehin in eine Zeile.
+ *
+ * DIE MARKIERUNG: Kante unten, Text fett, beides im festen Türkis der
+ * Oberfläche. Bewusst NICHT in `--accent`: das ist die Farbe des Mandanten,
+ * und ein Betrieb mit rotem Logo hätte sonst einen roten Strich unter einem
+ * Reiter — eine Markierung ist Oberfläche, keine Handlung.
+ */
+@layer components {
+  .reiterleiste {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--border);
+    scrollbar-width: none;
+  }
+
+  .reiterleiste::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .reiterleiste {
+      flex-wrap: wrap;
+      overflow: visible;
+    }
+  }
+
+  /* Eine Zahl im Reiter (offene Anforderungen) steht neben der
+     Beschriftung, deshalb Flex mit Abstand. */
+  .reiter,
+  .reiter-aktiv {
+    display: flex;
+    min-height: 48px;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition:
+      color 150ms,
+      border-color 150ms;
+  }
+
+  .reiter:hover {
+    color: var(--text);
+  }
+
+  .reiter-aktiv {
+    border-bottom-color: var(--accent-deep);
+    font-weight: 700;
+    color: var(--accent-deep);
   }
 }
 

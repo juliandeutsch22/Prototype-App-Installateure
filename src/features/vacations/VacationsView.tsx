@@ -34,6 +34,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import { Reiter, Reiterleiste } from '@/components/Reiter';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -803,23 +804,13 @@ export default function VacationsView() {
         anderen sehen die Seite wie bisher, ohne Reiterleiste.
       */}
       {buero && (
-        <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+        <Reiterleiste>
           {REITER.map((r) => (
-            <button
-              key={r.key}
-              role="tab"
-              aria-selected={reiter === r.key}
-              onClick={() => setReiter(r.key)}
-              className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
-                reiter === r.key
-                  ? 'border-b-accent-deep font-bold text-accent-deep'
-                  : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
-              }`}
-            >
+            <Reiter key={r.key} aktiv={reiter === r.key} onClick={() => setReiter(r.key)}>
               {r.label}
-            </button>
+            </Reiter>
           ))}
-        </div>
+        </Reiterleiste>
       )}
 
       {buero && reiter === 'krank' && <KrankenstaendeReiter companyId={user.companyId} meinName={user.name} />}
