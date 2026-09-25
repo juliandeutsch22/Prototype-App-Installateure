@@ -16,9 +16,7 @@ import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
-
-const fmtEUR = (n: number) =>
-  new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+import { betrag } from '@/lib/geld';
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
 function num(v: string, fallback: number): number {
@@ -418,19 +416,19 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               <tbody>
                 <tr>
                   <td className="tabelle-zelle">Regulär</td>
-                  <td className="tabelle-zahl">{fmtEUR(rates.fach)} €/h</td>
+                  <td className="tabelle-zahl">{betrag(rates.fach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="tabelle-zelle">Nachtarbeit</td>
-                  <td className="tabelle-zahl">{fmtEUR(nightFach)} €/h</td>
+                  <td className="tabelle-zahl">{betrag(nightFach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="tabelle-zelle">Notdienst</td>
-                  <td className="tabelle-zahl">{fmtEUR(emergencyFach)} €/h</td>
+                  <td className="tabelle-zahl">{betrag(emergencyFach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="tabelle-zelle">Notdienst in der Nacht</td>
-                  <td className="tabelle-zahl">{fmtEUR(bothFach)} €/h</td>
+                  <td className="tabelle-zahl">{betrag(bothFach)} €/h</td>
                 </tr>
               </tbody>
             </table>
@@ -590,7 +588,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           ) : (
             <p className="mt-3 text-sm text-ink">
               Deckungsbeitrag je Facharbeiterstunde:{' '}
-              <strong>{fmtEUR(rates.fach - num(costRates.fach, 0))}</strong>
+              <strong>{betrag(rates.fach - num(costRates.fach, 0))}</strong>
               {rates.fach - num(costRates.fach, 0) <= 0 && (
                 <span className="ml-2 text-danger">
                   — der Verrechnungssatz liegt nicht über den Kosten.

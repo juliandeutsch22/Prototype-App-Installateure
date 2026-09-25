@@ -74,27 +74,7 @@ import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
-
-/**
- * Ein Betrag MIT vorangestelltem Eurozeichen — „€ 22 104,60".
- *
- * DASS DAS ZEICHEN SCHON DRIN IST, STAND NUR IN DIESER ZEILE, und sechs
- * Stellen in dieser Datei hängten noch eines hinten an: auf dem Mahnlauf
- * stand „€ 22 104,60 € offen". Gesehen wurde es auf einem Telefon, nicht im
- * Quelltext.
- *
- * DER GRUND IST DER NAME. `fmtEUR` gibt es in ACHT Dateien, und VIER davon
- * stellen das Zeichen NICHT voran (`pdf.ts`, `mahnungPdf.ts`,
- * `SettingsView.tsx`, dort steht es richtig hinten). Zwei gleichnamige
- * Funktionen mit verschiedenem Verhalten sind eine Falle, in die man beim
- * Abschreiben aus der Nachbardatei zwangsläufig tappt.
- *
- * `tests/unit/eurozeichen.test.ts` hält fest, dass kein Aufruf mehr ein
- * zweites Zeichen anhängt — solange die acht Kopien nicht zu einer werden,
- * ist das die günstigere Sperre.
- */
-const fmtEUR = (n: number) =>
-  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
+import { euro } from '@/lib/geld';
 
 /** Rechnungen: aus Baustelle erzeugen, Zahlung verfolgen, stornieren. */
 /** Wie viele Rechnungen die Liste zunaechst zeigt. */
@@ -773,7 +753,7 @@ export default function InvoicesView() {
           return;
         }
         const angebot = pauschalAngebot(angebote);
-        setPauschalAus(angebot ? `${angebot.quoteNumber} (${fmtEUR(angebot.totalNetto)} netto)` : '');
+        setPauschalAus(angebot ? `${angebot.quoteNumber} (${euro(angebot.totalNetto)} netto)` : '');
         await vorschauUebernehmen(pauschalVorschau(art, assembled, angebot, satz));
         return;
       }
@@ -1272,7 +1252,7 @@ export default function InvoicesView() {
           <span className="mt-1 block text-xs text-warning">
             {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
             {inv.mahnfrist ? ` · Frist ${datumAT(inv.mahnfrist)}` : ''}
-            {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} Spesen` : ''}
+            {inv.mahnspesen ? ` · ${euro(inv.mahnspesen)} Spesen` : ''}
           </span>
         ))}
       {/*
@@ -1288,14 +1268,14 @@ export default function InvoicesView() {
         if (stand.guthaben > 0) {
           return (
             <span className="mt-1 block text-xs text-warning">
-              Guthaben des Kunden: {fmtEUR(stand.guthaben)} — zurückzuzahlen
+              Guthaben des Kunden: {euro(stand.guthaben)} — zurückzuzahlen
             </span>
           );
         }
         if (stand.bezahlt > 0 && stand.rest > 0) {
           return (
             <span className="mt-1 block text-xs text-ink-muted">
-              {fmtEUR(stand.bezahlt)} bezahlt · {fmtEUR(stand.rest)} offen
+              {euro(stand.bezahlt)} bezahlt · {euro(stand.rest)} offen
               {/* Das Abzeichen sagt „Teilbezahlt" — dass der Rest
                   schon fällig war, sagt es nicht. */}
               {istUeberfaellig(inv, todayStr()) && (
@@ -1438,10 +1418,10 @@ export default function InvoicesView() {
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       <MetricRow>
-        <Metric label="Offen" value={fmtEUR(stats.offen)} />
+        <Metric label="Offen" value={euro(stats.offen)} />
         <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'}
-          value={fmtEUR(stats.ueberfaellig)} />
-        <Metric label="Bezahlt" tone="success" value={fmtEUR(stats.bezahlt)} />
+          value={euro(stats.ueberfaellig)} />
+        <Metric label="Bezahlt" tone="success" value={euro(stats.bezahlt)} />
       </MetricRow>
 
       {/*
@@ -1560,8 +1540,8 @@ export default function InvoicesView() {
           {lauf.zeilen.length > 0 ? (
             <>
               <p className="mb-3 text-sm text-ink">
-                <strong>{fmtEUR(lauf.summeOffen)}</strong> offen
-                {lauf.summeSpesen > 0 ? ` · ${fmtEUR(lauf.summeSpesen)} Mahnspesen` : ''}
+                <strong>{euro(lauf.summeOffen)}</strong> offen
+                {lauf.summeSpesen > 0 ? ` · ${euro(lauf.summeSpesen)} Mahnspesen` : ''}
               </p>
               <List>
                 {lauf.zeilen.map((z) => (
@@ -1579,14 +1559,14 @@ export default function InvoicesView() {
                     }
                     subtitle={
                       <span>
-                        {z.rechnung.invoiceNumber} · {fmtEUR(z.offen)}
+                        {z.rechnung.invoiceNumber} · {euro(z.offen)}
                         {/* Teilzahlungen sichtbar machen: „600 von 1.000" sagt,
                             warum hier eine andere Zahl steht als in der Liste. */}
                         {z.offen !== z.rechnung.totalBrutto
-                          ? ` von ${fmtEUR(z.rechnung.totalBrutto)}`
+                          ? ` von ${euro(z.rechnung.totalBrutto)}`
                           : ''}{' '}
                         · {z.tageUeberfaellig} Tage überfällig
-                        {z.spesen > 0 ? ` · ${fmtEUR(z.spesen)} Spesen` : ''}
+                        {z.spesen > 0 ? ` · ${euro(z.spesen)} Spesen` : ''}
                       </span>
                     }
                   >
@@ -1999,7 +1979,7 @@ export default function InvoicesView() {
                         onChange={(e) => setPos(i, { unitPrice: Number(e.target.value) || 0 })}
                       />
                     </td>
-                    <td className="tabelle-zahl-stark">{fmtEUR(p.netto)}</td>
+                    <td className="tabelle-zahl-stark">{euro(p.netto)}</td>
                     <td className="tabelle-zahl">
                       <IconButton
                         label={`Position ${i + 1} entfernen`}
@@ -2017,19 +1997,19 @@ export default function InvoicesView() {
                   <td colSpan={4} className="tabelle-summe">
                     {preview.discountAmount > 0 ? 'Zwischensumme' : 'Netto'}
                   </td>
-                  <td className="tabelle-summe-zahl">{fmtEUR(preview.subtotalNetto)}</td>
+                  <td className="tabelle-summe-zahl">{euro(preview.subtotalNetto)}</td>
                   <td />
                 </tr>
                 {preview.discountAmount > 0 && preview.discount && (
                   <>
                     <tr className="tabelle-abzug">
                       <td colSpan={4} className="tabelle-summe">{discountLabel(preview.discount)}</td>
-                      <td className="tabelle-summe-zahl">−{fmtEUR(preview.discountAmount)}</td>
+                      <td className="tabelle-summe-zahl">−{euro(preview.discountAmount)}</td>
                       <td />
                     </tr>
                     <tr>
                       <td colSpan={4} className="tabelle-summe">Netto</td>
-                      <td className="tabelle-summe-zahl">{fmtEUR(preview.totalNetto)}</td>
+                      <td className="tabelle-summe-zahl">{euro(preview.totalNetto)}</td>
                       <td />
                     </tr>
                   </>
@@ -2039,7 +2019,7 @@ export default function InvoicesView() {
                     {reverseCharge ? 'Umsatzsteuer' : `USt. ${Math.round(satz * 100)} %`}
                   </td>
                   <td className="tabelle-summe-zahl">
-                    {reverseCharge ? 'Übergang der Steuerschuld' : fmtEUR(preview.totalVat)}
+                    {reverseCharge ? 'Übergang der Steuerschuld' : euro(preview.totalVat)}
                   </td>
                   <td />
                 </tr>
@@ -2053,23 +2033,23 @@ export default function InvoicesView() {
                         ? 'Rechnungsbetrag'
                         : 'Brutto'}
                   </td>
-                  <td className="tabelle-summe-zahl">{fmtEUR(preview.totalBrutto)}</td>
+                  <td className="tabelle-summe-zahl">{euro(preview.totalBrutto)}</td>
                   <td />
                 </tr>
                 {abzuege.map((v) => (
                   <tr key={v.invoiceId} className="tabelle-abzug">
                     <td colSpan={4} className="tabelle-summe">
-                      abzüglich {v.invoiceNumber} vom {datumAT(v.invoiceDate)} (netto {fmtEUR(v.netto)} +
-                      USt {fmtEUR(v.vat)})
+                      abzüglich {v.invoiceNumber} vom {datumAT(v.invoiceDate)} (netto {euro(v.netto)} +
+                      USt {euro(v.vat)})
                     </td>
-                    <td className="tabelle-summe-zahl">−{fmtEUR(v.brutto)}</td>
+                    <td className="tabelle-summe-zahl">−{euro(v.brutto)}</td>
                     <td />
                   </tr>
                 ))}
                 {abzuege.length > 0 && summen && (
                   <tr className="tabelle-gesamt">
                     <td colSpan={4} className="tabelle-summe">Restforderung brutto</td>
-                    <td className="tabelle-summe-zahl">{fmtEUR(summen.totalBrutto)}</td>
+                    <td className="tabelle-summe-zahl">{euro(summen.totalBrutto)}</td>
                     <td />
                   </tr>
                 )}
@@ -2127,7 +2107,7 @@ export default function InvoicesView() {
                     <CheckboxField
                       key={r.id}
                       id={`abzug-${r.id}`}
-                      label={`${r.invoiceNumber} vom ${datumAT(r.invoiceDate)} — ${fmtEUR(r.totalBrutto)} brutto (davon ${fmtEUR(r.totalVat)} USt)`}
+                      label={`${r.invoiceNumber} vom ${datumAT(r.invoiceDate)} — ${euro(r.totalBrutto)} brutto (davon ${euro(r.totalVat)} USt)`}
                       checked={gewaehlteAbzuege.includes(r.id)}
                       onChange={(e) =>
                         setGewaehlteAbzuege((alt) =>
@@ -2140,7 +2120,7 @@ export default function InvoicesView() {
               )}
               {summen?.gutschrift && (
                 <p className="mt-3 text-sm font-medium text-danger" role="alert">
-                  Die Abzüge übersteigen die Gesamtleistung um {fmtEUR(-summen.totalBrutto)}. Das
+                  Die Abzüge übersteigen die Gesamtleistung um {euro(-summen.totalBrutto)}. Das
                   wäre eine Gutschrift, und die kann diese App noch nicht — sie lässt sich hier
                   nicht anlegen.
                 </p>
@@ -2482,7 +2462,7 @@ export default function InvoicesView() {
                     <td className="tabelle-zelle">
                       <span className="whitespace-nowrap">{datumAT(inv.dueDate)}</span>
                     </td>
-                    <td className="tabelle-zahl">{fmtEUR(inv.totalBrutto)}</td>
+                    <td className="tabelle-zahl">{euro(inv.totalBrutto)}</td>
                     <td className="tabelle-zelle">
                       <StatusBadge status={inv.paymentStatus} />
                     </td>
@@ -2500,7 +2480,7 @@ export default function InvoicesView() {
               <ListRow
                 key={inv.id}
                 title={`${inv.invoiceNumber} · ${inv.customerName}`}
-                wert={fmtEUR(inv.totalBrutto)}
+                wert={euro(inv.totalBrutto)}
                 zustand={<StatusBadge status={inv.paymentStatus} />}
                 subtitle={
                   <>
@@ -2611,7 +2591,7 @@ export default function InvoicesView() {
             <>
               <p className="mt-3 text-sm text-ink">
                 {e.anzahl} {e.anzahl === 1 ? 'Rechnung' : 'Rechnungen'} · Netto{' '}
-                {fmtEUR(e.summeNetto)} · Brutto {fmtEUR(e.summeBrutto)}
+                {euro(e.summeNetto)} · Brutto {euro(e.summeBrutto)}
               </p>
               {/*
                 NULL RECHNUNGEN IST EINE AUSSAGE, keine Panne — aber nur, wenn
@@ -2757,10 +2737,10 @@ export default function InvoicesView() {
         title={zahlungFuer ? `Zahlungen — ${zahlungFuer.invoiceNumber}` : 'Zahlungen'}
         message={
           zahlungFuer
-            ? `${zahlungFuer.customerName} · Rechnungsbetrag ${fmtEUR(zahlungFuer.totalBrutto)}`
+            ? `${zahlungFuer.customerName} · Rechnungsbetrag ${euro(zahlungFuer.totalBrutto)}`
               + (zahlstand(zahlungsStand!).guthaben > 0
-                ? ` · Guthaben ${fmtEUR(zahlstand(zahlungsStand!).guthaben)}`
-                : ` · offen ${fmtEUR(zahlstand(zahlungsStand!).rest)}`)
+                ? ` · Guthaben ${euro(zahlstand(zahlungsStand!).guthaben)}`
+                : ` · offen ${euro(zahlstand(zahlungsStand!).rest)}`)
             : ''
         }
         confirmLabel="Zahlung eintragen"
@@ -2825,7 +2805,7 @@ export default function InvoicesView() {
               {zahlungen.map((z) => (
                 <ListRow
                   key={z.id}
-                  title={<span>{fmtEUR(z.betrag)}</span>}
+                  title={<span>{euro(z.betrag)}</span>}
                   subtitle={
                     <span>
                       {datumAT(z.datum)} · {z.art}
@@ -2892,7 +2872,7 @@ export default function InvoicesView() {
         }
         message={
           mahnFuer
-            ? `${mahnFuer.invoiceNumber} über ${fmtEUR(mahnFuer.totalBrutto)}, fällig war ` +
+            ? `${mahnFuer.invoiceNumber} über ${euro(mahnFuer.totalBrutto)}, fällig war ` +
               `${datumAT(mahnFuer.dueDate)}. Der Beleg wird als PDF erzeugt und heruntergeladen; ` +
               'versendet wird er von dir.'
             : undefined

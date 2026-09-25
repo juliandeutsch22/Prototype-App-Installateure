@@ -55,6 +55,7 @@ import Grenzliste from '@/components/Grenzliste';
 import { List, ListRow } from '@/components/ListRow';
 import { byNewest } from '@/lib/timestamps';
 import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
+import { euroGanz } from '@/lib/geld';
 
 /**
  * 'YYYY-MM-DD' -> 'Mo., 01.09.'
@@ -69,9 +70,6 @@ function fmtTag(iso: string): string {
     month: '2-digit',
   });
 }
-
-const fmtEUR = (n: number) =>
-  `\u20ac ${new Intl.NumberFormat('de-AT', { maximumFractionDigits: 0 }).format(n)}`;
 
 /** Eine Baustelle, deren Stundenbudget knapp wird oder überschritten ist. */
 interface ProjectAlert {
@@ -708,12 +706,12 @@ export default function DashboardView() {
               <Metric
                 label="Überfällig"
                 tone="danger"
-                value={fmtEUR(data.invoiceSums.overdue)}
+                value={euroGanz(data.invoiceSums.overdue)}
                 to="/invoices?status=%C3%9Cberf%C3%A4llig"
               />
             )}
             {data.invoiceSums && data.invoiceSums.open > 0 && (
-              <Metric label="Offene Rechnungen" value={fmtEUR(data.invoiceSums.open)} to="/invoices" />
+              <Metric label="Offene Rechnungen" value={euroGanz(data.invoiceSums.open)} to="/invoices" />
             )}
           </MetricRow>
         )}

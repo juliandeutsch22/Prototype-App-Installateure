@@ -34,6 +34,7 @@ import Meldung from '@/components/Meldung';
 import { STAND } from '@/features/quotes/stand';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import { euro } from '@/lib/geld';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -55,9 +56,6 @@ import { datumAT } from '@/lib/datum';
  * von der Baustelle oder der Rechnung lässt sich später darauf verlinken,
  * auf ein Aufklappen nicht.
  */
-
-const fmtEUR = (n: number) =>
-  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
 const fmtDatum = (iso?: string) =>
   datumAT(iso) || '—';
@@ -508,7 +506,7 @@ export default function KundenakteView() {
                       ziel={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
                       title={r.invoiceNumber}
                       subtitle={`${fmtDatum(r.invoiceDate)} · ${r.projectNumber}`}
-                      wert={`${fmtEUR(r.totalBrutto)} brutto`}
+                      wert={`${euro(r.totalBrutto)} brutto`}
                       zustand={<StatusBadge status={r.paymentStatus} />}
                     />
                   )}
@@ -533,7 +531,7 @@ export default function KundenakteView() {
                       ziel={`/quotes/${q.id}`}
                       title={q.quoteNumber}
                       subtitle={datumAT(q.quoteDate)}
-                      wert={`${fmtEUR(q.totalNetto)} netto`}
+                      wert={`${euro(q.totalNetto)} netto`}
                       zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
                     />
                   ))}

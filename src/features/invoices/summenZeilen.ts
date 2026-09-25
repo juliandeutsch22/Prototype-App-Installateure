@@ -1,15 +1,13 @@
 import type { Vorrechnung } from '@/types';
 import type { AssembledInvoice } from './assemble';
 import { discountLabel } from './totals';
+import { betrag } from '@/lib/geld';
 
 /*
   EIGENE DATEI, OHNE jsPDF. Das Angebot braucht dieselben Summenzeilen wie die
   Rechnung; stünden sie in `pdf.ts`, zöge jede Ansicht, die sie liest, die
   mehrere hundert Kilobyte grosse PDF-Bibliothek mit.
 */
-
-const fmtEUR = (n: number) =>
-  new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
 function fmtDatum(iso: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
@@ -47,11 +45,11 @@ export function summenZeilen(opts: {
     // wurde, und das Finanzamt, worauf die Steuer bemessen ist.
     ...(assembled.discountAmount > 0 && assembled.discount
       ? [
-          ['', '', '', 'Zwischensumme', fmtEUR(assembled.subtotalNetto)],
-          ['', '', '', discountLabel(assembled.discount), `- ${fmtEUR(assembled.discountAmount)}`],
+          ['', '', '', 'Zwischensumme', betrag(assembled.subtotalNetto)],
+          ['', '', '', discountLabel(assembled.discount), `- ${betrag(assembled.discountAmount)}`],
         ]
       : []),
-    ['', '', '', 'Netto', fmtEUR(assembled.totalNetto)],
+    ['', '', '', 'Netto', betrag(assembled.totalNetto)],
     /*
       BEI REVERSE CHARGE STEHT KEINE STEUER DA — auch keine „USt. 0 %".
 
@@ -62,7 +60,7 @@ export function summenZeilen(opts: {
     */
     ...(rc
       ? [['', '', '', 'Umsatzsteuer', 'Übergang der Steuerschuld']]
-      : [['', '', '', `USt. ${Math.round(vatRate * 100)}%`, fmtEUR(assembled.totalVat)]]),
+      : [['', '', '', `USt. ${Math.round(vatRate * 100)}%`, betrag(assembled.totalVat)]]),
     [
       '',
       '',
@@ -70,7 +68,7 @@ export function summenZeilen(opts: {
       // Wo abgezogen wird, ist diese Zeile nicht der Rechnungsbetrag,
       // sondern die volle Leistung — die Beschriftung muss das sagen.
       abzuege.length > 0 ? 'Gesamtleistung brutto' : rc ? 'Rechnungsbetrag' : 'Brutto',
-      fmtEUR(assembled.totalBrutto),
+      betrag(assembled.totalBrutto),
     ],
     /*
       JEDE ABGEZOGENE VORRECHNUNG EINZELN, MIT IHRER STEUER.
@@ -85,10 +83,10 @@ export function summenZeilen(opts: {
       `abzüglich ${v.invoiceNumber} vom ${fmtDatum(v.invoiceDate)}`,
       '',
       '',
-      rc ? 'netto' : `netto ${fmtEUR(v.netto)} + USt ${fmtEUR(v.vat)}`,
-      `- ${fmtEUR(v.brutto)}`,
+      rc ? 'netto' : `netto ${betrag(v.netto)} + USt ${betrag(v.vat)}`,
+      `- ${betrag(v.brutto)}`,
     ]),
-    ...(abzuege.length > 0 ? [['', '', '', 'Restforderung brutto', fmtEUR(forderung)]] : []),
+    ...(abzuege.length > 0 ? [['', '', '', 'Restforderung brutto', betrag(forderung)]] : []),
   ];
 }
 

@@ -13,6 +13,7 @@ import {
 import { TEXTE, spesenFuer, type Mahnstufe } from './mahnung';
 import { zahlstand } from './zahlstand';
 import type { Company, Invoice } from '@/types';
+import { betrag } from '@/lib/geld';
 
 /**
  * Die Mahnung als Beleg.
@@ -35,9 +36,6 @@ import type { Company, Invoice } from '@/types';
  * wiegt mehrere hundert Kilobyte und gehört nicht in das Paket, das jeder
  * Monteur beim Anmelden zieht.
  */
-
-const fmtEUR = (n: number) =>
-  new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
 function fmtDatum(iso?: string): string {
   if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso ?? '–';
@@ -104,7 +102,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
   const zeilen: [string, string][] = [
     ['Rechnungsdatum', fmtDatum(o.invoice.invoiceDate)],
     ['Ursprüngliches Zahlungsziel', fmtDatum(o.invoice.dueDate)],
-    ['Rechnungsbetrag', `${fmtEUR(o.invoice.totalBrutto)} €`],
+    ['Rechnungsbetrag', `${betrag(o.invoice.totalBrutto)} €`],
   ];
   /*
     TEILZAHLUNGEN GEHÖREN AUF DIE MAHNUNG, und zwar als eigene Zeile.
@@ -118,9 +116,9 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
   if (stand.bezahlt > 0) {
     // Ein ASCII-Minus: das typografische „−" fehlt in der Standardschrift des
     // PDFs, und jsPDF schrieb die ganze Zeile dann als Zeichensalat.
-    zeilen.push(['Bereits bezahlt', `- ${fmtEUR(stand.bezahlt)} €`]);
+    zeilen.push(['Bereits bezahlt', `- ${betrag(stand.bezahlt)} €`]);
   }
-  if (spesen > 0) zeilen.push(['Mahnspesen', `${fmtEUR(spesen)} €`]);
+  if (spesen > 0) zeilen.push(['Mahnspesen', `${betrag(spesen)} €`]);
 
   // Beträge rechtsbündig untereinander, damit man sie nachrechnen kann.
   const betragX = rand + 110;
@@ -133,7 +131,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
   doc.setDrawColor(...TINTE).setLineWidth(0.35).line(rand, y - 3.5, betragX, y - 3.5);
   doc.setFont('helvetica', 'bold');
   doc.text('Offener Betrag', rand, y + 1);
-  doc.text(`${fmtEUR(stand.rest + spesen)} €`, betragX, y + 1, { align: 'right' });
+  doc.text(`${betrag(stand.rest + spesen)} €`, betragX, y + 1, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   y += 12;
 

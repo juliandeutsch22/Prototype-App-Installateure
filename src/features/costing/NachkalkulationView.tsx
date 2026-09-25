@@ -22,9 +22,7 @@ import InfoHint from '@/components/InfoHint';
 import Meldung from '@/components/Meldung';
 import { fmtStd } from '@/lib/time';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
-
-const fmtEUR = (n: number) =>
-  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
+import { euro } from '@/lib/geld';
 
 /** Prozent mit Komma — überall sonst schreibt die App deutsch. */
 const fmtProzent = (n: number) =>
@@ -328,14 +326,14 @@ export default function NachkalkulationView() {
                               )}
                             </td>
                             {/* Zahlen rechtsbündig und fett (Linie, 4). */}
-                            <td className="tabelle-zahl-stark">{fmtEUR(k.erloes)}</td>
-                            <td className="tabelle-zahl-stark">{fmtEUR(k.personalkosten)}</td>
+                            <td className="tabelle-zahl-stark">{euro(k.erloes)}</td>
+                            <td className="tabelle-zahl-stark">{euro(k.personalkosten)}</td>
                             {/* Ohne bekannte Materialkosten ein Strich, keine
                                 „0,00" — siehe die Rechenzeile der Liste. */}
                             <td className="tabelle-zahl-stark">
-                              {k.materialkosten > 0 ? fmtEUR(k.materialkosten) : '–'}
+                              {k.materialkosten > 0 ? euro(k.materialkosten) : '–'}
                             </td>
-                            <td className="tabelle-zahl-stark">{fmtEUR(k.deckungsbeitrag)}</td>
+                            <td className="tabelle-zahl-stark">{euro(k.deckungsbeitrag)}</td>
                             <td className="tabelle-zahl">
                               <Zustand stand={margenTon(k)}>
                                 {k.margeProzent === null
@@ -362,15 +360,15 @@ export default function NachkalkulationView() {
                               {k.projectNumber} · {herkunft(k)}
                             </span>
                             <span className="mt-1 block">
-                              Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)}
+                              Erlös {euro(k.erloes)} − Personal {euro(k.personalkosten)}
                               {/*
                                 Material steht nur da, wenn welches bekannt ist.
                                 Ein „− 0,00 €" läse sich wie „kein Material
                                 verbaut" und wäre bei fehlenden Einkaufspreisen
                                 genau die falsche Auskunft.
                               */}
-                              {k.materialkosten > 0 && <> − Material {fmtEUR(k.materialkosten)}</>} ={' '}
-                              <strong>{fmtEUR(k.deckungsbeitrag)}</strong>
+                              {k.materialkosten > 0 && <> − Material {euro(k.materialkosten)}</>} ={' '}
+                              <strong>{euro(k.deckungsbeitrag)}</strong>
                             </span>
                             {k.materialLuecken.length > 0 && (
                               <span className="mt-1 block text-xs text-warning">
