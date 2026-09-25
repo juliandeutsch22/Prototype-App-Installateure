@@ -1258,15 +1258,25 @@ export default function WorkSheetView() {
                             Das Kreuz sitzt AUF dem Bild und braucht deshalb einen
                             eigenen Untergrund — auf einem dunklen Foto wäre ein
                             blosses Zeichen nicht zu sehen.
+
+                            Tastfläche 44 × 44 px, sichtbar bleibt der kleine
+                            Kreis an derselben Stelle wie bisher: der Knopf ragt
+                            dafür 4 px über die Bildecke hinaus, der Kreis steht
+                            in seiner Mitte.
                           */}
                           <button
                             type="button"
                             aria-label="Foto entfernen"
                             title="Foto entfernen"
                             onClick={() => void fotoWegnehmen(f)}
-                            className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-surface text-sm text-danger shadow-sm"
+                            className="absolute -right-1 -top-1 flex h-11 w-11 items-center justify-center"
                           >
-                            ✕
+                            <span
+                              aria-hidden="true"
+                              className="flex h-7 w-7 items-center justify-center rounded-full bg-surface text-sm text-danger shadow-sm"
+                            >
+                              ✕
+                            </span>
                           </button>
                           {f.oben ? (
                             <p className="mt-1 text-center text-xs text-ink-muted">
