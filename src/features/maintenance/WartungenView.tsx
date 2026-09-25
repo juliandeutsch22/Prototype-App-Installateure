@@ -47,6 +47,7 @@ import {
   Pflichthinweis,
 } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
+import { KontaktZeile } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { datumAT } from '@/lib/datum';
@@ -558,7 +559,6 @@ export default function WartungenView() {
       subtitle={
         <>
           {w.anlage}
-          {w.address ? ` · ${w.address}` : ''}
           {w.hinweis ? ` · ${w.hinweis}` : ''}
           <br />
           Termin {fmtDatum(w.faelligAm)} · alle {w.intervallMonate} Monate
@@ -571,6 +571,9 @@ export default function WartungenView() {
           ) : null}
         </>
       }
+      /* Der Standort als Chip unter der Zeile — ein Tipp öffnet die
+         Route, wie am Einsatz (Linie, 5). In der Tabelle bleibt er Text. */
+      unten={w.address?.trim() ? <KontaktZeile adresse={w.address} className="mt-1" /> : undefined}
     >
       {aktionen(w, inGesamtliste)}
     </ListRow>
@@ -744,7 +747,8 @@ export default function WartungenView() {
         </Card>
       )}
 
-      <Card title={`Steht an (${anstehend.length})`}>
+      {/* Die Zahl rechts im Titel statt in Klammern (Linie, 2). */}
+      <Card title="Steht an" action={<span className="liste-anzahl">{anstehend.length}</span>}>
         {loading ? (
           <SkeletonList />
         ) : anstehend.length === 0 ? (
@@ -757,7 +761,8 @@ export default function WartungenView() {
       </Card>
 
       <Card
-        title={`Alle Vereinbarungen (${wartungen.length})`}
+        title="Alle Vereinbarungen"
+        action={<span className="liste-anzahl">{wartungen.length}</span>}
         // Im Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
         footer={
           !loading &&
@@ -771,7 +776,7 @@ export default function WartungenView() {
           )
         }
       >
-        <div className="mb-3">
+        <div className="liste-suche">
           <InputField id="w-suche"
             label="Suche"
             placeholder="Kunde, Anlage oder Standort"

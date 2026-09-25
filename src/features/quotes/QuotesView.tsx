@@ -686,7 +686,8 @@ export default function QuotesView() {
         </Card>
       )}
 
-      <Card title={`Angebote (${angebote.length})`}>
+      {/* Die Zahl rechts im Titel statt in Klammern (Linie, 2). */}
+      <Card title="Angebote" action={<span className="liste-anzahl">{angebote.length}</span>}>
         {loading ? (
           <SkeletonList rows={3} />
         ) : angebote.length === 0 ? (

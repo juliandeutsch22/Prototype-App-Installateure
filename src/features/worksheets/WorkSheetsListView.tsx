@@ -559,7 +559,9 @@ export default function WorkSheetsListView() {
       */}
       {darfZeitenSehen && (
         <Card
-          title={`Stunden ohne Buchung (${ohneBuchung.length})`}
+          title="Stunden ohne Buchung"
+          // Die Zahl rechts im Titel statt in Klammern (Linie, 2).
+          action={<span className="liste-anzahl">{ohneBuchung.length}</span>}
           hint={
             <>
               <strong>Was hier steht.</strong> Unterschriebene Handwerksscheine, auf denen Zeit
@@ -738,21 +740,10 @@ export default function WorkSheetsListView() {
       )}
 
       <Card
-        title={`Scheine (${scheine.length - verworfene})`}
-        action={
-          <input
-            aria-label="Scheine durchsuchen"
-            placeholder="Suchen …"
-            value={suche}
-            onChange={(e) => setSuche(e.target.value)}
-            // `w-full sm:w-auto`: der Kartenkopf ist mobil eine SPALTE, und
-            // ein Eingabefeld ohne Breitenangabe nimmt darin seine
-            // Wunschbreite (rund 180 px plus Polsterung) — gemessen 18 px
-            // mehr, als die Karte innen hat. Es ragte damit unter dem Titel
-            // heraus. Volle Breite ist dort ohnehin das Richtige.
-            className="feld w-full sm:w-auto"
-          />
-        }
+        title="Scheine"
+        // Die Zahl rechts im Titel, die Suche oben in der Karte über die
+        // volle Breite — an derselben Stelle wie in jeder Liste (Linie, 2).
+        action={<span className="liste-anzahl">{scheine.length - verworfene}</span>}
         // Im Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
         footer={
           !loading &&
@@ -767,6 +758,16 @@ export default function WorkSheetsListView() {
           )
         }
       >
+        <div className="liste-suche">
+          <InputField
+            id="ws-suche"
+            label="Suche"
+            type="search"
+            placeholder="Kunde, Baustelle oder Datum"
+            value={suche}
+            onChange={(e) => setSuche(e.target.value)}
+          />
+        </div>
         {error && <div className="mb-3"><ErrorState message={error} /></div>}
 
         {/*

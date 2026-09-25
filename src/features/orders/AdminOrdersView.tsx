@@ -437,14 +437,18 @@ export default function AdminOrdersView() {
       ) : (
         <Card
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}
+          // Zahl und Filter rechts im Titel, wie in jeder Liste (Linie, 2).
           action={
-            tab !== 'retouren' && projectOptions.length > 0 ? (
-              <SelectField id="ofilter" label="" value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}>
-                <option value="">Alle Baustellen</option>
-                {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
-              </SelectField>
-            ) : undefined
+            <div className="liste-kopf-rechts">
+              {!loading && !error && <span className="liste-anzahl">{rows.length}</span>}
+              {tab !== 'retouren' && projectOptions.length > 0 && (
+                <SelectField id="ofilter" label="" aria-label="Baustelle wählen" value={projectFilter}
+                  onChange={(e) => setProjectFilter(e.target.value)}>
+                  <option value="">Alle Baustellen</option>
+                  {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                </SelectField>
+              )}
+            </div>
           }
           /*
             Und darunter die ABFRAGE-Grenze. „Weitere anzeigen" holt nichts
@@ -469,7 +473,7 @@ export default function AdminOrdersView() {
           }
         >
           {orders.length >= 10 && (
-            <div className="mb-4">
+            <div className="liste-suche">
               <InputField
                 id="osuche"
                 label="Suche"
@@ -534,7 +538,7 @@ export default function AdminOrdersView() {
                               )}
                               {anforderungNotiz(o)}
                             </td>
-                            <td className="tabelle-zahl">{o.quantity}</td>
+                            <td className="tabelle-zahl-stark">{o.quantity}</td>
                             {/* Die Baustelle unter dem Besteller, wie in der
                                 Listenzeile hinter ihm: eine eigene Spalte
                                 nahm auf 1024 px dem Material den Platz. */}

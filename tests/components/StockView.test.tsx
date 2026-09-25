@@ -352,8 +352,9 @@ describe('Lager am Schreibtisch', () => {
     const zeile = within(t).getByRole('row', { name: /Kupferrohr 15mm/ });
     expect(zeile).toHaveTextContent('Rohre');
     // Lager und Reserviert stehen als Zahlen rechtsbündig in eigenen Spalten.
-    expect(within(zeile).getByText('20')).toHaveClass('tabelle-zahl');
-    expect(within(zeile).getByText('18')).toHaveClass('tabelle-zahl');
+    // Zahlen rechtsbündig UND fett (docs/design/linie.md 4).
+    expect(within(zeile).getByText('20')).toHaveClass('tabelle-zahl-stark');
+    expect(within(zeile).getByText('18')).toHaveClass('tabelle-zahl-stark');
     expect(within(zeile).getByText('2 m frei')).toBeInTheDocument();
     // Genau eine Form im DOM: keine Listenzeilen daneben.
     expect(screen.queryAllByRole('listitem')).toHaveLength(0);

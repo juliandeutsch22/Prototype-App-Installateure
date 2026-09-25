@@ -182,27 +182,28 @@ export default function KatalogImport() {
   if (schritt === 'fertig' && bericht) {
     return (
       <div className="space-y-6">
+        {/* Die Zahlen in ihrer eigenen Karte über dem Ergebnis, wie beim
+            Probelauf — die Kennzahlen-Leiste ist selbst eine Karte, und eine
+            Karte in der Karte gibt es nach der Linie nicht. */}
+        <MetricRow>
+          <Metric label="Neu angelegt" value={bericht.angelegt} />
+          <Metric label="Aktualisiert" value={bericht.geaendert} />
+          <Metric label="Ausgelaufen" value={bericht.ausgelaufen} />
+          <Metric
+            label="Ohne Einkaufspreis"
+            value={bericht.ohneRabattsatz}
+            tone={bericht.ohneRabattsatz > 0 ? 'warning' : 'default'}
+          />
+        </MetricRow>
         <Card title="Übernommen">
-          <MetricRow>
-            <Metric label="Neu angelegt" value={bericht.angelegt} />
-            <Metric label="Aktualisiert" value={bericht.geaendert} />
-            <Metric label="Ausgelaufen" value={bericht.ausgelaufen} />
-            <Metric
-              label="Ohne Einkaufspreis"
-              value={bericht.ohneRabattsatz}
-              tone={bericht.ohneRabattsatz > 0 ? 'warning' : 'default'}
-            />
-          </MetricRow>
           {bericht.ohneRabattsatz > 0 && (
-            <p className="mt-4 text-sm text-ink-muted">
+            <p className="mb-4 text-sm text-ink-muted">
               {bericht.ohneRabattsatz} Artikel stehen mit Listenpreis im Katalog, aber ohne
               Einkaufspreis — zu ihrer Rabattgruppe ist kein Satz hinterlegt. Die Nachkalkulation
               führt sie weiter als Lücke.
             </p>
           )}
-          <div className="mt-4">
-            <Button onClick={zurueck}>Weiteren Katalog einspielen</Button>
-          </div>
+          <Button onClick={zurueck}>Weiteren Katalog einspielen</Button>
         </Card>
         <Protokoll laeufe={laeufe} />
       </div>
@@ -334,9 +335,14 @@ export default function KatalogImport() {
 
           {gruppen.length > 0 && !warnung && (
             <Card
-              title={`Rabattsätze (${gruppen.length})`}
+              title="Rabattsätze"
+              // Die Zahl rechts im Titel statt in Klammern (Linie, 2),
+              // daneben wie bisher der Stand.
               action={
-                offeneGruppen > 0 ? <Warnung>{offeneGruppen} offen</Warnung> : <Marke>vollständig</Marke>
+                <div className="liste-kopf-rechts">
+                  <span className="liste-anzahl">{gruppen.length}</span>
+                  {offeneGruppen > 0 ? <Warnung>{offeneGruppen} offen</Warnung> : <Marke>vollständig</Marke>}
+                </div>
               }
               hint={
                 <>
@@ -372,7 +378,8 @@ export default function KatalogImport() {
 
           {ergebnis.unverstanden.length > 0 && (
             <Card
-              title={`Nicht verstandene Zeilen (${ergebnis.unverstanden.length})`}
+              title="Nicht verstandene Zeilen"
+              action={<span className="liste-anzahl">{ergebnis.unverstanden.length}</span>}
               hint={
                 <>
                   Diese Zeilen werden <strong>nicht</strong> übernommen. Die Originalzeile steht

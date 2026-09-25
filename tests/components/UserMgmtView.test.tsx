@@ -210,8 +210,11 @@ describe('Benutzerverwaltung — die Rolle Administrator', () => {
     leute = [person({ uid: 'ad1', name: 'Root Person', role: 'Administrator' })];
     zeige();
 
+    // Am Telefon ist die GANZE Zeile der Weg in die Akte (Linie, 3: die
+    // Akte ist ihre einzige Handlung) — der Link trägt den Namen der Person
+    // statt eines eigenen „Akte"-Verweises.
     const zeile = (await screen.findByText('Root Person')).closest('li') as HTMLElement;
-    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
+    expect(within(zeile).getByRole('link', { name: /Root Person/ })).toHaveAttribute(
       'href', '/user-mgmt/ad1',
     );
   });

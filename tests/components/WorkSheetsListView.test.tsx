@@ -6,6 +6,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Role, WorkSheet } from '@/types';
 import { todayStr } from '@/lib/time';
 import { mitSchreibtisch } from './schreibtisch';
+import { karteZaehlt } from './kartenZahl';
 
 /**
  * Der Weg zurück in einen Entwurf.
@@ -326,7 +327,7 @@ describe('Der verworfene Entwurf in der Liste', () => {
   it('zaehlt nicht in der Ueberschrift mit', async () => {
     geladen = [...scheine, verworfener];
     zeichne();
-    expect(await screen.findByText('Scheine (2)')).toBeInTheDocument();
+    await karteZaehlt(/^Scheine$/, 2);
   });
 
   it('nennt den, der ihn aufgegeben hat', async () => {
@@ -488,7 +489,7 @@ describe('Stunden ohne Buchung', () => {
     geladen = [offenerSchein()];
     zeichne();
 
-    expect(await screen.findByText(/Stunden ohne Buchung \(1\)/)).toBeInTheDocument();
+    await karteZaehlt(/^Stunden ohne Buchung/, 1);
     expect(zeile('Franz Huber · 08:00 Std · keine Buchung gefunden')).toBeInTheDocument();
     // Die Summe ist die eigentliche Aussage: so viel Zeit steht
     // unterschrieben beim Kunden und in keiner Aufzeichnung.
@@ -521,7 +522,7 @@ describe('Stunden ohne Buchung', () => {
 
     await screen.findByText(/Familie Wagner/);
     await waitFor(() => expect(zeitenGeholt).toHaveBeenCalled());
-    expect(await screen.findByText('Stunden ohne Buchung (0)')).toBeInTheDocument();
+    await karteZaehlt(/^Stunden ohne Buchung/, 0);
     expect(screen.getByText(/gibt es eine Buchung in der Zeiterfassung/)).toBeInTheDocument();
   });
 
@@ -570,7 +571,7 @@ describe('Stunden ohne Buchung', () => {
     zeichne();
 
     await screen.findByText(/Familie Berger/);
-    expect(await screen.findByText('Stunden ohne Buchung (0)')).toBeInTheDocument();
+    await karteZaehlt(/^Stunden ohne Buchung/, 0);
     expect(screen.getByRole('button', { name: '1 Jahr' })).toBeInTheDocument();
   });
 
@@ -586,10 +587,10 @@ describe('Stunden ohne Buchung', () => {
     const nutzer = userEvent.setup();
     zeichne();
 
-    await screen.findByText('Stunden ohne Buchung (0)');
+    await karteZaehlt(/^Stunden ohne Buchung/, 0);
     await nutzer.click(screen.getByRole('button', { name: '1 Jahr' }));
 
-    expect(await screen.findByText('Stunden ohne Buchung (1)')).toBeInTheDocument();
+    await karteZaehlt(/^Stunden ohne Buchung/, 1);
     // Mandant, Von, Bis, Obergrenze — in dieser Reihenfolge. Die Grenze
     // gehört mitgegeben: ohne sie holte die Abfrage ein ganzes Jahr
     // unterschriebener Scheine samt ihrer Unterschriftsbilder.
@@ -626,7 +627,7 @@ describe('Stunden ohne Buchung', () => {
     const nutzer = userEvent.setup();
     zeichne();
 
-    await screen.findByText('Stunden ohne Buchung (0)');
+    await karteZaehlt(/^Stunden ohne Buchung/, 0);
     await nutzer.click(screen.getByRole('button', { name: '90 Tage' }));
     expect(await screen.findByText(/Grenze von 150 Scheinen ist erreicht/)).toBeInTheDocument();
   });
@@ -643,7 +644,7 @@ describe('Stunden ohne Buchung', () => {
     zeichne();
 
     await screen.findByText(/Stunden ohne Buchung/);
-    const suchfeld = screen.getByLabelText('Scheine durchsuchen');
+    const suchfeld = screen.getByLabelText('Suche');
     await nutzer.type(suchfeld, 'zzz');
     expect(screen.getByText(/Kein Schein passt/)).toBeInTheDocument();
 
@@ -690,7 +691,7 @@ describe('Scheine suchen', () => {
     zeichne();
     await screen.findByText(/Familie Huber/);
 
-    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    await nutzer.type(screen.getByLabelText('Suche'), 'B-042');
     expect(screen.getByText(/von 2 geladenen Scheinen passen/)).toBeInTheDocument();
     expect(screen.getByText(/Ältere sind nicht geladen/)).toBeInTheDocument();
   });
@@ -701,7 +702,7 @@ describe('Scheine suchen', () => {
     zeichne();
     await screen.findByText(/Familie Huber/);
 
-    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    await nutzer.type(screen.getByLabelText('Suche'), 'B-042');
     await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
 
     expect(await screen.findByText(/Familie Steiner/)).toBeInTheDocument();
@@ -715,7 +716,7 @@ describe('Scheine suchen', () => {
     zeichne();
     await screen.findByText(/Familie Huber/);
 
-    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), '03.2026');
+    await nutzer.type(screen.getByLabelText('Suche'), '03.2026');
     await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
 
     await screen.findByText(/Familie Steiner/);
@@ -734,7 +735,7 @@ describe('Scheine suchen', () => {
     zeichne();
     await screen.findByText(/Familie Huber/);
 
-    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'Steiner');
+    await nutzer.type(screen.getByLabelText('Suche'), 'Steiner');
     expect(screen.getByText(/nur im geladenen Bestand/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Auf dem Server suchen' })).not.toBeInTheDocument();
   });
@@ -750,7 +751,7 @@ describe('Scheine suchen', () => {
     zeichne();
     await screen.findByText(/Familie Huber/);
 
-    const feld = screen.getByLabelText('Scheine durchsuchen');
+    const feld = screen.getByLabelText('Suche');
     await nutzer.type(feld, 'B-042');
     await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
     await screen.findByText(/Familie Steiner/);
@@ -766,7 +767,7 @@ describe('Scheine suchen', () => {
     zeichne();
     await screen.findByText(/Familie Huber/);
 
-    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    await nutzer.type(screen.getByLabelText('Suche'), 'B-042');
     await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
 
     expect(await screen.findByText(/Grenze von 150 ist erreicht/)).toBeInTheDocument();
@@ -782,7 +783,7 @@ describe('Scheine suchen', () => {
     zeichne();
     await screen.findByText(/Familie Huber/);
 
-    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    await nutzer.type(screen.getByLabelText('Suche'), 'B-042');
     await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
 
     expect(await screen.findByText(/Netz weg/)).toBeInTheDocument();
@@ -794,7 +795,7 @@ describe('Scheine suchen', () => {
     zeichne();
     await screen.findByText(/Familie Huber/);
 
-    await nutzer.type(screen.getByLabelText('Scheine durchsuchen'), 'B-042');
+    await nutzer.type(screen.getByLabelText('Suche'), 'B-042');
     await nutzer.click(screen.getByRole('button', { name: 'Auf dem Server suchen' }));
     await screen.findByText(/Familie Steiner/);
 

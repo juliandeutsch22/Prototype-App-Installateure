@@ -402,7 +402,10 @@ describe('Baustellen — löschen', () => {
     zeige();
 
     const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
-    const rechts = zeile.lastElementChild as HTMLElement;
+    // Die rechte Seite der Zeile gezielt: seit Adresse und Telefon als
+    // Chips UNTER der Zeile stehen (`.zeile-unten`), ist sie nicht mehr
+    // das letzte Kind des Listeneintrags.
+    const rechts = zeile.querySelector('.zeile-rechts') as HTMLElement;
     expect(rechts.children.length).toBeLessThanOrEqual(4);
 
     // „Schein nachtragen" ist nicht weg, es steht im Menü.
@@ -665,7 +668,9 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
 
     // Die Zeile der Baustelle, nicht der Hinweis über dem Feld: dort steht die
     // Nummer in Klammern hinter dem Kundennamen.
-    expect(await screen.findByText('(2026-003)')).toBeInTheDocument();
+    // Die Nummer steht seit der Linie vorn in der Unterzeile („2026-003 ·
+    // Projektleitung …"), nicht mehr in Klammern hinter dem Kunden.
+    expect(await screen.findByText(/^2026-003 ·/)).toBeInTheDocument();
     expect(screen.queryByText(/Baustellen? ausserhalb der geladenen Liste gefunden/))
       .not.toBeInTheDocument();
   });
@@ -728,7 +733,8 @@ describe('Baustellen am Schreibtisch', () => {
     expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
       'Baustelle', 'Adresse', 'Projektleitung', 'Budget', 'Status', 'Aktionen',
     ]);
-    expect(within(zeile).getByText('54 h')).toHaveClass('tabelle-zahl');
+    // Zahlen rechtsbündig UND fett (docs/design/linie.md 4).
+    expect(within(zeile).getByText('54 h')).toHaveClass('tabelle-zahl-stark');
     expect(zeile).toHaveTextContent('Keine Projektleitung zugeteilt');
     expect(zeile).toHaveTextContent('Team: Max Mustermann');
     expect(within(zeile).getByRole('link', { name: /Hauptstraße 12/ })).toBeInTheDocument();

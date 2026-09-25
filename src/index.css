@@ -2924,6 +2924,44 @@ textarea {
 }
 
 /*
+ * BÜROLISTEN NACH DER LINIE — Anforderungen, Lager, Kunden, Baustellen,
+ * Angebote, Wartungen, Scheine, Einsatzplanung, Mitarbeiterübersicht,
+ * Nachkalkulation, Benutzer. Was diese Listen über die gemeinsamen
+ * Bausteine hinaus brauchen: die Zahl rechts im Kartentitel (Linie, 2) und
+ * die Reihe, in der sie neben einem Filter steht.
+ */
+@layer components {
+  /* Wie viele Einträge die Karte zeigt — rechts in der Titelzeile statt in
+     Klammern im Titel („Kunden“ … „3“). Gedämpft wie die Zahl an den
+     Gruppenköpfen darunter: eine Auskunft, kein Wert, der rufen soll. */
+  .liste-anzahl {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+
+  /* Zahl und Filter nebeneinander rechts im Titel. Bricht die Titelzeile am
+     Telefon um, bleibt die Reihe rechts stehen (`margin-left: auto`) —
+     dort, wo sie am Schreibtisch auch steht. */
+  .liste-kopf-rechts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-left: auto;
+  }
+
+  /* Die Suche oben in der Karte, volle Breite, Abstand zur Liste darunter —
+     in jeder Liste an derselben Stelle (wie Rechnungen und Lager). */
+  .liste-suche {
+    margin-bottom: 1rem;
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════

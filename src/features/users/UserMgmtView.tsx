@@ -218,8 +218,11 @@ export default function UserMgmtView() {
     warum nichts zu ändern ist. Ein „nur durch Administrator" ohne Weg dorthin
     war eine Sackgasse. Einmal geschrieben, in Liste und Tabelle derselbe.
   */
+  /* In der Tabelle ein Textknopf wie „Öffnen" bei den Angeboten, kein
+     unterstrichener Link (docs/design/linie.md 3). Am Telefon ist die
+     ganze Zeile der Weg in die Akte (`ListRow ziel`). */
   const akteLink = (u: AppUser) => (
-    <Link to={`/user-mgmt/${u.uid}`} className="textlink-allein px-2">
+    <Link to={`/user-mgmt/${u.uid}`} className="knopf-leise-klein">
       Akte
     </Link>
   );
@@ -579,22 +582,27 @@ export default function UserMgmtView() {
       )}
 
       <Card
-        title={`Benutzer (${gefiltert.length})`}
+        title="Benutzer"
+        // Zahl und Filter rechts im Titel, wie in jeder Liste (Linie, 2).
         action={
-          <SelectField
-            id="usrstatus"
-            label=""
-            value={status}
-            onChange={(e) => setStatus(e.target.value as typeof status)}
-          >
-            <option value="aktiv">Aktive</option>
-            <option value="inaktiv">Inaktive ({inaktiv})</option>
-            <option value="alle">Alle</option>
-          </SelectField>
+          <div className="liste-kopf-rechts">
+            <span className="liste-anzahl">{gefiltert.length}</span>
+            <SelectField
+              id="usrstatus"
+              label=""
+              aria-label="Benutzer zeigen"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as typeof status)}
+            >
+              <option value="aktiv">Aktive</option>
+              <option value="inaktiv">Inaktive ({inaktiv})</option>
+              <option value="alle">Alle</option>
+            </SelectField>
+          </div>
         }
       >
         {users.length >= 8 && (
-          <div className="mb-4">
+          <div className="liste-suche">
             <InputField
               id="usrsuche"
               label="Suche"
@@ -666,8 +674,11 @@ export default function UserMgmtView() {
                 </h3>
                 <List>
             {g.leute.map((u) => (
+              /* Die Akte ist die einzige Handlung der Zeile — dann ist die
+                 ganze Zeile der Weg dorthin, mit Pfeil (Linie, 3). */
               <ListRow
                 key={u.uid}
+                ziel={`/user-mgmt/${u.uid}`}
                 title={
                   <span className="flex flex-wrap items-center gap-2">
                     {u.name}
@@ -677,9 +688,7 @@ export default function UserMgmtView() {
                   </span>
                 }
                 subtitle={kontoAnzeige(u.email)}
-              >
-                {akteLink(u)}
-              </ListRow>
+              />
             ))}
                 </List>
               </div>

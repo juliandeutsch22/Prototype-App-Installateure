@@ -336,9 +336,14 @@ export default function MaterialCatalog({
       </Card>
 
       <Card
-        title={`Katalog (${materials.length})`}
+        title="Katalog"
+        // Die Zahl rechts im Titel statt in Klammern (Linie, 2), daneben
+        // wie bisher der Hinweis auf knappe Artikel.
         action={
-          lowStock > 0 ? <Warnung>{lowStock} knapp</Warnung> : undefined
+          <div className="liste-kopf-rechts">
+            <span className="liste-anzahl">{materials.length}</span>
+            {lowStock > 0 && <Warnung>{lowStock} knapp</Warnung>}
+          </div>
         }
         /*
           Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
@@ -357,14 +362,16 @@ export default function MaterialCatalog({
           )
         }
       >
-        <InputField
-          id="msearch"
-          label="Suche"
-          placeholder="Name, Kategorie oder Art.-Nr."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className="mt-4">
+        <div className="liste-suche">
+          <InputField
+            id="msearch"
+            label="Suche"
+            placeholder="Name, Kategorie oder Art.-Nr."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div>
           {loading ? (
             <SkeletonList rows={4} />
           ) : visible.length === 0 ? (

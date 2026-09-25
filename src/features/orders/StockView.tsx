@@ -294,6 +294,8 @@ export default function StockView() {
 
           <Card
             title="Bestände"
+            // Die Zahl rechts im Titel, wie in jeder Liste (Linie, 2).
+            action={loading ? undefined : <span className="liste-anzahl">{rows.length}</span>}
             // Im Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
             footer={
               abgeschnitten(materials, grenze) && (
@@ -343,8 +345,8 @@ export default function StockView() {
                         <tr key={m.id} className="tabelle-zeile">
                           <td className="tabelle-name">{m.name}</td>
                           <td className="tabelle-zelle">{m.category}</td>
-                          <td className="tabelle-zahl">{m.stock ?? 0}</td>
-                          <td className="tabelle-zahl">{m.reserved}</td>
+                          <td className="tabelle-zahl-stark">{m.stock ?? 0}</td>
+                          <td className="tabelle-zahl-stark">{m.reserved}</td>
                           <td className="tabelle-zelle">{freiMarke(m)}</td>
                           <td className="tabelle-aktionen">
                             <div className="tabelle-knoepfe">{bestandKnoepfe(m)}</div>
