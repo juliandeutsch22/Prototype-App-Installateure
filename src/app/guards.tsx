@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { LoadingState } from '@/components/States';
 import { aktiveModule, modul, type ModulId } from '@/lib/module';
-import { isTopLevel } from '@/lib/permissions';
+import { isAdmin } from '@/lib/permissions';
 import { NAV, canAccess } from './navigation';
 import type { Role } from '@/types';
 
@@ -58,7 +58,13 @@ export function RequireModul({ id, children }: { id: ModulId; children: ReactNod
         Der Betrieb benutzt diesen Bereich zurzeit nicht. Vorhandene Daten bleiben
         erhalten — sie sind nur nicht erreichbar, solange das Modul aus ist.
       </p>
-      {isTopLevel(user.role) ? (
+      {/*
+        MODULE SCHALTET NUR DIE ADMINISTRATION — so steht es im Trigger
+        `firmeneinstellungen_geschuetzt`, und `/settings/module` steht nur
+        ihr offen. Der Link ging bis zum Prüflauf vom 25.09.2026 (P3-19) auch
+        an die Geschäftsführung und endete dort bei „Kein Zugriff".
+      */}
+      {isAdmin(user.role) ? (
         <p className="mt-4">
           <Link to="/settings/module" className="link-weiter">
             Unter „Module" wieder einschalten
@@ -66,7 +72,7 @@ export function RequireModul({ id, children }: { id: ModulId; children: ReactNod
         </p>
       ) : (
         <p className="mt-4 text-sm text-ink-muted">
-          Einschalten kann das die Geschäftsführung unter „Module".
+          Einschalten kann das die Administration unter „Module".
         </p>
       )}
     </div>
