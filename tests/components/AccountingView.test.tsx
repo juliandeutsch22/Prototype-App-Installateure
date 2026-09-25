@@ -476,7 +476,8 @@ describe('Mitarbeiteruebersicht am Schreibtisch', () => {
     const zellen = within(zeile).getAllByRole('cell');
     expect(zellen[1]).toHaveTextContent('heute offen');
     expect(zellen[2]).toHaveTextContent(/^80:00$/);
-    expect(zellen[2]).toHaveClass('tabelle-zahl');
+    // Ist rechtsbündig UND fett (docs/design/linie.md 4).
+    expect(zellen[2]).toHaveClass('tabelle-zahl-stark');
     // Der laufende Monat bleibt als Zwischenstand gekennzeichnet.
     expect(zellen[3]).toHaveTextContent(/^80:00 bisher$/);
     expect(zellen[4]).toHaveTextContent('00:00');
@@ -501,5 +502,27 @@ describe('Mitarbeiteruebersicht am Schreibtisch', () => {
     await nutzer.click(knopf);
     expect(knopf).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText('Saldo im Monat')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Nach der Linie (docs/design/linie.md 1–3): „Zeit erfassen" ist die
+ * Hauptaktion der Seite und steht im Seitenkopf; am Telefon stehen die
+ * Mitarbeiter als Zeilen in der Monatskarte, nicht als Karten in der Karte.
+ */
+describe('Mitarbeiteruebersicht nach der Linie', () => {
+  it('trägt „Zeit erfassen" im Seitenkopf und die Mitarbeiter als Zeilen', async () => {
+    const kopf = await oeffneMitarbeiter();
+    const knopf = screen.getByRole('button', { name: 'Zeit erfassen' });
+    expect(knopf.closest('.seitenkopf')).not.toBeNull();
+
+    const zeile = kopf.closest('.konto-zeile') as HTMLElement;
+    expect(zeile).not.toBeNull();
+    // Keine Karte in der Karte: die Zeile liegt in der Monatskarte, ohne
+    // eigene Kartenfläche dazwischen.
+    expect(zeile.closest('.karte-inhalt')).not.toBeNull();
+    expect(zeile.parentElement!.closest('.karte, .karte-offen')).toBe(
+      zeile.closest('.karte-inhalt')!.closest('.karte'),
+    );
   });
 });

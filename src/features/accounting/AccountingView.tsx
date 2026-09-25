@@ -90,7 +90,10 @@ const SPALTEN = 5;
  * stehen und sich über alle Mitarbeiter vergleichen lassen.
  */
 function MitarbeiterRahmen({ tabelle, children }: { tabelle: boolean; children: ReactNode }) {
-  if (!tabelle) return <div className="space-y-3">{children}</div>;
+  /* Am Telefon Zeilen mit Haarlinie wie jede Liste, keine Karten in der
+     Karte (docs/design/linie.md 2, 3). `.liste` schneidet die letzte Linie
+     ab. */
+  if (!tabelle) return <div className="liste">{children}</div>;
   return (
     <div className="tabelle-rahmen">
       <table className="tabelle">
@@ -129,7 +132,7 @@ function MitarbeiterZeile({
 }) {
   if (!tabelle) {
     return (
-      <div className={offen ? 'karte-offen' : 'karte'}>
+      <div className="konto-zeile">
         {kopf}
         {children}
       </div>
@@ -424,9 +427,28 @@ export default function AccountingView() {
 
   return (
     <div className="space-y-6">
+      {/*
+        „ZEIT ERFASSEN" IST DIE HAUPTAKTION DER SEITE und steht deshalb
+        rechts im Seitenkopf — wie „Neuer Kunde", „Neue Baustelle", „Neuer
+        Schein" (docs/design/linie.md 1). Sie öffnet dasselbe Formular wie
+        vorher aus der Titelzeile der Monatskarte.
+      */}
       <PageHeader
         title="Mitarbeiterübersicht"
         subtitle="Monatsauswertung, Vollständigkeit und Salden"
+        action={
+          !creating && !editing ? (
+            <Button
+              variant="primary"
+              onClick={() => {
+                setEditing(null);
+                setCreating(true);
+              }}
+            >
+              Zeit erfassen
+            </Button>
+          ) : undefined
+        }
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -490,32 +512,24 @@ export default function AccountingView() {
 
       <Card
         title={`${MONTHS[month]} ${year}`}
+        // Die Zahl rechts im Titel wie in jeder Liste (Linie, 2), daneben
+        // die Zweitaktion weiß.
         action={
-          <span className="flex flex-wrap gap-2">
-            {!creating && !editing && (
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setEditing(null);
-                  setCreating(true);
-                }}
-              >
-                Zeit erfassen
-              </Button>
-            )}
+          <div className="liste-kopf-rechts">
+            {!loading && !error && <span className="liste-anzahl">{rows.length}</span>}
             {rows.length > 0 && (
               <Button variant="secondary" onClick={exportMonthCsv}>
                 Monats-CSV
               </Button>
             )}
-          </span>
+          </div>
         }
       >
         {alleRows.length >= 8 && (
-          <div className="mb-4 space-y-2">
+          <div className="liste-suche">
             <InputField
               id="accsuche"
-              label="Mitarbeiter suchen"
+              label="Suche"
               type="search"
               placeholder="Name"
               value={suche}
@@ -524,12 +538,14 @@ export default function AccountingView() {
             {/* Beim Monatsabschluss zaehlt genau eine Frage: bei wem fehlt
                 noch etwas? Ohne diesen Filter scrollt man durch zwanzig
                 vollstaendige Zeilen, um die zwei offenen zu finden. */}
-            <CheckboxField
-              id="accluecken"
-              label={`Nur mit fehlenden Tagen (${luecken} von ${alleRows.length})`}
-              checked={nurLuecken}
-              onChange={(e) => setNurLuecken(e.target.checked)}
-            />
+            <div className="mt-2">
+              <CheckboxField
+                id="accluecken"
+                label={`Nur mit fehlenden Tagen (${luecken} von ${alleRows.length})`}
+                checked={nurLuecken}
+                onChange={(e) => setNurLuecken(e.target.checked)}
+              />
+            </div>
           </div>
         )}
         {loading ? (
@@ -635,9 +651,7 @@ export default function AccountingView() {
                         type="button"
                         onClick={() => setExpanded(open ? null : u.uid)}
                         aria-expanded={open}
-                        className={`flex min-h-touch w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
-                          open ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
-                        }`}
+                        className="konto-kopf"
                       >
                         <span className="flex min-w-0 flex-wrap items-center gap-2">
                           <span className="font-semibold text-ink">{u.name}</span>
@@ -713,7 +727,7 @@ export default function AccountingView() {
                           {!stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
                         </span>
                       </td>
-                      <td className="tabelle-zahl">{fmtMin(stats.istMin)}</td>
+                      <td className="tabelle-zahl-stark">{fmtMin(stats.istMin)}</td>
                       <td className="tabelle-zahl">
                         {fmtMin(stats.sollMin)}
                         {stats.istLaufend && ' bisher'}
@@ -723,7 +737,9 @@ export default function AccountingView() {
                   }
                 >
                   {open && (
-                    <div className="border-t border-line px-4 py-4">
+                    // Am Telefon bündig mit dem Namen darüber (die Zeile hat
+                    // keinen Rahmen mehr), in der Tabelle mit Innenabstand.
+                    <div className={schreibtisch ? 'border-t border-line px-4 py-4' : 'konto-detail'}>
                       {/* Zuerst die Zahlen des Monats, dann erst die Tage.
                           Wer eine Zeitkarte öffnet, will meist nur wissen,
                           wie der Monat steht — nicht jeden einzelnen Tag. */}
