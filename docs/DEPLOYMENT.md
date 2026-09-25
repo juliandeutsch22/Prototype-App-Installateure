@@ -277,10 +277,17 @@ andere und genau daraus der Fehler entsteht, der weh tut.
 - **Bei „Ansehen" schreiben.** Nirgends. Der Riegel liegt als Auslöser vor
   *jeder* Tabelle mit `company_id`, nicht in der Oberfläche; ein
   Schema-Wächter prüft, dass keine fehlt.
-- **Einen anderen Betrieb erreichen.** Auch mit „Mitarbeiten" nicht: die
-  Rollenfunktion sagt dann zwar „ja", aber jede Richtlinie prüft daneben den
-  Betrieb der Zeile, und der ist an die Freigabe gebunden. Dass wirklich
-  JEDE das tut, hält ein eigener Wächter fest.
+- **In einem anderen Betrieb schreiben.** Auch mit „Mitarbeiten" nicht: der
+  Riegel vor jeder Tabelle liest den Betrieb aus der Zeile (bei `companies`
+  aus der Kennung) und lässt nur durch, wofür GENAU dieser Betrieb
+  „Mitarbeiten" gewährt hat. Bis zum Prüflauf vom 25.09.2026 fehlte er an
+  `companies`; mit „Mitarbeiten" in A und „Ansehen" in B liessen sich die
+  Bankdaten von B ändern.
+- **Was dabei offen bleibt, sei benannt:** die Rollenfunktionen kennen keinen
+  Betrieb. Wer in A „Mitarbeiten" hat und in B „Ansehen", sieht in B auch,
+  was dort nur die Spitze liest (etwa Angebote) — nicht mehr, als „Ansehen"
+  oben ohnehin verspricht, und nie Zeitbuchungen, Urlaube, Krankmeldungen
+  oder Scheinfotos.
 - **Sich selbst freigeben.** Der gewöhnliche Weg ist für ein Plattformkonto
   gesperrt.
 
