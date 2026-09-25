@@ -432,3 +432,42 @@ describe('Unterschriftsfeld — groß unterschreiben', () => {
     expect(screen.queryByRole('button', { name: 'Groß unterschreiben' })).not.toBeInTheDocument();
   });
 });
+
+describe('Unterschriftsfeld — nach dem Drehen nichts abgeschnitten', () => {
+  it('passt Striche ein, die nach einer Größenänderung aus dem Feld ragen', () => {
+    let breite = 800;
+    HTMLCanvasElement.prototype.getBoundingClientRect = () =>
+      ({ width: breite, height: 160, left: 0, top: 0, right: breite, bottom: 160, x: 0, y: 0 }) as DOMRect;
+    const beobachter: (() => void)[] = [];
+    const vorher = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      constructor(cb: () => void) {
+        beobachter.push(cb);
+      }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    } as unknown as typeof ResizeObserver;
+    const ctx = HTMLCanvasElement.prototype.getContext.call(document.createElement('canvas'), '2d') as unknown as {
+      lineTo: ReturnType<typeof vi.fn>;
+    };
+    try {
+      render(<SignaturePad titel="Unterschrift Kunde" onChange={vi.fn()} />);
+      const feld = screen.getByLabelText(/Unterschrift Kunde — mit dem Finger/);
+      act(() => {
+        feld.dispatchEvent(finger('touchstart', 100, 40));
+        feld.dispatchEvent(finger('touchmove', 700, 120));
+        feld.dispatchEvent(finger('touchend', 700, 120));
+      });
+      // Zurück ins Hochformat: das Feld ist nur noch 300 breit.
+      breite = 300;
+      ctx.lineTo.mockClear();
+      act(() => beobachter.forEach((b) => b()));
+      const xs = ctx.lineTo.mock.calls.map((c) => c[0] as number);
+      expect(xs.length).toBeGreaterThan(0);
+      expect(Math.max(...xs)).toBeLessThanOrEqual(300);
+    } finally {
+      globalThis.ResizeObserver = vorher;
+    }
+  });
+});

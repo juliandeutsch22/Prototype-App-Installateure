@@ -212,15 +212,26 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
       // meldet sich wieder, sobald es eine hat.
       if (rect.width < 1 || rect.height < 1) return;
       /*
-        NUR BEIM WECHSEL ZWISCHEN FELD UND BLATT werden die Striche
+        BEIM WECHSEL ZWISCHEN FELD UND BLATT werden die Striche
         umgerechnet — nicht bei jeder Größenänderung. Dreht jemand das
-        Telefon, bleiben sie, wo sie sind (wie bisher).
+        Telefon und alles passt noch, bleiben sie, wo sie sind (wie bisher).
       */
       const von = strichFlaeche.current;
       const ziel = { w: rect.width, h: rect.height };
-      if (wechsel.current && von && striche.current.length > 0) {
+      /*
+        Und wenn die Striche nach einer Größenänderung nicht mehr ins Feld
+        passen — quer im Blatt unterschrieben, „Fertig", Telefon zurück ins
+        Hochformat —, werden sie eingepasst statt abgeschnitten. Was passt,
+        bleibt unberührt.
+      */
+      const r0 = rahmen.current;
+      const ragtHeraus =
+        striche.current.length > 0 && (r0.maxX > ziel.w || r0.maxY > ziel.h);
+      if ((wechsel.current && von && striche.current.length > 0) || ragtHeraus) {
         const hoechstens =
-          wechsel.current === 'ins-blatt' ? Math.min(ziel.w / von.w, ziel.h / von.h) : 1;
+          wechsel.current === 'ins-blatt' && von
+            ? Math.min(ziel.w / von.w, ziel.h / von.h)
+            : 1;
         striche.current = einpassen(striche.current, ziel, hoechstens);
         const r = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
         for (const strich of striche.current) {
