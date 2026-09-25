@@ -419,17 +419,18 @@ export default function CustomersView() {
                 Sie lassen sich danach zusammenführen, indem die Baustellen der einen dem anderen
                 zugeordnet werden.
               </p>
-              <ul className="mt-3 max-h-64 divide-y divide-line overflow-y-auto rounded border border-line">
-                {uebernahme.map((g) => (
-                  <li key={g.name} className="flex items-center justify-between gap-3 px-3 py-2">
-                    <span className="truncate text-ink">{g.name}</span>
-                    <Marke>
-                      {g.projekte.length}{' '}
-                      {g.projekte.length === 1 ? 'Baustelle' : 'Baustellen'}
-                    </Marke>
-                  </li>
-                ))}
-              </ul>
+              <div className="kasten-hell mt-3 max-h-64 overflow-y-auto">
+                <List>
+                  {uebernahme.map((g) => (
+                    <ListRow key={g.name} title={g.name}>
+                      <Marke>
+                        {g.projekte.length}{' '}
+                        {g.projekte.length === 1 ? 'Baustelle' : 'Baustellen'}
+                      </Marke>
+                    </ListRow>
+                  ))}
+                </List>
+              </div>
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <Button loading={uebernahmeLaeuft} onClick={uebernahmeAusfuehren}>
                   Übernahme durchführen
@@ -508,10 +509,7 @@ export default function CustomersView() {
                   Verkleidung einer Zeile geworden — und E-Mail, UID und Notiz
                   standen bis dahin überhaupt nirgends.
                 */}
-                <Link
-                  to={`/customers/${k.id}`}
-                  className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
-                >
+                <Link to={`/customers/${k.id}`} className="textlink-allein">
                   Akte
                 </Link>
                 {/*

@@ -27,6 +27,10 @@ import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import { List, ListRow } from '@/components/ListRow';
+import Grenzliste from '@/components/Grenzliste';
+import Meldung from '@/components/Meldung';
+import { STAND } from '@/features/quotes/stand';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 
@@ -58,7 +62,7 @@ const fmtDatum = (iso?: string) =>
   datumAT(iso) || '—';
 
 /** Ein Teil der Akte lädt für sich — ein Fehler nimmt nicht die ganze Seite. */
-/** Wie viele Rechnungen die Akte zuerst zeigt. */
+/** Wie viele Rechnungen die Akte zuerst zeigt — die übrigen klappt die Grenzliste auf. */
 const RECHNUNGEN_KURZ = 5;
 
 type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit'; daten: T };
@@ -78,8 +82,6 @@ export default function KundenakteView() {
   const [namensgleich, setNamensgleich] = useState<WithId<Project>[]>([]);
   const [angebote, setAngebote] = useState<Teil<WithId<Quote>[]>>(LAEDT);
   const [rechnungen, setRechnungen] = useState<Teil<WithId<Invoice>[]>>(LAEDT);
-  /** Alle Rechnungen zeigen — sonst die jüngsten fünf; die Akte soll lesbar bleiben. */
-  const [alleRechnungen, setAlleRechnungen] = useState(false);
   const [wartungen, setWartungen] = useState<Teil<WithId<Wartung>[]>>(LAEDT);
   const [zuordnenLaeuft, setZuordnenLaeuft] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
@@ -291,7 +293,7 @@ export default function KundenakteView() {
             alten Lesezeichen folgt, soll das erfahren und nicht auf einen
             Ladefehler schliessen.
           */}
-          <EmptyState action={<Link to="/customers" className="text-brand underline">Zur Kundenliste</Link>}>
+          <EmptyState action={<Link to="/customers" className="textlink">Zur Kundenliste</Link>}>
             Diesen Kunden gibt es nicht (mehr).
           </EmptyState>
         </Card>
@@ -304,7 +306,7 @@ export default function KundenakteView() {
       <PageHeader
         title={k.name}
         subtitle={
-          <Link to="/customers" className="inline-flex min-h-touch items-center text-brand underline">
+          <Link to="/customers" className="textlink-allein">
             ← Zur Kundenliste
           </Link>
         }
@@ -344,22 +346,25 @@ export default function KundenakteView() {
         ) : baustellen.daten.length === 0 ? (
           <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
         ) : (
-          <ul className="divide-y divide-line">
+          <List>
             {baustellen.daten
               .slice()
               .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
               .map((p) => (
-                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <Link
-                    to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
-                    className="truncate text-sm text-brand underline"
-                  >
-                    {p.projectNumber} · {p.address ?? 'ohne Adresse'}
-                  </Link>
-                  <StatusBadge status={p.status} />
-                </li>
+                <ListRow
+                  key={p.id}
+                  title={
+                    <Link
+                      to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
+                      className="textlink"
+                    >
+                      {p.projectNumber} · {p.address ?? 'ohne Adresse'}
+                    </Link>
+                  }
+                  zustand={<StatusBadge status={p.status} />}
+                />
               ))}
-          </ul>
+          </List>
         )}
 
         {/*
@@ -367,7 +372,7 @@ export default function KundenakteView() {
           Sie nur anzuzeigen wäre halb — der Knopf stellt die Verbindung her.
         */}
         {namensgleich.length > 0 && (
-          <div className="mt-4 rounded border border-line bg-surface-2 p-3">
+          <div className="kasten mt-4">
             <p className="text-sm text-warning">
               <strong>{namensgleich.length}</strong>{' '}
               {namensgleich.length === 1
@@ -375,12 +380,9 @@ export default function KundenakteView() {
                 : 'Baustellen tragen diesen Namen, sind'}{' '}
               aber keinem Kunden zugeordnet.
             </p>
-            <ul className="mt-2 space-y-2">
+            <List>
               {namensgleich.map((p) => (
-                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="truncate text-sm text-ink">
-                    {p.projectNumber} · {p.address ?? 'ohne Adresse'}
-                  </span>
+                <ListRow key={p.id} title={`${p.projectNumber} · ${p.address ?? 'ohne Adresse'}`}>
                   {darfBaustellenZuordnen && (
                     <Button
                       variant="secondary"
@@ -401,9 +403,9 @@ export default function KundenakteView() {
                       Zuordnen
                     </Button>
                   )}
-                </li>
+                </ListRow>
               ))}
-            </ul>
+            </List>
           </div>
         )}
 
@@ -427,32 +429,39 @@ export default function KundenakteView() {
           ) : wartungen.daten.length === 0 ? (
             <EmptyState>Keine Wartungsvereinbarung.</EmptyState>
           ) : (
-            <ul className="divide-y divide-line">
+            <List>
               {wartungen.daten.map((w) => {
                 const u = beurteile(w, heute);
                 return (
-                  <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span className="min-w-0 text-sm text-ink">
-                      {w.anlage}
-                      <span className="block text-xs text-ink-muted">
-                        alle {w.intervallMonate} Monate · Termin {fmtDatum(w.faelligAm)}
-                      </span>
-                    </span>
-                    <Zustand
-                      stand={
-                        u.stand === 'überfällig'
-                          ? 'schlecht'
-                          : u.stand === 'fällig'
-                            ? 'achtung'
-                            : 'ruht'
-                      }
-                    >
-                      {u.stand === 'ruht' ? 'ruht' : u.text}
-                    </Zustand>
-                  </li>
+                  /*
+                    DER ZUSTAND STEHT BEIM NAMEN, wie in der Wartungsliste. Er
+                    ist ein ganzer Satz („Seit 5 Tagen überfällig.") — rechts
+                    in der Zeile liess er der Anlage am Telefon kaum Platz,
+                    und ihr Name brach mitten im Wort.
+                  */
+                  <ListRow
+                    key={w.id}
+                    title={
+                      <>
+                        <span>{w.anlage}</span>
+                        <Zustand
+                          stand={
+                            u.stand === 'überfällig'
+                              ? 'schlecht'
+                              : u.stand === 'fällig'
+                                ? 'achtung'
+                                : 'ruht'
+                          }
+                        >
+                          {u.stand === 'ruht' ? 'ruht' : u.text}
+                        </Zustand>
+                      </>
+                    }
+                    subtitle={`alle ${w.intervallMonate} Monate · Termin ${fmtDatum(w.faelligAm)}`}
+                  />
                 );
               })}
-            </ul>
+            </List>
           )}
         </Card>
       )}
@@ -466,33 +475,27 @@ export default function KundenakteView() {
           ) : rechnungen.daten.length === 0 ? (
             <EmptyState>Noch keine Rechnung.</EmptyState>
           ) : (
-            <>
-            <ul className="divide-y divide-line">
-              {(alleRechnungen ? rechnungen.daten : rechnungen.daten.slice(0, RECHNUNGEN_KURZ)).map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <span className="min-w-0 text-sm">
+            <Grenzliste
+              eintraege={rechnungen.daten}
+              grenze={RECHNUNGEN_KURZ}
+              mehr={{ aufklappen: true }}
+              zeile={(r) => (
+                <ListRow
+                  key={r.id}
+                  title={
                     <Link
                       to={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
-                      className="text-brand underline"
+                      className="textlink"
                     >
                       {r.invoiceNumber}
                     </Link>
-                    <span className="ml-2 whitespace-nowrap text-xs text-ink-muted">
-                      {fmtDatum(r.invoiceDate)} · {r.projectNumber}
-                    </span>
-                  </span>
-                  <span className="whitespace-nowrap text-sm text-ink-muted">
-                    {fmtEUR(r.totalBrutto)} brutto · {r.paymentStatus}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {rechnungen.daten.length > RECHNUNGEN_KURZ && (
-              <Button variant="ghost" className="mt-2" onClick={() => setAlleRechnungen((a) => !a)}>
-                {alleRechnungen ? 'Nur die jüngsten zeigen' : `Alle ${rechnungen.daten.length} zeigen`}
-              </Button>
-            )}
-            </>
+                  }
+                  subtitle={`${fmtDatum(r.invoiceDate)} · ${r.projectNumber}`}
+                  wert={`${fmtEUR(r.totalBrutto)} brutto`}
+                  zustand={<StatusBadge status={r.paymentStatus} />}
+                />
+              )}
+            />
           )}
         </Card>
       )}
@@ -506,18 +509,20 @@ export default function KundenakteView() {
           ) : angebote.daten.length === 0 ? (
             <EmptyState>Noch kein Angebot.</EmptyState>
           ) : (
-            <ul className="divide-y divide-line">
+            <List>
               {angebote.daten.map((q) => (
-                <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <Link to={`/quotes/${q.id}`} className="truncate text-sm text-brand underline">
-                    {q.quoteNumber}
-                  </Link>
-                  <span className="text-sm text-ink-muted">
-                    {fmtEUR(q.totalNetto)} netto · {q.status}
-                  </span>
-                </li>
+                <ListRow
+                  key={q.id}
+                  title={
+                    <Link to={`/quotes/${q.id}`} className="textlink">
+                      {q.quoteNumber}
+                    </Link>
+                  }
+                  wert={`${fmtEUR(q.totalNetto)} netto`}
+                  zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
+                />
               ))}
-            </ul>
+            </List>
           )}
         </Card>
       )}
@@ -645,8 +650,8 @@ function StammdatenFormular({
         />
       </FormGrid>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="k-notiz" className="text-sm font-medium text-ink">Notiz</label>
+      <div className="feld-block">
+        <label htmlFor="k-notiz" className="feld-name">Notiz</label>
         <textarea
           id="k-notiz"
           rows={3}
@@ -684,17 +689,19 @@ function StammdatenFormular({
         Hilfe.
       */}
       {geaendert && (
-        <div className="flex flex-wrap items-center gap-3 rounded border border-brand-fixed/40 bg-info-bg p-3">
-          <span className="text-sm text-ink">Es gibt ungespeicherte Änderungen.</span>
-          <div className="ml-auto flex gap-2">
-            <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
-              Verwerfen
-            </Button>
-            <Button onClick={onSpeichern} loading={speichert}>
-              Speichern
-            </Button>
+        <Meldung ton="info">
+          <div className="flex flex-wrap items-center gap-3">
+            <span>Es gibt ungespeicherte Änderungen.</span>
+            <div className="ml-auto flex gap-2">
+              <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
+                Verwerfen
+              </Button>
+              <Button onClick={onSpeichern} loading={speichert}>
+                Speichern
+              </Button>
+            </div>
           </div>
-        </div>
+        </Meldung>
       )}
     </div>
   );

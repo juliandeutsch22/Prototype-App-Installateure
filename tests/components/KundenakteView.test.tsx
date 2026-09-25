@@ -439,7 +439,10 @@ describe('Die Rechnungen der Akte', () => {
     zeige();
     const link = await screen.findByRole('link', { name: 'RE-2026-1001' });
     expect(link).toHaveAttribute('href', '/invoices?suche=RE-2026-1001');
-    expect(screen.getByText(/1.200,00 brutto · Teilbezahlt/)).toBeInTheDocument();
+    // Betrag und Stand stehen getrennt rechts in der Zeile (Wert und Zustand) —
+    // aber in DERSELBEN Zeile.
+    const zeile = screen.getByText(/1.200,00 brutto/).closest('li')!;
+    expect(within(zeile).getByText('Teilbezahlt')).toBeInTheDocument();
     expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1', ['p1']);
   });
 
@@ -451,7 +454,7 @@ describe('Die Rechnungen der Akte', () => {
     zeige();
     await screen.findByRole('link', { name: 'RE-2026-100' });
     expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(5);
-    await userEvent.click(screen.getByRole('button', { name: 'Alle 7 zeigen' }));
+    await userEvent.click(screen.getByRole('button', { name: 'und 2 weitere' }));
     expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(7);
   });
 
