@@ -247,7 +247,7 @@ export default function UserMgmtView() {
               <span className="select-all font-semibold">{handoverPassword.benutzername}</span>
             </p>
           )}
-          <p className="mt-2 select-all text-lg font-semibold">{handoverPassword.pw}</p>
+          <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold">{handoverPassword.pw}</p>
           <Button variant="ghost" className="mt-2" onClick={() => setHandoverPassword(null)}>
             Verstanden
           </Button>
