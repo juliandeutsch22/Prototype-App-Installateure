@@ -2,7 +2,15 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { Role } from '@/types';
+
+/** Die Grundregel von `.reiterleiste` in index.css (ohne Kommentare). */
+const LEISTE_REGEL =
+  readFileSync(resolve(__dirname, '../../src/index.css'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .match(/\.reiterleiste\s*\{([^{}]*)\}/)?.[1] ?? '';
 
 /**
  * Mehrere Ansichten unter einem Reiter.
@@ -73,7 +81,10 @@ describe('Unterreiter', () => {
     zeige('/settings/meldungen');
     const leiste = await screen.findByRole('navigation', { name: 'Bereiche' });
     expect(screen.queryByLabelText('Bereich')).toBeNull();
-    expect(leiste.className).toMatch(/overflow-x-auto/);
+    // Seitlich laufen steht seit dem gemeinsamen Reiter-Baustein im
+    // Stylesheet (index.css, „Reiter“), nicht mehr als Hilfsklasse am Markup.
+    expect(leiste).toHaveClass('reiterleiste');
+    expect(LEISTE_REGEL).toMatch(/overflow-x:\s*auto;/);
     expect(leiste.className).not.toMatch(/(^|\s)hidden(\s|$)/);
     const namen = within(leiste).getAllByRole('link').map((l) => l.textContent);
     expect(namen).toEqual(expect.arrayContaining(['Mein Konto', 'Module', 'Datensicherung']));

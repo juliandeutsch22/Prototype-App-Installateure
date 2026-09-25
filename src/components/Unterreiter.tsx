@@ -89,30 +89,20 @@ export default function Unterreiter({
             zeigt eine zweite Zeile alle — am Telefon wären es vier Zeilen,
             dort läuft die Leiste wie die übrigen der App seitlich.
           */
-          className="mb-4 reiterleiste flex gap-1 overflow-x-auto border-b border-line sm:flex-wrap sm:overflow-visible"
+          className="mb-4 reiterleiste"
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (
             <NavLink
               key={s.pfad}
               to={`${basis}/${s.pfad}`}
-              className={({ isActive }) =>
-                [
-                  'min-h-touch whitespace-nowrap border-b-2 px-3 py-2 text-sm transition',
-                  // Dieselbe Markierung wie bei den Reitern in Material,
-                  // Lager und Anforderungen: Kante UNTEN, Text fett, beides im
-                  // festen Türkis der Oberfläche.
-                  //
-                  // Bewusst NICHT in `--accent`: das ist die Farbe des
-                  // Mandanten, und dieser Betrieb hat dort sein Logo-Rot
-                  // stehen. Ein roter Strich unter „Meldungen" war deshalb
-                  // der einzige rote Punkt auf einer türkisen Seite — eine
-                  // Markierung ist Oberfläche, keine Handlung.
-                  isActive
-                    ? 'border-b-accent-deep font-bold text-accent-deep'
-                    : 'border-b-transparent font-medium text-ink-muted hover:text-ink',
-                ].join(' ')
-              }
+              /*
+                Dieselbe Markierung wie bei den Reitern in Material, Lager,
+                Anforderungen und Urlaub (`Reiter.tsx`): Kante UNTEN, Text
+                fett, im festen Türkis — warum nicht in `--accent`, steht in
+                index.css („Reiter“).
+              */
+              className={({ isActive }) => (isActive ? 'reiter-aktiv' : 'reiter')}
             >
               {s.label}
             </NavLink>
