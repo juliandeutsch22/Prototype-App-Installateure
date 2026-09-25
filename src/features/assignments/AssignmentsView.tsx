@@ -765,11 +765,11 @@ export default function AssignmentsView() {
                   const geladen = tagesListen.find((l) => l.projectNumber === pn)?.geladen ?? {};
                   const inBearbeitung = pn === projectNumber;
                   return (
-                    <div key={pn} className="rounded-sm border border-line">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2">
-                        <span className="font-semibold text-ink">
+                    <div key={pn} className="gruppe">
+                      <div className="gruppe-kopf">
+                        <span className="gruppe-titel">
                           {proj?.customerName ?? pn}{' '}
-                          <span className="text-sm text-ink-muted">({pn})</span>
+                          <span className="gruppe-neben">({pn})</span>
                         </span>
                         <span className="flex flex-wrap items-center gap-2">
                           <Marke>{fach} Facharbeiter</Marke>
@@ -781,7 +781,7 @@ export default function AssignmentsView() {
                             die vorhandene Planung samt Rüstliste von selbst.
                           */}
                           {inBearbeitung ? (
-                            <span className="text-sm text-ink-muted">wird oben bearbeitet</span>
+                            <span className="gruppe-neben">wird oben bearbeitet</span>
                           ) : (
                             <Button
                               variant="secondary"
@@ -797,7 +797,7 @@ export default function AssignmentsView() {
                         </span>
                       </div>
                       {(aufgabe || material.length > 0) && (
-                        <div className="space-y-2 border-b border-line px-3 py-2 text-sm">
+                        <div className="gruppe-abschnitt space-y-2">
                           {aufgabe && (
                             <p className="whitespace-pre-line text-ink">
                               <span className="font-medium">Aufgabe:</span> {aufgabe}
@@ -826,7 +826,7 @@ export default function AssignmentsView() {
                       )}
                       {/* Die Zeilen stehen im Rahmen der Baustelle — deshalb
                           mit seitlichem Abstand zum Rahmen. */}
-                      <div className="px-3">
+                      <div className="gruppe-liste">
                         <List>
                           {rows.map((a) => (
                             <ListRow

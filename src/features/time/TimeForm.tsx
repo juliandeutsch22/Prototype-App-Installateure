@@ -992,30 +992,26 @@ export default function TimeForm({
             onChange={(e) => setIsHelper(e.target.checked)}
           />
           {aussendienst ? (
-            <div className="rounded-sm border border-line">
+            <div className="gruppe">
               <button
                 type="button"
                 aria-expanded={weitereOffen}
                 aria-controls="weitere-angaben"
                 onClick={() => setWeitereOffen((o) => !o)}
-                className="flex min-h-touch w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm"
+                className="gruppe-kopf-knopf"
               >
-                <span className="min-w-0">
-                  <span className="block font-medium text-ink">Weitere Angaben</span>
-                  <span className="block text-ink-muted">
+                <span className="gruppe-kopf-text">
+                  Weitere Angaben
+                  <span className="gruppe-kopf-unter">
                     {weitereWerte.length > 0
                       ? weitereWerte.join(' · ')
                       : 'Wegzeit, Fahrzeug, Helfername, Zuschläge'}
                   </span>
                 </span>
-                <Icon
-                  name="chevron"
-                  size={18}
-                  className={`shrink-0 text-ink-muted transition-transform ${weitereOffen ? 'rotate-180' : ''}`}
-                />
+                <Icon name="chevron" size={18} className="gruppe-winkel" />
               </button>
               {weitereOffen && (
-                <div id="weitere-angaben" className="space-y-4 border-t border-line p-3">
+                <div id="weitere-angaben" className="gruppe-inhalt space-y-4">
                   {weitereFelder}
                 </div>
               )}

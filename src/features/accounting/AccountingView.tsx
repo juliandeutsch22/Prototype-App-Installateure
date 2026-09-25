@@ -732,11 +732,10 @@ export default function AccountingView() {
                           (Mitarbeiterkarte, Baustellenzeile). Aus dem Betrieb:
                           „macht der Pfeil vor dem roten text hier?"
 
-                          `flex` nimmt dem `<summary>` das Dreieck (es ist dann
-                          kein list-item mehr), `list-none` sagt es zusaetzlich
-                          fuer Browser, die das anders halten. Der Winkel steht
-                          rechts und dreht sich beim Oeffnen — dieselbe
-                          Bewegung wie eine Zeile hoeher.
+                          `.gruppe-kopf-knopf-warnung` nimmt dem `<summary>`
+                          das Dreieck (siehe index.css, „Kasten mit Kopf“).
+                          Der Winkel steht rechts und dreht sich beim Oeffnen
+                          — dieselbe Bewegung wie eine Zeile hoeher.
                         */
                         /*
                           Kein Rot mehr: die fehlenden Tage sind eine Lücke in
@@ -744,20 +743,16 @@ export default function AccountingView() {
                           mit der Warnpille. Hier genügt die Warnfarbe am
                           Titel; die Daten selbst stehen in normaler Schrift.
                         */
-                        <details className="group mt-4 rounded border border-line bg-surface-2 text-sm">
-                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-medium text-warning [&::-webkit-details-marker]:hidden">
+                        <details className="gruppe mt-4">
+                          <summary className="gruppe-kopf-knopf-warnung">
                             <span>
                               {completeness.missingCount === 1
                                 ? '1 Arbeitstag ohne Buchung'
                                 : `${completeness.missingCount} Arbeitstage ohne Buchung`}
                             </span>
-                            <Icon
-                              name="chevron"
-                              size={18}
-                              className="shrink-0 transition-transform duration-200 group-open:rotate-180"
-                            />
+                            <Icon name="chevron" size={18} className="gruppe-winkel" />
                           </summary>
-                          <p className="px-3 pb-2 leading-relaxed text-ink">
+                          <p className="gruppe-text">
                             {completeness.missingDates.map((d) => dayLabel(d)).join(' · ')}
                           </p>
                         </details>

@@ -1559,6 +1559,217 @@ textarea {
     font-weight: 600;
   }
 
+  /* ── Kasten mit Kopf ────────────────────────────────────────────────── */
+
+  /*
+   * Eine umrahmte Gruppe mit getöntem Kopf: eine Baustelle des Tages, die
+   * Rüstliste, ein Aufklappbereich. Anders als `.kasten` OHNE Innenpolsterung
+   * — Kopf und Zeilen reichen bis an den Rahmen, jeder Teil polstert selbst.
+   * Vorher stand das Muster viermal in eigenen Hilfsklassen, mit zwei
+   * verschiedenen Rundungen und einmal ganz ohne getönten Kopf.
+   */
+  .gruppe {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    overflow: clip;
+  }
+
+  .gruppe-kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--surface-2);
+    padding: 0.5rem 0.75rem;
+  }
+
+  .gruppe-titel {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .gruppe-neben {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  /*
+   * Der Kopf als Schalter (`<summary>` oder `<button aria-expanded>`): die
+   * ganze Zeile ist die Tastfläche. Die Linie darunter steht nur, solange
+   * offen ist — zugeklappt wäre sie eine zweite Kante direkt über dem
+   * Rahmen. `list-style: none` und der Marker-Selektor nehmen dem
+   * `<summary>` das Dreieck des Browsers; der Winkel rechts ist unserer.
+   */
+  .gruppe-kopf-knopf,
+  .gruppe-kopf-knopf-warnung {
+    display: flex;
+    min-height: 48px;
+    width: 100%;
+    cursor: pointer;
+    list-style: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background-color: var(--surface-2);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Eine Lücke in den Daten, die der Kopf ankündigt — Warnfarbe am Titel,
+     der Inhalt darunter bleibt in normaler Schrift. */
+  .gruppe-kopf-knopf-warnung {
+    color: var(--warning);
+  }
+
+  .gruppe-kopf-knopf::-webkit-details-marker,
+  .gruppe-kopf-knopf-warnung::-webkit-details-marker {
+    display: none;
+  }
+
+  details[open] > .gruppe-kopf-knopf,
+  details[open] > .gruppe-kopf-knopf-warnung,
+  .gruppe-kopf-knopf[aria-expanded='true'] {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .gruppe-kopf-text {
+    display: block;
+    min-width: 0;
+  }
+
+  .gruppe-kopf-unter {
+    display: block;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  /* Der Winkel dreht sich mit dem Zustand — am Zustand des Kopfes, nicht
+     an einer Klasse, die die Aufrufstelle umschalten müsste. */
+  .gruppe-winkel {
+    flex: none;
+    color: var(--text-muted);
+    transition: transform 200ms ease;
+  }
+
+  details[open] > .gruppe-kopf-knopf .gruppe-winkel,
+  details[open] > .gruppe-kopf-knopf-warnung .gruppe-winkel,
+  .gruppe-kopf-knopf[aria-expanded='true'] .gruppe-winkel {
+    transform: rotate(180deg);
+  }
+
+  /* Ein Abschnitt unter dem Kopf (Aufgabe, Material) — mit Linie zum
+     Nächsten. */
+  .gruppe-abschnitt {
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text);
+  }
+
+  /* Felder oder Fliesstext im Inneren. */
+  .gruppe-inhalt {
+    padding: 0.75rem;
+  }
+
+  .gruppe-text {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.625;
+    color: var(--text);
+  }
+
+  /* Listenzeilen polstern oben und unten selbst — hier nur seitlich. */
+  .gruppe-liste {
+    padding-inline: 0.75rem;
+  }
+
+  .gruppe-fehler {
+    border-top: 1px solid var(--border);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--danger);
+  }
+
+  /* ── Abhakbare Zeile ────────────────────────────────────────────────── */
+
+  /*
+   * Die ganze Zeile ist die Beschriftung eines Kästchens: auf der Baustelle
+   * wird mit Handschuhen getippt, ein 20-px-Kästchen trifft man nicht.
+   * Erledigt bzw. gewählt ist die Zeile getönt. Trennlinien wie bei `.liste`:
+   * unten an jeder Zeile, die Liste schneidet den letzten Pixel ab.
+   */
+  .haken-liste {
+    clip-path: inset(0 0 1px 0);
+  }
+
+  .haken-zeile,
+  .haken-zeile-erledigt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-inline: 0.75rem;
+  }
+
+  .haken-zeile-erledigt {
+    background-color: var(--surface-2);
+  }
+
+  .haken-label {
+    display: flex;
+    min-height: 48px;
+    min-width: 0;
+    flex: 1 1 0%;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.75rem;
+    padding-block: 0.5rem;
+  }
+
+  /* Nur anzeigen, nicht abhaken: dann ist die Zeile kein Ziel. */
+  .haken-label:has(> .kaestchen:disabled) {
+    cursor: default;
+  }
+
+  .haken-text {
+    min-width: 0;
+    flex: 1 1 0%;
+  }
+
+  .haken-titel,
+  .haken-titel-erledigt {
+    display: block;
+    color: var(--text);
+  }
+
+  .haken-titel-erledigt {
+    color: var(--text-muted);
+    text-decoration-line: line-through;
+  }
+
+  .haken-menge {
+    font-weight: 600;
+  }
+
+  .haken-unter {
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+  }
+
   /* ── Leerzustand, Laden, Platzhalter ────────────────────────────────── */
 
   /*

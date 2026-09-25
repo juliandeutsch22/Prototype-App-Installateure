@@ -186,7 +186,7 @@ export default function PersonPicker({
 
           {/* Feste Höhe mit Bildlauf: eine Liste aus zwanzig Namen darf das
               Formular nicht auseinanderreißen. */}
-          <div className="mt-2 max-h-64 overflow-y-auto rounded border border-line">
+          <div className="gruppe mt-2 max-h-64 overflow-y-auto">
             {sichtbar.length === 0 ? (
               <p className="px-3 py-3 text-sm text-ink-muted">
                 {/* Warum die Liste leer ist, muss dabeistehen: sonst sieht ein
@@ -196,33 +196,26 @@ export default function PersonPicker({
                   : 'Niemand ist an diesem Tag frei. Der Filter blendet die Belegten aus.'}
               </p>
             ) : (
-              <ul className="divide-y divide-line">
+              <ul className="haken-liste">
                 {sichtbar.map((p) => {
                   const an = selected.includes(p.uid);
                   const id = `${idPrefix}-${p.uid}`;
                   return (
-                    <li key={p.uid} className={an ? 'bg-surface-2' : ''}>
-                      <div className="flex flex-wrap items-center justify-between gap-2 px-3">
-                        <label
-                          htmlFor={id}
-                          className="flex min-h-touch min-w-0 flex-1 cursor-pointer items-center gap-3 py-1"
-                        >
-                          <input
-                            id={id}
-                            type="checkbox"
-                            checked={an}
-                            onChange={(e) => umschalten(p.uid, e.target.checked)}
-                            className="kaestchen"
-                          />
-                          <span className="min-w-0">
-                            <span className="block truncate text-ink">{p.name}</span>
-                            {p.hint && (
-                              <span className="block truncate text-xs text-ink-muted">{p.hint}</span>
-                            )}
-                          </span>
-                        </label>
-                        {an && renderExtra?.(p.uid)}
-                      </div>
+                    <li key={p.uid} className={an ? 'haken-zeile-erledigt' : 'haken-zeile'}>
+                      <label htmlFor={id} className="haken-label">
+                        <input
+                          id={id}
+                          type="checkbox"
+                          checked={an}
+                          onChange={(e) => umschalten(p.uid, e.target.checked)}
+                          className="kaestchen"
+                        />
+                        <span className="haken-text">
+                          <span className="haken-titel">{p.name}</span>
+                          {p.hint && <span className="haken-unter">{p.hint}</span>}
+                        </span>
+                      </label>
+                      {an && renderExtra?.(p.uid)}
                     </li>
                   );
                 })}
