@@ -19,7 +19,14 @@ export type IconName =
   | 'phone'
   | 'mail'
   | 'pin'
-  | 'plus';
+  | 'plus'
+  | 'sun'
+  | 'pencil'
+  | 'file'
+  | 'contact'
+  | 'wrench'
+  | 'archive'
+  | 'calculator';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 const paths: Record<IconName, string> = {
@@ -49,6 +56,30 @@ const paths: Record<IconName, string> = {
   /* Zwei Striche und sonst nichts — das Zeichen für „hier entsteht etwas
      Neues", und das einzige in dieser Sammlung, das kein Gegenstand ist. */
   plus: 'M12 5v14M5 12h14',
+  /*
+    SIEBEN ZEICHEN KAMEN AM 25.09.2026 DAZU, damit in der Navigation kein
+    Zeichen zweimal steht. Vorher trugen Wartungen, Anforderungen und
+    Handwerksscheine dasselbe Klemmbrett, Urlaub und Einsatzplanung denselben
+    Kalender — wer nach dem Zeichen sucht, landete am falschen Ort. Gleiche
+    Strichführung wie oben: 24er-Raster, nur Linien, keine Füllung.
+  */
+  // Urlaub
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
+  // Handwerksscheine — hier wird geschrieben und unterschrieben.
+  pencil: 'M5 20h3L19 9a2.12 2.12 0 0 0-3-3L5 17v3ZM14.5 7.5l2 2M13 20h6',
+  // Angebote
+  file: 'M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4ZM14 3v4h4M9 12h6M9 16h6',
+  // Kunden — die Karteikarte, nicht die Personengruppe der Belegschaft.
+  contact:
+    'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1ZM9 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM5.5 16a3.5 3.5 0 0 1 7 0M15 9h3M15 13h3',
+  // Wartungen
+  wrench:
+    'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.12 2.12 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8Z',
+  // Lager — der Kasten im Regal, nicht das einzelne Paket der Anforderung.
+  archive: 'M3 4h18v4H3V4ZM5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4',
+  // Nachkalkulation
+  calculator:
+    'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM9 7h6v3H9V7ZM9 14h.01M12 14h.01M15 14h.01M9 17h.01M12 17h.01M15 17h.01',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:
