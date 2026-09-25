@@ -643,3 +643,45 @@ describe('Zeiterfassung — Abwesenheiten, die noch kommen', () => {
     expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
   });
 });
+
+describe('Zeiterfassung — vom Büro gebuchter Zeitausgleich (Prüflauf 25.09.2026, P1-26)', () => {
+  /*
+    Einen gebuchten Zeitausgleich ändert nur das Büro; die Datenbank lehnt
+    Bearbeiten und Löschen durch den Monteur ab. Vorher standen die Knöpfe
+    trotzdem da und brachten nur eine Fehlermeldung.
+  */
+  it('zeigt dem Monteur keine Knöpfe, die die Datenbank ablehnt', async () => {
+    eintraege = [
+      eintrag({
+        id: 'za',
+        date: '2026-09-01',
+        status: 'Zeitausgleich',
+        startTime: '',
+        endTime: '',
+      }),
+      eintrag({ id: 'offen', date: '2026-08-31' }),
+    ];
+    zeige();
+
+    const za = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(za).getByText('vom Büro gebucht')).toBeInTheDocument();
+    expect(within(za).queryByRole('button', { name: 'Bearbeiten' })).toBeNull();
+    expect(within(za).queryByRole('button', { name: 'Löschen' })).toBeNull();
+
+    const offen = screen.getByText('31.08.2026').closest('li') as HTMLElement;
+    expect(within(offen).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+  });
+
+  it('lässt sie der Buchhaltung', async () => {
+    rolle = 'Buchhaltung';
+    authWert.user.role = 'Buchhaltung';
+    eintraege = [
+      eintrag({ id: 'za', date: '2026-09-01', status: 'Zeitausgleich', startTime: '', endTime: '' }),
+    ];
+    zeige();
+
+    const za = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(za).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(within(za).getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
+  });
+});

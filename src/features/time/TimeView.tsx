@@ -18,7 +18,7 @@ import {
   tageWort,
 } from '@/lib/time';
 import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
-import { fuehrtZeitkonto } from '@/lib/permissions';
+import { canEditTime, fuehrtZeitkonto } from '@/lib/permissions';
 import { bilanzMarker, listBilanzen, monatVon, type Monatsbilanz } from '@/lib/db/monatsbilanzen';
 import type { WithId } from '@/lib/db/core';
 import type { TimeEntry, AppUser, WorkSheet } from '@/types';
@@ -716,6 +716,12 @@ export default function TimeView() {
                             // Ein Tag aus einem genehmigten Antrag ändert sich
                             // nur über den Antrag.
                             <AntragKnopf eintrag={e} />
+                          ) : e.status === 'Zeitausgleich' && !(user && canEditTime(user.role)) ? (
+                            // Einen gebuchten Zeitausgleich ändert nur das Büro —
+                            // die Datenbank lehnt es sonst ab. Zwei Knöpfe, die
+                            // nur eine Fehlermeldung bringen, stehen hier nicht
+                            // (Prüflauf 25.09.2026, P1-26).
+                            <Marke>vom Büro gebucht</Marke>
                           ) : (
                             <>
                               <Button variant="ghost" onClick={() => setEditing(e)}>
