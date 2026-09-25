@@ -1,5 +1,10 @@
 import { updateQuote } from '@/lib/db/quotes';
-import { createProject, reserveProjectNumber, type NewProject } from '@/lib/db/projects';
+import {
+  createProject,
+  listProjectsByNumbers,
+  reserveProjectNumber,
+  type NewProject,
+} from '@/lib/db/projects';
 import type { Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 
@@ -45,6 +50,23 @@ export async function angebotAnnehmen(
   q: WithId<Quote>,
   vorsatzBaustelle: string,
 ): Promise<{ projectNumber: string }> {
+  /*
+    GIBT ES DIE BAUSTELLE ZU DIESEM ANGEBOT SCHON? (Prüflauf 25.09.2026,
+    P2-19). Anlegen der Baustelle und Annehmen des Angebots sind zwei
+    Schreibvorgänge. Brach es dazwischen ab, stand das Angebot weiter als
+    „Versendet" da — und das nächste „Annehmen" legte eine ZWEITE Baustelle
+    an. Das Angebot trägt die Nummer deshalb schon vor dem Anlegen (siehe
+    unten); findet sich die Baustelle dazu, wird sie genommen und nur noch
+    das Angebot angenommen.
+  */
+  if (q.projectNumber) {
+    const [schon] = await listProjectsByNumbers(companyId, [q.projectNumber]);
+    if (schon) {
+      await updateQuote(q.id, { status: 'Angenommen', projectNumber: schon.projectNumber });
+      return { projectNumber: schon.projectNumber };
+    }
+  }
+
   const daten: Omit<NewProject, 'projectNumber'> = {
     customerId: q.customerId,
     customerName: q.customerName,
@@ -62,6 +84,10 @@ export async function angebotAnnehmen(
   if (!projectNumber) {
     throw new Error('Die Baustellennummer konnte nicht vergeben werden — bitte gleich noch einmal versuchen.');
   }
+  // Die Nummer ZUERST am Angebot festhalten — nur so findet ein zweiter
+  // Versuch die Baustelle, falls es nach dem Anlegen abbricht. Der Status
+  // bleibt, bis die Baustelle wirklich steht.
+  await updateQuote(q.id, { projectNumber });
   await createProject(companyId, { ...daten, projectNumber });
   await updateQuote(q.id, { status: 'Angenommen', projectNumber });
   return { projectNumber };

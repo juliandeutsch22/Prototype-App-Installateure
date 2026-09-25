@@ -44,9 +44,13 @@ let aktiveBaustellen: { projectNumber: string }[] = [];
 const reserveProjectNumber = vi.fn<[string, unknown], Promise<string | null>>(
   async () => 'B-2026-0012',
 );
+/** Baustellen, die es zu einer Nummer schon gibt — für das zweite Annehmen. */
+let bestehende: { projectNumber: string }[] = [];
 vi.mock('@/lib/db/projects', () => ({
   createProject: (c: string, p: unknown) => createProject(c, p),
   listActiveProjects: vi.fn(async () => aktiveBaustellen),
+  listProjectsByNumbers: vi.fn(async (_c: string, nummern: string[]) =>
+    bestehende.filter((b) => nummern.includes(b.projectNumber))),
   reserveProjectNumber: (c: string, o: unknown) => reserveProjectNumber(c, o),
 }));
 
@@ -99,6 +103,7 @@ beforeEach(() => {
   reserveProjectNumber.mockClear();
   createProject.mockReset().mockResolvedValue('p1');
   aktiveBaustellen = [];
+  bestehende = [];
   angebote.length = 0;
   // Bearbeiten scrollt zum Formular hinauf; jsdom kennt das nicht.
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
@@ -348,7 +353,34 @@ describe('Angebot kalkulieren', () => {
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText(/Die Baustelle konnte nicht angelegt werden/);
-    expect(updateQuote).not.toHaveBeenCalled();
+    /*
+      ANGENOMMEN IST ES NICHT — festgehalten ist nur die gezogene Nummer
+      (Prüflauf 25.09.2026, P2-19). Bis dahin stand hier „updateQuote nie
+      gerufen"; die Nummer am Angebot ist aber genau das, woran ein zweiter
+      Versuch die Baustelle wiederfindet, falls sie doch entstanden ist.
+    */
+    expect(updateQuote).not.toHaveBeenCalledWith('q1', expect.objectContaining({ status: 'Angenommen' }));
+    expect(updateQuote).toHaveBeenCalledWith('q1', { projectNumber: 'B-2026-0012' });
+  });
+
+  /*
+    PRÜFLAUF 25.09.2026, P2-19. Brach es nach dem Anlegen der Baustelle ab,
+    stand das Angebot weiter als „Versendet" da, und das nächste Annehmen
+    legte eine ZWEITE Baustelle an.
+  */
+  it('legt beim zweiten Annehmen keine zweite Baustelle an', async () => {
+    versendetesAngebot();
+    angebote[0].projectNumber = 'B-2026-0012';
+    bestehende = [{ projectNumber: 'B-2026-0012' }];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await annehmenBestaetigt(nutzer);
+
+    await screen.findByText(/Baustelle B-2026-0012 angelegt/);
+    expect(createProject).not.toHaveBeenCalled();
+    expect(reserveProjectNumber).not.toHaveBeenCalled();
+    expect(updateQuote).toHaveBeenCalledWith('q1', { status: 'Angenommen', projectNumber: 'B-2026-0012' });
   });
 
   it('ohne Zähler keine geratene Nummer', async () => {
