@@ -306,6 +306,44 @@ textarea:focus {
    * dieselbe Fläche. `--brand-fixed` und nicht `--brand`, damit sie auch bei
    * einem Betrieb mit eigener Hausfarbe die Farbe des Produkts behält.
    */
+  /* Kopf der Seitenleiste: Senklot, darunter der Betrieb (Mockup S. 7). */
+  .seitenleiste-marke {
+    margin-bottom: 1.5rem;
+    padding: 0.5rem 0.75rem 0;
+  }
+
+  .seitenleiste-betrieb {
+    margin-top: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #ffffff;
+  }
+
+  /* „Problem melden“ und „Abmelden“ unter der Person: klein, aber mit
+     Tasthöhe — sie sind selten und sollen nicht wie Hauptnavigation wirken. */
+  .seitenleiste-fuss {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 1rem;
+    padding-inline: 0.75rem;
+  }
+
+  .seitenleiste-link {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #ffffff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .seitenleiste-link:hover {
+    text-decoration-thickness: 2px;
+  }
+
   .panel-dark {
     background-color: var(--brand-fixed);
     color: #ffffff;
@@ -400,8 +438,8 @@ textarea:focus {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1rem;
-  line-height: 1.5rem;
+  font-size: 1.125rem;
+  line-height: 1.6rem;
   font-weight: 600;
   color: var(--ink-deep);
 }
@@ -1521,12 +1559,18 @@ textarea {
    * macht die Karte aber nicht zum Scrollbehälter — sonst klebte die
    * Aktionsleiste eines Formulars an der Karte statt am Bildschirm.
    */
+  /*
+   * DIE KARTE NACH DER LINIE (docs/design/linie.md, 2): weiße Fläche ohne
+   * sichtbare Kante — der Schatten hebt sie vom Grund ab. Die Kante bleibt
+   * als 1 px in Kartenfarbe stehen, damit eine aufgeklappte Karte
+   * (`.karte-offen`) ihre Linie zeigen kann, ohne dass sich etwas verschiebt.
+   */
   .karte,
   .karte-offen,
   .karte-dialog,
   .karte-fehler,
   .karte-anmeldung {
-    border: 1px solid var(--border);
+    border: 1px solid var(--surface);
     border-radius: var(--radius-lg);
     background-color: var(--surface);
     box-shadow: var(--shadow);
@@ -1537,7 +1581,7 @@ textarea {
   /* Eine aufgeklappte Zeilenkarte (Mitarbeiter, Baustelle): nur die Kante
      wird kräftiger. */
   .karte-offen {
-    border-color: var(--border-strong);
+    border-color: var(--border);
   }
 
   .karte-dialog {
@@ -1559,30 +1603,32 @@ textarea {
     box-shadow: var(--shadow-lg);
   }
 
-  /* Der Kartenkopf sitzt eine Spur kühler als der Körper — so ist er auch
-     dann als Kopf zu lesen, wenn der Titel kurz ist. */
+  /* Der Titel steht IN der Karte, ohne eigenen Streifen (Mockup S. 1, 7,
+     8): ein getönter Kopf machte aus jeder Karte zwei Kästen übereinander.
+     Der Kopf trägt deshalb nur Abstand; der Körper schließt ohne Linie an. */
   .karte-kopf {
-    border-bottom: 1px solid var(--border);
-    background-color: var(--surface-2);
-    padding: 0.75rem 1rem;
+    padding: 1rem 1rem 0;
+  }
+
+  @media (min-width: 640px) {
+    .karte-kopf {
+      padding: 1.25rem 1.25rem 0;
+    }
   }
 
   /* Am Telefon Titel und Aktionen untereinander, sonst überlagern breite
      Aktionen den Titel. */
+  /* Titel links, Wert oder Aktion rechts in DERSELBEN Zeile — auch am
+     Telefon („Diese Woche … 17:00 von 38:30 Std“, Mockup S. 1). Passt beides
+     nicht nebeneinander, rutscht die Aktion in die nächste Zeile, statt den
+     Titel zu überdecken. */
   .karte-kopfzeile {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  @media (min-width: 640px) {
-    .karte-kopfzeile {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.75rem;
-    }
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
   }
 
   /* Ein Link als Kartenaktion bekommt die Tasthöhe eines Knopfes. */
@@ -1598,8 +1644,17 @@ textarea {
 
   .karte-fuss {
     border-top: 1px solid var(--border);
-    background-color: var(--surface-2);
     padding: 0.75rem 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .karte-inhalt {
+      padding: 1.25rem;
+    }
+
+    .karte-fuss {
+      padding: 0.75rem 1.25rem;
+    }
   }
 
   /* Ein Blatt, das am Telefon von unten kommt und am Schreibtisch mittig
@@ -2069,6 +2124,75 @@ textarea {
     padding-block: 0.75rem;
   }
 
+  /* Chip: Adresse und Kontakt am Einsatz (Mockup S. 1, 7). Weiß mit
+     Haarlinie wie der Zweitknopf, aber links bündig, eine Stufe kleiner und
+     so breit wie sein Text — zwei Chips stehen nebeneinander und brechen
+     erst um, wenn es nicht passt. */
+  .chip {
+    display: inline-flex;
+    min-height: 48px;
+    max-width: 100%;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    padding: 0.5rem 0.875rem;
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    color: var(--ink-deep);
+    text-decoration: none;
+    transition: background-color 150ms ease;
+  }
+
+  .chip:hover {
+    background-color: var(--surface-2);
+  }
+
+  .chip:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  /* Eine Zeile, die woanders hinführt: die ganze Zeile ist der Link, rechts
+     der Pfeil (Mockup S. 1, 7 „Offen für dich“). Die Hülle trägt die
+     Trennlinie wie `.zeile`, der Link die Fläche zum Antippen. */
+  .zeile-huelle {
+    border-bottom: 1px solid var(--border);
+    margin-bottom: -1px;
+  }
+
+  .zeile-link {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    column-gap: 0.75rem;
+    padding-block: 0.75rem;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .zeile-link:hover .zeile-titel-stark {
+    text-decoration: underline;
+  }
+
+  .zeile-link:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  .zeile-titel-stark {
+    font-weight: 600;
+    color: var(--ink-deep);
+  }
+
+  .zeile-pfeil {
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
   /* Untergrenze statt min-width: 0 — sonst schrumpft der Titel auf 33 px und
      wird über die Knöpfe gemalt (siehe ListRow.tsx). */
   .zeile-text {
@@ -2217,6 +2341,13 @@ textarea {
     column-gap: 1rem;
     row-gap: 0.75rem;
     padding-inline: 1rem;
+  }
+
+  /* Dieselbe Flucht wie der Kartenkörper — auch ab 640 px. */
+  @media (min-width: 640px) {
+    .kennzahlen {
+      padding-inline: 1.25rem;
+    }
   }
 
   /* Am Telefon stehen die Kennzahlen im Raster und brauchen keine Linie. */
@@ -2787,12 +2918,16 @@ textarea {
    * erreichbar, ohne ans Ende zu scrollen. Am Schreibtisch steht sie, wo sie
    * immer stand: am Ende des Formulars.
    */
+  /* Die Leiste nach der Linie (docs/design/linie.md, 6; Mockup S. 2–5):
+     die Knöpfe NEBENEINANDER, jeder so breit wie sein Text plus ein
+     gleicher Anteil am Rest — „Zurück“ bleibt dadurch schmal, die
+     Hauptaktion breit. Passen sie nicht in eine Zeile, brechen sie um. */
   .aktionsleiste {
     position: sticky;
     bottom: calc(67px + env(safe-area-inset-bottom));
     z-index: 20;
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 0.5rem;
     margin-inline: -1rem;
     border-top: 1px solid var(--border);
@@ -2800,15 +2935,43 @@ textarea {
     padding: 0.75rem 1rem;
   }
 
+  .aktionsleiste > * {
+    flex: 1 1 auto;
+  }
+
+  /* Die Summenzeile über den Knöpfen: „Material … 3 Positionen“. */
+  .aktionsleiste-summe {
+    display: flex;
+    flex-basis: 100%;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .aktionsleiste-summe-wert {
+    font-weight: 700;
+    color: var(--ink-deep);
+  }
+
   @media (min-width: 640px) {
     .aktionsleiste {
       position: static;
-      flex-direction: row;
       gap: 0.75rem;
       margin-inline: 0;
       border-top: 0;
       background-color: transparent;
       padding: 0;
+    }
+
+    .aktionsleiste > * {
+      flex: 0 0 auto;
+    }
+
+    .aktionsleiste-summe {
+      flex-basis: 100%;
     }
   }
 }
@@ -2829,34 +2992,43 @@ textarea {
     gap: 0.75rem;
   }
 
+  /* Kleine Zeile ÜBER dem Titel: Datum · KW oder der Weg zurück
+     („← Handwerksscheine“, Mockup S. 8). */
+  .seitenkopf-ueber {
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
   .seitentitel {
-    font-size: 1.375rem;
-    line-height: 1.8rem;
-    font-weight: 600;
-    color: var(--text);
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    color: var(--ink-deep);
   }
 
   @media (min-width: 640px) {
     .seitentitel {
-      font-size: 1.75rem;
-      line-height: 2.1rem;
+      font-size: 2rem;
+      line-height: 2.5rem;
     }
   }
 
-  /* Der kurze Strich unter der Überschrift, in der Farbe des Produkts. */
-  .seitentitel-strich {
-    margin-top: 0.5rem;
-    height: 3px;
-    width: 3rem;
-    border-radius: var(--radius-pill);
-    background-color: var(--brand-fixed);
-  }
-
+  /* Die Metazeile unter dem Titel: „Kunde · Nummer · Datum“. Kein Strich
+     mehr dazwischen — der Titel trägt sich über Größe und Stärke. */
   .seitenkopf-unter {
-    margin-top: 0.5rem;
+    margin-top: 0.375rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     color: var(--text-muted);
+  }
+
+  @media (min-width: 640px) {
+    .seitenkopf-unter {
+      font-size: 1rem;
+      line-height: 1.5rem;
+    }
   }
 
   .seitenkopf-aktion {

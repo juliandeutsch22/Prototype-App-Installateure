@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import Icon from './Icon';
 
 /**
  * Einheitliche Listenzeile: linke Beschreibung (Titel + Sekundärzeile),
@@ -13,6 +15,7 @@ export function ListRow({
   wert,
   vorne,
   unten,
+  ziel,
   children,
 }: {
   title: ReactNode;
@@ -33,8 +36,36 @@ export function ListRow({
    * steht es IN ihr, über der Trennlinie zur nächsten.
    */
   unten?: ReactNode;
+  /**
+   * Führt die Zeile woanders hin, ist die GANZE Zeile der Link und trägt
+   * rechts einen Pfeil (›) — die Linie, docs/design/linie.md 3. Dann keine
+   * eigenen Knöpfe in der Zeile (`children`): ein Knopf im Link wäre eine
+   * Tastfläche in der Tastfläche.
+   */
+  ziel?: string;
   children?: ReactNode; // rechte Seite (Aktionen)
 }) {
+  if (ziel) {
+    return (
+      <li className="zeile-huelle">
+        <Link to={ziel} className="zeile-link">
+          {vorne && <div className="zeile-vorne">{vorne}</div>}
+          <div className="zeile-text">
+            <div className="zeile-titel-stark">{title}</div>
+            {subtitle && <p className="zeile-unter">{subtitle}</p>}
+          </div>
+          {(zustand || wert != null) && (
+            <div className="zeile-rechts">
+              {zustand}
+              {wert != null && <span className="zeile-wert">{wert}</span>}
+            </div>
+          )}
+          <Icon name="weiter" size={20} className="zeile-pfeil" />
+        </Link>
+        {unten && <div className="zeile-unten">{unten}</div>}
+      </li>
+    );
+  }
   return (
     <li className="zeile">
       {vorne && <div className="zeile-vorne">{vorne}</div>}
