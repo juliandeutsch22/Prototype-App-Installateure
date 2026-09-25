@@ -6,6 +6,7 @@ import { provisionUser } from '@/lib/auth/provisionUser';
 import { ROLES, type AppUser, type Role } from '@/types';
 import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
+import Meldung from '@/components/Meldung';
 import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -224,13 +225,16 @@ export default function UserMgmtView() {
       </MetricRow>
 
       {handoverPassword && (
-        <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
-          <p className="font-semibold">
-            {handoverPassword.benutzername
+        <Meldung
+          ton="warnung"
+          role="alert"
+          titel={
+            handoverPassword.benutzername
               ? `Zugangsdaten für ${handoverPassword.name}`
-              : 'Willkommens-Mail konnte nicht gesendet werden'}
-          </p>
-          <p className="mt-1 text-sm">
+              : 'Willkommens-Mail konnte nicht gesendet werden'
+          }
+        >
+          <p>
             Bitte {handoverPassword.name} dieses Startpasswort persönlich weitergeben. Es wird
             nur jetzt angezeigt
             {handoverPassword.benutzername
@@ -238,7 +242,7 @@ export default function UserMgmtView() {
               : ':'}
           </p>
           {handoverPassword.benutzername && (
-            <p className="mt-2 text-sm text-ink">
+            <p className="mt-2 text-ink">
               Benutzername:{' '}
               <span className="select-all font-semibold">{handoverPassword.benutzername}</span>
             </p>
@@ -247,7 +251,7 @@ export default function UserMgmtView() {
           <Button variant="ghost" className="mt-2" onClick={() => setHandoverPassword(null)}>
             Verstanden
           </Button>
-        </div>
+        </Meldung>
       )}
 
       {/*
@@ -332,7 +336,7 @@ export default function UserMgmtView() {
             einreicht, den er nicht hat. Die Frage muss deshalb gestellt
             werden, bevor jemand entscheidet, ob er aufklappt.
           */}
-          <fieldset className="rounded border border-line bg-surface-2 p-4">
+          <fieldset className="kasten">
             <legend className="section-label px-1">Was für ein Zugang ist das?</legend>
             <div className="flex flex-col gap-2">
               <label className="flex min-h-touch items-start gap-3 py-1">
@@ -386,31 +390,33 @@ export default function UserMgmtView() {
             </div>
 
             {eintritt === 'neu' && (
-              <p className="mt-3 rounded-sm border border-line bg-surface px-3 py-2 text-sm text-ink-muted">
-                Vorschlag für {form.appStartDate || 'das Eintrittsdatum'}:{' '}
-                <strong className="text-ink">
-                  {vorschlag(form.appStartDate, form.yearlyVacationDays).tage}
-                </strong>{' '}
-                Tage —{' '}
-                {zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS)} ×{' '}
-                {vorschlag(form.appStartDate, form.yearlyVacationDays).monate} von 12 Monaten.{' '}
-                <strong className="text-ink">Änderbar:</strong> ob im ersten Arbeitsjahr aliquot
-                oder nach sechs Monaten voll gerechnet wird, entscheidet der Kollektivvertrag —
-                nicht diese App.
-              </p>
+              <div className="mt-3">
+                <Meldung>
+                  Vorschlag für {form.appStartDate || 'das Eintrittsdatum'}:{' '}
+                  <strong className="text-ink">
+                    {vorschlag(form.appStartDate, form.yearlyVacationDays).tage}
+                  </strong>{' '}
+                  Tage —{' '}
+                  {zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS)} ×{' '}
+                  {vorschlag(form.appStartDate, form.yearlyVacationDays).monate} von 12 Monaten.{' '}
+                  <strong className="text-ink">Änderbar:</strong> ob im ersten Arbeitsjahr aliquot
+                  oder nach sechs Monaten voll gerechnet wird, entscheidet der Kollektivvertrag —
+                  nicht diese App.
+                </Meldung>
+              </div>
             )}
           </fieldset>
 
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
-            className="min-h-touch text-sm font-medium text-brand underline"
+            className="textlink-allein"
           >
             {showDetails ? 'Zeitkonto-Einstellungen ausblenden' : 'Zeitkonto-Einstellungen anzeigen'}
           </button>
 
           {showDetails && (
-            <div className="space-y-4 rounded border border-line bg-surface-2 p-4">
+            <div className="kasten space-y-4">
               <FormGrid>
                 <InputField id="uhours" label="Wochenstunden" type="number" step="0.5" min="0"
                   value={form.weeklyTargetHours}
@@ -548,7 +554,6 @@ export default function UserMgmtView() {
           <SelectField
             id="usrstatus"
             label=""
-            className="py-1 text-sm"
             value={status}
             onChange={(e) => setStatus(e.target.value as typeof status)}
           >
@@ -618,7 +623,7 @@ export default function UserMgmtView() {
                 */}
                 <Link
                   to={`/user-mgmt/${u.uid}`}
-                  className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                  className="textlink-allein px-2"
                 >
                   Akte
                 </Link>

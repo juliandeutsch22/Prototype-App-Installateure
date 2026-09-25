@@ -8,6 +8,8 @@ import { istBenutzerkonto, kontoAnzeige } from '@shared/benutzername';
 import { canManageAdmins } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
+import Meldung from '@/components/Meldung';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Button from '@/components/Button';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -184,7 +186,7 @@ export default function BenutzerakteView() {
             alten Lesezeichen folgt, soll das erfahren.
           */}
           <EmptyState
-            action={<Link to="/user-mgmt" className="text-brand underline">Zur Benutzerliste</Link>}
+            action={<Link to="/user-mgmt" className="textlink-allein">Zur Benutzerliste</Link>}
           >
             Diesen Benutzer gibt es nicht (mehr).
           </EmptyState>
@@ -201,7 +203,7 @@ export default function BenutzerakteView() {
         title={p.name}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/user-mgmt" className="inline-flex min-h-touch items-center text-brand underline">← Zur Benutzerliste</Link>
+            <Link to="/user-mgmt" className="textlink-allein">← Zur Benutzerliste</Link>
             <Marke>{p.role}</Marke>
             {p.active === false && <Marke>inaktiv</Marke>}
           </span>
@@ -292,20 +294,21 @@ export default function BenutzerakteView() {
             )}
           </div>
           {vergeben && (
-            <div className="mt-4 rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
-              <p className="font-semibold">Neues Startpasswort für {p.name}</p>
-              <p className="mt-1 text-sm">
-                Bitte persönlich weitergeben — es wird nur jetzt angezeigt. Beim nächsten
-                Anmelden vergibt {p.name} ein eigenes.
-              </p>
-              <p className="mt-2 text-sm text-ink">
-                Benutzername:{' '}
-                <span className="select-all font-semibold">{kontoAnzeige(p.email)}</span>
-              </p>
-              <p className="mt-2 select-all text-lg font-semibold">{vergeben}</p>
-              <Button variant="ghost" className="mt-2" onClick={() => setVergeben(null)}>
-                Verstanden
-              </Button>
+            <div className="mt-4">
+              <Meldung ton="warnung" role="alert" titel={`Neues Startpasswort für ${p.name}`}>
+                <p>
+                  Bitte persönlich weitergeben — es wird nur jetzt angezeigt. Beim nächsten
+                  Anmelden vergibt {p.name} ein eigenes.
+                </p>
+                <p className="mt-2 text-ink">
+                  Benutzername:{' '}
+                  <span className="select-all font-semibold">{kontoAnzeige(p.email)}</span>
+                </p>
+                <p className="mt-2 select-all text-lg font-semibold">{vergeben}</p>
+                <Button variant="ghost" className="mt-2" onClick={() => setVergeben(null)}>
+                  Verstanden
+                </Button>
+              </Meldung>
             </div>
           )}
           {/* Bewusst kein Löschen: Zeiteinträge, Bestellungen und Einsätze
@@ -488,7 +491,7 @@ function StammdatenFormular({
         eingeklappt — dort stimmen die Vorgaben meistens. Hier sind sie der
         Grund, warum jemand die Akte öffnet.
       */}
-      <div className="space-y-4 rounded border border-line bg-surface-2 p-4">
+      <div className="kasten space-y-4">
         <p className="section-label">Zeitkonto</p>
         {/*
           Nur die Geschäftsführung wählt: der angestellte Geschäftsführer hat
@@ -590,16 +593,20 @@ function StammdatenFormular({
 
       {/*
         DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — und er steht IN der
-        Karte. Am Telefon sitzt am unteren Rand bereits die Tableiste.
+        Karte, am Ende des Formulars. Das Formular läuft am Telefon über
+        mehr als anderthalb Bildschirme: wer oben den Namen ändert, sähe den
+        Balken sonst erst nach dem Scrollen. Als Aktionsleiste klebt er dort
+        über der Tableiste, solange das Formular im Bild ist; am Schreibtisch
+        steht er, wo er stand.
       */}
       {geaendert && (
-        <div className="flex flex-wrap items-center gap-3 rounded border border-brand-fixed/40 bg-info-bg p-3">
-          <span className="text-sm text-ink">Es gibt ungespeicherte Änderungen.</span>
-          <div className="ml-auto flex gap-2">
+        <Aktionsleiste>
+          <span className="text-sm text-ink sm:self-center">Es gibt ungespeicherte Änderungen.</span>
+          <div className="flex gap-2 sm:ml-auto">
             <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>Verwerfen</Button>
             <Button onClick={onSpeichern} loading={speichert}>Speichern</Button>
           </div>
-        </div>
+        </Aktionsleiste>
       )}
     </div>
   );
