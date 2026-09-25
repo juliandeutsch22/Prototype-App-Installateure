@@ -638,6 +638,42 @@ export default function DashboardView() {
       <WartungHinweis />
 
       {/*
+        KENNZAHLEN OBEN, als Wege dorthin (Design-Durchgang 25.09.2026).
+        Jede Kachel nur, wenn sie für diese Rolle etwas aussagt — und jede
+        führt in die gefilterte Liste. Vorher standen sie mitten in der Seite,
+        unter der Tageseinteilung; die Zahl, die man als Erstes sucht („was
+        ist überfällig?"), stand damit als Drittes da.
+      */}
+      {!monteur &&
+        (materialAn || rechnungenAn) &&
+        (data.ownOpenOrders !== undefined || data.invoiceSums) &&
+        ((data.ownOpenOrders ?? 0) > 0 ||
+          (data.invoiceSums?.open ?? 0) > 0 ||
+          (data.invoiceSums?.overdue ?? 0) > 0) && (
+          <MetricRow>
+            {data.ownOpenOrders !== undefined && data.ownOpenOrders > 0 && (
+              <Metric
+                label="Material"
+                value={data.ownOpenOrders}
+                hint="von dir angefordert"
+                to="/material"
+              />
+            )}
+            {data.invoiceSums && data.invoiceSums.overdue > 0 && (
+              <Metric
+                label="Überfällig"
+                tone="danger"
+                value={fmtEUR(data.invoiceSums.overdue)}
+                to="/invoices?status=%C3%9Cberf%C3%A4llig"
+              />
+            )}
+            {data.invoiceSums && data.invoiceSums.open > 0 && (
+              <Metric label="Offene Rechnungen" value={fmtEUR(data.invoiceSums.open)} to="/invoices" />
+            )}
+          </MetricRow>
+        )}
+
+      {/*
         Fehlende Zeiten statt Saldo.
 
         Der Saldo seit Eintritt steht in der Zeiterfassung, wo man ohnehin auf
@@ -817,35 +853,6 @@ export default function DashboardView() {
         </Card>
       )}
 
-      {/* Kennzahlen: jede Kachel nur, wenn sie fuer diese Rolle etwas aussagt. */}
-      {!monteur &&
-        (materialAn || rechnungenAn) &&
-        (data.ownOpenOrders !== undefined || data.invoiceSums) &&
-        ((data.ownOpenOrders ?? 0) > 0 ||
-          (data.invoiceSums?.open ?? 0) > 0 ||
-          (data.invoiceSums?.overdue ?? 0) > 0) && (
-          <MetricRow>
-            {data.ownOpenOrders !== undefined && data.ownOpenOrders > 0 && (
-              <Metric
-                label="Material"
-                value={data.ownOpenOrders}
-                hint="von dir angefordert"
-                to="/material"
-              />
-            )}
-            {data.invoiceSums && data.invoiceSums.overdue > 0 && (
-              <Metric
-                label="Überfällig"
-                tone="danger"
-                value={fmtEUR(data.invoiceSums.overdue)}
-                to="/invoices?status=%C3%9Cberf%C3%A4llig"
-              />
-            )}
-            {data.invoiceSums && data.invoiceSums.open > 0 && (
-              <Metric label="Offene Rechnungen" value={fmtEUR(data.invoiceSums.open)} to="/invoices" />
-            )}
-          </MetricRow>
-        )}
 
       {/*
         Alle laufenden Baustellen. Das Radar darunter zeigt, was aus dem Ruder
