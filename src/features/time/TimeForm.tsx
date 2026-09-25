@@ -551,10 +551,7 @@ export default function TimeForm({
               zurueck.
             */}
             {kennzeichenVorsatz && (
-              <span
-                aria-hidden
-                className="flex min-h-touch shrink-0 items-center rounded-l border border-r-0 border-line bg-surface-2 px-3 font-medium text-ink-muted"
-              >
+              <span aria-hidden className="kennzeichen-vorsatz">
                 {kennzeichenVorsatz}-
               </span>
             )}

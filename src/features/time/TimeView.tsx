@@ -659,9 +659,9 @@ export default function TimeView() {
               const weekMin = rows.reduce((sum, e) => sum + calcWorkMin(e), 0);
               return (
                 <div key={week}>
-                  <h3 className="mb-1 flex items-center justify-between text-sm font-semibold text-ink-muted">
+                  <h3 className="zeit-woche">
                     <span>{week}</span>
-                    <span>{fmtMin(weekMin)}</span>
+                    <span>{fmtDauer(weekMin)}</span>
                   </h3>
                   <List>
                     {rows.map((e) => {
@@ -678,11 +678,25 @@ export default function TimeView() {
                       return (
                         <ListRow
                           key={e.id}
+                          /*
+                            DIE MARKER STEHEN AM TITEL, wie in der
+                            Projektauswertung neben dem Namen: sie sagen, WAS
+                            diese Buchung ist (Nacht, Notdienst, Helfer, KI).
+                            Rechts neben Wert und Knöpfen schoben sie am
+                            Telefon „Löschen“ allein in eine zweite Reihe.
+                          */
                           title={
-                            <span>
-                              {datumAT(e.date)}
-                              {e.customerName && ` · ${e.customerName}`}
-                            </span>
+                            <>
+                              <span>
+                                {datumAT(e.date)}
+                                {e.customerName && ` · ${e.customerName}`}
+                              </span>
+                              {/* Die Marker brechen gemeinsam um, nicht einzeln. */}
+                              <span className="zeit-marken">
+                                {e.source === 'voice' && <Marke>KI</Marke>}
+                                <Zeitmarker eintrag={e} />
+                              </span>
+                            </>
                           }
                           subtitle={
                             <>
@@ -695,15 +709,13 @@ export default function TimeView() {
                             </>
                           }
                           zustand={
-                            <>
-                              {doppelteTage.has(e.date) && (
-                                <Warnung stufe="dringend">doppelt gebucht</Warnung>
-                              )}
-                              {e.source === 'voice' && <Marke>KI</Marke>}
-                              <Zeitmarker eintrag={e} />
-                            </>
+                            doppelteTage.has(e.date) ? (
+                              <Warnung stufe="dringend">doppelt gebucht</Warnung>
+                            ) : undefined
                           }
-                          wert={fmtMin(calcWorkMin(e))}
+                          // Eine Dauer, keine Uhrzeit — neben dem Datum läse
+                          // sich „09:00“ allein als Beginn.
+                          wert={fmtDauer(calcWorkMin(e))}
                         >
                           {/* Verrechnete Einträge sind Grundlage einer
                               verschickten Rechnung und bleiben gesperrt. */}
