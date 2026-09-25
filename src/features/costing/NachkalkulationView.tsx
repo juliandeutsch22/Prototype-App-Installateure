@@ -21,6 +21,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
 import Meldung from '@/components/Meldung';
 import { fmtStd } from '@/lib/time';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
@@ -28,6 +29,20 @@ const fmtEUR = (n: number) =>
 /** Prozent mit Komma — überall sonst schreibt die App deutsch. */
 const fmtProzent = (n: number) =>
   `${new Intl.NumberFormat('de-AT', { maximumFractionDigits: 1 }).format(n)} %`;
+
+/**
+ * Stunden und Herkunft des Erlöses — die Zeile, die in Liste und Tabelle
+ * unter der Baustelle steht.
+ */
+const herkunft = (k: Nachkalkulation) =>
+  `${fmtStd(k.fachStunden * 60)} h Facharbeit` +
+  (k.helferStunden > 0 ? `, ${fmtStd(k.helferStunden * 60)} h Helfer` : '') +
+  ' · ' +
+  (k.erloesQuelle === 'Rechnungen'
+    ? 'Erlös aus Rechnungen'
+    : k.erloesQuelle === 'Angebot'
+      ? 'Erlös aus dem Angebot — noch nicht verrechnet'
+      : 'kein Erlös hinterlegt');
 
 /** Wie viele Baustellen gleichzeitig gerechnet werden. */
 const BAUSTELLEN_JE_LAUF = 25;
@@ -65,6 +80,7 @@ export default function NachkalkulationView() {
   const selbstGewaehlt = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const schreibtisch = useAbBreite(AB_TABELLE);
 
   const kosten = company?.costRates;
 
@@ -267,58 +283,110 @@ export default function NachkalkulationView() {
               <EmptyState>Keine Baustelle in dieser Auswahl.</EmptyState>
             ) : (
               <>
-                <List>
-                  {ergebnisse.map((k) => (
-                    <ListRow
-                      key={k.projectNumber}
-                      title={
-                        <span>
-                          {k.customerName}{' '}
-                          <span className="text-sm font-normal text-ink-muted">
-                            ({k.projectNumber})
-                          </span>
-                        </span>
-                      }
-                      subtitle={
-                        <>
-                          <span className="block">
-                            Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)}
-                            {/*
-                              Material steht nur da, wenn welches bekannt ist.
-                              Ein „− 0,00 €" läse sich wie „kein Material
-                              verbaut" und wäre bei fehlenden Einkaufspreisen
-                              genau die falsche Auskunft.
-                            */}
-                            {k.materialkosten > 0 && <> − Material {fmtEUR(k.materialkosten)}</>} ={' '}
-                            <strong>{fmtEUR(k.deckungsbeitrag)}</strong>
-                          </span>
-                          {k.materialLuecken.length > 0 && (
-                            <span className="mt-1 block text-xs text-warning">
-                              Ohne Einkaufspreis, deshalb nicht eingerechnet:{' '}
-                              {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um diesen
-                              Betrag zu hoch.
+                {schreibtisch ? (
+                  /*
+                    AM SCHREIBTISCH EINE TABELLE: Erlös, Personal, Material und
+                    Deckungsbeitrag stehen Stelle unter Stelle und lassen sich
+                    über 25 Baustellen vergleichen — in der Rechenzeile der
+                    Liste liefen sie mit der Länge der Beträge davor hin und
+                    her. Dieselben Angaben, dieselbe Reihenfolge (die
+                    schlechteste oben), genau eine Form im DOM.
+                  */
+                  <div className="tabelle-rahmen">
+                    <table className="tabelle">
+                      <thead className="tabelle-kopfzeile">
+                        <tr>
+                          <th className="tabelle-kopf">Baustelle</th>
+                          <th className="tabelle-kopf-zahl">Erlös</th>
+                          <th className="tabelle-kopf-zahl">Personal</th>
+                          <th className="tabelle-kopf-zahl">Material</th>
+                          <th className="tabelle-kopf-zahl">Deckungsbeitrag</th>
+                          <th className="tabelle-kopf-zahl">Marge</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ergebnisse.map((k) => (
+                          <tr key={k.projectNumber} className="tabelle-zeile">
+                            <td className="tabelle-name">
+                              {k.customerName}
+                              <span className="tabelle-unter">
+                                {k.projectNumber} · {herkunft(k)}
+                              </span>
+                              {k.materialLuecken.length > 0 && (
+                                <span className="mt-1 block text-xs text-warning">
+                                  Ohne Einkaufspreis, deshalb nicht eingerechnet:{' '}
+                                  {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um
+                                  diesen Betrag zu hoch.
+                                </span>
+                              )}
+                            </td>
+                            <td className="tabelle-zahl">{fmtEUR(k.erloes)}</td>
+                            <td className="tabelle-zahl">{fmtEUR(k.personalkosten)}</td>
+                            {/* Ohne bekannte Materialkosten ein Strich, keine
+                                „0,00" — siehe die Rechenzeile der Liste. */}
+                            <td className="tabelle-zahl">
+                              {k.materialkosten > 0 ? fmtEUR(k.materialkosten) : '–'}
+                            </td>
+                            <td className="tabelle-zahl-stark">{fmtEUR(k.deckungsbeitrag)}</td>
+                            <td className="tabelle-zahl">
+                              <Zustand stand={margenTon(k)}>
+                                {k.margeProzent === null
+                                  ? 'keine Aussage'
+                                  : fmtProzent(k.margeProzent)}
+                              </Zustand>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <List>
+                    {ergebnisse.map((k) => (
+                      <ListRow
+                        key={k.projectNumber}
+                        title={
+                          <span>
+                            {k.customerName}{' '}
+                            <span className="text-sm font-normal text-ink-muted">
+                              ({k.projectNumber})
                             </span>
-                          )}
-                          <span className="mt-1 block text-xs text-ink-muted">
-                            {fmtStd(k.fachStunden * 60)} h Facharbeit
-                            {k.helferStunden > 0 ? `, ${fmtStd(k.helferStunden * 60)} h Helfer` : ''}
-                            {' · '}
-                            {k.erloesQuelle === 'Rechnungen'
-                              ? 'Erlös aus Rechnungen'
-                              : k.erloesQuelle === 'Angebot'
-                                ? 'Erlös aus dem Angebot — noch nicht verrechnet'
-                                : 'kein Erlös hinterlegt'}
                           </span>
-                        </>
-                      }
-                      zustand={
-                        <Zustand stand={margenTon(k)}>
-                          {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
-                        </Zustand>
-                      }
-                    />
-                  ))}
-                </List>
+                        }
+                        subtitle={
+                          <>
+                            <span className="block">
+                              Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)}
+                              {/*
+                                Material steht nur da, wenn welches bekannt ist.
+                                Ein „− 0,00 €" läse sich wie „kein Material
+                                verbaut" und wäre bei fehlenden Einkaufspreisen
+                                genau die falsche Auskunft.
+                              */}
+                              {k.materialkosten > 0 && <> − Material {fmtEUR(k.materialkosten)}</>} ={' '}
+                              <strong>{fmtEUR(k.deckungsbeitrag)}</strong>
+                            </span>
+                            {k.materialLuecken.length > 0 && (
+                              <span className="mt-1 block text-xs text-warning">
+                                Ohne Einkaufspreis, deshalb nicht eingerechnet:{' '}
+                                {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um diesen
+                                Betrag zu hoch.
+                              </span>
+                            )}
+                            <span className="mt-1 block text-xs text-ink-muted">
+                              {herkunft(k)}
+                            </span>
+                          </>
+                        }
+                        zustand={
+                          <Zustand stand={margenTon(k)}>
+                            {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
+                          </Zustand>
+                        }
+                      />
+                    ))}
+                  </List>
+                )}
 
                 {/*
                   Die Einschraenkung gehoert unter die Zahlen, nicht ins
