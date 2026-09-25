@@ -199,7 +199,7 @@ describe('Wochenplan — der Weg in die Tagesplanung', () => {
     ];
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber am 02\.09/ }));
+    await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ }));
     expect(gefahren.zu).toBe('/assignments/tag');
     expect(gefahren.zustand).toEqual({ datum: MITTWOCH, projectNumber: '2026-042' });
   });
@@ -239,17 +239,36 @@ describe('Wochenplan — zwei Baustellen desselben Kunden (Design-Überarbeitung
   it('nennt in der Tabelle an jeder Karte Kunde UND Nummer', async () => {
     zeige();
     const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
-    const karten = within(zeile).getAllByRole('button', { name: /Familie Huber am 02\.09/ });
+    const karten = within(zeile).getAllByRole('button', { name: /Familie Huber .* am 02\.09/ });
     expect(karten).toHaveLength(2);
     expect(karten.map((k) => k.textContent)).toEqual(
       expect.arrayContaining(['Familie Huber2026-042', 'Familie HuberPR-187']),
     );
   });
 
+  /*
+    AUCH FÜR DIE VORLESEHILFE ZWEI VERSCHIEDENE KARTEN. Der zugängliche Name
+    nannte nur Kunde und Tag — zweimal „Familie Huber am 02.09. bearbeiten“,
+    und wer nicht sieht, wusste nicht, welche Baustelle er öffnet. Jetzt
+    steht die Nummer mit im Namen, in der Tabelle wie in der Tagesliste.
+  */
+  it('gibt beiden Karten verschiedene zugängliche Namen — mit der Nummer', async () => {
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(
+      within(zeile).getByRole('button', { name: /^Familie Huber \(2026-042\) am 02\.09\.? bearbeiten$/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(zeile).getByRole('button', { name: /^Familie Huber \(PR-187\) am 02\.09\.? bearbeiten$/ }),
+    ).toBeInTheDocument();
+    expect(liste().getByRole('button', { name: /^Familie Huber \(2026-042\) am/ })).toBeInTheDocument();
+    expect(liste().getByRole('button', { name: /^Familie Huber \(PR-187\) am/ })).toBeInTheDocument();
+  });
+
   it('nennt in der Tagesliste an jeder Karte Kunde UND Nummer', async () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    const karten = liste().getAllByRole('button', { name: /Familie Huber am 02\.09/ });
+    const karten = liste().getAllByRole('button', { name: /Familie Huber .* am 02\.09/ });
     expect(karten).toHaveLength(2);
     expect(karten.some((k) => k.textContent?.includes('Familie Huber · 2026-042'))).toBe(true);
     expect(karten.some((k) => k.textContent?.includes('Familie Huber · PR-187'))).toBe(true);
@@ -311,7 +330,7 @@ describe('Wochenplan — die Tagesliste auf dem Telefon', () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
 
-    const knopf = liste().getByRole('button', { name: /Familie Huber am 02\.09/ });
+    const knopf = liste().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ });
     expect(knopf).toHaveTextContent('Familie Huber');
     expect(knopf).toHaveTextContent('Max Mustermann');
   });

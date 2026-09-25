@@ -531,7 +531,9 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                   key={b.nummer}
                                   type="button"
                                   onClick={() => zurTagesplanung(tag, b.nummer)}
-                                  aria-label={`${b.name} am ${tagKurz(tag).datum} bearbeiten`}
+                                  // Mit Nummer: zwei Baustellen desselben Kunden am selben Tag
+                                  // hießen für die Vorlesehilfe sonst gleich.
+                                  aria-label={`${b.name} (${b.nummer}) am ${tagKurz(tag).datum} bearbeiten`}
                                   className={`min-h-touch w-full rounded-sm px-2 py-1 text-left text-xs ${
                                     b.helfer
                                       ? 'bg-warning-bg text-warning'
@@ -617,7 +619,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           key={b.nummer}
                           type="button"
                           onClick={() => zurTagesplanung(tag, b.nummer)}
-                          aria-label={`${b.name} am ${datum} bearbeiten`}
+                          aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten`}
                           className="min-h-touch w-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-left"
                         >
                           <span className="block font-medium text-info">
