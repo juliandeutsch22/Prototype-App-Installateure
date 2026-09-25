@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -259,19 +261,30 @@ describe('Wochenplan — zwei Baustellen desselben Kunden (Design-Überarbeitung
 describe('Wochenplan — Woche wechseln', () => {
   it('hat Blätterpfeile mit vollem Ziel, auch am Schreibtisch gut sichtbar', async () => {
     /**
-     * 48 × 48 px wie die Monatspfeile im Kalender — `min-h-touch` bringt
-     * `Button` mit. jsdom misst nicht; geprüft wird, dass die Klassen da sind.
-     * `sm:text-xl`, weil sonst das `sm:text-base` aus `Button` das Zeichen ab
-     * 640 px auf Fliesstextgrösse zurücksetzt.
+     * 48 × 48 px wie die Monatspfeile im Kalender, das Zeichen auf JEDER
+     * Breite 22 px. Seit dem 25.09.2026 steht beides in einer Klasse
+     * (`.symbolknopf-gross`, index.css) statt als Tailwind-Klassen am Knopf —
+     * jsdom misst nicht, also wird geprüft, dass die Pfeile genau diese Klasse
+     * tragen und dass die Regel die Maße hat und keine Media-Abfrage sie
+     * überschreibt.
      */
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
     for (const name of ['Woche zurück', 'Woche vor']) {
-      const pfeil = screen.getByRole('button', { name });
-      expect(pfeil.className).toMatch(/(^|\s)min-h-touch(\s|$)/);
-      expect(pfeil.className).toMatch(/(^|\s)min-w-touch(\s|$)/);
-      expect(pfeil.className).toMatch(/(^|\s)sm:text-xl(\s|$)/);
+      expect(screen.getByRole('button', { name }).className).toBe('symbolknopf-gross');
     }
+    const css = readFileSync(resolve(__dirname, '../../src/index.css'), 'utf8').replace(
+      /\/\*[\s\S]*?\*\//g,
+      '',
+    );
+    const regeln = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter((m) => m[1].split(',').map((x) => x.trim()).includes('.symbolknopf-gross'))
+      .map((m) => m[2])
+      .join(';');
+    expect(regeln).toMatch(/min-height:\s*48px/);
+    expect(regeln).toMatch(/min-width:\s*48px/);
+    expect(regeln).toMatch(/font-size:\s*1\.375rem/);
+    expect(css).not.toMatch(/@media[^{]*\{[^@]*\.symbolknopf-gross[^{]*\{[^}]*font-size/);
   });
 
   it('geht eine Woche vor und wieder zurueck', async () => {

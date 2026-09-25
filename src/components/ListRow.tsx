@@ -25,7 +25,7 @@ export function ListRow({
   children?: ReactNode; // rechte Seite (Aktionen)
 }) {
   return (
-    <li className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3">
+    <li className="zeile">
       {/*
         Untergrenze statt min-w-0. `flex-1` allein bedeutet flex-basis:0 — der
         Titel durfte damit auf 33 px schrumpfen, waehrend die Knoepfe den Rest
@@ -34,9 +34,9 @@ export function ListRow({
         Mindestbreite passen Titel und Aktionen entweder nebeneinander, oder
         die Aktionen rutschen sauber in die naechste Zeile.
       */}
-      <div className="min-w-[9rem] flex-1">
-        <div className="flex flex-wrap items-center gap-2 font-medium text-ink">{title}</div>
-        {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
+      <div className="zeile-text">
+        <div className="zeile-titel">{title}</div>
+        {subtitle && <p className="zeile-unter">{subtitle}</p>}
       </div>
       {/* Der Umbruch bleibt als Fangnetz. Er ist aber nicht mehr die Antwort
           auf zu viele Aktionen: drei Textknöpfe brauchen gemessene 343 px,
@@ -49,9 +49,9 @@ export function ListRow({
         // Tasthoehe bleibt bei 44 px, also innerhalb dessen, was die
         // Plattformrichtlinien verlangen. Symbolknoepfe sind ausgenommen,
         // sonst schruempfte das Symbol mit.
-        <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 [&>button:not([data-icon])]:min-h-[2.75rem] [&>button:not([data-icon])]:px-3 [&>button:not([data-icon])]:text-sm">
+        <div className="zeile-rechts">
           {zustand}
-          {wert != null && <span className="whitespace-nowrap text-right font-medium text-ink">{wert}</span>}
+          {wert != null && <span className="zeile-wert">{wert}</span>}
           {children}
         </div>
       )}
@@ -61,5 +61,5 @@ export function ListRow({
 
 /** Trennlinien-Liste als Container für ListRow. */
 export function List({ children }: { children: ReactNode }) {
-  return <ul className="divide-y divide-line">{children}</ul>;
+  return <ul className="liste">{children}</ul>;
 }

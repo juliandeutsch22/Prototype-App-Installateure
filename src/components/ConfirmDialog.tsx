@@ -73,7 +73,7 @@ export default function ConfirmDialog({
       onClick={onCancel}
     >
       <div
-        className="panel w-full max-w-sm p-4 shadow-lg"
+        className="karte-dialog"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="titel-karte">

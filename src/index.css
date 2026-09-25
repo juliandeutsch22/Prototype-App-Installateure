@@ -507,9 +507,47 @@ textarea {
  * Radius ist ohnehin fast rund; ganz rund ist er ruhiger und sagt deutlicher
  * „hier steht gleich Text" statt „hier ist ein leeres Kästchen".
  */
-.skeleton {
+/* Je Balkenform eine Klasse: Titel- und Unterzeile einer Listenzeile
+   (Breite setzt die Komponente), Marke rechts, Name und Wert einer
+   Kennzahl. */
+.skeleton-titel,
+.skeleton-unter,
+.skeleton-marke,
+.skeleton-name,
+.skeleton-wert {
   background-color: var(--surface-3);
   border-radius: var(--radius-pill);
+}
+
+.skeleton-titel {
+  height: 1rem;
+}
+
+.skeleton-unter {
+  height: 0.75rem;
+}
+
+.skeleton-marke {
+  height: 1.5rem;
+  width: 4rem;
+  flex: none;
+}
+
+.skeleton-name {
+  height: 0.75rem;
+  width: 5rem;
+}
+
+.skeleton-wert {
+  margin-top: 0.5rem;
+  height: 1.5rem;
+  width: 4rem;
+}
+
+@media (min-width: 640px) {
+  .skeleton-wert {
+    height: 2rem;
+  }
 }
 
 /* Bewegung reduzieren, wenn vom System gewünscht */
@@ -535,4 +573,988 @@ textarea {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/*
+ * ═══════════════════════════════════════════════════════════════════════
+ * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Jeder Baustein hat hier genau eine Klasse je Element, und keine Ansicht
+ * stylt ihn selbst nach. Wer eine Liste, ein Feld oder eine Kennzahl braucht,
+ * nimmt die Komponente aus `src/components/`, die diese Klassen setzt.
+ *
+ * KEINE POSITIONSABHÄNGIGEN SELEKTOREN. Trennlinien entstehen deshalb nicht
+ * über `:first-child` oder „jedes außer dem ersten“: Listenzeilen tragen ihre
+ * Linie UNTEN, und die Liste schneidet den letzten Pixel ab; zwischen
+ * Kennzahlen setzt die Komponente ein eigenes Trennelement.
+ *
+ * In `@layer components`, damit eine Aufrufstelle Abstände und Breite noch
+ * mit einer Hilfsklasse setzen kann (`mt-3`, `w-full`) — Aussehen nicht.
+ */
+@layer components {
+  /* ── Karte ──────────────────────────────────────────────────────────── */
+
+  /*
+   * Die helle Arbeitsfläche: Fläche, Haarlinie, Rundung, langer flacher
+   * Schatten. `overflow: clip` statt `hidden`: es schneidet genauso ab,
+   * macht die Karte aber nicht zum Scrollbehälter — sonst klebte die
+   * Aktionsleiste eines Formulars an der Karte statt am Bildschirm.
+   */
+  .karte,
+  .karte-offen,
+  .karte-dialog,
+  .karte-fehler,
+  .karte-anmeldung {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface);
+    box-shadow: var(--shadow);
+    overflow: clip;
+    transition: border-color 150ms ease;
+  }
+
+  /* Eine aufgeklappte Zeilenkarte (Mitarbeiter, Baustelle): nur die Kante
+     wird kräftiger. */
+  .karte-offen {
+    border-color: var(--border-strong);
+  }
+
+  .karte-dialog {
+    width: 100%;
+    max-width: 24rem;
+    padding: 1rem;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .karte-fehler {
+    width: 100%;
+    max-width: 28rem;
+    padding: 1.5rem;
+  }
+
+  .karte-anmeldung {
+    width: 100%;
+    max-width: 24rem;
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Der Kartenkopf sitzt eine Spur kühler als der Körper — so ist er auch
+     dann als Kopf zu lesen, wenn der Titel kurz ist. */
+  .karte-kopf {
+    border-bottom: 1px solid var(--border);
+    background-color: var(--surface-2);
+    padding: 0.75rem 1rem;
+  }
+
+  /* Am Telefon Titel und Aktionen untereinander, sonst überlagern breite
+     Aktionen den Titel. */
+  .karte-kopfzeile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .karte-kopfzeile {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+  }
+
+  /* Ein Link als Kartenaktion bekommt die Tasthöhe eines Knopfes. */
+  .karte-kopfzeile > a {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+  }
+
+  .karte-inhalt {
+    padding: 1rem;
+  }
+
+  .karte-fuss {
+    border-top: 1px solid var(--border);
+    background-color: var(--surface-2);
+    padding: 0.75rem 1rem;
+  }
+
+  /* Ein Blatt, das am Telefon von unten kommt und am Schreibtisch mittig
+     steht (Export, Auswahl). */
+  .blatt {
+    max-height: 92vh;
+    width: 100%;
+    overflow-y: auto;
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+    background-color: var(--surface);
+    padding: 1rem;
+    box-shadow: var(--shadow-lg);
+  }
+
+  @media (min-width: 640px) {
+    .blatt {
+      max-width: 28rem;
+      border-radius: var(--radius-lg);
+    }
+  }
+
+  /* ── Knopf ──────────────────────────────────────────────────────────── */
+
+  /*
+   * Fünf Rollen, je in zwei Größen — jede eine vollständige Klasse:
+   *   primaer       die Hauptaktion, eine je Bereich
+   *   sekundaer     gleichrangige Nebenaktion, mit Rahmen
+   *   gefahr        löscht oder storniert
+   *   leise         Nebenhandlung ohne Fläche (Abbrechen, Bearbeiten)
+   *   leise-dunkel  dasselbe auf der dunklen Trägerfläche
+   */
+  .knopf-primaer,
+  .knopf-sekundaer,
+  .knopf-gefahr,
+  .knopf-leise,
+  .knopf-leise-dunkel,
+  .knopf-primaer-klein,
+  .knopf-sekundaer-klein,
+  .knopf-gefahr-klein,
+  .knopf-leise-klein,
+  .knopf-leise-dunkel-klein {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+    transition-duration: 150ms;
+  }
+
+  .knopf-primaer,
+  .knopf-sekundaer,
+  .knopf-gefahr,
+  .knopf-leise,
+  .knopf-leise-dunkel {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .knopf-primaer,
+    .knopf-sekundaer,
+    .knopf-gefahr,
+    .knopf-leise,
+    .knopf-leise-dunkel {
+      font-size: 1rem;
+      line-height: 1.5rem;
+    }
+  }
+
+  .knopf-primaer-klein,
+  .knopf-sekundaer-klein,
+  .knopf-gefahr-klein,
+  .knopf-leise-klein,
+  .knopf-leise-dunkel-klein {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .knopf-primaer:active,
+  .knopf-sekundaer:active,
+  .knopf-gefahr:active,
+  .knopf-leise:active,
+  .knopf-leise-dunkel:active,
+  .knopf-primaer-klein:active,
+  .knopf-sekundaer-klein:active,
+  .knopf-gefahr-klein:active,
+  .knopf-leise-klein:active,
+  .knopf-leise-dunkel-klein:active {
+    transform: scale(0.98);
+  }
+
+  .knopf-primaer,
+  .knopf-primaer-klein {
+    background-color: var(--brand);
+    color: var(--brand-fg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .knopf-primaer:hover,
+  .knopf-primaer-klein:hover {
+    opacity: 0.95;
+  }
+
+  .knopf-sekundaer,
+  .knopf-sekundaer-klein {
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .knopf-sekundaer:hover,
+  .knopf-sekundaer-klein:hover {
+    background-color: var(--surface-2);
+  }
+
+  .knopf-gefahr,
+  .knopf-gefahr-klein {
+    background-color: var(--danger);
+    color: #ffffff;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .knopf-gefahr:hover,
+  .knopf-gefahr-klein:hover {
+    opacity: 0.9;
+  }
+
+  .knopf-leise,
+  .knopf-leise-klein {
+    background-color: transparent;
+    color: var(--text-muted);
+  }
+
+  .knopf-leise:hover,
+  .knopf-leise-klein:hover {
+    background-color: var(--surface-2);
+  }
+
+  .knopf-leise-dunkel,
+  .knopf-leise-dunkel-klein {
+    background-color: transparent;
+    color: #ffffff;
+  }
+
+  .knopf-leise-dunkel:hover,
+  .knopf-leise-dunkel-klein:hover {
+    background-color: var(--ink-deep);
+  }
+
+  /* Gesperrt NACH den Hover-Regeln: gleiche Gewichtung, also gewinnt die
+     spätere — ein gesperrter Knopf darf beim Überfahren nicht aufleuchten. */
+  .knopf-primaer:disabled,
+  .knopf-sekundaer:disabled,
+  .knopf-gefahr:disabled,
+  .knopf-leise:disabled,
+  .knopf-leise-dunkel:disabled,
+  .knopf-primaer-klein:disabled,
+  .knopf-sekundaer-klein:disabled,
+  .knopf-gefahr-klein:disabled,
+  .knopf-leise-klein:disabled,
+  .knopf-leise-dunkel-klein:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: none;
+  }
+
+  /* Der Drehkreis im Knopf, solange er arbeitet — eine Zustandsanzeige,
+     keine Zierde (siehe Offene Punkte zur Animation). */
+  .knopf-laeuft {
+    height: 1rem;
+    width: 1rem;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 9999px;
+    animation: dreht 1s linear infinite;
+  }
+
+  @keyframes dreht {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Symbolknopf: nur ein Zeichen (✕, Pfeil), 48 × 48 Tastfläche. */
+  .symbolknopf,
+  .symbolknopf-gefahr,
+  .symbolknopf-gross {
+    display: inline-flex;
+    min-height: 48px;
+    min-width: 48px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+    color: var(--text-muted);
+    transition-property: color, background-color, transform;
+    transition-duration: 150ms;
+  }
+
+  /* Ein einzelnes Pfeilzeichen (‹ ›) zum Blättern: größer gesetzt, sonst
+     steht es klein mitten in seiner 48-px-Fläche und ist kaum zu finden
+     (Launch-Check 25.09.2026). */
+  .symbolknopf-gross {
+    font-size: 1.375rem;
+    line-height: 1.8rem;
+  }
+
+  .symbolknopf:hover,
+  .symbolknopf-gross:hover {
+    background-color: var(--surface-2);
+    color: var(--text);
+  }
+
+  .symbolknopf-gefahr:hover {
+    background-color: var(--danger-bg);
+    color: var(--danger);
+  }
+
+  .symbolknopf:active,
+  .symbolknopf-gefahr:active,
+  .symbolknopf-gross:active {
+    transform: scale(0.95);
+  }
+
+  /* ── Eingabefeld, Auswahl, Umschalter ───────────────────────────────── */
+
+  .feld-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .feld-beschriftung {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+  }
+
+  .feld-name {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .feld-pflicht {
+    color: var(--danger);
+  }
+
+  /* 16 px Schrift: darunter zoomt iOS beim Antippen in die Seite. */
+  .feld {
+    min-height: 48px;
+    min-width: 0;
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: var(--text);
+  }
+
+  .feld::placeholder {
+    color: var(--text-placeholder);
+  }
+
+  .feld:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 1px var(--brand);
+  }
+
+  /* Felder IN einer Tabellenzelle: schmaler gepolstert, aber ebenfalls
+     16 px — mit 14 px zoomte iOS beim Antippen in die Rechnung. */
+  .feld-zelle,
+  .feld-zelle-menge,
+  .feld-zelle-einheit,
+  .feld-zelle-preis,
+  .feld-zelle-preis-fehlt {
+    min-height: 48px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    padding: 0.25rem 0.5rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: var(--text);
+  }
+
+  .feld-zelle {
+    width: 100%;
+    min-width: 10rem;
+  }
+
+  .feld-zelle-menge {
+    width: 6rem;
+    text-align: right;
+  }
+
+  .feld-zelle-einheit {
+    width: 5rem;
+  }
+
+  .feld-zelle-preis,
+  .feld-zelle-preis-fehlt {
+    width: 7rem;
+    text-align: right;
+  }
+
+  /* Ein Preis von 0,00 € tarnt sich als Preis — die Kante sagt, dass hier
+     noch eine Entscheidung fehlt. */
+  .feld-zelle-preis-fehlt {
+    border-color: var(--warning);
+  }
+
+  .feld-zelle:focus,
+  .feld-zelle-menge:focus,
+  .feld-zelle-einheit:focus,
+  .feld-zelle-preis:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 1px var(--brand);
+  }
+
+  .feld-zelle-preis-fehlt:focus {
+    box-shadow: 0 0 0 1px var(--warning);
+  }
+
+  .kaestchen-zeile {
+    display: flex;
+    min-height: 48px;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: var(--text);
+  }
+
+  .feldraster-1,
+  .feldraster-2,
+  .feldraster-3 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .feldraster-2,
+    .feldraster-3 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .feldraster-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* ── Listenzeile ────────────────────────────────────────────────────── */
+
+  /* Der letzte Pixel ist die Unterkante der letzten Zeile — abgeschnitten,
+     damit die Liste nicht mit einer Linie endet. */
+  .liste {
+    clip-path: inset(0 0 1px 0);
+  }
+
+  .zeile {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 0.75rem;
+    row-gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-block: 0.75rem;
+  }
+
+  /* Untergrenze statt min-width: 0 — sonst schrumpft der Titel auf 33 px und
+     wird über die Knöpfe gemalt (siehe ListRow.tsx). */
+  .zeile-text {
+    min-width: 9rem;
+    flex: 1 1 0%;
+  }
+
+  .zeile-titel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .zeile-unter {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .zeile-rechts {
+    margin-left: auto;
+    display: flex;
+    max-width: 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    column-gap: 0.5rem;
+    row-gap: 0.25rem;
+  }
+
+  /* Knöpfe in der Zeile sind Nebenhandlungen: kleinere Schrift, schmalere
+     Polsterung, Tasthöhe bleibt 44 px. Symbolknöpfe sind ausgenommen. */
+  .zeile-rechts > button:not([data-icon]) {
+    min-height: 2.75rem;
+    padding-inline: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .zeile-wert {
+    white-space: nowrap;
+    text-align: right;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* ── Zeilenmenü (⋯) ─────────────────────────────────────────────────── */
+
+  .zeilenmenue-knopf,
+  .zeilenmenue-knopf-offen {
+    display: inline-flex;
+    min-height: 48px;
+    min-width: 48px;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    font-size: 1.125rem;
+    line-height: 1;
+    color: var(--text-muted);
+    transition: background-color 150ms ease;
+  }
+
+  .zeilenmenue-knopf:hover,
+  .zeilenmenue-knopf-offen {
+    background-color: var(--surface-2);
+    color: var(--text);
+  }
+
+  .zeilenmenue {
+    position: absolute;
+    z-index: 50;
+    min-width: 11rem;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    padding-block: 0.25rem;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .zeilenmenue-eintrag,
+  .zeilenmenue-eintrag-gefahr {
+    display: block;
+    min-height: 48px;
+    width: 100%;
+    white-space: nowrap;
+    padding-inline: 1rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .zeilenmenue-eintrag-gefahr {
+    color: var(--danger);
+  }
+
+  .zeilenmenue-eintrag:hover,
+  .zeilenmenue-eintrag-gefahr:hover {
+    background-color: var(--surface-2);
+  }
+
+  /* ── Kennzahl ───────────────────────────────────────────────────────── */
+
+  .kennzahlen {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1rem;
+    row-gap: 0.75rem;
+    padding-inline: 1rem;
+  }
+
+  /* Am Telefon stehen die Kennzahlen im Raster und brauchen keine Linie. */
+  .kennzahl-trenner {
+    display: none;
+  }
+
+  .kennzahl,
+  .kennzahl-link {
+    display: block;
+    min-width: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  .kennzahl-link:hover {
+    background-color: var(--surface-2);
+  }
+
+  @media (min-width: 640px) {
+    .kennzahlen {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    .kennzahl,
+    .kennzahl-link {
+      flex: 1 1 0%;
+    }
+
+    .kennzahl-trenner {
+      display: block;
+      flex: none;
+      width: 1px;
+      margin-inline: 0.75rem;
+      background-color: var(--border);
+    }
+  }
+
+  .kennzahl-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  /* Drei Stufen: zwischen sm und lg stehen je Kennzahl nur rund 180 px
+     neben der Seitenleiste, und „€ 22 104,60“ braucht bei 28 px 190. */
+  .kennzahl-wert,
+  .kennzahl-wert-gut,
+  .kennzahl-wert-warnung,
+  .kennzahl-wert-gefahr,
+  .kennzahl-wert-marke {
+    margin-top: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.125rem;
+    line-height: 1.6rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .kennzahl-wert-gut {
+    color: var(--success);
+  }
+
+  .kennzahl-wert-warnung {
+    color: var(--warning);
+  }
+
+  .kennzahl-wert-gefahr {
+    color: var(--danger);
+  }
+
+  .kennzahl-wert-marke {
+    color: var(--brand);
+  }
+
+  @media (min-width: 640px) {
+    .kennzahl-wert,
+    .kennzahl-wert-gut,
+    .kennzahl-wert-warnung,
+    .kennzahl-wert-gefahr,
+    .kennzahl-wert-marke {
+      font-size: 1.375rem;
+      line-height: 1.8rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .kennzahl-wert,
+    .kennzahl-wert-gut,
+    .kennzahl-wert-warnung,
+    .kennzahl-wert-gefahr,
+    .kennzahl-wert-marke {
+      font-size: 1.75rem;
+      line-height: 2.1rem;
+    }
+  }
+
+  .kennzahl-hinweis {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.375;
+    color: var(--text-muted);
+  }
+
+  /* ── Desktop-Tabelle ────────────────────────────────────────────────── */
+
+  .tabelle {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .tabelle-kopf,
+  .tabelle-kopf-zahl {
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .tabelle-zelle,
+  .tabelle-zahl {
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    vertical-align: top;
+    color: var(--text);
+  }
+
+  /* Zahlenspalten rechtsbündig: Beträge und Stunden stehen Stelle unter
+     Stelle und lassen sich vergleichen. */
+  .tabelle-kopf-zahl,
+  .tabelle-zahl {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Rahmen für Tabellen, die breiter sein dürfen als das Telefon. */
+  .tabelle-rahmen {
+    overflow-x: auto;
+  }
+
+  /* Eine Tabelle mit Eingabefeldern in den Zellen braucht Mindestbreite —
+     sonst schrumpfen die Felder unter ihren Inhalt. */
+  .tabelle-breit {
+    width: 100%;
+    min-width: 34rem;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .tabelle-titel {
+    margin-bottom: 0.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .tabelle-zahl-stark {
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    vertical-align: top;
+    text-align: right;
+    white-space: nowrap;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Summenzeilen stehen ohne Linie unter der Tabelle. */
+  .tabelle-summe,
+  .tabelle-summe-zahl {
+    padding: 0.25rem 0.75rem 0.25rem 0;
+    text-align: right;
+  }
+
+  .tabelle-summe-zahl {
+    white-space: nowrap;
+  }
+
+  .tabelle-abzug {
+    color: var(--danger);
+  }
+
+  .tabelle-gesamt {
+    font-weight: 700;
+  }
+
+  /* ── Kasten und Meldung ─────────────────────────────────────────────── */
+
+  /* Ein Kasten IN einer Karte — gruppiert, ohne eine zweite Karte zu sein. */
+  .kasten {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+    padding: 0.75rem;
+  }
+
+  /* Derselbe Kasten auf weißem Grund, für Einträge, die für sich stehen
+     (ein Einsatz, eine Baustelle). */
+  .kasten-hell {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    padding: 0.75rem;
+  }
+
+  /*
+   * MELDUNG: ein ruhiger Kasten, die Farbe trägt allein die Schrift.
+   *
+   * Vorher stand dasselbe Muster in rund vierzig Abschriften, mit drei
+   * verschiedenen Polsterungen und zwei Rundungen. Eine Fläche in Warnfarbe
+   * gibt es bewusst nicht — die Aussage steht im Text, nicht im Hintergrund.
+   */
+  .meldung,
+  .meldung-warnung,
+  .meldung-info,
+  .meldung-gefahr,
+  .meldung-gut {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .meldung-warnung {
+    color: var(--warning);
+  }
+
+  .meldung-info {
+    color: var(--info);
+  }
+
+  .meldung-gefahr {
+    color: var(--danger);
+  }
+
+  .meldung-gut {
+    color: var(--success);
+  }
+
+  .meldung-titel {
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+  }
+
+  /* ── Leerzustand, Laden, Platzhalter ────────────────────────────────── */
+
+  /*
+   * RUHIGER LEERZUSTAND: eine Zeile, kein Kasten. Vorher stand hier ein
+   * umrahmter, getönter Block mit 24 px Polsterung — für „Noch keine
+   * Rechnungen“ die auffälligste Fläche der Karte.
+   */
+  .leer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
+    padding-block: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .laden {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    color: var(--text-muted);
+  }
+
+  .laden-kreis {
+    height: 1.5rem;
+    width: 1.5rem;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent-deep);
+    border-radius: 9999px;
+    animation: dreht 1s linear infinite;
+  }
+
+  .platzhalter-zeile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-block: 0.75rem;
+  }
+
+  .platzhalter-text {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 0%;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* ── Karte mit Obergrenze: „und X weitere“ ──────────────────────────── */
+
+  .grenze-weitere {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  /* ── Textlink ───────────────────────────────────────────────────────── */
+
+  .textlink {
+    font-weight: 500;
+    color: var(--brand);
+    text-decoration-line: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* Allein stehend braucht der Link die Tasthöhe eines Knopfes. */
+  .textlink-allein {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--brand);
+    text-decoration-line: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ── Feste Aktionsleiste für lange Formulare am Telefon ────────────── */
+
+  /*
+   * Am Telefon klebt die Leiste über der Tableiste (67 px + sichere Zone),
+   * solange das Formular durch den Bildschirm läuft — die Hauptaktion ist
+   * erreichbar, ohne ans Ende zu scrollen. Am Schreibtisch steht sie, wo sie
+   * immer stand: am Ende des Formulars.
+   */
+  .aktionsleiste {
+    position: sticky;
+    bottom: calc(67px + env(safe-area-inset-bottom));
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-inline: -1rem;
+    border-top: 1px solid var(--border);
+    background-color: var(--surface);
+    padding: 0.75rem 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .aktionsleiste {
+      position: static;
+      flex-direction: row;
+      gap: 0.75rem;
+      margin-inline: 0;
+      border-top: 0;
+      background-color: transparent;
+      padding: 0;
+    }
+  }
 }
