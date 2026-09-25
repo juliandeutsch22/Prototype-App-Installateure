@@ -27,6 +27,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import KundenImport from './KundenImport';
 import { grundAus } from '@/lib/fehlerGrund';
+import { useAbBreite } from '@/lib/useAbBreite';
 
 const LEER: NewCustomer = {
   name: '',
@@ -171,6 +172,8 @@ export default function CustomersView() {
   }, [laden]);
 
   const sichtbar = kunden;
+  /** Am Schreibtisch die Kunden als Tabelle, am Telefon als Liste. */
+  const schreibtisch = useAbBreite();
 
   async function speichern(e: FormEvent) {
     e.preventDefault();
@@ -283,6 +286,61 @@ export default function CustomersView() {
   }
 
   if (!user) return null;
+
+  /*
+    DIE AKTIONEN EINER KUNDENZEILE — am Telefon in der Listenzeile, am
+    Schreibtisch in der letzten Tabellenspalte (siehe `useAbBreite`). Einmal
+    geschrieben, damit beide Formen dieselben Handgriffe tragen.
+  */
+  const kundeAktionen = (k: WithId<Customer>) => (
+    <>
+      {/*
+        DIE AKTE IST EINE SEITE, KEIN AUFKLAPPEN MEHR.
+
+        Hier stand „Historie" und schob Baustellen und Angebote in
+        die Nebenzeile dieser Listenzeile. Um Stammdaten und
+        Wartungen erweitert wäre daraus eine Ansicht in der
+        Verkleidung einer Zeile geworden — und E-Mail, UID und Notiz
+        standen bis dahin überhaupt nirgends.
+      */}
+      <Link to={`/customers/${k.id}`} className="textlink-allein">
+        Akte
+      </Link>
+      {/*
+        DIESELBEN ZEILENAKTIONEN WIE BEI DEN BAUSTELLEN: die Akte
+        sichtbar, das Seltene im „⋯" (Launch-Check 25.09.2026 —
+        hier standen „Bearbeiten" und ein ✕ in der Zeile, dort
+        „Akte" und ⋯). Das Löschen gehört nicht an die auffälligste
+        Stelle der Zeile.
+      */}
+      {darfAendern && (
+        <RowMenu
+          about={`Kunde ${k.name}`}
+          items={[
+            {
+              label: 'Bearbeiten',
+              onSelect: () => {
+                setBearbeitet(k);
+                setFormOffen(true);
+                setForm({
+                  name: k.name,
+                  address: k.address ?? '',
+                  contactName: k.contactName ?? '',
+                  contactPhone: k.contactPhone ?? '',
+                  email: k.email ?? '',
+                  vatId: k.vatId ?? '',
+                  notes: k.notes ?? '',
+                  active: k.active ?? true,
+                });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              },
+            },
+            { label: 'Löschen', onSelect: () => setToDelete(k), danger: true },
+          ]}
+        />
+      )}
+    </>
+  );
 
   return (
     <div className="space-y-6">
@@ -482,6 +540,44 @@ export default function CustomersView() {
               ? `Kein Kunde passt zu „${suche}".`
               : 'Noch keine Kunden. Über „Bestehende Baustellen übernehmen" lassen sich die vorhandenen anlegen.'}
           </EmptyState>
+        ) : schreibtisch ? (
+          <div className="tabelle-rahmen">
+            <table className="tabelle">
+              <thead className="tabelle-kopfzeile">
+                <tr>
+                  <th className="tabelle-kopf">Kunde</th>
+                  <th className="tabelle-kopf">Rechnungsadresse</th>
+                  <th className="tabelle-kopf">Ansprechpartner</th>
+                  <th className="tabelle-kopf">Telefon</th>
+                  <th className="tabelle-kopf-zahl">
+                    <span className="sr-only">Aktionen</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sichtbar.map((k) => (
+                  <tr key={k.id} className="tabelle-zeile">
+                    <td className="tabelle-name">{k.name}</td>
+                    <td className="tabelle-zelle">
+                      <AdresseLink adresse={k.address} />
+                    </td>
+                    <td className="tabelle-zelle">{k.contactName}</td>
+                    <td className="tabelle-zelle">
+                      {/* Eine Nummer bricht nicht mitten in der Zahlenfolge um. */}
+                      <TelefonLink
+                        nummer={k.contactPhone}
+                        name={k.contactName}
+                        className="whitespace-nowrap"
+                      />
+                    </td>
+                    <td className="tabelle-aktionen">
+                      <div className="tabelle-knoepfe">{kundeAktionen(k)}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <List>
             {sichtbar.map((k) => (
@@ -500,51 +596,7 @@ export default function CustomersView() {
                   </>
                 }
               >
-                {/*
-                  DIE AKTE IST EINE SEITE, KEIN AUFKLAPPEN MEHR.
-
-                  Hier stand „Historie" und schob Baustellen und Angebote in
-                  die Nebenzeile dieser Listenzeile. Um Stammdaten und
-                  Wartungen erweitert wäre daraus eine Ansicht in der
-                  Verkleidung einer Zeile geworden — und E-Mail, UID und Notiz
-                  standen bis dahin überhaupt nirgends.
-                */}
-                <Link to={`/customers/${k.id}`} className="textlink-allein">
-                  Akte
-                </Link>
-                {/*
-                  DIESELBEN ZEILENAKTIONEN WIE BEI DEN BAUSTELLEN: die Akte
-                  sichtbar, das Seltene im „⋯" (Launch-Check 25.09.2026 —
-                  hier standen „Bearbeiten" und ein ✕ in der Zeile, dort
-                  „Akte" und ⋯). Das Löschen gehört nicht an die auffälligste
-                  Stelle der Zeile.
-                */}
-                {darfAendern && (
-                  <RowMenu
-                    about={`Kunde ${k.name}`}
-                    items={[
-                      {
-                        label: 'Bearbeiten',
-                        onSelect: () => {
-                          setBearbeitet(k);
-                          setFormOffen(true);
-                          setForm({
-                            name: k.name,
-                            address: k.address ?? '',
-                            contactName: k.contactName ?? '',
-                            contactPhone: k.contactPhone ?? '',
-                            email: k.email ?? '',
-                            vatId: k.vatId ?? '',
-                            notes: k.notes ?? '',
-                            active: k.active ?? true,
-                          });
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        },
-                      },
-                      { label: 'Löschen', onSelect: () => setToDelete(k), danger: true },
-                    ]}
-                  />
-                )}
+                {kundeAktionen(k)}
               </ListRow>
             ))}
           </List>
