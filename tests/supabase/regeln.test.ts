@@ -1106,8 +1106,15 @@ describe('Der Dienstschluessel kommt durch — durch manche Trigger', () => {
 });
 
 describe('Rechnungen — geloescht wird gar keine', () => {
+  /*
+    ANGELEGT MIT DEM DIENSTSCHLÜSSEL, nicht mit dem Konto der Buchhaltung:
+    seit dem Prüflauf 25.09.2026 (P2-15) beginnt jede Rechnung, die ein
+    Konto anlegt, als „Offen" — „Bezahlt" und „Storniert" kommen über ihre
+    eigenen Wege. Hier geht es nur ums Löschen; wie der Stand entstand, ist
+    nicht die Frage.
+  */
   async function rechnung(nummer: string, stand = 'Offen'): Promise<string> {
-    const { data, error } = await aBuch.client.from('invoices').insert({
+    const { data, error } = await admin.from('invoices').insert({
       company_id: 'firma-a', invoice_number: nummer, project_number: '2026-001',
       customer_name: 'Berger', invoice_date: '2026-10-01', due_date: '2026-10-31',
       total_netto: 100, total_vat: 20, total_brutto: 120, payment_status: stand,
@@ -1141,11 +1148,21 @@ describe('Rechnungen — geloescht wird gar keine', () => {
   });
 
   it('stornieren geht weiter — das ist die Korrektur', async () => {
+    /*
+      ÜBER `rechnung_stornieren`, nicht per `update` (Prüflauf 25.09.2026,
+      P2-15): nur die Funktion gibt die Belege frei und prüft, ob die
+      Rechnung auf einer anderen abgezogen ist. Der direkte Weg ist zu.
+    */
     const id = await rechnung('RE-2026-1005');
-    const { error } = await aBuch.client.from('invoices').update({
+    const direkt = await aBuch.client.from('invoices').update({
       payment_status: 'Storniert', cancellation_note: 'Doppelt gestellt',
       cancelled_at: new Date().toISOString(),
     }).eq('id', id);
+    expect(direkt.error?.code).toBe('42501');
+
+    const { error } = await aBuch.client.rpc('rechnung_stornieren', {
+      p_id: id, p_grund: 'Doppelt gestellt',
+    });
     expect(error).toBeNull();
   });
 });

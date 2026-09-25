@@ -37,6 +37,10 @@
   Augenblick denselben Schein ab, sieht keiner die noch nicht festgeschriebene
   Zeile des anderen; der zweite wartet deshalb hier, bis der erste fertig ist,
   und findet dann dessen Rechnung.
+
+  DER DIENSTSCHLÜSSEL GEHT VORBEI: der Rücklauf einer Sicherung spielt den
+  Bestand so zurück, wie er war — auch Altbestand aus der Zeit vor dieser
+  Prüfung. Scheiterte er daran, käme der Betrieb gar nicht wieder.
 */
 create or replace function app.beleg_nur_einmal() returns trigger
   language plpgsql
@@ -45,6 +49,10 @@ as $$
 declare
   schon text;
 begin
+  if app.ist_dienst() then
+    return new;
+  end if;
+
   perform pg_advisory_xact_lock(
     hashtextextended('rechnungsbeleg:' || new.art || ':' || new.ziel_id::text, 0));
 
