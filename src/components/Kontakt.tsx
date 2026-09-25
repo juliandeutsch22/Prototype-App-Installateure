@@ -38,7 +38,7 @@ export function AdresseLink({ adresse, variante = 'text', className = '' }: Adre
       rel="noopener noreferrer"
       className={`${variante === 'knopf' ? KNOPF : TEXT} ${className}`}
     >
-      <Icon name="pin" size={16} aria-hidden />
+      <Icon name="pin" size={16} className="shrink-0" aria-hidden />
       {/* Der Adresstext selbst ist der Link — „hier klicken" wäre für
           Screenreader wertlos. Der Zusatz sagt, wohin es führt. */}
       <span>{adresse}</span>
@@ -59,7 +59,7 @@ export function TelefonLink({ nummer, name, variante = 'text', className = '' }:
   if (!nummer?.trim()) return null;
   return (
     <a href={telUrl(nummer)} className={`${variante === 'knopf' ? KNOPF : TEXT} ${className}`}>
-      <Icon name="phone" size={16} aria-hidden />
+      <Icon name="phone" size={16} className="shrink-0" aria-hidden />
       <span>{nummer}</span>
       <span className="sr-only">{name ? `— ${name} anrufen` : '— anrufen'}</span>
     </a>
@@ -86,14 +86,14 @@ export function MailLink({ adresse, variante = 'text', className = '' }: MailPro
   if (!ziel) {
     return (
       <span className={`inline-flex min-h-touch items-center gap-1.5 text-ink ${className}`}>
-        <Icon name="mail" size={16} aria-hidden />
+        <Icon name="mail" size={16} className="shrink-0" aria-hidden />
         <span>{adresse}</span>
       </span>
     );
   }
   return (
     <a href={ziel} className={`${variante === 'knopf' ? KNOPF : TEXT} ${className}`}>
-      <Icon name="mail" size={16} aria-hidden />
+      <Icon name="mail" size={16} className="shrink-0" aria-hidden />
       <span>{adresse}</span>
       <span className="sr-only">— Mail schreiben</span>
     </a>

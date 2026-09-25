@@ -34,7 +34,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { abschlussText } from './abschlussText';
-import { useAbBreite } from '@/lib/useAbBreite';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -270,7 +270,7 @@ export default function AdminOrdersView() {
   }
 
   /** Am Schreibtisch die Anforderungen als Tabelle, am Telefon als Liste. */
-  const schreibtisch = useAbBreite();
+  const schreibtisch = useAbBreite(AB_TABELLE);
 
   if (!user) return null;
 

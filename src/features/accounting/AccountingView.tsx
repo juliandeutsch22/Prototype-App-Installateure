@@ -54,7 +54,7 @@ import {
 } from './export';
 import AntragKnopf from '@/features/time/AntragKnopf';
 import { datumAT } from '@/lib/datum';
-import { useAbBreite } from '@/lib/useAbBreite';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 const MONTHS = [
   'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -418,7 +418,7 @@ export default function AccountingView() {
   }
 
   /** Am Schreibtisch die Mitarbeiter als Tabelle, am Telefon als Karten. */
-  const schreibtisch = useAbBreite();
+  const schreibtisch = useAbBreite(AB_TABELLE);
 
   if (!user) return null;
 

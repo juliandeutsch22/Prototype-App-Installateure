@@ -35,7 +35,7 @@ import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/S
 import Meldung from '@/components/Meldung';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import { fmtStunden } from '@/lib/time';
-import { useAbBreite } from '@/lib/useAbBreite';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 const empty = {
   projectNumber: '',
@@ -399,7 +399,7 @@ export default function AdminProjectsView() {
   }, [serverTreffer, sorted]);
 
   /** Am Schreibtisch die Baustellen als Tabelle, am Telefon als Liste. */
-  const schreibtisch = useAbBreite();
+  const schreibtisch = useAbBreite(AB_TABELLE);
 
   if (!user) return null;
 

@@ -16,6 +16,16 @@ import { useEffect, useState } from 'react';
  */
 export const AB_SCHREIBTISCH = 1024;
 
+/**
+ * Ab hier werden die Büro-Listen zur Tabelle — eine Stufe später als der
+ * Schreibtisch. Neben der Seitenleiste blieben auf 1024 px rund 660 px für
+ * fünf bis sieben Spalten: Namen brachen mitten im Wort, die Knöpfe der
+ * Anforderungen standen übereinander. Ab 1280 px (auch die Fenstergrösse der
+ * Browserwege) steht jede Spalte ruhig. Dieselbe Grenze wie die zweispaltigen
+ * Akten.
+ */
+export const AB_TABELLE = 1280;
+
 function abfrageFuer(ab: number): string {
   return `(min-width: ${ab}px)`;
 }

@@ -73,7 +73,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
-import { useAbBreite } from '@/lib/useAbBreite';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 /**
  * Ein Betrag MIT vorangestelltem Eurozeichen — „€ 22 104,60".
@@ -1203,7 +1203,7 @@ export default function InvoicesView() {
   );
 
   /** Am Schreibtisch die Rechnungen als Tabelle, am Telefon als Liste. */
-  const schreibtisch = useAbBreite();
+  const schreibtisch = useAbBreite(AB_TABELLE);
 
   if (!user) return null;
 

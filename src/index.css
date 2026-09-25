@@ -783,7 +783,7 @@ textarea {
 
 /*
  * BÜRO-LISTEN ALS TABELLE — Rechnungen, Anforderungen, Mitarbeiterübersicht,
- * Kunden, Baustellen ab `lg` (siehe `useAbBreite`).
+ * Kunden, Baustellen ab 1280 px (`AB_TABELLE` in `useAbBreite`).
  *
  * Die Zellen selbst sind die gemeinsamen `tabelle-*`-Klassen. Hier steht nur,
  * was eine Liste mit Handgriffen zusätzlich braucht: die Spalte mit den

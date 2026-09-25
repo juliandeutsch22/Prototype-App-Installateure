@@ -27,7 +27,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import KundenImport from './KundenImport';
 import { grundAus } from '@/lib/fehlerGrund';
-import { useAbBreite } from '@/lib/useAbBreite';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 const LEER: NewCustomer = {
   name: '',
@@ -173,7 +173,7 @@ export default function CustomersView() {
 
   const sichtbar = kunden;
   /** Am Schreibtisch die Kunden als Tabelle, am Telefon als Liste. */
-  const schreibtisch = useAbBreite();
+  const schreibtisch = useAbBreite(AB_TABELLE);
 
   async function speichern(e: FormEvent) {
     e.preventDefault();
