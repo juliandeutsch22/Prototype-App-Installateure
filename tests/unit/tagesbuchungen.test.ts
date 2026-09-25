@@ -131,6 +131,17 @@ describe('Welche Tage sind WIRKLICH doppelt', () => {
     expect([...t]).toEqual(['2026-09-01']);
   });
 
+  it('meldet Arbeit an einem Krankentag — der Tag zählte sonst doppelt', () => {
+    // Prüflauf 25.09.2026, P1-17: bisher nur zwei ganztägige.
+    const t = tageMitEchterDoppelung([
+      { date: '2026-09-01', status: 'Krank' },
+      { date: '2026-09-01', status: 'Anwesend', projectNumber: '2026-042', startTime: '07:00', endTime: '12:00' },
+      { date: '2026-09-02', status: 'Zeitausgleich' },
+      { date: '2026-09-02', status: 'Anwesend', projectNumber: '2026-042' },
+    ]);
+    expect([...t].sort()).toEqual(['2026-09-01', '2026-09-02']);
+  });
+
   it('haelt Tage auseinander', () => {
     const t = tageMitEchterDoppelung([
       { date: '2026-09-01', status: 'Anwesend', projectNumber: '2026-042' },

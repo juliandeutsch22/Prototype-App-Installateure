@@ -326,7 +326,8 @@ export default function TimeView() {
    *
    * Gemeldet wird deshalb nur noch, was den Saldo wirklich verfaelscht:
    * dieselbe Baustelle zweimal, zwei Eintraege ohne Baustelle, oder ein
-   * ganztaegiger Status doppelt (siehe `lib/tagesbuchungen.ts`).
+   * ganztaegiger Status neben irgendeinem anderen Eintrag — auch neben
+   * Arbeitszeit (siehe `lib/tagesbuchungen.ts`).
    */
   const doppelteTage = useMemo(() => tageMitEchterDoppelung(entries), [entries]);
 
