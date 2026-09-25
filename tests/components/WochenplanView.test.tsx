@@ -215,7 +215,65 @@ describe('Wochenplan — der Weg in die Tagesplanung', () => {
   });
 });
 
+describe('Wochenplan — zwei Baustellen desselben Kunden (Design-Überarbeitung, Punkt 7)', () => {
+  /**
+   * Ein Kunde kann mehrere Baustellen haben. Stünde auf der Karte nur der
+   * Name, sähen zwei Einsätze bei „Familie Huber" gleich aus — welcher ins
+   * Haus und welcher in die Wohnung geht, wüsste niemand. Die Nummer steht
+   * so da wie überall sonst: wie sie an der Baustelle gespeichert ist, mit
+   * Vorsatz.
+   */
+  beforeEach(() => {
+    BAUSTELLEN.push({
+      id: 'p2', companyId: 'perl', projectNumber: 'PR-187', customerName: 'Familie Huber', status: 'Aktiv',
+    } as Project);
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' },
+      { id: 'a2', companyId: 'perl', date: MITTWOCH, projectNumber: 'PR-187', userId: 'u1', userName: 'Max Mustermann' },
+    ] as (Assignment & { id: string })[];
+  });
+  afterEach(() => {
+    BAUSTELLEN.splice(1);
+  });
+
+  it('nennt in der Tabelle an jeder Karte Kunde UND Nummer', async () => {
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
+    const karten = within(zeile).getAllByRole('button', { name: /Familie Huber am 02\.09/ });
+    expect(karten).toHaveLength(2);
+    expect(karten.map((k) => k.textContent)).toEqual(
+      expect.arrayContaining(['Familie Huber2026-042', 'Familie HuberPR-187']),
+    );
+  });
+
+  it('nennt in der Tagesliste an jeder Karte Kunde UND Nummer', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const karten = liste().getAllByRole('button', { name: /Familie Huber am 02\.09/ });
+    expect(karten).toHaveLength(2);
+    expect(karten.some((k) => k.textContent?.includes('Familie Huber · 2026-042'))).toBe(true);
+    expect(karten.some((k) => k.textContent?.includes('Familie Huber · PR-187'))).toBe(true);
+  });
+});
+
 describe('Wochenplan — Woche wechseln', () => {
+  it('hat Blätterpfeile mit vollem Ziel, auch am Schreibtisch gut sichtbar', async () => {
+    /**
+     * 48 × 48 px wie die Monatspfeile im Kalender — `min-h-touch` bringt
+     * `Button` mit. jsdom misst nicht; geprüft wird, dass die Klassen da sind.
+     * `sm:text-xl`, weil sonst das `sm:text-base` aus `Button` das Zeichen ab
+     * 640 px auf Fliesstextgrösse zurücksetzt.
+     */
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    for (const name of ['Woche zurück', 'Woche vor']) {
+      const pfeil = screen.getByRole('button', { name });
+      expect(pfeil.className).toMatch(/(^|\s)min-h-touch(\s|$)/);
+      expect(pfeil.className).toMatch(/(^|\s)min-w-touch(\s|$)/);
+      expect(pfeil.className).toMatch(/(^|\s)sm:text-xl(\s|$)/);
+    }
+  });
+
   it('geht eine Woche vor und wieder zurueck', async () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });

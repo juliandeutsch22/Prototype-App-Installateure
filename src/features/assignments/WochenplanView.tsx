@@ -339,14 +339,21 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
           */
           <div className="flex items-center gap-1">
             {/* So gross wie die übrigen Knöpfe — ein einzelnes Zeichen gab
-                ein Ziel von halber Daumenbreite (Launch-Check 25.09.2026). */}
-            <Button variant="ghost" aria-label="Woche zurück" className="min-w-touch text-xl" onClick={() => wocheVerschieben(-1)}>
+                ein Ziel von halber Daumenbreite (Launch-Check 25.09.2026).
+                Das Ziel ist 48 × 48 px (`min-h-touch` aus `Button`,
+                `min-w-touch` hier), wie die Monatspfeile im Kalender.
+
+                `sm:text-xl` steht mit Absicht neben `text-xl`: `Button`
+                bringt `sm:text-base` mit, und das gewann ab 640 px — am
+                Schreibtisch stand das Zeichen dann in Fliesstextgrösse
+                mitten in einem Ziel von 48 px und war kaum zu finden. */}
+            <Button variant="ghost" aria-label="Woche zurück" className="min-w-touch text-xl sm:text-xl" onClick={() => wocheVerschieben(-1)}>
               ‹
             </Button>
             <Button variant="ghost" onClick={() => setMontag(montagDer(todayStr()))}>
               Diese Woche
             </Button>
-            <Button variant="ghost" aria-label="Woche vor" className="min-w-touch text-xl" onClick={() => wocheVerschieben(1)}>
+            <Button variant="ghost" aria-label="Woche vor" className="min-w-touch text-xl sm:text-xl" onClick={() => wocheVerschieben(1)}>
               ›
             </Button>
           </div>
