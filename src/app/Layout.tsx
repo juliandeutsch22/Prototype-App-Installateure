@@ -31,11 +31,16 @@ import RechtLinks from '@/components/RechtLinks';
  * Zwei Fassungen, weil es zwei Träger gibt: die Seitenleiste ist dunkel, die
  * Blätter von unten (Mehr, Profil) stehen auf heller Fläche. Ein gemeinsamer
  * Stil müsste auf einem von beiden falsch aussehen.
+ *
+ * AUF DER HELLEN FLÄCHE STEHT DER TEXT IN TINTE. `--accent-deep` auf
+ * `--info-bg` erreichte nachgerechnet 4,49 : 1 — knapp unter der Grenze;
+ * Tinte darauf 14,3 : 1. Die Fläche, die Kante und die Fettung tragen den
+ * Zustand, wie der aktive Eintrag im Entwurf (Mockup S. 1 unten).
  */
 const sideLink = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-accent-deep bg-info-bg font-bold text-accent-deep'
+      ? 'border-l-accent-deep bg-info-bg font-bold text-ink'
       : 'border-l-transparent font-medium text-ink-muted hover:bg-surface-2 hover:text-ink'
   }`;
 
@@ -297,7 +302,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       {/* Mobile Tab-Bar — dieselbe dunkle Trägerfläche wie die Kopfleiste, so
           dass der Inhalt oben und unten von der Marke eingefasst wird.
           Aktiv = helle Pille um das Symbol PLUS volles Weiss statt 70 % —
-          auf 12 px Schrift ist Farbe allein zu wenig. Die Beschriftung ist
+          auf 12 px Schrift ist Farbe allein zu wenig. Die Pille ist deckend
+          `--bg` mit dem Symbol in `--brand-fixed` (9,6 : 1), wie der aktive
+          Eintrag im Entwurf (Mockup S. 1 unten); vorher `--ink-deep` auf der
+          Leiste, das sich von ihr kaum abhob. Die Beschriftung ist
           halbfett für alle, nicht fett (Marke: „Fett wirkt laut";
           Prüflauf 24.09.2026, C9). */}
       <nav
@@ -328,8 +336,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                     die gewohnte Stelle und kostet keinen Platz in der Zeile.
                   */}
                   <span
-                    className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                      isActive ? 'bg-ink-deep' : ''
+                    className={`relative flex h-8 w-14 items-center justify-center rounded-pill transition-colors ${
+                      isActive ? 'bg-bg text-brand-fixed' : ''
                     }`}
                   >
                     <Icon name={item.icon} size={20} />
@@ -357,8 +365,8 @@ export default function Layout({ children }: { children: ReactNode }) {
               }`}
             >
               <span
-                className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                  moreActive ? 'bg-ink-deep' : ''
+                className={`relative flex h-8 w-14 items-center justify-center rounded-pill transition-colors ${
+                  moreActive ? 'bg-bg text-brand-fixed' : ''
                 }`}
               >
                 <Icon name="more" size={20} />
