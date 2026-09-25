@@ -111,6 +111,8 @@ export default function QuotesView() {
   */
   const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Quote> | null>(null);
+  /** Welches Angebot gerade angenommen werden soll — erst nach der Rückfrage. */
+  const [annehmenFragen, setAnnehmenFragen] = useState<WithId<Quote> | null>(null);
 
   // Formular
   const [customerId, setCustomerId] = useState('');
@@ -637,7 +639,7 @@ export default function QuotesView() {
                 )}
                 {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
                   <>
-                    <Button variant="ghost" loading={busy} onClick={() => annehmen(q)}>
+                    <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(q)}>
                       Annehmen → Baustelle
                     </Button>
                     <Button
@@ -665,6 +667,29 @@ export default function QuotesView() {
           </List>
         )}
       </Card>
+
+      {/*
+        ERST FRAGEN, DANN ANLEGEN (Launch-Check, M8). Annehmen legt eine
+        Baustelle an und verbraucht eine Nummer — ein verrutschter Finger in
+        der Liste darf das nicht auslösen.
+      */}
+      <ConfirmDialog
+        open={!!annehmenFragen}
+        title="Angebot annehmen?"
+        message={
+          annehmenFragen
+            ? `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Pauschalbaustelle mit der nächsten Baustellennummer.`
+            : ''
+        }
+        confirmLabel="Annehmen"
+        confirmTone="primary"
+        onCancel={() => setAnnehmenFragen(null)}
+        onConfirm={async () => {
+          const q = annehmenFragen;
+          setAnnehmenFragen(null);
+          if (q) await annehmen(q);
+        }}
+      />
 
       <ConfirmDialog
         open={!!toDelete}

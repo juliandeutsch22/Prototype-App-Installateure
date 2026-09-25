@@ -174,3 +174,12 @@ describe('Das Kennzeichen', () => {
     }
   });
 });
+
+describe('hoechsteLfdImJahr — nur Nummern im Schema des Jahres (Launch-Check, K6)', () => {
+  it('überspringt „PR-187", das Vorjahr und fremde Nummern', async () => {
+    const { hoechsteLfdImJahr } = await import('@/lib/praefixe');
+    expect(hoechsteLfdImJahr(['PR-187', 'PR-2026-0003', 'B-2025-0900', '2026-0002', 'Bauträger 4711'], 2026)).toBe(3);
+    expect(hoechsteLfdImJahr([], 2026)).toBe(0);
+    expect(hoechsteLfdImJahr([undefined, 'PR-187'], 2026)).toBe(0);
+  });
+});

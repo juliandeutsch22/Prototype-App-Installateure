@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
   subscribeRecentInvoices,
@@ -46,6 +46,8 @@ import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { abziehbar, alsVorrechnung, mitAbzug } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
+import { pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
+import { listQuotesForProject } from '@/lib/db/quotes';
 import { calcTotals, discountLabel, type InvoicePosition } from './totals';
 import { todayStr, localDateStr, fmtMin, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
@@ -58,6 +60,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
+import { isTopLevel } from '@/lib/permissions';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import RowMenu from '@/components/RowMenu';
@@ -108,6 +111,11 @@ export default function InvoicesView() {
   const [error, setError] = useState<string | null>(null);
   /** Ein Nebenladevorgang ist ausgefallen — die Rechnungsliste steht trotzdem. */
   const [nebenFehler, setNebenFehler] = useState<string | null>(null);
+  /**
+   * Stammt die Vorschau aus der Pauschale? `null`: nein; `''`: ja, aber ohne
+   * angenommenes Angebot; sonst Nummer und Betrag des Angebots.
+   */
+  const [pauschalAus, setPauschalAus] = useState<string | null>(null);
   /*
     Die unterschriebenen Scheine des Betriebs — für die Frage, welche Leistung
     noch auf keiner Rechnung steht. Einmal geladen, nicht abonniert: die
@@ -150,6 +158,8 @@ export default function InvoicesView() {
   const [exportFehler, setExportFehler] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
+  /** Welcher Storno gerade aufgehoben werden soll — erst nach der Rückfrage. */
+  const [aufheben, setAufheben] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
   const [statusFilter, setStatusFilter] = useState<'alle' | Invoice['paymentStatus']>('alle');
   /*
@@ -483,7 +493,13 @@ export default function InvoicesView() {
     const heute = todayStr();
     for (const i of invoices) {
       const stand = zahlstand(i);
-      bezahlt += stand.bezahlt;
+      /*
+        OHNE GUTHABEN (Launch-Check, M13). Die 200 € auf der stornierten
+        RE-2026-1500 standen unter „Bezahlt" — sie gehören dem Kunden zurück.
+        Dasselbe gilt für den Überschuss einer überzahlten Rechnung. Gezählt
+        wird, was eine Forderung beglichen hat.
+      */
+      bezahlt += stand.bezahlt - stand.guthaben;
       // Nach dem ZIEL, nicht nach dem Stand — siehe `istUeberfaellig`.
       if (istUeberfaellig(i, heute)) ueberfaellig += stand.rest;
       else if (i.paymentStatus !== 'Storniert') offen += stand.rest;
@@ -521,6 +537,18 @@ export default function InvoicesView() {
     }
   };
 
+  /*
+    DER KOPF DES DIALOGS RECHNET MIT DEN EINGÄNGEN, DIE ER ZEIGT (Launch-
+    Check, M14). Er las den Stand der Rechnung vom Öffnen: nach einer
+    Teilzahlung über 200 € stand darüber weiter „offen € 504,00". Solange die
+    Liste noch lädt, gilt der Stand der Rechnung.
+  */
+  const zahlungsStand = zahlungFuer
+    ? zahlungen
+      ? { ...zahlungFuer, bezahltBetrag: Math.round(zahlungen.reduce((s, z) => s + z.betrag, 0) * 100) / 100 }
+      : zahlungFuer
+    : null;
+
   const zahlungSpeichern = async () => {
     if (!zahlungFuer || !user) return;
     const betrag = Number(zBetrag.replace(',', '.'));
@@ -545,6 +573,8 @@ export default function InvoicesView() {
   };
 
   const numberTaken = invoiceNumber !== '' && isInvoiceNumberTaken(invoices, invoiceNumber);
+  /** Noch keine einzige Rechnung — nur dann darf die Nummer an den alten Kreis anschliessen. */
+  const ersteRechnung = !loading && invoices.length === 0;
 
   /**
    * Rechnet jemand parallel ab, ist der angezeigte Vorschlag im selben Moment
@@ -646,6 +676,7 @@ export default function InvoicesView() {
     if (!user || !projectNumber) return;
     setBusy(true);
     setError(null);
+    setPauschalAus(null);
     try {
       /*
         EINE ANZAHLUNG KOMMT NICHT AUS DEN ZEITEINTRÄGEN — es gibt noch keine.
@@ -718,6 +749,31 @@ export default function InvoicesView() {
         // offen.
         bereitsVerrechnet: verrechneteScheine(invoices),
       });
+      /*
+        PAUSCHALBAUSTELLE: das Angebot ist die Rechnung, nicht die Stunden
+        (Launch-Check, K3 — siehe `pauschale.ts`). Auch ohne eine einzige
+        gebuchte Stunde: eine Pauschale lässt sich verrechnen, bevor der
+        Monteur fertig gebucht hat.
+      */
+      const baustelle = projects.find((x) => x.projectNumber === projectNumber);
+      if (baustelle?.billingMode === 'Pauschal') {
+        const [derBaustelle, angebote] = await Promise.all([
+          listInvoicesForProject(user.companyId, projectNumber),
+          baustelle.id ? listQuotesForProject(user.companyId, baustelle.id) : Promise.resolve([]),
+        ]);
+        const schon = art === 'teil' ? null : pauschaleVerrechnetMit(derBaustelle, projectNumber);
+        if (schon) {
+          setPreview(null);
+          setError(
+            `Pauschalbaustelle: die Pauschale ist mit ${schon} bereits verrechnet. Stunden und Material danach sind darin enthalten. Mehrarbeit ausserhalb des Angebots verrechnet, wer die Baustelle in der Akte auf „Regie" stellt — oder als eigene Rechnung nach Vereinbarung.`,
+          );
+          return;
+        }
+        const angebot = pauschalAngebot(angebote);
+        setPauschalAus(angebot ? `${angebot.quoteNumber} (${fmtEUR(angebot.totalNetto)} netto)` : '');
+        await vorschauUebernehmen(pauschalVorschau(art, assembled, angebot, satz));
+        return;
+      }
       if (assembled.positions.length === 0) {
         setPreview(null);
         setError('Keine offenen Stunden und kein offenes Material für diese Baustelle.');
@@ -807,7 +863,7 @@ export default function InvoicesView() {
        * gesetzt; die geht mit als Wunsch in die Transaktion.
        */
       const typedSeq = invoiceSeqOf(invoiceNumber);
-      const vonHand = invoiceNumber.trim() !== suggestedNumber && typedSeq != null;
+      const vonHand = ersteRechnung && invoiceNumber.trim() !== suggestedNumber && typedSeq != null;
       const reserved = await reserveInvoiceNumber(user.companyId, {
         seedFrom: highestInvoiceSeq(invoices),
         desired: vonHand ? typedSeq : undefined,
@@ -1633,6 +1689,15 @@ export default function InvoicesView() {
               )}
             </p>
           )}
+          {pauschalAus !== null && (
+            <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink">
+              {art === 'teil'
+                ? 'Pauschalbaustelle: den Teilbetrag legt die Vereinbarung fest — die Schlussrechnung zieht ihn ab.'
+                : pauschalAus
+                  ? `Pauschalbaustelle: die Positionen kommen aus dem Angebot ${pauschalAus}. Stunden und Material der Scheine sind darin enthalten und werden nicht einzeln verrechnet.`
+                  : 'Pauschalbaustelle ohne angenommenes Angebot: den vereinbarten Betrag bitte in der Zeile eintragen. Stunden und Material der Scheine sind darin enthalten.'}
+            </p>
+          )}
           {preview.materialOhnePreis.length > 0 && (
             <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
               Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt:{' '}
@@ -1921,8 +1986,31 @@ export default function InvoicesView() {
           </div>
 
           <div className="mt-4 space-y-3">
-            <InputField id="invnum" label="Rechnungsnummer" value={invoiceNumber}
-              onChange={(e) => setInvoiceNumber(e.target.value)} />
+            {/*
+              LÜCKENLOS (Launch-Check, K8). RE-2026-1500 statt 1002 ging vorher
+              ohne Warnung durch, und die 498 Nummern dazwischen fehlen für
+              immer. Eine eigene Nummer gibt es nur bei der allerersten
+              Rechnung — der Umstieg aus dem bisherigen Programm. Dieselbe
+              Grenze zieht die Datenbank (`naechste_nummer`).
+            */}
+            {ersteRechnung ? (
+              <div className="flex flex-wrap items-end gap-x-2">
+                <div className="min-w-0 flex-1">
+                  <InputField id="invnum" label="Rechnungsnummer" value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)} />
+                </div>
+                <InfoHint about="die erste Rechnungsnummer">
+                  Die erste Rechnung in Senklot kann an den Nummernkreis des bisherigen Programms
+                  anschliessen: war dort die letzte 1499, hier 1500 eintragen. Danach vergibt die App
+                  die Nummern lückenlos, und eine eigene Nummer geht nicht mehr.
+                </InfoHint>
+              </div>
+            ) : (
+              <p className="text-sm text-ink-muted">
+                Rechnungsnummer <strong className="tnum text-ink">{invoiceNumber}</strong> — die App
+                vergibt sie beim Erstellen, lückenlos.
+              </p>
+            )}
             {numberTaken && (
               <p className="text-sm font-medium text-danger" role="alert">
                 Diese Rechnungsnummer ist bereits vergeben.
@@ -2018,12 +2106,46 @@ export default function InvoicesView() {
               {preview.linkedEntries.length === 1 ? 'Zeiteintrag wird' : 'Zeiteinträge werden'} als
               verrechnet gesperrt.
             </p>
+            {/*
+              DER AUSSTELLER GEHÖRT AUF DIE RECHNUNG (Launch-Check, M1): Name
+              und Anschrift des leistenden Unternehmers nach § 11 UStG. Nur der
+              Name war Pflicht, und RE-2026-1500 ging ohne Anschrift hinaus.
+              Die UID fehlt einem Kleinunternehmer zu Recht — sie wird deshalb
+              nur angemahnt, nicht erzwungen.
+            */}
+            {!company?.addressLine?.trim() && (
+              <p className="rounded-sm border border-danger/30 bg-surface-2 px-3 py-2 text-sm text-danger" role="alert">
+                Die Anschrift des Betriebs fehlt — sie muss auf jeder Rechnung stehen (§ 11 UStG).{' '}
+                {user && isTopLevel(user.role) ? (
+                  <Link to="/settings/firma" className="font-medium underline">
+                    In den Firmendaten eintragen
+                  </Link>
+                ) : (
+                  'Die Geschäftsführung trägt sie in den Firmendaten ein.'
+                )}
+              </p>
+            )}
+            {company?.addressLine?.trim() && !company?.vatId?.trim() && (
+              <p className="text-sm text-warning">
+                Keine UID-Nummer des Betriebs hinterlegt. Ohne sie ist eine Rechnung über 400 € brutto
+                unvollständig — ausser der Betrieb ist Kleinunternehmer.
+                {user && isTopLevel(user.role) && (
+                  <>
+                    {' '}
+                    <Link to="/settings/firma" className="font-medium underline">
+                      Firmendaten
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 onClick={confirmInvoice}
                 loading={busy}
                 disabled={
                   numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || !!summen?.gutschrift
+                  || !company?.addressLine?.trim()
                 }
                 className="w-full sm:w-auto">
                 Rechnung erstellen &amp; PDF
@@ -2258,13 +2380,16 @@ export default function InvoicesView() {
                           },
                         ]
                       : [
-                          {
-                            label: 'Storno aufheben',
-                            onSelect: async () => {
-                              await reactivateInvoice(inv);
-                              toast.success('Storno aufgehoben');
-                            },
-                          },
+                          /*
+                            NUR AM TAG DES STORNOS (Launch-Check, K9): für den
+                            Fehlgriff, nicht für später. Ab dem Folgetag steht
+                            der Storno im Buchungsstapel der Kanzlei — dann ist
+                            der Weg eine neue Rechnung. Die Datenbank zieht
+                            dieselbe Grenze.
+                          */
+                          ...(inv.cancelledAt && localDateStr(new Date(inv.cancelledAt)) === todayStr()
+                            ? [{ label: 'Storno aufheben', onSelect: () => setAufheben(inv) }]
+                            : []),
                           /*
                             HIER STAND „RECHNUNG LÖSCHEN", ohne Rückfrage,
                             direkt unter „Storno aufheben". Ein Fehlgriff im
@@ -2481,6 +2606,30 @@ export default function InvoicesView() {
       </Card>
 
       <ConfirmDialog
+        open={!!aufheben}
+        title="Storno aufheben?"
+        message={
+          aufheben
+            ? `${aufheben.invoiceNumber} gilt danach wieder, und ihre Stunden und ihr Material sind wieder verrechnet. Das geht nur heute, am Tag des Stornos.`
+            : ''
+        }
+        confirmLabel="Storno aufheben"
+        confirmTone="primary"
+        onCancel={() => setAufheben(null)}
+        onConfirm={async () => {
+          const inv = aufheben;
+          setAufheben(null);
+          if (!inv) return;
+          try {
+            await reactivateInvoice(inv);
+            toast.success('Storno aufgehoben');
+          } catch (err) {
+            toast.error(grundAus(err, 'Der Storno konnte nicht aufgehoben werden.'));
+          }
+        }}
+      />
+
+      <ConfirmDialog
         open={!!toCancel}
         title="Rechnung stornieren?"
         message={
@@ -2515,9 +2664,9 @@ export default function InvoicesView() {
         message={
           zahlungFuer
             ? `${zahlungFuer.customerName} · Rechnungsbetrag ${fmtEUR(zahlungFuer.totalBrutto)}`
-              + (zahlstand(zahlungFuer).guthaben > 0
-                ? ` · Guthaben ${fmtEUR(zahlstand(zahlungFuer).guthaben)}`
-                : ` · offen ${fmtEUR(zahlstand(zahlungFuer).rest)}`)
+              + (zahlstand(zahlungsStand!).guthaben > 0
+                ? ` · Guthaben ${fmtEUR(zahlstand(zahlungsStand!).guthaben)}`
+                : ` · offen ${fmtEUR(zahlstand(zahlungsStand!).rest)}`)
             : ''
         }
         confirmLabel="Zahlung eintragen"

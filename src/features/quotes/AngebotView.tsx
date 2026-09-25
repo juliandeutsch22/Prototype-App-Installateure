@@ -60,6 +60,7 @@ export default function AngebotView() {
   const [pdfLaeuft, setPdfLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
   const [loeschenFragen, setLoeschenFragen] = useState(false);
+  const [annehmenFragen, setAnnehmenFragen] = useState(false);
 
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
@@ -312,7 +313,7 @@ export default function AngebotView() {
                 </Button>
               </>
             )}
-            <Button variant="ghost" loading={busy} onClick={() => void annehmen(q)}>
+            <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(true)}>
               Annehmen → Baustelle
             </Button>
             <Button
@@ -331,6 +332,20 @@ export default function AngebotView() {
           </div>
         </Card>
       )}
+
+      {/* Erst fragen, dann anlegen (Launch-Check, M8) — wie in der Liste. */}
+      <ConfirmDialog
+        open={annehmenFragen}
+        title="Angebot annehmen?"
+        message={`${q.quoteNumber} wird angenommen, und für ${q.customerName} entsteht eine Pauschalbaustelle mit der nächsten Baustellennummer.`}
+        confirmLabel="Annehmen"
+        confirmTone="primary"
+        onCancel={() => setAnnehmenFragen(false)}
+        onConfirm={async () => {
+          setAnnehmenFragen(false);
+          await annehmen(q);
+        }}
+      />
 
       <ConfirmDialog
         open={loeschenFragen}

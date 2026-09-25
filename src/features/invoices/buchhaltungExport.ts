@@ -238,23 +238,41 @@ export function buildInvoiceCsv(
  * innerhalb eines Jahres, weil der Kreis jährlich neu beginnt.
  */
 export function findeLuecken(invoices: Invoice[]): string[] {
-  const nachJahr = new Map<string, number[]>();
+  /*
+    VORSATZ UND JAHR AUS DER NUMMER SELBST. Hier stand „RE-" fest und das
+    Jahr als zweites Stück zwischen Bindestrichen — bei einem Betrieb ohne
+    Vorsatz („2026-1001") wäre das die laufende Nummer gewesen.
+  */
+  const nachJahr = new Map<string, { vorsatz: string; nummern: number[] }>();
   for (const i of invoices) {
-    const seq = invoiceSeqOf(i.invoiceNumber);
-    if (seq == null) continue;
-    const jahr = i.invoiceNumber.split('-')[1] ?? '';
-    const liste = nachJahr.get(jahr) ?? [];
-    liste.push(seq);
-    nachJahr.set(jahr, liste);
+    const m = /^(.*?)(\d{4})-(\d+)$/.exec(i.invoiceNumber.trim());
+    if (!m) continue;
+    const eintrag = nachJahr.get(m[2]) ?? { vorsatz: m[1], nummern: [] };
+    eintrag.nummern.push(Number(m[3]));
+    nachJahr.set(m[2], eintrag);
   }
 
   const fehlend: string[] = [];
-  for (const [jahr, nummern] of nachJahr) {
+  for (const [jahr, { vorsatz, nummern }] of nachJahr) {
     const sortiert = [...new Set(nummern)].sort((a, b) => a - b);
-    for (let n = sortiert[0]; n < sortiert[sortiert.length - 1]; n++) {
-      if (!sortiert.includes(n)) {
-        fehlend.push(`RE-${jahr}-${String(n).padStart(4, '0')}`);
+    const da = new Set(sortiert);
+    const name = (n: number) => `${vorsatz}${jahr}-${String(n).padStart(4, '0')}`;
+    /*
+      ALS BEREICH, NICHT ALS LISTE (Launch-Check, M15): 498 Nummern einzeln
+      aufgezählt sind keine Auskunft mehr, „RE-2026-1002 bis RE-2026-1499"
+      schon. Ab drei fehlenden am Stück wird zusammengefasst.
+    */
+    let n = sortiert[0];
+    while (n < sortiert[sortiert.length - 1]) {
+      if (da.has(n)) {
+        n += 1;
+        continue;
       }
+      let bis = n;
+      while (!da.has(bis + 1) && bis + 1 < sortiert[sortiert.length - 1]) bis += 1;
+      if (bis - n >= 2) fehlend.push(`${name(n)} bis ${name(bis)} (${bis - n + 1} Nummern)`);
+      else for (let k = n; k <= bis; k++) fehlend.push(name(k));
+      n = bis + 1;
     }
   }
   return fehlend;

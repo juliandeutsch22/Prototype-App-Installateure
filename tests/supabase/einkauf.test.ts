@@ -86,6 +86,69 @@ describe('Aus dem Lager', () => {
   });
 });
 
+/**
+ * LAUNCH-CHECK 25.09.2026, K2: 999 Stück bei 74 im Regal liessen sich „aus
+ * Lager" zusagen — das Lager zeigte „−926 frei", und der Monteur bekam die
+ * Meldung, er könne Ware abholen, die es nicht gibt.
+ */
+describe('Aus dem Lager — nur, was da ist', () => {
+  let rohr: string;
+
+  async function rohrAnforderung(menge: number, rest: Record<string, unknown> = {}): Promise<string> {
+    const id = crypto.randomUUID();
+    const { error } = await admin.from('material_orders').insert({
+      id, company_id: BETRIEB, material_id: rohr, material_name: 'Rohr 15',
+      quantity: menge, status: 'Offen', transaction_type: 'order', user_id: monteur.uid, ...rest,
+    });
+    if (error) throw new Error(error.message);
+    return id;
+  }
+
+  beforeAll(async () => {
+    const m = await admin.from('materials')
+      .insert({ company_id: BETRIEB, name: 'Rohr 15', stock: 74, unit: 'm' })
+      .select('id').single();
+    rohr = m.data!.id;
+  });
+
+  it('lehnt mehr ab, als im Regal liegt — und nennt die Zahlen', async () => {
+    const id = await rohrAnforderung(999);
+    await expect(einkauf.ausLager(id)).rejects.toThrow(/nur 74 m frei \(74 im Regal, 0 schon zugesagt\) — angefordert sind 999/);
+    expect(await zeile(id)).toMatchObject({ status: 'Offen', beschaffung: null });
+    // Der Weg daneben bleibt offen.
+    await einkauf.aufEinkaufsliste(id, grosshaendler);
+    expect(await zeile(id)).toMatchObject({ beschaffung: 'einkauf' });
+  });
+
+  it('zählt, was schon zugesagt ist — auch Geliefertes für eine andere Anforderung', async () => {
+    const a = await rohrAnforderung(50);
+    await einkauf.ausLager(a);
+    const b = await rohrAnforderung(24);
+    await einkauf.ausLager(b); // 50 + 24 = 74, geht genau auf
+    const c = await rohrAnforderung(1);
+    await expect(einkauf.ausLager(c)).rejects.toThrow(/nur 0 m frei \(74 im Regal, 74 schon zugesagt\)/);
+
+    // Holt jemand a ab, sind 24 m im Regal und 24 zugesagt.
+    await anforderungen.updateOrderStatus(a, 'Erledigt');
+    await expect(einkauf.ausLager(c)).rejects.toThrow(/nur 0 m frei \(24 im Regal, 24 schon zugesagt\)/);
+
+    // Geliefert für eine Anforderung: im Regal, aber nicht frei.
+    const d = await rohrAnforderung(5);
+    await einkauf.aufEinkaufsliste(d, grosshaendler);
+    await einkauf.geliefert([d]);
+    await expect(einkauf.ausLager(c)).rejects.toThrow(/nur 0 m frei \(29 im Regal, 29 schon zugesagt\)/);
+  });
+
+  it('eine offene, noch nicht geprüfte Anforderung sagt nichts zu', async () => {
+    // Nur ein Wunsch — sie hält den Lageristen nicht davon ab, einer
+    // anderen das Regal zuzusagen.
+    await admin.from('materials').update({ stock: 100 }).eq('id', rohr);
+    await rohrAnforderung(80);
+    const e = await rohrAnforderung(60);
+    await expect(einkauf.ausLager(e)).resolves.toBeUndefined();
+  });
+});
+
 describe('Über die Einkaufsliste', () => {
   it('bestellt, geliefert, abgeschlossen: der Bestand endet, wo er begann', async () => {
     const vorher = await bestand();

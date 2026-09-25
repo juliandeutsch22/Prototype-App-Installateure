@@ -293,7 +293,16 @@ export default function StockView() {
                           )
                         }
                       >
-                        {low ? (
+                        {/*
+                          UNTER NULL HEISST „FEHLT", nicht „−926 frei" (Launch-
+                          Check, K2): mehr angefordert, als im Regal liegt. Aus
+                          dem Lager zusagen lässt die Datenbank dann nur noch,
+                          was wirklich da ist — der Rest gehört auf die
+                          Einkaufsliste.
+                        */}
+                        {m.free < 0 ? (
+                          <Warnung>{-m.free} {m.unit ?? 'Stk'} fehlen</Warnung>
+                        ) : low ? (
                           <Warnung>{m.free} {m.unit ?? 'Stk'} frei</Warnung>
                         ) : (
                           <Marke>{m.free} {m.unit ?? 'Stk'} frei</Marke>

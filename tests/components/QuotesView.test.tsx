@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -105,6 +105,15 @@ beforeEach(() => {
 });
 
 /** Ein versendetes Angebot AN-2026-0007 über 20 kalkulierte Stunden. */
+/**
+ * Annehmen, wie es jemand tut: Knopf, dann die Rückfrage bestätigen
+ * (Launch-Check, M8 — vorher legte ein Klick die Baustelle ohne Rückfrage an).
+ */
+async function annehmenBestaetigt(nutzer: ReturnType<typeof userEvent.setup>) {
+  await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+  await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Annehmen' }));
+}
+
 function versendetesAngebot() {
   angebote.push({
     id: 'q1',
@@ -217,7 +226,7 @@ describe('Angebot kalkulieren', () => {
     zeichne();
     await screen.findByText(/AN-2026-0007/);
 
-    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+    await annehmenBestaetigt(nutzer);
 
     /**
      * Der eigentliche Zweck des ganzen Schritts: das Stundenbudget stammt aus
@@ -230,12 +239,13 @@ describe('Angebot kalkulieren', () => {
       customerId?: string;
     };
     expect(projekt.estimatedHours).toBe(20);
-    // Nummer bleibt zuordenbar: AN-2026-0007 -> B-2026-0007.
-    expect(projekt.projectNumber).toBe('B-2026-0007');
+    // Die Nummer kommt aus dem Zähler der Baustellen, nicht aus dem Angebot
+    // (Launch-Check, K6) — zuordenbar bleibt es über die Kennung.
+    expect(projekt.projectNumber).toBe('B-2026-0012');
     expect(projekt.customerId).toBe('k1');
     expect(updateQuote).toHaveBeenCalledWith('q1', {
       status: 'Angenommen',
-      projectNumber: 'B-2026-0007',
+      projectNumber: 'B-2026-0012',
     });
   });
 
@@ -279,65 +289,66 @@ describe('Angebot kalkulieren', () => {
   });
 
   /*
-    GEFUNDEN BEIM PROBELAUF. Angebote und Baustellen zählen getrennt; aus
-    AN-2026-0007 wird B-2026-0007, und die gab es schon. Dann stand „gibt es
-    bereits" da, und das Angebot liess sich gar nicht annehmen.
+    LAUNCH-CHECK 25.09.2026, K6: drei Logiken für eine Nummer. Aus
+    AN-2026-0007 wurde B-2026-0007 abgeleitet, während der Zähler der
+    Baustellen davon nichts wusste. Jetzt vergibt ihn der Zähler — derselbe
+    Weg wie bei jeder anderen Baustelle.
   */
-  it('nimmt beim Annehmen die nächste freie Nummer, wenn die abgeleitete vergeben ist', async () => {
+  it('nimmt die Nummer aus dem Zähler der Baustellen', async () => {
     aktiveBaustellen = [{ projectNumber: 'B-2026-0007' }, { projectNumber: 'B-2026-0011' }];
     versendetesAngebot();
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+    await annehmenBestaetigt(nutzer);
 
-    await screen.findByText(/B-2026-0012 angelegt — B-2026-0007 war schon vergeben/);
-    // Aus demselben Zähler wie die Baustellenanlage, mit dem Bestand als Untergrenze.
-    expect(reserveProjectNumber).toHaveBeenCalledWith('perl', { seedFrom: 11, praefix: 'B' });
+    await screen.findByText('Baustelle B-2026-0012 angelegt');
+    expect(reserveProjectNumber).toHaveBeenCalledWith('perl', { seedFrom: 0, praefix: 'B' });
     const projekt = createProject.mock.calls[0]?.[1] as { projectNumber: string; estimatedHours?: number };
     expect(projekt.projectNumber).toBe('B-2026-0012');
     expect(projekt.estimatedHours).toBe(20);
     expect(updateQuote).toHaveBeenCalledWith('q1', { status: 'Angenommen', projectNumber: 'B-2026-0012' });
   });
 
-  it('weicht auch aus, wenn erst die Datenbank die Nummer abweist', async () => {
-    // Eine ABGESCHLOSSENE Baustelle steht nicht in der Liste der aktiven —
-    // die Nummer fällt erst am eindeutigen Index auf.
-    createProject
-      .mockRejectedValueOnce(
-        new Error('duplicate key value violates unique constraint "projects_nummer_je_betrieb"'),
-      )
-      .mockResolvedValueOnce('p1');
+  it('fragt vorher — wer abbricht, legt nichts an (Launch-Check, M8)', async () => {
     versendetesAngebot();
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
-
-    await screen.findByText(/B-2026-0012 angelegt/);
-    expect(createProject).toHaveBeenCalledTimes(2);
-    expect((createProject.mock.calls[1]?.[1] as { projectNumber: string }).projectNumber).toBe('B-2026-0012');
+    await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(/AN-2026-0007 wird angenommen/);
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
+    expect(reserveProjectNumber).not.toHaveBeenCalled();
+    expect(createProject).not.toHaveBeenCalled();
+    expect(updateQuote).not.toHaveBeenCalled();
   });
 
-  it('meldet einen anderen Fehler weiter, statt eine Nummer zu verbrauchen', async () => {
+  it('meldet einen Fehler beim Anlegen, und das Angebot bleibt offen', async () => {
     createProject.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     versendetesAngebot();
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+    await annehmenBestaetigt(nutzer);
 
     await screen.findByText(/Die Baustelle konnte nicht angelegt werden/);
-    expect(reserveProjectNumber).not.toHaveBeenCalled();
     expect(updateQuote).not.toHaveBeenCalled();
+  });
+
+  it('ohne Zähler keine geratene Nummer', async () => {
+    reserveProjectNumber.mockResolvedValueOnce(null);
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await annehmenBestaetigt(nutzer);
+
+    await screen.findByText(/Baustellennummer konnte nicht vergeben werden/);
+    expect(createProject).not.toHaveBeenCalled();
   });
 });
 
-/*
-  GEMELDET: „wenn ein Angebot angenommen wird, steht in der Baustelle nur ‚Aus
-  Angebot AN-2026-0001'". Die Anmerkungen — das, was gemacht werden soll —
-  gingen verloren; der Monteur sieht Angebote gar nicht.
-*/
 describe('Aus dem Angebot wird die Baustelle', () => {
   it('übernimmt die Anmerkungen als Auftragsumfang, mit Verweis aufs Angebot', async () => {
     versendetesAngebot();
@@ -345,7 +356,7 @@ describe('Aus dem Angebot wird die Baustelle', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+    await annehmenBestaetigt(nutzer);
 
     const projekt = createProject.mock.calls[0]?.[1] as { description?: string };
     expect(projekt.description).toBe(
@@ -358,7 +369,7 @@ describe('Aus dem Angebot wird die Baustelle', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    await nutzer.click(screen.getByRole('button', { name: /Annehmen/ }));
+    await annehmenBestaetigt(nutzer);
 
     const projekt = createProject.mock.calls[0]?.[1] as { description?: string };
     expect(projekt.description).toBe('Aus Angebot AN-2026-0007');

@@ -342,7 +342,8 @@ describe('Baustelle aus einer Wartung', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Anlegen' }));
 
     await vi.waitFor(() => expect(createProject).toHaveBeenCalled());
-    expect(reserveProjectNumber).toHaveBeenCalledWith('perl', { seedFrom: 14, praefix: 'B' });
+    // Den Anfangsstand liest seit dem Launch-Check die Datenbank selbst.
+    expect(reserveProjectNumber).toHaveBeenCalledWith('perl', { seedFrom: 0, praefix: 'B' });
     expect(createProject.mock.calls[0][1]).toMatchObject({
       projectNumber: 'B-2026-0015',
       customerName: 'Bäckerei Stein',

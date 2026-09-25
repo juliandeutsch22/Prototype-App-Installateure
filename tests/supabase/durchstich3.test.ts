@@ -181,9 +181,9 @@ describe('Durchstich 5: Rüstliste — geplant, gesehen, eingeladen', () => {
 });
 
 describe('Durchstich 6: mehrere Baustellen an einem Tag', () => {
-  /** 07:00–bis ohne Pause. */
-  const kurzeinsatz = (datum: string, projectNumber: string, bis: string) => ({
-    date: datum, status: 'Anwesend' as const, startTime: '07:00', endTime: bis,
+  /** von–bis ohne Pause. */
+  const kurzeinsatz = (datum: string, projectNumber: string, bis: string, von = '07:00') => ({
+    date: datum, status: 'Anwesend' as const, startTime: von, endTime: bis,
     breakDuration: 0, projectNumber, userId: monteur.uid, userName: 'Max Mustermann',
   });
 
@@ -191,10 +191,11 @@ describe('Durchstich 6: mehrere Baustellen an einem Tag', () => {
     heuteIst('2026-09-02');
     clientEinreichen(monteur.client);
 
-    // 3 h + 2 h + 4 h = 9 h an einem Tag, auf drei Baustellen.
+    // 3 h + 2 h + 4 h = 9 h an einem Tag, auf drei Baustellen — nacheinander:
+    // zur selben Stunde auf zwei Baustellen zählte doppelt (Launch-Check, K1).
     await zeiten.createTimeEntry(BETRIEB, kurzeinsatz('2026-09-01', 'B-2026-0001', '10:00'));
-    await zeiten.createTimeEntry(BETRIEB, kurzeinsatz('2026-09-01', 'B-2026-0002', '09:00'));
-    await zeiten.createTimeEntry(BETRIEB, kurzeinsatz('2026-09-01', 'B-2026-0003', '11:00'));
+    await zeiten.createTimeEntry(BETRIEB, kurzeinsatz('2026-09-01', 'B-2026-0002', '12:00', '10:00'));
+    await zeiten.createTimeEntry(BETRIEB, kurzeinsatz('2026-09-01', 'B-2026-0003', '16:00', '12:00'));
 
     clientEinreichen(buch.client);
     const alle = (await zeiten.listEntriesInRange(BETRIEB, '2026-09-01', '2026-09-30'))
@@ -225,14 +226,15 @@ describe('Durchstich 6: mehrere Baustellen an einem Tag', () => {
     expect(nach['B-2026-0003']).toBe(240);
   }, 180_000);
 
-  it('DIESELBE Baustelle ein zweites Mal wird abgewiesen', async () => {
+  it('DIESELBE Baustelle zur selben Stunde wird abgewiesen', async () => {
     // Zwei Buchungen für denselben Einsatz zählen doppelt und wandern auf den
-    // Lohnzettel.
+    // Lohnzettel. Seit dem Launch-Check darf dieselbe Baustelle ein zweites
+    // Mal gebucht werden — aber nur zu einer anderen Stunde (geteilter Dienst).
     clientEinreichen(monteur.client);
     await zeiten.createTimeEntry(BETRIEB, kurzeinsatz('2026-09-07', 'B-2026-0001', '10:00'));
     await expect(
       zeiten.createTimeEntry(BETRIEB, kurzeinsatz('2026-09-07', 'B-2026-0001', '11:00')),
-    ).rejects.toThrow(/diese Baustelle/i);
+    ).rejects.toThrow(/überschneidet sich/i);
   }, 120_000);
 
   it('Urlaub bleibt EIN Tag, auch wenn jemand es zweimal versucht', async () => {

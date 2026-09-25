@@ -70,12 +70,26 @@ function minuten(hhmm?: string): number | null {
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
 
-/** Überschneiden sich zwei Zeitspannen am selben Tag? Über Mitternacht zählt nicht. */
+/**
+ * Die Spanne in Minuten ab Mitternacht des Buchungstags — oder `null`.
+ *
+ * Endet sie vor ihrem Beginn, ging sie über Mitternacht und reicht in den
+ * nächsten Tag (so rechnet auch `calcWorkMin`). Beginn gleich Ende ist keine
+ * Spanne.
+ */
+function spanne(e: Tagesbuchung): [number, number] | null {
+  const von = minuten(e.startTime);
+  const bis = minuten(e.endTime);
+  if (von === null || bis === null || von === bis) return null;
+  return [von, bis > von ? bis : bis + 24 * 60];
+}
+
+/** Überschneiden sich zwei Zeitspannen desselben Tages — auch über Mitternacht? */
 function ueberschneiden(a: Tagesbuchung, b: Tagesbuchung): boolean {
-  const [a1, a2, b1, b2] = [minuten(a.startTime), minuten(a.endTime), minuten(b.startTime), minuten(b.endTime)];
-  if (a1 === null || a2 === null || b1 === null || b2 === null) return false;
-  if (a2 <= a1 || b2 <= b1) return false;
-  return a1 < b2 && b1 < a2;
+  const x = spanne(a);
+  const y = spanne(b);
+  if (!x || !y) return false;
+  return x[0] < y[1] && y[0] < x[1];
 }
 
 /**
@@ -124,6 +138,19 @@ export function buchungKonflikt(
   if (arbeit.length === 0) return null;
 
   /*
+    ZWEI ARBEITSZEITEN ZUR SELBEN STUNDE zählen doppelt, auch auf zwei
+    verschiedenen Baustellen (Launch-Check 25.09., K1). Dieselbe Regel steht
+    in der Datenbank; dort sieht sie auch den Vortag, dessen Nachtschicht in
+    diesen Tag reicht. Hier steht sie, damit die Maske es sagt, bevor
+    gespeichert wird.
+  */
+  const quer = arbeit.find((v) => ueberschneiden(neu, v));
+  if (quer) {
+    const wo = normProjectNumber(quer.projectNumber);
+    return `Die Zeit überschneidet sich mit ${quer.startTime?.slice(0, 5)}–${quer.endTime?.slice(0, 5)}${wo ? ` (${quer.projectNumber})` : ''} an diesem Tag. Zwei Zeiten zur selben Stunde zählen doppelt — bitte eine davon anpassen.`;
+  }
+
+  /*
     OHNE BAUSTELLE KEINE ZWEITE BUCHUNG. Zwei Einträge ohne Baustelle sind
     nicht auseinanderzuhalten — weder für den Monteur noch für die
     Buchhaltung. Es ist der Fall, in dem eine Doppelbuchung am ehesten
@@ -134,7 +161,16 @@ export function buchungKonflikt(
     return 'Für diesen Tag ist bereits gebucht. Eine weitere Buchung braucht eine Baustelle — sonst lassen sich die beiden Einträge nicht auseinanderhalten.';
   }
 
-  const gleiche = arbeit.some((v) => normProjectNumber(v.projectNumber) === nummer);
+  /*
+    DIESELBE BAUSTELLE ZWEIMAL geht, wenn beide Zeiten eine Uhrzeit tragen und
+    sich nicht überschneiden — der geteilte Dienst, vormittags gearbeitet und
+    abends zum Notdienst zurück (Launch-Check, M3). Die Überschneidung ist
+    oben schon ausgeschlossen. Ohne Uhrzeit bleibt es bei einem Eintrag: dann
+    lässt sich eine zweite Buchung von einer doppelten nicht unterscheiden.
+  */
+  const gleiche = arbeit.some(
+    (v) => normProjectNumber(v.projectNumber) === nummer && !(spanne(neu) && spanne(v)),
+  );
   if (gleiche) {
     return 'Für diese Baustelle ist an diesem Tag bereits gebucht. Bitte den bestehenden Eintrag bearbeiten, statt ihn ein zweites Mal anzulegen.';
   }
@@ -155,21 +191,34 @@ export function buchungKonflikt(
 export function tageMitEchterDoppelung(
   entries: Array<{ date: string } & Tagesbuchung>,
 ): Set<string> {
-  const gesehen = new Map<string, Set<string>>();
+  const proTag = new Map<string, Array<Tagesbuchung>>();
   const doppelt = new Set<string>();
   for (const e of entries) {
-    // Ganztägige Status haben keine Baustelle; für sie ist jeder zweite
-    // Eintrag am selben Tag eine Doppelung, egal was daneben steht. Ein
-    // stundenweiser Zeitausgleich hat seine eigene Stelle: einer je Tag.
-    const schluessel = istGanztags(e)
-      ? ' ganztags'
-      : e.status === 'Zeitausgleich'
-        ? ' zeitausgleich'
-        : normProjectNumber(e.projectNumber);
-    const proTag = gesehen.get(e.date) ?? new Set<string>();
-    if (proTag.has(schluessel)) doppelt.add(e.date);
-    proTag.add(schluessel);
-    gesehen.set(e.date, proTag);
+    const bisher = proTag.get(e.date) ?? [];
+    if (bisher.some((v) => doppeltMit(e, v))) doppelt.add(e.date);
+    bisher.push(e);
+    proTag.set(e.date, bisher);
   }
   return doppelt;
+}
+
+/**
+ * Zählen zwei Einträge desselben Tages dieselbe Zeit zweimal?
+ *
+ * Ganztägige Status: jeder zweite ist eine Doppelung, egal was daneben
+ * steht. Stundenweiser Zeitausgleich: einer je Tag. Arbeit: zur selben
+ * Stunde (seit dem Launch-Check auch über Baustellen hinweg), oder dieselbe
+ * Baustelle, ohne dass beide eine Uhrzeit tragen. Der geteilte Dienst —
+ * dieselbe Baustelle vormittags und abends — ist keine Doppelung.
+ */
+function doppeltMit(a: Tagesbuchung, b: Tagesbuchung): boolean {
+  if (istGanztags(a) || istGanztags(b)) return istGanztags(a) && istGanztags(b);
+  const zaA = a.status === 'Zeitausgleich';
+  const zaB = b.status === 'Zeitausgleich';
+  if (zaA || zaB) return zaA && zaB;
+  if (ueberschneiden(a, b)) return true;
+  return (
+    normProjectNumber(a.projectNumber) === normProjectNumber(b.projectNumber) &&
+    !(spanne(a) && spanne(b))
+  );
 }

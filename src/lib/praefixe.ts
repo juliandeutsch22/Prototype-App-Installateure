@@ -183,3 +183,23 @@ export function hoechsteLfd(nummern: (string | undefined)[]): number {
   }
   return max;
 }
+
+/**
+ * Die höchste laufende Nummer IM SCHEMA DES JAHRES — „…JJJJ-NNNN", gleich
+ * mit welchem Vorsatz.
+ *
+ * AUS DEM LAUNCH-CHECK (25.09.2026, K6): `hoechsteLfd` liest die letzte
+ * Ziffernfolge JEDER Nummer. Eine von Hand vergebene Baustelle „PR-187" hob
+ * den Vorschlag damit auf PR-2026-0188. Nummern ausserhalb des Schemas —
+ * von Hand, vom Bauträger, aus dem Vorjahr — gehören zu keinem Kreis.
+ * Dieselbe Regel steht in der Datenbank (`app.hoechste_lfd`).
+ */
+export function hoechsteLfdImJahr(nummern: (string | undefined)[], jahr: number): number {
+  const muster = new RegExp(`(?:^|-)${jahr}-(\\d+)$`);
+  let max = 0;
+  for (const n of nummern) {
+    const treffer = muster.exec((n ?? '').trim());
+    if (treffer) max = Math.max(max, Number(treffer[1]));
+  }
+  return max;
+}

@@ -33,10 +33,19 @@ describe('Vorschlag fuer die naechste Nummer', () => {
     expect(nextInvoiceNumber([])).toBe(formatInvoiceNumber(1001));
   });
 
+  const J = new Date().getFullYear();
+
   it('setzt einen niedrigeren Nummernkreis fort, statt auf 1001 zu springen', () => {
     // Sonst entstuende eine Luecke von 501 bis 1000, die der Betrieb
     // gegenueber dem Finanzamt begruenden muesste.
-    expect(nextInvoiceNumber([inv('RE-2026-0500')])).toBe(formatInvoiceNumber(501));
+    expect(nextInvoiceNumber([inv(`RE-${J}-0500`)])).toBe(formatInvoiceNumber(501));
+  });
+
+  it('zählt nur Nummern dieses Jahres — wie der Zähler in der Datenbank', () => {
+    // Im Jänner stünde sonst die Fortsetzung des Vorjahres im Feld, und die
+    // Rechnung bekäme danach eine andere Nummer.
+    expect(nextInvoiceNumber([inv(`RE-${J - 1}-1500`)])).toBe(formatInvoiceNumber(1001));
+    expect(nextInvoiceNumber([inv(`RE-${J - 1}-1500`), inv(`R-${J}-1003`)])).toBe(formatInvoiceNumber(1004));
   });
 });
 
@@ -49,9 +58,12 @@ describe('Nummernvergabe im Zaehler', () => {
     expect(decideInvoiceSeq(0)).toBe(1001);
   });
 
-  it('uebernimmt eine hoehere Wunschnummer', () => {
-    // Ein Betrieb, der seinen bestehenden Kreis fortfuehrt.
-    expect(decideInvoiceSeq(1041, 2000)).toBe(2000);
+  it('uebernimmt eine Wunschnummer nur, solange noch nichts vergeben ist', () => {
+    // Der Umstieg: ein Betrieb, der seinen bestehenden Kreis fortfuehrt.
+    expect(decideInvoiceSeq(0, 1500)).toBe(1500);
+    // Danach lückenlos (Launch-Check, K8) — die nächste als Wunsch ist kein Sprung.
+    expect(decideInvoiceSeq(1041, 1042)).toBe(1042);
+    expect(() => decideInvoiceSeq(1041, 2000, 2026)).toThrow('lückenlos — die nächste ist RE-2026-1042');
   });
 
   it('lehnt eine bereits verbrauchte Nummer ab und nennt die naechste freie', () => {

@@ -102,3 +102,27 @@ export function zeitSatz(bild: Zeitbild): string | null {
   }
   return null;
 }
+
+/**
+ * Wie viele Minuten der Spanne in die Nacht fallen, zwischen 22 und 6 Uhr.
+ *
+ * NUR FÜR EINEN HINWEIS, NICHT FÜR DEN ZUSCHLAG. Ob ein Einsatz als
+ * Nachtarbeit verrechnet wird, entscheidet die Vereinbarung mit dem Kunden
+ * und der Kollektivvertrag — der Haken bleibt eine bewusste Angabe. Aus dem
+ * Launch-Check (25.09.2026, M2): bei 20:00–02:00 schlug die Maske nichts
+ * vor, der Zuschlag fehlte danach in der Rechnungsvorschau, und niemand
+ * hatte ihn absichtlich weggelassen.
+ */
+export function nachtMinuten(startTime: string, endTime: string): number {
+  const m = (t: string) => {
+    const x = /^(\d{1,2}):(\d{2})/.exec(t);
+    return x ? Number(x[1]) * 60 + Number(x[2]) : null;
+  };
+  const von = m(startTime);
+  const bis0 = m(endTime);
+  if (von === null || bis0 === null || von === bis0) return 0;
+  const bis = bis0 > von ? bis0 : bis0 + 24 * 60;
+  // Die Nächte, in die eine Spanne von höchstens 24 Stunden fallen kann.
+  const naechte: Array<[number, number]> = [[0, 6 * 60], [22 * 60, 30 * 60], [46 * 60, 54 * 60]];
+  return naechte.reduce((summe, [a, b]) => summe + Math.max(0, Math.min(bis, b) - Math.max(von, a)), 0);
+}

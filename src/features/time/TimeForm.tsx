@@ -11,7 +11,7 @@ import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
 import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
-import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
+import { zeitbild, zeitSatz, nachtMinuten } from './zeitPlausibilitaet';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
 import { istAussendienst, canExtendTimeEntry, canEditTime } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -856,6 +856,25 @@ export default function TimeForm({
               Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
               {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
             </p>
+          )}
+
+          {/*
+            EIN HINWEIS, KEIN AUTOMATISCHER HAKEN. Ob Nachtarbeit verrechnet
+            wird, bleibt eine bewusste Angabe (siehe `nachtMinuten`). Gezeigt
+            nur, wo es den Haken überhaupt gibt, und ab einer Stunde in der
+            Nacht — eine Buchung bis 22:10 ist kein Nachteinsatz.
+          */}
+          {canHaveProject && !isNightWork && nachtMinuten(startTime, endTime) >= 60 && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
+              <span>Die Zeit reicht in die Nacht (22–6 Uhr).</span>
+              <button
+                type="button"
+                className="min-h-touch font-medium text-brand underline-offset-2 hover:underline"
+                onClick={() => setIsNightWork(true)}
+              >
+                Nachtarbeit ankreuzen
+              </button>
+            </div>
           )}
 
           {/*

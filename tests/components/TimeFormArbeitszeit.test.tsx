@@ -145,3 +145,24 @@ describe('Die gerechnete Arbeitszeit in der Maske', () => {
     expect(screen.queryByText(istZeile, { selector: 'p' })).not.toBeInTheDocument();
   });
 });
+
+describe('Nachtarbeit — ein Hinweis, kein automatischer Haken (Launch-Check M2)', () => {
+  it('schlägt bei 20:00–02:00 vor, Nachtarbeit anzukreuzen — erst der Klick setzt sie', () => {
+    zeichne();
+    setze('Von', '20:00');
+    setze('Bis', '02:00');
+    const knopf = screen.getByRole('button', { name: 'Nachtarbeit ankreuzen' });
+    expect(screen.getByText(/reicht in die Nacht/)).toBeInTheDocument();
+    fireEvent.click(knopf);
+    // Gesetzt steht sie in der Zeile „Weitere Angaben", und der Hinweis geht.
+    expect(screen.getByRole('button', { name: /Weitere Angaben/ }).textContent).toMatch(/Nachtarbeit/);
+    expect(screen.queryByRole('button', { name: 'Nachtarbeit ankreuzen' })).not.toBeInTheDocument();
+  });
+
+  it('schweigt am gewöhnlichen Tag und bei einer Viertelstunde nach 22 Uhr', () => {
+    zeichne();
+    expect(screen.queryByText(/reicht in die Nacht/)).not.toBeInTheDocument();
+    setze('Bis', '22:15');
+    expect(screen.queryByText(/reicht in die Nacht/)).not.toBeInTheDocument();
+  });
+});
