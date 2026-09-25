@@ -237,6 +237,44 @@ describe('Stornierte Rechnungen', () => {
     expect(e.zeilen[0]).toMatchObject({ soll: '2000', haben: '4000' });
   });
 
+  /*
+    PRÜFLAUF 25.09.2026, P2-05. Der Storno einer Schlussrechnung buchte nur
+    die Restforderung zurück, nicht die Umbuchung der Anzahlung in den Erlös.
+    Der Erlös blieb um die Anzahlung zu hoch, das Anzahlungskonto um sie zu
+    niedrig.
+  */
+  it('dreht beim Storno einer Schlussrechnung auch die Umbuchung der Anzahlung zurück', () => {
+    const anzahlung = {
+      invoiceId: 'a1', invoiceNumber: 'RE-2026-0001', invoiceDate: '2026-04-05',
+      netto: 500, vat: 100, brutto: 600,
+    };
+    const e = bauen([
+      storno({
+        invoiceNumber: 'RE-2026-0002',
+        art: 'schluss',
+        vorrechnungen: [anzahlung],
+        gesamtNetto: 1000, gesamtVat: 200, gesamtBrutto: 1200,
+        totalNetto: 500, totalVat: 100, totalBrutto: 600,
+      }),
+    ]);
+    expect(e.fehlend).toEqual([]);
+    expect(e.zeilen).toEqual([
+      expect.objectContaining({ soll: '2000', haben: '4000', betrag: 600 }),
+      expect.objectContaining({ soll: '3500', haben: '4000', betrag: 600 }),
+      expect.objectContaining({ soll: '4000', haben: '2000', betrag: 600, belegdatum: '20.04.2026' }),
+      expect.objectContaining({
+        soll: '4000', haben: '3500', betrag: 600, belegdatum: '20.04.2026',
+        buchungstext: 'Storno: Anzahlung RE-2026-0001 verrechnet',
+        belegnummer: 'RE-2026-0002',
+      }),
+    ]);
+    // Und alles zusammen: auf dem Erlöskonto bleibt nichts stehen.
+    const erloes = e.zeilen.reduce(
+      (s, z) => s + (z.haben === '4000' ? z.betrag : 0) - (z.soll === '4000' ? z.betrag : 0), 0,
+    );
+    expect(erloes).toBe(0);
+  });
+
   it('nimmt den Stornotag in Ortszeit und nicht in UTC', () => {
     /*
       Ein Storno am 1. Mai um 00:30 Wiener Zeit ist der 30. April in UTC. Wer

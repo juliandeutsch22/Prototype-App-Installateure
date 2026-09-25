@@ -222,6 +222,32 @@ export function buildBmdCsv(
           betrag: i.totalBrutto ?? 0,
           steuercode: habenKonto.steuercode ?? '',
         });
+
+        /*
+          UND DIE UMBUCHUNG DER ANZAHLUNG GEHT MIT ZURÜCK (Prüflauf
+          25.09.2026, P2-05). Die Schlussrechnung hatte die Anzahlung aus der
+          Verbindlichkeit in den Erlös geholt; ihr Storno buchte bisher nur
+          die Restforderung zurück. Der Erlös blieb um die Anzahlung zu hoch
+          und das Anzahlungskonto um sie zu niedrig — obwohl die Anzahlung
+          nach dem Storno wieder offen auf die Leistung steht. Dieselbe Zeile
+          wie beim Verrechnen, mit vertauschten Konten, am Stornotag.
+        */
+        for (const v of i.vorrechnungen ?? []) {
+          if (!anzahlung) {
+            vermisst('Konto für erhaltene Anzahlungen (eine Verbindlichkeit, kein Erlös)');
+            continue;
+          }
+          if (!gegen) continue;
+          zeilen.push({
+            soll: gegen.konto,
+            haben: anzahlung.konto,
+            belegdatum: datum(tag),
+            belegnummer: i.invoiceNumber,
+            buchungstext: `Storno: Anzahlung ${v.invoiceNumber} verrechnet`,
+            betrag: v.brutto,
+            steuercode: gegen.steuercode ?? '',
+          });
+        }
       }
     }
   }
