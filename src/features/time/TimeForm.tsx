@@ -645,7 +645,6 @@ export default function TimeForm({
           }}
           className="flex min-h-touch w-full items-center gap-2 rounded border border-brand/40 bg-info-bg px-3 py-2 text-left text-sm font-medium text-brand transition hover:border-brand active:scale-[0.99]"
         >
-          <Icon name="clock" size={18} className="shrink-0" />
           {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
               den Eintrag wiedererkennt. */}
           <span className="min-w-0">

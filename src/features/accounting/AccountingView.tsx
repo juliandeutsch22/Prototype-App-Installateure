@@ -431,7 +431,6 @@ export default function AccountingView() {
             )}
             {rows.length > 0 && (
               <Button variant="secondary" onClick={exportMonthCsv}>
-                <Icon name="download" size={16} className="mr-2 shrink-0" />
                 Monats-CSV
               </Button>
             )}
@@ -1043,7 +1042,6 @@ export default function AccountingView() {
                       })()}
                       <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
                         <Button variant="secondary" onClick={() => exportUserCsv(u)}>
-                          <Icon name="download" size={16} className="mr-2 shrink-0" />
                           Monat als CSV
                         </Button>
                         <Button variant="primary" onClick={() => setExportFor(u)}>

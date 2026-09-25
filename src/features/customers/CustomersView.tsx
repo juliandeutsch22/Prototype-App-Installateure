@@ -16,7 +16,6 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import RowMenu from '@/components/RowMenu';
-import Icon from '@/components/Icon';
 import { Marke } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import Nachladen from '@/components/Nachladen';
@@ -293,7 +292,6 @@ export default function CustomersView() {
         action={
           darfAendern && !formOffen ? (
             <Button onClick={() => { setBearbeitet(null); setForm(LEER); setFormOffen(true); }}>
-              <Icon name="plus" size={18} />
               Neuer Kunde
             </Button>
           ) : undefined

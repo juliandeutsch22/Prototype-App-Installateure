@@ -33,7 +33,6 @@ import {
 import Card from '@/components/Card';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Button from '@/components/Button';
-import Icon from '@/components/Icon';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import Nachladen from '@/components/Nachladen';
@@ -547,7 +546,7 @@ export default function WartungenView() {
         title="Wartungen"
         subtitle={`Wiederkehrende Wartungen · fällig gilt ab ${VORLAUF_TAGE} Tagen im Voraus`}
         action={
-          darfAendern ? <Button onClick={() => formOeffnen()}><Icon name="plus" size={18} />Neue Wartung</Button> : undefined
+          darfAendern ? <Button onClick={() => formOeffnen()}>Neue Wartung</Button> : undefined
         }
       />
 
