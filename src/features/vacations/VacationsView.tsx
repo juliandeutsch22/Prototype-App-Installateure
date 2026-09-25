@@ -803,7 +803,7 @@ export default function VacationsView() {
         anderen sehen die Seite wie bisher, ohne Reiterleiste.
       */}
       {buero && (
-        <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+        <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
           {REITER.map((r) => (
             <button
               key={r.key}

@@ -1,6 +1,6 @@
 # Funktionsübersicht
 
-Stand: 20.09.2026.
+Stand: 25.09.2026.
 
 > **DER VORBEHALT VON HIER IST EINGELÖST.** Diese Datei war in der
 > Firestore-Zeit geschrieben und sprach von Sammlungen, vom Emulator, von
@@ -98,6 +98,51 @@ unterscheidet vier Stufen:
 | **Startgeschwindigkeit** | Ansichten einzeln nachladbar, Service Worker hält die App-Hülle vor, Frist auf jedem Start-Zugriff | Rechnung (27: Frist, Service Worker und Fehlergrenze gegen den echten Quelltext) | **Auf keinem echten iPhone gemessen** — die Ursachen sind aus dem Code belegt, die Wirkung ist es nicht |
 | **Fassungswechsel** | Der Worker behält die alten Bausteine, bis die neue Fassung übernommen wird; ein fehlgeschlagenes Nachladen lädt einmal von selbst neu | Rechnung (11 Sandbox + 9 Fehlergrenze) | Nicht auf einem echten Gerät über einen echten Deploy gefahren |
 | **Meldungen (Push)** | Wer wird wann benachrichtigt; ausgelöst vom Trigger `material_orders_push`, zugestellt von der Edge Function `push-melden` | Rechnung (25), Datenbank (14 Auslöser und Empfängerkreis + 6 Wächter) | Die Zustellung selbst ist ungetestet — die Edge Function hat nie ein Test ausgeführt, siehe unten |
+
+## Launch-Check (25.09.2026)
+
+Ein Durchgang durch den ganzen Betrieb vor dem Start. Was davon in welcher
+Schicht festgehalten ist:
+
+| Befund | Jetzt | Wo es gilt | Geprüft wodurch |
+|---|---|---|---|
+| **K1** Zeiten überlappen (20–02 Uhr und 21–23 Uhr) | Einträge derselben Person überschneiden sich nicht mehr, auch über Mitternacht; die Maske sagt es vorher | Trigger `zeiten_ueberschneiden_nicht` | Datenbank (6), Rechnung, Ansicht |
+| **M3** geteilter Dienst auf derselben Baustelle | erlaubt, solange er sich nicht überschneidet | dieselbe Regel | Datenbank, Rechnung |
+| **M2** Nachtarbeit nicht vorgeschlagen | Hinweis mit einem Griff, wenn die Zeit in die Nacht fällt — gesetzt wird der Zuschlag weiter von Hand | Zeitmaske | Rechnung, Ansicht |
+| **K2** „Aus Lager" ignoriert den Bestand | geht nur, was frei ist (Regal minus Zugesagtes); sonst „Nicht auf Lager" | Trigger `aus_lager_pruefen` | Datenbank, Ansicht |
+| **K3** Pauschale als Stunden verrechnet | Pauschalbaustelle rechnet den Angebotspreis ab, nicht die Stunden | Rechnungsansicht, `pauschale.ts` | Rechnung, Ansicht |
+| **K4** eigenen Urlaub selbst genehmigt | Vier-Augen-Prinzip — ausser es gibt niemand anderen, der entscheiden darf | Trigger `urlaub_vier_augen`, Liste zeigt „Entscheidet jemand anderer" | Datenbank (4), Ansicht |
+| **K5** Supportzugang „Mitarbeiten" vs. Handbuch | bleibt: Ansehen ist die Vorgabe, Mitarbeiten wählt der Betrieb eigens und höchstens für einen Tag; Handbuch, Datenschutz und Du-Form angeglichen | — | Ansicht |
+| **K6** drei Nummernlogiken | eine: Vorschau, Vorschlag, „Neue Baustelle" und Angebotsannahme ziehen aus `naechste_nummer`; der Anfangsstand kommt aus der Datenbank und nur aus Nummern im Schema des Jahres | Datenbankfunktionen | Datenbank, Ansicht |
+| **K7** Passwort ohne das alte ändern | verlangt das aktuelle — geprüft über einen eigenen Client, die Sitzung bleibt; nach Rücksetzlink und Startpasswort nicht | `passwortSetzen` | Browser, Rechnung, Ansicht |
+| **K8** freie Rechnungsnummer → Lücke | lückenlos; eine eigene Nummer nur bei der allerersten Rechnung (Umstieg) | `naechste_nummer` | Datenbank, Ansicht |
+| **K9** „Storno aufheben" beliebig später | nur am selben Tag, und nicht, wenn die Leistung inzwischen auf einer anderen Rechnung steht | `rechnung_storno_aufheben` | Datenbank, Ansicht |
+| **M1** Rechnung ohne Firmendaten | gesperrt, bis die Anschrift des Betriebs steht (§ 11 UStG) | Rechnungsansicht | Ansicht, Browser |
+| **M4** Administration ohne Zeitkonto | keine Saldo-Versprechen mehr („im Zeitkonto eingetragen", „dein Saldo"); Urlaubstage werden weiter eingetragen — sie belegen die Abwesenheit und sperren die Buchung | Ansicht | Ansicht |
+| **M5** Urlaubsvorschau zählt Betriebsurlaub | nennt die Überschneidung statt Tage zu zählen; die Maske leert sich nach dem Absenden | Urlaubsseite | Ansicht |
+| **M7** neue Angebotsposition „h" + Arbeitszeit | beginnt leer; „h" setzt den Haken wie bisher | Angebot | Ansicht |
+| **M8** Angebot annehmen ohne Rückfrage | fragt nach | Angebot | Ansicht |
+| **M9** Angebotsmaterial ohne Einkaufspreis | steht bei den Lücken, solange kein Schein Material trägt | `nachkalkulation.ts` | Rechnung |
+| **M11** Budget bei 100 % gedeckelt | die Zahl nennt die echte Ausschöpfung (120 %), nur der Balken endet am Rand | `calcBudgetState` | Rechnung |
+| **M13–M15** Kennzahl, Zahlungsdialog, Lückenliste | „Bezahlt" ohne Storno-Guthaben; der Dialogkopf rechnet nach; Lücken als Bereich | Rechnungen, Export | Rechnung, Ansicht |
+| **R1** Stundennachweis bei den Plänen | Satz neben dem Knopf „Die Monteure dieser Baustelle sehen alles hier"; Rückfrage bei Dateinamen, die nach einem Büro-Beleg klingen | Pläne | Ansicht |
+| **R2** Monteur sieht alle Baustellen | bleibt wählbar (Aushilfe, Notdienst); eigene Baustellen stehen oben, alles nach Kunde sortiert | `BaustellenSelect` | Ansicht |
+| **R3** zwei Salden | beide in Stunden:Minuten, mit Zeitraum („seit Eintritt", „im Monat") | Zeiterfassung, Mitarbeiterübersicht | Ansicht |
+| Kleinere | Datum TT.MM.JJJJ auf dem Schein; Stunden mit Komma; Baustellennummer im Wochenplan; grössere Pfeile; schmale Reiter-Scrollleiste; Projektauswertung mit Vorsatz; Kunden-Zeile mit „⋯" wie die Baustellen; frei getippte Materialanforderung; erledigte Anforderungen mit Datum; Unterschrift braucht Breite und Höhe; „ausser Haus" in der Datensicherung | — | Ansicht, Datenbank |
+
+**Bewusst nicht geändert:** der Kostensatz hat keine Vorgabe (M10 — die 20 €/h
+kamen aus einem eingetragenen Wert; einen Marktpreis setzt die App nicht);
+„Abgeholt" geht schon bei „Offen" (eine eigene Anforderung darf man jederzeit
+abschliessen); „Stunden ohne Buchung" steht über der Scheinliste (sie hat eine
+Frist); die Rolle heisst „Mitarbeiter" — das Handbuch nennt sie jetzt auch so;
+Telefonnummern stehen, wie sie eingegeben wurden.
+
+**Nicht nachstellbar:** der erste Klick auf „Neue Baustelle" und das
+fehlende Teammitglied — im Browser nachgeklickt, beides tut, was es soll.
+
+**Offen, und nicht von der App zu entscheiden:** ein eigener Storno- oder
+Gutschriftbeleg mit Nummer (M12, mit der Steuerberatung klären) und ob der
+24. und 31.12. nach dem Kollektivvertrag frei sind (M6).
 
 ## Abgeschaltet oder ohne Weg dorthin
 

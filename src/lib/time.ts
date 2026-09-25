@@ -1033,6 +1033,15 @@ export function groupProjectHours(entries: TimeEntry[]): ProjectHours[] {
  * Immer EINE Nachkommastelle, auch bei glatten Werten: „40,0" neben „39,5"
  * liest sich als Reihe, „40" neben „39,5" als Bruch in der Darstellung.
  */
+/**
+ * Eine Stundenzahl, wie sie gespeichert ist — Budget, Kalkulation: „3,5",
+ * „40", nie „3.5" (Launch-Check 25.09.2026). Anders als `fmtStd` ohne
+ * erzwungene Nachkommastelle: ein Budget von 40 h ist keine Messung.
+ */
+export function fmtStunden(h: number): string {
+  return new Intl.NumberFormat('de-AT', { maximumFractionDigits: 2 }).format(h);
+}
+
 export function fmtStd(min: number): string {
   return (min / 60).toFixed(1).replace('.', ',');
 }

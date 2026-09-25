@@ -243,11 +243,12 @@ describe('Wo der Stand liegt', () => {
     ).toBeInTheDocument();
   });
 
-  it('schweigt, wenn ein Ziel ausserhalb gesetzt ist', async () => {
+  it('sagt es auch, wenn ein Ziel ausserhalb gesetzt ist (Launch-Check 25.09.2026)', async () => {
     letzterLauf = { zuletztErfolg: Date.now() - 6 * 3_600_000, zielExtern: true };
     zeige();
     await screen.findByText(/lief zuletzt vor 6 Stunden durch/);
     expect(screen.queryByText(/im selben Projekt wie die Daten/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Der Stand liegt ausser Haus/)).toBeInTheDocument();
   });
 
   /*
@@ -260,6 +261,7 @@ describe('Wo der Stand liegt', () => {
     zeige();
     await screen.findByText(/lief zuletzt vor 6 Stunden durch/);
     expect(screen.queryByText(/im selben Projekt wie die Daten/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/ausser Haus/)).not.toBeInTheDocument();
   });
 
   /*

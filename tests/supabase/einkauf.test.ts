@@ -231,6 +231,26 @@ describe('Über die Einkaufsliste', () => {
   EIGENES MATERIAL DES BÜROS — etwa um das Lager aufzufüllen. Keine
   Anforderung: „Geliefert" bucht ins Lager, und damit ist der Posten erledigt.
 */
+describe('Eine frei getippte Anforderung des Monteurs (Launch-Check 25.09.2026)', () => {
+  it('legt der Monteur ohne Katalogartikel an — sie läuft über die Einkaufsliste und bucht nichts ab', async () => {
+    const vorher = await bestand();
+    const id = crypto.randomUUID();
+    const { error } = await monteur.client.from('material_orders').insert({
+      id, company_id: BETRIEB, material_id: null, material_name: 'Spezialnippel 3/4',
+      quantity: 2, status: 'Offen', transaction_type: 'order', user_id: monteur.uid,
+      project_number: 'B-2026-0001',
+    });
+    expect(error).toBeNull();
+
+    await einkauf.aufEinkaufsliste(id, grosshaendler);
+    expect(await einkauf.geliefert([id])).toBe(1);
+    await anforderungen.updateOrderStatus(id, 'Erledigt');
+    expect(await zeile(id)).toMatchObject({ status: 'Erledigt', processed: true });
+    // Kein Katalogartikel dieses Namens — der Bestand bleibt, wie er war.
+    expect(await bestand()).toBe(vorher);
+  });
+});
+
 describe('Eigenes Material auf der Einkaufsliste', () => {
   const ICH = { angelegtVonUid: '', angelegtVonName: 'Vera Verwaltung' };
 

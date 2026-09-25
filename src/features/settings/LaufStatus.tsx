@@ -114,6 +114,13 @@ export default function LaufStatus({
         „Letzter Versuch: …" mit der Antwort des Zielspeichers — und das ist
         die richtige Stelle, weil es ein Ausfall ist und keine Grenze.
       */}
+      {/* Und wenn er es IST, steht das auch da (Launch-Check 25.09.2026):
+          sonst erfuhr man den guten Fall nur aus dem Fehlen des schlechten. */}
+      {art === 'ausleitung' && lauf?.zielExtern === true && u.stand === 'gut' && (
+        <span className="mt-1 block text-xs text-ink-muted">
+          Der Stand liegt ausser Haus, getrennt von den Daten.
+        </span>
+      )}
       {art === 'ausleitung' && lauf?.zielExtern === false && (
         <span className="mt-1 block text-xs text-ink-muted">
           Der Stand liegt im selben Projekt wie die Daten. Gegen einen Fehlgriff hilft das,

@@ -27,6 +27,7 @@ import { useToast } from '@/components/Toast';
 import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAusMs } from '@/lib/datum';
 import { abschlussText } from './abschlussText';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
@@ -83,6 +84,9 @@ export default function OrderView() {
   const [note, setNote] = useState('');
   const [urgent, setUrgent] = useState(false);
   const [search, setSearch] = useState('');
+  /** Ein Artikel, den der Katalog nicht kennt — frei getippt. */
+  const [freiName, setFreiName] = useState('');
+  const [freiMenge, setFreiMenge] = useState('1');
   const [toPickUp, setToPickUp] = useState<WithId<MaterialOrder> | null>(null);
 
   // Retoure
@@ -202,6 +206,25 @@ export default function OrderView() {
     [myOrders],
   );
 
+  /*
+    NICHT IM KATALOG (Launch-Check 25.09.2026). Der Monteur konnte nur
+    anfordern, was die Verwaltung schon angelegt hatte — der Katalog eines
+    Betriebs ist nie vollständig, und die Alternative war der Anruf. Die
+    Anforderung trägt dann keinen Katalogartikel; die Verwaltung beschafft
+    ihn wie jeden anderen, meist über die Einkaufsliste.
+  */
+  function freiHinzufuegen() {
+    const name = freiName.trim();
+    const menge = Number(freiMenge.replace(',', '.'));
+    if (!name || !(menge > 0)) return;
+    setCart((prev) => [
+      ...prev,
+      { materialId: '', materialName: name, quantity: menge, projectNumber, isUrgent: urgent && !!projectNumber },
+    ]);
+    setFreiName('');
+    setFreiMenge('1');
+  }
+
   function addToCart(m: WithId<Material>, qty: number) {
     if (qty <= 0) return;
     setCart((prev) => {
@@ -247,7 +270,8 @@ export default function OrderView() {
     for (const line of cart) {
       try {
         const stand = await createMaterialOrderOhneEmpfang(user.companyId, {
-          materialId: line.materialId,
+          // Leer heisst „frei getippt" — in der Datenbank ist das kein Artikel.
+          materialId: line.materialId || null,
           materialName: line.materialName,
           quantity: line.quantity,
           // DIE NOTIZ WIRD HIER GENOMMEN, NICHT BEIM HINZUFÜGEN. Das Feld
@@ -339,7 +363,7 @@ export default function OrderView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -473,6 +497,33 @@ export default function OrderView() {
                 sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
               />
             </div>
+            <div className="mt-4 border-t border-line pt-4">
+              <p className="section-label">Nicht im Katalog?</p>
+              <div className="mt-2 grid grid-cols-[1fr_5rem] gap-2 sm:grid-cols-[1fr_6rem_auto] sm:items-end">
+                <InputField
+                  id="frei-name"
+                  label="Bezeichnung"
+                  placeholder="z. B. Eckventil ½″ verchromt"
+                  value={freiName}
+                  onChange={(e) => setFreiName(e.target.value)}
+                />
+                <InputField
+                  id="frei-menge"
+                  label="Menge"
+                  inputMode="decimal"
+                  value={freiMenge}
+                  onChange={(e) => setFreiMenge(e.target.value)}
+                />
+                <Button
+                  variant="secondary"
+                  className="col-span-2 sm:col-span-1"
+                  disabled={!freiName.trim() || !(Number(freiMenge.replace(',', '.')) > 0)}
+                  onClick={freiHinzufuegen}
+                >
+                  Hinzufügen
+                </Button>
+              </div>
+            </div>
           </Card>
 
           <Card title={`Anforderung (${cart.length})`}>
@@ -601,7 +652,12 @@ export default function OrderView() {
                         {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
-                    subtitle={[o.projectNumber, o.note].filter(Boolean).join(' · ')}
+                    subtitle={[
+                      o.projectNumber || 'ohne Baustelle',
+                      // Wann es erledigt wurde — die letzte Änderung ist der Abschluss.
+                      o.updatedAt ? datumAusMs(o.updatedAt) : '',
+                      o.note,
+                    ].filter(Boolean).join(' · ')}
                   >
                     {o.transactionType === 'return' ? (
                       <Marke>Retoure</Marke>

@@ -137,6 +137,29 @@ describe('Material anfordern — der Warenkorb', () => {
     });
   });
 
+  it('fordert auch an, was nicht im Katalog steht (Launch-Check 25.09.2026)', async () => {
+    zeige();
+    await userEvent.selectOptions(
+      await screen.findByRole('combobox', { name: /Für welche Baustelle/ }),
+      '2026-042',
+    );
+    const knopf = screen.getByRole('button', { name: 'Hinzufügen' });
+    expect(knopf).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Eckventil ½″');
+    await userEvent.clear(screen.getByLabelText('Menge'));
+    await userEvent.type(screen.getByLabelText('Menge'), '2');
+    await userEvent.click(knopf);
+    await userEvent.click(screen.getByRole('button', { name: 'Bestellung aufgeben' }));
+
+    await waitFor(() => expect(anlegen).toHaveBeenCalledTimes(1));
+    expect(anlegen.mock.calls[0][1]).toMatchObject({
+      materialId: null,
+      materialName: 'Eckventil ½″',
+      quantity: 2,
+      projectNumber: '2026-042',
+    });
+  });
+
   it('schickt die Notiz mit, die nach dem Hinzufügen getippt wurde', async () => {
     /*
       GEFUNDEN BEIM PROBELAUF. Das Notizfeld erscheint erst, wenn schon etwas

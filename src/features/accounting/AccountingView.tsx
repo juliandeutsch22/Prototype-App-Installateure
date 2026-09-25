@@ -629,7 +629,7 @@ export default function AccountingView() {
                       */}
                       <div className="sm:flex sm:items-end sm:justify-between sm:gap-6">
                         <div className="min-w-0">
-                          <p className="section-label">{zeigtSaldo ? 'Saldo' : 'Gebucht'}</p>
+                          <p className="section-label">{zeigtSaldo ? 'Saldo im Monat' : 'Gebucht im Monat'}</p>
                           {zeigtSaldo ? (
                             <>
                               {/*

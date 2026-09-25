@@ -558,12 +558,15 @@ export default function TimeView() {
             „€ 22 104,60" steht. Ein Punkt als Dezimaltrennzeichen liest sich
             im Deutschen als Tausenderpunkt und damit als ganz andere Zahl.
           */
+          /*
+            UND IN STUNDEN:MINUTEN, wie in der Mitarbeiterübersicht
+            (Launch-Check 25.09.2026, R3): dort stand „+01:00", hier „+9,00 h"
+            — zwei Formate für zwei verschiedene Zeiträume, und keiner war
+            genannt. Hier gilt „seit Eintritt", dort der gewählte Monat.
+          */
           value={
             saldo?.hasConfig
-              ? `${saldo.saldoH > 0 ? '+' : ''}${saldo.saldoH.toLocaleString('de-AT', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} h`
+              ? `${saldo.saldoH > 0 ? '+' : ''}${fmtMin(Math.round(saldo.saldoH * 60))}`
               : '—'
           }
           hint={
@@ -571,7 +574,7 @@ export default function TimeView() {
               ? 'Kein Startdatum konfiguriert'
               : saldo.daysWithoutEntry > 0
                 ? `${tageWort(saldo.daysWithoutEntry)} ohne Buchung — unvollständig`
-                : 'Über-/Unterstunden'
+                : 'Über-/Unterstunden seit Eintritt'
           }
         />
         )}

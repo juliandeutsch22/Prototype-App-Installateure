@@ -196,7 +196,7 @@ export default function StockView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {([
           { key: 'bestand' as Tab, label: 'Bestand' },
           { key: 'katalog' as Tab, label: 'Katalog' },

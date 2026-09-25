@@ -113,8 +113,8 @@ describe('Unterschriftsfeld — der Finger', () => {
 
     act(() => {
       feld.dispatchEvent(finger('touchstart', 10, 10));
-      feld.dispatchEvent(finger('touchmove', 40, 30));
-      feld.dispatchEvent(finger('touchend', 40, 30));
+      feld.dispatchEvent(finger('touchmove', 80, 40));
+      feld.dispatchEvent(finger('touchend', 80, 40));
     });
 
     expect(gemeldet).toHaveBeenCalledWith(true);
@@ -212,8 +212,8 @@ describe('Unterschriftsfeld — Maus und Stift', () => {
 
     act(() => {
       feld.dispatchEvent(zeiger('pointerdown', 10, 10));
-      window.dispatchEvent(zeiger('pointermove', 40, 30));
-      window.dispatchEvent(zeiger('pointerup', 40, 30));
+      window.dispatchEvent(zeiger('pointermove', 80, 40));
+      window.dispatchEvent(zeiger('pointerup', 80, 40));
     });
 
     expect(auf.striche).toBeGreaterThan(1);
@@ -316,5 +316,43 @@ describe('Unterschriftsfeld — die Flaeche', () => {
 
     expect(gemeldet).toHaveBeenCalledWith(false);
     expect(screen.queryByRole('button', { name: 'Neu zeichnen' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Unterschriftsfeld — was als Unterschrift zählt (Launch-Check 25.09.2026)', () => {
+  it.each([
+    ['ein Antippen', [[10, 10]]],
+    ['ein kurzer Strich', [[20, 20], [35, 22]]],
+    ['eine gerade Linie quer durchs Feld', [[10, 50], [120, 52], [200, 53]]],
+  ])('%s zählt nicht', (_was, punkte) => {
+    const gemeldet = vi.fn();
+    render(<SignaturePad titel="Unterschrift Kunde" onChange={gemeldet} />);
+    const feld = screen.getByLabelText(/Unterschrift Kunde/);
+
+    act(() => {
+      const [erster, ...rest] = punkte;
+      feld.dispatchEvent(finger('touchstart', erster[0], erster[1]));
+      for (const [x, y] of rest) feld.dispatchEvent(finger('touchmove', x, y));
+      const letzter = punkte[punkte.length - 1];
+      feld.dispatchEvent(finger('touchend', letzter[0], letzter[1]));
+    });
+
+    expect(gemeldet).not.toHaveBeenCalledWith(true);
+    expect(screen.getByText(/reicht noch nicht für eine Unterschrift/)).toBeInTheDocument();
+  });
+
+  it('ein Namenszug in EINEM Zug zählt — viele unterschreiben so', () => {
+    const gemeldet = vi.fn();
+    render(<SignaturePad titel="Unterschrift Kunde" onChange={gemeldet} />);
+    const feld = screen.getByLabelText(/Unterschrift Kunde/);
+
+    act(() => {
+      feld.dispatchEvent(finger('touchstart', 10, 40));
+      for (let i = 1; i <= 8; i++) feld.dispatchEvent(finger('touchmove', 10 + i * 15, i % 2 ? 25 : 55));
+      feld.dispatchEvent(finger('touchend', 130, 55));
+    });
+
+    expect(gemeldet).toHaveBeenCalledWith(true);
+    expect(gemeldet).toHaveBeenCalledTimes(1);
   });
 });

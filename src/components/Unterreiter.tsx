@@ -80,7 +80,7 @@ export default function Unterreiter({
             zeigt eine zweite Zeile alle — am Telefon wären es vier Zeilen,
             dort läuft die Leiste wie die übrigen der App seitlich.
           */
-          className="mb-4 flex gap-1 overflow-x-auto border-b border-line sm:flex-wrap sm:overflow-visible"
+          className="mb-4 reiterleiste flex gap-1 overflow-x-auto border-b border-line sm:flex-wrap sm:overflow-visible"
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (

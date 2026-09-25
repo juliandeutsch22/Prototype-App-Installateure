@@ -7,6 +7,7 @@ import {
   fmtMin,
   fmtStd,
   balkenBreite,
+  fmtStunden,
 } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
 import Card from '@/components/Card';
@@ -158,7 +159,12 @@ export default function ProjectSummary({
                     <span className="block font-bold text-ink">
                       {r.project?.customerName ?? r.projectNumber}
                     </span>
-                    <span className="block tnum text-sm text-ink-muted">{r.projectNumber}</span>
+                    {/* Die Nummer, wie sie an der Baustelle steht — der Schlüssel
+                        der Gruppierung hat den Vorsatz „PR-" verloren
+                        (Launch-Check 25.09.2026: „187" statt „PR-187"). */}
+                    <span className="block tnum text-sm text-ink-muted">
+                      {r.project?.projectNumber ?? r.projectNumber}
+                    </span>
                   </span>
                   <span className="flex items-center gap-2">
                     {/*
@@ -205,7 +211,7 @@ export default function ProjectSummary({
                     <p className="mt-2 text-xs text-ink-muted">
                       <span className="tnum">{h(r.fachMin)} h</span> in {label} · gesamt{' '}
                       <span className="tnum font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
-                      <span className="tnum">{r.project?.estimatedHours} h</span>
+                      <span className="tnum">{fmtStunden(r.project?.estimatedHours ?? 0)} h</span>
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
@@ -307,7 +313,7 @@ export default function ProjectSummary({
                     {r.project?.estimatedHours && r.gesamtFachMin !== null ? (
                       <span className="text-ink-muted">
                         {' '}
-                        · gesamt {h(r.gesamtFachMin)} h / {r.project.estimatedHours} h Budget
+                        · gesamt {h(r.gesamtFachMin)} h / {fmtStunden(r.project.estimatedHours)} h Budget
                       </span>
                     ) : null}
                     {r.helperMin > 0 && (

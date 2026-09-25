@@ -272,3 +272,19 @@ describe('Der Kopf einer Baustelle bleibt ruhig', () => {
     expect(pille.className).toContain('rounded-pill');
   });
 });
+
+describe('Projektauswertung — die Nummer, wie sie an der Baustelle steht (Launch-Check 25.09.2026)', () => {
+  it('zeigt „PR-187", nicht den Gruppierungsschlüssel „187"', () => {
+    const pr = { ...projekt, projectNumber: 'PR-187' } as Project;
+    render(
+      <ProjectSummary
+        entries={[eintrag({ id: 'x', projectNumber: 'PR-187' } as Partial<TimeEntry>)]}
+        gesamtEntries={[]}
+        projects={[pr]}
+        label="September 2026"
+      />,
+    );
+    expect(screen.getByText('PR-187')).toBeInTheDocument();
+    expect(screen.queryByText('187')).not.toBeInTheDocument();
+  });
+});

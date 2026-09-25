@@ -40,6 +40,7 @@ import {
   type FotoEntwurf,
 } from './fotos';
 import { grundAus } from '@/lib/fehlerGrund';
+import { datumAT } from '@/lib/datum';
 
 /**
  * Handwerksschein erstellen, unterschreiben lassen, einfrieren.
@@ -908,7 +909,7 @@ export default function WorkSheetView() {
 
       {projectNumber ? (
         <>
-          <Card title={`Zeiten am ${datum} · ${fmtMin(gesamtMinuten)}`}>
+          <Card title={`Zeiten am ${datumAT(datum)} · ${fmtMin(gesamtMinuten)}`}>
             {/*
               Der Ladezustand steckt jetzt IN dieser Karte, nicht davor. Vorher
               verdeckte er das ganze Formular — auch die Unterschriften, die

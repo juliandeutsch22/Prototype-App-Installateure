@@ -20,6 +20,7 @@ import {
   fmtStd,
   tageWort,
   getISOWeek,
+  fmtStunden,
 } from '@/lib/time';
 import { getAustrianHolidayName } from '@shared/feiertage';
 import {
@@ -798,7 +799,7 @@ export default function DashboardView() {
                     </span>
                   </span>
                   {pr.estimatedHours ? (
-                    <Marke>{pr.estimatedHours} h Budget</Marke>
+                    <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke>
                   ) : null}
                 </div>
                 {/*
@@ -846,7 +847,7 @@ export default function DashboardView() {
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-ink">{pr.customerName}</span>
                   <span className="block text-xs text-ink-muted">
-                    {fmtStd(pr.usedMin)} von {pr.estimatedHours} h · {pr.projectNumber}
+                    {fmtStd(pr.usedMin)} von {fmtStunden(pr.estimatedHours)} h · {pr.projectNumber}
                   </span>
                 </span>
                 <Warnung stufe={pr.over ? 'dringend' : 'achtung'}>

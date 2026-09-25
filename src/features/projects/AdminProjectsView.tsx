@@ -33,6 +33,7 @@ import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import { fmtStunden } from '@/lib/time';
 
 const empty = {
   projectNumber: '',
@@ -630,7 +631,7 @@ export default function AdminProjectsView() {
                     </>
                   }
                 >
-                  {p.estimatedHours ? <Marke>{p.estimatedHours} h Budget</Marke> : null}
+                  {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h Budget</Marke> : null}
                   <StatusBadge status={p.status} />
                   {/*
                     EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine
