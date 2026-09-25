@@ -586,7 +586,11 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           ) : (
             <p className="mt-3 text-sm text-ink">
               Deckungsbeitrag je Facharbeiterstunde:{' '}
-              <strong>{fmtEUR(rates.fach - num(costRates.fach, 0))}</strong>
+              {/* Mit Zeichen: „21,50" allein war die einzige Geldangabe der
+                  App ohne € (Prüflauf 25.09.2026, P4-11). Dahinter, wie die
+                  Sätze auf dieser Seite („60,00 €/h") — dieses `fmtEUR`
+                  stellt nicht voran, siehe tests/unit/eurozeichen.test.ts. */}
+              <strong>{fmtEUR(rates.fach - num(costRates.fach, 0))} €</strong>
               {rates.fach - num(costRates.fach, 0) <= 0 && (
                 <span className="ml-2 text-danger">
                   — der Verrechnungssatz liegt nicht über den Kosten.
