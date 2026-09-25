@@ -1644,6 +1644,38 @@ textarea {
     font-weight: 400;
   }
 
+  /* Dieselbe zweizeilige Form als ZWEITKNOPF: „Wie zuletzt eintragen“ in
+     der Zeitmaske belegt nur vor — gebucht wird mit „Zeit buchen“, und die
+     Linie erlaubt eine Hauptaktion je Karte. Weiß mit Haarlinie wie
+     `.knopf-sekundaer`. */
+  .einsatz-zweitknopf {
+    display: flex;
+    min-height: 52px;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    padding: 0.625rem 1rem;
+    text-align: center;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    color: var(--ink-deep);
+    transition: background-color 150ms ease;
+  }
+
+  .einsatz-zweitknopf:hover {
+    background-color: var(--surface-2);
+  }
+
+  .einsatz-zweitknopf:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
   /* ── Diese Woche ────────────────────────────────────────────────────── */
 
   /* „17:00 von 38:30 Std“ rechts in der Titelzeile. */

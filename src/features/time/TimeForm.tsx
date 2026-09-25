@@ -661,15 +661,16 @@ export default function TimeForm({
           letzten Eintrag. Nur beim Neuanlegen — beim Bearbeiten würde der
           Knopf die zu korrigierenden Werte gerade überschreiben. */}
       {/*
-        IN DER OPTIK DES HAUPTKNOPFS DER STARTSEITE (Mockup S. 1: „Wie
+        IN DER FORM DES HAUPTKNOPFS DER STARTSEITE (Mockup S. 1: „Wie
         zuletzt buchen“, darunter die Zeile mit Zeiten, Pause und Dauer) —
-        derselbe Griff, dieselbe Form. Er TRÄGT nur ein; gebucht wird
-        weiterhin mit „Zeit buchen“, deshalb heißt er hier „eintragen“.
+        aber WEISS: er TRÄGT nur ein; gebucht wird weiterhin mit „Zeit
+        buchen“, und das ist die eine Hauptaktion der Maske. Deshalb heißt er
+        hier auch „eintragen“.
         Die zweite Zeile bricht um statt abzuschneiden: der Kundenname ist
         das, woran man den Eintrag wiedererkennt.
       */}
       {!isEdit && lastEntry && lastEntry.startTime && lastEntry.endTime && (
-        <button type="button" onClick={wieZuletztUebernehmen} className="einsatz-hauptknopf">
+        <button type="button" onClick={wieZuletztUebernehmen} className="einsatz-zweitknopf">
           <span>Wie zuletzt eintragen</span>
           <span className="einsatz-hauptknopf-zeile">
             {lastEntry.startTime}–{lastEntry.endTime} · {lastEntry.breakDuration ?? 0} min Pause ·{' '}
