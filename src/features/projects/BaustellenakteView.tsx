@@ -336,24 +336,92 @@ export default function BaustellenakteView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <Card title="Stammdaten">
-        {darfAendern && entwurf ? (
-          <StammdatenFormular
-            entwurf={entwurf}
-            setEntwurf={setEntwurf}
-            kunden={kunden}
-            staff={staff}
-            leads={leads}
-            geaendert={geaendert}
-            speichert={speichert}
-            fehler={speicherFehler}
-            onSpeichern={() => void stammdatenSpeichern()}
-            onVerwerfen={() => setEntwurf(alsEntwurf(b))}
-          />
-        ) : (
-          <StammdatenLesen b={b} namen={namen} />
-        )}
-      </Card>
+      {/*
+        AM SCHREIBTISCH ZWEI SPALTEN (`.akte`): links die Baustelle selbst —
+        Stammdaten mit Beschreibung, Budget und Team —, rechts, was auf ihr
+        entsteht: Pläne, Stunden und die Wege zu Kunde, Angebot und Schein.
+        Am Telefon und Tablet bleibt es eine Spalte in derselben Reihenfolge.
+      */}
+      <div className="akte">
+        <div className="akte-links">
+          <Card title="Stammdaten">
+            {darfAendern && entwurf ? (
+              <StammdatenFormular
+                entwurf={entwurf}
+                setEntwurf={setEntwurf}
+                kunden={kunden}
+                staff={staff}
+                leads={leads}
+                geaendert={geaendert}
+                speichert={speichert}
+                fehler={speicherFehler}
+                onSpeichern={() => void stammdatenSpeichern()}
+                onVerwerfen={() => setEntwurf(alsEntwurf(b))}
+              />
+            ) : (
+              <StammdatenLesen b={b} namen={namen} />
+            )}
+          </Card>
+        </div>
+
+        <div className="akte-rechts">
+          {user && (
+            <Card title="Pläne und Dokumente">
+              <BaustellenPlaene
+                companyId={user.companyId}
+                projectId={b.id}
+                darfAendern={darfAendern}
+                meinName={user.name}
+              />
+            </Card>
+          )}
+
+          {/*
+            DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
+            Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
+            Ort, der eine Adresse hat.
+          */}
+          <Card title="Stunden auf dieser Baustelle">
+            {user && (
+              <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
+                <BaustellenUebersicht companyId={user.companyId} projekt={b} />
+              </Suspense>
+            )}
+          </Card>
+
+          <Card title="Weiter">
+            <div className="flex flex-wrap gap-3">
+              {b.customerId ? (
+                <Link to={`/customers/${b.customerId}`} className="textlink-allein">
+                  Zur Kundenakte
+                </Link>
+              ) : (
+                /*
+                  Altbestand: die Baustelle trägt einen Kundennamen, aber keine
+                  Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
+                  wie „gibt es nicht" aussehen zu lassen.
+                */
+                <span className="text-sm text-warning">
+                  Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
+                </span>
+              )}
+              {angebote.map((q) => (
+                <Link key={q.id} to={`/quotes/${q.id}`} className="textlink-allein">
+                  Angebot {q.quoteNumber}
+                </Link>
+              ))}
+              {scheineAn && (
+                <Link
+                  to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
+                  className="textlink-allein"
+                >
+                  Handwerksschein schreiben
+                </Link>
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
 
       <ConfirmDialog
         open={!!nummerFragen}
@@ -371,62 +439,6 @@ export default function BaustellenakteView() {
           void stammdatenSpeichern(true);
         }}
       />
-
-      {user && (
-        <Card title="Pläne und Dokumente">
-          <BaustellenPlaene
-            companyId={user.companyId}
-            projectId={b.id}
-            darfAendern={darfAendern}
-            meinName={user.name}
-          />
-        </Card>
-      )}
-
-      {/*
-        DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
-        Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
-        Ort, der eine Adresse hat.
-      */}
-      <Card title="Stunden auf dieser Baustelle">
-        {user && (
-          <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
-            <BaustellenUebersicht companyId={user.companyId} projekt={b} />
-          </Suspense>
-        )}
-      </Card>
-
-      <Card title="Weiter">
-        <div className="flex flex-wrap gap-3">
-          {b.customerId ? (
-            <Link to={`/customers/${b.customerId}`} className="textlink-allein">
-              Zur Kundenakte
-            </Link>
-          ) : (
-            /*
-              Altbestand: die Baustelle trägt einen Kundennamen, aber keine
-              Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
-              wie „gibt es nicht" aussehen zu lassen.
-            */
-            <span className="text-sm text-warning">
-              Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
-            </span>
-          )}
-          {angebote.map((q) => (
-            <Link key={q.id} to={`/quotes/${q.id}`} className="textlink-allein">
-              Angebot {q.quoteNumber}
-            </Link>
-          ))}
-          {scheineAn && (
-            <Link
-              to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-              className="textlink-allein"
-            >
-              Handwerksschein schreiben
-            </Link>
-          )}
-        </div>
-      </Card>
     </div>
   );
 }
