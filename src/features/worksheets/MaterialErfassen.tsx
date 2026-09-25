@@ -100,24 +100,30 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
           sich auch ohne unterschreiben.
         </EmptyState>
       ) : (
-        <ul className="divide-y divide-line rounded border border-line">
+        <List>
           {zeilen.map((z) => (
-            <li key={z.id} className="flex flex-wrap items-end gap-3 p-3">
-              <div className="w-24 shrink-0">
-                <InputField
-                  id={`wsmenge-${z.id}`}
-                  label="Menge"
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={String(z.menge)}
-                  onChange={(e) => mengeSetzen(z.id, e.target.value)}
-                />
-              </div>
-              <p className="min-w-0 flex-1 font-medium text-ink">
-                {z.name}
-                {z.einheit && <span className="ml-2 text-sm text-ink-muted">{z.einheit}</span>}
-              </p>
+            <ListRow
+              key={z.id}
+              vorne={
+                <div className="w-24">
+                  <InputField
+                    id={`wsmenge-${z.id}`}
+                    label="Menge"
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={String(z.menge)}
+                    onChange={(e) => mengeSetzen(z.id, e.target.value)}
+                  />
+                </div>
+              }
+              title={
+                <>
+                  {z.name}
+                  {z.einheit && <span className="text-sm font-normal text-ink-muted">{z.einheit}</span>}
+                </>
+              }
+            >
               <IconButton
                 label={`${z.name} vom Schein nehmen`}
                 tone="danger"
@@ -125,9 +131,9 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
               >
                 ✕
               </IconButton>
-            </li>
+            </ListRow>
           ))}
-        </ul>
+        </List>
       )}
 
       <div>
