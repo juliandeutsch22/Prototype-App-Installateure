@@ -14,7 +14,7 @@
  * entsteht, den `fotoPfad` erzeugt.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { betriebAnlegen, konto, nurStatus, type Konto } from './helfer';
+import { admin, betriebAnlegen, konto, nurStatus, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 import { fotoHochladen, fotoAdresse, fotoEntfernen } from '@/lib/db/pg/scheinFotos';
 import { fotoPfad } from '@/features/worksheets/fotos';
@@ -196,5 +196,59 @@ describe('Ein Foto entfernen', () => {
     */
     const antwort = await fetch(await fotoAdresse(eintrag.pfad));
     expect(await antwort.text()).toBe('bleibt liegen');
+  }, 60_000);
+});
+
+describe('Nach der Unterschrift bleiben die Fotos liegen', () => {
+  /*
+    PRÜFLAUF 25.09.2026 (P1-10, P3-11). Ersetzen und Löschen fragten nur nach
+    dem Betrieb. Jedes Mitglied konnte das Foto eines unterschriebenen
+    Scheins entfernen oder überschreiben — die Prüfsumme hätte den Verlust
+    hinterher gezeigt, aber das Bild, das der Kunde gesehen hat, wäre weg.
+  */
+  async function schein(): Promise<string> {
+    const id = crypto.randomUUID();
+    const { error } = await admin.from('work_sheets').insert({
+      id, company_id: BETRIEB, project_number: 'F-1', customer_name: 'Familie Huber',
+      datum: '2026-04-01', status: 'Entwurf', abrechnung: 'Regie',
+      erstellt_von_uid: monteur.uid, erstellt_von_name: 'Monteur',
+    });
+    if (error) throw new Error(error.message);
+    return id;
+  }
+
+  async function setzen(id: string, status: string): Promise<void> {
+    const { error } = await admin.from('work_sheets').update({ status }).eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  it('lässt das Foto eines unterschriebenen Scheins nicht löschen', async () => {
+    const id = await schein();
+    const eintrag = await fotoHochladen(BETRIEB, id, bild(`beleg ${id}`), 1);
+    await setzen(id, 'Unterschrieben');
+
+    await fotoEntfernen(eintrag.pfad).catch(() => undefined);
+    const antwort = await fetch(await fotoAdresse(eintrag.pfad));
+    expect(await antwort.text()).toBe(`beleg ${id}`);
+  }, 60_000);
+
+  it('und nicht mit anderem Inhalt überschreiben — auch nicht nach dem Storno', async () => {
+    const id = await schein();
+    const eintrag = await fotoHochladen(BETRIEB, id, bild(`echt ${id}`), 1);
+    await setzen(id, 'Unterschrieben');
+    await setzen(id, 'Storniert');
+
+    const { error } = await monteur.client.storage.from('scheinfotos')
+      .upload(eintrag.pfad, bild('ausgetauscht'), { contentType: 'image/jpeg', upsert: true });
+    expect(error).not.toBeNull();
+    const antwort = await fetch(await fotoAdresse(eintrag.pfad));
+    expect(await antwort.text()).toBe(`echt ${id}`);
+  }, 60_000);
+
+  it('am Entwurf bleibt Löschen erlaubt — ein Fehlgriff muss vor der Unterschrift weg', async () => {
+    const id = await schein();
+    const eintrag = await fotoHochladen(BETRIEB, id, bild(`fehlgriff ${id}`), 1);
+    await fotoEntfernen(eintrag.pfad);
+    await expect(fotoAdresse(eintrag.pfad)).rejects.toThrow();
   }, 60_000);
 });
