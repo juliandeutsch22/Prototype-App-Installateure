@@ -1,7 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { unterseitenFuer } from '@/app/navigation';
+import { UnterreiterKontext } from './unterreiterKontext';
 
 /**
  * Mehrere Ansichten unter EINEM Reiter.
@@ -36,7 +37,12 @@ export default function Unterreiter({
     : [];
 
   const ort = useLocation();
-  const leiste = useRef<HTMLElement>(null);
+  const leisteRef = useRef<HTMLElement>(null);
+  const [imKopf, setImKopf] = useState(0);
+  const anmelden = useCallback(() => {
+    setImKopf((n) => n + 1);
+    return () => setImKopf((n) => n - 1);
+  }, []);
   const aktiv = ort.pathname.slice(basis.length + 1).split('/')[0];
 
   /*
@@ -54,7 +60,7 @@ export default function Unterreiter({
     Das `?.` vor dem Aufruf, weil jsdom `scrollIntoView` nicht kennt.
   */
   useEffect(() => {
-    leiste.current
+    leisteRef.current
       ?.querySelector('[aria-current="page"]')
       ?.scrollIntoView?.({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
   }, [aktiv]);
@@ -65,8 +71,19 @@ export default function Unterreiter({
 
   const ziel = `${basis}/${sichtbar[0].pfad}`;
 
-  return (
-    <div>
+  /*
+    DIE LEISTE STEHT UNTER DEM SEITENKOPF der Unterseite (docs/design/linie.md
+    1: erst Titel und Metazeile, dann die Bereiche) — wie die Reiter in Lager,
+    Anforderungen und Urlaub, die ihre Leiste ebenfalls unter dem Kopf tragen.
+    Vorher stand sie ÜBER dem Titel: zwei Arten Reiterleisten an zwei Stellen.
+
+    Der Seitenkopf holt sie sich über den Kontext und meldet sich dabei an.
+    Hat eine Unterseite keinen Seitenkopf, steht die Leiste wie bisher oben —
+    es geht nie eine Navigation verloren. Angemeldet wird im Layout-Effekt,
+    also vor dem Zeichnen: die Leiste springt nicht sichtbar.
+  */
+  const leiste = (
+    <>
       {/*
         Bei nur einer Unterseite keine Leiste: ein Reiter, der genau eine
         Wahlmöglichkeit anbietet, ist keine Navigation, sondern Zierrat. Der
@@ -81,7 +98,7 @@ export default function Unterreiter({
       */}
       {sichtbar.length > 1 && (
         <nav
-          ref={leiste}
+          ref={leisteRef}
           /*
             AM TELEFON SEITLICH, AB DEM TABLET UMBRECHEN. Seit Nummernkreise
             und Personal eigene Unterseiten sind, hat „Einstellungen" zehn
@@ -89,7 +106,7 @@ export default function Unterreiter({
             zeigt eine zweite Zeile alle — am Telefon wären es vier Zeilen,
             dort läuft die Leiste wie die übrigen der App seitlich.
           */
-          className="mb-4 reiterleiste"
+          className="reiterleiste"
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (
@@ -109,7 +126,12 @@ export default function Unterreiter({
           ))}
         </nav>
       )}
+    </>
+  );
 
+  return (
+    <UnterreiterKontext.Provider value={{ leiste, anmelden }}>
+      {imKopf === 0 && leiste}
       <Routes>
         {sichtbar.map((s) => (
           <Route key={s.pfad} path={s.pfad} element={elemente[s.pfad] ?? null} />
@@ -123,6 +145,6 @@ export default function Unterreiter({
         */}
         <Route path="*" element={<Navigate to={ziel} replace />} />
       </Routes>
-    </div>
+    </UnterreiterKontext.Provider>
   );
 }

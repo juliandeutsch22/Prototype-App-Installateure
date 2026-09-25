@@ -33,6 +33,7 @@ vi.mock('@/app/AuthContext', () => ({
 }));
 
 const { default: Unterreiter } = await import('@/components/Unterreiter');
+const { default: PageHeader } = await import('@/components/PageHeader');
 
 const ELEMENTE = {
   meldungen: <p>Meldungen-Inhalt</p>,
@@ -196,5 +197,44 @@ describe('Unterreiter', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText('Module-Inhalt')).toBeInTheDocument();
+  });
+});
+
+describe('Die Leiste der Unterreiter unter dem Seitenkopf', () => {
+  /*
+    SEIT DER LINIE (docs/design/linie.md 1): erst Titel und Metazeile, dann
+    die Bereiche — wie die Reiter in Lager und Urlaub. Vorher stand die Leiste
+    über dem Titel. Hat eine Unterseite keinen Seitenkopf, bleibt sie oben
+    (die ersten Fälle oben in dieser Datei).
+  */
+  it('steht genau einmal, und zwar hinter der Überschrift der Unterseite', async () => {
+    rolle = 'Geschäftsführung';
+    render(
+      <MemoryRouter initialEntries={['/settings/meldungen']}>
+        <Routes>
+          <Route
+            path="/settings/*"
+            element={
+              <Unterreiter
+                basis="/settings"
+                elemente={{
+                  meldungen: (
+                    <div>
+                      <PageHeader title="Mein Konto" />
+                      <p>Meldungen-Inhalt</p>
+                    </div>
+                  ),
+                  saetze: <p>Saetze-Inhalt</p>,
+                }}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+    const titel = await screen.findByRole('heading', { name: 'Mein Konto', level: 1 });
+    const leisten = screen.getAllByRole('navigation', { name: 'Bereiche' });
+    expect(leisten).toHaveLength(1);
+    expect(titel.compareDocumentPosition(leisten[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

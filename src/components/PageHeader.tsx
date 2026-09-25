@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useContext, useLayoutEffect, type ReactNode } from 'react';
+import { UnterreiterKontext } from './unterreiterKontext';
 
 /**
  * Einheitlicher Seitenkopf nach der Linie (docs/design/linie.md, 1): eine
@@ -24,14 +25,23 @@ export default function PageHeader({
   action?: ReactNode;
   ueber?: ReactNode;
 }) {
+  // Unter einem Reiter mit Unterseiten (Einstellungen, Einsatzplanung) steht
+  // die Leiste der Bereiche direkt unter diesem Kopf (siehe Unterreiter.tsx).
+  const unterreiter = useContext(UnterreiterKontext);
+  const anmelden = unterreiter?.anmelden;
+  useLayoutEffect(() => anmelden?.(), [anmelden]);
+
   return (
-    <div className="seitenkopf">
-      <div>
-        {ueber && <p className="seitenkopf-ueber">{ueber}</p>}
-        <h1 className="seitentitel">{title}</h1>
-        {subtitle && <p className="seitenkopf-unter">{subtitle}</p>}
+    <>
+      <div className="seitenkopf">
+        <div>
+          {ueber && <p className="seitenkopf-ueber">{ueber}</p>}
+          <h1 className="seitentitel">{title}</h1>
+          {subtitle && <p className="seitenkopf-unter">{subtitle}</p>}
+        </div>
+        {action && <div className="seitenkopf-aktion">{action}</div>}
       </div>
-      {action && <div className="seitenkopf-aktion">{action}</div>}
-    </div>
+      {unterreiter?.leiste}
+    </>
   );
 }
