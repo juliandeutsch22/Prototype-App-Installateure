@@ -6,6 +6,7 @@ import { notzugang, offeneFreigaben, type OffeneFreigabe } from '@/lib/db/suppor
 import { betriebFehler, type NeuerBetrieb } from '@shared/plattform';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
+import Meldung from '@/components/Meldung';
 import { InputField, FormGrid } from '@/components/Field';
 import { EmptyState, ErrorState } from '@/components/States';
 import { List, ListRow } from '@/components/ListRow';
@@ -277,8 +278,10 @@ export default function PlattformView() {
                 subtitle={
                   <>
                     {f.grund} · bis{' '}
+                    {/* Mit Jahr, wie jedes Datum in der App: „26.09.2026, 18:00". */}
                     {new Date(f.gilt_bis).toLocaleString('de-AT', {
-                      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                      day: '2-digit', month: '2-digit', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
                     })}
                   </>
                 }
@@ -402,11 +405,18 @@ export default function PlattformView() {
                         {b.passwortLink}
                       </a>
                     </span>
-                    <span className="mt-1 block text-xs text-warning">
-                      Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort.
-                      Er steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
-                    </span>
                   </>
+                }
+                /*
+                  Die Warnung als Meldung unter der Zeile, wie jede andere
+                  Warnung der App — vorher 12 px Warnfarbe im Kleingedruckten,
+                  für den einen Satz, den man hier nicht überlesen darf.
+                */
+                unten={
+                  <Meldung ton="warnung">
+                    Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort.
+                    Er steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
+                  </Meldung>
                 }
               />
             ))}
