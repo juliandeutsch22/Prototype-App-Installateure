@@ -17,7 +17,7 @@ import { listEntriesInRange } from '@/lib/db/timeEntries';
 import { scheineOhneBuchung, minutenOhneBuchung, OFFEN_AB_TAGEN } from './fehlendeZeitbuchung';
 import { deuteSuche, suchHinweis } from './scheinSuche';
 import { isGF, canWriteWorkSheet, canEditTime } from '@/lib/permissions';
-import { fmtMin, tageWort, todayStr } from '@/lib/time';
+import { fmtDauer, tageWort, todayStr } from '@/lib/time';
 import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -437,7 +437,7 @@ export default function WorkSheetsListView() {
         >
           {minutenOhneBuchung(ohneBuchung) > 0 && (
             <p className="mb-3 text-sm text-ink">
-              <strong>{fmtMin(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
+              <strong>{fmtDauer(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
               beim Kunden und in keiner Zeiterfassung.
             </p>
           )}
@@ -516,7 +516,7 @@ export default function WorkSheetsListView() {
                     <span className="mt-1 block">
                       {zeilen.map((z) => (
                         <span key={z.name} className="block text-xs text-ink-muted">
-                          {z.name} · {fmtMin(z.minuten)} ·{' '}
+                          {z.name} · {fmtDauer(z.minuten)} ·{' '}
                           {z.art === 'keine'
                             ? 'keine Buchung gefunden'
                             : `gebucht auf ${z.gebuchtAuf?.join(', ')}`}
@@ -661,7 +661,7 @@ export default function WorkSheetsListView() {
                   }
                   subtitle={
                     <>
-                      {datumAT(s.datum)} · {fmtMin(gesamt)} · {s.abrechnung}
+                      {datumAT(s.datum)} · {fmtDauer(gesamt)} · {s.abrechnung}
                       {s.unterschriften?.kunde && (
                         <span className="mt-1 block text-xs text-ink-muted">
                           Unterschrieben von {s.unterschriften.kunde.name}
@@ -691,7 +691,7 @@ export default function WorkSheetsListView() {
                                     {z.mitarbeiter}
                                     {z.helfer ? ' (Helfer)' : ''} ·{' '}
                                     {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
-                                    {fmtMin(z.minuten)}
+                                    {fmtDauer(z.minuten)}
                                     {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
                                   </span>
                                 ))}
@@ -856,7 +856,7 @@ export default function WorkSheetsListView() {
         message={
           verwerfenFuer
             ? `${verwerfenFuer.customerName}, ${datumAT(verwerfenFuer.datum)} · ` +
-              `${fmtMin(verwerfenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
+              `${fmtDauer(verwerfenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
               `${verwerfenFuer.material.length} Materialposten. Der Entwurf verschwindet aus ` +
               'der Arbeitsliste, bleibt aber erhalten und lässt sich wieder aufnehmen.'
             : undefined

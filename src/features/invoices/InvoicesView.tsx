@@ -49,7 +49,7 @@ import { scheinAbgleich } from './scheinAbgleich';
 import { pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
 import { listQuotesForProject } from '@/lib/db/quotes';
 import { calcTotals, discountLabel, type InvoicePosition } from './totals';
-import { todayStr, localDateStr, fmtMin, tageWort } from '@/lib/time';
+import { todayStr, localDateStr, fmtDauer, tageWort } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { Invoice, Project, RechnungsArt, WorkSheet, Zahlungseingang } from '@/types';
 import Card from '@/components/Card';
@@ -1638,12 +1638,12 @@ export default function InvoicesView() {
               }`}
             >
               {abgleich.scheine === 1 ? 'Ein Schein bestätigt' : `${abgleich.scheine} Scheine bestätigen`}{' '}
-              <strong>{fmtMin(abgleich.bestaetigtMin)}</strong>, verrechnet werden{' '}
-              <strong>{fmtMin(abgleich.verrechnetMin)}</strong>
+              <strong>{fmtDauer(abgleich.bestaetigtMin)}</strong>, verrechnet werden{' '}
+              <strong>{fmtDauer(abgleich.verrechnetMin)}</strong>
               {abgleich.auffaellig ? (
                 <>
                   {' '}
-                  — <strong>{fmtMin(abgleich.mehrMin)} mehr, als der Kunde unterschrieben hat.</strong>{' '}
+                  — <strong>{fmtDauer(abgleich.mehrMin)} mehr, als der Kunde unterschrieben hat.</strong>{' '}
                   Das kann stimmen: Vorfertigung in der Werkstatt und der Weg zum Grosshändler
                   zählen auf die Baustelle, stehen aber auf keinem Schein. Nur wird der Kunde
                   danach fragen — besser jetzt als nach dem Versand.
@@ -1651,7 +1651,7 @@ export default function InvoicesView() {
               ) : abgleich.zuWenig ? (
                 <>
                   {' '}
-                  — <strong>{fmtMin(abgleich.wenigerMin)} weniger, als auf noch nicht verrechneten
+                  — <strong>{fmtDauer(abgleich.wenigerMin)} weniger, als auf noch nicht verrechneten
                   Scheinen unterschrieben ist.</strong>{' '}
                   Meist ist die Zeit noch nicht gebucht: der Nachtrag steht beim Monteur in der
                   Zeiterfassung offen. Gebucht kommt sie auf die nächste Rechnung dieser Baustelle —
@@ -1675,10 +1675,10 @@ export default function InvoicesView() {
                     <span key={`${f.datum}|${f.name}|${f.helfer}`} className="block">
                       {f.datum.slice(8, 10)}.{f.datum.slice(5, 7)}. · {f.name} ·{' '}
                       {f.helfer ? 'Helfer' : 'Facharbeiter'}: unterschrieben{' '}
-                      <strong>{fmtMin(f.bestaetigtMin)}</strong>, verrechnet{' '}
-                      <strong>{fmtMin(f.verrechnetMin)}</strong>
+                      <strong>{fmtDauer(f.bestaetigtMin)}</strong>, verrechnet{' '}
+                      <strong>{fmtDauer(f.verrechnetMin)}</strong>
                       {f.andererSatzMin > 0 &&
-                        ` (als ${f.helfer ? 'Facharbeiter' : 'Helfer'} ${fmtMin(f.andererSatzMin)})`}
+                        ` (als ${f.helfer ? 'Facharbeiter' : 'Helfer'} ${fmtDauer(f.andererSatzMin)})`}
                     </span>
                   ))}
                   <span className="mt-1 block">

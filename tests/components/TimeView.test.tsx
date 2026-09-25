@@ -433,7 +433,7 @@ describe('Offene Nachtragungen', () => {
       await screen.findByText(/wartet noch auf deine Zeitbuchung/),
     ).toBeInTheDocument();
     expect(screen.getByText(/Familie Huber/)).toBeInTheDocument();
-    expect(screen.getByText(/03:00 beim Kunden/)).toBeInTheDocument();
+    expect(screen.getByText(/03:00 Std beim Kunden/)).toBeInTheDocument();
   });
 
   it('schweigt, sobald die Zeit gebucht ist', async () => {

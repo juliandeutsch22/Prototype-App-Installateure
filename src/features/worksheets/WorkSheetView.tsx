@@ -14,7 +14,7 @@ import {
   fotosAmEntwurf,
   type NewWorkSheet,
 } from '@/lib/db/workSheets';
-import { fmtMin, todayStr } from '@/lib/time';
+import { fmtDauer, fmtMin, todayStr } from '@/lib/time';
 import type { Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -909,7 +909,7 @@ export default function WorkSheetView() {
 
       {projectNumber ? (
         <>
-          <Card title={`Zeiten am ${datumAT(datum)} · ${fmtMin(gesamtMinuten)}`}>
+          <Card title={`Zeiten am ${datumAT(datum)} · ${fmtDauer(gesamtMinuten)}`}>
             {/*
               Der Ladezustand steckt jetzt IN dieser Karte, nicht davor. Vorher
               verdeckte er das ganze Formular — auch die Unterschriften, die

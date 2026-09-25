@@ -9,6 +9,7 @@ import { getUserByUid } from '@/lib/db/users';
 import {
   calcWorkMin,
   fmtMin,
+  fmtDauer,
   calcOverallSaldo,
   saldoAusBilanzen,
   getISOWeek,
@@ -474,7 +475,7 @@ export default function TimeView() {
               <li key={n.schein.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-ink">
                   {datumAT(n.schein.datum)} · {n.schein.customerName} · Baustelle{' '}
-                  {n.schein.projectNumber} · {fmtMin(n.minuten)} beim Kunden
+                  {n.schein.projectNumber} · {fmtDauer(n.minuten)} beim Kunden
                 </span>
                 <Button
                   variant="secondary"

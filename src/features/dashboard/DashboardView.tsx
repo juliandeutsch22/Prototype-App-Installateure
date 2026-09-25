@@ -23,6 +23,7 @@ import {
   fmtStunden,
 } from '@/lib/time';
 import { getAustrianHolidayName } from '@shared/feiertage';
+import { datumAT } from '@/lib/datum';
 import {
   fuehrtZeitkonto,
   canProcessOrders,
@@ -503,15 +504,16 @@ export default function DashboardView() {
   if (!user) return null;
 
   /*
-    Einmal gerechnet, dreimal gelesen. `toLocaleDateString` mit `de-AT` gibt
-    „Freitag, 18. September" — Wochentag ausgeschrieben, weil genau der die
-    Frage beantwortet, die jemand um 6:50 Uhr im Auto hat. Das Jahr bleibt
-    weg: es traegt hier nichts bei.
+    Einmal gerechnet, dreimal gelesen. Wochentag ausgeschrieben, weil genau
+    der die Frage beantwortet, die jemand um 6:50 Uhr im Auto hat — danach
+    das Datum so, wie es überall in der App steht: „Freitag, 25.09.2026".
+    Bis zum 25.09.2026 stand hier „Freitag, 25. September", die einzige
+    Stelle mit ausgeschriebenem Monat.
   */
   const heuteKopf = (() => {
     const d = new Date();
     return {
-      datum: d.toLocaleDateString('de-AT', { weekday: 'long', day: 'numeric', month: 'long' }),
+      datum: `${d.toLocaleDateString('de-AT', { weekday: 'long' })}, ${datumAT(localDateStr(d))}`,
       kw: getISOWeek(d).week,
       feiertag: getAustrianHolidayName(d),
     };
