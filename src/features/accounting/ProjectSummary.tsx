@@ -37,6 +37,32 @@ function dayLabel(iso: string): string {
 const h = fmtStd;
 
 /**
+ * Die Baustellennummer, wie sie überall sonst steht — MIT Vorsatz: „PR-187".
+ *
+ * Überall sonst wird die Nummer so ausgegeben, wie sie an der Baustelle
+ * gespeichert ist (`projectNumber`); der Vorsatz ist Teil davon. Der
+ * Gruppierungsschlüssel aus `groupProjectHours` hat ihn dagegen verloren —
+ * `normProjectNumber` streicht „PR-", damit „187" und „PR-187" als DIESELBE
+ * Baustelle zählen. Zum Vergleichen richtig, zum Zeigen falsch.
+ *
+ * Solange die Baustelle nicht geladen ist (oder nicht gefunden wird), steht
+ * die Nummer an den Einträgen selbst noch in ihrer vollen Form; genommen wird
+ * die, die den Vorsatz trägt. Erst wenn keine ihn hat, bleibt der Schlüssel.
+ */
+function angezeigteNummer(r: {
+  project?: Project;
+  projectNumber: string;
+  entries: TimeEntry[];
+}): string {
+  return (
+    r.project?.projectNumber ??
+    r.entries.find((e) => e.projectNumber && e.projectNumber.trim() !== r.projectNumber)
+      ?.projectNumber ??
+    r.projectNumber
+  );
+}
+
+/**
  * Projektauswertung: Ist-Stunden gegen das kalkulierte Budget, getrennt nach
  * Fach- und Helferzeit. Helferstunden zählen bewusst NICHT gegen das Budget —
  * sie werden zwar verrechnet, sind für die Kalkulation aber kostenneutral.
@@ -128,6 +154,7 @@ export default function ProjectSummary({
           const people = [...byUser.values()].sort(
             (a, b) => b.fachMin + b.helperMin - (a.fachMin + a.helperMin),
           );
+          const nummer = angezeigteNummer(r);
 
           return (
             /*
@@ -157,14 +184,14 @@ export default function ProjectSummary({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="min-w-0">
                     <span className="block font-bold text-ink">
-                      {r.project?.customerName ?? r.projectNumber}
+                      {r.project?.customerName ?? nummer}
                     </span>
                     {/* Die Nummer, wie sie an der Baustelle steht — der Schlüssel
                         der Gruppierung hat den Vorsatz „PR-" verloren
-                        (Launch-Check 25.09.2026: „187" statt „PR-187"). */}
-                    <span className="block text-sm text-ink-muted">
-                      {r.project?.projectNumber ?? r.projectNumber}
-                    </span>
+                        (Launch-Check 25.09.2026: „187" statt „PR-187"). Auch
+                        solange die Baustelle noch lädt, siehe
+                        `angezeigteNummer`. */}
+                    <span className="block text-sm text-ink-muted">{nummer}</span>
                   </span>
                   <span className="flex items-center gap-2">
                     {/*
