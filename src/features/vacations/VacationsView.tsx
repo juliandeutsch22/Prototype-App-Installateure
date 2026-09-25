@@ -23,6 +23,7 @@ import {
   urlaubsJahrVon,
   JAHRESBEGINN_VORGABE,
   fmtMin,
+  fmtDauer,
   type SaldoResult,
 } from '@/lib/time';
 import type { AppUser, Betriebsurlaub, Krankmeldung, Vacation } from '@/types';
@@ -63,18 +64,15 @@ const istZa = (v: Pick<Vacation, 'art'>) => v.art === 'Zeitausgleich';
 /** „13:00" aus „13:00" oder „13:00:00". */
 const hhmm = (t?: string | null) => (t ?? '').slice(0, 5);
 
-/** Stunden mit Komma: 4 → „4", 7,5 → „7,5". */
-const std = (h: number) => h.toLocaleString('de-AT', { maximumFractionDigits: 2 });
-
 /**
  * Was ein ZA-Antrag kostet, in Worten — für die Listen.
  *
- * „ZA – 4 Std. (13:00–17:00)" oder „ZA – 2 Tage (16 Std.)". Beim Urlaub
+ * „ZA – 04:00 Std (13:00–17:00)" oder „ZA – 2 Tage (16:00 Std)". Beim Urlaub
  * bleibt es bei den Arbeitstagen, wie bisher.
  */
 function umfang(v: Vacation): string {
   if (!istZa(v)) return `${v.tage} ${v.tage === 1 ? 'Arbeitstag' : 'Arbeitstage'}`;
-  const stunden = v.zaStunden != null ? `${std(Number(v.zaStunden))} Std.` : '';
+  const stunden = v.zaStunden != null ? fmtDauer(Math.round(Number(v.zaStunden) * 60)) : '';
   if (v.zaVon && v.zaBis) return `ZA – ${stunden} (${hhmm(v.zaVon)}–${hhmm(v.zaBis)})`;
   return `ZA – ${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}${stunden ? ` (${stunden})` : ''}`;
 }
@@ -772,7 +770,7 @@ export default function VacationsView() {
         <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
           <Zustand stand="gut">ausreichend Zeitguthaben</Zustand>
           <span className="tnum">
-            {vorzeichen(jetzt)} Std., danach {vorzeichen(danach)} Std.
+            {vorzeichen(jetzt)} Std, danach {vorzeichen(danach)} Std
           </span>
         </span>
       );
@@ -780,8 +778,8 @@ export default function VacationsView() {
     return (
       <span className="mt-1 block text-xs font-medium text-warning" role="alert">
         {jetzt <= 0
-          ? `Kein Zeitguthaben (${vorzeichen(jetzt)} Std.) — der Zeitausgleich ginge ins Minus.`
-          : `Das Zeitguthaben (${vorzeichen(jetzt)} Std.) reicht nicht — danach stünden ${vorzeichen(danach)} Std.`}{' '}
+          ? `Kein Zeitguthaben (${vorzeichen(jetzt)} Std) — der Zeitausgleich ginge ins Minus.`
+          : `Das Zeitguthaben (${vorzeichen(jetzt)} Std) reicht nicht — danach stünden ${vorzeichen(danach)} Std.`}{' '}
         Beantragen geht trotzdem; entschieden wird bei der Genehmigung.
       </span>
     );
@@ -1003,7 +1001,7 @@ export default function VacationsView() {
 
           {art === 'Zeitausgleich' && (
             <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-              <strong className="tnum">{std(zaMin / 60)} Std.</strong>
+              <strong className="tnum">{fmtDauer(zaMin)}</strong>
               <span className="ml-1">
                 Zeitausgleich
                 {zaStundenweise
@@ -1091,7 +1089,7 @@ export default function VacationsView() {
                               saldoMin - kostet < 0 ? 'font-medium text-warning' : 'text-ink-muted'
                             }`}
                           >
-                            Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std.
+                            Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std
                             {saldoMin - kostet < 0 ? ' — reicht nicht' : ''}
                           </span>
                         )}

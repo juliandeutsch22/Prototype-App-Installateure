@@ -598,7 +598,7 @@ describe('Zeitausgleich beantragen', () => {
     await nutzer.click(screen.getByLabelText(/Nur einige Stunden/));
     await datum('Tag', '2026-10-27');
     expect(await screen.findByText('ausreichend Zeitguthaben')).toBeInTheDocument();
-    expect(screen.getByText('4 Std.')).toBeInTheDocument();
+    expect(screen.getByText('04:00 Std')).toBeInTheDocument();
 
     await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
     const v = createVacation.mock.calls[0][1] as Vacation;
@@ -637,7 +637,7 @@ describe('Zeitausgleich beantragen', () => {
     );
     zeichne();
     expect(await screen.findByText(/genehmigt:/)).toHaveTextContent(/genehmigt: 1 von/);
-    expect(screen.getByText(/ZA – 2 Tage \(16 Std\.\)/)).toBeInTheDocument();
+    expect(screen.getByText(/ZA – 2 Tage \(16:00 Std\)/)).toBeInTheDocument();
   });
 
   it('zeigt dem Genehmigenden die Stunden und das Guthaben beim Antrag', async () => {
@@ -648,8 +648,8 @@ describe('Zeitausgleich beantragen', () => {
       zaVon: '13:00', zaBis: '17:00', zaStunden: 4, saldoBeiAntrag: 2.5,
     });
     zeichne();
-    expect(await screen.findByText(/ZA – 4 Std\. \(13:00–17:00\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Zeitguthaben beim Antrag: \+02:30 Std\. — reicht nicht/)).toBeInTheDocument();
+    expect(await screen.findByText(/ZA – 04:00 Std \(13:00–17:00\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Zeitguthaben beim Antrag: \+02:30 Std — reicht nicht/)).toBeInTheDocument();
   });
 });
 

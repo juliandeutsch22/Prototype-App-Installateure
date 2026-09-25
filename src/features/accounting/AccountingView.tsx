@@ -14,6 +14,7 @@ import {
   calcCompleteness,
   calcWorkMin,
   fmtMin,
+  fmtDauer,
   getAustrianHolidayName,
   localDateStr,
   type CompletenessStatus,
@@ -670,7 +671,7 @@ export default function AccountingView() {
                           <b className="font-semibold text-ink">{stats.urlaubDays}</b> Tage Urlaub ·{' '}
                           {stats.zaMin > 0 && (
                             <>
-                              <b className="font-semibold text-ink">{fmtMin(stats.zaMin)}</b> Std. ZA ·{' '}
+                              <b className="font-semibold text-ink">{fmtDauer(stats.zaMin)}</b> ZA ·{' '}
                             </>
                           )}
                           <b
@@ -694,8 +695,8 @@ export default function AccountingView() {
                         sagt das „i" auf Wunsch.
                       */}
                       <p className="mt-3 text-xs text-ink-muted">
-                        Tagessoll {stats.dailyTargetH.toFixed(2).replace('.', ',')} h ·
-                        Wochenstunden {String(stats.weeklyTarget).replace('.', ',')} h ·{' '}
+                        Tagessoll {fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
+                        Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
                         {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
                         {stats.holidaysInMonth > 0 &&
                           ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}

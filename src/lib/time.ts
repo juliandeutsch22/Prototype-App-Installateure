@@ -471,6 +471,18 @@ export function fmtMin(m: number): string {
 }
 
 /**
+ * Eine DAUER, wie sie in Sätzen und Listenzeilen steht: „08:30 Std".
+ *
+ * Nackt sieht „08:30" aus wie eine Uhrzeit — in „25.09.2026 · 08:30 ·
+ * Regie" liest man es als Beginn, nicht als Länge. Mit dem Zusatz ist es
+ * eindeutig. In Tabellen und Kennzahlen, deren Kopf die Einheit schon nennt,
+ * bleibt es bei `fmtMin`.
+ */
+export function fmtDauer(m: number): string {
+  return `${fmtMin(m)} Std`;
+}
+
+/**
  * Wie viele Minuten ein Zeitausgleich-Eintrag frei gibt.
  *
  * Mit Von/Bis genau diese Spanne; ohne den ganzen Tag, also das Tagessoll.
