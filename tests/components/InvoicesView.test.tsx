@@ -216,7 +216,7 @@ vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => [PROJEKT]),
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
 }));
-let kunden: Array<{ name: string; vatId?: string }> = [];
+let kunden: Array<{ id?: string; name: string; vatId?: string; address?: string }> = [];
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
 /*
   Der Kontenrahmen. Leer ist der Regelfall: ohne hinterlegte Konten gibt es
@@ -349,6 +349,7 @@ beforeEach(() => {
   kunden = [];
   angebote = [];
   PROJEKT.billingMode = undefined;
+  PROJEKT.customerId = undefined;
   reservierteNummer = 'RE-2026-1099';
   reservierungWirft = null;
   reihenfolge.length = 0;
@@ -2462,5 +2463,98 @@ describe('Rechnungen — ganz oder gar nicht', () => {
     await userEvent.type(preis, '0');
     expect(bestaetigen).toBeDisabled();
     expect(screen.getByText(/über null Euro wird nicht angelegt/)).toBeInTheDocument();
+  });
+});
+
+/*
+  PRÜFLAUF 25.09.2026, P2-02. Rechnung und Mahnung gingen an die Anschrift
+  der BAUSTELLE. Richtig ist die des Kunden aus dem Stamm — wie beim Angebot —,
+  und die Baustelle als „Ort der Leistung" daneben.
+*/
+describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
+  const KUNDE = { id: 'k1', name: 'Familie Huber', address: 'Kundenweg 1, 2700 Wiener Neustadt' };
+
+  it('schreibt die Anschrift des Kunden als Empfänger und die Baustelle als Ort der Leistung', async () => {
+    kunden = [KUNDE];
+    PROJEKT.customerId = 'k1';
+    await userEvent.click(await bisZurVorschau());
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+
+    expect(lege.mock.calls[0][0]).toMatchObject({
+      address: 'Kundenweg 1, 2700 Wiener Neustadt',
+      leistungsort: 'Bergweg 3',
+    });
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({
+      project: { address: 'Kundenweg 1, 2700 Wiener Neustadt' },
+      leistungsort: 'Bergweg 3',
+    });
+  });
+
+  it('findet den Kunden auch über den Namen — aber nur, wenn er eindeutig ist', async () => {
+    kunden = [KUNDE];
+    await userEvent.click(await bisZurVorschau());
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].address).toBe('Kundenweg 1, 2700 Wiener Neustadt');
+  });
+
+  it('bei zwei Kunden gleichen Namens bleibt es bei der Baustelle', async () => {
+    kunden = [KUNDE, { id: 'k2', name: 'Familie Huber', address: 'Ganz woanders 9' }];
+    await userEvent.click(await bisZurVorschau());
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].address).toBe('Bergweg 3');
+    expect(lege.mock.calls[0][0].leistungsort).toBeUndefined();
+  });
+
+  it('ohne Kunden im Stamm bleibt es, wie es war', async () => {
+    kunden = [];
+    await userEvent.click(await bisZurVorschau());
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].address).toBe('Bergweg 3');
+    expect(lege.mock.calls[0][0].leistungsort).toBeUndefined();
+  });
+
+  it('die Mahnung geht an die Anschrift des Kunden', async () => {
+    kunden = [KUNDE];
+    rechnungen = [
+      {
+        id: 'r1', invoiceNumber: 'RE-2026-0009', projectNumber: '2026-042',
+        customerName: 'Familie Huber', invoiceDate: '2026-08-01', dueDate: '2026-08-15',
+        address: 'Bergweg 3', totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+        vatRate: 0.2, paymentStatus: 'Offen',
+      } as unknown as Invoice & { id: string },
+    ];
+    zeige();
+    await screen.findAllByText(/RE-2026-0009/);
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0009/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
+
+    await waitFor(() => expect(mahnungPdf).toHaveBeenCalled());
+    expect((mahnungPdf.mock.calls[0] as unknown[])[0]).toMatchObject({
+      adresse: 'Kundenweg 1, 2700 Wiener Neustadt',
+    });
+  });
+
+  it('der Nachdruck bleibt beim gespeicherten Beleg', async () => {
+    kunden = [KUNDE];
+    rechnungen = [
+      {
+        id: 'alt', invoiceNumber: 'RE-2026-0005', projectNumber: '2026-042',
+        customerName: 'Familie Huber', invoiceDate: '2026-07-01', dueDate: '2026-07-15',
+        address: 'Bergweg 3', totalNetto: 100, totalVat: 20, totalBrutto: 120, vatRate: 0.2,
+        paymentStatus: 'Bezahlt', bezahltBetrag: 120,
+        positions: [{ label: 'Arbeit', qty: 1, unit: 'h', unitPrice: 100, netto: 100 }],
+      } as unknown as Invoice & { id: string },
+    ];
+    zeige();
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0005/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'PDF erneut laden' }));
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({ project: { address: 'Bergweg 3' } });
+    expect((pdfAusgabe.mock.calls[0][0] as { leistungsort?: string }).leistungsort).toBeUndefined();
   });
 });

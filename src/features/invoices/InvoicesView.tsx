@@ -287,6 +287,19 @@ export default function InvoicesView() {
   const [grenze, setGrenze] = useState(RECHNUNGEN_JE_SEITE);
   /** Buchhaltungs-Export: Zeitraum und Kundenstammdaten fuer die UID. */
   const [kunden, setKunden] = useState<Awaited<ReturnType<typeof listCustomers>>>([]);
+  /**
+   * Der Kunde zu einer Baustelle — über die Verknüpfung, sonst über den
+   * Namen, aber nur, wenn der Name eindeutig ist. Zwei „Familie Huber" im
+   * Stamm, und die Rechnung ginge an die Anschrift der falschen.
+   */
+  function kundeZu(customerId: string | undefined, name: string | undefined) {
+    const verknuepft = customerId ? kunden.find((k) => k.id === customerId) : undefined;
+    if (verknuepft) return verknuepft;
+    const gesucht = (name ?? '').trim().toLowerCase();
+    if (!gesucht) return undefined;
+    const treffer = kunden.filter((k) => k.name.trim().toLowerCase() === gesucht);
+    return treffer.length === 1 ? treffer[0] : undefined;
+  }
   const [exportVon, setExportVon] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
@@ -932,10 +945,23 @@ export default function InvoicesView() {
        */
       const typedSeq = invoiceSeqOf(invoiceNumber);
       const vonHand = ersteRechnung && invoiceNumber.trim() !== suggestedNumber && typedSeq != null;
+      /*
+        AN DEN KUNDEN, NICHT AN DIE BAUSTELLE (Prüflauf 25.09.2026, P2-02).
+        Als Empfänger stand die Anschrift der Baustelle — die Hausverwaltung
+        bekam ihre Rechnung an die Mietwohnung. Jetzt die Anschrift aus dem
+        Kundenstamm, wie beim Angebot, und die Baustelle als „Ort der
+        Leistung" daneben. Ohne Kunden im Stamm bleibt es, wie es war.
+      */
+      const kunde = kundeZu(project?.customerId, project?.customerName);
+      const anschrift = kunde?.address?.trim() || project?.address || '';
+      const baustellenOrt = project?.address?.trim();
+      const leistungsort =
+        baustellenOrt && baustellenOrt !== anschrift.trim() ? baustellenOrt : undefined;
       const { invoiceNumber: reserved } = await rechnungAusstellen(user.companyId, {
         projectNumber,
         customerName: project?.customerName ?? '–',
-        address: project?.address ?? '',
+        address: anschrift,
+        leistungsort,
         invoiceDate,
         dueDate,
         positions: preview.positions,
@@ -996,9 +1022,10 @@ export default function InvoicesView() {
         company,
         project: {
           customerName: project?.customerName ?? '–',
-          address: project?.address,
+          address: anschrift,
           projectNumber,
         },
+        leistungsort,
         invoiceNumber: reserved,
         invoiceDate,
         dueDate,
@@ -1070,13 +1097,23 @@ export default function InvoicesView() {
       const heute = todayStr();
       const spesen = spesenFuer(stufe, company.rates?.mahnspesen);
       const { buildMahnungPdf, mahnungDateiname } = await import('./mahnungPdf');
+      /*
+        DIE MAHNUNG GEHT AN DIE ANSCHRIFT DES KUNDEN (P2-02) — heute, aus dem
+        Stamm. Ältere Rechnungen tragen als Anschrift die der Baustelle; ein
+        umgezogener Kunde bekäme sonst die Mahnung an die alte. Ohne Kunden
+        im Stamm bleibt die Anschrift der Rechnung.
+      */
+      const kunde = kundeZu(
+        projects.find((p) => p.projectNumber === inv.projectNumber)?.customerId,
+        inv.customerName,
+      );
       const blob = await buildMahnungPdf({
         company,
         invoice: inv,
         stufe,
         datum: heute,
         frist,
-        adresse: inv.address,
+        adresse: kunde?.address?.trim() || inv.address,
         kundenUid: inv.customerVatId,
       });
       /*
@@ -1166,6 +1203,8 @@ export default function InvoicesView() {
       */
       reverseCharge: inv.reverseCharge,
       customerVatId: inv.customerVatId,
+      // Aus dem Dokument — Altbestand hat ihn nicht und bleibt, wie er war.
+      leistungsort: inv.leistungsort,
       art: inv.art,
       vorrechnungen: inv.vorrechnungen,
     });

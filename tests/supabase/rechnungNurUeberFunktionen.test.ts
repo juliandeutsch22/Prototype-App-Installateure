@@ -209,3 +209,30 @@ describe('Aufheben, wenn ein Schein weitergewandert ist (P2-16)', () => {
     expect(data!.payment_status).toBe('Offen');
   });
 });
+
+/*
+  PRÜFLAUF 25.09.2026, P2-02. Die Rechnung geht an die Anschrift des Kunden;
+  die Baustelle steht als „Ort der Leistung" daneben. Beides kommt mit der
+  Rechnung in die Datenbank, und beides ist danach eingefroren — ein
+  Nachdruck muss denselben Beleg ergeben.
+*/
+describe('Empfänger und Ort der Leistung (P2-02)', () => {
+  it('werden mitgeschrieben und wieder gelesen', async () => {
+    const id = await anlegen({
+      address: 'Kundenweg 1, 2700 Wiener Neustadt',
+      leistungsort: 'Bergweg 3, 2700 Wiener Neustadt',
+    });
+    const alle = await rechnungen.listUnpaidInvoices(BETRIEB);
+    expect(alle.find((r) => r.id === id)).toMatchObject({
+      address: 'Kundenweg 1, 2700 Wiener Neustadt',
+      leistungsort: 'Bergweg 3, 2700 Wiener Neustadt',
+    });
+  });
+
+  it('der Ort der Leistung ist eingefroren wie der Rest des Belegs', async () => {
+    const id = await anlegen({ leistungsort: 'Bergweg 3' });
+    const { error } = await buch.client.from('invoices')
+      .update({ leistungsort: 'Anderswo' }).eq('id', id);
+    expect(error?.code).toBe('42501');
+  });
+});

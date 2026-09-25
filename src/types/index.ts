@@ -1135,8 +1135,21 @@ export interface Invoice {
    * Stammdaten.
    */
   customerVatId?: string;
-  /** Anschrift der Baustelle zum Zeitpunkt der Rechnungslegung. */
+  /**
+   * Die Anschrift des EMPFÄNGERS, wie sie auf dem Beleg steht — festgehalten,
+   * nicht verknüpft.
+   *
+   * Seit dem Prüflauf 25.09.2026 (P2-02) die Anschrift aus dem Kundenstamm;
+   * vorher stand hier die der Baustelle, und Altbestand trägt sie weiter. Ein
+   * Nachdruck liest sie von hier und ergibt damit denselben Beleg.
+   */
   address?: string;
+  /**
+   * Der Ort der Leistung — die Anschrift der Baustelle, wo sie von der des
+   * Empfängers abweicht. Steht als eigene Zeile auf dem Beleg. Altbestand hat
+   * ihn nicht.
+   */
+  leistungsort?: string;
   /**
    * Leistungszeitraum — der Tag oder Zeitraum, über den die Leistung erbracht
    * wurde.
