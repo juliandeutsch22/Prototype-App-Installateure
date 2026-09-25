@@ -280,14 +280,14 @@ export default function ProjectSummary({
                     ))}
                   </div>
 
-                  <div className="mt-3 overflow-x-auto">
-                    <table className="w-full min-w-[28rem] text-sm">
+                  <div className="tabelle-rahmen mt-3">
+                    <table className="tabelle min-w-[28rem]">
                       <thead>
-                        <tr className="border-b border-line text-left text-ink-muted">
-                          <th className="py-1 pr-3 font-medium">Tag</th>
-                          <th className="py-1 pr-3 font-medium">Mitarbeiter</th>
-                          <th className="py-1 pr-3 font-medium">Tätigkeit</th>
-                          <th className="py-1 text-right font-medium">Stunden</th>
+                        <tr>
+                          <th className="tabelle-kopf">Tag</th>
+                          <th className="tabelle-kopf">Mitarbeiter</th>
+                          <th className="tabelle-kopf">Tätigkeit</th>
+                          <th className="tabelle-kopf-zahl">Stunden</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -296,10 +296,10 @@ export default function ProjectSummary({
                           .map((e) => (
                             <tr
                               key={e.id}
-                              className={`border-b border-line/60 ${e.isHelper ? 'bg-warning-bg' : ''}`}
+                              className={e.isHelper ? 'bg-warning-bg' : undefined}
                             >
-                              <td className="py-1 pr-3">{dayLabel(e.date)}</td>
-                              <td className="py-1 pr-3">
+                              <td className="tabelle-zelle">{dayLabel(e.date)}</td>
+                              <td className="tabelle-zelle">
                                 {/*
                                   ALLE Marker, nicht nur „Helfer". Gemeldet:
                                   „Notdienst wurde angehakt, aber das scheint
@@ -314,10 +314,12 @@ export default function ProjectSummary({
                                   <Zeitmarker eintrag={e} />
                                 </span>
                               </td>
-                              <td className="py-1 pr-3 text-ink-muted">
-                                {e.comment ? `„${e.comment}"` : '–'}
+                              <td className="tabelle-zelle">
+                                <span className="text-ink-muted">
+                                  {e.comment ? `„${e.comment}"` : '–'}
+                                </span>
                               </td>
-                              <td className="py-1 text-right">
+                              <td className="tabelle-zahl">
                                 {fmtMin(calcWorkMin(e))}
                               </td>
                             </tr>

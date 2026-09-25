@@ -37,6 +37,8 @@ import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
+import Meldung from '@/components/Meldung';
+import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import {
@@ -709,11 +711,13 @@ export default function AccountingView() {
                         )}
                       </p>
                       {!stats.hasConfig ? (
-                        <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                          Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
-                          sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,
-                          sondern keine Aussage. Nachtragen in der Benutzerverwaltung.
-                        </p>
+                        <div className="mt-2">
+                          <Meldung ton="warnung">
+                            Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
+                            sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,
+                            sondern keine Aussage. Nachtragen in der Benutzerverwaltung.
+                          </Meldung>
+                        </div>
                       ) : null}
 
                       {completeness.missingCount > 0 && (
@@ -888,7 +892,7 @@ export default function AccountingView() {
                         return (
                           <div className="mt-4">
                             <details className="group">
-                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
+                              <summary className="kasten flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
                                 <span>
                                   Tagesnachweis ·{' '}
                                   <span className="whitespace-nowrap">
@@ -912,15 +916,23 @@ export default function AccountingView() {
                                   />
                                 </span>
                               </summary>
-                              <table className="mt-1 hidden w-full text-sm sm:table">
+                              {/*
+                                DIE TABELLE ERST AB `xl`. Neben der Seitenleiste
+                                bleiben auf 834 px rund 500 Pixel, auf 1024 rund
+                                600 — sechs Spalten und zwei Knöpfe passen dort
+                                nicht: „Bearbeiten" brach Buchstabe für Buchstabe
+                                um, danach die Baustelle. Bis `xl` gilt deshalb
+                                die Liste darunter.
+                              */}
+                              <table className="tabelle mt-1 hidden xl:table">
                               <thead>
-                                <tr className="border-b border-line text-left text-ink-muted">
-                                  <th className="py-2 pr-3 font-medium">Tag</th>
-                                  <th className="py-2 pr-3 font-medium">Status</th>
-                                  <th className="py-2 pr-3 font-medium">Zeit</th>
-                                  <th className="py-2 pr-3 font-medium">Baustelle</th>
-                                  <th className="py-2 pr-3 text-right font-medium">Stunden</th>
-                                  <th className="py-2 text-right font-medium">
+                                <tr>
+                                  <th className="tabelle-kopf">Tag</th>
+                                  <th className="tabelle-kopf">Status</th>
+                                  <th className="tabelle-kopf">Zeit</th>
+                                  <th className="tabelle-kopf">Baustelle</th>
+                                  <th className="tabelle-kopf-zahl">Stunden</th>
+                                  <th className="tabelle-kopf-zahl">
                                     <span className="sr-only">Aktionen</span>
                                   </th>
                                 </tr>
@@ -931,11 +943,11 @@ export default function AccountingView() {
                                   // Buchungen desselben Tages haetten sonst
                                   // denselben, und React zoege die Zeilen
                                   // beim Bearbeiten durcheinander.
-                                  <tr key={x.entry?.id ?? x.d} className="border-b border-line/60">
-                                    <td className="whitespace-nowrap py-2 pr-3 font-medium text-ink">
+                                  <tr key={x.entry?.id ?? x.d}>
+                                    <td className="tabelle-zelle whitespace-nowrap">
                                       {dayLabel(x.d)}
                                     </td>
-                                    <td className="py-2 pr-3">
+                                    <td className="tabelle-zelle">
                                       {/*
                                         Notdienst und Nachtarbeit gehören
                                         NEBEN den Status. Sie hängen an einem
@@ -948,14 +960,14 @@ export default function AccountingView() {
                                         {x.entry && <Zeitmarker eintrag={x.entry} />}
                                       </span>
                                     </td>
-                                    <td className="py-2 pr-3 text-ink-muted">
-                                      {x.zeit ?? '—'}
+                                    <td className="tabelle-zelle whitespace-nowrap">
+                                      <span className="text-ink-muted">{x.zeit ?? '—'}</span>
                                     </td>
-                                    <td className="py-2 pr-3">{x.entry?.customerName ?? '—'}</td>
-                                    <td className="py-2 pr-3 text-right font-medium">
+                                    <td className="tabelle-zelle">{x.entry?.customerName ?? '—'}</td>
+                                    <td className="tabelle-zahl-stark">
                                       {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
                                     </td>
-                                    <td className="py-2">
+                                    <td className="tabelle-zelle whitespace-nowrap">
                                       {/* Flex statt Inline: sonst sitzen die
                                           Knöpfe auf der Textgrundlinie und
                                           hängen sichtbar unter der Zeile. */}
@@ -967,16 +979,16 @@ export default function AccountingView() {
                                 ))}
                               </tbody>
                               <tfoot>
-                                <tr className="font-semibold">
-                                  <td className="pt-2" colSpan={4}>
+                                <tr className="tabelle-gesamt">
+                                  <td className="tabelle-summe" colSpan={4}>
                                     {monthEntries.length === 1
                                       ? '1 Eintrag'
                                       : `${monthEntries.length} Einträge`}
                                   </td>
-                                  <td className="pt-2 pr-3 text-right">
+                                  <td className="tabelle-summe-zahl">
                                     {fmtMin(stats.istMin)}
                                   </td>
-                                  <td className="pt-2" />
+                                  <td />
                                 </tr>
                               </tfoot>
                             </table>
@@ -1001,39 +1013,35 @@ export default function AccountingView() {
                               kein Anhang; ein zusaetzlicher Klick waere dort
                               keine Ruhe, sondern ein Umweg.
                             */}
-                              <ul className="sm:hidden">
-                              {days.map((x) => (
-                                <li key={x.entry?.id ?? x.d} className="border-b border-line/60 py-2">
-                                  <div className="flex items-baseline justify-between gap-2">
-                                    <span className="font-semibold text-ink">
-                                      {dayLabel(x.d)}
-                                    </span>
-                                    <span className="font-semibold text-ink">
-                                      {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
-                                    </span>
-                                  </div>
-                                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
-                                    {status(x)}
-                                    {x.entry && <Zeitmarker eintrag={x.entry} />}
-                                    {x.zeit && <span>{x.zeit}</span>}
-                                    {x.entry?.customerName && <span>{x.entry.customerName}</span>}
-                                  </div>
-                                  {x.entry && (
-                                    <div className="mt-1 flex flex-wrap items-center gap-1">
-                                      {actions(x.entry)}
-                                    </div>
-                                  )}
-                                </li>
-                              ))}
-                              <li className="flex justify-between py-2 font-semibold">
-                                <span>
-                                  {monthEntries.length === 1
-                                    ? '1 Eintrag'
-                                    : `${monthEntries.length} Einträge`}
-                                </span>
-                                <span>{fmtMin(stats.istMin)}</span>
-                              </li>
-                              </ul>
+                              <div className="xl:hidden">
+                                <List>
+                                  {days.map((x) => (
+                                    <ListRow
+                                      key={x.entry?.id ?? x.d}
+                                      title={dayLabel(x.d)}
+                                      wert={x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
+                                      subtitle={
+                                        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                          {status(x)}
+                                          {x.entry && <Zeitmarker eintrag={x.entry} />}
+                                          {x.zeit && <span>{x.zeit}</span>}
+                                          {x.entry?.customerName && <span>{x.entry.customerName}</span>}
+                                        </span>
+                                      }
+                                    >
+                                      {x.entry && actions(x.entry)}
+                                    </ListRow>
+                                  ))}
+                                  <ListRow
+                                    title={
+                                      monthEntries.length === 1
+                                        ? '1 Eintrag'
+                                        : `${monthEntries.length} Einträge`
+                                    }
+                                    wert={fmtMin(stats.istMin)}
+                                  />
+                                </List>
+                              </div>
                             </details>
                           </div>
                         );
