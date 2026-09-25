@@ -14,6 +14,7 @@ import { listInvoicesForCustomer } from '@/lib/db/invoices';
 import { listWartungenForCustomer } from '@/lib/db/wartungen';
 import { useModul } from '@/lib/useModule';
 import { canInvoice, darfKundenPflegen, isGF } from '@/lib/permissions';
+import { canAccess } from '@/app/navigation';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { todayStr } from '@/lib/time';
 import type { Customer, Invoice, Project, Quote, Wartung } from '@/types';
@@ -71,7 +72,7 @@ const LAEDT = { zustand: 'laedt' } as const;
 
 export default function KundenakteView() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
   const wartungAn = useModul('wartung');
   const angeboteAn = useModul('angebote');
@@ -109,6 +110,9 @@ export default function KundenakteView() {
   const darfBaustellenZuordnen = user ? isGF(user.role) : false;
   /** Rechnungen liest nur, wer sie auch stellt — so steht es im Zeilenschutz. */
   const darfRechnungen = user ? canInvoice(user.role) : false;
+  /* Die Wartungszeilen führen in die Wartungsliste — nur, wer sie öffnen darf
+     (die Buchhaltung sieht die Akte, aber nicht die Wartungen). */
+  const wartungenOffen = user ? canAccess(user.role, '/wartungen', company?.modules) : false;
   const heute = todayStr();
 
   useEffect(() => {
@@ -304,12 +308,17 @@ export default function KundenakteView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={k.name}
-        subtitle={
-          <Link to="/customers" className="textlink-allein">
+        /*
+          DER RÜCKWEG ÜBER DEM TITEL, die Metazeile darunter (docs/design/
+          linie.md 1): Ansprechpartner · UID, soweit hinterlegt.
+        */
+        ueber={
+          <Link to="/customers" className="akte-zurueck">
             ← Zur Kundenliste
           </Link>
         }
+        title={k.name}
+        subtitle={[k.contactName, k.vatId].filter((x) => x?.trim()).join(' · ') || undefined}
         /*
           KEIN „BEARBEITEN"-KNOPF MEHR. Er führte in das Formular der
           Kundenliste — also aus der Akte heraus, um etwas zu ändern, das in
@@ -361,16 +370,13 @@ export default function KundenakteView() {
                   .slice()
                   .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
                   .map((p) => (
+                    /* Die ganze Zeile führt zur Baustelle, der Status steht
+                       rechts als Marke (docs/design/linie.md 3). */
                     <ListRow
                       key={p.id}
-                      title={
-                        <Link
-                          to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
-                          className="textlink"
-                        >
-                          {p.projectNumber} · {p.address ?? 'ohne Adresse'}
-                        </Link>
-                      }
+                      ziel={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
+                      title={p.projectNumber}
+                      subtitle={p.address ?? 'ohne Adresse'}
                       zustand={<StatusBadge status={p.status} />}
                     />
                   ))}
@@ -382,7 +388,9 @@ export default function KundenakteView() {
               Sie nur anzuzeigen wäre halb — der Knopf stellt die Verbindung her.
             */}
             {namensgleich.length > 0 && (
-              <div className="kasten mt-4">
+              /* Mit Haarlinie abgesetzt statt in einem zweiten Rahmen —
+                 keine Karte in der Karte. */
+              <div className="akte-abschnitt">
                 <p className="text-sm text-warning">
                   <strong>{namensgleich.length}</strong>{' '}
                   {namensgleich.length === 1
@@ -444,30 +452,35 @@ export default function KundenakteView() {
                     const u = beurteile(w, heute);
                     return (
                       /*
-                        DER ZUSTAND STEHT BEIM NAMEN, wie in der Wartungsliste. Er
+                        DER ZUSTAND STEHT UNTER DEM NAMEN, nicht rechts. Er
                         ist ein ganzer Satz („Seit 5 Tagen überfällig.") — rechts
                         in der Zeile liess er der Anlage am Telefon kaum Platz,
                         und ihr Name brach mitten im Wort.
                       */
                       <ListRow
                         key={w.id}
-                        title={
+                        ziel={wartungenOffen ? '/wartungen' : undefined}
+                        title={w.anlage}
+                        subtitle={
                           <>
-                            <span>{w.anlage}</span>
-                            <Zustand
-                              stand={
-                                u.stand === 'überfällig'
-                                  ? 'schlecht'
-                                  : u.stand === 'fällig'
-                                    ? 'achtung'
-                                    : 'ruht'
-                              }
-                            >
-                              {u.stand === 'ruht' ? 'ruht' : u.text}
-                            </Zustand>
+                            {/* Der Zustand in eigener Zeile unter der Anlage:
+                                im Titel der Pfeilzeile klebte er am Namen. */}
+                            <span className="block">
+                              <Zustand
+                                stand={
+                                  u.stand === 'überfällig'
+                                    ? 'schlecht'
+                                    : u.stand === 'fällig'
+                                      ? 'achtung'
+                                      : 'ruht'
+                                }
+                              >
+                                {u.stand === 'ruht' ? 'ruht' : u.text}
+                              </Zustand>
+                            </span>
+                            alle {w.intervallMonate} Monate · Termin {fmtDatum(w.faelligAm)}
                           </>
                         }
-                        subtitle={`alle ${w.intervallMonate} Monate · Termin ${fmtDatum(w.faelligAm)}`}
                       />
                     );
                   })}
@@ -492,14 +505,8 @@ export default function KundenakteView() {
                   zeile={(r) => (
                     <ListRow
                       key={r.id}
-                      title={
-                        <Link
-                          to={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
-                          className="textlink"
-                        >
-                          {r.invoiceNumber}
-                        </Link>
-                      }
+                      ziel={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
+                      title={r.invoiceNumber}
                       subtitle={`${fmtDatum(r.invoiceDate)} · ${r.projectNumber}`}
                       wert={`${fmtEUR(r.totalBrutto)} brutto`}
                       zustand={<StatusBadge status={r.paymentStatus} />}
@@ -523,11 +530,9 @@ export default function KundenakteView() {
                   {angebote.daten.map((q) => (
                     <ListRow
                       key={q.id}
-                      title={
-                        <Link to={`/quotes/${q.id}`} className="textlink">
-                          {q.quoteNumber}
-                        </Link>
-                      }
+                      ziel={`/quotes/${q.id}`}
+                      title={q.quoteNumber}
+                      subtitle={datumAT(q.quoteDate)}
                       wert={`${fmtEUR(q.totalNetto)} netto`}
                       zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
                     />
@@ -574,13 +579,13 @@ function StammdatenLesen({ k }: { k: Customer }) {
     <>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         <Angabe wort="Rechnungsadresse">
-          {k.address ? <AdresseLink adresse={k.address} /> : null}
+          {k.address ? <AdresseLink adresse={k.address} variante="chip" /> : null}
         </Angabe>
         <Angabe wort="Ansprechpartner">{k.contactName}</Angabe>
         <Angabe wort="Telefon">
-          {k.contactPhone ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}
+          {k.contactPhone ? <TelefonLink nummer={k.contactPhone} variante="chip" /> : null}
         </Angabe>
-        <Angabe wort="E-Mail">{k.email ? <MailLink adresse={k.email} /> : null}</Angabe>
+        <Angabe wort="E-Mail">{k.email ? <MailLink adresse={k.email} variante="chip" /> : null}</Angabe>
         {/*
           Die UID gehört auf jede Rechnung an ein Unternehmen. Sie war bisher
           nur in der Bearbeitungsmaske zu sehen — also genau dort, wo man sie
@@ -686,9 +691,9 @@ function StammdatenFormular({
 
       {(entwurf.address || entwurf.contactPhone || entwurf.email) && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-          <AdresseLink adresse={entwurf.address} variante="knopf" />
-          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
-          <MailLink adresse={entwurf.email} variante="knopf" />
+          <AdresseLink adresse={entwurf.address} variante="chip" />
+          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="chip" />
+          <MailLink adresse={entwurf.email} variante="chip" />
         </div>
       )}
 

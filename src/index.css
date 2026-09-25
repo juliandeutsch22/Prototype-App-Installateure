@@ -2665,6 +2665,44 @@ textarea {
 }
 
 /*
+ * AKTEN, BÜRO-START UND AUSWERTUNG NACH DER LINIE (docs/design/linie.md) —
+ * Kunden-, Baustellen- und Benutzerakte, Angebot, Projektauswertung,
+ * Rechnungen. Nur was die gemeinsamen Bausteine nicht schon haben.
+ */
+@layer components {
+  /* Der Rückweg über dem Titel („← Zur Kundenliste“), in der kleinen Zeile
+     des Seitenkopfs: gedämpft, mit Tasthöhe, unterstrichen erst beim
+     Überfahren — wie „← Handwerksscheine“ (Mockup S. 8). */
+  .akte-zurueck {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .akte-zurueck:hover {
+    color: var(--ink-deep);
+    text-decoration: underline;
+  }
+
+  .akte-zurueck:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Eine Gruppe IN einer Karte (Zeitkonto, namensgleiche Baustellen,
+     Rabatt): mit einer Haarlinie abgesetzt statt in einem zweiten Rahmen —
+     keine Karte in der Karte (linie.md 2). */
+  .akte-abschnitt {
+    margin-top: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════
