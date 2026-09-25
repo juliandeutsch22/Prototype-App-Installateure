@@ -236,3 +236,25 @@ describe('Empfänger und Ort der Leistung (P2-02)', () => {
     expect(error?.code).toBe('42501');
   });
 });
+
+/*
+  PRÜFLAUF 25.09.2026, P2-14. Das Ausgangsbuch führt einen Storno als
+  Gegenbuchung in dem Zeitraum, in dem storniert wurde. Dafür muss der
+  Export eines Zeitraums auch die ältere Rechnung finden, die darin
+  storniert wurde — vorher suchte er nur nach dem Rechnungsdatum.
+*/
+describe('Der Zeitraum eines Exports findet auch seine Storni (P2-14)', () => {
+  it('eine ältere, heute stornierte Rechnung steht im heutigen Zeitraum', async () => {
+    const id = await anlegen({ invoiceDate: '2020-01-15', dueDate: '2020-01-29' });
+    await rechnungen.cancelInvoice(nurKennung(id), 'Irrtum');
+
+    const tag = (versatz: number) =>
+      new Date(Date.now() + versatz * 86_400_000).toISOString().slice(0, 10);
+    const jetzt = await rechnungen.listInvoicesInRange(BETRIEB, tag(-1), tag(1));
+    expect(jetzt.map((r) => r.id)).toContain(id);
+
+    // Und in ihrem eigenen Zeitraum steht sie weiterhin.
+    const damals = await rechnungen.listInvoicesInRange(BETRIEB, '2020-01-01', '2020-01-31');
+    expect(damals.map((r) => r.id)).toContain(id);
+  });
+});

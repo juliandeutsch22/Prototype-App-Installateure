@@ -230,14 +230,37 @@ export function subscribeRecentInvoices(
  * Lücken, die keine sind.
  */
 export async function listInvoicesInRange(companyId: string, von: string, bis: string) {
-  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-    wo: [
-      { art: 'ab', feld: 'invoiceDate', wert: von },
-      { art: 'bis', feld: 'invoiceDate', wert: bis },
-    ],
-    sortiere: { feld: 'invoiceDate' },
-  });
-  return zusammensetzen(koepfe, companyId);
+  /*
+    DAZU DIE RECHNUNGEN, DIE IN DIESEM ZEITRAUM STORNIERT WURDEN — auch wenn
+    sie selbst aus einem früheren stammen (Prüflauf 25.09.2026, P2-14). Der
+    Storno gehört als Gegenbuchung in den Zeitraum, in dem er geschah; ohne
+    diese zweite Abfrage stand er in keinem Export. Gesucht wird einen Tag
+    weiter, weil der Stornotag in Ortszeit zählt und die Spalte in UTC
+    steht — die Exporte schneiden danach genau auf den Tag zu.
+  */
+  const [nachDatum, nachStorno] = await Promise.all([
+    abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+      wo: [
+        { art: 'ab', feld: 'invoiceDate', wert: von },
+        { art: 'bis', feld: 'invoiceDate', wert: bis },
+      ],
+      sortiere: { feld: 'invoiceDate' },
+    }),
+    abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+      wo: [
+        { art: 'ab', feld: 'cancelledAt', wert: tagVerschoben(von, -1) },
+        { art: 'bis', feld: 'cancelledAt', wert: tagVerschoben(bis, 1) },
+      ],
+    }),
+  ]);
+  const schon = new Set(nachDatum.map((k) => k.id));
+  return zusammensetzen([...nachDatum, ...nachStorno.filter((k) => !schon.has(k.id))], companyId);
+}
+
+/** '2026-09-01' und −1 → '2026-08-31'. Gerechnet in UTC, damit keine Zeitumstellung dazwischenfunkt. */
+function tagVerschoben(iso: string, tage: number): string {
+  const ms = Date.parse(`${iso}T00:00:00Z`) + tage * 86_400_000;
+  return new Date(ms).toISOString().slice(0, 10);
 }
 
 /**

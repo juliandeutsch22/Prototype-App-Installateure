@@ -2641,8 +2641,10 @@ export default function InvoicesView() {
         hint={
           'Rechnungsausgangsbuch als CSV — Nummer, Datum, Kunde, UID, Netto, USt, Brutto. ' +
           'Ausgegeben wird jede Rechnung, deren RECHNUNGSDATUM im Zeitraum liegt, nicht das ' +
-          'Zahldatum. Stornierte sind enthalten und gekennzeichnet, zählen aber nicht in die ' +
-          'Summe — sie gehören ins Ausgangsbuch, sonst fehlt eine Nummer in der Reihe. Die UID ' +
+          'Zahldatum. Eine stornierte Rechnung bleibt mit ihrem Betrag in ihrem Zeitraum stehen ' +
+          '— sonst fehlte eine Nummer in der Reihe —, und der Storno kommt als eigene ' +
+          'Gegenzeile mit negativem Betrag in den Zeitraum, in dem storniert wurde. So ändert ' +
+          'ein späterer Storno die Summe eines schon gemeldeten Monats nicht. Die UID ' +
           'kommt aus dem Kundenstamm; fehlt sie dort, bleibt die Spalte leer. ' +
           'Das ist eine LISTE, keine Buchung — sie beschreibt die Rechnungen und überlässt der ' +
           'Kanzlei, worauf sie bucht. Wer den Kontenrahmen in den Einstellungen hinterlegt, ' +
@@ -2723,6 +2725,8 @@ export default function InvoicesView() {
                 <p className="mt-1 text-sm text-ink-muted">
                   In diesem Zeitraum wurde keine Rechnung geschrieben. Nachgesehen wurde im
                   gesamten Bestand, nicht nur in der Liste unten.
+                  {e.gegenbuchungen > 0 &&
+                    ` Storniert wurde in dieser Zeit ${e.gegenbuchungen === 1 ? 'eine frühere Rechnung' : `${e.gegenbuchungen} frühere Rechnungen`} — ${e.gegenbuchungen === 1 ? 'sie steht' : 'sie stehen'} als Gegenzeile im Ausgangsbuch.`}
                 </p>
               )}
               {/*
@@ -2741,7 +2745,7 @@ export default function InvoicesView() {
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Button
                   variant="secondary"
-                  disabled={e.anzahl === 0}
+                  disabled={e.anzahl === 0 && e.gegenbuchungen === 0}
                   onClick={() => {
                     downloadCsv(e.csv, invoiceCsvFilename(exportVon, exportBis));
                     toast.success('Rechnungsausgangsbuch erzeugt');

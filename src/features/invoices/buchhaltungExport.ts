@@ -23,6 +23,12 @@ import { zahlstand } from './zahlstand';
  *    Fehler: eine stornierte Rechnung ist kein Nichts, sondern ein Vorgang,
  *    der im Journal stehen muss. Ein Nummernkreis mit Lücken ist für jede
  *    Prüfung ein Befund.
+ *  - DER STORNO STEHT IN SEINEM EIGENEN ZEITRAUM (Prüflauf 25.09.2026,
+ *    P2-14). Die Rechnung bleibt mit ihrem Betrag in ihrem Monat stehen; der
+ *    Storno kommt als eigene Gegenzeile mit negativem Betrag in den Monat, in
+ *    dem storniert wurde. Vorher fiel die Rechnung beim nächsten Export des
+ *    Ursprungsmonats aus der Summe — eines Monats, dessen Umsatzsteuer längst
+ *    gemeldet war.
  *  - DIE LÜCKENPRÜFUNG läuft mit und meldet fehlende Nummern, statt sie
  *    stillschweigend zu übergehen.
  *  - DIE UID-NUMMER kommt aus den Kundenstammdaten. Für Rechnungen an
@@ -45,6 +51,13 @@ function fmtDate(iso: string | undefined): string {
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+/** Aus einem Zeitstempel wird das Datum in ORTSZEIT, nicht in UTC — wie im Buchungsstapel. */
+function tagVon(ms: number): string {
+  const d = new Date(ms);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 function cell(value: unknown): string {
@@ -126,6 +139,8 @@ export interface RechnungsExport {
   summeBrutto: number;
   /** Fehlende Nummern im Kreis — leer ist gut. */
   luecken: string[];
+  /** Storni dieses Zeitraums als Gegenzeile — auch von Rechnungen aus früheren. */
+  gegenbuchungen: number;
 }
 
 /**
@@ -144,6 +159,24 @@ export function buildInvoiceCsv(
   const imZeitraum = invoices
     .filter((i) => i.invoiceDate >= von && i.invoiceDate <= bis)
     .sort((a, b) => a.invoiceNumber.localeCompare(b.invoiceNumber, 'de'));
+  /*
+    DIE STORNI DIESES ZEITRAUMS — nach dem Tag des Stornos, gleich wann die
+    Rechnung geschrieben wurde. Ohne Stornodatum (Altbestand) weiss niemand,
+    in welchen Zeitraum er gehört; eine solche Rechnung zählt wie bisher gar
+    nicht in die Summe.
+  */
+  const storniertIm = (i: Invoice) => {
+    if (i.paymentStatus !== 'Storniert' || i.cancelledAt == null) return false;
+    const tag = tagVon(i.cancelledAt);
+    return tag >= von && tag <= bis;
+  };
+  const eintraege = [
+    ...imZeitraum.map((i) => ({ i, storno: false })),
+    ...invoices.filter(storniertIm).map((i) => ({ i, storno: true })),
+  ].sort(
+    (a, b) =>
+      a.i.invoiceNumber.localeCompare(b.i.invoiceNumber, 'de') || Number(a.storno) - Number(b.storno),
+  );
 
   // Die UID hängt am Kunden, die Rechnung trägt nur seinen Namen. Der
   // Abgleich läuft deshalb über den Namen — bei verknüpften Baustellen ist er
@@ -156,8 +189,43 @@ export function buildInvoiceCsv(
   let summeNetto = 0;
   let summeBrutto = 0;
 
-  for (const i of imZeitraum) {
+  for (const { i, storno } of eintraege) {
     const storniert = i.paymentStatus === 'Storniert';
+    const uid =
+      i.customerVatId?.trim() || uidNachName.get(i.customerName.trim().toLowerCase()) || '';
+    if (storno) {
+      /*
+        DIE GEGENZEILE: dieselbe Rechnung mit negativem Betrag, datiert auf
+        den Tag des Stornos. Zahlungsstand und offener Rest gehören zur
+        Rechnung, nicht zum Storno, und bleiben hier leer.
+      */
+      zeilen.push(
+        row([
+          i.invoiceNumber,
+          fmtDate(tagVon(i.cancelledAt!)),
+          i.leistungVon ? fmtDate(i.leistungVon) : '',
+          i.leistungBis ? fmtDate(i.leistungBis) : '',
+          '',
+          i.customerName,
+          uid,
+          i.projectNumber,
+          num(-(i.totalNetto ?? 0)),
+          prozent(i.vatRate),
+          num(-(i.totalVat ?? 0)),
+          i.reverseCharge ? 'ja' : 'nein',
+          num(-(i.totalBrutto ?? 0)),
+          'Storniert',
+          '',
+          '',
+          'Gegenbuchung',
+          i.cancellationNote ?? '',
+          i.art ?? 'einzel',
+        ]),
+      );
+      summeNetto -= i.totalNetto ?? 0;
+      summeBrutto -= i.totalBrutto ?? 0;
+      continue;
+    }
     zeilen.push(
       row([
         i.invoiceNumber,
@@ -169,7 +237,7 @@ export function buildInvoiceCsv(
         // Die auf der RECHNUNG festgehaltene UID hat Vorrang: sie stand auf
         // dem Beleg, den der Kunde bekommen hat. Die Stammdaten koennen sich
         // seither geaendert haben.
-        i.customerVatId?.trim() || uidNachName.get(i.customerName.trim().toLowerCase()) || '',
+        uid,
         i.projectNumber,
         num(i.totalNetto),
         prozent(i.vatRate),
@@ -186,11 +254,13 @@ export function buildInvoiceCsv(
       ]),
     );
     /**
-     * Stornierte Rechnungen zählen NICHT in die Summen, stehen aber im
-     * Journal. Beides zusammen ist der Punkt: der Vorgang bleibt sichtbar,
-     * der Umsatz nicht.
+     * Die Rechnung zählt in IHREM Zeitraum, auch wenn sie später storniert
+     * wurde — der Storno zieht sie in seinem Zeitraum wieder ab. So ändert
+     * ein späterer Storno die Summe eines schon gemeldeten Monats nicht.
+     * Nur ein Storno ohne Datum (Altbestand) nimmt sie wie bisher gleich
+     * heraus: für ihn gibt es keinen anderen Zeitraum.
      */
-    if (!storniert) {
+    if (!storniert || i.cancelledAt != null) {
       summeNetto += i.totalNetto ?? 0;
       summeBrutto += i.totalBrutto ?? 0;
     }
@@ -211,7 +281,7 @@ export function buildInvoiceCsv(
     Namen, nicht aus abgezählten Strichen.
   */
   const summenzeile = KOPF.map((spalte) => {
-    if (spalte === 'Rechnungsnummer') return 'Summe (ohne Storni)';
+    if (spalte === 'Rechnungsnummer') return 'Summe (Storni als Gegenbuchung im Stornozeitraum)';
     if (spalte === 'Netto') return num(summeNetto);
     if (spalte === 'Brutto') return num(summeBrutto);
     return '';
@@ -222,9 +292,10 @@ export function buildInvoiceCsv(
   return {
     csv: zeilen.join('\n'),
     anzahl: imZeitraum.length,
-    summeNetto,
-    summeBrutto,
+    summeNetto: Math.round(summeNetto * 100) / 100,
+    summeBrutto: Math.round(summeBrutto * 100) / 100,
     luecken: findeLuecken(imZeitraum),
+    gegenbuchungen: eintraege.filter((e) => e.storno).length,
   };
 }
 

@@ -1443,6 +1443,25 @@ describe('Der Buchhaltungs-Export', () => {
     expect(screen.queryByRole('button', { name: /Buchungsstapel/ })).toBeNull();
   });
 
+  /*
+    PRÜFLAUF 25.09.2026, P2-14: ein Monat, in dem nur eine frühere Rechnung
+    storniert wurde, hat eine Gegenzeile — und damit etwas herunterzuladen.
+  */
+  it('lässt einen Zeitraum mit nur einem Storno herunterladen und sagt es', async () => {
+    konten = [];
+    imZeitraum = [
+      {
+        ...journal('0001', '2026-08-20'),
+        paymentStatus: 'Storniert',
+        cancelledAt: new Date(2026, 8, 1, 8, 0).getTime(),
+      },
+    ];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+    expect(await screen.findByText(/Storniert wurde in dieser Zeit eine frühere Rechnung/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Als CSV herunterladen' })).toBeEnabled();
+  });
+
   it('bietet ihn an, sobald die Konten stehen', async () => {
     konten = KONTEN;
     imZeitraum = [journal('0001', '2026-09-01')];
