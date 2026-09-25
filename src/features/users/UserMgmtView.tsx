@@ -8,6 +8,7 @@ import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Meldung from '@/components/Meldung';
 import Button from '@/components/Button';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { Marke } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
@@ -24,6 +25,7 @@ import {
 import { DEFAULT_VACATION_DAYS } from '@/lib/db/benutzerVorgaben';
 import { JAHRESBEGINN_VORGABE } from '@/lib/time';
 import { benutzernameFehler, kontoAnzeige, kunstadresse } from '@shared/benutzername';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 
 /** Benutzerverwaltung (GF/Admin): anlegen, Stammdaten und Rollen pflegen. */
@@ -81,6 +83,13 @@ export default function UserMgmtView() {
   */
   const [anmeldung, setAnmeldung] = useState<'email' | 'benutzername'>('email');
   const [benutzername, setBenutzername] = useState('');
+  /*
+    AM SCHREIBTISCH EINE TABELLE, am Telefon die Liste — genau eine Form im
+    DOM (siehe `useAbBreite`). Dieselben Gruppen in derselben Reihenfolge,
+    derselbe Weg in die Akte; nur stehen Name und Anmeldung nebeneinander
+    statt untereinander, und „Akte" steht nicht allein am rechten Rand.
+  */
+  const schreibtisch = useAbBreite(AB_TABELLE);
 
   async function reload() {
     if (!user) return;
@@ -196,6 +205,24 @@ export default function UserMgmtView() {
       setSaving(false);
     }
   }
+
+  /*
+    EIN WEG STATT DREI. Hier standen „Bearbeiten" (sprang in das Anlege-
+    Formular ganz oben, wo die Zeitkonto-Felder erst noch aufzuklappen waren)
+    und ein Zeilenmenü mit Passwort-Mail und Sperren. Alles drei steht jetzt
+    in der Akte — und die hat eine Adresse, auf die sich verweisen lässt.
+
+    Auch für einen Administrator, den die aufrufende Rolle nicht ändern darf
+    (sonst könnte die Geschäftsführung den letzten Superuser deaktivieren und
+    sich selbst aussperren): ANSEHEN darf sie ihn, und die Akte sagt dort,
+    warum nichts zu ändern ist. Ein „nur durch Administrator" ohne Weg dorthin
+    war eine Sackgasse. Einmal geschrieben, in Liste und Tabelle derselbe.
+  */
+  const akteLink = (u: AppUser) => (
+    <Link to={`/user-mgmt/${u.uid}`} className="textlink-allein px-2">
+      Akte
+    </Link>
+  );
 
   if (!user) return null;
 
@@ -525,7 +552,10 @@ export default function UserMgmtView() {
           )}
 
           <Pflichthinweis />
-          <div className="flex flex-col gap-2 sm:flex-row">
+          {/* Mit aufgeklapptem Zeitkonto läuft das Formular am Telefon über
+              mehr als einen Bildschirm — die Leiste hält „Benutzer anlegen"
+              in Reichweite. Dieselben Knöpfe in derselben Reihenfolge. */}
+          <Aktionsleiste>
             <Button type="submit" loading={saving} className="w-full sm:w-auto">
               Benutzer anlegen
             </Button>
@@ -543,7 +573,7 @@ export default function UserMgmtView() {
             >
               Abbrechen
             </Button>
-          </div>
+          </Aktionsleiste>
         </form>
       </Card>
       )}
@@ -584,6 +614,48 @@ export default function UserMgmtView() {
           <EmptyState>
             {suche ? `Niemand passt zu „${suche}".` : 'Kein Benutzer in dieser Auswahl.'}
           </EmptyState>
+        ) : schreibtisch ? (
+          <div className="tabelle-rahmen">
+            <table className="tabelle">
+              <thead className="tabelle-kopfzeile">
+                <tr>
+                  <th className="tabelle-kopf">Name</th>
+                  <th className="tabelle-kopf">Anmeldung</th>
+                  <th className="tabelle-kopf-zahl">
+                    <span className="sr-only">Aktionen</span>
+                  </th>
+                </tr>
+              </thead>
+              {/* Je Rolle ein eigener Zeilenblock mit Kopf — dieselbe
+                  Gruppierung wie in der Liste, wie bei den Anforderungen. */}
+              {gruppen.map((g) => (
+                <tbody key={g.rolle}>
+                  <tr>
+                    <th colSpan={3} scope="rowgroup" className="tabelle-gruppe">
+                      <h3 className="section-label flex items-center justify-between">
+                        <span>{g.rolle}</span>
+                        <span className="font-normal text-ink-muted">{g.leute.length}</span>
+                      </h3>
+                    </th>
+                  </tr>
+                  {g.leute.map((u) => (
+                    <tr key={u.uid} className="tabelle-zeile">
+                      <td className="tabelle-name">
+                        <span className="tabelle-marken">
+                          {u.name}
+                          {u.active === false && <Marke>inaktiv</Marke>}
+                        </span>
+                      </td>
+                      <td className="tabelle-zelle">{kontoAnzeige(u.email)}</td>
+                      <td className="tabelle-aktionen">
+                        <div className="tabelle-knoepfe">{akteLink(u)}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              ))}
+            </table>
+          </div>
         ) : (
           <div className="space-y-4">
             {gruppen.map((g) => (
@@ -606,27 +678,7 @@ export default function UserMgmtView() {
                 }
                 subtitle={kontoAnzeige(u.email)}
               >
-                {/* Ein Administrator laesst sich nur von einem Administrator
-                    anfassen — sonst koennte die Geschaeftsfuehrung den letzten
-                    Superuser deaktivieren und sich selbst aussperren. */}
-                {/*
-                  EIN WEG STATT DREI. Hier standen „Bearbeiten" (sprang in das
-                  Anlege-Formular ganz oben, wo die Zeitkonto-Felder erst noch
-                  aufzuklappen waren) und ein Zeilenmenü mit Passwort-Mail und
-                  Sperren. Alles drei steht jetzt in der Akte — und die hat
-                  eine Adresse, auf die sich verweisen lässt.
-
-                  Auch für einen Administrator, den die aufrufende Rolle nicht
-                  ändern darf: ANSEHEN darf sie ihn, und die Akte sagt dort,
-                  warum nichts zu ändern ist. Ein „nur durch Administrator"
-                  ohne Weg dorthin war eine Sackgasse.
-                */}
-                <Link
-                  to={`/user-mgmt/${u.uid}`}
-                  className="textlink-allein px-2"
-                >
-                  Akte
-                </Link>
+                {akteLink(u)}
               </ListRow>
             ))}
                 </List>
