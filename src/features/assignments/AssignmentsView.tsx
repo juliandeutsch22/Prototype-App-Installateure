@@ -38,6 +38,7 @@ import { useModul } from '@/lib/useModule';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import Meldung from '@/components/Meldung';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { List, ListRow } from '@/components/ListRow';
 import { grundAus } from '@/lib/fehlerGrund';
 
@@ -491,9 +492,10 @@ export default function AssignmentsView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        {/* Kalender links, Planung rechts — am Telefon untereinander. */}
-        <div className="space-y-3 lg:col-span-2">
+      {/* Kalender links, Planung rechts (2 : 3 ab 1024 px) — am Telefon
+          untereinander. Dasselbe Raster wie „Mein Einsatzplan“. */}
+      <div className="einsatzplan">
+        <div className="space-y-3">
           <MonthCalendar
             year={cursor.year}
             month={cursor.month}
@@ -524,7 +526,14 @@ export default function AssignmentsView() {
           </div>
         </div>
 
-        <div className="space-y-6 lg:col-span-3">
+        <div className="einsatzplan-spalte">
+          {/*
+            DAS FORMULAR BIS ZUM SPEICHERN in einer eigenen Spalte: in ihr
+            klebt die Aktionsleiste am Telefon unten, solange Einsatz und
+            Rüstliste durch den Bildschirm laufen — und hört mit dem Formular
+            auf, statt über der Tagesübersicht zu stehen.
+          */}
+          <div className="einsatzplan-spalte">
           <div ref={formular} className="scroll-mt-4">
           <Card title={`Einsatz planen — ${fmtDay(date)}`}>
             <BaustellenSelect
@@ -714,24 +723,28 @@ export default function AssignmentsView() {
             es erst dem Monteur am naechsten Morgen.
 
             Er steht UNTER der Ruestliste, nicht darueber: sonst scrollte man
-            beim Ausfuellen an ihm vorbei und suchte ihn danach unten.
+            beim Ausfuellen an ihm vorbei und suchte ihn danach unten. Am
+            Telefon klebt er als Aktionsleiste unten, bis das Formular zu
+            Ende ist — im Markup bleibt er an derselben Stelle.
           */}
-          <div>
-            {error && <div className="mb-3"><ErrorState message={error} /></div>}
-            {/*
-              EINGETIPPT, ABER NICHT HINZUGEFÜGT — wie am Handwerksschein. Die
-              freie Zeile kommt erst mit „Hinzufügen" auf die Rüstliste; wer
-              sie eintippt und gleich speichert, verlor sie still, und der
-              Monteur stand ohne das Leihgerät auf der Baustelle.
-            */}
-            {offeneRuestzeile && materialAn && (
-              <div className="mb-3">
+          {(error || (offeneRuestzeile && materialAn)) && (
+            <div className="space-y-3">
+              {error && <ErrorState message={error} />}
+              {/*
+                EINGETIPPT, ABER NICHT HINZUGEFÜGT — wie am Handwerksschein. Die
+                freie Zeile kommt erst mit „Hinzufügen" auf die Rüstliste; wer
+                sie eintippt und gleich speichert, verlor sie still, und der
+                Monteur stand ohne das Leihgerät auf der Baustelle.
+              */}
+              {offeneRuestzeile && materialAn && (
                 <Meldung ton="warnung" role="alert">
                   <strong>Noch nicht auf der Rüstliste:</strong> {offeneRuestzeile}. Bitte
                   „Hinzufügen" oder das Feld leeren.
                 </Meldung>
-              </div>
-            )}
+              )}
+            </div>
+          )}
+          <Aktionsleiste>
             <Button
               onClick={save}
               loading={saving}
@@ -739,6 +752,7 @@ export default function AssignmentsView() {
             >
               {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
             </Button>
+          </Aktionsleiste>
           </div>
 
           <Card title={`Einsätze am ${fmtDay(date)}`}>
