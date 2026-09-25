@@ -281,8 +281,8 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
                     b.ausgenommen?.length ? `arbeiten: ${b.ausgenommen.map(nameVon).join(', ')}` : null,
                   ].filter(Boolean).join(' · ') || undefined
                 }
+                zustand={<Marke>{b.urlaubAbbuchen ? 'vom Urlaub abgebucht' : 'nur Planungssperre'}</Marke>}
               >
-                <Marke>{b.urlaubAbbuchen ? 'vom Urlaub abgebucht' : 'nur Planungssperre'}</Marke>
                 <Button variant="ghost" onClick={() => setLoeschen(b)}>Löschen</Button>
               </ListRow>
             ))}

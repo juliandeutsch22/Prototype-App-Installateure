@@ -37,6 +37,7 @@ import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
+import Meldung from '@/components/Meldung';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { zeitguthabenLaden } from './zeitguthaben';
@@ -852,14 +853,16 @@ export default function VacationsView() {
           sonst beantragt er Tage, die ohnehin zu sind.
         */}
         {betriebsurlaube.length > 0 && (
-          <p className="mb-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-            {betriebsurlaube.map((b) => (
-              <span key={b.id} className="block">
-                <strong>{b.bezeichnung}</strong> {zeitraum(b)}
-                {b.urlaubAbbuchen ? ' — wird vom Urlaub abgebucht' : ''}
-              </span>
-            ))}
-          </p>
+          <div className="mb-4">
+            <Meldung ton="info">
+              {betriebsurlaube.map((b) => (
+                <span key={b.id} className="block">
+                  <strong>{b.bezeichnung}</strong> {zeitraum(b)}
+                  {b.urlaubAbbuchen ? ' — wird vom Urlaub abgebucht' : ''}
+                </span>
+              ))}
+            </Meldung>
+          </div>
         )}
         <form onSubmit={beantragen} className="space-y-4">
           <SelectField
@@ -953,80 +956,84 @@ export default function VacationsView() {
             und danach nur noch lang.
           */}
           {art === 'Urlaub' && (
-          <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-            {zeitraumGewaehlt && ueberschneidung && (
-              <span className="text-warning">{ueberschneidung}</span>
-            )}
-            {zeitraumGewaehlt && !ueberschneidung && (
-              <>
-                <strong>
-                  {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
-                </strong>
-                <span className="ml-1">in diesem Zeitraum</span>
-                <span className="ml-1">
-                  — danach bleiben {tageText(restImAntragsjahr - tage.length)}
-                  {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
-                </span>
-                <InfoHint about="Arbeitstage">
-                  Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
-                  Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
-                  Wer eine Woche mit Feiertag nimmt, verbraucht vier Tage, nicht fünf.
-                </InfoHint>
-              </>
-            )}
-            <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
-              {jahresName} genehmigt: <span>{genommen}</span> von{' '}
-              <span>{anspruch}</span> Tagen
-              {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
-                  falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
-                  (dort sind es die mitgebrachten Tage) noch dort, wo ein
-                  Übertrag aus dem Vorjahr dabei ist. */}
-              {stand.ausAnfangsbestand
-                ? ' (Restanspruch beim Umstieg).'
-                : stand.uebertrag > 0
-                  ? `, davon ${stand.uebertrag} aus dem vorigen Urlaubsjahr.`
-                  : '.'}
-              {/* Verfallene Tage werden GENANNT. Sie lautlos abzuziehen wäre
-                  genau die Sorte Zahl, über die sich jemand später beschwert
-                  — und dann ist es ein Streit statt einer Auskunft. */}
-              {stand.verfallen > 0 && (
-                <span className="mt-1 block">
-                  <span>{stand.verfallen}</span>
-                  {stand.verfallen === 1 ? ' Tag ist' : ' Tage sind'} heuer verfallen.
-                </span>
+          <Meldung ton="info">
+            <div className="flex flex-wrap items-center">
+              {zeitraumGewaehlt && ueberschneidung && (
+                <span className="text-warning">{ueberschneidung}</span>
               )}
-            </span>
-          </div>
+              {zeitraumGewaehlt && !ueberschneidung && (
+                <>
+                  <strong>
+                    {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
+                  </strong>
+                  <span className="ml-1">in diesem Zeitraum</span>
+                  <span className="ml-1">
+                    — danach bleiben {tageText(restImAntragsjahr - tage.length)}
+                    {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
+                  </span>
+                  <InfoHint about="Arbeitstage">
+                    Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
+                    Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
+                    Wer eine Woche mit Feiertag nimmt, verbraucht vier Tage, nicht fünf.
+                  </InfoHint>
+                </>
+              )}
+              <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
+                {jahresName} genehmigt: <span>{genommen}</span> von{' '}
+                <span>{anspruch}</span> Tagen
+                {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
+                    falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
+                    (dort sind es die mitgebrachten Tage) noch dort, wo ein
+                    Übertrag aus dem Vorjahr dabei ist. */}
+                {stand.ausAnfangsbestand
+                  ? ' (Restanspruch beim Umstieg).'
+                  : stand.uebertrag > 0
+                    ? `, davon ${stand.uebertrag} aus dem vorigen Urlaubsjahr.`
+                    : '.'}
+                {/* Verfallene Tage werden GENANNT. Sie lautlos abzuziehen wäre
+                    genau die Sorte Zahl, über die sich jemand später beschwert
+                    — und dann ist es ein Streit statt einer Auskunft. */}
+                {stand.verfallen > 0 && (
+                  <span className="mt-1 block">
+                    <span>{stand.verfallen}</span>
+                    {stand.verfallen === 1 ? ' Tag ist' : ' Tage sind'} heuer verfallen.
+                  </span>
+                )}
+              </span>
+            </div>
+          </Meldung>
           )}
 
           {art === 'Zeitausgleich' && (
-            <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-              <strong>{fmtDauer(zaMin)}</strong>
-              <span className="ml-1">
-                Zeitausgleich
-                {zaStundenweise
-                  ? ''
-                  : ` (${zaTage.length} ${zaTage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'})`}
-                .
-              </span>
-              <InfoHint about="Zeitausgleich">
-                Zeitausgleich geht vom Zeitguthaben (Überstunden), nicht vom Urlaub. Ein ganzer Tag
-                kostet das Tagessoll, stundenweise genau die freien Stunden. Nach der Genehmigung
-                steht er im Zeitkonto und im Wochenplan.
-              </InfoHint>
-              <span className="basis-full">{guthabenZeile()}</span>
-              {zeitraumGewaehlt && ueberschneidung && (
-                <span className="mt-1 basis-full text-warning">{ueberschneidung}</span>
-              )}
-            </div>
+            <Meldung ton="info">
+              <div className="flex flex-wrap items-center">
+                <strong>{fmtDauer(zaMin)}</strong>
+                <span className="ml-1">
+                  Zeitausgleich
+                  {zaStundenweise
+                    ? ''
+                    : ` (${zaTage.length} ${zaTage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'})`}
+                  .
+                </span>
+                <InfoHint about="Zeitausgleich">
+                  Zeitausgleich geht vom Zeitguthaben (Überstunden), nicht vom Urlaub. Ein ganzer Tag
+                  kostet das Tagessoll, stundenweise genau die freien Stunden. Nach der Genehmigung
+                  steht er im Zeitkonto und im Wochenplan.
+                </InfoHint>
+                <span className="basis-full">{guthabenZeile()}</span>
+                {zeitraumGewaehlt && ueberschneidung && (
+                  <span className="mt-1 basis-full text-warning">{ueberschneidung}</span>
+                )}
+              </div>
+            </Meldung>
           )}
 
           {art === 'Krank' && (
-            <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+            <Meldung ton="info">
               Eine Krankmeldung braucht keine Genehmigung: die Tage stehen sofort als „Krank" im
               Zeitkonto, und das Büro sieht die Meldung. Ist das Ende noch offen, das
               voraussichtliche eintragen — ändern geht jederzeit.
-            </p>
+            </Meldung>
           )}
 
           <Pflichthinweis />

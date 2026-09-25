@@ -102,8 +102,8 @@ export function KrankmeldungListe({
               k.notiz ?? '',
               k.gemeldetVonName && k.gemeldetVonName !== k.userName ? `erfasst von ${k.gemeldetVonName}` : '',
             ].filter(Boolean).join(' · ') || undefined}
+            zustand={k.von <= heute && k.bis >= heute ? <Marke>läuft</Marke> : undefined}
           >
-            {k.von <= heute && k.bis >= heute && <Marke>läuft</Marke>}
             {bearbeitet === k.id ? (
               <span className="flex flex-wrap items-end gap-2">
                 <InputField
