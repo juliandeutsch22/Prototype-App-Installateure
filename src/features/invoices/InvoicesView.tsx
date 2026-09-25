@@ -2351,15 +2351,22 @@ export default function InvoicesView() {
 
       <Card
         title={`Alle Rechnungen (${visible.length})`}
+        /*
+          DER TEXT SAGT, WAS GILT (Prüflauf 25.09.2026, P2-20). Hier stand,
+          „Bezahlt" trage jemand von Hand ein, eine stornierte Rechnung lasse
+          sich löschen und ein Storno jederzeit aufheben — keines der drei
+          stimmt seit den Zahlungseingängen, § 132 BAO und dem Launch-Check.
+        */
         hint={
           'Der Status „Überfällig“ wird beim Öffnen dieser Ansicht automatisch gesetzt, ' +
-          'sobald das Zahlungsziel überschritten ist — „Bezahlt“ trägt jemand von Hand ein. ' +
-          'STORNIEREN und LÖSCHEN sind zweierlei: ein Storno behält die Rechnungsnummer ' +
-          '(sie darf in der Reihe nicht fehlen) und gibt die verrechneten Stunden und ' +
-          'Materialien wieder frei, sodass sie auf eine neue Rechnung können; er lässt sich ' +
-          'auch wieder aufheben. Gelöscht werden kann nur eine bereits stornierte Rechnung — ' +
-          'alles andere bleibt in den Büchern. Die Liste zeigt die jüngsten Rechnungen; die Suche ' +
-          'nach Nummer, Kunde oder Baustelle geht über alle.'
+          'sobald das Zahlungsziel überschritten ist. „Teilbezahlt“ und „Bezahlt“ ergeben ' +
+          'sich aus den erfassten Zahlungen (im Menü der Rechnung: „Zahlung erfassen“). ' +
+          'Gelöscht wird keine Rechnung — sie bleibt sieben Jahre in den Büchern. Die ' +
+          'Korrektur ist der Storno: er behält die Rechnungsnummer (sie darf in der Reihe ' +
+          'nicht fehlen) und gibt die verrechneten Stunden und Materialien wieder frei, sodass ' +
+          'sie auf eine neue Rechnung können. Aufheben lässt er sich nur am Tag des Stornos. ' +
+          'Die Liste zeigt die jüngsten Rechnungen; die Suche nach Nummer, Kunde oder ' +
+          'Baustelle geht über alle.'
         }
         action={
           <SelectField id="invfilter" label="" aria-label="Rechnungen nach Status filtern" className="py-1 text-sm" value={statusFilter}

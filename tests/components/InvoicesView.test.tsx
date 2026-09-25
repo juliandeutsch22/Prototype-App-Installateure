@@ -2629,3 +2629,21 @@ describe('Die Kennzahlen „Offen" und „Überfällig"', () => {
     expect(kachel('Bezahlt')).toHaveTextContent('auf die 1 jüngsten Rechnungen');
   });
 });
+
+/*
+  PRÜFLAUF 25.09.2026, P2-20. Die Erklärung zur Liste behauptete, „Bezahlt"
+  trage jemand von Hand ein, eine stornierte Rechnung lasse sich löschen und
+  ein Storno jederzeit aufheben.
+*/
+describe('Die Erklärung zur Rechnungsliste', () => {
+  it('sagt, was gilt', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Was bedeutet Alle Rechnungen/ }));
+    const text = document.body.textContent ?? '';
+    expect(text).toMatch(/ergeben sich aus den erfassten Zahlungen/);
+    expect(text).toMatch(/Gelöscht wird keine Rechnung/);
+    expect(text).toMatch(/nur am Tag des Stornos/);
+    expect(text).not.toMatch(/von Hand ein/);
+    expect(text).not.toMatch(/Gelöscht werden kann nur eine bereits stornierte/);
+  });
+});
