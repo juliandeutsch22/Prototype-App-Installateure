@@ -595,8 +595,19 @@ export default function WorkSheetView() {
    * Datensatz und brach ohne Meldung ab, wenn er fehlte. Ein Knopf, der
    * anklickbar aussieht und nichts tut, ist schlimmer als ein gesperrter.
    */
+  /*
+    MATERIAL OHNE MENGE wird nicht unterschrieben (Prüflauf 25.09.2026,
+    P1-21). Null oder weniger Stück auf einem Beleg, den der Kunde
+    unterschreibt, ist ein Vertipper — oder ein leer gelassenes Feld —, kein
+    Inhalt. Als Entwurf speichern geht weiter: dort wird noch getippt.
+  */
+  const ohneMenge = material.filter((m) => !(m.menge > 0));
   const bereit =
-    !!projekt && monteurGesetzt && kundeGesetzt && kundeName.trim().length > 1;
+    !!projekt &&
+    monteurGesetzt &&
+    kundeGesetzt &&
+    kundeName.trim().length > 1 &&
+    ohneMenge.length === 0;
 
   /*
     EINGETIPPT, ABER NICHT ÜBERNOMMEN. Leistungszeit und freie Materialzeile
@@ -1546,7 +1557,9 @@ export default function WorkSheetView() {
                       unter: `${material.length} ${material.length === 1 ? 'Position' : 'Positionen'}`,
                       warnung: offenesMaterial
                         ? `Eingetippt, aber nicht hinzugefügt: ${offenesMaterial}`
-                        : undefined,
+                        : ohneMenge.length > 0
+                          ? `Ohne Menge: ${ohneMenge.map((m) => m.name).join(', ')}`
+                          : undefined,
                       schritt: 2,
                     },
                     {
@@ -1675,6 +1688,8 @@ export default function WorkSheetView() {
                         !monteurGesetzt && 'Unterschrift Monteur',
                         !kundeGesetzt && 'Unterschrift Kunde',
                         kundeName.trim().length < 2 && 'Name des Kunden',
+                        ohneMenge.length > 0 &&
+                          `Menge bei ${ohneMenge.map((m) => `„${m.name}"`).join(', ')}`,
                       ]
                         .filter(Boolean)
                         .join(', ')}`}

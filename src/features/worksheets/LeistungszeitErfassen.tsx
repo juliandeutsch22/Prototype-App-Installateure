@@ -78,11 +78,18 @@ export default function LeistungszeitErfassen({
   // Verschwindet das Feld (andere Baustelle, Modul aus), ist auch nichts offen.
   useEffect(() => () => onOffen?.(null), [onOffen]);
 
+  /*
+    GANZE MINUTEN, NIE NEGATIV (Prüflauf 25.09.2026, P1-21). „12,5" ergab
+    vorher 12,5 Minuten Pause und damit eine Arbeitszeit mit Nachkommastelle
+    — die Datenbank speichert ganze Minuten und lehnte das Unterschreiben
+    dann ab. Eine negative Pause hätte die Zeit sogar verlängert.
+  */
+  const pause = Math.max(0, Math.round(Number(form.pauseMin) || 0));
   const minuten = calcWorkMin({
     status: 'Anwesend',
     startTime: form.von || undefined,
     endTime: form.bis || undefined,
-    breakDuration: Number(form.pauseMin) || 0,
+    breakDuration: pause,
   });
 
   function hinzufuegen() {
@@ -104,7 +111,7 @@ export default function LeistungszeitErfassen({
       mitarbeiter: form.mitarbeiter.trim(),
       von: form.von,
       bis: form.bis,
-      pauseMin: Number(form.pauseMin) || undefined,
+      pauseMin: pause || undefined,
       minuten,
       taetigkeit: form.taetigkeit.trim() || undefined,
       helfer: form.helfer || undefined,
@@ -161,6 +168,8 @@ export default function LeistungszeitErfassen({
           label="Pause (Minuten, optional)"
           type="number"
           min="0"
+          step="1"
+          inputMode="numeric"
           placeholder="0"
           value={form.pauseMin}
           onChange={(e) => setForm({ ...form, pauseMin: e.target.value })}

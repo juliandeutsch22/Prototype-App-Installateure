@@ -111,6 +111,7 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
                   min="0"
                   step="any"
                   value={String(z.menge)}
+                  aria-invalid={!(z.menge > 0) || undefined}
                   onChange={(e) => mengeSetzen(z.id, e.target.value)}
                 />
               </div>
@@ -125,6 +126,13 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
               >
                 ✕
               </IconButton>
+              {/* Unterschrieben wird erst mit einer Menge über null — der
+                  Schein sperrt den Abschluss und sagt es hier, am Feld. */}
+              {!(z.menge > 0) && (
+                <p className="w-full text-sm text-warning">
+                  Bitte eine Menge größer als 0 eintragen.
+                </p>
+              )}
             </li>
           ))}
         </ul>

@@ -1876,4 +1876,45 @@ describe('Prüflauf 25.09.2026', () => {
       expect(zeiten[0].datum).toBe('2026-01-15');
     });
   });
+
+  describe('P1-21: Menge und Pause', () => {
+    it('lässt Material ohne Menge nicht unterschreiben', async () => {
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/Verbautes Material \(0\)/);
+      await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtung');
+      await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+      await nutzer.clear(await screen.findByLabelText('Menge'));
+      await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+      unterschreiben();
+
+      expect(
+        await screen.findByText(/Bitte eine Menge größer als 0 eintragen/),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Zum Abschließen fehlen: Menge bei „Dichtung"/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
+
+      await nutzer.clear(screen.getByLabelText('Menge'));
+      await nutzer.type(screen.getByLabelText('Menge'), '2');
+      expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeEnabled();
+    });
+
+    it('rechnet die Pause in ganzen Minuten', async () => {
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/Zeit beim Kunden eintragen/);
+      await nutzer.clear(screen.getByLabelText('Von'));
+      await nutzer.type(screen.getByLabelText('Von'), '08:00');
+      await nutzer.type(screen.getByLabelText('Bis'), '12:00');
+      await nutzer.type(screen.getByLabelText(/Pause/), '12.5');
+      await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
+
+      await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+      await waitFor(() => expect(createWorkSheet).toHaveBeenCalled());
+      const zeile = createWorkSheet.mock.calls[0][1].zeiten[0];
+      expect(zeile.pauseMin).toBe(13);
+      expect(zeile.minuten).toBe(227);
+      expect(Number.isInteger(zeile.minuten)).toBe(true);
+    });
+  });
 });
