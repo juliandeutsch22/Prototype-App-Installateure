@@ -5,7 +5,7 @@ import type { WorkSheetZeit } from '@/types';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import InfoHint from '@/components/InfoHint';
-import { InputField, CheckboxField, FormGrid } from '@/components/Field';
+import { InputField, CheckboxField } from '@/components/Field';
 
 /**
  * Leistungszeit beim Kunden — auf dem Schein selbst erfasst.
@@ -114,9 +114,14 @@ export default function LeistungszeitErfassen({
     setForm((f) => ({ ...LEER, mitarbeiter: f.mitarbeiter, helfer: f.helfer }));
   }
 
+  /*
+    KEIN KASTEN MEHR IN DER KARTE (Linie, 2): die Erfassung steht unter den
+    Zeilen, getrennt durch eine Haarlinie. Von und Bis nebeneinander — so
+    stehen sie auch auf dem Schein (Mockup S. 2).
+  */
   return (
-    <div className="kasten">
-      <p className="flex flex-wrap items-center gap-1 text-sm font-medium text-ink">
+    <div className="lz-block">
+      <p className="lz-titel">
         Zeit beim Kunden eintragen
         <InfoHint about="die Leistungszeit">
           {/* Gekürzt (Prüflauf 24.09.2026, D9): vier Absätze, die auf dem
@@ -135,44 +140,54 @@ export default function LeistungszeitErfassen({
         </InfoHint>
       </p>
 
-      <FormGrid>
-        <InputField
-          id="lz-name"
-          label="Mitarbeiter"
-          value={form.mitarbeiter}
-          onChange={(e) => setForm({ ...form, mitarbeiter: e.target.value })}
-        />
-        <InputField
-          id="lz-von"
-          label="Von"
-          type="time"
-          value={form.von}
-          onChange={(e) => setForm({ ...form, von: e.target.value })}
-        />
-        <InputField
-          id="lz-bis"
-          label="Bis"
-          type="time"
-          value={form.bis}
-          onChange={(e) => setForm({ ...form, bis: e.target.value })}
-        />
-        <InputField
-          id="lz-pause"
-          label="Pause (Minuten, optional)"
-          type="number"
-          min="0"
-          placeholder="0"
-          value={form.pauseMin}
-          onChange={(e) => setForm({ ...form, pauseMin: e.target.value })}
-        />
-        <InputField
-          id="lz-taetigkeit"
-          label="Tätigkeit (optional)"
-          placeholder="z. B. Therme entlüftet, Eckventil getauscht"
-          value={form.taetigkeit}
-          onChange={(e) => setForm({ ...form, taetigkeit: e.target.value })}
-        />
-      </FormGrid>
+      <div className="lz-raster">
+        <div className="lz-feld-breit">
+          <InputField
+            id="lz-name"
+            label="Mitarbeiter"
+            value={form.mitarbeiter}
+            onChange={(e) => setForm({ ...form, mitarbeiter: e.target.value })}
+          />
+        </div>
+        <div className="lz-feld">
+          <InputField
+            id="lz-von"
+            label="Von"
+            type="time"
+            value={form.von}
+            onChange={(e) => setForm({ ...form, von: e.target.value })}
+          />
+        </div>
+        <div className="lz-feld">
+          <InputField
+            id="lz-bis"
+            label="Bis"
+            type="time"
+            value={form.bis}
+            onChange={(e) => setForm({ ...form, bis: e.target.value })}
+          />
+        </div>
+        <div className="lz-feld-pause">
+          <InputField
+            id="lz-pause"
+            label="Pause (Minuten, optional)"
+            type="number"
+            min="0"
+            placeholder="0"
+            value={form.pauseMin}
+            onChange={(e) => setForm({ ...form, pauseMin: e.target.value })}
+          />
+        </div>
+        <div className="lz-feld-taetigkeit">
+          <InputField
+            id="lz-taetigkeit"
+            label="Tätigkeit (optional)"
+            placeholder="z. B. Therme entlüftet, Eckventil getauscht"
+            value={form.taetigkeit}
+            onChange={(e) => setForm({ ...form, taetigkeit: e.target.value })}
+          />
+        </div>
+      </div>
 
       <div className="mt-2">
         <CheckboxField
@@ -225,8 +240,8 @@ export default function LeistungszeitErfassen({
         </p>
       )}
 
-      <div className="mt-3">
-        <Button variant="secondary" onClick={hinzufuegen}>
+      <div className="lz-knopf">
+        <Button variant="secondary" onClick={hinzufuegen} className="w-full sm:w-auto">
           Zeile hinzufügen
         </Button>
       </div>
