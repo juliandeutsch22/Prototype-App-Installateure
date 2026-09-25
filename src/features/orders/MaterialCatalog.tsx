@@ -88,6 +88,14 @@ export default function MaterialCatalog({
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(empty);
   const [editId, setEditId] = useState<string | null>(null);
+  /*
+    DER BESTAND, WIE ER BEIM ÖFFNEN DASTAND. Das Formular schrieb ihn bisher
+    bei jedem Speichern absolut zurück — wer nur die Kategorie änderte, während
+    ein Monteur zwei Stück abholte, setzte den Bestand wieder auf den alten
+    Wert, und die Abholung war verschwunden (Prüflauf 25.09.2026, P3-18).
+    Mitgeschickt wird er deshalb nur, wenn jemand ihn hier geändert hat.
+  */
+  const [stockBeimOeffnen, setStockBeimOeffnen] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [toDelete, setToDelete] = useState<WithId<Material> | null>(null);
@@ -145,6 +153,7 @@ export default function MaterialCatalog({
 
   function startEdit(m: WithId<Material>) {
     setEditId(m.id);
+    setStockBeimOeffnen(String(m.stock ?? 0));
     setForm({
       name: m.name,
       category: m.category ?? '',
@@ -157,6 +166,7 @@ export default function MaterialCatalog({
   }
   function reset() {
     setEditId(null);
+    setStockBeimOeffnen(null);
     setForm(empty);
   }
 
@@ -177,10 +187,10 @@ export default function MaterialCatalog({
       */
       const preis = form.verkaufspreis.trim().replace(',', '.');
       const ek = form.einkaufspreis.trim().replace(',', '.');
+      const bestand = Number(form.stock) || 0;
       const data = {
         name: form.name.trim(),
         category: form.category.trim(),
-        stock: Number(form.stock) || 0,
         articleNumber: form.articleNumber.trim(),
         unit: form.unit.trim() || 'Stk',
         verkaufspreis: preis === '' ? 0 : Math.max(0, Number(preis) || 0),
@@ -197,8 +207,12 @@ export default function MaterialCatalog({
           ? { einkaufspreis: ek === '' ? 0 : Math.max(0, Number(ek) || 0) }
           : {}),
       };
-      if (editId) await updateMaterial(editId, data);
-      else await createMaterial(user.companyId, data);
+      if (editId) {
+        const bestandGeaendert = bestand !== (Number(stockBeimOeffnen) || 0);
+        await updateMaterial(editId, bestandGeaendert ? { ...data, stock: bestand } : data);
+      } else {
+        await createMaterial(user.companyId, { ...data, stock: bestand });
+      }
       toast.success(editId ? 'Material gespeichert' : 'Material angelegt');
       reset();
     } catch (err) {
@@ -269,9 +283,12 @@ export default function MaterialCatalog({
             />
             {/*
               Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
-              die Grundlage der Nachkalkulation, also Margendaten, und die
-              sieht auch die Projektleitung nicht. Die harte Grenze steht in
-              der Datenbank — hier wird das Feld nur nicht angeboten.
+              die Grundlage der Nachkalkulation, also Margendaten. SETZEN kann
+              ihn nur sie — das verweigert die Datenbank allen anderen
+              (Trigger `materials_felder`). LESEN kann ihn dagegen jeder im
+              Betrieb, der den Katalog liest, auch die Projektleitung: der
+              Zeilenschutz gibt eine Zeile ganz oder gar nicht heraus. Hier
+              wird das Feld nur nicht angeboten; eine Lesegrenze ist das nicht.
             */}
             {darfKosten && (
               <InputField
