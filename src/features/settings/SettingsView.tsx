@@ -515,8 +515,11 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             Rechnungen sind. Wer nie eine Anzahlung stellt, bekäme ein Feld,
             das er jedes Mal überliest. Deshalb steht der Haken hier und ist
             ab Werk aus.
+
+            Mit einer Haarlinie abgesetzt, nicht als Kasten in der Karte
+            (Linie, 2) — er gruppiert nur.
           */}
-          <div className="kasten mt-4">
+          <div className="einstellung-abschnitt">
             <CheckboxField
               id="rechnungsarten"
               label="Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
@@ -670,7 +673,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             fest am 1. Jänner — für jeden Betrieb mit einem anderen
             Urlaubsjahr rechnete die App still falsch.
           */}
-          <div className="kasten mb-4 flex flex-wrap items-end gap-3">
+          <div className="einstellung-felder">
             <SelectField
               id="urlaubsjahr-tag"
               label="Urlaubsjahr beginnt am"
@@ -704,6 +707,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </p>
           </div>
 
+          {/* Beginn und Übertrag trennt eine Haarlinie, kein Kasten (Linie, 2). */}
+          <div className="einstellung-abschnitt">
           <fieldset className="flex flex-col gap-3">
             <legend className="sr-only">Wie Resturlaub übertragen wird</legend>
 
@@ -750,9 +755,10 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               </span>
             </label>
           </fieldset>
+          </div>
 
           {uebertrag === 'stichtag' && (
-            <div className="kasten mt-4 flex flex-wrap items-end gap-3">
+            <div className="einstellung-felder-abgesetzt">
               <SelectField
                 id="stichtag-tag"
                 label="Verfällt am"

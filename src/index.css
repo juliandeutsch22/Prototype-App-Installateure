@@ -2740,11 +2740,35 @@ textarea {
  * über die gemeinsamen Bausteine hinaus brauchen, je Element eine Klasse.
  */
 @layer components {
-  /* Die Kundennummer beim Grosshändler rechts in der Titelzeile. */
-  .einkauf-kundennummer {
+  /* Eine gedämpfte Angabe rechts in der Titelzeile einer Karte (Linie, 2):
+     die Kundennummer beim Grosshändler, „Eingeschaltet: 9 von 9“. */
+  .titel-angabe {
     font-size: 0.875rem;
     line-height: 1.25rem;
     color: var(--text-muted);
+  }
+
+  /* Ein Abschnitt in einer Einstellungskarte: mit Haarlinie abgesetzt statt
+     als Kasten (Linie, 2). */
+  .einstellung-abschnitt {
+    margin-top: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+
+  /* Zwei kurze Auswahlfelder nebeneinander (Tag, Monat), darunter ihr Satz. */
+  .einstellung-felder,
+  .einstellung-felder-abgesetzt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+  }
+
+  .einstellung-felder-abgesetzt {
+    margin-top: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
   }
 
   /* Ein Formular unter einer Liste in derselben Karte: mit Haarlinie

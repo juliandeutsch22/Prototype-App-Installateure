@@ -185,7 +185,7 @@ export default function Einkaufsliste({
               // nicht als eigene Zeile unter dem Namen.
               action={
                 h?.customerNumber ? (
-                  <span className="einkauf-kundennummer">Kundennummer {h.customerNumber}</span>
+                  <span className="titel-angabe">Kundennummer {h.customerNumber}</span>
                 ) : undefined
               }
             >
