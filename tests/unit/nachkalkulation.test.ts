@@ -169,3 +169,31 @@ describe('Nachkalkulation', () => {
     expect(margenTon(gut)).toBe('gut');
   });
 });
+
+describe('Material aus dem Angebot (Launch-Check 25.09.2026, M9)', () => {
+  const angebot = {
+    status: 'Angenommen',
+    totalNetto: 500,
+    positions: [
+      { label: 'Montage', qty: 3.5, unit: 'h', unitPrice: 70, netto: 245, istArbeitszeit: true },
+      { label: 'Anfahrt', qty: 1, unit: 'h', unitPrice: 5, netto: 5, istArbeitszeit: false },
+      { label: 'Heizkörper', qty: 1, unit: 'Stk', unitPrice: 250, netto: 250, istArbeitszeit: false },
+    ],
+  } as unknown as Quote;
+
+  it('nennt verkauftes Material ohne Einkaufspreis, statt 100 % auszuweisen', () => {
+    const k = rechneBaustelle('B-4', 'Huber', [], [], angebot, kosten);
+    expect(k.materialLuecken).toEqual(['Heizkörper (aus dem Angebot)']);
+    expect(margenTon(k)).toBe('achtung');
+  });
+
+  it('schweigt, sobald ein Schein Material mit Preis trägt — sonst wäre es doppelt', () => {
+    const k = rechneBaustelle('B-4', 'Huber', [], [], angebot, kosten, { kosten: 180, ohnePreis: [], scheine: 1 });
+    expect(k.materialLuecken).toEqual([]);
+  });
+
+  it('ein nicht angenommenes Angebot zählt nicht', () => {
+    const k = rechneBaustelle('B-4', 'Huber', [], [], { ...angebot, status: 'Versendet' } as Quote, kosten);
+    expect(k.materialLuecken).toEqual([]);
+  });
+});

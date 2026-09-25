@@ -19,6 +19,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { SelectField } from '@/components/Field';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
+import { fmtStd } from '@/lib/time';
 
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
@@ -298,8 +299,8 @@ export default function NachkalkulationView() {
                             </span>
                           )}
                           <span className="mt-1 block text-xs text-ink-muted">
-                            {k.fachStunden} h Facharbeit
-                            {k.helferStunden > 0 ? `, ${k.helferStunden} h Helfer` : ''}
+                            {fmtStd(k.fachStunden * 60)} h Facharbeit
+                            {k.helferStunden > 0 ? `, ${fmtStd(k.helferStunden * 60)} h Helfer` : ''}
                             {' · '}
                             {k.erloesQuelle === 'Rechnungen'
                               ? 'Erlös aus Rechnungen'

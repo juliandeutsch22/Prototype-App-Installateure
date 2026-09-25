@@ -32,3 +32,10 @@ export function auszug(): Promise<pg.BetriebsAuszug> {
 }
 
 export type { BetriebsAuszug } from './pg/company';
+
+export type { NaechsteNummern } from './pg/company';
+
+/** Was die Nummernkreise als Nächstes vergäben — ohne eine Nummer zu verbrauchen. */
+export function naechsteNummern(jahr: number): Promise<pg.NaechsteNummern> {
+  return pg.naechsteNummern(jahr);
+}

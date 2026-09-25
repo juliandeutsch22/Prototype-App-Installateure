@@ -58,6 +58,19 @@ describe('Rechnungsausgangsbuch', () => {
     expect(luecken).toEqual(['RE-2026-0002']);
   });
 
+  it('fasst einen langen Sprung als Bereich zusammen (Launch-Check, M15)', () => {
+    // RE-2026-1500 statt 1002: vorher 498 Nummern einzeln aufgezählt.
+    const luecken = findeLuecken([re('RE-2026-1001', 1), re('RE-2026-1500', 1), re('RE-2026-1502', 1)]);
+    expect(luecken).toEqual(['RE-2026-1002 bis RE-2026-1499 (498 Nummern)', 'RE-2026-1501']);
+    // Zwei am Stück bleiben zwei Nummern — ein Bereich spart da nichts.
+    expect(findeLuecken([re('RE-2026-0001', 1), re('RE-2026-0004', 1)])).toEqual(['RE-2026-0002', 'RE-2026-0003']);
+  });
+
+  it('nimmt Vorsatz und Jahr aus der Nummer — auch ohne Vorsatz', () => {
+    expect(findeLuecken([re('2026-1001', 1), re('2026-1003', 1)])).toEqual(['2026-1002']);
+    expect(findeLuecken([re('R-2026-0001', 1), re('R-2026-0003', 1)])).toEqual(['R-2026-0002']);
+  });
+
   it('meldet keine Lücke, wenn der Kreis geschlossen ist', () => {
     expect(
       findeLuecken([re('RE-2026-0001', 1), re('RE-2026-0002', 1), re('RE-2026-0003', 1)]),

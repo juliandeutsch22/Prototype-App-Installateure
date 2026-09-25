@@ -13,7 +13,7 @@ import {
 import { wartungEingeplant } from '@/lib/db/wartungen';
 import { listCustomers } from '@/lib/db/customers';
 import { listRecentProjects, createProject, reserveProjectNumber } from '@/lib/db/projects';
-import { belegNummer, hoechsteLfd, praefixeVon } from '@/lib/praefixe';
+import { belegNummer, hoechsteLfdImJahr, praefixeVon } from '@/lib/praefixe';
 import { isGF } from '@/lib/permissions';
 import { todayStr } from '@/lib/time';
 import type { Customer, Wartung } from '@/types';
@@ -387,7 +387,7 @@ export default function WartungenView() {
       */
       if (nummer === einplanung.vorschlag) {
         const vergeben = await reserveProjectNumber(companyId, {
-          seedFrom: hoechsteLfd(nummern),
+          seedFrom: 0, // Den Anfangsstand liest die Datenbank selbst.
           praefix: vorsaetze.baustelle,
         });
         if (vergeben) nummer = vergeben;
@@ -506,7 +506,7 @@ export default function WartungenView() {
                     const vorschlag = belegNummer(
                       vorsaetze.baustelle,
                       new Date().getFullYear(),
-                      hoechsteLfd(nummern) + 1,
+                      hoechsteLfdImJahr(nummern, new Date().getFullYear()) + 1,
                     );
                     setEinplanung({ wartung: w, nummer: vorschlag, vorschlag });
                   })()

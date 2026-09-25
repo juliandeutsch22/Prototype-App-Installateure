@@ -7,13 +7,13 @@ import {
   deleteVacation,
   entscheiden as urlaubEntscheiden,
 } from '@/lib/db/vacations';
-import { getUserByUid } from '@/lib/db/users';
+import { getUserByUid, listUsers } from '@/lib/db/users';
 import {
   krankmeldungSpeichern,
   listEigeneKrankmeldungen,
   listBetriebsurlaubeAb,
 } from '@/lib/db/abwesenheiten';
-import { darfUrlaubEntscheiden, canEditTime } from '@/lib/permissions';
+import { darfUrlaubEntscheiden, canEditTime, fuehrtZeitkonto } from '@/lib/permissions';
 import { postenNeuLaden } from '@/app/offenePosten';
 import {
   todayStr,
@@ -146,6 +146,15 @@ export default function VacationsView() {
 
   const [eigene, setEigene] = useState<WithId<Vacation>[]>([]);
   const [offene, setOffene] = useState<WithId<Vacation>[]>([]);
+  /**
+   * Ob im Betrieb noch jemand ANDERER über Urlaub entscheiden darf — dann
+   * entscheidet über den eigenen Antrag nicht man selbst (Launch-Check, K4;
+   * durchgesetzt in `app.urlaub_vier_augen`). `null`: nicht bekannt, dann
+   * bleiben die Knöpfe, und die Datenbank sagt im Zweifel nein.
+   */
+  const [andereEntscheiden, setAndereEntscheiden] = useState<boolean | null>(null);
+  /** Die Belegschaft — für die Entscheidenden geladen, sonst leer. */
+  const [belegschaft, setBelegschaft] = useState<AppUser[]>([]);
   const [profil, setProfil] = useState<AppUser | null>(null);
   const [laden, setLaden] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,6 +221,19 @@ export default function VacationsView() {
           .then(setBetriebsurlaube)
           .catch(() => setBetriebsurlaube([]));
         if (darfEntscheiden) {
+          listUsers(user.companyId)
+            .then((alle) => {
+              setBelegschaft(alle);
+              setAndereEntscheiden(
+                alle.some(
+                  (u) =>
+                    u.uid !== user.uid &&
+                    u.active !== false &&
+                    darfUrlaubEntscheiden(u.role, u.uid, company?.vacationApprovers),
+                ),
+              );
+            })
+            .catch(() => setAndereEntscheiden(null));
           const warten = await listOpenVacations(user.companyId);
           // Ältester Antrag zuerst: wer am längsten wartet, wartet nicht noch länger.
           setOffene([...warten].sort((a, b) => a.von.localeCompare(b.von)));
@@ -222,7 +244,7 @@ export default function VacationsView() {
         setLaden(false);
       }
     },
-    [user, darfEntscheiden],
+    [user, darfEntscheiden, company?.vacationApprovers],
   );
 
   useEffect(() => {
@@ -419,6 +441,39 @@ export default function VacationsView() {
     ? Math.max(0, spanne(zaVon, zaBis))
     : Math.round(zaTage.length * tagessollMin);
 
+  /**
+   * Womit sich der gewählte Zeitraum überschneidet — schon in der Vorschau.
+   *
+   * Launch-Check (25.09.2026, M5): 21.–29.12. zeigte „6 Arbeitstage, danach
+   * 10", obwohl ab dem 24. der Betriebsurlaub lag; erst das Absenden lehnte
+   * ab. Ein Betriebsurlaub zählt, wenn diese Person nicht ausgenommen ist —
+   * auch ohne Abbuchen: dann hat der Betrieb zu, und Urlaub an diesen Tagen
+   * verbrauchte Anspruch für nichts.
+   */
+  const ueberschneidung = useMemo(() => {
+    if (!user || art === 'Krank') return null;
+    const bisTag = art === 'Zeitausgleich' && zaStundenweise ? von : bis;
+    if (bisTag < von) return null;
+    const zu = betriebsurlaube.find(
+      (b) => b.von <= bisTag && b.bis >= von && !(b.ausgenommen ?? []).includes(user.uid),
+    );
+    if (zu) {
+      return `Überschneidet sich mit dem Betriebsurlaub „${zu.bezeichnung}" (${zeitraum(zu)}) — diese Tage sind schon geregelt. Bitte nur die Tage davor oder danach beantragen.`;
+    }
+    const antrag = eigene.find(
+      (v) => (v.status === 'Beantragt' || v.status === 'Genehmigt') && v.von <= bisTag && v.bis >= von,
+    );
+    return antrag ? `Überschneidet sich mit einem Antrag vom ${zeitraum(antrag)} (${antrag.status}).` : null;
+  }, [user, art, zaStundenweise, von, bis, betriebsurlaube, eigene]);
+
+  /** Nach dem Absenden steht die Maske für den nächsten Antrag bereit. */
+  function formularLeeren() {
+    setNotiz('');
+    setVon(todayStr());
+    setBis(todayStr());
+    setZeitraumGewaehlt(false);
+  }
+
   async function beantragen(e: FormEvent) {
     e.preventDefault();
     if (!user || !profil) return;
@@ -441,11 +496,8 @@ export default function VacationsView() {
     // Eine Überschneidung mit einem laufenden oder genehmigten Antrag ist fast
     // immer ein Versehen. Sie hier abzufangen ist freundlicher, als sie den
     // Genehmigenden finden zu lassen.
-    const kollision = eigene.find(
-      (v) => (v.status === 'Beantragt' || v.status === 'Genehmigt') && v.von <= bis && v.bis >= von,
-    );
-    if (kollision) {
-      setError(`Überschneidet sich mit einem Antrag vom ${zeitraum(kollision)} (${kollision.status}).`);
+    if (ueberschneidung) {
+      setError(ueberschneidung);
       return;
     }
     setSendet(true);
@@ -462,7 +514,7 @@ export default function VacationsView() {
         notiz: notiz.trim(),
       });
       toast.success('Antrag eingereicht');
-      setNotiz('');
+      formularLeeren();
       await laden_();
     } catch (err) {
       setError(grundAus(err, 'Der Antrag konnte nicht eingereicht werden.'));
@@ -493,11 +545,8 @@ export default function VacationsView() {
       setError('„Frei bis" muss nach „Frei von" liegen.');
       return;
     }
-    const kollision = eigene.find(
-      (v) => (v.status === 'Beantragt' || v.status === 'Genehmigt') && v.von <= bisTag && v.bis >= von,
-    );
-    if (kollision) {
-      setError(`Überschneidet sich mit einem Antrag vom ${zeitraum(kollision)} (${kollision.status}).`);
+    if (ueberschneidung) {
+      setError(ueberschneidung);
       return;
     }
     setSendet(true);
@@ -519,7 +568,7 @@ export default function VacationsView() {
         notiz: notiz.trim(),
       });
       toast.success('Antrag auf Zeitausgleich eingereicht');
-      setNotiz('');
+      formularLeeren();
       await laden_();
     } catch (err) {
       setError(grundAus(err, 'Der Antrag konnte nicht eingereicht werden.'));
@@ -545,7 +594,7 @@ export default function VacationsView() {
     try {
       const r = await krankmeldungSpeichern({ von, bis, notiz: notiz.trim(), melderName: user.name });
       toast.success(`Krankmeldung eingetragen — ${ergebnisText(r)}. Gute Besserung!`);
-      setNotiz('');
+      formularLeeren();
       setEigeneKrank(await listEigeneKrankmeldungen(user.companyId, user.uid).catch(() => eigeneKrank));
     } catch (err) {
       setError(grundAus(err, 'Die Krankmeldung konnte nicht eingetragen werden.'));
@@ -579,10 +628,18 @@ export default function VacationsView() {
         entscheiderName: user.name,
       });
       if (entscheidung === 'Genehmigt') {
+        /*
+          „IM ZEITKONTO" NUR, WO ES EINES GIBT (Launch-Check, M4): die
+          Administration führt keines, und die Meldung behauptete trotzdem
+          eines. Eingetragen werden die Tage auch dort — als Beleg der
+          Abwesenheit, der die Buchung an diesen Tagen sperrt.
+        */
+        const antragsteller = belegschaft.find((u) => u.uid === antrag.userId);
+        const wohin = antragsteller && !fuehrtZeitkonto(antragsteller) ? '' : ' im Zeitkonto';
         toast.success(
           data.uebersprungen > 0
             ? `Genehmigt — ${data.angelegt} Tage eingetragen, ${data.uebersprungen} übersprungen (dort war schon gebucht)`
-            : `Genehmigt — ${data.angelegt} ${data.angelegt === 1 ? 'Tag' : 'Tage'} im Zeitkonto eingetragen`,
+            : `Genehmigt — ${data.angelegt} ${data.angelegt === 1 ? 'Tag' : 'Tage'}${wohin} eingetragen`,
         );
       } else if (entscheidung === 'Abgelehnt') {
         toast.success('Antrag abgelehnt');
@@ -746,7 +803,7 @@ export default function VacationsView() {
         anderen sehen die Seite wie bisher, ohne Reiterleiste.
       */}
       {buero && (
-        <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+        <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
           {REITER.map((r) => (
             <button
               key={r.key}
@@ -899,7 +956,10 @@ export default function VacationsView() {
           */}
           {art === 'Urlaub' && (
           <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-            {zeitraumGewaehlt && (
+            {zeitraumGewaehlt && ueberschneidung && (
+              <span className="text-warning">{ueberschneidung}</span>
+            )}
+            {zeitraumGewaehlt && !ueberschneidung && (
               <>
                 <strong className="tnum">
                   {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
@@ -957,6 +1017,9 @@ export default function VacationsView() {
                 steht er im Zeitkonto und im Wochenplan.
               </InfoHint>
               <span className="basis-full">{guthabenZeile()}</span>
+              {zeitraumGewaehlt && ueberschneidung && (
+                <span className="mt-1 basis-full text-warning">{ueberschneidung}</span>
+              )}
             </div>
           )}
 
@@ -1045,19 +1108,25 @@ export default function VacationsView() {
                       </>
                     }
                   >
-                    <Button
-                      loading={arbeitet === v.id}
-                      onClick={() => entscheiden(v, 'Genehmigt')}
-                    >
-                      Genehmigen
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      loading={arbeitet === v.id}
-                      onClick={() => ablehnen(v)}
-                    >
-                      Ablehnen
-                    </Button>
+                    {v.userId === user?.uid && andereEntscheiden ? (
+                      <span className="text-xs text-ink-muted">Entscheidet jemand anderer</span>
+                    ) : (
+                      <>
+                        <Button
+                          loading={arbeitet === v.id}
+                          onClick={() => entscheiden(v, 'Genehmigt')}
+                        >
+                          Genehmigen
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          loading={arbeitet === v.id}
+                          onClick={() => ablehnen(v)}
+                        >
+                          Ablehnen
+                        </Button>
+                      </>
+                    )}
                   </ListRow>
                 );
               })}

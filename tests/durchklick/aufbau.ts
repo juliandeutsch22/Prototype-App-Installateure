@@ -72,7 +72,11 @@ async function konto(
 }
 
 export default async function aufbau(): Promise<void> {
-  await admin.from('companies').upsert({ id: BETRIEB, name: 'Durchklick GmbH' });
+  // Mit Anschrift: ohne sie stellt die App keine Rechnung aus (§ 11 UStG,
+  // Launch-Check 25.09.2026, M1) — ein Betrieb ohne sie ist ein anderer Test.
+  await admin.from('companies').upsert({
+    id: BETRIEB, name: 'Durchklick GmbH', address_line: 'Prüfgasse 1, 1010 Wien',
+  });
 
   // Abräumen in der Reihenfolge der Abhängigkeiten: die Fremdschlüssel halten
   // sonst fest, was weg soll.

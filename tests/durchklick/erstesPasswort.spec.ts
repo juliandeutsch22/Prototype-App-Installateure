@@ -100,4 +100,23 @@ test('Wer über den Link kommt, vergibt ein Passwort — und kommt damit wieder 
   await expect(page.getByRole('heading', { name: 'Passwort ändern' })).toBeVisible({
     timeout: 20_000,
   });
+
+  /*
+    ABER NUR MIT DEM AKTUELLEN (Launch-Check 25.09.2026, K7). Ein falsches
+    ändert nichts, das richtige ändert — und die Sitzung bleibt dabei stehen.
+  */
+  const aendern = page.getByRole('button', { name: 'Passwort ändern', exact: true });
+  await page.getByLabel('Aktuelles Passwort').fill(`${PASSWORT}-falsch`);
+  await page.getByLabel('Neues Passwort').fill(`${PASSWORT}-2`);
+  await page.getByLabel('Noch einmal').fill(`${PASSWORT}-2`);
+  await aendern.click();
+  await expect(page.getByText('Das aktuelle Passwort stimmt nicht.')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByLabel('Aktuelles Passwort').fill(PASSWORT);
+  await aendern.click();
+  await expect(page.getByText('Das Passwort ist gesetzt.')).toBeVisible({ timeout: 20_000 });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Passwort ändern' })).toBeVisible({
+    timeout: 20_000,
+  });
 });

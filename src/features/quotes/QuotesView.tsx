@@ -12,7 +12,7 @@ import { listCustomers } from '@/lib/db/customers';
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
 import { calcTotals, cent, positionNetto, type InvoicePosition } from '@/features/invoices/totals';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
-import { todayStr, localDateStr } from '@/lib/time';
+import { todayStr, localDateStr, fmtStunden } from '@/lib/time';
 import { isGF } from '@/lib/permissions';
 import type { Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -60,7 +60,7 @@ interface ZeilenEingabe {
 /*
   DER HAKEN FOLGT DER EINHEIT, BIS JEMAND IHN ANFASST.
 
-  Jede neue Position beginnt mit „h" und angehaktem „Zählt als Arbeitszeit".
+  Jede neue Position begann mit „h" und angehaktem „Zählt als Arbeitszeit".
   Wer die Einheit auf „Stk" änderte, behielt den Haken — und die Armatur
   zählte als Stunde. Im Probelauf: 16 Stunden Montage plus eine Armatur
   ergaben ein Budget von 17 h; zwanzig Rohrschellen wären zwanzig Stunden
@@ -74,12 +74,18 @@ function istStundenEinheit(einheit: string): boolean {
   return /^(h|std\.?|stunden?)$/i.test(einheit.trim());
 }
 
+/*
+  EINE NEUE ZEILE BEGINNT OHNE EINHEIT UND OHNE HAKEN (Launch-Check
+  25.09.2026, M7). Mit „h" vorbelegt zählte „1 Heizkörper", bei dem niemand
+  die Einheit anfasste, als Stunde ins Budget (4,5 statt 3,5 h). Wer „h"
+  einträgt, bekommt den Haken wie bisher von selbst.
+*/
 const LEERE_ZEILE: ZeilenEingabe = {
   label: '',
   qty: '',
-  unit: 'h',
+  unit: '',
   unitPrice: '',
-  istArbeitszeit: true,
+  istArbeitszeit: false,
 };
 
 /**
@@ -111,6 +117,8 @@ export default function QuotesView() {
   */
   const [formOffen, setFormOffen] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Quote> | null>(null);
+  /** Welches Angebot gerade angenommen werden soll — erst nach der Rückfrage. */
+  const [annehmenFragen, setAnnehmenFragen] = useState<WithId<Quote> | null>(null);
 
   // Formular
   const [customerId, setCustomerId] = useState('');
@@ -447,6 +455,7 @@ export default function QuotesView() {
                     <InputField
                       id={`anqunit${i}`}
                       label="Einheit"
+                      placeholder="z. B. h, Stk, m"
                       value={z.unit}
                       onChange={(e) =>
                         setZeilen((v) =>
@@ -551,7 +560,7 @@ export default function QuotesView() {
               beim ersten Angebot im Weg und beim fünfzigsten erst recht.
             */}
             <p className="mt-1 flex flex-wrap items-center text-sm text-ink-muted">
-              Kalkulierte Arbeitszeit: <strong className="ml-1">{kalkulierteStunden} h</strong>
+              Kalkulierte Arbeitszeit: <strong className="ml-1">{fmtStunden(kalkulierteStunden)} h</strong>
               <InfoHint about="kalkulierte Arbeitszeit">
                 Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
                 der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
@@ -564,7 +573,7 @@ export default function QuotesView() {
             <p className="mt-3 rounded border border-line bg-surface-2 p-3 text-sm text-warning" role="status">
               Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen.
               Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher kalkuliert:{' '}
-              <strong className="tnum">{stundenVorher} h</strong>.
+              <strong className="tnum">{fmtStunden(stundenVorher)} h</strong>.
             </p>
           )}
 
@@ -614,7 +623,7 @@ export default function QuotesView() {
                   <>
                     {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)} · {fmtEUR(q.totalBrutto)} brutto
                     <span className="mt-1 block text-xs text-ink-muted">
-                      {q.kalkulierteStunden} h kalkuliert
+                      {fmtStunden(q.kalkulierteStunden)} h kalkuliert
                       {q.projectNumber ? ` · Baustelle ${q.projectNumber}` : ''}
                     </span>
                   </>
@@ -637,7 +646,7 @@ export default function QuotesView() {
                 )}
                 {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
                   <>
-                    <Button variant="ghost" loading={busy} onClick={() => annehmen(q)}>
+                    <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(q)}>
                       Annehmen → Baustelle
                     </Button>
                     <Button
@@ -665,6 +674,29 @@ export default function QuotesView() {
           </List>
         )}
       </Card>
+
+      {/*
+        ERST FRAGEN, DANN ANLEGEN (Launch-Check, M8). Annehmen legt eine
+        Baustelle an und verbraucht eine Nummer — ein verrutschter Finger in
+        der Liste darf das nicht auslösen.
+      */}
+      <ConfirmDialog
+        open={!!annehmenFragen}
+        title="Angebot annehmen?"
+        message={
+          annehmenFragen
+            ? `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Pauschalbaustelle mit der nächsten Baustellennummer.`
+            : ''
+        }
+        confirmLabel="Annehmen"
+        confirmTone="primary"
+        onCancel={() => setAnnehmenFragen(null)}
+        onConfirm={async () => {
+          const q = annehmenFragen;
+          setAnnehmenFragen(null);
+          if (q) await annehmen(q);
+        }}
+      />
 
       <ConfirmDialog
         open={!!toDelete}

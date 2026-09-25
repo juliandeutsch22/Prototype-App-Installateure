@@ -88,8 +88,9 @@ describe('Zeiterfassung auf Postgres', () => {
   });
 
   it('findet alle Einträge einer Person an einem Tag — ausser dem bearbeiteten', async () => {
-    await zeiten.anlegen('zeit-a', buchung(monteur, '2026-03-10', { projectNumber: '2026-001' }));
-    await zeiten.anlegen('zeit-a', buchung(monteur, '2026-03-10', { projectNumber: '2026-002' }));
+    // Nacheinander, nicht zur selben Stunde — das lehnt die Datenbank ab.
+    await zeiten.anlegen('zeit-a', buchung(monteur, '2026-03-10', { projectNumber: '2026-001', endTime: '11:00' }));
+    await zeiten.anlegen('zeit-a', buchung(monteur, '2026-03-10', { projectNumber: '2026-002', startTime: '11:00' }));
 
     const alle = await zeiten.eintraegeAmTag('zeit-a', monteur.uid, '2026-03-10');
     expect(alle).toHaveLength(2);
@@ -205,7 +206,7 @@ describe('Die Doppelbuchungsregel greift durch die Weiche', () => {
   it('lässt eine zweite Baustelle am selben Tag zu', async () => {
     const { createTimeEntry } = await import('@/lib/db/timeEntries');
     const id = await createTimeEntry('zeit-a',
-      buchung(monteur, '2026-09-07', { projectNumber: '2026-071' }));
+      buchung(monteur, '2026-09-07', { projectNumber: '2026-071', startTime: '16:00', endTime: '19:00' }));
     expect(id).toBeTruthy();
   });
 });

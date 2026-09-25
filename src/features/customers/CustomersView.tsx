@@ -15,9 +15,9 @@ import type { Customer, Project } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import RowMenu from '@/components/RowMenu';
 import Icon from '@/components/Icon';
 import { Marke } from '@/components/Badge';
-import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -516,32 +516,38 @@ export default function CustomersView() {
                 >
                   Akte
                 </Link>
+                {/*
+                  DIESELBEN ZEILENAKTIONEN WIE BEI DEN BAUSTELLEN: die Akte
+                  sichtbar, das Seltene im „⋯" (Launch-Check 25.09.2026 —
+                  hier standen „Bearbeiten" und ein ✕ in der Zeile, dort
+                  „Akte" und ⋯). Das Löschen gehört nicht an die auffälligste
+                  Stelle der Zeile.
+                */}
                 {darfAendern && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        setBearbeitet(k);
-                        setFormOffen(true);
-                        setForm({
-                          name: k.name,
-                          address: k.address ?? '',
-                          contactName: k.contactName ?? '',
-                          contactPhone: k.contactPhone ?? '',
-                          email: k.email ?? '',
-                          vatId: k.vatId ?? '',
-                          notes: k.notes ?? '',
-                          active: k.active ?? true,
-                        });
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                    >
-                      Bearbeiten
-                    </Button>
-                    <IconButton label={`${k.name} löschen`} tone="danger" onClick={() => setToDelete(k)}>
-                      ✕
-                    </IconButton>
-                  </>
+                  <RowMenu
+                    about={`Kunde ${k.name}`}
+                    items={[
+                      {
+                        label: 'Bearbeiten',
+                        onSelect: () => {
+                          setBearbeitet(k);
+                          setFormOffen(true);
+                          setForm({
+                            name: k.name,
+                            address: k.address ?? '',
+                            contactName: k.contactName ?? '',
+                            contactPhone: k.contactPhone ?? '',
+                            email: k.email ?? '',
+                            vatId: k.vatId ?? '',
+                            notes: k.notes ?? '',
+                            active: k.active ?? true,
+                          });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        },
+                      },
+                      { label: 'Löschen', onSelect: () => setToDelete(k), danger: true },
+                    ]}
+                  />
                 )}
               </ListRow>
             ))}

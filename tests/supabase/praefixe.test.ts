@@ -131,6 +131,16 @@ describe('Der Zähler für Baustellennummern', () => {
     expect(Number(b.data)).toBe(Number(a.data) + 1);
   });
 
+  it('springt über eine Nummer, die schon jemand von Hand vergeben hat (Launch-Check, K6)', async () => {
+    const vorher = Number((await ziehen(chef)).data);
+    const vonHand = `B-2026-${String(vorher + 1).padStart(4, '0')}`;
+    const { error } = await admin.from('projects').insert({
+      company_id: BETRIEB, project_number: vonHand, customer_name: 'Bauträger', status: 'Aktiv',
+    });
+    expect(error).toBeNull();
+    expect(Number((await ziehen(chef)).data)).toBe(vorher + 2);
+  });
+
   it('die Projektleitung darf — sie legt Baustellen an', async () => {
     const { error } = await ziehen(leiter);
     expect(error).toBeNull();
@@ -163,11 +173,24 @@ describe('Der Zähler für Baustellennummern', () => {
     const mitStand = Number((await ziehen(chef, 9000)).data);
     expect(mitStand).toBe(vorher + 1);
 
+    /*
+      SEIT DEM LAUNCH-CHECK (25.09.2026, K6) liest die Datenbank den Bestand
+      selbst, und nur Nummern im Schema des Jahres. „PR-187" — eine von Hand
+      vergebene — hob den Zähler vorher auf 188.
+    */
     const FRISCH = 'praefix-neu';
     await betriebAnlegen(FRISCH);
     const neuerChef = await konto(FRISCH, 'Geschäftsführung', 'neu');
+    const { error: angelegt } = await admin.from('projects').insert([
+      { company_id: FRISCH, project_number: 'B-2026-0047', customer_name: 'A', status: 'Aktiv' },
+      { company_id: FRISCH, project_number: 'PR-187', customer_name: 'B', status: 'Aktiv' },
+      { company_id: FRISCH, project_number: 'B-2025-0900', customer_name: 'C', status: 'Aktiv' },
+    ]);
+    expect(angelegt).toBeNull();
+    const vorschau = await neuerChef.client.rpc('naechste_nummern', { p_jahr: 2026 });
+    expect(vorschau.data).toContainEqual({ art: 'projects', naechste: 48 });
     const { data } = await neuerChef.client.rpc('naechste_nummer', {
-      p_art: 'projects', p_jahr: 2026, p_seed: 47, p_wunsch: null,
+      p_art: 'projects', p_jahr: 2026, p_seed: 9000, p_wunsch: null,
     });
     expect(Number(data)).toBe(48);
   }, 120_000);

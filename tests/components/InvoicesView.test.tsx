@@ -233,6 +233,9 @@ vi.mock('@/lib/db/workSheets', () => ({
   listWorkSheetsForProject: vi.fn(async () => scheine),
 }));
 vi.mock('@/lib/db/materials', () => ({ listMaterials: vi.fn(async () => katalog) }));
+/** Die Angebote der Baustelle — für die Pauschale (Launch-Check, K3). */
+let angebote: Array<Record<string, unknown>> = [];
+vi.mock('@/lib/db/quotes', () => ({ listQuotesForProject: vi.fn(async () => angebote) }));
 
 // Das PDF wird beim Bestätigen dynamisch nachgeladen und hat mit der Frage
 // dieses Tests nichts zu tun.
@@ -278,6 +281,8 @@ const authWert = {
     // Ohne eigene UID ist keine Reverse-Charge-Rechnung vollständig — sie
     // gehört zu den Firmendaten und steht auf jeder Rechnung in der Fusszeile.
     vatId: 'ATU12345678',
+    // Der Aussteller auf jeder Rechnung (§ 11 UStG) — ohne sie gibt es keine.
+    addressLine: 'Hauptstraße 1 · 2700 Wiener Neustadt' as string | undefined,
   },
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
@@ -333,6 +338,8 @@ beforeEach(() => {
   scheine = [];
   katalog = [];
   kunden = [];
+  angebote = [];
+  PROJEKT.billingMode = undefined;
   reservierteNummer = 'RE-2026-1099';
   reservierungWirft = null;
   reihenfolge.length = 0;
@@ -378,10 +385,10 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     reservierteNummer = 'RE-2026-1099';
 
     const bestaetigen = await bisZurVorschau();
-    // Der Vorschlag im Feld waere 1005 — die Transaktion sagt 1099.
-    expect((screen.getByLabelText(/Rechnungsnummer/) as HTMLInputElement).value).toBe(
-      'RE-2026-1005',
-    );
+    // Der Vorschlag waere 1005 — die Transaktion sagt 1099. Seit es eine
+    // Rechnung gibt, steht die Nummer nur noch da (Launch-Check, K8).
+    expect(screen.getByText('RE-2026-1005')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Rechnungsnummer/)).toBeNull();
     await userEvent.click(bestaetigen);
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
@@ -399,15 +406,27 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     expect(reserve.mock.calls[0][1].desired).toBeUndefined();
   });
 
-  it('reicht eine von Hand gesetzte Nummer als Wunsch weiter', async () => {
+  it('reicht bei der ALLERERSTEN Rechnung eine eigene Nummer als Wunsch weiter', async () => {
+    // Der Umstieg: an den Kreis des bisherigen Programms anschliessen.
+    // `rechnungen` ist hier leer — der Betrieb hat noch keine.
     const bestaetigen = await bisZurVorschau();
-    const feld = screen.getByLabelText(/Rechnungsnummer/);
+    const feld = screen.getByLabelText('Rechnungsnummer');
     await userEvent.clear(feld);
     await userEvent.type(feld, 'RE-2026-2000');
     await userEvent.click(bestaetigen);
 
     await waitFor(() => expect(reserve).toHaveBeenCalled());
     expect(reserve.mock.calls[0][1].desired).toBe(2000);
+  });
+
+  it('lässt die Nummer nicht mehr ändern, sobald es eine Rechnung gibt (Launch-Check, K8)', async () => {
+    rechnungen = [{ id: 'alt', invoiceNumber: 'RE-2026-1001' } as Invoice & { id: string }];
+    const bestaetigen = await bisZurVorschau();
+    expect(screen.queryByLabelText(/Rechnungsnummer/)).toBeNull();
+    expect(screen.getByText(/vergibt sie beim Erstellen, lückenlos/)).toBeInTheDocument();
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(reserve).toHaveBeenCalled());
+    expect(reserve.mock.calls[0][1].desired).toBeUndefined();
   });
 
   it('gibt die Auskunft der Nummernvergabe unveraendert weiter', async () => {
@@ -961,12 +980,21 @@ describe('Eine stornierte Rechnung', () => {
     expect(screen.queryByRole('menuitem', { name: /löschen/i })).not.toBeInTheDocument();
   });
 
-  it('lässt sich aber weiterhin wieder aufheben', async () => {
-    // Der Storno ist die Korrektur, nicht das Löschen — und er ist umkehrbar.
+  it('lässt sich am Tag des Stornos wieder aufheben — nach Rückfrage', async () => {
+    // Der Storno ist die Korrektur, nicht das Löschen — und ein Fehlgriff
+    // lässt sich am selben Tag zurücknehmen. Die Uhr steht auf 01.09. 09:00.
+    STORNIERT.cancelledAt = new Date(2026, 8, 1, 8, 0).getTime();
     await menueStorno();
-    expect(
-      await screen.findByRole('menuitem', { name: 'Storno aufheben' }),
-    ).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Storno aufheben' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(/nur heute, am Tag des Stornos/);
+  });
+
+  it('ab dem Folgetag nicht mehr — dann steht er in der Buchhaltung (Launch-Check, K9)', async () => {
+    STORNIERT.cancelledAt = new Date(2026, 7, 31, 16, 0).getTime();
+    await menueStorno();
+    await screen.findByRole('menuitem', { name: /Zahlung erfassen/ });
+    expect(screen.queryByRole('menuitem', { name: 'Storno aufheben' })).not.toBeInTheDocument();
   });
 });
 
@@ -1691,6 +1719,29 @@ describe('Zahlungen erfassen', () => {
     });
   });
 
+  it('rechnet den Kopf nach einer Teilzahlung neu (Launch-Check, M14)', async () => {
+    // Vorher stand nach 400 € weiter „offen € 1 200,00" über der Liste.
+    rechnungen = [offeneRechnung()];
+    listZahlungen.mockImplementation(async () =>
+      erfassteZahlungen.map((z, i) => ({ id: `z${i}`, ...z })));
+    zeige();
+    await screen.findByText(/RE-2026-0042/);
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(/offen € 1\s200,00/);
+
+    const betrag = await screen.findByLabelText(/^Betrag/);
+    await userEvent.clear(betrag);
+    await userEvent.type(betrag, '400');
+    await userEvent.click(screen.getByRole('button', { name: 'Zahlung eintragen' }));
+
+    await waitFor(() => expect(dialog).toHaveTextContent('offen € 800,00'));
+    listZahlungen.mockImplementation(async () => bisherigeZahlungen);
+  });
+
   /*
     DIE ZEILE SAGT, WAS SCHON DA IST. Ohne diese Angabe müsste jemand die
     Rechnung öffnen, um zu sehen, warum der Mahnlauf einen anderen Betrag
@@ -2044,5 +2095,106 @@ describe('Rechnungen suchen — über alle, nicht nur die geladenen', () => {
     await userEvent.type(await screen.findByLabelText('Suche'), 'Maier');
     expect(await screen.findByText(/Suche über alle Rechnungen ist gerade nicht erreichbar/)).toBeInTheDocument();
     expect(screen.getByText('RE-2026-1010 · Familie Maier')).toBeInTheDocument();
+  });
+});
+
+
+/**
+ * LAUNCH-CHECK 25.09.2026, K3: eine Pauschalbaustelle (Angebot 275 € netto)
+ * bekam eine Stundenrechnung über 6 h × 65 €. Das Angebot ist die Rechnung.
+ */
+describe('Pauschalbaustelle', () => {
+  const ANGEBOT = {
+    id: 'q1', quoteNumber: 'AN-2026-0003', status: 'Angenommen', quoteDate: '2026-08-01',
+    positions: [
+      { label: 'Heizkörper tauschen', qty: 1, unit: 'Pauschale', unitPrice: 200, netto: 200 },
+      { label: 'Arbeitszeit', qty: 1, unit: 'h', unitPrice: 75, netto: 75 },
+    ],
+    discount: null, subtotalNetto: 275, totalNetto: 275, totalVat: 55, totalBrutto: 330,
+  };
+
+  it('übernimmt das angenommene Angebot statt der Stunden', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    angebote = [ANGEBOT];
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    await bisZurVorschau();
+    expect(screen.getByDisplayValue('Heizkörper tauschen')).toBeInTheDocument();
+    expect(screen.getByText(/Positionen kommen aus dem Angebot AN-2026-0003 \(€ 275,00 netto\)/)).toBeInTheDocument();
+    // Weder die gebuchten 8 Stunden noch das Material des Scheins als eigene Zeile.
+    expect(screen.queryByDisplayValue('Eckventil 1/2 Zoll')).toBeNull();
+    expect(screen.queryByDisplayValue(/Facharbeiter/)).toBeNull();
+  });
+
+  it('bietet die Pauschale nicht ein zweites Mal an', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    angebote = [ANGEBOT];
+    derBaustelle = [{ id: 'r1', invoiceNumber: 'RE-2026-1002', projectNumber: '2026-042', paymentStatus: 'Offen' } as Invoice & { id: string }];
+    zeige();
+    const auswahl = await screen.findByRole('combobox', { name: /Baustelle/ });
+    await userEvent.selectOptions(auswahl, '2026-042');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    expect(await screen.findByText(/Pauschale ist mit RE-2026-1002 bereits verrechnet/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
+  });
+
+  it('ohne angenommenes Angebot steht eine Null da, die ausgefüllt werden will', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    await bisZurVorschau();
+    expect(screen.getByDisplayValue('Pauschale gemäß Vereinbarung')).toBeInTheDocument();
+    expect(screen.getByText(/ohne angenommenes Angebot/)).toBeInTheDocument();
+  });
+
+  it('eine Regiebaustelle rechnet weiter die Stunden', async () => {
+    PROJEKT.billingMode = 'Regie';
+    angebote = [ANGEBOT];
+    await bisZurVorschau();
+    expect(screen.getByDisplayValue(/Facharbeiterstunden/)).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Heizkörper tauschen')).toBeNull();
+    expect(screen.queryByText(/Pauschalbaustelle/)).toBeNull();
+  });
+});
+
+
+/**
+ * LAUNCH-CHECK 25.09.2026, M1: nur der Firmenname war Pflicht, und
+ * RE-2026-1500 ging ohne Anschrift des Ausstellers hinaus.
+ */
+describe('Der Aussteller auf der Rechnung', () => {
+  afterEach(() => {
+    authWert.company.addressLine = 'Hauptstraße 1 · 2700 Wiener Neustadt';
+  });
+
+  it('ohne Anschrift des Betriebs keine Rechnung', async () => {
+    authWert.company.addressLine = undefined;
+    const bestaetigen = await bisZurVorschau();
+    expect(screen.getByText(/Anschrift des Betriebs fehlt/)).toBeInTheDocument();
+    // Die Buchhaltung darf die Firmendaten nicht ändern — sie bekommt den Weg gesagt.
+    expect(screen.getByText(/Die Geschäftsführung trägt sie in den Firmendaten ein/)).toBeInTheDocument();
+    expect(bestaetigen).toBeDisabled();
+  });
+
+  it('mit Anschrift geht es wie immer', async () => {
+    const bestaetigen = await bisZurVorschau();
+    expect(screen.queryByText(/Anschrift des Betriebs fehlt/)).toBeNull();
+    expect(bestaetigen).toBeEnabled();
+  });
+});
+
+/**
+ * LAUNCH-CHECK 25.09.2026, M13: die Kennzahl „Bezahlt" zählte die 200 € auf
+ * der stornierten RE-2026-1500 mit — Geld, das dem Kunden als Guthaben
+ * zurückgehört.
+ */
+describe('Die Kennzahl „Bezahlt"', () => {
+  it('zählt kein Guthaben — weder auf einem Storno noch als Überzahlung', async () => {
+    rechnungen = [
+      { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max', paymentStatus: 'Storniert', totalBrutto: 504, bezahltBetrag: 200 },
+      { id: 'b', invoiceNumber: 'RE-2026-1501', projectNumber: '2026-042', customerName: 'Max', paymentStatus: 'Überzahlt', totalBrutto: 100, bezahltBetrag: 130 },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige();
+    const kachel = (await screen.findByText('Bezahlt', { selector: 'p, span, div, dt' })).parentElement!;
+    expect(kachel).toHaveTextContent('€ 100,00');
+    expect(kachel).not.toHaveTextContent('€ 330,00');
   });
 });

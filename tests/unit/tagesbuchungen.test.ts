@@ -190,3 +190,53 @@ describe('buchungKonflikt — Zeitausgleich', () => {
     expect([...t]).toEqual(['2026-09-01']);
   });
 });
+
+/**
+ * LAUNCH-CHECK 25.09.2026, K1 und M3.
+ *
+ * K1: 20:00–02:00 auf einer Baustelle, dann 21:00–23:00 auf einer anderen —
+ * beides ging durch, die Woche zählte 16 statt 14 Stunden.
+ * M3: der geteilte Dienst auf DERSELBEN Baustelle (vormittags gearbeitet,
+ * abends Notdienst) war nicht buchbar.
+ */
+describe('Launch-Check: Zeiten zur selben Stunde', () => {
+  const zeit = (projectNumber: string, startTime: string, endTime: string) =>
+    ({ status: 'Anwesend' as const, projectNumber, startTime, endTime });
+
+  it('blockt zwei Baustellen zur selben Stunde — auch über Mitternacht', () => {
+    const nacht = zeit('PR-2026-0002', '20:00', '02:00');
+    const grund = buchungKonflikt(zeit('PR-2026-0003', '21:00', '23:00'), [nacht]);
+    expect(grund).toMatch(/überschneidet sich mit 20:00–02:00 \(PR-2026-0002\)/);
+    // Und in der Gegenrichtung.
+    expect(buchungKonflikt(nacht, [zeit('PR-2026-0003', '21:00', '23:00')])).toMatch(/überschneidet/);
+  });
+
+  it('lässt aneinanderstossende Zeiten durch', () => {
+    expect(buchungKonflikt(zeit('A', '12:00', '16:00'), [zeit('B', '07:00', '12:00')])).toBeNull();
+    // Die Nachtschicht endet um 02:00 des Folgetags — der Vormittag ist frei.
+    expect(buchungKonflikt(zeit('A', '07:00', '12:00'), [zeit('B', '20:00', '02:00')])).toBeNull();
+  });
+
+  it('lässt den geteilten Dienst auf derselben Baustelle zu', () => {
+    const vormittag = zeit('PR-2026-0002', '07:00', '12:00');
+    expect(buchungKonflikt(zeit('PR-2026-0002', '19:00', '22:00'), [vormittag])).toBeNull();
+    const t = tageMitEchterDoppelung([
+      { date: '2026-09-24', ...vormittag },
+      { date: '2026-09-24', ...zeit('PR-2026-0002', '19:00', '22:00') },
+    ]);
+    expect(t.size).toBe(0);
+  });
+
+  it('dieselbe Baustelle ohne Uhrzeit bleibt einmal je Tag', () => {
+    expect(buchungKonflikt(zeit('PR-2026-0002', '19:00', '22:00'), [A('PR-2026-0002')]))
+      .toMatch(/bereits gebucht/);
+  });
+
+  it('meldet eine bestehende Überschneidung in der Liste', () => {
+    const t = tageMitEchterDoppelung([
+      { date: '2026-09-24', ...zeit('PR-2026-0002', '20:00', '02:00') },
+      { date: '2026-09-24', ...zeit('PR-2026-0003', '21:00', '23:00') },
+    ]);
+    expect([...t]).toEqual(['2026-09-24']);
+  });
+});

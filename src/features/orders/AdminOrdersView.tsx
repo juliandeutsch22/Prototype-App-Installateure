@@ -293,7 +293,7 @@ export default function AdminOrdersView() {
 
       {/* Aktiver Reiter mit Akzentkante unten — gleiche Markierung wie in
           Unterreiter. */}
-      <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.key}

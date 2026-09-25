@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { updateCompany } from '@/lib/db/company';
+import { updateCompany, naechsteNummern, type NaechsteNummern } from '@/lib/db/company';
 import { praefixeVon, praefixPutzen, praefixFehler, belegNummer, PRAEFIX_MAX } from '@/lib/praefixe';
 import { listUsers } from '@/lib/db/users';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
@@ -125,6 +125,13 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   */
   const [vorsaetze, setVorsaetze] = useState(() => praefixeVon(company));
   const [vorsaetzeSpeichert, setVorsaetzeSpeichert] = useState(false);
+  /*
+    WAS DER ZÄHLER ALS NÄCHSTES VERGIBT — nicht ein festes Beispiel. Bis zum
+    Launch-Check (25.09.2026, K6) stand hier PR-2026-0001, während schon
+    PR-2026-0003 existierte. `null` heisst: noch nicht geladen oder nicht
+    ladbar; dann steht nur das Format da, ausdrücklich als Beispiel.
+  */
+  const [naechste, setNaechste] = useState<NaechsteNummern | null>(null);
 
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
@@ -155,6 +162,17 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     if (!user || !darfGenehmigerSetzen) return;
     listUsers(user.companyId).then(setNutzer).catch(() => setNutzer([]));
   }, [user, darfGenehmigerSetzen]);
+
+  useEffect(() => {
+    if (teil !== 'nummern' || !darfGenehmigerSetzen) return;
+    let weg = false;
+    naechsteNummern(new Date().getFullYear())
+      .then((n) => !weg && setNaechste(n))
+      .catch(() => !weg && setNaechste(null));
+    return () => {
+      weg = true;
+    };
+  }, [teil, darfGenehmigerSetzen]);
 
   /**
    * Zur Auswahl stehen alle AKTIVEN ausser der Leitung.
@@ -823,7 +841,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                   wenn er hier steht — wie sieht die nächste Nummer aus?
                 */}
                 <p className="tnum text-sm text-ink-muted">
-                  {belegNummer(vorsaetze[schluessel], new Date().getFullYear(), ab)}
+                  {naechste
+                    ? `Nächste: ${belegNummer(vorsaetze[schluessel], new Date().getFullYear(), naechste[schluessel])}`
+                    : `z. B. ${belegNummer(vorsaetze[schluessel], new Date().getFullYear(), ab)}`}
                 </p>
               </div>
             ))}

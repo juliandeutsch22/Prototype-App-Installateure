@@ -153,6 +153,45 @@ describe('Baustellenauswahl', () => {
  * vollständig aus, egal wie viel fehlt. Wer seine Baustelle nicht findet,
  * bucht auf eine andere.
  */
+describe('Baustellenauswahl — Reihenfolge (Launch-Check 25.09.2026, R2)', () => {
+  const drei: (Project & { id: string })[] = [
+    // Die Nummern laufen absichtlich GEGEN die Kunden — sonst bewiese die
+    // Reihenfolge nichts.
+    { id: 'a', companyId: 'perl', projectNumber: 'B-1', customerName: 'Zach GmbH', status: 'Aktiv' },
+    { id: 'b', companyId: 'perl', projectNumber: 'B-3', customerName: 'Aigner', status: 'Aktiv', assignedEmployees: ['max'] },
+    { id: 'c', companyId: 'perl', projectNumber: 'B-2', customerName: 'Müller', status: 'Aktiv' },
+  ];
+  const beschriftungen = () =>
+    screen.getAllByRole('option').map((o) => o.textContent).filter((t) => t !== '— wählen —');
+
+  it('sortiert nach dem Kunden, statt die Reihenfolge der Datenbank zu zeigen', async () => {
+    listActiveProjects.mockResolvedValue(drei);
+    render(<BaustellenSelect companyId="perl" value="" onChange={() => undefined} />);
+    await screen.findByText('Aigner (B-3)');
+    expect(beschriftungen()).toEqual(['Aigner (B-3)', 'Müller (B-2)', 'Zach GmbH (B-1)']);
+  });
+
+  it('stellt die eigenen Baustellen in einer Gruppe nach oben — die übrigen bleiben wählbar', async () => {
+    listActiveProjects.mockResolvedValue(drei);
+    const { container } = render(
+      <BaustellenSelect companyId="perl" value="" onChange={() => undefined} meineUid="max" />,
+    );
+    await screen.findByText('Aigner (B-3)');
+    const gruppen = [...container.querySelectorAll('optgroup')].map((g) => g.label);
+    expect(gruppen).toEqual(['Meine Baustellen', 'Weitere laufende Baustellen']);
+    expect(beschriftungen()).toEqual(['Aigner (B-3)', 'Müller (B-2)', 'Zach GmbH (B-1)']);
+  });
+
+  it('ohne eigene Baustelle bleibt es bei einer Gruppe', async () => {
+    listActiveProjects.mockResolvedValue(drei);
+    const { container } = render(
+      <BaustellenSelect companyId="perl" value="" onChange={() => undefined} meineUid="niemand" />,
+    );
+    await screen.findByText('Aigner (B-3)');
+    expect([...container.querySelectorAll('optgroup')].map((g) => g.label)).toEqual(['Laufende Baustellen']);
+  });
+});
+
 describe('Baustellenauswahl — wenn die Grenze greift', () => {
   const viele = (n: number) =>
     Array.from({ length: n }, (_, i) =>

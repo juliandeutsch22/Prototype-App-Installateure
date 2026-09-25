@@ -25,7 +25,7 @@ import { Marke } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import RowMenu from '@/components/RowMenu';
-import { praefixeVon, belegNummer, hoechsteLfd } from '@/lib/praefixe';
+import { praefixeVon, belegNummer, hoechsteLfdImJahr } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -33,6 +33,7 @@ import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import { fmtStunden } from '@/lib/time';
 
 const empty = {
   projectNumber: '',
@@ -221,7 +222,7 @@ export default function AdminProjectsView() {
       */
       if (nummer === nummernVorschlag) {
         const vergeben = await reserveProjectNumber(user.companyId, {
-          seedFrom: hoechsteLfd(projects.map((p) => p.projectNumber)),
+          seedFrom: 0, // Den Anfangsstand liest die Datenbank selbst.
           praefix: vorsaetze.baustelle,
         });
         // `null` heisst „kein Zähler verfügbar" — dann gilt der Vorschlag.
@@ -259,7 +260,7 @@ export default function AdminProjectsView() {
       belegNummer(
         vorsaetze.baustelle,
         new Date().getFullYear(),
-        hoechsteLfd(projects.map((p) => p.projectNumber)) + 1,
+        hoechsteLfdImJahr(projects.map((p) => p.projectNumber), new Date().getFullYear()) + 1,
       ),
     [projects, vorsaetze.baustelle],
   );
@@ -630,7 +631,7 @@ export default function AdminProjectsView() {
                     </>
                   }
                 >
-                  {p.estimatedHours ? <Marke>{p.estimatedHours} h Budget</Marke> : null}
+                  {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h Budget</Marke> : null}
                   <StatusBadge status={p.status} />
                   {/*
                     EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine

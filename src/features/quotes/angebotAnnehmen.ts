@@ -1,11 +1,5 @@
 import { updateQuote } from '@/lib/db/quotes';
-import {
-  createProject,
-  listActiveProjects,
-  reserveProjectNumber,
-  type NewProject,
-} from '@/lib/db/projects';
-import { belegNummer, hoechsteLfd } from '@/lib/praefixe';
+import { createProject, reserveProjectNumber, type NewProject } from '@/lib/db/projects';
 import type { Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 
@@ -38,35 +32,19 @@ export function beschreibungAusAngebot(q: Pick<Quote, 'notes' | 'quoteNumber'>):
  * Ablaufs laufen irgendwann auseinander, und dann legt der eine Knopf eine
  * andere Baustelle an als der andere.
  *
- * Gibt die vergebene Nummer zurück und die, die abgeleitet worden wäre —
- * weichen sie ab, war die abgeleitete schon vergeben.
+ * DIE NUMMER KOMMT AUS DEM ZÄHLER DER BAUSTELLEN — wie bei jeder anderen
+ * Baustelle. Bis zum Launch-Check (25.09.2026, K6) wurde sie aus der
+ * Angebotsnummer abgeleitet (AN-2026-0004 → PR-2026-0004). Damit gab es drei
+ * Logiken für eine Frage, und die Nummern sprangen: der Zähler wusste nichts
+ * von der abgeleiteten, und eine von Hand angelegte Baustelle bekam danach
+ * eine, die es schon gab. Zuordenbar bleiben beide trotzdem — die Baustelle
+ * kennt ihr Angebot über die Kennung, und die Akte verlinkt es.
  */
 export async function angebotAnnehmen(
   companyId: string,
   q: WithId<Quote>,
   vorsatzBaustelle: string,
-): Promise<{ projectNumber: string; abgeleitet: string }> {
-  const vorhandene = await listActiveProjects(companyId);
-  /*
-    BAUSTELLENNUMMER AUS DER ANGEBOTSNUMMER — damit beide ohne weiteres
-    Zutun einander zuordenbar bleiben.
-
-    Abgezogen wird die Nummer, wie sie WIRKLICH DASTEHT: ein Angebot von vor
-    der Umstellung der Vorsätze trägt noch den alten, und den kennt diese
-    Ansicht nicht mehr. Deshalb wird alles vor der Jahreszahl ersetzt, statt
-    auf einen bestimmten Anfang zu hoffen.
-  */
-  const rumpf = q.quoteNumber.replace(/^.*?(?=\d{4}-)/, '');
-  const abgeleitet = vorsatzBaustelle ? `${vorsatzBaustelle}-${rumpf}` : rumpf;
-  /*
-    IST DIE ABGELEITETE NUMMER VERGEBEN, KOMMT DIE NÄCHSTE FREIE.
-
-    Angebote und Baustellen zählen getrennt. Wer Baustellen auch von Hand
-    anlegt — also jeder Betrieb —, hat nach dem ersten Monat B-2026-0003,
-    während das dritte Angebot AN-2026-0003 heisst. Früher liess sich das
-    Angebot dann GAR NICHT annehmen. Jetzt vergibt der Zähler die Nummer —
-    derselbe Weg wie bei der Baustellenanlage.
-  */
+): Promise<{ projectNumber: string }> {
   const daten: Omit<NewProject, 'projectNumber'> = {
     customerId: q.customerId,
     customerName: q.customerName,
@@ -78,28 +56,18 @@ export async function angebotAnnehmen(
     projectManagers: [],
     assignedEmployees: [],
   };
-  let projectNumber = abgeleitet;
-  const belegt = vorhandene.some((p) => p.projectNumber === abgeleitet);
-  try {
-    if (belegt) throw new Error('projects_nummer_je_betrieb');
-    await createProject(companyId, { ...daten, projectNumber });
-  } catch (e) {
-    if (!/projects_nummer_je_betrieb|duplicate key/i.test((e as Error).message)) throw e;
-    const hoechste = hoechsteLfd(vorhandene.map((p) => p.projectNumber));
-    // `null` heisst „kein Zähler erreichbar" — dann gilt der örtliche
-    // Vorschlag, wie in der Baustellenanlage.
-    projectNumber =
-      (await reserveProjectNumber(companyId, { seedFrom: hoechste, praefix: vorsatzBaustelle })) ??
-      belegNummer(vorsatzBaustelle, new Date().getFullYear(), hoechste + 1);
-    await createProject(companyId, { ...daten, projectNumber });
+  const projectNumber = await reserveProjectNumber(companyId, { seedFrom: 0, praefix: vorsatzBaustelle });
+  // Ohne Zähler keine Nummer: eine geratene stünde womöglich schon auf einer
+  // anderen Baustelle, und das Angebot hinge dann an der falschen.
+  if (!projectNumber) {
+    throw new Error('Die Baustellennummer konnte nicht vergeben werden — bitte gleich noch einmal versuchen.');
   }
+  await createProject(companyId, { ...daten, projectNumber });
   await updateQuote(q.id, { status: 'Angenommen', projectNumber });
-  return { projectNumber, abgeleitet };
+  return { projectNumber };
 }
 
 /** Die Meldung nach dem Annehmen — gleich, wo angenommen wurde. */
-export function annahmeMeldung(r: { projectNumber: string; abgeleitet: string }): string {
-  return r.projectNumber === r.abgeleitet
-    ? `Baustelle ${r.projectNumber} angelegt`
-    : `Baustelle ${r.projectNumber} angelegt — ${r.abgeleitet} war schon vergeben`;
+export function annahmeMeldung(r: { projectNumber: string }): string {
+  return `Baustelle ${r.projectNumber} angelegt`;
 }

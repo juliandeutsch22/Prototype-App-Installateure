@@ -136,6 +136,8 @@ describe('Wochenplan — wer ist wo', () => {
     zeige();
     const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
     expect(within(zeile).getByText('Familie Huber')).toBeInTheDocument();
+    // Und die Nummer: ein Kunde kann zwei Baustellen haben (Launch-Check 25.09.2026).
+    expect(within(zeile).getByText('2026-042')).toBeInTheDocument();
     // Erna ist an dem Tag frei — ihre Zelle sagt das.
     const andere = tabelle().getByRole('row', { name: /Erna Beispiel/ });
     expect(within(andere).getAllByText('frei').length).toBeGreaterThan(0);

@@ -21,11 +21,12 @@ import { ErrorState } from '@/components/States';
  * Gefunden im Probelauf eines echten Betriebs, nicht in einer Prüfung — weil
  * keine Prüfung je zweimal hintereinander angemeldet hat.
  *
- * KEINE ABFRAGE DES ALTEN PASSWORTS. Wer über einen Rücksetzlink kommt, kennt
- * es nicht — eine Abfrage würde genau den Weg versperren, für den diese Maske
- * gebaut ist. Was zählt, ist der Besitz einer gültigen Sitzung: entweder
- * frisch angemeldet oder über den Link, den nur das Postfach bekommen hat.
- * Dieselbe Abwägung trifft jeder Anbieter, der „Passwort vergessen" anbietet.
+ * DAS ALTE PASSWORT FRAGT SIE NUR BEIM GEWÖHNLICHEN ÄNDERN ab (Launch-Check
+ * 25.09.2026, K7): sonst sperrte jeder, der kurz an ein entsperrtes Telefon
+ * kommt, den Besitzer aus. Nach einem Rücksetzlink oder mit dem Startpasswort
+ * des Büros (`erstmalig`) fragt sie nicht — wer über den Link kommt, kennt das
+ * alte nicht, und eine Abfrage versperrte genau den Weg, für den die Maske
+ * gebaut ist.
  *
  * DIE ZWEITE EINGABE IST KEIN ZIERRAT. Ein vertipptes Passwort fällt sonst
  * erst beim nächsten Start auf — und dann hilft nur noch ein neuer Link.
@@ -48,6 +49,7 @@ export default function PasswortAendern({
   benutzerkonto?: boolean;
   nachStartpasswort?: boolean;
 }) {
+  const [aktuell, setAktuell] = useState('');
   const [neu, setNeu] = useState('');
   const [wieder, setWieder] = useState('');
   const [laeuft, setLaeuft] = useState(false);
@@ -62,7 +64,9 @@ export default function PasswortAendern({
   */
   const zuKurz = neu.length > 0 && neu.length < 8;
   const ungleich = wieder.length > 0 && neu !== wieder;
-  const hindernis = neu.length < 8
+  const hindernis = !erstmalig && aktuell.length === 0
+    ? 'Bitte das aktuelle Passwort eingeben.'
+    : neu.length < 8
     ? 'Mindestens acht Zeichen.'
     : neu !== wieder
       ? 'Die beiden Eingaben sind nicht gleich.'
@@ -74,7 +78,8 @@ export default function PasswortAendern({
     setLaeuft(true);
     setFehler(null);
     try {
-      await passwortSetzen(neu);
+      await passwortSetzen(neu, erstmalig ? undefined : aktuell);
+      setAktuell('');
       setNeu('');
       setWieder('');
       setFertig(true);
@@ -110,6 +115,19 @@ export default function PasswortAendern({
               ? 'Das Startpasswort kennt auch das Büro. Mit einem eigenen gehört der Zugang nur dir.'
               : 'Damit kommst du beim nächsten Mal wieder herein. Ohne eigenes Passwort brauchst du jedes Mal einen neuen Link per E-Mail.'}
           </p>
+        )}
+
+        {!erstmalig && (
+          <InputField
+            id="pw-aktuell"
+            label="Aktuelles Passwort"
+            type="password"
+            autoComplete="current-password"
+            value={aktuell}
+            onChange={(e) => { setAktuell(e.target.value); setFertig(false); }}
+            required
+            pflicht
+          />
         )}
 
         <FormGrid>

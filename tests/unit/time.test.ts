@@ -10,6 +10,7 @@ import {
   calcCompleteness,
   groupProjectHours,
   calcBudgetState,
+  balkenBreite,
   normProjectNumber,
   localDateStr,
 } from '@/lib/time';
@@ -332,10 +333,12 @@ describe('Projektstunden und Budget', () => {
     expect(calcBudgetState(21 * 60, 20).tone).toBe('danger');
   });
 
-  it('deckelt die Anzeige bei 100 %, meldet die Überschreitung aber', () => {
-    const b = calcBudgetState(40 * 60, 20); // 200 %
-    expect(b.pct).toBe(100);
+  it('nennt die echte Ausschöpfung über 100 % — gedeckelt wird nur der Balken (Launch-Check, M11)', () => {
+    const b = calcBudgetState(6 * 60, 5); // 6 von 5 h
+    expect(b.pct).toBe(120);
     expect(b.over).toBe(true);
+    expect(balkenBreite(b.pct!)).toBe('100%');
+    expect(balkenBreite(45)).toBe('45%');
   });
 
   it('rechnet Helferzeit NICHT gegen das Budget', () => {

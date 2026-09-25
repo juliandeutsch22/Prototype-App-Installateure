@@ -305,6 +305,20 @@ textarea:focus {
  * sich von der Aufrufstelle überschreiben lassen.
  */
 @layer components {
+  /*
+    REITERLEISTEN, DIE SEITLICH LAUFEN. Unter Windows zeichnete der Browser
+    darunter eine volle Scrollleiste mit Pfeilen, die den gewählten Reiter
+    anschnitt (Launch-Check 25.09.2026). Schmal bleibt sie greifbar — wer mit
+    der Maus kommt, hat etwas zum Ziehen —, aber ohne Pfeile und ohne den
+    Reiter zu überdecken.
+  */
+  .reiterleiste {
+    scrollbar-width: thin;
+  }
+  .reiterleiste::-webkit-scrollbar {
+    height: 4px;
+  }
+
   .panel {
     background-color: var(--surface);
     border: 1px solid var(--border);

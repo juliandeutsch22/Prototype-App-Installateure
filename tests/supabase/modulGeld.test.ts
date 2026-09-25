@@ -92,27 +92,41 @@ describe('Rechnungsnummern', () => {
       .toBe(`RE-${JAHR}-1002`);
   });
 
-  it('nehmen den Altbestand auf — aber nur beim ersten Mal', async () => {
-    await leeren();
-    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 500 }))
-      .toBe(`RE-${JAHR}-0501`);
+  it('nehmen den Altbestand auf — aus der Datenbank, nicht aus dem Browser', async () => {
     /*
-      Der Startwert zählt nur, solange es den Zähler nicht gibt. Danach ist der
-      Zähler die Wahrheit — sonst könnte ein veralteter Bestand aus dem Browser
-      den Kreis zurückwerfen.
+      SEIT DEM LAUNCH-CHECK (25.09.2026) liest die Datenbank den Anfangsstand
+      selbst. Der Browser kannte nur die geladenen Rechnungen und schickte
+      seinen Wert mit; der wird nicht mehr gelesen.
     */
+    await leeren();
+    await rechnungen.createInvoice(BETRIEB, rechnung({ invoiceNumber: `RE-${JAHR}-0500` }));
     expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 10 }))
+      .toBe(`RE-${JAHR}-0501`);
+    // Danach ist der Zähler die Wahrheit.
+    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 900 }))
       .toBe(`RE-${JAHR}-0502`);
   });
 
-  it('nehmen eine von Hand gesetzte höhere Nummer an', async () => {
+  it('eine eigene Nummer nur bei der allerersten Rechnung — danach lückenlos (Launch-Check, K8)', async () => {
     await leeren();
-    await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0 });
-    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 2000 }))
-      .toBe(`RE-${JAHR}-2000`);
-    // Danach läuft der Kreis von dort weiter.
+    // Der Umstieg: im bisherigen Programm war die letzte 1499.
+    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 1500 }))
+      .toBe(`RE-${JAHR}-1500`);
+    // Danach läuft der Kreis von dort weiter — und springt nicht mehr.
+    await expect(rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 2000 }))
+      .rejects.toThrow(/lückenlos — die nächste ist 1501/);
+    // Die nächste als Wunsch ist kein Sprung.
+    expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 1501 }))
+      .toBe(`RE-${JAHR}-1501`);
     expect(await rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0 }))
-      .toBe(`RE-${JAHR}-2001`);
+      .toBe(`RE-${JAHR}-1502`);
+  });
+
+  it('kein Sprung, sobald es eine Rechnung gibt — auch in einem neuen Zähler', async () => {
+    await leeren();
+    await rechnungen.createInvoice(BETRIEB, rechnung({ invoiceNumber: `RE-${JAHR}-1001` }));
+    await expect(rechnungen.reserveInvoiceNumber(BETRIEB, { seedFrom: 0, desired: 1500 }))
+      .rejects.toThrow(/lückenlos — die nächste ist 1002/);
   });
 
   it('lehnen eine bereits verbrauchte Nummer ab und nennen die nächste freie', async () => {
@@ -365,6 +379,29 @@ describe('Storno und Storno-Aufhebung', () => {
     expect(wieder.cancelledAt).toBeUndefined();
     expect(await verrechnungsstand(beleg))
       .toEqual({ is_billed: true, invoice_number: `RE-${JAHR}-1001` });
+  });
+
+  /*
+    LAUNCH-CHECK 25.09.2026, K9: ein stornierter Beleg konnte Wochen später
+    wieder aufleben. Der Buchungsstapel bucht den Storno am Stornotag — ab dem
+    Folgetag ist er in der Buchhaltung, und der Weg ist eine neue Rechnung.
+  */
+  it('hebt einen Storno nur am selben Tag auf', async () => {
+    const { r } = await mitBelegen();
+    await rechnungen.cancelInvoice(r, 'Doppelt erfasst');
+    await admin.from('invoices').update({ cancelled_at: new Date(Date.now() - 2 * 864e5).toISOString() }).eq('id', r.id);
+    await expect(rechnungen.reactivateInvoice(r)).rejects.toThrow(/nur am selben Tag/);
+    const { data } = await admin.from('invoices').select('payment_status').eq('id', r.id).single();
+    expect(data!.payment_status).toBe('Storniert');
+  });
+
+  it('nicht, wenn die Leistung inzwischen auf einer anderen Rechnung steht', async () => {
+    const { r, beleg } = await mitBelegen();
+    await rechnungen.cancelInvoice(r, 'Falscher Kunde');
+    // Dieselbe Stunde, neu verrechnet.
+    await rechnungen.markBilled('timeEntries', [beleg], `RE-${JAHR}-1002`);
+    await expect(rechnungen.reactivateInvoice(r)).rejects.toThrow(new RegExp(`inzwischen auf RE-${JAHR}-1002`));
+    expect(await verrechnungsstand(beleg)).toEqual({ is_billed: true, invoice_number: `RE-${JAHR}-1002` });
   });
 
   it('holt die betroffenen Belege aus der Abdeckung, nicht aus dem Aufruf', async () => {

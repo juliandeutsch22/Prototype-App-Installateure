@@ -732,7 +732,12 @@ export interface FehlerEintrag {
 export interface MaterialOrder {
   id: string;
   companyId: string;
-  materialId: string;
+  /**
+   * Der Katalogartikel — `null` bei einer frei getippten Anforderung („nicht
+   * im Katalog"). Lager und Einkaufsliste suchen dann über den Namen
+   * (`app.katalogeintrag`) und ziehen nichts ab, was sie nicht finden.
+   */
+  materialId: string | null;
   materialName: string;
   quantity: number;
   note?: string;

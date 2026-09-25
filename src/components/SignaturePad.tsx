@@ -75,12 +75,26 @@ interface Punkt {
   y: number;
 }
 
+/*
+  WAS ALS UNTERSCHRIFT ZÄHLT, in CSS-Pixeln (Launch-Check 25.09.2026: ein
+  einzelner Strich ging durch). Nicht die Zahl der Striche — viele Menschen
+  unterschreiben in einem Zug —, sondern die Ausdehnung: breit genug für
+  einen Namenszug und hoch genug, dass es keine gerade Linie ist. Ein
+  Antippen, ein Komma, ein Strich quer durchs Feld zählen nicht.
+*/
+const MIN_BREITE = 40;
+const MIN_HOEHE = 12;
+
 const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad(
   { titel, onChange, disabled = false },
   ref,
 ) {
   const [feld, setFeld] = useState<HTMLCanvasElement | null>(null);
   const [hatStriche, setHatStriche] = useState(false);
+  /** Genug für eine Unterschrift — siehe `MIN_BREITE`. */
+  const [reicht, setReicht] = useState(false);
+  /** Die Ausdehnung aller Striche bisher. */
+  const rahmen = useRef({ minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
 
   /** Der Strichverlauf in CSS-Pixeln, relativ zur linken oberen Ecke. */
   const striche = useRef<Punkt[][]>([]);
@@ -236,24 +250,42 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
       c.stroke();
     };
 
-    const beginnen = (p: { clientX: number; clientY: number }) => {
-      zeichnet.current = true;
-      striche.current.push([ort(p)]);
-      strichZeichnen();
-      // Nur beim ERSTEN Strich neu rendern. Vorher lief das bei jeder
-      // Bewegung — sechzig Mal in der Sekunde, je Feld.
-      if (!gemeldet.current) {
+    /*
+      Nach oben gemeldet wird EINMAL, sobald die Striche als Unterschrift
+      reichen — nicht bei jeder Bewegung, das wären sechzig Neuzeichnungen in
+      der Sekunde je Feld.
+    */
+    const vermerken = (pt: Punkt) => {
+      const r = rahmen.current;
+      r.minX = Math.min(r.minX, pt.x);
+      r.maxX = Math.max(r.maxX, pt.x);
+      r.minY = Math.min(r.minY, pt.y);
+      r.maxY = Math.max(r.maxY, pt.y);
+      if (!gemeldet.current && r.maxX - r.minX >= MIN_BREITE && r.maxY - r.minY >= MIN_HOEHE) {
         gemeldet.current = true;
-        setHatStriche(true);
+        setReicht(true);
         stand.current.onChange(true);
       }
+    };
+
+    const beginnen = (p: { clientX: number; clientY: number }) => {
+      zeichnet.current = true;
+      const pt = ort(p);
+      striche.current.push([pt]);
+      strichZeichnen();
+      // Der Knopf „Neu zeichnen" erscheint mit dem ersten Strich — auch ein
+      // zu kurzer soll sich wegwischen lassen.
+      if (striche.current.length === 1) setHatStriche(true);
+      vermerken(pt);
     };
 
     const ziehen = (p: { clientX: number; clientY: number }) => {
       const aktuell = striche.current[striche.current.length - 1];
       if (!aktuell) return;
-      aktuell.push(ort(p));
+      const pt = ort(p);
+      aktuell.push(pt);
       strichZeichnen();
+      vermerken(pt);
     };
 
     /**
@@ -345,7 +377,9 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
   const leeren = useCallback(() => {
     striche.current = [];
     gemeldet.current = false;
+    rahmen.current = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
     setHatStriche(false);
+    setReicht(false);
     neuMalen();
     onChange(false);
   }, [neuMalen, onChange]);
@@ -386,8 +420,14 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
         aria-label={`${titel} — mit dem Finger oder einem Stift unterschreiben`}
       />
       {/* Ebenfalls immer da — verschwände er, ruckte das Feld nach unten. */}
-      <p className={`mt-1 text-xs text-ink-muted ${hatStriche || disabled ? 'invisible' : ''}`}>
-        Mit dem Finger im Feld unterschreiben.
+      <p
+        className={`mt-1 text-xs ${hatStriche && !reicht ? 'text-warning' : 'text-ink-muted'} ${
+          (hatStriche && reicht) || disabled ? 'invisible' : ''
+        }`}
+      >
+        {hatStriche && !reicht
+          ? 'Das reicht noch nicht für eine Unterschrift — bitte den Namen schreiben.'
+          : 'Mit dem Finger im Feld unterschreiben.'}
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
 import type { Invoice } from '@/types';
-import { belegNummer, lfdNummerVon, PRAEFIX_VORGABE } from './praefixe';
+import { belegNummer, hoechsteLfdImJahr, lfdNummerVon, PRAEFIX_VORGABE } from './praefixe';
 
 /**
  * Rechnungsnummern — reine Rechenregeln, ohne Datenbank.
@@ -69,8 +69,15 @@ export function nextInvoiceNumber(
   existing: Pick<Invoice, 'invoiceNumber'>[],
   praefix = PRAEFIX_VORGABE.rechnung,
 ): string {
-  const max = highestInvoiceSeq(existing);
-  return formatInvoiceNumber(max > 0 ? max + 1 : 1001, new Date().getFullYear(), praefix);
+  /*
+    NUR DIE NUMMERN DIESES JAHRES — so zählt auch die Datenbank
+    (`app.hoechste_lfd`): jedes Jahr beginnt einen eigenen Kreis. Zählte der
+    Vorschlag über das Jahr hinaus, stünde im Jänner eine andere Nummer im
+    Feld, als die Rechnung danach trägt.
+  */
+  const jahr = new Date().getFullYear();
+  const max = hoechsteLfdImJahr(existing.map((i) => i.invoiceNumber), jahr);
+  return formatInvoiceNumber(max > 0 ? max + 1 : 1001, jahr, praefix);
 }
 
 /** Prüft, ob eine Nummer bereits vergeben ist (Stornos zählen mit). */
@@ -107,6 +114,13 @@ export function decideInvoiceSeq(
     throw new Error(
       `Die Nummer ${formatInvoiceNumber(desired, year, praefix)} ist bereits vergeben. ` +
         `Die nächste freie ist ${formatInvoiceNumber(last + 1, year, praefix)}.`,
+    );
+  }
+  // Lückenlos: ein Sprung nur, solange noch nichts vergeben ist — dieselbe
+  // Grenze wie in `naechste_nummer` (Launch-Check, K8).
+  if (last > 0 && desired !== last + 1) {
+    throw new Error(
+      `Rechnungsnummern laufen lückenlos — die nächste ist ${formatInvoiceNumber(last + 1, year, praefix)}.`,
     );
   }
   return desired;

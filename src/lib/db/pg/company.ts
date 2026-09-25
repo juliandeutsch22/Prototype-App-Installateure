@@ -61,3 +61,26 @@ export async function auszug(): Promise<BetriebsAuszug> {
   if (error) throw new Error(error.message);
   return data as BetriebsAuszug;
 }
+
+/** Die nächste laufende Nummer je Kreis — was der Zähler als Nächstes vergäbe. */
+export interface NaechsteNummern {
+  rechnung: number;
+  angebot: number;
+  baustelle: number;
+}
+
+/**
+ * Ohne sie zu verbrauchen: die Vorschau in den Einstellungen und die
+ * Vorschläge der Masken sollen dieselbe Nummer zeigen, die der Zähler danach
+ * vergibt (Launch-Check 25.09.2026, K6 — dort stand ein festes Beispiel).
+ */
+export async function naechsteNummern(jahr: number): Promise<NaechsteNummern> {
+  const { data, error } = await derClient().rpc('naechste_nummern', { p_jahr: jahr });
+  if (error) throw new Error(error.message);
+  const je = new Map(((data ?? []) as { art: string; naechste: number }[]).map((z) => [z.art, Number(z.naechste)]));
+  return {
+    rechnung: je.get('invoices') ?? 1001,
+    angebot: je.get('quotes') ?? 1,
+    baustelle: je.get('projects') ?? 1,
+  };
+}

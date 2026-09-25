@@ -29,8 +29,11 @@ import type { Company } from '@/types';
 const updateCompany = vi.fn<[string, Record<string, unknown>], Promise<void>>(
   async () => undefined,
 );
+/** Was der Zähler als Nächstes vergäbe (Launch-Check, K6). */
+const naechsteNummern = vi.fn(async () => ({ rechnung: 1002, angebot: 4, baustelle: 5 }));
 vi.mock('@/lib/db/company', () => ({
   updateCompany: (id: string, daten: Record<string, unknown>) => updateCompany(id, daten),
+  naechsteNummern: () => naechsteNummern(),
 }));
 vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
 
@@ -230,6 +233,22 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
       expect(screen.getByText(t)).toBeInTheDocument();
     }
     expect(screen.queryByText('Nummernkreise und Fuhrpark')).toBeNull();
+  });
+
+  it('zeigt die NÄCHSTE Nummer jedes Kreises, nicht ein festes Beispiel (Launch-Check, K6)', async () => {
+    // Vorher stand hier PR-2026-0001, während PR-2026-0003 schon existierte.
+    zeige('nummern');
+    const jahr = new Date().getFullYear();
+    expect(await screen.findByText(`Nächste: RE-${jahr}-1002`)).toBeInTheDocument();
+    expect(screen.getByText(`Nächste: AN-${jahr}-0004`)).toBeInTheDocument();
+    expect(screen.getByText(`Nächste: B-${jahr}-0005`)).toBeInTheDocument();
+  });
+
+  it('sagt ausdrücklich „z. B.", wenn die nächste Nummer nicht geladen werden kann', async () => {
+    naechsteNummern.mockRejectedValueOnce(new Error('offline'));
+    zeige('nummern');
+    const jahr = new Date().getFullYear();
+    expect(await screen.findByText(`z. B. RE-${jahr}-1001`)).toBeInTheDocument();
   });
 
   it('zeigt einen Fehler an der Karte, deren Speichern scheiterte', async () => {

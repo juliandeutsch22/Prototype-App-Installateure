@@ -177,7 +177,10 @@ describe('Weiter mit dem Angebot', () => {
   it('nimmt an und legt die Baustelle an', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: /Annehmen/ }));
+    await nutzer.click(await screen.findByRole('button', { name: 'Annehmen → Baustelle' }));
+    // Erst die Rückfrage (Launch-Check, M8) — vorher legte der Klick allein an.
+    expect(annehmen).not.toHaveBeenCalled();
+    await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Annehmen' }));
     expect(annehmen).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('Baustelle B-2026-0007 angelegt')).toBeInTheDocument();
   });

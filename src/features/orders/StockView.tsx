@@ -196,7 +196,7 @@ export default function StockView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {([
           { key: 'bestand' as Tab, label: 'Bestand' },
           { key: 'katalog' as Tab, label: 'Katalog' },
@@ -293,7 +293,16 @@ export default function StockView() {
                           )
                         }
                       >
-                        {low ? (
+                        {/*
+                          UNTER NULL HEISST „FEHLT", nicht „−926 frei" (Launch-
+                          Check, K2): mehr angefordert, als im Regal liegt. Aus
+                          dem Lager zusagen lässt die Datenbank dann nur noch,
+                          was wirklich da ist — der Rest gehört auf die
+                          Einkaufsliste.
+                        */}
+                        {m.free < 0 ? (
+                          <Warnung>{-m.free} {m.unit ?? 'Stk'} fehlen</Warnung>
+                        ) : low ? (
                           <Warnung>{m.free} {m.unit ?? 'Stk'} frei</Warnung>
                         ) : (
                           <Marke>{m.free} {m.unit ?? 'Stk'} frei</Marke>

@@ -85,7 +85,7 @@ export default function Supportband() {
       ].join(' ')}
     >
       <span>
-        {notzugang ? 'Notzugang: ' : ''}Der Support hat gerade Einblick in Ihren Betrieb —{' '}
+        {notzugang ? 'Notzugang: ' : ''}Der Support hat gerade Einblick in den Betrieb —{' '}
         {schreibt ? 'er kann auch ändern' : 'lesend'}. Grund: {grund}
       </span>
     </div>

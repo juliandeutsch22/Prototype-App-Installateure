@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listProjectsByNumbers, listProjectsForEmployee } from '@/lib/db/projects';
 import { listUpcomingAssignments } from '@/lib/db/assignments';
-import { todayStr } from '@/lib/time';
+import { todayStr, fmtStunden } from '@/lib/time';
 import type { Project } from '@/types';
 import Card from '@/components/Card';
 import Icon from '@/components/Icon';
@@ -130,7 +130,7 @@ export default function MyProjectsView() {
               )}
               {p.estimatedHours ? (
                 <p className="mt-2">
-                  <Marke>{p.estimatedHours} h kalkuliert</Marke>
+                  <Marke>{fmtStunden(p.estimatedHours)} h kalkuliert</Marke>
                 </p>
               ) : null}
 

@@ -220,6 +220,17 @@ describe('Kundenverwaltung', () => {
     );
   });
 
+  it('trägt Bearbeiten und Löschen im „⋯", wie die Baustellen (Launch-Check 25.09.2026)', async () => {
+    // jsdom kennt kein Scrollen; die Ansicht springt beim Bearbeiten nach oben.
+    window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
+    zeichne();
+    const zeile = (await screen.findByText('Hausverwaltung Nord')).closest('li')!;
+    expect(within(zeile).queryByRole('button', { name: 'Bearbeiten' })).not.toBeInTheDocument();
+    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Kunde Hausverwaltung Nord/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Bearbeiten' }));
+    expect(screen.getByLabelText(/^Name/)).toHaveValue('Hausverwaltung Nord');
+  });
+
   it('nennt die Rechnungsadresse beim Namen', async () => {
     zeichne();
     await userEvent.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));

@@ -176,6 +176,14 @@ describe('Lager — was ist wirklich frei?', () => {
     expect(within(zeilen[1]).getByText('Abflussrohr')).toBeInTheDocument();
   });
 
+  it('sagt „fehlen" statt eines negativen „frei" (Launch-Check, K2)', async () => {
+    materialien = [material({ id: 'm1', stock: 74 })];
+    anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 999 })];
+    zeige();
+    expect(await screen.findByText('925 m fehlen')).toBeInTheDocument();
+    expect(screen.queryByText(/-925|−925/)).not.toBeInTheDocument();
+  });
+
   it('zählt als knapp, was durch Reservierungen knapp GEWORDEN ist', async () => {
     /**
      * Der Kern der Ansicht: die Warnung hängt am freien Bestand, nicht am

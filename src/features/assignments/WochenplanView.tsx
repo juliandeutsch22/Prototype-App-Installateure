@@ -338,13 +338,15 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             sie tun, sagt die Zeitspanne im Kartentitel daneben.
           */
           <div className="flex items-center gap-1">
-            <Button variant="ghost" aria-label="Woche zurück" onClick={() => wocheVerschieben(-1)}>
+            {/* So gross wie die übrigen Knöpfe — ein einzelnes Zeichen gab
+                ein Ziel von halber Daumenbreite (Launch-Check 25.09.2026). */}
+            <Button variant="ghost" aria-label="Woche zurück" className="min-w-touch text-xl" onClick={() => wocheVerschieben(-1)}>
               ‹
             </Button>
             <Button variant="ghost" onClick={() => setMontag(montagDer(todayStr()))}>
               Diese Woche
             </Button>
-            <Button variant="ghost" aria-label="Woche vor" onClick={() => wocheVerschieben(1)}>
+            <Button variant="ghost" aria-label="Woche vor" className="min-w-touch text-xl" onClick={() => wocheVerschieben(1)}>
               ›
             </Button>
           </div>
@@ -514,6 +516,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                     }`}
                                   >
                                     <span className="block truncate font-medium">{b.name}</span>
+                                    <span className="tnum block truncate">{b.nummer}</span>
                                     {b.helfer && <span className="block">als Helfer</span>}
                                   </span>
                                 ) : (
@@ -529,6 +532,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                   }`}
                                 >
                                   <span className="block truncate font-medium">{b.name}</span>
+                                  <span className="tnum block truncate">{b.nummer}</span>
                                   {b.helfer && <span className="block">als Helfer</span>}
                                 </button>
                                 ),
@@ -592,7 +596,9 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                             key={b.nummer}
                             className="rounded-sm border border-line bg-surface-2 px-3 py-2"
                           >
-                            <span className="block font-medium text-info">{b.name}</span>
+                            <span className="block font-medium text-info">
+                              {b.name} <span className="tnum font-normal">· {b.nummer}</span>
+                            </span>
                             <span className="block text-sm text-info">
                               {b.namen
                                 .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
@@ -607,7 +613,9 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           aria-label={`${b.name} am ${datum} bearbeiten`}
                           className="min-h-touch w-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-left"
                         >
-                          <span className="block font-medium text-info">{b.name}</span>
+                          <span className="block font-medium text-info">
+                              {b.name} <span className="tnum font-normal">· {b.nummer}</span>
+                            </span>
                           <span className="block text-sm text-info">
                             {b.namen
                               .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))

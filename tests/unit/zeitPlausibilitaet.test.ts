@@ -89,3 +89,16 @@ describe('Der erklärende Satz', () => {
     expect(zeitSatz(zeitbild('07:00', '16:00', '600')!)).toMatch(/keine Arbeitszeit/);
   });
 });
+
+describe('nachtMinuten — was zwischen 22 und 6 Uhr liegt', () => {
+  it('zählt über Mitternacht', async () => {
+    const { nachtMinuten } = await import('@/features/time/zeitPlausibilitaet');
+    expect(nachtMinuten('20:00', '02:00')).toBe(4 * 60);
+    expect(nachtMinuten('22:00', '06:00')).toBe(8 * 60);
+    expect(nachtMinuten('04:00', '08:00')).toBe(2 * 60);
+    expect(nachtMinuten('07:00', '16:00')).toBe(0);
+    // Beginn gleich Ende ist keine Spanne, ein leeres Feld auch nicht.
+    expect(nachtMinuten('07:00', '07:00')).toBe(0);
+    expect(nachtMinuten('', '02:00')).toBe(0);
+  });
+});

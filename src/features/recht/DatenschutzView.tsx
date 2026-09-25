@@ -50,8 +50,8 @@ export default function DatenschutzView() {
             Betrieb.
           </li>
           <li>
-            Wenn der Betrieb dem Senklot-Support befristet Einblick gewährt: wer wann welchen
-            Bereich geöffnet hat. Zeitbuchungen, Urlaube und Krankenstände sind davon ausgenommen.
+            Wenn der Betrieb dem Senklot-Support befristet Einblick oder Mitarbeit gewährt: wer
+            wann welchen Bereich geöffnet hat. Zeitbuchungen, Urlaube und Krankenstände sind davon ausgenommen.
           </li>
         </ul>
       </Abschnitt>

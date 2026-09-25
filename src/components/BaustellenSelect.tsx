@@ -40,8 +40,16 @@ export default function BaustellenSelect({
   id = 'baustelle',
   label = 'Baustelle',
   required,
+  meineUid,
 }: {
   companyId: string;
+  /**
+   * Für wen gebucht wird. Seine Baustellen stehen dann in einer eigenen
+   * Gruppe oben (Launch-Check 25.09.2026, R2): der Monteur sah alle
+   * Baustellen des Betriebs in zufälliger Reihenfolge. Die übrigen bleiben
+   * wählbar — Aushilfe und Notdienst gehen auch auf fremde.
+   */
+  meineUid?: string;
   value: string;
   /** Nummer UND Datensatz — Aufrufer brauchen Adresse, Kunde, Abrechnungsart. */
   onChange: (projectNumber: string, projekt?: WithId<Project>) => void;
@@ -155,8 +163,16 @@ export default function BaustellenSelect({
     );
   }
 
-  const aktiv = projekte.filter((p) => p.status === 'Aktiv' || p.status === 'Pausiert');
-  const uebrige = projekte.filter((p) => !aktiv.includes(p));
+  // Nach dem, was vorne in der Zeile steht — dem Kunden; die Datenbank liefert ungeordnet.
+  const sortiert = [...projekte].sort(
+    (a, b) =>
+      (a.customerName ?? '').localeCompare(b.customerName ?? '', 'de') ||
+      a.projectNumber.localeCompare(b.projectNumber, 'de'),
+  );
+  const laufend = sortiert.filter((p) => p.status === 'Aktiv' || p.status === 'Pausiert');
+  const meine = meineUid ? laufend.filter((p) => p.assignedEmployees?.includes(meineUid)) : [];
+  const aktiv = laufend.filter((p) => !meine.includes(p));
+  const uebrige = sortiert.filter((p) => !laufend.includes(p));
   const beschriften = (p: WithId<Project>) => `${p.customerName} (${p.projectNumber})`;
 
   return (
@@ -186,8 +202,17 @@ export default function BaustellenSelect({
           Getrennte Gruppen statt einer Mischliste: „abgeschlossen" ist eine
           bewusste Auswahl, keine, die man aus Versehen trifft.
         */}
+        {meine.length > 0 && (
+          <optgroup label="Meine Baustellen">
+            {meine.map((p) => (
+              <option key={p.id} value={p.projectNumber}>
+                {beschriften(p)}
+              </option>
+            ))}
+          </optgroup>
+        )}
         {aktiv.length > 0 && (
-          <optgroup label="Laufende Baustellen">
+          <optgroup label={meine.length > 0 ? 'Weitere laufende Baustellen' : 'Laufende Baustellen'}>
             {aktiv.map((p) => (
               <option key={p.id} value={p.projectNumber}>
                 {beschriften(p)}

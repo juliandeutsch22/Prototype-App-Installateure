@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
-import { groupProjectHours, calcBudgetState, calcWorkMin, fmtStd } from '@/lib/time';
+import { groupProjectHours, calcBudgetState, calcWorkMin, fmtStd, balkenBreite, fmtStunden } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
 import { TeilFehler } from '@/components/States';
 import { datumAT } from '@/lib/datum';
@@ -107,7 +107,7 @@ export default function BaustellenUebersicht({
         <span className="tnum font-semibold text-ink">{fmtStd(stand.fachMin)} h</span>{' '}
         <span className="text-ink-muted">Fachzeit</span>
         {projekt.estimatedHours ? (
-          <span className="tnum text-ink-muted"> von {projekt.estimatedHours} h Budget</span>
+          <span className="tnum text-ink-muted"> von {fmtStunden(projekt.estimatedHours)} h Budget</span>
         ) : null}
         {/*
           Helferstunden zählen NICHT gegen das Budget — sie werden zwar
@@ -125,7 +125,7 @@ export default function BaustellenUebersicht({
           <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
             <span
               className={`block h-full ${BAR_TONE[budget.tone]}`}
-              style={{ width: `${budget.pct}%` }}
+              style={{ width: balkenBreite(budget.pct) }}
             />
           </span>
           <span

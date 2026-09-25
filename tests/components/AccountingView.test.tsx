@@ -176,7 +176,7 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
     // -168:00 und auch nicht -08:00 fuer den laufenden Tag.
     // `nextElementSibling` und nicht `previous`: die Beschriftung steht jetzt
     // ueber der Zahl, nicht darunter.
-    const saldo = screen.getByText('Saldo').nextElementSibling;
+    const saldo = screen.getByText('Saldo im Monat').nextElementSibling;
     expect(saldo).toHaveTextContent('00:00');
   });
 
@@ -184,7 +184,7 @@ describe('Mitarbeiteruebersicht — Eintritt zur Monatsmitte', () => {
     // „Der Saldo zu fett und gross, und das Rot mit dem Rot direkt darunter."
     // Die Farbe trägt der Punkt in der Kopfzeile, nicht die grosse Zahl.
     await oeffneMitarbeiter();
-    const saldo = screen.getByText('Saldo').nextElementSibling as HTMLElement;
+    const saldo = screen.getByText('Saldo im Monat').nextElementSibling as HTMLElement;
     expect(saldo.className).toMatch(/text-ink/);
     expect(saldo.className).not.toMatch(/text-(danger|success)|font-bold|text-\[2rem\]/);
   });

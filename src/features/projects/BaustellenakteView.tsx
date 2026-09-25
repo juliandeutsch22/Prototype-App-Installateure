@@ -27,6 +27,7 @@ import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import { fmtStunden } from '@/lib/time';
 
 /**
  * Die Akte einer Baustelle — und die Stelle, an der sie bearbeitet wird.
@@ -326,7 +327,7 @@ export default function BaustellenakteView() {
             <Link to="/admin-projects" className="inline-flex min-h-touch items-center text-brand underline">← Zur Baustellenliste</Link>
             <span className="tnum text-ink-muted">{b.projectNumber}</span>
             <StatusBadge status={b.status} />
-            {b.estimatedHours ? <Marke>{b.estimatedHours} h Budget</Marke> : null}
+            {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
           </span>
         }
       />
