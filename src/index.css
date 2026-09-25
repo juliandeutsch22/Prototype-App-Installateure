@@ -3638,7 +3638,8 @@ textarea {
     }
   }
 
-  /* Am Telefon stehen die Kennzahlen im Raster und brauchen keine Linie. */
+  /* Am Telefon und Tablet stehen die Kennzahlen im Raster und brauchen
+     keine Linie. */
   .kennzahl-trenner {
     display: none;
   }
@@ -3654,7 +3655,14 @@ textarea {
     background-color: var(--surface-2);
   }
 
-  @media (min-width: 640px) {
+  /*
+   * EINE REIHE ERST AB 1024 PX. Bis zum 25.09.2026 ab 640 — neben der
+   * Seitenleiste blieben dann bei 768 px je Kennzahl 87 Pixel, bei 834 px
+   * 103, und der Saldo der Zeiterfassung stand als „-1414:1…“ da: eine
+   * andere Zahl. Zwei Spalten wie am Telefon geben jeder rund 240 Pixel;
+   * ab 1024 reicht die Reihe wieder (nachgemessen bis 1279 px).
+   */
+  @media (min-width: 1024px) {
     .kennzahlen {
       display: flex;
       align-items: stretch;
