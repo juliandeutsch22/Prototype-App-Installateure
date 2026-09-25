@@ -117,7 +117,7 @@ export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void
 /** Leerzustand — eine Einladung zu handeln, keine leere weiße Fläche. */
 export function EmptyState({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded border border-dashed border-line bg-surface-2 p-6 text-center text-ink-muted">
+    <div className="flex flex-col items-center gap-3 rounded border border-line bg-surface-2 p-6 text-center text-ink-muted">
       <p>{children}</p>
       {action}
     </div>

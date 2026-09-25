@@ -501,7 +501,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                               type="button"
                               onClick={() => zurTagesplanung(tag)}
                               aria-label={`${u.name} am ${tagKurz(tag).datum} einteilen`}
-                              className="min-h-touch w-full rounded-sm border border-dashed border-line text-xs text-ink-muted"
+                              className="min-h-touch w-full rounded-sm border border-line text-xs text-ink-muted"
                             >
                               frei
                             </button>
@@ -647,7 +647,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                         type="button"
                         onClick={() => zurTagesplanung(tag)}
                         aria-label={`Am ${datum} einteilen`}
-                        className="min-h-touch w-full rounded-sm border border-dashed border-line text-sm text-ink-muted"
+                        className="min-h-touch w-full rounded-sm border border-line text-sm text-ink-muted"
                       >
                         Einteilen
                       </button>
