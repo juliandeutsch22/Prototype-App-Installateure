@@ -1843,6 +1843,20 @@ textarea {
     box-shadow: 0 0 0 1px var(--danger);
   }
 
+  /* Ein gesperrtes Feld sieht gesperrt aus: getönter Grund, gedämpfte
+     Schrift (7,9 : 1 auf `surface-2`). Vorher glich es einem offenen Feld
+     aufs Haar — man tippte hinein und nichts geschah. Safari blasst
+     gesperrte Schrift zusätzlich ab; `opacity` und die Füllfarbe halten sie
+     lesbar. */
+  .feld:disabled,
+  .feld-fehler:disabled {
+    background-color: var(--surface-2);
+    color: var(--text-muted);
+    -webkit-text-fill-color: var(--text-muted);
+    opacity: 1;
+    cursor: not-allowed;
+  }
+
   /* Felder IN einer Tabellenzelle: schmaler gepolstert, aber ebenfalls
      16 px — mit 14 px zoomte iOS beim Antippen in die Rechnung. */
   .feld-zelle,
