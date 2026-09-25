@@ -1032,6 +1032,351 @@ textarea {
 }
 
 /*
+ * WOCHENPLAN UND TEAM-WOCHE (WochenplanView) — Raster Personen × Tage ab
+ * 768 px, darunter die Tagesliste.
+ *
+ * FARBE NUR FÜR EINEN ZUSTAND, und jeder Zustand hat genau einen Ton:
+ *   frei          success-bg, Schrift Tinte (14,7 : 1) — die Zelle, wegen
+ *                 der es das Brett gibt. Grüne Schrift auf der grünen Fläche
+ *                 hätte nur 4,4 : 1.
+ *   heute         info-bg am Tageskopf, wie im Monatskalender.
+ *   kein Dienst   surface-2 für Wochenende, Feiertag, Betriebsurlaub.
+ * Ein Einsatz ist der Normalfall und steht weiß mit Haarlinie. Vorher trug
+ * er Türkis, als Helfer Gelb — Helfer ist aber eine Rolle, keine Warnung;
+ * sie steht als Text da.
+ *
+ * DIE TAGESSPALTEN HABEN EINE MINDESTBREITE. Mit automatischer Verteilung
+ * nahm sich auf 834 px die einzige Spalte mit einem langen Kundennamen den
+ * ganzen Platz, und die übrigen fielen auf ein Zeichen Breite zusammen
+ * („M|o|21|.0|9."). Jetzt gleiche Spalten (`table-layout: fixed`): 9 rem
+ * für den Namen, mindestens 6,5 rem je Tag. Reicht der Platz nicht, rollt
+ * das Raster in seinem Rahmen — die Seite nicht.
+ */
+@layer components {
+  /* Die Hülle: erst ab 768 px, dann waagrecht rollbar. */
+  .wochenplan-rahmen {
+    display: none;
+    overflow-x: auto;
+  }
+
+  @media (min-width: 768px) {
+    .wochenplan-rahmen {
+      display: block;
+    }
+  }
+
+  /* `separate` statt `collapse`: mit `collapse` wandert die Linie der
+     stehenden Namensspalte beim Rollen nicht mit. */
+  .wochenplan-raster {
+    width: 100%;
+    min-width: 54.5rem;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  /* Die stehende Namensspalte, deckend, damit der gerollte Inhalt darunter
+     verschwindet. Namen brechen um statt abgeschnitten zu werden. */
+  .wochenplan-namenkopf,
+  .wochenplan-name {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    width: 9rem;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--surface);
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    text-align: left;
+  }
+
+  .wochenplan-namenkopf {
+    vertical-align: bottom;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .wochenplan-name {
+    vertical-align: top;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Tageskopf je Zustand — eine Klasse je Zustand. */
+  .wochenplan-kopf,
+  .wochenplan-kopf-ruhe,
+  .wochenplan-kopf-heute {
+    border-bottom: 1px solid var(--border);
+    padding: 0.25rem;
+    vertical-align: bottom;
+    text-align: center;
+    font-weight: 400;
+  }
+
+  .wochenplan-kopf-ruhe {
+    background-color: var(--surface-2);
+  }
+
+  .wochenplan-kopf-heute {
+    background-color: var(--info-bg);
+  }
+
+  /* Der Tag im Kopf: als Knopf in die Tagesplanung, in der Team-Woche nur
+     Text. */
+  .wochenplan-tag,
+  .wochenplan-tag-knopf {
+    display: block;
+    width: 100%;
+    border-radius: var(--radius-sm);
+    padding: 0.25rem;
+  }
+
+  .wochenplan-tag-knopf {
+    min-height: 48px;
+    transition: background-color 150ms ease;
+  }
+
+  .wochenplan-tag-knopf:hover {
+    background-color: var(--surface-3);
+  }
+
+  .wochenplan-tag-name {
+    display: block;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .wochenplan-tag-datum,
+  .wochenplan-tag-zusatz {
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+  }
+
+  .wochenplan-tag-zusatz {
+    margin-top: 0.25rem;
+  }
+
+  .wochenplan-zelle,
+  .wochenplan-zelle-ruhe {
+    border-bottom: 1px solid var(--border);
+    padding: 0.25rem;
+    vertical-align: top;
+  }
+
+  .wochenplan-zelle-ruhe {
+    background-color: var(--surface-2);
+  }
+
+  /* Die Einsätze einer Zelle untereinander. */
+  .wochenplan-einsaetze {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  /* Ein Einsatz: der Normalfall, weiß mit Haarlinie. Als Knopf wie als Text
+     (Team-Woche) gleich. Der Kundenname bricht um, die Nummer nicht. */
+  .wochenplan-einsatz {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    padding: 0.25rem 0.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+    transition: border-color 150ms ease;
+  }
+
+  button.wochenplan-einsatz:hover {
+    border-color: var(--accent-deep);
+  }
+
+  .wochenplan-einsatz-kunde {
+    display: block;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .wochenplan-einsatz-nummer {
+    display: block;
+    white-space: nowrap;
+  }
+
+  .wochenplan-einsatz-helfer {
+    display: block;
+  }
+
+  /* Frei an einem Arbeitstag — der Zustand, um den es geht. */
+  .wochenplan-frei,
+  .wochenplan-frei-ruhe {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+    transition: border-color 150ms ease;
+  }
+
+  .wochenplan-frei {
+    border-color: var(--success-bg);
+    background-color: var(--success-bg);
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .wochenplan-frei:hover,
+  .wochenplan-frei-ruhe:hover {
+    border-color: var(--accent-deep);
+  }
+
+  /* Den Tag weg (Urlaub, ZA, krank) oder Betriebsurlaub: nicht verfügbar. */
+  .wochenplan-abwesend {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+    padding: 0.25rem 0.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+  }
+
+  /* Stundenweise weg — steht über dem, was sonst in der Zelle steht. */
+  .wochenplan-teilweise {
+    display: block;
+    margin-bottom: 0.25rem;
+    text-align: center;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+  }
+
+  .wochenplan-leer {
+    display: block;
+    text-align: center;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+  }
+
+  /* Blättern im Kartenkopf: ‹ Diese Woche › in einer Zeile. */
+  .wochenplan-blaettern {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* ── Tagesliste (unter 768 px) ───────────────────────────────────── */
+
+  .wochenplan-liste {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 768px) {
+    .wochenplan-liste {
+      display: none;
+    }
+  }
+
+  /* Ein Tag ohne Dienst: die `.gruppe`, deckend getönt. */
+  .wochenplan-ruhetag {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+    overflow: clip;
+  }
+
+  /* Der Kopf von heute: wie `.gruppe-kopf`, im Ton von „heute“. */
+  .wochenplan-heute-kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--info-bg);
+    padding: 0.5rem 0.75rem;
+  }
+
+  .wochenplan-heute {
+    margin-left: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--info);
+  }
+
+  .wochenplan-tag-inhalt {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  /* Eine Baustelle des Tages mit ihren Leuten — Knopf in die Tagesplanung
+     oder, in der Team-Woche, nur Text. */
+  .wochenplan-eintrag {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    color: var(--text);
+    transition: border-color 150ms ease;
+  }
+
+  button.wochenplan-eintrag:hover {
+    border-color: var(--accent-deep);
+  }
+
+  .wochenplan-eintrag-titel {
+    display: block;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .wochenplan-eintrag-nummer {
+    white-space: nowrap;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .wochenplan-eintrag-namen {
+    display: block;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  /* „Frei: …“ und „Abwesend: …“ unter den Baustellen. */
+  .wochenplan-namen {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .wochenplan-namen-titel {
+    font-weight: 500;
+    color: var(--text);
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════

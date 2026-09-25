@@ -488,3 +488,82 @@ describe('Wochenplan — Abwesenheiten mit Grund', () => {
     expect(mittwoch).toHaveTextContent('Frei: Erna Beispiel');
   });
 });
+
+/*
+  DESIGN-DURCHGANG, PHASE 3 — das Raster geordnet. Farbe trägt nur ein
+  Zustand (frei, heute, kein Dienst); die Tagesspalten haben eine
+  Mindestbreite, damit sie auf 834 px nicht auf ein Zeichen zusammenfallen.
+*/
+describe('Wochenplan — Raster geordnet (Design-Durchgang, Phase 3)', () => {
+  /** Die Regeln einer Klasse aus index.css, ohne Kommentare. */
+  function regelnVon(klasse: string): string {
+    const css = readFileSync(resolve(__dirname, '../../src/index.css'), 'utf8').replace(
+      /\/\*[\s\S]*?\*\//g,
+      '',
+    );
+    return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter((m) => m[1].split(',').map((x) => x.trim()).includes(`.${klasse}`))
+      .map((m) => m[2])
+      .join(';');
+  }
+
+  it('gibt den Tagesspalten eine Mindestbreite und rollt in der Hülle, nicht die Seite', async () => {
+    /**
+     * Offener Punkt 16: auf 834 px nahm sich die Spalte mit dem langen
+     * Kundennamen den ganzen Platz, die übrigen fielen auf ein Zeichen
+     * Breite zusammen. jsdom misst nicht — geprüft wird, dass das Raster
+     * gleich breite Spalten mit Mindestbreite hat und seine Hülle rollt.
+     */
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const raster = screen.getByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(raster.className).toBe('wochenplan-raster');
+    expect(raster.parentElement!.className).toBe('wochenplan-rahmen');
+    expect(regelnVon('wochenplan-raster')).toMatch(/table-layout:\s*fixed/);
+    expect(regelnVon('wochenplan-raster')).toMatch(/min-width:\s*54\.5rem/);
+    expect(regelnVon('wochenplan-rahmen')).toMatch(/overflow-x:\s*auto/);
+  });
+
+  it('färbt nur „frei“ an Arbeitstagen — Wochenende und Einsätze bleiben ruhig', async () => {
+    einsaetze = [
+      {
+        id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042',
+        userId: 'u1', userName: 'Max Mustermann', asHelper: true,
+      } as Assignment & { id: string },
+    ];
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
+    // Helfer ist eine Rolle, keine Warnung: dieselbe Karte, der Text sagt es.
+    const karte = within(zeile).getByRole('button', { name: /Familie Huber am 02\.09/ });
+    expect(karte.className).toBe('wochenplan-einsatz');
+    expect(karte).toHaveTextContent('als Helfer');
+    expect(within(zeile).getByRole('button', { name: /am 31\.08\. einteilen/ }).className).toBe(
+      'wochenplan-frei',
+    );
+    expect(within(zeile).getByRole('button', { name: /am 05\.09\. einteilen/ }).className).toBe(
+      'wochenplan-frei-ruhe',
+    );
+  });
+
+  it('hebt heute im Kopf hervor, Wochenende getönt', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const heute = tabelle().getByRole('button', { name: /Mi.*02\.09.*Tagesplanung/ }).closest('th')!;
+    expect(heute.className).toBe('wochenplan-kopf-heute');
+    expect(heute).toHaveAttribute('aria-current', 'date');
+    const samstag = tabelle().getByRole('button', { name: /Sa.*05\.09.*Tagesplanung/ }).closest('th')!;
+    expect(samstag.className).toBe('wochenplan-kopf-ruhe');
+  });
+
+  it('nennt den Feiertag beim Namen statt ihn nur gelb zu färben', async () => {
+    // Mo, 26.10.2026 — Nationalfeiertag. Vorher stand er nur als gelbe
+    // Fläche da; die Warnfarbe gehört Warnungen.
+    vi.setSystemTime(new Date(2026, 9, 26, 9, 0, 0));
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const kopf = tabelle().getByRole('button', { name: /Mo.*26\.10.*Tagesplanung/ });
+    expect(kopf).toHaveTextContent('Nationalfeiertag');
+    expect(kopf).not.toHaveTextContent('frei');
+    expect(liste().getByText('Nationalfeiertag')).toBeInTheDocument();
+  });
+});

@@ -338,7 +338,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             Brett noch weiter nach unten. Die Pfeile brauchen kein Wort — was
             sie tun, sagt die Zeitspanne im Kartentitel daneben.
           */
-          <div className="flex items-center gap-1">
+          <div className="wochenplan-blaettern">
             {/* So gross wie die übrigen Knöpfe — ein einzelnes Zeichen gab
                 ein Ziel von halber Daumenbreite (Launch-Check 25.09.2026).
                 Das Ziel ist 48 × 48 px, das Zeichen auf jeder Breite 22 px
@@ -360,91 +360,87 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             Keine aktiven Mitarbeiter im Außendienst. Ohne sie gibt es nichts einzuteilen.
           </EmptyState>
         ) : (
-          /*
-            WAAGRECHT ROLLBAR, mit stehender Namensspalte. Sieben Tage passen
-            auf 390 px nicht nebeneinander; ohne die stehende Spalte wüsste
-            beim Rollen niemand mehr, wessen Zeile er liest.
-          */
           <>
           {/*
-            DIE TABELLE ERST AB TABLET. Sieben Spalten auf 390 px sind keine
+            DAS RASTER ERST AB TABLET. Sieben Spalten auf 390 px sind keine
             Tabelle mehr, sondern ein Guckloch: zwei Tage sichtbar, der Rest
             hinter einem waagrechten Bildlauf. Auf dem Telefon steht deshalb
             eine Tagesliste (weiter unten) — dieselben Daten, senkrecht.
 
-            Die negativen Raender (`-mx-4 px-4`) sind bewusst WEG: zusammen
-            mit `sticky left-0` schob sich der Inhalt der gerollten Spalten
+            Ab 768 px gleich breite Tagesspalten mit Mindestbreite; reicht
+            der Platz nicht (834 px mit Seitenleiste), rollt das Raster in
+            seinem Rahmen, mit stehender Namensspalte — ohne sie wüsste beim
+            Rollen niemand mehr, wessen Zeile er liest. Farbe trägt nur ein
+            Zustand: frei, heute, kein Dienst (`.wochenplan-*`, index.css).
+
+            Die negativen Raender (`-mx-4 px-4`) bleiben WEG: zusammen mit
+            der stehenden Spalte schob sich der Inhalt der gerollten Spalten
             in die 16 px Polsterung links neben die Namensspalte. Aus dem
             Betrieb gemeldet, und im Bildschirmfoto gut zu sehen.
-
-            Kopf und Zellen tragen die Tabellenklassen. Was daneben steht,
-            gehört zum Raster: `border-separate` (mit `collapse` wandert die
-            Linie der stehenden Spalte beim Rollen nicht mit), `sticky` samt
-            deckender Fläche, die Mindestbreite der sieben Tage und die
-            Tagesfärbung für Wochenende, Feiertag und Betriebsurlaub.
           */}
-          <div className="tabelle-rahmen hidden md:block">
-            <table
-              aria-label="Wochenplan als Tabelle"
-              className="tabelle min-w-[44rem] border-separate border-spacing-0"
-            >
+          <div className="wochenplan-rahmen">
+            <table aria-label="Wochenplan als Tabelle" className="wochenplan-raster">
               <thead>
                 <tr>
-                  <th className="tabelle-kopf sticky left-0 z-10 bg-surface align-bottom">
-                    Mitarbeiter
-                  </th>
+                  <th className="wochenplan-namenkopf">Mitarbeiter</th>
                   {tage.map((tag) => {
                     const { wochentag, datum } = tagKurz(tag);
                     const feiertag = getAustrianHolidayName(new Date(`${tag}T00:00:00`));
                     const wochenende = isWeekend(new Date(`${tag}T00:00:00`));
                     const frei = freiJeTag.get(tag) ?? 0;
                     const zu = zuAm.get(tag);
+                    /*
+                      Unter dem Datum steht, was den Tag ausmacht: der
+                      Betriebsurlaub, der Feiertag — oder die Zahl der Freien,
+                      wegen der es dieses Brett gibt. An Wochenende und
+                      Feiertag keine Zahl: dort ist niemand „frei", sondern
+                      keiner im Dienst (Prüflauf 24.09.2026, D15). Mit
+                      Ausgenommenen ist auch am Betriebsurlaub jemand frei —
+                      dann steht beides da. Der Feiertag stand vorher nur als
+                      gelbe Fläche da; die Warnfarbe ist Warnungen vorbehalten,
+                      deshalb jetzt sein Name.
+                    */
+                    const zusatz = nurLesen
+                      ? zu ?? feiertag
+                      : zu
+                        ? frei > 0
+                          ? `${zu} · ${frei} frei`
+                          : zu
+                        : feiertag
+                          ? feiertag
+                          : wochenende
+                            ? null
+                            : `${frei} frei`;
+                    const kopf = (
+                      <>
+                        <span className="wochenplan-tag-name">{wochentag}</span>
+                        <span className="wochenplan-tag-datum">{datum}</span>
+                        {zusatz && <span className="wochenplan-tag-zusatz">{zusatz}</span>}
+                      </>
+                    );
                     return (
                       <th
                         key={tag}
-                        className={`tabelle-kopf text-center ${
-                          feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''
-                        }`}
+                        aria-current={tag === heute ? 'date' : undefined}
+                        className={
+                          tag === heute
+                            ? 'wochenplan-kopf-heute'
+                            : feiertag || wochenende || zu
+                              ? 'wochenplan-kopf-ruhe'
+                              : 'wochenplan-kopf'
+                        }
                       >
                         {nurLesen ? (
-                          <span className="block px-1 py-1">
-                            <span
-                              className={`block font-semibold ${
-                                tag === heute ? 'text-brand underline' : 'text-ink'
-                              }`}
-                            >
-                              {wochentag}
-                            </span>
-                            <span className="block text-xs text-ink-muted">{datum}</span>
-                            {zu && <span className="mt-1 block text-xs text-ink-muted">{zu}</span>}
-                          </span>
+                          <span className="wochenplan-tag">{kopf}</span>
                         ) : (
-                        <button
-                          type="button"
-                          onClick={() => zurTagesplanung(tag)}
-                          className="w-full rounded px-1 py-1"
-                          aria-label={`${wochentag} ${datum} in der Tagesplanung öffnen`}
-                        >
-                          <span
-                            className={`block font-semibold ${
-                              tag === heute ? 'text-brand underline' : 'text-ink'
-                            }`}
+                          <button
+                            type="button"
+                            onClick={() => zurTagesplanung(tag)}
+                            className="wochenplan-tag-knopf"
+                            aria-label={`${wochentag} ${datum} in der Tagesplanung öffnen`}
                           >
-                            {wochentag}
-                          </span>
-                          <span className="block text-xs text-ink-muted">{datum}</span>
-                          {/* Die Zahl, wegen der es dieses Brett gibt — an
-                              Wochenende und Feiertag nicht: dort ist niemand
-                              „frei", sondern keiner im Dienst (Prüflauf
-                              24.09.2026, D15). */}
-                          {(zu || (!wochenende && !feiertag)) && (
-                            <span className="mt-1 block text-xs text-ink-muted">
-                              {/* Mit Ausgenommenen ist auch am Betriebsurlaub
-                                  jemand frei — dann steht beides da. */}
-                              {zu ? (frei > 0 ? `${zu} · ${frei} frei` : zu) : `${frei} frei`}
-                            </span>
-                          )}
-                        </button>
+                            {kopf}
+                          </button>
                         )}
                       </th>
                     );
@@ -454,10 +450,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
               <tbody>
                 {staff.map((u) => (
                   <tr key={u.uid}>
-                    <th
-                      scope="row"
-                      className="tabelle-zelle sticky left-0 z-10 max-w-[9rem] truncate bg-surface text-left font-medium"
-                    >
+                    <th scope="row" className="wochenplan-name">
                       {u.name}
                     </th>
                     {tage.map((tag) => {
@@ -470,16 +463,16 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                       return (
                         <td
                           key={tag}
-                          className={`tabelle-zelle ${
-                            feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''
-                          }`}
+                          className={
+                            feiertag || wochenende || zu ? 'wochenplan-zelle-ruhe' : 'wochenplan-zelle'
+                          }
                         >
                           {/*
                             STUNDENWEISE WEG steht über dem, was sonst in der
                             Zelle steht: vormittags eingeteilt, nachmittags ZA.
                           */}
                           {z?.abwesendText && !z.imUrlaub && (
-                            <span className="mb-1 block text-center text-xs text-info">{z.abwesendText}</span>
+                            <span className="wochenplan-teilweise">{z.abwesendText}</span>
                           )}
                           {zuPerson && (!z || z.baustellen.length === 0) ? (
                             /*
@@ -489,44 +482,38 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                               arbeiten und sind einteilbar. Wer trotzdem eingeteilt ist (etwa
                               ein Notdienst), steht mit seiner Baustelle da.
                             */
-                            <span className="block rounded-sm bg-surface-2 px-2 py-1 text-center text-xs text-ink-muted">
-                              Betriebsurlaub
-                            </span>
+                            <span className="wochenplan-abwesend">Betriebsurlaub</span>
                           ) : z?.imUrlaub ? (
-                            <span className="block rounded-sm border border-line bg-surface-2 px-2 py-1 text-center text-xs text-info">
-                              {z.abwesendText}
-                            </span>
+                            <span className="wochenplan-abwesend">{z.abwesendText}</span>
                           ) : leer && nurLesen ? (
-                            <span className="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">
+                            <span className="wochenplan-leer" aria-label="nicht eingeteilt">
                               –
                             </span>
                           ) : leer ? (
                             /*
                               Eine leere Zelle ist die WICHTIGSTE Information
-                              dieses Bretts. Sie bleibt trotzdem antippbar —
-                              genau von hier aus teilt man jemanden ein.
+                              dieses Bretts — an einem Arbeitstag trägt sie
+                              deshalb als einzige eine Farbe. Sie bleibt
+                              antippbar: genau von hier aus teilt man jemanden
+                              ein. An Wochenende und Feiertag steht sie ruhig,
+                              wie der Kopf dort keine Freien zählt.
                             */
                             <button
                               type="button"
                               onClick={() => zurTagesplanung(tag)}
                               aria-label={`${u.name} am ${tagKurz(tag).datum} einteilen`}
-                              className="min-h-touch w-full whitespace-nowrap rounded-sm border border-line text-xs text-ink-muted"
+                              className={feiertag || wochenende ? 'wochenplan-frei-ruhe' : 'wochenplan-frei'}
                             >
                               frei
                             </button>
                           ) : (
-                            <span className="flex flex-col gap-1">
+                            <span className="wochenplan-einsaetze">
                               {z!.baustellen.map((b) =>
                                 nurLesen ? (
-                                  <span
-                                    key={b.nummer}
-                                    className={`block rounded-sm px-2 py-1 text-left text-xs ${
-                                      b.helfer ? 'bg-warning-bg text-warning' : 'bg-info-bg text-info'
-                                    }`}
-                                  >
-                                    <span className="block truncate font-medium">{b.name}</span>
-                                    <span className="block truncate">{b.nummer}</span>
-                                    {b.helfer && <span className="block">als Helfer</span>}
+                                  <span key={b.nummer} className="wochenplan-einsatz">
+                                    <span className="wochenplan-einsatz-kunde">{b.name}</span>
+                                    <span className="wochenplan-einsatz-nummer">{b.nummer}</span>
+                                    {b.helfer && <span className="wochenplan-einsatz-helfer">als Helfer</span>}
                                   </span>
                                 ) : (
                                 <button
@@ -534,15 +521,11 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                   type="button"
                                   onClick={() => zurTagesplanung(tag, b.nummer)}
                                   aria-label={`${b.name} am ${tagKurz(tag).datum} bearbeiten`}
-                                  className={`min-h-touch w-full rounded-sm px-2 py-1 text-left text-xs ${
-                                    b.helfer
-                                      ? 'bg-warning-bg text-warning'
-                                      : 'bg-info-bg text-info'
-                                  }`}
+                                  className="wochenplan-einsatz"
                                 >
-                                  <span className="block truncate font-medium">{b.name}</span>
-                                  <span className="block truncate">{b.nummer}</span>
-                                  {b.helfer && <span className="block">als Helfer</span>}
+                                  <span className="wochenplan-einsatz-kunde">{b.name}</span>
+                                  <span className="wochenplan-einsatz-nummer">{b.nummer}</span>
+                                  {b.helfer && <span className="wochenplan-einsatz-helfer">als Helfer</span>}
                                 </button>
                                 ),
                               )}
@@ -559,18 +542,20 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
 
           {/*
             DIE TAGESLISTE — die Telefonansicht.
-            
+
             Sie beantwortet dieselbe Frage in der Reihenfolge, in der man sie
             auf dem Telefon stellt: erst der Tag, dann wer dort ist, dann wer
             noch frei wäre. Kein waagrechter Bildlauf, keine stehende Spalte,
-            nichts, was sich überlagern kann.
+            nichts, was sich überlagern kann. Je Tag eine `.gruppe`; ein Tag
+            ohne Dienst ist getönt, der Kopf von heute trägt den Ton von
+            „heute" — wie im Raster.
 
             Die freien Namen stehen AUSGESCHRIEBEN, nicht nur als Zahl. Am
             Schreibtisch liest man sie aus der Spalte ab; hier gäbe es dafür
             keine Spalte, und „2 frei" ohne Namen zwingt zurück in die
             Tagesplanung, nur um nachzusehen.
           */}
-          <section aria-label="Wochenplan als Liste" className="space-y-3 md:hidden">
+          <section aria-label="Wochenplan als Liste" className="wochenplan-liste">
             {tage.map((tag) => {
               const { wochentag, datum } = tagKurz(tag);
               const t = proTag.get(tag);
@@ -579,57 +564,55 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
               return (
                 <div
                   key={tag}
-                  className={`rounded-sm border ${
-                    tag === heute ? 'border-brand' : 'border-line'
-                  } ${feiertag ? 'bg-warning-bg' : wochenende || zuAm.has(tag) ? 'bg-surface-2' : ''}`}
+                  className={feiertag || wochenende || zuAm.has(tag) ? 'wochenplan-ruhetag' : 'gruppe'}
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-3 py-2">
-                    <span className="font-semibold text-ink">
+                  <div className={tag === heute ? 'wochenplan-heute-kopf' : 'gruppe-kopf'}>
+                    <span className="gruppe-titel">
                       {wochentag}, {datum}
-                      {tag === heute && <span className="ml-2 text-sm text-brand">heute</span>}
+                      {tag === heute && <span className="wochenplan-heute">heute</span>}
                     </span>
                     {zuAm.has(tag) ? (
-                      <span className="text-sm text-ink-muted">Betriebsurlaub</span>
-                    ) : !nurLesen && !wochenende && !feiertag && (
-                      <span className="text-sm text-ink-muted">
+                      <span className="gruppe-neben">Betriebsurlaub</span>
+                    ) : feiertag ? (
+                      <span className="gruppe-neben">{feiertag}</span>
+                    ) : !nurLesen && !wochenende && (
+                      <span className="gruppe-neben">
                         {(t?.frei.length ?? 0)} frei
                       </span>
                     )}
                   </div>
 
-                  <div className="space-y-2 p-3">
+                  <div className="wochenplan-tag-inhalt">
                     {t && t.baustellen.length > 0 ? (
-                      t.baustellen.map((b) =>
-                        nurLesen ? (
-                          <div key={b.nummer} className="kasten">
-                            <span className="block font-medium text-info">
-                              {b.name} <span className="font-normal">· {b.nummer}</span>
+                      t.baustellen.map((b) => {
+                        const inhalt = (
+                          <>
+                            <span className="wochenplan-eintrag-titel">
+                              {b.name} <span className="wochenplan-eintrag-nummer">· {b.nummer}</span>
                             </span>
-                            <span className="block text-sm text-info">
+                            <span className="wochenplan-eintrag-namen">
                               {b.namen
                                 .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
                                 .join(', ')}
                             </span>
+                          </>
+                        );
+                        return nurLesen ? (
+                          <div key={b.nummer} className="wochenplan-eintrag">
+                            {inhalt}
                           </div>
                         ) : (
-                        <button
-                          key={b.nummer}
-                          type="button"
-                          onClick={() => zurTagesplanung(tag, b.nummer)}
-                          aria-label={`${b.name} am ${datum} bearbeiten`}
-                          className="kasten min-h-touch w-full text-left"
-                        >
-                          <span className="block font-medium text-info">
-                              {b.name} <span className="font-normal">· {b.nummer}</span>
-                            </span>
-                          <span className="block text-sm text-info">
-                            {b.namen
-                              .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
-                              .join(', ')}
-                          </span>
-                        </button>
-                        ),
-                      )
+                          <button
+                            key={b.nummer}
+                            type="button"
+                            onClick={() => zurTagesplanung(tag, b.nummer)}
+                            aria-label={`${b.name} am ${datum} bearbeiten`}
+                            className="wochenplan-eintrag"
+                          >
+                            {inhalt}
+                          </button>
+                        );
+                      })
                     ) : zuAm.has(tag) ? (
                       <EmptyState>Betriebsurlaub — {zuAm.get(tag)}.</EmptyState>
                     ) : (
@@ -637,13 +620,13 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     )}
 
                     {!nurLesen && !wochenende && !feiertag && t && t.frei.length > 0 && (
-                      <p className="text-sm text-ink-muted">
-                        <span className="font-medium text-ink">Frei:</span> {t.frei.join(', ')}
+                      <p className="wochenplan-namen">
+                        <span className="wochenplan-namen-titel">Frei:</span> {t.frei.join(', ')}
                       </p>
                     )}
                     {t && t.urlaub.length > 0 && (
-                      <p className="text-sm text-ink-muted">
-                        <span className="font-medium text-ink">Abwesend:</span>{' '}
+                      <p className="wochenplan-namen">
+                        <span className="wochenplan-namen-titel">Abwesend:</span>{' '}
                         {t.urlaub.join(', ')}
                       </p>
                     )}
