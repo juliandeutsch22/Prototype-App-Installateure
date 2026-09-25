@@ -194,6 +194,45 @@ describe('Angebot kalkulieren', () => {
     expect(uebergeben.positions).toHaveLength(2);
   });
 
+  /*
+    PRÜFLAUF 25.09.2026, P2-22. Gezählt wurden auch Zeilen, die beim Speichern
+    wegfallen (ohne Bezeichnung), und Helferstunden — die Budget-Ampel misst
+    aber nur die Facharbeiterzeit.
+  */
+  it('zählt eine Zeile ohne Bezeichnung nicht ins Budget', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Montage');
+    await nutzer.type(screen.getByLabelText('Menge'), '8');
+    await nutzer.type(screen.getByLabelText('Einheit'), 'h');
+    await nutzer.click(screen.getByRole('button', { name: 'Position hinzufügen' }));
+    await nutzer.type(screen.getAllByLabelText('Menge')[1], '5');
+    await nutzer.type(screen.getAllByLabelText('Einheit')[1], 'h');
+
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('8 h');
+  });
+
+  it('zählt Helferstunden nicht von selbst ins Budget — von Hand angehakt schon', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Facharbeiterstunden');
+    await nutzer.type(screen.getByLabelText('Menge'), '10');
+    await nutzer.type(screen.getByLabelText('Einheit'), 'h');
+    await nutzer.click(screen.getByRole('button', { name: 'Position hinzufügen' }));
+    await nutzer.type(screen.getAllByLabelText('Bezeichnung')[1], 'Helferstunden');
+    await nutzer.type(screen.getAllByLabelText('Menge')[1], '6');
+    await nutzer.type(screen.getAllByLabelText('Einheit')[1], 'h');
+
+    expect(screen.getAllByRole('checkbox')[1]).not.toBeChecked();
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('10 h');
+
+    // Wer es anders will, entscheidet selbst.
+    await nutzer.click(screen.getAllByRole('checkbox')[1]);
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
+  });
+
   it('rechnet Netto, USt und Brutto mit derselben Funktion wie die Rechnung', async () => {
     const nutzer = userEvent.setup();
     zeichne();

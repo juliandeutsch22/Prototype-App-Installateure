@@ -74,6 +74,18 @@ function istStundenEinheit(einheit: string): boolean {
 }
 
 /*
+  HELFERSTUNDEN SIND KEIN BUDGET DER AMPEL (Prüflauf 25.09.2026, P2-22). Die
+  Budget-Ampel der Baustelle misst die FACHARBEITERzeit (`calcBudgetState`
+  bekommt `fachMin`); eine Zeile „Helferstunden, 10 h" zählte trotzdem von
+  selbst ins Budget, und die Ampel blieb um genau diese Stunden zu lange
+  grün. Der Haken folgt deshalb auch der Bezeichnung — wer ihn von Hand
+  setzt, behält ihn.
+*/
+function zaehltAlsArbeitszeit(einheit: string, bezeichnung: string): boolean {
+  return istStundenEinheit(einheit) && !/helfer/i.test(bezeichnung);
+}
+
+/*
   EINE NEUE ZEILE BEGINNT OHNE EINHEIT UND OHNE HAKEN (Launch-Check
   25.09.2026, M7). Mit „h" vorbelegt zählte „1 Heizkörper", bei dem niemand
   die Einheit anfasste, als Stunde ins Budget (4,5 statt 3,5 h). Wer „h"
@@ -207,8 +219,13 @@ export default function QuotesView() {
    */
   const kalkulierteStunden = useMemo(
     () =>
+      /*
+        NUR ZEILEN, DIE AUCH GESPEICHERT WERDEN (P2-22) — dieselbe Bedingung
+        wie bei `positionen`. Eine Zeile ohne Bezeichnung fällt beim
+        Speichern weg; ihre Stunden standen trotzdem im Budget.
+      */
       zeilen
-        .filter((z) => z.istArbeitszeit && num(z.qty) > 0)
+        .filter((z) => z.istArbeitszeit && z.label.trim() && num(z.qty) > 0)
         .reduce((s, z) => s + num(z.qty), 0),
     [zeilen],
   );
@@ -245,7 +262,7 @@ export default function QuotesView() {
             qty: String(p.qty).replace('.', ','),
             unit: p.unit,
             unitPrice: String(p.unitPrice).replace('.', ','),
-            istArbeitszeit: p.istArbeitszeit ?? istStundenEinheit(p.unit),
+            istArbeitszeit: p.istArbeitszeit ?? zaehltAlsArbeitszeit(p.unit, p.label),
             hakenVonHand: p.istArbeitszeit !== undefined,
           }))
         : [{ ...LEERE_ZEILE }],
@@ -439,7 +456,19 @@ export default function QuotesView() {
                     label="Bezeichnung"
                     value={z.label}
                     onChange={(e) =>
-                      setZeilen((v) => v.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))
+                      setZeilen((v) =>
+                        v.map((x, j) =>
+                          j === i
+                            ? {
+                                ...x,
+                                label: e.target.value,
+                                istArbeitszeit: x.hakenVonHand
+                                  ? x.istArbeitszeit
+                                  : zaehltAlsArbeitszeit(x.unit, e.target.value),
+                              }
+                            : x,
+                        ),
+                      )
                     }
                   />
                   <FormGrid>
@@ -465,7 +494,7 @@ export default function QuotesView() {
                                   unit: e.target.value,
                                   istArbeitszeit: x.hakenVonHand
                                     ? x.istArbeitszeit
-                                    : istStundenEinheit(e.target.value),
+                                    : zaehltAlsArbeitszeit(e.target.value, x.label),
                                 }
                               : x,
                           ),
@@ -563,7 +592,8 @@ export default function QuotesView() {
               <InfoHint about="kalkulierte Arbeitszeit">
                 Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
                 der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
-                geblieben ist — und die Nachkalkulation, was sie verdient hat.
+                geblieben ist — und die Nachkalkulation, was sie verdient hat. Gemessen wird die
+                Zeit der Facharbeiter; Helferstunden zählen deshalb nicht von selbst mit.
               </InfoHint>
             </p>
           </div>
