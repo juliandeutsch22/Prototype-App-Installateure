@@ -140,6 +140,15 @@ describe('Ein Angebot ansehen', () => {
     );
   });
 
+  it('gibt beiden Links die volle Tastfläche (Prüflauf 25.09.2026, P4-09)', async () => {
+    // Alleinstehende Links waren nur so hoch wie ihre Zeile (20 px).
+    angebot = { ...ANGEBOT, status: 'Angenommen', projectNumber: 'B-2026-0007', projectId: 'p9' };
+    zeige();
+    const kunde = await screen.findByRole('link', { name: 'Gemeinde Neudorf' });
+    expect(kunde.className).toMatch(/\bmin-h-touch\b/);
+    expect(screen.getByRole('link', { name: 'B-2026-0007' }).className).toMatch(/\bmin-h-touch\b/);
+  });
+
   it('sagt „gibt es nicht", statt einen Ladefehler vorzutäuschen', async () => {
     angebot = null;
     zeige();

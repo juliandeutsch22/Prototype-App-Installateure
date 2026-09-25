@@ -229,7 +229,7 @@ export default function AngebotView() {
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
           <Angabe wort="Kunde">
             {q.customerId ? (
-              <Link to={`/customers/${q.customerId}`} className="link">
+              <Link to={`/customers/${q.customerId}`} className="link inline-flex min-h-touch items-center">
                 {q.customerName}
               </Link>
             ) : (
@@ -246,7 +246,7 @@ export default function AngebotView() {
           <Angabe wort="Baustelle">
             {q.projectNumber ? (
               q.projectId && baustellenSichtbar ? (
-                <Link to={`/admin-projects/${q.projectId}`} className="link">
+                <Link to={`/admin-projects/${q.projectId}`} className="link inline-flex min-h-touch items-center">
                   {q.projectNumber}
                 </Link>
               ) : (

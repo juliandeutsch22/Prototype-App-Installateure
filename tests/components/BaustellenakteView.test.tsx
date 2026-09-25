@@ -409,6 +409,14 @@ describe('Was die Akte sonst noch zeigt', () => {
     );
   });
 
+  it('gibt den Links unter „Weiter" die volle Tastfläche (Prüflauf 25.09.2026, P4-09)', async () => {
+    // Alleinstehende Links waren nur so hoch wie ihre Zeile (24 px).
+    zeige();
+    expect((await screen.findByRole('link', { name: 'Zur Kundenakte' })).className)
+      .toMatch(/\bmin-h-touch\b/);
+    expect(screen.getByRole('link', { name: /Handwerksschein/ }).className).toMatch(/\bmin-h-touch\b/);
+  });
+
   it('sagt es, wenn kein Kunde verknüpft ist, statt den Verweis wegzulassen', async () => {
     // Altbestand: die Baustelle trägt einen Kundennamen, aber keine
     // Verknüpfung. Ein fehlender Verweis sähe aus wie „gibt es nicht".

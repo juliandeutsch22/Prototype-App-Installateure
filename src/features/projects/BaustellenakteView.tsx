@@ -395,9 +395,12 @@ export default function BaustellenakteView() {
       </Card>
 
       <Card title="Weiter">
-        <div className="flex flex-wrap gap-3">
+        {/* Die Links tragen ihre 48 px Tastfläche selbst — deshalb kein
+            senkrechter Abstand mehr dazwischen, sonst wüchse die Karte um
+            mehr als nötig (Prüflauf 25.09.2026, P4-09). */}
+        <div className="flex flex-wrap items-center gap-x-3">
           {b.customerId ? (
-            <Link to={`/customers/${b.customerId}`} className="link">
+            <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">
               Zur Kundenakte
             </Link>
           ) : (
@@ -411,14 +414,14 @@ export default function BaustellenakteView() {
             </span>
           )}
           {angebote.map((q) => (
-            <Link key={q.id} to={`/quotes/${q.id}`} className="link">
+            <Link key={q.id} to={`/quotes/${q.id}`} className="link inline-flex min-h-touch items-center">
               Angebot {q.quoteNumber}
             </Link>
           ))}
           {scheineAn && (
             <Link
               to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-              className="link"
+              className="link inline-flex min-h-touch items-center"
             >
               Handwerksschein schreiben
             </Link>
