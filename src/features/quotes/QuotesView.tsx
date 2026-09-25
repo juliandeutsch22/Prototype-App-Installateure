@@ -629,11 +629,9 @@ export default function QuotesView() {
                 zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
                 subtitle={
                   <>
-                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)}
-                    <span className="mt-1 block text-xs text-ink-muted">
-                      {fmtStunden(q.kalkulierteStunden)} h kalkuliert
-                      {q.projectNumber ? ` · Baustelle ${q.projectNumber}` : ''}
-                    </span>
+                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)} ·{' '}
+                    {fmtStunden(q.kalkulierteStunden)} h kalkuliert
+                    {q.projectNumber ? ` · Baustelle ${q.projectNumber}` : ''}
                   </>
                 }
               >
