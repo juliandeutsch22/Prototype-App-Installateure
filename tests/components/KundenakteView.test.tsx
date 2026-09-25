@@ -514,3 +514,25 @@ describe('Die Verwaltung mit der Freigabe „Kunden pflegen“', () => {
     expect(screen.queryByLabelText('UID-Nummer')).not.toBeInTheDocument();
   });
 });
+
+describe('Am Schreibtisch zwei Spalten', () => {
+  /** In welcher Spalte der Akte eine Karte steht. */
+  const spalte = (titel: RegExp) =>
+    screen.getByRole('heading', { name: titel }).closest('section')!.parentElement!.className;
+
+  it('stellt die Stammdaten links und alles, was am Kunden hängt, rechts', async () => {
+    zeige();
+    await screen.findByText('Noch kein Angebot.');
+    expect(spalte(/^Stammdaten/)).toBe('akte-links');
+    for (const titel of [/^Baustellen/, /^Wartungen/, /^Rechnungen/, /^Angebote/]) {
+      expect(spalte(titel)).toBe('akte-rechts');
+    }
+  });
+
+  it('liest links vor rechts — die Vorlesehilfe geht die Karten in der alten Reihenfolge durch', async () => {
+    zeige();
+    await screen.findByText('Noch kein Angebot.');
+    const titel = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    expect(titel).toEqual(['Stammdaten', 'Baustellen (0)', 'Wartungen', 'Rechnungen', 'Angebote']);
+  });
+});

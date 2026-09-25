@@ -319,213 +319,225 @@ export default function KundenakteView() {
       />
 
       {/*
-        DIE STAMMDATEN ZUERST. Sie sind der Grund, warum es diese Seite gibt:
-        E-Mail, UID und Notiz standen bisher in keiner Ansicht.
+        AM SCHREIBTISCH ZWEI SPALTEN (`.akte`): links, was den Kunden
+        ausmacht, rechts, was an ihm hängt — Baustellen, Wartungen,
+        Rechnungen, Angebote. Am Telefon und Tablet bleibt es eine Spalte in
+        derselben Reihenfolge.
       */}
-      <Card title="Stammdaten">
-        {darfAendern && entwurf ? (
-          <StammdatenFormular
-            entwurf={entwurf}
-            setEntwurf={setEntwurf}
-            geaendert={geaendert}
-            speichert={speichert}
-            fehler={speicherFehler}
-            onSpeichern={() => void stammdatenSpeichern()}
-            onVerwerfen={() => setEntwurf(alsEntwurf(k))}
-          />
-        ) : (
-          <StammdatenLesen k={k} />
-        )}
-      </Card>
+      <div className="akte">
+        <div className="akte-links">
+          {/*
+            DIE STAMMDATEN ZUERST. Sie sind der Grund, warum es diese Seite gibt:
+            E-Mail, UID und Notiz standen bisher in keiner Ansicht.
+          */}
+          <Card title="Stammdaten">
+            {darfAendern && entwurf ? (
+              <StammdatenFormular
+                entwurf={entwurf}
+                setEntwurf={setEntwurf}
+                geaendert={geaendert}
+                speichert={speichert}
+                fehler={speicherFehler}
+                onSpeichern={() => void stammdatenSpeichern()}
+                onVerwerfen={() => setEntwurf(alsEntwurf(k))}
+              />
+            ) : (
+              <StammdatenLesen k={k} />
+            )}
+          </Card>
+        </div>
 
-      <Card title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
-        {baustellen.zustand === 'laedt' ? (
-          <SkeletonList rows={2} />
-        ) : baustellen.zustand === 'fehler' ? (
-          <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
-        ) : baustellen.daten.length === 0 ? (
-          <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
-        ) : (
-          <List>
-            {baustellen.daten
-              .slice()
-              .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
-              .map((p) => (
-                <ListRow
-                  key={p.id}
-                  title={
-                    <Link
-                      to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
-                      className="textlink"
-                    >
-                      {p.projectNumber} · {p.address ?? 'ohne Adresse'}
-                    </Link>
-                  }
-                  zustand={<StatusBadge status={p.status} />}
-                />
-              ))}
-          </List>
-        )}
-
-        {/*
-          Baustellen, die den Namen tragen, aber auf keinen Kunden zeigen.
-          Sie nur anzuzeigen wäre halb — der Knopf stellt die Verbindung her.
-        */}
-        {namensgleich.length > 0 && (
-          <div className="kasten mt-4">
-            <p className="text-sm text-warning">
-              <strong>{namensgleich.length}</strong>{' '}
-              {namensgleich.length === 1
-                ? 'Baustelle trägt diesen Namen, ist'
-                : 'Baustellen tragen diesen Namen, sind'}{' '}
-              aber keinem Kunden zugeordnet.
-            </p>
-            <List>
-              {namensgleich.map((p) => (
-                <ListRow key={p.id} title={`${p.projectNumber} · ${p.address ?? 'ohne Adresse'}`}>
-                  {darfBaustellenZuordnen && (
-                    <Button
-                      variant="secondary"
-                      loading={zuordnenLaeuft === p.id}
-                      onClick={async () => {
-                        setZuordnenLaeuft(p.id);
-                        try {
-                          await assignProjectToCustomer(p.id, k.id, k.name);
-                          toast.success('Baustelle zugeordnet');
-                          setVersuch((v) => v + 1);
-                        } catch (err) {
-                          toast.error(grundAus(err, 'Die Zuordnung ist fehlgeschlagen.'));
-                        } finally {
-                          setZuordnenLaeuft(null);
-                        }
-                      }}
-                    >
-                      Zuordnen
-                    </Button>
-                  )}
-                </ListRow>
-              ))}
-            </List>
-          </div>
-        )}
-
-        {darfBaustellenZuordnen &&
-          baustellen.zustand === 'bereit' &&
-          baustellen.daten.length === 0 &&
-          namensgleich.length === 0 && (
-            <p className="mt-2 text-xs text-ink-muted">
-              Gesucht wurde nach exakt „{k.name}". Bei abweichender Schreibweise hilft
-              „Bestehende Baustellen übernehmen" in der Kundenliste.
-            </p>
-          )}
-      </Card>
-
-      {wartungAn && (
-        <Card title="Wartungen">
-          {wartungen.zustand === 'laedt' ? (
-            <SkeletonList rows={1} />
-          ) : wartungen.zustand === 'fehler' ? (
-            <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
-          ) : wartungen.daten.length === 0 ? (
-            <EmptyState>Keine Wartungsvereinbarung.</EmptyState>
-          ) : (
-            <List>
-              {wartungen.daten.map((w) => {
-                const u = beurteile(w, heute);
-                return (
-                  /*
-                    DER ZUSTAND STEHT BEIM NAMEN, wie in der Wartungsliste. Er
-                    ist ein ganzer Satz („Seit 5 Tagen überfällig.") — rechts
-                    in der Zeile liess er der Anlage am Telefon kaum Platz,
-                    und ihr Name brach mitten im Wort.
-                  */
-                  <ListRow
-                    key={w.id}
-                    title={
-                      <>
-                        <span>{w.anlage}</span>
-                        <Zustand
-                          stand={
-                            u.stand === 'überfällig'
-                              ? 'schlecht'
-                              : u.stand === 'fällig'
-                                ? 'achtung'
-                                : 'ruht'
-                          }
+        <div className="akte-rechts">
+          <Card title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
+            {baustellen.zustand === 'laedt' ? (
+              <SkeletonList rows={2} />
+            ) : baustellen.zustand === 'fehler' ? (
+              <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
+            ) : baustellen.daten.length === 0 ? (
+              <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
+            ) : (
+              <List>
+                {baustellen.daten
+                  .slice()
+                  .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
+                  .map((p) => (
+                    <ListRow
+                      key={p.id}
+                      title={
+                        <Link
+                          to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
+                          className="textlink"
                         >
-                          {u.stand === 'ruht' ? 'ruht' : u.text}
-                        </Zustand>
-                      </>
-                    }
-                    subtitle={`alle ${w.intervallMonate} Monate · Termin ${fmtDatum(w.faelligAm)}`}
-                  />
-                );
-              })}
-            </List>
-          )}
-        </Card>
-      )}
+                          {p.projectNumber} · {p.address ?? 'ohne Adresse'}
+                        </Link>
+                      }
+                      zustand={<StatusBadge status={p.status} />}
+                    />
+                  ))}
+              </List>
+            )}
 
-      {rechnungenAn && darfRechnungen && (
-        <Card title="Rechnungen">
-          {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
-            <SkeletonList rows={1} />
-          ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
-            <TeilFehler was="die Rechnungen" onRetry={() => setVersuch((v) => v + 1)} />
-          ) : rechnungen.daten.length === 0 ? (
-            <EmptyState>Noch keine Rechnung.</EmptyState>
-          ) : (
-            <Grenzliste
-              eintraege={rechnungen.daten}
-              grenze={RECHNUNGEN_KURZ}
-              mehr={{ aufklappen: true }}
-              zeile={(r) => (
-                <ListRow
-                  key={r.id}
-                  title={
-                    <Link
-                      to={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
-                      className="textlink"
-                    >
-                      {r.invoiceNumber}
-                    </Link>
-                  }
-                  subtitle={`${fmtDatum(r.invoiceDate)} · ${r.projectNumber}`}
-                  wert={`${fmtEUR(r.totalBrutto)} brutto`}
-                  zustand={<StatusBadge status={r.paymentStatus} />}
+            {/*
+              Baustellen, die den Namen tragen, aber auf keinen Kunden zeigen.
+              Sie nur anzuzeigen wäre halb — der Knopf stellt die Verbindung her.
+            */}
+            {namensgleich.length > 0 && (
+              <div className="kasten mt-4">
+                <p className="text-sm text-warning">
+                  <strong>{namensgleich.length}</strong>{' '}
+                  {namensgleich.length === 1
+                    ? 'Baustelle trägt diesen Namen, ist'
+                    : 'Baustellen tragen diesen Namen, sind'}{' '}
+                  aber keinem Kunden zugeordnet.
+                </p>
+                <List>
+                  {namensgleich.map((p) => (
+                    <ListRow key={p.id} title={`${p.projectNumber} · ${p.address ?? 'ohne Adresse'}`}>
+                      {darfBaustellenZuordnen && (
+                        <Button
+                          variant="secondary"
+                          loading={zuordnenLaeuft === p.id}
+                          onClick={async () => {
+                            setZuordnenLaeuft(p.id);
+                            try {
+                              await assignProjectToCustomer(p.id, k.id, k.name);
+                              toast.success('Baustelle zugeordnet');
+                              setVersuch((v) => v + 1);
+                            } catch (err) {
+                              toast.error(grundAus(err, 'Die Zuordnung ist fehlgeschlagen.'));
+                            } finally {
+                              setZuordnenLaeuft(null);
+                            }
+                          }}
+                        >
+                          Zuordnen
+                        </Button>
+                      )}
+                    </ListRow>
+                  ))}
+                </List>
+              </div>
+            )}
+
+            {darfBaustellenZuordnen &&
+              baustellen.zustand === 'bereit' &&
+              baustellen.daten.length === 0 &&
+              namensgleich.length === 0 && (
+                <p className="mt-2 text-xs text-ink-muted">
+                  Gesucht wurde nach exakt „{k.name}". Bei abweichender Schreibweise hilft
+                  „Bestehende Baustellen übernehmen" in der Kundenliste.
+                </p>
+              )}
+          </Card>
+
+          {wartungAn && (
+            <Card title="Wartungen">
+              {wartungen.zustand === 'laedt' ? (
+                <SkeletonList rows={1} />
+              ) : wartungen.zustand === 'fehler' ? (
+                <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
+              ) : wartungen.daten.length === 0 ? (
+                <EmptyState>Keine Wartungsvereinbarung.</EmptyState>
+              ) : (
+                <List>
+                  {wartungen.daten.map((w) => {
+                    const u = beurteile(w, heute);
+                    return (
+                      /*
+                        DER ZUSTAND STEHT BEIM NAMEN, wie in der Wartungsliste. Er
+                        ist ein ganzer Satz („Seit 5 Tagen überfällig.") — rechts
+                        in der Zeile liess er der Anlage am Telefon kaum Platz,
+                        und ihr Name brach mitten im Wort.
+                      */
+                      <ListRow
+                        key={w.id}
+                        title={
+                          <>
+                            <span>{w.anlage}</span>
+                            <Zustand
+                              stand={
+                                u.stand === 'überfällig'
+                                  ? 'schlecht'
+                                  : u.stand === 'fällig'
+                                    ? 'achtung'
+                                    : 'ruht'
+                              }
+                            >
+                              {u.stand === 'ruht' ? 'ruht' : u.text}
+                            </Zustand>
+                          </>
+                        }
+                        subtitle={`alle ${w.intervallMonate} Monate · Termin ${fmtDatum(w.faelligAm)}`}
+                      />
+                    );
+                  })}
+                </List>
+              )}
+            </Card>
+          )}
+
+          {rechnungenAn && darfRechnungen && (
+            <Card title="Rechnungen">
+              {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
+                <SkeletonList rows={1} />
+              ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
+                <TeilFehler was="die Rechnungen" onRetry={() => setVersuch((v) => v + 1)} />
+              ) : rechnungen.daten.length === 0 ? (
+                <EmptyState>Noch keine Rechnung.</EmptyState>
+              ) : (
+                <Grenzliste
+                  eintraege={rechnungen.daten}
+                  grenze={RECHNUNGEN_KURZ}
+                  mehr={{ aufklappen: true }}
+                  zeile={(r) => (
+                    <ListRow
+                      key={r.id}
+                      title={
+                        <Link
+                          to={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
+                          className="textlink"
+                        >
+                          {r.invoiceNumber}
+                        </Link>
+                      }
+                      subtitle={`${fmtDatum(r.invoiceDate)} · ${r.projectNumber}`}
+                      wert={`${fmtEUR(r.totalBrutto)} brutto`}
+                      zustand={<StatusBadge status={r.paymentStatus} />}
+                    />
+                  )}
                 />
               )}
-            />
+            </Card>
           )}
-        </Card>
-      )}
 
-      {angeboteAn && (
-        <Card title="Angebote">
-          {angebote.zustand === 'laedt' ? (
-            <SkeletonList rows={1} />
-          ) : angebote.zustand === 'fehler' ? (
-            <TeilFehler was="die Angebote" onRetry={() => setVersuch((v) => v + 1)} />
-          ) : angebote.daten.length === 0 ? (
-            <EmptyState>Noch kein Angebot.</EmptyState>
-          ) : (
-            <List>
-              {angebote.daten.map((q) => (
-                <ListRow
-                  key={q.id}
-                  title={
-                    <Link to={`/quotes/${q.id}`} className="textlink">
-                      {q.quoteNumber}
-                    </Link>
-                  }
-                  wert={`${fmtEUR(q.totalNetto)} netto`}
-                  zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
-                />
-              ))}
-            </List>
+          {angeboteAn && (
+            <Card title="Angebote">
+              {angebote.zustand === 'laedt' ? (
+                <SkeletonList rows={1} />
+              ) : angebote.zustand === 'fehler' ? (
+                <TeilFehler was="die Angebote" onRetry={() => setVersuch((v) => v + 1)} />
+              ) : angebote.daten.length === 0 ? (
+                <EmptyState>Noch kein Angebot.</EmptyState>
+              ) : (
+                <List>
+                  {angebote.daten.map((q) => (
+                    <ListRow
+                      key={q.id}
+                      title={
+                        <Link to={`/quotes/${q.id}`} className="textlink">
+                          {q.quoteNumber}
+                        </Link>
+                      }
+                      wert={`${fmtEUR(q.totalNetto)} netto`}
+                      zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
+                    />
+                  ))}
+                </List>
+              )}
+            </Card>
           )}
-        </Card>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

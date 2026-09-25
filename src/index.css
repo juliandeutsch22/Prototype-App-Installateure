@@ -680,6 +680,38 @@ textarea {
 }
 
 /*
+ * AKTEN — Kunde, Baustelle, Angebot (KundenakteView, BaustellenakteView,
+ * AngebotView).
+ *
+ * Am Telefon und Tablet eine Spalte, die Karten in derselben Reihenfolge wie
+ * bisher. Ab 1024 px links die Stammdaten, rechts das Zugehörige — im Markup
+ * steht links vor rechts, die Vorlesehilfe liest also weiter von oben nach
+ * unten. Dasselbe Verhältnis 3 : 2 wie der Monteur-Start.
+ *
+ * KEIN `overflow` an den Spalten: die Aktionsleiste im Stammdaten-Formular
+ * klebt per `position: sticky` an ihrem Formular, und ein abschneidender
+ * Vorfahre nähme ihr das.
+ */
+@layer components {
+  .akte,
+  .akte-einspaltig,
+  .akte-links,
+  .akte-rechts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    align-content: start;
+  }
+
+  @media (min-width: 1024px) {
+    .akte {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      align-items: start;
+    }
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════
