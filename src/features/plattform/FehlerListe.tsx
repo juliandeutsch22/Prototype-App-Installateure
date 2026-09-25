@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import Card from '@/components/Card';
 import { Marke, Warnung } from '@/components/Badge';
 import { EmptyState } from '@/components/States';
+import { List, ListRow } from '@/components/ListRow';
 import { fehlerGruppen, meldungen, type ProtokollZeile } from './fehlergruppen';
 
 const zeit = (ms: number) =>
@@ -27,24 +28,27 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
         {gemeldet.length === 0 ? (
           <EmptyState>Niemand hat ein Problem gemeldet.</EmptyState>
         ) : (
-          <ul className="divide-y divide-line">
+          <List>
             {gemeldet.map((m) => (
-              <li key={m.id} className="space-y-1 py-3 first:pt-0 last:pb-0">
-                <p className="text-sm text-ink-muted">
-                  {m.createdAt ? zeit(m.createdAt) : ''}
-                  {m.betrieb && ` · ${m.betrieb}`}
-                  {m.wer && ` · ${m.wer}`}
-                  {m.pfad && ` · ${m.pfad}`}
-                </p>
-                <p className="whitespace-pre-wrap break-words text-ink">{m.beschreibung}</p>
-                {m.nachricht && (
-                  <p className="break-words text-xs text-ink-muted">
-                    Kurz davor: <span className="font-mono">{m.nachricht}</span>
-                  </p>
-                )}
-              </li>
+              <ListRow
+                key={m.id}
+                title={<span className="whitespace-pre-wrap break-words">{m.beschreibung}</span>}
+                subtitle={
+                  <>
+                    {m.createdAt ? zeit(m.createdAt) : ''}
+                    {m.betrieb && ` · ${m.betrieb}`}
+                    {m.wer && ` · ${m.wer}`}
+                    {m.pfad && ` · ${m.pfad}`}
+                    {m.nachricht && (
+                      <span className="mt-1 block break-words text-xs">
+                        Kurz davor: <span className="font-mono">{m.nachricht}</span>
+                      </span>
+                    )}
+                  </>
+                }
+              />
             ))}
-          </ul>
+          </List>
         )}
       </Card>
 

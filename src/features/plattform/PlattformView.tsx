@@ -7,7 +7,9 @@ import { betriebFehler, type NeuerBetrieb } from '@shared/plattform';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { InputField, FormGrid } from '@/components/Field';
-import { ErrorState } from '@/components/States';
+import { EmptyState, ErrorState } from '@/components/States';
+import { List, ListRow } from '@/components/ListRow';
+import PageHeader from '@/components/PageHeader';
 import { Marke, Warnung } from '@/components/Badge';
 import PasswortAendern from '@/features/auth/PasswortAendern';
 import { plattformFehler, type PlattformFehler } from '@/lib/db/fehlerprotokoll';
@@ -153,13 +155,15 @@ export default function PlattformView() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
       <MarkenBand />
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold text-ink">Betriebe anlegen</h1>
-        <p className="text-sm text-ink-muted">
-          Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb und
-          sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat.
-        </p>
-      </header>
+      <PageHeader
+        title="Betriebe anlegen"
+        subtitle={
+          <>
+            Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb
+            und sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat.
+          </>
+        }
+      />
 
       <Card
         title="Neuer Betrieb"
@@ -254,23 +258,31 @@ export default function PlattformView() {
         hint="Der Zugang ist LESEND. Zeitbuchungen, Urlaube und Fotos von Baustellen bleiben auch damit verschlossen — dort stehen Kranken- und Urlaubstage von Mitarbeitern und Aufnahmen aus Kundenwohnungen. Jeder geöffnete Bereich steht im Protokoll des Betriebs."
       >
         {offen.length === 0 ? (
-          <p className="text-sm text-ink-muted">
+          <EmptyState>
             Kein Betrieb gewährt gerade Einblick. Gewähren kann ihn nur er selbst, unter
             Einstellungen → Supportzugang.
-          </p>
+          </EmptyState>
         ) : (
-          <ul className="space-y-3 text-sm">
+          <List>
             {offen.map((f) => (
-              <li key={f.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
-                {f.stufe === 'mitarbeiten' ? <Warnung>mitarbeiten</Warnung> : <Marke>ansehen</Marke>}
-                <span className="font-medium">{f.name}</span>
-                <span className="text-ink-muted">{f.grund}</span>
-                <span className="text-ink-muted">
-                  bis {new Date(f.gilt_bis).toLocaleString('de-AT', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-                  })}
-                </span>
+              <ListRow
+                key={f.id}
+                title={
+                  <>
+                    {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
+                    {f.stufe === 'mitarbeiten' ? <Warnung>mitarbeiten</Warnung> : <Marke>ansehen</Marke>}
+                    <span>{f.name}</span>
+                  </>
+                }
+                subtitle={
+                  <>
+                    {f.grund} · bis{' '}
+                    {new Date(f.gilt_bis).toLocaleString('de-AT', {
+                      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </>
+                }
+              >
                 {/*
                   ÖFFNEN HEISST: die echte App unter diesem Betrieb. Kein
                   zweiter Nachbau mehr — was der Support sieht, ist das, was
@@ -280,9 +292,9 @@ export default function PlattformView() {
                 <Button variant="secondary" onClick={() => einblickStarten(f)}>
                   Öffnen
                 </Button>
-              </li>
+              </ListRow>
             ))}
-          </ul>
+          </List>
         )}
       </Card>
 
@@ -373,27 +385,32 @@ export default function PlattformView() {
             Wer die Seite verlässt, muss den nächsten Zugang über
             „Passwort vergessen?" freischalten lassen. Das steht auch da.
           */}
-          <ul className="space-y-4">
+          <List>
             {angelegt.map((b) => (
-              <li key={b.companyId} className="border-t border-line pt-3 first:border-0 first:pt-0">
-                <p className="font-semibold text-ink">
-                  {b.name} <span className="text-ink-muted">({b.companyId})</span>
-                </p>
-                <p className="mt-1 text-sm text-ink-muted">
-                  Erster Administrator: {b.adminEmail}
-                </p>
-                <p className="mt-2 break-all text-sm">
-                  <a href={b.passwortLink} className="text-brand underline">
-                    {b.passwortLink}
-                  </a>
-                </p>
-                <p className="mt-1 text-xs text-warning">
-                  Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort. Er
-                  steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
-                </p>
-              </li>
+              <ListRow
+                key={b.companyId}
+                title={
+                  <span>
+                    {b.name} <span className="text-ink-muted">({b.companyId})</span>
+                  </span>
+                }
+                subtitle={
+                  <>
+                    Erster Administrator: {b.adminEmail}
+                    <span className="mt-2 block break-all">
+                      <a href={b.passwortLink} className="textlink">
+                        {b.passwortLink}
+                      </a>
+                    </span>
+                    <span className="mt-1 block text-xs text-warning">
+                      Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort.
+                      Er steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
+                    </span>
+                  </>
+                }
+              />
             ))}
-          </ul>
+          </List>
         </Card>
       )}
 

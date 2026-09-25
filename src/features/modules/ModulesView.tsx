@@ -3,6 +3,8 @@ import { useAuth } from '@/app/AuthContext';
 import { updateCompany } from '@/lib/db/company';
 import { MODULE, aktiveModule, zieheMit, modul, type ModulId } from '@/lib/module';
 import Card from '@/components/Card';
+import Aktionsleiste from '@/components/Aktionsleiste';
+import { List, ListRow } from '@/components/ListRow';
 import Button from '@/components/Button';
 import { Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -114,57 +116,66 @@ export default function ModulesView() {
           </>
         }
       >
-        <ul className="divide-y divide-line">
-          {MODULE.map((m) => {
-            const an = aktiv.has(m.id);
-            const fehlt = m.abhaengigVon?.filter((d) => !aktiv.has(d)) ?? [];
-            return (
-              <li key={m.id} className="flex flex-wrap items-start justify-between gap-3 py-3">
-                <div className="min-w-[12rem] flex-1">
-                  <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
-                    {m.name}
-                    {/* Eine Aufforderung, keine Eigenschaft: ohne das andere
-                        Modul lässt sich dieses gar nicht einschalten. */}
-                    {fehlt.length > 0 && (
-                      <Warnung>
-                        braucht {fehlt.map((d) => modul(d)?.name ?? d).join(', ')}
-                      </Warnung>
-                    )}
-                  </p>
-                  <p className="mt-1 text-sm text-ink-muted">{m.zweck}</p>
-                  <p className="mt-1 text-xs text-ink-muted">
-                    Betrifft: {m.betrifft.join(', ')}
-                  </p>
-                </div>
+        <div className="space-y-4">
+          <List>
+            {MODULE.map((m) => {
+              const an = aktiv.has(m.id);
+              const fehlt = m.abhaengigVon?.filter((d) => !aktiv.has(d)) ?? [];
+              return (
+                <ListRow
+                  key={m.id}
+                  title={
+                    <>
+                      {m.name}
+                      {/* Eine Aufforderung, keine Eigenschaft: ohne das andere
+                          Modul lässt sich dieses gar nicht einschalten. */}
+                      {fehlt.length > 0 && (
+                        <Warnung>
+                          braucht {fehlt.map((d) => modul(d)?.name ?? d).join(', ')}
+                        </Warnung>
+                      )}
+                    </>
+                  }
+                  subtitle={
+                    <>
+                      {m.zweck}
+                      <span className="mt-1 block text-xs">Betrifft: {m.betrifft.join(', ')}</span>
+                    </>
+                  }
+                >
+                  <label className="flex min-h-touch shrink-0 items-center gap-3">
+                    <span className="text-sm text-ink-muted">{an ? 'ein' : 'aus'}</span>
+                    <input
+                      type="checkbox"
+                      className="kaestchen-gross"
+                      checked={an}
+                      disabled={fehlt.length > 0 && !an}
+                      onChange={(e) => umschalten(m.id, e.target.checked)}
+                      aria-label={`${m.name} ${an ? 'ausschalten' : 'einschalten'}`}
+                    />
+                  </label>
+                </ListRow>
+              );
+            })}
+          </List>
 
-                <label className="flex min-h-touch shrink-0 items-center gap-3">
-                  <span className="text-sm text-ink-muted">{an ? 'ein' : 'aus'}</span>
-                  <input
-                    type="checkbox"
-                    className="kaestchen-gross"
-                    checked={an}
-                    disabled={fehlt.length > 0 && !an}
-                    onChange={(e) => umschalten(m.id, e.target.checked)}
-                    aria-label={`${m.name} ${an ? 'ausschalten' : 'einschalten'}`}
-                  />
-                </label>
-              </li>
-            );
-          })}
-        </ul>
-
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Button onClick={speichern} loading={speichert} disabled={!geaendert}>
-            Module speichern
-          </Button>
-          {geaendert && (
-            <Button variant="ghost" onClick={() => setEntwurf(company?.modules ?? {})}>
-              Verwerfen
+          {/* Die Liste läuft am Telefon über fast zwei Bildschirme; wer oben
+              ein Modul umschaltet, findet das Speichern in der Aktionsleiste
+              statt erst am Ende. Liste und Leiste teilen einen Behälter —
+              sonst hätte die Leiste nichts, woran sie kleben kann. */}
+          <Aktionsleiste>
+            <Button onClick={speichern} loading={speichert} disabled={!geaendert}>
+              Module speichern
             </Button>
-          )}
-          {!geaendert && (
-            <span className="text-sm text-ink-muted">Keine Änderung offen.</span>
-          )}
+            {geaendert && (
+              <Button variant="ghost" onClick={() => setEntwurf(company?.modules ?? {})}>
+                Verwerfen
+              </Button>
+            )}
+            {!geaendert && (
+              <span className="text-sm text-ink-muted sm:self-center">Keine Änderung offen.</span>
+            )}
+          </Aktionsleiste>
         </div>
       </Card>
 
