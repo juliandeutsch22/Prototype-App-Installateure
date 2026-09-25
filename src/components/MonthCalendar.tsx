@@ -77,7 +77,9 @@ export default function MonthCalendar({
         {DOW.map((d, i) => (
           <div
             key={d}
-            className={`py-2 text-center text-xs font-bold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
+            // Das Wochenende tritt über die Stärke zurück, nicht über Deckkraft:
+            // ein durchscheinendes Grau erreichte auf der Fläche nur 3,7 : 1.
+            className={`py-2 text-center text-xs text-ink-muted ${i > 4 ? 'font-normal' : 'font-bold'}`}
           >
             {d}
           </div>
@@ -164,9 +166,11 @@ export default function MonthCalendar({
                     : isToday
                       ? 'bg-info-bg font-bold text-info'
                       : // Vergangene Tage ohne Planung treten zurück; wo etwas
-                        // geplant war, bleibt der Tag lesbar.
+                        // geplant war, bleibt der Tag lesbar. Zurück heisst
+                        // gedämpft, aber deckend — durchscheinend waren es nur
+                        // 3 : 1.
                         past && count === 0
-                        ? 'text-ink-muted/60'
+                        ? 'text-ink-muted'
                         : 'text-ink'
                 }`}
               >
