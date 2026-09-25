@@ -21,6 +21,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useReiterImBild } from '@/components/reiterImBild';
 
 /*
   Der Katalogimport wird erst beim Öffnen geladen. Er bringt den
@@ -52,6 +53,8 @@ export default function StockView() {
   const { user } = useAuth();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('bestand');
+  // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
+  const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   const darfEinspielen = user?.role === 'Geschäftsführung' || user?.role === 'Administrator';
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
@@ -196,7 +199,7 @@ export default function StockView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div ref={reiterleiste} className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {([
           { key: 'bestand' as Tab, label: 'Bestand' },
           { key: 'katalog' as Tab, label: 'Katalog' },

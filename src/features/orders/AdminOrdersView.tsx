@@ -34,6 +34,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { abschlussText } from './abschlussText';
+import { useReiterImBild } from '@/components/reiterImBild';
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -79,6 +80,8 @@ export default function AdminOrdersView() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<WithId<MaterialOrder> | null>(null);
   const [tab, setTab] = useState<Tab>('aktiv');
+  // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
+  const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   const [projectFilter, setProjectFilter] = useState('');
   const [suche, setSuche] = useState('');
   /**
@@ -293,7 +296,7 @@ export default function AdminOrdersView() {
 
       {/* Aktiver Reiter mit Akzentkante unten — gleiche Markierung wie in
           Unterreiter. */}
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div ref={reiterleiste} className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.key}

@@ -44,6 +44,7 @@ import { KrankmeldungListe, KrankenstaendeReiter } from './Krankmeldungen';
 import { ergebnisText, tageText } from './abwesenheitText';
 import BetriebsurlaubReiter from './BetriebsurlaubReiter';
 import { grundAus } from '@/lib/fehlerGrund';
+import { useReiterImBild } from '@/components/reiterImBild';
 
 /** 'YYYY-MM-DD' -> '15.06.2026'. */
 function fmt(iso: string): string {
@@ -141,6 +142,8 @@ export default function VacationsView() {
   /** Buchhaltung und Spitze: Krankenstände und Betriebsurlaub. */
   const buero = user ? canEditTime(user.role) : false;
   const [reiter, setReiter] = useState<Reiter>('antraege');
+  // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
+  const reiterleiste = useReiterImBild<HTMLDivElement>(reiter);
 
   const [eigene, setEigene] = useState<WithId<Vacation>[]>([]);
   const [offene, setOffene] = useState<WithId<Vacation>[]>([]);
@@ -801,7 +804,7 @@ export default function VacationsView() {
         anderen sehen die Seite wie bisher, ohne Reiterleiste.
       */}
       {buero && (
-        <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+        <div ref={reiterleiste} className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
           {REITER.map((r) => (
             <button
               key={r.key}

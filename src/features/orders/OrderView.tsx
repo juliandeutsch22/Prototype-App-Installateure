@@ -29,6 +29,7 @@ import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
 import { abschlussText } from './abschlussText';
+import { useReiterImBild } from '@/components/reiterImBild';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
 
@@ -66,6 +67,8 @@ export default function OrderView() {
   const { user } = useAuth();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('bestellen');
+  // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
+  const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [myOrders, setMyOrders] = useState<WithId<MaterialOrder>[]>([]);
@@ -363,7 +366,7 @@ export default function OrderView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div ref={reiterleiste} className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.key}
