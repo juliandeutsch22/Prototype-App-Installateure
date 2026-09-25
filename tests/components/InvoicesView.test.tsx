@@ -2024,6 +2024,49 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     ]);
   });
 
+  /*
+    PRÜFLAUF 25.09.2026, P2-08. Eine Schlussrechnung mit Übergang der
+    Steuerschuld zog die Anzahlung MIT Umsatzsteuer samt Steuer ab — die
+    Restforderung war um die Steuer zu niedrig. Solche Anzahlungen werden
+    nicht mehr angeboten, sondern benannt.
+  */
+  it('bietet bei Reverse Charge keine Anzahlung mit USt zum Abzug an', async () => {
+    derBaustelle = [ANZAHLUNG];
+    const bestaetigen = await bisZurVorschau('schluss');
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
+
+    expect(screen.queryByRole('checkbox', { name: /RE-2026-1001/ })).toBeNull();
+    expect(screen.getByText(/Nicht abziehbar, weil mit Umsatzsteuer/)).toHaveTextContent('RE-2026-1001');
+
+    await waitFor(() => expect(bestaetigen).toBeEnabled());
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).vorrechnungen).toBeUndefined();
+  });
+
+  it('eine schon gewählte Anzahlung fällt heraus, wenn danach Reverse Charge angehakt wird', async () => {
+    derBaustelle = [ANZAHLUNG];
+    await bisZurVorschau('schluss');
+    await userEvent.click(await screen.findByRole('checkbox', { name: /RE-2026-1001/ }));
+    expect(screen.getByText(/Restforderung brutto/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    expect(screen.queryByText(/Restforderung brutto/)).toBeNull();
+  });
+
+  it('eine Reverse-Charge-Anzahlung passt zu einer Reverse-Charge-Schlussrechnung', async () => {
+    derBaustelle = [{ ...ANZAHLUNG, reverseCharge: true, totalVat: 0, totalBrutto: 1000 }];
+    await bisZurVorschau('schluss');
+    // Ohne Haken passt sie nicht …
+    expect(screen.queryByRole('checkbox', { name: /RE-2026-1001/ })).toBeNull();
+    // … mit Haken schon.
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeInTheDocument();
+  });
+
   it('lässt Art und Abzug beim erneuten Drucken nicht verschwinden', async () => {
     /*
       Der zweite Druck muss denselben Beleg ergeben wie der erste. Bekäme das

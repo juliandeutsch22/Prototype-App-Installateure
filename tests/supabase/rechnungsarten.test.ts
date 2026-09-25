@@ -393,3 +393,56 @@ describe('Der Abzug greift nicht daneben', () => {
     );
   });
 });
+
+/*
+  PRÜFLAUF 25.09.2026, P2-08 und P2-15. Abgezogen wird nur eine GÜLTIGE
+  Rechnung mit DERSELBEN Steuerbehandlung. Eine Anzahlung mit USt auf einer
+  Schlussrechnung mit Übergang der Steuerschuld zog ihre Steuer von einem
+  Betrag ohne Steuer ab; eine stornierte liess sich abziehen, obwohl sie
+  nichts mehr fordert.
+*/
+describe('Abzug nur von einer gültigen Rechnung mit derselben Steuer', () => {
+  it('weist eine stornierte Vorrechnung ab', async () => {
+    const anzahlung = await anlegen({ art: 'anzahlung' });
+    const nummer = (await lesen(anzahlung)).invoiceNumber;
+    await rechnungen.cancelInvoice({ id: anzahlung } as unknown as WithId<Invoice>, 'Irrtum');
+
+    await expect(schluss([abzug(anzahlung, nummer)])).rejects.toThrow(/ist storniert/);
+  });
+
+  it('weist eine Anzahlung mit USt auf einer Reverse-Charge-Schlussrechnung ab', async () => {
+    const anzahlung = await anlegen({ art: 'anzahlung' });
+    const nummer = (await lesen(anzahlung)).invoiceNumber;
+
+    await expect(
+      anlegen({
+        art: 'schluss',
+        reverseCharge: true,
+        vatRate: 0,
+        customerVatId: 'ATU12345678',
+        vorrechnungen: [abzug(anzahlung, nummer)],
+        totalNetto: 1000, totalVat: -200, totalBrutto: 800,
+        gesamtNetto: 2000, gesamtVat: 0, gesamtBrutto: 2000,
+      }),
+    ).rejects.toThrow(/dieselbe Steuerbehandlung/);
+  });
+
+  it('nimmt eine Reverse-Charge-Anzahlung auf einer Reverse-Charge-Schlussrechnung', async () => {
+    const anzahlung = await anlegen({
+      art: 'anzahlung', reverseCharge: true, vatRate: 0, customerVatId: 'ATU12345678',
+      totalVat: 0, totalBrutto: 1000,
+    });
+    const nummer = (await lesen(anzahlung)).invoiceNumber;
+
+    const id = await anlegen({
+      art: 'schluss',
+      reverseCharge: true,
+      vatRate: 0,
+      customerVatId: 'ATU12345678',
+      vorrechnungen: [{ ...abzug(anzahlung, nummer), vat: 0, brutto: 1000 }],
+      totalNetto: 1000, totalVat: 0, totalBrutto: 1000,
+      gesamtNetto: 2000, gesamtVat: 0, gesamtBrutto: 2000,
+    });
+    expect((await lesen(id)).vorrechnungen).toHaveLength(1);
+  });
+});

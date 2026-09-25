@@ -42,7 +42,7 @@ import {
 import { geltenderSatz, pruefeReverseCharge, sichtAusWieUid } from './reverseCharge';
 import { pruefeEmpfaengerUid } from './empfaengerUid';
 import { assembleInvoice, recalc, INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
-import { abziehbar, alsVorrechnung, mitAbzug } from './vorrechnungen';
+import { abziehbar, alsVorrechnung, mitAbzug, nachSteuer } from './vorrechnungen';
 import { scheinAbgleich } from './scheinAbgleich';
 import { pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from './pauschale';
 import { listQuotesForProject } from '@/lib/db/quotes';
@@ -1223,9 +1223,17 @@ export default function InvoicesView() {
    * Aus `abzugsfaehig` und nicht aus der Rechnungsliste der Ansicht: nur die
    * Baustellenabfrage kennt auch die längst bezahlte Anzahlung.
    */
+  /*
+    NUR WAS DIESELBE STEUERBEHANDLUNG TRÄGT (Prüflauf 25.09.2026, P2-08).
+    Eine Anzahlung mit USt lässt sich nicht von einer Reverse-Charge-
+    Schlussrechnung abziehen und umgekehrt — sie wird darunter benannt statt
+    angeboten. Ein schon gesetzter Haken fällt mit heraus, wenn jemand
+    „Bauleistung" danach umstellt.
+  */
+  const steuer = useMemo(() => nachSteuer(abzugsfaehig, reverseCharge), [abzugsfaehig, reverseCharge]);
   const abzuege = useMemo(
-    () => abzugsfaehig.filter((r) => gewaehlteAbzuege.includes(r.id)).map(alsVorrechnung),
-    [abzugsfaehig, gewaehlteAbzuege],
+    () => steuer.passend.filter((r) => gewaehlteAbzuege.includes(r.id)).map(alsVorrechnung),
+    [steuer, gewaehlteAbzuege],
   );
 
   /**
@@ -2016,14 +2024,14 @@ export default function InvoicesView() {
                   Schlussrechnung ohne ihre Anzahlungen wäre steuerlich falsch — bitte noch einmal
                   zusammenstellen.
                 </p>
-              ) : abzugsfaehig.length === 0 ? (
+              ) : steuer.passend.length === 0 ? (
                 <p className="text-sm text-ink-muted">
                   Auf dieser Baustelle gibt es nichts abzuziehen: keine Anzahlung, die nicht schon
                   abgezogen wäre.
                 </p>
               ) : (
                 <div className="space-y-2">
-                  {abzugsfaehig.map((r) => (
+                  {steuer.passend.map((r) => (
                     <CheckboxField
                       key={r.id}
                       id={`abzug-${r.id}`}
@@ -2037,6 +2045,14 @@ export default function InvoicesView() {
                     />
                   ))}
                 </div>
+              )}
+              {!abzugFehler && steuer.andere.length > 0 && (
+                <p className="mt-3 text-sm text-warning" role="status">
+                  Nicht abziehbar, weil {reverseCharge ? 'mit Umsatzsteuer' : 'mit Übergang der Steuerschuld'}{' '}
+                  ausgestellt: {steuer.andere.map((r) => r.invoiceNumber).join(', ')}. Anzahlung und
+                  Schlussrechnung brauchen dieselbe Steuerbehandlung — sonst stimmt die abgezogene
+                  Umsatzsteuer nicht. Das gehört mit der Kanzlei berichtigt.
+                </p>
               )}
               {summen?.gutschrift && (
                 <p className="mt-3 text-sm font-medium text-danger" role="alert">

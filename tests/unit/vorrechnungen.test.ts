@@ -8,7 +8,7 @@
  * Datenbank muss sie halten, wenn jemand anders schreibt.
  */
 import { describe, it, expect } from 'vitest';
-import { abziehbar, alsVorrechnung, abzugssumme, mitAbzug } from '@/features/invoices/vorrechnungen';
+import { abziehbar, alsVorrechnung, abzugssumme, mitAbzug, nachSteuer } from '@/features/invoices/vorrechnungen';
 import type { Invoice } from '@/types';
 
 type R = Invoice & { id: string };
@@ -150,5 +150,26 @@ describe('Was die Schlussrechnung fordert', () => {
     const anzahlung = { invoiceId: 'a', invoiceNumber: 'A', invoiceDate: '2026-01-01', netto: 0.1, vat: 0.02, brutto: 0.12 };
     const r = mitAbzug({ totalNetto: 0.3, totalVat: 0.06, totalBrutto: 0.36 }, [anzahlung]);
     expect(r.totalNetto).toBe(0.2);
+  });
+});
+
+/*
+  PRÜFLAUF 25.09.2026, P2-08: eine Anzahlung mit USt auf einer
+  Reverse-Charge-Schlussrechnung abzuziehen zieht Steuer von einem Betrag ohne
+  Steuer ab. Angeboten wird nur, was dieselbe Steuerbehandlung trägt.
+*/
+describe('Abzug nur bei derselben Steuerbehandlung', () => {
+  const mitUst = rechnung({ id: 'u', invoiceNumber: 'RE-2026-1001' });
+  const rc = rechnung({ id: 'r', invoiceNumber: 'RE-2026-1002', reverseCharge: true, totalVat: 0, totalBrutto: 1000 });
+  const altbestand = rechnung({ id: 'x', invoiceNumber: 'RE-2026-1003', reverseCharge: undefined });
+
+  it('trennt nach Reverse Charge', () => {
+    const ohne = nachSteuer([mitUst, rc, altbestand], false);
+    expect(ohne.passend.map((r) => r.id)).toEqual(['u', 'x']);
+    expect(ohne.andere.map((r) => r.id)).toEqual(['r']);
+
+    const mit = nachSteuer([mitUst, rc, altbestand], true);
+    expect(mit.passend.map((r) => r.id)).toEqual(['r']);
+    expect(mit.andere.map((r) => r.id)).toEqual(['u', 'x']);
   });
 });
