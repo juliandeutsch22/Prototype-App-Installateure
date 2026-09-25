@@ -115,7 +115,7 @@ export default function LeistungszeitErfassen({
   }
 
   return (
-    <div className="rounded-sm border border-line bg-surface-2 p-3">
+    <div className="kasten">
       <p className="flex flex-wrap items-center gap-1 text-sm font-medium text-ink">
         Zeit beim Kunden eintragen
         <InfoHint about="die Leistungszeit">

@@ -1713,3 +1713,85 @@ textarea {
     flex-shrink: 0;
   }
 }
+
+/* ── Handwerksschein ──────────────────────────────────────────────────── */
+
+/*
+ * Die Schrittfolge des Scheins am Telefon und Tablet (Zeiten, Material,
+ * Fotos, Unterschrift). Ab `lg` steht der Schein als eine Seite mit
+ * nummerierten Abschnitten da; die Leiste entfällt dort in der Ansicht selbst.
+ */
+@layer components {
+  .schrittleiste-liste {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  /* Jeder Schritt nimmt so viel Breite, wie sein Name braucht, und teilt den
+     Rest gleich — „4 Unterschrift“ passt so auch auf 390 px in eine Zeile. */
+  .schrittleiste-punkt {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Der Balken oben trägt den Stand: davor in Türkis, der aktuelle in der
+     Marke, was noch kommt in der Linienfarbe. Tastfläche 48 px. */
+  .schritt-aktiv,
+  .schritt-davor,
+  .schritt-offen {
+    display: flex;
+    min-height: 48px;
+    width: 100%;
+    align-items: center;
+    border-top: 4px solid var(--border);
+    padding-top: 0.25rem;
+    text-align: left;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .schritt-aktiv {
+    border-top-color: var(--brand);
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .schritt-davor {
+    border-top-color: var(--accent-deep);
+    color: var(--accent-deep);
+  }
+
+  /* Überschrift je Abschnitt — nur auf der einen Seite am Schreibtisch; in
+     der Schrittfolge sagt die Leiste, wo man steht. */
+  .schein-abschnitt-titel {
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .schein-abschnitt-titel {
+      display: block;
+      margin-bottom: 0.75rem;
+      font-size: 1.125rem;
+      line-height: 1.75rem;
+      font-weight: 600;
+      color: var(--ink-deep);
+    }
+  }
+
+  /* Zurück und Weiter nebeneinander in der Aktionsleiste. */
+  .schein-knopfreihe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Ein offener Punkt in der Zusammenfassung (nicht übernommen, nicht oben). */
+  .schein-warnung {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--warning);
+  }
+}
