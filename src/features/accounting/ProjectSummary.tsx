@@ -17,11 +17,17 @@ import Icon from '@/components/Icon';
 import { EmptyState } from '@/components/States';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
-const BAR_TONE = {
-  success: 'bg-success',
-  warning: 'bg-warning',
-  danger: 'bg-accent',
-  neutral: 'bg-line',
+/*
+ * DER BALKEN WIE IN DER BAUSTELLENAKTE (`BaustellenUebersicht`) — dieselben
+ * Klassen, dieselbe Zuordnung: im Plan Akzent, ab 80 % Warnfarbe, über dem
+ * Budget deckend `--danger`. Vorher stand „über Budget" ausgerechnet in der
+ * Akzentfarbe, also in der Farbe des Normalfalls.
+ */
+const BALKEN = {
+  success: 'budget-fuellung',
+  warning: 'budget-fuellung-warnung',
+  danger: 'budget-fuellung-ueber',
+  neutral: 'budget-fuellung',
 } as const;
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026' — das Datum wie überall in der App. */
@@ -315,7 +321,7 @@ export default function ProjectSummary({
                       <span className="font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
                       <span>{fmtStunden(r.project?.estimatedHours ?? 0)} h</span>
                     </p>
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="budget-reihe mt-1">
                       <Balken r={r} />
                     </div>
                   </>
@@ -342,17 +348,13 @@ function Balken({ r }: { r: Zeile }) {
   if (!r.budget || r.budget.pct === null) return null;
   return (
     <>
-      <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
+      <span className="budget-schiene">
         <span
-          className={`block h-full ${BAR_TONE[r.budget.tone]}`}
+          className={BALKEN[r.budget.tone]}
           style={{ width: balkenBreite(r.budget.pct) }}
         />
       </span>
-      <span
-        className={`shrink-0 text-xs font-semibold ${
-          r.budget.over ? 'text-accent' : 'text-ink-muted'
-        }`}
-      >
+      <span className={r.budget.over ? 'budget-prozent-ueber' : 'budget-prozent'}>
         {r.budget.pct} %
       </span>
     </>

@@ -2610,6 +2610,58 @@ textarea {
     font-size: 0.875rem;
     font-weight: 600;
   }
+
+  /*
+   * BUDGETBALKEN — Baustellenakte (`BaustellenUebersicht`) und
+   * Projektauswertung (`ProjectSummary`) mit denselben Klassen. Im Plan in
+   * der Akzentfarbe der Oberfläche, ab 80 % in Warnfarbe, über dem Budget
+   * deckend in `--danger`; der Prozentwert daneben trägt dann ebenfalls
+   * `--danger` (7,1 : 1 auf Weiß, 6,7 : 1 auf `--surface-2`), und das Wort
+   * „über Budget“ steht als Marke daneben — die Farbe allein ist kein
+   * Signal. Jede Füllung hebt sich mit über 4 : 1 von der Schiene ab.
+   */
+  .budget-reihe {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .budget-schiene {
+    height: 0.375rem;
+    flex: 1 1 0%;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background-color: var(--surface-3);
+  }
+
+  .budget-fuellung,
+  .budget-fuellung-warnung,
+  .budget-fuellung-ueber {
+    display: block;
+    height: 100%;
+    background-color: var(--accent-deep);
+  }
+
+  .budget-fuellung-warnung {
+    background-color: var(--warning);
+  }
+
+  .budget-fuellung-ueber {
+    background-color: var(--danger);
+  }
+
+  .budget-prozent,
+  .budget-prozent-ueber {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .budget-prozent-ueber {
+    color: var(--danger);
+  }
 }
 
 /*
