@@ -126,6 +126,26 @@ describe('Wochenplan — wer ist wo', () => {
     expect(tabelle().getAllByRole('row')).toHaveLength(3);
   });
 
+  it('teilt die Breite fest auf: Namensspalte fest, sieben gleich breite Tage', async () => {
+    /**
+     * Prüflauf 25.09.2026, P4-01: im automatischen Tabellenlayout nahm ein
+     * Tag mit langem Kundennamen bei 834 px die ganze Breite, Mo–Do
+     * schrumpften auf 17–29 px und brachen je Buchstabe um. jsdom rechnet
+     * kein Layout — geprüft wird deshalb, was das Layout festlegt: festes
+     * Tabellenlayout und eine feste Breite der ersten Spalte (den Rest
+     * teilen die Tage gleich). Gemessen im Browser: 144 px + 7 × 80 px.
+     */
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const tab = screen.getByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(tab.className).toMatch(/\btable-fixed\b/);
+    const kopf = tab.querySelectorAll('thead th');
+    expect(kopf).toHaveLength(8);
+    expect(kopf[0].className).toMatch(/\bw-36\b/);
+    // Die Tage selbst tragen KEINE eigene Breite — sonst wären sie nicht gleich.
+    for (const th of Array.from(kopf).slice(1)) expect(th.className).not.toMatch(/\bw-/);
+  });
+
   it('setzt die Baustelle in die Zelle des eingeteilten Tages', async () => {
     einsaetze = [
       {

@@ -382,13 +382,23 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             Betrieb gemeldet, und im Bildschirmfoto gut zu sehen.
           */}
           <div className="hidden overflow-x-auto md:block">
+            {/*
+              FESTES TABELLENLAYOUT (`table-fixed`): feste Namensspalte, die
+              sieben Tage teilen sich den Rest zu gleichen Teilen. Im
+              automatischen Layout nahm ein Tag mit langem Kundennamen die
+              ganze Breite, Mo–Do schrumpften bei 834 px auf 17–29 px und
+              brachen je Buchstabe um, Sa/So lagen außer Sicht. Erst mit
+              fester Spaltenbreite greift das `truncate` in den Zellen; was
+              darunter nicht passt, rollt in dieser Hülle, nicht die Seite
+              (Prüflauf 25.09.2026, P4-01).
+            */}
             <table
               aria-label="Wochenplan als Tabelle"
-              className="w-full min-w-[44rem] border-separate border-spacing-0 text-sm"
+              className="w-full min-w-[44rem] table-fixed border-separate border-spacing-0 text-sm"
             >
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-10 bg-surface p-2 text-left align-bottom">
+                  <th className="sticky left-0 z-10 w-36 bg-surface p-2 text-left align-bottom">
                     <span className="section-label">Mitarbeiter</span>
                   </th>
                   {tage.map((tag) => {
