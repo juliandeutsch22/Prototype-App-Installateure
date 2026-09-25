@@ -31,6 +31,7 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
 | 3h Angebote, Wartungen, Lager, Scheine-Liste, Reiter | erledigt | `1ea360a`, `f0abb3c`, `8b35d82`, `a908931`, `07a52c4`, `ca6a68a` |
 | 3i Benutzer, Nachkalkulation, Projektauswertung, Plattform, Datenschutz | erledigt | `f090930`, `1d798ae`, `fd02982`, `72d9205`, `8adf09f`, `6052c1a` |
 | Abschluss: Kontrast Monatskalender, gesperrte Felder | erledigt | `9ecb974`, `05a6387` |
+| **Linie nach den Vorlagen** (2. Durchgang, `docs/design/linie.md`) | erledigt | siehe Abschnitt „Linie nach den Vorlagen“ |
 
 ## Offene Punkte
 
@@ -157,6 +158,41 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
 34. **Wochenplan: Helfer-Einsatz nicht mehr gelb**, Feiertag mit Namen statt
     gelber Fläche; freie Zellen an Wochenende/Feiertag ruhig ohne Tönung
     (ob sie „frei“ zählen, ist Fachlogik und unverändert).
+
+### Stand nach dem Linie-Durchgang (25.09.2026)
+
+Erledigt: 4 (ein Betragsformatierer, `src/lib/geld.ts`), 10 (Nummer im
+zugänglichen Namen), 13 (Unterschrift im Querformat: großes Blatt, Export
+auf feste Fläche 70 × 25 mm — alte Scheine und Prüfsummen unverändert),
+22 (`.feld-datei`), 23 (Nachladen im Kartenfuß), 26 (Kennzahlen in „Std“),
+27 (Seltenes ins Zeilenmenü, Angebote/Scheine/Wartungen als Tabelle),
+29, 30, 32, 33. Neu offen:
+
+35. **„Heute ab 07:00“** auf dem Monteur-Start fehlt: ein Einsatz hat keine
+    Startzeit. Vorschlag: optionales `startTime` an Assignment; die Zeile
+    erscheint dann ohne weiteren Umbau.
+36. **Aufschrift des Dateiknopfs** kommt vom Browser (deutsches Chrome:
+    „Datei auswählen“). Ein fester Text bräuchte einen eigenen Knopf mit
+    verstecktem Feld und Zustand für den Dateinamen.
+37. **Einstellungs-Reiter** brechen bei der Administration (neun Bereiche)
+    am Schreibtisch zweizeilig um. Vorschlag: seltene Bereiche (Sicherung,
+    Support, Module) zusammenfassen.
+38. **Katalog: Formular „Neues Material“ steht dauerhaft offen** —
+    Vorschlag: über „Neues Material“ im Kopf aufklappen wie bei Kunden.
+39. **Kunden: „Bestehende Baustellen übernehmen“ und „Kunden aus einer
+    Datei“** stehen über der Liste. Vorschlag: Liste zuerst oder zuklappen.
+40. **Startseite am Schreibtisch:** „Wartungen“ und „Offen für dich“ sind
+    einzeilige Karten über die volle Breite. Vorschlag: eine gemeinsame
+    Karte „Offen für dich“ (die Abfrage aus `WartungHinweis` in einen Hook).
+41. **Wartungen am Telefon:** lange Zustandsmarke („Seit 5 Tagen
+    überfällig.“) drückt den Titel schmal. Vorschlag: Zustand in die
+    Unterzeile.
+42. **Auf echten Geräten ansehen:** Silbentrennung langer Namen (Punkt 20)
+    und das Unterschriftsblatt auf iPhone/iPad in beiden Lagen.
+43. **Warenkorb:** die Aktionsleiste klebt nur, solange die Karte
+    „Anforderung“ im Bild ist, nicht schon beim Blättern im Katalog.
+44. **Plus-Zeichen vor „Zeit buchen“** (Mockup S. 7) bewusst weggelassen:
+    „Neu …“ sagt die Beschriftung selbst (Phase 1, keine Deko-Symbole).
 
 ---
 
@@ -531,3 +567,34 @@ Module, Impressum waren schon ruhig.
   Seitenleiste (gemessen ≥ 4,9 : 1). Alle 232 Klassen aus `index.css`
   werden im Quelltext wörtlich verwendet. Kein `divide-*` mehr.
 - Datenbank-Prüfungen und Browserwege: in der CI des Pull-Requests.
+
+## Linie nach den Vorlagen (zweiter Durchgang, 25.09.2026)
+
+Auf Wunsch: näher an den Mockups (S. 1–8), eine durchgängige Linie über
+alle Screens. Maßstab: `docs/design/linie.md`.
+
+- **Grundlage:** Karte ohne Kopfstreifen, Titel innen, Zahl/Stand rechts in
+  der Titelzeile (`Card anzahl`); Seitenkopf mit kleiner Zeile darüber
+  (Datum · KW oder Rückweg), großer Titel, Metazeile, Hauptaktion rechts;
+  `ListRow ziel` (ganze Zeile, Pfeil); Kontakt als Chips; Aktionsleiste mit
+  Summenzeile, Knöpfe nebeneinander; Seitenleiste mit Senklot oben und dem
+  Betrieb darunter, „Start“, Einstellungen am Ende; Inhalt bis 80 rem;
+  Unterreiter unter dem Seitenkopf; Listentitel halbfett, Werte fett.
+- **Start:** Gruß mit Datum · KW, am Telefon dunkles Kopfband, Heute ohne
+  Kasten, Wochenbalken aus den Buchungen, Offen als Pfeilzeilen, Nächste
+  Einsätze; Büro-Start mit Pfeilzeilen und Chips, zwei Spalten.
+- **Handwerksschein:** Kopf und Schrittbalken, Summen in der Aktionsleiste,
+  Zusammenfassung mit „Ändern“, Unterschrift im großen Blatt (Querformat)
+  mit Export auf feste Fläche; Desktop zweispaltig mit nummerierten Karten.
+- **Listen:** Seltenes ins Zeilenmenü; Angebote, Scheine, Wartungen, Lager,
+  Benutzer, Nachkalkulation als Tabellen; Suche überall oben in der Karte.
+- **Akten:** Rückweg über dem Titel, rechte Spalte als Pfeilzeilen.
+- **Rahmen:** Anmeldung, Plattform, Recht mit derselben Marke; Tableiste
+  mit heller Pille; Kennzahlen als eigene Karte, am Tablet zweispaltig.
+- **Beträge** aus einem Ort (`betrag`, `euro`, `euroGanz`).
+
+Prüfung: typecheck, lint grün; `npm test` 192 Dateien / 2765 Tests grün;
+Aufnahmen aller Routen × Rollen × 390/834/1440: 339 Bilder, 0 mit
+seitlichem Scrollen, 0 JS-Fehler; Rückstandssuche ohne Befund (Ausnahmen
+wie Punkt 5); alle CSS-Klassen werden verwendet. Datenbankprüfungen und
+Browserwege in der CI.

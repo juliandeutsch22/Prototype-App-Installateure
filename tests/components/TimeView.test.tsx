@@ -293,7 +293,13 @@ describe('Zeiterfassung — die Kachel „Diese Woche"', () => {
     zeige();
 
     const kachel = (await screen.findByText('Diese Woche')).closest('div') as HTMLElement;
-    expect(within(kachel).getByText('08:00')).toBeInTheDocument();
+    // Eine Dauer, deshalb mit „Std" — wie Wochensumme und Zeilenwerte darunter
+    // (Linie; vorher stand hier nacktes „08:00", das sich wie eine Uhrzeit las).
+    // Die Einheit steht eine Stufe kleiner in einem eigenen Element — verglichen
+    // wird deshalb der ganze Text des Werts.
+    expect(
+      within(kachel).getByText((_, el) => el?.tagName === 'P' && el.textContent === '08:00 Std'),
+    ).toBeInTheDocument();
   });
 });
 
@@ -315,6 +321,17 @@ describe('Zeiterfassung — ältere Einträge', () => {
     await waitFor(() => {
       expect(letzterAufruf()[0] < ersterZeitraum).toBe(true);
     });
+  });
+
+  it('steht im Fuß der Karte „Meine Einträge", wie „Weitere … laden" in den Listen', async () => {
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    await screen.findByText('Meine Einträge');
+
+    const knopf = screen.getByRole('button', { name: 'Ältere Einträge laden' });
+    const fuss = knopf.closest('footer') as HTMLElement;
+    expect(fuss).toHaveClass('karte-fuss');
+    expect(fuss.closest('section')).toHaveAttribute('id', 'meine-eintraege');
   });
 });
 
@@ -564,7 +581,7 @@ describe('Zuschlagsstunden', () => {
     zeige();
 
     expect(await screen.findByText('Zuschlag')).toBeInTheDocument();
-    expect(screen.getByText(/Nacht 08:00 · Notdienst 08:00/)).toBeInTheDocument();
+    expect(screen.getByText(/Nacht 08:00 Std · Notdienst 08:00 Std/)).toBeInTheDocument();
   });
 
   /*
@@ -578,9 +595,9 @@ describe('Zuschlagsstunden', () => {
 
     const kachel = (await screen.findByText('Zuschlag')).parentElement;
     // 8 h, nicht 16 h — die Stunde trägt beide Kennzeichen, ist aber eine.
-    expect(kachel).toHaveTextContent('08:00');
+    expect(kachel).toHaveTextContent('08:00 Std');
     expect(kachel).not.toHaveTextContent('16:00');
-    expect(screen.getByText(/08:00 beides/)).toBeInTheDocument();
+    expect(screen.getByText(/08:00 Std beides/)).toBeInTheDocument();
   });
 
   /*
@@ -667,5 +684,35 @@ describe('Zeiterfassung — Meine Einträge', () => {
 
     const titel = (await screen.findByText('01.09.2026')).parentElement as HTMLElement;
     expect(within(titel).getByText('Nacht')).toBeInTheDocument();
+  });
+});
+
+/*
+  LÖSCHEN IST SELTEN UND LIEGT IM ZEILENMENÜ (Linie, 3; Freigabe des Nutzers
+  für diesen Durchgang). „Bearbeiten“ bleibt als Textknopf in der Zeile. Der
+  Weg zum Löschen bleibt derselbe: über die Rückfrage, dann erst weg.
+*/
+describe('Zeiterfassung — Löschen im Zeilenmenü', () => {
+  it('bietet Löschen hinter „⋯“ an und fragt vor dem Löschen nach', async () => {
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    const nutzer = userEvent.setup();
+
+    const zeile = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(zeile).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(within(zeile).queryByRole('button', { name: 'Löschen' })).toBeNull();
+
+    await nutzer.click(
+      within(zeile).getByRole('button', { name: 'Weitere Aktionen für Eintrag vom 01.09.2026' }),
+    );
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Löschen' }));
+    expect(await screen.findByText('Eintrag löschen?')).toBeInTheDocument();
+  });
+
+  it('zeigt an verrechneten Einträgen auch kein Menü', async () => {
+    eintraege = [eintrag({ id: 'v', isBilled: true })];
+    zeige();
+    const zeile = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(zeile).queryByRole('button', { name: /Weitere Aktionen/ })).toBeNull();
   });
 });

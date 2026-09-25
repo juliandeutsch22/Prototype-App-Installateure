@@ -81,3 +81,43 @@ describe('Der Zustand des Scheins im PDF', () => {
     expect(s).toContain('Familie Huber');
   });
 });
+
+/**
+ * DAS GESPEICHERTE UNTERSCHRIFTSBILD GEHT UNVERÄNDERT INS PDF.
+ *
+ * Seit dem 25.09.2026 entstehen neue Bilder auf einer festen Fläche von
+ * 700 × 250 Pixeln (`unterschriftExport.ts`) — genau im Verhältnis des
+ * Felds hier. Das PDF selbst ist dabei unverändert: es setzt den Text aus
+ * dem Schein, ob alt oder neu, in dasselbe Feld von 70 × 25 mm. Ein alter
+ * Schein sieht auf Papier also aus wie vorher.
+ */
+describe('Die Unterschrift im PDF', () => {
+  it('setzt das gespeicherte Bild unverändert in das Feld von 70 × 25 mm', async () => {
+    const { jsPDF } = await import('jspdf');
+    // `addImage` hängt als Erweiterung an `jsPDF.API`; die Typen kennen es dort nicht.
+    const api = jsPDF.API as unknown as { addImage: (...a: unknown[]) => unknown };
+    const gesetzt: unknown[][] = [];
+    const vorher = api.addImage;
+    api.addImage = function (this: unknown, ...a: unknown[]) {
+      gesetzt.push(a);
+      return this;
+    };
+    try {
+      await text({
+        ...basis,
+        status: 'Unterschrieben',
+        unterschriften: {
+          monteur: { name: 'Max Mustermann', bild: 'data:image/png;base64,ALTESBILD', geraetZeit: 1 },
+          kunde: { name: 'Josef Huber', bild: 'data:image/png;base64,NEUESBILD', geraetZeit: 2 },
+        },
+      });
+    } finally {
+      api.addImage = vorher;
+    }
+    const bilder = gesetzt.filter((a) => String(a[0]).startsWith('data:image/png;base64,'));
+    expect(bilder.map((a) => [a[0], a[1], a[4], a[5]])).toEqual([
+      ['data:image/png;base64,ALTESBILD', 'PNG', 70, 25],
+      ['data:image/png;base64,NEUESBILD', 'PNG', 70, 25],
+    ]);
+  });
+});

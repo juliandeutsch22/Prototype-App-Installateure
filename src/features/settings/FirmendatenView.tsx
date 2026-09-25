@@ -210,7 +210,7 @@ export default function FirmendatenView() {
               accept="image/png,image/jpeg,image/webp"
               disabled={logoLaeuft}
               onChange={(e) => void logoWaehlen(e.target.files?.[0])}
-              className="block w-full text-sm text-ink file:mr-3 file:min-h-touch file:rounded file:border file:border-line file:bg-surface-2 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-ink"
+              className="feld-datei"
             />
           </div>
           {logoFehler && (

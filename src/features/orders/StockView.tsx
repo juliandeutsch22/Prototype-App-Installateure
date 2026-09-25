@@ -5,7 +5,7 @@ import {
   adjustStock,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
-import { KATALOG_GRENZE } from '@/lib/listengrenzen';
+import { KATALOG_GRENZE, abgeschnitten } from '@/lib/listengrenzen';
 import { subscribeAllOrders } from '@/lib/db/materialOrders';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder } from '@/types';
@@ -292,7 +292,23 @@ export default function StockView() {
             />
           </MetricRow>
 
-          <Card title="Bestände">
+          <Card
+            title="Bestände"
+            // Die Zahl rechts im Titel, wie in jeder Liste (Linie, 2).
+            action={loading ? undefined : <span className="liste-anzahl">{rows.length}</span>}
+            // Im Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
+            footer={
+              abgeschnitten(materials, grenze) && (
+                <Nachladen
+                  geladen={materials.length}
+                  grenze={grenze}
+                  onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+                  einheit="Artikel"
+                  sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
+                />
+              )
+            }
+          >
             <InputField
               id="stocksearch"
               label="Suche"
@@ -329,8 +345,8 @@ export default function StockView() {
                         <tr key={m.id} className="tabelle-zeile">
                           <td className="tabelle-name">{m.name}</td>
                           <td className="tabelle-zelle">{m.category}</td>
-                          <td className="tabelle-zahl">{m.stock ?? 0}</td>
-                          <td className="tabelle-zahl">{m.reserved}</td>
+                          <td className="tabelle-zahl-stark">{m.stock ?? 0}</td>
+                          <td className="tabelle-zahl-stark">{m.reserved}</td>
                           <td className="tabelle-zelle">{freiMarke(m)}</td>
                           <td className="tabelle-aktionen">
                             <div className="tabelle-knoepfe">{bestandKnoepfe(m)}</div>
@@ -368,13 +384,6 @@ export default function StockView() {
                   ))}
                 </List>
               )}
-              <Nachladen
-                geladen={materials.length}
-                grenze={grenze}
-                onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-                einheit="Artikel"
-                sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
-              />
             </div>
           </Card>
         </>

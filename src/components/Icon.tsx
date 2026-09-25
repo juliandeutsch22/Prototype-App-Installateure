@@ -12,6 +12,8 @@ export type IconName =
   | 'chart'
   | 'more'
   | 'chevron'
+  | 'weiter'
+  | 'zurueck'
   | 'settings'
   | 'bell'
   | 'phone'
@@ -44,6 +46,9 @@ const paths: Record<IconName, string> = {
   chart: 'M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   chevron: 'm6 9 6 6 6-6',
+  // Führt die Zeile woanders hin (›) — und der Weg zurück (‹) im Kopf.
+  weiter: 'm9 6 6 6-6 6',
+  zurueck: 'm15 6-6 6 6 6',
   bell: 'M18 16v-5a6 6 0 1 0-12 0v5l-2 3h16l-2-3M10 22h4',
   // Hoerer und Kartennadel: die beiden Handgriffe, die ein Monteur im Auto
   // macht — anrufen und hinfahren.

@@ -37,6 +37,7 @@ import { zuschlagszeit, hatZuschlaege } from '@/features/accounting/zuschlaege';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import RowMenu from '@/components/RowMenu';
 import Meldung from '@/components/Meldung';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
@@ -48,6 +49,22 @@ import { datumAT } from '@/lib/datum';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
+
+/**
+ * Eine Dauer als Kennzahl: „09:00 Std" wie `fmtDauer`, die Einheit aber eine
+ * Stufe kleiner — wie „17:00 von 38:30 Std" im Entwurf. In voller Größe
+ * kostete „ Std" auf dem Tablet bei vier Kennzahlen die Breite, die die
+ * Zahl selbst braucht; abgeschnitten („09:00 S…") wäre sie falsch.
+ */
+function dauerKennzahl(min: number, vorzeichen = false) {
+  return (
+    <>
+      {vorzeichen && min > 0 ? '+' : ''}
+      {fmtMin(min)}
+      <span className="kennzahl-einheit"> Std</span>
+    </>
+  );
+}
 
 /** Wochenschlüssel 'KW n / JJJJ' für ein Datum. */
 function weekKey(d: Date): string {
@@ -565,10 +582,11 @@ export default function TimeView() {
             (Launch-Check 25.09.2026, R3): dort stand „+01:00", hier „+9,00 h"
             — zwei Formate für zwei verschiedene Zeiträume, und keiner war
             genannt. Hier gilt „seit Eintritt", dort der gewählte Monat.
+            Mit „Std" dahinter wie jede Dauer auf dieser Seite („+01:00 Std").
           */
           value={
             saldo?.hasConfig
-              ? `${saldo.saldoH > 0 ? '+' : ''}${fmtMin(Math.round(saldo.saldoH * 60))}`
+              ? dauerKennzahl(Math.round(saldo.saldoH * 60), true)
               : '—'
           }
           hint={
@@ -580,7 +598,9 @@ export default function TimeView() {
           }
         />
         )}
-        <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} />
+        {/* Eine Dauer, also mit „Std" — wie die Wochensumme und die Zeilen
+            unten (Linie: „06:00 Std"). */}
+        <Metric label="Diese Woche" value={dauerKennzahl(thisWeekMin)} />
         {/*
           NUR WENN ES WELCHE GIBT. Eine Kachel, die bei den allermeisten
           dauerhaft „0:00" zeigt, nimmt auf dem Telefon die Breite weg, die
@@ -594,10 +614,10 @@ export default function TimeView() {
         {hatZuschlaege(zuschlag) && (
           <Metric
             label="Zuschlag"
-            value={fmtMin(zuschlag.nachtMin + zuschlag.notdienstMin - zuschlag.beidesMin)}
+            value={dauerKennzahl(zuschlag.nachtMin + zuschlag.notdienstMin - zuschlag.beidesMin)}
             hint={
-              `Nacht ${fmtMin(zuschlag.nachtMin)} · Notdienst ${fmtMin(zuschlag.notdienstMin)}` +
-              (zuschlag.beidesMin > 0 ? ` · ${fmtMin(zuschlag.beidesMin)} beides` : '') +
+              `Nacht ${fmtDauer(zuschlag.nachtMin)} · Notdienst ${fmtDauer(zuschlag.notdienstMin)}` +
+              (zuschlag.beidesMin > 0 ? ` · ${fmtDauer(zuschlag.beidesMin)} beides` : '') +
               ` · letzte ${monate} Monate`
             }
           />
@@ -646,7 +666,29 @@ export default function TimeView() {
         />
       )}
 
-      <Card title="Meine Einträge" id="meine-eintraege">
+      <Card
+        title="Meine Einträge"
+        id="meine-eintraege"
+        /*
+          Nachladen weitet das ZEITFENSTER der Abfrage, statt mehr von einer
+          ohnehin vollstaendig geladenen Liste freizugeben. Der Saldo oben
+          bleibt davon unberuehrt — er rechnet immer ab Eintritt. Im
+          Kartenfuß wie „Weitere … laden" in den übrigen Listen.
+        */
+        footer={
+          !loading &&
+          !error && (
+            <div className="nachladen">
+              <Button variant="secondary" onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}>
+                Ältere Einträge laden
+              </Button>
+              <span className="nachladen-hinweis">
+                Angezeigt werden die letzten {monate} Monate.
+              </span>
+            </div>
+          )
+        }
+      >
         {loading ? (
           <SkeletonList rows={5} />
         ) : error ? (
@@ -732,13 +774,17 @@ export default function TimeView() {
                             // nur über den Antrag.
                             <AntragKnopf eintrag={e} />
                           ) : (
+                            /* Bearbeiten ist die häufige Aktion und bleibt
+                               Textknopf; Löschen ist selten und liegt im
+                               Zeilenmenü (Linie, 3) — die Rückfrage bleibt. */
                             <>
                               <Button variant="ghost" onClick={() => setEditing(e)}>
                                 Bearbeiten
                               </Button>
-                              <Button variant="ghost" onClick={() => setToDelete(e)}>
-                                Löschen
-                              </Button>
+                              <RowMenu
+                                about={`Eintrag vom ${datumAT(e.date)}`}
+                                items={[{ label: 'Löschen', danger: true, onSelect: () => setToDelete(e) }]}
+                              />
                             </>
                           )}
                         </ListRow>
@@ -748,21 +794,6 @@ export default function TimeView() {
                 </div>
               );
             })}
-          </div>
-        )}
-        {/*
-          Nachladen weitet das ZEITFENSTER der Abfrage, statt mehr von einer
-          ohnehin vollstaendig geladenen Liste freizugeben. Der Saldo oben
-          bleibt davon unberuehrt — er rechnet immer ab Eintritt.
-        */}
-        {!loading && !error && (
-          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-            <Button variant="secondary" onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}>
-              Ältere Einträge laden
-            </Button>
-            <span className="text-sm text-ink-muted">
-              Angezeigt werden die letzten {monate} Monate.
-            </span>
           </div>
         )}
       </Card>

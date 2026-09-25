@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { InputField, CheckboxField } from '@/components/Field';
-import ProduktMarke from '@/components/ProduktMarke';
+import MarkenRahmen from './MarkenRahmen';
 import RechtLinks from '@/components/RechtLinks';
 import Button from '@/components/Button';
 import Meldung from '@/components/Meldung';
@@ -99,121 +99,111 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-bg p-4">
-      <div className="karte-anmeldung">
-        {/* Markenband: dieselbe dunkle Trägerfläche wie Seitenleiste und
-            Tableiste. Die Marke steht ohne weitere Fassung darauf. */}
-        <div className="panel-dark px-6 py-6 text-center">
-          <ProduktMarke hoehe={44} className="text-white" />
-          {/* Volles Weiss, nicht 85 Prozent: auf dem Telefon im Freien ist der
-              abgedunkelte Text auf dem dunklen Band schlecht zu lesen.
-              `text-white` und nicht `brand-fg`, weil das Band nicht die
-              Markenfarbe des Mandanten traegt, sondern die feste dunkle
-              Flaeche — die Kontrastfarbe dazu ist Weiss, unabhaengig davon,
-              was der Betrieb als Marke hinterlegt hat. */}
-          <p className="mt-3 text-sm font-semibold text-white">
-            Mitarbeiter-Portal
-          </p>
+    /*
+      DIE MARKE STEHT, WO SIE AUCH NACH DER ANMELDUNG STEHT (MarkenRahmen):
+      am Telefon in der dunklen Kopfleiste, am Schreibtisch oben in der
+      dunklen Spalte links, darunter „Mitarbeiter-Portal“ wie der Betrieb in
+      der Seitenleiste. Die Karte selbst ist nach der Linie weiß ohne
+      Kopfstreifen (docs/design/linie.md, 2) — der dunkle Streifen mit der
+      Marke IN der Karte ist damit entfallen.
+    */
+    <MarkenRahmen unter="Mitarbeiter-Portal">
+      <div className="anmelde-mitte">
+        <div className="karte-anmeldung">
+          <form onSubmit={handleSubmit} className="bg-surface px-6 py-6">
+            <h1 className="mb-1 text-xl font-semibold text-ink">
+              {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
+            </h1>
+            <p className="mb-4 text-sm text-ink-muted">
+              {resetMode
+                ? 'E-Mail-Adresse eingeben — du bekommst einen Link zugeschickt. '
+                  + 'Wer sich mit Benutzernamen anmeldet, bekommt ein neues Passwort vom Büro.'
+                : 'Mit den Zugangsdaten deines Betriebs anmelden.'}
+            </p>
+
+            <div className="flex flex-col gap-4">
+              {/*
+                KEIN `type="email"` MEHR, auch nicht beim Zurücksetzen: der
+                Browser wiese einen Benutzernamen ohne `@` sonst schon vor dem
+                Absenden ab — und der Hinweis, dass es dafür keinen Link gibt,
+                käme nie an. `inputMode` behält die Tastatur mit dem `@`.
+              */}
+              <InputField
+                id="email"
+                label={resetMode ? 'E-Mail' : 'E-Mail oder Benutzername'}
+                type="text"
+                inputMode="email"
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder={resetMode ? 'name@firma.at' : 'name@firma.at oder benutzername'}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                pflicht
+              />
+
+              {!resetMode && (
+                <>
+                  <InputField
+                    id="password"
+                    label="Passwort"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    pflicht
+                  />
+                  <CheckboxField
+                    id="remember"
+                    label="Angemeldet bleiben"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                  />
+                </>
+              )}
+
+              {(error || authError) && (
+                <Meldung ton="gefahr" role="alert">
+                  {error ?? authError}
+                </Meldung>
+              )}
+              {notice && (
+                <Meldung ton="gut" role="status">
+                  {notice}
+                </Meldung>
+              )}
+
+              <Button
+                type="submit"
+                variant="primary"
+                loading={submitting}
+                className="w-full justify-center"
+              >
+                {resetMode ? 'Link anfordern' : 'Anmelden'}
+              </Button>
+            </div>
+
+            <p className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setResetMode(!resetMode);
+                  setError(null);
+                  setNotice(null);
+                }}
+                className="textlink-allein"
+              >
+                {resetMode ? 'Zurück zur Anmeldung' : 'Passwort vergessen?'}
+              </button>
+            </p>
+          </form>
         </div>
-        {/* KEIN STREIFEN MEHR ZWISCHEN KOPF UND FORMULAR. Hier lag die
-            leuchtende Kante aus Cyan und Mint — eine dritte Farbe, die das
-            Zeichen selbst nicht kennt. Die Kante zwischen dunkler Fläche und
-            weissem Formular ist die Trennung; ein Streifen darauf wäre eine
-            zweite für dieselbe Sache. */}
-
-        <form onSubmit={handleSubmit} className="bg-surface px-6 py-6">
-          <h1 className="mb-1 text-xl font-semibold text-ink">
-            {resetMode ? 'Passwort zurücksetzen' : 'Anmelden'}
-          </h1>
-          <p className="mb-4 text-sm text-ink-muted">
-            {resetMode
-              ? 'E-Mail-Adresse eingeben — du bekommst einen Link zugeschickt. '
-                + 'Wer sich mit Benutzernamen anmeldet, bekommt ein neues Passwort vom Büro.'
-              : 'Mit den Zugangsdaten deines Betriebs anmelden.'}
-          </p>
-
-          <div className="flex flex-col gap-4">
-            {/*
-              KEIN `type="email"` MEHR, auch nicht beim Zurücksetzen: der
-              Browser wiese einen Benutzernamen ohne `@` sonst schon vor dem
-              Absenden ab — und der Hinweis, dass es dafür keinen Link gibt,
-              käme nie an. `inputMode` behält die Tastatur mit dem `@`.
-            */}
-            <InputField
-              id="email"
-              label={resetMode ? 'E-Mail' : 'E-Mail oder Benutzername'}
-              type="text"
-              inputMode="email"
-              autoComplete="username"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder={resetMode ? 'name@firma.at' : 'name@firma.at oder benutzername'}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              pflicht
-            />
-
-            {!resetMode && (
-              <>
-                <InputField
-                  id="password"
-                  label="Passwort"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  pflicht
-                />
-                <CheckboxField
-                  id="remember"
-                  label="Angemeldet bleiben"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                />
-              </>
-            )}
-
-            {(error || authError) && (
-              <Meldung ton="gefahr" role="alert">
-                {error ?? authError}
-              </Meldung>
-            )}
-            {notice && (
-              <Meldung ton="gut" role="status">
-                {notice}
-              </Meldung>
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              loading={submitting}
-              className="w-full justify-center"
-            >
-              {resetMode ? 'Link anfordern' : 'Anmelden'}
-            </Button>
-          </div>
-
-          <p className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setResetMode(!resetMode);
-                setError(null);
-                setNotice(null);
-              }}
-              className="textlink-allein"
-            >
-              {resetMode ? 'Zurück zur Anmeldung' : 'Passwort vergessen?'}
-            </button>
-          </p>
-        </form>
+        {/* Vor der Anmeldung erreichbar — das Impressum verlangt es (§ 5 ECG). */}
+        <RechtLinks className="text-xs text-ink-muted" />
       </div>
-      {/* Vor der Anmeldung erreichbar — das Impressum verlangt es (§ 5 ECG). */}
-      <RechtLinks className="text-xs text-ink-muted" />
-    </div>
+    </MarkenRahmen>
   );
 }

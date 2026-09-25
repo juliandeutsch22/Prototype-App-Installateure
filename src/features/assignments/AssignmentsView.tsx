@@ -746,8 +746,8 @@ export default function AssignmentsView() {
             {dayAssignments.length === 0 ? (
               <EmptyState>Keine Einsätze an diesem Tag.</EmptyState>
             ) : (
-              <div className="space-y-4">
-                {[...byProject.entries()].map(([pn, rows]) => {
+              <div>
+                {[...byProject.entries()].map(([pn, rows], i) => {
                   const proj = projects.find((p) => p.projectNumber === pn);
                   const fach = rows.filter((r) => !r.asHelper).length;
                   const helper = rows.filter((r) => r.asHelper).length;
@@ -765,49 +765,58 @@ export default function AssignmentsView() {
                     : [];
                   const geladen = tagesListen.find((l) => l.projectNumber === pn)?.geladen ?? {};
                   const inBearbeitung = pn === projectNumber;
+                  /*
+                    JE BAUSTELLE EIN ABSCHNITT, KEIN KASTEN IN DER KARTE
+                    (docs/design/linie.md 2): Kunde halbfett, darunter
+                    „Nummer · Mannschaft" gedämpft, die Baustellen durch eine
+                    Haarlinie getrennt. Vorher stand jede Baustelle in einem
+                    Rahmen mit getöntem Kopf — eine Karte in der Karte. Die
+                    Linie steht über jeder Baustelle AUSSER der ersten; das
+                    entscheidet der Index, kein positionsabhängiger Selektor.
+                  */
                   return (
-                    <div key={pn} className="gruppe">
-                      <div className="gruppe-kopf">
-                        <span className="gruppe-titel">
-                          {proj?.customerName ?? pn}{' '}
-                          <span className="gruppe-neben whitespace-nowrap">({pn})</span>
-                        </span>
-                        <span className="flex flex-wrap items-center gap-2">
-                          <Marke>{fach} Facharbeiter</Marke>
-                          {helper > 0 && <Marke>{helper} Helfer</Marke>}
-                          {/*
-                            BEARBEITEN DIREKT HIER. Bisher ging das nur, indem
-                            man oben dieselbe Baustelle noch einmal wählte —
-                            oder über den Wochenplan. Das Formular übernimmt
-                            die vorhandene Planung samt Rüstliste von selbst.
-                          */}
-                          {inBearbeitung ? (
-                            <span className="gruppe-neben">wird oben bearbeitet</span>
-                          ) : (
-                            <Button
-                              variant="secondary"
-                              groesse="klein"
-                              onClick={() => {
-                                setProjectNumber(pn);
-                                formular.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-                              }}
-                            >
-                              Bearbeiten
-                            </Button>
-                          )}
-                        </span>
+                    <div key={pn} className={i === 0 ? 'tagplan-gruppe-erste' : 'tagplan-gruppe'}>
+                      <div className="tagplan-kopf">
+                        <div className="tagplan-kopf-text">
+                          <h3 className="tagplan-titel">{proj?.customerName ?? pn}</h3>
+                          <p className="tagplan-unter">
+                            {proj?.customerName ? `${pn} · ` : ''}
+                            {fach} Facharbeiter
+                            {helper > 0 && ` · ${helper} Helfer`}
+                          </p>
+                        </div>
+                        {/*
+                          BEARBEITEN DIREKT HIER. Bisher ging das nur, indem
+                          man oben dieselbe Baustelle noch einmal wählte —
+                          oder über den Wochenplan. Das Formular übernimmt
+                          die vorhandene Planung samt Rüstliste von selbst.
+                        */}
+                        {inBearbeitung ? (
+                          <span className="tagplan-hinweis">wird oben bearbeitet</span>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            groesse="klein"
+                            onClick={() => {
+                              setProjectNumber(pn);
+                              formular.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+                            }}
+                          >
+                            Bearbeiten
+                          </Button>
+                        )}
                       </div>
                       {(aufgabe || material.length > 0) && (
-                        <div className="gruppe-abschnitt space-y-2">
+                        <div className="tagplan-abschnitt">
                           {aufgabe && (
-                            <p className="whitespace-pre-line text-ink">
+                            <p className="whitespace-pre-line">
                               <span className="font-medium">Aufgabe:</span> {aufgabe}
                             </p>
                           )}
                           {material.length > 0 && (
-                            <div>
-                              <p className="font-medium text-ink">Material:</p>
-                              <ul className="mt-1 space-y-0.5 text-ink">
+                            <div className={aufgabe ? 'mt-2' : undefined}>
+                              <p className="font-medium">Material:</p>
+                              <ul className="mt-1 space-y-0.5">
                                 {material.map((m) => (
                                   <li key={m.id} className="flex flex-wrap gap-x-2">
                                     <span>
@@ -825,27 +834,23 @@ export default function AssignmentsView() {
                           )}
                         </div>
                       )}
-                      {/* Die Zeilen stehen im Rahmen der Baustelle — deshalb
-                          mit seitlichem Abstand zum Rahmen. */}
-                      <div className="gruppe-liste">
-                        <List>
-                          {rows.map((a) => (
-                            <ListRow
-                              key={a.id}
-                              title={a.userName}
-                              subtitle={
-                                a.comment?.trim() && a.comment.trim() !== aufgabe ? a.comment : undefined
-                              }
-                              zustand={a.asHelper ? <Marke>Helfer</Marke> : undefined}
-                            >
-                              <IconButton label={`Einsatz von ${a.userName} löschen`} tone="danger"
-                                onClick={() => setToDelete(a)}>
-                                ✕
-                              </IconButton>
-                            </ListRow>
-                          ))}
-                        </List>
-                      </div>
+                      <List>
+                        {rows.map((a) => (
+                          <ListRow
+                            key={a.id}
+                            title={a.userName}
+                            subtitle={
+                              a.comment?.trim() && a.comment.trim() !== aufgabe ? a.comment : undefined
+                            }
+                            zustand={a.asHelper ? <Marke>Helfer</Marke> : undefined}
+                          >
+                            <IconButton label={`Einsatz von ${a.userName} löschen`} tone="danger"
+                              onClick={() => setToDelete(a)}>
+                              ✕
+                            </IconButton>
+                          </ListRow>
+                        ))}
+                      </List>
                     </div>
                   );
                 })}

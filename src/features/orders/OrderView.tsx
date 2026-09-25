@@ -379,10 +379,13 @@ export default function OrderView() {
 
       {tab === 'bestellen' && (
         <>
-          {/* Eine Zeile statt einer eigenen Karte: vorher stand die
-              Baustellenauswahl wie eine Hürde vor dem Katalog und schob ihn
-              auf dem Telefon unter den Falz. Die Notiz ist in den Warenkorb
-              gewandert — sie gehört zum Absenden, nicht zum Suchen. */}
+          {/* Eine Karte ohne eigenen Titel — die Frage ist die Überschrift:
+              auf dem Grund steht nach der Linie nichts frei (Linie, 1), und
+              eine Titelzeile über „Für welche Baustelle?“ schöbe den Katalog
+              auf dem Telefon wieder unter den Falz. Die Notiz ist in den
+              Warenkorb gewandert — sie gehört zum Absenden, nicht zum
+              Suchen. */}
+          <Card>
           <div className="space-y-2">
             <BaustellenSelect
               id="oproject"
@@ -430,6 +433,7 @@ export default function OrderView() {
               </Meldung>
             )}
           </div>
+          </Card>
 
           <Card title="Katalog">
             <InputField id="search" label="Suche"
@@ -484,6 +488,9 @@ export default function OrderView() {
                 onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
                 einheit="Artikel"
                 sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
+                // Nicht im Kartenfuß: dort stünde er erst NACH „Nicht im
+                // Katalog?" — und genau davor muss er gelesen werden.
+                imInhalt
               />
             </div>
             <div className="material-frei">
@@ -514,18 +521,16 @@ export default function OrderView() {
             </div>
           </Card>
 
-          <Card title={`Anforderung (${cart.length})`}>
+          <Card title="Anforderung" anzahl={cart.length}>
             {cart.length === 0 ? (
               <EmptyState>
                 Noch nichts ausgewählt. Im Katalog oben beim Artikel auf „Anfordern" tippen.
               </EmptyState>
             ) : (
-              <>
-                <div className="mb-4">
-                  <InputField id="onote" label="Notiz für die Projektleitung (optional)"
-                    placeholder="z. B. dringend, bis Freitag"
-                    value={note} onChange={(e) => setNote(e.target.value)} />
-                </div>
+              <div className="space-y-4">
+                <InputField id="onote" label="Notiz für die Projektleitung (optional)"
+                  placeholder="z. B. dringend, bis Freitag"
+                  value={note} onChange={(e) => setNote(e.target.value)} />
                 <List>
                   {cart.map((line, i) => (
                     <ListRow
@@ -559,15 +564,23 @@ export default function OrderView() {
                     </ListRow>
                   ))}
                 </List>
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                {/* Am Telefon unten fest mit der Summenzeile (Linie, 6):
+                    der Katalog darüber ist lang, „Bestellung aufgeben“ bleibt
+                    erreichbar. Am Schreibtisch steht die Leiste ruhig hier. */}
+                <Aktionsleiste
+                  summe={{
+                    name: 'Anforderung',
+                    wert: cart.length === 1 ? '1 Position' : `${cart.length} Positionen`,
+                  }}
+                >
                   <Button onClick={submitCart} loading={saving} className="w-full sm:w-auto">
                     Bestellung aufgeben
                   </Button>
                   <Button variant="ghost" onClick={() => setCart([])} className="w-full sm:w-auto">
                     Warenkorb leeren
                   </Button>
-                </div>
-              </>
+                </Aktionsleiste>
+              </div>
             )}
           </Card>
         </>
@@ -575,7 +588,7 @@ export default function OrderView() {
 
       {tab === 'meine' && (
         <>
-          <Card title={`Offen (${activeOrders.length})`}>
+          <Card title="Offen" anzahl={activeOrders.length}>
             {activeOrders.length === 0 ? (
               <EmptyState>Keine offenen Bestellungen.</EmptyState>
             ) : (
@@ -618,7 +631,10 @@ export default function OrderView() {
                       Der Abschluss zieht das Material vom Lager ab; deshalb
                       geht er weiterhin durch die Rückfrage.
                     */}
-                    <Button variant="primary" onClick={() => setToPickUp(o)}>
+                    {/* Weiß und nicht dunkel: in einer Liste mit mehreren
+                        Bestellungen stünden sonst mehrere Hauptknöpfe in
+                        einer Karte (Linie, 5). */}
+                    <Button variant="secondary" onClick={() => setToPickUp(o)}>
                       Abgeholt
                     </Button>
                   </ListRow>
@@ -627,7 +643,7 @@ export default function OrderView() {
             )}
           </Card>
 
-          <Card title={`Erledigt (${doneOrders.length})`}>
+          <Card title="Erledigt" anzahl={doneOrders.length}>
             {doneOrders.length === 0 ? (
               <EmptyState>Noch nichts erledigt.</EmptyState>
             ) : (

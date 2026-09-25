@@ -47,9 +47,16 @@ const wertKlasse: Record<Tone, string> = {
  * Karte fast die ganze Breite einnimmt, umso mehr. `.kennzahlen` trägt
  * dasselbe Maß wie `.karte-inhalt` (index.css), und
  * `tests/components/Metric.test.tsx` hält die beiden zusammen.
+ *
+ * SEIT DER LINIE (docs/design/linie.md) WIEDER EINE KARTE — aber EINE für
+ * die ganze Leiste, nicht eine je Zahl: auf dem Grund steht nichts frei,
+ * Zahlen stehen in einer weißen Fläche. Fläche, Rundung und Schatten wie
+ * `.karte`, der Innenabstand wie `.karte-inhalt`; Reihe, Trennstriche und
+ * die zwei Spalten am Telefon bleiben. Deshalb gehört die Leiste NICHT in
+ * eine Karte — dort stünde eine Karte in der Karte.
  */
 /*
- * AUF DEM TELEFON ZWEI SPALTEN, AB `sm` EINE REIHE.
+ * AUF TELEFON UND TABLET ZWEI SPALTEN, AB `lg` EINE REIHE (index.css, `.kennzahlen`).
  *
  * EIN ABGESCHNITTENER BETRAG IST NICHT UNSCHOEN, ER IST FALSCH. Bei drei
  * Kennzahlen nebeneinander blieben auf 390 px rund 95 Pixel je Spalte. „€ 22
@@ -57,7 +64,7 @@ const wertKlasse: Record<Tone, string> = {
  * anderer Betrag liest. Dasselbe bei „€ 7 488,…".
  *
  * Zwei Spalten geben jeder Zahl 163 Pixel; damit passt auch ein
- * fuenfstelliger Betrag. Die Trennstriche gibt es erst ab `sm`: in einem
+ * fuenfstelliger Betrag. Die Trennstriche gibt es erst ab `lg`: in einem
  * Raster mit zwei Zeilen trennen sie nicht mehr, sie zerschneiden.
  */
 export function MetricRow({ children }: { children: ReactNode }) {

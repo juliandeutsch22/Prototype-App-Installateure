@@ -20,8 +20,7 @@ import KundenGrenze from '@/components/AuswahlGrenze';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import StatusBadge from '@/components/StatusBadge';
-import { Marke } from '@/components/Badge';
-import { AdresseLink, TelefonLink } from '@/components/Kontakt';
+import { AdresseLink, KontaktZeile, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import RowMenu from '@/components/RowMenu';
 import { praefixeVon, belegNummer, hoechsteLfdImJahr } from '@/lib/praefixe';
@@ -36,6 +35,7 @@ import Meldung from '@/components/Meldung';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import { fmtStunden } from '@/lib/time';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
+import { abgeschnitten } from '@/lib/listengrenzen';
 
 const empty = {
   projectNumber: '',
@@ -424,10 +424,9 @@ export default function AdminProjectsView() {
         die hat eine Adresse: sie lässt sich verlinken, als
         Lesezeichen ablegen und kommt zurück, wohin man war.
       */}
-      <Link
-        to={`/admin-projects/${p.id}`}
-        className="textlink-allein"
-      >
+      {/* Ein Textknopf wie „Öffnen" bei den Angeboten, kein
+          unterstrichener Link (docs/design/linie.md 3). */}
+      <Link to={`/admin-projects/${p.id}`} className="knopf-leise-klein">
         Akte
       </Link>
       {/*
@@ -623,18 +622,45 @@ export default function AdminProjectsView() {
       )}
 
       <Card
-        title={`Alle Baustellen (${visible.length})`}
+        title="Alle Baustellen"
+        // Zahl und Filter rechts im Titel, wie in jeder Liste (Linie, 2).
         action={
-          <SelectField id="pfilter" label="" value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}>
-            <option value="offen">Aktiv &amp; pausiert</option>
-            <option value="alle">Alle</option>
-            <option value="archiv">Archiv ({archivCount})</option>
-          </SelectField>
+          <div className="liste-kopf-rechts">
+            <span className="liste-anzahl">{visible.length}</span>
+            <SelectField id="pfilter" label="" aria-label="Baustellen zeigen" value={filter}
+              onChange={(e) => setFilter(e.target.value as typeof filter)}>
+              <option value="offen">Aktiv &amp; pausiert</option>
+              <option value="alle">Alle</option>
+              <option value="archiv">Archiv ({archivCount})</option>
+            </SelectField>
+          </div>
+        }
+        /*
+          Steht unter der Liste, im Kartenfuß, nicht im Kopf: erst wer bis ans
+          Ende gescrollt hat und nichts gefunden hat, braucht die Auskunft.
+          In den Fuß kommt sie nur, wenn die Grenze greift.
+
+          KEIN SUCHSATZ MEHR. Er sagte „Nach Kunde und Adresse wird nur in
+          diesen gesucht" — richtig unter Firestore, seit dem Abbau falsch:
+          die Datenbank sucht über Nummer, Kunde und Adresse im ganzen
+          Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
+          angezeigt wird. Eine Auskunft, die einmal danebenlag, wird beim
+          nächsten Mal nicht mehr geglaubt.
+        */
+        footer={
+          abgeschnitten(projects, grenze) && (
+            <Nachladen
+              geladen={projects.length}
+              grenze={grenze}
+              onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
+              einheit="Baustellen"
+              sucheImBrowser={false}
+            />
+          )
         }
       >
         {projects.length >= 8 && (
-          <div className="mb-4">
+          <div className="liste-suche">
             <InputField
               id="psuche"
               label="Suche"
@@ -688,9 +714,11 @@ export default function AdminProjectsView() {
                   const { team, leitung } = personen(p);
                   return (
                     <tr key={p.id} className="tabelle-zeile">
+                      {/* Die Nummer als zweite Zeile unter dem Kunden, wie die
+                          Baustelle unter dem Kunden bei den Angeboten. */}
                       <td className="tabelle-name">
-                        {p.customerName}{' '}
-                        <span className="whitespace-nowrap text-ink-muted">({p.projectNumber})</span>
+                        {p.customerName}
+                        <span className="tabelle-unter">{p.projectNumber}</span>
                       </td>
                       {/* Adresse und Nummer anklickbar, wie in der Liste. */}
                       <td className="tabelle-zelle">
@@ -713,7 +741,7 @@ export default function AdminProjectsView() {
                           <span className="tabelle-unter">Team: {team.join(', ')}</span>
                         )}
                       </td>
-                      <td className="tabelle-zahl">
+                      <td className="tabelle-zahl-stark">
                         {p.estimatedHours ? `${fmtStunden(p.estimatedHours)} h` : null}
                       </td>
                       <td className="tabelle-zelle">
@@ -735,39 +763,37 @@ export default function AdminProjectsView() {
               return (
                 <ListRow
                   key={p.id}
-                  title={
-                    <span>
-                      {p.customerName} <span className="text-ink-muted">({p.projectNumber})</span>
-                    </span>
-                  }
+                  title={p.customerName}
+                  /*
+                    Nach der Linie (3): Titel der Kunde, Unterzeile mit „·" —
+                    Nummer, Leitung, Team. Das Budget rechts als Wert, fett,
+                    wie der Betrag eines Angebots.
+                  */
                   subtitle={
                     <>
-                      {/* Adresse und Nummer anklickbar: auch die Projektleitung
-                          faehrt raus und ruft an — hier stand beides bisher
-                          als toter Text. */}
-                      <span className="flex flex-wrap items-center gap-x-3">
-                        <AdresseLink adresse={p.address} />
-                        <TelefonLink nummer={p.contactPhone} name={p.contactName} />
-                      </span>
-                      {team.length > 0 && (
-                        <span className="mt-1 block text-xs text-ink-muted">
-                          Team: {team.join(', ')}
-                        </span>
+                      {p.projectNumber}
+                      {' · '}
+                      {leitung.length > 0 ? (
+                        <>Projektleitung: {leitung.join(', ')}</>
+                      ) : (
+                        <span className="text-warning">Keine Projektleitung zugeteilt</span>
                       )}
-                      <span className="mt-1 block text-xs text-ink-muted">
-                        {leitung.length > 0 ? (
-                          <>Projektleitung: {leitung.join(', ')}</>
-                        ) : (
-                          <span className="text-warning">Keine Projektleitung zugeteilt</span>
-                        )}
-                      </span>
+                      {team.length > 0 && <> · Team: {team.join(', ')}</>}
                     </>
                   }
-                  zustand={
-                    <>
-                      {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h Budget</Marke> : null}
-                      <StatusBadge status={p.status} />
-                    </>
+                  zustand={<StatusBadge status={p.status} />}
+                  wert={p.estimatedHours ? `${fmtStunden(p.estimatedHours)} h Budget` : undefined}
+                  /* Adresse und Nummer als Chips unter der Zeile — auch die
+                     Projektleitung fährt raus und ruft an (Linie, 5). */
+                  unten={
+                    p.address?.trim() || p.contactPhone?.trim() ? (
+                      <KontaktZeile
+                        adresse={p.address}
+                        nummer={p.contactPhone}
+                        name={p.contactName}
+                        className="mt-1"
+                      />
+                    ) : undefined
                   }
                 >
                   {baustelleAktionen(p)}
@@ -776,24 +802,6 @@ export default function AdminProjectsView() {
             })}
           </List>
         )}
-        {/*
-          Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende gescrollt
-          hat und nichts gefunden hat, braucht die Auskunft.
-
-          KEIN SUCHSATZ MEHR. Er sagte „Nach Kunde und Adresse wird nur in
-          diesen gesucht" — richtig unter Firestore, seit dem Abbau falsch:
-          die Datenbank sucht über Nummer, Kunde und Adresse im ganzen
-          Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
-          angezeigt wird. Eine Auskunft, die einmal danebenlag, wird beim
-          nächsten Mal nicht mehr geglaubt.
-        */}
-        <Nachladen
-          geladen={projects.length}
-          grenze={grenze}
-          onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
-          einheit="Baustellen"
-          sucheImBrowser={false}
-        />
       </Card>
 
       <ConfirmDialog

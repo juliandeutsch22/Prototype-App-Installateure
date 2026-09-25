@@ -99,8 +99,11 @@ export default function ModulesView() {
         Karte Hoehe, bei jedem Aufruf, obwohl sie nur beim ersten Mal etwas
         sagt. Sie gehoert an die Liste, die sie erklaert, und dort ins „i".
       */}
+      {/* Der Stand rechts in der Titelzeile, der Titel sagt, was die Liste
+          ist (Linie, 2). */}
       <Card
-        title={`Eingeschaltet: ${aktiv.size} von ${MODULE.length}`}
+        title="Bereiche"
+        action={<span className="titel-angabe">Eingeschaltet: {aktiv.size} von {MODULE.length}</span>}
         hint={
           <>
             Ein ausgeschaltetes Modul verschwindet aus der Navigation, und seine Adressen sind

@@ -98,6 +98,25 @@ describe('Meine Baustellen', () => {
     );
   });
 
+  it('baut die Karte wie den Einsatz am Start: Kunde als Überschrift, Kontakt als Chip, kein Kasten', async () => {
+    // Die Linie (docs/design/linie.md 2, 5): keine Karte in der Karte, Adresse
+    // und Kontakt als Chips, die Hauptaktion als großer Knopf.
+    baustellen = [baustelle()];
+    render(<MyProjectsView />);
+    const titel = await screen.findByRole('heading', { name: 'Familie Huber' });
+    const karte = titel.closest('section')!;
+    expect(karte.querySelector('.kasten, .kasten-hell')).toBeNull();
+    expect(within(karte).getByRole('link', { name: /Frau Huber · 0664 1234567/ })).toHaveClass('chip');
+    expect(within(karte).getByRole('link', { name: /Route:/ })).toHaveClass('einsatz-hauptknopf');
+  });
+
+  it('zeigt einen Ansprechpartner ohne Nummer wenigstens mit Namen', async () => {
+    baustellen = [baustelle({ contactPhone: undefined })];
+    render(<MyProjectsView />);
+    expect(await screen.findByText('Frau Huber')).toBeInTheDocument();
+    expect(screen.queryByText('Kein Ansprechpartner hinterlegt.')).not.toBeInTheDocument();
+  });
+
   it('mahnt einen fehlenden Ansprechpartner an, statt eine leere Zeile zu zeigen', async () => {
     baustellen = [baustelle({ contactName: undefined, contactPhone: undefined })];
     render(<MyProjectsView />);

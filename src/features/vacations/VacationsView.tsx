@@ -1053,7 +1053,7 @@ export default function VacationsView() {
           hier wartet jemand auf eine Antwort. */}
       {darfEntscheiden && (
         <Card
-          title={`Offene Anträge (${offene.length})`}
+          title="Offene Anträge" anzahl={offene.length}
           hint={
             <>
               Eine Genehmigung trägt die Tage sofort ins Zeitkonto ein — Urlaub mit vollem
@@ -1116,7 +1116,11 @@ export default function VacationsView() {
                       <span className="text-xs text-ink-muted">Entscheidet jemand anderer</span>
                     ) : (
                       <>
+                        {/* Weiß mit Haarlinie, nicht dunkel: bei mehreren
+                            offenen Anträgen stünden sonst mehrere Hauptknöpfe
+                            in einer Karte (Linie, 5). */}
                         <Button
+                          variant="secondary"
                           loading={arbeitet === v.id}
                           onClick={() => entscheiden(v, 'Genehmigt')}
                         >

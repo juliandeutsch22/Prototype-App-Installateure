@@ -7,6 +7,13 @@ interface CardProps {
   title?: string;
   action?: ReactNode; // optionale Aktion rechts neben dem Titel
   /**
+   * Wie viele Einträge die Karte zeigt — rechts in der Titelzeile, gedämpft
+   * (`.liste-anzahl`), NICHT in Klammern im Titel. Die Linie
+   * (docs/design/linie.md, 2) setzt Stand und Zahl einer Karte rechts; so
+   * steht es auf jeder Karte an derselben Stelle.
+   */
+  anzahl?: ReactNode;
+  /**
    * Stehende Erklärung zur ganzen Karte — erscheint als „i" neben dem Titel
    * und klappt darunter auf. Für Regeln, die immer gelten („nur unbenutztes
    * Material wird gutgeschrieben"), nicht für Rückmeldungen zum aktuellen
@@ -43,6 +50,7 @@ export default function Card({
   className = '',
   title,
   action,
+  anzahl,
   hint,
   footer,
   id,
@@ -73,7 +81,14 @@ export default function Card({
                 />
               )}
             </h2>
-            {action}
+            {anzahl != null ? (
+              <div className="liste-kopf-rechts">
+                <span className="liste-anzahl">{anzahl}</span>
+                {action}
+              </div>
+            ) : (
+              action
+            )}
           </div>
           {/* Der Text steht UNTER der Kopfzeile, nicht darin: die Kopfzeile
               ist mobil eine Spalte, und in einer Spalten-Flexbox bedeutet

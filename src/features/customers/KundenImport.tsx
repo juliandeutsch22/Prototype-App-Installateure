@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { kundenEinspielen, kundenVorhanden } from '@/lib/db/customers';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Marke } from '@/components/Badge';
 import { ErrorState } from '@/components/States';
@@ -142,7 +143,7 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
                 const f = e.target.files?.[0];
                 if (f) void lesen(f);
               }}
-              className="min-h-touch text-sm file:mr-3 file:rounded file:border file:border-line file:bg-surface-2 file:px-3 file:py-2 file:text-sm"
+              className="feld-datei"
             />
           </div>
           <button type="button" onClick={vorlage} className="textlink-allein">
@@ -159,29 +160,34 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
   ].sort((a, b) => a.zeile - b.zeile);
 
   return (
-    <>
+    /* Eine eigene Hülle statt eines Fragments: die Aktionsleiste klebt an
+       ihrem Behälter — ohne Hülle wäre das die ganze Kundenseite, und die
+       Leiste stünde am Telefon über der Kundenliste. */
+    <div className="space-y-6">
+      {/* Die Zahlen in ihrer eigenen Karte über dem Probelauf — keine Karte
+          in der Karte (docs/design/linie.md, 2). */}
+      <MetricRow>
+        <Metric label="Neu" value={neu.length} />
+        <Metric label="Schon vorhanden" value={schonDa.length} />
+        <Metric
+          label="Fehlerhaft"
+          value={probe.fehler.length}
+          tone={probe.fehler.length > 0 ? 'warning' : 'default'}
+        />
+      </MetricRow>
       <Card
         title="Probelauf"
         action={<Marke>{datei}</Marke>}
         hint="Noch ist nichts geschrieben. Stehen unten falsche Umlaute, war die Datei in einem anderen Zeichensatz gespeichert — dann in Excel als „CSV UTF-8“ speichern und neu einlesen."
       >
-        <MetricRow>
-          <Metric label="Neu" value={neu.length} />
-          <Metric label="Schon vorhanden" value={schonDa.length} />
-          <Metric
-            label="Fehlerhaft"
-            value={probe.fehler.length}
-            tone={probe.fehler.length > 0 ? 'warning' : 'default'}
-          />
-        </MetricRow>
-        <p className="mt-4 text-sm text-ink-muted">
+        <p className="text-sm text-ink-muted">
           Übernommen wird: {probe.erkannt.map((e) => `${e.spalte} → ${FELDNAME[e.feld]}`).join(', ')}.
           {probe.ignoriert.length > 0 && <> Nicht übernommen: {probe.ignoriert.join(', ')}.</>}
         </p>
       </Card>
 
       {nichtUebernommen.length > 0 && (
-        <Card title={`Nicht übernommen (${nichtUebernommen.length})`}>
+        <Card title="Nicht übernommen" anzahl={nichtUebernommen.length}>
           <Grenzliste
             eintraege={nichtUebernommen}
             grenze={ZEIGE_ZEILEN}
@@ -218,19 +224,22 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
       )}
 
       {fehler && <ErrorState message={fehler} />}
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          onClick={() => void uebernehmen()}
-          loading={busy}
-          disabled={neu.length === 0}
-          className="w-full sm:w-auto"
-        >
+      {/* Die Knöpfe in der Aktionsleiste wie beim Katalog-Import
+          (docs/design/linie.md, 6): am Telefon unten fest, darüber die Summe
+          aus dem Probelauf. */}
+      <Aktionsleiste
+        summe={{
+          name: 'Aus der Datei',
+          wert: `${neu.length} neu · ${schonDa.length} schon vorhanden`,
+        }}
+      >
+        <Button onClick={() => void uebernehmen()} loading={busy} disabled={neu.length === 0}>
           {neu.length === 1 ? '1 Kunden übernehmen' : `${neu.length} Kunden übernehmen`}
         </Button>
-        <Button variant="ghost" onClick={verwerfen} disabled={busy} className="w-full sm:w-auto">
+        <Button variant="ghost" onClick={verwerfen} disabled={busy}>
           Verwerfen
         </Button>
-      </div>
-    </>
+      </Aktionsleiste>
+    </div>
   );
 }

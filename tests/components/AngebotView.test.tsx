@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Quote } from '@/types';
+import { karteMitZahl, karteZaehlt } from './kartenZahl';
 
 /**
  * Die Angebotsseite.
@@ -119,7 +120,7 @@ beforeEach(() => {
 describe('Ein Angebot ansehen', () => {
   it('zeigt Positionen, Summen und Anmerkungen', async () => {
     zeige();
-    const positionen = (await screen.findByText(/Positionen \(2\)/)).closest('section')!;
+    const positionen = await karteMitZahl(/^Positionen/, 2);
     expect(within(positionen).getByText('Facharbeiterstunden')).toBeInTheDocument();
     expect(within(positionen).getByText('Geberit Duofix')).toBeInTheDocument();
     expect(within(positionen).getByText(/16 h ×/)).toBeInTheDocument();
@@ -157,7 +158,7 @@ describe('Das PDF', () => {
   it('geht mit der Anschrift aus dem Kundenstamm hinaus', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await screen.findByText(/Positionen \(2\)/);
+    await karteZaehlt(/^Positionen/, 2);
     await nutzer.click(screen.getByRole('button', { name: /PDF herunterladen/ }));
     expect(pdf).toHaveBeenCalledTimes(1);
     const o = pdf.mock.calls[0][0] as { quote: Quote; kunde: Customer };
@@ -188,7 +189,9 @@ describe('Weiter mit dem Angebot', () => {
   it('vermerkt die Ablehnung', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Abgelehnt' }));
+    // Ablehnen ist selten und liegt im ⋯ der Karte „Weiter“ (docs/design/linie.md 3).
+    await nutzer.click(await screen.findByRole('button', { name: /Weitere Aktionen für Angebot/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Abgelehnt' }));
     expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Abgelehnt' });
   });
 
@@ -196,7 +199,9 @@ describe('Weiter mit dem Angebot', () => {
     angebot = { ...ANGEBOT, status: 'Entwurf' };
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Löschen' }));
+    // Löschen liegt im ⋯ der Karte „Weiter“, wie in der Angebotsliste.
+    await nutzer.click(await screen.findByRole('button', { name: /Weitere Aktionen für Angebot/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Löschen' }));
     const dialog = await screen.findByRole('dialog');
     await nutzer.click(within(dialog).getByRole('button', { name: /Löschen|Bestätigen|Ja/ }));
     expect(deleteQuote).toHaveBeenCalledWith(ANGEBOT.id);

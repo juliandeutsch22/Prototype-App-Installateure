@@ -3,6 +3,7 @@ import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { groupProjectHours, calcBudgetState, calcWorkMin, fmtStd, balkenBreite, fmtStunden } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
 import { EmptyState, TeilFehler } from '@/components/States';
+import { Warnung } from '@/components/Badge';
 import { datumAT } from '@/lib/datum';
 
 /**
@@ -23,11 +24,17 @@ import { datumAT } from '@/lib/datum';
  * Margen — das Budget steht in derselben Liste ohnehin schon als Pille.
  */
 
-const BAR_TONE = {
-  success: 'bg-success',
-  warning: 'bg-warning',
-  danger: 'bg-accent',
-  neutral: 'bg-line',
+/*
+ * DER BALKEN WIE IN DER PROJEKTAUSWERTUNG (`ProjectSummary`) — dieselben
+ * Klassen, dieselbe Zuordnung: im Plan Akzent, ab 80 % Warnfarbe, über dem
+ * Budget deckend `--danger`. Vorher stand „über Budget" ausgerechnet in der
+ * Akzentfarbe, also in der Farbe des Normalfalls.
+ */
+const BALKEN = {
+  success: 'budget-fuellung',
+  warning: 'budget-fuellung-warnung',
+  danger: 'budget-fuellung-ueber',
+  neutral: 'budget-fuellung',
 } as const;
 
 interface Person {
@@ -119,20 +126,18 @@ export default function BaustellenUebersicht({
       </p>
 
       {budget.pct !== null ? (
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
+        <div className="budget-reihe">
+          <span className="budget-schiene">
             <span
-              className={`block h-full ${BAR_TONE[budget.tone]}`}
+              className={BALKEN[budget.tone]}
               style={{ width: balkenBreite(budget.pct) }}
             />
           </span>
-          <span
-            className={`shrink-0 text-xs font-semibold ${
-              budget.over ? 'text-accent' : 'text-ink-muted'
-            }`}
-          >
+          <span className={budget.over ? 'budget-prozent-ueber' : 'budget-prozent'}>
             {budget.pct} %
           </span>
+          {/* Die Farbe allein ist kein Signal — das Wort steht daneben. */}
+          {budget.over && <Warnung stufe="dringend">über Budget</Warnung>}
         </div>
       ) : (
         <p className="text-xs text-ink-muted">

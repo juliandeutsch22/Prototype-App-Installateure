@@ -22,7 +22,7 @@ import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
-import { AdresseLink, TelefonLink } from '@/components/Kontakt';
+import { AdresseLink, KontaktZeile, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import KundenImport from './KundenImport';
@@ -172,6 +172,8 @@ export default function CustomersView() {
   }, [laden]);
 
   const sichtbar = kunden;
+  /** Wie weit die Liste OHNE Suchbegriff reicht — daran hängt „Weitere laden". */
+  const geladenOhneSuche = suche.trim() ? ohneSuche : kunden.length;
   /** Am Schreibtisch die Kunden als Tabelle, am Telefon als Liste. */
   const schreibtisch = useAbBreite(AB_TABELLE);
 
@@ -303,7 +305,9 @@ export default function CustomersView() {
         Verkleidung einer Zeile geworden — und E-Mail, UID und Notiz
         standen bis dahin überhaupt nirgends.
       */}
-      <Link to={`/customers/${k.id}`} className="textlink-allein">
+      {/* Ein Textknopf wie „Öffnen" bei den Angeboten, kein
+          unterstrichener Link (docs/design/linie.md 3). */}
+      <Link to={`/customers/${k.id}`} className="knopf-leise-klein">
         Akte
       </Link>
       {/*
@@ -506,22 +510,49 @@ export default function CustomersView() {
       {darfAendern && <KundenImport onUebernommen={() => void laden()} />}
 
       <Card
-        title={`Kunden (${kunden.length})`}
-        action={
-          <input
-            aria-label="Kunden durchsuchen"
-            placeholder="Suchen …"
-            value={suche}
-            onChange={(e) => setSuche(e.target.value)}
-            // `w-full sm:w-auto`: der Kartenkopf ist mobil eine SPALTE, und
-            // ein Eingabefeld ohne Breitenangabe nimmt darin seine
-            // Wunschbreite (rund 180 px plus Polsterung) — gemessen 18 px
-            // mehr, als die Karte innen hat. Es ragte damit unter dem Titel
-            // heraus. Volle Breite ist dort ohnehin das Richtige.
-            className="feld w-full sm:w-auto"
-          />
+        title="Kunden"
+        // Die Zahl rechts im Titel, die Suche oben in der Karte über die
+        // volle Breite — an derselben Stelle wie in jeder Liste (Linie, 2).
+        action={<span className="liste-anzahl">{kunden.length}</span>}
+        /*
+          Der Hinweis steht AUSSERHALB der Leermeldung, im Kartenfuß: er
+          gehört auch dann hin, wenn die Suche gerade nichts findet — denn
+          genau dann ist die Frage „gibt es den Kunden nicht, oder ist er nur
+          nicht geladen?" die entscheidende. In den Fuß kommt er nur, wenn
+          die Grenze greift; ein leerer Fuß stünde als Streifen da.
+        */
+        footer={
+          !loading &&
+          geladenOhneSuche >= grenze && (
+            <Nachladen
+              geladen={geladenOhneSuche}
+              grenze={grenze}
+              einheit="Kunden"
+              onMehr={() => setGrenze((n) => n + KUNDEN_JE_SEITE)}
+              /*
+                UNTER POSTGRES IST DER SATZ „Die Suche geht nur über diese"
+                FALSCH — und eine Auskunft, die einmal danebenlag, wird beim
+                nächsten Mal nicht mehr geglaubt.
+
+                Die Datenbank sucht über den ganzen Bestand; die Grenze gilt
+                nur für das, was OHNE Suchbegriff angezeigt wird. Der Knopf
+                bleibt deshalb stehen, der Satz daneben nicht.
+              */
+              sucheImBrowser={false}
+            />
+          )
         }
       >
+        <div className="liste-suche">
+          <InputField
+            id="ksuche"
+            label="Suche"
+            type="search"
+            placeholder="Name, Adresse oder Telefon"
+            value={suche}
+            onChange={(e) => setSuche(e.target.value)}
+          />
+        </div>
         {loading ? (
           <SkeletonList rows={4} />
         ) : sichtbar.length === 0 ? (
@@ -584,46 +615,27 @@ export default function CustomersView() {
               <ListRow
                 key={k.id}
                 title={k.name}
-                subtitle={
-                  <>
-                    <span className="flex flex-wrap items-center gap-x-3">
-                      <AdresseLink adresse={k.address} />
-                      <TelefonLink nummer={k.contactPhone} name={k.contactName} />
-                    </span>
-                    {k.contactName && (
-                      <span className="mt-1 block text-xs text-ink-muted">{k.contactName}</span>
-                    )}
-                  </>
+                /*
+                  Adresse und Telefon als Chips unter der Zeile, wie am
+                  Einsatz (Linie, 5) — der Chip trägt den Ansprechpartner
+                  vor der Nummer. Ohne Nummer steht er als Unterzeile.
+                */
+                subtitle={k.contactName && !k.contactPhone?.trim() ? k.contactName : undefined}
+                unten={
+                  k.address?.trim() || k.contactPhone?.trim() ? (
+                    <KontaktZeile
+                      adresse={k.address}
+                      nummer={k.contactPhone}
+                      name={k.contactName}
+                      className="mt-1"
+                    />
+                  ) : undefined
                 }
               >
                 {kundeAktionen(k)}
               </ListRow>
             ))}
           </List>
-        )}
-        {/*
-          Der Hinweis steht AUSSERHALB der Leermeldung: er gehört auch dann
-          hin, wenn die Suche gerade nichts findet — denn genau dann ist die
-          Frage „gibt es den Kunden nicht, oder ist er nur nicht geladen?" die
-          entscheidende.
-        */}
-        {!loading && (
-          <Nachladen
-            geladen={suche.trim() ? ohneSuche : kunden.length}
-            grenze={grenze}
-            einheit="Kunden"
-            onMehr={() => setGrenze((n) => n + KUNDEN_JE_SEITE)}
-            /*
-              UNTER POSTGRES IST DER SATZ „Die Suche geht nur über diese"
-              FALSCH — und eine Auskunft, die einmal danebenlag, wird beim
-              nächsten Mal nicht mehr geglaubt.
-
-              Die Datenbank sucht über den ganzen Bestand; die Grenze gilt nur
-              für das, was OHNE Suchbegriff angezeigt wird. Der Knopf bleibt
-              deshalb stehen, der Satz daneben nicht.
-            */
-            sucheImBrowser={false}
-          />
         )}
       </Card>
 

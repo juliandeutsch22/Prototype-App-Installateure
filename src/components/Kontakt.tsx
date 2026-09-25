@@ -21,11 +21,14 @@ import { mapsUrl, telUrl, mailUrl } from '@/lib/kontakt';
  */
 const KNOPF = 'knopf-sekundaer';
 const TEXT = 'textlink-allein gap-1.5';
+/** Chip nach der Linie (docs/design/linie.md, 5): Adresse und Kontakt am Einsatz. */
+const CHIP = 'chip';
+const KLASSE = { knopf: KNOPF, text: TEXT, chip: CHIP } as const;
 
 interface AdresseProps {
   adresse?: string | null;
   /** 'text' = im Fließtext, 'knopf' = eigenständige Schaltfläche. */
-  variante?: 'text' | 'knopf';
+  variante?: 'text' | 'knopf' | 'chip';
   className?: string;
 }
 
@@ -36,7 +39,7 @@ export function AdresseLink({ adresse, variante = 'text', className = '' }: Adre
       href={mapsUrl(adresse)}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${variante === 'knopf' ? KNOPF : TEXT} ${className}`}
+      className={`${KLASSE[variante]} ${className}`}
     >
       <Icon name="pin" size={16} className="shrink-0" aria-hidden />
       {/* Der Adresstext selbst ist der Link — „hier klicken" wäre für
@@ -51,16 +54,18 @@ interface TelefonProps {
   nummer?: string | null;
   /** Angezeigter Name, falls die Nummer zu einer Person gehört. */
   name?: string | null;
-  variante?: 'text' | 'knopf';
+  variante?: 'text' | 'knopf' | 'chip';
   className?: string;
 }
 
 export function TelefonLink({ nummer, name, variante = 'text', className = '' }: TelefonProps) {
   if (!nummer?.trim()) return null;
   return (
-    <a href={telUrl(nummer)} className={`${variante === 'knopf' ? KNOPF : TEXT} ${className}`}>
+    <a href={telUrl(nummer)} className={`${KLASSE[variante]} ${className}`}>
       <Icon name="phone" size={16} className="shrink-0" aria-hidden />
-      <span>{nummer}</span>
+      {/* Im Chip steht der Mensch vor der Nummer („Julian Deutsch · 0660 …“,
+          Mockup S. 7): angerufen wird eine Person, nicht eine Ziffernfolge. */}
+      <span>{variante === 'chip' && name?.trim() ? `${name.trim()} · ${nummer}` : nummer}</span>
       <span className="sr-only">{name ? `— ${name} anrufen` : '— anrufen'}</span>
     </a>
   );
@@ -68,7 +73,7 @@ export function TelefonLink({ nummer, name, variante = 'text', className = '' }:
 
 interface MailProps {
   adresse?: string | null;
-  variante?: 'text' | 'knopf';
+  variante?: 'text' | 'knopf' | 'chip';
   className?: string;
 }
 
@@ -92,7 +97,7 @@ export function MailLink({ adresse, variante = 'text', className = '' }: MailPro
     );
   }
   return (
-    <a href={ziel} className={`${variante === 'knopf' ? KNOPF : TEXT} ${className}`}>
+    <a href={ziel} className={`${KLASSE[variante]} ${className}`}>
       <Icon name="mail" size={16} className="shrink-0" aria-hidden />
       <span>{adresse}</span>
       <span className="sr-only">— Mail schreiben</span>
@@ -118,8 +123,8 @@ export function KontaktZeile({
   if (!adresse?.trim() && !nummer?.trim()) return null;
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>
-      <AdresseLink adresse={adresse} variante="knopf" />
-      <TelefonLink nummer={nummer} name={name} variante="knopf" />
+      <AdresseLink adresse={adresse} variante="chip" />
+      <TelefonLink nummer={nummer} name={name} variante="chip" />
     </div>
   );
 }

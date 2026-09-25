@@ -532,7 +532,8 @@ describe('Anforderungen am Schreibtisch', () => {
   it('zeigt Menge, Baustelle, Eil und Notiz der Zeile', async () => {
     zeige();
     const zeile = await screen.findByRole('row', { name: /Eckventil/ });
-    expect(within(zeile).getByText('3')).toHaveClass('tabelle-zahl');
+    // Zahlen rechtsbündig UND fett (docs/design/linie.md 4).
+    expect(within(zeile).getByText('3')).toHaveClass('tabelle-zahl-stark');
     expect(zeile).toHaveTextContent('Max Mustermann');
     expect(zeile).toHaveTextContent('B-2026-0007');
     expect(within(zeile).getByText('Eil')).toBeInTheDocument();

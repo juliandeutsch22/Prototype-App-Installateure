@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -280,31 +280,43 @@ export default function MyScheduleView() {
                   Tagen du eingeplant bist.
                 </EmptyState>
               ) : (
-                <div className="space-y-3">
-                  {visible.map((a) => {
+                <div>
+                  {visible.map((a, i) => {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
-                      <div key={a.id} className="kasten-hell">
+                      <Fragment key={a.id}>
+                        {/* Zwei Einsätze am selben Tag trennt eine Haarlinie,
+                            kein Kasten in der Karte (Linie 2). */}
+                        {i > 0 && <hr className="einsatz-trenner" />}
                         {/*
-                          Aufbau wie der Einsatz am Monteur-Start: Kunde mit den
-                          Marken in einer Zeile, darunter Nummer und Aufgabe.
+                          AUFBAU WIE DIE HEUTE-KARTE AM START (Mockup S. 1):
+                          Kunde groß, darunter Nummer und Aufgabe mit den
+                          Marken rechts, Adresse und Kontakt als Chips, was
+                          mitzunehmen ist, dann die Knöpfe.
                         */}
-                        <p className="einsatz-kunde">
-                          {proj?.customerName ?? a.projectNumber}
-                          {/* „Heute" war rot. Es ist kein Ausfall, sondern der
-                              Einsatz, der GERADE läuft. */}
-                          {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
-                          <Marke>{a.asHelper ? 'Helfer' : 'Facharbeiter'}</Marke>
-                        </p>
-                        {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname da
-                            ist — sonst stünde sie doppelt. */}
-                        {(proj?.customerName || a.comment) && (
-                          <p className="mt-1 text-sm text-ink-muted">
+                        <p className="einsatz-kunde">{proj?.customerName ?? a.projectNumber}</p>
+                        <div className="einsatz-meta">
+                          {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname
+                              da ist — sonst stünde sie doppelt. */}
+                          <p className="einsatz-auftrag">
                             {proj?.customerName && a.projectNumber}
                             {proj?.customerName && a.comment && ' · '}
                             {a.comment && <span>{a.comment}</span>}
                           </p>
-                        )}
+                          <span className="einsatz-marken">
+                            {/* „Heute" war rot. Es ist kein Ausfall, sondern
+                                der Einsatz, der GERADE läuft. */}
+                            {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
+                            <Marke>{a.asHelper ? 'Helfer' : 'Facharbeiter'}</Marke>
+                            {proj?.billingMode && <Marke>{proj.billingMode}</Marke>}
+                          </span>
+                        </div>
+                        <KontaktZeile
+                          adresse={proj?.address}
+                          nummer={proj?.contactPhone}
+                          name={proj?.contactName}
+                          className="mt-4"
+                        />
 
                         {/* Was mitzunehmen ist — abhakbar, auch am Vorabend. */}
                         {(() => {
@@ -333,8 +345,8 @@ export default function MyScheduleView() {
                           );
                         })()}
 
-                        {/* Hauptaktion und Schein nebeneinander, sobald beide
-                            Platz haben; am Telefon untereinander. */}
+                        {/* Hauptknopf über die volle Breite, der Schein
+                            darunter; am Schreibtisch nebeneinander. */}
                         <div className="einsatz-knoepfe">
                           {/* Übernimmt Baustelle und Helfer-Rolle ins
                               Zeitformular — ein vergessener Helfer-Haken
@@ -342,7 +354,7 @@ export default function MyScheduleView() {
                           <Link
                             to="/time"
                             state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}
-                            className="knopf-primaer grow basis-60"
+                            className="einsatz-hauptknopf"
                           >
                             Zeit erfassen
                           </Link>
@@ -352,21 +364,17 @@ export default function MyScheduleView() {
                             heraussuchen muss. Datum und Baustelle wandern mit.
                           */}
                           {scheineAn && (
-                            <Link
-                              to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
-                              className="knopf-sekundaer grow basis-40"
-                            >
-                              Schein schreiben
-                            </Link>
+                            <div className="einsatz-nebenknoepfe">
+                              <Link
+                                to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
+                                className="knopf-sekundaer"
+                              >
+                                Schein schreiben
+                              </Link>
+                            </div>
                           )}
                         </div>
-                        <KontaktZeile
-                          adresse={proj?.address}
-                          nummer={proj?.contactPhone}
-                          name={proj?.contactName}
-                          className="mt-2"
-                        />
-                      </div>
+                      </Fragment>
                     );
                   })}
                 </div>

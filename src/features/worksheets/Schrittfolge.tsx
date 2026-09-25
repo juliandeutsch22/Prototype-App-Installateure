@@ -114,3 +114,83 @@ export function Zusammenfassung({
     </List>
   );
 }
+
+/**
+ * Das Häkchen: „erledigt“. Ein Zeichen mit Bedeutung, deshalb darf es stehen —
+ * aber ohne getönte Kachel dahinter (Linie, 10).
+ */
+export function Haken() {
+  return (
+    <svg
+      className="schein-haken"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
+/**
+ * Etwas, das schon erledigt ist, als eine Zeile — „Monteur hat
+ * unterschrieben“ (Mockup S. 5). Rechts wahlweise der Weg zurück.
+ */
+export function ErledigtZeile({
+  titel,
+  unter,
+  children,
+}: {
+  titel: ReactNode;
+  unter?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="schein-erledigt">
+      <Haken />
+      <div className="schein-erledigt-text">
+        <p className="schein-erledigt-titel">{titel}</p>
+        {unter && <p className="schein-erledigt-unter">{unter}</p>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export interface PruefPunkt {
+  name: string;
+  wert: ReactNode;
+  /** Erledigt — mit Häkchen. Sonst ein leerer Kreis. */
+  ok: boolean;
+  /** Etwas, das vor dem Unterschreiben geklärt gehört — in Warnfarbe. */
+  warnung?: ReactNode;
+}
+
+/**
+ * Was gleich unterschrieben wird, am Schreibtisch (Mockup S. 8): Häkchen,
+ * Name, Wert. Dieselben Angaben wie die Zusammenfassung am Telefon — nur ohne
+ * „Ändern“: am Schreibtisch steht jeder Abschnitt ohnehin daneben.
+ */
+export function Pruefliste({ punkte }: { punkte: PruefPunkt[] }) {
+  return (
+    <ul className="pruefliste">
+      {punkte.map((p) => (
+        <li key={p.name} className="pruefliste-zeile">
+          {p.ok ? <Haken /> : <span className="pruefliste-offen" aria-hidden="true" />}
+          <span className="pruefliste-name">
+            {p.name}
+            <span className="sr-only">{p.ok ? ' — erledigt' : ' — offen'}</span>
+          </span>
+          <span className="pruefliste-wert">{p.wert}</span>
+          {p.warnung && <span className="pruefliste-warnung">{p.warnung}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+}

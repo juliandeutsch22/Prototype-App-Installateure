@@ -8,6 +8,7 @@ import type { Assignment, Material, Project, WorkSheet, WorkSheetZeit } from '@/
 import { todayStr } from '@/lib/time';
 import type { NewWorkSheet } from '@/lib/db/workSheets';
 import { kanonischerInhalt } from '@shared/scheinHash';
+import { karteZaehlt } from './kartenZahl';
 
 /**
  * Der Handwerksschein war ein Formular ohne Anschluss: er stand in einem
@@ -702,7 +703,7 @@ describe('Fotos', () => {
   async function fotoWaehlen(nutzer: ReturnType<typeof userEvent.setup>) {
     // Erst wenn die Baustelle steht, gibt es den Abschnitt: ein Foto ohne
     // Schein hat keinen Ort, an den es gehört.
-    await screen.findByText(/^Fotos \(/);
+    await karteZaehlt(/Fotos/, /^\d+ von 8$/);
     await zuSchritt(nutzer, 'Fotos');
     // Beschriftung des versteckten Dateifelds ist der Knopftext, und der
     // wechselt mit dem Zustand: erstes Bild, weiteres, Fach voll.
@@ -740,7 +741,7 @@ describe('Fotos', () => {
   */
   it('steht in einer eigenen Karte, nicht bei den Unterschriften', async () => {
     zeichne();
-    await screen.findByText(/^Fotos \(/);
+    await karteZaehlt(/Fotos/, /^\d+ von 8$/);
 
     const namensfeld = screen.getByLabelText(/Monteur \(Name in Druckbuchstaben\)/);
     const unterschriften = namensfeld.closest('section');
@@ -760,13 +761,13 @@ describe('Fotos', () => {
   it('beschriftet den Knopf nach dem Stand und zählt im Kartentitel mit', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await screen.findByText('Fotos (0/8)');
+    await karteZaehlt(/Fotos/, '0 von 8');
     expect(screen.getByLabelText('Foto aufnehmen')).toBeInTheDocument();
 
     await fotoWaehlen(nutzer);
     await waitFor(() => expect(fotoHochladen).toHaveBeenCalled());
 
-    expect(await screen.findByText('Fotos (1/8)')).toBeInTheDocument();
+    await karteZaehlt(/Fotos/, '1 von 8');
     expect(screen.getByLabelText('Weiteres Foto')).toBeInTheDocument();
   });
 
@@ -1358,6 +1359,29 @@ describe('Schrittfolge', () => {
     await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
   });
 
+  it('zeigt die gesetzte Monteur-Unterschrift als eine Zeile und holt sie mit „Ändern" zurück', async () => {
+    // Mockup S. 5: „Monteur hat unterschrieben · Name". Das Feld bleibt dabei
+    // eingehängt, nur ausgeblendet — es hält die Striche.
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    await zuSchritt(nutzer, 'Unterschrift');
+    expect(screen.queryByText('Monteur hat unterschrieben')).not.toBeInTheDocument();
+
+    screen.getByRole('button', { name: 'Unterschrift Monteur zeichnen' }).click();
+
+    expect(await screen.findByText('Monteur hat unterschrieben')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', { name: 'Monteur (Name in Druckbuchstaben)' }),
+    ).not.toBeInTheDocument();
+    expect(felderEingehaengt).toBe(2);
+
+    await nutzer.click(screen.getByRole('button', { name: 'Unterschrift Monteur ändern' }));
+    expect(
+      screen.getByRole('textbox', { name: 'Monteur (Name in Druckbuchstaben)' }),
+    ).toBeInTheDocument();
+  });
+
   it('bietet „Als Entwurf speichern" in jedem Schritt an', async () => {
     // Vormittags vorbereiten, nachmittags unterschreiben: wer nach den Zeiten
     // aufhört, soll nicht erst bis zur Unterschrift weiterklicken müssen.
@@ -1534,10 +1558,16 @@ describe('Schrittfolge', () => {
       screen.queryByRole('navigation', { name: 'Schritte des Scheins' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Weiter/ })).not.toBeInTheDocument();
-    // Alles zugleich zu sehen, in nummerierten Abschnitten.
-    for (const titel of ['1 · Zeiten', '2 · Material', '3 · Fotos', '4 · Unterschrift']) {
-      expect(screen.getByRole('heading', { name: titel })).toBeInTheDocument();
+    // Alles zugleich zu sehen, in nummerierten Karten (Mockup S. 8). Die
+    // Titel sind seit dem 25.09.2026 die der Karten selbst; am Kartentitel
+    // der Fotos hängt das „i", dessen Beschriftung zum Namen der Überschrift
+    // gehört — deshalb der Anfang, nicht der ganze Name.
+    for (const titel of ['1 · Zeiten vor Ort', '2 · Material', '3 · Fotos', '4 · Unterschrift']) {
+      expect(screen.getByRole('heading', { name: new RegExp(`^${titel}`) })).toBeInTheDocument();
     }
+    // Zwei Spalten: links Zeiten, Material, Fotos — rechts die Unterschrift.
+    const rechts = screen.getByRole('heading', { name: '4 · Unterschrift' }).closest('section');
+    expect(rechts?.parentElement?.parentElement?.className).toBe('schein-raster');
     expect(screen.getByRole('button', { name: 'Zeile hinzufügen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Hinzufügen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();

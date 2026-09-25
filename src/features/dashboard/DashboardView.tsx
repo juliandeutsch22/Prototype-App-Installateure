@@ -8,7 +8,6 @@ import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { useModul } from '@/lib/useModule';
-import RuestlisteAbhaken from '@/features/assignments/RuestlisteAbhaken';
 import { listUnpaidInvoices } from '@/lib/db/invoices';
 import {
   localDateStr,
@@ -38,18 +37,25 @@ import type { Assignment, EinsatzMaterial, MaterialOrder, Project, RuestPosition
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Marke, Warnung, Zustand } from '@/components/Badge';
-import PageHeader from '@/components/PageHeader';
 import LaufWarnung from './LaufWarnung';
-import MonteurStart, { type LetzteBuchung } from './MonteurStart';
+import MonteurStart, {
+  HeuteKarte,
+  type LetzteBuchung,
+  type NaechsterEinsatz,
+  type WochenTag,
+} from './MonteurStart';
+import StartKopf from './StartKopf';
+import { grussZeile } from './gruss';
 import WartungHinweis from './WartungHinweis';
 import StatusBadge from '@/components/StatusBadge';
-import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
+import { KontaktZeile } from '@/components/Kontakt';
 import { LoadingState, EmptyState } from '@/components/States';
 import Meldung from '@/components/Meldung';
 import Grenzliste from '@/components/Grenzliste';
 import { List, ListRow } from '@/components/ListRow';
 import { byNewest } from '@/lib/timestamps';
 import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
+import { euroGanz } from '@/lib/geld';
 
 /**
  * 'YYYY-MM-DD' -> 'Mo., 01.09.'
@@ -65,11 +71,10 @@ function fmtTag(iso: string): string {
   });
 }
 
-const fmtEUR = (n: number) =>
-  `\u20ac ${new Intl.NumberFormat('de-AT', { maximumFractionDigits: 0 }).format(n)}`;
-
 /** Eine Baustelle, deren Stundenbudget knapp wird oder überschritten ist. */
 interface ProjectAlert {
+  /** Kennung der Baustelle — Ziel der Zeile (Baustellenakte). */
+  id: string;
   projectNumber: string;
   customerName: string;
   pct: number | null;
@@ -104,6 +109,7 @@ interface EinsatzZeile {
   contactPhone?: string;
   asHelper: boolean;
   comment?: string;
+  billingMode?: Project['billingMode'];
   /**
    * Die Ruestliste dieses Einsatzes — was mitzunehmen ist.
    *
@@ -116,6 +122,11 @@ interface EinsatzZeile {
 
 /** Alle Einsätze eines Tages, nach Baustelle gebündelt — die Sicht der Leitung. */
 interface TagesBaustelle {
+  /**
+   * Kennung der Baustelle, wenn sie unter den laufenden gefunden wurde — das
+   * Ziel der Zeile (Baustellenakte). Fehlt sie, bleibt die Zeile ohne Pfeil.
+   */
+  id?: string;
   projectNumber: string;
   customerName: string;
   address?: string;
@@ -152,8 +163,10 @@ interface DashData {
    * werden, mit denselben Regeln wie in der Zeiterfassung.
    */
   letzte?: LetzteBuchung;
-  woche?: { istMin: number; sollMin: number };
+  woche?: { istMin: number; sollMin: number; tage: WochenTag[] };
   monat?: { name: string; saldoMin: number | null };
+  /** Die kommenden eigenen Einsätze ab morgen (Monteur-Start). */
+  naechste?: NaechsterEinsatz[];
   /** Alle laufenden Baustellen (Leitung). */
   aktiveBaustellen?: Project[];
   /** Die heutige Einteilung des ganzen Betriebs (Leitung). */
@@ -192,7 +205,7 @@ const WARNUNGEN_AUF_STARTSEITE = 8;
 
 /** Rollen-spezifisches Zuhause mit echten Kennzahlen. */
 export default function DashboardView() {
-  const { user, company } = useAuth();
+  const { user } = useAuth();
   /**
    * Karten und Verweise nur zeigen, wenn ihr Bereich eingeschaltet ist.
    *
@@ -290,9 +303,29 @@ export default function DashboardView() {
             const w = getISOWeek(new Date(`${iso}T00:00:00`));
             return w.week === kw.week && w.year === kw.year;
           };
+          const sollMin = Math.round((Number(profile.weeklyTargetHours ?? 40) || 40) * 60);
+          /*
+            DIE TAGE MO–FR für die Balken — aus denselben Buchungen. Das
+            Tagessoll wie in `calcMonthStats`: Wochensoll durch die Zahl der
+            Arbeitstage, an freien Tagen null.
+          */
+          const arbeitstage = profile.workDays?.length ? profile.workDays : [1, 2, 3, 4, 5];
+          const montag = new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate());
+          montag.setDate(montag.getDate() - ((montag.getDay() + 6) % 7));
+          const tage: WochenTag[] = [0, 1, 2, 3, 4].map((i) => {
+            const d = new Date(montag);
+            d.setDate(montag.getDate() + i);
+            const datum = localDateStr(d);
+            return {
+              datum,
+              istMin: entries.filter((e) => e.date === datum).reduce((n, e) => n + calcWorkMin(e), 0),
+              sollMin: arbeitstage.includes(d.getDay()) ? Math.round(sollMin / arbeitstage.length) : 0,
+            };
+          });
           out.woche = {
             istMin: entries.filter((e) => inDieserWoche(e.date)).reduce((n, e) => n + calcWorkMin(e), 0),
-            sollMin: Math.round((Number(profile.weeklyTargetHours ?? 40) || 40) * 60),
+            sollMin,
+            tage,
           };
           const monatsKopf = `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, '0')}`;
           const imMonat = entries.filter((e) => e.date.startsWith(monatsKopf));
@@ -313,7 +346,13 @@ export default function DashboardView() {
          */
         const heute = todayStr();
         const heutige = einsaetze.filter((a) => a.date === heute);
-        if (heutige.length > 0) {
+        /*
+          DIE NÄCHSTEN EINSÄTZE des Monteurs — aus derselben Abfrage, und die
+          Baustellen dazu über dieselbe Lesefunktion wie in „Mein
+          Einsatzplan“, in EINEM Aufruf mit den heutigen.
+        */
+        const kommende = user.role === 'Mitarbeiter' ? einsaetze.filter((a) => a.date > heute) : [];
+        if (heutige.length > 0 || kommende.length > 0) {
           /*
             Die Ruestlisten des Tages dazu — aber nur, wenn das Modul an ist,
             und ohne die Startseite mitzureissen, wenn sie nicht kommen. Wo
@@ -321,8 +360,11 @@ export default function DashboardView() {
             darf nicht daran haengen, dass eine Materialabfrage durchkommt.
           */
           const [projekte, listen] = await Promise.all([
-            listProjectsByNumbers(user.companyId, heutige.map((a) => a.projectNumber)),
-            materialAn
+            listProjectsByNumbers(
+              user.companyId,
+              [...heutige, ...kommende].map((a) => a.projectNumber),
+            ),
+            materialAn && heutige.length > 0
               ? listEinsatzMaterialForDate(user.companyId, heute).catch(() => [])
               : Promise.resolve([]),
           ]);
@@ -341,10 +383,24 @@ export default function DashboardView() {
               contactPhone: pr?.contactPhone,
               asHelper: !!a.asHelper,
               comment: a.comment,
+              billingMode: pr?.billingMode,
+            };
+          });
+          out.naechste = kommende.map((a) => {
+            const pr = projekte.find((x) => x.projectNumber === a.projectNumber);
+            return {
+              id: a.id,
+              date: a.date,
+              projectNumber: a.projectNumber,
+              customerName: pr?.customerName,
+              address: pr?.address,
+              comment: a.comment,
+              asHelper: !!a.asHelper,
             };
           });
         } else {
           out.heuteEigene = [];
+          out.naechste = [];
         }
       }
       reiche(out);
@@ -408,6 +464,7 @@ export default function DashboardView() {
             .map(([pn, rows]) => {
               const pr = projects.find((x) => x.projectNumber === pn);
               return {
+                id: pr?.id,
                 projectNumber: pn,
                 customerName: pr?.customerName ?? `Baustelle ${pn}`,
                 address: pr?.address,
@@ -440,6 +497,7 @@ export default function DashboardView() {
                 const fachMin = hours?.fachMin ?? 0;
                 const state = calcBudgetState(fachMin, pr.estimatedHours);
                 return {
+                  id: pr.id,
                   projectNumber: pr.projectNumber,
                   customerName: pr.customerName,
                   pct: state.pct,
@@ -579,44 +637,36 @@ export default function DashboardView() {
   return (
     <div className="space-y-6">
       {/*
-        DER TAG IST DIE UEBERSCHRIFT, NICHT DIE BEGRUESSUNG.
+        DER KOPF: DER TAG KLEIN, DER GRUSS GROSS (docs/design/linie.md 9,
+        freigegeben für diesen Durchgang).
 
-        Hier stand „Willkommen, {Vorname}" ueber „{Firma} · Rolle: {Rolle}".
-        Beide Zeilen aendern sich nie — auf dem Bildschirm, der am oeftesten
-        geoeffnet wird, stand damit an der auffaelligsten Stelle nichts, was
-        man nicht schon wusste.
+        Bis zum 25.09.2026 stand hier das Datum als Titel und darunter „KW ·
+        Firma · Rolle: …“. Das Datum bleibt — es ist die billigste Auskunft
+        darüber, dass man auf den heutigen Tag schaut und keinen
+        zwischengespeicherten Stand (Service Worker) —, jetzt klein über dem
+        Titel, mit der Kalenderwoche, nach der im Betrieb geplant und
+        bestellt wird, und einem Feiertag, wenn heute einer ist.
 
-        Und darunter geht es ausschliesslich um HEUTE: „Heute — 2
-        Baustellen", „Heute im Einsatz", die fehlenden Buchungen, die faellige
-        Wartung. Das Thema der Seite war der heutige Tag, und genau der stand
-        nirgends.
-
-        DAS IST MEHR ALS SCHMUCK. Die App laeuft mit Service Worker und haelt
-        Ansichten vor; ein veralteter Stand sieht genauso aus wie ein frischer.
-        Ein sichtbares Datum ist die billigste Auskunft darueber, dass man auf
-        den heutigen Tag schaut — und nach einem Wochenende oder Feiertag
-        beantwortet es die Frage, warum nichts ansteht, bevor sie entsteht.
-
-        Die Kalenderwoche steht dabei: im Betrieb wird nach ihr geplant und
-        Material bestellt.
+        FIRMA UND ROLLE STEHEN HIER NICHT MEHR, weil sie woanders stehen:
+        der Betrieb in der Seitenleiste unter „Senklot“ und am Telefon in
+        der Kopfleiste (Logo oder Name), Name und Rolle unten in der
+        Seitenleiste und am Telefon hinter dem Avatar (Profil). Hier waren
+        sie die dritte Nennung derselben Tatsache.
       */}
-      <PageHeader
-        title={heuteKopf.datum}
-        subtitle={
-          <>
-            {/* Umbrechen nur zwischen den Teilen: auf 375 px stand sonst
-                „Rolle:" am Zeilenende und die Rolle allein darunter
-                (Prüflauf 24.09.2026, D13). */}
-            <span className="whitespace-nowrap">KW {heuteKopf.kw}</span> ·{' '}
-            {company?.name ?? 'Installateur-App'} ·{' '}
-            <span className="whitespace-nowrap">Rolle: {user.role}</span>
-            {heuteKopf.feiertag && (
-              <>
-                {' · '}
-                <span className="font-semibold text-warning">{heuteKopf.feiertag}</span>
-              </>
-            )}
-          </>
+      <StartKopf
+        datum={heuteKopf.datum}
+        kw={heuteKopf.kw}
+        feiertag={heuteKopf.feiertag}
+        titel={grussZeile(new Date(), user.name)}
+        band={monteur}
+        aktion={
+          /* Dieselbe Aktion wie „Zeit erfassen“ am Einsatz und der Eintrag
+             „Zeit“ der Leiste — am Schreibtisch als Hauptaktion der Seite. */
+          mitZeitkonto || monteur ? (
+            <Link to="/time" className="knopf-primaer">
+              Zeit buchen
+            </Link>
+          ) : undefined
         }
       />
 
@@ -629,13 +679,6 @@ export default function DashboardView() {
         eine dauerhafte grüne Kachel wäre nach zwei Wochen unsichtbar.
       */}
       <LaufWarnung />
-
-      {/*
-        Direkt danach die Wartungen: das Einzige auf dieser Seite, das UMSATZ
-        kostet, wenn man es übersieht — und zwar lautlos. Der Kunde meldet
-        sich nicht, wenn niemand kommt.
-      */}
-      <WartungHinweis />
 
       {/*
         KENNZAHLEN OBEN, als Wege dorthin (Design-Durchgang 25.09.2026).
@@ -663,15 +706,22 @@ export default function DashboardView() {
               <Metric
                 label="Überfällig"
                 tone="danger"
-                value={fmtEUR(data.invoiceSums.overdue)}
+                value={euroGanz(data.invoiceSums.overdue)}
                 to="/invoices?status=%C3%9Cberf%C3%A4llig"
               />
             )}
             {data.invoiceSums && data.invoiceSums.open > 0 && (
-              <Metric label="Offene Rechnungen" value={fmtEUR(data.invoiceSums.open)} to="/invoices" />
+              <Metric label="Offene Rechnungen" value={euroGanz(data.invoiceSums.open)} to="/invoices" />
             )}
           </MetricRow>
         )}
+
+      {/*
+        Direkt nach den Kennzahlen die Wartungen: das Einzige auf dieser
+        Seite, das UMSATZ kostet, wenn man es übersieht — und zwar lautlos.
+        Der Kunde meldet sich nicht, wenn niemand kommt.
+      */}
+      <WartungHinweis />
 
       {/*
         Fehlende Zeiten statt Saldo.
@@ -686,7 +736,7 @@ export default function DashboardView() {
         alle, die ein Zeitkonto FUEHREN — die Administration hat keines und
         braucht den Hinweis nicht.
       */}
-      {mitZeitkonto && data.hatEintritt === false && (
+      {!monteur && mitZeitkonto && data.hatEintritt === false && (
         <Meldung ton="info" titel="Kein Eintrittsdatum hinterlegt">
           <p>
             Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen und wie der Saldo
@@ -708,336 +758,319 @@ export default function DashboardView() {
           monat={data.monat}
           fehlendeTage={offeneTage}
           offeneAnforderungen={data.ownOpenOrders}
+          naechste={data.naechste}
+          hinweis={
+            /* Beim Monteur unter „Heute“ statt darüber: die Heute-Karte ragt
+               am Telefon in das Kopfband und muss direkt darauf folgen. */
+            data.hatEintritt === false ? (
+              <Meldung ton="info" titel="Kein Eintrittsdatum hinterlegt">
+                <p>
+                  Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen und wie der Saldo
+                  steht. Die Geschäftsführung kann es in der Benutzerverwaltung nachtragen.
+                </p>
+              </Meldung>
+            ) : undefined
+          }
           scheineAn={scheineAn}
           materialAn={materialAn}
         />
       )}
 
+      {/*
+        TAGE OHNE BUCHUNG ALS ZEILE MIT PFEIL, wie beim Monteur („Offen für
+        dich“, Mockup S. 1, 7). Bis zum 25.09.2026 stand hier ein gelber
+        Hinweiskasten mit „Jetzt nachtragen“ im Satz; die Zeile ist jetzt
+        selbst der Weg in die Zeiterfassung. Die Tage stehen weiter
+        ausgeschrieben — gezeigt werden die LETZTEN fünf.
+      */}
       {!monteur && offeneTage.length > 0 && (
-        <Meldung
-          ton="warnung"
-          role="alert"
-          titel={offeneTage.length === 1 ? 'Ein Tag ohne Buchung' : `${offeneTage.length} Tage ohne Buchung`}
-        >
-          {/* Die Tage stehen als Satz, nicht als Liste — deshalb keine
-              Grenzliste: gezeigt werden die LETZTEN fünf, und eine Zeile je
-              Datum machte aus dem Hinweis eine Tabelle. */}
-          <p>
-            {offeneTage.slice(-5).map(fmtTag).join(', ')}
-            {offeneTage.length > 5 && ` und ${offeneTage.length - 5} weitere`}.{' '}
-            <Link to="/time" className="textlink">
-              Jetzt nachtragen
-            </Link>
-          </p>
-        </Meldung>
+        <Card title="Offen für dich">
+          <List>
+            <ListRow
+              ziel="/time"
+              title={
+                offeneTage.length === 1
+                  ? 'Ein Tag ohne Buchung'
+                  : `${offeneTage.length} Tage ohne Buchung`
+              }
+              subtitle={
+                <>
+                  {offeneTage.slice(-5).map(fmtTag).join(', ')}
+                  {offeneTage.length > 5 && ` und ${offeneTage.length - 5} weitere`}
+                </>
+              }
+            />
+          </List>
+        </Card>
       )}
 
       {/*
-        Die eigenen Einsaetze von heute — fuer den Monteur die wichtigste
-        Information des Tages, deshalb ganz oben. MEHRERE moeglich: wer
-        vormittags woanders ist als nachmittags, sah vorher nur die erste
-        Baustelle.
+        AM SCHREIBTISCH ZWEI SPALTEN (ab 1280 px, `.akte` wie in den Akten und
+        im Verhältnis 3 : 2 wie der Monteur-Start, docs/design/linie.md 1):
+        links, wo heute gearbeitet wird — die eigenen Einsätze, die Einteilung
+        des Betriebs, die laufenden Baustellen —, rechts Stand und Nächstes:
+        Baustellen am Limit, Material, Mannschaft. Steht nur auf einer Seite
+        etwas, bleibt es eine Spalte über die ganze Breite statt neben einer
+        leeren. Am Telefon und Tablet dieselbe Reihenfolge untereinander.
       */}
-      {!monteur && data.heuteEigene && data.heuteEigene.length > 0 && (
-        <Card
-          title={data.heuteEigene.length === 1 ? 'Heute' : `Heute — ${data.heuteEigene.length} Baustellen`}
-          action={
-            <Link to="/my-schedule" className="textlink-allein">
-              Mein Einsatzplan
-            </Link>
-          }
-        >
-          <div className="space-y-4">
-            {data.heuteEigene.map((e) => (
-              <div key={e.id} className="kasten-hell">
-                <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-ink">
-                  {e.customerName}
-                  {e.asHelper && <Marke>Helfer</Marke>}
-                </p>
-                <p className="text-sm text-ink-muted">{e.projectNumber}</p>
-                {e.comment && (
-                  <p className="mt-2 rounded-sm bg-surface-2 p-2 text-sm text-ink">{e.comment}</p>
-                )}
-                <KontaktZeile
-                  adresse={e.address}
-                  nummer={e.contactPhone}
-                  name={e.contactName}
-                  className="mt-3"
-                />
-                {/*
-                  Was mitzunehmen ist — unter der Adresse, ueber den Knoepfen.
-                  Die Reihenfolge ist die des Morgens: wohin, was mit, dann
-                  losfahren. Der Haken gilt fuer die Mannschaft, nicht fuer
-                  die Person: die Kiste steht einmal im Bus.
-                */}
-                {materialAn && e.material && e.material.length > 0 && (
-                  <RuestlisteAbhaken
-                    date={e.date}
-                    projectNumber={e.projectNumber}
-                    positionen={e.material}
-                    geladen={e.geladen ?? {}}
+      {(() => {
+        const links = [
+          /*
+            Die eigenen Einsaetze von heute — fuer den Monteur die wichtigste
+            Information des Tages, deshalb ganz oben. MEHRERE moeglich: wer
+            vormittags woanders ist als nachmittags, sah vorher nur die erste
+            Baustelle.
+          */
+          !monteur && data.heuteEigene && data.heuteEigene.length > 0 && (
+            <HeuteKarte
+              key="heute"
+              einsaetze={data.heuteEigene}
+              scheineAn={scheineAn}
+              materialAn={materialAn}
+              aktion={
+                <Link to="/my-schedule" className="textlink-allein">
+                  Mein Einsatzplan
+                </Link>
+              }
+            />
+          ),
+
+          /*
+            Die heutige Einteilung des Betriebs — die Frage, mit der die
+            Leitung in den Tag geht: wer ist wo? Jede Baustelle führt in ihre
+            Akte; Adresse und Telefon stehen als Chips darunter, außerhalb
+            der Tastfläche der Zeile (ein Link im Link ginge nicht).
+          */
+          leitung && data.heuteBetrieb && data.heuteBetrieb.length > 0 && (
+            <Card
+              key="betrieb"
+              title="Heute im Einsatz"
+              action={
+                <Link to="/assignments" className="textlink-allein">
+                  Zur Einsatzplanung
+                </Link>
+              }
+            >
+              <List>
+                {data.heuteBetrieb.map((b) => (
+                  <ListRow
+                    key={b.projectNumber}
+                    ziel={b.id ? `/admin-projects/${b.id}` : undefined}
+                    title={b.customerName}
+                    subtitle={
+                      <>
+                        <span>{b.projectNumber}</span> · <span>{b.namen.join(', ')}</span>
+                      </>
+                    }
+                    zustand={
+                      <Marke>
+                        {b.namen.length} {b.namen.length === 1 ? 'Person' : 'Personen'}
+                        {b.helfer > 0 && `, davon ${b.helfer} Helfer`}
+                      </Marke>
+                    }
+                    unten={
+                      <KontaktZeile
+                        adresse={b.address}
+                        nummer={b.contactPhone}
+                        name={b.contactName}
+                        className="pb-3"
+                      />
+                    }
+                  />
+                ))}
+              </List>
+            </Card>
+          ),
+
+          /*
+            Alle laufenden Baustellen. Das Radar rechts zeigt, was aus dem
+            Ruder laeuft; diese Karte beantwortet die schlichtere Frage „was
+            haben wir gerade?", fuer die man bisher in die Verwaltung wechseln
+            musste.
+
+            ZWÖLF, nicht fünf: für die Frage „welche Baustellen haben wir
+            gerade?" braucht es mehr als einen Ausschnitt. Der Rest steht als
+            Zahl da, mit dem Weg dorthin — dasselbe Muster wie bei den offenen
+            Anforderungen. Bei achtzig Baustellen stünde sonst die längste und
+            harmloseste Liste der Seite vor den kurzen, wichtigen.
+
+            Jede Zeile führt in die Akte der Baustelle. Das Budget steht
+            rechts als Marke, Adresse und Telefon als Chips darunter.
+          */
+          leitung && data.aktiveBaustellen && data.aktiveBaustellen.length > 0 && (
+            <Card
+              key="baustellen"
+              title="Aktive Baustellen" anzahl={data.aktiveBaustellen.length}
+              action={
+                <Link to="/admin-projects" className="textlink-allein">
+                  Baustellen verwalten
+                </Link>
+              }
+            >
+              <Grenzliste
+                eintraege={data.aktiveBaustellen}
+                grenze={BAUSTELLEN_AUF_STARTSEITE}
+                mehr={{ to: '/admin-projects' }}
+                nachsatz="— alle unter Baustellen."
+                zeile={(pr) => (
+                  <ListRow
+                    key={pr.id}
+                    ziel={`/admin-projects/${pr.id}`}
+                    title={pr.customerName}
+                    subtitle={pr.projectNumber}
+                    zustand={
+                      pr.estimatedHours ? (
+                        <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke>
+                      ) : undefined
+                    }
+                    unten={
+                      <KontaktZeile
+                        adresse={pr.address}
+                        nummer={pr.contactPhone}
+                        name={pr.contactName}
+                        className="pb-3"
+                      />
+                    }
                   />
                 )}
-                {/*
-                  Der Schein entsteht am Ende genau dieses Einsatzes. Ihn hier
-                  anzubieten spart den Umweg ueber einen eigenen Bereich, in
-                  dem die Baustelle noch einmal gesucht werden muesste.
-                */}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    to="/time"
-                    state={{ projectNumber: e.projectNumber, asHelper: !!e.asHelper }}
-                    className="knopf-primaer"
-                  >
-                    Zeit erfassen
-                  </Link>
-                  {scheineAn && (
-                    <Link
-                      to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
-                      className="knopf-sekundaer"
-                    >
-                      Schein schreiben
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
+              />
+            </Card>
+          ),
+        ].filter(Boolean);
+
+        const rechts = [
+          /*
+            Projekt-Radar: nur was aus dem Ruder läuft. Nach Auslastung
+            sortiert, die schlimmsten oben — acht davon sind eine
+            Arbeitsliste, vierzig eine Tapete, in der die eine untergeht, die
+            wirklich brennt. Jede Zeile führt in die Akte der Baustelle.
+          */
+          data.projectAlerts && data.projectAlerts.length > 0 && (
+            <Card
+              key="limit"
+              title="Baustellen am Limit"
+              action={
+                <Link to="/accounting" className="textlink-allein">
+                  Zur Auswertung
+                </Link>
+              }
+            >
+              <Grenzliste
+                eintraege={data.projectAlerts}
+                grenze={WARNUNGEN_AUF_STARTSEITE}
+                mehr={{ to: '/accounting' }}
+                nachsatz="— in der Auswertung."
+                zeile={(pr) => (
+                  <ListRow
+                    key={pr.projectNumber}
+                    ziel={`/admin-projects/${pr.id}`}
+                    title={pr.customerName}
+                    subtitle={
+                      <>
+                        {pr.projectNumber} · {fmtStd(pr.usedMin)} von {fmtStunden(pr.estimatedHours)} h
+                      </>
+                    }
+                    zustand={
+                      <Warnung stufe={pr.over ? 'dringend' : 'achtung'}>
+                        {pr.over ? 'überschritten' : `${pr.pct} %`}
+                      </Warnung>
+                    }
+                  />
+                )}
+              />
+            </Card>
+          ),
+
+          /* Offene Materialanforderungen — als Liste, weil eine Zahl nicht
+             sagt, was der Monteur auf der Baustelle braucht. Jede Zeile führt
+             in die Anforderungen, wo sie bearbeitet wird. */
+          materialAn && data.openOrders && data.openOrders.length > 0 && (
+            <Card
+              key="material"
+              title="Material angefordert" anzahl={data.openOrders.length}
+              action={
+                <Link to="/material/anforderungen" className="textlink-allein">
+                  Bearbeiten
+                </Link>
+              }
+            >
+              <Grenzliste
+                eintraege={data.openOrders}
+                grenze={5}
+                mehr={{ to: '/material/anforderungen' }}
+                zeile={(o) => (
+                  <ListRow
+                    key={o.id}
+                    ziel="/material/anforderungen"
+                    title={
+                      <>
+                        {o.quantity}× {o.materialName}
+                      </>
+                    }
+                    subtitle={[o.userName, o.projectNumber].filter(Boolean).join(' · ')}
+                    zustand={<StatusBadge status={o.status} />}
+                  />
+                )}
+              />
+            </Card>
+          ),
+
+          /*
+            Team: wer hat noch nicht gebucht. Kein Saldo mehr — der
+            beantwortete die Frage nicht, die jemand mit dieser Liste vor sich
+            hat, und kostete jeden Zeiteintrag des Betriebs. Jede Zeile führt
+            in die Mitarbeiterübersicht, wo Lücken und Saldo je Person stehen.
+            Der Satz zum Zeitraum steht im Kartenfuß, wie „Weitere … laden“.
+          */
+          data.team && data.team.length > 0 && (
+            <Card
+              key="team"
+              title="Team — offene Zeiten"
+              action={
+                <Link to="/accounting" className="textlink-allein">
+                  Zur Monatsauswertung
+                </Link>
+              }
+              footer={
+                <p className="text-xs text-ink-muted">
+                  Geprüft werden die letzten {LUECKEN_TAGE} Tage bis gestern. Der Stundensaldo
+                  steht im Zeitkonto des Mitarbeiters.
+                </p>
+              }
+            >
+              <List>
+                {data.team.map((t) => (
+                  <ListRow
+                    key={t.uid}
+                    ziel="/accounting"
+                    title={t.name}
+                    zustand={
+                      !t.hatKonfig ? (
+                        <Marke>kein Startdatum</Marke>
+                      ) : t.fehlendeTage > 0 ? (
+                        <Warnung>{tageWort(t.fehlendeTage)} offen</Warnung>
+                      ) : (
+                        <Zustand stand="gut">vollständig</Zustand>
+                      )
+                    }
+                  />
+                ))}
+              </List>
+            </Card>
+          ),
+        ].filter(Boolean);
+
+        if (links.length === 0 && rechts.length === 0) return null;
+        if (links.length === 0 || rechts.length === 0) {
+          return <div className="akte-einspaltig">{[...links, ...rechts]}</div>;
+        }
+        return (
+          <div className="akte">
+            <div className="akte-links">{links}</div>
+            <div className="akte-rechts">{rechts}</div>
           </div>
-        </Card>
-      )}
-
-      {/*
-        Die heutige Einteilung des Betriebs — die Frage, mit der die Leitung
-        in den Tag geht: wer ist wo? Beantwortete die Startseite bisher gar
-        nicht.
-      */}
-      {leitung && data.heuteBetrieb && data.heuteBetrieb.length > 0 && (
-        <Card
-          title="Heute im Einsatz"
-          action={
-            <Link to="/assignments" className="textlink-allein">
-              Zur Einsatzplanung
-            </Link>
-          }
-        >
-          <List>
-            {data.heuteBetrieb.map((b) => (
-              <ListRow
-                key={b.projectNumber}
-                title={
-                  <span>
-                    {b.customerName}{' '}
-                    <span className="text-sm font-normal text-ink-muted">
-                      ({b.projectNumber})
-                    </span>
-                  </span>
-                }
-                subtitle={
-                  <>
-                    {b.namen.join(', ')}
-                    <span className="mt-2 flex flex-wrap items-center gap-x-3">
-                      <AdresseLink adresse={b.address} />
-                      <TelefonLink nummer={b.contactPhone} name={b.contactName} />
-                    </span>
-                  </>
-                }
-                zustand={
-                  <Marke>
-                    {b.namen.length} {b.namen.length === 1 ? 'Person' : 'Personen'}
-                    {b.helfer > 0 && `, davon ${b.helfer} Helfer`}
-                  </Marke>
-                }
-              />
-            ))}
-          </List>
-        </Card>
-      )}
-
-
-      {/*
-        Alle laufenden Baustellen. Das Radar darunter zeigt, was aus dem Ruder
-        laeuft; diese Karte beantwortet die schlichtere Frage „was haben wir
-        gerade?", fuer die man bisher in die Verwaltung wechseln musste.
-      */}
-      {/*
-        WIE VIELE ZEILEN DIE STARTSEITE VERTRÄGT.
-
-        Diese Karte zeigte ALLE laufenden Baustellen. Bei zwanzig Stück geht
-        das — der Kommentar unten spricht genau davon —, bei achtzig nicht
-        mehr: dann steht die längste und harmloseste Liste der Seite vor den
-        kurzen, wichtigen darunter (Baustellen am Limit, Material,
-        Mannschaft). Die Startseite wird dadurch nicht falsch, aber ihre
-        Reihenfolge kippt, und das ist ihr einziger Zweck.
-
-        ZWÖLF, nicht fünf: die Karte beantwortet die Frage „welche Baustellen
-        haben wir gerade?", und dafür braucht es mehr als einen Ausschnitt.
-        Der Rest steht als Zahl da, mit dem Weg dorthin — dasselbe Muster wie
-        bei den offenen Anforderungen und den Tagen ohne Buchung.
-      */}
-      {leitung && data.aktiveBaustellen && data.aktiveBaustellen.length > 0 && (
-        <Card
-          title={`Aktive Baustellen (${data.aktiveBaustellen.length})`}
-          action={
-            <Link to="/admin-projects" className="textlink-allein">
-              Baustellen verwalten
-            </Link>
-          }
-        >
-          <Grenzliste
-            eintraege={data.aktiveBaustellen}
-            grenze={BAUSTELLEN_AUF_STARTSEITE}
-            mehr={{ to: '/admin-projects' }}
-            nachsatz="— alle unter Baustellen."
-            zeile={(pr) => (
-              <ListRow
-                key={pr.id}
-                title={
-                  <span>
-                    {pr.customerName}{' '}
-                    <span className="text-sm font-normal text-ink-muted">
-                      ({pr.projectNumber})
-                    </span>
-                  </span>
-                }
-                /*
-                  Kompakt gehalten: bei zwölf Zeilen entscheidet die
-                  Zeilenhoehe darueber, ob die Liste noch zu ueberblicken ist.
-                  Die Adresse bleibt einzeilig und wird abgeschnitten — sie ist
-                  hier der Anfasser zur Karte, nicht der vorzulesende Text.
-
-                  Das Budget steht in der Unterzeile, nicht rechts als
-                  Zustand: es ist eine Notiz, kein Stand — und rechts nähme
-                  es der Adresse am Telefon die Breite, die sie ungekürzt
-                  braucht.
-                */
-                subtitle={
-                  <>
-                    {pr.estimatedHours ? (
-                      <span className="block">
-                        <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke>
-                      </span>
-                    ) : null}
-                    <span className="flex min-w-0 flex-wrap items-center gap-x-3">
-                      <AdresseLink adresse={pr.address} className="min-w-0 max-w-full [&>span]:truncate" />
-                      <TelefonLink nummer={pr.contactPhone} name={pr.contactName} />
-                    </span>
-                  </>
-                }
-              />
-            )}
-          />
-        </Card>
-      )}
-
-      {/* Projekt-Radar: nur was aus dem Ruder läuft. */}
-      {data.projectAlerts && data.projectAlerts.length > 0 && (
-        <Card
-          title="Baustellen am Limit"
-          action={
-            <Link to="/accounting" className="textlink-allein">
-              Zur Auswertung
-            </Link>
-          }
-        >
-          {/*
-            Die Liste ist nach Auslastung sortiert, die schlimmsten stehen
-            oben. Acht davon sind eine Arbeitsliste; vierzig sind eine
-            Tapete, die niemand mehr liest — und dann geht auch die eine
-            unter, die wirklich brennt.
-          */}
-          <Grenzliste
-            eintraege={data.projectAlerts}
-            grenze={WARNUNGEN_AUF_STARTSEITE}
-            mehr={{ to: '/accounting' }}
-            nachsatz="— in der Auswertung."
-            zeile={(pr) => (
-              <ListRow
-                key={pr.projectNumber}
-                title={pr.customerName}
-                subtitle={
-                  <>
-                    {fmtStd(pr.usedMin)} von {fmtStunden(pr.estimatedHours)} h · {pr.projectNumber}
-                  </>
-                }
-                zustand={
-                  <Warnung stufe={pr.over ? 'dringend' : 'achtung'}>
-                    {pr.over ? 'überschritten' : `${pr.pct} %`}
-                  </Warnung>
-                }
-              />
-            )}
-          />
-        </Card>
-      )}
-
-      {/* Offene Materialanforderungen — als Liste, weil eine Zahl nicht sagt,
-          was der Monteur auf der Baustelle braucht. */}
-      {materialAn && data.openOrders && data.openOrders.length > 0 && (
-        <Card
-          title={`Material angefordert (${data.openOrders.length})`}
-          action={
-            <Link to="/material/anforderungen" className="textlink-allein">
-              Bearbeiten
-            </Link>
-          }
-        >
-          <Grenzliste
-            eintraege={data.openOrders}
-            grenze={5}
-            mehr={{ to: '/material/anforderungen' }}
-            zeile={(o) => (
-              <ListRow
-                key={o.id}
-                title={
-                  <>
-                    {o.quantity}× {o.materialName}
-                  </>
-                }
-                subtitle={[o.userName, o.projectNumber].filter(Boolean).join(' · ')}
-                zustand={<StatusBadge status={o.status} />}
-              />
-            )}
-          />
-        </Card>
-      )}
-
-      {/*
-        Team: wer hat noch nicht gebucht. Kein Saldo mehr — der beantwortete
-        die Frage nicht, die jemand mit dieser Liste vor sich hat, und kostete
-        jeden Zeiteintrag des Betriebs.
-      */}
-      {data.team && data.team.length > 0 && (
-        <Card
-          title="Team — offene Zeiten"
-          action={
-            <Link to="/accounting" className="textlink-allein">
-              Zur Monatsauswertung
-            </Link>
-          }
-        >
-          <List>
-            {data.team.map((t) => (
-              <ListRow
-                key={t.uid}
-                title={t.name}
-                zustand={
-                  !t.hatKonfig ? (
-                    <Marke>kein Startdatum</Marke>
-                  ) : t.fehlendeTage > 0 ? (
-                    <Warnung>{tageWort(t.fehlendeTage)} offen</Warnung>
-                  ) : (
-                    <Zustand stand="gut">vollständig</Zustand>
-                  )
-                }
-              />
-            ))}
-          </List>
-          <p className="mt-3 text-xs text-ink-muted">
-            Geprüft werden die letzten {LUECKEN_TAGE} Tage bis gestern. Der Stundensaldo steht im
-            Zeitkonto des Mitarbeiters.
-          </p>
-        </Card>
-      )}
+        );
+      })()}
 
       {nochAmLaden && (
         <Card>

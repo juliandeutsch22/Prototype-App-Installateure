@@ -729,6 +729,17 @@ describe('Einsätze am Tag — ansehen und bearbeiten', () => {
     const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
     expect(within(karte).getByText('Nur vormittags')).toBeInTheDocument();
   });
+
+  it('trennt die Baustellen durch eine Linie, nicht durch einen Kasten in der Karte', async () => {
+    // docs/design/linie.md 2: keine Karte in der Karte — je Baustelle ein
+    // Abschnitt mit Titel und Unterzeile „Nummer · Mannschaft".
+    geplant();
+    zeige();
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    expect(karte.querySelector('.gruppe')).toBeNull();
+    const titel = within(karte).getByRole('heading', { level: 3 });
+    expect(titel.nextElementSibling).toHaveTextContent('1 Facharbeiter · 1 Helfer');
+  });
 });
 
 describe('Einsatz löschen', () => {

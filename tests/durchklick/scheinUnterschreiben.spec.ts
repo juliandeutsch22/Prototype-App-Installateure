@@ -105,18 +105,33 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   */
   await page.getByLabel('Kunde (Name in Druckbuchstaben)').fill(BAUSTELLE.kunde);
 
-  const felder = page.locator('canvas');
-  await expect(felder).toHaveCount(2);
-  await expect(felder.nth(0)).toBeVisible();
-  await expect(felder.nth(1)).toBeVisible();
+  /*
+    AM TELEFON WIRD IN EINEM BLATT UNTERSCHRIEBEN (seit 25.09.2026, Mockup
+    S. 6). Im Formular steht je Unterschrift nur eine Kachel; ein Tipp öffnet
+    die Zeichenfläche bildschirmfüllend, „Fertig" schliesst sie wieder. Der
+    Weg zeichnet deshalb im Blatt statt im Formular — mit derselben Maus und
+    derselben Prüfung, dass unter dem Zeiger wirklich das Canvas liegt. Vor
+    dem Öffnen gibt es im Formular keine Zeichenfläche.
+  */
+  await expect(page.locator('canvas')).toHaveCount(0);
+  async function imBlatt(titel: string, hoehe: number) {
+    await page.getByRole('button', { name: `${titel} — zum Unterschreiben antippen` }).click();
+    const blatt = page.getByRole('dialog', { name: titel });
+    await expect(blatt).toBeVisible();
+    await unterschreiben(blatt.locator('canvas'), hoehe);
+    await blatt.getByRole('button', { name: 'Fertig' }).click();
+    await expect(blatt).toBeHidden();
+  }
   /*
     ZWEI VERSCHIEDENE ZÜGE, und das ist kein Schmuck. Mit demselben Strich auf
     beiden Feldern wäre diese Prüfung blind dafür, dass die Ansicht zweimal
     dasselbe Bild einfriert — ein Schein, auf dem der Kunde die Handschrift des
     Monteurs trägt. Genau diese Mutation ist beim ersten Anlauf durchgekommen.
   */
-  await unterschreiben(felder.nth(0), 12);
-  await unterschreiben(felder.nth(1), 28);
+  await imBlatt('Unterschrift Monteur', 12);
+  // Die Unterschrift des Monteurs steht danach als erledigte Zeile da.
+  await expect(page.getByText('Monteur hat unterschrieben')).toBeVisible();
+  await imBlatt('Unterschrift Kunde', 28);
 
   await page.getByRole('button', { name: 'Unterschreiben und abschließen' }).click();
 

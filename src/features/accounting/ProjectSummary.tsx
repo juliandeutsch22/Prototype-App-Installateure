@@ -5,6 +5,7 @@ import {
   normProjectNumber,
   calcWorkMin,
   fmtMin,
+  fmtDauer,
   fmtStd,
   balkenBreite,
   fmtStunden,
@@ -15,13 +16,20 @@ import { Warnung } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
 import Icon from '@/components/Icon';
 import { EmptyState } from '@/components/States';
+import { List, ListRow } from '@/components/ListRow';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
-const BAR_TONE = {
-  success: 'bg-success',
-  warning: 'bg-warning',
-  danger: 'bg-accent',
-  neutral: 'bg-line',
+/*
+ * DER BALKEN WIE IN DER BAUSTELLENAKTE (`BaustellenUebersicht`) — dieselben
+ * Klassen, dieselbe Zuordnung: im Plan Akzent, ab 80 % Warnfarbe, über dem
+ * Budget deckend `--danger`. Vorher stand „über Budget" ausgerechnet in der
+ * Akzentfarbe, also in der Farbe des Normalfalls.
+ */
+const BALKEN = {
+  success: 'budget-fuellung',
+  warning: 'budget-fuellung-warnung',
+  danger: 'budget-fuellung-ueber',
+  neutral: 'budget-fuellung',
 } as const;
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026' — das Datum wie überall in der App. */
@@ -228,7 +236,13 @@ export default function ProjectSummary({
 
   return (
     <Card title={`Projektauswertung ${label}`}>
-      <div className="space-y-3">
+      {/*
+        ZEILEN MIT AUFKLAPPER, KEINE KARTEN IN DER KARTE (docs/design/linie.md
+        2). Bis zum 25.09.2026 stand jede Baustelle als eigene `.karte` mit
+        Rahmen und Schatten in dieser Karte; jetzt trennt sie eine Haarlinie
+        wie jede Liste, und die Einzelheiten klappen unter der Zeile auf.
+      */}
+      <ul className="liste">
         {rows.map((r) => {
           const isOpen = open === r.projectNumber;
           const nummer = angezeigteNummer(r);
@@ -239,22 +253,15 @@ export default function ProjectSummary({
               der Mitarbeiterübersicht, hier war sie stehengeblieben. Der
               farbige Kopf schrie lauter als der Inhalt, den er ankündigte,
               und zwang zugleich jede Zahl darin in eine zweite Farbfassung.
-              Jetzt genügt der hellere Grund und die farbige Kante.
-
-              `.karte` bringt Fläche, Rundung und Schatten mit; offen
-              (`.karte-offen`) wird allein die Rahmenfarbe kräftiger.
+              Offen zeigt es allein der gedrehte Winkel; die Einzelheiten
+              stehen unter einer Haarlinie in derselben Zeile.
             */
-            <div
-              key={r.projectNumber}
-              className={isOpen ? 'karte-offen' : 'karte'}
-            >
+            <li key={r.projectNumber} className="zeile-huelle">
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : r.projectNumber)}
                 aria-expanded={isOpen}
-                className={`w-full px-4 py-3 text-left transition-colors ${
-                  isOpen ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
-                }`}
+                className="auswertung-knopf"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="min-w-0">
@@ -315,7 +322,7 @@ export default function ProjectSummary({
                       <span className="font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
                       <span>{fmtStunden(r.project?.estimatedHours ?? 0)} h</span>
                     </p>
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="budget-reihe mt-1">
                       <Balken r={r} />
                     </div>
                   </>
@@ -328,11 +335,11 @@ export default function ProjectSummary({
                 )}
               </button>
 
-              {isOpen && <Einzelheiten r={r} label={label} />}
-            </div>
+              {isOpen && <Einzelheiten r={r} label={label} inZeile />}
+            </li>
           );
         })}
-      </div>
+      </ul>
     </Card>
   );
 }
@@ -342,17 +349,13 @@ function Balken({ r }: { r: Zeile }) {
   if (!r.budget || r.budget.pct === null) return null;
   return (
     <>
-      <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
+      <span className="budget-schiene">
         <span
-          className={`block h-full ${BAR_TONE[r.budget.tone]}`}
+          className={BALKEN[r.budget.tone]}
           style={{ width: balkenBreite(r.budget.pct) }}
         />
       </span>
-      <span
-        className={`shrink-0 text-xs font-semibold ${
-          r.budget.over ? 'text-accent' : 'text-ink-muted'
-        }`}
-      >
+      <span className={r.budget.over ? 'budget-prozent-ueber' : 'budget-prozent'}>
         {r.budget.pct} %
       </span>
     </>
@@ -363,7 +366,25 @@ function Balken({ r }: { r: Zeile }) {
  * Der aufgeklappte Teil einer Baustelle: wer wie viel, jeder Tag, die Summe.
  * In der Karte am Telefon und in der Tabellenzeile am Schreibtisch derselbe.
  */
-function Einzelheiten({ r, label }: { r: Zeile; label: string }) {
+function Einzelheiten({
+  r,
+  label,
+  inZeile = false,
+}: {
+  r: Zeile;
+  label: string;
+  /** Unter einer Listenzeile (Telefon): bündig mit der Zeile, ohne eigenen Seitenabstand. */
+  inZeile?: boolean;
+}) {
+  /*
+    AM TELEFON EINE LISTE, AB 640 PX DIE TABELLE — genau eine Form im DOM.
+    Die vierspaltige Tabelle war am Telefon breiter als die Karte; die
+    Stunden, um die es geht, standen erst nach seitlichem Wischen da. Als
+    Zeile stehen sie rechts, ohne Wischen: Titel die Person, Unterzeile Tag
+    und Tätigkeit, Wert die Dauer.
+  */
+  const tabelle = useAbBreite(640);
+  const eintraege = [...r.entries].sort((a, b) => b.date.localeCompare(a.date));
   // Mitarbeiter-Zwischensummen, größter Beitrag zuerst.
   const byUser = new Map<string, { name: string; fachMin: number; helperMin: number }>();
   for (const e of r.entries) {
@@ -383,7 +404,7 @@ function Einzelheiten({ r, label }: { r: Zeile; label: string }) {
   );
 
   return (
-    <div className="border-t border-line px-4 py-3">
+    <div className={inZeile ? 'auswertung-einzelheiten' : 'border-t border-line px-4 py-3'}>
       {/*
         WER WIE VIEL als eine Zeile Text, nicht als Pillen: Pillen sind in
         dieser Ansicht der Ausnahme vorbehalten („über Budget"), und ein Name
@@ -399,20 +420,38 @@ function Einzelheiten({ r, label }: { r: Zeile; label: string }) {
         ))}
       </p>
 
-      <div className="tabelle-rahmen mt-3">
-        <table className="tabelle min-w-[28rem]">
-          <thead>
-            <tr>
-              <th className="tabelle-kopf">Tag</th>
-              <th className="tabelle-kopf">Mitarbeiter</th>
-              <th className="tabelle-kopf">Tätigkeit</th>
-              <th className="tabelle-kopf-zahl">Stunden</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...r.entries]
-              .sort((a, b) => b.date.localeCompare(a.date))
-              .map((e) => (
+      {!tabelle ? (
+        <div className="mt-3">
+          <List>
+            {eintraege.map((e) => (
+              <ListRow
+                key={e.id}
+                // Die Marker am Namen wie in der Tabelle — keine Zeilenfarbe.
+                title={
+                  <>
+                    <span>{e.userName ?? '–'}</span>
+                    <Zeitmarker eintrag={e} />
+                  </>
+                }
+                subtitle={`${dayLabel(e.date)}${e.comment ? ` · „${e.comment}"` : ''}`}
+                wert={fmtDauer(calcWorkMin(e))}
+              />
+            ))}
+          </List>
+        </div>
+      ) : (
+        <div className="tabelle-rahmen mt-3">
+          <table className="tabelle min-w-[28rem]">
+            <thead>
+              <tr>
+                <th className="tabelle-kopf">Tag</th>
+                <th className="tabelle-kopf">Mitarbeiter</th>
+                <th className="tabelle-kopf">Tätigkeit</th>
+                <th className="tabelle-kopf-zahl">Stunden</th>
+              </tr>
+            </thead>
+            <tbody>
+              {eintraege.map((e) => (
                 /*
                   KEIN GELBER GRUND MEHR für Helferzeilen: dieselbe Regel wie
                   oben — Helferstunden sind der Normalfall, keine Warnung.
@@ -446,9 +485,10 @@ function Einzelheiten({ r, label }: { r: Zeile; label: string }) {
                   </td>
                 </tr>
               ))}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <p className="mt-3 border-t border-line pt-2 text-sm">
         {/*

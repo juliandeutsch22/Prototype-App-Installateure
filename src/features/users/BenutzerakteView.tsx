@@ -207,13 +207,24 @@ export default function BenutzerakteView() {
   return (
     <div className="space-y-6">
       <PageHeader
+        /* Der Rückweg über dem Titel, darunter „Rolle · Anmeldung“ und ein
+           stillgelegtes Konto als Marke (docs/design/linie.md 1). */
+        ueber={
+          <Link to="/user-mgmt" className="akte-zurueck">
+            ← Zur Benutzerliste
+          </Link>
+        }
         title={p.name}
         subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/user-mgmt" className="textlink-allein">← Zur Benutzerliste</Link>
-            <Marke>{p.role}</Marke>
-            {p.active === false && <Marke>inaktiv</Marke>}
-          </span>
+          <>
+            {p.role} · {kontoAnzeige(p.email)}
+            {p.active === false && (
+              <>
+                {' '}
+                · <Marke>inaktiv</Marke>
+              </>
+            )}
+          </>
         }
       />
 
@@ -509,7 +520,9 @@ function StammdatenFormular({
         eingeklappt — dort stimmen die Vorgaben meistens. Hier sind sie der
         Grund, warum jemand die Akte öffnet.
       */}
-      <div className="kasten space-y-4">
+      {/* Mit Haarlinie abgesetzt statt in einem getönten Kasten — keine
+          Karte in der Karte (docs/design/linie.md 2). */}
+      <div className="akte-abschnitt space-y-4">
         <p className="section-label">Zeitkonto</p>
         {/*
           Nur die Geschäftsführung wählt: der angestellte Geschäftsführer hat

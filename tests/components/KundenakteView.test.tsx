@@ -437,7 +437,9 @@ describe('Die Rechnungen der Akte', () => {
       totalBrutto: 1200, paymentStatus: 'Teilbezahlt',
     }];
     zeige();
-    const link = await screen.findByRole('link', { name: 'RE-2026-1001' });
+    // Die GANZE Zeile ist der Link (docs/design/linie.md 3) — ihr Name
+    // beginnt mit der Rechnungsnummer und trägt Datum, Stand und Betrag mit.
+    const link = await screen.findByRole('link', { name: /^RE-2026-1001/ });
     expect(link).toHaveAttribute('href', '/invoices?suche=RE-2026-1001');
     // Betrag und Stand stehen getrennt rechts in der Zeile (Wert und Zustand) —
     // aber in DERSELBEN Zeile.
@@ -452,7 +454,7 @@ describe('Die Rechnungen der Akte', () => {
       totalBrutto: 100, paymentStatus: 'Bezahlt',
     }));
     zeige();
-    await screen.findByRole('link', { name: 'RE-2026-100' });
+    await screen.findByRole('link', { name: /^RE-2026-100\b/ });
     expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(5);
     await userEvent.click(screen.getByRole('button', { name: 'und 2 weitere' }));
     expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(7);

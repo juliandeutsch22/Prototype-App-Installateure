@@ -337,9 +337,72 @@ describe('Projektauswertung — Tag und Helferzeile', () => {
       />,
     );
     await aufklappen();
-    const zeile = screen.getByRole('row', { name: /03\.09\.2026/ });
+    // Am Telefon steht der Eintrag als Listenzeile (siehe unten), nicht als
+    // Tabellenzeile — gesucht wird deshalb die Zeile, die das Datum trägt.
+    const zeile = screen.getByText(/03\.09\.2026/).closest('li') as HTMLElement;
     expect(zeile.className).not.toContain('bg-warning-bg');
     expect(within(zeile).getByText('Helfer')).toBeInTheDocument();
+  });
+});
+
+/**
+ * DIE EINZELNEN EINTRÄGE AM TELEFON.
+ *
+ * Die vierspaltige Tabelle war breiter als die Karte: die Stunden, um die es
+ * geht, standen erst nach seitlichem Wischen da. Unter 640 px steht jeder
+ * Eintrag deshalb als Zeile — Person, darunter Tag und Tätigkeit, rechts die
+ * Dauer. Darüber die Tabelle. Genau EINE Form im DOM, nie beide.
+ */
+describe('Projektauswertung — Einträge am Telefon als Liste', () => {
+  // Stellt den alten Stand nach jedem Test wieder her; die Breite setzt
+  // `fenster` — so trifft `min-width: 640px` zu, `1280px` aber nicht.
+  mitSchreibtisch();
+  const fenster = (breite: number) => {
+    window.matchMedia = ((q: string) => ({
+      matches: Number(/min-width:\s*(\d+)px/.exec(q)?.[1] ?? 0) <= breite,
+      media: q,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+  };
+  const mitKommentar = eintrag({ id: 'k', comment: 'Rohr verlegt' } as Partial<TimeEntry>);
+
+  it('zeigt die Stunden in der Zeile, ohne Tabelle', async () => {
+    render(
+      <ProjectSummary
+        entries={[mitKommentar]}
+        projects={[projekt]}
+        gesamtEntries={[]}
+        label="September 2026"
+      />,
+    );
+    await aufklappen();
+
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    const zeile = screen.getByText(/03\.09\.2026 · „Rohr verlegt"/).closest('li') as HTMLElement;
+    expect(within(zeile).getByText('Max Mustermann')).toBeInTheDocument();
+    // 07:00–16:00 mit 30 min Pause — als Dauer, mit Einheit.
+    expect(within(zeile).getByText('08:30 Std')).toBeInTheDocument();
+  });
+
+  it('steht ab 640 px (Tablet, 834 px) als Tabelle, ohne die Liste daneben', async () => {
+    fenster(834);
+    render(
+      <ProjectSummary
+        entries={[mitKommentar]}
+        projects={[projekt]}
+        gesamtEntries={[]}
+        label="September 2026"
+      />,
+    );
+    await aufklappen();
+
+    // Die Auswertung selbst steht auf 834 px noch als Karten (Tabelle erst
+    // ab 1280 px) — die Einträge darin schon als Tabelle.
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+    const zeile = screen.getByText(/03\.09\.2026/).closest('tr') as HTMLElement;
+    expect(within(zeile).getByText('08:30')).toBeInTheDocument();
+    expect(screen.queryByText('08:30 Std')).not.toBeInTheDocument();
   });
 });
 

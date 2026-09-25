@@ -14,7 +14,7 @@ export interface NavItem {
   /** Rollen, die diesen Screen sehen dürfen. */
   roles: Role[];
   /** Gruppierung in der Navigation. */
-  group: 'Allgemein' | 'Außendienst' | 'Verwaltung' | 'Buchhaltung';
+  group: 'Allgemein' | 'Außendienst' | 'Verwaltung' | 'Buchhaltung' | 'Einstellungen';
   /**
    * Zu welchem abschaltbaren Modul dieser Eintrag gehört.
    *
@@ -61,7 +61,9 @@ const TOP: Role[] = ['Geschäftsführung', 'Administrator'];
 const NUR_ADMIN: Role[] = ['Administrator'];
 
 export const NAV: NavItem[] = [
-  { path: '/', label: 'Dashboard', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
+  // „Start“ wie in der Tableiste und im Entwurf (Mockup S. 7, 8) — ein Name
+  // für denselben Ort auf Telefon und Schreibtisch.
+  { path: '/', label: 'Start', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
 
   // JEDE Rolle muss die eigene Zeit buchen können (auch die Buchhaltung:
   // Krankenstand und Urlaub). Legacy setzt den Tab unbedingt, ohne
@@ -120,7 +122,10 @@ export const NAV: NavItem[] = [
   // Der Reiter steht JEDER Rolle offen, weil die Meldungseinstellungen jedem
   // gehören. Was darunter enger ist, steht in UNTER — Sätze und Module sind
   // Geschäftsführungssache.
-  { path: '/settings', label: 'Einstellungen', short: 'Einstellungen', icon: 'settings', roles: ALL, group: 'Allgemein' },
+  //
+  // Am ENDE der Liste (eigene Gruppe ohne Überschrift): was man einmal
+  // einstellt, steht nicht zwischen Start und der täglichen Arbeit.
+  { path: '/settings', label: 'Einstellungen', short: 'Einstellungen', icon: 'settings', roles: ALL, group: 'Einstellungen' },
 
   // Margen sind Geschaeftsfuehrungssache — die Projektleitung sieht sie nicht.
   { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'calculator', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
@@ -315,7 +320,18 @@ export function tabBarForRole(
 
 
 /** Reihenfolge der Navigationsgruppen. */
-export const NAV_GROUPS = ['Allgemein', 'Außendienst', 'Verwaltung', 'Buchhaltung'] as const;
+export const NAV_GROUPS = ['Allgemein', 'Außendienst', 'Verwaltung', 'Buchhaltung', 'Einstellungen'] as const;
+
+/**
+ * Gruppen OHNE Überschrift: „Allgemein“ (Start) oben und „Einstellungen“
+ * unten stehen für sich. Hat eine Rolle ausser ihnen nur EINE Gruppe — der
+ * Monteur nur den Außendienst —, braucht auch die keine Überschrift (Mockup
+ * S. 7): eine Überschrift über allem ordnet nichts.
+ */
+export function gruppeMitUeberschrift(group: string, groups: { group: string }[]): boolean {
+  const benannt = groups.filter((g) => g.group !== 'Allgemein' && g.group !== 'Einstellungen');
+  return benannt.length > 1 && benannt.some((g) => g.group === group);
+}
 
 /** Sichtbare Navigation, nach Gruppen gebündelt (für übersichtliche Sidebar). */
 export function navGroupsForRole(

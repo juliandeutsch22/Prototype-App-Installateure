@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { kontoAnzeige } from '@shared/benutzername';
 import {
-  navGroupsForRole, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, type NavItem,
+  navGroupsForRole, gruppeMitUeberschrift, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, type NavItem,
 } from './navigation';
 import { useOffenePosten, postenNeuLaden } from './offenePosten';
 import type { OffenePosten } from '@/lib/db/offenePosten';
@@ -31,11 +31,16 @@ import RechtLinks from '@/components/RechtLinks';
  * Zwei Fassungen, weil es zwei Träger gibt: die Seitenleiste ist dunkel, die
  * Blätter von unten (Mehr, Profil) stehen auf heller Fläche. Ein gemeinsamer
  * Stil müsste auf einem von beiden falsch aussehen.
+ *
+ * AUF DER HELLEN FLÄCHE STEHT DER TEXT IN TINTE. `--accent-deep` auf
+ * `--info-bg` erreichte nachgerechnet 4,49 : 1 — knapp unter der Grenze;
+ * Tinte darauf 14,3 : 1. Die Fläche, die Kante und die Fettung tragen den
+ * Zustand, wie der aktive Eintrag im Entwurf (Mockup S. 1 unten).
  */
 const sideLink = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-accent-deep bg-info-bg font-bold text-accent-deep'
+      ? 'border-l-accent-deep bg-info-bg font-bold text-ink'
       : 'border-l-transparent font-medium text-ink-muted hover:bg-surface-2 hover:text-ink'
   }`;
 
@@ -52,10 +57,10 @@ const sideLink = ({ isActive }: { isActive: boolean }) =>
  * keine halbtransparente Weiß-Tönung. Weiß darauf steht bei über 16:1.
  */
 const sideLinkDark = ({ isActive }: { isActive: boolean }) =>
-  `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
+  `flex min-h-touch min-w-0 items-center gap-3 rounded px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-white bg-ink-deep font-bold text-white'
-      : 'border-l-transparent font-medium text-white/75 hover:bg-ink-deep hover:text-white'
+      ? 'bg-ink-deep font-semibold text-white'
+      : 'font-medium text-white/75 hover:bg-ink-deep hover:text-white'
   }`;
 
 /**
@@ -155,12 +160,10 @@ export default function Layout({ children }: { children: ReactNode }) {
     setzt `BrandLogo` den Namen selbst — und nicht das Logo eines fremden
     Betriebs.
 
-    Unter etwa 36 px ist eine Zeile wie „DAS BAD · DIE HEIZUNG" nicht mehr
-    lesbar, deshalb in der Seitenleiste grösser als in der schmalen mobilen
-    Kopfleiste.
+    Gilt für die schmale Kopfleiste am Telefon. Am Schreibtisch steht oben
+    das Produkt und darunter der Betrieb als Text (siehe Seitenleiste).
   */
   const BrandMarkMobile = <BrandLogo height={32} className="rounded-sm text-white" />;
-  const BrandMarkSidebar = <BrandLogo height={40} className="rounded-sm text-white" />;
 
   return (
     <div className="flex min-h-full flex-col md:flex-row">
@@ -189,22 +192,24 @@ export default function Layout({ children }: { children: ReactNode }) {
           <Avatar name={user.name} size={32} />
         </button>
         </div>
-        {/* Die Fuge zwischen Navigation und Inhalt — dieselbe wie rechts an
-            der Seitenleiste, nur waagrecht. Hier lag zuerst zusätzlich die
-            leuchtende Markenkante darüber; zwei Streifen übereinander waren
-            zwei Trennungen für eine Sache, und am Telefon sah die Leiste
-            damit anders aus als am Schreibtisch. Eine Trennung, überall
-            dieselbe. */}
-        <div className="h-[3px] bg-white" aria-hidden="true" />
       </header>
 
       {/* Desktop-Sidebar */}
-      <aside className="panel-dark hidden md:flex md:w-64 lg:w-[17.5rem] md:shrink-0 md:flex-col md:border-r-[3px] md:border-r-white md:p-3">
-        <div className="mb-4 px-2 pt-1">{BrandMarkSidebar}</div>
+      <aside className="panel-dark hidden md:flex md:w-64 lg:w-[17.5rem] md:shrink-0 md:flex-col md:p-3">
+        {/*
+          OBEN DAS PRODUKT, DARUNTER DER BETRIEB (Mockup S. 7, 8). Senklot
+          ist der Name, unter dem Monteur und Büro die App kennen und den
+          Support anrufen; der Betrieb steht direkt darunter, damit auch klar
+          ist, WESSEN Arbeitsplatz das ist.
+        */}
+        <div className="seitenleiste-marke">
+          <ProduktMarke hoehe={30} className="text-white" />
+          {company?.name && <p className="seitenleiste-betrieb">{company.name}</p>}
+        </div>
         <nav className="flex flex-col gap-4 overflow-y-auto" aria-label="Hauptnavigation">
           {groups.map(({ group, items: groupItems }) => (
             <div key={group} className="flex flex-col gap-1">
-              {group !== 'Allgemein' && (
+              {gruppeMitUeberschrift(group, groups) && (
                 <p className="px-3 pb-1 text-xs font-semibold text-white/60">
                   {group}
                 </p>
@@ -232,38 +237,18 @@ export default function Layout({ children }: { children: ReactNode }) {
               <p className="truncate text-xs text-white/70">{user.role}</p>
             </div>
           </div>
-          <ProblemMelden
-            ausloeser={(oeffnen) => (
-              <Button variant="ghost-dark" className="mt-2 w-full justify-start" onClick={oeffnen}>
-                Problem melden
-              </Button>
-            )}
-          />
-          <Button
-            variant="ghost-dark"
-            className="w-full justify-start"
-            onClick={() => void signOut()}
-          >
-            Abmelden
-          </Button>
-
-          {/*
-            DIE PRODUKTMARKE, KLEIN UND UNTERGEORDNET. Nicht aus Eitelkeit:
-            wenn ein Monteur anruft und sagt „die App tut nicht", ist
-            „Senklot" das Wort, mit dem er sucht und mit dem das Büro den
-            Support anspricht. Ganz unten, gedämpft, hinter dem Abmelden —
-            dort konkurriert sie mit nichts, und der Betrieb bleibt oben.
-          */}
-          <p className="mt-4 px-3 text-white/60">
-            {/*
-              `white/60` und nicht schwächer: gegen die dunkle Trägerfläche
-              sind das rund 4,9:1, und darunter ist kleiner Text nicht mehr
-              zuverlässig lesbar. „Zurückhaltend" darf nicht „blass" heissen —
-              eine Beschriftung, die man erraten muss, hilft im Supportfall
-              niemandem.
-            */}
-            <ProduktMarke hoehe={20} />
-          </p>
+          <div className="seitenleiste-fuss">
+            <ProblemMelden
+              ausloeser={(oeffnen) => (
+                <button type="button" className="seitenleiste-link" onClick={oeffnen}>
+                  Problem melden
+                </button>
+              )}
+            />
+            <button type="button" className="seitenleiste-link" onClick={() => void signOut()}>
+              Abmelden
+            </button>
+          </div>
           <RechtLinks className="mt-2 px-3 text-xs text-white/60" />
         </div>
       </aside>
@@ -304,13 +289,23 @@ export default function Layout({ children }: { children: ReactNode }) {
           arbeitet — die Oberfläche sieht sonst aus wie jede andere.
         */}
         <Supportsitzung />
-        <div className="mx-auto max-w-5xl p-4 md:p-6">{children}</div>
+        {/*
+          BIS 80 rem BREIT (Mockup S. 7, 8): die Seiten stehen am Schreibtisch
+          zweispaltig, Tabellen haben fünf bis sieben Spalten. Mit der alten
+          Grenze von 64 rem brach „Wie zuletzt buchen“ bei 1440 px dreizeilig
+          um, und die rechte Spalte war schmaler als ihr Inhalt. Darüber
+          bleibt der Inhalt mittig, damit Zeilen nicht endlos lang werden.
+        */}
+        <div className="mx-auto max-w-7xl p-4 md:p-6 xl:px-10 xl:py-8">{children}</div>
       </main>
 
       {/* Mobile Tab-Bar — dieselbe dunkle Trägerfläche wie die Kopfleiste, so
           dass der Inhalt oben und unten von der Marke eingefasst wird.
           Aktiv = helle Pille um das Symbol PLUS volles Weiss statt 70 % —
-          auf 12 px Schrift ist Farbe allein zu wenig. Die Beschriftung ist
+          auf 12 px Schrift ist Farbe allein zu wenig. Die Pille ist deckend
+          `--bg` mit dem Symbol in `--brand-fixed` (9,6 : 1), wie der aktive
+          Eintrag im Entwurf (Mockup S. 1 unten); vorher `--ink-deep` auf der
+          Leiste, das sich von ihr kaum abhob. Die Beschriftung ist
           halbfett für alle, nicht fett (Marke: „Fett wirkt laut";
           Prüflauf 24.09.2026, C9). */}
       <nav
@@ -341,8 +336,8 @@ export default function Layout({ children }: { children: ReactNode }) {
                     die gewohnte Stelle und kostet keinen Platz in der Zeile.
                   */}
                   <span
-                    className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                      isActive ? 'bg-ink-deep' : ''
+                    className={`relative flex h-8 w-14 items-center justify-center rounded-pill transition-colors ${
+                      isActive ? 'bg-bg text-brand-fixed' : ''
                     }`}
                   >
                     <Icon name={item.icon} size={20} />
@@ -370,8 +365,8 @@ export default function Layout({ children }: { children: ReactNode }) {
               }`}
             >
               <span
-                className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                  moreActive ? 'bg-ink-deep' : ''
+                className={`relative flex h-8 w-14 items-center justify-center rounded-pill transition-colors ${
+                  moreActive ? 'bg-bg text-brand-fixed' : ''
                 }`}
               >
                 <Icon name="more" size={20} />
@@ -401,7 +396,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <nav className="flex flex-col gap-3" aria-label="Weitere Bereiche">
           {groups.map(({ group, items: groupItems }) => (
             <div key={group}>
-              {group !== 'Allgemein' && (
+              {gruppeMitUeberschrift(group, groups) && (
                 <p className="mb-1 px-1 text-xs font-semibold text-ink-muted">
                   {group}
                 </p>

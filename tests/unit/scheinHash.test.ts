@@ -80,6 +80,19 @@ describe('Prüfsumme des Handwerksscheins', () => {
     expect(hash(andersHerum)).toBe(hash(basis));
   });
 
+  it('bleibt für gespeicherte Scheine derselbe Wert (Unterschrift auf fester Fläche, 25.09.2026)', () => {
+    /**
+     * SEIT DIESEM TAG ENTSTEHEN NEUE UNTERSCHRIFTSBILDER AUF EINER FESTEN
+     * FLÄCHE (700 × 250 Pixel, `unterschriftExport.ts`). Gespeicherte Scheine
+     * tragen weiter ihr altes Bild — beliebiger Größe — im Text der
+     * Unterschrift, und ihre Prüfsumme muss unverändert gelten. Der Wert ist
+     * deshalb hier festgeschrieben: die Kanonisierung darf sich durch den
+     * Umbau nicht verschoben haben, und ein Bild wird weiter als der Text
+     * gehasht, der im Schein steht — nicht neu gezeichnet.
+     */
+    expect(hash(basis)).toBe('73b96edad533505cd9127c7950df8c6f8e2e5bdbdd46072dbdaf40edd568aa0c');
+  });
+
   it('behandelt fehlende Felder wie leere', () => {
     // Firestore speichert kein `undefined`; ein weggelassenes Feld darf nicht
     // anders hashen als ein leerer String.

@@ -3,6 +3,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Assignment, MaterialOrder, Project, TimeEntry } from '@/types';
+import { karteMitZahl, karteZaehlt } from './kartenZahl';
 
 /**
  * Die Startseite hatte bis hierher KEINEN Test.
@@ -284,6 +285,53 @@ describe('Startseite — Monteur', () => {
 });
 
 /**
+ * Der Kopf der Startseite (docs/design/linie.md 9): klein der Tag, groß der
+ * Gruß — für alle Rollen derselbe.
+ */
+describe('Startseite — der Kopf', () => {
+  it('grüßt nach der Tageszeit mit dem Vornamen, der Tag steht klein darüber', async () => {
+    zeichne();
+    // Die Uhr steht auf 10:00 — noch Morgen.
+    const titel = await screen.findByRole('heading', { level: 1, name: 'Guten Morgen, Anton' });
+    expect(titel.previousElementSibling).toHaveTextContent('Dienstag, 15.09.2026 · KW 38');
+    // Firma und Rolle stehen in Seitenleiste und Profil — hier nicht zum
+    // dritten Mal.
+    expect(screen.queryByText(/Rolle:/)).not.toBeInTheDocument();
+  });
+
+  it('bietet am Schreibtisch „Zeit buchen“ als Hauptaktion — auch dem Büro mit Zeitkonto', async () => {
+    rolle.wert = 'Projektleiter';
+    zeichne();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Guten Morgen, Anton' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Zeit buchen' })).toHaveAttribute('href', '/time');
+  });
+});
+
+describe('Startseite — nächste Einsätze des Monteurs', () => {
+  it('nennt die kommenden Einsätze aus derselben Abfrage, mit Kunde und Nummer', async () => {
+    const { listUpcomingAssignments } = await import('@/lib/db/assignments');
+    vi.mocked(listUpcomingAssignments).mockResolvedValueOnce([
+      ...einsaetze,
+      {
+        id: 'a3',
+        companyId: 'perl',
+        date: '2026-09-17',
+        projectNumber: 'B-002',
+        userId: 'm1',
+        userName: 'Anton Berger',
+        comment: 'Heizung fertig',
+      },
+    ]);
+    zeichne();
+    const karte = (await screen.findByRole('heading', { name: 'Nächste Einsätze' })).closest('section')!;
+    expect(within(karte).getByText('Gemeinde Neudorf · B-002')).toBeInTheDocument();
+    expect(within(karte).getByText(/Heizung fertig · Rathausplatz 1/)).toBeInTheDocument();
+    // Die heutigen stehen unter „Heute“, nicht noch einmal hier.
+    expect(within(karte).queryByText(/Familie Huber/)).not.toBeInTheDocument();
+  });
+});
+
+/**
  * Wer wegen fehlender Tage gemahnt wird (Prüflauf F17, entschieden am
  * 24.09.2026): nur, wer ein Zeitkonto führt. Die Administration sah bisher
  * „25 Tage ohne Buchung · Jetzt nachtragen“, obwohl sie kein Soll hat — sie
@@ -311,7 +359,7 @@ describe('Startseite — Geschäftsführung', () => {
 
   it('listet alle aktiven Baustellen, aber keine abgeschlossene', async () => {
     zeichne();
-    const karte = (await screen.findByText(/Aktive Baustellen \(2\)/i)).closest('section')!;
+    const karte = await karteMitZahl(/^Aktive Baustellen/, 2);
     expect(within(karte).getByText(/Familie Huber/)).toBeInTheDocument();
     expect(within(karte).getByText(/Gemeinde Neudorf/)).toBeInTheDocument();
     // Die abgeschlossene Baustelle gehört hier nicht hin — sie macht mit den
@@ -569,7 +617,7 @@ describe('Startseite — wie viele Zeilen je Karte', () => {
     rolle.wert = 'Geschäftsführung';
     zeichne();
 
-    expect(await screen.findByText(/Aktive Baustellen \(5\)/)).toBeInTheDocument();
+    await karteZaehlt(/^Aktive Baustellen/, 5);
     expect(screen.getByText(/Kunde 004/)).toBeInTheDocument();
     expect(screen.queryByText(/weitere/)).not.toBeInTheDocument();
   });
@@ -580,7 +628,7 @@ describe('Startseite — wie viele Zeilen je Karte', () => {
     zeichne();
 
     // Die Zahl im Titel bleibt die WAHRE — sie ist die Aussage der Karte.
-    expect(await screen.findByText(/Aktive Baustellen \(30\)/)).toBeInTheDocument();
+    await karteZaehlt(/^Aktive Baustellen/, 30);
     expect(screen.getByText(/Kunde 011/)).toBeInTheDocument();
     expect(screen.queryByText(/Kunde 012/)).not.toBeInTheDocument();
     expect(screen.getByText(/und 18 weitere/)).toBeInTheDocument();

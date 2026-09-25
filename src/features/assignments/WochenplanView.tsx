@@ -520,7 +520,9 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                   key={b.nummer}
                                   type="button"
                                   onClick={() => zurTagesplanung(tag, b.nummer)}
-                                  aria-label={`${b.name} am ${tagKurz(tag).datum} bearbeiten`}
+                                  // Mit Nummer: zwei Baustellen desselben Kunden
+                                  // am selben Tag hießen sonst gleich.
+                                  aria-label={`${b.name} (${b.nummer}) am ${tagKurz(tag).datum} bearbeiten`}
                                   className="wochenplan-einsatz"
                                 >
                                   <span className="wochenplan-einsatz-kunde">{b.name}</span>
@@ -606,7 +608,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                             key={b.nummer}
                             type="button"
                             onClick={() => zurTagesplanung(tag, b.nummer)}
-                            aria-label={`${b.name} am ${datum} bearbeiten`}
+                            aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten`}
                             className="wochenplan-eintrag"
                           >
                             {inhalt}

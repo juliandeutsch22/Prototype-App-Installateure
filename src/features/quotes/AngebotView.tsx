@@ -13,6 +13,7 @@ import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
+import RowMenu from '@/components/RowMenu';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Zustand } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
@@ -23,6 +24,7 @@ import { downloadAngebotPdf } from './angebotPdf';
 import { STAND } from './stand';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import { euro } from '@/lib/geld';
 
 /**
  * Ein Angebot auf seiner eigenen Seite.
@@ -35,9 +37,6 @@ import { datumAT } from '@/lib/datum';
  * Eine Seite und nicht ein Aufklappen in der Liste: sie hat eine Adresse, auf
  * die die Kundenakte und die Baustelle verlinken können.
  */
-
-const fmtEUR = (n: number) =>
-  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
 const fmtMenge = (n: number) => new Intl.NumberFormat('de-AT', { maximumFractionDigits: 3 }).format(n);
 
@@ -154,13 +153,13 @@ export default function AngebotView() {
   if (!user) return null;
 
   const zurueck = (
-    <Link to="/quotes" className="textlink-allein">← Zu den Angeboten</Link>
+    <Link to="/quotes" className="akte-zurueck">← Zu den Angeboten</Link>
   );
 
   if (angebot.zustand === 'laedt') {
     return (
       <div className="space-y-6">
-        <PageHeader title="Angebot" subtitle={zurueck} />
+        <PageHeader ueber={zurueck} title="Angebot" />
         <Card><SkeletonList rows={4} /></Card>
       </div>
     );
@@ -168,7 +167,7 @@ export default function AngebotView() {
   if (angebot.zustand === 'fehler') {
     return (
       <div className="space-y-6">
-        <PageHeader title="Angebot" subtitle={zurueck} />
+        <PageHeader ueber={zurueck} title="Angebot" />
         <Card>
           <ErrorState
             message="Das Angebot konnte nicht geladen werden."
@@ -182,7 +181,7 @@ export default function AngebotView() {
   if (!q) {
     return (
       <div className="space-y-6">
-        <PageHeader title="Angebot" subtitle={zurueck} />
+        <PageHeader ueber={zurueck} title="Angebot" />
         <Card>
           <EmptyState action={<Link to="/quotes" className="textlink">Zur Angebotsliste</Link>}>
             Dieses Angebot gibt es nicht (mehr).
@@ -200,14 +199,21 @@ export default function AngebotView() {
   return (
     <div className="space-y-6">
       <PageHeader
+        /* Der Rückweg über dem Titel, darunter „Kunde · Datum“ und der
+           Stand als Marke (docs/design/linie.md 1). */
+        ueber={zurueck}
         title={`Angebot ${q.quoteNumber}`}
         subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {zurueck}
-            <span>{q.customerName}</span>
+          <>
+            {q.customerName} · {fmtDatum(q.quoteDate)} ·{' '}
             <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
-            {abgelaufen && <Zustand stand="achtung">Bindefrist abgelaufen</Zustand>}
-          </span>
+            {abgelaufen && (
+              <>
+                {' '}
+                <Zustand stand="achtung">Bindefrist abgelaufen</Zustand>
+              </>
+            )}
+          </>
         }
         action={
           <Button
@@ -269,27 +275,27 @@ export default function AngebotView() {
             </dl>
           </Card>
 
-          <Card title={`Positionen (${q.positions.length})`}>
+          <Card title="Positionen" anzahl={q.positions.length}>
             <List>
               {q.positions.map((p, i) => (
                 <ListRow
                   key={i}
                   title={p.label}
-                  subtitle={`${fmtMenge(p.qty)} ${p.unit} × ${fmtEUR(p.unitPrice)}`}
-                  wert={fmtEUR(p.netto)}
+                  subtitle={`${fmtMenge(p.qty)} ${p.unit} × ${euro(p.unitPrice)}`}
+                  wert={euro(p.netto)}
                 />
               ))}
             </List>
             <dl className="mt-3 space-y-1 border-t border-ink pt-3 text-sm">
               {(q.discountAmount ?? 0) > 0 && q.discount && (
                 <>
-                  <Summe wort="Zwischensumme">{fmtEUR(q.subtotalNetto)}</Summe>
-                  <Summe wort={discountLabel(q.discount)}>- {fmtEUR(q.discountAmount ?? 0)}</Summe>
+                  <Summe wort="Zwischensumme">{euro(q.subtotalNetto)}</Summe>
+                  <Summe wort={discountLabel(q.discount)}>- {euro(q.discountAmount ?? 0)}</Summe>
                 </>
               )}
-              <Summe wort="Netto">{fmtEUR(q.totalNetto)}</Summe>
-              <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{fmtEUR(q.totalVat)}</Summe>
-              <Summe wort="Brutto" fett>{fmtEUR(q.totalBrutto)}</Summe>
+              <Summe wort="Netto">{euro(q.totalNetto)}</Summe>
+              <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{euro(q.totalVat)}</Summe>
+              <Summe wort="Brutto" fett>{euro(q.totalBrutto)}</Summe>
             </dl>
           </Card>
 
@@ -302,16 +308,39 @@ export default function AngebotView() {
 
         {weiterSichtbar && (
           <div className="akte-rechts">
-            <Card title="Weiter">
-              <div className="flex flex-wrap gap-2">
+            {/*
+              WAS AUS DEM ANGEBOT FOLGT, als Zweitknöpfe untereinander — die
+              Hauptaktion der Seite (PDF) steht dunkel im Kopf. Ablehnen und
+              Löschen sind selten und liegen im ⋯ der Karte, wie in der
+              Angebotsliste (docs/design/linie.md 3).
+            */}
+            <Card
+              title="Weiter"
+              action={
+                <RowMenu
+                  about={`Angebot ${q.quoteNumber}`}
+                  items={[
+                    {
+                      label: 'Abgelehnt',
+                      onSelect: () => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt'),
+                    },
+                    /* Löschen nur im Entwurf: alles Versendete bleibt nachvollziehbar. */
+                    ...(q.status === 'Entwurf'
+                      ? [{ label: 'Löschen', onSelect: () => setLoeschenFragen(true), danger: true }]
+                      : []),
+                  ]}
+                />
+              }
+            >
+              <div className="angebot-weiter">
                 {q.status === 'Entwurf' && (
                   <>
                     {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
-                    <Link to={`/quotes?bearbeiten=${q.id}`} className="textlink-allein">
+                    <Link to={`/quotes?bearbeiten=${q.id}`} className="knopf-sekundaer">
                       Bearbeiten
                     </Link>
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       loading={busy}
                       onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
                     >
@@ -319,22 +348,9 @@ export default function AngebotView() {
                     </Button>
                   </>
                 )}
-                <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(true)}>
+                <Button variant="secondary" loading={busy} onClick={() => setAnnehmenFragen(true)}>
                   Annehmen → Baustelle
                 </Button>
-                <Button
-                  variant="ghost"
-                  loading={busy}
-                  onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
-                >
-                  Abgelehnt
-                </Button>
-                {/* Löschen nur im Entwurf: alles Versendete bleibt nachvollziehbar. */}
-                {q.status === 'Entwurf' && (
-                  <Button variant="ghost" onClick={() => setLoeschenFragen(true)}>
-                    Löschen
-                  </Button>
-                )}
               </div>
             </Card>
           </div>

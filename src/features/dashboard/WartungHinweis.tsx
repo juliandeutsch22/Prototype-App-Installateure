@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Meldung from '@/components/Meldung';
+import Card from '@/components/Card';
+import { Warnung } from '@/components/Badge';
+import { List, ListRow } from '@/components/ListRow';
 import { useAuth } from '@/app/AuthContext';
 import { isGF, isVerw } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
@@ -67,16 +69,35 @@ export default function WartungHinweis() {
 
   if (anzahl === 0) return null;
 
+  /*
+    ALS KARTE MIT EINER ZEILE, die in die Wartungen führt (docs/design/
+    linie.md 3) — bis zum 25.09.2026 ein blauer Hinweiskasten mit dem Weg als
+    Link im Satz. Der Weg steht zusätzlich rechts im Kartenkopf, wie bei den
+    übrigen Karten der Startseite.
+  */
   return (
-    <Meldung ton="info" titel={anzahl === 1 ? 'Eine Wartung steht an' : `${anzahl} Wartungen stehen an`}>
-      <p>
-        {ueberfaellig > 0
-          ? `${ueberfaellig} davon ${ueberfaellig === 1 ? 'ist' : 'sind'} überfällig. `
-          : `Fällig in den nächsten ${VORLAUF_TAGE} Tagen. `}
-        <Link to="/wartungen" className="textlink">
+    <Card
+      title="Wartungen"
+      action={
+        <Link to="/wartungen" className="textlink-allein">
           Zu den Wartungen
         </Link>
-      </p>
-    </Meldung>
+      }
+    >
+      <List>
+        <ListRow
+          ziel="/wartungen"
+          title={anzahl === 1 ? 'Eine Wartung steht an' : `${anzahl} Wartungen stehen an`}
+          subtitle={
+            ueberfaellig > 0
+              ? `${ueberfaellig} davon ${ueberfaellig === 1 ? 'ist' : 'sind'} überfällig.`
+              : `Fällig in den nächsten ${VORLAUF_TAGE} Tagen.`
+          }
+          zustand={
+            ueberfaellig > 0 ? <Warnung stufe="dringend">überfällig</Warnung> : undefined
+          }
+        />
+      </List>
+    </Card>
   );
 }

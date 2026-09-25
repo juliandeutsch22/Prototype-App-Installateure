@@ -111,6 +111,15 @@ describe('Mein Einsatzplan — der Einsatz selbst', () => {
     expect(await within(naechste).findByText(/15\.09\.2026 · B-001/)).toBeInTheDocument();
   });
 
+  it('baut den Einsatz wie die Heute-Karte am Start — ohne Kasten in der Karte', async () => {
+    zeichne();
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    await within(karte).findAllByText(/Familie Huber/);
+    expect(karte.querySelector('.kasten, .kasten-hell')).toBeNull();
+    expect(within(karte).getByText('Familie Huber')).toHaveClass('einsatz-kunde');
+    expect(within(karte).getByRole('link', { name: 'Zeit erfassen' })).toHaveClass('einsatz-hauptknopf');
+  });
+
   it('führt mit Baustelle und Rolle in die Zeiterfassung', async () => {
     // Ein vergessener Helfer-Haken kostet den falschen Verrechnungssatz.
     zeichne();

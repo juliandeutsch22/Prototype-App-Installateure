@@ -3,7 +3,6 @@ import { dokumentHochladen, dokumentLoeschen, dateiPruefen } from '@/lib/db/baus
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
-import InfoHint from '@/components/InfoHint';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
 import { EmptyState, SkeletonList, TeilFehler } from '@/components/States';
@@ -102,13 +101,10 @@ export default function BaustellenPlaene({
 
   return (
     <div className="space-y-3">
-      <p className="flex flex-wrap items-center text-sm text-ink-muted">
+      {/* Die Erklärung zu Dateiarten und Sichtbarkeit steht als „i“ am
+          Kartentitel (Baustellenakte), nicht allein in einer eigenen Zeile. */}
+      <p className="text-sm text-ink-muted">
         Pläne, Fotos und Unterlagen für die Monteure dieser Baustelle
-        <InfoHint about="Pläne und Dokumente">
-          PDF und Bilder bis 25 MB. Sichtbar für das Büro und für die Monteure, die im Team
-          dieser Baustelle stehen oder dort eingeteilt sind — sie finden sie unter „Meine
-          Baustellen" und im Einsatzplan. Pläne aus einem CAD-Programm bitte als PDF exportieren.
-        </InfoHint>
       </p>
 
       {stand.zustand === 'laedt' ? (
@@ -155,8 +151,10 @@ export default function BaustellenPlaene({
               else void hochladen(dateien);
             }}
           />
+          {/* Hinzufügen ist ein Zweitknopf mit durchgezogener Kante
+              (docs/design/linie.md 5), kein Knopf ohne Rand. */}
           <Button
-            variant="ghost"
+            variant="secondary"
             loading={!!fortschritt}
             onClick={() => feld.current?.click()}
           >

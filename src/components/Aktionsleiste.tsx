@@ -13,6 +13,23 @@ import type { ReactNode } from 'react';
  *
  * Aussehen: `.aktionsleiste` in `index.css`.
  */
-export default function Aktionsleiste({ children }: { children: ReactNode }) {
-  return <div className="aktionsleiste">{children}</div>;
+export default function Aktionsleiste({
+  children,
+  summe,
+}: {
+  children: ReactNode;
+  /** Die Zeile über den Knöpfen: was hier zusammenkommt („Material · 3 Positionen“). */
+  summe?: { name: ReactNode; wert: ReactNode };
+}) {
+  return (
+    <div className="aktionsleiste">
+      {summe && (
+        <p className="aktionsleiste-summe">
+          <span>{summe.name}</span>
+          <span className="aktionsleiste-summe-wert">{summe.wert}</span>
+        </p>
+      )}
+      {children}
+    </div>
+  );
 }

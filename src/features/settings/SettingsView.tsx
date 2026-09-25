@@ -16,9 +16,7 @@ import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
-
-const fmtEUR = (n: number) =>
-  new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+import { betrag } from '@/lib/geld';
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
 function num(v: string, fallback: number): number {
@@ -418,19 +416,19 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               <tbody>
                 <tr>
                   <td className="tabelle-zelle">Regulär</td>
-                  <td className="tabelle-zahl">{fmtEUR(rates.fach)} €/h</td>
+                  <td className="tabelle-zahl">{betrag(rates.fach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="tabelle-zelle">Nachtarbeit</td>
-                  <td className="tabelle-zahl">{fmtEUR(nightFach)} €/h</td>
+                  <td className="tabelle-zahl">{betrag(nightFach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="tabelle-zelle">Notdienst</td>
-                  <td className="tabelle-zahl">{fmtEUR(emergencyFach)} €/h</td>
+                  <td className="tabelle-zahl">{betrag(emergencyFach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="tabelle-zelle">Notdienst in der Nacht</td>
-                  <td className="tabelle-zahl">{fmtEUR(bothFach)} €/h</td>
+                  <td className="tabelle-zahl">{betrag(bothFach)} €/h</td>
                 </tr>
               </tbody>
             </table>
@@ -515,8 +513,11 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             Rechnungen sind. Wer nie eine Anzahlung stellt, bekäme ein Feld,
             das er jedes Mal überliest. Deshalb steht der Haken hier und ist
             ab Werk aus.
+
+            Mit einer Haarlinie abgesetzt, nicht als Kasten in der Karte
+            (Linie, 2) — er gruppiert nur.
           */}
-          <div className="kasten mt-4">
+          <div className="einstellung-abschnitt">
             <CheckboxField
               id="rechnungsarten"
               label="Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
@@ -587,7 +588,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           ) : (
             <p className="mt-3 text-sm text-ink">
               Deckungsbeitrag je Facharbeiterstunde:{' '}
-              <strong>{fmtEUR(rates.fach - num(costRates.fach, 0))}</strong>
+              <strong>{betrag(rates.fach - num(costRates.fach, 0))}</strong>
               {rates.fach - num(costRates.fach, 0) <= 0 && (
                 <span className="ml-2 text-danger">
                   — der Verrechnungssatz liegt nicht über den Kosten.
@@ -670,7 +671,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             fest am 1. Jänner — für jeden Betrieb mit einem anderen
             Urlaubsjahr rechnete die App still falsch.
           */}
-          <div className="kasten mb-4 flex flex-wrap items-end gap-3">
+          <div className="einstellung-felder">
             <SelectField
               id="urlaubsjahr-tag"
               label="Urlaubsjahr beginnt am"
@@ -704,6 +705,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </p>
           </div>
 
+          {/* Beginn und Übertrag trennt eine Haarlinie, kein Kasten (Linie, 2). */}
+          <div className="einstellung-abschnitt">
           <fieldset className="flex flex-col gap-3">
             <legend className="sr-only">Wie Resturlaub übertragen wird</legend>
 
@@ -750,9 +753,10 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               </span>
             </label>
           </fieldset>
+          </div>
 
           {uebertrag === 'stichtag' && (
-            <div className="kasten mt-4 flex flex-wrap items-end gap-3">
+            <div className="einstellung-felder-abgesetzt">
               <SelectField
                 id="stichtag-tag"
                 label="Verfällt am"

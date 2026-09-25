@@ -178,10 +178,17 @@ export default function Einkaufsliste({
               })
             : null;
           return (
-            <Card key={g.supplierId ?? 'ohne'} title={titel}>
-              {h?.customerNumber && (
-                <p className="mb-2 text-sm text-ink-muted">Kundennummer {h.customerNumber}</p>
-              )}
+            <Card
+              key={g.supplierId ?? 'ohne'}
+              title={titel}
+              // Die Kundennummer rechts in der Titelzeile, gedämpft (Linie, 2) —
+              // nicht als eigene Zeile unter dem Namen.
+              action={
+                h?.customerNumber ? (
+                  <span className="titel-angabe">Kundennummer {h.customerNumber}</span>
+                ) : undefined
+              }
+            >
               {g.zuBestellen.length > 0 && (
                 <>
                   <h3 className="section-label mb-1">Zu bestellen</h3>
@@ -189,16 +196,20 @@ export default function Einkaufsliste({
                     {g.zuBestellen.map((z) => (
                       <ListRow
                         key={z.schluessel}
-                        title={
-                          <span>
-                            <span>{zeilenText(z)}</span>
-                            {z.artikelnummer && (
-                              <span className="ml-2 text-sm text-ink-muted">Art.-Nr. {z.artikelnummer}</span>
-                            )}
-                          </span>
-                        }
+                        title={zeilenText(z)}
+                        // Artikelnummer und Kommission in der Unterzeile, mit
+                        // „·“ getrennt (Linie, 3) — die Nummer hing vorher
+                        // klein im Titel.
                         subtitle={
-                          z.kommissionen.length ? `Kommission ${z.kommissionen.join(', ')}` : undefined
+                          z.artikelnummer || z.kommissionen.length ? (
+                            <>
+                              {z.artikelnummer && <span>Art.-Nr. {z.artikelnummer}</span>}
+                              {z.artikelnummer && z.kommissionen.length > 0 && ' · '}
+                              {z.kommissionen.length > 0 && (
+                                <span>Kommission {z.kommissionen.join(', ')}</span>
+                              )}
+                            </>
+                          ) : undefined
                         }
                       >
                         {!g.supplierId && grosshaendler.length > 0 && (
@@ -747,7 +758,8 @@ function GrosshaendlerPflege({
       )}
 
       {bearbeitet !== null && (
-        <div className="kasten-hell mt-4 space-y-3">
+        // Mit einer Haarlinie abgesetzt statt als Kasten in der Karte (Linie, 2).
+        <div className="einkauf-formular">
           <FormGrid>
             <InputField id="gh-name" label="Name" pflicht value={entwurf.name}
               onChange={(e) => setEntwurf({ ...entwurf, name: e.target.value })} />

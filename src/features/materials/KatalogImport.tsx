@@ -4,6 +4,7 @@ import * as dn from '@/lib/db/pg/datanorm';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Metric, { MetricRow } from '@/components/Metric';
 import { InputField, SelectField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
@@ -181,27 +182,28 @@ export default function KatalogImport() {
   if (schritt === 'fertig' && bericht) {
     return (
       <div className="space-y-6">
+        {/* Die Zahlen in ihrer eigenen Karte über dem Ergebnis, wie beim
+            Probelauf — die Kennzahlen-Leiste ist selbst eine Karte, und eine
+            Karte in der Karte gibt es nach der Linie nicht. */}
+        <MetricRow>
+          <Metric label="Neu angelegt" value={bericht.angelegt} />
+          <Metric label="Aktualisiert" value={bericht.geaendert} />
+          <Metric label="Ausgelaufen" value={bericht.ausgelaufen} />
+          <Metric
+            label="Ohne Einkaufspreis"
+            value={bericht.ohneRabattsatz}
+            tone={bericht.ohneRabattsatz > 0 ? 'warning' : 'default'}
+          />
+        </MetricRow>
         <Card title="Übernommen">
-          <MetricRow>
-            <Metric label="Neu angelegt" value={bericht.angelegt} />
-            <Metric label="Aktualisiert" value={bericht.geaendert} />
-            <Metric label="Ausgelaufen" value={bericht.ausgelaufen} />
-            <Metric
-              label="Ohne Einkaufspreis"
-              value={bericht.ohneRabattsatz}
-              tone={bericht.ohneRabattsatz > 0 ? 'warning' : 'default'}
-            />
-          </MetricRow>
           {bericht.ohneRabattsatz > 0 && (
-            <p className="mt-4 text-sm text-ink-muted">
+            <p className="mb-4 text-sm text-ink-muted">
               {bericht.ohneRabattsatz} Artikel stehen mit Listenpreis im Katalog, aber ohne
               Einkaufspreis — zu ihrer Rabattgruppe ist kein Satz hinterlegt. Die Nachkalkulation
               führt sie weiter als Lücke.
             </p>
           )}
-          <div className="mt-4">
-            <Button onClick={zurueck}>Weiteren Katalog einspielen</Button>
-          </div>
+          <Button onClick={zurueck}>Weiteren Katalog einspielen</Button>
         </Card>
         <Protokoll laeufe={laeufe} />
       </div>
@@ -275,7 +277,7 @@ export default function KatalogImport() {
                   const f = e.target.files?.[0];
                   if (f) void dateiLesen(f);
                 }}
-                className="min-h-touch text-sm file:mr-3 file:rounded file:border file:border-line file:bg-surface-2 file:px-3 file:py-2 file:text-sm"
+                className="feld-datei"
               />
             </div>
           </div>
@@ -284,6 +286,23 @@ export default function KatalogImport() {
 
       {schritt === 'probelauf' && ergebnis && zahlen && datei && (
         <>
+          {/* Die Zahlen stehen in ihrer eigenen Karte ÜBER dem Probelauf —
+              die Kennzahlen-Leiste ist selbst eine Karte, und eine Karte
+              in der Karte gibt es nach der Linie nicht. */}
+          <MetricRow>
+            <Metric label="Artikel erkannt" value={zahlen.artikel} />
+            <Metric
+              label="Ohne Preis"
+              value={zahlen.ohnePreis}
+              tone={zahlen.ohnePreis > 0 ? 'warning' : 'default'}
+            />
+            <Metric label="Nur Listenpreis" value={zahlen.nurListenpreis} />
+            <Metric
+              label="Nicht verstanden"
+              value={zahlen.unverstanden}
+              tone={zahlen.unverstanden > 0 ? 'warning' : 'default'}
+            />
+          </MetricRow>
           <Card
             title="Probelauf"
             action={<Marke>{datei.name}</Marke>}
@@ -297,21 +316,7 @@ export default function KatalogImport() {
               </>
             }
           >
-            <MetricRow>
-              <Metric label="Artikel erkannt" value={zahlen.artikel} />
-              <Metric
-                label="Ohne Preis"
-                value={zahlen.ohnePreis}
-                tone={zahlen.ohnePreis > 0 ? 'warning' : 'default'}
-              />
-              <Metric label="Nur Listenpreis" value={zahlen.nurListenpreis} />
-              <Metric
-                label="Nicht verstanden"
-                value={zahlen.unverstanden}
-                tone={zahlen.unverstanden > 0 ? 'warning' : 'default'}
-              />
-            </MetricRow>
-            <p className="mt-4 text-sm text-ink-muted">
+            <p className="text-sm text-ink-muted">
               {zahlen.neu} neu · {zahlen.aenderungen} Änderungen · {zahlen.loeschungen}{' '}
               Löschsätze
               {zahlen.uebersprungen > 0 && <> · {zahlen.uebersprungen} andere Satzarten</>}
@@ -330,9 +335,14 @@ export default function KatalogImport() {
 
           {gruppen.length > 0 && !warnung && (
             <Card
-              title={`Rabattsätze (${gruppen.length})`}
+              title="Rabattsätze"
+              // Die Zahl rechts im Titel statt in Klammern (Linie, 2),
+              // daneben wie bisher der Stand.
               action={
-                offeneGruppen > 0 ? <Warnung>{offeneGruppen} offen</Warnung> : <Marke>vollständig</Marke>
+                <div className="liste-kopf-rechts">
+                  <span className="liste-anzahl">{gruppen.length}</span>
+                  {offeneGruppen > 0 ? <Warnung>{offeneGruppen} offen</Warnung> : <Marke>vollständig</Marke>}
+                </div>
               }
               hint={
                 <>
@@ -368,7 +378,8 @@ export default function KatalogImport() {
 
           {ergebnis.unverstanden.length > 0 && (
             <Card
-              title={`Nicht verstandene Zeilen (${ergebnis.unverstanden.length})`}
+              title="Nicht verstandene Zeilen"
+              action={<span className="liste-anzahl">{ergebnis.unverstanden.length}</span>}
               hint={
                 <>
                   Diese Zeilen werden <strong>nicht</strong> übernommen. Die Originalzeile steht
@@ -417,21 +428,27 @@ export default function KatalogImport() {
             </Card>
           )}
 
-          <div className="flex flex-col gap-2 sm:flex-row">
+          {/* Die Knöpfe in der Aktionsleiste (docs/design/linie.md, 6): am
+              Telefon unten fest, darüber die Summe aus dem Probelauf. */}
+          <Aktionsleiste
+            summe={{
+              name: 'Aus der Datei',
+              wert: `${zahlen.neu} neu · ${zahlen.aenderungen} geändert`,
+            }}
+          >
             <Button
               onClick={() => void uebernehmen()}
               loading={busy}
               disabled={!!warnung || zahlen.artikel === 0}
-              className="w-full sm:w-auto"
             >
               {fortschritt === null
                 ? `${zahlen.artikel} Artikel übernehmen`
                 : `${fortschritt} von ${zahlen.artikel} übertragen …`}
             </Button>
-            <Button variant="ghost" onClick={zurueck} disabled={busy} className="w-full sm:w-auto">
+            <Button variant="ghost" onClick={zurueck} disabled={busy}>
               Verwerfen
             </Button>
-          </div>
+          </Aktionsleiste>
         </>
       )}
 

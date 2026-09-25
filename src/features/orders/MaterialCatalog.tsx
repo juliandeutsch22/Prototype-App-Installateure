@@ -8,13 +8,13 @@ import {
   deleteMaterial,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
-import { KATALOG_GRENZE } from '@/lib/listengrenzen';
+import { KATALOG_GRENZE, abgeschnitten } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
-import IconButton from '@/components/IconButton';
+import RowMenu from '@/components/RowMenu';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -235,12 +235,15 @@ export default function MaterialCatalog({
     </>
   );
 
+  /* Bearbeiten als Textknopf, das seltene Löschen im „⋯" wie in jeder
+     Liste (docs/design/linie.md 3) — vorher ein rotes ✕ in jeder Zeile. */
   const katalogKnoepfe = (m: WithId<Material>) => (
     <>
       <Button variant="ghost" onClick={() => startEdit(m)}>Bearbeiten</Button>
-      <IconButton label={`${m.name} löschen`} tone="danger" onClick={() => setToDelete(m)}>
-        ✕
-      </IconButton>
+      <RowMenu
+        about={`Material ${m.name}`}
+        items={[{ label: 'Löschen', onSelect: () => setToDelete(m), danger: true }]}
+      />
     </>
   );
 
@@ -336,19 +339,42 @@ export default function MaterialCatalog({
       </Card>
 
       <Card
-        title={`Katalog (${materials.length})`}
+        title="Katalog"
+        // Die Zahl rechts im Titel statt in Klammern (Linie, 2), daneben
+        // wie bisher der Hinweis auf knappe Artikel.
         action={
-          lowStock > 0 ? <Warnung>{lowStock} knapp</Warnung> : undefined
+          <div className="liste-kopf-rechts">
+            <span className="liste-anzahl">{materials.length}</span>
+            {lowStock > 0 && <Warnung>{lowStock} knapp</Warnung>}
+          </div>
+        }
+        /*
+          Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
+          gescrollt und nichts gefunden hat, braucht die Auskunft. Im
+          Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
+        */
+        footer={
+          abgeschnitten(materials, grenze) && (
+            <Nachladen
+              geladen={materials.length}
+              grenze={grenze}
+              onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+              einheit="Artikel"
+              sucheSatz="Nach Name, Kategorie und Artikelnummer wird nur in diesen gesucht."
+            />
+          )
         }
       >
-        <InputField
-          id="msearch"
-          label="Suche"
-          placeholder="Name, Kategorie oder Art.-Nr."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <div className="mt-4">
+        <div className="liste-suche">
+          <InputField
+            id="msearch"
+            label="Suche"
+            placeholder="Name, Kategorie oder Art.-Nr."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div>
           {loading ? (
             <SkeletonList rows={4} />
           ) : visible.length === 0 ? (
@@ -420,17 +446,6 @@ export default function MaterialCatalog({
               ))}
             </List>
           )}
-          {/*
-            Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
-            gescrollt und nichts gefunden hat, braucht die Auskunft.
-          */}
-          <Nachladen
-            geladen={materials.length}
-            grenze={grenze}
-            onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-            einheit="Artikel"
-            sucheSatz="Nach Name, Kategorie und Artikelnummer wird nur in diesen gesucht."
-          />
         </div>
       </Card>
 

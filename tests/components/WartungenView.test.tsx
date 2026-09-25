@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Role, Wartung } from '@/types';
+import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Die Wartungsansicht — geprüft wird der ABLAUF, nicht die Liste.
@@ -262,7 +263,16 @@ describe('Wartungen', () => {
     const unten = within(alle).getByText(/Bäckerei Stein/).closest('li') as HTMLElement;
     // Unten nur noch „Bearbeiten" — „Erledigt" steht oben unter „Steht an".
     expect(within(unten).queryByRole('button', { name: 'Erledigt' })).toBeNull();
-    expect(within(unten).getByRole('button', { name: 'Bearbeiten' })).toBeTruthy();
+    expect(within(unten).queryByRole('button', { name: 'Baustelle anlegen' })).toBeNull();
+    /*
+      „Bearbeiten" liegt seit dem Durchgang nach der Linie im „⋯" der Zeile
+      (docs/design/linie.md 3) — an jeder Zeile an derselben Stelle. Das Menü
+      ist dasselbe wie oben und bietet nur das Bearbeiten an.
+    */
+    await userEvent.click(within(unten).getByRole('button', { name: /^Weitere Aktionen für Wartung Bäckerei Stein/ }));
+    expect(screen.getAllByRole('menuitem').map((e) => e.textContent)).toEqual(['Bearbeiten']);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Bearbeiten' }));
+    expect(await screen.findByText('Wartung ändern')).toBeTruthy();
   });
 
   it('bietet der Verwaltung kein Eintragen an — sie darf es serverseitig nicht', async () => {
@@ -425,5 +435,52 @@ describe('Baustelle aus einer Wartung', () => {
 
     await screen.findAllByText(/Familie Huber/);
     expect(screen.queryByRole('button', { name: 'Baustelle anlegen' })).not.toBeInTheDocument();
+  });
+});
+
+/*
+  AM SCHREIBTISCH ALS TABELLE (docs/design/linie.md 4), wie die übrigen
+  Büro-Listen: genau eine Form im DOM, dieselben Handgriffe.
+*/
+describe('Wartungen am Schreibtisch', () => {
+  const schreibtisch = mitSchreibtisch();
+
+  it('stehen als Tabelle mit Kunde, Standort, Termin und Stand, Intervall und Zuletzt', async () => {
+    schreibtisch();
+    zeichne();
+    const an = await anstehendeZeilen();
+    const zeile = an.getByRole('row', { name: /Bäckerei Stein/ });
+    const t = zeile.closest('table') as HTMLElement;
+    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
+      'Kunde und Anlage', 'Standort', 'Termin und Stand', 'Intervall', 'Zuletzt', 'Aktionen',
+    ]);
+    expect(zeile).toHaveTextContent('Therme Vaillant ecoTEC');
+    expect(zeile).toHaveTextContent('10.04.2026');
+    expect(zeile).toHaveTextContent('alle 12 Monate');
+    expect(zeile).toHaveTextContent('10.04.2025');
+    expect(zeile).toHaveTextContent('Seit 52 Tagen überfällig.');
+    expect(within(zeile).getByRole('button', { name: 'Erledigt' })).toBeTruthy();
+    expect(screen.queryByRole('listitem')).toBeNull();
+  });
+
+  it('trägt eine erledigte Wartung auch aus der Tabelle ein', async () => {
+    schreibtisch();
+    const nutzer = userEvent.setup();
+    zeichne();
+    const an = await anstehendeZeilen();
+    const zeile = an.getByRole('row', { name: /Bäckerei Stein/ });
+    await nutzer.click(within(zeile).getByRole('button', { name: 'Erledigt' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Eintragen' }));
+    expect(wartungErledigt).toHaveBeenCalledWith('w1', expect.objectContaining({ erledigtAm: HEUTE }));
+  });
+
+  it('zeigt der Verwaltung keine Aktionsspalte', async () => {
+    schreibtisch();
+    rolle = 'Verwaltung';
+    zeichne();
+    const an = await anstehendeZeilen();
+    const t = an.getByRole('row', { name: /Bäckerei Stein/ }).closest('table') as HTMLElement;
+    expect(within(t).queryByRole('columnheader', { name: 'Aktionen' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Weitere Aktionen/ })).toBeNull();
   });
 });

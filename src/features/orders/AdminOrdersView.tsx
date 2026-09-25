@@ -36,6 +36,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { abschlussText } from './abschlussText';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
+import { abgeschnitten } from '@/lib/listengrenzen';
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -436,18 +437,43 @@ export default function AdminOrdersView() {
       ) : (
         <Card
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}
+          // Zahl und Filter rechts im Titel, wie in jeder Liste (Linie, 2).
           action={
-            tab !== 'retouren' && projectOptions.length > 0 ? (
-              <SelectField id="ofilter" label="" value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}>
-                <option value="">Alle Baustellen</option>
-                {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
-              </SelectField>
-            ) : undefined
+            <div className="liste-kopf-rechts">
+              {!loading && !error && <span className="liste-anzahl">{rows.length}</span>}
+              {tab !== 'retouren' && projectOptions.length > 0 && (
+                <SelectField id="ofilter" label="" aria-label="Baustelle wählen" value={projectFilter}
+                  onChange={(e) => setProjectFilter(e.target.value)}>
+                  <option value="">Alle Baustellen</option>
+                  {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                </SelectField>
+              )}
+            </div>
+          }
+          /*
+            Und darunter die ABFRAGE-Grenze. „Weitere anzeigen" holt nichts
+            nach — es zeigt nur mehr von dem, was schon da ist. Wer im Archiv
+            sucht und nichts findet, muss den Unterschied erfahren. Im
+            Kartenfuß wie jede Liste, unter denselben Bedingungen wie bisher:
+            neben einer Liste, nicht neben Laden, Fehler oder Leermeldung.
+          */
+          footer={
+            !loading &&
+            !error &&
+            rows.length > 0 &&
+            abgeschnitten(orders, holgrenze) && (
+              <Nachladen
+                geladen={orders.length}
+                grenze={holgrenze}
+                onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
+                einheit="Anforderungen"
+                sucheSatz="Nach Artikel, Person, Baustelle und Notiz wird nur in diesen gesucht."
+              />
+            )
           }
         >
           {orders.length >= 10 && (
-            <div className="mb-4">
+            <div className="liste-suche">
               <InputField
                 id="osuche"
                 label="Suche"
@@ -512,7 +538,7 @@ export default function AdminOrdersView() {
                               )}
                               {anforderungNotiz(o)}
                             </td>
-                            <td className="tabelle-zahl">{o.quantity}</td>
+                            <td className="tabelle-zahl-stark">{o.quantity}</td>
                             {/* Die Baustelle unter dem Besteller, wie in der
                                 Listenzeile hinter ihm: eine eigene Spalte
                                 nahm auf 1024 px dem Material den Platz. */}
@@ -585,19 +611,6 @@ export default function AdminOrdersView() {
                 </Button>
               )}
 
-              {/*
-                Und darunter die ABFRAGE-Grenze. „Weitere anzeigen" oben holt
-                nichts nach — es zeigt nur mehr von dem, was schon da ist. Wer
-                im Archiv sucht und nichts findet, muss den Unterschied
-                erfahren.
-              */}
-              <Nachladen
-                geladen={orders.length}
-                grenze={holgrenze}
-                onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
-                einheit="Anforderungen"
-                sucheSatz="Nach Artikel, Person, Baustelle und Notiz wird nur in diesen gesucht."
-              />
             </div>
           )}
         </Card>
