@@ -95,6 +95,54 @@ export default function RowMenu({ about, items }: RowMenuProps) {
     };
   }, [offen]);
 
+  /*
+    DIE TASTATUR KOMMT INS MENÜ. Es hängt über das Portal am Ende von
+    `body` — per Tab war es damit praktisch nicht zu erreichen, und die
+    Pfeiltasten taten nichts (Prüflauf 25.09.2026, P4-06). Wie im Muster
+    „Menü-Knopf": beim Öffnen steht der Fokus auf dem ersten Eintrag, Pfeil
+    hoch/runter, Pos1/Ende wandern, Escape und Tab schliessen und geben den
+    Fokus dem „⋯" zurück.
+
+    Erst NACH dem Platzieren und ohne Rollen der Seite: vorher steht das Menü
+    bei −9999 px, und `focus()` zöge die Seite dorthin.
+  */
+  const hineinGeholt = useRef(false);
+  useEffect(() => {
+    if (!offen) {
+      hineinGeholt.current = false;
+      return;
+    }
+    if (!pos || hineinGeholt.current) return;
+    hineinGeholt.current = true;
+    menu.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
+  }, [offen, pos]);
+
+  function zurueckZumKnopf() {
+    setOffen(false);
+    knopf.current?.focus();
+  }
+
+  function imMenue(e: React.KeyboardEvent<HTMLDivElement>) {
+    const eintraege = Array.from(
+      menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    );
+    if (eintraege.length === 0) return;
+    const jetzt = eintraege.indexOf(document.activeElement as HTMLElement);
+    let ziel: number | null = null;
+    if (e.key === 'ArrowDown') ziel = (jetzt + 1) % eintraege.length;
+    else if (e.key === 'ArrowUp') ziel = (jetzt - 1 + eintraege.length) % eintraege.length;
+    else if (e.key === 'Home') ziel = 0;
+    else if (e.key === 'End') ziel = eintraege.length - 1;
+    else if (e.key === 'Tab') {
+      e.preventDefault();
+      zurueckZumKnopf();
+      return;
+    }
+    if (ziel === null) return;
+    e.preventDefault();
+    eintraege[ziel].focus({ preventScroll: true });
+  }
+
   return (
     <>
       <button
@@ -121,14 +169,20 @@ export default function RowMenu({ about, items }: RowMenuProps) {
             aria-label={`Aktionen für ${about}`}
             className="absolute z-50 min-w-[11rem] overflow-hidden rounded border border-line bg-surface py-1 shadow-lg"
             style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}
+            onKeyDown={imMenue}
           >
             {items.map((i) => (
               <button
                 key={i.label}
                 type="button"
                 role="menuitem"
+                // Kein eigener Tab-Stopp: im Menü wandern die Pfeiltasten.
+                tabIndex={-1}
                 onClick={() => {
-                  setOffen(false);
+                  // Der Fokus geht vorher an „⋯" zurück — der Eintrag
+                  // verschwindet gleich, und sonst stünde er an `body`.
+                  // Öffnet die Aktion einen Dialog, holt der ihn sich.
+                  zurueckZumKnopf();
                   i.onSelect();
                 }}
                 className={`block min-h-touch w-full whitespace-nowrap px-4 text-left text-sm font-medium hover:bg-surface-2 ${

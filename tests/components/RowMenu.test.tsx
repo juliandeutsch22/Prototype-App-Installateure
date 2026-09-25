@@ -83,6 +83,63 @@ describe('Zeilenmenue', () => {
     expect(screen.getByRole('menu')).toBeInTheDocument();
   });
 
+  /*
+    Prüflauf 25.09.2026, P4-06: das Menü hängt am Ende von `body`. Der Fokus
+    blieb auf „⋯", die Pfeiltasten taten nichts, und Tab ließ das Menü offen
+    stehen, während der Fokus woanders weiterlief.
+  */
+  it('holt den Fokus auf den ersten Eintrag und wandert mit den Pfeiltasten', async () => {
+    render(
+      <RowMenu
+        about="Max Mustermann"
+        items={[...aktionen(), { label: 'Rolle ändern', onSelect: vi.fn() }]}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /Weitere Aktionen/ }));
+    const [senden, sperren, rolle] = screen.getAllByRole('menuitem');
+    expect(senden).toHaveFocus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(sperren).toHaveFocus();
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+    expect(senden).toHaveFocus(); // vom letzten wieder zum ersten
+    await userEvent.keyboard('{ArrowUp}');
+    expect(rolle).toHaveFocus();
+    await userEvent.keyboard('{Home}');
+    expect(senden).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    expect(rolle).toHaveFocus();
+    // Die Einträge sind keine eigenen Tab-Stopps.
+    for (const e of [senden, sperren, rolle]) expect(e).toHaveAttribute('tabindex', '-1');
+  });
+
+  it('löst den Eintrag mit Enter aus', async () => {
+    const sperren = vi.fn();
+    render(<RowMenu about="Max Mustermann" items={aktionen(vi.fn(), sperren)} />);
+    await userEvent.click(screen.getByRole('button', { name: /Weitere Aktionen/ }));
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    expect(sperren).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Weitere Aktionen/ })).toHaveFocus();
+  });
+
+  it('schliesst mit Tab und gibt den Fokus an „⋯" zurück', async () => {
+    render(<RowMenu about="Max Mustermann" items={aktionen()} />);
+    const knopf = screen.getByRole('button', { name: /Weitere Aktionen/ });
+    await userEvent.click(knopf);
+    expect(screen.getAllByRole('menuitem')[0]).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(knopf).toHaveFocus();
+  });
+
+  it('gibt den Fokus auch nach Escape an „⋯" zurück', async () => {
+    render(<RowMenu about="Max Mustermann" items={aktionen()} />);
+    const knopf = screen.getByRole('button', { name: /Weitere Aktionen/ });
+    await userEvent.click(knopf);
+    await userEvent.keyboard('{Escape}');
+    expect(knopf).toHaveFocus();
+  });
+
   it('nennt die Zeile, zu der es gehoert', async () => {
     render(<RowMenu about="Rechnung 2026-1001" items={aktionen()} />);
     await userEvent.click(screen.getByRole('button', { name: /Rechnung 2026-1001/ }));
