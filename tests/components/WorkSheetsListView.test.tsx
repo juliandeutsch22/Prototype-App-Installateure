@@ -451,12 +451,12 @@ describe('Stunden ohne Buchung', () => {
       .toISOString()
       .slice(0, 10);
 
-  /* Die Zeile ist aus mehreren Elementen gesetzt — gesucht wird deshalb im
-     zusammengesetzten Text, nicht in einem einzelnen Knoten. */
-  const zeile = (text: string) =>
-    screen.getByText((_t, el) => el?.textContent?.replace(/\s+/g, ' ').trim() === text, {
-      selector: 'span.text-xs',
-    });
+  /* Die Unterzeile einer Person, gesucht über ihren TEXT — nicht mehr über
+     die Schriftklasse (`span.text-xs`): die Personen stehen seit der Linie
+     in derselben Schrift wie die übrige Unterzeile, und woran ein Test eine
+     Zeile findet, soll das sein, was dort steht. Genau EIN Element trägt
+     den ganzen Satz; die Textstücke darin sind seine direkten Kinder. */
+  const zeile = (text: string) => screen.getByText(text);
 
   const offenerSchein = (p: Partial<WorkSheet> = {}): WorkSheet & { id: string } =>
     ({

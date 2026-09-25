@@ -689,21 +689,26 @@ export default function WorkSheetsListView() {
                     <Warnung stufe={tage >= 30 ? 'dringend' : 'achtung'}>{tageWort(tage)}</Warnung>
                   </>
                 }
+                /*
+                  UNTERZEILEN NACH DER LINIE: dieselbe Schrift wie die
+                  Unterzeile darüber, „·" als Trenner, eine Zeile je Person.
+                  Vorher standen die Personen eine Stufe kleiner (12 px) —
+                  ausgerechnet die Angabe, um die es hier geht. Der kleine
+                  Abstand hält die Zeilen auseinander, wenn sie umbrechen.
+                */
                 subtitle={
                   <>
-                    <span>
+                    <span className="block">
                       Baustelle {schein.projectNumber} · Leistung vom {datumAT(schein.datum)}
                     </span>
-                    <span className="mt-1 block">
-                      {zeilen.map((z) => (
-                        <span key={z.name} className="block text-xs text-ink-muted">
-                          {z.name} · {fmtDauer(z.minuten)} ·{' '}
-                          {z.art === 'keine'
-                            ? 'keine Buchung gefunden'
-                            : `gebucht auf ${z.gebuchtAuf?.join(', ')}`}
-                        </span>
-                      ))}
-                    </span>
+                    {zeilen.map((z) => (
+                      <span key={z.name} className="mt-1 block">
+                        {z.name} · {fmtDauer(z.minuten)} ·{' '}
+                        {z.art === 'keine'
+                          ? 'keine Buchung gefunden'
+                          : `gebucht auf ${z.gebuchtAuf?.join(', ')}`}
+                      </span>
+                    ))}
                   </>
                 }
               >
