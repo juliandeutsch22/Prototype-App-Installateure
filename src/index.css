@@ -1797,8 +1797,12 @@ textarea {
    * Erledigt bzw. gewählt ist die Zeile getönt. Trennlinien wie bei `.liste`:
    * unten an jeder Zeile, die Liste schneidet den letzten Pixel ab.
    */
+  /* Wie `.liste`: jede Zeile greift 1 px in die nächste, die Liste
+     (flow-root) endet genau vor der Linie der letzten Zeile. */
   .haken-liste {
-    clip-path: inset(0 0 1px 0);
+    display: flow-root;
+    overflow-x: visible;
+    overflow-y: clip;
   }
 
   .haken-zeile,
@@ -1809,6 +1813,7 @@ textarea {
     justify-content: space-between;
     column-gap: 0.5rem;
     border-bottom: 1px solid var(--border);
+    margin-bottom: -1px;
     padding-inline: 0.75rem;
   }
 
