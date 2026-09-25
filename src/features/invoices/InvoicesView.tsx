@@ -1485,7 +1485,7 @@ export default function InvoicesView() {
         )}
 
         <details className="mt-4">
-          <summary className="min-h-touch cursor-pointer text-sm font-medium text-brand underline">
+          <summary className="link min-h-touch cursor-pointer text-sm">
             Konditionen für diese Rechnung anpassen
           </summary>
           <div className="flex flex-wrap items-center gap-2">
@@ -2117,7 +2117,7 @@ export default function InvoicesView() {
               <p className="rounded-sm border border-danger/30 bg-surface-2 px-3 py-2 text-sm text-danger" role="alert">
                 Die Anschrift des Betriebs fehlt — sie muss auf jeder Rechnung stehen (§ 11 UStG).{' '}
                 {user && isTopLevel(user.role) ? (
-                  <Link to="/settings/firma" className="font-medium underline">
+                  <Link to="/settings/firma" className="link-hinweis-weiter">
                     In den Firmendaten eintragen
                   </Link>
                 ) : (
@@ -2132,7 +2132,7 @@ export default function InvoicesView() {
                 {user && isTopLevel(user.role) && (
                   <>
                     {' '}
-                    <Link to="/settings/firma" className="font-medium underline">
+                    <Link to="/settings/firma" className="link-hinweis-weiter">
                       Firmendaten
                     </Link>
                   </>

@@ -133,7 +133,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={oeffnen}
-                className="mt-3 min-h-touch text-sm font-medium text-brand underline"
+                className="link mt-3 min-h-touch text-sm"
               >
                 Problem melden
               </button>

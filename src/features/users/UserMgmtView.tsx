@@ -405,7 +405,7 @@ export default function UserMgmtView() {
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
-            className="min-h-touch text-sm font-medium text-brand underline"
+            className="link min-h-touch text-sm"
           >
             {showDetails ? 'Zeitkonto-Einstellungen ausblenden' : 'Zeitkonto-Einstellungen anzeigen'}
           </button>
@@ -619,7 +619,7 @@ export default function UserMgmtView() {
                 */}
                 <Link
                   to={`/user-mgmt/${u.uid}`}
-                  className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                  className="link-weiter flex min-h-touch items-center px-2 text-sm"
                 >
                   Akte
                 </Link>

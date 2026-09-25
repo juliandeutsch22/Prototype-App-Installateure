@@ -609,7 +609,7 @@ export default function DashboardView() {
           <p className="mt-1 text-sm">
             {offeneTage.slice(-5).map(fmtTag).join(', ')}
             {offeneTage.length > 5 && ` und ${offeneTage.length - 5} weitere`}.{' '}
-            <Link to="/time" className="font-semibold underline">
+            <Link to="/time" className="link-hinweis-weiter">
               Jetzt nachtragen
             </Link>
           </p>
@@ -626,7 +626,7 @@ export default function DashboardView() {
         <Card
           title={data.heuteEigene.length === 1 ? 'Heute' : `Heute — ${data.heuteEigene.length} Baustellen`}
           action={
-            <Link to="/my-schedule" className="text-sm font-semibold text-brand underline">
+            <Link to="/my-schedule" className="link-weiter text-sm">
               Mein Einsatzplan
             </Link>
           }
@@ -699,7 +699,7 @@ export default function DashboardView() {
         <Card
           title="Heute im Einsatz"
           action={
-            <Link to="/assignments" className="text-sm font-semibold text-brand underline">
+            <Link to="/assignments" className="link-weiter text-sm">
               Zur Einsatzplanung
             </Link>
           }
@@ -783,7 +783,7 @@ export default function DashboardView() {
         <Card
           title={`Aktive Baustellen (${data.aktiveBaustellen.length})`}
           action={
-            <Link to="/admin-projects" className="text-sm font-semibold text-brand underline">
+            <Link to="/admin-projects" className="link-weiter text-sm">
               Baustellen verwalten
             </Link>
           }
@@ -819,7 +819,7 @@ export default function DashboardView() {
           {data.aktiveBaustellen.length > BAUSTELLEN_AUF_STARTSEITE && (
             <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted">
               und {data.aktiveBaustellen.length - BAUSTELLEN_AUF_STARTSEITE} weitere — alle unter{' '}
-              <Link to="/admin-projects" className="font-semibold text-brand underline">
+              <Link to="/admin-projects" className="link-weiter">
                 Baustellen
               </Link>
               .
@@ -833,7 +833,7 @@ export default function DashboardView() {
         <Card
           title="Baustellen am Limit"
           action={
-            <Link to="/accounting" className="text-sm font-semibold text-brand underline">
+            <Link to="/accounting" className="link-weiter text-sm">
               Zur Auswertung
             </Link>
           }
@@ -865,7 +865,7 @@ export default function DashboardView() {
           {data.projectAlerts.length > WARNUNGEN_AUF_STARTSEITE && (
             <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted">
               und {data.projectAlerts.length - WARNUNGEN_AUF_STARTSEITE} weitere —{' '}
-              <Link to="/accounting" className="font-semibold text-brand underline">
+              <Link to="/accounting" className="link-weiter">
                 zur Auswertung
               </Link>
               .
@@ -880,7 +880,7 @@ export default function DashboardView() {
         <Card
           title={`Material angefordert (${data.openOrders.length})`}
           action={
-            <Link to="/material/anforderungen" className="text-sm font-semibold text-brand underline">
+            <Link to="/material/anforderungen" className="link-weiter text-sm">
               Bearbeiten
             </Link>
           }
@@ -917,7 +917,7 @@ export default function DashboardView() {
         <Card
           title="Team — offene Zeiten"
           action={
-            <Link to="/accounting" className="text-sm font-semibold text-brand underline">
+            <Link to="/accounting" className="link-weiter text-sm">
               Zur Monatsauswertung
             </Link>
           }

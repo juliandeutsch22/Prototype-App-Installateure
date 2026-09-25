@@ -99,7 +99,7 @@ export default function LaufWarnung() {
         {offen.map((o) => (
           <li key={o.art}>
             {o.text}{' '}
-            <Link to={WOHIN[o.art].pfad} className="underline">
+            <Link to={WOHIN[o.art].pfad} className="link-hinweis-weiter">
               {WOHIN[o.art].wort}
             </Link>
           </li>

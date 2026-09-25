@@ -432,7 +432,7 @@ export default function MyScheduleView() {
             <Card
               title="Mein Urlaub"
               action={
-                <Link to="/vacations" className="text-sm font-semibold text-brand underline">
+                <Link to="/vacations" className="link-weiter text-sm">
                   Beantragen
                 </Link>
               }

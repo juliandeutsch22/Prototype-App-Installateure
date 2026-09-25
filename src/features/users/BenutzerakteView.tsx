@@ -184,7 +184,7 @@ export default function BenutzerakteView() {
             alten Lesezeichen folgt, soll das erfahren.
           */}
           <EmptyState
-            action={<Link to="/user-mgmt" className="text-brand underline">Zur Benutzerliste</Link>}
+            action={<Link to="/user-mgmt" className="link-weiter">Zur Benutzerliste</Link>}
           >
             Diesen Benutzer gibt es nicht (mehr).
           </EmptyState>
@@ -201,7 +201,7 @@ export default function BenutzerakteView() {
         title={p.name}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/user-mgmt" className="inline-flex min-h-touch items-center text-brand underline">← Zur Benutzerliste</Link>
+            <Link to="/user-mgmt" className="link inline-flex min-h-touch items-center">← Zur Benutzerliste</Link>
             <Marke>{p.role}</Marke>
             {p.active === false && <Marke>inaktiv</Marke>}
           </span>

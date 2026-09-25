@@ -80,7 +80,7 @@ export default function Verbindungsband() {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="min-h-touch font-semibold underline underline-offset-2"
+            className="link-hinweis min-h-touch"
           >
             Neu laden
           </button>

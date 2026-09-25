@@ -869,7 +869,7 @@ export default function TimeForm({
               <span>Die Zeit reicht in die Nacht (22–6 Uhr).</span>
               <button
                 type="button"
-                className="min-h-touch font-medium text-brand underline-offset-2 hover:underline"
+                className="link min-h-touch"
                 onClick={() => setIsNightWork(true)}
               >
                 Nachtarbeit ankreuzen

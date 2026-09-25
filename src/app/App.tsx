@@ -168,7 +168,7 @@ function AppInhalt() {
           Nicht dein Konto?{' '}
           <button
             type="button"
-            className="inline-flex min-h-touch items-center font-medium text-brand underline"
+            className="link inline-flex min-h-touch items-center"
             onClick={() => {
               void signOut().finally(() => setPasswortFaellig(false));
             }}

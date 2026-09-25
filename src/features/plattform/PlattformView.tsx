@@ -383,7 +383,7 @@ export default function PlattformView() {
                   Erster Administrator: {b.adminEmail}
                 </p>
                 <p className="mt-2 break-all text-sm">
-                  <a href={b.passwortLink} className="text-brand underline">
+                  <a href={b.passwortLink} className="link">
                     {b.passwortLink}
                   </a>
                 </p>

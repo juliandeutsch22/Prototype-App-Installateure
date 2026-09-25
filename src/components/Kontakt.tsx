@@ -27,7 +27,7 @@ export function AdresseLink({ adresse, variante = 'text', className = '' }: Adre
   const stil =
     variante === 'knopf'
       ? 'rounded-sm border border-line px-3 py-2 font-medium text-ink'
-      : 'text-brand underline';
+      : 'link-kontakt';
   return (
     <a
       href={mapsUrl(adresse)}
@@ -58,7 +58,7 @@ export function TelefonLink({ nummer, name, variante = 'text', className = '' }:
   const stil =
     variante === 'knopf'
       ? 'rounded-sm border border-line px-3 py-2 font-medium text-ink'
-      : 'font-semibold text-brand underline';
+      : 'link-kontakt';
   return (
     <a href={telUrl(nummer)} className={`${gemeinsam} ${stil} ${className}`}>
       <Icon name="phone" size={16} aria-hidden />
@@ -89,7 +89,7 @@ export function MailLink({ adresse, variante = 'text', className = '' }: MailPro
   const stil =
     variante === 'knopf'
       ? 'rounded-sm border border-line px-3 py-2 font-medium text-ink'
-      : 'text-brand underline';
+      : 'link-kontakt';
   if (!ziel) {
     return (
       <span className={`${gemeinsam} text-ink ${className}`}>

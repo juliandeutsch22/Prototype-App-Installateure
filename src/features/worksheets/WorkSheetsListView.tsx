@@ -591,7 +591,7 @@ export default function WorkSheetsListView() {
                 )}{' '}
                 <button
                   type="button"
-                  className="underline"
+                  className="link-hinweis"
                   onClick={() => {
                     setTreffer(null);
                     setTrefferZu('');

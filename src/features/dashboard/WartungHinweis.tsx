@@ -75,7 +75,7 @@ export default function WartungHinweis() {
         {ueberfaellig > 0
           ? `${ueberfaellig} davon ${ueberfaellig === 1 ? 'ist' : 'sind'} überfällig. `
           : `Fällig in den nächsten ${VORLAUF_TAGE} Tagen. `}
-        <Link to="/wartungen" className="underline">
+        <Link to="/wartungen" className="link-hinweis-weiter">
           Zu den Wartungen
         </Link>
       </p>

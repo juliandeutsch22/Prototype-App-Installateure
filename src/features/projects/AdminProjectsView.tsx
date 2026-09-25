@@ -464,7 +464,7 @@ export default function AdminProjectsView() {
               <p className="text-sm text-warning sm:col-span-2">
                 Bisher als Text hinterlegt: „{form.customerName}". Bitte den passenden Kunden
                 wählen — oder in der{' '}
-                <Link to="/customers" className="font-semibold underline">
+                <Link to="/customers" className="link-hinweis-weiter">
                   Kundenverwaltung
                 </Link>{' '}
                 anlegen und die Baustellen übernehmen.
@@ -473,7 +473,7 @@ export default function AdminProjectsView() {
             {kunden.length === 0 && (
               <p className="text-sm text-ink-muted sm:col-span-2">
                 Noch keine Kunden angelegt.{' '}
-                <Link to="/customers" className="font-semibold text-brand underline">
+                <Link to="/customers" className="link-hinweis-weiter">
                   Zur Kundenverwaltung
                 </Link>
               </p>
@@ -642,7 +642,7 @@ export default function AdminProjectsView() {
                   */}
                   <Link
                     to={`/admin-projects/${p.id}`}
-                    className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                    className="link-weiter flex min-h-touch items-center px-2 text-sm"
                   >
                     Akte
                   </Link>

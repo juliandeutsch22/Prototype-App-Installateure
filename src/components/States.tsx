@@ -106,7 +106,7 @@ export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void
     <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
       {was} konnte nicht geladen werden.{' '}
       {onRetry && (
-        <button onClick={onRetry} className="min-h-touch font-semibold underline">
+        <button onClick={onRetry} className="link-hinweis min-h-touch">
           Erneut versuchen
         </button>
       )}

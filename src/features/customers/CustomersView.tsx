@@ -512,7 +512,7 @@ export default function CustomersView() {
                 */}
                 <Link
                   to={`/customers/${k.id}`}
-                  className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                  className="link-weiter flex min-h-touch items-center px-2 text-sm"
                 >
                   Akte
                 </Link>

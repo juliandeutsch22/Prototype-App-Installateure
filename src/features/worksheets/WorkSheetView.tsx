@@ -1279,7 +1279,7 @@ export default function WorkSheetView() {
                                 <button
                                   type="button"
                                   onClick={() => void fotoNachreichen(f)}
-                                  className="ml-1 underline"
+                                  className="link-hinweis ml-1"
                                 >
                                   Nochmal versuchen
                                 </button>
@@ -1486,7 +1486,7 @@ export default function WorkSheetView() {
                       {offeneZeit && (
                         <button
                           type="button"
-                          className="min-h-touch font-semibold underline"
+                          className="link-hinweis min-h-touch"
                           onClick={() => springe(1)}
                         >
                           Zu den Zeiten
@@ -1495,7 +1495,7 @@ export default function WorkSheetView() {
                       {offenesMaterial && (
                         <button
                           type="button"
-                          className="min-h-touch font-semibold underline"
+                          className="link-hinweis min-h-touch"
                           onClick={() => springe(2)}
                         >
                           Zum Material

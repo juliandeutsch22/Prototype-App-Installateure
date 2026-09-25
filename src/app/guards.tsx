@@ -60,7 +60,7 @@ export function RequireModul({ id, children }: { id: ModulId; children: ReactNod
       </p>
       {isTopLevel(user.role) ? (
         <p className="mt-4">
-          <Link to="/settings/module" className="font-semibold text-brand underline">
+          <Link to="/settings/module" className="link-weiter">
             Unter „Module" wieder einschalten
           </Link>
         </p>
