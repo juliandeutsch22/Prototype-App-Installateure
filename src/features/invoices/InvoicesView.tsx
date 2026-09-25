@@ -15,6 +15,7 @@ import {
   reactivateInvoice,
   mahnungFesthalten,
   sucheRechnungen,
+  scheineAufRechnung,
   RECHNUNG_TREFFER,
 } from '@/lib/db/invoices';
 import { listZahlungen, createZahlung, deleteZahlung } from '@/lib/db/zahlungen';
@@ -121,6 +122,13 @@ export default function InvoicesView() {
     nichts.
   */
   const [scheineAllerBaustellen, setScheineAllerBaustellen] = useState<WithId<WorkSheet>[]>([]);
+  /*
+    Welche dieser Scheine auf einer gültigen Rechnung stehen — aus der
+    Abdeckung ALLER Rechnungen, nicht aus den geladenen (Prüflauf 25.09.2026,
+    P2-03). `null`: noch nicht bekannt oder nicht geladen.
+  */
+  const [scheineVerrechnet, setScheineVerrechnet] = useState<string[] | null>(null);
+  const [abdeckungFehler, setAbdeckungFehler] = useState(false);
   /*
     DIE OFFENEN FORDERUNGEN, EIGENS GEHOLT — nicht aus der Liste darüber.
 
@@ -394,8 +402,25 @@ export default function InvoicesView() {
         if (!weg) setForderungenFehler(true);
       });
     listRecentWorkSheets(user.companyId, 60)
-      .then((rows) => {
-        if (!weg) setScheineAllerBaustellen(rows);
+      .then(async (rows) => {
+        if (weg) return;
+        setScheineAllerBaustellen(rows);
+        /*
+          OB EIN SCHEIN VERRECHNET IST, SAGT DIE ABDECKUNG — über alle
+          Rechnungen (P2-03). Vorher wurde das aus den fünfzig jüngsten und
+          den offenen Rechnungen geschlossen; ein Schein auf einer älteren,
+          längst bezahlten stand dann als „nicht verrechnet" da. Kommt die
+          Antwort nicht, bleibt die Karte weg und eine Zeile sagt warum.
+        */
+        try {
+          const verrechnet = await scheineAufRechnung(user.companyId, rows.map((r) => r.id));
+          if (!weg) {
+            setScheineVerrechnet(verrechnet);
+            setAbdeckungFehler(false);
+          }
+        } catch {
+          if (!weg) setAbdeckungFehler(true);
+        }
       })
       /*
         Still: die Liste ist eine ZUSATZangabe. Fiele die ganze
@@ -726,7 +751,15 @@ export default function InvoicesView() {
         gar nicht. Ein Betrieb, der abrechnen will, wartet sonst auf eine
         Abfrage, die mit seinen Stunden nichts zu tun hat.
       */
-      const [entries, scheine, katalog] = await Promise.all([
+      /*
+        WAS SCHON VERRECHNET IST, KOMMT AUS ALLEN RECHNUNGEN DER BAUSTELLE
+        (Prüflauf 25.09.2026, P2-03) — nicht aus den fünfzig jüngsten, die
+        die Liste gerade zeigt. Stand ein Schein auf einer älteren Rechnung,
+        kam sein Material sonst ein zweites Mal auf die Rechnung. Kommt die
+        Abfrage nicht, entsteht keine Vorschau: eine, die doppelt verrechnen
+        könnte, ist schlechter als keine.
+      */
+      const [entries, scheine, katalog, derBaustelle] = await Promise.all([
         listEntriesForProjects(user.companyId, [projectNumber]),
         listWorkSheetsForProject(user.companyId, projectNumber).catch(() => {
           setNebenFehler('Die Handwerksscheine');
@@ -736,7 +769,17 @@ export default function InvoicesView() {
           setNebenFehler('Der Materialkatalog');
           return [];
         }),
+        listInvoicesForProject(user.companyId, projectNumber).catch(() => null),
       ]);
+      if (!derBaustelle) {
+        setPreview(null);
+        setError(
+          'Die bisherigen Rechnungen dieser Baustelle konnten nicht geladen werden. Ohne sie lässt '
+            + 'sich nicht ausschliessen, dass Material ein zweites Mal verrechnet wird — bitte noch '
+            + 'einmal zusammenstellen.',
+        );
+        return;
+      }
       setKatalogUnvollstaendig(katalogAbgeschnitten(katalog));
       const assembled = assembleInvoice(projectNumber, entries, rates, {
         scheine,
@@ -744,7 +787,7 @@ export default function InvoicesView() {
         // Was auf einer bestehenden Rechnung steht, kommt nicht noch einmal.
         // Ein STORNIERTER Beleg zaehlt dabei nicht — sein Material ist wieder
         // offen.
-        bereitsVerrechnet: verrechneteScheine(invoices),
+        bereitsVerrechnet: verrechneteScheine(derBaustelle),
       });
       /*
         PAUSCHALBAUSTELLE: das Angebot ist die Rechnung, nicht die Stunden
@@ -754,10 +797,9 @@ export default function InvoicesView() {
       */
       const baustelle = projects.find((x) => x.projectNumber === projectNumber);
       if (baustelle?.billingMode === 'Pauschal') {
-        const [derBaustelle, angebote] = await Promise.all([
-          listInvoicesForProject(user.companyId, projectNumber),
-          baustelle.id ? listQuotesForProject(user.companyId, baustelle.id) : Promise.resolve([]),
-        ]);
+        const angebote = baustelle.id
+          ? await listQuotesForProject(user.companyId, baustelle.id)
+          : [];
         const schon = art === 'teil' ? null : pauschaleVerrechnetMit(derBaustelle, projectNumber);
         if (schon) {
           setPreview(null);
@@ -1160,8 +1202,19 @@ export default function InvoicesView() {
       jüngeren ab, die offenen die älteren; zusammen ist das die belastbare
       Auskunft, die es vorher nicht gab.
     */
-    () => unverrechneteScheine(scheineAllerBaustellen, [...invoices, ...offeneRechnungen], todayStr()),
-    [scheineAllerBaustellen, invoices, offeneRechnungen],
+    () =>
+      unverrechneteScheine(
+        scheineAllerBaustellen,
+        [
+          ...invoices,
+          ...offeneRechnungen,
+          // Die Abdeckung ALLER gültigen Rechnungen (P2-03) — als eine
+          // Rechnung gelesen, die genau diese Scheine trägt.
+          { linkedWorkSheets: scheineVerrechnet ?? [], paymentStatus: 'Offen' },
+        ],
+        todayStr(),
+      ),
+    [scheineAllerBaustellen, invoices, offeneRechnungen, scheineVerrechnet],
   );
 
   /**
@@ -1332,7 +1385,15 @@ export default function InvoicesView() {
         </p>
       )}
 
-      {!forderungenFehler && auffaellige(offeneLeistung).length > 0 && (
+      {!forderungenFehler && abdeckungFehler && (
+        <p role="status" className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+          <strong>Welche Handwerksscheine schon verrechnet sind, konnte nicht geladen werden.</strong>{' '}
+          „Nicht verrechnete Leistung" wird deshalb nicht angezeigt. Bitte die Seite neu laden.
+        </p>
+      )}
+
+      {!forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
+        && auffaellige(offeneLeistung).length > 0 && (
         <Card
           title={`Nicht verrechnete Leistung (${auffaellige(offeneLeistung).length})`}
           hint={

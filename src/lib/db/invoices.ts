@@ -51,6 +51,11 @@ export function listInvoicesForProject(
   return pg.listInvoicesForProject(companyId, projectNumber);
 }
 
+/** Welche dieser Scheine auf einer gültigen Rechnung stehen — über alle Rechnungen. */
+export function scheineAufRechnung(companyId: string, scheinIds: string[]): Promise<string[]> {
+  return pg.scheineAufRechnung(companyId, scheinIds);
+}
+
 export const RECHNUNG_TREFFER = pg.RECHNUNG_TREFFER;
 
 export function sucheRechnungen(companyId: string, begriff: string): Promise<WithId<Invoice>[]> {

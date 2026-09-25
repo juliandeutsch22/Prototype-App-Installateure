@@ -98,6 +98,12 @@ const listInvoicesForProject = vi.fn(async () => {
 const listInvoicesInRange = vi.fn<[string, string, string], Promise<(Invoice & { id: string })[]>>(
   async () => imZeitraum,
 );
+/*
+  Welche Scheine laut Abdeckung ALLER Rechnungen verrechnet sind (Prüflauf
+  25.09.2026, P2-03) — die Quelle für „nicht verrechnete Leistung".
+*/
+let aufRechnung: string[] = [];
+const scheineAufRechnung = vi.fn(async () => aufRechnung);
 
 /*
   DIE GRENZE IM TEST KLEIN HALTEN.
@@ -170,6 +176,7 @@ vi.mock('@/lib/db/invoices', async () => {
       noch verlässlich unter den jüngsten Rechnungen steht.
     */
     listInvoicesForProject: () => listInvoicesForProject(),
+    scheineAufRechnung: () => scheineAufRechnung(),
     sucheRechnungen: (c: string, b: string) => {
       suche(c, b);
       return sucheWirft ? Promise.reject(new Error('weg')) : Promise.resolve(suchTreffer);
@@ -334,6 +341,8 @@ beforeEach(() => {
   listUnpaidInvoices.mockClear();
   listInvoicesInRange.mockClear();
   listRecentWorkSheets.mockClear();
+  aufRechnung = [];
+  scheineAufRechnung.mockClear();
   zeiten = [ZEIT];
   scheine = [];
   katalog = [];
@@ -646,13 +655,36 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
   });
 
   it('nimmt einen Schein NICHT, dessen Material schon auf einer Rechnung steht', async () => {
+    /*
+      DIE RECHNUNG STEHT NICHT UNTER DEN JÜNGSTEN (Prüflauf 25.09.2026,
+      P2-03). Bisher kam „schon verrechnet" aus der geladenen Liste — den
+      fünfzig jüngsten Rechnungen. Eine ältere, längst bezahlte Rechnung mit
+      diesem Schein stand dort nicht, und sein Material kam ein zweites Mal.
+      Maßgeblich sind jetzt ALLE Rechnungen der Baustelle.
+    */
     scheine = [SCHEIN];
     katalog = KATALOG;
-    rechnungen = [
-      { id: 'r1', linkedWorkSheets: ['s1'], paymentStatus: 'Offen' } as Invoice & { id: string },
+    rechnungen = [];
+    derBaustelle = [
+      {
+        id: 'r1', invoiceNumber: 'RE-2025-1001', projectNumber: '2026-042',
+        linkedWorkSheets: ['s1'], paymentStatus: 'Bezahlt',
+      } as Invoice & { id: string },
     ];
     await bisZurVorschau();
     expect(screen.queryByDisplayValue('Eckventil 1/2 Zoll')).not.toBeInTheDocument();
+  });
+
+  it('stellt nichts zusammen, wenn die Rechnungen der Baustelle nicht kommen', async () => {
+    // Eine Vorschau, die doppelt verrechnen könnte, ist schlechter als keine.
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    baustellenAbfrageWirft = true;
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    expect(await screen.findByText(/bisherigen Rechnungen dieser Baustelle konnten nicht geladen/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
   });
 });
 
@@ -1286,6 +1318,30 @@ describe('Nicht verrechnete Leistung', () => {
     ];
     zeige();
     await waitFor(() => expect(listRecentWorkSheets).toHaveBeenCalled());
+    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+  });
+
+  /*
+    PRÜFLAUF 25.09.2026, P2-03. Die Rechnung mit dem Schein ist älter als die
+    fünfzig jüngsten und längst bezahlt — sie steht weder in der Liste noch
+    in den offenen Forderungen. Bisher stand der Schein deshalb als „nicht
+    verrechnet" da; die Abdeckung aller Rechnungen weiss es besser.
+  */
+  it('schweigt auch, wenn die Rechnung mit dem Schein alt und bezahlt ist', async () => {
+    alleScheine = [schein('s1', '2026-06-01')];
+    rechnungen = [];
+    offene = [];
+    aufRechnung = ['s1'];
+    zeige();
+    await waitFor(() => expect(scheineAufRechnung).toHaveBeenCalled());
+    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+  });
+
+  it('sagt es, wenn die Abdeckung nicht geladen werden konnte, statt falsch zu melden', async () => {
+    alleScheine = [schein('s1', '2026-06-01')];
+    scheineAufRechnung.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+    expect(await screen.findByText(/schon verrechnet sind, konnte nicht geladen werden/)).toBeInTheDocument();
     expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
   });
 
@@ -2071,9 +2127,19 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
       Stillschweigen wäre hier das Teuerste: eine Schlussrechnung ohne ihre
       Anzahlungen sieht vollständig aus und weist dieselbe Steuer zweimal aus.
     */
+    /*
+      Seit dem Prüflauf 25.09.2026 (P2-03) entsteht dann gar keine Vorschau:
+      dieselbe Abfrage sagt auch, welches Material schon verrechnet ist.
+      Gemeldet wird es weiterhin — nur eben vor dem Zusammenstellen.
+    */
     baustellenAbfrageWirft = true;
-    await bisZurVorschau('schluss');
+    authWert.company.rechnungsarten = true;
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), 'schluss');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
     expect(await screen.findByText(/konnten nicht geladen werden/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
   });
 });
 

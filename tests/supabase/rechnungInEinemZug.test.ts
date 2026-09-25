@@ -172,6 +172,23 @@ describe('Ein Schein steht auf höchstens einer gültigen Rechnung (P2-03)', () 
     const offen = await rechnungen.listUnpaidInvoices(BETRIEB);
     expect(offen.map((r) => r.invoiceNumber)).toEqual([`RE-${JAHR}-1002`]);
   });
+
+  it('die Ansicht erfährt es über alle Rechnungen — ein Storno zählt nicht', async () => {
+    await leeren();
+    const gueltig = crypto.randomUUID();
+    const storniert = crypto.randomUUID();
+    const frei = crypto.randomUUID();
+    await rechnungen.createInvoice(BETRIEB, {
+      ...entwurf({ linkedWorkSheets: [gueltig] }), invoiceNumber: `RE-${JAHR}-1001`,
+    });
+    const weg = await rechnungen.createInvoice(BETRIEB, {
+      ...entwurf({ linkedWorkSheets: [storniert] }), invoiceNumber: `RE-${JAHR}-1002`,
+    });
+    await rechnungen.cancelInvoice({ id: weg } as WithId<Invoice>, 'Irrtum');
+
+    expect(await rechnungen.scheineAufRechnung(BETRIEB, [gueltig, storniert, frei]))
+      .toEqual([gueltig]);
+  });
 });
 
 describe('Keine Rechnung über nichts (P2-10)', () => {

@@ -265,6 +265,38 @@ export async function listInvoicesForProject(
   return zusammensetzen(koepfe, companyId);
 }
 
+/**
+ * Welche dieser Handwerksscheine auf einer GÜLTIGEN Rechnung stehen — über
+ * ALLE Rechnungen, nicht nur die geladenen.
+ *
+ * Gebraucht für „nicht verrechnete Leistung" (Prüflauf 25.09.2026, P2-03).
+ * Die Ansicht fragte bisher die fünfzig jüngsten Rechnungen und die offenen
+ * Forderungen; ein Schein auf einer älteren, längst BEZAHLTEN Rechnung stand
+ * damit als unverrechnet da — eine falsche Anschuldigung, der jemand
+ * nachgeht. Gefragt wird deshalb die Abdeckung selbst, und ein Storno zählt
+ * nicht: er gibt seine Scheine frei.
+ */
+export async function scheineAufRechnung(
+  companyId: string,
+  scheinIds: string[],
+): Promise<string[]> {
+  const ids = [...new Set(scheinIds.filter(Boolean))];
+  if (ids.length === 0) return [];
+  const abdeckung = await abfragen<Abdeckungszeile>(ABDECKUNG, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'art', wert: 'work_sheet' },
+      { art: 'in', feld: 'zielId', werte: ids },
+    ],
+  });
+  const rechnungsIds = [...new Set(abdeckung.map((a) => a.invoiceId))];
+  if (rechnungsIds.length === 0) return [];
+  const koepfe = await abfragen<Pick<Invoice, 'paymentStatus'>>(RECHNUNGEN, companyId, {
+    wo: [{ art: 'in', feld: 'id', werte: rechnungsIds }],
+  });
+  const gueltig = new Set(koepfe.filter((k) => k.paymentStatus !== 'Storniert').map((k) => k.id));
+  return [...new Set(abdeckung.filter((a) => gueltig.has(a.invoiceId)).map((a) => a.zielId))];
+}
+
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
 export const RECHNUNG_TREFFER = 100;
 
