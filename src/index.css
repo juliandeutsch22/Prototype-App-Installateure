@@ -1429,6 +1429,23 @@ textarea {
 }
 
 /*
+ * BÜRO-VERWALTUNG — was Benutzer, Nachkalkulation und Projektauswertung über
+ * die gemeinsamen Bausteine hinaus brauchen (Design-Durchgang, Phase 3).
+ */
+@layer components {
+  /* Budgetstand einer Baustelle in der Tabellenzelle der Projektauswertung:
+     Balken, Prozent und gegebenenfalls „über Budget" in einer Reihe. Die
+     Mindestbreite hält den Balken lesbar — ohne sie gäbe die Tabelle ihm
+     keinen Platz, er hat keinen eigenen Inhalt. */
+  .auswertung-budget {
+    display: flex;
+    min-width: 12rem;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════
