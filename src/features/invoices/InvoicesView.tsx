@@ -1696,7 +1696,7 @@ export default function InvoicesView() {
               Zusammenstellen. Die dauerhaften Sätze des Betriebs stehen in den Einstellungen.
             </InfoHint>
           </div>
-          <div className="kasten mt-3">
+          <div className="akte-abschnitt">
             <FormGrid cols={3}>
               <InputField id="r-fach" label="Facharbeiter €/h" type="number" min="0" step="0.5"
                 value={String(rates.fach)}
@@ -2100,7 +2100,7 @@ export default function InvoicesView() {
             — ein Abzug zöge sie ein zweites Mal ab.
           */}
           {zieheAb && (
-            <div className="kasten mt-4">
+            <div className="akte-abschnitt">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <span className="section-label">Bereits verrechnet — abziehen</span>
                 <InfoHint about="den Abzug der Vorrechnungen">
@@ -2150,7 +2150,7 @@ export default function InvoicesView() {
 
           {/* Rabatt auf das Netto, nicht auf das Brutto: die Umsatzsteuer
               bemisst sich am tatsaechlich vereinbarten Entgelt. */}
-          <div className="kasten mt-4">
+          <div className="akte-abschnitt">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="section-label">Rabatt</span>
               <InfoHint about="den Rabatt">
@@ -2241,7 +2241,7 @@ export default function InvoicesView() {
               keine Vorgabe: eine ungenutzte Steuerfunktion, die sich
               versehentlich einschaltet, kostet mehr als sie nützt.
             */}
-            <div className="kasten-hell">
+            <div className="akte-abschnitt">
               <CheckboxField
                 id="rc"
                 label="Bauleistung — Steuerschuld geht auf den Empfänger über (§ 19 Abs 1a UStG)"
@@ -2280,7 +2280,7 @@ export default function InvoicesView() {
 
               Vorausgefüllt aus dem Kundenstamm, wenn dort eine hinterlegt ist.
             */}
-            <div className="kasten-hell">
+            <div className="akte-abschnitt">
               <InputField
                 id="rc-uid"
                 label="UID-Nummer des Kunden"
@@ -2381,6 +2381,33 @@ export default function InvoicesView() {
           'auch wieder aufheben. Gelöscht werden kann nur eine bereits stornierte Rechnung — ' +
           'alles andere bleibt in den Büchern. Die Liste zeigt die jüngsten Rechnungen; die Suche ' +
           'nach Nummer, Kunde oder Baustelle geht über alle.'
+        }
+        /*
+          Nachladen heisst hier: die ABFRAGE ausweiten, nicht nur mehr vom
+          Geladenen zeigen. Vorher gab es an dieser Stelle schon einen Knopf,
+          der aber nur einen Ausschnitt der ohnehin vollstaendig geladenen
+          Liste freigab — die Datenmenge war dieselbe. Jetzt steuert er, wie
+          weit die Liste ueberhaupt zurueckreicht.
+
+          Der Hinweis daneben ist wichtig: Suche und Filter laufen im
+          Browser und damit nur ueber das Geladene. Ohne diesen Satz sucht
+          jemand eine alte Rechnungsnummer, findet nichts und schliesst
+          daraus, es gebe sie nicht.
+
+          IM KARTENFUSS wie „Weitere Kunden laden“ (`Nachladen`) und „Ältere
+          Einträge laden“ — so endet jede Liste gleich. Der Fuß steht nur, wenn
+          die Grenze greift; ein leerer Fuß wäre ein Streifen mit Linie.
+        */
+        footer={
+          !suchbegriff &&
+          invoices.length >= grenze && (
+            <div className="nachladen">
+              <Button variant="secondary" onClick={() => setGrenze((n) => n + RECHNUNGEN_JE_SEITE)}>
+                Ältere Rechnungen laden
+              </Button>
+              <span className="nachladen-hinweis">{grenze} jüngste geladen</span>
+            </div>
+          )
         }
         action={
           <SelectField id="invfilter" label="" className="py-1 text-sm" value={statusFilter}
@@ -2494,26 +2521,6 @@ export default function InvoicesView() {
               </ListRow>
             ))}
           </List>
-        )}
-        {/*
-          Nachladen heisst hier: die ABFRAGE ausweiten, nicht nur mehr vom
-          Geladenen zeigen. Vorher gab es an dieser Stelle schon einen Knopf,
-          der aber nur einen Ausschnitt der ohnehin vollstaendig geladenen
-          Liste freigab — die Datenmenge war dieselbe. Jetzt steuert er, wie
-          weit die Liste ueberhaupt zurueckreicht.
-
-          Der Hinweis daneben ist wichtig: Suche und Filter laufen im
-          Browser und damit nur ueber das Geladene. Ohne diesen Satz sucht
-          jemand eine alte Rechnungsnummer, findet nichts und schliesst
-          daraus, es gebe sie nicht.
-        */}
-        {!suchbegriff && invoices.length >= grenze && (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button variant="secondary" onClick={() => setGrenze((n) => n + RECHNUNGEN_JE_SEITE)}>
-              Ältere Rechnungen laden
-            </Button>
-            <span className="text-sm text-ink-muted">{grenze} jüngste geladen</span>
-          </div>
         )}
       </Card>
 
