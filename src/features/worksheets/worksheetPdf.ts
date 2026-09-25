@@ -1,7 +1,7 @@
 import type { Company, WorkSheet } from '@/types';
 import { fmtMin } from '@/lib/time';
 import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
-import { GRAU, ROT, TABELLENSTIL, TINTE } from '@/lib/belegLayout';
+import { GRAU, ROT, TABELLENSTIL, TINTE, fmtMenge } from '@/lib/belegLayout';
 import { datumAT } from '@/lib/datum';
 
 /*
@@ -11,11 +11,24 @@ import { datumAT } from '@/lib/datum';
   C2). Nur Stil und Schrift kommen aus dem Belegschema; die Ränder des
   Scheins bleiben seine eigenen.
 */
+/*
+  WO DIE SEITE DEM FUSS GEHÖRT (Prüflauf 25.09.2026, P1-12). Der Fuss mit
+  Prüfsumme steht ab 285 mm; bis hierher darf der Inhalt laufen. Vorher gab
+  es keinen Seitenumbruch: bei einem langen Schein lagen Unterschriften und
+  Anmerkungen über der Prüfsumme oder liefen aus dem Blatt.
+*/
+const SEITE_ENDE = 278;
+/** Wo es auf einer Folgeseite weitergeht. */
+const SEITE_OBEN = 20;
+
 const SCHEIN_TABELLE = {
   theme: TABELLENSTIL.theme,
   styles: TABELLENSTIL.styles,
   headStyles: TABELLENSTIL.headStyles,
   bodyStyles: TABELLENSTIL.bodyStyles,
+  // Nur oben und unten: eine lange Tabelle bricht vor dem Fuss um und setzt
+  // auf der Folgeseite dort an, wo auch der übrige Inhalt beginnt.
+  margin: { top: SEITE_OBEN, bottom: 297 - SEITE_ENDE },
 };
 
 /**
@@ -46,6 +59,13 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const rand = 15;
   let y = rand;
+
+  /** Reicht der Platz bis zum Fuss nicht, geht es auf einer neuen Seite weiter. */
+  const platz = (hoehe: number) => {
+    if (y + hoehe <= SEITE_ENDE) return;
+    doc.addPage();
+    y = SEITE_OBEN;
+  };
 
   /*
     DER BELEG SAGT JETZT, VON WEM ER IST.
@@ -78,6 +98,19 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     ausdrucken, ehe jemand ihn verwirft, und ein Blatt ohne Kennzeichnung
     sieht aus wie ein gueltiger Beleg. Deshalb steht es auf dem Papier.
   */
+  /*
+    AUCH DER GEWÖHNLICHE ENTWURF trägt es (Prüflauf 25.09.2026, P1-13). Sein
+    PDF lässt sich aus der Liste ausgeben, und ohne Vermerk — dazu mit dem
+    Fusssatz „Elektronisch unterschrieben" — sah es aus wie ein gültiger
+    Beleg, obwohl niemand unterschrieben hat.
+  */
+  if (schein.status === 'Entwurf') {
+    doc.setTextColor(...ROT).setFont('helvetica', 'bold');
+    doc.text('ENTWURF — kein gültiger Beleg, noch nicht unterschrieben', rand, y);
+    doc.setTextColor(...TINTE).setFont('helvetica', 'normal');
+    y += 8;
+  }
+
   if (schein.status === 'Verworfen') {
     doc.setTextColor(...GRAU).setFont('helvetica', 'bold');
     doc.text('VERWORFENER ENTWURF — kein gültiger Beleg', rand, y);
@@ -123,6 +156,7 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     y = (doc.lastAutoTable?.finalY ?? y) + 6;
 
     const gesamt = schein.zeiten.reduce((s, z) => s + z.minuten, 0);
+    platz(8);
     doc.setFont('helvetica', 'bold');
     doc.text(`Summe: ${fmtMin(gesamt)}`, 195, y, { align: 'right' });
     doc.setFont('helvetica', 'normal');
@@ -133,7 +167,11 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     autoTable(doc, {
       startY: y,
       head: [['Material', 'Menge']],
-      body: schein.material.map((m) => [m.name, `${m.menge}${m.einheit ? ` ${m.einheit}` : ''}`]),
+      // Deutsch geschrieben: „2,5 m", nicht „2.5 m" (Prüflauf 25.09.2026, P1-12).
+      body: schein.material.map((m) => [
+        m.name,
+        `${fmtMenge(m.menge)}${m.einheit ? ` ${m.einheit}` : ''}`,
+      ]),
       ...SCHEIN_TABELLE,
     });
     // @ts-expect-error — siehe oben
@@ -141,10 +179,13 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
   }
 
   if (schein.notizen) {
+    // Die Überschrift nicht allein unten auf der Seite stehen lassen.
+    platz(10);
     doc.setFont('helvetica', 'bold').text('Anmerkungen:', rand, y);
     y += 5;
     doc.setFont('helvetica', 'normal');
     for (const zeile of doc.splitTextToSize(schein.notizen, 180)) {
+      platz(5);
       doc.text(zeile, rand, y);
       y += 5;
     }
@@ -154,6 +195,9 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
   // Unterschriften nebeneinander, mit Name und Zeitpunkt darunter.
   const u = schein.unterschriften;
   if (u?.monteur || u?.kunde) {
+    // Wie bisher unten auf der Seite — passt der Block dort nicht mehr hin,
+    // steht er geschlossen auf einer neuen, statt über dem Fuss.
+    platz(40);
     y = Math.max(y, 200);
     const spalten: [typeof u.monteur, string, number][] = [
       [u?.monteur, 'Monteur', rand],
@@ -190,6 +234,7 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     daneben, der belegt, dass es dasselbe ist.
   */
   if (schein.fotos?.length) {
+    platz(8);
     doc.setFontSize(9).setTextColor(...GRAU);
     doc.text(
       `${schein.fotos.length} ${schein.fotos.length === 1 ? 'Foto' : 'Fotos'} zu diesem Schein — ` +
@@ -200,16 +245,33 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     y += 8;
   }
 
-  doc.setFontSize(7).setTextColor(...GRAU);
+  /*
+    DER FUSS AUF JEDER SEITE (Prüflauf 25.09.2026, P1-12) — die Prüfsumme
+    gehört zu jedem Blatt, das jemand vorlegt, nicht nur zum letzten.
+
+    „Elektronisch unterschrieben" nur, wo unterschrieben wurde (P1-13): beim
+    unterschriebenen und beim später stornierten Schein. Ein Entwurf oder ein
+    verworfener Entwurf trägt stattdessen seinen Vermerk.
+  */
+  const unterschrieben = schein.status === 'Unterschrieben' || schein.status === 'Storniert';
   const fuss = schein.inhaltHash
     ? `Prüfsumme (SHA-256): ${schein.inhaltHash}`
-    : 'Prüfsumme wird nach der Übertragung ergänzt.';
-  doc.text(fuss, rand, 285);
-  doc.text(
-    'Elektronisch unterschrieben. Nachträgliche Änderungen sind ausgeschlossen; Korrekturen erfolgen über einen Stornoschein.',
-    rand,
-    289,
-  );
+    : unterschrieben
+      ? 'Prüfsumme wird nach der Übertragung ergänzt.'
+      : 'Noch nicht unterschrieben — ohne Prüfsumme.';
+  const satz = unterschrieben
+    ? 'Elektronisch unterschrieben. Nachträgliche Änderungen sind ausgeschlossen; Korrekturen erfolgen über einen Stornoschein.'
+    : schein.status === 'Verworfen'
+      ? 'VERWORFENER ENTWURF — kein gültiger Beleg.'
+      : 'ENTWURF — kein gültiger Beleg, noch nicht unterschrieben.';
+  const seiten = doc.getNumberOfPages();
+  for (let i = 1; i <= seiten; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7).setTextColor(...GRAU);
+    doc.text(fuss, rand, 285);
+    doc.text(satz, rand, 289);
+    if (seiten > 1) doc.text(`Seite ${i} von ${seiten}`, 195, 293, { align: 'right' });
+  }
 
   return doc.output('blob');
 }
