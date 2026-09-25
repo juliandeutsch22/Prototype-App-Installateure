@@ -21,7 +21,8 @@ import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField, CheckboxField } from '@/components/Field';
+import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
@@ -392,24 +393,20 @@ export default function OrderView() {
               auf dem Telefon unter den Falz. Die Notiz ist in den Warenkorb
               gewandert — sie gehört zum Absenden, nicht zum Suchen. */}
           <div className="space-y-2">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[14rem] flex-1">
-                <BaustellenSelect
-                  id="oproject"
-                  label="Für welche Baustelle?"
-                  companyId={user.companyId}
-                  value={projectNumber}
-                  onChange={(nr, p) => {
-                    setProjectNumber(nr);
-                    // Den Datensatz mit aufnehmen: die Warenkorbzeilen und die
-                    // Prüfung auf eine zuständige Projektleitung schlagen hier
-                    // nach. Ohne ihn stünde bei einer abgeschlossenen
-                    // Baustelle die nackte Nummer statt des Kundennamens.
-                    if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
-                  }}
-                />
-              </div>
-            </div>
+            <BaustellenSelect
+              id="oproject"
+              label="Für welche Baustelle?"
+              companyId={user.companyId}
+              value={projectNumber}
+              onChange={(nr, p) => {
+                setProjectNumber(nr);
+                // Den Datensatz mit aufnehmen: die Warenkorbzeilen und die
+                // Prüfung auf eine zuständige Projektleitung schlagen hier
+                // nach. Ohne ihn stünde bei einer abgeschlossenen
+                // Baustelle die nackte Nummer statt des Kundennamens.
+                if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
+              }}
+            />
             {/* Direkt unter der Baustelle, weil er von ihr abhaengt: ohne
                 Baustelle gibt es keine zustaendige Projektleitung und damit
                 niemanden, den eine Eilmeldung erreichen koennte. */}
@@ -498,9 +495,9 @@ export default function OrderView() {
                 sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
               />
             </div>
-            <div className="mt-4 border-t border-line pt-4">
+            <div className="material-frei">
               <p className="section-label">Nicht im Katalog?</p>
-              <div className="mt-2 grid grid-cols-[1fr_5rem] gap-2 sm:grid-cols-[1fr_6rem_auto] sm:items-end">
+              <div className="material-frei-felder">
                 <InputField
                   id="frei-name"
                   label="Bezeichnung"
@@ -517,7 +514,6 @@ export default function OrderView() {
                 />
                 <Button
                   variant="secondary"
-                  className="col-span-2 sm:col-span-1"
                   disabled={!freiName.trim() || !(Number(freiMenge.replace(',', '.')) > 0)}
                   onClick={freiHinzufuegen}
                 >
@@ -711,7 +707,7 @@ export default function OrderView() {
                 {retSuche.trim() !== '' && (
                   <div className="mt-2">
                     {retTreffer.length === 0 ? (
-                      <p className="text-sm text-ink-muted">Kein Material passt zur Suche.</p>
+                      <EmptyState>Kein Material passt zur Suche.</EmptyState>
                     ) : (
                       <List>
                         {retTreffer.map((m) => (
@@ -738,7 +734,7 @@ export default function OrderView() {
                 )}
               </div>
             )}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormGrid>
               <InputField id="retqty" label="Menge" type="number" min="1" value={retQty}
                 onChange={(e) => setRetQty(e.target.value)} />
               <SelectField id="retcond" label="Zustand" value={retCondition}
@@ -747,7 +743,7 @@ export default function OrderView() {
                 <option value="gebraucht">Gebraucht</option>
                 <option value="defekt">Defekt</option>
               </SelectField>
-            </div>
+            </FormGrid>
             <SelectField id="retproj" label="Von welcher Baustelle? (optional)" value={retProject}
               onChange={(e) => setRetProject(e.target.value)}>
               <option value="">— keine —</option>
@@ -759,10 +755,14 @@ export default function OrderView() {
             </SelectField>
             <InputField id="retreason" label="Grund / Notiz" value={retReason}
               onChange={(e) => setRetReason(e.target.value)} />
-            <Button onClick={submitReturn} loading={saving} disabled={!retMaterial}
-              className="w-full sm:w-auto">
-              Retoure erfassen
-            </Button>
+            {/* Am Telefon ist die Maske länger als der Bildschirm — die Leiste
+                hält „Retoure erfassen" erreichbar. */}
+            <Aktionsleiste>
+              <Button onClick={submitReturn} loading={saving} disabled={!retMaterial}
+                className="w-full sm:w-auto">
+                Retoure erfassen
+              </Button>
+            </Aktionsleiste>
           </div>
         </Card>
       )}
