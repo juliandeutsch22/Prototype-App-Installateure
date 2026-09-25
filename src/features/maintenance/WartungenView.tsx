@@ -35,6 +35,7 @@ import KundenGrenze from '@/components/AuswahlGrenze';
 import Button from '@/components/Button';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import {
@@ -466,13 +467,19 @@ export default function WartungenView() {
             <Zustand stand={STAND[u.stand]}>{u.stand === 'ruht' ? 'ruht' : u.text}</Zustand>
           </>
         }
+        /*
+          ZWEI ZEILEN STATT EINER KETTE: oben, WAS und WO gewartet wird (samt
+          Hinweis zum Zugang), darunter WANN. Vorher lief alles in einem Satz
+          hintereinander, und der Termin stand irgendwo in der Mitte.
+        */
         subtitle={
           <>
             {w.anlage}
-            {w.address ? ` · ${w.address}` : ''} · alle {w.intervallMonate} Monate · Termin{' '}
-            {fmtDatum(w.faelligAm)}
-            {w.zuletztAm ? ` · zuletzt ${fmtDatum(w.zuletztAm)}` : ' · noch nie gewartet'}
+            {w.address ? ` · ${w.address}` : ''}
             {w.hinweis ? ` · ${w.hinweis}` : ''}
+            <br />
+            Termin {fmtDatum(w.faelligAm)} · alle {w.intervallMonate} Monate
+            {w.zuletztAm ? ` · zuletzt ${fmtDatum(w.zuletztAm)}` : ' · noch nie gewartet'}
             {/*
               WAS SCHON EINGEPLANT IST, SAGT ES. Ohne diese Zeile hiess
               „fällig" zweierlei — „noch nichts passiert" und „steht längst im
@@ -480,12 +487,13 @@ export default function WartungenView() {
               Baustelle zweimal an.
             */}
             {w.offeneBaustelle ? (
-              <span className="mt-1 block text-xs text-ink-muted">
+              <>
+                <br />
                 Eingeplant auf Baustelle{' '}
                 <Link className="textlink" to={`/projects?baustelle=${encodeURIComponent(w.offeneBaustelle)}`}>
                   {w.offeneBaustelle}
                 </Link>
-              </span>
+              </>
             ) : null}
           </>
         }
@@ -622,7 +630,7 @@ export default function WartungenView() {
               Eine gekündigte Vereinbarung wird nicht gelöscht, sondern angehalten — die
               Historie ist der Grund, warum man den Kunden später wieder anruft.
             </p>
-            <div className="flex gap-2">
+            <Aktionsleiste>
               <Button type="submit" disabled={speichert}>
                 {speichert ? 'Speichert …' : 'Speichern'}
               </Button>
@@ -641,7 +649,7 @@ export default function WartungenView() {
                   Löschen
                 </Button>
               )}
-            </div>
+            </Aktionsleiste>
           </form>
         </Card>
       )}
