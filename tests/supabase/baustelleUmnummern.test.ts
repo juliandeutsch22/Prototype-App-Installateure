@@ -93,6 +93,48 @@ describe('Die Nummer ändern', () => {
     expect(p.data?.project_number).toBe(neu);
   });
 
+  it('nimmt auch verworfene Scheine und die Wartungen mit', async () => {
+    /*
+      PRÜFLAUF 25.09.2026 (P3-26). Beide blieben auf der alten Nummer: der
+      verworfene Schein, weil sein Riegel keine Änderung zuliess — wer ihn
+      zurückholte, hatte einen Entwurf zu einer Baustelle, die es so nicht
+      mehr gibt —, und die Wartung, die sich letzte und offene Baustelle als
+      Text merkt.
+    */
+    const alt = nummer();
+    const neu = nummer();
+    const id = await baustelle(alt);
+    const { data: kunde } = await admin.from('customers')
+      .insert({ company_id: BETRIEB, name: 'Familie Huber' }).select('id').single();
+    const { data: wartung, error: ew } = await admin.from('wartungen').insert({
+      company_id: BETRIEB, customer_id: kunde!.id, customer_name: 'Familie Huber',
+      anlage: 'Gastherme', intervall_monate: 12, faellig_am: '2027-01-15',
+      letzte_baustelle: alt, offene_baustelle: alt,
+    }).select('id').single();
+    if (ew) throw new Error(ew.message);
+    const schein = crypto.randomUUID();
+    const { error: es } = await admin.from('work_sheets').insert({
+      id: schein, company_id: BETRIEB, project_number: alt, customer_name: 'Familie Huber',
+      datum: '2026-09-21', status: 'Entwurf', abrechnung: 'Regie',
+      erstellt_von_uid: monteur.uid, erstellt_von_name: 'Monteur',
+    });
+    if (es) throw new Error(es.message);
+    await admin.from('work_sheets').update({ status: 'Verworfen' }).eq('id', schein);
+
+    // Am App-Weg vorbei bleibt der verworfene Schein zu — auch für die Nummer.
+    const direkt = await monteur.client.from('work_sheets').update({ project_number: neu }).eq('id', schein);
+    expect(direkt.error?.code).toBe('42501');
+
+    const { data, error } = await umnummern(leitung, id, neu);
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ bewegt: { scheine: 1, wartungen: 1 } });
+
+    const w = await admin.from('wartungen').select('letzte_baustelle, offene_baustelle').eq('id', wartung!.id).single();
+    expect(w.data).toEqual({ letzte_baustelle: neu, offene_baustelle: neu });
+    const s2 = await admin.from('work_sheets').select('project_number, status').eq('id', schein).single();
+    expect(s2.data).toEqual({ project_number: neu, status: 'Verworfen' });
+  });
+
   it('lässt eine vergebene Nummer nicht zu', async () => {
     const a = nummer();
     const b = nummer();
