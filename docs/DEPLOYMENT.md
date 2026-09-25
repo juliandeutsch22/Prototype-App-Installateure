@@ -264,6 +264,13 @@ andere und genau daraus der Fehler entsteht, der weh tut.
    App** dieses Betriebs.
 4. **Jeder geöffnete Bereich wird protokolliert**, und zwar *bevor* er geladen
    wird: scheitert die Meldung, beginnt der Einblick gar nicht.
+   *Die Grenze dieser Zusage, benannt (Prüflauf 25.09.2026, P3-15):* den
+   Eintrag schreibt die App, nicht die Datenbank. Wer mit einem
+   Plattformkonto an der App vorbei direkt über die Schnittstelle liest,
+   hinterlässt keinen — die Freigabe selbst (Grund, Stufe, Frist, Widerruf)
+   steht trotzdem im Protokoll des Betriebs. Serverseitig erzwingen liesse es
+   sich nur, wenn jede Leseregel erst nach einem Eintrag öffnete; das ist
+   nicht gebaut.
 5. **Der Betrieb beendet** — ein Klick, sofort wirksam — oder die Frist
    läuft ab. Beides nimmt das Leserecht in derselben Sekunde weg.
 
