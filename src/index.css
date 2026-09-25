@@ -579,122 +579,6 @@ textarea {
 }
 
 /*
- * MONTEUR-START — die Startseite des Monteurs (siehe MonteurStart.tsx).
- *
- * Am Telefon untereinander: Heute, Diese Woche, Offen für dich. Am
- * Schreibtisch links „Heute“, rechts die beiden kleinen Karten.
- */
-@layer components {
-  .monteur-start,
-  .monteur-seite {
-    display: grid;
-    gap: 1.5rem;
-    align-content: start;
-  }
-
-  @media (min-width: 1024px) {
-    .monteur-start {
-      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-      align-items: start;
-    }
-  }
-
-  .monteur-einsaetze {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .monteur-kunde {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1.125rem;
-    line-height: 1.6rem;
-    font-weight: 600;
-    color: var(--ink-deep);
-  }
-
-  .monteur-auftrag {
-    margin-top: 0.25rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: var(--text-muted);
-  }
-
-  .monteur-knoepfe {
-    margin-top: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  /* Der eine Hauptknopf des Tages, über die volle Breite — mit der Zeile
-     darunter, die sagt, was er übernimmt. */
-  .monteur-hauptknopf {
-    display: flex;
-    min-height: 48px;
-    width: 100%;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius);
-    background-color: var(--brand);
-    padding: 0.625rem 1rem;
-    text-align: center;
-    font-weight: 600;
-    color: var(--brand-fg);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .monteur-hauptknopf-zeile {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    font-weight: 400;
-  }
-
-  .monteur-nebenknoepfe {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-    gap: 0.5rem;
-  }
-
-  .monteur-woche {
-    color: var(--text-muted);
-  }
-
-  .monteur-woche-ist {
-    font-size: 1.375rem;
-    line-height: 1.8rem;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .monteur-saldo {
-    margin-top: 0.75rem;
-    display: flex;
-    justify-content: space-between;
-    gap: 0.75rem;
-    border-top: 1px solid var(--border);
-    padding-top: 0.75rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-    color: var(--text-muted);
-  }
-
-  .monteur-saldo-plus {
-    font-weight: 600;
-    color: var(--success);
-  }
-
-  .monteur-saldo-minus {
-    font-weight: 600;
-    color: var(--danger);
-  }
-}
-
-/*
  * AKTEN — Kunde, Baustelle, Angebot (KundenakteView, BaustellenakteView,
  * AngebotView).
  *
@@ -1530,6 +1414,400 @@ textarea {
     border-bottom-color: var(--accent-deep);
     font-weight: 700;
     color: var(--accent-deep);
+  }
+}
+
+/*
+ * STARTSEITE — Kopfband, Heute, Diese Woche, Nächste Einsätze (StartKopf.tsx,
+ * MonteurStart.tsx; Mockup S. 1 und 7, docs/design/linie.md 9).
+ *
+ * Am Telefon eine Spalte in der Reihenfolge des Entwurfs: Heute, Woche,
+ * Offen, Nächste. Ab 1280 px zwei Spalten, links Heute und Offen (3 fr),
+ * rechts Woche und Nächste (2 fr). Die Spalten stehen im DOM; am Telefon
+ * lösen sie sich mit `display: contents` auf, und `order` je Karte setzt
+ * die Reihenfolge — kein positionsabhängiger Selektor.
+ */
+@layer components {
+  /* Das dunkle Kopfband des Monteurs am Telefon. Es schließt an die dunkle
+     Kopfleiste an (`app/Layout.tsx`) und reicht deshalb über den
+     Innenabstand des Inhalts (`p-4`) bis an den Rand. Unten Luft, in die die
+     Heute-Karte ragt. Deckend in der Farbe des Produkts. */
+  .start-band {
+    margin: -1rem -1rem 0;
+    background-color: var(--brand-fixed);
+    padding: 0.25rem 1rem 4.5rem;
+    color: #ffffff;
+  }
+
+  .start-band-ueber {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #ffffff;
+  }
+
+  .start-band-titel {
+    margin-top: 0.25rem;
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  /* Ein Feiertag in der kleinen Zeile: auf dem Band weiß und kräftig, auf
+     hellem Grund in der Warnfarbe (5,4:1). */
+  .start-band-feiertag {
+    font-weight: 700;
+  }
+
+  .start-feiertag {
+    font-weight: 600;
+    color: var(--warning);
+  }
+
+  .start-raster {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .start-spalte-links,
+  .start-spalte-rechts {
+    display: contents;
+  }
+
+  /* Die Heute-Karte ragt am Telefon in das Kopfband: der Abstand zum Band
+     (1,5 rem aus `space-y-6`) und 3,5 rem Band liegen unter ihr. */
+  .start-heute {
+    position: relative;
+    order: 1;
+    margin-top: -5rem;
+  }
+
+  .start-hinweis {
+    order: 2;
+  }
+
+  .start-woche {
+    order: 3;
+  }
+
+  .start-offen {
+    order: 4;
+  }
+
+  .start-naechste {
+    order: 5;
+  }
+
+  @media (min-width: 640px) {
+    .start-raster {
+      gap: 1.25rem;
+    }
+  }
+
+  /* Ab der Seitenleiste gibt es kein Band mehr, sondern den hellen Kopf. */
+  @media (min-width: 768px) {
+    .start-heute {
+      margin-top: 0;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .start-raster {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      align-items: start;
+    }
+
+    .start-spalte-links,
+    .start-spalte-rechts {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+  }
+
+  /* ── Heute ──────────────────────────────────────────────────────────── */
+
+  .heute-kopf {
+    margin-bottom: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
+  }
+
+  /* „Heute“ klein in Akzent über dem Kunden (Mockup S. 1: „Heute ab
+     07:00“) — 5,2:1 auf Weiß. */
+  .heute-titel {
+    font-size: 0.9375rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    color: var(--accent-deep);
+  }
+
+  .heute-marken {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* „Nummer · Aufgabe“ links, bei mehreren Einsätzen die Marken rechts. */
+  .heute-meta {
+    margin-top: 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
+  }
+
+  /* Der Kunde groß. Am Telefon 1,25 rem wie im Entwurf gemessen (S. 1) —
+     „Wohnungseigentümergemeinschaft“ bricht sonst mitten im Wort —, ab
+     640 px 1,5 rem. */
+  .heute-kunde {
+    min-width: 0;
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 700;
+    color: var(--ink-deep);
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  @media (min-width: 640px) {
+    .heute-kunde {
+      font-size: 1.5rem;
+      line-height: 2rem;
+    }
+  }
+
+  .heute-auftrag {
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    color: var(--text-muted);
+  }
+
+  /* Zwischen zwei Einsätzen desselben Tages: eine Haarlinie, kein Kasten. */
+  .heute-trenner {
+    margin-block: 1.25rem;
+    border: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .heute-knoepfe {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  /* „Andere Zeit“ und „Schein schreiben“ nebeneinander, gleich breit. */
+  .heute-nebenknoepfe {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.5rem;
+  }
+
+  /* Am Schreibtisch neben dem Hauptknopf (Mockup S. 7). */
+  @media (min-width: 1280px) {
+    .heute-knoepfe {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: stretch;
+    }
+
+    .heute-nebenknoepfe {
+      display: flex;
+      gap: 0.5rem;
+    }
+  }
+
+  /* Der eine Hauptknopf des Tages — mit der Zeile darunter, die sagt, was
+     er übernimmt. */
+  .start-hauptknopf {
+    display: flex;
+    min-height: 52px;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    background-color: var(--brand);
+    padding: 0.625rem 1rem;
+    text-align: center;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    color: var(--brand-fg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .start-hauptknopf-zeile {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 400;
+  }
+
+  /* ── Diese Woche ────────────────────────────────────────────────────── */
+
+  /* „17:00 von 38:30 Std“ rechts in der Titelzeile. */
+  .woche-summe {
+    font-size: 0.9375rem;
+    line-height: 1.5rem;
+    color: var(--text-muted);
+  }
+
+  .woche-summe-ist {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .woche-tage {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .woche-tag {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  /* Der Wert über dem Balken erst ab 640 px — am Telefon trägt die
+     Titelzeile die Summe, und fünf Zahlen über fünf schmalen Balken wären
+     Lärm (Mockup S. 1 gegen S. 7). */
+  .woche-wert,
+  .woche-wert-heute {
+    display: none;
+    text-align: center;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .woche-wert-heute {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  @media (min-width: 640px) {
+    .woche-wert,
+    .woche-wert-heute {
+      display: block;
+    }
+  }
+
+  .woche-saeule {
+    display: flex;
+    height: 3rem;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  @media (min-width: 1280px) {
+    .woche-saeule {
+      height: 5rem;
+    }
+  }
+
+  .woche-balken {
+    display: block;
+    width: 100%;
+    min-height: 4px;
+    border-radius: var(--radius-sm);
+    background-color: var(--accent-deep);
+  }
+
+  /* Heute: durchgezogene Kante in der Höhe des Solls, gefüllt, so weit
+     gebucht ist. Im Entwurf gestrichelt — die Linie zieht durch. */
+  .woche-rahmen-heute {
+    display: flex;
+    width: 100%;
+    min-height: 1rem;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+    border: 2px solid var(--accent-deep);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface);
+  }
+
+  /* Ein Tag ohne Buchung: eine flache Linie. */
+  .woche-leer {
+    display: block;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background-color: var(--surface-3);
+  }
+
+  .woche-tagname,
+  .woche-tagname-heute {
+    text-align: center;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .woche-tagname-heute {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .woche-saldo {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.75rem;
+    font-size: 0.9375rem;
+    line-height: 1.375rem;
+    color: var(--text-muted);
+  }
+
+  /* Grün 5,0:1, Rot 7,1:1 auf Weiß. */
+  .woche-saldo-plus {
+    font-weight: 700;
+    color: var(--success);
+  }
+
+  .woche-saldo-minus {
+    font-weight: 700;
+    color: var(--danger);
+  }
+
+  /* ── Nächste Einsätze ───────────────────────────────────────────────── */
+
+  /* Datumskachel: Wochentag klein, Tag groß, deckend hell — keine Farbe,
+     kein Symbol (Mockup S. 7). */
+  .datumskachel {
+    display: flex;
+    width: 3rem;
+    min-height: 3.25rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-2);
+    color: var(--ink-deep);
+  }
+
+  .datumskachel-tag {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+  }
+
+  .datumskachel-zahl {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    font-weight: 700;
   }
 }
 

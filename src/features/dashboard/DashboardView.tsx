@@ -8,7 +8,6 @@ import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import { listOpenOrders, listOwnOpenOrders } from '@/lib/db/materialOrders';
 import { listActiveProjects, listProjectsByNumbers } from '@/lib/db/projects';
 import { useModul } from '@/lib/useModule';
-import RuestlisteAbhaken from '@/features/assignments/RuestlisteAbhaken';
 import { listUnpaidInvoices } from '@/lib/db/invoices';
 import {
   localDateStr,
@@ -38,12 +37,18 @@ import type { Assignment, EinsatzMaterial, MaterialOrder, Project, RuestPosition
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Marke, Warnung, Zustand } from '@/components/Badge';
-import PageHeader from '@/components/PageHeader';
 import LaufWarnung from './LaufWarnung';
-import MonteurStart, { type LetzteBuchung } from './MonteurStart';
+import MonteurStart, {
+  HeuteKarte,
+  type LetzteBuchung,
+  type NaechsterEinsatz,
+  type WochenTag,
+} from './MonteurStart';
+import StartKopf from './StartKopf';
+import { grussZeile } from './gruss';
 import WartungHinweis from './WartungHinweis';
 import StatusBadge from '@/components/StatusBadge';
-import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
+import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { LoadingState, EmptyState } from '@/components/States';
 import Meldung from '@/components/Meldung';
 import Grenzliste from '@/components/Grenzliste';
@@ -104,6 +109,7 @@ interface EinsatzZeile {
   contactPhone?: string;
   asHelper: boolean;
   comment?: string;
+  billingMode?: Project['billingMode'];
   /**
    * Die Ruestliste dieses Einsatzes — was mitzunehmen ist.
    *
@@ -152,8 +158,10 @@ interface DashData {
    * werden, mit denselben Regeln wie in der Zeiterfassung.
    */
   letzte?: LetzteBuchung;
-  woche?: { istMin: number; sollMin: number };
+  woche?: { istMin: number; sollMin: number; tage: WochenTag[] };
   monat?: { name: string; saldoMin: number | null };
+  /** Die kommenden eigenen Einsätze ab morgen (Monteur-Start). */
+  naechste?: NaechsterEinsatz[];
   /** Alle laufenden Baustellen (Leitung). */
   aktiveBaustellen?: Project[];
   /** Die heutige Einteilung des ganzen Betriebs (Leitung). */
@@ -192,7 +200,7 @@ const WARNUNGEN_AUF_STARTSEITE = 8;
 
 /** Rollen-spezifisches Zuhause mit echten Kennzahlen. */
 export default function DashboardView() {
-  const { user, company } = useAuth();
+  const { user } = useAuth();
   /**
    * Karten und Verweise nur zeigen, wenn ihr Bereich eingeschaltet ist.
    *
@@ -290,9 +298,29 @@ export default function DashboardView() {
             const w = getISOWeek(new Date(`${iso}T00:00:00`));
             return w.week === kw.week && w.year === kw.year;
           };
+          const sollMin = Math.round((Number(profile.weeklyTargetHours ?? 40) || 40) * 60);
+          /*
+            DIE TAGE MO–FR für die Balken — aus denselben Buchungen. Das
+            Tagessoll wie in `calcMonthStats`: Wochensoll durch die Zahl der
+            Arbeitstage, an freien Tagen null.
+          */
+          const arbeitstage = profile.workDays?.length ? profile.workDays : [1, 2, 3, 4, 5];
+          const montag = new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate());
+          montag.setDate(montag.getDate() - ((montag.getDay() + 6) % 7));
+          const tage: WochenTag[] = [0, 1, 2, 3, 4].map((i) => {
+            const d = new Date(montag);
+            d.setDate(montag.getDate() + i);
+            const datum = localDateStr(d);
+            return {
+              datum,
+              istMin: entries.filter((e) => e.date === datum).reduce((n, e) => n + calcWorkMin(e), 0),
+              sollMin: arbeitstage.includes(d.getDay()) ? Math.round(sollMin / arbeitstage.length) : 0,
+            };
+          });
           out.woche = {
             istMin: entries.filter((e) => inDieserWoche(e.date)).reduce((n, e) => n + calcWorkMin(e), 0),
-            sollMin: Math.round((Number(profile.weeklyTargetHours ?? 40) || 40) * 60),
+            sollMin,
+            tage,
           };
           const monatsKopf = `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, '0')}`;
           const imMonat = entries.filter((e) => e.date.startsWith(monatsKopf));
@@ -313,7 +341,13 @@ export default function DashboardView() {
          */
         const heute = todayStr();
         const heutige = einsaetze.filter((a) => a.date === heute);
-        if (heutige.length > 0) {
+        /*
+          DIE NÄCHSTEN EINSÄTZE des Monteurs — aus derselben Abfrage, und die
+          Baustellen dazu über dieselbe Lesefunktion wie in „Mein
+          Einsatzplan“, in EINEM Aufruf mit den heutigen.
+        */
+        const kommende = user.role === 'Mitarbeiter' ? einsaetze.filter((a) => a.date > heute) : [];
+        if (heutige.length > 0 || kommende.length > 0) {
           /*
             Die Ruestlisten des Tages dazu — aber nur, wenn das Modul an ist,
             und ohne die Startseite mitzureissen, wenn sie nicht kommen. Wo
@@ -321,8 +355,11 @@ export default function DashboardView() {
             darf nicht daran haengen, dass eine Materialabfrage durchkommt.
           */
           const [projekte, listen] = await Promise.all([
-            listProjectsByNumbers(user.companyId, heutige.map((a) => a.projectNumber)),
-            materialAn
+            listProjectsByNumbers(
+              user.companyId,
+              [...heutige, ...kommende].map((a) => a.projectNumber),
+            ),
+            materialAn && heutige.length > 0
               ? listEinsatzMaterialForDate(user.companyId, heute).catch(() => [])
               : Promise.resolve([]),
           ]);
@@ -341,10 +378,24 @@ export default function DashboardView() {
               contactPhone: pr?.contactPhone,
               asHelper: !!a.asHelper,
               comment: a.comment,
+              billingMode: pr?.billingMode,
+            };
+          });
+          out.naechste = kommende.map((a) => {
+            const pr = projekte.find((x) => x.projectNumber === a.projectNumber);
+            return {
+              id: a.id,
+              date: a.date,
+              projectNumber: a.projectNumber,
+              customerName: pr?.customerName,
+              address: pr?.address,
+              comment: a.comment,
+              asHelper: !!a.asHelper,
             };
           });
         } else {
           out.heuteEigene = [];
+          out.naechste = [];
         }
       }
       reiche(out);
@@ -579,44 +630,36 @@ export default function DashboardView() {
   return (
     <div className="space-y-6">
       {/*
-        DER TAG IST DIE UEBERSCHRIFT, NICHT DIE BEGRUESSUNG.
+        DER KOPF: DER TAG KLEIN, DER GRUSS GROSS (docs/design/linie.md 9,
+        freigegeben für diesen Durchgang).
 
-        Hier stand „Willkommen, {Vorname}" ueber „{Firma} · Rolle: {Rolle}".
-        Beide Zeilen aendern sich nie — auf dem Bildschirm, der am oeftesten
-        geoeffnet wird, stand damit an der auffaelligsten Stelle nichts, was
-        man nicht schon wusste.
+        Bis zum 25.09.2026 stand hier das Datum als Titel und darunter „KW ·
+        Firma · Rolle: …“. Das Datum bleibt — es ist die billigste Auskunft
+        darüber, dass man auf den heutigen Tag schaut und keinen
+        zwischengespeicherten Stand (Service Worker) —, jetzt klein über dem
+        Titel, mit der Kalenderwoche, nach der im Betrieb geplant und
+        bestellt wird, und einem Feiertag, wenn heute einer ist.
 
-        Und darunter geht es ausschliesslich um HEUTE: „Heute — 2
-        Baustellen", „Heute im Einsatz", die fehlenden Buchungen, die faellige
-        Wartung. Das Thema der Seite war der heutige Tag, und genau der stand
-        nirgends.
-
-        DAS IST MEHR ALS SCHMUCK. Die App laeuft mit Service Worker und haelt
-        Ansichten vor; ein veralteter Stand sieht genauso aus wie ein frischer.
-        Ein sichtbares Datum ist die billigste Auskunft darueber, dass man auf
-        den heutigen Tag schaut — und nach einem Wochenende oder Feiertag
-        beantwortet es die Frage, warum nichts ansteht, bevor sie entsteht.
-
-        Die Kalenderwoche steht dabei: im Betrieb wird nach ihr geplant und
-        Material bestellt.
+        FIRMA UND ROLLE STEHEN HIER NICHT MEHR, weil sie woanders stehen:
+        der Betrieb in der Seitenleiste unter „Senklot“ und am Telefon in
+        der Kopfleiste (Logo oder Name), Name und Rolle unten in der
+        Seitenleiste und am Telefon hinter dem Avatar (Profil). Hier waren
+        sie die dritte Nennung derselben Tatsache.
       */}
-      <PageHeader
-        title={heuteKopf.datum}
-        subtitle={
-          <>
-            {/* Umbrechen nur zwischen den Teilen: auf 375 px stand sonst
-                „Rolle:" am Zeilenende und die Rolle allein darunter
-                (Prüflauf 24.09.2026, D13). */}
-            <span className="whitespace-nowrap">KW {heuteKopf.kw}</span> ·{' '}
-            {company?.name ?? 'Installateur-App'} ·{' '}
-            <span className="whitespace-nowrap">Rolle: {user.role}</span>
-            {heuteKopf.feiertag && (
-              <>
-                {' · '}
-                <span className="font-semibold text-warning">{heuteKopf.feiertag}</span>
-              </>
-            )}
-          </>
+      <StartKopf
+        datum={heuteKopf.datum}
+        kw={heuteKopf.kw}
+        feiertag={heuteKopf.feiertag}
+        titel={grussZeile(new Date(), user.name)}
+        band={monteur}
+        aktion={
+          /* Dieselbe Aktion wie „Zeit erfassen“ am Einsatz und der Eintrag
+             „Zeit“ der Leiste — am Schreibtisch als Hauptaktion der Seite. */
+          mitZeitkonto || monteur ? (
+            <Link to="/time" className="knopf-primaer">
+              Zeit buchen
+            </Link>
+          ) : undefined
         }
       />
 
@@ -686,7 +729,7 @@ export default function DashboardView() {
         alle, die ein Zeitkonto FUEHREN — die Administration hat keines und
         braucht den Hinweis nicht.
       */}
-      {mitZeitkonto && data.hatEintritt === false && (
+      {!monteur && mitZeitkonto && data.hatEintritt === false && (
         <Meldung ton="info" titel="Kein Eintrittsdatum hinterlegt">
           <p>
             Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen und wie der Saldo
@@ -708,6 +751,19 @@ export default function DashboardView() {
           monat={data.monat}
           fehlendeTage={offeneTage}
           offeneAnforderungen={data.ownOpenOrders}
+          naechste={data.naechste}
+          hinweis={
+            /* Beim Monteur unter „Heute“ statt darüber: die Heute-Karte ragt
+               am Telefon in das Kopfband und muss direkt darauf folgen. */
+            data.hatEintritt === false ? (
+              <Meldung ton="info" titel="Kein Eintrittsdatum hinterlegt">
+                <p>
+                  Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen und wie der Saldo
+                  steht. Die Geschäftsführung kann es in der Benutzerverwaltung nachtragen.
+                </p>
+              </Meldung>
+            ) : undefined
+          }
           scheineAn={scheineAn}
           materialAn={materialAn}
         />
@@ -739,71 +795,16 @@ export default function DashboardView() {
         Baustelle.
       */}
       {!monteur && data.heuteEigene && data.heuteEigene.length > 0 && (
-        <Card
-          title={data.heuteEigene.length === 1 ? 'Heute' : `Heute — ${data.heuteEigene.length} Baustellen`}
-          action={
+        <HeuteKarte
+          einsaetze={data.heuteEigene}
+          scheineAn={scheineAn}
+          materialAn={materialAn}
+          aktion={
             <Link to="/my-schedule" className="textlink-allein">
               Mein Einsatzplan
             </Link>
           }
-        >
-          <div className="space-y-4">
-            {data.heuteEigene.map((e) => (
-              <div key={e.id} className="kasten-hell">
-                <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-ink">
-                  {e.customerName}
-                  {e.asHelper && <Marke>Helfer</Marke>}
-                </p>
-                <p className="text-sm text-ink-muted">{e.projectNumber}</p>
-                {e.comment && (
-                  <p className="mt-2 rounded-sm bg-surface-2 p-2 text-sm text-ink">{e.comment}</p>
-                )}
-                <KontaktZeile
-                  adresse={e.address}
-                  nummer={e.contactPhone}
-                  name={e.contactName}
-                  className="mt-3"
-                />
-                {/*
-                  Was mitzunehmen ist — unter der Adresse, ueber den Knoepfen.
-                  Die Reihenfolge ist die des Morgens: wohin, was mit, dann
-                  losfahren. Der Haken gilt fuer die Mannschaft, nicht fuer
-                  die Person: die Kiste steht einmal im Bus.
-                */}
-                {materialAn && e.material && e.material.length > 0 && (
-                  <RuestlisteAbhaken
-                    date={e.date}
-                    projectNumber={e.projectNumber}
-                    positionen={e.material}
-                    geladen={e.geladen ?? {}}
-                  />
-                )}
-                {/*
-                  Der Schein entsteht am Ende genau dieses Einsatzes. Ihn hier
-                  anzubieten spart den Umweg ueber einen eigenen Bereich, in
-                  dem die Baustelle noch einmal gesucht werden muesste.
-                */}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link
-                    to="/time"
-                    state={{ projectNumber: e.projectNumber, asHelper: !!e.asHelper }}
-                    className="knopf-primaer"
-                  >
-                    Zeit erfassen
-                  </Link>
-                  {scheineAn && (
-                    <Link
-                      to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
-                      className="knopf-sekundaer"
-                    >
-                      Schein schreiben
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        />
       )}
 
       {/*
