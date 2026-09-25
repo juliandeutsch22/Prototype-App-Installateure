@@ -417,19 +417,19 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               <tbody>
                 <tr className="border-b border-line/60">
                   <td className="py-1">Regulär</td>
-                  <td className="py-1 text-right tnum">{fmtEUR(rates.fach)} €/h</td>
+                  <td className="py-1 text-right">{fmtEUR(rates.fach)} €/h</td>
                 </tr>
                 <tr className="border-b border-line/60">
                   <td className="py-1">Nachtarbeit</td>
-                  <td className="py-1 text-right tnum">{fmtEUR(nightFach)} €/h</td>
+                  <td className="py-1 text-right">{fmtEUR(nightFach)} €/h</td>
                 </tr>
                 <tr className="border-b border-line/60">
                   <td className="py-1">Notdienst</td>
-                  <td className="py-1 text-right tnum">{fmtEUR(emergencyFach)} €/h</td>
+                  <td className="py-1 text-right">{fmtEUR(emergencyFach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="py-1">Notdienst in der Nacht</td>
-                  <td className="py-1 text-right tnum">{fmtEUR(bothFach)} €/h</td>
+                  <td className="py-1 text-right">{fmtEUR(bothFach)} €/h</td>
                 </tr>
               </tbody>
             </table>
@@ -584,9 +584,13 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               nicht und sagt das auch — eine erfundene Zahl wäre schlimmer als keine.
             </p>
           ) : (
-            <p className="mt-3 tnum text-sm text-ink">
+            <p className="mt-3 text-sm text-ink">
               Deckungsbeitrag je Facharbeiterstunde:{' '}
-              <strong>{fmtEUR(rates.fach - num(costRates.fach, 0))}</strong>
+              {/* Mit Zeichen: „21,50" allein war die einzige Geldangabe der
+                  App ohne € (Prüflauf 25.09.2026, P4-11). Dahinter, wie die
+                  Sätze auf dieser Seite („60,00 €/h") — dieses `fmtEUR`
+                  stellt nicht voran, siehe tests/unit/eurozeichen.test.ts. */}
+              <strong>{fmtEUR(rates.fach - num(costRates.fach, 0))} €</strong>
               {rates.fach - num(costRates.fach, 0) <= 0 && (
                 <span className="ml-2 text-danger">
                   — der Verrechnungssatz liegt nicht über den Kosten.
@@ -840,7 +844,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                   etwas; „RE-2026-1001" beantwortet die Frage, die jemand hat,
                   wenn er hier steht — wie sieht die nächste Nummer aus?
                 */}
-                <p className="tnum text-sm text-ink-muted">
+                <p className="text-sm text-ink-muted">
                   {naechste
                     ? `Nächste: ${belegNummer(vorsaetze[schluessel], new Date().getFullYear(), naechste[schluessel])}`
                     : `z. B. ${belegNummer(vorsaetze[schluessel], new Date().getFullYear(), ab)}`}
@@ -858,7 +862,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 onChange={(e) =>
                   setVorsaetze({ ...vorsaetze, kennzeichen: praefixPutzen(e.target.value) })}
               />
-              <p className="tnum text-sm text-ink-muted">
+              <p className="text-sm text-ink-muted">
                 {vorsaetze.kennzeichen
                   ? `${vorsaetze.kennzeichen}-12345A`
                   : 'Ohne Vorsatz — im Zeiteintrag steht das ganze Kennzeichen'}
@@ -869,7 +873,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           <p className="mt-4 text-sm text-ink-muted">
             Großbuchstaben, Ziffern, Bindestrich, höchstens {PRAEFIX_MAX} Zeichen. Leer heißt
             „kein Vorsatz" — dann zählt der Kreis als
-            <span className="tnum"> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
+            <span> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
           </p>
 
           <div className="mt-4">

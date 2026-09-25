@@ -2,11 +2,15 @@ import {
   forwardRef,
   useCallback,
   useEffect,
+  useId,
   useImperativeHandle,
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import Button from './Button';
+import { sichtbar, useFokusFalle } from './fokusFalle';
+import { einpassen, type Masse, type Punkt } from './unterschriftEinpassen';
 
 /**
  * Unterschriftsfeld für Finger oder Stift.
@@ -55,6 +59,23 @@ import Button from './Button';
  * `preventDefault()` wirkt nur in einem NICHT-passiven Listener, und React
  * meldet Berührungsereignisse an der Wurzel als passiv an. Ohne das scrollt
  * die Seite unter dem Finger weg, statt dass er zeichnet — deshalb nativ.
+ *
+ *
+ * GROSS UNTERSCHREIBEN, AM BESTEN QUER (unter 1024 px)
+ * ----------------------------------------------------
+ * Unter dem Feld steht „Groß unterschreiben": es öffnet die Zeichenfläche
+ * bildschirmfüllend. Das Feld im Formular bleibt, wie es ist — wer dort
+ * unterschreibt, braucht keinen Tipp mehr als vorher.
+ *
+ * GEDREHT WIRD NICHT PER CSS. Eine um 90° gedrehte Fläche verlangte, jede
+ * Fingerposition zurückzurechnen, und hinge an Eigenheiten von Safari. Das
+ * Blatt nimmt die Lage des Geräts, wie sie ist; im Hochformat steht ein
+ * Hinweis, es quer zu halten — unterschreiben geht auch so.
+ *
+ * DAS BILD FÜR DEN SCHEIN ENTSTEHT WIE BISHER aus dem Feld im Formular. Beim
+ * Schliessen des Blatts werden die Striche in das Feld eingepasst
+ * (`unterschriftEinpassen.ts`); gespeichert wird dann genau das, was dort zu
+ * sehen ist — dasselbe Format, dieselbe Größe wie ohne Blatt.
  */
 
 export interface SignaturePadHandle {
@@ -68,11 +89,6 @@ interface Props {
   /** Meldet, OB unterschrieben ist. Bewusst kein Bild: siehe oben. */
   onChange: (hatUnterschrift: boolean) => void;
   disabled?: boolean;
-}
-
-interface Punkt {
-  x: number;
-  y: number;
 }
 
 /*
@@ -89,7 +105,14 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
   { titel, onChange, disabled = false },
   ref,
 ) {
+  /** Die Fläche, auf der gerade gezeichnet wird — im Formular oder im Blatt. */
   const [feld, setFeld] = useState<HTMLCanvasElement | null>(null);
+  /** Ist das große Blatt offen? */
+  const [offen, setOffen] = useState(false);
+  const grossKnopf = useRef<HTMLButtonElement>(null);
+  const blatt = useRef<HTMLDivElement>(null);
+  const wurzel = useRef<HTMLDivElement>(null);
+  const blattTitel = useId();
   const [hatStriche, setHatStriche] = useState(false);
   /** Genug für eine Unterschrift — siehe `MIN_BREITE`. */
   const [reicht, setReicht] = useState(false);
@@ -113,6 +136,13 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
   const gemeldet = useRef(false);
   /** Zuletzt eingerichtete Fläche in Gerätepixeln. */
   const flaeche = useRef({ w: 0, h: 0 });
+  /**
+   * Maße der Fläche in CSS-Pixeln, auf die sich die Striche beziehen. Beim
+   * Wechsel zwischen Feld und Blatt werden die Striche damit umgerechnet.
+   */
+  const strichFlaeche = useRef<Masse | null>(null);
+  /** Wohin der Wechsel geht: ins Blatt vergrößern oder zurück einpassen. */
+  const wechsel = useRef<'ins-blatt' | 'ins-feld' | null>(null);
 
   /**
    * Die aktuellen Aufrufparameter für die nativen Behandler.
@@ -174,12 +204,50 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
    */
   useEffect(() => {
     if (!feld) return;
+    // Eine NEUE Fläche (Blatt auf oder zu) hat ihre Grundgröße von 300 × 150
+    // und muss eingerichtet werden, auch wenn die vorige gleich groß war.
+    flaeche.current = { w: 0, h: 0 };
 
     const anpassen = () => {
       const rect = feld.getBoundingClientRect();
       // Während des Aufbaus hat das Feld keine Ausdehnung; der Beobachter
       // meldet sich wieder, sobald es eine hat.
       if (rect.width < 1 || rect.height < 1) return;
+      /*
+        BEIM WECHSEL ZWISCHEN FELD UND BLATT werden die Striche
+        umgerechnet — nicht bei jeder Größenänderung. Dreht jemand das
+        Telefon und alles passt noch, bleiben sie, wo sie sind (wie bisher).
+      */
+      const von = strichFlaeche.current;
+      const ziel = { w: rect.width, h: rect.height };
+      /*
+        Und wenn die Striche nach einer Größenänderung nicht mehr ins Feld
+        passen — quer im Blatt unterschrieben, „Fertig", Telefon zurück ins
+        Hochformat —, werden sie eingepasst statt abgeschnitten. Was passt,
+        bleibt unberührt.
+      */
+      const r0 = rahmen.current;
+      const ragtHeraus =
+        striche.current.length > 0 && (r0.maxX > ziel.w || r0.maxY > ziel.h);
+      if ((wechsel.current && von && striche.current.length > 0) || ragtHeraus) {
+        const hoechstens =
+          wechsel.current === 'ins-blatt' && von
+            ? Math.min(ziel.w / von.w, ziel.h / von.h)
+            : 1;
+        striche.current = einpassen(striche.current, ziel, hoechstens);
+        const r = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
+        for (const strich of striche.current) {
+          for (const pt of strich) {
+            r.minX = Math.min(r.minX, pt.x);
+            r.maxX = Math.max(r.maxX, pt.x);
+            r.minY = Math.min(r.minY, pt.y);
+            r.maxY = Math.max(r.maxY, pt.y);
+          }
+        }
+        rahmen.current = r;
+      }
+      wechsel.current = null;
+      strichFlaeche.current = ziel;
       const dichte = window.devicePixelRatio || 1;
       const w = Math.round(rect.width * dichte);
       const h = Math.round(rect.height * dichte);
@@ -374,6 +442,54 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
     [feld, neuMalen],
   );
 
+  /** Das Blatt öffnen oder schliessen — die Striche kommen mit. */
+  const blattOeffnen = useCallback(() => {
+    wechsel.current = 'ins-blatt';
+    setOffen(true);
+  }, []);
+  const blattSchliessen = useCallback(() => {
+    wechsel.current = 'ins-feld';
+    setOffen(false);
+  }, []);
+
+  /*
+    SOLANGE DAS BLATT OFFEN IST, steht die Seite dahinter still (sonst
+    scrollte sie auf iOS unter dem Blatt mit), „Fertig" hat den Fokus, und
+    Escape schliesst wie bei jedem Dialog. Danach geht der Fokus zurück an
+    „Groß unterschreiben".
+  */
+  useEffect(() => {
+    if (!offen) return;
+    const vorher = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    blatt.current?.querySelector<HTMLButtonElement>('[data-fertig]')?.focus();
+    const taste = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') blattSchliessen();
+    };
+    window.addEventListener('keydown', taste);
+    const knopf = grossKnopf.current;
+    // Die Hülle bleibt dieselbe; die Zeichenfläche darin wird erst beim
+    // Schliessen gesucht — dann steht wieder die im Formular.
+    const huelle = wurzel.current;
+    return () => {
+      document.body.style.overflow = vorher;
+      window.removeEventListener('keydown', taste);
+      /*
+        IST DER KNOPF WEG, BEKOMMT DAS FELD DEN FOKUS. „Groß unterschreiben"
+        ist ab 1024 px ausgeblendet — wer das Tablet im Blatt quer dreht,
+        kommt dort an, und der Fokus fiel ins Leere (an `body`). Dann geht er
+        an die Zeichenfläche im Formular, auf der die Unterschrift jetzt steht
+        (Prüflauf 25.09.2026, P4-14).
+      */
+      if (knopf && knopf.isConnected && sichtbar(knopf)) knopf.focus();
+      else huelle?.querySelector<HTMLCanvasElement>('canvas')?.focus();
+    };
+  }, [offen, blattSchliessen]);
+
+  // Tab bleibt im Blatt (Prüflauf 25.09.2026, P4-05); Fokus hinein und
+  // zurück regelt der Effekt oben.
+  useFokusFalle(blatt, offen);
+
   const leeren = useCallback(() => {
     striche.current = [];
     gemeldet.current = false;
@@ -384,8 +500,30 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
     onChange(false);
   }, [neuMalen, onChange]);
 
+  const zuWenig = hatStriche && !reicht;
+  const hinweis = zuWenig
+    ? 'Das reicht noch nicht für eine Unterschrift — bitte den Namen schreiben.'
+    : 'Mit dem Finger im Feld unterschreiben.';
+
+  /** Die Zeichenfläche — im Formular oder im Blatt, dieselben Eigenschaften. */
+  const zeichenflaeche = (klasse: string) => (
+    <canvas
+      ref={setFeld}
+      // `touch-none` steht zusätzlich als Klasse da. Hier noch einmal fest
+      // am Element: ohne diese eine Eigenschaft bricht der Browser die
+      // Geste nach dem ersten Zug ab, und eine Klasse kann ein Build
+      // verlieren.
+      style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+      className={klasse}
+      aria-label={`${titel} — mit dem Finger oder einem Stift unterschreiben`}
+      // Fokussierbar nur per Programm (kein Tab-Stopp): Rückfallziel, wenn
+      // „Groß unterschreiben" nach dem Blatt nicht zu sehen ist (P4-14).
+      tabIndex={-1}
+    />
+  );
+
   return (
-    <div>
+    <div ref={wurzel}>
       {/*
         DER PLATZ IST IMMER DA, auch wenn der Knopf noch nicht sichtbar ist.
         Erschien er erst beim ersten Strich, sprang das Feld in genau dem
@@ -407,28 +545,81 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
           Neu zeichnen
         </Button>
       </div>
-      <canvas
-        ref={setFeld}
-        // `touch-none` steht zusätzlich als Klasse da. Hier noch einmal fest
-        // am Element: ohne diese eine Eigenschaft bricht der Browser die
-        // Geste nach dem ersten Zug ab, und eine Klasse kann ein Build
-        // verlieren.
-        style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
-        className={`mt-1 h-40 w-full touch-none select-none rounded border-2 border-dashed bg-surface ${
-          disabled ? 'border-line opacity-60' : 'border-line'
-        }`}
-        aria-label={`${titel} — mit dem Finger oder einem Stift unterschreiben`}
-      />
+      {/*
+        Solange das Blatt offen ist, steht hier ein Platzhalter in derselben
+        Höhe: die Seite dahinter soll beim Schliessen nicht springen.
+      */}
+      {offen ? (
+        <div className="mt-1 h-40 w-full rounded border border-line bg-surface" aria-hidden="true" />
+      ) : (
+        zeichenflaeche(
+          `mt-1 h-40 w-full touch-none select-none rounded border bg-surface ${
+            disabled ? 'border-line opacity-60' : 'border-line'
+          }`,
+        )
+      )}
       {/* Ebenfalls immer da — verschwände er, ruckte das Feld nach unten. */}
-      <p
-        className={`mt-1 text-xs ${hatStriche && !reicht ? 'text-warning' : 'text-ink-muted'} ${
-          (hatStriche && reicht) || disabled ? 'invisible' : ''
-        }`}
-      >
-        {hatStriche && !reicht
-          ? 'Das reicht noch nicht für eine Unterschrift — bitte den Namen schreiben.'
-          : 'Mit dem Finger im Feld unterschreiben.'}
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p
+          className={`mt-1 text-xs ${zuWenig ? 'text-warning' : 'text-ink-muted'} ${
+            (hatStriche && reicht) || disabled ? 'invisible' : ''
+          }`}
+        >
+          {hinweis}
+        </p>
+        {/*
+          Am Telefon und Tablet: dieselbe Zeichenfläche bildschirmfüllend.
+          Am Schreibtisch nicht — dort ist das Feld breit genug, und
+          unterschrieben wird mit der Maus.
+        */}
+        {!disabled && (
+          <button
+            ref={grossKnopf}
+            type="button"
+            onClick={blattOeffnen}
+            className="link inline-flex min-h-touch shrink-0 items-center text-sm lg:hidden"
+          >
+            Groß unterschreiben
+          </button>
+        )}
+      </div>
+
+      {offen &&
+        createPortal(
+          <div
+            ref={blatt}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={blattTitel}
+            /*
+              Die sichere Zone (Notch, Home-Leiste) kommt zum Innenabstand
+              dazu — quer liegt sie links oder rechts.
+            */
+            className="fixed inset-0 z-50 flex flex-col gap-2 bg-surface-2 pb-[max(1rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(1rem,env(safe-area-inset-top))]"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id={blattTitel} className="text-lg font-semibold text-ink">
+                {titel}
+              </h2>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" onClick={leeren} disabled={!hatStriche}>
+                  Neu zeichnen
+                </Button>
+                <Button type="button" onClick={blattSchliessen} data-fertig="">
+                  Fertig
+                </Button>
+              </div>
+            </div>
+            <p className="text-sm text-ink-muted landscape:hidden">
+              Quer halten, dann ist mehr Platz. Unterschreiben geht auch so.
+            </p>
+            <div className="min-h-0 flex-1">
+              {zeichenflaeche('h-full w-full touch-none select-none rounded border border-line bg-surface')}
+            </div>
+            <p className={`text-xs ${zuWenig ? 'text-warning' : 'text-ink-muted'}`}>{hinweis}</p>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 });

@@ -227,6 +227,66 @@ describe('Liste der Handwerksscheine', () => {
     await screen.findByText('Entwurf');
     expect(screen.queryByRole('link', { name: /Weiterbearbeiten/ })).not.toBeInTheDocument();
   });
+
+  it.each(['Buchhaltung', 'Verwaltung'] as const)(
+    'zeigt „Neuer Schein" für %s nicht — die Seite dahinter sperrt (P4-04)',
+    async (rolle) => {
+      // Prüflauf 25.09.2026, P4-04: der Knopf im Kopf hatte keine Prüfung
+      // und führte beide Rollen auf „Kein Zugriff".
+      authWert.user.role = rolle;
+      zeichne();
+      await screen.findByText('Entwurf');
+      expect(screen.queryByRole('link', { name: 'Neuer Schein' })).not.toBeInTheDocument();
+    },
+  );
+
+  it('ist EIN Link, kein Knopf im Link — ein Tab-Stopp (P4-12)', async () => {
+    // Prüflauf 25.09.2026, P4-12: <Link><Button/></Link> waren zwei
+    // Tab-Stopps für dieselbe Aktion.
+    zeichne();
+    const link = await screen.findByRole('link', { name: /Weiterbearbeiten/ });
+    expect(link.querySelector('button')).toBeNull();
+    expect(link.closest('button')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Weiterbearbeiten' })).not.toBeInTheDocument();
+    // Sieht aus wie der Zweitknopf und behält die Tastfläche.
+    expect(link.className).toMatch(/\bmin-h-touch\b/);
+    expect(link.className).toMatch(/\bborder-line\b/);
+  });
+});
+
+describe('Der Entwurf eines Kollegen', () => {
+  /*
+    PRÜFLAUF 25.09.2026 (P3-10). Die Datenbank lässt einen fremden Entwurf
+    jetzt nur noch die Führung bearbeiten, verwerfen oder zurückholen — der
+    Monteur seinen eigenen. Die Liste bietet es genauso an; ein Knopf, den die
+    Datenbank abweist, täuschte Ordnung nur vor.
+  */
+  const fremder = { ...scheine[0], id: 'e2', erstelltVonUid: 'k9', erstelltVonName: 'Karl Kollege' };
+  const fremderVerworfen = { ...verworfener, id: 'v2', erstelltVonUid: 'k9' };
+
+  it('bietet dem Monteur weder Weiterbearbeiten noch Verwerfen an', async () => {
+    geladen = [fremder];
+    zeichne();
+    await screen.findByText('Entwurf');
+    expect(screen.queryByRole('link', { name: /Weiterbearbeiten/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Verwerfen' })).not.toBeInTheDocument();
+  });
+
+  it('der Projektleitung schon', async () => {
+    authWert.user.role = 'Projektleiter';
+    geladen = [fremder];
+    zeichne();
+    expect(await screen.findByRole('link', { name: /Weiterbearbeiten/ })).toHaveAttribute('href', '/worksheet?entwurf=e2');
+    expect(screen.getByRole('button', { name: 'Verwerfen' })).toBeInTheDocument();
+  });
+
+  it('und den verworfenen eines Kollegen holt der Monteur nicht zurück', async () => {
+    geladen = [fremderVerworfen];
+    zeichne();
+    await userEvent.click(await screen.findByRole('checkbox'));
+    expect(await screen.findByText('Familie Gruber')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Wieder aufnehmen' })).not.toBeInTheDocument();
+  });
 });
 
 describe('Einen Entwurf aufgeben', () => {
@@ -465,7 +525,7 @@ describe('Stunden ohne Buchung', () => {
     zeichne();
 
     expect(await screen.findByText(/Stunden ohne Buchung \(1\)/)).toBeInTheDocument();
-    expect(zeile('Franz Huber · 08:00 · keine Buchung gefunden')).toBeInTheDocument();
+    expect(zeile('Franz Huber · 08:00 Std · keine Buchung gefunden')).toBeInTheDocument();
     // Die Summe ist die eigentliche Aussage: so viel Zeit steht
     // unterschrieben beim Kunden und in keiner Aufzeichnung.
     expect(screen.getByText(/stehen unterschrieben beim Kunden/)).toBeInTheDocument();
@@ -516,7 +576,7 @@ describe('Stunden ohne Buchung', () => {
     zeichne();
 
     await screen.findByText(/Stunden ohne Buchung/);
-    expect(zeile('Franz Huber · 08:00 · gebucht auf B-001')).toBeInTheDocument();
+    expect(zeile('Franz Huber · 08:00 Std · gebucht auf B-001')).toBeInTheDocument();
     expect(screen.queryByText(/stehen unterschrieben beim Kunden/)).not.toBeInTheDocument();
   });
 

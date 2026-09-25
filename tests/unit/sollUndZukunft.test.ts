@@ -65,13 +65,34 @@ describe('Soll bisher', () => {
 });
 
 describe('Saldo', () => {
-  it('schreibt nichts aus der Zukunft gut', () => {
-    // Gutgeschrieben: 22., 23. und heute — drei Tage. Soll: 17 Tage.
-    expect(calcOverallSaldo(monteur, eintraege).saldoH).toBe((3 - 17) * 8);
+  /*
+    BEWUSST GEÄNDERT (Prüflauf 25.09.2026, P1-16). Hier stand „22., 23. und
+    heute — drei Tage": der heutige Krankentag wurde gutgeschrieben, obwohl
+    das Soll nur bis gestern zählt. Der Saldo stand damit den ganzen Tag um
+    acht Stunden zu hoch. Ein ganztägiger Tag zählt jetzt erst, wenn er
+    vorbei ist — wie sein Soll.
+  */
+  it('schreibt nichts aus der Zukunft gut — und den heutigen Krankentag erst morgen', () => {
+    // Gutgeschrieben: 22. und 23. — zwei Tage. Soll: 17 Tage.
+    expect(calcOverallSaldo(monteur, eintraege).saldoH).toBe((2 - 17) * 8);
   });
 
   it('rechnet aus den Monatsbilanzen dasselbe', () => {
-    expect(saldoAusBilanzen(monteur, [], eintraege).saldoH).toBe((3 - 17) * 8);
+    expect(saldoAusBilanzen(monteur, [], eintraege).saldoH).toBe((2 - 17) * 8);
+  });
+
+  it('zählt heute gearbeitete Zeit weiterhin sofort', () => {
+    // Die Anwesenheit von heute ist geleistet — sie steht gleich im Saldo.
+    const heuteGearbeitet: TimeEntry = {
+      ...tag('2026-09-24', 'Anwesend'),
+      id: 'a24',
+      startTime: '07:00',
+      endTime: '11:00',
+    } as TimeEntry;
+    const ohneKrankHeute = eintraege.filter((e) => e.date !== '2026-09-24');
+    const mit = [...ohneKrankHeute, heuteGearbeitet];
+    expect(calcOverallSaldo(monteur, mit).saldoH).toBe((2 - 17) * 8 + 4);
+    expect(saldoAusBilanzen(monteur, [], mit).saldoH).toBe((2 - 17) * 8 + 4);
   });
 });
 

@@ -104,10 +104,10 @@ export default function BaustellenUebersicht({
   return (
     <div className="space-y-3">
       <p className="text-sm">
-        <span className="tnum font-semibold text-ink">{fmtStd(stand.fachMin)} h</span>{' '}
+        <span className="font-semibold text-ink">{fmtStd(stand.fachMin)} h</span>{' '}
         <span className="text-ink-muted">Fachzeit</span>
         {projekt.estimatedHours ? (
-          <span className="tnum text-ink-muted"> von {fmtStunden(projekt.estimatedHours)} h Budget</span>
+          <span className="text-ink-muted"> von {fmtStunden(projekt.estimatedHours)} h Budget</span>
         ) : null}
         {/*
           Helferstunden zählen NICHT gegen das Budget — sie werden zwar
@@ -116,13 +116,13 @@ export default function BaustellenUebersicht({
           dieselbe Baustelle an zwei Stellen auf zwei Prozentwerte.
         */}
         {stand.helperMin > 0 && (
-          <span className="tnum text-ink-muted"> · +{fmtStd(stand.helperMin)} h Helfer</span>
+          <span className="text-ink-muted"> · +{fmtStd(stand.helperMin)} h Helfer</span>
         )}
       </p>
 
       {budget.pct !== null ? (
         <div className="flex items-center gap-2">
-          <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
+          <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
             <span
               className={`block h-full ${BAR_TONE[budget.tone]}`}
               style={{ width: balkenBreite(budget.pct) }}
@@ -149,9 +149,9 @@ export default function BaustellenUebersicht({
             className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1 text-xs"
           >
             <span className="font-semibold text-ink">{p.name}</span>
-            <span className="tnum text-ink-muted">{fmtStd(p.fachMin)} h</span>
+            <span className="text-ink-muted">{fmtStd(p.fachMin)} h</span>
             {p.helperMin > 0 && (
-              <span className="tnum text-ink-muted">+{fmtStd(p.helperMin)} h Helfer</span>
+              <span className="text-ink-muted">+{fmtStd(p.helperMin)} h Helfer</span>
             )}
           </span>
         ))}

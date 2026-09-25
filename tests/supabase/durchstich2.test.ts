@@ -108,6 +108,8 @@ describe('Durchstich 3: vom Angebot bis zur Nachkalkulation', () => {
       totalVat: 600,
       totalBrutto: 3600,
       paymentStatus: 'Offen',
+      // Ohne Positionen legt die Datenbank keine Rechnung an (P2-10).
+      positions: [{ label: 'Badsanierung', qty: 1, unit: 'Pauschale', unitPrice: 3000, netto: 3000 }],
     });
 
     /*

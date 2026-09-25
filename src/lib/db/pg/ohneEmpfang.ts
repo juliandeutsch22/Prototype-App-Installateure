@@ -29,7 +29,7 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
-  schreiben, type Auftrag, type Lager, type WriteOutcome,
+  schreiben, gehoert, type Auftrag, type Bericht, type Lager, type WriteOutcome,
 } from '@/lib/sync/ausgangsfach';
 import { lagerImBrowser, lagerVerfuegbar } from '@/lib/sync/lagerIndexedDB';
 import { supabaseSender } from '@/lib/sync/supabaseSender';
@@ -59,6 +59,37 @@ function lager(): Lager | null {
 /** Nur für Prüfungen: ein eigenes Lager unterschieben. */
 export function lagerEinreichen(eigenes: Lager | null): void {
   gemerktesLager = eigenes;
+}
+
+/*
+  WER GERADE ANGEMELDET IST (Prüflauf 25.09.2026, P1-05) — gesetzt von der
+  Anmeldung, sobald sie ein Konto kennt.
+
+  Nicht allein aus der Sitzung des Clients gelesen: die Zugangsmarke läuft
+  nach einer Stunde ab, und ohne Netz lässt sie sich nicht erneuern — dann
+  meldet `getSession` keine Sitzung, obwohl der Monteur ganz normal
+  angemeldet ist und im Keller weiterbucht. Genau diese Vormerkungen
+  bekämen sonst keinen Besitzer.
+*/
+let angemeldetesKonto: string | null = null;
+
+export function ausgangsfachKonto(uid: string | null): void {
+  angemeldetesKonto = uid;
+}
+
+/** Das Konto der Sitzung, mit der der Client gerade senden würde — oder null. */
+async function sitzungsKonto(c: SupabaseClient): Promise<string | null> {
+  try {
+    const { data } = await c.auth.getSession();
+    return data.session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Wem eine neue Vormerkung gehört. */
+async function besitzer(c: SupabaseClient): Promise<string | undefined> {
+  return angemeldetesKonto ?? (await sitzungsKonto(c)) ?? undefined;
 }
 
 /**
@@ -99,8 +130,9 @@ export async function anlegenOhneEmpfang(
     return { id, stand: 'confirmed' };
   }
 
-  const auftrag: Auftrag = { tabelle, art: 'anlegen', zeile: id, daten: zeile };
-  const stand = await schreiben(auftrag, fach, supabaseSender(derClient(client)));
+  const c = derClient(client);
+  const auftrag: Auftrag = { tabelle, art: 'anlegen', zeile: id, daten: zeile, uid: await besitzer(c) };
+  const stand = await schreiben(auftrag, fach, supabaseSender(c));
   return { id, stand };
 }
 
@@ -123,9 +155,13 @@ export async function aendernOhneEmpfang(
     return 'confirmed';
   }
 
-  const auftrag: Auftrag = { tabelle, art: 'aendern', zeile: id, daten: zeile };
-  return schreiben(auftrag, fach, supabaseSender(derClient(client)));
+  const c = derClient(client);
+  const auftrag: Auftrag = { tabelle, art: 'aendern', zeile: id, daten: zeile, uid: await besitzer(c) };
+  return schreiben(auftrag, fach, supabaseSender(c));
 }
+
+/** Der gerade laufende Nachsendelauf, falls einer läuft. */
+let laufend: Promise<Bericht> | null = null;
 
 /**
  * Was noch im Fach liegt, jetzt nachsenden.
@@ -134,15 +170,42 @@ export async function aendernOhneEmpfang(
  * er das zeigt. Ohne Lager gibt es nichts nachzusenden, und das ist kein
  * Fehler.
  */
-export async function nachsendenJetzt(client?: SupabaseClient) {
-  const fach = lager();
-  if (!fach) return { gesendet: 0, abgelehnt: 0, offen: 0 };
-  return nachsenden(fach, supabaseSender(derClient(client)));
+export async function nachsendenJetzt(client?: SupabaseClient): Promise<Bericht> {
+  /*
+    EIN LAUF ZUR ZEIT. Zeitgeber, `online` und die Rückkehr zur App können
+    zusammenfallen; zwei Läufe über dasselbe Fach schickten dieselbe
+    Vormerkung doppelt und räumten sie doppelt weg.
+  */
+  if (laufend) return laufend;
+  laufend = (async () => {
+    const fach = lager();
+    if (!fach) return { gesendet: 0, abgelehnt: 0, offen: 0 };
+    const c = derClient(client);
+    /*
+      NUR MIT EINER GÜLTIGEN SITZUNG, und nur deren eigene Vormerkungen
+      (Prüflauf 25.09.2026, P1-05). Ohne Sitzung ging der Aufruf als „anon"
+      hinaus, mit der eines Kollegen unter dessen Namen — beide lehnt der
+      Zeilenschutz ab, und das Fach warf die Buchung als endgültig verloren
+      weg. Jetzt bleibt sie liegen, bis ihr Besitzer wieder angemeldet ist.
+    */
+    return nachsenden(fach, supabaseSender(c), await sitzungsKonto(c));
+  })();
+  try {
+    return await laufend;
+  } finally {
+    laufend = null;
+  }
 }
 
-/** Wie viele Vorgänge warten? Für die Anzeige, nicht für Entscheidungen. */
-export async function offeneVormerkungen(): Promise<number> {
+/**
+ * Wie viele Vorgänge warten? Für die Anzeige, nicht für Entscheidungen.
+ *
+ * Mit einem Konto: nur die, die mit dessen Sitzung hinausgehen — seine
+ * eigenen und die ohne Besitzer. Für die Warnung beim Abmelden.
+ */
+export async function offeneVormerkungen(uid?: string): Promise<number> {
   const fach = lager();
   if (!fach) return 0;
-  return (await fach.alle()).length;
+  const alle = await fach.alle();
+  return uid ? alle.filter((v) => gehoert(v, uid)).length : alle.length;
 }

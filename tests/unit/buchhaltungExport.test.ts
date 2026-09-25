@@ -41,6 +41,7 @@ const kunden: Customer[] = [
 
 describe('Rechnungsausgangsbuch', () => {
   it('nimmt stornierte Rechnungen auf, zählt sie aber nicht zur Summe', () => {
+    // Altbestand ohne Stornodatum: er gehört in keinen anderen Zeitraum.
     const rows = [re('RE-2026-0001', 1000), re('RE-2026-0002', 500, 'Storniert')];
     const e = buildInvoiceCsv(rows, kunden, '2026-08-01', '2026-08-31');
 
@@ -50,7 +51,54 @@ describe('Rechnungsausgangsbuch', () => {
     expect(e.anzahl).toBe(2);
     // … aber nur eine in der Summe.
     expect(e.summeNetto).toBe(1000);
-    expect(e.csv).toContain('Summe (ohne Storni)');
+    /*
+      Die Beschriftung sagt seit dem Prüflauf 25.09.2026 (P2-14), wie Storni
+      zählen: als Gegenbuchung in ihrem eigenen Zeitraum. „ohne Storni" hätte
+      nahegelegt, der Ursprungsmonat verliere die Rechnung wieder.
+    */
+    expect(e.csv).toContain('Summe (Storni als Gegenbuchung im Stornozeitraum)');
+  });
+
+  /*
+    PRÜFLAUF 25.09.2026, P2-14. Eine im September stornierte August-Rechnung
+    fiel beim nächsten Export des Augusts aus der Summe — eines Monats, dessen
+    Umsatzsteuer längst gemeldet war —, und im September stand nichts.
+  */
+  describe('ein Storno steht in seinem eigenen Zeitraum', () => {
+    const storniertAm = new Date(2026, 8, 3, 10, 0).getTime(); // 03.09.2026, Ortszeit
+    const spaet = { ...re('RE-2026-0002', 500, 'Storniert'), cancelledAt: storniertAm, cancellationNote: 'Falscher Kunde' };
+
+    it('der Ursprungsmonat behält seine Summe', () => {
+      const e = buildInvoiceCsv([re('RE-2026-0001', 1000), spaet], kunden, '2026-08-01', '2026-08-31');
+      expect(e.summeNetto).toBe(1500);
+      expect(e.csv).not.toContain(';Gegenbuchung;');
+    });
+
+    it('der Stornomonat bekommt die Gegenzeile mit negativem Betrag', () => {
+      const e = buildInvoiceCsv([spaet], kunden, '2026-09-01', '2026-09-30');
+      expect(e.anzahl).toBe(0);
+      expect(e.summeNetto).toBe(-500);
+      expect(e.summeBrutto).toBe(-600);
+      const zeile = e.csv.split('\n').find((z) => z.includes(';Gegenbuchung;'))!;
+      const kopf = e.csv.split('\n')[0].split(';');
+      const felder = zeile.split(';');
+      expect(felder[kopf.indexOf('Rechnungsnummer')]).toBe('RE-2026-0002');
+      expect(felder[kopf.indexOf('Rechnungsdatum')]).toBe('03.09.2026');
+      expect(felder[kopf.indexOf('Netto')]).toBe('-500,00');
+      expect(felder[kopf.indexOf('Brutto')]).toBe('-600,00');
+      expect(felder[kopf.indexOf('Stornogrund')]).toBe('Falscher Kunde');
+    });
+
+    it('im selben Zeitraum heben sich Rechnung und Storno auf', () => {
+      const gleich = { ...spaet, invoiceDate: '2026-09-01' };
+      const e = buildInvoiceCsv([gleich], kunden, '2026-09-01', '2026-09-30');
+      expect(e.anzahl).toBe(1);
+      expect(e.summeNetto).toBe(0);
+      const zeilen = e.csv.split('\n').filter((z) => z.startsWith('RE-2026-0002'));
+      // Erst die Rechnung, dann ihr Storno.
+      expect(zeilen).toHaveLength(2);
+      expect(zeilen[1]).toContain(';Gegenbuchung;');
+    });
   });
 
   it('meldet eine Lücke im Nummernkreis', () => {

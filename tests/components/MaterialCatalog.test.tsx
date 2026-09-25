@@ -156,6 +156,53 @@ describe('Der Einkaufspreis', () => {
   });
 });
 
+describe('Der Bestand beim Bearbeiten', () => {
+  /*
+    PRÜFLAUF 25.09.2026 (P3-18). Das Formular schrieb den Bestand bei jedem
+    Speichern absolut zurück. Wer nur die Kategorie änderte, während ein
+    Monteur zwei Stück abholte, setzte den Bestand auf den Stand beim Öffnen
+    zurück — die Abholung war aus dem Lager verschwunden.
+  */
+  it('geht nicht mit, wenn ihn niemand angefasst hat', async () => {
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 4 } as WithId<Material>];
+    const nutzer = userEvent.setup();
+    zeige();
+
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await nutzer.type(screen.getByLabelText(/Kategorie/), 'Sanitär');
+    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+
+    await waitFor(() => expect(aendern).toHaveBeenCalled());
+    const daten = aendern.mock.calls[0][1] as Record<string, unknown>;
+    expect(daten).toMatchObject({ category: 'Sanitär' });
+    expect(Object.keys(daten)).not.toContain('stock');
+  });
+
+  it('geht mit, wenn ihn jemand hier geändert hat', async () => {
+    materialien = [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 4 } as WithId<Material>];
+    const nutzer = userEvent.setup();
+    zeige();
+
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    const feld = screen.getByLabelText(/Lagerbestand/);
+    await nutzer.clear(feld);
+    await nutzer.type(feld, '12');
+    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+
+    await waitFor(() => expect(aendern).toHaveBeenCalled());
+    expect(aendern.mock.calls[0][1]).toMatchObject({ stock: 12 });
+  });
+
+  it('steht beim Anlegen immer drin', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(await screen.findByLabelText(/Bezeichnung/), 'Neu');
+    await nutzer.click(screen.getByRole('button', { name: 'Material anlegen' }));
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][1]).toMatchObject({ name: 'Neu', stock: 0 });
+  });
+});
+
 /**
  * WIE WEIT DER KATALOG REICHT.
  *

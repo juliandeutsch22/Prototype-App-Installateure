@@ -99,7 +99,16 @@ vi.mock('@/lib/db/projects', () => ({
 vi.mock('@/lib/db/timeEntries', () => ({
   listEntriesForProjects: (c: string, n: string[]) => listEntriesForProjects(c, n),
 }));
-vi.mock('@/lib/db/quotes', () => ({ listRecentQuotes: vi.fn(async () => angebote) }));
+/*
+  SEIT DEM PRÜFLAUF 25.09.2026 (P2-13) je Baustelle geholt, nicht die
+  jüngsten des Betriebs. Die Doppelgänger geben zurück, was zur gefragten
+  Baustelle gehört.
+*/
+const listQuotesForProject = vi.fn(async (_c: string, projektId: string) =>
+  angebote.filter((q) => !q.projectId || q.projectId === projektId));
+vi.mock('@/lib/db/quotes', () => ({
+  listQuotesForProject: (c: string, id: string) => listQuotesForProject(c, id),
+}));
 
 /*
   Material zählt seit dem 07.09.2026 mit. Die Ansicht holt dafür den
@@ -113,15 +122,10 @@ vi.mock('@/lib/db/materials', () => ({ listMaterials: vi.fn(async () => katalog)
 vi.mock('@/lib/db/workSheets', () => ({
   listWorkSheetsForProject: () => listWorkSheetsForProject(),
 }));
+const listInvoicesForProject = vi.fn(async (_c: string, nr: string) =>
+  rechnungen.filter((r) => r.projectNumber === nr));
 vi.mock('@/lib/db/invoices', () => ({
-  subscribeRecentInvoices: (
-    _c: string,
-    _max: number,
-    cb: (rows: (Invoice & { id: string })[]) => void,
-  ) => {
-    cb(rechnungen);
-    return () => undefined;
-  },
+  listInvoicesForProject: (c: string, nr: string) => listInvoicesForProject(c, nr),
 }));
 
 /*
@@ -168,6 +172,8 @@ beforeEach(() => {
   angebote = [];
   listEntriesForProjects.mockClear();
   listWorkSheetsForProject.mockClear();
+  listInvoicesForProject.mockClear();
+  listQuotesForProject.mockClear();
 });
 
 describe('Ohne interne Kostensätze', () => {
@@ -413,5 +419,44 @@ describe('Material im Ergebnis', () => {
     const zeile = await screen.findByText(/− Personal/);
     expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('2000,00');
     expect(screen.queryByText(/− Material/)).not.toBeInTheDocument();
+  });
+});
+
+/*
+  PRÜFLAUF 25.09.2026, P2-13. Die Ansicht rechnete mit den 200 jüngsten
+  Rechnungen und den 100 jüngsten Angeboten des Betriebs und nahm das ERSTE
+  Angebot der Baustelle. Eine Baustelle vom Frühjahr stand ohne Erlös da,
+  und ein abgelehntes Angebot verdrängte das angenommene.
+*/
+describe('Rechnungen und Angebote je Baustelle', () => {
+  it('fragt die Rechnungen jeder angezeigten Baustelle einzeln', async () => {
+    projekte = [projekt('2026-001'), projekt('2026-002')];
+    eintraege = [...stunden('2026-001', 1), ...stunden('2026-002', 1)];
+    rechnungen = [rechnung('2026-001', 2000), rechnung('2026-002', 700)];
+    zeige();
+    await screen.findByText(/Kunde 2026-001/);
+    await waitFor(() => expect(listInvoicesForProject).toHaveBeenCalledTimes(2));
+    expect(listInvoicesForProject.mock.calls.map((c) => c[1]).sort()).toEqual(['2026-001', '2026-002']);
+    expect(listQuotesForProject.mock.calls.map((c) => c[1]).sort()).toEqual(['p-2026-001', 'p-2026-002']);
+  });
+
+  it('nimmt das angenommene Angebot, auch wenn ein abgelehntes davor steht', async () => {
+    projekte = [projekt('2026-003')];
+    eintraege = stunden('2026-003', 1);
+    const angebot = (id: string, status: Quote['status'], netto: number) =>
+      ({
+        id, companyId: 'perl', quoteNumber: `AN-${id}`, customerName: 'Kunde 2026-003',
+        projectNumber: '2026-003', projectId: 'p-2026-003', quoteDate: '2026-05-01',
+        validUntil: '2026-06-01', status, positions: [], subtotalNetto: netto,
+        totalNetto: netto, totalVat: netto * 0.2, totalBrutto: netto * 1.2, vatRate: 0.2,
+        kalkulierteStunden: 0,
+      }) as unknown as Quote & { id: string };
+    angebote = [angebot('alt', 'Abgelehnt', 9000), angebot('neu', 'Angenommen', 1500)];
+    zeige();
+
+    const zeile = (await screen.findByText(/Kunde 2026-003/)).closest('li');
+    const text = (zeile as HTMLElement).textContent?.replace(/[\s\u00A0.]/g, '') ?? '';
+    expect(text).toContain('1500,00');
+    expect(text).toContain('ErlösausdemAngebot');
   });
 });

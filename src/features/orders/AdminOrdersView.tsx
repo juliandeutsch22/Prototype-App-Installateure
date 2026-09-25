@@ -34,6 +34,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { abschlussText } from './abschlussText';
+import { useReiterImBild } from '@/components/reiterImBild';
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -79,6 +80,8 @@ export default function AdminOrdersView() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<WithId<MaterialOrder> | null>(null);
   const [tab, setTab] = useState<Tab>('aktiv');
+  // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
+  const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   const [projectFilter, setProjectFilter] = useState('');
   const [suche, setSuche] = useState('');
   /**
@@ -293,7 +296,7 @@ export default function AdminOrdersView() {
 
       {/* Aktiver Reiter mit Akzentkante unten — gleiche Markierung wie in
           Unterreiter. */}
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div ref={reiterleiste} className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -333,7 +336,7 @@ export default function AdminOrdersView() {
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}
           action={
             tab !== 'retouren' && projectOptions.length > 0 ? (
-              <SelectField id="ofilter" label="" className="py-1 text-sm" value={projectFilter}
+              <SelectField id="ofilter" label="" aria-label="Bestellungen nach Baustelle filtern" className="py-1 text-sm" value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}>
                 <option value="">Alle Baustellen</option>
                 {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -375,7 +378,7 @@ export default function AdminOrdersView() {
                       eine Ordnung, die man ueberfliegen kann. */}
                   <h3 className="section-label mb-1 flex items-center justify-between">
                     <span>{g.titel}</span>
-                    <span className="tnum font-normal text-ink-muted">{g.zeilen.length}</span>
+                    <span className="font-normal text-ink-muted">{g.zeilen.length}</span>
                   </h3>
                   <List>
                     {g.zeilen.map((o) => (
@@ -384,7 +387,7 @@ export default function AdminOrdersView() {
                         title={
                           <span>
                             {o.materialName}{' '}
-                            <span className="tnum text-ink-muted">×{o.quantity}</span>
+                            <span className="text-ink-muted">×{o.quantity}</span>
                           </span>
                         }
                         subtitle={

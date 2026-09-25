@@ -1,7 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { unterseitenFuer } from '@/app/navigation';
+import { useReiterImBild } from './reiterImBild';
 
 /**
  * Mehrere Ansichten unter EINEM Reiter.
@@ -36,19 +37,15 @@ export default function Unterreiter({
     : [];
 
   const ort = useLocation();
-  const leiste = useRef<HTMLElement>(null);
   const aktiv = ort.pathname.slice(basis.length + 1).split('/')[0];
 
   /*
     DER GEWÄHLTE REITER BLEIBT IM BILD — am Telefon, wo die Leiste seitlich
     läuft. Sonst stünde „Fehler" abgeschnitten am Rand, und wer von dort kommt,
-    sähe nicht, wo er ist (Prüflauf 24.09.2026, D5).
+    sähe nicht, wo er ist (Prüflauf 24.09.2026, D5). Wie das geht, steht in
+    `reiterImBild.ts`; dieselbe Regel gilt für alle Reiterleisten der App.
   */
-  useEffect(() => {
-    leiste.current
-      ?.querySelector('[aria-current="page"]')
-      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-  }, [aktiv]);
+  const leiste = useReiterImBild<HTMLElement>(aktiv);
 
   // Kann diese Rolle gar nichts davon sehen, ist der Reiter für sie falsch
   // zusammengesetzt. Zurück zur Startseite ist die einzige ehrliche Antwort.

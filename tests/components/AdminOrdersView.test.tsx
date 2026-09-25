@@ -498,3 +498,12 @@ describe('Anforderungen — eine ruhige Zeile (Prüflauf 24.09.2026, D11)', () =
     expect(punkte[punkte.length - 1]).toBe('Löschen');
   });
 });
+
+describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
+  it('nennt die Auswahl „Bestellungen nach Baustelle filtern" — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl"', async () => {
+    // Die Auswahl steht nur, wenn es Baustellen zum Filtern gibt.
+    anforderungen = [anforderung({ id: 'o1', projectNumber: '2026-042' })];
+    zeige();
+    expect(await screen.findByRole('combobox', { name: 'Bestellungen nach Baustelle filtern' })).toBeInTheDocument();
+  });
+});

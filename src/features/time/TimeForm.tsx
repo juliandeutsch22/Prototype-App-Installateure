@@ -11,7 +11,7 @@ import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
 import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
-import { zeitbild, zeitSatz, nachtMinuten } from './zeitPlausibilitaet';
+import { zeitbild, zeitSatz, ueberwiegendNacht } from './zeitPlausibilitaet';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
 import { istAussendienst, canExtendTimeEntry, canEditTime } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -384,6 +384,18 @@ export default function TimeForm({
       setError('Bitte einen Mitarbeiter auswählen.');
       return;
     }
+    /*
+      DIE BAUSTELLE IST PFLICHT, WO ES DAS FELD GIBT — auch dann, wenn das
+      Feld selbst nicht prüfen kann (Prüflauf 25.09.2026, P1-07). Bis hierher
+      hing das allein am `required` des Auswahlfelds; solange es lädt, ist es
+      gesperrt und wird vom Browser übersprungen, und im Fehlerzustand steht
+      gar keins da. „Anwesend" ging dann ohne Baustelle durch — Stunden, die
+      auf keiner Rechnung auftauchen.
+    */
+    if (canHaveProject && showWorkFields && !projectNumber) {
+      setError('Bitte eine Baustelle wählen.');
+      return;
+    }
 
     setSaving(true);
     if (alsUrlaubEintrag) {
@@ -447,6 +459,16 @@ export default function TimeForm({
     }
     try {
       const project = projects.find((p) => p.projectNumber === projectNumber);
+      /*
+        Der Kundenname wandert als Kopie in den Eintrag. Kennt die Auswahl den
+        Datensatz (noch) nicht — „Wie zuletzt" gleich nach dem Öffnen, die
+        Liste lädt noch oder ist gekappt —, stand hier ein leerer Name
+        (Prüflauf 25.09.2026, P1-07). Dann gilt der Name aus dem Eintrag, von
+        dem die Baustelle stammt.
+      */
+      const kundeAusEintrag = [entry, lastEntry].find(
+        (e) => !!e?.projectNumber && e.projectNumber === projectNumber,
+      )?.customerName;
       const payload = {
         date,
         status,
@@ -455,7 +477,7 @@ export default function TimeForm({
         breakDuration: showWorkFields ? Number(breakDuration) || 0 : 0,
         travelTime: Number(travelTime) || 0,
         projectNumber: canHaveProject ? projectNumber : '',
-        customerName: canHaveProject ? project?.customerName ?? '' : '',
+        customerName: canHaveProject ? project?.customerName ?? kundeAusEintrag ?? '' : '',
         // Gespeichert wird IMMER mit Praefix, damit Exporte und die
         // Fahrzeugsuche ein einheitliches Format vorfinden.
         vehiclePlate:
@@ -643,9 +665,8 @@ export default function TimeForm({
               setIsHelper(!!lastEntry.isHelper);
             }
           }}
-          className="flex min-h-touch w-full items-center gap-2 rounded border border-dashed border-brand/40 bg-info-bg px-3 py-2 text-left text-sm font-medium text-brand transition hover:border-brand active:scale-[0.99]"
+          className="flex min-h-touch w-full items-center gap-2 rounded border border-brand/40 bg-info-bg px-3 py-2 text-left text-sm font-medium text-brand transition hover:border-brand active:scale-[0.99]"
         >
-          <Icon name="clock" size={18} className="shrink-0" />
           {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
               den Eintrag wiedererkennt. */}
           <span className="min-w-0">
@@ -861,12 +882,19 @@ export default function TimeForm({
           {/*
             EIN HINWEIS, KEIN AUTOMATISCHER HAKEN. Ob Nachtarbeit verrechnet
             wird, bleibt eine bewusste Angabe (siehe `nachtMinuten`). Gezeigt
-            nur, wo es den Haken überhaupt gibt, und ab einer Stunde in der
-            Nacht — eine Buchung bis 22:10 ist kein Nachteinsatz.
+            nur, wo es den Haken überhaupt gibt, ab einer Stunde in der
+            Nacht — eine Buchung bis 22:10 ist kein Nachteinsatz — und nur,
+            wenn die Nacht überwiegt (siehe `ueberwiegendNacht`).
           */}
-          {canHaveProject && !isNightWork && nachtMinuten(startTime, endTime) >= 60 && (
+          {canHaveProject && !isNightWork && ueberwiegendNacht(startTime, endTime) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
-              <span>Die Zeit reicht in die Nacht (22–6 Uhr).</span>
+              {/* Das Kennzeichen zählt die ganze Buchung als Nacht — deshalb
+                  nur bei überwiegender Nachtzeit, und es steht dabei
+                  (Prüflauf 25.09.2026, P1-19). */}
+              <span>
+                Die Zeit reicht in die Nacht (22–6 Uhr), zum größeren Teil. „Nachtarbeit" gilt
+                für die ganze Buchung.
+              </span>
               <button
                 type="button"
                 className="link min-h-touch"

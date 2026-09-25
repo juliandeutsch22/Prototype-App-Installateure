@@ -23,6 +23,7 @@ import {
   urlaubsJahrVon,
   JAHRESBEGINN_VORGABE,
   fmtMin,
+  fmtDauer,
   type SaldoResult,
 } from '@/lib/time';
 import type { AppUser, Betriebsurlaub, Krankmeldung, Vacation } from '@/types';
@@ -43,6 +44,7 @@ import { KrankmeldungListe, KrankenstaendeReiter } from './Krankmeldungen';
 import { ergebnisText, tageText } from './abwesenheitText';
 import BetriebsurlaubReiter from './BetriebsurlaubReiter';
 import { grundAus } from '@/lib/fehlerGrund';
+import { useReiterImBild } from '@/components/reiterImBild';
 
 /** 'YYYY-MM-DD' -> '15.06.2026'. */
 function fmt(iso: string): string {
@@ -63,18 +65,15 @@ const istZa = (v: Pick<Vacation, 'art'>) => v.art === 'Zeitausgleich';
 /** „13:00" aus „13:00" oder „13:00:00". */
 const hhmm = (t?: string | null) => (t ?? '').slice(0, 5);
 
-/** Stunden mit Komma: 4 → „4", 7,5 → „7,5". */
-const std = (h: number) => h.toLocaleString('de-AT', { maximumFractionDigits: 2 });
-
 /**
  * Was ein ZA-Antrag kostet, in Worten — für die Listen.
  *
- * „ZA – 4 Std. (13:00–17:00)" oder „ZA – 2 Tage (16 Std.)". Beim Urlaub
+ * „ZA – 04:00 Std (13:00–17:00)" oder „ZA – 2 Tage (16:00 Std)". Beim Urlaub
  * bleibt es bei den Arbeitstagen, wie bisher.
  */
 function umfang(v: Vacation): string {
   if (!istZa(v)) return `${v.tage} ${v.tage === 1 ? 'Arbeitstag' : 'Arbeitstage'}`;
-  const stunden = v.zaStunden != null ? `${std(Number(v.zaStunden))} Std.` : '';
+  const stunden = v.zaStunden != null ? fmtDauer(Math.round(Number(v.zaStunden) * 60)) : '';
   if (v.zaVon && v.zaBis) return `ZA – ${stunden} (${hhmm(v.zaVon)}–${hhmm(v.zaBis)})`;
   return `ZA – ${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}${stunden ? ` (${stunden})` : ''}`;
 }
@@ -143,6 +142,8 @@ export default function VacationsView() {
   /** Buchhaltung und Spitze: Krankenstände und Betriebsurlaub. */
   const buero = user ? canEditTime(user.role) : false;
   const [reiter, setReiter] = useState<Reiter>('antraege');
+  // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
+  const reiterleiste = useReiterImBild<HTMLDivElement>(reiter);
 
   const [eigene, setEigene] = useState<WithId<Vacation>[]>([]);
   const [offene, setOffene] = useState<WithId<Vacation>[]>([]);
@@ -391,7 +392,7 @@ export default function VacationsView() {
     const rest = urlaubsStand(a.profil, urlaubsJahrVon(v.von, regel.jahresbeginn), a.genehmigt, regel).rest;
     const danach = rest - (Number(v.tage) || 0);
     return (
-      <span className={`tnum mt-1 block text-xs ${danach < 0 ? 'font-medium text-warning' : 'text-ink-muted'}`}>
+      <span className={`mt-1 block text-xs ${danach < 0 ? 'font-medium text-warning' : 'text-ink-muted'}`}>
         Resturlaub: {tageText(rest)} — nach Genehmigung {tageText(danach)}
         {danach < 0 ? ' (reicht nicht)' : ''}
       </span>
@@ -771,8 +772,8 @@ export default function VacationsView() {
       return (
         <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
           <Zustand stand="gut">ausreichend Zeitguthaben</Zustand>
-          <span className="tnum">
-            {vorzeichen(jetzt)} Std., danach {vorzeichen(danach)} Std.
+          <span>
+            {vorzeichen(jetzt)} Std, danach {vorzeichen(danach)} Std
           </span>
         </span>
       );
@@ -780,8 +781,8 @@ export default function VacationsView() {
     return (
       <span className="mt-1 block text-xs font-medium text-warning" role="alert">
         {jetzt <= 0
-          ? `Kein Zeitguthaben (${vorzeichen(jetzt)} Std.) — der Zeitausgleich ginge ins Minus.`
-          : `Das Zeitguthaben (${vorzeichen(jetzt)} Std.) reicht nicht — danach stünden ${vorzeichen(danach)} Std.`}{' '}
+          ? `Kein Zeitguthaben (${vorzeichen(jetzt)} Std) — der Zeitausgleich ginge ins Minus.`
+          : `Das Zeitguthaben (${vorzeichen(jetzt)} Std) reicht nicht — danach stünden ${vorzeichen(danach)} Std.`}{' '}
         Beantragen geht trotzdem; entschieden wird bei der Genehmigung.
       </span>
     );
@@ -803,7 +804,7 @@ export default function VacationsView() {
         anderen sehen die Seite wie bisher, ohne Reiterleiste.
       */}
       {buero && (
-        <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+        <div ref={reiterleiste} className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
           {REITER.map((r) => (
             <button
               key={r.key}
@@ -961,11 +962,11 @@ export default function VacationsView() {
             )}
             {zeitraumGewaehlt && !ueberschneidung && (
               <>
-                <strong className="tnum">
+                <strong>
                   {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
                 </strong>
                 <span className="ml-1">in diesem Zeitraum</span>
-                <span className="tnum ml-1">
+                <span className="ml-1">
                   — danach bleiben {tageText(restImAntragsjahr - tage.length)}
                   {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
                 </span>
@@ -977,8 +978,8 @@ export default function VacationsView() {
               </>
             )}
             <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
-              {jahresName} genehmigt: <span className="tnum">{genommen}</span> von{' '}
-              <span className="tnum">{anspruch}</span> Tagen
+              {jahresName} genehmigt: <span>{genommen}</span> von{' '}
+              <span>{anspruch}</span> Tagen
               {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
                   falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
                   (dort sind es die mitgebrachten Tage) noch dort, wo ein
@@ -993,7 +994,7 @@ export default function VacationsView() {
                   — und dann ist es ein Streit statt einer Auskunft. */}
               {stand.verfallen > 0 && (
                 <span className="mt-1 block">
-                  <span className="tnum">{stand.verfallen}</span>
+                  <span>{stand.verfallen}</span>
                   {stand.verfallen === 1 ? ' Tag ist' : ' Tage sind'} heuer verfallen.
                 </span>
               )}
@@ -1003,7 +1004,7 @@ export default function VacationsView() {
 
           {art === 'Zeitausgleich' && (
             <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-              <strong className="tnum">{std(zaMin / 60)} Std.</strong>
+              <strong>{fmtDauer(zaMin)}</strong>
               <span className="ml-1">
                 Zeitausgleich
                 {zaStundenweise
@@ -1076,7 +1077,7 @@ export default function VacationsView() {
                     title={v.userName}
                     subtitle={
                       <>
-                        <span className="tnum block">
+                        <span className="block">
                           {zeitraum(v)} · {istZa(v) ? umfang(v) : `${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}`}
                         </span>
                         {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
@@ -1087,11 +1088,11 @@ export default function VacationsView() {
                         */}
                         {istZa(v) && saldoMin !== null && (
                           <span
-                            className={`tnum mt-1 block text-xs ${
+                            className={`mt-1 block text-xs ${
                               saldoMin - kostet < 0 ? 'font-medium text-warning' : 'text-ink-muted'
                             }`}
                           >
-                            Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std.
+                            Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std
                             {saldoMin - kostet < 0 ? ' — reicht nicht' : ''}
                           </span>
                         )}
@@ -1145,7 +1146,7 @@ export default function VacationsView() {
             {eigene.map((v) => (
               <ListRow
                 key={v.id}
-                title={<span className="tnum">{zeitraum(v)}</span>}
+                title={<span>{zeitraum(v)}</span>}
                 subtitle={
                   <>
                     <span className="block">

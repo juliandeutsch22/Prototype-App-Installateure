@@ -38,8 +38,14 @@ async function scheinAnlegen(status = 'Entwurf'): Promise<string> {
       company_id: 'belege', work_sheet_id: id, position: 1, datum: '2026-04-01',
       mitarbeiter: 'Anton Huber', von: '07:00', bis: '16:00', pause_min: 30, minuten: 510,
     });
+    // Mit beiden Unterschriften — ohne sie wird seit dem Prüflauf vom
+    // 25.09.2026 (P3-10) kein Entwurf mehr „Unterschrieben“.
+    const unterschrift = { name: 'Unterschrift', bild: 'data:image/png;base64,AAA', geraetZeit: 1776000000000 };
     const { error: e2 } = await monteur.client.from('work_sheets')
-      .update({ status, unterschrieben_am: new Date().toISOString() }).eq('id', id);
+      .update({
+        status, unterschrieben_am: new Date().toISOString(),
+        unterschrift_monteur: unterschrift, unterschrift_kunde: unterschrift,
+      }).eq('id', id);
     if (e2) throw e2;
   }
   return id;
@@ -198,19 +204,47 @@ describe('Die Rechnung', () => {
     const noch = await buch.client.from('invoices').select('id').eq('id', id);
     expect(noch.data).toHaveLength(1);
 
-    const storno = await buch.client.from('invoices').update({
+    /*
+      DER STORNO GEHT ÜBER SEINE FUNKTION (Prüflauf 25.09.2026, P2-15). Per
+      `update` liess er sich setzen und wieder wegnehmen — ohne die Belege
+      freizugeben und vorbei an der Regel „aufheben nur am selben Tag".
+    */
+    const direkt = await buch.client.from('invoices').update({
       payment_status: 'Storniert', cancellation_note: 'Doppelt gestellt',
       cancelled_at: new Date().toISOString(),
     }).eq('id', id);
+    expect(direkt.error?.code).toBe('42501');
+
+    const storno = await buch.client.rpc('rechnung_stornieren', {
+      p_id: id, p_grund: 'Doppelt gestellt',
+    });
     expect(storno.error).toBeNull();
   });
 
   it('hält ihre Positionen endgültig fest', async () => {
-    const id = await rechnungAnlegen('RE-2026-0013');
-    await buch.client.from('invoice_lines').insert({
-      company_id: 'belege', invoice_id: id, position: 1,
-      label: 'Facharbeit', qty: 8, unit: 'Std', unit_price: 75, netto: 600,
+    /*
+      DIE POSITION ENTSTEHT MIT DER RECHNUNG, in `rechnung_anlegen`. Bis zum
+      Prüflauf 25.09.2026 (P2-15) stand hier ein eigenes `insert` in
+      `invoice_lines` — genau der Weg, auf dem eine verschickte Rechnung
+      nachträglich eine Zeile dazubekam. Er ist jetzt zu.
+    */
+    const { data: id, error: angelegt } = await buch.client.rpc('rechnung_anlegen', {
+      p_kopf: {
+        invoice_number: 'RE-2026-0013', project_number: '2026-100',
+        customer_name: 'Familie Berger', invoice_date: '2026-04-10', due_date: '2026-05-10',
+        total_netto: 600, total_vat: 120, total_brutto: 720, vat_rate: 0.2,
+        payment_status: 'Offen',
+      },
+      p_positionen: [{ label: 'Facharbeit', qty: 8, unit: 'Std', unit_price: 75, netto: 600 }],
+      p_belege: {},
     });
+    expect(angelegt).toBeNull();
+
+    const dazu = await buch.client.from('invoice_lines').insert({
+      company_id: 'belege', invoice_id: id, position: 1,
+      label: 'Nachtrag', qty: 1, unit: 'Stk', unit_price: 1, netto: 1,
+    });
+    expect(dazu.error?.code).toBe('42501');
 
     const geaendert = await buch.client.from('invoice_lines')
       .update({ netto: 1 }).eq('invoice_id', id);

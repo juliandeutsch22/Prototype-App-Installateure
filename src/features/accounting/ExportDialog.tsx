@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { AppUser } from '@/types';
 import Button from '@/components/Button';
 import { InputField, FormGrid } from '@/components/Field';
 import { localDateStr } from '@/lib/time';
 import { grundAus } from '@/lib/fehlerGrund';
+import { useFokusFalle } from '@/components/fokusFalle';
 
 interface Props {
   user: AppUser;
@@ -32,6 +33,10 @@ export default function ExportDialog({
   const [to, setTo] = useState(() => localDateStr(new Date(year, month + 1, 0)));
   const [busy, setBusy] = useState<'pdf' | 'csv' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  // Modal heisst: der Fokus kommt herein, bleibt drin und geht beim
+  // Schliessen an den Auslöser zurück (Prüflauf 25.09.2026, P4-05).
+  useFokusFalle(dialog, true, { hineinHolen: 'behaelter', zurueckGeben: true });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -63,17 +68,19 @@ export default function ExportDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4"
+      ref={dialog}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 focus-visible:outline-none sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="export-title"
+      tabIndex={-1}
       onClick={onClose}
     >
       <div
         className="max-h-[92vh] w-full overflow-y-auto rounded-t-lg bg-surface p-4 shadow-lg sm:max-w-md sm:rounded-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="export-title" className="text-lg font-semibold text-ink">
+        <h2 id="export-title" className="titel-karte">
           Bericht exportieren
         </h2>
         <p className="mt-1 text-sm text-ink-muted">{user.name}</p>

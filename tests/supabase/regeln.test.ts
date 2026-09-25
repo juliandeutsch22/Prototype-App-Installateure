@@ -25,6 +25,9 @@ let b: Konto;            // Firma B, Mitarbeiter
 let aus: Konto;          // deaktiviertes Konto in Firma A
 
 let kundeA: string;
+
+/** Eine Unterschrift, wie `schein_unterschreiben` sie aus der Maske bekommt. */
+const UNTERSCHRIFT = { name: 'Unterschrift', bild: 'data:image/png;base64,AAA', geraetZeit: 1776000000000 };
 let baustelleA: string;
 
 beforeAll(async () => {
@@ -861,9 +864,29 @@ describe('Verrechnet-Kennzeichen — setzt nur, wer abrechnet', () => {
   });
 
   it('der Monteur bestätigt weiterhin seine Abholung', async () => {
-    const { error } = await a.client.from('material_orders')
-      .update({ status: 'Erledigt' }).eq('id', eigeneAnforderung);
+    /*
+      ÜBER „ABGEHOLT“, NICHT ÜBER DEN STATUS. Bis zum Prüflauf vom 25.09.2026
+      stand hier ein direktes `status: 'Erledigt'` — damit schloss der Monteur
+      seine Anforderung ab, ohne dass der Bestand sich bewegte. Die App geht
+      seit jeher über `anforderung_abschliessen`; das ist der Weg, den dieser
+      Test jetzt prüft (P1-11/P3-17).
+    */
+    const { error } = await a.client.rpc('anforderung_abschliessen', { p_order: eigeneAnforderung });
     expect(error).toBeNull();
+    const { data } = await admin.from('material_orders')
+      .select('status, processed').eq('id', eigeneAnforderung).single();
+    expect(data).toEqual({ status: 'Erledigt', processed: true });
+  });
+
+  it('den Stand seiner Anforderung setzt der Monteur nicht von Hand', async () => {
+    const id = crypto.randomUUID();
+    await a.client.from('material_orders').insert({
+      id, company_id: 'firma-a', material_name: 'Winkel', quantity: 2,
+      status: 'Offen', transaction_type: 'order', user_id: a.uid,
+    });
+    const { error } = await a.client.from('material_orders')
+      .update({ status: 'Erledigt', processed: true }).eq('id', id);
+    expect(error?.code).toBe('42501');
   });
 
   it('der Monteur gibt weiterhin eine Anforderung auf', async () => {
@@ -883,7 +906,7 @@ describe('Verrechnet-Kennzeichen — setzt nur, wer abrechnet', () => {
   });
 });
 
-describe('Materialstamm — Bestand bewegt jeder, gepflegt wird er von der Verwaltung', () => {
+describe('Materialstamm — den Bestand bewegen Abholung und Retoure, gepflegt wird er von der Verwaltung', () => {
   let artikel: string;
 
   it('der Monteur sieht den Katalog', async () => {
@@ -895,16 +918,46 @@ describe('Materialstamm — Bestand bewegt jeder, gepflegt wird er von der Verwa
     expect((await a.client.from('materials').select('id').eq('id', artikel)).data).toHaveLength(1);
   });
 
+  /*
+    BIS ZUM PRÜFLAUF VOM 25.09.2026 (P1-11/P3-17) setzten die beiden Prüfungen
+    hier den Bestand DIREKT — genau das Loch: wer „95“ schreiben durfte,
+    durfte auch „0“ oder „9999“ schreiben. Abholung und Retoure gehen in der
+    App über ihre Datenbankfunktionen, und die prüft dieser Abschnitt jetzt.
+  */
   it('der Monteur bucht seine Abholung vom Bestand ab', async () => {
-    const { error } = await a.client.from('materials')
-      .update({ stock: 95 }).eq('id', artikel);
+    const id = crypto.randomUUID();
+    const { error: angelegt } = await a.client.from('material_orders').insert({
+      id, company_id: 'firma-a', material_id: artikel, material_name: 'Kupferrohr 15mm',
+      quantity: 5, status: 'Offen', transaction_type: 'order', user_id: a.uid,
+    });
+    expect(angelegt).toBeNull();
+    const { error } = await a.client.rpc('anforderung_abschliessen', { p_order: id });
     expect(error).toBeNull();
+    const { data } = await admin.from('materials').select('stock').eq('id', artikel).single();
+    expect(Number(data!.stock)).toBe(95);
   });
 
   it('der Monteur schreibt eine Retoure zurück', async () => {
-    const { error } = await a.client.from('materials')
-      .update({ stock: 97 }).eq('id', artikel);
+    const { error } = await a.client.rpc('retoure_anlegen', {
+      p_beleg: {
+        id: crypto.randomUUID(), company_id: 'firma-a', material_id: artikel,
+        material_name: 'Kupferrohr 15mm', quantity: 2, condition: 'neu', user_id: a.uid,
+      },
+    });
     expect(error).toBeNull();
+    const { data } = await admin.from('materials').select('stock').eq('id', artikel).single();
+    expect(Number(data!.stock)).toBe(97);
+  });
+
+  it('den Bestand selbst setzt der Monteur NICHT — weder über die Tabelle noch über die Funktion', async () => {
+    const direkt = await a.client.from('materials').update({ stock: 9999 }).eq('id', artikel);
+    expect(direkt.error?.code).toBe('42501');
+    const ueberFunktion = await a.client.rpc('bestand_anpassen', { p_material: artikel, p_delta: -97 });
+    expect(ueberFunktion.error?.code).toBe('42501');
+    const ausgelaufen = await a.client.from('materials').update({ ausgelaufen: true }).eq('id', artikel);
+    expect(ausgelaufen.error?.code).toBe('42501');
+    const { data } = await admin.from('materials').select('stock, ausgelaufen').eq('id', artikel).single();
+    expect({ stock: Number(data!.stock), ausgelaufen: data!.ausgelaufen }).toEqual({ stock: 97, ausgelaufen: false });
   });
 
   it('der Monteur ändert die Bezeichnung NICHT', async () => {
@@ -1017,7 +1070,12 @@ describe('Der Dienstschluessel kommt durch — durch manche Trigger', () => {
       datum: '2026-09-10', status: 'Entwurf', abrechnung: 'Regie',
       erstellt_von_uid: a.uid, erstellt_von_name: 'Monteur',
     });
-    await a.client.from('work_sheets').update({ status: 'Unterschrieben' }).eq('id', id);
+    // Mit beiden Unterschriften: seit dem Prüflauf vom 25.09.2026 (P3-10)
+    // wird ein Entwurf ohne sie nicht mehr „Unterschrieben“. Hier stand
+    // vorher ein Statuswechsel ohne Unterschrift — genau das Fehlverhalten.
+    await a.client.from('work_sheets').update({
+      status: 'Unterschrieben', unterschrift_monteur: UNTERSCHRIFT, unterschrift_kunde: UNTERSCHRIFT,
+    }).eq('id', id);
 
     // Ohne Durchlass wäre der Manipulationsschutz das Erste, was am
     // Manipulationsschutz scheitert.
@@ -1048,8 +1106,15 @@ describe('Der Dienstschluessel kommt durch — durch manche Trigger', () => {
 });
 
 describe('Rechnungen — geloescht wird gar keine', () => {
+  /*
+    ANGELEGT MIT DEM DIENSTSCHLÜSSEL, nicht mit dem Konto der Buchhaltung:
+    seit dem Prüflauf 25.09.2026 (P2-15) beginnt jede Rechnung, die ein
+    Konto anlegt, als „Offen" — „Bezahlt" und „Storniert" kommen über ihre
+    eigenen Wege. Hier geht es nur ums Löschen; wie der Stand entstand, ist
+    nicht die Frage.
+  */
   async function rechnung(nummer: string, stand = 'Offen'): Promise<string> {
-    const { data, error } = await aBuch.client.from('invoices').insert({
+    const { data, error } = await admin.from('invoices').insert({
       company_id: 'firma-a', invoice_number: nummer, project_number: '2026-001',
       customer_name: 'Berger', invoice_date: '2026-10-01', due_date: '2026-10-31',
       total_netto: 100, total_vat: 20, total_brutto: 120, payment_status: stand,
@@ -1083,11 +1148,21 @@ describe('Rechnungen — geloescht wird gar keine', () => {
   });
 
   it('stornieren geht weiter — das ist die Korrektur', async () => {
+    /*
+      ÜBER `rechnung_stornieren`, nicht per `update` (Prüflauf 25.09.2026,
+      P2-15): nur die Funktion gibt die Belege frei und prüft, ob die
+      Rechnung auf einer anderen abgezogen ist. Der direkte Weg ist zu.
+    */
     const id = await rechnung('RE-2026-1005');
-    const { error } = await aBuch.client.from('invoices').update({
+    const direkt = await aBuch.client.from('invoices').update({
       payment_status: 'Storniert', cancellation_note: 'Doppelt gestellt',
       cancelled_at: new Date().toISOString(),
     }).eq('id', id);
+    expect(direkt.error?.code).toBe('42501');
+
+    const { error } = await aBuch.client.rpc('rechnung_stornieren', {
+      p_id: id, p_grund: 'Doppelt gestellt',
+    });
     expect(error).toBeNull();
   });
 });
@@ -1150,7 +1225,10 @@ describe('Handwerksschein: verwerfen, zurueckholen, einfrieren', () => {
       hash: 'x'.repeat(64), bytes: 1000, geraet_zeit: new Date().toISOString(),
     });
     await a.client.from('work_sheets')
-      .update({ status: 'Unterschrieben', unterschrieben_am: new Date().toISOString() })
+      .update({
+        status: 'Unterschrieben', unterschrieben_am: new Date().toISOString(),
+        unterschrift_monteur: UNTERSCHRIFT, unterschrift_kunde: UNTERSCHRIFT,
+      })
       .eq('id', id);
     return id;
   }
@@ -1213,7 +1291,9 @@ describe('Handwerksschein: verwerfen, zurueckholen, einfrieren', () => {
 
   it('und der Storno eines Scheins OHNE Fotofeld geht weiterhin', async () => {
     const id = await schein();
-    await a.client.from('work_sheets').update({ status: 'Unterschrieben' }).eq('id', id);
+    await a.client.from('work_sheets').update({
+      status: 'Unterschrieben', unterschrift_monteur: UNTERSCHRIFT, unterschrift_kunde: UNTERSCHRIFT,
+    }).eq('id', id);
     const { error } = await aLeitung.client.from('work_sheets')
       .update({ status: 'Storniert', storno_grund: 'Irrtum' }).eq('id', id);
     expect(error).toBeNull();

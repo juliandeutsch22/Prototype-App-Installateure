@@ -190,7 +190,7 @@ export default function Einkaufsliste({
                         key={z.schluessel}
                         title={
                           <span>
-                            <span className="tnum">{zeilenText(z)}</span>
+                            <span>{zeilenText(z)}</span>
                             {z.artikelnummer && (
                               <span className="ml-2 text-sm text-ink-muted">Art.-Nr. {z.artikelnummer}</span>
                             )}
@@ -337,7 +337,7 @@ export default function Einkaufsliste({
                       <ListRow
                         key={o.id}
                         title={
-                          <span className="tnum">
+                          <span>
                             {fmtMenge(o.menge)}
                             {o.einheit ? ` ${o.einheit}` : ''} × {o.bezeichnung}
                           </span>

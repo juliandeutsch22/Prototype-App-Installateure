@@ -1,4 +1,5 @@
 import type { Invoice } from '@/types';
+import { csvZelle as cell } from '@/lib/csvZelle';
 
 /**
  * Buchungsstapel für BMD NTCS.
@@ -57,11 +58,6 @@ export interface BmdErgebnis {
 const KOPF = [
   'Sollkonto', 'Habenkonto', 'Belegdatum', 'Belegnummer', 'Buchungstext', 'Betrag', 'Steuercode',
 ];
-
-function cell(v: unknown): string {
-  const s = v === null || v === undefined ? '' : String(v);
-  return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 
 /** Beträge mit Komma — BMD liest in deutscher Schreibweise. */
 const betrag = (n: number) => n.toFixed(2).replace('.', ',');
@@ -222,6 +218,32 @@ export function buildBmdCsv(
           betrag: i.totalBrutto ?? 0,
           steuercode: habenKonto.steuercode ?? '',
         });
+
+        /*
+          UND DIE UMBUCHUNG DER ANZAHLUNG GEHT MIT ZURÜCK (Prüflauf
+          25.09.2026, P2-05). Die Schlussrechnung hatte die Anzahlung aus der
+          Verbindlichkeit in den Erlös geholt; ihr Storno buchte bisher nur
+          die Restforderung zurück. Der Erlös blieb um die Anzahlung zu hoch
+          und das Anzahlungskonto um sie zu niedrig — obwohl die Anzahlung
+          nach dem Storno wieder offen auf die Leistung steht. Dieselbe Zeile
+          wie beim Verrechnen, mit vertauschten Konten, am Stornotag.
+        */
+        for (const v of i.vorrechnungen ?? []) {
+          if (!anzahlung) {
+            vermisst('Konto für erhaltene Anzahlungen (eine Verbindlichkeit, kein Erlös)');
+            continue;
+          }
+          if (!gegen) continue;
+          zeilen.push({
+            soll: gegen.konto,
+            haben: anzahlung.konto,
+            belegdatum: datum(tag),
+            belegnummer: i.invoiceNumber,
+            buchungstext: `Storno: Anzahlung ${v.invoiceNumber} verrechnet`,
+            betrag: v.brutto,
+            steuercode: gegen.steuercode ?? '',
+          });
+        }
       }
     }
   }

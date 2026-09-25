@@ -160,6 +160,21 @@ describe('Material anfordern — der Warenkorb', () => {
     });
   });
 
+  it('lässt die Namensspalte bei „Nicht im Katalog?" schrumpfen (P4-02)', async () => {
+    /*
+      Prüflauf 25.09.2026, P4-02: `grid-cols-[1fr_5rem]` — `1fr` heißt
+      `minmax(auto,1fr)` und gibt nicht unter die Eigenbreite des
+      Eingabefelds nach. Bei 390 px liefen Menge und „Hinzufügen" 90–106 px
+      aus der Karte. jsdom rechnet kein Layout; geprüft wird die Spalten-
+      vorlage, die das Schrumpfen erlaubt (im Browser nachgemessen).
+    */
+    zeige();
+    const raster = screen.getByLabelText('Bezeichnung').closest('.grid') as HTMLElement;
+    expect(raster.className).toContain('grid-cols-[minmax(0,1fr)_5rem]');
+    expect(raster.className).toContain('sm:grid-cols-[minmax(0,1fr)_6rem_auto]');
+    expect(raster.className).not.toMatch(/grid-cols-\[1fr/);
+  });
+
   it('schickt die Notiz mit, die nach dem Hinzufügen getippt wurde', async () => {
     /*
       GEFUNDEN BEIM PROBELAUF. Das Notizfeld erscheint erst, wenn schon etwas

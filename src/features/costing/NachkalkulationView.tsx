@@ -3,14 +3,14 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { listRecentProjects } from '@/lib/db/projects';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
-import { subscribeRecentInvoices } from '@/lib/db/invoices';
-import { listRecentQuotes } from '@/lib/db/quotes';
+import { listInvoicesForProject } from '@/lib/db/invoices';
+import { listQuotesForProject } from '@/lib/db/quotes';
 import { rechneBaustelle, margenTon, type Nachkalkulation } from './nachkalkulation';
 import { materialkosten, KEINE_MATERIALKOSTEN } from './materialkosten';
 import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
 import { katalogAbgeschnitten } from '@/lib/listengrenzen';
-import type { Invoice, Material, Project, Quote } from '@/types';
+import type { Material, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import { Zustand } from '@/components/Badge';
@@ -32,6 +32,15 @@ const fmtProzent = (n: number) =>
 const BAUSTELLEN_JE_LAUF = 25;
 
 /**
+ * Das Angebot, das für die Baustelle zählt: das ANGENOMMENE, wenn es eines
+ * gibt. Hängen mehrere an einer Baustelle (ein abgelehntes, ein neues), war
+ * es vorher das erste in der Liste — und nur ein angenommenes ist ein Erlös.
+ */
+function angebotDerBaustelle(angebote: WithId<Quote>[]): WithId<Quote> | undefined {
+  return angebote.find((q) => q.status === 'Angenommen') ?? angebote[0];
+}
+
+/**
  * Nachkalkulation — hat die Baustelle Geld verdient?
  *
  * Die Budget-Ampel in der Projektauswertung vergleicht Stunden gegen
@@ -45,8 +54,6 @@ const BAUSTELLEN_JE_LAUF = 25;
 export default function NachkalkulationView() {
   const { user, company } = useAuth();
   const [projekte, setProjekte] = useState<WithId<Project>[]>([]);
-  const [rechnungen, setRechnungen] = useState<WithId<Invoice>[]>([]);
-  const [angebote, setAngebote] = useState<WithId<Quote>[]>([]);
   /*
     Der Materialstamm, einmal geladen: er trägt die Einkaufspreise. Ohne ihn
     stünde jede Baustelle als „Material ohne Preis" da — und das wäre eine
@@ -72,10 +79,9 @@ export default function NachkalkulationView() {
     setLoading(true);
     Promise.all([
       listRecentProjects(user.companyId, 300),
-      listRecentQuotes(user.companyId),
       listMaterials(user.companyId),
     ])
-      .then(([p, q, m]) => {
+      .then(([p, m]) => {
         setProjekte(p);
         if (
           !selbstGewaehlt.current &&
@@ -84,12 +90,10 @@ export default function NachkalkulationView() {
         ) {
           setStatus('Aktiv');
         }
-        setAngebote(q);
         setKatalog(m);
       })
       .catch((e) => setError((e as Error).message))
       .finally(() => setLoading(false));
-    return subscribeRecentInvoices(user.companyId, 200, setRechnungen, (e) => setError(e.message));
   }, [user]);
 
   const gefiltert = useMemo(
@@ -124,6 +128,14 @@ export default function NachkalkulationView() {
       Grenze liefe bei einem alten Betrieb genau die Art Abfrage, gegen die
       die Wachstumsbremse gebaut wurde.
     */
+    /*
+      RECHNUNGEN UND ANGEBOTE JE BAUSTELLE, nicht die zweihundert jüngsten
+      Rechnungen und hundert jüngsten Angebote des Betriebs (Prüflauf
+      25.09.2026, P2-13). Eine abgeschlossene Baustelle vom Frühjahr hatte
+      ihre Rechnungen längst aus diesem Fenster verloren und stand mit
+      „kein Erlös" da — oder mit dem Angebot, das zufällig als erstes kam.
+      Dieselbe Obergrenze wie oben hält die Zahl der Abfragen klein.
+    */
     Promise.all([
       listEntriesForProjects(
         companyId,
@@ -134,8 +146,12 @@ export default function NachkalkulationView() {
           listWorkSheetsForProject(companyId, p.projectNumber).catch(() => null),
         ),
       ),
+      Promise.all(gefiltert.map((p) => listInvoicesForProject(companyId, p.projectNumber))),
+      Promise.all(
+        gefiltert.map((p) => (p.id ? listQuotesForProject(companyId, p.id) : Promise.resolve([]))),
+      ),
     ])
-      .then(([eintraege, scheineJeBaustelle]) => {
+      .then(([eintraege, scheineJeBaustelle, rechnungenJeBaustelle, angeboteJeBaustelle]) => {
         if (verworfen) return;
         setErgebnisse(
           gefiltert
@@ -152,8 +168,8 @@ export default function NachkalkulationView() {
                 p.projectNumber,
                 p.customerName,
                 eintraege,
-                rechnungen,
-                angebote.find((q) => q.projectNumber === p.projectNumber),
+                rechnungenJeBaustelle[i],
+                angebotDerBaustelle(angeboteJeBaustelle[i]),
                 kosten,
                 material,
               );
@@ -162,13 +178,13 @@ export default function NachkalkulationView() {
             .sort((a, b) => (a.margeProzent ?? 999) - (b.margeProzent ?? 999)),
         );
       })
-      .catch(() => setError('Die Zeiten konnten nicht geladen werden.'));
+      .catch(() => setError('Zeiten, Rechnungen oder Angebote der Baustellen konnten nicht geladen werden.'));
     return () => {
       verworfen = true;
     };
     // Am Inhalt haengen, nicht an der Array-Identitaet.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, nummern, rechnungen, angebote, katalog, kosten?.fach, kosten?.helper]);
+  }, [user, nummern, katalog, kosten?.fach, kosten?.helper]);
 
   if (!user) return null;
 
@@ -273,14 +289,14 @@ export default function NachkalkulationView() {
                       title={
                         <span>
                           {k.customerName}{' '}
-                          <span className="tnum text-sm font-normal text-ink-muted">
+                          <span className="text-sm font-normal text-ink-muted">
                             ({k.projectNumber})
                           </span>
                         </span>
                       }
                       subtitle={
                         <>
-                          <span className="tnum block">
+                          <span className="block">
                             Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)}
                             {/*
                               Material steht nur da, wenn welches bekannt ist.

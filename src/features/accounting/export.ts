@@ -2,6 +2,7 @@ import type { AppUser, TimeEntry } from '@/types';
 import { PETROL } from '@/lib/belegLayout';
 import { calcWorkMin, calcMonthStats, type MonthStats } from '@/lib/time';
 import { zuschlagszeit, kennzeichen } from './zuschlaege';
+import { csvZelle } from '@/lib/csvZelle';
 
 /**
  * Exporte der Mitarbeiterübersicht (portiert aus Legacy:3776-3865 und
@@ -51,14 +52,10 @@ export function fmtDate(iso: string): string {
 }
 
 /**
- * CSV-Feld absichern. Trennzeichen ist das Semikolon (Excel im deutschen
- * Sprachraum); Felder mit Semikolon, Anführungszeichen oder Zeilenumbruch
- * werden gequotet, innere Anführungszeichen verdoppelt.
+ * CSV-Feld absichern — Quoting und die Entschärfung von Formeln stehen in
+ * `lib/csvZelle.ts`, gemeinsam mit den Rechnungsexporten.
  */
-function cell(value: unknown): string {
-  const s = value === null || value === undefined ? '' : String(value);
-  return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+const cell = csvZelle;
 
 function row(values: unknown[]): string {
   return values.map(cell).join(';');

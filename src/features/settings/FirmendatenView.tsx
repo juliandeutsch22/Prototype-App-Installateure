@@ -183,7 +183,7 @@ export default function FirmendatenView() {
                 <img src={logoUrl} alt="Logo des Betriebs" className="h-12 w-auto" />
               </div>
               <p className="text-xs text-ink-muted">
-                Rund <span className="tnum">{Math.round(dataUrlBytes(logoUrl) / 1024)}</span> kB.
+                Rund <span>{Math.round(dataUrlBytes(logoUrl) / 1024)}</span> kB.
               </p>
               <Button variant="danger" onClick={() => setLogoUrl('')}>
                 Logo entfernen

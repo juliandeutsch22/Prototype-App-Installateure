@@ -3,7 +3,6 @@ import { dokumentHochladen, dokumentLoeschen, dateiPruefen } from '@/lib/db/baus
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
-import Icon from '@/components/Icon';
 import InfoHint from '@/components/InfoHint';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
@@ -158,7 +157,6 @@ export default function BaustellenPlaene({
             loading={!!fortschritt}
             onClick={() => feld.current?.click()}
           >
-            <Icon name="plus" size={18} />
             Plan oder Bild hinzufügen
           </Button>
           {fortschritt ? (

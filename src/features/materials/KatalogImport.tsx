@@ -217,8 +217,8 @@ export default function KatalogImport() {
             <>
               DATANORM ist das Austauschformat, in dem Grosshändler ihre Preislisten liefern —
               meist als Datei mit der Endung <code>.001</code>. Eingelesen wird sie hier{' '}
-              <strong>zuerst nur angesehen</strong>: Sie bekommen einen Bericht darüber, was
-              erkannt wurde und was nicht, und entscheiden danach, ob übernommen wird. Bis dahin
+              <strong>zuerst nur angesehen</strong>: du bekommst einen Bericht darüber, was
+              erkannt wurde und was nicht, und entscheidest danach, ob übernommen wird. Bis dahin
               ändert sich am Katalog nichts.
             </>
           }
@@ -320,7 +320,7 @@ export default function KatalogImport() {
             <Card title="Die Felder stehen anders als erwartet">
               <p className="text-sm">{warnung}</p>
               <p className="mt-3 text-sm text-ink-muted">
-                Die Zeilen unten zeigen, woran es liegt. Schicken Sie Ihrem Grosshändler die
+                Die Zeilen unten zeigen, woran es liegt. Schick deinem Grosshändler die
                 Rückmeldung, welche DATANORM-Fassung er liefert.
               </p>
             </Card>
@@ -334,9 +334,9 @@ export default function KatalogImport() {
               }
               hint={
                 <>
-                  Die Datei liefert die Rabatt<em>gruppe</em>, nicht den Satz — wie hoch Ihr Rabatt
-                  ist, haben Sie mit Ihrem Grosshändler ausgehandelt, und das steht in keiner Norm.
-                  Was Sie hier eintragen, bleibt gespeichert und gilt auch für den nächsten Katalog.
+                  Die Datei liefert die Rabatt<em>gruppe</em>, nicht den Satz — wie hoch dein Rabatt
+                  ist, hast du mit deinem Grosshändler ausgehandelt, und das steht in keiner Norm.
+                  Was du hier einträgst, bleibt gespeichert und gilt auch für den nächsten Katalog.
                   Eine Gruppe ohne Satz ist kein Fehler: die Artikel kommen in den Katalog, nur
                   eben ohne Einkaufspreis.
                 </>
@@ -371,7 +371,7 @@ export default function KatalogImport() {
                 <>
                   Diese Zeilen werden <strong>nicht</strong> übernommen. Die Originalzeile steht
                   neben dem Grund, damit erkennbar ist, ob es an der Datei liegt oder daran, dass
-                  Ihr Grosshändler die Norm anders auslegt.
+                  dein Grosshändler die Norm anders auslegt.
                 </>
               }
             >

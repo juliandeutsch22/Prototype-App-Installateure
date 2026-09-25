@@ -6,8 +6,14 @@ import { describe, it, expect, vi } from 'vitest';
   ein Objekt statt einer Funktion. Der Ersatz zeichnet nichts und meldet nur
   die Endhoehe — geprueft wird der Kopf, und der entsteht davor.
 */
+/** Die Zeilen, die die Tabellen bekommen hätten — für die Schreibweise der Menge. */
+const tabellen: unknown[][][] = [];
 vi.mock('jspdf-autotable', () => ({
-  default: (doc: { lastAutoTable?: { finalY: number } }, opts: { startY?: number }) => {
+  default: (
+    doc: { lastAutoTable?: { finalY: number } },
+    opts: { startY?: number; body?: unknown[][] },
+  ) => {
+    tabellen.push(opts.body ?? []);
     doc.lastAutoTable = { finalY: (opts.startY ?? 60) + 40 };
   },
 }));
@@ -72,12 +78,69 @@ describe('Der Zustand des Scheins im PDF', () => {
     expect(s).not.toContain('VERWORFENER ENTWURF');
   });
 
-  it('schreibt dem gewoehnlichen Entwurf keinen Vermerk aufs Blatt', async () => {
+  /*
+    Bis zum Prüflauf 25.09.2026 hiess dieser Test „schreibt dem gewoehnlichen
+    Entwurf keinen Vermerk aufs Blatt" — genau das war der Befund P1-13: ein
+    Entwurf ohne Kennzeichnung, dazu „Elektronisch unterschrieben" im Fuss.
+    Er prüft jetzt nur noch, dass kein FREMDER Vermerk dasteht; der eigene
+    steht im Test darunter.
+  */
+  it('schreibt dem gewoehnlichen Entwurf keinen Verworfen- oder Storno-Vermerk aufs Blatt', async () => {
     const s = await text(basis);
     expect(s).not.toContain('VERWORFENER ENTWURF');
     expect(s).not.toContain('STORNIERT');
     // Der Beleg selbst steht aber da.
     expect(s).toContain('Handwerksschein');
     expect(s).toContain('Familie Huber');
+  });
+});
+
+/** Wo ein Text steht — in Millimetern von oben, je Zeichenbefehl. */
+function positionen(pdf: string): { y: number; text: string }[] {
+  return [...pdf.matchAll(/([\d.]+) ([\d.]+) Td\n\((.*?)\) Tj/g)].map((m) => ({
+    y: 297 - (Number(m[2]) * 25.4) / 72,
+    text: m[3],
+  }));
+}
+
+describe('Prüflauf 25.09.2026', () => {
+  it('P1-13: kennzeichnet den Entwurf und sagt nicht „Elektronisch unterschrieben"', async () => {
+    const s = await text(basis);
+    expect(s).toContain('ENTWURF \u2014 kein g');
+    expect(s).not.toContain('Elektronisch unterschrieben');
+  });
+
+  it('P1-13: der unterschriebene Schein trägt den Fusssatz, aber keinen Entwurfsvermerk', async () => {
+    const s = await text({ ...basis, status: 'Unterschrieben', inhaltHash: 'abc123' });
+    expect(s).toContain('Elektronisch unterschrieben');
+    expect(s).not.toContain('ENTWURF');
+  });
+
+  it('P1-12: bricht einen langen Schein um — Fuss und Prüfsumme auf jeder Seite, nichts darüber', async () => {
+    const s = await text({
+      ...basis,
+      status: 'Unterschrieben',
+      inhaltHash: 'abc123',
+      notizen: Array.from({ length: 60 }, (_, i) => `Anmerkung ${i + 1}`).join('\n'),
+      unterschriften: {
+        monteur: { name: 'Max Mustermann', bild: 'data:kaputt', geraetZeit: 1 },
+        kunde: { name: 'Frau Huber', bild: 'data:kaputt', geraetZeit: 1 },
+      },
+    });
+    expect(s).toContain('Seite 2 von 2');
+    expect(s.split('abc123').length - 1).toBe(2);
+    const fuss = /^(Prüfsumme|Elektronisch|Seite )/;
+    const inhalt = positionen(s).filter((p) => !fuss.test(p.text));
+    expect(inhalt.find((p) => p.text === 'Anmerkung 60')).toBeDefined();
+    expect(inhalt.find((p) => p.text === 'Kunde: Frau Huber')).toBeDefined();
+    // Alles, was kein Fuss ist, endet über ihm (285 mm).
+    for (const p of inhalt) expect(p.y, p.text).toBeLessThanOrEqual(280);
+  });
+
+  it('P1-12: schreibt die Menge deutsch — „2,5 m", nicht „2.5 m"', async () => {
+    tabellen.length = 0;
+    await text({ ...basis, material: [{ name: 'Kupferrohr', menge: 2.5, einheit: 'm' }] });
+    const material = tabellen.find((t) => t[0]?.[0] === 'Kupferrohr');
+    expect(material?.[0][1]).toBe('2,5 m');
   });
 });

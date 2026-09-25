@@ -95,7 +95,8 @@
   --border-strong: rgba(18, 176, 198, 0.34);
   /* Der weiche Ring um ein Feld mit Fokus — derselbe Ton, schwächer. */
   --focus-ring: rgba(18, 176, 198, 0.22);
-  /* Grund der Lade-Platzhalter: eine Stufe dunkler als `--surface-2`. */
+  /* Eine Stufe dunkler als `--surface-2`, deckend: Lade-Platzhalter, die
+   * Schiene der Budgetbalken, Hover auf schon getönter Fläche. */
   --surface-3: #dceaef;
 
   /* Semantische Zustände (Text + Fläche).
@@ -306,17 +307,26 @@ textarea:focus {
  */
 @layer components {
   /*
-    REITERLEISTEN, DIE SEITLICH LAUFEN. Unter Windows zeichnete der Browser
-    darunter eine volle Scrollleiste mit Pfeilen, die den gewählten Reiter
-    anschnitt (Launch-Check 25.09.2026). Schmal bleibt sie greifbar — wer mit
-    der Maus kommt, hat etwas zum Ziehen —, aber ohne Pfeile und ohne den
-    Reiter zu überdecken.
+    REITERLEISTEN, DIE SEITLICH LAUFEN — OHNE SCROLLLEISTE. Unter Windows
+    zeichnete der Browser darunter eine volle Scrollleiste mit Pfeilen, die
+    den gewählten Reiter anschnitt (Launch-Check 25.09.2026). Danach stand
+    hier eine schmale, „damit Mausnutzer etwas zum Ziehen haben". Die
+    Design-Überarbeitung (Punkt 6) blendet auch sie aus: unter der Kante des
+    gewählten Reiters soll kein zweiter Strich stehen.
+
+    Die Orientierung gibt jetzt der Reiter selbst: `Unterreiter` rollt den
+    gewählten beim Öffnen und bei jedem Wechsel ganz ins Bild. Gewischt wird
+    wie zuvor. Zum Ziehen mit der Maus braucht es die Leiste nicht: die
+    Leisten aus `Unterreiter` (Einstellungen, Einsatzplanung, Mein
+    Einsatzplan) brechen ab 640 px in eine zweite Zeile um, statt zu laufen,
+    und die übrigen (Material, Lager, Anforderungen, Urlaub) haben zwei bis
+    vier kurze Reiter, die ab dem Tablet nebeneinander Platz finden.
   */
   .reiterleiste {
-    scrollbar-width: thin;
+    scrollbar-width: none;
   }
   .reiterleiste::-webkit-scrollbar {
-    height: 4px;
+    display: none;
   }
 
   .panel {
@@ -412,7 +422,33 @@ textarea:focus {
 }
 
 /*
- * Abschnittsüberschrift im Kartenkopf: klein, halbfett, gesperrt, versal.
+ * KARTEN- UND ABSCHNITTSKÖPFE: normale Schreibweise, halbfett, Tinte.
+ *
+ * Bis zum 25.09.2026 stand hier `.section-label` — 12 px, versal, gesperrt
+ * und grau. Drei Verstärker für eine Zeile, die ORDNEN soll, und die grau
+ * gesetzt doch nicht als Kopf gelesen wurde. Jetzt trägt der Kopf die
+ * Schrift der Listentitel darunter, eine Stufe halbfett: er steht über dem
+ * Inhalt, ohne zu rufen. Freie Abschnittsköpfe (Dialoge, Rechtsseiten)
+ * standen eine Stufe größer (18 px) und nehmen dieselbe Klasse.
+ */
+.titel-karte {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  color: var(--ink-deep);
+}
+
+/*
+ * Dachzeile: Bezeichnung über einem Wert, Kopf einer Gruppe in der Karte,
+ * Marke in der Listenzeile.
+ *
+ * SEIT DEM 25.09.2026 IN NORMALER SCHREIBWEISE. Versalien und Sperrung
+ * machten aus „120 h Budget" ein „120 H BUDGET" — die Einheit Stunde stand
+ * dabei als grosses H da, und gesperrte Versalien lesen sich langsamer als
+ * jede andere Schrift der App.
  *
  * 600 UND NICHT 800, und die 800 waren obendrein eine Behauptung: geladen
  * sind von Poppins die Schnitte 400, 500, 600 und 700. Nachgemessen rendern
@@ -428,46 +464,44 @@ textarea:focus {
  * einen Ruf. 600 lässt sie begleiten.
  */
 .section-label {
-  /* 12 px und nicht weniger: hier stehen auch Werte („120 H BUDGET",
-     „8 STK"), und 11 px in Versalien waren am Telefon kaum lesbar
-     (Prüflauf 24.09.2026, D2). */
+  /* 12 px und nicht weniger: hier stehen auch Werte („120 h Budget",
+     „8 Stk"), und kleiner war es am Telefon kaum lesbar (Prüflauf
+     24.09.2026, D2). */
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--text-muted);
 }
 
 /*
- * Ziffern mit fester Breite. Zahlen stehen hier in Spalten übereinander —
- * Salden, Stunden, Beträge. In Proportionalschrift ist die 1 schmaler als
- * die 8, dadurch wackelt die Spalte bei jeder Aktualisierung und beim
- * Vergleichen zweier Zeilen rutschen die Kommastellen gegeneinander.
+ * ZIFFERN MIT FESTER BREITE — ÜBERALL, nicht mehr Stelle für Stelle.
+ *
+ * Zahlen stehen hier in Spalten übereinander — Salden, Stunden, Beträge. In
+ * Proportionalschrift ist die 1 schmaler als die 8, dadurch wackelt die
+ * Spalte bei jeder Aktualisierung, und beim Vergleichen zweier Zeilen
+ * rutschen die Kommastellen gegeneinander.
+ *
+ * Bis zum 25.09.2026 trug jede Zahl dafür einzeln die Klasse `.tnum` — an
+ * 136 Stellen, und an jeder neuen fehlte sie wieder. Jetzt erbt es alles vom
+ * `body`. Eingabefelder erben Schrifteigenschaften nicht von selbst, deshalb
+ * stehen sie ausdrücklich daneben: gerade dort tippt man Beträge.
  */
-.tnum,
-.font-mono,
-table td,
-table th {
+body,
+input,
+select,
+textarea {
   font-variant-numeric: tabular-nums;
 }
 
 /*
  * Platzhalter beim Laden. Deutet die spätere Struktur an, statt die Fläche
- * leer zu lassen — die App wirkt dadurch schneller, ohne schneller zu sein,
- * und der Inhalt springt beim Eintreffen nicht mehr.
+ * leer zu lassen — der Inhalt springt beim Eintreffen nicht mehr.
  *
- * DREI DINGE HABEN SICH GEÄNDERT, ALS DIE OBERFLÄCHE TÜRKIS WURDE.
- *
- * Die FARBE: vorher lief der Verlauf von `--surface-2` über `--border` und
- * zurück. `--border` ist die Farbe der Trennstriche — ein Balken darin sah
- * aus wie ein sehr dicker Strich und nicht wie ein Platzhalter. Jetzt ein
- * eigener, etwas satterer Türkiston mit einem weissen Lichtstreifen darüber.
- *
- * Die BEWEGUNG: statt eine 200 % breite Fläche hin und her zu schieben,
- * wandert ein schmaler Lichtstreifen einmal von links nach rechts und setzt
- * dann neu an. Das ist die Bewegung, die man von einem Ladebalken erwartet —
- * die alte pendelte, und beim Zusehen wusste man nie, ob sie vorwärts oder
- * rückwärts lief.
+ * RUHIG UND DECKEND. Hier lief früher ein weisser Lichtstreifen als Verlauf
+ * in einer Endlos-Animation über den Balken. Beides ist gestrichen: keine
+ * Verläufe, keine halbtransparenten Flächen, keine Dauerbewegung — Bewegung
+ * gibt es nur als kurzen Übergang beim Aufklappen, Blättern und bei
+ * Dialogen. Der Balken ist deshalb nur noch `--surface-3`, eine Stufe
+ * dunkler als `--surface-2`, damit er sich von der Kartenfläche abhebt.
  *
  * Die FORM: Pille statt `--radius-sm`. Ein Balken von 12 px Höhe mit 10 px
  * Radius ist ohnehin fast rund; ganz rund ist er ruhiger und sagt deutlicher
@@ -475,25 +509,7 @@ table th {
  */
 .skeleton {
   background-color: var(--surface-3);
-  background-image: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.85) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  background-size: 55% 100%;
-  background-repeat: no-repeat;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
   border-radius: var(--radius-pill);
-}
-
-@keyframes skeleton-shimmer {
-  from {
-    background-position: -60% 0;
-  }
-  to {
-    background-position: 160% 0;
-  }
 }
 
 /* Bewegung reduzieren, wenn vom System gewünscht */

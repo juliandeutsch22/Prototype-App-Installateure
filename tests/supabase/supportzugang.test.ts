@@ -758,4 +758,67 @@ describe('Die Stufe „mitarbeiten"', () => {
     });
     expect(u?.message).toMatch(/verschlossen/);
   });
+  /*
+    PRÜFLAUF 25.09.2026 (P3-01). Die Zusage oben hielt nur fürs SCHREIBEN.
+    Gelesen wurde mit „mitarbeiten" sehr wohl: die Rollenfunktion sagt dann
+    „Spitze", und die Leseregeln von Zeitbuchungen und Urlauben fragten
+    `app.darf` — samt Supportzweig. Kranken- und Urlaubstage, Art. 9 DSGVO.
+  */
+  it('liest auch mit Schreibfreigabe keine Zeitbuchungen, Urlaube oder Monatsbilanzen', async () => {
+    await freigebenMit('mitarbeiten');
+    const { error: e1 } = await admin.from('time_entries').insert({
+      id: crypto.randomUUID(), company_id: BETRIEB, user_id: chefin.uid,
+      date: '2026-04-02', status: 'Krank',
+    });
+    expect(e1).toBeNull();
+    const { error: e2 } = await admin.from('vacations').insert({
+      company_id: BETRIEB, user_id: chefin.uid, user_name: 'Chefin',
+      von: '2026-10-05', bis: '2026-10-06', tage: 2, status: 'Beantragt',
+    });
+    expect(e2).toBeNull();
+
+    const zeiten = await plattform.client.from('time_entries').select('id').eq('company_id', BETRIEB);
+    expect(zeiten.data ?? []).toEqual([]);
+    const urlaube = await plattform.client.from('vacations').select('id').eq('company_id', BETRIEB);
+    expect(urlaube.data ?? []).toEqual([]);
+    const bilanz = await plattform.client.from('monthly_stats').select('krank_tage').eq('company_id', BETRIEB);
+    expect(bilanz.data ?? []).toEqual([]);
+
+    // Die Gegenprobe: der Betrieb selbst sieht beides.
+    expect((await chefin.client.from('time_entries').select('id').eq('company_id', BETRIEB)).data)
+      .toHaveLength(1);
+    await admin.from('time_entries').delete().eq('company_id', BETRIEB);
+    await admin.from('vacations').delete().eq('company_id', BETRIEB);
+  });
+
+  /*
+    PRÜFLAUF 25.09.2026 (P3-02). Eine Schreibfreigabe in A machte die
+    Plattform in JEDEM Betrieb, in den sie hineinsehen durfte, zur Spitze.
+    Geschrieben wurde dort nur deshalb nichts, weil der Riegel den Betrieb
+    aus der Zeile liest — und `companies` hatte keinen Riegel.
+  */
+  it('schreibt mit Schreibfreigabe in A und Notzugang in B nichts in B — auch nicht am Betrieb selbst', async () => {
+    await freigebenMit('mitarbeiten', 4, BETRIEB);
+    const { error: not } = await plattform.client.rpc('support_notzugang', {
+      p_company: ANDERER, p_grund: 'Anderer Betrieb ausgesperrt', p_stunden: 4,
+    });
+    expect(not).toBeNull();
+
+    await plattform.client.from('companies')
+      .update({ iban: 'AT00 0000 0000 0000 0000', bank_name: 'Vom Support' }).eq('id', ANDERER);
+    const { data: b } = await admin.from('companies').select('iban, bank_name').eq('id', ANDERER).single();
+    expect(b).toEqual({ iban: null, bank_name: null });
+
+    expect((await kundeUmbenennen(ANDERER)).erreicht).toBe(false);
+  });
+
+  it('am eigenen Betrieb der Freigabe ändert „mitarbeiten" die Stammdaten weiter', async () => {
+    await freigebenMit('mitarbeiten', 4, BETRIEB);
+    const { error } = await plattform.client.from('companies')
+      .update({ bank_name: 'Richtiggestellt vom Support' }).eq('id', BETRIEB);
+    expect(error).toBeNull();
+    const { data } = await admin.from('companies').select('bank_name').eq('id', BETRIEB).single();
+    expect(data).toEqual({ bank_name: 'Richtiggestellt vom Support' });
+    await admin.from('companies').update({ bank_name: null }).eq('id', BETRIEB);
+  });
 });

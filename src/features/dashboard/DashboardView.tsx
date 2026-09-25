@@ -23,6 +23,7 @@ import {
   fmtStunden,
 } from '@/lib/time';
 import { getAustrianHolidayName } from '@shared/feiertage';
+import { datumAT } from '@/lib/datum';
 import {
   fuehrtZeitkonto,
   canProcessOrders,
@@ -30,7 +31,9 @@ import {
   canInvoice,
   canEditTime,
   isMitarbeiter,
+  canWriteWorkSheet,
 } from '@/lib/permissions';
+import { canAccess } from '@/app/navigation';
 import type { Assignment, EinsatzMaterial, MaterialOrder, Project, RuestPosition } from '@/types';
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -503,15 +506,16 @@ export default function DashboardView() {
   if (!user) return null;
 
   /*
-    Einmal gerechnet, dreimal gelesen. `toLocaleDateString` mit `de-AT` gibt
-    „Freitag, 18. September" — Wochentag ausgeschrieben, weil genau der die
-    Frage beantwortet, die jemand um 6:50 Uhr im Auto hat. Das Jahr bleibt
-    weg: es traegt hier nichts bei.
+    Einmal gerechnet, dreimal gelesen. Wochentag ausgeschrieben, weil genau
+    der die Frage beantwortet, die jemand um 6:50 Uhr im Auto hat — danach
+    das Datum so, wie es überall in der App steht: „Freitag, 25.09.2026".
+    Bis zum 25.09.2026 stand hier „Freitag, 25. September", die einzige
+    Stelle mit ausgeschriebenem Monat.
   */
   const heuteKopf = (() => {
     const d = new Date();
     return {
-      datum: d.toLocaleDateString('de-AT', { weekday: 'long', day: 'numeric', month: 'long' }),
+      datum: `${d.toLocaleDateString('de-AT', { weekday: 'long' })}, ${datumAT(localDateStr(d))}`,
       kw: getISOWeek(d).week,
       feiertag: getAustrianHolidayName(d),
     };
@@ -609,7 +613,10 @@ export default function DashboardView() {
           <p className="mt-1 text-sm">
             {offeneTage.slice(-5).map(fmtTag).join(', ')}
             {offeneTage.length > 5 && ` und ${offeneTage.length - 5} weitere`}.{' '}
-            <Link to="/time" className="link-hinweis-weiter">
+            {/* Tastfläche 48 px ohne neue Zeilenhöhe: senkrechtes Polster an
+                einem Link im Fliesstext verschiebt nichts (Prüflauf
+                25.09.2026, Touch-Ziele). */}
+            <Link to="/time" className="link-hinweis-weiter py-3.5 -my-3.5">
               Jetzt nachtragen
             </Link>
           </p>
@@ -626,9 +633,14 @@ export default function DashboardView() {
         <Card
           title={data.heuteEigene.length === 1 ? 'Heute' : `Heute — ${data.heuteEigene.length} Baustellen`}
           action={
-            <Link to="/my-schedule" className="link-weiter text-sm">
-              Mein Einsatzplan
-            </Link>
+            // Nur, wer den Einsatzplan hat (nur Monteure) — eingeteilt werden
+            // auch andere, und die landeten auf „Kein Zugriff" (Prüflauf
+            // 25.09.2026, P4-15).
+            user && canAccess(user.role, '/my-schedule', company?.modules) ? (
+              <Link to="/my-schedule" className="link-weiter text-sm">
+                Mein Einsatzplan
+              </Link>
+            ) : undefined
           }
         >
           <div className="space-y-4">
@@ -638,7 +650,7 @@ export default function DashboardView() {
                   {e.customerName}
                   {e.asHelper && <Marke>Helfer</Marke>}
                 </p>
-                <p className="tnum text-sm text-ink-muted">{e.projectNumber}</p>
+                <p className="text-sm text-ink-muted">{e.projectNumber}</p>
                 {e.comment && (
                   <p className="mt-2 rounded-sm bg-surface-2 p-2 text-sm text-ink">{e.comment}</p>
                 )}
@@ -675,7 +687,8 @@ export default function DashboardView() {
                   >
                     Zeit erfassen
                   </Link>
-                  {scheineAn && (
+                  {/* Schreiben darf nicht jeder Eingeteilte (P4-15). */}
+                  {scheineAn && user && canWriteWorkSheet(user.role) && (
                     <Link
                       to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
                       className="flex min-h-touch items-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink"
@@ -710,7 +723,7 @@ export default function DashboardView() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-semibold text-ink">
                     {b.customerName}{' '}
-                    <span className="tnum text-sm font-normal text-ink-muted">
+                    <span className="text-sm font-normal text-ink-muted">
                       ({b.projectNumber})
                     </span>
                   </span>
@@ -794,7 +807,7 @@ export default function DashboardView() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-medium text-ink">
                     {pr.customerName}{' '}
-                    <span className="tnum text-sm font-normal text-ink-muted">
+                    <span className="text-sm font-normal text-ink-muted">
                       ({pr.projectNumber})
                     </span>
                   </span>

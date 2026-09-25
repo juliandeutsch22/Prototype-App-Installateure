@@ -44,9 +44,13 @@ let aktiveBaustellen: { projectNumber: string }[] = [];
 const reserveProjectNumber = vi.fn<[string, unknown], Promise<string | null>>(
   async () => 'B-2026-0012',
 );
+/** Baustellen, die es zu einer Nummer schon gibt — für das zweite Annehmen. */
+let bestehende: { projectNumber: string }[] = [];
 vi.mock('@/lib/db/projects', () => ({
   createProject: (c: string, p: unknown) => createProject(c, p),
   listActiveProjects: vi.fn(async () => aktiveBaustellen),
+  listProjectsByNumbers: vi.fn(async (_c: string, nummern: string[]) =>
+    bestehende.filter((b) => nummern.includes(b.projectNumber))),
   reserveProjectNumber: (c: string, o: unknown) => reserveProjectNumber(c, o),
 }));
 
@@ -99,6 +103,7 @@ beforeEach(() => {
   reserveProjectNumber.mockClear();
   createProject.mockReset().mockResolvedValue('p1');
   aktiveBaustellen = [];
+  bestehende = [];
   angebote.length = 0;
   // Bearbeiten scrollt zum Formular hinauf; jsdom kennt das nicht.
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
@@ -187,6 +192,45 @@ describe('Angebot kalkulieren', () => {
     // Der Preis enthält beide Zeilen: 20×65 + 2×45 = 1390 netto.
     expect(uebergeben.totalNetto).toBe(1390);
     expect(uebergeben.positions).toHaveLength(2);
+  });
+
+  /*
+    PRÜFLAUF 25.09.2026, P2-22. Gezählt wurden auch Zeilen, die beim Speichern
+    wegfallen (ohne Bezeichnung), und Helferstunden — die Budget-Ampel misst
+    aber nur die Facharbeiterzeit.
+  */
+  it('zählt eine Zeile ohne Bezeichnung nicht ins Budget', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Montage');
+    await nutzer.type(screen.getByLabelText('Menge'), '8');
+    await nutzer.type(screen.getByLabelText('Einheit'), 'h');
+    await nutzer.click(screen.getByRole('button', { name: 'Position hinzufügen' }));
+    await nutzer.type(screen.getAllByLabelText('Menge')[1], '5');
+    await nutzer.type(screen.getAllByLabelText('Einheit')[1], 'h');
+
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('8 h');
+  });
+
+  it('zählt Helferstunden nicht von selbst ins Budget — von Hand angehakt schon', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Facharbeiterstunden');
+    await nutzer.type(screen.getByLabelText('Menge'), '10');
+    await nutzer.type(screen.getByLabelText('Einheit'), 'h');
+    await nutzer.click(screen.getByRole('button', { name: 'Position hinzufügen' }));
+    await nutzer.type(screen.getAllByLabelText('Bezeichnung')[1], 'Helferstunden');
+    await nutzer.type(screen.getAllByLabelText('Menge')[1], '6');
+    await nutzer.type(screen.getAllByLabelText('Einheit')[1], 'h');
+
+    expect(screen.getAllByRole('checkbox')[1]).not.toBeChecked();
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('10 h');
+
+    // Wer es anders will, entscheidet selbst.
+    await nutzer.click(screen.getAllByRole('checkbox')[1]);
+    expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
   });
 
   it('rechnet Netto, USt und Brutto mit derselben Funktion wie die Rechnung', async () => {
@@ -348,7 +392,34 @@ describe('Angebot kalkulieren', () => {
     await annehmenBestaetigt(nutzer);
 
     await screen.findByText(/Die Baustelle konnte nicht angelegt werden/);
-    expect(updateQuote).not.toHaveBeenCalled();
+    /*
+      ANGENOMMEN IST ES NICHT — festgehalten ist nur die gezogene Nummer
+      (Prüflauf 25.09.2026, P2-19). Bis dahin stand hier „updateQuote nie
+      gerufen"; die Nummer am Angebot ist aber genau das, woran ein zweiter
+      Versuch die Baustelle wiederfindet, falls sie doch entstanden ist.
+    */
+    expect(updateQuote).not.toHaveBeenCalledWith('q1', expect.objectContaining({ status: 'Angenommen' }));
+    expect(updateQuote).toHaveBeenCalledWith('q1', { projectNumber: 'B-2026-0012' });
+  });
+
+  /*
+    PRÜFLAUF 25.09.2026, P2-19. Brach es nach dem Anlegen der Baustelle ab,
+    stand das Angebot weiter als „Versendet" da, und das nächste Annehmen
+    legte eine ZWEITE Baustelle an.
+  */
+  it('legt beim zweiten Annehmen keine zweite Baustelle an', async () => {
+    versendetesAngebot();
+    angebote[0].projectNumber = 'B-2026-0012';
+    bestehende = [{ projectNumber: 'B-2026-0012' }];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0007/);
+    await annehmenBestaetigt(nutzer);
+
+    await screen.findByText(/Baustelle B-2026-0012 angelegt/);
+    expect(createProject).not.toHaveBeenCalled();
+    expect(reserveProjectNumber).not.toHaveBeenCalled();
+    expect(updateQuote).toHaveBeenCalledWith('q1', { status: 'Angenommen', projectNumber: 'B-2026-0012' });
   });
 
   it('ohne Zähler keine geratene Nummer', async () => {

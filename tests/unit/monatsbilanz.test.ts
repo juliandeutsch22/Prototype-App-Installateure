@@ -238,3 +238,75 @@ describe('Betroffene Monate bei einer Änderung', () => {
     expect(betroffeneMonate(null, null)).toHaveLength(0);
   });
 });
+
+describe('Der Eintrittsmonat (Prüflauf 25.09.2026, P1-15)', () => {
+  /*
+    Die Bilanz fasst den GANZEN Kalendermonat zusammen — auch Buchungen vor
+    dem Eintrittsdatum (Probewoche, Import). `calcOverallSaldo` lässt sie
+    weg; der Weg über die Bilanzen zählte sie mit, und beide Zahlen wichen
+    voneinander ab. Mit den Einträgen des Eintrittsmonats (ab dem Eintritt)
+    wird dieser Monat aus den Einzelbuchungen gerechnet.
+  */
+  it.each([3, 17, 99, 512])('stimmt auch mit Buchungen vor dem Eintritt überein (Fall %i)', (saat) => {
+    const { user, eintraege } = baueFall(saat);
+    const eintritt = user.appStartDate!;
+    const monatsErster = `${eintritt.slice(0, 7)}-01`;
+    // Zwei Buchungen VOR dem Eintritt im selben Monat — wenn der Monat sie hergibt.
+    const davor = [monatsErster, `${eintritt.slice(0, 7)}-02`]
+      .filter((d) => d < eintritt)
+      .map((d) => ({
+        id: `vor-${d}`,
+        companyId: 'perl',
+        userId: 'u1',
+        userName: 'Prüffall',
+        date: d,
+        status: 'Anwesend',
+        startTime: '06:00',
+        endTime: '18:00',
+        breakDuration: 0,
+      }) as TimeEntry & { id: string });
+    const alle = [...davor, ...eintraege];
+    const bilanzen = verdichte(alle);
+
+    const jetzt = new Date();
+    const aktuell = `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, '0')}`;
+    const laufend = alle.filter((e) => monatVon(e.date) === aktuell);
+    const eintrittsmonat = alle.filter(
+      (e) => monatVon(e.date) === monatVon(eintritt) && e.date >= eintritt,
+    );
+
+    const direkt = calcOverallSaldo(user, alle);
+    const verdichtet = saldoAusBilanzen(user, bilanzen, laufend, eintrittsmonat);
+    expect(verdichtet.saldoH).toBeCloseTo(direkt.saldoH, 2);
+    expect(verdichtet.daysWithoutEntry).toBe(direkt.daysWithoutEntry);
+  });
+
+  it('zählt die Tage vor dem Eintritt nicht mit — der konkrete Fall', () => {
+    // Eintritt am 15. des vorletzten Monats; am 1. desselben Monats steht
+    // eine Probeschicht von zwölf Stunden.
+    const jetzt = new Date();
+    const start = new Date(jetzt.getFullYear(), jetzt.getMonth() - 2, 15);
+    const eintritt = localDateStr(start);
+    const user: AppUser = {
+      id: 'u1', companyId: 'perl', uid: 'u1', name: 'Prüffall', email: 'p@perl.at',
+      role: 'Mitarbeiter', active: true, weeklyTargetHours: 40, yearlyVacationDays: 25,
+      workDays: [1, 2, 3, 4, 5], appStartDate: eintritt, initialOvertime: 0,
+    };
+    const buchung = (date: string, von: string, bis: string) =>
+      ({
+        id: `e-${date}`, companyId: 'perl', userId: 'u1', userName: 'Prüffall', date,
+        status: 'Anwesend', startTime: von, endTime: bis, breakDuration: 0,
+      }) as TimeEntry & { id: string };
+    const alle = [
+      buchung(localDateStr(new Date(start.getFullYear(), start.getMonth(), 1)), '06:00', '18:00'),
+      buchung(eintritt, '07:00', '15:00'),
+    ];
+    const bilanzen = verdichte(alle);
+    const eintrittsmonat = alle.filter((e) => e.date >= eintritt);
+
+    const direkt = calcOverallSaldo(user, alle);
+    expect(saldoAusBilanzen(user, bilanzen, [], eintrittsmonat).saldoH).toBeCloseTo(direkt.saldoH, 2);
+    // Ohne die Einträge des Eintrittsmonats zählte die Probeschicht mit.
+    expect(saldoAusBilanzen(user, bilanzen, []).saldoH).toBeCloseTo(direkt.saldoH + 12, 2);
+  });
+});

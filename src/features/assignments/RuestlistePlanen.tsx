@@ -152,7 +152,7 @@ export default function RuestlistePlanen({
                     </p>
                     {artikel && (
                       <p className="text-sm text-ink-muted">
-                        Lager: <span className="tnum">{artikel.stock ?? 0}</span>
+                        Lager: <span>{artikel.stock ?? 0}</span>
                         {artikel.category ? ` · ${artikel.category}` : ''}
                       </p>
                     )}
@@ -178,7 +178,7 @@ export default function RuestlistePlanen({
                 {fehlt > 0 && (
                   <div className="mt-2 flex flex-wrap items-center gap-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                     <span>
-                      Im Lager fehlen <strong className="tnum">{fehlt}</strong>.
+                      Im Lager fehlen <strong>{fehlt}</strong>.
                     </span>
                     {onAnforderung && (
                       <Button

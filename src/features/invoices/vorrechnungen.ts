@@ -64,6 +64,31 @@ export function abziehbar<T extends Invoice>(alle: T[], projectNumber: string): 
 }
 
 /**
+ * Welche der abziehbaren Rechnungen zur Steuerbehandlung DIESER Rechnung
+ * passen — und welche nicht.
+ *
+ * GEFUNDEN IM PRÜFLAUF (25.09.2026, P2-08): eine Schlussrechnung mit
+ * Übergang der Steuerschuld zog eine Anzahlung MIT Umsatzsteuer samt Steuer
+ * ab. Die Restforderung war um genau diese Steuer zu niedrig, und die auf der
+ * Anzahlung ausgewiesene Steuer blieb stehen (§ 11 Abs 12 UStG). Umgekehrt
+ * ebenso. Solche Rechnungen werden deshalb nicht zum Abzug angeboten, sondern
+ * benannt — der Fall gehört berichtigt, nicht verrechnet. Die Datenbank
+ * (`app.vorrechnungen_pruefen`) weist ihn ebenso ab.
+ *
+ * Getrennt von `abziehbar`, weil sich der Haken „Bauleistung" erst in der
+ * Vorschau setzen lässt, nachdem die Rechnungen der Baustelle geladen sind.
+ */
+export function nachSteuer<T extends Pick<Invoice, 'reverseCharge'>>(
+  kandidaten: T[],
+  reverseCharge: boolean,
+): { passend: T[]; andere: T[] } {
+  const passend: T[] = [];
+  const andere: T[] = [];
+  for (const r of kandidaten) (!!r.reverseCharge === reverseCharge ? passend : andere).push(r);
+  return { passend, andere };
+}
+
+/**
  * Die Rechnung als Abzug, wie er auf dem Beleg steht.
  *
  * KOPIE, KEIN VERWEIS: der Abzug muss auch dann noch so dastehen, wie der

@@ -5,6 +5,7 @@ import {
   normProjectNumber,
   calcWorkMin,
   fmtMin,
+  fmtDauer,
   fmtStd,
   balkenBreite,
   fmtStunden,
@@ -23,18 +24,62 @@ const BAR_TONE = {
   neutral: 'bg-line',
 } as const;
 
-/** 'YYYY-MM-DD' -> 'Mo., 15.06.25'. */
+/**
+ * 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. Vierstellig wie überall in der App
+ * (TT.MM.JJJJ) — „25.09.26" war die einzige zweistellige Jahreszahl
+ * (Prüflauf 25.09.2026, P4-10).
+ */
 function dayLabel(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT', {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',
-    year: '2-digit',
+    year: 'numeric',
   });
 }
 
-/** Dezimalstunden mit Komma — gemeinsam mit dem Dashboard, siehe `lib/time`. */
+/**
+ * ZWEI SCHREIBWEISEN, UND JEDE HAT IHREN ORT (Prüflauf 25.09.2026, P4-10).
+ *
+ * Arbeitszeit steht in der App als `HH:MM Std` — so auch die Einträge in der
+ * Tabelle dieser Karte („09:00"). Daneben stand die Fachzeit des Monats als
+ * „9,0 h": dieselbe Art Zahl in zwei Schreibweisen in einer Karte. Fachzeit,
+ * Helferzeit und die Zeiten je Mitarbeiter sind Arbeitszeit → `dauer`.
+ *
+ * DEZIMAL BLEIBT, WAS GEGEN DAS BUDGET GEHALTEN WIRD: der Satz unter dem
+ * Balken und „gesamt … / … h Budget". Das Budget ist in Dezimalstunden
+ * kalkuliert (`estimatedHours`), der Prozentwert rechnet damit, und dieselbe
+ * Gegenüberstellung steht so auch auf der Startseite und in der
+ * Baustellenakte. Dort ist die Dezimalzahl fachlich nötig.
+ */
 const h = fmtStd;
+const dauer = fmtDauer;
+
+/**
+ * Die Baustellennummer, wie sie überall sonst steht — MIT Vorsatz: „PR-187".
+ *
+ * Überall sonst wird die Nummer so ausgegeben, wie sie an der Baustelle
+ * gespeichert ist (`projectNumber`); der Vorsatz ist Teil davon. Der
+ * Gruppierungsschlüssel aus `groupProjectHours` hat ihn dagegen verloren —
+ * `normProjectNumber` streicht „PR-", damit „187" und „PR-187" als DIESELBE
+ * Baustelle zählen. Zum Vergleichen richtig, zum Zeigen falsch.
+ *
+ * Solange die Baustelle nicht geladen ist (oder nicht gefunden wird), steht
+ * die Nummer an den Einträgen selbst noch in ihrer vollen Form; genommen wird
+ * die, die den Vorsatz trägt. Erst wenn keine ihn hat, bleibt der Schlüssel.
+ */
+function angezeigteNummer(r: {
+  project?: Project;
+  projectNumber: string;
+  entries: TimeEntry[];
+}): string {
+  return (
+    r.project?.projectNumber ??
+    r.entries.find((e) => e.projectNumber && e.projectNumber.trim() !== r.projectNumber)
+      ?.projectNumber ??
+    r.projectNumber
+  );
+}
 
 /**
  * Projektauswertung: Ist-Stunden gegen das kalkulierte Budget, getrennt nach
@@ -128,6 +173,7 @@ export default function ProjectSummary({
           const people = [...byUser.values()].sort(
             (a, b) => b.fachMin + b.helperMin - (a.fachMin + a.helperMin),
           );
+          const nummer = angezeigteNummer(r);
 
           return (
             /*
@@ -157,14 +203,14 @@ export default function ProjectSummary({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="min-w-0">
                     <span className="block font-bold text-ink">
-                      {r.project?.customerName ?? r.projectNumber}
+                      {r.project?.customerName ?? nummer}
                     </span>
                     {/* Die Nummer, wie sie an der Baustelle steht — der Schlüssel
                         der Gruppierung hat den Vorsatz „PR-" verloren
-                        (Launch-Check 25.09.2026: „187" statt „PR-187"). */}
-                    <span className="block tnum text-sm text-ink-muted">
-                      {r.project?.projectNumber ?? r.projectNumber}
-                    </span>
+                        (Launch-Check 25.09.2026: „187" statt „PR-187"). Auch
+                        solange die Baustelle noch lädt, siehe
+                        `angezeigteNummer`. */}
+                    <span className="block text-sm text-ink-muted">{nummer}</span>
                   </span>
                   <span className="flex items-center gap-2">
                     {/*
@@ -173,7 +219,7 @@ export default function ProjectSummary({
                       die ganze Baustelle, also zwei Zahlen, die nichts
                       miteinander zu tun haben.
                     */}
-                    <span className="tnum text-sm text-ink">{h(r.fachMin)} h</span>
+                    <span className="text-sm text-ink">{dauer(r.fachMin)}</span>
                     {/*
                       NUR DIE AUSNAHME BEKOMMT EINE PILLE. „Über Budget" ist
                       eine — Helferstunden sind es nicht, sie sind auf vielen
@@ -184,8 +230,8 @@ export default function ProjectSummary({
                     */}
                     {r.budget?.over && <Warnung stufe="dringend">über Budget</Warnung>}
                     {r.helperMin > 0 && (
-                      <span className="tnum text-sm text-ink-muted">
-                        +{h(r.helperMin)} h Helfer
+                      <span className="text-sm text-ink-muted">
+                        +{dauer(r.helperMin)} Helfer
                       </span>
                     )}
                     <Icon
@@ -209,12 +255,12 @@ export default function ProjectSummary({
                 {r.budget && r.budget.pct !== null && r.gesamtFachMin !== null ? (
                   <>
                     <p className="mt-2 text-xs text-ink-muted">
-                      <span className="tnum">{h(r.fachMin)} h</span> in {label} · gesamt{' '}
-                      <span className="tnum font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
-                      <span className="tnum">{fmtStunden(r.project?.estimatedHours ?? 0)} h</span>
+                      <span>{h(r.fachMin)} h</span> in {label} · gesamt{' '}
+                      <span className="font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
+                      <span>{fmtStunden(r.project?.estimatedHours ?? 0)} h</span>
                     </p>
                     <div className="mt-1 flex items-center gap-2">
-                      <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
                         <span
                           className={`block h-full ${BAR_TONE[r.budget.tone]}`}
                           style={{ width: balkenBreite(r.budget.pct) }}
@@ -247,9 +293,9 @@ export default function ProjectSummary({
                         className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1 text-xs"
                       >
                         <span className="font-semibold text-ink">{p.name}</span>
-                        <span className="tnum text-ink-muted">{h(p.fachMin)} h</span>
+                        <span className="text-ink-muted">{dauer(p.fachMin)}</span>
                         {p.helperMin > 0 && (
-                          <span className="tnum text-ink-muted">+{h(p.helperMin)} h Helfer</span>
+                          <span className="text-ink-muted">+{dauer(p.helperMin)} Helfer</span>
                         )}
                       </span>
                     ))}
@@ -271,9 +317,12 @@ export default function ProjectSummary({
                           .map((e) => (
                             <tr
                               key={e.id}
-                              className={`border-b border-line/60 ${e.isHelper ? 'bg-warning-bg/40' : ''}`}
+                              className={`border-b border-line/60 ${e.isHelper ? 'bg-warning-bg' : ''}`}
                             >
-                              <td className="py-1 pr-3 tnum">{dayLabel(e.date)}</td>
+                              {/* Ohne `nowrap` brach das vierstellige Jahr bei
+                                  390 px mitten in der Zahl um („25.09.20|26");
+                                  die Tabelle rollt ohnehin in ihrer Hülle. */}
+                              <td className="whitespace-nowrap py-1 pr-3">{dayLabel(e.date)}</td>
                               <td className="py-1 pr-3">
                                 {/*
                                   ALLE Marker, nicht nur „Helfer". Gemeldet:
@@ -292,7 +341,7 @@ export default function ProjectSummary({
                               <td className="py-1 pr-3 text-ink-muted">
                                 {e.comment ? `„${e.comment}"` : '–'}
                               </td>
-                              <td className="py-1 text-right tnum">
+                              <td className="py-1 text-right">
                                 {fmtMin(calcWorkMin(e))}
                               </td>
                             </tr>
@@ -308,7 +357,7 @@ export default function ProjectSummary({
                       deshalb neben die GESAMTZAHL, nicht neben den Monat.
                     */}
                     <span className="font-semibold text-ink">
-                      Fachzeit in {label}: {h(r.fachMin)} h
+                      Fachzeit in {label}: {dauer(r.fachMin)}
                     </span>
                     {r.project?.estimatedHours && r.gesamtFachMin !== null ? (
                       <span className="text-ink-muted">
@@ -320,7 +369,7 @@ export default function ProjectSummary({
                       <>
                         <span className="text-ink-muted"> · </span>
                         <span className="font-semibold text-warning">
-                          + {h(r.helperMin)} h Helfer-Leistung
+                          + {dauer(r.helperMin)} Helfer-Leistung
                         </span>
                         <span className="text-ink-muted"> (kostenneutral für das Budget)</span>
                       </>

@@ -23,6 +23,7 @@ import { applyBranding } from '@/lib/tenant';
 import { mitFristOder } from '@/lib/frist';
 import type { CurrentUser, Company } from '@/types';
 import { offeneFreigaben, zugriffMelden, type OffeneFreigabe } from '@/lib/db/support';
+import { ausgangsfachKonto } from '@/lib/db/pg/ohneEmpfang';
 import { einblickNurLesend } from '@/lib/fehlerGrund';
 
 /**
@@ -159,6 +160,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsub = beiAenderung(async (wer) => {
+      // Vormerkungen ohne Empfang gehören dem, der gerade angemeldet ist
+      // (Prüflauf 25.09.2026, P1-05) — siehe `ohneEmpfang.ts`.
+      ausgangsfachKonto(wer?.uid ?? null);
       setError(null);
       if (!wer) {
         setUser(null);
@@ -362,7 +366,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await anmeldenNaht(email, password, remember);
   }, []);
 
-  const signOut = useCallback(() => abmeldenNaht(), []);
+  /*
+    DAS GERÄT MELDET SICH MIT AB (Prüflauf 25.09.2026, P1-18). Vorher blieb
+    seine Push-Marke beim abgemeldeten Konto stehen: auf dem geteilten
+    Baustellen-Tablet bekam der Kollege, der sich danach anmeldete, die
+    Meldungen des Vorgängers — Abwesenheiten eingeschlossen. Scheitert das
+    Abmelden der Marke (kein Netz, kein Push auf diesem Gerät), hält das die
+    Abmeldung nicht auf; nach vier Sekunden geht es ohne weiter.
+  */
+  const signOut = useCallback(async () => {
+    if (user) {
+      // Nachgeladen: Firebase Messaging gehört nicht in den Start der App.
+      const abmeldenPush = import('@/lib/push').then(({ disablePush }) => disablePush(user.uid));
+      await Promise.race([
+        abmeldenPush.catch(() => undefined),
+        new Promise((weiter) => setTimeout(weiter, 4000)),
+      ]);
+    }
+    return abmeldenNaht();
+  }, [user]);
 
   const resetPassword = useCallback((email: string) => passwortZuruecksetzen(email), []);
 

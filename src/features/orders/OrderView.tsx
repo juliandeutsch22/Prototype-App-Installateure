@@ -29,6 +29,7 @@ import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAusMs } from '@/lib/datum';
 import { abschlussText } from './abschlussText';
+import { useReiterImBild } from '@/components/reiterImBild';
 
 type Tab = 'bestellen' | 'meine' | 'retoure';
 
@@ -66,6 +67,8 @@ export default function OrderView() {
   const { user } = useAuth();
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('bestellen');
+  // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
+  const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [myOrders, setMyOrders] = useState<WithId<MaterialOrder>[]>([]);
@@ -363,7 +366,7 @@ export default function OrderView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <div ref={reiterleiste} className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -499,7 +502,11 @@ export default function OrderView() {
             </div>
             <div className="mt-4 border-t border-line pt-4">
               <p className="section-label">Nicht im Katalog?</p>
-              <div className="mt-2 grid grid-cols-[1fr_5rem] gap-2 sm:grid-cols-[1fr_6rem_auto] sm:items-end">
+              {/* `minmax(0,1fr)` statt `1fr`: sonst gibt die Spalte nicht unter
+                  die Eigenbreite des Eingabefelds nach, und bei 390 px liefen
+                  Menge und „Hinzufügen" 90–106 px aus der Karte, wo sie
+                  abgeschnitten wurden (Prüflauf 25.09.2026, P4-02). */}
+              <div className="mt-2 grid grid-cols-[minmax(0,1fr)_5rem] gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto] sm:items-end">
                 <InputField
                   id="frei-name"
                   label="Bezeichnung"
@@ -545,7 +552,7 @@ export default function OrderView() {
                       title={
                         <span>
                           {line.materialName}{' '}
-                          <span className="tnum text-ink-muted">×{line.quantity}</span>
+                          <span className="text-ink-muted">×{line.quantity}</span>
                         </span>
                       }
                       subtitle={
@@ -597,7 +604,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[
@@ -649,7 +656,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[
@@ -831,7 +838,7 @@ function QtyAdder({
   return (
     <div className="flex items-center gap-1">
       {added > 0 && (
-        <span className="tnum mr-1 text-sm font-bold text-brand" aria-live="polite">
+        <span className="mr-1 text-sm font-bold text-brand" aria-live="polite">
           ×{added}
         </span>
       )}
@@ -858,7 +865,7 @@ function QtyAdder({
         onChange={(e) => setMenge(e.target.value)}
         onFocus={(e) => e.currentTarget.select()}
         aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
-        className={`tnum h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
+        className={`h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
           gueltig ? 'border-line text-ink' : 'border-danger text-danger'
         }`}
       />

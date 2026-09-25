@@ -20,7 +20,6 @@ import InfoHint from '@/components/InfoHint';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Icon from '@/components/Icon';
 import { Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import IconButton from '@/components/IconButton';
@@ -72,6 +71,18 @@ interface ZeilenEingabe {
 */
 function istStundenEinheit(einheit: string): boolean {
   return /^(h|std\.?|stunden?)$/i.test(einheit.trim());
+}
+
+/*
+  HELFERSTUNDEN SIND KEIN BUDGET DER AMPEL (Prüflauf 25.09.2026, P2-22). Die
+  Budget-Ampel der Baustelle misst die FACHARBEITERzeit (`calcBudgetState`
+  bekommt `fachMin`); eine Zeile „Helferstunden, 10 h" zählte trotzdem von
+  selbst ins Budget, und die Ampel blieb um genau diese Stunden zu lange
+  grün. Der Haken folgt deshalb auch der Bezeichnung — wer ihn von Hand
+  setzt, behält ihn.
+*/
+function zaehltAlsArbeitszeit(einheit: string, bezeichnung: string): boolean {
+  return istStundenEinheit(einheit) && !/helfer/i.test(bezeichnung);
 }
 
 /*
@@ -208,8 +219,13 @@ export default function QuotesView() {
    */
   const kalkulierteStunden = useMemo(
     () =>
+      /*
+        NUR ZEILEN, DIE AUCH GESPEICHERT WERDEN (P2-22) — dieselbe Bedingung
+        wie bei `positionen`. Eine Zeile ohne Bezeichnung fällt beim
+        Speichern weg; ihre Stunden standen trotzdem im Budget.
+      */
       zeilen
-        .filter((z) => z.istArbeitszeit && num(z.qty) > 0)
+        .filter((z) => z.istArbeitszeit && z.label.trim() && num(z.qty) > 0)
         .reduce((s, z) => s + num(z.qty), 0),
     [zeilen],
   );
@@ -246,7 +262,7 @@ export default function QuotesView() {
             qty: String(p.qty).replace('.', ','),
             unit: p.unit,
             unitPrice: String(p.unitPrice).replace('.', ','),
-            istArbeitszeit: p.istArbeitszeit ?? istStundenEinheit(p.unit),
+            istArbeitszeit: p.istArbeitszeit ?? zaehltAlsArbeitszeit(p.unit, p.label),
             hakenVonHand: p.istArbeitszeit !== undefined,
           }))
         : [{ ...LEERE_ZEILE }],
@@ -377,7 +393,7 @@ export default function QuotesView() {
         subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
         action={
           darfAendern && !formOffen ? (
-            <Button onClick={() => setFormOffen(true)}><Icon name="plus" size={18} />Neues Angebot</Button>
+            <Button onClick={() => setFormOffen(true)}>Neues Angebot</Button>
           ) : undefined
         }
       />
@@ -440,7 +456,19 @@ export default function QuotesView() {
                     label="Bezeichnung"
                     value={z.label}
                     onChange={(e) =>
-                      setZeilen((v) => v.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))
+                      setZeilen((v) =>
+                        v.map((x, j) =>
+                          j === i
+                            ? {
+                                ...x,
+                                label: e.target.value,
+                                istArbeitszeit: x.hakenVonHand
+                                  ? x.istArbeitszeit
+                                  : zaehltAlsArbeitszeit(x.unit, e.target.value),
+                              }
+                            : x,
+                        ),
+                      )
                     }
                   />
                   <FormGrid>
@@ -466,7 +494,7 @@ export default function QuotesView() {
                                   unit: e.target.value,
                                   istArbeitszeit: x.hakenVonHand
                                     ? x.istArbeitszeit
-                                    : istStundenEinheit(e.target.value),
+                                    : zaehltAlsArbeitszeit(e.target.value, x.label),
                                 }
                               : x,
                           ),
@@ -507,7 +535,7 @@ export default function QuotesView() {
                     Zählt als Arbeitszeit ins Stundenbudget
                   </label>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="tnum text-sm text-ink-muted">
+                    <span className="text-sm text-ink-muted">
                       {fmtEUR(positionNetto(num(z.qty), cent(num(z.unitPrice))))}
                     </span>
                     {zeilen.length > 1 && (
@@ -551,7 +579,7 @@ export default function QuotesView() {
           </div>
 
           <div className="mt-4 rounded border border-line bg-surface-2 p-3">
-            <p className="tnum text-sm text-ink">
+            <p className="text-sm text-ink">
               Netto {fmtEUR(summen.totalNetto)} · USt {fmtEUR(summen.totalVat)} ·{' '}
               <strong>Brutto {fmtEUR(summen.totalBrutto)}</strong>
             </p>
@@ -564,7 +592,8 @@ export default function QuotesView() {
               <InfoHint about="kalkulierte Arbeitszeit">
                 Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
                 der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
-                geblieben ist — und die Nachkalkulation, was sie verdient hat.
+                geblieben ist — und die Nachkalkulation, was sie verdient hat. Gemessen wird die
+                Zeit der Facharbeiter; Helferstunden zählen deshalb nicht von selbst mit.
               </InfoHint>
             </p>
           </div>
@@ -573,7 +602,7 @@ export default function QuotesView() {
             <p className="mt-3 rounded border border-line bg-surface-2 p-3 text-sm text-warning" role="status">
               Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen.
               Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher kalkuliert:{' '}
-              <strong className="tnum">{fmtStunden(stundenVorher)} h</strong>.
+              <strong>{fmtStunden(stundenVorher)} h</strong>.
             </p>
           )}
 
@@ -615,13 +644,17 @@ export default function QuotesView() {
                 key={q.id}
                 title={
                   // Die Nummer führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
-                  <Link to={`/quotes/${q.id}`} className="link">
+                  // Tastfläche 48 px, Zeile unverändert: Polster und Gegen-
+                  // rand heben sich im Layout auf (Prüflauf 25.09.2026).
+                  <Link to={`/quotes/${q.id}`} className="link py-3 -my-3">
                     {q.quoteNumber} · {q.customerName}
                   </Link>
                 }
+                wert={`${fmtEUR(q.totalBrutto)} brutto`}
+                zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
                 subtitle={
                   <>
-                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)} · {fmtEUR(q.totalBrutto)} brutto
+                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)}
                     <span className="mt-1 block text-xs text-ink-muted">
                       {fmtStunden(q.kalkulierteStunden)} h kalkuliert
                       {q.projectNumber ? ` · Baustelle ${q.projectNumber}` : ''}
@@ -629,7 +662,6 @@ export default function QuotesView() {
                   </>
                 }
               >
-                <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
                 {darfAendern && q.status === 'Entwurf' && (
                   <>
                     <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>

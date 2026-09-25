@@ -145,6 +145,9 @@ describe('Interne Kostensätze', () => {
     zeige();
     expect(screen.getByText(/Deckungsbeitrag je Facharbeiterstunde/)).toBeInTheDocument();
     expect(screen.queryByText(/Noch nicht hinterlegt/)).not.toBeInTheDocument();
+    // 60 − 38,50 — mit Eurozeichen, wie jede Geldangabe (Prüflauf
+    // 25.09.2026, P4-11: hier stand „21,50" ohne Einheit).
+    expect(screen.getByText('21,50 €')).toBeInTheDocument();
   });
 });
 

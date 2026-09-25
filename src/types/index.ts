@@ -463,9 +463,10 @@ export interface WorkSheet {
   /**
    * Fotos vom Einsatz — FREIWILLIG, nie Voraussetzung.
    *
-   * WARUM OPTIONAL UND NICHT PFLICHT. Der Schein muss im Keller ohne Netz
-   * unterschreibbar bleiben; das Ausgangsfach hält einen Schreibvorgang ohne
-   * Empfang vor, ein Datei-Upload nicht. Wäre auch nur ein Foto Bedingung, hinge der
+   * WARUM OPTIONAL UND NICHT PFLICHT. Ein Datei-Upload scheitert bei
+   * schwachem Empfang viel eher als der Schreibvorgang des Scheins (der
+   * übrigens NICHT über das Ausgangsfach läuft — ganz ohne Netz geht auch das
+   * Unterschreiben nicht). Wäre auch nur ein Foto Bedingung, hinge der
    * ganze Beleg an einem Balken Empfang — und der Monteur stünde mit einem
    * Kunden vor sich da, der unterschreiben will.
    *
@@ -1134,8 +1135,21 @@ export interface Invoice {
    * Stammdaten.
    */
   customerVatId?: string;
-  /** Anschrift der Baustelle zum Zeitpunkt der Rechnungslegung. */
+  /**
+   * Die Anschrift des EMPFÄNGERS, wie sie auf dem Beleg steht — festgehalten,
+   * nicht verknüpft.
+   *
+   * Seit dem Prüflauf 25.09.2026 (P2-02) die Anschrift aus dem Kundenstamm;
+   * vorher stand hier die der Baustelle, und Altbestand trägt sie weiter. Ein
+   * Nachdruck liest sie von hier und ergibt damit denselben Beleg.
+   */
   address?: string;
+  /**
+   * Der Ort der Leistung — die Anschrift der Baustelle, wo sie von der des
+   * Empfängers abweicht. Steht als eigene Zeile auf dem Beleg. Altbestand hat
+   * ihn nicht.
+   */
+  leistungsort?: string;
   /**
    * Leistungszeitraum — der Tag oder Zeitraum, über den die Leistung erbracht
    * wurde.

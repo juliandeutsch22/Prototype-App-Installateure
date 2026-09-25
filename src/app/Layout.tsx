@@ -21,6 +21,8 @@ import BottomSheet from '@/components/BottomSheet';
 import AppErneuern from '@/components/AppErneuern';
 import ProblemMelden from '@/components/ProblemMelden';
 import RechtLinks from '@/components/RechtLinks';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 
 /**
  * Der aktive Eintrag wird über die KANTE markiert, nicht über eine volle
@@ -47,12 +49,15 @@ const sideLink = ({ isActive }: { isActive: boolean }) =>
  * Verlauf mehr), hat Cyan dort auch keinen Ton mehr, an den es anschliesst.
  * Getragen wird der Zustand ohnehin dreifach: Fläche, Fettung, Textfarbe.
  * Der Strich ist der vierte Hinweis und nie der einzige.
+ *
+ * Die Fläche ist deckendes `--ink-deep`, eine Stufe dunkler als die Leiste —
+ * keine halbtransparente Weiß-Tönung. Weiß darauf steht bei über 16:1.
  */
 const sideLinkDark = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-white bg-white/10 font-bold text-white'
-      : 'border-l-transparent font-medium text-white/75 hover:bg-white/10 hover:text-white'
+      ? 'border-l-white bg-ink-deep font-bold text-white'
+      : 'border-l-transparent font-medium text-white/75 hover:bg-ink-deep hover:text-white'
   }`;
 
 /**
@@ -94,6 +99,24 @@ export default function Layout({ children }: { children: ReactNode }) {
   const ort = useLocation();
   const posten = useOffenePosten();
   const angemeldet = !!user;
+  /** Wie viele eigene Buchungen noch im Fach liegen, wenn abgemeldet werden soll. */
+  const [ungesendet, setUngesendet] = useState(0);
+
+  /*
+    ABMELDEN MIT UNGESENDETEN BUCHUNGEN (Prüflauf 25.09.2026, P1-05).
+
+    Was ohne Empfang vorgemerkt wurde, geht nur mit der Sitzung seines
+    Besitzers hinaus. Nach dem Abmelden bleibt es auf dem Gerät liegen, bis
+    er sich HIER wieder anmeldet — auf dem Baustellen-Tablet, auf dem sich
+    gleich der Kollege anmeldet, womöglich nie. Das muss er vorher wissen.
+    Die Nachfrage kommt NUR, wenn etwas offen ist; sonst meldet der Knopf ab
+    wie bisher.
+  */
+  async function abmelden() {
+    const offen = user ? await offeneVormerkungen(user.uid).catch(() => 0) : 0;
+    if (offen > 0) setUngesendet(offen);
+    else await signOut();
+  }
 
   /*
     NACHGELADEN WIRD BEI JEDEM SEITENWECHSEL — eine Abfrage, ein Umlauf.
@@ -202,7 +225,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {groups.map(({ group, items: groupItems }) => (
             <div key={group} className="flex flex-col gap-1">
               {group !== 'Allgemein' && (
-                <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-white/60">
+                <p className="px-3 pb-1 text-xs font-semibold text-white/60">
                   {group}
                 </p>
               )}
@@ -214,7 +237,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                   className={sideLinkDark}
                 >
                   <Icon name={item.icon} size={20} className="shrink-0" />
-                  <span className="truncate">{item.label}</span>
+                  {/* `-mr-2`: die Beschriftung darf in den rechten Innenabstand
+                      der Zeile. Bei 834 px fehlte dem fetten, aktiven
+                      „Mitarbeiterübersicht" genau 1 px, und es endete mit
+                      Auslassungspunkten (Prüflauf 25.09.2026, P4-13).
+                      Gewicht und Breite der Leiste bleiben, wie sie sind. */}
+                  <span className="-mr-2 truncate">{item.label}</span>
                   <ZeilenHinweis item={item} posten={posten} auf="dunkel" />
                 </NavLink>
               ))}
@@ -239,7 +267,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <Button
             variant="ghost-dark"
             className="w-full justify-start"
-            onClick={() => void signOut()}
+            onClick={() => void abmelden()}
           >
             Abmelden
           </Button>
@@ -339,7 +367,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   */}
                   <span
                     className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                      isActive ? 'bg-white/15' : ''
+                      isActive ? 'bg-ink-deep' : ''
                     }`}
                   >
                     <Icon name={item.icon} size={20} />
@@ -361,14 +389,25 @@ export default function Layout({ children }: { children: ReactNode }) {
           {hasMore && (
             <button
               onClick={() => setMoreOpen(true)}
-              aria-label="Weitere Bereiche"
+              /*
+                DER NAME TRÄGT DAS SICHTBARE WORT UND DIE ZAHL. „Weitere
+                Bereiche" überschrieb den Inhalt: die Summe (sr-only im
+                Zaehler) wurde nie vorgelesen, und wer per Sprache „Mehr"
+                sagt, traf den Knopf nicht, weil das Wort im Namen fehlte
+                (Prüflauf 25.09.2026, P4-08).
+              */
+              aria-label={
+                Number.isFinite(mehrSumme) && mehrSumme >= 1
+                  ? `Mehr, ${mehrSumme} ${mehrSumme === 1 ? 'offener Posten' : 'offene Posten'}`
+                  : 'Mehr'
+              }
               className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${
                 moreActive ? 'text-white' : 'text-white/70'
               }`}
             >
               <span
                 className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                  moreActive ? 'bg-white/15' : ''
+                  moreActive ? 'bg-ink-deep' : ''
                 }`}
               >
                 <Icon name="more" size={20} />
@@ -399,7 +438,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {groups.map(({ group, items: groupItems }) => (
             <div key={group}>
               {group !== 'Allgemein' && (
-                <p className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                <p className="mb-1 px-1 text-xs font-semibold text-ink-muted">
                   {group}
                 </p>
               )}
@@ -436,7 +475,11 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="mt-4 flex flex-col gap-1 border-t border-line pt-3">
           <NavLink to="/settings/meldungen" onClick={() => setProfilOpen(false)} className={sideLink}>
             <Icon name="bell" size={20} className="shrink-0" />
-            <span>Benachrichtigungen</span>
+            {/* So heißt die Seite, auf der man landet (navigation.ts,
+                Unterseite `meldungen`): Passwort UND Meldungen. Hier stand
+                „Benachrichtigungen", und angekommen war man in „Mein
+                Konto" (Prüflauf 25.09.2026, P4-17). */}
+            <span>Mein Konto</span>
           </NavLink>
           <ProblemMelden
             ausloeser={(oeffnen) => (
@@ -452,7 +495,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           className="mt-3 w-full"
           onClick={() => {
             setProfilOpen(false);
-            void signOut();
+            void abmelden();
           }}
         >
           Abmelden
@@ -476,6 +519,22 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </BottomSheet>
 
+      <ConfirmDialog
+        open={ungesendet > 0}
+        title="Noch nicht gesendet"
+        message={
+          `${ungesendet === 1 ? 'Eine Buchung liegt' : `${ungesendet} Buchungen liegen`} noch ` +
+          'ungesendet auf diesem Gerät — sie wurden ohne Empfang gespeichert. Nach dem Abmelden ' +
+          'gehen sie erst hinaus, wenn du dich auf DIESEM Gerät wieder anmeldest. Besser: erst ' +
+          'Empfang abwarten, dann abmelden.'
+        }
+        confirmLabel="Trotzdem abmelden"
+        onConfirm={async () => {
+          await signOut();
+          setUngesendet(0);
+        }}
+        onCancel={() => setUngesendet(0)}
+      />
     </div>
   );
 }

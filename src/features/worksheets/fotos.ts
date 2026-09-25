@@ -9,12 +9,12 @@ import type { WorkSheetFoto } from '@/types';
  * einzige, was sich später nicht wegdiskutieren lässt.
  *
  * SIE SIND FREIWILLIG, und das ist eine bewusste Entscheidung, keine
- * Sparsamkeit. Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
- * Das Ausgangsfach hält einen Schreibvorgang ohne Empfang vor und schickt
- * ihn nach, der Dateispeicher tut das NICHT. Wäre auch nur ein Foto
- * Bedingung, hinge der
- * ganze Beleg an einem Balken Empfang — und der Monteur stünde mit einem
- * Kunden vor sich da, der unterschreiben will.
+ * Sparsamkeit. Ein Upload scheitert bei schwachem Empfang viel eher als der
+ * kleine Schreibvorgang des Scheins. Wäre auch nur ein Foto Bedingung, hinge
+ * der ganze Beleg an einem Balken Empfang — und der Monteur stünde mit einem
+ * Kunden vor sich da, der unterschreiben will. (Ganz ohne Netz geht auch das
+ * Unterschreiben nicht: der Schein läuft NICHT über das Ausgangsfach —
+ * Prüflauf 25.09.2026, P1-14.)
  *
  * Was die App stattdessen tut: sie sagt VOR dem Unterschreiben, wenn ein Bild
  * noch nicht oben ist (siehe `nochNichtOben`), statt es still fallen zu

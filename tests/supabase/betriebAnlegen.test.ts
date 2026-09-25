@@ -102,8 +102,42 @@ describe('Wer einen Betrieb anlegen darf', () => {
     );
     await admin.from('platform_admins').delete().eq('id', weg.uid);
 
+    /*
+      401 UND NICHT MEHR 403 — bewusst geändert (Prüflauf 25.09.2026, P3-08).
+      Das Entfernen aus `platform_admins` beendet seitdem die Sitzungen des
+      Kontos. Der Anmeldedienst nimmt das Token dann gar nicht mehr an
+      (`session_not_found`), und die Function antwortet schon an der ersten
+      Tür mit „Keine Anmeldung." — früher und strenger als die Tabellenfrage,
+      zu der es gar nicht mehr kommt. Die Absicht bleibt: angelegt wird nichts.
+    */
     const { status } = await anlegen(mitAnspruch, gueltig('entzogen'));
+    expect(status).toBe(401);
+    const { data } = await admin.from('companies').select('id').eq('id', 'entzogen');
+    expect(data).toEqual([]);
+  }, 120_000);
+
+  it('ein Token mit dem Anspruch, aber ohne Zeile in der Tabelle, auch nicht', async () => {
+    /*
+      DIE TABELLENFRAGE SELBST. Seit das Entziehen die Sitzungen beendet,
+      kommt der Fall oben nicht mehr bis zu ihr. Hier steht der Anspruch im
+      Konto und im Token, die Sitzung ist gültig — nur eine Zeile in
+      `platform_admins` gibt es nicht. Die Function fragt die Tabelle und
+      nicht das Token.
+    */
+    const email = `anlage-nur-token-${crypto.randomUUID().slice(0, 8)}@anlage.test`;
+    const { error } = await admin.auth.admin.createUser({
+      email, password: PASSWORT, email_confirm: true,
+      app_metadata: { plattform_admin: true },
+    });
+    if (error) throw error;
+    const token = await anmelden(email);
+    const anspruch = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString('utf8'))
+      .app_metadata?.plattform_admin;
+    expect(anspruch).toBe(true);
+
+    const { status, daten } = await anlegen(token, gueltig('nur-token'));
     expect(status).toBe(403);
+    expect(daten.error).toContain('globale Administrator');
   }, 120_000);
 });
 

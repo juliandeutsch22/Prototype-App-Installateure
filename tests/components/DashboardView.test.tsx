@@ -611,3 +611,36 @@ describe('Startseite — offene Rechnungen', () => {
     expect(screen.getByRole('link', { name: /Offene Rechnungen/ })).toHaveAttribute('href', '/invoices');
   });
 });
+
+/*
+  Prüflauf 25.09.2026, P4-15: eingeteilt werden nicht nur Monteure. Die
+  Karte „Heute" bot jedem Eingeteilten „Mein Einsatzplan" (/my-schedule, nur
+  Monteure) und „Schein schreiben" (/worksheet, nur wer Scheine schreibt) an
+  — Verwaltung und Buchhaltung landeten auf „Kein Zugriff".
+*/
+describe('Startseite — Verweise nur, wohin man darf (P4-15)', () => {
+  it('zeigt dem Monteur Einsatzplan und Schein', async () => {
+    zeichne();
+    const karte = (await screen.findByText(/Heute — 2 Baustellen/i)).closest('section')!;
+    expect(within(karte).getByRole('link', { name: 'Mein Einsatzplan' })).toHaveAttribute('href', '/my-schedule');
+    expect(within(karte).getAllByRole('link', { name: 'Schein schreiben' })).toHaveLength(2);
+  });
+
+  it.each(['Verwaltung', 'Buchhaltung'])('zeigt %s beides nicht', async (r) => {
+    rolle.wert = r;
+    zeichne();
+    const karte = (await screen.findByText(/Heute — 2 Baustellen/i)).closest('section')!;
+    expect(within(karte).queryByRole('link', { name: 'Mein Einsatzplan' })).not.toBeInTheDocument();
+    expect(within(karte).queryByRole('link', { name: 'Schein schreiben' })).not.toBeInTheDocument();
+    // „Zeit erfassen" bleibt — das darf jede Rolle.
+    expect(within(karte).getAllByRole('link', { name: 'Zeit erfassen' })).toHaveLength(2);
+  });
+
+  it('zeigt der Projektleitung den Schein, aber nicht den Einsatzplan der Monteure', async () => {
+    rolle.wert = 'Projektleiter';
+    zeichne();
+    const karte = (await screen.findByText(/Heute — 2 Baustellen/i)).closest('section')!;
+    expect(within(karte).queryByRole('link', { name: 'Mein Einsatzplan' })).not.toBeInTheDocument();
+    expect(within(karte).getAllByRole('link', { name: 'Schein schreiben' })).toHaveLength(2);
+  });
+});

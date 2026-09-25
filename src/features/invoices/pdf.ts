@@ -86,6 +86,11 @@ export function generateInvoicePdf(opts: {
   reverseCharge?: boolean;
   /** UID des Leistungsempfängers — bei Reverse Charge Pflicht. */
   customerVatId?: string;
+  /**
+   * Der Ort der Leistung, wenn er nicht die Anschrift des Empfängers ist —
+   * eine eigene Zeile unter der Überschrift, wie beim Angebot.
+   */
+  leistungsort?: string;
   /** Einzel-, Anzahlungs-, Teil- oder Schlussrechnung. Ohne Angabe: einzel. */
   art?: RechnungsArt;
   /**
@@ -154,6 +159,7 @@ export function generateInvoicePdf(opts: {
   kopfdaten(doc, kopf);
 
   titel(doc, UEBERSCHRIFT[art]);
+  let zusatzY = 97;
   if (!(leistungVon && leistungBis) && art === 'anzahlung') {
     /*
       BEI EINER ANZAHLUNG GIBT ES NOCH KEINEN ZEITRAUM — und einen zu
@@ -162,15 +168,34 @@ export function generateInvoicePdf(opts: {
       über eine Leistung, die niemand erbracht hat.
     */
     doc.setFontSize(9).setTextColor(...GRAU);
-    doc.text('Anzahlung auf eine noch zu erbringende Leistung', RAND, 97);
+    doc.text('Anzahlung auf eine noch zu erbringende Leistung', RAND, zusatzY);
     doc.setTextColor(...TINTE);
+    zusatzY += 5;
+  }
+  /*
+    DER ORT DER LEISTUNG ALS EIGENE ZEILE (Prüflauf 25.09.2026, P2-02). Die
+    Rechnung geht an die Anschrift des Kunden; gearbeitet wurde oft woanders
+    — die Wohnung der Mutter, eines von zwanzig Häusern der Hausverwaltung.
+    Ohne Leistungsort (Altbestand, oder er ist die Anschrift des Kunden)
+    bleibt der Beleg, wie er war.
+  */
+  const ort = opts.leistungsort?.trim();
+  if (ort && ort !== project.address?.trim()) {
+    doc.setFontSize(9).setTextColor(...GRAU);
+    doc.text(
+      doc.splitTextToSize(`Ort der Leistung: ${ort}`, RECHTS - RAND)[0] as string,
+      RAND,
+      zusatzY,
+    );
+    doc.setTextColor(...TINTE);
+    zusatzY += 5;
   }
 
   // Positionstabelle
   positionsTabelle(doc, autoTable, {
     positions: assembled.positions,
     fuss: summenZeilen({ assembled, vatRate, rc, abzuege, forderung }),
-    startY: TABELLE_AB + 3,
+    startY: Math.max(TABELLE_AB + 3, zusatzY + 1),
   });
 
   // Zahlungshinweis + Bankdaten

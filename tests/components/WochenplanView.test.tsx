@@ -126,6 +126,26 @@ describe('Wochenplan — wer ist wo', () => {
     expect(tabelle().getAllByRole('row')).toHaveLength(3);
   });
 
+  it('teilt die Breite fest auf: Namensspalte fest, sieben gleich breite Tage', async () => {
+    /**
+     * Prüflauf 25.09.2026, P4-01: im automatischen Tabellenlayout nahm ein
+     * Tag mit langem Kundennamen bei 834 px die ganze Breite, Mo–Do
+     * schrumpften auf 17–29 px und brachen je Buchstabe um. jsdom rechnet
+     * kein Layout — geprüft wird deshalb, was das Layout festlegt: festes
+     * Tabellenlayout und eine feste Breite der ersten Spalte (den Rest
+     * teilen die Tage gleich). Gemessen im Browser: 144 px + 7 × 80 px.
+     */
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const tab = screen.getByRole('table', { name: 'Wochenplan als Tabelle' });
+    expect(tab.className).toMatch(/\btable-fixed\b/);
+    const kopf = tab.querySelectorAll('thead th');
+    expect(kopf).toHaveLength(8);
+    expect(kopf[0].className).toMatch(/\bw-36\b/);
+    // Die Tage selbst tragen KEINE eigene Breite — sonst wären sie nicht gleich.
+    for (const th of Array.from(kopf).slice(1)) expect(th.className).not.toMatch(/\bw-/);
+  });
+
   it('setzt die Baustelle in die Zelle des eingeteilten Tages', async () => {
     einsaetze = [
       {
@@ -199,7 +219,7 @@ describe('Wochenplan — der Weg in die Tagesplanung', () => {
     ];
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
-    await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber am 02\.09/ }));
+    await userEvent.click(tabelle().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ }));
     expect(gefahren.zu).toBe('/assignments/tag');
     expect(gefahren.zustand).toEqual({ datum: MITTWOCH, projectNumber: '2026-042' });
   });
@@ -215,7 +235,84 @@ describe('Wochenplan — der Weg in die Tagesplanung', () => {
   });
 });
 
+describe('Wochenplan — zwei Baustellen desselben Kunden (Design-Überarbeitung, Punkt 7)', () => {
+  /**
+   * Ein Kunde kann mehrere Baustellen haben. Stünde auf der Karte nur der
+   * Name, sähen zwei Einsätze bei „Familie Huber" gleich aus — welcher ins
+   * Haus und welcher in die Wohnung geht, wüsste niemand. Die Nummer steht
+   * so da wie überall sonst: wie sie an der Baustelle gespeichert ist, mit
+   * Vorsatz.
+   */
+  beforeEach(() => {
+    BAUSTELLEN.push({
+      id: 'p2', companyId: 'perl', projectNumber: 'PR-187', customerName: 'Familie Huber', status: 'Aktiv',
+    } as Project);
+    einsaetze = [
+      { id: 'a1', companyId: 'perl', date: MITTWOCH, projectNumber: '2026-042', userId: 'u1', userName: 'Max Mustermann' },
+      { id: 'a2', companyId: 'perl', date: MITTWOCH, projectNumber: 'PR-187', userId: 'u1', userName: 'Max Mustermann' },
+    ] as (Assignment & { id: string })[];
+  });
+  afterEach(() => {
+    BAUSTELLEN.splice(1);
+  });
+
+  it('nennt in der Tabelle an jeder Karte Kunde UND Nummer', async () => {
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
+    const karten = within(zeile).getAllByRole('button', { name: /Familie Huber .* am 02\.09/ });
+    expect(karten).toHaveLength(2);
+    expect(karten.map((k) => k.textContent)).toEqual(
+      expect.arrayContaining(['Familie Huber2026-042', 'Familie HuberPR-187']),
+    );
+  });
+
+  /*
+    AUCH FÜR DIE VORLESEHILFE ZWEI VERSCHIEDENE KARTEN. Der zugängliche Name
+    nannte nur Kunde und Tag — zweimal „Familie Huber am 02.09. bearbeiten“,
+    und wer nicht sieht, wusste nicht, welche Baustelle er öffnet. Jetzt
+    steht die Nummer mit im Namen, in der Tabelle wie in der Tagesliste.
+  */
+  it('gibt beiden Karten verschiedene zugängliche Namen — mit der Nummer', async () => {
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /Max Mustermann/ });
+    expect(
+      within(zeile).getByRole('button', { name: /^Familie Huber \(2026-042\) am 02\.09\.? bearbeiten$/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(zeile).getByRole('button', { name: /^Familie Huber \(PR-187\) am 02\.09\.? bearbeiten$/ }),
+    ).toBeInTheDocument();
+    expect(liste().getByRole('button', { name: /^Familie Huber \(2026-042\) am/ })).toBeInTheDocument();
+    expect(liste().getByRole('button', { name: /^Familie Huber \(PR-187\) am/ })).toBeInTheDocument();
+  });
+
+  it('nennt in der Tagesliste an jeder Karte Kunde UND Nummer', async () => {
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    const karten = liste().getAllByRole('button', { name: /Familie Huber .* am 02\.09/ });
+    expect(karten).toHaveLength(2);
+    expect(karten.some((k) => k.textContent?.includes('Familie Huber · 2026-042'))).toBe(true);
+    expect(karten.some((k) => k.textContent?.includes('Familie Huber · PR-187'))).toBe(true);
+  });
+});
+
 describe('Wochenplan — Woche wechseln', () => {
+  it('hat Blätterpfeile mit vollem Ziel, auch am Schreibtisch gut sichtbar', async () => {
+    /**
+     * 48 × 48 px wie die Monatspfeile im Kalender — `min-h-touch` bringt
+     * `Button` mit. jsdom misst nicht; geprüft wird, dass die Klassen da sind.
+     * `sm:text-xl`, weil sonst das `sm:text-base` aus `Button` das Zeichen ab
+     * 640 px auf Fliesstextgrösse zurücksetzt.
+     */
+    zeige();
+    await screen.findByRole('row', { name: /Max Mustermann/ });
+    for (const name of ['Woche zurück', 'Woche vor']) {
+      const pfeil = screen.getByRole('button', { name });
+      expect(pfeil.className).toMatch(/(^|\s)min-h-touch(\s|$)/);
+      expect(pfeil.className).toMatch(/(^|\s)min-w-touch(\s|$)/);
+      expect(pfeil.className).toMatch(/(^|\s)sm:text-xl(\s|$)/);
+    }
+  });
+
   it('geht eine Woche vor und wieder zurueck', async () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
@@ -253,7 +350,7 @@ describe('Wochenplan — die Tagesliste auf dem Telefon', () => {
     zeige();
     await screen.findByRole('row', { name: /Max Mustermann/ });
 
-    const knopf = liste().getByRole('button', { name: /Familie Huber am 02\.09/ });
+    const knopf = liste().getByRole('button', { name: /Familie Huber \(2026-042\) am 02\.09/ });
     expect(knopf).toHaveTextContent('Familie Huber');
     expect(knopf).toHaveTextContent('Max Mustermann');
   });

@@ -14,7 +14,7 @@ import {
   fotosAmEntwurf,
   type NewWorkSheet,
 } from '@/lib/db/workSheets';
-import { fmtMin, todayStr } from '@/lib/time';
+import { fmtDauer, fmtMin, todayStr } from '@/lib/time';
 import type { Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -32,7 +32,7 @@ import { SCHRITTE, useEineSeite, type Schritt } from './schritte';
 import MaterialErfassen from './MaterialErfassen';
 import { neueKennung, ohneKennung, type MaterialZeile } from './materialZeilen';
 import LeistungszeitErfassen, { ZeileEntfernen } from './LeistungszeitErfassen';
-import { komprimiere, fotoHochladen, fotoEntfernen } from '@/lib/db/scheinFotos';
+import { komprimiere, fotoHochladen, fotoEntfernen, fotoAdresse } from '@/lib/db/scheinFotos';
 import {
   darfFotografieren,
   nochNichtOben,
@@ -84,6 +84,23 @@ import { datumAT } from '@/lib/datum';
 const NICHT_ZU_OEFFNEN =
   'Dieser Entwurf lässt sich nicht öffnen — die Kennung stimmt nicht, oder er gehört nicht zu diesem Betrieb.';
 
+/**
+ * Steht diese Entwurfszeile auch in der Vorausfüllung?
+ *
+ * Verglichen wird, was die Zeit ausmacht — wer, von wann bis wann, Pause,
+ * Minuten. Die Tätigkeit bleibt aussen vor: sie ist Freitext und darf sich
+ * seit dem Speichern geändert haben, ohne dass es eine andere Zeit wäre.
+ */
+function gleicheZeile(a: WorkSheetZeit, b: WorkSheetZeit): boolean {
+  return (
+    a.mitarbeiter.trim().toLowerCase() === b.mitarbeiter.trim().toLowerCase() &&
+    (a.von ?? '') === (b.von ?? '') &&
+    (a.bis ?? '') === (b.bis ?? '') &&
+    (a.pauseMin ?? 0) === (b.pauseMin ?? 0) &&
+    a.minuten === b.minuten
+  );
+}
+
 export default function WorkSheetView() {
   const { user } = useAuth();
   const toast = useToast();
@@ -113,6 +130,16 @@ export default function WorkSheetView() {
     Ordner, den später nichts mehr einem Schein zuordnet.
   */
   const [scheinId, setScheinId] = useState<string | null>(entwurfId);
+  /*
+    DIESELBE KENNUNG ALS REF, dazu die laufende Anlage (Prüflauf 25.09.2026,
+    P1-04). Der Zustand oben kommt in einer Funktion erst beim nächsten
+    Zeichnen an; wer ihn aus der Closure las — die Schleife über mehrere
+    gewählte Fotos, oder „Entwurf speichern", während das erste Foto den
+    Entwurf gerade anlegt —, sah noch `null` und legte einen ZWEITEN Entwurf
+    an. Zwei Belege über dieselbe Arbeit, und niemand weiss, welcher gilt.
+  */
+  const scheinIdRef = useRef<string | null>(entwurfId);
+  const anlageRef = useRef<Promise<string> | null>(null);
   /** Die Fotos im Formular — hochgeladen oder noch nicht. Immer freiwillig. */
   const [fotos, setFotosZustand] = useState<FotoEntwurf[]>([]);
   /*
@@ -176,6 +203,17 @@ export default function WorkSheetView() {
    */
   const entwurfZeiten = useRef<WorkSheetZeit[] | null>(null);
   /**
+   * Die Zeilen des Entwurfs, die mit der ersten gelungenen Vorausfüllung
+   * noch abzugleichen sind — samt Baustelle und Tag, zu denen sie gehören.
+   *
+   * Im Entwurf steht nicht, woher eine Zeile kam. Vor Ort getippte Zeilen
+   * haben aber keine Buchung hinter sich; ersetzte die Vorausfüllung die
+   * Liste, wären sie weg (Prüflauf 25.09.2026, P1-02). Deshalb bleibt jede
+   * Entwurfszeile stehen, der keine gebuchte entspricht — als selbst
+   * erfasst, also mit Kreuz, falls sie doch überholt ist.
+   */
+  const entwurfAbgleich = useRef<{ schluessel: string; zeilen: WorkSheetZeit[] } | null>(null);
+  /**
    * Zu welchem Schein — Baustelle UND Tag — das eingetragene Material gehört.
    *
    * Der Wechsel auf einen anderen Schein räumt die Zeilen weg. Ein GELADENER
@@ -236,14 +274,26 @@ export default function WorkSheetView() {
         );
         // Nur vorauswählen, wenn nichts vorgegeben ist und die Lage eindeutig
         // ist — eine falsche Vorauswahl wäre schlimmer als gar keine.
-        if (nummern.length === 1 && !projektAusUrl) setProjectNumber(nummern[0]);
+        /*
+          UND NUR INS LEERE FELD (Prüflauf 25.09.2026, P1-03). Die Antwort
+          kommt womöglich erst, nachdem der Monteur schon gewählt hat oder
+          ein Entwurf seine Baustelle gesetzt hat; sie zu überschreiben hiesse
+          den Schein auf eine andere Baustelle zu legen — und der Wechsel
+          räumt obendrein das eingetragene Material weg. Deshalb der Blick
+          auf den AKTUELLEN Wert statt auf den beim Abschicken, und beim
+          Entwurf gar nicht: seine Baustelle steht im Entwurf.
+        */
+        if (nummern.length === 1 && !projektAusUrl && !entwurfId) {
+          setProjectNumber((bisher) => bisher || nummern[0]);
+        }
       })
       .catch(() => setHeutige([]));
     return () => {
       verworfen = true;
     };
-    // `projektAusUrl` ist beim ersten Zeichnen fix und gehört nicht ins
-    // Abhängigkeitsfeld: sonst liefe die Vorauswahl bei jeder Auswahl erneut.
+    // `projektAusUrl` und `entwurfId` sind beim ersten Zeichnen fix und
+    // gehören nicht ins Abhängigkeitsfeld: sonst liefe die Vorauswahl bei
+    // jeder Auswahl erneut.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, datum]);
 
@@ -268,6 +318,13 @@ export default function WorkSheetView() {
     if (materialGehoertZu.current === jetzt) return;
     materialGehoertZu.current = jetzt;
     setMaterial([]);
+    /*
+      Die vor Ort getippten Zeiten bleiben stehen (die Vorausfüllung lässt
+      sie ausdrücklich leben), trugen aber noch den ALTEN Tag — ein Schein
+      über den 12. mit einer Zeile vom 11. (Prüflauf 25.09.2026, P1-20). Ein
+      Schein geht über genau einen Tag; seine Zeilen tragen diesen.
+    */
+    setZeiten((z) => (z.some((r) => r.datum !== datum) ? z.map((r) => ({ ...r, datum })) : z));
   }, [projectNumber, datum]);
 
   /**
@@ -321,11 +378,44 @@ export default function WorkSheetView() {
         }
         materialGehoertZu.current = `${schein.projectNumber}|${schein.datum}`;
         entwurfZeiten.current = schein.zeiten;
+        entwurfAbgleich.current = {
+          schluessel: `${schein.projectNumber}|${schein.datum}`,
+          zeilen: schein.zeiten,
+        };
         setProjectNumber(schein.projectNumber);
         setDatum(schein.datum);
         setZeiten(schein.zeiten);
         setMaterial(schein.material.map((m) => ({ ...m, id: neueKennung() })));
         setNotizen(schein.notizen ?? '');
+        /*
+          DIE FOTOS KOMMEN MIT (Prüflauf 25.09.2026, P1-01). Vorher blieben
+          sie im Entwurf liegen und nicht im Formular — und weil Speichern
+          und Unterschreiben die Fotoliste aus dem Formular schicken, ging
+          eine LEERE Liste hinaus, die die Datenbank als „alle weg" liest.
+          Das nächste Foto überschrieb sie ebenso.
+
+          Sie sind schon oben, also tragen sie `oben`; die Bytes gibt es hier
+          nicht und braucht es nicht — nachgereicht wird nur, was noch nicht
+          oben ist. Die Vorschau kommt als signierte Adresse nach; bis dahin
+          (oder wenn sie ausbleibt) steht ein Platzhalter da.
+        */
+        const geladen: FotoEntwurf[] = (schein.fotos ?? []).map((f) => ({
+          vorschau: '',
+          daten: new Blob(),
+          geraetZeit: f.geraetZeit,
+          oben: f,
+        }));
+        setFotos(geladen);
+        for (const eintrag of geladen) {
+          fotoAdresse(eintrag.oben!.pfad)
+            .then((adresse) => {
+              if (verworfen) return;
+              setFotos(
+                fotosRef.current.map((x) => (x === eintrag ? { ...x, vorschau: adresse } : x)),
+              );
+            })
+            .catch(() => undefined);
+        }
       })
       .catch(() => {
         if (!verworfen) setEntwurfFehler(NICHT_ZU_OEFFNEN);
@@ -384,6 +474,17 @@ export default function WorkSheetView() {
       .then((data) => {
         if (verworfen) return;
         /*
+          Einmal abgeglichen ist abgeglichen: ein späterer Anlauf holte sonst
+          Zeilen zurück, die der Monteur inzwischen weggenommen hat. Für eine
+          andere Baustelle oder einen anderen Tag gilt der Entwurf nicht.
+        */
+        const abgleich = entwurfAbgleich.current;
+        entwurfAbgleich.current = null;
+        const ausEntwurf =
+          abgleich && abgleich.schluessel === `${projectNumber}|${datum}`
+            ? abgleich.zeilen.filter((z) => !data.zeiten.some((g) => gleicheZeile(g, z)))
+            : [];
+        /*
           DIE VOR ORT GETIPPTEN ZEILEN ÜBERLEBEN DIE VORAUSFÜLLUNG.
 
           Die Frist läuft zwölf Sekunden, und im Keller mit einem Balken LTE
@@ -396,7 +497,10 @@ export default function WorkSheetView() {
           Merkliste wird entsprechend verschoben.
         */
         setZeiten((bisher) => {
-          const eigene = bisher.filter((_, i) => selbstErfasstRef.current.has(i));
+          const eigene = [
+            ...ausEntwurf,
+            ...bisher.filter((_, i) => selbstErfasstRef.current.has(i)),
+          ];
           selbstErfasstRef.current = new Set(
             eigene.map((_, i) => data.zeiten.length + i),
           );
@@ -491,8 +595,19 @@ export default function WorkSheetView() {
    * Datensatz und brach ohne Meldung ab, wenn er fehlte. Ein Knopf, der
    * anklickbar aussieht und nichts tut, ist schlimmer als ein gesperrter.
    */
+  /*
+    MATERIAL OHNE MENGE wird nicht unterschrieben (Prüflauf 25.09.2026,
+    P1-21). Null oder weniger Stück auf einem Beleg, den der Kunde
+    unterschreibt, ist ein Vertipper — oder ein leer gelassenes Feld —, kein
+    Inhalt. Als Entwurf speichern geht weiter: dort wird noch getippt.
+  */
+  const ohneMenge = material.filter((m) => !(m.menge > 0));
   const bereit =
-    !!projekt && monteurGesetzt && kundeGesetzt && kundeName.trim().length > 1;
+    !!projekt &&
+    monteurGesetzt &&
+    kundeGesetzt &&
+    kundeName.trim().length > 1 &&
+    ohneMenge.length === 0;
 
   /*
     EINGETIPPT, ABER NICHT ÜBERNOMMEN. Leistungszeit und freie Materialzeile
@@ -544,7 +659,7 @@ export default function WorkSheetView() {
         };
         setFotos([...fotosRef.current, eintrag]);
         try {
-          const id = scheinId ?? (await inhaltSchreiben());
+          const id = await kennungHolen();
           const oben = await fotoHochladen(user.companyId, id, klein, eintrag.geraetZeit);
           setFotos(
             fotosRef.current.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)),
@@ -570,7 +685,7 @@ export default function WorkSheetView() {
     if (!user || !projekt) return;
     setFotoLaeuft(true);
     try {
-      const id = scheinId ?? (await inhaltSchreiben());
+      const id = await kennungHolen();
       const oben = await fotoHochladen(user.companyId, id, eintrag.daten, eintrag.geraetZeit);
       setFotos(
         fotosRef.current.map((x) => (x === eintrag ? { ...x, oben, fehler: undefined } : x)),
@@ -604,7 +719,7 @@ export default function WorkSheetView() {
       zwischendurch ein Eintrag, der auf eine gelöschte Datei zeigt — und
       genau der ginge beim Unterschreiben in die Prüfsumme ein.
     */
-    if (scheinId) await festschreiben(scheinId);
+    if (scheinIdRef.current) await festschreiben(scheinIdRef.current);
     if (eintrag.oben) await fotoEntfernen(eintrag.oben.pfad).catch(() => undefined);
   }
 
@@ -687,8 +802,8 @@ export default function WorkSheetView() {
     try {
       const id = await inhaltSchreiben();
 
-      // Gerätezeit: offline im Keller ist die Serverzeit die der späteren
-      // Übertragung, nicht die der Unterschrift.
+      // Gerätezeit: sie ist der Moment der Unterschrift vor dem Kunden. Die
+      // Serverzeit hält `unterschriebenAm` getrennt fest.
       const jetzt = Date.now();
       await signWorkSheet(
         id,
@@ -748,23 +863,54 @@ export default function WorkSheetView() {
       fotos: fuerDenSchein(fotos),
       notizen,
     };
-    if (scheinId) {
-      await updateWorkSheetDraft(scheinId, inhalt);
-      return scheinId;
+    /*
+      Läuft die Anlage gerade, wird auf sie gewartet und danach geändert —
+      nicht ein zweites Mal angelegt. Scheitert sie, darf dieser Aufruf es
+      selbst versuchen.
+    */
+    const bestehend =
+      scheinIdRef.current ?? (anlageRef.current ? await anlageRef.current.catch(() => null) : null);
+    if (bestehend) {
+      await updateWorkSheetDraft(bestehend, inhalt);
+      return bestehend;
     }
-    const neueId = await createWorkSheet(user.companyId, {
+    const anlage = createWorkSheet(user.companyId, {
       ...inhalt,
       erstelltVonUid: user.uid,
       erstelltVonName: user.name,
+    }).then((neueId) => {
+      scheinIdRef.current = neueId;
+      setScheinId(neueId);
+      return neueId;
     });
-    setScheinId(neueId);
-    return neueId;
+    anlageRef.current = anlage;
+    try {
+      return await anlage;
+    } finally {
+      if (anlageRef.current === anlage) anlageRef.current = null;
+    }
+  }
+
+  /**
+   * Die Kennung des Scheins für ein Foto — die bestehende, die gerade
+   * entstehende, oder eine neue Anlage. Nur die Anlage schreibt den Inhalt;
+   * steht der Schein schon, geht es allein um den Ort im Speicher.
+   */
+  async function kennungHolen(): Promise<string> {
+    if (scheinIdRef.current) return scheinIdRef.current;
+    if (anlageRef.current) {
+      const id = await anlageRef.current.catch(() => null);
+      if (id) return id;
+    }
+    return inhaltSchreiben();
   }
 
   async function alsEntwurfSichern() {
     if (!user || !projekt) return;
     setSpeichert(true);
     setError(null);
+    // Vor dem Schreiben gelesen: danach gibt es die Kennung in jedem Fall.
+    const warSchonDa = !!(scheinIdRef.current ?? anlageRef.current);
     try {
       await inhaltSchreiben();
       /*
@@ -773,7 +919,7 @@ export default function WorkSheetView() {
         `?entwurf=` hereingekommen ist. „Als Entwurf gespeichert" wäre dann
         die falsche Auskunft.
       */
-      toast.success(scheinId ? 'Entwurf aktualisiert' : 'Als Entwurf gespeichert');
+      toast.success(warSchonDa ? 'Entwurf aktualisiert' : 'Als Entwurf gespeichert');
       navigate('/worksheets');
     } catch (err) {
       setError(grundAus(err, 'Der Entwurf konnte nicht gespeichert werden.'));
@@ -877,11 +1023,15 @@ export default function WorkSheetView() {
       schriebe ein schneller Finger den halb geladenen Zustand über
       den vollständigen — und der Monteur verlöre genau das, was er
       sich vorhin aufgehoben hat.
+
+      WÄHREND EIN FOTO HOCHGEHT EBENSO NICHT (Prüflauf 25.09.2026, P1-04):
+      das Foto legt womöglich gerade den Entwurf an, und ein zweiter
+      Schreibvorgang daneben verlöre das Bild oder legte einen zweiten an.
     */
     <Button
       onClick={unterschreibenUndEinfrieren}
       loading={speichert}
-      disabled={!bereit || entwurfLaedt || nichtUebernommen.length > 0}
+      disabled={!bereit || entwurfLaedt || fotoLaeuft || nichtUebernommen.length > 0}
       className={className}
     >
       Unterschreiben und abschließen
@@ -892,7 +1042,7 @@ export default function WorkSheetView() {
       variant="secondary"
       onClick={alsEntwurfSichern}
       loading={speichert}
-      disabled={!projekt || entwurfLaedt}
+      disabled={!projekt || entwurfLaedt || fotoLaeuft}
       className={className}
     >
       {scheinId ? 'Entwurf aktualisieren' : 'Als Entwurf speichern'}
@@ -958,7 +1108,7 @@ export default function WorkSheetView() {
                     }`}
                   >
                     {e.name}
-                    <span className="tnum ml-1 opacity-70">({e.projectNumber})</span>
+                    <span className="ml-1 opacity-70">({e.projectNumber})</span>
                   </button>
                 ))}
               </div>
@@ -1022,7 +1172,7 @@ export default function WorkSheetView() {
         </Card>
 
         {projectNumber ? (
-          <Card title={`Zeiten am ${datumAT(datum)} · ${fmtMin(gesamtMinuten)}`}>
+          <Card title={`Zeiten am ${datumAT(datum)} · ${fmtDauer(gesamtMinuten)}`}>
             {/*
               Der Ladezustand steckt jetzt IN dieser Karte, nicht davor. Vorher
               verdeckte er das ganze Formular — auch die Unterschriften, die
@@ -1060,7 +1210,7 @@ export default function WorkSheetView() {
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       {z.helfer && <Marke>Helfer</Marke>}
-                      <span className="tnum font-medium text-ink">{fmtMin(z.minuten)}</span>
+                      <span className="font-medium text-ink">{fmtMin(z.minuten)}</span>
                     </span>
                     {/*
                       WEGNEHMEN NUR, WAS HIER EINGETRAGEN WURDE. Zeilen aus
@@ -1197,11 +1347,18 @@ export default function WorkSheetView() {
               {/*
                 FOTOS — FREIWILLIG, und das steht auch da.
 
-                Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
-                Das Ausgangsfach hält einen Schreibvorgang ohne Empfang vor, der
-                Dateispeicher tut das nicht. Wäre ein Foto Bedingung, hinge der Beleg an
-                einem Balken Empfang — und der Monteur stünde mit einem Kunden vor
-                sich da, der unterschreiben will.
+                Ein Foto darf das Unterschreiben nicht aufhalten: ein Upload
+                scheitert bei schwachem Empfang viel eher als der kleine
+                Schreibvorgang des Scheins. Wäre ein Foto Bedingung, hinge der
+                Beleg an einem Balken Empfang — und der Monteur stünde mit einem
+                Kunden vor sich da, der unterschreiben will.
+
+                EHRLICH GESAGT (Prüflauf 25.09.2026, P1-14): Hier stand, das
+                Ausgangsfach halte den Schein ohne Empfang vor. Das tut es
+                nicht — Speichern und Unterschreiben laufen als direkter Aufruf
+                an den Server und werden nicht vorgemerkt. Ganz ohne Netz lässt
+                sich der Schein also NICHT unterschreiben, und so steht es jetzt
+                auch im Hinweis.
 
                 Der Abschnitt erscheint erst mit einer gewählten Baustelle: ein
                 Foto ohne Schein hat keinen Ort, an den es gehört.
@@ -1231,9 +1388,11 @@ export default function WorkSheetView() {
                       Prüfsumme des Scheins ein.
                       <br />
                       <br />
-                      Ohne Netz geht das Hochladen nicht. Der Schein lässt sich trotzdem unterschreiben,
-                      die Bilder müssten dann neu aufgenommen werden — im Keller also besser oben
-                      fotografieren.
+                      Ohne Netz geht weder das Hochladen noch das Unterschreiben: der Schein wird
+                      beim Unterschreiben direkt an den Server geschickt und nicht für später
+                      vorgemerkt. Im Keller also besser oben fotografieren und unterschreiben lassen.
+                      Ein Bild, das nicht hochgeht, lässt sich weglassen — der Schein geht dann ohne es
+                      hinaus.
                       <br />
                       <br />
                       Keine Personen und keine fremden Unterlagen, wenn es nicht sein muss: die Bilder
@@ -1247,26 +1406,49 @@ export default function WorkSheetView() {
 
                   {fotos.length > 0 && (
                     <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                      {fotos.map((f) => (
-                        <li key={f.vorschau} className="relative">
-                          <img
-                            src={f.vorschau}
-                            alt="Aufnahme vom Einsatz"
-                            className="aspect-square w-full rounded-sm border border-line object-cover"
-                          />
+                      {fotos.map((f, i) => (
+                        // Ein Foto aus dem Entwurf hat bis zum Eintreffen
+                        // seiner Adresse keine Vorschau — dann trägt der Pfad
+                        // den Schlüssel.
+                        <li key={f.vorschau || `${f.oben?.pfad}#${i}`} className="relative">
+                          {f.vorschau ? (
+                            <img
+                              src={f.vorschau}
+                              alt="Aufnahme vom Einsatz"
+                              className="aspect-square w-full rounded-sm border border-line object-cover"
+                            />
+                          ) : (
+                            <span
+                              role="img"
+                              aria-label="Aufnahme vom Einsatz"
+                              className="flex aspect-square w-full items-center justify-center rounded-sm border border-line bg-surface-2 text-xs text-ink-muted"
+                            >
+                              …
+                            </span>
+                          )}
                           {/*
                             Das Kreuz sitzt AUF dem Bild und braucht deshalb einen
                             eigenen Untergrund — auf einem dunklen Foto wäre ein
                             blosses Zeichen nicht zu sehen.
+
+                            Tastfläche 44 × 44 px, sichtbar bleibt der kleine
+                            Kreis an derselben Stelle wie bisher: der Knopf ragt
+                            dafür 4 px über die Bildecke hinaus, der Kreis steht
+                            in seiner Mitte.
                           */}
                           <button
                             type="button"
                             aria-label="Foto entfernen"
                             title="Foto entfernen"
                             onClick={() => void fotoWegnehmen(f)}
-                            className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-surface/90 text-sm text-danger shadow-sm"
+                            className="absolute -right-1 -top-1 flex h-11 w-11 items-center justify-center"
                           >
-                            ✕
+                            <span
+                              aria-hidden="true"
+                              className="flex h-7 w-7 items-center justify-center rounded-full bg-surface text-sm text-danger shadow-sm"
+                            >
+                              ✕
+                            </span>
                           </button>
                           {f.oben ? (
                             <p className="mt-1 text-center text-xs text-ink-muted">
@@ -1360,7 +1542,7 @@ export default function WorkSheetView() {
                           {projekt?.customerName && (
                             <span className="block">{projekt.customerName}</span>
                           )}
-                          <span className="tnum block">
+                          <span className="block">
                             {projectNumber} · {datumAT(datum)}
                           </span>
                         </>
@@ -1373,7 +1555,7 @@ export default function WorkSheetView() {
                         zeiten.length === 0
                           ? 'Keine Zeit auf dem Schein'
                           : `${personen} ${personen === 1 ? 'Person' : 'Personen'}`,
-                      wert: `${fmtMin(gesamtMinuten)} Std`,
+                      wert: fmtDauer(gesamtMinuten),
                       warnung: offeneZeit
                         ? `Eingetippt, aber nicht übernommen: ${offeneZeit}`
                         : undefined,
@@ -1384,7 +1566,9 @@ export default function WorkSheetView() {
                       unter: `${material.length} ${material.length === 1 ? 'Position' : 'Positionen'}`,
                       warnung: offenesMaterial
                         ? `Eingetippt, aber nicht hinzugefügt: ${offenesMaterial}`
-                        : undefined,
+                        : ohneMenge.length > 0
+                          ? `Ohne Menge: ${ohneMenge.map((m) => m.name).join(', ')}`
+                          : undefined,
                       schritt: 2,
                     },
                     {
@@ -1513,6 +1697,8 @@ export default function WorkSheetView() {
                         !monteurGesetzt && 'Unterschrift Monteur',
                         !kundeGesetzt && 'Unterschrift Kunde',
                         kundeName.trim().length < 2 && 'Name des Kunden',
+                        ohneMenge.length > 0 &&
+                          `Menge bei ${ohneMenge.map((m) => `„${m.name}"`).join(', ')}`,
                       ]
                         .filter(Boolean)
                         .join(', ')}`}

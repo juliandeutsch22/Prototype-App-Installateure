@@ -19,7 +19,6 @@ import Card from '@/components/Card';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
-import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
@@ -405,7 +404,7 @@ export default function AdminProjectsView() {
         subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
         action={
           formOffen ? undefined : (
-            <Button onClick={() => setFormOffen(true)}><Icon name="plus" size={18} />Neue Baustelle</Button>
+            <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>
           )
         }
       />
@@ -549,7 +548,7 @@ export default function AdminProjectsView() {
       <Card
         title={`Alle Baustellen (${visible.length})`}
         action={
-          <SelectField id="pfilter" label="" className="py-1 text-sm" value={filter}
+          <SelectField id="pfilter" label="" aria-label="Baustellen filtern" className="py-1 text-sm" value={filter}
             onChange={(e) => setFilter(e.target.value as typeof filter)}>
             <option value="offen">Aktiv &amp; pausiert</option>
             <option value="alle">Alle</option>
@@ -604,7 +603,7 @@ export default function AdminProjectsView() {
                   key={p.id}
                   title={
                     <span>
-                      {p.customerName} <span className="tnum text-ink-muted">({p.projectNumber})</span>
+                      {p.customerName} <span className="text-ink-muted">({p.projectNumber})</span>
                     </span>
                   }
                   subtitle={

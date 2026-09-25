@@ -339,14 +339,21 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
           */
           <div className="flex items-center gap-1">
             {/* So gross wie die übrigen Knöpfe — ein einzelnes Zeichen gab
-                ein Ziel von halber Daumenbreite (Launch-Check 25.09.2026). */}
-            <Button variant="ghost" aria-label="Woche zurück" className="min-w-touch text-xl" onClick={() => wocheVerschieben(-1)}>
+                ein Ziel von halber Daumenbreite (Launch-Check 25.09.2026).
+                Das Ziel ist 48 × 48 px (`min-h-touch` aus `Button`,
+                `min-w-touch` hier), wie die Monatspfeile im Kalender.
+
+                `sm:text-xl` steht mit Absicht neben `text-xl`: `Button`
+                bringt `sm:text-base` mit, und das gewann ab 640 px — am
+                Schreibtisch stand das Zeichen dann in Fliesstextgrösse
+                mitten in einem Ziel von 48 px und war kaum zu finden. */}
+            <Button variant="ghost" aria-label="Woche zurück" className="min-w-touch text-xl sm:text-xl" onClick={() => wocheVerschieben(-1)}>
               ‹
             </Button>
             <Button variant="ghost" onClick={() => setMontag(montagDer(todayStr()))}>
               Diese Woche
             </Button>
-            <Button variant="ghost" aria-label="Woche vor" className="min-w-touch text-xl" onClick={() => wocheVerschieben(1)}>
+            <Button variant="ghost" aria-label="Woche vor" className="min-w-touch text-xl sm:text-xl" onClick={() => wocheVerschieben(1)}>
               ›
             </Button>
           </div>
@@ -375,13 +382,23 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             Betrieb gemeldet, und im Bildschirmfoto gut zu sehen.
           */}
           <div className="hidden overflow-x-auto md:block">
+            {/*
+              FESTES TABELLENLAYOUT (`table-fixed`): feste Namensspalte, die
+              sieben Tage teilen sich den Rest zu gleichen Teilen. Im
+              automatischen Layout nahm ein Tag mit langem Kundennamen die
+              ganze Breite, Mo–Do schrumpften bei 834 px auf 17–29 px und
+              brachen je Buchstabe um, Sa/So lagen außer Sicht. Erst mit
+              fester Spaltenbreite greift das `truncate` in den Zellen; was
+              darunter nicht passt, rollt in dieser Hülle, nicht die Seite
+              (Prüflauf 25.09.2026, P4-01).
+            */}
             <table
               aria-label="Wochenplan als Tabelle"
-              className="w-full min-w-[44rem] border-separate border-spacing-0 text-sm"
+              className="w-full min-w-[44rem] table-fixed border-separate border-spacing-0 text-sm"
             >
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-10 bg-surface p-2 text-left align-bottom">
+                  <th className="sticky left-0 z-10 w-36 bg-surface p-2 text-left align-bottom">
                     <span className="section-label">Mitarbeiter</span>
                   </th>
                   {tage.map((tag) => {
@@ -406,7 +423,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                             >
                               {wochentag}
                             </span>
-                            <span className="tnum block text-xs text-ink-muted">{datum}</span>
+                            <span className="block text-xs text-ink-muted">{datum}</span>
                             {zu && <span className="mt-1 block text-xs text-ink-muted">{zu}</span>}
                           </span>
                         ) : (
@@ -423,7 +440,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           >
                             {wochentag}
                           </span>
-                          <span className="tnum block text-xs text-ink-muted">{datum}</span>
+                          <span className="block text-xs text-ink-muted">{datum}</span>
                           {/* Die Zahl, wegen der es dieses Brett gibt — an
                               Wochenende und Feiertag nicht: dort ist niemand
                               „frei", sondern keiner im Dienst (Prüflauf
@@ -501,7 +518,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                               type="button"
                               onClick={() => zurTagesplanung(tag)}
                               aria-label={`${u.name} am ${tagKurz(tag).datum} einteilen`}
-                              className="min-h-touch w-full rounded-sm border border-dashed border-line text-xs text-ink-muted"
+                              className="min-h-touch w-full rounded-sm border border-line text-xs text-ink-muted"
                             >
                               frei
                             </button>
@@ -516,7 +533,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                     }`}
                                   >
                                     <span className="block truncate font-medium">{b.name}</span>
-                                    <span className="tnum block truncate">{b.nummer}</span>
+                                    <span className="block truncate">{b.nummer}</span>
                                     {b.helfer && <span className="block">als Helfer</span>}
                                   </span>
                                 ) : (
@@ -524,7 +541,9 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                   key={b.nummer}
                                   type="button"
                                   onClick={() => zurTagesplanung(tag, b.nummer)}
-                                  aria-label={`${b.name} am ${tagKurz(tag).datum} bearbeiten`}
+                                  // Mit Nummer: zwei Baustellen desselben Kunden am selben Tag
+                                  // hießen für die Vorlesehilfe sonst gleich.
+                                  aria-label={`${b.name} (${b.nummer}) am ${tagKurz(tag).datum} bearbeiten`}
                                   className={`min-h-touch w-full rounded-sm px-2 py-1 text-left text-xs ${
                                     b.helfer
                                       ? 'bg-warning-bg text-warning'
@@ -532,7 +551,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                   }`}
                                 >
                                   <span className="block truncate font-medium">{b.name}</span>
-                                  <span className="tnum block truncate">{b.nummer}</span>
+                                  <span className="block truncate">{b.nummer}</span>
                                   {b.helfer && <span className="block">als Helfer</span>}
                                 </button>
                                 ),
@@ -597,7 +616,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                             className="rounded-sm border border-line bg-surface-2 px-3 py-2"
                           >
                             <span className="block font-medium text-info">
-                              {b.name} <span className="tnum font-normal">· {b.nummer}</span>
+                              {b.name} <span className="font-normal">· {b.nummer}</span>
                             </span>
                             <span className="block text-sm text-info">
                               {b.namen
@@ -610,11 +629,11 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           key={b.nummer}
                           type="button"
                           onClick={() => zurTagesplanung(tag, b.nummer)}
-                          aria-label={`${b.name} am ${datum} bearbeiten`}
+                          aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten`}
                           className="min-h-touch w-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-left"
                         >
                           <span className="block font-medium text-info">
-                              {b.name} <span className="tnum font-normal">· {b.nummer}</span>
+                              {b.name} <span className="font-normal">· {b.nummer}</span>
                             </span>
                           <span className="block text-sm text-info">
                             {b.namen
@@ -647,7 +666,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                         type="button"
                         onClick={() => zurTagesplanung(tag)}
                         aria-label={`Am ${datum} einteilen`}
-                        className="min-h-touch w-full rounded-sm border border-dashed border-line text-sm text-ink-muted"
+                        className="min-h-touch w-full rounded-sm border border-line text-sm text-ink-muted"
                       >
                         Einteilen
                       </button>

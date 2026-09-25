@@ -55,6 +55,7 @@ let rolle: Role = 'Mitarbeiter';
 
 const abo = vi.fn();
 const listeSeit = vi.fn();
+const listeBereich = vi.fn();
 const listeBilanzen = vi.fn();
 
 /** Der Rueckruf des Live-Abos — damit ein Test einen zweiten Schnappschuss
@@ -77,6 +78,11 @@ vi.mock('@/lib/db/timeEntries', () => ({
   listOwnEntriesSince: (_company: string, _uid: string, ab: string) => {
     listeSeit(ab);
     return Promise.resolve(eintraege);
+  },
+  // Der Eintrittsmonat für den Saldo aus Bilanzen (Prüflauf 25.09.2026, P1-15).
+  listOwnEntriesInRange: (_company: string, _uid: string, von: string, bis: string) => {
+    listeBereich(von, bis);
+    return Promise.resolve(eintraege.filter((e) => e.date >= von && e.date <= bis));
   },
   deleteTimeEntry: vi.fn(async () => undefined),
 }));
@@ -180,6 +186,7 @@ beforeEach(() => {
   schnappschussSenden = null;
   abo.mockClear();
   listeSeit.mockClear();
+  listeBereich.mockClear();
   listeBilanzen.mockClear();
 });
 
@@ -221,6 +228,9 @@ describe('Zeiterfassung — welcher Weg zum Saldo', () => {
 
     await waitFor(() => expect(listeBilanzen).toHaveBeenCalled());
     expect(listeBilanzen).toHaveBeenCalledWith('2026-06');
+    // Der Eintrittsmonat kommt aus den Einzelbuchungen ab dem Eintritt —
+    // seine Bilanz zählt auch Tage davor (Prüflauf 25.09.2026, P1-15).
+    expect(listeBereich).toHaveBeenCalledWith('2026-06-01', '2026-06-30');
   });
 
   it('fällt auf die Rohdaten zurück, wenn der Marker den Anfang NICHT abdeckt', async () => {
@@ -433,7 +443,7 @@ describe('Offene Nachtragungen', () => {
       await screen.findByText(/wartet noch auf deine Zeitbuchung/),
     ).toBeInTheDocument();
     expect(screen.getByText(/Familie Huber/)).toBeInTheDocument();
-    expect(screen.getByText(/03:00 beim Kunden/)).toBeInTheDocument();
+    expect(screen.getByText(/03:00 Std beim Kunden/)).toBeInTheDocument();
   });
 
   it('schweigt, sobald die Zeit gebucht ist', async () => {
@@ -643,3 +653,70 @@ describe('Zeiterfassung — Abwesenheiten, die noch kommen', () => {
     expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
   });
 });
+
+describe('Zeiterfassung — vom Büro gebuchter Zeitausgleich (Prüflauf 25.09.2026, P1-26)', () => {
+  /*
+    Einen gebuchten Zeitausgleich ändert nur das Büro; die Datenbank lehnt
+    Bearbeiten und Löschen durch den Monteur ab. Vorher standen die Knöpfe
+    trotzdem da und brachten nur eine Fehlermeldung.
+  */
+  it('zeigt dem Monteur keine Knöpfe, die die Datenbank ablehnt', async () => {
+    eintraege = [
+      eintrag({
+        id: 'za',
+        date: '2026-09-01',
+        status: 'Zeitausgleich',
+        startTime: '',
+        endTime: '',
+      }),
+      eintrag({ id: 'offen', date: '2026-08-31' }),
+    ];
+    zeige();
+
+    const za = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(za).getByText('vom Büro gebucht')).toBeInTheDocument();
+    expect(within(za).queryByRole('button', { name: 'Bearbeiten' })).toBeNull();
+    expect(within(za).queryByRole('button', { name: 'Löschen' })).toBeNull();
+
+    const offen = screen.getByText('31.08.2026').closest('li') as HTMLElement;
+    expect(within(offen).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+  });
+
+  it('lässt sie der Buchhaltung', async () => {
+    rolle = 'Buchhaltung';
+    authWert.user.role = 'Buchhaltung';
+    eintraege = [
+      eintrag({ id: 'za', date: '2026-09-01', status: 'Zeitausgleich', startTime: '', endTime: '' }),
+    ];
+    zeige();
+
+    const za = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(za).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(within(za).getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
+  });
+});
+
+describe('Zeiterfassung — „Zu meinen Einträgen" (Prüflauf 25.09.2026, P4-16)', () => {
+  it('rollt nicht nur hin, sondern nimmt den Fokus mit', async () => {
+    /*
+      Vorher rollte nur das Bild. Tastatur und Vorlesehilfe blieben oben am
+      Knopf, und der nächste Tab ging durch die ganze Maske, über die man
+      gerade gesprungen war.
+    */
+    const rollen = vi.fn();
+    const vorher = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = rollen;
+    try {
+      const { container } = zeige();
+      await userEvent.click(await screen.findByRole('button', { name: /Zu meinen Einträgen/ }));
+      const ziel = container.querySelector('#meine-eintraege') as HTMLElement;
+      expect(rollen).toHaveBeenCalled();
+      expect(ziel).toHaveFocus();
+      // Fokussierbar per Programm, aber kein eigener Tab-Stopp.
+      expect(ziel).toHaveAttribute('tabindex', '-1');
+    } finally {
+      Element.prototype.scrollIntoView = vorher;
+    }
+  });
+});
+

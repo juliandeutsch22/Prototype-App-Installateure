@@ -237,3 +237,57 @@ describe('nachsenden', () => {
     expect(bericht).toEqual({ gesendet: 1, abgelehnt: 1, offen: 0 });
   });
 });
+
+/**
+ * Prüflauf 25.09.2026, P1-05: Vormerkungen gehören einem Konto.
+ *
+ * Vorher sendete das Fach mit JEDER Sitzung nach — auch ohne eine, oder mit
+ * der des Kollegen, der sich danach auf dem Tablet anmeldete. Der Server
+ * lehnte ab, und die Buchung galt als endgültig verloren.
+ */
+describe('Vormerkungen und ihr Konto', () => {
+  const vonKonto = (zeile: string, uid: string) => ({ ...auftrag(zeile), uid });
+
+  it('merkt sich beim Vormerken, wem der Vorgang gehört', async () => {
+    const l = lagerImKopf();
+    await schreiben(vonKonto('z1', 'max'), l, senderMit(), imFunkloch);
+    expect(l.inhalt()[0].uid).toBe('max');
+  });
+
+  it('sendet ohne Sitzung nichts — es bleibt alles liegen', async () => {
+    const l = lagerImKopf();
+    await schreiben(vonKonto('z1', 'max'), l, senderMit(), imFunkloch);
+    await schreiben(auftrag('z2'), l, senderMit(), imFunkloch);
+    const s = senderMit();
+    const bericht = await nachsenden(l, s, null);
+    expect(s.gesehen).toHaveLength(0);
+    expect(bericht).toEqual({ gesendet: 0, abgelehnt: 0, offen: 2 });
+    expect(gemeldet).toHaveLength(0);
+  });
+
+  it('sendet mit der Sitzung eines anderen nur dessen eigene und die ohne Besitzer', async () => {
+    const l = lagerImKopf();
+    await schreiben(vonKonto('z1', 'max'), l, senderMit(), imFunkloch);
+    await schreiben(auftrag('z2'), l, senderMit(), imFunkloch); // aus der Zeit davor
+    await schreiben(vonKonto('z3', 'erna'), l, senderMit(), imFunkloch);
+
+    const s = senderMit();
+    const bericht = await nachsenden(l, s, 'erna');
+    expect(s.gesehen.map((v) => v.zeile)).toEqual(['z2', 'z3']);
+    // Die Buchung von Max liegt weiter — nicht verworfen, nicht gemeldet.
+    expect(l.inhalt().map((v) => v.zeile)).toEqual(['z1']);
+    expect(bericht).toEqual({ gesendet: 2, abgelehnt: 0, offen: 1 });
+
+    const zurueck = senderMit();
+    await nachsenden(l, zurueck, 'max');
+    expect(zurueck.gesehen.map((v) => v.zeile)).toEqual(['z1']);
+    expect(l.inhalt()).toHaveLength(0);
+  });
+
+  it('lässt fremde wartende Vorgänge einen neuen nicht aufhalten', async () => {
+    const l = lagerImKopf();
+    await schreiben(vonKonto('z1', 'max'), l, senderMit(), imFunkloch);
+    const s = senderMit({ art: 'ok' });
+    expect(await schreiben(vonKonto('z2', 'erna'), l, s, online)).toBe('confirmed');
+  });
+});

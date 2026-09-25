@@ -23,6 +23,17 @@ export function listOwnEntriesSince(companyId: string, uid: string, from: string
   });
 }
 
+/** Die eigenen Einträge eines Zeitraums, beide Grenzen eingeschlossen. */
+export function listOwnEntriesInRange(companyId: string, uid: string, from: string, to: string) {
+  return abfragen<TimeEntry>(ZEITEN, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'userId', wert: uid },
+      { art: 'ab', feld: 'date', wert: from },
+      { art: 'bis', feld: 'date', wert: to },
+    ],
+  });
+}
+
 export function subscribeOwnEntriesInRange(
   companyId: string,
   uid: string,

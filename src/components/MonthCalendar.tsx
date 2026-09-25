@@ -118,7 +118,7 @@ export default function MonthCalendar({
                 : '';
 
           if (!iso)
-            return <div key={`pad-${i}`} className={`min-h-[3.625rem] bg-surface-2/40${ecke}`} />;
+            return <div key={`pad-${i}`} className={`min-h-[3.625rem] bg-surface-2${ecke}`} />;
 
           const day = Number(iso.slice(8));
           const dow = new Date(`${iso}T00:00:00`).getDay();
@@ -162,16 +162,16 @@ export default function MonthCalendar({
                       // unterscheiden.
                       'bg-warning-bg shadow-[inset_0_3px_0_0_var(--warning)] hover:brightness-95'
                     : weekend
-                      ? 'bg-surface-2/60 hover:bg-surface-2'
+                      ? 'bg-surface-2 hover:bg-surface-3'
                       : 'hover:bg-surface-2'
               }`}
             >
               <span
-                className={`tnum flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                   isSelected
                     ? 'bg-accent-deep text-white'
                     : isToday
-                      ? 'bg-accent-deep/20 font-bold text-accent-deep'
+                      ? 'bg-info-bg font-bold text-info'
                       : // Vergangene Tage ohne Planung treten zurück; wo etwas
                         // geplant war, bleibt der Tag lesbar.
                         past && count === 0
@@ -183,7 +183,7 @@ export default function MonthCalendar({
               </span>
               {count > 0 && (
                 <span
-                  className={`tnum inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold leading-none ${
+                  className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold leading-none ${
                     past ? 'bg-line text-ink-muted' : 'bg-accent-deep text-white'
                   }`}
                 >

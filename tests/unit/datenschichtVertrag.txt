@@ -38,7 +38,6 @@ src/lib/db/invoices.ts#isInvoiceNumberTaken: (existing: Pick<Invoice, "invoiceNu
 src/lib/db/invoices.ts#listInvoicesInRange: (companyId: string, von: string, bis: string) => Promise<WithId<Invoice>[]>
 src/lib/db/invoices.ts#listUnpaidInvoices: (companyId: string) => Promise<WithId<Invoice>[]>
 src/lib/db/invoices.ts#mahnungFesthalten: (id: string, daten: { stufe: number; gemahntAm: string; frist: string; spesen: number; standJetzt: Invoice["paymentStatus"]; }) => Promise<void>
-src/lib/db/invoices.ts#markBilled: (coll: string, ids: string[], invoiceNumber: string) => Promise<void>
 src/lib/db/invoices.ts#nextInvoiceNumber: (existing: Pick<Invoice, "invoiceNumber">[], praefix?: string) => string
 src/lib/db/invoices.ts#reactivateInvoice: (inv: WithId<Invoice>) => Promise<void>
 src/lib/db/invoices.ts#reserveInvoiceNumber: (companyId: string, opts: { seedFrom: number; desired?: number; praefix?: string; }) => Promise<string>

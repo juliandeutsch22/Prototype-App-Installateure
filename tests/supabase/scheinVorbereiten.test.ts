@@ -190,3 +190,33 @@ describe('Die Sortierung ist dieselbe wie im Browser', () => {
     expect(ausDb.indexOf('Öllinger')).toBeLessThan(ausDb.indexOf('Ostermann'));
   }, 60_000);
 });
+
+describe('Wer die Vorbelegung bekommt, und was darin steht', () => {
+  /*
+    PRÜFLAUF 25.09.2026 (P1-27, P3-25). Die Funktion gab jedem Mitglied des
+    Betriebs die Uhrzeiten und Kommentare aller Kollegen — und legte die
+    Kommentare als „Tätigkeit" auf den Kundenbeleg. Ein Kommentar in der
+    Zeiterfassung ist eine Notiz fürs Büro, keine Leistungsbeschreibung.
+  */
+  it('die Tätigkeit kommt nur aus der eigenen Buchung', async () => {
+    const datum = '2026-03-26';
+    await buchen([
+      buchung(monteur, datum, { project_number: '2026-notiz', user_name: 'Berger',
+        comment: 'Therme getauscht', is_helper: false }),
+      buchung(kollege, datum, { project_number: '2026-notiz', user_name: 'Auer',
+        comment: 'Schlüssel lag nicht beim Hausmeister', is_helper: false }),
+    ]);
+    const zeiten = (await vorbereiten(monteur, '2026-notiz', datum)).data!.zeiten;
+    expect(zeiten.find((z) => z.mitarbeiter === 'Berger')).toMatchObject({ taetigkeit: 'Therme getauscht' });
+    // Die Zeile des Kollegen steht auf dem Beleg — seine Notiz nicht.
+    const auer = zeiten.find((z) => z.mitarbeiter === 'Auer')!;
+    expect(auer).toMatchObject({ von: '07:00', bis: '16:00' });
+    expect(Object.keys(auer)).not.toContain('taetigkeit');
+  }, 30_000);
+
+  it('wer den Schein nicht schreibt, bekommt die Stunden der Mannschaft nicht', async () => {
+    const buch = await konto(BETRIEB, 'Buchhaltung', 'sv-buch');
+    const { error } = await vorbereiten(buch, '2026-041');
+    expect(error?.code).toBe('42501');
+  }, 60_000);
+});

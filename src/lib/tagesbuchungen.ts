@@ -205,14 +205,18 @@ export function tageMitEchterDoppelung(
 /**
  * Zählen zwei Einträge desselben Tages dieselbe Zeit zweimal?
  *
- * Ganztägige Status: jeder zweite ist eine Doppelung, egal was daneben
- * steht. Stundenweiser Zeitausgleich: einer je Tag. Arbeit: zur selben
- * Stunde (seit dem Launch-Check auch über Baustellen hinweg), oder dieselbe
- * Baustelle, ohne dass beide eine Uhrzeit tragen. Der geteilte Dienst —
- * dieselbe Baustelle vormittags und abends — ist keine Doppelung.
+ * Ganztägige Status: sie stehen allein am Tag — JEDER Eintrag daneben ist
+ * eine Doppelung, auch gearbeitete Zeit (ein Krankentag mit acht Stunden
+ * Arbeit zählte beides). Bis zum Prüflauf vom 25.09.2026 (P1-17) warnte die
+ * Übersicht nur bei zwei ganztägigen; dieselbe Regel wie `buchungKonflikt`
+ * steht seitdem auch in der Datenbank. Stundenweiser Zeitausgleich: einer je
+ * Tag. Arbeit: zur selben Stunde (seit dem Launch-Check auch über Baustellen
+ * hinweg), oder dieselbe Baustelle, ohne dass beide eine Uhrzeit tragen. Der
+ * geteilte Dienst — dieselbe Baustelle vormittags und abends — ist keine
+ * Doppelung.
  */
 function doppeltMit(a: Tagesbuchung, b: Tagesbuchung): boolean {
-  if (istGanztags(a) || istGanztags(b)) return istGanztags(a) && istGanztags(b);
+  if (istGanztags(a) || istGanztags(b)) return true;
   const zaA = a.status === 'Zeitausgleich';
   const zaB = b.status === 'Zeitausgleich';
   if (zaA || zaB) return zaA && zaB;

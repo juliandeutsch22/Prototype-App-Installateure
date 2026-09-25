@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
-import SignaturePad from '@/components/SignaturePad';
+import { createRef } from 'react';
+import { render, screen, act, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import SignaturePad, { type SignaturePadHandle } from '@/components/SignaturePad';
 
 /**
  * Aus dem Betrieb DREIMAL gemeldet: „das Unterschreiben funktioniert nicht."
@@ -354,5 +356,118 @@ describe('Unterschriftsfeld — was als Unterschrift zählt (Launch-Check 25.09.
 
     expect(gemeldet).toHaveBeenCalledWith(true);
     expect(gemeldet).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+  GROSS UNTERSCHREIBEN, AM BESTEN QUER (Phase 4, Rest). Das Feld im
+  Formular bleibt wie es ist; „Groß unterschreiben" öffnet dieselbe
+  Zeichenfläche bildschirmfüllend. Die Striche wandern mit — hin und zurück —,
+  und gespeichert wird wie bisher aus dem Feld im Formular.
+*/
+describe('Unterschriftsfeld — groß unterschreiben', () => {
+  /** Das Blatt ist 800 × 300 groß, das Feld im Formular 300 × 160. */
+  function blattGroesse() {
+    HTMLCanvasElement.prototype.getBoundingClientRect = function (this: HTMLCanvasElement) {
+      const gross = this.className.includes('h-full');
+      const w = gross ? 800 : 300;
+      const h = gross ? 300 : 160;
+      return { width: w, height: h, left: 0, top: 0, right: w, bottom: h, x: 0, y: 0 } as DOMRect;
+    };
+  }
+
+  it('lässt im Formular weiter direkt unterschreiben — ohne zusätzlichen Tipp', () => {
+    const gemeldet = vi.fn();
+    render(<SignaturePad titel="Unterschrift Kunde" onChange={gemeldet} />);
+    const feld = screen.getByLabelText(/Unterschrift Kunde — mit dem Finger/);
+    act(() => {
+      feld.dispatchEvent(finger('touchstart', 10, 10));
+      feld.dispatchEvent(finger('touchmove', 120, 60));
+    });
+    expect(gemeldet).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('button', { name: 'Groß unterschreiben' })).toBeInTheDocument();
+  });
+
+  it('öffnet das Blatt, behält die Striche und gibt das Bild aus dem Formularfeld', async () => {
+    blattGroesse();
+    const gemeldet = vi.fn();
+    const ref = createRef<SignaturePadHandle>();
+    render(<SignaturePad ref={ref} titel="Unterschrift Kunde" onChange={gemeldet} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Groß unterschreiben' }));
+    const blatt = screen.getByRole('dialog', { name: 'Unterschrift Kunde' });
+    expect(within(blatt).getByText(/Quer halten/)).toBeInTheDocument();
+    // Das Formularfeld ist solange weg — es gibt genau EINE Zeichenfläche.
+    const flaechen = screen.getAllByLabelText(/Unterschrift Kunde — mit dem Finger/);
+    expect(flaechen).toHaveLength(1);
+    expect(blatt).toContainElement(flaechen[0]);
+    expect(within(blatt).getByRole('button', { name: 'Fertig' })).toHaveFocus();
+
+    act(() => {
+      flaechen[0].dispatchEvent(finger('touchstart', 100, 100));
+      flaechen[0].dispatchEvent(finger('touchmove', 700, 200));
+      flaechen[0].dispatchEvent(finger('touchend', 700, 200));
+    });
+    expect(gemeldet).toHaveBeenLastCalledWith(true);
+
+    await userEvent.click(within(blatt).getByRole('button', { name: 'Fertig' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Groß unterschreiben' })).toHaveFocus();
+    // Die Unterschrift ist noch da: „Neu zeichnen" steht, nichts wurde geleert.
+    expect(screen.getByRole('button', { name: 'Neu zeichnen' })).not.toHaveAttribute('aria-hidden');
+    expect(gemeldet).not.toHaveBeenCalledWith(false);
+    expect(ref.current?.bildLesen()).toBe('data:image/png;base64,AAA');
+  });
+
+  it('schliesst mit Escape wie jeder Dialog', async () => {
+    render(<SignaturePad titel="Unterschrift Monteur" onChange={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Groß unterschreiben' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('bietet das Blatt nicht an, wenn das Feld gesperrt ist', () => {
+    render(<SignaturePad titel="Unterschrift Kunde" onChange={vi.fn()} disabled />);
+    expect(screen.queryByRole('button', { name: 'Groß unterschreiben' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Unterschriftsfeld — nach dem Drehen nichts abgeschnitten', () => {
+  it('passt Striche ein, die nach einer Größenänderung aus dem Feld ragen', () => {
+    let breite = 800;
+    HTMLCanvasElement.prototype.getBoundingClientRect = () =>
+      ({ width: breite, height: 160, left: 0, top: 0, right: breite, bottom: 160, x: 0, y: 0 }) as DOMRect;
+    const beobachter: (() => void)[] = [];
+    const vorher = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      constructor(cb: () => void) {
+        beobachter.push(cb);
+      }
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    } as unknown as typeof ResizeObserver;
+    const ctx = HTMLCanvasElement.prototype.getContext.call(document.createElement('canvas'), '2d') as unknown as {
+      lineTo: ReturnType<typeof vi.fn>;
+    };
+    try {
+      render(<SignaturePad titel="Unterschrift Kunde" onChange={vi.fn()} />);
+      const feld = screen.getByLabelText(/Unterschrift Kunde — mit dem Finger/);
+      act(() => {
+        feld.dispatchEvent(finger('touchstart', 100, 40));
+        feld.dispatchEvent(finger('touchmove', 700, 120));
+        feld.dispatchEvent(finger('touchend', 700, 120));
+      });
+      // Zurück ins Hochformat: das Feld ist nur noch 300 breit.
+      breite = 300;
+      ctx.lineTo.mockClear();
+      act(() => beobachter.forEach((b) => b()));
+      const xs = ctx.lineTo.mock.calls.map((c) => c[0] as number);
+      expect(xs.length).toBeGreaterThan(0);
+      expect(Math.max(...xs)).toBeLessThanOrEqual(300);
+    } finally {
+      globalThis.ResizeObserver = vorher;
+    }
   });
 });

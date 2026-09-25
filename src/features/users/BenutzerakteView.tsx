@@ -302,7 +302,7 @@ export default function BenutzerakteView() {
                 Benutzername:{' '}
                 <span className="select-all font-semibold">{kontoAnzeige(p.email)}</span>
               </p>
-              <p className="mt-2 select-all tnum text-lg font-semibold">{vergeben}</p>
+              <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold">{vergeben}</p>
               <Button variant="ghost" className="mt-2" onClick={() => setVergeben(null)}>
                 Verstanden
               </Button>
@@ -375,18 +375,18 @@ function StammdatenLesen({ p }: { p: AppUser }) {
           : <Zustand stand="gut">aktiv</Zustand>}
       </Angabe>
       <Angabe wort="Wochenstunden">
-        {p.weeklyTargetHours != null ? <span className="tnum">{p.weeklyTargetHours}</span> : null}
+        {p.weeklyTargetHours != null ? <span>{p.weeklyTargetHours}</span> : null}
       </Angabe>
       <Angabe wort="Urlaubstage pro Jahr">
-        {p.yearlyVacationDays != null ? <span className="tnum">{p.yearlyVacationDays}</span> : null}
+        {p.yearlyVacationDays != null ? <span>{p.yearlyVacationDays}</span> : null}
       </Angabe>
       <Angabe wort="Saldo-Startdatum">{fmtDatum(p.appStartDate)}</Angabe>
       <Angabe wort="Start-Saldo (Stunden)">
-        {p.initialOvertime != null ? <span className="tnum">{p.initialOvertime}</span> : null}
+        {p.initialOvertime != null ? <span>{p.initialOvertime}</span> : null}
       </Angabe>
       <Angabe wort="Resturlaub beim Umstieg">
         {p.initialVacationDays != null ? (
-          <span className="tnum">{p.initialVacationDays}</span>
+          <span>{p.initialVacationDays}</span>
         ) : (
           // Nicht „0": leer heisst hier voller Jahresanspruch, und der
           // Unterschied entscheidet über jeden Urlaubsantrag.
@@ -558,7 +558,7 @@ function StammdatenFormular({
             <p className="mt-2">
               <strong>Resturlaub beim Umstieg</strong> gilt nur für das Jahr, in dem der Saldo
               startet. Wer im September umsteigt und schon 18 von 25 Tagen genommen hat, trägt
-              hier <span className="tnum">7</span> ein — sonst zeigt die App weiterhin 25, weil
+              hier <span>7</span> ein — sonst zeigt die App weiterhin 25, weil
               die Tage davor in keiner Buchung stehen.
             </p>
             <p className="mt-2">

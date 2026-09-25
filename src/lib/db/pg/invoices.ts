@@ -49,12 +49,6 @@ const ABDECKUNGSARTEN = [
   ['work_sheet', 'linkedWorkSheets'],
 ] as const;
 
-/** Die Sammlungsnamen der alten Datenschicht auf Tabellen abbilden. */
-const TABELLEN: Record<string, string> = {
-  timeEntries: 'time_entries',
-  materialOrders: 'material_orders',
-};
-
 interface Abdeckungszeile {
   invoiceId: string;
   art: string;
@@ -236,14 +230,37 @@ export function subscribeRecentInvoices(
  * Lücken, die keine sind.
  */
 export async function listInvoicesInRange(companyId: string, von: string, bis: string) {
-  const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
-    wo: [
-      { art: 'ab', feld: 'invoiceDate', wert: von },
-      { art: 'bis', feld: 'invoiceDate', wert: bis },
-    ],
-    sortiere: { feld: 'invoiceDate' },
-  });
-  return zusammensetzen(koepfe, companyId);
+  /*
+    DAZU DIE RECHNUNGEN, DIE IN DIESEM ZEITRAUM STORNIERT WURDEN — auch wenn
+    sie selbst aus einem früheren stammen (Prüflauf 25.09.2026, P2-14). Der
+    Storno gehört als Gegenbuchung in den Zeitraum, in dem er geschah; ohne
+    diese zweite Abfrage stand er in keinem Export. Gesucht wird einen Tag
+    weiter, weil der Stornotag in Ortszeit zählt und die Spalte in UTC
+    steht — die Exporte schneiden danach genau auf den Tag zu.
+  */
+  const [nachDatum, nachStorno] = await Promise.all([
+    abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+      wo: [
+        { art: 'ab', feld: 'invoiceDate', wert: von },
+        { art: 'bis', feld: 'invoiceDate', wert: bis },
+      ],
+      sortiere: { feld: 'invoiceDate' },
+    }),
+    abfragen<KopfZeile>(RECHNUNGEN, companyId, {
+      wo: [
+        { art: 'ab', feld: 'cancelledAt', wert: tagVerschoben(von, -1) },
+        { art: 'bis', feld: 'cancelledAt', wert: tagVerschoben(bis, 1) },
+      ],
+    }),
+  ]);
+  const schon = new Set(nachDatum.map((k) => k.id));
+  return zusammensetzen([...nachDatum, ...nachStorno.filter((k) => !schon.has(k.id))], companyId);
+}
+
+/** '2026-09-01' und −1 → '2026-08-31'. Gerechnet in UTC, damit keine Zeitumstellung dazwischenfunkt. */
+function tagVerschoben(iso: string, tage: number): string {
+  const ms = Date.parse(`${iso}T00:00:00Z`) + tage * 86_400_000;
+  return new Date(ms).toISOString().slice(0, 10);
 }
 
 /**
@@ -269,6 +286,38 @@ export async function listInvoicesForProject(
     wo: [{ art: 'in', feld: 'projectNumber', werte: formen }],
   });
   return zusammensetzen(koepfe, companyId);
+}
+
+/**
+ * Welche dieser Handwerksscheine auf einer GÜLTIGEN Rechnung stehen — über
+ * ALLE Rechnungen, nicht nur die geladenen.
+ *
+ * Gebraucht für „nicht verrechnete Leistung" (Prüflauf 25.09.2026, P2-03).
+ * Die Ansicht fragte bisher die fünfzig jüngsten Rechnungen und die offenen
+ * Forderungen; ein Schein auf einer älteren, längst BEZAHLTEN Rechnung stand
+ * damit als unverrechnet da — eine falsche Anschuldigung, der jemand
+ * nachgeht. Gefragt wird deshalb die Abdeckung selbst, und ein Storno zählt
+ * nicht: er gibt seine Scheine frei.
+ */
+export async function scheineAufRechnung(
+  companyId: string,
+  scheinIds: string[],
+): Promise<string[]> {
+  const ids = [...new Set(scheinIds.filter(Boolean))];
+  if (ids.length === 0) return [];
+  const abdeckung = await abfragen<Abdeckungszeile>(ABDECKUNG, companyId, {
+    wo: [
+      { art: 'gleich', feld: 'art', wert: 'work_sheet' },
+      { art: 'in', feld: 'zielId', werte: ids },
+    ],
+  });
+  const rechnungsIds = [...new Set(abdeckung.map((a) => a.invoiceId))];
+  if (rechnungsIds.length === 0) return [];
+  const koepfe = await abfragen<Pick<Invoice, 'paymentStatus'>>(RECHNUNGEN, companyId, {
+    wo: [{ art: 'in', feld: 'id', werte: rechnungsIds }],
+  });
+  const gueltig = new Set(koepfe.filter((k) => k.paymentStatus !== 'Storniert').map((k) => k.id));
+  return [...new Set(abdeckung.filter((a) => gueltig.has(a.invoiceId)).map((a) => a.zielId))];
 }
 
 /** Wie viele Treffer die Suche zeigt — wer mehr braucht, sucht genauer. */
@@ -389,8 +438,14 @@ function leerAlsNull(wert: string | undefined): string | null | undefined {
   return wert === '' ? null : wert;
 }
 
-export async function createInvoice(companyId: string, inv: NewInvoice): Promise<string> {
-  void companyId;
+/**
+ * Kopf, Positionen und Belege in der Form, die `rechnung_anlegen` erwartet.
+ *
+ * EINE STELLE FÜR BEIDE WEGE — das Anlegen mit fester Nummer und das
+ * Ausstellen mit gezogener. Zwei Fassungen desselben Umbaus liefen beim
+ * nächsten neuen Feld auseinander, und eine Rechnung verlöre es still.
+ */
+function anlegeDaten(inv: Omit<NewInvoice, 'invoiceNumber'> & { invoiceNumber?: string }) {
   const {
     positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, ...roh
   } = inv;
@@ -406,7 +461,7 @@ export async function createInvoice(companyId: string, inv: NewInvoice): Promise
     if (liste && liste.length > 0) belege[art] = liste;
   }
 
-  const { data, error } = await derClient().rpc('rechnung_anlegen', {
+  return {
     p_kopf: {
       ...objektAlsZeile(RECHNUNGEN, kopf),
       // Ein Rabatt ist ein Objekt in der App und drei Spalten in der
@@ -417,9 +472,50 @@ export async function createInvoice(companyId: string, inv: NewInvoice): Promise
     },
     p_positionen: (positions ?? []).map((p) => objektAlsZeile(POSITIONEN, p)),
     p_belege: belege,
-  });
+  };
+}
+
+/**
+ * Eine Rechnung mit einer schon feststehenden Nummer anlegen — für
+ * Übernahmen und Prüfungen. Die Ansicht stellt über `rechnungAusstellen` aus.
+ */
+export async function createInvoice(companyId: string, inv: NewInvoice): Promise<string> {
+  void companyId;
+  const { data, error } = await derClient().rpc('rechnung_anlegen', anlegeDaten(inv));
   if (error) throw new Error(error.message);
   return String(data);
+}
+
+/**
+ * Eine Rechnung AUSSTELLEN: Nummer ziehen, Belege sperren, anlegen — in EINER
+ * Transaktion (`public.rechnung_ausstellen`).
+ *
+ * WARUM NICHT MEHR DREI AUFRUFE (Prüflauf 25.09.2026, P2-04). Vorher zog die
+ * Ansicht die Nummer, sperrte danach die Zeiteinträge und legte zuletzt die
+ * Rechnung an. Brach es dazwischen ab, blieben eine verbrauchte Nummer — eine
+ * Lücke im Kreis — und gesperrte Stunden ohne Rechnung zurück; und das
+ * Sperren fragte nicht, ob die Stunde noch frei war, sodass zwei
+ * gleichzeitige Abrechnungen dieselben Stunden verrechneten. Jetzt geht alles
+ * ganz durch oder gar nicht, und ein bereits verrechneter Beleg bricht ab.
+ *
+ * `desired` ist die eigene Nummer beim Umstieg — die Datenbank nimmt sie nur
+ * bei der allerersten Rechnung an (K8).
+ */
+export async function rechnungAusstellen(
+  companyId: string,
+  inv: Omit<NewInvoice, 'invoiceNumber'>,
+  nummer: { praefix?: string; desired?: number },
+): Promise<{ id: string; invoiceNumber: string }> {
+  void companyId;
+  const { data, error } = await derClient().rpc('rechnung_ausstellen', {
+    ...anlegeDaten(inv),
+    p_praefix: nummer.praefix ?? PRAEFIX_VORGABE.rechnung,
+    p_jahr: new Date().getFullYear(),
+    p_wunsch: nummer.desired ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const r = data as { id: string; invoice_number: string };
+  return { id: String(r.id), invoiceNumber: String(r.invoice_number) };
 }
 
 /**
@@ -501,33 +597,4 @@ export function mahnungFesthalten(
     mahnspesen: daten.spesen,
     ...(verzug ? { paymentStatus: 'Überfällig' as const } : {}),
   });
-}
-
-/**
- * Markiert Belege als verrechnet — beim ANLEGEN einer Rechnung.
- *
- * Die Reihenfolge beim Anlegen ist selbst die Sicherung: Nummer ziehen,
- * Belege sperren, DANN die Rechnung anlegen. Bricht es dazwischen ab, sind
- * Belege gesperrt, zu denen es keine Rechnung gibt — die harmlose Richtung,
- * denn nichts wird dadurch doppelt verrechnet. Umgekehrt wäre es der teure
- * Fall.
- *
- * `coll` trägt noch den Sammlungsnamen der Firestore-Schicht. Er bleibt in
- * der Signatur, weil die Weiche beide Seiten bedienen muss; hier wird er auf
- * die Tabelle abgebildet. Ein unbekannter Name fällt auf, statt still nichts
- * zu tun.
- */
-export async function markBilled(
-  coll: string,
-  ids: string[],
-  invoiceNumber: string,
-): Promise<void> {
-  if (ids.length === 0) return;
-  const tabelle = TABELLEN[coll];
-  if (!tabelle) throw new Error(`Unbekannte Belegart: ${coll}`);
-  const { error } = await derClient()
-    .from(tabelle)
-    .update({ is_billed: true, invoice_number: invoiceNumber })
-    .in('id', ids);
-  if (error) throw new Error(error.message);
 }

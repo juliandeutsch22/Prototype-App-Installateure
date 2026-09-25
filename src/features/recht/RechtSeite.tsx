@@ -40,7 +40,7 @@ export default function RechtSeite({ titel, children }: { titel: string; childre
 export function Abschnitt({ titel, children }: { titel: string; children: ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-lg font-semibold text-ink">{titel}</h2>
+      <h2 className="titel-karte">{titel}</h2>
       {children}
     </section>
   );

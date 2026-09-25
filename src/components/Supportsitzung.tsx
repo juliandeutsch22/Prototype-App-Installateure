@@ -39,8 +39,19 @@ export default function Supportsitzung() {
         {schreibt ? 'MITARBEITEN' : 'Einblick'} in{' '}
         <strong>{einblick.name}</strong>
         {schreibt
-          ? ' — Ihre Änderungen treffen echte Daten dieses Betriebs.'
+          ? ' — deine Änderungen treffen echte Daten dieses Betriebs.'
           : ' — nur lesend. Änderungen weist die Datenbank ab.'}
+        {/*
+          EHRLICH ÜBER DIE GRENZE (Prüflauf 25.09.2026, P3-14). Die Oberfläche
+          zeigt dem Support die Knöpfe eines Administrators. Was die App aber
+          über eine Datenbankfunktion erledigt, holt den Betrieb aus dem
+          Anmeldekonto — und ein Plattformkonto hat keinen. Diese Knöpfe
+          scheitern also; das soll hier stehen, bevor jemand es am Telefon
+          ausprobiert. Direkte Änderungen (Kunden, Baustellen, Stammdaten)
+          gehen.
+        */}
+        {schreibt &&
+          ' Was über den Server läuft — Nummern, Rechnungen und Stornos, Angebote, Scheine, Einsätze, Urlaub und Krankmeldungen — geht im Einblick nicht.'}
       </span>
       <Button variant="secondary" onClick={einblickBeenden}>
         Einblick beenden

@@ -325,7 +325,7 @@ export default function BaustellenakteView() {
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link to="/admin-projects" className="link inline-flex min-h-touch items-center">← Zur Baustellenliste</Link>
-            <span className="tnum text-ink-muted">{b.projectNumber}</span>
+            <span className="text-ink-muted">{b.projectNumber}</span>
             <StatusBadge status={b.status} />
             {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
           </span>
@@ -395,9 +395,12 @@ export default function BaustellenakteView() {
       </Card>
 
       <Card title="Weiter">
-        <div className="flex flex-wrap gap-3">
+        {/* Die Links tragen ihre 48 px Tastfläche selbst — deshalb kein
+            senkrechter Abstand mehr dazwischen, sonst wüchse die Karte um
+            mehr als nötig (Prüflauf 25.09.2026, P4-09). */}
+        <div className="flex flex-wrap items-center gap-x-3">
           {b.customerId ? (
-            <Link to={`/customers/${b.customerId}`} className="link">
+            <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">
               Zur Kundenakte
             </Link>
           ) : (
@@ -411,14 +414,14 @@ export default function BaustellenakteView() {
             </span>
           )}
           {angebote.map((q) => (
-            <Link key={q.id} to={`/quotes/${q.id}`} className="link">
+            <Link key={q.id} to={`/quotes/${q.id}`} className="link inline-flex min-h-touch items-center">
               Angebot {q.quoteNumber}
             </Link>
           ))}
           {scheineAn && (
             <Link
               to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-              className="link"
+              className="link inline-flex min-h-touch items-center"
             >
               Handwerksschein schreiben
             </Link>
@@ -436,7 +439,7 @@ function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> 
   return (
     <>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-        <Angabe wort="Projektnummer"><span className="tnum">{b.projectNumber}</span></Angabe>
+        <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
         <Angabe wort="Kunde">{b.customerName}</Angabe>
         <Angabe wort="Baustellenadresse">
           {b.address ? <AdresseLink adresse={b.address} /> : null}

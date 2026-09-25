@@ -51,6 +51,17 @@ export interface Vormerkung {
   /** Nur bei unklarem Ausgang hochgezählt, nie bei fehlendem Netz. */
   versuche: number;
   angelegt: number;
+  /**
+   * WEM DIE VORMERKUNG GEHÖRT — die Kennung des angemeldeten Kontos beim
+   * Vormerken (Prüflauf 25.09.2026, P1-05).
+   *
+   * Ohne sie sendete das Fach mit JEDER Sitzung nach, die gerade besteht:
+   * mit der des Kollegen, der sich auf dem Baustellen-Tablet danach anmeldet,
+   * oder ganz ohne. Der Server weist das mit 42501 ab, und die Buchung galt
+   * als endgültig verloren. Ältere Vormerkungen tragen sie nicht; sie gehen
+   * mit der nächsten bestehenden Sitzung hinaus, wie bisher.
+   */
+  uid?: string;
 }
 
 export type Sendeergebnis =
@@ -135,6 +146,17 @@ export interface Auftrag {
   /** Die vom Gerät vergebene Kennung der Zeile. */
   zeile: string;
   daten: Record<string, unknown>;
+  /** Das angemeldete Konto — siehe `Vormerkung.uid`. */
+  uid?: string;
+}
+
+/**
+ * Darf diese Vormerkung mit der Sitzung von `uid` hinaus?
+ *
+ * Die eigenen ja, die ohne Kennung (aus der Zeit davor) auch — fremde nicht.
+ */
+export function gehoert(v: Pick<Vormerkung, 'uid'>, uid: string): boolean {
+  return !v.uid || v.uid === uid;
 }
 
 /** Meldet der Browser gar keine Verbindung? */
@@ -161,6 +183,7 @@ export async function schreiben(
     daten: auftrag.daten,
     versuche: 0,
     angelegt: Date.now(),
+    ...(auftrag.uid ? { uid: auftrag.uid } : {}),
   };
 
   // Steht schon beim Absenden fest, dass keine Verbindung besteht, gibt es
@@ -172,7 +195,9 @@ export async function schreiben(
 
   // Liegt schon etwas im Fach, MUSS der neue Vorgang dahinter — sonst überholt
   // ein „Ändern" das „Anlegen", auf das es sich bezieht.
-  const wartendes = await lager.alle();
+  // Was ein ANDERES Konto hinterlassen hat, hält diesen Vorgang nicht auf:
+  // die beiden betreffen nie dieselbe Zeile im selben Zug.
+  const wartendes = (await lager.alle()).filter((x) => !auftrag.uid || gehoert(x, auftrag.uid));
   if (wartendes.length > 0) {
     await vormerken(v, lager);
     return 'queued';
@@ -210,8 +235,21 @@ export interface Bericht {
  * fehlendem Netz weitermacht, schickt nur Fehlschläge hinterher, und wer eine
  * unklare Antwort überspringt, dreht die Reihenfolge um.
  */
-export async function nachsenden(lager: Lager, sender: Sender): Promise<Bericht> {
-  const warteschlange = (await lager.alle()).sort((a, b) => a.folge - b.folge);
+export async function nachsenden(
+  lager: Lager,
+  sender: Sender,
+  /**
+   * Das Konto der Sitzung, mit der gesendet wird (Prüflauf 25.09.2026,
+   * P1-05). `null` heisst: keine Sitzung — dann geht NICHTS hinaus, alles
+   * bleibt liegen. Weggelassen wird nicht gefiltert; so rufen es die
+   * Prüfungen der reinen Reihenfolge.
+   */
+  fuer?: string | null,
+): Promise<Bericht> {
+  if (fuer === null) return { gesendet: 0, abgelehnt: 0, offen: (await lager.alle()).length };
+  const warteschlange = (await lager.alle())
+    .filter((v) => fuer === undefined || gehoert(v, fuer))
+    .sort((a, b) => a.folge - b.folge);
   let gesendet = 0;
   let abgelehnt = 0;
 

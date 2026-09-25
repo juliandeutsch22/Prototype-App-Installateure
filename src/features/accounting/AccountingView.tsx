@@ -14,6 +14,7 @@ import {
   calcCompleteness,
   calcWorkMin,
   fmtMin,
+  fmtDauer,
   getAustrianHolidayName,
   localDateStr,
   type CompletenessStatus,
@@ -430,7 +431,6 @@ export default function AccountingView() {
             )}
             {rows.length > 0 && (
               <Button variant="secondary" onClick={exportMonthCsv}>
-                <Icon name="download" size={16} className="mr-2 shrink-0" />
                 Monats-CSV
               </Button>
             )}
@@ -549,7 +549,7 @@ export default function AccountingView() {
                     </span>
                     <span className="flex shrink-0 items-center gap-3">
                       <span className="hidden text-right sm:block">
-                        <span className="tnum block text-sm font-semibold text-ink">
+                        <span className="block text-sm font-semibold text-ink">
                           {fmtMin(stats.istMin)}
                         </span>
                         {/*
@@ -558,7 +558,7 @@ export default function AccountingView() {
                           vergangenen Tag — deshalb sagt die Zeile jetzt, dass
                           es ein Zwischenstand ist.
                         */}
-                        <span className="tnum block text-xs text-ink-muted">
+                        <span className="block text-xs text-ink-muted">
                           von {fmtMin(stats.sollMin)}
                           {stats.istLaufend && ' bisher'}
                         </span>
@@ -589,7 +589,7 @@ export default function AccountingView() {
                                 : 'achtung'
                           }
                         >
-                          <span className="tnum">
+                          <span>
                             {stats.saldoMin > 0 ? '+' : ''}
                             {fmtMin(stats.saldoMin)}
                           </span>
@@ -643,11 +643,11 @@ export default function AccountingView() {
                                 die Zahl steht in Tinte, halbfett, eine Stufe
                                 kleiner.
                               */}
-                              <p className="tnum mt-1 text-2xl font-semibold leading-none text-ink">
+                              <p className="mt-1 text-2xl font-semibold leading-none text-ink">
                                 {stats.saldoMin > 0 ? '+' : ''}
                                 {fmtMin(stats.saldoMin)}
                               </p>
-                              <p className="tnum mt-1.5 text-sm text-ink-muted">
+                              <p className="mt-1.5 text-sm text-ink-muted">
                                 {fmtMin(stats.istMin)} von {fmtMin(stats.sollMin)} Soll
                                 {stats.istLaufend && ' bisher'}
                               </p>
@@ -660,7 +660,7 @@ export default function AccountingView() {
                               Mitarbeiter auszugeben. Gross steht dann, was
                               wirklich gemessen ist: die gebuchte Zeit.
                             */
-                            <p className="tnum mt-1 text-2xl font-semibold leading-none text-ink">
+                            <p className="mt-1 text-2xl font-semibold leading-none text-ink">
                               {fmtMin(stats.istMin)}
                             </p>
                           )}
@@ -670,7 +670,7 @@ export default function AccountingView() {
                           <b className="font-semibold text-ink">{stats.urlaubDays}</b> Tage Urlaub ·{' '}
                           {stats.zaMin > 0 && (
                             <>
-                              <b className="font-semibold text-ink">{fmtMin(stats.zaMin)}</b> Std. ZA ·{' '}
+                              <b className="font-semibold text-ink">{fmtDauer(stats.zaMin)}</b> ZA ·{' '}
                             </>
                           )}
                           <b
@@ -694,8 +694,8 @@ export default function AccountingView() {
                         sagt das „i" auf Wunsch.
                       */}
                       <p className="mt-3 text-xs text-ink-muted">
-                        Tagessoll {stats.dailyTargetH.toFixed(2).replace('.', ',')} h ·
-                        Wochenstunden {String(stats.weeklyTarget).replace('.', ',')} h ·{' '}
+                        Tagessoll {fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
+                        Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
                         {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
                         {stats.holidaysInMonth > 0 &&
                           ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
@@ -900,7 +900,7 @@ export default function AccountingView() {
                                   </span>
                                 </span>
                                 <span className="flex shrink-0 items-center gap-2">
-                                  <span className="tnum font-normal text-ink-muted">
+                                  <span className="font-normal text-ink-muted">
                                     {fmtMin(stats.istMin)}
                                   </span>
                                   {/* Ohne Winkel war ueberhaupt nicht zu sehen,
@@ -934,7 +934,7 @@ export default function AccountingView() {
                                   // denselben, und React zoege die Zeilen
                                   // beim Bearbeiten durcheinander.
                                   <tr key={x.entry?.id ?? x.d} className="border-b border-line/60">
-                                    <td className="tnum whitespace-nowrap py-2 pr-3 font-medium text-ink">
+                                    <td className="whitespace-nowrap py-2 pr-3 font-medium text-ink">
                                       {dayLabel(x.d)}
                                     </td>
                                     <td className="py-2 pr-3">
@@ -950,11 +950,11 @@ export default function AccountingView() {
                                         {x.entry && <Zeitmarker eintrag={x.entry} />}
                                       </span>
                                     </td>
-                                    <td className="tnum py-2 pr-3 text-ink-muted">
+                                    <td className="py-2 pr-3 text-ink-muted">
                                       {x.zeit ?? '—'}
                                     </td>
                                     <td className="py-2 pr-3">{x.entry?.customerName ?? '—'}</td>
-                                    <td className="tnum py-2 pr-3 text-right font-medium">
+                                    <td className="py-2 pr-3 text-right font-medium">
                                       {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
                                     </td>
                                     <td className="py-2">
@@ -975,7 +975,7 @@ export default function AccountingView() {
                                       ? '1 Eintrag'
                                       : `${monthEntries.length} Einträge`}
                                   </td>
-                                  <td className="tnum pt-2 pr-3 text-right">
+                                  <td className="pt-2 pr-3 text-right">
                                     {fmtMin(stats.istMin)}
                                   </td>
                                   <td className="pt-2" />
@@ -1007,17 +1007,17 @@ export default function AccountingView() {
                               {days.map((x) => (
                                 <li key={x.entry?.id ?? x.d} className="border-b border-line/60 py-2">
                                   <div className="flex items-baseline justify-between gap-2">
-                                    <span className="tnum font-semibold text-ink">
+                                    <span className="font-semibold text-ink">
                                       {dayLabel(x.d)}
                                     </span>
-                                    <span className="tnum font-semibold text-ink">
+                                    <span className="font-semibold text-ink">
                                       {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
                                     </span>
                                   </div>
                                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
                                     {status(x)}
                                     {x.entry && <Zeitmarker eintrag={x.entry} />}
-                                    {x.zeit && <span className="tnum">{x.zeit}</span>}
+                                    {x.zeit && <span>{x.zeit}</span>}
                                     {x.entry?.customerName && <span>{x.entry.customerName}</span>}
                                   </div>
                                   {x.entry && (
@@ -1033,7 +1033,7 @@ export default function AccountingView() {
                                     ? '1 Eintrag'
                                     : `${monthEntries.length} Einträge`}
                                 </span>
-                                <span className="tnum">{fmtMin(stats.istMin)}</span>
+                                <span>{fmtMin(stats.istMin)}</span>
                               </li>
                               </ul>
                             </details>
@@ -1042,7 +1042,6 @@ export default function AccountingView() {
                       })()}
                       <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
                         <Button variant="secondary" onClick={() => exportUserCsv(u)}>
-                          <Icon name="download" size={16} className="mr-2 shrink-0" />
                           Monat als CSV
                         </Button>
                         <Button variant="primary" onClick={() => setExportFor(u)}>

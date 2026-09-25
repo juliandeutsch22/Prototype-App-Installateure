@@ -9,7 +9,7 @@
  * nur, was gerade geladen ist.
  */
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { admin, betriebAnlegen, konto, type Konto } from './helfer';
+import { admin, betriebAnlegen, buchung, konto, type Konto } from './helfer';
 import * as rechnungen from '@/lib/db/pg/invoices';
 import { clientEinreichen, type WithId } from '@/lib/db/pg/kern';
 import type { Invoice, Vorrechnung } from '@/types';
@@ -51,6 +51,9 @@ async function anlegen(
     totalBrutto: 1200,
     vatRate: 0.2,
     paymentStatus: 'Offen',
+    // Seit dem Prüflauf 25.09.2026 (P2-10) legt die Datenbank keine Rechnung
+    // ohne Positionen an — eine Rechnung über nichts.
+    positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 }],
     ...extra,
   });
 }
@@ -298,9 +301,17 @@ describe('Der Abzug auf der Schlussrechnung', () => {
       ein zweites Mal ab, und der Betrieb schenkte dem Kunden seine eigene
       Leistung.
     */
+    /*
+      EIN ECHTER ZEITEINTRAG, keine erfundene Kennung: seit dem Prüflauf
+      25.09.2026 (P2-04) sperrt das Anlegen die Belege selbst und bricht ab,
+      wenn es einen davon nicht gibt.
+    */
+    const eintrag = buchung(buch, '2026-04-20');
+    const { error: fehler } = await admin.from('time_entries').insert(eintrag);
+    expect(fehler).toBeNull();
     const teil = await anlegen({
       art: 'teil',
-      linkedEntries: ['11111111-2222-4333-8444-555555555555'],
+      linkedEntries: [eintrag.id],
     });
     const nummer = (await lesen(teil)).invoiceNumber;
 
@@ -380,5 +391,58 @@ describe('Der Abzug greift nicht daneben', () => {
     await expect(schluss([abzug(erfunden, 'RE-gibt-es-nicht')])).rejects.toThrow(
       /desselben Betriebs/,
     );
+  });
+});
+
+/*
+  PRÜFLAUF 25.09.2026, P2-08 und P2-15. Abgezogen wird nur eine GÜLTIGE
+  Rechnung mit DERSELBEN Steuerbehandlung. Eine Anzahlung mit USt auf einer
+  Schlussrechnung mit Übergang der Steuerschuld zog ihre Steuer von einem
+  Betrag ohne Steuer ab; eine stornierte liess sich abziehen, obwohl sie
+  nichts mehr fordert.
+*/
+describe('Abzug nur von einer gültigen Rechnung mit derselben Steuer', () => {
+  it('weist eine stornierte Vorrechnung ab', async () => {
+    const anzahlung = await anlegen({ art: 'anzahlung' });
+    const nummer = (await lesen(anzahlung)).invoiceNumber;
+    await rechnungen.cancelInvoice({ id: anzahlung } as unknown as WithId<Invoice>, 'Irrtum');
+
+    await expect(schluss([abzug(anzahlung, nummer)])).rejects.toThrow(/ist storniert/);
+  });
+
+  it('weist eine Anzahlung mit USt auf einer Reverse-Charge-Schlussrechnung ab', async () => {
+    const anzahlung = await anlegen({ art: 'anzahlung' });
+    const nummer = (await lesen(anzahlung)).invoiceNumber;
+
+    await expect(
+      anlegen({
+        art: 'schluss',
+        reverseCharge: true,
+        vatRate: 0,
+        customerVatId: 'ATU12345678',
+        vorrechnungen: [abzug(anzahlung, nummer)],
+        totalNetto: 1000, totalVat: -200, totalBrutto: 800,
+        gesamtNetto: 2000, gesamtVat: 0, gesamtBrutto: 2000,
+      }),
+    ).rejects.toThrow(/dieselbe Steuerbehandlung/);
+  });
+
+  it('nimmt eine Reverse-Charge-Anzahlung auf einer Reverse-Charge-Schlussrechnung', async () => {
+    const anzahlung = await anlegen({
+      art: 'anzahlung', reverseCharge: true, vatRate: 0, customerVatId: 'ATU12345678',
+      totalVat: 0, totalBrutto: 1000,
+    });
+    const nummer = (await lesen(anzahlung)).invoiceNumber;
+
+    const id = await anlegen({
+      art: 'schluss',
+      reverseCharge: true,
+      vatRate: 0,
+      customerVatId: 'ATU12345678',
+      vorrechnungen: [{ ...abzug(anzahlung, nummer), vat: 0, brutto: 1000 }],
+      totalNetto: 1000, totalVat: 0, totalBrutto: 1000,
+      gesamtNetto: 2000, gesamtVat: 0, gesamtBrutto: 2000,
+    });
+    expect((await lesen(id)).vorrechnungen).toHaveLength(1);
   });
 });

@@ -512,7 +512,7 @@ export default function AssignmentsView() {
               Baustellen geplant
             </span>
             <span className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand/25 ring-1 ring-brand" />
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-info-bg ring-1 ring-info" />
               Heute
             </span>
             <span className="flex items-center gap-2">
@@ -753,7 +753,7 @@ export default function AssignmentsView() {
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2">
                         <span className="font-semibold text-ink">
                           {proj?.customerName ?? pn}{' '}
-                          <span className="tnum text-sm text-ink-muted">({pn})</span>
+                          <span className="text-sm text-ink-muted">({pn})</span>
                         </span>
                         <span className="flex flex-wrap items-center gap-2">
                           <Marke>{fach} Facharbeiter</Marke>
@@ -793,13 +793,13 @@ export default function AssignmentsView() {
                               <ul className="mt-1 space-y-0.5 text-ink">
                                 {material.map((m) => (
                                   <li key={m.id} className="flex flex-wrap gap-x-2">
-                                    <span className="tnum">
+                                    <span>
                                       {m.menge}
                                       {m.einheit ? ` ${m.einheit}` : ''}
                                     </span>
                                     <span>{m.name}</span>
                                     {geladen[m.id] && (
-                                      <span className="text-success">✓ eingeladen</span>
+                                      <span className="text-success">eingeladen</span>
                                     )}
                                   </li>
                                 ))}

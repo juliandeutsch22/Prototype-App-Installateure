@@ -701,3 +701,10 @@ describe('Baustellen — Kundenauswahl an der Grenze', () => {
     expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
   });
 });
+
+describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
+  it('nennt die Auswahl „Baustellen filtern" — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl"', async () => {
+    zeige();
+    expect(await screen.findByRole('combobox', { name: 'Baustellen filtern' })).toBeInTheDocument();
+  });
+});

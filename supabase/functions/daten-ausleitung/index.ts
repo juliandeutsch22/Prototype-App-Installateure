@@ -39,7 +39,8 @@
  * zuerst reisst. Sie ist gemessen und steht unten bei `GRENZE_BYTES`.
  */
 import {
-  abgelaufeneStaende, ausleitungsPfad, ausleitungsPraefix, jsonZeile,
+  abgelaufeneStaende, alleSeitenLesen, ausleitungsPfad, ausleitungsPraefix, jsonZeile,
+  ordnungNachSchluessel,
 } from '../_shared/ausleitungPlan.ts';
 import {
   alleDienstSchluessel, dienstKopfzeilen, rufDerMaschine, SCHLUESSEL_FEHLT,
@@ -86,8 +87,15 @@ try {
   ZIEL_FEHLER = e instanceof Error ? e.message : 'Der Zielspeicher ist nicht lesbar.';
 }
 
-/** Wie viele Zeilen je Abfrage. Nicht die Datenbank ist die Grenze, der Speicher. */
-const SEITE = 1000;
+/**
+ * Wie viele Zeilen je Abfrage. Nicht die Datenbank ist die Grenze, der Speicher.
+ *
+ * UNTER `max_rows` (1000 in `supabase/config.toml`) und nicht gleich. Das
+ * Ende erkennt `alleSeitenLesen` inzwischen an einer LEEREN Seite und nicht
+ * mehr an einer kurzen — die Grösse hier ist nur noch die Bitte, nicht die
+ * Annahme (Prüflauf 25.09.2026, P3-16).
+ */
+const SEITE = 500;
 
 /**
  * Wie viele DATEIEN ein Lauf hinausschiebt — und wie viele Bytes dabei.
@@ -152,13 +160,20 @@ interface OffeneDatei {
   bytes: number;
 }
 
-/** Eine Seite aus einer Tabelle — PostgREST zählt Zeilen über `Range`. */
+/**
+ * Eine Seite aus einer Tabelle — PostgREST zählt Zeilen über `Range`.
+ *
+ * `ordnung` ist der Primärschlüssel der Tabelle (`auszug_schluessel`): ohne
+ * feste Reihenfolge wäre „die Zeilen 500 bis 999" bei jeder Abfrage eine
+ * andere Auswahl.
+ */
 async function seite(
-  tabelle: string, betrieb: string, von: number,
+  tabelle: string, betrieb: string, von: number, bis: number, ordnung: string | null,
 ): Promise<Record<string, unknown>[]> {
+  const sortiert = ordnung ? `&order=${ordnung}` : '';
   const r = await fetch(
-    `${URL_BASIS}/rest/v1/${tabelle}?select=*&company_id=eq.${encodeURIComponent(betrieb)}`,
-    { headers: { ...alsDienst, Range: `${von}-${von + SEITE - 1}` } },
+    `${URL_BASIS}/rest/v1/${tabelle}?select=*&company_id=eq.${encodeURIComponent(betrieb)}${sortiert}`,
+    { headers: { ...alsDienst, Range: `${von}-${bis}` } },
   );
   if (!r.ok) throw new Error(`${tabelle}: ${await r.text()}`);
   return await r.json();
@@ -171,7 +186,9 @@ async function seite(
  * `company_id` — sie fiele sonst aus der Katalogliste heraus, und ein
  * Wiederanlauf begänne ohne Stundensätze und Steuersatz.
  */
-async function standSchreiben(betrieb: string, tabellen: string[]): Promise<string> {
+async function standSchreiben(
+  betrieb: string, tabellen: string[], schluessel: Record<string, string[]>,
+): Promise<string> {
   const teile: string[] = [];
   let bytes = 0;
 
@@ -194,11 +211,12 @@ async function standSchreiben(betrieb: string, tabellen: string[]): Promise<stri
   for (const zeile of firma.ok ? await firma.json() : []) anhaengen('companies', zeile);
 
   for (const tabelle of tabellen) {
-    for (let von = 0; ; von += SEITE) {
-      const zeilen = await seite(tabelle, betrieb, von);
-      for (const zeile of zeilen) anhaengen(tabelle, entschaerft(tabelle, zeile));
-      if (zeilen.length < SEITE) break;
-    }
+    const ordnung = ordnungNachSchluessel(schluessel[tabelle]);
+    await alleSeitenLesen(
+      (von, bis) => seite(tabelle, betrieb, von, bis, ordnung),
+      SEITE,
+      (zeile) => anhaengen(tabelle, entschaerft(tabelle, zeile)),
+    );
   }
   return teile.join('');
 }
@@ -399,9 +417,9 @@ async function dateienAusserHaus(
 }
 
 async function betriebAusleiten(
-  betrieb: string, tabellen: string[], heute: Date,
+  betrieb: string, tabellen: string[], schluessel: Record<string, string[]>, heute: Date,
 ): Promise<Bilanz> {
-  const inhalt = await standSchreiben(betrieb, tabellen);
+  const inhalt = await standSchreiben(betrieb, tabellen, schluessel);
   const pfad = ausleitungsPfad(betrieb, heute);
 
   /*
@@ -497,6 +515,20 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   });
   if (!tabellenAntwort.ok) return fehler('Die Tabellenliste ist nicht lesbar.', 500);
   const tabellen = (await tabellenAntwort.json()) as string[];
+  /*
+    DER PRIMÄRSCHLÜSSEL JE TABELLE — die Ordnung beim Blättern. Fehlt die
+    Antwort (eine Datenbank vor `20260926114000`), wird ohne Ordnung gelesen
+    wie bisher, statt die Sicherung ganz ausfallen zu lassen.
+  */
+  const schluesselAntwort = await fetch(`${URL_BASIS}/rest/v1/rpc/auszug_schluessel`, {
+    method: 'POST', headers: alsDienst, body: '{}',
+  });
+  let schluessel: Record<string, string[]> = {};
+  if (schluesselAntwort.ok) {
+    schluessel = ((await schluesselAntwort.json()) as Record<string, string[]> | null) ?? {};
+  } else {
+    await schluesselAntwort.body?.cancel();
+  }
   const heute = new Date();
 
   /*
@@ -516,7 +548,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     const gescheitert: Array<{ companyId: string; meldung: string }> = [];
     for (const { id } of (await firmen.json()) as Array<{ id: string }>) {
       try {
-        bilanzen.push(await betriebAusleiten(id, tabellen, heute));
+        bilanzen.push(await betriebAusleiten(id, tabellen, schluessel, heute));
       } catch (e) {
         /*
           WEITERMACHEN: ein Betrieb, der scheitert, darf die übrigen nicht
@@ -566,7 +598,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const bilanz = await betriebAusleiten(profil.company_id, tabellen, heute);
+    const bilanz = await betriebAusleiten(profil.company_id, tabellen, schluessel, heute);
     /*
       `ziel` STEHT IM KLARTEXT IN DER ANSICHT — und soll dort die Wahrheit
       sagen. „Eimer im selben Projekt" ist ein Satz, den jemand liest und

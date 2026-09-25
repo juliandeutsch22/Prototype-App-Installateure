@@ -3,21 +3,24 @@ import { useAuth } from '@/app/AuthContext';
 import {
   subscribeOwnEntriesInRange,
   listOwnEntriesSince,
+  listOwnEntriesInRange,
   deleteTimeEntry,
 } from '@/lib/db/timeEntries';
 import { getUserByUid } from '@/lib/db/users';
 import {
   calcWorkMin,
   fmtMin,
+  fmtDauer,
   calcOverallSaldo,
   saldoAusBilanzen,
   getISOWeek,
   localDateStr,
+  monatsLetzter,
   todayStr,
   tageWort,
 } from '@/lib/time';
 import { tageMitEchterDoppelung } from '@/lib/tagesbuchungen';
-import { fuehrtZeitkonto } from '@/lib/permissions';
+import { canEditTime, fuehrtZeitkonto } from '@/lib/permissions';
 import { bilanzMarker, listBilanzen, monatVon, type Monatsbilanz } from '@/lib/db/monatsbilanzen';
 import type { WithId } from '@/lib/db/core';
 import type { TimeEntry, AppUser, WorkSheet } from '@/types';
@@ -171,6 +174,8 @@ export default function TimeView() {
    */
   const [saldoEintraege, setSaldoEintraege] = useState<WithId<TimeEntry>[]>([]);
   const [bilanzen, setBilanzen] = useState<Monatsbilanz[] | null>(null);
+  /** Der Eintrittsmonat ab dem Eintritt — siehe `saldoAusBilanzen` (P1-15). */
+  const [eintrittsEintraege, setEintrittsEintraege] = useState<WithId<TimeEntry>[]>([]);
 
   /**
    * Der laufende Monat — aus den Einträgen, die ohnehin schon da sind.
@@ -250,9 +255,18 @@ export default function TimeView() {
       const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt);
 
       if (brauchbar) {
-        const rows = await listBilanzen(user.companyId, user.uid, monatVon(eintritt));
+        /*
+          Der Eintrittsmonat kommt aus den Einzelbuchungen AB dem Eintritt:
+          seine Bilanz zählt auch Tage davor mit (Prüflauf 25.09.2026,
+          P1-15). Ein Monat Einträge — nicht der ganze Bestand.
+        */
+        const [rows, startRows] = await Promise.all([
+          listBilanzen(user.companyId, user.uid, monatVon(eintritt)),
+          listOwnEntriesInRange(user.companyId, user.uid, eintritt, monatsLetzter(eintritt)),
+        ]);
         if (verworfen) return;
         setBilanzen(rows);
+        setEintrittsEintraege(startRows);
         setSaldoEintraege([]);
       } else {
         const rows = await listOwnEntriesSince(user.companyId, user.uid, eintritt);
@@ -275,9 +289,9 @@ export default function TimeView() {
   const saldo = useMemo(() => {
     if (!profile) return null;
     return bilanzen
-      ? saldoAusBilanzen(profile, bilanzen, laufendeEintraege)
+      ? saldoAusBilanzen(profile, bilanzen, laufendeEintraege, eintrittsEintraege)
       : calcOverallSaldo(profile, saldoEintraege);
-  }, [profile, bilanzen, laufendeEintraege, saldoEintraege]);
+  }, [profile, bilanzen, laufendeEintraege, saldoEintraege, eintrittsEintraege]);
 
   /**
    * Belegte Tage aus dem geladenen Fenster — die SOFORTIGE Antwort auf die
@@ -312,7 +326,8 @@ export default function TimeView() {
    *
    * Gemeldet wird deshalb nur noch, was den Saldo wirklich verfaelscht:
    * dieselbe Baustelle zweimal, zwei Eintraege ohne Baustelle, oder ein
-   * ganztaegiger Status doppelt (siehe `lib/tagesbuchungen.ts`).
+   * ganztaegiger Status neben irgendeinem anderen Eintrag — auch neben
+   * Arbeitszeit (siehe `lib/tagesbuchungen.ts`).
    */
   const doppelteTage = useMemo(() => tageMitEchterDoppelung(entries), [entries]);
 
@@ -402,7 +417,20 @@ export default function TimeView() {
       */}
       <button
         type="button"
-        onClick={() => document.getElementById('meine-eintraege')?.scrollIntoView({ behavior: 'smooth' })}
+        onClick={() => {
+          const ziel = document.getElementById('meine-eintraege');
+          if (!ziel) return;
+          ziel.scrollIntoView({ behavior: 'smooth' });
+          /*
+            DER FOKUS GEHT MIT. Vorher rollte nur das Bild; Tastatur und
+            Vorlesehilfe standen weiter oben am Knopf, und der nächste Tab
+            führte durch die ganze Maske, über die man gerade gesprungen war
+            (Prüflauf 25.09.2026, P4-16). `tabindex=-1`: fokussierbar per
+            Programm, aber kein eigener Tab-Stopp.
+          */
+          ziel.setAttribute('tabindex', '-1');
+          ziel.focus({ preventScroll: true });
+        }}
         className="inline-flex min-h-touch items-center gap-1 text-sm font-medium text-brand sm:hidden"
       >
         Zu meinen Einträgen
@@ -474,7 +502,7 @@ export default function TimeView() {
               <li key={n.schein.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-ink">
                   {datumAT(n.schein.datum)} · {n.schein.customerName} · Baustelle{' '}
-                  {n.schein.projectNumber} · {fmtMin(n.minuten)} beim Kunden
+                  {n.schein.projectNumber} · {fmtDauer(n.minuten)} beim Kunden
                 </span>
                 <Button
                   variant="secondary"
@@ -659,7 +687,7 @@ export default function TimeView() {
                 <div key={week}>
                   <h3 className="mb-1 flex items-center justify-between text-sm font-semibold text-ink-muted">
                     <span>{week}</span>
-                    <span className="tnum">{fmtMin(weekMin)}</span>
+                    <span>{fmtMin(weekMin)}</span>
                   </h3>
                   <List>
                     {rows.map((e) => {
@@ -698,7 +726,7 @@ export default function TimeView() {
                           )}
                           {e.source === 'voice' && <Marke>KI</Marke>}
                           <Zeitmarker eintrag={e} />
-                          <span className="tnum font-medium text-ink">
+                          <span className="font-medium text-ink">
                             {fmtMin(calcWorkMin(e))}
                           </span>
                           {/* Verrechnete Einträge sind Grundlage einer
@@ -715,6 +743,12 @@ export default function TimeView() {
                             // Ein Tag aus einem genehmigten Antrag ändert sich
                             // nur über den Antrag.
                             <AntragKnopf eintrag={e} />
+                          ) : e.status === 'Zeitausgleich' && !(user && canEditTime(user.role)) ? (
+                            // Einen gebuchten Zeitausgleich ändert nur das Büro —
+                            // die Datenbank lehnt es sonst ab. Zwei Knöpfe, die
+                            // nur eine Fehlermeldung bringen, stehen hier nicht
+                            // (Prüflauf 25.09.2026, P1-26).
+                            <Marke>vom Büro gebucht</Marke>
                           ) : (
                             <>
                               <Button variant="ghost" onClick={() => setEditing(e)}>

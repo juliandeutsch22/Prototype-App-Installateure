@@ -66,7 +66,7 @@ export type Stand =
 const punkt: Record<Stand, string> = {
   gut: 'bg-success',
   laeuft: 'bg-accent-deep',
-  ruht: 'bg-ink-muted/50',
+  ruht: 'bg-ink-placeholder',
   achtung: 'bg-warning',
   schlecht: 'bg-danger',
 };
@@ -78,19 +78,11 @@ const punkt: Record<Stand, string> = {
  * ordnen sich dem unter, wonach jemand in der Zeile sucht: dem Namen, der
  * Nummer, dem Betrag. Als gefüllte Pille standen sie gleichauf mit ihm.
  *
- * Die Stimme ist die der Kartentitel (`section-label`) — dieselbe Rolle im
- * Satzbild: eine Beschriftung, die begleitet, statt zu rufen.
+ * Die Stimme ist die der Dachzeilen (`section-label`) — dieselbe Rolle im
+ * Satzbild: eine Beschriftung, die begleitet, statt zu rufen. Seit dem
+ * 25.09.2026 ohne Versalien: „40 h Budget" statt „40 H BUDGET".
  */
 export function Marke({ children }: { children: ReactNode }) {
-  /*
-    VERSALIEN UND SPERRUNG KOMMEN AUS `section-label` UND BLEIBEN. Hier stand
-    kurz `normal-case tracking-normal` daneben, um beides wegzunehmen — die
-    Klassen sind wirkungslos: `.section-label` steht in `index.css` ausserhalb
-    jeder Ebene und schlägt damit die Tailwind-Hilfsklassen. Am Bildschirm
-    nachgesehen, statt es anzunehmen: die Versalien lesen sich in der Zeile
-    gut und binden die Marke an die Kartentitel. Zwei Klassen, die nichts tun,
-    aber etwas behaupten, wären schlimmer als keine.
-  */
   return <span className="section-label whitespace-nowrap">{children}</span>;
 }
 
@@ -160,7 +152,7 @@ export function Warnung({
   const ton = stufe === 'dringend' ? 'text-danger' : 'text-warning';
   return (
     <span
-      className={`tnum inline-block whitespace-nowrap rounded-pill border-[1.5px] border-current bg-surface px-2.5 py-0.5 text-xs font-semibold ${ton}`}
+      className={`inline-block whitespace-nowrap rounded-pill border-[1.5px] border-current bg-surface px-2.5 py-0.5 text-xs font-semibold ${ton}`}
     >
       {children}
     </span>
@@ -230,7 +222,7 @@ export function Zaehler({
     : 'bg-accent-deep text-white';
   return (
     <span
-      className={`tnum inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-bold leading-none ${ton}`}
+      className={`inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-pill px-1.5 py-0.5 text-xs font-bold leading-none ${ton}`}
     >
       <span aria-hidden="true">{anzahl > 99 ? '99+' : anzahl}</span>
       <span className="sr-only">{`${anzahl} ${was}`}</span>

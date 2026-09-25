@@ -106,7 +106,7 @@ export default function MyProjectsView() {
               title={p.customerName}
               action={<StatusBadge status={p.status} />}
             >
-              <p className="tnum text-sm text-ink-muted">{p.projectNumber}</p>
+              <p className="text-sm text-ink-muted">{p.projectNumber}</p>
               {naechsterEinsatz.has(p.projectNumber) && (
                 <p className="mt-1">
                   <Marke>nächster Einsatz {fmt(naechsterEinsatz.get(p.projectNumber))}</Marke>

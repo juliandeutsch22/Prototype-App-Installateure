@@ -99,7 +99,18 @@ export default function LaufWarnung() {
         {offen.map((o) => (
           <li key={o.art}>
             {o.text}{' '}
-            <Link to={WOHIN[o.art].pfad} className="link-hinweis-weiter">
+            {/*
+              Tastfläche 48 px (Prüflauf 25.09.2026, Touch-Ziele). Bei EINEM
+              Lauf als Polster ohne neue Zeilenhöhe; stehen zwei untereinander,
+              überdeckte das Polster des zweiten den ersten Link — dann
+              bekommt jeder seine eigene Höhe.
+            */}
+            <Link
+              to={WOHIN[o.art].pfad}
+              className={`link-hinweis-weiter ${
+                offen.length > 1 ? 'inline-flex min-h-touch items-center' : 'py-3.5 -my-3.5'
+              }`}
+            >
               {WOHIN[o.art].wort}
             </Link>
           </li>

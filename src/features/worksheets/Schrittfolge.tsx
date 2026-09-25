@@ -64,7 +64,7 @@ export function Schrittleiste({
                 }`}
               >
                 <span
-                  className={`tnum flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
                     aktiv
                       ? 'border-accent-deep bg-accent-deep text-white'
                       : davor
@@ -123,7 +123,7 @@ export function Zusammenfassung({
             ) : undefined
           }
         >
-          {z.wert && <span className="tnum font-medium text-ink">{z.wert}</span>}
+          {z.wert && <span className="font-medium text-ink">{z.wert}</span>}
           <Button
             variant="secondary"
             groesse="klein"

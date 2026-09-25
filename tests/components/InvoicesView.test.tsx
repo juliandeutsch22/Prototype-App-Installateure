@@ -76,7 +76,6 @@ let reservierteNummer = 'RE-2026-1099';
 let reservierungWirft: Error | null = null;
 
 const reserve = vi.fn();
-const markiere = vi.fn();
 const lege = vi.fn();
 const mahnung = vi.fn();
 const reihenfolge: string[] = [];
@@ -99,6 +98,12 @@ const listInvoicesForProject = vi.fn(async () => {
 const listInvoicesInRange = vi.fn<[string, string, string], Promise<(Invoice & { id: string })[]>>(
   async () => imZeitraum,
 );
+/*
+  Welche Scheine laut Abdeckung ALLER Rechnungen verrechnet sind (Prüflauf
+  25.09.2026, P2-03) — die Quelle für „nicht verrechnete Leistung".
+*/
+let aufRechnung: string[] = [];
+const scheineAufRechnung = vi.fn(async () => aufRechnung);
 
 /*
   DIE GRENZE IM TEST KLEIN HALTEN.
@@ -148,21 +153,22 @@ vi.mock('@/lib/db/invoices', async () => {
       cb(rechnungen);
       return () => undefined;
     },
-    reserveInvoiceNumber: (c: string, opts: { seedFrom: number; desired?: number }) => {
-      reihenfolge.push('reserve');
-      reserve(c, opts);
+    /*
+      NUMMER, SPERRE UND RECHNUNG IN EINEM AUFRUF (Prüflauf 25.09.2026,
+      P2-04). Der Doppelgänger hält fest, was die Transaktion bekäme: den
+      Nummernwunsch (`reserve`) und die Rechnung mit der Nummer, die die
+      Datenbank vergibt (`lege`).
+    */
+    rechnungAusstellen: (
+      c: string,
+      inv: Invoice,
+      nummer: { praefix?: string; desired?: number },
+    ) => {
+      reihenfolge.push('ausstellen');
+      reserve(c, nummer);
       if (reservierungWirft) return Promise.reject(reservierungWirft);
-      return Promise.resolve(reservierteNummer);
-    },
-    markBilled: (...a: unknown[]) => {
-      reihenfolge.push('markBilled');
-      markiere(...a);
-      return Promise.resolve();
-    },
-    createInvoice: (_c: string, inv: Invoice) => {
-      reihenfolge.push('createInvoice');
       lege(inv);
-      return Promise.resolve('neu');
+      return Promise.resolve({ id: 'neu', invoiceNumber: reservierteNummer });
     },
     /*
       Die Rechnungen EINER BAUSTELLE — für den Abzug auf der Schlussrechnung.
@@ -170,6 +176,7 @@ vi.mock('@/lib/db/invoices', async () => {
       noch verlässlich unter den jüngsten Rechnungen steht.
     */
     listInvoicesForProject: () => listInvoicesForProject(),
+    scheineAufRechnung: () => scheineAufRechnung(),
     sucheRechnungen: (c: string, b: string) => {
       suche(c, b);
       return sucheWirft ? Promise.reject(new Error('weg')) : Promise.resolve(suchTreffer);
@@ -209,7 +216,7 @@ vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => [PROJEKT]),
   listProjectsByNumbers: vi.fn(async () => [PROJEKT]),
 }));
-let kunden: Array<{ name: string; vatId?: string }> = [];
+let kunden: Array<{ id?: string; name: string; vatId?: string; address?: string }> = [];
 vi.mock('@/lib/db/customers', () => ({ listCustomers: vi.fn(async () => kunden) }));
 /*
   Der Kontenrahmen. Leer ist der Regelfall: ohne hinterlegte Konten gibt es
@@ -334,17 +341,19 @@ beforeEach(() => {
   listUnpaidInvoices.mockClear();
   listInvoicesInRange.mockClear();
   listRecentWorkSheets.mockClear();
+  aufRechnung = [];
+  scheineAufRechnung.mockClear();
   zeiten = [ZEIT];
   scheine = [];
   katalog = [];
   kunden = [];
   angebote = [];
   PROJEKT.billingMode = undefined;
+  PROJEKT.customerId = undefined;
   reservierteNummer = 'RE-2026-1099';
   reservierungWirft = null;
   reihenfolge.length = 0;
   reserve.mockClear();
-  markiere.mockClear();
   lege.mockClear();
   pdfAusgabe.mockClear();
   mahnung.mockClear();
@@ -361,18 +370,21 @@ afterEach(() => {
 });
 
 describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
-  it('sperrt die Belege VOR dem Anlegen der Rechnung', async () => {
+  it('zieht die Nummer, sperrt die Belege und legt an — in EINEM Aufruf (Prüflauf 25.09.2026, P2-04)', async () => {
     /**
-     * Die Reihenfolge ist die eigentliche Aussage. Bricht es nach dem Sperren
-     * ab, ist schlimmstenfalls eine Rechnung nicht entstanden — dreht man sie
-     * um, ist im Fehlerfall ein Zeiteintrag ein zweites Mal verrechenbar, und
-     * der Kunde bekommt dieselbe Stunde zweimal in Rechnung gestellt.
+     * Die Reihenfolge WAR die Aussage: erst die Nummer, dann die Belege
+     * sperren, dann anlegen. Ein Abbruch dazwischen liess eine verbrauchte
+     * Nummer und gesperrte Stunden ohne Rechnung stehen, und zwei
+     * gleichzeitige Abrechnungen verrechneten dieselben Stunden. Jetzt ist es
+     * ein Aufruf und in der Datenbank eine Transaktion — die Belege gehen mit
+     * der Rechnung hinein und werden dort gesperrt.
      */
     const bestaetigen = await bisZurVorschau();
     await userEvent.click(bestaetigen);
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
-    expect(reihenfolge).toEqual(['reserve', 'markBilled', 'createInvoice']);
+    expect(reihenfolge).toEqual(['ausstellen']);
+    expect(lege.mock.calls[0][0].linkedEntries).toEqual(['z1']);
   });
 
   it('schreibt die RESERVIERTE Nummer in die Rechnung, nicht die vorgeschlagene', async () => {
@@ -392,8 +404,11 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     await userEvent.click(bestaetigen);
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
-    expect(lege.mock.calls[0][0].invoiceNumber).toBe('RE-2026-1099');
-    expect(markiere).toHaveBeenCalledWith('timeEntries', ['z1'], 'RE-2026-1099');
+    // Die Vorschlagsnummer geht gar nicht erst mit — die Nummer vergibt die
+    // Transaktion, und auf den Beleg kommt, was sie zurückgibt.
+    expect(lege.mock.calls[0][0].invoiceNumber).toBeUndefined();
+    expect(reserve.mock.calls[0][1].praefix).toBe('RE');
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({ invoiceNumber: 'RE-2026-1099' });
   });
 
   it('zieht ohne Handeingabe KEINE Wunschnummer', async () => {
@@ -641,13 +656,36 @@ describe('Material und Leistungszeitraum in der Vorschau', () => {
   });
 
   it('nimmt einen Schein NICHT, dessen Material schon auf einer Rechnung steht', async () => {
+    /*
+      DIE RECHNUNG STEHT NICHT UNTER DEN JÜNGSTEN (Prüflauf 25.09.2026,
+      P2-03). Bisher kam „schon verrechnet" aus der geladenen Liste — den
+      fünfzig jüngsten Rechnungen. Eine ältere, längst bezahlte Rechnung mit
+      diesem Schein stand dort nicht, und sein Material kam ein zweites Mal.
+      Maßgeblich sind jetzt ALLE Rechnungen der Baustelle.
+    */
     scheine = [SCHEIN];
     katalog = KATALOG;
-    rechnungen = [
-      { id: 'r1', linkedWorkSheets: ['s1'], paymentStatus: 'Offen' } as Invoice & { id: string },
+    rechnungen = [];
+    derBaustelle = [
+      {
+        id: 'r1', invoiceNumber: 'RE-2025-1001', projectNumber: '2026-042',
+        linkedWorkSheets: ['s1'], paymentStatus: 'Bezahlt',
+      } as Invoice & { id: string },
     ];
     await bisZurVorschau();
     expect(screen.queryByDisplayValue('Eckventil 1/2 Zoll')).not.toBeInTheDocument();
+  });
+
+  it('stellt nichts zusammen, wenn die Rechnungen der Baustelle nicht kommen', async () => {
+    // Eine Vorschau, die doppelt verrechnen könnte, ist schlechter als keine.
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    baustellenAbfrageWirft = true;
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    expect(await screen.findByText(/bisherigen Rechnungen dieser Baustelle konnten nicht geladen/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
   });
 });
 
@@ -1285,6 +1323,30 @@ describe('Nicht verrechnete Leistung', () => {
   });
 
   /*
+    PRÜFLAUF 25.09.2026, P2-03. Die Rechnung mit dem Schein ist älter als die
+    fünfzig jüngsten und längst bezahlt — sie steht weder in der Liste noch
+    in den offenen Forderungen. Bisher stand der Schein deshalb als „nicht
+    verrechnet" da; die Abdeckung aller Rechnungen weiss es besser.
+  */
+  it('schweigt auch, wenn die Rechnung mit dem Schein alt und bezahlt ist', async () => {
+    alleScheine = [schein('s1', '2026-06-01')];
+    rechnungen = [];
+    offene = [];
+    aufRechnung = ['s1'];
+    zeige();
+    await waitFor(() => expect(scheineAufRechnung).toHaveBeenCalled());
+    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+  });
+
+  it('sagt es, wenn die Abdeckung nicht geladen werden konnte, statt falsch zu melden', async () => {
+    alleScheine = [schein('s1', '2026-06-01')];
+    scheineAufRechnung.mockRejectedValueOnce(new Error('kein Netz'));
+    zeige();
+    expect(await screen.findByText(/schon verrechnet sind, konnte nicht geladen werden/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Nicht verrechnete Leistung/)).not.toBeInTheDocument();
+  });
+
+  /*
     DER KERN, und er ist leicht zu übersehen: wer eine Rechnung STORNIERT,
     nimmt die Forderung zurück — die Leistung steht dann wieder offen.
     Zählte der Storno als Verrechnung, verschwände genau die Arbeit aus der
@@ -1379,6 +1441,25 @@ describe('Der Buchhaltungs-Export', () => {
 
     expect(await screen.findByRole('button', { name: 'Als CSV herunterladen' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: /Buchungsstapel/ })).toBeNull();
+  });
+
+  /*
+    PRÜFLAUF 25.09.2026, P2-14: ein Monat, in dem nur eine frühere Rechnung
+    storniert wurde, hat eine Gegenzeile — und damit etwas herunterzuladen.
+  */
+  it('lässt einen Zeitraum mit nur einem Storno herunterladen und sagt es', async () => {
+    konten = [];
+    imZeitraum = [
+      {
+        ...journal('0001', '2026-08-20'),
+        paymentStatus: 'Storniert',
+        cancelledAt: new Date(2026, 8, 1, 8, 0).getTime(),
+      },
+    ];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: 'Zeitraum zusammenstellen' }));
+    expect(await screen.findByText(/Storniert wurde in dieser Zeit eine frühere Rechnung/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Als CSV herunterladen' })).toBeEnabled();
   });
 
   it('bietet ihn an, sobald die Konten stehen', async () => {
@@ -1886,13 +1967,22 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     expect(screen.getByDisplayValue('Anzahlung gemäß Vereinbarung')).toBeTruthy();
     expect(screen.queryByDisplayValue(/Facharbeiterstunden/)).toBeNull();
 
+    /*
+      Der Betrag steht auf null und ist zu setzen — über null Euro gibt es
+      seit dem Prüflauf 25.09.2026 (P2-10) keine Rechnung.
+    */
+    expect(bestaetigen).toBeDisabled();
+    const preis = screen.getByLabelText('Einzelpreis Position 1');
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '1000');
+    await waitFor(() => expect(bestaetigen).toBeEnabled());
+
     await userEvent.click(bestaetigen);
     await waitFor(() => expect(lege).toHaveBeenCalled());
     const inv = lege.mock.calls[0][0] as Invoice;
     expect(inv.art).toBe('anzahlung');
+    // Gesperrt wird nichts: die Liste, die mit der Rechnung zum Sperren geht, ist leer.
     expect(inv.linkedEntries).toEqual([]);
-    // Gesperrt wird nichts: die Liste, die zum Sperren geht, ist leer.
-    expect(markiere).toHaveBeenCalledWith('timeEntries', [], 'RE-2026-1099');
   });
 
   it('verlangt für die Anzahlung keinen Leistungszeitraum', async () => {
@@ -1952,6 +2042,49 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
         brutto: 240,
       },
     ]);
+  });
+
+  /*
+    PRÜFLAUF 25.09.2026, P2-08. Eine Schlussrechnung mit Übergang der
+    Steuerschuld zog die Anzahlung MIT Umsatzsteuer samt Steuer ab — die
+    Restforderung war um die Steuer zu niedrig. Solche Anzahlungen werden
+    nicht mehr angeboten, sondern benannt.
+  */
+  it('bietet bei Reverse Charge keine Anzahlung mit USt zum Abzug an', async () => {
+    derBaustelle = [ANZAHLUNG];
+    const bestaetigen = await bisZurVorschau('schluss');
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
+
+    expect(screen.queryByRole('checkbox', { name: /RE-2026-1001/ })).toBeNull();
+    expect(screen.getByText(/Nicht abziehbar, weil mit Umsatzsteuer/)).toHaveTextContent('RE-2026-1001');
+
+    await waitFor(() => expect(bestaetigen).toBeEnabled());
+    await userEvent.click(bestaetigen);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect((lege.mock.calls[0][0] as Invoice).vorrechnungen).toBeUndefined();
+  });
+
+  it('eine schon gewählte Anzahlung fällt heraus, wenn danach Reverse Charge angehakt wird', async () => {
+    derBaustelle = [ANZAHLUNG];
+    await bisZurVorschau('schluss');
+    await userEvent.click(await screen.findByRole('checkbox', { name: /RE-2026-1001/ }));
+    expect(screen.getByText(/Restforderung brutto/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    expect(screen.queryByText(/Restforderung brutto/)).toBeNull();
+  });
+
+  it('eine Reverse-Charge-Anzahlung passt zu einer Reverse-Charge-Schlussrechnung', async () => {
+    derBaustelle = [{ ...ANZAHLUNG, reverseCharge: true, totalVat: 0, totalBrutto: 1000 }];
+    await bisZurVorschau('schluss');
+    // Ohne Haken passt sie nicht …
+    expect(screen.queryByRole('checkbox', { name: /RE-2026-1001/ })).toBeNull();
+    // … mit Haken schon.
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    expect(await screen.findByRole('checkbox', { name: /RE-2026-1001/ })).toBeInTheDocument();
   });
 
   it('lässt Art und Abzug beim erneuten Drucken nicht verschwinden', async () => {
@@ -2057,9 +2190,19 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
       Stillschweigen wäre hier das Teuerste: eine Schlussrechnung ohne ihre
       Anzahlungen sieht vollständig aus und weist dieselbe Steuer zweimal aus.
     */
+    /*
+      Seit dem Prüflauf 25.09.2026 (P2-03) entsteht dann gar keine Vorschau:
+      dieselbe Abfrage sagt auch, welches Material schon verrechnet ist.
+      Gemeldet wird es weiterhin — nur eben vor dem Zusammenstellen.
+    */
     baustellenAbfrageWirft = true;
-    await bisZurVorschau('schluss');
+    authWert.company.rechnungsarten = true;
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: /Art der Rechnung/ }), 'schluss');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
     expect(await screen.findByText(/konnten nicht geladen werden/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Rechnung erstellen/ })).toBeNull();
   });
 });
 
@@ -2196,5 +2339,311 @@ describe('Die Kennzahl „Bezahlt"', () => {
     const kachel = (await screen.findByText('Bezahlt', { selector: 'p, span, div, dt' })).parentElement!;
     expect(kachel).toHaveTextContent('€ 100,00');
     expect(kachel).not.toHaveTextContent('€ 330,00');
+  });
+});
+
+/*
+  PRÜFLAUF 25.09.2026, P2-01 und P2-09. Steuersatz und Rabatt galten nicht
+  für eine NEU zusammengestellte Vorschau: nach „Bauleistung“ angehakt und
+  neu zusammengestellt stand 20 % USt im Betrag einer Reverse-Charge-
+  Rechnung; ein eingetragener Rabatt wurde gespeichert, aber nicht
+  abgezogen. Und der Rabatt aus dem Angebot einer Pauschalbaustelle ging bei
+  der ersten Änderung einer Position verloren.
+*/
+describe('Rechnungen — neu zusammengestellt, Satz und Rabatt bleiben', () => {
+  it('rechnet nach dem Neuaufbau mit Reverse Charge ohne USt', async () => {
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    const uid = (await screen.findByLabelText(/UID-Nummer des Kunden/)) as HTMLInputElement;
+    if (!uid.value) await userEvent.type(uid, 'ATU11112222');
+    const knopf = await screen.findByRole('button', { name: /Rechnung erstellen/ });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const r = lege.mock.calls[0][0] as Invoice;
+    expect(r.reverseCharge).toBe(true);
+    expect(r.totalVat).toBe(0);
+    expect(r.totalBrutto).toBe(r.totalNetto);
+  });
+
+  it('zieht einen vorher eingetragenen Rabatt nach dem Neuaufbau auch ab', async () => {
+    await bisZurVorschau();
+    await userEvent.type(screen.getByLabelText('Rabatt %'), '10');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    const knopf = await screen.findByRole('button', { name: /Rechnung erstellen/ });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const r = lege.mock.calls[0][0] as Invoice;
+    expect(r.discount).toEqual(expect.objectContaining({ mode: 'percent', value: 10 }));
+    expect(r.discountAmount).toBeGreaterThan(0);
+    expect(r.totalNetto).toBeCloseTo((r.subtotalNetto ?? 0) - (r.discountAmount ?? 0), 2);
+  });
+
+  it('behält bei der Pauschale den Rabatt aus dem Angebot, auch nach einer Änderung', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    angebote = [
+      {
+        id: 'q1', quoteNumber: 'AN-2026-0003', status: 'Angenommen', quoteDate: '2026-08-01',
+        positions: [
+          { label: 'Heizkörper tauschen', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 },
+        ],
+        discount: { mode: 'percent', value: 10, label: 'Stammkunde' },
+        subtotalNetto: 1000, discountAmount: 100, totalNetto: 900, totalVat: 180, totalBrutto: 1080,
+      },
+    ];
+    await bisZurVorschau();
+    expect(screen.getByLabelText('Rabatt %')).toHaveValue(10);
+    // Eine Position ändern — der Rabatt muss bleiben.
+    const menge = screen.getByLabelText(/Menge Position 1/);
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '1');
+    const knopf = await screen.findByRole('button', { name: /Rechnung erstellen/ });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const r = lege.mock.calls[0][0] as Invoice;
+    expect(r.discount).toEqual(expect.objectContaining({ mode: 'percent', value: 10 }));
+    expect(r.totalNetto).toBe(900);
+  });
+});
+
+describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
+  it('nennt die Auswahl „Rechnungen nach Status filtern" — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl"', async () => {
+    zeige();
+    expect(await screen.findByRole('combobox', { name: 'Rechnungen nach Status filtern' })).toBeInTheDocument();
+  });
+});
+
+describe('„Positionen zusammenstellen" bricht nicht um (Prüflauf 25.09.2026, P4-18)', () => {
+  it('hält die Beschriftung in einer Zeile; Platz gibt die Baustellenauswahl her', async () => {
+    /*
+      Bei 834 px stand „zusammenstell|en" auf drei Zeilen, mit Auswahl der
+      Rechnungsart war der Knopf 49 px schmal und lief aus der Karte. jsdom
+      rechnet kein Layout; im Browser nachgemessen (390/834/1440, mit und
+      ohne Rechnungsart). Geprüft wird, was das Umbrechen verhindert.
+    */
+    zeige();
+    const knopf = await screen.findByRole('button', { name: 'Positionen zusammenstellen' });
+    expect(knopf.className).toMatch(/\bwhitespace-nowrap\b/);
+    expect(knopf.className).toMatch(/\bshrink-0\b/);
+    const reihe = knopf.parentElement!;
+    expect(reihe.className).toMatch(/sm:flex-wrap/);
+    // Die Auswahl darf schrumpfen (min-w-0), höchstens 20rem breit wie bisher.
+    const auswahl = reihe.firstElementChild as HTMLElement;
+    expect(auswahl.className).toMatch(/\bmin-w-0\b/);
+    expect(auswahl.className).toMatch(/sm:max-w-80/);
+  });
+});
+
+
+/*
+  PRÜFLAUF 25.09.2026, P2-04 und P2-10. Nummer, Sperre und Rechnung gehen in
+  EINEM Aufruf; scheitert er, ist nichts angelegt und nichts gesperrt — und
+  die Ansicht sagt, woran es lag. Ohne Positionen oder über null Euro gibt es
+  keine Rechnung: vorher liess sich die letzte Zeile entfernen und eine
+  Rechnung über nichts anlegen.
+*/
+describe('Rechnungen — ganz oder gar nicht', () => {
+  it('gibt den Grund weiter, wenn ein Beleg inzwischen verrechnet ist', async () => {
+    reservierungWirft = new Error(
+      'Ein Teil der Belege ist inzwischen verrechnet oder gehört nicht zu diesem Betrieb — die Rechnung ist nicht angelegt und nichts ist gesperrt. Bitte die Positionen neu zusammenstellen.',
+    );
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+
+    expect(await screen.findByText(/inzwischen verrechnet/)).toBeInTheDocument();
+    expect(lege).not.toHaveBeenCalled();
+    expect(pdfAusgabe).not.toHaveBeenCalled();
+  });
+
+  it('legt ohne Positionen keine Rechnung an', async () => {
+    const bestaetigen = await bisZurVorschau();
+    expect(bestaetigen).toBeEnabled();
+    // Alle Zeilen entfernen — bis nichts mehr dasteht.
+    for (let i = 0; i < 10; i += 1) {
+      const weg = screen.queryByRole('button', { name: 'Position 1 entfernen' });
+      if (!weg) break;
+      await userEvent.click(weg);
+    }
+    expect(screen.queryByRole('button', { name: 'Position 1 entfernen' })).toBeNull();
+    expect(bestaetigen).toBeDisabled();
+    expect(screen.getByText(/Ohne Positionen gibt es keine Rechnung/)).toBeInTheDocument();
+    await userEvent.click(bestaetigen);
+    expect(reserve).not.toHaveBeenCalled();
+  });
+
+  it('legt keine Rechnung über null Euro an', async () => {
+    const bestaetigen = await bisZurVorschau();
+    const preis = screen.getByLabelText('Einzelpreis Position 1');
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '0');
+    expect(bestaetigen).toBeDisabled();
+    expect(screen.getByText(/über null Euro wird nicht angelegt/)).toBeInTheDocument();
+  });
+});
+
+/*
+  PRÜFLAUF 25.09.2026, P2-02. Rechnung und Mahnung gingen an die Anschrift
+  der BAUSTELLE. Richtig ist die des Kunden aus dem Stamm — wie beim Angebot —,
+  und die Baustelle als „Ort der Leistung" daneben.
+*/
+describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
+  const KUNDE = { id: 'k1', name: 'Familie Huber', address: 'Kundenweg 1, 2700 Wiener Neustadt' };
+
+  it('schreibt die Anschrift des Kunden als Empfänger und die Baustelle als Ort der Leistung', async () => {
+    kunden = [KUNDE];
+    PROJEKT.customerId = 'k1';
+    await userEvent.click(await bisZurVorschau());
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+
+    expect(lege.mock.calls[0][0]).toMatchObject({
+      address: 'Kundenweg 1, 2700 Wiener Neustadt',
+      leistungsort: 'Bergweg 3',
+    });
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({
+      project: { address: 'Kundenweg 1, 2700 Wiener Neustadt' },
+      leistungsort: 'Bergweg 3',
+    });
+  });
+
+  it('findet den Kunden auch über den Namen — aber nur, wenn er eindeutig ist', async () => {
+    kunden = [KUNDE];
+    await userEvent.click(await bisZurVorschau());
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].address).toBe('Kundenweg 1, 2700 Wiener Neustadt');
+  });
+
+  it('bei zwei Kunden gleichen Namens bleibt es bei der Baustelle', async () => {
+    kunden = [KUNDE, { id: 'k2', name: 'Familie Huber', address: 'Ganz woanders 9' }];
+    await userEvent.click(await bisZurVorschau());
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].address).toBe('Bergweg 3');
+    expect(lege.mock.calls[0][0].leistungsort).toBeUndefined();
+  });
+
+  it('ohne Kunden im Stamm bleibt es, wie es war', async () => {
+    kunden = [];
+    await userEvent.click(await bisZurVorschau());
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].address).toBe('Bergweg 3');
+    expect(lege.mock.calls[0][0].leistungsort).toBeUndefined();
+  });
+
+  it('die Mahnung geht an die Anschrift des Kunden', async () => {
+    kunden = [KUNDE];
+    rechnungen = [
+      {
+        id: 'r1', invoiceNumber: 'RE-2026-0009', projectNumber: '2026-042',
+        customerName: 'Familie Huber', invoiceDate: '2026-08-01', dueDate: '2026-08-15',
+        address: 'Bergweg 3', totalNetto: 1000, totalVat: 200, totalBrutto: 1200,
+        vatRate: 0.2, paymentStatus: 'Offen',
+      } as unknown as Invoice & { id: string },
+    ];
+    zeige();
+    await screen.findAllByText(/RE-2026-0009/);
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0009/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Erzeugen' }));
+
+    await waitFor(() => expect(mahnungPdf).toHaveBeenCalled());
+    expect((mahnungPdf.mock.calls[0] as unknown[])[0]).toMatchObject({
+      adresse: 'Kundenweg 1, 2700 Wiener Neustadt',
+    });
+  });
+
+  it('der Nachdruck bleibt beim gespeicherten Beleg', async () => {
+    kunden = [KUNDE];
+    rechnungen = [
+      {
+        id: 'alt', invoiceNumber: 'RE-2026-0005', projectNumber: '2026-042',
+        customerName: 'Familie Huber', invoiceDate: '2026-07-01', dueDate: '2026-07-15',
+        address: 'Bergweg 3', totalNetto: 100, totalVat: 20, totalBrutto: 120, vatRate: 0.2,
+        paymentStatus: 'Bezahlt', bezahltBetrag: 120,
+        positions: [{ label: 'Arbeit', qty: 1, unit: 'h', unitPrice: 100, netto: 100 }],
+      } as unknown as Invoice & { id: string },
+    ];
+    zeige();
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0005/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'PDF erneut laden' }));
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({ project: { address: 'Bergweg 3' } });
+    expect((pdfAusgabe.mock.calls[0][0] as { leistungsort?: string }).leistungsort).toBeUndefined();
+  });
+});
+
+/*
+  PRÜFLAUF 25.09.2026, P2-12. „Offen" und „Überfällig" rechneten nur über die
+  fünfzig jüngsten Rechnungen — die älteste Forderung fiel als erste heraus.
+  Jetzt über alle unbezahlten; „Bezahlt" sagt dazu, worüber es gerechnet ist.
+*/
+describe('Die Kennzahlen „Offen" und „Überfällig"', () => {
+  const kachel = (name: string) =>
+    screen.getAllByText(name).find((e) => e.tagName === 'P')!.parentElement!;
+
+  it('zählen auch eine alte Forderung, die in der Liste gar nicht mehr steht', async () => {
+    rechnungen = [];
+    offene = [
+      {
+        id: 'alt', invoiceNumber: 'RE-2024-1001', projectNumber: '2024-001', customerName: 'Max',
+        invoiceDate: '2024-03-01', dueDate: '2024-03-15', totalNetto: 1000, totalVat: 200,
+        totalBrutto: 1200, paymentStatus: 'Überfällig',
+      },
+      {
+        id: 'frisch', invoiceNumber: 'RE-2026-1001', projectNumber: '2026-001', customerName: 'Moritz',
+        invoiceDate: '2026-08-30', dueDate: '2099-01-01', totalNetto: 100, totalVat: 20,
+        totalBrutto: 120, paymentStatus: 'Offen',
+      },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige();
+    await waitFor(() => expect(kachel('Überfällig')).toHaveTextContent(/€ 1\s200,00/));
+    expect(kachel('Offen')).toHaveTextContent('€ 120,00');
+  });
+
+  it('der jüngere Stand aus der Liste gewinnt — eine eben erfasste Zahlung zählt sofort', async () => {
+    const r = {
+      id: 'r', invoiceNumber: 'RE-2026-1002', projectNumber: '2026-001', customerName: 'Max',
+      invoiceDate: '2026-08-30', dueDate: '2099-01-01', totalNetto: 100, totalVat: 20,
+      totalBrutto: 120, paymentStatus: 'Offen',
+    } as unknown as Invoice & { id: string };
+    offene = [r];
+    rechnungen = [{ ...r, paymentStatus: 'Bezahlt', bezahltBetrag: 120 }];
+    zeige();
+    await screen.findByText(/RE-2026-1002/);
+    expect(kachel('Offen')).toHaveTextContent('€ 0,00');
+  });
+
+  it('„Bezahlt" sagt, worüber es gerechnet ist', async () => {
+    rechnungen = [
+      { id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
+        paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige();
+    await screen.findByText(/RE-2026-1003/);
+    expect(kachel('Bezahlt')).toHaveTextContent('auf die 1 jüngsten Rechnungen');
+  });
+});
+
+/*
+  PRÜFLAUF 25.09.2026, P2-20. Die Erklärung zur Liste behauptete, „Bezahlt"
+  trage jemand von Hand ein, eine stornierte Rechnung lasse sich löschen und
+  ein Storno jederzeit aufheben.
+*/
+describe('Die Erklärung zur Rechnungsliste', () => {
+  it('sagt, was gilt', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Was bedeutet Alle Rechnungen/ }));
+    const text = document.body.textContent ?? '';
+    expect(text).toMatch(/ergeben sich aus den erfassten Zahlungen/);
+    expect(text).toMatch(/Gelöscht wird keine Rechnung/);
+    expect(text).toMatch(/nur am Tag des Stornos/);
+    expect(text).not.toMatch(/von Hand ein/);
+    expect(text).not.toMatch(/Gelöscht werden kann nur eine bereits stornierte/);
   });
 });

@@ -75,7 +75,9 @@ export default function WartungHinweis() {
         {ueberfaellig > 0
           ? `${ueberfaellig} davon ${ueberfaellig === 1 ? 'ist' : 'sind'} überfällig. `
           : `Fällig in den nächsten ${VORLAUF_TAGE} Tagen. `}
-        <Link to="/wartungen" className="link-hinweis-weiter">
+        {/* Tastfläche 48 px ohne neue Zeilenhöhe (Prüflauf 25.09.2026,
+            Touch-Ziele) — Polster an einem Link im Fliesstext verschiebt nichts. */}
+        <Link to="/wartungen" className="link-hinweis-weiter py-3.5 -my-3.5">
           Zu den Wartungen
         </Link>
       </p>

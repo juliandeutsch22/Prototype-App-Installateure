@@ -118,7 +118,7 @@ export default function Metric({ label, value, hint, tone = 'default', to }: Met
         Mit 1,375 rem in der Mitte passt es, und am Schreibtisch bleibt die
         grosse Zahl gross.
       */}
-      <p className={`tnum mt-1 truncate text-lg font-bold sm:text-xl lg:text-2xl ${valueTone[tone]}`}>
+      <p className={`mt-1 truncate text-lg font-bold sm:text-xl lg:text-2xl ${valueTone[tone]}`}>
         {value}
       </p>
       {hint && <p className="mt-1 text-xs leading-snug text-ink-muted">{hint}</p>}

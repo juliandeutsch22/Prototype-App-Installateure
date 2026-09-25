@@ -17,11 +17,10 @@ import { listEntriesInRange } from '@/lib/db/timeEntries';
 import { scheineOhneBuchung, minutenOhneBuchung, OFFEN_AB_TAGEN } from './fehlendeZeitbuchung';
 import { deuteSuche, suchHinweis } from './scheinSuche';
 import { isGF, canWriteWorkSheet, canEditTime } from '@/lib/permissions';
-import { fmtMin, tageWort, todayStr } from '@/lib/time';
+import { fmtDauer, tageWort, todayStr } from '@/lib/time';
 import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
-import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -109,6 +108,15 @@ export default function WorkSheetsListView() {
    * Seite mit „Kein Zugriff".
    */
   const darfSchreiben = user ? canWriteWorkSheet(user.role) : false;
+  /**
+   * Und DIESEN einen Schein: die Führung jeden, der Monteur seinen eigenen.
+   *
+   * Seit dem Prüflauf vom 25.09.2026 (P3-10) steht dieselbe Grenze in der
+   * Datenbank (`app.schein_schreibt`). Vorher liess sie jeden im Betrieb an
+   * jeden Entwurf, und die Liste bot es entsprechend an.
+   */
+  const darfDiesen = (s: WorkSheet) =>
+    darfSchreiben && !!user && (isGF(user.role) || s.erstelltVonUid === user.uid);
 
   const laden = useMemo(
     () => async () => {
@@ -343,18 +351,23 @@ export default function WorkSheetsListView() {
         Aktion der App in einer eigenen Karte über volle Breite. Ein Link und
         kein Knopf, weil er eine andere Seite öffnet; er sieht aus wie der
         Hauptknopf der anderen Listen.
+
+        Und nur für die, die einen Schein auch schreiben dürfen: Buchhaltung
+        und Verwaltung sehen die Liste, landeten mit dem Knopf aber auf
+        „Kein Zugriff" (Prüflauf 25.09.2026, P4-04).
       */}
       <PageHeader
         title="Handwerksscheine"
         subtitle="Unterschriebene Leistungsnachweise der Baustellen"
         action={
+          darfSchreiben && (
           <Link
             to="/worksheet"
             className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
           >
-            <Icon name="plus" size={18} />
             Neuer Schein
           </Link>
+          )
         }
       />
 
@@ -437,7 +450,7 @@ export default function WorkSheetsListView() {
         >
           {minutenOhneBuchung(ohneBuchung) > 0 && (
             <p className="mb-3 text-sm text-ink">
-              <strong>{fmtMin(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
+              <strong>{fmtDauer(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
               beim Kunden und in keiner Zeiterfassung.
             </p>
           )}
@@ -510,13 +523,13 @@ export default function WorkSheetsListView() {
                 }
                 subtitle={
                   <>
-                    <span className="tnum">
+                    <span>
                       Baustelle {schein.projectNumber} · Leistung vom {datumAT(schein.datum)}
                     </span>
                     <span className="mt-1 block">
                       {zeilen.map((z) => (
                         <span key={z.name} className="block text-xs text-ink-muted">
-                          {z.name} · {fmtMin(z.minuten)} ·{' '}
+                          {z.name} · {fmtDauer(z.minuten)} ·{' '}
                           {z.art === 'keine'
                             ? 'keine Buchung gefunden'
                             : `gebucht auf ${z.gebuchtAuf?.join(', ')}`}
@@ -651,17 +664,19 @@ export default function WorkSheetsListView() {
               return (
                 <ListRow
                   key={s.id}
+                  wert={fmtDauer(gesamt)}
+                  zustand={<Zustand stand={STAND[s.status]}>{s.status}</Zustand>}
                   title={
                     <span>
                       {s.customerName}{' '}
-                      <span className="tnum text-sm font-normal text-ink-muted">
+                      <span className="text-sm font-normal text-ink-muted">
                         ({s.projectNumber})
                       </span>
                     </span>
                   }
                   subtitle={
                     <>
-                      {datumAT(s.datum)} · {fmtMin(gesamt)} · {s.abrechnung}
+                      {datumAT(s.datum)} · {s.abrechnung}
                       {s.unterschriften?.kunde && (
                         <span className="mt-1 block text-xs text-ink-muted">
                           Unterschrieben von {s.unterschriften.kunde.name}
@@ -691,7 +706,7 @@ export default function WorkSheetsListView() {
                                     {z.mitarbeiter}
                                     {z.helfer ? ' (Helfer)' : ''} ·{' '}
                                     {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
-                                    {fmtMin(z.minuten)}
+                                    {fmtDauer(z.minuten)}
                                     {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
                                   </span>
                                 ))}
@@ -766,7 +781,6 @@ export default function WorkSheetsListView() {
                     </>
                   }
                 >
-                  <Zustand stand={STAND[s.status]}>{s.status}</Zustand>
                   <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
                     {auf ? 'Zuklappen' : 'Details'}
                   </Button>
@@ -781,24 +795,32 @@ export default function WorkSheetsListView() {
                     alles neu tippen — oder legte einen ZWEITEN Beleg über
                     dieselbe Arbeit an.
                   */}
-                  {darfSchreiben && s.status === 'Entwurf' && (
-                    <Link to={`/worksheet?entwurf=${s.id}`}>
-                      <Button variant="secondary">Weiterbearbeiten</Button>
+                  {/* Ein Link im Aussehen des Zweitknopfs, KEIN Knopf im Link:
+                      das waren zwei Tab-Stopps für eine Aktion, und die
+                      Vorlesehilfe meldete einen Knopf in einem Link
+                      (Prüflauf 25.09.2026, P4-12). Die Klassen sind die von
+                      `Button` mit `variant="secondary"`. */}
+                  {darfDiesen(s) && s.status === 'Entwurf' && (
+                    <Link
+                      to={`/worksheet?entwurf=${s.id}`}
+                      className="inline-flex min-h-touch items-center justify-center gap-2 rounded border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-2 active:scale-[0.98] sm:text-base"
+                    >
+                      Weiterbearbeiten
                     </Link>
                   )}
                   {/*
-                    Verwerfen darf, wer auch weiterbearbeiten darf. Eine
-                    engere Grenze waere hier eine Erfindung der Oberflaeche:
-                    die Rules lassen jeden im Betrieb an den Entwurf, und ein
+                    Verwerfen darf, wer auch weiterbearbeiten darf — dieselbe
+                    Grenze wie in der Datenbank (`app.schein_schreibt`): die
+                    Führung jeden Entwurf, der Monteur seinen eigenen. Ein
                     Knopf, den die Datenbank nicht deckt, taeuscht Ordnung nur
                     vor.
                   */}
-                  {darfSchreiben && s.status === 'Entwurf' && (
+                  {darfDiesen(s) && s.status === 'Entwurf' && (
                     <Button variant="ghost" onClick={() => setVerwerfenFuer(s)}>
                       Verwerfen
                     </Button>
                   )}
-                  {darfSchreiben && s.status === 'Verworfen' && (
+                  {darfDiesen(s) && s.status === 'Verworfen' && (
                     <Button
                       variant="secondary"
                       loading={busy}
@@ -856,7 +878,7 @@ export default function WorkSheetsListView() {
         message={
           verwerfenFuer
             ? `${verwerfenFuer.customerName}, ${datumAT(verwerfenFuer.datum)} · ` +
-              `${fmtMin(verwerfenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
+              `${fmtDauer(verwerfenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
               `${verwerfenFuer.material.length} Materialposten. Der Entwurf verschwindet aus ` +
               'der Arbeitsliste, bleibt aber erhalten und lässt sich wieder aufnehmen.'
             : undefined

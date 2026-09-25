@@ -126,3 +126,26 @@ export function nachtMinuten(startTime: string, endTime: string): number {
   const naechte: Array<[number, number]> = [[0, 6 * 60], [22 * 60, 30 * 60], [46 * 60, 54 * 60]];
   return naechte.reduce((summe, [a, b]) => summe + Math.max(0, Math.min(bis, b) - Math.max(von, a)), 0);
 }
+
+/**
+ * Liegt die Spanne ÜBERWIEGEND in der Nacht — und mindestens eine Stunde?
+ *
+ * Das Kennzeichen „Nachtarbeit" zählt die GANZE Buchung als Nacht, in der
+ * Rechnung wie in der Lohnausleitung (`zuschlaege.ts`). Der Hinweis erschien
+ * vorher schon ab einer Stunde nach 22 Uhr: wer 16:00–23:30 gearbeitet hat
+ * und ihm folgte, bekam siebeneinhalb Stunden Nachtzuschlag statt anderthalb
+ * (Prüflauf 25.09.2026, P1-19). Vorgeschlagen wird er deshalb nur noch, wenn
+ * die Nacht den grösseren Teil ausmacht.
+ */
+export function ueberwiegendNacht(startTime: string, endTime: string): boolean {
+  const nacht = nachtMinuten(startTime, endTime);
+  if (nacht < 60) return false;
+  const m = (t: string) => {
+    const x = /^(\d{1,2}):(\d{2})/.exec(t);
+    return x ? Number(x[1]) * 60 + Number(x[2]) : 0;
+  };
+  const von = m(startTime);
+  const bis0 = m(endTime);
+  const spanne = bis0 > von ? bis0 - von : bis0 + 24 * 60 - von;
+  return nacht * 2 >= spanne;
+}

@@ -245,7 +245,9 @@ describe('Der Kopf einer Baustelle bleibt ruhig', () => {
       und als Warnfarbe neben jeder zweiten Zeile nehmen sie der einen
       Baustelle die Aufmerksamkeit, die wirklich über dem Budget liegt.
     */
-    const angabe = screen.getAllByText(/h Helfer$/)[0];
+    // Seit P4-10 (Prüflauf 25.09.2026) als Arbeitszeit „+08:00 Std Helfer",
+    // nicht mehr „+8,0 h Helfer" — bewusst angepasst.
+    const angabe = screen.getAllByText(/Std Helfer$/)[0];
     expect(angabe).toBeInTheDocument();
     expect(angabe.className).not.toContain('bg-warning-bg');
     expect(angabe.className).not.toContain('rounded-pill');
@@ -286,5 +288,82 @@ describe('Projektauswertung — die Nummer, wie sie an der Baustelle steht (Laun
     );
     expect(screen.getByText('PR-187')).toBeInTheDocument();
     expect(screen.queryByText('187')).not.toBeInTheDocument();
+  });
+
+  it('zeigt den Vorsatz auch, solange die Baustelle noch nicht geladen ist', () => {
+    /**
+     * Die Baustellen lädt die Auswertung erst NACH den Einträgen nach. Bis
+     * dahin (und wenn die Nummer nicht gefunden wird) stand der
+     * Gruppierungsschlüssel da — „187" in beiden Zeilen. Die Einträge tragen
+     * die Nummer aber in voller Form, und genau die gehört hin.
+     */
+    render(
+      <ProjectSummary
+        entries={[
+          eintrag({ id: 'a', projectNumber: '187' } as Partial<TimeEntry>),
+          eintrag({ id: 'b', projectNumber: 'PR-187' } as Partial<TimeEntry>),
+        ]}
+        gesamtEntries={[]}
+        projects={[]}
+        label="September 2026"
+      />,
+    );
+    expect(screen.getAllByText('PR-187').length).toBeGreaterThan(0);
+    expect(screen.queryByText('187')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Prüflauf 25.09.2026, P4-10: in einer Karte standen „9,0 h" (Fachzeit des
+ * Monats) und „09:00" (die Einträge) nebeneinander, und das Datum der
+ * Einträge hatte als einziges in der App eine zweistellige Jahreszahl.
+ */
+describe('Projektauswertung — Zeiten und Datum wie überall', () => {
+  it('schreibt Arbeitszeit als HH:MM Std, das Budget bleibt dezimal', async () => {
+    render(
+      <ProjectSummary
+        entries={[
+          eintrag({ id: 'a' } as Partial<TimeEntry>),
+          eintrag({ id: 'h', userId: 'u2', userName: 'Erna Helfer', isHelper: true } as Partial<TimeEntry>),
+        ]}
+        gesamtEntries={[eintrag({ id: 'a' } as Partial<TimeEntry>)]}
+        projects={[projekt]}
+        label="September 2026"
+      />,
+    );
+    // 07:00–16:00 mit 30 min Pause: 08:30.
+    expect(screen.getByText('08:30 Std')).toBeInTheDocument();
+    expect(screen.getByText('+08:30 Std Helfer')).toBeInTheDocument();
+    // Die Gegenüberstellung mit dem Budget (40 h) bleibt in Dezimalstunden.
+    expect(
+      screen.getByText(
+        (_, el) =>
+          el?.tagName === 'P' &&
+          /8,5 h in September 2026 · gesamt 8,5 h von 40 h/.test(el.textContent ?? ''),
+      ),
+    ).toBeInTheDocument();
+
+    await aufklappen();
+    expect(screen.getByText('Fachzeit in September 2026: 08:30 Std')).toBeInTheDocument();
+    expect(screen.getByText(/\+ 08:30 Std Helfer-Leistung/)).toBeInTheDocument();
+    expect(screen.getByText(/gesamt 8,5 h \/ 40 h Budget/)).toBeInTheDocument();
+    // Dezimalstunden stehen nur noch in den Sätzen, die gegen das Budget halten.
+    for (const el of screen.queryAllByText(/\d,\d h/)) {
+      expect(el.closest('p')?.textContent).toMatch(/von 40 h|h Budget/);
+    }
+  });
+
+  it('schreibt das Datum der Einträge mit vierstelligem Jahr', async () => {
+    render(
+      <ProjectSummary
+        entries={[eintrag({ id: 'a' } as Partial<TimeEntry>)]}
+        gesamtEntries={[]}
+        projects={[projekt]}
+        label="September 2026"
+      />,
+    );
+    await aufklappen();
+    expect(screen.getByText('Do., 03.09.2026')).toBeInTheDocument();
+    expect(screen.queryByText('Do., 03.09.26')).not.toBeInTheDocument();
   });
 });

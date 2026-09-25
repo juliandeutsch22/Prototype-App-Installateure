@@ -494,3 +494,10 @@ describe('Anlegen mit Benutzername statt E-Mail', () => {
     expect(screen.queryByText(/senklot\.invalid/)).not.toBeInTheDocument();
   });
 });
+
+describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
+  it('nennt die Auswahl „Benutzer nach Status filtern" — ohne Namen hieß sie für die Vorlesehilfe nur „Auswahl"', async () => {
+    zeige();
+    expect(await screen.findByRole('combobox', { name: 'Benutzer nach Status filtern' })).toBeInTheDocument();
+  });
+});
