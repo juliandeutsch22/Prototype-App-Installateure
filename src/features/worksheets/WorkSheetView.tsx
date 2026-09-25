@@ -1360,7 +1360,7 @@ export default function WorkSheetView() {
                           {projekt?.customerName && (
                             <span className="block">{projekt.customerName}</span>
                           )}
-                          <span className="tnum block">
+                          <span className="block">
                             {projectNumber} · {datumAT(datum)}
                           </span>
                         </>
