@@ -1,4 +1,5 @@
 import type { Invoice } from '@/types';
+import { csvZelle as cell } from '@/lib/csvZelle';
 
 /**
  * Buchungsstapel für BMD NTCS.
@@ -57,11 +58,6 @@ export interface BmdErgebnis {
 const KOPF = [
   'Sollkonto', 'Habenkonto', 'Belegdatum', 'Belegnummer', 'Buchungstext', 'Betrag', 'Steuercode',
 ];
-
-function cell(v: unknown): string {
-  const s = v === null || v === undefined ? '' : String(v);
-  return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 
 /** Beträge mit Komma — BMD liest in deutscher Schreibweise. */
 const betrag = (n: number) => n.toFixed(2).replace('.', ',');

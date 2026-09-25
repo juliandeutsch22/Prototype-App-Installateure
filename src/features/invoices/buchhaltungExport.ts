@@ -1,5 +1,6 @@
 import type { Customer, Invoice } from '@/types';
 import { zahlstand } from './zahlstand';
+import { csvZelle as cell } from '@/lib/csvZelle';
 
 /**
  * Rechnungsausgangsbuch für den Steuerberater.
@@ -58,11 +59,6 @@ function tagVon(ms: number): string {
   const d = new Date(ms);
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-function cell(value: unknown): string {
-  const s = value === null || value === undefined ? '' : String(value);
-  return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 function row(values: unknown[]): string {
