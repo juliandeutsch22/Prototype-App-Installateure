@@ -412,7 +412,33 @@ textarea:focus {
 }
 
 /*
- * Abschnittsüberschrift im Kartenkopf: klein, halbfett, gesperrt, versal.
+ * KARTEN- UND ABSCHNITTSKÖPFE: normale Schreibweise, halbfett, Tinte.
+ *
+ * Bis zum 25.09.2026 stand hier `.section-label` — 12 px, versal, gesperrt
+ * und grau. Drei Verstärker für eine Zeile, die ORDNEN soll, und die grau
+ * gesetzt doch nicht als Kopf gelesen wurde. Jetzt trägt der Kopf die
+ * Schrift der Listentitel darunter, eine Stufe halbfett: er steht über dem
+ * Inhalt, ohne zu rufen. Freie Abschnittsköpfe (Dialoge, Rechtsseiten)
+ * standen eine Stufe größer (18 px) und nehmen dieselbe Klasse.
+ */
+.titel-karte {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+  color: var(--ink-deep);
+}
+
+/*
+ * Dachzeile: Bezeichnung über einem Wert, Kopf einer Gruppe in der Karte,
+ * Marke in der Listenzeile.
+ *
+ * SEIT DEM 25.09.2026 IN NORMALER SCHREIBWEISE. Versalien und Sperrung
+ * machten aus „120 h Budget" ein „120 H BUDGET" — die Einheit Stunde stand
+ * dabei als grosses H da, und gesperrte Versalien lesen sich langsamer als
+ * jede andere Schrift der App.
  *
  * 600 UND NICHT 800, und die 800 waren obendrein eine Behauptung: geladen
  * sind von Poppins die Schnitte 400, 500, 600 und 700. Nachgemessen rendern
@@ -428,13 +454,11 @@ textarea:focus {
  * einen Ruf. 600 lässt sie begleiten.
  */
 .section-label {
-  /* 12 px und nicht weniger: hier stehen auch Werte („120 H BUDGET",
-     „8 STK"), und 11 px in Versalien waren am Telefon kaum lesbar
-     (Prüflauf 24.09.2026, D2). */
+  /* 12 px und nicht weniger: hier stehen auch Werte („120 h Budget",
+     „8 Stk"), und kleiner war es am Telefon kaum lesbar (Prüflauf
+     24.09.2026, D2). */
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--text-muted);
 }
 

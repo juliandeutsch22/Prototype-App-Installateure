@@ -293,7 +293,7 @@ export default function PlattformView() {
       */}
       <section aria-label="Fehler aus den Betrieben" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-ink">Fehler aus den Betrieben (14 Tage)</h2>
+          <h2 className="titel-karte">Fehler aus den Betrieben (14 Tage)</h2>
           <Button variant="secondary" onClick={() => void fehlerLaden()}>
             Neu laden
           </Button>

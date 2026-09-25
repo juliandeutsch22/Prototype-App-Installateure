@@ -61,13 +61,11 @@ export default function Card({
               Höhe wie ein Knopf: 20 px Text sind mit dem Daumen kaum zu
               treffen (Prüflauf 24.09.2026, D6). */}
           <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 [&>a]:inline-flex [&>a]:min-h-touch [&>a]:items-center">
-            {/* Kartentitel sind im Prototyp klein, fett und versal gesetzt —
-                sie ordnen den Inhalt, ohne mit der Seitenüberschrift zu
-                konkurrieren. Das „i" gehört zum Titel, nicht zu den
-                Aktionen — deshalb steht es in derselben Zeile links. */}
-            {/* normal-case am „i": section-label setzt Versalien, sonst
-                stünde dort ein grosses I. */}
-            <h2 className="section-label flex items-center gap-2 [&>button]:normal-case">
+            {/* Der Kartentitel ordnet den Inhalt, ohne mit der
+                Seitenüberschrift zu konkurrieren (`.titel-karte`). Das „i"
+                gehört zum Titel, nicht zu den Aktionen — deshalb steht es in
+                derselben Zeile links. */}
+            <h2 className="titel-karte">
               {title}
               {hint && (
                 <InfoButton

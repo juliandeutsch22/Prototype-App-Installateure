@@ -202,7 +202,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {groups.map(({ group, items: groupItems }) => (
             <div key={group} className="flex flex-col gap-1">
               {group !== 'Allgemein' && (
-                <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-white/60">
+                <p className="px-3 pb-1 text-xs font-semibold text-white/60">
                   {group}
                 </p>
               )}
@@ -399,7 +399,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {groups.map(({ group, items: groupItems }) => (
             <div key={group}>
               {group !== 'Allgemein' && (
-                <p className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                <p className="mb-1 px-1 text-xs font-semibold text-ink-muted">
                   {group}
                 </p>
               )}

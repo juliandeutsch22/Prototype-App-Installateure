@@ -76,7 +76,7 @@ export default function ConfirmDialog({
         className="panel w-full max-w-sm p-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id={titleId} className="text-lg font-semibold text-ink">
+        <h2 id={titleId} className="titel-karte">
           {title}
         </h2>
         {message && <p className="mt-2 text-sm text-ink-muted">{message}</p>}
