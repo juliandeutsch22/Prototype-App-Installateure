@@ -50,16 +50,22 @@ export function ListRow({
       <li className="zeile-huelle">
         <Link to={ziel} className="zeile-link">
           {vorne && <div className="zeile-vorne">{vorne}</div>}
-          <div className="zeile-text">
-            <div className="zeile-titel-stark">{title}</div>
-            {subtitle && <p className="zeile-unter">{subtitle}</p>}
-          </div>
-          {(zustand || wert != null) && (
-            <div className="zeile-rechts">
-              {zustand}
-              {wert != null && <span className="zeile-wert">{wert}</span>}
+          {/* Text und rechte Seite dürfen untereinander rutschen, wenn beides
+              nicht in eine Zeile passt — der Pfeil bleibt rechts stehen.
+              Sonst trennte ein langer Kundenname am Telefon mitten im Wort,
+              sobald rechts eine Marke stand. */}
+          <div className="zeile-link-inhalt">
+            <div className="zeile-text">
+              <div className="zeile-titel-stark">{title}</div>
+              {subtitle && <p className="zeile-unter">{subtitle}</p>}
             </div>
-          )}
+            {(zustand || wert != null) && (
+              <div className="zeile-rechts">
+                {zustand}
+                {wert != null && <span className="zeile-wert">{wert}</span>}
+              </div>
+            )}
+          </div>
           <Icon name="weiter" size={20} className="zeile-pfeil" />
         </Link>
         {unten && <div className="zeile-unten">{unten}</div>}
