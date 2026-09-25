@@ -782,6 +782,71 @@ textarea {
 }
 
 /*
+ * BÜRO-LISTEN ALS TABELLE — Rechnungen, Anforderungen, Mitarbeiterübersicht,
+ * Kunden, Baustellen ab `lg` (siehe `useAbBreite`).
+ *
+ * Die Zellen selbst sind die gemeinsamen `tabelle-*`-Klassen. Hier steht nur,
+ * was eine Liste mit Handgriffen zusätzlich braucht: die Spalte mit den
+ * Aktionen, der Gruppenkopf und die aufgeklappte Zeile.
+ */
+@layer components {
+  /* Eine Zeile mit Handgriffen: die Zellen stehen MITTIG, nicht oben. Links,
+     Knöpfe und das „⋯" sind 44 bis 48 px hoch; oben ausgerichtet stünde der
+     Text daneben sichtbar höher als die Beschriftung des Knopfes. Die Zellen
+     tragen weiter ihre eigene Klasse (`tabelle-zelle`, `tabelle-zahl` …).
+
+     UMBRECHEN DARF NUR TEXT. Der Seitenkörper erlaubt Umbrüche überall
+     (`overflow-wrap: anywhere`), und eine Tabelle richtet ihre Spalten nach
+     der kleinsten Breite ihrer Zellen: auf 1024 px stand „01.09.2|026" und
+     „Mate|rial" untereinander. Datum, Nummer, Betrag, Telefon, Zustand und
+     Spaltenköpfe stehen deshalb am Stück; Namen, Adressen und Notizen
+     brechen weiter um. Ganz ohne `anywhere` würde die Mindestbreite der
+     Tabelle zum längsten Kundennamen — und die Seite schöbe sich auf
+     1024 px seitwärts. */
+  .tabelle-zeile > td {
+    vertical-align: middle;
+  }
+
+  .tabelle-kopfzeile th {
+    white-space: nowrap;
+  }
+
+  /* Die letzte Spalte: dieselben Knöpfe und dasselbe „⋯" wie in der
+     Listenzeile, rechtsbündig. Rechts ein wenig Luft, sonst schnitte der
+     Tabellenrahmen den Fokusring des „⋯" ab. */
+  .tabelle-aktionen {
+    border-bottom: 1px solid var(--border);
+    padding: 0.25rem 0.25rem 0.25rem 0;
+    white-space: nowrap;
+  }
+
+  .tabelle-knoepfe {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem 0.5rem;
+  }
+
+  /* Wie in der Listenzeile: Knöpfe sind Nebenhandlungen, kleinere Schrift,
+     Tasthöhe bleibt 44 px. Symbolknöpfe (das „⋯") sind ausgenommen. */
+  .tabelle-knoepfe > button:not([data-icon]) {
+    min-height: 2.75rem;
+    padding-inline: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  /* Die erste Angabe einer Zeile — Nummer, Name, Material — trägt das
+     Gewicht des Listentitels. */
+  .tabelle-name {
+    border-bottom: 1px solid var(--border);
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    font-weight: 500;
+    color: var(--text);
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════
