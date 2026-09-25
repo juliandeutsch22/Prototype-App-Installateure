@@ -5,6 +5,7 @@ import {
   normProjectNumber,
   calcWorkMin,
   fmtMin,
+  fmtDauer,
   fmtStd,
   balkenBreite,
   fmtStunden,
@@ -23,18 +24,36 @@ const BAR_TONE = {
   neutral: 'bg-line',
 } as const;
 
-/** 'YYYY-MM-DD' -> 'Mo., 15.06.25'. */
+/**
+ * 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. Vierstellig wie überall in der App
+ * (TT.MM.JJJJ) — „25.09.26" war die einzige zweistellige Jahreszahl
+ * (Prüflauf 25.09.2026, P4-10).
+ */
 function dayLabel(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT', {
     weekday: 'short',
     day: '2-digit',
     month: '2-digit',
-    year: '2-digit',
+    year: 'numeric',
   });
 }
 
-/** Dezimalstunden mit Komma — gemeinsam mit dem Dashboard, siehe `lib/time`. */
+/**
+ * ZWEI SCHREIBWEISEN, UND JEDE HAT IHREN ORT (Prüflauf 25.09.2026, P4-10).
+ *
+ * Arbeitszeit steht in der App als `HH:MM Std` — so auch die Einträge in der
+ * Tabelle dieser Karte („09:00"). Daneben stand die Fachzeit des Monats als
+ * „9,0 h": dieselbe Art Zahl in zwei Schreibweisen in einer Karte. Fachzeit,
+ * Helferzeit und die Zeiten je Mitarbeiter sind Arbeitszeit → `dauer`.
+ *
+ * DEZIMAL BLEIBT, WAS GEGEN DAS BUDGET GEHALTEN WIRD: der Satz unter dem
+ * Balken und „gesamt … / … h Budget". Das Budget ist in Dezimalstunden
+ * kalkuliert (`estimatedHours`), der Prozentwert rechnet damit, und dieselbe
+ * Gegenüberstellung steht so auch auf der Startseite und in der
+ * Baustellenakte. Dort ist die Dezimalzahl fachlich nötig.
+ */
 const h = fmtStd;
+const dauer = fmtDauer;
 
 /**
  * Die Baustellennummer, wie sie überall sonst steht — MIT Vorsatz: „PR-187".
@@ -200,7 +219,7 @@ export default function ProjectSummary({
                       die ganze Baustelle, also zwei Zahlen, die nichts
                       miteinander zu tun haben.
                     */}
-                    <span className="text-sm text-ink">{h(r.fachMin)} h</span>
+                    <span className="text-sm text-ink">{dauer(r.fachMin)}</span>
                     {/*
                       NUR DIE AUSNAHME BEKOMMT EINE PILLE. „Über Budget" ist
                       eine — Helferstunden sind es nicht, sie sind auf vielen
@@ -212,7 +231,7 @@ export default function ProjectSummary({
                     {r.budget?.over && <Warnung stufe="dringend">über Budget</Warnung>}
                     {r.helperMin > 0 && (
                       <span className="text-sm text-ink-muted">
-                        +{h(r.helperMin)} h Helfer
+                        +{dauer(r.helperMin)} Helfer
                       </span>
                     )}
                     <Icon
@@ -274,9 +293,9 @@ export default function ProjectSummary({
                         className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1 text-xs"
                       >
                         <span className="font-semibold text-ink">{p.name}</span>
-                        <span className="text-ink-muted">{h(p.fachMin)} h</span>
+                        <span className="text-ink-muted">{dauer(p.fachMin)}</span>
                         {p.helperMin > 0 && (
-                          <span className="text-ink-muted">+{h(p.helperMin)} h Helfer</span>
+                          <span className="text-ink-muted">+{dauer(p.helperMin)} Helfer</span>
                         )}
                       </span>
                     ))}
@@ -300,7 +319,10 @@ export default function ProjectSummary({
                               key={e.id}
                               className={`border-b border-line/60 ${e.isHelper ? 'bg-warning-bg' : ''}`}
                             >
-                              <td className="py-1 pr-3">{dayLabel(e.date)}</td>
+                              {/* Ohne `nowrap` brach das vierstellige Jahr bei
+                                  390 px mitten in der Zahl um („25.09.20|26");
+                                  die Tabelle rollt ohnehin in ihrer Hülle. */}
+                              <td className="whitespace-nowrap py-1 pr-3">{dayLabel(e.date)}</td>
                               <td className="py-1 pr-3">
                                 {/*
                                   ALLE Marker, nicht nur „Helfer". Gemeldet:
@@ -335,7 +357,7 @@ export default function ProjectSummary({
                       deshalb neben die GESAMTZAHL, nicht neben den Monat.
                     */}
                     <span className="font-semibold text-ink">
-                      Fachzeit in {label}: {h(r.fachMin)} h
+                      Fachzeit in {label}: {dauer(r.fachMin)}
                     </span>
                     {r.project?.estimatedHours && r.gesamtFachMin !== null ? (
                       <span className="text-ink-muted">
@@ -347,7 +369,7 @@ export default function ProjectSummary({
                       <>
                         <span className="text-ink-muted"> · </span>
                         <span className="font-semibold text-warning">
-                          + {h(r.helperMin)} h Helfer-Leistung
+                          + {dauer(r.helperMin)} Helfer-Leistung
                         </span>
                         <span className="text-ink-muted"> (kostenneutral für das Budget)</span>
                       </>
