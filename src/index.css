@@ -684,9 +684,13 @@ textarea {
  * AngebotView).
  *
  * Am Telefon und Tablet eine Spalte, die Karten in derselben Reihenfolge wie
- * bisher. Ab 1024 px links die Stammdaten, rechts das Zugehörige — im Markup
+ * bisher. Ab 1280 px links die Stammdaten, rechts das Zugehörige — im Markup
  * steht links vor rechts, die Vorlesehilfe liest also weiter von oben nach
  * unten. Dasselbe Verhältnis 3 : 2 wie der Monteur-Start.
+ *
+ * WARUM ERST AB 1280. Neben der Seitenleiste blieben zwischen 1024 und
+ * 1200 px für die Stammdaten knapp 400 px — zwei Felder nebeneinander
+ * brachen dort um. Eine Spalte liest sich besser als eine gequetschte.
  *
  * KEIN `overflow` an den Spalten: die Aktionsleiste im Stammdaten-Formular
  * klebt per `position: sticky` an ihrem Formular, und ein abschneidender
@@ -703,7 +707,7 @@ textarea {
     align-content: start;
   }
 
-  @media (min-width: 1024px) {
+  @media (min-width: 1280px) {
     .akte {
       grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
       align-items: start;
