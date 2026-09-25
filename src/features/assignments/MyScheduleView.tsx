@@ -16,7 +16,7 @@ import type { Assignment, Project, Vacation, EinsatzMaterial } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
-import { AdresseLink, TelefonLink } from '@/components/Kontakt';
+import { KontaktZeile } from '@/components/Kontakt';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
@@ -232,8 +232,8 @@ export default function MyScheduleView() {
       ) : error ? (
         <ErrorState message={error} />
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-          <div className="space-y-3 lg:col-span-2">
+        <div className="einsatzplan">
+          <div className="space-y-3">
             <MonthCalendar
               year={cursor.year}
               month={cursor.month}
@@ -264,7 +264,7 @@ export default function MyScheduleView() {
             </div>
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="einsatzplan-spalte">
             <Card title={`Einsätze am ${fmtDay(selected)}`}>
               {/*
                 Der Urlaub steht ÜBER den Einsätzen: fällt beides auf denselben
@@ -298,25 +298,26 @@ export default function MyScheduleView() {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
                       <div key={a.id} className="kasten-hell">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-semibold text-ink">
-                            {proj?.customerName ?? a.projectNumber}
-                            {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname
-                                da ist — sonst stünde sie doppelt. */}
-                            {proj?.customerName && (
-                              <span className="ml-1 text-sm font-normal text-ink-muted">
-                                ({a.projectNumber})
-                              </span>
-                            )}
-                          </span>
-                          <span className="flex gap-2">
-                            {/* „Heute" war rot. Es ist kein Ausfall, sondern der
-                                Einsatz, der GERADE läuft. */}
-                            {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
-                            <Marke>{a.asHelper ? 'Helfer' : 'Facharbeiter'}</Marke>
-                          </span>
-                        </div>
-                        {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
+                        {/*
+                          Aufbau wie der Einsatz am Monteur-Start: Kunde mit den
+                          Marken in einer Zeile, darunter Nummer und Aufgabe.
+                        */}
+                        <p className="einsatz-kunde">
+                          {proj?.customerName ?? a.projectNumber}
+                          {/* „Heute" war rot. Es ist kein Ausfall, sondern der
+                              Einsatz, der GERADE läuft. */}
+                          {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
+                          <Marke>{a.asHelper ? 'Helfer' : 'Facharbeiter'}</Marke>
+                        </p>
+                        {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname da
+                            ist — sonst stünde sie doppelt. */}
+                        {(proj?.customerName || a.comment) && (
+                          <p className="mt-1 text-sm text-ink-muted">
+                            {proj?.customerName && a.projectNumber}
+                            {proj?.customerName && a.comment && ' · '}
+                            {a.comment && <span>{a.comment}</span>}
+                          </p>
+                        )}
 
                         {/* Was mitzunehmen ist — abhakbar, auch am Vorabend. */}
                         {(() => {
@@ -334,7 +335,6 @@ export default function MyScheduleView() {
                           );
                         })()}
 
-
                         {(() => {
                           const eigene = planeVon(plaene, proj?.id);
                           if (plaene.zustand !== 'bereit' || eigene.length === 0) return null;
@@ -346,14 +346,16 @@ export default function MyScheduleView() {
                           );
                         })()}
 
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        {/* Hauptaktion und Schein nebeneinander, sobald beide
+                            Platz haben; am Telefon untereinander. */}
+                        <div className="einsatz-knoepfe">
                           {/* Übernimmt Baustelle und Helfer-Rolle ins
                               Zeitformular — ein vergessener Helfer-Haken
                               kostet den falschen Satz. */}
                           <Link
                             to="/time"
                             state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}
-                            className="knopf-primaer"
+                            className="knopf-primaer grow basis-60"
                           >
                             Zeit erfassen
                           </Link>
@@ -363,20 +365,20 @@ export default function MyScheduleView() {
                             heraussuchen muss. Datum und Baustelle wandern mit.
                           */}
                           {scheineAn && (
-                          <Link
-                            to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
-                            className="knopf-sekundaer"
-                          >
-                            Schein schreiben
-                          </Link>
+                            <Link
+                              to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
+                              className="knopf-sekundaer grow basis-40"
+                            >
+                              Schein schreiben
+                            </Link>
                           )}
-                          <AdresseLink adresse={proj?.address} variante="knopf" />
-                          <TelefonLink
-                            nummer={proj?.contactPhone}
-                            name={proj?.contactName}
-                            variante="knopf"
-                          />
                         </div>
+                        <KontaktZeile
+                          adresse={proj?.address}
+                          nummer={proj?.contactPhone}
+                          name={proj?.contactName}
+                          className="mt-2"
+                        />
                       </div>
                     );
                   })}
@@ -391,7 +393,7 @@ export default function MyScheduleView() {
               schlicht nicht zu sehen, und die Ansicht behauptete damit, es
               stünde nichts an.
             */}
-            <Card title="Nächste Einsätze" className="mt-6">
+            <Card title="Nächste Einsätze">
               {naechste.length === 0 ? (
                 <EmptyState>Zurzeit ist nichts eingeplant.</EmptyState>
               ) : (
@@ -405,7 +407,9 @@ export default function MyScheduleView() {
                       <ListRow
                         key={a.id}
                         title={proj?.customerName ?? a.projectNumber}
-                        subtitle={fmtDay(a.date)}
+                        subtitle={
+                          proj?.customerName ? `${fmtDay(a.date)} · ${a.projectNumber}` : fmtDay(a.date)
+                        }
                         zustand={
                           a.date === today || a.asHelper ? (
                             <>

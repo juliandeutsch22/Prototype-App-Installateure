@@ -135,6 +135,12 @@ describe('Meine Baustellen', () => {
     ).toBeInTheDocument();
   });
 
+  it('zeigt „keine Baustelle" als ruhige Zeile, nicht in einer eigenen Karte', async () => {
+    render(<MyProjectsView />);
+    const satz = await screen.findByText(/Die Einteilung macht die Projektleitung/);
+    expect(satz.closest('section')).toBeNull();
+  });
+
   it('unterscheidet einen Ladefehler von „keine Baustellen"', async () => {
     /*
       Beide sehen im Code gleich aus und heissen das Gegenteil. Wer die

@@ -716,6 +716,72 @@ textarea {
 }
 
 /*
+ * MEIN EINSATZPLAN UND MEINE BAUSTELLEN (MyScheduleView, MyProjectsView).
+ *
+ * Einsatzplan: am Telefon und Tablet untereinander, ab 1024 px links der
+ * Kalender, rechts die Karten des Tages — 2 : 3 wie zuvor. Die rechte Spalte
+ * hält den Abstand zwischen ihren Karten selbst; vorher stand „Mein Urlaub"
+ * ohne Abstand direkt unter „Nächste Einsätze".
+ *
+ * Baustellen: ab 1280 px zwei Karten nebeneinander. Eine Karte über die
+ * ganze Breite zog den Routenknopf auf fast 1000 px und liess rechts neben
+ * jeder Zeile eine leere Fläche stehen.
+ */
+@layer components {
+  .einsatzplan {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  @media (min-width: 1024px) {
+    .einsatzplan {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    }
+  }
+
+  /* Kunde und Marken eines Einsatzes in einer Zeile. 16 px wie zuvor: bei
+     18 px (Monteur-Start) brach „Wohnungseigentümergemeinschaft" am Telefon
+     mitten im Wort. */
+  .einsatz-kunde {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.5rem;
+    row-gap: 0.25rem;
+    font-weight: 600;
+    color: var(--ink-deep);
+  }
+
+  .einsatz-knoepfe {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .einsatzplan-spalte,
+  .baustellen-karten {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    align-content: start;
+  }
+
+  .baustellen-karten {
+    gap: 1rem;
+  }
+
+  @media (min-width: 1280px) {
+    .baustellen-karten {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════

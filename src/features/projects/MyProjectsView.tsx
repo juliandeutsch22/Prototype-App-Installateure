@@ -91,83 +91,91 @@ export default function MyProjectsView() {
     <div className="space-y-6">
       <PageHeader title="Meine Baustellen" subtitle="Aus deinem Team und aus deiner Einteilung" />
 
+      {/* Laden, Fehler und „keine Baustelle" stehen für sich, ohne Karte
+          darum — eine Karte um einen einzigen Satz ist ein Platzhalter. */}
       {loading ? (
-        <Card><LoadingState /></Card>
+        <LoadingState />
       ) : error ? (
-        <Card><ErrorState message={error} /></Card>
+        <ErrorState message={error} />
       ) : active.length === 0 ? (
-        <Card><EmptyState>Du bist auf keiner laufenden Baustelle und hast keinen kommenden Einsatz. Die Einteilung macht die Projektleitung.</EmptyState></Card>
+        <EmptyState>Du bist auf keiner laufenden Baustelle und hast keinen kommenden Einsatz. Die Einteilung macht die Projektleitung.</EmptyState>
       ) : (
-        <div className="space-y-4">
+        <>
           {plaene.zustand === 'fehler' && <TeilFehler was="Die Pläne" onRetry={plaeneNeu} />}
-          {active.map((p) => (
-            <Card
-              key={p.id}
-              title={p.customerName}
-              action={<StatusBadge status={p.status} />}
-            >
-              <p className="text-sm text-ink-muted">{p.projectNumber}</p>
-              {naechsterEinsatz.has(p.projectNumber) && (
-                <p className="mt-1">
-                  <Marke>nächster Einsatz {fmt(naechsterEinsatz.get(p.projectNumber))}</Marke>
+          <div className="baustellen-karten">
+            {active.map((p) => (
+              <Card
+                key={p.id}
+                title={p.customerName}
+                action={<StatusBadge status={p.status} />}
+              >
+                {/* Nummer und Zeitraum in einer Zeile, darunter die Marken —
+                    vorher stand jede Angabe in einer eigenen Zeile. */}
+                <p className="text-sm text-ink-muted">
+                  <span>{p.projectNumber}</span>
+                  {(p.startDate || p.endDate) && (
+                    <>
+                      {' · '}
+                      <span>
+                        {fmt(p.startDate)}
+                        {p.endDate && ` – ${fmt(p.endDate)}`}
+                      </span>
+                    </>
+                  )}
                 </p>
-              )}
-              {/* Zeilenumbrüche bleiben: der Auftragsumfang aus dem Angebot ist oft eine Liste. */}
-              {p.description && <p className="mt-2 whitespace-pre-line text-ink">{p.description}</p>}
-
-              {plaene.zustand === 'bereit' && planeVon(plaene, p.id).length > 0 && (
-                <div className="mt-3">
-                  <p className="section-label">Pläne und Dokumente</p>
-                  <PlaeneListe dokumente={planeVon(plaene, p.id)} adressen={plaene.adressen} />
-                </div>
-              )}
-
-              {(p.startDate || p.endDate) && (
-                <p className="mt-2 text-sm text-ink-muted">
-                  {fmt(p.startDate)}
-                  {p.endDate && ` – ${fmt(p.endDate)}`}
-                </p>
-              )}
-              {p.estimatedHours ? (
-                <p className="mt-2">
-                  <Marke>{fmtStunden(p.estimatedHours)} h kalkuliert</Marke>
-                </p>
-              ) : null}
-
-              {/* Ansprechpartner: ohne Nummer steht der Monteur vor Ort ohne
-                  Kontakt da — deshalb wird ein fehlender Eintrag angemahnt. */}
-              <div className="kasten mt-4">
-                <p className="section-label">Ansprechpartner</p>
-                {p.contactName || p.contactPhone ? (
-                  <div className="mt-1">
-                    {p.contactName && <p className="font-medium text-ink">{p.contactName}</p>}
-                    <TelefonLink
-                      nummer={p.contactPhone}
-                      name={p.contactName}
-                      className="mt-1"
-                    />
-                  </div>
-                ) : (
-                  <p className="mt-1 text-sm text-warning">Kein Ansprechpartner hinterlegt.</p>
+                {(naechsterEinsatz.has(p.projectNumber) || !!p.estimatedHours) && (
+                  <p className="mt-2 flex flex-wrap gap-2">
+                    {naechsterEinsatz.has(p.projectNumber) && (
+                      <Marke>nächster Einsatz {fmt(naechsterEinsatz.get(p.projectNumber))}</Marke>
+                    )}
+                    {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h kalkuliert</Marke> : null}
+                  </p>
                 )}
-              </div>
+                {/* Zeilenumbrüche bleiben: der Auftragsumfang aus dem Angebot ist oft eine Liste. */}
+                {p.description && <p className="mt-3 whitespace-pre-line text-ink">{p.description}</p>}
 
-              {/* Die Route bleibt hier die Hauptaktion der Karte und
-                  behaelt deshalb die volle Breite und die Markenfarbe. */}
-              {p.address && (
-                <a
-                  href={mapsUrl(p.address)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="knopf-primaer mt-3 w-full"
-                >
-                  <Icon name="pin" size={18} aria-hidden />
-                  Route: {p.address}
-                </a>
-              )}
-            </Card>
-          ))}
-        </div>
+                {plaene.zustand === 'bereit' && planeVon(plaene, p.id).length > 0 && (
+                  <div className="mt-3">
+                    <p className="section-label">Pläne und Dokumente</p>
+                    <PlaeneListe dokumente={planeVon(plaene, p.id)} adressen={plaene.adressen} />
+                  </div>
+                )}
+
+                {/* Ansprechpartner: ohne Nummer steht der Monteur vor Ort ohne
+                    Kontakt da — deshalb wird ein fehlender Eintrag angemahnt. */}
+                <div className="kasten mt-4">
+                  <p className="section-label">Ansprechpartner</p>
+                  {p.contactName || p.contactPhone ? (
+                    <div className="mt-1">
+                      {p.contactName && <p className="font-medium text-ink">{p.contactName}</p>}
+                      <TelefonLink
+                        nummer={p.contactPhone}
+                        name={p.contactName}
+                        className="mt-1"
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-sm text-warning">Kein Ansprechpartner hinterlegt.</p>
+                  )}
+                </div>
+
+                {/* Die Route bleibt hier die Hauptaktion der Karte und
+                    behaelt deshalb die volle Breite und die Markenfarbe. */}
+                {p.address && (
+                  <a
+                    href={mapsUrl(p.address)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="knopf-primaer mt-3 w-full"
+                  >
+                    <Icon name="pin" size={18} aria-hidden />
+                    Route: {p.address}
+                  </a>
+                )}
+              </Card>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

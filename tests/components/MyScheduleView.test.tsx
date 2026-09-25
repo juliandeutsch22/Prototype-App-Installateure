@@ -100,6 +100,17 @@ describe('Mein Einsatzplan — der Einsatz selbst', () => {
     expect(within(karte).getByText('Bad')).toBeInTheDocument();
   });
 
+  it('nennt die Baustellennummer neben dem Kunden — am Einsatz und in „Nächste Einsätze"', async () => {
+    // Ein Kunde kann mehrere Baustellen haben; der Name allein sagt nicht,
+    // auf welche es geht.
+    zeichne();
+    const karte = (await screen.findByText(/Einsätze am/)).closest('section')!;
+    await within(karte).findAllByText(/Familie Huber/);
+    expect(within(karte).getByText(/B-001/)).toBeInTheDocument();
+    const naechste = screen.getByText('Nächste Einsätze').closest('section')!;
+    expect(await within(naechste).findByText(/15\.09\.2026 · B-001/)).toBeInTheDocument();
+  });
+
   it('führt mit Baustelle und Rolle in die Zeiterfassung', async () => {
     // Ein vergessener Helfer-Haken kostet den falschen Verrechnungssatz.
     zeichne();
