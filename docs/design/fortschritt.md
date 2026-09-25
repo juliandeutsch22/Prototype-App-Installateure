@@ -19,6 +19,10 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
 | 1.7 Wochenplan | erledigt | `24a9593` |
 | 1.8 Projektauswertung | erledigt | `18abd9d` |
 | 1.9 Anrede „du“ | erledigt | `8e0d098` |
+| 2 Gemeinsame Bausteine | erledigt (Restbausteine laufen) | `eb7e004`, `ea47726`, `67cad78`, `f87e050` + Umstellung je Bereich (siehe unten) |
+| 4 Handwerksschein als Schrittfolge | erledigt (ohne Querformat, siehe Offene Punkte) | `ac7690b`, `14c3c3b`, `b3713a1`, `4b3ce53` |
+| 3a Monteur-Start | erledigt | `40d6851`, `12c12bf` |
+| 3b Büro-Startseite | erledigt | `57d5155` |
 
 ## Offene Punkte
 
@@ -68,6 +72,37 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
 11. **Legende „Heute“** in Einsatzplanung/Mein Einsatzplan trug die
     Mandantenfarbe (`brand/25`) und trägt jetzt deckend `info-bg` wie der
     Kalender — kleine inhaltliche Angleichung.
+12. **Phase 4 auf Wunsch in diesem Durchgang.** Der Masterprompt schloss den
+    Handwerksschein als Schrittfolge aus; der Nutzer hat ihn ausdrücklich
+    hereingeholt. Umgesetzt als reine Anordnung (alle Teile bleiben
+    eingehängt, Speichern/Absenden/Prüfsumme/PDF unverändert).
+13. **Unterschrift im Querformat nicht umgesetzt** (`SignaturePad.tsx`,
+    `worksheetPdf.ts`). Das gespeicherte Bild ist `toDataURL` der
+    angezeigten Zeichenfläche — Größe und Seitenverhältnis hängen an der
+    Anzeige, die Striche skalieren nicht mit, das PDF setzt das Bild in ein
+    festes Feld von 70 × 25 mm, die Prüfsumme läuft über den Bildtext. Eine
+    Querformat-Fläche würde das Bild aller künftigen Scheine verändern.
+    Vorschlag: `bildLesen` zeichnet auf eine feste Exportfläche im
+    Verhältnis des PDF-Felds — braucht ausdrückliche Freigabe. Aus demselben
+    Grund bleibt der Desktop-Schein einspaltig (Mockup Seite 8 hätte die
+    Zeichenfläche verschmälert).
+14. **Mockup-Funktionen, die es nicht gibt, nicht gebaut:** ±15-Minuten-
+    Knöpfe, Pausen-Schnellwahl (0/30/45/60), „Zuletzt verbaut“,
+    Zuschlag-Chips, „Monteur hat unterschrieben“ als Kachel, „Nächste
+    Einsätze“ am Monteur-Start, Wochenbalken Mo–Fr, Begrüßung „Guten Morgen“
+    (die Überschrift bleibt das Datum, das der Betrieb ausdrücklich wollte).
+15. **Schrittleiste des Scheins klebt nicht** oben (im Mockup fest) — dafür
+    müsste die Kopfleiste fest stehen. Vorschlag: eigener kleiner Punkt.
+16. **Wochenplan-Raster bei 834 px:** Tagesspalten fallen auf wenige Pixel
+    zusammen (war vorher schon so). Vorschlag: Mindestbreite der
+    Tagesspalten im Raster (Tabelle scrollt dann in ihrer Hülle).
+17. **„Wie zuletzt“ auf dem Monteur-Start nur bei derselben Baustelle.** Der
+    bestehende Griff übernimmt auch die Baustelle des letzten Eintrags; an
+    einem Einsatz auf einer anderen Baustelle hätte er die gestrige
+    Baustelle gebucht. Dort ist „Zeit erfassen“ die Hauptaktion.
+18. **Startseiten-Test „kein Saldo“ umgestellt:** Der Auftrag verlangt in
+    „Diese Woche“ den Saldo; es ist der des Monats. Der Test prüft jetzt,
+    dass genau dieser erscheint und kein Saldo seit Eintritt.
 
 ---
 
@@ -326,3 +361,59 @@ Katalogimport (5), Kontenrahmen (3), Buchhaltungsexport und Mahn-Bestätigung.
 ### Prüfung Phase 1
 Stand nach Punkt 1.9: typecheck grün, lint grün, `npm test` **185 Dateien,
 2370 Tests grün** (2358 auf `main` + 12 neue).
+
+---
+
+## Phase 2 – Gemeinsame Bausteine
+
+**Bausteine** (`src/index.css`, Abschnitt „Gemeinsame Bausteine“, je Element
+eine Klasse, keine positionsabhängigen Selektoren; Komponenten in
+`src/components/`): Karte (`.karte`, `-offen`, `-dialog`, `-fehler`,
+`-anmeldung`, `.blatt`, Kopf/Inhalt/Fuß), Knopf je Rolle und Größe,
+Symbolknopf, Feld und Zellfeld (16 px), Kästchen, Feldraster, Listenzeile
+mit Plätzen `zustand` und `wert`, Zeilenmenü, Kennzahl (Trenner als eigenes
+Element), Tabelle, Kasten, Meldung, Textlink, ruhiger Leerzustand,
+Lade-Platzhalter, Grenzliste („und X weitere“), Aktionsleiste (klebt am
+Telefon über der Tableiste), Seitenkopf. `.panel` und `.checkbox` entfernt.
+
+**Umstellung aller Stellen** (Commits `da7d39a` … `f812b7f`, je Bereich):
+Rechnungen, Angebote, Kunden/Akte/Import, Nachkalkulation,
+Mitarbeiterübersicht, Katalogimport, Wartungen; Startseite, Zeiterfassung,
+Urlaub, Einsatzplanung, Baustellen; Material, Benutzer, Einstellungen,
+Module, Plattform, Anmeldung, Rechtsseiten, App-Rahmen, Komponenten.
+Rund 60 Hinweiskästen → `Meldung`, eigene Listen → `ListRow`,
+Begrenzungen → `Grenzliste` (Startseite 3×, Einsatzplan, Kundenakte,
+Katalog- und Kundenimport), Aktionsleiste in Zeitmaske, Angebot,
+Rechnung, Baustelle anlegen/Akte, Benutzerakte, Sätze, Firmendaten,
+Module. Nebenbei behoben: mehrere Auswahlfelder mit 14 px Schrift (iOS-
+Zoom) auf 16 px, „Foto entfernen“ von 28 auf 44 px, Alpha-Kanten an
+Speicherleisten.
+
+**Gemeinsame Regel, die dabei entstand:** Klassennamen immer wörtlich —
+Tailwind verwirft aus `@layer components` zusammengesetzte Namen.
+
+## Phase 4 – Handwerksschein als Schrittfolge (auf Wunsch in diesem Durchgang)
+
+Am Telefon und Tablet: 1 Zeiten · 2 Material · 3 Fotos · 4 Unterschrift, mit
+Schrittleiste (jeder Schritt direkt anspringbar), „Zurück“/„Weiter“ in der
+Aktionsleiste, Zusammenfassung mit „Ändern“ vor den Unterschriften,
+„Als Entwurf speichern“ in jedem Schritt. „Weiter“ sperrt nie. Alle Teile
+bleiben eingehängt (nur ausgeblendet) — sonst gingen Striche und
+Nicht-übernommen-Sperren verloren. Ab 1024 px eine Seite mit nummerierten
+Abschnitten. Neuer Test belegt: Schritte und Einzelseite ergeben
+zeichengleich denselben kanonischen Inhalt für die Prüfsumme. Durchklick-Weg
+auf die Schritte umgestellt (läuft in der CI).
+
+## Phase 3 – Ansichten ordnen
+
+### 3a Monteur-Start — erledigt (`40d6851`, `12c12bf`)
+Drei Karten: Heute (Baustelle, Nummer, Aufgabe, Route, Anruf, Rüstliste;
+Hauptknopf „Wie zuletzt buchen“ mit Zeile „07:00–16:00 · 30 min Pause ·
+08:30 Std“, nur bei derselben Baustelle), Diese Woche (Stunden gegen Soll,
+Saldo des Monats), Offen für dich (fehlende Tage mit Datum, angefordertes
+Material, sonst „Alles erledigt.“). Am Schreibtisch zweispaltig. Nur
+bereits geladene Daten.
+
+### 3b Büro-Startseite — erledigt (`57d5155`)
+Die vorhandenen Kennzahlen stehen oben als Links; die Karten mit
+Obergrenze laufen über `Grenzliste`.
