@@ -548,6 +548,7 @@ export default function UserMgmtView() {
           <SelectField
             id="usrstatus"
             label=""
+            aria-label="Benutzer nach Status filtern"
             className="py-1 text-sm"
             value={status}
             onChange={(e) => setStatus(e.target.value as typeof status)}

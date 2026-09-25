@@ -548,7 +548,7 @@ export default function AdminProjectsView() {
       <Card
         title={`Alle Baustellen (${visible.length})`}
         action={
-          <SelectField id="pfilter" label="" className="py-1 text-sm" value={filter}
+          <SelectField id="pfilter" label="" aria-label="Baustellen filtern" className="py-1 text-sm" value={filter}
             onChange={(e) => setFilter(e.target.value as typeof filter)}>
             <option value="offen">Aktiv &amp; pausiert</option>
             <option value="alle">Alle</option>

@@ -2192,7 +2192,7 @@ export default function InvoicesView() {
           'nach Nummer, Kunde oder Baustelle geht über alle.'
         }
         action={
-          <SelectField id="invfilter" label="" className="py-1 text-sm" value={statusFilter}
+          <SelectField id="invfilter" label="" aria-label="Rechnungen nach Status filtern" className="py-1 text-sm" value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
             <option value="alle">Alle</option>
             {FILTERSTATI.map((st) => <option key={st} value={st}>{st}</option>)}

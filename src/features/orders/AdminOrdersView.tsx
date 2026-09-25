@@ -336,7 +336,7 @@ export default function AdminOrdersView() {
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}
           action={
             tab !== 'retouren' && projectOptions.length > 0 ? (
-              <SelectField id="ofilter" label="" className="py-1 text-sm" value={projectFilter}
+              <SelectField id="ofilter" label="" aria-label="Bestellungen nach Baustelle filtern" className="py-1 text-sm" value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}>
                 <option value="">Alle Baustellen</option>
                 {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
