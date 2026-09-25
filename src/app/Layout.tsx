@@ -21,6 +21,8 @@ import BottomSheet from '@/components/BottomSheet';
 import AppErneuern from '@/components/AppErneuern';
 import ProblemMelden from '@/components/ProblemMelden';
 import RechtLinks from '@/components/RechtLinks';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
 
 /**
  * Der aktive Eintrag wird über die KANTE markiert, nicht über eine volle
@@ -97,6 +99,24 @@ export default function Layout({ children }: { children: ReactNode }) {
   const ort = useLocation();
   const posten = useOffenePosten();
   const angemeldet = !!user;
+  /** Wie viele eigene Buchungen noch im Fach liegen, wenn abgemeldet werden soll. */
+  const [ungesendet, setUngesendet] = useState(0);
+
+  /*
+    ABMELDEN MIT UNGESENDETEN BUCHUNGEN (Prüflauf 25.09.2026, P1-05).
+
+    Was ohne Empfang vorgemerkt wurde, geht nur mit der Sitzung seines
+    Besitzers hinaus. Nach dem Abmelden bleibt es auf dem Gerät liegen, bis
+    er sich HIER wieder anmeldet — auf dem Baustellen-Tablet, auf dem sich
+    gleich der Kollege anmeldet, womöglich nie. Das muss er vorher wissen.
+    Die Nachfrage kommt NUR, wenn etwas offen ist; sonst meldet der Knopf ab
+    wie bisher.
+  */
+  async function abmelden() {
+    const offen = user ? await offeneVormerkungen(user.uid).catch(() => 0) : 0;
+    if (offen > 0) setUngesendet(offen);
+    else await signOut();
+  }
 
   /*
     NACHGELADEN WIRD BEI JEDEM SEITENWECHSEL — eine Abfrage, ein Umlauf.
@@ -242,7 +262,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <Button
             variant="ghost-dark"
             className="w-full justify-start"
-            onClick={() => void signOut()}
+            onClick={() => void abmelden()}
           >
             Abmelden
           </Button>
@@ -455,7 +475,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           className="mt-3 w-full"
           onClick={() => {
             setProfilOpen(false);
-            void signOut();
+            void abmelden();
           }}
         >
           Abmelden
@@ -479,6 +499,22 @@ export default function Layout({ children }: { children: ReactNode }) {
         </div>
       </BottomSheet>
 
+      <ConfirmDialog
+        open={ungesendet > 0}
+        title="Noch nicht gesendet"
+        message={
+          `${ungesendet === 1 ? 'Eine Buchung liegt' : `${ungesendet} Buchungen liegen`} noch ` +
+          'ungesendet auf diesem Gerät — sie wurden ohne Empfang gespeichert. Nach dem Abmelden ' +
+          'gehen sie erst hinaus, wenn du dich auf DIESEM Gerät wieder anmeldest. Besser: erst ' +
+          'Empfang abwarten, dann abmelden.'
+        }
+        confirmLabel="Trotzdem abmelden"
+        onConfirm={async () => {
+          await signOut();
+          setUngesendet(0);
+        }}
+        onCancel={() => setUngesendet(0)}
+      />
     </div>
   );
 }

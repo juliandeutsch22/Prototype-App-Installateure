@@ -81,3 +81,57 @@ describe('Der Sender ordnet die Antworten ein', () => {
     expect(wirft.art).toBe('kein-netz');
   });
 });
+
+/** Ein Client mit voller Antwort — Fehler, HTTP-Status und Trefferzahl. */
+function clientMitAntwort(antwort: {
+  error: { code?: string; message?: string } | null;
+  status?: number;
+  count?: number | null;
+}) {
+  const ergebnis = async () => antwort;
+  const tabelle = {
+    upsert: ergebnis,
+    update: () => ({ eq: ergebnis }),
+  };
+  return { from: () => tabelle } as unknown as SupabaseClient;
+}
+
+describe('Prüflauf 25.09.2026', () => {
+  it('P1-05: wertet eine Abweisung OHNE Anmeldung (401) nicht als endgültig', async () => {
+    // PostgREST antwortet einem Aufruf ohne Sitzung mit 401 und 42501. Mit
+    // der Sitzung des Besitzers geht derselbe Vorgang durch.
+    const erg = await supabaseSender(
+      clientMitAntwort({ error: { code: '42501', message: 'permission denied' }, status: 401 }),
+    )(sendung);
+    expect(erg.art).toBe('kein-netz');
+  });
+
+  it('P1-05: der abgewiesene Zeilenschutz MIT Anmeldung (403) bleibt endgültig', async () => {
+    const erg = await supabaseSender(
+      clientMitAntwort({ error: { code: '42501', message: 'rls' }, status: 403 }),
+    )(sendung);
+    expect(erg.art).toBe('abgelehnt');
+  });
+
+  it('P1-22: ein „Ändern" ohne getroffene Zeile ist abgelehnt, nicht gesendet', async () => {
+    const aendern = { ...sendung, art: 'aendern' as const };
+    const keine = await supabaseSender(clientMitAntwort({ error: null, count: 0 }))(aendern);
+    expect(keine.art).toBe('abgelehnt');
+    const eine = await supabaseSender(clientMitAntwort({ error: null, count: 1 }))(aendern);
+    expect(eine.art).toBe('ok');
+  });
+
+  it('P1-22: fragt beim Ändern die Trefferzahl ab', async () => {
+    const optionen: unknown[] = [];
+    const client = {
+      from: () => ({
+        update: (_d: unknown, o: unknown) => {
+          optionen.push(o);
+          return { eq: async () => ({ error: null, count: 1 }) };
+        },
+      }),
+    } as unknown as SupabaseClient;
+    await supabaseSender(client)({ ...sendung, art: 'aendern' });
+    expect(optionen).toEqual([{ count: 'exact' }]);
+  });
+});

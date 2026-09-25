@@ -62,7 +62,7 @@ function istNetzfehler(fehler: { code?: string; message?: string }): boolean {
 export function supabaseSender(client: SupabaseClient): Sender {
   return async (v: Sendung): Promise<Sendeergebnis> => {
     try {
-      const { error } =
+      const { error, status, count } =
         v.art === 'anlegen'
           ? // UPSERT, nicht INSERT: derselbe Vorgang darf zweimal ankommen.
             // Die Kennung kommt vom Gerät, deshalb trifft der zweite Versuch
@@ -70,10 +70,34 @@ export function supabaseSender(client: SupabaseClient): Sender {
             await client
               .from(v.tabelle)
               .upsert({ ...v.daten, id: v.zeile }, { onConflict: 'id', ignoreDuplicates: false })
-          : await client.from(v.tabelle).update(v.daten).eq('id', v.zeile);
+          : // Mit Trefferzahl — siehe unten.
+            await client.from(v.tabelle).update(v.daten, { count: 'exact' }).eq('id', v.zeile);
 
+      /*
+        EIN „ÄNDERN" OHNE TREFFER IST KEINE BESTÄTIGUNG (Prüflauf 25.09.2026,
+        P1-22). Der Zeilenschutz antwortet auf eine Zeile, die man nicht
+        ändern darf — oder die es nicht gibt —, nicht mit einem Fehler,
+        sondern mit null getroffenen Zeilen. Das Fach räumte die Vormerkung
+        dann als „gesendet" weg, und die Änderung war still verloren. Wie
+        `kern.aendern`: null heisst abgelehnt, und das wird gemeldet.
+      */
+      if (!error && v.art === 'aendern' && count === 0) {
+        return {
+          art: 'abgelehnt',
+          grund: `Kein Datensatz in ${v.tabelle} geändert — es gibt ihn nicht, oder er darf nicht geändert werden.`,
+        };
+      }
       if (!error) return { art: 'ok' };
       if (istNetzfehler(error)) return { art: 'kein-netz' };
+      /*
+        OHNE GÜLTIGE ANMELDUNG IST NICHTS ANGEKOMMEN (Prüflauf 25.09.2026,
+        P1-05). PostgREST antwortet einem Aufruf ohne Sitzung mit 401 — auch
+        dann, wenn der Code 42501 lautet, der sonst eine endgültige Ablehnung
+        ist. Endgültig ist daran nichts: mit der Sitzung ihres Besitzers geht
+        die Vormerkung durch. Also wie fehlendes Netz: liegen lassen, nicht
+        zählen, später wieder.
+      */
+      if (status === 401) return { art: 'kein-netz' };
       if (istEndgueltig(error.code)) {
         return { art: 'abgelehnt', grund: error.message || `Abgelehnt (${error.code})` };
       }
