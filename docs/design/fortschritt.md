@@ -1,18 +1,41 @@
 # Design-Durchgang Senklot — Fortschritt
 
 Grundlage: Masterprompt „Design-Überarbeitung Senklot“, Phasen 0 bis 3.
-Zweig: `claude/senklot-design-durchgang`, abgezweigt von `main` @ `99ea2fa`.
-Ausgangslage der Prüfsuite auf `main`: **181 Testdateien, 2295 Tests, alle grün**.
+Zweig: `claude/senklot-design-durchgang`, neu aufgesetzt auf `main` @ `473c1da` (#152, Launch-Check).
+Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grün**
+(Komponenten und Einheiten, `npm test`). Datenbank- und Browserwege siehe Offene Punkte.
 
 ## Statusübersicht
 
 | Punkt | Status | Commits |
 |---|---|---|
-| Phase 0 – Bestandsaufnahme | erledigt | (dieses Dokument) |
+| Phase 0 – Bestandsaufnahme | erledigt | `9ca9788` |
+| 1.1 Navigation: eigene Icons | erledigt | `91e0ab9` |
 
 ## Offene Punkte
 
 (laufend ergänzt; Ort · Begründung · Vorschlag)
+
+1. **Datenbank-Prüfungen und Browserwege lokal nicht gelaufen.** Der lokale
+   Supabase-Stapel (`scripts/stack.sh`) ließ sich in dieser Sitzung nicht
+   starten (Freigabe verweigert). `npm run supabase:test` und
+   `npm run durchklick` laufen deshalb erst in der CI des Pull-Requests.
+   Geändert wird ausschließlich die Darstellung; Datenschicht, Migrationen
+   und Abfragen bleiben unberührt.
+2. **„Pro Element genau eine Klasse“** gilt für die Bausteine aus Phase 2.
+   Das übrige Markup ist Tailwind mit mehreren Hilfsklassen je Element; es
+   vollständig auf Einzelklassen umzuschreiben, wäre eine Formatierungswelle
+   über rund 56 000 Zeilen und widerspräche „keine Formatierungswellen“.
+   Vorschlag: eigener Auftrag, Ansicht für Ansicht.
+3. **Icons ergänzt statt Paket gewechselt.** Das „Icon-Paket“ ist der
+   hauseigene Satz in `src/components/Icon.tsx`. Für Punkt 1.1 fehlten
+   sieben Zeichen; sie sind in derselben Strichführung dort ergänzt — keine
+   neue Abhängigkeit.
+4. **Betragsformatierer nicht zusammengelegt.** Die acht `fmtEUR`-Kopien
+   bleiben: `tests/unit/eurozeichen.test.ts` setzt ihre Existenz voraus
+   („Wächter über den Wächter“), und die Prüfung darf nicht abgeschwächt
+   werden. Vorschlag: zusammenlegen und die Prüfung im selben Auftrag auf
+   den einen Formatierer umstellen.
 
 ---
 
@@ -75,11 +98,13 @@ xs 12, sm 14, base 16, lg 18, xl 22, 2xl 28 px. Gewichte im Markup:
 
 ### 0.2 Gestaltungsverbote — Fundstellen
 
-**Gestrichelt (5):**
-- `src/components/SignaturePad.tsx:383` — Unterschriftsfeld
+**Gestrichelt (5):**  
+`.reiterleiste` (neu in #152) setzt die Scrollleiste der Reiter schmal statt sie auszublenden — siehe Punkt 1.6.
+
+- `src/components/SignaturePad.tsx:417` — Unterschriftsfeld
 - `src/components/States.tsx:120` — Leerzustand
 - `src/features/time/TimeForm.tsx:646` — „Wie zuletzt“-Knopf
-- `src/features/assignments/WochenplanView.tsx:502, 642` — „Einsatz hinzufügen“
+- `src/features/assignments/WochenplanView.tsx:504, 650` — „Einsatz hinzufügen“
 
 **Alpha-Flächen (Hintergrund) — 22 Stellen:**
 - Kartenkopf/-fuß `bg-surface-2/70` (`Card.tsx:57, 95`)
