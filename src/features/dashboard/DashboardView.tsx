@@ -824,15 +824,24 @@ export default function DashboardView() {
                   Zeilenhoehe darueber, ob die Liste noch zu ueberblicken ist.
                   Die Adresse bleibt einzeilig und wird abgeschnitten — sie ist
                   hier der Anfasser zur Karte, nicht der vorzulesende Text.
+
+                  Das Budget steht in der Unterzeile, nicht rechts als
+                  Zustand: es ist eine Notiz, kein Stand — und rechts nähme
+                  es der Adresse am Telefon die Breite, die sie ungekürzt
+                  braucht.
                 */
                 subtitle={
-                  <span className="flex min-w-0 flex-wrap items-center gap-x-3">
-                    <AdresseLink adresse={pr.address} className="min-w-0 max-w-full [&>span]:truncate" />
-                    <TelefonLink nummer={pr.contactPhone} name={pr.contactName} />
-                  </span>
-                }
-                zustand={
-                  pr.estimatedHours ? <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke> : undefined
+                  <>
+                    {pr.estimatedHours ? (
+                      <span className="block">
+                        <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke>
+                      </span>
+                    ) : null}
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-3">
+                      <AdresseLink adresse={pr.address} className="min-w-0 max-w-full [&>span]:truncate" />
+                      <TelefonLink nummer={pr.contactPhone} name={pr.contactName} />
+                    </span>
+                  </>
                 }
               />
             )}
