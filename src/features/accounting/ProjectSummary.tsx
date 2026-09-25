@@ -5,6 +5,7 @@ import {
   normProjectNumber,
   calcWorkMin,
   fmtMin,
+  fmtDauer,
   fmtStd,
   balkenBreite,
   fmtStunden,
@@ -15,6 +16,7 @@ import { Warnung } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
 import Icon from '@/components/Icon';
 import { EmptyState } from '@/components/States';
+import { List, ListRow } from '@/components/ListRow';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 /*
@@ -366,6 +368,15 @@ function Balken({ r }: { r: Zeile }) {
  * In der Karte am Telefon und in der Tabellenzeile am Schreibtisch derselbe.
  */
 function Einzelheiten({ r, label }: { r: Zeile; label: string }) {
+  /*
+    AM TELEFON EINE LISTE, AB 640 PX DIE TABELLE — genau eine Form im DOM.
+    Die vierspaltige Tabelle war am Telefon breiter als die Karte; die
+    Stunden, um die es geht, standen erst nach seitlichem Wischen da. Als
+    Zeile stehen sie rechts, ohne Wischen: Titel die Person, Unterzeile Tag
+    und Tätigkeit, Wert die Dauer.
+  */
+  const tabelle = useAbBreite(640);
+  const eintraege = [...r.entries].sort((a, b) => b.date.localeCompare(a.date));
   // Mitarbeiter-Zwischensummen, größter Beitrag zuerst.
   const byUser = new Map<string, { name: string; fachMin: number; helperMin: number }>();
   for (const e of r.entries) {
@@ -401,20 +412,38 @@ function Einzelheiten({ r, label }: { r: Zeile; label: string }) {
         ))}
       </p>
 
-      <div className="tabelle-rahmen mt-3">
-        <table className="tabelle min-w-[28rem]">
-          <thead>
-            <tr>
-              <th className="tabelle-kopf">Tag</th>
-              <th className="tabelle-kopf">Mitarbeiter</th>
-              <th className="tabelle-kopf">Tätigkeit</th>
-              <th className="tabelle-kopf-zahl">Stunden</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[...r.entries]
-              .sort((a, b) => b.date.localeCompare(a.date))
-              .map((e) => (
+      {!tabelle ? (
+        <div className="mt-3">
+          <List>
+            {eintraege.map((e) => (
+              <ListRow
+                key={e.id}
+                // Die Marker am Namen wie in der Tabelle — keine Zeilenfarbe.
+                title={
+                  <>
+                    <span>{e.userName ?? '–'}</span>
+                    <Zeitmarker eintrag={e} />
+                  </>
+                }
+                subtitle={`${dayLabel(e.date)}${e.comment ? ` · „${e.comment}"` : ''}`}
+                wert={fmtDauer(calcWorkMin(e))}
+              />
+            ))}
+          </List>
+        </div>
+      ) : (
+        <div className="tabelle-rahmen mt-3">
+          <table className="tabelle min-w-[28rem]">
+            <thead>
+              <tr>
+                <th className="tabelle-kopf">Tag</th>
+                <th className="tabelle-kopf">Mitarbeiter</th>
+                <th className="tabelle-kopf">Tätigkeit</th>
+                <th className="tabelle-kopf-zahl">Stunden</th>
+              </tr>
+            </thead>
+            <tbody>
+              {eintraege.map((e) => (
                 /*
                   KEIN GELBER GRUND MEHR für Helferzeilen: dieselbe Regel wie
                   oben — Helferstunden sind der Normalfall, keine Warnung.
@@ -448,9 +477,10 @@ function Einzelheiten({ r, label }: { r: Zeile; label: string }) {
                   </td>
                 </tr>
               ))}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <p className="mt-3 border-t border-line pt-2 text-sm">
         {/*
