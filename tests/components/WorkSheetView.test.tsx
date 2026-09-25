@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { forwardRef, useImperativeHandle } from 'react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Assignment, Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import { todayStr } from '@/lib/time';
 import type { NewWorkSheet } from '@/lib/db/workSheets';
+import { kanonischerInhalt } from '@shared/scheinHash';
 
 /**
  * Der Handwerksschein war ein Formular ohne Anschluss: er stand in einem
@@ -128,11 +129,21 @@ vi.mock('@/lib/db/scheinFotos', () => ({
   festes Bild zurück. Geprüft wird hier ohnehin nicht das Zeichnen (dafür gibt
   es `SignaturePad.test.tsx`), sondern was die Ansicht mit dem Ergebnis tut.
 */
+/*
+  Wie oft ein Unterschriftsfeld EINGEHÄNGT wurde. Das echte Feld hält seine
+  Striche nur im Speicher; würde es beim Wechsel der Schritte ausgehängt,
+  wären sie weg — während der Schein sich weiter „unterschrieben" merkt.
+*/
+let felderEingehaengt = 0;
+
 vi.mock('@/components/SignaturePad', () => ({
   default: forwardRef<
     { bildLesen: () => string | null; leeren: () => void },
     { titel: string; onChange?: (gesetzt: boolean) => void }
   >(function Feld({ titel, onChange }, ref) {
+    useEffect(() => {
+      felderEingehaengt += 1;
+    }, []);
     useImperativeHandle(ref, () => ({
       bildLesen: () => 'data:image/png;base64,AAAA',
       leeren: () => undefined,
@@ -235,6 +246,7 @@ beforeEach(() => {
   entwurf = undefined;
   bestehendeScheine = [];
   listWorkSheetsForProject.mockClear();
+  felderEingehaengt = 0;
 });
 
 describe('Handwerksschein', () => {
@@ -1211,5 +1223,324 @@ describe('Zeit beim Kunden eintragen', () => {
     await nutzer.click(await screen.findByRole('button', { name: 'Als Entwurf speichern' }));
     const zeilen = createWorkSheet.mock.calls[0][1].zeiten;
     expect(zeilen.map((z) => z.mitarbeiter)).toEqual(['Kollege', 'Max Mustermann']);
+  });
+});
+
+/**
+ * Der Schein als Schrittfolge — Zeiten, Material, Fotos, Unterschrift.
+ *
+ * NUR DIE ANORDNUNG IST NEU. Was hier geprüft wird: dass man vor, zurück und
+ * aus der Zusammenfassung in jeden Schritt kommt; dass ein wieder geöffneter
+ * Entwurf vorne beginnt; dass kein Teil beim Wechsel ausgehängt wird; und vor
+ * allem, dass der Schein, der am Ende unterschrieben wird, Zeichen für Zeichen
+ * derselbe ist wie auf der einen Seite am Schreibtisch.
+ */
+describe('Schrittfolge', () => {
+  /** Den Schreibtisch nachstellen: die Medienabfrage für `lg` trifft zu. */
+  const matchMediaVorher = window.matchMedia;
+  function schreibtisch() {
+    window.matchMedia = ((q: string) => ({
+      matches: true,
+      media: q,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+  }
+  afterEach(() => {
+    window.matchMedia = matchMediaVorher;
+  });
+
+  const aktuell = () =>
+    screen
+      .getByRole('navigation', { name: 'Schritte des Scheins' })
+      .querySelector('[aria-current="step"]')?.textContent;
+
+  it('geht mit „Weiter" vor und mit „Zurück" wieder zurück', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    expect(aktuell()).toBe('1 Zeiten');
+    // Im ersten Schritt gibt es nichts, wohin man zurück könnte.
+    expect(screen.queryByRole('button', { name: 'Zurück' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zeile hinzufügen' })).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Weiter: Material' }));
+    expect(aktuell()).toBe('2 Material');
+    // Der vorige Schritt ist ausgeblendet, der neue zu sehen.
+    expect(screen.queryByRole('button', { name: 'Zeile hinzufügen' })).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Freie Zeile/ })).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Weiter: Fotos' }));
+    expect(aktuell()).toBe('3 Fotos');
+    expect(screen.getByRole('textbox', { name: 'Notizen, Regiearbeiten, Mängel' })).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Weiter: Unterschrift' }));
+    expect(aktuell()).toBe('4 Unterschrift');
+    // Im letzten Schritt steht der Abschluss an der Stelle von „Weiter".
+    expect(screen.queryByRole('button', { name: /^Weiter/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
+    ).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
+    expect(aktuell()).toBe('3 Fotos');
+    expect(
+      screen.queryByRole('button', { name: 'Unterschreiben und abschließen' }),
+    ).not.toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
+    expect(aktuell()).toBe('1 Zeiten');
+  });
+
+  it('sperrt „Weiter" nicht — geprüft wird beim Unterschreiben', async () => {
+    // Keiner der Schritte hat eine Pflichtangabe: ein Schein ohne Stunden,
+    // Material oder Fotos ist gültig. Die Sperre sitzt am Abschluss.
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    for (const name of ['Weiter: Material', 'Weiter: Fotos', 'Weiter: Unterschrift']) {
+      const knopf = screen.getByRole('button', { name });
+      expect(knopf).toBeEnabled();
+      await nutzer.click(knopf);
+    }
+    expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
+  });
+
+  it('springt aus der Zusammenfassung mit „Ändern" in den Schritt', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    await zuSchritt(nutzer, 'Material');
+    await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtungen');
+    await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+    await zuSchritt(nutzer, 'Unterschrift');
+
+    // Die Zusammenfassung zählt, was in den Schritten steht.
+    expect(screen.getByText('1 Position')).toBeInTheDocument();
+    expect(screen.getByText(/0 Fotos · ohne Notiz/)).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Material ändern' }));
+    expect(aktuell()).toBe('2 Material');
+    expect(
+      screen.getByRole('button', { name: 'Dichtungen vom Schein nehmen' }),
+    ).toBeInTheDocument();
+
+    await zuSchritt(nutzer, 'Unterschrift');
+    await nutzer.click(screen.getByRole('button', { name: 'Zeiten ändern' }));
+    expect(aktuell()).toBe('1 Zeiten');
+    await zuSchritt(nutzer, 'Unterschrift');
+    await nutzer.click(screen.getByRole('button', { name: 'Fotos und Notizen ändern' }));
+    expect(aktuell()).toBe('3 Fotos');
+    await zuSchritt(nutzer, 'Unterschrift');
+    await nutzer.click(screen.getByRole('button', { name: 'Baustelle und Tag ändern' }));
+    expect(aktuell()).toBe('1 Zeiten');
+    expect(screen.getByRole('combobox', { name: 'Baustelle' })).toBeInTheDocument();
+  });
+
+  it('hängt beim Wechsel nichts aus — die Unterschriften bleiben stehen', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    // Beide Felder sind von Anfang an eingehängt, auch wenn sie noch nicht zu sehen sind.
+    expect(felderEingehaengt).toBe(2);
+
+    await zuSchritt(nutzer, 'Unterschrift');
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
+    await nutzer.click(screen.getByRole('button', { name: 'Zeiten ändern' }));
+    await nutzer.click(screen.getByRole('button', { name: 'Weiter: Material' }));
+    await zuSchritt(nutzer, 'Unterschrift');
+
+    expect(felderEingehaengt).toBe(2);
+    // Name und Unterschriften sind noch da: der Abschluss ist frei.
+    expect(screen.getByLabelText<HTMLInputElement>(/Kunde \(Name/).value).toBe('Frau Huber');
+    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+    await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
+  });
+
+  it('bietet „Als Entwurf speichern" in jedem Schritt an', async () => {
+    // Vormittags vorbereiten, nachmittags unterschreiben: wer nach den Zeiten
+    // aufhört, soll nicht erst bis zur Unterschrift weiterklicken müssen.
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    for (const name of ['Zeiten', 'Material', 'Fotos', 'Unterschrift'] as const) {
+      await zuSchritt(nutzer, name);
+      expect(screen.getByRole('button', { name: 'Als Entwurf speichern' })).toBeInTheDocument();
+    }
+  });
+
+  it('zeigt einen Speicherfehler auch außerhalb des letzten Schritts', async () => {
+    // Die Fehlermeldung stand bisher in der Karte der Unterschriften. Dort
+    // wäre sie ausgeblendet, wenn der Entwurf aus Schritt 1 gespeichert wird.
+    createWorkSheet.mockRejectedValue(new Error('offline'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Das hat nicht geklappt/);
+  });
+
+  describe('ein wieder geöffneter Entwurf', () => {
+    const gespeichert: WorkSheet & { id: string } = {
+      id: 'e1',
+      companyId: 'perl',
+      projectNumber: 'B-001',
+      customerId: 'k1',
+      customerName: 'Familie Huber',
+      address: 'Hauptstraße 12',
+      datum: heute,
+      status: 'Entwurf',
+      abrechnung: 'Regie',
+      zeiten: [{ datum: heute, mitarbeiter: 'Max Mustermann', minuten: 300 }],
+      material: [{ name: 'Eckventil 1/2 Zoll', menge: 2, einheit: 'Stk' }],
+      notizen: 'Absperrventil klemmt',
+      erstelltVonUid: 'm9',
+      erstelltVonName: 'Erna Beispiel',
+    } as WorkSheet & { id: string };
+
+    it('beginnt bei Schritt 1 — die Zeiten sind frisch geholt', async () => {
+      entwurf = gespeichert;
+      callScheinVorbereiten.mockResolvedValue({ zeiten: gespeichert.zeiten });
+      zeichne('/worksheet?entwurf=e1');
+      await screen.findByText(/Verbautes Material \(1\)/);
+      await screen.findByRole('link', { name: /Hauptstraße 12/ });
+      expect(aktuell()).toBe('1 Zeiten');
+    });
+
+    it('fasst den Entwurf zusammen und unterschreibt ihn, ohne einen zweiten anzulegen', async () => {
+      entwurf = gespeichert;
+      callScheinVorbereiten.mockResolvedValue({ zeiten: gespeichert.zeiten });
+      const nutzer = userEvent.setup();
+      zeichne('/worksheet?entwurf=e1');
+      await screen.findByText(/Verbautes Material \(1\)/);
+      await screen.findByRole('link', { name: /Hauptstraße 12/ });
+
+      // Ein Tipp auf die Leiste genügt, um vom Vormittag in die Unterschrift zu kommen.
+      await zuSchritt(nutzer, 'Unterschrift');
+      expect(screen.getByText('1 Position')).toBeInTheDocument();
+      expect(screen.getByText('05:00 Std')).toBeInTheDocument();
+      expect(screen.getByText(/0 Fotos · mit Notiz/)).toBeInTheDocument();
+
+      await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+      unterschreiben();
+      await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+
+      await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
+      expect(createWorkSheet).not.toHaveBeenCalled();
+      const letzte = updateWorkSheetDraft.mock.calls[updateWorkSheetDraft.mock.calls.length - 1];
+      expect(letzte[0]).toBe('e1');
+      expect(signWorkSheet.mock.calls[0][0]).toBe('e1');
+      expect(letzte[1].material).toEqual(gespeichert.material);
+      expect(letzte[1].notizen).toBe('Absperrventil klemmt');
+    });
+  });
+
+  /*
+    DER KERN: DERSELBE BELEG, EGAL WIE ER AUSGEFÜLLT WURDE.
+
+    Dieselben Eingaben einmal durch die Schritte (Telefon) und einmal auf der
+    einen Seite (Schreibtisch). Was geschrieben und unterschrieben wird, muss
+    gleich sein — und damit die kanonische Zeichenkette, aus der die
+    Prüfsumme entsteht. Die Uhr steht still, sonst unterschieden sich die
+    beiden Läufe allein in der Gerätezeit der Unterschrift.
+  */
+  describe('Absenden', () => {
+    const JETZT = Date.parse('2026-09-25T14:04:00Z');
+
+    async function ausfuellenUndUnterschreiben(schritte: boolean): Promise<string> {
+      const nutzer = userEvent.setup();
+      const ansicht = zeichne();
+      await screen.findByRole('link', { name: /Hauptstraße 12/ });
+
+      await nutzer.clear(screen.getByLabelText('Von'));
+      await nutzer.type(screen.getByLabelText('Von'), '07:00');
+      await nutzer.type(screen.getByLabelText('Bis'), '15:30');
+      await nutzer.type(screen.getByLabelText(/Pause/), '30');
+      await nutzer.type(screen.getByLabelText(/Tätigkeit/), 'Eckventil getauscht');
+      await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
+
+      if (schritte) await nutzer.click(screen.getByRole('button', { name: 'Weiter: Material' }));
+      await nutzer.type(screen.getByLabelText('Artikel aus dem Lager'), 'eckventil');
+      await nutzer.click(
+        await screen.findByRole('button', { name: /Eckventil 1\/2 Zoll auf den Schein/ }),
+      );
+      await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtungen');
+      await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
+
+      if (schritte) await nutzer.click(screen.getByRole('button', { name: 'Weiter: Fotos' }));
+      await nutzer.type(
+        screen.getByRole('textbox', { name: 'Notizen, Regiearbeiten, Mängel' }),
+        'Kunde informiert',
+      );
+
+      if (schritte) {
+        await nutzer.click(screen.getByRole('button', { name: 'Weiter: Unterschrift' }));
+      }
+      await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+      unterschreiben();
+      await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+      await waitFor(() => expect(signWorkSheet).toHaveBeenCalledTimes(1));
+
+      const inhalt = [...createWorkSheet.mock.calls, ...updateWorkSheetDraft.mock.calls].pop()![1];
+      const [id, monteur, kunde] = signWorkSheet.mock.calls[0];
+      expect(id).toBe('s1');
+      ansicht.unmount();
+      return kanonischerInhalt({
+        ...(inhalt as NewWorkSheet),
+        unterschriften: { monteur, kunde },
+      });
+    }
+
+    it('ergibt in Schritten und auf einer Seite denselben Beleg', async () => {
+      const uhr = vi.spyOn(Date, 'now').mockReturnValue(JETZT);
+      let inSchritten: string;
+      let aufEinerSeite: string;
+      try {
+        inSchritten = await ausfuellenUndUnterschreiben(true);
+
+        createWorkSheet.mockClear();
+        updateWorkSheetDraft.mockClear();
+        signWorkSheet.mockClear();
+        schreibtisch();
+        aufEinerSeite = await ausfuellenUndUnterschreiben(false);
+      } finally {
+        uhr.mockRestore();
+      }
+
+      expect(inSchritten).toBe(aufEinerSeite);
+      // Und der Beleg enthält, was eingegeben wurde — nicht bloß zweimal dasselbe Leere.
+      const F = '\u001f';
+      expect(inSchritten).toBe(
+        [
+          ['SCHEIN', 'B-001', 'Familie Huber', 'Hauptstraße 12', heute, 'Regie'].join(F),
+          ['ZEIT', heute, 'Max Mustermann', '07:00', '15:30', '30', '480', 'Eckventil getauscht', '0'].join(F),
+          ['MATERIAL', 'Eckventil 1/2 Zoll', '1', 'Stk'].join(F),
+          ['MATERIAL', 'Dichtungen', '1', ''].join(F),
+          ['NOTIZ', 'Kunde informiert'].join(F),
+          ['MONTEUR', 'Max Mustermann', String(JETZT), 'data:image/png;base64,AAAA'].join(F),
+          ['KUNDE', 'Frau Huber', String(JETZT), 'data:image/png;base64,AAAA'].join(F),
+        ].join('\n'),
+      );
+    });
+  });
+
+  it('steht am Schreibtisch als eine Seite da — ohne Leiste und ohne „Weiter"', async () => {
+    schreibtisch();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+
+    expect(
+      screen.queryByRole('navigation', { name: 'Schritte des Scheins' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Weiter/ })).not.toBeInTheDocument();
+    // Alles zugleich zu sehen, in nummerierten Abschnitten.
+    for (const titel of ['1 · Zeiten', '2 · Material', '3 · Fotos', '4 · Unterschrift']) {
+      expect(screen.getByRole('heading', { name: titel })).toBeInTheDocument();
+    }
+    expect(screen.getByRole('button', { name: 'Zeile hinzufügen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hinzufügen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Als Entwurf speichern' })).toBeInTheDocument();
   });
 });
