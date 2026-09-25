@@ -1,24 +1,47 @@
 # Design-Durchgang Senklot — Fortschritt
 
-Grundlage: Masterprompt „Design-Überarbeitung Senklot“, Phasen 0 bis 3.
-Zweig: `claude/senklot-design-durchgang`, neu aufgesetzt auf `main` @ `473c1da` (#152, Launch-Check).
-Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grün**
-(Komponenten und Einheiten, `npm test`). Datenbank- und Browserwege siehe Offene Punkte.
+Grundlage: Masterprompt „Design-Überarbeitung Senklot“.
+
+**Verlauf.** Ein erster Durchgang (#153, #154) setzte die Phasen 0–4
+samt neuer Designlinie um. Im Betrieb gefiel die neue Linie nicht; mit
+#155 kam die App auf die bisherige Gestaltung zurück — nur die neuen
+Menü-Symbole (1.1) und der Handwerksschein in Schritten (Phase 4) blieben.
+#156 vereinheitlichte die Links. Vorgabe seither: **die Grundgestaltung
+bleibt, alles andere wird umgesetzt, nichts verschlimmbessert.** Die
+Einzel-Commits der Phase 1 aus dem ersten Durchgang wurden dafür
+unverändert übernommen (Hashes unten sind die neuen).
 
 ## Statusübersicht
 
 | Punkt | Status | Commits |
 |---|---|---|
-| Phase 0 – Bestandsaufnahme | erledigt | `9ca9788` |
-| 1.1 Navigation: eigene Icons | erledigt | `91e0ab9` |
-| 1.2 Zahlen und Zeiten einheitlich | erledigt | `f5fdb4a` |
-| 1.3 Tabellenziffern, rechtsbündige Werte | erledigt | `07262e1` |
-| 1.4 Überschriften | erledigt | `9636cd3` |
-| 1.5 Gestaltungsverbote | erledigt | `2d00de3`, `fcf38d4`, `53884d9`, `b73a3e3` |
-| 1.6 Einstellungs-Reiter | erledigt | `4e818a7` |
-| 1.7 Wochenplan | erledigt | `24a9593` |
-| 1.8 Projektauswertung | erledigt | `18abd9d` |
-| 1.9 Anrede „du“ | erledigt | `8e0d098` |
+| Phase 0 – Bestandsaufnahme | erledigt | `f3ec8b5`, `5093a36` |
+| 1.1 Navigation: eigene Icons | erledigt (#155) | — |
+| 1.2 Zahlen und Zeiten einheitlich | erledigt | `37f46c3` |
+| 1.3 Tabellenziffern, rechtsbündige Werte | erledigt | `9a89654`, `fdada0c`, `f3af455` |
+| 1.4 Überschriften | erledigt | `cc8e19d` |
+| 1.5 Gestaltungsverbote | erledigt | `fe695fc`, `7ef54f7`, `562e2be`, `068ee8a` |
+| 1.6 Einstellungs-Reiter | erledigt | `c295b92`, `407450c` |
+| 1.7 Wochenplan | erledigt | `bca0a52`, `3459cc4` |
+| 1.8 Projektauswertung | erledigt | `3d6919e` |
+| 1.9 Anrede „du“ | erledigt | `6b33a59` |
+| Phase 2 – Gemeinsame Bausteine | bewusst nicht umgesetzt | — |
+| Phase 3 – Ansichten ordnen | bewusst nicht umgesetzt | — |
+| Phase 4 – Schein in Schritten | erledigt (#155) | — |
+| Phase 4 – Unterschrift quer | erledigt | `ec7bfb1`, `23c522a` |
+
+**Warum Phase 2 und 3 nicht.** Beide verändern die Grundgestaltung
+(neue Karten, Listenzeilen, Tabellen statt Listen, Monteur-Start als drei
+Karten, zweispaltige Akten). Genau das wurde im ersten Durchgang umgesetzt
+und im Betrieb zurückgenommen. Sie bleiben offen, bis es einen
+freigegebenen Entwurf gibt.
+
+**Unterschrift quer.** Unter jedem Unterschriftsfeld steht unter 1024 px
+„Groß unterschreiben“: dieselbe Zeichenfläche bildschirmfüllend, im
+Hochformat mit dem Hinweis, das Gerät quer zu halten. Das Feld im Formular
+bleibt, wie es war (kein zusätzlicher Tipp). Die Striche wandern mit und
+werden ins Feld eingepasst; das Bild für den Schein entsteht wie bisher aus
+dem Feld — Format, Prüfsumme und PDF unberührt.
 
 ## Offene Punkte
 
@@ -52,19 +75,17 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
    Endlos-Animation. Er ist eine Zustandsanzeige (ohne ihn fehlt die
    Rückmeldung) und bleibt deshalb; der Lade-Platzhalter `.skeleton` steht
    dagegen jetzt ruhig.
-7. **Foto-Entfernen-Knopf** im Schein (`WorkSheetView.tsx`, ~1119) ist
-   28 × 28 px — schon vorher unter 44 px. Gehört zum Schein (Phase 4).
+7. ~~**Foto-Entfernen-Knopf** im Schein 28 × 28 px.~~ Erledigt (`06991d9`):
+   Tastfläche 44 × 44 px, sichtbar derselbe kleine Kreis.
 8. **Datenschutzerklärung siezt** (`src/features/recht/DatenschutzView.tsx`,
    12 Stellen) — Rechtstext, inhaltlich nicht verändert. Kundentexte (PDF,
    Mahnung, Bestellmail an den Großhandel) bleiben bewusst beim „Sie“.
-9. **Weitere Reiterleisten** (Material, Lager, Anforderungen, Urlaub) haben
-   die ausgeblendete Scrollleiste mitbekommen, aber kein automatisches
-   Einscrollen des aktiven Reiters; sie haben 2–4 kurze Reiter und laufen nur
-   am Telefon über. Vorschlag: bei Bedarf nachziehen.
-10. **Wochenplan-Karten, zugängliche Namen**: `aria-label` nennt nur Kunde und
-    Datum; zwei Baustellen desselben Kunden am selben Tag heißen für die
-    Vorlesehilfe gleich. `aria-label` ist nach den harten Regeln geschützt
-    (Tests greifen darauf zu). Vorschlag: Nummer ins Label, Tests anpassen.
+9. ~~**Weitere Reiterleisten** ohne automatisches Einscrollen.~~ Erledigt
+   (`407450c`): Material, Lager, Anforderungen und Urlaub holen den gewählten
+   Reiter wie die Einstellungen ganz ins Bild (`useReiterImBild`).
+10. ~~**Wochenplan-Karten, zugängliche Namen** ohne Nummer.~~ Erledigt
+    (`3459cc4`): das `aria-label` nennt die Baustellennummer mit; die Tests
+    sind bewusst angepasst.
 11. **Legende „Heute“** in Einsatzplanung/Mein Einsatzplan trug die
     Mandantenfarbe (`brand/25`) und trägt jetzt deckend `info-bg` wie der
     Kalender — kleine inhaltliche Angleichung.
