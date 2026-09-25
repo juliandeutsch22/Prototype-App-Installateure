@@ -11,6 +11,9 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
 |---|---|---|
 | Phase 0 – Bestandsaufnahme | erledigt | `9ca9788` |
 | 1.1 Navigation: eigene Icons | erledigt | `91e0ab9` |
+| 1.2 Zahlen und Zeiten einheitlich | erledigt | `f5fdb4a` |
+| 1.3 Tabellenziffern, rechtsbündige Werte | erledigt | `07262e1` |
+| 1.4 Überschriften | erledigt | `9636cd3` |
 
 ## Offene Punkte
 
@@ -210,3 +213,45 @@ Die Regel „pro Element genau eine Klasse“ gilt für die neuen Bausteine.
 Das übrige Markup ist Tailwind mit mehreren Hilfsklassen je Element; es in
 diesem Durchgang vollständig umzuschreiben, wäre eine Formatierungswelle über
 ~56 000 Zeilen — siehe Offene Punkte.
+
+---
+
+## Phase 1 – Schnelle Gewinne
+
+### 1.1 Navigation — erledigt (`91e0ab9`)
+Sieben neue Linien-Icons im hauseigenen Satz (`Icon.tsx`): Urlaub `sun`,
+Handwerksscheine `pencil`, Angebote `file`, Kunden `contact`, Wartungen
+`wrench`, Lager `archive`, Nachkalkulation `calculator`. Neue Prüfung
+`tests/unit/navigationsIcons.test.ts`: je Rolle keine zwei gleichen Zeichen
+(schlug auf dem alten Stand für alle sechs Rollen fehl).
+„Meine Baustellen“/„Baustellen“ und „Mein Einsatzplan“/„Einsatzplanung“
+teilen sich ihr Zeichen bewusst: dieselbe Sache aus zwei Rollen, keine Rolle
+sieht beide.
+Dateien: `src/components/Icon.tsx`, `src/app/navigation.ts`.
+
+### 1.2 Zahlen und Zeiten — erledigt (`f5fdb4a`)
+Regeln: Datum `TT.MM.JJJJ` (Wochentag davor erlaubt); Arbeitszeit, Saldo,
+Soll, Zeitausgleich als `HH:MM`, in Sätzen und Listenzeilen mit „Std“
+(`fmtDauer`), in Tabellen und Kennzahlen ohne Zusatz (Kopf nennt die
+Einheit); Dezimalstunden mit Komma nur bei Budget, Kalkulation, Belegmengen.
+Geändert: Startseitenkopf „Freitag, 25.09.2026“; „Std.“ → „Std“ überall;
+ZA-Stunden, Tagessoll, Wochenstunden als `HH:MM Std`; Dauern in
+Scheinliste, Leistungszeit, Rechnung-gegen-Schein, Zeiterfassung mit „Std“.
+Die Beispiele aus dem Auftrag („3.5 h“, „21.55 h“, „Zeiten am 2026-09-24“,
+„+9,00 h“ neben „+01:00“) waren durch #147/#152 bereits behoben — per
+Textscan aller Routen bestätigt.
+Tests angepasst (Anzeigetexte): TimeView, VacationsView, WorkSheetsListView.
+
+### 1.3 Tabellenziffern — erledigt (`07262e1`)
+`tabular-nums` global am `body` und an Eingabefeldern; die Einzelklasse
+`.tnum` (136 Stellen) und ihre Regel sind entfernt. `ListRow` hat neue
+Plätze `zustand` und `wert`: rechte Seite immer Status · Wert · Aktionen,
+auch im Umbruch am rechten Rand. Rechnungen, Angebote, Handwerksscheine
+zeigen Betrag bzw. Stunden dort. Tabellen hatten rechtsbündige
+Zahlenspalten bereits.
+
+### 1.4 Überschriften — erledigt (`9636cd3`)
+`.titel-karte` (16 px, 600, Tinte, normale Schreibweise) für Kartentitel
+sowie Dialog-/Abschnittsköpfe; freie `h2` von 18 auf 16 px (eine Stufe
+kleiner). `.section-label` (Dachzeilen, Kennzahl-Bezeichnungen, Marken) ohne
+Versalien und Sperrung. Navigationsgruppen und Anmeldekopf ohne Versalien.
