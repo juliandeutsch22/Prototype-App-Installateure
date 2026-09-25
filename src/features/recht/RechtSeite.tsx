@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import ProduktMarke from '@/components/ProduktMarke';
+import Card from '@/components/Card';
+import MarkenRahmen from '@/features/auth/MarkenRahmen';
 import Meldung from '@/components/Meldung';
 import PageHeader from '@/components/PageHeader';
 import { GEPRUEFT, STAND } from './betreiber';
@@ -13,17 +14,22 @@ import { GEPRUEFT, STAND } from './betreiber';
  * „Zur App" zurück.
  */
 export default function RechtSeite({ titel, children }: { titel: string; children: ReactNode }) {
+  /*
+    NACH DER LINIE: die Marke im Rahmen wie in der Seitenleiste
+    (`MarkenRahmen`), der Titel als Seitenkopf, der Text in einer weißen
+    Karte statt frei auf dem Grund, „Stand“ im Kartenfuß. Am Text selbst
+    ändert sich nichts.
+  */
   return (
-    <div className="min-h-full bg-bg">
-      <div className="panel-dark px-4 py-4">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
-          <ProduktMarke hoehe={28} className="text-white" />
-          <Link to="/" className="min-h-touch py-2 text-sm font-medium text-white underline underline-offset-2">
-            Zur App
-          </Link>
-        </div>
-      </div>
-      <main className="mx-auto max-w-2xl space-y-6 px-4 py-6">
+    <MarkenRahmen
+      aktion={
+        <Link to="/" className="marken-leiste-link">
+          Zur App
+        </Link>
+      }
+    >
+      <main className="marken-spalte">
+        <PageHeader title={titel} />
         {!GEPRUEFT && (
           // `note`: ein stehender Vermerk zum Text, weder Alarm noch Status.
           <Meldung ton="warnung" role="note">
@@ -31,11 +37,11 @@ export default function RechtSeite({ titel, children }: { titel: string; childre
             eckigen Klammern werden ergänzt.
           </Meldung>
         )}
-        <PageHeader title={titel} />
-        <div className="recht space-y-6 text-base leading-relaxed text-ink">{children}</div>
-        <p className="text-sm text-ink-muted">Stand: {STAND}</p>
+        <Card footer={<p className="text-sm text-ink-muted">Stand: {STAND}</p>}>
+          <div className="recht space-y-6 text-base leading-relaxed text-ink">{children}</div>
+        </Card>
       </main>
-    </div>
+    </MarkenRahmen>
   );
 }
 

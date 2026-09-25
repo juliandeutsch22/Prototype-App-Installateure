@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import MarkenBand from '@/components/MarkenBand';
+import MarkenRahmen from '@/features/auth/MarkenRahmen';
 import { useAuth } from '@/app/AuthContext';
 import { betriebAnlegen } from '@/lib/db/plattform';
 import { notzugang, offeneFreigaben, type OffeneFreigabe } from '@/lib/db/support';
@@ -154,289 +154,292 @@ export default function PlattformView() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6">
-      <MarkenBand />
-      <PageHeader
-        title="Betriebe anlegen"
-        subtitle={
-          <>
-            Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb
-            und sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat.
-          </>
-        }
-      />
+    // Die Marke im Rahmen wie in der Seitenleiste (MarkenRahmen) statt im
+    // dunklen Kästchen über dem Titel — dieselbe Fassung wie die Anmeldung.
+    <MarkenRahmen unter="Plattform">
+      <div className="marken-spalte">
+        <PageHeader
+          title="Betriebe anlegen"
+          subtitle={
+            <>
+              Dieses Konto kann Betriebe einrichten und sonst nichts. Es gehört zu keinem Betrieb
+              und sieht in keinen hinein — auch nicht in die, die es selbst angelegt hat.
+            </>
+          }
+        />
 
-      <Card
-        title="Neuer Betrieb"
-        hint={
-          <>
-            <strong>Die Kennung lässt sich nachträglich nicht ändern.</strong> Sie steht als Feld
-            in jedem einzelnen Datensatz des Betriebs und wird zur Adresse seines Firmendokuments.
-            Kleinbuchstaben, Ziffern und Bindestriche.
-            <br />
-            <br />
-            <strong>Der erste Administrator braucht eine eigene Adresse.</strong> Ein Konto gehört
-            zu genau einem Betrieb: die Berechtigungen hängen an der Anmeldekennung, nicht am
-            Betrieb. Wäre dieselbe Person in zwei Betrieben, entschiede allein die Reihenfolge der
-            Änderungen, in welchem sie landet.
-          </>
-        }
-      >
-        <form onSubmit={anlegen} className="space-y-4">
-          <FormGrid>
-            <InputField
-              id="b-name"
-              label="Name des Betriebs"
-              placeholder="Name des Betriebs"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              required
-              pflicht
-            />
-            <InputField
-              id="b-kennung"
-              label="Kennung"
-              placeholder="z. B. mustermann"
-              value={form.companyId}
-              onChange={(e) => setForm({ ...form, companyId: e.target.value })}
-              required
-              pflicht
-            />
-            <InputField
-              id="b-adminname"
-              label="Erster Administrator"
-              placeholder="Vor- und Nachname"
-              value={form.adminName}
-              onChange={(e) => setForm({ ...form, adminName: e.target.value })}
-              required
-              pflicht
-            />
-            <InputField
-              id="b-adminmail"
-              label="Dessen E-Mail"
-              type="email"
-              placeholder="name@betrieb.at"
-              value={form.adminEmail}
-              onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
-              required
-              pflicht
-            />
-          </FormGrid>
+        <Card
+          title="Neuer Betrieb"
+          hint={
+            <>
+              <strong>Die Kennung lässt sich nachträglich nicht ändern.</strong> Sie steht als Feld
+              in jedem einzelnen Datensatz des Betriebs und wird zur Adresse seines Firmendokuments.
+              Kleinbuchstaben, Ziffern und Bindestriche.
+              <br />
+              <br />
+              <strong>Der erste Administrator braucht eine eigene Adresse.</strong> Ein Konto gehört
+              zu genau einem Betrieb: die Berechtigungen hängen an der Anmeldekennung, nicht am
+              Betrieb. Wäre dieselbe Person in zwei Betrieben, entschiede allein die Reihenfolge der
+              Änderungen, in welchem sie landet.
+            </>
+          }
+        >
+          <form onSubmit={anlegen} className="space-y-4">
+            <FormGrid>
+              <InputField
+                id="b-name"
+                label="Name des Betriebs"
+                placeholder="Name des Betriebs"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+                pflicht
+              />
+              <InputField
+                id="b-kennung"
+                label="Kennung"
+                placeholder="z. B. mustermann"
+                value={form.companyId}
+                onChange={(e) => setForm({ ...form, companyId: e.target.value })}
+                required
+                pflicht
+              />
+              <InputField
+                id="b-adminname"
+                label="Erster Administrator"
+                placeholder="Vor- und Nachname"
+                value={form.adminName}
+                onChange={(e) => setForm({ ...form, adminName: e.target.value })}
+                required
+                pflicht
+              />
+              <InputField
+                id="b-adminmail"
+                label="Dessen E-Mail"
+                type="email"
+                placeholder="name@betrieb.at"
+                value={form.adminEmail}
+                onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
+                required
+                pflicht
+              />
+            </FormGrid>
 
-          {fehler && <ErrorState message={fehler} />}
+            {fehler && <ErrorState message={fehler} />}
 
-          {/*
-            Der Grund für die gesperrte Schaltfläche steht daneben, nicht
-            erst nach dem Drücken. Ein Knopf, der nicht geht und nicht sagt
-            warum, ist die unangenehmste Form einer Fehlermeldung.
-          */}
-          {/*
-            Vor der ersten Eingabe kein Fehler, sondern die Anleitung: „Der
-            Betrieb braucht einen Namen." über einer leeren Maske las sich
-            wie eine Rüge für etwas, das noch niemand versucht hat (D19).
-          */}
-          {eingabeFehler && !fehler && (
-            <p className="text-sm text-ink-muted">
-              {Object.values(form).some((v) => String(v ?? '').trim() !== '')
-                ? eingabeFehler
-                : 'Alle vier Felder ausfüllen — dann lässt sich der Betrieb anlegen.'}
-            </p>
+            {/*
+              Der Grund für die gesperrte Schaltfläche steht daneben, nicht
+              erst nach dem Drücken. Ein Knopf, der nicht geht und nicht sagt
+              warum, ist die unangenehmste Form einer Fehlermeldung.
+            */}
+            {/*
+              Vor der ersten Eingabe kein Fehler, sondern die Anleitung: „Der
+              Betrieb braucht einen Namen." über einer leeren Maske las sich
+              wie eine Rüge für etwas, das noch niemand versucht hat (D19).
+            */}
+            {eingabeFehler && !fehler && (
+              <p className="text-sm text-ink-muted">
+                {Object.values(form).some((v) => String(v ?? '').trim() !== '')
+                  ? eingabeFehler
+                  : 'Alle vier Felder ausfüllen — dann lässt sich der Betrieb anlegen.'}
+              </p>
+            )}
+
+            <Button type="submit" variant="primary" loading={laeuft} disabled={!!eingabeFehler}>
+              Betrieb anlegen
+            </Button>
+          </form>
+        </Card>
+
+        {/*
+          EINBLICK GEWÄHREN KANN NUR DER BETRIEB. Was hier steht, hat er
+          erlaubt — mit Grund und mit Frist. Wer nichts gewährt, steht nicht in
+          der Liste, und wer widerruft, verschwindet daraus.
+        */}
+        <Card
+          title={`Einblick gewährt (${offen.length})`}
+          hint="Der Zugang ist LESEND. Zeitbuchungen, Urlaube und Fotos von Baustellen bleiben auch damit verschlossen — dort stehen Kranken- und Urlaubstage von Mitarbeitern und Aufnahmen aus Kundenwohnungen. Jeder geöffnete Bereich steht im Protokoll des Betriebs."
+        >
+          {offen.length === 0 ? (
+            <EmptyState>
+              Kein Betrieb gewährt gerade Einblick. Gewähren kann ihn nur er selbst, unter
+              Einstellungen → Supportzugang.
+            </EmptyState>
+          ) : (
+            <List>
+              {offen.map((f) => (
+                <ListRow
+                  key={f.id}
+                  title={
+                    <>
+                      {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
+                      {f.stufe === 'mitarbeiten' ? <Warnung>mitarbeiten</Warnung> : <Marke>ansehen</Marke>}
+                      <span>{f.name}</span>
+                    </>
+                  }
+                  subtitle={
+                    <>
+                      {f.grund} · bis{' '}
+                      {/* Mit Jahr, wie jedes Datum in der App: „26.09.2026, 18:00". */}
+                      {new Date(f.gilt_bis).toLocaleString('de-AT', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                      })}
+                    </>
+                  }
+                >
+                  {/*
+                    ÖFFNEN HEISST: die echte App unter diesem Betrieb. Kein
+                    zweiter Nachbau mehr — was der Support sieht, ist das, was
+                    der Betrieb sieht, und was er darf, entscheidet die
+                    Datenbank.
+                  */}
+                  <Button variant="secondary" onClick={() => einblickStarten(f)}>
+                    Öffnen
+                  </Button>
+                </ListRow>
+              ))}
+            </List>
           )}
+        </Card>
 
-          <Button type="submit" variant="primary" loading={laeuft} disabled={!!eingabeFehler}>
-            Betrieb anlegen
-          </Button>
-        </form>
-      </Card>
+        {/*
+          FEHLER DER APP, nicht der Betriebe: gebündelt nach Meldung, mit dem
+          Betrieb daneben, damit ein Absturz nach einem Deploy auffällt, bevor
+          jemand anruft.
+        */}
+        <section aria-label="Fehler aus den Betrieben" className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="titel-karte">Fehler aus den Betrieben (14 Tage)</h2>
+            <Button variant="secondary" onClick={() => void fehlerLaden()}>
+              Neu laden
+            </Button>
+          </div>
+          {fehlerFehler && <ErrorState message={fehlerFehler} onRetry={() => void fehlerLaden()} />}
+          {fehlerListe && <FehlerListe zeilen={fehlerListe} />}
+        </section>
 
-      {/*
-        EINBLICK GEWÄHREN KANN NUR DER BETRIEB. Was hier steht, hat er
-        erlaubt — mit Grund und mit Frist. Wer nichts gewährt, steht nicht in
-        der Liste, und wer widerruft, verschwindet daraus.
-      */}
-      <Card
-        title={`Einblick gewährt (${offen.length})`}
-        hint="Der Zugang ist LESEND. Zeitbuchungen, Urlaube und Fotos von Baustellen bleiben auch damit verschlossen — dort stehen Kranken- und Urlaubstage von Mitarbeitern und Aufnahmen aus Kundenwohnungen. Jeder geöffnete Bereich steht im Protokoll des Betriebs."
-      >
-        {offen.length === 0 ? (
-          <EmptyState>
-            Kein Betrieb gewährt gerade Einblick. Gewähren kann ihn nur er selbst, unter
-            Einstellungen → Supportzugang.
-          </EmptyState>
-        ) : (
-          <List>
-            {offen.map((f) => (
-              <ListRow
-                key={f.id}
-                title={
-                  <>
-                    {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
-                    {f.stufe === 'mitarbeiten' ? <Warnung>mitarbeiten</Warnung> : <Marke>ansehen</Marke>}
-                    <span>{f.name}</span>
-                  </>
-                }
-                subtitle={
-                  <>
-                    {f.grund} · bis{' '}
-                    {/* Mit Jahr, wie jedes Datum in der App: „26.09.2026, 18:00". */}
-                    {new Date(f.gilt_bis).toLocaleString('de-AT', {
-                      day: '2-digit', month: '2-digit', year: 'numeric',
-                      hour: '2-digit', minute: '2-digit',
-                    })}
-                  </>
-                }
-              >
-                {/*
-                  ÖFFNEN HEISST: die echte App unter diesem Betrieb. Kein
-                  zweiter Nachbau mehr — was der Support sieht, ist das, was
-                  der Betrieb sieht, und was er darf, entscheidet die
-                  Datenbank.
-                */}
-                <Button variant="secondary" onClick={() => einblickStarten(f)}>
-                  Öffnen
-                </Button>
-              </ListRow>
-            ))}
-          </List>
+        {/*
+          DER NOTZUGANG IST DIE AUSNAHME UND SOLL SICH AUCH SO ANFÜHLEN: eigene
+          Karte, eigener Grund, kurze Frist. Er läuft ohne Zustimmung des
+          Betriebs — aber nicht heimlich.
+        */}
+        <Card
+          title="Notzugang"
+          hint={
+            <>
+              <strong>Nur, wenn der Betrieb selbst nicht mehr freigeben kann</strong> — etwa weil
+              er sich ausgesperrt hat. Er ist als Notzugang gekennzeichnet, gilt höchstens 24
+              Stunden, steht im Protokoll des Betriebs und erzeugt dort dasselbe Band in der App
+              wie jede andere Freigabe. Der Betrieb kann ihn jederzeit beenden. Lesen ja,
+              schreiben nein — wie bei jedem Supportzugang.
+            </>
+          }
+        >
+          <form onSubmit={notzugangOeffnen} className="space-y-4">
+            <FormGrid>
+              <InputField
+                id="n-kennung"
+                label="Kennung des Betriebs"
+                placeholder="z. B. mustermann"
+                value={notForm.companyId}
+                onChange={(e) => setNotForm({ ...notForm, companyId: e.target.value })}
+                required
+                pflicht
+              />
+              <InputField
+                id="n-stunden"
+                label="Stunden (1–24)"
+                type="number"
+                min="1"
+                max="24"
+                value={notForm.stunden}
+                onChange={(e) => setNotForm({ ...notForm, stunden: e.target.value })}
+                required
+                pflicht
+              />
+            </FormGrid>
+            <InputField
+              id="n-grund"
+              label="Grund"
+              placeholder="z. B. Betrieb ausgesperrt"
+              value={notForm.grund}
+              onChange={(e) => setNotForm({ ...notForm, grund: e.target.value })}
+              required
+              pflicht
+            />
+            {notFehler && <ErrorState message={notFehler} />}
+            <Button
+              type="submit"
+              loading={notLaeuft}
+              disabled={notForm.companyId.trim() === '' || notForm.grund.trim() === ''}
+            >
+              Notzugang öffnen
+            </Button>
+          </form>
+        </Card>
+
+        {angelegt.length > 0 && (
+          <Card title={`In dieser Sitzung angelegt (${angelegt.length})`}>
+            {/*
+              DER RÜCKSETZLINK STEHT NUR HIER UND NUR JETZT.
+
+              Er wird nicht gespeichert und nicht versendet — der Betrieb
+              versendet seine Post selbst, und eine Mailanbindung wäre ein
+              weiterer Dienst mit einem weiteren Auftragsverarbeitungsvertrag.
+              Wer die Seite verlässt, muss den nächsten Zugang über
+              „Passwort vergessen?" freischalten lassen. Das steht auch da.
+            */}
+            <List>
+              {angelegt.map((b) => (
+                <ListRow
+                  key={b.companyId}
+                  title={
+                    <span>
+                      {b.name} <span className="text-ink-muted">({b.companyId})</span>
+                    </span>
+                  }
+                  subtitle={
+                    <>
+                      Erster Administrator: {b.adminEmail}
+                      <span className="mt-2 block break-all">
+                        <a href={b.passwortLink} className="textlink">
+                          {b.passwortLink}
+                        </a>
+                      </span>
+                    </>
+                  }
+                  /*
+                    Die Warnung als Meldung unter der Zeile, wie jede andere
+                    Warnung der App — vorher 12 px Warnfarbe im Kleingedruckten,
+                    für den einen Satz, den man hier nicht überlesen darf.
+                  */
+                  unten={
+                    <Meldung ton="warnung">
+                      Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort.
+                      Er steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
+                    </Meldung>
+                  }
+                />
+              ))}
+            </List>
+          </Card>
         )}
-      </Card>
 
-      {/*
-        FEHLER DER APP, nicht der Betriebe: gebündelt nach Meldung, mit dem
-        Betrieb daneben, damit ein Absturz nach einem Deploy auffällt, bevor
-        jemand anruft.
-      */}
-      <section aria-label="Fehler aus den Betrieben" className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="titel-karte">Fehler aus den Betrieben (14 Tage)</h2>
-          <Button variant="secondary" onClick={() => void fehlerLaden()}>
-            Neu laden
+        {/*
+          AUCH DIESES KONTO MUSS SEIN PASSWORT ÄNDERN KÖNNEN. Es sieht keine
+          Einstellungen — es sieht überhaupt nur diese eine Seite. Ohne die
+          Karte hier gäbe es für den Support genau denselben Weg wie für jeden
+          Betrieb vorher: einmal per Link hinein und danach nie wieder.
+        */}
+        <PasswortAendern />
+
+        <div className="border-t border-line pt-4">
+          <Button variant="ghost" onClick={() => void signOut()}>
+            Abmelden
           </Button>
         </div>
-        {fehlerFehler && <ErrorState message={fehlerFehler} onRetry={() => void fehlerLaden()} />}
-        {fehlerListe && <FehlerListe zeilen={fehlerListe} />}
-      </section>
-
-      {/*
-        DER NOTZUGANG IST DIE AUSNAHME UND SOLL SICH AUCH SO ANFÜHLEN: eigene
-        Karte, eigener Grund, kurze Frist. Er läuft ohne Zustimmung des
-        Betriebs — aber nicht heimlich.
-      */}
-      <Card
-        title="Notzugang"
-        hint={
-          <>
-            <strong>Nur, wenn der Betrieb selbst nicht mehr freigeben kann</strong> — etwa weil
-            er sich ausgesperrt hat. Er ist als Notzugang gekennzeichnet, gilt höchstens 24
-            Stunden, steht im Protokoll des Betriebs und erzeugt dort dasselbe Band in der App
-            wie jede andere Freigabe. Der Betrieb kann ihn jederzeit beenden. Lesen ja,
-            schreiben nein — wie bei jedem Supportzugang.
-          </>
-        }
-      >
-        <form onSubmit={notzugangOeffnen} className="space-y-4">
-          <FormGrid>
-            <InputField
-              id="n-kennung"
-              label="Kennung des Betriebs"
-              placeholder="z. B. mustermann"
-              value={notForm.companyId}
-              onChange={(e) => setNotForm({ ...notForm, companyId: e.target.value })}
-              required
-              pflicht
-            />
-            <InputField
-              id="n-stunden"
-              label="Stunden (1–24)"
-              type="number"
-              min="1"
-              max="24"
-              value={notForm.stunden}
-              onChange={(e) => setNotForm({ ...notForm, stunden: e.target.value })}
-              required
-              pflicht
-            />
-          </FormGrid>
-          <InputField
-            id="n-grund"
-            label="Grund"
-            placeholder="z. B. Betrieb ausgesperrt"
-            value={notForm.grund}
-            onChange={(e) => setNotForm({ ...notForm, grund: e.target.value })}
-            required
-            pflicht
-          />
-          {notFehler && <ErrorState message={notFehler} />}
-          <Button
-            type="submit"
-            loading={notLaeuft}
-            disabled={notForm.companyId.trim() === '' || notForm.grund.trim() === ''}
-          >
-            Notzugang öffnen
-          </Button>
-        </form>
-      </Card>
-
-      {angelegt.length > 0 && (
-        <Card title={`In dieser Sitzung angelegt (${angelegt.length})`}>
-          {/*
-            DER RÜCKSETZLINK STEHT NUR HIER UND NUR JETZT.
-
-            Er wird nicht gespeichert und nicht versendet — der Betrieb
-            versendet seine Post selbst, und eine Mailanbindung wäre ein
-            weiterer Dienst mit einem weiteren Auftragsverarbeitungsvertrag.
-            Wer die Seite verlässt, muss den nächsten Zugang über
-            „Passwort vergessen?" freischalten lassen. Das steht auch da.
-          */}
-          <List>
-            {angelegt.map((b) => (
-              <ListRow
-                key={b.companyId}
-                title={
-                  <span>
-                    {b.name} <span className="text-ink-muted">({b.companyId})</span>
-                  </span>
-                }
-                subtitle={
-                  <>
-                    Erster Administrator: {b.adminEmail}
-                    <span className="mt-2 block break-all">
-                      <a href={b.passwortLink} className="textlink">
-                        {b.passwortLink}
-                      </a>
-                    </span>
-                  </>
-                }
-                /*
-                  Die Warnung als Meldung unter der Zeile, wie jede andere
-                  Warnung der App — vorher 12 px Warnfarbe im Kleingedruckten,
-                  für den einen Satz, den man hier nicht überlesen darf.
-                */
-                unten={
-                  <Meldung ton="warnung">
-                    Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort.
-                    Er steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
-                  </Meldung>
-                }
-              />
-            ))}
-          </List>
-        </Card>
-      )}
-
-      {/*
-        AUCH DIESES KONTO MUSS SEIN PASSWORT ÄNDERN KÖNNEN. Es sieht keine
-        Einstellungen — es sieht überhaupt nur diese eine Seite. Ohne die
-        Karte hier gäbe es für den Support genau denselben Weg wie für jeden
-        Betrieb vorher: einmal per Link hinein und danach nie wieder.
-      */}
-      <PasswortAendern />
-
-      <div className="border-t border-line pt-4">
-        <Button variant="ghost" onClick={() => void signOut()}>
-          Abmelden
-        </Button>
       </div>
-    </div>
+    </MarkenRahmen>
   );
 }

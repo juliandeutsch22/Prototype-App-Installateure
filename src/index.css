@@ -2748,6 +2748,114 @@ textarea {
     color: var(--text-muted);
   }
 
+  /*
+   * RAHMEN DER SEITEN OHNE NAVIGATION (MarkenRahmen.tsx) — Anmeldung,
+   * Plattform, Rechtsseiten. Am Telefon die dunkle Kopfleiste wie in der
+   * App, ab 768 px die dunkle Spalte links in der Breite der Seitenleiste
+   * (Layout.tsx: `md:w-64 lg:w-[17.5rem]`), die Marke oben wie dort.
+   */
+  .marken-rahmen {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    background-color: var(--bg);
+  }
+
+  /* `calc` für die sichere Zone oben (Notch) — wie die Kopfleiste der App,
+     die sie in ihr Innenmaß einrechnet. */
+  .marken-leiste {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background-color: var(--brand-fixed);
+    padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
+    color: #ffffff;
+  }
+
+  .marken-leiste-marke {
+    min-width: 0;
+  }
+
+  /* „Zur App“ in der Leiste: weiß, unterstrichen, mit Tasthöhe. */
+  .marken-leiste-link {
+    display: inline-flex;
+    min-height: 48px;
+    flex-shrink: 0;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #ffffff;
+    text-decoration-line: underline;
+    text-underline-offset: 2px;
+  }
+
+  .marken-inhalt {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 0%;
+    flex-direction: column;
+  }
+
+  @media (min-width: 768px) {
+    .marken-rahmen {
+      flex-direction: row;
+    }
+
+    .marken-leiste {
+      width: 16rem;
+      flex-shrink: 0;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 0;
+      padding: 0.75rem;
+    }
+
+    .marken-leiste-marke {
+      margin-bottom: 1rem;
+      padding: 0.5rem 0.75rem 0;
+    }
+
+    .marken-leiste-link {
+      padding-inline: 0.75rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .marken-leiste {
+      width: 17.5rem;
+    }
+  }
+
+  /* Die Anmeldekarte mittig in der hellen Fläche, darunter die Rechtslinks. */
+  .anmelde-mitte {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.5rem 1rem;
+  }
+
+  /* Der Inhalt einer Seite im Rahmen: bis 42 rem breit, mittig. */
+  .marken-spalte {
+    margin-inline: auto;
+    display: flex;
+    width: 100%;
+    max-width: 42rem;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 1.5rem 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .marken-spalte {
+      padding: 2rem 1.5rem;
+    }
+  }
+
   /* Ein Abschnitt in einer Einstellungskarte: mit Haarlinie abgesetzt statt
      als Kasten (Linie, 2). */
   .einstellung-abschnitt {
