@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listUsers } from '@/lib/db/users';
 import { listProjectsByNumbers } from '@/lib/db/projects';
@@ -54,6 +54,7 @@ import {
 } from './export';
 import AntragKnopf from '@/features/time/AntragKnopf';
 import { datumAT } from '@/lib/datum';
+import { useAbBreite } from '@/lib/useAbBreite';
 
 const MONTHS = [
   'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -78,6 +79,74 @@ const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 /** '2026-08-03' -> 'Mo 03.08.' — der Wochentag macht den Monat lesbar. */
 function dayLabel(iso: string): string {
   return `${WEEKDAYS[new Date(`${iso}T00:00:00`).getDay()]} ${iso.slice(8)}.${iso.slice(5, 7)}.`;
+}
+
+/** Spalten der Tabellenform — der aufgeklappte Bereich reicht über alle. */
+const SPALTEN = 5;
+
+/**
+ * Die Mitarbeiterliste: am Telefon Zeilenkarten untereinander, am
+ * Schreibtisch eine Tabelle, in der Ist, Soll und Saldo Stelle unter Stelle
+ * stehen und sich über alle Mitarbeiter vergleichen lassen.
+ */
+function MitarbeiterRahmen({ tabelle, children }: { tabelle: boolean; children: ReactNode }) {
+  if (!tabelle) return <div className="space-y-3">{children}</div>;
+  return (
+    <div className="tabelle-rahmen">
+      <table className="tabelle">
+        <thead className="tabelle-kopfzeile">
+          <tr>
+            <th className="tabelle-kopf">Mitarbeiter</th>
+            <th className="tabelle-kopf">Stand</th>
+            <th className="tabelle-kopf-zahl">Ist</th>
+            <th className="tabelle-kopf-zahl">Soll</th>
+            <th className="tabelle-kopf-zahl">Saldo</th>
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+/**
+ * Ein Mitarbeiter: als Karte mit Kopf (Telefon) oder als Tabellenzeile
+ * (Schreibtisch). Der aufgeklappte Bereich ist in beiden Formen derselbe —
+ * in der Tabelle steht er als Zeile über alle Spalten darunter.
+ */
+function MitarbeiterZeile({
+  tabelle,
+  offen,
+  kopf,
+  zellen,
+  children,
+}: {
+  tabelle: boolean;
+  offen: boolean;
+  kopf: ReactNode;
+  zellen: ReactNode;
+  children: ReactNode;
+}) {
+  if (!tabelle) {
+    return (
+      <div className={offen ? 'karte-offen' : 'karte'}>
+        {kopf}
+        {children}
+      </div>
+    );
+  }
+  return (
+    <>
+      <tr className={offen ? 'tabelle-zeile-offen' : 'tabelle-zeile'}>{zellen}</tr>
+      {offen && (
+        <tr>
+          <td colSpan={SPALTEN} className="tabelle-detail">
+            {children}
+          </td>
+        </tr>
+      )}
+    </>
+  );
 }
 
 /**
@@ -348,6 +417,9 @@ export default function AccountingView() {
     toast.success('Projektauswertung heruntergeladen');
   }
 
+  /** Am Schreibtisch die Mitarbeiter als Tabelle, am Telefon als Karten. */
+  const schreibtisch = useAbBreite();
+
   if (!user) return null;
 
   return (
@@ -489,7 +561,7 @@ export default function AccountingView() {
                 : 'Alle Zeitkonten sind vollständig.'}
           </EmptyState>
         ) : (
-          <div className="space-y-3">
+          <MitarbeiterRahmen tabelle={schreibtisch}>
             {rows.map(({ user: u, monthEntries, stats, completeness }) => {
               const open = expanded === u.uid;
               /*
@@ -502,107 +574,154 @@ export default function AccountingView() {
                 nicht auseinanderlaufen koennen.
               */
               const zeigtSaldo = stats.hasConfig;
-              return (
-                <div
-                  key={u.uid}
-                  className={open ? 'karte-offen' : 'karte'}
+              /*
+                Lückenmarke und Saldo stehen im Kartenkopf wie in der
+                Tabellenzeile — einmal gebaut, damit beide dasselbe sagen.
+
+                „vollständig" braucht keine Pille — nur die Ausnahme
+                verdient Aufmerksamkeit. „heute offen" ist keine Lücke,
+                sondern der laufende Tag — er füllt sich von selbst bis zum
+                Feierabend.
+              */
+              const luecke =
+                completeness.status === 'missing' ? (
+                  <Warnung>
+                    {`${tageWort(completeness.missingCount)} ${
+                      completeness.missingCount === 1 ? 'fehlt' : 'fehlen'}`}
+                  </Warnung>
+                ) : completeness.status !== 'complete' ? (
+                  <Marke>{STATUS_LABEL[completeness.status]}</Marke>
+                ) : null;
+              /*
+                DER SALDO IST EINE ZAHL, KEINE AUFFORDERUNG. Er stand als
+                gefüllte Pille neben der Lückenmeldung, und zwei Pillen in
+                einer Zeile riefen beide gleich laut — dabei ist nur die eine
+                etwas zu tun. Ohne Eintrittsdatum steht gar keiner — warum,
+                sagt der Kartenkopf.
+              */
+              const saldo = !stats.hasConfig ? null : (
+                <Zustand
+                  stand={
+                    completeness.missingCount > 0
+                      ? 'ruht'
+                      : stats.saldoMin >= 0
+                        ? 'gut'
+                        : 'achtung'
+                  }
                 >
-                  {/* Der Kopf trägt nur noch, was den Mitarbeiter einordnet:
-                      Name, Ampel, Saldo. Krankheit, Urlaub und Resturlaub
-                      standen hier als vierte, fünfte, sechste Pille und
-                      ergaben eine Zeile, die man las statt überflog — sie
-                      stehen jetzt beschriftet im aufgeklappten Bereich.
+                  <span>
+                    {stats.saldoMin > 0 ? '+' : ''}
+                    {fmtMin(stats.saldoMin)}
+                  </span>
+                </Zustand>
+              );
+              return (
+                <MitarbeiterZeile
+                  key={u.uid}
+                  tabelle={schreibtisch}
+                  offen={open}
+                  kopf={
+                    <>
+                      {/* Der Kopf trägt nur noch, was den Mitarbeiter einordnet:
+                          Name, Ampel, Saldo. Krankheit, Urlaub und Resturlaub
+                          standen hier als vierte, fünfte, sechste Pille und
+                          ergaben eine Zeile, die man las statt überflog — sie
+                          stehen jetzt beschriftet im aufgeklappten Bereich.
 
-                      Der blaue Block beim Aufklappen ist ebenfalls weg. Er
-                      schrie lauter als der Inhalt, den er ankündigte; jetzt
-                      genügt der hellere Grund und die farbige Kante. */}
-                  <button
-                    type="button"
-                    onClick={() => setExpanded(open ? null : u.uid)}
-                    aria-expanded={open}
-                    className={`flex min-h-touch w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
-                      open ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
-                    }`}
-                  >
-                    <span className="flex min-w-0 flex-wrap items-center gap-2">
-                      <span className="font-semibold text-ink">{u.name}</span>
-                      {/* „vollständig" braucht keine Pille — nur die Ausnahme
-                          verdient Aufmerksamkeit. */}
-                      {completeness.status === 'missing' ? (
-                        <Warnung>
-                          {`${tageWort(completeness.missingCount)} ${
-                            completeness.missingCount === 1 ? 'fehlt' : 'fehlen'}`}
-                        </Warnung>
-                      ) : completeness.status !== 'complete' ? (
-                        /* „heute offen" ist keine Lücke, sondern der laufende
-                           Tag — er füllt sich von selbst bis zum Feierabend. */
-                        <Marke>{STATUS_LABEL[completeness.status]}</Marke>
-                      ) : null}
-                      {/*
-                        DIE MARKEN OHNE SALDO STEHEN BEIM NAMEN, nicht rechts.
-                        Rechts sind sie nicht schrumpfbar, und auf 375 px brach
-                        der Name daneben mitten im Wort: „Projektleite|r"
-                        (Prüflauf 24.09.2026, D20). Hier rutschen sie in die
-                        nächste Zeile.
-                      */}
-                      {!stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-3">
-                      <span className="hidden text-right sm:block">
-                        <span className="block text-sm font-semibold text-ink">
-                          {fmtMin(stats.istMin)}
+                          Der blaue Block beim Aufklappen ist ebenfalls weg. Er
+                          schrie lauter als der Inhalt, den er ankündigte; jetzt
+                          genügt der hellere Grund und die farbige Kante. */}
+                      <button
+                        type="button"
+                        onClick={() => setExpanded(open ? null : u.uid)}
+                        aria-expanded={open}
+                        className={`flex min-h-touch w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
+                          open ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
+                        }`}
+                      >
+                        <span className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span className="font-semibold text-ink">{u.name}</span>
+                          {luecke}
+                          {/*
+                            DIE MARKEN OHNE SALDO STEHEN BEIM NAMEN, nicht rechts.
+                            Rechts sind sie nicht schrumpfbar, und auf 375 px brach
+                            der Name daneben mitten im Wort: „Projektleite|r"
+                            (Prüflauf 24.09.2026, D20). Hier rutschen sie in die
+                            nächste Zeile.
+                          */}
+                          {!stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
                         </span>
-                        {/*
-                          „von 176:00" im LAUFENDEN Monat las sich wie ein
-                          Monatsergebnis. Das Soll waechst aber mit jedem
-                          vergangenen Tag — deshalb sagt die Zeile jetzt, dass
-                          es ein Zwischenstand ist.
-                        */}
-                        <span className="block text-xs text-ink-muted">
-                          von {fmtMin(stats.sollMin)}
-                          {stats.istLaufend && ' bisher'}
-                        </span>
-                      </span>
-                      {/* Fehlen Buchungen, ist der Saldo eine Datenluecke und
-                          kein Befund ueber den Mitarbeiter. Rot behauptete das
-                          Gegenteil — und bei zwanzig Zeilen ergab das eine Wand
-                          aus Rot, in der die eine echte Unterstunde unterging. */}
-                      {/*
-                        Ohne Eintrittsdatum ist der Saldo keine Null, sondern
-                        gar keine Aussage. Vorher stand dort ein sauberes
-                        00:00 — das sah aus wie ein gepflegter Datensatz und
-                        verbarg, dass die Stammdaten unvollstaendig sind.
-                      */}
-                      {!stats.hasConfig ? null : (
-                        /*
-                          DER SALDO IST EINE ZAHL, KEINE AUFFORDERUNG. Er stand
-                          als gefüllte Pille neben der Lückenmeldung, und zwei
-                          Pillen in einer Zeile riefen beide gleich laut —
-                          dabei ist nur die eine etwas zu tun.
-                        */
-                        <Zustand
-                          stand={
-                            completeness.missingCount > 0
-                              ? 'ruht'
-                              : stats.saldoMin >= 0
-                                ? 'gut'
-                                : 'achtung'
-                          }
-                        >
-                          <span>
-                            {stats.saldoMin > 0 ? '+' : ''}
-                            {fmtMin(stats.saldoMin)}
+                        <span className="flex shrink-0 items-center gap-3">
+                          <span className="hidden text-right sm:block">
+                            <span className="block text-sm font-semibold text-ink">
+                              {fmtMin(stats.istMin)}
+                            </span>
+                            {/*
+                              „von 176:00" im LAUFENDEN Monat las sich wie ein
+                              Monatsergebnis. Das Soll waechst aber mit jedem
+                              vergangenen Tag — deshalb sagt die Zeile jetzt, dass
+                              es ein Zwischenstand ist.
+                            */}
+                            <span className="block text-xs text-ink-muted">
+                              von {fmtMin(stats.sollMin)}
+                              {stats.istLaufend && ' bisher'}
+                            </span>
                           </span>
-                        </Zustand>
-                      )}
-                      <Icon
-                        name="chevron"
-                        size={18}
-                        className={`shrink-0 text-ink-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-                      />
-                    </span>
-                  </button>
-
+                          {/* Fehlen Buchungen, ist der Saldo eine Datenluecke und
+                              kein Befund ueber den Mitarbeiter. Rot behauptete das
+                              Gegenteil — und bei zwanzig Zeilen ergab das eine Wand
+                              aus Rot, in der die eine echte Unterstunde unterging. */}
+                          {/*
+                            Ohne Eintrittsdatum ist der Saldo keine Null, sondern
+                            gar keine Aussage. Vorher stand dort ein sauberes
+                            00:00 — das sah aus wie ein gepflegter Datensatz und
+                            verbarg, dass die Stammdaten unvollstaendig sind.
+                          */}
+                          {saldo}
+                          <Icon
+                            name="chevron"
+                            size={18}
+                            className={`shrink-0 text-ink-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                          />
+                        </span>
+                      </button>
+                    </>
+                  }
+                  zellen={
+                    <>
+                      {/* Derselbe Aufklappknopf wie im Kartenkopf, hier in
+                          der ersten Spalte: Name und Winkel. Die übrigen
+                          Angaben stehen in ihren Spalten daneben. */}
+                      <td className="tabelle-name">
+                        <button
+                          type="button"
+                          onClick={() => setExpanded(open ? null : u.uid)}
+                          aria-expanded={open}
+                          className="tabelle-aufklapper"
+                        >
+                          <Icon
+                            name="chevron"
+                            size={18}
+                            className={`shrink-0 text-ink-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                          />
+                          <span>{u.name}</span>
+                        </button>
+                      </td>
+                      <td className="tabelle-zelle">
+                        <span className="tabelle-marken">
+                          {luecke}
+                          {!stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
+                        </span>
+                      </td>
+                      <td className="tabelle-zahl">{fmtMin(stats.istMin)}</td>
+                      <td className="tabelle-zahl">
+                        {fmtMin(stats.sollMin)}
+                        {stats.istLaufend && ' bisher'}
+                      </td>
+                      <td className="tabelle-zahl">{saldo}</td>
+                    </>
+                  }
+                >
                   {open && (
                     <div className="border-t border-line px-4 py-4">
                       {/* Zuerst die Zahlen des Monats, dann erst die Tage.
@@ -1058,10 +1177,10 @@ export default function AccountingView() {
                       </div>
                     </div>
                   )}
-                </div>
+                </MitarbeiterZeile>
               );
             })}
-          </div>
+          </MitarbeiterRahmen>
         )}
       </Card>
 

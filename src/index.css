@@ -897,6 +897,36 @@ textarea {
     align-items: center;
     column-gap: 0.75rem;
   }
+
+  /* Mitarbeiterübersicht: der Aufklappknopf füllt die erste Zelle — Winkel
+     vorn, damit er über alle Zeilen in einer Spalte steht. Der Fokusring
+     liegt innen, sonst schnitte ihn der Tabellenrahmen links ab. */
+  .tabelle-aufklapper {
+    display: flex;
+    min-height: 2.75rem;
+    width: 100%;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .tabelle-aufklapper:focus-visible {
+    outline-offset: -2px;
+  }
+
+  /* Die aufgeklappte Zeile verliert ihre Linie: die Kante zieht der
+     Detailbereich darunter, wie im Kartenkopf. */
+  .tabelle-zeile-offen > td {
+    vertical-align: middle;
+    border-bottom-color: transparent;
+  }
+
+  .tabelle-detail {
+    border-bottom: 1px solid var(--border);
+    padding: 0;
+  }
 }
 
 /*

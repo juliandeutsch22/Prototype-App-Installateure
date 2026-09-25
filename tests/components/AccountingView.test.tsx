@@ -5,6 +5,7 @@ import { ToastProvider } from '@/components/Toast';
 import userEvent from '@testing-library/user-event';
 import type { AppUser, TimeEntry } from '@/types';
 import AccountingView from '@/features/accounting/AccountingView';
+import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Der Fehler, den dieser Test verhindert, ist wirklich passiert: die
@@ -445,5 +446,60 @@ describe('Mitarbeiteruebersicht — Abwesenheiten im Soll', () => {
     const tabelle = screen.getByRole('table');
     expect(within(tabelle).getByRole('button', { name: 'Urlaubsantrag' })).toBeInTheDocument();
     expect(within(tabelle).getAllByRole('button', { name: 'Bearbeiten' })).toHaveLength(9);
+  });
+});
+
+/**
+ * AM SCHREIBTISCH EINE TABELLE: Ist, Soll und Saldo stehen Stelle unter
+ * Stelle und lassen sich über alle Mitarbeiter vergleichen. Aufgeklappt wird
+ * mit demselben Knopf, der Bereich darunter ist derselbe.
+ */
+describe('Mitarbeiteruebersicht am Schreibtisch', () => {
+  const schreibtisch = mitSchreibtisch();
+
+  async function zeichne() {
+    schreibtisch();
+    render(
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>,
+    );
+    const zeile = await screen.findByRole('row', { name: /Neu Eingestellt/ });
+    return { zeile, tabelle: zeile.closest('table')! };
+  }
+
+  it('zeigt je Mitarbeiter eine Zeile mit Stand, Ist, Soll und Saldo', async () => {
+    const { zeile, tabelle } = await zeichne();
+    expect(within(tabelle).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
+      'Mitarbeiter', 'Stand', 'Ist', 'Soll', 'Saldo',
+    ]);
+    const zellen = within(zeile).getAllByRole('cell');
+    expect(zellen[1]).toHaveTextContent('heute offen');
+    expect(zellen[2]).toHaveTextContent(/^80:00$/);
+    expect(zellen[2]).toHaveClass('tabelle-zahl');
+    // Der laufende Monat bleibt als Zwischenstand gekennzeichnet.
+    expect(zellen[3]).toHaveTextContent(/^80:00 bisher$/);
+    expect(zellen[4]).toHaveTextContent('00:00');
+  });
+
+  it('klappt mit demselben Knopf auf — der Bereich steht als Zeile über alle Spalten', async () => {
+    const nutzer = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const { zeile } = await zeichne();
+    const knopf = within(zeile).getByRole('button', { name: /Neu Eingestellt/ });
+    // Genau ein Aufklappknopf je Mitarbeiter — nicht Karte und Zeile doppelt.
+    expect(screen.getAllByRole('button', { name: /Neu Eingestellt/ })).toHaveLength(1);
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Saldo im Monat')).not.toBeInTheDocument();
+
+    await nutzer.click(knopf);
+    expect(knopf).toHaveAttribute('aria-expanded', 'true');
+    const bereich = screen.getByText('Saldo im Monat').closest('td')!;
+    expect(bereich).toHaveAttribute('colspan', '5');
+    expect(within(bereich).getByRole('button', { name: 'Monat als CSV' })).toBeInTheDocument();
+    expect(within(bereich).getByRole('button', { name: 'Bericht für Zeitraum' })).toBeInTheDocument();
+
+    await nutzer.click(knopf);
+    expect(knopf).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('Saldo im Monat')).not.toBeInTheDocument();
   });
 });
