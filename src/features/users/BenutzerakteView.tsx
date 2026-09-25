@@ -302,7 +302,7 @@ export default function BenutzerakteView() {
                 Benutzername:{' '}
                 <span className="select-all font-semibold">{kontoAnzeige(p.email)}</span>
               </p>
-              <p className="mt-2 select-all text-lg font-semibold">{vergeben}</p>
+              <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold">{vergeben}</p>
               <Button variant="ghost" className="mt-2" onClick={() => setVergeben(null)}>
                 Verstanden
               </Button>
