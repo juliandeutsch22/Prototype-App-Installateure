@@ -23,6 +23,7 @@ import Button from '@/components/Button';
 import { Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import IconButton from '@/components/IconButton';
+import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -34,6 +35,7 @@ import Meldung from '@/components/Meldung';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 const fmtEUR = (n: number) =>
   `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
@@ -148,6 +150,8 @@ export default function QuotesView() {
   */
   const vatRate = bearbeitet?.vatRate ?? company?.rates?.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const darfAendern = user ? isGF(user.role) : false;
+  /** Am Schreibtisch die Angebote als Tabelle, am Telefon als Liste. */
+  const schreibtisch = useAbBreite(AB_TABELLE);
 
   const laden = useMemo(
     () => async () => {
@@ -370,6 +374,79 @@ export default function QuotesView() {
   }
 
   if (!user) return null;
+
+  /*
+    DIE AKTIONEN EINER ANGEBOTSZEILE — am Telefon in der Listenzeile, am
+    Schreibtisch in der letzten Tabellenspalte (siehe `useAbBreite`). Einmal
+    geschrieben, damit beide Formen dieselben Handgriffe tragen.
+
+    ZWEI TEXTKNÖPFE, DER REST IM „⋯" (docs/design/linie.md 3). Vorher standen
+    beim Entwurf bis zu vier Knöpfe und ein ✕ in der Zeile. Sichtbar bleibt
+    das Öffnen und der nächste übliche Schritt: beim Entwurf das Bearbeiten,
+    beim versendeten Angebot das Annehmen. Alles andere — auch das Annehmen
+    eines Entwurfs, das Ablehnen und das Löschen — liegt eine Ebene tiefer,
+    mit denselben Rückfragen wie vorher.
+  */
+  const angebotAktionen = (q: WithId<Quote>) => {
+    const entwurf = q.status === 'Entwurf';
+    const offen = entwurf || q.status === 'Versendet';
+    const mehr: RowMenuItem[] = darfAendern
+      ? [
+          ...(entwurf
+            ? [
+                {
+                  label: 'Versendet',
+                  onSelect: () => {
+                    if (!busy) void status(q, 'Versendet', 'Als versendet markiert');
+                  },
+                },
+                { label: 'Annehmen → Baustelle', onSelect: () => setAnnehmenFragen(q) },
+              ]
+            : []),
+          ...(offen
+            ? [
+                {
+                  label: 'Abgelehnt',
+                  onSelect: () => {
+                    if (!busy) void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt');
+                  },
+                },
+              ]
+            : []),
+          /* Löschen nur im Entwurf: alles Versendete bleibt
+             nachvollziehbar, auch ein abgelehntes Angebot. */
+          ...(entwurf ? [{ label: 'Löschen', onSelect: () => setToDelete(q), danger: true }] : []),
+        ]
+      : [];
+    return (
+      <>
+        {/*
+          Das Angebot öffnet ein Knopf, nicht mehr ein unterstrichener
+          Titel (docs/design/linie.md 3). Die Vorlesehilfe hört die Nummer
+          mit — in einer Liste gleichlautender „Öffnen" wüsste sie sonst
+          nicht, welches.
+        */}
+        <Link
+          to={`/quotes/${q.id}`}
+          className="knopf-leise-klein"
+          aria-label={`Angebot ${q.quoteNumber} öffnen`}
+        >
+          Öffnen
+        </Link>
+        {darfAendern && entwurf && (
+          <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
+            Bearbeiten
+          </Button>
+        )}
+        {darfAendern && q.status === 'Versendet' && (
+          <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(q)}>
+            Annehmen → Baustelle
+          </Button>
+        )}
+        {mehr.length > 0 && <RowMenu about={`Angebot ${q.quoteNumber}`} items={mehr} />}
+      </>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -614,17 +691,61 @@ export default function QuotesView() {
           <SkeletonList rows={3} />
         ) : angebote.length === 0 ? (
           <EmptyState>Noch kein Angebot erstellt.</EmptyState>
+        ) : schreibtisch ? (
+          <div className="tabelle-rahmen">
+            <table className="tabelle">
+              <thead className="tabelle-kopfzeile">
+                <tr>
+                  <th className="tabelle-kopf">Nummer</th>
+                  <th className="tabelle-kopf">Kunde</th>
+                  <th className="tabelle-kopf">Datum</th>
+                  <th className="tabelle-kopf">Gültig bis</th>
+                  <th className="tabelle-kopf-zahl">Kalkuliert</th>
+                  <th className="tabelle-kopf-zahl">Brutto</th>
+                  <th className="tabelle-kopf">Status</th>
+                  <th className="tabelle-kopf-zahl">
+                    <span className="sr-only">Aktionen</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {angebote.map((q) => (
+                  <tr key={q.id} className="tabelle-zeile">
+                    <td className="tabelle-name">
+                      <span className="whitespace-nowrap">{q.quoteNumber}</span>
+                    </td>
+                    <td className="tabelle-zelle">
+                      {q.customerName}
+                      {q.address && <span className="tabelle-unter">{q.address}</span>}
+                      {q.projectNumber && (
+                        <span className="tabelle-unter">Baustelle {q.projectNumber}</span>
+                      )}
+                    </td>
+                    <td className="tabelle-zelle">
+                      <span className="whitespace-nowrap">{datumAT(q.quoteDate)}</span>
+                    </td>
+                    <td className="tabelle-zelle">
+                      <span className="whitespace-nowrap">{datumAT(q.validUntil)}</span>
+                    </td>
+                    <td className="tabelle-zahl-stark">{fmtStunden(q.kalkulierteStunden)} h</td>
+                    <td className="tabelle-zahl-stark">{fmtEUR(q.totalBrutto)}</td>
+                    <td className="tabelle-zelle">
+                      <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
+                    </td>
+                    <td className="tabelle-aktionen">
+                      <div className="tabelle-knoepfe">{angebotAktionen(q)}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <List>
             {angebote.map((q) => (
               <ListRow
                 key={q.id}
-                title={
-                  // Die Nummer führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
-                  <Link to={`/quotes/${q.id}`} className="textlink">
-                    {q.quoteNumber} · {q.customerName}
-                  </Link>
-                }
+                title={`${q.quoteNumber} · ${q.customerName}`}
                 wert={`${fmtEUR(q.totalBrutto)} brutto`}
                 zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
                 subtitle={
@@ -635,45 +756,7 @@ export default function QuotesView() {
                   </>
                 }
               >
-                {darfAendern && q.status === 'Entwurf' && (
-                  <>
-                    <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
-                      Bearbeiten
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      loading={busy}
-                      onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
-                    >
-                      Versendet
-                    </Button>
-                  </>
-                )}
-                {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
-                  <>
-                    <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(q)}>
-                      Annehmen → Baustelle
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      loading={busy}
-                      onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
-                    >
-                      Abgelehnt
-                    </Button>
-                  </>
-                )}
-                {/* Löschen nur im Entwurf: alles Versendete bleibt
-                    nachvollziehbar, auch ein abgelehntes Angebot. */}
-                {darfAendern && q.status === 'Entwurf' && (
-                  <IconButton
-                    label={`Angebot ${q.quoteNumber} löschen`}
-                    tone="danger"
-                    onClick={() => setToDelete(q)}
-                  >
-                    ✕
-                  </IconButton>
-                )}
+                {angebotAktionen(q)}
               </ListRow>
             ))}
           </List>

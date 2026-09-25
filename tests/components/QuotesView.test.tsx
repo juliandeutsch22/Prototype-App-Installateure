@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Quote } from '@/types';
+import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Das Angebot schließt die Kette nach vorne — und genau eine Zahl daraus
@@ -408,7 +409,10 @@ describe('Die Liste führt zum Angebot', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    await nutzer.click(screen.getByRole('button', { name: 'Abgelehnt' }));
+    // „Abgelehnt" liegt seit dem Durchgang nach der Linie im „⋯" der Zeile
+    // (docs/design/linie.md 3) — derselbe Handgriff, eine Ebene tiefer.
+    await nutzer.click(screen.getByRole('button', { name: 'Weitere Aktionen für Angebot AN-2026-0007' }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Abgelehnt' }));
     expect(
       await screen.findByText(/^Der Status konnte nicht gespeichert werden\. Keine Verbindung zum Server/),
     ).toBeInTheDocument();
@@ -494,5 +498,76 @@ describe('Einen Entwurf bearbeiten', () => {
     await vi.waitFor(() => expect(createQuote).toHaveBeenCalled());
     const daten = createQuote.mock.calls[0][1] as { positions: { istArbeitszeit?: boolean }[] };
     expect(daten.positions[0].istArbeitszeit).toBe(true);
+  });
+});
+
+/*
+  DIE ZEILE NACH DER LINIE (docs/design/linie.md 3 und 4): höchstens zwei
+  Textknöpfe, das Seltene im „⋯", am Schreibtisch eine Tabelle.
+*/
+describe('Die Angebotszeile', () => {
+  const schreibtisch = mitSchreibtisch();
+
+  function entwurfOhnePositionen() {
+    versendetesAngebot();
+    Object.assign(angebote[0], { id: 'q3', quoteNumber: 'AN-2026-0009', status: 'Entwurf' });
+  }
+
+  it('trägt beim Entwurf Öffnen und Bearbeiten, alles Übrige im Menü', async () => {
+    entwurfOhnePositionen();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0009/);
+    const zeile = screen.getByText(/AN-2026-0009/).closest('li') as HTMLElement;
+    expect(within(zeile).getByRole('link', { name: 'Angebot AN-2026-0009 öffnen' })).toHaveAttribute(
+      'href',
+      '/quotes/q3',
+    );
+    expect(within(zeile).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    // Keine weiteren Textknöpfe in der Zeile: nur noch das „⋯".
+    expect(within(zeile).queryByRole('button', { name: 'Versendet' })).not.toBeInTheDocument();
+    expect(within(zeile).queryByRole('button', { name: 'Abgelehnt' })).not.toBeInTheDocument();
+    expect(within(zeile).queryByRole('button', { name: /löschen/ })).not.toBeInTheDocument();
+
+    await nutzer.click(within(zeile).getByRole('button', { name: 'Weitere Aktionen für Angebot AN-2026-0009' }));
+    expect(screen.getAllByRole('menuitem').map((e) => e.textContent)).toEqual([
+      'Versendet',
+      'Annehmen → Baustelle',
+      'Abgelehnt',
+      'Löschen',
+    ]);
+    // Löschen fragt weiterhin nach.
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Löschen' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent(/AN-2026-0009 wird entfernt/);
+  });
+
+  it('nimmt einen Entwurf auch aus dem Menü erst nach der Rückfrage an', async () => {
+    entwurfOhnePositionen();
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText(/AN-2026-0009/);
+    await nutzer.click(screen.getByRole('button', { name: 'Weitere Aktionen für Angebot AN-2026-0009' }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Annehmen → Baustelle' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent(/AN-2026-0009 wird angenommen/);
+    expect(createProject).not.toHaveBeenCalled();
+  });
+
+  it('steht am Schreibtisch als Tabelle — genau eine Form im DOM', async () => {
+    schreibtisch();
+    versendetesAngebot();
+    zeichne();
+    const zeile = await screen.findByRole('row', { name: /AN-2026-0007/ });
+    const t = zeile.closest('table')!;
+    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
+      'Nummer', 'Kunde', 'Datum', 'Gültig bis', 'Kalkuliert', 'Brutto', 'Status', 'Aktionen',
+    ]);
+    expect(zeile).toHaveTextContent('Gemeinde Neudorf');
+    expect(zeile).toHaveTextContent('01.10.2026');
+    expect(zeile).toHaveTextContent('20 h');
+    expect(zeile).toHaveTextContent('Versendet');
+    // Keine Listenzeile daneben: jede Aktion steht genau einmal da.
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Annehmen → Baustelle' })).toHaveLength(1);
+    expect(within(zeile).getByRole('link', { name: /AN-2026-0007/ })).toHaveAttribute('href', '/quotes/q1');
   });
 });
