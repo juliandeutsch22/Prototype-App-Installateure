@@ -19,6 +19,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { SelectField } from '@/components/Field';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
+import Meldung from '@/components/Meldung';
 import { fmtStd } from '@/lib/time';
 
 const fmtEUR = (n: number) =>
@@ -191,11 +192,11 @@ export default function NachkalkulationView() {
         an der falschen Stelle.
       */}
       {katalogAbgeschnitten(katalog) && (
-        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+        <Meldung ton="warnung">
           Der Materialstamm wurde nur bis zur Obergrenze geladen ({katalog.length} Artikel). Artikel
           darüber hinaus erscheinen unten als „ohne Einkaufspreis", obwohl einer hinterlegt sein
           kann — der Deckungsbeitrag ist dann zu hoch ausgewiesen.
-        </p>
+        </Meldung>
       )}
 
       {/*
@@ -215,7 +216,7 @@ export default function NachkalkulationView() {
             von null — und das sähe aus wie ein Ergebnis.
           </p>
           <p className="mt-3">
-            <Link to="/settings/saetze" className="font-semibold text-brand underline">
+            <Link to="/settings/saetze" className="textlink-allein">
               Einstellungen → Sätze und Kosten → Interne Kostensätze
             </Link>
           </p>
@@ -310,11 +311,12 @@ export default function NachkalkulationView() {
                           </span>
                         </>
                       }
-                    >
-                      <Zustand stand={margenTon(k)}>
-                        {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
-                      </Zustand>
-                    </ListRow>
+                      zustand={
+                        <Zustand stand={margenTon(k)}>
+                          {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
+                        </Zustand>
+                      }
+                    />
                   ))}
                 </List>
 
@@ -324,21 +326,25 @@ export default function NachkalkulationView() {
                   der naheliegende Fehler, und darauf trifft jemand
                   Entscheidungen.
                 */}
-                <div className="mt-4 flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-                  <strong>Deckungsbeitrag, nicht Gewinn.</strong>
-                  {/*
-                    Die Warnung selbst bleibt stehen — sie ist die Aussage.
-                    Was NICHT enthalten ist, war der lange Teil und ist beim
-                    zweiten Blick bekannt; das steht jetzt im „i".
-                  */}
-                  <InfoHint about="Deckungsbeitrag">
-                    Material zählt mit, soweit im Materialstamm ein <strong>Einkaufspreis</strong>
-                    {' '}hinterlegt ist — gezählt wird, was auf den unterschriebenen
-                    Handwerksscheinen steht. Artikel ohne Preis werden beim Namen genannt und
-                    nicht geschätzt; solange dort etwas steht, ist der Deckungsbeitrag zu hoch.
-                    Nicht enthalten sind Gemeinkosten, soweit sie nicht schon im Stundenkostensatz
-                    stecken.
-                  </InfoHint>
+                <div className="mt-4">
+                  <Meldung ton="info">
+                    <div className="flex flex-wrap items-center">
+                      <strong>Deckungsbeitrag, nicht Gewinn.</strong>
+                      {/*
+                        Die Warnung selbst bleibt stehen — sie ist die Aussage.
+                        Was NICHT enthalten ist, war der lange Teil und ist beim
+                        zweiten Blick bekannt; das steht jetzt im „i".
+                      */}
+                      <InfoHint about="Deckungsbeitrag">
+                        Material zählt mit, soweit im Materialstamm ein <strong>Einkaufspreis</strong>
+                        {' '}hinterlegt ist — gezählt wird, was auf den unterschriebenen
+                        Handwerksscheinen steht. Artikel ohne Preis werden beim Namen genannt und
+                        nicht geschätzt; solange dort etwas steht, ist der Deckungsbeitrag zu hoch.
+                        Nicht enthalten sind Gemeinkosten, soweit sie nicht schon im Stundenkostensatz
+                        stecken.
+                      </InfoHint>
+                    </div>
+                  </Meldung>
                 </div>
               </>
             )}
