@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Role, WorkSheet } from '@/types';
 import { todayStr } from '@/lib/time';
+import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Der Weg zurück in einen Entwurf.
@@ -229,6 +230,27 @@ describe('Liste der Handwerksscheine', () => {
   });
 });
 
+/*
+  VERWERFEN, WIEDER AUFNEHMEN UND STORNIEREN LIEGEN IM „⋯" der Zeile
+  (docs/design/linie.md 3: höchstens zwei Textknöpfe, das Seltene im Menü).
+  Die Tests gehen deshalb über das Menü — derselbe Handgriff, eine Ebene
+  tiefer; die Rückfragen dahinter sind unverändert.
+*/
+async function ausDemMenue(about: string, eintrag: string) {
+  await userEvent.click(await screen.findByRole('button', { name: `Weitere Aktionen für ${about}` }));
+  await userEvent.click(screen.getByRole('menuitem', { name: eintrag }));
+}
+
+/** Was das „⋯" einer Zeile anbietet — leer, wenn es keines gibt. */
+async function menueVon(about: string): Promise<string[]> {
+  const knopf = screen.queryByRole('button', { name: `Weitere Aktionen für ${about}` });
+  if (!knopf) return [];
+  await userEvent.click(knopf);
+  const eintraege = screen.getAllByRole('menuitem').map((e) => e.textContent ?? '');
+  await userEvent.keyboard('{Escape}');
+  return eintraege;
+}
+
 describe('Einen Entwurf aufgeben', () => {
   it('fragt zurueck und nennt dabei den Schein', async () => {
     /*
@@ -237,7 +259,7 @@ describe('Einen Entwurf aufgeben', () => {
       das nicht ab — der Kunde und der Tag muessen dastehen.
     */
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Verwerfen' }));
+    await ausDemMenue('Schein Familie Huber, 04.09.2026', 'Verwerfen');
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent('Entwurf verwerfen');
     expect(dialog).toHaveTextContent('Familie Huber, 04.09.2026');
@@ -246,7 +268,7 @@ describe('Einen Entwurf aufgeben', () => {
 
   it('verwirft erst nach der Bestaetigung, und mit dem Namen', async () => {
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Verwerfen' }));
+    await ausDemMenue('Schein Familie Huber, 04.09.2026', 'Verwerfen');
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Verwerfen' }));
     await waitFor(() => expect(verwerfen).toHaveBeenCalledWith('e1', 'Max Mustermann'));
@@ -254,7 +276,7 @@ describe('Einen Entwurf aufgeben', () => {
 
   it('bricht ab, ohne etwas zu tun', async () => {
     zeichne();
-    await userEvent.click(await screen.findByRole('button', { name: 'Verwerfen' }));
+    await ausDemMenue('Schein Familie Huber, 04.09.2026', 'Verwerfen');
     await userEvent.click(await screen.findByRole('button', { name: 'Abbrechen' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(verwerfen).not.toHaveBeenCalled();
@@ -266,6 +288,7 @@ describe('Einen Entwurf aufgeben', () => {
     zeichne();
     await screen.findByText('Unterschrieben');
     expect(screen.queryByRole('button', { name: 'Verwerfen' })).not.toBeInTheDocument();
+    expect(await menueVon('Schein Familie Berger, 03.09.2026')).not.toContain('Verwerfen');
   });
 
   it('zeigt der Buchhaltung den Knopf gar nicht erst', async () => {
@@ -273,6 +296,7 @@ describe('Einen Entwurf aufgeben', () => {
     zeichne();
     await screen.findByText('Entwurf');
     expect(screen.queryByRole('button', { name: 'Verwerfen' })).not.toBeInTheDocument();
+    expect(await menueVon('Schein Familie Huber, 04.09.2026')).not.toContain('Verwerfen');
   });
 });
 
@@ -321,7 +345,7 @@ describe('Der verworfene Entwurf in der Liste', () => {
     geladen = [verworfener];
     zeichne();
     await userEvent.click(await screen.findByRole('checkbox'));
-    await userEvent.click(await screen.findByRole('button', { name: 'Wieder aufnehmen' }));
+    await ausDemMenue('Schein Familie Gruber, 02.09.2026', 'Wieder aufnehmen');
     await waitFor(() => expect(zurueckholen).toHaveBeenCalledWith('v1'));
   });
 
@@ -776,5 +800,71 @@ describe('Scheine suchen', () => {
 
     await nutzer.click(screen.getByRole('button', { name: 'Zurück zur Liste' }));
     expect(screen.queryByText(/Familie Steiner/)).not.toBeInTheDocument();
+  });
+});
+
+/*
+  DIE ZEILE NACH DER LINIE (docs/design/linie.md 3 und 4): höchstens zwei
+  Textknöpfe, das Seltene im „⋯", am Schreibtisch eine Tabelle.
+*/
+describe('Die Scheinzeile', () => {
+  const schreibtisch = mitSchreibtisch();
+
+  it('trägt beim Entwurf Details und Weiterbearbeiten, PDF und Verwerfen im Menü', async () => {
+    geladen = [scheine[0]];
+    zeichne();
+    const zeile = (await screen.findByText('Familie Huber')).closest('li') as HTMLElement;
+    expect(within(zeile).getByRole('button', { name: 'Details' })).toBeInTheDocument();
+    expect(within(zeile).getByRole('link', { name: 'Weiterbearbeiten' })).toBeInTheDocument();
+    expect(within(zeile).queryByRole('button', { name: 'PDF' })).not.toBeInTheDocument();
+    expect(await menueVon('Schein Familie Huber, 04.09.2026')).toEqual(['PDF', 'Verwerfen']);
+  });
+
+  it('trägt beim unterschriebenen Schein Details und PDF; Stornieren nur im Menü der Geschäftsführung', async () => {
+    geladen = [scheine[1]];
+    authWert.user.role = 'Geschäftsführung';
+    zeichne();
+    const zeile = (await screen.findByText('Familie Berger')).closest('li') as HTMLElement;
+    expect(within(zeile).getByRole('button', { name: 'Details' })).toBeInTheDocument();
+    expect(within(zeile).getByRole('button', { name: 'PDF' })).toBeInTheDocument();
+    expect(within(zeile).queryByRole('button', { name: 'Stornieren' })).not.toBeInTheDocument();
+
+    await ausDemMenue('Schein Familie Berger, 03.09.2026', 'Stornieren');
+    // Der Storno fragt weiterhin nach seinem Grund.
+    expect(await screen.findByLabelText(/Grund/)).toBeInTheDocument();
+  });
+
+  it('bietet dem Monteur am unterschriebenen Schein kein Menü an', async () => {
+    geladen = [scheine[1]];
+    zeichne();
+    await screen.findByText('Familie Berger');
+    expect(await menueVon('Schein Familie Berger, 03.09.2026')).toEqual([]);
+  });
+
+  it('steht am Schreibtisch als Tabelle — genau eine Form im DOM', async () => {
+    schreibtisch();
+    zeichne();
+    const zeile = await screen.findByRole('row', { name: /Familie Huber/ });
+    const t = zeile.closest('table')!;
+    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
+      'Baustelle', 'Kunde', 'Datum', 'Abrechnung', 'Stunden', 'Status', 'Aktionen',
+    ]);
+    expect(zeile).toHaveTextContent('B-001');
+    expect(zeile).toHaveTextContent('04.09.2026');
+    expect(zeile).toHaveTextContent('Regie');
+    expect(zeile).toHaveTextContent('Entwurf');
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Weiterbearbeiten' })).toHaveLength(1);
+  });
+
+  it('klappt die Einzelheiten am Schreibtisch unter der Zeile auf', async () => {
+    schreibtisch();
+    const nutzer = userEvent.setup();
+    zeichne();
+    const zeile = await screen.findByRole('row', { name: /Familie Huber/ });
+    await nutzer.click(within(zeile).getByRole('button', { name: 'Details' }));
+    expect(within(zeile).getByRole('button', { name: 'Zuklappen' })).toBeInTheDocument();
+    const detail = screen.getByText('Entsteht mit der Unterschrift.').closest('td') as HTMLElement;
+    expect(detail).toHaveAttribute('colspan', '7');
   });
 });

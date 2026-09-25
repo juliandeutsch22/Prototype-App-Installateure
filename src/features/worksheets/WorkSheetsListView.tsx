@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -24,6 +24,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import { List, ListRow } from '@/components/ListRow';
@@ -33,6 +34,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 const STAND: Record<WorkSheet['status'], Stand> = {
   Unterschrieben: 'gut',
@@ -110,6 +112,8 @@ export default function WorkSheetsListView() {
    * Seite mit „Kein Zugriff".
    */
   const darfSchreiben = user ? canWriteWorkSheet(user.role) : false;
+  /** Am Schreibtisch die Scheine als Tabelle, am Telefon als Liste. */
+  const schreibtisch = useAbBreite(AB_TABELLE);
 
   const laden = useMemo(
     () => async () => {
@@ -333,7 +337,183 @@ export default function WorkSheetsListView() {
     }
   }
 
+  async function wiederAufnehmen(s: WithId<WorkSheet>) {
+    setBusy(true);
+    try {
+      await restoreWorkSheetDraft(s.id);
+      toast.success('Entwurf wieder aufgenommen');
+      await laden();
+    } catch (err) {
+      setError(grundAus(err, 'Der Entwurf ließ sich nicht zurückholen.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!user) return null;
+
+  /*
+    ZEILENINHALT EINMAL, ZWEI FORMEN. Am Telefon steht der Schein als
+    Listenzeile, am Schreibtisch als Tabellenzeile (siehe `useAbBreite`).
+    Vermerke, Einzelheiten und Handgriffe sind dieselben — geschrieben nur
+    einmal, damit die beiden Formen nicht auseinanderlaufen.
+  */
+  const scheinMinuten = (s: WithId<WorkSheet>) => s.zeiten.reduce((n, z) => n + z.minuten, 0);
+
+  /** Unterschrift, Verwerfen und Storno — je ein Satz unter dem Namen. */
+  const scheinVermerke = (s: WithId<WorkSheet>): string[] =>
+    [
+      s.unterschriften?.kunde ? `Unterschrieben von ${s.unterschriften.kunde.name}` : '',
+      s.status === 'Verworfen'
+        ? `Verworfen${s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht weiterbearbeitet, nicht gelöscht.`
+        : '',
+      s.stornoGrund
+        ? `Storno: ${s.stornoGrund}${s.storniertVonName ? ` (${s.storniertVonName})` : ''}`
+        : '',
+    ].filter(Boolean);
+
+  const scheinEinzelheiten = (s: WithId<WorkSheet>) => (
+    <div className="gruppe">
+      {s.zeiten.length > 0 && (
+        <div className="gruppe-abschnitt">
+          <p className="section-label">Zeiten</p>
+          {s.zeiten.map((z, i) => (
+            <p key={i}>
+              {z.mitarbeiter}
+              {z.helfer ? ' (Helfer)' : ''} ·{' '}
+              {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
+              {fmtDauer(z.minuten)}
+              {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
+            </p>
+          ))}
+        </div>
+      )}
+      {s.material.length > 0 && (
+        <div className="gruppe-abschnitt">
+          <p className="section-label">Material</p>
+          {s.material.map((m, i) => (
+            <p key={i}>
+              {m.menge}× {m.name}
+            </p>
+          ))}
+        </div>
+      )}
+      {s.notizen && (
+        <div className="gruppe-abschnitt">
+          <p className="section-label">Anmerkungen</p>
+          <p>{s.notizen}</p>
+        </div>
+      )}
+      {/*
+        DIE FOTOS. Sie liegen in Firebase Storage und
+        werden erst beim Aufklappen geholt — eine Liste,
+        die beim Öffnen zwanzig Bilder nachlädt, ist auf
+        einer Baustelle keine Liste mehr.
+      */}
+      {s.fotos && s.fotos.length > 0 && (
+        <div className="gruppe-abschnitt">
+          <p className="section-label">Fotos ({s.fotos.length})</p>
+          <Fotostreifen fotos={s.fotos} />
+        </div>
+      )}
+      {/*
+        Die Prüfsumme sichtbar machen. Sie ist der
+        eigentliche Manipulationsschutz: mit ihr lässt
+        sich belegen, dass ein vorgelegtes PDF genau das
+        ist, was unterschrieben wurde.
+
+        Sie entsteht serverseitig, kurz NACH dem
+        Unterschreiben — und offline erst beim Übertragen.
+        Statt die Zeile dann einfach wegzulassen, sagt sie,
+        dass noch etwas aussteht: eine fehlende Prüfsumme
+        sieht sonst aus wie ein Fehler, ist aber nur eine
+        Frage von Sekunden. Der letzte Abschnitt trägt
+        keine Linie (`gruppe-text`) — die Kante zieht der
+        Kasten.
+      */}
+      <div className="gruppe-text">
+        <p className="section-label">Prüfsumme</p>
+        {s.inhaltHash ? (
+          <p className="break-all font-mono text-xs text-ink-muted">{s.inhaltHash}</p>
+        ) : s.status === 'Entwurf' ? (
+          <p className="text-xs text-ink-muted">Entsteht mit der Unterschrift.</p>
+        ) : (
+          <p className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+            Wird berechnet — bei fehlender Verbindung erst nach der Übertragung.
+            <Button variant="ghost" onClick={() => void laden()}>
+              Neu laden
+            </Button>
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+  /*
+    ZWEI TEXTKNÖPFE, DER REST IM „⋯" (docs/design/linie.md 3). Vorher standen
+    bis zu vier Knöpfe in der Zeile — Details, PDF, Weiterbearbeiten,
+    Verwerfen — und brachen am Telefon in eine zweite Reihe. Sichtbar bleiben
+    Details und der häufigste Griff: beim Entwurf das Weiterbearbeiten, sonst
+    das PDF. Verwerfen, Wieder aufnehmen und Stornieren liegen eine Ebene
+    tiefer, mit denselben Rückfragen wie vorher.
+  */
+  const scheinAktionen = (s: WithId<WorkSheet>, auf: boolean) => {
+    /*
+      „Als Entwurf speichern" war bis hierher eine Sackgasse: der
+      Schein landete in dieser Liste, und dort gab es nur
+      Aufklappen, PDF und Storno. Wer ihn anlegte, um ihn später
+      unterschreiben zu lassen, kam nie wieder hinein und musste
+      alles neu tippen — oder legte einen ZWEITEN Beleg über
+      dieselbe Arbeit an.
+    */
+    const weiter = darfSchreiben && s.status === 'Entwurf';
+    const pdf = () => {
+      if (!busy) void pdfAusgeben(s);
+    };
+    const mehr: RowMenuItem[] = [
+      ...(weiter ? [{ label: 'PDF', onSelect: pdf }] : []),
+      /*
+        Verwerfen darf, wer auch weiterbearbeiten darf. Eine
+        engere Grenze waere hier eine Erfindung der Oberflaeche:
+        die Rules lassen jeden im Betrieb an den Entwurf, und ein
+        Knopf, den die Datenbank nicht deckt, taeuscht Ordnung nur
+        vor.
+      */
+      ...(weiter ? [{ label: 'Verwerfen', onSelect: () => setVerwerfenFuer(s) }] : []),
+      ...(darfSchreiben && s.status === 'Verworfen'
+        ? [
+            {
+              label: 'Wieder aufnehmen',
+              onSelect: () => {
+                if (!busy) void wiederAufnehmen(s);
+              },
+            },
+          ]
+        : []),
+      ...(darfStornieren && s.status === 'Unterschrieben'
+        ? [{ label: 'Stornieren', onSelect: () => setStornoFuer(s), danger: true }]
+        : []),
+    ];
+    return (
+      <>
+        <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
+          {auf ? 'Zuklappen' : 'Details'}
+        </Button>
+        {weiter ? (
+          <Link to={`/worksheet?entwurf=${s.id}`} className="knopf-sekundaer-klein">
+            Weiterbearbeiten
+          </Link>
+        ) : (
+          <Button variant="ghost" loading={busy} onClick={pdf}>
+            PDF
+          </Button>
+        )}
+        {mehr.length > 0 && (
+          <RowMenu about={`Schein ${s.customerName}, ${datumAT(s.datum)}`} items={mehr} />
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -641,15 +821,72 @@ export default function WorkSheetsListView() {
                 ? `Kein Schein passt zu „${suche}".`
                 : 'Kein offener Schein — nur verworfene Entwürfe.'}
           </EmptyState>
+        ) : schreibtisch ? (
+          <div className="tabelle-rahmen">
+            <table className="tabelle">
+              <thead className="tabelle-kopfzeile">
+                <tr>
+                  <th className="tabelle-kopf">Baustelle</th>
+                  <th className="tabelle-kopf">Kunde</th>
+                  <th className="tabelle-kopf">Datum</th>
+                  <th className="tabelle-kopf">Abrechnung</th>
+                  <th className="tabelle-kopf-zahl">Stunden</th>
+                  <th className="tabelle-kopf">Status</th>
+                  <th className="tabelle-kopf-zahl">
+                    <span className="sr-only">Aktionen</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {sichtbar.map((s) => {
+                  const auf = offen === s.id;
+                  return (
+                    <Fragment key={s.id}>
+                      <tr className={auf ? 'tabelle-zeile-offen' : 'tabelle-zeile'}>
+                        <td className="tabelle-name">
+                          <span className="whitespace-nowrap">{s.projectNumber}</span>
+                        </td>
+                        <td className="tabelle-zelle">
+                          {s.customerName}
+                          {scheinVermerke(s).map((v) => (
+                            <span key={v} className="tabelle-unter">
+                              {v}
+                            </span>
+                          ))}
+                        </td>
+                        <td className="tabelle-zelle">
+                          <span className="whitespace-nowrap">{datumAT(s.datum)}</span>
+                        </td>
+                        <td className="tabelle-zelle">{s.abrechnung}</td>
+                        <td className="tabelle-zahl-stark">{fmtDauer(scheinMinuten(s))}</td>
+                        <td className="tabelle-zelle">
+                          <Zustand stand={STAND[s.status]}>{s.status}</Zustand>
+                        </td>
+                        <td className="tabelle-aktionen">
+                          <div className="tabelle-knoepfe">{scheinAktionen(s, auf)}</div>
+                        </td>
+                      </tr>
+                      {auf && (
+                        <tr>
+                          <td colSpan={7} className="tabelle-detail">
+                            <div className="pb-3">{scheinEinzelheiten(s)}</div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <List>
             {sichtbar.map((s) => {
-              const gesamt = s.zeiten.reduce((n, z) => n + z.minuten, 0);
               const auf = offen === s.id;
               return (
                 <ListRow
                   key={s.id}
-                  wert={fmtDauer(gesamt)}
+                  wert={fmtDauer(scheinMinuten(s))}
                   zustand={<Zustand stand={STAND[s.status]}>{s.status}</Zustand>}
                   /*
                     Die Baustellennummer steht vorn in der Unterzeile, wie am
@@ -661,27 +898,12 @@ export default function WorkSheetsListView() {
                   subtitle={
                     <>
                       {s.projectNumber} · {datumAT(s.datum)} · {s.abrechnung}
-                      {s.unterschriften?.kunde && (
-                        <>
+                      {scheinVermerke(s).map((v) => (
+                        <Fragment key={v}>
                           <br />
-                          Unterschrieben von {s.unterschriften.kunde.name}
-                        </>
-                      )}
-                      {s.status === 'Verworfen' && (
-                        <>
-                          <br />
-                          Verworfen
-                          {s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
-                          weiterbearbeitet, nicht gelöscht.
-                        </>
-                      )}
-                      {s.stornoGrund && (
-                        <>
-                          <br />
-                          Storno: {s.stornoGrund}
-                          {s.storniertVonName ? ` (${s.storniertVonName})` : ''}
-                        </>
-                      )}
+                          {v}
+                        </Fragment>
+                      ))}
                     </>
                   }
                   /*
@@ -689,143 +911,9 @@ export default function WorkSheetsListView() {
                     Unterzeile: ein Kasten mit Abschnitten (`.gruppe`), je
                     Abschnitt eine Linie zum nächsten.
                   */
-                  unten={
-                    auf && (
-                      <div className="gruppe">
-                        {s.zeiten.length > 0 && (
-                          <div className="gruppe-abschnitt">
-                            <p className="section-label">Zeiten</p>
-                            {s.zeiten.map((z, i) => (
-                              <p key={i}>
-                                {z.mitarbeiter}
-                                {z.helfer ? ' (Helfer)' : ''} ·{' '}
-                                {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
-                                {fmtDauer(z.minuten)}
-                                {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
-                              </p>
-                            ))}
-                          </div>
-                        )}
-                        {s.material.length > 0 && (
-                          <div className="gruppe-abschnitt">
-                            <p className="section-label">Material</p>
-                            {s.material.map((m, i) => (
-                              <p key={i}>
-                                {m.menge}× {m.name}
-                              </p>
-                            ))}
-                          </div>
-                        )}
-                        {s.notizen && (
-                          <div className="gruppe-abschnitt">
-                            <p className="section-label">Anmerkungen</p>
-                            <p>{s.notizen}</p>
-                          </div>
-                        )}
-                        {/*
-                          DIE FOTOS. Sie liegen in Firebase Storage und
-                          werden erst beim Aufklappen geholt — eine Liste,
-                          die beim Öffnen zwanzig Bilder nachlädt, ist auf
-                          einer Baustelle keine Liste mehr.
-                        */}
-                        {s.fotos && s.fotos.length > 0 && (
-                          <div className="gruppe-abschnitt">
-                            <p className="section-label">Fotos ({s.fotos.length})</p>
-                            <Fotostreifen fotos={s.fotos} />
-                          </div>
-                        )}
-                        {/*
-                          Die Prüfsumme sichtbar machen. Sie ist der
-                          eigentliche Manipulationsschutz: mit ihr lässt
-                          sich belegen, dass ein vorgelegtes PDF genau das
-                          ist, was unterschrieben wurde.
-
-                          Sie entsteht serverseitig, kurz NACH dem
-                          Unterschreiben — und offline erst beim Übertragen.
-                          Statt die Zeile dann einfach wegzulassen, sagt sie,
-                          dass noch etwas aussteht: eine fehlende Prüfsumme
-                          sieht sonst aus wie ein Fehler, ist aber nur eine
-                          Frage von Sekunden. Der letzte Abschnitt trägt
-                          keine Linie (`gruppe-text`) — die Kante zieht der
-                          Kasten.
-                        */}
-                        <div className="gruppe-text">
-                          <p className="section-label">Prüfsumme</p>
-                          {s.inhaltHash ? (
-                            <p className="break-all font-mono text-xs text-ink-muted">
-                              {s.inhaltHash}
-                            </p>
-                          ) : s.status === 'Entwurf' ? (
-                            <p className="text-xs text-ink-muted">Entsteht mit der Unterschrift.</p>
-                          ) : (
-                            <p className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-                              Wird berechnet — bei fehlender Verbindung erst nach der Übertragung.
-                              <Button variant="ghost" onClick={() => void laden()}>
-                                Neu laden
-                              </Button>
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  }
+                  unten={auf && scheinEinzelheiten(s)}
                 >
-                  <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
-                    {auf ? 'Zuklappen' : 'Details'}
-                  </Button>
-                  <Button variant="ghost" loading={busy} onClick={() => pdfAusgeben(s)}>
-                    PDF
-                  </Button>
-                  {/*
-                    „Als Entwurf speichern" war bis hierher eine Sackgasse: der
-                    Schein landete in dieser Liste, und dort gab es nur
-                    Aufklappen, PDF und Storno. Wer ihn anlegte, um ihn später
-                    unterschreiben zu lassen, kam nie wieder hinein und musste
-                    alles neu tippen — oder legte einen ZWEITEN Beleg über
-                    dieselbe Arbeit an.
-                  */}
-                  {darfSchreiben && s.status === 'Entwurf' && (
-                    <Link to={`/worksheet?entwurf=${s.id}`} className="knopf-sekundaer-klein">
-                      Weiterbearbeiten
-                    </Link>
-                  )}
-                  {/*
-                    Verwerfen darf, wer auch weiterbearbeiten darf. Eine
-                    engere Grenze waere hier eine Erfindung der Oberflaeche:
-                    die Rules lassen jeden im Betrieb an den Entwurf, und ein
-                    Knopf, den die Datenbank nicht deckt, taeuscht Ordnung nur
-                    vor.
-                  */}
-                  {darfSchreiben && s.status === 'Entwurf' && (
-                    <Button variant="ghost" onClick={() => setVerwerfenFuer(s)}>
-                      Verwerfen
-                    </Button>
-                  )}
-                  {darfSchreiben && s.status === 'Verworfen' && (
-                    <Button
-                      variant="secondary"
-                      loading={busy}
-                      onClick={async () => {
-                        setBusy(true);
-                        try {
-                          await restoreWorkSheetDraft(s.id);
-                          toast.success('Entwurf wieder aufgenommen');
-                          await laden();
-                        } catch (err) {
-                          setError(grundAus(err, 'Der Entwurf ließ sich nicht zurückholen.'));
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                    >
-                      Wieder aufnehmen
-                    </Button>
-                  )}
-                  {darfStornieren && s.status === 'Unterschrieben' && (
-                    <Button variant="ghost" onClick={() => setStornoFuer(s)}>
-                      Stornieren
-                    </Button>
-                  )}
+                  {scheinAktionen(s, auf)}
                 </ListRow>
               );
             })}
