@@ -1234,6 +1234,40 @@ textarea {
     color: var(--text);
   }
 
+  /* Platz VOR dem Titel: ein Mengenfeld, ein Vorschaubild. Schrumpft nicht —
+     sonst würde das Bild gestaucht und das Feld unbedienbar schmal. */
+  .zeile-vorne {
+    flex: none;
+  }
+
+  /* Ein Block über die volle Breite UNTER der Zeile (Warnung, aufklappbare
+     Einzelheiten). Die volle Basis zwingt ihn in eine eigene Flex-Zeile. */
+  .zeile-unten {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  /* Vorschaubild bzw. Kürzel („PDF“) in `.zeile-vorne` — gleich gross, damit
+     die Titel darunter fluchten. */
+  .zeile-bild,
+  .zeile-kuerzel {
+    display: flex;
+    height: 3rem;
+    width: 3rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+  }
+
+  .zeile-kuerzel {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
   /* ── Zeilenmenü (⋯) ─────────────────────────────────────────────────── */
 
   .zeilenmenue-knopf,

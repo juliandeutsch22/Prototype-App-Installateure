@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 
 /**
  * Einheitliche Listenzeile: linke Beschreibung (Titel + Sekundärzeile),
- * rechte Aktionen/Status. Sorgt für gleiche Abstände und Ausrichtung in
+ * rechte Aktionen/Status, wahlweise etwas davor (`vorne`) und ein Block
+ * darunter (`unten`). Sorgt für gleiche Abstände und Ausrichtung in
  * allen Listen-Screens.
  */
 export function ListRow({
@@ -10,6 +11,8 @@ export function ListRow({
   subtitle,
   zustand,
   wert,
+  vorne,
+  unten,
   children,
 }: {
   title: ReactNode;
@@ -22,10 +25,19 @@ export function ListRow({
   wert?: ReactNode;
   /** Status der Zeile — steht VOR dem Wert, damit der Wert am rechten Rand fluchtet. */
   zustand?: ReactNode;
+  /** Vor dem Titel, schrumpft nicht: ein Mengenfeld, ein Vorschaubild. */
+  vorne?: ReactNode;
+  /**
+   * Unter der Zeile, über die volle Breite: eine Warnung zur Zeile oder
+   * aufklappbare Einzelheiten. Gehört zur Zeile, nicht zur Liste — deshalb
+   * steht es IN ihr, über der Trennlinie zur nächsten.
+   */
+  unten?: ReactNode;
   children?: ReactNode; // rechte Seite (Aktionen)
 }) {
   return (
     <li className="zeile">
+      {vorne && <div className="zeile-vorne">{vorne}</div>}
       {/*
         Untergrenze statt min-w-0. `flex-1` allein bedeutet flex-basis:0 — der
         Titel durfte damit auf 33 px schrumpfen, waehrend die Knoepfe den Rest
@@ -55,6 +67,7 @@ export function ListRow({
           {children}
         </div>
       )}
+      {unten && <div className="zeile-unten">{unten}</div>}
     </li>
   );
 }

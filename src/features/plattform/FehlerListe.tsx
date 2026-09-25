@@ -56,38 +56,41 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
         {gruppen.length === 0 ? (
           <EmptyState>Keine Abstürze und keine unbehandelten Fehler.</EmptyState>
         ) : (
-          <ul className="divide-y divide-line">
+          <List>
             {gruppen.map((g) => (
-              <li key={g.schluessel} className="space-y-1 py-3 first:pt-0 last:pb-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  {g.art === 'absturz' ? <Warnung>Absturz</Warnung> : <Marke>Fehler</Marke>}
-                  <span className="text-sm text-ink-muted">
+              <ListRow
+                key={g.schluessel}
+                title={<span className="break-words font-mono text-sm">{g.nachricht}</span>}
+                zustand={g.art === 'absturz' ? <Warnung>Absturz</Warnung> : <Marke>Fehler</Marke>}
+                subtitle={
+                  <>
                     {g.anzahl}× · zuletzt {zeit(g.zuletzt)}
                     {g.betroffen > 1 && ` · ${g.betroffen} betroffen`}
-                  </span>
-                </div>
-                <p className="break-words font-mono text-sm text-ink">{g.nachricht}</p>
-                <p className="break-words text-xs text-ink-muted">
-                  {g.ansichten.join(', ')}
-                  {g.fassungen.length > 0 && ` · Fassung ${g.fassungen.join(', ')}`}
-                </p>
-                <details className="text-xs text-ink-muted">
-                  <summary className="cursor-pointer">Technische Details</summary>
-                  <p className="mt-2 break-words">
-                    Erstmals {zeit(g.zuerst)}
-                    {g.beispiel.betrieb && ` · ${g.beispiel.betrieb}`}
-                    {g.beispiel.wer && ` · zuletzt bei ${g.beispiel.wer}`}
-                  </p>
-                  {g.beispiel.geraet && <p className="mt-1 break-words">{g.beispiel.geraet}</p>}
-                  {g.beispiel.stapel && (
-                    <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">
-                      {g.beispiel.stapel}
-                    </pre>
-                  )}
-                </details>
-              </li>
+                    <span className="mt-1 block break-words text-xs">
+                      {g.ansichten.join(', ')}
+                      {g.fassungen.length > 0 && ` · Fassung ${g.fassungen.join(', ')}`}
+                    </span>
+                  </>
+                }
+                unten={
+                  <details className="text-xs text-ink-muted">
+                    <summary className="cursor-pointer">Technische Details</summary>
+                    <p className="mt-2 break-words">
+                      Erstmals {zeit(g.zuerst)}
+                      {g.beispiel.betrieb && ` · ${g.beispiel.betrieb}`}
+                      {g.beispiel.wer && ` · zuletzt bei ${g.beispiel.wer}`}
+                    </p>
+                    {g.beispiel.geraet && <p className="mt-1 break-words">{g.beispiel.geraet}</p>}
+                    {g.beispiel.stapel && (
+                      <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">
+                        {g.beispiel.stapel}
+                      </pre>
+                    )}
+                  </details>
+                }
+              />
             ))}
-          </ul>
+          </List>
         )}
       </Card>
     </>

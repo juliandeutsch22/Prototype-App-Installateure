@@ -123,84 +123,93 @@ export default function RuestlistePlanen({
           Noch nichts eingetragen. Der Monteur sieht am Einsatztag nur eine Liste, die hier steht.
         </EmptyState>
       ) : (
-        <ul className="divide-y divide-line rounded border border-line">
-          {positionen.map((p) => {
-            const artikel = p.materialId ? nachId.get(p.materialId) : undefined;
-            /*
-              Fehlmenge nur bei einem KATALOGARTIKEL. Eine freie Zeile
-              („Leihgerät Kernbohrer") hat keinen Bestand, und „0 von 1
-              vorhanden" wäre dort eine Falschaussage statt einer Warnung.
-            */
-            const fehlt = artikel ? Math.max(0, p.menge - (artikel.stock ?? 0)) : 0;
-            return (
-              <li key={p.id} className="p-3">
-                <div className="flex flex-wrap items-end gap-3">
-                  <div className="w-24 shrink-0">
-                    <InputField
-                      id={`rmenge-${p.id}`}
-                      label="Menge"
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={String(p.menge)}
-                      onChange={(e) => mengeSetzen(p.id, e.target.value)}
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 font-medium text-ink">
-                      {p.name}
-                      {p.einheit && <span className="text-sm text-ink-muted">{p.einheit}</span>}
-                      {!p.materialId && <Marke>{FREI}</Marke>}
-                    </p>
-                    {artikel && (
-                      <p className="text-sm text-ink-muted">
-                        Lager: <span>{artikel.stock ?? 0}</span>
-                        {artikel.category ? ` · ${artikel.category}` : ''}
-                      </p>
-                    )}
-                  </div>
-                  <IconButton
-                    label={`${p.name} von der Rüstliste nehmen`}
-                    tone="danger"
-                    onClick={() => onChange(positionen.filter((x) => x.id !== p.id))}
-                  >
-                    ✕
-                  </IconButton>
-                </div>
-
-                {/*
-                  DER BESTAND REICHT NICHT — und das ist eine Feststellung,
-                  keine Sperre. Der Planer weiss vielleicht, dass morgen eine
-                  Lieferung kommt oder das Teil schon im Bus liegt. Deshalb
-                  steht hier ein ANGEBOT und keine selbsttätige Bestellung:
-                  eine Schreibung in die Arbeitsliste eines anderen, auf
-                  Grundlage einer Vermutung, wäre genau der Vertrauensverlust,
-                  den diese App sich nicht leisten kann.
-                */}
-                {fehlt > 0 && (
-                  <div className="mt-2">
-                    <Meldung ton="warnung">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span>
-                          Im Lager fehlen <strong>{fehlt}</strong>.
-                        </span>
-                        {onAnforderung && (
-                          <Button
-                            variant="secondary"
-                            loading={anforderungLaeuft}
-                            onClick={() => onAnforderung(p, fehlt)}
-                          >
-                            Anforderung über {fehlt} anlegen
-                          </Button>
-                        )}
+        // Umrahmt, weil gleich darunter die Trefferliste der Suche steht —
+        // ohne Rahmen liefen die geplanten Zeilen und die Treffer ineinander.
+        <div className="gruppe">
+          <div className="gruppe-liste">
+            <List>
+              {positionen.map((p) => {
+                const artikel = p.materialId ? nachId.get(p.materialId) : undefined;
+                /*
+                  Fehlmenge nur bei einem KATALOGARTIKEL. Eine freie Zeile
+                  („Leihgerät Kernbohrer") hat keinen Bestand, und „0 von 1
+                  vorhanden" wäre dort eine Falschaussage statt einer Warnung.
+                */
+                const fehlt = artikel ? Math.max(0, p.menge - (artikel.stock ?? 0)) : 0;
+                return (
+                  <ListRow
+                    key={p.id}
+                    vorne={
+                      <div className="w-20">
+                        <InputField
+                          id={`rmenge-${p.id}`}
+                          label="Menge"
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={String(p.menge)}
+                          onChange={(e) => mengeSetzen(p.id, e.target.value)}
+                        />
                       </div>
-                    </Meldung>
-                  </div>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                    }
+                    title={
+                      <>
+                        {p.name}
+                        {p.einheit && <span className="text-sm text-ink-muted">{p.einheit}</span>}
+                        {!p.materialId && <Marke>{FREI}</Marke>}
+                      </>
+                    }
+                    subtitle={
+                      artikel && (
+                        <>
+                          Lager: <span>{artikel.stock ?? 0}</span>
+                          {artikel.category ? ` · ${artikel.category}` : ''}
+                        </>
+                      )
+                    }
+                    /*
+                      DER BESTAND REICHT NICHT — und das ist eine Feststellung,
+                      keine Sperre. Der Planer weiss vielleicht, dass morgen eine
+                      Lieferung kommt oder das Teil schon im Bus liegt. Deshalb
+                      steht hier ein ANGEBOT und keine selbsttätige Bestellung:
+                      eine Schreibung in die Arbeitsliste eines anderen, auf
+                      Grundlage einer Vermutung, wäre genau der Vertrauensverlust,
+                      den diese App sich nicht leisten kann.
+                    */
+                    unten={
+                      fehlt > 0 && (
+                        <Meldung ton="warnung">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span>
+                              Im Lager fehlen <strong>{fehlt}</strong>.
+                            </span>
+                            {onAnforderung && (
+                              <Button
+                                variant="secondary"
+                                loading={anforderungLaeuft}
+                                onClick={() => onAnforderung(p, fehlt)}
+                              >
+                                Anforderung über {fehlt} anlegen
+                              </Button>
+                            )}
+                          </div>
+                        </Meldung>
+                      )
+                    }
+                  >
+                    <IconButton
+                      label={`${p.name} von der Rüstliste nehmen`}
+                      tone="danger"
+                      onClick={() => onChange(positionen.filter((x) => x.id !== p.id))}
+                    >
+                      ✕
+                    </IconButton>
+                  </ListRow>
+                );
+              })}
+            </List>
+          </div>
+        </div>
       )}
 
       <div>
