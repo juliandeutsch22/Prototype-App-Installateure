@@ -15,7 +15,7 @@ import PageHeader from '@/components/PageHeader';
 import { InputField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
-import { ErrorState, SkeletonList } from '@/components/States';
+import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 
 /**
  * Welche Konten die Buchhaltung bebucht.
@@ -311,10 +311,10 @@ export default function KontenrahmenView() {
         hint="Je Steuersatz, den du tatsächlich verrechnest, ein Konto. Was hier fehlt, verhindert den Buchungsstapel für jeden Zeitraum, in dem eine Rechnung mit diesem Satz liegt — gemeldet wird es mit Satz und Klartext."
       >
         {saetze.length === 0 ? (
-          <p className="text-sm text-ink-muted">
+          <EmptyState>
             Noch kein Erlöskonto hinterlegt. Ohne mindestens eines gibt es keinen
             Buchungsstapel.
-          </p>
+          </EmptyState>
         ) : (
           <div className="space-y-4">
             {saetze.map((s, n) => (

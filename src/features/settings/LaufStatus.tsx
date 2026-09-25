@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { ladeLauf } from '@/lib/db/laeufe';
 import { beurteile, type Lauf, type NachtLaufArt } from '@shared/laufStatus';
+import Meldung from '@/components/Meldung';
 
 /**
  * Was ein nächtlicher Lauf zuletzt getan hat.
@@ -65,14 +66,10 @@ export default function LaufStatus({
   if (!geladen) return null;
 
   const u = beurteile(lauf, Date.now());
-  const farbe =
-    u.stand === 'gut'
-      ? 'border-line text-ink-muted'
-      : 'border border-line bg-surface-2 text-warning';
 
   return (
-    <p
-      className={`rounded-sm border px-3 py-2 text-sm ${farbe}`}
+    <Meldung
+      ton={u.stand === 'gut' ? 'neutral' : 'warnung'}
       /*
         `status`, nicht `alert`.
 
@@ -135,6 +132,6 @@ export default function LaufStatus({
       {lauf?.erfolg === false && lauf.meldung && (
         <span className="mt-1 block">Letzter Versuch: {lauf.meldung}</span>
       )}
-    </p>
+    </Meldung>
   );
 }

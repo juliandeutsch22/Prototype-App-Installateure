@@ -7,6 +7,7 @@ import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { isTopLevel } from '@/lib/permissions';
 import type { AppUser, InvoiceRates } from '@/types';
 import Card from '@/components/Card';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -515,7 +516,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             das er jedes Mal überliest. Deshalb steht der Haken hier und ist
             ab Werk aus.
           */}
-          <div className="mt-4 rounded-sm border border-line bg-surface-2 p-4">
+          <div className="kasten mt-4">
             <CheckboxField
               id="rechnungsarten"
               label="Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
@@ -598,19 +599,20 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
         {fehlerBei('saetze')}
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="submit" loading={saving} className="w-full sm:w-auto">
+        {/* Vier Karten, am Telefon über zwei Bildschirme: die Knöpfe kleben
+            in der Aktionsleiste, statt erst am Ende zu stehen. */}
+        <Aktionsleiste>
+          <Button type="submit" loading={saving}>
             Sätze speichern
           </Button>
           <Button
             type="button"
             variant="ghost"
             onClick={() => setRates(INVOICE_DEFAULTS)}
-            className="w-full sm:w-auto"
           >
             Auf Standardwerte zurücksetzen
           </Button>
-        </div>
+        </Aktionsleiste>
       </form>
       )}
 
@@ -668,7 +670,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             fest am 1. Jänner — für jeden Betrieb mit einem anderen
             Urlaubsjahr rechnete die App still falsch.
           */}
-          <div className="mb-4 flex flex-wrap items-end gap-3 rounded border border-line bg-surface-2 p-4">
+          <div className="kasten mb-4 flex flex-wrap items-end gap-3">
             <SelectField
               id="urlaubsjahr-tag"
               label="Urlaubsjahr beginnt am"
@@ -750,7 +752,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           </fieldset>
 
           {uebertrag === 'stichtag' && (
-            <div className="mt-4 flex flex-wrap items-end gap-3 rounded border border-line bg-surface-2 p-4">
+            <div className="kasten mt-4 flex flex-wrap items-end gap-3">
               <SelectField
                 id="stichtag-tag"
                 label="Verfällt am"
