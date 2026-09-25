@@ -214,8 +214,7 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       'support',
       // „module" steht hier NICHT: siehe der eigene Fall weiter unten.
       'sicherung',
-      // Wer wann wo hängengeblieben ist — dieselbe Grenze wie in der Datenbank.
-      'fehler',
+      // Kein „fehler" mehr: Meldungen und Abstürze gehen an den Support.
     ]);
     // Auch die Projektleitung nicht: die Sicherung enthaelt Zeitkonten und
     // Rechnungen, und beides geht sie nichts an.

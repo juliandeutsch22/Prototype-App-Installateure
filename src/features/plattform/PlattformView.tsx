@@ -11,7 +11,7 @@ import { ErrorState } from '@/components/States';
 import { Marke, Warnung } from '@/components/Badge';
 import PasswortAendern from '@/features/auth/PasswortAendern';
 import { plattformFehler, type PlattformFehler } from '@/lib/db/fehlerprotokoll';
-import FehlerListe from '@/features/settings/FehlerListe';
+import FehlerListe from './FehlerListe';
 
 /**
  * Die einzige Seite des globalen Administrators.

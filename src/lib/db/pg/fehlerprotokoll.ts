@@ -7,24 +7,22 @@
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { FehlerEintrag } from '@/types';
-import { abfragen, derClient, type WithId } from './kern';
+import { istBenutzerkonto } from '@shared/benutzername';
+import { derClient } from './kern';
 
 const TABELLE = 'fehlerprotokoll';
 
-/** Wie viele Einträge die Ansicht holt — 90 Tage eines Betriebs passen hinein. */
-export const FEHLER_GRENZE = 500;
-
 export type NeuerFehlerEintrag = Pick<
   FehlerEintrag,
-  'art' | 'nachricht' | 'stapel' | 'pfad' | 'fassung' | 'geraet' | 'beschreibung' | 'anSupport'
+  'art' | 'nachricht' | 'stapel' | 'pfad' | 'fassung' | 'geraet' | 'beschreibung'
 >;
 
 /**
  * Einen Eintrag schreiben.
  *
- * OHNE `.select()`: lesen darf das Protokoll nur die Spitze des Betriebs. Ein
- * Rücklesen des eigenen Eintrags scheiterte beim Monteur am Zeilenschutz —
- * und das Schreiben sähe dann aus, als wäre es gescheitert.
+ * OHNE `.select()`: im Betrieb liest niemand das Protokoll, nur die Plattform
+ * über ihre eigene Funktion. Ein Rücklesen des eigenen Eintrags scheiterte am
+ * Zeilenschutz — und das Schreiben sähe dann aus, als wäre es gescheitert.
  */
 export async function fehlerEintragen(e: NeuerFehlerEintrag, client?: SupabaseClient): Promise<void> {
   const { error } = await derClient(client).from(TABELLE).insert({
@@ -35,20 +33,11 @@ export async function fehlerEintragen(e: NeuerFehlerEintrag, client?: SupabaseCl
     fassung: e.fassung ?? null,
     geraet: e.geraet ?? null,
     beschreibung: e.beschreibung ?? null,
-    an_support: e.anSupport ?? false,
   });
   if (error) throw new Error(error.message);
 }
 
-/** Das Protokoll des eigenen Betriebs, jüngste zuerst. */
-export function listFehlerprotokoll(companyId: string): Promise<WithId<FehlerEintrag>[]> {
-  return abfragen<FehlerEintrag>(TABELLE, companyId, {
-    sortiere: { feld: 'createdAt', absteigend: true },
-    grenze: FEHLER_GRENZE,
-  });
-}
-
-/** Was die Plattform sieht: Technik aus allen Betrieben, Meldungen nur mit Häkchen. */
+/** Was die Plattform sieht: Technik aus allen Betrieben ohne Person, Meldungen mit Absender. */
 export interface PlattformFehler {
   id: string;
   companyId: string;
@@ -61,6 +50,8 @@ export interface PlattformFehler {
   geraet: string | null;
   beschreibung: string | null;
   createdAt: number;
+  /** Nur bei einer Meldung: wer sie geschrieben hat, damit der Support nachfragen kann. */
+  wer?: string;
 }
 
 export async function plattformFehler(tage = 14, client?: SupabaseClient): Promise<PlattformFehler[]> {
@@ -78,5 +69,15 @@ export async function plattformFehler(tage = 14, client?: SupabaseClient): Promi
     geraet: (z.geraet as string | null) ?? null,
     beschreibung: (z.beschreibung as string | null) ?? null,
     createdAt: Date.parse(String(z.created_at)),
+    wer: absender(z.melder as string | null, z.melder_email as string | null),
   }));
+}
+
+/*
+  Die Kunstadresse eines Benutzerkontos ist keine Adresse, an die der Support
+  schreiben könnte — dann bleibt der Name, und nachgefragt wird im Betrieb.
+*/
+function absender(name: string | null, email: string | null): string | undefined {
+  if (!name) return undefined;
+  return email && !istBenutzerkonto(email) ? `${name} · ${email}` : name;
 }

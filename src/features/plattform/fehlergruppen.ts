@@ -17,9 +17,9 @@ export interface ProtokollZeile {
   geraet?: string | null;
   beschreibung?: string | null;
   createdAt?: number;
-  /** Wer — im Betrieb der Name, auf der Plattform leer. */
+  /** Wer eine Meldung geschrieben hat — bei Abstürzen leer. */
   wer?: string;
-  /** Welcher Betrieb — nur auf der Plattform. */
+  /** Welcher Betrieb. */
   betrieb?: string;
 }
 

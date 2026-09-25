@@ -10,7 +10,7 @@ const zeit = (ms: number) =>
   });
 
 /**
- * Meldungen und Fehler — dieselbe Darstellung im Betrieb und auf der Plattform.
+ * Meldungen und Fehler aus den Betrieben, für den Senklot-Support.
  *
  * Zwei Karten, weil es zwei Fragen sind: „wer hat sich gemeldet" ist eine
  * Aufgabe mit einem Menschen dahinter, „was stürzt ab" eine Liste für die

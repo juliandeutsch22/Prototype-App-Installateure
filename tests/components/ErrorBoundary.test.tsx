@@ -188,6 +188,6 @@ describe('Ins Fehlerprotokoll', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Problem melden' }));
     await nutzer.type(screen.getByLabelText('Was ist passiert?'), 'Beim Öffnen der Zeiterfassung');
     await nutzer.click(screen.getByRole('button', { name: 'Senden' }));
-    await waitFor(() => expect(gemeldet).toHaveBeenCalledWith('Beim Öffnen der Zeiterfassung', false));
+    await waitFor(() => expect(gemeldet).toHaveBeenCalledWith('Beim Öffnen der Zeiterfassung'));
   });
 });

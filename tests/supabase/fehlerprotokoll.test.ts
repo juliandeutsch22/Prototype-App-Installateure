@@ -1,16 +1,17 @@
 /**
  * Das Fehlerprotokoll — gegen die echte Datenbank.
  *
- * Geprüft wird, was die Zusage trägt: jeder schreibt, nur die Spitze liest,
- * niemand ändert, wer und wann setzt die Datenbank, eine Schleife flutet
- * nichts, und die Plattform sieht Technik — eine Meldung nur mit Häkchen.
+ * Geprüft wird, was die Zusage trägt: jeder schreibt, im Betrieb liest
+ * niemand, niemand ändert, wer und wann setzt die Datenbank, eine Schleife
+ * flutet nichts, und die Plattform sieht Technik ohne Person — und jede
+ * Meldung, mit Absender.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import { Client } from 'pg';
 import { admin, betriebAnlegen, konto, plattformkonto, API, ANON, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
-import { fehlerEintragen, listFehlerprotokoll, plattformFehler } from '@/lib/db/pg/fehlerprotokoll';
+import { fehlerEintragen, plattformFehler } from '@/lib/db/pg/fehlerprotokoll';
 
 const BETRIEB = 'fehler-proto';
 const FREMD = 'fehler-proto-fremd';
@@ -78,11 +79,9 @@ describe('Schreiben', () => {
     expect(ohne.error).not.toBeNull();
   });
 
-  it('prüft die Form: Meldung braucht Text, Fehler eine Nachricht, der Support nur Meldungen', async () => {
+  it('prüft die Form: Meldung braucht Text, Fehler eine Nachricht', async () => {
     await expect(fehlerEintragen({ art: 'meldung', beschreibung: '  ' }, monteur.client)).rejects.toThrow();
     await expect(fehlerEintragen({ art: 'fehler', nachricht: '' }, monteur.client)).rejects.toThrow();
-    await expect(fehlerEintragen({ art: 'fehler', nachricht: 'x', anSupport: true }, monteur.client))
-      .rejects.toThrow();
     await expect(fehlerEintragen({ art: 'fehler', nachricht: 'x'.repeat(501) }, monteur.client))
       .rejects.toThrow();
   });
@@ -99,21 +98,15 @@ describe('Schreiben', () => {
 });
 
 describe('Lesen', () => {
-  it('liest nur die Spitze des eigenen Betriebs', async () => {
+  /*
+    SEIT 25.09.2026 LIEST IM BETRIEB NIEMAND — auch Geschäftsführung und
+    Administration nicht. Meldungen und Abstürze gehen an den Support.
+  */
+  it('liest im Betrieb niemand, auch nicht die Spitze', async () => {
     await fehlerEintragen(absturz('Fremder Absturz'), fremdChef.client);
-
-    clientEinreichen(chefin.client);
-    const beiChefin = await listFehlerprotokoll(BETRIEB);
-    expect(beiChefin.map((e) => e.nachricht)).toContain('TypeError: x is undefined');
-    expect(beiChefin.map((e) => e.nachricht)).not.toContain('Fremder Absturz');
-    expect(typeof beiChefin[0].createdAt).toBe('number');
-
-    clientEinreichen(admin_.client);
-    expect((await listFehlerprotokoll(BETRIEB)).length).toBeGreaterThan(0);
-
-    for (const k of [monteur, leitung, buch]) {
+    for (const k of [chefin, admin_, monteur, leitung, buch]) {
       const { data } = await k.client.from('fehlerprotokoll').select('id').eq('company_id', BETRIEB);
-      expect(data).toEqual([]);
+      expect(data ?? []).toEqual([]);
     }
   });
 
@@ -130,9 +123,12 @@ describe('Lesen', () => {
 });
 
 describe('Die Plattform', () => {
-  it('sieht Technik aus allen Betrieben, ohne Person — eine Meldung nur mit Häkchen', async () => {
-    await fehlerEintragen({ art: 'meldung', beschreibung: 'Nur fürs Büro' }, monteur.client);
-    await fehlerEintragen({ art: 'meldung', beschreibung: 'Bitte an den Support', anSupport: true }, monteur.client);
+  it('sieht Technik aus allen Betrieben ohne Person — und jede Meldung mit Absender', async () => {
+    await fehlerEintragen({ art: 'meldung', beschreibung: 'Speichern hängt' }, monteur.client);
+    // Das Häkchen setzt die Datenbank — auch gegen den Browser.
+    const { error } = await monteur.client.from('fehlerprotokoll')
+      .insert({ art: 'meldung', beschreibung: 'Ohne Häkchen geschickt', an_support: false });
+    expect(error).toBeNull();
 
     const liste = await plattformFehler(14, plattform.client);
     const hier = liste.filter((f) => f.companyId === BETRIEB || f.companyId === FREMD);
@@ -140,15 +136,42 @@ describe('Die Plattform', () => {
       expect.arrayContaining(['TypeError: x is undefined', 'Fremder Absturz']),
     );
     expect(hier.find((f) => f.companyId === BETRIEB)!.betrieb).toBe(BETRIEB);
-    const beschreibungen = hier.filter((f) => f.art === 'meldung').map((f) => f.beschreibung);
-    expect(beschreibungen).toContain('Bitte an den Support');
-    expect(beschreibungen).not.toContain('Nur fürs Büro');
+    const meldungen = hier.filter((f) => f.art === 'meldung');
+    expect(meldungen.map((f) => f.beschreibung)).toEqual(
+      expect.arrayContaining(['Speichern hängt', 'Ohne Häkchen geschickt']),
+    );
+    const { data: ich } = await admin.from('users').select('name, email').eq('id', monteur.uid).single();
+    expect(meldungen.find((f) => f.beschreibung === 'Speichern hängt')!.wer)
+      .toBe(`${ich!.name} · ${ich!.email}`);
+    // Ein Absturz bleibt ohne Person.
+    expect(hier.filter((f) => f.art !== 'meldung').every((f) => f.wer === undefined)).toBe(true);
     expect(Object.keys(hier[0])).not.toContain('userId');
+  });
+
+  it('zeigt bei einem Benutzerkonto den Namen, nicht die Kunstadresse', async () => {
+    const ohneMail = await konto(BETRIEB, 'Mitarbeiter', 'fpkunst');
+    await admin.from('users').update({ email: 'fpkunst@benutzer.senklot.invalid' }).eq('id', ohneMail.uid);
+    await fehlerEintragen({ art: 'meldung', beschreibung: 'Vom Benutzerkonto' }, ohneMail.client);
+    const { data: ich } = await admin.from('users').select('name').eq('id', ohneMail.uid).single();
+    const m = (await plattformFehler(14, plattform.client)).find((f) => f.beschreibung === 'Vom Benutzerkonto');
+    expect(m!.wer).toBe(ich!.name);
+  });
+
+  /*
+    DIE ALTE ZUSAGE GILT FÜR ALTE MELDUNGEN: ohne Häkchen geschrieben, bleiben
+    sie beim Betrieb, bis sie nach 90 Tagen verschwinden. Eingespielt wie der
+    Rücklauf — der Dienst setzt das Häkchen selbst.
+  */
+  it('zeigt eine alte Meldung ohne Häkchen weiter nicht', async () => {
+    await admin.from('fehlerprotokoll')
+      .insert({ company_id: BETRIEB, art: 'meldung', beschreibung: 'Alt, nur fürs Büro', an_support: false });
+    const liste = await plattformFehler(14, plattform.client);
+    expect(liste.map((f) => f.beschreibung)).not.toContain('Alt, nur fürs Büro');
   });
 
   it('liest die Tabelle selbst nicht, und ein Betrieb bekommt über die Funktion nichts', async () => {
     const { data } = await plattform.client.from('fehlerprotokoll').select('id');
-    expect(data).toEqual([]);
+    expect(data ?? []).toEqual([]);
     expect(await plattformFehler(14, chefin.client)).toEqual([]);
   });
 });

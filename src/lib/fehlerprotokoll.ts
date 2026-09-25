@@ -142,14 +142,17 @@ export function letzterFehler(): string | undefined {
   return letzter.nachricht;
 }
 
-/** Ein Problem von Hand melden. Wirft, damit die Maske sagen kann, dass es nicht ging. */
-export async function problemMelden(beschreibung: string, anSupport: boolean): Promise<void> {
+/**
+ * Ein Problem von Hand melden — an den Senklot-Support, dorthin geht jede
+ * Meldung (das setzt die Datenbank). Wirft, damit die Maske sagen kann, dass
+ * es nicht ging.
+ */
+export async function problemMelden(beschreibung: string): Promise<void> {
   const text = beschreibung.trim();
   if (!text) throw new Error('Bitte beschreiben, was passiert ist.');
   await fehlerEintragen({
     art: 'meldung',
     beschreibung: text.slice(0, 2000),
-    anSupport,
     nachricht: letzterFehler() ?? null,
     ...umgebung(),
   });

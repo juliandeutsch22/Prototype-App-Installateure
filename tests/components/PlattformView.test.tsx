@@ -147,14 +147,15 @@ describe('Die Plattformseite', () => {
 });
 
 describe('Fehler aus den Betrieben', () => {
-  it('zeigt Abstürze mit dem Betrieb und Meldungen, die an den Support gingen', async () => {
+  it('zeigt Abstürze mit dem Betrieb und Meldungen mit ihrem Absender', async () => {
     plattformFehler.mockResolvedValue([
       { id: '1', companyId: 'perl', betrieb: 'Perl Installationen', art: 'absturz', nachricht: 'x is undefined', stapel: null, pfad: '/time', fassung: 'a1', geraet: null, beschreibung: null, createdAt: Date.UTC(2026, 8, 24, 7) },
       { id: '2', companyId: 'mayr', betrieb: 'Mayr Bad', art: 'absturz', nachricht: 'x is undefined', stapel: null, pfad: '/time', fassung: 'a1', geraet: null, beschreibung: null, createdAt: Date.UTC(2026, 8, 24, 8) },
-      { id: '3', companyId: 'perl', betrieb: 'Perl Installationen', art: 'meldung', nachricht: null, stapel: null, pfad: '/invoices', fassung: 'a1', geraet: null, beschreibung: 'Rechnung druckt nicht', createdAt: Date.UTC(2026, 8, 24, 9) },
+      { id: '3', companyId: 'perl', betrieb: 'Perl Installationen', art: 'meldung', nachricht: null, stapel: null, pfad: '/invoices', fassung: 'a1', geraet: null, beschreibung: 'Rechnung druckt nicht', createdAt: Date.UTC(2026, 8, 24, 9), wer: 'Eva Büro · eva@perl.at' },
     ]);
     zeige();
     expect(await screen.findByText('Rechnung druckt nicht')).toBeInTheDocument();
+    expect(screen.getByText(/Eva Büro · eva@perl\.at/)).toBeInTheDocument();
     expect(screen.getByText(/2 betroffen/)).toBeInTheDocument();
     expect(plattformFehler).toHaveBeenCalledWith(14);
   });
