@@ -14,6 +14,11 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
 | 1.2 Zahlen und Zeiten einheitlich | erledigt | `f5fdb4a` |
 | 1.3 Tabellenziffern, rechtsbündige Werte | erledigt | `07262e1` |
 | 1.4 Überschriften | erledigt | `9636cd3` |
+| 1.5 Gestaltungsverbote | erledigt | `2d00de3`, `fcf38d4`, `53884d9`, `b73a3e3` |
+| 1.6 Einstellungs-Reiter | erledigt | `4e818a7` |
+| 1.7 Wochenplan | erledigt | `24a9593` |
+| 1.8 Projektauswertung | erledigt | `18abd9d` |
+| 1.9 Anrede „du“ | erledigt | `8e0d098` |
 
 ## Offene Punkte
 
@@ -39,6 +44,30 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
    („Wächter über den Wächter“), und die Prüfung darf nicht abgeschwächt
    werden. Vorschlag: zusammenlegen und die Prüfung im selben Auftrag auf
    den einen Formatierer umstellen.
+5. **Abdunkler hinter Dialogen** (`bg-ink/40` in `ConfirmDialog.tsx`,
+   `BottomSheet.tsx`, `ExportDialog.tsx`) sind die einzigen halbtransparenten
+   Flächen. Deckend würden sie den Kontext hinter dem Dialog verbergen — das
+   ist eine Funktionsfrage. Vorschlag: so lassen oder bewusst entscheiden.
+6. **Drehkreis** im ladenden Knopf und in `LoadingState` ist eine
+   Endlos-Animation. Er ist eine Zustandsanzeige (ohne ihn fehlt die
+   Rückmeldung) und bleibt deshalb; der Lade-Platzhalter `.skeleton` steht
+   dagegen jetzt ruhig.
+7. **Foto-Entfernen-Knopf** im Schein (`WorkSheetView.tsx`, ~1119) ist
+   28 × 28 px — schon vorher unter 44 px. Gehört zum Schein (Phase 4).
+8. **Datenschutzerklärung siezt** (`src/features/recht/DatenschutzView.tsx`,
+   12 Stellen) — Rechtstext, inhaltlich nicht verändert. Kundentexte (PDF,
+   Mahnung, Bestellmail an den Großhandel) bleiben bewusst beim „Sie“.
+9. **Weitere Reiterleisten** (Material, Lager, Anforderungen, Urlaub) haben
+   die ausgeblendete Scrollleiste mitbekommen, aber kein automatisches
+   Einscrollen des aktiven Reiters; sie haben 2–4 kurze Reiter und laufen nur
+   am Telefon über. Vorschlag: bei Bedarf nachziehen.
+10. **Wochenplan-Karten, zugängliche Namen**: `aria-label` nennt nur Kunde und
+    Datum; zwei Baustellen desselben Kunden am selben Tag heißen für die
+    Vorlesehilfe gleich. `aria-label` ist nach den harten Regeln geschützt
+    (Tests greifen darauf zu). Vorschlag: Nummer ins Label, Tests anpassen.
+11. **Legende „Heute“** in Einsatzplanung/Mein Einsatzplan trug die
+    Mandantenfarbe (`brand/25`) und trägt jetzt deckend `info-bg` wie der
+    Kalender — kleine inhaltliche Angleichung.
 
 ---
 
@@ -255,3 +284,45 @@ Zahlenspalten bereits.
 sowie Dialog-/Abschnittsköpfe; freie `h2` von 18 auf 16 px (eine Stufe
 kleiner). `.section-label` (Dachzeilen, Kennzahl-Bezeichnungen, Marken) ohne
 Versalien und Sperrung. Navigationsgruppen und Anmeldekopf ohne Versalien.
+
+### 1.5 Gestaltungsverbote — erledigt
+- Gestrichelt → durchgehende Linie: Unterschriftsfeld, Leerzustand,
+  „Wie zuletzt“, Wochenplan „frei“/„Einteilen“ (`2d00de3`).
+- Lade-Platzhalter ohne Verlauf und Animation, deckend `--surface-3`
+  (`fcf38d4`).
+- Alpha-Flächen → deckende Tokens: Kartenkopf/-fuß `surface-2`, dunkle
+  Leisten aktiv/hover `ink-deep`, Kalender „Heute“ `info-bg`/`info`
+  (Kontrast 3,95 → 5,12:1), Budgetschiene `surface-3`, Helferzeilen
+  `warning-bg`, Punkt „ruht“ `ink-placeholder` u. a. (`53884d9`);
+  `surface-3` als Tailwind-Farbrolle ergänzt (Token gab es schon).
+- Dekorative Icons entfernt: `plus` an 7 Neu-Knöpfen, `download` an 3
+  Export-Knöpfen, `clock` in „Wie zuletzt“, `✓` vor „eingeladen“; ungenutzte
+  Zeichen `plus`, `download`, `mic` aus `Icon.tsx` gestrichen (`b73a3e3`).
+  Behalten: Telefon, Route, Mail, Aufklappen, Schließen, Zurück, Kopfleiste.
+
+### 1.6 Einstellungs-Reiter — erledigt (`4e818a7`)
+`.reiterleiste` ohne Scrollleiste; der aktive Reiter wird beim Öffnen und
+Wechsel ohne weiches Scrollen ganz ins Bild geholt (`Unterreiter.tsx`).
+Ab 640 px bricht die Leiste um und läuft nicht seitlich über. 2 neue Tests.
+
+### 1.7 Wochenplan — erledigt (`24a9593`)
+Nummer neben dem Kunden stand seit #152 bereits auf jeder Karte (Tabelle:
+eigene Zeile unter dem Kunden, weil die Tageszellen bei 834 px nur 55–80 px
+breit sind). Die Blätterpfeile hatten 48 px Tastfläche, das Zeichen darin
+war ab 640 px aber nur 16 px groß — jetzt durchgehend `text-xl`. 3 neue
+Tests.
+
+### 1.8 Projektauswertung — erledigt
+Die Nummer steht überall als gespeicherter Wert (der Vorsatz ist Teil davon).
+In der Projektauswertung (`ProjectSummary.tsx`) stand solange die Baustelle
+lud „187“ statt „PR-187“ — jetzt `angezeigteNummer()`: Baustellennummer,
+sonst die volle Nummer aus einem Eintrag, erst zuletzt der Schlüssel.
+1 neuer Test.
+
+### 1.9 Anrede — erledigt (`8e0d098`)
+10 Texte in 4 Dateien vom „Sie“ aufs „du“: Supportsitzung-Band,
+Katalogimport (5), Kontenrahmen (3), Buchhaltungsexport und Mahn-Bestätigung.
+
+### Prüfung Phase 1
+Stand nach Punkt 1.9: typecheck grün, lint grün, `npm test` **185 Dateien,
+2370 Tests grün** (2358 auf `main` + 12 neue).
