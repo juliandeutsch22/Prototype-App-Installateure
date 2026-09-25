@@ -27,7 +27,10 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
 | 3d Akten zweispaltig | erledigt (ab 1280 px) | `7c8e421`, `624db5f`, `352b908`, `339597a` |
 | 3e Zeiterfassung, Material, Urlaub | erledigt | `9713fdf`, `3239e56`, `da85121`, `498ac91`, `78defdd` |
 | 3f Mein Einsatzplan, Meine Baustellen, Einstellungen | erledigt | `6a4d906`, `ce63368`, `d1333e2` |
-| Abschluss: Kontrast Monatskalender | erledigt | `9ecb974` |
+| 3g Einsatzplanung (Tag planen, Wochenplan, Team-Woche) | erledigt | `280bf85`, `2a05d75`, `5a2799a`, `226e707` |
+| 3h Angebote, Wartungen, Lager, Scheine-Liste, Reiter | erledigt | `1ea360a`, `f0abb3c`, `8b35d82`, `a908931`, `07a52c4`, `ca6a68a` |
+| 3i Benutzer, Nachkalkulation, Projektauswertung, Plattform, Datenschutz | erledigt | `f090930`, `1d798ae`, `fd02982`, `72d9205`, `8adf09f`, `6052c1a` |
+| Abschluss: Kontrast Monatskalender, gesperrte Felder | erledigt | `9ecb974`, `05a6387` |
 
 ## Offene Punkte
 
@@ -98,9 +101,9 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
     (die Überschrift bleibt das Datum, das der Betrieb ausdrücklich wollte).
 15. **Schrittleiste des Scheins klebt nicht** oben (im Mockup fest) — dafür
     müsste die Kopfleiste fest stehen. Vorschlag: eigener kleiner Punkt.
-16. **Wochenplan-Raster bei 834 px:** Tagesspalten fallen auf wenige Pixel
-    zusammen (war vorher schon so). Vorschlag: Mindestbreite der
-    Tagesspalten im Raster (Tabelle scrollt dann in ihrer Hülle).
+16. ~~**Wochenplan-Raster bei 834 px**~~ — erledigt in 3g: Tagesspalten
+    mit Mindestbreite, das Raster rollt in seiner Hülle, die Namensspalte
+    steht.
 17. **„Wie zuletzt“ auf dem Monteur-Start nur bei derselben Baustelle.** Der
     bestehende Griff übernimmt auch die Baustelle des letzten Eintrags; an
     einem Einsatz auf einer anderen Baustelle hätte er die gestrige
@@ -117,9 +120,8 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
     deutschen Trennmuster und bricht lange Namen
     („Wohnungseigentümergemeinschaft“) ohne Strich. Vorschlag: auf echtem
     Telefon und Tablet ansehen; falls nötig Mindestbreite von `.zeile-text`.
-21. **Reiterleisten** in Material, Urlaub, Lager und Anforderungen sind noch
-    Tailwind-Hilfsklassen. Vorschlag: ein Baustein mit Klasse je Zustand,
-    alle vier in einem Zug umstellen (einzeln ergäbe zwei Varianten).
+21. ~~**Reiterleisten**~~ — erledigt in 3h: Baustein `Reiter`/`Reiterleiste`
+    für Material, Urlaub, Lager, Anforderungen und die Unterreiter.
 22. **Dateiwahl-Feld** (Firmendaten, Katalog- und Kundenimport) ohne
     gemeinsamen Baustein. Vorschlag: `.feld-datei`, alle drei zugleich.
 23. **„Ältere Einträge laden“ / `Nachladen`**: Vorschlag, beide als
@@ -133,6 +135,28 @@ Ausgangslage der Prüfsuite auf `main`: **184 Testdateien, 2358 Tests, alle grü
     „Std“ (Dauer); die Kennzahlen oben bleiben `HH:MM`, weil ein Test genau
     darauf prüft. Vorschlag: im selben Zug angleichen, wenn der Test
     angepasst werden darf.
+27. **Angebote, Handwerksscheine, Wartungen bleiben am Schreibtisch Listen.**
+    Drei bis fünf Textknöpfe je Zeile ergaben keine ruhige Tabelle.
+    Vorschlag: Seltenes (Abgelehnt, Löschen, Verwerfen, Stornieren) ins
+    `RowMenu` — kostet einen Klick mehr, braucht deshalb Freigabe.
+28. **Storno-Zeile der Scheinliste grau statt rot** — passend zur
+    Status-Marke, die „Storniert“ bewusst nicht rot färbt.
+29. **„Stunden ohne Buchung“** (Mitarbeiterübersicht) nutzt noch
+    `span.text-xs`-Zeilen, weil Tests genau darauf greifen. Vorschlag: auf
+    den Zeilentext umstellen und die Zeilen neu setzen.
+30. **Knopfreihe im Katalog-Probelauf** noch Hilfsklassen — mit Punkt 22
+    (Dateiwahl) zusammen umstellen und im Browser ansehen.
+31. **Projektauswertung steht in der Mitarbeiterübersicht**, nicht in der
+    Baustellenakte — dort geordnet (Tabelle ab 1280 px, Datum mit Jahr,
+    Helfer ohne Warnfarbe).
+32. **Budgetbalken „über Budget“** in `accent` bleibt, weil
+    `BaustellenUebersicht` dasselbe Schema nutzt — nur beide zugleich ändern.
+33. **Einzeltabelle der Projektauswertung am Telefon**: die Stundenspalte
+    erst nach Wischen (war schon so, in der Hülle erlaubt). Vorschlag:
+    Listenform am Telefon.
+34. **Wochenplan: Helfer-Einsatz nicht mehr gelb**, Feiertag mit Namen statt
+    gelber Fläche; freie Zellen an Wochenende/Feiertag ruhig ohne Tönung
+    (ob sie „frei“ zählen, ist Fachlogik und unverändert).
 
 ---
 
@@ -475,16 +499,35 @@ Kontaktzeile); „Nächste Einsätze“ mit Baustellennummer. Meine Baustellen a
 1280 px zweispaltig, Leer- und Ladezustand als ruhige Zeile. Kontenrahmen
 und Nummernkreise mit Aktionsleiste. Material am Schein ohne `divide-y`.
 
+### 3g Einsatzplanung — erledigt
+Wochenplan/Team-Woche: Farbe nur für Zustände (frei, heute, kein Dienst),
+deckend; Einsätze weiß mit Haarlinie; Feiertag mit Namen; Tagesspalten
+mit Mindestbreite. Tag planen im Raster wie Mein Einsatzplan, Speichern in
+der Aktionsleiste. Kalender-Legende als ein Baustein für beide Ansichten.
+
+### 3h Angebote, Wartungen, Lager, Handwerksscheine-Liste — erledigt
+Reiter als ein Baustein. Lager: Bestand und Katalog ab 1280 px als
+Tabelle. Angebote: Unterzeile in einer Zeile. Wartungen: Was/Wo, darunter
+Wann; Formular mit Aktionsleiste. Scheine: Nummer vorn in der Unterzeile,
+Einzelheiten als Gruppe, Storno mit Aktionsleiste.
+
+### 3i Benutzer, Nachkalkulation, Projektauswertung, Rahmen — erledigt
+Benutzerverwaltung ab 1280 px als Tabelle, Anlegen mit Aktionsleiste;
+Benutzerakte zweispaltig, Zahlen mit Komma; Nachkalkulation als Tabelle mit
+Betragsspalten; Projektauswertung als aufklappbare Tabelle; Plattform-Frist
+mit Jahr; Datenschutz-Unterauftragsverarbeiter als Liste. Anmeldung,
+Module, Impressum waren schon ruhig.
+
 ## Abschlussprüfung (25.09.2026)
 
-- `npm run typecheck`, `npm run lint`: grün. `npm test`: 189 Dateien,
-  2422 Tests grün. `vite build`: grün.
+- `npm run typecheck`, `npm run lint`: grün. `npm test`: 190 Dateien,
+  2442 Tests grün. `vite build`: grün.
 - Aufnahmen aller Routen × Rollen × 390/834/1440: 339 Bilder,
   0 mit seitlichem Scrollen, 0 mit JS-Fehlern (vorher ebenso 339/0/0).
 - Rückstandssuche: keine gestrichelten/gepunkteten Linien, keine Verläufe,
   keine Emojis. Halbtransparent nur noch die Abdunkler hinter Dialogen
   (Punkt 5), Linien mit Deckkraft (`border-white/15`, `border-line/60`,
   `border-brand/30`) und weiße Schrift mit Deckkraft auf der dunklen
-  Seitenleiste (gemessen ≥ 4,9 : 1). Alle 163 Klassen aus `index.css`
-  werden im Quelltext wörtlich verwendet.
+  Seitenleiste (gemessen ≥ 4,9 : 1). Alle 232 Klassen aus `index.css`
+  werden im Quelltext wörtlich verwendet. Kein `divide-*` mehr.
 - Datenbank-Prüfungen und Browserwege: in der CI des Pull-Requests.
