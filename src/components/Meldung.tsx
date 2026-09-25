@@ -18,7 +18,9 @@ const KLASSE: Record<Ton, string> = {
  * und Geschwister). Jetzt steht es einmal, in `.meldung*` (index.css).
  *
  * `role` reicht die Aufrufstelle durch: eine Warnung, die gerade entsteht,
- * ist `alert`; ein stehender Hinweis braucht keine Rolle.
+ * ist `alert`; ein stehender Hinweis braucht keine Rolle — ausser er ist ein
+ * Vermerk zum Inhalt daneben (der Entwurfsvermerk der Rechtstexte), dann
+ * `note`.
  */
 export default function Meldung({
   ton = 'neutral',
@@ -29,7 +31,7 @@ export default function Meldung({
 }: {
   ton?: Ton;
   titel?: ReactNode;
-  role?: 'alert' | 'status';
+  role?: 'alert' | 'status' | 'note';
   id?: string;
   children?: ReactNode;
 }) {

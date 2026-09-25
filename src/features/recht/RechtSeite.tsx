@@ -25,14 +25,11 @@ export default function RechtSeite({ titel, children }: { titel: string; childre
       </div>
       <main className="mx-auto max-w-2xl space-y-6 px-4 py-6">
         {!GEPRUEFT && (
-          // Die Rolle `note` trägt der Rahmen: `Meldung` kennt nur `alert`
-          // und `status`, und ein stehender Entwurfsvermerk ist keins von beiden.
-          <div role="note">
-            <Meldung ton="warnung">
-              <strong>Entwurf.</strong> Dieser Text ist noch nicht rechtlich geprüft; Angaben in
-              eckigen Klammern werden ergänzt.
-            </Meldung>
-          </div>
+          // `note`: ein stehender Vermerk zum Text, weder Alarm noch Status.
+          <Meldung ton="warnung" role="note">
+            <strong>Entwurf.</strong> Dieser Text ist noch nicht rechtlich geprüft; Angaben in
+            eckigen Klammern werden ergänzt.
+          </Meldung>
         )}
         <PageHeader title={titel} />
         <div className="recht space-y-6 text-base leading-relaxed text-ink">{children}</div>
