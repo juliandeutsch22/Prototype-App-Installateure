@@ -287,4 +287,26 @@ describe('Projektauswertung — die Nummer, wie sie an der Baustelle steht (Laun
     expect(screen.getByText('PR-187')).toBeInTheDocument();
     expect(screen.queryByText('187')).not.toBeInTheDocument();
   });
+
+  it('zeigt den Vorsatz auch, solange die Baustelle noch nicht geladen ist', () => {
+    /**
+     * Die Baustellen lädt die Auswertung erst NACH den Einträgen nach. Bis
+     * dahin (und wenn die Nummer nicht gefunden wird) stand der
+     * Gruppierungsschlüssel da — „187" in beiden Zeilen. Die Einträge tragen
+     * die Nummer aber in voller Form, und genau die gehört hin.
+     */
+    render(
+      <ProjectSummary
+        entries={[
+          eintrag({ id: 'a', projectNumber: '187' } as Partial<TimeEntry>),
+          eintrag({ id: 'b', projectNumber: 'PR-187' } as Partial<TimeEntry>),
+        ]}
+        gesamtEntries={[]}
+        projects={[]}
+        label="September 2026"
+      />,
+    );
+    expect(screen.getAllByText('PR-187').length).toBeGreaterThan(0);
+    expect(screen.queryByText('187')).not.toBeInTheDocument();
+  });
 });
