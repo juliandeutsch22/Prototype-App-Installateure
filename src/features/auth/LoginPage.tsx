@@ -5,6 +5,7 @@ import { InputField, CheckboxField } from '@/components/Field';
 import ProduktMarke from '@/components/ProduktMarke';
 import RechtLinks from '@/components/RechtLinks';
 import Button from '@/components/Button';
+import Meldung from '@/components/Meldung';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
 
 /**
@@ -176,14 +177,14 @@ export default function LoginPage() {
             )}
 
             {(error || authError) && (
-              <p className="rounded-sm border border-line bg-surface-2 p-2 text-sm text-danger" role="alert">
+              <Meldung ton="gefahr" role="alert">
                 {error ?? authError}
-              </p>
+              </Meldung>
             )}
             {notice && (
-              <p className="rounded-sm border border-line bg-surface-2 p-2 text-sm text-success" role="status">
+              <Meldung ton="gut" role="status">
                 {notice}
-              </p>
+              </Meldung>
             )}
 
             <Button
@@ -204,7 +205,7 @@ export default function LoginPage() {
                 setError(null);
                 setNotice(null);
               }}
-              className="min-h-touch text-xs text-ink-muted underline underline-offset-2 hover:text-brand"
+              className="textlink-allein"
             >
               {resetMode ? 'Zurück zur Anmeldung' : 'Passwort vergessen?'}
             </button>
