@@ -20,7 +20,6 @@ import InfoHint from '@/components/InfoHint';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Icon from '@/components/Icon';
 import { Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import IconButton from '@/components/IconButton';
@@ -377,7 +376,7 @@ export default function QuotesView() {
         subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
         action={
           darfAendern && !formOffen ? (
-            <Button onClick={() => setFormOffen(true)}><Icon name="plus" size={18} />Neues Angebot</Button>
+            <Button onClick={() => setFormOffen(true)}>Neues Angebot</Button>
           ) : undefined
         }
       />

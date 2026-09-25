@@ -21,7 +21,6 @@ import { fmtDauer, tageWort, todayStr } from '@/lib/time';
 import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
-import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -352,7 +351,6 @@ export default function WorkSheetsListView() {
             to="/worksheet"
             className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
           >
-            <Icon name="plus" size={18} />
             Neuer Schein
           </Link>
         }

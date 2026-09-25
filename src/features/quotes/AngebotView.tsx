@@ -12,7 +12,6 @@ import type { Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Icon from '@/components/Icon';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Zustand } from '@/components/Badge';
@@ -213,7 +212,6 @@ export default function AngebotView() {
             loading={pdfLaeuft}
             disabled={kunde.zustand !== 'bereit'}
           >
-            <Icon name="download" size={18} />
             PDF herunterladen
           </Button>
         }

@@ -799,7 +799,7 @@ export default function AssignmentsView() {
                                     </span>
                                     <span>{m.name}</span>
                                     {geladen[m.id] && (
-                                      <span className="text-success">✓ eingeladen</span>
+                                      <span className="text-success">eingeladen</span>
                                     )}
                                   </li>
                                 ))}

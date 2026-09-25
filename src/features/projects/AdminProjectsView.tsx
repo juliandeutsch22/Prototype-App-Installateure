@@ -19,7 +19,6 @@ import Card from '@/components/Card';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
-import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
 import { Marke } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
@@ -405,7 +404,7 @@ export default function AdminProjectsView() {
         subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
         action={
           formOffen ? undefined : (
-            <Button onClick={() => setFormOffen(true)}><Icon name="plus" size={18} />Neue Baustelle</Button>
+            <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>
           )
         }
       />
