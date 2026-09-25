@@ -72,9 +72,11 @@ vi.mock('@/lib/db/vacations', () => ({
   entscheiden: (a: unknown) =>
     callUrlaubEntscheiden(...([a] as Parameters<typeof callUrlaubEntscheiden>)),
 }));
+/** Die Belegschaft — je Test umgestellt, für die Frage „entscheidet jemand anderer?". */
+let belegschaft: AppUser[] = [monteur];
 vi.mock('@/lib/db/users', () => ({
   getUserByUid: vi.fn(async () => monteur),
-  listUsers: vi.fn(async () => [monteur]),
+  listUsers: vi.fn(async () => belegschaft),
 }));
 
 const krankmeldungSpeichern = vi.fn<[unknown], Promise<unknown>>(
@@ -152,6 +154,7 @@ beforeEach(() => {
   eigeneKrank = [];
   betriebsurlaube = [];
   guthabenH = 10;
+  belegschaft = [monteur];
   rolle = { ...rolle, uid: 'm1', name: 'Max Mustermann', role: 'Mitarbeiter', docId: 'm1' };
 });
 
@@ -199,9 +202,52 @@ describe('Urlaubsantrag', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
 
     // Freundlicher hier als beim Genehmigenden — und es ist fast immer ein
-    // Versehen.
-    expect(await screen.findByText(/Überschneidet sich/)).toBeInTheDocument();
+    // Versehen. Seit dem Launch-Check (M5) steht es schon in der Vorschau.
+    expect((await screen.findAllByText(/Überschneidet sich/)).length).toBeGreaterThan(0);
     expect(createVacation).not.toHaveBeenCalled();
+  });
+
+  it('nennt den Betriebsurlaub schon in der Vorschau, statt Tage zu zählen (Launch-Check, M5)', async () => {
+    betriebsurlaube = [{ id: 'b1', companyId: 'perl', von: '2026-12-24', bis: '2027-01-06',
+      bezeichnung: 'Weihnachten', urlaubAbbuchen: true }];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByLabelText('Von');
+    await datum('Von', '2026-12-21');
+    await datum('Bis (einschließlich)', '2026-12-29');
+
+    expect(screen.getByText(/Überschneidet sich mit dem Betriebsurlaub „Weihnachten"/)).toBeInTheDocument();
+    expect(screen.queryByText(/Arbeitstage/)).not.toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    expect(createVacation).not.toHaveBeenCalled();
+
+    // Die Tage davor gehen.
+    await datum('Bis (einschließlich)', '2026-12-23');
+    expect(screen.getByText(/3 Arbeitstage/)).toBeInTheDocument();
+  });
+
+  it('wer im Betriebsurlaub arbeitet, beantragt dort ganz normal', async () => {
+    betriebsurlaube = [{ id: 'b1', companyId: 'perl', von: '2026-12-24', bis: '2027-01-06',
+      bezeichnung: 'Weihnachten', urlaubAbbuchen: true, ausgenommen: ['m1'] }];
+    zeichne();
+    await screen.findByLabelText('Von');
+    await datum('Von', '2026-12-28');
+    await datum('Bis (einschließlich)', '2026-12-30');
+    expect(screen.getByText(/3 Arbeitstage/)).toBeInTheDocument();
+  });
+
+  it('leert die Maske nach dem Einreichen (Launch-Check, M5)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByLabelText('Von');
+    await datum('Von', '2026-10-27');
+    await datum('Bis (einschließlich)', '2026-10-30');
+    await nutzer.type(screen.getByLabelText(/Anmerkung/), 'Hochzeit');
+    await nutzer.click(screen.getByRole('button', { name: 'Antrag einreichen' }));
+    await vi.waitFor(() => expect(createVacation).toHaveBeenCalled());
+    await vi.waitFor(() => expect((screen.getByLabelText(/Anmerkung/) as HTMLInputElement).value).toBe(''));
+    expect((screen.getByLabelText('Von') as HTMLInputElement).value).not.toBe('2026-10-27');
+    expect(screen.queryByText(/4 Arbeitstage/)).not.toBeInTheDocument();
   });
 
   it('zeigt dem Antragsteller den Stand und den Grund einer Ablehnung', async () => {
@@ -309,6 +355,23 @@ describe('Urlaub genehmigen', () => {
     expect(await screen.findByText(/1 übersprungen/)).toBeInTheDocument();
   });
 
+  it('sagt „im Zeitkonto" nur, wo eines geführt wird (Launch-Check, M4)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Max Mustermann');
+    await nutzer.click(screen.getByRole('button', { name: 'Genehmigen' }));
+    expect(await screen.findByText('Genehmigt — 5 Tage im Zeitkonto eingetragen')).toBeInTheDocument();
+  });
+
+  it('beim Administrator ohne Zeitkonto nur „eingetragen"', async () => {
+    belegschaft = [{ ...monteur, role: 'Administrator' }];
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByText('Max Mustermann');
+    await nutzer.click(screen.getByRole('button', { name: 'Genehmigen' }));
+    expect(await screen.findByText('Genehmigt — 5 Tage eingetragen')).toBeInTheDocument();
+  });
+
   it('verlangt fuer eine Ablehnung einen Grund — im Dialog der App', async () => {
     // Seit 24.09.2026 kein `window.prompt` mehr (Prüflauf, F7).
     const nutzer = userEvent.setup();
@@ -394,6 +457,51 @@ describe('Genehmigende aus den Einstellungen', () => {
     genehmiger = ['buero'];
     zeichne();
     expect(await screen.findByText(/Offene Anträge/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * DER EIGENE ANTRAG (Launch-Check 25.09.2026, K4): die Geschäftsführung hatte
+ * sich den eigenen Urlaub selbst genehmigt. Gibt es jemand anderen, der
+ * entscheiden darf, entscheidet der — die Datenbank setzt es durch
+ * (`app.urlaub_vier_augen`), die Liste zeigt es.
+ */
+describe('Über den eigenen Antrag entscheidet jemand anderer', () => {
+  const chefin: AppUser = { ...monteur, id: 'chef', uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung' };
+  const buero: AppUser = { ...monteur, id: 'buch', uid: 'buch', name: 'Herr Bauer', role: 'Buchhaltung' };
+
+  beforeEach(() => {
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    antraege.push({
+      id: 'v-eigen',
+      companyId: 'perl',
+      userId: 'chef',
+      userName: 'Julian Deutsch',
+      von: '2026-08-03',
+      bis: '2026-08-07',
+      tage: 5,
+      status: 'Beantragt',
+    });
+  });
+
+  it('zeigt am eigenen Antrag keine Knöpfe, wenn die Buchhaltung entscheiden kann', async () => {
+    belegschaft = [monteur, chefin, buero];
+    zeichne();
+    expect(await screen.findByText('Entscheidet jemand anderer')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Genehmigen' })).not.toBeInTheDocument();
+  });
+
+  it('lässt entscheiden, wenn sonst niemand darf — der Antrag bliebe sonst für immer offen', async () => {
+    belegschaft = [monteur, chefin];
+    zeichne();
+    expect(await screen.findByRole('button', { name: 'Genehmigen' })).toBeInTheDocument();
+    expect(screen.queryByText('Entscheidet jemand anderer')).not.toBeInTheDocument();
+  });
+
+  it('zählt ein deaktiviertes Konto nicht als jemand anderen', async () => {
+    belegschaft = [monteur, chefin, { ...buero, active: false }];
+    zeichne();
+    expect(await screen.findByRole('button', { name: 'Genehmigen' })).toBeInTheDocument();
   });
 });
 

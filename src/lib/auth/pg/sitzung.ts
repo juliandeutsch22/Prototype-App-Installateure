@@ -22,7 +22,7 @@
  *    ruhigere Weg.
  */
 import type { Company, CurrentUser, Role } from '@/types';
-import { supabaseClient, merkenSetzen } from '@/lib/supabase';
+import { supabaseClient, merkenSetzen, pruefClient } from '@/lib/supabase';
 import { InactiveUserError, type Angemeldet } from '../kern';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
 
@@ -100,12 +100,33 @@ export async function passwortZuruecksetzen(email: string): Promise<void> {
  * Maske und hatte nichts einzutippen. Für den ersten Administrator eines
  * neuen Betriebs hiess das: ein einziger Besuch, dann ausgesperrt.
  *
- * `updateUser` braucht KEINE Bestätigung des alten Passworts, und genau das
- * ist hier richtig: wer über einen Rücksetzlink kommt, kennt das alte nicht.
- * Die Sicherheit liegt im Besitz einer gültigen Sitzung — entweder frisch
- * angemeldet oder eben über den Link, den nur das Postfach bekommen hat.
+ * `updateUser` braucht KEINE Bestätigung des alten Passworts. Nach einem
+ * Rücksetzlink ist das richtig — wer über ihn kommt, kennt das alte nicht.
+ * Beim gewöhnlichen Ändern prüft `aktuell` es vorher (siehe unten).
  */
-export async function passwortSetzen(neu: string): Promise<void> {
+export async function passwortSetzen(neu: string, aktuell?: string): Promise<void> {
+  /*
+    WER SEIN PASSWORT NUR ÄNDERT, KENNT DAS ALTE (Launch-Check 25.09.2026,
+    K7). Ohne diese Frage genügte ein entsperrtes Telefon im Bus, um den
+    Besitzer auszusperren. Nach einem Rücksetzlink oder Startpasswort fragt
+    die Maske nicht — dort gibt es kein altes, das man kennen könnte.
+  */
+  if (aktuell !== undefined) {
+    const { data } = await supabaseClient().auth.getSession();
+    const adresse = data.session?.user?.email;
+    if (!adresse) throw new Error('Nicht angemeldet.');
+    const pruefer = pruefClient();
+    const { error } = await pruefer.auth.signInWithPassword({ email: adresse, password: aktuell });
+    if (error) {
+      throw new Error(
+        /invalid login credentials/i.test(error.message)
+          ? 'Das aktuelle Passwort stimmt nicht.'
+          : error.message,
+      );
+    }
+    // Nur DIESE Prüfsitzung beenden — `global` meldete auch dieses Gerät ab.
+    await pruefer.auth.signOut({ scope: 'local' }).catch(() => undefined);
+  }
   // Mit dem eigenen Passwort ist das Startpasswort des Büros erledigt.
   const { error } = await supabaseClient().auth.updateUser({
     password: neu, data: { startpasswort: false },

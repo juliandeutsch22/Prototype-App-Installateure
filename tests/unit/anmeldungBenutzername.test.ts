@@ -15,15 +15,24 @@ const zuruecksetzen = vi.fn<[string], Promise<{ error: null }>>(async () => ({ e
 const aendern = vi.fn<[unknown], Promise<{ error: null }>>(async () => ({ error: null }));
 let metadaten: Record<string, unknown> = {};
 
+/** Der Prüf-Client für das aktuelle Passwort — getrennt vom Haupt-Client. */
+const pruefAnmelden = vi.fn<[{ email: string; password: string }], Promise<{ error: { message: string } | null }>>(
+  async () => ({ error: null }),
+);
+const pruefAbmelden = vi.fn<[{ scope: string }], Promise<{ error: null }>>(async () => ({ error: null }));
+
 vi.mock('@/lib/supabase', () => ({
   merkenSetzen: vi.fn(),
+  pruefClient: () => ({ auth: { signInWithPassword: pruefAnmelden, signOut: pruefAbmelden } }),
   supabaseClient: () => ({
     auth: {
       signInWithPassword: anmelden,
       resetPasswordForEmail: zuruecksetzen,
       updateUser: aendern,
       getSession: () =>
-        Promise.resolve({ data: { session: { user: { user_metadata: metadaten } } } }),
+        Promise.resolve({
+          data: { session: { user: { email: 'petra@perl.at', user_metadata: metadaten } } },
+        }),
     },
   }),
 }));
@@ -34,6 +43,8 @@ beforeEach(() => {
   anmelden.mockClear();
   zuruecksetzen.mockClear();
   aendern.mockClear();
+  pruefAnmelden.mockClear().mockResolvedValue({ error: null });
+  pruefAbmelden.mockClear();
   metadaten = {};
 });
 
@@ -79,5 +90,30 @@ describe('Das Startpasswort', () => {
     expect(aendern).toHaveBeenCalledWith({
       password: 'mein-eigenes-1', data: { startpasswort: false },
     });
+  });
+});
+
+describe('Passwort ändern verlangt das aktuelle (Launch-Check 25.09.2026, K7)', () => {
+  it('prüft es mit dem Prüf-Client, nicht mit der laufenden Sitzung', async () => {
+    await sitzung.passwortSetzen('neu-und-lang', 'alt-und-lang');
+    expect(pruefAnmelden).toHaveBeenCalledWith({ email: 'petra@perl.at', password: 'alt-und-lang' });
+    expect(anmelden).not.toHaveBeenCalled();
+    // Nur die Prüfsitzung endet — `global` meldete auch dieses Gerät ab.
+    expect(pruefAbmelden).toHaveBeenCalledWith({ scope: 'local' });
+    expect(aendern).toHaveBeenCalled();
+  });
+
+  it('ändert nichts, wenn das aktuelle nicht stimmt — und sagt es auf Deutsch', async () => {
+    pruefAnmelden.mockResolvedValue({ error: { message: 'Invalid login credentials' } });
+    await expect(sitzung.passwortSetzen('neu-und-lang', 'falsch')).rejects.toThrow(
+      'Das aktuelle Passwort stimmt nicht.',
+    );
+    expect(aendern).not.toHaveBeenCalled();
+  });
+
+  it('fragt nach einem Rücksetzlink nicht — dort kennt niemand das alte', async () => {
+    await sitzung.passwortSetzen('neu-und-lang');
+    expect(pruefAnmelden).not.toHaveBeenCalled();
+    expect(aendern).toHaveBeenCalled();
   });
 });

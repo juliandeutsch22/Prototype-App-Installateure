@@ -60,7 +60,7 @@ interface ZeilenEingabe {
 /*
   DER HAKEN FOLGT DER EINHEIT, BIS JEMAND IHN ANFASST.
 
-  Jede neue Position beginnt mit „h" und angehaktem „Zählt als Arbeitszeit".
+  Jede neue Position begann mit „h" und angehaktem „Zählt als Arbeitszeit".
   Wer die Einheit auf „Stk" änderte, behielt den Haken — und die Armatur
   zählte als Stunde. Im Probelauf: 16 Stunden Montage plus eine Armatur
   ergaben ein Budget von 17 h; zwanzig Rohrschellen wären zwanzig Stunden
@@ -74,12 +74,18 @@ function istStundenEinheit(einheit: string): boolean {
   return /^(h|std\.?|stunden?)$/i.test(einheit.trim());
 }
 
+/*
+  EINE NEUE ZEILE BEGINNT OHNE EINHEIT UND OHNE HAKEN (Launch-Check
+  25.09.2026, M7). Mit „h" vorbelegt zählte „1 Heizkörper", bei dem niemand
+  die Einheit anfasste, als Stunde ins Budget (4,5 statt 3,5 h). Wer „h"
+  einträgt, bekommt den Haken wie bisher von selbst.
+*/
 const LEERE_ZEILE: ZeilenEingabe = {
   label: '',
   qty: '',
-  unit: 'h',
+  unit: '',
   unitPrice: '',
-  istArbeitszeit: true,
+  istArbeitszeit: false,
 };
 
 /**
@@ -449,6 +455,7 @@ export default function QuotesView() {
                     <InputField
                       id={`anqunit${i}`}
                       label="Einheit"
+                      placeholder="z. B. h, Stk, m"
                       value={z.unit}
                       onChange={(e) =>
                         setZeilen((v) =>

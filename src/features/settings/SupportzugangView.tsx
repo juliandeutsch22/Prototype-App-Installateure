@@ -27,7 +27,8 @@ import { SUPPORT_GEAENDERT } from '@/components/Supportband';
  * stimmt, muss jemand nachsehen können. Der einzige Weg dafür war bisher der
  * Dienstschlüssel: er umgeht jeden Zeilenschutz, erreicht jeden Mandanten und
  * hinterlässt keine Spur. Was hier entsteht, ist das Gegenteil davon —
- * befristet, begründet, widerrufbar, nur lesend und protokolliert.
+ * befristet, begründet, widerrufbar und protokolliert — in der Vorgabe nur
+ * lesend; Mitarbeiten muss der Betrieb eigens wählen, und es endet nach einem Tag.
  *
  * DIE SEITE IST BEWUSST NÜCHTERN. Sie ist keine Einladung: wer sie öffnet,
  * hat einen konkreten Anlass. Deshalb steht oben, was gerade gilt, und nicht
@@ -132,20 +133,19 @@ export default function SupportzugangView() {
         action={offen ? <Warnung>offen bis {zeit(offen.giltBis)}</Warnung> : undefined}
         hint={
           <>
-            Der Support kommt an Ihre Daten <strong>nur, wenn Sie es erlauben</strong>, und
-            nur so weit, wie Sie es erlauben. <strong>Ansehen</strong> heisst lesen und sonst
+            Der Support kommt an deine Daten <strong>nur, wenn du es erlaubst</strong>, und
+            nur so weit, wie du es erlaubst. <strong>Ansehen</strong> heisst lesen und sonst
             nichts. <strong>Mitarbeiten</strong> heisst: er kann für höchstens einen Tag
-            dasselbe wie ein Administrator bei Ihnen — dafür fragen Sie ihn besser, was er
-            vorhat.
+            dasselbe wie ein Administrator bei dir — frag ihn deshalb vorher, was er vorhat.
             <br />
             <br />
             <strong>In beiden Stufen verschlossen:</strong> Zeitbuchungen, Urlaube und Fotos von
-            Baustellen. Dort stehen Kranken- und Urlaubstage Ihrer Mitarbeiter und Aufnahmen aus
+            Baustellen. Dort stehen Kranken- und Urlaubstage deiner Mitarbeiter und Aufnahmen aus
             Kundenwohnungen; kein Supportfall braucht sie.
             <br />
             <br />
             Was in einem Zugang geöffnet wurde, steht unten bei diesem Zugang — und solange
-            einer offen ist, sieht jeder in Ihrem Betrieb ein Band über der App.
+            einer offen ist, sieht jeder in deinem Betrieb ein Band über der App.
           </>
         }
       >
@@ -160,10 +160,10 @@ export default function SupportzugangView() {
               <p className="mt-1 text-sm text-ink-muted">
                 {offen.notzugang
                   ? 'Notzugang — vom Support geöffnet, weil der Betrieb nicht selbst freigeben konnte.'
-                  : 'Von Ihnen gewährt'}{' '}
+                  : 'Vom Betrieb gewährt'}{' '}
                 ·{' '}
                 {offen.stufe === 'mitarbeiten'
-                  ? 'Mitarbeiten — er kann bei Ihnen auch ändern'
+                  ? 'Mitarbeiten — er kann auch ändern'
                   : 'Ansehen — er kann nichts ändern'}{' '}
                 · gilt bis {zeit(offen.giltBis)}
               </p>
@@ -203,7 +203,7 @@ export default function SupportzugangView() {
                   <span className="text-sm">
                     <strong className="text-ink">Nur ansehen</strong>
                     <span className="mt-1 block text-ink-muted">
-                      Er sieht Ihren Betrieb so, wie Sie ihn sehen — und kann nichts ändern.
+                      Er sieht den Betrieb so, wie du ihn siehst — und kann nichts ändern.
                       Bis zu sieben Tage.
                     </span>
                   </span>
@@ -225,7 +225,7 @@ export default function SupportzugangView() {
                   <span className="text-sm">
                     <strong className="text-ink">Mitarbeiten</strong>
                     <span className="mt-1 block text-ink-muted">
-                      Er kann bei Ihnen auch ändern — wie ein Administrator. Höchstens einen
+                      Er kann auch ändern — wie ein Administrator. Höchstens einen
                       Tag, und jede Änderung trägt seine Kennung.
                     </span>
                   </span>

@@ -389,7 +389,11 @@ export default function TimeView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Zeiterfassung" subtitle="Deine gebuchten Zeiten und dein Saldo" />
+      {/* Ohne Zeitkonto kein Saldo — dann verspricht die Überschrift auch keinen (Launch-Check, M4). */}
+      <PageHeader
+        title="Zeiterfassung"
+        subtitle={fuehrtZeitkonto(profile ?? user) ? 'Deine gebuchten Zeiten und dein Saldo' : 'Deine gebuchten Zeiten'}
+      />
 
       {/*
         AM TELEFON STEHT DIE LISTE WEIT UNTEN — unter Saldo und Maske. Wer nur

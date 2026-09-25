@@ -1,5 +1,4 @@
 import type { Customer, Invoice } from '@/types';
-import { invoiceSeqOf } from '@/lib/invoiceNumbers';
 import { zahlstand } from './zahlstand';
 
 /**

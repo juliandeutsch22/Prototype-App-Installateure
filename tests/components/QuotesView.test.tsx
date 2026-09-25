@@ -163,6 +163,7 @@ describe('Angebot kalkulieren', () => {
     // Zeile 1: 20 Stunden Montage — echte Arbeitszeit.
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Montage Heizung');
     await nutzer.type(screen.getByLabelText('Menge'), '20');
+    await nutzer.type(screen.getByLabelText('Einheit'), 'h');
     await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '65');
 
     // Zeile 2: Anfahrtspauschale, ebenfalls in „h" — aber KEINE Arbeitszeit.
@@ -172,6 +173,7 @@ describe('Angebot kalkulieren', () => {
     const preise = screen.getAllByLabelText('Einzelpreis netto');
     await nutzer.type(bezeichnungen[1], 'Anfahrtspauschale');
     await nutzer.type(mengen[1], '2');
+    await nutzer.type(screen.getAllByLabelText('Einheit')[1], 'h');
     await nutzer.type(preise[1], '45');
     await nutzer.click(screen.getAllByRole('checkbox')[1]);
 
@@ -261,6 +263,7 @@ describe('Angebot kalkulieren', () => {
     await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Montage');
     await nutzer.type(screen.getByLabelText('Menge'), '16');
+    await nutzer.type(screen.getByLabelText('Einheit'), 'h');
     await nutzer.type(screen.getByLabelText('Einzelpreis netto'), '68');
 
     await nutzer.click(screen.getByRole('button', { name: 'Position hinzufügen' }));
@@ -272,6 +275,18 @@ describe('Angebot kalkulieren', () => {
 
     expect(screen.getAllByRole('checkbox')[1]).not.toBeChecked();
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
+  });
+
+  it('eine neue Position zählt erst als Arbeitszeit, wenn „h" eingetragen ist (Launch-Check, M7)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Heizkörper');
+    await nutzer.type(screen.getByLabelText('Menge'), '1');
+    expect(screen.getByLabelText('Einheit')).toHaveValue('');
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    await nutzer.type(screen.getByLabelText('Einheit'), 'h');
+    expect(screen.getByRole('checkbox')).toBeChecked();
   });
 
   it('lässt einen von Hand gesetzten Haken stehen, auch wenn die Einheit wechselt', async () => {
@@ -473,6 +488,7 @@ describe('Einen Entwurf bearbeiten', () => {
     await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await userEvent.type(screen.getByLabelText('Bezeichnung'), 'Montage');
     await userEvent.type(screen.getByLabelText('Menge'), '8');
+    await userEvent.type(screen.getByLabelText('Einheit'), 'h');
     await userEvent.type(screen.getByLabelText('Einzelpreis netto'), '70');
     await userEvent.click(screen.getByRole('button', { name: 'Angebot anlegen' }));
     await vi.waitFor(() => expect(createQuote).toHaveBeenCalled());

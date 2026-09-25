@@ -1037,8 +1037,18 @@ export function fmtStd(min: number): string {
   return (min / 60).toFixed(1).replace('.', ',');
 }
 
+/** Die Breite des Budgetbalkens — er endet am Rand, die Zahl daneben nicht. */
+export function balkenBreite(pct: number): string {
+  return `${Math.min(Math.max(pct, 0), 100)}%`;
+}
+
 export interface BudgetState {
-  /** Ausschöpfung in Prozent, auf 100 gedeckelt; null ohne hinterlegtes Budget. */
+  /**
+   * Ausschöpfung in Prozent — die ECHTE Zahl, auch über 100; null ohne
+   * hinterlegtes Budget. Gedeckelt wird nur der Balken (`balkenBreite`):
+   * 6 von 5 h stand als „100 %, über Budget" da statt 120 % (Launch-Check
+   * 25.09.2026, M11).
+   */
   pct: number | null;
   /** true, sobald die Fachzeit das Budget ECHT überschreitet. */
   over: boolean;
@@ -1058,7 +1068,7 @@ export function calcBudgetState(fachMin: number, estimatedHours?: number): Budge
   const raw = (usedH / estimatedHours) * 100;
   const over = usedH > estimatedHours;
   return {
-    pct: Math.min(Math.round(raw), 100),
+    pct: Math.round(raw),
     over,
     tone: over ? 'danger' : raw >= 80 ? 'warning' : 'success',
   };

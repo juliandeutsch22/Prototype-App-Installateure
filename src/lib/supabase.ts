@@ -96,3 +96,21 @@ export function supabaseClient(): SupabaseClient {
   });
   return gemerkt;
 }
+
+/**
+ * EIN ZWEITER CLIENT, DER NICHTS MERKT — nur, um ein Passwort zu prüfen.
+ *
+ * Mit dem Haupt-Client angemeldet, ersetzte die Prüfung die laufende Sitzung
+ * und löste überall „angemeldet" aus. Dieser hier legt nichts ab, frischt
+ * nichts auf und liest keine Adresse — er lebt für eine Anfrage.
+ */
+export function pruefClient(): SupabaseClient {
+  return createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      storageKey: 'senklot.passwortpruefung',
+    },
+  });
+}

@@ -32,6 +32,11 @@ import type { Stand } from '@/components/Badge';
  * auf der jemand Entscheidungen trifft.
  */
 
+/** Stunden sind keine Ware — eine Anfahrt „1 h" hat keinen Einkaufspreis. */
+function istStundenEinheit(einheit: string | undefined): boolean {
+  return /^(h|std\.?|stunden?)$/i.test((einheit ?? '').trim());
+}
+
 export interface KostenSaetze {
   /** Kosten je Facharbeiterstunde — NICHT der Verrechnungssatz. */
   fach: number;
@@ -146,6 +151,22 @@ export function rechneBaustelle(
   const deckungsbeitrag =
     Math.round((erloes - personalkosten - material.kosten) * 100) / 100;
 
+  /*
+    MATERIAL AUS DEM ANGEBOT, DAS AUF KEINEM SCHEIN STEHT (Launch-Check
+    25.09.2026, M9). Einkaufspreise kennt die Rechnung nur aus den Scheinen.
+    Ist dort gar kein Material erfasst, das angenommene Angebot aber verkauft
+    einen Heizkörper um 250 €, stand der Deckungsbeitrag bei 100 % — ohne ein
+    Wort. Jetzt steht der Heizkörper bei den Lücken. Sobald ein Schein
+    Material trägt, gilt der Schein: sonst wäre derselbe Heizkörper doppelt
+    gemeldet.
+  */
+  const ausAngebot =
+    quote && quote.status === 'Angenommen' && material.scheine === 0
+      ? (quote.positions ?? [])
+          .filter((p) => !(p.istArbeitszeit ?? false) && !istStundenEinheit(p.unit))
+          .map((p) => `${p.label} (aus dem Angebot)`)
+      : [];
+
   return {
     projectNumber,
     customerName,
@@ -153,7 +174,7 @@ export function rechneBaustelle(
     helferStunden,
     personalkosten,
     materialkosten: material.kosten,
-    materialLuecken: material.ohnePreis,
+    materialLuecken: [...material.ohnePreis, ...ausAngebot],
     erloes,
     erloesQuelle,
     deckungsbeitrag,

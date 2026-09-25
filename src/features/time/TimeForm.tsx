@@ -937,6 +937,7 @@ export default function TimeForm({
               <BaustellenSelect
                 id="project"
                 companyId={user.companyId}
+                meineUid={target?.uid ?? entry?.userId ?? user.uid}
                 value={projectNumber}
                 onChange={(nr, p) => {
                   setProjectNumber(nr);

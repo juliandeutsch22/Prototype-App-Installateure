@@ -6,6 +6,7 @@ import {
   calcWorkMin,
   fmtMin,
   fmtStd,
+  balkenBreite,
 } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
 import Card from '@/components/Card';
@@ -210,7 +211,7 @@ export default function ProjectSummary({
                       <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
                         <span
                           className={`block h-full ${BAR_TONE[r.budget.tone]}`}
-                          style={{ width: `${r.budget.pct}%` }}
+                          style={{ width: balkenBreite(r.budget.pct) }}
                         />
                       </span>
                       <span

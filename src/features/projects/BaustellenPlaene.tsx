@@ -12,6 +12,20 @@ import PlaeneListe from './PlaeneListe';
 import { planeVon, usePlaene } from './usePlaene';
 
 /**
+ * Dateinamen, die nach einem Beleg des Büros klingen, nicht nach einem Plan.
+ *
+ * Im Launch-Check (25.09.2026, R1) lag ein Stundennachweis bei den Plänen —
+ * sichtbar für jeden Monteur der Baustelle, mit den Stunden der Kollegen.
+ * Ein Dateiname beweist nichts; er ist aber der einzige Anhaltspunkt vor dem
+ * Hochladen, und gefragt wird nur, nicht verboten.
+ */
+const BUEROBELEG = /stunden|rechnung|lohn|gehalt|abrechnung|angebot|kalkulation|zeitkonto|saldo|krank|urlaub/i;
+
+function klingtNachBueroBeleg(dateiname: string): boolean {
+  return BUEROBELEG.test(dateiname);
+}
+
+/**
  * Pläne und Dokumente in der Baustellenakte — hochladen, ansehen, löschen.
  *
  * GEMELDET: „Baustellen sollte man Dokumente oder Bilder hinzufügen können,
@@ -37,6 +51,8 @@ export default function BaustellenPlaene({
   const [fortschritt, setFortschritt] = useState<string | null>(null);
   const [fehler, setFehler] = useState<string[]>([]);
   const [weg, setWeg] = useState<WithId<BaustellenDokument> | null>(null);
+  /** Dateien, die erst nach einer Rückfrage hochgehen — siehe `klingtNachBueroBeleg`. */
+  const [rueckfrage, setRueckfrage] = useState<File[] | null>(null);
 
   /*
     EINE NACH DER ANDEREN, und jeder Fehler wird genannt. Zehn Pläne auf
@@ -132,7 +148,9 @@ export default function BaustellenPlaene({
               // Zurücksetzen, damit dieselbe Datei ein zweites Mal gewählt
               // werden kann — sonst feuert das Feld nicht.
               e.target.value = '';
-              if (dateien.length) void hochladen(dateien);
+              if (dateien.length === 0) return;
+              if (dateien.some((d) => klingtNachBueroBeleg(d.name))) setRueckfrage(dateien);
+              else void hochladen(dateien);
             }}
           />
           <Button
@@ -143,9 +161,34 @@ export default function BaustellenPlaene({
             <Icon name="plus" size={18} />
             Plan oder Bild hinzufügen
           </Button>
-          {fortschritt && <span className="text-sm text-ink-muted" role="status">{fortschritt}</span>}
+          {fortschritt ? (
+            <span className="text-sm text-ink-muted" role="status">{fortschritt}</span>
+          ) : (
+            <span className="text-xs text-ink-muted">Die Monteure dieser Baustelle sehen alles hier.</span>
+          )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!rueckfrage}
+        title="Wirklich zu den Plänen?"
+        message={
+          rueckfrage
+            ? `${rueckfrage
+                .filter((d) => klingtNachBueroBeleg(d.name))
+                .map((d) => d.name)
+                .join(', ')} klingt nach einem Beleg aus dem Büro. Alles hier sehen auch die Monteure dieser Baustelle.`
+            : ''
+        }
+        confirmLabel="Trotzdem hinzufügen"
+        confirmTone="primary"
+        onCancel={() => setRueckfrage(null)}
+        onConfirm={() => {
+          const dateien = rueckfrage;
+          setRueckfrage(null);
+          if (dateien) void hochladen(dateien);
+        }}
+      />
 
       <ConfirmDialog
         open={!!weg}
