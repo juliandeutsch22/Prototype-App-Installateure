@@ -38,6 +38,7 @@ import PageHeader from '@/components/PageHeader';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import RowMenu from '@/components/RowMenu';
 import {
   InputField,
   SelectField,
@@ -49,6 +50,7 @@ import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { datumAT } from '@/lib/datum';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 const fmtDatum = (iso?: string) =>
   datumAT(iso) || '—';
@@ -149,6 +151,8 @@ export default function WartungenView() {
   const [toDelete, setToDelete] = useState<WithId<Wartung> | null>(null);
 
   const darfAendern = user ? isGF(user.role) : false;
+  /** Am Schreibtisch die Wartungen als Tabelle, am Telefon als Liste. */
+  const schreibtisch = useAbBreite(AB_TABELLE);
   const heute = todayStr();
 
   const companyId = user?.companyId;
@@ -455,98 +459,175 @@ export default function WartungenView() {
     danach oben, warum sie noch dasteht.
   */
   const obenGezeigt = new Set(anstehend.map((w) => w.id));
-  const zeile = (w: WithId<Wartung>, inGesamtliste = false) => {
+
+  /*
+    DIE AKTIONEN EINER WARTUNG — am Telefon in der Listenzeile, am
+    Schreibtisch in der letzten Tabellenspalte (siehe `useAbBreite`). Einmal
+    geschrieben, damit beide Formen dieselben Handgriffe tragen.
+
+    ZWEI TEXTKNÖPFE, DER REST IM „⋯" (docs/design/linie.md 3). Sichtbar
+    bleibt, was eine anstehende Wartung weiterbringt — Baustelle anlegen,
+    Erledigt —; das Bearbeiten der Vereinbarung ist die seltenere Handlung
+    und steht im Menü, an jeder Zeile an derselben Stelle. Keiner der Knöpfe
+    ist mehr dunkel gefüllt: ein Hauptknopf je Karte, nicht je Zeile.
+  */
+  const aktionen = (w: WithId<Wartung>, inGesamtliste: boolean) => {
+    if (!darfAendern) return null;
     const u = beurteile(w, heute);
     const nurBearbeiten = inGesamtliste && obenGezeigt.has(w.id);
     return (
-      <ListRow
-        key={w.id}
-        title={
-          <>
-            <span>{w.customerName}</span>
-            <Zustand stand={STAND[u.stand]}>{u.stand === 'ruht' ? 'ruht' : u.text}</Zustand>
-          </>
-        }
-        /*
-          ZWEI ZEILEN STATT EINER KETTE: oben, WAS und WO gewartet wird (samt
-          Hinweis zum Zugang), darunter WANN. Vorher lief alles in einem Satz
-          hintereinander, und der Termin stand irgendwo in der Mitte.
-        */
-        subtitle={
-          <>
-            {w.anlage}
-            {w.address ? ` · ${w.address}` : ''}
-            {w.hinweis ? ` · ${w.hinweis}` : ''}
-            <br />
-            Termin {fmtDatum(w.faelligAm)} · alle {w.intervallMonate} Monate
-            {w.zuletztAm ? ` · zuletzt ${fmtDatum(w.zuletztAm)}` : ' · noch nie gewartet'}
-            {/*
-              WAS SCHON EINGEPLANT IST, SAGT ES. Ohne diese Zeile hiess
-              „fällig" zweierlei — „noch nichts passiert" und „steht längst im
-              Einsatzplan" —, und wer die Liste zweimal durchging, legte die
-              Baustelle zweimal an.
-            */}
-            {w.offeneBaustelle ? (
-              <>
-                <br />
-                Eingeplant auf Baustelle{' '}
-                <Link className="textlink" to={`/projects?baustelle=${encodeURIComponent(w.offeneBaustelle)}`}>
-                  {w.offeneBaustelle}
-                </Link>
-              </>
-            ) : null}
-          </>
-        }
-      >
-        {darfAendern && (
-          <>
-            {/*
-              Einplanen steht nur dort, wo es etwas zu planen gibt: bei einer
-              anstehenden Wartung ohne offene Baustelle. An einer Vereinbarung,
-              die erst in acht Monaten fällig wird, wäre der Knopf eine
-              Einladung, Baustellen auf Vorrat anzulegen.
-            */}
-            {!nurBearbeiten && !w.offeneBaustelle && u.stand !== 'später' && u.stand !== 'ruht' && (
-              <Button
-                onClick={() =>
-                  (() => {
-                    const vorschlag = belegNummer(
-                      vorsaetze.baustelle,
-                      new Date().getFullYear(),
-                      hoechsteLfdImJahr(nummern, new Date().getFullYear()) + 1,
-                    );
-                    setEinplanung({ wartung: w, nummer: vorschlag, vorschlag });
-                  })()
-                }
-              >
-                Baustelle anlegen
-              </Button>
-            )}
-            {!nurBearbeiten && (
-            <Button
-              variant="secondary"
-              onClick={() =>
-                setErledigung({
-                  wartung: w,
-                  datum: heute,
-                  intervall: w.intervallMonate,
-                  // Die eingeplante Baustelle steht schon da: niemand soll
-                  // eine Nummer abtippen, die die App kennt.
-                  baustelle: w.offeneBaustelle ?? '',
-                })
-              }
-            >
-              Erledigt
-            </Button>
-            )}
-            <Button variant="ghost" onClick={() => formOeffnen(w)}>
-              Bearbeiten
-            </Button>
-          </>
+      <>
+        {/*
+          Einplanen steht nur dort, wo es etwas zu planen gibt: bei einer
+          anstehenden Wartung ohne offene Baustelle. An einer Vereinbarung,
+          die erst in acht Monaten fällig wird, wäre der Knopf eine
+          Einladung, Baustellen auf Vorrat anzulegen.
+        */}
+        {!nurBearbeiten && !w.offeneBaustelle && u.stand !== 'später' && u.stand !== 'ruht' && (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const vorschlag = belegNummer(
+                vorsaetze.baustelle,
+                new Date().getFullYear(),
+                hoechsteLfdImJahr(nummern, new Date().getFullYear()) + 1,
+              );
+              setEinplanung({ wartung: w, nummer: vorschlag, vorschlag });
+            }}
+          >
+            Baustelle anlegen
+          </Button>
         )}
-      </ListRow>
+        {!nurBearbeiten && (
+          <Button
+            variant="secondary"
+            onClick={() =>
+              setErledigung({
+                wartung: w,
+                datum: heute,
+                intervall: w.intervallMonate,
+                // Die eingeplante Baustelle steht schon da: niemand soll
+                // eine Nummer abtippen, die die App kennt.
+                baustelle: w.offeneBaustelle ?? '',
+              })
+            }
+          >
+            Erledigt
+          </Button>
+        )}
+        <RowMenu
+          about={`Wartung ${w.customerName} · ${w.anlage}`}
+          items={[{ label: 'Bearbeiten', onSelect: () => formOeffnen(w) }]}
+        />
+      </>
     );
   };
+
+  /*
+    WAS SCHON EINGEPLANT IST, SAGT ES. Ohne diese Zeile hiess „fällig"
+    zweierlei — „noch nichts passiert" und „steht längst im Einsatzplan" —,
+    und wer die Liste zweimal durchging, legte die Baustelle zweimal an.
+  */
+  const eingeplant = (w: WithId<Wartung>) =>
+    w.offeneBaustelle ? (
+      <>
+        Eingeplant auf Baustelle{' '}
+        <Link className="textlink" to={`/projects?baustelle=${encodeURIComponent(w.offeneBaustelle)}`}>
+          {w.offeneBaustelle}
+        </Link>
+      </>
+    ) : null;
+
+  const zustand = (w: WithId<Wartung>) => {
+    const u = beurteile(w, heute);
+    return <Zustand stand={STAND[u.stand]}>{u.stand === 'ruht' ? 'ruht' : u.text}</Zustand>;
+  };
+
+  const zeile = (w: WithId<Wartung>, inGesamtliste = false) => (
+    <ListRow
+      key={w.id}
+      title={w.customerName}
+      zustand={zustand(w)}
+      /*
+        ZWEI ZEILEN STATT EINER KETTE: oben, WAS und WO gewartet wird (samt
+        Hinweis zum Zugang), darunter WANN. Vorher lief alles in einem Satz
+        hintereinander, und der Termin stand irgendwo in der Mitte.
+      */
+      subtitle={
+        <>
+          {w.anlage}
+          {w.address ? ` · ${w.address}` : ''}
+          {w.hinweis ? ` · ${w.hinweis}` : ''}
+          <br />
+          Termin {fmtDatum(w.faelligAm)} · alle {w.intervallMonate} Monate
+          {w.zuletztAm ? ` · zuletzt ${fmtDatum(w.zuletztAm)}` : ' · noch nie gewartet'}
+          {w.offeneBaustelle ? (
+            <>
+              <br />
+              {eingeplant(w)}
+            </>
+          ) : null}
+        </>
+      }
+    >
+      {aktionen(w, inGesamtliste)}
+    </ListRow>
+  );
+
+  /** Am Schreibtisch dieselben Wartungen als Tabelle. */
+  const tabelle = (liste: WithId<Wartung>[], inGesamtliste = false) => (
+    <div className="tabelle-rahmen">
+      <table className="tabelle">
+        <thead className="tabelle-kopfzeile">
+          <tr>
+            <th className="tabelle-kopf">Kunde und Anlage</th>
+            <th className="tabelle-kopf">Standort</th>
+            <th className="tabelle-kopf">Termin</th>
+            <th className="tabelle-kopf">Intervall</th>
+            <th className="tabelle-kopf">Zuletzt</th>
+            <th className="tabelle-kopf">Status</th>
+            {darfAendern && (
+              <th className="tabelle-kopf-zahl">
+                <span className="sr-only">Aktionen</span>
+              </th>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {liste.map((w) => (
+            <tr key={w.id} className="tabelle-zeile">
+              <td className="tabelle-name">
+                {w.customerName}
+                <span className="tabelle-unter">{w.anlage}</span>
+              </td>
+              <td className="tabelle-zelle">
+                {w.address || <span className="text-ink-muted">—</span>}
+                {w.hinweis && <span className="tabelle-unter">{w.hinweis}</span>}
+              </td>
+              <td className="tabelle-zelle">
+                <span className="whitespace-nowrap">{fmtDatum(w.faelligAm)}</span>
+                {w.offeneBaustelle && <span className="tabelle-unter">{eingeplant(w)}</span>}
+              </td>
+              <td className="tabelle-zelle">
+                <span className="whitespace-nowrap">alle {w.intervallMonate} Monate</span>
+              </td>
+              <td className="tabelle-zelle">
+                <span className="whitespace-nowrap">
+                  {w.zuletztAm ? fmtDatum(w.zuletztAm) : 'noch nie gewartet'}
+                </span>
+              </td>
+              <td className="tabelle-zelle">{zustand(w)}</td>
+              {darfAendern && (
+                <td className="tabelle-aktionen">
+                  <div className="tabelle-knoepfe">{aktionen(w, inGesamtliste)}</div>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -662,7 +743,7 @@ export default function WartungenView() {
             In den nächsten {VORLAUF_TAGE} Tagen steht keine Wartung an.
           </EmptyState>
         ) : (
-          <List>{anstehend.map((w) => zeile(w))}</List>
+          schreibtisch ? tabelle(anstehend) : <List>{anstehend.map((w) => zeile(w))}</List>
         )}
       </Card>
 
@@ -693,7 +774,11 @@ export default function WartungenView() {
               : 'Kein Treffer für diese Suche.'}
           </EmptyState>
         ) : (
-          <List>{gefiltert.map((w) => zeile(w, true))}</List>
+          schreibtisch ? (
+            tabelle(gefiltert, true)
+          ) : (
+            <List>{gefiltert.map((w) => zeile(w, true))}</List>
+          )
         )}
         {!loading && (
           <Nachladen
