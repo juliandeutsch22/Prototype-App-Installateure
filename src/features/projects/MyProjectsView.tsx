@@ -104,31 +104,39 @@ export default function MyProjectsView() {
           {plaene.zustand === 'fehler' && <TeilFehler was="Die Pläne" onRetry={plaeneNeu} />}
           <div className="baustellen-karten">
             {active.map((p) => (
-              <Card
-                key={p.id}
-                title={p.customerName}
-                action={<StatusBadge status={p.status} />}
-              >
-                {/* Nummer und Zeitraum in einer Zeile, darunter die Marken —
-                    vorher stand jede Angabe in einer eigenen Zeile. */}
-                <p className="text-sm text-ink-muted">
-                  <span>{p.projectNumber}</span>
-                  {(p.startDate || p.endDate) && (
-                    <>
-                      {' · '}
-                      <span>
-                        {fmt(p.startDate)}
-                        {p.endDate && ` – ${fmt(p.endDate)}`}
-                      </span>
-                    </>
-                  )}
-                </p>
-                {(naechsterEinsatz.has(p.projectNumber) || !!p.estimatedHours) && (
+              /*
+                AUFBAU WIE DIE HEUTE-KARTE AM START (Mockup S. 1): Kunde groß,
+                darunter Nummer und Zeitraum mit dem Stand rechts, die Marken,
+                der Auftragsumfang, Kontakt als Chip und die Route als
+                Hauptknopf. Kein Kasten in der Karte — der Ansprechpartner
+                stand bisher in einem eigenen.
+              */
+              <Card key={p.id}>
+                <h2 className="einsatz-kunde">{p.customerName}</h2>
+                <div className="einsatz-meta">
+                  <p className="einsatz-auftrag">
+                    <span>{p.projectNumber}</span>
+                    {(p.startDate || p.endDate) && (
+                      <>
+                        {' · '}
+                        <span>
+                          {fmt(p.startDate)}
+                          {p.endDate && ` – ${fmt(p.endDate)}`}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                  <span className="einsatz-marken">
+                    <StatusBadge status={p.status} />
+                  </span>
+                </div>
+                {(naechsterEinsatz.has(p.projectNumber) || !!p.estimatedHours || !!p.billingMode) && (
                   <p className="mt-2 flex flex-wrap gap-2">
                     {naechsterEinsatz.has(p.projectNumber) && (
                       <Marke>nächster Einsatz {fmt(naechsterEinsatz.get(p.projectNumber))}</Marke>
                     )}
                     {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h kalkuliert</Marke> : null}
+                    {p.billingMode && <Marke>{p.billingMode}</Marke>}
                   </p>
                 )}
                 {/* Zeilenumbrüche bleiben: der Auftragsumfang aus dem Angebot ist oft eine Liste. */}
@@ -141,36 +149,38 @@ export default function MyProjectsView() {
                   </div>
                 )}
 
-                {/* Ansprechpartner: ohne Nummer steht der Monteur vor Ort ohne
-                    Kontakt da — deshalb wird ein fehlender Eintrag angemahnt. */}
-                <div className="kasten mt-4">
-                  <p className="section-label">Ansprechpartner</p>
-                  {p.contactName || p.contactPhone ? (
-                    <div className="mt-1">
-                      {p.contactName && <p className="font-medium text-ink">{p.contactName}</p>}
-                      <TelefonLink
-                        nummer={p.contactPhone}
-                        name={p.contactName}
-                        className="mt-1"
-                      />
-                    </div>
+                {/* Ansprechpartner als Chip (Name · Nummer). Ohne Nummer steht
+                    der Monteur vor Ort ohne Kontakt da — deshalb wird ein
+                    fehlender Eintrag angemahnt, und ein Name ohne Nummer steht
+                    wenigstens als Text da. */}
+                <div className="mt-4">
+                  {p.contactPhone ? (
+                    <TelefonLink nummer={p.contactPhone} name={p.contactName} variante="chip" />
+                  ) : p.contactName ? (
+                    <p className="text-sm text-ink-muted">
+                      Ansprechpartner: <span className="font-medium text-ink">{p.contactName}</span>
+                    </p>
                   ) : (
-                    <p className="mt-1 text-sm text-warning">Kein Ansprechpartner hinterlegt.</p>
+                    <p className="text-sm text-warning">Kein Ansprechpartner hinterlegt.</p>
                   )}
                 </div>
 
-                {/* Die Route bleibt hier die Hauptaktion der Karte und
-                    behaelt deshalb die volle Breite und die Markenfarbe. */}
+                {/* Die Route bleibt hier die Hauptaktion der Karte — derselbe
+                    Hauptknopf wie am Einsatz. */}
                 {p.address && (
-                  <a
-                    href={mapsUrl(p.address)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="knopf-primaer mt-3 w-full"
-                  >
-                    <Icon name="pin" size={18} aria-hidden />
-                    Route: {p.address}
-                  </a>
+                  <div className="einsatz-knoepfe">
+                    <a
+                      href={mapsUrl(p.address)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="einsatz-hauptknopf"
+                    >
+                      <span className="einsatz-hauptknopf-route">
+                        <Icon name="pin" size={18} aria-hidden />
+                        Route: {p.address}
+                      </span>
+                    </a>
+                  </div>
                 )}
               </Card>
             ))}

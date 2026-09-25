@@ -265,7 +265,7 @@ export function HeuteKarte({
       {einsaetze.length === 0 ? (
         <>
           <EmptyState>Heute ist kein Einsatz eingeplant.</EmptyState>
-          <div className="heute-knoepfe">
+          <div className="einsatz-knoepfe">
             <HauptKnopf letzte={letzte} />
           </div>
         </>
@@ -276,7 +276,7 @@ export function HeuteKarte({
         */
         einsaetze.map((e, i) => (
           <Fragment key={e.id}>
-            {i > 0 && <hr className="heute-trenner" />}
+            {i > 0 && <hr className="einsatz-trenner" />}
             <EinsatzAbschnitt
               e={e}
               letzte={letzte}
@@ -295,7 +295,7 @@ export function HeuteKarte({
 function EinsatzMarken({ e }: { e: HeuteEinsatz }) {
   if (!e.asHelper && !e.billingMode) return null;
   return (
-    <span className="heute-marken">
+    <span className="einsatz-marken">
       {e.asHelper && <Marke>Helfer</Marke>}
       {e.billingMode && <Marke>{e.billingMode}</Marke>}
     </span>
@@ -332,9 +332,9 @@ function EinsatzAbschnitt({
   const wieZuletzt = !!letzte && letzte.projectNumber === e.projectNumber;
   return (
     <div>
-      <p className="heute-kunde">{e.customerName}</p>
-      <div className="heute-meta">
-        <p className="heute-auftrag">
+      <p className="einsatz-kunde">{e.customerName}</p>
+      <div className="einsatz-meta">
+        <p className="einsatz-auftrag">
           {e.projectNumber}
           {/* Die Aufgabe als eigenes Stück: sie unterscheidet zwei Einsätze am
               selben Tag („Bad, Vormittag"). */}
@@ -368,27 +368,27 @@ function EinsatzAbschnitt({
         Zeit“ und „Schein schreiben“ nebeneinander; am Schreibtisch alle in
         einer Reihe, „Schein schreiben“ neben dem Hauptknopf (Mockup S. 7).
       */}
-      <div className="heute-knoepfe">
+      <div className="einsatz-knoepfe">
         {wieZuletzt && letzte ? (
           <Link
             to="/time"
             state={{ projectNumber: e.projectNumber, asHelper: e.asHelper, wieZuletzt: true }}
-            className="start-hauptknopf"
+            className="einsatz-hauptknopf"
           >
             <span>Wie zuletzt buchen</span>
-            <span className="start-hauptknopf-zeile">{zuletztZeile(letzte)}</span>
+            <span className="einsatz-hauptknopf-zeile">{zuletztZeile(letzte)}</span>
           </Link>
         ) : (
           <Link
             to="/time"
             state={{ projectNumber: e.projectNumber, asHelper: e.asHelper }}
-            className="start-hauptknopf"
+            className="einsatz-hauptknopf"
           >
             Zeit erfassen
           </Link>
         )}
         {(wieZuletzt || scheineAn) && (
-          <div className="heute-nebenknoepfe">
+          <div className="einsatz-nebenknoepfe">
             {wieZuletzt && (
               <Link
                 to="/time"
@@ -508,15 +508,15 @@ function zuletztZeile(l: LetzteBuchung): string {
 function HauptKnopf({ letzte }: { letzte?: LetzteBuchung }) {
   if (!letzte) {
     return (
-      <Link to="/time" className="start-hauptknopf">
+      <Link to="/time" className="einsatz-hauptknopf">
         Zeit erfassen
       </Link>
     );
   }
   return (
-    <Link to="/time" state={{ wieZuletzt: true }} className="start-hauptknopf">
+    <Link to="/time" state={{ wieZuletzt: true }} className="einsatz-hauptknopf">
       <span>Wie zuletzt buchen</span>
-      <span className="start-hauptknopf-zeile">{zuletztZeile(letzte)}</span>
+      <span className="einsatz-hauptknopf-zeile">{zuletztZeile(letzte)}</span>
     </Link>
   );
 }
