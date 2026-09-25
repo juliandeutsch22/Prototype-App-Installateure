@@ -482,7 +482,7 @@ export default function WartungenView() {
             {w.offeneBaustelle ? (
               <span className="mt-1 block text-xs text-ink-muted">
                 Eingeplant auf Baustelle{' '}
-                <Link className="underline" to={`/projects?baustelle=${encodeURIComponent(w.offeneBaustelle)}`}>
+                <Link className="textlink" to={`/projects?baustelle=${encodeURIComponent(w.offeneBaustelle)}`}>
                   {w.offeneBaustelle}
                 </Link>
               </span>
