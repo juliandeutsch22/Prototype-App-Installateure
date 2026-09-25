@@ -237,7 +237,12 @@ export default function Layout({ children }: { children: ReactNode }) {
                   className={sideLinkDark}
                 >
                   <Icon name={item.icon} size={20} className="shrink-0" />
-                  <span className="truncate">{item.label}</span>
+                  {/* `-mr-2`: die Beschriftung darf in den rechten Innenabstand
+                      der Zeile. Bei 834 px fehlte dem fetten, aktiven
+                      „Mitarbeiterübersicht" genau 1 px, und es endete mit
+                      Auslassungspunkten (Prüflauf 25.09.2026, P4-13).
+                      Gewicht und Breite der Leiste bleiben, wie sie sind. */}
+                  <span className="-mr-2 truncate">{item.label}</span>
                   <ZeilenHinweis item={item} posten={posten} auf="dunkel" />
                 </NavLink>
               ))}
@@ -384,7 +389,18 @@ export default function Layout({ children }: { children: ReactNode }) {
           {hasMore && (
             <button
               onClick={() => setMoreOpen(true)}
-              aria-label="Weitere Bereiche"
+              /*
+                DER NAME TRÄGT DAS SICHTBARE WORT UND DIE ZAHL. „Weitere
+                Bereiche" überschrieb den Inhalt: die Summe (sr-only im
+                Zaehler) wurde nie vorgelesen, und wer per Sprache „Mehr"
+                sagt, traf den Knopf nicht, weil das Wort im Namen fehlte
+                (Prüflauf 25.09.2026, P4-08).
+              */
+              aria-label={
+                Number.isFinite(mehrSumme) && mehrSumme >= 1
+                  ? `Mehr, ${mehrSumme} ${mehrSumme === 1 ? 'offener Posten' : 'offene Posten'}`
+                  : 'Mehr'
+              }
               className={`flex min-h-touch flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${
                 moreActive ? 'text-white' : 'text-white/70'
               }`}
@@ -459,7 +475,11 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="mt-4 flex flex-col gap-1 border-t border-line pt-3">
           <NavLink to="/settings/meldungen" onClick={() => setProfilOpen(false)} className={sideLink}>
             <Icon name="bell" size={20} className="shrink-0" />
-            <span>Benachrichtigungen</span>
+            {/* So heißt die Seite, auf der man landet (navigation.ts,
+                Unterseite `meldungen`): Passwort UND Meldungen. Hier stand
+                „Benachrichtigungen", und angekommen war man in „Mein
+                Konto" (Prüflauf 25.09.2026, P4-17). */}
+            <span>Mein Konto</span>
           </NavLink>
           <ProblemMelden
             ausloeser={(oeffnen) => (

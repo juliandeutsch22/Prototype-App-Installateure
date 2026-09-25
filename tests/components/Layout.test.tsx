@@ -191,12 +191,28 @@ describe('Die Abzeichen für offene Posten', () => {
     ladenMock.mockResolvedValue(zahlen(3, 2, 7));
     zeige();
 
-    const mehr = await screen.findByRole('button', { name: 'Weitere Bereiche' });
+    // Bewusst geändert (Prüflauf 25.09.2026, P4-08): der Name war „Weitere
+    // Bereiche" und überschrieb den Inhalt — die Summe wurde nie vorgelesen,
+    // das sichtbare „Mehr" fehlte. Jetzt trägt der Name beides.
+    const mehr = await screen.findByRole('button', { name: 'Mehr, 5 offene Posten' });
     await waitFor(() => expect(within(mehr).getByText('5 offene Posten')).toBeInTheDocument());
 
     // Die sieben fälligen Mahnungen sind NICHT dabei: die Rechnungen stehen
     // sichtbar in der Leiste und tragen ihre Zahl selbst.
     expect(mehr).not.toHaveTextContent('12');
+  });
+
+  it('heißt „Mehr" — mit der Zahl, wenn eine da ist (P4-08)', async () => {
+    ladenMock.mockResolvedValue(zahlen(1, 0, 0));
+    zeige();
+    expect(await screen.findByRole('button', { name: 'Mehr, 1 offener Posten' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Weitere Bereiche' })).not.toBeInTheDocument();
+  });
+
+  it('heißt ohne offene Posten schlicht „Mehr" (P4-08)', async () => {
+    ladenMock.mockResolvedValue(zahlen());
+    zeige();
+    expect(await screen.findByRole('button', { name: 'Mehr' })).toBeInTheDocument();
   });
 
   it('holt die Zahlen bei jedem Seitenwechsel neu', async () => {
@@ -227,5 +243,34 @@ describe('Hilfe und Rechtliches in der Hülle', () => {
     await nutzer.click(screen.getByRole('button', { name: /Profil öffnen/ }));
     expect(screen.getAllByRole('button', { name: 'Problem melden' })).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: 'Datenschutz' })).toHaveLength(2);
+  });
+
+  it('nennt den Eintrag im Profilblatt wie die Seite, auf die er führt (P4-17)', async () => {
+    // Er hieß „Benachrichtigungen" und führte auf „Mein Konto"
+    // (navigation.ts, Unterseite `meldungen`).
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click(await screen.findByRole('button', { name: /Profil öffnen/ }));
+    const profil = screen.getByRole('dialog', { name: 'Profil' });
+    expect(within(profil).getByRole('link', { name: 'Mein Konto' })).toHaveAttribute(
+      'href',
+      '/settings/meldungen',
+    );
+    expect(within(profil).queryByText('Benachrichtigungen')).not.toBeInTheDocument();
+  });
+});
+
+describe('Seitenleiste bei 834 px (Prüflauf 25.09.2026, P4-13)', () => {
+  it('lässt die Beschriftung in den rechten Innenabstand der Zeile reichen', async () => {
+    /*
+      Dem fetten, aktiven „Mitarbeiterübersicht" fehlte bei 834 px genau
+      1 px — es endete mit Auslassungspunkten. jsdom rechnet kein Layout;
+      im Browser nachgemessen: 171 px Text, 170 px Platz, mit `-mr-2`
+      178 px. Geprüft wird hier, dass der Platz freigegeben ist.
+    */
+    zeige();
+    const aside = (await screen.findByText('Senklot')).closest('aside')!;
+    const zeile = within(aside).getByRole('link', { name: 'Mitarbeiterübersicht' });
+    expect(within(zeile).getByText('Mitarbeiterübersicht').className).toMatch(/(^|\s)-mr-2(\s|$)/);
   });
 });
