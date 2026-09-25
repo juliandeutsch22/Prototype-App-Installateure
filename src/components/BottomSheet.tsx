@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useFokusFalle } from './fokusFalle';
 
 /** Ab wie vielen Pixeln nach unten das Blatt losgelassen als „zu" gilt. */
 const SCHWELLE = 90;
@@ -32,6 +33,15 @@ export default function BottomSheet({ open, onClose, label, children }: BottomSh
   const [zieht, setZieht] = useState(false);
   const start = useRef<{ y: number; t: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const blattRef = useRef<HTMLDivElement>(null);
+  /*
+    DER FOKUS KOMMT HEREIN UND GEHT ZURÜCK. Vorher blieb er beim Öffnen auf
+    dem Auslöser hinter dem Blatt, Tab lief in die verdeckte Seite, und nach
+    dem Schliessen stand er irgendwo (Prüflauf 25.09.2026, P4-05). Fokussiert
+    wird das Blatt selbst, nicht der Knopf „Schließen": der wird beim Fokus
+    sichtbar, und wer mit dem Finger öffnet, soll davon nichts sehen.
+  */
+  useFokusFalle(blattRef, open, { hineinHolen: 'behaelter', zurueckGeben: true });
 
   const schliessen = useCallback(() => {
     setDy(0);
@@ -87,10 +97,12 @@ export default function BottomSheet({ open, onClose, label, children }: BottomSh
       style={{ opacity: dy > 0 ? Math.max(0.15, 1 - dy / 320) : 1 }}
     >
       <div
+        ref={blattRef}
         role="dialog"
         aria-modal="true"
         aria-label={label}
-        className="absolute inset-x-0 bottom-0 rounded-t-lg border border-b-0 border-line bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg"
+        tabIndex={-1}
+        className="absolute inset-x-0 bottom-0 rounded-t-lg border border-b-0 border-line bg-surface p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg focus-visible:outline-none"
         style={{
           transform: `translateY(${dy}px)`,
           // Während des Ziehens keine Übergangszeit: sonst hinkt das Blatt

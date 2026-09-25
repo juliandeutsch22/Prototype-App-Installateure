@@ -1,5 +1,6 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import Button from './Button';
+import { useFokusFalle } from './fokusFalle';
 import { grundAus } from '@/lib/fehlerGrund';
 
 /**
@@ -39,14 +40,27 @@ export default function ConfirmDialog({
   const titleId = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  // Tab bleibt im Dialog (Prüflauf 25.09.2026, P4-05). Den Fokus setzt
+  // weiterhin `autoFocus` auf „Abbrechen".
+  useFokusFalle(dialog, open);
 
   useEffect(() => {
-    if (!open) return;
-    setError(null);
+    if (open) setError(null);
+  }, [open]);
+
+  /*
+    WÄHREND DIE AKTION LÄUFT, SCHLIESST NICHTS. Escape und ein Tipp daneben
+    riefen `onCancel` auch mitten im Löschen — der Dialog war weg, die Aktion
+    lief weiter, und ihre Fehlermeldung hatte keinen Ort mehr (P4-05).
+    „Abbrechen" ist in der Zeit ohnehin gesperrt.
+  */
+  useEffect(() => {
+    if (!open || busy) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCancel();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onCancel]);
+  }, [open, busy, onCancel]);
 
   if (!open) return null;
 
@@ -66,11 +80,12 @@ export default function ConfirmDialog({
 
   return (
     <div
+      ref={dialog}
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      onClick={onCancel}
+      onClick={busy ? undefined : onCancel}
     >
       <div
         className="panel w-full max-w-sm p-4 shadow-lg"

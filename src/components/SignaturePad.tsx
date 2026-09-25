@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import Button from './Button';
+import { sichtbar, useFokusFalle } from './fokusFalle';
 import { einpassen, type Masse, type Punkt } from './unterschriftEinpassen';
 
 /**
@@ -110,6 +111,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
   const [offen, setOffen] = useState(false);
   const grossKnopf = useRef<HTMLButtonElement>(null);
   const blatt = useRef<HTMLDivElement>(null);
+  const wurzel = useRef<HTMLDivElement>(null);
   const blattTitel = useId();
   const [hatStriche, setHatStriche] = useState(false);
   /** Genug für eine Unterschrift — siehe `MIN_BREITE`. */
@@ -469,9 +471,21 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
     return () => {
       document.body.style.overflow = vorher;
       window.removeEventListener('keydown', taste);
-      knopf?.focus();
+      /*
+        IST DER KNOPF WEG, BEKOMMT DAS FELD DEN FOKUS. „Groß unterschreiben"
+        ist ab 1024 px ausgeblendet — wer das Tablet im Blatt quer dreht,
+        kommt dort an, und der Fokus fiel ins Leere (an `body`). Dann geht er
+        an die Zeichenfläche im Formular, auf der die Unterschrift jetzt steht
+        (Prüflauf 25.09.2026, P4-14).
+      */
+      if (knopf && knopf.isConnected && sichtbar(knopf)) knopf.focus();
+      else wurzel.current?.querySelector<HTMLCanvasElement>('canvas')?.focus();
     };
   }, [offen, blattSchliessen]);
+
+  // Tab bleibt im Blatt (Prüflauf 25.09.2026, P4-05); Fokus hinein und
+  // zurück regelt der Effekt oben.
+  useFokusFalle(blatt, offen);
 
   const leeren = useCallback(() => {
     striche.current = [];
@@ -499,11 +513,14 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
       style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
       className={klasse}
       aria-label={`${titel} — mit dem Finger oder einem Stift unterschreiben`}
+      // Fokussierbar nur per Programm (kein Tab-Stopp): Rückfallziel, wenn
+      // „Groß unterschreiben" nach dem Blatt nicht zu sehen ist (P4-14).
+      tabIndex={-1}
     />
   );
 
   return (
-    <div>
+    <div ref={wurzel}>
       {/*
         DER PLATZ IST IMMER DA, auch wenn der Knopf noch nicht sichtbar ist.
         Erschien er erst beim ersten Strich, sprang das Feld in genau dem
