@@ -184,6 +184,48 @@ describe('Zeilenschutz', () => {
   });
 });
 
+describe('Interne Hilfsfunktionen', () => {
+  it('sind für angemeldete und anonyme Konten nicht ausführbar', async () => {
+    /*
+      PRÜFLAUF 25.09.2026 (P3-21). Das Schema `app` steht nicht auf der
+      Schnittstelle — aber per Vorgabe durfte `authenticated` JEDE Funktion
+      darin ausführen, auch die, die in `auth.users` schreiben oder mit dem
+      Dienstschlüssel nach aussen rufen. „Nicht erreichbar" ist eine
+      Eigenschaft der Konfiguration; das Ausführungsrecht ist die Grenze, die
+      auch dann noch hält, wenn die sich ändert.
+    */
+    const intern = [
+      'app.ansprueche_setzen(uuid, jsonb, text[])',
+      'app.konto_sperren(uuid, boolean)',
+      'app.sitzungen_beenden(uuid)',
+      'app.ausleitung_anstossen()',
+      'app.ausleitung_nachsehen()',
+      'app.push_anstossen(jsonb)',
+      'app.anstoss_kopfzeilen(text)',
+    ];
+    const offen: string[] = [];
+    for (const f of intern) {
+      for (const rolle of ['authenticated', 'anon']) {
+        const [r] = await zeilen<{ darf: boolean }>(
+          `select has_function_privilege('${rolle}', '${f}', 'execute') as darf`,
+        );
+        if (r.darf) offen.push(`${rolle}: ${f}`);
+      }
+    }
+    expect(offen).toEqual([]);
+  });
+
+  it('die Regelhelfer bleiben es — jede Richtlinie ruft sie mit den Rechten des Fragenden', async () => {
+    for (const f of ['app.darf(text)', 'app.betriebsmitglied(text)', 'app.ist_fuehrung()',
+                     'app.rolle()', 'app.aktiv()', 'app.ist_plattform()']) {
+      const [r] = await zeilen<{ darf: boolean }>(
+        `select has_function_privilege('authenticated', '${f}', 'execute') as darf`,
+      );
+      expect({ f, darf: r.darf }).toEqual({ f, darf: true });
+    }
+  });
+});
+
 describe('Indizes', () => {
   /*
     DIE FRAGE, DIE MIT FIRESTORE NICHT VERSCHWUNDEN IST.

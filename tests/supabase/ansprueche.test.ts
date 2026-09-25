@@ -179,6 +179,84 @@ describe('Ein deaktiviertes Konto kommt nicht mehr herein', () => {
   }, 30_000);
 });
 
+describe('Was sich am Konto ändert, gilt sofort', () => {
+  /*
+    PRÜFLAUF 25.09.2026 (P3-07, P3-08, P3-20). Dasselbe Fenster wie beim
+    Deaktivieren, an drei weiteren Stellen: das Token trägt seine Ansprüche in
+    sich, und solange eine Regel es fragt statt der Tabelle, gilt die alte
+    Rolle, das alte Plattformkonto, die gelöschte Zeile bis zum Ablauf weiter.
+  */
+  it('eine entzogene Rolle greift im laufenden Token — und die Sitzung endet', async () => {
+    const { uid, email } = await neuesKonto('herab');
+    await admin.from('users').insert({
+      id: uid, company_id: BETRIEB, name: 'Herab', email, role: 'Geschäftsführung',
+    });
+    const c = createClient(API, ANON, { auth: { persistSession: false } });
+    const an = await c.auth.signInWithPassword({ email, password: PASSWORT });
+    expect(an.error).toBeNull();
+
+    const vorher = await c.from('companies').update({ bank_name: 'Als Chefin' }).eq('id', BETRIEB);
+    expect(vorher.error).toBeNull();
+
+    await admin.from('users').update({ role: 'Mitarbeiter' }).eq('id', uid);
+    // Dasselbe Token, das noch „Geschäftsführung" sagt.
+    await c.from('companies').update({ bank_name: 'Nach dem Entzug' }).eq('id', BETRIEB);
+    const { data } = await admin.from('companies').select('bank_name').eq('id', BETRIEB).single();
+    expect(data).toEqual({ bank_name: 'Als Chefin' });
+
+    const erneuert = await c.auth.refreshSession({ refresh_token: an.data.session!.refresh_token });
+    expect(erneuert.error).not.toBeNull();
+    await admin.from('companies').update({ bank_name: null }).eq('id', BETRIEB);
+  }, 30_000);
+
+  it('ein entferntes Plattformkonto ist es sofort nicht mehr', async () => {
+    const { uid, email } = await neuesKonto('plattweg');
+    await admin.from('platform_admins').insert({ id: uid, name: 'Plattform weg' });
+    const c = createClient(API, ANON, { auth: { persistSession: false } });
+    const an = await c.auth.signInWithPassword({ email, password: PASSWORT });
+    expect(an.error).toBeNull();
+
+    const { data: f } = await admin.from('support_freigaben').insert({
+      company_id: BETRIEB, gewaehrt_von: anton.uid, grund: 'Prüfung',
+      gilt_bis: new Date(Date.now() + 3_600_000).toISOString(),
+    }).select('id').single();
+    try {
+      const vorher = await c.rpc('support_freigaben_offen');
+      expect((vorher.data ?? []).length).toBeGreaterThan(0);
+
+      await admin.from('platform_admins').delete().eq('id', uid);
+      const nachher = await c.rpc('support_freigaben_offen');
+      expect(nachher.data ?? []).toEqual([]);
+
+      const erneuert = await c.auth.refreshSession({ refresh_token: an.data.session!.refresh_token });
+      expect(erneuert.error).not.toBeNull();
+    } finally {
+      await admin.from('support_freigaben').delete().eq('id', f!.id);
+    }
+  }, 30_000);
+
+  it('wessen Zeile gelöscht wird, kommt sofort an nichts mehr — und nicht mehr herein', async () => {
+    const { uid, email } = await neuesKonto('geloescht');
+    await admin.from('users').insert({
+      id: uid, company_id: BETRIEB, name: 'Gelöscht', email, role: 'Mitarbeiter',
+    });
+    await admin.from('customers').insert({ company_id: BETRIEB, name: 'Kunde für die Löschprobe' });
+    const c = createClient(API, ANON, { auth: { persistSession: false } });
+    await c.auth.signInWithPassword({ email, password: PASSWORT });
+    expect(((await c.from('customers').select('id')).data ?? []).length).toBeGreaterThan(0);
+
+    await admin.from('users').delete().eq('id', uid);
+    expect((await c.from('customers').select('id')).data).toEqual([]);
+
+    const a = await ansprueche(uid);
+    expect(a.company_id).toBeUndefined();
+    expect(a.role).toBeUndefined();
+    const wieder = await createClient(API, ANON, { auth: { persistSession: false } })
+      .auth.signInWithPassword({ email, password: PASSWORT });
+    expect(wieder.error?.code).toBe('user_banned');
+  }, 30_000);
+});
+
 describe('Ein Plattformkonto gehört zu keinem Betrieb', () => {
   it('es bekommt seinen Anspruch und keinen Betrieb', async () => {
     const { uid } = await neuesKonto('plattform');
