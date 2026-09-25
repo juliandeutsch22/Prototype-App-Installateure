@@ -686,3 +686,33 @@ describe('Zeiterfassung — Meine Einträge', () => {
     expect(within(titel).getByText('Nacht')).toBeInTheDocument();
   });
 });
+
+/*
+  LÖSCHEN IST SELTEN UND LIEGT IM ZEILENMENÜ (Linie, 3; Freigabe des Nutzers
+  für diesen Durchgang). „Bearbeiten“ bleibt als Textknopf in der Zeile. Der
+  Weg zum Löschen bleibt derselbe: über die Rückfrage, dann erst weg.
+*/
+describe('Zeiterfassung — Löschen im Zeilenmenü', () => {
+  it('bietet Löschen hinter „⋯“ an und fragt vor dem Löschen nach', async () => {
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    const nutzer = userEvent.setup();
+
+    const zeile = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(zeile).getByRole('button', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(within(zeile).queryByRole('button', { name: 'Löschen' })).toBeNull();
+
+    await nutzer.click(
+      within(zeile).getByRole('button', { name: 'Weitere Aktionen für Eintrag vom 01.09.2026' }),
+    );
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Löschen' }));
+    expect(await screen.findByText('Eintrag löschen?')).toBeInTheDocument();
+  });
+
+  it('zeigt an verrechneten Einträgen auch kein Menü', async () => {
+    eintraege = [eintrag({ id: 'v', isBilled: true })];
+    zeige();
+    const zeile = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(zeile).queryByRole('button', { name: /Weitere Aktionen/ })).toBeNull();
+  });
+});

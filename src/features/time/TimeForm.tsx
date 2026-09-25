@@ -10,7 +10,7 @@ import {
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
-import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
+import { todayStr, getAustrianHolidayName, fmtMin, fmtDauer, calcWorkMin } from '@/lib/time';
 import { zeitbild, zeitSatz, nachtMinuten } from './zeitPlausibilitaet';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
 import { istAussendienst, canExtendTimeEntry, canEditTime } from '@/lib/permissions';
@@ -660,20 +660,23 @@ export default function TimeForm({
       {/* Ein Griff statt sieben: übernimmt Zeiten, Pause und Baustelle vom
           letzten Eintrag. Nur beim Neuanlegen — beim Bearbeiten würde der
           Knopf die zu korrigierenden Werte gerade überschreiben. */}
+      {/*
+        IN DER OPTIK DES HAUPTKNOPFS DER STARTSEITE (Mockup S. 1: „Wie
+        zuletzt buchen“, darunter die Zeile mit Zeiten, Pause und Dauer) —
+        derselbe Griff, dieselbe Form. Er TRÄGT nur ein; gebucht wird
+        weiterhin mit „Zeit buchen“, deshalb heißt er hier „eintragen“.
+        Die zweite Zeile bricht um statt abzuschneiden: der Kundenname ist
+        das, woran man den Eintrag wiedererkennt.
+      */}
       {!isEdit && lastEntry && lastEntry.startTime && lastEntry.endTime && (
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={wieZuletztUebernehmen}
-          className="w-full"
-        >
-          {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
-              den Eintrag wiedererkennt. */}
-          <span className="min-w-0">
-            Wie zuletzt: {lastEntry.startTime}–{lastEntry.endTime}
+        <button type="button" onClick={wieZuletztUebernehmen} className="einsatz-hauptknopf">
+          <span>Wie zuletzt eintragen</span>
+          <span className="einsatz-hauptknopf-zeile">
+            {lastEntry.startTime}–{lastEntry.endTime} · {lastEntry.breakDuration ?? 0} min Pause ·{' '}
+            {fmtDauer(calcWorkMin(lastEntry))}
             {lastEntry.customerName ? ` · ${lastEntry.customerName}` : ''}
           </span>
-        </Button>
+        </button>
       )}
 
       {staff && !isEdit && (

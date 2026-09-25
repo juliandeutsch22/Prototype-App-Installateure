@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, TimeEntry } from '@/types';
@@ -92,5 +93,26 @@ describe('Wie zuletzt — von der Startseite', () => {
     );
     expect(screen.getByDisplayValue('08:00')).toBeInTheDocument();
     expect(screen.queryByDisplayValue('06:30')).not.toBeInTheDocument();
+  });
+});
+
+/*
+  DER KNOPF IN DER MASKE trägt die Optik des Hauptknopfs der Startseite:
+  zwei Zeilen, oben was er tut, darunter Zeiten, Pause, Dauer und Kunde
+  (Mockup S. 1). Der Griff dahinter ist derselbe wie vorher.
+*/
+describe('Wie zuletzt — der Knopf in der Maske', () => {
+  it('nennt Zeiten, Pause, Dauer und Kunde und belegt beim Tippen vor', async () => {
+    zeichne(undefined);
+    const knopf = screen.getByRole('button', { name: /Wie zuletzt eintragen/ });
+    expect(knopf).toHaveTextContent('06:30–15:15 · 45 min Pause · 08:00 Std · Familie Huber');
+    expect(knopf).toHaveClass('einsatz-hauptknopf');
+    expect(screen.queryByDisplayValue('06:30')).not.toBeInTheDocument();
+
+    await userEvent.setup().click(knopf);
+    expect(screen.getByDisplayValue('06:30')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('15:15')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('45')).toBeInTheDocument();
+    expect(screen.getByLabelText('Baustelle')).toHaveValue('B-2026-0147');
   });
 });

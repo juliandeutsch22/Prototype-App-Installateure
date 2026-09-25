@@ -37,6 +37,7 @@ import { zuschlagszeit, hatZuschlaege } from '@/features/accounting/zuschlaege';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import RowMenu from '@/components/RowMenu';
 import Meldung from '@/components/Meldung';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
@@ -773,13 +774,17 @@ export default function TimeView() {
                             // nur über den Antrag.
                             <AntragKnopf eintrag={e} />
                           ) : (
+                            /* Bearbeiten ist die häufige Aktion und bleibt
+                               Textknopf; Löschen ist selten und liegt im
+                               Zeilenmenü (Linie, 3) — die Rückfrage bleibt. */
                             <>
                               <Button variant="ghost" onClick={() => setEditing(e)}>
                                 Bearbeiten
                               </Button>
-                              <Button variant="ghost" onClick={() => setToDelete(e)}>
-                                Löschen
-                              </Button>
+                              <RowMenu
+                                about={`Eintrag vom ${datumAT(e.date)}`}
+                                items={[{ label: 'Löschen', danger: true, onSelect: () => setToDelete(e) }]}
+                              />
                             </>
                           )}
                         </ListRow>
