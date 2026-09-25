@@ -2959,6 +2959,64 @@ textarea {
   .liste-suche {
     margin-bottom: 1rem;
   }
+
+  /* ── Einsatzplanung: die Baustellen eines Tages ─────────────────────── */
+
+  /* Je Baustelle ein Abschnitt der Karte, getrennt durch eine Haarlinie —
+     kein Rahmen, kein getönter Kopf (Linie, 2: keine Karte in der Karte).
+     Die erste Baustelle steht ohne Linie direkt unter dem Kartentitel. */
+  .tagplan-gruppe-erste {
+    padding-bottom: 0.25rem;
+  }
+
+  .tagplan-gruppe {
+    margin-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .tagplan-kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 0.75rem;
+    row-gap: 0.25rem;
+  }
+
+  .tagplan-kopf-text {
+    min-width: 0;
+    flex: 1 1 12rem;
+  }
+
+  /* Kunde wie ein Listentitel, eine Stufe unter dem Kartentitel. */
+  .tagplan-titel {
+    font-weight: 600;
+    color: var(--ink-deep);
+  }
+
+  /* „B-2026-0147 · 1 Facharbeiter · 1 Helfer“ — die Unterzeile der Linie. */
+  .tagplan-unter {
+    margin-top: 0.125rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .tagplan-hinweis {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  /* Aufgabe und Material der Baustelle, zwischen Kopf und Mannschaft. */
+  .tagplan-abschnitt {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text);
+  }
 }
 
 /*
