@@ -2558,3 +2558,55 @@ describe('Die Rechnung geht an den Kunden, nicht an die Baustelle', () => {
     expect((pdfAusgabe.mock.calls[0][0] as { leistungsort?: string }).leistungsort).toBeUndefined();
   });
 });
+
+/*
+  PRÜFLAUF 25.09.2026, P2-12. „Offen" und „Überfällig" rechneten nur über die
+  fünfzig jüngsten Rechnungen — die älteste Forderung fiel als erste heraus.
+  Jetzt über alle unbezahlten; „Bezahlt" sagt dazu, worüber es gerechnet ist.
+*/
+describe('Die Kennzahlen „Offen" und „Überfällig"', () => {
+  const kachel = (name: string) =>
+    screen.getAllByText(name).find((e) => e.tagName === 'P')!.parentElement!;
+
+  it('zählen auch eine alte Forderung, die in der Liste gar nicht mehr steht', async () => {
+    rechnungen = [];
+    offene = [
+      {
+        id: 'alt', invoiceNumber: 'RE-2024-1001', projectNumber: '2024-001', customerName: 'Max',
+        invoiceDate: '2024-03-01', dueDate: '2024-03-15', totalNetto: 1000, totalVat: 200,
+        totalBrutto: 1200, paymentStatus: 'Überfällig',
+      },
+      {
+        id: 'frisch', invoiceNumber: 'RE-2026-1001', projectNumber: '2026-001', customerName: 'Moritz',
+        invoiceDate: '2026-08-30', dueDate: '2099-01-01', totalNetto: 100, totalVat: 20,
+        totalBrutto: 120, paymentStatus: 'Offen',
+      },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige();
+    await waitFor(() => expect(kachel('Überfällig')).toHaveTextContent(/€ 1\s200,00/));
+    expect(kachel('Offen')).toHaveTextContent('€ 120,00');
+  });
+
+  it('der jüngere Stand aus der Liste gewinnt — eine eben erfasste Zahlung zählt sofort', async () => {
+    const r = {
+      id: 'r', invoiceNumber: 'RE-2026-1002', projectNumber: '2026-001', customerName: 'Max',
+      invoiceDate: '2026-08-30', dueDate: '2099-01-01', totalNetto: 100, totalVat: 20,
+      totalBrutto: 120, paymentStatus: 'Offen',
+    } as unknown as Invoice & { id: string };
+    offene = [r];
+    rechnungen = [{ ...r, paymentStatus: 'Bezahlt', bezahltBetrag: 120 }];
+    zeige();
+    await screen.findByText(/RE-2026-1002/);
+    expect(kachel('Offen')).toHaveTextContent('€ 0,00');
+  });
+
+  it('„Bezahlt" sagt, worüber es gerechnet ist', async () => {
+    rechnungen = [
+      { id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
+        paymentStatus: 'Bezahlt', totalBrutto: 100, bezahltBetrag: 100 },
+    ] as unknown as (Invoice & { id: string })[];
+    zeige();
+    await screen.findByText(/RE-2026-1003/);
+    expect(kachel('Bezahlt')).toHaveTextContent('auf die 1 jüngsten Rechnungen');
+  });
+});

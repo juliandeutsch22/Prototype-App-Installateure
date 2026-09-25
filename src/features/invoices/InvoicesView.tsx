@@ -521,11 +521,32 @@ export default function InvoicesView() {
     der vollständig bezahlten Rechnungen zu führen hiesse, das Geld erst zu
     zählen, wenn der letzte Cent da ist.
   */
+  /*
+    „OFFEN" UND „ÜBERFÄLLIG" ÜBER ALLE UNBEZAHLTEN, nicht über die fünfzig
+    jüngsten (Prüflauf 25.09.2026, P2-12). Die älteste offene Forderung ist
+    ausgerechnet die, die aus der Arbeitsliste zuerst herausfällt — die
+    Kennzahl war damit genau um das Geld zu niedrig, dem man am längsten
+    nachläuft. Grundlage sind die offenen Forderungen vom Server; eine
+    Rechnung, die die Arbeitsliste auch kennt, zählt mit ihrem Stand von
+    dort, weil der live nachgezogen wird (eine eben erfasste Zahlung).
+
+    „BEZAHLT" hat keine solche Quelle — eine Summe über alle Zahlungen des
+    Betriebs gibt es nicht. Die Zahl bleibt, sagt aber dazu, worüber sie
+    gerechnet ist.
+  */
   const stats = useMemo(() => {
     let offen = 0;
     let ueberfaellig = 0;
     let bezahlt = 0;
     const heute = todayStr();
+    const unbezahlt = new Map(offeneRechnungen.map((i) => [i.id, i]));
+    for (const i of invoices) unbezahlt.set(i.id, i);
+    for (const i of unbezahlt.values()) {
+      const stand = zahlstand(i);
+      // Nach dem ZIEL, nicht nach dem Stand — siehe `istUeberfaellig`.
+      if (istUeberfaellig(i, heute)) ueberfaellig += stand.rest;
+      else if (i.paymentStatus !== 'Storniert') offen += stand.rest;
+    }
     for (const i of invoices) {
       const stand = zahlstand(i);
       /*
@@ -535,13 +556,10 @@ export default function InvoicesView() {
         wird, was eine Forderung beglichen hat.
       */
       bezahlt += stand.bezahlt - stand.guthaben;
-      // Nach dem ZIEL, nicht nach dem Stand — siehe `istUeberfaellig`.
-      if (istUeberfaellig(i, heute)) ueberfaellig += stand.rest;
-      else if (i.paymentStatus !== 'Storniert') offen += stand.rest;
     }
     const runde = (n: number) => Math.round(n * 100) / 100;
     return { offen: runde(offen), ueberfaellig: runde(ueberfaellig), bezahlt: runde(bezahlt) };
-  }, [invoices]);
+  }, [invoices, offeneRechnungen]);
 
   /**
    * Den Zahlungsdialog öffnen.
@@ -1374,10 +1392,15 @@ export default function InvoicesView() {
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
       <MetricRow>
-        <Metric label="Offen" value={fmtEUR(stats.offen)} />
+        {/* Kamen die offenen Forderungen nicht, sagen es die beiden Zahlen dazu —
+            sonst stünde eine zu kleine Summe da, die niemand als solche erkennt. */}
+        <Metric label="Offen" value={fmtEUR(stats.offen)}
+          hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
         <Metric label="Überfällig" tone={stats.ueberfaellig > 0 ? 'danger' : 'default'}
-          value={fmtEUR(stats.ueberfaellig)} />
-        <Metric label="Bezahlt" tone="success" value={fmtEUR(stats.bezahlt)} />
+          value={fmtEUR(stats.ueberfaellig)}
+          hint={forderungenFehler ? 'nur die jüngsten — offene Forderungen nicht geladen' : undefined} />
+        <Metric label="Bezahlt" tone="success" value={fmtEUR(stats.bezahlt)}
+          hint={`auf die ${invoices.length} jüngsten Rechnungen`} />
       </MetricRow>
 
       {/*
