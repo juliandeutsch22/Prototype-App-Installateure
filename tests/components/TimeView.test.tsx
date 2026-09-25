@@ -643,3 +643,29 @@ describe('Zeiterfassung — Abwesenheiten, die noch kommen', () => {
     expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
   });
 });
+
+/*
+  DAUER, NICHT UHRZEIT. Neben „01.09.2026“ las sich ein nacktes „08:00“ als
+  Beginn — Zeilenwert und Wochensumme tragen deshalb „Std“ (fmtDauer). Die
+  Marker (Nacht, Notdienst, Helfer) stehen am Titel, nicht rechts zwischen
+  Wert und Knöpfen.
+*/
+describe('Zeiterfassung — Meine Einträge', () => {
+  it('schreibt Zeilenwert und Wochensumme als Dauer mit „Std“', async () => {
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+
+    const zeile = (await screen.findByText('01.09.2026')).closest('li') as HTMLElement;
+    expect(within(zeile).getByText('08:00 Std')).toBeInTheDocument();
+    const woche = screen.getByRole('heading', { name: /KW 36/ });
+    expect(woche).toHaveTextContent('08:00 Std');
+  });
+
+  it('setzt die Marker an den Titel der Zeile', async () => {
+    eintraege = [eintrag({ id: 'e1', isNightWork: true })];
+    zeige();
+
+    const titel = (await screen.findByText('01.09.2026')).parentElement as HTMLElement;
+    expect(within(titel).getByText('Nacht')).toBeInTheDocument();
+  });
+});
