@@ -342,17 +342,23 @@ export default function WorkSheetsListView() {
         Aktion der App in einer eigenen Karte über volle Breite. Ein Link und
         kein Knopf, weil er eine andere Seite öffnet; er sieht aus wie der
         Hauptknopf der anderen Listen.
+
+        Und nur für die, die einen Schein auch schreiben dürfen: Buchhaltung
+        und Verwaltung sehen die Liste, landeten mit dem Knopf aber auf
+        „Kein Zugriff" (Prüflauf 25.09.2026, P4-04).
       */}
       <PageHeader
         title="Handwerksscheine"
         subtitle="Unterschriebene Leistungsnachweise der Baustellen"
         action={
+          darfSchreiben && (
           <Link
             to="/worksheet"
             className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
           >
             Neuer Schein
           </Link>
+          )
         }
       />
 
@@ -780,9 +786,17 @@ export default function WorkSheetsListView() {
                     alles neu tippen — oder legte einen ZWEITEN Beleg über
                     dieselbe Arbeit an.
                   */}
+                  {/* Ein Link im Aussehen des Zweitknopfs, KEIN Knopf im Link:
+                      das waren zwei Tab-Stopps für eine Aktion, und die
+                      Vorlesehilfe meldete einen Knopf in einem Link
+                      (Prüflauf 25.09.2026, P4-12). Die Klassen sind die von
+                      `Button` mit `variant="secondary"`. */}
                   {darfSchreiben && s.status === 'Entwurf' && (
-                    <Link to={`/worksheet?entwurf=${s.id}`}>
-                      <Button variant="secondary">Weiterbearbeiten</Button>
+                    <Link
+                      to={`/worksheet?entwurf=${s.id}`}
+                      className="inline-flex min-h-touch items-center justify-center gap-2 rounded border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-2 active:scale-[0.98] sm:text-base"
+                    >
+                      Weiterbearbeiten
                     </Link>
                   )}
                   {/*

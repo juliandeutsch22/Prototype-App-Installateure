@@ -336,9 +336,12 @@ function AppRoutes() {
           <RequireModul id="scheine">
             {/*
               Die Rollen stehen in `permissions.ts`, nicht hier ausgeschrieben:
-              die Liste der Scheine zeigt denselben Knopf und sieht auch die
-              Buchhaltung. Zwei getrennte Aufzaehlungen laufen auseinander,
-              und dann fuehrt ein Knopf auf eine gesperrte Seite.
+              die Liste der Scheine sehen auch Buchhaltung und Verwaltung, ihre
+              Knöpfe hierher („Neuer Schein", „Weiterbearbeiten") aber nur,
+              wer nach derselben Liste schreiben darf (`canWriteWorkSheet`).
+              Zwei getrennte Aufzaehlungen laufen auseinander, und dann
+              fuehrt ein Knopf auf eine gesperrte Seite — so geschehen mit
+              „Neuer Schein" (Prüflauf 25.09.2026, P4-04).
             */}
             <RequireRole roles={SCHEIN_ROLLEN}>
               <WorkSheetView />

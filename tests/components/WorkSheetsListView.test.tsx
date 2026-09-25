@@ -227,6 +227,31 @@ describe('Liste der Handwerksscheine', () => {
     await screen.findByText('Entwurf');
     expect(screen.queryByRole('link', { name: /Weiterbearbeiten/ })).not.toBeInTheDocument();
   });
+
+  it.each(['Buchhaltung', 'Verwaltung'] as const)(
+    'zeigt „Neuer Schein" für %s nicht — die Seite dahinter sperrt (P4-04)',
+    async (rolle) => {
+      // Prüflauf 25.09.2026, P4-04: der Knopf im Kopf hatte keine Prüfung
+      // und führte beide Rollen auf „Kein Zugriff".
+      authWert.user.role = rolle;
+      zeichne();
+      await screen.findByText('Entwurf');
+      expect(screen.queryByRole('link', { name: 'Neuer Schein' })).not.toBeInTheDocument();
+    },
+  );
+
+  it('ist EIN Link, kein Knopf im Link — ein Tab-Stopp (P4-12)', async () => {
+    // Prüflauf 25.09.2026, P4-12: <Link><Button/></Link> waren zwei
+    // Tab-Stopps für dieselbe Aktion.
+    zeichne();
+    const link = await screen.findByRole('link', { name: /Weiterbearbeiten/ });
+    expect(link.querySelector('button')).toBeNull();
+    expect(link.closest('button')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Weiterbearbeiten' })).not.toBeInTheDocument();
+    // Sieht aus wie der Zweitknopf und behält die Tastfläche.
+    expect(link.className).toMatch(/\bmin-h-touch\b/);
+    expect(link.className).toMatch(/\bborder-line\b/);
+  });
 });
 
 describe('Einen Entwurf aufgeben', () => {
