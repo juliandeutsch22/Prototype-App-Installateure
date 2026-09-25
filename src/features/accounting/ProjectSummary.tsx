@@ -236,7 +236,13 @@ export default function ProjectSummary({
 
   return (
     <Card title={`Projektauswertung ${label}`}>
-      <div className="space-y-3">
+      {/*
+        ZEILEN MIT AUFKLAPPER, KEINE KARTEN IN DER KARTE (docs/design/linie.md
+        2). Bis zum 25.09.2026 stand jede Baustelle als eigene `.karte` mit
+        Rahmen und Schatten in dieser Karte; jetzt trennt sie eine Haarlinie
+        wie jede Liste, und die Einzelheiten klappen unter der Zeile auf.
+      */}
+      <ul className="liste">
         {rows.map((r) => {
           const isOpen = open === r.projectNumber;
           const nummer = angezeigteNummer(r);
@@ -247,22 +253,15 @@ export default function ProjectSummary({
               der Mitarbeiterübersicht, hier war sie stehengeblieben. Der
               farbige Kopf schrie lauter als der Inhalt, den er ankündigte,
               und zwang zugleich jede Zahl darin in eine zweite Farbfassung.
-              Jetzt genügt der hellere Grund und die farbige Kante.
-
-              `.karte` bringt Fläche, Rundung und Schatten mit; offen
-              (`.karte-offen`) wird allein die Rahmenfarbe kräftiger.
+              Offen zeigt es allein der gedrehte Winkel; die Einzelheiten
+              stehen unter einer Haarlinie in derselben Zeile.
             */
-            <div
-              key={r.projectNumber}
-              className={isOpen ? 'karte-offen' : 'karte'}
-            >
+            <li key={r.projectNumber} className="zeile-huelle">
               <button
                 type="button"
                 onClick={() => setOpen(isOpen ? null : r.projectNumber)}
                 aria-expanded={isOpen}
-                className={`w-full px-4 py-3 text-left transition-colors ${
-                  isOpen ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
-                }`}
+                className="auswertung-knopf"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="min-w-0">
@@ -336,11 +335,11 @@ export default function ProjectSummary({
                 )}
               </button>
 
-              {isOpen && <Einzelheiten r={r} label={label} />}
-            </div>
+              {isOpen && <Einzelheiten r={r} label={label} inZeile />}
+            </li>
           );
         })}
-      </div>
+      </ul>
     </Card>
   );
 }
@@ -367,7 +366,16 @@ function Balken({ r }: { r: Zeile }) {
  * Der aufgeklappte Teil einer Baustelle: wer wie viel, jeder Tag, die Summe.
  * In der Karte am Telefon und in der Tabellenzeile am Schreibtisch derselbe.
  */
-function Einzelheiten({ r, label }: { r: Zeile; label: string }) {
+function Einzelheiten({
+  r,
+  label,
+  inZeile = false,
+}: {
+  r: Zeile;
+  label: string;
+  /** Unter einer Listenzeile (Telefon): bündig mit der Zeile, ohne eigenen Seitenabstand. */
+  inZeile?: boolean;
+}) {
   /*
     AM TELEFON EINE LISTE, AB 640 PX DIE TABELLE — genau eine Form im DOM.
     Die vierspaltige Tabelle war am Telefon breiter als die Karte; die
@@ -396,7 +404,7 @@ function Einzelheiten({ r, label }: { r: Zeile; label: string }) {
   );
 
   return (
-    <div className="border-t border-line px-4 py-3">
+    <div className={inZeile ? 'auswertung-einzelheiten' : 'border-t border-line px-4 py-3'}>
       {/*
         WER WIE VIEL als eine Zeile Text, nicht als Pillen: Pillen sind in
         dieser Ansicht der Ausnahme vorbehalten („über Budget"), und ein Name

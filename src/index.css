@@ -2708,6 +2708,30 @@ textarea {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.5rem;
   }
+
+  /* Projektauswertung am Telefon und Tablet: die Baustelle als Zeile, die
+     ganze Zeile klappt auf. Keine Fläche, kein Rahmen — die Trennlinie trägt
+     `.zeile-huelle` am Listeneintrag. */
+  .auswertung-knopf {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    padding-block: 0.75rem;
+    text-align: left;
+    color: var(--text);
+  }
+
+  .auswertung-knopf:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Die aufgeklappten Einzelheiten unter der Zeile, bündig mit ihr. */
+  .auswertung-einzelheiten {
+    border-top: 1px solid var(--border);
+    padding-block: 0.75rem;
+  }
 }
 
 /*
