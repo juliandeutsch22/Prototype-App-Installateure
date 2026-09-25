@@ -67,6 +67,8 @@ import RowMenu from '@/components/RowMenu';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
+import Meldung from '@/components/Meldung';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -1292,11 +1294,11 @@ export default function InvoicesView() {
         Grundlage, nicht das Ergebnis.
       */}
       {forderungenFehler && (
-        <p role="status" className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+        <Meldung ton="warnung" role="status">
           <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
           „nicht verrechnete Leistung" sind deshalb unvollständig — was hier fehlt, heisst
           nicht, dass es nichts zu tun gibt. Bitte die Seite neu laden.
-        </p>
+        </Meldung>
       )}
 
       {!forderungenFehler && auffaellige(offeneLeistung).length > 0 && (
@@ -1411,15 +1413,17 @@ export default function InvoicesView() {
             ältesten Forderungen die unsichtbarsten.
           */}
           {lauf.ausgereizt.length > 0 && (
-            <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-              <strong>
-                {lauf.ausgereizt.length}{' '}
-                {lauf.ausgereizt.length === 1 ? 'Forderung' : 'Forderungen'} braucht eine
-                Entscheidung:
-              </strong>{' '}
-              {lauf.ausgereizt.map((i) => `${i.invoiceNumber} (${i.customerName})`).join(', ')}. Die
-              dritte Mahnung ist verschickt — was jetzt folgt, entscheidet der Betrieb.
-            </p>
+            <div className="mt-4">
+              <Meldung ton="warnung">
+                <strong>
+                  {lauf.ausgereizt.length}{' '}
+                  {lauf.ausgereizt.length === 1 ? 'Forderung' : 'Forderungen'} braucht eine
+                  Entscheidung:
+                </strong>{' '}
+                {lauf.ausgereizt.map((i) => `${i.invoiceNumber} (${i.customerName})`).join(', ')}. Die
+                dritte Mahnung ist verschickt — was jetzt folgt, entscheidet der Betrieb.
+              </Meldung>
+            </div>
           )}
         </Card>
       )}
@@ -1477,15 +1481,17 @@ export default function InvoicesView() {
           </Button>
         </div>
         {art === 'anzahlung' && (
-          <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
-            Eine Anzahlung verrechnet noch keine Leistung: sie nimmt keine Stunden und kein
-            Material auf und sperrt deshalb auch keine Belege. Die Schlussrechnung führt später
-            die ganze Leistung an und zieht diese Anzahlung samt Umsatzsteuer wieder ab.
-          </p>
+          <div className="mt-3">
+            <Meldung>
+              Eine Anzahlung verrechnet noch keine Leistung: sie nimmt keine Stunden und kein
+              Material auf und sperrt deshalb auch keine Belege. Die Schlussrechnung führt später
+              die ganze Leistung an und zieht diese Anzahlung samt Umsatzsteuer wieder ab.
+            </Meldung>
+          </div>
         )}
 
         <details className="mt-4">
-          <summary className="min-h-touch cursor-pointer text-sm font-medium text-brand underline">
+          <summary className="textlink min-h-touch cursor-pointer text-sm">
             Konditionen für diese Rechnung anpassen
           </summary>
           <div className="flex flex-wrap items-center gap-2">
@@ -1495,7 +1501,7 @@ export default function InvoicesView() {
               Zusammenstellen. Die dauerhaften Sätze des Betriebs stehen in den Einstellungen.
             </InfoHint>
           </div>
-          <div className="mt-3 rounded-sm border border-line bg-surface-2 p-4">
+          <div className="kasten mt-3">
             <FormGrid cols={3}>
               <InputField id="r-fach" label="Facharbeiter €/h" type="number" min="0" step="0.5"
                 value={String(rates.fach)}
@@ -1591,10 +1597,12 @@ export default function InvoicesView() {
             Datum ein, das es nicht gibt.
           */}
           {art !== 'anzahlung' && (!leistungVon || !leistungBis) && (
-            <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-              Ohne Leistungszeitraum ist die Rechnung nach § 11 UStG unvollständig — beim Kunden
-              wackelt damit der Vorsteuerabzug.
-            </p>
+            <div className="mb-3">
+              <Meldung ton="warnung">
+                Ohne Leistungszeitraum ist die Rechnung nach § 11 UStG unvollständig — beim Kunden
+                wackelt damit der Vorsteuerabzug.
+              </Meldung>
+            </div>
           )}
           {/*
             VERDREHT IST NICHT DASSELBE WIE FEHLEND.
@@ -1612,10 +1620,12 @@ export default function InvoicesView() {
             derselben Maske wären für niemanden nachvollziehbar.
           */}
           {leistungVon && leistungBis && leistungBis < leistungVon && (
-            <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-              „Leistung bis" liegt vor „Leistung von" — so stünde der Zeitraum verdreht auf der
-              Rechnung. Zurückzunehmen wäre das nur noch mit einem Storno.
-            </p>
+            <div className="mb-3">
+              <Meldung ton="warnung">
+                „Leistung bis" liegt vor „Leistung von" — so stünde der Zeitraum verdreht auf der
+                Rechnung. Zurückzunehmen wäre das nur noch mit einem Storno.
+              </Meldung>
+            </div>
           )}
           {/*
             WAS DER KUNDE UNTERSCHRIEBEN HAT, NEBEN DEM, WAS VERRECHNET WIRD.
@@ -1630,92 +1640,98 @@ export default function InvoicesView() {
             GEKAPPT WIRD NICHTS. Die Zahl steht da, entschieden wird im Büro.
           */}
           {abgleich.scheine > 0 && (
-            <p
-              className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
-                abgleich.auffaellig || abgleich.zuWenig || abgleich.fehlend.length > 0
-                  ? 'border border-line bg-surface-2 text-warning'
-                  : 'border-line bg-surface-2 text-ink-muted'
-              }`}
-            >
-              {abgleich.scheine === 1 ? 'Ein Schein bestätigt' : `${abgleich.scheine} Scheine bestätigen`}{' '}
-              <strong>{fmtDauer(abgleich.bestaetigtMin)}</strong>, verrechnet werden{' '}
-              <strong>{fmtDauer(abgleich.verrechnetMin)}</strong>
-              {abgleich.auffaellig ? (
-                <>
-                  {' '}
-                  — <strong>{fmtDauer(abgleich.mehrMin)} mehr, als der Kunde unterschrieben hat.</strong>{' '}
-                  Das kann stimmen: Vorfertigung in der Werkstatt und der Weg zum Grosshändler
-                  zählen auf die Baustelle, stehen aber auf keinem Schein. Nur wird der Kunde
-                  danach fragen — besser jetzt als nach dem Versand.
-                </>
-              ) : abgleich.zuWenig ? (
-                <>
-                  {' '}
-                  — <strong>{fmtDauer(abgleich.wenigerMin)} weniger, als auf noch nicht verrechneten
-                  Scheinen unterschrieben ist.</strong>{' '}
-                  Meist ist die Zeit noch nicht gebucht: der Nachtrag steht beim Monteur in der
-                  Zeiterfassung offen. Gebucht kommt sie auf die nächste Rechnung dieser Baustelle —
-                  dann bekommt der Kunde für einen Einsatz zwei.
-                </>
-              ) : abgleich.fehlend.length > 0 ? (
-                ' — aber nicht jede unterschriebene Stunde steht darauf:'
-              ) : (
-                '.'
-              )}
-              {/*
-                JE PERSON, TAG UND SATZ. Die Summe oben kann stimmen und trotzdem
-                einen Verlust verdecken: fehlen die Facharbeiterstunden vom 24.,
-                während Helferstunden vom 21. gebucht sind, ist sie gleich —
-                und der Kunde hat für die einen unterschrieben, nicht für die
-                anderen (Prüflauf 24.09.2026).
-              */}
-              {abgleich.fehlend.length > 0 && (
-                <span className="mt-1 block">
-                  {abgleich.fehlend.map((f) => (
-                    <span key={`${f.datum}|${f.name}|${f.helfer}`} className="block">
-                      {f.datum.slice(8, 10)}.{f.datum.slice(5, 7)}. · {f.name} ·{' '}
-                      {f.helfer ? 'Helfer' : 'Facharbeiter'}: unterschrieben{' '}
-                      <strong>{fmtDauer(f.bestaetigtMin)}</strong>, verrechnet{' '}
-                      <strong>{fmtDauer(f.verrechnetMin)}</strong>
-                      {f.andererSatzMin > 0 &&
-                        ` (als ${f.helfer ? 'Facharbeiter' : 'Helfer'} ${fmtDauer(f.andererSatzMin)})`}
-                    </span>
-                  ))}
+            <div className="mb-3">
+              <Meldung
+                ton={
+                  abgleich.auffaellig || abgleich.zuWenig || abgleich.fehlend.length > 0
+                    ? 'warnung'
+                    : 'neutral'
+                }
+              >
+                {abgleich.scheine === 1 ? 'Ein Schein bestätigt' : `${abgleich.scheine} Scheine bestätigen`}{' '}
+                <strong>{fmtDauer(abgleich.bestaetigtMin)}</strong>, verrechnet werden{' '}
+                <strong>{fmtDauer(abgleich.verrechnetMin)}</strong>
+                {abgleich.auffaellig ? (
+                  <>
+                    {' '}
+                    — <strong>{fmtDauer(abgleich.mehrMin)} mehr, als der Kunde unterschrieben hat.</strong>{' '}
+                    Das kann stimmen: Vorfertigung in der Werkstatt und der Weg zum Grosshändler
+                    zählen auf die Baustelle, stehen aber auf keinem Schein. Nur wird der Kunde
+                    danach fragen — besser jetzt als nach dem Versand.
+                  </>
+                ) : abgleich.zuWenig ? (
+                  <>
+                    {' '}
+                    — <strong>{fmtDauer(abgleich.wenigerMin)} weniger, als auf noch nicht verrechneten
+                    Scheinen unterschrieben ist.</strong>{' '}
+                    Meist ist die Zeit noch nicht gebucht: der Nachtrag steht beim Monteur in der
+                    Zeiterfassung offen. Gebucht kommt sie auf die nächste Rechnung dieser Baustelle —
+                    dann bekommt der Kunde für einen Einsatz zwei.
+                  </>
+                ) : abgleich.fehlend.length > 0 ? (
+                  ' — aber nicht jede unterschriebene Stunde steht darauf:'
+                ) : (
+                  '.'
+                )}
+                {/*
+                  JE PERSON, TAG UND SATZ. Die Summe oben kann stimmen und trotzdem
+                  einen Verlust verdecken: fehlen die Facharbeiterstunden vom 24.,
+                  während Helferstunden vom 21. gebucht sind, ist sie gleich —
+                  und der Kunde hat für die einen unterschrieben, nicht für die
+                  anderen (Prüflauf 24.09.2026).
+                */}
+                {abgleich.fehlend.length > 0 && (
                   <span className="mt-1 block">
-                    Meist ist die Zeit noch nicht oder zum anderen Satz gebucht. Nachbuchen oder
-                    berichtigen, dann die Positionen neu zusammenstellen.
+                    {abgleich.fehlend.map((f) => (
+                      <span key={`${f.datum}|${f.name}|${f.helfer}`} className="block">
+                        {f.datum.slice(8, 10)}.{f.datum.slice(5, 7)}. · {f.name} ·{' '}
+                        {f.helfer ? 'Helfer' : 'Facharbeiter'}: unterschrieben{' '}
+                        <strong>{fmtDauer(f.bestaetigtMin)}</strong>, verrechnet{' '}
+                        <strong>{fmtDauer(f.verrechnetMin)}</strong>
+                        {f.andererSatzMin > 0 &&
+                          ` (als ${f.helfer ? 'Facharbeiter' : 'Helfer'} ${fmtDauer(f.andererSatzMin)})`}
+                      </span>
+                    ))}
+                    <span className="mt-1 block">
+                      Meist ist die Zeit noch nicht oder zum anderen Satz gebucht. Nachbuchen oder
+                      berichtigen, dann die Positionen neu zusammenstellen.
+                    </span>
                   </span>
-                </span>
-              )}
-            </p>
+                )}
+              </Meldung>
+            </div>
           )}
           {pauschalAus !== null && (
-            <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink">
-              {art === 'teil'
-                ? 'Pauschalbaustelle: den Teilbetrag legt die Vereinbarung fest — die Schlussrechnung zieht ihn ab.'
-                : pauschalAus
-                  ? `Pauschalbaustelle: die Positionen kommen aus dem Angebot ${pauschalAus}. Stunden und Material der Scheine sind darin enthalten und werden nicht einzeln verrechnet.`
-                  : 'Pauschalbaustelle ohne angenommenes Angebot: den vereinbarten Betrag bitte in der Zeile eintragen. Stunden und Material der Scheine sind darin enthalten.'}
-            </p>
+            <div className="mb-3">
+              <Meldung>
+                {art === 'teil'
+                  ? 'Pauschalbaustelle: den Teilbetrag legt die Vereinbarung fest — die Schlussrechnung zieht ihn ab.'
+                  : pauschalAus
+                    ? `Pauschalbaustelle: die Positionen kommen aus dem Angebot ${pauschalAus}. Stunden und Material der Scheine sind darin enthalten und werden nicht einzeln verrechnet.`
+                    : 'Pauschalbaustelle ohne angenommenes Angebot: den vereinbarten Betrag bitte in der Zeile eintragen. Stunden und Material der Scheine sind darin enthalten.'}
+              </Meldung>
+            </div>
           )}
           {preview.materialOhnePreis.length > 0 && (
-            <p className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-              Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt:{' '}
-              {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile
-              entfernen — im Lager gepflegt, kommt er beim nächsten Mal von selbst.
-              {/*
-                „Im Lager gepflegt, kommt er beim nächsten Mal von selbst" ist
-                der übliche Rat — und er wäre falsch, wenn der Katalog gar
-                nicht vollständig geladen wurde. Dann liegt es nicht an der
-                Pflege, und wer ihr nachginge, suchte an der falschen Stelle.
-              */}
-              {katalogUnvollstaendig && (
-                <strong className="mt-1 block">
-                  Achtung: der Materialstamm wurde nur bis zur Obergrenze geladen. Für diese
-                  Artikel kann sehr wohl ein Preis hinterlegt sein.
-                </strong>
-              )}
-            </p>
+            <div className="mb-3">
+              <Meldung ton="warnung">
+                Ohne Preis im Katalog und deshalb mit 0,00 € eingesetzt:{' '}
+                {preview.materialOhnePreis.join(', ')}. Preis hier eintragen oder die Zeile
+                entfernen — im Lager gepflegt, kommt er beim nächsten Mal von selbst.
+                {/*
+                  „Im Lager gepflegt, kommt er beim nächsten Mal von selbst" ist
+                  der übliche Rat — und er wäre falsch, wenn der Katalog gar
+                  nicht vollständig geladen wurde. Dann liegt es nicht an der
+                  Pflege, und wer ihr nachginge, suchte an der falschen Stelle.
+                */}
+                {katalogUnvollstaendig && (
+                  <strong className="mt-1 block">
+                    Achtung: der Materialstamm wurde nur bis zur Obergrenze geladen. Für diese
+                    Artikel kann sehr wohl ein Preis hinterlegt sein.
+                  </strong>
+                )}
+              </Meldung>
+            </div>
           )}
           {/* Positionen sind bearbeitbar, nicht nur ansehbar.
               Eine Rechnung ist selten genau das, was die Zeiterfassung
@@ -1889,7 +1905,7 @@ export default function InvoicesView() {
             — ein Abzug zöge sie ein zweites Mal ab.
           */}
           {zieheAb && (
-            <div className="mt-4 rounded border border-line bg-surface-2 p-4">
+            <div className="kasten mt-4">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <span className="section-label">Bereits verrechnet — abziehen</span>
                 <InfoHint about="den Abzug der Vorrechnungen">
@@ -1939,7 +1955,7 @@ export default function InvoicesView() {
 
           {/* Rabatt auf das Netto, nicht auf das Brutto: die Umsatzsteuer
               bemisst sich am tatsaechlich vereinbarten Entgelt. */}
-          <div className="mt-4 rounded border border-line bg-surface-2 p-4">
+          <div className="kasten mt-4">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="section-label">Rabatt</span>
               <InfoHint about="den Rabatt">
@@ -1980,7 +1996,7 @@ export default function InvoicesView() {
             </FormGrid>
           </div>
 
-          <div className="mt-4 space-y-3">
+          <div className="mb-4 mt-4 space-y-3">
             {/*
               LÜCKENLOS (Launch-Check, K8). RE-2026-1500 statt 1002 ging vorher
               ohne Warnung durch, und die 498 Nummern dazwischen fehlen für
@@ -2030,7 +2046,7 @@ export default function InvoicesView() {
               keine Vorgabe: eine ungenutzte Steuerfunktion, die sich
               versehentlich einschaltet, kostet mehr als sie nützt.
             */}
-            <div className="rounded-sm border border-line p-3">
+            <div className="kasten-hell">
               <CheckboxField
                 id="rc"
                 label="Bauleistung — Steuerschuld geht auf den Empfänger über (§ 19 Abs 1a UStG)"
@@ -2069,7 +2085,7 @@ export default function InvoicesView() {
 
               Vorausgefüllt aus dem Kundenstamm, wenn dort eine hinterlegt ist.
             */}
-            <div className="rounded-sm border border-line p-3">
+            <div className="kasten-hell">
               <InputField
                 id="rc-uid"
                 label="UID-Nummer des Kunden"
@@ -2109,16 +2125,16 @@ export default function InvoicesView() {
               nur angemahnt, nicht erzwungen.
             */}
             {!company?.addressLine?.trim() && (
-              <p className="rounded-sm border border-danger/30 bg-surface-2 px-3 py-2 text-sm text-danger" role="alert">
+              <Meldung ton="gefahr" role="alert">
                 Die Anschrift des Betriebs fehlt — sie muss auf jeder Rechnung stehen (§ 11 UStG).{' '}
                 {user && isTopLevel(user.role) ? (
-                  <Link to="/settings/firma" className="font-medium underline">
+                  <Link to="/settings/firma" className="textlink">
                     In den Firmendaten eintragen
                   </Link>
                 ) : (
                   'Die Geschäftsführung trägt sie in den Firmendaten ein.'
                 )}
-              </p>
+              </Meldung>
             )}
             {company?.addressLine?.trim() && !company?.vatId?.trim() && (
               <p className="text-sm text-warning">
@@ -2127,29 +2143,35 @@ export default function InvoicesView() {
                 {user && isTopLevel(user.role) && (
                   <>
                     {' '}
-                    <Link to="/settings/firma" className="font-medium underline">
+                    <Link to="/settings/firma" className="textlink">
                       Firmendaten
                     </Link>
                   </>
                 )}
               </p>
             )}
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                onClick={confirmInvoice}
-                loading={busy}
-                disabled={
-                  numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || !!summen?.gutschrift
-                  || !company?.addressLine?.trim()
-                }
-                className="w-full sm:w-auto">
-                Rechnung erstellen &amp; PDF
-              </Button>
-              <Button variant="ghost" onClick={() => setPreview(null)} className="w-full sm:w-auto">
-                Verwerfen
-              </Button>
-            </div>
           </div>
+          {/*
+            DIE LEISTE STEHT DIREKT IN DER KARTE, nicht im Block darüber: sie
+            klebt nur innerhalb ihres Elternelements am unteren Rand. Im Block
+            „Rechnungsnummer …" hielte sie erst, wenn dessen Anfang schon im
+            Bild ist — also genau dann nicht, wenn man noch in den Positionen steht.
+          */}
+          <Aktionsleiste>
+            <Button
+              onClick={confirmInvoice}
+              loading={busy}
+              disabled={
+                numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || !!summen?.gutschrift
+                || !company?.addressLine?.trim()
+              }
+              className="w-full sm:w-auto">
+              Rechnung erstellen &amp; PDF
+            </Button>
+            <Button variant="ghost" onClick={() => setPreview(null)} className="w-full sm:w-auto">
+              Verwerfen
+            </Button>
+          </Aktionsleiste>
         </Card>
       )}
 
@@ -2536,11 +2558,13 @@ export default function InvoicesView() {
                 Kanzlei geht — nicht danach.
               */}
               {e.luecken.length > 0 && (
-                <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                  <strong>Lücke im Nummernkreis:</strong> {e.luecken.join(', ')}. Entweder fehlt
-                  eine Rechnung, oder sie wurde gelöscht statt storniert. Das sollte vor der
-                  Übergabe an die Kanzlei geklärt sein.
-                </p>
+                <div className="mt-3">
+                  <Meldung ton="warnung">
+                    <strong>Lücke im Nummernkreis:</strong> {e.luecken.join(', ')}. Entweder fehlt
+                    eine Rechnung, oder sie wurde gelöscht statt storniert. Das sollte vor der
+                    Übergabe an die Kanzlei geklärt sein.
+                  </Meldung>
+                </div>
               )}
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Button
@@ -2585,11 +2609,13 @@ export default function InvoicesView() {
                         Einstellungen und stammen von dort, nicht aus dieser App.
                       </InfoHint>
                       {b.fehlend.length > 0 && (
-                        <p className="mt-2 basis-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                          <strong>Im Kontenrahmen fehlt:</strong> {b.fehlend.join('; ')}. Bis
-                          dahin gibt es keinen Buchungsstapel — einer mit Lücken importiert
-                          sich fehlerfrei und bucht einen zu niedrigen Umsatz.
-                        </p>
+                        <div className="mt-2 basis-full">
+                          <Meldung ton="warnung">
+                            <strong>Im Kontenrahmen fehlt:</strong> {b.fehlend.join('; ')}. Bis
+                            dahin gibt es keinen Buchungsstapel — einer mit Lücken importiert
+                            sich fehlerfrei und bucht einen zu niedrigen Umsatz.
+                          </Meldung>
+                        </div>
                       )}
                     </>
                   );
