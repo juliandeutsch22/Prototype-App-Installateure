@@ -564,6 +564,122 @@ textarea {
 }
 
 /*
+ * MONTEUR-START — die Startseite des Monteurs (siehe MonteurStart.tsx).
+ *
+ * Am Telefon untereinander: Heute, Diese Woche, Offen für dich. Am
+ * Schreibtisch links „Heute“, rechts die beiden kleinen Karten.
+ */
+@layer components {
+  .monteur-start,
+  .monteur-seite {
+    display: grid;
+    gap: 1.5rem;
+    align-content: start;
+  }
+
+  @media (min-width: 1024px) {
+    .monteur-start {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      align-items: start;
+    }
+  }
+
+  .monteur-einsaetze {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .monteur-kunde {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.125rem;
+    line-height: 1.6rem;
+    font-weight: 600;
+    color: var(--ink-deep);
+  }
+
+  .monteur-auftrag {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .monteur-knoepfe {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Der eine Hauptknopf des Tages, über die volle Breite — mit der Zeile
+     darunter, die sagt, was er übernimmt. */
+  .monteur-hauptknopf {
+    display: flex;
+    min-height: 48px;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    background-color: var(--brand);
+    padding: 0.625rem 1rem;
+    text-align: center;
+    font-weight: 600;
+    color: var(--brand-fg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .monteur-hauptknopf-zeile {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 400;
+  }
+
+  .monteur-nebenknoepfe {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.5rem;
+  }
+
+  .monteur-woche {
+    color: var(--text-muted);
+  }
+
+  .monteur-woche-ist {
+    font-size: 1.375rem;
+    line-height: 1.8rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .monteur-saldo {
+    margin-top: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  .monteur-saldo-plus {
+    font-weight: 600;
+    color: var(--success);
+  }
+
+  .monteur-saldo-minus {
+    font-weight: 600;
+    color: var(--danger);
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════
