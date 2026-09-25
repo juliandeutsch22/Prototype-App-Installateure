@@ -2735,6 +2735,31 @@ textarea {
 }
 
 /*
+ * ZWEITER DURCHGANG NACH DER LINIE — Einkaufsliste, Einstellungen,
+ * Anmeldung und Rechtsseiten (docs/design/linie.md). Was diese Ansichten
+ * über die gemeinsamen Bausteine hinaus brauchen, je Element eine Klasse.
+ */
+@layer components {
+  /* Die Kundennummer beim Grosshändler rechts in der Titelzeile. */
+  .einkauf-kundennummer {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+
+  /* Ein Formular unter einer Liste in derselben Karte: mit Haarlinie
+     abgesetzt, kein zweiter Kasten. */
+  .einkauf-formular {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════
