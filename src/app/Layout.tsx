@@ -284,7 +284,14 @@ export default function Layout({ children }: { children: ReactNode }) {
           arbeitet — die Oberfläche sieht sonst aus wie jede andere.
         */}
         <Supportsitzung />
-        <div className="mx-auto max-w-5xl p-4 md:p-6">{children}</div>
+        {/*
+          BIS 80 rem BREIT (Mockup S. 7, 8): die Seiten stehen am Schreibtisch
+          zweispaltig, Tabellen haben fünf bis sieben Spalten. Mit der alten
+          Grenze von 64 rem brach „Wie zuletzt buchen“ bei 1440 px dreizeilig
+          um, und die rechte Spalte war schmaler als ihr Inhalt. Darüber
+          bleibt der Inhalt mittig, damit Zeilen nicht endlos lang werden.
+        */}
+        <div className="mx-auto max-w-7xl p-4 md:p-6 xl:px-10 xl:py-8">{children}</div>
       </main>
 
       {/* Mobile Tab-Bar — dieselbe dunkle Trägerfläche wie die Kopfleiste, so
