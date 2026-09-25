@@ -9,6 +9,7 @@ import ErrorBoundary from './ErrorBoundary';
 import Unterreiter from '@/components/Unterreiter';
 import Layout from './Layout';
 import { LoadingState } from '@/components/States';
+import PageHeader from '@/components/PageHeader';
 import { SCHEIN_ROLLEN } from '@/lib/permissions';
 
 /**
@@ -144,14 +145,14 @@ function AppInhalt() {
     return (
       <div className="mx-auto max-w-xl space-y-6 p-4 sm:p-6">
         <MarkenBand />
-        <header className="space-y-1">
-          <h1 className="text-xl font-semibold text-ink">Willkommen</h1>
-          <p className="text-sm text-ink-muted">
-            {passwortFaellig === 'start'
+        <PageHeader
+          title="Willkommen"
+          subtitle={
+            passwortFaellig === 'start'
               ? 'Du bist mit einem Startpasswort angemeldet. Vergib zuerst ein eigenes — danach geht es weiter.'
-              : 'Vergib zuerst ein Passwort. Danach geht es weiter.'}
-          </p>
-        </header>
+              : 'Vergib zuerst ein Passwort. Danach geht es weiter.'
+          }
+        />
         <PasswortAendern
           erstmalig
           nachStartpasswort={passwortFaellig === 'start'}
@@ -168,7 +169,7 @@ function AppInhalt() {
           Nicht dein Konto?{' '}
           <button
             type="button"
-            className="inline-flex min-h-touch items-center font-medium text-brand underline"
+            className="textlink-allein"
             onClick={() => {
               void signOut().finally(() => setPasswortFaellig(false));
             }}
