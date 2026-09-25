@@ -252,7 +252,13 @@ describe('Katalog am Schreibtisch', () => {
     expect(alt).toHaveTextContent('EV-12');
     expect(within(alt).getByText('ausgelaufen')).toBeInTheDocument();
     expect(within(alt).getByText('3 Stk')).toBeInTheDocument();
-    expect(within(alt).getByRole('button', { name: 'Eckventil alt löschen' })).toBeInTheDocument();
+    // Löschen liegt im „⋯" wie in jeder Liste (docs/design/linie.md 3) —
+    // vorher ein rotes ✕ in der Zeile.
+    await userEvent.click(
+      within(alt).getByRole('button', { name: 'Weitere Aktionen für Material Eckventil alt' }),
+    );
+    expect(await screen.findByRole('menuitem', { name: 'Löschen' })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
     // Genau eine Form im DOM.
     expect(screen.queryAllByRole('listitem')).toHaveLength(0);
 

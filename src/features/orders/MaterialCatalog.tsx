@@ -14,7 +14,7 @@ import type { Material } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
-import IconButton from '@/components/IconButton';
+import RowMenu from '@/components/RowMenu';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -235,12 +235,15 @@ export default function MaterialCatalog({
     </>
   );
 
+  /* Bearbeiten als Textknopf, das seltene Löschen im „⋯" wie in jeder
+     Liste (docs/design/linie.md 3) — vorher ein rotes ✕ in jeder Zeile. */
   const katalogKnoepfe = (m: WithId<Material>) => (
     <>
       <Button variant="ghost" onClick={() => startEdit(m)}>Bearbeiten</Button>
-      <IconButton label={`${m.name} löschen`} tone="danger" onClick={() => setToDelete(m)}>
-        ✕
-      </IconButton>
+      <RowMenu
+        about={`Material ${m.name}`}
+        items={[{ label: 'Löschen', onSelect: () => setToDelete(m), danger: true }]}
+      />
     </>
   );
 
