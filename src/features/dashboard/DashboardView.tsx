@@ -31,7 +31,9 @@ import {
   canInvoice,
   canEditTime,
   isMitarbeiter,
+  canWriteWorkSheet,
 } from '@/lib/permissions';
+import { canAccess } from '@/app/navigation';
 import type { Assignment, EinsatzMaterial, MaterialOrder, Project, RuestPosition } from '@/types';
 import Card from '@/components/Card';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -631,9 +633,14 @@ export default function DashboardView() {
         <Card
           title={data.heuteEigene.length === 1 ? 'Heute' : `Heute — ${data.heuteEigene.length} Baustellen`}
           action={
-            <Link to="/my-schedule" className="link-weiter text-sm">
-              Mein Einsatzplan
-            </Link>
+            // Nur, wer den Einsatzplan hat (nur Monteure) — eingeteilt werden
+            // auch andere, und die landeten auf „Kein Zugriff" (Prüflauf
+            // 25.09.2026, P4-15).
+            user && canAccess(user.role, '/my-schedule', company?.modules) ? (
+              <Link to="/my-schedule" className="link-weiter text-sm">
+                Mein Einsatzplan
+              </Link>
+            ) : undefined
           }
         >
           <div className="space-y-4">
@@ -680,7 +687,8 @@ export default function DashboardView() {
                   >
                     Zeit erfassen
                   </Link>
-                  {scheineAn && (
+                  {/* Schreiben darf nicht jeder Eingeteilte (P4-15). */}
+                  {scheineAn && user && canWriteWorkSheet(user.role) && (
                     <Link
                       to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
                       className="flex min-h-touch items-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink"
