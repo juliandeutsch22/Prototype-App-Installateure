@@ -614,7 +614,9 @@ export default function QuotesView() {
                 key={q.id}
                 title={
                   // Die Nummer führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
-                  <Link to={`/quotes/${q.id}`} className="link">
+                  // Tastfläche 48 px, Zeile unverändert: Polster und Gegen-
+                  // rand heben sich im Layout auf (Prüflauf 25.09.2026).
+                  <Link to={`/quotes/${q.id}`} className="link py-3 -my-3">
                     {q.quoteNumber} · {q.customerName}
                   </Link>
                 }

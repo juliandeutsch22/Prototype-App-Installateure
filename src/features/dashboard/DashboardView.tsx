@@ -611,7 +611,10 @@ export default function DashboardView() {
           <p className="mt-1 text-sm">
             {offeneTage.slice(-5).map(fmtTag).join(', ')}
             {offeneTage.length > 5 && ` und ${offeneTage.length - 5} weitere`}.{' '}
-            <Link to="/time" className="link-hinweis-weiter">
+            {/* Tastfläche 48 px ohne neue Zeilenhöhe: senkrechtes Polster an
+                einem Link im Fliesstext verschiebt nichts (Prüflauf
+                25.09.2026, Touch-Ziele). */}
+            <Link to="/time" className="link-hinweis-weiter py-3.5 -my-3.5">
               Jetzt nachtragen
             </Link>
           </p>

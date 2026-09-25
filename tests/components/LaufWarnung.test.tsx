@@ -65,6 +65,10 @@ describe('Wenn ein Lauf ausbleibt', () => {
     zeige();
     expect(await screen.findByRole('alert')).toHaveTextContent('Sicherung');
     expect(screen.getByRole('link', { name: 'Zur Datensicherung' })).toBeInTheDocument();
+    // 48 px Tastfläche ohne neue Zeilenhöhe (Prüflauf 25.09.2026, Touch-Ziele).
+    expect(screen.getByRole('link', { name: 'Zur Datensicherung' }).className).toMatch(
+      /\bpy-3\.5\b.*-my-3\.5|inline-flex min-h-touch/,
+    );
   });
 
   it('in der Einzahl, solange es nur einen Lauf gibt', async () => {
