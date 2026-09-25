@@ -203,6 +203,22 @@ describe('Wen die Akte nicht ändern lässt', () => {
     expect(screen.queryByRole('button', { name: /Passwort-Mail/ })).not.toBeInTheDocument();
   });
 
+  it('schreibt Stunden und Tage beim Lesen mit Komma', async () => {
+    // Wie überall in der App: „38,5", nicht „38.5" — auch beim aliquoten
+    // Resturlaub eines Neueintritts und einem negativen Start-Saldo.
+    gefunden = person({
+      uid: 'ad1', name: 'Root Person', role: 'Administrator',
+      weeklyTargetHours: 38.5, initialOvertime: -12.25, initialVacationDays: 8.33,
+    });
+    zeige('ad1');
+
+    await screen.findByText(/nur von einem Administrator/);
+    expect(angabe('Wochenstunden')).toHaveTextContent('38,5');
+    expect(angabe('Start-Saldo (Stunden)')).toHaveTextContent('-12,25');
+    expect(angabe('Resturlaub beim Umstieg')).toHaveTextContent('8,33');
+    expect(angabe('Urlaubstage pro Jahr')).toHaveTextContent('25');
+  });
+
   it('lässt einen Administrator einen Administrator sehr wohl ändern', async () => {
     // Die Gegenprobe: wäre die Sperre zu streng, käme niemand mehr an die
     // Rollenvergabe — und alle Prüfungen darüber wären trotzdem grün.
