@@ -95,7 +95,7 @@ export function KrankmeldungListe({
             title={
               <span>
                 {mitNamen && <span className="mr-2">{k.userName}</span>}
-                <span className="tnum">{zeitraumText(k.von, k.bis)}</span>
+                <span>{zeitraumText(k.von, k.bis)}</span>
               </span>
             }
             subtitle={[

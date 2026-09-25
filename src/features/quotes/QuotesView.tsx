@@ -507,7 +507,7 @@ export default function QuotesView() {
                     Zählt als Arbeitszeit ins Stundenbudget
                   </label>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="tnum text-sm text-ink-muted">
+                    <span className="text-sm text-ink-muted">
                       {fmtEUR(positionNetto(num(z.qty), cent(num(z.unitPrice))))}
                     </span>
                     {zeilen.length > 1 && (
@@ -551,7 +551,7 @@ export default function QuotesView() {
           </div>
 
           <div className="mt-4 rounded border border-line bg-surface-2 p-3">
-            <p className="tnum text-sm text-ink">
+            <p className="text-sm text-ink">
               Netto {fmtEUR(summen.totalNetto)} · USt {fmtEUR(summen.totalVat)} ·{' '}
               <strong>Brutto {fmtEUR(summen.totalBrutto)}</strong>
             </p>
@@ -573,7 +573,7 @@ export default function QuotesView() {
             <p className="mt-3 rounded border border-line bg-surface-2 p-3 text-sm text-warning" role="status">
               Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen.
               Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher kalkuliert:{' '}
-              <strong className="tnum">{fmtStunden(stundenVorher)} h</strong>.
+              <strong>{fmtStunden(stundenVorher)} h</strong>.
             </p>
           )}
 
@@ -619,9 +619,11 @@ export default function QuotesView() {
                     {q.quoteNumber} · {q.customerName}
                   </Link>
                 }
+                wert={`${fmtEUR(q.totalBrutto)} brutto`}
+                zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
                 subtitle={
                   <>
-                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)} · {fmtEUR(q.totalBrutto)} brutto
+                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)}
                     <span className="mt-1 block text-xs text-ink-muted">
                       {fmtStunden(q.kalkulierteStunden)} h kalkuliert
                       {q.projectNumber ? ` · Baustelle ${q.projectNumber}` : ''}
@@ -629,7 +631,6 @@ export default function QuotesView() {
                   </>
                 }
               >
-                <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
                 {darfAendern && q.status === 'Entwurf' && (
                   <>
                     <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>

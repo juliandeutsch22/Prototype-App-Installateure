@@ -162,7 +162,7 @@ export default function ProjectSummary({
                     {/* Die Nummer, wie sie an der Baustelle steht — der Schlüssel
                         der Gruppierung hat den Vorsatz „PR-" verloren
                         (Launch-Check 25.09.2026: „187" statt „PR-187"). */}
-                    <span className="block tnum text-sm text-ink-muted">
+                    <span className="block text-sm text-ink-muted">
                       {r.project?.projectNumber ?? r.projectNumber}
                     </span>
                   </span>
@@ -173,7 +173,7 @@ export default function ProjectSummary({
                       die ganze Baustelle, also zwei Zahlen, die nichts
                       miteinander zu tun haben.
                     */}
-                    <span className="tnum text-sm text-ink">{h(r.fachMin)} h</span>
+                    <span className="text-sm text-ink">{h(r.fachMin)} h</span>
                     {/*
                       NUR DIE AUSNAHME BEKOMMT EINE PILLE. „Über Budget" ist
                       eine — Helferstunden sind es nicht, sie sind auf vielen
@@ -184,7 +184,7 @@ export default function ProjectSummary({
                     */}
                     {r.budget?.over && <Warnung stufe="dringend">über Budget</Warnung>}
                     {r.helperMin > 0 && (
-                      <span className="tnum text-sm text-ink-muted">
+                      <span className="text-sm text-ink-muted">
                         +{h(r.helperMin)} h Helfer
                       </span>
                     )}
@@ -209,9 +209,9 @@ export default function ProjectSummary({
                 {r.budget && r.budget.pct !== null && r.gesamtFachMin !== null ? (
                   <>
                     <p className="mt-2 text-xs text-ink-muted">
-                      <span className="tnum">{h(r.fachMin)} h</span> in {label} · gesamt{' '}
-                      <span className="tnum font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
-                      <span className="tnum">{fmtStunden(r.project?.estimatedHours ?? 0)} h</span>
+                      <span>{h(r.fachMin)} h</span> in {label} · gesamt{' '}
+                      <span className="font-semibold">{h(r.gesamtFachMin)} h</span> von{' '}
+                      <span>{fmtStunden(r.project?.estimatedHours ?? 0)} h</span>
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
@@ -247,9 +247,9 @@ export default function ProjectSummary({
                         className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1 text-xs"
                       >
                         <span className="font-semibold text-ink">{p.name}</span>
-                        <span className="tnum text-ink-muted">{h(p.fachMin)} h</span>
+                        <span className="text-ink-muted">{h(p.fachMin)} h</span>
                         {p.helperMin > 0 && (
-                          <span className="tnum text-ink-muted">+{h(p.helperMin)} h Helfer</span>
+                          <span className="text-ink-muted">+{h(p.helperMin)} h Helfer</span>
                         )}
                       </span>
                     ))}
@@ -273,7 +273,7 @@ export default function ProjectSummary({
                               key={e.id}
                               className={`border-b border-line/60 ${e.isHelper ? 'bg-warning-bg/40' : ''}`}
                             >
-                              <td className="py-1 pr-3 tnum">{dayLabel(e.date)}</td>
+                              <td className="py-1 pr-3">{dayLabel(e.date)}</td>
                               <td className="py-1 pr-3">
                                 {/*
                                   ALLE Marker, nicht nur „Helfer". Gemeldet:
@@ -292,7 +292,7 @@ export default function ProjectSummary({
                               <td className="py-1 pr-3 text-ink-muted">
                                 {e.comment ? `„${e.comment}"` : '–'}
                               </td>
-                              <td className="py-1 text-right tnum">
+                              <td className="py-1 text-right">
                                 {fmtMin(calcWorkMin(e))}
                               </td>
                             </tr>

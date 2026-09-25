@@ -481,7 +481,7 @@ export default function KundenakteView() {
                       {fmtDatum(r.invoiceDate)} · {r.projectNumber}
                     </span>
                   </span>
-                  <span className="tnum whitespace-nowrap text-sm text-ink-muted">
+                  <span className="whitespace-nowrap text-sm text-ink-muted">
                     {fmtEUR(r.totalBrutto)} brutto · {r.paymentStatus}
                   </span>
                 </li>
@@ -512,7 +512,7 @@ export default function KundenakteView() {
                   <Link to={`/quotes/${q.id}`} className="truncate text-sm text-brand underline">
                     {q.quoteNumber}
                   </Link>
-                  <span className="tnum text-sm text-ink-muted">
+                  <span className="text-sm text-ink-muted">
                     {fmtEUR(q.totalNetto)} netto · {q.status}
                   </span>
                 </li>
@@ -570,7 +570,7 @@ function StammdatenLesen({ k }: { k: Customer }) {
           versehentlich ändert, während man sie nachsieht.
         */}
         <Angabe wort="UID-Nummer">
-          {k.vatId ? <span className="tnum">{k.vatId}</span> : null}
+          {k.vatId ? <span>{k.vatId}</span> : null}
         </Angabe>
         <Angabe wort="Zustand">
           {k.active === false

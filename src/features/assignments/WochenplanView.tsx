@@ -406,7 +406,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                             >
                               {wochentag}
                             </span>
-                            <span className="tnum block text-xs text-ink-muted">{datum}</span>
+                            <span className="block text-xs text-ink-muted">{datum}</span>
                             {zu && <span className="mt-1 block text-xs text-ink-muted">{zu}</span>}
                           </span>
                         ) : (
@@ -423,7 +423,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           >
                             {wochentag}
                           </span>
-                          <span className="tnum block text-xs text-ink-muted">{datum}</span>
+                          <span className="block text-xs text-ink-muted">{datum}</span>
                           {/* Die Zahl, wegen der es dieses Brett gibt — an
                               Wochenende und Feiertag nicht: dort ist niemand
                               „frei", sondern keiner im Dienst (Prüflauf
@@ -516,7 +516,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                     }`}
                                   >
                                     <span className="block truncate font-medium">{b.name}</span>
-                                    <span className="tnum block truncate">{b.nummer}</span>
+                                    <span className="block truncate">{b.nummer}</span>
                                     {b.helfer && <span className="block">als Helfer</span>}
                                   </span>
                                 ) : (
@@ -532,7 +532,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                   }`}
                                 >
                                   <span className="block truncate font-medium">{b.name}</span>
-                                  <span className="tnum block truncate">{b.nummer}</span>
+                                  <span className="block truncate">{b.nummer}</span>
                                   {b.helfer && <span className="block">als Helfer</span>}
                                 </button>
                                 ),
@@ -597,7 +597,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                             className="rounded-sm border border-line bg-surface-2 px-3 py-2"
                           >
                             <span className="block font-medium text-info">
-                              {b.name} <span className="tnum font-normal">· {b.nummer}</span>
+                              {b.name} <span className="font-normal">· {b.nummer}</span>
                             </span>
                             <span className="block text-sm text-info">
                               {b.namen
@@ -614,7 +614,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           className="min-h-touch w-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-left"
                         >
                           <span className="block font-medium text-info">
-                              {b.name} <span className="tnum font-normal">· {b.nummer}</span>
+                              {b.name} <span className="font-normal">· {b.nummer}</span>
                             </span>
                           <span className="block text-sm text-info">
                             {b.namen

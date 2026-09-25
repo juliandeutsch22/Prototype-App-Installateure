@@ -1320,7 +1320,7 @@ export default function InvoicesView() {
                   </>
                 }
                 subtitle={
-                  <span className="tnum">
+                  <span>
                     Baustelle {schein.projectNumber} · Leistung vom {datumAT(schein.datum)} ·{' '}
                     {schein.abrechnung}
                   </span>
@@ -1381,7 +1381,7 @@ export default function InvoicesView() {
                       </>
                     }
                     subtitle={
-                      <span className="tnum">
+                      <span>
                         {z.rechnung.invoiceNumber} · {fmtEUR(z.offen)}
                         {/* Teilzahlungen sichtbar machen: „600 von 1.000" sagt,
                             warum hier eine andere Zahl steht als in der Liste. */}
@@ -1755,7 +1755,7 @@ export default function InvoicesView() {
                         type="number"
                         min="0"
                         step="0.25"
-                        className="tnum min-h-touch w-24 rounded border border-line bg-surface px-2 py-1 text-right text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        className="min-h-touch w-24 rounded border border-line bg-surface px-2 py-1 text-right text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
                         value={String(p.qty)}
                         onChange={(e) => setPos(i, { qty: Number(e.target.value) || 0 })}
                       />
@@ -1784,7 +1784,7 @@ export default function InvoicesView() {
                           noch eine Entscheidung fehlt.
                         */
                         className={
-                          'tnum min-h-touch w-28 rounded border bg-surface px-2 py-1 text-right text-sm text-ink focus:outline-none focus:ring-2 ' +
+                          'min-h-touch w-28 rounded border bg-surface px-2 py-1 text-right text-sm text-ink focus:outline-none focus:ring-2 ' +
                           (p.unitPrice === 0
                             ? 'border-warning focus:border-warning focus:ring-warning/30'
                             : 'border-line focus:border-brand focus:ring-brand/30')
@@ -1793,7 +1793,7 @@ export default function InvoicesView() {
                         onChange={(e) => setPos(i, { unitPrice: Number(e.target.value) || 0 })}
                       />
                     </td>
-                    <td className="tnum py-2 pr-3 text-right font-medium">{fmtEUR(p.netto)}</td>
+                    <td className="py-2 pr-3 text-right font-medium">{fmtEUR(p.netto)}</td>
                     <td className="py-2 text-right">
                       <IconButton
                         label={`Position ${i + 1} entfernen`}
@@ -1811,19 +1811,19 @@ export default function InvoicesView() {
                   <td colSpan={4} className="pt-2 text-right">
                     {preview.discountAmount > 0 ? 'Zwischensumme' : 'Netto'}
                   </td>
-                  <td className="tnum pt-2 pr-3 text-right">{fmtEUR(preview.subtotalNetto)}</td>
+                  <td className="pt-2 pr-3 text-right">{fmtEUR(preview.subtotalNetto)}</td>
                   <td />
                 </tr>
                 {preview.discountAmount > 0 && preview.discount && (
                   <>
                     <tr className="text-danger">
                       <td colSpan={4} className="text-right">{discountLabel(preview.discount)}</td>
-                      <td className="tnum pr-3 text-right">−{fmtEUR(preview.discountAmount)}</td>
+                      <td className="pr-3 text-right">−{fmtEUR(preview.discountAmount)}</td>
                       <td />
                     </tr>
                     <tr>
                       <td colSpan={4} className="text-right">Netto</td>
-                      <td className="tnum pr-3 text-right">{fmtEUR(preview.totalNetto)}</td>
+                      <td className="pr-3 text-right">{fmtEUR(preview.totalNetto)}</td>
                       <td />
                     </tr>
                   </>
@@ -1832,7 +1832,7 @@ export default function InvoicesView() {
                   <td colSpan={4} className="text-right">
                     {reverseCharge ? 'Umsatzsteuer' : `USt. ${Math.round(satz * 100)} %`}
                   </td>
-                  <td className="tnum pr-3 text-right">
+                  <td className="pr-3 text-right">
                     {reverseCharge ? 'Übergang der Steuerschuld' : fmtEUR(preview.totalVat)}
                   </td>
                   <td />
@@ -1847,7 +1847,7 @@ export default function InvoicesView() {
                         ? 'Rechnungsbetrag'
                         : 'Brutto'}
                   </td>
-                  <td className="tnum pr-3 text-right">{fmtEUR(preview.totalBrutto)}</td>
+                  <td className="pr-3 text-right">{fmtEUR(preview.totalBrutto)}</td>
                   <td />
                 </tr>
                 {abzuege.map((v) => (
@@ -1856,14 +1856,14 @@ export default function InvoicesView() {
                       abzüglich {v.invoiceNumber} vom {datumAT(v.invoiceDate)} (netto {fmtEUR(v.netto)} +
                       USt {fmtEUR(v.vat)})
                     </td>
-                    <td className="tnum pr-3 text-right">−{fmtEUR(v.brutto)}</td>
+                    <td className="pr-3 text-right">−{fmtEUR(v.brutto)}</td>
                     <td />
                   </tr>
                 ))}
                 {abzuege.length > 0 && summen && (
                   <tr className="font-bold">
                     <td colSpan={4} className="text-right">Restforderung brutto</td>
-                    <td className="tnum pr-3 text-right">{fmtEUR(summen.totalBrutto)}</td>
+                    <td className="pr-3 text-right">{fmtEUR(summen.totalBrutto)}</td>
                     <td />
                   </tr>
                 )}
@@ -2007,7 +2007,7 @@ export default function InvoicesView() {
               </div>
             ) : (
               <p className="text-sm text-ink-muted">
-                Rechnungsnummer <strong className="tnum text-ink">{invoiceNumber}</strong> — die App
+                Rechnungsnummer <strong className="text-ink">{invoiceNumber}</strong> — die App
                 vergibt sie beim Erstellen, lückenlos.
               </p>
             )}
@@ -2217,6 +2217,8 @@ export default function InvoicesView() {
               <ListRow
                 key={inv.id}
                 title={`${inv.invoiceNumber} · ${inv.customerName}`}
+                wert={fmtEUR(inv.totalBrutto)}
+                zustand={<StatusBadge status={inv.paymentStatus} />}
                 subtitle={
                   <>
                     {/*
@@ -2227,8 +2229,7 @@ export default function InvoicesView() {
                       weiter umbrechen, aber nur ZWISCHEN den Angaben.
                     */}
                     <span className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</span> ·{' '}
-                    <span className="whitespace-nowrap">fällig {datumAT(inv.dueDate)}</span> ·{' '}
-                    <span className="whitespace-nowrap">{fmtEUR(inv.totalBrutto)}</span>
+                    <span className="whitespace-nowrap">fällig {datumAT(inv.dueDate)}</span>
                     {/*
                       WAS SCHON GEMAHNT WURDE, gehört in die Zeile.
 
@@ -2275,7 +2276,7 @@ export default function InvoicesView() {
                       }
                       if (stand.bezahlt > 0 && stand.rest > 0) {
                         return (
-                          <span className="mt-1 block text-xs text-ink-muted tnum">
+                          <span className="mt-1 block text-xs text-ink-muted">
                             {fmtEUR(stand.bezahlt)} bezahlt · {fmtEUR(stand.rest)} offen
                             {/* Das Abzeichen sagt „Teilbezahlt" — dass der Rest
                                 schon fällig war, sagt es nicht. */}
@@ -2301,7 +2302,6 @@ export default function InvoicesView() {
                     Bedienung. Das Umstellen ist in das Menue gewandert, wo
                     es als benannte Handlung steht statt als Klappliste, die
                     auf dem Telefon ohnehin ein eigenes Rad oeffnet. */}
-                <StatusBadge status={inv.paymentStatus} />
                 <RowMenu
                   about={`Rechnung ${inv.invoiceNumber}`}
                   items={[
@@ -2731,9 +2731,9 @@ export default function InvoicesView() {
               {zahlungen.map((z) => (
                 <ListRow
                   key={z.id}
-                  title={<span className="tnum">{fmtEUR(z.betrag)}</span>}
+                  title={<span>{fmtEUR(z.betrag)}</span>}
                   subtitle={
-                    <span className="tnum">
+                    <span>
                       {datumAT(z.datum)} · {z.art}
                       {z.hinweis ? ` · ${z.hinweis}` : ''}
                       {z.erfasstVonName ? ` · erfasst von ${z.erfasstVonName}` : ''}
