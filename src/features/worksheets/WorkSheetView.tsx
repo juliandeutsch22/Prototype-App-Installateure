@@ -802,8 +802,8 @@ export default function WorkSheetView() {
     try {
       const id = await inhaltSchreiben();
 
-      // Gerätezeit: offline im Keller ist die Serverzeit die der späteren
-      // Übertragung, nicht die der Unterschrift.
+      // Gerätezeit: sie ist der Moment der Unterschrift vor dem Kunden. Die
+      // Serverzeit hält `unterschriebenAm` getrennt fest.
       const jetzt = Date.now();
       await signWorkSheet(
         id,
@@ -1347,11 +1347,18 @@ export default function WorkSheetView() {
               {/*
                 FOTOS — FREIWILLIG, und das steht auch da.
 
-                Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
-                Das Ausgangsfach hält einen Schreibvorgang ohne Empfang vor, der
-                Dateispeicher tut das nicht. Wäre ein Foto Bedingung, hinge der Beleg an
-                einem Balken Empfang — und der Monteur stünde mit einem Kunden vor
-                sich da, der unterschreiben will.
+                Ein Foto darf das Unterschreiben nicht aufhalten: ein Upload
+                scheitert bei schwachem Empfang viel eher als der kleine
+                Schreibvorgang des Scheins. Wäre ein Foto Bedingung, hinge der
+                Beleg an einem Balken Empfang — und der Monteur stünde mit einem
+                Kunden vor sich da, der unterschreiben will.
+
+                EHRLICH GESAGT (Prüflauf 25.09.2026, P1-14): Hier stand, das
+                Ausgangsfach halte den Schein ohne Empfang vor. Das tut es
+                nicht — Speichern und Unterschreiben laufen als direkter Aufruf
+                an den Server und werden nicht vorgemerkt. Ganz ohne Netz lässt
+                sich der Schein also NICHT unterschreiben, und so steht es jetzt
+                auch im Hinweis.
 
                 Der Abschnitt erscheint erst mit einer gewählten Baustelle: ein
                 Foto ohne Schein hat keinen Ort, an den es gehört.
@@ -1381,9 +1388,11 @@ export default function WorkSheetView() {
                       Prüfsumme des Scheins ein.
                       <br />
                       <br />
-                      Ohne Netz geht das Hochladen nicht. Der Schein lässt sich trotzdem unterschreiben,
-                      die Bilder müssten dann neu aufgenommen werden — im Keller also besser oben
-                      fotografieren.
+                      Ohne Netz geht weder das Hochladen noch das Unterschreiben: der Schein wird
+                      beim Unterschreiben direkt an den Server geschickt und nicht für später
+                      vorgemerkt. Im Keller also besser oben fotografieren und unterschreiben lassen.
+                      Ein Bild, das nicht hochgeht, lässt sich weglassen — der Schein geht dann ohne es
+                      hinaus.
                       <br />
                       <br />
                       Keine Personen und keine fremden Unterlagen, wenn es nicht sein muss: die Bilder

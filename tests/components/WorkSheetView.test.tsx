@@ -1917,4 +1917,14 @@ describe('Prüflauf 25.09.2026', () => {
       expect(Number.isInteger(zeile.minuten)).toBe(true);
     });
   });
+
+  it('P1-14: verspricht kein Unterschreiben ohne Netz', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: /Was bedeutet Fotos/ }));
+    await screen.findByText(/Ohne Netz geht/);
+    const text = document.body.textContent ?? '';
+    expect(text).not.toMatch(/Der Schein lässt sich trotzdem unterschreiben/);
+    expect(text).toMatch(/Ohne Netz geht weder das Hochladen noch das Unterschreiben/);
+  });
 });

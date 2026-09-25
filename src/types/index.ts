@@ -463,9 +463,10 @@ export interface WorkSheet {
   /**
    * Fotos vom Einsatz — FREIWILLIG, nie Voraussetzung.
    *
-   * WARUM OPTIONAL UND NICHT PFLICHT. Der Schein muss im Keller ohne Netz
-   * unterschreibbar bleiben; das Ausgangsfach hält einen Schreibvorgang ohne
-   * Empfang vor, ein Datei-Upload nicht. Wäre auch nur ein Foto Bedingung, hinge der
+   * WARUM OPTIONAL UND NICHT PFLICHT. Ein Datei-Upload scheitert bei
+   * schwachem Empfang viel eher als der Schreibvorgang des Scheins (der
+   * übrigens NICHT über das Ausgangsfach läuft — ganz ohne Netz geht auch das
+   * Unterschreiben nicht). Wäre auch nur ein Foto Bedingung, hinge der
    * ganze Beleg an einem Balken Empfang — und der Monteur stünde mit einem
    * Kunden vor sich da, der unterschreiben will.
    *
