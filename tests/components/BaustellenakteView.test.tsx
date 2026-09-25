@@ -403,7 +403,9 @@ describe('Was die Akte sonst noch zeigt', () => {
 
   it('verweist auf die Kundenakte', async () => {
     zeige();
-    expect(await screen.findByRole('link', { name: 'Zur Kundenakte' })).toHaveAttribute(
+    // Die ganze Zeile ist der Link (docs/design/linie.md 3): „Zur Kundenakte“
+    // und darunter der Kunde — gesucht wird über den Anfang.
+    expect(await screen.findByRole('link', { name: /^Zur Kundenakte/ })).toHaveAttribute(
       'href',
       '/customers/k1',
     );
@@ -543,7 +545,11 @@ describe('Am Schreibtisch zwei Spalten', () => {
       expect(spalte(titel)).toBe('akte-rechts');
     }
     // Links vor rechts: die Vorlesehilfe liest die Karten in der alten Reihenfolge.
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+    // Der Titeltext ohne das „i“ der Karte (Pläne und Dokumente trägt seine
+    // Erklärung seit der Linie am Titel) — der erste Textknoten der Überschrift.
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((h) => h.firstChild?.textContent),
+    ).toEqual([
       'Stammdaten',
       'Pläne und Dokumente',
       'Stunden auf dieser Baustelle',

@@ -15,7 +15,9 @@ import type { Project, AppUser, Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { Marke } from '@/components/Badge';
+import { Zustand } from '@/components/Badge';
+import { List, ListRow } from '@/components/ListRow';
+import { STAND } from '@/features/quotes/stand';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import PersonPicker from '@/components/PersonPicker';
@@ -323,14 +325,27 @@ export default function BaustellenakteView() {
   return (
     <div className="space-y-6">
       <PageHeader
+        /*
+          DER RÜCKWEG ÜBER DEM TITEL, darunter die Metazeile „Nummer ·
+          Abrechnung · Budget“ und der Status als Marke (docs/design/linie.md 1).
+        */
+        ueber={
+          <Link to="/admin-projects" className="akte-zurueck">
+            ← Zur Baustellenliste
+          </Link>
+        }
         title={b.customerName}
         subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/admin-projects" className="textlink-allein">← Zur Baustellenliste</Link>
-            <span className="text-ink-muted">{b.projectNumber}</span>
-            <StatusBadge status={b.status} />
-            {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
-          </span>
+          <>
+            {[
+              b.projectNumber,
+              b.billingMode,
+              b.estimatedHours ? `${fmtStunden(b.estimatedHours)} h Budget` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}{' '}
+            · <StatusBadge status={b.status} />
+          </>
         }
       />
 
@@ -366,7 +381,15 @@ export default function BaustellenakteView() {
 
         <div className="akte-rechts">
           {user && (
-            <Card title="Pläne und Dokumente">
+            <Card
+              title="Pläne und Dokumente"
+              hint={
+                'PDF und Bilder bis 25 MB. Sichtbar für das Büro und für die Monteure, die im ' +
+                'Team dieser Baustelle stehen oder dort eingeteilt sind — sie finden sie unter ' +
+                '„Meine Baustellen" und im Einsatzplan. Pläne aus einem CAD-Programm bitte als ' +
+                'PDF exportieren.'
+              }
+            >
               <BaustellenPlaene
                 companyId={user.companyId}
                 projectId={b.id}
@@ -389,36 +412,50 @@ export default function BaustellenakteView() {
             )}
           </Card>
 
+          {/*
+            DIE WEGE ALS ZEILEN MIT PFEIL (docs/design/linie.md 3): Kunde,
+            Angebot, Schein — die ganze Zeile ist die Tastfläche. Bis zum
+            25.09.2026 standen sie als unterstrichene Links nebeneinander.
+          */}
           <Card title="Weiter">
-            <div className="flex flex-wrap gap-3">
+            <List>
               {b.customerId ? (
-                <Link to={`/customers/${b.customerId}`} className="textlink-allein">
-                  Zur Kundenakte
-                </Link>
+                <ListRow
+                  ziel={`/customers/${b.customerId}`}
+                  title="Zur Kundenakte"
+                  subtitle={b.customerName}
+                />
               ) : (
                 /*
                   Altbestand: die Baustelle trägt einen Kundennamen, aber keine
                   Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
                   wie „gibt es nicht" aussehen zu lassen.
                 */
-                <span className="text-sm text-warning">
-                  Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
-                </span>
+                <ListRow
+                  title="Kundenakte"
+                  subtitle={
+                    <span className="text-warning">
+                      Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
+                    </span>
+                  }
+                />
               )}
               {angebote.map((q) => (
-                <Link key={q.id} to={`/quotes/${q.id}`} className="textlink-allein">
-                  Angebot {q.quoteNumber}
-                </Link>
+                <ListRow
+                  key={q.id}
+                  ziel={`/quotes/${q.id}`}
+                  title={`Angebot ${q.quoteNumber}`}
+                  zustand={q.status ? <Zustand stand={STAND[q.status]}>{q.status}</Zustand> : undefined}
+                />
               ))}
               {scheineAn && (
-                <Link
-                  to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-                  className="textlink-allein"
-                >
-                  Handwerksschein schreiben
-                </Link>
+                <ListRow
+                  ziel={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
+                  title="Handwerksschein schreiben"
+                  subtitle={b.projectNumber}
+                />
               )}
-            </div>
+            </List>
           </Card>
         </div>
       </div>
@@ -453,12 +490,12 @@ function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> 
         <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
         <Angabe wort="Kunde">{b.customerName}</Angabe>
         <Angabe wort="Baustellenadresse">
-          {b.address ? <AdresseLink adresse={b.address} /> : null}
+          {b.address ? <AdresseLink adresse={b.address} variante="chip" /> : null}
         </Angabe>
         <Angabe wort="Abrechnung">{b.billingMode}</Angabe>
         <Angabe wort="Ansprechpartner vor Ort">{b.contactName}</Angabe>
         <Angabe wort="Telefon vor Ort">
-          {b.contactPhone ? <TelefonLink nummer={b.contactPhone} name={b.contactName} /> : null}
+          {b.contactPhone ? <TelefonLink nummer={b.contactPhone} variante="chip" /> : null}
         </Angabe>
         <Angabe wort="Beginn">{fmtDatum(b.startDate)}</Angabe>
         <Angabe wort="Ende (geplant)">{fmtDatum(b.endDate)}</Angabe>
@@ -637,8 +674,8 @@ function StammdatenFormular({
 
       {(entwurf.address || entwurf.contactPhone) && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-          <AdresseLink adresse={entwurf.address} variante="knopf" />
-          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
+          <AdresseLink adresse={entwurf.address} variante="chip" />
+          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="chip" />
         </div>
       )}
 
