@@ -2469,13 +2469,16 @@ textarea {
     flex: 1 1 0%;
   }
 
+  /* Titel halbfett in Tinte, Wert fett — die Gewichtung der Linie
+     (docs/design/linie.md, 3): der Name trägt die Zeile, die Unterzeile
+     tritt zurück, der Betrag steht als Zahl zum Vergleichen rechts. */
   .zeile-titel {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
-    font-weight: 500;
-    color: var(--text);
+    font-weight: 600;
+    color: var(--ink-deep);
   }
 
   .zeile-unter {
@@ -2508,8 +2511,8 @@ textarea {
   .zeile-wert {
     white-space: nowrap;
     text-align: right;
-    font-weight: 500;
-    color: var(--text);
+    font-weight: 700;
+    color: var(--ink-deep);
   }
 
   /* Platz VOR dem Titel: ein Mengenfeld, ein Vorschaubild. Schrumpft nicht —
@@ -2792,8 +2795,8 @@ textarea {
     vertical-align: top;
     text-align: right;
     white-space: nowrap;
-    font-weight: 500;
-    color: var(--text);
+    font-weight: 700;
+    color: var(--ink-deep);
   }
 
   /* Summenzeilen stehen ohne Linie unter der Tabelle. */
