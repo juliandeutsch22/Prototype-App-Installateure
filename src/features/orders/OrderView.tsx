@@ -859,9 +859,7 @@ function QtyAdder({
         onChange={(e) => setMenge(e.target.value)}
         onFocus={(e) => e.currentTarget.select()}
         aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
-        className={`h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
-          gueltig ? 'border-line text-ink' : 'border-danger text-danger'
-        }`}
+        className={gueltig ? 'feld w-16 text-center' : 'feld-fehler w-16 text-center'}
       />
       <IconButton
         label={`Menge für ${material.name} erhöhen`}

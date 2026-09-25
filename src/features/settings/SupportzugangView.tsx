@@ -197,7 +197,7 @@ export default function SupportzugangView() {
                   <input
                     type="radio"
                     name="sup-stufe"
-                    className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                    className="auswahlpunkt mt-1"
                     checked={stufe === 'ansehen'}
                     onChange={() => setStufe('ansehen')}
                   />
@@ -213,7 +213,7 @@ export default function SupportzugangView() {
                   <input
                     type="radio"
                     name="sup-stufe"
-                    className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                    className="auswahlpunkt mt-1"
                     checked={stufe === 'mitarbeiten'}
                     onChange={() => {
                       setStufe('mitarbeiten');

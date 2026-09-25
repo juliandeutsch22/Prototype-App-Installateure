@@ -344,7 +344,7 @@ export default function UserMgmtView() {
                   type="radio"
                   name="eintritt"
                   id="eintritt-bestand"
-                  className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                  className="auswahlpunkt mt-1"
                   checked={eintritt === 'bestand'}
                   onChange={() => {
                     setEintritt('bestand');
@@ -366,7 +366,7 @@ export default function UserMgmtView() {
                   type="radio"
                   name="eintritt"
                   id="eintritt-neu"
-                  className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                  className="auswahlpunkt mt-1"
                   checked={eintritt === 'neu'}
                   onChange={() => {
                     setEintritt('neu');

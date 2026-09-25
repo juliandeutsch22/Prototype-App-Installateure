@@ -719,7 +719,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 type="radio"
                 name="uebertrag"
                 id="uebertrag-verjaehrung"
-                className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                className="auswahlpunkt mt-1"
                 checked={uebertrag === 'verjaehrung'}
                 onChange={() => setUebertrag('verjaehrung')}
               />
@@ -738,7 +738,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 type="radio"
                 name="uebertrag"
                 id="uebertrag-stichtag"
-                className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                className="auswahlpunkt mt-1"
                 checked={uebertrag === 'stichtag'}
                 onChange={() => setUebertrag('stichtag')}
               />
