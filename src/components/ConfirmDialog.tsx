@@ -1,5 +1,6 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import Button from './Button';
+import Meldung from './Meldung';
 import { grundAus } from '@/lib/fehlerGrund';
 
 /**
@@ -82,9 +83,11 @@ export default function ConfirmDialog({
         {message && <p className="mt-2 text-sm text-ink-muted">{message}</p>}
         {children && <div className="mt-4">{children}</div>}
         {error && (
-          <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-danger" role="alert">
-            {error}
-          </p>
+          <div className="mt-3">
+            <Meldung ton="gefahr" role="alert">
+              {error}
+            </Meldung>
+          </div>
         )}
         <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>

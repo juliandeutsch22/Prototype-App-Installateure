@@ -38,7 +38,7 @@ export default function AppErneuern() {
   }
 
   return (
-    <div className="mt-2 rounded-sm border border-line bg-surface-2 p-3">
+    <div className="kasten mt-2">
       <p className="text-sm text-ink">
         Die App wird neu geladen.
         <span className="mt-1 block text-xs text-ink-muted">
