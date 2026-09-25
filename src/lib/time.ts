@@ -522,6 +522,20 @@ export interface SaldoResult {
 }
 
 /**
+ * Wird ein ganztägiger Krank- oder Urlaubstag als Solltag gutgeschrieben?
+ *
+ * ERST WENN ER VORBEI IST (Prüflauf 25.09.2026, P1-16). Das Soll zählt bis
+ * GESTERN (`pflichtTage`); ein heutiger Krankentag wurde aber schon
+ * gutgeschrieben — der Saldo stand den ganzen Tag um ein Tagessoll zu hoch
+ * und fiel um Mitternacht zurück. Gearbeitete Zeit von heute zählt weiter
+ * sofort: sie IST schon geleistet, und wer gerade gebucht hat, soll sie im
+ * Saldo sehen.
+ */
+function ganztagGutschreiben(e: Pick<TimeEntry, 'status' | 'date'>, heuteIso: string): boolean {
+  return (e.status === 'Krank' || e.status === 'Urlaub') && e.date < heuteIso;
+}
+
+/**
  * Gesamtsaldo Überstunden (docs §4.2).
  * Soll: jeder Kalendertag von appStartDate bis GESTERN, der Arbeitstag und
  * kein Feiertag ist -> dailyH. Ist: Anwesend = gearbeitet, Krank/Urlaub =
@@ -553,7 +567,7 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
     if (e.date < user.appStartDate || e.date > heuteIso) continue;
     bookedDates.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (e.status === 'Krank' || e.status === 'Urlaub') istMin += dailyH * 60;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += dailyH * 60;
   }
 
   /**
@@ -630,7 +644,7 @@ export function saldoAusBilanzen(
     if (e.date < user.appStartDate || e.date > heuteIso) continue;
     gebucht.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (e.status === 'Krank' || e.status === 'Urlaub') istMin += dailyH * 60;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += dailyH * 60;
   }
 
   const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
