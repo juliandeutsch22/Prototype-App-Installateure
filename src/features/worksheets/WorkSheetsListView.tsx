@@ -26,7 +26,8 @@ import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField } from '@/components/Field';
+import { CheckboxField, InputField } from '@/components/Field';
+import Meldung from '@/components/Meldung';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -347,10 +348,7 @@ export default function WorkSheetsListView() {
         title="Handwerksscheine"
         subtitle="Unterschriebene Leistungsnachweise der Baustellen"
         action={
-          <Link
-            to="/worksheet"
-            className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
-          >
+          <Link to="/worksheet" className="knopf-primaer">
             Neuer Schein
           </Link>
         }
@@ -576,60 +574,61 @@ export default function WorkSheetsListView() {
           daran ist der Buchhaltungs-Export einmal gescheitert.
         */}
         {suche.trim() && (
-          <div className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2">
-            {trefferGelten ? (
-              <p className="text-sm text-ink">
-                <strong>{sichtbar.length}</strong>{' '}
-                {sichtbar.length === 1 ? 'Schein' : 'Scheine'} vom Server zu „{trefferZu}".
-                {treffer && treffer.length >= PRUEF_GRENZE && (
-                  <span className="text-warning">
-                    {' '}
-                    Die Grenze von {PRUEF_GRENZE} ist erreicht — ältere sind nicht dabei.
-                  </span>
-                )}{' '}
-                <button
-                  type="button"
-                  className="underline"
-                  onClick={() => {
-                    setTreffer(null);
-                    setTrefferZu('');
-                  }}
-                >
-                  Zurück zur Liste
-                </button>
-              </p>
-            ) : (
-              <>
-                <p className="text-sm text-ink-muted">
-                  {sichtbar.length} von {scheine.length} geladenen Scheinen passen. Ältere sind
-                  nicht geladen.
+          <div className="mb-3">
+            <Meldung>
+              {trefferGelten ? (
+                <p className="text-sm text-ink">
+                  <strong>{sichtbar.length}</strong>{' '}
+                  {sichtbar.length === 1 ? 'Schein' : 'Scheine'} vom Server zu „{trefferZu}".
+                  {treffer && treffer.length >= PRUEF_GRENZE && (
+                    <span className="text-warning">
+                      {' '}
+                      Die Grenze von {PRUEF_GRENZE} ist erreicht — ältere sind nicht dabei.
+                    </span>
+                  )}{' '}
+                  <button
+                    type="button"
+                    className="textlink"
+                    onClick={() => {
+                      setTreffer(null);
+                      setTrefferZu('');
+                    }}
+                  >
+                    Zurück zur Liste
+                  </button>
                 </p>
-                <p className="mt-1 text-sm text-ink-muted">{suchHinweis(absicht)}</p>
-                {absicht.art !== 'text' && (
-                  <div className="mt-2">
-                    <Button
-                      variant="secondary"
-                      disabled={sucheLaeuft}
-                      onClick={() => void serverseitigSuchen()}
-                    >
-                      {sucheLaeuft ? 'Wird gesucht …' : 'Auf dem Server suchen'}
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
+              ) : (
+                <>
+                  <p className="text-sm text-ink-muted">
+                    {sichtbar.length} von {scheine.length} geladenen Scheinen passen. Ältere sind
+                    nicht geladen.
+                  </p>
+                  <p className="mt-1 text-sm text-ink-muted">{suchHinweis(absicht)}</p>
+                  {absicht.art !== 'text' && (
+                    <div className="mt-2">
+                      <Button
+                        variant="secondary"
+                        disabled={sucheLaeuft}
+                        onClick={() => void serverseitigSuchen()}
+                      >
+                        {sucheLaeuft ? 'Wird gesucht …' : 'Auf dem Server suchen'}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </Meldung>
           </div>
         )}
         {verworfene > 0 && (
-          <label className="mb-3 flex min-h-touch items-center gap-2 text-sm text-ink-muted">
-            <input
-              type="checkbox"
+          <div className="mb-3">
+            <CheckboxField
+              id="ws-verworfene"
               checked={zeigeVerworfene}
               onChange={(e) => setZeigeVerworfene(e.target.checked)}
-              className="kaestchen"
+              label={`${verworfene} verworfene${verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen`}
             />
-            {verworfene} verworfene{verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen
-          </label>
+          </div>
         )}
         {loading ? (
           <SkeletonList rows={4} />
@@ -681,7 +680,7 @@ export default function WorkSheetsListView() {
                         </span>
                       )}
                       {auf && (
-                        <span className="mt-2 block rounded border border-line p-3">
+                        <span className="kasten-hell mt-2 block">
                           {s.zeiten.length > 0 && (
                             <>
                               <span className="section-label block">Zeiten</span>
@@ -781,8 +780,8 @@ export default function WorkSheetsListView() {
                     dieselbe Arbeit an.
                   */}
                   {darfSchreiben && s.status === 'Entwurf' && (
-                    <Link to={`/worksheet?entwurf=${s.id}`}>
-                      <Button variant="secondary">Weiterbearbeiten</Button>
+                    <Link to={`/worksheet?entwurf=${s.id}`} className="knopf-sekundaer">
+                      Weiterbearbeiten
                     </Link>
                   )}
                   {/*
