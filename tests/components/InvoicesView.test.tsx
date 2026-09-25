@@ -2273,3 +2273,25 @@ describe('Filter mit Namen (Prüflauf 25.09.2026, P4-07)', () => {
     expect(await screen.findByRole('combobox', { name: 'Rechnungen nach Status filtern' })).toBeInTheDocument();
   });
 });
+
+describe('„Positionen zusammenstellen" bricht nicht um (Prüflauf 25.09.2026, P4-18)', () => {
+  it('hält die Beschriftung in einer Zeile; Platz gibt die Baustellenauswahl her', async () => {
+    /*
+      Bei 834 px stand „zusammenstell|en" auf drei Zeilen, mit Auswahl der
+      Rechnungsart war der Knopf 49 px schmal und lief aus der Karte. jsdom
+      rechnet kein Layout; im Browser nachgemessen (390/834/1440, mit und
+      ohne Rechnungsart). Geprüft wird, was das Umbrechen verhindert.
+    */
+    zeige();
+    const knopf = await screen.findByRole('button', { name: 'Positionen zusammenstellen' });
+    expect(knopf.className).toMatch(/\bwhitespace-nowrap\b/);
+    expect(knopf.className).toMatch(/\bshrink-0\b/);
+    const reihe = knopf.parentElement!;
+    expect(reihe.className).toMatch(/sm:flex-wrap/);
+    // Die Auswahl darf schrumpfen (min-w-0), höchstens 20rem breit wie bisher.
+    const auswahl = reihe.firstElementChild as HTMLElement;
+    expect(auswahl.className).toMatch(/\bmin-w-0\b/);
+    expect(auswahl.className).toMatch(/sm:max-w-80/);
+  });
+});
+

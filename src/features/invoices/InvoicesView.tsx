@@ -1449,8 +1449,12 @@ export default function InvoicesView() {
         title="Neue Rechnung aus Baustelle"
         hint="Zusammengestellt wird, was auf dieser Baustelle als „Anwesend“ gebucht und noch NICHT verrechnet ist — dazu das ausgegebene Material. Eine Position kann deshalb nie zweimal auf eine Rechnung geraten. Gesperrt werden die Belege aber erst beim Anlegen, nicht schon beim Zusammenstellen: bis dahin lässt sich alles gefahrlos ansehen und wieder verwerfen."
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="sm:w-80">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          {/* Höchstens 20rem wie bisher, aber nachgiebig: erst gibt die
+              Auswahl Platz her, und erst wenn auch das nicht reicht, rückt
+              der Knopf in die nächste Zeile — statt dass seine Beschriftung
+              silbenweise umbricht (P4-18). */}
+          <div className="min-w-0 sm:max-w-80 sm:grow sm:basis-52">
             <BaustellenSelect
               id="invproj"
               companyId={user.companyId}
@@ -1493,7 +1497,15 @@ export default function InvoicesView() {
             </SelectField>
           </div>
           )}
-          <Button onClick={buildPreview} loading={busy && !preview} disabled={!projectNumber}>
+          {/* Die Beschriftung bricht nicht um: bei 834 px stand
+              „zusammenstell|en" auf drei Zeilen (Prüflauf 25.09.2026,
+              P4-18). Platz gibt die Baustellenauswahl her. */}
+          <Button
+            onClick={buildPreview}
+            loading={busy && !preview}
+            disabled={!projectNumber}
+            className="shrink-0 whitespace-nowrap"
+          >
             {art === 'anzahlung' ? 'Anzahlung vorbereiten' : 'Positionen zusammenstellen'}
           </Button>
         </div>
