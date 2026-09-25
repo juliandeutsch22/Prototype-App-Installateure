@@ -3080,12 +3080,9 @@ textarea {
    */
   /*
    * DIE KARTE NACH DER LINIE (docs/design/linie.md, 2): weiße Fläche ohne
-   * sichtbare Kante — der Schatten hebt sie vom Grund ab. Die Kante bleibt
-   * als 1 px in Kartenfarbe stehen, damit eine aufgeklappte Karte
-   * (`.karte-offen`) ihre Linie zeigen kann, ohne dass sich etwas verschiebt.
+   * sichtbare Kante — der Schatten hebt sie vom Grund ab.
    */
   .karte,
-  .karte-offen,
   .karte-dialog,
   .karte-fehler,
   .karte-anmeldung {
@@ -3095,12 +3092,6 @@ textarea {
     box-shadow: var(--shadow);
     overflow: clip;
     transition: border-color 150ms ease;
-  }
-
-  /* Eine aufgeklappte Zeilenkarte (Mitarbeiter, Baustelle): nur die Kante
-     wird kräftiger. */
-  .karte-offen {
-    border-color: var(--border);
   }
 
   .karte-dialog {
@@ -4349,11 +4340,6 @@ textarea {
     font-size: 0.875rem;
     line-height: 1.625;
     color: var(--text);
-  }
-
-  /* Listenzeilen polstern oben und unten selbst — hier nur seitlich. */
-  .gruppe-liste {
-    padding-inline: 0.75rem;
   }
 
   .gruppe-fehler {
