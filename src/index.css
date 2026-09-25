@@ -889,6 +889,14 @@ textarea {
     align-items: center;
     gap: 0.25rem 0.5rem;
   }
+
+  /* Adresse und Telefon einer Baustelle: nebeneinander, wo Platz ist. */
+  .tabelle-kontakt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.75rem;
+  }
 }
 
 /*

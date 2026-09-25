@@ -35,6 +35,7 @@ import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/S
 import Meldung from '@/components/Meldung';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import { fmtStunden } from '@/lib/time';
+import { useAbBreite } from '@/lib/useAbBreite';
 
 const empty = {
   projectNumber: '',
@@ -397,7 +398,79 @@ export default function AdminProjectsView() {
     return serverTreffer.filter((p) => !geladen.has(p.id)).length;
   }, [serverTreffer, sorted]);
 
+  /** Am Schreibtisch die Baustellen als Tabelle, am Telefon als Liste. */
+  const schreibtisch = useAbBreite();
+
   if (!user) return null;
+
+  /** Namen statt Kennungen — Team und Projektleitung einer Baustelle. */
+  const personen = (p: WithId<Project>) => {
+    const namen = (uids: string[]) =>
+      uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
+    return { team: namen(p.assignedEmployees ?? []), leitung: namen(p.projectManagers ?? []) };
+  };
+
+  /*
+    DIE AKTIONEN EINER BAUSTELLENZEILE — am Telefon in der Listenzeile, am
+    Schreibtisch in der letzten Tabellenspalte (siehe `useAbBreite`). Einmal
+    geschrieben, damit beide Formen dieselben Handgriffe tragen.
+  */
+  const baustelleAktionen = (p: WithId<Project>) => (
+    <>
+      {/*
+        EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine
+        Auswertung in die Liste) und „Bearbeiten" (sprang in das
+        Formular ganz oben). Beides steht jetzt in der Akte, und
+        die hat eine Adresse: sie lässt sich verlinken, als
+        Lesezeichen ablegen und kommt zurück, wohin man war.
+      */}
+      <Link
+        to={`/admin-projects/${p.id}`}
+        className="textlink-allein"
+      >
+        Akte
+      </Link>
+      {/*
+        LÖSCHEN STEHT IM MENÜ, NICHT ALS ✕ IN DER ZEILE.
+
+        Gemessen auf 375 px (iPhone XS): mit Budget-Marke, Zustand
+        und zwei Verweisen passte das ✕ nicht mehr in die Zeile und
+        rutschte ALLEIN in eine zweite — rechtsbündig, unter einer
+        leeren Lücke. Damit stand ausgerechnet die einzige
+        unumkehrbare Aktion am auffälligsten da.
+
+        Die Regel steht schon in `ListRow`: „Wo es mehr als zwei
+        Aktionen gibt, gehört alles Seltene in ein RowMenu." Hier
+        war sie nur nicht befolgt.
+
+        NUR DAS ✕ ZU VERSCHIEBEN REICHTE NICHT — nachgemessen
+        rutschte danach das Menü selbst in die zweite Zeile. Fünf
+        Elemente passen auf 375 px nicht, gleich welches zuletzt
+        kommt. Deshalb geht „Schein nachtragen" mit: übrig bleiben
+        Budget, Zustand, die Akte und das Menü. Der Umbruch war der
+        Anlass, die Gewichtung ist der Gewinn.
+      */}
+      <RowMenu
+        about={`Baustelle ${p.projectNumber}`}
+        items={[
+          /*
+            „Schein nachtragen" ist der Ausnahmefall — der
+            Monteur hat ihn vor Ort vergessen. Als eigener
+            Verweis in der Zeile stand er gleichauf mit der
+            Akte, die man täglich braucht.
+          */
+          ...(scheineAn
+            ? [{
+                label: 'Schein nachtragen',
+                onSelect: () =>
+                  navigate(`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`),
+              }]
+            : []),
+          { label: 'Löschen', onSelect: () => setToDelete(p), danger: true },
+        ]}
+      />
+    </>
+  );
 
   return (
     <div className="space-y-6">
@@ -595,13 +668,70 @@ export default function AdminProjectsView() {
                 ? `Keine Baustelle passt zu „${suche}".`
                 : 'Keine Baustelle in dieser Auswahl.'}
           </EmptyState>
+        ) : schreibtisch ? (
+          <div className="tabelle-rahmen">
+            <table className="tabelle">
+              <thead className="tabelle-kopfzeile">
+                <tr>
+                  <th className="tabelle-kopf">Baustelle</th>
+                  <th className="tabelle-kopf">Adresse</th>
+                  <th className="tabelle-kopf">Projektleitung</th>
+                  <th className="tabelle-kopf-zahl">Budget</th>
+                  <th className="tabelle-kopf">Status</th>
+                  <th className="tabelle-kopf-zahl">
+                    <span className="sr-only">Aktionen</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((p) => {
+                  const { team, leitung } = personen(p);
+                  return (
+                    <tr key={p.id} className="tabelle-zeile">
+                      <td className="tabelle-name">
+                        {p.customerName}{' '}
+                        <span className="whitespace-nowrap text-ink-muted">({p.projectNumber})</span>
+                      </td>
+                      {/* Adresse und Nummer anklickbar, wie in der Liste. */}
+                      <td className="tabelle-zelle">
+                        <span className="tabelle-kontakt">
+                          <AdresseLink adresse={p.address} />
+                          <TelefonLink
+                            nummer={p.contactPhone}
+                            name={p.contactName}
+                            className="whitespace-nowrap"
+                          />
+                        </span>
+                      </td>
+                      <td className="tabelle-zelle">
+                        {leitung.length > 0 ? (
+                          leitung.join(', ')
+                        ) : (
+                          <span className="text-warning">Keine Projektleitung zugeteilt</span>
+                        )}
+                        {team.length > 0 && (
+                          <span className="tabelle-unter">Team: {team.join(', ')}</span>
+                        )}
+                      </td>
+                      <td className="tabelle-zahl">
+                        {p.estimatedHours ? `${fmtStunden(p.estimatedHours)} h` : null}
+                      </td>
+                      <td className="tabelle-zelle">
+                        <StatusBadge status={p.status} />
+                      </td>
+                      <td className="tabelle-aktionen">
+                        <div className="tabelle-knoepfe">{baustelleAktionen(p)}</div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <List>
             {visible.map((p) => {
-              const namen = (uids: string[]) =>
-                uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
-              const team = namen(p.assignedEmployees ?? []);
-              const leitung = namen(p.projectManagers ?? []);
+              const { team, leitung } = personen(p);
               return (
                 <ListRow
                   key={p.id}
@@ -640,58 +770,7 @@ export default function AdminProjectsView() {
                     </>
                   }
                 >
-                  {/*
-                    EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine
-                    Auswertung in die Liste) und „Bearbeiten" (sprang in das
-                    Formular ganz oben). Beides steht jetzt in der Akte, und
-                    die hat eine Adresse: sie lässt sich verlinken, als
-                    Lesezeichen ablegen und kommt zurück, wohin man war.
-                  */}
-                  <Link
-                    to={`/admin-projects/${p.id}`}
-                    className="textlink-allein"
-                  >
-                    Akte
-                  </Link>
-                  {/*
-                    LÖSCHEN STEHT IM MENÜ, NICHT ALS ✕ IN DER ZEILE.
-
-                    Gemessen auf 375 px (iPhone XS): mit Budget-Marke, Zustand
-                    und zwei Verweisen passte das ✕ nicht mehr in die Zeile und
-                    rutschte ALLEIN in eine zweite — rechtsbündig, unter einer
-                    leeren Lücke. Damit stand ausgerechnet die einzige
-                    unumkehrbare Aktion am auffälligsten da.
-
-                    Die Regel steht schon in `ListRow`: „Wo es mehr als zwei
-                    Aktionen gibt, gehört alles Seltene in ein RowMenu." Hier
-                    war sie nur nicht befolgt.
-
-                    NUR DAS ✕ ZU VERSCHIEBEN REICHTE NICHT — nachgemessen
-                    rutschte danach das Menü selbst in die zweite Zeile. Fünf
-                    Elemente passen auf 375 px nicht, gleich welches zuletzt
-                    kommt. Deshalb geht „Schein nachtragen" mit: übrig bleiben
-                    Budget, Zustand, die Akte und das Menü. Der Umbruch war der
-                    Anlass, die Gewichtung ist der Gewinn.
-                  */}
-                  <RowMenu
-                    about={`Baustelle ${p.projectNumber}`}
-                    items={[
-                      /*
-                        „Schein nachtragen" ist der Ausnahmefall — der
-                        Monteur hat ihn vor Ort vergessen. Als eigener
-                        Verweis in der Zeile stand er gleichauf mit der
-                        Akte, die man täglich braucht.
-                      */
-                      ...(scheineAn
-                        ? [{
-                            label: 'Schein nachtragen',
-                            onSelect: () =>
-                              navigate(`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`),
-                          }]
-                        : []),
-                      { label: 'Löschen', onSelect: () => setToDelete(p), danger: true },
-                    ]}
-                  />
+                  {baustelleAktionen(p)}
                 </ListRow>
               );
             })}
