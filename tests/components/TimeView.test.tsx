@@ -293,7 +293,13 @@ describe('Zeiterfassung — die Kachel „Diese Woche"', () => {
     zeige();
 
     const kachel = (await screen.findByText('Diese Woche')).closest('div') as HTMLElement;
-    expect(within(kachel).getByText('08:00')).toBeInTheDocument();
+    // Eine Dauer, deshalb mit „Std" — wie Wochensumme und Zeilenwerte darunter
+    // (Linie; vorher stand hier nacktes „08:00", das sich wie eine Uhrzeit las).
+    // Die Einheit steht eine Stufe kleiner in einem eigenen Element — verglichen
+    // wird deshalb der ganze Text des Werts.
+    expect(
+      within(kachel).getByText((_, el) => el?.tagName === 'P' && el.textContent === '08:00 Std'),
+    ).toBeInTheDocument();
   });
 });
 
@@ -575,7 +581,7 @@ describe('Zuschlagsstunden', () => {
     zeige();
 
     expect(await screen.findByText('Zuschlag')).toBeInTheDocument();
-    expect(screen.getByText(/Nacht 08:00 · Notdienst 08:00/)).toBeInTheDocument();
+    expect(screen.getByText(/Nacht 08:00 Std · Notdienst 08:00 Std/)).toBeInTheDocument();
   });
 
   /*
@@ -589,9 +595,9 @@ describe('Zuschlagsstunden', () => {
 
     const kachel = (await screen.findByText('Zuschlag')).parentElement;
     // 8 h, nicht 16 h — die Stunde trägt beide Kennzeichen, ist aber eine.
-    expect(kachel).toHaveTextContent('08:00');
+    expect(kachel).toHaveTextContent('08:00 Std');
     expect(kachel).not.toHaveTextContent('16:00');
-    expect(screen.getByText(/08:00 beides/)).toBeInTheDocument();
+    expect(screen.getByText(/08:00 Std beides/)).toBeInTheDocument();
   });
 
   /*

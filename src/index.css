@@ -2602,6 +2602,14 @@ textarea {
     line-height: 1.25rem;
     color: var(--text-muted);
   }
+
+  /* Die Einheit hinter einer Dauer in einer Kennzahl („09:00 Std“): eine
+     Stufe kleiner und leichter als die Zahl, wie „von 38:30 Std“ im
+     Entwurf (Mockup S. 1, 7). Die Farbe erbt sie vom Wert. */
+  .kennzahl-einheit {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
 }
 
 /*

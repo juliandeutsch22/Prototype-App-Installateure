@@ -49,6 +49,22 @@ import { datumAT } from '@/lib/datum';
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
 
+/**
+ * Eine Dauer als Kennzahl: „09:00 Std" wie `fmtDauer`, die Einheit aber eine
+ * Stufe kleiner — wie „17:00 von 38:30 Std" im Entwurf. In voller Größe
+ * kostete „ Std" auf dem Tablet bei vier Kennzahlen die Breite, die die
+ * Zahl selbst braucht; abgeschnitten („09:00 S…") wäre sie falsch.
+ */
+function dauerKennzahl(min: number, vorzeichen = false) {
+  return (
+    <>
+      {vorzeichen && min > 0 ? '+' : ''}
+      {fmtMin(min)}
+      <span className="kennzahl-einheit"> Std</span>
+    </>
+  );
+}
+
 /** Wochenschlüssel 'KW n / JJJJ' für ein Datum. */
 function weekKey(d: Date): string {
   const { week, year } = getISOWeek(d);
@@ -565,10 +581,11 @@ export default function TimeView() {
             (Launch-Check 25.09.2026, R3): dort stand „+01:00", hier „+9,00 h"
             — zwei Formate für zwei verschiedene Zeiträume, und keiner war
             genannt. Hier gilt „seit Eintritt", dort der gewählte Monat.
+            Mit „Std" dahinter wie jede Dauer auf dieser Seite („+01:00 Std").
           */
           value={
             saldo?.hasConfig
-              ? `${saldo.saldoH > 0 ? '+' : ''}${fmtMin(Math.round(saldo.saldoH * 60))}`
+              ? dauerKennzahl(Math.round(saldo.saldoH * 60), true)
               : '—'
           }
           hint={
@@ -580,7 +597,9 @@ export default function TimeView() {
           }
         />
         )}
-        <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} />
+        {/* Eine Dauer, also mit „Std" — wie die Wochensumme und die Zeilen
+            unten (Linie: „06:00 Std"). */}
+        <Metric label="Diese Woche" value={dauerKennzahl(thisWeekMin)} />
         {/*
           NUR WENN ES WELCHE GIBT. Eine Kachel, die bei den allermeisten
           dauerhaft „0:00" zeigt, nimmt auf dem Telefon die Breite weg, die
@@ -594,10 +613,10 @@ export default function TimeView() {
         {hatZuschlaege(zuschlag) && (
           <Metric
             label="Zuschlag"
-            value={fmtMin(zuschlag.nachtMin + zuschlag.notdienstMin - zuschlag.beidesMin)}
+            value={dauerKennzahl(zuschlag.nachtMin + zuschlag.notdienstMin - zuschlag.beidesMin)}
             hint={
-              `Nacht ${fmtMin(zuschlag.nachtMin)} · Notdienst ${fmtMin(zuschlag.notdienstMin)}` +
-              (zuschlag.beidesMin > 0 ? ` · ${fmtMin(zuschlag.beidesMin)} beides` : '') +
+              `Nacht ${fmtDauer(zuschlag.nachtMin)} · Notdienst ${fmtDauer(zuschlag.notdienstMin)}` +
+              (zuschlag.beidesMin > 0 ? ` · ${fmtDauer(zuschlag.beidesMin)} beides` : '') +
               ` · letzte ${monate} Monate`
             }
           />
