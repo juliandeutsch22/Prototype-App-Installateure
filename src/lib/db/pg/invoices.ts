@@ -49,12 +49,6 @@ const ABDECKUNGSARTEN = [
   ['work_sheet', 'linkedWorkSheets'],
 ] as const;
 
-/** Die Sammlungsnamen der alten Datenschicht auf Tabellen abbilden. */
-const TABELLEN: Record<string, string> = {
-  timeEntries: 'time_entries',
-  materialOrders: 'material_orders',
-};
-
 interface Abdeckungszeile {
   invoiceId: string;
   art: string;
@@ -389,8 +383,14 @@ function leerAlsNull(wert: string | undefined): string | null | undefined {
   return wert === '' ? null : wert;
 }
 
-export async function createInvoice(companyId: string, inv: NewInvoice): Promise<string> {
-  void companyId;
+/**
+ * Kopf, Positionen und Belege in der Form, die `rechnung_anlegen` erwartet.
+ *
+ * EINE STELLE FÜR BEIDE WEGE — das Anlegen mit fester Nummer und das
+ * Ausstellen mit gezogener. Zwei Fassungen desselben Umbaus liefen beim
+ * nächsten neuen Feld auseinander, und eine Rechnung verlöre es still.
+ */
+function anlegeDaten(inv: Omit<NewInvoice, 'invoiceNumber'> & { invoiceNumber?: string }) {
   const {
     positions, discount, linkedEntries, linkedOrders, linkedWorkSheets, ...roh
   } = inv;
@@ -406,7 +406,7 @@ export async function createInvoice(companyId: string, inv: NewInvoice): Promise
     if (liste && liste.length > 0) belege[art] = liste;
   }
 
-  const { data, error } = await derClient().rpc('rechnung_anlegen', {
+  return {
     p_kopf: {
       ...objektAlsZeile(RECHNUNGEN, kopf),
       // Ein Rabatt ist ein Objekt in der App und drei Spalten in der
@@ -417,9 +417,50 @@ export async function createInvoice(companyId: string, inv: NewInvoice): Promise
     },
     p_positionen: (positions ?? []).map((p) => objektAlsZeile(POSITIONEN, p)),
     p_belege: belege,
-  });
+  };
+}
+
+/**
+ * Eine Rechnung mit einer schon feststehenden Nummer anlegen — für
+ * Übernahmen und Prüfungen. Die Ansicht stellt über `rechnungAusstellen` aus.
+ */
+export async function createInvoice(companyId: string, inv: NewInvoice): Promise<string> {
+  void companyId;
+  const { data, error } = await derClient().rpc('rechnung_anlegen', anlegeDaten(inv));
   if (error) throw new Error(error.message);
   return String(data);
+}
+
+/**
+ * Eine Rechnung AUSSTELLEN: Nummer ziehen, Belege sperren, anlegen — in EINER
+ * Transaktion (`public.rechnung_ausstellen`).
+ *
+ * WARUM NICHT MEHR DREI AUFRUFE (Prüflauf 25.09.2026, P2-04). Vorher zog die
+ * Ansicht die Nummer, sperrte danach die Zeiteinträge und legte zuletzt die
+ * Rechnung an. Brach es dazwischen ab, blieben eine verbrauchte Nummer — eine
+ * Lücke im Kreis — und gesperrte Stunden ohne Rechnung zurück; und das
+ * Sperren fragte nicht, ob die Stunde noch frei war, sodass zwei
+ * gleichzeitige Abrechnungen dieselben Stunden verrechneten. Jetzt geht alles
+ * ganz durch oder gar nicht, und ein bereits verrechneter Beleg bricht ab.
+ *
+ * `desired` ist die eigene Nummer beim Umstieg — die Datenbank nimmt sie nur
+ * bei der allerersten Rechnung an (K8).
+ */
+export async function rechnungAusstellen(
+  companyId: string,
+  inv: Omit<NewInvoice, 'invoiceNumber'>,
+  nummer: { praefix?: string; desired?: number },
+): Promise<{ id: string; invoiceNumber: string }> {
+  void companyId;
+  const { data, error } = await derClient().rpc('rechnung_ausstellen', {
+    ...anlegeDaten(inv),
+    p_praefix: nummer.praefix ?? PRAEFIX_VORGABE.rechnung,
+    p_jahr: new Date().getFullYear(),
+    p_wunsch: nummer.desired ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const r = data as { id: string; invoice_number: string };
+  return { id: String(r.id), invoiceNumber: String(r.invoice_number) };
 }
 
 /**
@@ -501,33 +542,4 @@ export function mahnungFesthalten(
     mahnspesen: daten.spesen,
     ...(verzug ? { paymentStatus: 'Überfällig' as const } : {}),
   });
-}
-
-/**
- * Markiert Belege als verrechnet — beim ANLEGEN einer Rechnung.
- *
- * Die Reihenfolge beim Anlegen ist selbst die Sicherung: Nummer ziehen,
- * Belege sperren, DANN die Rechnung anlegen. Bricht es dazwischen ab, sind
- * Belege gesperrt, zu denen es keine Rechnung gibt — die harmlose Richtung,
- * denn nichts wird dadurch doppelt verrechnet. Umgekehrt wäre es der teure
- * Fall.
- *
- * `coll` trägt noch den Sammlungsnamen der Firestore-Schicht. Er bleibt in
- * der Signatur, weil die Weiche beide Seiten bedienen muss; hier wird er auf
- * die Tabelle abgebildet. Ein unbekannter Name fällt auf, statt still nichts
- * zu tun.
- */
-export async function markBilled(
-  coll: string,
-  ids: string[],
-  invoiceNumber: string,
-): Promise<void> {
-  if (ids.length === 0) return;
-  const tabelle = TABELLEN[coll];
-  if (!tabelle) throw new Error(`Unbekannte Belegart: ${coll}`);
-  const { error } = await derClient()
-    .from(tabelle)
-    .update({ is_billed: true, invoice_number: invoiceNumber })
-    .in('id', ids);
-  if (error) throw new Error(error.message);
 }

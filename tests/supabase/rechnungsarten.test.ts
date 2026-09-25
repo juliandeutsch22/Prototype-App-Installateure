@@ -9,7 +9,7 @@
  * nur, was gerade geladen ist.
  */
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { admin, betriebAnlegen, konto, type Konto } from './helfer';
+import { admin, betriebAnlegen, buchung, konto, type Konto } from './helfer';
 import * as rechnungen from '@/lib/db/pg/invoices';
 import { clientEinreichen, type WithId } from '@/lib/db/pg/kern';
 import type { Invoice, Vorrechnung } from '@/types';
@@ -51,6 +51,9 @@ async function anlegen(
     totalBrutto: 1200,
     vatRate: 0.2,
     paymentStatus: 'Offen',
+    // Seit dem Prüflauf 25.09.2026 (P2-10) legt die Datenbank keine Rechnung
+    // ohne Positionen an — eine Rechnung über nichts.
+    positions: [{ label: 'Leistung', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 }],
     ...extra,
   });
 }
@@ -298,9 +301,17 @@ describe('Der Abzug auf der Schlussrechnung', () => {
       ein zweites Mal ab, und der Betrieb schenkte dem Kunden seine eigene
       Leistung.
     */
+    /*
+      EIN ECHTER ZEITEINTRAG, keine erfundene Kennung: seit dem Prüflauf
+      25.09.2026 (P2-04) sperrt das Anlegen die Belege selbst und bricht ab,
+      wenn es einen davon nicht gibt.
+    */
+    const eintrag = buchung(buch, '2026-04-20');
+    const { error: fehler } = await admin.from('time_entries').insert(eintrag);
+    expect(fehler).toBeNull();
     const teil = await anlegen({
       art: 'teil',
-      linkedEntries: ['11111111-2222-4333-8444-555555555555'],
+      linkedEntries: [eintrag.id],
     });
     const nummer = (await lesen(teil)).invoiceNumber;
 

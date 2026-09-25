@@ -7,15 +7,12 @@ import {
   listUnpaidInvoices,
   nextInvoiceNumber,
   isInvoiceNumberTaken,
-  reserveInvoiceNumber,
-  highestInvoiceSeq,
   invoiceSeqOf,
-  createInvoice,
+  rechnungAusstellen,
   listInvoicesForProject,
   updateInvoiceStatus,
   cancelInvoice,
   reactivateInvoice,
-  markBilled,
   mahnungFesthalten,
   sucheRechnungen,
   RECHNUNG_TREFFER,
@@ -847,7 +844,7 @@ export default function InvoicesView() {
   }
 
   async function confirmInvoice() {
-    if (!user || !company || !preview || !summen || !invoiceNumber || numberTaken) return;
+    if (!user || !company || !preview || !summen || !invoiceNumber || numberTaken || leer) return;
     /*
       EINE NEGATIVE SCHLUSSRECHNUNG IST EINE GUTSCHRIFT, und die gibt es hier
       noch nicht: Zahlungsstand, offene Posten und Mahnlauf rechnen alle mit
@@ -882,21 +879,18 @@ export default function InvoicesView() {
        *
        * Weicht die Eingabe vom Vorschlag ab, hat jemand bewusst eine Nummer
        * gesetzt; die geht mit als Wunsch in die Transaktion.
+       *
+       * NUMMER, SPERRE UND RECHNUNG IN EINEM AUFRUF (Prüflauf 25.09.2026,
+       * P2-04). Vorher waren es drei: Nummer ziehen, Zeiteinträge sperren,
+       * anlegen. Ein Abbruch dazwischen hinterliess eine verbrauchte Nummer
+       * und gesperrte Stunden ohne Rechnung, und zwei gleichzeitige
+       * Abrechnungen verrechneten dieselben Stunden. Jetzt geht alles ganz
+       * durch oder gar nicht — und ein Beleg, der inzwischen auf einer
+       * anderen Rechnung steht, bricht das Anlegen ab.
        */
       const typedSeq = invoiceSeqOf(invoiceNumber);
       const vonHand = ersteRechnung && invoiceNumber.trim() !== suggestedNumber && typedSeq != null;
-      const reserved = await reserveInvoiceNumber(user.companyId, {
-        seedFrom: highestInvoiceSeq(invoices),
-        desired: vonHand ? typedSeq : undefined,
-        praefix: vorsaetze.rechnung,
-      });
-
-      // Belege ZUERST sperren: bricht es danach ab, ist schlimmstenfalls eine
-      // Rechnung offen — nicht aber ein Beleg doppelt verrechenbar.
-      await markBilled('timeEntries', preview.linkedEntries, reserved);
-
-      await createInvoice(user.companyId, {
-        invoiceNumber: reserved,
+      const { invoiceNumber: reserved } = await rechnungAusstellen(user.companyId, {
         projectNumber,
         customerName: project?.customerName ?? '–',
         address: project?.address ?? '',
@@ -948,6 +942,9 @@ export default function InvoicesView() {
         // Die Scheine, deren Material eingeflossen ist. Sie sind damit
         // verbraucht — bis diese Rechnung storniert wird.
         linkedWorkSheets: preview.linkedWorkSheets,
+      }, {
+        praefix: vorsaetze.rechnung,
+        desired: vonHand ? typedSeq : undefined,
       });
 
       // jsPDF erst hier nachladen — es wiegt mehrere hundert Kilobyte und
@@ -996,12 +993,17 @@ export default function InvoicesView() {
       setGewaehlteAbzuege([]);
       toast.success(`Rechnung ${reserved} erstellt`);
     } catch (e) {
-      // Die Nummernvergabe sagt genau, welche Nummer belegt ist und welche
-      // frei wäre — diese Auskunft ist mehr wert als ein Sammelsatz.
+      /*
+        Die Datenbank sagt genau, woran es lag — welche Nummer belegt ist
+        und welche frei wäre, oder dass ein Beleg inzwischen verrechnet ist.
+        Diese Auskunft ist mehr wert als ein Sammelsatz. Angelegt und
+        gesperrt ist in jedem Fall nichts: alles lief in einer Transaktion.
+      */
       setError(
-        e instanceof Error && e.message.includes('bereits vergeben')
-          ? e.message
-          : 'Die Rechnung konnte nicht vollständig erstellt werden. Bitte die Liste prüfen, bevor du es erneut versuchst.',
+        grundAus(
+          e,
+          'Die Rechnung konnte nicht erstellt werden. Es ist nichts angelegt und nichts gesperrt — bitte erneut versuchen.',
+        ),
       );
     } finally {
       setBusy(false);
@@ -1184,6 +1186,16 @@ export default function InvoicesView() {
     () => (preview ? mitAbzug(preview, abzuege) : null),
     [preview, abzuege],
   );
+
+  /*
+    OHNE POSITIONEN ODER ÜBER NULL EURO GIBT ES KEINE RECHNUNG (Prüflauf
+    25.09.2026, P2-10). Wer die letzte Zeile entfernte, legte eine Rechnung
+    über nichts an — mit einer verbrauchten Nummer, die sich nicht mehr
+    wegräumen lässt. Gemessen wird die volle Leistung, nicht der Rest: eine
+    Schlussrechnung, deren Anzahlung alles gedeckt hat, bleibt ein Beleg. Die
+    Datenbank (`rechnung_anlegen`) weist beides ebenso ab.
+  */
+  const leer = !!preview && (preview.positions.length === 0 || preview.totalNetto <= 0);
 
   /**
    * Stellt dieser Betrieb überhaupt Anzahlungen und Teilrechnungen?
@@ -2172,13 +2184,20 @@ export default function InvoicesView() {
                 )}
               </p>
             )}
+            {leer && (
+              <p className="text-sm text-warning" role="alert">
+                {preview.positions.length === 0
+                  ? 'Ohne Positionen gibt es keine Rechnung — bitte eine Position hinzufügen.'
+                  : 'Eine Rechnung über null Euro wird nicht angelegt — bitte die Preise eintragen.'}
+              </p>
+            )}
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 onClick={confirmInvoice}
                 loading={busy}
                 disabled={
                   numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || !!summen?.gutschrift
-                  || !company?.addressLine?.trim()
+                  || !company?.addressLine?.trim() || leer
                 }
                 className="w-full sm:w-auto">
                 Rechnung erstellen &amp; PDF

@@ -73,6 +73,18 @@ export function createInvoice(companyId: string, inv: NewInvoice): Promise<strin
   return pg.createInvoice(companyId, inv);
 }
 
+/**
+ * Nummer ziehen, Belege sperren und anlegen — in einer Transaktion. Der Weg
+ * der Ansicht; siehe `pg/invoices.ts`.
+ */
+export function rechnungAusstellen(
+  companyId: string,
+  inv: Omit<NewInvoice, 'invoiceNumber'>,
+  nummer: { praefix?: string; desired?: number },
+): Promise<{ id: string; invoiceNumber: string }> {
+  return pg.rechnungAusstellen(companyId, inv, nummer);
+}
+
 export type { SetzbarerStand } from './pg/invoices';
 
 export function updateInvoiceStatus(
@@ -97,12 +109,6 @@ export function mahnungFesthalten(
   },
 ): Promise<void> {
   return pg.mahnungFesthalten(id, daten);
-}
-
-export function markBilled(
-  coll: string, ids: string[], invoiceNumber: string,
-): Promise<void> {
-  return pg.markBilled(coll, ids, invoiceNumber);
 }
 
 export type { WithId };

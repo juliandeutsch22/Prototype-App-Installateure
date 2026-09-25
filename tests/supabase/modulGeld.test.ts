@@ -339,7 +339,12 @@ describe('Storno und Storno-Aufhebung', () => {
     const { data: b } = await admin.from('time_entries')
       .insert(buchung({ ...anton, betrieb: BETRIEB } as Konto, '2026-04-13')).select('id').single();
     const beleg = b!.id as string;
-    await rechnungen.markBilled('timeEntries', [beleg], `RE-${JAHR}-1001`);
+    /*
+      KEIN EIGENES SPERREN MEHR VORAB (Prüflauf 25.09.2026, P2-04): das
+      Anlegen sperrt die Belege selbst, in derselben Transaktion. Hier stand
+      `markBilled` davor — genau die getrennte Reihenfolge, die ein Abbruch
+      dazwischen halb stehen liess.
+    */
     await rechnungen.createInvoice(BETRIEB, rechnung({ linkedEntries: [beleg] }));
     const [r] = await rechnungen.listUnpaidInvoices(BETRIEB);
     return { r, beleg };
@@ -398,8 +403,10 @@ describe('Storno und Storno-Aufhebung', () => {
   it('nicht, wenn die Leistung inzwischen auf einer anderen Rechnung steht', async () => {
     const { r, beleg } = await mitBelegen();
     await rechnungen.cancelInvoice(r, 'Falscher Kunde');
-    // Dieselbe Stunde, neu verrechnet.
-    await rechnungen.markBilled('timeEntries', [beleg], `RE-${JAHR}-1002`);
+    // Dieselbe Stunde, neu verrechnet — auf dem einzigen Weg, den es dafür gibt.
+    await rechnungen.createInvoice(BETRIEB, rechnung({
+      invoiceNumber: `RE-${JAHR}-1002`, linkedEntries: [beleg],
+    }));
     await expect(rechnungen.reactivateInvoice(r)).rejects.toThrow(new RegExp(`inzwischen auf RE-${JAHR}-1002`));
     expect(await verrechnungsstand(beleg)).toEqual({ is_billed: true, invoice_number: `RE-${JAHR}-1002` });
   });

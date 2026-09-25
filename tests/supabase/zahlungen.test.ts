@@ -50,6 +50,13 @@ async function rechnung(brutto = 1000): Promise<string> {
     totalBrutto: brutto,
     vatRate: 0.2,
     paymentStatus: 'Offen',
+    // Ohne Positionen legt die Datenbank keine Rechnung an (Prüflauf
+    // 25.09.2026, P2-10).
+    positions: [{
+      label: 'Leistung', qty: 1, unit: 'Pauschale',
+      unitPrice: Math.round((brutto / 1.2) * 100) / 100,
+      netto: Math.round((brutto / 1.2) * 100) / 100,
+    }],
   });
 }
 

@@ -76,7 +76,6 @@ let reservierteNummer = 'RE-2026-1099';
 let reservierungWirft: Error | null = null;
 
 const reserve = vi.fn();
-const markiere = vi.fn();
 const lege = vi.fn();
 const mahnung = vi.fn();
 const reihenfolge: string[] = [];
@@ -148,21 +147,22 @@ vi.mock('@/lib/db/invoices', async () => {
       cb(rechnungen);
       return () => undefined;
     },
-    reserveInvoiceNumber: (c: string, opts: { seedFrom: number; desired?: number }) => {
-      reihenfolge.push('reserve');
-      reserve(c, opts);
+    /*
+      NUMMER, SPERRE UND RECHNUNG IN EINEM AUFRUF (Prüflauf 25.09.2026,
+      P2-04). Der Doppelgänger hält fest, was die Transaktion bekäme: den
+      Nummernwunsch (`reserve`) und die Rechnung mit der Nummer, die die
+      Datenbank vergibt (`lege`).
+    */
+    rechnungAusstellen: (
+      c: string,
+      inv: Invoice,
+      nummer: { praefix?: string; desired?: number },
+    ) => {
+      reihenfolge.push('ausstellen');
+      reserve(c, nummer);
       if (reservierungWirft) return Promise.reject(reservierungWirft);
-      return Promise.resolve(reservierteNummer);
-    },
-    markBilled: (...a: unknown[]) => {
-      reihenfolge.push('markBilled');
-      markiere(...a);
-      return Promise.resolve();
-    },
-    createInvoice: (_c: string, inv: Invoice) => {
-      reihenfolge.push('createInvoice');
       lege(inv);
-      return Promise.resolve('neu');
+      return Promise.resolve({ id: 'neu', invoiceNumber: reservierteNummer });
     },
     /*
       Die Rechnungen EINER BAUSTELLE — für den Abzug auf der Schlussrechnung.
@@ -344,7 +344,6 @@ beforeEach(() => {
   reservierungWirft = null;
   reihenfolge.length = 0;
   reserve.mockClear();
-  markiere.mockClear();
   lege.mockClear();
   pdfAusgabe.mockClear();
   mahnung.mockClear();
@@ -361,18 +360,21 @@ afterEach(() => {
 });
 
 describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
-  it('sperrt die Belege VOR dem Anlegen der Rechnung', async () => {
+  it('zieht die Nummer, sperrt die Belege und legt an — in EINEM Aufruf (Prüflauf 25.09.2026, P2-04)', async () => {
     /**
-     * Die Reihenfolge ist die eigentliche Aussage. Bricht es nach dem Sperren
-     * ab, ist schlimmstenfalls eine Rechnung nicht entstanden — dreht man sie
-     * um, ist im Fehlerfall ein Zeiteintrag ein zweites Mal verrechenbar, und
-     * der Kunde bekommt dieselbe Stunde zweimal in Rechnung gestellt.
+     * Die Reihenfolge WAR die Aussage: erst die Nummer, dann die Belege
+     * sperren, dann anlegen. Ein Abbruch dazwischen liess eine verbrauchte
+     * Nummer und gesperrte Stunden ohne Rechnung stehen, und zwei
+     * gleichzeitige Abrechnungen verrechneten dieselben Stunden. Jetzt ist es
+     * ein Aufruf und in der Datenbank eine Transaktion — die Belege gehen mit
+     * der Rechnung hinein und werden dort gesperrt.
      */
     const bestaetigen = await bisZurVorschau();
     await userEvent.click(bestaetigen);
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
-    expect(reihenfolge).toEqual(['reserve', 'markBilled', 'createInvoice']);
+    expect(reihenfolge).toEqual(['ausstellen']);
+    expect(lege.mock.calls[0][0].linkedEntries).toEqual(['z1']);
   });
 
   it('schreibt die RESERVIERTE Nummer in die Rechnung, nicht die vorgeschlagene', async () => {
@@ -392,8 +394,11 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     await userEvent.click(bestaetigen);
 
     await waitFor(() => expect(lege).toHaveBeenCalled());
-    expect(lege.mock.calls[0][0].invoiceNumber).toBe('RE-2026-1099');
-    expect(markiere).toHaveBeenCalledWith('timeEntries', ['z1'], 'RE-2026-1099');
+    // Die Vorschlagsnummer geht gar nicht erst mit — die Nummer vergibt die
+    // Transaktion, und auf den Beleg kommt, was sie zurückgibt.
+    expect(lege.mock.calls[0][0].invoiceNumber).toBeUndefined();
+    expect(reserve.mock.calls[0][1].praefix).toBe('RE');
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({ invoiceNumber: 'RE-2026-1099' });
   });
 
   it('zieht ohne Handeingabe KEINE Wunschnummer', async () => {
@@ -1886,13 +1891,22 @@ describe('Anzahlung, Teilrechnung, Schlussrechnung', () => {
     expect(screen.getByDisplayValue('Anzahlung gemäß Vereinbarung')).toBeTruthy();
     expect(screen.queryByDisplayValue(/Facharbeiterstunden/)).toBeNull();
 
+    /*
+      Der Betrag steht auf null und ist zu setzen — über null Euro gibt es
+      seit dem Prüflauf 25.09.2026 (P2-10) keine Rechnung.
+    */
+    expect(bestaetigen).toBeDisabled();
+    const preis = screen.getByLabelText('Einzelpreis Position 1');
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '1000');
+    await waitFor(() => expect(bestaetigen).toBeEnabled());
+
     await userEvent.click(bestaetigen);
     await waitFor(() => expect(lege).toHaveBeenCalled());
     const inv = lege.mock.calls[0][0] as Invoice;
     expect(inv.art).toBe('anzahlung');
+    // Gesperrt wird nichts: die Liste, die mit der Rechnung zum Sperren geht, ist leer.
     expect(inv.linkedEntries).toEqual([]);
-    // Gesperrt wird nichts: die Liste, die zum Sperren geht, ist leer.
-    expect(markiere).toHaveBeenCalledWith('timeEntries', [], 'RE-2026-1099');
   });
 
   it('verlangt für die Anzahlung keinen Leistungszeitraum', async () => {
@@ -2295,3 +2309,49 @@ describe('„Positionen zusammenstellen" bricht nicht um (Prüflauf 25.09.2026, 
   });
 });
 
+
+/*
+  PRÜFLAUF 25.09.2026, P2-04 und P2-10. Nummer, Sperre und Rechnung gehen in
+  EINEM Aufruf; scheitert er, ist nichts angelegt und nichts gesperrt — und
+  die Ansicht sagt, woran es lag. Ohne Positionen oder über null Euro gibt es
+  keine Rechnung: vorher liess sich die letzte Zeile entfernen und eine
+  Rechnung über nichts anlegen.
+*/
+describe('Rechnungen — ganz oder gar nicht', () => {
+  it('gibt den Grund weiter, wenn ein Beleg inzwischen verrechnet ist', async () => {
+    reservierungWirft = new Error(
+      'Ein Teil der Belege ist inzwischen verrechnet oder gehört nicht zu diesem Betrieb — die Rechnung ist nicht angelegt und nichts ist gesperrt. Bitte die Positionen neu zusammenstellen.',
+    );
+    const bestaetigen = await bisZurVorschau();
+    await userEvent.click(bestaetigen);
+
+    expect(await screen.findByText(/inzwischen verrechnet/)).toBeInTheDocument();
+    expect(lege).not.toHaveBeenCalled();
+    expect(pdfAusgabe).not.toHaveBeenCalled();
+  });
+
+  it('legt ohne Positionen keine Rechnung an', async () => {
+    const bestaetigen = await bisZurVorschau();
+    expect(bestaetigen).toBeEnabled();
+    // Alle Zeilen entfernen — bis nichts mehr dasteht.
+    for (let i = 0; i < 10; i += 1) {
+      const weg = screen.queryByRole('button', { name: 'Position 1 entfernen' });
+      if (!weg) break;
+      await userEvent.click(weg);
+    }
+    expect(screen.queryByRole('button', { name: 'Position 1 entfernen' })).toBeNull();
+    expect(bestaetigen).toBeDisabled();
+    expect(screen.getByText(/Ohne Positionen gibt es keine Rechnung/)).toBeInTheDocument();
+    await userEvent.click(bestaetigen);
+    expect(reserve).not.toHaveBeenCalled();
+  });
+
+  it('legt keine Rechnung über null Euro an', async () => {
+    const bestaetigen = await bisZurVorschau();
+    const preis = screen.getByLabelText('Einzelpreis Position 1');
+    await userEvent.clear(preis);
+    await userEvent.type(preis, '0');
+    expect(bestaetigen).toBeDisabled();
+    expect(screen.getByText(/über null Euro wird nicht angelegt/)).toBeInTheDocument();
+  });
+});
