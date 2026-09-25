@@ -25,6 +25,16 @@ export function listOwnEntriesSince(
   return pg.listOwnEntriesSince(companyId, uid, from);
 }
 
+/**
+ * Die eigenen Einträge eines Zeitraums — für den Eintrittsmonat im Saldo
+ * (siehe `saldoAusBilanzen`).
+ */
+export function listOwnEntriesInRange(
+  companyId: string, uid: string, from: string, to: string,
+): Promise<WithId<TimeEntry>[]> {
+  return pg.listOwnEntriesInRange(companyId, uid, from, to);
+}
+
 export function subscribeOwnEntriesInRange(
   companyId: string,
   uid: string,

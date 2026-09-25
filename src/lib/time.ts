@@ -521,6 +521,11 @@ export interface SaldoResult {
   daysWithoutEntry: number;
 }
 
+/** Der letzte Tag des Monats, in dem `iso` liegt — „2026-02-10" → „2026-02-28". */
+export function monatsLetzter(iso: string): string {
+  return localDateStr(new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0));
+}
+
 /**
  * Wird ein ganztägiger Krank- oder Urlaubstag als Solltag gutgeschrieben?
  *
@@ -604,11 +609,21 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
  * echten Einträgen: er ändert sich noch, und der Trigger braucht einen
  * Augenblick. Ein Monteur, der gerade gebucht hat und seinen Saldo unverändert
  * sähe, würde zu Recht an der App zweifeln.
+ *
+ * DER EINTRITTSMONAT EBENSO, sobald seine Einträge mitkommen (Prüflauf
+ * 25.09.2026, P1-15). Die Bilanz fasst den GANZEN Kalendermonat zusammen —
+ * auch Buchungen vor dem Eintrittsdatum, etwa aus einer Probewoche oder
+ * einem Import. `calcOverallSaldo` lässt sie weg, die Bilanz nicht; die
+ * beiden Wege wichen um genau diese Tage voneinander ab. Mit
+ * `eintrittsmonat` (den Einträgen AB dem Eintrittsdatum bis zum Ende seines
+ * Monats) wird dieser eine Monat wie der laufende aus den Einzelbuchungen
+ * gerechnet.
  */
 export function saldoAusBilanzen(
   user: AppUser,
   bilanzen: Array<{ monat: string; anwesendMin: number; krankTage: number; urlaubTage: number; tage: string[] }>,
   laufenderMonat: TimeEntry[],
+  eintrittsmonat?: TimeEntry[],
 ): SaldoResult {
   if (!fuehrtZeitkonto(user)) {
     return { saldoH: 0, hasConfig: false, daysWithoutEntry: 0 };
@@ -625,10 +640,17 @@ export function saldoAusBilanzen(
 
   let istMin = 0;
   const gebucht = new Set<string>();
+  const startMonat = user.appStartDate.slice(0, 7);
+  /*
+    Nur ein Eintrittsmonat, der schon vorbei ist — der laufende kommt
+    ohnehin aus `laufenderMonat`, und doppelt gezählt wäre er falsch.
+  */
+  const startAusEinzeln = !!eintrittsmonat && startMonat < aktuellerMonat;
 
   for (const b of bilanzen) {
     // Der laufende Monat kommt aus den Einträgen, nicht aus der Bilanz.
     if (b.monat >= aktuellerMonat) continue;
+    if (startAusEinzeln && b.monat === startMonat) continue;
     istMin += b.anwesendMin;
     // Krank und Urlaub zählen als Tagessoll — bewertet ERST hier, mit der
     // aktuellen Konfiguration. Gespeichert ist nur die Anzahl.
@@ -639,7 +661,13 @@ export function saldoAusBilanzen(
   }
 
   const heuteIso = todayStr();
-  for (const e of laufenderMonat) {
+  const einzeln = [
+    ...laufenderMonat,
+    // Nur die Tage des Eintrittsmonats — was der Aufrufer darüber hinaus
+    // mitgibt, steckt schon in einer Bilanz.
+    ...(startAusEinzeln ? eintrittsmonat!.filter((e) => e.date.slice(0, 7) === startMonat) : []),
+  ];
+  for (const e of einzeln) {
     // Nichts aus der Zukunft — siehe `calcOverallSaldo`.
     if (e.date < user.appStartDate || e.date > heuteIso) continue;
     gebucht.add(e.date);

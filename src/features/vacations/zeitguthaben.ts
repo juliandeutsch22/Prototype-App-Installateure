@@ -1,7 +1,9 @@
 import type { AppUser } from '@/types';
 import { bilanzMarker, listBilanzen, monatVon } from '@/lib/db/monatsbilanzen';
-import { listOwnEntriesSince } from '@/lib/db/timeEntries';
-import { calcOverallSaldo, localDateStr, saldoAusBilanzen, type SaldoResult } from '@/lib/time';
+import { listOwnEntriesInRange, listOwnEntriesSince } from '@/lib/db/timeEntries';
+import {
+  calcOverallSaldo, localDateStr, monatsLetzter, saldoAusBilanzen, type SaldoResult,
+} from '@/lib/time';
 
 /**
  * Das eigene Zeitguthaben — dieselbe Zahl, die die Zeiterfassung zeigt.
@@ -19,11 +21,14 @@ export async function zeitguthabenLaden(profil: AppUser): Promise<SaldoResult> {
   if (marker && marker.vollstaendigAb <= monatVon(eintritt)) {
     const jetzt = new Date();
     const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
-    const [bilanzen, laufend] = await Promise.all([
+    const [bilanzen, laufend, eintrittsmonat] = await Promise.all([
       listBilanzen(profil.companyId, profil.uid, monatVon(eintritt)),
       listOwnEntriesSince(profil.companyId, profil.uid, monatsErster),
+      // Der Eintrittsmonat ab dem Eintritt — seine Bilanz zählt auch Tage
+      // davor (Prüflauf 25.09.2026, P1-15).
+      listOwnEntriesInRange(profil.companyId, profil.uid, eintritt, monatsLetzter(eintritt)),
     ]);
-    return saldoAusBilanzen(profil, bilanzen, laufend);
+    return saldoAusBilanzen(profil, bilanzen, laufend, eintrittsmonat);
   }
   return calcOverallSaldo(profil, await listOwnEntriesSince(profil.companyId, profil.uid, eintritt));
 }

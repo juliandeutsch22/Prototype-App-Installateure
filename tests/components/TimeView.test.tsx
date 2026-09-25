@@ -55,6 +55,7 @@ let rolle: Role = 'Mitarbeiter';
 
 const abo = vi.fn();
 const listeSeit = vi.fn();
+const listeBereich = vi.fn();
 const listeBilanzen = vi.fn();
 
 /** Der Rueckruf des Live-Abos — damit ein Test einen zweiten Schnappschuss
@@ -77,6 +78,11 @@ vi.mock('@/lib/db/timeEntries', () => ({
   listOwnEntriesSince: (_company: string, _uid: string, ab: string) => {
     listeSeit(ab);
     return Promise.resolve(eintraege);
+  },
+  // Der Eintrittsmonat für den Saldo aus Bilanzen (Prüflauf 25.09.2026, P1-15).
+  listOwnEntriesInRange: (_company: string, _uid: string, von: string, bis: string) => {
+    listeBereich(von, bis);
+    return Promise.resolve(eintraege.filter((e) => e.date >= von && e.date <= bis));
   },
   deleteTimeEntry: vi.fn(async () => undefined),
 }));
@@ -180,6 +186,7 @@ beforeEach(() => {
   schnappschussSenden = null;
   abo.mockClear();
   listeSeit.mockClear();
+  listeBereich.mockClear();
   listeBilanzen.mockClear();
 });
 
@@ -221,6 +228,9 @@ describe('Zeiterfassung — welcher Weg zum Saldo', () => {
 
     await waitFor(() => expect(listeBilanzen).toHaveBeenCalled());
     expect(listeBilanzen).toHaveBeenCalledWith('2026-06');
+    // Der Eintrittsmonat kommt aus den Einzelbuchungen ab dem Eintritt —
+    // seine Bilanz zählt auch Tage davor (Prüflauf 25.09.2026, P1-15).
+    expect(listeBereich).toHaveBeenCalledWith('2026-06-01', '2026-06-30');
   });
 
   it('fällt auf die Rohdaten zurück, wenn der Marker den Anfang NICHT abdeckt', async () => {
