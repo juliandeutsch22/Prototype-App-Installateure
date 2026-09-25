@@ -287,23 +287,14 @@ textarea:focus {
  */
 
 /*
- * FLÄCHEN — die zwei Kästen, aus denen die ganze App gebaut ist.
+ * FLÄCHEN. Die helle Arbeitsfläche ist `.karte` und ihre Verwandten (unten,
+ * „Gemeinsame Bausteine“); hier steht die dunkle Trägerfläche `.panel-dark`
+ * für Navigation, Anmeldekopf und Markenband, dazu das Kästchen.
  *
- * Sie stehen hier und nicht an den Aufrufstellen, weil „das Design der Boxen"
- * sonst an 60 Stellen einzeln gepflegt werden müsste und nach dem dritten
- * Nachbessern nicht mehr übereinstimmt. Wer eine neue Fläche braucht, nimmt
- * eine dieser zwei — oder ergänzt sie hier.
- *
- *   .panel       helle Arbeitsfläche: Karten, Kästen, Dialoge
- *   .panel-dark  dunkle Trägerfläche: Navigation, Anmeldekopf, Markenband
- *
- * WARUM `@layer components` UND NICHT EINFACH HIER HINGESCHRIEBEN. Weil
- * Tailwind diese Ebene VOR die Utilities stellt. Als freies CSS stünde
- * `.panel` weiter unten in der Datei als jede Utility-Klasse und gewänne
- * gegen sie — die aufgeklappte Zeile in der Mitarbeiterübersicht könnte ihre
- * Rahmenfarbe dann nicht mehr mit `border-brand/40` austauschen, und eine
- * Karte, die `rounded-sm` braucht, bekäme sie nicht. Eine Grundfläche muss
- * sich von der Aufrufstelle überschreiben lassen.
+ * WARUM `@layer components`. Tailwind stellt diese Ebene VOR die Utilities,
+ * sodass eine Aufrufstelle Abstände noch mit einer Hilfsklasse setzen kann.
+ * Und: Tailwind behält aus dieser Ebene nur Klassen, die im Quelltext als
+ * ganzes Wort stehen — Klassennamen deshalb nie zusammensetzen.
  */
 @layer components {
   /*
@@ -327,13 +318,6 @@ textarea:focus {
   }
   .reiterleiste::-webkit-scrollbar {
     display: none;
-  }
-
-  .panel {
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
   }
 
   /*
@@ -365,7 +349,8 @@ textarea:focus {
    * Bedienoberfläche, keine Handlung. Siehe die Aufteilung oben bei den
    * festen Farben.
    */
-  .checkbox {
+  .kaestchen,
+  .kaestchen-gross {
     appearance: none;
     -webkit-appearance: none;
     flex: none;
@@ -383,26 +368,29 @@ textarea:focus {
       border-color 120ms ease;
   }
 
-  .checkbox:checked {
+  .kaestchen:checked,
+  .kaestchen-gross:checked {
     background-color: var(--accent-deep);
     border-color: var(--accent-deep);
     /* Weisser Haken, 5,2:1 auf der Fläche darunter. */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.4l3.4 3.4L13 4.6'/%3E%3C/svg%3E");
   }
 
-  .checkbox:indeterminate {
+  .kaestchen:indeterminate,
+  .kaestchen-gross:indeterminate {
     background-color: var(--accent-deep);
     border-color: var(--accent-deep);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
   }
 
-  .checkbox:disabled {
+  .kaestchen:disabled,
+  .kaestchen-gross:disabled {
     cursor: not-allowed;
     opacity: 0.5;
   }
 
   /* Grösseres Kästchen, wo es allein in einer Zeile steht (Module). */
-  .checkbox-lg {
+  .kaestchen-gross {
     width: 1.5rem;
     height: 1.5rem;
     background-size: 1rem;

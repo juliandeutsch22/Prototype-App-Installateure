@@ -90,7 +90,7 @@ export default function RuestlisteAbhaken({
                   checked={!!eintrag}
                   disabled={!abhakbar}
                   onChange={() => void umschalten(p)}
-                  className="checkbox"
+                  className="kaestchen"
                 />
                 <span className="min-w-0 flex-1">
                   <span className={`block ${eintrag ? 'text-ink-muted line-through' : 'text-ink'}`}>

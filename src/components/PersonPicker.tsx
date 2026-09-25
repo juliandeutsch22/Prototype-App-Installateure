@@ -157,7 +157,7 @@ export default function PersonPicker({
                 type="checkbox"
                 checked={nurFreie}
                 onChange={(e) => setNurFreie(e.target.checked)}
-                className="checkbox"
+                className="kaestchen"
               />
               <span className="min-w-0">
                 Nur freie anzeigen{' '}
@@ -212,7 +212,7 @@ export default function PersonPicker({
                             type="checkbox"
                             checked={an}
                             onChange={(e) => umschalten(p.uid, e.target.checked)}
-                            className="checkbox"
+                            className="kaestchen"
                           />
                           <span className="min-w-0">
                             <span className="block truncate text-ink">{p.name}</span>

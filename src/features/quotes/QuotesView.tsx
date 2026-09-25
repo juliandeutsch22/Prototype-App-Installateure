@@ -501,7 +501,7 @@ export default function QuotesView() {
                           ),
                         )
                       }
-                      className="checkbox"
+                      className="kaestchen"
                     />
                     Zählt als Arbeitszeit ins Stundenbudget
                   </label>

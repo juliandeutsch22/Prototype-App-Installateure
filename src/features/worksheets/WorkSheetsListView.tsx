@@ -626,7 +626,7 @@ export default function WorkSheetsListView() {
               type="checkbox"
               checked={zeigeVerworfene}
               onChange={(e) => setZeigeVerworfene(e.target.checked)}
-              className="checkbox"
+              className="kaestchen"
             />
             {verworfene} verworfene{verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen
           </label>
