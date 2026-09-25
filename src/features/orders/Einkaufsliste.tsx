@@ -205,7 +205,6 @@ export default function Einkaufsliste({
                             id={`zuordnen-${z.schluessel}`}
                             label=""
                             aria-label={`Grosshändler für ${z.bezeichnung}`}
-                            className="py-1 text-sm"
                             value=""
                             disabled={laeuft !== null}
                             onChange={(e) => {
@@ -279,7 +278,7 @@ export default function Einkaufsliste({
                       {mail ? (
                         <a
                           href={mail.href}
-                          className="inline-flex min-h-touch items-center rounded border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm hover:bg-surface-2"
+                          className="knopf-sekundaer"
                         >
                           E-Mail an {h?.bestellEmail}
                         </a>
@@ -733,7 +732,7 @@ function GrosshaendlerPflege({
       )}
 
       {bearbeitet !== null && (
-        <div className="mt-4 space-y-3 rounded border border-line p-3">
+        <div className="kasten-hell mt-4 space-y-3">
           <FormGrid>
             <InputField id="gh-name" label="Name" pflicht value={entwurf.name}
               onChange={(e) => setEntwurf({ ...entwurf, name: e.target.value })} />

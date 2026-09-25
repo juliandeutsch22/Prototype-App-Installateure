@@ -12,6 +12,7 @@ import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
+import Meldung from '@/components/Meldung';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
@@ -435,10 +436,10 @@ export default function OrderView() {
               )}
             </div>
             {projectNumber && urgent && !leitungDa && (
-              <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+              <Meldung ton="warnung">
                 Dieser Baustelle ist keine Projektleitung zugeteilt — die Eilmeldung erreicht
                 niemanden. Die Verwaltung bekommt die Anforderung trotzdem.
-              </p>
+              </Meldung>
             )}
           </div>
 
@@ -679,7 +680,7 @@ export default function OrderView() {
         >
           <div className="space-y-4">
             {retGewaehlt ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-line bg-surface-2 px-3 py-2">
+              <div className="kasten flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="section-label block">Material</span>
                   <span className="font-semibold text-ink">{retGewaehlt.name}</span>
