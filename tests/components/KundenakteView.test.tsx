@@ -439,7 +439,10 @@ describe('Die Rechnungen der Akte', () => {
     zeige();
     const link = await screen.findByRole('link', { name: 'RE-2026-1001' });
     expect(link).toHaveAttribute('href', '/invoices?suche=RE-2026-1001');
-    expect(screen.getByText(/1.200,00 brutto · Teilbezahlt/)).toBeInTheDocument();
+    // Betrag und Stand stehen getrennt rechts in der Zeile (Wert und Zustand) —
+    // aber in DERSELBEN Zeile.
+    const zeile = screen.getByText(/1.200,00 brutto/).closest('li')!;
+    expect(within(zeile).getByText('Teilbezahlt')).toBeInTheDocument();
     expect(listInvoicesForCustomer).toHaveBeenCalledWith('perl', 'k1', ['p1']);
   });
 
@@ -451,7 +454,7 @@ describe('Die Rechnungen der Akte', () => {
     zeige();
     await screen.findByRole('link', { name: 'RE-2026-100' });
     expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(5);
-    await userEvent.click(screen.getByRole('button', { name: 'Alle 7 zeigen' }));
+    await userEvent.click(screen.getByRole('button', { name: 'und 2 weitere' }));
     expect(screen.getAllByRole('link', { name: /^RE-2026-10/ })).toHaveLength(7);
   });
 
@@ -509,5 +512,27 @@ describe('Die Verwaltung mit der Freigabe „Kunden pflegen“', () => {
     zeige();
     await screen.findByText('Hausverwaltung Nord');
     expect(screen.queryByLabelText('UID-Nummer')).not.toBeInTheDocument();
+  });
+});
+
+describe('Am Schreibtisch zwei Spalten', () => {
+  /** In welcher Spalte der Akte eine Karte steht. */
+  const spalte = (titel: RegExp) =>
+    screen.getByRole('heading', { name: titel }).closest('section')!.parentElement!.className;
+
+  it('stellt die Stammdaten links und alles, was am Kunden hängt, rechts', async () => {
+    zeige();
+    await screen.findByText('Noch kein Angebot.');
+    expect(spalte(/^Stammdaten/)).toBe('akte-links');
+    for (const titel of [/^Baustellen/, /^Wartungen/, /^Rechnungen/, /^Angebote/]) {
+      expect(spalte(titel)).toBe('akte-rechts');
+    }
+  });
+
+  it('liest links vor rechts — die Vorlesehilfe geht die Karten in der alten Reihenfolge durch', async () => {
+    zeige();
+    await screen.findByText('Noch kein Angebot.');
+    const titel = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    expect(titel).toEqual(['Stammdaten', 'Baustellen (0)', 'Wartungen', 'Rechnungen', 'Angebote']);
   });
 });

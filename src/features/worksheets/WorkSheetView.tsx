@@ -14,7 +14,7 @@ import {
   fotosAmEntwurf,
   type NewWorkSheet,
 } from '@/lib/db/workSheets';
-import { fmtMin, todayStr } from '@/lib/time';
+import { fmtDauer, fmtMin, todayStr } from '@/lib/time';
 import type { Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
@@ -27,6 +27,11 @@ import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, LoadingState } from '@/components/States';
+import Meldung from '@/components/Meldung';
+import Aktionsleiste from '@/components/Aktionsleiste';
+import { List, ListRow } from '@/components/ListRow';
+import { Schrittleiste, Zusammenfassung } from './Schrittfolge';
+import { SCHRITTE, useEineSeite, type Schritt } from './schritte';
 import MaterialErfassen from './MaterialErfassen';
 import { neueKennung, ohneKennung, type MaterialZeile } from './materialZeilen';
 import LeistungszeitErfassen, { ZeileEntfernen } from './LeistungszeitErfassen';
@@ -780,6 +785,54 @@ export default function WorkSheetView() {
     }
   }
 
+  /*
+    DIE SCHRITTFOLGE: am Telefon und Tablet Zeiten, Material, Fotos,
+    Unterschrift nacheinander, am Schreibtisch eine Seite (`Schrittfolge.tsx`).
+
+    Sie ist REINE ANORDNUNG. Kein Teil wird je ausgehängt — ein Schritt blendet
+    die übrigen nur aus —, und nichts hier greift in Speichern, Prüfen oder
+    Unterschreiben ein. Die Sperren des Abschlussknopfs (`bereit`,
+    `nichtUebernommen`, `entwurfLaedt`) sind dieselben wie vorher; sie gelten,
+    egal in welchem Schritt das Feld steht, aus dem sie kommen.
+
+    „WEITER" SPERRT NIE. Keiner der Schritte hat eine Pflichtangabe, die die
+    bestehende Logik als Fehler meldet: ein Schein ohne Stunden, ohne Material
+    oder ohne Fotos ist gültig. Geprüft wird, wie bisher, beim Unterschreiben.
+
+    EIN WIEDER GEÖFFNETER ENTWURF BEGINNT BEI SCHRITT 1. Seine Zeiten werden
+    beim Öffnen frisch geholt und können sich seit dem Speichern geändert
+    haben — das soll als Erstes zu sehen sein, nicht hinter einer
+    Zusammenfassung. Wer gleich unterschreiben lassen will, ist mit einem
+    Tipp auf „4 Unterschrift" dort.
+  */
+  const eineSeite = useEineSeite();
+  const [schritt, setSchritt] = useState<Schritt>(1);
+  /** Zählt jeden Sprung — auch einen zum selben Schritt (Schreibtisch: hinrollen). */
+  const [sprung, setSprung] = useState(0);
+  const abschnitte = useRef<Partial<Record<Schritt, HTMLElement | null>>>({});
+  const leisteRef = useRef<HTMLDivElement>(null);
+
+  function springe(nr: Schritt) {
+    setSchritt(nr);
+    setSprung((n) => n + 1);
+  }
+
+  /*
+    NACH EINEM SPRUNG STEHT MAN AM ANFANG DES SCHRITTS. „Weiter" sitzt unten;
+    ohne das stünde man nach dem Tippen mitten im nächsten Schritt, und dessen
+    Anfang läge über dem Bildschirmrand. Der Fokus wandert mit, damit Tastatur
+    und Vorlesehilfe dort weitermachen, wo das Auge ist.
+  */
+  useEffect(() => {
+    if (sprung === 0) return;
+    const ziel = abschnitte.current[schritt];
+    if (eineSeite) ziel?.scrollIntoView?.({ block: 'start' });
+    else leisteRef.current?.scrollIntoView?.({ block: 'start' });
+    ziel?.focus({ preventScroll: true });
+    // Nur beim Sprung — nicht, wenn sich die Breite ändert.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sprung]);
+
   if (!user) return null;
 
   /*
@@ -806,6 +859,24 @@ export default function WorkSheetView() {
     );
   }
 
+  /** Ist der Abschnitt gerade zu sehen? Ohne Baustelle gibt es nur den ersten. */
+  const sichtbar = (nr: Schritt) => eineSeite || (projectNumber ? schritt === nr : nr === 1);
+  const naechster = SCHRITTE.find((s) => s.nr === schritt + 1);
+  const personen = new Set(zeiten.map((z) => z.mitarbeiter.trim().toLowerCase())).size;
+  const fotosOffen = nochNichtOben(fotos).length;
+  /** Ein Knopf, zwei mögliche Plätze — gerendert wird er immer nur an einem. */
+  const entwurfKnopf = (
+    <Button
+      variant="secondary"
+      onClick={alsEntwurfSichern}
+      loading={speichert}
+      disabled={!projekt || entwurfLaedt}
+      className={eineSeite ? undefined : 'w-full sm:w-auto'}
+    >
+      {scheinId ? 'Entwurf aktualisieren' : 'Als Entwurf speichern'}
+    </Button>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -817,99 +888,125 @@ export default function WorkSheetView() {
         }
       />
 
-      <Card title="Baustelle und Tag">
-        {/*
-          Die eigenen Einsätze zuerst und als Knopf, nicht als Listeneintrag:
-          das ist am Telefon mit Handschuhen ein Ziel, das man trifft.
-        */}
-        {heutige.length > 0 && (
-          <div className="mb-4">
-            <span className="section-label block">Deine Einsätze an diesem Tag</span>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {heutige.map((e) => (
-                <button
-                  key={e.projectNumber}
-                  type="button"
-                  onClick={() => {
-                    // Den alten Datensatz mit weglegen: sonst zeigte die
-                    // Kontaktzeile für einen Wimpernschlag die vorige
-                    // Baustelle, und genau die ruft dann jemand an.
-                    setProjekt(undefined);
-                    setProjectNumber(e.projectNumber);
-                  }}
-                  className={`min-h-touch rounded border px-3 py-2 text-left text-sm ${
-                    projectNumber === e.projectNumber
-                      ? 'border-brand bg-brand text-brand-fg'
-                      : 'border-line bg-surface text-ink'
-                  }`}
-                >
-                  {e.name}
-                  <span className="tnum ml-1 opacity-70">({e.projectNumber})</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <BaustellenSelect
-          id="wsproj"
-          companyId={user.companyId}
-          value={projectNumber}
-          onChange={(nr, p) => {
-            setProjectNumber(nr);
-            setProjekt(p);
-          }}
-          required
-        />
-        <div className="mt-4">
-          <InputField
-            id="wsdate"
-            label="Leistungsdatum"
-            type="date"
-            value={datum}
-            onChange={(e) => setDatum(e.target.value)}
-          />
+      {/*
+        Die Leiste erst mit einer Baustelle: ohne sie gibt es die übrigen
+        Schritte nicht, und eine Leiste mit drei toten Zielen wäre schlimmer
+        als keine.
+      */}
+      {projectNumber && !eineSeite && (
+        <div ref={leisteRef}>
+          <Schrittleiste schritt={schritt} onWahl={springe} />
         </div>
-        {projekt && (
-          <div className="mt-3 space-y-2">
-            {/*
-              Adresse und Nummer anklickbar: wer den Schein schreibt, steht vor
-              dem Haus oder sucht es noch — und braucht danach oft den Kunden
-              ans Telefon, weil unterschrieben werden soll.
-            */}
-            <span className="flex flex-wrap items-center gap-x-3 text-sm">
-              <AdresseLink adresse={projekt.address} />
-              <TelefonLink nummer={projekt.contactPhone} name={projekt.contactName} />
-            </span>
-            {/* Regie oder Pauschal ist eine Tatsache über die Baustelle, keine
-                Bewertung — vorher hiess Pauschal grau und Regie türkis. */}
-            <Marke>{projekt.billingMode ?? 'Regie'}</Marke>
-          </div>
-        )}
-        {/*
-          Auf einer Pauschalbaustelle belegt der Schein nur, DASS gearbeitet
-          wurde — die Stunden sind dort keine Rechnungsgrundlage. Das gehört
-          gesagt, sonst rechnet jemand später damit.
-        */}
-        {projekt?.billingMode === 'Pauschal' && (
-          <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-            Pauschalbaustelle: Der Schein dokumentiert die geleistete Arbeit, die Stunden sind
-            aber keine Grundlage für eine Nachverrechnung.
-          </p>
-        )}
-        {bestehende.length > 0 && (
-          <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-            Für diesen Tag gibt es bereits {bestehende.length}{' '}
-            {bestehende.length === 1 ? 'Schein' : 'Scheine'}. Ein zweiter ist möglich, etwa für
-            einen getrennt beauftragten Zusatz — doppelt bestätigen sollte man dieselben Stunden
-            aber nicht.
-          </p>
-        )}
-      </Card>
+      )}
 
-      {projectNumber ? (
-        <>
-          <Card title={`Zeiten am ${datumAT(datum)} · ${fmtMin(gesamtMinuten)}`}>
+      <section
+        ref={(el) => {
+          abschnitte.current[1] = el;
+        }}
+        tabIndex={-1}
+        aria-labelledby="schein-abschnitt-1"
+        hidden={!sichtbar(1)}
+      >
+        <h2 id="schein-abschnitt-1" className="schein-abschnitt-titel">
+          1 · Zeiten
+        </h2>
+        <div className="space-y-6">
+          <Card title="Baustelle und Tag">
+            {/*
+              Die eigenen Einsätze zuerst und als Knopf, nicht als Listeneintrag:
+              das ist am Telefon mit Handschuhen ein Ziel, das man trifft.
+            */}
+            {heutige.length > 0 && (
+              <div className="mb-4">
+                <span className="section-label block">Deine Einsätze an diesem Tag</span>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {heutige.map((e) => (
+                    <button
+                      key={e.projectNumber}
+                      type="button"
+                      onClick={() => {
+                        // Den alten Datensatz mit weglegen: sonst zeigte die
+                        // Kontaktzeile für einen Wimpernschlag die vorige
+                        // Baustelle, und genau die ruft dann jemand an.
+                        setProjekt(undefined);
+                        setProjectNumber(e.projectNumber);
+                      }}
+                      className={`min-h-touch rounded border px-3 py-2 text-left text-sm ${
+                        projectNumber === e.projectNumber
+                          ? 'border-brand bg-brand text-brand-fg'
+                          : 'border-line bg-surface text-ink'
+                      }`}
+                    >
+                      {e.name}
+                      <span className="ml-1 opacity-70">({e.projectNumber})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <BaustellenSelect
+              id="wsproj"
+              companyId={user.companyId}
+              value={projectNumber}
+              onChange={(nr, p) => {
+                setProjectNumber(nr);
+                setProjekt(p);
+              }}
+              required
+            />
+            <div className="mt-4">
+              <InputField
+                id="wsdate"
+                label="Leistungsdatum"
+                type="date"
+                value={datum}
+                onChange={(e) => setDatum(e.target.value)}
+              />
+            </div>
+            {projekt && (
+              <div className="mt-3 space-y-2">
+                {/*
+                  Adresse und Nummer anklickbar: wer den Schein schreibt, steht vor
+                  dem Haus oder sucht es noch — und braucht danach oft den Kunden
+                  ans Telefon, weil unterschrieben werden soll.
+                */}
+                <span className="flex flex-wrap items-center gap-x-3 text-sm">
+                  <AdresseLink adresse={projekt.address} />
+                  <TelefonLink nummer={projekt.contactPhone} name={projekt.contactName} />
+                </span>
+                {/* Regie oder Pauschal ist eine Tatsache über die Baustelle, keine
+                    Bewertung — vorher hiess Pauschal grau und Regie türkis. */}
+                <Marke>{projekt.billingMode ?? 'Regie'}</Marke>
+              </div>
+            )}
+            {/*
+              Auf einer Pauschalbaustelle belegt der Schein nur, DASS gearbeitet
+              wurde — die Stunden sind dort keine Rechnungsgrundlage. Das gehört
+              gesagt, sonst rechnet jemand später damit.
+            */}
+            {projekt?.billingMode === 'Pauschal' && (
+              <div className="mt-2">
+                <Meldung ton="info">
+                  Pauschalbaustelle: Der Schein dokumentiert die geleistete Arbeit, die Stunden sind
+                  aber keine Grundlage für eine Nachverrechnung.
+                </Meldung>
+              </div>
+            )}
+            {bestehende.length > 0 && (
+              <div className="mt-2">
+                <Meldung ton="warnung">
+                  Für diesen Tag gibt es bereits {bestehende.length}{' '}
+                  {bestehende.length === 1 ? 'Schein' : 'Scheine'}. Ein zweiter ist möglich, etwa für
+                  einen getrennt beauftragten Zusatz — doppelt bestätigen sollte man dieselben Stunden
+                  aber nicht.
+                </Meldung>
+              </div>
+            )}
+          </Card>
+
+          {projectNumber ? (
+          <Card title={`Zeiten am ${datumAT(datum)} · ${fmtDauer(gesamtMinuten)}`}>
             {/*
               Der Ladezustand steckt jetzt IN dieser Karte, nicht davor. Vorher
               verdeckte er das ganze Formular — auch die Unterschriften, die
@@ -920,35 +1017,35 @@ export default function WorkSheetView() {
             {laden ? (
               <LoadingState />
             ) : vorfuellFehler ? (
-              <div className="rounded-sm border border-line bg-surface-2 px-3 py-2">
-                <p className="text-sm text-warning">{vorfuellFehler}</p>
+              <Meldung ton="warnung">
+                <p>{vorfuellFehler}</p>
                 <div className="mt-2">
                   <Button variant="secondary" onClick={() => setVersuch((v) => v + 1)}>
                     Erneut versuchen
                   </Button>
                 </div>
-              </div>
+              </Meldung>
             ) : zeiten.length === 0 ? (
               <EmptyState>
                 Noch keine Zeit gebucht. Unten eintragen — oder ohne Stunden lassen, wenn nur
                 Material geliefert wurde.
               </EmptyState>
             ) : (
-              <ul className="divide-y divide-line">
+              <List>
                 {zeiten.map((z, i) => (
-                  <li key={`${z.mitarbeiter}-${i}`} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span className="min-w-0">
-                      <span className="block truncate text-ink">{z.mitarbeiter}</span>
-                      <span className="block text-xs text-ink-muted">
+                  <ListRow
+                    key={`${z.mitarbeiter}-${i}`}
+                    title={z.mitarbeiter}
+                    subtitle={
+                      <>
                         {z.von && z.bis ? `${z.von}–${z.bis}` : '—'}
                         {z.pauseMin ? ` · ${z.pauseMin} min Pause` : ''}
                         {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
-                      </span>
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2">
-                      {z.helfer && <Marke>Helfer</Marke>}
-                      <span className="tnum font-medium text-ink">{fmtMin(z.minuten)}</span>
-                    </span>
+                      </>
+                    }
+                    zustand={z.helfer ? <Marke>Helfer</Marke> : undefined}
+                    wert={fmtMin(z.minuten)}
+                  >
                     {/*
                       WEGNEHMEN NUR, WAS HIER EINGETRAGEN WURDE. Zeilen aus
                       der Zeiterfassung stehen für gebuchte Zeit; sie hier zu
@@ -961,9 +1058,9 @@ export default function WorkSheetView() {
                         onWeg={() => zeileWegnehmen(i)}
                       />
                     )}
-                  </li>
+                  </ListRow>
                 ))}
-              </ul>
+              </List>
             )}
 
             {/*
@@ -986,315 +1083,450 @@ export default function WorkSheetView() {
               />
             </div>
           </Card>
+          ) : (
+            <Card>
+              <EmptyState>Zuerst eine Baustelle wählen.</EmptyState>
+            </Card>
+          )}
+        </div>
+      </section>
 
-          {/*
-            KEIN Ladezustand über dieser Karte. Sie hängt an keiner Abfrage
-            mehr — die Zeilen kommen aus der Hand des Monteurs. Ein Kreisel
-            hier würde ihn warten lassen, obwohl er sofort tippen könnte.
-          */}
-          <Card title={`Verbautes Material (${material.length})`}>
-            <MaterialErfassen
-              materials={materials}
-              zeilen={material}
-              onChange={setMaterial}
-              onOffen={setOffenesMaterial}
-            />
-          </Card>
-
-          {/*
-            DAS NOTIZFELD IST DIE EINE STELLE, AN DER DIE TRENNUNG VON HAND ZU
-            UMGEHEN IST.
-
-            Fremde Zeiteinträge darf ein Monteur weder lesen noch schreiben —
-            in derselben Ablage stehen Kranken- und Urlaubstage, also
-            Gesundheitsdaten nach Art. 9 DSGVO. Den SCHEIN dagegen sieht jeder
-            im Betrieb, und das ist Absicht: er ist ein Geschäftsbeleg über
-            einen Kundenauftrag, und der Kollege braucht ihn fachlich.
-
-            Wer hier „Kollege war krank" hineinschreibt, hebt damit die
-            Trennung auf, die die App an jeder anderen Stelle hält — ohne dass
-            ihn etwas daran hindert oder auch nur darauf hinweist. Sperren
-            liesse sich das nicht: kein Filter unterscheidet zuverlässig eine
-            Krankmeldung von einer Mängelbeschreibung. Sagen lässt es sich, und
-            zwar dort, wo getippt wird.
-          */}
-          <Card
-            title="Ergänzungen"
-            hint={
-              <>
-                <strong>Was hier steht, sieht jeder im Betrieb.</strong> Der Schein ist ein
-                Geschäftsbeleg über einen Kundenauftrag, keine Personalakte — auch Kollegen, die
-                später auf dieselbe Baustelle kommen, lesen ihn.
-                <br />
-                <br />
-                Angaben zur <strong>Gesundheit</strong> gehören deshalb nicht hierher: „war krank",
-                „darf nicht heben", „Rücken". Solche Daten sind nach Art. 9 DSGVO besonders
-                geschützt, und die App hält sie sonst überall getrennt — Kranken- und Urlaubstage
-                stehen in der Zeiterfassung, die kein Kollege einsehen kann. Eine Notiz hier hebt
-                diese Trennung auf.
-                <br />
-                <br />
-                Gemeint sind: Mängel, Regiearbeiten, Absprachen mit dem Kunden, alles, was zum
-                Auftrag gehört.
-              </>
-            }
+      {projectNumber && (
+        <>
+          <section
+            ref={(el) => {
+              abschnitte.current[2] = el;
+            }}
+            tabIndex={-1}
+            aria-labelledby="schein-abschnitt-2"
+            hidden={!sichtbar(2)}
           >
-            <InputField
-              id="wsnotes"
-              label="Notizen, Regiearbeiten, Mängel"
-              value={notizen}
-              onChange={(e) => setNotizen(e.target.value)}
-            />
-          </Card>
+            <h2 id="schein-abschnitt-2" className="schein-abschnitt-titel">
+              2 · Material
+            </h2>
+            <div className="space-y-6">
+              {/*
+                KEIN Ladezustand über dieser Karte. Sie hängt an keiner Abfrage
+                mehr — die Zeilen kommen aus der Hand des Monteurs. Ein Kreisel
+                hier würde ihn warten lassen, obwohl er sofort tippen könnte.
+              */}
+              <Card title={`Verbautes Material (${material.length})`}>
+                <MaterialErfassen
+                  materials={materials}
+                  zeilen={material}
+                  onChange={setMaterial}
+                  onOffen={setOffenesMaterial}
+                />
+              </Card>
+            </div>
+          </section>
 
-          {/*
-            FOTOS — FREIWILLIG, und das steht auch da.
+          <section
+            ref={(el) => {
+              abschnitte.current[3] = el;
+            }}
+            tabIndex={-1}
+            aria-labelledby="schein-abschnitt-3"
+            hidden={!sichtbar(3)}
+          >
+            <h2 id="schein-abschnitt-3" className="schein-abschnitt-titel">
+              3 · Fotos
+            </h2>
+            <div className="space-y-6">
+              {/*
+                FOTOS — FREIWILLIG, und das steht auch da.
 
-            Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
-            Das Ausgangsfach hält einen Schreibvorgang ohne Empfang vor, der
-            Dateispeicher tut das nicht. Wäre ein Foto Bedingung, hinge der Beleg an
-            einem Balken Empfang — und der Monteur stünde mit einem Kunden vor
-            sich da, der unterschreiben will.
+                Der Schein muss im Keller ohne Netz unterschreibbar bleiben:
+                Das Ausgangsfach hält einen Schreibvorgang ohne Empfang vor, der
+                Dateispeicher tut das nicht. Wäre ein Foto Bedingung, hinge der Beleg an
+                einem Balken Empfang — und der Monteur stünde mit einem Kunden vor
+                sich da, der unterschreiben will.
 
-            Der Abschnitt erscheint erst mit einer gewählten Baustelle: ein
-            Foto ohne Schein hat keinen Ort, an den es gehört.
+                Der Abschnitt erscheint erst mit einer gewählten Baustelle: ein
+                Foto ohne Schein hat keinen Ort, an den es gehört.
 
-            EIGENE KARTE, nicht mehr im Kopf der Unterschriften. Dort standen
-            ein unterstrichener Link in Akzentfarbe und drei Zeilen graues
-            Kleingedrucktes unmittelbar über „Monteur (Name in
-            Druckbuchstaben)" — die Zeile las sich wie eine Fehlermeldung zu
-            genau diesem Feld. Das Kleingedruckte ist ins „i" der Karte
-            gewandert, sichtbar bleibt der eine Satz, der vor Ort zählt.
-          */}
-          {projekt && (
-            <Card
-              title={`Fotos (${fotos.length}/${MAX_FOTOS})`}
-              hint={
-                <>
-                  {/* Gekürzt (Prüflauf 24.09.2026, D9) — und „Firebase Storage"
-                      gestrichen: die Bilder liegen seit dem Umzug im Speicher
-                      von Supabase. */}
-                  Bilder sind kein Pflichtteil, belegen aber, was im Text nur behauptet steht: den
-                  Zustand vor dem Eingriff, eine verdeckte Leitung, einen Schaden, der nicht von
-                  uns stammt.
-                  <br />
-                  <br />
-                  Nach dem Unterschreiben lassen sie sich nicht mehr ändern — sie gehen in die
-                  Prüfsumme des Scheins ein.
-                  <br />
-                  <br />
-                  Ohne Netz geht das Hochladen nicht. Der Schein lässt sich trotzdem unterschreiben,
-                  die Bilder müssten dann neu aufgenommen werden — im Keller also besser oben
-                  fotografieren.
-                  <br />
-                  <br />
-                  Keine Personen und keine fremden Unterlagen, wenn es nicht sein muss: die Bilder
-                  bleiben sieben Jahre in der Firmenablage.
-                </>
-              }
-            >
-              <p className="text-sm text-ink-muted">
-                Freiwillig. Höchstens {MAX_FOTOS} Stück, am Gerät verkleinert.
-              </p>
+                EIGENE KARTE, nicht mehr im Kopf der Unterschriften. Dort standen
+                ein unterstrichener Link in Akzentfarbe und drei Zeilen graues
+                Kleingedrucktes unmittelbar über „Monteur (Name in
+                Druckbuchstaben)" — die Zeile las sich wie eine Fehlermeldung zu
+                genau diesem Feld. Das Kleingedruckte ist ins „i" der Karte
+                gewandert, sichtbar bleibt der eine Satz, der vor Ort zählt.
+              */}
+              {projekt && (
+                <Card
+                  title={`Fotos (${fotos.length}/${MAX_FOTOS})`}
+                  hint={
+                    <>
+                      {/* Gekürzt (Prüflauf 24.09.2026, D9) — und „Firebase Storage"
+                          gestrichen: die Bilder liegen seit dem Umzug im Speicher
+                          von Supabase. */}
+                      Bilder sind kein Pflichtteil, belegen aber, was im Text nur behauptet steht: den
+                      Zustand vor dem Eingriff, eine verdeckte Leitung, einen Schaden, der nicht von
+                      uns stammt.
+                      <br />
+                      <br />
+                      Nach dem Unterschreiben lassen sie sich nicht mehr ändern — sie gehen in die
+                      Prüfsumme des Scheins ein.
+                      <br />
+                      <br />
+                      Ohne Netz geht das Hochladen nicht. Der Schein lässt sich trotzdem unterschreiben,
+                      die Bilder müssten dann neu aufgenommen werden — im Keller also besser oben
+                      fotografieren.
+                      <br />
+                      <br />
+                      Keine Personen und keine fremden Unterlagen, wenn es nicht sein muss: die Bilder
+                      bleiben sieben Jahre in der Firmenablage.
+                    </>
+                  }
+                >
+                  <p className="text-sm text-ink-muted">
+                    Freiwillig. Höchstens {MAX_FOTOS} Stück, am Gerät verkleinert.
+                  </p>
 
-              {fotos.length > 0 && (
-                <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {fotos.map((f) => (
-                    <li key={f.vorschau} className="relative">
-                      <img
-                        src={f.vorschau}
-                        alt="Aufnahme vom Einsatz"
-                        className="aspect-square w-full rounded-sm border border-line object-cover"
-                      />
-                      {/*
-                        Das Kreuz sitzt AUF dem Bild und braucht deshalb einen
-                        eigenen Untergrund — auf einem dunklen Foto wäre ein
-                        blosses Zeichen nicht zu sehen.
-                      */}
-                      <button
-                        type="button"
-                        aria-label="Foto entfernen"
-                        title="Foto entfernen"
-                        onClick={() => void fotoWegnehmen(f)}
-                        className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-surface/90 text-sm text-danger shadow-sm"
-                      >
-                        ✕
-                      </button>
-                      {f.oben ? (
-                        <p className="mt-1 text-center text-xs text-ink-muted">
-                          {groesse(f.oben.bytes)}
-                        </p>
-                      ) : (
-                        <p className="mt-1 text-center text-xs text-warning">
-                          {f.fehler ?? 'Wird hochgeladen …'}
-                          {f.fehler && (
-                            <button
-                              type="button"
-                              onClick={() => void fotoNachreichen(f)}
-                              className="ml-1 underline"
-                            >
-                              Nochmal versuchen
-                            </button>
+                  {fotos.length > 0 && (
+                    <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                      {fotos.map((f) => (
+                        <li key={f.vorschau} className="relative">
+                          <img
+                            src={f.vorschau}
+                            alt="Aufnahme vom Einsatz"
+                            className="aspect-square w-full rounded-sm border border-line object-cover"
+                          />
+                          {/*
+                            Das Kreuz sitzt AUF dem Bild und braucht deshalb einen
+                            eigenen Untergrund — auf einem dunklen Foto wäre ein
+                            blosses Zeichen nicht zu sehen.
+                          */}
+                          <button
+                            type="button"
+                            aria-label="Foto entfernen"
+                            title="Foto entfernen"
+                            onClick={() => void fotoWegnehmen(f)}
+                            className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full bg-surface text-sm text-danger shadow-sm"
+                          >
+                            ✕
+                          </button>
+                          {f.oben ? (
+                            <p className="mt-1 text-center text-xs text-ink-muted">
+                              {groesse(f.oben.bytes)}
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-center text-xs text-warning">
+                              {f.fehler ?? 'Wird hochgeladen …'}
+                              {f.fehler && (
+                                <button
+                                  type="button"
+                                  onClick={() => void fotoNachreichen(f)}
+                                  className="textlink-allein ml-1"
+                                >
+                                  Nochmal versuchen
+                                </button>
+                              )}
+                            </p>
                           )}
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {/*
+                    Ein Knopf, kein unterstrichener Link. Ein <label> deshalb, weil
+                    die Dateiauswahl nur ein <input type="file"> auslöst; „disabled"
+                    kann ein Label nicht, also trägt das versteckte Feld die Sperre
+                    und das Label nur deren Aussehen.
+                  */}
+                  <label
+                    aria-disabled={fotoKnopfAus}
+                    className={
+                      fotoKnopfAus
+                        ? 'knopf-sekundaer mt-3 w-full cursor-not-allowed opacity-50 sm:w-auto'
+                        : 'knopf-sekundaer mt-3 w-full cursor-pointer sm:w-auto'
+                    }
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      multiple
+                      className="sr-only"
+                      disabled={fotoKnopfAus}
+                      onChange={(e) => {
+                        void fotoAufnehmen(e.target.files);
+                        // Zurücksetzen, sonst löst dieselbe Datei kein
+                        // zweites Mal aus — der Monteur tippt und nichts tut sich.
+                        e.target.value = '';
+                      }}
+                    />
+                    {fotoLaeuft
+                      ? 'Wird verarbeitet …'
+                      : fotos.length >= MAX_FOTOS
+                        ? `Höchstens ${MAX_FOTOS} Fotos`
+                        : fotos.length === 0
+                          ? 'Foto aufnehmen'
+                          : 'Weiteres Foto'}
+                  </label>
+                </Card>
               )}
 
               {/*
-                Ein Knopf, kein unterstrichener Link. Ein <label> deshalb, weil
-                die Dateiauswahl nur ein <input type="file"> auslöst; „disabled"
-                kann ein Label nicht, also trägt das versteckte Feld die Sperre
-                und das Label nur deren Aussehen.
-              */}
-              <label
-                aria-disabled={fotoKnopfAus}
-                className={`mt-3 inline-flex min-h-touch w-full items-center justify-center gap-2 rounded border border-line px-4 py-2 text-base font-semibold transition sm:w-auto ${
-                  fotoKnopfAus
-                    ? 'cursor-not-allowed bg-surface-2 text-ink-muted opacity-60'
-                    : 'cursor-pointer bg-surface-2 text-ink active:scale-[0.98]'
-                }`}
-              >
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  multiple
-                  className="sr-only"
-                  disabled={fotoKnopfAus}
-                  onChange={(e) => {
-                    void fotoAufnehmen(e.target.files);
-                    // Zurücksetzen, sonst löst dieselbe Datei kein
-                    // zweites Mal aus — der Monteur tippt und nichts tut sich.
-                    e.target.value = '';
-                  }}
-                />
-                {fotoLaeuft
-                  ? 'Wird verarbeitet …'
-                  : fotos.length >= MAX_FOTOS
-                    ? `Höchstens ${MAX_FOTOS} Fotos`
-                    : fotos.length === 0
-                      ? 'Foto aufnehmen'
-                      : 'Weiteres Foto'}
-              </label>
-            </Card>
-          )}
+                DAS NOTIZFELD IST DIE EINE STELLE, AN DER DIE TRENNUNG VON HAND ZU
+                UMGEHEN IST.
 
-          <Card title="Unterschriften">
-            {/*
-              Name in Druckbuchstaben NEBEN dem Strich. Eine Unterschrift ohne
-              zuordenbaren Namen ist im Streitfall wenig wert — beim Kunden ist
-              das Feld deshalb Pflicht.
-            */}
+                Fremde Zeiteinträge darf ein Monteur weder lesen noch schreiben —
+                in derselben Ablage stehen Kranken- und Urlaubstage, also
+                Gesundheitsdaten nach Art. 9 DSGVO. Den SCHEIN dagegen sieht jeder
+                im Betrieb, und das ist Absicht: er ist ein Geschäftsbeleg über
+                einen Kundenauftrag, und der Kollege braucht ihn fachlich.
+
+                Wer hier „Kollege war krank" hineinschreibt, hebt damit die
+                Trennung auf, die die App an jeder anderen Stelle hält — ohne dass
+                ihn etwas daran hindert oder auch nur darauf hinweist. Sperren
+                liesse sich das nicht: kein Filter unterscheidet zuverlässig eine
+                Krankmeldung von einer Mängelbeschreibung. Sagen lässt es sich, und
+                zwar dort, wo getippt wird.
+              */}
+              <Card
+                title="Ergänzungen"
+                hint={
+                  <>
+                    <strong>Was hier steht, sieht jeder im Betrieb.</strong> Der Schein ist ein
+                    Geschäftsbeleg über einen Kundenauftrag, keine Personalakte — auch Kollegen, die
+                    später auf dieselbe Baustelle kommen, lesen ihn.
+                    <br />
+                    <br />
+                    Angaben zur <strong>Gesundheit</strong> gehören deshalb nicht hierher: „war krank",
+                    „darf nicht heben", „Rücken". Solche Daten sind nach Art. 9 DSGVO besonders
+                    geschützt, und die App hält sie sonst überall getrennt — Kranken- und Urlaubstage
+                    stehen in der Zeiterfassung, die kein Kollege einsehen kann. Eine Notiz hier hebt
+                    diese Trennung auf.
+                    <br />
+                    <br />
+                    Gemeint sind: Mängel, Regiearbeiten, Absprachen mit dem Kunden, alles, was zum
+                    Auftrag gehört.
+                  </>
+                }
+              >
+                <InputField
+                  id="wsnotes"
+                  label="Notizen, Regiearbeiten, Mängel"
+                  value={notizen}
+                  onChange={(e) => setNotizen(e.target.value)}
+                />
+              </Card>
+            </div>
+          </section>
+
+          <section
+            ref={(el) => {
+              abschnitte.current[4] = el;
+            }}
+            tabIndex={-1}
+            aria-labelledby="schein-abschnitt-4"
+            hidden={!sichtbar(4)}
+          >
+            <h2 id="schein-abschnitt-4" className="schein-abschnitt-titel">
+              4 · Unterschrift
+            </h2>
             <div className="space-y-6">
-              <div>
-                <InputField
-                  id="wsmname"
-                  label="Monteur (Name in Druckbuchstaben)"
-                  value={monteurName}
-                  onChange={(e) => setMonteurName(e.target.value)}
-                />
-                <div className="mt-2">
-                  <SignaturePad
-                    ref={monteurFeld}
-                    titel="Unterschrift Monteur"
-                    onChange={setMonteurGesetzt}
-                  />
-                </div>
-              </div>
-              <div>
-                <InputField
-                  id="wskname"
-                  label="Kunde (Name in Druckbuchstaben)"
-                  value={kundeName}
-                  onChange={(e) => setKundeName(e.target.value)}
-                  required
-                  pflicht
-                />
-                <div className="mt-2">
-                  <SignaturePad
-                    ref={kundeFeld}
-                    titel="Unterschrift Kunde"
-                    onChange={setKundeGesetzt}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/*
-              Wenn die Vorausfuellung nicht durchkam, traegt der Schein KEINE
-              Stunden. Unterschreiben laesst er sich trotzdem — aber das muss
-              vorher dastehen, denn danach ist er eingefroren.
-            */}
-            {vorfuellFehler && (
-              <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                <strong>Ohne Stunden.</strong> Sie konnten nicht geladen werden, und eingefroren
-                wird genau das, was hier steht. Für einen Beleg über die Arbeitszeit bitte oben
-                erneut versuchen; als reine Bestätigung der Anwesenheit mit einer Notiz ist der
-                Schein auch so gültig. Das Material ist davon nicht betroffen — es wird hier
-                ohnehin von Hand eingetragen.
-              </p>
-            )}
-            <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
-              Nach dem Unterschreiben ist der Schein <strong>eingefroren</strong>. Korrigiert wird
-              über Storno und neuen Schein.
-            </p>
-
-            {error && <div className="mt-3"><ErrorState message={error} /></div>}
-
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               {/*
-                WÄHREND DER ENTWURF LÄDT WIRD NICHT GESCHRIEBEN. Sonst
-                schriebe ein schneller Finger den halb geladenen Zustand über
-                den vollständigen — und der Monteur verlöre genau das, was er
-                sich vorhin aufgehoben hat.
+                WAS GLEICH UNTERSCHRIEBEN WIRD, bevor der Kunde den Stift nimmt.
+                Offenes steht in Warnfarbe dabei; „Ändern" führt in den Schritt.
               */}
-              <Button
-                onClick={unterschreibenUndEinfrieren}
-                loading={speichert}
-                disabled={!bereit || entwurfLaedt || nichtUebernommen.length > 0}
-                className="w-full sm:w-auto"
-              >
-                Unterschreiben und abschließen
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={alsEntwurfSichern}
-                loading={speichert}
-                disabled={!projekt || entwurfLaedt}
-                className="w-full sm:w-auto"
-              >
-                {scheinId ? 'Entwurf aktualisieren' : 'Als Entwurf speichern'}
-              </Button>
+              <Card>
+                <Zusammenfassung
+                  onAendern={springe}
+                  zeilen={[
+                    {
+                      name: 'Baustelle und Tag',
+                      unter: (
+                        <>
+                          {projekt?.customerName && (
+                            <span className="block">{projekt.customerName}</span>
+                          )}
+                          <span className="block">
+                            {projectNumber} · {datumAT(datum)}
+                          </span>
+                        </>
+                      ),
+                      schritt: 1,
+                    },
+                    {
+                      name: 'Zeiten',
+                      unter:
+                        zeiten.length === 0
+                          ? 'Keine Zeit auf dem Schein'
+                          : `${personen} ${personen === 1 ? 'Person' : 'Personen'}`,
+                      wert: fmtDauer(gesamtMinuten),
+                      warnung: offeneZeit
+                        ? `Eingetippt, aber nicht übernommen: ${offeneZeit}`
+                        : undefined,
+                      schritt: 1,
+                    },
+                    {
+                      name: 'Material',
+                      unter: `${material.length} ${material.length === 1 ? 'Position' : 'Positionen'}`,
+                      warnung: offenesMaterial
+                        ? `Eingetippt, aber nicht hinzugefügt: ${offenesMaterial}`
+                        : undefined,
+                      schritt: 2,
+                    },
+                    {
+                      name: 'Fotos und Notizen',
+                      unter: `${fotos.length} ${fotos.length === 1 ? 'Foto' : 'Fotos'} · ${
+                        notizen.trim() ? 'mit Notiz' : 'ohne Notiz'
+                      }`,
+                      warnung: fotosOffen
+                        ? `${fotosOffen} ${fotosOffen === 1 ? 'Foto wartet' : 'Fotos warten'} aufs Hochladen`
+                        : undefined,
+                      schritt: 3,
+                    },
+                  ]}
+                />
+              </Card>
+
+              <Card title="Unterschriften">
+                {/*
+                  Name in Druckbuchstaben NEBEN dem Strich. Eine Unterschrift ohne
+                  zuordenbaren Namen ist im Streitfall wenig wert — beim Kunden ist
+                  das Feld deshalb Pflicht.
+                */}
+                <div className="space-y-6">
+                  <div>
+                    <InputField
+                      id="wsmname"
+                      label="Monteur (Name in Druckbuchstaben)"
+                      value={monteurName}
+                      onChange={(e) => setMonteurName(e.target.value)}
+                    />
+                    <div className="mt-2">
+                      <SignaturePad
+                        ref={monteurFeld}
+                        titel="Unterschrift Monteur"
+                        onChange={setMonteurGesetzt}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <InputField
+                      id="wskname"
+                      label="Kunde (Name in Druckbuchstaben)"
+                      value={kundeName}
+                      onChange={(e) => setKundeName(e.target.value)}
+                      required
+                      pflicht
+                    />
+                    <div className="mt-2">
+                      <SignaturePad
+                        ref={kundeFeld}
+                        titel="Unterschrift Kunde"
+                        onChange={setKundeGesetzt}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/*
+                  Wenn die Vorausfuellung nicht durchkam, traegt der Schein KEINE
+                  Stunden. Unterschreiben laesst er sich trotzdem — aber das muss
+                  vorher dastehen, denn danach ist er eingefroren.
+                */}
+                {vorfuellFehler && (
+                  <div className="mt-4">
+                    <Meldung ton="warnung">
+                      <strong>Ohne Stunden.</strong> Sie konnten nicht geladen werden, und eingefroren
+                      wird genau das, was hier steht. Für einen Beleg über die Arbeitszeit bitte bei
+                      den Zeiten erneut versuchen; als reine Bestätigung der Anwesenheit mit einer
+                      Notiz ist der Schein auch so gültig. Das Material ist davon nicht betroffen — es
+                      wird hier ohnehin von Hand eingetragen.
+                    </Meldung>
+                  </div>
+                )}
+                <div className="mt-4">
+                  <Meldung>
+                    Nach dem Unterschreiben ist der Schein <strong>eingefroren</strong>. Korrigiert
+                    wird über Storno und neuen Schein.
+                  </Meldung>
+                </div>
+
+                {nichtUebernommen.length > 0 && (
+                  <p className="mt-2 text-sm text-warning" role="alert">
+                    <strong>Noch nicht auf dem Schein:</strong> {nichtUebernommen.join(' und ')}.
+                    Bitte übernehmen oder das Feld leeren — unterschrieben wird nur, was in den
+                    Listen steht.{' '}
+                    {/* Das Feld steht womöglich in einem anderen Schritt: der Weg
+                        dorthin gehört an die Meldung. */}
+                    {offeneZeit && (
+                      <button type="button" className="textlink" onClick={() => springe(1)}>
+                        Zu den Zeiten
+                      </button>
+                    )}
+                    {offeneZeit && offenesMaterial && ' · '}
+                    {offenesMaterial && (
+                      <button type="button" className="textlink" onClick={() => springe(2)}>
+                        Zum Material
+                      </button>
+                    )}
+                  </p>
+                )}
+                {!bereit && projectNumber && (
+                  <p className="mt-2 text-sm text-ink-muted">
+                    {!projekt
+                      ? 'Die Stammdaten der Baustelle werden noch geladen.'
+                      : `Zum Abschließen fehlen: ${[
+                          !monteurGesetzt && 'Unterschrift Monteur',
+                          !kundeGesetzt && 'Unterschrift Kunde',
+                          kundeName.trim().length < 2 && 'Name des Kunden',
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}`}
+                  </p>
+                )}
+              </Card>
             </div>
-            {nichtUebernommen.length > 0 && (
-              <p className="mt-2 text-sm text-warning" role="alert">
-                <strong>Noch nicht auf dem Schein:</strong> {nichtUebernommen.join(' und ')}.
-                Bitte übernehmen oder das Feld leeren — unterschrieben wird nur, was oben in
-                der Liste steht.
-              </p>
-            )}
-            {!bereit && projectNumber && (
-              <p className="mt-2 text-sm text-ink-muted">
-                {!projekt
-                  ? 'Die Stammdaten der Baustelle werden noch geladen.'
-                  : `Zum Abschließen fehlen: ${[
-                      !monteurGesetzt && 'Unterschrift Monteur',
-                      !kundeGesetzt && 'Unterschrift Kunde',
-                      kundeName.trim().length < 2 && 'Name des Kunden',
-                    ]
-                      .filter(Boolean)
-                      .join(', ')}`}
-              </p>
-            )}
-          </Card>
+          </section>
+
+          {error && <ErrorState message={error} />}
+
+          {/*
+            „ALS ENTWURF SPEICHERN" GEHT IN JEDEM SCHRITT. Der Schein wird oft
+            am Vormittag vorbereitet und am Nachmittag unterschrieben; wer nach
+            Zeiten und Material aufhört, soll dafür nicht erst bis zur
+            Unterschrift weiterklicken. Am Schreibtisch steht der Knopf, wo er
+            immer stand: neben dem Abschluss.
+          */}
+          {!eineSeite && entwurfKnopf}
+
+          <Aktionsleiste>
+            <div className="schein-knopfreihe">
+              {!eineSeite && schritt > 1 && (
+                <Button variant="secondary" onClick={() => springe((schritt - 1) as Schritt)}>
+                  Zurück
+                </Button>
+              )}
+              {!eineSeite && naechster ? (
+                <Button className="flex-1 sm:flex-none" onClick={() => springe(naechster.nr)}>
+                  Weiter: {naechster.name}
+                </Button>
+              ) : (
+                /*
+                  WÄHREND DER ENTWURF LÄDT WIRD NICHT GESCHRIEBEN. Sonst
+                  schriebe ein schneller Finger den halb geladenen Zustand über
+                  den vollständigen — und der Monteur verlöre genau das, was er
+                  sich vorhin aufgehoben hat.
+                */
+                <Button
+                  onClick={unterschreibenUndEinfrieren}
+                  loading={speichert}
+                  disabled={!bereit || entwurfLaedt || nichtUebernommen.length > 0}
+                  className="flex-1 sm:flex-none"
+                >
+                  Unterschreiben und abschließen
+                </Button>
+              )}
+              {eineSeite && entwurfKnopf}
+            </div>
+          </Aktionsleiste>
         </>
-      ) : (
-        <Card>
-          <EmptyState>Zuerst eine Baustelle wählen.</EmptyState>
-        </Card>
       )}
     </div>
   );

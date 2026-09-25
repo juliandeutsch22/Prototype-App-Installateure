@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ProjectSummary from '@/features/accounting/ProjectSummary';
 import type { Project, TimeEntry } from '@/types';
+import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Was in der Projektauswertung an einem Eintrag DRANSTEHT.
@@ -286,5 +287,95 @@ describe('Projektauswertung — die Nummer, wie sie an der Baustelle steht (Laun
     );
     expect(screen.getByText('PR-187')).toBeInTheDocument();
     expect(screen.queryByText('187')).not.toBeInTheDocument();
+  });
+
+  it('zeigt den Vorsatz auch, solange die Baustelle noch nicht geladen ist', () => {
+    /**
+     * Die Baustellen lädt die Auswertung erst NACH den Einträgen nach. Bis
+     * dahin (und wenn die Nummer nicht gefunden wird) stand der
+     * Gruppierungsschlüssel da — „187" in beiden Zeilen. Die Einträge tragen
+     * die Nummer aber in voller Form, und genau die gehört hin.
+     */
+    render(
+      <ProjectSummary
+        entries={[
+          eintrag({ id: 'a', projectNumber: '187' } as Partial<TimeEntry>),
+          eintrag({ id: 'b', projectNumber: 'PR-187' } as Partial<TimeEntry>),
+        ]}
+        gesamtEntries={[]}
+        projects={[]}
+        label="September 2026"
+      />,
+    );
+    expect(screen.getAllByText('PR-187').length).toBeGreaterThan(0);
+    expect(screen.queryByText('187')).not.toBeInTheDocument();
+  });
+});
+
+describe('Projektauswertung — Tag und Helferzeile', () => {
+  it('schreibt den Tag mit vollem Jahr, wie überall in der App', async () => {
+    render(
+      <ProjectSummary
+        entries={[eintrag({ id: 'a' } as Partial<TimeEntry>)]}
+        projects={[projekt]}
+        gesamtEntries={[]}
+        label="September 2026"
+      />,
+    );
+    await aufklappen();
+    expect(screen.getByText(/03\.09\.2026/)).toBeInTheDocument();
+    expect(screen.queryByText(/03\.09\.26$/)).not.toBeInTheDocument();
+  });
+
+  it('färbt die Zeile einer Helferstunde nicht gelb — die Marke sagt es', async () => {
+    render(
+      <ProjectSummary
+        entries={[eintrag({ id: 'h', isHelper: true } as Partial<TimeEntry>)]}
+        projects={[projekt]}
+        gesamtEntries={[]}
+        label="September 2026"
+      />,
+    );
+    await aufklappen();
+    const zeile = screen.getByRole('row', { name: /03\.09\.2026/ });
+    expect(zeile.className).not.toContain('bg-warning-bg');
+    expect(within(zeile).getByText('Helfer')).toBeInTheDocument();
+  });
+});
+
+describe('Projektauswertung am Schreibtisch', () => {
+  const schreibtisch = mitSchreibtisch();
+
+  it('steht als Tabelle wie die Mitarbeiterübersicht darüber, aufklappbar', async () => {
+    const september = eintrag({ id: 'sep' } as Partial<TimeEntry>);
+    const august = eintrag({
+      id: 'aug', date: '2026-08-03', startTime: '07:00', endTime: '15:00', breakDuration: 0,
+    } as Partial<TimeEntry>);
+    schreibtisch();
+    render(
+      <ProjectSummary
+        entries={[september]}
+        gesamtEntries={[august, september]}
+        projects={[{ ...projekt, estimatedHours: 20 }]}
+        label="September 2026"
+      />,
+    );
+
+    const zeile = screen.getByRole('row', { name: /Max Musterkunde/ });
+    const t = zeile.closest('table')!;
+    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
+      'Baustelle', 'Budget der Baustelle', 'Fachzeit im Monat', 'Helfer', 'Fachzeit gesamt',
+    ]);
+    // Monat und ganze Baustelle stehen in getrennten Spalten; der Prozentsatz
+    // rechnet aus allen Stunden (16,5 von 20 h).
+    expect(zeile).toHaveTextContent('8,5 h');
+    expect(zeile).toHaveTextContent('16,5 h von 20 h');
+    expect(within(zeile).getByText('83 %')).toBeInTheDocument();
+    expect(zeile).toHaveTextContent('B-2026-0001');
+
+    await aufklappen();
+    expect(screen.getByRole('button', { name: /Max Musterkunde/ }))
+      .toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(/Fachzeit in September 2026: 8,5 h/)).toBeInTheDocument();
   });
 });

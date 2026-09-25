@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Customer, Project } from '@/types';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
+import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Die Baustellenverwaltung — die vierte der bisher ungetesteten Kernansichten.
@@ -699,5 +700,52 @@ describe('Baustellen — Kundenauswahl an der Grenze', () => {
     await formOeffnen();
     await screen.findByLabelText('Kunde');
     expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * AM SCHREIBTISCH EINE TABELLE — Budget als Zahl in einer rechtsbündigen
+ * Spalte, Leitung und Team beschriftet, dieselbe Akte und dasselbe „⋯".
+ */
+describe('Baustellen am Schreibtisch', () => {
+  const schreibtisch = mitSchreibtisch();
+
+  beforeEach(() => {
+    baustellen = [
+      {
+        id: 'p1', companyId: 'perl', projectNumber: '2026-042', customerName: 'Familie Huber',
+        status: 'Aktiv', estimatedHours: 54, address: 'Hauptstraße 12',
+        contactPhone: '0664 1234567', assignedEmployees: ['u1'],
+      } as Project & { id: string },
+    ];
+    schreibtisch();
+  });
+
+  it('steht als Tabelle, das Budget rechtsbündig als Zahl', async () => {
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /2026-042/ });
+    const t = zeile.closest('table')!;
+    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
+      'Baustelle', 'Adresse', 'Projektleitung', 'Budget', 'Status', 'Aktionen',
+    ]);
+    expect(within(zeile).getByText('54 h')).toHaveClass('tabelle-zahl');
+    expect(zeile).toHaveTextContent('Keine Projektleitung zugeteilt');
+    expect(zeile).toHaveTextContent('Team: Max Mustermann');
+    expect(within(zeile).getByRole('link', { name: /Hauptstraße 12/ })).toBeInTheDocument();
+    expect(within(zeile).getByRole('link', { name: /0664 1234567/ })).toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+  });
+
+  it('führt mit denselben Aktionen in die Akte und ins „⋯"', async () => {
+    zeige();
+    const zeile = await screen.findByRole('row', { name: /2026-042/ });
+    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
+      'href', '/admin-projects/p1',
+    );
+    await userEvent.click(
+      within(zeile).getByRole('button', { name: 'Weitere Aktionen für Baustelle 2026-042' }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Löschen' }));
+    expect(await screen.findByText('Baustelle löschen?')).toBeInTheDocument();
   });
 });

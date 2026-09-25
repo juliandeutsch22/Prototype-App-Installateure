@@ -15,12 +15,14 @@ import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
+import { Reiter, Reiterleiste } from '@/components/Reiter';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField } from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import MaterialCatalog from './MaterialCatalog';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 /*
   Der Katalogimport wird erst beim Öffnen geladen. Er bringt den
@@ -148,6 +150,9 @@ export default function StockView() {
       .sort((a, b) => a.free - b.free || a.name.localeCompare(b.name, 'de'));
   }, [materials, reserved, search]);
 
+  /** Am Schreibtisch der Bestand als Tabelle, am Telefon als Liste. */
+  const schreibtisch = useAbBreite(AB_TABELLE);
+
   const lowCount = useMemo(
     () => rows.filter((m) => m.free <= LOW_STOCK_THRESHOLD).length,
     [rows],
@@ -190,13 +195,58 @@ export default function StockView() {
 
   if (!user) return null;
 
+  /*
+    ZEILENINHALT EINMAL, ZWEI FORMEN. Am Telefon steht der Bestand als
+    Listenzeile, am Schreibtisch als Tabelle mit Lager, Reserviert und Frei
+    in eigenen Spalten (siehe `useAbBreite`). Marke und Knöpfe sind
+    dieselben — geschrieben nur einmal, damit die Formen nicht
+    auseinanderlaufen.
+  */
+  const freiMarke = (m: (typeof rows)[number]) =>
+    /*
+      UNTER NULL HEISST „FEHLT", nicht „−926 frei" (Launch-Check, K2): mehr
+      angefordert, als im Regal liegt. Aus dem Lager zusagen lässt die
+      Datenbank dann nur noch, was wirklich da ist — der Rest gehört auf die
+      Einkaufsliste.
+    */
+    m.free < 0 ? (
+      <Warnung>{-m.free} {m.unit ?? 'Stk'} fehlen</Warnung>
+    ) : m.free <= LOW_STOCK_THRESHOLD ? (
+      <Warnung>{m.free} {m.unit ?? 'Stk'} frei</Warnung>
+    ) : (
+      <Marke>{m.free} {m.unit ?? 'Stk'} frei</Marke>
+    );
+
+  const bestandKnoepfe = (m: (typeof rows)[number]) => (
+    <>
+      <Button variant="ghost" loading={busyId === m.id} onClick={() => book(m)}>
+        Wareneingang
+      </Button>
+      {/*
+        Bezeichnung, Kategorie, Artikelnummer, Einheit UND der Bestand
+        selbst — alles im Katalogformular, das es laengst gibt. Ein zweites
+        Formular hier waere eine zweite Stelle, an der dieselben Regeln
+        auseinanderlaufen koennen.
+      */}
+      <Button
+        variant="ghost"
+        onClick={() => {
+          setZuBearbeiten(m);
+          setTab('katalog');
+        }}
+      >
+        Bearbeiten
+      </Button>
+    </>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader title="Lager" subtitle="Bestände führen und den Materialkatalog pflegen" />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <Reiterleiste>
         {([
           { key: 'bestand' as Tab, label: 'Bestand' },
           { key: 'katalog' as Tab, label: 'Katalog' },
@@ -208,21 +258,11 @@ export default function StockView() {
           */
           ...(darfEinspielen ? [{ key: 'import' as Tab, label: 'Katalog einspielen' }] : []),
         ]).map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
-              tab === t.key
-                ? 'border-b-accent-deep font-bold text-accent-deep'
-                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
-            }`}
-          >
+          <Reiter key={t.key} aktiv={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
-          </button>
+          </Reiter>
         ))}
-      </div>
+      </Reiterleiste>
 
       {error && <ErrorState message={error} />}
 
@@ -269,70 +309,63 @@ export default function StockView() {
                     ? 'Noch kein Material im Katalog. Der Reiter „Katalog" legt den ersten Eintrag an.'
                     : `Kein Material passt zu „${search}".`}
                 </EmptyState>
+              ) : schreibtisch ? (
+                <div className="tabelle-rahmen">
+                  <table className="tabelle">
+                    <thead className="tabelle-kopfzeile">
+                      <tr>
+                        <th className="tabelle-kopf">Material</th>
+                        <th className="tabelle-kopf">Kategorie</th>
+                        <th className="tabelle-kopf-zahl">Im Lager</th>
+                        <th className="tabelle-kopf-zahl">Reserviert</th>
+                        <th className="tabelle-kopf">Frei</th>
+                        <th className="tabelle-kopf-zahl">
+                          <span className="sr-only">Aktionen</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((m) => (
+                        <tr key={m.id} className="tabelle-zeile">
+                          <td className="tabelle-name">{m.name}</td>
+                          <td className="tabelle-zelle">{m.category}</td>
+                          <td className="tabelle-zahl">{m.stock ?? 0}</td>
+                          <td className="tabelle-zahl">{m.reserved}</td>
+                          <td className="tabelle-zelle">{freiMarke(m)}</td>
+                          <td className="tabelle-aktionen">
+                            <div className="tabelle-knoepfe">{bestandKnoepfe(m)}</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
                 <List>
-                  {rows.map((m) => {
-                    const low = m.free <= LOW_STOCK_THRESHOLD;
-                    return (
-                      <ListRow
-                        key={m.id}
-                        title={m.name}
-                        subtitle={
-                          (m.category || m.reserved > 0) && (
-                          <>
-                            {m.category}
-                            {m.reserved > 0 && (
-                              <>
-                                {m.category && ' · '}
-                                <span className="tnum">
-                                  {m.stock ?? 0} im Lager, {m.reserved} reserviert
-                                </span>
-                              </>
-                            )}
-                          </>
-                          )
-                        }
-                      >
-                        {/*
-                          UNTER NULL HEISST „FEHLT", nicht „−926 frei" (Launch-
-                          Check, K2): mehr angefordert, als im Regal liegt. Aus
-                          dem Lager zusagen lässt die Datenbank dann nur noch,
-                          was wirklich da ist — der Rest gehört auf die
-                          Einkaufsliste.
-                        */}
-                        {m.free < 0 ? (
-                          <Warnung>{-m.free} {m.unit ?? 'Stk'} fehlen</Warnung>
-                        ) : low ? (
-                          <Warnung>{m.free} {m.unit ?? 'Stk'} frei</Warnung>
-                        ) : (
-                          <Marke>{m.free} {m.unit ?? 'Stk'} frei</Marke>
-                        )}
-                        <Button
-                          variant="ghost"
-                          loading={busyId === m.id}
-                          onClick={() => book(m)}
-                        >
-                          Wareneingang
-                        </Button>
-                        {/*
-                          Bezeichnung, Kategorie, Artikelnummer, Einheit UND
-                          der Bestand selbst — alles im Katalogformular, das
-                          es laengst gibt. Ein zweites Formular hier waere
-                          eine zweite Stelle, an der dieselben Regeln
-                          auseinanderlaufen koennen.
-                        */}
-                        <Button
-                          variant="ghost"
-                          onClick={() => {
-                            setZuBearbeiten(m);
-                            setTab('katalog');
-                          }}
-                        >
-                          Bearbeiten
-                        </Button>
-                      </ListRow>
-                    );
-                  })}
+                  {rows.map((m) => (
+                    <ListRow
+                      key={m.id}
+                      title={m.name}
+                      subtitle={
+                        (m.category || m.reserved > 0) && (
+                        <>
+                          {m.category}
+                          {m.reserved > 0 && (
+                            <>
+                              {m.category && ' · '}
+                              <span>
+                                {m.stock ?? 0} im Lager, {m.reserved} reserviert
+                              </span>
+                            </>
+                          )}
+                        </>
+                        )
+                      }
+                    >
+                      {freiMarke(m)}
+                      {bestandKnoepfe(m)}
+                    </ListRow>
+                  ))}
                 </List>
               )}
               <Nachladen

@@ -9,13 +9,14 @@ import {
 } from '@/lib/db/konten';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import { InputField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
-import { ErrorState, SkeletonList } from '@/components/States';
+import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 
 /**
  * Welche Konten die Buchhaltung bebucht.
@@ -218,7 +219,7 @@ export default function KontenrahmenView() {
           <>
             Diese Konten braucht der <strong>Buchungsstapel für BMD</strong>, den die
             Rechnungsansicht ausgibt. Sie stehen hier und nicht im Programm, weil sie aus dem
-            Kontenplan Ihrer Kanzlei kommen — der österreichische Einheitskontenrahmen ist ein
+            Kontenplan deiner Kanzlei kommen — der österreichische Einheitskontenrahmen ist ein
             Vorschlag, kein Zwang. <strong>Fehlt ein Konto, entsteht keine Datei</strong>, sondern
             eine Liste dessen, was fehlt: ein Stapel mit Lücken importiert sich fehlerfrei und
             bucht einen zu niedrigen Umsatz.
@@ -232,7 +233,7 @@ export default function KontenrahmenView() {
       >
         <div className="space-y-4">
           <div className="flex flex-wrap items-end gap-x-2">
-            <div className="min-w-[10rem] grow">
+            <div className="min-w-[9rem] flex-1">
               <InputField
                 id="k-debitoren"
                 label="Forderungen (Debitorensammelkonto)"
@@ -245,12 +246,12 @@ export default function KontenrahmenView() {
               Jede Rechnung wird im <strong>Soll</strong> auf dieses eine Konto gebucht. Eigene
               Kontonummern je Kunde führt Senklot nicht — die offene-Posten-Verwaltung bleibt
               damit bei der Kanzlei. Für einen Betrieb dieser Grösse ist das der übliche Weg;
-              wenn Ihre Kanzlei je Kunde ein Konto will, sagen Sie es uns.
+              wenn deine Kanzlei je Kunde ein Konto will, sag es uns.
             </InfoHint>
           </div>
 
           <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
-            <div className="min-w-[10rem] grow">
+            <div className="min-w-[9rem] flex-1">
               <InputField
                 id="k-anzahlung"
                 label="Erhaltene Anzahlungen"
@@ -278,7 +279,7 @@ export default function KontenrahmenView() {
           </div>
 
           <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
-            <div className="min-w-[10rem] grow">
+            <div className="min-w-[9rem] flex-1">
               <InputField
                 id="k-rc"
                 label="Bauleistung mit Übergang der Steuerschuld"
@@ -308,13 +309,13 @@ export default function KontenrahmenView() {
 
       <Card
         title={`Erlöskonten je Steuersatz (${saetze.length})`}
-        hint="Je Steuersatz, den Sie tatsächlich verrechnen, ein Konto. Was hier fehlt, verhindert den Buchungsstapel für jeden Zeitraum, in dem eine Rechnung mit diesem Satz liegt — gemeldet wird es mit Satz und Klartext."
+        hint="Je Steuersatz, den du tatsächlich verrechnest, ein Konto. Was hier fehlt, verhindert den Buchungsstapel für jeden Zeitraum, in dem eine Rechnung mit diesem Satz liegt — gemeldet wird es mit Satz und Klartext."
       >
         {saetze.length === 0 ? (
-          <p className="text-sm text-ink-muted">
+          <EmptyState>
             Noch kein Erlöskonto hinterlegt. Ohne mindestens eines gibt es keinen
             Buchungsstapel.
-          </p>
+          </EmptyState>
         ) : (
           <div className="space-y-4">
             {saetze.map((s, n) => (
@@ -379,11 +380,13 @@ export default function KontenrahmenView() {
       {einwand && <ErrorState message={einwand} />}
       {fehler && <ErrorState message={fehler} />}
 
-      <div>
+      {/* Zwei Karten mit Feldern, am Telefon länger als ein Bildschirm: der
+          Knopf klebt in der Aktionsleiste über der Tableiste. */}
+      <Aktionsleiste>
         <Button type="submit" loading={speichert} disabled={!!einwand}>
           Kontenrahmen speichern
         </Button>
-      </div>
+      </Aktionsleiste>
     </form>
   );
 }

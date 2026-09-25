@@ -465,7 +465,7 @@ describe('Stunden ohne Buchung', () => {
     zeichne();
 
     expect(await screen.findByText(/Stunden ohne Buchung \(1\)/)).toBeInTheDocument();
-    expect(zeile('Franz Huber · 08:00 · keine Buchung gefunden')).toBeInTheDocument();
+    expect(zeile('Franz Huber · 08:00 Std · keine Buchung gefunden')).toBeInTheDocument();
     // Die Summe ist die eigentliche Aussage: so viel Zeit steht
     // unterschrieben beim Kunden und in keiner Aufzeichnung.
     expect(screen.getByText(/stehen unterschrieben beim Kunden/)).toBeInTheDocument();
@@ -516,7 +516,7 @@ describe('Stunden ohne Buchung', () => {
     zeichne();
 
     await screen.findByText(/Stunden ohne Buchung/);
-    expect(zeile('Franz Huber · 08:00 · gebucht auf B-001')).toBeInTheDocument();
+    expect(zeile('Franz Huber · 08:00 Std · gebucht auf B-001')).toBeInTheDocument();
     expect(screen.queryByText(/stehen unterschrieben beim Kunden/)).not.toBeInTheDocument();
   });
 

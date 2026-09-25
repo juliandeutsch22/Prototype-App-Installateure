@@ -262,15 +262,24 @@ describe('Startseite — Monteur', () => {
     );
   });
 
-  it('nennt die fehlenden Tage statt eines Saldos', async () => {
+  it('nennt die fehlenden Tage mit Datum — und den Saldo nur für den Monat', async () => {
+    /*
+      SEIT DEM MONTEUR-START (Design-Durchgang 25.09.2026) stehen die
+      fehlenden Tage unter „Offen für dich“ als Zeile statt als Warnkasten —
+      weiterhin mit den konkreten Daten. Und der Auftrag verlangt in „Diese
+      Woche“ ausdrücklich den Saldo: es ist der des MONATS, aus den ohnehin
+      geladenen Buchungen. Der Saldo seit Eintritt bleibt in der
+      Zeiterfassung — genau das hält diese Prüfung weiter fest.
+    */
     zeichne();
     // Gebucht ist nur der 1.9. — vom 2.9. bis gestern (14.9.) fehlt alles.
-    const hinweis = await screen.findByRole('alert');
-    expect(hinweis).toHaveTextContent(/Tage ohne Buchung/);
+    const zeile = (await screen.findByText(/Tage ohne Buchung/)).closest('li')!;
     // Konkrete Daten, nicht nur eine Zahl: „3 Tage fehlen" zwingt zum Suchen.
-    expect(hinweis).toHaveTextContent(/\d{2}\.\d{2}\./);
-    // Und ausdrücklich KEIN Saldo mehr.
-    expect(screen.queryByText(/Saldo/i)).not.toBeInTheDocument();
+    expect(zeile).toHaveTextContent(/\d{2}\.\d{2}\./);
+    expect(within(zeile).getByRole('link', { name: /Tage ohne Buchung/ })).toHaveAttribute('href', '/time');
+    // Der Monatssaldo, nicht der seit Eintritt.
+    expect(screen.getByText(/^Saldo (Jänner|Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)$/)).toBeInTheDocument();
+    expect(screen.queryByText(/seit Eintritt/i)).not.toBeInTheDocument();
   });
 });
 

@@ -42,12 +42,21 @@ export default function Unterreiter({
   /*
     DER GEWÄHLTE REITER BLEIBT IM BILD — am Telefon, wo die Leiste seitlich
     läuft. Sonst stünde „Fehler" abgeschnitten am Rand, und wer von dort kommt,
-    sähe nicht, wo er ist (Prüflauf 24.09.2026, D5).
+    sähe nicht, wo er ist (Prüflauf 24.09.2026, D5). Seit die Leiste keine
+    Scrollleiste mehr zeigt (index.css, `.reiterleiste`), ist das die einzige
+    Orientierung darüber, wo man in der Leiste steht.
+
+    `inline: 'nearest'` rollt nur so weit, bis der Reiter GANZ zu sehen ist —
+    beim Öffnen genauso wie beim Wechsel. `block: 'nearest'` lässt die Seite
+    senkrecht stehen, solange die Leiste im Bild ist. `behavior: 'auto'` heißt
+    ohne Gleiten: ein Sprung um eine Reiterbreite braucht keine Bewegung, und
+    wer im System „Bewegung reduzieren" gewählt hat, bekommt ohnehin keine.
+    Das `?.` vor dem Aufruf, weil jsdom `scrollIntoView` nicht kennt.
   */
   useEffect(() => {
     leiste.current
       ?.querySelector('[aria-current="page"]')
-      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      ?.scrollIntoView?.({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
   }, [aktiv]);
 
   // Kann diese Rolle gar nichts davon sehen, ist der Reiter für sie falsch
@@ -80,30 +89,20 @@ export default function Unterreiter({
             zeigt eine zweite Zeile alle — am Telefon wären es vier Zeilen,
             dort läuft die Leiste wie die übrigen der App seitlich.
           */
-          className="mb-4 reiterleiste flex gap-1 overflow-x-auto border-b border-line sm:flex-wrap sm:overflow-visible"
+          className="mb-4 reiterleiste"
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (
             <NavLink
               key={s.pfad}
               to={`${basis}/${s.pfad}`}
-              className={({ isActive }) =>
-                [
-                  'min-h-touch whitespace-nowrap border-b-2 px-3 py-2 text-sm transition',
-                  // Dieselbe Markierung wie bei den Reitern in Material,
-                  // Lager und Anforderungen: Kante UNTEN, Text fett, beides im
-                  // festen Türkis der Oberfläche.
-                  //
-                  // Bewusst NICHT in `--accent`: das ist die Farbe des
-                  // Mandanten, und dieser Betrieb hat dort sein Logo-Rot
-                  // stehen. Ein roter Strich unter „Meldungen" war deshalb
-                  // der einzige rote Punkt auf einer türkisen Seite — eine
-                  // Markierung ist Oberfläche, keine Handlung.
-                  isActive
-                    ? 'border-b-accent-deep font-bold text-accent-deep'
-                    : 'border-b-transparent font-medium text-ink-muted hover:text-ink',
-                ].join(' ')
-              }
+              /*
+                Dieselbe Markierung wie bei den Reitern in Material, Lager,
+                Anforderungen und Urlaub (`Reiter.tsx`): Kante UNTEN, Text
+                fett, im festen Türkis — warum nicht in `--accent`, steht in
+                index.css („Reiter“).
+              */
+              className={({ isActive }) => (isActive ? 'reiter-aktiv' : 'reiter')}
             >
               {s.label}
             </NavLink>

@@ -1,14 +1,12 @@
-import type { ReactNode } from 'react';
-import { GUTER_RAND } from './Metric';
+import { Children, Fragment, type ReactNode } from 'react';
+import Button from './Button';
+import Meldung from './Meldung';
 
 /** Ladezustand — sichtbar, kein stiller Abbruch. */
 export function LoadingState({ label = 'Wird geladen …' }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 p-6 text-ink-muted" role="status">
-      <span
-        className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-accent-deep"
-        aria-hidden="true"
-      />
+    <div className="laden" role="status">
+      <span className="laden-kreis" aria-hidden="true" />
       <span>{label}</span>
     </div>
   );
@@ -28,16 +26,16 @@ export function SkeletonList({ rows = 3 }: { rows?: number }) {
   return (
     <div role="status" aria-busy="true">
       <span className="sr-only">Wird geladen …</span>
-      <div className="divide-y divide-line" aria-hidden="true">
+      <div className="liste" aria-hidden="true">
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="flex items-center justify-between gap-4 py-3">
-            <div className="min-w-0 flex-1 space-y-2">
+          <div key={i} className="platzhalter-zeile">
+            <div className="platzhalter-text">
               {/* Zwei unterschiedlich lange Balken: eine Zeile Titel, eine
                   Zeile Untertitel — so sieht jede Liste der App aus. */}
-              <div className="skeleton h-4" style={{ width: `${55 + ((i * 13) % 30)}%` }} />
-              <div className="skeleton h-3" style={{ width: `${30 + ((i * 17) % 25)}%` }} />
+              <div className="skeleton-titel" style={{ width: `${55 + ((i * 13) % 30)}%` }} />
+              <div className="skeleton-unter" style={{ width: `${30 + ((i * 17) % 25)}%` }} />
             </div>
-            <div className="skeleton h-6 w-16 shrink-0" />
+            <div className="skeleton-marke" />
           </div>
         ))}
       </div>
@@ -48,20 +46,24 @@ export function SkeletonList({ rows = 3 }: { rows?: number }) {
 /** Ladeplatzhalter für die Kennzahlen-Reihe. */
 export function SkeletonMetrics({ count = 3 }: { count?: number }) {
   return (
-    // Form und Hoehe folgen der Kennzahlen-Leiste. Ein Platzhalter, der
-    // anders gebaut ist als sein Inhalt, laesst die Seite beim Eintreffen
-    // springen — genau das, was er verhindern soll.
-    <div
-      role="status"
-      aria-busy="true"
-      className={`grid grid-cols-2 gap-x-4 gap-y-3 sm:flex sm:items-stretch sm:gap-0 sm:divide-x sm:divide-line ${GUTER_RAND}`}
-    >
+    // Form und Hoehe folgen der Kennzahlen-Leiste — dieselben Klassen,
+    // derselbe Trenner. Ein Platzhalter, der anders gebaut ist als sein
+    // Inhalt, laesst die Seite beim Eintreffen springen — genau das, was er
+    // verhindern soll.
+    <div role="status" aria-busy="true" className="kennzahlen">
       <span className="sr-only">Wird geladen …</span>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="min-w-0 sm:flex-1 sm:px-3 sm:first:pl-0 sm:last:pr-0" aria-hidden="true">
-          <div className="skeleton h-3 w-20" />
-          <div className="skeleton mt-2 h-6 w-16 sm:h-8" />
-        </div>
+      {Children.toArray(
+        Array.from({ length: count }).map((_, i) => (
+          <div key={i} className="kennzahl" aria-hidden="true">
+            <div className="skeleton-name" />
+            <div className="skeleton-wert" />
+          </div>
+        )),
+      ).map((kind, i) => (
+        <Fragment key={i}>
+          {i > 0 && <span className="kennzahl-trenner" aria-hidden="true" />}
+          {kind}
+        </Fragment>
       ))}
     </div>
   );
@@ -70,18 +72,14 @@ export function SkeletonMetrics({ count = 3 }: { count?: number }) {
 /** Fehlerzustand: erklärt, was war und was zu tun ist. */
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="rounded border border-line bg-surface-2 p-4 text-danger" role="alert">
-      <p className="font-semibold">Das hat nicht geklappt</p>
-      <p className="mt-1 text-sm">{message}</p>
+    <Meldung ton="gefahr" titel="Das hat nicht geklappt" role="alert">
+      <p>{message}</p>
       {onRetry && (
-        <button
-          onClick={onRetry}
-          className="mt-3 min-h-touch rounded bg-danger px-3 py-2 text-sm font-semibold text-white transition active:scale-[0.98]"
-        >
+        <Button variant="danger" groesse="klein" className="mt-3" onClick={onRetry}>
           Erneut versuchen
-        </button>
+        </Button>
       )}
-    </div>
+    </Meldung>
   );
 }
 
@@ -103,21 +101,28 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
  */
 export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void }) {
   return (
-    <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
+    <Meldung ton="warnung" role="alert">
       {was} konnte nicht geladen werden.{' '}
       {onRetry && (
-        <button onClick={onRetry} className="min-h-touch font-semibold underline">
+        <button type="button" onClick={onRetry} className="textlink-allein">
           Erneut versuchen
         </button>
       )}
-    </p>
+    </Meldung>
   );
 }
 
-/** Leerzustand — eine Einladung zu handeln, keine leere weiße Fläche. */
+/**
+ * Leerzustand — EINE ruhige Zeile, kein umrahmter Platzhalter.
+ *
+ * Bis zum 25.09.2026 stand hier ein getönter, umrandeter Block mit 24 px
+ * Polsterung, mittig gesetzt — „Noch keine Rechnungen" war damit die
+ * auffälligste Fläche der Karte. Die Aussage ist eine Zeile wert, nicht mehr.
+ * Eine Handlung (`action`) steht in derselben Zeile daneben.
+ */
 export function EmptyState({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded border border-dashed border-line bg-surface-2 p-6 text-center text-ink-muted">
+    <div className="leer">
       <p>{children}</p>
       {action}
     </div>

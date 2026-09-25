@@ -17,17 +17,18 @@ import { listEntriesInRange } from '@/lib/db/timeEntries';
 import { scheineOhneBuchung, minutenOhneBuchung, OFFEN_AB_TAGEN } from './fehlendeZeitbuchung';
 import { deuteSuche, suchHinweis } from './scheinSuche';
 import { isGF, canWriteWorkSheet, canEditTime } from '@/lib/permissions';
-import { fmtMin, tageWort, todayStr } from '@/lib/time';
+import { fmtDauer, tageWort, todayStr } from '@/lib/time';
 import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
-import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import PageHeader from '@/components/PageHeader';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField } from '@/components/Field';
+import { CheckboxField, InputField } from '@/components/Field';
+import Meldung from '@/components/Meldung';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -348,11 +349,7 @@ export default function WorkSheetsListView() {
         title="Handwerksscheine"
         subtitle="Unterschriebene Leistungsnachweise der Baustellen"
         action={
-          <Link
-            to="/worksheet"
-            className="inline-flex min-h-touch items-center justify-center gap-2 rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm transition hover:opacity-95 active:scale-[0.98] sm:text-base"
-          >
-            <Icon name="plus" size={18} />
+          <Link to="/worksheet" className="knopf-primaer">
             Neuer Schein
           </Link>
         }
@@ -437,7 +434,7 @@ export default function WorkSheetsListView() {
         >
           {minutenOhneBuchung(ohneBuchung) > 0 && (
             <p className="mb-3 text-sm text-ink">
-              <strong>{fmtMin(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
+              <strong>{fmtDauer(minutenOhneBuchung(ohneBuchung))}</strong> stehen unterschrieben
               beim Kunden und in keiner Zeiterfassung.
             </p>
           )}
@@ -510,13 +507,13 @@ export default function WorkSheetsListView() {
                 }
                 subtitle={
                   <>
-                    <span className="tnum">
+                    <span>
                       Baustelle {schein.projectNumber} · Leistung vom {datumAT(schein.datum)}
                     </span>
                     <span className="mt-1 block">
                       {zeilen.map((z) => (
                         <span key={z.name} className="block text-xs text-ink-muted">
-                          {z.name} · {fmtMin(z.minuten)} ·{' '}
+                          {z.name} · {fmtDauer(z.minuten)} ·{' '}
                           {z.art === 'keine'
                             ? 'keine Buchung gefunden'
                             : `gebucht auf ${z.gebuchtAuf?.join(', ')}`}
@@ -564,7 +561,7 @@ export default function WorkSheetsListView() {
             // Wunschbreite (rund 180 px plus Polsterung) — gemessen 18 px
             // mehr, als die Karte innen hat. Es ragte damit unter dem Titel
             // heraus. Volle Breite ist dort ohnehin das Richtige.
-            className="min-h-touch w-full rounded border border-line bg-surface px-3 py-1 text-base text-ink sm:w-auto"
+            className="feld w-full sm:w-auto"
           />
         }
       >
@@ -578,60 +575,61 @@ export default function WorkSheetsListView() {
           daran ist der Buchhaltungs-Export einmal gescheitert.
         */}
         {suche.trim() && (
-          <div className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2">
-            {trefferGelten ? (
-              <p className="text-sm text-ink">
-                <strong>{sichtbar.length}</strong>{' '}
-                {sichtbar.length === 1 ? 'Schein' : 'Scheine'} vom Server zu „{trefferZu}".
-                {treffer && treffer.length >= PRUEF_GRENZE && (
-                  <span className="text-warning">
-                    {' '}
-                    Die Grenze von {PRUEF_GRENZE} ist erreicht — ältere sind nicht dabei.
-                  </span>
-                )}{' '}
-                <button
-                  type="button"
-                  className="underline"
-                  onClick={() => {
-                    setTreffer(null);
-                    setTrefferZu('');
-                  }}
-                >
-                  Zurück zur Liste
-                </button>
-              </p>
-            ) : (
-              <>
-                <p className="text-sm text-ink-muted">
-                  {sichtbar.length} von {scheine.length} geladenen Scheinen passen. Ältere sind
-                  nicht geladen.
+          <div className="mb-3">
+            <Meldung>
+              {trefferGelten ? (
+                <p className="text-sm text-ink">
+                  <strong>{sichtbar.length}</strong>{' '}
+                  {sichtbar.length === 1 ? 'Schein' : 'Scheine'} vom Server zu „{trefferZu}".
+                  {treffer && treffer.length >= PRUEF_GRENZE && (
+                    <span className="text-warning">
+                      {' '}
+                      Die Grenze von {PRUEF_GRENZE} ist erreicht — ältere sind nicht dabei.
+                    </span>
+                  )}{' '}
+                  <button
+                    type="button"
+                    className="textlink"
+                    onClick={() => {
+                      setTreffer(null);
+                      setTrefferZu('');
+                    }}
+                  >
+                    Zurück zur Liste
+                  </button>
                 </p>
-                <p className="mt-1 text-sm text-ink-muted">{suchHinweis(absicht)}</p>
-                {absicht.art !== 'text' && (
-                  <div className="mt-2">
-                    <Button
-                      variant="secondary"
-                      disabled={sucheLaeuft}
-                      onClick={() => void serverseitigSuchen()}
-                    >
-                      {sucheLaeuft ? 'Wird gesucht …' : 'Auf dem Server suchen'}
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
+              ) : (
+                <>
+                  <p className="text-sm text-ink-muted">
+                    {sichtbar.length} von {scheine.length} geladenen Scheinen passen. Ältere sind
+                    nicht geladen.
+                  </p>
+                  <p className="mt-1 text-sm text-ink-muted">{suchHinweis(absicht)}</p>
+                  {absicht.art !== 'text' && (
+                    <div className="mt-2">
+                      <Button
+                        variant="secondary"
+                        disabled={sucheLaeuft}
+                        onClick={() => void serverseitigSuchen()}
+                      >
+                        {sucheLaeuft ? 'Wird gesucht …' : 'Auf dem Server suchen'}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </Meldung>
           </div>
         )}
         {verworfene > 0 && (
-          <label className="mb-3 flex min-h-touch items-center gap-2 text-sm text-ink-muted">
-            <input
-              type="checkbox"
+          <div className="mb-3">
+            <CheckboxField
+              id="ws-verworfene"
               checked={zeigeVerworfene}
               onChange={(e) => setZeigeVerworfene(e.target.checked)}
-              className="checkbox"
+              label={`${verworfene} verworfene${verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen`}
             />
-            {verworfene} verworfene{verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen
-          </label>
+          </div>
         )}
         {loading ? (
           <SkeletonList rows={4} />
@@ -651,122 +649,127 @@ export default function WorkSheetsListView() {
               return (
                 <ListRow
                   key={s.id}
-                  title={
-                    <span>
-                      {s.customerName}{' '}
-                      <span className="tnum text-sm font-normal text-ink-muted">
-                        ({s.projectNumber})
-                      </span>
-                    </span>
-                  }
+                  wert={fmtDauer(gesamt)}
+                  zustand={<Zustand stand={STAND[s.status]}>{s.status}</Zustand>}
+                  /*
+                    Die Baustellennummer steht vorn in der Unterzeile, wie am
+                    Monteur-Start („Nummer · …“), nicht in Klammern am Namen.
+                    Unterschrift, Verwerfen und Storno je als eigene Zeile
+                    darunter.
+                  */
+                  title={s.customerName}
                   subtitle={
                     <>
-                      {datumAT(s.datum)} · {fmtMin(gesamt)} · {s.abrechnung}
+                      {s.projectNumber} · {datumAT(s.datum)} · {s.abrechnung}
                       {s.unterschriften?.kunde && (
-                        <span className="mt-1 block text-xs text-ink-muted">
+                        <>
+                          <br />
                           Unterschrieben von {s.unterschriften.kunde.name}
-                        </span>
+                        </>
                       )}
                       {s.status === 'Verworfen' && (
-                        <span className="mt-1 block text-xs text-ink-muted">
+                        <>
+                          <br />
                           Verworfen
                           {s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
                           weiterbearbeitet, nicht gelöscht.
-                        </span>
+                        </>
                       )}
                       {s.stornoGrund && (
-                        <span className="mt-1 block text-xs text-danger">
+                        <>
+                          <br />
                           Storno: {s.stornoGrund}
                           {s.storniertVonName ? ` (${s.storniertVonName})` : ''}
-                        </span>
+                        </>
                       )}
-                      {auf && (
-                        <span className="mt-2 block rounded border border-line p-3">
-                          {s.zeiten.length > 0 && (
-                            <>
-                              <span className="section-label block">Zeiten</span>
-                              <span className="mt-1 block space-y-1">
-                                {s.zeiten.map((z, i) => (
-                                  <span key={i} className="block text-sm text-ink">
-                                    {z.mitarbeiter}
-                                    {z.helfer ? ' (Helfer)' : ''} ·{' '}
-                                    {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
-                                    {fmtMin(z.minuten)}
-                                    {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
-                                  </span>
-                                ))}
-                              </span>
-                            </>
-                          )}
-                          {s.material.length > 0 && (
-                            <>
-                              <span className="section-label mt-3 block">Material</span>
-                              <span className="mt-1 block space-y-1">
-                                {s.material.map((m, i) => (
-                                  <span key={i} className="block text-sm text-ink">
-                                    {m.menge}× {m.name}
-                                  </span>
-                                ))}
-                              </span>
-                            </>
-                          )}
-                          {s.notizen && (
-                            <>
-                              <span className="section-label mt-3 block">Anmerkungen</span>
-                              <span className="mt-1 block text-sm text-ink">{s.notizen}</span>
-                            </>
-                          )}
-                          {/*
-                            DIE FOTOS. Sie liegen in Firebase Storage und
-                            werden erst beim Aufklappen geholt — eine Liste,
-                            die beim Öffnen zwanzig Bilder nachlädt, ist auf
-                            einer Baustelle keine Liste mehr.
-                          */}
-                          {s.fotos && s.fotos.length > 0 && (
-                            <>
-                              <span className="section-label mt-3 block">
-                                Fotos ({s.fotos.length})
-                              </span>
-                              <Fotostreifen fotos={s.fotos} />
-                            </>
-                          )}
-                          {/*
-                            Die Prüfsumme sichtbar machen. Sie ist der
-                            eigentliche Manipulationsschutz: mit ihr lässt
-                            sich belegen, dass ein vorgelegtes PDF genau das
-                            ist, was unterschrieben wurde.
-                          */}
-                          {/*
-                            Die Pruefsumme entsteht serverseitig, kurz NACH
-                            dem Unterschreiben — und offline erst beim
-                            Uebertragen. Statt die Zeile dann einfach
-                            wegzulassen, sagt sie, dass noch etwas aussteht:
-                            eine fehlende Pruefsumme sieht sonst aus wie ein
-                            Fehler, ist aber nur eine Frage von Sekunden.
-                          */}
-                          <span className="section-label mt-3 block">Prüfsumme</span>
+                    </>
+                  }
+                  /*
+                    DIE EINZELHEITEN UNTER DER ZEILE, nicht in ihrer
+                    Unterzeile: ein Kasten mit Abschnitten (`.gruppe`), je
+                    Abschnitt eine Linie zum nächsten.
+                  */
+                  unten={
+                    auf && (
+                      <div className="gruppe">
+                        {s.zeiten.length > 0 && (
+                          <div className="gruppe-abschnitt">
+                            <p className="section-label">Zeiten</p>
+                            {s.zeiten.map((z, i) => (
+                              <p key={i}>
+                                {z.mitarbeiter}
+                                {z.helfer ? ' (Helfer)' : ''} ·{' '}
+                                {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
+                                {fmtDauer(z.minuten)}
+                                {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        {s.material.length > 0 && (
+                          <div className="gruppe-abschnitt">
+                            <p className="section-label">Material</p>
+                            {s.material.map((m, i) => (
+                              <p key={i}>
+                                {m.menge}× {m.name}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        {s.notizen && (
+                          <div className="gruppe-abschnitt">
+                            <p className="section-label">Anmerkungen</p>
+                            <p>{s.notizen}</p>
+                          </div>
+                        )}
+                        {/*
+                          DIE FOTOS. Sie liegen in Firebase Storage und
+                          werden erst beim Aufklappen geholt — eine Liste,
+                          die beim Öffnen zwanzig Bilder nachlädt, ist auf
+                          einer Baustelle keine Liste mehr.
+                        */}
+                        {s.fotos && s.fotos.length > 0 && (
+                          <div className="gruppe-abschnitt">
+                            <p className="section-label">Fotos ({s.fotos.length})</p>
+                            <Fotostreifen fotos={s.fotos} />
+                          </div>
+                        )}
+                        {/*
+                          Die Prüfsumme sichtbar machen. Sie ist der
+                          eigentliche Manipulationsschutz: mit ihr lässt
+                          sich belegen, dass ein vorgelegtes PDF genau das
+                          ist, was unterschrieben wurde.
+
+                          Sie entsteht serverseitig, kurz NACH dem
+                          Unterschreiben — und offline erst beim Übertragen.
+                          Statt die Zeile dann einfach wegzulassen, sagt sie,
+                          dass noch etwas aussteht: eine fehlende Prüfsumme
+                          sieht sonst aus wie ein Fehler, ist aber nur eine
+                          Frage von Sekunden. Der letzte Abschnitt trägt
+                          keine Linie (`gruppe-text`) — die Kante zieht der
+                          Kasten.
+                        */}
+                        <div className="gruppe-text">
+                          <p className="section-label">Prüfsumme</p>
                           {s.inhaltHash ? (
-                            <span className="mt-1 block break-all font-mono text-xs text-ink-muted">
+                            <p className="break-all font-mono text-xs text-ink-muted">
                               {s.inhaltHash}
-                            </span>
+                            </p>
                           ) : s.status === 'Entwurf' ? (
-                            <span className="mt-1 block text-xs text-ink-muted">
-                              Entsteht mit der Unterschrift.
-                            </span>
+                            <p className="text-xs text-ink-muted">Entsteht mit der Unterschrift.</p>
                           ) : (
-                            <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+                            <p className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                               Wird berechnet — bei fehlender Verbindung erst nach der Übertragung.
                               <Button variant="ghost" onClick={() => void laden()}>
                                 Neu laden
                               </Button>
-                            </span>
+                            </p>
                           )}
-                        </span>
-                      )}
-                    </>
+                        </div>
+                      </div>
+                    )
                   }
                 >
-                  <Zustand stand={STAND[s.status]}>{s.status}</Zustand>
                   <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
                     {auf ? 'Zuklappen' : 'Details'}
                   </Button>
@@ -782,8 +785,8 @@ export default function WorkSheetsListView() {
                     dieselbe Arbeit an.
                   */}
                   {darfSchreiben && s.status === 'Entwurf' && (
-                    <Link to={`/worksheet?entwurf=${s.id}`}>
-                      <Button variant="secondary">Weiterbearbeiten</Button>
+                    <Link to={`/worksheet?entwurf=${s.id}`} className="knopf-sekundaer-klein">
+                      Weiterbearbeiten
                     </Link>
                   )}
                   {/*
@@ -856,7 +859,7 @@ export default function WorkSheetsListView() {
         message={
           verwerfenFuer
             ? `${verwerfenFuer.customerName}, ${datumAT(verwerfenFuer.datum)} · ` +
-              `${fmtMin(verwerfenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
+              `${fmtDauer(verwerfenFuer.zeiten.reduce((n, z) => n + z.minuten, 0))} · ` +
               `${verwerfenFuer.material.length} Materialposten. Der Entwurf verschwindet aus ` +
               'der Arbeitsliste, bleibt aber erhalten und lässt sich wieder aufnehmen.'
             : undefined
@@ -884,7 +887,9 @@ export default function WorkSheetsListView() {
             Der Schein bleibt erhalten und sichtbar, wird aber als storniert gekennzeichnet. Für
             eine Korrektur ist danach ein neuer Schein zu erstellen.
           </p>
-          <div className="mt-3">
+          {/* Der Abstand zur Aktionsleiste steht hier: die Leiste selbst muss
+              direkt in der Karte stehen, sonst klebt sie nicht. */}
+          <div className="mb-4 mt-3">
             <InputField
               id="stornogrund"
               label="Grund (Pflicht)"
@@ -894,7 +899,7 @@ export default function WorkSheetsListView() {
               pflicht
             />
           </div>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <Aktionsleiste>
             <Button
               loading={busy}
               disabled={stornoGrund.trim().length < 3}
@@ -924,7 +929,7 @@ export default function WorkSheetsListView() {
             >
               Abbrechen
             </Button>
-          </div>
+          </Aktionsleiste>
         </Card>
       )}
     </div>

@@ -233,3 +233,27 @@ describe('Weiter mit dem Angebot', () => {
     expect(screen.getByRole('button', { name: /PDF herunterladen/ })).toBeEnabled();
   });
 });
+
+describe('Am Schreibtisch zwei Spalten', () => {
+  /** Die Karte zu einem Titel. */
+  const karte = (titel: RegExp) => screen.getByRole('heading', { name: titel }).closest('section')!;
+
+  it('stellt das Angebot selbst links und was daraus folgt rechts', async () => {
+    zeige();
+    await screen.findByText(/Positionen/);
+    for (const titel of [/^Angaben/, /^Positionen/, /^Anmerkungen/]) {
+      expect(karte(titel).parentElement!.className).toBe('akte-links');
+    }
+    expect(karte(/^Weiter/).parentElement!.className).toBe('akte-rechts');
+    expect(karte(/^Weiter/).closest('.akte')).not.toBeNull();
+  });
+
+  it('bleibt einspaltig, wenn rechts nichts zu tun ist — keine leere Spalte', async () => {
+    rolle.wert = 'Buchhaltung';
+    const { container } = zeige();
+    await screen.findByText(/Positionen/);
+    expect(container.querySelector('.akte')).toBeNull();
+    expect(container.querySelector('.akte-rechts')).toBeNull();
+    expect(karte(/^Positionen/).closest('.akte-einspaltig')).not.toBeNull();
+  });
+});

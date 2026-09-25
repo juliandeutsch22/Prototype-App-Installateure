@@ -7,6 +7,7 @@ import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { isTopLevel } from '@/lib/permissions';
 import type { AppUser, InvoiceRates } from '@/types';
 import Card from '@/components/Card';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -409,27 +410,27 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
           {/* Sofort sehen, was die Sätze bedeuten — Prozentwerte allein sind
               im Kundengespräch wenig greifbar. */}
-          <div className="mt-4 overflow-x-auto rounded-sm border border-line bg-surface-2 p-3">
-            <table className="w-full text-sm">
-              <caption className="mb-2 text-left section-label">
+          <div className="kasten mt-4">
+            <table className="tabelle">
+              <caption className="tabelle-titel">
                 So wird ein Monteur verrechnet
               </caption>
               <tbody>
-                <tr className="border-b border-line/60">
-                  <td className="py-1">Regulär</td>
-                  <td className="py-1 text-right tnum">{fmtEUR(rates.fach)} €/h</td>
-                </tr>
-                <tr className="border-b border-line/60">
-                  <td className="py-1">Nachtarbeit</td>
-                  <td className="py-1 text-right tnum">{fmtEUR(nightFach)} €/h</td>
-                </tr>
-                <tr className="border-b border-line/60">
-                  <td className="py-1">Notdienst</td>
-                  <td className="py-1 text-right tnum">{fmtEUR(emergencyFach)} €/h</td>
+                <tr>
+                  <td className="tabelle-zelle">Regulär</td>
+                  <td className="tabelle-zahl">{fmtEUR(rates.fach)} €/h</td>
                 </tr>
                 <tr>
-                  <td className="py-1">Notdienst in der Nacht</td>
-                  <td className="py-1 text-right tnum">{fmtEUR(bothFach)} €/h</td>
+                  <td className="tabelle-zelle">Nachtarbeit</td>
+                  <td className="tabelle-zahl">{fmtEUR(nightFach)} €/h</td>
+                </tr>
+                <tr>
+                  <td className="tabelle-zelle">Notdienst</td>
+                  <td className="tabelle-zahl">{fmtEUR(emergencyFach)} €/h</td>
+                </tr>
+                <tr>
+                  <td className="tabelle-zelle">Notdienst in der Nacht</td>
+                  <td className="tabelle-zahl">{fmtEUR(bothFach)} €/h</td>
                 </tr>
               </tbody>
             </table>
@@ -515,7 +516,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             das er jedes Mal überliest. Deshalb steht der Haken hier und ist
             ab Werk aus.
           */}
-          <div className="mt-4 rounded-sm border border-line bg-surface-2 p-4">
+          <div className="kasten mt-4">
             <CheckboxField
               id="rechnungsarten"
               label="Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
@@ -584,7 +585,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               nicht und sagt das auch — eine erfundene Zahl wäre schlimmer als keine.
             </p>
           ) : (
-            <p className="mt-3 tnum text-sm text-ink">
+            <p className="mt-3 text-sm text-ink">
               Deckungsbeitrag je Facharbeiterstunde:{' '}
               <strong>{fmtEUR(rates.fach - num(costRates.fach, 0))}</strong>
               {rates.fach - num(costRates.fach, 0) <= 0 && (
@@ -598,19 +599,20 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
         {fehlerBei('saetze')}
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="submit" loading={saving} className="w-full sm:w-auto">
+        {/* Vier Karten, am Telefon über zwei Bildschirme: die Knöpfe kleben
+            in der Aktionsleiste, statt erst am Ende zu stehen. */}
+        <Aktionsleiste>
+          <Button type="submit" loading={saving}>
             Sätze speichern
           </Button>
           <Button
             type="button"
             variant="ghost"
             onClick={() => setRates(INVOICE_DEFAULTS)}
-            className="w-full sm:w-auto"
           >
             Auf Standardwerte zurücksetzen
           </Button>
-        </div>
+        </Aktionsleiste>
       </form>
       )}
 
@@ -668,7 +670,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             fest am 1. Jänner — für jeden Betrieb mit einem anderen
             Urlaubsjahr rechnete die App still falsch.
           */}
-          <div className="mb-4 flex flex-wrap items-end gap-3 rounded border border-line bg-surface-2 p-4">
+          <div className="kasten mb-4 flex flex-wrap items-end gap-3">
             <SelectField
               id="urlaubsjahr-tag"
               label="Urlaubsjahr beginnt am"
@@ -717,7 +719,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 type="radio"
                 name="uebertrag"
                 id="uebertrag-verjaehrung"
-                className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                className="auswahlpunkt mt-1"
                 checked={uebertrag === 'verjaehrung'}
                 onChange={() => setUebertrag('verjaehrung')}
               />
@@ -736,7 +738,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 type="radio"
                 name="uebertrag"
                 id="uebertrag-stichtag"
-                className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                className="auswahlpunkt mt-1"
                 checked={uebertrag === 'stichtag'}
                 onChange={() => setUebertrag('stichtag')}
               />
@@ -750,7 +752,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           </fieldset>
 
           {uebertrag === 'stichtag' && (
-            <div className="mt-4 flex flex-wrap items-end gap-3 rounded border border-line bg-surface-2 p-4">
+            <div className="kasten mt-4 flex flex-wrap items-end gap-3">
               <SelectField
                 id="stichtag-tag"
                 label="Verfällt am"
@@ -840,7 +842,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                   etwas; „RE-2026-1001" beantwortet die Frage, die jemand hat,
                   wenn er hier steht — wie sieht die nächste Nummer aus?
                 */}
-                <p className="tnum text-sm text-ink-muted">
+                <p className="text-sm text-ink-muted">
                   {naechste
                     ? `Nächste: ${belegNummer(vorsaetze[schluessel], new Date().getFullYear(), naechste[schluessel])}`
                     : `z. B. ${belegNummer(vorsaetze[schluessel], new Date().getFullYear(), ab)}`}
@@ -858,7 +860,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 onChange={(e) =>
                   setVorsaetze({ ...vorsaetze, kennzeichen: praefixPutzen(e.target.value) })}
               />
-              <p className="tnum text-sm text-ink-muted">
+              <p className="text-sm text-ink-muted">
                 {vorsaetze.kennzeichen
                   ? `${vorsaetze.kennzeichen}-12345A`
                   : 'Ohne Vorsatz — im Zeiteintrag steht das ganze Kennzeichen'}
@@ -866,17 +868,21 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </div>
           </FormGrid>
 
-          <p className="mt-4 text-sm text-ink-muted">
+          <p className="my-4 text-sm text-ink-muted">
             Großbuchstaben, Ziffern, Bindestrich, höchstens {PRAEFIX_MAX} Zeichen. Leer heißt
             „kein Vorsatz" — dann zählt der Kreis als
-            <span className="tnum"> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
+            <span> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
           </p>
 
-          <div className="mt-4">
+          {/* Vier Felder mit Vorschau laufen am Telefon knapp über einen
+              Bildschirm — der Knopf klebt in der Aktionsleiste. Sie steht
+              direkt in der Karte: in einer eigenen Hülle hätte sie keinen
+              Weg zum Kleben. */}
+          <Aktionsleiste>
             <Button type="button" loading={vorsaetzeSpeichert} onClick={vorsaetzeSpeichern}>
               Nummernkreise speichern
             </Button>
-          </div>
+          </Aktionsleiste>
           {fehlerBei('nummern')}
         </Card>
       )}

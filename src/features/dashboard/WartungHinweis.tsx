@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Meldung from '@/components/Meldung';
 import { useAuth } from '@/app/AuthContext';
 import { isGF, isVerw } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
@@ -67,18 +68,15 @@ export default function WartungHinweis() {
   if (anzahl === 0) return null;
 
   return (
-    <div className="rounded border border-line bg-surface-2 p-4 text-info">
-      <p className="font-semibold">
-        {anzahl === 1 ? 'Eine Wartung steht an' : `${anzahl} Wartungen stehen an`}
-      </p>
-      <p className="mt-1 text-sm">
+    <Meldung ton="info" titel={anzahl === 1 ? 'Eine Wartung steht an' : `${anzahl} Wartungen stehen an`}>
+      <p>
         {ueberfaellig > 0
           ? `${ueberfaellig} davon ${ueberfaellig === 1 ? 'ist' : 'sind'} überfällig. `
           : `Fällig in den nächsten ${VORLAUF_TAGE} Tagen. `}
-        <Link to="/wartungen" className="underline">
+        <Link to="/wartungen" className="textlink">
           Zu den Wartungen
         </Link>
       </p>
-    </div>
+    </Meldung>
   );
 }

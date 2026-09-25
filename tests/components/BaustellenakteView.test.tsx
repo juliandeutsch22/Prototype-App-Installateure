@@ -529,3 +529,33 @@ describe('Pläne und Dokumente', () => {
     expect(screen.queryByRole('button', { name: 'Alt.pdf löschen' })).toBeNull();
   });
 });
+
+describe('Am Schreibtisch zwei Spalten', () => {
+  /** In welcher Spalte der Akte eine Karte steht. */
+  const spalte = (titel: string) =>
+    screen.getByRole('heading', { name: titel }).closest('section')!.parentElement!.className;
+
+  it('stellt die Stammdaten links und was auf der Baustelle entsteht rechts', async () => {
+    zeige();
+    await screen.findByText('Stundenauswertung');
+    expect(spalte('Stammdaten')).toBe('akte-links');
+    for (const titel of ['Pläne und Dokumente', 'Stunden auf dieser Baustelle', 'Weiter']) {
+      expect(spalte(titel)).toBe('akte-rechts');
+    }
+    // Links vor rechts: die Vorlesehilfe liest die Karten in der alten Reihenfolge.
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+      'Stammdaten',
+      'Pläne und Dokumente',
+      'Stunden auf dieser Baustelle',
+      'Weiter',
+    ]);
+  });
+
+  it('lässt die Speicherleiste im Formular der linken Spalte, wo sie am Telefon klebt', async () => {
+    zeige();
+    await userEvent.type(await screen.findByLabelText(/Baustellenadresse/), '!');
+    const leiste = (await screen.findByText(/ungespeicherte Änderungen/)).closest('.aktionsleiste');
+    expect(leiste).not.toBeNull();
+    expect(leiste!.closest('.akte-links')).not.toBeNull();
+  });
+});

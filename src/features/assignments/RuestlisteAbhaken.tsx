@@ -65,44 +65,35 @@ export default function RuestlisteAbhaken({
   }
 
   return (
-    <div className="mt-3 rounded-sm border border-line">
-      <p className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2">
-        <span className="font-semibold text-ink">Material</span>
-        <span className="text-sm text-ink-muted">
+    <div className="gruppe mt-3">
+      <p className="gruppe-kopf">
+        <span className="gruppe-titel">Material</span>
+        <span className="gruppe-neben">
           {offen === 0 ? 'alles eingeladen' : `noch ${offen} von ${positionen.length}`}
         </span>
       </p>
-      <ul className="divide-y divide-line">
+      <ul className="haken-liste">
         {positionen.map((p) => {
           const eintrag = oertlich[p.id];
           const id = `rl-${projectNumber}-${p.id}`;
           return (
-            <li key={p.id} className={eintrag ? 'bg-surface-2' : ''}>
-              <label
-                htmlFor={id}
-                className={`flex min-h-touch items-center gap-3 px-3 py-2 ${
-                  abhakbar ? 'cursor-pointer' : ''
-                }`}
-              >
+            <li key={p.id} className={eintrag ? 'haken-zeile-erledigt' : 'haken-zeile'}>
+              <label htmlFor={id} className="haken-label">
                 <input
                   id={id}
                   type="checkbox"
                   checked={!!eintrag}
                   disabled={!abhakbar}
                   onChange={() => void umschalten(p)}
-                  className="checkbox"
+                  className="kaestchen"
                 />
-                <span className="min-w-0 flex-1">
-                  <span className={`block ${eintrag ? 'text-ink-muted line-through' : 'text-ink'}`}>
-                    <span className="tnum font-semibold">{p.menge}</span>
+                <span className="haken-text">
+                  <span className={eintrag ? 'haken-titel-erledigt' : 'haken-titel'}>
+                    <span className="haken-menge">{p.menge}</span>
                     {p.einheit ? ` ${p.einheit}` : ''} {p.name}
                   </span>
                   {/* Der Name verhindert die doppelte Suche im Lager. */}
-                  {eintrag && (
-                    <span className="block text-xs text-ink-muted">
-                      eingeladen von {eintrag.von}
-                    </span>
-                  )}
+                  {eintrag && <span className="haken-unter">eingeladen von {eintrag.von}</span>}
                 </span>
               </label>
             </li>
@@ -110,7 +101,7 @@ export default function RuestlisteAbhaken({
         })}
       </ul>
       {fehler && (
-        <p role="alert" className="border-t border-line px-3 py-2 text-sm text-danger">
+        <p role="alert" className="gruppe-fehler">
           {fehler}
         </p>
       )}

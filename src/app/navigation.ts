@@ -89,24 +89,24 @@ export const NAV: NavItem[] = [
   // Urlaub sieht JEDE Rolle: auch Buchhaltung und Verwaltung nehmen Urlaub,
   // und beantragen muessen ihn alle. Wer entscheiden darf, sieht in derselben
   // Ansicht zusaetzlich die offenen Antraege.
-  { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'calendar', roles: ALL, group: 'Außendienst', modul: 'urlaub', hinweis: 'urlaub' },
+  { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'sun', roles: ALL, group: 'Außendienst', modul: 'urlaub', hinweis: 'urlaub' },
   // Der Schein gehoert in den Aussendienst: er entsteht vor Ort beim Kunden,
   // nicht im Buero.
-  { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'clipboard', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'scheine' },
+  { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'pencil', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'scheine' },
 
   // Kunden VOR den Baustellen: der Kunde ist der Ausgangspunkt, die Baustelle
   // hängt an ihm. Auch die Buchhaltung braucht ihn — für die Rechnungsadresse.
   // Angebot vor Baustelle: so laeuft der Auftrag auch in Wirklichkeit.
-  { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Verwaltung', modul: 'angebote' },
-  { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'users', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Verwaltung' },
+  { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'file', roles: ['Buchhaltung', ...LEAD], group: 'Verwaltung', modul: 'angebote' },
+  { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'contact', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Verwaltung' },
   // Wartungen bei den Kunden, nicht bei den Baustellen: eine Vereinbarung
   // gehört dem Kunden und überlebt jede einzelne Baustelle. Die Verwaltung
   // sieht sie mit, NUR LESEND — anlegen, ändern und „erledigt“ bleiben bei
   // der Leitung (entschieden vom Betrieb am 24.09.2026, Prüflauf L4). Hier
   // stand vorher, sie „vereinbare den Termin“ — ohne einen einzigen Knopf dafür.
-  { path: '/wartungen', label: 'Wartungen', short: 'Wartung', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'wartung' },
+  { path: '/wartungen', label: 'Wartungen', short: 'Wartung', icon: 'wrench', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'wartung' },
   { path: '/anforderungen', label: 'Anforderungen', short: 'Anford.', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material', hinweis: 'anforderungen' },
-  { path: '/lager', label: 'Lager', short: 'Lager', icon: 'package', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
+  { path: '/lager', label: 'Lager', short: 'Lager', icon: 'archive', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
   { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Verwaltung' },
   { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Verwaltung', modul: 'einsatzplanung' },
   // Wer angelegt wird und welche Rolle er bekommt, ist Eigentümersache und
@@ -123,7 +123,7 @@ export const NAV: NavItem[] = [
   { path: '/settings', label: 'Einstellungen', short: 'Einstellungen', icon: 'settings', roles: ALL, group: 'Allgemein' },
 
   // Margen sind Geschaeftsfuehrungssache — die Projektleitung sieht sie nicht.
-  { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'chart', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
+  { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'calculator', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
   // Rechnungen OHNE Projektleitung — so steht es auch in den Richtlinien, und
   // dort ist es die Wahrheit. Der Eintrag zeigte sie ihr trotzdem an; wer
   // klickte, landete in „Kein Zugriff".

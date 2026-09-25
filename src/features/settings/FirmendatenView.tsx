@@ -6,6 +6,7 @@ import { logoAufbereiten, LogoFehler, dataUrlBytes } from '@/lib/logoAufbereiten
 import { istZeichenbar } from '@/lib/pdfBriefkopf';
 import { urteil } from '@/lib/kontrast';
 import Card from '@/components/Card';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -179,11 +180,11 @@ export default function FirmendatenView() {
                 Vorschau auf hellem Grund und im Seitenverhältnis des
                 Briefkopfs: so sieht man vorher, was auf dem Beleg landet.
               */}
-              <div className="inline-flex items-center justify-center rounded border border-line bg-white p-2">
+              <div className="kasten-hell inline-flex items-center justify-center">
                 <img src={logoUrl} alt="Logo des Betriebs" className="h-12 w-auto" />
               </div>
               <p className="text-xs text-ink-muted">
-                Rund <span className="tnum">{Math.round(dataUrlBytes(logoUrl) / 1024)}</span> kB.
+                Rund <span>{Math.round(dataUrlBytes(logoUrl) / 1024)}</span> kB.
               </p>
               <Button variant="danger" onClick={() => setLogoUrl('')}>
                 Logo entfernen
@@ -197,8 +198,10 @@ export default function FirmendatenView() {
             </p>
           )}
 
-          <div className="mt-3">
-            <label htmlFor="fd-logo" className="section-label block">
+          {/* Beschriftung wie an jedem anderen Feld (`feld-name`), nicht als
+              Dachzeile — sie benennt ein Feld, keinen Abschnitt. */}
+          <div className="feld-block mt-3">
+            <label htmlFor="fd-logo" className="feld-name">
               Bilddatei wählen
             </label>
             <input
@@ -207,7 +210,7 @@ export default function FirmendatenView() {
               accept="image/png,image/jpeg,image/webp"
               disabled={logoLaeuft}
               onChange={(e) => void logoWaehlen(e.target.files?.[0])}
-              className="mt-1 block w-full text-sm text-ink file:mr-3 file:min-h-touch file:rounded file:border file:border-line file:bg-surface-2 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-ink"
+              className="block w-full text-sm text-ink file:mr-3 file:min-h-touch file:rounded file:border file:border-line file:bg-surface-2 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-ink"
             />
           </div>
           {logoFehler && (
@@ -353,9 +356,16 @@ export default function FirmendatenView() {
 
         {error && <ErrorState message={error} />}
 
-        <Button type="submit" loading={saving} disabled={logoLaeuft}>
-          Firmendaten speichern
-        </Button>
+        {/*
+          Das Formular läuft am Telefon über gut zwei Bildschirme — der Knopf
+          klebt deshalb in der Aktionsleiste über der Tableiste, statt erst
+          am Ende aufzutauchen.
+        */}
+        <Aktionsleiste>
+          <Button type="submit" loading={saving} disabled={logoLaeuft}>
+            Firmendaten speichern
+          </Button>
+        </Aktionsleiste>
       </form>
     </div>
   );

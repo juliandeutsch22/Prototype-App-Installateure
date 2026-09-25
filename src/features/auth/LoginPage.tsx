@@ -5,6 +5,7 @@ import { InputField, CheckboxField } from '@/components/Field';
 import ProduktMarke from '@/components/ProduktMarke';
 import RechtLinks from '@/components/RechtLinks';
 import Button from '@/components/Button';
+import Meldung from '@/components/Meldung';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
 
 /**
@@ -99,7 +100,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-bg p-4">
-      <div className="panel w-full max-w-sm overflow-hidden shadow-lg">
+      <div className="karte-anmeldung">
         {/* Markenband: dieselbe dunkle Trägerfläche wie Seitenleiste und
             Tableiste. Die Marke steht ohne weitere Fassung darauf. */}
         <div className="panel-dark px-6 py-6 text-center">
@@ -110,7 +111,7 @@ export default function LoginPage() {
               Markenfarbe des Mandanten traegt, sondern die feste dunkle
               Flaeche — die Kontrastfarbe dazu ist Weiss, unabhaengig davon,
               was der Betrieb als Marke hinterlegt hat. */}
-          <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-white">
+          <p className="mt-3 text-sm font-semibold text-white">
             Mitarbeiter-Portal
           </p>
         </div>
@@ -176,14 +177,14 @@ export default function LoginPage() {
             )}
 
             {(error || authError) && (
-              <p className="rounded-sm border border-line bg-surface-2 p-2 text-sm text-danger" role="alert">
+              <Meldung ton="gefahr" role="alert">
                 {error ?? authError}
-              </p>
+              </Meldung>
             )}
             {notice && (
-              <p className="rounded-sm border border-line bg-surface-2 p-2 text-sm text-success" role="status">
+              <Meldung ton="gut" role="status">
                 {notice}
-              </p>
+              </Meldung>
             )}
 
             <Button
@@ -204,7 +205,7 @@ export default function LoginPage() {
                 setError(null);
                 setNotice(null);
               }}
-              className="min-h-touch text-xs text-ink-muted underline underline-offset-2 hover:text-brand"
+              className="textlink-allein"
             >
               {resetMode ? 'Zurück zur Anmeldung' : 'Passwort vergessen?'}
             </button>

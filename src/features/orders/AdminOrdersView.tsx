@@ -24,6 +24,7 @@ import Nachladen from '@/components/Nachladen';
 import { Marke, Warnung } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
+import { Reiter, Reiterleiste } from '@/components/Reiter';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField } from '@/components/Field';
@@ -34,6 +35,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { abschlussText } from './abschlussText';
+import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -268,6 +270,9 @@ export default function AdminOrdersView() {
     setEinkaufFragen({ o, bei: bekannt || (grosshaendler.length === 1 ? grosshaendler[0].id : '') });
   }
 
+  /** Am Schreibtisch die Anforderungen als Tabelle, am Telefon als Liste. */
+  const schreibtisch = useAbBreite(AB_TABELLE);
+
   if (!user) return null;
 
   /*
@@ -284,6 +289,116 @@ export default function AdminOrdersView() {
     { key: 'archiv', label: 'Erledigt' },
   ];
 
+  /*
+    ZEILENINHALT EINMAL, ZWEI FORMEN. Am Telefon steht die Anforderung als
+    Listenzeile, am Schreibtisch als Tabellenzeile (siehe `useAbBreite`).
+    Notiz, Marken, Knöpfe, Zustand und Menü sind in beiden dieselben.
+  */
+  const anforderungNotiz = (o: WithId<MaterialOrder>) => (
+    <>
+      {/*
+        DIE NOTIZ BEKOMMT EINE EIGENE ZEILE. Angehängt an
+        Name und Baustelle, im selben Grau, ging sie unter —
+        gemeldet als „wird nirgends angezeigt". Sie ist oft
+        das Einzige, was die Projektleitung wirklich lesen
+        muss („bis Donnerstag", „Kiste im Keller").
+
+        `font-normal`, weil sie in der Tabelle unter dem halbfetten
+        Materialnamen in derselben Zelle steht.
+      */}
+      {o.note && (
+        <span className="mt-1 block font-normal text-ink">
+          <span className="font-medium">Notiz:</span> {o.note}
+        </span>
+      )}
+    </>
+  );
+
+  const anforderungMarken = (o: WithId<MaterialOrder>) => (
+    <>
+      {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
+      {o.beschaffung === 'lager' && <Marke>aus Lager</Marke>}
+      {o.beschaffung === 'einkauf' && (
+        <Marke>
+          {o.geliefertAm
+            ? 'geliefert'
+            : o.bestelltAm
+              ? 'bestellt'
+              : 'Einkaufsliste'}
+          {o.supplierId && grosshaendler.find((g) => g.id === o.supplierId)
+            ? ` · ${grosshaendler.find((g) => g.id === o.supplierId)!.name}`
+            : ''}
+        </Marke>
+      )}
+    </>
+  );
+
+  const anforderungKnoepfe = (o: WithId<MaterialOrder>) => (
+    <>
+      {/*
+        DER LAGERIST HAKT AB. Liegt es im Regal, ist es gleich
+        abholbereit (und der Monteur bekommt die Meldung); fehlt
+        es, kommt es auf die Einkaufsliste. Nur solange noch
+        niemand nachgesehen hat.
+      */}
+      {o.transactionType !== 'return' &&
+        !o.beschaffung &&
+        (o.status === 'Offen' || o.status === 'In Bearbeitung') && (
+          <>
+            <Button
+              variant="secondary"
+              loading={busyId === o.id}
+              onClick={() => void nimmAusLager(o)}
+            >
+              Aus Lager
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={busyId === o.id}
+              onClick={() => void fragEinkauf(o)}
+            >
+              Nicht auf Lager
+            </Button>
+          </>
+        )}
+    </>
+  );
+
+  const anforderungZustand = (o: WithId<MaterialOrder>) =>
+    o.transactionType === 'return' ? <Marke>Retoure</Marke> : <StatusBadge status={o.status} />;
+
+  const anforderungMenue = (o: WithId<MaterialOrder>) => (
+    <>
+      {/*
+        STATUS UND LÖSCHEN IM „⋯". Vorher standen je Zeile bis
+        zu sechs Bedienelemente über zwei unruhige Zeilen, und
+        der Zustand doppelt: als Punkt und als Auswahl
+        (Prüflauf 24.09.2026, D11). Sichtbar bleibt, was der
+        Lagerist täglich tut; die freie Statuswahl bleibt
+        erhalten — eine versehentlich abgeschlossene
+        Anforderung lässt sich weiter zurückholen.
+      */}
+      <RowMenu
+        about={o.materialName}
+        items={[
+          ...(o.transactionType !== 'return' && busyId !== o.id
+            ? ORDER_STATUS_FLOW.filter((st) => st !== o.status).map((st) => ({
+                label: `Auf „${st}" setzen`,
+                onSelect: () => {
+                  if (st === 'Erledigt') setToComplete(o);
+                  else void setStatus(o, st);
+                },
+              }))
+            : []),
+          { label: 'Löschen', onSelect: () => setToDelete(o), danger: true },
+        ]}
+      />
+    </>
+  );
+
+  /** Offenes nach Arbeitsschritt, Erledigtes und Retouren nach Tag. */
+  const gruppen = tab === 'aktiv' ? aktivGruppen : tagesGruppen;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -291,26 +406,16 @@ export default function AdminOrdersView() {
         subtitle="Materialanforderungen der Monteure bearbeiten und Rückgaben sichten"
       />
 
-      {/* Aktiver Reiter mit Akzentkante unten — gleiche Markierung wie in
-          Unterreiter. */}
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      {/* Aktiver Reiter mit Akzentkante unten — dieselbe Leiste wie in
+          Unterreiter (`Reiter.tsx`). */}
+      <Reiterleiste>
         {TABS.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 sm:px-4 text-sm transition ${
-              tab === t.key
-                ? 'border-b-accent-deep font-bold text-accent-deep'
-                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
-            }`}
-          >
+          <Reiter key={t.key} aktiv={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
             {t.count !== undefined && t.count > 0 && <Marke>{t.count}</Marke>}
-          </button>
+          </Reiter>
         ))}
-      </div>
+      </Reiterleiste>
 
       {tab === 'einkauf' && company ? (
         <>
@@ -333,7 +438,7 @@ export default function AdminOrdersView() {
           title={tab === 'retouren' ? 'Retouren' : tab === 'archiv' ? 'Erledigt' : 'Offene Bestellungen'}
           action={
             tab !== 'retouren' && projectOptions.length > 0 ? (
-              <SelectField id="ofilter" label="" className="py-1 text-sm" value={projectFilter}
+              <SelectField id="ofilter" label="" value={projectFilter}
                 onChange={(e) => setProjectFilter(e.target.value)}>
                 <option value="">Alle Baustellen</option>
                 {projectOptions.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -369,119 +474,110 @@ export default function AdminOrdersView() {
             </EmptyState>
           ) : (
             <div className="space-y-4">
-              {(tab === 'aktiv' ? aktivGruppen : tagesGruppen).map((g) => (
-                <div key={g.titel}>
-                  {/* Ueberschrift je Gruppe: erst dadurch wird aus der Liste
-                      eine Ordnung, die man ueberfliegen kann. */}
-                  <h3 className="section-label mb-1 flex items-center justify-between">
-                    <span>{g.titel}</span>
-                    <span className="tnum font-normal text-ink-muted">{g.zeilen.length}</span>
-                  </h3>
-                  <List>
-                    {g.zeilen.map((o) => (
-                      <ListRow
-                        key={o.id}
-                        title={
-                          <span>
-                            {o.materialName}{' '}
-                            <span className="tnum text-ink-muted">×{o.quantity}</span>
-                          </span>
-                        }
-                        subtitle={
-                          <>
-                            {o.userName}
-                            {o.projectNumber && ` · ${o.projectNumber}`}
-                            {o.condition && ` · ${CONDITION_LABEL[o.condition] ?? o.condition}`}
-                            {/*
-                              DIE NOTIZ BEKOMMT EINE EIGENE ZEILE. Angehängt an
-                              Name und Baustelle, im selben Grau, ging sie unter —
-                              gemeldet als „wird nirgends angezeigt". Sie ist oft
-                              das Einzige, was die Projektleitung wirklich lesen
-                              muss („bis Donnerstag", „Kiste im Keller").
-                            */}
-                            {o.note && (
-                              <span className="mt-1 block text-ink">
-                                <span className="font-medium">Notiz:</span> {o.note}
+              {schreibtisch ? (
+                <div className="tabelle-rahmen">
+                  <table className="tabelle">
+                    <thead className="tabelle-kopfzeile">
+                      <tr>
+                        <th className="tabelle-kopf">Material</th>
+                        <th className="tabelle-kopf-zahl">Menge</th>
+                        <th className="tabelle-kopf">Besteller</th>
+                        <th className="tabelle-kopf">Status</th>
+                        <th className="tabelle-kopf-zahl">
+                          <span className="sr-only">Aktionen</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    {/* Je Gruppe ein eigener Tabellenkörper mit ihrer
+                        Überschrift — dieselbe Ordnung wie in der Liste, aber
+                        die Spalten fluchten über alle Gruppen. */}
+                    {gruppen.map((g) => (
+                      <tbody key={g.titel}>
+                        <tr>
+                          <th colSpan={5} scope="rowgroup" className="tabelle-gruppe">
+                            <h3 className="section-label flex items-center justify-between">
+                              <span>{g.titel}</span>
+                              <span className="font-normal text-ink-muted">{g.zeilen.length}</span>
+                            </h3>
+                          </th>
+                        </tr>
+                        {g.zeilen.map((o) => (
+                          <tr key={o.id} className="tabelle-zeile">
+                            <td className="tabelle-name">
+                              {o.materialName}
+                              {o.condition && (
+                                <span className="tabelle-unter">
+                                  {CONDITION_LABEL[o.condition] ?? o.condition}
+                                </span>
+                              )}
+                              {anforderungNotiz(o)}
+                            </td>
+                            <td className="tabelle-zahl">{o.quantity}</td>
+                            {/* Die Baustelle unter dem Besteller, wie in der
+                                Listenzeile hinter ihm: eine eigene Spalte
+                                nahm auf 1024 px dem Material den Platz. */}
+                            <td className="tabelle-zelle">
+                              {o.userName}
+                              {o.projectNumber && (
+                                <span className="tabelle-unter">{o.projectNumber}</span>
+                              )}
+                            </td>
+                            <td className="tabelle-zelle">
+                              <span className="tabelle-marken">
+                                {anforderungMarken(o)}
+                                {anforderungZustand(o)}
                               </span>
-                            )}
-                          </>
-                        }
-                      >
-                        {o.isUrgent && <Warnung stufe="dringend">Eil</Warnung>}
-                        {o.beschaffung === 'lager' && <Marke>aus Lager</Marke>}
-                        {o.beschaffung === 'einkauf' && (
-                          <Marke>
-                            {o.geliefertAm
-                              ? 'geliefert'
-                              : o.bestelltAm
-                                ? 'bestellt'
-                                : 'Einkaufsliste'}
-                            {o.supplierId && grosshaendler.find((g) => g.id === o.supplierId)
-                              ? ` · ${grosshaendler.find((g) => g.id === o.supplierId)!.name}`
-                              : ''}
-                          </Marke>
-                        )}
-                        {/*
-                          DER LAGERIST HAKT AB. Liegt es im Regal, ist es gleich
-                          abholbereit (und der Monteur bekommt die Meldung); fehlt
-                          es, kommt es auf die Einkaufsliste. Nur solange noch
-                          niemand nachgesehen hat.
-                        */}
-                        {o.transactionType !== 'return' &&
-                          !o.beschaffung &&
-                          (o.status === 'Offen' || o.status === 'In Bearbeitung') && (
-                            <>
-                              <Button
-                                variant="secondary"
-                                loading={busyId === o.id}
-                                onClick={() => void nimmAusLager(o)}
-                              >
-                                Aus Lager
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                disabled={busyId === o.id}
-                                onClick={() => void fragEinkauf(o)}
-                              >
-                                Nicht auf Lager
-                              </Button>
-                            </>
-                          )}
-                        {o.transactionType === 'return' ? (
-                          <Marke>Retoure</Marke>
-                        ) : (
-                          <StatusBadge status={o.status} />
-                        )}
-
-                        {/*
-                          STATUS UND LÖSCHEN IM „⋯". Vorher standen je Zeile bis
-                          zu sechs Bedienelemente über zwei unruhige Zeilen, und
-                          der Zustand doppelt: als Punkt und als Auswahl
-                          (Prüflauf 24.09.2026, D11). Sichtbar bleibt, was der
-                          Lagerist täglich tut; die freie Statuswahl bleibt
-                          erhalten — eine versehentlich abgeschlossene
-                          Anforderung lässt sich weiter zurückholen.
-                        */}
-                        <RowMenu
-                          about={o.materialName}
-                          items={[
-                            ...(o.transactionType !== 'return' && busyId !== o.id
-                              ? ORDER_STATUS_FLOW.filter((st) => st !== o.status).map((st) => ({
-                                  label: `Auf „${st}" setzen`,
-                                  onSelect: () => {
-                                    if (st === 'Erledigt') setToComplete(o);
-                                    else void setStatus(o, st);
-                                  },
-                                }))
-                              : []),
-                            { label: 'Löschen', onSelect: () => setToDelete(o), danger: true },
-                          ]}
-                        />
-                      </ListRow>
+                            </td>
+                            <td className="tabelle-aktionen">
+                              <div className="tabelle-knoepfe-umbruch">
+                                {anforderungKnoepfe(o)}
+                                {anforderungMenue(o)}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
                     ))}
-                  </List>
+                  </table>
                 </div>
-              ))}
+              ) : (
+                gruppen.map((g) => (
+                  <div key={g.titel}>
+                    {/* Ueberschrift je Gruppe: erst dadurch wird aus der Liste
+                        eine Ordnung, die man ueberfliegen kann. */}
+                    <h3 className="section-label mb-1 flex items-center justify-between">
+                      <span>{g.titel}</span>
+                      <span className="font-normal text-ink-muted">{g.zeilen.length}</span>
+                    </h3>
+                    <List>
+                      {g.zeilen.map((o) => (
+                        <ListRow
+                          key={o.id}
+                          title={
+                            <span>
+                              {o.materialName}{' '}
+                              <span className="text-ink-muted">×{o.quantity}</span>
+                            </span>
+                          }
+                          subtitle={
+                            <>
+                              {o.userName}
+                              {o.projectNumber && ` · ${o.projectNumber}`}
+                              {o.condition && ` · ${CONDITION_LABEL[o.condition] ?? o.condition}`}
+                              {anforderungNotiz(o)}
+                            </>
+                          }
+                        >
+                          {anforderungMarken(o)}
+                          {anforderungKnoepfe(o)}
+                          {anforderungZustand(o)}
+                          {anforderungMenue(o)}
+                        </ListRow>
+                      ))}
+                    </List>
+                  </div>
+                ))
+              )}
 
               {tab !== 'aktiv' && rows.length > limit && (
                 <Button variant="secondary" onClick={() => setLimit((n) => n + 50)}>

@@ -47,12 +47,15 @@ const sideLink = ({ isActive }: { isActive: boolean }) =>
  * Verlauf mehr), hat Cyan dort auch keinen Ton mehr, an den es anschliesst.
  * Getragen wird der Zustand ohnehin dreifach: Fläche, Fettung, Textfarbe.
  * Der Strich ist der vierte Hinweis und nie der einzige.
+ *
+ * Die Fläche ist deckendes `--ink-deep`, eine Stufe dunkler als die Leiste —
+ * keine halbtransparente Weiß-Tönung. Weiß darauf steht bei über 16:1.
  */
 const sideLinkDark = ({ isActive }: { isActive: boolean }) =>
   `flex min-h-touch min-w-0 items-center gap-3 rounded-sm border-l-[3px] px-3 py-2 text-base transition ${
     isActive
-      ? 'border-l-white bg-white/10 font-bold text-white'
-      : 'border-l-transparent font-medium text-white/75 hover:bg-white/10 hover:text-white'
+      ? 'border-l-white bg-ink-deep font-bold text-white'
+      : 'border-l-transparent font-medium text-white/75 hover:bg-ink-deep hover:text-white'
   }`;
 
 /**
@@ -202,7 +205,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {groups.map(({ group, items: groupItems }) => (
             <div key={group} className="flex flex-col gap-1">
               {group !== 'Allgemein' && (
-                <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-white/60">
+                <p className="px-3 pb-1 text-xs font-semibold text-white/60">
                   {group}
                 </p>
               )}
@@ -339,7 +342,7 @@ export default function Layout({ children }: { children: ReactNode }) {
                   */}
                   <span
                     className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                      isActive ? 'bg-white/15' : ''
+                      isActive ? 'bg-ink-deep' : ''
                     }`}
                   >
                     <Icon name={item.icon} size={20} />
@@ -368,7 +371,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             >
               <span
                 className={`relative flex h-7 w-9 items-center justify-center rounded-lg transition-colors ${
-                  moreActive ? 'bg-white/15' : ''
+                  moreActive ? 'bg-ink-deep' : ''
                 }`}
               >
                 <Icon name="more" size={20} />
@@ -399,7 +402,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           {groups.map(({ group, items: groupItems }) => (
             <div key={group}>
               {group !== 'Allgemein' && (
-                <p className="mb-1 px-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                <p className="mb-1 px-1 text-xs font-semibold text-ink-muted">
                   {group}
                 </p>
               )}

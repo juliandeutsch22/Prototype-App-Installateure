@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import ProduktMarke from '@/components/ProduktMarke';
+import Meldung from '@/components/Meldung';
+import PageHeader from '@/components/PageHeader';
 import { GEPRUEFT, STAND } from './betreiber';
 
 /**
@@ -23,12 +25,13 @@ export default function RechtSeite({ titel, children }: { titel: string; childre
       </div>
       <main className="mx-auto max-w-2xl space-y-6 px-4 py-6">
         {!GEPRUEFT && (
-          <p role="note" className="rounded-sm border border-warning bg-surface px-3 py-2 text-sm text-ink">
+          // `note`: ein stehender Vermerk zum Text, weder Alarm noch Status.
+          <Meldung ton="warnung" role="note">
             <strong>Entwurf.</strong> Dieser Text ist noch nicht rechtlich geprüft; Angaben in
             eckigen Klammern werden ergänzt.
-          </p>
+          </Meldung>
         )}
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">{titel}</h1>
+        <PageHeader title={titel} />
         <div className="recht space-y-6 text-base leading-relaxed text-ink">{children}</div>
         <p className="text-sm text-ink-muted">Stand: {STAND}</p>
       </main>
@@ -40,7 +43,7 @@ export default function RechtSeite({ titel, children }: { titel: string; childre
 export function Abschnitt({ titel, children }: { titel: string; children: ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="text-lg font-semibold text-ink">{titel}</h2>
+      <h2 className="titel-karte">{titel}</h2>
       {children}
     </section>
   );

@@ -749,3 +749,22 @@ describe('Einsatz löschen', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
+
+describe('Einsatzplanung — Anordnung (Design-Durchgang, Phase 3)', () => {
+  it('stellt „Einsatz speichern“ in die Aktionsleiste, die mit dem Formular endet', async () => {
+    /*
+      Am Telefon klebt die Leiste unten, solange Einsatz und Rüstliste durch
+      den Bildschirm laufen. Sie steht in derselben Spalte wie das Formular —
+      nicht in der, die auch die Tagesübersicht trägt; sonst stünde sie beim
+      Lesen der Einsätze darüber.
+    */
+    zeige();
+    const knopf = await screen.findByRole('button', { name: 'Einsatz speichern' });
+    const leiste = knopf.parentElement!;
+    expect(leiste.className).toBe('aktionsleiste');
+    const spalte = leiste.parentElement!;
+    expect(spalte.className).toBe('einsatzplan-spalte');
+    expect(within(spalte).getByRole('combobox', { name: /Baustelle/ })).toBeInTheDocument();
+    expect(within(spalte).queryByText(/Einsätze am/)).toBeNull();
+  });
+});

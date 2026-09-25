@@ -9,6 +9,8 @@ import { InputField, SelectField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { Marke, Warnung } from '@/components/Badge';
 import { ErrorState } from '@/components/States';
+import Grenzliste from '@/components/Grenzliste';
+import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import {
   befunde,
@@ -217,8 +219,8 @@ export default function KatalogImport() {
             <>
               DATANORM ist das Austauschformat, in dem Grosshändler ihre Preislisten liefern —
               meist als Datei mit der Endung <code>.001</code>. Eingelesen wird sie hier{' '}
-              <strong>zuerst nur angesehen</strong>: Sie bekommen einen Bericht darüber, was
-              erkannt wurde und was nicht, und entscheiden danach, ob übernommen wird. Bis dahin
+              <strong>zuerst nur angesehen</strong>: du bekommst einen Bericht darüber, was
+              erkannt wurde und was nicht, und entscheidest danach, ob übernommen wird. Bis dahin
               ändert sich am Katalog nichts.
             </>
           }
@@ -259,8 +261,8 @@ export default function KatalogImport() {
               </div>
             )}
 
-            <div className="flex flex-col gap-1">
-              <label htmlFor="dn-datei" className="text-sm font-medium">
+            <div className="feld-block">
+              <label htmlFor="dn-datei" className="feld-name">
                 DATANORM-Datei
               </label>
               <input
@@ -320,7 +322,7 @@ export default function KatalogImport() {
             <Card title="Die Felder stehen anders als erwartet">
               <p className="text-sm">{warnung}</p>
               <p className="mt-3 text-sm text-ink-muted">
-                Die Zeilen unten zeigen, woran es liegt. Schicken Sie Ihrem Grosshändler die
+                Die Zeilen unten zeigen, woran es liegt. Schick deinem Grosshändler die
                 Rückmeldung, welche DATANORM-Fassung er liefert.
               </p>
             </Card>
@@ -334,9 +336,9 @@ export default function KatalogImport() {
               }
               hint={
                 <>
-                  Die Datei liefert die Rabatt<em>gruppe</em>, nicht den Satz — wie hoch Ihr Rabatt
-                  ist, haben Sie mit Ihrem Grosshändler ausgehandelt, und das steht in keiner Norm.
-                  Was Sie hier eintragen, bleibt gespeichert und gilt auch für den nächsten Katalog.
+                  Die Datei liefert die Rabatt<em>gruppe</em>, nicht den Satz — wie hoch dein Rabatt
+                  ist, hast du mit deinem Grosshändler ausgehandelt, und das steht in keiner Norm.
+                  Was du hier einträgst, bleibt gespeichert und gilt auch für den nächsten Katalog.
                   Eine Gruppe ohne Satz ist kein Fehler: die Artikel kommen in den Katalog, nur
                   eben ohne Einkaufspreis.
                 </>
@@ -371,25 +373,23 @@ export default function KatalogImport() {
                 <>
                   Diese Zeilen werden <strong>nicht</strong> übernommen. Die Originalzeile steht
                   neben dem Grund, damit erkennbar ist, ob es an der Datei liegt oder daran, dass
-                  Ihr Grosshändler die Norm anders auslegt.
+                  dein Grosshändler die Norm anders auslegt.
                 </>
               }
             >
-              <ul className="space-y-3 text-sm">
-                {ergebnis.unverstanden.slice(0, ZEIGE_ZEILEN).map((z) => (
-                  <li key={z.zeile} className="border-l-2 border-line pl-3">
-                    <p className="font-medium">
-                      Zeile {z.zeile}: {z.grund}
-                    </p>
-                    <p className="mt-1 break-all font-mono text-xs text-ink-muted">{z.inhalt}</p>
-                  </li>
-                ))}
-              </ul>
-              {ergebnis.unverstanden.length > ZEIGE_ZEILEN && (
-                <p className="mt-3 text-sm text-ink-muted">
-                  … und {ergebnis.unverstanden.length - ZEIGE_ZEILEN} weitere.
-                </p>
-              )}
+              <Grenzliste
+                eintraege={ergebnis.unverstanden}
+                grenze={ZEIGE_ZEILEN}
+                zeile={(z) => (
+                  <ListRow
+                    key={z.zeile}
+                    title={`Zeile ${z.zeile}: ${z.grund}`}
+                    // Die Originalzeile Zeichen für Zeichen: Festbreitenschrift, und
+                    // umbrochen wird überall — sie hat oft keine einzige Leerstelle.
+                    subtitle={<span className="break-all font-mono">{z.inhalt}</span>}
+                  />
+                )}
+              />
             </Card>
           )}
 
@@ -398,19 +398,22 @@ export default function KatalogImport() {
               title="Vorschau"
               hint="Die ersten fünf Artikel, so wie sie in den Katalog gingen. Stimmen Bezeichnung, Einheit und Preis hier nicht, stimmen sie auch bei den übrigen nicht."
             >
-              <ul className="space-y-2 text-sm">
+              <List>
                 {ergebnis.artikel.slice(0, 5).map((a) => (
-                  <li key={`${a.zeile}-${a.artikelnummer}`} className="flex flex-wrap gap-x-2">
-                    <span className="font-medium">{a.name || '(ohne Bezeichnung)'}</span>
-                    <span className="text-ink-muted">
-                      Art.-Nr. {a.artikelnummer}
-                      {a.einheit && ` · ${a.einheit}`}
-                      {a.preis !== undefined &&
-                        ` · ${eur(a.preis)} (${a.preisArt === 'liste' ? 'Liste' : a.preisArt === 'netto' ? 'netto' : 'Preisart unbekannt'})`}
-                    </span>
-                  </li>
+                  <ListRow
+                    key={`${a.zeile}-${a.artikelnummer}`}
+                    title={a.name || '(ohne Bezeichnung)'}
+                    subtitle={
+                      <>
+                        Art.-Nr. {a.artikelnummer}
+                        {a.einheit && ` · ${a.einheit}`}
+                        {a.preis !== undefined &&
+                          ` · ${eur(a.preis)} (${a.preisArt === 'liste' ? 'Liste' : a.preisArt === 'netto' ? 'netto' : 'Preisart unbekannt'})`}
+                      </>
+                    }
+                  />
                 ))}
-              </ul>
+              </List>
             </Card>
           )}
 
@@ -448,24 +451,27 @@ function Protokoll({ laeufe }: { laeufe: WithId<dn.Lauf>[] }) {
   if (laeufe.length === 0) return null;
   return (
     <Card title="Bisher eingespielt">
-      <ul className="space-y-2 text-sm">
+      <List>
         {laeufe.map((l) => {
           const u = (l.bericht as { uebernahme?: dn.UebernahmeBericht } | null)?.uebernahme;
           return (
-            <li key={l.id} className="flex flex-wrap items-baseline gap-x-2">
-              <span className="font-medium">{l.dateiname ?? 'ohne Dateiname'}</span>
-              <span className="text-ink-muted">
-                {datumAusMs(l.createdAt)}
-                {l.status === 'uebernommen' && u
-                  ? ` · ${u.angelegt} neu, ${u.geaendert} aktualisiert`
-                  : l.status === 'verworfen'
-                    ? ' · verworfen'
-                    : ' · nicht abgeschlossen'}
-              </span>
-            </li>
+            <ListRow
+              key={l.id}
+              title={l.dateiname ?? 'ohne Dateiname'}
+              subtitle={
+                <>
+                  {datumAusMs(l.createdAt)}
+                  {l.status === 'uebernommen' && u
+                    ? ` · ${u.angelegt} neu, ${u.geaendert} aktualisiert`
+                    : l.status === 'verworfen'
+                      ? ' · verworfen'
+                      : ' · nicht abgeschlossen'}
+                </>
+              }
+            />
           );
         })}
-      </ul>
+      </List>
     </Card>
   );
 }

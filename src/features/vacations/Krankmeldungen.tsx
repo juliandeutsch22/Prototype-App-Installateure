@@ -95,15 +95,15 @@ export function KrankmeldungListe({
             title={
               <span>
                 {mitNamen && <span className="mr-2">{k.userName}</span>}
-                <span className="tnum">{zeitraumText(k.von, k.bis)}</span>
+                <span>{zeitraumText(k.von, k.bis)}</span>
               </span>
             }
             subtitle={[
               k.notiz ?? '',
               k.gemeldetVonName && k.gemeldetVonName !== k.userName ? `erfasst von ${k.gemeldetVonName}` : '',
             ].filter(Boolean).join(' · ') || undefined}
+            zustand={k.von <= heute && k.bis >= heute ? <Marke>läuft</Marke> : undefined}
           >
-            {k.von <= heute && k.bis >= heute && <Marke>läuft</Marke>}
             {bearbeitet === k.id ? (
               <span className="flex flex-wrap items-end gap-2">
                 <InputField

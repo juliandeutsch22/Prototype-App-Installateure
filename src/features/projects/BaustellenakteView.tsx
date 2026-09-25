@@ -25,6 +25,8 @@ import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
+import Meldung from '@/components/Meldung';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { fmtStunden } from '@/lib/time';
@@ -309,7 +311,7 @@ export default function BaustellenakteView() {
             Ladefehler schliessen.
           */}
           <EmptyState
-            action={<Link to="/admin-projects" className="text-brand underline">Zur Baustellenliste</Link>}
+            action={<Link to="/admin-projects" className="textlink-allein">Zur Baustellenliste</Link>}
           >
             Diese Baustelle gibt es nicht (mehr).
           </EmptyState>
@@ -324,8 +326,8 @@ export default function BaustellenakteView() {
         title={b.customerName}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/admin-projects" className="inline-flex min-h-touch items-center text-brand underline">← Zur Baustellenliste</Link>
-            <span className="tnum text-ink-muted">{b.projectNumber}</span>
+            <Link to="/admin-projects" className="textlink-allein">← Zur Baustellenliste</Link>
+            <span className="text-ink-muted">{b.projectNumber}</span>
             <StatusBadge status={b.status} />
             {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
           </span>
@@ -334,24 +336,92 @@ export default function BaustellenakteView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <Card title="Stammdaten">
-        {darfAendern && entwurf ? (
-          <StammdatenFormular
-            entwurf={entwurf}
-            setEntwurf={setEntwurf}
-            kunden={kunden}
-            staff={staff}
-            leads={leads}
-            geaendert={geaendert}
-            speichert={speichert}
-            fehler={speicherFehler}
-            onSpeichern={() => void stammdatenSpeichern()}
-            onVerwerfen={() => setEntwurf(alsEntwurf(b))}
-          />
-        ) : (
-          <StammdatenLesen b={b} namen={namen} />
-        )}
-      </Card>
+      {/*
+        AM SCHREIBTISCH ZWEI SPALTEN (`.akte`): links die Baustelle selbst —
+        Stammdaten mit Beschreibung, Budget und Team —, rechts, was auf ihr
+        entsteht: Pläne, Stunden und die Wege zu Kunde, Angebot und Schein.
+        Am Telefon und Tablet bleibt es eine Spalte in derselben Reihenfolge.
+      */}
+      <div className="akte">
+        <div className="akte-links">
+          <Card title="Stammdaten">
+            {darfAendern && entwurf ? (
+              <StammdatenFormular
+                entwurf={entwurf}
+                setEntwurf={setEntwurf}
+                kunden={kunden}
+                staff={staff}
+                leads={leads}
+                geaendert={geaendert}
+                speichert={speichert}
+                fehler={speicherFehler}
+                onSpeichern={() => void stammdatenSpeichern()}
+                onVerwerfen={() => setEntwurf(alsEntwurf(b))}
+              />
+            ) : (
+              <StammdatenLesen b={b} namen={namen} />
+            )}
+          </Card>
+        </div>
+
+        <div className="akte-rechts">
+          {user && (
+            <Card title="Pläne und Dokumente">
+              <BaustellenPlaene
+                companyId={user.companyId}
+                projectId={b.id}
+                darfAendern={darfAendern}
+                meinName={user.name}
+              />
+            </Card>
+          )}
+
+          {/*
+            DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
+            Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
+            Ort, der eine Adresse hat.
+          */}
+          <Card title="Stunden auf dieser Baustelle">
+            {user && (
+              <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
+                <BaustellenUebersicht companyId={user.companyId} projekt={b} />
+              </Suspense>
+            )}
+          </Card>
+
+          <Card title="Weiter">
+            <div className="flex flex-wrap gap-3">
+              {b.customerId ? (
+                <Link to={`/customers/${b.customerId}`} className="textlink-allein">
+                  Zur Kundenakte
+                </Link>
+              ) : (
+                /*
+                  Altbestand: die Baustelle trägt einen Kundennamen, aber keine
+                  Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
+                  wie „gibt es nicht" aussehen zu lassen.
+                */
+                <span className="text-sm text-warning">
+                  Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
+                </span>
+              )}
+              {angebote.map((q) => (
+                <Link key={q.id} to={`/quotes/${q.id}`} className="textlink-allein">
+                  Angebot {q.quoteNumber}
+                </Link>
+              ))}
+              {scheineAn && (
+                <Link
+                  to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
+                  className="textlink-allein"
+                >
+                  Handwerksschein schreiben
+                </Link>
+              )}
+            </div>
+          </Card>
+        </div>
+      </div>
 
       <ConfirmDialog
         open={!!nummerFragen}
@@ -369,62 +439,6 @@ export default function BaustellenakteView() {
           void stammdatenSpeichern(true);
         }}
       />
-
-      {user && (
-        <Card title="Pläne und Dokumente">
-          <BaustellenPlaene
-            companyId={user.companyId}
-            projectId={b.id}
-            darfAendern={darfAendern}
-            meinName={user.name}
-          />
-        </Card>
-      )}
-
-      {/*
-        DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
-        Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
-        Ort, der eine Adresse hat.
-      */}
-      <Card title="Stunden auf dieser Baustelle">
-        {user && (
-          <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
-            <BaustellenUebersicht companyId={user.companyId} projekt={b} />
-          </Suspense>
-        )}
-      </Card>
-
-      <Card title="Weiter">
-        <div className="flex flex-wrap gap-3">
-          {b.customerId ? (
-            <Link to={`/customers/${b.customerId}`} className="text-brand underline">
-              Zur Kundenakte
-            </Link>
-          ) : (
-            /*
-              Altbestand: die Baustelle trägt einen Kundennamen, aber keine
-              Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
-              wie „gibt es nicht" aussehen zu lassen.
-            */
-            <span className="text-sm text-warning">
-              Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
-            </span>
-          )}
-          {angebote.map((q) => (
-            <Link key={q.id} to={`/quotes/${q.id}`} className="text-brand underline">
-              Angebot {q.quoteNumber}
-            </Link>
-          ))}
-          {scheineAn && (
-            <Link
-              to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-              className="text-brand underline"
-            >
-              Handwerksschein schreiben
-            </Link>
-          )}
-        </div>
-      </Card>
     </div>
   );
 }
@@ -436,7 +450,7 @@ function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> 
   return (
     <>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-        <Angabe wort="Projektnummer"><span className="tnum">{b.projectNumber}</span></Angabe>
+        <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
         <Angabe wort="Kunde">{b.customerName}</Angabe>
         <Angabe wort="Baustellenadresse">
           {b.address ? <AdresseLink adresse={b.address} /> : null}
@@ -524,7 +538,7 @@ function StammdatenFormular({
           <p className="text-sm text-warning sm:col-span-2">
             Bisher als Text hinterlegt: „{entwurf.customerName}". Bitte den passenden Kunden
             wählen — oder in der{' '}
-            <Link to="/customers" className="font-semibold underline">Kundenverwaltung</Link>{' '}
+            <Link to="/customers" className="textlink">Kundenverwaltung</Link>{' '}
             anlegen.
           </p>
         )}
@@ -583,14 +597,14 @@ function StammdatenFormular({
       </FormGrid>
       <BetriebsurlaubHinweis companyId={companyId} von={entwurf.startDate} bis={entwurf.endDate} />
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="b-beschreibung" className="text-sm font-medium text-ink">
+      <div className="feld-block">
+        <label htmlFor="b-beschreibung" className="feld-name">
           Beschreibung / Auftragsumfang
         </label>
         <textarea
           id="b-beschreibung"
           rows={3}
-          className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
+          className="feld"
           value={entwurf.description}
           onChange={(e) => setze('description', e.target.value)}
         />
@@ -615,10 +629,10 @@ function StammdatenFormular({
       {/* Ohne Zuständige läuft eine Eilbestellung ins Leere — das gehört
           gesagt, nicht erst, wenn ein Monteur wartet. */}
       {entwurf.projectManagers.length === 0 && (
-        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+        <Meldung ton="warnung">
           Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
           niemanden. Die Verwaltung wird weiterhin verständigt.
-        </p>
+        </Meldung>
       )}
 
       {(entwurf.address || entwurf.contactPhone) && (
@@ -628,21 +642,23 @@ function StammdatenFormular({
         </div>
       )}
 
-      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
+      {fehler && <Meldung ton="gefahr" role="alert">{fehler}</Meldung>}
 
       {/*
-        DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — und er steht IN der
-        Karte, nicht fest am unteren Rand. Dort sitzt am Telefon bereits die
-        Tableiste; zwei Balken übereinander wären eine Falle statt einer Hilfe.
+        DIE LEISTE ERSCHEINT ERST BEI EINER ÄNDERUNG. Am Telefon ist das
+        Formular mehrere Bildschirme lang; die Aktionsleiste klebt dort ÜBER
+        der Tableiste, nicht auf ihr — so ist „Speichern" erreichbar, ohne
+        dass zwei Balken übereinanderliegen. Am Schreibtisch steht sie am
+        Ende des Formulars.
       */}
       {geaendert && (
-        <div className="flex flex-wrap items-center gap-3 rounded border border-brand-fixed/40 bg-info-bg p-3">
+        <Aktionsleiste>
           <span className="text-sm text-ink">Es gibt ungespeicherte Änderungen.</span>
           <div className="ml-auto flex gap-2">
             <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>Verwerfen</Button>
             <Button onClick={onSpeichern} loading={speichert}>Speichern</Button>
           </div>
-        </div>
+        </Aktionsleiste>
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import { kundenAbgeschnitten } from '@/lib/listengrenzen';
+import Meldung from './Meldung';
 
 /**
  * Der Hinweis unter einem Auswahlfeld, dessen Liste an ihrer Grenze endet.
@@ -17,9 +18,11 @@ import { kundenAbgeschnitten } from '@/lib/listengrenzen';
 export default function KundenGrenze({ kunden }: { kunden: readonly unknown[] }) {
   if (!kundenAbgeschnitten(kunden)) return null;
   return (
-    <p className="mt-1 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-      Es werden nur die ersten {kunden.length} Kunden angeboten. Fehlt einer, ist er unter
-      „Kunden" zu finden — dort lässt sich auch nachladen.
-    </p>
+    <div className="mt-1">
+      <Meldung ton="warnung">
+        Es werden nur die ersten {kunden.length} Kunden angeboten. Fehlt einer, ist er unter
+        „Kunden" zu finden — dort lässt sich auch nachladen.
+      </Meldung>
+    </div>
   );
 }

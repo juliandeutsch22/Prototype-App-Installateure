@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { calcWorkMin } from '@/lib/time';
-import { fmtMin } from '@/lib/time';
+import { fmtDauer } from '@/lib/time';
 import type { WorkSheetZeit } from '@/types';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
@@ -115,7 +115,7 @@ export default function LeistungszeitErfassen({
   }
 
   return (
-    <div className="rounded-sm border border-line bg-surface-2 p-3">
+    <div className="kasten">
       <p className="flex flex-wrap items-center gap-1 text-sm font-medium text-ink">
         Zeit beim Kunden eintragen
         <InfoHint about="die Leistungszeit">
@@ -193,7 +193,7 @@ export default function LeistungszeitErfassen({
 
       {minuten > 0 && (
         <p className="mt-2 text-sm text-ink">
-          Ergibt <strong>{fmtMin(minuten)}</strong> Leistungszeit.
+          Ergibt <strong>{fmtDauer(minuten)}</strong> Leistungszeit.
         </p>
       )}
       {/*
@@ -213,7 +213,7 @@ export default function LeistungszeitErfassen({
       */}
       {minuten >= NACHFRAGE_AB_MINUTEN && (
         <p className="mt-1 text-sm text-warning" role="alert">
-          Das sind <strong>{fmtMin(minuten)}</strong> —{' '}
+          Das sind <strong>{fmtDauer(minuten)}</strong> —{' '}
           {form.bis < form.von
             ? 'über Mitternacht gerechnet, weil „Bis" vor „Von" liegt. Bei einer Notdienstnacht stimmt das; sonst sind Von und Bis vertauscht.'
             : 'ein ungewöhnlich langer Einsatz. Bitte prüfen, ob Von und Bis stimmen.'}

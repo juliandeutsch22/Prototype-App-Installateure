@@ -3,11 +3,11 @@ import { dokumentHochladen, dokumentLoeschen, dateiPruefen } from '@/lib/db/baus
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
-import Icon from '@/components/Icon';
 import InfoHint from '@/components/InfoHint';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useToast } from '@/components/Toast';
 import { EmptyState, SkeletonList, TeilFehler } from '@/components/States';
+import Meldung from '@/components/Meldung';
 import PlaeneListe from './PlaeneListe';
 import { planeVon, usePlaene } from './usePlaene';
 
@@ -126,11 +126,13 @@ export default function BaustellenPlaene({
       )}
 
       {fehler.length > 0 && (
-        <ul className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-danger" role="alert">
-          {fehler.map((f) => (
-            <li key={f}>{f}</li>
-          ))}
-        </ul>
+        <Meldung ton="gefahr" role="alert">
+          <ul>
+            {fehler.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
+        </Meldung>
       )}
 
       {darfAendern && (
@@ -158,7 +160,6 @@ export default function BaustellenPlaene({
             loading={!!fortschritt}
             onClick={() => feld.current?.click()}
           >
-            <Icon name="plus" size={18} />
             Plan oder Bild hinzufügen
           </Button>
           {fortschritt ? (

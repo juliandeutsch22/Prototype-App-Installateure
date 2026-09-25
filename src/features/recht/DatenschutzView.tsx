@@ -1,5 +1,6 @@
 import RechtSeite, { Abschnitt } from './RechtSeite';
 import { BETREIBER, VERARBEITER } from './betreiber';
+import { List, ListRow } from '@/components/ListRow';
 
 /**
  * Datenschutzerklärung der App.
@@ -79,15 +80,22 @@ export default function DatenschutzView() {
 
       <Abschnitt titel="Wer die Daten technisch verarbeitet">
         <p>Der Betreiber setzt diese Unterauftragsverarbeiter ein:</p>
-        <ul className="space-y-3">
+        {/* Eine Liste mit Trennlinien wie überall in der App, statt eines
+            Balkens links an jedem Eintrag. Wortlaut unverändert. */}
+        <List>
           {VERARBEITER.map((v) => (
-            <li key={v.wer + v.wofuer} className="border-l-2 border-line pl-3">
-              <p className="font-semibold">{v.wer}</p>
-              <p className="text-sm">{v.wofuer}</p>
-              <p className="text-sm text-ink-muted">{v.wo}</p>
-            </li>
+            <ListRow
+              key={v.wer + v.wofuer}
+              title={v.wer}
+              subtitle={
+                <>
+                  <span className="block text-ink">{v.wofuer}</span>
+                  <span className="block">{v.wo}</span>
+                </>
+              }
+            />
           ))}
-        </ul>
+        </List>
         <p>
           Wo ein Anbieter oder seine Muttergesellschaft ihren Sitz in den USA hat, stützt sich die
           Übermittlung auf das EU-US Data Privacy Framework bzw. auf Standardvertragsklauseln der

@@ -19,8 +19,9 @@ interface CardProps {
 }
 
 /**
- * Ruhige Karte: heller Verlauf, türkis getönte Haarlinie, langer flacher
- * Schatten, kompaktes Innenmaß — die Fläche `.panel` aus index.css.
+ * Ruhige Karte: weiße Fläche, türkis getönte Haarlinie, langer flacher
+ * Schatten, kompaktes Innenmaß — `.karte` und ihre Teile aus index.css
+ * („Gemeinsame Bausteine“). Kopf, Körper und Fuß tragen je eine Klasse.
  *
  * Der Verlauf ist kaum zu benennen und genau deshalb richtig: er nimmt der
  * weißen Fläche das Sterile, ohne dass jemand ihn beim Arbeiten bemerkt. Der
@@ -50,24 +51,18 @@ export default function Card({
   const hinweisId = useId();
 
   return (
-    <section id={id} className={`panel overflow-hidden ${className}`}>
+    <section id={id} className={className ? `karte ${className}` : 'karte'}>
       {title && (
-        // Der Kartenkopf sitzt eine Spur kühler als der Körper — so ist er
-        // auch dann als Kopf zu lesen, wenn der Titel kurz ist.
-        <header className="border-b border-line bg-surface-2/70 px-4 py-3">
-          {/* Auf schmalen Schirmen Titel und Aktionen untereinander: sonst
-              überlagern breite Aktionen (mehrere Knöpfe) den Titel. */}
-          {/* Ein Link als Kartenaktion („Zur Einsatzplanung") bekommt dieselbe
-              Höhe wie ein Knopf: 20 px Text sind mit dem Daumen kaum zu
-              treffen (Prüflauf 24.09.2026, D6). */}
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 [&>a]:inline-flex [&>a]:min-h-touch [&>a]:items-center">
-            {/* Kartentitel sind im Prototyp klein, fett und versal gesetzt —
-                sie ordnen den Inhalt, ohne mit der Seitenüberschrift zu
-                konkurrieren. Das „i" gehört zum Titel, nicht zu den
-                Aktionen — deshalb steht es in derselben Zeile links. */}
-            {/* normal-case am „i": section-label setzt Versalien, sonst
-                stünde dort ein grosses I. */}
-            <h2 className="section-label flex items-center gap-2 [&>button]:normal-case">
+        // Kopf eine Spur kühler als der Körper; am Telefon Titel und Aktionen
+        // untereinander; ein Link als Aktion mit Tasthöhe (Prüflauf
+        // 24.09.2026, D6) — alles in `.karte-kopf` / `.karte-kopfzeile`.
+        <header className="karte-kopf">
+          <div className="karte-kopfzeile">
+            {/* Der Kartentitel ordnet den Inhalt, ohne mit der
+                Seitenüberschrift zu konkurrieren (`.titel-karte`). Das „i"
+                gehört zum Titel, nicht zu den Aktionen — deshalb steht es in
+                derselben Zeile links. */}
+            <h2 className="titel-karte">
               {title}
               {hint && (
                 <InfoButton
@@ -90,9 +85,9 @@ export default function Card({
           )}
         </header>
       )}
-      <div className="px-4 py-4">{children}</div>
+      <div className="karte-inhalt">{children}</div>
       {footer && (
-        <footer className="border-t border-line bg-surface-2/70 px-4 py-3">{footer}</footer>
+        <footer className="karte-fuss">{footer}</footer>
       )}
     </section>
   );

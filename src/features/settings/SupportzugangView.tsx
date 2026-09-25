@@ -17,7 +17,8 @@ import PageHeader from '@/components/PageHeader';
 import { InputField, SelectField } from '@/components/Field';
 import { Marke, Warnung } from '@/components/Badge';
 import { useToast } from '@/components/Toast';
-import { ErrorState, SkeletonList } from '@/components/States';
+import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
+import { List, ListRow } from '@/components/ListRow';
 import { SUPPORT_GEAENDERT } from '@/components/Supportband';
 
 /**
@@ -189,14 +190,16 @@ export default function SupportzugangView() {
               niemand. Wer nichts tut, gibt das Leserecht — die harmlosere
               Antwort ist die Vorgabe.
             */}
-            <fieldset className="rounded border border-line bg-surface-2 p-4">
-              <legend className="section-label px-1">Wie weit?</legend>
-              <div className="flex flex-col gap-2">
+            {/* Die Frage steht wie die Beschriftung jedes anderen Feldes über
+                der Wahl — nicht als Legende auf einer Kastenkante. */}
+            <fieldset>
+              <legend className="feld-name">Wie weit?</legend>
+              <div className="mt-1 flex flex-col gap-2">
                 <label className="flex min-h-touch items-start gap-3 py-1">
                   <input
                     type="radio"
                     name="sup-stufe"
-                    className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                    className="auswahlpunkt mt-1"
                     checked={stufe === 'ansehen'}
                     onChange={() => setStufe('ansehen')}
                   />
@@ -212,7 +215,7 @@ export default function SupportzugangView() {
                   <input
                     type="radio"
                     name="sup-stufe"
-                    className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
+                    className="auswahlpunkt mt-1"
                     checked={stufe === 'mitarbeiten'}
                     onChange={() => {
                       setStufe('mitarbeiten');
@@ -257,10 +260,10 @@ export default function SupportzugangView() {
         hint="Je Zugang steht hier, WOFÜR er gewährt wurde, WIE LANGE er galt — und welche Bereiche darin geöffnet wurden. Gezählt wird jeder einzelne Aufruf; angehängt wird, geändert nie. Auch wir können hier nichts nachbessern."
       >
         {(liste ?? []).length === 0 ? (
-          <p className="text-sm text-ink-muted">
+          <EmptyState>
             Noch nie Einblick gewährt. Hier steht später jeder Zugang mit dem, was darin
             angesehen wurde.
-          </p>
+          </EmptyState>
         ) : (
           /*
             EINE ZEILE JE ZUGANG, NICHT JE KLICK.
@@ -275,51 +278,56 @@ export default function SupportzugangView() {
             Support in diesem Zugang gesehen". Genau das steht jetzt unter dem
             Zugang, zu dem es gehört — gezählt, nicht aufgezählt.
           */
-          <ul className="space-y-4 text-sm">
+          <List>
             {(liste ?? []).map((f) => {
               const dazu = gesehen
                 .filter((b) => b.freigabe_id === f.id)
                 .sort((a, b) => b.anzahl - a.anzahl);
               const laeuft = istOffen(f);
               return (
-                <li key={f.id} className="border-t border-line pt-3 first:border-0 first:pt-0">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
-                    {f.stufe === 'mitarbeiten' ? (
-                      <Warnung>mitarbeiten</Warnung>
-                    ) : (
-                      <Marke>ansehen</Marke>
-                    )}
-                    {laeuft ? <Marke>läuft</Marke> : null}
-                    <span className="font-medium text-ink">{f.grund}</span>
-                  </div>
-                  <p className="mt-1 text-ink-muted">
-                    {f.createdAt ? `${zeit(f.createdAt)} · ` : ''}
-                    {f.widerrufenAm
-                      ? `beendet am ${zeit(f.widerrufenAm)}`
-                      : laeuft
-                        ? `läuft bis ${zeit(f.giltBis)}`
-                        : `abgelaufen am ${zeit(f.giltBis)}`}
-                  </p>
-                  {/*
-                    „Nichts angesehen" ist eine eigene Aussage und die
-                    beruhigendste von allen: gewährt, aber nie benutzt. Sie
-                    wegzulassen hiesse, sie mit „noch nicht geladen" zu
-                    verwechseln.
-                  */}
-                  <p className="mt-1 text-ink-muted">
-                    {dazu.length === 0
-                      ? 'Nichts angesehen.'
-                      : `Angesehen: ${dazu
-                          .map((b) => `${b.bereich} ${b.anzahl}×`)
-                          .join(' · ')} — zuletzt ${zeit(
-                          Math.max(...dazu.map((b) => Date.parse(b.zuletzt))),
-                        )}`}
-                  </p>
-                </li>
+                <ListRow
+                  key={f.id}
+                  title={
+                    <>
+                      {f.notzugang ? <Warnung>Notzugang</Warnung> : null}
+                      {f.stufe === 'mitarbeiten' ? (
+                        <Warnung>mitarbeiten</Warnung>
+                      ) : (
+                        <Marke>ansehen</Marke>
+                      )}
+                      {laeuft ? <Marke>läuft</Marke> : null}
+                      <span>{f.grund}</span>
+                    </>
+                  }
+                  subtitle={
+                    <>
+                      {f.createdAt ? `${zeit(f.createdAt)} · ` : ''}
+                      {f.widerrufenAm
+                        ? `beendet am ${zeit(f.widerrufenAm)}`
+                        : laeuft
+                          ? `läuft bis ${zeit(f.giltBis)}`
+                          : `abgelaufen am ${zeit(f.giltBis)}`}
+                      {/*
+                        „Nichts angesehen" ist eine eigene Aussage und die
+                        beruhigendste von allen: gewährt, aber nie benutzt. Sie
+                        wegzulassen hiesse, sie mit „noch nicht geladen" zu
+                        verwechseln.
+                      */}
+                      <span className="mt-1 block">
+                        {dazu.length === 0
+                          ? 'Nichts angesehen.'
+                          : `Angesehen: ${dazu
+                              .map((b) => `${b.bereich} ${b.anzahl}×`)
+                              .join(' · ')} — zuletzt ${zeit(
+                              Math.max(...dazu.map((b) => Date.parse(b.zuletzt))),
+                            )}`}
+                      </span>
+                    </>
+                  }
+                />
               );
             })}
-          </ul>
+          </List>
         )}
       </Card>
     </div>

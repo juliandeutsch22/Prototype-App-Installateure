@@ -12,15 +12,18 @@ import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
+import Meldung from '@/components/Meldung';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
+import { Reiter, Reiterleiste } from '@/components/Reiter';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField, CheckboxField } from '@/components/Field';
+import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
@@ -363,24 +366,14 @@ export default function OrderView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
+      <Reiterleiste>
         {TABS.map((t) => (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={tab === t.key}
-            onClick={() => setTab(t.key)}
-            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
-              tab === t.key
-                ? 'border-b-accent-deep font-bold text-accent-deep'
-                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
-            }`}
-          >
+          <Reiter key={t.key} aktiv={tab === t.key} onClick={() => setTab(t.key)}>
             {t.label}
             {t.count !== undefined && t.count > 0 && <Marke>{t.count}</Marke>}
-          </button>
+          </Reiter>
         ))}
-      </div>
+      </Reiterleiste>
 
       {error && <ErrorState message={error} />}
 
@@ -391,24 +384,20 @@ export default function OrderView() {
               auf dem Telefon unter den Falz. Die Notiz ist in den Warenkorb
               gewandert — sie gehört zum Absenden, nicht zum Suchen. */}
           <div className="space-y-2">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[14rem] flex-1">
-                <BaustellenSelect
-                  id="oproject"
-                  label="Für welche Baustelle?"
-                  companyId={user.companyId}
-                  value={projectNumber}
-                  onChange={(nr, p) => {
-                    setProjectNumber(nr);
-                    // Den Datensatz mit aufnehmen: die Warenkorbzeilen und die
-                    // Prüfung auf eine zuständige Projektleitung schlagen hier
-                    // nach. Ohne ihn stünde bei einer abgeschlossenen
-                    // Baustelle die nackte Nummer statt des Kundennamens.
-                    if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
-                  }}
-                />
-              </div>
-            </div>
+            <BaustellenSelect
+              id="oproject"
+              label="Für welche Baustelle?"
+              companyId={user.companyId}
+              value={projectNumber}
+              onChange={(nr, p) => {
+                setProjectNumber(nr);
+                // Den Datensatz mit aufnehmen: die Warenkorbzeilen und die
+                // Prüfung auf eine zuständige Projektleitung schlagen hier
+                // nach. Ohne ihn stünde bei einer abgeschlossenen
+                // Baustelle die nackte Nummer statt des Kundennamens.
+                if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
+              }}
+            />
             {/* Direkt unter der Baustelle, weil er von ihr abhaengt: ohne
                 Baustelle gibt es keine zustaendige Projektleitung und damit
                 niemanden, den eine Eilmeldung erreichen koennte. */}
@@ -435,10 +424,10 @@ export default function OrderView() {
               )}
             </div>
             {projectNumber && urgent && !leitungDa && (
-              <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+              <Meldung ton="warnung">
                 Dieser Baustelle ist keine Projektleitung zugeteilt — die Eilmeldung erreicht
                 niemanden. Die Verwaltung bekommt die Anforderung trotzdem.
-              </p>
+              </Meldung>
             )}
           </div>
 
@@ -497,9 +486,9 @@ export default function OrderView() {
                 sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
               />
             </div>
-            <div className="mt-4 border-t border-line pt-4">
+            <div className="material-frei">
               <p className="section-label">Nicht im Katalog?</p>
-              <div className="mt-2 grid grid-cols-[1fr_5rem] gap-2 sm:grid-cols-[1fr_6rem_auto] sm:items-end">
+              <div className="material-frei-felder">
                 <InputField
                   id="frei-name"
                   label="Bezeichnung"
@@ -516,7 +505,6 @@ export default function OrderView() {
                 />
                 <Button
                   variant="secondary"
-                  className="col-span-2 sm:col-span-1"
                   disabled={!freiName.trim() || !(Number(freiMenge.replace(',', '.')) > 0)}
                   onClick={freiHinzufuegen}
                 >
@@ -545,7 +533,7 @@ export default function OrderView() {
                       title={
                         <span>
                           {line.materialName}{' '}
-                          <span className="tnum text-ink-muted">×{line.quantity}</span>
+                          <span className="text-ink-muted">×{line.quantity}</span>
                         </span>
                       }
                       subtitle={
@@ -597,7 +585,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[
@@ -649,7 +637,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[
@@ -679,7 +667,7 @@ export default function OrderView() {
         >
           <div className="space-y-4">
             {retGewaehlt ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-line bg-surface-2 px-3 py-2">
+              <div className="kasten flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <span className="section-label block">Material</span>
                   <span className="font-semibold text-ink">{retGewaehlt.name}</span>
@@ -710,7 +698,7 @@ export default function OrderView() {
                 {retSuche.trim() !== '' && (
                   <div className="mt-2">
                     {retTreffer.length === 0 ? (
-                      <p className="text-sm text-ink-muted">Kein Material passt zur Suche.</p>
+                      <EmptyState>Kein Material passt zur Suche.</EmptyState>
                     ) : (
                       <List>
                         {retTreffer.map((m) => (
@@ -737,7 +725,7 @@ export default function OrderView() {
                 )}
               </div>
             )}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormGrid>
               <InputField id="retqty" label="Menge" type="number" min="1" value={retQty}
                 onChange={(e) => setRetQty(e.target.value)} />
               <SelectField id="retcond" label="Zustand" value={retCondition}
@@ -746,7 +734,7 @@ export default function OrderView() {
                 <option value="gebraucht">Gebraucht</option>
                 <option value="defekt">Defekt</option>
               </SelectField>
-            </div>
+            </FormGrid>
             <SelectField id="retproj" label="Von welcher Baustelle? (optional)" value={retProject}
               onChange={(e) => setRetProject(e.target.value)}>
               <option value="">— keine —</option>
@@ -758,10 +746,14 @@ export default function OrderView() {
             </SelectField>
             <InputField id="retreason" label="Grund / Notiz" value={retReason}
               onChange={(e) => setRetReason(e.target.value)} />
-            <Button onClick={submitReturn} loading={saving} disabled={!retMaterial}
-              className="w-full sm:w-auto">
-              Retoure erfassen
-            </Button>
+            {/* Am Telefon ist die Maske länger als der Bildschirm — die Leiste
+                hält „Retoure erfassen" erreichbar. */}
+            <Aktionsleiste>
+              <Button onClick={submitReturn} loading={saving} disabled={!retMaterial}
+                className="w-full sm:w-auto">
+                Retoure erfassen
+              </Button>
+            </Aktionsleiste>
           </div>
         </Card>
       )}
@@ -831,7 +823,7 @@ function QtyAdder({
   return (
     <div className="flex items-center gap-1">
       {added > 0 && (
-        <span className="tnum mr-1 text-sm font-bold text-brand" aria-live="polite">
+        <span className="mr-1 text-sm font-bold text-brand" aria-live="polite">
           ×{added}
         </span>
       )}
@@ -858,9 +850,7 @@ function QtyAdder({
         onChange={(e) => setMenge(e.target.value)}
         onFocus={(e) => e.currentTarget.select()}
         aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
-        className={`tnum h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
-          gueltig ? 'border-line text-ink' : 'border-danger text-danger'
-        }`}
+        className={gueltig ? 'feld w-16 text-center' : 'feld-fehler w-16 text-center'}
       />
       <IconButton
         label={`Menge für ${material.name} erhöhen`}
