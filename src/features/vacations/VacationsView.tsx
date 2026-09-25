@@ -38,6 +38,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import Meldung from '@/components/Meldung';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { zeitguthabenLaden } from './zeitguthaben';
@@ -955,12 +956,17 @@ export default function VacationsView() {
             zustandekommt, steht hinter dem „i": das ist einmal interessant
             und danach nur noch lang.
           */}
+          {/*
+            DIE ÜBERSCHNEIDUNG IST EINE WARNUNG, keine Auskunft — sie steht
+            deshalb als eigene Meldung über der Zahl, nicht in Warnfarbe im
+            Infokasten.
+          */}
+          {art !== 'Krank' && zeitraumGewaehlt && ueberschneidung && (
+            <Meldung ton="warnung">{ueberschneidung}</Meldung>
+          )}
           {art === 'Urlaub' && (
           <Meldung ton="info">
             <div className="flex flex-wrap items-center">
-              {zeitraumGewaehlt && ueberschneidung && (
-                <span className="text-warning">{ueberschneidung}</span>
-              )}
               {zeitraumGewaehlt && !ueberschneidung && (
                 <>
                   <strong>
@@ -978,7 +984,7 @@ export default function VacationsView() {
                   </InfoHint>
                 </>
               )}
-              <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
+              <span className={`block basis-full text-xs ${zeitraumGewaehlt && !ueberschneidung ? 'mt-1' : ''}`}>
                 {jahresName} genehmigt: <span>{genommen}</span> von{' '}
                 <span>{anspruch}</span> Tagen
                 {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
@@ -1021,9 +1027,6 @@ export default function VacationsView() {
                   steht er im Zeitkonto und im Wochenplan.
                 </InfoHint>
                 <span className="basis-full">{guthabenZeile()}</span>
-                {zeitraumGewaehlt && ueberschneidung && (
-                  <span className="mt-1 basis-full text-warning">{ueberschneidung}</span>
-                )}
               </div>
             </Meldung>
           )}
@@ -1038,15 +1041,20 @@ export default function VacationsView() {
 
           <Pflichthinweis />
 
-          <Button
-            type="submit"
-            loading={sendet}
-            disabled={
-              art === 'Urlaub' ? tage.length === 0 : art === 'Zeitausgleich' ? zaTage.length === 0 : false
-            }
-          >
-            {art === 'Krank' ? 'Krank melden' : 'Antrag einreichen'}
-          </Button>
+          {/* Am Telefon ist die Maske länger als ein Bildschirm — die Leiste
+              hält den Knopf erreichbar, ohne ans Ende zu wischen. */}
+          <Aktionsleiste>
+            <Button
+              type="submit"
+              loading={sendet}
+              disabled={
+                art === 'Urlaub' ? tage.length === 0 : art === 'Zeitausgleich' ? zaTage.length === 0 : false
+              }
+              className="w-full sm:w-auto"
+            >
+              {art === 'Krank' ? 'Krank melden' : 'Antrag einreichen'}
+            </Button>
+          </Aktionsleiste>
         </form>
       </Card>
 
