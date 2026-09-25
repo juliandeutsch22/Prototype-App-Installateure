@@ -5,7 +5,6 @@ import { ToastProvider } from '@/components/Toast';
 import type { MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import AdminOrdersView from '@/features/orders/AdminOrdersView';
-import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Anforderungen — der zweite Schritt des Materialablaufs, die Seite der
@@ -497,60 +496,5 @@ describe('Anforderungen — eine ruhige Zeile (Prüflauf 24.09.2026, D11)', () =
     expect(punkte).not.toContain('Auf „Offen" setzen');
     expect(punkte).toContain('Auf „Erledigt" setzen');
     expect(punkte[punkte.length - 1]).toBe('Löschen');
-  });
-});
-
-/**
- * AM SCHREIBTISCH EINE TABELLE: dieselben Gruppen, dieselben Knöpfe,
- * dieselbe Notiz — nur die Spalten fluchten über alle Gruppen.
- */
-describe('Anforderungen am Schreibtisch', () => {
-  const schreibtisch = mitSchreibtisch();
-
-  beforeEach(() => {
-    anforderungen = [
-      anforderung({ id: 'a', materialName: 'Eckventil', quantity: 3, status: 'Offen', isUrgent: true,
-        projectNumber: 'B-2026-0007', note: 'Kiste im Keller' }),
-      anforderung({ id: 'b', materialName: 'Siphon', status: 'Abholbereit', beschaffung: 'lager' }),
-    ];
-    schreibtisch();
-  });
-
-  it('steht als Tabelle mit Gruppenköpfen, nicht als Liste', async () => {
-    zeige();
-    const t = (await screen.findByRole('columnheader', { name: 'Material' })).closest('table')!;
-    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
-      'Material', 'Menge', 'Besteller', 'Status', 'Aktionen',
-    ]);
-    // Die Gruppen bleiben Überschriften, in derselben Reihenfolge.
-    expect(within(t).getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
-      'Offen1', 'Abholbereit1',
-    ]);
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
-  });
-
-  it('zeigt Menge, Baustelle, Eil und Notiz der Zeile', async () => {
-    zeige();
-    const zeile = await screen.findByRole('row', { name: /Eckventil/ });
-    // Zahlen rechtsbündig UND fett (docs/design/linie.md 4).
-    expect(within(zeile).getByText('3')).toHaveClass('tabelle-zahl-stark');
-    expect(zeile).toHaveTextContent('Max Mustermann');
-    expect(zeile).toHaveTextContent('B-2026-0007');
-    expect(within(zeile).getByText('Eil')).toBeInTheDocument();
-    expect(within(zeile).getByText('Kiste im Keller', { exact: false })).toHaveTextContent(
-      /^Notiz: Kiste im Keller$/,
-    );
-  });
-
-  it('trägt dieselben Knöpfe und dasselbe Menü — je Zeile genau einmal', async () => {
-    zeige();
-    const zeile = await screen.findByRole('row', { name: /Eckventil/ });
-    expect(within(zeile).getByRole('button', { name: 'Aus Lager' })).toBeInTheDocument();
-    expect(within(zeile).getByRole('button', { name: 'Nicht auf Lager' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Aus Lager' })).toHaveLength(1);
-    expect(screen.getAllByRole('button', { name: /Weitere Aktionen für/ })).toHaveLength(2);
-
-    await userEvent.click(within(zeile).getByRole('button', { name: 'Aus Lager' }));
-    expect(ausLager).toHaveBeenCalledWith('a');
   });
 });

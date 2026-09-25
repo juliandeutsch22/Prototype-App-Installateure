@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Meldung from '@/components/Meldung';
 import { useAuth } from '@/app/AuthContext';
 import { isTopLevel } from '@/lib/permissions';
 import { ladeLauf } from '@/lib/db/laeufe';
@@ -92,21 +91,20 @@ export default function LaufWarnung() {
   if (offen.length === 0) return null;
 
   return (
-    <Meldung
-      ton="warnung"
-      role="alert"
-      titel={offen.length === 1 ? 'Ein nächtlicher Lauf steht aus' : 'Zwei nächtliche Läufe stehen aus'}
-    >
-      <ul className="mt-2 space-y-1">
+    <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
+      <p className="font-semibold">
+        {offen.length === 1 ? 'Ein nächtlicher Lauf steht aus' : 'Zwei nächtliche Läufe stehen aus'}
+      </p>
+      <ul className="mt-2 space-y-1 text-sm">
         {offen.map((o) => (
           <li key={o.art}>
             {o.text}{' '}
-            <Link to={WOHIN[o.art].pfad} className="textlink">
+            <Link to={WOHIN[o.art].pfad} className="underline">
               {WOHIN[o.art].wort}
             </Link>
           </li>
         ))}
       </ul>
-    </Meldung>
+    </div>
   );
 }

@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
 import { groupProjectHours, calcBudgetState, calcWorkMin, fmtStd, balkenBreite, fmtStunden } from '@/lib/time';
 import type { Project, TimeEntry } from '@/types';
-import { EmptyState, TeilFehler } from '@/components/States';
-import { Warnung } from '@/components/Badge';
+import { TeilFehler } from '@/components/States';
 import { datumAT } from '@/lib/datum';
 
 /**
@@ -24,17 +23,11 @@ import { datumAT } from '@/lib/datum';
  * Margen — das Budget steht in derselben Liste ohnehin schon als Pille.
  */
 
-/*
- * DER BALKEN WIE IN DER PROJEKTAUSWERTUNG (`ProjectSummary`) — dieselben
- * Klassen, dieselbe Zuordnung: im Plan Akzent, ab 80 % Warnfarbe, über dem
- * Budget deckend `--danger`. Vorher stand „über Budget" ausgerechnet in der
- * Akzentfarbe, also in der Farbe des Normalfalls.
- */
-const BALKEN = {
-  success: 'budget-fuellung',
-  warning: 'budget-fuellung-warnung',
-  danger: 'budget-fuellung-ueber',
-  neutral: 'budget-fuellung',
+const BAR_TONE = {
+  success: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-accent',
+  neutral: 'bg-line',
 } as const;
 
 interface Person {
@@ -102,17 +95,19 @@ export default function BaustellenUebersicht({
 
   if (stand.fachMin === 0 && stand.helperMin === 0) {
     return (
-      <EmptyState>Auf diese Baustelle ist noch keine Stunde gebucht.</EmptyState>
+      <p className="text-sm text-ink-muted">
+        Auf diese Baustelle ist noch keine Stunde gebucht.
+      </p>
     );
   }
 
   return (
     <div className="space-y-3">
       <p className="text-sm">
-        <span className="font-semibold text-ink">{fmtStd(stand.fachMin)} h</span>{' '}
+        <span className="tnum font-semibold text-ink">{fmtStd(stand.fachMin)} h</span>{' '}
         <span className="text-ink-muted">Fachzeit</span>
         {projekt.estimatedHours ? (
-          <span className="text-ink-muted"> von {fmtStunden(projekt.estimatedHours)} h Budget</span>
+          <span className="tnum text-ink-muted"> von {fmtStunden(projekt.estimatedHours)} h Budget</span>
         ) : null}
         {/*
           Helferstunden zählen NICHT gegen das Budget — sie werden zwar
@@ -121,23 +116,25 @@ export default function BaustellenUebersicht({
           dieselbe Baustelle an zwei Stellen auf zwei Prozentwerte.
         */}
         {stand.helperMin > 0 && (
-          <span className="text-ink-muted"> · +{fmtStd(stand.helperMin)} h Helfer</span>
+          <span className="tnum text-ink-muted"> · +{fmtStd(stand.helperMin)} h Helfer</span>
         )}
       </p>
 
       {budget.pct !== null ? (
-        <div className="budget-reihe">
-          <span className="budget-schiene">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
             <span
-              className={BALKEN[budget.tone]}
+              className={`block h-full ${BAR_TONE[budget.tone]}`}
               style={{ width: balkenBreite(budget.pct) }}
             />
           </span>
-          <span className={budget.over ? 'budget-prozent-ueber' : 'budget-prozent'}>
+          <span
+            className={`shrink-0 text-xs font-semibold ${
+              budget.over ? 'text-accent' : 'text-ink-muted'
+            }`}
+          >
             {budget.pct} %
           </span>
-          {/* Die Farbe allein ist kein Signal — das Wort steht daneben. */}
-          {budget.over && <Warnung stufe="dringend">über Budget</Warnung>}
         </div>
       ) : (
         <p className="text-xs text-ink-muted">
@@ -152,9 +149,9 @@ export default function BaustellenUebersicht({
             className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1 text-xs"
           >
             <span className="font-semibold text-ink">{p.name}</span>
-            <span className="text-ink-muted">{fmtStd(p.fachMin)} h</span>
+            <span className="tnum text-ink-muted">{fmtStd(p.fachMin)} h</span>
             {p.helperMin > 0 && (
-              <span className="text-ink-muted">+{fmtStd(p.helperMin)} h Helfer</span>
+              <span className="tnum text-ink-muted">+{fmtStd(p.helperMin)} h Helfer</span>
             )}
           </span>
         ))}

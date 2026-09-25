@@ -12,18 +12,15 @@ import { listActiveProjects } from '@/lib/db/projects';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
-import Meldung from '@/components/Meldung';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
-import { Reiter, Reiterleiste } from '@/components/Reiter';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
-import Aktionsleiste from '@/components/Aktionsleiste';
+import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
@@ -366,41 +363,52 @@ export default function OrderView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <Reiterleiste>
+      <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((t) => (
-          <Reiter key={t.key} aktiv={tab === t.key} onClick={() => setTab(t.key)}>
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
+              tab === t.key
+                ? 'border-b-accent-deep font-bold text-accent-deep'
+                : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
+            }`}
+          >
             {t.label}
             {t.count !== undefined && t.count > 0 && <Marke>{t.count}</Marke>}
-          </Reiter>
+          </button>
         ))}
-      </Reiterleiste>
+      </div>
 
       {error && <ErrorState message={error} />}
 
       {tab === 'bestellen' && (
         <>
-          {/* Eine Karte ohne eigenen Titel — die Frage ist die Überschrift:
-              auf dem Grund steht nach der Linie nichts frei (Linie, 1), und
-              eine Titelzeile über „Für welche Baustelle?“ schöbe den Katalog
-              auf dem Telefon wieder unter den Falz. Die Notiz ist in den
-              Warenkorb gewandert — sie gehört zum Absenden, nicht zum
-              Suchen. */}
-          <Card>
+          {/* Eine Zeile statt einer eigenen Karte: vorher stand die
+              Baustellenauswahl wie eine Hürde vor dem Katalog und schob ihn
+              auf dem Telefon unter den Falz. Die Notiz ist in den Warenkorb
+              gewandert — sie gehört zum Absenden, nicht zum Suchen. */}
           <div className="space-y-2">
-            <BaustellenSelect
-              id="oproject"
-              label="Für welche Baustelle?"
-              companyId={user.companyId}
-              value={projectNumber}
-              onChange={(nr, p) => {
-                setProjectNumber(nr);
-                // Den Datensatz mit aufnehmen: die Warenkorbzeilen und die
-                // Prüfung auf eine zuständige Projektleitung schlagen hier
-                // nach. Ohne ihn stünde bei einer abgeschlossenen
-                // Baustelle die nackte Nummer statt des Kundennamens.
-                if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
-              }}
-            />
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-[14rem] flex-1">
+                <BaustellenSelect
+                  id="oproject"
+                  label="Für welche Baustelle?"
+                  companyId={user.companyId}
+                  value={projectNumber}
+                  onChange={(nr, p) => {
+                    setProjectNumber(nr);
+                    // Den Datensatz mit aufnehmen: die Warenkorbzeilen und die
+                    // Prüfung auf eine zuständige Projektleitung schlagen hier
+                    // nach. Ohne ihn stünde bei einer abgeschlossenen
+                    // Baustelle die nackte Nummer statt des Kundennamens.
+                    if (p) setProjects((alt) => (alt.some((x) => x.projectNumber === p.projectNumber) ? alt : [...alt, p]));
+                  }}
+                />
+              </div>
+            </div>
             {/* Direkt unter der Baustelle, weil er von ihr abhaengt: ohne
                 Baustelle gibt es keine zustaendige Projektleitung und damit
                 niemanden, den eine Eilmeldung erreichen koennte. */}
@@ -427,13 +435,12 @@ export default function OrderView() {
               )}
             </div>
             {projectNumber && urgent && !leitungDa && (
-              <Meldung ton="warnung">
+              <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
                 Dieser Baustelle ist keine Projektleitung zugeteilt — die Eilmeldung erreicht
                 niemanden. Die Verwaltung bekommt die Anforderung trotzdem.
-              </Meldung>
+              </p>
             )}
           </div>
-          </Card>
 
           <Card title="Katalog">
             <InputField id="search" label="Suche"
@@ -488,14 +495,11 @@ export default function OrderView() {
                 onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
                 einheit="Artikel"
                 sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
-                // Nicht im Kartenfuß: dort stünde er erst NACH „Nicht im
-                // Katalog?" — und genau davor muss er gelesen werden.
-                imInhalt
               />
             </div>
-            <div className="material-frei">
+            <div className="mt-4 border-t border-line pt-4">
               <p className="section-label">Nicht im Katalog?</p>
-              <div className="material-frei-felder">
+              <div className="mt-2 grid grid-cols-[1fr_5rem] gap-2 sm:grid-cols-[1fr_6rem_auto] sm:items-end">
                 <InputField
                   id="frei-name"
                   label="Bezeichnung"
@@ -512,6 +516,7 @@ export default function OrderView() {
                 />
                 <Button
                   variant="secondary"
+                  className="col-span-2 sm:col-span-1"
                   disabled={!freiName.trim() || !(Number(freiMenge.replace(',', '.')) > 0)}
                   onClick={freiHinzufuegen}
                 >
@@ -521,16 +526,18 @@ export default function OrderView() {
             </div>
           </Card>
 
-          <Card title="Anforderung" anzahl={cart.length}>
+          <Card title={`Anforderung (${cart.length})`}>
             {cart.length === 0 ? (
               <EmptyState>
                 Noch nichts ausgewählt. Im Katalog oben beim Artikel auf „Anfordern" tippen.
               </EmptyState>
             ) : (
-              <div className="space-y-4">
-                <InputField id="onote" label="Notiz für die Projektleitung (optional)"
-                  placeholder="z. B. dringend, bis Freitag"
-                  value={note} onChange={(e) => setNote(e.target.value)} />
+              <>
+                <div className="mb-4">
+                  <InputField id="onote" label="Notiz für die Projektleitung (optional)"
+                    placeholder="z. B. dringend, bis Freitag"
+                    value={note} onChange={(e) => setNote(e.target.value)} />
+                </div>
                 <List>
                   {cart.map((line, i) => (
                     <ListRow
@@ -538,7 +545,7 @@ export default function OrderView() {
                       title={
                         <span>
                           {line.materialName}{' '}
-                          <span className="text-ink-muted">×{line.quantity}</span>
+                          <span className="tnum text-ink-muted">×{line.quantity}</span>
                         </span>
                       }
                       subtitle={
@@ -564,23 +571,15 @@ export default function OrderView() {
                     </ListRow>
                   ))}
                 </List>
-                {/* Am Telefon unten fest mit der Summenzeile (Linie, 6):
-                    der Katalog darüber ist lang, „Bestellung aufgeben“ bleibt
-                    erreichbar. Am Schreibtisch steht die Leiste ruhig hier. */}
-                <Aktionsleiste
-                  summe={{
-                    name: 'Anforderung',
-                    wert: cart.length === 1 ? '1 Position' : `${cart.length} Positionen`,
-                  }}
-                >
+                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                   <Button onClick={submitCart} loading={saving} className="w-full sm:w-auto">
                     Bestellung aufgeben
                   </Button>
                   <Button variant="ghost" onClick={() => setCart([])} className="w-full sm:w-auto">
                     Warenkorb leeren
                   </Button>
-                </Aktionsleiste>
-              </div>
+                </div>
+              </>
             )}
           </Card>
         </>
@@ -588,7 +587,7 @@ export default function OrderView() {
 
       {tab === 'meine' && (
         <>
-          <Card title="Offen" anzahl={activeOrders.length}>
+          <Card title={`Offen (${activeOrders.length})`}>
             {activeOrders.length === 0 ? (
               <EmptyState>Keine offenen Bestellungen.</EmptyState>
             ) : (
@@ -598,7 +597,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[
@@ -631,10 +630,7 @@ export default function OrderView() {
                       Der Abschluss zieht das Material vom Lager ab; deshalb
                       geht er weiterhin durch die Rückfrage.
                     */}
-                    {/* Weiß und nicht dunkel: in einer Liste mit mehreren
-                        Bestellungen stünden sonst mehrere Hauptknöpfe in
-                        einer Karte (Linie, 5). */}
-                    <Button variant="secondary" onClick={() => setToPickUp(o)}>
+                    <Button variant="primary" onClick={() => setToPickUp(o)}>
                       Abgeholt
                     </Button>
                   </ListRow>
@@ -643,7 +639,7 @@ export default function OrderView() {
             )}
           </Card>
 
-          <Card title="Erledigt" anzahl={doneOrders.length}>
+          <Card title={`Erledigt (${doneOrders.length})`}>
             {doneOrders.length === 0 ? (
               <EmptyState>Noch nichts erledigt.</EmptyState>
             ) : (
@@ -653,7 +649,7 @@ export default function OrderView() {
                     key={o.id}
                     title={
                       <span>
-                        {o.materialName} <span className="text-ink-muted">×{o.quantity}</span>
+                        {o.materialName} <span className="tnum text-ink-muted">×{o.quantity}</span>
                       </span>
                     }
                     subtitle={[
@@ -683,7 +679,7 @@ export default function OrderView() {
         >
           <div className="space-y-4">
             {retGewaehlt ? (
-              <div className="kasten flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-line bg-surface-2 px-3 py-2">
                 <div>
                   <span className="section-label block">Material</span>
                   <span className="font-semibold text-ink">{retGewaehlt.name}</span>
@@ -714,7 +710,7 @@ export default function OrderView() {
                 {retSuche.trim() !== '' && (
                   <div className="mt-2">
                     {retTreffer.length === 0 ? (
-                      <EmptyState>Kein Material passt zur Suche.</EmptyState>
+                      <p className="text-sm text-ink-muted">Kein Material passt zur Suche.</p>
                     ) : (
                       <List>
                         {retTreffer.map((m) => (
@@ -741,7 +737,7 @@ export default function OrderView() {
                 )}
               </div>
             )}
-            <FormGrid>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InputField id="retqty" label="Menge" type="number" min="1" value={retQty}
                 onChange={(e) => setRetQty(e.target.value)} />
               <SelectField id="retcond" label="Zustand" value={retCondition}
@@ -750,7 +746,7 @@ export default function OrderView() {
                 <option value="gebraucht">Gebraucht</option>
                 <option value="defekt">Defekt</option>
               </SelectField>
-            </FormGrid>
+            </div>
             <SelectField id="retproj" label="Von welcher Baustelle? (optional)" value={retProject}
               onChange={(e) => setRetProject(e.target.value)}>
               <option value="">— keine —</option>
@@ -762,14 +758,10 @@ export default function OrderView() {
             </SelectField>
             <InputField id="retreason" label="Grund / Notiz" value={retReason}
               onChange={(e) => setRetReason(e.target.value)} />
-            {/* Am Telefon ist die Maske länger als der Bildschirm — die Leiste
-                hält „Retoure erfassen" erreichbar. */}
-            <Aktionsleiste>
-              <Button onClick={submitReturn} loading={saving} disabled={!retMaterial}
-                className="w-full sm:w-auto">
-                Retoure erfassen
-              </Button>
-            </Aktionsleiste>
+            <Button onClick={submitReturn} loading={saving} disabled={!retMaterial}
+              className="w-full sm:w-auto">
+              Retoure erfassen
+            </Button>
           </div>
         </Card>
       )}
@@ -839,7 +831,7 @@ function QtyAdder({
   return (
     <div className="flex items-center gap-1">
       {added > 0 && (
-        <span className="mr-1 text-sm font-bold text-brand" aria-live="polite">
+        <span className="tnum mr-1 text-sm font-bold text-brand" aria-live="polite">
           ×{added}
         </span>
       )}
@@ -866,7 +858,9 @@ function QtyAdder({
         onChange={(e) => setMenge(e.target.value)}
         onFocus={(e) => e.currentTarget.select()}
         aria-label={`Menge ${material.unit ?? 'Stk'} für ${material.name}`}
-        className={gueltig ? 'feld w-16 text-center' : 'feld-fehler w-16 text-center'}
+        className={`tnum h-11 w-14 rounded border bg-surface text-center text-base font-semibold ${
+          gueltig ? 'border-line text-ink' : 'border-danger text-danger'
+        }`}
       />
       <IconButton
         label={`Menge für ${material.name} erhöhen`}

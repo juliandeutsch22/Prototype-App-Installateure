@@ -39,7 +39,7 @@ export default function Supportsitzung() {
         {schreibt ? 'MITARBEITEN' : 'Einblick'} in{' '}
         <strong>{einblick.name}</strong>
         {schreibt
-          ? ' — deine Änderungen treffen echte Daten dieses Betriebs.'
+          ? ' — Ihre Änderungen treffen echte Daten dieses Betriebs.'
           : ' — nur lesend. Änderungen weist die Datenbank ab.'}
       </span>
       <Button variant="secondary" onClick={einblickBeenden}>

@@ -4,14 +4,11 @@ import * as dn from '@/lib/db/pg/datanorm';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import Aktionsleiste from '@/components/Aktionsleiste';
 import Metric, { MetricRow } from '@/components/Metric';
 import { InputField, SelectField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import { Marke, Warnung } from '@/components/Badge';
 import { ErrorState } from '@/components/States';
-import Grenzliste from '@/components/Grenzliste';
-import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import {
   befunde,
@@ -182,28 +179,27 @@ export default function KatalogImport() {
   if (schritt === 'fertig' && bericht) {
     return (
       <div className="space-y-6">
-        {/* Die Zahlen in ihrer eigenen Karte über dem Ergebnis, wie beim
-            Probelauf — die Kennzahlen-Leiste ist selbst eine Karte, und eine
-            Karte in der Karte gibt es nach der Linie nicht. */}
-        <MetricRow>
-          <Metric label="Neu angelegt" value={bericht.angelegt} />
-          <Metric label="Aktualisiert" value={bericht.geaendert} />
-          <Metric label="Ausgelaufen" value={bericht.ausgelaufen} />
-          <Metric
-            label="Ohne Einkaufspreis"
-            value={bericht.ohneRabattsatz}
-            tone={bericht.ohneRabattsatz > 0 ? 'warning' : 'default'}
-          />
-        </MetricRow>
         <Card title="Übernommen">
+          <MetricRow>
+            <Metric label="Neu angelegt" value={bericht.angelegt} />
+            <Metric label="Aktualisiert" value={bericht.geaendert} />
+            <Metric label="Ausgelaufen" value={bericht.ausgelaufen} />
+            <Metric
+              label="Ohne Einkaufspreis"
+              value={bericht.ohneRabattsatz}
+              tone={bericht.ohneRabattsatz > 0 ? 'warning' : 'default'}
+            />
+          </MetricRow>
           {bericht.ohneRabattsatz > 0 && (
-            <p className="mb-4 text-sm text-ink-muted">
+            <p className="mt-4 text-sm text-ink-muted">
               {bericht.ohneRabattsatz} Artikel stehen mit Listenpreis im Katalog, aber ohne
               Einkaufspreis — zu ihrer Rabattgruppe ist kein Satz hinterlegt. Die Nachkalkulation
               führt sie weiter als Lücke.
             </p>
           )}
-          <Button onClick={zurueck}>Weiteren Katalog einspielen</Button>
+          <div className="mt-4">
+            <Button onClick={zurueck}>Weiteren Katalog einspielen</Button>
+          </div>
         </Card>
         <Protokoll laeufe={laeufe} />
       </div>
@@ -221,8 +217,8 @@ export default function KatalogImport() {
             <>
               DATANORM ist das Austauschformat, in dem Grosshändler ihre Preislisten liefern —
               meist als Datei mit der Endung <code>.001</code>. Eingelesen wird sie hier{' '}
-              <strong>zuerst nur angesehen</strong>: du bekommst einen Bericht darüber, was
-              erkannt wurde und was nicht, und entscheidest danach, ob übernommen wird. Bis dahin
+              <strong>zuerst nur angesehen</strong>: Sie bekommen einen Bericht darüber, was
+              erkannt wurde und was nicht, und entscheiden danach, ob übernommen wird. Bis dahin
               ändert sich am Katalog nichts.
             </>
           }
@@ -263,8 +259,8 @@ export default function KatalogImport() {
               </div>
             )}
 
-            <div className="feld-block">
-              <label htmlFor="dn-datei" className="feld-name">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="dn-datei" className="text-sm font-medium">
                 DATANORM-Datei
               </label>
               <input
@@ -277,7 +273,7 @@ export default function KatalogImport() {
                   const f = e.target.files?.[0];
                   if (f) void dateiLesen(f);
                 }}
-                className="feld-datei"
+                className="min-h-touch text-sm file:mr-3 file:rounded file:border file:border-line file:bg-surface-2 file:px-3 file:py-2 file:text-sm"
               />
             </div>
           </div>
@@ -286,23 +282,6 @@ export default function KatalogImport() {
 
       {schritt === 'probelauf' && ergebnis && zahlen && datei && (
         <>
-          {/* Die Zahlen stehen in ihrer eigenen Karte ÜBER dem Probelauf —
-              die Kennzahlen-Leiste ist selbst eine Karte, und eine Karte
-              in der Karte gibt es nach der Linie nicht. */}
-          <MetricRow>
-            <Metric label="Artikel erkannt" value={zahlen.artikel} />
-            <Metric
-              label="Ohne Preis"
-              value={zahlen.ohnePreis}
-              tone={zahlen.ohnePreis > 0 ? 'warning' : 'default'}
-            />
-            <Metric label="Nur Listenpreis" value={zahlen.nurListenpreis} />
-            <Metric
-              label="Nicht verstanden"
-              value={zahlen.unverstanden}
-              tone={zahlen.unverstanden > 0 ? 'warning' : 'default'}
-            />
-          </MetricRow>
           <Card
             title="Probelauf"
             action={<Marke>{datei.name}</Marke>}
@@ -316,7 +295,21 @@ export default function KatalogImport() {
               </>
             }
           >
-            <p className="text-sm text-ink-muted">
+            <MetricRow>
+              <Metric label="Artikel erkannt" value={zahlen.artikel} />
+              <Metric
+                label="Ohne Preis"
+                value={zahlen.ohnePreis}
+                tone={zahlen.ohnePreis > 0 ? 'warning' : 'default'}
+              />
+              <Metric label="Nur Listenpreis" value={zahlen.nurListenpreis} />
+              <Metric
+                label="Nicht verstanden"
+                value={zahlen.unverstanden}
+                tone={zahlen.unverstanden > 0 ? 'warning' : 'default'}
+              />
+            </MetricRow>
+            <p className="mt-4 text-sm text-ink-muted">
               {zahlen.neu} neu · {zahlen.aenderungen} Änderungen · {zahlen.loeschungen}{' '}
               Löschsätze
               {zahlen.uebersprungen > 0 && <> · {zahlen.uebersprungen} andere Satzarten</>}
@@ -327,7 +320,7 @@ export default function KatalogImport() {
             <Card title="Die Felder stehen anders als erwartet">
               <p className="text-sm">{warnung}</p>
               <p className="mt-3 text-sm text-ink-muted">
-                Die Zeilen unten zeigen, woran es liegt. Schick deinem Grosshändler die
+                Die Zeilen unten zeigen, woran es liegt. Schicken Sie Ihrem Grosshändler die
                 Rückmeldung, welche DATANORM-Fassung er liefert.
               </p>
             </Card>
@@ -335,20 +328,15 @@ export default function KatalogImport() {
 
           {gruppen.length > 0 && !warnung && (
             <Card
-              title="Rabattsätze"
-              // Die Zahl rechts im Titel statt in Klammern (Linie, 2),
-              // daneben wie bisher der Stand.
+              title={`Rabattsätze (${gruppen.length})`}
               action={
-                <div className="liste-kopf-rechts">
-                  <span className="liste-anzahl">{gruppen.length}</span>
-                  {offeneGruppen > 0 ? <Warnung>{offeneGruppen} offen</Warnung> : <Marke>vollständig</Marke>}
-                </div>
+                offeneGruppen > 0 ? <Warnung>{offeneGruppen} offen</Warnung> : <Marke>vollständig</Marke>
               }
               hint={
                 <>
-                  Die Datei liefert die Rabatt<em>gruppe</em>, nicht den Satz — wie hoch dein Rabatt
-                  ist, hast du mit deinem Grosshändler ausgehandelt, und das steht in keiner Norm.
-                  Was du hier einträgst, bleibt gespeichert und gilt auch für den nächsten Katalog.
+                  Die Datei liefert die Rabatt<em>gruppe</em>, nicht den Satz — wie hoch Ihr Rabatt
+                  ist, haben Sie mit Ihrem Grosshändler ausgehandelt, und das steht in keiner Norm.
+                  Was Sie hier eintragen, bleibt gespeichert und gilt auch für den nächsten Katalog.
                   Eine Gruppe ohne Satz ist kein Fehler: die Artikel kommen in den Katalog, nur
                   eben ohne Einkaufspreis.
                 </>
@@ -378,29 +366,30 @@ export default function KatalogImport() {
 
           {ergebnis.unverstanden.length > 0 && (
             <Card
-              title="Nicht verstandene Zeilen"
-              action={<span className="liste-anzahl">{ergebnis.unverstanden.length}</span>}
+              title={`Nicht verstandene Zeilen (${ergebnis.unverstanden.length})`}
               hint={
                 <>
                   Diese Zeilen werden <strong>nicht</strong> übernommen. Die Originalzeile steht
                   neben dem Grund, damit erkennbar ist, ob es an der Datei liegt oder daran, dass
-                  dein Grosshändler die Norm anders auslegt.
+                  Ihr Grosshändler die Norm anders auslegt.
                 </>
               }
             >
-              <Grenzliste
-                eintraege={ergebnis.unverstanden}
-                grenze={ZEIGE_ZEILEN}
-                zeile={(z) => (
-                  <ListRow
-                    key={z.zeile}
-                    title={`Zeile ${z.zeile}: ${z.grund}`}
-                    // Die Originalzeile Zeichen für Zeichen: Festbreitenschrift, und
-                    // umbrochen wird überall — sie hat oft keine einzige Leerstelle.
-                    subtitle={<span className="break-all font-mono">{z.inhalt}</span>}
-                  />
-                )}
-              />
+              <ul className="space-y-3 text-sm">
+                {ergebnis.unverstanden.slice(0, ZEIGE_ZEILEN).map((z) => (
+                  <li key={z.zeile} className="border-l-2 border-line pl-3">
+                    <p className="font-medium">
+                      Zeile {z.zeile}: {z.grund}
+                    </p>
+                    <p className="mt-1 break-all font-mono text-xs text-ink-muted">{z.inhalt}</p>
+                  </li>
+                ))}
+              </ul>
+              {ergebnis.unverstanden.length > ZEIGE_ZEILEN && (
+                <p className="mt-3 text-sm text-ink-muted">
+                  … und {ergebnis.unverstanden.length - ZEIGE_ZEILEN} weitere.
+                </p>
+              )}
             </Card>
           )}
 
@@ -409,46 +398,37 @@ export default function KatalogImport() {
               title="Vorschau"
               hint="Die ersten fünf Artikel, so wie sie in den Katalog gingen. Stimmen Bezeichnung, Einheit und Preis hier nicht, stimmen sie auch bei den übrigen nicht."
             >
-              <List>
+              <ul className="space-y-2 text-sm">
                 {ergebnis.artikel.slice(0, 5).map((a) => (
-                  <ListRow
-                    key={`${a.zeile}-${a.artikelnummer}`}
-                    title={a.name || '(ohne Bezeichnung)'}
-                    subtitle={
-                      <>
-                        Art.-Nr. {a.artikelnummer}
-                        {a.einheit && ` · ${a.einheit}`}
-                        {a.preis !== undefined &&
-                          ` · ${eur(a.preis)} (${a.preisArt === 'liste' ? 'Liste' : a.preisArt === 'netto' ? 'netto' : 'Preisart unbekannt'})`}
-                      </>
-                    }
-                  />
+                  <li key={`${a.zeile}-${a.artikelnummer}`} className="flex flex-wrap gap-x-2">
+                    <span className="font-medium">{a.name || '(ohne Bezeichnung)'}</span>
+                    <span className="text-ink-muted">
+                      Art.-Nr. {a.artikelnummer}
+                      {a.einheit && ` · ${a.einheit}`}
+                      {a.preis !== undefined &&
+                        ` · ${eur(a.preis)} (${a.preisArt === 'liste' ? 'Liste' : a.preisArt === 'netto' ? 'netto' : 'Preisart unbekannt'})`}
+                    </span>
+                  </li>
                 ))}
-              </List>
+              </ul>
             </Card>
           )}
 
-          {/* Die Knöpfe in der Aktionsleiste (docs/design/linie.md, 6): am
-              Telefon unten fest, darüber die Summe aus dem Probelauf. */}
-          <Aktionsleiste
-            summe={{
-              name: 'Aus der Datei',
-              wert: `${zahlen.neu} neu · ${zahlen.aenderungen} geändert`,
-            }}
-          >
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               onClick={() => void uebernehmen()}
               loading={busy}
               disabled={!!warnung || zahlen.artikel === 0}
+              className="w-full sm:w-auto"
             >
               {fortschritt === null
                 ? `${zahlen.artikel} Artikel übernehmen`
                 : `${fortschritt} von ${zahlen.artikel} übertragen …`}
             </Button>
-            <Button variant="ghost" onClick={zurueck} disabled={busy}>
+            <Button variant="ghost" onClick={zurueck} disabled={busy} className="w-full sm:w-auto">
               Verwerfen
             </Button>
-          </Aktionsleiste>
+          </div>
         </>
       )}
 
@@ -468,27 +448,24 @@ function Protokoll({ laeufe }: { laeufe: WithId<dn.Lauf>[] }) {
   if (laeufe.length === 0) return null;
   return (
     <Card title="Bisher eingespielt">
-      <List>
+      <ul className="space-y-2 text-sm">
         {laeufe.map((l) => {
           const u = (l.bericht as { uebernahme?: dn.UebernahmeBericht } | null)?.uebernahme;
           return (
-            <ListRow
-              key={l.id}
-              title={l.dateiname ?? 'ohne Dateiname'}
-              subtitle={
-                <>
-                  {datumAusMs(l.createdAt)}
-                  {l.status === 'uebernommen' && u
-                    ? ` · ${u.angelegt} neu, ${u.geaendert} aktualisiert`
-                    : l.status === 'verworfen'
-                      ? ' · verworfen'
-                      : ' · nicht abgeschlossen'}
-                </>
-              }
-            />
+            <li key={l.id} className="flex flex-wrap items-baseline gap-x-2">
+              <span className="font-medium">{l.dateiname ?? 'ohne Dateiname'}</span>
+              <span className="text-ink-muted">
+                {datumAusMs(l.createdAt)}
+                {l.status === 'uebernommen' && u
+                  ? ` · ${u.angelegt} neu, ${u.geaendert} aktualisiert`
+                  : l.status === 'verworfen'
+                    ? ' · verworfen'
+                    : ' · nicht abgeschlossen'}
+              </span>
+            </li>
           );
         })}
-      </List>
+      </ul>
     </Card>
   );
 }

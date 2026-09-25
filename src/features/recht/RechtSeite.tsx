@@ -1,9 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import Card from '@/components/Card';
-import MarkenRahmen from '@/features/auth/MarkenRahmen';
-import Meldung from '@/components/Meldung';
-import PageHeader from '@/components/PageHeader';
+import ProduktMarke from '@/components/ProduktMarke';
 import { GEPRUEFT, STAND } from './betreiber';
 
 /**
@@ -14,34 +11,28 @@ import { GEPRUEFT, STAND } from './betreiber';
  * „Zur App" zurück.
  */
 export default function RechtSeite({ titel, children }: { titel: string; children: ReactNode }) {
-  /*
-    NACH DER LINIE: die Marke im Rahmen wie in der Seitenleiste
-    (`MarkenRahmen`), der Titel als Seitenkopf, der Text in einer weißen
-    Karte statt frei auf dem Grund, „Stand“ im Kartenfuß. Am Text selbst
-    ändert sich nichts.
-  */
   return (
-    <MarkenRahmen
-      aktion={
-        <Link to="/" className="marken-leiste-link">
-          Zur App
-        </Link>
-      }
-    >
-      <main className="marken-spalte">
-        <PageHeader title={titel} />
+    <div className="min-h-full bg-bg">
+      <div className="panel-dark px-4 py-4">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+          <ProduktMarke hoehe={28} className="text-white" />
+          <Link to="/" className="min-h-touch py-2 text-sm font-medium text-white underline underline-offset-2">
+            Zur App
+          </Link>
+        </div>
+      </div>
+      <main className="mx-auto max-w-2xl space-y-6 px-4 py-6">
         {!GEPRUEFT && (
-          // `note`: ein stehender Vermerk zum Text, weder Alarm noch Status.
-          <Meldung ton="warnung" role="note">
+          <p role="note" className="rounded-sm border border-warning bg-surface px-3 py-2 text-sm text-ink">
             <strong>Entwurf.</strong> Dieser Text ist noch nicht rechtlich geprüft; Angaben in
             eckigen Klammern werden ergänzt.
-          </Meldung>
+          </p>
         )}
-        <Card footer={<p className="text-sm text-ink-muted">Stand: {STAND}</p>}>
-          <div className="recht space-y-6 text-base leading-relaxed text-ink">{children}</div>
-        </Card>
+        <h1 className="text-xl font-semibold text-ink sm:text-2xl">{titel}</h1>
+        <div className="recht space-y-6 text-base leading-relaxed text-ink">{children}</div>
+        <p className="text-sm text-ink-muted">Stand: {STAND}</p>
       </main>
-    </MarkenRahmen>
+    </div>
   );
 }
 
@@ -49,7 +40,7 @@ export default function RechtSeite({ titel, children }: { titel: string; childre
 export function Abschnitt({ titel, children }: { titel: string; children: ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="titel-karte">{titel}</h2>
+      <h2 className="text-lg font-semibold text-ink">{titel}</h2>
       {children}
     </section>
   );

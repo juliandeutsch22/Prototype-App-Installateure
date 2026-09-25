@@ -8,7 +8,6 @@ import type { Assignment, Material, Project, WorkSheet, WorkSheetZeit } from '@/
 import { todayStr } from '@/lib/time';
 import type { NewWorkSheet } from '@/lib/db/workSheets';
 import { kanonischerInhalt } from '@shared/scheinHash';
-import { karteZaehlt } from './kartenZahl';
 
 /**
  * Der Handwerksschein war ein Formular ohne Anschluss: er stand in einem
@@ -190,23 +189,6 @@ function unterschreiben() {
   }
 }
 
-/**
- * In einen Schritt springen — über die Leiste oben, wie am Telefon.
- *
- * jsdom kennt keine Medienabfrage; der Schein steht hier deshalb so da wie am
- * Telefon: als Schrittfolge, in der nur der aktuelle Schritt zu sehen ist.
- * Abfragen nach Rolle finden nur, was sichtbar ist — ein Test, der einen
- * Knopf aus einem anderen Schritt drückt, fällt also auf, statt durch
- * ausgeblendete Teile hindurchzugreifen.
- */
-async function zuSchritt(
-  nutzer: ReturnType<typeof userEvent.setup>,
-  name: 'Zeiten' | 'Material' | 'Fotos' | 'Unterschrift',
-) {
-  const nr = { Zeiten: 1, Material: 2, Fotos: 3, Unterschrift: 4 }[name];
-  await nutzer.click(await screen.findByRole('button', { name: `${nr} ${name}` }));
-}
-
 function zeichne(adresse = '/worksheet') {
   return render(
     <MemoryRouter initialEntries={[adresse]}>
@@ -297,19 +279,17 @@ describe('Handwerksschein', () => {
    */
   it('haelt das Unterschreiben nicht auf, wenn die Vorausfuellung scheitert', async () => {
     callScheinVorbereiten.mockRejectedValue(new Error('deadline-exceeded'));
-    const nutzer = userEvent.setup();
     zeichne();
 
     expect(
       await screen.findByText(/Der Schein lässt sich trotzdem schreiben/),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
     // Der Kern: der Beleg ist über Arbeit, die geleistet wurde, und der Kunde
     // steht daneben. Unterschreiben muss gehen.
-    await zuSchritt(nutzer, 'Unterschrift');
     expect(
       screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
     // Und es steht dabei, dass der Schein dann ohne Stunden eingefroren wird.
     expect(screen.getByText(/Ohne Stunden\./)).toBeInTheDocument();
     /*
@@ -362,7 +342,6 @@ describe('Handwerksschein', () => {
       const nutzer = userEvent.setup();
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
 
       await nutzer.type(
         screen.getByLabelText(/Freie Zeile/),
@@ -380,7 +359,6 @@ describe('Handwerksschein', () => {
       const nutzer = userEvent.setup();
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
 
       await nutzer.type(screen.getByLabelText('Artikel aus dem Lager'), 'eckventil');
       await nutzer.click(
@@ -395,7 +373,6 @@ describe('Handwerksschein', () => {
       const nutzer = userEvent.setup();
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
       await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Falsch eingetragen');
       await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
       await screen.findByText(/Verbautes Material \(1\)/);
@@ -415,7 +392,6 @@ describe('Handwerksschein', () => {
       const nutzer = userEvent.setup();
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
       await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtungen');
       await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
       await screen.findByText(/Verbautes Material \(1\)/);
@@ -443,7 +419,6 @@ describe('Handwerksschein', () => {
       );
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
       await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Kupferrohr 18mm');
       await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
       await screen.findByText(/Verbautes Material \(1\)/);
@@ -476,14 +451,11 @@ describe('Handwerksschein', () => {
       const feld = await screen.findByLabelText<HTMLSelectElement>('Baustelle');
       await nutzer.selectOptions(feld, 'B-001');
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
 
       await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Gehört zu B-001');
       await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
       await screen.findByText(/Verbautes Material \(1\)/);
 
-      // Die Baustelle steht im ersten Schritt.
-      await zuSchritt(nutzer, 'Zeiten');
       await nutzer.selectOptions(feld, 'B-002');
 
       expect(await screen.findByText(/Verbautes Material \(0\)/)).toBeInTheDocument();
@@ -667,7 +639,6 @@ describe('Handwerksschein', () => {
   });
 
   it('sperrt den Abschluss, solange Unterschriften fehlen', async () => {
-    const nutzer = userEvent.setup();
     zeichne();
     /**
      * Auf die STAMMDATEN warten, nicht nur auf das Auswahlfeld.
@@ -678,7 +649,6 @@ describe('Handwerksschein', () => {
      * dieser Zwischenstand geprüft.
      */
     await screen.findByRole('link', { name: /Hauptstraße 12/ });
-    await zuSchritt(nutzer, 'Unterschrift');
     expect(
       screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
     ).toBeDisabled();
@@ -703,8 +673,7 @@ describe('Fotos', () => {
   async function fotoWaehlen(nutzer: ReturnType<typeof userEvent.setup>) {
     // Erst wenn die Baustelle steht, gibt es den Abschnitt: ein Foto ohne
     // Schein hat keinen Ort, an den es gehört.
-    await karteZaehlt(/Fotos/, /^\d+ von 8$/);
-    await zuSchritt(nutzer, 'Fotos');
+    await screen.findByText(/^Fotos \(/);
     // Beschriftung des versteckten Dateifelds ist der Knopftext, und der
     // wechselt mit dem Zustand: erstes Bild, weiteres, Fach voll.
     const feld = screen.getByLabelText(/Foto aufnehmen|Weiteres Foto|Höchstens/);
@@ -741,7 +710,7 @@ describe('Fotos', () => {
   */
   it('steht in einer eigenen Karte, nicht bei den Unterschriften', async () => {
     zeichne();
-    await karteZaehlt(/Fotos/, /^\d+ von 8$/);
+    await screen.findByText(/^Fotos \(/);
 
     const namensfeld = screen.getByLabelText(/Monteur \(Name in Druckbuchstaben\)/);
     const unterschriften = namensfeld.closest('section');
@@ -761,13 +730,13 @@ describe('Fotos', () => {
   it('beschriftet den Knopf nach dem Stand und zählt im Kartentitel mit', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await karteZaehlt(/Fotos/, '0 von 8');
+    await screen.findByText('Fotos (0/8)');
     expect(screen.getByLabelText('Foto aufnehmen')).toBeInTheDocument();
 
     await fotoWaehlen(nutzer);
     await waitFor(() => expect(fotoHochladen).toHaveBeenCalled());
 
-    await karteZaehlt(/Fotos/, '1 von 8');
+    expect(await screen.findByText('Fotos (1/8)')).toBeInTheDocument();
     expect(screen.getByLabelText('Weiteres Foto')).toBeInTheDocument();
   });
 
@@ -841,7 +810,6 @@ describe('Fotos', () => {
     await fotoWaehlen(nutzer);
     await screen.findByText(/Nicht hochgeladen/);
 
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
     await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
@@ -859,7 +827,6 @@ describe('Fotos', () => {
     await fotoWaehlen(nutzer);
     await screen.findByText(/Nicht hochgeladen/);
 
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
     const knopf = screen.getByRole('button', { name: 'Unterschreiben und abschließen' });
@@ -941,7 +908,6 @@ describe('Fotos', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/Verbautes Material/);
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
     await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
@@ -1012,30 +978,18 @@ describe('Zeit beim Kunden eintragen', () => {
     await nutzer.clear(screen.getByLabelText('Von'));
     await nutzer.type(screen.getByLabelText('Von'), '07:00');
     await nutzer.type(screen.getByLabelText('Bis'), '15:30');
-    /*
-      Die Sperre greift auch aus einem ANDEREN Schritt: das Feld steht bei den
-      Zeiten, der Knopf bei der Unterschrift. Ausgehängt hätte das Feld beim
-      Weitergehen „nichts offen" gemeldet — und die Sperre wäre weg gewesen.
-    */
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
 
-    expect(
-      screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
-    ).toBeDisabled();
+    const knopf = screen.getByRole('button', { name: 'Unterschreiben und abschließen' });
+    expect(knopf).toBeDisabled();
     expect(screen.getByText(/Noch nicht auf dem Schein/).parentElement).toHaveTextContent(
       /die Zeit 07:00–15:30/,
     );
-    // Die Zusammenfassung nennt es auch.
-    expect(screen.getByText(/Eingetippt, aber nicht übernommen: 07:00–15:30/)).toBeInTheDocument();
 
-    // Der Weg zurück steht an der Meldung.
-    await nutzer.click(screen.getByRole('button', { name: 'Zu den Zeiten' }));
     await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
     expect(screen.queryByText(/Noch nicht auf dem Schein/)).not.toBeInTheDocument();
-    await zuSchritt(nutzer, 'Unterschrift');
-    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+    await nutzer.click(knopf);
     await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
     // Unterschrieben wird der Stand, der zuletzt geschrieben wurde — beim
     // ersten Mal ist das die Anlage, danach die Aktualisierung.
@@ -1049,9 +1003,7 @@ describe('Zeit beim Kunden eintragen', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/Verbautes Material/);
-    await zuSchritt(nutzer, 'Material');
     await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Silikon sanitär');
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
 
@@ -1061,9 +1013,7 @@ describe('Zeit beim Kunden eintragen', () => {
     );
 
     // Leeren reicht auch — wer es sich anders überlegt hat, muss nichts übernehmen.
-    await nutzer.click(screen.getByRole('button', { name: 'Zum Material' }));
     await nutzer.clear(screen.getByLabelText(/Freie Zeile/));
-    await zuSchritt(nutzer, 'Unterschrift');
     expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeEnabled();
   });
 
@@ -1116,8 +1066,6 @@ describe('Zeit beim Kunden eintragen', () => {
     */
     const nutzer = userEvent.setup();
     zeichne();
-    // Die Notizen stehen im Schritt der Fotos.
-    await zuSchritt(nutzer, 'Fotos');
     await nutzer.click(await screen.findByRole('button', { name: /Was bedeutet Ergänzungen/ }));
 
     /*
@@ -1228,28 +1176,49 @@ describe('Zeit beim Kunden eintragen', () => {
 });
 
 /**
- * Der Schein als Schrittfolge — Zeiten, Material, Fotos, Unterschrift.
+ * Der Schein als Schrittfolge am Telefon und Tablet — Zeiten, Material,
+ * Fotos, Unterschrift.
  *
  * NUR DIE ANORDNUNG IST NEU. Was hier geprüft wird: dass man vor, zurück und
  * aus der Zusammenfassung in jeden Schritt kommt; dass ein wieder geöffneter
- * Entwurf vorne beginnt; dass kein Teil beim Wechsel ausgehängt wird; und vor
- * allem, dass der Schein, der am Ende unterschrieben wird, Zeichen für Zeichen
- * derselbe ist wie auf der einen Seite am Schreibtisch.
+ * Entwurf vorne beginnt; dass kein Teil beim Wechsel ausgehängt wird; dass
+ * die Sperre „Noch nicht auf dem Schein" auch aus einem anderen Schritt
+ * greift; und vor allem, dass der Schein, der am Ende unterschrieben wird,
+ * Zeichen für Zeichen derselbe ist wie auf der einen Seite am Schreibtisch.
+ *
+ * jsdom kennt keine Medienabfrage — ohne sie steht der Schein als die eine
+ * Seite da, und alle Tests oben laufen so. Hier wird die Abfrage gezielt
+ * gesetzt: schmal (unter 1024 px) für die Schritte, breit für den
+ * Schreibtisch. Abfragen nach Rolle finden nur, was sichtbar ist — ein Test,
+ * der einen Knopf aus einem anderen Schritt drückt, fällt also auf, statt
+ * durch ausgeblendete Teile hindurchzugreifen.
  */
 describe('Schrittfolge', () => {
-  /** Den Schreibtisch nachstellen: die Medienabfrage für `lg` trifft zu. */
   const matchMediaVorher = window.matchMedia;
-  function schreibtisch() {
+  function breite(breit: boolean) {
     window.matchMedia = ((q: string) => ({
-      matches: true,
+      matches: breit,
       media: q,
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
     })) as unknown as typeof window.matchMedia;
   }
+  /** Das Telefon nachstellen: die Medienabfrage für 1024 px trifft nicht zu. */
+  beforeEach(() => breite(false));
+  /** Den Schreibtisch nachstellen: sie trifft zu. */
+  const schreibtisch = () => breite(true);
   afterEach(() => {
     window.matchMedia = matchMediaVorher;
   });
+
+  /** In einen Schritt springen — über die Leiste oben, wie am Telefon. */
+  async function zuSchritt(
+    nutzer: ReturnType<typeof userEvent.setup>,
+    name: 'Zeiten' | 'Material' | 'Fotos' | 'Unterschrift',
+  ) {
+    const nr = { Zeiten: 1, Material: 2, Fotos: 3, Unterschrift: 4 }[name];
+    await nutzer.click(await screen.findByRole('button', { name: `${nr} ${name}` }));
+  }
 
   const aktuell = () =>
     screen
@@ -1264,6 +1233,10 @@ describe('Schrittfolge', () => {
     // Im ersten Schritt gibt es nichts, wohin man zurück könnte.
     expect(screen.queryByRole('button', { name: 'Zurück' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Zeile hinzufügen' })).toBeInTheDocument();
+    // Die Unterschriften sind eingehängt, aber noch nicht zu sehen.
+    expect(
+      screen.queryByRole('button', { name: 'Unterschreiben und abschließen' }),
+    ).not.toBeInTheDocument();
 
     await nutzer.click(screen.getByRole('button', { name: 'Weiter: Material' }));
     expect(aktuell()).toBe('2 Material');
@@ -1273,7 +1246,10 @@ describe('Schrittfolge', () => {
 
     await nutzer.click(screen.getByRole('button', { name: 'Weiter: Fotos' }));
     expect(aktuell()).toBe('3 Fotos');
-    expect(screen.getByRole('textbox', { name: 'Notizen, Regiearbeiten, Mängel' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^Fotos \(/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: 'Notizen, Regiearbeiten, Mängel' }),
+    ).toBeInTheDocument();
 
     await nutzer.click(screen.getByRole('button', { name: 'Weiter: Unterschrift' }));
     expect(aktuell()).toBe('4 Unterschrift');
@@ -1291,6 +1267,18 @@ describe('Schrittfolge', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
     await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
     expect(aktuell()).toBe('1 Zeiten');
+  });
+
+  it('zeigt die Leiste erst mit einer Baustelle', async () => {
+    // Ohne Baustelle gibt es die übrigen Schritte nicht — drei tote Ziele
+    // wären schlimmer als keine Leiste.
+    listAssignmentsForUserInRange.mockResolvedValue([]);
+    zeichne();
+    expect(await screen.findByText('Zuerst eine Baustelle wählen.')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', { name: 'Schritte des Scheins' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Weiter/ })).not.toBeInTheDocument();
   });
 
   it('sperrt „Weiter" nicht — geprüft wird beim Unterschreiben', async () => {
@@ -1318,6 +1306,7 @@ describe('Schrittfolge', () => {
 
     // Die Zusammenfassung zählt, was in den Schritten steht.
     expect(screen.getByText('1 Position')).toBeInTheDocument();
+    expect(screen.getByText('Keine Zeit auf dem Schein')).toBeInTheDocument();
     expect(screen.getByText(/0 Fotos · ohne Notiz/)).toBeInTheDocument();
 
     await nutzer.click(screen.getByRole('button', { name: 'Material ändern' }));
@@ -1359,27 +1348,65 @@ describe('Schrittfolge', () => {
     await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
   });
 
-  it('zeigt die gesetzte Monteur-Unterschrift als eine Zeile und holt sie mit „Ändern" zurück', async () => {
-    // Mockup S. 5: „Monteur hat unterschrieben · Name". Das Feld bleibt dabei
-    // eingehängt, nur ausgeblendet — es hält die Striche.
+  it('sperrt den Abschluss auch, wenn die offene Zeit in einem anderen Schritt steht', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    await nutzer.clear(screen.getByLabelText('Von'));
+    await nutzer.type(screen.getByLabelText('Von'), '07:00');
+    await nutzer.type(screen.getByLabelText('Bis'), '15:30');
+    /*
+      Das Feld steht bei den Zeiten, der Knopf bei der Unterschrift. Ausgehängt
+      hätte das Feld beim Weitergehen „nichts offen" gemeldet — und die Sperre
+      wäre weg gewesen.
+    */
     await zuSchritt(nutzer, 'Unterschrift');
-    expect(screen.queryByText('Monteur hat unterschrieben')).not.toBeInTheDocument();
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
 
-    screen.getByRole('button', { name: 'Unterschrift Monteur zeichnen' }).click();
-
-    expect(await screen.findByText('Monteur hat unterschrieben')).toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', { name: 'Monteur (Name in Druckbuchstaben)' }),
-    ).not.toBeInTheDocument();
-    expect(felderEingehaengt).toBe(2);
-
-    await nutzer.click(screen.getByRole('button', { name: 'Unterschrift Monteur ändern' }));
+      screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
+    ).toBeDisabled();
+    expect(screen.getByText(/Noch nicht auf dem Schein/).parentElement).toHaveTextContent(
+      /die Zeit 07:00–15:30/,
+    );
+    // Die Zusammenfassung nennt es auch.
     expect(
-      screen.getByRole('textbox', { name: 'Monteur (Name in Druckbuchstaben)' }),
+      screen.getByText(/Eingetippt, aber nicht übernommen: 07:00–15:30/),
     ).toBeInTheDocument();
+
+    // Der Weg zurück steht an der Meldung.
+    await nutzer.click(screen.getByRole('button', { name: 'Zu den Zeiten' }));
+    expect(aktuell()).toBe('1 Zeiten');
+    await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
+    await zuSchritt(nutzer, 'Unterschrift');
+    expect(screen.queryByText(/Noch nicht auf dem Schein/)).not.toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+    await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
+  });
+
+  it('sperrt ihn ebenso für eine nur eingetippte Materialzeile', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    await zuSchritt(nutzer, 'Material');
+    await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Silikon sanitär');
+    await zuSchritt(nutzer, 'Unterschrift');
+    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
+    unterschreiben();
+
+    expect(
+      screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/Eingetippt, aber nicht hinzugefügt: „Silikon sanitär"/),
+    ).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Zum Material' }));
+    expect(aktuell()).toBe('2 Material');
+    await nutzer.clear(screen.getByLabelText(/Freie Zeile/));
+    await zuSchritt(nutzer, 'Unterschrift');
+    expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeEnabled();
   });
 
   it('bietet „Als Entwurf speichern" in jedem Schritt an', async () => {
@@ -1392,17 +1419,37 @@ describe('Schrittfolge', () => {
       await zuSchritt(nutzer, name);
       expect(screen.getByRole('button', { name: 'Als Entwurf speichern' })).toBeInTheDocument();
     }
+    await zuSchritt(nutzer, 'Zeiten');
+    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+    await waitFor(() => expect(createWorkSheet).toHaveBeenCalledTimes(1));
   });
 
   it('zeigt einen Speicherfehler auch außerhalb des letzten Schritts', async () => {
-    // Die Fehlermeldung stand bisher in der Karte der Unterschriften. Dort
-    // wäre sie ausgeblendet, wenn der Entwurf aus Schritt 1 gespeichert wird.
+    // Die Fehlermeldung steht am Schreibtisch in der Karte der Unterschriften.
+    // Dort wäre sie ausgeblendet, wenn der Entwurf aus Schritt 1 gespeichert wird.
     createWorkSheet.mockRejectedValue(new Error('offline'));
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByRole('link', { name: /Hauptstraße 12/ });
     await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/Das hat nicht geklappt/);
+  });
+
+  it('hält das Unterschreiben nicht auf, wenn die Vorausfüllung scheitert', async () => {
+    callScheinVorbereiten.mockRejectedValue(new Error('deadline-exceeded'));
+    const nutzer = userEvent.setup();
+    zeichne();
+    expect(
+      await screen.findByText(/Der Schein lässt sich trotzdem schreiben/),
+    ).toBeInTheDocument();
+    // „Erneut versuchen" steht bei den Zeiten ...
+    expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
+    // ... und der Hinweis „Ohne Stunden" bei der Unterschrift, mit dem Abschluss.
+    await zuSchritt(nutzer, 'Unterschrift');
+    expect(screen.getByText(/Ohne Stunden\./)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
+    ).toBeInTheDocument();
   });
 
   describe('ein wieder geöffneter Entwurf', () => {
@@ -1444,7 +1491,9 @@ describe('Schrittfolge', () => {
       await zuSchritt(nutzer, 'Unterschrift');
       expect(screen.getByText('1 Position')).toBeInTheDocument();
       expect(screen.getByText('05:00 Std')).toBeInTheDocument();
+      expect(screen.getByText('1 Person')).toBeInTheDocument();
       expect(screen.getByText(/0 Fotos · mit Notiz/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Entwurf aktualisieren' })).toBeInTheDocument();
 
       await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
       unterschreiben();
@@ -1476,6 +1525,10 @@ describe('Schrittfolge', () => {
       const nutzer = userEvent.setup();
       const ansicht = zeichne();
       await screen.findByRole('link', { name: /Hauptstraße 12/ });
+      // Mit Leiste am Telefon, ohne sie am Schreibtisch.
+      expect(!!screen.queryByRole('navigation', { name: 'Schritte des Scheins' })).toBe(
+        schritte,
+      );
 
       await nutzer.clear(screen.getByLabelText('Von'));
       await nutzer.type(screen.getByLabelText('Von'), '07:00');
@@ -1558,19 +1611,37 @@ describe('Schrittfolge', () => {
       screen.queryByRole('navigation', { name: 'Schritte des Scheins' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Weiter/ })).not.toBeInTheDocument();
-    // Alles zugleich zu sehen, in nummerierten Karten (Mockup S. 8). Die
-    // Titel sind seit dem 25.09.2026 die der Karten selbst; am Kartentitel
-    // der Fotos hängt das „i", dessen Beschriftung zum Namen der Überschrift
-    // gehört — deshalb der Anfang, nicht der ganze Name.
-    for (const titel of ['1 · Zeiten vor Ort', '2 · Material', '3 · Fotos', '4 · Unterschrift']) {
-      expect(screen.getByRole('heading', { name: new RegExp(`^${titel}`) })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Zurück' })).not.toBeInTheDocument();
+    // Die Zusammenfassung braucht es dort nicht: alles steht darüber.
+    expect(screen.queryByText('Zusammenfassung')).not.toBeInTheDocument();
+    // Alles zugleich zu sehen, in der Reihenfolge wie immer.
+    const titel = [
+      'Baustelle und Tag',
+      /^Zeiten am /,
+      /^Verbautes Material/,
+      'Ergänzungen',
+      /^Fotos \(/,
+      'Unterschriften',
+    ].map((t) => screen.getByRole('heading', { name: t }));
+    for (let i = 1; i < titel.length; i += 1) {
+      expect(
+        titel[i - 1].compareDocumentPosition(titel[i]) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
     }
-    // Zwei Spalten: links Zeiten, Material, Fotos — rechts die Unterschrift.
-    const rechts = screen.getByRole('heading', { name: '4 · Unterschrift' }).closest('section');
-    expect(rechts?.parentElement?.parentElement?.className).toBe('schein-raster');
     expect(screen.getByRole('button', { name: 'Zeile hinzufügen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Hinzufügen' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Als Entwurf speichern' })).toBeInTheDocument();
+  });
+
+  it('stellt im Schritt Fotos die Fotos vor die Ergänzungen', async () => {
+    // Der Schritt heisst „Fotos" — also steht vorne, wonach er heisst. Am
+    // Schreibtisch bleibt die alte Reihenfolge (Test darüber).
+    const nutzer = userEvent.setup();
+    zeichne();
+    await screen.findByRole('link', { name: /Hauptstraße 12/ });
+    await zuSchritt(nutzer, 'Fotos');
+    const fotos = screen.getByRole('heading', { name: /^Fotos \(/ }).closest('section');
+    expect(fotos).toHaveClass('order-first');
   });
 });

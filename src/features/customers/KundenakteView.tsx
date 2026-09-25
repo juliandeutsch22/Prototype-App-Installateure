@@ -14,7 +14,6 @@ import { listInvoicesForCustomer } from '@/lib/db/invoices';
 import { listWartungenForCustomer } from '@/lib/db/wartungen';
 import { useModul } from '@/lib/useModule';
 import { canInvoice, darfKundenPflegen, isGF } from '@/lib/permissions';
-import { canAccess } from '@/app/navigation';
 import { beurteile } from '@/features/maintenance/wartungsplan';
 import { todayStr } from '@/lib/time';
 import type { Customer, Invoice, Project, Quote, Wartung } from '@/types';
@@ -28,13 +27,8 @@ import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
-import { List, ListRow } from '@/components/ListRow';
-import Grenzliste from '@/components/Grenzliste';
-import Meldung from '@/components/Meldung';
-import { STAND } from '@/features/quotes/stand';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
-import { euro } from '@/lib/geld';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -57,11 +51,14 @@ import { euro } from '@/lib/geld';
  * auf ein Aufklappen nicht.
  */
 
+const fmtEUR = (n: number) =>
+  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
+
 const fmtDatum = (iso?: string) =>
   datumAT(iso) || '—';
 
 /** Ein Teil der Akte lädt für sich — ein Fehler nimmt nicht die ganze Seite. */
-/** Wie viele Rechnungen die Akte zuerst zeigt — die übrigen klappt die Grenzliste auf. */
+/** Wie viele Rechnungen die Akte zuerst zeigt. */
 const RECHNUNGEN_KURZ = 5;
 
 type Teil<T> = { zustand: 'laedt' } | { zustand: 'fehler' } | { zustand: 'bereit'; daten: T };
@@ -70,7 +67,7 @@ const LAEDT = { zustand: 'laedt' } as const;
 
 export default function KundenakteView() {
   const { id } = useParams<{ id: string }>();
-  const { user, company } = useAuth();
+  const { user } = useAuth();
   const toast = useToast();
   const wartungAn = useModul('wartung');
   const angeboteAn = useModul('angebote');
@@ -81,6 +78,8 @@ export default function KundenakteView() {
   const [namensgleich, setNamensgleich] = useState<WithId<Project>[]>([]);
   const [angebote, setAngebote] = useState<Teil<WithId<Quote>[]>>(LAEDT);
   const [rechnungen, setRechnungen] = useState<Teil<WithId<Invoice>[]>>(LAEDT);
+  /** Alle Rechnungen zeigen — sonst die jüngsten fünf; die Akte soll lesbar bleiben. */
+  const [alleRechnungen, setAlleRechnungen] = useState(false);
   const [wartungen, setWartungen] = useState<Teil<WithId<Wartung>[]>>(LAEDT);
   const [zuordnenLaeuft, setZuordnenLaeuft] = useState<string | null>(null);
   const [versuch, setVersuch] = useState(0);
@@ -108,9 +107,6 @@ export default function KundenakteView() {
   const darfBaustellenZuordnen = user ? isGF(user.role) : false;
   /** Rechnungen liest nur, wer sie auch stellt — so steht es im Zeilenschutz. */
   const darfRechnungen = user ? canInvoice(user.role) : false;
-  /* Die Wartungszeilen führen in die Wartungsliste — nur, wer sie öffnen darf
-     (die Buchhaltung sieht die Akte, aber nicht die Wartungen). */
-  const wartungenOffen = user ? canAccess(user.role, '/wartungen', company?.modules) : false;
   const heute = todayStr();
 
   useEffect(() => {
@@ -295,7 +291,7 @@ export default function KundenakteView() {
             alten Lesezeichen folgt, soll das erfahren und nicht auf einen
             Ladefehler schliessen.
           */}
-          <EmptyState action={<Link to="/customers" className="textlink">Zur Kundenliste</Link>}>
+          <EmptyState action={<Link to="/customers" className="text-brand underline">Zur Kundenliste</Link>}>
             Diesen Kunden gibt es nicht (mehr).
           </EmptyState>
         </Card>
@@ -306,17 +302,12 @@ export default function KundenakteView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        /*
-          DER RÜCKWEG ÜBER DEM TITEL, die Metazeile darunter (docs/design/
-          linie.md 1): Ansprechpartner · UID, soweit hinterlegt.
-        */
-        ueber={
-          <Link to="/customers" className="akte-zurueck">
+        title={k.name}
+        subtitle={
+          <Link to="/customers" className="inline-flex min-h-touch items-center text-brand underline">
             ← Zur Kundenliste
           </Link>
         }
-        title={k.name}
-        subtitle={[k.contactName, k.vatId].filter((x) => x?.trim()).join(' · ') || undefined}
         /*
           KEIN „BEARBEITEN"-KNOPF MEHR. Er führte in das Formular der
           Kundenliste — also aus der Akte heraus, um etwas zu ändern, das in
@@ -326,221 +317,210 @@ export default function KundenakteView() {
       />
 
       {/*
-        AM SCHREIBTISCH ZWEI SPALTEN (`.akte`): links, was den Kunden
-        ausmacht, rechts, was an ihm hängt — Baustellen, Wartungen,
-        Rechnungen, Angebote. Am Telefon und Tablet bleibt es eine Spalte in
-        derselben Reihenfolge.
+        DIE STAMMDATEN ZUERST. Sie sind der Grund, warum es diese Seite gibt:
+        E-Mail, UID und Notiz standen bisher in keiner Ansicht.
       */}
-      <div className="akte">
-        <div className="akte-links">
-          {/*
-            DIE STAMMDATEN ZUERST. Sie sind der Grund, warum es diese Seite gibt:
-            E-Mail, UID und Notiz standen bisher in keiner Ansicht.
-          */}
-          <Card title="Stammdaten">
-            {darfAendern && entwurf ? (
-              <StammdatenFormular
-                entwurf={entwurf}
-                setEntwurf={setEntwurf}
-                geaendert={geaendert}
-                speichert={speichert}
-                fehler={speicherFehler}
-                onSpeichern={() => void stammdatenSpeichern()}
-                onVerwerfen={() => setEntwurf(alsEntwurf(k))}
-              />
-            ) : (
-              <StammdatenLesen k={k} />
-            )}
-          </Card>
-        </div>
+      <Card title="Stammdaten">
+        {darfAendern && entwurf ? (
+          <StammdatenFormular
+            entwurf={entwurf}
+            setEntwurf={setEntwurf}
+            geaendert={geaendert}
+            speichert={speichert}
+            fehler={speicherFehler}
+            onSpeichern={() => void stammdatenSpeichern()}
+            onVerwerfen={() => setEntwurf(alsEntwurf(k))}
+          />
+        ) : (
+          <StammdatenLesen k={k} />
+        )}
+      </Card>
 
-        <div className="akte-rechts">
-          <Card title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
-            {baustellen.zustand === 'laedt' ? (
-              <SkeletonList rows={2} />
-            ) : baustellen.zustand === 'fehler' ? (
-              <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
-            ) : baustellen.daten.length === 0 ? (
-              <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
-            ) : (
-              <List>
-                {baustellen.daten
-                  .slice()
-                  .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
-                  .map((p) => (
-                    /* Die ganze Zeile führt zur Baustelle, der Status steht
-                       rechts als Marke (docs/design/linie.md 3). */
-                    <ListRow
-                      key={p.id}
-                      ziel={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
-                      title={p.projectNumber}
-                      subtitle={p.address ?? 'ohne Adresse'}
-                      zustand={<StatusBadge status={p.status} />}
-                    />
-                  ))}
-              </List>
-            )}
+      <Card title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
+        {baustellen.zustand === 'laedt' ? (
+          <SkeletonList rows={2} />
+        ) : baustellen.zustand === 'fehler' ? (
+          <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
+        ) : baustellen.daten.length === 0 ? (
+          <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
+        ) : (
+          <ul className="divide-y divide-line">
+            {baustellen.daten
+              .slice()
+              .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
+              .map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <Link
+                    to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
+                    className="truncate text-sm text-brand underline"
+                  >
+                    {p.projectNumber} · {p.address ?? 'ohne Adresse'}
+                  </Link>
+                  <StatusBadge status={p.status} />
+                </li>
+              ))}
+          </ul>
+        )}
 
-            {/*
-              Baustellen, die den Namen tragen, aber auf keinen Kunden zeigen.
-              Sie nur anzuzeigen wäre halb — der Knopf stellt die Verbindung her.
-            */}
-            {namensgleich.length > 0 && (
-              /* Mit Haarlinie abgesetzt statt in einem zweiten Rahmen —
-                 keine Karte in der Karte. */
-              <div className="akte-abschnitt">
-                <p className="text-sm text-warning">
-                  <strong>{namensgleich.length}</strong>{' '}
-                  {namensgleich.length === 1
-                    ? 'Baustelle trägt diesen Namen, ist'
-                    : 'Baustellen tragen diesen Namen, sind'}{' '}
-                  aber keinem Kunden zugeordnet.
-                </p>
-                <List>
-                  {namensgleich.map((p) => (
-                    <ListRow key={p.id} title={`${p.projectNumber} · ${p.address ?? 'ohne Adresse'}`}>
-                      {darfBaustellenZuordnen && (
-                        <Button
-                          variant="secondary"
-                          loading={zuordnenLaeuft === p.id}
-                          onClick={async () => {
-                            setZuordnenLaeuft(p.id);
-                            try {
-                              await assignProjectToCustomer(p.id, k.id, k.name);
-                              toast.success('Baustelle zugeordnet');
-                              setVersuch((v) => v + 1);
-                            } catch (err) {
-                              toast.error(grundAus(err, 'Die Zuordnung ist fehlgeschlagen.'));
-                            } finally {
-                              setZuordnenLaeuft(null);
-                            }
-                          }}
-                        >
-                          Zuordnen
-                        </Button>
-                      )}
-                    </ListRow>
-                  ))}
-                </List>
-              </div>
-            )}
-
-            {darfBaustellenZuordnen &&
-              baustellen.zustand === 'bereit' &&
-              baustellen.daten.length === 0 &&
-              namensgleich.length === 0 && (
-                <p className="mt-2 text-xs text-ink-muted">
-                  Gesucht wurde nach exakt „{k.name}". Bei abweichender Schreibweise hilft
-                  „Bestehende Baustellen übernehmen" in der Kundenliste.
-                </p>
-              )}
-          </Card>
-
-          {wartungAn && (
-            <Card title="Wartungen">
-              {wartungen.zustand === 'laedt' ? (
-                <SkeletonList rows={1} />
-              ) : wartungen.zustand === 'fehler' ? (
-                <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
-              ) : wartungen.daten.length === 0 ? (
-                <EmptyState>Keine Wartungsvereinbarung.</EmptyState>
-              ) : (
-                <List>
-                  {wartungen.daten.map((w) => {
-                    const u = beurteile(w, heute);
-                    return (
-                      /*
-                        DER ZUSTAND STEHT UNTER DEM NAMEN, nicht rechts. Er
-                        ist ein ganzer Satz („Seit 5 Tagen überfällig.") — rechts
-                        in der Zeile liess er der Anlage am Telefon kaum Platz,
-                        und ihr Name brach mitten im Wort.
-                      */
-                      <ListRow
-                        key={w.id}
-                        ziel={wartungenOffen ? '/wartungen' : undefined}
-                        title={w.anlage}
-                        subtitle={
-                          <>
-                            {/* Der Zustand in eigener Zeile unter der Anlage:
-                                im Titel der Pfeilzeile klebte er am Namen. */}
-                            <span className="block">
-                              <Zustand
-                                stand={
-                                  u.stand === 'überfällig'
-                                    ? 'schlecht'
-                                    : u.stand === 'fällig'
-                                      ? 'achtung'
-                                      : 'ruht'
-                                }
-                              >
-                                {u.stand === 'ruht' ? 'ruht' : u.text}
-                              </Zustand>
-                            </span>
-                            alle {w.intervallMonate} Monate · Termin {fmtDatum(w.faelligAm)}
-                          </>
+        {/*
+          Baustellen, die den Namen tragen, aber auf keinen Kunden zeigen.
+          Sie nur anzuzeigen wäre halb — der Knopf stellt die Verbindung her.
+        */}
+        {namensgleich.length > 0 && (
+          <div className="mt-4 rounded border border-line bg-surface-2 p-3">
+            <p className="text-sm text-warning">
+              <strong>{namensgleich.length}</strong>{' '}
+              {namensgleich.length === 1
+                ? 'Baustelle trägt diesen Namen, ist'
+                : 'Baustellen tragen diesen Namen, sind'}{' '}
+              aber keinem Kunden zugeordnet.
+            </p>
+            <ul className="mt-2 space-y-2">
+              {namensgleich.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="truncate text-sm text-ink">
+                    {p.projectNumber} · {p.address ?? 'ohne Adresse'}
+                  </span>
+                  {darfBaustellenZuordnen && (
+                    <Button
+                      variant="secondary"
+                      loading={zuordnenLaeuft === p.id}
+                      onClick={async () => {
+                        setZuordnenLaeuft(p.id);
+                        try {
+                          await assignProjectToCustomer(p.id, k.id, k.name);
+                          toast.success('Baustelle zugeordnet');
+                          setVersuch((v) => v + 1);
+                        } catch (err) {
+                          toast.error(grundAus(err, 'Die Zuordnung ist fehlgeschlagen.'));
+                        } finally {
+                          setZuordnenLaeuft(null);
                         }
-                      />
-                    );
-                  })}
-                </List>
-              )}
-            </Card>
-          )}
-
-          {rechnungenAn && darfRechnungen && (
-            <Card title="Rechnungen">
-              {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
-                <SkeletonList rows={1} />
-              ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
-                <TeilFehler was="die Rechnungen" onRetry={() => setVersuch((v) => v + 1)} />
-              ) : rechnungen.daten.length === 0 ? (
-                <EmptyState>Noch keine Rechnung.</EmptyState>
-              ) : (
-                <Grenzliste
-                  eintraege={rechnungen.daten}
-                  grenze={RECHNUNGEN_KURZ}
-                  mehr={{ aufklappen: true }}
-                  zeile={(r) => (
-                    <ListRow
-                      key={r.id}
-                      ziel={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
-                      title={r.invoiceNumber}
-                      subtitle={`${fmtDatum(r.invoiceDate)} · ${r.projectNumber}`}
-                      wert={`${euro(r.totalBrutto)} brutto`}
-                      zustand={<StatusBadge status={r.paymentStatus} />}
-                    />
+                      }}
+                    >
+                      Zuordnen
+                    </Button>
                   )}
-                />
-              )}
-            </Card>
-          )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-          {angeboteAn && (
-            <Card title="Angebote">
-              {angebote.zustand === 'laedt' ? (
-                <SkeletonList rows={1} />
-              ) : angebote.zustand === 'fehler' ? (
-                <TeilFehler was="die Angebote" onRetry={() => setVersuch((v) => v + 1)} />
-              ) : angebote.daten.length === 0 ? (
-                <EmptyState>Noch kein Angebot.</EmptyState>
-              ) : (
-                <List>
-                  {angebote.daten.map((q) => (
-                    <ListRow
-                      key={q.id}
-                      ziel={`/quotes/${q.id}`}
-                      title={q.quoteNumber}
-                      subtitle={datumAT(q.quoteDate)}
-                      wert={`${euro(q.totalNetto)} netto`}
-                      zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
-                    />
-                  ))}
-                </List>
-              )}
-            </Card>
+        {darfBaustellenZuordnen &&
+          baustellen.zustand === 'bereit' &&
+          baustellen.daten.length === 0 &&
+          namensgleich.length === 0 && (
+            <p className="mt-2 text-xs text-ink-muted">
+              Gesucht wurde nach exakt „{k.name}". Bei abweichender Schreibweise hilft
+              „Bestehende Baustellen übernehmen" in der Kundenliste.
+            </p>
           )}
-        </div>
-      </div>
+      </Card>
+
+      {wartungAn && (
+        <Card title="Wartungen">
+          {wartungen.zustand === 'laedt' ? (
+            <SkeletonList rows={1} />
+          ) : wartungen.zustand === 'fehler' ? (
+            <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
+          ) : wartungen.daten.length === 0 ? (
+            <EmptyState>Keine Wartungsvereinbarung.</EmptyState>
+          ) : (
+            <ul className="divide-y divide-line">
+              {wartungen.daten.map((w) => {
+                const u = beurteile(w, heute);
+                return (
+                  <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <span className="min-w-0 text-sm text-ink">
+                      {w.anlage}
+                      <span className="block text-xs text-ink-muted">
+                        alle {w.intervallMonate} Monate · Termin {fmtDatum(w.faelligAm)}
+                      </span>
+                    </span>
+                    <Zustand
+                      stand={
+                        u.stand === 'überfällig'
+                          ? 'schlecht'
+                          : u.stand === 'fällig'
+                            ? 'achtung'
+                            : 'ruht'
+                      }
+                    >
+                      {u.stand === 'ruht' ? 'ruht' : u.text}
+                    </Zustand>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Card>
+      )}
+
+      {rechnungenAn && darfRechnungen && (
+        <Card title="Rechnungen">
+          {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
+            <SkeletonList rows={1} />
+          ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
+            <TeilFehler was="die Rechnungen" onRetry={() => setVersuch((v) => v + 1)} />
+          ) : rechnungen.daten.length === 0 ? (
+            <EmptyState>Noch keine Rechnung.</EmptyState>
+          ) : (
+            <>
+            <ul className="divide-y divide-line">
+              {(alleRechnungen ? rechnungen.daten : rechnungen.daten.slice(0, RECHNUNGEN_KURZ)).map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span className="min-w-0 text-sm">
+                    <Link
+                      to={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
+                      className="text-brand underline"
+                    >
+                      {r.invoiceNumber}
+                    </Link>
+                    <span className="ml-2 whitespace-nowrap text-xs text-ink-muted">
+                      {fmtDatum(r.invoiceDate)} · {r.projectNumber}
+                    </span>
+                  </span>
+                  <span className="tnum whitespace-nowrap text-sm text-ink-muted">
+                    {fmtEUR(r.totalBrutto)} brutto · {r.paymentStatus}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {rechnungen.daten.length > RECHNUNGEN_KURZ && (
+              <Button variant="ghost" className="mt-2" onClick={() => setAlleRechnungen((a) => !a)}>
+                {alleRechnungen ? 'Nur die jüngsten zeigen' : `Alle ${rechnungen.daten.length} zeigen`}
+              </Button>
+            )}
+            </>
+          )}
+        </Card>
+      )}
+
+      {angeboteAn && (
+        <Card title="Angebote">
+          {angebote.zustand === 'laedt' ? (
+            <SkeletonList rows={1} />
+          ) : angebote.zustand === 'fehler' ? (
+            <TeilFehler was="die Angebote" onRetry={() => setVersuch((v) => v + 1)} />
+          ) : angebote.daten.length === 0 ? (
+            <EmptyState>Noch kein Angebot.</EmptyState>
+          ) : (
+            <ul className="divide-y divide-line">
+              {angebote.daten.map((q) => (
+                <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <Link to={`/quotes/${q.id}`} className="truncate text-sm text-brand underline">
+                    {q.quoteNumber}
+                  </Link>
+                  <span className="tnum text-sm text-ink-muted">
+                    {fmtEUR(q.totalNetto)} netto · {q.status}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
     </div>
   );
 }
@@ -577,20 +557,20 @@ function StammdatenLesen({ k }: { k: Customer }) {
     <>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         <Angabe wort="Rechnungsadresse">
-          {k.address ? <AdresseLink adresse={k.address} variante="chip" /> : null}
+          {k.address ? <AdresseLink adresse={k.address} /> : null}
         </Angabe>
         <Angabe wort="Ansprechpartner">{k.contactName}</Angabe>
         <Angabe wort="Telefon">
-          {k.contactPhone ? <TelefonLink nummer={k.contactPhone} variante="chip" /> : null}
+          {k.contactPhone ? <TelefonLink nummer={k.contactPhone} name={k.contactName} /> : null}
         </Angabe>
-        <Angabe wort="E-Mail">{k.email ? <MailLink adresse={k.email} variante="chip" /> : null}</Angabe>
+        <Angabe wort="E-Mail">{k.email ? <MailLink adresse={k.email} /> : null}</Angabe>
         {/*
           Die UID gehört auf jede Rechnung an ein Unternehmen. Sie war bisher
           nur in der Bearbeitungsmaske zu sehen — also genau dort, wo man sie
           versehentlich ändert, während man sie nachsieht.
         */}
         <Angabe wort="UID-Nummer">
-          {k.vatId ? <span>{k.vatId}</span> : null}
+          {k.vatId ? <span className="tnum">{k.vatId}</span> : null}
         </Angabe>
         <Angabe wort="Zustand">
           {k.active === false
@@ -665,12 +645,12 @@ function StammdatenFormular({
         />
       </FormGrid>
 
-      <div className="feld-block">
-        <label htmlFor="k-notiz" className="feld-name">Notiz</label>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="k-notiz" className="text-sm font-medium text-ink">Notiz</label>
         <textarea
           id="k-notiz"
           rows={3}
-          className="feld"
+          className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
           value={entwurf.notes ?? ''}
           onChange={(e) => setze('notes', e.target.value)}
         />
@@ -689,9 +669,9 @@ function StammdatenFormular({
 
       {(entwurf.address || entwurf.contactPhone || entwurf.email) && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-          <AdresseLink adresse={entwurf.address} variante="chip" />
-          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="chip" />
-          <MailLink adresse={entwurf.email} variante="chip" />
+          <AdresseLink adresse={entwurf.address} variante="knopf" />
+          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
+          <MailLink adresse={entwurf.email} variante="knopf" />
         </div>
       )}
 
@@ -704,19 +684,17 @@ function StammdatenFormular({
         Hilfe.
       */}
       {geaendert && (
-        <Meldung ton="info">
-          <div className="flex flex-wrap items-center gap-3">
-            <span>Es gibt ungespeicherte Änderungen.</span>
-            <div className="ml-auto flex gap-2">
-              <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
-                Verwerfen
-              </Button>
-              <Button onClick={onSpeichern} loading={speichert}>
-                Speichern
-              </Button>
-            </div>
+        <div className="flex flex-wrap items-center gap-3 rounded border border-brand-fixed/40 bg-info-bg p-3">
+          <span className="text-sm text-ink">Es gibt ungespeicherte Änderungen.</span>
+          <div className="ml-auto flex gap-2">
+            <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
+              Verwerfen
+            </Button>
+            <Button onClick={onSpeichern} loading={speichert}>
+              Speichern
+            </Button>
           </div>
-        </Meldung>
+        </div>
       )}
     </div>
   );

@@ -15,9 +15,7 @@ import type { Project, AppUser, Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { Zustand } from '@/components/Badge';
-import { List, ListRow } from '@/components/ListRow';
-import { STAND } from '@/features/quotes/stand';
+import { Marke } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
 import PageHeader from '@/components/PageHeader';
 import PersonPicker from '@/components/PersonPicker';
@@ -27,8 +25,6 @@ import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
-import Meldung from '@/components/Meldung';
-import Aktionsleiste from '@/components/Aktionsleiste';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { fmtStunden } from '@/lib/time';
@@ -313,7 +309,7 @@ export default function BaustellenakteView() {
             Ladefehler schliessen.
           */}
           <EmptyState
-            action={<Link to="/admin-projects" className="textlink-allein">Zur Baustellenliste</Link>}
+            action={<Link to="/admin-projects" className="text-brand underline">Zur Baustellenliste</Link>}
           >
             Diese Baustelle gibt es nicht (mehr).
           </EmptyState>
@@ -325,140 +321,37 @@ export default function BaustellenakteView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        /*
-          DER RÜCKWEG ÜBER DEM TITEL, darunter die Metazeile „Nummer ·
-          Abrechnung · Budget“ und der Status als Marke (docs/design/linie.md 1).
-        */
-        ueber={
-          <Link to="/admin-projects" className="akte-zurueck">
-            ← Zur Baustellenliste
-          </Link>
-        }
         title={b.customerName}
         subtitle={
-          <>
-            {[
-              b.projectNumber,
-              b.billingMode,
-              b.estimatedHours ? `${fmtStunden(b.estimatedHours)} h Budget` : null,
-            ]
-              .filter(Boolean)
-              .join(' · ')}{' '}
-            · <StatusBadge status={b.status} />
-          </>
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <Link to="/admin-projects" className="inline-flex min-h-touch items-center text-brand underline">← Zur Baustellenliste</Link>
+            <span className="tnum text-ink-muted">{b.projectNumber}</span>
+            <StatusBadge status={b.status} />
+            {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
+          </span>
         }
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      {/*
-        AM SCHREIBTISCH ZWEI SPALTEN (`.akte`): links die Baustelle selbst —
-        Stammdaten mit Beschreibung, Budget und Team —, rechts, was auf ihr
-        entsteht: Pläne, Stunden und die Wege zu Kunde, Angebot und Schein.
-        Am Telefon und Tablet bleibt es eine Spalte in derselben Reihenfolge.
-      */}
-      <div className="akte">
-        <div className="akte-links">
-          <Card title="Stammdaten">
-            {darfAendern && entwurf ? (
-              <StammdatenFormular
-                entwurf={entwurf}
-                setEntwurf={setEntwurf}
-                kunden={kunden}
-                staff={staff}
-                leads={leads}
-                geaendert={geaendert}
-                speichert={speichert}
-                fehler={speicherFehler}
-                onSpeichern={() => void stammdatenSpeichern()}
-                onVerwerfen={() => setEntwurf(alsEntwurf(b))}
-              />
-            ) : (
-              <StammdatenLesen b={b} namen={namen} />
-            )}
-          </Card>
-        </div>
-
-        <div className="akte-rechts">
-          {user && (
-            <Card
-              title="Pläne und Dokumente"
-              hint={
-                'PDF und Bilder bis 25 MB. Sichtbar für das Büro und für die Monteure, die im ' +
-                'Team dieser Baustelle stehen oder dort eingeteilt sind — sie finden sie unter ' +
-                '„Meine Baustellen" und im Einsatzplan. Pläne aus einem CAD-Programm bitte als ' +
-                'PDF exportieren.'
-              }
-            >
-              <BaustellenPlaene
-                companyId={user.companyId}
-                projectId={b.id}
-                darfAendern={darfAendern}
-                meinName={user.name}
-              />
-            </Card>
-          )}
-
-          {/*
-            DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
-            Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
-            Ort, der eine Adresse hat.
-          */}
-          <Card title="Stunden auf dieser Baustelle">
-            {user && (
-              <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
-                <BaustellenUebersicht companyId={user.companyId} projekt={b} />
-              </Suspense>
-            )}
-          </Card>
-
-          {/*
-            DIE WEGE ALS ZEILEN MIT PFEIL (docs/design/linie.md 3): Kunde,
-            Angebot, Schein — die ganze Zeile ist die Tastfläche. Bis zum
-            25.09.2026 standen sie als unterstrichene Links nebeneinander.
-          */}
-          <Card title="Weiter">
-            <List>
-              {b.customerId ? (
-                <ListRow
-                  ziel={`/customers/${b.customerId}`}
-                  title="Zur Kundenakte"
-                  subtitle={b.customerName}
-                />
-              ) : (
-                /*
-                  Altbestand: die Baustelle trägt einen Kundennamen, aber keine
-                  Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
-                  wie „gibt es nicht" aussehen zu lassen.
-                */
-                <ListRow
-                  title="Kundenakte"
-                  subtitle={
-                    <span className="text-warning">
-                      Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
-                    </span>
-                  }
-                />
-              )}
-              {angebote.map((q) => (
-                <ListRow
-                  key={q.id}
-                  ziel={`/quotes/${q.id}`}
-                  title={`Angebot ${q.quoteNumber}`}
-                  zustand={q.status ? <Zustand stand={STAND[q.status]}>{q.status}</Zustand> : undefined}
-                />
-              ))}
-              {scheineAn && (
-                <ListRow
-                  ziel={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-                  title="Handwerksschein schreiben"
-                  subtitle={b.projectNumber}
-                />
-              )}
-            </List>
-          </Card>
-        </div>
-      </div>
+      <Card title="Stammdaten">
+        {darfAendern && entwurf ? (
+          <StammdatenFormular
+            entwurf={entwurf}
+            setEntwurf={setEntwurf}
+            kunden={kunden}
+            staff={staff}
+            leads={leads}
+            geaendert={geaendert}
+            speichert={speichert}
+            fehler={speicherFehler}
+            onSpeichern={() => void stammdatenSpeichern()}
+            onVerwerfen={() => setEntwurf(alsEntwurf(b))}
+          />
+        ) : (
+          <StammdatenLesen b={b} namen={namen} />
+        )}
+      </Card>
 
       <ConfirmDialog
         open={!!nummerFragen}
@@ -476,6 +369,62 @@ export default function BaustellenakteView() {
           void stammdatenSpeichern(true);
         }}
       />
+
+      {user && (
+        <Card title="Pläne und Dokumente">
+          <BaustellenPlaene
+            companyId={user.companyId}
+            projectId={b.id}
+            darfAendern={darfAendern}
+            meinName={user.name}
+          />
+        </Card>
+      )}
+
+      {/*
+        DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
+        Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
+        Ort, der eine Adresse hat.
+      */}
+      <Card title="Stunden auf dieser Baustelle">
+        {user && (
+          <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
+            <BaustellenUebersicht companyId={user.companyId} projekt={b} />
+          </Suspense>
+        )}
+      </Card>
+
+      <Card title="Weiter">
+        <div className="flex flex-wrap gap-3">
+          {b.customerId ? (
+            <Link to={`/customers/${b.customerId}`} className="text-brand underline">
+              Zur Kundenakte
+            </Link>
+          ) : (
+            /*
+              Altbestand: die Baustelle trägt einen Kundennamen, aber keine
+              Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
+              wie „gibt es nicht" aussehen zu lassen.
+            */
+            <span className="text-sm text-warning">
+              Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
+            </span>
+          )}
+          {angebote.map((q) => (
+            <Link key={q.id} to={`/quotes/${q.id}`} className="text-brand underline">
+              Angebot {q.quoteNumber}
+            </Link>
+          ))}
+          {scheineAn && (
+            <Link
+              to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
+              className="text-brand underline"
+            >
+              Handwerksschein schreiben
+            </Link>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }
@@ -487,15 +436,15 @@ function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> 
   return (
     <>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-        <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
+        <Angabe wort="Projektnummer"><span className="tnum">{b.projectNumber}</span></Angabe>
         <Angabe wort="Kunde">{b.customerName}</Angabe>
         <Angabe wort="Baustellenadresse">
-          {b.address ? <AdresseLink adresse={b.address} variante="chip" /> : null}
+          {b.address ? <AdresseLink adresse={b.address} /> : null}
         </Angabe>
         <Angabe wort="Abrechnung">{b.billingMode}</Angabe>
         <Angabe wort="Ansprechpartner vor Ort">{b.contactName}</Angabe>
         <Angabe wort="Telefon vor Ort">
-          {b.contactPhone ? <TelefonLink nummer={b.contactPhone} variante="chip" /> : null}
+          {b.contactPhone ? <TelefonLink nummer={b.contactPhone} name={b.contactName} /> : null}
         </Angabe>
         <Angabe wort="Beginn">{fmtDatum(b.startDate)}</Angabe>
         <Angabe wort="Ende (geplant)">{fmtDatum(b.endDate)}</Angabe>
@@ -575,7 +524,7 @@ function StammdatenFormular({
           <p className="text-sm text-warning sm:col-span-2">
             Bisher als Text hinterlegt: „{entwurf.customerName}". Bitte den passenden Kunden
             wählen — oder in der{' '}
-            <Link to="/customers" className="textlink">Kundenverwaltung</Link>{' '}
+            <Link to="/customers" className="font-semibold underline">Kundenverwaltung</Link>{' '}
             anlegen.
           </p>
         )}
@@ -634,14 +583,14 @@ function StammdatenFormular({
       </FormGrid>
       <BetriebsurlaubHinweis companyId={companyId} von={entwurf.startDate} bis={entwurf.endDate} />
 
-      <div className="feld-block">
-        <label htmlFor="b-beschreibung" className="feld-name">
+      <div className="flex flex-col gap-1">
+        <label htmlFor="b-beschreibung" className="text-sm font-medium text-ink">
           Beschreibung / Auftragsumfang
         </label>
         <textarea
           id="b-beschreibung"
           rows={3}
-          className="feld"
+          className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
           value={entwurf.description}
           onChange={(e) => setze('description', e.target.value)}
         />
@@ -666,36 +615,34 @@ function StammdatenFormular({
       {/* Ohne Zuständige läuft eine Eilbestellung ins Leere — das gehört
           gesagt, nicht erst, wenn ein Monteur wartet. */}
       {entwurf.projectManagers.length === 0 && (
-        <Meldung ton="warnung">
+        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
           Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
           niemanden. Die Verwaltung wird weiterhin verständigt.
-        </Meldung>
+        </p>
       )}
 
       {(entwurf.address || entwurf.contactPhone) && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-          <AdresseLink adresse={entwurf.address} variante="chip" />
-          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="chip" />
+          <AdresseLink adresse={entwurf.address} variante="knopf" />
+          <TelefonLink nummer={entwurf.contactPhone} name={entwurf.contactName} variante="knopf" />
         </div>
       )}
 
-      {fehler && <Meldung ton="gefahr" role="alert">{fehler}</Meldung>}
+      {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
 
       {/*
-        DIE LEISTE ERSCHEINT ERST BEI EINER ÄNDERUNG. Am Telefon ist das
-        Formular mehrere Bildschirme lang; die Aktionsleiste klebt dort ÜBER
-        der Tableiste, nicht auf ihr — so ist „Speichern" erreichbar, ohne
-        dass zwei Balken übereinanderliegen. Am Schreibtisch steht sie am
-        Ende des Formulars.
+        DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — und er steht IN der
+        Karte, nicht fest am unteren Rand. Dort sitzt am Telefon bereits die
+        Tableiste; zwei Balken übereinander wären eine Falle statt einer Hilfe.
       */}
       {geaendert && (
-        <Aktionsleiste>
+        <div className="flex flex-wrap items-center gap-3 rounded border border-brand-fixed/40 bg-info-bg p-3">
           <span className="text-sm text-ink">Es gibt ungespeicherte Änderungen.</span>
           <div className="ml-auto flex gap-2">
             <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>Verwerfen</Button>
             <Button onClick={onSpeichern} loading={speichert}>Speichern</Button>
           </div>
-        </Aktionsleiste>
+        </div>
       )}
     </div>
   );

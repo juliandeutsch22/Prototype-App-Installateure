@@ -30,7 +30,7 @@ export default function ImpressumView() {
         <p>Gewerbe und Aufsicht: {BETREIBER.gewerbe}</p>
         <p>
           Anwendbare Vorschriften: Gewerbeordnung, abrufbar unter{' '}
-          <a href="https://www.ris.bka.gv.at" className="textlink" rel="noreferrer" target="_blank">
+          <a href="https://www.ris.bka.gv.at" className="underline underline-offset-2" rel="noreferrer" target="_blank">
             www.ris.bka.gv.at
           </a>
           .

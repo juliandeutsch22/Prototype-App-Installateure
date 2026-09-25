@@ -5,7 +5,6 @@ import type { Project } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { SelectField } from '@/components/Field';
 import Button from '@/components/Button';
-import Meldung from '@/components/Meldung';
 
 /**
  * Auswahl einer Baustelle — überall dort, wo eine gebraucht wird.
@@ -151,8 +150,8 @@ export default function BaustellenSelect({
 
   if (zustand === 'fehler') {
     return (
-      <Meldung ton="gefahr">
-        <p>
+      <div className="rounded-sm border border-line bg-surface-2 px-3 py-2">
+        <p className="text-sm text-danger">
           Die Baustellen konnten nicht geladen werden. Ohne sie lässt sich hier nichts auswählen.
         </p>
         <div className="mt-2">
@@ -160,7 +159,7 @@ export default function BaustellenSelect({
             Erneut versuchen
           </Button>
         </div>
-      </Meldung>
+      </div>
     );
   }
 
@@ -233,12 +232,10 @@ export default function BaustellenSelect({
       </SelectField>
 
       {zustand === 'bereit' && projekte.length === 0 && (
-        <div className="mt-2">
-          <Meldung ton="warnung">
-            Es ist noch keine Baustelle angelegt. Sie entsteht entweder direkt unter „Baustellen"
-            oder automatisch, sobald ein Angebot angenommen wird.
-          </Meldung>
-        </div>
+        <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+          Es ist noch keine Baustelle angelegt. Sie entsteht entweder direkt unter „Baustellen"
+          oder automatisch, sobald ein Angebot angenommen wird.
+        </p>
       )}
       {ausweich && (
         <p className="mt-2 text-sm text-ink-muted">
@@ -254,12 +251,10 @@ export default function BaustellenSelect({
         erscheint.
       */}
       {angeschnitten && (
-        <div className="mt-2">
-          <Meldung ton="warnung">
-            Es werden nur die ersten {projekte.length} laufenden Baustellen angeboten. Fehlt eine,
-            ist sie unter „Baustellen" zu finden — von dort führt ein Weg direkt hierher.
-          </Meldung>
-        </div>
+        <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+          Es werden nur die ersten {projekte.length} laufenden Baustellen angeboten. Fehlt eine,
+          ist sie unter „Baustellen" zu finden — von dort führt ein Weg direkt hierher.
+        </p>
       )}
     </div>
   );

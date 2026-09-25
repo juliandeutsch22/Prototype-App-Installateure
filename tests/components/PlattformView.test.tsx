@@ -24,12 +24,6 @@ vi.mock('@/lib/db/fehlerprotokoll', () => ({
   plattformFehler: (...a: unknown[]) => plattformFehler(...a),
 }));
 
-const offeneFreigaben = vi.fn();
-vi.mock('@/lib/db/support', () => ({
-  offeneFreigaben: () => offeneFreigaben(),
-  notzugang: vi.fn(),
-}));
-
 const abmelden = vi.fn();
 vi.mock('@/app/AuthContext', () => ({
   useAuth: () => ({ signOut: abmelden }),
@@ -60,21 +54,6 @@ beforeEach(() => {
     companyId: 'perl', ersterAdminUid: 'neu1', passwortLink: 'https://x.invalid/pw',
   });
   abmelden.mockClear();
-  offeneFreigaben.mockReset();
-  offeneFreigaben.mockResolvedValue([]);
-});
-
-describe('Einblick gewährt', () => {
-  it('nennt die Frist mit vollem Datum, wie überall in der App', async () => {
-    offeneFreigaben.mockResolvedValue([
-      {
-        id: 'f1', company_id: 'perl', name: 'Perl Installationen', grund: 'Rechnung hängt',
-        notzugang: false, stufe: 'ansehen', gilt_bis: '2026-09-26T16:00:00Z',
-      },
-    ]);
-    zeige();
-    expect(await screen.findByText(/Rechnung hängt · bis 26\.09\.2026/)).toBeInTheDocument();
-  });
 });
 
 describe('Die Plattformseite', () => {

@@ -2,14 +2,11 @@ import {
   forwardRef,
   useCallback,
   useEffect,
-  useId,
   useImperativeHandle,
   useRef,
   useState,
 } from 'react';
-import { createPortal } from 'react-dom';
 import Button from './Button';
-import { unterschriftBild, unterschriftMalen, EXPORT_BREITE, EXPORT_HOEHE, type Punkt } from './unterschriftExport';
 
 /**
  * Unterschriftsfeld für Finger oder Stift.
@@ -58,23 +55,6 @@ import { unterschriftBild, unterschriftMalen, EXPORT_BREITE, EXPORT_HOEHE, type 
  * `preventDefault()` wirkt nur in einem NICHT-passiven Listener, und React
  * meldet Berührungsereignisse an der Wurzel als passiv an. Ohne das scrollt
  * die Seite unter dem Finger weg, statt dass er zeichnet — deshalb nativ.
- *
- *
- * DAS BILD ENTSTEHT AUF EINER FESTEN FLÄCHE (`unterschriftExport.ts`)
- * -------------------------------------------------------------------
- * `bildLesen` liest nicht mehr die angezeigte Zeichenfläche aus, sondern
- * malt die Striche auf 700 × 250 Pixel — das Seitenverhältnis des Felds im
- * PDF. Damit darf die Zeichenfläche so groß sein, wie es sich am besten
- * unterschreibt, ohne dass sich das Bild auf dem Schein verzerrt.
- *
- * AM TELEFON EIN BLATT (`blatt`). Die Kachel im Formular öffnet die
- * Zeichenfläche bildschirmfüllend, im Querformat mit der ganzen Breite
- * (Mockup S. 6). GEDREHT WIRD NICHT PER CSS: eine um 90° gedrehte Fläche
- * verlangte, jede Fingerposition zurückzurechnen, und hinge an Eigenheiten
- * von Safari und der sicheren Zone. Das Blatt nimmt die Lage des Geräts, wie
- * sie ist; im Hochformat steht ein Hinweis, es quer zu halten —
- * unterschreiben geht auch so. Das Blatt hängt per Portal an `body`, damit
- * es auch dann steht, wenn das Formular dahinter einen Teil ausblendet.
  */
 
 export interface SignaturePadHandle {
@@ -88,13 +68,11 @@ interface Props {
   /** Meldet, OB unterschrieben ist. Bewusst kein Bild: siehe oben. */
   onChange: (hatUnterschrift: boolean) => void;
   disabled?: boolean;
-  /**
-   * Statt eines Felds im Formular eine Kachel, die die Zeichenfläche als
-   * großes Blatt öffnet — für Telefon und Tablet.
-   */
-  blatt?: boolean;
-  /** Metazeile im Kopf des Blatts („KUNDE · Nummer · 17:00 Std“). */
-  meta?: string;
+}
+
+interface Punkt {
+  x: number;
+  y: number;
 }
 
 /*
@@ -108,20 +86,10 @@ const MIN_BREITE = 40;
 const MIN_HOEHE = 12;
 
 const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad(
-  { titel, onChange, disabled = false, blatt = false, meta },
+  { titel, onChange, disabled = false },
   ref,
 ) {
-  /** Die Fläche, auf der gerade gezeichnet wird — im Formular oder im Blatt. */
   const [feld, setFeld] = useState<HTMLCanvasElement | null>(null);
-  /** Nur mit `blatt`: ist die große Zeichenfläche offen? */
-  const [offen, setOffen] = useState(false);
-  /** Die Vorschau in der Kachel — gemalt wie das Bild für den Schein. */
-  const [vorschau, setVorschau] = useState<HTMLCanvasElement | null>(null);
-  /** Zählt jedes Schliessen und Leeren: danach gehört die Vorschau neu gemalt. */
-  const [fassung, setFassung] = useState(0);
-  const kachel = useRef<HTMLButtonElement>(null);
-  const fertigKnopf = useRef<HTMLButtonElement>(null);
-  const blattTitel = useId();
   const [hatStriche, setHatStriche] = useState(false);
   /** Genug für eine Unterschrift — siehe `MIN_BREITE`. */
   const [reicht, setReicht] = useState(false);
@@ -206,10 +174,6 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
    */
   useEffect(() => {
     if (!feld) return;
-    // Eine NEUE Fläche (das Blatt ist neu aufgegangen) hat ihre Grundgröße
-    // von 300 × 150 und muss eingerichtet werden, auch wenn die vorige
-    // zufällig gleich groß war.
-    flaeche.current = { w: 0, h: 0 };
 
     const anpassen = () => {
       const rect = feld.getBoundingClientRect();
@@ -399,15 +363,15 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
   useImperativeHandle(
     ref,
     () => ({
-      /*
-        Aus den Strichen, nicht aus der Anzeige: die feste Exportfläche
-        braucht kein eingehängtes Canvas. Das Bild entsteht deshalb auch
-        dann, wenn das Blatt längst wieder zu ist — oder das Canvas vom
-        Browser geleert wurde.
-      */
-      bildLesen: () => unterschriftBild(striche.current),
+      bildLesen: () => {
+        if (!feld || striche.current.length === 0) return null;
+        // Vor dem Lesen neu malen: falls die Fläche zwischenzeitlich geleert
+        // wurde, stünde sonst eine leere Unterschrift auf dem Schein.
+        neuMalen();
+        return feld.toDataURL('image/png');
+      },
     }),
-    [],
+    [feld, neuMalen],
   );
 
   const leeren = useCallback(() => {
@@ -416,62 +380,9 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
     rahmen.current = { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity };
     setHatStriche(false);
     setReicht(false);
-    setFassung((f) => f + 1);
     neuMalen();
     onChange(false);
   }, [neuMalen, onChange]);
-
-  /** Das Blatt schliessen — der Fokus geht zurück an die Kachel. */
-  const schliessen = useCallback(() => {
-    setOffen(false);
-    setFassung((f) => f + 1);
-    kachel.current?.focus();
-  }, []);
-
-  /*
-    SOLANGE DAS BLATT OFFEN IST, steht die Seite dahinter still (sonst
-    scrollte sie auf iOS unter dem Blatt mit), „Fertig" hat den Fokus, und
-    Escape schliesst wie bei jedem Dialog.
-  */
-  useEffect(() => {
-    if (!offen) return;
-    const vorher = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    fertigKnopf.current?.focus();
-    const taste = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') schliessen();
-    };
-    window.addEventListener('keydown', taste);
-    return () => {
-      document.body.style.overflow = vorher;
-      window.removeEventListener('keydown', taste);
-    };
-  }, [offen, schliessen]);
-
-  /* Die Vorschau in der Kachel: dieselbe Zeichnung wie das Bild im Schein. */
-  useEffect(() => {
-    if (!vorschau) return;
-    vorschau.width = EXPORT_BREITE;
-    vorschau.height = EXPORT_HOEHE;
-    const c = vorschau.getContext('2d');
-    if (c) unterschriftMalen(c, striche.current);
-  }, [vorschau, fassung]);
-
-  const loeschbar = hatStriche && !disabled;
-  const zuWenig = hatStriche && !reicht;
-  /** Die Zeichenfläche selbst — im Formular oder im Blatt, dieselben Eigenschaften. */
-  const zeichenflaeche = (klasse: string) => (
-    <canvas
-      ref={setFeld}
-      // `touch-none` steht zusätzlich in der Klasse. Hier noch einmal fest
-      // am Element: ohne diese eine Eigenschaft bricht der Browser die
-      // Geste nach dem ersten Zug ab, und eine Klasse kann ein Build
-      // verlieren.
-      style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
-      className={klasse}
-      aria-label={`${titel} — mit dem Finger oder einem Stift unterschreiben`}
-    />
-  );
 
   return (
     <div>
@@ -482,125 +393,42 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
         Anfang der Unterschrift landete daneben oder ausserhalb. Nachgemessen:
         der erste Strich hinterliess dadurch ein Drittel weniger als jeder
         folgende. Ein Eingabefeld darf sich unter dem Finger nicht bewegen.
-
-        „Löschen" statt „Neu zeichnen" — wie im Entwurf (Mockup S. 6 und 8).
       */}
-      <div className="unterschrift-kopfzeile">
+      <div className="flex min-h-touch items-center justify-between">
         <span className="section-label">{titel}</span>
         <Button
           type="button"
           variant="ghost"
           onClick={leeren}
-          className={loeschbar ? undefined : 'invisible'}
-          tabIndex={loeschbar ? undefined : -1}
-          aria-hidden={loeschbar ? undefined : true}
+          className={hatStriche && !disabled ? undefined : 'invisible'}
+          tabIndex={hatStriche && !disabled ? undefined : -1}
+          aria-hidden={hatStriche && !disabled ? undefined : true}
         >
-          Löschen
+          Neu zeichnen
         </Button>
       </div>
-
-      {blatt ? (
-        /*
-          DIE KACHEL. Leer sagt sie, was ein Tipp tut; unterschrieben zeigt
-          sie die Unterschrift so, wie sie auf dem Schein stehen wird. Ein
-          Tipp öffnet das Blatt wieder — mit den Strichen von vorhin.
-        */
-        <button
-          ref={kachel}
-          type="button"
-          className={disabled ? 'unterschrift-kachel-aus' : 'unterschrift-kachel'}
-          onClick={() => setOffen(true)}
-          disabled={disabled}
-          aria-label={`${titel} — ${hatStriche ? 'ansehen oder ändern' : 'zum Unterschreiben antippen'}`}
-        >
-          {hatStriche ? (
-            <canvas ref={setVorschau} className="unterschrift-vorschau" aria-hidden="true" />
-          ) : (
-            <>
-              <span className="unterschrift-kachel-titel">Zum Unterschreiben antippen</span>
-              <span className="unterschrift-kachel-unter">öffnet groß, am besten quer halten</span>
-            </>
-          )}
-        </button>
-      ) : offen ? null : (
-        zeichenflaeche(disabled ? 'unterschrift-feld-aus' : 'unterschrift-feld')
-      )}
-
+      <canvas
+        ref={setFeld}
+        // `touch-none` steht zusätzlich als Klasse da. Hier noch einmal fest
+        // am Element: ohne diese eine Eigenschaft bricht der Browser die
+        // Geste nach dem ersten Zug ab, und eine Klasse kann ein Build
+        // verlieren.
+        style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+        className={`mt-1 h-40 w-full touch-none select-none rounded border-2 border-dashed bg-surface ${
+          disabled ? 'border-line opacity-60' : 'border-line'
+        }`}
+        aria-label={`${titel} — mit dem Finger oder einem Stift unterschreiben`}
+      />
       {/* Ebenfalls immer da — verschwände er, ruckte das Feld nach unten. */}
       <p
-        className={
-          (hatStriche && reicht) || disabled || (blatt && !hatStriche)
-            ? 'unterschrift-status-leer'
-            : zuWenig
-              ? 'unterschrift-status-warnung'
-              : 'unterschrift-status'
-        }
+        className={`mt-1 text-xs ${hatStriche && !reicht ? 'text-warning' : 'text-ink-muted'} ${
+          (hatStriche && reicht) || disabled ? 'invisible' : ''
+        }`}
       >
-        {zuWenig
+        {hatStriche && !reicht
           ? 'Das reicht noch nicht für eine Unterschrift — bitte den Namen schreiben.'
           : 'Mit dem Finger im Feld unterschreiben.'}
       </p>
-
-      {/*
-        NUR `offen`, NICHT `blatt && offen`: wer ein Tablet zum Unterschreiben
-        quer dreht, springt dabei oft über 1024 px — das Formular wechselt auf
-        die eine Seite, `blatt` wird falsch. Das Blatt bleibt trotzdem stehen,
-        bis „Fertig" getippt ist; erst dann erscheint das Feld im Formular.
-      */}
-      {offen &&
-        createPortal(
-          <div
-            className="unterschrift-blatt"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={blattTitel}
-          >
-            <div className="unterschrift-blatt-kopf">
-              <div className="unterschrift-blatt-text">
-                <h2 id={blattTitel} className="unterschrift-blatt-titel">
-                  {titel}
-                </h2>
-                {meta && <p className="unterschrift-blatt-meta">{meta}</p>}
-              </div>
-              <div className="unterschrift-blatt-knoepfe">
-                <Button variant="secondary" onClick={leeren} disabled={!hatStriche}>
-                  Löschen
-                </Button>
-                <button
-                  ref={fertigKnopf}
-                  type="button"
-                  className="knopf-primaer"
-                  onClick={schliessen}
-                >
-                  Fertig
-                </button>
-              </div>
-            </div>
-            {/* Nur im Hochformat zu sehen (index.css). */}
-            <p className="unterschrift-blatt-drehen">
-              Quer halten, dann ist mehr Platz. Unterschreiben geht auch so.
-            </p>
-            <div className="unterschrift-blatt-flaeche">
-              {/*
-                Linie und Hinweis liegen UNTER der Zeichenfläche; das Canvas
-                ist durchsichtig und nimmt jede Berührung, auch über der
-                Linie. Das Kreuz sagt, wo unterschrieben wird.
-              */}
-              <div className="unterschrift-blatt-linie">
-                <span className="unterschrift-blatt-kreuz" aria-hidden="true">
-                  ×
-                </span>
-                <p className={zuWenig ? 'unterschrift-blatt-warnung' : 'unterschrift-blatt-hinweis'}>
-                  {zuWenig
-                    ? 'Das reicht noch nicht für eine Unterschrift — bitte den Namen schreiben.'
-                    : 'Mit dem Finger auf der Linie unterschreiben'}
-                </p>
-              </div>
-              {zeichenflaeche('unterschrift-blatt-canvas')}
-            </div>
-          </div>,
-          document.body,
-        )}
     </div>
   );
 });

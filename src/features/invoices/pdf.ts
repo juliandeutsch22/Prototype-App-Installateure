@@ -39,7 +39,9 @@ import type { Company, Project, RechnungsArt, Vorrechnung } from '@/types';
 import { INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { mitAbzug } from './vorrechnungen';
 import { calcWorkMin } from '@/lib/time';
-import { betrag } from '@/lib/geld';
+
+const fmtEUR = (n: number) =>
+  new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
 /** Minuten als Dezimalstunden mit Komma ("7,50"). */
 const fmtHours = (min: number) => (min / 60).toFixed(2).replace('.', ',');
@@ -180,7 +182,7 @@ export function generateInvoicePdf(opts: {
     // Betrag und Frist gehören in den Überweisungssatz — sonst muss der Kunde
     // sie sich aus der Tabelle zusammensuchen. DER REST, nicht die
     // Gesamtleistung: was schon bezahlt ist, wird nicht noch einmal gefordert.
-    `Bitte überweisen Sie ${betrag(forderung)} € bis ${fmtDatum(dueDate)}` +
+    `Bitte überweisen Sie ${fmtEUR(forderung)} € bis ${fmtDatum(dueDate)}` +
       (company.iban ? ` auf IBAN ${company.iban}${company.bic ? ` / BIC ${company.bic}` : ''}` : '') +
       '.',
     breite,

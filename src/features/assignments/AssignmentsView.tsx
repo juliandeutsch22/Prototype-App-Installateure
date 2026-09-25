@@ -28,7 +28,7 @@ import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
-import MonthCalendar, { KalenderLegende } from '@/components/MonthCalendar';
+import MonthCalendar from '@/components/MonthCalendar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, CheckboxField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
@@ -37,9 +37,6 @@ import RuestlistePlanen from './RuestlistePlanen';
 import { useModul } from '@/lib/useModule';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, TeilFehler } from '@/components/States';
-import Meldung from '@/components/Meldung';
-import Aktionsleiste from '@/components/Aktionsleiste';
-import { List, ListRow } from '@/components/ListRow';
 import { grundAus } from '@/lib/fehlerGrund';
 
 /** 'YYYY-MM-DD' -> 'Fr., 28.08.2026'. */
@@ -492,10 +489,9 @@ export default function AssignmentsView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      {/* Kalender links, Planung rechts (2 : 3 ab 1024 px) — am Telefon
-          untereinander. Dasselbe Raster wie „Mein Einsatzplan“. */}
-      <div className="einsatzplan">
-        <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        {/* Kalender links, Planung rechts — am Telefon untereinander. */}
+        <div className="space-y-3 lg:col-span-2">
           <MonthCalendar
             year={cursor.year}
             month={cursor.month}
@@ -510,17 +506,23 @@ export default function AssignmentsView() {
             marks={marks}
             markLabel={(n) => `${n} ${n === 1 ? 'Baustelle' : 'Baustellen'} geplant`}
           />
-          <KalenderLegende geplant="Baustellen geplant" />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-ink-muted">
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" />
+              Baustellen geplant
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand/25 ring-1 ring-brand" />
+              Heute
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-2.5 w-5 rounded-sm border border-line bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
+              Feiertag (AT)
+            </span>
+          </div>
         </div>
 
-        <div className="einsatzplan-spalte">
-          {/*
-            DAS FORMULAR BIS ZUM SPEICHERN in einer eigenen Spalte: in ihr
-            klebt die Aktionsleiste am Telefon unten, solange Einsatz und
-            Rüstliste durch den Bildschirm laufen — und hört mit dem Formular
-            auf, statt über der Tagesübersicht zu stehen.
-          */}
-          <div className="einsatzplan-spalte">
+        <div className="space-y-6 lg:col-span-3">
           <div ref={formular} className="scroll-mt-4">
           <Card title={`Einsatz planen — ${fmtDay(date)}`}>
             <BaustellenSelect
@@ -534,12 +536,10 @@ export default function AssignmentsView() {
             />
 
             {(holiday || weekend) && (
-              <div className="mt-3">
-                <Meldung ton="warnung">
-                  {holiday ? `${holiday} — gesetzlicher Feiertag.` : 'Wochenende.'} Einsatz ist trotzdem
-                  planbar.
-                </Meldung>
-              </div>
+              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+                {holiday ? `${holiday} — gesetzlicher Feiertag.` : 'Wochenende.'} Einsatz ist trotzdem
+                planbar.
+              </p>
             )}
 
             {/*
@@ -548,27 +548,23 @@ export default function AssignmentsView() {
               in dieser Ansicht auftaucht.
             */}
             {betriebsurlaubHeute && (
-              <div className="mt-3">
-                <Meldung ton="warnung" role="alert">
-                  <strong>{betriebsurlaubHeute.bezeichnung}:</strong> Der Betrieb hat an diesem Tag
-                  zu. Einteilen geht trotzdem — etwa für einen Notdienst.
-                  {/* Wer ausgenommen ist, arbeitet — das gehört an dieselbe Stelle. */}
-                  {(betriebsurlaubHeute.ausgenommen ?? []).length > 0 && (
-                    <>
-                      {' '}Es arbeiten:{' '}
-                      {(betriebsurlaubHeute.ausgenommen ?? []).map(nameVon).join(', ')}.
-                    </>
-                  )}
-                </Meldung>
-              </div>
+              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
+                <strong>{betriebsurlaubHeute.bezeichnung}:</strong> Der Betrieb hat an diesem Tag
+                zu. Einteilen geht trotzdem — etwa für einen Notdienst.
+                {/* Wer ausgenommen ist, arbeitet — das gehört an dieselbe Stelle. */}
+                {(betriebsurlaubHeute.ausgenommen ?? []).length > 0 && (
+                  <>
+                    {' '}Es arbeiten:{' '}
+                    {(betriebsurlaubHeute.ausgenommen ?? []).map(nameVon).join(', ')}.
+                  </>
+                )}
+              </p>
             )}
             {imUrlaub.size > 0 && (
-              <div className="mt-3">
-                <Meldung ton="info">
-                  <strong>Abwesend an diesem Tag:</strong>{' '}
-                  {[...imUrlaub].map(([uid, grund]) => `${nameVon(uid)} (${grund})`).join(', ')}
-                </Meldung>
-              </div>
+              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+                <strong>Abwesend an diesem Tag:</strong>{' '}
+                {[...imUrlaub].map(([uid, grund]) => `${nameVon(uid)} (${grund})`).join(', ')}
+              </p>
             )}
 
             {/*
@@ -577,22 +573,18 @@ export default function AssignmentsView() {
               vermutet hinter dem Speichern ein Überschreiben des ganzen Tages.
             */}
             {projectNumber && schonVerplant.size > 0 && (
-              <div className="mt-3">
-                <Meldung ton="info">
-                  Einige Mitarbeiter sind heute bereits auf anderen Baustellen eingeteilt (siehe
-                  Hinweis am Namen). Eine zusätzliche Einteilung ist möglich — die bestehende bleibt
-                  bestehen.
-                </Meldung>
-              </div>
+              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+                Einige Mitarbeiter sind heute bereits auf anderen Baustellen eingeteilt (siehe
+                Hinweis am Namen). Eine zusätzliche Einteilung ist möglich — die bestehende bleibt
+                bestehen.
+              </p>
             )}
 
             {projectNumber && existingForProject.length > 0 && (
-              <div className="mt-3">
-                <Meldung ton="info">
-                  Für diese Baustelle ist der Tag bereits geplant. Die Auswahl unten ist übernommen —
-                  Speichern überschreibt sie.
-                </Meldung>
-              </div>
+              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+                Für diese Baustelle ist der Tag bereits geplant. Die Auswahl unten ist übernommen —
+                Speichern überschreibt sie.
+              </p>
             )}
 
             <div className="mt-4">
@@ -655,13 +647,11 @@ export default function AssignmentsView() {
               stilles Durchwinken wäre aber genauso falsch.
             */}
             {verplanteUrlauber.length > 0 && (
-              <div className="mt-2">
-                <Meldung ton="warnung">
-                  <strong>{verplanteUrlauber.join(', ')}</strong>{' '}
-                  {verplanteUrlauber.length === 1 ? 'ist' : 'sind'} an diesem Tag abwesend. Das
-                  Einteilen geht trotzdem — gemeint ist es meistens nicht.
-                </Meldung>
-              </div>
+              <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+                <strong>{verplanteUrlauber.join(', ')}</strong>{' '}
+                {verplanteUrlauber.length === 1 ? 'ist' : 'sind'} an diesem Tag abwesend. Das
+                Einteilen geht trotzdem — gemeint ist es meistens nicht.
+              </p>
             )}
           </Card>
           </div>
@@ -710,28 +700,22 @@ export default function AssignmentsView() {
             es erst dem Monteur am naechsten Morgen.
 
             Er steht UNTER der Ruestliste, nicht darueber: sonst scrollte man
-            beim Ausfuellen an ihm vorbei und suchte ihn danach unten. Am
-            Telefon klebt er als Aktionsleiste unten, bis das Formular zu
-            Ende ist — im Markup bleibt er an derselben Stelle.
+            beim Ausfuellen an ihm vorbei und suchte ihn danach unten.
           */}
-          {(error || (offeneRuestzeile && materialAn)) && (
-            <div className="space-y-3">
-              {error && <ErrorState message={error} />}
-              {/*
-                EINGETIPPT, ABER NICHT HINZUGEFÜGT — wie am Handwerksschein. Die
-                freie Zeile kommt erst mit „Hinzufügen" auf die Rüstliste; wer
-                sie eintippt und gleich speichert, verlor sie still, und der
-                Monteur stand ohne das Leihgerät auf der Baustelle.
-              */}
-              {offeneRuestzeile && materialAn && (
-                <Meldung ton="warnung" role="alert">
-                  <strong>Noch nicht auf der Rüstliste:</strong> {offeneRuestzeile}. Bitte
-                  „Hinzufügen" oder das Feld leeren.
-                </Meldung>
-              )}
-            </div>
-          )}
-          <Aktionsleiste>
+          <div>
+            {error && <div className="mb-3"><ErrorState message={error} /></div>}
+            {/*
+              EINGETIPPT, ABER NICHT HINZUGEFÜGT — wie am Handwerksschein. Die
+              freie Zeile kommt erst mit „Hinzufügen" auf die Rüstliste; wer
+              sie eintippt und gleich speichert, verlor sie still, und der
+              Monteur stand ohne das Leihgerät auf der Baustelle.
+            */}
+            {offeneRuestzeile && materialAn && (
+              <p className="mb-3 text-sm text-warning" role="alert">
+                <strong>Noch nicht auf der Rüstliste:</strong> {offeneRuestzeile}. Bitte
+                „Hinzufügen" oder das Feld leeren.
+              </p>
+            )}
             <Button
               onClick={save}
               loading={saving}
@@ -739,15 +723,14 @@ export default function AssignmentsView() {
             >
               {materialAn && projectNumber ? 'Einsatz und Rüstliste speichern' : 'Einsatz speichern'}
             </Button>
-          </Aktionsleiste>
           </div>
 
           <Card title={`Einsätze am ${fmtDay(date)}`}>
             {dayAssignments.length === 0 ? (
               <EmptyState>Keine Einsätze an diesem Tag.</EmptyState>
             ) : (
-              <div>
-                {[...byProject.entries()].map(([pn, rows], i) => {
+              <div className="space-y-4">
+                {[...byProject.entries()].map(([pn, rows]) => {
                   const proj = projects.find((p) => p.projectNumber === pn);
                   const fach = rows.filter((r) => !r.asHelper).length;
                   const helper = rows.filter((r) => r.asHelper).length;
@@ -765,67 +748,58 @@ export default function AssignmentsView() {
                     : [];
                   const geladen = tagesListen.find((l) => l.projectNumber === pn)?.geladen ?? {};
                   const inBearbeitung = pn === projectNumber;
-                  /*
-                    JE BAUSTELLE EIN ABSCHNITT, KEIN KASTEN IN DER KARTE
-                    (docs/design/linie.md 2): Kunde halbfett, darunter
-                    „Nummer · Mannschaft" gedämpft, die Baustellen durch eine
-                    Haarlinie getrennt. Vorher stand jede Baustelle in einem
-                    Rahmen mit getöntem Kopf — eine Karte in der Karte. Die
-                    Linie steht über jeder Baustelle AUSSER der ersten; das
-                    entscheidet der Index, kein positionsabhängiger Selektor.
-                  */
                   return (
-                    <div key={pn} className={i === 0 ? 'tagplan-gruppe-erste' : 'tagplan-gruppe'}>
-                      <div className="tagplan-kopf">
-                        <div className="tagplan-kopf-text">
-                          <h3 className="tagplan-titel">{proj?.customerName ?? pn}</h3>
-                          <p className="tagplan-unter">
-                            {proj?.customerName ? `${pn} · ` : ''}
-                            {fach} Facharbeiter
-                            {helper > 0 && ` · ${helper} Helfer`}
-                          </p>
-                        </div>
-                        {/*
-                          BEARBEITEN DIREKT HIER. Bisher ging das nur, indem
-                          man oben dieselbe Baustelle noch einmal wählte —
-                          oder über den Wochenplan. Das Formular übernimmt
-                          die vorhandene Planung samt Rüstliste von selbst.
-                        */}
-                        {inBearbeitung ? (
-                          <span className="tagplan-hinweis">wird oben bearbeitet</span>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            groesse="klein"
-                            onClick={() => {
-                              setProjectNumber(pn);
-                              formular.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
-                            }}
-                          >
-                            Bearbeiten
-                          </Button>
-                        )}
+                    <div key={pn} className="rounded-sm border border-line">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2">
+                        <span className="font-semibold text-ink">
+                          {proj?.customerName ?? pn}{' '}
+                          <span className="tnum text-sm text-ink-muted">({pn})</span>
+                        </span>
+                        <span className="flex flex-wrap items-center gap-2">
+                          <Marke>{fach} Facharbeiter</Marke>
+                          {helper > 0 && <Marke>{helper} Helfer</Marke>}
+                          {/*
+                            BEARBEITEN DIREKT HIER. Bisher ging das nur, indem
+                            man oben dieselbe Baustelle noch einmal wählte —
+                            oder über den Wochenplan. Das Formular übernimmt
+                            die vorhandene Planung samt Rüstliste von selbst.
+                          */}
+                          {inBearbeitung ? (
+                            <span className="text-sm text-ink-muted">wird oben bearbeitet</span>
+                          ) : (
+                            <Button
+                              variant="secondary"
+                              groesse="klein"
+                              onClick={() => {
+                                setProjectNumber(pn);
+                                formular.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+                              }}
+                            >
+                              Bearbeiten
+                            </Button>
+                          )}
+                        </span>
                       </div>
                       {(aufgabe || material.length > 0) && (
-                        <div className="tagplan-abschnitt">
+                        <div className="space-y-2 border-b border-line px-3 py-2 text-sm">
                           {aufgabe && (
-                            <p className="whitespace-pre-line">
+                            <p className="whitespace-pre-line text-ink">
                               <span className="font-medium">Aufgabe:</span> {aufgabe}
                             </p>
                           )}
                           {material.length > 0 && (
-                            <div className={aufgabe ? 'mt-2' : undefined}>
-                              <p className="font-medium">Material:</p>
-                              <ul className="mt-1 space-y-0.5">
+                            <div>
+                              <p className="font-medium text-ink">Material:</p>
+                              <ul className="mt-1 space-y-0.5 text-ink">
                                 {material.map((m) => (
                                   <li key={m.id} className="flex flex-wrap gap-x-2">
-                                    <span>
+                                    <span className="tnum">
                                       {m.menge}
                                       {m.einheit ? ` ${m.einheit}` : ''}
                                     </span>
                                     <span>{m.name}</span>
                                     {geladen[m.id] && (
-                                      <span className="text-success">eingeladen</span>
+                                      <span className="text-success">✓ eingeladen</span>
                                     )}
                                   </li>
                                 ))}
@@ -834,23 +808,25 @@ export default function AssignmentsView() {
                           )}
                         </div>
                       )}
-                      <List>
+                      <ul className="divide-y divide-line">
                         {rows.map((a) => (
-                          <ListRow
-                            key={a.id}
-                            title={a.userName}
-                            subtitle={
-                              a.comment?.trim() && a.comment.trim() !== aufgabe ? a.comment : undefined
-                            }
-                            zustand={a.asHelper ? <Marke>Helfer</Marke> : undefined}
-                          >
-                            <IconButton label={`Einsatz von ${a.userName} löschen`} tone="danger"
-                              onClick={() => setToDelete(a)}>
-                              ✕
-                            </IconButton>
-                          </ListRow>
+                          <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                            <span className="min-w-0">
+                              <span className="block truncate text-ink">{a.userName}</span>
+                              {a.comment?.trim() && a.comment.trim() !== aufgabe && (
+                                <span className="block truncate text-sm text-ink-muted">{a.comment}</span>
+                              )}
+                            </span>
+                            <span className="flex shrink-0 items-center gap-2">
+                              {a.asHelper && <Marke>Helfer</Marke>}
+                              <IconButton label={`Einsatz von ${a.userName} löschen`} tone="danger"
+                                onClick={() => setToDelete(a)}>
+                                ✕
+                              </IconButton>
+                            </span>
+                          </li>
                         ))}
-                      </List>
+                      </ul>
                     </div>
                   );
                 })}
@@ -871,20 +847,18 @@ export default function AssignmentsView() {
               Faellt das Laden ganz aus, steht das oben als Teilfehler.
             */}
             {dayAssignments.length > 0 && staff.length > 0 && (
-              <div className="mt-4">
-                <Meldung>
-                  {nichtEingeteilt.length === 0 ? (
-                    <>Alle verfügbaren Mitarbeiter sind an diesem Tag eingeteilt.</>
-                  ) : (
-                    <>
-                      <strong className="text-ink">
-                        Noch nicht eingeteilt ({nichtEingeteilt.length}):
-                      </strong>{' '}
-                      {nichtEingeteilt.map((u) => u.name).join(', ')}
-                    </>
-                  )}
-                </Meldung>
-              </div>
+              <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+                {nichtEingeteilt.length === 0 ? (
+                  <>Alle verfügbaren Mitarbeiter sind an diesem Tag eingeteilt.</>
+                ) : (
+                  <>
+                    <strong className="text-ink">
+                      Noch nicht eingeteilt ({nichtEingeteilt.length}):
+                    </strong>{' '}
+                    {nichtEingeteilt.map((u) => u.name).join(', ')}
+                  </>
+                )}
+              </p>
             )}
           </Card>
         </div>

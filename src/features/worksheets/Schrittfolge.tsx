@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Button from '@/components/Button';
 import { List, ListRow } from '@/components/ListRow';
 import { SCHRITTE, type Schritt } from './schritte';
 
@@ -16,16 +17,9 @@ import { SCHRITTE, type Schritt } from './schritte';
  *   - Die Unterschriftsfelder halten ihre Striche nur im Speicher. Ausgehängt
  *     wären sie weg, während der Schein sich weiter „unterschrieben" merkt.
  *
- * AM SCHREIBTISCH (ab `lg`) BLEIBT ES EINE SEITE mit nummerierten Abschnitten:
+ * AM SCHREIBTISCH (ab 1024 px) BLEIBT ES DIE EINE SEITE, wie sie immer war:
  * dort ist Platz für alles, und Weiterklicken wäre nur ein Umweg.
  */
-
-/* Wörtlich ausgeschrieben — Tailwind behält aus `@layer components` nur
-   Klassen, die als ganzes Wort im Quelltext stehen. */
-function klasse(nr: Schritt, aktuell: Schritt): string {
-  if (nr === aktuell) return 'schritt-aktiv';
-  return nr < aktuell ? 'schritt-davor' : 'schritt-offen';
-}
 
 /**
  * Die Leiste oben: wo man steht, und ein Tipp springt zu jedem Schritt.
@@ -33,6 +27,12 @@ function klasse(nr: Schritt, aktuell: Schritt): string {
  * Jeder Schritt ist ein Knopf, kein bloßes Etikett. Wer am Nachmittag nur
  * noch unterschreiben lassen will, braucht dafür einen Tipp statt dreimal
  * „Weiter".
+ *
+ * Gezeichnet wie die Reiter der App (Unterreiter, Material, Lager): Kante
+ * unten und Schrift im festen Türkis der Oberfläche, nicht in `--accent` —
+ * das ist die Farbe des Mandanten, und eine Markierung ist Oberfläche, keine
+ * Handlung. Dazu die Nummer im Kreis: gefüllt, wo man steht, umrandet in
+ * Türkis, was schon hinter einem liegt, grau, was noch kommt.
  */
 export function Schrittleiste({
   schritt,
@@ -43,19 +43,42 @@ export function Schrittleiste({
 }) {
   return (
     <nav aria-label="Schritte des Scheins">
-      <ol className="schrittleiste-liste">
-        {SCHRITTE.map((s) => (
-          <li key={s.nr} className="schrittleiste-punkt">
-            <button
-              type="button"
-              aria-current={s.nr === schritt ? 'step' : undefined}
-              className={klasse(s.nr, schritt)}
-              onClick={() => onWahl(s.nr)}
-            >
-              {s.nr} {s.name}
-            </button>
-          </li>
-        ))}
+      {/* Vier gleich breite Spalten: auf 390 px passt „Unterschrift" unter
+          seine Nummer, ab dem Tablet stehen Nummer und Name nebeneinander. */}
+      <ol className="grid grid-cols-4 border-b border-line">
+        {SCHRITTE.map((s) => {
+          const aktiv = s.nr === schritt;
+          const davor = s.nr < schritt;
+          return (
+            <li key={s.nr} className="min-w-0">
+              <button
+                type="button"
+                aria-current={aktiv ? 'step' : undefined}
+                onClick={() => onWahl(s.nr)}
+                className={`-mb-px flex min-h-touch w-full flex-col items-center justify-center gap-1 border-b-2 px-1 py-2 text-xs transition sm:flex-row sm:gap-2 sm:text-sm ${
+                  aktiv
+                    ? 'border-b-accent-deep font-bold text-accent-deep'
+                    : `border-b-transparent font-medium hover:text-ink ${
+                        davor ? 'text-ink' : 'text-ink-muted'
+                      }`
+                }`}
+              >
+                <span
+                  className={`tnum flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
+                    aktiv
+                      ? 'border-accent-deep bg-accent-deep text-white'
+                      : davor
+                        ? 'border-accent-deep bg-surface text-accent-deep'
+                        : 'border-line bg-surface text-ink-muted'
+                  }`}
+                >
+                  {s.nr}
+                </span>{' '}
+                <span className="max-w-full whitespace-nowrap">{s.name}</span>
+              </button>
+            </li>
+          );
+        })}
       </ol>
     </nav>
   );
@@ -95,102 +118,22 @@ export function Zusammenfassung({
             z.unter || z.warnung ? (
               <>
                 {z.unter}
-                {z.warnung && <span className="schein-warnung">{z.warnung}</span>}
+                {z.warnung && <span className="mt-1 block text-warning">{z.warnung}</span>}
               </>
             ) : undefined
           }
-          wert={z.wert}
         >
-          <button
-            type="button"
-            className="textlink-allein"
+          {z.wert && <span className="tnum font-medium text-ink">{z.wert}</span>}
+          <Button
+            variant="secondary"
+            groesse="klein"
             aria-label={`${z.name} ändern`}
             onClick={() => onAendern(z.schritt)}
           >
             Ändern
-          </button>
+          </Button>
         </ListRow>
       ))}
     </List>
-  );
-}
-
-/**
- * Das Häkchen: „erledigt“. Ein Zeichen mit Bedeutung, deshalb darf es stehen —
- * aber ohne getönte Kachel dahinter (Linie, 10).
- */
-export function Haken() {
-  return (
-    <svg
-      className="schein-haken"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2.2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="m5 12.5 4.5 4.5L19 7.5" />
-    </svg>
-  );
-}
-
-/**
- * Etwas, das schon erledigt ist, als eine Zeile — „Monteur hat
- * unterschrieben“ (Mockup S. 5). Rechts wahlweise der Weg zurück.
- */
-export function ErledigtZeile({
-  titel,
-  unter,
-  children,
-}: {
-  titel: ReactNode;
-  unter?: ReactNode;
-  children?: ReactNode;
-}) {
-  return (
-    <div className="schein-erledigt">
-      <Haken />
-      <div className="schein-erledigt-text">
-        <p className="schein-erledigt-titel">{titel}</p>
-        {unter && <p className="schein-erledigt-unter">{unter}</p>}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-export interface PruefPunkt {
-  name: string;
-  wert: ReactNode;
-  /** Erledigt — mit Häkchen. Sonst ein leerer Kreis. */
-  ok: boolean;
-  /** Etwas, das vor dem Unterschreiben geklärt gehört — in Warnfarbe. */
-  warnung?: ReactNode;
-}
-
-/**
- * Was gleich unterschrieben wird, am Schreibtisch (Mockup S. 8): Häkchen,
- * Name, Wert. Dieselben Angaben wie die Zusammenfassung am Telefon — nur ohne
- * „Ändern“: am Schreibtisch steht jeder Abschnitt ohnehin daneben.
- */
-export function Pruefliste({ punkte }: { punkte: PruefPunkt[] }) {
-  return (
-    <ul className="pruefliste">
-      {punkte.map((p) => (
-        <li key={p.name} className="pruefliste-zeile">
-          {p.ok ? <Haken /> : <span className="pruefliste-offen" aria-hidden="true" />}
-          <span className="pruefliste-name">
-            {p.name}
-            <span className="sr-only">{p.ok ? ' — erledigt' : ' — offen'}</span>
-          </span>
-          <span className="pruefliste-wert">{p.wert}</span>
-          {p.warnung && <span className="pruefliste-warnung">{p.warnung}</span>}
-        </li>
-      ))}
-    </ul>
   );
 }

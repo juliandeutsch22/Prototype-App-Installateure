@@ -72,7 +72,7 @@ export default {
         brand: { DEFAULT: token('--brand'), fg: token('--brand-fg'), fixed: token('--brand-fixed') },
         accent: { DEFAULT: token('--accent'), fg: token('--accent-fg') },
         bg: token('--bg'),
-        surface: { DEFAULT: token('--surface'), 2: token('--surface-2'), 3: token('--surface-3') },
+        surface: { DEFAULT: token('--surface'), 2: token('--surface-2') },
         ink: { DEFAULT: token('--text'), muted: token('--text-muted'), placeholder: token('--text-placeholder') },
         line: { DEFAULT: token('--border'), strong: token('--border-strong') },
         success: { DEFAULT: token('--success'), bg: token('--success-bg') },

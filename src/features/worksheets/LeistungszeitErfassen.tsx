@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { calcWorkMin } from '@/lib/time';
-import { fmtDauer } from '@/lib/time';
+import { fmtMin } from '@/lib/time';
 import type { WorkSheetZeit } from '@/types';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import InfoHint from '@/components/InfoHint';
-import { InputField, CheckboxField } from '@/components/Field';
+import { InputField, CheckboxField, FormGrid } from '@/components/Field';
 
 /**
  * Leistungszeit beim Kunden — auf dem Schein selbst erfasst.
@@ -114,14 +114,9 @@ export default function LeistungszeitErfassen({
     setForm((f) => ({ ...LEER, mitarbeiter: f.mitarbeiter, helfer: f.helfer }));
   }
 
-  /*
-    KEIN KASTEN MEHR IN DER KARTE (Linie, 2): die Erfassung steht unter den
-    Zeilen, getrennt durch eine Haarlinie. Von und Bis nebeneinander — so
-    stehen sie auch auf dem Schein (Mockup S. 2).
-  */
   return (
-    <div className="lz-block">
-      <p className="lz-titel">
+    <div className="rounded-sm border border-line bg-surface-2 p-3">
+      <p className="flex flex-wrap items-center gap-1 text-sm font-medium text-ink">
         Zeit beim Kunden eintragen
         <InfoHint about="die Leistungszeit">
           {/* Gekürzt (Prüflauf 24.09.2026, D9): vier Absätze, die auf dem
@@ -140,54 +135,44 @@ export default function LeistungszeitErfassen({
         </InfoHint>
       </p>
 
-      <div className="lz-raster">
-        <div className="lz-feld-breit">
-          <InputField
-            id="lz-name"
-            label="Mitarbeiter"
-            value={form.mitarbeiter}
-            onChange={(e) => setForm({ ...form, mitarbeiter: e.target.value })}
-          />
-        </div>
-        <div className="lz-feld">
-          <InputField
-            id="lz-von"
-            label="Von"
-            type="time"
-            value={form.von}
-            onChange={(e) => setForm({ ...form, von: e.target.value })}
-          />
-        </div>
-        <div className="lz-feld">
-          <InputField
-            id="lz-bis"
-            label="Bis"
-            type="time"
-            value={form.bis}
-            onChange={(e) => setForm({ ...form, bis: e.target.value })}
-          />
-        </div>
-        <div className="lz-feld-pause">
-          <InputField
-            id="lz-pause"
-            label="Pause (Minuten, optional)"
-            type="number"
-            min="0"
-            placeholder="0"
-            value={form.pauseMin}
-            onChange={(e) => setForm({ ...form, pauseMin: e.target.value })}
-          />
-        </div>
-        <div className="lz-feld-taetigkeit">
-          <InputField
-            id="lz-taetigkeit"
-            label="Tätigkeit (optional)"
-            placeholder="z. B. Therme entlüftet, Eckventil getauscht"
-            value={form.taetigkeit}
-            onChange={(e) => setForm({ ...form, taetigkeit: e.target.value })}
-          />
-        </div>
-      </div>
+      <FormGrid>
+        <InputField
+          id="lz-name"
+          label="Mitarbeiter"
+          value={form.mitarbeiter}
+          onChange={(e) => setForm({ ...form, mitarbeiter: e.target.value })}
+        />
+        <InputField
+          id="lz-von"
+          label="Von"
+          type="time"
+          value={form.von}
+          onChange={(e) => setForm({ ...form, von: e.target.value })}
+        />
+        <InputField
+          id="lz-bis"
+          label="Bis"
+          type="time"
+          value={form.bis}
+          onChange={(e) => setForm({ ...form, bis: e.target.value })}
+        />
+        <InputField
+          id="lz-pause"
+          label="Pause (Minuten, optional)"
+          type="number"
+          min="0"
+          placeholder="0"
+          value={form.pauseMin}
+          onChange={(e) => setForm({ ...form, pauseMin: e.target.value })}
+        />
+        <InputField
+          id="lz-taetigkeit"
+          label="Tätigkeit (optional)"
+          placeholder="z. B. Therme entlüftet, Eckventil getauscht"
+          value={form.taetigkeit}
+          onChange={(e) => setForm({ ...form, taetigkeit: e.target.value })}
+        />
+      </FormGrid>
 
       <div className="mt-2">
         <CheckboxField
@@ -208,7 +193,7 @@ export default function LeistungszeitErfassen({
 
       {minuten > 0 && (
         <p className="mt-2 text-sm text-ink">
-          Ergibt <strong>{fmtDauer(minuten)}</strong> Leistungszeit.
+          Ergibt <strong>{fmtMin(minuten)}</strong> Leistungszeit.
         </p>
       )}
       {/*
@@ -228,7 +213,7 @@ export default function LeistungszeitErfassen({
       */}
       {minuten >= NACHFRAGE_AB_MINUTEN && (
         <p className="mt-1 text-sm text-warning" role="alert">
-          Das sind <strong>{fmtDauer(minuten)}</strong> —{' '}
+          Das sind <strong>{fmtMin(minuten)}</strong> —{' '}
           {form.bis < form.von
             ? 'über Mitternacht gerechnet, weil „Bis" vor „Von" liegt. Bei einer Notdienstnacht stimmt das; sonst sind Von und Bis vertauscht.'
             : 'ein ungewöhnlich langer Einsatz. Bitte prüfen, ob Von und Bis stimmen.'}
@@ -240,8 +225,8 @@ export default function LeistungszeitErfassen({
         </p>
       )}
 
-      <div className="lz-knopf">
-        <Button variant="secondary" onClick={hinzufuegen} className="w-full sm:w-auto">
+      <div className="mt-3">
+        <Button variant="secondary" onClick={hinzufuegen}>
           Zeile hinzufügen
         </Button>
       </div>

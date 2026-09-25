@@ -156,19 +156,6 @@ describe('Betriebsurlaub', () => {
     );
   });
 
-  it('nennt die Ausgenommenen zugeklappt im Aufklappkopf', async () => {
-    zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);
-    const kopf = screen.getByRole('button', { name: /Mitarbeiter ausnehmen/ });
-    await userEvent.click(kopf);
-    expect(kopf).toHaveAttribute('aria-expanded', 'true');
-    await userEvent.click(await screen.findByLabelText('Max Monteur'));
-    await userEvent.click(kopf);
-    // Zugeklappt verschwindet die Ausnahme nicht aus dem Blick.
-    expect(kopf).toHaveAttribute('aria-expanded', 'false');
-    expect(kopf).toHaveTextContent('Mitarbeiter ausnehmen (1)');
-    expect(kopf).toHaveTextContent('Arbeiten in dieser Zeit: Max Monteur');
-  });
-
   it('zeigt in der Liste, wer arbeitet', async () => {
     urlaube = [{ id: 'b1', companyId: 'perl', von: '2026-12-28', bis: '2026-12-31', bezeichnung: 'Weihnachten', urlaubAbbuchen: true, ausgenommen: ['m1'] }];
     zeige(<BetriebsurlaubReiter companyId="perl" meinName="Brigitte" />);

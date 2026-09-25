@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createRef } from 'react';
-import { render, screen, act, within } from '@testing-library/react';
-import SignaturePad, { type SignaturePadHandle } from '@/components/SignaturePad';
-import { EXPORT_BREITE, EXPORT_HOEHE } from '@/components/unterschriftExport';
+import { render, screen, act } from '@testing-library/react';
+import SignaturePad from '@/components/SignaturePad';
 
 /**
  * Aus dem Betrieb DREIMAL gemeldet: „das Unterschreiben funktioniert nicht."
@@ -31,12 +29,11 @@ import { EXPORT_BREITE, EXPORT_HOEHE } from '@/components/unterschriftExport';
 /** jsdom hat kein Canvas; hier zählt, WELCHE Aufrufe ankommen. */
 interface Aufzeichnung {
   breiten: number[];
-  hoehen: number[];
   striche: number;
 }
 
 function canvasStellen(): Aufzeichnung {
-  const auf: Aufzeichnung = { breiten: [], hoehen: [], striche: 0 };
+  const auf: Aufzeichnung = { breiten: [], striche: 0 };
   const ctx = {
     setTransform: vi.fn(),
     scale: vi.fn(),
@@ -70,12 +67,8 @@ function canvasStellen(): Aufzeichnung {
   });
   Object.defineProperty(HTMLCanvasElement.prototype, 'height', {
     configurable: true,
-    get() {
-      return auf.hoehen[auf.hoehen.length - 1] ?? 160;
-    },
-    set(v: number) {
-      auf.hoehen.push(v);
-    },
+    get: () => 160,
+    set: () => undefined,
   });
   return auf;
 }
@@ -190,9 +183,7 @@ describe('Unterschriftsfeld — der Finger', () => {
      * sah aus, als reagiere es nicht. Genau so wurde es gemeldet.
      */
     expect(auf.striche).toBeGreaterThan(0);
-    // „Löschen" hieß bis zum 25.09.2026 „Neu zeichnen" — umbenannt nach dem
-    // Entwurf (Mockup S. 6 und 8); derselbe Knopf, dieselbe Wirkung.
-    expect(screen.getByRole('button', { name: 'Löschen' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Neu zeichnen' })).toBeInTheDocument();
   });
 
   it('zeichnet nicht, wenn das Feld gesperrt ist', () => {
@@ -320,11 +311,11 @@ describe('Unterschriftsfeld — die Flaeche', () => {
     gemeldet.mockClear();
 
     act(() => {
-      screen.getByRole('button', { name: 'Löschen' }).click();
+      screen.getByRole('button', { name: 'Neu zeichnen' }).click();
     });
 
     expect(gemeldet).toHaveBeenCalledWith(false);
-    expect(screen.queryByRole('button', { name: 'Löschen' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Neu zeichnen' })).not.toBeInTheDocument();
   });
 });
 
@@ -363,151 +354,5 @@ describe('Unterschriftsfeld — was als Unterschrift zählt (Launch-Check 25.09.
 
     expect(gemeldet).toHaveBeenCalledWith(true);
     expect(gemeldet).toHaveBeenCalledTimes(1);
-  });
-});
-
-/** Ein Namenszug in einem Zug — `massstab` streckt ihn wie ein größeres Feld. */
-function namenszug(feld: HTMLElement, massstab = 1) {
-  act(() => {
-    feld.dispatchEvent(finger('touchstart', 10 * massstab, 40 * massstab));
-    for (let i = 1; i <= 8; i++) {
-      feld.dispatchEvent(finger('touchmove', (10 + i * 15) * massstab, (i % 2 ? 25 : 55) * massstab));
-    }
-    feld.dispatchEvent(finger('touchend', 130 * massstab, 55 * massstab));
-  });
-}
-
-function feldGroesse(breite: number, hoehe: number) {
-  HTMLCanvasElement.prototype.getBoundingClientRect = () =>
-    ({ width: breite, height: hoehe, left: 0, top: 0, right: breite, bottom: hoehe, x: 0, y: 0 }) as DOMRect;
-}
-
-/**
- * DAS BILD ENTSTEHT AUF EINER FESTEN FLÄCHE (Querformat-Freigabe 25.09.2026).
- *
- * Vorher war es `toDataURL` der angezeigten Fläche: seine Größe hing am
- * Gerät, das PDF presste es in 70 × 25 mm und verzerrte es. Jetzt ist es
- * immer 700 × 250 Pixel — das Seitenverhältnis des PDF-Felds —, egal wie
- * groß das Feld war, auf dem unterschrieben wurde.
- */
-describe('Unterschriftsfeld — das Bild für den Schein', () => {
-  it.each([
-    ['schmales Feld am Telefon', 300, 160, 1],
-    ['breites Blatt im Querformat', 900, 300, 3],
-  ])('ist 700 × 250 Pixel groß — %s', (_was, breite, hoehe, massstab) => {
-    feldGroesse(breite, hoehe);
-    const ref = createRef<SignaturePadHandle>();
-    render(<SignaturePad ref={ref} titel="Unterschrift Kunde" onChange={vi.fn()} />);
-    namenszug(screen.getByLabelText(/Unterschrift Kunde/), massstab);
-
-    let gelesen: [number, number] | undefined;
-    HTMLCanvasElement.prototype.toDataURL = function (this: HTMLCanvasElement) {
-      gelesen = [this.width, this.height];
-      return 'data:image/png;base64,FEST';
-    };
-
-    expect(ref.current?.bildLesen()).toBe('data:image/png;base64,FEST');
-    expect(gelesen).toEqual([EXPORT_BREITE, EXPORT_HOEHE]);
-    expect(EXPORT_BREITE / EXPORT_HOEHE).toBeCloseTo(70 / 25);
-  });
-
-  it('liefert nichts, solange nicht gezeichnet wurde', () => {
-    const ref = createRef<SignaturePadHandle>();
-    render(<SignaturePad ref={ref} titel="Unterschrift Kunde" onChange={vi.fn()} />);
-    expect(ref.current?.bildLesen()).toBeNull();
-  });
-});
-
-/**
- * AM TELEFON EIN BLATT (Mockup S. 6): die Kachel im Formular öffnet die
- * Zeichenfläche groß. Die Striche gehören dem Feld, nicht dem Blatt — sie
- * bleiben nach „Fertig", und das Bild lässt sich lesen, wenn das Blatt
- * längst wieder zu ist.
- */
-describe('Unterschriftsfeld — das Blatt am Telefon', () => {
-  it('öffnet groß, behält die Striche nach „Fertig" und liest das Bild ohne offenes Blatt', () => {
-    const gemeldet = vi.fn();
-    const ref = createRef<SignaturePadHandle>();
-    render(
-      <SignaturePad
-        ref={ref}
-        blatt
-        meta="MAX MUSTERKUNDE · PR-187"
-        titel="Unterschrift Kunde"
-        onChange={gemeldet}
-      />,
-    );
-    // Zu: keine Zeichenfläche im Formular, nur die Kachel.
-    expect(screen.queryByLabelText(/mit dem Finger oder einem Stift/)).not.toBeInTheDocument();
-
-    act(() => {
-      screen.getByRole('button', { name: /Unterschrift Kunde — zum Unterschreiben antippen/ }).click();
-    });
-    const blatt = screen.getByRole('dialog', { name: 'Unterschrift Kunde' });
-    expect(within(blatt).getByText('MAX MUSTERKUNDE · PR-187')).toBeInTheDocument();
-    expect(within(blatt).getByText('Mit dem Finger auf der Linie unterschreiben')).toBeInTheDocument();
-
-    feldGroesse(800, 300);
-    namenszug(within(blatt).getByLabelText(/mit dem Finger oder einem Stift/), 2);
-    expect(gemeldet).toHaveBeenCalledWith(true);
-
-    act(() => {
-      within(blatt).getByRole('button', { name: 'Fertig' }).click();
-    });
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(ref.current?.bildLesen()).toMatch(/^data:image\/png/);
-    // Die Unterschrift gilt weiter — „Fertig" nimmt nichts zurück.
-    expect(gemeldet).not.toHaveBeenCalledWith(false);
-
-    // Wieder geöffnet, werden die Striche von vorhin neu gemalt.
-    const vorher = auf.striche;
-    act(() => {
-      screen.getByRole('button', { name: /Unterschrift Kunde — ansehen oder ändern/ }).click();
-    });
-    expect(auf.striche).toBeGreaterThan(vorher);
-  });
-
-  it('bleibt offen, wenn das Tablet beim Drehen auf die eine Seite springt', () => {
-    /*
-      Quer gedreht ist ein Tablet oft breiter als 1024 px — der Schein steht
-      dann als eine Seite da, und das Feld bekäme `blatt={false}`. Mitten im
-      Unterschreiben darf das Blatt deshalb nicht verschwinden.
-    */
-    const gemeldet = vi.fn();
-    const ansicht = render(<SignaturePad blatt titel="Unterschrift Kunde" onChange={gemeldet} />);
-    act(() => {
-      screen.getByRole('button', { name: /zum Unterschreiben antippen/ }).click();
-    });
-    ansicht.rerender(<SignaturePad titel="Unterschrift Kunde" onChange={gemeldet} />);
-    const blatt = screen.getByRole('dialog', { name: 'Unterschrift Kunde' });
-    namenszug(within(blatt).getByLabelText(/mit dem Finger oder einem Stift/));
-    expect(gemeldet).toHaveBeenCalledWith(true);
-
-    act(() => {
-      within(blatt).getByRole('button', { name: 'Fertig' }).click();
-    });
-    // Danach steht das Feld im Formular — mit derselben Unterschrift.
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/mit dem Finger oder einem Stift/)).toBeInTheDocument();
-    expect(gemeldet).not.toHaveBeenCalledWith(false);
-  });
-
-  it('„Löschen" im Blatt nimmt die Unterschrift zurück', () => {
-    const gemeldet = vi.fn();
-    const ref = createRef<SignaturePadHandle>();
-    render(<SignaturePad ref={ref} blatt titel="Unterschrift Kunde" onChange={gemeldet} />);
-    act(() => {
-      screen.getByRole('button', { name: /zum Unterschreiben antippen/ }).click();
-    });
-    const blatt = screen.getByRole('dialog', { name: 'Unterschrift Kunde' });
-    namenszug(within(blatt).getByLabelText(/mit dem Finger oder einem Stift/));
-    gemeldet.mockClear();
-
-    act(() => {
-      within(blatt).getByRole('button', { name: 'Löschen' }).click();
-    });
-
-    expect(gemeldet).toHaveBeenCalledWith(false);
-    expect(ref.current?.bildLesen()).toBeNull();
   });
 });

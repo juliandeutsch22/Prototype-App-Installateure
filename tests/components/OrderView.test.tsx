@@ -5,7 +5,6 @@ import { ToastProvider } from '@/components/Toast';
 import type { Material, MaterialOrder, Project } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import OrderView from '@/features/orders/OrderView';
-import { karteMitZahl, karteZaehlt } from './kartenZahl';
 
 /**
  * Material anfordern — der erste Schritt des Materialablaufs und die Ansicht,
@@ -319,7 +318,7 @@ describe('Material anfordern — wenn das Absenden teilweise scheitert', () => {
     await waitFor(() => expect(screen.getByText(/konnten nicht gesendet werden/)).toBeInTheDocument());
 
     // Genau eine Zeile blieb übrig — die gescheiterte.
-    await karteZaehlt(/^Anforderung$/, 1);
+    expect(await screen.findByRole('heading', { name: 'Anforderung (1)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Dichtung .* entfernen/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Kupferrohr 15mm entfernen/ })).not.toBeInTheDocument();
   });
@@ -367,7 +366,7 @@ describe('Material anfordern — der Warenkorb auf einem geteilten Tablet', () =
     );
     zeige();
 
-    await karteZaehlt(/^Anforderung$/, 0);
+    expect(await screen.findByRole('heading', { name: 'Anforderung (0)' })).toBeInTheDocument();
     expect(screen.queryByText(/Fremd/)).not.toBeInTheDocument();
 
     // Und die Gegenprobe beim Schreiben: der eigene Korb landet unter dem
@@ -390,7 +389,7 @@ describe('Material anfordern — der Warenkorb auf einem geteilten Tablet', () =
     );
     zeige();
 
-    await karteZaehlt(/^Anforderung$/, 1);
+    expect(await screen.findByRole('heading', { name: 'Anforderung (1)' })).toBeInTheDocument();
     expect(screen.getByText('×7')).toBeInTheDocument();
   });
 });
@@ -539,7 +538,7 @@ describe('Material anfordern — die eigene Verfolgung', () => {
     await userEvent.click(screen.getByRole('tab', { name: /Meine Bestellungen/ }));
 
     expect(await screen.findByText('Keine offenen Bestellungen.')).toBeInTheDocument();
-    const erledigt = await karteMitZahl(/^Erledigt$/, 1);
+    const erledigt = screen.getByRole('heading', { name: 'Erledigt (1)' }).closest('section')!;
     expect(within(erledigt).getByText('Retoure')).toBeInTheDocument();
   });
 });

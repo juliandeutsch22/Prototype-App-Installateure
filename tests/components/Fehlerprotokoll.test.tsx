@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
-import { karteZaehlt } from './kartenZahl';
 
 /**
  * „Problem melden" und was der Support davon zu sehen bekommt.
@@ -69,7 +68,7 @@ describe('Problem melden', () => {
 });
 
 describe('Die Liste für den Support', () => {
-  it('trennt Meldungen mit Absender von Fehlern und fasst gleiche Abstürze zusammen', async () => {
+  it('trennt Meldungen mit Absender von Fehlern und fasst gleiche Abstürze zusammen', () => {
     render(
       <FehlerListe
         zeilen={[
@@ -80,10 +79,10 @@ describe('Die Liste für den Support', () => {
         ]}
       />,
     );
-    await karteZaehlt(/^Gemeldete Probleme/, 1);
+    expect(screen.getByText('Gemeldete Probleme (1)')).toBeInTheDocument();
     expect(screen.getByText('Zeit buchen hängt')).toBeInTheDocument();
     expect(screen.getByText(/Hans Monteur · hans@perl\.at/)).toBeInTheDocument();
-    await karteZaehlt(/^Technische Fehler/, 2);
+    expect(screen.getByText('Technische Fehler (2)')).toBeInTheDocument();
     expect(screen.getByText(/2× · zuletzt/)).toBeInTheDocument();
     expect(screen.getByText(/2 betroffen/)).toBeInTheDocument();
     expect(screen.getByText('Absturz')).toBeInTheDocument();

@@ -4,7 +4,6 @@ import { huelleErneuernUndNeuLaden } from '@/lib/sw';
 import { FASSUNG } from '@/lib/fassung';
 import { fehlerErfassen } from '@/lib/fehlerprotokoll';
 import ProblemMelden from '@/components/ProblemMelden';
-import Button from '@/components/Button';
 
 interface Props {
   children: ReactNode;
@@ -103,7 +102,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="flex min-h-full items-center justify-center p-6">
-        <div className="karte-fehler">
+        <div className="panel w-full max-w-md p-6">
           <h1 className="text-xl font-semibold text-ink">Da ist etwas schiefgelaufen</h1>
           <p className="mt-2 text-sm text-ink-muted">
             {istNachladeFehler(error)
@@ -111,18 +110,22 @@ export default class ErrorBoundary extends Component<Props, State> {
               : 'Die Ansicht konnte nicht geladen werden. Deine gespeicherten Daten sind davon nicht betroffen.'}
           </p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <Button type="button" onClick={() => this.setState({ error: null })}>
-              Erneut versuchen
-            </Button>
-            <Button
+            <button
               type="button"
-              variant="secondary"
+              onClick={() => this.setState({ error: null })}
+              className="min-h-touch rounded-sm bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
+            >
+              Erneut versuchen
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 window.location.href = '/';
               }}
+              className="min-h-touch rounded-sm border border-line px-4 py-2 font-medium text-ink"
             >
               Zur Startseite
-            </Button>
+            </button>
           </div>
           {/* Hier entsteht die Frage „wem sage ich das?" — die Antwort steht daneben. */}
           <ProblemMelden
@@ -130,7 +133,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={oeffnen}
-                className="textlink-allein mt-3"
+                className="mt-3 min-h-touch text-sm font-medium text-brand underline"
               >
                 Problem melden
               </button>

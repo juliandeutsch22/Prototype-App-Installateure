@@ -403,9 +403,7 @@ describe('Was die Akte sonst noch zeigt', () => {
 
   it('verweist auf die Kundenakte', async () => {
     zeige();
-    // Die ganze Zeile ist der Link (docs/design/linie.md 3): „Zur Kundenakte“
-    // und darunter der Kunde — gesucht wird über den Anfang.
-    expect(await screen.findByRole('link', { name: /^Zur Kundenakte/ })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: 'Zur Kundenakte' })).toHaveAttribute(
       'href',
       '/customers/k1',
     );
@@ -529,39 +527,5 @@ describe('Pläne und Dokumente', () => {
     expect(await screen.findByRole('link', { name: 'Alt.pdf' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Plan oder Bild hinzufügen/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Alt.pdf löschen' })).toBeNull();
-  });
-});
-
-describe('Am Schreibtisch zwei Spalten', () => {
-  /** In welcher Spalte der Akte eine Karte steht. */
-  const spalte = (titel: string) =>
-    screen.getByRole('heading', { name: titel }).closest('section')!.parentElement!.className;
-
-  it('stellt die Stammdaten links und was auf der Baustelle entsteht rechts', async () => {
-    zeige();
-    await screen.findByText('Stundenauswertung');
-    expect(spalte('Stammdaten')).toBe('akte-links');
-    for (const titel of ['Pläne und Dokumente', 'Stunden auf dieser Baustelle', 'Weiter']) {
-      expect(spalte(titel)).toBe('akte-rechts');
-    }
-    // Links vor rechts: die Vorlesehilfe liest die Karten in der alten Reihenfolge.
-    // Der Titeltext ohne das „i“ der Karte (Pläne und Dokumente trägt seine
-    // Erklärung seit der Linie am Titel) — der erste Textknoten der Überschrift.
-    expect(
-      screen.getAllByRole('heading', { level: 2 }).map((h) => h.firstChild?.textContent),
-    ).toEqual([
-      'Stammdaten',
-      'Pläne und Dokumente',
-      'Stunden auf dieser Baustelle',
-      'Weiter',
-    ]);
-  });
-
-  it('lässt die Speicherleiste im Formular der linken Spalte, wo sie am Telefon klebt', async () => {
-    zeige();
-    await userEvent.type(await screen.findByLabelText(/Baustellenadresse/), '!');
-    const leiste = (await screen.findByText(/ungespeicherte Änderungen/)).closest('.aktionsleiste');
-    expect(leiste).not.toBeNull();
-    expect(leiste!.closest('.akte-links')).not.toBeNull();
   });
 });

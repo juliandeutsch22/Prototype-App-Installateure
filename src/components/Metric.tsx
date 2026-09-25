@@ -1,4 +1,4 @@
-import { Children, Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 
 type Tone = 'default' | 'success' | 'danger' | 'warning' | 'brand';
@@ -15,13 +15,22 @@ interface MetricProps {
   to?: string;
 }
 
+/**
+ * Die seitliche Polsterung, mit der die Leiste mit dem Karteninhalt fluchtet.
+ *
+ * SIE STEHT HIER ALS EIN WERT, damit es nicht zwei gibt. `Card` polstert
+ * seinen Körper mit `px-4`; weicht diese Zeile davon ab, versetzt sich die
+ * ganze Leiste gegen alles darunter — und das fällt beim Schreiben nicht auf,
+ * sondern erst dem, der die Seite ansieht.
+ */
+export const GUTER_RAND = 'px-4';
 
-const wertKlasse: Record<Tone, string> = {
-  default: 'kennzahl-wert',
-  success: 'kennzahl-wert-gut',
-  danger: 'kennzahl-wert-gefahr',
-  warning: 'kennzahl-wert-warnung',
-  brand: 'kennzahl-wert-marke',
+const valueTone: Record<Tone, string> = {
+  default: 'text-ink',
+  success: 'text-success',
+  danger: 'text-danger',
+  warning: 'text-warning',
+  brand: 'text-brand',
 };
 
 /**
@@ -44,19 +53,12 @@ const wertKlasse: Record<Tone, string> = {
  * sechzehn Bildpunkte links neben deren Titel. Zwei Beschriftungen
  * untereinander, die knapp nicht übereinander stehen, sehen nicht nach einer
  * Entscheidung aus, sondern nach einem Versehen; auf dem Telefon, wo die
- * Karte fast die ganze Breite einnimmt, umso mehr. `.kennzahlen` trägt
- * dasselbe Maß wie `.karte-inhalt` (index.css), und
- * `tests/components/Metric.test.tsx` hält die beiden zusammen.
- *
- * SEIT DER LINIE (docs/design/linie.md) WIEDER EINE KARTE — aber EINE für
- * die ganze Leiste, nicht eine je Zahl: auf dem Grund steht nichts frei,
- * Zahlen stehen in einer weißen Fläche. Fläche, Rundung und Schatten wie
- * `.karte`, der Innenabstand wie `.karte-inhalt`; Reihe, Trennstriche und
- * die zwei Spalten am Telefon bleiben. Deshalb gehört die Leiste NICHT in
- * eine Karte — dort stünde eine Karte in der Karte.
+ * Karte fast die ganze Breite einnimmt, umso mehr. `GUTER_RAND` ist dasselbe
+ * Mass wie am Kartenkörper, und `tests/components/Metric.test.tsx` hält die
+ * beiden zusammen.
  */
 /*
- * AUF TELEFON UND TABLET ZWEI SPALTEN, AB `lg` EINE REIHE (index.css, `.kennzahlen`).
+ * AUF DEM TELEFON ZWEI SPALTEN, AB `sm` EINE REIHE.
  *
  * EIN ABGESCHNITTENER BETRAG IST NICHT UNSCHOEN, ER IST FALSCH. Bei drei
  * Kennzahlen nebeneinander blieben auf 390 px rund 95 Pixel je Spalte. „€ 22
@@ -64,7 +66,7 @@ const wertKlasse: Record<Tone, string> = {
  * anderer Betrag liest. Dasselbe bei „€ 7 488,…".
  *
  * Zwei Spalten geben jeder Zahl 163 Pixel; damit passt auch ein
- * fuenfstelliger Betrag. Die Trennstriche gibt es erst ab `lg`: in einem
+ * fuenfstelliger Betrag. Die Trennstriche gibt es erst ab `sm`: in einem
  * Raster mit zwei Zeilen trennen sie nicht mehr, sie zerschneiden.
  */
 export function MetricRow({ children }: { children: ReactNode }) {
@@ -88,33 +90,20 @@ export function MetricRow({ children }: { children: ReactNode }) {
         Wert rechts, untereinander) — und das ist ein Umbau einer Leiste, die
         am 16.09. gerade erst ausgerichtet wurde. Nicht für diesen Anlass.
       */
-      className="kennzahlen"
+      className={`grid grid-cols-2 gap-x-4 gap-y-3 sm:flex sm:items-stretch sm:gap-0 sm:divide-x sm:divide-line ${GUTER_RAND}`}
     >
-      {/*
-        DIE TRENNLINIE IST EIN EIGENES ELEMENT, kein „jede außer der ersten“.
-        Positionsabhängige Selektoren (`divide-x`, `first:pl-0`) hängen das
-        Aussehen einer Kennzahl an ihre Stelle in der Leiste; hier setzt die
-        Leiste die Linie selbst zwischen zwei Kennzahlen. `Children.toArray`
-        lässt ausgeblendete (`false`, `null`) weg — sonst stünde eine Linie
-        vor einer Kennzahl, die gar nicht da ist.
-      */}
-      {Children.toArray(children).map((kind, i) => (
-        <Fragment key={i}>
-          {i > 0 && <span className="kennzahl-trenner" aria-hidden="true" />}
-          {kind}
-        </Fragment>
-      ))}
+      {children}
     </div>
   );
 }
 
 export default function Metric({ label, value, hint, tone = 'default', to }: MetricProps) {
-  // `min-width: 0` in `.kennzahl` ist hier entscheidend: ohne das weigert
-  // sich die Spalte zu schrumpfen, und eine lange Zahl schiebt die Nachbarn
-  // aus der Reihe.
+  // min-w-0 ist hier entscheidend: ohne das weigert sich die Spalte zu
+  // schrumpfen, und eine lange Zahl schiebt die Nachbarn aus der Reihe.
+  const rahmen = 'min-w-0 sm:flex-1 sm:px-3 sm:first:pl-0 sm:last:pr-0';
   const inhalt = (
     <>
-      <p className="kennzahl-name">
+      <p className="section-label truncate">
         {label}
         {/* Das Zeichen sagt, dass es weitergeht — ohne Rahmen um die Zahl. */}
         {to && <span aria-hidden="true"> ›</span>}
@@ -129,18 +118,21 @@ export default function Metric({ label, value, hint, tone = 'default', to }: Met
         Mit 1,375 rem in der Mitte passt es, und am Schreibtisch bleibt die
         grosse Zahl gross.
       */}
-      <p className={wertKlasse[tone]}>
+      <p className={`tnum mt-1 truncate text-lg font-bold sm:text-xl lg:text-2xl ${valueTone[tone]}`}>
         {value}
       </p>
-      {hint && <p className="kennzahl-hinweis">{hint}</p>}
+      {hint && <p className="mt-1 text-xs leading-snug text-ink-muted">{hint}</p>}
     </>
   );
   if (to) {
     return (
-      <Link to={to} className="kennzahl-link">
+      <Link
+        to={to}
+        className={`${rahmen} block rounded-sm hover:bg-surface-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand`}
+      >
         {inhalt}
       </Link>
     );
   }
-  return <div className="kennzahl">{inhalt}</div>;
+  return <div className={rahmen}>{inhalt}</div>;
 }

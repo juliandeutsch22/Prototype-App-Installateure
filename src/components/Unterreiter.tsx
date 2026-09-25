@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { unterseitenFuer } from '@/app/navigation';
-import { UnterreiterKontext } from './unterreiterKontext';
 
 /**
  * Mehrere Ansichten unter EINEM Reiter.
@@ -37,32 +36,18 @@ export default function Unterreiter({
     : [];
 
   const ort = useLocation();
-  const leisteRef = useRef<HTMLElement>(null);
-  const [imKopf, setImKopf] = useState(0);
-  const anmelden = useCallback(() => {
-    setImKopf((n) => n + 1);
-    return () => setImKopf((n) => n - 1);
-  }, []);
+  const leiste = useRef<HTMLElement>(null);
   const aktiv = ort.pathname.slice(basis.length + 1).split('/')[0];
 
   /*
     DER GEWÄHLTE REITER BLEIBT IM BILD — am Telefon, wo die Leiste seitlich
     läuft. Sonst stünde „Fehler" abgeschnitten am Rand, und wer von dort kommt,
-    sähe nicht, wo er ist (Prüflauf 24.09.2026, D5). Seit die Leiste keine
-    Scrollleiste mehr zeigt (index.css, `.reiterleiste`), ist das die einzige
-    Orientierung darüber, wo man in der Leiste steht.
-
-    `inline: 'nearest'` rollt nur so weit, bis der Reiter GANZ zu sehen ist —
-    beim Öffnen genauso wie beim Wechsel. `block: 'nearest'` lässt die Seite
-    senkrecht stehen, solange die Leiste im Bild ist. `behavior: 'auto'` heißt
-    ohne Gleiten: ein Sprung um eine Reiterbreite braucht keine Bewegung, und
-    wer im System „Bewegung reduzieren" gewählt hat, bekommt ohnehin keine.
-    Das `?.` vor dem Aufruf, weil jsdom `scrollIntoView` nicht kennt.
+    sähe nicht, wo er ist (Prüflauf 24.09.2026, D5).
   */
   useEffect(() => {
-    leisteRef.current
+    leiste.current
       ?.querySelector('[aria-current="page"]')
-      ?.scrollIntoView?.({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }, [aktiv]);
 
   // Kann diese Rolle gar nichts davon sehen, ist der Reiter für sie falsch
@@ -71,19 +56,8 @@ export default function Unterreiter({
 
   const ziel = `${basis}/${sichtbar[0].pfad}`;
 
-  /*
-    DIE LEISTE STEHT UNTER DEM SEITENKOPF der Unterseite (docs/design/linie.md
-    1: erst Titel und Metazeile, dann die Bereiche) — wie die Reiter in Lager,
-    Anforderungen und Urlaub, die ihre Leiste ebenfalls unter dem Kopf tragen.
-    Vorher stand sie ÜBER dem Titel: zwei Arten Reiterleisten an zwei Stellen.
-
-    Der Seitenkopf holt sie sich über den Kontext und meldet sich dabei an.
-    Hat eine Unterseite keinen Seitenkopf, steht die Leiste wie bisher oben —
-    es geht nie eine Navigation verloren. Angemeldet wird im Layout-Effekt,
-    also vor dem Zeichnen: die Leiste springt nicht sichtbar.
-  */
-  const leiste = (
-    <>
+  return (
+    <div>
       {/*
         Bei nur einer Unterseite keine Leiste: ein Reiter, der genau eine
         Wahlmöglichkeit anbietet, ist keine Navigation, sondern Zierrat. Der
@@ -98,7 +72,7 @@ export default function Unterreiter({
       */}
       {sichtbar.length > 1 && (
         <nav
-          ref={leisteRef}
+          ref={leiste}
           /*
             AM TELEFON SEITLICH, AB DEM TABLET UMBRECHEN. Seit Nummernkreise
             und Personal eigene Unterseiten sind, hat „Einstellungen" zehn
@@ -106,32 +80,37 @@ export default function Unterreiter({
             zeigt eine zweite Zeile alle — am Telefon wären es vier Zeilen,
             dort läuft die Leiste wie die übrigen der App seitlich.
           */
-          className="reiterleiste"
+          className="mb-4 reiterleiste flex gap-1 overflow-x-auto border-b border-line sm:flex-wrap sm:overflow-visible"
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (
             <NavLink
               key={s.pfad}
               to={`${basis}/${s.pfad}`}
-              /*
-                Dieselbe Markierung wie bei den Reitern in Material, Lager,
-                Anforderungen und Urlaub (`Reiter.tsx`): Kante UNTEN, Text
-                fett, im festen Türkis — warum nicht in `--accent`, steht in
-                index.css („Reiter“).
-              */
-              className={({ isActive }) => (isActive ? 'reiter-aktiv' : 'reiter')}
+              className={({ isActive }) =>
+                [
+                  'min-h-touch whitespace-nowrap border-b-2 px-3 py-2 text-sm transition',
+                  // Dieselbe Markierung wie bei den Reitern in Material,
+                  // Lager und Anforderungen: Kante UNTEN, Text fett, beides im
+                  // festen Türkis der Oberfläche.
+                  //
+                  // Bewusst NICHT in `--accent`: das ist die Farbe des
+                  // Mandanten, und dieser Betrieb hat dort sein Logo-Rot
+                  // stehen. Ein roter Strich unter „Meldungen" war deshalb
+                  // der einzige rote Punkt auf einer türkisen Seite — eine
+                  // Markierung ist Oberfläche, keine Handlung.
+                  isActive
+                    ? 'border-b-accent-deep font-bold text-accent-deep'
+                    : 'border-b-transparent font-medium text-ink-muted hover:text-ink',
+                ].join(' ')
+              }
             >
               {s.label}
             </NavLink>
           ))}
         </nav>
       )}
-    </>
-  );
 
-  return (
-    <UnterreiterKontext.Provider value={{ leiste, anmelden }}>
-      {imKopf === 0 && leiste}
       <Routes>
         {sichtbar.map((s) => (
           <Route key={s.pfad} path={s.pfad} element={elemente[s.pfad] ?? null} />
@@ -145,6 +124,6 @@ export default function Unterreiter({
         */}
         <Route path="*" element={<Navigate to={ziel} replace />} />
       </Routes>
-    </UnterreiterKontext.Provider>
+    </div>
   );
 }

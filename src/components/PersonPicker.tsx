@@ -119,7 +119,7 @@ export default function PersonPicker({
                   type="button"
                   onClick={() => umschalten(p.uid, false)}
                   aria-label={`${p.name} entfernen`}
-                  className="inline-flex min-h-touch items-center gap-2 rounded-full border border-brand/30 bg-info-bg px-3 py-1 text-sm font-medium text-brand hover:bg-surface-2"
+                  className="inline-flex min-h-touch items-center gap-2 rounded-full border border-brand/30 bg-info-bg px-3 py-1 text-sm font-medium text-brand hover:bg-info-bg/70"
                 >
                   {p.name}
                   <span aria-hidden="true" className="text-base leading-none">
@@ -127,7 +127,7 @@ export default function PersonPicker({
                   </span>
                 </button>
               ))}
-              <Button variant="ghost" groesse="klein" onClick={() => onChange([])}>
+              <Button variant="ghost" onClick={() => onChange([])} className="px-2 text-sm">
                 Alle entfernen
               </Button>
             </div>
@@ -157,7 +157,7 @@ export default function PersonPicker({
                 type="checkbox"
                 checked={nurFreie}
                 onChange={(e) => setNurFreie(e.target.checked)}
-                className="kaestchen"
+                className="checkbox"
               />
               <span className="min-w-0">
                 Nur freie anzeigen{' '}
@@ -179,14 +179,14 @@ export default function PersonPicker({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Name suchen"
-                className="feld w-full"
+                className="min-h-touch w-full rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
               />
             </div>
           )}
 
           {/* Feste Höhe mit Bildlauf: eine Liste aus zwanzig Namen darf das
               Formular nicht auseinanderreißen. */}
-          <div className="gruppe mt-2 max-h-64 overflow-y-auto">
+          <div className="mt-2 max-h-64 overflow-y-auto rounded border border-line">
             {sichtbar.length === 0 ? (
               <p className="px-3 py-3 text-sm text-ink-muted">
                 {/* Warum die Liste leer ist, muss dabeistehen: sonst sieht ein
@@ -196,26 +196,33 @@ export default function PersonPicker({
                   : 'Niemand ist an diesem Tag frei. Der Filter blendet die Belegten aus.'}
               </p>
             ) : (
-              <ul className="haken-liste">
+              <ul className="divide-y divide-line">
                 {sichtbar.map((p) => {
                   const an = selected.includes(p.uid);
                   const id = `${idPrefix}-${p.uid}`;
                   return (
-                    <li key={p.uid} className={an ? 'haken-zeile-erledigt' : 'haken-zeile'}>
-                      <label htmlFor={id} className="haken-label">
-                        <input
-                          id={id}
-                          type="checkbox"
-                          checked={an}
-                          onChange={(e) => umschalten(p.uid, e.target.checked)}
-                          className="kaestchen"
-                        />
-                        <span className="haken-text">
-                          <span className="haken-titel">{p.name}</span>
-                          {p.hint && <span className="haken-unter">{p.hint}</span>}
-                        </span>
-                      </label>
-                      {an && renderExtra?.(p.uid)}
+                    <li key={p.uid} className={an ? 'bg-info-bg/40' : ''}>
+                      <div className="flex flex-wrap items-center justify-between gap-2 px-3">
+                        <label
+                          htmlFor={id}
+                          className="flex min-h-touch min-w-0 flex-1 cursor-pointer items-center gap-3 py-1"
+                        >
+                          <input
+                            id={id}
+                            type="checkbox"
+                            checked={an}
+                            onChange={(e) => umschalten(p.uid, e.target.checked)}
+                            className="checkbox"
+                          />
+                          <span className="min-w-0">
+                            <span className="block truncate text-ink">{p.name}</span>
+                            {p.hint && (
+                              <span className="block truncate text-xs text-ink-muted">{p.hint}</span>
+                            )}
+                          </span>
+                        </label>
+                        {an && renderExtra?.(p.uid)}
+                      </div>
                     </li>
                   );
                 })}

@@ -20,23 +20,22 @@ import InfoHint from '@/components/InfoHint';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import { Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import IconButton from '@/components/IconButton';
-import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
-import Meldung from '@/components/Meldung';
-import Aktionsleiste from '@/components/Aktionsleiste';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
-import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
-import { euro } from '@/lib/geld';
+
+const fmtEUR = (n: number) =>
+  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
 function num(v: string): number {
@@ -148,8 +147,6 @@ export default function QuotesView() {
   */
   const vatRate = bearbeitet?.vatRate ?? company?.rates?.vatRate ?? INVOICE_DEFAULTS.vatRate;
   const darfAendern = user ? isGF(user.role) : false;
-  /** Am Schreibtisch die Angebote als Tabelle, am Telefon als Liste. */
-  const schreibtisch = useAbBreite(AB_TABELLE);
 
   const laden = useMemo(
     () => async () => {
@@ -373,79 +370,6 @@ export default function QuotesView() {
 
   if (!user) return null;
 
-  /*
-    DIE AKTIONEN EINER ANGEBOTSZEILE — am Telefon in der Listenzeile, am
-    Schreibtisch in der letzten Tabellenspalte (siehe `useAbBreite`). Einmal
-    geschrieben, damit beide Formen dieselben Handgriffe tragen.
-
-    HÖCHSTENS ZWEI TEXTKNÖPFE, DER REST IM „⋯" (docs/design/linie.md 3).
-    Vorher standen beim Entwurf bis zu vier Knöpfe und ein ✕ in der Zeile.
-    Sichtbar bleibt, was täglich gebraucht wird: das Öffnen und beim Entwurf
-    das Bearbeiten. Versendet, Annehmen, Abgelehnt und Löschen liegen eine
-    Ebene tiefer, mit denselben Rückfragen wie vorher.
-
-    AUCH DAS ANNEHMEN. Es legt eine Baustelle an und verbraucht eine Nummer;
-    dass ein verrutschter Finger in der Liste das nicht auslösen darf, war
-    schon der Grund für die Rückfrage (Launch-Check, M8). Und am Schreibtisch
-    liess der lange Knopf „Annehmen → Baustelle" der Kundenspalte gemessene
-    57 px.
-  */
-  const angebotAktionen = (q: WithId<Quote>) => {
-    const entwurf = q.status === 'Entwurf';
-    const offen = entwurf || q.status === 'Versendet';
-    const mehr: RowMenuItem[] = darfAendern
-      ? [
-          ...(entwurf
-            ? [
-                {
-                  label: 'Versendet',
-                  onSelect: () => {
-                    if (!busy) void status(q, 'Versendet', 'Als versendet markiert');
-                  },
-                },
-              ]
-            : []),
-          ...(offen
-            ? [
-                { label: 'Annehmen → Baustelle', onSelect: () => setAnnehmenFragen(q) },
-                {
-                  label: 'Abgelehnt',
-                  onSelect: () => {
-                    if (!busy) void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt');
-                  },
-                },
-              ]
-            : []),
-          /* Löschen nur im Entwurf: alles Versendete bleibt
-             nachvollziehbar, auch ein abgelehntes Angebot. */
-          ...(entwurf ? [{ label: 'Löschen', onSelect: () => setToDelete(q), danger: true }] : []),
-        ]
-      : [];
-    return (
-      <>
-        {/*
-          Das Angebot öffnet ein Knopf, nicht mehr ein unterstrichener
-          Titel (docs/design/linie.md 3). Die Vorlesehilfe hört die Nummer
-          mit — in einer Liste gleichlautender „Öffnen" wüsste sie sonst
-          nicht, welches.
-        */}
-        <Link
-          to={`/quotes/${q.id}`}
-          className="knopf-leise-klein"
-          aria-label={`Angebot ${q.quoteNumber} öffnen`}
-        >
-          Öffnen
-        </Link>
-        {darfAendern && entwurf && (
-          <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
-            Bearbeiten
-          </Button>
-        )}
-        {mehr.length > 0 && <RowMenu about={`Angebot ${q.quoteNumber}`} items={mehr} />}
-      </>
-    );
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -453,7 +377,7 @@ export default function QuotesView() {
         subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
         action={
           darfAendern && !formOffen ? (
-            <Button onClick={() => setFormOffen(true)}>Neues Angebot</Button>
+            <Button onClick={() => setFormOffen(true)}><Icon name="plus" size={18} />Neues Angebot</Button>
           ) : undefined
         }
       />
@@ -510,7 +434,7 @@ export default function QuotesView() {
             <span className="section-label">Positionen</span>
             <div className="mt-2 space-y-3">
               {zeilen.map((z, i) => (
-                <div key={i} className="kasten-hell">
+                <div key={i} className="rounded border border-line p-3">
                   <InputField
                     id={`anqlabel${i}`}
                     label="Bezeichnung"
@@ -567,10 +491,9 @@ export default function QuotesView() {
                     mitzählen, bekäme die Baustelle ein zu hohes Budget und die
                     Ampel bliebe grün, während der Auftrag längst gerissen ist.
                   */}
-                  <div className="mt-2">
-                    <CheckboxField
-                      id={`anqarbeit${i}`}
-                      label="Zählt als Arbeitszeit ins Stundenbudget"
+                  <label className="mt-2 flex min-h-touch items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
                       checked={z.istArbeitszeit}
                       onChange={(e) =>
                         setZeilen((v) =>
@@ -579,11 +502,13 @@ export default function QuotesView() {
                           ),
                         )
                       }
+                      className="checkbox"
                     />
-                  </div>
+                    Zählt als Arbeitszeit ins Stundenbudget
+                  </label>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-sm text-ink-muted">
-                      {euro(positionNetto(num(z.qty), cent(num(z.unitPrice))))}
+                    <span className="tnum text-sm text-ink-muted">
+                      {fmtEUR(positionNetto(num(z.qty), cent(num(z.unitPrice))))}
                     </span>
                     {zeilen.length > 1 && (
                       <IconButton
@@ -612,55 +537,49 @@ export default function QuotesView() {
             MEHRZEILIG: die Anmerkungen werden beim Annehmen zum Auftragsumfang
             der Baustelle — und der ist oft eine Liste. Dasselbe Feld wie dort.
           */}
-          <div className="feld-block mt-4">
-            <label htmlFor="anqnotes" className="feld-name">
+          <div className="mt-4 flex flex-col gap-1">
+            <label htmlFor="anqnotes" className="text-sm font-medium text-ink">
               Anmerkungen
             </label>
             <textarea
               id="anqnotes"
               rows={3}
-              className="feld"
+              className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
 
-          {/* Der Abstand zur Aktionsleiste steht hier: die Leiste selbst muss
-              direkt in der Karte stehen, sonst klebt sie nicht. */}
-          <div className="mb-4">
-            <div className="kasten mt-4">
-              <p className="text-sm text-ink">
-                Netto {euro(summen.totalNetto)} · USt {euro(summen.totalVat)} ·{' '}
-                <strong>Brutto {euro(summen.totalBrutto)}</strong>
-              </p>
-              {/*
-                Die Zahl bleibt sichtbar, die Erklärung dazu nicht: sie steht
-                beim ersten Angebot im Weg und beim fünfzigsten erst recht.
-              */}
-              <p className="mt-1 flex flex-wrap items-center text-sm text-ink-muted">
-                Kalkulierte Arbeitszeit: <strong className="ml-1">{fmtStunden(kalkulierteStunden)} h</strong>
-                <InfoHint about="kalkulierte Arbeitszeit">
-                  Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
-                  der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
-                  geblieben ist — und die Nachkalkulation, was sie verdient hat.
-                </InfoHint>
-              </p>
-            </div>
-
-            {stundenVorher !== null && (
-              <div className="mt-3">
-                <Meldung ton="warnung" role="status">
-                  Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen.
-                  Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher kalkuliert:{' '}
-                  <strong>{fmtStunden(stundenVorher)} h</strong>.
-                </Meldung>
-              </div>
-            )}
-
-            {error && <div className="mt-3"><ErrorState message={error} /></div>}
+          <div className="mt-4 rounded border border-line bg-surface-2 p-3">
+            <p className="tnum text-sm text-ink">
+              Netto {fmtEUR(summen.totalNetto)} · USt {fmtEUR(summen.totalVat)} ·{' '}
+              <strong>Brutto {fmtEUR(summen.totalBrutto)}</strong>
+            </p>
+            {/*
+              Die Zahl bleibt sichtbar, die Erklärung dazu nicht: sie steht
+              beim ersten Angebot im Weg und beim fünfzigsten erst recht.
+            */}
+            <p className="mt-1 flex flex-wrap items-center text-sm text-ink-muted">
+              Kalkulierte Arbeitszeit: <strong className="ml-1">{fmtStunden(kalkulierteStunden)} h</strong>
+              <InfoHint about="kalkulierte Arbeitszeit">
+                Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
+                der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
+                geblieben ist — und die Nachkalkulation, was sie verdient hat.
+              </InfoHint>
+            </p>
           </div>
 
-          <Aktionsleiste>
+          {stundenVorher !== null && (
+            <p className="mt-3 rounded border border-line bg-surface-2 p-3 text-sm text-warning" role="status">
+              Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen.
+              Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher kalkuliert:{' '}
+              <strong className="tnum">{fmtStunden(stundenVorher)} h</strong>.
+            </p>
+          )}
+
+          {error && <div className="mt-3"><ErrorState message={error} /></div>}
+
+          <div className="mt-4">
             <Button
               onClick={bearbeitet ? aenderungenSpeichern : anlegen}
               loading={busy}
@@ -680,81 +599,76 @@ export default function QuotesView() {
             >
               Abbrechen
             </Button>
-          </Aktionsleiste>
+          </div>
         </Card>
       )}
 
-      {/* Die Zahl rechts im Titel statt in Klammern (Linie, 2). */}
-      <Card title="Angebote" action={<span className="liste-anzahl">{angebote.length}</span>}>
+      <Card title={`Angebote (${angebote.length})`}>
         {loading ? (
           <SkeletonList rows={3} />
         ) : angebote.length === 0 ? (
           <EmptyState>Noch kein Angebot erstellt.</EmptyState>
-        ) : schreibtisch ? (
-          <div className="tabelle-rahmen">
-            <table className="tabelle">
-              <thead className="tabelle-kopfzeile">
-                <tr>
-                  <th className="tabelle-kopf">Nummer</th>
-                  <th className="tabelle-kopf">Kunde</th>
-                  <th className="tabelle-kopf">Datum</th>
-                  <th className="tabelle-kopf">Gültig bis</th>
-                  <th className="tabelle-kopf-zahl">Stunden</th>
-                  <th className="tabelle-kopf-zahl">Brutto</th>
-                  <th className="tabelle-kopf">Status</th>
-                  <th className="tabelle-kopf-zahl">
-                    <span className="sr-only">Aktionen</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {angebote.map((q) => (
-                  <tr key={q.id} className="tabelle-zeile">
-                    <td className="tabelle-name">
-                      <span className="whitespace-nowrap">{q.quoteNumber}</span>
-                    </td>
-                    <td className="tabelle-zelle">
-                      {q.customerName}
-                      {q.projectNumber && (
-                        <span className="tabelle-unter">Baustelle {q.projectNumber}</span>
-                      )}
-                    </td>
-                    <td className="tabelle-zelle">
-                      <span className="whitespace-nowrap">{datumAT(q.quoteDate)}</span>
-                    </td>
-                    <td className="tabelle-zelle">
-                      <span className="whitespace-nowrap">{datumAT(q.validUntil)}</span>
-                    </td>
-                    <td className="tabelle-zahl-stark">{fmtStunden(q.kalkulierteStunden)} h</td>
-                    <td className="tabelle-zahl-stark">{euro(q.totalBrutto)}</td>
-                    <td className="tabelle-zelle">
-                      <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
-                    </td>
-                    <td className="tabelle-aktionen">
-                      <div className="tabelle-knoepfe">{angebotAktionen(q)}</div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         ) : (
           <List>
             {angebote.map((q) => (
               <ListRow
                 key={q.id}
-                title={`${q.quoteNumber} · ${q.customerName}`}
-                wert={`${euro(q.totalBrutto)} brutto`}
-                zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
+                title={
+                  // Die Nummer führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
+                  <Link to={`/quotes/${q.id}`} className="text-brand underline">
+                    {q.quoteNumber} · {q.customerName}
+                  </Link>
+                }
                 subtitle={
                   <>
-                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)} ·{' '}
-                    {fmtStunden(q.kalkulierteStunden)} h kalkuliert
-                    {q.projectNumber ? ` · Baustelle ${q.projectNumber}` : ''}
+                    {datumAT(q.quoteDate)} · gültig bis {datumAT(q.validUntil)} · {fmtEUR(q.totalBrutto)} brutto
+                    <span className="mt-1 block text-xs text-ink-muted">
+                      {fmtStunden(q.kalkulierteStunden)} h kalkuliert
+                      {q.projectNumber ? ` · Baustelle ${q.projectNumber}` : ''}
+                    </span>
                   </>
                 }
               >
-                {angebotAktionen(q)}
+                <Zustand stand={STAND[q.status]}>{q.status}</Zustand>
+                {darfAendern && q.status === 'Entwurf' && (
+                  <>
+                    <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
+                      Bearbeiten
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      loading={busy}
+                      onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
+                    >
+                      Versendet
+                    </Button>
+                  </>
+                )}
+                {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
+                  <>
+                    <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(q)}>
+                      Annehmen → Baustelle
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      loading={busy}
+                      onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
+                    >
+                      Abgelehnt
+                    </Button>
+                  </>
+                )}
+                {/* Löschen nur im Entwurf: alles Versendete bleibt
+                    nachvollziehbar, auch ein abgelehntes Angebot. */}
+                {darfAendern && q.status === 'Entwurf' && (
+                  <IconButton
+                    label={`Angebot ${q.quoteNumber} löschen`}
+                    tone="danger"
+                    onClick={() => setToDelete(q)}
+                  >
+                    ✕
+                  </IconButton>
+                )}
               </ListRow>
             ))}
           </List>

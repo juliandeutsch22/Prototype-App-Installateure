@@ -106,7 +106,9 @@ export default function RowMenu({ about, items }: RowMenuProps) {
         aria-label={`Weitere Aktionen für ${about}`}
         title="Weitere Aktionen"
         onClick={() => setOffen((o) => !o)}
-        className={offen ? 'zeilenmenue-knopf-offen' : 'zeilenmenue-knopf'}
+        className={`inline-flex min-h-touch min-w-touch items-center justify-center rounded text-lg leading-none transition active:scale-95 ${
+          offen ? 'bg-surface-2 text-ink' : 'text-ink-muted hover:bg-surface-2 hover:text-ink'
+        }`}
       >
         <span aria-hidden="true">⋯</span>
       </button>
@@ -117,7 +119,7 @@ export default function RowMenu({ about, items }: RowMenuProps) {
             ref={menu}
             role="menu"
             aria-label={`Aktionen für ${about}`}
-            className="zeilenmenue"
+            className="absolute z-50 min-w-[11rem] overflow-hidden rounded border border-line bg-surface py-1 shadow-lg"
             style={{ top: pos?.top ?? -9999, left: pos?.left ?? -9999 }}
           >
             {items.map((i) => (
@@ -129,7 +131,9 @@ export default function RowMenu({ about, items }: RowMenuProps) {
                   setOffen(false);
                   i.onSelect();
                 }}
-                className={i.danger ? 'zeilenmenue-eintrag-gefahr' : 'zeilenmenue-eintrag'}
+                className={`block min-h-touch w-full whitespace-nowrap px-4 text-left text-sm font-medium hover:bg-surface-2 ${
+                  i.danger ? 'text-danger' : 'text-ink'
+                }`}
               >
                 {i.label}
               </button>

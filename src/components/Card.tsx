@@ -7,13 +7,6 @@ interface CardProps {
   title?: string;
   action?: ReactNode; // optionale Aktion rechts neben dem Titel
   /**
-   * Wie viele Einträge die Karte zeigt — rechts in der Titelzeile, gedämpft
-   * (`.liste-anzahl`), NICHT in Klammern im Titel. Die Linie
-   * (docs/design/linie.md, 2) setzt Stand und Zahl einer Karte rechts; so
-   * steht es auf jeder Karte an derselben Stelle.
-   */
-  anzahl?: ReactNode;
-  /**
    * Stehende Erklärung zur ganzen Karte — erscheint als „i" neben dem Titel
    * und klappt darunter auf. Für Regeln, die immer gelten („nur unbenutztes
    * Material wird gutgeschrieben"), nicht für Rückmeldungen zum aktuellen
@@ -26,9 +19,8 @@ interface CardProps {
 }
 
 /**
- * Ruhige Karte: weiße Fläche, türkis getönte Haarlinie, langer flacher
- * Schatten, kompaktes Innenmaß — `.karte` und ihre Teile aus index.css
- * („Gemeinsame Bausteine“). Kopf, Körper und Fuß tragen je eine Klasse.
+ * Ruhige Karte: heller Verlauf, türkis getönte Haarlinie, langer flacher
+ * Schatten, kompaktes Innenmaß — die Fläche `.panel` aus index.css.
  *
  * Der Verlauf ist kaum zu benennen und genau deshalb richtig: er nimmt der
  * weißen Fläche das Sterile, ohne dass jemand ihn beim Arbeiten bemerkt. Der
@@ -50,7 +42,6 @@ export default function Card({
   className = '',
   title,
   action,
-  anzahl,
   hint,
   footer,
   id,
@@ -59,18 +50,24 @@ export default function Card({
   const hinweisId = useId();
 
   return (
-    <section id={id} className={className ? `karte ${className}` : 'karte'}>
+    <section id={id} className={`panel overflow-hidden ${className}`}>
       {title && (
-        // Kopf eine Spur kühler als der Körper; am Telefon Titel und Aktionen
-        // untereinander; ein Link als Aktion mit Tasthöhe (Prüflauf
-        // 24.09.2026, D6) — alles in `.karte-kopf` / `.karte-kopfzeile`.
-        <header className="karte-kopf">
-          <div className="karte-kopfzeile">
-            {/* Der Kartentitel ordnet den Inhalt, ohne mit der
-                Seitenüberschrift zu konkurrieren (`.titel-karte`). Das „i"
-                gehört zum Titel, nicht zu den Aktionen — deshalb steht es in
-                derselben Zeile links. */}
-            <h2 className="titel-karte">
+        // Der Kartenkopf sitzt eine Spur kühler als der Körper — so ist er
+        // auch dann als Kopf zu lesen, wenn der Titel kurz ist.
+        <header className="border-b border-line bg-surface-2/70 px-4 py-3">
+          {/* Auf schmalen Schirmen Titel und Aktionen untereinander: sonst
+              überlagern breite Aktionen (mehrere Knöpfe) den Titel. */}
+          {/* Ein Link als Kartenaktion („Zur Einsatzplanung") bekommt dieselbe
+              Höhe wie ein Knopf: 20 px Text sind mit dem Daumen kaum zu
+              treffen (Prüflauf 24.09.2026, D6). */}
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 [&>a]:inline-flex [&>a]:min-h-touch [&>a]:items-center">
+            {/* Kartentitel sind im Prototyp klein, fett und versal gesetzt —
+                sie ordnen den Inhalt, ohne mit der Seitenüberschrift zu
+                konkurrieren. Das „i" gehört zum Titel, nicht zu den
+                Aktionen — deshalb steht es in derselben Zeile links. */}
+            {/* normal-case am „i": section-label setzt Versalien, sonst
+                stünde dort ein grosses I. */}
+            <h2 className="section-label flex items-center gap-2 [&>button]:normal-case">
               {title}
               {hint && (
                 <InfoButton
@@ -81,14 +78,7 @@ export default function Card({
                 />
               )}
             </h2>
-            {anzahl != null ? (
-              <div className="liste-kopf-rechts">
-                <span className="liste-anzahl">{anzahl}</span>
-                {action}
-              </div>
-            ) : (
-              action
-            )}
+            {action}
           </div>
           {/* Der Text steht UNTER der Kopfzeile, nicht darin: die Kopfzeile
               ist mobil eine Spalte, und in einer Spalten-Flexbox bedeutet
@@ -100,9 +90,9 @@ export default function Card({
           )}
         </header>
       )}
-      <div className="karte-inhalt">{children}</div>
+      <div className="px-4 py-4">{children}</div>
       {footer && (
-        <footer className="karte-fuss">{footer}</footer>
+        <footer className="border-t border-line bg-surface-2/70 px-4 py-3">{footer}</footer>
       )}
     </section>
   );

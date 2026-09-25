@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { ladeLauf } from '@/lib/db/laeufe';
 import { pushBeurteilen, type Lauf } from '@shared/laufStatus';
-import Meldung from '@/components/Meldung';
 
 /**
  * Ob die Push-Meldungen ankommen.
@@ -49,15 +48,19 @@ export default function PushStatus() {
   if (!geladen) return null;
 
   const u = pushBeurteilen(lauf);
+  const farbe =
+    u.stand === 'ueberfaellig'
+      ? 'border border-line bg-surface-2 text-warning'
+      : 'border-line text-ink-muted';
 
   return (
-    <Meldung
-      ton={u.stand === 'ueberfaellig' ? 'warnung' : 'neutral'}
+    <p
+      className={`rounded-sm border px-3 py-2 text-sm ${farbe}`}
       // `status`, nicht `alert` — dieselbe Überlegung wie in `LaufStatus`:
       // wer hier steht, sieht ohnehin hin.
       role={u.stand === 'ueberfaellig' ? 'status' : undefined}
     >
       {u.text}
-    </Meldung>
+    </p>
   );
 }

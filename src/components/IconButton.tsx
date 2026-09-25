@@ -3,8 +3,6 @@ import type { ButtonHTMLAttributes } from 'react';
 interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   label: string; // Pflicht: aria-label (kein sichtbarer Text)
   tone?: 'default' | 'danger';
-  /** Größeres Zeichen — für einzelne Pfeile (‹ ›), die sonst in der Fläche verschwinden. */
-  gross?: boolean;
 }
 
 /**
@@ -15,12 +13,14 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export default function IconButton({
   label,
   tone = 'default',
-  gross = false,
   className = '',
   children,
   ...rest
 }: IconButtonProps) {
-  const klasse = tone === 'danger' ? 'symbolknopf-gefahr' : gross ? 'symbolknopf-gross' : 'symbolknopf';
+  const tones = {
+    default: 'text-ink-muted hover:bg-surface-2 hover:text-ink',
+    danger: 'text-ink-muted hover:bg-danger-bg hover:text-danger',
+  };
   // `data-icon` ist das Kennzeichen fuer ListRow: Symbolknoepfe bekommen dort
   // NICHT die kompakte Textbehandlung, sonst schruempfte das Symbol mit.
   return (
@@ -29,7 +29,7 @@ export default function IconButton({
       aria-label={label}
       title={label}
       data-icon=""
-      className={className ? `${klasse} ${className}` : klasse}
+      className={`inline-flex min-h-touch min-w-touch items-center justify-center rounded text-lg transition active:scale-95 ${tones[tone]} ${className}`}
       {...rest}
     >
       {children}

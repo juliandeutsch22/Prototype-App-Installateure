@@ -1,4 +1,4 @@
-import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
+import { useEffect, useState } from 'react';
 
 /**
  * Die Schritte des Handwerksscheins und die Frage, ob sie überhaupt als
@@ -14,23 +14,41 @@ export const SCHRITTE: ReadonlyArray<{ nr: Schritt; name: string }> = [
   { nr: 4, name: 'Unterschrift' },
 ];
 
-/**
- * Steht der Schein als eine Seite da (Schreibtisch) oder als Schritte?
- *
- * Ab derselben Grenze wie Tailwinds `lg` — über die gemeinsame Breitenweiche,
- * die auch die Listen der Büro-Ansichten in Tabellen umschaltet.
- */
-export function useEineSeite(): boolean {
-  return useAbBreite();
+/** Ab hier eine Seite statt Schritten — dieselbe Grenze wie Tailwinds `lg`. */
+const BREIT = '(min-width: 1024px)';
+
+/*
+  OHNE MEDIENABFRAGE EINE SEITE. Kennt die Umgebung `matchMedia` nicht (jsdom
+  in den Komponententests, ein sehr alter Browser), steht der Schein so da, wie
+  er immer dastand. Die Schrittfolge ist eine Anordnung für schmale Schirme;
+  wo sich die Breite nicht erfragen lässt, ist die eine Seite der sichere Stand.
+*/
+function breitJetzt(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return true;
+  return window.matchMedia(BREIT).matches;
 }
 
 /**
- * Zwei Spalten und Tabellen (Mockup S. 8) erst ab 1280 px — dieselbe Grenze
- * wie die Tabellen und zweispaltigen Akten der übrigen Ansichten (Linie, 1
- * und 4). Neben der Seitenleiste blieben auf 1024 px für die Zeitentabelle
- * mit sechs Spalten gut 400 px; darunter steht der Schein als eine Spalte
- * mit nummerierten Karten.
+ * Steht der Schein als eine Seite da (Schreibtisch) oder als Schritte
+ * (Telefon und Tablet)?
+ *
+ * Gelesen beim ersten Zeichnen, nicht erst im Effekt — sonst sähe der
+ * Schreibtisch für einen Augenblick die Schritte und spränge dann um.
  */
-export function useZweiSpalten(): boolean {
-  return useAbBreite(AB_TABELLE);
+export function useEineSeite(): boolean {
+  const [breit, setBreit] = useState(breitJetzt);
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const abfrage = window.matchMedia(BREIT);
+    const neu = () => setBreit(abfrage.matches);
+    neu();
+    // Ältere Safari kennen nur addListener.
+    if (abfrage.addEventListener) abfrage.addEventListener('change', neu);
+    else abfrage.addListener?.(neu);
+    return () => {
+      if (abfrage.removeEventListener) abfrage.removeEventListener('change', neu);
+      else abfrage.removeListener?.(neu);
+    };
+  }, []);
+  return breit;
 }

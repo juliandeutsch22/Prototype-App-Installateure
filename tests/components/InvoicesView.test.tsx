@@ -5,8 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Invoice, Material, Project, TimeEntry, WorkSheet } from '@/types';
 import InvoicesView from '@/features/invoices/InvoicesView';
-import { mitSchreibtisch } from './schreibtisch';
-import { karteMitZahl, karteZaehlt } from './kartenZahl';
 
 /**
  * Die Rechnungsansicht — bis jetzt ohne eigenen Test, und dabei die Ansicht,
@@ -1142,7 +1140,7 @@ describe('Der Mahnlauf', () => {
     offene = [offen('0001'), offen('0002', { totalBrutto: 300 })];
     zeige();
 
-    const karte = await karteMitZahl(/^Mahnlauf/, 2);
+    const karte = (await screen.findByText(/^Mahnlauf \(2\)/)).closest('section')!;
     // Trennzeichen raus: de-AT setzt hier je nach Umgebung Punkt oder ein
     // geschütztes Leerzeichen, und darum geht es hier nicht.
     expect(karte.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('1500,00');
@@ -1212,7 +1210,7 @@ describe('Der Mahnlauf', () => {
     rechnungen = [];
     offene = [offen('0001', { dueDate: '2024-03-01' })];
     zeige();
-    await karteZaehlt(/^Mahnlauf/, 1);
+    expect(await screen.findByText(/^Mahnlauf \(1\)/)).toBeInTheDocument();
   });
 });
 
@@ -1251,7 +1249,7 @@ describe('Nicht verrechnete Leistung', () => {
     alleScheine = [schein('s1', '2026-06-01')];
     zeige();
 
-    await karteZaehlt(/^Nicht verrechnete Leistung/, 1);
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
     expect(screen.getByText(/92 Tage/)).toBeInTheDocument();
   });
 
@@ -1306,7 +1304,7 @@ describe('Nicht verrechnete Leistung', () => {
       } as unknown as Invoice & { id: string },
     ];
     zeige();
-    await karteZaehlt(/^Nicht verrechnete Leistung/, 1);
+    expect(await screen.findByText(/^Nicht verrechnete Leistung \(1\)/)).toBeInTheDocument();
   });
 
   it('führt Entwürfe gar nicht — sie sind noch keine Leistung', async () => {
@@ -2198,77 +2196,5 @@ describe('Die Kennzahl „Bezahlt"', () => {
     const kachel = (await screen.findByText('Bezahlt', { selector: 'p, span, div, dt' })).parentElement!;
     expect(kachel).toHaveTextContent('€ 100,00');
     expect(kachel).not.toHaveTextContent('€ 330,00');
-  });
-});
-
-/**
- * AM SCHREIBTISCH STEHT DIE LISTE ALS TABELLE — mit denselben Angaben und
- * demselben Menü wie die Listenzeile am Telefon. Und nur einmal: beide
- * Formen versteckt nebeneinander hiessen jede Rechnung doppelt im DOM.
- */
-describe('Rechnungen am Schreibtisch', () => {
-  const schreibtisch = mitSchreibtisch();
-
-  const TEILBEZAHLT = {
-    id: 't',
-    invoiceNumber: 'RE-2026-2001',
-    projectNumber: '2026-042',
-    customerName: 'Baumeister Gruber',
-    invoiceDate: '2026-08-20',
-    dueDate: '2026-12-31',
-    totalBrutto: 1000,
-    bezahltBetrag: 400,
-    paymentStatus: 'Teilbezahlt',
-  };
-  const STORNIERT = {
-    id: 's',
-    invoiceNumber: 'RE-2026-2002',
-    projectNumber: '2026-043',
-    customerName: 'Familie Huber',
-    invoiceDate: '2026-08-21',
-    dueDate: '2026-09-20',
-    totalBrutto: 500,
-    paymentStatus: 'Storniert',
-    cancellationNote: 'Doppelt erfasst',
-  };
-
-  async function tabelle() {
-    rechnungen = [TEILBEZAHLT, STORNIERT] as unknown as (Invoice & { id: string })[];
-    schreibtisch();
-    zeige();
-    return (await screen.findByRole('columnheader', { name: 'Betrag' })).closest('table')!;
-  }
-
-  it('zeigt Nummer, Kunde, Datum, fällig, Betrag und Status als Spalten', async () => {
-    const t = await tabelle();
-    const koepfe = within(t).getAllByRole('columnheader').map((k) => k.textContent);
-    expect(koepfe).toEqual(['Nummer', 'Kunde', 'Datum', 'Fällig', 'Betrag', 'Status', 'Aktionen']);
-    const zeile = within(t).getByRole('row', { name: /RE-2026-2001/ });
-    expect(zeile).toHaveTextContent('Baumeister Gruber');
-    expect(zeile).toHaveTextContent('20.08.2026');
-    expect(zeile).toHaveTextContent('31.12.2026');
-    // Der Betrag steht in einer Zahlenspalte — rechtsbündig.
-    expect(within(zeile).getByText(/^€ 1.000,00$/)).toHaveClass('tabelle-zahl');
-  });
-
-  it('verliert nichts, was die Listenzeile sagt: Teilzahlung und Storno-Grund', async () => {
-    const t = await tabelle();
-    expect(within(t).getByText(/€ 400,00 bezahlt · € 600,00 offen/)).toBeInTheDocument();
-    expect(within(t).getByText('Storno: Doppelt erfasst')).toBeInTheDocument();
-  });
-
-  it('trägt dasselbe Menü, und jede Rechnung steht nur einmal da', async () => {
-    const t = await tabelle();
-    expect(screen.getAllByText('RE-2026-2001')).toHaveLength(1);
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
-    const menues = screen.getAllByRole('button', { name: /Weitere Aktionen für Rechnung/ });
-    expect(menues).toHaveLength(2);
-    menues.forEach((m) => expect(t).toContainElement(m));
-
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Weitere Aktionen für Rechnung RE-2026-2001' }),
-    );
-    expect(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Stornieren' })).toBeInTheDocument();
   });
 });

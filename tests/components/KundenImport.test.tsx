@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
-import { karteZaehlt } from './kartenZahl';
 
 /**
  * Der Kundenimport in der Ansicht: erst der Probelauf, dann die Übernahme.
@@ -65,7 +64,7 @@ describe('Kunden aus einer Datei', () => {
       expect.objectContaining({ name: 'Franz Huber' }),
       expect.objectContaining({ name: 'Maier GmbH' }),
     ]);
-    await karteZaehlt(/^Nicht übernommen/, 2);
+    expect(screen.getByText('Nicht übernommen (2)')).toBeInTheDocument();
     expect(screen.getByText('Zeile 4: E-Mail-Adresse „keine-mail" ist ungültig')).toBeInTheDocument();
     expect(screen.getByText('Zeile 5: Gibt es schon als Kunden')).toBeInTheDocument();
     expect(screen.getByText(/Nicht übernommen: Umsatz/)).toBeInTheDocument();

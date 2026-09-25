@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -16,14 +16,11 @@ import type { Assignment, Project, Vacation, EinsatzMaterial } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
-import { KontaktZeile } from '@/components/Kontakt';
+import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
-import MonthCalendar, { KalenderLegende } from '@/components/MonthCalendar';
+import MonthCalendar from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
-import Meldung from '@/components/Meldung';
-import Grenzliste from '@/components/Grenzliste';
-import { List, ListRow } from '@/components/ListRow';
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. */
 function fmtDay(iso: string): string {
@@ -232,8 +229,8 @@ export default function MyScheduleView() {
       ) : error ? (
         <ErrorState message={error} />
       ) : (
-        <div className="einsatzplan">
-          <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+          <div className="space-y-3 lg:col-span-2">
             <MonthCalendar
               year={cursor.year}
               month={cursor.month}
@@ -248,31 +245,48 @@ export default function MyScheduleView() {
               marks={marks}
               markLabel={(n) => `${n} ${n === 1 ? 'Einsatz' : 'Einsätze'}`}
             />
-            <KalenderLegende geplant="Einsätze geplant" />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-ink-muted">
+              <span className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" />
+                Einsätze geplant
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-brand/25 ring-1 ring-brand" />
+                Heute
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="inline-block h-2.5 w-5 rounded-sm border border-line bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
+                Feiertag (AT)
+              </span>
+            </div>
           </div>
 
-          <div className="einsatzplan-spalte">
+          <div className="lg:col-span-3">
             <Card title={`Einsätze am ${fmtDay(selected)}`}>
               {/*
                 Der Urlaub steht ÜBER den Einsätzen: fällt beides auf denselben
                 Tag, ist das der Widerspruch, den man sofort sehen muss.
               */}
               {urlaubAmTag && (
-                <div className="mb-3">
-                  <Meldung ton={urlaubAmTag.status === 'Genehmigt' ? 'gut' : 'warnung'}>
-                    {urlaubAmTag.status === 'Genehmigt' ? (
-                      <>
-                        <strong>Urlaub</strong> — genehmigt
-                        {urlaubAmTag.entschiedenVonName ? ` von ${urlaubAmTag.entschiedenVonName}` : ''}.
-                      </>
-                    ) : (
-                      <>
-                        <strong>Urlaub beantragt</strong> — noch nicht entschieden. Bitte noch nichts
-                        fix buchen.
-                      </>
-                    )}
-                  </Meldung>
-                </div>
+                <p
+                  className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
+                    urlaubAmTag.status === 'Genehmigt'
+                      ? 'border border-line bg-surface-2 text-success'
+                      : 'border border-line bg-surface-2 text-warning'
+                  }`}
+                >
+                  {urlaubAmTag.status === 'Genehmigt' ? (
+                    <>
+                      <strong>Urlaub</strong> — genehmigt
+                      {urlaubAmTag.entschiedenVonName ? ` von ${urlaubAmTag.entschiedenVonName}` : ''}.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Urlaub beantragt</strong> — noch nicht entschieden. Bitte noch nichts
+                      fix buchen.
+                    </>
+                  )}
+                </p>
               )}
               {visible.length === 0 ? (
                 <EmptyState>
@@ -280,43 +294,30 @@ export default function MyScheduleView() {
                   Tagen du eingeplant bist.
                 </EmptyState>
               ) : (
-                <div>
-                  {visible.map((a, i) => {
+                <div className="space-y-3">
+                  {visible.map((a) => {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
-                      <Fragment key={a.id}>
-                        {/* Zwei Einsätze am selben Tag trennt eine Haarlinie,
-                            kein Kasten in der Karte (Linie 2). */}
-                        {i > 0 && <hr className="einsatz-trenner" />}
-                        {/*
-                          AUFBAU WIE DIE HEUTE-KARTE AM START (Mockup S. 1):
-                          Kunde groß, darunter Nummer und Aufgabe mit den
-                          Marken rechts, Adresse und Kontakt als Chips, was
-                          mitzunehmen ist, dann die Knöpfe.
-                        */}
-                        <p className="einsatz-kunde">{proj?.customerName ?? a.projectNumber}</p>
-                        <div className="einsatz-meta">
-                          {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname
-                              da ist — sonst stünde sie doppelt. */}
-                          <p className="einsatz-auftrag">
-                            {proj?.customerName && a.projectNumber}
-                            {proj?.customerName && a.comment && ' · '}
-                            {a.comment && <span>{a.comment}</span>}
-                          </p>
-                          <span className="einsatz-marken">
-                            {/* „Heute" war rot. Es ist kein Ausfall, sondern
-                                der Einsatz, der GERADE läuft. */}
+                      <div key={a.id} className="rounded border border-line p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-semibold text-ink">
+                            {proj?.customerName ?? a.projectNumber}
+                            {/* Nummer nur zusätzlich zeigen, wenn ein Kundenname
+                                da ist — sonst stünde sie doppelt. */}
+                            {proj?.customerName && (
+                              <span className="tnum ml-1 text-sm font-normal text-ink-muted">
+                                ({a.projectNumber})
+                              </span>
+                            )}
+                          </span>
+                          <span className="flex gap-2">
+                            {/* „Heute" war rot. Es ist kein Ausfall, sondern der
+                                Einsatz, der GERADE läuft. */}
                             {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
                             <Marke>{a.asHelper ? 'Helfer' : 'Facharbeiter'}</Marke>
-                            {proj?.billingMode && <Marke>{proj.billingMode}</Marke>}
                           </span>
                         </div>
-                        <KontaktZeile
-                          adresse={proj?.address}
-                          nummer={proj?.contactPhone}
-                          name={proj?.contactName}
-                          className="mt-4"
-                        />
+                        {a.comment && <p className="mt-1 text-sm text-ink-muted">{a.comment}</p>}
 
                         {/* Was mitzunehmen ist — abhakbar, auch am Vorabend. */}
                         {(() => {
@@ -334,6 +335,7 @@ export default function MyScheduleView() {
                           );
                         })()}
 
+
                         {(() => {
                           const eigene = planeVon(plaene, proj?.id);
                           if (plaene.zustand !== 'bereit' || eigene.length === 0) return null;
@@ -345,16 +347,14 @@ export default function MyScheduleView() {
                           );
                         })()}
 
-                        {/* Hauptknopf über die volle Breite, der Schein
-                            darunter; am Schreibtisch nebeneinander. */}
-                        <div className="einsatz-knoepfe">
+                        <div className="mt-3 flex flex-wrap gap-2">
                           {/* Übernimmt Baustelle und Helfer-Rolle ins
                               Zeitformular — ein vergessener Helfer-Haken
                               kostet den falschen Satz. */}
                           <Link
                             to="/time"
                             state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}
-                            className="einsatz-hauptknopf"
+                            className="flex min-h-touch items-center rounded bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
                           >
                             Zeit erfassen
                           </Link>
@@ -364,17 +364,21 @@ export default function MyScheduleView() {
                             heraussuchen muss. Datum und Baustelle wandern mit.
                           */}
                           {scheineAn && (
-                            <div className="einsatz-nebenknoepfe">
-                              <Link
-                                to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
-                                className="knopf-sekundaer"
-                              >
-                                Schein schreiben
-                              </Link>
-                            </div>
+                          <Link
+                            to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
+                            className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-semibold text-ink"
+                          >
+                            Schein schreiben
+                          </Link>
                           )}
+                          <AdresseLink adresse={proj?.address} variante="knopf" />
+                          <TelefonLink
+                            nummer={proj?.contactPhone}
+                            name={proj?.contactName}
+                            variante="knopf"
+                          />
                         </div>
-                      </Fragment>
+                      </div>
                     );
                   })}
                 </div>
@@ -388,35 +392,34 @@ export default function MyScheduleView() {
               schlicht nicht zu sehen, und die Ansicht behauptete damit, es
               stünde nichts an.
             */}
-            <Card title="Nächste Einsätze">
+            <Card title="Nächste Einsätze" className="mt-6">
               {naechste.length === 0 ? (
                 <EmptyState>Zurzeit ist nichts eingeplant.</EmptyState>
               ) : (
-                <Grenzliste
-                  eintraege={naechste}
-                  grenze={15}
-                  nachsatz="— im Kalender links nachschlagen."
-                  zeile={(a) => {
+                <ul className="divide-y divide-line">
+                  {naechste.slice(0, 15).map((a) => {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
-                      <ListRow
-                        key={a.id}
-                        title={proj?.customerName ?? a.projectNumber}
-                        subtitle={
-                          proj?.customerName ? `${fmtDay(a.date)} · ${a.projectNumber}` : fmtDay(a.date)
-                        }
-                        zustand={
-                          a.date === today || a.asHelper ? (
-                            <>
-                              {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
-                              {a.asHelper && <Marke>Helfer</Marke>}
-                            </>
-                          ) : undefined
-                        }
-                      />
+                      <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                        <span className="min-w-0">
+                          <span className="block truncate text-ink">
+                            {proj?.customerName ?? a.projectNumber}
+                          </span>
+                          <span className="block text-xs text-ink-muted">{fmtDay(a.date)}</span>
+                        </span>
+                        <span className="flex shrink-0 gap-2">
+                          {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
+                          {a.asHelper && <Marke>Helfer</Marke>}
+                        </span>
+                      </li>
                     );
-                  }}
-                />
+                  })}
+                </ul>
+              )}
+              {naechste.length > 15 && (
+                <p className="mt-2 text-sm text-ink-muted">
+                  und {naechste.length - 15} weitere — im Kalender links nachschlagen.
+                </p>
               )}
             </Card>
 
@@ -429,7 +432,7 @@ export default function MyScheduleView() {
             <Card
               title="Mein Urlaub"
               action={
-                <Link to="/vacations" className="textlink-allein">
+                <Link to="/vacations" className="text-sm font-semibold text-brand underline">
                   Beantragen
                 </Link>
               }
@@ -437,20 +440,23 @@ export default function MyScheduleView() {
               {kommendeUrlaube.length === 0 ? (
                 <EmptyState>Kein kommender Urlaub beantragt.</EmptyState>
               ) : (
-                <List>
+                <ul className="divide-y divide-line">
                   {kommendeUrlaube.map((v) => (
-                    <ListRow
-                      key={v.id}
-                      title={v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
-                      zustand={
+                    <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                      <span className="tnum text-ink">
+                        {v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="tnum text-xs text-ink-muted">
+                          {v.tage} {v.tage === 1 ? 'Tag' : 'Tage'}
+                        </span>
                         <Zustand stand={v.status === 'Genehmigt' ? 'gut' : 'achtung'}>
                           {v.status}
                         </Zustand>
-                      }
-                      wert={`${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}`}
-                    />
+                      </span>
+                    </li>
                   ))}
-                </List>
+                </ul>
               )}
             </Card>
             )}

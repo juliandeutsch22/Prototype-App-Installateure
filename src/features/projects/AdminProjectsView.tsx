@@ -19,8 +19,10 @@ import Card from '@/components/Card';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import StatusBadge from '@/components/StatusBadge';
-import { AdresseLink, KontaktZeile, TelefonLink } from '@/components/Kontakt';
+import { Marke } from '@/components/Badge';
+import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
 import RowMenu from '@/components/RowMenu';
 import { praefixeVon, belegNummer, hoechsteLfdImJahr } from '@/lib/praefixe';
@@ -31,11 +33,7 @@ import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
-import Meldung from '@/components/Meldung';
-import Aktionsleiste from '@/components/Aktionsleiste';
 import { fmtStunden } from '@/lib/time';
-import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
-import { abgeschnitten } from '@/lib/listengrenzen';
 
 const empty = {
   projectNumber: '',
@@ -398,78 +396,7 @@ export default function AdminProjectsView() {
     return serverTreffer.filter((p) => !geladen.has(p.id)).length;
   }, [serverTreffer, sorted]);
 
-  /** Am Schreibtisch die Baustellen als Tabelle, am Telefon als Liste. */
-  const schreibtisch = useAbBreite(AB_TABELLE);
-
   if (!user) return null;
-
-  /** Namen statt Kennungen — Team und Projektleitung einer Baustelle. */
-  const personen = (p: WithId<Project>) => {
-    const namen = (uids: string[]) =>
-      uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
-    return { team: namen(p.assignedEmployees ?? []), leitung: namen(p.projectManagers ?? []) };
-  };
-
-  /*
-    DIE AKTIONEN EINER BAUSTELLENZEILE — am Telefon in der Listenzeile, am
-    Schreibtisch in der letzten Tabellenspalte (siehe `useAbBreite`). Einmal
-    geschrieben, damit beide Formen dieselben Handgriffe tragen.
-  */
-  const baustelleAktionen = (p: WithId<Project>) => (
-    <>
-      {/*
-        EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine
-        Auswertung in die Liste) und „Bearbeiten" (sprang in das
-        Formular ganz oben). Beides steht jetzt in der Akte, und
-        die hat eine Adresse: sie lässt sich verlinken, als
-        Lesezeichen ablegen und kommt zurück, wohin man war.
-      */}
-      {/* Ein Textknopf wie „Öffnen" bei den Angeboten, kein
-          unterstrichener Link (docs/design/linie.md 3). */}
-      <Link to={`/admin-projects/${p.id}`} className="knopf-leise-klein">
-        Akte
-      </Link>
-      {/*
-        LÖSCHEN STEHT IM MENÜ, NICHT ALS ✕ IN DER ZEILE.
-
-        Gemessen auf 375 px (iPhone XS): mit Budget-Marke, Zustand
-        und zwei Verweisen passte das ✕ nicht mehr in die Zeile und
-        rutschte ALLEIN in eine zweite — rechtsbündig, unter einer
-        leeren Lücke. Damit stand ausgerechnet die einzige
-        unumkehrbare Aktion am auffälligsten da.
-
-        Die Regel steht schon in `ListRow`: „Wo es mehr als zwei
-        Aktionen gibt, gehört alles Seltene in ein RowMenu." Hier
-        war sie nur nicht befolgt.
-
-        NUR DAS ✕ ZU VERSCHIEBEN REICHTE NICHT — nachgemessen
-        rutschte danach das Menü selbst in die zweite Zeile. Fünf
-        Elemente passen auf 375 px nicht, gleich welches zuletzt
-        kommt. Deshalb geht „Schein nachtragen" mit: übrig bleiben
-        Budget, Zustand, die Akte und das Menü. Der Umbruch war der
-        Anlass, die Gewichtung ist der Gewinn.
-      */}
-      <RowMenu
-        about={`Baustelle ${p.projectNumber}`}
-        items={[
-          /*
-            „Schein nachtragen" ist der Ausnahmefall — der
-            Monteur hat ihn vor Ort vergessen. Als eigener
-            Verweis in der Zeile stand er gleichauf mit der
-            Akte, die man täglich braucht.
-          */
-          ...(scheineAn
-            ? [{
-                label: 'Schein nachtragen',
-                onSelect: () =>
-                  navigate(`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`),
-              }]
-            : []),
-          { label: 'Löschen', onSelect: () => setToDelete(p), danger: true },
-        ]}
-      />
-    </>
-  );
 
   return (
     <div className="space-y-6">
@@ -478,7 +405,7 @@ export default function AdminProjectsView() {
         subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
         action={
           formOffen ? undefined : (
-            <Button onClick={() => setFormOffen(true)}>Neue Baustelle</Button>
+            <Button onClick={() => setFormOffen(true)}><Icon name="plus" size={18} />Neue Baustelle</Button>
           )
         }
       />
@@ -537,7 +464,7 @@ export default function AdminProjectsView() {
               <p className="text-sm text-warning sm:col-span-2">
                 Bisher als Text hinterlegt: „{form.customerName}". Bitte den passenden Kunden
                 wählen — oder in der{' '}
-                <Link to="/customers" className="textlink">
+                <Link to="/customers" className="font-semibold underline">
                   Kundenverwaltung
                 </Link>{' '}
                 anlegen und die Baustellen übernehmen.
@@ -546,7 +473,7 @@ export default function AdminProjectsView() {
             {kunden.length === 0 && (
               <p className="text-sm text-ink-muted sm:col-span-2">
                 Noch keine Kunden angelegt.{' '}
-                <Link to="/customers" className="textlink">
+                <Link to="/customers" className="font-semibold text-brand underline">
                   Zur Kundenverwaltung
                 </Link>
               </p>
@@ -596,16 +523,14 @@ export default function AdminProjectsView() {
           {/* Ohne Zustaendige laeuft eine Eilbestellung ins Leere — das gehoert
               beim Anlegen gesagt, nicht erst, wenn ein Monteur wartet. */}
           {managers.length === 0 && (
-            <Meldung ton="warnung">
+            <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
               Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
               niemanden. Die Verwaltung wird weiterhin verständigt.
-            </Meldung>
+            </p>
           )}
           <Pflichthinweis />
           {error && <ErrorState message={error} />}
-          {/* Das Formular ist am Telefon mehrere Bildschirme lang — die Leiste
-              hält „Anlegen" erreichbar. */}
-          <Aktionsleiste>
+          <div className="flex gap-3">
             <Button type="submit" loading={saving}>Anlegen</Button>
             {/* Der Weg zurück zur Liste — vorher gab es ihn nicht, weil das
                 Formular gar nicht zuging. */}
@@ -616,51 +541,24 @@ export default function AdminProjectsView() {
             >
               Abbrechen
             </Button>
-          </Aktionsleiste>
+          </div>
         </form>
       </Card>
       )}
 
       <Card
-        title="Alle Baustellen"
-        // Zahl und Filter rechts im Titel, wie in jeder Liste (Linie, 2).
+        title={`Alle Baustellen (${visible.length})`}
         action={
-          <div className="liste-kopf-rechts">
-            <span className="liste-anzahl">{visible.length}</span>
-            <SelectField id="pfilter" label="" aria-label="Baustellen zeigen" value={filter}
-              onChange={(e) => setFilter(e.target.value as typeof filter)}>
-              <option value="offen">Aktiv &amp; pausiert</option>
-              <option value="alle">Alle</option>
-              <option value="archiv">Archiv ({archivCount})</option>
-            </SelectField>
-          </div>
-        }
-        /*
-          Steht unter der Liste, im Kartenfuß, nicht im Kopf: erst wer bis ans
-          Ende gescrollt hat und nichts gefunden hat, braucht die Auskunft.
-          In den Fuß kommt sie nur, wenn die Grenze greift.
-
-          KEIN SUCHSATZ MEHR. Er sagte „Nach Kunde und Adresse wird nur in
-          diesen gesucht" — richtig unter Firestore, seit dem Abbau falsch:
-          die Datenbank sucht über Nummer, Kunde und Adresse im ganzen
-          Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
-          angezeigt wird. Eine Auskunft, die einmal danebenlag, wird beim
-          nächsten Mal nicht mehr geglaubt.
-        */
-        footer={
-          abgeschnitten(projects, grenze) && (
-            <Nachladen
-              geladen={projects.length}
-              grenze={grenze}
-              onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
-              einheit="Baustellen"
-              sucheImBrowser={false}
-            />
-          )
+          <SelectField id="pfilter" label="" className="py-1 text-sm" value={filter}
+            onChange={(e) => setFilter(e.target.value as typeof filter)}>
+            <option value="offen">Aktiv &amp; pausiert</option>
+            <option value="alle">Alle</option>
+            <option value="archiv">Archiv ({archivCount})</option>
+          </SelectField>
         }
       >
         {projects.length >= 8 && (
-          <div className="liste-suche">
+          <div className="mb-4">
             <InputField
               id="psuche"
               label="Suche"
@@ -694,114 +592,122 @@ export default function AdminProjectsView() {
                 ? `Keine Baustelle passt zu „${suche}".`
                 : 'Keine Baustelle in dieser Auswahl.'}
           </EmptyState>
-        ) : schreibtisch ? (
-          <div className="tabelle-rahmen">
-            <table className="tabelle">
-              <thead className="tabelle-kopfzeile">
-                <tr>
-                  <th className="tabelle-kopf">Baustelle</th>
-                  <th className="tabelle-kopf">Adresse</th>
-                  <th className="tabelle-kopf">Projektleitung</th>
-                  <th className="tabelle-kopf-zahl">Budget</th>
-                  <th className="tabelle-kopf">Status</th>
-                  <th className="tabelle-kopf-zahl">
-                    <span className="sr-only">Aktionen</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((p) => {
-                  const { team, leitung } = personen(p);
-                  return (
-                    <tr key={p.id} className="tabelle-zeile">
-                      {/* Die Nummer als zweite Zeile unter dem Kunden, wie die
-                          Baustelle unter dem Kunden bei den Angeboten. */}
-                      <td className="tabelle-name">
-                        {p.customerName}
-                        <span className="tabelle-unter">{p.projectNumber}</span>
-                      </td>
-                      {/* Adresse und Nummer anklickbar, wie in der Liste. */}
-                      <td className="tabelle-zelle">
-                        <span className="tabelle-kontakt">
-                          <AdresseLink adresse={p.address} />
-                          <TelefonLink
-                            nummer={p.contactPhone}
-                            name={p.contactName}
-                            className="whitespace-nowrap"
-                          />
-                        </span>
-                      </td>
-                      <td className="tabelle-zelle">
-                        {leitung.length > 0 ? (
-                          leitung.join(', ')
-                        ) : (
-                          <span className="text-warning">Keine Projektleitung zugeteilt</span>
-                        )}
-                        {team.length > 0 && (
-                          <span className="tabelle-unter">Team: {team.join(', ')}</span>
-                        )}
-                      </td>
-                      <td className="tabelle-zahl-stark">
-                        {p.estimatedHours ? `${fmtStunden(p.estimatedHours)} h` : null}
-                      </td>
-                      <td className="tabelle-zelle">
-                        <StatusBadge status={p.status} />
-                      </td>
-                      <td className="tabelle-aktionen">
-                        <div className="tabelle-knoepfe">{baustelleAktionen(p)}</div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
         ) : (
           <List>
             {visible.map((p) => {
-              const { team, leitung } = personen(p);
+              const namen = (uids: string[]) =>
+                uids.map((uid) => users.find((u) => u.uid === uid)?.name).filter(Boolean);
+              const team = namen(p.assignedEmployees ?? []);
+              const leitung = namen(p.projectManagers ?? []);
               return (
                 <ListRow
                   key={p.id}
-                  title={p.customerName}
-                  /*
-                    Nach der Linie (3): Titel der Kunde, Unterzeile mit „·" —
-                    Nummer, Leitung, Team. Das Budget rechts als Wert, fett,
-                    wie der Betrag eines Angebots.
-                  */
+                  title={
+                    <span>
+                      {p.customerName} <span className="tnum text-ink-muted">({p.projectNumber})</span>
+                    </span>
+                  }
                   subtitle={
                     <>
-                      {p.projectNumber}
-                      {' · '}
-                      {leitung.length > 0 ? (
-                        <>Projektleitung: {leitung.join(', ')}</>
-                      ) : (
-                        <span className="text-warning">Keine Projektleitung zugeteilt</span>
+                      {/* Adresse und Nummer anklickbar: auch die Projektleitung
+                          faehrt raus und ruft an — hier stand beides bisher
+                          als toter Text. */}
+                      <span className="flex flex-wrap items-center gap-x-3">
+                        <AdresseLink adresse={p.address} />
+                        <TelefonLink nummer={p.contactPhone} name={p.contactName} />
+                      </span>
+                      {team.length > 0 && (
+                        <span className="mt-1 block text-xs text-ink-muted">
+                          Team: {team.join(', ')}
+                        </span>
                       )}
-                      {team.length > 0 && <> · Team: {team.join(', ')}</>}
+                      <span className="mt-1 block text-xs text-ink-muted">
+                        {leitung.length > 0 ? (
+                          <>Projektleitung: {leitung.join(', ')}</>
+                        ) : (
+                          <span className="text-warning">Keine Projektleitung zugeteilt</span>
+                        )}
+                      </span>
                     </>
                   }
-                  zustand={<StatusBadge status={p.status} />}
-                  wert={p.estimatedHours ? `${fmtStunden(p.estimatedHours)} h Budget` : undefined}
-                  /* Adresse und Nummer als Chips unter der Zeile — auch die
-                     Projektleitung fährt raus und ruft an (Linie, 5). */
-                  unten={
-                    p.address?.trim() || p.contactPhone?.trim() ? (
-                      <KontaktZeile
-                        adresse={p.address}
-                        nummer={p.contactPhone}
-                        name={p.contactName}
-                        className="mt-1"
-                      />
-                    ) : undefined
-                  }
                 >
-                  {baustelleAktionen(p)}
+                  {p.estimatedHours ? <Marke>{fmtStunden(p.estimatedHours)} h Budget</Marke> : null}
+                  <StatusBadge status={p.status} />
+                  {/*
+                    EIN WEG STATT ZWEI. Hier standen „Übersicht" (klappte eine
+                    Auswertung in die Liste) und „Bearbeiten" (sprang in das
+                    Formular ganz oben). Beides steht jetzt in der Akte, und
+                    die hat eine Adresse: sie lässt sich verlinken, als
+                    Lesezeichen ablegen und kommt zurück, wohin man war.
+                  */}
+                  <Link
+                    to={`/admin-projects/${p.id}`}
+                    className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                  >
+                    Akte
+                  </Link>
+                  {/*
+                    LÖSCHEN STEHT IM MENÜ, NICHT ALS ✕ IN DER ZEILE.
+
+                    Gemessen auf 375 px (iPhone XS): mit Budget-Marke, Zustand
+                    und zwei Verweisen passte das ✕ nicht mehr in die Zeile und
+                    rutschte ALLEIN in eine zweite — rechtsbündig, unter einer
+                    leeren Lücke. Damit stand ausgerechnet die einzige
+                    unumkehrbare Aktion am auffälligsten da.
+
+                    Die Regel steht schon in `ListRow`: „Wo es mehr als zwei
+                    Aktionen gibt, gehört alles Seltene in ein RowMenu." Hier
+                    war sie nur nicht befolgt.
+
+                    NUR DAS ✕ ZU VERSCHIEBEN REICHTE NICHT — nachgemessen
+                    rutschte danach das Menü selbst in die zweite Zeile. Fünf
+                    Elemente passen auf 375 px nicht, gleich welches zuletzt
+                    kommt. Deshalb geht „Schein nachtragen" mit: übrig bleiben
+                    Budget, Zustand, die Akte und das Menü. Der Umbruch war der
+                    Anlass, die Gewichtung ist der Gewinn.
+                  */}
+                  <RowMenu
+                    about={`Baustelle ${p.projectNumber}`}
+                    items={[
+                      /*
+                        „Schein nachtragen" ist der Ausnahmefall — der
+                        Monteur hat ihn vor Ort vergessen. Als eigener
+                        Verweis in der Zeile stand er gleichauf mit der
+                        Akte, die man täglich braucht.
+                      */
+                      ...(scheineAn
+                        ? [{
+                            label: 'Schein nachtragen',
+                            onSelect: () =>
+                              navigate(`/worksheet?projekt=${encodeURIComponent(p.projectNumber)}`),
+                          }]
+                        : []),
+                      { label: 'Löschen', onSelect: () => setToDelete(p), danger: true },
+                    ]}
+                  />
                 </ListRow>
               );
             })}
           </List>
         )}
+        {/*
+          Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende gescrollt
+          hat und nichts gefunden hat, braucht die Auskunft.
+
+          KEIN SUCHSATZ MEHR. Er sagte „Nach Kunde und Adresse wird nur in
+          diesen gesucht" — richtig unter Firestore, seit dem Abbau falsch:
+          die Datenbank sucht über Nummer, Kunde und Adresse im ganzen
+          Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
+          angezeigt wird. Eine Auskunft, die einmal danebenlag, wird beim
+          nächsten Mal nicht mehr geglaubt.
+        */}
+        <Nachladen
+          geladen={projects.length}
+          grenze={grenze}
+          onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
+          einheit="Baustellen"
+          sucheImBrowser={false}
+        />
       </Card>
 
       <ConfirmDialog

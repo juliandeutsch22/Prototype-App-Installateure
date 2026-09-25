@@ -65,29 +65,41 @@ describe('Wessen Marke in der Hülle steht', () => {
     expect(await screen.findAllByText('Perl Installationen')).toHaveLength(2);
   });
 
-  it('trägt in der Seitenleiste oben Senklot und direkt darunter den Betrieb', async () => {
+  it('trägt die Produktmarke klein am Fuss der Seitenleiste', async () => {
     /*
-      SEIT DER ANGLEICHUNG AN DEN ENTWURF (Mockup S. 7, 8; vom Betrieb
-      freigegeben): oben das Produkt, darunter der Betrieb — beide VOR der
-      Navigation. Vorher stand die Marke klein hinter dem Abmelden.
-
-      Geprüft wird die Reihenfolge, nicht nur „irgendwo in der Seitenleiste“:
-      Senklot vor dem Betriebsnamen, beide vor dem ersten Menüpunkt, und
-      nichts davon hinter dem Abmelden.
+      Nicht oben und nicht gross: sie steht HINTER dem Abmelden, in der
+      Fusszeile der Navigation. Dort konkurriert sie mit nichts — und wer
+      anruft, hat trotzdem ein Wort für die Software.
     */
     zeige();
     const marke = await screen.findByText('Senklot');
     const seitenleiste = marke.closest('aside');
     expect(seitenleiste).not.toBeNull();
 
-    const betriebsname = within(seitenleiste!).getByText('Perl Installationen');
-    const start = within(seitenleiste!).getByRole('link', { name: /Start/ });
+    /*
+      NICHT NUR „IRGENDWO IN DER SEITENLEISTE" — das war die erste Fassung
+      dieser Prüfung, und eine Mutation, die die Marke nach OBEN neben das
+      Betriebslogo setzt, blieb damit unbemerkt. Geprüft wird die
+      Reihenfolge: sie steht HINTER dem Abmelden, also im Fuss.
+    */
     const abmelden = within(seitenleiste!).getByRole('button', { name: 'Abmelden' });
-    const folgt = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    const folgt = abmelden.compareDocumentPosition(marke) & Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(folgt).toBeTruthy();
 
-    expect(folgt(marke, betriebsname)).toBe(true);
-    expect(folgt(betriebsname, start)).toBe(true);
-    expect(folgt(abmelden, marke)).toBe(false);
+    /*
+      Und sie ist kleiner als der Betriebsname darüber.
+
+      Der Schriftgrad steht am UMSCHLIESSENDEN Element, nicht am Text selbst:
+      der Name liegt seit dem Umbruch auf bis zu drei Zeilen in einem inneren
+      `span`, der die Begrenzung trägt. `getByText` findet diesen inneren —
+      gemessen wird deshalb am Elternteil, wo der Grad gesetzt ist.
+    */
+    const betriebsname = within(seitenleiste!).getByText('Perl Installationen');
+    const gross = Number.parseFloat(
+      (betriebsname.parentElement as HTMLElement).style.fontSize,
+    );
+    const klein = Number.parseFloat((marke.parentElement as HTMLElement).style.fontSize);
+    expect(klein).toBeLessThan(gross);
   });
 
   it('zeigt einem zweiten Betrieb NICHT das Zeichen des ersten', async () => {

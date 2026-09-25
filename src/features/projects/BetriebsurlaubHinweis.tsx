@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Betriebsurlaub } from '@/types';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
-import Meldung from '@/components/Meldung';
 
 function tag(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' });
@@ -47,10 +46,10 @@ export default function BetriebsurlaubHinweis({
 
   if (treffer.length === 0) return null;
   return (
-    <Meldung ton="warnung" role="status">
+    <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="status">
       Im Zeitraum liegt Betriebsurlaub:{' '}
       {treffer.map((b) => `${b.bezeichnung} (${tag(b.von)}–${tag(b.bis)})`).join(', ')}. Terminieren
       geht trotzdem.
-    </Meldung>
+    </p>
   );
 }

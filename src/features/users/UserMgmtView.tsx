@@ -6,9 +6,8 @@ import { provisionUser } from '@/lib/auth/provisionUser';
 import { ROLES, type AppUser, type Role } from '@/types';
 import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
-import Meldung from '@/components/Meldung';
 import Button from '@/components/Button';
-import Aktionsleiste from '@/components/Aktionsleiste';
+import Icon from '@/components/Icon';
 import { Marke } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
@@ -25,7 +24,6 @@ import {
 import { DEFAULT_VACATION_DAYS } from '@/lib/db/benutzerVorgaben';
 import { JAHRESBEGINN_VORGABE } from '@/lib/time';
 import { benutzernameFehler, kontoAnzeige, kunstadresse } from '@shared/benutzername';
-import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 
 /** Benutzerverwaltung (GF/Admin): anlegen, Stammdaten und Rollen pflegen. */
@@ -83,13 +81,6 @@ export default function UserMgmtView() {
   */
   const [anmeldung, setAnmeldung] = useState<'email' | 'benutzername'>('email');
   const [benutzername, setBenutzername] = useState('');
-  /*
-    AM SCHREIBTISCH EINE TABELLE, am Telefon die Liste — genau eine Form im
-    DOM (siehe `useAbBreite`). Dieselben Gruppen in derselben Reihenfolge,
-    derselbe Weg in die Akte; nur stehen Name und Anmeldung nebeneinander
-    statt untereinander, und „Akte" steht nicht allein am rechten Rand.
-  */
-  const schreibtisch = useAbBreite(AB_TABELLE);
 
   async function reload() {
     if (!user) return;
@@ -206,27 +197,6 @@ export default function UserMgmtView() {
     }
   }
 
-  /*
-    EIN WEG STATT DREI. Hier standen „Bearbeiten" (sprang in das Anlege-
-    Formular ganz oben, wo die Zeitkonto-Felder erst noch aufzuklappen waren)
-    und ein Zeilenmenü mit Passwort-Mail und Sperren. Alles drei steht jetzt
-    in der Akte — und die hat eine Adresse, auf die sich verweisen lässt.
-
-    Auch für einen Administrator, den die aufrufende Rolle nicht ändern darf
-    (sonst könnte die Geschäftsführung den letzten Superuser deaktivieren und
-    sich selbst aussperren): ANSEHEN darf sie ihn, und die Akte sagt dort,
-    warum nichts zu ändern ist. Ein „nur durch Administrator" ohne Weg dorthin
-    war eine Sackgasse. Einmal geschrieben, in Liste und Tabelle derselbe.
-  */
-  /* In der Tabelle ein Textknopf wie „Öffnen" bei den Angeboten, kein
-     unterstrichener Link (docs/design/linie.md 3). Am Telefon ist die
-     ganze Zeile der Weg in die Akte (`ListRow ziel`). */
-  const akteLink = (u: AppUser) => (
-    <Link to={`/user-mgmt/${u.uid}`} className="knopf-leise-klein">
-      Akte
-    </Link>
-  );
-
   if (!user) return null;
 
   return (
@@ -236,7 +206,7 @@ export default function UserMgmtView() {
         subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen"
         action={
           formOffen ? undefined : (
-            <Button onClick={() => setFormOffen(true)}>Neuer Benutzer</Button>
+            <Button onClick={() => setFormOffen(true)}><Icon name="plus" size={18} />Neuer Benutzer</Button>
           )
         }
       />
@@ -255,16 +225,13 @@ export default function UserMgmtView() {
       </MetricRow>
 
       {handoverPassword && (
-        <Meldung
-          ton="warnung"
-          role="alert"
-          titel={
-            handoverPassword.benutzername
+        <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
+          <p className="font-semibold">
+            {handoverPassword.benutzername
               ? `Zugangsdaten für ${handoverPassword.name}`
-              : 'Willkommens-Mail konnte nicht gesendet werden'
-          }
-        >
-          <p>
+              : 'Willkommens-Mail konnte nicht gesendet werden'}
+          </p>
+          <p className="mt-1 text-sm">
             Bitte {handoverPassword.name} dieses Startpasswort persönlich weitergeben. Es wird
             nur jetzt angezeigt
             {handoverPassword.benutzername
@@ -272,16 +239,16 @@ export default function UserMgmtView() {
               : ':'}
           </p>
           {handoverPassword.benutzername && (
-            <p className="mt-2 text-ink">
+            <p className="mt-2 text-sm text-ink">
               Benutzername:{' '}
               <span className="select-all font-semibold">{handoverPassword.benutzername}</span>
             </p>
           )}
-          <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold">{handoverPassword.pw}</p>
+          <p className="mt-2 select-all tnum text-lg font-semibold">{handoverPassword.pw}</p>
           <Button variant="ghost" className="mt-2" onClick={() => setHandoverPassword(null)}>
             Verstanden
           </Button>
-        </Meldung>
+        </div>
       )}
 
       {/*
@@ -366,7 +333,7 @@ export default function UserMgmtView() {
             einreicht, den er nicht hat. Die Frage muss deshalb gestellt
             werden, bevor jemand entscheidet, ob er aufklappt.
           */}
-          <fieldset className="kasten">
+          <fieldset className="rounded border border-line bg-surface-2 p-4">
             <legend className="section-label px-1">Was für ein Zugang ist das?</legend>
             <div className="flex flex-col gap-2">
               <label className="flex min-h-touch items-start gap-3 py-1">
@@ -374,7 +341,7 @@ export default function UserMgmtView() {
                   type="radio"
                   name="eintritt"
                   id="eintritt-bestand"
-                  className="auswahlpunkt mt-1"
+                  className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
                   checked={eintritt === 'bestand'}
                   onChange={() => {
                     setEintritt('bestand');
@@ -396,7 +363,7 @@ export default function UserMgmtView() {
                   type="radio"
                   name="eintritt"
                   id="eintritt-neu"
-                  className="auswahlpunkt mt-1"
+                  className="mt-1 h-5 w-5 shrink-0 accent-[color:var(--accent-deep)]"
                   checked={eintritt === 'neu'}
                   onChange={() => {
                     setEintritt('neu');
@@ -420,33 +387,31 @@ export default function UserMgmtView() {
             </div>
 
             {eintritt === 'neu' && (
-              <div className="mt-3">
-                <Meldung>
-                  Vorschlag für {form.appStartDate || 'das Eintrittsdatum'}:{' '}
-                  <strong className="text-ink">
-                    {vorschlag(form.appStartDate, form.yearlyVacationDays).tage}
-                  </strong>{' '}
-                  Tage —{' '}
-                  {zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS)} ×{' '}
-                  {vorschlag(form.appStartDate, form.yearlyVacationDays).monate} von 12 Monaten.{' '}
-                  <strong className="text-ink">Änderbar:</strong> ob im ersten Arbeitsjahr aliquot
-                  oder nach sechs Monaten voll gerechnet wird, entscheidet der Kollektivvertrag —
-                  nicht diese App.
-                </Meldung>
-              </div>
+              <p className="mt-3 rounded-sm border border-line bg-surface px-3 py-2 text-sm text-ink-muted">
+                Vorschlag für {form.appStartDate || 'das Eintrittsdatum'}:{' '}
+                <strong className="tnum text-ink">
+                  {vorschlag(form.appStartDate, form.yearlyVacationDays).tage}
+                </strong>{' '}
+                Tage —{' '}
+                {zahlOderVorgabe(form.yearlyVacationDays, DEFAULT_VACATION_DAYS)} ×{' '}
+                {vorschlag(form.appStartDate, form.yearlyVacationDays).monate} von 12 Monaten.{' '}
+                <strong className="text-ink">Änderbar:</strong> ob im ersten Arbeitsjahr aliquot
+                oder nach sechs Monaten voll gerechnet wird, entscheidet der Kollektivvertrag —
+                nicht diese App.
+              </p>
             )}
           </fieldset>
 
           <button
             type="button"
             onClick={() => setShowDetails((v) => !v)}
-            className="textlink-allein"
+            className="min-h-touch text-sm font-medium text-brand underline"
           >
             {showDetails ? 'Zeitkonto-Einstellungen ausblenden' : 'Zeitkonto-Einstellungen anzeigen'}
           </button>
 
           {showDetails && (
-            <div className="kasten space-y-4">
+            <div className="space-y-4 rounded border border-line bg-surface-2 p-4">
               <FormGrid>
                 <InputField id="uhours" label="Wochenstunden" type="number" step="0.5" min="0"
                   value={form.weeklyTargetHours}
@@ -524,7 +489,7 @@ export default function UserMgmtView() {
                   <p className="mt-2">
                     <strong>Resturlaub beim Umstieg</strong> gilt nur für das Jahr, in dem der
                     Saldo startet. Wer im September umsteigt und schon 18 von 25 Tagen genommen
-                    hat, trägt hier <span>7</span> ein — sonst zeigt die App
+                    hat, trägt hier <span className="tnum">7</span> ein — sonst zeigt die App
                     weiterhin 25, weil die Tage davor in keiner Buchung stehen.
                   </p>
                   <p className="mt-2">
@@ -555,10 +520,7 @@ export default function UserMgmtView() {
           )}
 
           <Pflichthinweis />
-          {/* Mit aufgeklapptem Zeitkonto läuft das Formular am Telefon über
-              mehr als einen Bildschirm — die Leiste hält „Benutzer anlegen"
-              in Reichweite. Dieselben Knöpfe in derselben Reihenfolge. */}
-          <Aktionsleiste>
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button type="submit" loading={saving} className="w-full sm:w-auto">
               Benutzer anlegen
             </Button>
@@ -576,33 +538,29 @@ export default function UserMgmtView() {
             >
               Abbrechen
             </Button>
-          </Aktionsleiste>
+          </div>
         </form>
       </Card>
       )}
 
       <Card
-        title="Benutzer"
-        // Zahl und Filter rechts im Titel, wie in jeder Liste (Linie, 2).
+        title={`Benutzer (${gefiltert.length})`}
         action={
-          <div className="liste-kopf-rechts">
-            <span className="liste-anzahl">{gefiltert.length}</span>
-            <SelectField
-              id="usrstatus"
-              label=""
-              aria-label="Benutzer zeigen"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as typeof status)}
-            >
-              <option value="aktiv">Aktive</option>
-              <option value="inaktiv">Inaktive ({inaktiv})</option>
-              <option value="alle">Alle</option>
-            </SelectField>
-          </div>
+          <SelectField
+            id="usrstatus"
+            label=""
+            className="py-1 text-sm"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as typeof status)}
+          >
+            <option value="aktiv">Aktive</option>
+            <option value="inaktiv">Inaktive ({inaktiv})</option>
+            <option value="alle">Alle</option>
+          </SelectField>
         }
       >
         {users.length >= 8 && (
-          <div className="liste-suche">
+          <div className="mb-4">
             <InputField
               id="usrsuche"
               label="Suche"
@@ -622,63 +580,18 @@ export default function UserMgmtView() {
           <EmptyState>
             {suche ? `Niemand passt zu „${suche}".` : 'Kein Benutzer in dieser Auswahl.'}
           </EmptyState>
-        ) : schreibtisch ? (
-          <div className="tabelle-rahmen">
-            <table className="tabelle">
-              <thead className="tabelle-kopfzeile">
-                <tr>
-                  <th className="tabelle-kopf">Name</th>
-                  <th className="tabelle-kopf">Anmeldung</th>
-                  <th className="tabelle-kopf-zahl">
-                    <span className="sr-only">Aktionen</span>
-                  </th>
-                </tr>
-              </thead>
-              {/* Je Rolle ein eigener Zeilenblock mit Kopf — dieselbe
-                  Gruppierung wie in der Liste, wie bei den Anforderungen. */}
-              {gruppen.map((g) => (
-                <tbody key={g.rolle}>
-                  <tr>
-                    <th colSpan={3} scope="rowgroup" className="tabelle-gruppe">
-                      <h3 className="section-label flex items-center justify-between">
-                        <span>{g.rolle}</span>
-                        <span className="font-normal text-ink-muted">{g.leute.length}</span>
-                      </h3>
-                    </th>
-                  </tr>
-                  {g.leute.map((u) => (
-                    <tr key={u.uid} className="tabelle-zeile">
-                      <td className="tabelle-name">
-                        <span className="tabelle-marken">
-                          {u.name}
-                          {u.active === false && <Marke>inaktiv</Marke>}
-                        </span>
-                      </td>
-                      <td className="tabelle-zelle">{kontoAnzeige(u.email)}</td>
-                      <td className="tabelle-aktionen">
-                        <div className="tabelle-knoepfe">{akteLink(u)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              ))}
-            </table>
-          </div>
         ) : (
           <div className="space-y-4">
             {gruppen.map((g) => (
               <div key={g.rolle}>
                 <h3 className="section-label mb-1 flex items-center justify-between">
                   <span>{g.rolle}</span>
-                  <span className="font-normal text-ink-muted">{g.leute.length}</span>
+                  <span className="tnum font-normal text-ink-muted">{g.leute.length}</span>
                 </h3>
                 <List>
             {g.leute.map((u) => (
-              /* Die Akte ist die einzige Handlung der Zeile — dann ist die
-                 ganze Zeile der Weg dorthin, mit Pfeil (Linie, 3). */
               <ListRow
                 key={u.uid}
-                ziel={`/user-mgmt/${u.uid}`}
                 title={
                   <span className="flex flex-wrap items-center gap-2">
                     {u.name}
@@ -688,7 +601,29 @@ export default function UserMgmtView() {
                   </span>
                 }
                 subtitle={kontoAnzeige(u.email)}
-              />
+              >
+                {/* Ein Administrator laesst sich nur von einem Administrator
+                    anfassen — sonst koennte die Geschaeftsfuehrung den letzten
+                    Superuser deaktivieren und sich selbst aussperren. */}
+                {/*
+                  EIN WEG STATT DREI. Hier standen „Bearbeiten" (sprang in das
+                  Anlege-Formular ganz oben, wo die Zeitkonto-Felder erst noch
+                  aufzuklappen waren) und ein Zeilenmenü mit Passwort-Mail und
+                  Sperren. Alles drei steht jetzt in der Akte — und die hat
+                  eine Adresse, auf die sich verweisen lässt.
+
+                  Auch für einen Administrator, den die aufrufende Rolle nicht
+                  ändern darf: ANSEHEN darf sie ihn, und die Akte sagt dort,
+                  warum nichts zu ändern ist. Ein „nur durch Administrator"
+                  ohne Weg dorthin war eine Sackgasse.
+                */}
+                <Link
+                  to={`/user-mgmt/${u.uid}`}
+                  className="flex min-h-touch items-center px-2 text-sm font-semibold text-brand underline"
+                >
+                  Akte
+                </Link>
+              </ListRow>
             ))}
                 </List>
               </div>
