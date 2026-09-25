@@ -376,16 +376,22 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             mit `sticky left-0` schob sich der Inhalt der gerollten Spalten
             in die 16 px Polsterung links neben die Namensspalte. Aus dem
             Betrieb gemeldet, und im Bildschirmfoto gut zu sehen.
+
+            Kopf und Zellen tragen die Tabellenklassen. Was daneben steht,
+            gehört zum Raster: `border-separate` (mit `collapse` wandert die
+            Linie der stehenden Spalte beim Rollen nicht mit), `sticky` samt
+            deckender Fläche, die Mindestbreite der sieben Tage und die
+            Tagesfärbung für Wochenende, Feiertag und Betriebsurlaub.
           */}
-          <div className="hidden overflow-x-auto md:block">
+          <div className="tabelle-rahmen hidden md:block">
             <table
               aria-label="Wochenplan als Tabelle"
-              className="w-full min-w-[44rem] border-separate border-spacing-0 text-sm"
+              className="tabelle min-w-[44rem] border-separate border-spacing-0"
             >
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-10 bg-surface p-2 text-left align-bottom">
-                    <span className="section-label">Mitarbeiter</span>
+                  <th className="tabelle-kopf sticky left-0 z-10 bg-surface align-bottom">
+                    Mitarbeiter
                   </th>
                   {tage.map((tag) => {
                     const { wochentag, datum } = tagKurz(tag);
@@ -396,7 +402,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     return (
                       <th
                         key={tag}
-                        className={`border-b border-line p-2 text-center font-normal ${
+                        className={`tabelle-kopf text-center ${
                           feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''
                         }`}
                       >
@@ -450,7 +456,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                   <tr key={u.uid}>
                     <th
                       scope="row"
-                      className="sticky left-0 z-10 max-w-[9rem] truncate border-b border-line bg-surface p-2 text-left font-medium text-ink"
+                      className="tabelle-zelle sticky left-0 z-10 max-w-[9rem] truncate bg-surface text-left font-medium"
                     >
                       {u.name}
                     </th>
@@ -464,7 +470,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                       return (
                         <td
                           key={tag}
-                          className={`border-b border-line p-1 align-top ${
+                          className={`tabelle-zelle ${
                             feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''
                           }`}
                         >
@@ -595,10 +601,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     {t && t.baustellen.length > 0 ? (
                       t.baustellen.map((b) =>
                         nurLesen ? (
-                          <div
-                            key={b.nummer}
-                            className="rounded-sm border border-line bg-surface-2 px-3 py-2"
-                          >
+                          <div key={b.nummer} className="kasten">
                             <span className="block font-medium text-info">
                               {b.name} <span className="font-normal">· {b.nummer}</span>
                             </span>
@@ -614,7 +617,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           type="button"
                           onClick={() => zurTagesplanung(tag, b.nummer)}
                           aria-label={`${b.name} am ${datum} bearbeiten`}
-                          className="min-h-touch w-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-left"
+                          className="kasten min-h-touch w-full text-left"
                         >
                           <span className="block font-medium text-info">
                               {b.name} <span className="font-normal">· {b.nummer}</span>
@@ -628,9 +631,9 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                         ),
                       )
                     ) : zuAm.has(tag) ? (
-                      <p className="text-sm text-ink-muted">Betriebsurlaub — {zuAm.get(tag)}.</p>
+                      <EmptyState>Betriebsurlaub — {zuAm.get(tag)}.</EmptyState>
                     ) : (
-                      <p className="text-sm text-ink-muted">Nichts geplant.</p>
+                      <EmptyState>Nichts geplant.</EmptyState>
                     )}
 
                     {!nurLesen && !wochenende && !feiertag && t && t.frei.length > 0 && (
@@ -646,14 +649,14 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     )}
 
                     {!nurLesen && (
-                      <button
-                        type="button"
+                      <Button
+                        variant="secondary"
                         onClick={() => zurTagesplanung(tag)}
                         aria-label={`Am ${datum} einteilen`}
-                        className="min-h-touch w-full rounded-sm border border-line text-sm text-ink-muted"
+                        className="w-full"
                       >
                         Einteilen
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>

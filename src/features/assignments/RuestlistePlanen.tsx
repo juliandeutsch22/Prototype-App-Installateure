@@ -7,6 +7,8 @@ import IconButton from '@/components/IconButton';
 import { Marke } from '@/components/Badge';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
+import Meldung from '@/components/Meldung';
+import { EmptyState } from '@/components/States';
 
 /**
  * Die Rüstliste eines Einsatzes zusammenstellen — was in den Bus soll.
@@ -117,9 +119,9 @@ export default function RuestlistePlanen({
   return (
     <div className="space-y-4">
       {positionen.length === 0 ? (
-        <p className="text-sm text-ink-muted">
+        <EmptyState>
           Noch nichts eingetragen. Der Monteur sieht am Einsatztag nur eine Liste, die hier steht.
-        </p>
+        </EmptyState>
       ) : (
         <ul className="divide-y divide-line rounded border border-line">
           {positionen.map((p) => {
@@ -176,19 +178,23 @@ export default function RuestlistePlanen({
                   den diese App sich nicht leisten kann.
                 */}
                 {fehlt > 0 && (
-                  <div className="mt-2 flex flex-wrap items-center gap-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                    <span>
-                      Im Lager fehlen <strong>{fehlt}</strong>.
-                    </span>
-                    {onAnforderung && (
-                      <Button
-                        variant="secondary"
-                        loading={anforderungLaeuft}
-                        onClick={() => onAnforderung(p, fehlt)}
-                      >
-                        Anforderung über {fehlt} anlegen
-                      </Button>
-                    )}
+                  <div className="mt-2">
+                    <Meldung ton="warnung">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span>
+                          Im Lager fehlen <strong>{fehlt}</strong>.
+                        </span>
+                        {onAnforderung && (
+                          <Button
+                            variant="secondary"
+                            loading={anforderungLaeuft}
+                            onClick={() => onAnforderung(p, fehlt)}
+                          >
+                            Anforderung über {fehlt} anlegen
+                          </Button>
+                        )}
+                      </div>
+                    </Meldung>
                   </div>
                 )}
               </li>
@@ -209,7 +215,7 @@ export default function RuestlistePlanen({
         {suche.trim() !== '' && (
           <div className="mt-2">
             {treffer.length === 0 ? (
-              <p className="text-sm text-ink-muted">
+              <EmptyState>
                 Kein Artikel passt zur Suche. Was nicht im Lager geführt wird, kann unten als
                 freie Zeile dazu.
                 {/* Wie am Schein: „gibt es nicht" und „nicht geladen" sind
@@ -220,7 +226,7 @@ export default function RuestlistePlanen({
                     trotzdem geben.
                   </strong>
                 )}
-              </p>
+              </EmptyState>
             ) : (
               <List>
                 {treffer.map((m) => (

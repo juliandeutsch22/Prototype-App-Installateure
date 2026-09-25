@@ -21,6 +21,9 @@ import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
+import Meldung from '@/components/Meldung';
+import Grenzliste from '@/components/Grenzliste';
+import { List, ListRow } from '@/components/ListRow';
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. */
 function fmtDay(iso: string): string {
@@ -268,25 +271,21 @@ export default function MyScheduleView() {
                 Tag, ist das der Widerspruch, den man sofort sehen muss.
               */}
               {urlaubAmTag && (
-                <p
-                  className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
-                    urlaubAmTag.status === 'Genehmigt'
-                      ? 'border border-line bg-surface-2 text-success'
-                      : 'border border-line bg-surface-2 text-warning'
-                  }`}
-                >
-                  {urlaubAmTag.status === 'Genehmigt' ? (
-                    <>
-                      <strong>Urlaub</strong> — genehmigt
-                      {urlaubAmTag.entschiedenVonName ? ` von ${urlaubAmTag.entschiedenVonName}` : ''}.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Urlaub beantragt</strong> — noch nicht entschieden. Bitte noch nichts
-                      fix buchen.
-                    </>
-                  )}
-                </p>
+                <div className="mb-3">
+                  <Meldung ton={urlaubAmTag.status === 'Genehmigt' ? 'gut' : 'warnung'}>
+                    {urlaubAmTag.status === 'Genehmigt' ? (
+                      <>
+                        <strong>Urlaub</strong> — genehmigt
+                        {urlaubAmTag.entschiedenVonName ? ` von ${urlaubAmTag.entschiedenVonName}` : ''}.
+                      </>
+                    ) : (
+                      <>
+                        <strong>Urlaub beantragt</strong> — noch nicht entschieden. Bitte noch nichts
+                        fix buchen.
+                      </>
+                    )}
+                  </Meldung>
+                </div>
               )}
               {visible.length === 0 ? (
                 <EmptyState>
@@ -298,7 +297,7 @@ export default function MyScheduleView() {
                   {visible.map((a) => {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
-                      <div key={a.id} className="rounded border border-line p-3">
+                      <div key={a.id} className="kasten-hell">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="font-semibold text-ink">
                             {proj?.customerName ?? a.projectNumber}
@@ -354,7 +353,7 @@ export default function MyScheduleView() {
                           <Link
                             to="/time"
                             state={{ projectNumber: a.projectNumber, asHelper: !!a.asHelper }}
-                            className="flex min-h-touch items-center rounded bg-brand px-4 py-2 font-semibold text-brand-fg shadow-sm"
+                            className="knopf-primaer"
                           >
                             Zeit erfassen
                           </Link>
@@ -366,7 +365,7 @@ export default function MyScheduleView() {
                           {scheineAn && (
                           <Link
                             to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
-                            className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-semibold text-ink"
+                            className="knopf-sekundaer"
                           >
                             Schein schreiben
                           </Link>
@@ -396,30 +395,29 @@ export default function MyScheduleView() {
               {naechste.length === 0 ? (
                 <EmptyState>Zurzeit ist nichts eingeplant.</EmptyState>
               ) : (
-                <ul className="divide-y divide-line">
-                  {naechste.slice(0, 15).map((a) => {
+                <Grenzliste
+                  eintraege={naechste}
+                  grenze={15}
+                  nachsatz="— im Kalender links nachschlagen."
+                  zeile={(a) => {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
-                      <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                        <span className="min-w-0">
-                          <span className="block truncate text-ink">
-                            {proj?.customerName ?? a.projectNumber}
-                          </span>
-                          <span className="block text-xs text-ink-muted">{fmtDay(a.date)}</span>
-                        </span>
-                        <span className="flex shrink-0 gap-2">
-                          {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
-                          {a.asHelper && <Marke>Helfer</Marke>}
-                        </span>
-                      </li>
+                      <ListRow
+                        key={a.id}
+                        title={proj?.customerName ?? a.projectNumber}
+                        subtitle={fmtDay(a.date)}
+                        zustand={
+                          a.date === today || a.asHelper ? (
+                            <>
+                              {a.date === today && <Zustand stand="laeuft">Heute</Zustand>}
+                              {a.asHelper && <Marke>Helfer</Marke>}
+                            </>
+                          ) : undefined
+                        }
+                      />
                     );
-                  })}
-                </ul>
-              )}
-              {naechste.length > 15 && (
-                <p className="mt-2 text-sm text-ink-muted">
-                  und {naechste.length - 15} weitere — im Kalender links nachschlagen.
-                </p>
+                  }}
+                />
               )}
             </Card>
 
@@ -432,7 +430,7 @@ export default function MyScheduleView() {
             <Card
               title="Mein Urlaub"
               action={
-                <Link to="/vacations" className="text-sm font-semibold text-brand underline">
+                <Link to="/vacations" className="textlink-allein">
                   Beantragen
                 </Link>
               }
@@ -440,23 +438,20 @@ export default function MyScheduleView() {
               {kommendeUrlaube.length === 0 ? (
                 <EmptyState>Kein kommender Urlaub beantragt.</EmptyState>
               ) : (
-                <ul className="divide-y divide-line">
+                <List>
                   {kommendeUrlaube.map((v) => (
-                    <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                      <span className="text-ink">
-                        {v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <span className="text-xs text-ink-muted">
-                          {v.tage} {v.tage === 1 ? 'Tag' : 'Tage'}
-                        </span>
+                    <ListRow
+                      key={v.id}
+                      title={v.von === v.bis ? fmtDay(v.von) : `${fmtDay(v.von)} – ${fmtDay(v.bis)}`}
+                      zustand={
                         <Zustand stand={v.status === 'Genehmigt' ? 'gut' : 'achtung'}>
                           {v.status}
                         </Zustand>
-                      </span>
-                    </li>
+                      }
+                      wert={`${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}`}
+                    />
                   ))}
-                </ul>
+                </List>
               )}
             </Card>
             )}
