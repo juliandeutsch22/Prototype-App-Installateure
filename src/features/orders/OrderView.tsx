@@ -502,7 +502,11 @@ export default function OrderView() {
             </div>
             <div className="mt-4 border-t border-line pt-4">
               <p className="section-label">Nicht im Katalog?</p>
-              <div className="mt-2 grid grid-cols-[1fr_5rem] gap-2 sm:grid-cols-[1fr_6rem_auto] sm:items-end">
+              {/* `minmax(0,1fr)` statt `1fr`: sonst gibt die Spalte nicht unter
+                  die Eigenbreite des Eingabefelds nach, und bei 390 px liefen
+                  Menge und „Hinzufügen" 90–106 px aus der Karte, wo sie
+                  abgeschnitten wurden (Prüflauf 25.09.2026, P4-02). */}
+              <div className="mt-2 grid grid-cols-[minmax(0,1fr)_5rem] gap-2 sm:grid-cols-[minmax(0,1fr)_6rem_auto] sm:items-end">
                 <InputField
                   id="frei-name"
                   label="Bezeichnung"
