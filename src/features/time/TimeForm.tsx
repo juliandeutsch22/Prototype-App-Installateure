@@ -11,7 +11,7 @@ import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
 import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
-import { zeitbild, zeitSatz, nachtMinuten } from './zeitPlausibilitaet';
+import { zeitbild, zeitSatz, ueberwiegendNacht } from './zeitPlausibilitaet';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
 import { istAussendienst, canExtendTimeEntry, canEditTime } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -882,12 +882,19 @@ export default function TimeForm({
           {/*
             EIN HINWEIS, KEIN AUTOMATISCHER HAKEN. Ob Nachtarbeit verrechnet
             wird, bleibt eine bewusste Angabe (siehe `nachtMinuten`). Gezeigt
-            nur, wo es den Haken überhaupt gibt, und ab einer Stunde in der
-            Nacht — eine Buchung bis 22:10 ist kein Nachteinsatz.
+            nur, wo es den Haken überhaupt gibt, ab einer Stunde in der
+            Nacht — eine Buchung bis 22:10 ist kein Nachteinsatz — und nur,
+            wenn die Nacht überwiegt (siehe `ueberwiegendNacht`).
           */}
-          {canHaveProject && !isNightWork && nachtMinuten(startTime, endTime) >= 60 && (
+          {canHaveProject && !isNightWork && ueberwiegendNacht(startTime, endTime) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
-              <span>Die Zeit reicht in die Nacht (22–6 Uhr).</span>
+              {/* Das Kennzeichen zählt die ganze Buchung als Nacht — deshalb
+                  nur bei überwiegender Nachtzeit, und es steht dabei
+                  (Prüflauf 25.09.2026, P1-19). */}
+              <span>
+                Die Zeit reicht in die Nacht (22–6 Uhr), zum größeren Teil. „Nachtarbeit" gilt
+                für die ganze Buchung.
+              </span>
               <button
                 type="button"
                 className="link min-h-touch"

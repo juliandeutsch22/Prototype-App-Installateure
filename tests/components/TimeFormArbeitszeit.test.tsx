@@ -166,3 +166,19 @@ describe('Nachtarbeit — ein Hinweis, kein automatischer Haken (Launch-Check M2
     expect(screen.queryByText(/reicht in die Nacht/)).not.toBeInTheDocument();
   });
 });
+
+describe('Nachtarbeit — nur bei überwiegender Nacht, und mit Umfang (Prüflauf 25.09.2026, P1-19)', () => {
+  it('sagt, dass das Kennzeichen für die ganze Buchung gilt', () => {
+    zeichne();
+    setze('Von', '20:00');
+    setze('Bis', '02:00');
+    expect(screen.getByText(/gilt für die ganze Buchung/)).toBeInTheDocument();
+  });
+
+  it('schlägt es bei 16:00–23:30 nicht vor — sonst zählten 7,5 Stunden als Nacht', () => {
+    zeichne();
+    setze('Von', '16:00');
+    setze('Bis', '23:30');
+    expect(screen.queryByRole('button', { name: 'Nachtarbeit ankreuzen' })).not.toBeInTheDocument();
+  });
+});
