@@ -49,9 +49,16 @@ vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
 const { default: TimeForm } = await import('@/features/time/TimeForm');
 
+/*
+  MIT BAUSTELLE (seit Prüflauf 25.09.2026, P1-07). Die Maske bucht
+  „Anwesend" im Aussendienst nicht mehr ohne Baustelle — auch nicht, wenn das
+  Auswahlfeld (hier eine leere Attrappe) selbst nicht prüfen kann. Die
+  Baustelle kommt deshalb wie aus dem Einsatzplan über den Router; geprüft
+  wird unverändert die Meldung nach dem Buchen.
+*/
 function zeichne() {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[{ pathname: '/', state: { projectNumber: 'B-001' } }]}>
       <ToastProvider>
         <TimeForm onSaved={vi.fn()} />
       </ToastProvider>

@@ -384,6 +384,18 @@ export default function TimeForm({
       setError('Bitte einen Mitarbeiter auswählen.');
       return;
     }
+    /*
+      DIE BAUSTELLE IST PFLICHT, WO ES DAS FELD GIBT — auch dann, wenn das
+      Feld selbst nicht prüfen kann (Prüflauf 25.09.2026, P1-07). Bis hierher
+      hing das allein am `required` des Auswahlfelds; solange es lädt, ist es
+      gesperrt und wird vom Browser übersprungen, und im Fehlerzustand steht
+      gar keins da. „Anwesend" ging dann ohne Baustelle durch — Stunden, die
+      auf keiner Rechnung auftauchen.
+    */
+    if (canHaveProject && showWorkFields && !projectNumber) {
+      setError('Bitte eine Baustelle wählen.');
+      return;
+    }
 
     setSaving(true);
     if (alsUrlaubEintrag) {
@@ -447,6 +459,16 @@ export default function TimeForm({
     }
     try {
       const project = projects.find((p) => p.projectNumber === projectNumber);
+      /*
+        Der Kundenname wandert als Kopie in den Eintrag. Kennt die Auswahl den
+        Datensatz (noch) nicht — „Wie zuletzt" gleich nach dem Öffnen, die
+        Liste lädt noch oder ist gekappt —, stand hier ein leerer Name
+        (Prüflauf 25.09.2026, P1-07). Dann gilt der Name aus dem Eintrag, von
+        dem die Baustelle stammt.
+      */
+      const kundeAusEintrag = [entry, lastEntry].find(
+        (e) => !!e?.projectNumber && e.projectNumber === projectNumber,
+      )?.customerName;
       const payload = {
         date,
         status,
@@ -455,7 +477,7 @@ export default function TimeForm({
         breakDuration: showWorkFields ? Number(breakDuration) || 0 : 0,
         travelTime: Number(travelTime) || 0,
         projectNumber: canHaveProject ? projectNumber : '',
-        customerName: canHaveProject ? project?.customerName ?? '' : '',
+        customerName: canHaveProject ? project?.customerName ?? kundeAusEintrag ?? '' : '',
         // Gespeichert wird IMMER mit Praefix, damit Exporte und die
         // Fahrzeugsuche ein einheitliches Format vorfinden.
         vehiclePlate:
