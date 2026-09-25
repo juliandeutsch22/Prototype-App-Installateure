@@ -14,6 +14,14 @@ import { mapsUrl, telUrl, mailUrl } from '@/lib/kontakt';
  * Baustellenverwaltung stand dieselbe Adresse als toter Text.
  */
 
+/*
+ * Als Schaltfläche der sekundäre Knopf, im Fließtext der allein stehende
+ * Textlink (Tasthöhe eines Knopfes) — beides aus den gemeinsamen Bausteinen
+ * in index.css. `gap-1.5` hält nur das Symbol vom Text ab.
+ */
+const KNOPF = 'knopf-sekundaer';
+const TEXT = 'textlink-allein gap-1.5';
+
 interface AdresseProps {
   adresse?: string | null;
   /** 'text' = im Fließtext, 'knopf' = eigenständige Schaltfläche. */
@@ -23,17 +31,12 @@ interface AdresseProps {
 
 export function AdresseLink({ adresse, variante = 'text', className = '' }: AdresseProps) {
   if (!adresse?.trim()) return null;
-  const gemeinsam = 'inline-flex min-h-touch items-center gap-1.5';
-  const stil =
-    variante === 'knopf'
-      ? 'rounded-sm border border-line px-3 py-2 font-medium text-ink'
-      : 'text-brand underline';
   return (
     <a
       href={mapsUrl(adresse)}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${gemeinsam} ${stil} ${className}`}
+      className={`${variante === 'knopf' ? KNOPF : TEXT} ${className}`}
     >
       <Icon name="pin" size={16} aria-hidden />
       {/* Der Adresstext selbst ist der Link — „hier klicken" wäre für
@@ -54,13 +57,8 @@ interface TelefonProps {
 
 export function TelefonLink({ nummer, name, variante = 'text', className = '' }: TelefonProps) {
   if (!nummer?.trim()) return null;
-  const gemeinsam = 'inline-flex min-h-touch items-center gap-1.5';
-  const stil =
-    variante === 'knopf'
-      ? 'rounded-sm border border-line px-3 py-2 font-medium text-ink'
-      : 'font-semibold text-brand underline';
   return (
-    <a href={telUrl(nummer)} className={`${gemeinsam} ${stil} ${className}`}>
+    <a href={telUrl(nummer)} className={`${variante === 'knopf' ? KNOPF : TEXT} ${className}`}>
       <Icon name="phone" size={16} aria-hidden />
       <span>{nummer}</span>
       <span className="sr-only">{name ? `— ${name} anrufen` : '— anrufen'}</span>
@@ -85,21 +83,16 @@ interface MailProps {
 export function MailLink({ adresse, variante = 'text', className = '' }: MailProps) {
   if (!adresse?.trim()) return null;
   const ziel = mailUrl(adresse);
-  const gemeinsam = 'inline-flex min-h-touch items-center gap-1.5';
-  const stil =
-    variante === 'knopf'
-      ? 'rounded-sm border border-line px-3 py-2 font-medium text-ink'
-      : 'text-brand underline';
   if (!ziel) {
     return (
-      <span className={`${gemeinsam} text-ink ${className}`}>
+      <span className={`inline-flex min-h-touch items-center gap-1.5 text-ink ${className}`}>
         <Icon name="mail" size={16} aria-hidden />
         <span>{adresse}</span>
       </span>
     );
   }
   return (
-    <a href={ziel} className={`${gemeinsam} ${stil} ${className}`}>
+    <a href={ziel} className={`${variante === 'knopf' ? KNOPF : TEXT} ${className}`}>
       <Icon name="mail" size={16} aria-hidden />
       <span>{adresse}</span>
       <span className="sr-only">— Mail schreiben</span>

@@ -1,4 +1,5 @@
 import { getAustrianHolidayName, localDateStr, todayStr } from '@/lib/time';
+import IconButton from './IconButton';
 
 const MONTHS = [
   'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -61,25 +62,15 @@ export default function MonthCalendar({
   return (
     <div className="karte">
       <div className="flex items-center justify-between border-b border-line px-2 py-2">
-        <button
-          type="button"
-          onClick={() => onShiftMonth(-1)}
-          aria-label="Vorheriger Monat"
-          className="min-h-touch min-w-touch rounded text-lg font-bold text-ink-muted hover:bg-surface-2"
-        >
+        <IconButton label="Vorheriger Monat" gross onClick={() => onShiftMonth(-1)}>
           ‹
-        </button>
+        </IconButton>
         <span className="font-bold text-ink">
           {MONTHS[month]} {year}
         </span>
-        <button
-          type="button"
-          onClick={() => onShiftMonth(1)}
-          aria-label="Nächster Monat"
-          className="min-h-touch min-w-touch rounded text-lg font-bold text-ink-muted hover:bg-surface-2"
-        >
+        <IconButton label="Nächster Monat" gross onClick={() => onShiftMonth(1)}>
           ›
-        </button>
+        </IconButton>
       </div>
 
       <div className="grid grid-cols-7 border-b border-line bg-surface-2">
