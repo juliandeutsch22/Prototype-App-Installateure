@@ -468,6 +468,9 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
     };
     window.addEventListener('keydown', taste);
     const knopf = grossKnopf.current;
+    // Die Hülle bleibt dieselbe; die Zeichenfläche darin wird erst beim
+    // Schliessen gesucht — dann steht wieder die im Formular.
+    const huelle = wurzel.current;
     return () => {
       document.body.style.overflow = vorher;
       window.removeEventListener('keydown', taste);
@@ -479,7 +482,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
         (Prüflauf 25.09.2026, P4-14).
       */
       if (knopf && knopf.isConnected && sichtbar(knopf)) knopf.focus();
-      else wurzel.current?.querySelector<HTMLCanvasElement>('canvas')?.focus();
+      else huelle?.querySelector<HTMLCanvasElement>('canvas')?.focus();
     };
   }, [offen, blattSchliessen]);
 
