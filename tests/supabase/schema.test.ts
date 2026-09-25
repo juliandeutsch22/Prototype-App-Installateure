@@ -324,7 +324,10 @@ describe('Live-Abonnements', () => {
            select 1 from pg_policies p
             where p.schemaname = 'public' and p.tablename = pt.tablename
               and p.cmd in ('SELECT', 'ALL')
-              and coalesce(p.qual, '') like '%app.darf%')
+              -- app.darf oder das strengere app.betriebsmitglied (ohne
+              -- Supportzugang, etwa bei Zeiten mit Krankenständen).
+              and (coalesce(p.qual, '') like '%app.darf%'
+                   or coalesce(p.qual, '') like '%app.betriebsmitglied%'))
        order by 1
     `);
     expect(blind.map((r) => r.tablename)).toEqual([]);

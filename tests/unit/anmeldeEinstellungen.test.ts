@@ -33,7 +33,12 @@ function wert(abschnitt: string, schluessel: string): string | undefined {
 describe('Die Anmeldung im örtlichen Stack', () => {
   it('lässt niemanden sich selbst registrieren', () => {
     expect(wert('auth', 'enable_signup')).toBe('false');
-    expect(wert('auth.email', 'enable_signup')).toBe('false');
+  });
+
+  it('lässt die Anmeldung per E-Mail an — der Schalter darunter ist der Anbieter selbst', () => {
+    // [auth.email] enable_signup ist in der CLI GOTRUE_EXTERNAL_EMAIL_ENABLED:
+    // aus, und niemand kann sich mehr anmelden („Email logins are disabled“).
+    expect(wert('auth.email', 'enable_signup')).toBe('true');
   });
 
   it('verlangt acht Zeichen, wie die App', () => {
