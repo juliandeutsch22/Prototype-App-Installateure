@@ -26,10 +26,12 @@ import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
 import { praefixeVon } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { InputField, SelectField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
+import Meldung from '@/components/Meldung';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 
@@ -433,7 +435,7 @@ export default function QuotesView() {
             <span className="section-label">Positionen</span>
             <div className="mt-2 space-y-3">
               {zeilen.map((z, i) => (
-                <div key={i} className="rounded border border-line p-3">
+                <div key={i} className="kasten-hell">
                   <InputField
                     id={`anqlabel${i}`}
                     label="Bezeichnung"
@@ -490,9 +492,10 @@ export default function QuotesView() {
                     mitzählen, bekäme die Baustelle ein zu hohes Budget und die
                     Ampel bliebe grün, während der Auftrag längst gerissen ist.
                   */}
-                  <label className="mt-2 flex min-h-touch items-center gap-2 text-sm text-ink">
-                    <input
-                      type="checkbox"
+                  <div className="mt-2">
+                    <CheckboxField
+                      id={`anqarbeit${i}`}
+                      label="Zählt als Arbeitszeit ins Stundenbudget"
                       checked={z.istArbeitszeit}
                       onChange={(e) =>
                         setZeilen((v) =>
@@ -501,10 +504,8 @@ export default function QuotesView() {
                           ),
                         )
                       }
-                      className="kaestchen"
                     />
-                    Zählt als Arbeitszeit ins Stundenbudget
-                  </label>
+                  </div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-ink-muted">
                       {fmtEUR(positionNetto(num(z.qty), cent(num(z.unitPrice))))}
@@ -536,8 +537,8 @@ export default function QuotesView() {
             MEHRZEILIG: die Anmerkungen werden beim Annehmen zum Auftragsumfang
             der Baustelle — und der ist oft eine Liste. Dasselbe Feld wie dort.
           */}
-          <div className="mt-4 flex flex-col gap-1">
-            <label htmlFor="anqnotes" className="text-sm font-medium text-ink">
+          <div className="feld-block mt-4">
+            <label htmlFor="anqnotes" className="feld-name">
               Anmerkungen
             </label>
             <textarea
@@ -549,36 +550,42 @@ export default function QuotesView() {
             />
           </div>
 
-          <div className="mt-4 rounded border border-line bg-surface-2 p-3">
-            <p className="text-sm text-ink">
-              Netto {fmtEUR(summen.totalNetto)} · USt {fmtEUR(summen.totalVat)} ·{' '}
-              <strong>Brutto {fmtEUR(summen.totalBrutto)}</strong>
-            </p>
-            {/*
-              Die Zahl bleibt sichtbar, die Erklärung dazu nicht: sie steht
-              beim ersten Angebot im Weg und beim fünfzigsten erst recht.
-            */}
-            <p className="mt-1 flex flex-wrap items-center text-sm text-ink-muted">
-              Kalkulierte Arbeitszeit: <strong className="ml-1">{fmtStunden(kalkulierteStunden)} h</strong>
-              <InfoHint about="kalkulierte Arbeitszeit">
-                Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
-                der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
-                geblieben ist — und die Nachkalkulation, was sie verdient hat.
-              </InfoHint>
-            </p>
+          {/* Der Abstand zur Aktionsleiste steht hier: die Leiste selbst muss
+              direkt in der Karte stehen, sonst klebt sie nicht. */}
+          <div className="mb-4">
+            <div className="kasten mt-4">
+              <p className="text-sm text-ink">
+                Netto {fmtEUR(summen.totalNetto)} · USt {fmtEUR(summen.totalVat)} ·{' '}
+                <strong>Brutto {fmtEUR(summen.totalBrutto)}</strong>
+              </p>
+              {/*
+                Die Zahl bleibt sichtbar, die Erklärung dazu nicht: sie steht
+                beim ersten Angebot im Weg und beim fünfzigsten erst recht.
+              */}
+              <p className="mt-1 flex flex-wrap items-center text-sm text-ink-muted">
+                Kalkulierte Arbeitszeit: <strong className="ml-1">{fmtStunden(kalkulierteStunden)} h</strong>
+                <InfoHint about="kalkulierte Arbeitszeit">
+                  Diese Stundenzahl wird beim Annehmen des Angebots zum <strong>Stundenbudget</strong>{' '}
+                  der neuen Baustelle. Daran misst die Auswertung später, ob die Baustelle im Rahmen
+                  geblieben ist — und die Nachkalkulation, was sie verdient hat.
+                </InfoHint>
+              </p>
+            </div>
+
+            {stundenVorher !== null && (
+              <div className="mt-3">
+                <Meldung ton="warnung" role="status">
+                  Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen.
+                  Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher kalkuliert:{' '}
+                  <strong>{fmtStunden(stundenVorher)} h</strong>.
+                </Meldung>
+              </div>
+            )}
+
+            {error && <div className="mt-3"><ErrorState message={error} /></div>}
           </div>
 
-          {stundenVorher !== null && (
-            <p className="mt-3 rounded border border-line bg-surface-2 p-3 text-sm text-warning" role="status">
-              Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen.
-              Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher kalkuliert:{' '}
-              <strong>{fmtStunden(stundenVorher)} h</strong>.
-            </p>
-          )}
-
-          {error && <div className="mt-3"><ErrorState message={error} /></div>}
-
-          <div className="mt-4">
+          <Aktionsleiste>
             <Button
               onClick={bearbeitet ? aenderungenSpeichern : anlegen}
               loading={busy}
@@ -598,7 +605,7 @@ export default function QuotesView() {
             >
               Abbrechen
             </Button>
-          </div>
+          </Aktionsleiste>
         </Card>
       )}
 
@@ -614,7 +621,7 @@ export default function QuotesView() {
                 key={q.id}
                 title={
                   // Die Nummer führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
-                  <Link to={`/quotes/${q.id}`} className="text-brand underline">
+                  <Link to={`/quotes/${q.id}`} className="textlink">
                     {q.quoteNumber} · {q.customerName}
                   </Link>
                 }
