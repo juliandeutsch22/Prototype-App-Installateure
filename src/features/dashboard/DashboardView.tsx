@@ -41,7 +41,10 @@ import LaufWarnung from './LaufWarnung';
 import WartungHinweis from './WartungHinweis';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
-import { LoadingState } from '@/components/States';
+import { LoadingState, EmptyState } from '@/components/States';
+import Meldung from '@/components/Meldung';
+import Grenzliste from '@/components/Grenzliste';
+import { List, ListRow } from '@/components/ListRow';
 import { byNewest } from '@/lib/timestamps';
 import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
 
@@ -594,28 +597,31 @@ export default function DashboardView() {
         braucht den Hinweis nicht.
       */}
       {mitZeitkonto && data.hatEintritt === false && (
-        <div className="rounded border border-line bg-surface-2 p-4 text-info">
-          <p className="font-semibold">Kein Eintrittsdatum hinterlegt</p>
-          <p className="mt-1 text-sm">
+        <Meldung ton="info" titel="Kein Eintrittsdatum hinterlegt">
+          <p>
             Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen und wie der Saldo
             steht. Die Geschäftsführung kann es in der Benutzerverwaltung nachtragen.
           </p>
-        </div>
+        </Meldung>
       )}
 
       {offeneTage.length > 0 && (
-        <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
-          <p className="font-semibold">
-            {offeneTage.length === 1 ? 'Ein Tag ohne Buchung' : `${offeneTage.length} Tage ohne Buchung`}
-          </p>
-          <p className="mt-1 text-sm">
+        <Meldung
+          ton="warnung"
+          role="alert"
+          titel={offeneTage.length === 1 ? 'Ein Tag ohne Buchung' : `${offeneTage.length} Tage ohne Buchung`}
+        >
+          {/* Die Tage stehen als Satz, nicht als Liste — deshalb keine
+              Grenzliste: gezeigt werden die LETZTEN fünf, und eine Zeile je
+              Datum machte aus dem Hinweis eine Tabelle. */}
+          <p>
             {offeneTage.slice(-5).map(fmtTag).join(', ')}
             {offeneTage.length > 5 && ` und ${offeneTage.length - 5} weitere`}.{' '}
-            <Link to="/time" className="font-semibold underline">
+            <Link to="/time" className="textlink">
               Jetzt nachtragen
             </Link>
           </p>
-        </div>
+        </Meldung>
       )}
 
       {/*
@@ -628,14 +634,14 @@ export default function DashboardView() {
         <Card
           title={data.heuteEigene.length === 1 ? 'Heute' : `Heute — ${data.heuteEigene.length} Baustellen`}
           action={
-            <Link to="/my-schedule" className="text-sm font-semibold text-brand underline">
+            <Link to="/my-schedule" className="textlink-allein">
               Mein Einsatzplan
             </Link>
           }
         >
           <div className="space-y-4">
             {data.heuteEigene.map((e) => (
-              <div key={e.id} className="rounded-sm border border-line p-3">
+              <div key={e.id} className="kasten-hell">
                 <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-ink">
                   {e.customerName}
                   {e.asHelper && <Marke>Helfer</Marke>}
@@ -673,14 +679,14 @@ export default function DashboardView() {
                   <Link
                     to="/time"
                     state={{ projectNumber: e.projectNumber, asHelper: !!e.asHelper }}
-                    className="flex min-h-touch items-center rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm"
+                    className="knopf-primaer"
                   >
                     Zeit erfassen
                   </Link>
                   {scheineAn && (
                     <Link
                       to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
-                      className="flex min-h-touch items-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink"
+                      className="knopf-sekundaer"
                     >
                       Schein schreiben
                     </Link>
@@ -701,34 +707,41 @@ export default function DashboardView() {
         <Card
           title="Heute im Einsatz"
           action={
-            <Link to="/assignments" className="text-sm font-semibold text-brand underline">
+            <Link to="/assignments" className="textlink-allein">
               Zur Einsatzplanung
             </Link>
           }
         >
-          <ul className="divide-y divide-line">
+          <List>
             {data.heuteBetrieb.map((b) => (
-              <li key={b.projectNumber} className="py-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-semibold text-ink">
+              <ListRow
+                key={b.projectNumber}
+                title={
+                  <span>
                     {b.customerName}{' '}
                     <span className="text-sm font-normal text-ink-muted">
                       ({b.projectNumber})
                     </span>
                   </span>
+                }
+                subtitle={
+                  <>
+                    {b.namen.join(', ')}
+                    <span className="mt-2 flex flex-wrap items-center gap-x-3">
+                      <AdresseLink adresse={b.address} />
+                      <TelefonLink nummer={b.contactPhone} name={b.contactName} />
+                    </span>
+                  </>
+                }
+                zustand={
                   <Marke>
                     {b.namen.length} {b.namen.length === 1 ? 'Person' : 'Personen'}
                     {b.helfer > 0 && `, davon ${b.helfer} Helfer`}
                   </Marke>
-                </div>
-                <p className="mt-1 text-sm text-ink-muted">{b.namen.join(', ')}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
-                  <AdresseLink adresse={b.address} />
-                  <TelefonLink nummer={b.contactPhone} name={b.contactName} />
-                </div>
-              </li>
+                }
+              />
             ))}
-          </ul>
+          </List>
         </Card>
       )}
 
@@ -785,48 +798,45 @@ export default function DashboardView() {
         <Card
           title={`Aktive Baustellen (${data.aktiveBaustellen.length})`}
           action={
-            <Link to="/admin-projects" className="text-sm font-semibold text-brand underline">
+            <Link to="/admin-projects" className="textlink-allein">
               Baustellen verwalten
             </Link>
           }
         >
-          <ul className="divide-y divide-line">
-            {data.aktiveBaustellen.slice(0, BAUSTELLEN_AUF_STARTSEITE).map((pr) => (
-              <li key={pr.id} className="py-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-medium text-ink">
+          <Grenzliste
+            eintraege={data.aktiveBaustellen}
+            grenze={BAUSTELLEN_AUF_STARTSEITE}
+            mehr={{ to: '/admin-projects' }}
+            nachsatz="— alle unter Baustellen."
+            zeile={(pr) => (
+              <ListRow
+                key={pr.id}
+                title={
+                  <span>
                     {pr.customerName}{' '}
                     <span className="text-sm font-normal text-ink-muted">
                       ({pr.projectNumber})
                     </span>
                   </span>
-                  {pr.estimatedHours ? (
-                    <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke>
-                  ) : null}
-                </div>
-                {/*
-                  Kompakt gehalten: die Karte zeigt ALLE laufenden Baustellen,
-                  und bei zwanzig Stueck entscheidet die Zeilenhoehe darueber,
-                  ob die Liste noch zu ueberblicken ist. Die Adresse bleibt
-                  einzeilig und wird abgeschnitten — sie ist hier der
-                  Anfasser zur Karte, nicht der vorzulesende Text.
-                */}
-                <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 text-sm">
-                  <AdresseLink adresse={pr.address} className="min-w-0 max-w-full [&>span]:truncate" />
-                  <TelefonLink nummer={pr.contactPhone} name={pr.contactName} />
-                </div>
-              </li>
-            ))}
-          </ul>
-          {data.aktiveBaustellen.length > BAUSTELLEN_AUF_STARTSEITE && (
-            <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted">
-              und {data.aktiveBaustellen.length - BAUSTELLEN_AUF_STARTSEITE} weitere — alle unter{' '}
-              <Link to="/admin-projects" className="font-semibold text-brand underline">
-                Baustellen
-              </Link>
-              .
-            </p>
-          )}
+                }
+                /*
+                  Kompakt gehalten: bei zwölf Zeilen entscheidet die
+                  Zeilenhoehe darueber, ob die Liste noch zu ueberblicken ist.
+                  Die Adresse bleibt einzeilig und wird abgeschnitten — sie ist
+                  hier der Anfasser zur Karte, nicht der vorzulesende Text.
+                */
+                subtitle={
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-3">
+                    <AdresseLink adresse={pr.address} className="min-w-0 max-w-full [&>span]:truncate" />
+                    <TelefonLink nummer={pr.contactPhone} name={pr.contactName} />
+                  </span>
+                }
+                zustand={
+                  pr.estimatedHours ? <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke> : undefined
+                }
+              />
+            )}
+          />
         </Card>
       )}
 
@@ -835,44 +845,39 @@ export default function DashboardView() {
         <Card
           title="Baustellen am Limit"
           action={
-            <Link to="/accounting" className="text-sm font-semibold text-brand underline">
+            <Link to="/accounting" className="textlink-allein">
               Zur Auswertung
             </Link>
           }
         >
-          <ul className="divide-y divide-line">
-            {data.projectAlerts.slice(0, WARNUNGEN_AUF_STARTSEITE).map((pr) => (
-              <li
-                key={pr.projectNumber}
-                className="flex min-h-touch items-center justify-between gap-3 py-2"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium text-ink">{pr.customerName}</span>
-                  <span className="block text-xs text-ink-muted">
-                    {fmtStd(pr.usedMin)} von {fmtStunden(pr.estimatedHours)} h · {pr.projectNumber}
-                  </span>
-                </span>
-                <Warnung stufe={pr.over ? 'dringend' : 'achtung'}>
-                  {pr.over ? 'überschritten' : `${pr.pct} %`}
-                </Warnung>
-              </li>
-            ))}
-          </ul>
           {/*
             Die Liste ist nach Auslastung sortiert, die schlimmsten stehen
             oben. Acht davon sind eine Arbeitsliste; vierzig sind eine
             Tapete, die niemand mehr liest — und dann geht auch die eine
             unter, die wirklich brennt.
           */}
-          {data.projectAlerts.length > WARNUNGEN_AUF_STARTSEITE && (
-            <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted">
-              und {data.projectAlerts.length - WARNUNGEN_AUF_STARTSEITE} weitere —{' '}
-              <Link to="/accounting" className="font-semibold text-brand underline">
-                zur Auswertung
-              </Link>
-              .
-            </p>
-          )}
+          <Grenzliste
+            eintraege={data.projectAlerts}
+            grenze={WARNUNGEN_AUF_STARTSEITE}
+            mehr={{ to: '/accounting' }}
+            nachsatz="— in der Auswertung."
+            zeile={(pr) => (
+              <ListRow
+                key={pr.projectNumber}
+                title={pr.customerName}
+                subtitle={
+                  <>
+                    {fmtStd(pr.usedMin)} von {fmtStunden(pr.estimatedHours)} h · {pr.projectNumber}
+                  </>
+                }
+                zustand={
+                  <Warnung stufe={pr.over ? 'dringend' : 'achtung'}>
+                    {pr.over ? 'überschritten' : `${pr.pct} %`}
+                  </Warnung>
+                }
+              />
+            )}
+          />
         </Card>
       )}
 
@@ -882,31 +887,28 @@ export default function DashboardView() {
         <Card
           title={`Material angefordert (${data.openOrders.length})`}
           action={
-            <Link to="/material/anforderungen" className="text-sm font-semibold text-brand underline">
+            <Link to="/material/anforderungen" className="textlink-allein">
               Bearbeiten
             </Link>
           }
         >
-          <ul className="divide-y divide-line">
-            {data.openOrders.slice(0, 5).map((o) => (
-              <li key={o.id} className="flex min-h-touch items-center justify-between gap-3 py-2">
-                <span className="min-w-0">
-                  <span className="block truncate text-ink">
+          <Grenzliste
+            eintraege={data.openOrders}
+            grenze={5}
+            mehr={{ to: '/material/anforderungen' }}
+            zeile={(o) => (
+              <ListRow
+                key={o.id}
+                title={
+                  <>
                     {o.quantity}× {o.materialName}
-                  </span>
-                  <span className="block truncate text-xs text-ink-muted">
-                    {[o.userName, o.projectNumber].filter(Boolean).join(' · ')}
-                  </span>
-                </span>
-                <StatusBadge status={o.status} />
-              </li>
-            ))}
-          </ul>
-          {data.openOrders.length > 5 && (
-            <p className="mt-2 text-sm text-ink-muted">
-              und {data.openOrders.length - 5} weitere
-            </p>
-          )}
+                  </>
+                }
+                subtitle={[o.userName, o.projectNumber].filter(Boolean).join(' · ')}
+                zustand={<StatusBadge status={o.status} />}
+              />
+            )}
+          />
         </Card>
       )}
 
@@ -919,25 +921,28 @@ export default function DashboardView() {
         <Card
           title="Team — offene Zeiten"
           action={
-            <Link to="/accounting" className="text-sm font-semibold text-brand underline">
+            <Link to="/accounting" className="textlink-allein">
               Zur Monatsauswertung
             </Link>
           }
         >
-          <ul className="divide-y divide-line">
+          <List>
             {data.team.map((t) => (
-              <li key={t.uid} className="flex min-h-touch items-center justify-between gap-3 py-2">
-                <span className="min-w-0 truncate text-ink">{t.name}</span>
-                {!t.hatKonfig ? (
-                  <Marke>kein Startdatum</Marke>
-                ) : t.fehlendeTage > 0 ? (
-                  <Warnung>{tageWort(t.fehlendeTage)} offen</Warnung>
-                ) : (
-                  <Zustand stand="gut">vollständig</Zustand>
-                )}
-              </li>
+              <ListRow
+                key={t.uid}
+                title={t.name}
+                zustand={
+                  !t.hatKonfig ? (
+                    <Marke>kein Startdatum</Marke>
+                  ) : t.fehlendeTage > 0 ? (
+                    <Warnung>{tageWort(t.fehlendeTage)} offen</Warnung>
+                  ) : (
+                    <Zustand stand="gut">vollständig</Zustand>
+                  )
+                }
+              />
             ))}
-          </ul>
+          </List>
           <p className="mt-3 text-xs text-ink-muted">
             Geprüft werden die letzten {LUECKEN_TAGE} Tage bis gestern. Der Stundensaldo steht im
             Zeitkonto des Mitarbeiters.
@@ -963,21 +968,17 @@ export default function DashboardView() {
         darf sie hier nicht zulassen.
       */}
       {nichtGeladen.length > 0 && (
-        <Card>
-          <p role="status" className="text-sm text-warning">
-            <strong>Nicht geladen: {nichtGeladen.join(' · ')}.</strong> Was hier fehlt, heisst
-            nicht, dass nichts ansteht — bitte die Seite neu laden. Die Reiter oben zeigen den
-            vollständigen Stand.
-          </p>
-        </Card>
+        <Meldung ton="warnung" role="status">
+          <strong>Nicht geladen: {nichtGeladen.join(' · ')}.</strong> Was hier fehlt, heisst
+          nicht, dass nichts ansteht — bitte die Seite neu laden. Die Reiter oben zeigen den
+          vollständigen Stand.
+        </Meldung>
       )}
 
       {nothingToShow && (
-        <Card>
-          <p className="text-ink-muted">
-            Nichts Offenes. {isMitarbeiter(user.role) ? 'Zeit buchen über die Leiste unten.' : ''}
-          </p>
-        </Card>
+        <EmptyState>
+          Nichts Offenes. {isMitarbeiter(user.role) ? 'Zeit buchen über die Leiste unten.' : ''}
+        </EmptyState>
       )}
     </div>
   );
