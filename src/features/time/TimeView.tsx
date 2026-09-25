@@ -646,7 +646,29 @@ export default function TimeView() {
         />
       )}
 
-      <Card title="Meine Einträge" id="meine-eintraege">
+      <Card
+        title="Meine Einträge"
+        id="meine-eintraege"
+        /*
+          Nachladen weitet das ZEITFENSTER der Abfrage, statt mehr von einer
+          ohnehin vollstaendig geladenen Liste freizugeben. Der Saldo oben
+          bleibt davon unberuehrt — er rechnet immer ab Eintritt. Im
+          Kartenfuß wie „Weitere … laden" in den übrigen Listen.
+        */
+        footer={
+          !loading &&
+          !error && (
+            <div className="nachladen">
+              <Button variant="secondary" onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}>
+                Ältere Einträge laden
+              </Button>
+              <span className="nachladen-hinweis">
+                Angezeigt werden die letzten {monate} Monate.
+              </span>
+            </div>
+          )
+        }
+      >
         {loading ? (
           <SkeletonList rows={5} />
         ) : error ? (
@@ -748,21 +770,6 @@ export default function TimeView() {
                 </div>
               );
             })}
-          </div>
-        )}
-        {/*
-          Nachladen weitet das ZEITFENSTER der Abfrage, statt mehr von einer
-          ohnehin vollstaendig geladenen Liste freizugeben. Der Saldo oben
-          bleibt davon unberuehrt — er rechnet immer ab Eintritt.
-        */}
-        {!loading && !error && (
-          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-            <Button variant="secondary" onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}>
-              Ältere Einträge laden
-            </Button>
-            <span className="text-sm text-ink-muted">
-              Angezeigt werden die letzten {monate} Monate.
-            </span>
           </div>
         )}
       </Card>

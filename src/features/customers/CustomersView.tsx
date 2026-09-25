@@ -172,6 +172,8 @@ export default function CustomersView() {
   }, [laden]);
 
   const sichtbar = kunden;
+  /** Wie weit die Liste OHNE Suchbegriff reicht — daran hängt „Weitere laden". */
+  const geladenOhneSuche = suche.trim() ? ohneSuche : kunden.length;
   /** Am Schreibtisch die Kunden als Tabelle, am Telefon als Liste. */
   const schreibtisch = useAbBreite(AB_TABELLE);
 
@@ -521,6 +523,34 @@ export default function CustomersView() {
             className="feld w-full sm:w-auto"
           />
         }
+        /*
+          Der Hinweis steht AUSSERHALB der Leermeldung, im Kartenfuß: er
+          gehört auch dann hin, wenn die Suche gerade nichts findet — denn
+          genau dann ist die Frage „gibt es den Kunden nicht, oder ist er nur
+          nicht geladen?" die entscheidende. In den Fuß kommt er nur, wenn
+          die Grenze greift; ein leerer Fuß stünde als Streifen da.
+        */
+        footer={
+          !loading &&
+          geladenOhneSuche >= grenze && (
+            <Nachladen
+              geladen={geladenOhneSuche}
+              grenze={grenze}
+              einheit="Kunden"
+              onMehr={() => setGrenze((n) => n + KUNDEN_JE_SEITE)}
+              /*
+                UNTER POSTGRES IST DER SATZ „Die Suche geht nur über diese"
+                FALSCH — und eine Auskunft, die einmal danebenlag, wird beim
+                nächsten Mal nicht mehr geglaubt.
+
+                Die Datenbank sucht über den ganzen Bestand; die Grenze gilt
+                nur für das, was OHNE Suchbegriff angezeigt wird. Der Knopf
+                bleibt deshalb stehen, der Satz daneben nicht.
+              */
+              sucheImBrowser={false}
+            />
+          )
+        }
       >
         {loading ? (
           <SkeletonList rows={4} />
@@ -600,30 +630,6 @@ export default function CustomersView() {
               </ListRow>
             ))}
           </List>
-        )}
-        {/*
-          Der Hinweis steht AUSSERHALB der Leermeldung: er gehört auch dann
-          hin, wenn die Suche gerade nichts findet — denn genau dann ist die
-          Frage „gibt es den Kunden nicht, oder ist er nur nicht geladen?" die
-          entscheidende.
-        */}
-        {!loading && (
-          <Nachladen
-            geladen={suche.trim() ? ohneSuche : kunden.length}
-            grenze={grenze}
-            einheit="Kunden"
-            onMehr={() => setGrenze((n) => n + KUNDEN_JE_SEITE)}
-            /*
-              UNTER POSTGRES IST DER SATZ „Die Suche geht nur über diese"
-              FALSCH — und eine Auskunft, die einmal danebenlag, wird beim
-              nächsten Mal nicht mehr geglaubt.
-
-              Die Datenbank sucht über den ganzen Bestand; die Grenze gilt nur
-              für das, was OHNE Suchbegriff angezeigt wird. Der Knopf bleibt
-              deshalb stehen, der Satz daneben nicht.
-            */
-            sucheImBrowser={false}
-          />
         )}
       </Card>
 

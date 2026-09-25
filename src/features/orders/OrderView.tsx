@@ -484,6 +484,9 @@ export default function OrderView() {
                 onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
                 einheit="Artikel"
                 sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
+                // Nicht im Kartenfuß: dort stünde er erst NACH „Nicht im
+                // Katalog?" — und genau davor muss er gelesen werden.
+                imInhalt
               />
             </div>
             <div className="material-frei">

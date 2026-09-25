@@ -36,6 +36,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { abschlussText } from './abschlussText';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
+import { abgeschnitten } from '@/lib/listengrenzen';
 
 type Tab = 'aktiv' | 'einkauf' | 'retouren' | 'archiv';
 
@@ -445,6 +446,27 @@ export default function AdminOrdersView() {
               </SelectField>
             ) : undefined
           }
+          /*
+            Und darunter die ABFRAGE-Grenze. „Weitere anzeigen" holt nichts
+            nach — es zeigt nur mehr von dem, was schon da ist. Wer im Archiv
+            sucht und nichts findet, muss den Unterschied erfahren. Im
+            Kartenfuß wie jede Liste, unter denselben Bedingungen wie bisher:
+            neben einer Liste, nicht neben Laden, Fehler oder Leermeldung.
+          */
+          footer={
+            !loading &&
+            !error &&
+            rows.length > 0 &&
+            abgeschnitten(orders, holgrenze) && (
+              <Nachladen
+                geladen={orders.length}
+                grenze={holgrenze}
+                onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
+                einheit="Anforderungen"
+                sucheSatz="Nach Artikel, Person, Baustelle und Notiz wird nur in diesen gesucht."
+              />
+            )
+          }
         >
           {orders.length >= 10 && (
             <div className="mb-4">
@@ -585,19 +607,6 @@ export default function AdminOrdersView() {
                 </Button>
               )}
 
-              {/*
-                Und darunter die ABFRAGE-Grenze. „Weitere anzeigen" oben holt
-                nichts nach — es zeigt nur mehr von dem, was schon da ist. Wer
-                im Archiv sucht und nichts findet, muss den Unterschied
-                erfahren.
-              */}
-              <Nachladen
-                geladen={orders.length}
-                grenze={holgrenze}
-                onMehr={() => setHolgrenze((g) => g + ANFORDERUNGEN_JE_SEITE)}
-                einheit="Anforderungen"
-                sucheSatz="Nach Artikel, Person, Baustelle und Notiz wird nur in diesen gesucht."
-              />
             </div>
           )}
         </Card>

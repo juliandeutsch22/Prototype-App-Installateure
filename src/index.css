@@ -2568,6 +2568,43 @@ textarea {
 }
 
 /*
+ * KLEINE ANGLEICHUNGEN AN DIE LINIE (docs/design/linie.md) — was Nachladen
+ * und Budgetstand über die gemeinsamen Bausteine hinaus brauchen.
+ */
+@layer components {
+  /* „Weitere … laden“ und der Satz dazu im Kartenfuß (`Card footer`): die
+     Kante und der Innenabstand kommen von `.karte-fuss`, hier steht nur
+     die Reihe. */
+  .nachladen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 0.5rem;
+  }
+
+  /* Wo der Hinweis mitten in einer Karte stehen muss (Katalog der
+     Materialanforderung: vor „Nicht im Katalog?“), trägt er die Haarlinie
+     des Kartenfußes selbst. */
+  .nachladen-im-inhalt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 0.5rem;
+    margin-top: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.75rem;
+  }
+
+  .nachladen-hinweis {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text-muted);
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════

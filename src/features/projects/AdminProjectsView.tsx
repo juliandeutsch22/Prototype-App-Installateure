@@ -36,6 +36,7 @@ import Meldung from '@/components/Meldung';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import { fmtStunden } from '@/lib/time';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
+import { abgeschnitten } from '@/lib/listengrenzen';
 
 const empty = {
   projectNumber: '',
@@ -632,6 +633,29 @@ export default function AdminProjectsView() {
             <option value="archiv">Archiv ({archivCount})</option>
           </SelectField>
         }
+        /*
+          Steht unter der Liste, im Kartenfuß, nicht im Kopf: erst wer bis ans
+          Ende gescrollt hat und nichts gefunden hat, braucht die Auskunft.
+          In den Fuß kommt sie nur, wenn die Grenze greift.
+
+          KEIN SUCHSATZ MEHR. Er sagte „Nach Kunde und Adresse wird nur in
+          diesen gesucht" — richtig unter Firestore, seit dem Abbau falsch:
+          die Datenbank sucht über Nummer, Kunde und Adresse im ganzen
+          Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
+          angezeigt wird. Eine Auskunft, die einmal danebenlag, wird beim
+          nächsten Mal nicht mehr geglaubt.
+        */
+        footer={
+          abgeschnitten(projects, grenze) && (
+            <Nachladen
+              geladen={projects.length}
+              grenze={grenze}
+              onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
+              einheit="Baustellen"
+              sucheImBrowser={false}
+            />
+          )
+        }
       >
         {projects.length >= 8 && (
           <div className="mb-4">
@@ -776,24 +800,6 @@ export default function AdminProjectsView() {
             })}
           </List>
         )}
-        {/*
-          Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende gescrollt
-          hat und nichts gefunden hat, braucht die Auskunft.
-
-          KEIN SUCHSATZ MEHR. Er sagte „Nach Kunde und Adresse wird nur in
-          diesen gesucht" — richtig unter Firestore, seit dem Abbau falsch:
-          die Datenbank sucht über Nummer, Kunde und Adresse im ganzen
-          Bestand. Die Grenze gilt nur noch für das, was OHNE Suchbegriff
-          angezeigt wird. Eine Auskunft, die einmal danebenlag, wird beim
-          nächsten Mal nicht mehr geglaubt.
-        */}
-        <Nachladen
-          geladen={projects.length}
-          grenze={grenze}
-          onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
-          einheit="Baustellen"
-          sucheImBrowser={false}
-        />
       </Card>
 
       <ConfirmDialog

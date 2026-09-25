@@ -8,7 +8,7 @@ import {
   deleteMaterial,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
-import { KATALOG_GRENZE } from '@/lib/listengrenzen';
+import { KATALOG_GRENZE, abgeschnitten } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
 import Card from '@/components/Card';
@@ -340,6 +340,22 @@ export default function MaterialCatalog({
         action={
           lowStock > 0 ? <Warnung>{lowStock} knapp</Warnung> : undefined
         }
+        /*
+          Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
+          gescrollt und nichts gefunden hat, braucht die Auskunft. Im
+          Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
+        */
+        footer={
+          abgeschnitten(materials, grenze) && (
+            <Nachladen
+              geladen={materials.length}
+              grenze={grenze}
+              onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+              einheit="Artikel"
+              sucheSatz="Nach Name, Kategorie und Artikelnummer wird nur in diesen gesucht."
+            />
+          )
+        }
       >
         <InputField
           id="msearch"
@@ -420,17 +436,6 @@ export default function MaterialCatalog({
               ))}
             </List>
           )}
-          {/*
-            Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
-            gescrollt und nichts gefunden hat, braucht die Auskunft.
-          */}
-          <Nachladen
-            geladen={materials.length}
-            grenze={grenze}
-            onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-            einheit="Artikel"
-            sucheSatz="Nach Name, Kategorie und Artikelnummer wird nur in diesen gesucht."
-          />
         </div>
       </Card>
 

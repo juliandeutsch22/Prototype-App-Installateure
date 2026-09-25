@@ -51,6 +51,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { datumAT } from '@/lib/datum';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
+import { abgeschnitten } from '@/lib/listengrenzen';
 
 const fmtDatum = (iso?: string) =>
   datumAT(iso) || '—';
@@ -755,7 +756,21 @@ export default function WartungenView() {
         )}
       </Card>
 
-      <Card title={`Alle Vereinbarungen (${wartungen.length})`}>
+      <Card
+        title={`Alle Vereinbarungen (${wartungen.length})`}
+        // Im Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
+        footer={
+          !loading &&
+          abgeschnitten(wartungen, grenze) && (
+            <Nachladen
+              geladen={wartungen.length}
+              grenze={grenze}
+              einheit="Vereinbarungen"
+              onMehr={() => setGrenze((n) => n + WARTUNGEN_JE_SEITE)}
+            />
+          )
+        }
+      >
         <div className="mb-3">
           <InputField id="w-suche"
             label="Suche"
@@ -787,14 +802,6 @@ export default function WartungenView() {
           ) : (
             <List>{gefiltert.map((w) => zeile(w, true))}</List>
           )
-        )}
-        {!loading && (
-          <Nachladen
-            geladen={wartungen.length}
-            grenze={grenze}
-            einheit="Vereinbarungen"
-            onMehr={() => setGrenze((n) => n + WARTUNGEN_JE_SEITE)}
-          />
         )}
       </Card>
 

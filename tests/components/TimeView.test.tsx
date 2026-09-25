@@ -316,6 +316,17 @@ describe('Zeiterfassung — ältere Einträge', () => {
       expect(letzterAufruf()[0] < ersterZeitraum).toBe(true);
     });
   });
+
+  it('steht im Fuß der Karte „Meine Einträge", wie „Weitere … laden" in den Listen', async () => {
+    eintraege = [eintrag({ id: 'e1' })];
+    zeige();
+    await screen.findByText('Meine Einträge');
+
+    const knopf = screen.getByRole('button', { name: 'Ältere Einträge laden' });
+    const fuss = knopf.closest('footer') as HTMLElement;
+    expect(fuss).toHaveClass('karte-fuss');
+    expect(fuss.closest('section')).toHaveAttribute('id', 'meine-eintraege');
+  });
 });
 
 /**

@@ -5,7 +5,7 @@ import {
   adjustStock,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
-import { KATALOG_GRENZE } from '@/lib/listengrenzen';
+import { KATALOG_GRENZE, abgeschnitten } from '@/lib/listengrenzen';
 import { subscribeAllOrders } from '@/lib/db/materialOrders';
 import type { WithId } from '@/lib/db/core';
 import type { Material, MaterialOrder } from '@/types';
@@ -292,7 +292,21 @@ export default function StockView() {
             />
           </MetricRow>
 
-          <Card title="Bestände">
+          <Card
+            title="Bestände"
+            // Im Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
+            footer={
+              abgeschnitten(materials, grenze) && (
+                <Nachladen
+                  geladen={materials.length}
+                  grenze={grenze}
+                  onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+                  einheit="Artikel"
+                  sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
+                />
+              )
+            }
+          >
             <InputField
               id="stocksearch"
               label="Suche"
@@ -368,13 +382,6 @@ export default function StockView() {
                   ))}
                 </List>
               )}
-              <Nachladen
-                geladen={materials.length}
-                grenze={grenze}
-                onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-                einheit="Artikel"
-                sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
-              />
             </div>
           </Card>
         </>

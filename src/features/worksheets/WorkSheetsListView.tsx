@@ -36,6 +36,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
+import { abgeschnitten } from '@/lib/listengrenzen';
 
 const STAND: Record<WorkSheet['status'], Stand> = {
   Unterschrieben: 'gut',
@@ -747,6 +748,19 @@ export default function WorkSheetsListView() {
             className="feld w-full sm:w-auto"
           />
         }
+        // Im Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
+        footer={
+          !loading &&
+          abgeschnitten(scheine, grenze) && (
+            <Nachladen
+              geladen={scheine.length}
+              grenze={grenze}
+              einheit="Scheine"
+              laeuft={loading}
+              onMehr={() => setGrenze((n) => n + SCHEINE_JE_SEITE)}
+            />
+          )
+        }
       >
         {error && <div className="mb-3"><ErrorState message={error} /></div>}
 
@@ -942,15 +956,6 @@ export default function WorkSheetsListView() {
               );
             })}
           </List>
-        )}
-        {!loading && (
-          <Nachladen
-            geladen={scheine.length}
-            grenze={grenze}
-            einheit="Scheine"
-            laeuft={loading}
-            onMehr={() => setGrenze((n) => n + SCHEINE_JE_SEITE)}
-          />
         )}
       </Card>
 
