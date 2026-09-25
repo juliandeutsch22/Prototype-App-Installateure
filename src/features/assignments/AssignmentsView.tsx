@@ -725,10 +725,12 @@ export default function AssignmentsView() {
               Monteur stand ohne das Leihgerät auf der Baustelle.
             */}
             {offeneRuestzeile && materialAn && (
-              <p className="mb-3 text-sm text-warning" role="alert">
-                <strong>Noch nicht auf der Rüstliste:</strong> {offeneRuestzeile}. Bitte
-                „Hinzufügen" oder das Feld leeren.
-              </p>
+              <div className="mb-3">
+                <Meldung ton="warnung" role="alert">
+                  <strong>Noch nicht auf der Rüstliste:</strong> {offeneRuestzeile}. Bitte
+                  „Hinzufügen" oder das Feld leeren.
+                </Meldung>
+              </div>
             )}
             <Button
               onClick={save}
