@@ -18,6 +18,7 @@ import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
+import FormularKarte from '@/components/FormularKarte';
 import Nachladen from '@/components/Nachladen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -72,6 +73,24 @@ export default function CustomersView() {
   const [suche, setSuche] = useState('');
   const [form, setForm] = useState<NewCustomer>(LEER);
   const [bearbeitet, setBearbeitet] = useState<WithId<Customer> | null>(null);
+  /*
+    Das Formular ist zugeklappt, bis jemand es aufmacht — ueber „Neuer Kunde"
+    oben oder ueber „Bearbeiten" an einer Zeile. Vorher stand es dauerhaft
+    offen, und man scrollte gemessene 1162 Pixel daran vorbei, bevor der erste
+    Kunde kam.
+  */
+  const [formOffen, setFormOffen] = useState(false);
+  /*
+    ZWEI FEHLERARTEN, ZWEI PLAETZE — seit das Formular zuklappen kann.
+
+    Bis dahin ging jeder Fehler in dieselbe Meldung mitten im Formular, und
+    das ging gut, solange das Formular immer offen stand. Jetzt waere ein
+    Ladefehler der Liste unsichtbar: die Liste zeigte „keine Kunden", und der
+    einzige Hinweis darauf, dass gar nichts gelesen werden KONNTE, steckte in
+    einer zugeklappten Karte. `seitenFehler` steht deshalb oben und immer da;
+    `error` bleibt dem Formular vorbehalten, wo er neben dem Knopf gehoert.
+  */
+  const [seitenFehler, setSeitenFehler] = useState<string | null>(null);
   const [speichert, setSpeichert] = useState(false);
   const [toDelete, setToDelete] = useState<WithId<Customer> | null>(null);
 
@@ -127,7 +146,7 @@ export default function CustomersView() {
         */
         if (!begriff.trim()) setOhneSuche(treffer.length);
       } catch (e) {
-        setError((e as Error).message);
+        setSeitenFehler((e as Error).message);
       } finally {
         setLoading(false);
       }
@@ -166,6 +185,7 @@ export default function CustomersView() {
       }
       setForm(LEER);
       setBearbeitet(null);
+      setFormOffen(false);
       await laden();
     } catch {
       setError('Der Kunde konnte nicht gespeichert werden.');
@@ -191,7 +211,7 @@ export default function CustomersView() {
   async function uebernahmeVorbereiten() {
     if (!user) return;
     setUebernahmeLaeuft(true);
-    setError(null);
+    setSeitenFehler(null);
     try {
       const projekte = await listRecentProjects(user.companyId, 500);
       const ohneKunde = projekte.filter((p) => !p.customerId && p.customerName?.trim());
@@ -204,7 +224,7 @@ export default function CustomersView() {
       }
       setUebernahme([...nachName.values()].sort((a, b) => a.name.localeCompare(b.name, 'de')));
     } catch {
-      setError('Die Baustellen konnten nicht gelesen werden.');
+      setSeitenFehler('Die Baustellen konnten nicht gelesen werden.');
     } finally {
       setUebernahmeLaeuft(false);
     }
@@ -213,7 +233,7 @@ export default function CustomersView() {
   async function uebernahmeAusfuehren() {
     if (!user || !uebernahme) return;
     setUebernahmeLaeuft(true);
-    setError(null);
+    setSeitenFehler(null);
     try {
       let neu = 0;
       let zugeordnet = 0;
@@ -244,7 +264,7 @@ export default function CustomersView() {
       setUebernahme(null);
       await laden();
     } catch {
-      setError('Die Übernahme ist fehlgeschlagen.');
+      setSeitenFehler('Die Übernahme ist fehlgeschlagen.');
     } finally {
       setUebernahmeLaeuft(false);
     }
@@ -254,10 +274,31 @@ export default function CustomersView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Kunden" subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie" />
+      <PageHeader
+        title="Kunden"
+        subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie"
+        action={
+          darfAendern ? (
+            <Button
+              onClick={() => {
+                setBearbeitet(null);
+                setForm(LEER);
+                setError(null);
+                setFormOffen(true);
+              }}
+            >
+              Neuer Kunde
+            </Button>
+          ) : undefined
+        }
+      />
 
-      {darfAendern && (
-        <Card title={bearbeitet ? `„${bearbeitet.name}" bearbeiten` : 'Neuen Kunden anlegen'}>
+      {seitenFehler && <ErrorState message={seitenFehler} />}
+
+      <FormularKarte
+        offen={darfAendern && formOffen}
+        title={bearbeitet ? `„${bearbeitet.name}" bearbeiten` : 'Neuen Kunden anlegen'}
+      >
           <form onSubmit={speichern} className="space-y-4">
             <InputField
               id="kname"
@@ -316,23 +357,27 @@ export default function CustomersView() {
               <Button type="submit" loading={speichert} className="w-full sm:w-auto">
                 {bearbeitet ? 'Änderungen speichern' : 'Kunde anlegen'}
               </Button>
-              {bearbeitet && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => {
-                    setBearbeitet(null);
-                    setForm(LEER);
-                  }}
-                  className="w-full sm:w-auto"
-                >
-                  Abbrechen
-                </Button>
-              )}
+              {/*
+                „Abbrechen" gab es frueher nur beim Bearbeiten — beim Anlegen
+                war die Karte ja ohnehin immer da und es gab nichts zu
+                verlassen. Jetzt schliesst der Knopf sie in beiden Faellen.
+              */}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setBearbeitet(null);
+                  setForm(LEER);
+                  setError(null);
+                  setFormOffen(false);
+                }}
+                className="w-full sm:w-auto"
+              >
+                Abbrechen
+              </Button>
             </div>
           </form>
-        </Card>
-      )}
+      </FormularKarte>
 
       {/* Übernahme der Altbestände — nur solange es etwas zu übernehmen gibt. */}
       {darfAendern && (
@@ -474,6 +519,7 @@ export default function CustomersView() {
                     <Button
                       variant="ghost"
                       onClick={() => {
+                        setFormOffen(true);
                         setBearbeitet(k);
                         setForm({
                           name: k.name,
@@ -546,7 +592,7 @@ export default function CustomersView() {
             toast.success('Kunde gelöscht');
             await laden();
           } catch (e) {
-            setError((e as Error).message);
+            setSeitenFehler((e as Error).message);
           }
           setToDelete(null);
         }}

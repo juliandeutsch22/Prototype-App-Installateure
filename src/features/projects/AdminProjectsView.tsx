@@ -25,6 +25,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { Marke } from '@/components/Badge';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import PageHeader from '@/components/PageHeader';
+import FormularKarte from '@/components/FormularKarte';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, FormGrid, Pflichthinweis } from '@/components/Field';
@@ -88,6 +89,20 @@ export default function AdminProjectsView() {
   const [assigned, setAssigned] = useState<string[]>([]);
   const [managers, setManagers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  /* Zugeklappt, bis jemand „Neue Baustelle" drueckt — sonst steht ein
+     vierzehnfeldiges Formular vor der Liste, durch die man sucht. */
+  const [formOffen, setFormOffen] = useState(false);
+  /*
+    ZWEI FEHLERARTEN, ZWEI PLAETZE — seit das Formular zuklappen kann.
+
+    Bis dahin ging jeder Fehler in dieselbe Meldung mitten im Formular, und
+    das ging gut, solange das Formular immer offen stand. Jetzt waere ein
+    Ladefehler der Liste unsichtbar: die Liste zeigte eine Leermeldung, und
+    der einzige Hinweis darauf, dass gar nichts gelesen werden KONNTE, steckte
+    in einer zugeklappten Karte. `seitenFehler` steht deshalb oben und immer
+    da; `error` bleibt dem Formular vorbehalten, wo er neben dem Knopf gehoert.
+  */
+  const [seitenFehler, setSeitenFehler] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<WithId<Project> | null>(null);
   /**
    * Ein Tiefenlink auf eine Baustelle setzt Suche UND Filter.
@@ -161,7 +176,7 @@ export default function AdminProjectsView() {
         setLoading(false);
       },
       (e) => {
-        setError(e.message);
+        setSeitenFehler(e.message);
         setLoading(false);
       },
     );
@@ -198,6 +213,7 @@ export default function AdminProjectsView() {
       };
       await createProject(user.companyId, data);
       reset();
+      setFormOffen(false);
       toast.success('Baustelle angelegt');
     } catch {
       setError('Die Baustelle konnte nicht gespeichert werden.');
@@ -319,11 +335,26 @@ export default function AdminProjectsView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Baustellen" subtitle="Baustellen anlegen und suchen — geändert wird in der Akte" />
+      <PageHeader
+        title="Baustellen"
+        subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
+        action={
+          <Button
+            onClick={() => {
+              reset();
+              setError(null);
+              setFormOffen(true);
+            }}
+          >
+            Neue Baustelle
+          </Button>
+        }
+      />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
+      {seitenFehler && <ErrorState message={seitenFehler} />}
 
-      <Card title="Neue Baustelle">
+      <FormularKarte offen={formOffen} title="Neue Baustelle">
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
             <InputField id="pnr" label="Projektnummer" value={form.projectNumber}
@@ -433,11 +464,23 @@ export default function AdminProjectsView() {
           )}
           <Pflichthinweis />
           {error && <ErrorState message={error} />}
-          <div className="flex gap-3">
-            <Button type="submit" loading={saving}>Anlegen</Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+            <Button type="submit" loading={saving} className="w-full sm:w-auto">Anlegen</Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                reset();
+                setError(null);
+                setFormOffen(false);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Abbrechen
+            </Button>
           </div>
         </form>
-      </Card>
+      </FormularKarte>
 
       <Card
         title={`Alle Baustellen (${visible.length})`}

@@ -10,6 +10,7 @@ import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
+import FormularKarte from '@/components/FormularKarte';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
@@ -31,6 +32,20 @@ export default function UserMgmtView() {
   const [form, setForm] = useState<BenutzerEntwurf>(leererEntwurf);
   const [saving, setSaving] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  /* Zugeklappt: das Anlegeformular stand vor der Benutzerliste, durch die man
+     sucht — gemessene 919 Pixel Scrollweg auf dem Telefon. */
+  const [formOffen, setFormOffen] = useState(false);
+  /*
+    ZWEI FEHLERARTEN, ZWEI PLAETZE — seit das Formular zuklappen kann.
+
+    Bis dahin ging jeder Fehler in dieselbe Meldung mitten im Formular, und
+    das ging gut, solange das Formular immer offen stand. Jetzt waere ein
+    Ladefehler der Liste unsichtbar: die Liste zeigte eine Leermeldung, und
+    der einzige Hinweis darauf, dass gar nichts gelesen werden KONNTE, steckte
+    in einer zugeklappten Karte. `seitenFehler` steht deshalb oben und immer
+    da; `error` bleibt dem Formular vorbehalten, wo er neben dem Knopf gehoert.
+  */
+  const [seitenFehler, setSeitenFehler] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
   const [status, setStatus] = useState<'aktiv' | 'inaktiv' | 'alle'>('aktiv');
   /** Initialpasswort, falls die Willkommens-Mail nicht zugestellt werden konnte. */
@@ -45,7 +60,7 @@ export default function UserMgmtView() {
     if (!user) return;
     listUsers(user.companyId)
       .then(setUsers)
-      .catch((e) => setError(e.message))
+      .catch((e) => setSeitenFehler(e.message))
       .finally(() => setLoading(false));
   }, [user]);
 
@@ -124,6 +139,7 @@ export default function UserMgmtView() {
       }
       setForm(leererEntwurf());
       setShowDetails(false);
+      setFormOffen(false);
       await reload();
     } catch (err) {
       setError(anlegeFehler(err, false));
@@ -136,7 +152,22 @@ export default function UserMgmtView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Benutzerverwaltung" subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen" />
+      <PageHeader
+        title="Benutzerverwaltung"
+        subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen"
+        action={
+          <Button
+            onClick={() => {
+              setForm(leererEntwurf());
+              setShowDetails(false);
+              setError(null);
+              setFormOffen(true);
+            }}
+          >
+            Neuer Benutzer
+          </Button>
+        }
+      />
 
       {/*
         „Außendienst" statt „Im Außendienst": bei drei Kennzahlen nebeneinander
@@ -165,7 +196,9 @@ export default function UserMgmtView() {
         </div>
       )}
 
-      <Card title="Neuen Benutzer anlegen">
+      {seitenFehler && <ErrorState message={seitenFehler} />}
+
+      <FormularKarte offen={formOffen} title="Neuen Benutzer anlegen">
         <form onSubmit={submit} className="space-y-4">
           <FormGrid>
             <InputField id="uname" label="Name" value={form.name}
@@ -271,9 +304,22 @@ export default function UserMgmtView() {
             <Button type="submit" loading={saving} className="w-full sm:w-auto">
               Benutzer anlegen
             </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setForm(leererEntwurf());
+                setShowDetails(false);
+                setError(null);
+                setFormOffen(false);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Abbrechen
+            </Button>
           </div>
         </form>
-      </Card>
+      </FormularKarte>
 
       <Card
         title={`Benutzer (${gefiltert.length})`}

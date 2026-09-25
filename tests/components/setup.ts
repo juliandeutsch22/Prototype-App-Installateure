@@ -54,3 +54,16 @@ if (typeof URL !== 'undefined' && !URL.createObjectURL) {
   URL.createObjectURL = () => `blob:test/${++lauf}`;
   URL.revokeObjectURL = () => undefined;
 }
+
+/**
+ * jsdom kennt `Element.scrollIntoView` nicht.
+ *
+ * Seit die Anlage-Formulare zugeklappt starten, führt `FormularKarte` die
+ * frisch geöffnete Karte in den Blick. Ohne Ersatz wirft dieser eine Aufruf
+ * im Effekt — und die Ansicht sähe im Test aus, als sei das Öffnen selbst
+ * gescheitert, obwohl nur der Browser fehlt. Ein stiller Platzhalter genügt:
+ * geprüft wird, WAS sichtbar wird, nicht wohin gescrollt wurde.
+ */
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => undefined;
+}

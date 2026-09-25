@@ -117,6 +117,17 @@ function zeige() {
   );
 }
 
+/**
+ * SEIT DEM 18.09.2026 IST DAS ANLAGE-FORMULAR ZUGEKLAPPT.
+ *
+ * Vorher stand es dauerhaft über der Liste, und man scrollte daran vorbei,
+ * bevor die erste Baustelle kam. Jetzt öffnet es „Neue Baustelle" oben — wer
+ * die Felder prüfen will, geht also denselben Weg wie der Betrieb.
+ */
+async function formularOeffnen() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Neue Baustelle' }));
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 8, 1, 9, 0, 0));
@@ -143,7 +154,8 @@ describe('Baustellen — anlegen', () => {
      * Akte fände ihre eigene Baustelle nicht wieder.
      */
     zeige();
-    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-042');
+    await formularOeffnen();
+    await userEvent.type(screen.getByLabelText('Projektnummer'), '2026-042');
     await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
 
@@ -162,7 +174,8 @@ describe('Baustellen — anlegen', () => {
      * Nachkalkulation jede Baustelle sofort als überzogen meldet.
      */
     zeige();
-    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-043');
+    await formularOeffnen();
+    await userEvent.type(screen.getByLabelText('Projektnummer'), '2026-043');
     await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
 
@@ -172,7 +185,8 @@ describe('Baustellen — anlegen', () => {
 
   it('nimmt ein gesetztes Stundenbudget als Zahl mit', async () => {
     zeige();
-    await userEvent.type(await screen.findByLabelText('Projektnummer'), '2026-044');
+    await formularOeffnen();
+    await userEvent.type(screen.getByLabelText('Projektnummer'), '2026-044');
     await userEvent.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await userEvent.type(screen.getByLabelText(/Stundenbudget/), '40');
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
@@ -216,9 +230,11 @@ describe('Baustellen — der Weg in die Akte', () => {
     */
     zeige();
     await screen.findByText(/2026-042/);
-    expect(screen.getByText('Neue Baustelle')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^bearbeiten$/i })).not.toBeInTheDocument();
 
+    await formularOeffnen();
+    // Die Karte heisst „Neue Baustelle" — nicht „bearbeiten", egal was in der Liste steht.
+    expect(screen.getByRole('heading', { name: 'Neue Baustelle' })).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/Projektnummer/), '2026-999');
     await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k1');
     await userEvent.click(screen.getByRole('button', { name: 'Anlegen' }));
@@ -475,12 +491,14 @@ describe('Baustellen — Kundenauswahl an der Grenze', () => {
       ({ id: `k${i}`, companyId: 'perl', name: `Kunde ${i}` }) as Customer & { id: string },
     );
     zeige();
+    await formularOeffnen();
 
     expect(await screen.findByText(/nur die ersten 500 Kunden/)).toBeInTheDocument();
   });
 
   it('schweigt bei einem gewöhnlichen Kundenstamm', async () => {
     zeige();
+    await formularOeffnen();
     await screen.findByLabelText('Kunde');
     expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
   });

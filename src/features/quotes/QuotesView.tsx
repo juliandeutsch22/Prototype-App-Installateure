@@ -22,6 +22,7 @@ import Button from '@/components/Button';
 import { Zustand, type Stand } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
+import FormularKarte from '@/components/FormularKarte';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -85,6 +86,20 @@ export default function QuotesView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /* Zugeklappt: man scrollte gemessene 1319 Pixel am Kalkulationsformular
+     vorbei, bevor das erste vorhandene Angebot kam. */
+  const [formOffen, setFormOffen] = useState(false);
+  /*
+    ZWEI FEHLERARTEN, ZWEI PLAETZE — seit das Formular zuklappen kann.
+
+    Bis dahin ging jeder Fehler in dieselbe Meldung mitten im Formular, und
+    das ging gut, solange das Formular immer offen stand. Jetzt waere ein
+    Ladefehler der Liste unsichtbar: die Liste zeigte eine Leermeldung, und
+    der einzige Hinweis darauf, dass gar nichts gelesen werden KONNTE, steckte
+    in einer zugeklappten Karte. `seitenFehler` steht deshalb oben und immer
+    da; `error` bleibt dem Formular vorbehalten, wo er neben dem Knopf gehoert.
+  */
+  const [seitenFehler, setSeitenFehler] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<WithId<Quote> | null>(null);
 
   // Formular
@@ -113,7 +128,7 @@ export default function QuotesView() {
         setAngebote(q);
         setKunden(k);
       } catch (e) {
-        setError((e as Error).message);
+        setSeitenFehler((e as Error).message);
       } finally {
         setLoading(false);
       }
@@ -197,6 +212,7 @@ export default function QuotesView() {
       });
       toast.success(`Angebot ${nummer} angelegt`);
       formularLeeren();
+      setFormOffen(false);
       await laden();
     } catch {
       setError('Das Angebot konnte nicht angelegt werden.');
@@ -215,14 +231,14 @@ export default function QuotesView() {
   async function annehmen(q: WithId<Quote>) {
     if (!user) return;
     setBusy(true);
-    setError(null);
+    setSeitenFehler(null);
     try {
       const vorhandene = await listActiveProjects(user.companyId);
       // Baustellennummer aus der Angebotsnummer ableiten: sie bleiben damit
       // ohne weiteres Zutun einander zuordenbar.
       const projectNumber = q.quoteNumber.replace(/^AN-/, 'B-');
       if (vorhandene.some((p) => p.projectNumber === projectNumber)) {
-        setError(`Baustelle ${projectNumber} gibt es bereits.`);
+        setSeitenFehler(`Baustelle ${projectNumber} gibt es bereits.`);
         return;
       }
       await createProject(user.companyId, {
@@ -241,7 +257,7 @@ export default function QuotesView() {
       toast.success(`Baustelle ${projectNumber} angelegt`);
       await laden();
     } catch {
-      setError('Die Baustelle konnte nicht angelegt werden.');
+      setSeitenFehler('Die Baustelle konnte nicht angelegt werden.');
     } finally {
       setBusy(false);
     }
@@ -251,10 +267,27 @@ export default function QuotesView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Angebote" subtitle="Kalkulieren, versenden, in einen Auftrag überführen" />
+      <PageHeader
+        title="Angebote"
+        subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
+        action={
+          darfAendern ? (
+            <Button
+              onClick={() => {
+                formularLeeren();
+                setError(null);
+                setFormOffen(true);
+              }}
+            >
+              Neues Angebot
+            </Button>
+          ) : undefined
+        }
+      />
 
-      {darfAendern && (
-        <Card title="Neues Angebot">
+      {seitenFehler && <ErrorState message={seitenFehler} />}
+
+      <FormularKarte offen={darfAendern && formOffen} title="Neues Angebot">
           <FormGrid>
             <SelectField
               id="anqk"
@@ -411,17 +444,29 @@ export default function QuotesView() {
 
           {error && <div className="mt-3"><ErrorState message={error} /></div>}
 
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
             <Button
               onClick={anlegen}
               loading={busy}
               disabled={!customerId || positionen.length === 0}
+              className="w-full sm:w-auto"
             >
               Angebot anlegen
             </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                formularLeeren();
+                setError(null);
+                setFormOffen(false);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Abbrechen
+            </Button>
           </div>
-        </Card>
-      )}
+      </FormularKarte>
 
       <Card title={`Angebote (${angebote.length})`}>
         {loading ? (

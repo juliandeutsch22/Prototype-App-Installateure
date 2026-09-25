@@ -80,11 +80,22 @@ beforeEach(() => {
   angebote.length = 0;
 });
 
+/**
+ * SEIT DEM 18.09.2026 IST DAS ANLAGE-FORMULAR ZUGEKLAPPT.
+ *
+ * Vorher stand die ganze Kalkulationsmaske über der Liste, und man scrollte
+ * daran vorbei, bevor das erste Angebot kam. Jetzt öffnet sie „Neues Angebot"
+ * oben — wer die Felder prüfen will, geht denselben Weg wie der Betrieb.
+ */
+async function formularOeffnen(nutzer: ReturnType<typeof userEvent.setup>) {
+  await nutzer.click(await screen.findByRole('button', { name: 'Neues Angebot' }));
+}
+
 describe('Angebot kalkulieren', () => {
   it('zählt nur echte Arbeitszeit ins Stundenbudget', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await screen.findByLabelText('Kunde');
+    await formularOeffnen(nutzer);
 
     await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
 
@@ -118,7 +129,7 @@ describe('Angebot kalkulieren', () => {
   it('rechnet Netto, USt und Brutto mit derselben Funktion wie die Rechnung', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await screen.findByLabelText('Kunde');
+    await formularOeffnen(nutzer);
     await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
     await nutzer.type(screen.getByLabelText('Bezeichnung'), 'Pauschale');
     await nutzer.type(screen.getByLabelText('Menge'), '1');

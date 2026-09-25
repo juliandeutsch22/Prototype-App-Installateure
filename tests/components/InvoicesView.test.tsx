@@ -236,9 +236,21 @@ function zeige() {
   );
 }
 
+/**
+ * SEIT DEM 18.09.2026 IST DIE RECHNUNGSMASKE ZUGEKLAPPT.
+ *
+ * Vorher stand sie ueber der Rechnungsliste, dem Mahnlauf und dem Export —
+ * gemessene 1400 Pixel Scrollweg auf dem Telefon, bevor die erste Rechnung
+ * kam. Jetzt oeffnet sie „Neue Rechnung" oben.
+ */
+async function formularOeffnen() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Neue Rechnung' }));
+}
+
 /** Baustelle wählen und die Positionen zusammenstellen lassen. */
 async function bisZurVorschau() {
   zeige();
+  await formularOeffnen();
   const auswahl = await screen.findByRole("combobox", { name: /Baustelle/ });
   await userEvent.selectOptions(auswahl, '2026-042');
   await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
@@ -357,6 +369,7 @@ describe('Rechnungen — der Weg von Zeiten zu einer Rechnung', () => {
     // Handwerksscheinen mitkommt, wäre „keine Stunden" nur die halbe Auskunft.
     zeiten = [];
     zeige();
+    await formularOeffnen();
     const auswahl = await screen.findByRole("combobox", { name: /Baustelle/ });
     await userEvent.selectOptions(auswahl, '2026-042');
     await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));

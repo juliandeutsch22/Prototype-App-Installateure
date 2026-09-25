@@ -139,6 +139,17 @@ function zeichne() {
   );
 }
 
+/**
+ * SEIT DEM 18.09.2026 IST DAS ANLAGE-FORMULAR ZUGEKLAPPT.
+ *
+ * Vorher stand es dauerhaft ueber der Liste, und man scrollte daran vorbei,
+ * bevor der erste Kunde kam. Jetzt oeffnet es „Neuer Kunde" oben — wer die
+ * Felder pruefen will, geht also denselben Weg wie der Betrieb.
+ */
+async function formularOeffnen(nutzer = userEvent.setup()) {
+  await nutzer.click(await screen.findByRole('button', { name: 'Neuer Kunde' }));
+}
+
 beforeEach(() => {
   searchCustomers.mockClear().mockImplementation(async () => kunden);
   createCustomer.mockClear();
@@ -152,6 +163,7 @@ describe('Kundenverwaltung', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
+    await formularOeffnen(nutzer);
 
     // Andere Schreibweise, derselbe Kunde.
     await nutzer.type(screen.getByLabelText('Name oder Firma'), '  hausverwaltung NORD ');
@@ -218,8 +230,39 @@ describe('Kundenverwaltung', () => {
     );
   });
 
-  it('nennt die Rechnungsadresse beim Namen', () => {
+  /*
+    DAS ZUGEKLAPPTE FORMULAR HAT EINE GEFAEHRLICHE STELLE: „Bearbeiten" an
+    einer Zeile fuellt dieselbe Karte. Waere sie zu geblieben, haette der
+    Knopf stillschweigend nichts getan — der Kunde waere geladen, aber
+    unsichtbar. Beide Wege stehen deshalb hier.
+  */
+  it('haelt das Formular zu, bis jemand es aufmacht — und wieder schliesst', async () => {
+    const nutzer = userEvent.setup();
     zeichne();
+    await screen.findByText('Hausverwaltung Nord');
+    expect(screen.queryByLabelText('Name oder Firma')).not.toBeInTheDocument();
+
+    await formularOeffnen(nutzer);
+    expect(screen.getByLabelText('Name oder Firma')).toBeInTheDocument();
+
+    await nutzer.click(screen.getByRole('button', { name: 'Abbrechen' }));
+    expect(screen.queryByLabelText('Name oder Firma')).not.toBeInTheDocument();
+  });
+
+  it('macht das Formular auch über „Bearbeiten" an der Zeile auf', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    const zeile = (await screen.findByText('Hausverwaltung Nord')).closest('li')!;
+
+    await nutzer.click(within(zeile).getByRole('button', { name: 'Bearbeiten' }));
+
+    // Sichtbar UND gefüllt — sonst wäre der Kunde geladen, aber niemand sähe es.
+    expect(screen.getByLabelText('Name oder Firma')).toHaveValue('Hausverwaltung Nord');
+  });
+
+  it('nennt die Rechnungsadresse beim Namen', async () => {
+    zeichne();
+    await formularOeffnen();
     /**
      * Die Abgrenzung ist der Kern des Datenmodells: hier steht die
      * Rechnungsadresse, an der Baustelle die Baustellenadresse. Ein

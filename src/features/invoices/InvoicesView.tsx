@@ -48,6 +48,7 @@ import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
 import { Warnung } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
+import FormularKarte from '@/components/FormularKarte';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import RowMenu from '@/components/RowMenu';
@@ -117,6 +118,27 @@ export default function InvoicesView() {
   // Entwurf
   const [projectNumber, setProjectNumber] = useState('');
   const [preview, setPreview] = useState<AssembledInvoice | null>(null);
+  /*
+    Zugeklappt, bis jemand „Neue Rechnung" drueckt — gemessene 958 Pixel
+    Scrollweg standen sonst vor der Rechnungsliste.
+
+    SOLANGE EINE VORSCHAU OFFEN IST, BLEIBT ES SICHTBAR (siehe `offen` unten):
+    dort steht die Baustelle, aus der die Vorschau stammt, und die
+    Konditionen. Ein Formular wegzuklappen, waehrend darunter sein Ergebnis
+    zur Bearbeitung steht, waere die schlechtere Haelfte von beidem.
+  */
+  const [formOffen, setFormOffen] = useState(false);
+  /*
+    ZWEI FEHLERARTEN, ZWEI PLAETZE — seit das Formular zuklappen kann.
+
+    Bis dahin ging jeder Fehler in dieselbe Meldung mitten im Formular, und
+    das ging gut, solange das Formular immer offen stand. Jetzt waeren ein
+    Ladefehler der Liste und ein gescheitertes Mahnschreiben unsichtbar: beide
+    kommen aus der LISTE, die Meldung aber steckte in einer zugeklappten
+    Karte. `seitenFehler` steht deshalb oben und immer da; `error` bleibt dem
+    Formular vorbehalten, wo er neben dem Knopf gehoert.
+  */
+  const [seitenFehler, setSeitenFehler] = useState<string | null>(null);
   /**
    * Der Leistungszeitraum, wie er auf die Rechnung kommt.
    *
@@ -211,7 +233,7 @@ export default function InvoicesView() {
         setLoading(false);
       },
       (e) => {
-        setError(e.message);
+        setSeitenFehler(e.message);
         setLoading(false);
       },
     );
@@ -604,6 +626,7 @@ export default function InvoicesView() {
       setDiscount({ mode: 'percent', value: '', label: '' });
       setReverseCharge(false);
       setKundenUid('');
+      setFormOffen(false);
       toast.success(`Rechnung ${reserved} erstellt`);
     } catch (e) {
       // Die Nummernvergabe sagt genau, welche Nummer belegt ist und welche
@@ -631,7 +654,7 @@ export default function InvoicesView() {
     const stufe = naechsteStufe(inv);
     if (!stufe) return;
     setBusy(true);
-    setError(null);
+    setSeitenFehler(null);
     try {
       const heute = todayStr();
       const spesen = spesenFuer(stufe, company.rates?.mahnspesen);
@@ -664,7 +687,7 @@ export default function InvoicesView() {
       toast.success(`${TEXTE[stufe].titel} erzeugt`);
       setMahnFuer(null);
     } catch {
-      setError('Die Mahnung konnte nicht erzeugt werden.');
+      setSeitenFehler('Die Mahnung konnte nicht erzeugt werden.');
     } finally {
       setBusy(false);
     }
@@ -808,9 +831,25 @@ export default function InvoicesView() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Rechnungen" subtitle="Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren" />
+      <PageHeader
+        title="Rechnungen"
+        subtitle="Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren"
+        action={
+          <Button
+            onClick={() => {
+              setPreview(null);
+              setProjectNumber('');
+              setError(null);
+              setFormOffen(true);
+            }}
+          >
+            Neue Rechnung
+          </Button>
+        }
+      />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
+      {seitenFehler && <ErrorState message={seitenFehler} />}
 
       {/*
         Buchhaltungs-Export.
@@ -1034,6 +1073,15 @@ export default function InvoicesView() {
                 <Button
                   variant="secondary"
                   onClick={() => {
+                    /*
+                      `setFormOffen(true)` MUSS hier stehen: seit die Karte
+                      zugeklappt geboren wird, saehe dieser Knopf sonst aus,
+                      als taete er nichts. Das Hochscrollen bleibt daneben —
+                      `FormularKarte` fuehrt nur nach, wenn sich der Zustand
+                      AENDERT, und war die Karte schon offen, passiert dort
+                      nichts.
+                    */
+                    setFormOffen(true);
                     setProjectNumber(schein.projectNumber);
                     setPreview(null);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1118,7 +1166,8 @@ export default function InvoicesView() {
         </Card>
       )}
 
-      <Card
+      <FormularKarte
+        offen={formOffen || !!preview}
         title="Neue Rechnung aus Baustelle"
         hint="Zusammengestellt wird, was auf dieser Baustelle als „Anwesend“ gebucht und noch NICHT verrechnet ist — dazu das ausgegebene Material. Eine Position kann deshalb nie zweimal auf eine Rechnung geraten. Gesperrt werden die Belege aber erst beim Anlegen, nicht schon beim Zusammenstellen: bis dahin lässt sich alles gefahrlos ansehen und wieder verwerfen."
       >
@@ -1204,7 +1253,26 @@ export default function InvoicesView() {
         </details>
 
         {error && <div className="mt-3"><ErrorState message={error} /></div>}
-      </Card>
+
+        {/* Kein „Abbrechen", solange eine Vorschau darunter haengt: die
+            schliesst man dort mit „Verwerfen". Zwei Knoepfe, die beide
+            abbrechen, aber verschieden viel wegwerfen, waeren eine Falle. */}
+        {!preview && (
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setProjectNumber('');
+                setError(null);
+                setFormOffen(false);
+              }}
+            >
+              Abbrechen
+            </Button>
+          </div>
+        )}
+      </FormularKarte>
 
       {/* Vorschau vor dem Erzeugen: danach sind die Belege gesperrt und eine
           Korrektur ginge nur noch über Storno. */}
