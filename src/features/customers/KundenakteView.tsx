@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import { canAccess } from '@/app/navigation';
 import {
   listCustomersByIds,
   listProjectsForCustomer,
@@ -67,7 +68,7 @@ const LAEDT = { zustand: 'laedt' } as const;
 
 export default function KundenakteView() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
   const wartungAn = useModul('wartung');
   const angeboteAn = useModul('angebote');
@@ -107,6 +108,15 @@ export default function KundenakteView() {
   const darfBaustellenZuordnen = user ? isGF(user.role) : false;
   /** Rechnungen liest nur, wer sie auch stellt — so steht es im Zeilenschutz. */
   const darfRechnungen = user ? canInvoice(user.role) : false;
+  /*
+    ANGEBOTE UND BAUSTELLEN NUR FÜR DIE, DIE SIE AUCH ÖFFNEN DÜRFEN — dieselbe
+    Frage wie in `AngebotView`. Die Verwaltung liest per Zeilenschutz keine
+    Angebote: die Karte zeigte ihr „Noch kein Angebot.", obwohl es welche
+    gab. Und ein Link auf die Baustellenliste führte Verwaltung und
+    Buchhaltung auf „Kein Zugriff" (Prüflauf 25.09.2026, P4-03).
+  */
+  const darfAngebote = user ? canAccess(user.role, '/quotes', company?.modules) : false;
+  const baustellenSichtbar = user ? canAccess(user.role, '/admin-projects', company?.modules) : false;
   const heute = todayStr();
 
   useEffect(() => {
@@ -214,7 +224,7 @@ export default function KundenakteView() {
     gewählten Kunden), also wird danach gesucht.
   */
   useEffect(() => {
-    if (!companyId || !id || !angeboteAn) return;
+    if (!companyId || !id || !angeboteAn || !darfAngebote) return;
     let weg = false;
     listQuotesForCustomer(companyId, id)
       .then((q) => !weg && setAngebote({ zustand: 'bereit', daten: q }))
@@ -222,7 +232,7 @@ export default function KundenakteView() {
     return () => {
       weg = true;
     };
-  }, [companyId, id, angeboteAn, versuch]);
+  }, [companyId, id, angeboteAn, darfAngebote, versuch]);
 
   /*
     DIE RECHNUNGEN DES KUNDEN — über seine Baustellen. Eine Rechnung trägt den
@@ -349,13 +359,25 @@ export default function KundenakteView() {
               .slice()
               .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
               .map((p) => (
-                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <Link
-                    to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
-                    className="link truncate text-sm"
-                  >
-                    {p.projectNumber} · {p.address ?? 'ohne Adresse'}
-                  </Link>
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
+                  {baustellenSichtbar ? (
+                    /* 44 px Tastfläche; dafür die Zeile mit weniger Polster,
+                       damit die Liste kaum wächst (P4-09). Das `truncate`
+                       sitzt innen — an einem Flex-Behälter greifen die
+                       Auslassungspunkte nicht. */
+                    <Link
+                      to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
+                      className="link inline-flex min-h-touch min-w-0 items-center overflow-hidden text-sm"
+                    >
+                      <span className="truncate">
+                        {p.projectNumber} · {p.address ?? 'ohne Adresse'}
+                      </span>
+                    </Link>
+                  ) : (
+                    <span className="truncate py-1 text-sm text-ink">
+                      {p.projectNumber} · {p.address ?? 'ohne Adresse'}
+                    </span>
+                  )}
                   <StatusBadge status={p.status} />
                 </li>
               ))}
@@ -497,7 +519,7 @@ export default function KundenakteView() {
         </Card>
       )}
 
-      {angeboteAn && (
+      {angeboteAn && darfAngebote && (
         <Card title="Angebote">
           {angebote.zustand === 'laedt' ? (
             <SkeletonList rows={1} />
@@ -508,9 +530,12 @@ export default function KundenakteView() {
           ) : (
             <ul className="divide-y divide-line">
               {angebote.daten.map((q) => (
-                <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <Link to={`/quotes/${q.id}`} className="link truncate text-sm">
-                    {q.quoteNumber}
+                <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
+                  <Link
+                    to={`/quotes/${q.id}`}
+                    className="link inline-flex min-h-touch min-w-0 items-center overflow-hidden text-sm"
+                  >
+                    <span className="truncate">{q.quoteNumber}</span>
                   </Link>
                   <span className="text-sm text-ink-muted">
                     {fmtEUR(q.totalNetto)} netto · {q.status}

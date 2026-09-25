@@ -429,6 +429,56 @@ describe('Die Angebote der Akte', () => {
   });
 });
 
+describe('Nur, was die Rolle öffnen darf (Prüflauf 25.09.2026, P4-03)', () => {
+  const BAUSTELLE = {
+    id: 'p1', companyId: 'perl', projectNumber: '2026-042', address: 'Ringstraße 3',
+    status: 'Aktiv', customerId: 'k1', customerName: 'Hausverwaltung Nord',
+  } as Project & { id: string };
+  const ANGEBOT = {
+    id: 'q1', companyId: 'perl', quoteNumber: 'A-2026-0007', customerId: 'k1',
+    totalNetto: 100, status: 'Versendet',
+  } as unknown as Quote & { id: string };
+
+  beforeEach(() => {
+    zugeordnet = [BAUSTELLE];
+    angebote = [ANGEBOT];
+  });
+
+  it('verlinkt Baustelle und Angebot für die Leitung — mit 48 px Tastfläche (P4-09)', async () => {
+    zeige();
+    const baustelle = await screen.findByRole('link', { name: /2026-042 · Ringstraße 3/ });
+    expect(baustelle).toHaveAttribute('href', '/admin-projects?baustelle=2026-042');
+    expect(baustelle.className).toMatch(/\bmin-h-touch\b/);
+    const angebot = await screen.findByRole('link', { name: 'A-2026-0007' });
+    expect(angebot.className).toMatch(/\bmin-h-touch\b/);
+  });
+
+  it('zeigt der Verwaltung die Baustelle als Text und keine Angebotskarte', async () => {
+    /*
+      Die Verwaltung darf die Baustellenliste nicht öffnen — der Link führte
+      auf „Kein Zugriff". Angebote liest sie per Zeilenschutz nicht: die
+      Karte sagte „Noch kein Angebot.", obwohl es eines gab.
+    */
+    rolle = 'Verwaltung';
+    nutzer = NUTZER();
+    zeige();
+    expect(await screen.findByText(/2026-042 · Ringstraße 3/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /2026-042/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Angebote' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Noch kein Angebot.')).not.toBeInTheDocument();
+    expect(listQuotesForCustomer).not.toHaveBeenCalled();
+  });
+
+  it('zeigt der Buchhaltung die Angebote, die Baustelle aber als Text', async () => {
+    rolle = 'Buchhaltung';
+    nutzer = NUTZER();
+    zeige();
+    expect(await screen.findByRole('link', { name: 'A-2026-0007' })).toHaveAttribute('href', '/quotes/q1');
+    expect(screen.getByText(/2026-042 · Ringstraße 3/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /2026-042/ })).not.toBeInTheDocument();
+  });
+});
+
 describe('Die Rechnungen der Akte', () => {
   it('zeigt sie — gesucht über die Baustellen des Kunden, verlinkt in die Rechnungsliste', async () => {
     zugeordnet = [{ id: 'p1', projectNumber: '2026-001', customerName: 'Familie Huber', customerId: 'k1' } as Project & { id: string }];
@@ -470,7 +520,10 @@ describe('Die Rechnungen der Akte', () => {
     rolle = 'Verwaltung';
     nutzer = NUTZER();
     zeige();
-    await screen.findByRole('heading', { name: 'Angebote' });
+    // Gewartet wird auf die Stammdaten, nicht mehr auf die Karte „Angebote":
+    // die sieht die Verwaltung seit P4-03 (Prüflauf 25.09.2026) nicht mehr —
+    // sie liest per Zeilenschutz keine Angebote.
+    await screen.findByText('Stammdaten');
     expect(screen.queryByRole('heading', { name: 'Rechnungen' })).not.toBeInTheDocument();
     expect(listInvoicesForCustomer).not.toHaveBeenCalled();
   });
