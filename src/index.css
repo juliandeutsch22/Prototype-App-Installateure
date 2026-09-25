@@ -307,17 +307,26 @@ textarea:focus {
  */
 @layer components {
   /*
-    REITERLEISTEN, DIE SEITLICH LAUFEN. Unter Windows zeichnete der Browser
-    darunter eine volle Scrollleiste mit Pfeilen, die den gewählten Reiter
-    anschnitt (Launch-Check 25.09.2026). Schmal bleibt sie greifbar — wer mit
-    der Maus kommt, hat etwas zum Ziehen —, aber ohne Pfeile und ohne den
-    Reiter zu überdecken.
+    REITERLEISTEN, DIE SEITLICH LAUFEN — OHNE SCROLLLEISTE. Unter Windows
+    zeichnete der Browser darunter eine volle Scrollleiste mit Pfeilen, die
+    den gewählten Reiter anschnitt (Launch-Check 25.09.2026). Danach stand
+    hier eine schmale, „damit Mausnutzer etwas zum Ziehen haben". Die
+    Design-Überarbeitung (Punkt 6) blendet auch sie aus: unter der Kante des
+    gewählten Reiters soll kein zweiter Strich stehen.
+
+    Die Orientierung gibt jetzt der Reiter selbst: `Unterreiter` rollt den
+    gewählten beim Öffnen und bei jedem Wechsel ganz ins Bild. Gewischt wird
+    wie zuvor. Zum Ziehen mit der Maus braucht es die Leiste nicht: die
+    Leisten aus `Unterreiter` (Einstellungen, Einsatzplanung, Mein
+    Einsatzplan) brechen ab 640 px in eine zweite Zeile um, statt zu laufen,
+    und die übrigen (Material, Lager, Anforderungen, Urlaub) haben zwei bis
+    vier kurze Reiter, die ab dem Tablet nebeneinander Platz finden.
   */
   .reiterleiste {
-    scrollbar-width: thin;
+    scrollbar-width: none;
   }
   .reiterleiste::-webkit-scrollbar {
-    height: 4px;
+    display: none;
   }
 
   .panel {

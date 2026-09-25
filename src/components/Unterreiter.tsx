@@ -42,12 +42,21 @@ export default function Unterreiter({
   /*
     DER GEWÄHLTE REITER BLEIBT IM BILD — am Telefon, wo die Leiste seitlich
     läuft. Sonst stünde „Fehler" abgeschnitten am Rand, und wer von dort kommt,
-    sähe nicht, wo er ist (Prüflauf 24.09.2026, D5).
+    sähe nicht, wo er ist (Prüflauf 24.09.2026, D5). Seit die Leiste keine
+    Scrollleiste mehr zeigt (index.css, `.reiterleiste`), ist das die einzige
+    Orientierung darüber, wo man in der Leiste steht.
+
+    `inline: 'nearest'` rollt nur so weit, bis der Reiter GANZ zu sehen ist —
+    beim Öffnen genauso wie beim Wechsel. `block: 'nearest'` lässt die Seite
+    senkrecht stehen, solange die Leiste im Bild ist. `behavior: 'auto'` heißt
+    ohne Gleiten: ein Sprung um eine Reiterbreite braucht keine Bewegung, und
+    wer im System „Bewegung reduzieren" gewählt hat, bekommt ohnehin keine.
+    Das `?.` vor dem Aufruf, weil jsdom `scrollIntoView` nicht kennt.
   */
   useEffect(() => {
     leiste.current
       ?.querySelector('[aria-current="page"]')
-      ?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      ?.scrollIntoView?.({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
   }, [aktiv]);
 
   // Kann diese Rolle gar nichts davon sehen, ist der Reiter für sie falsch
