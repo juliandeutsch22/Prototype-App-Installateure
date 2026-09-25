@@ -9,6 +9,9 @@ import type { ReactNode } from 'react';
  * einen Kasten zu sperren — und er ist kurz genug, dass er die Überschrift
  * begleitet statt sie zu unterstreichen.
  *
+ * Das Aussehen steht in `.seitenkopf` und Geschwistern (index.css, am Ende)
+ * — je Element eine Klasse.
+ *
  * `brand-fixed` und nicht `brand`: der Strich gehört Senklot, nicht dem
  * Betrieb. Sonst stünde er bei einem Kunden mit roter Hausfarbe rot unter
  * jeder Überschrift — genau der Fehlgriff, wegen dem die Reitermarkierung
@@ -24,7 +27,7 @@ export default function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="seitenkopf">
       <div>
         {/*
           EINE STUFE KLEINER AUF DEM TELEFON. 1,75 rem sind am Schreibtisch
@@ -34,11 +37,11 @@ export default function PageHeader({
           der Seite — die naechstkleinere Schrift ist der Fliesstext mit
           1 rem.
         */}
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">{title}</h1>
-        <div className="mt-2 h-[3px] w-12 rounded-pill bg-brand-fixed" aria-hidden="true" />
-        {subtitle && <p className="mt-2 text-sm text-ink-muted">{subtitle}</p>}
+        <h1 className="seitentitel">{title}</h1>
+        <div className="seitentitel-strich" aria-hidden="true" />
+        {subtitle && <p className="seitenkopf-unter">{subtitle}</p>}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="seitenkopf-aktion">{action}</div>}
     </div>
   );
 }
