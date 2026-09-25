@@ -28,7 +28,7 @@ import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
-import MonthCalendar from '@/components/MonthCalendar';
+import MonthCalendar, { KalenderLegende } from '@/components/MonthCalendar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, CheckboxField } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
@@ -510,20 +510,7 @@ export default function AssignmentsView() {
             marks={marks}
             markLabel={(n) => `${n} ${n === 1 ? 'Baustelle' : 'Baustellen'} geplant`}
           />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-ink-muted">
-            <span className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" />
-              Baustellen geplant
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-info-bg ring-1 ring-info" />
-              Heute
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="inline-block h-2.5 w-5 rounded-sm border border-line bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
-              Feiertag (AT)
-            </span>
-          </div>
+          <KalenderLegende geplant="Baustellen geplant" />
         </div>
 
         <div className="einsatzplan-spalte">

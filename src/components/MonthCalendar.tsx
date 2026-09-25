@@ -192,3 +192,30 @@ export default function MonthCalendar({
     </div>
   );
 }
+
+/**
+ * Die Legende unter dem Monatskalender — für „Tag planen“ und „Mein
+ * Einsatzplan“ dieselbe. Die Muster sind die des Kalenders selbst: die Zahl
+ * auf `accent-deep`, der heutige Tag auf `info-bg`, der Feiertag getönt mit
+ * dem Balken oben. Vorher stand sie in beiden Ansichten zeichengleich als
+ * eigener Klassenhaufen, und das Feiertagsmuster zeigte das Wochenend-Grau
+ * statt der Feiertagsfläche.
+ */
+export function KalenderLegende({ geplant }: { geplant: string }) {
+  return (
+    <div className="legende">
+      <span className="legende-eintrag">
+        <span className="legende-geplant" aria-hidden />
+        {geplant}
+      </span>
+      <span className="legende-eintrag">
+        <span className="legende-heute" aria-hidden />
+        Heute
+      </span>
+      <span className="legende-eintrag">
+        <span className="legende-feiertag" aria-hidden />
+        Feiertag (AT)
+      </span>
+    </div>
+  );
+}

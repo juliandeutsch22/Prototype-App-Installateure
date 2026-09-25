@@ -19,7 +19,7 @@ import Card from '@/components/Card';
 import { KontaktZeile } from '@/components/Kontakt';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
-import MonthCalendar from '@/components/MonthCalendar';
+import MonthCalendar, { KalenderLegende } from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import Meldung from '@/components/Meldung';
 import Grenzliste from '@/components/Grenzliste';
@@ -248,20 +248,7 @@ export default function MyScheduleView() {
               marks={marks}
               markLabel={(n) => `${n} ${n === 1 ? 'Einsatz' : 'Einsätze'}`}
             />
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-ink-muted">
-              <span className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" />
-                Einsätze geplant
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-2.5 rounded-full bg-info-bg ring-1 ring-info" />
-                Heute
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="inline-block h-2.5 w-5 rounded-sm border border-line bg-surface-2 shadow-[inset_0_2px_0_0_var(--warning)]" />
-                Feiertag (AT)
-              </span>
-            </div>
+            <KalenderLegende geplant="Einsätze geplant" />
           </div>
 
           <div className="einsatzplan-spalte">

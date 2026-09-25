@@ -1377,6 +1377,58 @@ textarea {
 }
 
 /*
+ * KALENDER-LEGENDE (KalenderLegende in MonthCalendar.tsx) — unter dem
+ * Monatskalender in „Tag planen“ und „Mein Einsatzplan“. Die Muster zeigen
+ * dieselben Flächen wie der Kalender selbst.
+ */
+@layer components {
+  .legende {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 1rem;
+    row-gap: 0.25rem;
+    padding-inline: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--text-muted);
+  }
+
+  .legende-eintrag {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .legende-geplant,
+  .legende-heute {
+    display: inline-block;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 9999px;
+  }
+
+  .legende-geplant {
+    background-color: var(--accent-deep);
+  }
+
+  .legende-heute {
+    background-color: var(--info-bg);
+    box-shadow: 0 0 0 1px var(--info);
+  }
+
+  .legende-feiertag {
+    display: inline-block;
+    width: 1.25rem;
+    height: 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background-color: var(--warning-bg);
+    box-shadow: inset 0 2px 0 0 var(--warning);
+  }
+}
+
+/*
  * ═══════════════════════════════════════════════════════════════════════
  * GEMEINSAME BAUSTEINE — eine Klasse je Element (Design-Durchgang, Phase 2)
  * ═══════════════════════════════════════════════════════════════════════

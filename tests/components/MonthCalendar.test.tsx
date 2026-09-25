@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import MonthCalendar from '@/components/MonthCalendar';
+import MonthCalendar, { KalenderLegende } from '@/components/MonthCalendar';
 
 /**
  * Der Kalender ist die Ansicht, an der die Einsatzplanung haengt. Faellt hier
@@ -128,5 +128,17 @@ describe('Monatskalender', () => {
     aufbauen({ year: 2028, month: 1 });
     const tage = screen.getAllByRole('button').filter((b) => b.getAttribute('aria-pressed') !== null);
     expect(tage).toHaveLength(29);
+  });
+});
+
+describe('Die Kalender-Legende', () => {
+  it('nennt das Geplante der Ansicht, heute und den Feiertag — mit je einem Muster', () => {
+    const { container } = render(<KalenderLegende geplant="Baustellen geplant" />);
+    expect(screen.getByText('Baustellen geplant')).toBeInTheDocument();
+    expect(screen.getByText('Heute')).toBeInTheDocument();
+    expect(screen.getByText('Feiertag (AT)')).toBeInTheDocument();
+    // Das Feiertagsmuster ist die Feiertagsfläche, nicht das Wochenend-Grau.
+    expect(container.querySelector('.legende-feiertag')).not.toBeNull();
+    expect(container.querySelectorAll('.legende-eintrag')).toHaveLength(3);
   });
 });
