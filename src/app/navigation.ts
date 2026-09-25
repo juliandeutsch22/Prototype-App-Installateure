@@ -233,11 +233,9 @@ export const UNTER: Record<string, Unterseite[]> = {
     // anfasst — wie die Saetze und die Module. Ein eigener Reiter dafuer
     // waere der Rueckfall in die 18 Reiter von frueher.
     { pfad: 'sicherung', label: 'Datensicherung', roles: TOP },
-    // Abstürze und „Problem melden" — dieselbe Grenze wie in der Datenbank:
-    // darin steht, wer wann wo hängengeblieben ist. Kurz beschriftet, weil
-    // die Leiste der Administration mit acht Unterseiten bei 1280 px schon
-    // knapp seitlich scrollt (um 23 px) — mit „Fehlerprotokoll" um 100 px.
-    { pfad: 'fehler', label: 'Fehler', roles: TOP },
+    // KEIN FEHLERPROTOKOLL MEHR HIER (seit 25.09.2026): Abstürze und
+    // „Problem melden" gehen an den Senklot-Support, der sie beheben kann —
+    // die Geschäftsführung konnte mit Stapeln und Meldungen nichts anfangen.
   ],
 };
 

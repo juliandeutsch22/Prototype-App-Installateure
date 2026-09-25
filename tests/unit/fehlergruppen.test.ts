@@ -3,7 +3,7 @@
  * vierzig gleichen verschwindet.
  */
 import { describe, it, expect } from 'vitest';
-import { fehlerGruppen, meldungen, type ProtokollZeile } from '@/features/settings/fehlergruppen';
+import { fehlerGruppen, meldungen, type ProtokollZeile } from '@/features/plattform/fehlergruppen';
 
 const z = (id: string, teil: Partial<ProtokollZeile>): ProtokollZeile => ({
   id, art: 'absturz', nachricht: 'x is undefined', createdAt: 1000, ...teil,

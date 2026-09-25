@@ -726,7 +726,6 @@ export interface FehlerEintrag {
   fassung?: string | null;
   geraet?: string | null;
   beschreibung?: string | null;
-  anSupport?: boolean;
   createdAt?: number;
 }
 

@@ -76,7 +76,7 @@ describe('Unterreiter', () => {
     expect(leiste.className).toMatch(/overflow-x-auto/);
     expect(leiste.className).not.toMatch(/(^|\s)hidden(\s|$)/);
     const namen = within(leiste).getAllByRole('link').map((l) => l.textContent);
-    expect(namen).toEqual(expect.arrayContaining(['Mein Konto', 'Module', 'Fehler']));
+    expect(namen).toEqual(expect.arrayContaining(['Mein Konto', 'Module', 'Datensicherung']));
     await userEvent.click(within(leiste).getByRole('link', { name: 'Module' }));
     expect(await screen.findByText('Module-Inhalt')).toBeInTheDocument();
   });

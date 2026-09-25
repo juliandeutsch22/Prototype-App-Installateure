@@ -114,18 +114,18 @@ describe('Erfassen', () => {
 });
 
 describe('Problem melden', () => {
-  it('schickt Beschreibung, Häkchen und den Fehler von eben mit', async () => {
+  it('schickt Beschreibung und den Fehler von eben mit — wohin, entscheidet die Datenbank', async () => {
     fehlerErfassen('absturz', new Error('eben passiert'));
     expect(letzterFehler()).toBe('eben passiert');
-    await problemMelden('  Speichern ging nicht  ', true);
+    await problemMelden('  Speichern ging nicht  ');
     expect(eintragen).toHaveBeenLastCalledWith(expect.objectContaining({
-      art: 'meldung', beschreibung: 'Speichern ging nicht', anSupport: true, nachricht: 'eben passiert',
+      art: 'meldung', beschreibung: 'Speichern ging nicht', nachricht: 'eben passiert',
     }));
   });
 
   it('verlangt eine Beschreibung und reicht einen Fehler beim Schreiben weiter', async () => {
-    await expect(problemMelden('   ', false)).rejects.toThrow('Bitte beschreiben');
+    await expect(problemMelden('   ')).rejects.toThrow('Bitte beschreiben');
     eintragen.mockRejectedValue(new Error('keine Verbindung'));
-    await expect(problemMelden('geht nicht', false)).rejects.toThrow('keine Verbindung');
+    await expect(problemMelden('geht nicht')).rejects.toThrow('keine Verbindung');
   });
 });

@@ -45,8 +45,9 @@ export default function DatenschutzView() {
           <li>
             Ein Fehlerprotokoll: stürzt die App ab, werden Fehlermeldung, Ansicht, Fassung der App
             und Gerätetyp festgehalten — ohne Inhalte, Namen oder Kennungen. Was Sie unter
-            „Problem melden" selbst schreiben, lesen Geschäftsführung und Administration Ihres
-            Betriebs und, nur wenn Sie es ankreuzen, der Senklot-Support.
+            „Problem melden" selbst schreiben, geht mit Ihrem Namen und Ihrer E-Mail-Adresse an den
+            Senklot-Support, damit er nachfragen kann. Beides liest nur der Support, nicht der
+            Betrieb.
           </li>
           <li>
             Wenn der Betrieb dem Senklot-Support befristet Einblick gewährt: wer wann welchen

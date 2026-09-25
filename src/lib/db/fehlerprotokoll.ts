@@ -6,8 +6,6 @@
  */
 export {
   fehlerEintragen,
-  listFehlerprotokoll,
   plattformFehler,
-  FEHLER_GRENZE,
 } from './pg/fehlerprotokoll';
 export type { NeuerFehlerEintrag, PlattformFehler } from './pg/fehlerprotokoll';

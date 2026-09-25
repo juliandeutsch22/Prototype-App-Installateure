@@ -1,7 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import ConfirmDialog from './ConfirmDialog';
-import { CheckboxField } from './Field';
 import { useToastWennDa } from './Toast';
 import { problemMelden } from '@/lib/fehlerprotokoll';
 
@@ -13,9 +12,9 @@ import { problemMelden } from '@/lib/fehlerprotokoll';
  * und dort anders als auf der Fehlertafel.
  *
  * WER ES LIEST, STEHT IM DIALOG, nicht hinter einem „i": wer etwas schreibt,
- * soll vorher wissen, wer es zu sehen bekommt. Das Häkchen für den Support
- * ist aus, bis jemand es setzt — die Plattform sieht in keinen Betrieb
- * hinein, und nur der Verfasser selbst kann das für seine Meldung aufheben.
+ * soll vorher wissen, wer es zu sehen bekommt. Das ist der Senklot-Support
+ * und nur er — beheben kann es nur, wer die App baut, und die
+ * Geschäftsführung konnte mit den Meldungen nichts anfangen.
  */
 export default function ProblemMelden({
   ausloeser,
@@ -25,15 +24,13 @@ export default function ProblemMelden({
   const toast = useToastWennDa();
   const [offen, setOffen] = useState(false);
   const [text, setText] = useState('');
-  const [anSupport, setAnSupport] = useState(false);
 
   const schliessen = useCallback(() => setOffen(false), []);
 
   async function senden() {
-    await problemMelden(text, anSupport);
+    await problemMelden(text);
     setOffen(false);
     setText('');
-    setAnSupport(false);
     toast?.success('Danke — die Meldung ist angekommen.');
   }
 
@@ -50,7 +47,7 @@ export default function ProblemMelden({
         <ConfirmDialog
           open={offen}
           title="Problem melden"
-          message="Die Geschäftsführung und die Administration deines Betriebs lesen die Meldung. Mitgeschickt werden die Ansicht, die Fassung der App und das Gerät."
+          message="Die Meldung geht an den Senklot-Support, mit deinem Namen und deiner E-Mail-Adresse, damit er nachfragen kann. Mitgeschickt werden die Ansicht, die Fassung der App und das Gerät."
           confirmLabel="Senden"
           confirmTone="primary"
           onConfirm={senden}
@@ -71,12 +68,6 @@ export default function ProblemMelden({
                 onChange={(e) => setText(e.target.value)}
               />
             </div>
-            <CheckboxField
-              id="problem-support"
-              label="Auch an den Senklot-Support senden"
-              checked={anSupport}
-              onChange={(e) => setAnSupport(e.target.checked)}
-            />
             <p className="text-xs text-ink-muted">
               Bitte keine Gesundheitsdaten und keine Daten von Kunden eintragen.
             </p>
