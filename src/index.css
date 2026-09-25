@@ -1006,6 +1006,29 @@ textarea {
       grid-column: auto;
     }
   }
+
+  /* Kopf eines Abschnitts in der Einkaufsliste, mit Aktion rechts daneben
+     („Alles geliefert“) — die Aktion steht neben der Überschrift, nicht in
+     ihr. */
+  .einkauf-kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  /* Treffer einer Katalogsuche: eine Liste in einem Rahmen, der ab 15 rem
+     selbst scrollt, statt die Karte zu verlängern. */
+  .trefferliste {
+    margin-top: 0.25rem;
+    max-height: 15rem;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding-inline: 0.75rem;
+  }
 }
 
 /*

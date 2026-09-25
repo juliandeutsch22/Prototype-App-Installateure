@@ -27,6 +27,7 @@ import { Marke } from '@/components/Badge';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
 import { EmptyState, ErrorState } from '@/components/States';
+import Meldung from '@/components/Meldung';
 import { useToast } from '@/components/Toast';
 import { fmtMenge } from '@/lib/belegLayout';
 import { bestellMail, bestellText, einkaufsliste, type EinkaufsGruppe, type EinkaufsZeile } from './einkauf';
@@ -294,12 +295,6 @@ export default function Einkaufsliste({
                       >
                         Als bestellt markieren
                       </Button>
-                      {mail?.gekuerzt && (
-                        <p className="w-full text-sm text-warning">
-                          Die Liste ist für eine E-Mail zu lang — die Mail sagt „siehe Anhang".
-                          Bitte das PDF anhängen.
-                        </p>
-                      )}
                     </div>
                   ) : (
                     <p className="mt-3 text-sm text-ink-muted">
@@ -308,13 +303,21 @@ export default function Einkaufsliste({
                         : 'Erst einem Grosshändler zuordnen, dann lässt sich bestellen.'}
                     </p>
                   )}
+                  {mail?.gekuerzt && (
+                    <div className="mt-3">
+                      <Meldung ton="warnung">
+                        Die Liste ist für eine E-Mail zu lang — die Mail sagt „siehe Anhang".
+                        Bitte das PDF anhängen.
+                      </Meldung>
+                    </div>
+                  )}
                 </>
               )}
 
               {g.unterwegs.length > 0 && (
                 <div className={g.zuBestellen.length > 0 ? 'mt-5' : ''}>
-                  <h3 className="section-label mb-1 flex items-center justify-between">
-                    <span>Bestellt — noch nicht da</span>
+                  <div className="einkauf-kopf">
+                    <h3 className="section-label">Bestellt — noch nicht da</h3>
                     {g.unterwegs.length > 1 && (
                       <Button
                         variant="ghost"
@@ -330,7 +333,7 @@ export default function Einkaufsliste({
                         Alles geliefert
                       </Button>
                     )}
-                  </h3>
+                  </div>
                   <List>
                     {g.unterwegs.map((o) => (
                       <ListRow
@@ -587,23 +590,31 @@ function LagerPostenFormular({
                 Nicht im Katalog — wird mit diesem Text bestellt.
               </p>
             ) : null}
+            {/*
+              DIESELBE ZEILE WIE BEI DER RETOURE: Name, darunter Art.-Nr. und
+              Einheit, rechts „Wählen". Die Liste scrollt in ihrem Rahmen,
+              statt die Karte um zwanzig Treffer zu verlängern.
+            */}
             {treffer.length > 0 && (
-              <ul className="mt-1 max-h-60 divide-y divide-line overflow-y-auto rounded border border-line" aria-label="Treffer im Katalog">
-                {treffer.map((m) => (
-                  <li key={m.id}>
-                    <button
-                      type="button"
-                      className="flex min-h-touch w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-surface-2"
-                      onClick={() => void waehlen(m)}
+              <div className="trefferliste" role="group" aria-label="Treffer im Katalog">
+                <List>
+                  {treffer.map((m) => (
+                    <ListRow
+                      key={m.id}
+                      title={m.name}
+                      subtitle={[m.articleNumber, m.unit].filter(Boolean).join(' · ') || undefined}
                     >
-                      <span className="min-w-0">{m.name}</span>
-                      <span className="shrink-0 text-xs text-ink-muted">
-                        {m.articleNumber ?? ''}{m.unit ? ` · ${m.unit}` : ''}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                      <Button
+                        variant="secondary"
+                        aria-label={`${m.name} wählen`}
+                        onClick={() => void waehlen(m)}
+                      >
+                        Wählen
+                      </Button>
+                    </ListRow>
+                  ))}
+                </List>
+              </div>
             )}
           </div>
           <FormGrid>
@@ -620,7 +631,11 @@ function LagerPostenFormular({
           </SelectField>
           <InputField id="lp-notiz" label="Anmerkung (freiwillig)" value={notiz}
             onChange={(e) => setNotiz(e.target.value)} />
-          {fehler && <p className="text-sm text-danger" role="alert">{fehler}</p>}
+          {fehler && (
+            <Meldung ton="gefahr" role="alert">
+              {fehler}
+            </Meldung>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button loading={speichert} onClick={() => void speichern()}>Auf die Einkaufsliste</Button>
             <Button
@@ -750,7 +765,11 @@ function GrosshaendlerPflege({
               Senklot nicht — die Bestellung geht per E-Mail, nicht per Post.
             </InfoHint>
           </p>
-          {fehler && <p className="text-sm text-danger" role="alert">{fehler}</p>}
+          {fehler && (
+            <Meldung ton="gefahr" role="alert">
+              {fehler}
+            </Meldung>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button loading={speichert} onClick={() => void speichern()}>Speichern</Button>
             <Button variant="ghost" onClick={() => setBearbeitet(null)}>Abbrechen</Button>
