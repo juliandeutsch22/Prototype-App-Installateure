@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
