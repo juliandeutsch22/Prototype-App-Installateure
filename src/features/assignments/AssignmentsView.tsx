@@ -770,7 +770,7 @@ export default function AssignmentsView() {
                       <div className="gruppe-kopf">
                         <span className="gruppe-titel">
                           {proj?.customerName ?? pn}{' '}
-                          <span className="gruppe-neben">({pn})</span>
+                          <span className="gruppe-neben whitespace-nowrap">({pn})</span>
                         </span>
                         <span className="flex flex-wrap items-center gap-2">
                           <Marke>{fach} Facharbeiter</Marke>
