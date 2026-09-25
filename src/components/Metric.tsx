@@ -47,6 +47,13 @@ const wertKlasse: Record<Tone, string> = {
  * Karte fast die ganze Breite einnimmt, umso mehr. `.kennzahlen` trägt
  * dasselbe Maß wie `.karte-inhalt` (index.css), und
  * `tests/components/Metric.test.tsx` hält die beiden zusammen.
+ *
+ * SEIT DER LINIE (docs/design/linie.md) WIEDER EINE KARTE — aber EINE für
+ * die ganze Leiste, nicht eine je Zahl: auf dem Grund steht nichts frei,
+ * Zahlen stehen in einer weißen Fläche. Fläche, Rundung und Schatten wie
+ * `.karte`, der Innenabstand wie `.karte-inhalt`; Reihe, Trennstriche und
+ * die zwei Spalten am Telefon bleiben. Deshalb gehört die Leiste NICHT in
+ * eine Karte — dort stünde eine Karte in der Karte.
  */
 /*
  * AUF DEM TELEFON ZWEI SPALTEN, AB `sm` EINE REIHE.

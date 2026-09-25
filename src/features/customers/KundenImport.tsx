@@ -142,7 +142,7 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
                 const f = e.target.files?.[0];
                 if (f) void lesen(f);
               }}
-              className="min-h-touch text-sm file:mr-3 file:rounded file:border file:border-line file:bg-surface-2 file:px-3 file:py-2 file:text-sm"
+              className="feld-datei"
             />
           </div>
           <button type="button" onClick={vorlage} className="textlink-allein">
@@ -160,21 +160,23 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
 
   return (
     <>
+      {/* Die Zahlen in ihrer eigenen Karte über dem Probelauf — keine Karte
+          in der Karte (docs/design/linie.md, 2). */}
+      <MetricRow>
+        <Metric label="Neu" value={neu.length} />
+        <Metric label="Schon vorhanden" value={schonDa.length} />
+        <Metric
+          label="Fehlerhaft"
+          value={probe.fehler.length}
+          tone={probe.fehler.length > 0 ? 'warning' : 'default'}
+        />
+      </MetricRow>
       <Card
         title="Probelauf"
         action={<Marke>{datei}</Marke>}
         hint="Noch ist nichts geschrieben. Stehen unten falsche Umlaute, war die Datei in einem anderen Zeichensatz gespeichert — dann in Excel als „CSV UTF-8“ speichern und neu einlesen."
       >
-        <MetricRow>
-          <Metric label="Neu" value={neu.length} />
-          <Metric label="Schon vorhanden" value={schonDa.length} />
-          <Metric
-            label="Fehlerhaft"
-            value={probe.fehler.length}
-            tone={probe.fehler.length > 0 ? 'warning' : 'default'}
-          />
-        </MetricRow>
-        <p className="mt-4 text-sm text-ink-muted">
+        <p className="text-sm text-ink-muted">
           Übernommen wird: {probe.erkannt.map((e) => `${e.spalte} → ${FELDNAME[e.feld]}`).join(', ')}.
           {probe.ignoriert.length > 0 && <> Nicht übernommen: {probe.ignoriert.join(', ')}.</>}
         </p>

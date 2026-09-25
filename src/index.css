@@ -3052,6 +3052,67 @@ textarea {
   }
 
   /*
+   * DATEIWAHL (Firmenlogo, Katalog- und Kundenimport) — das native Feld,
+   * sein Knopf in der Optik des Zweitknopfs (weiß, Haarlinie, 48 px), der
+   * gewählte Dateiname daneben, wie ihn der Browser meldet. Ein eigener
+   * Knopf über einem versteckten Feld bräuchte einen eigenen Zustand für
+   * den Namen; so bleibt es dasselbe Feld mit derselben Beschriftung für
+   * Tastatur, Vorlesehilfe und Tests.
+   */
+  .feld-datei {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-height: 48px;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text);
+    cursor: pointer;
+  }
+
+  .feld-datei::file-selector-button {
+    min-height: 48px;
+    margin-right: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background-color: var(--surface);
+    padding: 0.5rem 1rem;
+    font: inherit;
+    font-weight: 600;
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: background-color 150ms;
+  }
+
+  @media (min-width: 640px) {
+    .feld-datei {
+      font-size: 1rem;
+      line-height: 1.5rem;
+    }
+  }
+
+  .feld-datei:hover::file-selector-button {
+    background-color: var(--surface-2);
+  }
+
+  .feld-datei:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: var(--radius);
+  }
+
+  .feld-datei:disabled {
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+
+  .feld-datei:disabled::file-selector-button {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /*
    * DER AUSWAHLPUNKT — das Geschwister von `.kaestchen` für `type="radio"`.
    * Aus demselben Grund eigen gezeichnet: `accent-color` färbt nur den Punkt,
    * Grösse und Kante blieben die des Betriebssystems. Gleiche Masse, gleiche
@@ -3372,17 +3433,29 @@ textarea {
 
   /* ── Kennzahl ───────────────────────────────────────────────────────── */
 
+  /* Nach der Linie (docs/design/linie.md, 1–2) stehen Zahlen IN einer
+     Karte, nicht frei auf dem Grund: die Leiste trägt deshalb die Fläche,
+     die Rundung und den Schatten von `.karte` und den Innenabstand von
+     `.karte-inhalt` — so fluchten ihre Beschriftungen weiterhin mit dem
+     Kartenkörper darunter (tests/components/Metric.test.tsx). Innerhalb
+     einer Karte hat sie deshalb nichts zu suchen. */
   .kennzahlen {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 1rem;
     row-gap: 0.75rem;
+    border: 1px solid var(--surface);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface);
+    box-shadow: var(--shadow);
+    padding-block: 1rem;
     padding-inline: 1rem;
   }
 
   /* Dieselbe Flucht wie der Kartenkörper — auch ab 640 px. */
   @media (min-width: 640px) {
     .kennzahlen {
+      padding-block: 1.25rem;
       padding-inline: 1.25rem;
     }
   }
