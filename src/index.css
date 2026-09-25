@@ -2700,6 +2700,14 @@ textarea {
     border-top: 1px solid var(--border);
     padding-top: 1rem;
   }
+
+  /* Die Folgeschritte eines Angebots („Weiter“): Zweitknöpfe untereinander
+     über die Breite der Karte, gleich hoch. */
+  .angebot-weiter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
 }
 
 /*

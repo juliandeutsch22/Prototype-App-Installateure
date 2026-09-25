@@ -188,7 +188,9 @@ describe('Weiter mit dem Angebot', () => {
   it('vermerkt die Ablehnung', async () => {
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Abgelehnt' }));
+    // Ablehnen ist selten und liegt im ⋯ der Karte „Weiter“ (docs/design/linie.md 3).
+    await nutzer.click(await screen.findByRole('button', { name: /Weitere Aktionen für Angebot/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Abgelehnt' }));
     expect(updateQuote).toHaveBeenCalledWith(ANGEBOT.id, { status: 'Abgelehnt' });
   });
 
@@ -196,7 +198,9 @@ describe('Weiter mit dem Angebot', () => {
     angebot = { ...ANGEBOT, status: 'Entwurf' };
     const nutzer = userEvent.setup();
     zeige();
-    await nutzer.click(await screen.findByRole('button', { name: 'Löschen' }));
+    // Löschen liegt im ⋯ der Karte „Weiter“, wie in der Angebotsliste.
+    await nutzer.click(await screen.findByRole('button', { name: /Weitere Aktionen für Angebot/ }));
+    await nutzer.click(screen.getByRole('menuitem', { name: 'Löschen' }));
     const dialog = await screen.findByRole('dialog');
     await nutzer.click(within(dialog).getByRole('button', { name: /Löschen|Bestätigen|Ja/ }));
     expect(deleteQuote).toHaveBeenCalledWith(ANGEBOT.id);
