@@ -2586,7 +2586,7 @@ export default function InvoicesView() {
                         einliest. Anzahlungen gehen auf das Konto der erhaltenen Anzahlungen und
                         werden mit der Schlussrechnung in den Erlös umgebucht; ein Storno kommt
                         als Gegenbuchung am Stornotag. <strong>Der erste Stapel gehört vor dem
-                        Import von Ihrer Kanzlei geprüft</strong> — die Konten stehen in den
+                        Import von deiner Kanzlei geprüft</strong> — die Konten stehen in den
                         Einstellungen und stammen von dort, nicht aus dieser App.
                       </InfoHint>
                       {b.fehlend.length > 0 && (
@@ -2800,7 +2800,7 @@ export default function InvoicesView() {
           mahnFuer
             ? `${mahnFuer.invoiceNumber} über ${fmtEUR(mahnFuer.totalBrutto)}, fällig war ` +
               `${datumAT(mahnFuer.dueDate)}. Der Beleg wird als PDF erzeugt und heruntergeladen; ` +
-              'versendet wird er von Ihnen.'
+              'versendet wird er von dir.'
             : undefined
         }
         confirmLabel="Erzeugen"

@@ -218,7 +218,7 @@ export default function KontenrahmenView() {
           <>
             Diese Konten braucht der <strong>Buchungsstapel für BMD</strong>, den die
             Rechnungsansicht ausgibt. Sie stehen hier und nicht im Programm, weil sie aus dem
-            Kontenplan Ihrer Kanzlei kommen — der österreichische Einheitskontenrahmen ist ein
+            Kontenplan deiner Kanzlei kommen — der österreichische Einheitskontenrahmen ist ein
             Vorschlag, kein Zwang. <strong>Fehlt ein Konto, entsteht keine Datei</strong>, sondern
             eine Liste dessen, was fehlt: ein Stapel mit Lücken importiert sich fehlerfrei und
             bucht einen zu niedrigen Umsatz.
@@ -245,7 +245,7 @@ export default function KontenrahmenView() {
               Jede Rechnung wird im <strong>Soll</strong> auf dieses eine Konto gebucht. Eigene
               Kontonummern je Kunde führt Senklot nicht — die offene-Posten-Verwaltung bleibt
               damit bei der Kanzlei. Für einen Betrieb dieser Grösse ist das der übliche Weg;
-              wenn Ihre Kanzlei je Kunde ein Konto will, sagen Sie es uns.
+              wenn deine Kanzlei je Kunde ein Konto will, sag es uns.
             </InfoHint>
           </div>
 
@@ -308,7 +308,7 @@ export default function KontenrahmenView() {
 
       <Card
         title={`Erlöskonten je Steuersatz (${saetze.length})`}
-        hint="Je Steuersatz, den Sie tatsächlich verrechnen, ein Konto. Was hier fehlt, verhindert den Buchungsstapel für jeden Zeitraum, in dem eine Rechnung mit diesem Satz liegt — gemeldet wird es mit Satz und Klartext."
+        hint="Je Steuersatz, den du tatsächlich verrechnest, ein Konto. Was hier fehlt, verhindert den Buchungsstapel für jeden Zeitraum, in dem eine Rechnung mit diesem Satz liegt — gemeldet wird es mit Satz und Klartext."
       >
         {saetze.length === 0 ? (
           <p className="text-sm text-ink-muted">
