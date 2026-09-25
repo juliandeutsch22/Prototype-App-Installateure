@@ -796,7 +796,28 @@ export default function InvoicesView() {
    * den offenen Posten noch verlässlich unter den jüngsten Rechnungen.
    */
   async function vorschauUebernehmen(assembled: AssembledInvoice) {
-    setPreview(assembled);
+    /*
+      STEUERSATZ UND RABATT GELTEN AUCH FÜR EINE NEU ZUSAMMENGESTELLTE
+      VORSCHAU. `assembleInvoice` rechnet mit dem Satz des Betriebs; war
+      „Bauleistung“ (Reverse Charge) schon angehakt oder ein Rabatt
+      eingetragen, stand danach USt im Betrag bzw. der Rabatt nur im Formular
+      — gespeichert wurde eine Rechnung, die dem Formular widersprach
+      (Prüflauf 25.09.2026, P2-01).
+
+      Bringt die Vorschau ihren eigenen Rabatt mit (die Pauschale aus dem
+      Angebot), steht er ab jetzt auch im Rabattfeld. Vorher ging er bei der
+      ersten Änderung einer Position verloren (P2-09).
+    */
+    const eigenerRabatt = assembled.discount;
+    if (eigenerRabatt) {
+      setDiscount({
+        mode: eigenerRabatt.mode,
+        // Ein Zahlenfeld: Punkt, kein Komma — sonst stünde es leer da.
+        value: String(eigenerRabatt.value),
+        label: eigenerRabatt.label ?? '',
+      });
+    }
+    setPreview(recalc(assembled, assembled.positions, satz, eigenerRabatt ?? rabatt));
     setLeistungVon(assembled.leistung?.von ?? '');
     setLeistungBis(assembled.leistung?.bis ?? '');
     setGewaehlteAbzuege([]);

@@ -2198,3 +2198,71 @@ describe('Die Kennzahl „Bezahlt"', () => {
     expect(kachel).not.toHaveTextContent('€ 330,00');
   });
 });
+
+/*
+  PRÜFLAUF 25.09.2026, P2-01 und P2-09. Steuersatz und Rabatt galten nicht
+  für eine NEU zusammengestellte Vorschau: nach „Bauleistung“ angehakt und
+  neu zusammengestellt stand 20 % USt im Betrag einer Reverse-Charge-
+  Rechnung; ein eingetragener Rabatt wurde gespeichert, aber nicht
+  abgezogen. Und der Rabatt aus dem Angebot einer Pauschalbaustelle ging bei
+  der ersten Änderung einer Position verloren.
+*/
+describe('Rechnungen — neu zusammengestellt, Satz und Rabatt bleiben', () => {
+  it('rechnet nach dem Neuaufbau mit Reverse Charge ohne USt', async () => {
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    await userEvent.type(screen.getByLabelText(/UID-Nummer des Kunden/), 'ATU11112222');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    const uid = (await screen.findByLabelText(/UID-Nummer des Kunden/)) as HTMLInputElement;
+    if (!uid.value) await userEvent.type(uid, 'ATU11112222');
+    const knopf = await screen.findByRole('button', { name: /Rechnung erstellen/ });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const r = lege.mock.calls[0][0] as Invoice;
+    expect(r.reverseCharge).toBe(true);
+    expect(r.totalVat).toBe(0);
+    expect(r.totalBrutto).toBe(r.totalNetto);
+  });
+
+  it('zieht einen vorher eingetragenen Rabatt nach dem Neuaufbau auch ab', async () => {
+    await bisZurVorschau();
+    await userEvent.type(screen.getByLabelText('Rabatt %'), '10');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    const knopf = await screen.findByRole('button', { name: /Rechnung erstellen/ });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const r = lege.mock.calls[0][0] as Invoice;
+    expect(r.discount).toEqual(expect.objectContaining({ mode: 'percent', value: 10 }));
+    expect(r.discountAmount).toBeGreaterThan(0);
+    expect(r.totalNetto).toBeCloseTo((r.subtotalNetto ?? 0) - (r.discountAmount ?? 0), 2);
+  });
+
+  it('behält bei der Pauschale den Rabatt aus dem Angebot, auch nach einer Änderung', async () => {
+    PROJEKT.billingMode = 'Pauschal';
+    angebote = [
+      {
+        id: 'q1', quoteNumber: 'AN-2026-0003', status: 'Angenommen', quoteDate: '2026-08-01',
+        positions: [
+          { label: 'Heizkörper tauschen', qty: 1, unit: 'Pauschale', unitPrice: 1000, netto: 1000 },
+        ],
+        discount: { mode: 'percent', value: 10, label: 'Stammkunde' },
+        subtotalNetto: 1000, discountAmount: 100, totalNetto: 900, totalVat: 180, totalBrutto: 1080,
+      },
+    ];
+    await bisZurVorschau();
+    expect(screen.getByLabelText('Rabatt %')).toHaveValue(10);
+    // Eine Position ändern — der Rabatt muss bleiben.
+    const menge = screen.getByLabelText(/Menge Position 1/);
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '1');
+    const knopf = await screen.findByRole('button', { name: /Rechnung erstellen/ });
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    const r = lege.mock.calls[0][0] as Invoice;
+    expect(r.discount).toEqual(expect.objectContaining({ mode: 'percent', value: 10 }));
+    expect(r.totalNetto).toBe(900);
+  });
+});
