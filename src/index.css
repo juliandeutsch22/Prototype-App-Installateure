@@ -520,3 +520,80 @@ table th {
   white-space: nowrap;
   border: 0;
 }
+
+/*
+ * LINKS — EINE LINIE FÜR DIE GANZE APP (25.09.2026).
+ *
+ * Vorher trug fast jeder Link „fett, dunkel, dick unterstrichen", in rund
+ * siebzig Varianten über die Ansichten verteilt. Das wirkte laut: auf einer
+ * Karte mit Adresse, Telefon und „Baustellen verwalten" schrie alles
+ * gleichzeitig. Jetzt gibt es drei Rollen, und jede sieht überall gleich aus:
+ *
+ *   .link-weiter   führt woanders hin („Mein Einsatzplan ›“): Türkis,
+ *                  halbfett, ohne Unterstrich, mit „›“. Das Zeichen sagt „hier
+ *                  geht es weiter" — auch ohne Farbe, auch innerhalb eines
+ *                  Satzes.
+ *   .link          ein Name, eine Nummer, ein Rückweg („← Zur Kundenliste“),
+ *                  eine Handlung im Text: wie .link-weiter, ohne „›“.
+ *   .link-kontakt  Adresse, Telefon, E-Mail: normale Schrift in Tinte, feine
+ *                  helle Linie mit Abstand, das Symbol davor in Türkis. Leise,
+ *                  aber als antippbar erkennbar.
+ *
+ * IN FARBIGEN HINWEISEN (Warnung, Fehler) übernehmen Links die Schriftfarbe
+ * des Hinweises (.link-hinweis, .link-hinweis-weiter): Türkis erreicht auf der
+ * roten Fläche nur 4,0 : 1, die Farbe des Hinweises selbst liegt darüber.
+ *
+ * Beim Überfahren (Schreibtisch) kommt der Unterstrich dazu; der Fokusrahmen
+ * bleibt für die Tastatur.
+ */
+@layer components {
+  .link,
+  .link-weiter,
+  .link-hinweis,
+  .link-hinweis-weiter {
+    font-weight: 600;
+    text-decoration: none;
+    text-underline-offset: 3px;
+  }
+
+  .link,
+  .link-weiter {
+    color: var(--accent-deep);
+  }
+
+  .link-hinweis,
+  .link-hinweis-weiter {
+    color: inherit;
+  }
+
+  /* Geschütztes Leerzeichen: das „›“ bricht nie allein in die nächste Zeile. */
+  .link-weiter::after,
+  .link-hinweis-weiter::after {
+    content: '\00a0›';
+  }
+
+  .link:hover,
+  .link-weiter:hover,
+  .link-hinweis:hover,
+  .link-hinweis-weiter:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+
+  .link-kontakt {
+    color: var(--text);
+    font-weight: 400;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    text-decoration-color: var(--border-strong);
+  }
+
+  .link-kontakt:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .link-kontakt svg {
+    color: var(--accent-deep);
+  }
+}

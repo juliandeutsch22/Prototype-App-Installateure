@@ -154,7 +154,7 @@ export default function AngebotView() {
   if (!user) return null;
 
   const zurueck = (
-    <Link to="/quotes" className="inline-flex min-h-touch items-center text-brand underline">← Zu den Angeboten</Link>
+    <Link to="/quotes" className="link inline-flex min-h-touch items-center">← Zu den Angeboten</Link>
   );
 
   if (angebot.zustand === 'laedt') {
@@ -184,7 +184,7 @@ export default function AngebotView() {
       <div className="space-y-6">
         <PageHeader title="Angebot" subtitle={zurueck} />
         <Card>
-          <EmptyState action={<Link to="/quotes" className="text-brand underline">Zur Angebotsliste</Link>}>
+          <EmptyState action={<Link to="/quotes" className="link-weiter">Zur Angebotsliste</Link>}>
             Dieses Angebot gibt es nicht (mehr).
           </EmptyState>
         </Card>
@@ -231,7 +231,7 @@ export default function AngebotView() {
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
           <Angabe wort="Kunde">
             {q.customerId ? (
-              <Link to={`/customers/${q.customerId}`} className="text-brand underline">
+              <Link to={`/customers/${q.customerId}`} className="link">
                 {q.customerName}
               </Link>
             ) : (
@@ -248,7 +248,7 @@ export default function AngebotView() {
           <Angabe wort="Baustelle">
             {q.projectNumber ? (
               q.projectId && baustellenSichtbar ? (
-                <Link to={`/admin-projects/${q.projectId}`} className="tnum text-brand underline">
+                <Link to={`/admin-projects/${q.projectId}`} className="link tnum">
                   {q.projectNumber}
                 </Link>
               ) : (
@@ -300,7 +300,7 @@ export default function AngebotView() {
                 {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
                 <Link
                   to={`/quotes?bearbeiten=${q.id}`}
-                  className="inline-flex min-h-touch items-center px-4 text-sm font-semibold text-brand underline"
+                  className="link inline-flex min-h-touch items-center px-4 text-sm"
                 >
                   Bearbeiten
                 </Link>

@@ -215,7 +215,7 @@ export default function NachkalkulationView() {
             von null — und das sähe aus wie ein Ergebnis.
           </p>
           <p className="mt-3">
-            <Link to="/settings/saetze" className="font-semibold text-brand underline">
+            <Link to="/settings/saetze" className="link-weiter">
               Einstellungen → Sätze und Kosten → Interne Kostensätze
             </Link>
           </p>

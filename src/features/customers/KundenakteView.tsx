@@ -291,7 +291,7 @@ export default function KundenakteView() {
             alten Lesezeichen folgt, soll das erfahren und nicht auf einen
             Ladefehler schliessen.
           */}
-          <EmptyState action={<Link to="/customers" className="text-brand underline">Zur Kundenliste</Link>}>
+          <EmptyState action={<Link to="/customers" className="link-weiter">Zur Kundenliste</Link>}>
             Diesen Kunden gibt es nicht (mehr).
           </EmptyState>
         </Card>
@@ -304,7 +304,7 @@ export default function KundenakteView() {
       <PageHeader
         title={k.name}
         subtitle={
-          <Link to="/customers" className="inline-flex min-h-touch items-center text-brand underline">
+          <Link to="/customers" className="link inline-flex min-h-touch items-center">
             ← Zur Kundenliste
           </Link>
         }
@@ -352,7 +352,7 @@ export default function KundenakteView() {
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <Link
                     to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
-                    className="truncate text-sm text-brand underline"
+                    className="link truncate text-sm"
                   >
                     {p.projectNumber} · {p.address ?? 'ohne Adresse'}
                   </Link>
@@ -473,7 +473,7 @@ export default function KundenakteView() {
                   <span className="min-w-0 text-sm">
                     <Link
                       to={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
-                      className="text-brand underline"
+                      className="link"
                     >
                       {r.invoiceNumber}
                     </Link>
@@ -509,7 +509,7 @@ export default function KundenakteView() {
             <ul className="divide-y divide-line">
               {angebote.daten.map((q) => (
                 <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <Link to={`/quotes/${q.id}`} className="truncate text-sm text-brand underline">
+                  <Link to={`/quotes/${q.id}`} className="link truncate text-sm">
                     {q.quoteNumber}
                   </Link>
                   <span className="tnum text-sm text-ink-muted">

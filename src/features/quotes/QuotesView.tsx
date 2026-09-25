@@ -615,7 +615,7 @@ export default function QuotesView() {
                 key={q.id}
                 title={
                   // Die Nummer führt zur Angebotsseite — Positionen, Anmerkungen, PDF.
-                  <Link to={`/quotes/${q.id}`} className="text-brand underline">
+                  <Link to={`/quotes/${q.id}`} className="link">
                     {q.quoteNumber} · {q.customerName}
                   </Link>
                 }

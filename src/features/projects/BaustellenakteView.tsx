@@ -309,7 +309,7 @@ export default function BaustellenakteView() {
             Ladefehler schliessen.
           */}
           <EmptyState
-            action={<Link to="/admin-projects" className="text-brand underline">Zur Baustellenliste</Link>}
+            action={<Link to="/admin-projects" className="link-weiter">Zur Baustellenliste</Link>}
           >
             Diese Baustelle gibt es nicht (mehr).
           </EmptyState>
@@ -324,7 +324,7 @@ export default function BaustellenakteView() {
         title={b.customerName}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link to="/admin-projects" className="inline-flex min-h-touch items-center text-brand underline">← Zur Baustellenliste</Link>
+            <Link to="/admin-projects" className="link inline-flex min-h-touch items-center">← Zur Baustellenliste</Link>
             <span className="tnum text-ink-muted">{b.projectNumber}</span>
             <StatusBadge status={b.status} />
             {b.estimatedHours ? <Marke>{fmtStunden(b.estimatedHours)} h Budget</Marke> : null}
@@ -397,7 +397,7 @@ export default function BaustellenakteView() {
       <Card title="Weiter">
         <div className="flex flex-wrap gap-3">
           {b.customerId ? (
-            <Link to={`/customers/${b.customerId}`} className="text-brand underline">
+            <Link to={`/customers/${b.customerId}`} className="link">
               Zur Kundenakte
             </Link>
           ) : (
@@ -411,14 +411,14 @@ export default function BaustellenakteView() {
             </span>
           )}
           {angebote.map((q) => (
-            <Link key={q.id} to={`/quotes/${q.id}`} className="text-brand underline">
+            <Link key={q.id} to={`/quotes/${q.id}`} className="link">
               Angebot {q.quoteNumber}
             </Link>
           ))}
           {scheineAn && (
             <Link
               to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-              className="text-brand underline"
+              className="link"
             >
               Handwerksschein schreiben
             </Link>
@@ -524,7 +524,7 @@ function StammdatenFormular({
           <p className="text-sm text-warning sm:col-span-2">
             Bisher als Text hinterlegt: „{entwurf.customerName}". Bitte den passenden Kunden
             wählen — oder in der{' '}
-            <Link to="/customers" className="font-semibold underline">Kundenverwaltung</Link>{' '}
+            <Link to="/customers" className="link-hinweis-weiter">Kundenverwaltung</Link>{' '}
             anlegen.
           </p>
         )}

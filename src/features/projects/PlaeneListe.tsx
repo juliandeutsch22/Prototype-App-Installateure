@@ -59,7 +59,7 @@ export default function PlaeneListe({
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block truncate text-sm text-brand underline"
+                  className="link block truncate text-sm"
                 >
                   {d.dateiname}
                 </a>
