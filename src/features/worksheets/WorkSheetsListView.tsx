@@ -22,6 +22,7 @@ import type { TimeEntry, WorkSheet } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Icon from '@/components/Icon';
 import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RowMenu, { type RowMenuItem } from '@/components/RowMenu';
@@ -457,7 +458,7 @@ export default function WorkSheetsListView() {
     das PDF. Verwerfen, Wieder aufnehmen und Stornieren liegen eine Ebene
     tiefer, mit denselben Rückfragen wie vorher.
   */
-  const scheinAktionen = (s: WithId<WorkSheet>, auf: boolean) => {
+  const scheinAktionen = (s: WithId<WorkSheet>, auf: boolean, mitDetails = true) => {
     /*
       „Als Entwurf speichern" war bis hierher eine Sackgasse: der
       Schein landete in dieser Liste, und dort gab es nur
@@ -496,11 +497,13 @@ export default function WorkSheetsListView() {
     ];
     return (
       <>
-        <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
-          {auf ? 'Zuklappen' : 'Details'}
-        </Button>
+        {mitDetails && (
+          <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
+            {auf ? 'Zuklappen' : 'Details'}
+          </Button>
+        )}
         {weiter ? (
-          <Link to={`/worksheet?entwurf=${s.id}`} className="knopf-sekundaer-klein">
+          <Link to={`/worksheet?entwurf=${s.id}`} className="knopf-leise-klein">
             Weiterbearbeiten
           </Link>
         ) : (
@@ -843,8 +846,29 @@ export default function WorkSheetsListView() {
                   return (
                     <Fragment key={s.id}>
                       <tr className={auf ? 'tabelle-zeile-offen' : 'tabelle-zeile'}>
+                        {/*
+                          AM SCHREIBTISCH KLAPPT DIE ERSTE ZELLE AUF, wie in der
+                          Mitarbeiterübersicht — statt eines Knopfs „Details" in
+                          der Aktionsspalte. Mit ihm liess die Spalte dem Kunden
+                          gemessene 109 px.
+                        */}
                         <td className="tabelle-name">
-                          <span className="whitespace-nowrap">{s.projectNumber}</span>
+                          <button
+                            type="button"
+                            onClick={() => setOffen(auf ? null : s.id)}
+                            aria-expanded={auf}
+                            className="tabelle-aufklapper"
+                          >
+                            <Icon
+                              name="chevron"
+                              size={18}
+                              className={`shrink-0 text-ink-muted transition-transform duration-200 ${auf ? 'rotate-180' : ''}`}
+                            />
+                            <span className="whitespace-nowrap">
+                              <span className="sr-only">Einzelheiten zu </span>
+                              {s.projectNumber}
+                            </span>
+                          </button>
                         </td>
                         <td className="tabelle-zelle">
                           {s.customerName}
@@ -863,7 +887,7 @@ export default function WorkSheetsListView() {
                           <Zustand stand={STAND[s.status]}>{s.status}</Zustand>
                         </td>
                         <td className="tabelle-aktionen">
-                          <div className="tabelle-knoepfe">{scheinAktionen(s, auf)}</div>
+                          <div className="tabelle-knoepfe">{scheinAktionen(s, auf, false)}</div>
                         </td>
                       </tr>
                       {auf && (

@@ -445,14 +445,14 @@ describe('Baustelle aus einer Wartung', () => {
 describe('Wartungen am Schreibtisch', () => {
   const schreibtisch = mitSchreibtisch();
 
-  it('stehen als Tabelle mit Kunde, Standort, Termin, Intervall, Zuletzt und Status', async () => {
+  it('stehen als Tabelle mit Kunde, Standort, Termin und Stand, Intervall und Zuletzt', async () => {
     schreibtisch();
     zeichne();
     const an = await anstehendeZeilen();
     const zeile = an.getByRole('row', { name: /Bäckerei Stein/ });
     const t = zeile.closest('table') as HTMLElement;
     expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
-      'Kunde und Anlage', 'Standort', 'Termin', 'Intervall', 'Zuletzt', 'Status', 'Aktionen',
+      'Kunde und Anlage', 'Standort', 'Termin und Stand', 'Intervall', 'Zuletzt', 'Aktionen',
     ]);
     expect(zeile).toHaveTextContent('Therme Vaillant ecoTEC');
     expect(zeile).toHaveTextContent('10.04.2026');

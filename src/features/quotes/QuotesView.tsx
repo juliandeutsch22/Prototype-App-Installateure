@@ -380,12 +380,17 @@ export default function QuotesView() {
     Schreibtisch in der letzten Tabellenspalte (siehe `useAbBreite`). Einmal
     geschrieben, damit beide Formen dieselben Handgriffe tragen.
 
-    ZWEI TEXTKNÖPFE, DER REST IM „⋯" (docs/design/linie.md 3). Vorher standen
-    beim Entwurf bis zu vier Knöpfe und ein ✕ in der Zeile. Sichtbar bleibt
-    das Öffnen und der nächste übliche Schritt: beim Entwurf das Bearbeiten,
-    beim versendeten Angebot das Annehmen. Alles andere — auch das Annehmen
-    eines Entwurfs, das Ablehnen und das Löschen — liegt eine Ebene tiefer,
-    mit denselben Rückfragen wie vorher.
+    HÖCHSTENS ZWEI TEXTKNÖPFE, DER REST IM „⋯" (docs/design/linie.md 3).
+    Vorher standen beim Entwurf bis zu vier Knöpfe und ein ✕ in der Zeile.
+    Sichtbar bleibt, was täglich gebraucht wird: das Öffnen und beim Entwurf
+    das Bearbeiten. Versendet, Annehmen, Abgelehnt und Löschen liegen eine
+    Ebene tiefer, mit denselben Rückfragen wie vorher.
+
+    AUCH DAS ANNEHMEN. Es legt eine Baustelle an und verbraucht eine Nummer;
+    dass ein verrutschter Finger in der Liste das nicht auslösen darf, war
+    schon der Grund für die Rückfrage (Launch-Check, M8). Und am Schreibtisch
+    liess der lange Knopf „Annehmen → Baustelle" der Kundenspalte gemessene
+    57 px.
   */
   const angebotAktionen = (q: WithId<Quote>) => {
     const entwurf = q.status === 'Entwurf';
@@ -400,11 +405,11 @@ export default function QuotesView() {
                     if (!busy) void status(q, 'Versendet', 'Als versendet markiert');
                   },
                 },
-                { label: 'Annehmen → Baustelle', onSelect: () => setAnnehmenFragen(q) },
               ]
             : []),
           ...(offen
             ? [
+                { label: 'Annehmen → Baustelle', onSelect: () => setAnnehmenFragen(q) },
                 {
                   label: 'Abgelehnt',
                   onSelect: () => {
@@ -436,11 +441,6 @@ export default function QuotesView() {
         {darfAendern && entwurf && (
           <Button variant="ghost" disabled={busy} onClick={() => bearbeiten(q)}>
             Bearbeiten
-          </Button>
-        )}
-        {darfAendern && q.status === 'Versendet' && (
-          <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(q)}>
-            Annehmen → Baustelle
           </Button>
         )}
         {mehr.length > 0 && <RowMenu about={`Angebot ${q.quoteNumber}`} items={mehr} />}
@@ -700,7 +700,7 @@ export default function QuotesView() {
                   <th className="tabelle-kopf">Kunde</th>
                   <th className="tabelle-kopf">Datum</th>
                   <th className="tabelle-kopf">Gültig bis</th>
-                  <th className="tabelle-kopf-zahl">Kalkuliert</th>
+                  <th className="tabelle-kopf-zahl">Stunden</th>
                   <th className="tabelle-kopf-zahl">Brutto</th>
                   <th className="tabelle-kopf">Status</th>
                   <th className="tabelle-kopf-zahl">
@@ -716,7 +716,6 @@ export default function QuotesView() {
                     </td>
                     <td className="tabelle-zelle">
                       {q.customerName}
-                      {q.address && <span className="tabelle-unter">{q.address}</span>}
                       {q.projectNumber && (
                         <span className="tabelle-unter">Baustelle {q.projectNumber}</span>
                       )}

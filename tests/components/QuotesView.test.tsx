@@ -107,11 +107,20 @@ beforeEach(() => {
 
 /** Ein versendetes Angebot AN-2026-0007 über 20 kalkulierte Stunden. */
 /**
- * Annehmen, wie es jemand tut: Knopf, dann die Rückfrage bestätigen
+ * Annehmen, wie es jemand tut: Menüeintrag, dann die Rückfrage bestätigen
  * (Launch-Check, M8 — vorher legte ein Klick die Baustelle ohne Rückfrage an).
+ *
+ * ÜBER DAS „⋯" DER ZEILE, seit dem Durchgang nach der Linie
+ * (docs/design/linie.md 3): Annehmen legt eine Baustelle an und verbraucht
+ * eine Nummer — ein seltener, folgenreicher Handgriff, kein Textknopf.
  */
+async function annehmenWaehlen(nutzer: ReturnType<typeof userEvent.setup>, nummer = 'AN-2026-0007') {
+  await nutzer.click(screen.getByRole('button', { name: `Weitere Aktionen für Angebot ${nummer}` }));
+  await nutzer.click(screen.getByRole('menuitem', { name: 'Annehmen → Baustelle' }));
+}
+
 async function annehmenBestaetigt(nutzer: ReturnType<typeof userEvent.setup>) {
-  await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+  await annehmenWaehlen(nutzer);
   await nutzer.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Annehmen' }));
 }
 
@@ -331,7 +340,7 @@ describe('Angebot kalkulieren', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0007/);
-    await nutzer.click(screen.getByRole('button', { name: 'Annehmen → Baustelle' }));
+    await annehmenWaehlen(nutzer);
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toHaveTextContent(/AN-2026-0007 wird angenommen/);
     await nutzer.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
@@ -513,6 +522,20 @@ describe('Die Angebotszeile', () => {
     Object.assign(angebote[0], { id: 'q3', quoteNumber: 'AN-2026-0009', status: 'Entwurf' });
   }
 
+  it('trägt beim versendeten Angebot nur Öffnen; Annehmen und Ablehnen im Menü', async () => {
+    versendetesAngebot();
+    const nutzer = userEvent.setup();
+    zeichne();
+    const zeile = (await screen.findByText(/AN-2026-0007/)).closest('li') as HTMLElement;
+    expect(within(zeile).getByRole('link', { name: 'Angebot AN-2026-0007 öffnen' })).toBeInTheDocument();
+    expect(within(zeile).queryByRole('button', { name: 'Annehmen → Baustelle' })).not.toBeInTheDocument();
+    await nutzer.click(within(zeile).getByRole('button', { name: 'Weitere Aktionen für Angebot AN-2026-0007' }));
+    expect(screen.getAllByRole('menuitem').map((e) => e.textContent)).toEqual([
+      'Annehmen → Baustelle',
+      'Abgelehnt',
+    ]);
+  });
+
   it('trägt beim Entwurf Öffnen und Bearbeiten, alles Übrige im Menü', async () => {
     entwurfOhnePositionen();
     const nutzer = userEvent.setup();
@@ -546,8 +569,7 @@ describe('Die Angebotszeile', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/AN-2026-0009/);
-    await nutzer.click(screen.getByRole('button', { name: 'Weitere Aktionen für Angebot AN-2026-0009' }));
-    await nutzer.click(screen.getByRole('menuitem', { name: 'Annehmen → Baustelle' }));
+    await annehmenWaehlen(nutzer, 'AN-2026-0009');
     expect(await screen.findByRole('dialog')).toHaveTextContent(/AN-2026-0009 wird angenommen/);
     expect(createProject).not.toHaveBeenCalled();
   });
@@ -559,7 +581,7 @@ describe('Die Angebotszeile', () => {
     const zeile = await screen.findByRole('row', { name: /AN-2026-0007/ });
     const t = zeile.closest('table')!;
     expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
-      'Nummer', 'Kunde', 'Datum', 'Gültig bis', 'Kalkuliert', 'Brutto', 'Status', 'Aktionen',
+      'Nummer', 'Kunde', 'Datum', 'Gültig bis', 'Stunden', 'Brutto', 'Status', 'Aktionen',
     ]);
     expect(zeile).toHaveTextContent('Gemeinde Neudorf');
     expect(zeile).toHaveTextContent('01.10.2026');
@@ -567,7 +589,8 @@ describe('Die Angebotszeile', () => {
     expect(zeile).toHaveTextContent('Versendet');
     // Keine Listenzeile daneben: jede Aktion steht genau einmal da.
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Annehmen → Baustelle' })).toHaveLength(1);
+    expect(screen.getAllByRole('link', { name: /öffnen/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /Weitere Aktionen/ })).toHaveLength(1);
     expect(within(zeile).getByRole('link', { name: /AN-2026-0007/ })).toHaveAttribute('href', '/quotes/q1');
   });
 });

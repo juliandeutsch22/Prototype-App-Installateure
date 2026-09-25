@@ -862,8 +862,12 @@ describe('Die Scheinzeile', () => {
     const nutzer = userEvent.setup();
     zeichne();
     const zeile = await screen.findByRole('row', { name: /Familie Huber/ });
-    await nutzer.click(within(zeile).getByRole('button', { name: 'Details' }));
-    expect(within(zeile).getByRole('button', { name: 'Zuklappen' })).toBeInTheDocument();
+    // Die erste Zelle klappt auf — kein eigener Knopf „Details" in der Aktionsspalte.
+    expect(within(zeile).queryByRole('button', { name: 'Details' })).not.toBeInTheDocument();
+    const aufklapper = within(zeile).getByRole('button', { name: 'Einzelheiten zu B-001' });
+    expect(aufklapper).toHaveAttribute('aria-expanded', 'false');
+    await nutzer.click(aufklapper);
+    expect(aufklapper).toHaveAttribute('aria-expanded', 'true');
     const detail = screen.getByText('Entsteht mit der Unterschrift.').closest('td') as HTMLElement;
     expect(detail).toHaveAttribute('colspan', '7');
   });

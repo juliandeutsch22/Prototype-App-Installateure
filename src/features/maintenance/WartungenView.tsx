@@ -468,8 +468,9 @@ export default function WartungenView() {
     ZWEI TEXTKNÖPFE, DER REST IM „⋯" (docs/design/linie.md 3). Sichtbar
     bleibt, was eine anstehende Wartung weiterbringt — Baustelle anlegen,
     Erledigt —; das Bearbeiten der Vereinbarung ist die seltenere Handlung
-    und steht im Menü, an jeder Zeile an derselben Stelle. Keiner der Knöpfe
-    ist mehr dunkel gefüllt: ein Hauptknopf je Karte, nicht je Zeile.
+    und steht im Menü, an jeder Zeile an derselben Stelle. Beide Knöpfe sind
+    Textknöpfe wie in den übrigen Listen; „Baustelle anlegen" war dunkel
+    gefüllt — ein Hauptknopf je Zeile statt je Karte.
   */
   const aktionen = (w: WithId<Wartung>, inGesamtliste: boolean) => {
     if (!darfAendern) return null;
@@ -485,7 +486,7 @@ export default function WartungenView() {
         */}
         {!nurBearbeiten && !w.offeneBaustelle && u.stand !== 'später' && u.stand !== 'ruht' && (
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={() => {
               const vorschlag = belegNummer(
                 vorsaetze.baustelle,
@@ -500,7 +501,7 @@ export default function WartungenView() {
         )}
         {!nurBearbeiten && (
           <Button
-            variant="secondary"
+            variant="ghost"
             onClick={() =>
               setErledigung({
                 wartung: w,
@@ -574,7 +575,15 @@ export default function WartungenView() {
     </ListRow>
   );
 
-  /** Am Schreibtisch dieselben Wartungen als Tabelle. */
+  /*
+    AM SCHREIBTISCH DIESELBEN WARTUNGEN ALS TABELLE.
+
+    DER ZUSTAND STEHT UNTER DEM TERMIN, nicht in einer eigenen Spalte. Er
+    IST die Aussage über den Termin („Seit 52 Tagen überfällig."), und als
+    eigene Spalte liess er zusammen mit den beiden Knöpfen auf 1280 px für
+    Kunde und Standort keinen Platz — die Tabelle schob sich um gemessene
+    53 px seitwärts.
+  */
   const tabelle = (liste: WithId<Wartung>[], inGesamtliste = false) => (
     <div className="tabelle-rahmen">
       <table className="tabelle">
@@ -582,10 +591,9 @@ export default function WartungenView() {
           <tr>
             <th className="tabelle-kopf">Kunde und Anlage</th>
             <th className="tabelle-kopf">Standort</th>
-            <th className="tabelle-kopf">Termin</th>
+            <th className="tabelle-kopf">Termin und Stand</th>
             <th className="tabelle-kopf">Intervall</th>
             <th className="tabelle-kopf">Zuletzt</th>
-            <th className="tabelle-kopf">Status</th>
             {darfAendern && (
               <th className="tabelle-kopf-zahl">
                 <span className="sr-only">Aktionen</span>
@@ -606,17 +614,17 @@ export default function WartungenView() {
               </td>
               <td className="tabelle-zelle">
                 <span className="whitespace-nowrap">{fmtDatum(w.faelligAm)}</span>
+                <span className="tabelle-unter">{zustand(w)}</span>
                 {w.offeneBaustelle && <span className="tabelle-unter">{eingeplant(w)}</span>}
               </td>
+              <td className="tabelle-zelle">alle {w.intervallMonate} Monate</td>
               <td className="tabelle-zelle">
-                <span className="whitespace-nowrap">alle {w.intervallMonate} Monate</span>
+                {w.zuletztAm ? (
+                  <span className="whitespace-nowrap">{fmtDatum(w.zuletztAm)}</span>
+                ) : (
+                  'noch nie gewartet'
+                )}
               </td>
-              <td className="tabelle-zelle">
-                <span className="whitespace-nowrap">
-                  {w.zuletztAm ? fmtDatum(w.zuletztAm) : 'noch nie gewartet'}
-                </span>
-              </td>
-              <td className="tabelle-zelle">{zustand(w)}</td>
               {darfAendern && (
                 <td className="tabelle-aktionen">
                   <div className="tabelle-knoepfe">{aktionen(w, inGesamtliste)}</div>
