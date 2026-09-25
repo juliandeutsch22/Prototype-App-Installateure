@@ -1116,7 +1116,11 @@ export default function VacationsView() {
                       <span className="text-xs text-ink-muted">Entscheidet jemand anderer</span>
                     ) : (
                       <>
+                        {/* Weiß mit Haarlinie, nicht dunkel: bei mehreren
+                            offenen Anträgen stünden sonst mehrere Hauptknöpfe
+                            in einer Karte (Linie, 5). */}
                         <Button
+                          variant="secondary"
                           loading={arbeitet === v.id}
                           onClick={() => entscheiden(v, 'Genehmigt')}
                         >
