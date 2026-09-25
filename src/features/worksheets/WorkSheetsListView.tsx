@@ -25,6 +25,7 @@ import Button from '@/components/Button';
 import { Warnung, Zustand, type Stand } from '@/components/Badge';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import PageHeader from '@/components/PageHeader';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { List, ListRow } from '@/components/ListRow';
 import { CheckboxField, InputField } from '@/components/Field';
 import Meldung from '@/components/Meldung';
@@ -650,119 +651,123 @@ export default function WorkSheetsListView() {
                   key={s.id}
                   wert={fmtDauer(gesamt)}
                   zustand={<Zustand stand={STAND[s.status]}>{s.status}</Zustand>}
-                  title={
-                    <span>
-                      {s.customerName}{' '}
-                      <span className="text-sm font-normal text-ink-muted">
-                        ({s.projectNumber})
-                      </span>
-                    </span>
-                  }
+                  /*
+                    Die Baustellennummer steht vorn in der Unterzeile, wie am
+                    Monteur-Start („Nummer · …“), nicht in Klammern am Namen.
+                    Unterschrift, Verwerfen und Storno je als eigene Zeile
+                    darunter.
+                  */
+                  title={s.customerName}
                   subtitle={
                     <>
-                      {datumAT(s.datum)} · {s.abrechnung}
+                      {s.projectNumber} · {datumAT(s.datum)} · {s.abrechnung}
                       {s.unterschriften?.kunde && (
-                        <span className="mt-1 block text-xs text-ink-muted">
+                        <>
+                          <br />
                           Unterschrieben von {s.unterschriften.kunde.name}
-                        </span>
+                        </>
                       )}
                       {s.status === 'Verworfen' && (
-                        <span className="mt-1 block text-xs text-ink-muted">
+                        <>
+                          <br />
                           Verworfen
                           {s.verworfenVonName ? ` von ${s.verworfenVonName}` : ''} — nicht
                           weiterbearbeitet, nicht gelöscht.
-                        </span>
+                        </>
                       )}
                       {s.stornoGrund && (
-                        <span className="mt-1 block text-xs text-danger">
+                        <>
+                          <br />
                           Storno: {s.stornoGrund}
                           {s.storniertVonName ? ` (${s.storniertVonName})` : ''}
-                        </span>
+                        </>
                       )}
-                      {auf && (
-                        <span className="kasten-hell mt-2 block">
-                          {s.zeiten.length > 0 && (
-                            <>
-                              <span className="section-label block">Zeiten</span>
-                              <span className="mt-1 block space-y-1">
-                                {s.zeiten.map((z, i) => (
-                                  <span key={i} className="block text-sm text-ink">
-                                    {z.mitarbeiter}
-                                    {z.helfer ? ' (Helfer)' : ''} ·{' '}
-                                    {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
-                                    {fmtDauer(z.minuten)}
-                                    {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
-                                  </span>
-                                ))}
-                              </span>
-                            </>
-                          )}
-                          {s.material.length > 0 && (
-                            <>
-                              <span className="section-label mt-3 block">Material</span>
-                              <span className="mt-1 block space-y-1">
-                                {s.material.map((m, i) => (
-                                  <span key={i} className="block text-sm text-ink">
-                                    {m.menge}× {m.name}
-                                  </span>
-                                ))}
-                              </span>
-                            </>
-                          )}
-                          {s.notizen && (
-                            <>
-                              <span className="section-label mt-3 block">Anmerkungen</span>
-                              <span className="mt-1 block text-sm text-ink">{s.notizen}</span>
-                            </>
-                          )}
-                          {/*
-                            DIE FOTOS. Sie liegen in Firebase Storage und
-                            werden erst beim Aufklappen geholt — eine Liste,
-                            die beim Öffnen zwanzig Bilder nachlädt, ist auf
-                            einer Baustelle keine Liste mehr.
-                          */}
-                          {s.fotos && s.fotos.length > 0 && (
-                            <>
-                              <span className="section-label mt-3 block">
-                                Fotos ({s.fotos.length})
-                              </span>
-                              <Fotostreifen fotos={s.fotos} />
-                            </>
-                          )}
-                          {/*
-                            Die Prüfsumme sichtbar machen. Sie ist der
-                            eigentliche Manipulationsschutz: mit ihr lässt
-                            sich belegen, dass ein vorgelegtes PDF genau das
-                            ist, was unterschrieben wurde.
-                          */}
-                          {/*
-                            Die Pruefsumme entsteht serverseitig, kurz NACH
-                            dem Unterschreiben — und offline erst beim
-                            Uebertragen. Statt die Zeile dann einfach
-                            wegzulassen, sagt sie, dass noch etwas aussteht:
-                            eine fehlende Pruefsumme sieht sonst aus wie ein
-                            Fehler, ist aber nur eine Frage von Sekunden.
-                          */}
-                          <span className="section-label mt-3 block">Prüfsumme</span>
+                    </>
+                  }
+                  /*
+                    DIE EINZELHEITEN UNTER DER ZEILE, nicht in ihrer
+                    Unterzeile: ein Kasten mit Abschnitten (`.gruppe`), je
+                    Abschnitt eine Linie zum nächsten.
+                  */
+                  unten={
+                    auf && (
+                      <div className="gruppe">
+                        {s.zeiten.length > 0 && (
+                          <div className="gruppe-abschnitt">
+                            <p className="section-label">Zeiten</p>
+                            {s.zeiten.map((z, i) => (
+                              <p key={i}>
+                                {z.mitarbeiter}
+                                {z.helfer ? ' (Helfer)' : ''} ·{' '}
+                                {z.von && z.bis ? `${z.von}–${z.bis}` : '—'} ·{' '}
+                                {fmtDauer(z.minuten)}
+                                {z.taetigkeit ? ` · ${z.taetigkeit}` : ''}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        {s.material.length > 0 && (
+                          <div className="gruppe-abschnitt">
+                            <p className="section-label">Material</p>
+                            {s.material.map((m, i) => (
+                              <p key={i}>
+                                {m.menge}× {m.name}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        {s.notizen && (
+                          <div className="gruppe-abschnitt">
+                            <p className="section-label">Anmerkungen</p>
+                            <p>{s.notizen}</p>
+                          </div>
+                        )}
+                        {/*
+                          DIE FOTOS. Sie liegen in Firebase Storage und
+                          werden erst beim Aufklappen geholt — eine Liste,
+                          die beim Öffnen zwanzig Bilder nachlädt, ist auf
+                          einer Baustelle keine Liste mehr.
+                        */}
+                        {s.fotos && s.fotos.length > 0 && (
+                          <div className="gruppe-abschnitt">
+                            <p className="section-label">Fotos ({s.fotos.length})</p>
+                            <Fotostreifen fotos={s.fotos} />
+                          </div>
+                        )}
+                        {/*
+                          Die Prüfsumme sichtbar machen. Sie ist der
+                          eigentliche Manipulationsschutz: mit ihr lässt
+                          sich belegen, dass ein vorgelegtes PDF genau das
+                          ist, was unterschrieben wurde.
+
+                          Sie entsteht serverseitig, kurz NACH dem
+                          Unterschreiben — und offline erst beim Übertragen.
+                          Statt die Zeile dann einfach wegzulassen, sagt sie,
+                          dass noch etwas aussteht: eine fehlende Prüfsumme
+                          sieht sonst aus wie ein Fehler, ist aber nur eine
+                          Frage von Sekunden. Der letzte Abschnitt trägt
+                          keine Linie (`gruppe-text`) — die Kante zieht der
+                          Kasten.
+                        */}
+                        <div className="gruppe-text">
+                          <p className="section-label">Prüfsumme</p>
                           {s.inhaltHash ? (
-                            <span className="mt-1 block break-all font-mono text-xs text-ink-muted">
+                            <p className="break-all font-mono text-xs text-ink-muted">
                               {s.inhaltHash}
-                            </span>
+                            </p>
                           ) : s.status === 'Entwurf' ? (
-                            <span className="mt-1 block text-xs text-ink-muted">
-                              Entsteht mit der Unterschrift.
-                            </span>
+                            <p className="text-xs text-ink-muted">Entsteht mit der Unterschrift.</p>
                           ) : (
-                            <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+                            <p className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
                               Wird berechnet — bei fehlender Verbindung erst nach der Übertragung.
                               <Button variant="ghost" onClick={() => void laden()}>
                                 Neu laden
                               </Button>
-                            </span>
+                            </p>
                           )}
-                        </span>
-                      )}
-                    </>
+                        </div>
+                      </div>
+                    )
                   }
                 >
                   <Button variant="ghost" onClick={() => setOffen(auf ? null : s.id)}>
@@ -780,7 +785,7 @@ export default function WorkSheetsListView() {
                     dieselbe Arbeit an.
                   */}
                   {darfSchreiben && s.status === 'Entwurf' && (
-                    <Link to={`/worksheet?entwurf=${s.id}`} className="knopf-sekundaer">
+                    <Link to={`/worksheet?entwurf=${s.id}`} className="knopf-sekundaer-klein">
                       Weiterbearbeiten
                     </Link>
                   )}
@@ -882,7 +887,9 @@ export default function WorkSheetsListView() {
             Der Schein bleibt erhalten und sichtbar, wird aber als storniert gekennzeichnet. Für
             eine Korrektur ist danach ein neuer Schein zu erstellen.
           </p>
-          <div className="mt-3">
+          {/* Der Abstand zur Aktionsleiste steht hier: die Leiste selbst muss
+              direkt in der Karte stehen, sonst klebt sie nicht. */}
+          <div className="mb-4 mt-3">
             <InputField
               id="stornogrund"
               label="Grund (Pflicht)"
@@ -892,7 +899,7 @@ export default function WorkSheetsListView() {
               pflicht
             />
           </div>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <Aktionsleiste>
             <Button
               loading={busy}
               disabled={stornoGrund.trim().length < 3}
@@ -922,7 +929,7 @@ export default function WorkSheetsListView() {
             >
               Abbrechen
             </Button>
-          </div>
+          </Aktionsleiste>
         </Card>
       )}
     </div>
