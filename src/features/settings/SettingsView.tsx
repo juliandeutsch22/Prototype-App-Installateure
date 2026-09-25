@@ -868,17 +868,21 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </div>
           </FormGrid>
 
-          <p className="mt-4 text-sm text-ink-muted">
+          <p className="my-4 text-sm text-ink-muted">
             Großbuchstaben, Ziffern, Bindestrich, höchstens {PRAEFIX_MAX} Zeichen. Leer heißt
             „kein Vorsatz" — dann zählt der Kreis als
             <span> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
           </p>
 
-          <div className="mt-4">
+          {/* Vier Felder mit Vorschau laufen am Telefon knapp über einen
+              Bildschirm — der Knopf klebt in der Aktionsleiste. Sie steht
+              direkt in der Karte: in einer eigenen Hülle hätte sie keinen
+              Weg zum Kleben. */}
+          <Aktionsleiste>
             <Button type="button" loading={vorsaetzeSpeichert} onClick={vorsaetzeSpeichern}>
               Nummernkreise speichern
             </Button>
-          </div>
+          </Aktionsleiste>
           {fehlerBei('nummern')}
         </Card>
       )}

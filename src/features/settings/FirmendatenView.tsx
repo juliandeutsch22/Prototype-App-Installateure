@@ -198,8 +198,10 @@ export default function FirmendatenView() {
             </p>
           )}
 
-          <div className="mt-3">
-            <label htmlFor="fd-logo" className="section-label block">
+          {/* Beschriftung wie an jedem anderen Feld (`feld-name`), nicht als
+              Dachzeile — sie benennt ein Feld, keinen Abschnitt. */}
+          <div className="feld-block mt-3">
+            <label htmlFor="fd-logo" className="feld-name">
               Bilddatei wählen
             </label>
             <input
@@ -208,7 +210,7 @@ export default function FirmendatenView() {
               accept="image/png,image/jpeg,image/webp"
               disabled={logoLaeuft}
               onChange={(e) => void logoWaehlen(e.target.files?.[0])}
-              className="mt-1 block w-full text-sm text-ink file:mr-3 file:min-h-touch file:rounded file:border file:border-line file:bg-surface-2 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-ink"
+              className="block w-full text-sm text-ink file:mr-3 file:min-h-touch file:rounded file:border file:border-line file:bg-surface-2 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-ink"
             />
           </div>
           {logoFehler && (

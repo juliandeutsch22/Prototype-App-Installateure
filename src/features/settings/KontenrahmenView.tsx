@@ -9,6 +9,7 @@ import {
 } from '@/lib/db/konten';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import PageHeader from '@/components/PageHeader';
@@ -232,7 +233,7 @@ export default function KontenrahmenView() {
       >
         <div className="space-y-4">
           <div className="flex flex-wrap items-end gap-x-2">
-            <div className="min-w-[10rem] grow">
+            <div className="min-w-[9rem] flex-1">
               <InputField
                 id="k-debitoren"
                 label="Forderungen (Debitorensammelkonto)"
@@ -250,7 +251,7 @@ export default function KontenrahmenView() {
           </div>
 
           <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
-            <div className="min-w-[10rem] grow">
+            <div className="min-w-[9rem] flex-1">
               <InputField
                 id="k-anzahlung"
                 label="Erhaltene Anzahlungen"
@@ -278,7 +279,7 @@ export default function KontenrahmenView() {
           </div>
 
           <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
-            <div className="min-w-[10rem] grow">
+            <div className="min-w-[9rem] flex-1">
               <InputField
                 id="k-rc"
                 label="Bauleistung mit Übergang der Steuerschuld"
@@ -379,11 +380,13 @@ export default function KontenrahmenView() {
       {einwand && <ErrorState message={einwand} />}
       {fehler && <ErrorState message={fehler} />}
 
-      <div>
+      {/* Zwei Karten mit Feldern, am Telefon länger als ein Bildschirm: der
+          Knopf klebt in der Aktionsleiste über der Tableiste. */}
+      <Aktionsleiste>
         <Button type="submit" loading={speichert} disabled={!!einwand}>
           Kontenrahmen speichern
         </Button>
-      </div>
+      </Aktionsleiste>
     </form>
   );
 }

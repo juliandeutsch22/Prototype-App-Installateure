@@ -190,9 +190,11 @@ export default function SupportzugangView() {
               niemand. Wer nichts tut, gibt das Leserecht — die harmlosere
               Antwort ist die Vorgabe.
             */}
-            <fieldset className="kasten">
-              <legend className="section-label px-1">Wie weit?</legend>
-              <div className="flex flex-col gap-2">
+            {/* Die Frage steht wie die Beschriftung jedes anderen Feldes über
+                der Wahl — nicht als Legende auf einer Kastenkante. */}
+            <fieldset>
+              <legend className="feld-name">Wie weit?</legend>
+              <div className="mt-1 flex flex-col gap-2">
                 <label className="flex min-h-touch items-start gap-3 py-1">
                   <input
                     type="radio"
