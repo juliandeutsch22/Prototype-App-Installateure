@@ -18,13 +18,7 @@ import { kunstadresse } from '../../shared/benutzername';
 async function startpasswortLesen(page: Page): Promise<string> {
   const kasten = page.getByRole('alert').filter({ hasText: 'Startpasswort' });
   await expect(kasten).toBeVisible({ timeout: 20_000 });
-  /*
-    Über einen eigenen Anker, nicht über eine Stilklasse: hier stand
-    `p.tnum` — und mit dem Design-Durchgang vom 25.09.2026 fiel `.tnum` weg
-    (Ziffern mit fester Breite gelten jetzt überall). Ein Weg, der am
-    Aussehen hängt, bricht bei jeder Gestaltungsänderung.
-  */
-  const pw = (await kasten.getByTestId('startpasswort').textContent())?.trim() ?? '';
+  const pw = (await kasten.locator('p.tnum').textContent())?.trim() ?? '';
   expect(pw.length).toBeGreaterThanOrEqual(8);
   return pw;
 }

@@ -3,6 +3,7 @@ import type { SVGProps } from 'react';
 export type IconName =
   | 'home'
   | 'clock'
+  | 'mic'
   | 'package'
   | 'calendar'
   | 'building'
@@ -12,28 +13,19 @@ export type IconName =
   | 'chart'
   | 'more'
   | 'chevron'
-  | 'weiter'
-  | 'zurueck'
+  | 'download'
   | 'settings'
   | 'bell'
   | 'phone'
   | 'mail'
   | 'pin'
-  | 'sun'
-  | 'pencil'
-  | 'file'
-  | 'contact'
-  | 'wrench'
-  | 'archive'
-  | 'calculator';
+  | 'plus';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
-// Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
-// anrufen, hinfahren, schreiben, aufklappen. „Neu …" und „herunterladen"
-// sagt die Beschriftung selbst — dafür gibt es hier kein Zeichen mehr.
 const paths: Record<IconName, string> = {
   home: 'M3 11.5 12 4l9 7.5M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9',
   clock: 'M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z',
+  mic: 'M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3ZM5 11a7 7 0 0 0 14 0M12 18v3',
   package: 'M21 8 12 3 3 8m18 0-9 5m9-5v8l-9 5m0-8L3 8m9 5v8M3 8v8l9 5',
   calendar:
     'M8 3v3M16 3v3M4 8h16M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z',
@@ -46,9 +38,7 @@ const paths: Record<IconName, string> = {
   chart: 'M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   chevron: 'm6 9 6 6 6-6',
-  // Führt die Zeile woanders hin (›) — und der Weg zurück (‹) im Kopf.
-  weiter: 'm9 6 6 6-6 6',
-  zurueck: 'm15 6-6 6 6 6',
+  download: 'M12 3v12m0 0 4-4m-4 4-4-4M4 19h16',
   bell: 'M18 16v-5a6 6 0 1 0-12 0v5l-2 3h16l-2-3M10 22h4',
   // Hoerer und Kartennadel: die beiden Handgriffe, die ein Monteur im Auto
   // macht — anrufen und hinfahren.
@@ -56,30 +46,9 @@ const paths: Record<IconName, string> = {
     'M6.5 3h3l1.5 4-2 1.5a12 12 0 0 0 6.5 6.5L17 13l4 1.5v3a2 2 0 0 1-2.2 2A17 17 0 0 1 4.5 5.2 2 2 0 0 1 6.5 3Z',
   mail: 'M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Zm0 .5 9 6 9-6',
   pin: 'M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11ZM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z',
-  /*
-    SIEBEN ZEICHEN KAMEN AM 25.09.2026 DAZU, damit in der Navigation kein
-    Zeichen zweimal steht. Vorher trugen Wartungen, Anforderungen und
-    Handwerksscheine dasselbe Klemmbrett, Urlaub und Einsatzplanung denselben
-    Kalender — wer nach dem Zeichen sucht, landete am falschen Ort. Gleiche
-    Strichführung wie oben: 24er-Raster, nur Linien, keine Füllung.
-  */
-  // Urlaub
-  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
-  // Handwerksscheine — hier wird geschrieben und unterschrieben.
-  pencil: 'M5 20h3L19 9a2.12 2.12 0 0 0-3-3L5 17v3ZM14.5 7.5l2 2M13 20h6',
-  // Angebote
-  file: 'M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4ZM14 3v4h4M9 12h6M9 16h6',
-  // Kunden — die Karteikarte, nicht die Personengruppe der Belegschaft.
-  contact:
-    'M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1ZM9 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM5.5 16a3.5 3.5 0 0 1 7 0M15 9h3M15 13h3',
-  // Wartungen
-  wrench:
-    'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.12 2.12 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8Z',
-  // Lager — der Kasten im Regal, nicht das einzelne Paket der Anforderung.
-  archive: 'M3 4h18v4H3V4ZM5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4',
-  // Nachkalkulation
-  calculator:
-    'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM9 7h6v3H9V7ZM9 14h.01M12 14h.01M15 14h.01M9 17h.01M12 17h.01M15 17h.01',
+  /* Zwei Striche und sonst nichts — das Zeichen für „hier entsteht etwas
+     Neues", und das einzige in dieser Sammlung, das kein Gegenstand ist. */
+  plus: 'M12 5v14M5 12h14',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

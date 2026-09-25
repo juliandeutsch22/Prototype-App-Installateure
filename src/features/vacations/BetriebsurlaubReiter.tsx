@@ -12,8 +12,6 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import InfoHint from '@/components/InfoHint';
-import Icon from '@/components/Icon';
-import Aktionsleiste from '@/components/Aktionsleiste';
 import { Marke } from '@/components/Badge';
 import { CheckboxField, InputField, FormGrid } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -210,67 +208,54 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
               etwa als Zeitausgleich.
             </InfoHint>
           </div>
-          {/*
-            DERSELBE AUFKLAPPKOPF WIE „WEITERE ANGABEN“ in der Zeiterfassung:
-            ein umrahmter Kasten mit Winkel statt eines eigenen Textknopfs mit
-            Dreieck.
-          */}
-          <div className="gruppe">
+          <div>
             <button
               type="button"
-              className="gruppe-kopf-knopf"
+              className="flex min-h-touch items-center gap-2 text-sm font-medium text-brand"
               aria-expanded={ausnahmenOffen}
               aria-controls="bu-ausnahmen"
               onClick={() => setAusnahmenOffen((o) => !o)}
             >
-              <span className="gruppe-kopf-text">
-                Mitarbeiter ausnehmen
-                {ausgenommen.length > 0 && ` (${ausgenommen.length})`}
-                {/* Zugeklappt steht trotzdem da, wer ausgenommen ist — sonst
-                    ginge eine Ausnahme unbemerkt mit in den Betriebsurlaub. */}
-                {!ausnahmenOffen && ausgenommen.length > 0 && (
-                  <span className="gruppe-kopf-unter">Arbeiten in dieser Zeit: {ausgenommenText}</span>
-                )}
-              </span>
-              <Icon name="chevron" size={18} className="gruppe-winkel" />
+              <span aria-hidden="true">{ausnahmenOffen ? '▾' : '▸'}</span>
+              Mitarbeiter ausnehmen
+              {ausgenommen.length > 0 && (
+                <span className="tnum font-normal text-ink-muted">({ausgenommen.length})</span>
+              )}
             </button>
+            {/* Zugeklappt steht trotzdem da, wer ausgenommen ist — sonst ginge
+                eine Ausnahme unbemerkt mit in den Betriebsurlaub. */}
+            {!ausnahmenOffen && ausgenommen.length > 0 && (
+              <p className="text-sm text-ink-muted">Arbeiten in dieser Zeit: {ausgenommenText}</p>
+            )}
             {ausnahmenOffen && (
-              <div className="gruppe-inhalt">
-                <fieldset id="bu-ausnahmen">
-                  <legend className="text-sm text-ink-muted">
-                    Wer hier angehakt ist, arbeitet in dieser Zeit: kein Urlaub gebucht, in der
-                    Planung verfügbar.
-                  </legend>
-                  {leute.length === 0 ? (
-                    <p className="mt-2 text-sm text-ink-muted">Die Mitarbeiter konnten nicht geladen werden.</p>
-                  ) : (
-                    <div className="mt-1 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
-                      {leute.map((u) => (
-                        <CheckboxField
-                          key={u.uid}
-                          id={`bu-aus-${u.uid}`}
-                          label={u.name}
-                          checked={ausgenommen.includes(u.uid)}
-                          onChange={(e) =>
-                            setAusgenommen((a) =>
-                              e.target.checked ? [...a, u.uid] : a.filter((x) => x !== u.uid),
-                            )
-                          }
-                        />
-                      ))}
-                    </div>
-                  )}
-                </fieldset>
-              </div>
+              <fieldset id="bu-ausnahmen" className="mt-1">
+                <legend className="text-sm text-ink-muted">
+                  Wer hier angehakt ist, arbeitet in dieser Zeit: kein Urlaub gebucht, in der
+                  Planung verfügbar.
+                </legend>
+                {leute.length === 0 ? (
+                  <p className="mt-2 text-sm text-ink-muted">Die Mitarbeiter konnten nicht geladen werden.</p>
+                ) : (
+                  <div className="mt-1 grid grid-cols-1 gap-x-4 sm:grid-cols-2">
+                    {leute.map((u) => (
+                      <CheckboxField
+                        key={u.uid}
+                        id={`bu-aus-${u.uid}`}
+                        label={u.name}
+                        checked={ausgenommen.includes(u.uid)}
+                        onChange={(e) =>
+                          setAusgenommen((a) =>
+                            e.target.checked ? [...a, u.uid] : a.filter((x) => x !== u.uid),
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </fieldset>
             )}
           </div>
-          {/* Mit aufgeklappten Ausnahmen ist die Maske am Telefon länger als
-              ein Bildschirm — die Leiste hält den Knopf erreichbar. */}
-          <Aktionsleiste>
-            <Button type="submit" className="w-full sm:w-auto">
-              Betriebsurlaub anlegen
-            </Button>
-          </Aktionsleiste>
+          <Button type="submit">Betriebsurlaub anlegen</Button>
         </form>
       </Card>
 
@@ -287,7 +272,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
                 title={
                   <span>
                     {b.bezeichnung}{' '}
-                    <span className="text-ink-muted">{zeitraumText(b.von, b.bis)}</span>
+                    <span className="tnum text-ink-muted">{zeitraumText(b.von, b.bis)}</span>
                   </span>
                 }
                 subtitle={
@@ -296,8 +281,8 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
                     b.ausgenommen?.length ? `arbeiten: ${b.ausgenommen.map(nameVon).join(', ')}` : null,
                   ].filter(Boolean).join(' · ') || undefined
                 }
-                zustand={<Marke>{b.urlaubAbbuchen ? 'vom Urlaub abgebucht' : 'nur Planungssperre'}</Marke>}
               >
+                <Marke>{b.urlaubAbbuchen ? 'vom Urlaub abgebucht' : 'nur Planungssperre'}</Marke>
                 <Button variant="ghost" onClick={() => setLoeschen(b)}>Löschen</Button>
               </ListRow>
             ))}

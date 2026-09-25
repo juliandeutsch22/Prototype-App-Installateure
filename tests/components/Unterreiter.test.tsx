@@ -1,16 +1,8 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import type { Role } from '@/types';
-
-/** Die Grundregel von `.reiterleiste` in index.css (ohne Kommentare). */
-const LEISTE_REGEL =
-  readFileSync(resolve(__dirname, '../../src/index.css'), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .match(/\.reiterleiste\s*\{([^{}]*)\}/)?.[1] ?? '';
 
 /**
  * Mehrere Ansichten unter einem Reiter.
@@ -33,7 +25,6 @@ vi.mock('@/app/AuthContext', () => ({
 }));
 
 const { default: Unterreiter } = await import('@/components/Unterreiter');
-const { default: PageHeader } = await import('@/components/PageHeader');
 
 const ELEMENTE = {
   meldungen: <p>Meldungen-Inhalt</p>,
@@ -82,59 +73,12 @@ describe('Unterreiter', () => {
     zeige('/settings/meldungen');
     const leiste = await screen.findByRole('navigation', { name: 'Bereiche' });
     expect(screen.queryByLabelText('Bereich')).toBeNull();
-    // Seitlich laufen steht seit dem gemeinsamen Reiter-Baustein im
-    // Stylesheet (index.css, „Reiter“), nicht mehr als Hilfsklasse am Markup.
-    expect(leiste).toHaveClass('reiterleiste');
-    expect(LEISTE_REGEL).toMatch(/overflow-x:\s*auto;/);
+    expect(leiste.className).toMatch(/overflow-x-auto/);
     expect(leiste.className).not.toMatch(/(^|\s)hidden(\s|$)/);
     const namen = within(leiste).getAllByRole('link').map((l) => l.textContent);
     expect(namen).toEqual(expect.arrayContaining(['Mein Konto', 'Module', 'Datensicherung']));
     await userEvent.click(within(leiste).getByRole('link', { name: 'Module' }));
     expect(await screen.findByText('Module-Inhalt')).toBeInTheDocument();
-  });
-
-  describe('rollt den gewaehlten Reiter ins Bild', () => {
-    /**
-     * Die Leiste zeigt keine Scrollleiste mehr (Design-Überarbeitung,
-     * Punkt 6). Wo man steht, sagt dann nur noch der gewählte Reiter — und
-     * der muss GANZ zu sehen sein, beim Öffnen wie beim Wechsel.
-     *
-     * jsdom kennt `scrollIntoView` nicht und rechnet keine Breiten. Geprüft
-     * wird deshalb der Auftrag an den Browser: welcher Reiter, und dass die
-     * Seite dabei senkrecht stehen bleibt und nicht gleitet.
-     */
-    const original = Element.prototype.scrollIntoView;
-    afterEach(() => {
-      Element.prototype.scrollIntoView = original;
-    });
-
-    function beobachte() {
-      const aufrufe: { reiter: string | null; optionen: unknown }[] = [];
-      Element.prototype.scrollIntoView = function (this: Element, optionen?: unknown) {
-        aufrufe.push({ reiter: this.textContent, optionen });
-      } as Element['scrollIntoView'];
-      return aufrufe;
-    }
-
-    const ERWARTET = { behavior: 'auto', block: 'nearest', inline: 'nearest' };
-
-    it('beim Oeffnen einer hinteren Unterseite', async () => {
-      const aufrufe = beobachte();
-      rolle = 'Administrator';
-      zeige('/settings/sicherung');
-      await screen.findByRole('navigation', { name: 'Bereiche' });
-      expect(aufrufe[aufrufe.length - 1]).toEqual({ reiter: 'Datensicherung', optionen: ERWARTET });
-    });
-
-    it('beim Wechsel ueber die Leiste', async () => {
-      const aufrufe = beobachte();
-      rolle = 'Administrator';
-      zeige('/settings/meldungen');
-      const leiste = await screen.findByRole('navigation', { name: 'Bereiche' });
-      await userEvent.click(within(leiste).getByRole('link', { name: 'Module' }));
-      await screen.findByText('Module-Inhalt');
-      expect(aufrufe[aufrufe.length - 1]).toEqual({ reiter: 'Module', optionen: ERWARTET });
-    });
   });
 
   it('zeigt dem Monteur keine Leiste, weil er nur eine Unterseite hat', async () => {
@@ -197,44 +141,5 @@ describe('Unterreiter', () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText('Module-Inhalt')).toBeInTheDocument();
-  });
-});
-
-describe('Die Leiste der Unterreiter unter dem Seitenkopf', () => {
-  /*
-    SEIT DER LINIE (docs/design/linie.md 1): erst Titel und Metazeile, dann
-    die Bereiche — wie die Reiter in Lager und Urlaub. Vorher stand die Leiste
-    über dem Titel. Hat eine Unterseite keinen Seitenkopf, bleibt sie oben
-    (die ersten Fälle oben in dieser Datei).
-  */
-  it('steht genau einmal, und zwar hinter der Überschrift der Unterseite', async () => {
-    rolle = 'Geschäftsführung';
-    render(
-      <MemoryRouter initialEntries={['/settings/meldungen']}>
-        <Routes>
-          <Route
-            path="/settings/*"
-            element={
-              <Unterreiter
-                basis="/settings"
-                elemente={{
-                  meldungen: (
-                    <div>
-                      <PageHeader title="Mein Konto" />
-                      <p>Meldungen-Inhalt</p>
-                    </div>
-                  ),
-                  saetze: <p>Saetze-Inhalt</p>,
-                }}
-              />
-            }
-          />
-        </Routes>
-      </MemoryRouter>,
-    );
-    const titel = await screen.findByRole('heading', { name: 'Mein Konto', level: 1 });
-    const leisten = screen.getAllByRole('navigation', { name: 'Bereiche' });
-    expect(leisten).toHaveLength(1);
-    expect(titel.compareDocumentPosition(leisten[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

@@ -24,38 +24,64 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
 
-/*
- * Alle Knöpfe sind EINFARBIG: die Rangordnung steht in der Füllung — gefüllt
- * in der Marke gegen weiß mit Rahmen —, nicht in einem Verlauf.
+/**
+ * Alle Knöpfe sind EINFARBIG.
  *
- * DAS AUSSEHEN STEHT IN `index.css` („Knopf“), je Rolle und Größe genau eine
- * Klasse: `knopf-primaer`, `knopf-sekundaer`, `knopf-gefahr`, `knopf-leise`,
- * `knopf-leise-dunkel`, jeweils auch mit `-klein`.
- *
- * „accent" GIBT ES NICHT MEHR. Anmelden, Passwort setzen, Betrieb anlegen und
- * die Berichte trugen die Hauptaktion in Türkis, „Zeit buchen" in Petrol —
- * zwei Farben für dieselbe Rolle (Prüflauf 24.09.2026, C11). Eine
- * Hauptaktion ist `primary`, überall.
+ * Der erste Entwurf gab den Hauptaktionen einen Verlauf, um die Rangordnung
+ * schon vor dem Lesen sichtbar zu machen. Auf einem Formular mit fünf Knöpfen
+ * nebeneinander war das aber kein Rang mehr, sondern Unruhe — und die
+ * Rangordnung steht ohnehin in der Farbe: gefüllt in der Marke gegen weiss
+ * mit Rahmen. Verläufe bleiben den grossen dunklen Trägerflächen vorbehalten
+ * (siehe index.css).
  */
-/* Wörtlich ausgeschrieben — Tailwind behält aus `@layer components` nur
-   Klassen, die im Quelltext als ganzes Wort stehen. */
-const KLASSE: Record<Groesse, Record<Variant, string>> = {
-  normal: {
-    primary: 'knopf-primaer',
-    secondary: 'knopf-sekundaer',
-    danger: 'knopf-gefahr',
-    ghost: 'knopf-leise',
-    'ghost-dark': 'knopf-leise-dunkel',
-  },
-  klein: {
-    primary: 'knopf-primaer-klein',
-    secondary: 'knopf-sekundaer-klein',
-    danger: 'knopf-gefahr-klein',
-    ghost: 'knopf-leise-klein',
-    'ghost-dark': 'knopf-leise-dunkel-klein',
-  },
+const variants: Record<Variant, string> = {
+  primary: 'bg-brand text-brand-fg shadow-sm hover:opacity-95',
+  secondary: 'border border-line bg-surface text-ink shadow-sm hover:bg-surface-2',
+  /*
+    „accent" GIBT ES NICHT MEHR. Anmelden, Passwort setzen, Betrieb anlegen
+    und die Berichte trugen die Hauptaktion in Türkis, „Zeit buchen" in
+    Petrol — zwei Farben für dieselbe Rolle (Prüflauf 24.09.2026, C11). Eine
+    Hauptaktion ist `primary`, überall.
+  */
+  danger: 'bg-danger text-white shadow-sm hover:opacity-90',
+  ghost: 'bg-transparent text-ink-muted hover:bg-surface-2',
+  // Derselbe zurückhaltende Knopf, aber auf einer dunklen Trägerfläche
+  // (Seitenleiste). Eine eigene Spielart statt einer mitgegebenen Klasse:
+  // zwei Textfarben in einem class-Attribut entscheidet nicht die
+  // Reihenfolge im Attribut, sondern die im erzeugten Stylesheet — das
+  // wäre stiller Zufall.
+  'ghost-dark': 'bg-transparent text-white/80 hover:bg-white/10 hover:text-white',
 };
 
+/**
+ * DIE SCHRIFT IST AUF DEM TELEFON EINE STUFE KLEINER, DIE HOEHE NICHT.
+ *
+ * Mit 1 rem fuellte die Beschriftung laengerer Knoepfe die Breite fast ganz
+ * aus — „Zeitraum zusammenstellen" und „Positionen zusammenstellen" standen
+ * auf 390 px als Blöcke da, die randvoll waren. 0,875 rem geben ihnen Luft,
+ * ohne dass etwas umbricht.
+ *
+ * `min-h-touch` bleibt: kleiner heisst kleinere SCHRIFT, nicht ein kleineres
+ * Ziel fuer den Finger. Ein Monteur bedient das mit Arbeitshandschuhen.
+ *
+ * Damit sehen `normal` und `klein` auf dem Telefon gleich gross aus und
+ * unterscheiden sich nur noch in der Polsterung. Das ist hingenommen: die
+ * Abstufung ist fuer Reihen von Schaltern am Schreibtisch gedacht, und dort
+ * bleibt sie.
+ */
+const groessen: Record<Groesse, string> = {
+  normal: 'px-4 py-2 text-sm sm:text-base',
+  klein: 'px-3 py-1.5 text-sm',
+};
+
+/**
+ * Großes Touch-Ziel (min. 48px) mit taktilem Press-Feedback (:active-Scale).
+ * Hover-Effekte sind app-weit hinter @media (hover:hover) gegatet (Tailwind
+ * hoverOnlyWhenSupported) — Touch löst kein klebriges Hover aus.
+ *
+ * Die Höhe gilt für BEIDE Grössen: `klein` nimmt Polsterung und Schrift,
+ * nicht das Ziel für den Finger.
+ */
 export default function Button({
   variant = 'primary',
   groesse = 'normal',
@@ -67,12 +93,15 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={className ? `${KLASSE[groesse][variant]} ${className}` : KLASSE[groesse][variant]}
+      className={`inline-flex min-h-touch items-center justify-center gap-2 rounded font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${groessen[groesse]} ${variants[variant]} ${className}`}
       disabled={disabled || loading}
       {...rest}
     >
       {loading && (
-        <span className="knopf-laeuft" aria-hidden="true" />
+        <span
+          className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          aria-hidden="true"
+        />
       )}
       {children}
     </button>

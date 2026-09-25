@@ -1,10 +1,7 @@
 import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react';
 
 /*
- * DAS AUSSEHEN STEHT IN `.feld` (index.css, „Gemeinsame Bausteine“) — eine
- * Klasse für Eingabe und Auswahl. Was darin steht und warum:
- *
- * `max-width: 100%` UND `min-width: 0` GEHOEREN ZUR GRUNDAUSSTATTUNG.
+ * `max-w-full min-w-0` GEHOEREN ZUR GRUNDAUSSTATTUNG, nicht zur Zierde.
  *
  * Die Breite eines `<select>` richtet sich nach seiner LAENGSTEN OPTION. In
  * der Einsatzplanung steht dort „Wohnungseigentümergemeinschaft Hauptstraße
@@ -17,7 +14,8 @@ import type { InputHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react
  * absichtlich schmal in einer Kartenkopfzeile stehen. `min-w-0` erlaubt
  * zusaetzlich das Schrumpfen, wo ein Feld in einer Flex-Zeile sitzt.
  */
-const FELD = 'feld';
+const fieldBase =
+  'min-h-touch min-w-0 max-w-full rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand';
 
 /**
  * Pflichtfelder kennzeichnen — der Stern und was daran hängt.
@@ -47,8 +45,8 @@ const FELD = 'feld';
  */
 function Beschriftung({ label, pflicht, id }: { label: string; pflicht?: boolean; id: string }) {
   return (
-    <span className="feld-beschriftung">
-      <label htmlFor={id} className="feld-name">
+    <span className="flex items-baseline gap-1">
+      <label htmlFor={id} className="text-sm font-medium text-ink">
         {label}
       </label>
       {/*
@@ -61,7 +59,7 @@ function Beschriftung({ label, pflicht, id }: { label: string; pflicht?: boolean
         haben genau das gemeldet, als er noch drinstand.
       */}
       {pflicht && (
-        <span aria-hidden="true" className="feld-pflicht">
+        <span aria-hidden="true" className="text-danger">
           *
         </span>
       )}
@@ -79,7 +77,7 @@ function Beschriftung({ label, pflicht, id }: { label: string; pflicht?: boolean
 export function Pflichthinweis() {
   return (
     <p className="text-sm text-ink-muted">
-      <span aria-hidden="true" className="feld-pflicht">
+      <span aria-hidden="true" className="text-danger">
         *
       </span>{' '}
       Pflichtfeld
@@ -97,12 +95,12 @@ interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 /** Beschriftetes Eingabefeld — Label ist Pflicht (Barrierearmut). */
 export function InputField({ label, id, pflicht, className = '', ...rest }: InputFieldProps) {
   return (
-    <div className="feld-block">
+    <div className="flex flex-col gap-1">
       <Beschriftung label={label} pflicht={pflicht} id={id} />
       <input
         id={id}
         aria-required={pflicht || undefined}
-        className={className ? `${FELD} ${className}` : FELD}
+        className={`${fieldBase} ${className}`}
         {...rest}
       />
     </div>
@@ -126,12 +124,12 @@ export function SelectField({
   ...rest
 }: SelectFieldProps) {
   return (
-    <div className="feld-block">
+    <div className="flex flex-col gap-1">
       {label && <Beschriftung label={label} pflicht={pflicht} id={id} />}
       <select
         id={id}
         aria-required={pflicht || undefined}
-        className={className ? `${FELD} ${className}` : FELD}
+        className={`${fieldBase} ${className}`}
         {...rest}
       >
         {children}
@@ -148,28 +146,21 @@ interface CheckboxFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>,
 /**
  * Checkbox mit großem Touch-Ziel und einheitlichem Label.
  *
- * Das Aussehen steckt in `.kaestchen` (index.css) und nicht hier: es gibt
+ * Das Aussehen steckt in `.checkbox` (index.css) und nicht hier: es gibt
  * sieben weitere Kästchen in der App, die nicht durch diesen Baustein laufen
  * — eine Klasse ist die einzige Fassung, die alle acht gleich hält.
  */
 export function CheckboxField({ label, id, className = '', ...rest }: CheckboxFieldProps) {
   return (
-    <label htmlFor={id} className="kaestchen-zeile">
-      <input id={id} type="checkbox" className={className ? `kaestchen ${className}` : 'kaestchen'} {...rest} />
+    <label htmlFor={id} className="flex min-h-touch cursor-pointer items-center gap-3 text-base text-ink">
+      <input id={id} type="checkbox" className={`checkbox ${className}`} {...rest} />
       {label}
     </label>
   );
 }
 
-/*
- * WÖRTLICH AUSGESCHRIEBEN, nicht `feldraster-${cols}`: Tailwind behält aus
- * `@layer components` nur Klassen, die im Quelltext als ganzes Wort stehen —
- * eine zusammengesetzte fehlte im Stylesheet, und das Raster fiel auf eine
- * Spalte zurück.
- */
-const RASTER = { 1: 'feldraster-1', 2: 'feldraster-2', 3: 'feldraster-3' } as const;
-
 /** Responsives Formular-Raster: 1 Spalte mobil, mehrspaltig ab sm. */
 export function FormGrid({ children, cols = 2 }: { children: ReactNode; cols?: 1 | 2 | 3 }) {
-  return <div className={RASTER[cols]}>{children}</div>;
+  const map = { 1: '', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-2 lg:grid-cols-3' };
+  return <div className={`grid grid-cols-1 gap-4 ${map[cols]}`}>{children}</div>;
 }

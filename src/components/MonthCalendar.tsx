@@ -1,5 +1,4 @@
 import { getAustrianHolidayName, localDateStr, todayStr } from '@/lib/time';
-import IconButton from './IconButton';
 
 const MONTHS = [
   'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -60,26 +59,34 @@ export default function MonthCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="karte">
+    <div className="panel overflow-hidden">
       <div className="flex items-center justify-between border-b border-line px-2 py-2">
-        <IconButton label="Vorheriger Monat" gross onClick={() => onShiftMonth(-1)}>
+        <button
+          type="button"
+          onClick={() => onShiftMonth(-1)}
+          aria-label="Vorheriger Monat"
+          className="min-h-touch min-w-touch rounded text-lg font-bold text-ink-muted hover:bg-surface-2"
+        >
           ‹
-        </IconButton>
+        </button>
         <span className="font-bold text-ink">
           {MONTHS[month]} {year}
         </span>
-        <IconButton label="Nächster Monat" gross onClick={() => onShiftMonth(1)}>
+        <button
+          type="button"
+          onClick={() => onShiftMonth(1)}
+          aria-label="Nächster Monat"
+          className="min-h-touch min-w-touch rounded text-lg font-bold text-ink-muted hover:bg-surface-2"
+        >
           ›
-        </IconButton>
+        </button>
       </div>
 
       <div className="grid grid-cols-7 border-b border-line bg-surface-2">
         {DOW.map((d, i) => (
           <div
             key={d}
-            // Das Wochenende tritt über die Stärke zurück, nicht über Deckkraft:
-            // ein durchscheinendes Grau erreichte auf der Fläche nur 3,7 : 1.
-            className={`py-2 text-center text-xs text-ink-muted ${i > 4 ? 'font-normal' : 'font-bold'}`}
+            className={`py-2 text-center text-xs font-bold ${i > 4 ? 'text-ink-muted/70' : 'text-ink-muted'}`}
           >
             {d}
           </div>
@@ -111,7 +118,7 @@ export default function MonthCalendar({
                 : '';
 
           if (!iso)
-            return <div key={`pad-${i}`} className={`min-h-[3.625rem] bg-surface-2${ecke}`} />;
+            return <div key={`pad-${i}`} className={`min-h-[3.625rem] bg-surface-2/40${ecke}`} />;
 
           const day = Number(iso.slice(8));
           const dow = new Date(`${iso}T00:00:00`).getDay();
@@ -155,22 +162,20 @@ export default function MonthCalendar({
                       // unterscheiden.
                       'bg-warning-bg shadow-[inset_0_3px_0_0_var(--warning)] hover:brightness-95'
                     : weekend
-                      ? 'bg-surface-2 hover:bg-surface-3'
+                      ? 'bg-surface-2/60 hover:bg-surface-2'
                       : 'hover:bg-surface-2'
               }`}
             >
               <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                className={`tnum flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
                   isSelected
                     ? 'bg-accent-deep text-white'
                     : isToday
-                      ? 'bg-info-bg font-bold text-info'
+                      ? 'bg-accent-deep/20 font-bold text-accent-deep'
                       : // Vergangene Tage ohne Planung treten zurück; wo etwas
-                        // geplant war, bleibt der Tag lesbar. Zurück heisst
-                        // gedämpft, aber deckend — durchscheinend waren es nur
-                        // 3 : 1.
+                        // geplant war, bleibt der Tag lesbar.
                         past && count === 0
-                        ? 'text-ink-muted'
+                        ? 'text-ink-muted/60'
                         : 'text-ink'
                 }`}
               >
@@ -178,7 +183,7 @@ export default function MonthCalendar({
               </span>
               {count > 0 && (
                 <span
-                  className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold leading-none ${
+                  className={`tnum inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold leading-none ${
                     past ? 'bg-line text-ink-muted' : 'bg-accent-deep text-white'
                   }`}
                 >
@@ -189,33 +194,6 @@ export default function MonthCalendar({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-/**
- * Die Legende unter dem Monatskalender — für „Tag planen“ und „Mein
- * Einsatzplan“ dieselbe. Die Muster sind die des Kalenders selbst: die Zahl
- * auf `accent-deep`, der heutige Tag auf `info-bg`, der Feiertag getönt mit
- * dem Balken oben. Vorher stand sie in beiden Ansichten zeichengleich als
- * eigener Klassenhaufen, und das Feiertagsmuster zeigte das Wochenend-Grau
- * statt der Feiertagsfläche.
- */
-export function KalenderLegende({ geplant }: { geplant: string }) {
-  return (
-    <div className="legende">
-      <span className="legende-eintrag">
-        <span className="legende-geplant" aria-hidden />
-        {geplant}
-      </span>
-      <span className="legende-eintrag">
-        <span className="legende-heute" aria-hidden />
-        Heute
-      </span>
-      <span className="legende-eintrag">
-        <span className="legende-feiertag" aria-hidden />
-        Feiertag (AT)
-      </span>
     </div>
   );
 }

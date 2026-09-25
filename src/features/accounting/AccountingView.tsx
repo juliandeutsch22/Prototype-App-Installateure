@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { listUsers } from '@/lib/db/users';
 import { listProjectsByNumbers } from '@/lib/db/projects';
@@ -14,7 +14,6 @@ import {
   calcCompleteness,
   calcWorkMin,
   fmtMin,
-  fmtDauer,
   getAustrianHolidayName,
   localDateStr,
   type CompletenessStatus,
@@ -37,8 +36,6 @@ import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
-import Meldung from '@/components/Meldung';
-import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import {
@@ -54,7 +51,6 @@ import {
 } from './export';
 import AntragKnopf from '@/features/time/AntragKnopf';
 import { datumAT } from '@/lib/datum';
-import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 const MONTHS = [
   'Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -79,77 +75,6 @@ const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 /** '2026-08-03' -> 'Mo 03.08.' — der Wochentag macht den Monat lesbar. */
 function dayLabel(iso: string): string {
   return `${WEEKDAYS[new Date(`${iso}T00:00:00`).getDay()]} ${iso.slice(8)}.${iso.slice(5, 7)}.`;
-}
-
-/** Spalten der Tabellenform — der aufgeklappte Bereich reicht über alle. */
-const SPALTEN = 5;
-
-/**
- * Die Mitarbeiterliste: am Telefon Zeilenkarten untereinander, am
- * Schreibtisch eine Tabelle, in der Ist, Soll und Saldo Stelle unter Stelle
- * stehen und sich über alle Mitarbeiter vergleichen lassen.
- */
-function MitarbeiterRahmen({ tabelle, children }: { tabelle: boolean; children: ReactNode }) {
-  /* Am Telefon Zeilen mit Haarlinie wie jede Liste, keine Karten in der
-     Karte (docs/design/linie.md 2, 3). `.liste` schneidet die letzte Linie
-     ab. */
-  if (!tabelle) return <div className="liste">{children}</div>;
-  return (
-    <div className="tabelle-rahmen">
-      <table className="tabelle">
-        <thead className="tabelle-kopfzeile">
-          <tr>
-            <th className="tabelle-kopf">Mitarbeiter</th>
-            <th className="tabelle-kopf">Stand</th>
-            <th className="tabelle-kopf-zahl">Ist</th>
-            <th className="tabelle-kopf-zahl">Soll</th>
-            <th className="tabelle-kopf-zahl">Saldo</th>
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
-    </div>
-  );
-}
-
-/**
- * Ein Mitarbeiter: als Karte mit Kopf (Telefon) oder als Tabellenzeile
- * (Schreibtisch). Der aufgeklappte Bereich ist in beiden Formen derselbe —
- * in der Tabelle steht er als Zeile über alle Spalten darunter.
- */
-function MitarbeiterZeile({
-  tabelle,
-  offen,
-  kopf,
-  zellen,
-  children,
-}: {
-  tabelle: boolean;
-  offen: boolean;
-  kopf: ReactNode;
-  zellen: ReactNode;
-  children: ReactNode;
-}) {
-  if (!tabelle) {
-    return (
-      <div className="konto-zeile">
-        {kopf}
-        {children}
-      </div>
-    );
-  }
-  return (
-    <>
-      <tr className={offen ? 'tabelle-zeile-offen' : 'tabelle-zeile'}>{zellen}</tr>
-      {offen && (
-        <tr>
-          <td colSpan={SPALTEN} className="tabelle-detail">
-            {children}
-          </td>
-        </tr>
-      )}
-    </>
-  );
 }
 
 /**
@@ -420,35 +345,13 @@ export default function AccountingView() {
     toast.success('Projektauswertung heruntergeladen');
   }
 
-  /** Am Schreibtisch die Mitarbeiter als Tabelle, am Telefon als Karten. */
-  const schreibtisch = useAbBreite(AB_TABELLE);
-
   if (!user) return null;
 
   return (
     <div className="space-y-6">
-      {/*
-        „ZEIT ERFASSEN" IST DIE HAUPTAKTION DER SEITE und steht deshalb
-        rechts im Seitenkopf — wie „Neuer Kunde", „Neue Baustelle", „Neuer
-        Schein" (docs/design/linie.md 1). Sie öffnet dasselbe Formular wie
-        vorher aus der Titelzeile der Monatskarte.
-      */}
       <PageHeader
         title="Mitarbeiterübersicht"
         subtitle="Monatsauswertung, Vollständigkeit und Salden"
-        action={
-          !creating && !editing ? (
-            <Button
-              variant="primary"
-              onClick={() => {
-                setEditing(null);
-                setCreating(true);
-              }}
-            >
-              Zeit erfassen
-            </Button>
-          ) : undefined
-        }
       />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -512,24 +415,33 @@ export default function AccountingView() {
 
       <Card
         title={`${MONTHS[month]} ${year}`}
-        // Die Zahl rechts im Titel wie in jeder Liste (Linie, 2), daneben
-        // die Zweitaktion weiß.
         action={
-          <div className="liste-kopf-rechts">
-            {!loading && !error && <span className="liste-anzahl">{rows.length}</span>}
+          <span className="flex flex-wrap gap-2">
+            {!creating && !editing && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setEditing(null);
+                  setCreating(true);
+                }}
+              >
+                Zeit erfassen
+              </Button>
+            )}
             {rows.length > 0 && (
               <Button variant="secondary" onClick={exportMonthCsv}>
+                <Icon name="download" size={16} className="mr-2 shrink-0" />
                 Monats-CSV
               </Button>
             )}
-          </div>
+          </span>
         }
       >
         {alleRows.length >= 8 && (
-          <div className="liste-suche">
+          <div className="mb-4 space-y-2">
             <InputField
               id="accsuche"
-              label="Suche"
+              label="Mitarbeiter suchen"
               type="search"
               placeholder="Name"
               value={suche}
@@ -538,14 +450,12 @@ export default function AccountingView() {
             {/* Beim Monatsabschluss zaehlt genau eine Frage: bei wem fehlt
                 noch etwas? Ohne diesen Filter scrollt man durch zwanzig
                 vollstaendige Zeilen, um die zwei offenen zu finden. */}
-            <div className="mt-2">
-              <CheckboxField
-                id="accluecken"
-                label={`Nur mit fehlenden Tagen (${luecken} von ${alleRows.length})`}
-                checked={nurLuecken}
-                onChange={(e) => setNurLuecken(e.target.checked)}
-              />
-            </div>
+            <CheckboxField
+              id="accluecken"
+              label={`Nur mit fehlenden Tagen (${luecken} von ${alleRows.length})`}
+              checked={nurLuecken}
+              onChange={(e) => setNurLuecken(e.target.checked)}
+            />
           </div>
         )}
         {loading ? (
@@ -577,7 +487,7 @@ export default function AccountingView() {
                 : 'Alle Zeitkonten sind vollständig.'}
           </EmptyState>
         ) : (
-          <MitarbeiterRahmen tabelle={schreibtisch}>
+          <div className="space-y-3">
             {rows.map(({ user: u, monthEntries, stats, completeness }) => {
               const open = expanded === u.uid;
               /*
@@ -590,156 +500,111 @@ export default function AccountingView() {
                 nicht auseinanderlaufen koennen.
               */
               const zeigtSaldo = stats.hasConfig;
-              /*
-                Lückenmarke und Saldo stehen im Kartenkopf wie in der
-                Tabellenzeile — einmal gebaut, damit beide dasselbe sagen.
-
-                „vollständig" braucht keine Pille — nur die Ausnahme
-                verdient Aufmerksamkeit. „heute offen" ist keine Lücke,
-                sondern der laufende Tag — er füllt sich von selbst bis zum
-                Feierabend.
-              */
-              const luecke =
-                completeness.status === 'missing' ? (
-                  <Warnung>
-                    {`${tageWort(completeness.missingCount)} ${
-                      completeness.missingCount === 1 ? 'fehlt' : 'fehlen'}`}
-                  </Warnung>
-                ) : completeness.status !== 'complete' ? (
-                  <Marke>{STATUS_LABEL[completeness.status]}</Marke>
-                ) : null;
-              /*
-                DER SALDO IST EINE ZAHL, KEINE AUFFORDERUNG. Er stand als
-                gefüllte Pille neben der Lückenmeldung, und zwei Pillen in
-                einer Zeile riefen beide gleich laut — dabei ist nur die eine
-                etwas zu tun. Ohne Eintrittsdatum steht gar keiner — warum,
-                sagt der Kartenkopf.
-              */
-              const saldo = !stats.hasConfig ? null : (
-                <Zustand
-                  stand={
-                    completeness.missingCount > 0
-                      ? 'ruht'
-                      : stats.saldoMin >= 0
-                        ? 'gut'
-                        : 'achtung'
-                  }
-                >
-                  <span>
-                    {stats.saldoMin > 0 ? '+' : ''}
-                    {fmtMin(stats.saldoMin)}
-                  </span>
-                </Zustand>
-              );
               return (
-                <MitarbeiterZeile
+                <div
                   key={u.uid}
-                  tabelle={schreibtisch}
-                  offen={open}
-                  kopf={
-                    <>
-                      {/* Der Kopf trägt nur noch, was den Mitarbeiter einordnet:
-                          Name, Ampel, Saldo. Krankheit, Urlaub und Resturlaub
-                          standen hier als vierte, fünfte, sechste Pille und
-                          ergaben eine Zeile, die man las statt überflog — sie
-                          stehen jetzt beschriftet im aufgeklappten Bereich.
-
-                          Der blaue Block beim Aufklappen ist ebenfalls weg. Er
-                          schrie lauter als der Inhalt, den er ankündigte; jetzt
-                          genügt der hellere Grund und die farbige Kante. */}
-                      <button
-                        type="button"
-                        onClick={() => setExpanded(open ? null : u.uid)}
-                        aria-expanded={open}
-                        className="konto-kopf"
-                      >
-                        <span className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="font-semibold text-ink">{u.name}</span>
-                          {luecke}
-                          {/*
-                            DIE MARKEN OHNE SALDO STEHEN BEIM NAMEN, nicht rechts.
-                            Rechts sind sie nicht schrumpfbar, und auf 375 px brach
-                            der Name daneben mitten im Wort: „Projektleite|r"
-                            (Prüflauf 24.09.2026, D20). Hier rutschen sie in die
-                            nächste Zeile.
-                          */}
-                          {!stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
-                        </span>
-                        <span className="flex shrink-0 items-center gap-3">
-                          <span className="hidden text-right sm:block">
-                            <span className="block text-sm font-semibold text-ink">
-                              {fmtMin(stats.istMin)}
-                            </span>
-                            {/*
-                              „von 176:00" im LAUFENDEN Monat las sich wie ein
-                              Monatsergebnis. Das Soll waechst aber mit jedem
-                              vergangenen Tag — deshalb sagt die Zeile jetzt, dass
-                              es ein Zwischenstand ist.
-                            */}
-                            <span className="block text-xs text-ink-muted">
-                              von {fmtMin(stats.sollMin)}
-                              {stats.istLaufend && ' bisher'}
-                            </span>
-                          </span>
-                          {/* Fehlen Buchungen, ist der Saldo eine Datenluecke und
-                              kein Befund ueber den Mitarbeiter. Rot behauptete das
-                              Gegenteil — und bei zwanzig Zeilen ergab das eine Wand
-                              aus Rot, in der die eine echte Unterstunde unterging. */}
-                          {/*
-                            Ohne Eintrittsdatum ist der Saldo keine Null, sondern
-                            gar keine Aussage. Vorher stand dort ein sauberes
-                            00:00 — das sah aus wie ein gepflegter Datensatz und
-                            verbarg, dass die Stammdaten unvollstaendig sind.
-                          */}
-                          {saldo}
-                          <Icon
-                            name="chevron"
-                            size={18}
-                            className={`shrink-0 text-ink-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-                          />
-                        </span>
-                      </button>
-                    </>
-                  }
-                  zellen={
-                    <>
-                      {/* Derselbe Aufklappknopf wie im Kartenkopf, hier in
-                          der ersten Spalte: Name und Winkel. Die übrigen
-                          Angaben stehen in ihren Spalten daneben. */}
-                      <td className="tabelle-name">
-                        <button
-                          type="button"
-                          onClick={() => setExpanded(open ? null : u.uid)}
-                          aria-expanded={open}
-                          className="tabelle-aufklapper"
-                        >
-                          <Icon
-                            name="chevron"
-                            size={18}
-                            className={`shrink-0 text-ink-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-                          />
-                          <span>{u.name}</span>
-                        </button>
-                      </td>
-                      <td className="tabelle-zelle">
-                        <span className="tabelle-marken">
-                          {luecke}
-                          {!stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
-                        </span>
-                      </td>
-                      <td className="tabelle-zahl-stark">{fmtMin(stats.istMin)}</td>
-                      <td className="tabelle-zahl">
-                        {fmtMin(stats.sollMin)}
-                        {stats.istLaufend && ' bisher'}
-                      </td>
-                      <td className="tabelle-zahl">{saldo}</td>
-                    </>
-                  }
+                  className={`panel overflow-hidden transition-colors ${
+                    open ? 'border-brand/40' : ''
+                  }`}
                 >
+                  {/* Der Kopf trägt nur noch, was den Mitarbeiter einordnet:
+                      Name, Ampel, Saldo. Krankheit, Urlaub und Resturlaub
+                      standen hier als vierte, fünfte, sechste Pille und
+                      ergaben eine Zeile, die man las statt überflog — sie
+                      stehen jetzt beschriftet im aufgeklappten Bereich.
+
+                      Der blaue Block beim Aufklappen ist ebenfalls weg. Er
+                      schrie lauter als der Inhalt, den er ankündigte; jetzt
+                      genügt der hellere Grund und die farbige Kante. */}
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(open ? null : u.uid)}
+                    aria-expanded={open}
+                    className={`flex min-h-touch w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors ${
+                      open ? 'bg-surface-2' : 'bg-surface hover:bg-surface-2'
+                    }`}
+                  >
+                    <span className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span className="font-semibold text-ink">{u.name}</span>
+                      {/* „vollständig" braucht keine Pille — nur die Ausnahme
+                          verdient Aufmerksamkeit. */}
+                      {completeness.status === 'missing' ? (
+                        <Warnung>
+                          {`${tageWort(completeness.missingCount)} ${
+                            completeness.missingCount === 1 ? 'fehlt' : 'fehlen'}`}
+                        </Warnung>
+                      ) : completeness.status !== 'complete' ? (
+                        /* „heute offen" ist keine Lücke, sondern der laufende
+                           Tag — er füllt sich von selbst bis zum Feierabend. */
+                        <Marke>{STATUS_LABEL[completeness.status]}</Marke>
+                      ) : null}
+                      {/*
+                        DIE MARKEN OHNE SALDO STEHEN BEIM NAMEN, nicht rechts.
+                        Rechts sind sie nicht schrumpfbar, und auf 375 px brach
+                        der Name daneben mitten im Wort: „Projektleite|r"
+                        (Prüflauf 24.09.2026, D20). Hier rutschen sie in die
+                        nächste Zeile.
+                      */}
+                      {!stats.hasConfig && <Marke>kein Eintritt hinterlegt</Marke>}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-3">
+                      <span className="hidden text-right sm:block">
+                        <span className="tnum block text-sm font-semibold text-ink">
+                          {fmtMin(stats.istMin)}
+                        </span>
+                        {/*
+                          „von 176:00" im LAUFENDEN Monat las sich wie ein
+                          Monatsergebnis. Das Soll waechst aber mit jedem
+                          vergangenen Tag — deshalb sagt die Zeile jetzt, dass
+                          es ein Zwischenstand ist.
+                        */}
+                        <span className="tnum block text-xs text-ink-muted">
+                          von {fmtMin(stats.sollMin)}
+                          {stats.istLaufend && ' bisher'}
+                        </span>
+                      </span>
+                      {/* Fehlen Buchungen, ist der Saldo eine Datenluecke und
+                          kein Befund ueber den Mitarbeiter. Rot behauptete das
+                          Gegenteil — und bei zwanzig Zeilen ergab das eine Wand
+                          aus Rot, in der die eine echte Unterstunde unterging. */}
+                      {/*
+                        Ohne Eintrittsdatum ist der Saldo keine Null, sondern
+                        gar keine Aussage. Vorher stand dort ein sauberes
+                        00:00 — das sah aus wie ein gepflegter Datensatz und
+                        verbarg, dass die Stammdaten unvollstaendig sind.
+                      */}
+                      {!stats.hasConfig ? null : (
+                        /*
+                          DER SALDO IST EINE ZAHL, KEINE AUFFORDERUNG. Er stand
+                          als gefüllte Pille neben der Lückenmeldung, und zwei
+                          Pillen in einer Zeile riefen beide gleich laut —
+                          dabei ist nur die eine etwas zu tun.
+                        */
+                        <Zustand
+                          stand={
+                            completeness.missingCount > 0
+                              ? 'ruht'
+                              : stats.saldoMin >= 0
+                                ? 'gut'
+                                : 'achtung'
+                          }
+                        >
+                          <span className="tnum">
+                            {stats.saldoMin > 0 ? '+' : ''}
+                            {fmtMin(stats.saldoMin)}
+                          </span>
+                        </Zustand>
+                      )}
+                      <Icon
+                        name="chevron"
+                        size={18}
+                        className={`shrink-0 text-ink-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                      />
+                    </span>
+                  </button>
+
                   {open && (
-                    // Am Telefon bündig mit dem Namen darüber (die Zeile hat
-                    // keinen Rahmen mehr), in der Tabelle mit Innenabstand.
-                    <div className={schreibtisch ? 'border-t border-line px-4 py-4' : 'konto-detail'}>
+                    <div className="border-t border-line px-4 py-4">
                       {/* Zuerst die Zahlen des Monats, dann erst die Tage.
                           Wer eine Zeitkarte öffnet, will meist nur wissen,
                           wie der Monat steht — nicht jeden einzelnen Tag. */}
@@ -778,11 +643,11 @@ export default function AccountingView() {
                                 die Zahl steht in Tinte, halbfett, eine Stufe
                                 kleiner.
                               */}
-                              <p className="mt-1 text-2xl font-semibold leading-none text-ink">
+                              <p className="tnum mt-1 text-2xl font-semibold leading-none text-ink">
                                 {stats.saldoMin > 0 ? '+' : ''}
                                 {fmtMin(stats.saldoMin)}
                               </p>
-                              <p className="mt-1.5 text-sm text-ink-muted">
+                              <p className="tnum mt-1.5 text-sm text-ink-muted">
                                 {fmtMin(stats.istMin)} von {fmtMin(stats.sollMin)} Soll
                                 {stats.istLaufend && ' bisher'}
                               </p>
@@ -795,7 +660,7 @@ export default function AccountingView() {
                               Mitarbeiter auszugeben. Gross steht dann, was
                               wirklich gemessen ist: die gebuchte Zeit.
                             */
-                            <p className="mt-1 text-2xl font-semibold leading-none text-ink">
+                            <p className="tnum mt-1 text-2xl font-semibold leading-none text-ink">
                               {fmtMin(stats.istMin)}
                             </p>
                           )}
@@ -805,7 +670,7 @@ export default function AccountingView() {
                           <b className="font-semibold text-ink">{stats.urlaubDays}</b> Tage Urlaub ·{' '}
                           {stats.zaMin > 0 && (
                             <>
-                              <b className="font-semibold text-ink">{fmtDauer(stats.zaMin)}</b> ZA ·{' '}
+                              <b className="font-semibold text-ink">{fmtMin(stats.zaMin)}</b> Std. ZA ·{' '}
                             </>
                           )}
                           <b
@@ -829,8 +694,8 @@ export default function AccountingView() {
                         sagt das „i" auf Wunsch.
                       */}
                       <p className="mt-3 text-xs text-ink-muted">
-                        Tagessoll {fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
-                        Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
+                        Tagessoll {stats.dailyTargetH.toFixed(2).replace('.', ',')} h ·
+                        Wochenstunden {String(stats.weeklyTarget).replace('.', ',')} h ·{' '}
                         {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
                         {stats.holidaysInMonth > 0 &&
                           ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
@@ -846,13 +711,11 @@ export default function AccountingView() {
                         )}
                       </p>
                       {!stats.hasConfig ? (
-                        <div className="mt-2">
-                          <Meldung ton="warnung">
-                            Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
-                            sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,
-                            sondern keine Aussage. Nachtragen in der Benutzerverwaltung.
-                          </Meldung>
-                        </div>
+                        <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
+                          Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
+                          sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,
+                          sondern keine Aussage. Nachtragen in der Benutzerverwaltung.
+                        </p>
                       ) : null}
 
                       {completeness.missingCount > 0 && (
@@ -867,10 +730,11 @@ export default function AccountingView() {
                           (Mitarbeiterkarte, Baustellenzeile). Aus dem Betrieb:
                           „macht der Pfeil vor dem roten text hier?"
 
-                          `.gruppe-kopf-knopf-warnung` nimmt dem `<summary>`
-                          das Dreieck (siehe index.css, „Kasten mit Kopf“).
-                          Der Winkel steht rechts und dreht sich beim Oeffnen
-                          — dieselbe Bewegung wie eine Zeile hoeher.
+                          `flex` nimmt dem `<summary>` das Dreieck (es ist dann
+                          kein list-item mehr), `list-none` sagt es zusaetzlich
+                          fuer Browser, die das anders halten. Der Winkel steht
+                          rechts und dreht sich beim Oeffnen — dieselbe
+                          Bewegung wie eine Zeile hoeher.
                         */
                         /*
                           Kein Rot mehr: die fehlenden Tage sind eine Lücke in
@@ -878,16 +742,20 @@ export default function AccountingView() {
                           mit der Warnpille. Hier genügt die Warnfarbe am
                           Titel; die Daten selbst stehen in normaler Schrift.
                         */
-                        <details className="gruppe mt-4">
-                          <summary className="gruppe-kopf-knopf-warnung">
+                        <details className="group mt-4 rounded border border-line bg-surface-2 text-sm">
+                          <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 font-medium text-warning [&::-webkit-details-marker]:hidden">
                             <span>
                               {completeness.missingCount === 1
                                 ? '1 Arbeitstag ohne Buchung'
                                 : `${completeness.missingCount} Arbeitstage ohne Buchung`}
                             </span>
-                            <Icon name="chevron" size={18} className="gruppe-winkel" />
+                            <Icon
+                              name="chevron"
+                              size={18}
+                              className="shrink-0 transition-transform duration-200 group-open:rotate-180"
+                            />
                           </summary>
-                          <p className="gruppe-text">
+                          <p className="px-3 pb-2 leading-relaxed text-ink">
                             {completeness.missingDates.map((d) => dayLabel(d)).join(' · ')}
                           </p>
                         </details>
@@ -1022,7 +890,7 @@ export default function AccountingView() {
                         return (
                           <div className="mt-4">
                             <details className="group">
-                              <summary className="kasten flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
+                              <summary className="flex min-h-touch cursor-pointer list-none items-center justify-between gap-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
                                 <span>
                                   Tagesnachweis ·{' '}
                                   <span className="whitespace-nowrap">
@@ -1032,7 +900,7 @@ export default function AccountingView() {
                                   </span>
                                 </span>
                                 <span className="flex shrink-0 items-center gap-2">
-                                  <span className="font-normal text-ink-muted">
+                                  <span className="tnum font-normal text-ink-muted">
                                     {fmtMin(stats.istMin)}
                                   </span>
                                   {/* Ohne Winkel war ueberhaupt nicht zu sehen,
@@ -1046,23 +914,15 @@ export default function AccountingView() {
                                   />
                                 </span>
                               </summary>
-                              {/*
-                                DIE TABELLE ERST AB `xl`. Neben der Seitenleiste
-                                bleiben auf 834 px rund 500 Pixel, auf 1024 rund
-                                600 — sechs Spalten und zwei Knöpfe passen dort
-                                nicht: „Bearbeiten" brach Buchstabe für Buchstabe
-                                um, danach die Baustelle. Bis `xl` gilt deshalb
-                                die Liste darunter.
-                              */}
-                              <table className="tabelle mt-1 hidden xl:table">
+                              <table className="mt-1 hidden w-full text-sm sm:table">
                               <thead>
-                                <tr>
-                                  <th className="tabelle-kopf">Tag</th>
-                                  <th className="tabelle-kopf">Status</th>
-                                  <th className="tabelle-kopf">Zeit</th>
-                                  <th className="tabelle-kopf">Baustelle</th>
-                                  <th className="tabelle-kopf-zahl">Stunden</th>
-                                  <th className="tabelle-kopf-zahl">
+                                <tr className="border-b border-line text-left text-ink-muted">
+                                  <th className="py-2 pr-3 font-medium">Tag</th>
+                                  <th className="py-2 pr-3 font-medium">Status</th>
+                                  <th className="py-2 pr-3 font-medium">Zeit</th>
+                                  <th className="py-2 pr-3 font-medium">Baustelle</th>
+                                  <th className="py-2 pr-3 text-right font-medium">Stunden</th>
+                                  <th className="py-2 text-right font-medium">
                                     <span className="sr-only">Aktionen</span>
                                   </th>
                                 </tr>
@@ -1073,11 +933,11 @@ export default function AccountingView() {
                                   // Buchungen desselben Tages haetten sonst
                                   // denselben, und React zoege die Zeilen
                                   // beim Bearbeiten durcheinander.
-                                  <tr key={x.entry?.id ?? x.d}>
-                                    <td className="tabelle-zelle whitespace-nowrap">
+                                  <tr key={x.entry?.id ?? x.d} className="border-b border-line/60">
+                                    <td className="tnum whitespace-nowrap py-2 pr-3 font-medium text-ink">
                                       {dayLabel(x.d)}
                                     </td>
-                                    <td className="tabelle-zelle">
+                                    <td className="py-2 pr-3">
                                       {/*
                                         Notdienst und Nachtarbeit gehören
                                         NEBEN den Status. Sie hängen an einem
@@ -1090,14 +950,14 @@ export default function AccountingView() {
                                         {x.entry && <Zeitmarker eintrag={x.entry} />}
                                       </span>
                                     </td>
-                                    <td className="tabelle-zelle whitespace-nowrap">
-                                      <span className="text-ink-muted">{x.zeit ?? '—'}</span>
+                                    <td className="tnum py-2 pr-3 text-ink-muted">
+                                      {x.zeit ?? '—'}
                                     </td>
-                                    <td className="tabelle-zelle">{x.entry?.customerName ?? '—'}</td>
-                                    <td className="tabelle-zahl-stark">
+                                    <td className="py-2 pr-3">{x.entry?.customerName ?? '—'}</td>
+                                    <td className="tnum py-2 pr-3 text-right font-medium">
                                       {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
                                     </td>
-                                    <td className="tabelle-zelle whitespace-nowrap">
+                                    <td className="py-2">
                                       {/* Flex statt Inline: sonst sitzen die
                                           Knöpfe auf der Textgrundlinie und
                                           hängen sichtbar unter der Zeile. */}
@@ -1109,16 +969,16 @@ export default function AccountingView() {
                                 ))}
                               </tbody>
                               <tfoot>
-                                <tr className="tabelle-gesamt">
-                                  <td className="tabelle-summe" colSpan={4}>
+                                <tr className="font-semibold">
+                                  <td className="pt-2" colSpan={4}>
                                     {monthEntries.length === 1
                                       ? '1 Eintrag'
                                       : `${monthEntries.length} Einträge`}
                                   </td>
-                                  <td className="tabelle-summe-zahl">
+                                  <td className="tnum pt-2 pr-3 text-right">
                                     {fmtMin(stats.istMin)}
                                   </td>
-                                  <td />
+                                  <td className="pt-2" />
                                 </tr>
                               </tfoot>
                             </table>
@@ -1143,41 +1003,46 @@ export default function AccountingView() {
                               kein Anhang; ein zusaetzlicher Klick waere dort
                               keine Ruhe, sondern ein Umweg.
                             */}
-                              <div className="xl:hidden">
-                                <List>
-                                  {days.map((x) => (
-                                    <ListRow
-                                      key={x.entry?.id ?? x.d}
-                                      title={dayLabel(x.d)}
-                                      wert={x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
-                                      subtitle={
-                                        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                          {status(x)}
-                                          {x.entry && <Zeitmarker eintrag={x.entry} />}
-                                          {x.zeit && <span>{x.zeit}</span>}
-                                          {x.entry?.customerName && <span>{x.entry.customerName}</span>}
-                                        </span>
-                                      }
-                                    >
-                                      {x.entry && actions(x.entry)}
-                                    </ListRow>
-                                  ))}
-                                  <ListRow
-                                    title={
-                                      monthEntries.length === 1
-                                        ? '1 Eintrag'
-                                        : `${monthEntries.length} Einträge`
-                                    }
-                                    wert={fmtMin(stats.istMin)}
-                                  />
-                                </List>
-                              </div>
+                              <ul className="sm:hidden">
+                              {days.map((x) => (
+                                <li key={x.entry?.id ?? x.d} className="border-b border-line/60 py-2">
+                                  <div className="flex items-baseline justify-between gap-2">
+                                    <span className="tnum font-semibold text-ink">
+                                      {dayLabel(x.d)}
+                                    </span>
+                                    <span className="tnum font-semibold text-ink">
+                                      {x.entry ? fmtMin(calcWorkMin(x.entry)) : '—'}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-muted">
+                                    {status(x)}
+                                    {x.entry && <Zeitmarker eintrag={x.entry} />}
+                                    {x.zeit && <span className="tnum">{x.zeit}</span>}
+                                    {x.entry?.customerName && <span>{x.entry.customerName}</span>}
+                                  </div>
+                                  {x.entry && (
+                                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                                      {actions(x.entry)}
+                                    </div>
+                                  )}
+                                </li>
+                              ))}
+                              <li className="flex justify-between py-2 font-semibold">
+                                <span>
+                                  {monthEntries.length === 1
+                                    ? '1 Eintrag'
+                                    : `${monthEntries.length} Einträge`}
+                                </span>
+                                <span className="tnum">{fmtMin(stats.istMin)}</span>
+                              </li>
+                              </ul>
                             </details>
                           </div>
                         );
                       })()}
                       <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
                         <Button variant="secondary" onClick={() => exportUserCsv(u)}>
+                          <Icon name="download" size={16} className="mr-2 shrink-0" />
                           Monat als CSV
                         </Button>
                         <Button variant="primary" onClick={() => setExportFor(u)}>
@@ -1193,10 +1058,10 @@ export default function AccountingView() {
                       </div>
                     </div>
                   )}
-                </MitarbeiterZeile>
+                </div>
               );
             })}
-          </MitarbeiterRahmen>
+          </div>
         )}
       </Card>
 

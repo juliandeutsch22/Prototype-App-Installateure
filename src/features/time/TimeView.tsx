@@ -9,7 +9,6 @@ import { getUserByUid } from '@/lib/db/users';
 import {
   calcWorkMin,
   fmtMin,
-  fmtDauer,
   calcOverallSaldo,
   saldoAusBilanzen,
   getISOWeek,
@@ -37,8 +36,6 @@ import { zuschlagszeit, hatZuschlaege } from '@/features/accounting/zuschlaege';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import RowMenu from '@/components/RowMenu';
-import Meldung from '@/components/Meldung';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
@@ -49,22 +46,6 @@ import { datumAT } from '@/lib/datum';
 
 /** Wie viele Monate die Liste zunaechst zurueckreicht. */
 const MONATE_JE_SEITE = 3;
-
-/**
- * Eine Dauer als Kennzahl: „09:00 Std" wie `fmtDauer`, die Einheit aber eine
- * Stufe kleiner — wie „17:00 von 38:30 Std" im Entwurf. In voller Größe
- * kostete „ Std" auf dem Tablet bei vier Kennzahlen die Breite, die die
- * Zahl selbst braucht; abgeschnitten („09:00 S…") wäre sie falsch.
- */
-function dauerKennzahl(min: number, vorzeichen = false) {
-  return (
-    <>
-      {vorzeichen && min > 0 ? '+' : ''}
-      {fmtMin(min)}
-      <span className="kennzahl-einheit"> Std</span>
-    </>
-  );
-}
 
 /** Wochenschlüssel 'KW n / JJJJ' für ein Datum. */
 function weekKey(d: Date): string {
@@ -422,7 +403,7 @@ export default function TimeView() {
       <button
         type="button"
         onClick={() => document.getElementById('meine-eintraege')?.scrollIntoView({ behavior: 'smooth' })}
-        className="textlink-allein gap-1 sm:hidden"
+        className="inline-flex min-h-touch items-center gap-1 text-sm font-medium text-brand sm:hidden"
       >
         Zu meinen Einträgen
         <Icon name="chevron" size={16} />
@@ -445,7 +426,10 @@ export default function TimeView() {
         nie gebuchte Stunde wird nie verrechnet.
       */}
       {nachtraege.length > 0 && (
-        <Meldung ton="warnung" role="alert">
+        <div
+          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning"
+          role="alert"
+        >
           <p className="flex flex-wrap items-center gap-1">
             <strong>
               {nachtraege.length === 1
@@ -485,48 +469,45 @@ export default function TimeView() {
               so. Erinnert wird {NACHTRAG_TAGE} Tage lang — was älter ist, klärt das Büro.
             </InfoHint>
           </p>
-          <div className="mt-2">
-            <List>
-              {nachtraege.map((n) => (
-                <ListRow
-                  key={n.schein.id}
-                  title={
-                    <span>
-                      {datumAT(n.schein.datum)} · {n.schein.customerName} · Baustelle{' '}
-                      {n.schein.projectNumber} · {fmtDauer(n.minuten)} beim Kunden
-                    </span>
-                  }
+          <ul className="mt-2 space-y-2">
+            {nachtraege.map((n) => (
+              <li key={n.schein.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-ink">
+                  {datumAT(n.schein.datum)} · {n.schein.customerName} · Baustelle{' '}
+                  {n.schein.projectNumber} · {fmtMin(n.minuten)} beim Kunden
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    /*
+                      Ein laufendes Bearbeiten wird beendet: sonst stünde die
+                      Vorbelegung im Formular für einen ANDEREN Eintrag, und
+                      der Monteur überschriebe versehentlich eine fremde
+                      Buchung mit den Zeiten dieses Scheins.
+                    */
+                    setEditing(null);
+                    setVorbelegung({
+                      date: n.schein.datum,
+                      projectNumber: n.schein.projectNumber,
+                      startTime: n.von,
+                      endTime: n.bis,
+                      breakDuration: n.pauseMin,
+                    });
+                  }}
                 >
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      /*
-                        Ein laufendes Bearbeiten wird beendet: sonst stünde die
-                        Vorbelegung im Formular für einen ANDEREN Eintrag, und
-                        der Monteur überschriebe versehentlich eine fremde
-                        Buchung mit den Zeiten dieses Scheins.
-                      */
-                      setEditing(null);
-                      setVorbelegung({
-                        date: n.schein.datum,
-                        projectNumber: n.schein.projectNumber,
-                        startTime: n.von,
-                        endTime: n.bis,
-                        breakDuration: n.pauseMin,
-                      });
-                    }}
-                  >
-                    Zeit nachtragen
-                  </Button>
-                </ListRow>
-              ))}
-            </List>
-          </div>
-        </Meldung>
+                  Zeit nachtragen
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {doppelteTage.size > 0 && (
-        <Meldung ton="gefahr" role="alert">
+        <p
+          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-danger"
+          role="alert"
+        >
           <strong>
             {doppelteTage.size === 1
               ? 'An einem Tag steht dieselbe Buchung zweimal.'
@@ -536,7 +517,7 @@ export default function TimeView() {
           {[...doppelteTage].sort().map(datumAT).join(', ')} — bitte unten in der Liste den
           überflüssigen Eintrag löschen. Mehrere Baustellen an einem Tag sind
           dagegen in Ordnung und stehen hier nicht.
-        </Meldung>
+        </p>
       )}
 
       <MetricRow>
@@ -582,11 +563,10 @@ export default function TimeView() {
             (Launch-Check 25.09.2026, R3): dort stand „+01:00", hier „+9,00 h"
             — zwei Formate für zwei verschiedene Zeiträume, und keiner war
             genannt. Hier gilt „seit Eintritt", dort der gewählte Monat.
-            Mit „Std" dahinter wie jede Dauer auf dieser Seite („+01:00 Std").
           */
           value={
             saldo?.hasConfig
-              ? dauerKennzahl(Math.round(saldo.saldoH * 60), true)
+              ? `${saldo.saldoH > 0 ? '+' : ''}${fmtMin(Math.round(saldo.saldoH * 60))}`
               : '—'
           }
           hint={
@@ -598,9 +578,7 @@ export default function TimeView() {
           }
         />
         )}
-        {/* Eine Dauer, also mit „Std" — wie die Wochensumme und die Zeilen
-            unten (Linie: „06:00 Std"). */}
-        <Metric label="Diese Woche" value={dauerKennzahl(thisWeekMin)} />
+        <Metric label="Diese Woche" value={fmtMin(thisWeekMin)} />
         {/*
           NUR WENN ES WELCHE GIBT. Eine Kachel, die bei den allermeisten
           dauerhaft „0:00" zeigt, nimmt auf dem Telefon die Breite weg, die
@@ -614,10 +592,10 @@ export default function TimeView() {
         {hatZuschlaege(zuschlag) && (
           <Metric
             label="Zuschlag"
-            value={dauerKennzahl(zuschlag.nachtMin + zuschlag.notdienstMin - zuschlag.beidesMin)}
+            value={fmtMin(zuschlag.nachtMin + zuschlag.notdienstMin - zuschlag.beidesMin)}
             hint={
-              `Nacht ${fmtDauer(zuschlag.nachtMin)} · Notdienst ${fmtDauer(zuschlag.notdienstMin)}` +
-              (zuschlag.beidesMin > 0 ? ` · ${fmtDauer(zuschlag.beidesMin)} beides` : '') +
+              `Nacht ${fmtMin(zuschlag.nachtMin)} · Notdienst ${fmtMin(zuschlag.notdienstMin)}` +
+              (zuschlag.beidesMin > 0 ? ` · ${fmtMin(zuschlag.beidesMin)} beides` : '') +
               ` · letzte ${monate} Monate`
             }
           />
@@ -666,29 +644,7 @@ export default function TimeView() {
         />
       )}
 
-      <Card
-        title="Meine Einträge"
-        id="meine-eintraege"
-        /*
-          Nachladen weitet das ZEITFENSTER der Abfrage, statt mehr von einer
-          ohnehin vollstaendig geladenen Liste freizugeben. Der Saldo oben
-          bleibt davon unberuehrt — er rechnet immer ab Eintritt. Im
-          Kartenfuß wie „Weitere … laden" in den übrigen Listen.
-        */
-        footer={
-          !loading &&
-          !error && (
-            <div className="nachladen">
-              <Button variant="secondary" onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}>
-                Ältere Einträge laden
-              </Button>
-              <span className="nachladen-hinweis">
-                Angezeigt werden die letzten {monate} Monate.
-              </span>
-            </div>
-          )
-        }
-      >
+      <Card title="Meine Einträge" id="meine-eintraege">
         {loading ? (
           <SkeletonList rows={5} />
         ) : error ? (
@@ -701,9 +657,9 @@ export default function TimeView() {
               const weekMin = rows.reduce((sum, e) => sum + calcWorkMin(e), 0);
               return (
                 <div key={week}>
-                  <h3 className="zeit-woche">
+                  <h3 className="mb-1 flex items-center justify-between text-sm font-semibold text-ink-muted">
                     <span>{week}</span>
-                    <span>{fmtDauer(weekMin)}</span>
+                    <span className="tnum">{fmtMin(weekMin)}</span>
                   </h3>
                   <List>
                     {rows.map((e) => {
@@ -720,25 +676,11 @@ export default function TimeView() {
                       return (
                         <ListRow
                           key={e.id}
-                          /*
-                            DIE MARKER STEHEN AM TITEL, wie in der
-                            Projektauswertung neben dem Namen: sie sagen, WAS
-                            diese Buchung ist (Nacht, Notdienst, Helfer, KI).
-                            Rechts neben Wert und Knöpfen schoben sie am
-                            Telefon „Löschen“ allein in eine zweite Reihe.
-                          */
                           title={
-                            <>
-                              <span>
-                                {datumAT(e.date)}
-                                {e.customerName && ` · ${e.customerName}`}
-                              </span>
-                              {/* Die Marker brechen gemeinsam um, nicht einzeln. */}
-                              <span className="zeit-marken">
-                                {e.source === 'voice' && <Marke>KI</Marke>}
-                                <Zeitmarker eintrag={e} />
-                              </span>
-                            </>
+                            <span>
+                              {datumAT(e.date)}
+                              {e.customerName && ` · ${e.customerName}`}
+                            </span>
                           }
                           subtitle={
                             <>
@@ -750,15 +692,15 @@ export default function TimeView() {
                               )}
                             </>
                           }
-                          zustand={
-                            doppelteTage.has(e.date) ? (
-                              <Warnung stufe="dringend">doppelt gebucht</Warnung>
-                            ) : undefined
-                          }
-                          // Eine Dauer, keine Uhrzeit — neben dem Datum läse
-                          // sich „09:00“ allein als Beginn.
-                          wert={fmtDauer(calcWorkMin(e))}
                         >
+                          {doppelteTage.has(e.date) && (
+                            <Warnung stufe="dringend">doppelt gebucht</Warnung>
+                          )}
+                          {e.source === 'voice' && <Marke>KI</Marke>}
+                          <Zeitmarker eintrag={e} />
+                          <span className="tnum font-medium text-ink">
+                            {fmtMin(calcWorkMin(e))}
+                          </span>
                           {/* Verrechnete Einträge sind Grundlage einer
                               verschickten Rechnung und bleiben gesperrt. */}
                           {e.isBilled ? (
@@ -774,17 +716,13 @@ export default function TimeView() {
                             // nur über den Antrag.
                             <AntragKnopf eintrag={e} />
                           ) : (
-                            /* Bearbeiten ist die häufige Aktion und bleibt
-                               Textknopf; Löschen ist selten und liegt im
-                               Zeilenmenü (Linie, 3) — die Rückfrage bleibt. */
                             <>
                               <Button variant="ghost" onClick={() => setEditing(e)}>
                                 Bearbeiten
                               </Button>
-                              <RowMenu
-                                about={`Eintrag vom ${datumAT(e.date)}`}
-                                items={[{ label: 'Löschen', danger: true, onSelect: () => setToDelete(e) }]}
-                              />
+                              <Button variant="ghost" onClick={() => setToDelete(e)}>
+                                Löschen
+                              </Button>
                             </>
                           )}
                         </ListRow>
@@ -794,6 +732,21 @@ export default function TimeView() {
                 </div>
               );
             })}
+          </div>
+        )}
+        {/*
+          Nachladen weitet das ZEITFENSTER der Abfrage, statt mehr von einer
+          ohnehin vollstaendig geladenen Liste freizugeben. Der Saldo oben
+          bleibt davon unberuehrt — er rechnet immer ab Eintritt.
+        */}
+        {!loading && !error && (
+          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+            <Button variant="secondary" onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}>
+              Ältere Einträge laden
+            </Button>
+            <span className="text-sm text-ink-muted">
+              Angezeigt werden die letzten {monate} Monate.
+            </span>
           </div>
         )}
       </Card>

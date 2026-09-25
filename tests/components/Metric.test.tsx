@@ -1,43 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import Metric, { MetricRow } from '@/components/Metric';
+import Metric, { MetricRow, GUTER_RAND } from '@/components/Metric';
 import { SkeletonMetrics } from '@/components/States';
 import Card from '@/components/Card';
-
-/**
- * Die Regel EINER Klasse aus `src/index.css` — ihr Körper zwischen den
- * geschweiften Klammern. Seit die Bausteine je Element genau eine Klasse
- * tragen (Design-Durchgang 25.09.2026), stehen die Maße dort und nicht mehr
- * als Tailwind-Klassen an der Komponente; die Prüfung liest sie deshalb dort.
- */
-// Ohne Kommentare: sie stehen vor den Regeln und enthielten sonst Kommas und
-// Klammern, die die Selektorliste verfälschen.
-const CSS = readFileSync(resolve(__dirname, '../../src/index.css'), 'utf8').replace(
-  /\/\*[\s\S]*?\*\//g,
-  '',
-);
-
-/**
- * Alle Angaben, die für `.klasse` gelten — aus jeder Regel, in deren
- * Selektorliste sie steht, auch innerhalb von Media-Abfragen, in der
- * Reihenfolge der Datei zusammengelegt.
- */
-function regel(klasse: string): string {
-  const teile: string[] = [];
-  for (const m of CSS.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const selektoren = m[1].split(',').map((x) => x.trim());
-    if (selektoren.includes(`.${klasse}`)) teile.push(m[2]);
-  }
-  if (teile.length === 0) throw new Error(`.${klasse} steht nicht in index.css`);
-  return teile.join(';');
-}
-function wert(klasse: string, eigenschaft: string): string | null {
-  const treffer = [...regel(klasse).matchAll(new RegExp(`(?:^|[;\\s])${eigenschaft}\\s*:\\s*([^;]+);`, 'g'))];
-  return treffer.length ? treffer[treffer.length - 1][1].trim() : null;
-}
 
 /**
  * Die Kennzahlen-Leiste fluchtet mit dem, was unter ihr steht.
@@ -67,20 +33,17 @@ describe('Die Kennzahlen-Leiste', () => {
     // Der Körper der Karte ist das Geschwister nach dem Kopf.
     const koerper = karte.querySelector('section > div')!;
 
-    // Beide tragen ihre Baustein-Klasse …
-    expect([...reihe.classList]).toEqual(['kennzahlen']);
-    expect([...koerper.classList]).toEqual(['karte-inhalt']);
-
     /*
-      … und die beiden Maße sind DASSELBE. Zuerst geprüft, dass es überhaupt
-      eines gibt: ein fehlender Wert auf beiden Seiten wäre auch „gleich“ —
-      genau daran ist diese Prüfung beim ersten Anlauf vorbeigelaufen.
+      DAS MASS WIRD ZUERST GEPRÜFT, und das ist nicht überflüssig: mit
+      `toContain` allein ginge eine LEERE Polsterung durch — jede
+      Zeichenkette enthält die leere. Genau daran ist diese Prüfung beim
+      ersten Anlauf vorbeigelaufen, und das ist der Ausgangsfehler selbst.
     */
-    const leisteRand = wert('kennzahlen', 'padding-inline');
-    const karteRand = wert('karte-inhalt', 'padding');
-    expect(leisteRand).toMatch(/^\d+(\.\d+)?rem$/);
-    expect(karteRand).toMatch(/^\d+(\.\d+)?rem$/);
-    expect(leisteRand).toBe(karteRand);
+    expect(GUTER_RAND).toMatch(/^px-\d+$/);
+    // Über die Klassenliste und nicht über die Zeichenkette: `px-4` steckt
+    // auch in `px-40`.
+    expect([...reihe.classList]).toContain(GUTER_RAND);
+    expect([...koerper.classList]).toContain(GUTER_RAND);
   });
 
   it('und der Ladeplatzhalter trägt sie auch', () => {
@@ -91,20 +54,15 @@ describe('Die Kennzahlen-Leiste', () => {
       verhindern.
     */
     const { container } = render(<SkeletonMetrics />);
-    expect([...container.firstElementChild!.classList]).toEqual(['kennzahlen']);
+    expect([...container.firstElementChild!.classList]).toContain(GUTER_RAND);
   });
 
   it('lässt die erste Spalte links und die letzte rechts bündig stehen', () => {
     /*
       Die Polsterung sitzt an der REIHE, die Trennstriche zwischen den
-      Spalten. Bekäme eine Spalte eine eigene dazu, stünde die Beschriftung
-      doppelt eingerückt — und die Flucht wäre wieder dahin, nur in die
-      andere Richtung.
-
-      Seit dem 25.09.2026 ohne `first:`/`last:`: die Spalten tragen GAR KEINE
-      seitliche Polsterung, den Abstand zwischen ihnen macht das Trennelement.
-      Geprüft wird beides — dass die Spalte keine Polsterung hat, und dass
-      zwischen zwei Spalten genau ein Trenner steht und außen keiner.
+      Spalten. Bekäme die erste Spalte ihre eigene dazu, stünde die
+      Beschriftung doppelt eingerückt — und die Flucht wäre wieder dahin,
+      nur in die andere Richtung.
     */
     const { container } = render(
       <MetricRow>
@@ -112,10 +70,16 @@ describe('Die Kennzahlen-Leiste', () => {
         <Metric label="Bezahlt" value="€ 2,00" />
       </MetricRow>,
     );
-    const kinder = [...container.firstElementChild!.children].map((k) => k.className);
-    expect(kinder).toEqual(['kennzahl', 'kennzahl-trenner', 'kennzahl']);
-    expect(regel('kennzahl')).not.toMatch(/padding/);
-    expect(wert('kennzahl-trenner', 'margin-inline')).toMatch(/^\d+(\.\d+)?rem$/);
+    /*
+      MIT `sm:`-VORSATZ, und das ist kein Aufweichen der Pruefung: seit die
+      Leiste auf dem Telefon ein zweispaltiges Raster ist, tragen die Spalten
+      dort GAR KEINE Polsterung — es gibt also nichts zurueckzunehmen. Erst ab
+      `sm` stehen sie wieder in einer Reihe mit `sm:px-3`, und genau dort muss
+      die aeussere Polsterung wieder weg.
+    */
+    const spalten = [...container.firstElementChild!.children];
+    expect([...spalten[0].classList]).toContain('sm:first:pl-0');
+    expect([...spalten[spalten.length - 1].classList]).toContain('sm:last:pr-0');
   });
 
   it('zeigt Beschriftung und Wert', () => {

@@ -16,26 +16,13 @@ import { anmelden, keineFehlermeldung } from './helfer';
  * Finger und Stift schon zweimal gebrochen ist.
  */
 async function unterschreiben(flaeche: import('@playwright/test').Locator, hoehe: number) {
-  // ERST IN DIE MITTE DES FENSTERS ROLLEN. Die Maus arbeitet mit Koordinaten
+  // ERST IN DEN SICHTBAREN BEREICH ROLLEN. Die Maus arbeitet mit Koordinaten
   // des Fensters; liegt das Feld darunter, zeigt der Zeiger ins Leere und es
-  // entsteht kein Strich — ohne dass irgendetwas fehlschlägt. Am Telefon
-  // liegen unten die Aktionsleiste und die Tableiste über dem Inhalt; ein
-  // Feld, das nur „irgendwie im Bild" ist, kann darunter stecken. Deshalb mittig.
-  await flaeche.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  // entsteht kein Strich — ohne dass irgendetwas fehlschlägt.
+  await flaeche.scrollIntoViewIfNeeded();
   const kasten = await flaeche.boundingBox();
   if (!kasten) throw new Error('Unterschriftsfeld nicht sichtbar');
   const y = kasten.y + kasten.height / 2;
-  // Und nachsehen, dass unter dem Zeiger wirklich das Feld liegt — sonst
-  // zeichnete die Maus auf die Leiste darüber, und die Prüfung fiele erst
-  // Zeilen später mit einer irreführenden Meldung.
-  expect(
-    await flaeche
-      .page()
-      .evaluate(
-        ([x, yy]) => document.elementFromPoint(x, yy)?.tagName,
-        [kasten.x + kasten.width / 2, y] as const,
-      ),
-  ).toBe('CANVAS');
   await flaeche.page().mouse.move(kasten.x + 20, y);
   await flaeche.page().mouse.down();
   // Mehrere Zwischenschritte: ein einzelner Sprung von A nach B hinterlässt
@@ -55,21 +42,7 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   await page.getByRole('link', { name: 'Handwerksscheine' }).first().click();
   await page.getByRole('link', { name: 'Neuer Schein' }).click();
 
-  /*
-    AB HIER AM TELEFON. Der Schein wird dort geschrieben, und dort steht er
-    als Schrittfolge — Zeiten, Material, Fotos, Unterschrift —, am
-    Schreibtisch als eine Seite. Geprüft wird der Weg, auf dem der Monteur
-    ihn wirklich ausfüllt, samt der Frage, ob das Weiterklicken die Eingaben
-    der vorigen Schritte mitnimmt. Die Navigation davor bleibt am
-    Schreibtisch: sie ist nicht Gegenstand dieses Wegs.
-  */
-  await page.setViewportSize({ width: 390, height: 844 });
-  const schritt = page
-    .getByRole('navigation', { name: 'Schritte des Scheins' })
-    .locator('[aria-current="step"]');
-
-  await page.getByLabel('Baustelle', { exact: true }).selectOption(BAUSTELLE.nummer);
-  await expect(schritt).toHaveText('1 Zeiten');
+  await page.getByLabel('Baustelle').selectOption(BAUSTELLE.nummer);
   await page.getByLabel('Tätigkeit (optional)').fill('Bad entkernt, Leitungen neu verlegt.');
   await page.getByLabel(/^Bis/).fill('16:00');
   /*
@@ -82,56 +55,22 @@ test('Ein Monteur schreibt einen Schein und lässt ihn unterschreiben', async ({
   await page.getByRole('button', { name: 'Zeile hinzufügen' }).click();
 
   /*
-    WEITER DURCH DIE SCHRITTE. Material und Fotos bleiben leer — beides ist
-    freiwillig, und „Weiter" sperrt nicht. Jeder Schritt muss aber wirklich
-    erscheinen, sonst klickte die Prüfung durch eine Leiste, die nichts tut.
-  */
-  await page.getByRole('button', { name: 'Weiter: Material' }).click();
-  await expect(schritt).toHaveText('2 Material');
-  await expect(page.getByLabel('Freie Zeile (nicht im Lager geführt)')).toBeVisible();
-  await page.getByRole('button', { name: 'Weiter: Fotos' }).click();
-  await expect(schritt).toHaveText('3 Fotos');
-  await expect(page.getByLabel('Notizen, Regiearbeiten, Mängel')).toBeVisible();
-  await page.getByRole('button', { name: 'Weiter: Unterschrift' }).click();
-  await expect(schritt).toHaveText('4 Unterschrift');
-
-  // Die Zusammenfassung trägt die Zeit aus dem ersten Schritt: 08:00 bis 16:00.
-  await expect(page.getByText('08:00 Std', { exact: true })).toBeVisible();
-
-  /*
     DER NAME DES KUNDEN IN DRUCKBUCHSTABEN IST PFLICHT, und der Knopf bleibt
     ohne ihn gesperrt. Eine gekritzelte Unterschrift allein sagt später
     niemandem, WER unterschrieben hat — auf dem Schein steht deshalb beides.
   */
   await page.getByLabel('Kunde (Name in Druckbuchstaben)').fill(BAUSTELLE.kunde);
 
-  /*
-    AM TELEFON WIRD IN EINEM BLATT UNTERSCHRIEBEN (seit 25.09.2026, Mockup
-    S. 6). Im Formular steht je Unterschrift nur eine Kachel; ein Tipp öffnet
-    die Zeichenfläche bildschirmfüllend, „Fertig" schliesst sie wieder. Der
-    Weg zeichnet deshalb im Blatt statt im Formular — mit derselben Maus und
-    derselben Prüfung, dass unter dem Zeiger wirklich das Canvas liegt. Vor
-    dem Öffnen gibt es im Formular keine Zeichenfläche.
-  */
-  await expect(page.locator('canvas')).toHaveCount(0);
-  async function imBlatt(titel: string, hoehe: number) {
-    await page.getByRole('button', { name: `${titel} — zum Unterschreiben antippen` }).click();
-    const blatt = page.getByRole('dialog', { name: titel });
-    await expect(blatt).toBeVisible();
-    await unterschreiben(blatt.locator('canvas'), hoehe);
-    await blatt.getByRole('button', { name: 'Fertig' }).click();
-    await expect(blatt).toBeHidden();
-  }
+  const felder = page.locator('canvas');
+  await expect(felder).toHaveCount(2);
   /*
     ZWEI VERSCHIEDENE ZÜGE, und das ist kein Schmuck. Mit demselben Strich auf
     beiden Feldern wäre diese Prüfung blind dafür, dass die Ansicht zweimal
     dasselbe Bild einfriert — ein Schein, auf dem der Kunde die Handschrift des
     Monteurs trägt. Genau diese Mutation ist beim ersten Anlauf durchgekommen.
   */
-  await imBlatt('Unterschrift Monteur', 12);
-  // Die Unterschrift des Monteurs steht danach als erledigte Zeile da.
-  await expect(page.getByText('Monteur hat unterschrieben')).toBeVisible();
-  await imBlatt('Unterschrift Kunde', 28);
+  await unterschreiben(felder.nth(0), 12);
+  await unterschreiben(felder.nth(1), 28);
 
   await page.getByRole('button', { name: 'Unterschreiben und abschließen' }).click();
 

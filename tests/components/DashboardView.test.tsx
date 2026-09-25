@@ -3,7 +3,6 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Assignment, MaterialOrder, Project, TimeEntry } from '@/types';
-import { karteMitZahl, karteZaehlt } from './kartenZahl';
 
 /**
  * Die Startseite hatte bis hierher KEINEN Test.
@@ -263,71 +262,15 @@ describe('Startseite — Monteur', () => {
     );
   });
 
-  it('nennt die fehlenden Tage mit Datum — und den Saldo nur für den Monat', async () => {
-    /*
-      SEIT DEM MONTEUR-START (Design-Durchgang 25.09.2026) stehen die
-      fehlenden Tage unter „Offen für dich“ als Zeile statt als Warnkasten —
-      weiterhin mit den konkreten Daten. Und der Auftrag verlangt in „Diese
-      Woche“ ausdrücklich den Saldo: es ist der des MONATS, aus den ohnehin
-      geladenen Buchungen. Der Saldo seit Eintritt bleibt in der
-      Zeiterfassung — genau das hält diese Prüfung weiter fest.
-    */
+  it('nennt die fehlenden Tage statt eines Saldos', async () => {
     zeichne();
     // Gebucht ist nur der 1.9. — vom 2.9. bis gestern (14.9.) fehlt alles.
-    const zeile = (await screen.findByText(/Tage ohne Buchung/)).closest('li')!;
+    const hinweis = await screen.findByRole('alert');
+    expect(hinweis).toHaveTextContent(/Tage ohne Buchung/);
     // Konkrete Daten, nicht nur eine Zahl: „3 Tage fehlen" zwingt zum Suchen.
-    expect(zeile).toHaveTextContent(/\d{2}\.\d{2}\./);
-    expect(within(zeile).getByRole('link', { name: /Tage ohne Buchung/ })).toHaveAttribute('href', '/time');
-    // Der Monatssaldo, nicht der seit Eintritt.
-    expect(screen.getByText(/^Saldo (Jänner|Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)$/)).toBeInTheDocument();
-    expect(screen.queryByText(/seit Eintritt/i)).not.toBeInTheDocument();
-  });
-});
-
-/**
- * Der Kopf der Startseite (docs/design/linie.md 9): klein der Tag, groß der
- * Gruß — für alle Rollen derselbe.
- */
-describe('Startseite — der Kopf', () => {
-  it('grüßt nach der Tageszeit mit dem Vornamen, der Tag steht klein darüber', async () => {
-    zeichne();
-    // Die Uhr steht auf 10:00 — noch Morgen.
-    const titel = await screen.findByRole('heading', { level: 1, name: 'Guten Morgen, Anton' });
-    expect(titel.previousElementSibling).toHaveTextContent('Dienstag, 15.09.2026 · KW 38');
-    // Firma und Rolle stehen in Seitenleiste und Profil — hier nicht zum
-    // dritten Mal.
-    expect(screen.queryByText(/Rolle:/)).not.toBeInTheDocument();
-  });
-
-  it('bietet am Schreibtisch „Zeit buchen“ als Hauptaktion — auch dem Büro mit Zeitkonto', async () => {
-    rolle.wert = 'Projektleiter';
-    zeichne();
-    expect(await screen.findByRole('heading', { level: 1, name: 'Guten Morgen, Anton' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Zeit buchen' })).toHaveAttribute('href', '/time');
-  });
-});
-
-describe('Startseite — nächste Einsätze des Monteurs', () => {
-  it('nennt die kommenden Einsätze aus derselben Abfrage, mit Kunde und Nummer', async () => {
-    const { listUpcomingAssignments } = await import('@/lib/db/assignments');
-    vi.mocked(listUpcomingAssignments).mockResolvedValueOnce([
-      ...einsaetze,
-      {
-        id: 'a3',
-        companyId: 'perl',
-        date: '2026-09-17',
-        projectNumber: 'B-002',
-        userId: 'm1',
-        userName: 'Anton Berger',
-        comment: 'Heizung fertig',
-      },
-    ]);
-    zeichne();
-    const karte = (await screen.findByRole('heading', { name: 'Nächste Einsätze' })).closest('section')!;
-    expect(within(karte).getByText('Gemeinde Neudorf · B-002')).toBeInTheDocument();
-    expect(within(karte).getByText(/Heizung fertig · Rathausplatz 1/)).toBeInTheDocument();
-    // Die heutigen stehen unter „Heute“, nicht noch einmal hier.
-    expect(within(karte).queryByText(/Familie Huber/)).not.toBeInTheDocument();
+    expect(hinweis).toHaveTextContent(/\d{2}\.\d{2}\./);
+    // Und ausdrücklich KEIN Saldo mehr.
+    expect(screen.queryByText(/Saldo/i)).not.toBeInTheDocument();
   });
 });
 
@@ -359,7 +302,7 @@ describe('Startseite — Geschäftsführung', () => {
 
   it('listet alle aktiven Baustellen, aber keine abgeschlossene', async () => {
     zeichne();
-    const karte = await karteMitZahl(/^Aktive Baustellen/, 2);
+    const karte = (await screen.findByText(/Aktive Baustellen \(2\)/i)).closest('section')!;
     expect(within(karte).getByText(/Familie Huber/)).toBeInTheDocument();
     expect(within(karte).getByText(/Gemeinde Neudorf/)).toBeInTheDocument();
     // Die abgeschlossene Baustelle gehört hier nicht hin — sie macht mit den
@@ -617,7 +560,7 @@ describe('Startseite — wie viele Zeilen je Karte', () => {
     rolle.wert = 'Geschäftsführung';
     zeichne();
 
-    await karteZaehlt(/^Aktive Baustellen/, 5);
+    expect(await screen.findByText(/Aktive Baustellen \(5\)/)).toBeInTheDocument();
     expect(screen.getByText(/Kunde 004/)).toBeInTheDocument();
     expect(screen.queryByText(/weitere/)).not.toBeInTheDocument();
   });
@@ -628,7 +571,7 @@ describe('Startseite — wie viele Zeilen je Karte', () => {
     zeichne();
 
     // Die Zahl im Titel bleibt die WAHRE — sie ist die Aussage der Karte.
-    await karteZaehlt(/^Aktive Baustellen/, 30);
+    expect(await screen.findByText(/Aktive Baustellen \(30\)/)).toBeInTheDocument();
     expect(screen.getByText(/Kunde 011/)).toBeInTheDocument();
     expect(screen.queryByText(/Kunde 012/)).not.toBeInTheDocument();
     expect(screen.getByText(/und 18 weitere/)).toBeInTheDocument();

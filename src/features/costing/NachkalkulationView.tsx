@@ -19,28 +19,14 @@ import { List, ListRow } from '@/components/ListRow';
 import { SelectField } from '@/components/Field';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
-import Meldung from '@/components/Meldung';
 import { fmtStd } from '@/lib/time';
-import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
-import { euro } from '@/lib/geld';
+
+const fmtEUR = (n: number) =>
+  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
 /** Prozent mit Komma — überall sonst schreibt die App deutsch. */
 const fmtProzent = (n: number) =>
   `${new Intl.NumberFormat('de-AT', { maximumFractionDigits: 1 }).format(n)} %`;
-
-/**
- * Stunden und Herkunft des Erlöses — die Zeile, die in Liste und Tabelle
- * unter der Baustelle steht.
- */
-const herkunft = (k: Nachkalkulation) =>
-  `${fmtStd(k.fachStunden * 60)} h Facharbeit` +
-  (k.helferStunden > 0 ? `, ${fmtStd(k.helferStunden * 60)} h Helfer` : '') +
-  ' · ' +
-  (k.erloesQuelle === 'Rechnungen'
-    ? 'Erlös aus Rechnungen'
-    : k.erloesQuelle === 'Angebot'
-      ? 'Erlös aus dem Angebot — noch nicht verrechnet'
-      : 'kein Erlös hinterlegt');
 
 /** Wie viele Baustellen gleichzeitig gerechnet werden. */
 const BAUSTELLEN_JE_LAUF = 25;
@@ -78,7 +64,6 @@ export default function NachkalkulationView() {
   const selbstGewaehlt = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const schreibtisch = useAbBreite(AB_TABELLE);
 
   const kosten = company?.costRates;
 
@@ -206,11 +191,11 @@ export default function NachkalkulationView() {
         an der falschen Stelle.
       */}
       {katalogAbgeschnitten(katalog) && (
-        <Meldung ton="warnung">
+        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
           Der Materialstamm wurde nur bis zur Obergrenze geladen ({katalog.length} Artikel). Artikel
           darüber hinaus erscheinen unten als „ohne Einkaufspreis", obwohl einer hinterlegt sein
           kann — der Deckungsbeitrag ist dann zu hoch ausgewiesen.
-        </Meldung>
+        </p>
       )}
 
       {/*
@@ -230,26 +215,22 @@ export default function NachkalkulationView() {
             von null — und das sähe aus wie ein Ergebnis.
           </p>
           <p className="mt-3">
-            <Link to="/settings/saetze" className="textlink-allein">
+            <Link to="/settings/saetze" className="font-semibold text-brand underline">
               Einstellungen → Sätze und Kosten → Interne Kostensätze
             </Link>
           </p>
         </Card>
       ) : (
         <>
-          {error && <ErrorState message={error} />}
-
           {/*
-            DIE AUSWAHL STEHT RECHTS IM KARTENTITEL, wie der Filter jeder
-            Liste (docs/design/linie.md 2) — vorher eine eigene Karte
-            „Auswahl" mit einem einzigen Feld über der Liste. Ihr Hinweis
-            steht jetzt im „i" dieser Karte. Was sich MIT der Auswahl ändert
-            (laufend oder abgeschlossen), bleibt sichtbar als erste Zeile: das
-            ist keine Erklärung, sondern eine Aussage über das, was gerade auf
-            dem Schirm steht.
+            Der Hinweis zur Auswahl stand hier dauerhaft unter dem Feld. Beim
+            ersten Mal erklärt er etwas, ab dem zweiten Mal steht er im Weg —
+            deshalb hinter dem „i". Was sich MIT der Auswahl ändert (laufend
+            oder abgeschlossen), bleibt sichtbar: das ist keine Erklärung,
+            sondern eine Aussage über das, was gerade auf dem Schirm steht.
           */}
           <Card
-            title="Ergebnis je Baustelle"
+            title="Auswahl"
             hint={
               <>
                 Ein <strong>laufender</strong> Stand ist ein Zwischenstand: es kommen noch
@@ -258,136 +239,84 @@ export default function NachkalkulationView() {
                 werden jeweils die {BAUSTELLEN_JE_LAUF} jüngsten.
               </>
             }
-            action={
-              <div className="liste-kopf-rechts">
-                {!loading && ergebnisse !== null && (
-                  <span className="liste-anzahl">{ergebnisse.length}</span>
-                )}
-                <SelectField
-                  id="nkstatus"
-                  label=""
-                  aria-label="Baustellen"
-                  value={status}
-                  onChange={(e) => {
-                    selbstGewaehlt.current = true;
-                    setStatus(e.target.value as 'Aktiv' | 'Abgeschlossen');
-                  }}
-                >
-                  <option value="Abgeschlossen">Abgeschlossen</option>
-                  <option value="Aktiv">Laufend</option>
-                </SelectField>
-              </div>
-            }
           >
+            <SelectField
+              id="nkstatus"
+              label="Baustellen"
+              value={status}
+              onChange={(e) => {
+                selbstGewaehlt.current = true;
+                setStatus(e.target.value as 'Aktiv' | 'Abgeschlossen');
+              }}
+            >
+              <option value="Abgeschlossen">Abgeschlossen</option>
+              <option value="Aktiv">Laufend</option>
+            </SelectField>
             {status === 'Aktiv' && (
-              <p className="mb-3 text-sm text-warning">Zwischenstand — es kommen noch Stunden dazu.</p>
+              <p className="mt-2 text-sm text-warning">Zwischenstand — es kommen noch Stunden dazu.</p>
             )}
+          </Card>
+
+          {error && <ErrorState message={error} />}
+
+          <Card title="Ergebnis je Baustelle">
             {loading || ergebnisse === null ? (
               <SkeletonList rows={4} />
             ) : ergebnisse.length === 0 ? (
               <EmptyState>Keine Baustelle in dieser Auswahl.</EmptyState>
             ) : (
               <>
-                {schreibtisch ? (
-                  /*
-                    AM SCHREIBTISCH EINE TABELLE: Erlös, Personal, Material und
-                    Deckungsbeitrag stehen Stelle unter Stelle und lassen sich
-                    über 25 Baustellen vergleichen — in der Rechenzeile der
-                    Liste liefen sie mit der Länge der Beträge davor hin und
-                    her. Dieselben Angaben, dieselbe Reihenfolge (die
-                    schlechteste oben), genau eine Form im DOM.
-                  */
-                  <div className="tabelle-rahmen">
-                    <table className="tabelle">
-                      <thead className="tabelle-kopfzeile">
-                        <tr>
-                          <th className="tabelle-kopf">Baustelle</th>
-                          <th className="tabelle-kopf-zahl">Erlös</th>
-                          <th className="tabelle-kopf-zahl">Personal</th>
-                          <th className="tabelle-kopf-zahl">Material</th>
-                          <th className="tabelle-kopf-zahl">Deckungsbeitrag</th>
-                          <th className="tabelle-kopf-zahl">Marge</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ergebnisse.map((k) => (
-                          <tr key={k.projectNumber} className="tabelle-zeile">
-                            <td className="tabelle-name">
-                              {k.customerName}
-                              <span className="tabelle-unter">
-                                {k.projectNumber} · {herkunft(k)}
-                              </span>
-                              {k.materialLuecken.length > 0 && (
-                                <span className="mt-1 block text-xs text-warning">
-                                  Ohne Einkaufspreis, deshalb nicht eingerechnet:{' '}
-                                  {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um
-                                  diesen Betrag zu hoch.
-                                </span>
-                              )}
-                            </td>
-                            {/* Zahlen rechtsbündig und fett (Linie, 4). */}
-                            <td className="tabelle-zahl-stark">{euro(k.erloes)}</td>
-                            <td className="tabelle-zahl-stark">{euro(k.personalkosten)}</td>
-                            {/* Ohne bekannte Materialkosten ein Strich, keine
-                                „0,00" — siehe die Rechenzeile der Liste. */}
-                            <td className="tabelle-zahl-stark">
-                              {k.materialkosten > 0 ? euro(k.materialkosten) : '–'}
-                            </td>
-                            <td className="tabelle-zahl-stark">{euro(k.deckungsbeitrag)}</td>
-                            <td className="tabelle-zahl">
-                              <Zustand stand={margenTon(k)}>
-                                {k.margeProzent === null
-                                  ? 'keine Aussage'
-                                  : fmtProzent(k.margeProzent)}
-                              </Zustand>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <List>
-                    {ergebnisse.map((k) => (
-                      <ListRow
-                        key={k.projectNumber}
-                        title={k.customerName}
-                        /* Nach der Linie (3): die Nummer vorn in der
-                           Unterzeile, wie in der Tabelle unter dem Kunden. */
-                        subtitle={
-                          <>
-                            <span className="block">
-                              {k.projectNumber} · {herkunft(k)}
+                <List>
+                  {ergebnisse.map((k) => (
+                    <ListRow
+                      key={k.projectNumber}
+                      title={
+                        <span>
+                          {k.customerName}{' '}
+                          <span className="tnum text-sm font-normal text-ink-muted">
+                            ({k.projectNumber})
+                          </span>
+                        </span>
+                      }
+                      subtitle={
+                        <>
+                          <span className="tnum block">
+                            Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)}
+                            {/*
+                              Material steht nur da, wenn welches bekannt ist.
+                              Ein „− 0,00 €" läse sich wie „kein Material
+                              verbaut" und wäre bei fehlenden Einkaufspreisen
+                              genau die falsche Auskunft.
+                            */}
+                            {k.materialkosten > 0 && <> − Material {fmtEUR(k.materialkosten)}</>} ={' '}
+                            <strong>{fmtEUR(k.deckungsbeitrag)}</strong>
+                          </span>
+                          {k.materialLuecken.length > 0 && (
+                            <span className="mt-1 block text-xs text-warning">
+                              Ohne Einkaufspreis, deshalb nicht eingerechnet:{' '}
+                              {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um diesen
+                              Betrag zu hoch.
                             </span>
-                            <span className="mt-1 block">
-                              Erlös {euro(k.erloes)} − Personal {euro(k.personalkosten)}
-                              {/*
-                                Material steht nur da, wenn welches bekannt ist.
-                                Ein „− 0,00 €" läse sich wie „kein Material
-                                verbaut" und wäre bei fehlenden Einkaufspreisen
-                                genau die falsche Auskunft.
-                              */}
-                              {k.materialkosten > 0 && <> − Material {euro(k.materialkosten)}</>} ={' '}
-                              <strong>{euro(k.deckungsbeitrag)}</strong>
-                            </span>
-                            {k.materialLuecken.length > 0 && (
-                              <span className="mt-1 block text-xs text-warning">
-                                Ohne Einkaufspreis, deshalb nicht eingerechnet:{' '}
-                                {k.materialLuecken.join(', ')}. Der Deckungsbeitrag ist um diesen
-                                Betrag zu hoch.
-                              </span>
-                            )}
-                          </>
-                        }
-                        zustand={
-                          <Zustand stand={margenTon(k)}>
-                            {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
-                          </Zustand>
-                        }
-                      />
-                    ))}
-                  </List>
-                )}
+                          )}
+                          <span className="mt-1 block text-xs text-ink-muted">
+                            {fmtStd(k.fachStunden * 60)} h Facharbeit
+                            {k.helferStunden > 0 ? `, ${fmtStd(k.helferStunden * 60)} h Helfer` : ''}
+                            {' · '}
+                            {k.erloesQuelle === 'Rechnungen'
+                              ? 'Erlös aus Rechnungen'
+                              : k.erloesQuelle === 'Angebot'
+                                ? 'Erlös aus dem Angebot — noch nicht verrechnet'
+                                : 'kein Erlös hinterlegt'}
+                          </span>
+                        </>
+                      }
+                    >
+                      <Zustand stand={margenTon(k)}>
+                        {k.margeProzent === null ? 'keine Aussage' : fmtProzent(k.margeProzent)}
+                      </Zustand>
+                    </ListRow>
+                  ))}
+                </List>
 
                 {/*
                   Die Einschraenkung gehoert unter die Zahlen, nicht ins
@@ -395,25 +324,21 @@ export default function NachkalkulationView() {
                   der naheliegende Fehler, und darauf trifft jemand
                   Entscheidungen.
                 */}
-                <div className="mt-4">
-                  <Meldung ton="info">
-                    <div className="flex flex-wrap items-center">
-                      <strong>Deckungsbeitrag, nicht Gewinn.</strong>
-                      {/*
-                        Die Warnung selbst bleibt stehen — sie ist die Aussage.
-                        Was NICHT enthalten ist, war der lange Teil und ist beim
-                        zweiten Blick bekannt; das steht jetzt im „i".
-                      */}
-                      <InfoHint about="Deckungsbeitrag">
-                        Material zählt mit, soweit im Materialstamm ein <strong>Einkaufspreis</strong>
-                        {' '}hinterlegt ist — gezählt wird, was auf den unterschriebenen
-                        Handwerksscheinen steht. Artikel ohne Preis werden beim Namen genannt und
-                        nicht geschätzt; solange dort etwas steht, ist der Deckungsbeitrag zu hoch.
-                        Nicht enthalten sind Gemeinkosten, soweit sie nicht schon im Stundenkostensatz
-                        stecken.
-                      </InfoHint>
-                    </div>
-                  </Meldung>
+                <div className="mt-4 flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+                  <strong>Deckungsbeitrag, nicht Gewinn.</strong>
+                  {/*
+                    Die Warnung selbst bleibt stehen — sie ist die Aussage.
+                    Was NICHT enthalten ist, war der lange Teil und ist beim
+                    zweiten Blick bekannt; das steht jetzt im „i".
+                  */}
+                  <InfoHint about="Deckungsbeitrag">
+                    Material zählt mit, soweit im Materialstamm ein <strong>Einkaufspreis</strong>
+                    {' '}hinterlegt ist — gezählt wird, was auf den unterschriebenen
+                    Handwerksscheinen steht. Artikel ohne Preis werden beim Namen genannt und
+                    nicht geschätzt; solange dort etwas steht, ist der Deckungsbeitrag zu hoch.
+                    Nicht enthalten sind Gemeinkosten, soweit sie nicht schon im Stundenkostensatz
+                    stecken.
+                  </InfoHint>
                 </div>
               </>
             )}

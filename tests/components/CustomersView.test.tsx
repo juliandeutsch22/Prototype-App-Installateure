@@ -4,8 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Customer, Project } from '@/types';
-import { mitSchreibtisch } from './schreibtisch';
-import { karteZaehlt } from './kartenZahl';
 
 /**
  * Die Kundenverwaltung ersetzt ein freies Textfeld an der Baustelle. Genau
@@ -364,7 +362,7 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
     zeichne();
     await screen.findByRole('button', { name: 'Weitere Kunden laden' });
 
-    await nutzer.type(screen.getByLabelText('Suche'), 'Zzzz');
+    await nutzer.type(screen.getByLabelText('Kunden durchsuchen'), 'Zzzz');
     expect(await screen.findByText(/Kein Kunde passt/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Weitere Kunden laden' })).toBeInTheDocument();
   });
@@ -383,7 +381,7 @@ describe('Wenn die Kundenliste an ihre Grenze stösst', () => {
     zeichne();
     await screen.findByText('Hausverwaltung Nord');
 
-    await nutzer.type(screen.getByLabelText('Suche'), 'Huber');
+    await nutzer.type(screen.getByLabelText('Kunden durchsuchen'), 'Huber');
     await waitFor(() =>
       expect(searchCustomers.mock.calls.some(([, b]) => b === 'Huber')).toBe(true));
   });
@@ -447,75 +445,5 @@ describe('Das Büro mit der Freigabe „Kunden pflegen“', () => {
     await alsBuero(true, async () => {
       expect(screen.queryByText('Bestehende Baustellen übernehmen')).not.toBeInTheDocument();
     });
-  });
-});
-
-/**
- * AM SCHREIBTISCH EINE TABELLE — dieselben Handgriffe (Adresse, Telefon,
- * Akte, „⋯") in Spalten statt in einer Nebenzeile, und jeder Kunde einmal.
- */
-describe('Kunden am Schreibtisch', () => {
-  const schreibtisch = mitSchreibtisch();
-
-  it('steht als Tabelle mit Kunde, Adresse, Ansprechpartner und Telefon', async () => {
-    schreibtisch();
-    zeichne();
-    const zeile = await screen.findByRole('row', { name: /Hausverwaltung Nord/ });
-    const t = zeile.closest('table')!;
-    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
-      'Kunde', 'Rechnungsadresse', 'Ansprechpartner', 'Telefon', 'Aktionen',
-    ]);
-    expect(zeile).toHaveTextContent('Frau Wagner');
-    expect(within(zeile).getByRole('link', { name: /Ringstraße 3/ })).toHaveAttribute(
-      'href',
-      expect.stringContaining('google.com/maps'),
-    );
-    expect(within(zeile).getByRole('link', { name: /0664 1234567/ })).toHaveAttribute(
-      'href',
-      'tel:06641234567',
-    );
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
-  });
-
-  it('führt mit denselben Aktionen in die Akte und ins „⋯"', async () => {
-    window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
-    schreibtisch();
-    zeichne();
-    const zeile = await screen.findByRole('row', { name: /Hausverwaltung Nord/ });
-    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
-      'href',
-      '/customers/k1',
-    );
-    expect(screen.getAllByRole('link', { name: 'Akte' })).toHaveLength(1);
-    await userEvent.click(
-      within(zeile).getByRole('button', { name: /Weitere Aktionen für Kunde Hausverwaltung Nord/ }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Bearbeiten' }));
-    expect(screen.getByLabelText(/^Name/)).toHaveValue('Hausverwaltung Nord');
-  });
-});
-
-/**
- * Die Kundenliste nach der Linie (docs/design/linie.md 2, 5): die Zahl rechts
- * im Kartentitel statt in Klammern, die Suche oben in der Karte über die
- * volle Breite wie in jeder Liste, Adresse und Telefon am Telefon als Chips.
- */
-describe('Kundenliste nach der Linie', () => {
-  it('zeigt die Zahl rechts im Titel und die Suche oben in der Karte', async () => {
-    zeichne();
-    await screen.findByText('Hausverwaltung Nord');
-    await karteZaehlt(/^Kunden$/, kunden.length);
-
-    const karte = screen.getByRole('heading', { name: /^Kunden$/, level: 2 }).closest('section')!;
-    const suche = within(karte).getByRole('searchbox', { name: 'Suche' });
-    // Im Körper der Karte, nicht im Kopf neben dem Titel.
-    expect(suche.closest('header')).toBeNull();
-    expect(karte.querySelector('.karte-inhalt')!.firstElementChild).toContainElement(suche);
-  });
-
-  it('zeigt Adresse und Telefon am Telefon als Chips unter der Zeile', async () => {
-    zeichne();
-    const zeile = (await screen.findByText('Hausverwaltung Nord')).closest('li')!;
-    expect(zeile.querySelectorAll('.zeile-unten .chip')).toHaveLength(2);
   });
 });

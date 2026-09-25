@@ -3,7 +3,6 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { Company, Invoice, Material, Project, Quote, TimeEntry, WorkSheet } from '@/types';
-import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Die Nachkalkulation — die einzige Ansicht der App, an der jemand
@@ -414,35 +413,5 @@ describe('Material im Ergebnis', () => {
     const zeile = await screen.findByText(/− Personal/);
     expect(zeile.textContent?.replace(/[\s\u00A0.]/g, '')).toContain('2000,00');
     expect(screen.queryByText(/− Material/)).not.toBeInTheDocument();
-  });
-});
-
-describe('Nachkalkulation am Schreibtisch', () => {
-  const schreibtisch = mitSchreibtisch();
-
-  it('stellt die Beträge als Spalten nebeneinander, die schlechteste Baustelle oben', async () => {
-    projekte = [projekt('2026-001'), projekt('2026-002')];
-    eintraege = [...stunden('2026-001', 2), ...stunden('2026-002', 2)];
-    rechnungen = [rechnung('2026-001', 2000), rechnung('2026-002', 700)];
-    schreibtisch();
-    zeige();
-
-    const zeile = await screen.findByRole('row', { name: /Kunde 2026-001/ });
-    const t = zeile.closest('table')!;
-    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
-      'Baustelle', 'Erlös', 'Personal', 'Material', 'Deckungsbeitrag', 'Marge',
-    ]);
-    // Erlös 2000, Personal 640, kein Material, Deckungsbeitrag 1360 — je in
-    // einer eigenen Zelle. Ohne Tausendertrennzeichen verglichen, siehe oben.
-    const zellen = within(zeile)
-      .getAllByRole('cell')
-      .map((z) => z.textContent?.replace(/[\s\u00A0.]/g, ''));
-    expect(zellen.slice(1, 5)).toEqual(['€2000,00', '€640,00', '–', '€1360,00']);
-    expect(zeile).toHaveTextContent('Erlös aus Rechnungen');
-
-    const reihen = within(t).getAllByRole('row').slice(1);
-    expect(reihen[0]).toHaveTextContent('Kunde 2026-002');
-    // Genau eine Form im DOM.
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 });

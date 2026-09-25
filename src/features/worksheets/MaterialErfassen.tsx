@@ -46,42 +46,9 @@ interface Props {
    * `null`. Der Schein sperrt damit das Unterschreiben — siehe dort.
    */
   onOffen?: (offen: string | null) => void;
-  /** Am Schreibtisch ab 1280 px: die Zeilen als Tabelle (Mockup S. 8). */
-  tabelle?: boolean;
 }
 
-/**
- * Die Menge einer Zeile. Das Wort „Menge“ steht für die Vorlesehilfe am Feld
- * und als Spaltenkopf der Tabelle; über jedem Feld einer Liste wiederholt,
- * machte es jede Zeile doppelt so hoch (Mockup S. 3: die Menge rechts).
- */
-function MengeFeld({ zeile, onMenge }: { zeile: MaterialZeile; onMenge: (roh: string) => void }) {
-  const id = `wsmenge-${zeile.id}`;
-  return (
-    <span className="schein-menge">
-      <label htmlFor={id} className="sr-only">
-        Menge
-      </label>
-      <input
-        id={id}
-        className="feld"
-        type="number"
-        min="0"
-        step="any"
-        value={String(zeile.menge)}
-        onChange={(e) => onMenge(e.target.value)}
-      />
-    </span>
-  );
-}
-
-export default function MaterialErfassen({
-  materials,
-  zeilen,
-  onChange,
-  onOffen,
-  tabelle = false,
-}: Props) {
+export default function MaterialErfassen({ materials, zeilen, onChange, onOffen }: Props) {
   const [suche, setSuche] = useState('');
   const [freierName, setFreierName] = useState('');
 
@@ -132,46 +99,25 @@ export default function MaterialErfassen({
           Noch kein Material eingetragen. Was verbaut wurde, kommt hier dazu — der Schein lässt
           sich auch ohne unterschreiben.
         </EmptyState>
-      ) : tabelle ? (
-        <table className="tabelle">
-          <thead className="tabelle-kopfzeile">
-            <tr>
-              <th className="tabelle-kopf">Artikel</th>
-              <th className="tabelle-kopf-zahl">Menge</th>
-              <th className="tabelle-kopf">Einheit</th>
-              <th className="tabelle-kopf-zahl">
-                <span className="sr-only">Aktionen</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {zeilen.map((z) => (
-              <tr key={z.id} className="tabelle-zeile">
-                <td className="tabelle-name">{z.name}</td>
-                <td className="tabelle-zahl">
-                  <MengeFeld zeile={z} onMenge={(roh) => mengeSetzen(z.id, roh)} />
-                </td>
-                <td className="tabelle-zelle">{z.einheit}</td>
-                <td className="tabelle-aktionen">
-                  <span className="tabelle-knoepfe">
-                    <IconButton
-                      label={`${z.name} vom Schein nehmen`}
-                      tone="danger"
-                      onClick={() => onChange(zeilen.filter((x) => x.id !== z.id))}
-                    >
-                      ✕
-                    </IconButton>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       ) : (
-        <List>
+        <ul className="divide-y divide-line rounded border border-line">
           {zeilen.map((z) => (
-            <ListRow key={z.id} title={z.name} subtitle={z.einheit || undefined}>
-              <MengeFeld zeile={z} onMenge={(roh) => mengeSetzen(z.id, roh)} />
+            <li key={z.id} className="flex flex-wrap items-end gap-3 p-3">
+              <div className="w-24 shrink-0">
+                <InputField
+                  id={`wsmenge-${z.id}`}
+                  label="Menge"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={String(z.menge)}
+                  onChange={(e) => mengeSetzen(z.id, e.target.value)}
+                />
+              </div>
+              <p className="min-w-0 flex-1 font-medium text-ink">
+                {z.name}
+                {z.einheit && <span className="ml-2 text-sm text-ink-muted">{z.einheit}</span>}
+              </p>
               <IconButton
                 label={`${z.name} vom Schein nehmen`}
                 tone="danger"
@@ -179,9 +125,9 @@ export default function MaterialErfassen({
               >
                 ✕
               </IconButton>
-            </ListRow>
+            </li>
           ))}
-        </List>
+        </ul>
       )}
 
       <div>

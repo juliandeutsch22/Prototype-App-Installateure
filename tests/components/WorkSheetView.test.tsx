@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { forwardRef, useEffect, useImperativeHandle } from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { forwardRef, useImperativeHandle } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -7,8 +7,6 @@ import { ToastProvider } from '@/components/Toast';
 import type { Assignment, Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import { todayStr } from '@/lib/time';
 import type { NewWorkSheet } from '@/lib/db/workSheets';
-import { kanonischerInhalt } from '@shared/scheinHash';
-import { karteZaehlt } from './kartenZahl';
 
 /**
  * Der Handwerksschein war ein Formular ohne Anschluss: er stand in einem
@@ -78,10 +76,7 @@ const createWorkSheet = vi.fn<[string, NewWorkSheet], Promise<string>>(async () 
 const updateWorkSheetDraft = vi.fn<[string, Partial<NewWorkSheet>], Promise<void>>(
   async () => undefined,
 );
-type Unterschrift = { name: string; bild: string; geraetZeit: number };
-const signWorkSheet = vi.fn<[string, Unterschrift, Unterschrift], Promise<void>>(
-  async () => undefined,
-);
+const signWorkSheet = vi.fn(async () => undefined);
 let entwurf: (WorkSheet & { id: string }) | undefined;
 const getWorkSheet = vi.fn(async () => entwurf);
 let bestehendeScheine: (WorkSheet & { id: string })[] = [];
@@ -98,7 +93,7 @@ vi.mock('@/lib/db/workSheets', () => ({
   updateWorkSheetDraft: (id: string, data: Partial<NewWorkSheet>) =>
     updateWorkSheetDraft(id, data),
   getWorkSheet: () => getWorkSheet(),
-  signWorkSheet: (id: string, m: Unterschrift, k: Unterschrift) => signWorkSheet(id, m, k),
+  signWorkSheet: () => signWorkSheet(),
   listWorkSheetsForProject: () => listWorkSheetsForProject(),
   fotosAmEntwurf: (...a: unknown[]) => fotosFestgeschrieben(...(a as [])),
   vorbereiten: () => callScheinVorbereiten(),
@@ -130,21 +125,11 @@ vi.mock('@/lib/db/scheinFotos', () => ({
   festes Bild zurück. Geprüft wird hier ohnehin nicht das Zeichnen (dafür gibt
   es `SignaturePad.test.tsx`), sondern was die Ansicht mit dem Ergebnis tut.
 */
-/*
-  Wie oft ein Unterschriftsfeld EINGEHÄNGT wurde. Das echte Feld hält seine
-  Striche nur im Speicher; würde es beim Wechsel der Schritte ausgehängt,
-  wären sie weg — während der Schein sich weiter „unterschrieben" merkt.
-*/
-let felderEingehaengt = 0;
-
 vi.mock('@/components/SignaturePad', () => ({
   default: forwardRef<
     { bildLesen: () => string | null; leeren: () => void },
     { titel: string; onChange?: (gesetzt: boolean) => void }
   >(function Feld({ titel, onChange }, ref) {
-    useEffect(() => {
-      felderEingehaengt += 1;
-    }, []);
     useImperativeHandle(ref, () => ({
       bildLesen: () => 'data:image/png;base64,AAAA',
       leeren: () => undefined,
@@ -190,23 +175,6 @@ function unterschreiben() {
   }
 }
 
-/**
- * In einen Schritt springen — über die Leiste oben, wie am Telefon.
- *
- * jsdom kennt keine Medienabfrage; der Schein steht hier deshalb so da wie am
- * Telefon: als Schrittfolge, in der nur der aktuelle Schritt zu sehen ist.
- * Abfragen nach Rolle finden nur, was sichtbar ist — ein Test, der einen
- * Knopf aus einem anderen Schritt drückt, fällt also auf, statt durch
- * ausgeblendete Teile hindurchzugreifen.
- */
-async function zuSchritt(
-  nutzer: ReturnType<typeof userEvent.setup>,
-  name: 'Zeiten' | 'Material' | 'Fotos' | 'Unterschrift',
-) {
-  const nr = { Zeiten: 1, Material: 2, Fotos: 3, Unterschrift: 4 }[name];
-  await nutzer.click(await screen.findByRole('button', { name: `${nr} ${name}` }));
-}
-
 function zeichne(adresse = '/worksheet') {
   return render(
     <MemoryRouter initialEntries={[adresse]}>
@@ -247,7 +215,6 @@ beforeEach(() => {
   entwurf = undefined;
   bestehendeScheine = [];
   listWorkSheetsForProject.mockClear();
-  felderEingehaengt = 0;
 });
 
 describe('Handwerksschein', () => {
@@ -297,19 +264,17 @@ describe('Handwerksschein', () => {
    */
   it('haelt das Unterschreiben nicht auf, wenn die Vorausfuellung scheitert', async () => {
     callScheinVorbereiten.mockRejectedValue(new Error('deadline-exceeded'));
-    const nutzer = userEvent.setup();
     zeichne();
 
     expect(
       await screen.findByText(/Der Schein lässt sich trotzdem schreiben/),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
     // Der Kern: der Beleg ist über Arbeit, die geleistet wurde, und der Kunde
     // steht daneben. Unterschreiben muss gehen.
-    await zuSchritt(nutzer, 'Unterschrift');
     expect(
       screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Erneut versuchen' })).toBeInTheDocument();
     // Und es steht dabei, dass der Schein dann ohne Stunden eingefroren wird.
     expect(screen.getByText(/Ohne Stunden\./)).toBeInTheDocument();
     /*
@@ -362,7 +327,6 @@ describe('Handwerksschein', () => {
       const nutzer = userEvent.setup();
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
 
       await nutzer.type(
         screen.getByLabelText(/Freie Zeile/),
@@ -380,7 +344,6 @@ describe('Handwerksschein', () => {
       const nutzer = userEvent.setup();
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
 
       await nutzer.type(screen.getByLabelText('Artikel aus dem Lager'), 'eckventil');
       await nutzer.click(
@@ -395,7 +358,6 @@ describe('Handwerksschein', () => {
       const nutzer = userEvent.setup();
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
       await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Falsch eingetragen');
       await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
       await screen.findByText(/Verbautes Material \(1\)/);
@@ -415,7 +377,6 @@ describe('Handwerksschein', () => {
       const nutzer = userEvent.setup();
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
       await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtungen');
       await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
       await screen.findByText(/Verbautes Material \(1\)/);
@@ -443,7 +404,6 @@ describe('Handwerksschein', () => {
       );
       zeichne();
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
       await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Kupferrohr 18mm');
       await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
       await screen.findByText(/Verbautes Material \(1\)/);
@@ -476,14 +436,11 @@ describe('Handwerksschein', () => {
       const feld = await screen.findByLabelText<HTMLSelectElement>('Baustelle');
       await nutzer.selectOptions(feld, 'B-001');
       await screen.findByText(/Verbautes Material \(0\)/);
-      await zuSchritt(nutzer, 'Material');
 
       await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Gehört zu B-001');
       await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
       await screen.findByText(/Verbautes Material \(1\)/);
 
-      // Die Baustelle steht im ersten Schritt.
-      await zuSchritt(nutzer, 'Zeiten');
       await nutzer.selectOptions(feld, 'B-002');
 
       expect(await screen.findByText(/Verbautes Material \(0\)/)).toBeInTheDocument();
@@ -667,7 +624,6 @@ describe('Handwerksschein', () => {
   });
 
   it('sperrt den Abschluss, solange Unterschriften fehlen', async () => {
-    const nutzer = userEvent.setup();
     zeichne();
     /**
      * Auf die STAMMDATEN warten, nicht nur auf das Auswahlfeld.
@@ -678,7 +634,6 @@ describe('Handwerksschein', () => {
      * dieser Zwischenstand geprüft.
      */
     await screen.findByRole('link', { name: /Hauptstraße 12/ });
-    await zuSchritt(nutzer, 'Unterschrift');
     expect(
       screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
     ).toBeDisabled();
@@ -703,8 +658,7 @@ describe('Fotos', () => {
   async function fotoWaehlen(nutzer: ReturnType<typeof userEvent.setup>) {
     // Erst wenn die Baustelle steht, gibt es den Abschnitt: ein Foto ohne
     // Schein hat keinen Ort, an den es gehört.
-    await karteZaehlt(/Fotos/, /^\d+ von 8$/);
-    await zuSchritt(nutzer, 'Fotos');
+    await screen.findByText(/^Fotos \(/);
     // Beschriftung des versteckten Dateifelds ist der Knopftext, und der
     // wechselt mit dem Zustand: erstes Bild, weiteres, Fach voll.
     const feld = screen.getByLabelText(/Foto aufnehmen|Weiteres Foto|Höchstens/);
@@ -741,7 +695,7 @@ describe('Fotos', () => {
   */
   it('steht in einer eigenen Karte, nicht bei den Unterschriften', async () => {
     zeichne();
-    await karteZaehlt(/Fotos/, /^\d+ von 8$/);
+    await screen.findByText(/^Fotos \(/);
 
     const namensfeld = screen.getByLabelText(/Monteur \(Name in Druckbuchstaben\)/);
     const unterschriften = namensfeld.closest('section');
@@ -761,13 +715,13 @@ describe('Fotos', () => {
   it('beschriftet den Knopf nach dem Stand und zählt im Kartentitel mit', async () => {
     const nutzer = userEvent.setup();
     zeichne();
-    await karteZaehlt(/Fotos/, '0 von 8');
+    await screen.findByText('Fotos (0/8)');
     expect(screen.getByLabelText('Foto aufnehmen')).toBeInTheDocument();
 
     await fotoWaehlen(nutzer);
     await waitFor(() => expect(fotoHochladen).toHaveBeenCalled());
 
-    await karteZaehlt(/Fotos/, '1 von 8');
+    expect(await screen.findByText('Fotos (1/8)')).toBeInTheDocument();
     expect(screen.getByLabelText('Weiteres Foto')).toBeInTheDocument();
   });
 
@@ -841,7 +795,6 @@ describe('Fotos', () => {
     await fotoWaehlen(nutzer);
     await screen.findByText(/Nicht hochgeladen/);
 
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
     await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
@@ -859,7 +812,6 @@ describe('Fotos', () => {
     await fotoWaehlen(nutzer);
     await screen.findByText(/Nicht hochgeladen/);
 
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
     const knopf = screen.getByRole('button', { name: 'Unterschreiben und abschließen' });
@@ -941,7 +893,6 @@ describe('Fotos', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/Verbautes Material/);
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
     await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
@@ -1012,30 +963,18 @@ describe('Zeit beim Kunden eintragen', () => {
     await nutzer.clear(screen.getByLabelText('Von'));
     await nutzer.type(screen.getByLabelText('Von'), '07:00');
     await nutzer.type(screen.getByLabelText('Bis'), '15:30');
-    /*
-      Die Sperre greift auch aus einem ANDEREN Schritt: das Feld steht bei den
-      Zeiten, der Knopf bei der Unterschrift. Ausgehängt hätte das Feld beim
-      Weitergehen „nichts offen" gemeldet — und die Sperre wäre weg gewesen.
-    */
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
 
-    expect(
-      screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
-    ).toBeDisabled();
+    const knopf = screen.getByRole('button', { name: 'Unterschreiben und abschließen' });
+    expect(knopf).toBeDisabled();
     expect(screen.getByText(/Noch nicht auf dem Schein/).parentElement).toHaveTextContent(
       /die Zeit 07:00–15:30/,
     );
-    // Die Zusammenfassung nennt es auch.
-    expect(screen.getByText(/Eingetippt, aber nicht übernommen: 07:00–15:30/)).toBeInTheDocument();
 
-    // Der Weg zurück steht an der Meldung.
-    await nutzer.click(screen.getByRole('button', { name: 'Zu den Zeiten' }));
     await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
     expect(screen.queryByText(/Noch nicht auf dem Schein/)).not.toBeInTheDocument();
-    await zuSchritt(nutzer, 'Unterschrift');
-    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
+    await nutzer.click(knopf);
     await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
     // Unterschrieben wird der Stand, der zuletzt geschrieben wurde — beim
     // ersten Mal ist das die Anlage, danach die Aktualisierung.
@@ -1049,9 +988,7 @@ describe('Zeit beim Kunden eintragen', () => {
     const nutzer = userEvent.setup();
     zeichne();
     await screen.findByText(/Verbautes Material/);
-    await zuSchritt(nutzer, 'Material');
     await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Silikon sanitär');
-    await zuSchritt(nutzer, 'Unterschrift');
     await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
     unterschreiben();
 
@@ -1061,9 +998,7 @@ describe('Zeit beim Kunden eintragen', () => {
     );
 
     // Leeren reicht auch — wer es sich anders überlegt hat, muss nichts übernehmen.
-    await nutzer.click(screen.getByRole('button', { name: 'Zum Material' }));
     await nutzer.clear(screen.getByLabelText(/Freie Zeile/));
-    await zuSchritt(nutzer, 'Unterschrift');
     expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeEnabled();
   });
 
@@ -1116,8 +1051,6 @@ describe('Zeit beim Kunden eintragen', () => {
     */
     const nutzer = userEvent.setup();
     zeichne();
-    // Die Notizen stehen im Schritt der Fotos.
-    await zuSchritt(nutzer, 'Fotos');
     await nutzer.click(await screen.findByRole('button', { name: /Was bedeutet Ergänzungen/ }));
 
     /*
@@ -1224,353 +1157,5 @@ describe('Zeit beim Kunden eintragen', () => {
     await nutzer.click(await screen.findByRole('button', { name: 'Als Entwurf speichern' }));
     const zeilen = createWorkSheet.mock.calls[0][1].zeiten;
     expect(zeilen.map((z) => z.mitarbeiter)).toEqual(['Kollege', 'Max Mustermann']);
-  });
-});
-
-/**
- * Der Schein als Schrittfolge — Zeiten, Material, Fotos, Unterschrift.
- *
- * NUR DIE ANORDNUNG IST NEU. Was hier geprüft wird: dass man vor, zurück und
- * aus der Zusammenfassung in jeden Schritt kommt; dass ein wieder geöffneter
- * Entwurf vorne beginnt; dass kein Teil beim Wechsel ausgehängt wird; und vor
- * allem, dass der Schein, der am Ende unterschrieben wird, Zeichen für Zeichen
- * derselbe ist wie auf der einen Seite am Schreibtisch.
- */
-describe('Schrittfolge', () => {
-  /** Den Schreibtisch nachstellen: die Medienabfrage für `lg` trifft zu. */
-  const matchMediaVorher = window.matchMedia;
-  function schreibtisch() {
-    window.matchMedia = ((q: string) => ({
-      matches: true,
-      media: q,
-      addEventListener: () => undefined,
-      removeEventListener: () => undefined,
-    })) as unknown as typeof window.matchMedia;
-  }
-  afterEach(() => {
-    window.matchMedia = matchMediaVorher;
-  });
-
-  const aktuell = () =>
-    screen
-      .getByRole('navigation', { name: 'Schritte des Scheins' })
-      .querySelector('[aria-current="step"]')?.textContent;
-
-  it('geht mit „Weiter" vor und mit „Zurück" wieder zurück', async () => {
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByRole('link', { name: /Hauptstraße 12/ });
-    expect(aktuell()).toBe('1 Zeiten');
-    // Im ersten Schritt gibt es nichts, wohin man zurück könnte.
-    expect(screen.queryByRole('button', { name: 'Zurück' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Zeile hinzufügen' })).toBeInTheDocument();
-
-    await nutzer.click(screen.getByRole('button', { name: 'Weiter: Material' }));
-    expect(aktuell()).toBe('2 Material');
-    // Der vorige Schritt ist ausgeblendet, der neue zu sehen.
-    expect(screen.queryByRole('button', { name: 'Zeile hinzufügen' })).not.toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: /Freie Zeile/ })).toBeInTheDocument();
-
-    await nutzer.click(screen.getByRole('button', { name: 'Weiter: Fotos' }));
-    expect(aktuell()).toBe('3 Fotos');
-    expect(screen.getByRole('textbox', { name: 'Notizen, Regiearbeiten, Mängel' })).toBeInTheDocument();
-
-    await nutzer.click(screen.getByRole('button', { name: 'Weiter: Unterschrift' }));
-    expect(aktuell()).toBe('4 Unterschrift');
-    // Im letzten Schritt steht der Abschluss an der Stelle von „Weiter".
-    expect(screen.queryByRole('button', { name: /^Weiter/ })).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Unterschreiben und abschließen' }),
-    ).toBeInTheDocument();
-
-    await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
-    expect(aktuell()).toBe('3 Fotos');
-    expect(
-      screen.queryByRole('button', { name: 'Unterschreiben und abschließen' }),
-    ).not.toBeInTheDocument();
-    await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
-    await nutzer.click(screen.getByRole('button', { name: 'Zurück' }));
-    expect(aktuell()).toBe('1 Zeiten');
-  });
-
-  it('sperrt „Weiter" nicht — geprüft wird beim Unterschreiben', async () => {
-    // Keiner der Schritte hat eine Pflichtangabe: ein Schein ohne Stunden,
-    // Material oder Fotos ist gültig. Die Sperre sitzt am Abschluss.
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByRole('link', { name: /Hauptstraße 12/ });
-    for (const name of ['Weiter: Material', 'Weiter: Fotos', 'Weiter: Unterschrift']) {
-      const knopf = screen.getByRole('button', { name });
-      expect(knopf).toBeEnabled();
-      await nutzer.click(knopf);
-    }
-    expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
-  });
-
-  it('springt aus der Zusammenfassung mit „Ändern" in den Schritt', async () => {
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByRole('link', { name: /Hauptstraße 12/ });
-    await zuSchritt(nutzer, 'Material');
-    await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtungen');
-    await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
-    await zuSchritt(nutzer, 'Unterschrift');
-
-    // Die Zusammenfassung zählt, was in den Schritten steht.
-    expect(screen.getByText('1 Position')).toBeInTheDocument();
-    expect(screen.getByText(/0 Fotos · ohne Notiz/)).toBeInTheDocument();
-
-    await nutzer.click(screen.getByRole('button', { name: 'Material ändern' }));
-    expect(aktuell()).toBe('2 Material');
-    expect(
-      screen.getByRole('button', { name: 'Dichtungen vom Schein nehmen' }),
-    ).toBeInTheDocument();
-
-    await zuSchritt(nutzer, 'Unterschrift');
-    await nutzer.click(screen.getByRole('button', { name: 'Zeiten ändern' }));
-    expect(aktuell()).toBe('1 Zeiten');
-    await zuSchritt(nutzer, 'Unterschrift');
-    await nutzer.click(screen.getByRole('button', { name: 'Fotos und Notizen ändern' }));
-    expect(aktuell()).toBe('3 Fotos');
-    await zuSchritt(nutzer, 'Unterschrift');
-    await nutzer.click(screen.getByRole('button', { name: 'Baustelle und Tag ändern' }));
-    expect(aktuell()).toBe('1 Zeiten');
-    expect(screen.getByRole('combobox', { name: 'Baustelle' })).toBeInTheDocument();
-  });
-
-  it('hängt beim Wechsel nichts aus — die Unterschriften bleiben stehen', async () => {
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByRole('link', { name: /Hauptstraße 12/ });
-    // Beide Felder sind von Anfang an eingehängt, auch wenn sie noch nicht zu sehen sind.
-    expect(felderEingehaengt).toBe(2);
-
-    await zuSchritt(nutzer, 'Unterschrift');
-    await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
-    unterschreiben();
-    await nutzer.click(screen.getByRole('button', { name: 'Zeiten ändern' }));
-    await nutzer.click(screen.getByRole('button', { name: 'Weiter: Material' }));
-    await zuSchritt(nutzer, 'Unterschrift');
-
-    expect(felderEingehaengt).toBe(2);
-    // Name und Unterschriften sind noch da: der Abschluss ist frei.
-    expect(screen.getByLabelText<HTMLInputElement>(/Kunde \(Name/).value).toBe('Frau Huber');
-    await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
-    await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
-  });
-
-  it('zeigt die gesetzte Monteur-Unterschrift als eine Zeile und holt sie mit „Ändern" zurück', async () => {
-    // Mockup S. 5: „Monteur hat unterschrieben · Name". Das Feld bleibt dabei
-    // eingehängt, nur ausgeblendet — es hält die Striche.
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByRole('link', { name: /Hauptstraße 12/ });
-    await zuSchritt(nutzer, 'Unterschrift');
-    expect(screen.queryByText('Monteur hat unterschrieben')).not.toBeInTheDocument();
-
-    screen.getByRole('button', { name: 'Unterschrift Monteur zeichnen' }).click();
-
-    expect(await screen.findByText('Monteur hat unterschrieben')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('textbox', { name: 'Monteur (Name in Druckbuchstaben)' }),
-    ).not.toBeInTheDocument();
-    expect(felderEingehaengt).toBe(2);
-
-    await nutzer.click(screen.getByRole('button', { name: 'Unterschrift Monteur ändern' }));
-    expect(
-      screen.getByRole('textbox', { name: 'Monteur (Name in Druckbuchstaben)' }),
-    ).toBeInTheDocument();
-  });
-
-  it('bietet „Als Entwurf speichern" in jedem Schritt an', async () => {
-    // Vormittags vorbereiten, nachmittags unterschreiben: wer nach den Zeiten
-    // aufhört, soll nicht erst bis zur Unterschrift weiterklicken müssen.
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByRole('link', { name: /Hauptstraße 12/ });
-    for (const name of ['Zeiten', 'Material', 'Fotos', 'Unterschrift'] as const) {
-      await zuSchritt(nutzer, name);
-      expect(screen.getByRole('button', { name: 'Als Entwurf speichern' })).toBeInTheDocument();
-    }
-  });
-
-  it('zeigt einen Speicherfehler auch außerhalb des letzten Schritts', async () => {
-    // Die Fehlermeldung stand bisher in der Karte der Unterschriften. Dort
-    // wäre sie ausgeblendet, wenn der Entwurf aus Schritt 1 gespeichert wird.
-    createWorkSheet.mockRejectedValue(new Error('offline'));
-    const nutzer = userEvent.setup();
-    zeichne();
-    await screen.findByRole('link', { name: /Hauptstraße 12/ });
-    await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/Das hat nicht geklappt/);
-  });
-
-  describe('ein wieder geöffneter Entwurf', () => {
-    const gespeichert: WorkSheet & { id: string } = {
-      id: 'e1',
-      companyId: 'perl',
-      projectNumber: 'B-001',
-      customerId: 'k1',
-      customerName: 'Familie Huber',
-      address: 'Hauptstraße 12',
-      datum: heute,
-      status: 'Entwurf',
-      abrechnung: 'Regie',
-      zeiten: [{ datum: heute, mitarbeiter: 'Max Mustermann', minuten: 300 }],
-      material: [{ name: 'Eckventil 1/2 Zoll', menge: 2, einheit: 'Stk' }],
-      notizen: 'Absperrventil klemmt',
-      erstelltVonUid: 'm9',
-      erstelltVonName: 'Erna Beispiel',
-    } as WorkSheet & { id: string };
-
-    it('beginnt bei Schritt 1 — die Zeiten sind frisch geholt', async () => {
-      entwurf = gespeichert;
-      callScheinVorbereiten.mockResolvedValue({ zeiten: gespeichert.zeiten });
-      zeichne('/worksheet?entwurf=e1');
-      await screen.findByText(/Verbautes Material \(1\)/);
-      await screen.findByRole('link', { name: /Hauptstraße 12/ });
-      expect(aktuell()).toBe('1 Zeiten');
-    });
-
-    it('fasst den Entwurf zusammen und unterschreibt ihn, ohne einen zweiten anzulegen', async () => {
-      entwurf = gespeichert;
-      callScheinVorbereiten.mockResolvedValue({ zeiten: gespeichert.zeiten });
-      const nutzer = userEvent.setup();
-      zeichne('/worksheet?entwurf=e1');
-      await screen.findByText(/Verbautes Material \(1\)/);
-      await screen.findByRole('link', { name: /Hauptstraße 12/ });
-
-      // Ein Tipp auf die Leiste genügt, um vom Vormittag in die Unterschrift zu kommen.
-      await zuSchritt(nutzer, 'Unterschrift');
-      expect(screen.getByText('1 Position')).toBeInTheDocument();
-      expect(screen.getByText('05:00 Std')).toBeInTheDocument();
-      expect(screen.getByText(/0 Fotos · mit Notiz/)).toBeInTheDocument();
-
-      await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
-      unterschreiben();
-      await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
-
-      await waitFor(() => expect(signWorkSheet).toHaveBeenCalled());
-      expect(createWorkSheet).not.toHaveBeenCalled();
-      const letzte = updateWorkSheetDraft.mock.calls[updateWorkSheetDraft.mock.calls.length - 1];
-      expect(letzte[0]).toBe('e1');
-      expect(signWorkSheet.mock.calls[0][0]).toBe('e1');
-      expect(letzte[1].material).toEqual(gespeichert.material);
-      expect(letzte[1].notizen).toBe('Absperrventil klemmt');
-    });
-  });
-
-  /*
-    DER KERN: DERSELBE BELEG, EGAL WIE ER AUSGEFÜLLT WURDE.
-
-    Dieselben Eingaben einmal durch die Schritte (Telefon) und einmal auf der
-    einen Seite (Schreibtisch). Was geschrieben und unterschrieben wird, muss
-    gleich sein — und damit die kanonische Zeichenkette, aus der die
-    Prüfsumme entsteht. Die Uhr steht still, sonst unterschieden sich die
-    beiden Läufe allein in der Gerätezeit der Unterschrift.
-  */
-  describe('Absenden', () => {
-    const JETZT = Date.parse('2026-09-25T14:04:00Z');
-
-    async function ausfuellenUndUnterschreiben(schritte: boolean): Promise<string> {
-      const nutzer = userEvent.setup();
-      const ansicht = zeichne();
-      await screen.findByRole('link', { name: /Hauptstraße 12/ });
-
-      await nutzer.clear(screen.getByLabelText('Von'));
-      await nutzer.type(screen.getByLabelText('Von'), '07:00');
-      await nutzer.type(screen.getByLabelText('Bis'), '15:30');
-      await nutzer.type(screen.getByLabelText(/Pause/), '30');
-      await nutzer.type(screen.getByLabelText(/Tätigkeit/), 'Eckventil getauscht');
-      await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
-
-      if (schritte) await nutzer.click(screen.getByRole('button', { name: 'Weiter: Material' }));
-      await nutzer.type(screen.getByLabelText('Artikel aus dem Lager'), 'eckventil');
-      await nutzer.click(
-        await screen.findByRole('button', { name: /Eckventil 1\/2 Zoll auf den Schein/ }),
-      );
-      await nutzer.type(screen.getByLabelText(/Freie Zeile/), 'Dichtungen');
-      await nutzer.click(screen.getByRole('button', { name: 'Hinzufügen' }));
-
-      if (schritte) await nutzer.click(screen.getByRole('button', { name: 'Weiter: Fotos' }));
-      await nutzer.type(
-        screen.getByRole('textbox', { name: 'Notizen, Regiearbeiten, Mängel' }),
-        'Kunde informiert',
-      );
-
-      if (schritte) {
-        await nutzer.click(screen.getByRole('button', { name: 'Weiter: Unterschrift' }));
-      }
-      await nutzer.type(screen.getByLabelText(/Kunde \(Name/), 'Frau Huber');
-      unterschreiben();
-      await nutzer.click(screen.getByRole('button', { name: 'Unterschreiben und abschließen' }));
-      await waitFor(() => expect(signWorkSheet).toHaveBeenCalledTimes(1));
-
-      const inhalt = [...createWorkSheet.mock.calls, ...updateWorkSheetDraft.mock.calls].pop()![1];
-      const [id, monteur, kunde] = signWorkSheet.mock.calls[0];
-      expect(id).toBe('s1');
-      ansicht.unmount();
-      return kanonischerInhalt({
-        ...(inhalt as NewWorkSheet),
-        unterschriften: { monteur, kunde },
-      });
-    }
-
-    it('ergibt in Schritten und auf einer Seite denselben Beleg', async () => {
-      const uhr = vi.spyOn(Date, 'now').mockReturnValue(JETZT);
-      let inSchritten: string;
-      let aufEinerSeite: string;
-      try {
-        inSchritten = await ausfuellenUndUnterschreiben(true);
-
-        createWorkSheet.mockClear();
-        updateWorkSheetDraft.mockClear();
-        signWorkSheet.mockClear();
-        schreibtisch();
-        aufEinerSeite = await ausfuellenUndUnterschreiben(false);
-      } finally {
-        uhr.mockRestore();
-      }
-
-      expect(inSchritten).toBe(aufEinerSeite);
-      // Und der Beleg enthält, was eingegeben wurde — nicht bloß zweimal dasselbe Leere.
-      const F = '\u001f';
-      expect(inSchritten).toBe(
-        [
-          ['SCHEIN', 'B-001', 'Familie Huber', 'Hauptstraße 12', heute, 'Regie'].join(F),
-          ['ZEIT', heute, 'Max Mustermann', '07:00', '15:30', '30', '480', 'Eckventil getauscht', '0'].join(F),
-          ['MATERIAL', 'Eckventil 1/2 Zoll', '1', 'Stk'].join(F),
-          ['MATERIAL', 'Dichtungen', '1', ''].join(F),
-          ['NOTIZ', 'Kunde informiert'].join(F),
-          ['MONTEUR', 'Max Mustermann', String(JETZT), 'data:image/png;base64,AAAA'].join(F),
-          ['KUNDE', 'Frau Huber', String(JETZT), 'data:image/png;base64,AAAA'].join(F),
-        ].join('\n'),
-      );
-    });
-  });
-
-  it('steht am Schreibtisch als eine Seite da — ohne Leiste und ohne „Weiter"', async () => {
-    schreibtisch();
-    zeichne();
-    await screen.findByRole('link', { name: /Hauptstraße 12/ });
-
-    expect(
-      screen.queryByRole('navigation', { name: 'Schritte des Scheins' }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Weiter/ })).not.toBeInTheDocument();
-    // Alles zugleich zu sehen, in nummerierten Karten (Mockup S. 8). Die
-    // Titel sind seit dem 25.09.2026 die der Karten selbst; am Kartentitel
-    // der Fotos hängt das „i", dessen Beschriftung zum Namen der Überschrift
-    // gehört — deshalb der Anfang, nicht der ganze Name.
-    for (const titel of ['1 · Zeiten vor Ort', '2 · Material', '3 · Fotos', '4 · Unterschrift']) {
-      expect(screen.getByRole('heading', { name: new RegExp(`^${titel}`) })).toBeInTheDocument();
-    }
-    // Zwei Spalten: links Zeiten, Material, Fotos — rechts die Unterschrift.
-    const rechts = screen.getByRole('heading', { name: '4 · Unterschrift' }).closest('section');
-    expect(rechts?.parentElement?.parentElement?.className).toBe('schein-raster');
-    expect(screen.getByRole('button', { name: 'Zeile hinzufügen' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Hinzufügen' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Als Entwurf speichern' })).toBeInTheDocument();
   });
 });

@@ -5,7 +5,6 @@ import { ToastProvider } from '@/components/Toast';
 import type { Material, Role } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import MaterialCatalog from '@/features/orders/MaterialCatalog';
-import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Der Einkaufspreis im Materialkatalog.
@@ -230,39 +229,5 @@ describe('Ausgelaufene Artikel im Katalog', () => {
 
     const neu = screen.getByText('Eckventil neu').closest('li') as HTMLElement;
     expect(within(neu).queryByText('ausgelaufen')).toBeNull();
-  });
-});
-
-describe('Katalog am Schreibtisch', () => {
-  const schreibtisch = mitSchreibtisch();
-
-  it('steht als Tabelle mit Kategorie, Artikelnummer und Bestand — und denselben Handgriffen', async () => {
-    materialien = [
-      { id: 'm1', companyId: 'perl', name: 'Eckventil alt', category: 'Armaturen', articleNumber: 'EV-12', stock: 3, unit: 'Stk', ausgelaufen: true },
-      { id: 'm2', companyId: 'perl', name: 'Eckventil neu', stock: 30 },
-    ] as WithId<Material>[];
-    schreibtisch();
-    zeige();
-
-    const t = (await screen.findByRole('columnheader', { name: 'Art.-Nr.' })).closest('table')!;
-    const koepfe = within(t).getAllByRole('columnheader').map((k) => k.textContent);
-    expect(koepfe).toEqual(['Material', 'Kategorie', 'Art.-Nr.', 'Bestand', 'Aktionen']);
-    const alt = within(t).getByRole('row', { name: /Eckventil alt/ });
-    expect(alt).toHaveTextContent('Armaturen');
-    expect(alt).toHaveTextContent('EV-12');
-    expect(within(alt).getByText('ausgelaufen')).toBeInTheDocument();
-    expect(within(alt).getByText('3 Stk')).toBeInTheDocument();
-    // Löschen liegt im „⋯" wie in jeder Liste (docs/design/linie.md 3) —
-    // vorher ein rotes ✕ in der Zeile.
-    await userEvent.click(
-      within(alt).getByRole('button', { name: 'Weitere Aktionen für Material Eckventil alt' }),
-    );
-    expect(await screen.findByRole('menuitem', { name: 'Löschen' })).toBeInTheDocument();
-    await userEvent.keyboard('{Escape}');
-    // Genau eine Form im DOM.
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
-
-    await userEvent.click(within(alt).getByRole('button', { name: 'Bearbeiten' }));
-    expect(screen.getByLabelText(/Bezeichnung/)).toHaveValue('Eckventil alt');
   });
 });

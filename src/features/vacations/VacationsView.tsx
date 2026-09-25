@@ -23,7 +23,6 @@ import {
   urlaubsJahrVon,
   JAHRESBEGINN_VORGABE,
   fmtMin,
-  fmtDauer,
   type SaldoResult,
 } from '@/lib/time';
 import type { AppUser, Betriebsurlaub, Krankmeldung, Vacation } from '@/types';
@@ -34,12 +33,9 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
-import { Reiter, Reiterleiste } from '@/components/Reiter';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { InputField, SelectField, CheckboxField, FormGrid, Pflichthinweis } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
-import Meldung from '@/components/Meldung';
-import Aktionsleiste from '@/components/Aktionsleiste';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { zeitguthabenLaden } from './zeitguthaben';
@@ -67,15 +63,18 @@ const istZa = (v: Pick<Vacation, 'art'>) => v.art === 'Zeitausgleich';
 /** „13:00" aus „13:00" oder „13:00:00". */
 const hhmm = (t?: string | null) => (t ?? '').slice(0, 5);
 
+/** Stunden mit Komma: 4 → „4", 7,5 → „7,5". */
+const std = (h: number) => h.toLocaleString('de-AT', { maximumFractionDigits: 2 });
+
 /**
  * Was ein ZA-Antrag kostet, in Worten — für die Listen.
  *
- * „ZA – 04:00 Std (13:00–17:00)" oder „ZA – 2 Tage (16:00 Std)". Beim Urlaub
+ * „ZA – 4 Std. (13:00–17:00)" oder „ZA – 2 Tage (16 Std.)". Beim Urlaub
  * bleibt es bei den Arbeitstagen, wie bisher.
  */
 function umfang(v: Vacation): string {
   if (!istZa(v)) return `${v.tage} ${v.tage === 1 ? 'Arbeitstag' : 'Arbeitstage'}`;
-  const stunden = v.zaStunden != null ? fmtDauer(Math.round(Number(v.zaStunden) * 60)) : '';
+  const stunden = v.zaStunden != null ? `${std(Number(v.zaStunden))} Std.` : '';
   if (v.zaVon && v.zaBis) return `ZA – ${stunden} (${hhmm(v.zaVon)}–${hhmm(v.zaBis)})`;
   return `ZA – ${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}${stunden ? ` (${stunden})` : ''}`;
 }
@@ -392,7 +391,7 @@ export default function VacationsView() {
     const rest = urlaubsStand(a.profil, urlaubsJahrVon(v.von, regel.jahresbeginn), a.genehmigt, regel).rest;
     const danach = rest - (Number(v.tage) || 0);
     return (
-      <span className={`mt-1 block text-xs ${danach < 0 ? 'font-medium text-warning' : 'text-ink-muted'}`}>
+      <span className={`tnum mt-1 block text-xs ${danach < 0 ? 'font-medium text-warning' : 'text-ink-muted'}`}>
         Resturlaub: {tageText(rest)} — nach Genehmigung {tageText(danach)}
         {danach < 0 ? ' (reicht nicht)' : ''}
       </span>
@@ -772,8 +771,8 @@ export default function VacationsView() {
       return (
         <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
           <Zustand stand="gut">ausreichend Zeitguthaben</Zustand>
-          <span>
-            {vorzeichen(jetzt)} Std, danach {vorzeichen(danach)} Std
+          <span className="tnum">
+            {vorzeichen(jetzt)} Std., danach {vorzeichen(danach)} Std.
           </span>
         </span>
       );
@@ -781,8 +780,8 @@ export default function VacationsView() {
     return (
       <span className="mt-1 block text-xs font-medium text-warning" role="alert">
         {jetzt <= 0
-          ? `Kein Zeitguthaben (${vorzeichen(jetzt)} Std) — der Zeitausgleich ginge ins Minus.`
-          : `Das Zeitguthaben (${vorzeichen(jetzt)} Std) reicht nicht — danach stünden ${vorzeichen(danach)} Std.`}{' '}
+          ? `Kein Zeitguthaben (${vorzeichen(jetzt)} Std.) — der Zeitausgleich ginge ins Minus.`
+          : `Das Zeitguthaben (${vorzeichen(jetzt)} Std.) reicht nicht — danach stünden ${vorzeichen(danach)} Std.`}{' '}
         Beantragen geht trotzdem; entschieden wird bei der Genehmigung.
       </span>
     );
@@ -804,13 +803,23 @@ export default function VacationsView() {
         anderen sehen die Seite wie bisher, ohne Reiterleiste.
       */}
       {buero && (
-        <Reiterleiste>
+        <div className="reiterleiste flex gap-1 overflow-x-auto border-b border-line" role="tablist">
           {REITER.map((r) => (
-            <Reiter key={r.key} aktiv={reiter === r.key} onClick={() => setReiter(r.key)}>
+            <button
+              key={r.key}
+              role="tab"
+              aria-selected={reiter === r.key}
+              onClick={() => setReiter(r.key)}
+              className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
+                reiter === r.key
+                  ? 'border-b-accent-deep font-bold text-accent-deep'
+                  : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
+              }`}
+            >
               {r.label}
-            </Reiter>
+            </button>
           ))}
-        </Reiterleiste>
+        </div>
       )}
 
       {buero && reiter === 'krank' && <KrankenstaendeReiter companyId={user.companyId} meinName={user.name} />}
@@ -845,16 +854,14 @@ export default function VacationsView() {
           sonst beantragt er Tage, die ohnehin zu sind.
         */}
         {betriebsurlaube.length > 0 && (
-          <div className="mb-4">
-            <Meldung ton="info">
-              {betriebsurlaube.map((b) => (
-                <span key={b.id} className="block">
-                  <strong>{b.bezeichnung}</strong> {zeitraum(b)}
-                  {b.urlaubAbbuchen ? ' — wird vom Urlaub abgebucht' : ''}
-                </span>
-              ))}
-            </Meldung>
-          </div>
+          <p className="mb-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+            {betriebsurlaube.map((b) => (
+              <span key={b.id} className="block">
+                <strong>{b.bezeichnung}</strong> {zeitraum(b)}
+                {b.urlaubAbbuchen ? ' — wird vom Urlaub abgebucht' : ''}
+              </span>
+            ))}
+          </p>
         )}
         <form onSubmit={beantragen} className="space-y-4">
           <SelectField
@@ -947,105 +954,94 @@ export default function VacationsView() {
             zustandekommt, steht hinter dem „i": das ist einmal interessant
             und danach nur noch lang.
           */}
-          {/*
-            DIE ÜBERSCHNEIDUNG IST EINE WARNUNG, keine Auskunft — sie steht
-            deshalb als eigene Meldung über der Zahl, nicht in Warnfarbe im
-            Infokasten.
-          */}
-          {art !== 'Krank' && zeitraumGewaehlt && ueberschneidung && (
-            <Meldung ton="warnung">{ueberschneidung}</Meldung>
-          )}
           {art === 'Urlaub' && (
-          <Meldung ton="info">
-            <div className="flex flex-wrap items-center">
-              {zeitraumGewaehlt && !ueberschneidung && (
-                <>
-                  <strong>
-                    {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
-                  </strong>
-                  <span className="ml-1">in diesem Zeitraum</span>
-                  <span className="ml-1">
-                    — danach bleiben {tageText(restImAntragsjahr - tage.length)}
-                    {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
-                  </span>
-                  <InfoHint about="Arbeitstage">
-                    Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
-                    Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
-                    Wer eine Woche mit Feiertag nimmt, verbraucht vier Tage, nicht fünf.
-                  </InfoHint>
-                </>
+          <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+            {zeitraumGewaehlt && ueberschneidung && (
+              <span className="text-warning">{ueberschneidung}</span>
+            )}
+            {zeitraumGewaehlt && !ueberschneidung && (
+              <>
+                <strong className="tnum">
+                  {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
+                </strong>
+                <span className="ml-1">in diesem Zeitraum</span>
+                <span className="tnum ml-1">
+                  — danach bleiben {tageText(restImAntragsjahr - tage.length)}
+                  {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
+                </span>
+                <InfoHint about="Arbeitstage">
+                  Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
+                  Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
+                  Wer eine Woche mit Feiertag nimmt, verbraucht vier Tage, nicht fünf.
+                </InfoHint>
+              </>
+            )}
+            <span className={`block basis-full text-xs ${zeitraumGewaehlt ? 'mt-1' : ''}`}>
+              {jahresName} genehmigt: <span className="tnum">{genommen}</span> von{' '}
+              <span className="tnum">{anspruch}</span> Tagen
+              {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
+                  falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
+                  (dort sind es die mitgebrachten Tage) noch dort, wo ein
+                  Übertrag aus dem Vorjahr dabei ist. */}
+              {stand.ausAnfangsbestand
+                ? ' (Restanspruch beim Umstieg).'
+                : stand.uebertrag > 0
+                  ? `, davon ${stand.uebertrag} aus dem vorigen Urlaubsjahr.`
+                  : '.'}
+              {/* Verfallene Tage werden GENANNT. Sie lautlos abzuziehen wäre
+                  genau die Sorte Zahl, über die sich jemand später beschwert
+                  — und dann ist es ein Streit statt einer Auskunft. */}
+              {stand.verfallen > 0 && (
+                <span className="mt-1 block">
+                  <span className="tnum">{stand.verfallen}</span>
+                  {stand.verfallen === 1 ? ' Tag ist' : ' Tage sind'} heuer verfallen.
+                </span>
               )}
-              <span className={`block basis-full text-xs ${zeitraumGewaehlt && !ueberschneidung ? 'mt-1' : ''}`}>
-                {jahresName} genehmigt: <span>{genommen}</span> von{' '}
-                <span>{anspruch}</span> Tagen
-                {/* Eine richtige Zahl mit falscher Erklärung ist auch eine
-                    falsche Auskunft: „von 25" stimmt weder im Umstiegsjahr
-                    (dort sind es die mitgebrachten Tage) noch dort, wo ein
-                    Übertrag aus dem Vorjahr dabei ist. */}
-                {stand.ausAnfangsbestand
-                  ? ' (Restanspruch beim Umstieg).'
-                  : stand.uebertrag > 0
-                    ? `, davon ${stand.uebertrag} aus dem vorigen Urlaubsjahr.`
-                    : '.'}
-                {/* Verfallene Tage werden GENANNT. Sie lautlos abzuziehen wäre
-                    genau die Sorte Zahl, über die sich jemand später beschwert
-                    — und dann ist es ein Streit statt einer Auskunft. */}
-                {stand.verfallen > 0 && (
-                  <span className="mt-1 block">
-                    <span>{stand.verfallen}</span>
-                    {stand.verfallen === 1 ? ' Tag ist' : ' Tage sind'} heuer verfallen.
-                  </span>
-                )}
-              </span>
-            </div>
-          </Meldung>
+            </span>
+          </div>
           )}
 
           {art === 'Zeitausgleich' && (
-            <Meldung ton="info">
-              <div className="flex flex-wrap items-center">
-                <strong>{fmtDauer(zaMin)}</strong>
-                <span className="ml-1">
-                  Zeitausgleich
-                  {zaStundenweise
-                    ? ''
-                    : ` (${zaTage.length} ${zaTage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'})`}
-                  .
-                </span>
-                <InfoHint about="Zeitausgleich">
-                  Zeitausgleich geht vom Zeitguthaben (Überstunden), nicht vom Urlaub. Ein ganzer Tag
-                  kostet das Tagessoll, stundenweise genau die freien Stunden. Nach der Genehmigung
-                  steht er im Zeitkonto und im Wochenplan.
-                </InfoHint>
-                <span className="basis-full">{guthabenZeile()}</span>
-              </div>
-            </Meldung>
+            <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+              <strong className="tnum">{std(zaMin / 60)} Std.</strong>
+              <span className="ml-1">
+                Zeitausgleich
+                {zaStundenweise
+                  ? ''
+                  : ` (${zaTage.length} ${zaTage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'})`}
+                .
+              </span>
+              <InfoHint about="Zeitausgleich">
+                Zeitausgleich geht vom Zeitguthaben (Überstunden), nicht vom Urlaub. Ein ganzer Tag
+                kostet das Tagessoll, stundenweise genau die freien Stunden. Nach der Genehmigung
+                steht er im Zeitkonto und im Wochenplan.
+              </InfoHint>
+              <span className="basis-full">{guthabenZeile()}</span>
+              {zeitraumGewaehlt && ueberschneidung && (
+                <span className="mt-1 basis-full text-warning">{ueberschneidung}</span>
+              )}
+            </div>
           )}
 
           {art === 'Krank' && (
-            <Meldung ton="info">
+            <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
               Eine Krankmeldung braucht keine Genehmigung: die Tage stehen sofort als „Krank" im
               Zeitkonto, und das Büro sieht die Meldung. Ist das Ende noch offen, das
               voraussichtliche eintragen — ändern geht jederzeit.
-            </Meldung>
+            </p>
           )}
 
           <Pflichthinweis />
 
-          {/* Am Telefon ist die Maske länger als ein Bildschirm — die Leiste
-              hält den Knopf erreichbar, ohne ans Ende zu wischen. */}
-          <Aktionsleiste>
-            <Button
-              type="submit"
-              loading={sendet}
-              disabled={
-                art === 'Urlaub' ? tage.length === 0 : art === 'Zeitausgleich' ? zaTage.length === 0 : false
-              }
-              className="w-full sm:w-auto"
-            >
-              {art === 'Krank' ? 'Krank melden' : 'Antrag einreichen'}
-            </Button>
-          </Aktionsleiste>
+          <Button
+            type="submit"
+            loading={sendet}
+            disabled={
+              art === 'Urlaub' ? tage.length === 0 : art === 'Zeitausgleich' ? zaTage.length === 0 : false
+            }
+          >
+            {art === 'Krank' ? 'Krank melden' : 'Antrag einreichen'}
+          </Button>
         </form>
       </Card>
 
@@ -1053,7 +1049,7 @@ export default function VacationsView() {
           hier wartet jemand auf eine Antwort. */}
       {darfEntscheiden && (
         <Card
-          title="Offene Anträge" anzahl={offene.length}
+          title={`Offene Anträge (${offene.length})`}
           hint={
             <>
               Eine Genehmigung trägt die Tage sofort ins Zeitkonto ein — Urlaub mit vollem
@@ -1080,7 +1076,7 @@ export default function VacationsView() {
                     title={v.userName}
                     subtitle={
                       <>
-                        <span className="block">
+                        <span className="tnum block">
                           {zeitraum(v)} · {istZa(v) ? umfang(v) : `${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}`}
                         </span>
                         {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
@@ -1091,11 +1087,11 @@ export default function VacationsView() {
                         */}
                         {istZa(v) && saldoMin !== null && (
                           <span
-                            className={`mt-1 block text-xs ${
+                            className={`tnum mt-1 block text-xs ${
                               saldoMin - kostet < 0 ? 'font-medium text-warning' : 'text-ink-muted'
                             }`}
                           >
-                            Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std
+                            Zeitguthaben beim Antrag: {vorzeichen(saldoMin)} Std.
                             {saldoMin - kostet < 0 ? ' — reicht nicht' : ''}
                           </span>
                         )}
@@ -1116,11 +1112,7 @@ export default function VacationsView() {
                       <span className="text-xs text-ink-muted">Entscheidet jemand anderer</span>
                     ) : (
                       <>
-                        {/* Weiß mit Haarlinie, nicht dunkel: bei mehreren
-                            offenen Anträgen stünden sonst mehrere Hauptknöpfe
-                            in einer Karte (Linie, 5). */}
                         <Button
-                          variant="secondary"
                           loading={arbeitet === v.id}
                           onClick={() => entscheiden(v, 'Genehmigt')}
                         >
@@ -1153,7 +1145,7 @@ export default function VacationsView() {
             {eigene.map((v) => (
               <ListRow
                 key={v.id}
-                title={<span>{zeitraum(v)}</span>}
+                title={<span className="tnum">{zeitraum(v)}</span>}
                 subtitle={
                   <>
                     <span className="block">

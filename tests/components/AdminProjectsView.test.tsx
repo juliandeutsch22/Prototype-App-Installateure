@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { AppUser, Customer, Project } from '@/types';
 import AdminProjectsView from '@/features/projects/AdminProjectsView';
-import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Die Baustellenverwaltung — die vierte der bisher ungetesteten Kernansichten.
@@ -402,10 +401,7 @@ describe('Baustellen — löschen', () => {
     zeige();
 
     const zeile = (await screen.findByText(/2026-042/)).closest('li') as HTMLElement;
-    // Die rechte Seite der Zeile gezielt: seit Adresse und Telefon als
-    // Chips UNTER der Zeile stehen (`.zeile-unten`), ist sie nicht mehr
-    // das letzte Kind des Listeneintrags.
-    const rechts = zeile.querySelector('.zeile-rechts') as HTMLElement;
+    const rechts = zeile.lastElementChild as HTMLElement;
     expect(rechts.children.length).toBeLessThanOrEqual(4);
 
     // „Schein nachtragen" ist nicht weg, es steht im Menü.
@@ -668,9 +664,7 @@ describe('Baustellen — Suche über die Liste hinaus', () => {
 
     // Die Zeile der Baustelle, nicht der Hinweis über dem Feld: dort steht die
     // Nummer in Klammern hinter dem Kundennamen.
-    // Die Nummer steht seit der Linie vorn in der Unterzeile („2026-003 ·
-    // Projektleitung …"), nicht mehr in Klammern hinter dem Kunden.
-    expect(await screen.findByText(/^2026-003 ·/)).toBeInTheDocument();
+    expect(await screen.findByText('(2026-003)')).toBeInTheDocument();
     expect(screen.queryByText(/Baustellen? ausserhalb der geladenen Liste gefunden/))
       .not.toBeInTheDocument();
   });
@@ -705,53 +699,5 @@ describe('Baustellen — Kundenauswahl an der Grenze', () => {
     await formOeffnen();
     await screen.findByLabelText('Kunde');
     expect(screen.queryByText(/nur die ersten/)).not.toBeInTheDocument();
-  });
-});
-
-/**
- * AM SCHREIBTISCH EINE TABELLE — Budget als Zahl in einer rechtsbündigen
- * Spalte, Leitung und Team beschriftet, dieselbe Akte und dasselbe „⋯".
- */
-describe('Baustellen am Schreibtisch', () => {
-  const schreibtisch = mitSchreibtisch();
-
-  beforeEach(() => {
-    baustellen = [
-      {
-        id: 'p1', companyId: 'perl', projectNumber: '2026-042', customerName: 'Familie Huber',
-        status: 'Aktiv', estimatedHours: 54, address: 'Hauptstraße 12',
-        contactPhone: '0664 1234567', assignedEmployees: ['u1'],
-      } as Project & { id: string },
-    ];
-    schreibtisch();
-  });
-
-  it('steht als Tabelle, das Budget rechtsbündig als Zahl', async () => {
-    zeige();
-    const zeile = await screen.findByRole('row', { name: /2026-042/ });
-    const t = zeile.closest('table')!;
-    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
-      'Baustelle', 'Adresse', 'Projektleitung', 'Budget', 'Status', 'Aktionen',
-    ]);
-    // Zahlen rechtsbündig UND fett (docs/design/linie.md 4).
-    expect(within(zeile).getByText('54 h')).toHaveClass('tabelle-zahl-stark');
-    expect(zeile).toHaveTextContent('Keine Projektleitung zugeteilt');
-    expect(zeile).toHaveTextContent('Team: Max Mustermann');
-    expect(within(zeile).getByRole('link', { name: /Hauptstraße 12/ })).toBeInTheDocument();
-    expect(within(zeile).getByRole('link', { name: /0664 1234567/ })).toBeInTheDocument();
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
-  });
-
-  it('führt mit denselben Aktionen in die Akte und ins „⋯"', async () => {
-    zeige();
-    const zeile = await screen.findByRole('row', { name: /2026-042/ });
-    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
-      'href', '/admin-projects/p1',
-    );
-    await userEvent.click(
-      within(zeile).getByRole('button', { name: 'Weitere Aktionen für Baustelle 2026-042' }),
-    );
-    await userEvent.click(await screen.findByRole('menuitem', { name: 'Löschen' }));
-    expect(await screen.findByText('Baustelle löschen?')).toBeInTheDocument();
   });
 });

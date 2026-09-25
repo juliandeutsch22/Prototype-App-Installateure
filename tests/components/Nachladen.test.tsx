@@ -54,22 +54,6 @@ describe('Der Hinweis auf die Grenze', () => {
     expect(screen.queryByText(/Suche geht nur/)).not.toBeInTheDocument();
   });
 
-  /*
-    DER ORT IST DER KARTENFUSS — dort trägt `.karte-fuss` die Linie. Nur wo
-    der Hinweis mitten in einer Karte stehen muss, bringt er sie selbst mit;
-    sonst stünden im Fuß zwei Linien übereinander.
-  */
-  it('bringt die Linie nur mit, wenn er mitten in der Karte steht', () => {
-    const { container, rerender } = render(
-      <Nachladen geladen={50} grenze={50} einheit="Artikel" onMehr={() => undefined} />,
-    );
-    expect(container.firstElementChild).toHaveClass('nachladen');
-    rerender(
-      <Nachladen geladen={50} grenze={50} einheit="Artikel" onMehr={() => undefined} imInhalt />,
-    );
-    expect(container.firstElementChild).toHaveClass('nachladen-im-inhalt');
-  });
-
   it('reicht den Griff nach mehr durch', async () => {
     const mehr = vi.fn();
     render(<Nachladen geladen={50} grenze={50} einheit="Rechnungen" onMehr={mehr} />);

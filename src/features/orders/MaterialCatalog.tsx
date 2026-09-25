@@ -8,23 +8,21 @@ import {
   deleteMaterial,
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
-import { KATALOG_GRENZE, abgeschnitten } from '@/lib/listengrenzen';
+import { KATALOG_GRENZE } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { Marke, Warnung } from '@/components/Badge';
-import RowMenu from '@/components/RowMenu';
+import IconButton from '@/components/IconButton';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, FormGrid, Pflichthinweis } from '@/components/Field';
 import InfoHint from '@/components/InfoHint';
 import Nachladen from '@/components/Nachladen';
-import Aktionsleiste from '@/components/Aktionsleiste';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
-import { AB_TABELLE, useAbBreite } from '@/lib/useAbBreite';
 
 /**
  * Die ueblichen Mengeneinheiten im Sanitaer- und Heizungsbau.
@@ -126,9 +124,6 @@ export default function MaterialCatalog({
     );
   }, [materials, search]);
 
-  /** Am Schreibtisch der Katalog als Tabelle, am Telefon als Liste. */
-  const schreibtisch = useAbBreite(AB_TABELLE);
-
   const lowStock = useMemo(
     () => materials.filter((m) => (m.stock ?? 0) <= LOW_STOCK_THRESHOLD).length,
     [materials],
@@ -215,38 +210,6 @@ export default function MaterialCatalog({
 
   if (!user) return null;
 
-  /*
-    ZEILENINHALT EINMAL, ZWEI FORMEN — am Telefon Listenzeile, am
-    Schreibtisch Tabellenzeile (siehe `useAbBreite`), wie im Bestand.
-  */
-  const katalogMarken = (m: WithId<Material>) => (
-    <>
-      {/*
-        „Ausgelaufen" steht VOR dem Bestand: es erklärt, warum der Artikel in
-        der Materialerfassung nicht mehr auftaucht, und das ist die Frage, mit
-        der jemand hier nachsieht.
-      */}
-      {m.ausgelaufen && <Warnung>ausgelaufen</Warnung>}
-      {(m.stock ?? 0) <= LOW_STOCK_THRESHOLD ? (
-        <Warnung>{m.stock ?? 0} {m.unit ?? 'Stk'}</Warnung>
-      ) : (
-        <Marke>{m.stock ?? 0} {m.unit ?? 'Stk'}</Marke>
-      )}
-    </>
-  );
-
-  /* Bearbeiten als Textknopf, das seltene Löschen im „⋯" wie in jeder
-     Liste (docs/design/linie.md 3) — vorher ein rotes ✕ in jeder Zeile. */
-  const katalogKnoepfe = (m: WithId<Material>) => (
-    <>
-      <Button variant="ghost" onClick={() => startEdit(m)}>Bearbeiten</Button>
-      <RowMenu
-        about={`Material ${m.name}`}
-        items={[{ label: 'Löschen', onSelect: () => setToDelete(m), danger: true }]}
-      />
-    </>
-  );
-
   return (
     <div className="space-y-6">
       <Card title={editId ? 'Material bearbeiten' : 'Neues Material'}>
@@ -325,56 +288,33 @@ export default function MaterialCatalog({
           </FormGrid>
           <Pflichthinweis />
           {error && <ErrorState message={error} />}
-          <Aktionsleiste>
-            <Button type="submit" loading={saving}>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button type="submit" loading={saving} className="w-full sm:w-auto">
               {editId ? 'Änderungen speichern' : 'Material anlegen'}
             </Button>
             {editId && (
-              <Button type="button" variant="ghost" onClick={reset}>
+              <Button type="button" variant="ghost" onClick={reset} className="w-full sm:w-auto">
                 Abbrechen
               </Button>
             )}
-          </Aktionsleiste>
+          </div>
         </form>
       </Card>
 
       <Card
-        title="Katalog"
-        // Die Zahl rechts im Titel statt in Klammern (Linie, 2), daneben
-        // wie bisher der Hinweis auf knappe Artikel.
+        title={`Katalog (${materials.length})`}
         action={
-          <div className="liste-kopf-rechts">
-            <span className="liste-anzahl">{materials.length}</span>
-            {lowStock > 0 && <Warnung>{lowStock} knapp</Warnung>}
-          </div>
-        }
-        /*
-          Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
-          gescrollt und nichts gefunden hat, braucht die Auskunft. Im
-          Kartenfuß wie jede Liste — und nur, wenn die Grenze greift.
-        */
-        footer={
-          abgeschnitten(materials, grenze) && (
-            <Nachladen
-              geladen={materials.length}
-              grenze={grenze}
-              onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-              einheit="Artikel"
-              sucheSatz="Nach Name, Kategorie und Artikelnummer wird nur in diesen gesucht."
-            />
-          )
+          lowStock > 0 ? <Warnung>{lowStock} knapp</Warnung> : undefined
         }
       >
-        <div className="liste-suche">
-          <InputField
-            id="msearch"
-            label="Suche"
-            placeholder="Name, Kategorie oder Art.-Nr."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <div>
+        <InputField
+          id="msearch"
+          label="Suche"
+          placeholder="Name, Kategorie oder Art.-Nr."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="mt-4">
           {loading ? (
             <SkeletonList rows={4} />
           ) : visible.length === 0 ? (
@@ -395,57 +335,52 @@ export default function MaterialCatalog({
                 ? 'Noch kein Material im Katalog. Was der Monteur anfordern kann, muss hier stehen.'
                 : `Kein Material passt zu „${search}".`}
             </EmptyState>
-          ) : schreibtisch ? (
-            <div className="tabelle-rahmen">
-              <table className="tabelle">
-                <thead className="tabelle-kopfzeile">
-                  <tr>
-                    <th className="tabelle-kopf">Material</th>
-                    <th className="tabelle-kopf">Kategorie</th>
-                    <th className="tabelle-kopf">Art.-Nr.</th>
-                    <th className="tabelle-kopf">Bestand</th>
-                    <th className="tabelle-kopf-zahl">
-                      <span className="sr-only">Aktionen</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((m) => (
-                    <tr key={m.id} className="tabelle-zeile">
-                      <td className="tabelle-name">{m.name}</td>
-                      <td className="tabelle-zelle">{m.category}</td>
-                      <td className="tabelle-zelle">
-                        <span className="whitespace-nowrap">{m.articleNumber}</span>
-                      </td>
-                      <td className="tabelle-zelle">
-                        <span className="tabelle-marken">{katalogMarken(m)}</span>
-                      </td>
-                      <td className="tabelle-aktionen">
-                        <div className="tabelle-knoepfe">{katalogKnoepfe(m)}</div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           ) : (
             <List>
-              {visible.map((m) => (
-                <ListRow
-                  key={m.id}
-                  title={m.name}
-                  subtitle={
-                    [m.category, m.articleNumber && `Art.-Nr. ${m.articleNumber}`]
-                      .filter(Boolean)
-                      .join(' · ') || undefined
-                  }
-                >
-                  {katalogMarken(m)}
-                  {katalogKnoepfe(m)}
-                </ListRow>
-              ))}
+              {visible.map((m) => {
+                const low = (m.stock ?? 0) <= LOW_STOCK_THRESHOLD;
+                return (
+                  <ListRow
+                    key={m.id}
+                    title={m.name}
+                    subtitle={
+                      [m.category, m.articleNumber && `Art.-Nr. ${m.articleNumber}`]
+                        .filter(Boolean)
+                        .join(' · ') || undefined
+                    }
+                  >
+                    {/*
+                      „Ausgelaufen" steht VOR dem Bestand: es erklärt, warum
+                      der Artikel in der Materialerfassung nicht mehr
+                      auftaucht, und das ist die Frage, mit der jemand hier
+                      nachsieht.
+                    */}
+                    {m.ausgelaufen && <Warnung>ausgelaufen</Warnung>}
+                    {low ? (
+                      <Warnung>{m.stock ?? 0} {m.unit ?? 'Stk'}</Warnung>
+                    ) : (
+                      <Marke>{m.stock ?? 0} {m.unit ?? 'Stk'}</Marke>
+                    )}
+                    <Button variant="ghost" onClick={() => startEdit(m)}>Bearbeiten</Button>
+                    <IconButton label={`${m.name} löschen`} tone="danger" onClick={() => setToDelete(m)}>
+                      ✕
+                    </IconButton>
+                  </ListRow>
+                );
+              })}
             </List>
           )}
+          {/*
+            Steht unter der Liste, nicht im Kopf: erst wer bis ans Ende
+            gescrollt und nichts gefunden hat, braucht die Auskunft.
+          */}
+          <Nachladen
+            geladen={materials.length}
+            grenze={grenze}
+            onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+            einheit="Artikel"
+            sucheSatz="Nach Name, Kategorie und Artikelnummer wird nur in diesen gesucht."
+          />
         </div>
       </Card>
 

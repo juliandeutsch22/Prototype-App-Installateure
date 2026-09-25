@@ -14,7 +14,7 @@ export interface NavItem {
   /** Rollen, die diesen Screen sehen dürfen. */
   roles: Role[];
   /** Gruppierung in der Navigation. */
-  group: 'Allgemein' | 'Außendienst' | 'Verwaltung' | 'Buchhaltung' | 'Einstellungen';
+  group: 'Allgemein' | 'Außendienst' | 'Verwaltung' | 'Buchhaltung';
   /**
    * Zu welchem abschaltbaren Modul dieser Eintrag gehört.
    *
@@ -61,9 +61,7 @@ const TOP: Role[] = ['Geschäftsführung', 'Administrator'];
 const NUR_ADMIN: Role[] = ['Administrator'];
 
 export const NAV: NavItem[] = [
-  // „Start“ wie in der Tableiste und im Entwurf (Mockup S. 7, 8) — ein Name
-  // für denselben Ort auf Telefon und Schreibtisch.
-  { path: '/', label: 'Start', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
+  { path: '/', label: 'Dashboard', short: 'Start', icon: 'home', roles: ALL, group: 'Allgemein' },
 
   // JEDE Rolle muss die eigene Zeit buchen können (auch die Buchhaltung:
   // Krankenstand und Urlaub). Legacy setzt den Tab unbedingt, ohne
@@ -91,24 +89,24 @@ export const NAV: NavItem[] = [
   // Urlaub sieht JEDE Rolle: auch Buchhaltung und Verwaltung nehmen Urlaub,
   // und beantragen muessen ihn alle. Wer entscheiden darf, sieht in derselben
   // Ansicht zusaetzlich die offenen Antraege.
-  { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'sun', roles: ALL, group: 'Außendienst', modul: 'urlaub', hinweis: 'urlaub' },
+  { path: '/vacations', label: 'Urlaub', short: 'Urlaub', icon: 'calendar', roles: ALL, group: 'Außendienst', modul: 'urlaub', hinweis: 'urlaub' },
   // Der Schein gehoert in den Aussendienst: er entsteht vor Ort beim Kunden,
   // nicht im Buero.
-  { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'pencil', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'scheine' },
+  { path: '/worksheets', label: 'Handwerksscheine', short: 'Scheine', icon: 'clipboard', roles: ['Mitarbeiter', 'Buchhaltung', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'scheine' },
 
   // Kunden VOR den Baustellen: der Kunde ist der Ausgangspunkt, die Baustelle
   // hängt an ihm. Auch die Buchhaltung braucht ihn — für die Rechnungsadresse.
   // Angebot vor Baustelle: so laeuft der Auftrag auch in Wirklichkeit.
-  { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'file', roles: ['Buchhaltung', ...LEAD], group: 'Verwaltung', modul: 'angebote' },
-  { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'contact', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Verwaltung' },
+  { path: '/quotes', label: 'Angebote', short: 'Angebote', icon: 'receipt', roles: ['Buchhaltung', ...LEAD], group: 'Verwaltung', modul: 'angebote' },
+  { path: '/customers', label: 'Kunden', short: 'Kunden', icon: 'users', roles: ['Buchhaltung', 'Verwaltung', ...LEAD], group: 'Verwaltung' },
   // Wartungen bei den Kunden, nicht bei den Baustellen: eine Vereinbarung
   // gehört dem Kunden und überlebt jede einzelne Baustelle. Die Verwaltung
   // sieht sie mit, NUR LESEND — anlegen, ändern und „erledigt“ bleiben bei
   // der Leitung (entschieden vom Betrieb am 24.09.2026, Prüflauf L4). Hier
   // stand vorher, sie „vereinbare den Termin“ — ohne einen einzigen Knopf dafür.
-  { path: '/wartungen', label: 'Wartungen', short: 'Wartung', icon: 'wrench', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'wartung' },
+  { path: '/wartungen', label: 'Wartungen', short: 'Wartung', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'wartung' },
   { path: '/anforderungen', label: 'Anforderungen', short: 'Anford.', icon: 'clipboard', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material', hinweis: 'anforderungen' },
-  { path: '/lager', label: 'Lager', short: 'Lager', icon: 'archive', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
+  { path: '/lager', label: 'Lager', short: 'Lager', icon: 'package', roles: ['Verwaltung', ...LEAD], group: 'Verwaltung', modul: 'material' },
   { path: '/admin-projects', label: 'Baustellen', short: 'Baustellen', icon: 'building', roles: LEAD, group: 'Verwaltung' },
   { path: '/assignments', label: 'Einsatzplanung', short: 'Planung', icon: 'calendar', roles: LEAD, group: 'Verwaltung', modul: 'einsatzplanung' },
   // Wer angelegt wird und welche Rolle er bekommt, ist Eigentümersache und
@@ -122,13 +120,10 @@ export const NAV: NavItem[] = [
   // Der Reiter steht JEDER Rolle offen, weil die Meldungseinstellungen jedem
   // gehören. Was darunter enger ist, steht in UNTER — Sätze und Module sind
   // Geschäftsführungssache.
-  //
-  // Am ENDE der Liste (eigene Gruppe ohne Überschrift): was man einmal
-  // einstellt, steht nicht zwischen Start und der täglichen Arbeit.
-  { path: '/settings', label: 'Einstellungen', short: 'Einstellungen', icon: 'settings', roles: ALL, group: 'Einstellungen' },
+  { path: '/settings', label: 'Einstellungen', short: 'Einstellungen', icon: 'settings', roles: ALL, group: 'Allgemein' },
 
   // Margen sind Geschaeftsfuehrungssache — die Projektleitung sieht sie nicht.
-  { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'calculator', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
+  { path: '/costing', label: 'Nachkalkulation', short: 'Kalkulation', icon: 'chart', roles: TOP, group: 'Buchhaltung', modul: 'nachkalkulation' },
   // Rechnungen OHNE Projektleitung — so steht es auch in den Richtlinien, und
   // dort ist es die Wahrheit. Der Eintrag zeigte sie ihr trotzdem an; wer
   // klickte, landete in „Kein Zugriff".
@@ -320,18 +315,7 @@ export function tabBarForRole(
 
 
 /** Reihenfolge der Navigationsgruppen. */
-export const NAV_GROUPS = ['Allgemein', 'Außendienst', 'Verwaltung', 'Buchhaltung', 'Einstellungen'] as const;
-
-/**
- * Gruppen OHNE Überschrift: „Allgemein“ (Start) oben und „Einstellungen“
- * unten stehen für sich. Hat eine Rolle ausser ihnen nur EINE Gruppe — der
- * Monteur nur den Außendienst —, braucht auch die keine Überschrift (Mockup
- * S. 7): eine Überschrift über allem ordnet nichts.
- */
-export function gruppeMitUeberschrift(group: string, groups: { group: string }[]): boolean {
-  const benannt = groups.filter((g) => g.group !== 'Allgemein' && g.group !== 'Einstellungen');
-  return benannt.length > 1 && benannt.some((g) => g.group === group);
-}
+export const NAV_GROUPS = ['Allgemein', 'Außendienst', 'Verwaltung', 'Buchhaltung'] as const;
 
 /** Sichtbare Navigation, nach Gruppen gebündelt (für übersichtliche Sidebar). */
 export function navGroupsForRole(

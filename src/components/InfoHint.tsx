@@ -73,14 +73,11 @@ export function InfoPanel({
     (Nachträge, Leistungszeit am Schein) — ein <p> darin ist kein gültiges
     HTML, der Browser schliesst den äusseren Absatz vorzeitig, und React
     meldete es bei jedem Öffnen in der Konsole (Prüflauf 24.09.2026, F16).
-
-    Das Aussehen ist das der neutralen Meldung (`.meldung`, index.css) — die
-    Komponente `Meldung` selbst rendert ein <div> und scheidet deshalb aus.
   */
   return (
     <span
       id={id}
-      className={className ? `meldung block ${className}` : 'meldung block'}
+      className={`block rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted ${className}`}
     >
       {children}
     </span>

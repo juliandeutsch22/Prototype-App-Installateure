@@ -6,7 +6,6 @@ import { ToastProvider } from '@/components/Toast';
 import type { AppUser } from '@/types';
 import UserMgmtView from '@/features/users/UserMgmtView';
 import { istBenutzerkonto, kunstadresse } from '@shared/benutzername';
-import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Benutzerverwaltung — wer im Betrieb was darf, und wer noch hinein kommt.
@@ -210,11 +209,8 @@ describe('Benutzerverwaltung — die Rolle Administrator', () => {
     leute = [person({ uid: 'ad1', name: 'Root Person', role: 'Administrator' })];
     zeige();
 
-    // Am Telefon ist die GANZE Zeile der Weg in die Akte (Linie, 3: die
-    // Akte ist ihre einzige Handlung) — der Link trägt den Namen der Person
-    // statt eines eigenen „Akte"-Verweises.
     const zeile = (await screen.findByText('Root Person')).closest('li') as HTMLElement;
-    expect(within(zeile).getByRole('link', { name: /Root Person/ })).toHaveAttribute(
+    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
       'href', '/user-mgmt/ad1',
     );
   });
@@ -496,47 +492,5 @@ describe('Anlegen mit Benutzername statt E-Mail', () => {
     await screen.findByText('Hans Helfer');
     expect(screen.getByText('hans')).toBeInTheDocument();
     expect(screen.queryByText(/senklot\.invalid/)).not.toBeInTheDocument();
-  });
-});
-
-describe('Benutzerverwaltung am Schreibtisch', () => {
-  const schreibtisch = mitSchreibtisch();
-
-  it('steht als Tabelle, nach Rolle gruppiert, mit Name und Anmeldung nebeneinander', async () => {
-    leute = [
-      person({ uid: 'u2', name: 'Erna Beispiel', email: 'erna@perl.at' }),
-      person({ uid: 'u3', name: 'Hans Helfer', email: kunstadresse('hans') }),
-      person({ uid: 'u4', name: 'Bruno Buch', role: 'Buchhaltung', email: 'bruno@perl.at' }),
-    ];
-    schreibtisch();
-    zeige();
-
-    const zeile = await screen.findByRole('row', { name: /Hans Helfer/ });
-    const t = zeile.closest('table')!;
-    expect(within(t).getAllByRole('columnheader').map((k) => k.textContent)).toEqual([
-      'Name', 'Anmeldung', 'Aktionen',
-    ]);
-    // Der Benutzername, nicht die Kunstadresse — wie in der Liste.
-    expect(zeile).toHaveTextContent('hans');
-    expect(zeile).not.toHaveTextContent('senklot.invalid');
-    // Die Gruppen bleiben: je Rolle ein Kopf.
-    expect(within(t).getByRole('heading', { name: /Mitarbeiter/ })).toBeInTheDocument();
-    expect(within(t).getByRole('heading', { name: /Buchhaltung/ })).toBeInTheDocument();
-    // Genau eine Form im DOM.
-    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
-  });
-
-  it('führt mit demselben Link in die Akte und zeigt „inaktiv" am Namen', async () => {
-    leute = [person({ uid: 'u3', name: 'Ausgeschieden', active: false })];
-    schreibtisch();
-    zeige();
-    await userEvent.selectOptions(await screen.findByRole('combobox'), 'alle');
-
-    const zeile = await screen.findByRole('row', { name: /Ausgeschieden/ });
-    expect(within(zeile).getByText('inaktiv')).toBeInTheDocument();
-    expect(within(zeile).getByRole('link', { name: 'Akte' })).toHaveAttribute(
-      'href', '/user-mgmt/u3',
-    );
-    expect(screen.getAllByRole('link', { name: 'Akte' })).toHaveLength(1);
   });
 });
