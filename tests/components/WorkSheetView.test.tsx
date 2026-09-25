@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { forwardRef, useEffect, useImperativeHandle } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -117,10 +117,12 @@ const fotoHochladen = vi.fn<[string, string, Blob, number], Promise<unknown>>(as
   geraetZeit: 1,
 }));
 const fotoEntfernen = vi.fn<[string], Promise<void>>(async () => undefined);
+const fotoAdresse = vi.fn<[string], Promise<string>>(async (p: string) => `https://signiert/${p}`);
 vi.mock('@/lib/db/scheinFotos', () => ({
   komprimiere: (b: Blob) => komprimiere(b),
   fotoHochladen: (c: string, s: string, b: Blob, z: number) => fotoHochladen(c, s, b, z),
   fotoEntfernen: (p: string) => fotoEntfernen(p),
+  fotoAdresse: (p: string) => fotoAdresse(p),
 }));
 
 /*
@@ -217,6 +219,7 @@ beforeEach(() => {
     geraetZeit: 1,
   });
   fotoEntfernen.mockClear();
+  fotoAdresse.mockReset().mockImplementation(async (p: string) => `https://signiert/${p}`);
   /*
     `mockClear` allein raeumt die IMPLEMENTIERUNG nicht weg.
 
@@ -1643,5 +1646,234 @@ describe('Schrittfolge', () => {
     await zuSchritt(nutzer, 'Fotos');
     const fotos = screen.getByRole('heading', { name: /^Fotos \(/ }).closest('section');
     expect(fotos).toHaveClass('order-first');
+  });
+});
+
+/**
+ * Prüflauf 25.09.2026 — ein wieder geöffneter Entwurf verlor Fotos und vor
+ * Ort getippte Zeiten, eine späte Einsatzabfrage schob den Schein auf eine
+ * andere Baustelle, und mehrere Fotos auf einmal legten zwei Entwürfe an.
+ */
+describe('Prüflauf 25.09.2026', () => {
+  const foto = { pfad: 'scheine/perl/e1/alt.jpg', hash: 'alt', bytes: 120_000, geraetZeit: 5 };
+  const basis: WorkSheet & { id: string } = {
+    id: 'e1',
+    companyId: 'perl',
+    projectNumber: 'B-001',
+    customerId: 'k1',
+    customerName: 'Familie Huber',
+    address: 'Hauptstraße 12',
+    datum: heute,
+    status: 'Entwurf',
+    abrechnung: 'Regie',
+    zeiten: [],
+    material: [{ name: 'Eckventil 1/2 Zoll', menge: 2, einheit: 'Stk' }],
+    notizen: '',
+    erstelltVonUid: 'm1',
+    erstelltVonName: 'Max Mustermann',
+  } as WorkSheet & { id: string };
+
+  const bild = () => new File([new Uint8Array([1, 2, 3])], 'foto.jpg', { type: 'image/jpeg' });
+
+  /** Ein Versprechen, das der Test selbst einlöst. */
+  function aufschub<T>() {
+    let einloesen: (w: T) => void = () => undefined;
+    const versprechen = new Promise<T>((gut) => {
+      einloesen = gut;
+    });
+    return { versprechen, einloesen };
+  }
+
+  describe('P1-01: Fotos des Entwurfs', () => {
+    it('holt sie ins Formular und schickt sie beim Aktualisieren wieder mit', async () => {
+      entwurf = { ...basis, fotos: [foto] };
+      const nutzer = userEvent.setup();
+      zeichne('/worksheet?entwurf=e1');
+      expect(await screen.findByText('Fotos (1/8)')).toBeInTheDocument();
+      // Die Vorschau kommt über eine signierte Adresse.
+      await waitFor(() => expect(fotoAdresse).toHaveBeenCalledWith(foto.pfad));
+      await waitFor(() =>
+        expect(screen.getByRole('img', { name: 'Aufnahme vom Einsatz' })).toHaveAttribute(
+          'src',
+          `https://signiert/${foto.pfad}`,
+        ),
+      );
+
+      await nutzer.click(screen.getByRole('button', { name: 'Entwurf aktualisieren' }));
+      await waitFor(() => expect(updateWorkSheetDraft).toHaveBeenCalled());
+      // Eine leere Liste hiesse für die Datenbank: alle Fotos weg.
+      expect(updateWorkSheetDraft.mock.calls[0][1].fotos).toEqual([foto]);
+    });
+
+    it('hängt ein neues Foto an die alten, statt sie zu ersetzen', async () => {
+      entwurf = { ...basis, fotos: [foto] };
+      const nutzer = userEvent.setup();
+      zeichne('/worksheet?entwurf=e1');
+      await screen.findByText('Fotos (1/8)');
+      await nutzer.upload(screen.getByLabelText('Weiteres Foto'), bild());
+
+      await waitFor(() => expect(fotosFestgeschrieben).toHaveBeenCalled());
+      expect(createWorkSheet).not.toHaveBeenCalled();
+      expect(fotoHochladen.mock.calls[0][1]).toBe('e1');
+      expect(fotosFestgeschrieben).toHaveBeenLastCalledWith('e1', [
+        foto,
+        { pfad: 'scheine/perl/s1/aaa.jpg', hash: 'aaa', bytes: 340_000, geraetZeit: 1 },
+      ]);
+    });
+
+    it('zeigt einen Platzhalter, wenn die Adresse ausbleibt — und behält das Foto', async () => {
+      fotoAdresse.mockRejectedValueOnce(new Error('offline'));
+      entwurf = { ...basis, fotos: [foto] };
+      const nutzer = userEvent.setup();
+      zeichne('/worksheet?entwurf=e1');
+      await screen.findByText('Fotos (1/8)');
+      expect(screen.getByRole('img', { name: 'Aufnahme vom Einsatz' }).tagName).toBe('SPAN');
+
+      await nutzer.click(screen.getByRole('button', { name: 'Entwurf aktualisieren' }));
+      await waitFor(() => expect(updateWorkSheetDraft).toHaveBeenCalled());
+      expect(updateWorkSheetDraft.mock.calls[0][1].fotos).toEqual([foto]);
+    });
+  });
+
+  describe('P1-02: vor Ort getippte Zeiten eines Entwurfs', () => {
+    const getippt = {
+      datum: heute,
+      mitarbeiter: 'Max Mustermann',
+      von: '08:00',
+      bis: '10:00',
+      minuten: 120,
+    };
+    const gebucht = {
+      datum: heute,
+      mitarbeiter: 'Kollege',
+      von: '07:00',
+      bis: '09:00',
+      minuten: 120,
+    };
+
+    it('überleben die Vorausfüllung — als selbst erfasst, also wegnehmbar', async () => {
+      entwurf = { ...basis, zeiten: [getippt] };
+      callScheinVorbereiten.mockResolvedValue({ zeiten: [gebucht] });
+      const nutzer = userEvent.setup();
+      zeichne('/worksheet?entwurf=e1');
+      expect(
+        await screen.findByRole('button', { name: 'Zeile Max Mustermann entfernen' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Zeile Kollege entfernen' })).toBeNull();
+
+      await nutzer.click(screen.getByRole('button', { name: 'Entwurf aktualisieren' }));
+      await waitFor(() => expect(updateWorkSheetDraft).toHaveBeenCalled());
+      expect(updateWorkSheetDraft.mock.calls[0][1].zeiten).toEqual([gebucht, getippt]);
+    });
+
+    it('verdoppelt keine Zeile, die auch gebucht ist', async () => {
+      entwurf = { ...basis, zeiten: [gebucht, getippt] };
+      callScheinVorbereiten.mockResolvedValue({ zeiten: [gebucht] });
+      const nutzer = userEvent.setup();
+      zeichne('/worksheet?entwurf=e1');
+      await screen.findByRole('button', { name: 'Zeile Max Mustermann entfernen' });
+
+      await nutzer.click(screen.getByRole('button', { name: 'Entwurf aktualisieren' }));
+      await waitFor(() => expect(updateWorkSheetDraft).toHaveBeenCalled());
+      expect(updateWorkSheetDraft.mock.calls[0][1].zeiten).toEqual([gebucht, getippt]);
+    });
+  });
+
+  describe('P1-03: Vorauswahl nur ins leere Feld', () => {
+    const zweites = {
+      ...projekte[0],
+      id: 'p2',
+      projectNumber: 'B-002',
+      customerName: 'Familie Berger',
+    };
+
+    it('schiebt einen Entwurf nicht auf den einzigen Einsatz des Tages', async () => {
+      listActiveProjects.mockResolvedValue([...projekte, zweites]);
+      listProjectsByNumbers.mockResolvedValue(projekte);
+      const spaet = aufschub<typeof einsaetze>();
+      listAssignmentsForUserInRange.mockReturnValue(spaet.versprechen);
+      entwurf = { ...basis, projectNumber: 'B-002', customerName: 'Familie Berger' };
+      zeichne('/worksheet?entwurf=e1');
+      await screen.findByText(/Verbautes Material \(1\)/);
+
+      spaet.einloesen(einsaetze);
+      await screen.findByText(/Deine Einsätze an diesem Tag/);
+      expect(screen.getByLabelText<HTMLSelectElement>('Baustelle').value).toBe('B-002');
+      // Und das Material des Entwurfs ist noch da.
+      expect(screen.getByText(/Verbautes Material \(1\)/)).toBeInTheDocument();
+    });
+
+    it('überschreibt keine Wahl, die vor der Antwort getroffen wurde', async () => {
+      listActiveProjects.mockResolvedValue([...projekte, zweites]);
+      const spaet = aufschub<typeof einsaetze>();
+      listAssignmentsForUserInRange.mockReturnValue(spaet.versprechen);
+      const nutzer = userEvent.setup();
+      zeichne();
+      const feld = await screen.findByLabelText<HTMLSelectElement>('Baustelle');
+      await screen.findByRole('option', { name: /B-002/ });
+      await nutzer.selectOptions(feld, 'B-002');
+
+      spaet.einloesen(einsaetze);
+      await screen.findByText(/Deine Einsätze an diesem Tag/);
+      expect(feld.value).toBe('B-002');
+    });
+  });
+
+  describe('P1-04: ein Entwurf, nicht zwei', () => {
+    it('legt bei mehreren Fotos auf einmal genau einen Entwurf an', async () => {
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/^Fotos \(/);
+      await nutzer.upload(screen.getByLabelText('Foto aufnehmen'), [bild(), bild()]);
+
+      await waitFor(() => expect(fotoHochladen).toHaveBeenCalledTimes(2));
+      expect(createWorkSheet).toHaveBeenCalledTimes(1);
+      expect(fotoHochladen.mock.calls.map((c) => c[1])).toEqual(['s1', 's1']);
+    });
+
+    it('sperrt Speichern und Unterschreiben, solange ein Foto hochgeht', async () => {
+      const hoch = aufschub<unknown>();
+      fotoHochladen.mockReturnValueOnce(hoch.versprechen);
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/^Fotos \(/);
+      await nutzer.upload(screen.getByLabelText('Foto aufnehmen'), bild());
+      await waitFor(() => expect(fotoHochladen).toHaveBeenCalled());
+
+      expect(
+        screen.getByRole('button', { name: /Als Entwurf speichern|Entwurf aktualisieren/ }),
+      ).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Unterschreiben und abschließen' })).toBeDisabled();
+
+      hoch.einloesen({ pfad: 'scheine/perl/s1/aaa.jpg', hash: 'aaa', bytes: 1, geraetZeit: 1 });
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Entwurf aktualisieren' })).toBeEnabled(),
+      );
+      expect(createWorkSheet).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('P1-20: getippte Zeiten folgen dem Tag', () => {
+    it('trägt nach einem Wechsel des Datums den neuen Tag', async () => {
+      const nutzer = userEvent.setup();
+      zeichne();
+      await screen.findByText(/Zeit beim Kunden eintragen/);
+      await nutzer.clear(screen.getByLabelText('Von'));
+      await nutzer.type(screen.getByLabelText('Von'), '08:00');
+      await nutzer.type(screen.getByLabelText('Bis'), '10:00');
+      await nutzer.click(screen.getByRole('button', { name: 'Zeile hinzufügen' }));
+
+      fireEvent.change(screen.getByLabelText('Leistungsdatum'), {
+        target: { value: '2026-01-15' },
+      });
+      await screen.findByText(/Zeiten am 15\.01\.2026/);
+      await screen.findByRole('button', { name: 'Zeile Max Mustermann entfernen' });
+
+      await nutzer.click(screen.getByRole('button', { name: 'Als Entwurf speichern' }));
+      await waitFor(() => expect(createWorkSheet).toHaveBeenCalled());
+      const zeiten = createWorkSheet.mock.calls[0][1].zeiten;
+      expect(zeiten).toHaveLength(1);
+      expect(zeiten[0].datum).toBe('2026-01-15');
+    });
   });
 });
