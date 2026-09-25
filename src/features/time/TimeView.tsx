@@ -37,6 +37,7 @@ import { zuschlagszeit, hatZuschlaege } from '@/features/accounting/zuschlaege';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import Meldung from '@/components/Meldung';
 import { List, ListRow } from '@/components/ListRow';
 import { useToast } from '@/components/Toast';
 import TimeForm from './TimeForm';
@@ -404,7 +405,7 @@ export default function TimeView() {
       <button
         type="button"
         onClick={() => document.getElementById('meine-eintraege')?.scrollIntoView({ behavior: 'smooth' })}
-        className="inline-flex min-h-touch items-center gap-1 text-sm font-medium text-brand sm:hidden"
+        className="textlink-allein gap-1 sm:hidden"
       >
         Zu meinen Einträgen
         <Icon name="chevron" size={16} />
@@ -427,10 +428,7 @@ export default function TimeView() {
         nie gebuchte Stunde wird nie verrechnet.
       */}
       {nachtraege.length > 0 && (
-        <div
-          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning"
-          role="alert"
-        >
+        <Meldung ton="warnung" role="alert">
           <p className="flex flex-wrap items-center gap-1">
             <strong>
               {nachtraege.length === 1
@@ -470,45 +468,48 @@ export default function TimeView() {
               so. Erinnert wird {NACHTRAG_TAGE} Tage lang — was älter ist, klärt das Büro.
             </InfoHint>
           </p>
-          <ul className="mt-2 space-y-2">
-            {nachtraege.map((n) => (
-              <li key={n.schein.id} className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-ink">
-                  {datumAT(n.schein.datum)} · {n.schein.customerName} · Baustelle{' '}
-                  {n.schein.projectNumber} · {fmtDauer(n.minuten)} beim Kunden
-                </span>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    /*
-                      Ein laufendes Bearbeiten wird beendet: sonst stünde die
-                      Vorbelegung im Formular für einen ANDEREN Eintrag, und
-                      der Monteur überschriebe versehentlich eine fremde
-                      Buchung mit den Zeiten dieses Scheins.
-                    */
-                    setEditing(null);
-                    setVorbelegung({
-                      date: n.schein.datum,
-                      projectNumber: n.schein.projectNumber,
-                      startTime: n.von,
-                      endTime: n.bis,
-                      breakDuration: n.pauseMin,
-                    });
-                  }}
+          <div className="mt-2">
+            <List>
+              {nachtraege.map((n) => (
+                <ListRow
+                  key={n.schein.id}
+                  title={
+                    <span>
+                      {datumAT(n.schein.datum)} · {n.schein.customerName} · Baustelle{' '}
+                      {n.schein.projectNumber} · {fmtDauer(n.minuten)} beim Kunden
+                    </span>
+                  }
                 >
-                  Zeit nachtragen
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </div>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      /*
+                        Ein laufendes Bearbeiten wird beendet: sonst stünde die
+                        Vorbelegung im Formular für einen ANDEREN Eintrag, und
+                        der Monteur überschriebe versehentlich eine fremde
+                        Buchung mit den Zeiten dieses Scheins.
+                      */
+                      setEditing(null);
+                      setVorbelegung({
+                        date: n.schein.datum,
+                        projectNumber: n.schein.projectNumber,
+                        startTime: n.von,
+                        endTime: n.bis,
+                        breakDuration: n.pauseMin,
+                      });
+                    }}
+                  >
+                    Zeit nachtragen
+                  </Button>
+                </ListRow>
+              ))}
+            </List>
+          </div>
+        </Meldung>
       )}
 
       {doppelteTage.size > 0 && (
-        <p
-          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-danger"
-          role="alert"
-        >
+        <Meldung ton="gefahr" role="alert">
           <strong>
             {doppelteTage.size === 1
               ? 'An einem Tag steht dieselbe Buchung zweimal.'
@@ -518,7 +519,7 @@ export default function TimeView() {
           {[...doppelteTage].sort().map(datumAT).join(', ')} — bitte unten in der Liste den
           überflüssigen Eintrag löschen. Mehrere Baustellen an einem Tag sind
           dagegen in Ordnung und stehen hier nicht.
-        </p>
+        </Meldung>
       )}
 
       <MetricRow>
@@ -693,15 +694,17 @@ export default function TimeView() {
                               )}
                             </>
                           }
+                          zustand={
+                            <>
+                              {doppelteTage.has(e.date) && (
+                                <Warnung stufe="dringend">doppelt gebucht</Warnung>
+                              )}
+                              {e.source === 'voice' && <Marke>KI</Marke>}
+                              <Zeitmarker eintrag={e} />
+                            </>
+                          }
+                          wert={fmtMin(calcWorkMin(e))}
                         >
-                          {doppelteTage.has(e.date) && (
-                            <Warnung stufe="dringend">doppelt gebucht</Warnung>
-                          )}
-                          {e.source === 'voice' && <Marke>KI</Marke>}
-                          <Zeitmarker eintrag={e} />
-                          <span className="font-medium text-ink">
-                            {fmtMin(calcWorkMin(e))}
-                          </span>
                           {/* Verrechnete Einträge sind Grundlage einer
                               verschickten Rechnung und bleiben gesperrt. */}
                           {e.isBilled ? (

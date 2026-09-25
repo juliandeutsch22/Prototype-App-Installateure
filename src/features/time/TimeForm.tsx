@@ -19,6 +19,8 @@ import BaustellenSelect from '@/components/BaustellenSelect';
 import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import { ErrorState } from '@/components/States';
+import Meldung from '@/components/Meldung';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { vorgemerktMeldung } from '@/lib/sync/ausgangsfach';
@@ -534,8 +536,8 @@ export default function TimeForm({
             in Wiener Neustadt zugelassen, und getippt wurde es bisher
             mal mit, mal ohne Bindestrich, mal gar nicht. Dieselbe
             Lösung wie im Prototyp (Zeile 940). */}
-        <div className="flex flex-col gap-1">
-          <label htmlFor="vehiclePlate" className="text-sm font-medium text-ink">
+        <div className="feld-block">
+          <label htmlFor="vehiclePlate" className="feld-name">
             Fahrzeug (Kennzeichen)
           </label>
           <div className="flex">
@@ -554,11 +556,11 @@ export default function TimeForm({
                 {kennzeichenVorsatz}-
               </span>
             )}
+            {/* Mit Vorsatz schliesst das Feld links bündig an das Kästchen an —
+                deshalb dort ohne linke Rundung. */}
             <input
               id="vehiclePlate"
-              className={`min-h-touch w-full border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand ${
-                kennzeichenVorsatz ? 'rounded-r' : 'rounded'
-              }`}
+              className={kennzeichenVorsatz ? 'feld w-full rounded-l-none' : 'feld w-full'}
               placeholder={kennzeichenVorsatz ? 'z. B. 12345A' : 'z. B. W-12345A'}
               value={vehiclePlate}
               onChange={(e) =>
@@ -574,7 +576,7 @@ export default function TimeForm({
         onChange={(e) => setHelperName(e.target.value)}
       />
 
-      <fieldset className="rounded-sm border border-line bg-surface-2 p-3">
+      <fieldset className="kasten">
         <legend className="px-1 section-label">Zuschläge</legend>
         <CheckboxField
           id="isNightWork"
@@ -606,30 +608,31 @@ export default function TimeForm({
       {/* Bereits verrechnete Einträge sind die Grundlage einer verschickten
           Rechnung — eine Änderung würde den Beleg nachträglich verfälschen. */}
       {billed && (
-        <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
+        <Meldung ton="warnung" role="alert">
           Dieser Eintrag ist mit Rechnung {entry?.invoiceNumber || '—'} verrechnet und kann nicht
           mehr geändert werden. Dafür muss zuerst die Rechnung storniert werden.
-        </p>
+        </Meldung>
       )}
       {meldungsTag && (
-        <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
+        <Meldung ton="warnung" role="alert">
           Dieser Tag gehört zu einer Krankmeldung und wird nur über sie geändert: in der Liste auf
           „Krankmeldung" tippen und dort das Ende ändern oder die Meldung löschen.
-        </p>
+        </Meldung>
       )}
       {antragsTag && (
-        <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
+        <Meldung ton="warnung" role="alert">
           Dieser Tag gehört zu einem genehmigten Antrag und ändert sich nur über ihn: auf der Seite
           Urlaub den Antrag zurücknehmen.
-        </p>
+        </Meldung>
       )}
 
       {/* Ein Griff statt sieben: übernimmt Zeiten, Pause und Baustelle vom
           letzten Eintrag. Nur beim Neuanlegen — beim Bearbeiten würde der
           Knopf die zu korrigierenden Werte gerade überschreiben. */}
       {!isEdit && lastEntry && lastEntry.startTime && lastEntry.endTime && (
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={() => {
             setStatus('Anwesend');
             setStartTime(lastEntry.startTime ?? startTime);
@@ -643,7 +646,7 @@ export default function TimeForm({
               setIsHelper(!!lastEntry.isHelper);
             }
           }}
-          className="flex min-h-touch w-full items-center gap-2 rounded border border-brand/40 bg-info-bg px-3 py-2 text-left text-sm font-medium text-brand transition hover:border-brand active:scale-[0.99]"
+          className="w-full"
         >
           {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
               den Eintrag wiedererkennt. */}
@@ -651,7 +654,7 @@ export default function TimeForm({
             Wie zuletzt: {lastEntry.startTime}–{lastEntry.endTime}
             {lastEntry.customerName ? ` · ${lastEntry.customerName}` : ''}
           </span>
-        </button>
+        </Button>
       )}
 
       {staff && !isEdit && (
@@ -705,21 +708,18 @@ export default function TimeForm({
         Handlungen, und die Meldung nennt jeweils die eigene.
       */}
       {konflikt && (
-        <p
-          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-warning"
-          role="alert"
-        >
+        <Meldung ton="warnung" role="alert">
           {konflikt}
-        </p>
+        </Meldung>
       )}
       {holidayName && (
-        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+        <Meldung ton="info">
           Hinweis: {holidayName} — gesetzlicher Feiertag.
-        </p>
+        </Meldung>
       )}
       {alsKrankmeldung && (
-        <div className="space-y-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
-          <p>
+        <div className="kasten space-y-3">
+          <p className="text-sm text-ink-muted">
             Wird als Krankmeldung erfasst: die Arbeitstage bis zum Ende stehen als „Krank" im
             Zeitkonto, das Büro sieht die Meldung. Ist das Ende noch offen, das voraussichtliche
             eintragen — ändern geht später über die Meldung.
@@ -737,8 +737,8 @@ export default function TimeForm({
         </div>
       )}
       {alsUrlaubEintrag && (
-        <div className="space-y-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
-          <p>
+        <div className="kasten space-y-3">
+          <p className="text-sm text-ink-muted">
             Wird als genehmigter Urlaub eingetragen: die freien Arbeitstage bis zum Ende stehen als
             „Urlaub" im Zeitkonto und zählen beim Resturlaub. Schon gebuchte Tage bleiben.
           </p>
@@ -755,14 +755,14 @@ export default function TimeForm({
         </div>
       )}
       {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && !alsUrlaubEintrag && (
-        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+        <Meldung>
           {status}: Es werden keine Arbeitszeiten erfasst. Der Tag wird als voller
           Solltag gutgeschrieben.
-        </p>
+        </Meldung>
       )}
       {status === 'Zeitausgleich' && (
-        <div className="space-y-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
-          <p>
+        <div className="kasten space-y-3">
+          <p className="text-sm text-ink-muted">
             Zeitausgleich: Es wird keine Arbeitszeit gutgeschrieben — das Zeitguthaben sinkt um die
             freie Zeit{zaStundenweise ? '' : ' (einen ganzen Tag: um das Tagessoll)'}.
           </p>
@@ -838,24 +838,26 @@ export default function TimeForm({
             Lohnverrechnung auf — oder gar nicht. Warum genau diese drei
             Faelle einen Satz bekommen, steht in `zeitPlausibilitaet.ts`.
           */}
-          {bild && (
-            <p
-              className={
-                bild.befund === 'ok'
-                  ? 'text-sm text-ink-muted'
-                  : 'rounded border border-warning/30 bg-surface-2 px-3 py-2 text-sm text-warning'
-              }
-              /*
-                Nur der Befund wird angesagt, die normale Zahl nicht: eine
-                Vorlesehilfe, die bei jedem Tastendruck im Zeitfeld die
-                Arbeitszeit dazwischenruft, macht die Maske unbenutzbar.
-              */
-              role={bild.befund === 'ok' ? undefined : 'alert'}
-            >
-              Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
-              {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
-            </p>
-          )}
+          {/*
+            Nur der Befund wird angesagt (als Meldung mit `alert`), die normale
+            Zahl nicht: eine Vorlesehilfe, die bei jedem Tastendruck im
+            Zeitfeld die Arbeitszeit dazwischenruft, macht die Maske
+            unbenutzbar.
+          */}
+          {bild &&
+            (bild.befund === 'ok' ? (
+              <p className="text-sm text-ink-muted">
+                Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
+                {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
+              </p>
+            ) : (
+              <Meldung ton="warnung" role="alert">
+                <p>
+                  Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
+                  {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
+                </p>
+              </Meldung>
+            ))}
 
           {/*
             EIN HINWEIS, KEIN AUTOMATISCHER HAKEN. Ob Nachtarbeit verrechnet
@@ -868,7 +870,7 @@ export default function TimeForm({
               <span>Die Zeit reicht in die Nacht (22–6 Uhr).</span>
               <button
                 type="button"
-                className="min-h-touch font-medium text-brand underline-offset-2 hover:underline"
+                className="textlink-allein"
                 onClick={() => setIsNightWork(true)}
               >
                 Nachtarbeit ankreuzen
@@ -882,7 +884,7 @@ export default function TimeForm({
             für ihn gibt es nichts umzuschalten.
           */}
           {darfErweitern && !aussendienst && (
-            <div className="rounded-sm border border-line bg-surface-2 p-3">
+            <div className="kasten">
               {/*
                 Die Beschriftung sagt bereits, WAS dazukommt. Warum man es
                 braucht, stand darunter dauerhaft in zwei Zeilen — auf der
@@ -916,10 +918,12 @@ export default function TimeForm({
                 die Rechnung eine Position, ohne dass jemand es merkt.
               */}
               {!erweitert && entry && (entry.projectNumber || entry.isEmergency || entry.isNightWork) && (
-                <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                  Dieser Eintrag hat eine Baustelle oder Zuschläge hinterlegt. Speichern ohne
-                  erweiterte Erfassung entfernt sie.
-                </p>
+                <div className="mt-2">
+                  <Meldung ton="warnung">
+                    Dieser Eintrag hat eine Baustelle oder Zuschläge hinterlegt. Speichern ohne
+                    erweiterte Erfassung entfernt sie.
+                  </Meldung>
+                </div>
               )}
             </div>
           )}
@@ -1002,7 +1006,12 @@ export default function TimeForm({
 
       {error && <ErrorState message={error} />}
 
-      <div className="flex flex-col gap-2 sm:flex-row">
+      {/*
+        Am Telefon ist die Maske mit erweiterter Erfassung mehrere
+        Bildschirme lang — die Leiste hält „Zeit buchen" erreichbar, ohne
+        dass man erst ans Ende wischt.
+      */}
+      <Aktionsleiste>
         <Button type="submit" loading={saving} disabled={!!konflikt || gesperrt} className="w-full sm:w-auto">
           {isEdit
             ? 'Änderungen speichern'
@@ -1017,7 +1026,7 @@ export default function TimeForm({
             Abbrechen
           </Button>
         )}
-      </div>
+      </Aktionsleiste>
     </form>
   );
 }
