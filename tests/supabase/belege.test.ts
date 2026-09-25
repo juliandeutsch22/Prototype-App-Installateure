@@ -38,8 +38,14 @@ async function scheinAnlegen(status = 'Entwurf'): Promise<string> {
       company_id: 'belege', work_sheet_id: id, position: 1, datum: '2026-04-01',
       mitarbeiter: 'Anton Huber', von: '07:00', bis: '16:00', pause_min: 30, minuten: 510,
     });
+    // Mit beiden Unterschriften — ohne sie wird seit dem Prüflauf vom
+    // 25.09.2026 (P3-10) kein Entwurf mehr „Unterschrieben“.
+    const unterschrift = { name: 'Unterschrift', bild: 'data:image/png;base64,AAA', geraetZeit: 1776000000000 };
     const { error: e2 } = await monteur.client.from('work_sheets')
-      .update({ status, unterschrieben_am: new Date().toISOString() }).eq('id', id);
+      .update({
+        status, unterschrieben_am: new Date().toISOString(),
+        unterschrift_monteur: unterschrift, unterschrift_kunde: unterschrift,
+      }).eq('id', id);
     if (e2) throw e2;
   }
   return id;

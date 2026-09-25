@@ -25,6 +25,9 @@ let b: Konto;            // Firma B, Mitarbeiter
 let aus: Konto;          // deaktiviertes Konto in Firma A
 
 let kundeA: string;
+
+/** Eine Unterschrift, wie `schein_unterschreiben` sie aus der Maske bekommt. */
+const UNTERSCHRIFT = { name: 'Unterschrift', bild: 'data:image/png;base64,AAA', geraetZeit: 1776000000000 };
 let baustelleA: string;
 
 beforeAll(async () => {
@@ -1067,7 +1070,12 @@ describe('Der Dienstschluessel kommt durch — durch manche Trigger', () => {
       datum: '2026-09-10', status: 'Entwurf', abrechnung: 'Regie',
       erstellt_von_uid: a.uid, erstellt_von_name: 'Monteur',
     });
-    await a.client.from('work_sheets').update({ status: 'Unterschrieben' }).eq('id', id);
+    // Mit beiden Unterschriften: seit dem Prüflauf vom 25.09.2026 (P3-10)
+    // wird ein Entwurf ohne sie nicht mehr „Unterschrieben“. Hier stand
+    // vorher ein Statuswechsel ohne Unterschrift — genau das Fehlverhalten.
+    await a.client.from('work_sheets').update({
+      status: 'Unterschrieben', unterschrift_monteur: UNTERSCHRIFT, unterschrift_kunde: UNTERSCHRIFT,
+    }).eq('id', id);
 
     // Ohne Durchlass wäre der Manipulationsschutz das Erste, was am
     // Manipulationsschutz scheitert.
@@ -1200,7 +1208,10 @@ describe('Handwerksschein: verwerfen, zurueckholen, einfrieren', () => {
       hash: 'x'.repeat(64), bytes: 1000, geraet_zeit: new Date().toISOString(),
     });
     await a.client.from('work_sheets')
-      .update({ status: 'Unterschrieben', unterschrieben_am: new Date().toISOString() })
+      .update({
+        status: 'Unterschrieben', unterschrieben_am: new Date().toISOString(),
+        unterschrift_monteur: UNTERSCHRIFT, unterschrift_kunde: UNTERSCHRIFT,
+      })
       .eq('id', id);
     return id;
   }
@@ -1263,7 +1274,9 @@ describe('Handwerksschein: verwerfen, zurueckholen, einfrieren', () => {
 
   it('und der Storno eines Scheins OHNE Fotofeld geht weiterhin', async () => {
     const id = await schein();
-    await a.client.from('work_sheets').update({ status: 'Unterschrieben' }).eq('id', id);
+    await a.client.from('work_sheets').update({
+      status: 'Unterschrieben', unterschrift_monteur: UNTERSCHRIFT, unterschrift_kunde: UNTERSCHRIFT,
+    }).eq('id', id);
     const { error } = await aLeitung.client.from('work_sheets')
       .update({ status: 'Storniert', storno_grund: 'Irrtum' }).eq('id', id);
     expect(error).toBeNull();

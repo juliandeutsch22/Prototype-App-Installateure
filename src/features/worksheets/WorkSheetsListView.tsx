@@ -108,6 +108,15 @@ export default function WorkSheetsListView() {
    * Seite mit „Kein Zugriff".
    */
   const darfSchreiben = user ? canWriteWorkSheet(user.role) : false;
+  /**
+   * Und DIESEN einen Schein: die Führung jeden, der Monteur seinen eigenen.
+   *
+   * Seit dem Prüflauf vom 25.09.2026 (P3-10) steht dieselbe Grenze in der
+   * Datenbank (`app.schein_schreibt`). Vorher liess sie jeden im Betrieb an
+   * jeden Entwurf, und die Liste bot es entsprechend an.
+   */
+  const darfDiesen = (s: WorkSheet) =>
+    darfSchreiben && !!user && (isGF(user.role) || s.erstelltVonUid === user.uid);
 
   const laden = useMemo(
     () => async () => {
@@ -791,7 +800,7 @@ export default function WorkSheetsListView() {
                       Vorlesehilfe meldete einen Knopf in einem Link
                       (Prüflauf 25.09.2026, P4-12). Die Klassen sind die von
                       `Button` mit `variant="secondary"`. */}
-                  {darfSchreiben && s.status === 'Entwurf' && (
+                  {darfDiesen(s) && s.status === 'Entwurf' && (
                     <Link
                       to={`/worksheet?entwurf=${s.id}`}
                       className="inline-flex min-h-touch items-center justify-center gap-2 rounded border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-surface-2 active:scale-[0.98] sm:text-base"
@@ -800,18 +809,18 @@ export default function WorkSheetsListView() {
                     </Link>
                   )}
                   {/*
-                    Verwerfen darf, wer auch weiterbearbeiten darf. Eine
-                    engere Grenze waere hier eine Erfindung der Oberflaeche:
-                    die Rules lassen jeden im Betrieb an den Entwurf, und ein
+                    Verwerfen darf, wer auch weiterbearbeiten darf — dieselbe
+                    Grenze wie in der Datenbank (`app.schein_schreibt`): die
+                    Führung jeden Entwurf, der Monteur seinen eigenen. Ein
                     Knopf, den die Datenbank nicht deckt, taeuscht Ordnung nur
                     vor.
                   */}
-                  {darfSchreiben && s.status === 'Entwurf' && (
+                  {darfDiesen(s) && s.status === 'Entwurf' && (
                     <Button variant="ghost" onClick={() => setVerwerfenFuer(s)}>
                       Verwerfen
                     </Button>
                   )}
-                  {darfSchreiben && s.status === 'Verworfen' && (
+                  {darfDiesen(s) && s.status === 'Verworfen' && (
                     <Button
                       variant="secondary"
                       loading={busy}

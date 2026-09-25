@@ -254,6 +254,41 @@ describe('Liste der Handwerksscheine', () => {
   });
 });
 
+describe('Der Entwurf eines Kollegen', () => {
+  /*
+    PRÜFLAUF 25.09.2026 (P3-10). Die Datenbank lässt einen fremden Entwurf
+    jetzt nur noch die Führung bearbeiten, verwerfen oder zurückholen — der
+    Monteur seinen eigenen. Die Liste bietet es genauso an; ein Knopf, den die
+    Datenbank abweist, täuschte Ordnung nur vor.
+  */
+  const fremder = { ...scheine[0], id: 'e2', erstelltVonUid: 'k9', erstelltVonName: 'Karl Kollege' };
+  const fremderVerworfen = { ...verworfener, id: 'v2', erstelltVonUid: 'k9' };
+
+  it('bietet dem Monteur weder Weiterbearbeiten noch Verwerfen an', async () => {
+    geladen = [fremder];
+    zeichne();
+    await screen.findByText('Entwurf');
+    expect(screen.queryByRole('link', { name: /Weiterbearbeiten/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Verwerfen' })).not.toBeInTheDocument();
+  });
+
+  it('der Projektleitung schon', async () => {
+    authWert.user.role = 'Projektleiter';
+    geladen = [fremder];
+    zeichne();
+    expect(await screen.findByRole('link', { name: /Weiterbearbeiten/ })).toHaveAttribute('href', '/worksheet?entwurf=e2');
+    expect(screen.getByRole('button', { name: 'Verwerfen' })).toBeInTheDocument();
+  });
+
+  it('und den verworfenen eines Kollegen holt der Monteur nicht zurück', async () => {
+    geladen = [fremderVerworfen];
+    zeichne();
+    await userEvent.click(await screen.findByRole('checkbox'));
+    expect(await screen.findByText('Familie Gruber')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Wieder aufnehmen' })).not.toBeInTheDocument();
+  });
+});
+
 describe('Einen Entwurf aufgeben', () => {
   it('fragt zurueck und nennt dabei den Schein', async () => {
     /*
