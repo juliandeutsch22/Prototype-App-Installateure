@@ -414,7 +414,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, Props>(function SignaturePad
         // Geste nach dem ersten Zug ab, und eine Klasse kann ein Build
         // verlieren.
         style={{ touchAction: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
-        className={`mt-1 h-40 w-full touch-none select-none rounded border-2 border-dashed bg-surface ${
+        className={`mt-1 h-40 w-full touch-none select-none rounded border bg-surface ${
           disabled ? 'border-line opacity-60' : 'border-line'
         }`}
         aria-label={`${titel} — mit dem Finger oder einem Stift unterschreiben`}
