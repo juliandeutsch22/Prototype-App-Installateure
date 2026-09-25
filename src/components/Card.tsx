@@ -54,7 +54,7 @@ export default function Card({
       {title && (
         // Der Kartenkopf sitzt eine Spur kühler als der Körper — so ist er
         // auch dann als Kopf zu lesen, wenn der Titel kurz ist.
-        <header className="border-b border-line bg-surface-2/70 px-4 py-3">
+        <header className="border-b border-line bg-surface-2 px-4 py-3">
           {/* Auf schmalen Schirmen Titel und Aktionen untereinander: sonst
               überlagern breite Aktionen (mehrere Knöpfe) den Titel. */}
           {/* Ein Link als Kartenaktion („Zur Einsatzplanung") bekommt dieselbe
@@ -90,7 +90,7 @@ export default function Card({
       )}
       <div className="px-4 py-4">{children}</div>
       {footer && (
-        <footer className="border-t border-line bg-surface-2/70 px-4 py-3">{footer}</footer>
+        <footer className="border-t border-line bg-surface-2 px-4 py-3">{footer}</footer>
       )}
     </section>
   );

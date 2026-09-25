@@ -119,7 +119,7 @@ export default function PersonPicker({
                   type="button"
                   onClick={() => umschalten(p.uid, false)}
                   aria-label={`${p.name} entfernen`}
-                  className="inline-flex min-h-touch items-center gap-2 rounded-full border border-brand/30 bg-info-bg px-3 py-1 text-sm font-medium text-brand hover:bg-info-bg/70"
+                  className="inline-flex min-h-touch items-center gap-2 rounded-full border border-brand/30 bg-info-bg px-3 py-1 text-sm font-medium text-brand hover:bg-surface-2"
                 >
                   {p.name}
                   <span aria-hidden="true" className="text-base leading-none">
@@ -201,7 +201,7 @@ export default function PersonPicker({
                   const an = selected.includes(p.uid);
                   const id = `${idPrefix}-${p.uid}`;
                   return (
-                    <li key={p.uid} className={an ? 'bg-info-bg/40' : ''}>
+                    <li key={p.uid} className={an ? 'bg-surface-2' : ''}>
                       <div className="flex flex-wrap items-center justify-between gap-2 px-3">
                         <label
                           htmlFor={id}

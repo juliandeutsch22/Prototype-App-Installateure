@@ -214,7 +214,7 @@ export default function ProjectSummary({
                       <span>{fmtStunden(r.project?.estimatedHours ?? 0)} h</span>
                     </p>
                     <div className="mt-1 flex items-center gap-2">
-                      <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line/60">
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface-3">
                         <span
                           className={`block h-full ${BAR_TONE[r.budget.tone]}`}
                           style={{ width: balkenBreite(r.budget.pct) }}
@@ -271,7 +271,7 @@ export default function ProjectSummary({
                           .map((e) => (
                             <tr
                               key={e.id}
-                              className={`border-b border-line/60 ${e.isHelper ? 'bg-warning-bg/40' : ''}`}
+                              className={`border-b border-line/60 ${e.isHelper ? 'bg-warning-bg' : ''}`}
                             >
                               <td className="py-1 pr-3">{dayLabel(e.date)}</td>
                               <td className="py-1 pr-3">
