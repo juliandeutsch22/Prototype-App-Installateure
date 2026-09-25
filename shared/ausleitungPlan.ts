@@ -92,3 +92,50 @@ export function abgelaufeneStaende(
 export function jsonZeile(sammlung: string, zeile: Record<string, unknown>): string {
   return `${JSON.stringify({ sammlung, daten: zeile })}\n`;
 }
+
+/**
+ * Die Sortierung, nach der eine Tabelle seitenweise gelesen wird — als
+ * PostgREST-Parameter `order`.
+ *
+ * OHNE SORTIERUNG IST BLÄTTERN EIN GLÜCKSSPIEL (Prüflauf 25.09.2026, P3-16).
+ * `Range: 0-499` und danach `500-999` sagen nur, WIE VIELE Zeilen kommen,
+ * nicht WELCHE: ohne `order` darf die Datenbank sie bei jeder Abfrage anders
+ * reihen, und dann fehlt eine Zeile im Stand, während eine andere zweimal
+ * darin steht. Sortiert wird deshalb nach dem Primärschlüssel — der ist
+ * eindeutig, also steht jede Zeile an genau einer Stelle.
+ *
+ * Ohne bekannten Schlüssel `null`: dann bleibt es beim Lesen ohne Ordnung,
+ * wie bisher — lieber ein Stand als keiner.
+ */
+export function ordnungNachSchluessel(spalten: readonly string[] | undefined): string | null {
+  if (!spalten || spalten.length === 0) return null;
+  return spalten.map((s) => `${s}.asc`).join(',');
+}
+
+/**
+ * Eine Tabelle vollständig lesen, Seite für Seite.
+ *
+ * ZU ENDE IST SIE, WENN EINE SEITE LEER ZURÜCKKOMMT — nicht, wenn eine
+ * kürzer ist als erbeten. Der Server kappt jede Antwort bei seinem eigenen
+ * Höchstwert (`max_rows`); liegt der unter der erbetenen Seitengrösse, ist
+ * JEDE Seite „kürzer", und das alte `if (zeilen.length < SEITE) break`
+ * hörte nach der ersten auf. Weitergezählt wird deshalb um das, was
+ * tatsächlich kam. Das kostet je Tabelle eine leere Abfrage am Ende.
+ *
+ * `holen(von, bis)` liefert die Zeilen `von` bis `bis` (beide einschliesslich)
+ * in einer festen Ordnung; `jeZeile` bekommt jede genau einmal. Zurück kommt
+ * die Zahl der gelesenen Zeilen.
+ */
+export async function alleSeitenLesen<T>(
+  holen: (von: number, bis: number) => Promise<T[]>,
+  seite: number,
+  jeZeile: (zeile: T) => void,
+): Promise<number> {
+  let von = 0;
+  for (;;) {
+    const zeilen = await holen(von, von + seite - 1);
+    if (zeilen.length === 0) return von;
+    for (const z of zeilen) jeZeile(z);
+    von += zeilen.length;
+  }
+}

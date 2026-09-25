@@ -151,7 +151,31 @@ describe('Ein grosser Betrieb wird nicht stillschweigend abgeschnitten', () => {
 
     const zeilen = zeilenNach(await standLesen(daten.pfad));
     expect(zeilen.filter((z) => z.sammlung === 'time_entries')).toHaveLength(1200);
+    // Und jede genau einmal: ohne feste Ordnung beim Blättern kann eine Zeile
+    // fehlen und eine andere doppelt dastehen — die Zahl stimmte trotzdem.
+    const kennungen = zeilen.filter((z) => z.sammlung === 'time_entries').map((z) => z.daten.id);
+    expect(new Set(kennungen).size).toBe(1200);
   }, 300_000);
+
+  it('kennt für jede Tabelle ihren Primärschlüssel — die Ordnung beim Blättern', async () => {
+    /*
+      PRÜFLAUF 25.09.2026 (P3-16). Geblättert wurde ohne `order`. Die Ordnung
+      ist jetzt der Primärschlüssel, und der ist nicht überall `id`.
+    */
+    const { data: tabellen } = await admin.rpc('auszug_tabellen');
+    const { data: schluessel, error } = await admin.rpc('auszug_schluessel');
+    expect(error).toBeNull();
+    const karte = schluessel as Record<string, string[]>;
+    const ohne = (tabellen as string[]).filter((t) => !(karte[t]?.length > 0));
+    expect(ohne).toEqual([]);
+    expect(karte.time_entries).toEqual(['id']);
+    expect(karte.number_counters).toEqual(['company_id', 'art', 'jahr']);
+  });
+
+  it('gibt die Schlüssel nur dem Dienst heraus', async () => {
+    const { error } = await chef.client.rpc('auszug_schluessel');
+    expect(error).not.toBeNull();
+  });
 });
 
 describe('Wer die Ausleitung auslösen darf', () => {

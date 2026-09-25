@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   abgelaufeneStaende,
+  alleSeitenLesen,
+  ordnungNachSchluessel,
   ausleitungsPfad,
   ausleitungsPraefix,
   datumAusPfad,
@@ -115,5 +117,44 @@ describe('Zeilenformat', () => {
     const zeile = jsonZeile('timeEntries', { comment: 'erste Zeile\nzweite Zeile' });
     expect(zeile.split('\n').filter(Boolean)).toHaveLength(1);
     expect(JSON.parse(zeile).daten.comment).toBe('erste Zeile\nzweite Zeile');
+  });
+});
+
+describe('Seitenweise lesen', () => {
+  /*
+    PRÜFLAUF 25.09.2026 (P3-16). Die Schleife hörte auf, sobald eine Seite
+    kürzer war als erbeten. Kappt der Server jede Antwort bei einem
+    kleineren Höchstwert (`max_rows`), ist JEDE Seite kürzer — und der Stand
+    endete nach der ersten.
+  */
+  const bestand = Array.from({ length: 23 }, (_, i) => ({ id: i }));
+  /** Ein Server, der nie mehr als `hoechstens` Zeilen herausgibt. */
+  const server = (hoechstens: number) => async (von: number, bis: number) =>
+    bestand.slice(von, Math.min(bis + 1, von + hoechstens));
+
+  it('liest alles, auch wenn der Server jede Seite kürzt', async () => {
+    const gelesen: number[] = [];
+    const n = await alleSeitenLesen(server(4), 10, (z) => gelesen.push(z.id));
+    expect(n).toBe(23);
+    expect(gelesen).toEqual(bestand.map((z) => z.id));
+  });
+
+  it('liest jede Zeile genau einmal, wenn der Server ganze Seiten liefert', async () => {
+    const gelesen: number[] = [];
+    await alleSeitenLesen(server(1000), 5, (z) => gelesen.push(z.id));
+    expect(gelesen).toEqual(bestand.map((z) => z.id));
+  });
+
+  it('eine leere Tabelle ist eine Abfrage und null Zeilen', async () => {
+    let abfragen = 0;
+    const n = await alleSeitenLesen(async () => { abfragen += 1; return []; }, 5, () => undefined);
+    expect({ n, abfragen }).toEqual({ n: 0, abfragen: 1 });
+  });
+
+  it('sortiert nach dem Primärschlüssel, auch einem zusammengesetzten', () => {
+    expect(ordnungNachSchluessel(['id'])).toBe('id.asc');
+    expect(ordnungNachSchluessel(['company_id', 'art', 'jahr'])).toBe('company_id.asc,art.asc,jahr.asc');
+    expect(ordnungNachSchluessel(undefined)).toBeNull();
+    expect(ordnungNachSchluessel([])).toBeNull();
   });
 });
