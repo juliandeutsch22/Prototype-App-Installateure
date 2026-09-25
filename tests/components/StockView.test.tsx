@@ -5,6 +5,7 @@ import { ToastProvider } from '@/components/Toast';
 import type { Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import StockView from '@/features/orders/StockView';
+import { mitSchreibtisch } from './schreibtisch';
 
 /**
  * Lager — der dritte Schritt des Materialablaufs.
@@ -330,5 +331,57 @@ describe('Wer den Katalog einspielen darf', () => {
     authWert = ADMIN;
     zeige();
     expect(await screen.findByRole('tab', { name: 'Katalog einspielen' })).toBeInTheDocument();
+  });
+});
+
+describe('Lager am Schreibtisch', () => {
+  const schreibtisch = mitSchreibtisch();
+
+  async function tabelle() {
+    schreibtisch();
+    zeige();
+    return (await screen.findByRole('columnheader', { name: 'Reserviert' })).closest('table')!;
+  }
+
+  it('zeigt Material, Kategorie, Lager, Reserviert und Frei als Spalten', async () => {
+    materialien = [material({ id: 'm1', name: 'Kupferrohr 15mm', stock: 20 })];
+    anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 18 })];
+    const t = await tabelle();
+    const koepfe = within(t).getAllByRole('columnheader').map((k) => k.textContent);
+    expect(koepfe).toEqual(['Material', 'Kategorie', 'Im Lager', 'Reserviert', 'Frei', 'Aktionen']);
+    const zeile = within(t).getByRole('row', { name: /Kupferrohr 15mm/ });
+    expect(zeile).toHaveTextContent('Rohre');
+    // Lager und Reserviert stehen als Zahlen rechtsbündig in eigenen Spalten.
+    expect(within(zeile).getByText('20')).toHaveClass('tabelle-zahl');
+    expect(within(zeile).getByText('18')).toHaveClass('tabelle-zahl');
+    expect(within(zeile).getByText('2 m frei')).toBeInTheDocument();
+    // Genau eine Form im DOM: keine Listenzeilen daneben.
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
+  });
+
+  it('behält die Reihenfolge — das Knappe zuerst', async () => {
+    materialien = [
+      material({ id: 'm1', name: 'Abflussrohr', stock: 50 }),
+      material({ id: 'm2', name: 'Zargenschraube', stock: 1 }),
+    ];
+    const t = await tabelle();
+    const zeilen = within(t).getAllByRole('row').slice(1);
+    expect(zeilen[0]).toHaveTextContent('Zargenschraube');
+    expect(zeilen[1]).toHaveTextContent('Abflussrohr');
+  });
+
+  it('bietet in der Zeile dieselben Handgriffe: Wareneingang und Bearbeiten', async () => {
+    materialien = [material({ id: 'm1', stock: 20 })];
+    const t = await tabelle();
+    const zeile = within(t).getByRole('row', { name: /Kupferrohr 15mm/ });
+    await userEvent.click(within(zeile).getByRole('button', { name: 'Wareneingang' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.clear(within(dialog).getByLabelText(/Menge/));
+    await userEvent.type(within(dialog).getByLabelText(/Menge/), '4');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Einbuchen' }));
+    await waitFor(() => expect(bestandAendern).toHaveBeenCalledWith('m1', 4));
+
+    await userEvent.click(within(zeile).getByRole('button', { name: 'Bearbeiten' }));
+    expect(await screen.findByText('Katalogpflege')).toBeInTheDocument();
   });
 });
