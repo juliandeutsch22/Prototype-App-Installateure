@@ -17,6 +17,8 @@ import {
   groupProjectHours,
   normProjectNumber,
   calcBudgetState,
+  calcMonthStats,
+  calcWorkMin,
   fmtStd,
   tageWort,
   getISOWeek,
@@ -38,6 +40,7 @@ import Metric, { MetricRow } from '@/components/Metric';
 import { Marke, Warnung, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import LaufWarnung from './LaufWarnung';
+import MonteurStart, { type LetzteBuchung } from './MonteurStart';
 import WartungHinweis from './WartungHinweis';
 import StatusBadge from '@/components/StatusBadge';
 import { AdresseLink, TelefonLink, KontaktZeile } from '@/components/Kontakt';
@@ -143,6 +146,14 @@ interface DashData {
   /** Die heutigen Einsätze — MEHRZAHL, ein Monteur kann an einem Tag auf zwei Baustellen sein. */
   heuteEigene?: EinsatzZeile[];
   ownOpenOrders?: number;
+  /**
+   * Für den Monteur-Start: die Vorlage für „Wie zuletzt“, die Woche und der
+   * Saldo des Monats — alles aus den Buchungen, die hier ohnehin geladen
+   * werden, mit denselben Regeln wie in der Zeiterfassung.
+   */
+  letzte?: LetzteBuchung;
+  woche?: { istMin: number; sollMin: number };
+  monat?: { name: string; saldoMin: number | null };
   /** Alle laufenden Baustellen (Leitung). */
   aktiveBaustellen?: Project[];
   /** Die heutige Einteilung des ganzen Betriebs (Leitung). */
@@ -250,6 +261,46 @@ export default function DashboardView() {
         if (profile && fuehrtZeitkonto(profile)) {
           out.hatEintritt = !!profile.appStartDate;
           out.fehlendeTage = offeneWerktage(profile, entries, fenster, new Date());
+        }
+
+        /*
+          MONTEUR-START: Vorlage, Woche, Monat. Dieselben Regeln wie in der
+          Zeiterfassung — jüngster Anwesenheitseintrag mit Zeitspanne als
+          Vorlage für „Wie zuletzt“, Arbeitszeit der laufenden ISO-Woche,
+          Monatssaldo über `calcMonthStats` wie in der Mitarbeiterübersicht.
+          Das Fenster reicht 35 Tage zurück und deckt damit den ganzen
+          laufenden Monat ab.
+        */
+        if (user.role === 'Mitarbeiter' && profile) {
+          const vorlage = [...entries]
+            .filter((e) => e.status === 'Anwesend' && e.startTime && e.endTime)
+            .sort((a, b) => b.date.localeCompare(a.date))[0];
+          if (vorlage?.startTime && vorlage.endTime) {
+            out.letzte = {
+              startTime: vorlage.startTime,
+              endTime: vorlage.endTime,
+              breakDuration: Number(vorlage.breakDuration ?? 0),
+              minuten: calcWorkMin(vorlage),
+              projectNumber: vorlage.projectNumber,
+            };
+          }
+          const jetzt = new Date();
+          const kw = getISOWeek(jetzt);
+          const inDieserWoche = (iso: string) => {
+            const w = getISOWeek(new Date(`${iso}T00:00:00`));
+            return w.week === kw.week && w.year === kw.year;
+          };
+          out.woche = {
+            istMin: entries.filter((e) => inDieserWoche(e.date)).reduce((n, e) => n + calcWorkMin(e), 0),
+            sollMin: Math.round((Number(profile.weeklyTargetHours ?? 40) || 40) * 60),
+          };
+          const monatsKopf = `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, '0')}`;
+          const imMonat = entries.filter((e) => e.date.startsWith(monatsKopf));
+          const stand = calcMonthStats(profile, imMonat, imMonat, jetzt.getFullYear(), jetzt.getMonth());
+          out.monat = {
+            name: jetzt.toLocaleDateString('de-AT', { month: 'long' }),
+            saldoMin: stand.hasConfig ? stand.saldoMin : null,
+          };
         }
 
         /**
@@ -491,7 +542,10 @@ export default function DashboardView() {
    */
   const nochAmLaden = laden.persoenlich || laden.betrieblich || laden.team;
   const offeneTage = data.fehlendeTage ?? [];
+  /** Die Startseite des Monteurs — nur die Rolle selbst, nicht die Administration. */
+  const monteur = user?.role === 'Mitarbeiter';
   const nothingToShow =
+    !monteur &&
     !nochAmLaden &&
     offeneTage.length === 0 &&
     !data.heuteEigene?.length &&
@@ -605,7 +659,25 @@ export default function DashboardView() {
         </Meldung>
       )}
 
-      {offeneTage.length > 0 && (
+      {/*
+        DER MONTEUR HAT SEINE EIGENE STARTSEITE — drei Karten, siehe
+        `MonteurStart.tsx`. Tage ohne Buchung, der heutige Einsatz und das
+        angeforderte Material stehen dort; hier nicht noch einmal.
+      */}
+      {monteur && data.heuteEigene !== undefined && (
+        <MonteurStart
+          einsaetze={data.heuteEigene}
+          letzte={data.letzte}
+          woche={data.woche}
+          monat={data.monat}
+          fehlendeTage={offeneTage}
+          offeneAnforderungen={data.ownOpenOrders}
+          scheineAn={scheineAn}
+          materialAn={materialAn}
+        />
+      )}
+
+      {!monteur && offeneTage.length > 0 && (
         <Meldung
           ton="warnung"
           role="alert"
@@ -630,7 +702,7 @@ export default function DashboardView() {
         vormittags woanders ist als nachmittags, sah vorher nur die erste
         Baustelle.
       */}
-      {data.heuteEigene && data.heuteEigene.length > 0 && (
+      {!monteur && data.heuteEigene && data.heuteEigene.length > 0 && (
         <Card
           title={data.heuteEigene.length === 1 ? 'Heute' : `Heute — ${data.heuteEigene.length} Baustellen`}
           action={
@@ -746,7 +818,8 @@ export default function DashboardView() {
       )}
 
       {/* Kennzahlen: jede Kachel nur, wenn sie fuer diese Rolle etwas aussagt. */}
-      {(materialAn || rechnungenAn) &&
+      {!monteur &&
+        (materialAn || rechnungenAn) &&
         (data.ownOpenOrders !== undefined || data.invoiceSums) &&
         ((data.ownOpenOrders ?? 0) > 0 ||
           (data.invoiceSums?.open ?? 0) > 0 ||

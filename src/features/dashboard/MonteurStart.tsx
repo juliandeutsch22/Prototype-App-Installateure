@@ -111,7 +111,14 @@ export default function MonteurStart({
                   </p>
                   <p className="monteur-auftrag">
                     {e.projectNumber}
-                    {e.comment ? ` · ${e.comment}` : ''}
+                    {/* Die Aufgabe als eigenes Stück: sie unterscheidet zwei
+                        Einsätze am selben Tag („Bad, Vormittag"). */}
+                    {e.comment && (
+                      <>
+                        {' · '}
+                        <span>{e.comment}</span>
+                      </>
+                    )}
                   </p>
                   <KontaktZeile
                     adresse={e.address}
@@ -204,7 +211,14 @@ export default function MonteurStart({
                         : `${tageWort(fehlendeTage.length)} ohne Buchung`}
                     </Link>
                   }
-                  subtitle="In der Zeiterfassung nachtragen"
+                  subtitle={
+                    /* Die Tage selbst, nicht nur die Zahl — „3 Tage fehlen"
+                       zwingt zum Suchen, welche. Die letzten fünf, wie bisher. */
+                    <>
+                      {fehlendeTage.slice(-5).map(tagKurz).join(', ')}
+                      {fehlendeTage.length > 5 && ` und ${fehlendeTage.length - 5} weitere`}
+                    </>
+                  }
                 />
               )}
               {materialAn && (offeneAnforderungen ?? 0) > 0 && (
@@ -226,6 +240,15 @@ export default function MonteurStart({
       </div>
     </div>
   );
+}
+
+/** „Fr., 18.09.“ — Wochentag und Tag, wie in der bisherigen Meldung. */
+function tagKurz(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+  });
 }
 
 /** „07:00–16:00 · 30 min Pause · 08:30 Std“ — was der Knopf übernimmt. */

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react';
+import { useState, useEffect, useMemo, useRef, type FormEvent } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import {
@@ -109,6 +109,8 @@ export default function TimeForm({
   const ausRouter = (useLocation().state ?? null) as {
     projectNumber?: string;
     asHelper?: boolean;
+    /** „Wie zuletzt buchen“ von der Startseite des Monteurs. */
+    wieZuletzt?: boolean;
   } | null;
   /*
     Die Vorbelegung der aufrufenden Ansicht geht VOR der aus dem Router: sie
@@ -603,6 +605,38 @@ export default function TimeForm({
   const billed = !!entry?.isBilled;
   const gesperrt = billed || meldungsTag || antragsTag;
 
+  /** „Wie zuletzt“: Zeiten, Pause und Baustelle vom letzten Eintrag. */
+  function wieZuletztUebernehmen() {
+    if (!lastEntry) return;
+    setStatus('Anwesend');
+    setStartTime(lastEntry.startTime ?? startTime);
+    setEndTime(lastEntry.endTime ?? endTime);
+    setBreakDuration(String(lastEntry.breakDuration ?? 30));
+    if (canHaveProject) {
+      setProjectNumber(lastEntry.projectNumber ?? '');
+      setVehiclePlate(ohneKennzeichenVorsatz(lastEntry.vehiclePlate ?? '', kennzeichenVorsatz));
+      setIsHelper(!!lastEntry.isHelper);
+    }
+  }
+
+  /*
+    „WIE ZULETZT BUCHEN“ VON DER STARTSEITE — derselbe Griff, ein Tipp früher.
+
+    Die Startseite des Monteurs bietet den bestehenden Knopf als Hauptaktion
+    an (nur, wenn der letzte Eintrag auf derselben Baustelle war). Hier wird
+    er genau einmal ausgelöst, sobald die Vorlage geladen ist — dieselbe
+    Funktion, dieselben Werte; gebucht wird weiterhin erst mit „Zeit buchen“.
+  */
+  const wieZuletztErledigt = useRef(false);
+  useEffect(() => {
+    if (wieZuletztErledigt.current || isEdit || !ausRouter?.wieZuletzt) return;
+    if (!lastEntry?.startTime || !lastEntry.endTime) return;
+    wieZuletztErledigt.current = true;
+    wieZuletztUebernehmen();
+    // Nur beim Eintreffen der Vorlage — nicht bei jeder Eingabe danach.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastEntry]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Bereits verrechnete Einträge sind die Grundlage einer verschickten
@@ -633,19 +667,7 @@ export default function TimeForm({
         <Button
           type="button"
           variant="secondary"
-          onClick={() => {
-            setStatus('Anwesend');
-            setStartTime(lastEntry.startTime ?? startTime);
-            setEndTime(lastEntry.endTime ?? endTime);
-            setBreakDuration(String(lastEntry.breakDuration ?? 30));
-            if (canHaveProject) {
-              setProjectNumber(lastEntry.projectNumber ?? '');
-              setVehiclePlate(
-                ohneKennzeichenVorsatz(lastEntry.vehiclePlate ?? '', kennzeichenVorsatz),
-              );
-              setIsHelper(!!lastEntry.isHelper);
-            }
-          }}
+          onClick={wieZuletztUebernehmen}
           className="w-full"
         >
           {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
