@@ -99,7 +99,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-bg p-4">
-      <div className="panel w-full max-w-sm overflow-hidden shadow-lg">
+      <div className="karte-anmeldung">
         {/* Markenband: dieselbe dunkle Trägerfläche wie Seitenleiste und
             Tableiste. Die Marke steht ohne weitere Fassung darauf. */}
         <div className="panel-dark px-6 py-6 text-center">

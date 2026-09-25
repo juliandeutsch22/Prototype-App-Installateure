@@ -409,27 +409,27 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
           {/* Sofort sehen, was die Sätze bedeuten — Prozentwerte allein sind
               im Kundengespräch wenig greifbar. */}
-          <div className="mt-4 overflow-x-auto rounded-sm border border-line bg-surface-2 p-3">
-            <table className="w-full text-sm">
-              <caption className="mb-2 text-left section-label">
+          <div className="kasten mt-4">
+            <table className="tabelle">
+              <caption className="tabelle-titel">
                 So wird ein Monteur verrechnet
               </caption>
               <tbody>
-                <tr className="border-b border-line/60">
-                  <td className="py-1">Regulär</td>
-                  <td className="py-1 text-right">{fmtEUR(rates.fach)} €/h</td>
-                </tr>
-                <tr className="border-b border-line/60">
-                  <td className="py-1">Nachtarbeit</td>
-                  <td className="py-1 text-right">{fmtEUR(nightFach)} €/h</td>
-                </tr>
-                <tr className="border-b border-line/60">
-                  <td className="py-1">Notdienst</td>
-                  <td className="py-1 text-right">{fmtEUR(emergencyFach)} €/h</td>
+                <tr>
+                  <td className="tabelle-zelle">Regulär</td>
+                  <td className="tabelle-zahl">{fmtEUR(rates.fach)} €/h</td>
                 </tr>
                 <tr>
-                  <td className="py-1">Notdienst in der Nacht</td>
-                  <td className="py-1 text-right">{fmtEUR(bothFach)} €/h</td>
+                  <td className="tabelle-zelle">Nachtarbeit</td>
+                  <td className="tabelle-zahl">{fmtEUR(nightFach)} €/h</td>
+                </tr>
+                <tr>
+                  <td className="tabelle-zelle">Notdienst</td>
+                  <td className="tabelle-zahl">{fmtEUR(emergencyFach)} €/h</td>
+                </tr>
+                <tr>
+                  <td className="tabelle-zelle">Notdienst in der Nacht</td>
+                  <td className="tabelle-zahl">{fmtEUR(bothFach)} €/h</td>
                 </tr>
               </tbody>
             </table>

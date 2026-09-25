@@ -70,7 +70,7 @@ export default function ExportDialog({
       onClick={onClose}
     >
       <div
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-lg bg-surface p-4 shadow-lg sm:max-w-md sm:rounded-lg"
+        className="blatt"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="export-title" className="titel-karte">

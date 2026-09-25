@@ -1724,51 +1724,51 @@ export default function InvoicesView() {
               hier tun kann, tut es danach von Hand in Word — und dann stimmt
               die Rechnung im System nicht mehr mit der ueberein, die der
               Kunde bekommen hat. */}
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-sm">
+          <div className="tabelle-rahmen">
+            <table className="tabelle-breit">
               <thead>
-                <tr className="border-b border-line text-left text-ink-muted">
-                  <th className="py-1 pr-3 font-medium">Position</th>
-                  <th className="py-1 pr-3 text-right font-medium">Menge</th>
-                  <th className="py-1 pr-3 font-medium">Einheit</th>
-                  <th className="py-1 pr-3 text-right font-medium">EP</th>
-                  <th className="py-1 pr-3 text-right font-medium">Netto</th>
-                  <th className="py-1 text-right font-medium">
+                <tr>
+                  <th className="tabelle-kopf">Position</th>
+                  <th className="tabelle-kopf-zahl">Menge</th>
+                  <th className="tabelle-kopf">Einheit</th>
+                  <th className="tabelle-kopf-zahl">EP</th>
+                  <th className="tabelle-kopf-zahl">Netto</th>
+                  <th className="tabelle-kopf-zahl">
                     <span className="sr-only">Entfernen</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {preview.positions.map((p, i) => (
-                  <tr key={i} className="border-b border-line/60">
-                    <td className="py-2 pr-3">
+                  <tr key={i}>
+                    <td className="tabelle-zelle">
                       <input
                         aria-label={`Bezeichnung Position ${i + 1}`}
-                        className="min-h-touch w-full min-w-[10rem] rounded border border-line bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        className="feld-zelle"
                         value={p.label}
                         onChange={(e) => setPos(i, { label: e.target.value })}
                       />
                     </td>
-                    <td className="py-2 pr-3">
+                    <td className="tabelle-zelle">
                       <input
                         aria-label={`Menge Position ${i + 1}`}
                         type="number"
                         min="0"
                         step="0.25"
-                        className="min-h-touch w-24 rounded border border-line bg-surface px-2 py-1 text-right text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        className="feld-zelle-menge"
                         value={String(p.qty)}
                         onChange={(e) => setPos(i, { qty: Number(e.target.value) || 0 })}
                       />
                     </td>
-                    <td className="py-2 pr-3">
+                    <td className="tabelle-zelle">
                       <input
                         aria-label={`Einheit Position ${i + 1}`}
-                        className="min-h-touch w-20 rounded border border-line bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
+                        className="feld-zelle-einheit"
                         value={p.unit}
                         onChange={(e) => setPos(i, { unit: e.target.value })}
                       />
                     </td>
-                    <td className="py-2 pr-3">
+                    <td className="tabelle-zelle">
                       <input
                         aria-label={`Einzelpreis Position ${i + 1}`}
                         type="number"
@@ -1783,18 +1783,13 @@ export default function InvoicesView() {
                           aus wie ein Preis; nur die Farbe sagt, dass hier
                           noch eine Entscheidung fehlt.
                         */
-                        className={
-                          'min-h-touch w-28 rounded border bg-surface px-2 py-1 text-right text-sm text-ink focus:outline-none focus:ring-2 ' +
-                          (p.unitPrice === 0
-                            ? 'border-warning focus:border-warning focus:ring-warning/30'
-                            : 'border-line focus:border-brand focus:ring-brand/30')
-                        }
+                        className={p.unitPrice === 0 ? 'feld-zelle-preis-fehlt' : 'feld-zelle-preis'}
                         value={String(p.unitPrice)}
                         onChange={(e) => setPos(i, { unitPrice: Number(e.target.value) || 0 })}
                       />
                     </td>
-                    <td className="py-2 pr-3 text-right font-medium">{fmtEUR(p.netto)}</td>
-                    <td className="py-2 text-right">
+                    <td className="tabelle-zahl-stark">{fmtEUR(p.netto)}</td>
+                    <td className="tabelle-zahl">
                       <IconButton
                         label={`Position ${i + 1} entfernen`}
                         tone="danger"
@@ -1808,37 +1803,37 @@ export default function InvoicesView() {
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={4} className="pt-2 text-right">
+                  <td colSpan={4} className="tabelle-summe">
                     {preview.discountAmount > 0 ? 'Zwischensumme' : 'Netto'}
                   </td>
-                  <td className="pt-2 pr-3 text-right">{fmtEUR(preview.subtotalNetto)}</td>
+                  <td className="tabelle-summe-zahl">{fmtEUR(preview.subtotalNetto)}</td>
                   <td />
                 </tr>
                 {preview.discountAmount > 0 && preview.discount && (
                   <>
-                    <tr className="text-danger">
-                      <td colSpan={4} className="text-right">{discountLabel(preview.discount)}</td>
-                      <td className="pr-3 text-right">−{fmtEUR(preview.discountAmount)}</td>
+                    <tr className="tabelle-abzug">
+                      <td colSpan={4} className="tabelle-summe">{discountLabel(preview.discount)}</td>
+                      <td className="tabelle-summe-zahl">−{fmtEUR(preview.discountAmount)}</td>
                       <td />
                     </tr>
                     <tr>
-                      <td colSpan={4} className="text-right">Netto</td>
-                      <td className="pr-3 text-right">{fmtEUR(preview.totalNetto)}</td>
+                      <td colSpan={4} className="tabelle-summe">Netto</td>
+                      <td className="tabelle-summe-zahl">{fmtEUR(preview.totalNetto)}</td>
                       <td />
                     </tr>
                   </>
                 )}
                 <tr>
-                  <td colSpan={4} className="text-right">
+                  <td colSpan={4} className="tabelle-summe">
                     {reverseCharge ? 'Umsatzsteuer' : `USt. ${Math.round(satz * 100)} %`}
                   </td>
-                  <td className="pr-3 text-right">
+                  <td className="tabelle-summe-zahl">
                     {reverseCharge ? 'Übergang der Steuerschuld' : fmtEUR(preview.totalVat)}
                   </td>
                   <td />
                 </tr>
-                <tr className={abzuege.length > 0 ? '' : 'font-bold'}>
-                  <td colSpan={4} className="text-right">
+                <tr className={abzuege.length > 0 ? undefined : 'tabelle-gesamt'}>
+                  <td colSpan={4} className="tabelle-summe">
                     {/* Wo abgezogen wird, ist diese Zeile nicht der
                         Rechnungsbetrag, sondern die volle Leistung. */}
                     {abzuege.length > 0
@@ -1847,23 +1842,23 @@ export default function InvoicesView() {
                         ? 'Rechnungsbetrag'
                         : 'Brutto'}
                   </td>
-                  <td className="pr-3 text-right">{fmtEUR(preview.totalBrutto)}</td>
+                  <td className="tabelle-summe-zahl">{fmtEUR(preview.totalBrutto)}</td>
                   <td />
                 </tr>
                 {abzuege.map((v) => (
-                  <tr key={v.invoiceId} className="text-danger">
-                    <td colSpan={4} className="text-right">
+                  <tr key={v.invoiceId} className="tabelle-abzug">
+                    <td colSpan={4} className="tabelle-summe">
                       abzüglich {v.invoiceNumber} vom {datumAT(v.invoiceDate)} (netto {fmtEUR(v.netto)} +
                       USt {fmtEUR(v.vat)})
                     </td>
-                    <td className="pr-3 text-right">−{fmtEUR(v.brutto)}</td>
+                    <td className="tabelle-summe-zahl">−{fmtEUR(v.brutto)}</td>
                     <td />
                   </tr>
                 ))}
                 {abzuege.length > 0 && summen && (
-                  <tr className="font-bold">
-                    <td colSpan={4} className="text-right">Restforderung brutto</td>
-                    <td className="pr-3 text-right">{fmtEUR(summen.totalBrutto)}</td>
+                  <tr className="tabelle-gesamt">
+                    <td colSpan={4} className="tabelle-summe">Restforderung brutto</td>
+                    <td className="tabelle-summe-zahl">{fmtEUR(summen.totalBrutto)}</td>
                     <td />
                   </tr>
                 )}

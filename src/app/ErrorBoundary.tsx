@@ -102,7 +102,7 @@ export default class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="flex min-h-full items-center justify-center p-6">
-        <div className="panel w-full max-w-md p-6">
+        <div className="karte-fehler">
           <h1 className="text-xl font-semibold text-ink">Da ist etwas schiefgelaufen</h1>
           <p className="mt-2 text-sm text-ink-muted">
             {istNachladeFehler(error)

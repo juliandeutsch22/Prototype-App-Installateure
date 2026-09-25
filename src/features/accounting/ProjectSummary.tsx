@@ -164,14 +164,12 @@ export default function ProjectSummary({
               und zwang zugleich jede Zahl darin in eine zweite Farbfassung.
               Jetzt genügt der hellere Grund und die farbige Kante.
 
-              `.panel` bringt Fläche, Rundung und Schatten mit; offen wird
-              allein die Rahmenfarbe ausgetauscht.
+              `.karte` bringt Fläche, Rundung und Schatten mit; offen
+              (`.karte-offen`) wird allein die Rahmenfarbe kräftiger.
             */
             <div
               key={r.projectNumber}
-              className={`panel overflow-hidden transition-colors ${
-                isOpen ? 'border-brand/40' : ''
-              }`}
+              className={isOpen ? 'karte-offen' : 'karte'}
             >
               <button
                 type="button"

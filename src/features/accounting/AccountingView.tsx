@@ -503,9 +503,7 @@ export default function AccountingView() {
               return (
                 <div
                   key={u.uid}
-                  className={`panel overflow-hidden transition-colors ${
-                    open ? 'border-brand/40' : ''
-                  }`}
+                  className={open ? 'karte-offen' : 'karte'}
                 >
                   {/* Der Kopf trägt nur noch, was den Mitarbeiter einordnet:
                       Name, Ampel, Saldo. Krankheit, Urlaub und Resturlaub

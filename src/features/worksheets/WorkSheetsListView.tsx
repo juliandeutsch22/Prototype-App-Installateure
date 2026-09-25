@@ -562,7 +562,7 @@ export default function WorkSheetsListView() {
             // Wunschbreite (rund 180 px plus Polsterung) — gemessen 18 px
             // mehr, als die Karte innen hat. Es ragte damit unter dem Titel
             // heraus. Volle Breite ist dort ohnehin das Richtige.
-            className="min-h-touch w-full rounded border border-line bg-surface px-3 py-1 text-base text-ink sm:w-auto"
+            className="feld w-full sm:w-auto"
           />
         }
       >
