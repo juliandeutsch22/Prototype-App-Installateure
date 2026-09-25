@@ -820,16 +820,34 @@ textarea {
     white-space: nowrap;
   }
 
-  .tabelle-knoepfe {
+  .tabelle-knoepfe,
+  .tabelle-knoepfe-umbruch {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 0.25rem 0.5rem;
   }
 
+  /* Zwei Textknöpfe und ein „⋯" (Anforderungen): unter `xl` rutscht ein
+     Knopf unter den anderen, statt Material und Besteller daneben auf ein
+     Wort je Zeile zusammenzudrücken. Ab `xl` ist Platz genug, dann bleiben
+     sie in einer Reihe — sonst gäbe die Tabelle dem langen Materialnamen den
+     Vorzug und bräche das „⋯" trotzdem um. „Akte" und „⋯" allein
+     (`tabelle-knoepfe`) bleiben immer nebeneinander. */
+  .tabelle-knoepfe-umbruch {
+    flex-wrap: wrap;
+  }
+
+  @media (min-width: 1280px) {
+    .tabelle-knoepfe-umbruch {
+      flex-wrap: nowrap;
+    }
+  }
+
   /* Wie in der Listenzeile: Knöpfe sind Nebenhandlungen, kleinere Schrift,
      Tasthöhe bleibt 44 px. Symbolknöpfe (das „⋯") sind ausgenommen. */
-  .tabelle-knoepfe > button:not([data-icon]) {
+  .tabelle-knoepfe > button:not([data-icon]),
+  .tabelle-knoepfe-umbruch > button:not([data-icon]) {
     min-height: 2.75rem;
     padding-inline: 0.75rem;
     font-size: 0.875rem;
@@ -843,6 +861,33 @@ textarea {
     padding: 0.5rem 0.75rem 0.5rem 0;
     font-weight: 500;
     color: var(--text);
+  }
+
+  /* Zweite Zeile in einer Zelle: Zustand der Retoure, Baustelle, Team. */
+  .tabelle-unter {
+    margin-top: 0.25rem;
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  /* Gruppenkopf über den Zeilen einer Gruppe (Anforderungen: Offen,
+     In Bearbeitung …; Erledigtes nach Tag). */
+  .tabelle-gruppe {
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 0 0.25rem 0;
+    text-align: left;
+    font-weight: 400;
+  }
+
+  /* Zustandsmarken nebeneinander in einer Zelle, dürfen umbrechen. */
+  .tabelle-marken {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
   }
 }
 
