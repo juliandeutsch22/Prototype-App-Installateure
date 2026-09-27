@@ -36,7 +36,7 @@ wandert er hier heraus und in die jeweilige Doku.
 | B8 | **DSGVO-Auskunft (Art. 15) und Löschung (Art. 17) je Person** fehlen; `betrieb_auszug` betrifft nur den ganzen Betrieb und ist auf 8 MB begrenzt | Neue Funktionen | Eigener Auftrag |
 | B9 | **Betragsformatierer**: acht `fmtEUR`-Kopien | `tests/unit/eurozeichen.test.ts` setzt sie voraus und darf nicht abgeschwächt werden | Zusammenlegen und die Prüfung im selben Auftrag auf den einen Formatierer umstellen |
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
-| B11 | **Design-Phasen 2 und 3** (gemeinsame Bausteine, Tabellen am Desktop, Monteur-Start als drei Karten, zweispaltige Akten) | Verändern die Grundgestaltung; der erste Durchgang wurde zurückgenommen | Nur mit einem freigegebenen Entwurf |
+| B11 | **Design-Phasen 2 und 3** (gemeinsame Bausteine, Tabellen am Desktop, Monteur-Start, zweispaltige Akten) | Verändern die Grundgestaltung; der erste Durchgang wurde zurückgenommen | Entwurf „Fassung 3“ liegt vor: Vorgabe `docs/design/linie.md`, Arbeitsplan `docs/design/umsetzung.md` (neun Schritte, je ein PR) |
 
 ## C. Absicherungen und Tests, die fehlen
 
@@ -52,7 +52,7 @@ wandert er hier heraus und in die jeweilige Doku.
 | C8 | Vormerkungen des Ausgangsfachs mit alter Baustellennummer landen nach einer Umnummerierung verwaist | Beim Nachsenden über `angezeigteNummer`/Umnummerierungs-Tabelle auflösen |
 | C9 | Offline-Buchung funktioniert nur, weil postgrest-js GET-Anfragen 7 s wiederholt und so die 3-s-Frist greift; bei `navigator.onLine === false` sollte die Vorprüfung direkt übersprungen werden | Kein Test auf Ansichtsebene mit echtem Offline |
 | C10 | Fehlt der Hash eines Scheins (der AFTER-Trigger schluckt Fehler), wird die Prüfsumme nie nachgetragen; das PDF sagt dauerhaft „wird ergänzt“ | Nachtragen im Nachtlauf |
-| C11 | Vorschau-Werkzeug: Stubs für Scheinentwurf, Rechnungssuche, Buchhaltungs-Export, Datanorm-Import und Zeit buchen fehlen oder sind falsch geformt; `messen.mjs` und README nennen noch `section-label` statt `titel-karte` | Stubs ergänzen, Ausnahmen aktualisieren |
+| C11 | Vorschau-Werkzeug: Stubs für Scheinentwurf, Rechnungssuche, Datanorm-Import und Ausgangsfach fehlten; `messen.mjs` und README nannten `section-label` | **Erledigt** (26.09.2026): Werkzeug eingecheckt (`tools/vorschau/`, `npm run vorschau`), feste Formen in `stubs-erzeugen.mjs` und `tools/vorschau/fest/`, Ausnahme auf `titel-karte` |
 | C12 | `npm test` führt die Datenbanktests nicht aus; grün sagt nichts über Zeilenregeln und Trigger | Bleibt so (Stack nur in der CI); im Handbuch benannt |
 
 ## Erledigt seit dem Prüflauf

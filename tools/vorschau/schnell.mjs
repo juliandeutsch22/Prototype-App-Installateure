@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const [,, pfad='/', rolle='Mitarbeiter', breite='390', datei='/tmp/x.png'] = process.argv;
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PFAD || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const s = await b.newPage({ locale: 'de-AT', timezoneId: 'Europe/Vienna', viewport: { width: +breite, height: 900 } });
+const fehler = []; s.on('pageerror', e => fehler.push(String(e).slice(0,200)));
+s.on('console', m => { if (m.type()==='error') fehler.push('console: '+m.text().slice(0,200)); });
+await s.goto(`http://localhost:5199/tools/vorschau/?pfad=${encodeURIComponent(pfad)}&rolle=${rolle}`, { waitUntil: 'networkidle' });
+await s.waitForTimeout(800);
+await s.screenshot({ path: datei, fullPage: true });
+console.log(JSON.stringify({ sw: await s.evaluate(() => document.documentElement.scrollWidth), iw: breite, fehler: fehler.slice(0,5) }));
+await b.close();
