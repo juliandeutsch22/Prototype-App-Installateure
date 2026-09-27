@@ -18,7 +18,7 @@ const MUSTER = [
   ['ungepolstert', /\b\d{1,2}\.\d\.(\d{4})?(?!\d)|\b\d\.\d{1,2}\.(\d{4})?(?!\d)/g],
   ['ganze h', /[+−-]?\b\d+\s?h\b/g],
 ];
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PFAD || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 for (const [pfad, rolle] of ROUTEN) {
   const s = await b.newPage({ locale: 'de-AT', timezoneId: 'Europe/Vienna', viewport: { width: 1440, height: 900 } });
   await s.goto(`${BASIS}?pfad=${encodeURIComponent(pfad)}&rolle=${rolle}`, { waitUntil: 'networkidle' });

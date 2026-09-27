@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 const out = process.argv[2];
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PFAD || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const s = await b.newPage({ locale: 'de-AT', timezoneId: 'Europe/Vienna', viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
 s.on('pageerror', (e) => console.log('FEHLER', e.stack?.split('\n').slice(0,4).join(' | ')));
 await s.goto('http://localhost:5199/tools/vorschau/?pfad=/worksheet&rolle=Mitarbeiter', { waitUntil: 'networkidle' });

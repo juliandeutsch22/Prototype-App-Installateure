@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 const [,, pfad='/', rolle='Mitarbeiter', breite='390', datei='/tmp/x.png'] = process.argv;
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PFAD || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
 const s = await b.newPage({ locale: 'de-AT', timezoneId: 'Europe/Vienna', viewport: { width: +breite, height: 900 } });
 const fehler = []; s.on('pageerror', e => fehler.push(String(e).slice(0,200)));
 s.on('console', m => { if (m.type()==='error') fehler.push('console: '+m.text().slice(0,200)); });
