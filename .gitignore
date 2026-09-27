@@ -49,3 +49,12 @@ supabase/functions/_shared/
 # Diagnose, kein Quelltext — und ein Trace-Archiv wiegt Megabyte.
 test-results/
 playwright-report/
+
+# Vorschau-Werkzeug (tools/vorschau): die Ersatzmodule werden bei jedem Start
+# aus src/lib/db erzeugt und sind kein Quelltext. Handgeschriebene liegen
+# unter tools/vorschau/fest/.
+tools/vorschau/db/
+
+# Designentwurf: aus den Quellen (quelle/build.py) erzeugte Seiten und Bilder.
+docs/design/entwurf-2026-09-26/quelle/seiten/
+__pycache__/

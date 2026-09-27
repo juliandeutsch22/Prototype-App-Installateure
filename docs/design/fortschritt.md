@@ -36,6 +36,26 @@ Karten, zweispaltige Akten). Genau das wurde im ersten Durchgang umgesetzt
 und im Betrieb zurückgenommen. Sie bleiben offen, bis es einen
 freigegebenen Entwurf gibt.
 
+## Designlinie „Fassung 3“ (26.09.2026)
+
+Nach drei Entwurfsrunden (Fassung 1 „zu bunt, zu verspielt“, Fassung 2
+„zu dicke Schrift, farbige Pillen, zu viele Karten“) liegt mit Fassung 3
+ein Entwurf vor, der in die richtige Richtung geht: weniger Karten,
+Abschnitte statt Kästen, Status als Text mit Punkt, Schrift höchstens
+halbfett, auf 375 px geprüft. Der Charakter (Petrol-Chrome mit weißer
+Fuge, weiße Karten, Poppins, Strich unter der H1) bleibt.
+
+| Datei | Inhalt |
+|---|---|
+| `docs/design/linie.md` | Die Vorgabe: Tokens, Schriftskala, Bausteine als CSS, Umstellung der Komponenten, Seitentypen, Route → Typ, Regeln |
+| `docs/design/umsetzung.md` | Arbeitsplan in neun Schritten mit Dateien, Prüfungen und Merge-Regeln – so geschrieben, dass ein kleineres Modell ihn ausführen kann |
+| `docs/design/entwurf-2026-09-26/v3/` | Die Bilder der Fassung 3 (Telefon 375, Tablet 834, Schreibtisch 1440) |
+| `docs/design/entwurf-2026-09-26/quelle/` | HTML/CSS-Quellen der Entwürfe, mit `python3 build.py` neu renderbar |
+| `tools/vorschau/` | Vorschau der echten Ansichten ohne Datenbank (`npm run vorschau`), zum Messen und Fotografieren |
+
+Umsetzungsstand: **noch nicht begonnen.** Fortschritt je Schritt wird hier
+in einer Tabelle „Schritt · Status · Commit“ nachgetragen.
+
 **Unterschrift quer.** Unter jedem Unterschriftsfeld steht unter 1024 px
 „Groß unterschreiben“: dieselbe Zeichenfläche bildschirmfüllend, im
 Hochformat mit dem Hinweis, das Gerät quer zu halten. Das Feld im Formular
