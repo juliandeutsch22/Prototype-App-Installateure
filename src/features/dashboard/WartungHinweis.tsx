@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { useAuth } from '@/app/AuthContext';
 import { isGF, isVerw } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
@@ -67,11 +68,12 @@ export default function WartungHinweis() {
   if (anzahl === 0) return null;
 
   return (
-    <div className="rounded border border-line bg-surface-2 p-4 text-info">
-      <p className="font-semibold">
-        {anzahl === 1 ? 'Eine Wartung steht an' : `${anzahl} Wartungen stehen an`}
-      </p>
-      <p className="mt-1 text-sm">
+    /* Zeile statt Kasten (Designlinie „Fassung 3"); Dreieck erst, wenn
+       etwas überfällig ist — „steht an" ist eine Auskunft, kein Alarm. */
+    <Hinweiszeile stufe={ueberfaellig > 0 ? 'warn' : undefined}>
+      <p>
+        <b>{anzahl === 1 ? 'Eine Wartung steht an' : `${anzahl} Wartungen stehen an`}</b>
+        {' — '}
         {ueberfaellig > 0
           ? `${ueberfaellig} davon ${ueberfaellig === 1 ? 'ist' : 'sind'} überfällig. `
           : `Fällig in den nächsten ${VORLAUF_TAGE} Tagen. `}
@@ -81,6 +83,6 @@ export default function WartungHinweis() {
           Zu den Wartungen
         </Link>
       </p>
-    </div>
+    </Hinweiszeile>
   );
 }

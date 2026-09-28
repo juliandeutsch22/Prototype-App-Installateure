@@ -61,8 +61,8 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 
 | Schritt | Status | Commit |
 |---|---|---|
-| 1 · Bausteine | erledigt | siehe PR „Designlinie 3, Schritt 1“ |
-| 2 · Monteur-Start | offen | |
+| 1 · Bausteine | erledigt | `ccea9a4` (#160) |
+| 2 · Monteur- und Büro-Start | erledigt | siehe PR „Designlinie 3, Schritt 2“ |
 | 3 · Zeiterfassung | offen | |
 | 4 · Handwerksschein | offen | |
 | 5 · Urlaub und Material anfordern | offen | |
@@ -103,6 +103,30 @@ mit Grund:
   umgestellt werden, sonst sähen Reiter zweierlei aus.
 - **Vorschau** misst jetzt auch 375 px (`messen.mjs`, `fotos.mjs`). Befund
   vor und nach Schritt 1 identisch (6 Stellen, alle schon vorher da).
+
+**Schritt 2 im Einzelnen.** Nachtlauf, Wartungen, fehlende Buchungen,
+fehlendes Eintrittsdatum und „Nicht geladen“ stehen als `Hinweiszeile`
+statt als farbige Kästen. Die Karte „Heute“ gliedert ihre Baustellen mit
+Trennlinien statt Kästen in der Karte; die Knöpfe stehen am Telefon zu
+zweit über die volle Breite. Die Büro-Karten (Heute im Einsatz, Aktive
+Baustellen, Baustellen am Limit, Material, Team) sind Zeilen von Kante zu
+Kante und stehen ab 1024 px in zwei Spalten; die Kennzahlen stehen davor.
+Mit Absicht **nicht** wie im Entwurf:
+
+- **Überschrift bleibt das Datum**, nicht „Guten Morgen, Max“: Texte
+  bleiben unverändert (Regel 11), und das Datum ist dort mit Grund die
+  Überschrift (Service Worker, veralteter Stand, siehe Kommentar in
+  `DashboardView.tsx`).
+- **„Wie zuletzt buchen“ vom Start aus** und die Karte **„Diese Woche“**
+  (Stundenbalken, Saldo, „Offen für dich“) sind neue Funktionen mit neuen
+  Daten, keine Darstellung. Nicht gebaut; als Vorschlag offen.
+- **Jede Baustelle von heute behält ihre Knöpfe**, auch die zweite (der
+  Entwurf zeigt sie nur als Zeile): „Zeit erfassen“ mit vorbelegter
+  Baustelle ist der Weg für den Nachmittagseinsatz.
+- Die Notiz des Büros zum Einsatz steht in Tinte, nicht gedämpft in der
+  Meta-Zeile — sie sagt, was heute zu tun ist.
+- Adresse und Telefon behalten ihre Form (`KontaktZeile`, auch anderswo
+  benutzt).
 
 **Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
 Ansichten – `projects/BaustellenUebersicht.tsx` und

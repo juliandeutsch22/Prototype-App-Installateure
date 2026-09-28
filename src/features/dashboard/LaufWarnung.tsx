@@ -4,6 +4,7 @@ import { useAuth } from '@/app/AuthContext';
 import { isTopLevel } from '@/lib/permissions';
 import { ladeLauf } from '@/lib/db/laeufe';
 import { beurteile, type NachtLaufArt } from '@shared/laufStatus';
+import Hinweiszeile from '@/components/Hinweiszeile';
 
 /**
  * Die Meldung, die einen ausgefallenen Nachtlauf sichtbar macht.
@@ -91,11 +92,15 @@ export default function LaufWarnung() {
   if (offen.length === 0) return null;
 
   return (
-    <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
-      <p className="font-semibold">
-        {offen.length === 1 ? 'Ein nächtlicher Lauf steht aus' : 'Zwei nächtliche Läufe stehen aus'}
+    /*
+      Eine Zeile mit Symbol statt eines farbigen Kastens (Designlinie
+      „Fassung 3"): die Farbe steckt im Dreieck, der Kern steht halbfett.
+    */
+    <Hinweiszeile stufe="warn" role="alert">
+      <p>
+        <b>{offen.length === 1 ? 'Ein nächtlicher Lauf steht aus' : 'Zwei nächtliche Läufe stehen aus'}</b>
       </p>
-      <ul className="mt-2 space-y-1 text-sm">
+      <ul className="mt-0.5 space-y-1">
         {offen.map((o) => (
           <li key={o.art}>
             {o.text}{' '}
@@ -116,6 +121,6 @@ export default function LaufWarnung() {
           </li>
         ))}
       </ul>
-    </div>
+    </Hinweiszeile>
   );
 }
