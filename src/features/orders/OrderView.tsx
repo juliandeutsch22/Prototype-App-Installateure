@@ -14,6 +14,7 @@ import type { Material, MaterialOrder, Project } from '@/types';
 import Card from '@/components/Card';
 import Nachladen from '@/components/Nachladen';
 import Button from '@/components/Button';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Warnung } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
 import StatusBadge from '@/components/StatusBadge';
@@ -358,7 +359,8 @@ export default function OrderView() {
   ];
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Material"
         subtitle="Von der Baustelle bei der Projektleitung anfordern, Lieferung verfolgen und Rückgaben erfassen"
@@ -438,10 +440,12 @@ export default function OrderView() {
               )}
             </div>
             {projectNumber && urgent && !leitungDa && (
-              <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                Dieser Baustelle ist keine Projektleitung zugeteilt — die Eilmeldung erreicht
-                niemanden. Die Verwaltung bekommt die Anforderung trotzdem.
-              </p>
+              <Hinweiszeile stufe="warn">
+                <p>
+                  Dieser Baustelle ist keine Projektleitung zugeteilt — die Eilmeldung erreicht
+                  niemanden. Die Verwaltung bekommt die Anforderung trotzdem.
+                </p>
+              </Hinweiszeile>
             )}
           </div>
 
@@ -472,7 +476,9 @@ export default function OrderView() {
                                 Kategorie" unter jedem Artikel eines Katalogs,
                                 der keine pflegt, war nur Rauschen (D16). */}
                             {m.category && `${m.category} · `}
-                            <span className={low ? 'font-semibold text-warning' : undefined}>
+                            {/* Knapp: Punkt in Warnfarbe, Wort in Grau — keine farbige
+                                Schrift im Fliesstext (Designlinie „Fassung 3"). */}
+                            <span className={low ? 'stand stand-warn h-auto' : undefined}>
                               Lager: {m.stock ?? 0} {m.unit ?? 'Stk'}
                               {low && ' (knapp)'}
                             </span>
@@ -594,7 +600,8 @@ export default function OrderView() {
 
       {tab === 'meine' && (
         <>
-          <Card title={`Offen (${activeOrders.length})`}>
+          {/* Bündig: Anforderungen als Zeilen von Kante zu Kante. */}
+          <Card title={`Offen (${activeOrders.length})`} buendig>
             {activeOrders.length === 0 ? (
               <EmptyState>Keine offenen Bestellungen.</EmptyState>
             ) : (
@@ -646,7 +653,7 @@ export default function OrderView() {
             )}
           </Card>
 
-          <Card title={`Erledigt (${doneOrders.length})`}>
+          <Card title={`Erledigt (${doneOrders.length})`} buendig>
             {doneOrders.length === 0 ? (
               <EmptyState>Noch nichts erledigt.</EmptyState>
             ) : (
@@ -686,7 +693,8 @@ export default function OrderView() {
         >
           <div className="space-y-4">
             {retGewaehlt ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-line bg-surface-2 px-3 py-2">
+              // Die Wahl steht wie ein ausgefülltes Feld da: weiss mit Haarlinie.
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-line bg-surface px-3 py-2">
                 <div>
                   <span className="section-label block">Material</span>
                   <span className="font-semibold text-ink">{retGewaehlt.name}</span>
