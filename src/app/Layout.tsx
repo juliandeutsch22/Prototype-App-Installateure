@@ -102,6 +102,23 @@ export default function Layout({ children }: { children: ReactNode }) {
   /** Wie viele eigene Buchungen noch im Fach liegen, wenn abgemeldet werden soll. */
   const [ungesendet, setUngesendet] = useState(0);
   const reiterleiste = useRef<HTMLElement>(null);
+  const inhalt = useRef<HTMLElement>(null);
+  const ersterPfad = useRef(ort.pathname);
+
+  /*
+    NACH EINEM SEITENWECHSEL STEHT DER FOKUS AM NEUEN INHALT (offene Punkte
+    C6). Sonst blieb er am angetippten Menüpunkt, und wer mit Tastatur oder
+    Vorlesehilfe arbeitet, musste sich durch die ganze Navigation zurück
+    zum Inhalt tasten. Nicht beim ersten Laden (da gehört der Fokus dem
+    Browser), und nicht, wenn die neue Seite selbst schon ein Feld im
+    Inhalt fokussiert hat — das hat Vorrang.
+  */
+  useEffect(() => {
+    if (ort.pathname === ersterPfad.current) return;
+    ersterPfad.current = '';
+    const main = inhalt.current;
+    if (main && !main.contains(document.activeElement)) main.focus({ preventScroll: true });
+  }, [ort.pathname]);
 
   /*
     DIE HÖHE DER REITERLEISTE ALS CSS-VARIABLE (`--reiter-hoehe` am `body`).
@@ -210,6 +227,10 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-full flex-col md:flex-row">
+      {/* Der erste Tab-Halt: an Kopfleiste und Menü vorbei direkt zum Inhalt. */}
+      <a href="#inhalt" className="sprunglink">
+        Zum Inhalt
+      </a>
       {/* Mobile Top-Bar — dieselbe dunkle Trägerfläche wie die Seitenleiste
           am Schreibtisch, abgesetzt durch dieselbe weisse Fuge.
 
@@ -339,7 +360,13 @@ export default function Layout({ children }: { children: ReactNode }) {
         ist (Tabellen), scrollt in seinem eigenen Behaelter mit
         `overflow-x-auto`.
       */}
-      <main className="min-w-0 flex-1 pb-24 md:pb-6">
+      <main
+        id="inhalt"
+        ref={inhalt}
+        // Programmatisch fokussierbar (Sprunglink, Seitenwechsel), aber kein Tab-Halt.
+        tabIndex={-1}
+        className="min-w-0 flex-1 pb-24 outline-none md:pb-6"
+      >
         {/* Ganz oben im Inhalt, nicht in der Kopfleiste: dort wäre es auf dem
             Schreibtisch gar nicht zu sehen, wo es keine mobile Top-Bar gibt. */}
         <Verbindungsband />

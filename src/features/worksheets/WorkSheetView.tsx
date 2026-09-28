@@ -95,7 +95,9 @@ const NICHT_ZU_OEFFNEN =
  */
 function gleicheZeile(a: WorkSheetZeit, b: WorkSheetZeit): boolean {
   return (
-    a.mitarbeiter.trim().toLowerCase() === b.mitarbeiter.trim().toLowerCase() &&
+    // `?? ''`: Altdaten tragen nicht in jeder Zeile einen Namen — die Ansicht
+    // darf daran nicht ganz abstürzen (offene Punkte C7).
+    (a.mitarbeiter ?? '').trim().toLowerCase() === (b.mitarbeiter ?? '').trim().toLowerCase() &&
     (a.von ?? '') === (b.von ?? '') &&
     (a.bis ?? '') === (b.bis ?? '') &&
     (a.pauseMin ?? 0) === (b.pauseMin ?? 0) &&
@@ -1011,7 +1013,7 @@ export default function WorkSheetView() {
       ? {}
       : { role: 'group', 'aria-label': `Schritt ${nr} von ${SCHRITTE.length}: ${SCHRITTE[nr - 1].name}` };
   const naechster = SCHRITTE.find((s) => s.nr === schritt + 1);
-  const personen = new Set(zeiten.map((z) => z.mitarbeiter.trim().toLowerCase())).size;
+  const personen = new Set(zeiten.map((z) => (z.mitarbeiter ?? '').trim().toLowerCase()).filter(Boolean)).size;
   const fotosOffen = nochNichtOben(fotos).length;
 
   /*

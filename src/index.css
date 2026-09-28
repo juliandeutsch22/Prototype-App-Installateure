@@ -541,6 +541,21 @@ textarea {
   border: 0;
 }
 
+/* Sprunglink „Zum Inhalt": unsichtbar, bis er per Tab den Fokus bekommt. */
+.sprunglink {
+  position: absolute;
+  left: 0.75rem;
+  top: -4rem;
+  z-index: 60;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-deep);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+.sprunglink:focus { top: 0.75rem; }
+
 /*
  * LINKS — EINE LINIE FÜR DIE GANZE APP (25.09.2026).
  *

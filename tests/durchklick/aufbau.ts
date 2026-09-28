@@ -71,7 +71,37 @@ async function konto(
   return uid;
 }
 
+/**
+ * Weckt eine Edge Function, bevor der erste Durchklick sie braucht.
+ *
+ * DER ERSTE AUFRUF IST EIN KALTSTART (offene Punkte C13). „Benutzername" ist
+ * der erste Weg im Lauf und wartet 20 s auf das Startpasswort; einmal (#169)
+ * reichte das nicht, weil die Laufzeit die Funktion erst hochfahren musste.
+ * Ein Vorabflug (OPTIONS) startet sie, ohne etwas anzulegen. Scheitert das
+ * Wecken, bricht der Aufbau NICHT ab — dann sagt der Durchklick selbst, was
+ * los ist, statt dass ein Hilfsschritt die eigentliche Prüfung verdeckt.
+ */
+async function aufwecken(name: string): Promise<void> {
+  const bis = Date.now() + 60_000;
+  while (Date.now() < bis) {
+    try {
+      const antwort = await fetch(`${API}/functions/v1/${name}`, {
+        method: 'OPTIONS',
+        headers: { Origin: 'http://localhost', 'Access-Control-Request-Method': 'POST' },
+      });
+      if (antwort.status < 500) return;
+    } catch {
+      // Noch nicht erreichbar — gleich noch einmal.
+    }
+    await new Promise((weiter) => setTimeout(weiter, 1000));
+  }
+  console.warn(`Edge Function „${name}" liess sich nicht wecken.`);
+}
+
 export default async function aufbau(): Promise<void> {
+  // Die Funktionen, die die Durchklicks aufrufen, zuerst — parallel zum Rest.
+  const geweckt = Promise.all([aufwecken('mitarbeiter-anlegen'), aufwecken('passwort-vergeben')]);
+
   // Mit Anschrift: ohne sie stellt die App keine Rechnung aus (§ 11 UStG,
   // Launch-Check 25.09.2026, M1) — ein Betrieb ohne sie ist ein anderer Test.
   await admin.from('companies').upsert({
@@ -113,4 +143,6 @@ export default async function aufbau(): Promise<void> {
     category: 'Rohre', article_number: 'KR-15',
   });
   if (artikelFehler) throw new Error(artikelFehler.message);
+
+  await geweckt;
 }

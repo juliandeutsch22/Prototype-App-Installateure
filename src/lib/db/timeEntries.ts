@@ -122,6 +122,23 @@ export class DuplicateEntryError extends Error {
 const DUPLIKAT_FRIST_MS = 3000;
 
 /**
+ * Die Buchungen des Tages für die Doppelbuchungsprüfung.
+ *
+ * OHNE EMPFANG WIRD GAR NICHT ERST GEFRAGT (offene Punkte C9). Weiss der
+ * Browser schon, dass er offline ist, wäre die Abfrage ein sicheres Warten
+ * auf die Frist — und dass es nur drei Sekunden waren, lag daran, dass die
+ * Datenbankbibliothek ihre Anfragen von selbst wiederholt. Hier steht es
+ * ausdrücklich: offline gilt der Rückfall sofort, die Buchung wird
+ * vorgemerkt, und das Formular hat vorher gegen die geladenen Tage geprüft.
+ */
+function tagesbuchungenFuerPruefung(
+  companyId: string, uid: string, date: string, exceptId?: string,
+): Promise<WithId<TimeEntry>[]> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.resolve([]);
+  return mitFristOder(eintraegeAmTag(companyId, uid, date, exceptId), async () => [], DUPLIKAT_FRIST_MS);
+}
+
+/**
  * Legt einen Zeiteintrag an und blockt eine zweite Buchung am selben Tag.
  *
  * WAS BEI ABLAUF DER FRIST PASSIERT — und warum es so herum richtig ist.
@@ -135,11 +152,7 @@ const DUPLIKAT_FRIST_MS = 3000;
  * fängt nur die Tage AUSSERHALB des geladenen Fensters ab.
  */
 export async function createTimeEntry(companyId: string, entry: NewTimeEntry): Promise<string> {
-  const vorhandene = await mitFristOder(
-    eintraegeAmTag(companyId, entry.userId, entry.date),
-    async () => [],
-    DUPLIKAT_FRIST_MS,
-  );
+  const vorhandene = await tagesbuchungenFuerPruefung(companyId, entry.userId, entry.date);
   const grund = buchungKonflikt(entry, vorhandene);
   if (grund) throw new DuplicateEntryError(entry.date, grund);
   return pg.anlegen(companyId, entry);
@@ -162,11 +175,7 @@ export async function createTimeEntry(companyId: string, entry: NewTimeEntry): P
 export async function createTimeEntryOhneEmpfang(
   companyId: string, entry: NewTimeEntry,
 ): Promise<WriteOutcome> {
-  const vorhandene = await mitFristOder(
-    eintraegeAmTag(companyId, entry.userId, entry.date),
-    async () => [],
-    DUPLIKAT_FRIST_MS,
-  );
+  const vorhandene = await tagesbuchungenFuerPruefung(companyId, entry.userId, entry.date);
   const grund = buchungKonflikt(entry, vorhandene);
   if (grund) throw new DuplicateEntryError(entry.date, grund);
 
@@ -180,11 +189,7 @@ export async function updateTimeEntryOhneEmpfang(
   owner: { companyId: string; userId: string },
 ): Promise<WriteOutcome> {
   if (data.date) {
-    const vorhandene = await mitFristOder(
-      eintraegeAmTag(owner.companyId, owner.userId, data.date, id),
-      async () => [],
-      DUPLIKAT_FRIST_MS,
-    );
+    const vorhandene = await tagesbuchungenFuerPruefung(owner.companyId, owner.userId, data.date, id);
     const grund = buchungKonflikt(
       {
         status: data.status ?? 'Anwesend',
@@ -218,11 +223,7 @@ export async function updateTimeEntry(
   owner: { companyId: string; userId: string },
 ): Promise<void> {
   if (data.date) {
-    const vorhandene = await mitFristOder(
-      eintraegeAmTag(owner.companyId, owner.userId, data.date, id),
-      async () => [],
-      DUPLIKAT_FRIST_MS,
-    );
+    const vorhandene = await tagesbuchungenFuerPruefung(owner.companyId, owner.userId, data.date, id);
     const grund = buchungKonflikt(
       {
         status: data.status ?? 'Anwesend',

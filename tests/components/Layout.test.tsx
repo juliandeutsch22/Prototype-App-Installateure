@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import type { AppUser, Company } from '@/types';
 
@@ -272,5 +272,51 @@ describe('Seitenleiste bei 834 px (Prüflauf 25.09.2026, P4-13)', () => {
     const aside = (await screen.findByText('Senklot')).closest('aside')!;
     const zeile = within(aside).getByRole('link', { name: 'Mitarbeiterübersicht' });
     expect(within(zeile).getByText('Mitarbeiterübersicht').className).toMatch(/(^|\s)-mr-2(\s|$)/);
+  });
+});
+
+describe('Zum Inhalt (offene Punkte C6)', () => {
+  function zeigeMitSeiten() {
+    return render(
+      <MemoryRouter initialEntries={['/']}>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<p>Start</p>} />
+            <Route path="/time" element={<input aria-label="Beginn" autoFocus />} />
+            <Route path="*" element={<p>Andere Seite</p>} />
+          </Routes>
+        </Layout>
+      </MemoryRouter>,
+    );
+  }
+
+  it('bietet als ersten Halt einen Sprunglink zum Inhalt', async () => {
+    zeige();
+    const link = await screen.findByRole('link', { name: 'Zum Inhalt' });
+    expect(link).toHaveAttribute('href', '#inhalt');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'inhalt');
+  });
+
+  it('stellt nach einem Seitenwechsel den Fokus auf den neuen Inhalt', async () => {
+    const nutzer = userEvent.setup();
+    zeigeMitSeiten();
+    const main = screen.getByRole('main');
+    // Beim ersten Laden gehört der Fokus dem Browser.
+    expect(main).not.toHaveFocus();
+
+    const nav = screen.getAllByRole('navigation', { name: 'Hauptnavigation' })[0];
+    const ziel = within(nav)
+      .getAllByRole('link')
+      .find((a) => !['/', '/time'].includes(a.getAttribute('href') ?? ''))!;
+    await nutzer.click(ziel);
+    await waitFor(() => expect(main).toHaveFocus());
+  });
+
+  it('lässt den Fokus, wo die neue Seite ihn selbst hinsetzt', async () => {
+    const nutzer = userEvent.setup();
+    zeigeMitSeiten();
+    const nav = screen.getAllByRole('navigation', { name: 'Hauptnavigation' })[0];
+    await nutzer.click(within(nav).getAllByRole('link').find((a) => a.getAttribute('href') === '/time')!);
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Beginn' })).toHaveFocus());
   });
 });
