@@ -33,9 +33,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
-
-const fmtEUR = (n: number) =>
-  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
+import { euro } from '@/lib/betrag';
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
 function num(v: string): number {
@@ -538,7 +536,7 @@ export default function QuotesView() {
                   </label>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-ink-muted">
-                      {fmtEUR(positionNetto(num(z.qty), cent(num(z.unitPrice))))}
+                      {euro(positionNetto(num(z.qty), cent(num(z.unitPrice))))}
                     </span>
                     {zeilen.length > 1 && (
                       <IconButton
@@ -583,8 +581,8 @@ export default function QuotesView() {
           {/* Die Summen mit einer Linie abgesetzt, nicht in einem Kasten. */}
           <div className="mt-4 border-t border-line pt-3">
             <p className="text-sm text-ink">
-              Netto {fmtEUR(summen.totalNetto)} · USt {fmtEUR(summen.totalVat)} ·{' '}
-              <strong>Brutto {fmtEUR(summen.totalBrutto)}</strong>
+              Netto {euro(summen.totalNetto)} · USt {euro(summen.totalVat)} ·{' '}
+              <strong>Brutto {euro(summen.totalBrutto)}</strong>
             </p>
             {/*
               Die Zahl bleibt sichtbar, die Erklärung dazu nicht: sie steht
@@ -660,7 +658,7 @@ export default function QuotesView() {
                     {q.quoteNumber} · {q.customerName}
                   </Link>
                 }
-                wert={`${fmtEUR(q.totalBrutto)} brutto`}
+                wert={`${euro(q.totalBrutto)} brutto`}
                 zustand={<Zustand stand={STAND[q.status]}>{q.status}</Zustand>}
                 subtitle={
                   <>

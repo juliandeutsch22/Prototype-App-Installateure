@@ -55,11 +55,13 @@ export function zeitbild(
   startTime: string,
   endTime: string,
   pauseMin: string | number,
+  /** Der Tag der Buchung — damit die Nacht der Zeitumstellung richtig zählt (B6). */
+  datum?: string,
 ): Zeitbild | null {
   if (!startTime || !endTime) return null;
 
   const pause = Number(pauseMin) || 0;
-  const minuten = calcWorkMin({ status: 'Anwesend', startTime, endTime, breakDuration: pause });
+  const minuten = calcWorkMin({ status: 'Anwesend', startTime, endTime, breakDuration: pause, date: datum });
 
   /*
     Die Mitternachtsgrenze wird hier NICHT nachgerechnet, sondern am selben

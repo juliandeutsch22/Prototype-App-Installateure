@@ -15,9 +15,7 @@ import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
-
-const fmtEUR = (n: number) =>
-  new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+import { euroBetrag } from '@/lib/betrag';
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
 function num(v: string, fallback: number): number {
@@ -421,19 +419,19 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               <tbody>
                 <tr className="border-b border-line/60">
                   <td className="py-1">Regulär</td>
-                  <td className="py-1 text-right">{fmtEUR(rates.fach)} €/h</td>
+                  <td className="py-1 text-right">{euroBetrag(rates.fach)} €/h</td>
                 </tr>
                 <tr className="border-b border-line/60">
                   <td className="py-1">Nachtarbeit</td>
-                  <td className="py-1 text-right">{fmtEUR(nightFach)} €/h</td>
+                  <td className="py-1 text-right">{euroBetrag(nightFach)} €/h</td>
                 </tr>
                 <tr className="border-b border-line/60">
                   <td className="py-1">Notdienst</td>
-                  <td className="py-1 text-right">{fmtEUR(emergencyFach)} €/h</td>
+                  <td className="py-1 text-right">{euroBetrag(emergencyFach)} €/h</td>
                 </tr>
                 <tr>
                   <td className="py-1">Notdienst in der Nacht</td>
-                  <td className="py-1 text-right">{fmtEUR(bothFach)} €/h</td>
+                  <td className="py-1 text-right">{euroBetrag(bothFach)} €/h</td>
                 </tr>
               </tbody>
             </table>
@@ -606,9 +604,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               Deckungsbeitrag je Facharbeiterstunde:{' '}
               {/* Mit Zeichen: „21,50" allein war die einzige Geldangabe der
                   App ohne € (Prüflauf 25.09.2026, P4-11). Dahinter, wie die
-                  Sätze auf dieser Seite („60,00 €/h") — dieses `fmtEUR`
-                  stellt nicht voran, siehe tests/unit/eurozeichen.test.ts. */}
-              <strong>{fmtEUR(rates.fach - num(costRates.fach, 0))} €</strong>
+                  Sätze auf dieser Seite („60,00 €/h") — `euroBetrag` ist
+                  nur die Zahl, siehe src/lib/betrag.ts. */}
+              <strong>{euroBetrag(rates.fach - num(costRates.fach, 0))} €</strong>
               {rates.fach - num(costRates.fach, 0) <= 0 && (
                 <span className="ml-2 text-danger">
                   — der Verrechnungssatz liegt nicht über den Kosten.

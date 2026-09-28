@@ -18,6 +18,7 @@ import {
   type DatanormErgebnis,
 } from './datanorm';
 import { datumAusMs } from '@/lib/datum';
+import { euroPreis } from '@/lib/betrag';
 
 /**
  * Den Artikelkatalog des Grosshändlers einspielen — erst ansehen, dann
@@ -39,9 +40,6 @@ type Schritt = 'datei' | 'probelauf' | 'fertig';
 
 /** Wie viele nicht verstandene Zeilen die Ansicht zeigt. */
 const ZEIGE_ZEILEN = 50;
-
-const eur = (n: number) =>
-  n.toLocaleString('de-AT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 4 });
 
 export default function KatalogImport() {
   const { user } = useAuth();
@@ -406,7 +404,7 @@ export default function KatalogImport() {
                       Art.-Nr. {a.artikelnummer}
                       {a.einheit && ` · ${a.einheit}`}
                       {a.preis !== undefined &&
-                        ` · ${eur(a.preis)} (${a.preisArt === 'liste' ? 'Liste' : a.preisArt === 'netto' ? 'netto' : 'Preisart unbekannt'})`}
+                        ` · ${euroPreis(a.preis)} (${a.preisArt === 'liste' ? 'Liste' : a.preisArt === 'netto' ? 'netto' : 'Preisart unbekannt'})`}
                     </span>
                   </li>
                 ))}

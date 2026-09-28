@@ -23,6 +23,7 @@ import { downloadAngebotPdf } from './angebotPdf';
 import { STAND } from './stand';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import { euro } from '@/lib/betrag';
 
 /**
  * Ein Angebot auf seiner eigenen Seite.
@@ -35,9 +36,6 @@ import { datumAT } from '@/lib/datum';
  * Eine Seite und nicht ein Aufklappen in der Liste: sie hat eine Adresse, auf
  * die die Kundenakte und die Baustelle verlinken können.
  */
-
-const fmtEUR = (n: number) =>
-  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
 const fmtMenge = (n: number) => new Intl.NumberFormat('de-AT', { maximumFractionDigits: 3 }).format(n);
 
@@ -242,23 +240,23 @@ export default function AngebotView() {
             <div className="min-w-0">
               <p className="text-sm text-ink">{p.label}</p>
               <p className="text-xs text-ink-muted">
-                {fmtMenge(p.qty)} {p.unit} × {fmtEUR(p.unitPrice)}
+                {fmtMenge(p.qty)} {p.unit} × {euro(p.unitPrice)}
               </p>
             </div>
-            <span className="shrink-0 text-sm text-ink">{fmtEUR(p.netto)}</span>
+            <span className="shrink-0 text-sm text-ink">{euro(p.netto)}</span>
           </li>
         ))}
       </ul>
       <dl className="mt-3 space-y-1 border-t border-ink pt-3 text-sm">
         {(q.discountAmount ?? 0) > 0 && q.discount && (
           <>
-            <Summe wort="Zwischensumme">{fmtEUR(q.subtotalNetto)}</Summe>
-            <Summe wort={discountLabel(q.discount)}>- {fmtEUR(q.discountAmount ?? 0)}</Summe>
+            <Summe wort="Zwischensumme">{euro(q.subtotalNetto)}</Summe>
+            <Summe wort={discountLabel(q.discount)}>- {euro(q.discountAmount ?? 0)}</Summe>
           </>
         )}
-        <Summe wort="Netto">{fmtEUR(q.totalNetto)}</Summe>
-        <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{fmtEUR(q.totalVat)}</Summe>
-        <Summe wort="Brutto" fett>{fmtEUR(q.totalBrutto)}</Summe>
+        <Summe wort="Netto">{euro(q.totalNetto)}</Summe>
+        <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{euro(q.totalVat)}</Summe>
+        <Summe wort="Brutto" fett>{euro(q.totalBrutto)}</Summe>
       </dl>
     </Card>
   );

@@ -12,7 +12,9 @@ const anmelden = vi.fn<[{ email: string; password: string }], Promise<{ error: n
   async () => ({ error: null }),
 );
 const zuruecksetzen = vi.fn<[string], Promise<{ error: null }>>(async () => ({ error: null }));
-const aendern = vi.fn<[unknown], Promise<{ error: null }>>(async () => ({ error: null }));
+const aendern = vi.fn<[unknown], Promise<{ error: { message: string; code?: string } | null }>>(
+  async () => ({ error: null }),
+);
 let metadaten: Record<string, unknown> = {};
 
 /** Der Prüf-Client für das aktuelle Passwort — getrennt vom Haupt-Client. */
@@ -42,7 +44,7 @@ const sitzung = await import('@/lib/auth/pg/sitzung');
 beforeEach(() => {
   anmelden.mockClear();
   zuruecksetzen.mockClear();
-  aendern.mockClear();
+  aendern.mockClear().mockResolvedValue({ error: null });
   pruefAnmelden.mockClear().mockResolvedValue({ error: null });
   pruefAbmelden.mockClear();
   metadaten = {};
@@ -115,5 +117,35 @@ describe('Passwort ändern verlangt das aktuelle (Launch-Check 25.09.2026, K7)',
     await sitzung.passwortSetzen('neu-und-lang');
     expect(pruefAnmelden).not.toHaveBeenCalled();
     expect(aendern).toHaveBeenCalled();
+  });
+});
+
+describe('Passwort ändern mit `secure_password_change` (offene Punkte B5)', () => {
+  /*
+    Der Dienst lässt eine Sitzung, die älter als ein Tag ist, kein Passwort
+    mehr ändern. Den Einmalcode, den er dafür will, bekommt ein
+    Benutzernamen-Konto nie — also meldet sich die App mit dem eben
+    geprüften Passwort frisch an und ändert dann.
+  */
+  const nochmal = { message: 'Password update requires reauthentication', code: 'reauthentication_needed' };
+
+  it('meldet sich frisch an — mit dem eben geprüften Passwort — und ändert dann', async () => {
+    aendern.mockResolvedValueOnce({ error: nochmal });
+    await sitzung.passwortSetzen('neu-und-lang', 'alt-und-lang');
+    expect(anmelden).toHaveBeenCalledWith({ email: 'petra@perl.at', password: 'alt-und-lang' });
+    expect(aendern).toHaveBeenCalledTimes(2);
+  });
+
+  it('ohne aktuelles Passwort sagt es, was zu tun ist, statt es zu erraten', async () => {
+    aendern.mockResolvedValueOnce({ error: nochmal });
+    await expect(sitzung.passwortSetzen('neu-und-lang')).rejects.toThrow(/abmelden und neu anmelden/);
+    expect(anmelden).not.toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: ein anderer Fehler führt zu keiner neuen Anmeldung', async () => {
+    aendern.mockResolvedValueOnce({ error: { message: 'Password should be at least 8 characters.' } });
+    await expect(sitzung.passwortSetzen('kurz', 'alt-und-lang')).rejects.toThrow(/at least 8/);
+    expect(anmelden).not.toHaveBeenCalled();
+    expect(aendern).toHaveBeenCalledTimes(1);
   });
 });

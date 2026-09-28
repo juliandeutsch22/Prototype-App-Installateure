@@ -10,6 +10,7 @@
  * `@/lib/auth/sitzung` und nicht `@/lib/auth/pg/sitzung`.
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { Client } from 'pg';
 import { admin, betriebAnlegen } from './helfer';
 
 
@@ -244,4 +245,39 @@ describe('Ein Mitarbeiterkonto anlegen', () => {
     const { data } = await (await import('@/lib/supabase')).supabaseClient().auth.getUser();
     expect(data.user?.id).toBe(verwaltung.uid);
   }, 180_000);
+});
+
+describe('Passwort ändern, wenn die Anmeldung länger zurückliegt (offene Punkte B5)', () => {
+  /*
+    Mit `secure_password_change` darf eine Sitzung, die älter als ein Tag
+    ist, das Passwort nicht mehr ändern. Gealtert wird sie hier in
+    `auth.sessions` — warten kann ein Test nicht.
+  */
+  const DB = process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+
+  it('der Dienst weist ab — die App meldet mit dem aktuellen Passwort frisch an und ändert', async () => {
+    const k = await kontoMit('an-alt', 'Mitarbeiter');
+    await sitzung.anmelden(k.email, PASSWORT, true);
+    const c = (await import('@/lib/supabase')).supabaseClient();
+    const { data } = await c.auth.getSession();
+    const nutzlast = data.session!.access_token.split('.')[1];
+    const sid = (JSON.parse(Buffer.from(nutzlast, 'base64url').toString()) as { session_id: string }).session_id;
+
+    const db = new Client({ connectionString: DB });
+    await db.connect();
+    try {
+      await db.query(`update auth.sessions set created_at = now() - interval '2 days' where id = $1`, [sid]);
+    } finally {
+      await db.end();
+    }
+
+    // Die Gegenprobe: der Schalter wirkt — ohne frische Anmeldung kein neues Passwort.
+    const direkt = await c.auth.updateUser({ password: 'direkt-geaendert-1' });
+    expect(direkt.error?.message).toMatch(/reauthentication/i);
+
+    await sitzung.passwortSetzen('neu-nach-einem-tag', PASSWORT);
+    await sitzung.abmelden();
+    await expect(sitzung.anmelden(k.email, PASSWORT, true)).rejects.toThrow();
+    await expect(sitzung.anmelden(k.email, 'neu-nach-einem-tag', true)).resolves.toBeUndefined();
+  }, 60_000);
 });

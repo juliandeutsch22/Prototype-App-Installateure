@@ -21,9 +21,7 @@ import { SelectField } from '@/components/Field';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
 import { fmtStd } from '@/lib/time';
-
-const fmtEUR = (n: number) =>
-  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
+import { euro } from '@/lib/betrag';
 
 /** Prozent mit Komma — überall sonst schreibt die App deutsch. */
 const fmtProzent = (n: number) =>
@@ -305,15 +303,15 @@ export default function NachkalkulationView() {
                       subtitle={
                         <>
                           <span className="block">
-                            Erlös {fmtEUR(k.erloes)} − Personal {fmtEUR(k.personalkosten)}
+                            Erlös {euro(k.erloes)} − Personal {euro(k.personalkosten)}
                             {/*
                               Material steht nur da, wenn welches bekannt ist.
                               Ein „− 0,00 €" läse sich wie „kein Material
                               verbaut" und wäre bei fehlenden Einkaufspreisen
                               genau die falsche Auskunft.
                             */}
-                            {k.materialkosten > 0 && <> − Material {fmtEUR(k.materialkosten)}</>} ={' '}
-                            <strong>{fmtEUR(k.deckungsbeitrag)}</strong>
+                            {k.materialkosten > 0 && <> − Material {euro(k.materialkosten)}</>} ={' '}
+                            <strong>{euro(k.deckungsbeitrag)}</strong>
                           </span>
                           {k.materialLuecken.length > 0 && (
                             <span className="mt-1 block text-xs text-warning">
