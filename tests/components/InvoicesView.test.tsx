@@ -2647,3 +2647,58 @@ describe('Die Erklärung zur Rechnungsliste', () => {
     expect(text).not.toMatch(/Gelöscht werden kann nur eine bereits stornierte/);
   });
 });
+
+/*
+  AM SCHREIBTISCH EINE TABELLE (Designlinie „Fassung 3", Schritt 6).
+
+  Zeilen und Tabelle entstehen aus denselben Daten; Menü, Mahnstand und
+  Teilzahlung kommen aus denselben Funktionen. Geprüft wird, dass die Tabelle
+  wirklich dieselben Angaben und dasselbe Menü trägt — und dass es nur EINE
+  Darstellung gibt, nicht beide übereinander.
+*/
+describe('Rechnungsliste am Schreibtisch', () => {
+  // Dieselbe Rechnung wie unter „Zahlungen erfassen".
+  const offeneRechnung = (p: Partial<Invoice> = {}): Invoice & { id: string } =>
+    ({
+      id: 'r-zahl',
+      companyId: 'perl',
+      invoiceNumber: 'RE-2026-0042',
+      projectNumber: '2026-042',
+      customerName: 'Familie Huber',
+      invoiceDate: '2026-07-01',
+      dueDate: '2026-07-15',
+      totalNetto: 1000,
+      totalVat: 200,
+      totalBrutto: 1200,
+      vatRate: 0.2,
+      paymentStatus: 'Offen',
+      ...p,
+    }) as unknown as Invoice & { id: string };
+  const vorher = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = ((q: string) => ({
+      matches: q.includes('min-width: 1024px'),
+      media: q,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => {
+    window.matchMedia = vorher;
+  });
+
+  it('steht als Tabelle mit Betrag, Stand und demselben Menü', async () => {
+    rechnungen = [offeneRechnung({ paymentStatus: 'Teilbezahlt', bezahltBetrag: 400, dueDate: '2026-07-15' })];
+    zeige();
+    const zelle = await screen.findByRole('cell', { name: 'RE-2026-0042' });
+    const zeile = zelle.closest('tr') as HTMLElement;
+    expect(within(zeile).getByText(/800,00 offen/)).toBeInTheDocument();
+    expect(within(zeile).getByText('Teilbezahlt')).toBeInTheDocument();
+    // Nur eine Darstellung: keine Listenzeile daneben.
+    expect(zelle.closest('li')).toBeNull();
+    expect(screen.getAllByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ })).toHaveLength(1);
+
+    await userEvent.click(within(zeile).getByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }));
+    expect(await screen.findByRole('menuitem', { name: /Zahlungserinnerung erzeugen/ })).toBeInTheDocument();
+  });
+});

@@ -61,6 +61,9 @@ import { praefixeVon } from '@/lib/praefixe';
 import { isTopLevel } from '@/lib/permissions';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
+import Tabelle from '@/components/Tabelle';
+import Hinweiszeile from '@/components/Hinweiszeile';
+import { useSchreibtisch } from '@/lib/useSchreibtisch';
 import RowMenu from '@/components/RowMenu';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
 import BaustellenSelect from '@/components/BaustellenSelect';
@@ -167,6 +170,7 @@ export default function InvoicesView() {
   const [aufheben, setAufheben] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
   const [statusFilter, setStatusFilter] = useState<'alle' | Invoice['paymentStatus']>('alle');
+  const schreibtisch = useSchreibtisch();
   /*
     DER FILTER KANN AUS DER ADRESSE KOMMEN — die Startseite verlinkt ihre
     Kachel „Überfällig" hierher. Ohne das landete man in der vollen Liste und
@@ -1385,8 +1389,200 @@ export default function InvoicesView() {
     setMahnFuer(inv);
   };
 
+  /*
+    ZEILE UND TABELLE AUS DENSELBEN TEILEN. Am Telefon steht eine Rechnung als
+    Zeile, am Schreibtisch als Tabellenzeile (`useSchreibtisch`). Was darunter
+    klein steht — Mahnstand, Teilzahlung, Guthaben, Storno — und das Menü mit
+    den Handlungen gibt es deshalb genau einmal, hier; beide Darstellungen
+    rufen es auf, damit keine Handlung doppelt gepflegt wird.
+  */
+  const rechnungNotizen = (inv: (typeof visible)[number]) => (
+    <>
+      {/*
+        WAS SCHON GEMAHNT WURDE, gehört in die Zeile.
+
+        Ohne diese Angabe führt der Betrieb den Mahnstand
+        weiterhin im Kopf — und genau das war der Zustand
+        vorher. Zwei Erinnerungen an denselben Kunden in einer
+        Woche sind peinlicher als gar keine.
+      */}
+      {/*
+        IST SIE ERLEDIGT, IST DIE MAHNUNG GESCHICHTE. Sie bleibt
+        stehen — man soll sehen, dass es eine gab —, aber ohne
+        Frist und nicht in Warnfarbe: eine bezahlte Rechnung mit
+        „Frist 08.10." in Gelb sah aus, als sei noch etwas zu tun
+        (Prüflauf 24.09.2026, F14).
+      */}
+      {!!inv.mahnstufe &&
+        (['Bezahlt', 'Überzahlt', 'Storniert'].includes(inv.paymentStatus) ? (
+          <span className="mt-1 block text-xs text-ink-muted">
+            {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
+          </span>
+        ) : (
+          <span className="mt-1 block text-xs text-warning">
+            {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
+            {inv.mahnfrist ? ` · Frist ${datumAT(inv.mahnfrist)}` : ''}
+            {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} Spesen` : ''}
+          </span>
+        ))}
+      {/*
+        WAS SCHON DA IST, STEHT IN DER ZEILE — aber nur, wenn es
+        etwas zu sagen gibt. Bei einer unbezahlten Rechnung wäre
+        „0 € bezahlt" eine Zeile ohne Inhalt, und bei einer ganz
+        bezahlten sagt das Abzeichen schon alles. Übrig bleiben
+        die beiden Fälle, die man sonst übersieht: die
+        Teilzahlung und das Guthaben nach einem Storno.
+      */}
+      {(() => {
+        const stand = zahlstand(inv);
+        if (stand.guthaben > 0) {
+          return (
+            <span className="mt-1 block text-xs text-warning">
+              Guthaben des Kunden: {fmtEUR(stand.guthaben)} — zurückzuzahlen
+            </span>
+          );
+        }
+        if (stand.bezahlt > 0 && stand.rest > 0) {
+          return (
+            <span className="mt-1 block text-xs text-ink-muted">
+              {fmtEUR(stand.bezahlt)} bezahlt · {fmtEUR(stand.rest)} offen
+              {/* Das Abzeichen sagt „Teilbezahlt" — dass der Rest
+                  schon fällig war, sagt es nicht. */}
+              {istUeberfaellig(inv, todayStr()) && (
+                <span className="text-warning"> · überfällig</span>
+              )}
+            </span>
+          );
+        }
+        return null;
+      })()}
+      {inv.cancellationNote && (
+        <span className="mt-1 block text-xs text-ink-muted">
+          Storno: {inv.cancellationNote}
+        </span>
+      )}
+    </>
+  );
+  const rechnungMenue = (inv: (typeof visible)[number]) => (
+    <>
+    {/* Der Status stand doppelt in der Zeile: einmal farbig als
+        Abzeichen, einmal als Auswahlfeld daneben. Das Abzeichen
+        bleibt — beim Durchsehen zaehlt die Farbe, nicht die
+        Bedienung. Das Umstellen ist in das Menue gewandert, wo
+        es als benannte Handlung steht statt als Klappliste, die
+        auf dem Telefon ohnehin ein eigenes Rad oeffnet. */}
+    <RowMenu
+      about={`Rechnung ${inv.invoiceNumber}`}
+      items={[
+        { label: 'PDF erneut laden', onSelect: () => void redownload(inv) },
+        /*
+          MAHNEN steht im Menü, nicht als Knopf in der Zeile.
+
+          Es ist die seltenere Handlung — die meisten Rechnungen
+          werden bezahlt. Ein eigener Knopf an jeder Zeile machte
+          das Mahnen zur naheliegendsten Sache in einer Liste, in
+          der es die Ausnahme ist.
+
+          Der Punkt erscheint nur, wenn gemahnt werden DARF: ein
+          Eintrag, der bei jedem Klick erklärt, warum er nicht
+          geht, ist eine Sackgasse mit Beschriftung.
+        */
+        ...(darfMahnen(inv, todayStr()).moeglich
+          ? [
+              {
+                label: `${TEXTE[naechsteStufe(inv)!].titel} erzeugen`,
+                onSelect: () => {
+                  const frist = new Date();
+                  frist.setDate(frist.getDate() + FRIST_TAGE);
+                  setMahnFrist(localDateStr(frist));
+                  setMahnFuer(inv);
+                },
+              },
+            ]
+          : []),
+        /*
+          ZAHLUNG ERFASSEN STATT „AUF BEZAHLT SETZEN".
+
+          Der Haken war eine Behauptung ohne Beleg: kein Datum,
+          kein Betrag, keine Teilzahlung. „Bezahlt" ergibt sich
+          jetzt aus den Eingängen, und die Datenbank weist einen
+          Schreibversuch von Hand ab — der Menüpunkt wäre also
+          nicht bloss überflüssig, sondern eine Sackgasse.
+
+          Er steht AUCH bei einer stornierten Rechnung, und das
+          ist kein Versehen: nach einem Storno kommt manchmal noch
+          Geld an, und irgendwo muss es hin. Es wird dort zum
+          Guthaben des Kunden.
+        */
+        {
+          label: 'Zahlung erfassen',
+          onSelect: () => void zahlungOeffnen(inv),
+        },
+        ...(inv.paymentStatus !== 'Storniert'
+          ? [
+              /*
+                Nur noch die beiden Zustände, die am DATUM hängen
+                und nicht am Geld — und nur dort, wo die Rechnung
+                gerade in einem von ihnen steht. Bei „Teilbezahlt"
+                hätte „Auf Offen setzen" keine Wirkung: der Stand
+                ergibt sich aus den Eingängen und käme sofort
+                zurück.
+              */
+              ...(inv.paymentStatus === 'Offen' || inv.paymentStatus === 'Überfällig'
+                ? (['Offen', 'Überfällig'] as const).filter((s) => s !== inv.paymentStatus)
+                : []
+              )
+                .map((s) => ({
+                  label: `Auf „${s}" setzen`,
+                  onSelect: async () => {
+                    await updateInvoiceStatus(inv.id, s);
+                    toast.success('Status geändert');
+                  },
+                })),
+              {
+                label: 'Stornieren',
+                danger: true,
+                onSelect: () => {
+                  setToCancel(inv);
+                  setCancelNote('');
+                },
+              },
+            ]
+          : [
+              /*
+                NUR AM TAG DES STORNOS (Launch-Check, K9): für den
+                Fehlgriff, nicht für später. Ab dem Folgetag steht
+                der Storno im Buchungsstapel der Kanzlei — dann ist
+                der Weg eine neue Rechnung. Die Datenbank zieht
+                dieselbe Grenze.
+              */
+              ...(inv.cancelledAt && localDateStr(new Date(inv.cancelledAt)) === todayStr()
+                ? [{ label: 'Storno aufheben', onSelect: () => setAufheben(inv) }]
+                : []),
+              /*
+                HIER STAND „RECHNUNG LÖSCHEN", ohne Rückfrage,
+                direkt unter „Storno aufheben". Ein Fehlgriff im
+                Menü, und der Beleg war weg.
+
+                Ersatzlos gestrichen, nicht mit einer Rückfrage
+                versehen: § 132 BAO verlangt sieben Jahre
+                Aufbewahrung, und die gezogene Nummer hinterliesse
+                eine Lücke, die der Buchhaltungs-Export danach zu
+                Recht meldet — ohne dass noch jemand wüsste,
+                warum. Der Storno ist die vorgesehene Korrektur;
+                er bleibt stehen, trägt seinen Grund und lässt
+                sich aufheben. Die Rules sagen dasselbe
+                (`allow delete: if false`).
+              */
+            ]),
+      ]}
+    />
+    </>
+  );
+
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader title="Rechnungen" subtitle="Aus einer Baustelle erzeugen, Zahlung verfolgen, stornieren" />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -1448,18 +1644,22 @@ export default function InvoicesView() {
         Grundlage, nicht das Ergebnis.
       */}
       {forderungenFehler && (
-        <p role="status" className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-          <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
-          „nicht verrechnete Leistung" sind deshalb unvollständig — was hier fehlt, heisst
-          nicht, dass es nichts zu tun gibt. Bitte die Seite neu laden.
-        </p>
+        <Hinweiszeile stufe="warn" role="status">
+          <p>
+            <strong>Die offenen Forderungen konnten nicht geladen werden.</strong> Mahnlauf und
+            „nicht verrechnete Leistung" sind deshalb unvollständig — was hier fehlt, heisst
+            nicht, dass es nichts zu tun gibt. Bitte die Seite neu laden.
+          </p>
+        </Hinweiszeile>
       )}
 
       {!forderungenFehler && abdeckungFehler && (
-        <p role="status" className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-          <strong>Welche Handwerksscheine schon verrechnet sind, konnte nicht geladen werden.</strong>{' '}
-          „Nicht verrechnete Leistung" wird deshalb nicht angezeigt. Bitte die Seite neu laden.
-        </p>
+        <Hinweiszeile stufe="warn" role="status">
+          <p>
+            <strong>Welche Handwerksscheine schon verrechnet sind, konnte nicht geladen werden.</strong>{' '}
+            „Nicht verrechnete Leistung" wird deshalb nicht angezeigt. Bitte die Seite neu laden.
+          </p>
+        </Hinweiszeile>
       )}
 
       {!forderungenFehler && !abdeckungFehler && scheineVerrechnet !== null
@@ -2375,8 +2575,11 @@ export default function InvoicesView() {
             {FILTERSTATI.map((st) => <option key={st} value={st}>{st}</option>)}
           </SelectField>
         }
+        buendig
       >
-        <div className="mb-4">
+        {/* Bündig: die Suche gepolstert oben, darunter Zeilen bzw. Tabelle
+            von Kante zu Kante (Designlinie „Fassung 3"). */}
+        <div className="p-4">
           <InputField
             id="invsuche"
             label="Suche"
@@ -2398,7 +2601,9 @@ export default function InvoicesView() {
           )}
         </div>
         {loading ? (
-          <SkeletonList rows={4} />
+          <div className="px-4 pb-4">
+            <SkeletonList rows={4} />
+          </div>
         ) : visible.length === 0 ? (
           <EmptyState>
             {suchbegriff
@@ -2410,205 +2615,69 @@ export default function InvoicesView() {
                 : 'Keine Rechnung in dieser Auswahl.'}
           </EmptyState>
         ) : (
-          <List>
-            {visible.map((inv) => (
-              <ListRow
-                key={inv.id}
-                title={`${inv.invoiceNumber} · ${inv.customerName}`}
-                wert={fmtEUR(inv.totalBrutto)}
-                zustand={<StatusBadge status={inv.paymentStatus} />}
-                subtitle={
-                  <>
-                    {/*
-                      JEDE ANGABE BLEIBT AM STÜCK. Auf 375 px brach die Zeile
-                      mitten im Datum — „fällig 2026-" in der einen Zeile,
-                      „08-01" in der nächsten. Ein halbes Datum ist keine
-                      Angabe mehr, sondern eine Zahlenfolge. Die Zeile darf
-                      weiter umbrechen, aber nur ZWISCHEN den Angaben.
-                    */}
-                    <span className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</span> ·{' '}
-                    <span className="whitespace-nowrap">fällig {datumAT(inv.dueDate)}</span>
-                    {/*
-                      WAS SCHON GEMAHNT WURDE, gehört in die Zeile.
-
-                      Ohne diese Angabe führt der Betrieb den Mahnstand
-                      weiterhin im Kopf — und genau das war der Zustand
-                      vorher. Zwei Erinnerungen an denselben Kunden in einer
-                      Woche sind peinlicher als gar keine.
-                    */}
-                    {/*
-                      IST SIE ERLEDIGT, IST DIE MAHNUNG GESCHICHTE. Sie bleibt
-                      stehen — man soll sehen, dass es eine gab —, aber ohne
-                      Frist und nicht in Warnfarbe: eine bezahlte Rechnung mit
-                      „Frist 08.10." in Gelb sah aus, als sei noch etwas zu tun
-                      (Prüflauf 24.09.2026, F14).
-                    */}
-                    {!!inv.mahnstufe &&
-                      (['Bezahlt', 'Überzahlt', 'Storniert'].includes(inv.paymentStatus) ? (
-                        <span className="mt-1 block text-xs text-ink-muted">
-                          {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
-                        </span>
-                      ) : (
-                        <span className="mt-1 block text-xs text-warning">
-                          {TEXTE[inv.mahnstufe as 1 | 2 | 3].titel} am {datumAT(inv.gemahntAm)}
-                          {inv.mahnfrist ? ` · Frist ${datumAT(inv.mahnfrist)}` : ''}
-                          {inv.mahnspesen ? ` · ${fmtEUR(inv.mahnspesen)} Spesen` : ''}
-                        </span>
-                      ))}
-                    {/*
-                      WAS SCHON DA IST, STEHT IN DER ZEILE — aber nur, wenn es
-                      etwas zu sagen gibt. Bei einer unbezahlten Rechnung wäre
-                      „0 € bezahlt" eine Zeile ohne Inhalt, und bei einer ganz
-                      bezahlten sagt das Abzeichen schon alles. Übrig bleiben
-                      die beiden Fälle, die man sonst übersieht: die
-                      Teilzahlung und das Guthaben nach einem Storno.
-                    */}
-                    {(() => {
-                      const stand = zahlstand(inv);
-                      if (stand.guthaben > 0) {
-                        return (
-                          <span className="mt-1 block text-xs text-warning">
-                            Guthaben des Kunden: {fmtEUR(stand.guthaben)} — zurückzuzahlen
-                          </span>
-                        );
-                      }
-                      if (stand.bezahlt > 0 && stand.rest > 0) {
-                        return (
-                          <span className="mt-1 block text-xs text-ink-muted">
-                            {fmtEUR(stand.bezahlt)} bezahlt · {fmtEUR(stand.rest)} offen
-                            {/* Das Abzeichen sagt „Teilbezahlt" — dass der Rest
-                                schon fällig war, sagt es nicht. */}
-                            {istUeberfaellig(inv, todayStr()) && (
-                              <span className="text-warning"> · überfällig</span>
-                            )}
-                          </span>
-                        );
-                      }
-                      return null;
-                    })()}
-                    {inv.cancellationNote && (
-                      <span className="mt-1 block text-xs text-ink-muted">
-                        Storno: {inv.cancellationNote}
-                      </span>
-                    )}
-                  </>
-                }
-              >
-                {/* Der Status stand doppelt in der Zeile: einmal farbig als
-                    Abzeichen, einmal als Auswahlfeld daneben. Das Abzeichen
-                    bleibt — beim Durchsehen zaehlt die Farbe, nicht die
-                    Bedienung. Das Umstellen ist in das Menue gewandert, wo
-                    es als benannte Handlung steht statt als Klappliste, die
-                    auf dem Telefon ohnehin ein eigenes Rad oeffnet. */}
-                <RowMenu
-                  about={`Rechnung ${inv.invoiceNumber}`}
-                  items={[
-                    { label: 'PDF erneut laden', onSelect: () => void redownload(inv) },
-                    /*
-                      MAHNEN steht im Menü, nicht als Knopf in der Zeile.
-
-                      Es ist die seltenere Handlung — die meisten Rechnungen
-                      werden bezahlt. Ein eigener Knopf an jeder Zeile machte
-                      das Mahnen zur naheliegendsten Sache in einer Liste, in
-                      der es die Ausnahme ist.
-
-                      Der Punkt erscheint nur, wenn gemahnt werden DARF: ein
-                      Eintrag, der bei jedem Klick erklärt, warum er nicht
-                      geht, ist eine Sackgasse mit Beschriftung.
-                    */
-                    ...(darfMahnen(inv, todayStr()).moeglich
-                      ? [
-                          {
-                            label: `${TEXTE[naechsteStufe(inv)!].titel} erzeugen`,
-                            onSelect: () => {
-                              const frist = new Date();
-                              frist.setDate(frist.getDate() + FRIST_TAGE);
-                              setMahnFrist(localDateStr(frist));
-                              setMahnFuer(inv);
-                            },
-                          },
-                        ]
-                      : []),
-                    /*
-                      ZAHLUNG ERFASSEN STATT „AUF BEZAHLT SETZEN".
-
-                      Der Haken war eine Behauptung ohne Beleg: kein Datum,
-                      kein Betrag, keine Teilzahlung. „Bezahlt" ergibt sich
-                      jetzt aus den Eingängen, und die Datenbank weist einen
-                      Schreibversuch von Hand ab — der Menüpunkt wäre also
-                      nicht bloss überflüssig, sondern eine Sackgasse.
-
-                      Er steht AUCH bei einer stornierten Rechnung, und das
-                      ist kein Versehen: nach einem Storno kommt manchmal noch
-                      Geld an, und irgendwo muss es hin. Es wird dort zum
-                      Guthaben des Kunden.
-                    */
-                    {
-                      label: 'Zahlung erfassen',
-                      onSelect: () => void zahlungOeffnen(inv),
-                    },
-                    ...(inv.paymentStatus !== 'Storniert'
-                      ? [
-                          /*
-                            Nur noch die beiden Zustände, die am DATUM hängen
-                            und nicht am Geld — und nur dort, wo die Rechnung
-                            gerade in einem von ihnen steht. Bei „Teilbezahlt"
-                            hätte „Auf Offen setzen" keine Wirkung: der Stand
-                            ergibt sich aus den Eingängen und käme sofort
-                            zurück.
-                          */
-                          ...(inv.paymentStatus === 'Offen' || inv.paymentStatus === 'Überfällig'
-                            ? (['Offen', 'Überfällig'] as const).filter((s) => s !== inv.paymentStatus)
-                            : []
-                          )
-                            .map((s) => ({
-                              label: `Auf „${s}" setzen`,
-                              onSelect: async () => {
-                                await updateInvoiceStatus(inv.id, s);
-                                toast.success('Status geändert');
-                              },
-                            })),
-                          {
-                            label: 'Stornieren',
-                            danger: true,
-                            onSelect: () => {
-                              setToCancel(inv);
-                              setCancelNote('');
-                            },
-                          },
-                        ]
-                      : [
-                          /*
-                            NUR AM TAG DES STORNOS (Launch-Check, K9): für den
-                            Fehlgriff, nicht für später. Ab dem Folgetag steht
-                            der Storno im Buchungsstapel der Kanzlei — dann ist
-                            der Weg eine neue Rechnung. Die Datenbank zieht
-                            dieselbe Grenze.
-                          */
-                          ...(inv.cancelledAt && localDateStr(new Date(inv.cancelledAt)) === todayStr()
-                            ? [{ label: 'Storno aufheben', onSelect: () => setAufheben(inv) }]
-                            : []),
-                          /*
-                            HIER STAND „RECHNUNG LÖSCHEN", ohne Rückfrage,
-                            direkt unter „Storno aufheben". Ein Fehlgriff im
-                            Menü, und der Beleg war weg.
-
-                            Ersatzlos gestrichen, nicht mit einer Rückfrage
-                            versehen: § 132 BAO verlangt sieben Jahre
-                            Aufbewahrung, und die gezogene Nummer hinterliesse
-                            eine Lücke, die der Buchhaltungs-Export danach zu
-                            Recht meldet — ohne dass noch jemand wüsste,
-                            warum. Der Storno ist die vorgesehene Korrektur;
-                            er bleibt stehen, trägt seinen Grund und lässt
-                            sich aufheben. Die Rules sagen dasselbe
-                            (`allow delete: if false`).
-                          */
-                        ]),
-                  ]}
-                />
-              </ListRow>
-            ))}
-          </List>
+          schreibtisch ? (
+            /*
+              AM SCHREIBTISCH EINE TABELLE (Designlinie „Fassung 3"): Nummer,
+              Kunde, Datum, Fällig, Betrag rechtsbündig, Stand. Mahnstand,
+              Teilzahlung und Storno stehen klein unter dem Kunden — dieselben
+              Zeilen wie am Telefon, aus derselben Funktion.
+            */
+            <Tabelle
+              spalten={[
+                { name: 'Nummer' },
+                { name: 'Kunde' },
+                { name: 'Datum' },
+                { name: 'Fällig' },
+                { name: 'Betrag', r: true },
+                { name: 'Stand' },
+                { name: 'Aktionen', versteckt: true },
+              ]}
+            >
+              {visible.map((inv) => (
+                <tr key={inv.id}>
+                  <td className="whitespace-nowrap font-medium text-ink-deep">{inv.invoiceNumber}</td>
+                  <td>
+                    <span className="font-medium text-ink-deep">{inv.customerName}</span>
+                    <span className="block text-meta text-ink-muted">{rechnungNotizen(inv)}</span>
+                  </td>
+                  <td className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</td>
+                  <td className="whitespace-nowrap">{datumAT(inv.dueDate)}</td>
+                  <td className="r whitespace-nowrap font-medium text-ink-deep">{fmtEUR(inv.totalBrutto)}</td>
+                  <td>
+                    <StatusBadge status={inv.paymentStatus} />
+                  </td>
+                  <td className="r">{rechnungMenue(inv)}</td>
+                </tr>
+              ))}
+            </Tabelle>
+          ) : (
+            <List>
+              {visible.map((inv) => (
+                <ListRow
+                  key={inv.id}
+                  title={`${inv.invoiceNumber} · ${inv.customerName}`}
+                  wert={fmtEUR(inv.totalBrutto)}
+                  zustand={<StatusBadge status={inv.paymentStatus} />}
+                  subtitle={
+                    <>
+                      {/*
+                        JEDE ANGABE BLEIBT AM STÜCK. Auf 375 px brach die Zeile
+                        mitten im Datum — „fällig 2026-" in der einen Zeile,
+                        „08-01" in der nächsten. Ein halbes Datum ist keine
+                        Angabe mehr, sondern eine Zahlenfolge. Die Zeile darf
+                        weiter umbrechen, aber nur ZWISCHEN den Angaben.
+                      */}
+                      <span className="whitespace-nowrap">{datumAT(inv.invoiceDate)}</span> ·{' '}
+                      <span className="whitespace-nowrap">fällig {datumAT(inv.dueDate)}</span>
+                      {rechnungNotizen(inv)}
+                    </>
+                  }
+                >
+                  {rechnungMenue(inv)}
+                </ListRow>
+              ))}
+            </List>
+          )
         )}
         {/*
           Nachladen heisst hier: die ABFRAGE ausweiten, nicht nur mehr vom
@@ -2623,7 +2692,7 @@ export default function InvoicesView() {
           daraus, es gebe sie nicht.
         */}
         {!suchbegriff && invoices.length >= grenze && (
-          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 border-t border-line px-4 py-3">
             <Button variant="secondary" onClick={() => setGrenze((n) => n + RECHNUNGEN_JE_SEITE)}>
               Ältere Rechnungen laden
             </Button>
