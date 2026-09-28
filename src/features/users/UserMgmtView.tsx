@@ -6,6 +6,7 @@ import { provisionUser } from '@/lib/auth/provisionUser';
 import { ROLES, type AppUser, type Role } from '@/types';
 import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
+import Abschnitt from '@/components/Abschnitt';
 import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
@@ -199,7 +200,8 @@ export default function UserMgmtView() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Benutzerverwaltung"
         subtitle="Benutzer anlegen, Rollen und Zeitkonten pflegen"
@@ -558,9 +560,11 @@ export default function UserMgmtView() {
             <option value="alle">Alle</option>
           </SelectField>
         }
+        buendig
       >
+        {/* Bündig: Rollen als getönte Abschnitte, Menschen als Zeilen. */}
         {users.length >= 8 && (
-          <div className="mb-4">
+          <div className="p-4">
             <InputField
               id="usrsuche"
               label="Suche"
@@ -571,7 +575,11 @@ export default function UserMgmtView() {
             />
           </div>
         )}
-        {loading ? <SkeletonList rows={4} /> : users.length === 0 ? (
+        {loading ? (
+          <div className="p-4">
+            <SkeletonList rows={4} />
+          </div>
+        ) : users.length === 0 ? (
           <EmptyState>
             Noch keine Benutzer. Lege oben den ersten Mitarbeiter an — Name,
             E-Mail und Rolle genügen.
@@ -581,13 +589,10 @@ export default function UserMgmtView() {
             {suche ? `Niemand passt zu „${suche}".` : 'Kein Benutzer in dieser Auswahl.'}
           </EmptyState>
         ) : (
-          <div className="space-y-4">
+          <div>
             {gruppen.map((g) => (
               <div key={g.rolle}>
-                <h3 className="section-label mb-1 flex items-center justify-between">
-                  <span>{g.rolle}</span>
-                  <span className="font-normal text-ink-muted">{g.leute.length}</span>
-                </h3>
+                <Abschnitt titel={g.rolle} anzahl={g.leute.length} />
                 <List>
             {g.leute.map((u) => (
               <ListRow

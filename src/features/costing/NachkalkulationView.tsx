@@ -13,6 +13,7 @@ import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { Material, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import { List, ListRow } from '@/components/ListRow';
@@ -189,7 +190,8 @@ export default function NachkalkulationView() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Nachkalkulation"
         subtitle="Erlös gegen Personalkosten — je Baustelle"
@@ -207,11 +209,13 @@ export default function NachkalkulationView() {
         an der falschen Stelle.
       */}
       {katalogAbgeschnitten(katalog) && (
-        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-          Der Materialstamm wurde nur bis zur Obergrenze geladen ({katalog.length} Artikel). Artikel
-          darüber hinaus erscheinen unten als „ohne Einkaufspreis", obwohl einer hinterlegt sein
-          kann — der Deckungsbeitrag ist dann zu hoch ausgewiesen.
-        </p>
+        <Hinweiszeile stufe="warn">
+          <p>
+            Der Materialstamm wurde nur bis zur Obergrenze geladen ({katalog.length} Artikel).
+            Artikel darüber hinaus erscheinen unten als „ohne Einkaufspreis", obwohl einer
+            hinterlegt sein kann — der Deckungsbeitrag ist dann zu hoch ausgewiesen.
+          </p>
+        </Hinweiszeile>
       )}
 
       {/*
@@ -275,9 +279,13 @@ export default function NachkalkulationView() {
 
           {error && <ErrorState message={error} />}
 
-          <Card title="Ergebnis je Baustelle">
+          {/* Bündig: Baustellen als Zeilen von Kante zu Kante, darunter die
+              Einschränkung als Zeile (Designlinie „Fassung 3"). */}
+          <Card title="Ergebnis je Baustelle" buendig>
             {loading || ergebnisse === null ? (
-              <SkeletonList rows={4} />
+              <div className="p-4">
+                <SkeletonList rows={4} />
+              </div>
             ) : ergebnisse.length === 0 ? (
               <EmptyState>Keine Baustelle in dieser Auswahl.</EmptyState>
             ) : (
@@ -340,7 +348,7 @@ export default function NachkalkulationView() {
                   der naheliegende Fehler, und darauf trifft jemand
                   Entscheidungen.
                 */}
-                <div className="mt-4 flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+                <div className="flex flex-wrap items-center border-t border-line px-4 py-3 text-sm text-ink-muted [&_strong]:text-ink-deep">
                   <strong>Deckungsbeitrag, nicht Gewinn.</strong>
                   {/*
                     Die Warnung selbst bleibt stehen — sie ist die Aussage.

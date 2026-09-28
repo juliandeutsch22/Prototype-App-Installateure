@@ -27,6 +27,7 @@ import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
 import { InputField, SelectField } from '@/components/Field';
+import Abschnitt from '@/components/Abschnitt';
 import RowMenu from '@/components/RowMenu';
 import Button from '@/components/Button';
 import { byNewest, dayKey, dayHeading } from '@/lib/timestamps';
@@ -288,7 +289,8 @@ export default function AdminOrdersView() {
   ];
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Anforderungen"
         subtitle="Materialanforderungen der Monteure bearbeiten und Rückgaben sichten"
@@ -343,9 +345,12 @@ export default function AdminOrdersView() {
               </SelectField>
             ) : undefined
           }
+          buendig
         >
+          {/* Bündig: Gruppen als getönte Abschnitte, Anforderungen als Zeilen
+              von Kante zu Kante (Designlinie „Fassung 3"). */}
           {orders.length >= 10 && (
-            <div className="mb-4">
+            <div className="p-4">
               <InputField
                 id="osuche"
                 label="Suche"
@@ -357,9 +362,13 @@ export default function AdminOrdersView() {
             </div>
           )}
           {loading ? (
-            <SkeletonList rows={4} />
+            <div className="p-4">
+              <SkeletonList rows={4} />
+            </div>
           ) : error ? (
-            <ErrorState message={error} />
+            <div className="p-4">
+              <ErrorState message={error} />
+            </div>
           ) : rows.length === 0 ? (
             <EmptyState>
               {suche
@@ -371,15 +380,12 @@ export default function AdminOrdersView() {
                     : 'Aktuell keine offenen Bestellungen.'}
             </EmptyState>
           ) : (
-            <div className="space-y-4">
+            <div>
               {(tab === 'aktiv' ? aktivGruppen : tagesGruppen).map((g) => (
                 <div key={g.titel}>
                   {/* Ueberschrift je Gruppe: erst dadurch wird aus der Liste
                       eine Ordnung, die man ueberfliegen kann. */}
-                  <h3 className="section-label mb-1 flex items-center justify-between">
-                    <span>{g.titel}</span>
-                    <span className="font-normal text-ink-muted">{g.zeilen.length}</span>
-                  </h3>
+                  <Abschnitt titel={g.titel} anzahl={g.zeilen.length} />
                   <List>
                     {g.zeilen.map((o) => (
                       <ListRow

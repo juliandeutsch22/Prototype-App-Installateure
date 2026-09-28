@@ -194,7 +194,8 @@ export default function StockView() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader title="Lager" subtitle="Bestände führen und den Materialkatalog pflegen" />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -255,17 +256,22 @@ export default function StockView() {
             />
           </MetricRow>
 
-          <Card title="Bestände">
-            <InputField
-              id="stocksearch"
-              label="Suche"
-              placeholder="Name, Kategorie oder Art.-Nr."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <div className="mt-4">
+          {/* Bündig: Suche gepolstert, Bestände als Zeilen von Kante zu Kante. */}
+          <Card title="Bestände" buendig>
+            <div className="p-4">
+              <InputField
+                id="stocksearch"
+                label="Suche"
+                placeholder="Name, Kategorie oder Art.-Nr."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div>
               {loading ? (
-                <SkeletonList rows={5} />
+                <div className="px-4 pb-4">
+                  <SkeletonList rows={5} />
+                </div>
               ) : rows.length === 0 ? (
                 <EmptyState>
                   {materials.length === 0
@@ -338,13 +344,15 @@ export default function StockView() {
                   })}
                 </List>
               )}
-              <Nachladen
-                geladen={materials.length}
-                grenze={grenze}
-                onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
-                einheit="Artikel"
-                sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
-              />
+              <div className="px-4 pb-3 empty:hidden">
+                <Nachladen
+                  geladen={materials.length}
+                  grenze={grenze}
+                  onMehr={() => setGrenze((g) => g + KATALOG_GRENZE)}
+                  einheit="Artikel"
+                  sucheSatz="Nach Name und Artikelnummer wird nur in diesen gesucht."
+                />
+              </div>
             </div>
           </Card>
         </>

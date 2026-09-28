@@ -25,6 +25,7 @@ import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry } from '@/types';
 import { fuehrtZeitkonto } from '@/lib/permissions';
 import Card from '@/components/Card';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke, Warnung, Zustand } from '@/components/Badge';
 import Zeitmarker from '@/features/time/Zeitmarker';
 import Button from '@/components/Button';
@@ -349,7 +350,8 @@ export default function AccountingView() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Mitarbeiterübersicht"
         subtitle="Monatsauswertung, Vollständigkeit und Salden"
@@ -711,11 +713,16 @@ export default function AccountingView() {
                         )}
                       </p>
                       {!stats.hasConfig ? (
-                        <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                          Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das lässt
-                          sich kein Soll berechnen — die Zahlen oben sind deshalb kein Rückstand,
-                          sondern keine Aussage. Nachtragen in der Benutzerverwaltung.
-                        </p>
+                        <div className="mt-2">
+                          <Hinweiszeile stufe="warn">
+                            <p>
+                              Für diesen Mitarbeiter ist kein Eintrittsdatum hinterlegt. Ohne das
+                              lässt sich kein Soll berechnen — die Zahlen oben sind deshalb kein
+                              Rückstand, sondern keine Aussage. Nachtragen in der
+                              Benutzerverwaltung.
+                            </p>
+                          </Hinweiszeile>
+                        </div>
                       ) : null}
 
                       {completeness.missingCount > 0 && (

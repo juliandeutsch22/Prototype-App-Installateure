@@ -227,7 +227,9 @@ describe('Anforderungen — die Reihenfolge der Arbeit', () => {
 
     // Nur die Gruppenüberschriften (h3), nicht der Kartentitel darüber.
     const gruppen = await screen.findAllByRole('heading', { level: 3 });
-    const titel = gruppen.map((h) => h.textContent);
+    // Seit der Designlinie „Fassung 3" steht die Anzahl als „· 1" hinter dem
+    // Titel; geprüft werden weiter Reihenfolge, Name und Anzahl der Gruppen.
+    const titel = gruppen.map((h) => (h.textContent ?? '').replace(/[·\s]/g, ''));
     expect(titel).toEqual(['Offen1', 'Abholbereit1']);
   });
 

@@ -285,7 +285,8 @@ export default function CustomersView() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Kunden"
         subtitle="Stammdaten, Ansprechpartner und Baustellenhistorie"
@@ -462,9 +463,13 @@ export default function CustomersView() {
             className="min-h-touch w-full rounded border border-line bg-surface px-3 py-1 text-base text-ink sm:w-auto"
           />
         }
+        buendig
       >
+        {/* Bündig: Kunden als Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
         {loading ? (
-          <SkeletonList rows={4} />
+          <div className="p-4">
+            <SkeletonList rows={4} />
+          </div>
         ) : sichtbar.length === 0 ? (
           <EmptyState>
             {/*
@@ -558,6 +563,7 @@ export default function CustomersView() {
           entscheidende.
         */}
         {!loading && (
+          <div className="px-4 pb-3 empty:hidden">
           <Nachladen
             geladen={suche.trim() ? ohneSuche : kunden.length}
             grenze={grenze}
@@ -574,6 +580,7 @@ export default function CustomersView() {
             */
             sucheImBrowser={false}
           />
+          </div>
         )}
       </Card>
 

@@ -398,7 +398,8 @@ export default function AdminProjectsView() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Baustellen"
         subtitle="Baustellen anlegen und suchen — geändert wird in der Akte"
@@ -555,9 +556,11 @@ export default function AdminProjectsView() {
             <option value="archiv">Archiv ({archivCount})</option>
           </SelectField>
         }
+        buendig
       >
+        {/* Bündig: Suche gepolstert, Baustellen als Zeilen von Kante zu Kante. */}
         {projects.length >= 8 && (
-          <div className="mb-4">
+          <div className="p-4">
             <InputField
               id="psuche"
               label="Suche"
@@ -583,7 +586,11 @@ export default function AdminProjectsView() {
             )}
           </div>
         )}
-        {loading ? <SkeletonList rows={4} /> : visible.length === 0 ? (
+        {loading ? (
+          <div className="p-4">
+            <SkeletonList rows={4} />
+          </div>
+        ) : visible.length === 0 ? (
           <EmptyState>
             {projects.length === 0
               ? 'Noch keine Baustellen angelegt.'
@@ -700,13 +707,15 @@ export default function AdminProjectsView() {
           angezeigt wird. Eine Auskunft, die einmal danebenlag, wird beim
           nächsten Mal nicht mehr geglaubt.
         */}
-        <Nachladen
-          geladen={projects.length}
-          grenze={grenze}
-          onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
-          einheit="Baustellen"
-          sucheImBrowser={false}
-        />
+        <div className="px-4 pb-3 empty:hidden">
+          <Nachladen
+            geladen={projects.length}
+            grenze={grenze}
+            onMehr={() => setGrenze((g) => g + BAUSTELLEN_JE_SEITE)}
+            einheit="Baustellen"
+            sucheImBrowser={false}
+          />
+        </div>
       </Card>
 
       <ConfirmDialog
