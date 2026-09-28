@@ -202,6 +202,12 @@ describe('Interne Hilfsfunktionen', () => {
       'app.ausleitung_nachsehen()',
       'app.push_anstossen(jsonb)',
       'app.anstoss_kopfzeilen(text)',
+      // Personen nur aus dem eigenen Betrieb (C2): sonst eine Auskunft, wer wo arbeitet.
+      'app.personen_im_betrieb(text, uuid[])',
+      'app.personen_pruefen()',
+      // Nachtlauf (C10) und Gedächtnis der alten Baustellennummern (C8).
+      'app.pruefsummen_nachtragen()',
+      'app.alte_nummer_merken()',
     ];
     const offen: string[] = [];
     for (const f of intern) {
