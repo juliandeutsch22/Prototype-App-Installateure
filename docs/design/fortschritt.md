@@ -64,8 +64,8 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 | 1 · Bausteine | erledigt | `ccea9a4` (#160) |
 | 2 · Monteur- und Büro-Start | erledigt | `91d017b` (#161) |
 | 3 · Zeiterfassung | erledigt | `041a12a` (#162) |
-| 4 · Handwerksschein | erledigt | siehe PR „Designlinie 3, Schritt 4“ |
-| 5 · Urlaub und Material anfordern | offen | |
+| 4 · Handwerksschein | erledigt | `f1e2e40` (#163) |
+| 5 · Urlaub und Material anfordern | erledigt | siehe PR „Designlinie 3, Schritt 5“ |
 | 6 · Listen | offen | |
 | 7 · Akten zweispaltig | offen | |
 | 8 · Einsatzplanung und Wochenplan | offen | |
@@ -176,6 +176,24 @@ Kasten. Mit Absicht **nicht** wie im Entwurf:
 - Die 12-px-Statuszeilen unter Fotos („Wird hochgeladen …“) und der Hinweis
   zu fehlenden Bildern im Fotostreifen bleiben in Warnfarbe: für ein Symbol
   ist dort kein Platz. Die Unterschrift bleibt, wie sie ist.
+
+**Schritt 5 im Einzelnen.** Urlaub: Betriebsurlaub-Hinweis und
+Überschneidungen als Hinweiszeilen, die Rechnung zu Arbeitstagen und
+Zeitausgleich als ruhiger Text statt getöntem Kasten, „Antrag einreichen“
+am Telefon über die volle Breite, „Offene Anträge“ und „Meine Anträge“ als
+bündige Karten. Material anfordern: Eil-Hinweis als Hinweiszeile, „Offen“
+und „Erledigt“ bündig, „knapp“ im Katalog als Punkt plus Wort statt
+orangem Fettdruck, die gewählte Retoure weiss statt getönt. Mit Absicht
+**nicht** wie im Entwurf:
+
+- **Die Antragsart bleibt ein Auswahlfeld**, kein Segment: die Prüfungen
+  wählen sie über das Feld „Art“ (Verhalten, nicht Aussehen), und drei
+  Knöpfe nebeneinander bräuchten am Telefon mehr Platz, als „Zeitausgleich“
+  lässt.
+- **„Meine Anträge“ bleibt eine eigene Karte** statt eines Abschnitts im
+  Antragsformular: dazwischen steht bei der Leitung „Offene Anträge“.
+- Kleine Zahlen in Warnfarbe („danach −2 Tage“) bleiben: in der Zeile ist
+  für ein Symbol kein Platz, und die Farbe trägt die Aussage.
 
 **Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
 Ansichten – `projects/BaustellenUebersicht.tsx` und

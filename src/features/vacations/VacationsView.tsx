@@ -32,6 +32,7 @@ import InfoHint from '@/components/InfoHint';
 import Metric, { MetricRow } from '@/components/Metric';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { Zustand, type Stand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -795,7 +796,7 @@ export default function VacationsView() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader title="Urlaub" subtitle="Urlaub, Zeitausgleich und Krankmeldung" />
 
       {/*
@@ -855,14 +856,18 @@ export default function VacationsView() {
           sonst beantragt er Tage, die ohnehin zu sind.
         */}
         {betriebsurlaube.length > 0 && (
-          <p className="mb-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-            {betriebsurlaube.map((b) => (
-              <span key={b.id} className="block">
-                <strong>{b.bezeichnung}</strong> {zeitraum(b)}
-                {b.urlaubAbbuchen ? ' — wird vom Urlaub abgebucht' : ''}
-              </span>
-            ))}
-          </p>
+          <div className="mb-4">
+            <Hinweiszeile>
+              <p>
+                {betriebsurlaube.map((b) => (
+                  <span key={b.id} className="block">
+                    <strong>{b.bezeichnung}</strong> {zeitraum(b)}
+                    {b.urlaubAbbuchen ? ' — wird vom Urlaub abgebucht' : ''}
+                  </span>
+                ))}
+              </p>
+            </Hinweiszeile>
+          </div>
         )}
         <form onSubmit={beantragen} className="space-y-4">
           <SelectField
@@ -956,9 +961,14 @@ export default function VacationsView() {
             und danach nur noch lang.
           */}
           {art === 'Urlaub' && (
-          <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+          // Die Rechnung als ruhiger Text unter den Feldern, kein getönter Kasten.
+          <div className="flex flex-wrap items-center text-sm text-ink-muted [&_strong]:text-ink-deep">
             {zeitraumGewaehlt && ueberschneidung && (
-              <span className="text-warning">{ueberschneidung}</span>
+              <div className="basis-full">
+                <Hinweiszeile stufe="warn">
+                  <p>{ueberschneidung}</p>
+                </Hinweiszeile>
+              </div>
             )}
             {zeitraumGewaehlt && !ueberschneidung && (
               <>
@@ -1003,7 +1013,7 @@ export default function VacationsView() {
           )}
 
           {art === 'Zeitausgleich' && (
-            <div className="flex flex-wrap items-center rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+            <div className="flex flex-wrap items-center text-sm text-ink-muted [&_strong]:text-ink-deep">
               <strong>{fmtDauer(zaMin)}</strong>
               <span className="ml-1">
                 Zeitausgleich
@@ -1019,13 +1029,17 @@ export default function VacationsView() {
               </InfoHint>
               <span className="basis-full">{guthabenZeile()}</span>
               {zeitraumGewaehlt && ueberschneidung && (
-                <span className="mt-1 basis-full text-warning">{ueberschneidung}</span>
+                <div className="mt-1 basis-full">
+                  <Hinweiszeile stufe="warn">
+                    <p>{ueberschneidung}</p>
+                  </Hinweiszeile>
+                </div>
               )}
             </div>
           )}
 
           {art === 'Krank' && (
-            <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
+            <p className="text-sm text-ink-muted">
               Eine Krankmeldung braucht keine Genehmigung: die Tage stehen sofort als „Krank" im
               Zeitkonto, und das Büro sieht die Meldung. Ist das Ende noch offen, das
               voraussichtliche eintragen — ändern geht jederzeit.
@@ -1036,6 +1050,7 @@ export default function VacationsView() {
 
           <Button
             type="submit"
+            className="w-full sm:w-auto"
             loading={sendet}
             disabled={
               art === 'Urlaub' ? tage.length === 0 : art === 'Zeitausgleich' ? zaTage.length === 0 : false
@@ -1060,9 +1075,12 @@ export default function VacationsView() {
               nur die Tage, die durch die Genehmigung entstanden sind.
             </>
           }
+          buendig
         >
           {laden ? (
-            <SkeletonList rows={2} />
+            <div className="p-4">
+              <SkeletonList rows={2} />
+            </div>
           ) : offene.length === 0 ? (
             <EmptyState>Kein Antrag wartet auf eine Entscheidung.</EmptyState>
           ) : (
@@ -1136,9 +1154,12 @@ export default function VacationsView() {
         </Card>
       )}
 
-      <Card title="Meine Anträge">
+      {/* Bündig: die Anträge sind Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
+      <Card title="Meine Anträge" buendig>
         {laden ? (
-          <SkeletonList rows={3} />
+          <div className="p-4">
+            <SkeletonList rows={3} />
+          </div>
         ) : eigene.length === 0 ? (
           <EmptyState>Noch kein Antrag gestellt.</EmptyState>
         ) : (
