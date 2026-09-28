@@ -17,6 +17,9 @@ const ROUTEN = [
   ['/vacations', 'Administrator'], ['/worksheets', 'Administrator'], ['/worksheet', 'Administrator'],
   ['/quotes', 'Administrator'], ['/customers', 'Administrator'], ['/wartungen', 'Administrator'],
   ['/admin-projects', 'Administrator'],
+  // Die Akten — seit Schritt 7 am Schreibtisch zweispaltig.
+  ['/customers/k1', 'Administrator'], ['/admin-projects/p1', 'Administrator'],
+  ['/quotes/q1', 'Administrator'], ['/user-mgmt/u1', 'Administrator'],
   ['/assignments/tag', 'Administrator'], ['/assignments/woche', 'Administrator'],
   ['/user-mgmt', 'Administrator'],
   ['/settings/meldungen', 'Administrator'], ['/settings/firma', 'Administrator'],
@@ -40,6 +43,10 @@ const HARMLOS = [
   (b) => b.art === 'abgeschnitten' && b.el.includes('truncate'),
   (b) => b.el.includes('th.sticky'),
   (b) => b.leiste,
+  // Ein Eingabefeld, dessen WERT länger ist als das Feld, scrollt in sich —
+  // so verhält sich jedes Textfeld. Ragt das Feld selbst aus der Seite,
+  // meldet die Messung es weiter („ragt hinaus").
+  (b) => b.art === 'laeuft ueber' && b.el.startsWith('input'),
 ];
 
 const browser = await chromium.launch({

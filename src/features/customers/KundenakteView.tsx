@@ -20,6 +20,8 @@ import { todayStr } from '@/lib/time';
 import type { Customer, Invoice, Project, Quote, Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import Aktenspalten from '@/components/Aktenspalten';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { InputField, FormGrid, CheckboxField } from '@/components/Field';
 import Button from '@/components/Button';
 import { Zustand } from '@/components/Badge';
@@ -309,88 +311,80 @@ export default function KundenakteView() {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={k.name}
-        subtitle={
-          <Link to="/customers" className="link inline-flex min-h-touch items-center">
-            ← Zur Kundenliste
-          </Link>
-        }
-        /*
-          KEIN „BEARBEITEN"-KNOPF MEHR. Er führte in das Formular der
-          Kundenliste — also aus der Akte heraus, um etwas zu ändern, das in
-          der Akte steht. Wer zurückkam, stand wieder in der Liste und musste
-          den Kunden erneut suchen. Geändert wird jetzt dort, wo es steht.
-        */
-      />
+  /*
+    DIE KARTEN DER AKTE — einmal angelegt, von `Aktenspalten` angeordnet:
+    am Telefon in der gewohnten Reihenfolge. Am Schreibtisch links die
+    Stammdaten und die Wartungen — die Stammdaten sind ein Formular, und in
+    der breiten Spalte stehen seine Felder zu zweit nebeneinander. Rechts,
+    was sich um den Kunden sammelt: Baustellen, Rechnungen, Angebote.
 
-      {/*
-        DIE STAMMDATEN ZUERST. Sie sind der Grund, warum es diese Seite gibt:
-        E-Mail, UID und Notiz standen bisher in keiner Ansicht.
-      */}
-      <Card title="Stammdaten">
-        {darfAendern && entwurf ? (
-          <StammdatenFormular
-            entwurf={entwurf}
-            setEntwurf={setEntwurf}
-            geaendert={geaendert}
-            speichert={speichert}
-            fehler={speicherFehler}
-            onSpeichern={() => void stammdatenSpeichern()}
-            onVerwerfen={() => setEntwurf(alsEntwurf(k))}
-          />
-        ) : (
-          <StammdatenLesen k={k} />
-        )}
-      </Card>
-
-      <Card title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
-        {baustellen.zustand === 'laedt' ? (
-          <SkeletonList rows={2} />
-        ) : baustellen.zustand === 'fehler' ? (
-          <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
-        ) : baustellen.daten.length === 0 ? (
-          <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
-        ) : (
-          <ul className="divide-y divide-line">
-            {baustellen.daten
-              .slice()
-              .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
-              .map((p) => (
-                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
-                  {baustellenSichtbar ? (
-                    /* 44 px Tastfläche; dafür die Zeile mit weniger Polster,
-                       damit die Liste kaum wächst (P4-09). Das `truncate`
-                       sitzt innen — an einem Flex-Behälter greifen die
-                       Auslassungspunkte nicht. */
-                    <Link
-                      to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
-                      className="link inline-flex min-h-touch min-w-0 items-center overflow-hidden text-sm"
-                    >
-                      <span className="truncate">
-                        {p.projectNumber} · {p.address ?? 'ohne Adresse'}
-                      </span>
-                    </Link>
-                  ) : (
-                    <span className="truncate py-1 text-sm text-ink">
+    Am Telefon DIE STAMMDATEN ZUERST. Sie sind der Grund, warum es diese
+    Seite gibt: E-Mail, UID und Notiz standen bisher in keiner Ansicht.
+  */
+  const stammdaten = (
+    <Card title="Stammdaten">
+      {darfAendern && entwurf ? (
+        <StammdatenFormular
+          entwurf={entwurf}
+          setEntwurf={setEntwurf}
+          geaendert={geaendert}
+          speichert={speichert}
+          fehler={speicherFehler}
+          onSpeichern={() => void stammdatenSpeichern()}
+          onVerwerfen={() => setEntwurf(alsEntwurf(k))}
+        />
+      ) : (
+        <StammdatenLesen k={k} />
+      )}
+    </Card>
+  );
+  const baustellenKarte = (
+    <Card title={`Baustellen${baustellen.zustand === 'bereit' ? ` (${baustellen.daten.length})` : ''}`}>
+      {baustellen.zustand === 'laedt' ? (
+        <SkeletonList rows={2} />
+      ) : baustellen.zustand === 'fehler' ? (
+        <TeilFehler was="die Baustellen" onRetry={() => setVersuch((v) => v + 1)} />
+      ) : baustellen.daten.length === 0 ? (
+        <EmptyState>Noch keine Baustelle zugeordnet.</EmptyState>
+      ) : (
+        <ul className="divide-y divide-line">
+          {baustellen.daten
+            .slice()
+            .sort((a, b) => b.projectNumber.localeCompare(a.projectNumber))
+            .map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
+                {baustellenSichtbar ? (
+                  /* 44 px Tastfläche; dafür die Zeile mit weniger Polster,
+                     damit die Liste kaum wächst (P4-09). Das `truncate`
+                     sitzt innen — an einem Flex-Behälter greifen die
+                     Auslassungspunkte nicht. */
+                  <Link
+                    to={`/admin-projects?baustelle=${encodeURIComponent(p.projectNumber)}`}
+                    className="link inline-flex min-h-touch min-w-0 items-center overflow-hidden text-sm"
+                  >
+                    <span className="truncate">
                       {p.projectNumber} · {p.address ?? 'ohne Adresse'}
                     </span>
-                  )}
-                  <StatusBadge status={p.status} />
-                </li>
-              ))}
-          </ul>
-        )}
+                  </Link>
+                ) : (
+                  <span className="truncate py-1 text-sm text-ink">
+                    {p.projectNumber} · {p.address ?? 'ohne Adresse'}
+                  </span>
+                )}
+                <StatusBadge status={p.status} />
+              </li>
+            ))}
+        </ul>
+      )}
 
-        {/*
-          Baustellen, die den Namen tragen, aber auf keinen Kunden zeigen.
-          Sie nur anzuzeigen wäre halb — der Knopf stellt die Verbindung her.
-        */}
-        {namensgleich.length > 0 && (
-          <div className="mt-4 rounded border border-line bg-surface-2 p-3">
-            <p className="text-sm text-warning">
+      {/*
+        Baustellen, die den Namen tragen, aber auf keinen Kunden zeigen.
+        Sie nur anzuzeigen wäre halb — der Knopf stellt die Verbindung her.
+      */}
+      {namensgleich.length > 0 && (
+        <div className="mt-4">
+          <Hinweiszeile stufe="warn">
+            <p>
               <strong>{namensgleich.length}</strong>{' '}
               {namensgleich.length === 1
                 ? 'Baustelle trägt diesen Namen, ist'
@@ -426,126 +420,149 @@ export default function KundenakteView() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Hinweiszeile>
+        </div>
+      )}
+
+      {darfBaustellenZuordnen &&
+        baustellen.zustand === 'bereit' &&
+        baustellen.daten.length === 0 &&
+        namensgleich.length === 0 && (
+          <p className="mt-2 text-xs text-ink-muted">
+            Gesucht wurde nach exakt „{k.name}". Bei abweichender Schreibweise hilft
+            „Bestehende Baustellen übernehmen" in der Kundenliste.
+          </p>
         )}
-
-        {darfBaustellenZuordnen &&
-          baustellen.zustand === 'bereit' &&
-          baustellen.daten.length === 0 &&
-          namensgleich.length === 0 && (
-            <p className="mt-2 text-xs text-ink-muted">
-              Gesucht wurde nach exakt „{k.name}". Bei abweichender Schreibweise hilft
-              „Bestehende Baustellen übernehmen" in der Kundenliste.
-            </p>
-          )}
-      </Card>
-
-      {wartungAn && (
-        <Card title="Wartungen">
-          {wartungen.zustand === 'laedt' ? (
-            <SkeletonList rows={1} />
-          ) : wartungen.zustand === 'fehler' ? (
-            <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
-          ) : wartungen.daten.length === 0 ? (
-            <EmptyState>Keine Wartungsvereinbarung.</EmptyState>
-          ) : (
-            <ul className="divide-y divide-line">
-              {wartungen.daten.map((w) => {
-                const u = beurteile(w, heute);
-                return (
-                  <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span className="min-w-0 text-sm text-ink">
-                      {w.anlage}
-                      <span className="block text-xs text-ink-muted">
-                        alle {w.intervallMonate} Monate · Termin {fmtDatum(w.faelligAm)}
-                      </span>
-                    </span>
-                    <Zustand
-                      stand={
-                        u.stand === 'überfällig'
-                          ? 'schlecht'
-                          : u.stand === 'fällig'
-                            ? 'achtung'
-                            : 'ruht'
-                      }
-                    >
-                      {u.stand === 'ruht' ? 'ruht' : u.text}
-                    </Zustand>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
-      )}
-
-      {rechnungenAn && darfRechnungen && (
-        <Card title="Rechnungen">
-          {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
-            <SkeletonList rows={1} />
-          ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
-            <TeilFehler was="die Rechnungen" onRetry={() => setVersuch((v) => v + 1)} />
-          ) : rechnungen.daten.length === 0 ? (
-            <EmptyState>Noch keine Rechnung.</EmptyState>
-          ) : (
-            <>
-            <ul className="divide-y divide-line">
-              {(alleRechnungen ? rechnungen.daten : rechnungen.daten.slice(0, RECHNUNGEN_KURZ)).map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                  <span className="min-w-0 text-sm">
-                    <Link
-                      to={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
-                      className="link"
-                    >
-                      {r.invoiceNumber}
-                    </Link>
-                    <span className="ml-2 whitespace-nowrap text-xs text-ink-muted">
-                      {fmtDatum(r.invoiceDate)} · {r.projectNumber}
-                    </span>
+    </Card>
+  );
+  const wartungKarte = wartungAn ? (
+    <Card title="Wartungen">
+      {wartungen.zustand === 'laedt' ? (
+        <SkeletonList rows={1} />
+      ) : wartungen.zustand === 'fehler' ? (
+        <TeilFehler was="die Wartungen" onRetry={() => setVersuch((v) => v + 1)} />
+      ) : wartungen.daten.length === 0 ? (
+        <EmptyState>Keine Wartungsvereinbarung.</EmptyState>
+      ) : (
+        <ul className="divide-y divide-line">
+          {wartungen.daten.map((w) => {
+            const u = beurteile(w, heute);
+            return (
+              <li key={w.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="min-w-0 text-sm text-ink">
+                  {w.anlage}
+                  <span className="block text-xs text-ink-muted">
+                    alle {w.intervallMonate} Monate · Termin {fmtDatum(w.faelligAm)}
                   </span>
-                  <span className="whitespace-nowrap text-sm text-ink-muted">
-                    {fmtEUR(r.totalBrutto)} brutto · {r.paymentStatus}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            {rechnungen.daten.length > RECHNUNGEN_KURZ && (
-              <Button variant="ghost" className="mt-2" onClick={() => setAlleRechnungen((a) => !a)}>
-                {alleRechnungen ? 'Nur die jüngsten zeigen' : `Alle ${rechnungen.daten.length} zeigen`}
-              </Button>
-            )}
-            </>
-          )}
-        </Card>
+                </span>
+                <Zustand
+                  stand={
+                    u.stand === 'überfällig'
+                      ? 'schlecht'
+                      : u.stand === 'fällig'
+                        ? 'achtung'
+                        : 'ruht'
+                  }
+                >
+                  {u.stand === 'ruht' ? 'ruht' : u.text}
+                </Zustand>
+              </li>
+            );
+          })}
+        </ul>
       )}
+    </Card>
+  ) : null;
+  const rechnungKarte = rechnungenAn && darfRechnungen ? (
+    <Card title="Rechnungen">
+      {rechnungen.zustand === 'laedt' || baustellen.zustand === 'laedt' ? (
+        <SkeletonList rows={1} />
+      ) : rechnungen.zustand === 'fehler' || baustellen.zustand === 'fehler' ? (
+        <TeilFehler was="die Rechnungen" onRetry={() => setVersuch((v) => v + 1)} />
+      ) : rechnungen.daten.length === 0 ? (
+        <EmptyState>Noch keine Rechnung.</EmptyState>
+      ) : (
+        <>
+        <ul className="divide-y divide-line">
+          {(alleRechnungen ? rechnungen.daten : rechnungen.daten.slice(0, RECHNUNGEN_KURZ)).map((r) => (
+            <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+              <span className="min-w-0 text-sm">
+                <Link
+                  to={`/invoices?suche=${encodeURIComponent(r.invoiceNumber)}`}
+                  className="link"
+                >
+                  {r.invoiceNumber}
+                </Link>
+                <span className="ml-2 whitespace-nowrap text-xs text-ink-muted">
+                  {fmtDatum(r.invoiceDate)} · {r.projectNumber}
+                </span>
+              </span>
+              <span className="whitespace-nowrap text-sm text-ink-muted">
+                {fmtEUR(r.totalBrutto)} brutto · {r.paymentStatus}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {rechnungen.daten.length > RECHNUNGEN_KURZ && (
+          <Button variant="ghost" className="mt-2" onClick={() => setAlleRechnungen((a) => !a)}>
+            {alleRechnungen ? 'Nur die jüngsten zeigen' : `Alle ${rechnungen.daten.length} zeigen`}
+          </Button>
+        )}
+        </>
+      )}
+    </Card>
+  ) : null;
+  const angebotKarte = angeboteAn && darfAngebote ? (
+    <Card title="Angebote">
+      {angebote.zustand === 'laedt' ? (
+        <SkeletonList rows={1} />
+      ) : angebote.zustand === 'fehler' ? (
+        <TeilFehler was="die Angebote" onRetry={() => setVersuch((v) => v + 1)} />
+      ) : angebote.daten.length === 0 ? (
+        <EmptyState>Noch kein Angebot.</EmptyState>
+      ) : (
+        <ul className="divide-y divide-line">
+          {angebote.daten.map((q) => (
+            <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
+              <Link
+                to={`/quotes/${q.id}`}
+                className="link inline-flex min-h-touch min-w-0 items-center overflow-hidden text-sm"
+              >
+                <span className="truncate">{q.quoteNumber}</span>
+              </Link>
+              <span className="text-sm text-ink-muted">
+                {fmtEUR(q.totalNetto)} netto · {q.status}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  ) : null;
 
-      {angeboteAn && darfAngebote && (
-        <Card title="Angebote">
-          {angebote.zustand === 'laedt' ? (
-            <SkeletonList rows={1} />
-          ) : angebote.zustand === 'fehler' ? (
-            <TeilFehler was="die Angebote" onRetry={() => setVersuch((v) => v + 1)} />
-          ) : angebote.daten.length === 0 ? (
-            <EmptyState>Noch kein Angebot.</EmptyState>
-          ) : (
-            <ul className="divide-y divide-line">
-              {angebote.daten.map((q) => (
-                <li key={q.id} className="flex flex-wrap items-center justify-between gap-2 py-1">
-                  <Link
-                    to={`/quotes/${q.id}`}
-                    className="link inline-flex min-h-touch min-w-0 items-center overflow-hidden text-sm"
-                  >
-                    <span className="truncate">{q.quoteNumber}</span>
-                  </Link>
-                  <span className="text-sm text-ink-muted">
-                    {fmtEUR(q.totalNetto)} netto · {q.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
+  return (
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
+      <PageHeader
+        title={k.name}
+        subtitle={
+          <Link to="/customers" className="link inline-flex min-h-touch items-center">
+            ← Zur Kundenliste
+          </Link>
+        }
+        /*
+          KEIN „BEARBEITEN"-KNOPF MEHR. Er führte in das Formular der
+          Kundenliste — also aus der Akte heraus, um etwas zu ändern, das in
+          der Akte steht. Wer zurückkam, stand wieder in der Liste und musste
+          den Kunden erneut suchen. Geändert wird jetzt dort, wo es steht.
+        */
+      />
+
+      <Aktenspalten
+        telefon={[stammdaten, baustellenKarte, wartungKarte, rechnungKarte, angebotKarte]}
+        links={[stammdaten, wartungKarte]}
+        rechts={[baustellenKarte, rechnungKarte, angebotKarte]}
+      />
     </div>
   );
 }

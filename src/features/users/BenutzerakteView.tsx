@@ -8,6 +8,8 @@ import { istBenutzerkonto, kontoAnzeige } from '@shared/benutzername';
 import { canManageAdmins } from '@/lib/permissions';
 import { ROLES, type AppUser, type Role } from '@/types';
 import Card from '@/components/Card';
+import Aktenspalten from '@/components/Aktenspalten';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -195,8 +197,126 @@ export default function BenutzerakteView() {
 
   const eigenesKonto = p.uid === user.uid;
 
+  /*
+    DIE KARTEN DER AKTE — am Telefon untereinander, am Schreibtisch links
+    die Stammdaten, rechts der Zugang (`Aktenspalten`).
+  */
+  const stammdaten = (
+    <Card title="Stammdaten">
+      {darfAendern && entwurf ? (
+        <StammdatenFormular
+          entwurf={entwurf}
+          setEntwurf={setEntwurf}
+          rollen={ROLES.filter((r) => r !== 'Administrator' || canManageAdmins(user.role))}
+          eigenesKonto={eigenesKonto}
+          onTag={tagUmschalten}
+          geaendert={geaendert}
+          speichert={speichert}
+          fehler={speicherFehler}
+          onSpeichern={() => void speichern()}
+          onVerwerfen={() => setEntwurf(alsEntwurf(p))}
+        />
+      ) : (
+        <>
+          <StammdatenLesen p={p} />
+          <p className="mt-4 border-t border-line pt-3 text-sm text-ink-muted">
+            Ein Administrator lässt sich nur von einem Administrator ändern.
+          </p>
+        </>
+      )}
+    </Card>
+  );
+  const zugang = darfAendern ? (
+    <Card title="Zugang">
+      {/*
+        HIER STANDEN SIE IN EINEM ZEILENMENÜ. Passwort-Mail und Sperren
+        sind selten und im Fall des Sperrens folgenreich — in der Liste
+        gehören sie nicht unter den Daumen, der gerade durchwischt. In der
+        Akte ist man bei genau dieser Person und hat es so gemeint.
+      */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/*
+          EIN BENUTZERNAME HAT KEIN POSTFACH. Der Knopf für die Mail wäre
+          hier ein Versprechen ohne Empfänger — an seiner Stelle vergibt
+          das Büro ein neues Startpasswort. Das eigene nicht: das steht
+          unter „Mein Konto", mit zweiter Eingabe.
+        */}
+        {istBenutzerkonto(p.email) ? (
+          eigenesKonto ? (
+            <span className="text-sm text-ink-muted">
+              Das eigene Passwort unter „Mein Konto" ändern.
+            </span>
+          ) : (
+            <Button
+              variant="secondary"
+              loading={vergibt}
+              onClick={() => setNeuesPasswortFragen(true)}
+            >
+              Neues Startpasswort vergeben
+            </Button>
+          )
+        ) : (
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              try {
+                await resendPasswordReset(p.email);
+                toast.success(`Passwort-Mail an ${p.email} gesendet`);
+              } catch (err) {
+                toast.error(grundAus(err, 'Die Passwort-Mail konnte nicht gesendet werden.'));
+              }
+            }}
+          >
+            Passwort-Mail senden
+          </Button>
+        )}
+        {eigenesKonto ? (
+          // Wer sich selbst sperrt, ist ausgesperrt — und niemand sonst
+          // muss den Fehler beheben können.
+          <span className="text-sm text-ink-muted">
+            Das eigene Konto lässt sich nicht sperren.
+          </span>
+        ) : (
+          <Button
+            variant={p.active === false ? 'secondary' : 'ghost'}
+            onClick={() => setUmschalten(true)}
+          >
+            {p.active === false ? 'Konto aktivieren' : 'Konto deaktivieren'}
+          </Button>
+        )}
+      </div>
+      {vergeben && (
+        <div className="mt-4">
+          <Hinweiszeile stufe="warn" role="alert">
+            <p><b>Neues Startpasswort für {p.name}</b></p>
+            <p className="mt-1">
+              Bitte persönlich weitergeben — es wird nur jetzt angezeigt. Beim nächsten
+              Anmelden vergibt {p.name} ein eigenes.
+            </p>
+            <p className="mt-2 text-sm text-ink">
+              Benutzername:{' '}
+              <span className="select-all font-semibold">{kontoAnzeige(p.email)}</span>
+            </p>
+            <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold text-ink-deep">{vergeben}</p>
+            <Button variant="ghost" className="mt-2" onClick={() => setVergeben(null)}>
+              Verstanden
+            </Button>
+          </Hinweiszeile>
+        </div>
+      )}
+      {/* Bewusst kein Löschen: Zeiteinträge, Bestellungen und Einsätze
+          verweisen auf die Kennung und würden verwaisen. */}
+      <p className="mt-3 text-sm text-ink-muted">
+        Gelöscht wird ein Benutzer nie — seine Buchungen und Scheine hängen
+        an ihm. Deaktivieren sperrt die Anmeldung und nimmt ihn aus den
+        Auswahllisten.
+      </p>
+    </Card>
+  ) : null;
+
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title={p.name}
         subtitle={
@@ -208,115 +328,7 @@ export default function BenutzerakteView() {
         }
       />
 
-      <Card title="Stammdaten">
-        {darfAendern && entwurf ? (
-          <StammdatenFormular
-            entwurf={entwurf}
-            setEntwurf={setEntwurf}
-            rollen={ROLES.filter((r) => r !== 'Administrator' || canManageAdmins(user.role))}
-            eigenesKonto={eigenesKonto}
-            onTag={tagUmschalten}
-            geaendert={geaendert}
-            speichert={speichert}
-            fehler={speicherFehler}
-            onSpeichern={() => void speichern()}
-            onVerwerfen={() => setEntwurf(alsEntwurf(p))}
-          />
-        ) : (
-          <>
-            <StammdatenLesen p={p} />
-            <p className="mt-4 border-t border-line pt-3 text-sm text-ink-muted">
-              Ein Administrator lässt sich nur von einem Administrator ändern.
-            </p>
-          </>
-        )}
-      </Card>
-
-      {darfAendern && (
-        <Card title="Zugang">
-          {/*
-            HIER STANDEN SIE IN EINEM ZEILENMENÜ. Passwort-Mail und Sperren
-            sind selten und im Fall des Sperrens folgenreich — in der Liste
-            gehören sie nicht unter den Daumen, der gerade durchwischt. In der
-            Akte ist man bei genau dieser Person und hat es so gemeint.
-          */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/*
-              EIN BENUTZERNAME HAT KEIN POSTFACH. Der Knopf für die Mail wäre
-              hier ein Versprechen ohne Empfänger — an seiner Stelle vergibt
-              das Büro ein neues Startpasswort. Das eigene nicht: das steht
-              unter „Mein Konto", mit zweiter Eingabe.
-            */}
-            {istBenutzerkonto(p.email) ? (
-              eigenesKonto ? (
-                <span className="text-sm text-ink-muted">
-                  Das eigene Passwort unter „Mein Konto" ändern.
-                </span>
-              ) : (
-                <Button
-                  variant="secondary"
-                  loading={vergibt}
-                  onClick={() => setNeuesPasswortFragen(true)}
-                >
-                  Neues Startpasswort vergeben
-                </Button>
-              )
-            ) : (
-              <Button
-                variant="secondary"
-                onClick={async () => {
-                  try {
-                    await resendPasswordReset(p.email);
-                    toast.success(`Passwort-Mail an ${p.email} gesendet`);
-                  } catch (err) {
-                    toast.error(grundAus(err, 'Die Passwort-Mail konnte nicht gesendet werden.'));
-                  }
-                }}
-              >
-                Passwort-Mail senden
-              </Button>
-            )}
-            {eigenesKonto ? (
-              // Wer sich selbst sperrt, ist ausgesperrt — und niemand sonst
-              // muss den Fehler beheben können.
-              <span className="text-sm text-ink-muted">
-                Das eigene Konto lässt sich nicht sperren.
-              </span>
-            ) : (
-              <Button
-                variant={p.active === false ? 'secondary' : 'ghost'}
-                onClick={() => setUmschalten(true)}
-              >
-                {p.active === false ? 'Konto aktivieren' : 'Konto deaktivieren'}
-              </Button>
-            )}
-          </div>
-          {vergeben && (
-            <div className="mt-4 rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
-              <p className="font-semibold">Neues Startpasswort für {p.name}</p>
-              <p className="mt-1 text-sm">
-                Bitte persönlich weitergeben — es wird nur jetzt angezeigt. Beim nächsten
-                Anmelden vergibt {p.name} ein eigenes.
-              </p>
-              <p className="mt-2 text-sm text-ink">
-                Benutzername:{' '}
-                <span className="select-all font-semibold">{kontoAnzeige(p.email)}</span>
-              </p>
-              <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold">{vergeben}</p>
-              <Button variant="ghost" className="mt-2" onClick={() => setVergeben(null)}>
-                Verstanden
-              </Button>
-            </div>
-          )}
-          {/* Bewusst kein Löschen: Zeiteinträge, Bestellungen und Einsätze
-              verweisen auf die Kennung und würden verwaisen. */}
-          <p className="mt-3 text-sm text-ink-muted">
-            Gelöscht wird ein Benutzer nie — seine Buchungen und Scheine hängen
-            an ihm. Deaktivieren sperrt die Anmeldung und nimmt ihn aus den
-            Auswahllisten.
-          </p>
-        </Card>
-      )}
+      <Aktenspalten telefon={[stammdaten, zugang]} links={[stammdaten]} rechts={[zugang]} />
 
       <ConfirmDialog
         open={neuesPasswortFragen}
@@ -488,7 +500,7 @@ function StammdatenFormular({
         eingeklappt — dort stimmen die Vorgaben meistens. Hier sind sie der
         Grund, warum jemand die Akte öffnet.
       */}
-      <div className="space-y-4 rounded border border-line bg-surface-2 p-4">
+      <div className="space-y-4 border-t border-line pt-4">
         <p className="section-label">Zeitkonto</p>
         {/*
           Nur die Geschäftsführung wählt: der angestellte Geschäftsführer hat

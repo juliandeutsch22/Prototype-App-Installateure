@@ -14,6 +14,8 @@ import { useModul } from '@/lib/useModule';
 import type { Project, AppUser, Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import Hinweiszeile from '@/components/Hinweiszeile';
+import Aktenspalten from '@/components/Aktenspalten';
 import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import StatusBadge from '@/components/StatusBadge';
@@ -318,8 +320,97 @@ export default function BaustellenakteView() {
     );
   }
 
+  /*
+    DIE KARTEN DER AKTE — einmal angelegt, von `Aktenspalten` angeordnet:
+    am Telefon in der gewohnten Reihenfolge. Am Schreibtisch links die
+    Stammdaten: sie sind ein Formular, und in der breiten Spalte stehen
+    seine Felder zu zweit nebeneinander statt einzeln untereinander. Rechts
+    Stunden, Pläne und die Wege weiter.
+  */
+  const stammdaten = (
+    <Card title="Stammdaten">
+      {darfAendern && entwurf ? (
+        <StammdatenFormular
+          entwurf={entwurf}
+          setEntwurf={setEntwurf}
+          kunden={kunden}
+          staff={staff}
+          leads={leads}
+          geaendert={geaendert}
+          speichert={speichert}
+          fehler={speicherFehler}
+          onSpeichern={() => void stammdatenSpeichern()}
+          onVerwerfen={() => setEntwurf(alsEntwurf(b))}
+        />
+      ) : (
+        <StammdatenLesen b={b} namen={namen} />
+      )}
+    </Card>
+  );
+  const plaene = user ? (
+    <Card title="Pläne und Dokumente">
+      <BaustellenPlaene
+        companyId={user.companyId}
+        projectId={b.id}
+        darfAendern={darfAendern}
+        meinName={user.name}
+      />
+    </Card>
+  ) : null;
+  /*
+    DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
+    Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
+    Ort, der eine Adresse hat.
+  */
+  const stunden = (
+    <Card title="Stunden auf dieser Baustelle">
+      {user && (
+        <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
+          <BaustellenUebersicht companyId={user.companyId} projekt={b} />
+        </Suspense>
+      )}
+    </Card>
+  );
+  const weiterKarte = (
+    <Card title="Weiter">
+      {/* Die Links tragen ihre 48 px Tastfläche selbst — deshalb kein
+          senkrechter Abstand mehr dazwischen, sonst wüchse die Karte um
+          mehr als nötig (Prüflauf 25.09.2026, P4-09). */}
+      <div className="flex flex-wrap items-center gap-x-3">
+        {b.customerId ? (
+          <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">
+            Zur Kundenakte
+          </Link>
+        ) : (
+          /*
+            Altbestand: die Baustelle trägt einen Kundennamen, aber keine
+            Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
+            wie „gibt es nicht" aussehen zu lassen.
+          */
+          <span className="text-sm text-warning">
+            Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
+          </span>
+        )}
+        {angebote.map((q) => (
+          <Link key={q.id} to={`/quotes/${q.id}`} className="link inline-flex min-h-touch items-center">
+            Angebot {q.quoteNumber}
+          </Link>
+        ))}
+        {scheineAn && (
+          <Link
+            to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
+            className="link inline-flex min-h-touch items-center"
+          >
+            Handwerksschein schreiben
+          </Link>
+        )}
+      </div>
+    </Card>
+  );
+
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title={b.customerName}
         subtitle={
@@ -334,24 +425,11 @@ export default function BaustellenakteView() {
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <Card title="Stammdaten">
-        {darfAendern && entwurf ? (
-          <StammdatenFormular
-            entwurf={entwurf}
-            setEntwurf={setEntwurf}
-            kunden={kunden}
-            staff={staff}
-            leads={leads}
-            geaendert={geaendert}
-            speichert={speichert}
-            fehler={speicherFehler}
-            onSpeichern={() => void stammdatenSpeichern()}
-            onVerwerfen={() => setEntwurf(alsEntwurf(b))}
-          />
-        ) : (
-          <StammdatenLesen b={b} namen={namen} />
-        )}
-      </Card>
+      <Aktenspalten
+        telefon={[stammdaten, plaene, stunden, weiterKarte]}
+        links={[stammdaten]}
+        rechts={[stunden, plaene, weiterKarte]}
+      />
 
       <ConfirmDialog
         open={!!nummerFragen}
@@ -370,64 +448,6 @@ export default function BaustellenakteView() {
         }}
       />
 
-      {user && (
-        <Card title="Pläne und Dokumente">
-          <BaustellenPlaene
-            companyId={user.companyId}
-            projectId={b.id}
-            darfAendern={darfAendern}
-            meinName={user.name}
-          />
-        </Card>
-      )}
-
-      {/*
-        DIE STUNDEN STEHEN IN DER AKTE, nicht mehr aufgeklappt in der
-        Listenzeile. Dieselbe Auswertung, derselbe Baustein — nur an einem
-        Ort, der eine Adresse hat.
-      */}
-      <Card title="Stunden auf dieser Baustelle">
-        {user && (
-          <Suspense fallback={<p className="text-sm text-ink-muted">Stunden werden geladen …</p>}>
-            <BaustellenUebersicht companyId={user.companyId} projekt={b} />
-          </Suspense>
-        )}
-      </Card>
-
-      <Card title="Weiter">
-        {/* Die Links tragen ihre 48 px Tastfläche selbst — deshalb kein
-            senkrechter Abstand mehr dazwischen, sonst wüchse die Karte um
-            mehr als nötig (Prüflauf 25.09.2026, P4-09). */}
-        <div className="flex flex-wrap items-center gap-x-3">
-          {b.customerId ? (
-            <Link to={`/customers/${b.customerId}`} className="link inline-flex min-h-touch items-center">
-              Zur Kundenakte
-            </Link>
-          ) : (
-            /*
-              Altbestand: die Baustelle trägt einen Kundennamen, aber keine
-              Verknüpfung. Das stumm zu lassen hiesse, den fehlenden Verweis
-              wie „gibt es nicht" aussehen zu lassen.
-            */
-            <span className="text-sm text-warning">
-              Kein Kunde verknüpft — bisher nur als Text: „{b.customerName}".
-            </span>
-          )}
-          {angebote.map((q) => (
-            <Link key={q.id} to={`/quotes/${q.id}`} className="link inline-flex min-h-touch items-center">
-              Angebot {q.quoteNumber}
-            </Link>
-          ))}
-          {scheineAn && (
-            <Link
-              to={`/worksheet?projekt=${encodeURIComponent(b.projectNumber)}`}
-              className="link inline-flex min-h-touch items-center"
-            >
-              Handwerksschein schreiben
-            </Link>
-          )}
-        </div>
-      </Card>
     </div>
   );
 }
@@ -618,10 +638,12 @@ function StammdatenFormular({
       {/* Ohne Zuständige läuft eine Eilbestellung ins Leere — das gehört
           gesagt, nicht erst, wenn ein Monteur wartet. */}
       {entwurf.projectManagers.length === 0 && (
-        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-          Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
-          niemanden. Die Verwaltung wird weiterhin verständigt.
-        </p>
+        <Hinweiszeile stufe="warn">
+          <p>
+            Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
+            niemanden. Die Verwaltung wird weiterhin verständigt.
+          </p>
+        </Hinweiszeile>
       )}
 
       {(entwurf.address || entwurf.contactPhone) && (
