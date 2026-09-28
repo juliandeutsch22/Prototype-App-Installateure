@@ -541,7 +541,8 @@ export default function WartungenView() {
   };
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Wartungen"
         subtitle={`Wiederkehrende Wartungen · fällig gilt ab ${VORLAUF_TAGE} Tagen im Voraus`}
@@ -646,9 +647,12 @@ export default function WartungenView() {
         </Card>
       )}
 
-      <Card title={`Steht an (${anstehend.length})`}>
+      {/* Bündig: Wartungen als Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
+      <Card title={`Steht an (${anstehend.length})`} buendig>
         {loading ? (
-          <SkeletonList />
+          <div className="p-4">
+            <SkeletonList />
+          </div>
         ) : anstehend.length === 0 ? (
           <EmptyState>
             In den nächsten {VORLAUF_TAGE} Tagen steht keine Wartung an.
@@ -658,8 +662,8 @@ export default function WartungenView() {
         )}
       </Card>
 
-      <Card title={`Alle Vereinbarungen (${wartungen.length})`}>
-        <div className="mb-3">
+      <Card title={`Alle Vereinbarungen (${wartungen.length})`} buendig>
+        <div className="p-4">
           <InputField id="w-suche"
             label="Suche"
             placeholder="Kunde, Anlage oder Standort"
@@ -677,7 +681,9 @@ export default function WartungenView() {
             keine Antwort da ist. Wer schnell tippt, läse sie bei jedem
             Buchstaben.
           */
-          <SkeletonList />
+          <div className="px-4 pb-4">
+            <SkeletonList />
+          </div>
         ) : gefiltert.length === 0 ? (
           <EmptyState>
             {wartungen.length === 0
@@ -688,12 +694,14 @@ export default function WartungenView() {
           <List>{gefiltert.map((w) => zeile(w, true))}</List>
         )}
         {!loading && (
-          <Nachladen
-            geladen={wartungen.length}
-            grenze={grenze}
-            einheit="Vereinbarungen"
-            onMehr={() => setGrenze((n) => n + WARTUNGEN_JE_SEITE)}
-          />
+          <div className="px-4 pb-3 empty:hidden">
+            <Nachladen
+              geladen={wartungen.length}
+              grenze={grenze}
+              einheit="Vereinbarungen"
+              onMehr={() => setGrenze((n) => n + WARTUNGEN_JE_SEITE)}
+            />
+          </div>
         )}
       </Card>
 

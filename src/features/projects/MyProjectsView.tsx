@@ -88,7 +88,8 @@ export default function MyProjectsView() {
   );
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader title="Meine Baustellen" subtitle="Aus deinem Team und aus deiner Einteilung" />
 
       {loading ? (
@@ -136,7 +137,8 @@ export default function MyProjectsView() {
 
               {/* Ansprechpartner: ohne Nummer steht der Monteur vor Ort ohne
                   Kontakt da — deshalb wird ein fehlender Eintrag angemahnt. */}
-              <div className="mt-4 rounded-sm border border-line bg-surface-2 p-3">
+              {/* Eine Gruppe mit Linie oben statt eines getönten Kastens in der Karte. */}
+              <div className="mt-4 border-t border-line pt-3">
                 <p className="section-label">Ansprechpartner</p>
                 {p.contactName || p.contactPhone ? (
                   <div className="mt-1">

@@ -343,7 +343,8 @@ export default function WorkSheetsListView() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       {/*
         DER KNOPF STEHT IM KOPF, wie „Neues Angebot" und „Neue Wartung".
         Gemeldet: „der Tab sieht vom Aufbau her ganz anders aus — der Button
@@ -580,7 +581,12 @@ export default function WorkSheetsListView() {
             className="min-h-touch w-full rounded border border-line bg-surface px-3 py-1 text-base text-ink sm:w-auto"
           />
         }
+        buendig
       >
+        {/* Bündig: Hinweise gepolstert oben, Scheine als Zeilen von Kante zu
+            Kante (Designlinie „Fassung 3"). Steht oben nichts, fällt der
+            Rahmen dafür weg (`empty:hidden`). */}
+        <div className="p-4 pb-1 empty:hidden">
         {error && <div className="mb-3"><ErrorState message={error} /></div>}
 
         {/*
@@ -591,7 +597,7 @@ export default function WorkSheetsListView() {
           daran ist der Buchhaltungs-Export einmal gescheitert.
         */}
         {suche.trim() && (
-          <div className="mb-3 rounded-sm border border-line bg-surface-2 px-3 py-2">
+          <div className="mb-3">
             {trefferGelten ? (
               <p className="text-sm text-ink">
                 <strong>{sichtbar.length}</strong>{' '}
@@ -646,8 +652,11 @@ export default function WorkSheetsListView() {
             {verworfene} verworfene{verworfene === 1 ? 'r Entwurf' : ' Entwürfe'} anzeigen
           </label>
         )}
+        </div>
         {loading ? (
-          <SkeletonList rows={4} />
+          <div className="px-4 pb-4">
+            <SkeletonList rows={4} />
+          </div>
         ) : sichtbar.length === 0 ? (
           <EmptyState>
             {scheine.length === 0
@@ -851,13 +860,15 @@ export default function WorkSheetsListView() {
           </List>
         )}
         {!loading && (
-          <Nachladen
-            geladen={scheine.length}
-            grenze={grenze}
-            einheit="Scheine"
-            laeuft={loading}
-            onMehr={() => setGrenze((n) => n + SCHEINE_JE_SEITE)}
-          />
+          <div className="px-4 pb-3 empty:hidden">
+            <Nachladen
+              geladen={scheine.length}
+              grenze={grenze}
+              einheit="Scheine"
+              laeuft={loading}
+              onMehr={() => setGrenze((n) => n + SCHEINE_JE_SEITE)}
+            />
+          </div>
         )}
       </Card>
 

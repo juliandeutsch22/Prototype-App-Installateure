@@ -66,7 +66,7 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 | 3 · Zeiterfassung | erledigt | `041a12a` (#162) |
 | 4 · Handwerksschein | erledigt | `f1e2e40` (#163) |
 | 5 · Urlaub und Material anfordern | erledigt | `06c2ad5` (#164) |
-| 6 · Listen | in Arbeit (6a Rechnungen: siehe PR „Designlinie 3, Schritt 6a“) | |
+| 6 · Listen | erledigt | 6a `85f403c` (#165), 6b siehe PR „Designlinie 3, Schritt 6b“ |
 | 7 · Akten zweispaltig | offen | |
 | 8 · Einsatzplanung und Wochenplan | offen | |
 | 9 · Einstellungen, Rest, Abgleich | offen | |
@@ -216,6 +216,24 @@ nur eine Darstellung (Gegenprobe: ohne die Zusatzzeilen rot). Mit Absicht
 - **Keine Spalte „Baustelle“ und kein Netto**: die Liste führte beides nie;
   eine neue Angabe wäre Inhalt, nicht Darstellung.
 - Mahnstand und Guthaben stehen weiter klein in Warnfarbe unter dem Kunden.
+
+**Schritt 6b — die übrigen Listen.** Anforderungen, Lager, Scheine,
+Angebote, Kunden, Wartungen, Baustellen, Meine Baustellen, Benutzer,
+Nachkalkulation, Mitarbeiterübersicht: bündige Karten (Zeilen von Kante zu
+Kante, Suche und Ladehinweise gepolstert), Gruppen (Status, Rolle) als
+getönte Abschnitte mit „· Anzahl“, getönte Warnkästen als Hinweiszeilen,
+Abstände der Linie. Mit Absicht **nicht** wie im Entwurf:
+
+- **Tabellen nur bei den Rechnungen.** Die übrigen Listen tragen je Zeile
+  Handlungen („Aus Lager“, „Akte“, „Erledigt“, Menü) oder mehrzeilige
+  Angaben; als Tabelle würden sie enger und schlechter zu bedienen, ohne
+  dass eine Spalte etwas Neues sagt. Die Zeilen tragen am Schreibtisch.
+- **Filter bleiben Auswahlfelder**, wo sie es sind (Prüfungen wählen sie
+  beim Namen) — keine Pillen.
+- **Mitarbeiterübersicht** nur Abstände und ein Hinweis: sie wurde erst
+  nach der Rückmeldung vom 26.09. (#157) neu gestaltet.
+- Die Gruppenprüfung der Anforderungen liest die Überschrift jetzt ohne
+  „·“ (Strukturtest, Reihenfolge und Anzahl unverändert geprüft).
 
 **Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
 Ansichten – `projects/BaustellenUebersicht.tsx` und

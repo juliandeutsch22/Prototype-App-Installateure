@@ -20,6 +20,7 @@ import InfoHint from '@/components/InfoHint';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { Zustand } from '@/components/Badge';
 import { STAND } from './stand';
 import IconButton from '@/components/IconButton';
@@ -387,7 +388,8 @@ export default function QuotesView() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Angebote"
         subtitle="Kalkulieren, versenden, in einen Auftrag überführen"
@@ -599,11 +601,15 @@ export default function QuotesView() {
           </div>
 
           {stundenVorher !== null && (
-            <p className="mt-3 rounded border border-line bg-surface-2 p-3 text-sm text-warning" role="status">
-              Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit zählen.
-              Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher kalkuliert:{' '}
-              <strong>{fmtStunden(stundenVorher)} h</strong>.
-            </p>
+            <div className="mt-3">
+              <Hinweiszeile stufe="warn" role="status">
+                <p>
+                  Bei diesem Angebot war nicht gespeichert, welche Positionen als Arbeitszeit
+                  zählen. Die Haken sind aus der Einheit abgeleitet — bitte prüfen. Bisher
+                  kalkuliert: <strong>{fmtStunden(stundenVorher)} h</strong>.
+                </p>
+              </Hinweiszeile>
+            </div>
           )}
 
           {error && <div className="mt-3"><ErrorState message={error} /></div>}
@@ -632,9 +638,12 @@ export default function QuotesView() {
         </Card>
       )}
 
-      <Card title={`Angebote (${angebote.length})`}>
+      {/* Bündig: Angebote als Zeilen von Kante zu Kante (Designlinie „Fassung 3"). */}
+      <Card title={`Angebote (${angebote.length})`} buendig>
         {loading ? (
-          <SkeletonList rows={3} />
+          <div className="p-4">
+            <SkeletonList rows={3} />
+          </div>
         ) : angebote.length === 0 ? (
           <EmptyState>Noch kein Angebot erstellt.</EmptyState>
         ) : (
