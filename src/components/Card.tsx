@@ -57,13 +57,13 @@ export default function Card({
     Kopf, weil ihre erste Zeile keine eigene trägt.
   */
   const koerper = buendig
-    ? title
-      ? 'border-t border-line'
-      : ''
+    ? `karte-buendig ${title ? 'border-t border-line' : ''}`
     : `karte-koerper px-4 ${title ? '' : 'pt-4'}`;
 
   return (
-    <section id={id} className={`panel overflow-hidden ${className}`}>
+    // `karte` schneidet die Ecken ab, ohne einen Rollbereich aufzumachen
+    // (index.css) — sonst klebte die Aktionsleiste eines Formulars nicht.
+    <section id={id} className={`panel karte ${className}`}>
       {title && (
         <header className="karte-kopf flex-wrap">
           {/* Titel links, Aktion rechts in EINER Zeile — auch am Telefon,

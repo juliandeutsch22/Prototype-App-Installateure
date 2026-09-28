@@ -18,6 +18,8 @@ import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/F
 import BaustellenSelect from '@/components/BaustellenSelect';
 import Icon from '@/components/Icon';
 import Button from '@/components/Button';
+import Hinweiszeile from '@/components/Hinweiszeile';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { ErrorState } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
@@ -596,8 +598,9 @@ export default function TimeForm({
         onChange={(e) => setHelperName(e.target.value)}
       />
 
-      <fieldset className="rounded-sm border border-line bg-surface-2 p-3">
-        <legend className="px-1 section-label">Zuschläge</legend>
+      {/* Eine Gruppe mit Linie oben statt eines getönten Kastens in der Karte. */}
+      <fieldset className="border-t border-line pt-2">
+        <legend className="pr-2 section-label">Zuschläge</legend>
         <CheckboxField
           id="isNightWork"
           label="Nachtarbeit"
@@ -628,22 +631,28 @@ export default function TimeForm({
       {/* Bereits verrechnete Einträge sind die Grundlage einer verschickten
           Rechnung — eine Änderung würde den Beleg nachträglich verfälschen. */}
       {billed && (
-        <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
-          Dieser Eintrag ist mit Rechnung {entry?.invoiceNumber || '—'} verrechnet und kann nicht
-          mehr geändert werden. Dafür muss zuerst die Rechnung storniert werden.
-        </p>
+        <Hinweiszeile stufe="warn" role="alert">
+          <p>
+            Dieser Eintrag ist mit Rechnung {entry?.invoiceNumber || '—'} verrechnet und kann nicht
+            mehr geändert werden. Dafür muss zuerst die Rechnung storniert werden.
+          </p>
+        </Hinweiszeile>
       )}
       {meldungsTag && (
-        <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
-          Dieser Tag gehört zu einer Krankmeldung und wird nur über sie geändert: in der Liste auf
-          „Krankmeldung" tippen und dort das Ende ändern oder die Meldung löschen.
-        </p>
+        <Hinweiszeile stufe="warn" role="alert">
+          <p>
+            Dieser Tag gehört zu einer Krankmeldung und wird nur über sie geändert: in der Liste auf
+            „Krankmeldung" tippen und dort das Ende ändern oder die Meldung löschen.
+          </p>
+        </Hinweiszeile>
       )}
       {antragsTag && (
-        <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
-          Dieser Tag gehört zu einem genehmigten Antrag und ändert sich nur über ihn: auf der Seite
-          Urlaub den Antrag zurücknehmen.
-        </p>
+        <Hinweiszeile stufe="warn" role="alert">
+          <p>
+            Dieser Tag gehört zu einem genehmigten Antrag und ändert sich nur über ihn: auf der Seite
+            Urlaub den Antrag zurücknehmen.
+          </p>
+        </Hinweiszeile>
       )}
 
       {/* Ein Griff statt sieben: übernimmt Zeiten, Pause und Baustelle vom
@@ -665,7 +674,9 @@ export default function TimeForm({
               setIsHelper(!!lastEntry.isHelper);
             }
           }}
-          className="flex min-h-touch w-full items-center gap-2 rounded border border-brand/40 bg-info-bg px-3 py-2 text-left text-sm font-medium text-brand transition hover:border-brand active:scale-[0.99]"
+          // Weiss mit Haarlinie wie ein Nebenknopf (Designlinie „Fassung 3"):
+          // die türkis getönte Fläche war die einzige farbige im Formular.
+          className="flex min-h-touch w-full items-center gap-2 rounded border border-line bg-surface px-3 py-2 text-left text-sm font-medium text-ink-deep shadow-sm transition hover:bg-surface-2 active:scale-[0.99]"
         >
           {/* Umbrechen statt abschneiden: der Kundenname ist das, woran man
               den Eintrag wiedererkennt. */}
@@ -727,20 +738,17 @@ export default function TimeForm({
         Handlungen, und die Meldung nennt jeweils die eigene.
       */}
       {konflikt && (
-        <p
-          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm font-medium text-warning"
-          role="alert"
-        >
-          {konflikt}
-        </p>
+        <Hinweiszeile stufe="warn" role="alert">
+          <p>{konflikt}</p>
+        </Hinweiszeile>
       )}
       {holidayName && (
-        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-          Hinweis: {holidayName} — gesetzlicher Feiertag.
-        </p>
+        <Hinweiszeile>
+          <p>Hinweis: {holidayName} — gesetzlicher Feiertag.</p>
+        </Hinweiszeile>
       )}
       {alsKrankmeldung && (
-        <div className="space-y-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+        <div className="space-y-3 text-sm text-ink-muted">
           <p>
             Wird als Krankmeldung erfasst: die Arbeitstage bis zum Ende stehen als „Krank" im
             Zeitkonto, das Büro sieht die Meldung. Ist das Ende noch offen, das voraussichtliche
@@ -759,7 +767,7 @@ export default function TimeForm({
         </div>
       )}
       {alsUrlaubEintrag && (
-        <div className="space-y-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+        <div className="space-y-3 text-sm text-ink-muted">
           <p>
             Wird als genehmigter Urlaub eingetragen: die freien Arbeitstage bis zum Ende stehen als
             „Urlaub" im Zeitkonto und zählen beim Resturlaub. Schon gebuchte Tage bleiben.
@@ -777,13 +785,13 @@ export default function TimeForm({
         </div>
       )}
       {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && !alsUrlaubEintrag && (
-        <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+        <p className="text-sm text-ink-muted">
           {status}: Es werden keine Arbeitszeiten erfasst. Der Tag wird als voller
           Solltag gutgeschrieben.
         </p>
       )}
       {status === 'Zeitausgleich' && (
-        <div className="space-y-3 rounded border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+        <div className="space-y-3 text-sm text-ink-muted">
           <p>
             Zeitausgleich: Es wird keine Arbeitszeit gutgeschrieben — das Zeitguthaben sinkt um die
             freie Zeit{zaStundenweise ? '' : ' (einen ganzen Tag: um das Tagessoll)'}.
@@ -821,7 +829,11 @@ export default function TimeForm({
 
       {showWorkFields && (
         <>
-          <FormGrid cols={3}>
+          {/* Von und Bis nebeneinander, auch am Telefon — sie werden zusammen
+              gelesen. Alle drei in einer Reihe erst ab 640 px: auf 375 px
+              blieben je Feld 98 px, und das Uhrzeitfeld des Browsers schnitt
+              daneben sein Uhrsymbol „07:00" zu „07:0" ab (gemessen). */}
+          <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-3">
             <InputField
               id="startTime"
               label="Von"
@@ -850,7 +862,7 @@ export default function TimeForm({
               required
               pflicht
             />
-          </FormGrid>
+          </div>
 
           {/*
             DIE GERECHNETE ZAHL, BEVOR GESPEICHERT WIRD.
@@ -865,7 +877,8 @@ export default function TimeForm({
               className={
                 bild.befund === 'ok'
                   ? 'text-sm text-ink-muted'
-                  : 'rounded border border-warning/30 bg-surface-2 px-3 py-2 text-sm text-warning'
+                  : // Ein Befund als Hinweiszeile: Dreieck in der Farbe, Satz in Tinte.
+                    'hinweiszeile hinweiszeile-warn'
               }
               /*
                 Nur der Befund wird angesagt, die normale Zahl nicht: eine
@@ -874,8 +887,11 @@ export default function TimeForm({
               */
               role={bild.befund === 'ok' ? undefined : 'alert'}
             >
-              Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
-              {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
+              {bild.befund !== 'ok' && <Icon name="warnung" size={16} />}
+              <span>
+                Arbeitszeit: <strong>{fmtMin(bild.minuten)} Std</strong>
+                {zeitSatz(bild) && <span className="block">{zeitSatz(bild)}</span>}
+              </span>
             </p>
           )}
 
@@ -911,7 +927,7 @@ export default function TimeForm({
             für ihn gibt es nichts umzuschalten.
           */}
           {darfErweitern && !aussendienst && (
-            <div className="rounded-sm border border-line bg-surface-2 p-3">
+            <div>
               {/*
                 Die Beschriftung sagt bereits, WAS dazukommt. Warum man es
                 braucht, stand darunter dauerhaft in zwei Zeilen — auf der
@@ -945,10 +961,14 @@ export default function TimeForm({
                 die Rechnung eine Position, ohne dass jemand es merkt.
               */}
               {!erweitert && entry && (entry.projectNumber || entry.isEmergency || entry.isNightWork) && (
-                <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                  Dieser Eintrag hat eine Baustelle oder Zuschläge hinterlegt. Speichern ohne
-                  erweiterte Erfassung entfernt sie.
-                </p>
+                <div className="mt-2">
+                  <Hinweiszeile stufe="warn">
+                    <p>
+                      Dieser Eintrag hat eine Baustelle oder Zuschläge hinterlegt. Speichern ohne
+                      erweiterte Erfassung entfernt sie.
+                    </p>
+                  </Hinweiszeile>
+                </div>
               )}
             </div>
           )}
@@ -1004,7 +1024,11 @@ export default function TimeForm({
                 className="flex min-h-touch w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm"
               >
                 <span className="min-w-0">
-                  <span className="block font-medium text-ink">Weitere Angaben</span>
+                  <span className="flex flex-wrap items-center gap-x-2 font-medium text-ink-deep">
+                    Weitere Angaben
+                    {/* Leise: niemand muss hier etwas eintragen. */}
+                    <span className="stand stand-leise font-normal">optional</span>
+                  </span>
                   <span className="block text-ink-muted">
                     {weitereWerte.length > 0
                       ? weitereWerte.join(' · ')
@@ -1031,22 +1055,32 @@ export default function TimeForm({
 
       {error && <ErrorState message={error} />}
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button type="submit" loading={saving} disabled={!!konflikt || gesperrt} className="w-full sm:w-auto">
-          {isEdit
-            ? 'Änderungen speichern'
-            : alsKrankmeldung
-              ? 'Krank melden'
-              : alsUrlaubEintrag
-                ? 'Urlaub eintragen'
-                : 'Zeit buchen'}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel} className="w-full sm:w-auto">
-            Abbrechen
+      {/*
+        DIE KNÖPFE KLEBEN AM TELEFON UNTEN (Designlinie „Fassung 3"): das
+        Formular ist länger als der Bildschirm, und wer „Weitere Angaben"
+        aufklappt, soll zum Buchen nicht zurückblättern. Abbrechen links und
+        schmal, die Hauptaktion rechts und breit.
+      */}
+      <Aktionsleiste
+        links={
+          onCancel ? (
+            <Button type="button" variant="secondary" onClick={onCancel}>
+              Abbrechen
+            </Button>
+          ) : undefined
+        }
+        rechts={
+          <Button type="submit" loading={saving} disabled={!!konflikt || gesperrt}>
+            {isEdit
+              ? 'Änderungen speichern'
+              : alsKrankmeldung
+                ? 'Krank melden'
+                : alsUrlaubEintrag
+                  ? 'Urlaub eintragen'
+                  : 'Zeit buchen'}
           </Button>
-        )}
-      </div>
+        }
+      />
     </form>
   );
 }

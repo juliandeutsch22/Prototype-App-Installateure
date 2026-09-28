@@ -663,6 +663,16 @@ textarea {
    * Karte `buendig` (siehe Card.tsx).
    */
   .karte-koerper > .abschnitt { margin-inline: -1rem; }
+  /* In der bündigen Karte trägt der Körper schon die Linie unter dem Kopf. */
+  .karte-buendig > .abschnitt:first-child { border-top: 0; }
+  /*
+   * DIE KARTE SCHNEIDET MIT `clip`, NICHT MIT `hidden`. Beides hält die
+   * getönten Abschnitte in der Rundung; `hidden` macht die Karte aber zu
+   * einem Rollbereich, und darin klebt eine `sticky`-Aktionsleiste nicht
+   * mehr am Bildschirm, sondern an der Karte. `hidden` steht davor für
+   * Browser, die `clip` nicht kennen.
+   */
+  .karte { overflow: hidden; overflow: clip; }
   .karte-koerper .zeile { padding-inline: 0; }
 
   /* ── Zeile ──────────────────────────────────────────────────────────── */
@@ -733,8 +743,10 @@ textarea {
   .aktionsleiste-summe b { color: var(--ink-deep); font-size: 0.9375rem; font-weight: 600; }
   .aktionsleiste-knoepfe { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0.5rem; }
   .aktionsleiste-knoepfe > :only-child { grid-column: 1 / -1; }
+  /* In einer Karte reicht die Leiste bis an deren Ränder und schliesst sie unten ab. */
+  .karte-koerper .aktionsleiste { margin: 1rem -1rem -1rem; padding-inline: 1rem; }
   @media (min-width: 1024px) {
-    .aktionsleiste { position: static; margin: 0; border-top: 0; padding: 0; background: transparent; }
+    .aktionsleiste, .karte-koerper .aktionsleiste { position: static; margin: 0; border-top: 0; padding: 0; background: transparent; }
     .aktionsleiste-summe { justify-content: flex-end; }
     .aktionsleiste-knoepfe { grid-template-columns: auto auto; justify-content: end; }
     .aktionsleiste-knoepfe > :only-child { grid-column: auto; }

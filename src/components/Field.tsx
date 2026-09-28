@@ -60,8 +60,11 @@ function Beschriftung({ label, pflicht, id }: { label: string; pflicht?: boolean
         Test, müsste ab dann den Stern mitraten. Fünfzehn bestehende Tests
         haben genau das gemeldet, als er noch drinstand.
       */}
+      {/* `leading-none`: sonst macht der Stern die Beschriftungszeile höher
+          als die eines Feldes ohne Stern, und zwei Felder nebeneinander
+          stehen um ein paar Pixel versetzt. */}
       {pflicht && (
-        <span aria-hidden="true" className="text-danger">
+        <span aria-hidden="true" className="leading-none text-danger">
           *
         </span>
       )}

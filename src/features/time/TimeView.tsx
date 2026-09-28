@@ -37,6 +37,8 @@ import { Marke, Warnung } from '@/components/Badge';
 import Zeitmarker from './Zeitmarker';
 import { zuschlagszeit, hatZuschlaege } from '@/features/accounting/zuschlaege';
 import Button from '@/components/Button';
+import Hinweiszeile from '@/components/Hinweiszeile';
+import Abschnitt from '@/components/Abschnitt';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
@@ -403,7 +405,8 @@ export default function TimeView() {
   if (!user) return null;
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       {/* Ohne Zeitkonto kein Saldo — dann verspricht die Überschrift auch keinen (Launch-Check, M4). */}
       <PageHeader
         title="Zeiterfassung"
@@ -454,10 +457,8 @@ export default function TimeView() {
         nie gebuchte Stunde wird nie verrechnet.
       */}
       {nachtraege.length > 0 && (
-        <div
-          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning"
-          role="alert"
-        >
+        // Eine Hinweiszeile mit der Liste darunter, kein farbiger Kasten.
+        <Hinweiszeile stufe="warn" role="alert">
           <p className="flex flex-wrap items-center gap-1">
             <strong>
               {nachtraege.length === 1
@@ -528,24 +529,23 @@ export default function TimeView() {
               </li>
             ))}
           </ul>
-        </div>
+        </Hinweiszeile>
       )}
 
       {doppelteTage.size > 0 && (
-        <p
-          className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-danger"
-          role="alert"
-        >
-          <strong>
-            {doppelteTage.size === 1
-              ? 'An einem Tag steht dieselbe Buchung zweimal.'
-              : `An ${doppelteTage.size} Tagen steht dieselbe Buchung zweimal.`}
-          </strong>{' '}
-          Der Saldo zählt beide. Betroffen:{' '}
-          {[...doppelteTage].sort().map(datumAT).join(', ')} — bitte unten in der Liste den
-          überflüssigen Eintrag löschen. Mehrere Baustellen an einem Tag sind
-          dagegen in Ordnung und stehen hier nicht.
-        </p>
+        <Hinweiszeile stufe="fehl" role="alert">
+          <p>
+            <strong>
+              {doppelteTage.size === 1
+                ? 'An einem Tag steht dieselbe Buchung zweimal.'
+                : `An ${doppelteTage.size} Tagen steht dieselbe Buchung zweimal.`}
+            </strong>{' '}
+            Der Saldo zählt beide. Betroffen:{' '}
+            {[...doppelteTage].sort().map(datumAT).join(', ')} — bitte unten in der Liste den
+            überflüssigen Eintrag löschen. Mehrere Baustellen an einem Tag sind
+            dagegen in Ordnung und stehen hier nicht.
+          </p>
+        </Hinweiszeile>
       )}
 
       <MetricRow>
@@ -672,23 +672,34 @@ export default function TimeView() {
         />
       )}
 
-      <Card title="Meine Einträge" id="meine-eintraege">
+      {/* Bündig: die Wochen sind getönte Abschnitte, die Buchungen Zeilen von
+          Kante zu Kante (Designlinie „Fassung 3"). Laden, Fehler und Leere
+          stehen gepolstert darin. */}
+      <Card title="Meine Einträge" id="meine-eintraege" buendig>
         {loading ? (
-          <SkeletonList rows={5} />
+          <div className="p-4">
+            <SkeletonList rows={5} />
+          </div>
         ) : error ? (
-          <ErrorState message={error} />
+          <div className="p-4">
+            <ErrorState message={error} />
+          </div>
         ) : entries.length === 0 ? (
-          <EmptyState>Noch keine Zeiteinträge erfasst.</EmptyState>
+          <div className="p-4">
+            <EmptyState>Noch keine Zeiteinträge erfasst.</EmptyState>
+          </div>
         ) : (
-          <div className="space-y-6">
+          <div>
             {byWeek.map(([week, rows]) => {
               const weekMin = rows.reduce((sum, e) => sum + calcWorkMin(e), 0);
               return (
                 <div key={week}>
-                  <h3 className="mb-1 flex items-center justify-between text-sm font-semibold text-ink-muted">
-                    <span>{week}</span>
-                    <span>{fmtMin(weekMin)}</span>
-                  </h3>
+                  {/* Die Woche als Abschnitt, ihre Summe rechts — dort, wo in
+                      den Zeilen darunter die Stunden stehen. */}
+                  <Abschnitt
+                    titel={week}
+                    link={<span className="text-sm font-medium text-ink-deep">{fmtMin(weekMin)}</span>}
+                  />
                   <List>
                     {rows.map((e) => {
                       // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
@@ -774,7 +785,7 @@ export default function TimeView() {
           bleibt davon unberuehrt — er rechnet immer ab Eintritt.
         */}
         {!loading && !error && (
-          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+          <div className="flex flex-wrap items-center gap-3 border-t border-line px-4 py-3">
             <Button variant="secondary" onClick={() => setMonate((m) => m + MONATE_JE_SEITE)}>
               Ältere Einträge laden
             </Button>
