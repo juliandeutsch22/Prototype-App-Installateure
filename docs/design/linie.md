@@ -56,6 +56,12 @@ Diese Varianten wurden gezeigt und **abgelehnt**:
 - Aus dem ersten Durchgang (#153/#154, zurückgenommen mit #155): iOS-artige
   gruppierte Listen mit grauem Grund, komplett neue Farbwelt, Emojis,
   gestrichelte Rahmen, halbtransparente Flächen.
+- **Pillen in jeder Form** (Entscheid vom 28.09.2026): Die Bilder dieser
+  Fassung zeigen die Filter („Alle · Offen · Überfällig · Bezahlt") als
+  umrandete Kästchen. Das wird **nicht** so umgesetzt – die App soll nicht
+  wieder bunt oder verspielt werden. Filter sind Textreiter mit Unterstrich
+  unter dem gewählten (`.chips`/`.chip`, Abschnitt 6). Status bleibt Punkt
+  plus grauer Text. Wo die Bilder davon abweichen, gilt dieser Text.
 
 ## 4. Tokens
 
@@ -104,7 +110,7 @@ dunklen Leiste (bleibt wie es ist).
 | Tabellenkopf | 12.5 | gleich | 600 | `--text-muted` |
 | Tabellenzelle | 14 | gleich | 400, Hauptspalte 500 | `--text` |
 | Knopf | 15 | gleich | primär 600, sekundär 500 | |
-| Chip / Segment | 13.5 / 14 | gleich | 500, aktiv 600 | |
+| Filter (Textreiter) / Segment | 13.5 / 14 | gleich | 500, aktiv 600 | gedämpft, aktiv Tinte mit Unterstrich |
 | Reiter unten | 11.5 | – | 500 | Weiß 72 %, aktiv 100 % |
 
 Zeilenumbruch: am `body` zusätzlich `overflow-wrap: anywhere; hyphens: auto;`
@@ -176,12 +182,16 @@ Ansicht angefasst werden muss.
 .kennzahl { padding: 0.75rem 1rem; border-right: 1px solid var(--border); min-width: 0; }
 .kennzahl:nth-child(2n) { border-right: 0; }
 .kennzahl:nth-child(n+3) { border-top: 1px solid var(--border); }
+/* Eine einzelne Kennzahl nimmt die ganze Leiste, statt eine leere Hälfte neben sich zu lassen. */
+.kennzahl:only-child { grid-column: 1 / -1; border-right: 0; }
+/* Am Schreibtisch EINE Reihe mit so vielen Spalten, wie es Kennzahlen gibt
+   (in der App höchstens vier) — vier feste Spalten liessen eine Leiste mit
+   zwei Werten zur Hälfte leer stehen. */
 @media (min-width: 1024px) {
-  .kennzahlen { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .kennzahlen { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
   .kennzahl:nth-child(2n) { border-right: 1px solid var(--border); }
-  .kennzahl:nth-child(4n), .kennzahl:last-child { border-right: 0; }
+  .kennzahl:last-child { border-right: 0; }
   .kennzahl:nth-child(n+3) { border-top: 0; }
-  .kennzahl:nth-child(n+5) { border-top: 1px solid var(--border); }
 }
 .kennzahl-name { font-size: 0.8125rem; line-height: 1.125rem; color: var(--text-muted); }
 .kennzahl-wert { font-size: 1.3125rem; line-height: 1.75rem; font-weight: 600; color: var(--ink-deep); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -205,8 +215,16 @@ Ansicht angefasst werden muss.
 
 /* ── Suche, Chips, Segment ──────────────────────────────────────────── */
 .suche { display: flex; align-items: center; gap: 0.625rem; height: 2.75rem; padding: 0 0.875rem; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); font-size: 0.9375rem; flex: 1; }
-.chip { height: 2.25rem; padding: 0 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); font-size: 0.84375rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.375rem; color: var(--ink-deep); white-space: nowrap; }
-.chip-an { background: var(--surface-2); border-color: var(--ink-deep); }
+/*
+ * FILTER SIND TEXTREITER, KEINE PILLEN (Entscheid vom 28.09.2026). Der
+ * Entwurf zeigte die Filter als umrandete Kästchen; das ist die Pillenform,
+ * die schon zweimal als „zu bunt, zu verspielt" abgelehnt wurde. Hier also
+ * Text mit einem Unterstrich unter dem gewählten — dieselbe Sprache wie die
+ * übrigen Reiter der App. 44 px Tastfläche bleiben.
+ */
+.chips { display: flex; flex-wrap: wrap; column-gap: 1rem; }
+.chip { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; padding: 0 0.125rem; border-bottom: 2px solid transparent; background: none; font-size: 0.84375rem; font-weight: 500; color: var(--text-muted); white-space: nowrap; }
+.chip-an { color: var(--ink-deep); font-weight: 600; border-bottom-color: var(--brand-fixed); }
 .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); overflow: hidden; }
 .segment > * { display: flex; align-items: center; justify-content: center; min-height: 2.625rem; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); border-right: 1px solid var(--border); }
 .segment > *:last-child { border-right: 0; }
@@ -250,7 +268,7 @@ prüfen, dass nichts verdeckt wird).
 | `ListRow`/`List` | `li` mit `py-3`, `flex-wrap`, Aktionen rechts | `li.zeile` mit `.zeile-text` (`.zeile-titel`, `.zeile-meta`), `zustand` als `.stand`, `wert` als `.zeile-wert`, optional Pfeil (`pfeil`-Prop, Standard bei Zeilen, die eine Akte öffnen). `List` → `ul` ohne `divide-y` (die Zeilen tragen den Rand oben). Props und `children` bleiben. |
 | `Metric`/`MetricRow` | 2 Spalten am Telefon, `sm:flex divide-x`, Wert `font-bold` | `MetricRow` → `.kennzahlen` (Leiste mit Rand und Schatten), `Metric` → `.kennzahl` mit `.kennzahl-name/-wert/-zusatz`. Wert **600**, nie `font-bold`. `tone="danger"` färbt nur den Wert (Überfällig). `to` bleibt (Pfeil „›“ im Namen). |
 | `StatusBadge`, `Zustand` | Punkt 6 px + Text `text-ink font-semibold` | `.stand` + `.stand-ok/-warn/-fehl/-info/-leise`: Text **`--text-muted`, 500**, Punkt 7 px. Zuordnung `Stand` → Klasse: gut→ok, achtung→warn, schlecht→fehl, laeuft→info, ruht→leise. `StatusBadge` bleibt die Tabelle Status→Stand (unverändert). |
-| `Warnung` | Pille mit farbigem Rand | bleibt für Zähler („3 offen“); **Warnkarten** in Ansichten werden zu `.hinweiszeile` (Symbol + Text + Link), keine Fläche. |
+| `Warnung` | Pille mit farbigem Rand | **keine Pille mehr** (Entscheid 28.09.2026): `.stand-warn` bzw. bei `stufe="dringend"` `.stand-fehl` — Punkt plus Wort wie der Status. **Warnkarten** in Ansichten werden zu `.hinweiszeile` (Symbol + Text + Link), keine Fläche. |
 | `Button` | `rounded` (14 px), `font-semibold` für alle Varianten, `py-2` | `rounded` (jetzt 10 px durch Token), `min-h-touch` bleibt; `primary` 600, `secondary`/`ghost` **500**; `groesse="klein"` → `min-h-[2.25rem] rounded-sm text-sm`. |
 | `Field` (`InputField`, `SelectField`) | | Höhe 48 px, `rounded` (10 px), Schrift 16 px, Label 13 px 600 `--ink-deep`. |
 | `Schrittfolge` (Handwerksschein) | Nummernkreise + Text, `border-b-2` | `.schritte`/`.schritt`, **ohne Nummern** (Kreis entfällt), Balken 4 px oben, Text 12 px, `nowrap` mit Auslassung. Aria und `aria-current` bleiben. |
@@ -266,7 +284,8 @@ dann 2–3 Karten mit Zeilen und Abschnitten. Keine Kennzahlkacheln mit
 großen Zahlen außer der Kennzahlleiste im Büro-Start.
 
 **B · Liste** – Seitenkopf (Meta: Zeitraum/Anzahl; rechts „Neu“);
-optional Kennzahlleiste; Suche (`.suche`) und Chips (`.chip`) als
+optional Kennzahlleiste; Suche (`.suche`) und Filter als Textreiter
+(`.chips` mit `.chip`, **keine Pillen**, siehe § 3) als
 Filterzeile; **eine** Karte mit Zeilen, gruppiert durch `.abschnitt` (z. B.
 Monat). Am Schreibtisch ab 1024 px dieselben Daten als `.tabelle` in einer
 Karte, Zahlen rechtsbündig, Status als `.stand`. Unter der Liste
@@ -301,8 +320,8 @@ Zeilen.
 | `/worksheet`, `/worksheet?…` | `worksheets/WorkSheetView.tsx`, `Schrittfolge.tsx`, `LeistungszeitErfassen.tsx`, `MaterialErfassen.tsx`, `Fotostreifen.tsx` | D (Schritte) | Zurück-Pfeil links vom Titel; Schritte ohne Nummern; Material: Suche, eine Karte „Verbaut · n Positionen“ mit Stepper je Zeile und Abschnitt „Zuletzt auf dieser Baustelle“ (Knopf „Hinzufügen“ klein); Aktionsleiste „Material · n Positionen“, „Zurück | Weiter: Fotos ›“. Bild `v3/4-iphone-schein-rechnungen.png`. |
 | `/worksheets` | `worksheets/WorkSheetsListView.tsx` | B | Zeilen: Baustelle / Nummer · Datum, rechts Stunden + Stand. |
 | `/material` | `orders/OrderView.tsx` | D+B | Formular-Karte, darunter Abschnitt „Meine Anforderungen“. |
-| `/anforderungen` | `orders/AdminOrdersView.tsx` | B | Chips nach Status; Zeilen mit Stand; Schreibtisch Tabelle. |
-| `/lager` | `orders/StockView.tsx` | B | Suche + Chips; Zeilen: Artikel / Einheit · Ort, rechts Bestand (`.zeile-wert`), unter Mindestbestand `.stand-warn`. |
+| `/anforderungen` | `orders/AdminOrdersView.tsx` | B | Filter nach Status (Textreiter); Zeilen mit Stand; Schreibtisch Tabelle. |
+| `/lager` | `orders/StockView.tsx` | B | Suche + Filter (Textreiter); Zeilen: Artikel / Einheit · Ort, rechts Bestand (`.zeile-wert`), unter Mindestbestand `.stand-warn`. |
 | `/my-schedule/*` | `assignments/MyScheduleView.tsx` | E | Tag als Zeilen; Woche als Tabelle eng. |
 | `/my-projects` | `projects/MyProjectsView.tsx` | B | Zeilen mit Pfeil. |
 | `/quotes`, `/quotes/:id` | `quotes/QuotesView.tsx`, `quotes/AngebotView.tsx` | B / C | Akte: links Positionen (Tabelle), rechts Kunde, Summen, Stand. |
@@ -313,7 +332,7 @@ Zeilen.
 | `/user-mgmt`, `/user-mgmt/:uid` | `users/UserMgmtView.tsx`, `users/BenutzerakteView.tsx` | B / C | Rolle als `Marke`-Text, nicht farbig. |
 | `/settings/*` | `settings/SettingsView.tsx` + Unteransichten | D | Unterreiter bleiben; je Reiter eine Karte mit Abschnitten; Speichern in Aktionsleiste (Telefon) bzw. rechts unten (Schreibtisch). |
 | `/costing` | `costing/NachkalkulationView.tsx` | B | Kennzahlleiste + Tabelle. |
-| `/invoices` | `invoices/InvoicesView.tsx` | B | Kennzahlleiste (Offen, Überfällig rot); Suche; Chips Alle/Offen/Überfällig/Bezahlt; eine Karte mit Monats-Abschnitten, rechts Betrag + Stand als `small`; Textlinks „Mahnlauf · n fällig“, „Buchhaltungs-Export“. Schreibtisch: Tabelle Nummer · Kunde · Baustelle · Datum · Fällig · Betrag (r) · Stand. Bilder `v3/3…`, `v3/4…`, `v3/5…`. |
+| `/invoices` | `invoices/InvoicesView.tsx` | B | Kennzahlleiste (Offen, Überfällig rot); Suche; Filter als Textreiter Alle/Offen/Überfällig/Bezahlt (keine Pillen); eine Karte mit Monats-Abschnitten, rechts Betrag + Stand als `small`; Textlinks „Mahnlauf · n fällig“, „Buchhaltungs-Export“. Schreibtisch: Tabelle Nummer · Kunde · Baustelle · Datum · Fällig · Betrag (r) · Stand. Bilder `v3/3…`, `v3/4…`, `v3/5…`. |
 | `/accounting` | `accounting/AccountingView.tsx` | B | Kennzahlleiste + Tabelle; Export-Knopf als Hauptaktion. |
 | `/impressum`, `/datenschutz`, `/login` | `recht/*`, `auth/LoginPage.tsx` | – | Nur Rundungen/Knöpfe über Tokens; Texte unberührt. |
 
@@ -323,7 +342,8 @@ Zeilen.
    rechts; alles andere in Menüs oder Textlinks.
 2. Keine Karte in einer Karte. Gliederung nur mit `.abschnitt`.
 3. Listen sind `.zeile`n. Titel 500, Meta darunter, Wert/Stand rechts.
-4. Status nur als `.stand` (Punkt + grauer Text). Keine gefüllten Pillen.
+4. Status und Warnungen nur als `.stand` (Punkt + grauer Text). Keine
+   Pillen, weder gefüllt noch umrandet; Filter sind Textreiter.
    Rot (`.stand-fehl`, `tone="danger"`) **nur** für Überfällig/Fehler.
 5. Kennzahlen nur als `.kennzahlen`-Leiste. Zahlen 600, nie 700.
 6. Hinweise als `.hinweiszeile`, keine farbigen Flächen, keine Emojis.

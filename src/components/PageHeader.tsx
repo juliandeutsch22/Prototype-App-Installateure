@@ -24,21 +24,20 @@ export default function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        {/*
-          EINE STUFE KLEINER AUF DEM TELEFON. 1,75 rem sind am Schreibtisch
-          richtig und auf 390 px zu viel: „Benutzerverwaltung" fuellte dort
-          zwei Zeilen, und die Ueberschrift nahm mehr Platz ein als die erste
-          Karte darunter. 1,375 rem stehen noch klar ueber allem anderen auf
-          der Seite — die naechstkleinere Schrift ist der Fliesstext mit
-          1 rem.
-        */}
-        <h1 className="text-xl font-semibold text-ink sm:text-2xl">{title}</h1>
-        <div className="mt-2 h-[3px] w-12 rounded-pill bg-brand-fixed" aria-hidden="true" />
-        {subtitle && <p className="mt-2 text-sm text-ink-muted">{subtitle}</p>}
+    /*
+      DESIGNLINIE „FASSUNG 3" (docs/design/linie.md § 6/7): Titel 24 px am
+      Telefon, 30 px am Schreibtisch, halbfett und nie fett; darunter ein
+      Strich von 32 px und EINE Meta-Zeile. Die Hauptaktion steht rechts
+      unten bündig mit der Meta-Zeile und rutscht auf schmalen Schirmen
+      darunter, statt den Titel zu quetschen (`flex-wrap` in `.seitenkopf`).
+    */
+    <div className="seitenkopf">
+      <div className="min-w-0">
+        <h1>{title}</h1>
+        <div className="seitenkopf-strich" aria-hidden="true" />
+        {subtitle && <p className="seitenkopf-meta">{subtitle}</p>}
       </div>
-      {action && <div className="shrink-0">{action}</div>}
+      {action && <div className="seitenkopf-rechts">{action}</div>}
     </div>
   );
 }

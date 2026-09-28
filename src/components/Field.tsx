@@ -46,7 +46,9 @@ const fieldBase =
 function Beschriftung({ label, pflicht, id }: { label: string; pflicht?: boolean; id: string }) {
   return (
     <span className="flex items-baseline gap-1">
-      <label htmlFor={id} className="text-sm font-medium text-ink">
+      {/* 13 px, halbfett, Tinte (Designlinie „Fassung 3"): die Beschriftung
+          steht klein über dem Feld und bleibt trotzdem als Name lesbar. */}
+      <label htmlFor={id} className="text-meta font-semibold text-ink-deep">
         {label}
       </label>
       {/*
@@ -95,7 +97,7 @@ interface InputFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 /** Beschriftetes Eingabefeld — Label ist Pflicht (Barrierearmut). */
 export function InputField({ label, id, pflicht, className = '', ...rest }: InputFieldProps) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <Beschriftung label={label} pflicht={pflicht} id={id} />
       <input
         id={id}
@@ -124,7 +126,7 @@ export function SelectField({
   ...rest
 }: SelectFieldProps) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       {label && <Beschriftung label={label} pflicht={pflicht} id={id} />}
       <select
         id={id}

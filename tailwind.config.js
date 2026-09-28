@@ -108,7 +108,13 @@ export default {
       fontSize: {
         // Feste Typo-Skala
         xs: ['0.75rem', { lineHeight: '1rem' }],
+        // Zwei Stufen der Designlinie „Fassung 3" (docs/design/linie.md § 5):
+        // 13 px für Beschriftungen und Meta-Zeilen, 15 px für Knöpfe und
+        // Zeilentitel. Benannt nach ihrer Rolle, damit niemand eine
+        // Zwischengrösse von Hand einsetzt.
+        meta: ['0.8125rem', { lineHeight: '1.125rem' }],
         sm: ['0.875rem', { lineHeight: '1.25rem' }],
+        fliess: ['0.9375rem', { lineHeight: '1.375rem' }],
         base: ['1rem', { lineHeight: '1.5rem' }],
         lg: ['1.125rem', { lineHeight: '1.6rem' }],
         xl: ['1.375rem', { lineHeight: '1.8rem' }],

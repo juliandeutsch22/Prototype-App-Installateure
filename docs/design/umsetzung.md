@@ -155,7 +155,7 @@ analog: Formular-Karte, Abschnitt „Meine Anforderungen“.
 **Vorlage:** `v3/3…`, `v3/4…`, `v3/5-schreibtisch-start-rechnungen.png`,
 `seiten.py` Abschnitte `m4`, `d2`.
 
-**Tun:** Seitentyp B (§ 8). Telefon: Kennzahlleiste, Suche, Chips, eine
+**Tun:** Seitentyp B (§ 8). Telefon: Kennzahlleiste, Suche, Filter als Textreiter (keine Pillen), eine
 Karte mit Abschnitten, Textlinks. Ab 1024 px: `.tabelle` in einer Karte;
 Zahlen rechtsbündig (`.r`), Stand als `.stand`. Zeilenmenü (`RowMenu`)
 bleibt für seltene Aktionen. Für die Tabelle **dieselben Daten und

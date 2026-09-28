@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { kontoAnzeige } from '@shared/benutzername';
@@ -101,6 +101,32 @@ export default function Layout({ children }: { children: ReactNode }) {
   const angemeldet = !!user;
   /** Wie viele eigene Buchungen noch im Fach liegen, wenn abgemeldet werden soll. */
   const [ungesendet, setUngesendet] = useState(0);
+  const reiterleiste = useRef<HTMLElement>(null);
+
+  /*
+    DIE HÖHE DER REITERLEISTE ALS CSS-VARIABLE (`--reiter-hoehe` am `body`).
+
+    Die feste Aktionsleiste der Formulare (`.aktionsleiste`, Designlinie
+    „Fassung 3") klebt am Telefon ÜBER der Reiterleiste. Deren Höhe ist
+    keine Konstante: die untere Sicherheitszone des iPhones kommt dazu, und
+    ab dem Tablet ist die Leiste ganz ausgeblendet (dann 0). Gemessen statt
+    geschätzt, und bei jeder Änderung nachgeführt.
+  */
+  useEffect(() => {
+    const leiste = reiterleiste.current;
+    if (!angemeldet || !leiste) return;
+    const setzen = () =>
+      document.body.style.setProperty('--reiter-hoehe', `${leiste.offsetHeight}px`);
+    setzen();
+    const beobachter = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(setzen);
+    beobachter?.observe(leiste);
+    window.addEventListener('resize', setzen);
+    return () => {
+      beobachter?.disconnect();
+      window.removeEventListener('resize', setzen);
+      document.body.style.removeProperty('--reiter-hoehe');
+    };
+  }, [angemeldet]);
 
   /*
     ABMELDEN MIT UNGESENDETEN BUCHUNGEN (Prüflauf 25.09.2026, P1-05).
@@ -339,6 +365,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           halbfett für alle, nicht fett (Marke: „Fett wirkt laut";
           Prüflauf 24.09.2026, C9). */}
       <nav
+        ref={reiterleiste}
         className="panel-dark fixed inset-x-0 bottom-0 z-30 md:hidden"
         aria-label="Hauptnavigation"
       >
