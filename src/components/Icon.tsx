@@ -23,7 +23,11 @@ export type IconName =
   | 'contact'
   | 'wrench'
   | 'archive'
-  | 'calculator';
+  | 'calculator'
+  | 'weiter'
+  | 'warnung'
+  | 'hinweis'
+  | 'haken';
 
 // Schlichte Linien-Icons (24×24, currentColor). Bewusst sachlich, kein Zierwerk.
 // Ausserhalb der Navigation nur, wo das Zeichen mehr sagt als das Wort:
@@ -75,6 +79,16 @@ const paths: Record<IconName, string> = {
   // Nachkalkulation
   calculator:
     'M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1ZM9 7h6v3H9V7ZM9 14h.01M12 14h.01M15 14h.01M9 17h.01M12 17h.01M15 17h.01',
+  /*
+    VIER ZEICHEN DER DESIGNLINIE „FASSUNG 3" (26.09.2026): der Pfeil am Ende
+    einer Zeile, die eine Akte öffnet, und die Symbole der Hinweiszeile —
+    Dreieck für „bitte ansehen", Kreis mit i für eine Auskunft, Haken für
+    einen ruhigen Leerzustand („Alles erledigt").
+  */
+  weiter: 'm9 6 6 6-6 6',
+  warnung: 'M12 4 2.5 20h19L12 4ZM12 10v4.5M12 17.5h.01',
+  hinweis: 'M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18ZM12 11v5.5M12 7.5h.01',
+  haken: 'm5 12.5 4.5 4.5L19 7',
   // Schieberegler statt Zahnrad: passt zur Linienführung der übrigen Icons
   // und meint hier genau das, was der Screen tut — Werte einstellen.
   settings:

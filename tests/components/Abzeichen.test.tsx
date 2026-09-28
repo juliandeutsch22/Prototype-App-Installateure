@@ -6,18 +6,13 @@ import StatusBadge from '@/components/StatusBadge';
 /**
  * Die drei Formen — und die eine Regel, auf der alles steht.
  *
- * DIE PILLE GIBT ES NUR BEI EINER WARNUNG. Das ist nicht Geschmack, sondern
- * die Bedingung dafür, dass sie überhaupt etwas heisst: solange „40 h Budget"
- * genauso aussah wie „über Budget", sagte eine Pille nichts über
- * Dringlichkeit. Fällt diese Prüfung, ist der Gewinn wieder weg — und zwar
- * unbemerkt, weil jede einzelne Ansicht für sich weiter vernünftig aussieht.
- *
- * GEPRÜFT WIRD DIE FORM, NICHT DIE FÜLLFARBE. Die Warnung war einmal eine
- * gefüllte Pille in Pastellgelb und Pastellrot; sie ist jetzt umrandet, weil
- * diese beiden Pastelltöne die einzigen Farbflächen der App waren, die nicht
- * aus der Familie Türkis/Tinte stammen. Die Regel darüber — nur hier eine
- * Pille, zwei Stufen, im Zweifel die mildere — ist von diesem Wechsel nicht
- * berührt, und genau sie hält dieser Test fest.
+ * KEINE PILLE, NIRGENDS (seit 28.09.2026). Bis dahin galt: die Pille gibt es
+ * nur bei einer Warnung. Pillen sind aber genau die Form, die zweimal als „zu
+ * bunt, zu verspielt" abgelehnt wurde (docs/design/linie.md § 3) — also
+ * stehen Zustand und Warnung jetzt beide als Punkt plus Wort, und die Marke
+ * ohne jede Farbe. Was die Formen weiter unterscheidet, prüfen die Blöcke
+ * unten: die Marke hat keine Farbe, der Zustand eine aus fünf, die Warnung
+ * zwei Stufen und im Zweifel die mildere.
  */
 
 /** Hat das Abzeichen eine eigene Fläche? Marke und Zustand dürfen keine haben. */
@@ -52,75 +47,86 @@ describe('Die Marke — eine Tatsache ohne Urteil', () => {
 });
 
 describe('Der Zustand — ein Wert aus einer kleinen Menge', () => {
+  /*
+    SEIT DER DESIGNLINIE „FASSUNG 3" ist der Punkt kein eigenes Element mehr,
+    sondern `.stand::before` (index.css); seine Farbe hängt an der Klasse
+    `stand-*`. Geprüft wird deshalb die Klasse — jsdom zeichnet keine
+    erzeugten Elemente.
+  */
+  const standKlasse = (el: HTMLElement) => [...el.classList].find((k) => k.startsWith('stand-'));
+
   it('zeigt einen Punkt in der Farbe des Werts, nicht eine gefüllte Pille', () => {
-    const { container } = render(<Zustand stand="schlecht">Überfällig</Zustand>);
+    render(<Zustand stand="schlecht">Überfällig</Zustand>);
     const abzeichen = screen.getByText(/Überfällig/);
-    const punkt = container.querySelector('span[aria-hidden="true"]')!;
 
     expect(hatFlaeche(abzeichen)).toBe(false);
-    expect([...punkt.classList]).toContain('bg-danger');
+    expect([...abzeichen.classList]).toContain('stand');
+    expect(standKlasse(abzeichen)).toBe('stand-fehl');
   });
 
   it('verschiedene Werte tragen verschiedene Punkte', () => {
     // Sonst wäre der Punkt Zierrat und die Liste nicht mehr zu überfliegen.
-    const { container: gut } = render(<Zustand stand="gut">Bezahlt</Zustand>);
-    const { container: ruht } = render(<Zustand stand="ruht">Storniert</Zustand>);
+    render(<Zustand stand="gut">Bezahlt</Zustand>);
+    render(<Zustand stand="ruht">Storniert</Zustand>);
 
-    const klasse = (c: HTMLElement) =>
-      [...c.querySelector('span[aria-hidden="true"]')!.classList].find((k) => k.startsWith('bg-'));
-    expect(klasse(gut)).not.toBe(klasse(ruht));
+    const gut = standKlasse(screen.getByText('Bezahlt'));
+    const ruht = standKlasse(screen.getByText('Storniert'));
+    expect(gut).toBeDefined();
+    expect(ruht).toBeDefined();
+    expect(gut).not.toBe(ruht);
   });
 
   it('der Punkt sagt dem Vorleser nichts — das tut das Wort', () => {
+    /*
+      Der Punkt ist ein erzeugtes Element ohne Text; im Baum steht nur das
+      Wort. Stünde dort ein zweites Element mit Inhalt, läse ein Vorleser es
+      mit.
+    */
     const { container } = render(<Zustand stand="gut">Bezahlt</Zustand>);
-    expect(container.querySelector('span[aria-hidden="true"]')).toBeInTheDocument();
-    expect(screen.getByText(/Bezahlt/)).toBeInTheDocument();
+    const abzeichen = container.firstElementChild as HTMLElement;
+    expect(abzeichen.children.length).toBe(0);
+    expect(abzeichen.textContent).toBe('Bezahlt');
   });
 });
 
-describe('Die Warnung — die einzige gefüllte Pille', () => {
-  it('ist die Pille — und Marke und Zustand sind es nicht', () => {
-    /*
-      DIE ABGRENZUNG IST DIE PRÜFUNG, nicht die Form für sich. „Die Warnung
-      ist eine Pille" allein bliebe wahr, wenn morgen auch die Marke eine
-      bekäme — und dann wäre die Regel still gebrochen.
-    */
+describe('Die Warnung — Punkt und Wort, keine Pille', () => {
+  /*
+    BIS ZUM 28.09.2026 war die Warnung die einzige Pille der App. Seither
+    gibt es keine mehr (docs/design/linie.md § 3): Pillen sind die Form, die
+    zweimal als „zu bunt, zu verspielt" abgelehnt wurde. Was bleibt, ist die
+    Stufe — und die prüft dieser Block.
+  */
+  it('ist keine Pille — und Marke und Zustand sind es auch nicht', () => {
     const { container: w } = render(<Warnung>3 knapp</Warnung>);
     const { container: m } = render(<Marke>40 h Budget</Marke>);
     const { container: z } = render(<Zustand stand="gut">Bezahlt</Zustand>);
 
-    expect(istPille(w.firstElementChild as HTMLElement)).toBe(true);
-    expect(istPille(m.firstElementChild as HTMLElement)).toBe(false);
-    expect(istPille(z.firstElementChild as HTMLElement)).toBe(false);
+    for (const c of [w, m, z]) {
+      const el = c.firstElementChild as HTMLElement;
+      expect(istPille(el)).toBe(false);
+      expect([...el.classList].some((k) => k.startsWith('rounded'))).toBe(false);
+    }
   });
 
-  it('trägt keine fremde Farbfläche, sondern die der Karte', () => {
-    /*
-      Pastellgelb und Pastellrot waren die einzigen Farbflächen der App
-      ausserhalb der Familie Türkis/Tinte. Sie fielen auf, weil sie fremd
-      waren, nicht weil sie dringend waren.
-    */
+  it('trägt keine Farbfläche', () => {
     render(<Warnung stufe="dringend">über Budget</Warnung>);
-    const k = [...screen.getByText('über Budget').classList];
-    expect(k).toContain('bg-surface');
-    expect(k).not.toContain('bg-danger-bg');
-    expect(k).not.toContain('bg-warning-bg');
+    expect(hatFlaeche(screen.getByText('über Budget'))).toBe(false);
   });
 
   it('hat zwei Stufen, und die dringende ist die rote', () => {
     render(<Warnung stufe="achtung">12 Tage</Warnung>);
     render(<Warnung stufe="dringend">90 Tage</Warnung>);
 
-    expect([...screen.getByText('12 Tage').classList]).toContain('text-warning');
-    expect([...screen.getByText('90 Tage').classList]).toContain('text-danger');
+    expect([...screen.getByText('12 Tage').classList]).toContain('stand-warn');
+    expect([...screen.getByText('90 Tage').classList]).toContain('stand-fehl');
   });
 
   it('ist ohne Angabe die mildere Stufe', () => {
     // Wer sich nicht entscheidet, soll nicht versehentlich Alarm schlagen.
     render(<Warnung>bitte prüfen</Warnung>);
     const k = [...screen.getByText('bitte prüfen').classList];
-    expect(k).toContain('text-warning');
-    expect(k).not.toContain('text-danger');
+    expect(k).toContain('stand-warn');
+    expect(k).not.toContain('stand-fehl');
   });
 });
 

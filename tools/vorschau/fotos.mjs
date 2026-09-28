@@ -56,7 +56,7 @@ const ROUTEN = [
   ['/impressum', [A]],
   ['/datenschutz', [A]],
 ];
-const BREITEN = [390, 834, 1440];
+const BREITEN = [375, 390, 834, 1440];
 
 fs.mkdirSync(ziel, { recursive: true });
 const browser = await chromium.launch({

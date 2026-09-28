@@ -30,7 +30,7 @@ const ROUTEN = [
  * ist schon da, der Platz aber knapp. Telefon und Schreibtisch sind beide
  * gutmuetig.
  */
-const BREITEN = [['mobil', 390], ['tablet', 834], ['desktop', 1440]];
+const BREITEN = [['iphone', 375], ['mobil', 390], ['tablet', 834], ['desktop', 1440]];
 
 /** Was die Messung meldet, ohne dass es ein Fehler waere. */
 const HARMLOS = [

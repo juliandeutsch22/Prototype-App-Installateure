@@ -53,8 +53,61 @@ Fuge, weiße Karten, Poppins, Strich unter der H1) bleibt.
 | `docs/design/entwurf-2026-09-26/quelle/` | HTML/CSS-Quellen der Entwürfe, mit `python3 build.py` neu renderbar |
 | `tools/vorschau/` | Vorschau der echten Ansichten ohne Datenbank (`npm run vorschau`), zum Messen und Fotografieren |
 
-Umsetzungsstand: **noch nicht begonnen.** Fortschritt je Schritt wird hier
-in einer Tabelle „Schritt · Status · Commit“ nachgetragen.
+**Keine Pillen (Entscheid vom 28.09.2026).** Die Bilder der Fassung 3
+zeigen die Filter als umrandete Kästchen. Das wird nicht übernommen – die
+App soll nicht wieder bunt oder verspielt werden: Filter sind Textreiter mit
+Unterstrich, und auch die bisherige Warnpille (`Warnung`) ist jetzt Punkt
+plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
+
+| Schritt | Status | Commit |
+|---|---|---|
+| 1 · Bausteine | erledigt | siehe PR „Designlinie 3, Schritt 1“ |
+| 2 · Monteur-Start | offen | |
+| 3 · Zeiterfassung | offen | |
+| 4 · Handwerksschein | offen | |
+| 5 · Urlaub und Material anfordern | offen | |
+| 6 · Listen | offen | |
+| 7 · Akten zweispaltig | offen | |
+| 8 · Einsatzplanung und Wochenplan | offen | |
+| 9 · Einstellungen, Rest, Abgleich | offen | |
+
+**Schritt 1 im Einzelnen.** Rundungen 12/10/8 px; die Bausteine aus
+`linie.md` § 6 in `src/index.css`; `PageHeader`, `Card` (neu `buendig`),
+`ListRow` (neu `pfeil`), `List`, `Metric`/`MetricRow`, `Zustand`,
+`Warnung`, `Button`, `Field` umgestellt; neu `Abschnitt`, `Aktionsleiste`,
+`Hinweiszeile`; `--reiter-hoehe` in `Layout.tsx`; Tailwind-Skala um `meta`
+(13 px) und `fliess` (15 px) ergänzt. Abweichungen von der Vorgabe, jede
+mit Grund:
+
+- **Zeilen kürzen nicht.** `.zeile-titel`/`.zeile-meta` kürzen laut Vorgabe
+  auf zwei Zeilen; `ListRow` hebt das auf (`flex`/`block`), weil Titel hier
+  oft Marken („inaktiv“, „Eil“) und Metas Datum und Ort tragen – gekürzt wäre
+  genau das weg. Lange Wörter brechen ohnehin am `body`.
+- **Zeilen im gepolsterten Kartenkörper** fluchten mit dem übrigen Inhalt
+  (`.karte-koerper .zeile` ohne Seitenrand); Zeilen von Kante zu Kante gibt
+  es mit `Card buendig`. So bleibt jede heutige Liste lesbar, bis ihre
+  Ansicht umgebaut ist.
+- **Kennzahlen in einer Karte** (Katalog- und Kundenimport) sind eine Reihe
+  mit Trennstrichen, kein zweiter Kasten; am Schreibtisch hat die Leiste so
+  viele Spalten wie Werte (höchstens vier), statt fest vier.
+- **Kennzahl-Töne:** nur `danger` (rot) und `warning` färben den Wert;
+  `success` und `brand` stehen in Tinte.
+- **Aktionsleiste:** der negative Rand folgt der heutigen Seitenpolsterung
+  (16 px, ab 768 px 24 px), nicht den 14 px des Entwurfs. Die
+  Seitenabstände des Entwurfs (14 px / 28·36 px, 1180 px Breite) kommen mit
+  Schritt 6, wenn die Tabellen den Platz brauchen.
+- **Kleine Knöpfe** sind 36 px hoch (Regel 8); in einer Listenzeile hält
+  `ListRow` sie weiter bei 44 px.
+- **`Unterreiter`** bleibt bis Schritt 9: seine Markierung soll zusammen
+  mit den übrigen Reiterleisten (Material, Lager, Anforderungen, Urlaub)
+  umgestellt werden, sonst sähen Reiter zweierlei aus.
+- **Vorschau** misst jetzt auch 375 px (`messen.mjs`, `fotos.mjs`). Befund
+  vor und nach Schritt 1 identisch (6 Stellen, alle schon vorher da).
+
+**Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
+Ansichten – `projects/BaustellenUebersicht.tsx` und
+`accounting/ProjectSummary.tsx` (Legende `rounded-pill border`); farbige
+Warnkarten (Nachtlauf, Wartungen, fehlende Buchungen) → `Hinweiszeile`.
 
 **Unterschrift quer.** Unter jedem Unterschriftsfeld steht unter 1024 px
 „Groß unterschreiben“: dieselbe Zeichenfläche bildschirmfüllend, im

@@ -253,10 +253,11 @@ describe('Der Kopf einer Baustelle bleibt ruhig', () => {
     expect(angabe.className).not.toContain('rounded-pill');
   });
 
-  it('lässt „über Budget" sehr wohl als Pille stehen', async () => {
+  it('lässt „über Budget" sehr wohl rot stehen', async () => {
     /*
-      Die Ausnahme darf schreien. 45 Stunden auf ein Budget von 40 sind der
-      eine Fall, für den die Farbe da ist.
+      Die Ausnahme darf auffallen. 45 Stunden auf ein Budget von 40 sind der
+      eine Fall, für den die Farbe da ist. Seit dem 28.09.2026 ohne Pille
+      (docs/design/linie.md § 3) — rot sind Punkt und Wort.
     */
     const viele = Array.from({ length: 5 }, (_, i) =>
       eintrag({ id: `v${i}`, date: `2026-09-0${i + 1}` } as Partial<TimeEntry>),
@@ -270,8 +271,9 @@ describe('Der Kopf einer Baustelle bleibt ruhig', () => {
       />,
     );
 
-    const pille = screen.getByText('über Budget');
-    expect(pille.className).toContain('rounded-pill');
+    const warnung = screen.getByText('über Budget');
+    expect([...warnung.classList]).toContain('stand-fehl');
+    expect(warnung.className).not.toContain('rounded-pill');
   });
 });
 

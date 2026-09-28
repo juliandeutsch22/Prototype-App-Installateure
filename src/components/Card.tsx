@@ -16,26 +16,26 @@ interface CardProps {
   footer?: ReactNode;
   /** Sprungziel, etwa für „Zu meinen Einträgen". */
   id?: string;
+  /**
+   * Inhalt ohne Seitenrand: für Karten, die aus Zeilen (`List`) und
+   * Abschnitten bestehen. Die Zeilen tragen ihren Rand dann selbst und ihre
+   * Trennlinien reichen von Kante zu Kante (Designlinie „Fassung 3").
+   */
+  buendig?: boolean;
 }
 
 /**
- * Ruhige Karte: heller Verlauf, türkis getönte Haarlinie, langer flacher
- * Schatten, kompaktes Innenmaß — die Fläche `.panel` aus index.css.
+ * Die Karte — EINE Ebene (Designlinie „Fassung 3", docs/design/linie.md § 7).
  *
- * Der Verlauf ist kaum zu benennen und genau deshalb richtig: er nimmt der
- * weißen Fläche das Sterile, ohne dass jemand ihn beim Arbeiten bemerkt. Der
- * Schatten liegt mit negativer Streuung UNTER der Karte statt als Rahmen um
- * sie herum; dadurch bleibt die Kante scharf und die Karte hebt sich trotzdem
- * vom Grund ab.
+ * Der Kopf ist weiss wie der Körper und hat keinen Rand nach unten. Er war
+ * eine Spur kühler getönt, damit er auch bei kurzem Titel als Kopf zu lesen
+ * ist; seit die Linie Gruppen INNERHALB der Karte mit getönten
+ * Abschnittszeilen (`Abschnitt`) gliedert, gehört die Tönung dorthin — ein
+ * getönter Kopf sähe aus wie der erste Abschnitt.
  *
- * Der farbige Balken links ist entfallen. Er war als Signatur gedacht,
- * markierte am Ende aber fast jede Karte — und was überall steht, hebt
- * nichts mehr hervor. Aus demselben Grund trägt die Karte auch keine
- * leuchtende Oberkante: die ist der App-Navigation vorbehalten, wo sie einzeln
- * vorkommt. Betont wird über Inhalt und Badge, nicht über Rahmenschmuck.
- *
- * Auch der Schatten beim Überfahren ist weg: Karten sind hier keine
- * Schaltflächen, sie sollen nicht so tun.
+ * Kein farbiger Balken, keine leuchtende Oberkante, kein Schatten beim
+ * Überfahren: Karten sind hier keine Schaltflächen, und was überall steht,
+ * hebt nichts mehr hervor.
  */
 export default function Card({
   children,
@@ -45,26 +45,35 @@ export default function Card({
   hint,
   footer,
   id,
+  buendig = false,
 }: CardProps) {
   const [hinweisOffen, setHinweisOffen] = useState(false);
   const hinweisId = useId();
 
+  /*
+    DER KÖRPER: gepolstert (`karte-koerper`), oder bündig für Zeilen. Ohne
+    Kopf fehlt oben der Abstand, den sonst der Kopf mitbringt — deshalb dort
+    `pt-4`. Eine bündige Karte mit Kopf bekommt die Trennlinie unter dem
+    Kopf, weil ihre erste Zeile keine eigene trägt.
+  */
+  const koerper = buendig
+    ? title
+      ? 'border-t border-line'
+      : ''
+    : `karte-koerper px-4 ${title ? '' : 'pt-4'}`;
+
   return (
     <section id={id} className={`panel overflow-hidden ${className}`}>
       {title && (
-        // Der Kartenkopf sitzt eine Spur kühler als der Körper — so ist er
-        // auch dann als Kopf zu lesen, wenn der Titel kurz ist.
-        <header className="border-b border-line bg-surface-2 px-4 py-3">
-          {/* Auf schmalen Schirmen Titel und Aktionen untereinander: sonst
-              überlagern breite Aktionen (mehrere Knöpfe) den Titel. */}
-          {/* Ein Link als Kartenaktion („Zur Einsatzplanung") bekommt dieselbe
-              Höhe wie ein Knopf: 20 px Text sind mit dem Daumen kaum zu
-              treffen (Prüflauf 24.09.2026, D6). */}
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 [&>a]:inline-flex [&>a]:min-h-touch [&>a]:items-center">
-            {/* Der Kartentitel ordnet den Inhalt, ohne mit der
-                Seitenüberschrift zu konkurrieren (`.titel-karte`). Das „i"
-                gehört zum Titel, nicht zu den Aktionen — deshalb steht es in
-                derselben Zeile links. */}
+        <header className="karte-kopf flex-wrap">
+          {/* Titel und Aktion brechen auf schmalen Schirmen untereinander,
+              statt dass breite Aktionen (mehrere Knöpfe) den Titel
+              überlagern. Ein Link als Kartenaktion („Zur Einsatzplanung")
+              bekommt dieselbe Tasthöhe wie ein Knopf: 20 px Text sind mit dem
+              Daumen kaum zu treffen (Prüflauf 24.09.2026, D6). */}
+          <div className="flex w-full flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 [&>a]:inline-flex [&>a]:min-h-touch [&>a]:items-center">
+            {/* Das „i" gehört zum Titel, nicht zu den Aktionen — deshalb
+                steht es in derselben Zeile links. */}
             <h2 className="titel-karte">
               {title}
               {hint && (
@@ -82,16 +91,14 @@ export default function Card({
               ist mobil eine Spalte, und in einer Spalten-Flexbox bedeutet
               „volle Basis" volle Höhe statt voller Breite. */}
           {hint && hinweisOffen && (
-            <InfoPanel id={hinweisId} className="mt-3">
+            <InfoPanel id={hinweisId} className="mt-1 w-full">
               {hint}
             </InfoPanel>
           )}
         </header>
       )}
-      <div className="px-4 py-4">{children}</div>
-      {footer && (
-        <footer className="border-t border-line bg-surface-2 px-4 py-3">{footer}</footer>
-      )}
+      <div className={koerper}>{children}</div>
+      {footer && <footer className="karte-fuss">{footer}</footer>}
     </section>
   );
 }

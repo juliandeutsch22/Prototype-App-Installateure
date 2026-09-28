@@ -32,12 +32,9 @@ import type { Role } from '@/types';
  *            Werts, daneben das Wort in normaler Schrift. Die Farbe bleibt
  *            zum Überfliegen da, die farbige FLÄCHE schrumpft von einer
  *            Pille auf sechs Bildpunkte.
- *   WARNUNG  Hier liegt etwas für dich. Die Pille — und NUR noch hier.
- *            Genau deshalb heisst eine Pille in dieser App jetzt etwas.
- *            Sie ist umrandet und nicht gefüllt: gefüllt hiesse Pastellgelb
- *            und Pastellrot, und das sind die einzigen Farbflächen der App,
- *            die nicht aus der Familie Türkis/Tinte stammen (siehe unten bei
- *            `Warnung`).
+ *   WARNUNG  Hier liegt etwas für dich. War bis zum 28.09.2026 die einzige
+ *            Pille der App; seither Punkt plus Wort wie der Zustand, mit
+ *            oranger oder roter Stufe (siehe unten bei `Warnung`).
  *
  * DIE ROLLEN HABEN IHRE FARBEN VERLOREN. Sechs Farben für sechs Rollen sind
  * eine Legende, die niemand auswendig lernt; das Wort „Buchhaltung" sagt es
@@ -63,12 +60,16 @@ export type Stand =
   /** Ist aus dem Ruder. */
   | 'schlecht';
 
-const punkt: Record<Stand, string> = {
-  gut: 'bg-success',
-  laeuft: 'bg-accent-deep',
-  ruht: 'bg-ink-placeholder',
-  achtung: 'bg-warning',
-  schlecht: 'bg-danger',
+/*
+ * Die Klasse zum Wert (Designlinie „Fassung 3", `.stand-*` in index.css).
+ * Die Namen der Linie sind kürzer, die Bedeutung ist dieselbe.
+ */
+const standKlasse: Record<Stand, string> = {
+  gut: 'stand-ok',
+  laeuft: 'stand-info',
+  ruht: 'stand-leise',
+  achtung: 'stand-warn',
+  schlecht: 'stand-fehl',
 };
 
 /**
@@ -95,28 +96,31 @@ export function Marke({ children }: { children: ReactNode }) {
  * aber sie kostet dafür die ganze Zeilenhöhe an Farbe, und zehn davon
  * untereinander ergeben eine Liste, in der nichts mehr hervorsticht.
  *
- * `aria-hidden` am Punkt: er sagt nichts, was nicht im Wort steht. Ein
- * Vorleser, der ihn ankündigte, läse eine Dekoration vor.
+ * SEIT DER DESIGNLINIE „FASSUNG 3" steht das Wort gedämpft (`--text-muted`,
+ * 500) und nicht mehr in Tinte und halbfett: in einer Zeile ist der Status
+ * Beiwerk zum Titel, nicht sein Nebenbuhler. Der Punkt kommt aus
+ * `.stand::before` — ein erzeugtes Element ohne Text, das ein Vorleser nicht
+ * ansagt; er sagt nichts, was nicht im Wort steht. Einzig „schlecht"
+ * (Überfällig) färbt auch das Wort, rot.
  */
 export function Zustand({ stand, children }: { stand: Stand; children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-ink">
-      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${punkt[stand]}`} aria-hidden="true" />
-      {children}
-    </span>
-  );
+  return <span className={`stand ${standKlasse[stand]}`}>{children}</span>;
 }
 
 /**
- * Hier liegt etwas für dich — die einzige Pille der App.
+ * Hier liegt etwas für dich — „12 Tage", „über Budget", „3 knapp".
  *
  * ZWEI STUFEN UND NICHT MEHR. `achtung` heisst „sollte jemand ansehen",
  * `dringend` heisst „ist überfällig oder aus dem Ruder". Eine dritte Stufe
  * wäre eine Unterscheidung, die niemand beim Überfliegen trifft.
  *
- * Dass es sie nur hier gibt, ist die eigentliche Wirkung: solange Pillen
- * auch „40 h Budget" bedeuteten, sagte eine Pille nichts über Dringlichkeit.
- * Jetzt schon.
+ * KEINE PILLE MEHR (Entscheid vom 28.09.2026, docs/design/linie.md § 3).
+ * Hier stand bis dahin die einzige Pille der App — erst gefüllt in
+ * Pastellgelb und -rot, dann umrandet. Beides ist die Form, die zweimal als
+ * „zu bunt, zu verspielt" abgelehnt wurde. Jetzt dieselbe Form wie der
+ * Status: Punkt plus Wort (`.stand`). Die Dringlichkeit bleibt sichtbar —
+ * `achtung` mit orangem Punkt, `dringend` mit rotem Punkt UND roter
+ * Schrift; rot ist in der Linie genau dem Überfälligen vorbehalten.
  */
 export function Warnung({
   stufe = 'achtung',
@@ -125,35 +129,8 @@ export function Warnung({
   stufe?: 'achtung' | 'dringend';
   children: ReactNode;
 }) {
-  /*
-    DIE FLÄCHE IST DIE DER KARTE, DIE FARBE STEHT IN RAND UND SCHRIFT.
-
-    Vorher war es eine GEFÜLLTE Pille in Pastellgelb (`--warning-bg`) und
-    Pastellrot (`--danger-bg`). Sie tat ihre Arbeit, sah aber fremd aus, und
-    der Grund dafür ist nachweisbar und nicht Geschmack: das sind die einzigen
-    beiden Farbflächen der ganzen Oberfläche, die nicht aus der Familie
-    Türkis/Tinte stammen. Zwei Pastelltöne in einer Liste, in der sonst nichts
-    pastellfarben ist, fallen auf, weil sie fremd sind — nicht, weil sie
-    dringend sind.
-
-    Die FORM bleibt, und damit bleibt auch die Bedeutung: eine Pille heisst in
-    dieser App weiterhin „hier liegt etwas für dich", und sie ist weiterhin
-    die einzige. Getauscht ist nur, was die Farbe trägt.
-
-    DER KONTRAST WIRD DABEI BESSER, NICHT SCHLECHTER — nachgerechnet, nicht
-    geschätzt: `--warning` steigt von 4,76:1 auf dem Pastellgrund auf 5,42:1
-    auf Weiss, `--danger` von 5,48:1 auf 7,14:1. Der Rand misst 1,5 px und
-    nicht 1 px: ein Haarstrich in einer Warnfarbe verschwindet auf einem
-    Telefon im Sonnenlicht.
-
-    `currentColor` für den Rand statt einer zweiten Farbklasse: Rand und
-    Schrift sind dieselbe Aussage und sollen nicht auseinanderlaufen können.
-  */
-  const ton = stufe === 'dringend' ? 'text-danger' : 'text-warning';
   return (
-    <span
-      className={`inline-block whitespace-nowrap rounded-pill border-[1.5px] border-current bg-surface px-2.5 py-0.5 text-xs font-semibold ${ton}`}
-    >
+    <span className={`stand ${stufe === 'dringend' ? 'stand-fehl' : 'stand-warn'}`}>
       {children}
     </span>
   );
@@ -175,8 +152,8 @@ export function RoleBadge({ role }: { role: Role }) {
  *
  * DIE VIERTE FORM — UND SIE STEHT NUR IN DER NAVIGATION. Das ist keine
  * Ausnahme von der Regel oben, sondern ihr Gegenstück: die Regel sagt, dass
- * eine gefüllte Pille IN EINER LISTE eine Warnung ist, weil sie dort mit dem
- * Namen, der Nummer und dem Betrag um denselben Blick kämpft. Im Menü steht
+ * IN EINER LISTE keine Fläche steht, weil sie dort mit dem Namen, der
+ * Nummer und dem Betrag um denselben Blick kämpft. Im Menü steht
  * neben dem Wort nichts — die Zahl kämpft mit nichts, und ohne Fläche wäre
  * sie ein zweites Wort in einer Zeile, die aus einem Wort besteht.
  *
