@@ -109,10 +109,16 @@ export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void
   );
 }
 
-/** Leerzustand — eine Einladung zu handeln, keine leere weiße Fläche. */
+/**
+ * Leerzustand — eine Einladung zu handeln, keine leere weiße Fläche.
+ *
+ * OHNE KASTEN (Designlinie „Fassung 3"): ein getönter Rahmen um „Noch nichts
+ * da" stand in einer Karte wie eine zweite Karte und war damit lauter als
+ * der Inhalt, der sonst dort steht. Ein ruhiger, zentrierter Satz genügt.
+ */
 export function EmptyState({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded border border-line bg-surface-2 p-6 text-center text-ink-muted">
+    <div className="flex flex-col items-center gap-3 px-4 py-6 text-center text-ink-muted">
       <p>{children}</p>
       {action}
     </div>

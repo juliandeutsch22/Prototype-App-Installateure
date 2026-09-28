@@ -63,8 +63,8 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 |---|---|---|
 | 1 · Bausteine | erledigt | `ccea9a4` (#160) |
 | 2 · Monteur- und Büro-Start | erledigt | `91d017b` (#161) |
-| 3 · Zeiterfassung | erledigt | siehe PR „Designlinie 3, Schritt 3“ |
-| 4 · Handwerksschein | offen | |
+| 3 · Zeiterfassung | erledigt | `041a12a` (#162) |
+| 4 · Handwerksschein | erledigt | siehe PR „Designlinie 3, Schritt 4“ |
 | 5 · Urlaub und Material anfordern | offen | |
 | 6 · Listen | offen | |
 | 7 · Akten zweispaltig | offen | |
@@ -154,6 +154,28 @@ Mit Absicht **nicht** wie im Entwurf:
   hiesse jeden Knopf zweimal im Baum — mit den Tests und für Vorlesehilfen.
   Die Zeilen tragen am Schreibtisch; eine gemeinsame Lösung für Tabellen
   kommt mit Schritt 6.
+
+**Schritt 4 im Einzelnen.** Die Schrittleiste zeigt vier Balken mit dem
+Namen darunter (`.schritte`), ohne Nummernkreise; die Nummer bleibt für
+Vorlesehilfen als unsichtbarer Text, `aria-current` unverändert. Unten
+stehen „Zurück | Weiter: …“ (im letzten Schritt „Unterschreiben“) in der
+Aktionsleiste, „Als Entwurf speichern“ darüber. Material steht als Zeilen
+statt in einem umrandeten Kasten, die Leistungszeit als Gruppe mit Linie
+statt getönter Fläche; Hinweise (Pauschalbaustelle, zweiter Schein am Tag,
+Vorausfüllung gescheitert, „Ohne Stunden“, „Noch nicht auf dem Schein“,
+Menge fehlt, ungewöhnlich lange Zeit) sind Hinweiszeilen. **Der
+Leerzustand** (`EmptyState`, 49 Stellen) steht app-weit ohne getönten
+Kasten. Mit Absicht **nicht** wie im Entwurf:
+
+- **Kein Zurück-Pfeil am Titel und keine neue Meta-Zeile**: die Seite hat
+  keinen festen Rückweg (sie wird von Start, Liste und Baustelle geöffnet),
+  und Texte bleiben unverändert.
+- **Menge als Zahlenfeld, kein Stepper**: Mengen sind oft Kommazahlen
+  (2,5 m Rohr); ein Stepper in ganzen Schritten wäre ein Rückschritt.
+- **„Zuletzt auf dieser Baustelle“** wäre eine neue Funktion (neue Abfrage).
+- Die 12-px-Statuszeilen unter Fotos („Wird hochgeladen …“) und der Hinweis
+  zu fehlenden Bildern im Fotostreifen bleiben in Warnfarbe: für ein Symbol
+  ist dort kein Platz. Die Unterschrift bleibt, wie sie ist.
 
 **Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
 Ansichten – `projects/BaustellenUebersicht.tsx` und

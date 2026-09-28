@@ -3,6 +3,7 @@ import type { Material } from '@/types';
 import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { WithId } from '@/lib/db/core';
 import Button from '@/components/Button';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import IconButton from '@/components/IconButton';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
@@ -100,9 +101,10 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
           sich auch ohne unterschreiben.
         </EmptyState>
       ) : (
-        <ul className="divide-y divide-line rounded border border-line">
+        // Zeilen mit Trennlinie, kein Kasten in der Karte (Designlinie „Fassung 3").
+        <ul className="divide-y divide-line">
           {zeilen.map((z) => (
-            <li key={z.id} className="flex flex-wrap items-end gap-3 p-3">
+            <li key={z.id} className="flex flex-wrap items-end gap-3 py-3 first:pt-0">
               <div className="w-24 shrink-0">
                 <InputField
                   id={`wsmenge-${z.id}`}
@@ -115,7 +117,7 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
                   onChange={(e) => mengeSetzen(z.id, e.target.value)}
                 />
               </div>
-              <p className="min-w-0 flex-1 font-medium text-ink">
+              <p className="min-w-0 flex-1 font-medium text-ink-deep">
                 {z.name}
                 {z.einheit && <span className="ml-2 text-sm text-ink-muted">{z.einheit}</span>}
               </p>
@@ -129,9 +131,11 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
               {/* Unterschrieben wird erst mit einer Menge über null — der
                   Schein sperrt den Abschluss und sagt es hier, am Feld. */}
               {!(z.menge > 0) && (
-                <p className="w-full text-sm text-warning">
-                  Bitte eine Menge größer als 0 eintragen.
-                </p>
+                <div className="w-full">
+                  <Hinweiszeile stufe="warn">
+                    <p>Bitte eine Menge größer als 0 eintragen.</p>
+                  </Hinweiszeile>
+                </div>
               )}
             </li>
           ))}
@@ -161,7 +165,7 @@ export default function MaterialErfassen({ materials, zeilen, onChange, onOffen 
                   ungenutzt; auf der Rechnung steht er später ohne Preis.
                 */}
                 {katalogAbgeschnitten(materials) && (
-                  <strong className="mt-1 block text-warning">
+                  <strong className="mt-1 block text-ink-deep">
                     Der Katalog wurde nur bis zur Obergrenze geladen — den Artikel kann es
                     trotzdem geben.
                   </strong>

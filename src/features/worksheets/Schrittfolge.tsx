@@ -28,11 +28,11 @@ import { SCHRITTE, type Schritt } from './schritte';
  * noch unterschreiben lassen will, braucht dafür einen Tipp statt dreimal
  * „Weiter".
  *
- * Gezeichnet wie die Reiter der App (Unterreiter, Material, Lager): Kante
- * unten und Schrift im festen Türkis der Oberfläche, nicht in `--accent` —
- * das ist die Farbe des Mandanten, und eine Markierung ist Oberfläche, keine
- * Handlung. Dazu die Nummer im Kreis: gefüllt, wo man steht, umrandet in
- * Türkis, was schon hinter einem liegt, grau, was noch kommt.
+ * Gezeichnet als vier Balken mit dem Namen darunter (Designlinie „Fassung 3",
+ * `.schritte`): Petrol, wo man steht, grau-blau, was hinter einem liegt,
+ * hell, was noch kommt. Die Nummernkreise sind entfallen — sie wiederholten,
+ * was die Reihenfolge schon sagt. Für Vorlesehilfen bleibt die Nummer als
+ * Text („1 Zeiten"), und `aria-current` sagt, wo man steht.
  */
 export function Schrittleiste({
   schritt,
@@ -43,9 +43,7 @@ export function Schrittleiste({
 }) {
   return (
     <nav aria-label="Schritte des Scheins">
-      {/* Vier gleich breite Spalten: auf 390 px passt „Unterschrift" unter
-          seine Nummer, ab dem Tablet stehen Nummer und Name nebeneinander. */}
-      <ol className="grid grid-cols-4 border-b border-line">
+      <ol className="schritte">
         {SCHRITTE.map((s) => {
           const aktiv = s.nr === schritt;
           const davor = s.nr < schritt;
@@ -55,26 +53,13 @@ export function Schrittleiste({
                 type="button"
                 aria-current={aktiv ? 'step' : undefined}
                 onClick={() => onWahl(s.nr)}
-                className={`-mb-px flex min-h-touch w-full flex-col items-center justify-center gap-1 border-b-2 px-1 py-2 text-xs transition sm:flex-row sm:gap-2 sm:text-sm ${
-                  aktiv
-                    ? 'border-b-accent-deep font-bold text-accent-deep'
-                    : `border-b-transparent font-medium hover:text-ink ${
-                        davor ? 'text-ink' : 'text-ink-muted'
-                      }`
+                className={`schritt block min-h-touch w-full pt-2 ${
+                  aktiv ? 'schritt-jetzt' : davor ? 'schritt-fertig' : ''
                 }`}
               >
-                <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
-                    aktiv
-                      ? 'border-accent-deep bg-accent-deep text-white'
-                      : davor
-                        ? 'border-accent-deep bg-surface text-accent-deep'
-                        : 'border-line bg-surface text-ink-muted'
-                  }`}
-                >
-                  {s.nr}
-                </span>{' '}
-                <span className="max-w-full whitespace-nowrap">{s.name}</span>
+                <i aria-hidden="true" />
+                <span className="sr-only">{s.nr}</span>{' '}
+                <span>{s.name}</span>
               </button>
             </li>
           );

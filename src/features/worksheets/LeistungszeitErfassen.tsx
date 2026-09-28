@@ -3,6 +3,7 @@ import { calcWorkMin } from '@/lib/time';
 import { fmtDauer } from '@/lib/time';
 import type { WorkSheetZeit } from '@/types';
 import Button from '@/components/Button';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import IconButton from '@/components/IconButton';
 import InfoHint from '@/components/InfoHint';
 import { InputField, CheckboxField, FormGrid } from '@/components/Field';
@@ -122,8 +123,9 @@ export default function LeistungszeitErfassen({
   }
 
   return (
-    <div className="rounded-sm border border-line bg-surface-2 p-3">
-      <p className="flex flex-wrap items-center gap-1 text-sm font-medium text-ink">
+    // Eine Gruppe mit Linie oben statt eines getönten Kastens in der Karte.
+    <div className="border-t border-line pt-3">
+      <p className="flex flex-wrap items-center gap-1 text-sm font-semibold text-ink-deep">
         Zeit beim Kunden eintragen
         <InfoHint about="die Leistungszeit">
           {/* Gekürzt (Prüflauf 24.09.2026, D9): vier Absätze, die auf dem
@@ -221,17 +223,23 @@ export default function LeistungszeitErfassen({
         mehr.
       */}
       {minuten >= NACHFRAGE_AB_MINUTEN && (
-        <p className="mt-1 text-sm text-warning" role="alert">
-          Das sind <strong>{fmtDauer(minuten)}</strong> —{' '}
-          {form.bis < form.von
-            ? 'über Mitternacht gerechnet, weil „Bis" vor „Von" liegt. Bei einer Notdienstnacht stimmt das; sonst sind Von und Bis vertauscht.'
-            : 'ein ungewöhnlich langer Einsatz. Bitte prüfen, ob Von und Bis stimmen.'}
-        </p>
+        <div className="mt-1">
+          <Hinweiszeile stufe="warn" role="alert">
+            <p>
+              Das sind <strong>{fmtDauer(minuten)}</strong> —{' '}
+              {form.bis < form.von
+                ? 'über Mitternacht gerechnet, weil „Bis" vor „Von" liegt. Bei einer Notdienstnacht stimmt das; sonst sind Von und Bis vertauscht.'
+                : 'ein ungewöhnlich langer Einsatz. Bitte prüfen, ob Von und Bis stimmen.'}
+            </p>
+          </Hinweiszeile>
+        </div>
       )}
       {fehler && (
-        <p className="mt-2 text-sm text-warning" role="alert">
-          {fehler}
-        </p>
+        <div className="mt-2">
+          <Hinweiszeile stufe="warn" role="alert">
+            <p>{fehler}</p>
+          </Hinweiszeile>
+        </div>
       )}
 
       <div className="mt-3">
