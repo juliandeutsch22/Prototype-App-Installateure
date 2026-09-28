@@ -335,8 +335,8 @@ export default function UserMgmtView() {
             einreicht, den er nicht hat. Die Frage muss deshalb gestellt
             werden, bevor jemand entscheidet, ob er aufklappt.
           */}
-          <fieldset className="border-t border-line pt-4">
-            <legend className="section-label px-1">Was für ein Zugang ist das?</legend>
+          <fieldset>
+            <legend className="section-label mb-1">Was für ein Zugang ist das?</legend>
             <div className="flex flex-col gap-2">
               <label className="flex min-h-touch items-start gap-3 py-1">
                 <input

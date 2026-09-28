@@ -25,6 +25,9 @@ const ROUTEN = [
   ['/settings/meldungen', 'Administrator'], ['/settings/firma', 'Administrator'],
   ['/settings/saetze', 'Administrator'], ['/settings/module', 'Administrator'],
   ['/settings/sicherung', 'Administrator'],
+  ['/settings/nummern', 'Administrator'], ['/settings/personal', 'Administrator'],
+  ['/settings/konten', 'Administrator'], ['/settings/support', 'Administrator'],
+  ['/impressum', 'Administrator'], ['/datenschutz', 'Administrator'],
   ['/costing', 'Administrator'], ['/invoices', 'Administrator'], ['/accounting', 'Administrator'],
 ];
 
@@ -39,8 +42,9 @@ const BREITEN = [['iphone', 375], ['mobil', 390], ['tablet', 834], ['desktop', 1
 const HARMLOS = [
   (b) => b.el.includes('sr-only'),
   (b) => b.el.includes('titel-karte') && b.px <= 8,
-  // Dieselben 8 px im Kartenkopf, wenn das „i" rechts am Titel steht: die Zeile misst mit.
-  (b) => b.el.startsWith('div.flex.w-full.flex-wrap') && b.px <= 8,
+  // Dieselben 8 px überall, wo das „i" am rechten Rand einer Zeile steht:
+  // seine Tastfläche ragt um genau diese negativen Ränder hinaus.
+  (b) => b.info && b.px <= 8,
   (b) => b.el.includes('input') && b.el.includes('file'),
   (b) => b.art === 'abgeschnitten' && b.el.includes('truncate'),
   (b) => b.el.includes('th.sticky'),
@@ -103,7 +107,11 @@ for (const [pfad, rolle] of ROUTEN) {
             // Die Aktionsleiste reicht in einer Karte absichtlich bis an deren
             // Kanten (negativer Rand = Polsterung des Kartenkörpers, 16 px).
             const leiste = !!el.querySelector(':scope > .aktionsleiste') && el.scrollWidth - el.clientWidth <= 17;
-            raus.push({ art: kuerzt ? 'abgeschnitten' : 'laeuft ueber', px: el.scrollWidth - el.clientWidth, el: nenn(el), leiste });
+            // Ragt ein „i" (InfoButton: aria-controls + aria-expanded) über den rechten Rand?
+            const rechts = el.getBoundingClientRect().right;
+            const info = [...el.querySelectorAll('button[aria-controls][aria-expanded]')]
+              .some((k) => k.getBoundingClientRect().right > rechts + 1);
+            raus.push({ art: kuerzt ? 'abgeschnitten' : 'laeuft ueber', px: el.scrollWidth - el.clientWidth, el: nenn(el), leiste, info });
           }
         }
         return { raus, seitenUeberlauf: document.documentElement.scrollWidth > VW + 1 };

@@ -6,6 +6,7 @@ import ProduktMarke from '@/components/ProduktMarke';
 import RechtLinks from '@/components/RechtLinks';
 import Button from '@/components/Button';
 import { anmeldeAdresse, istBenutzerkonto, KEIN_MAILKONTO } from '@shared/benutzername';
+import Hinweiszeile from '@/components/Hinweiszeile';
 
 /**
  * Anmeldung. Dunkles Kopfband mit der Produktmarke, darunter das Formular —
@@ -176,14 +177,14 @@ export default function LoginPage() {
             )}
 
             {(error || authError) && (
-              <p className="rounded-sm border border-line bg-surface-2 p-2 text-sm text-danger" role="alert">
-                {error ?? authError}
-              </p>
+              <Hinweiszeile stufe="fehl" role="alert">
+                <p>{error ?? authError}</p>
+              </Hinweiszeile>
             )}
             {notice && (
-              <p className="rounded-sm border border-line bg-surface-2 p-2 text-sm text-success" role="status">
-                {notice}
-              </p>
+              <Hinweiszeile role="status">
+                <p>{notice}</p>
+              </Hinweiszeile>
             )}
 
             <Button

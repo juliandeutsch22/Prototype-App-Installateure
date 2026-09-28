@@ -49,7 +49,7 @@ Falschmeldungen der Messung, die keine Fehler sind:
 |---|---|
 | `span.sr-only` abgeschnitten | Diese Elemente sind 1 px breit — das ist ihr Zweck |
 | natives `input[type=file]` läuft über | Die Überbreite liegt im Schatten-DOM des Steuerelements |
-| `h2.titel-karte` oder die Kopfzeile der Karte läuft 8 px über | Die negativen Ränder, die dem „i" seine 44 px Tastfläche geben; die Tastfläche reicht in die Polsterung des Kartenkopfs |
+| `h2.titel-karte` oder eine Zeile mit „i“ am rechten Rand läuft 8 px über | Die negativen Ränder, die dem „i" seine 44 px Tastfläche geben; die Tastfläche reicht in die Polsterung. Erkannt wird das „i“ selbst (Knopf mit `aria-controls` und `aria-expanded`), nicht ein Klassenname |
 | Elemente mit `truncate` | Die kürzen absichtlich mit Auslassungspunkten |
 | Textfeld (`input`) läuft über | Sein **Wert** ist länger als das Feld (etwa ein langer Kundenname) und scrollt darin — wie in jedem Textfeld. Ein Feld, das selbst aus der Seite ragt, meldet die Messung weiter als „ragt hinaus“ (wird herausgefiltert) |
 | Formular mit `.aktionsleiste` läuft 16 px über | Die Leiste reicht in einer Karte absichtlich bis an deren Kanten; die Karte schneidet dort ab (wird herausgefiltert) |
