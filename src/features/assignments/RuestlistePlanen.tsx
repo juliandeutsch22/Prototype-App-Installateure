@@ -7,6 +7,7 @@ import IconButton from '@/components/IconButton';
 import { Marke } from '@/components/Badge';
 import { InputField } from '@/components/Field';
 import { List, ListRow } from '@/components/ListRow';
+import Hinweiszeile from '@/components/Hinweiszeile';
 
 /**
  * Die Rüstliste eines Einsatzes zusammenstellen — was in den Bus soll.
@@ -121,7 +122,8 @@ export default function RuestlistePlanen({
           Noch nichts eingetragen. Der Monteur sieht am Einsatztag nur eine Liste, die hier steht.
         </p>
       ) : (
-        <ul className="divide-y divide-line rounded border border-line">
+        // Zeilen mit Linien statt eines umrandeten Kastens — wie das Material am Schein.
+        <ul className="divide-y divide-line border-y border-line">
           {positionen.map((p) => {
             const artikel = p.materialId ? nachId.get(p.materialId) : undefined;
             /*
@@ -131,7 +133,7 @@ export default function RuestlistePlanen({
             */
             const fehlt = artikel ? Math.max(0, p.menge - (artikel.stock ?? 0)) : 0;
             return (
-              <li key={p.id} className="p-3">
+              <li key={p.id} className="py-3">
                 <div className="flex flex-wrap items-end gap-3">
                   <div className="w-24 shrink-0">
                     <InputField
@@ -176,19 +178,23 @@ export default function RuestlistePlanen({
                   den diese App sich nicht leisten kann.
                 */}
                 {fehlt > 0 && (
-                  <div className="mt-2 flex flex-wrap items-center gap-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                    <span>
-                      Im Lager fehlen <strong>{fehlt}</strong>.
-                    </span>
-                    {onAnforderung && (
-                      <Button
-                        variant="secondary"
-                        loading={anforderungLaeuft}
-                        onClick={() => onAnforderung(p, fehlt)}
-                      >
-                        Anforderung über {fehlt} anlegen
-                      </Button>
-                    )}
+                  <div className="mt-2">
+                    <Hinweiszeile stufe="warn">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span>
+                          Im Lager fehlen <strong>{fehlt}</strong>.
+                        </span>
+                        {onAnforderung && (
+                          <Button
+                            variant="secondary"
+                            loading={anforderungLaeuft}
+                            onClick={() => onAnforderung(p, fehlt)}
+                          >
+                            Anforderung über {fehlt} anlegen
+                          </Button>
+                        )}
+                      </div>
+                    </Hinweiszeile>
                   </div>
                 )}
               </li>

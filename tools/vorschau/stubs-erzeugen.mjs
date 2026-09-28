@@ -35,6 +35,7 @@ const DATEN = {
     listApprovedVacationsInRange: 'D.urlaube',
   },
   assignments: { '*': 'D.einsaetze' },
+  einsatzMaterial: { '*': 'D.ruestlisten', getEinsatzMaterial: 'D.ruestlisten[0]' },
   quotes: { '*': 'D.angebote', getQuote: 'D.angebote[0]' },
   wartungen: { '*': 'D.wartungen' },
   followUps: { listOpenFollowUps: 'D.folgetermine' },

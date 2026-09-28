@@ -67,8 +67,8 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 | 4 · Handwerksschein | erledigt | `f1e2e40` (#163) |
 | 5 · Urlaub und Material anfordern | erledigt | `06c2ad5` (#164) |
 | 6 · Listen | erledigt | 6a `85f403c` (#165), 6b `c8e3a73` (#166) |
-| 7 · Akten zweispaltig | erledigt | siehe PR „Designlinie 3, Schritt 7“ |
-| 8 · Einsatzplanung und Wochenplan | offen | |
+| 7 · Akten zweispaltig | erledigt | `e3861f4` (#167) |
+| 8 · Einsatzplanung und Wochenplan | erledigt | siehe PR „Designlinie 3, Schritt 8“ |
 | 9 · Einstellungen, Rest, Abgleich | offen | |
 
 **Schritt 1 im Einzelnen.** Rundungen 12/10/8 px; die Bausteine aus
@@ -265,6 +265,39 @@ die vier Akten. Mit Absicht **nicht** wie im Entwurf:
   genau das (ein Feld, das aus der Seite ragt, meldet sie weiter). Damit
   entfällt auch der Befund auf `/settings/firma`, der für Schritt 9 notiert
   war — es war derselbe.
+
+**Schritt 8 im Einzelnen.** Wochenplan: die Zellen sind neutral (weiss
+bzw. hellgrau mit Linie) statt türkis und orange; ob jemand als Helfer
+mitgeht, steht als Wort da. Die Tabelle ist eng genug, dass bei 834 px die
+ganze Woche ohne Wischen zu sehen ist (Namensspalte 112 px, Samstag und
+Sonntag 48 px); ab 1024 px bekommt die Namensspalte wieder 144 px, ab
+1280 px 160 px und das Wochenende volle Breite. Gekürzte Baustellen zeigen
+den vollen Namen beim Überfahren. Am Telefon stehen die Tage durch Linien
+getrennt statt als Kästen in der Karte. Tagesplanung: sieben getönte
+Kästen (Feiertag, Betriebsurlaub, Abwesende, schon verplant, schon
+geplant, Urlauber eingeteilt, Rüstzeile nicht hinzugefügt) sind
+Hinweiszeilen; „Einsätze am …“ ist bündig, jede Baustelle ein Abschnitt
+mit ihren Leuten darunter. Mein Einsatzplan: der Urlaubshinweis als
+Hinweiszeile, mehrere Einsätze am Tag durch Linien getrennt. Die
+Rüstliste (Planen und Abhaken, auch auf der Startseite) steht als Zeilen
+statt im umrandeten Kasten, die Fehlmenge als Hinweiszeile. Die Vorschau
+hat dafür eine Beispiel-Rüstliste. Mit Absicht **nicht** wie im Entwurf:
+
+- **Die Wochenwahl bleibt im Kartenkopf**, neben der Zeitspanne, die sie
+  verschiebt — nicht rechts im Seitenkopf. Die Pfeile brauchen die
+  Zeitspanne daneben, um verständlich zu sein.
+- **Kein eigener Abschnitt „Frei diese Woche“** am Schreibtisch: die Tabelle
+  zeigt jede freie Zelle als „frei“ und je Tag die Zahl im Kopf; am Telefon
+  stehen die freien Namen je Tag schon ausgeschrieben.
+- **Bei 834 px sind Baustellennamen in der Zelle auf wenige Buchstaben
+  gekürzt** — der Preis dafür, dass die ganze Woche sichtbar ist. Die
+  Nummer darunter, der volle Name beim Überfahren und der Tipp in die
+  Tagesplanung sagen, welche es ist.
+- **„Einsatz speichern“ bleibt ein Knopf unter der Rüstliste**, keine
+  klebende Aktionsleiste: er gilt für zwei Karten, und eine klebende
+  Leiste stünde beim Durchsehen der „Einsätze am …“ darüber.
+- Feiertage bleiben orange hinterlegt: im Wochenplan ist die Farbe das
+  einzige Zeichen dafür.
 
 **Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
 Ansichten – `projects/BaustellenUebersicht.tsx` und

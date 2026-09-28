@@ -16,6 +16,7 @@ import type { Assignment, Project, Vacation, EinsatzMaterial } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import { todayStr } from '@/lib/time';
 import Card from '@/components/Card';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -218,7 +219,8 @@ export default function MyScheduleView() {
   const today = todayStr();
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader title="Mein Einsatzplan" subtitle="Deine geplanten Einsätze" />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
@@ -229,7 +231,7 @@ export default function MyScheduleView() {
       ) : error ? (
         <ErrorState message={error} />
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-5 lg:gap-5">
           <div className="space-y-3 lg:col-span-2">
             <MonthCalendar
               year={cursor.year}
@@ -268,25 +270,23 @@ export default function MyScheduleView() {
                 Tag, ist das der Widerspruch, den man sofort sehen muss.
               */}
               {urlaubAmTag && (
-                <p
-                  className={`mb-3 rounded-sm border px-3 py-2 text-sm ${
-                    urlaubAmTag.status === 'Genehmigt'
-                      ? 'border border-line bg-surface-2 text-success'
-                      : 'border border-line bg-surface-2 text-warning'
-                  }`}
-                >
-                  {urlaubAmTag.status === 'Genehmigt' ? (
-                    <>
-                      <strong>Urlaub</strong> — genehmigt
-                      {urlaubAmTag.entschiedenVonName ? ` von ${urlaubAmTag.entschiedenVonName}` : ''}.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Urlaub beantragt</strong> — noch nicht entschieden. Bitte noch nichts
-                      fix buchen.
-                    </>
-                  )}
-                </p>
+                <div className="mb-3">
+                  <Hinweiszeile stufe={urlaubAmTag.status === 'Genehmigt' ? undefined : 'warn'}>
+                    <p>
+                      {urlaubAmTag.status === 'Genehmigt' ? (
+                        <>
+                          <strong>Urlaub</strong> — genehmigt
+                          {urlaubAmTag.entschiedenVonName ? ` von ${urlaubAmTag.entschiedenVonName}` : ''}.
+                        </>
+                      ) : (
+                        <>
+                          <strong>Urlaub beantragt</strong> — noch nicht entschieden. Bitte noch nichts
+                          fix buchen.
+                        </>
+                      )}
+                    </p>
+                  </Hinweiszeile>
+                </div>
               )}
               {visible.length === 0 ? (
                 <EmptyState>
@@ -294,11 +294,12 @@ export default function MyScheduleView() {
                   Tagen du eingeplant bist.
                 </EmptyState>
               ) : (
-                <div className="space-y-3">
+                // Mehrere Einsätze am Tag: durch Linien getrennt, nicht als Kästen in der Karte.
+                <div className="divide-y divide-line">
                   {visible.map((a) => {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
-                      <div key={a.id} className="rounded border border-line p-3">
+                      <div key={a.id} className="py-3 first:pt-0 last:pb-0">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="font-semibold text-ink">
                             {proj?.customerName ?? a.projectNumber}
@@ -366,7 +367,7 @@ export default function MyScheduleView() {
                           {scheineAn && (
                           <Link
                             to={`/worksheet?projekt=${encodeURIComponent(a.projectNumber)}&datum=${a.date}`}
-                            className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-semibold text-ink"
+                            className="flex min-h-touch items-center rounded border border-line px-4 py-2 font-medium text-ink"
                           >
                             Schein schreiben
                           </Link>
@@ -392,7 +393,7 @@ export default function MyScheduleView() {
               schlicht nicht zu sehen, und die Ansicht behauptete damit, es
               stünde nichts an.
             */}
-            <Card title="Nächste Einsätze" className="mt-6">
+            <Card title="Nächste Einsätze" className="mt-3 lg:mt-5">
               {naechste.length === 0 ? (
                 <EmptyState>Zurzeit ist nichts eingeplant.</EmptyState>
               ) : (

@@ -24,6 +24,7 @@ import type {
   RuestPosition,
 } from '@/types';
 import Card from '@/components/Card';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import { Marke } from '@/components/Badge';
 import IconButton from '@/components/IconButton';
@@ -484,12 +485,13 @@ export default function AssignmentsView() {
   }
 
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader title="Einsatzplanung" subtitle="Mitarbeiter einem Tag und einer Baustelle zuteilen" />
 
       {nebenFehler && <TeilFehler was={nebenFehler} />}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-5 lg:gap-5">
         {/* Kalender links, Planung rechts — am Telefon untereinander. */}
         <div className="space-y-3 lg:col-span-2">
           <MonthCalendar
@@ -522,7 +524,7 @@ export default function AssignmentsView() {
           </div>
         </div>
 
-        <div className="space-y-6 lg:col-span-3">
+        <div className="space-y-3 lg:col-span-3 lg:space-y-5">
           <div ref={formular} className="scroll-mt-4">
           <Card title={`Einsatz planen — ${fmtDay(date)}`}>
             <BaustellenSelect
@@ -536,10 +538,14 @@ export default function AssignmentsView() {
             />
 
             {(holiday || weekend) && (
-              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                {holiday ? `${holiday} — gesetzlicher Feiertag.` : 'Wochenende.'} Einsatz ist trotzdem
-                planbar.
-              </p>
+              <div className="mt-3">
+                <Hinweiszeile stufe="warn">
+                  <p>
+                    {holiday ? `${holiday} — gesetzlicher Feiertag.` : 'Wochenende.'} Einsatz ist
+                    trotzdem planbar.
+                  </p>
+                </Hinweiszeile>
+              </div>
             )}
 
             {/*
@@ -548,23 +554,31 @@ export default function AssignmentsView() {
               in dieser Ansicht auftaucht.
             */}
             {betriebsurlaubHeute && (
-              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
-                <strong>{betriebsurlaubHeute.bezeichnung}:</strong> Der Betrieb hat an diesem Tag
-                zu. Einteilen geht trotzdem — etwa für einen Notdienst.
-                {/* Wer ausgenommen ist, arbeitet — das gehört an dieselbe Stelle. */}
-                {(betriebsurlaubHeute.ausgenommen ?? []).length > 0 && (
-                  <>
-                    {' '}Es arbeiten:{' '}
-                    {(betriebsurlaubHeute.ausgenommen ?? []).map(nameVon).join(', ')}.
-                  </>
-                )}
-              </p>
+              <div className="mt-3">
+                <Hinweiszeile stufe="warn" role="alert">
+                  <p>
+                    <strong>{betriebsurlaubHeute.bezeichnung}:</strong> Der Betrieb hat an diesem
+                    Tag zu. Einteilen geht trotzdem — etwa für einen Notdienst.
+                    {/* Wer ausgenommen ist, arbeitet — das gehört an dieselbe Stelle. */}
+                    {(betriebsurlaubHeute.ausgenommen ?? []).length > 0 && (
+                      <>
+                        {' '}Es arbeiten:{' '}
+                        {(betriebsurlaubHeute.ausgenommen ?? []).map(nameVon).join(', ')}.
+                      </>
+                    )}
+                  </p>
+                </Hinweiszeile>
+              </div>
             )}
             {imUrlaub.size > 0 && (
-              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-                <strong>Abwesend an diesem Tag:</strong>{' '}
-                {[...imUrlaub].map(([uid, grund]) => `${nameVon(uid)} (${grund})`).join(', ')}
-              </p>
+              <div className="mt-3">
+                <Hinweiszeile>
+                  <p>
+                    <strong>Abwesend an diesem Tag:</strong>{' '}
+                    {[...imUrlaub].map(([uid, grund]) => `${nameVon(uid)} (${grund})`).join(', ')}
+                  </p>
+                </Hinweiszeile>
+              </div>
             )}
 
             {/*
@@ -573,18 +587,26 @@ export default function AssignmentsView() {
               vermutet hinter dem Speichern ein Überschreiben des ganzen Tages.
             */}
             {projectNumber && schonVerplant.size > 0 && (
-              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-                Einige Mitarbeiter sind heute bereits auf anderen Baustellen eingeteilt (siehe
-                Hinweis am Namen). Eine zusätzliche Einteilung ist möglich — die bestehende bleibt
-                bestehen.
-              </p>
+              <div className="mt-3">
+                <Hinweiszeile>
+                  <p>
+                    Einige Mitarbeiter sind heute bereits auf anderen Baustellen eingeteilt (siehe
+                    Hinweis am Namen). Eine zusätzliche Einteilung ist möglich — die bestehende
+                    bleibt bestehen.
+                  </p>
+                </Hinweiszeile>
+              </div>
             )}
 
             {projectNumber && existingForProject.length > 0 && (
-              <p className="mt-3 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-                Für diese Baustelle ist der Tag bereits geplant. Die Auswahl unten ist übernommen —
-                Speichern überschreibt sie.
-              </p>
+              <div className="mt-3">
+                <Hinweiszeile>
+                  <p>
+                    Für diese Baustelle ist der Tag bereits geplant. Die Auswahl unten ist
+                    übernommen — Speichern überschreibt sie.
+                  </p>
+                </Hinweiszeile>
+              </div>
             )}
 
             <div className="mt-4">
@@ -647,11 +669,15 @@ export default function AssignmentsView() {
               stilles Durchwinken wäre aber genauso falsch.
             */}
             {verplanteUrlauber.length > 0 && (
-              <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                <strong>{verplanteUrlauber.join(', ')}</strong>{' '}
-                {verplanteUrlauber.length === 1 ? 'ist' : 'sind'} an diesem Tag abwesend. Das
-                Einteilen geht trotzdem — gemeint ist es meistens nicht.
-              </p>
+              <div className="mt-2">
+                <Hinweiszeile stufe="warn">
+                  <p>
+                    <strong>{verplanteUrlauber.join(', ')}</strong>{' '}
+                    {verplanteUrlauber.length === 1 ? 'ist' : 'sind'} an diesem Tag abwesend. Das
+                    Einteilen geht trotzdem — gemeint ist es meistens nicht.
+                  </p>
+                </Hinweiszeile>
+              </div>
             )}
           </Card>
           </div>
@@ -711,10 +737,14 @@ export default function AssignmentsView() {
               Monteur stand ohne das Leihgerät auf der Baustelle.
             */}
             {offeneRuestzeile && materialAn && (
-              <p className="mb-3 text-sm text-warning" role="alert">
-                <strong>Noch nicht auf der Rüstliste:</strong> {offeneRuestzeile}. Bitte
-                „Hinzufügen" oder das Feld leeren.
-              </p>
+              <div className="mb-3">
+                <Hinweiszeile stufe="warn" role="alert">
+                  <p>
+                    <strong>Noch nicht auf der Rüstliste:</strong> {offeneRuestzeile}. Bitte
+                    „Hinzufügen" oder das Feld leeren.
+                  </p>
+                </Hinweiszeile>
+              </div>
             )}
             <Button
               onClick={save}
@@ -725,11 +755,13 @@ export default function AssignmentsView() {
             </Button>
           </div>
 
-          <Card title={`Einsätze am ${fmtDay(date)}`}>
+          {/* Bündig: jede Baustelle ein Abschnitt mit ihren Leuten darunter,
+              statt eines Kastens in der Karte (Designlinie „Fassung 3"). */}
+          <Card title={`Einsätze am ${fmtDay(date)}`} buendig>
             {dayAssignments.length === 0 ? (
               <EmptyState>Keine Einsätze an diesem Tag.</EmptyState>
             ) : (
-              <div className="space-y-4">
+              <div>
                 {[...byProject.entries()].map(([pn, rows]) => {
                   const proj = projects.find((p) => p.projectNumber === pn);
                   const fach = rows.filter((r) => !r.asHelper).length;
@@ -749,12 +781,12 @@ export default function AssignmentsView() {
                   const geladen = tagesListen.find((l) => l.projectNumber === pn)?.geladen ?? {};
                   const inBearbeitung = pn === projectNumber;
                   return (
-                    <div key={pn} className="rounded-sm border border-line">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2">
-                        <span className="font-semibold text-ink">
+                    <div key={pn}>
+                      <div className="abschnitt flex-wrap">
+                        <h3>
                           {proj?.customerName ?? pn}{' '}
-                          <span className="text-sm text-ink-muted">({pn})</span>
-                        </span>
+                          <span className="text-sm font-normal text-ink-muted">({pn})</span>
+                        </h3>
                         <span className="flex flex-wrap items-center gap-2">
                           <Marke>{fach} Facharbeiter</Marke>
                           {helper > 0 && <Marke>{helper} Helfer</Marke>}
@@ -781,7 +813,7 @@ export default function AssignmentsView() {
                         </span>
                       </div>
                       {(aufgabe || material.length > 0) && (
-                        <div className="space-y-2 border-b border-line px-3 py-2 text-sm">
+                        <div className="space-y-2 border-t border-line px-4 py-2 text-sm">
                           {aufgabe && (
                             <p className="whitespace-pre-line text-ink">
                               <span className="font-medium">Aufgabe:</span> {aufgabe}
@@ -808,9 +840,9 @@ export default function AssignmentsView() {
                           )}
                         </div>
                       )}
-                      <ul className="divide-y divide-line">
+                      <ul>
                         {rows.map((a) => (
-                          <li key={a.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                          <li key={a.id} className="flex items-center justify-between gap-3 border-t border-line px-4 py-2">
                             <span className="min-w-0">
                               <span className="block truncate text-ink">{a.userName}</span>
                               {a.comment?.trim() && a.comment.trim() !== aufgabe && (
@@ -847,7 +879,7 @@ export default function AssignmentsView() {
               Faellt das Laden ganz aus, steht das oben als Teilfehler.
             */}
             {dayAssignments.length > 0 && staff.length > 0 && (
-              <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+              <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
                 {nichtEingeteilt.length === 0 ? (
                   <>Alle verfügbaren Mitarbeiter sind an diesem Tag eingeteilt.</>
                 ) : (

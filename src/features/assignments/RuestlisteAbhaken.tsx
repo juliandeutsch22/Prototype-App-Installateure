@@ -65,22 +65,23 @@ export default function RuestlisteAbhaken({
   }
 
   return (
-    <div className="mt-3 rounded-sm border border-line">
-      <p className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-surface-2 px-3 py-2">
-        <span className="font-semibold text-ink">Material</span>
+    // Zeilen mit Linien statt eines Kastens im Einsatz (Designlinie „Fassung 3").
+    <div className="mt-3">
+      <p className="flex flex-wrap items-center justify-between gap-2 pb-1">
+        <span className="section-label">Material</span>
         <span className="text-sm text-ink-muted">
           {offen === 0 ? 'alles eingeladen' : `noch ${offen} von ${positionen.length}`}
         </span>
       </p>
-      <ul className="divide-y divide-line">
+      <ul className="divide-y divide-line border-y border-line">
         {positionen.map((p) => {
           const eintrag = oertlich[p.id];
           const id = `rl-${projectNumber}-${p.id}`;
           return (
-            <li key={p.id} className={eintrag ? 'bg-surface-2' : ''}>
+            <li key={p.id}>
               <label
                 htmlFor={id}
-                className={`flex min-h-touch items-center gap-3 px-3 py-2 ${
+                className={`flex min-h-touch items-center gap-3 py-2 ${
                   abhakbar ? 'cursor-pointer' : ''
                 }`}
               >
@@ -110,7 +111,7 @@ export default function RuestlisteAbhaken({
         })}
       </ul>
       {fehler && (
-        <p role="alert" className="border-t border-line px-3 py-2 text-sm text-danger">
+        <p role="alert" className="py-2 text-sm text-danger">
           {fehler}
         </p>
       )}
