@@ -171,25 +171,57 @@ describe('Anzahlung und Schlussrechnung', () => {
     ]);
     expect(e.zeilen).toEqual([
       expect.objectContaining({ soll: '2000', haben: '4000', betrag: 600 }),
+      // Netto und ohne Steuercode: die Steuer der Anzahlung ist schon
+      // gebucht (siehe unten, „zählt die Umsatzsteuer genau einmal").
       expect.objectContaining({
-        soll: '3500', haben: '4000', betrag: 600,
+        soll: '3500', haben: '4000', betrag: 500, steuercode: '',
         buchungstext: 'Anzahlung RE-2026-0001 verrechnet',
         belegnummer: 'RE-2026-0002',
       }),
     ]);
   });
 
-  it('bucht beide Teile zusammen über die volle Leistung', () => {
-    // Die Probe aufs Ganze: Restforderung plus umgebuchte Anzahlung müssen
-    // den Gesamtbetrag ergeben, sonst fehlt Umsatz.
-    const e = bauen([
-      rechnung({
-        art: 'schluss', vorrechnungen: [anzahlung],
-        gesamtBrutto: 1200, totalNetto: 500, totalVat: 100, totalBrutto: 600,
-      }),
-    ]);
-    const aufErloes = e.zeilen.filter((z) => z.haben === '4000').reduce((s, z) => s + z.betrag, 0);
-    expect(aufErloes).toBe(1200);
+  /*
+    DIE PROBE AUFS GANZE, so gerechnet, wie BMD bucht: eine Zeile mit
+    Steuercode ist brutto, BMD spaltet die Steuer ab; eine ohne ist netto.
+    Anzahlungsrechnung und Schlussrechnung zusammen müssen genau die volle
+    Leistung ergeben — 1.000 € Erlös und 200 € Umsatzsteuer, nicht mehr.
+  */
+  const SAETZE: Record<string, number> = { M20: 0.2, M00: 0 };
+  function wieBmd(zeilen: { haben: string; soll: string; betrag: number; steuercode: string }[]) {
+    let erloes = 0;
+    let ust = 0;
+    for (const z of zeilen) {
+      const satz = z.steuercode ? SAETZE[z.steuercode] : 0;
+      const netto = z.betrag / (1 + satz);
+      if (z.haben === '4000') erloes += netto;
+      if (z.soll === '4000') erloes -= netto;
+      ust += (z.betrag - netto) * (z.soll === '2000' || z.soll === '3500' ? 1 : -1);
+    }
+    return { erloes: Math.round(erloes * 100) / 100, ust: Math.round(ust * 100) / 100 };
+  }
+  const beide = [
+    rechnung({ art: 'anzahlung', invoiceDate: '2026-04-05', totalNetto: 500, totalVat: 100, totalBrutto: 600 }),
+    rechnung({
+      invoiceNumber: 'RE-2026-0002', art: 'schluss', vorrechnungen: [anzahlung],
+      gesamtNetto: 1000, gesamtVat: 200, gesamtBrutto: 1200,
+      totalNetto: 500, totalVat: 100, totalBrutto: 600,
+    }),
+  ];
+
+  it('zählt die Umsatzsteuer genau einmal — Erlös und Steuer ergeben die volle Leistung', () => {
+    // P2-06: vorher ging die Umbuchung brutto mit Steuercode, und die 100 €
+    // der Anzahlung standen ein zweites Mal in der Voranmeldung (300 statt 200).
+    expect(wieBmd(bauen(beide).zeilen)).toEqual({ erloes: 1000, ust: 200 });
+  });
+
+  it('Gegenprobe: ohne Steuercode am Anzahlungskonto entsteht die Steuer beim Umbuchen — auch dann genau einmal', () => {
+    const ohneCode = KONTEN.map((k) => (k.zweck === 'anzahlung' ? { ...k, steuercode: undefined } : k));
+    const e = bauen(beide, ohneCode);
+    expect(e.zeilen.find((z) => z.buchungstext.startsWith('Anzahlung'))).toMatchObject({
+      betrag: 600, steuercode: 'M20',
+    });
+    expect(wieBmd(e.zeilen)).toEqual({ erloes: 1000, ust: 200 });
   });
 
   it('verlangt das Anzahlungskonto auch dann, wenn nur eine Schlussrechnung im Zeitraum liegt', () => {
@@ -260,17 +292,19 @@ describe('Stornierte Rechnungen', () => {
     expect(e.fehlend).toEqual([]);
     expect(e.zeilen).toEqual([
       expect.objectContaining({ soll: '2000', haben: '4000', betrag: 600 }),
-      expect.objectContaining({ soll: '3500', haben: '4000', betrag: 600 }),
+      expect.objectContaining({ soll: '3500', haben: '4000', betrag: 500 }),
       expect.objectContaining({ soll: '4000', haben: '2000', betrag: 600, belegdatum: '20.04.2026' }),
       expect.objectContaining({
-        soll: '4000', haben: '3500', betrag: 600, belegdatum: '20.04.2026',
+        soll: '4000', haben: '3500', betrag: 500, steuercode: '', belegdatum: '20.04.2026',
         buchungstext: 'Storno: Anzahlung RE-2026-0001 verrechnet',
         belegnummer: 'RE-2026-0002',
       }),
     ]);
-    // Und alles zusammen: auf dem Erlöskonto bleibt nichts stehen.
+    // Und alles zusammen: auf dem Erlöskonto bleibt nichts stehen — netto
+    // gerechnet, wie BMD es verbucht (die Restforderung trägt den Steuercode).
+    const netto = (z: { betrag: number; steuercode: string }) => (z.steuercode === 'M20' ? z.betrag / 1.2 : z.betrag);
     const erloes = e.zeilen.reduce(
-      (s, z) => s + (z.haben === '4000' ? z.betrag : 0) - (z.soll === '4000' ? z.betrag : 0), 0,
+      (s, z) => s + (z.haben === '4000' ? netto(z) : 0) - (z.soll === '4000' ? netto(z) : 0), 0,
     );
     expect(erloes).toBe(0);
   });

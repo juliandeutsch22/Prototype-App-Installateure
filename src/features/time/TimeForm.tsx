@@ -28,6 +28,7 @@ import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry, Role } from '@/types';
 import { praefixeVon, ohneKennzeichenVorsatz, mitKennzeichenVorsatz } from '@/lib/praefixe';
 import { grundAus } from '@/lib/fehlerGrund';
+import { aktiveModule } from '@/lib/module';
 
 
 interface Props {
@@ -1001,7 +1002,18 @@ export default function TimeForm({
 
       <InputField
         id="comment"
-        label={status === 'Krank' ? 'Anmerkung (freiwillig, keine Diagnose)' : 'Kommentar / Tätigkeiten'}
+        label={
+          status === 'Krank'
+            ? 'Anmerkung (freiwillig, keine Diagnose)'
+            : /*
+                DER KOMMENTAR GEHT AUF DEN KUNDENBELEG (offene Punkte A6): der
+                Handwerksschein desselben Tages schlägt ihn als Tätigkeit vor.
+                Wer hier „Schlüssel lag nicht da" notiert, soll das wissen.
+              */
+              status === 'Anwesend' && aktiveModule(company?.modules).has('scheine')
+              ? 'Kommentar / Tätigkeiten (wird am Schein vorgeschlagen)'
+              : 'Kommentar / Tätigkeiten'
+        }
         value={comment}
         onChange={(e) => setComment(e.target.value)}
       />

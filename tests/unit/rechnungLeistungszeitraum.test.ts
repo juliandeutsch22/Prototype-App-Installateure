@@ -66,7 +66,7 @@ function basis(leistung: AssembledInvoice['leistung']): AssembledInvoice {
 /** Der Textstrom des PDFs — die Zeichenbefehle samt Koordinaten. */
 function befehle(
   leistung: AssembledInvoice['leistung'],
-  extra?: { reverseCharge?: boolean; customerVatId?: string; vatRate?: number },
+  extra?: { reverseCharge?: boolean; customerVatId?: string; vatRate?: number; steuerbefreiung?: string },
 ): string {
   tabellen.length = 0;
   const doc = generateInvoicePdf({
@@ -179,5 +179,24 @@ describe('Reverse Charge auf dem Beleg', () => {
     // Unternehmer (§ 11 Abs 1 Z 2 UStG) — das Feld ist deshalb nicht an den
     // Haken gebunden.
     expect(befehle(null, { customerVatId: 'ATU33334444' })).toContain('ATU33334444');
+  });
+});
+
+/**
+ * 0 % ohne Übergang der Steuerschuld: der Grund der Befreiung steht auf dem
+ * Beleg (§ 11 Abs 1 Z 3 lit e UStG, offene Punkte A2).
+ */
+describe('Steuerbefreiung auf dem Beleg', () => {
+  const GRUND = 'Kleinunternehmer, § 6 Abs 1 Z 27 UStG';
+
+  it('druckt den Grund', async () => {
+    const s = befehle(null, { vatRate: 0, steuerbefreiung: GRUND });
+    expect(s).toContain('Kleinunternehmer');
+  });
+
+  it('Gegenprobe: bei Reverse Charge gilt der Pflichtsatz, nicht der Grund', async () => {
+    const s = befehle(null, { reverseCharge: true, customerVatId: 'ATU11112222', vatRate: 0, steuerbefreiung: GRUND });
+    expect(s).toContain('19 Abs 1a');
+    expect(s).not.toContain('Kleinunternehmer');
   });
 });

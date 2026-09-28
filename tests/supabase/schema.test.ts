@@ -208,6 +208,8 @@ describe('Interne Hilfsfunktionen', () => {
       // Nachtlauf (C10) und Gedächtnis der alten Baustellennummern (C8).
       'app.pruefsummen_nachtragen()',
       'app.alte_nummer_merken()',
+      // Rückwirkende eigene Krankmeldung (A4).
+      'app.krank_rueckwirkend_pruefen()',
     ];
     const offen: string[] = [];
     for (const f of intern) {

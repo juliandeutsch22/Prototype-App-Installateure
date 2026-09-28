@@ -155,6 +155,8 @@ export interface Company {
    * ist abwesend — ohne Grund. Ab Werk aus.
    */
   wochenplanFuerAlle?: boolean;
+  /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
+  steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
   /** 'MM-DD'. Nur bei `urlaubUebertrag === 'stichtag'` gesetzt. */
   urlaubStichtag?: string | null;
@@ -1126,6 +1128,12 @@ export interface Invoice {
    * trotzdem (§ 11 Abs 12 UStG).
    */
   reverseCharge?: boolean;
+  /**
+   * Der Grund der Steuerbefreiung, wie er auf der Rechnung steht — Pflicht bei
+   * 0 % ohne Reverse Charge (§ 11 Abs 1 Z 3 lit e UStG, offene Punkte A2).
+   * Festgehalten wie die Anschrift: der Nachdruck ergibt denselben Beleg.
+   */
+  steuerbefreiung?: string;
   /**
    * Die UID des Leistungsempfängers, festgehalten zum Zeitpunkt der Rechnung.
    *
