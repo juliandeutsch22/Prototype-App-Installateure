@@ -19,9 +19,11 @@ interface AdresseProps {
   /** 'text' = im Fließtext, 'knopf' = eigenständige Schaltfläche. */
   variante?: 'text' | 'knopf';
   className?: string;
+  /** Einzeilig mit „…" statt umzubrechen — wo die Adresse nur der Anfasser zur Karte ist. */
+  kuerzen?: boolean;
 }
 
-export function AdresseLink({ adresse, variante = 'text', className = '' }: AdresseProps) {
+export function AdresseLink({ adresse, variante = 'text', className = '', kuerzen = false }: AdresseProps) {
   if (!adresse?.trim()) return null;
   const gemeinsam = 'inline-flex min-h-touch items-center gap-1.5';
   const stil =
@@ -38,7 +40,7 @@ export function AdresseLink({ adresse, variante = 'text', className = '' }: Adre
       <Icon name="pin" size={16} aria-hidden />
       {/* Der Adresstext selbst ist der Link — „hier klicken" wäre für
           Screenreader wertlos. Der Zusatz sagt, wohin es führt. */}
-      <span>{adresse}</span>
+      <span className={kuerzen ? 'truncate' : undefined}>{adresse}</span>
       <span className="sr-only">— in Google Maps öffnen</span>
     </a>
   );

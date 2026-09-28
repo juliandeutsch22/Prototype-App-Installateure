@@ -68,8 +68,8 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 | 5 · Urlaub und Material anfordern | erledigt | `06c2ad5` (#164) |
 | 6 · Listen | erledigt | 6a `85f403c` (#165), 6b `c8e3a73` (#166) |
 | 7 · Akten zweispaltig | erledigt | `e3861f4` (#167) |
-| 8 · Einsatzplanung und Wochenplan | erledigt | siehe PR „Designlinie 3, Schritt 8“ |
-| 9 · Einstellungen, Rest, Abgleich | offen | |
+| 8 · Einsatzplanung und Wochenplan | erledigt | `0c42416` (#168) |
+| 9 · Einstellungen, Rest, Abgleich | 9a erledigt (siehe PR „Designlinie 3, Schritt 9a“), 9b offen | |
 
 **Schritt 1 im Einzelnen.** Rundungen 12/10/8 px; die Bausteine aus
 `linie.md` § 6 in `src/index.css`; `PageHeader`, `Card` (neu `buendig`),
@@ -298,6 +298,37 @@ hat dafür eine Beispiel-Rüstliste. Mit Absicht **nicht** wie im Entwurf:
   Leiste stünde beim Durchsehen der „Einsätze am …“ darüber.
 - Feiertage bleiben orange hinterlegt: im Wochenplan ist die Farbe das
   einzige Zeichen dafür.
+
+**Schritt 9a — gemeinsame Bausteine und die übrigen Kästen.** Was auf
+fast jeder Seite vorkommt, steht jetzt als Hinweiszeile statt als getönter
+Kasten: der Fehlerzustand (`ErrorState`, „Erneut versuchen“ als
+Nebenknopf statt roter Fläche), der Teilfehler (`TeilFehler`), die
+Auswahlgrenzen (Kunden, Baustellen), „Baustellen nicht geladen“, der
+Fehler im Bestätigungsdialog, der Betriebsurlaub-Hinweis, Fehler beim
+Hochladen von Plänen. Gewählte Personen (`PersonPicker`) stehen weiss mit
+Linie statt als türkise Pillen; die Stunden je Person (Baustellen-
+übersicht, Projektauswertung) als Textzeile statt umrandeter Pillen. In
+den drei Akten ist „Es gibt ungespeicherte Änderungen“ die Aktionsleiste
+(wie am Buchungsformular) statt eines türkisen Kastens. Rechnungen: zehn
+Kästen als Hinweiszeilen, Stundensätze, Abzug der Vorrechnungen und Rabatt
+mit Linie abgesetzt. Benutzerverwaltung: Startpasswort als Hinweiszeile,
+Zugangsart und Zeitkonto mit Linie. Angebot: Summen mit Linie. Die Messung
+steht bei **0 Befunden**: die gekürzte Adresse auf der Büro-Startseite
+trägt jetzt selbst `truncate` (`AdresseLink kuerzen`), und die 8 px, die
+das „i“ im Kartenkopf übersteht, filtert die Messung wie am Kartentitel.
+Mit Absicht **nicht** geändert:
+
+- **Das aufgeklappte „i“** (`InfoPanel`) bleibt leicht abgesetzt: es ist
+  eine Erklärung, die man selbst geöffnet hat, und soll sich vom Inhalt
+  daneben unterscheiden.
+- **Die Aufklapper der Mitarbeiterübersicht** (Tagesnachweis, fehlende
+  Buchungen) bleiben, wie sie nach der Rückmeldung vom 26.09. (#157)
+  gestaltet wurden.
+- Fotoplatzhalter, Kalendertage, der aktive Menüpunkt und der Zähler im
+  Menü behalten ihre Fläche — sie sind Bedienelemente, keine Hinweise.
+- Der lange Titel bricht in der Vorschau ohne Trennstrich: dem Chromium der
+  Vorschau fehlt das deutsche Trennwörterbuch; `hyphens: auto` mit
+  `lang="de"` steht seit dem Prüflauf vom 24.09. am Dokument.
 
 **Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
 Ansichten – `projects/BaustellenUebersicht.tsx` und

@@ -39,6 +39,8 @@ const BREITEN = [['iphone', 375], ['mobil', 390], ['tablet', 834], ['desktop', 1
 const HARMLOS = [
   (b) => b.el.includes('sr-only'),
   (b) => b.el.includes('titel-karte') && b.px <= 8,
+  // Dieselben 8 px im Kartenkopf, wenn das „i" rechts am Titel steht: die Zeile misst mit.
+  (b) => b.el.startsWith('div.flex.w-full.flex-wrap') && b.px <= 8,
   (b) => b.el.includes('input') && b.el.includes('file'),
   (b) => b.art === 'abgeschnitten' && b.el.includes('truncate'),
   (b) => b.el.includes('th.sticky'),

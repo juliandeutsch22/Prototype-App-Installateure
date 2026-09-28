@@ -119,7 +119,9 @@ export default function PersonPicker({
                   type="button"
                   onClick={() => umschalten(p.uid, false)}
                   aria-label={`${p.name} entfernen`}
-                  className="inline-flex min-h-touch items-center gap-2 rounded-full border border-brand/30 bg-info-bg px-3 py-1 text-sm font-medium text-brand hover:bg-surface-2"
+                  // Weiss mit Linie wie ein Nebenknopf, keine getönte Pille
+                  // (Designlinie „Fassung 3": keine Pillen, nicht bunt).
+                  className="inline-flex min-h-touch items-center gap-2 rounded-sm border border-line bg-surface px-3 py-1 text-sm font-medium text-ink hover:bg-surface-2"
                 >
                   {p.name}
                   <span aria-hidden="true" className="text-base leading-none">

@@ -8,6 +8,7 @@ import { canManageAdmins } from '@/lib/permissions';
 import Card from '@/components/Card';
 import Abschnitt from '@/components/Abschnitt';
 import Button from '@/components/Button';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { Marke } from '@/components/Badge';
 import Metric, { MetricRow } from '@/components/Metric';
 import PageHeader from '@/components/PageHeader';
@@ -226,13 +227,13 @@ export default function UserMgmtView() {
       </MetricRow>
 
       {handoverPassword && (
-        <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
-          <p className="font-semibold">
+        <Hinweiszeile stufe="warn" role="alert">
+          <p className="font-semibold text-ink-deep">
             {handoverPassword.benutzername
               ? `Zugangsdaten für ${handoverPassword.name}`
               : 'Willkommens-Mail konnte nicht gesendet werden'}
           </p>
-          <p className="mt-1 text-sm">
+          <p className="mt-1">
             Bitte {handoverPassword.name} dieses Startpasswort persönlich weitergeben. Es wird
             nur jetzt angezeigt
             {handoverPassword.benutzername
@@ -245,11 +246,11 @@ export default function UserMgmtView() {
               <span className="select-all font-semibold">{handoverPassword.benutzername}</span>
             </p>
           )}
-          <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold">{handoverPassword.pw}</p>
+          <p data-testid="startpasswort" className="mt-2 select-all text-lg font-semibold text-ink-deep">{handoverPassword.pw}</p>
           <Button variant="ghost" className="mt-2" onClick={() => setHandoverPassword(null)}>
             Verstanden
           </Button>
-        </div>
+        </Hinweiszeile>
       )}
 
       {/*
@@ -334,7 +335,7 @@ export default function UserMgmtView() {
             einreicht, den er nicht hat. Die Frage muss deshalb gestellt
             werden, bevor jemand entscheidet, ob er aufklappt.
           */}
-          <fieldset className="rounded border border-line bg-surface-2 p-4">
+          <fieldset className="border-t border-line pt-4">
             <legend className="section-label px-1">Was für ein Zugang ist das?</legend>
             <div className="flex flex-col gap-2">
               <label className="flex min-h-touch items-start gap-3 py-1">
@@ -412,7 +413,7 @@ export default function UserMgmtView() {
           </button>
 
           {showDetails && (
-            <div className="space-y-4 rounded border border-line bg-surface-2 p-4">
+            <div className="space-y-4 border-t border-line pt-4">
               <FormGrid>
                 <InputField id="uhours" label="Wochenstunden" type="number" step="0.5" min="0"
                   value={form.weeklyTargetHours}

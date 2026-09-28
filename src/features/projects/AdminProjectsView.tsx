@@ -1,4 +1,5 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
@@ -523,10 +524,12 @@ export default function AdminProjectsView() {
           {/* Ohne Zustaendige laeuft eine Eilbestellung ins Leere — das gehoert
               beim Anlegen gesagt, nicht erst, wenn ein Monteur wartet. */}
           {managers.length === 0 && (
-            <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-              Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
-              niemanden. Die Verwaltung wird weiterhin verständigt.
-            </p>
+            <Hinweiszeile stufe="warn">
+              <p>
+                Ohne zugeteilte Projektleitung erreicht eine Eilzustellung für diese Baustelle
+                niemanden. Die Verwaltung wird weiterhin verständigt.
+              </p>
+            </Hinweiszeile>
           )}
           <Pflichthinweis />
           {error && <ErrorState message={error} />}

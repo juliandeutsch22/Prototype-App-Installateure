@@ -580,7 +580,8 @@ export default function QuotesView() {
             />
           </div>
 
-          <div className="mt-4 rounded border border-line bg-surface-2 p-3">
+          {/* Die Summen mit einer Linie abgesetzt, nicht in einem Kasten. */}
+          <div className="mt-4 border-t border-line pt-3">
             <p className="text-sm text-ink">
               Netto {fmtEUR(summen.totalNetto)} · USt {fmtEUR(summen.totalVat)} ·{' '}
               <strong>Brutto {fmtEUR(summen.totalBrutto)}</strong>

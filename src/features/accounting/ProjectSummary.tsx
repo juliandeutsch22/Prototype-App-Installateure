@@ -286,11 +286,12 @@ export default function ProjectSummary({
 
               {isOpen && (
                 <div className="border-t border-line px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
+                  {/* Als Textzeile, nicht als umrandete Pillen (Designlinie „Fassung 3"). */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
                     {people.map((p) => (
                       <span
                         key={p.name}
-                        className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1 text-xs"
+                        className="inline-flex items-baseline gap-1.5 text-xs"
                       >
                         <span className="font-semibold text-ink">{p.name}</span>
                         <span className="text-ink-muted">{dauer(p.fachMin)}</span>
