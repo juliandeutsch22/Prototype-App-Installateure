@@ -720,3 +720,44 @@ describe('Zeiterfassung — „Zu meinen Einträgen" (Prüflauf 25.09.2026, P4-1
   });
 });
 
+
+/*
+  DIE WOCHEN KLAPPEN AUF UND ZU (Rückmeldung vom 28.09.2026: „sonst ist es
+  immer eine einzige lange Wurst an Daten"). Offen ist die neueste Woche und
+  jede Woche mit einer doppelten Buchung — der Hinweis oben schickt dorthin.
+*/
+describe('Zeiterfassung — Wochen zum Aufklappen', () => {
+  it('zeigt die neueste Woche offen und ältere zugeklappt mit Summe und Anzahl', async () => {
+    eintraege = [
+      eintrag({ id: 'diese', date: '2026-09-01', startTime: '07:00', endTime: '15:00' }),
+      eintrag({ id: 'alte', date: '2026-08-18', startTime: '07:00', endTime: '15:00' }),
+    ];
+    zeige();
+
+    expect(await screen.findByText('01.09.2026')).toBeInTheDocument();
+    expect(screen.queryByText('18.08.2026')).toBeNull();
+
+    const knoepfe = screen.getAllByRole('button', { expanded: false });
+    const alteWoche = knoepfe.find((k) => /1 Eintrag/.test(k.textContent ?? ''))!;
+    expect(alteWoche).toHaveTextContent('08:00');
+
+    await userEvent.click(alteWoche);
+    expect(alteWoche).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('18.08.2026')).toBeInTheDocument();
+
+    // Und wieder zu — die eigene Wahl gilt vor der Voreinstellung.
+    await userEvent.click(alteWoche);
+    expect(screen.queryByText('18.08.2026')).toBeNull();
+  });
+
+  it('öffnet eine ältere Woche von selbst, wenn darin doppelt gebucht ist', async () => {
+    eintraege = [
+      eintrag({ id: 'diese', date: '2026-09-01', startTime: '07:00', endTime: '15:00' }),
+      eintrag({ id: 'd1', date: '2026-08-18', startTime: '07:00', endTime: '15:00' }),
+      eintrag({ id: 'd2', date: '2026-08-18', startTime: '07:00', endTime: '15:00' }),
+    ];
+    zeige();
+
+    expect(await screen.findAllByText('18.08.2026')).toHaveLength(2);
+  });
+});

@@ -652,7 +652,7 @@ textarea {
   .abschnitt h2, .abschnitt h3 { font-size: 0.9375rem; line-height: 1.25rem; font-weight: 600; color: var(--ink-deep); }
   /* Die Zeile nach einem Abschnitt trägt ihren Rand, auch wenn sie die
      erste ihrer Liste ist — sonst stösst die Tönung ohne Kante an Weiss. */
-  .abschnitt + ul > .zeile:first-child { border-top: 1px solid var(--border); }
+  .abschnitt + ul > .zeile:first-child, .abschnitt + div > ul > .zeile:first-child { border-top: 1px solid var(--border); }
 
   /*
    * IM GEPOLSTERTEN KARTENKÖRPER reicht ein Abschnitt trotzdem von Kante zu

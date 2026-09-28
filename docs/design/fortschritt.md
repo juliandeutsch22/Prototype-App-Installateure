@@ -65,8 +65,8 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 | 2 · Monteur- und Büro-Start | erledigt | `91d017b` (#161) |
 | 3 · Zeiterfassung | erledigt | `041a12a` (#162) |
 | 4 · Handwerksschein | erledigt | `f1e2e40` (#163) |
-| 5 · Urlaub und Material anfordern | erledigt | siehe PR „Designlinie 3, Schritt 5“ |
-| 6 · Listen | offen | |
+| 5 · Urlaub und Material anfordern | erledigt | `06c2ad5` (#164) |
+| 6 · Listen | in Arbeit (6a Rechnungen: siehe PR „Designlinie 3, Schritt 6a“) | |
 | 7 · Akten zweispaltig | offen | |
 | 8 · Einsatzplanung und Wochenplan | offen | |
 | 9 · Einstellungen, Rest, Abgleich | offen | |
@@ -150,6 +150,9 @@ Mit Absicht **nicht** wie im Entwurf:
   vor der Startzeit …“), und der gehört neben die Felder.
 - **Wochen statt Monate** als Abschnitte in „Meine Einträge“: die Wochen
   tragen ihre Stundensumme, die Monatsgliederung hätte sie verloren.
+- **Nachtrag 28.09.2026:** die Wochen klappen auf und zu (Rückmeldung:
+  „sonst eine einzige lange Wurst an Daten“). Offen ist die neueste Woche
+  und jede mit doppelter Buchung; zugeklappte zeigen Anzahl und Summe.
 - **Keine Tabelle am Schreibtisch.** Eine zweite Darstellung derselben Liste
   hiesse jeden Knopf zweimal im Baum — mit den Tests und für Vorlesehilfen.
   Die Zeilen tragen am Schreibtisch; eine gemeinsame Lösung für Tabellen
@@ -194,6 +197,25 @@ orangem Fettdruck, die gewählte Retoure weiss statt getönt. Mit Absicht
   Antragsformular: dazwischen steht bei der Leitung „Offene Anträge“.
 - Kleine Zahlen in Warnfarbe („danach −2 Tage“) bleiben: in der Zeile ist
   für ein Symbol kein Platz, und die Farbe trägt die Aussage.
+
+**Schritt 6a — Rechnungen.** Neu `useSchreibtisch` (`src/lib/`) und
+`Tabelle` (`src/components/`): ab 1024 px steht eine Liste als Tabelle,
+darunter als Zeilen. Gezeichnet wird **nur eine** der beiden Darstellungen,
+beide aus denselben Daten; das Zeilenmenü und die kleinen Zusatzzeilen
+(Mahnstand, Teilzahlung, Guthaben, Storno) kommen aus je einer Funktion
+(`rechnungMenue`, `rechnungNotizen`). Ohne `matchMedia` (Prüfungen, sehr
+alte Browser) bleiben es die Zeilen. „Alle Rechnungen“ ist eine bündige
+Karte; die zwei Ladehinweise zu offenen Forderungen sind Hinweiszeilen. Neu
+geprüft: die Tabelle trägt dieselben Angaben und dasselbe Menü, und es gibt
+nur eine Darstellung (Gegenprobe: ohne die Zusatzzeilen rot). Mit Absicht
+**nicht** wie im Entwurf:
+
+- **Der Statusfilter bleibt ein Auswahlfeld** (Prüfungen wählen ihn als
+  „Rechnungen nach Status filtern“); Textreiter kommen dort, wo es heute
+  schon Knöpfe gibt.
+- **Keine Spalte „Baustelle“ und kein Netto**: die Liste führte beides nie;
+  eine neue Angabe wäre Inhalt, nicht Darstellung.
+- Mahnstand und Guthaben stehen weiter klein in Warnfarbe unter dem Kunden.
 
 **Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
 Ansichten – `projects/BaustellenUebersicht.tsx` und

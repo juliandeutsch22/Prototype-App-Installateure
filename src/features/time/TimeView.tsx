@@ -358,6 +358,18 @@ export default function TimeView() {
     return [...groups.entries()];
   }, [entries]);
 
+  /*
+    DIE WOCHEN KLAPPEN AUF UND ZU. Über Monate stand hier eine einzige lange
+    Liste; gesucht wird aber fast immer in der letzten Woche. Offen ist
+    deshalb die neueste Woche — und jede Woche mit einer doppelten Buchung,
+    denn der Hinweis oben schickt genau dorthin. Alles andere zeigt im Kopf
+    Summe und Anzahl und klappt mit einem Tipp auf. Was jemand selbst auf-
+    oder zuklappt, gilt vor der Voreinstellung.
+  */
+  const [umgeklappt, setUmgeklappt] = useState<Record<string, boolean>>({});
+  const wocheOffen = (woche: string, rows: WithId<TimeEntry>[], index: number) =>
+    umgeklappt[woche] ?? (index === 0 || rows.some((e) => doppelteTage.has(e.date)));
+
   /**
    * Die eigenen Zuschlagsstunden im angezeigten Fenster.
    *
@@ -690,90 +702,97 @@ export default function TimeView() {
           </div>
         ) : (
           <div>
-            {byWeek.map(([week, rows]) => {
+            {byWeek.map(([week, rows], index) => {
               const weekMin = rows.reduce((sum, e) => sum + calcWorkMin(e), 0);
               return (
                 <div key={week}>
-                  {/* Die Woche als Abschnitt, ihre Summe rechts — dort, wo in
-                      den Zeilen darunter die Stunden stehen. */}
+                  {/* Die Woche als aufklappbarer Abschnitt, ihre Summe rechts —
+                      dort, wo in den Zeilen darunter die Stunden stehen. */}
                   <Abschnitt
                     titel={week}
+                    anzahl={rows.length === 1 ? '1 Eintrag' : `${rows.length} Einträge`}
                     link={<span className="text-sm font-medium text-ink-deep">{fmtMin(weekMin)}</span>}
-                  />
-                  <List>
-                    {rows.map((e) => {
-                      // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
-                      const timeLabel =
-                        e.status === 'Anwesend'
-                          ? e.startTime && e.endTime
-                            ? `${e.startTime}–${e.endTime}`
-                            : null
-                          : e.status === 'Zeitausgleich' && e.startTime && e.endTime
-                            ? `Zeitausgleich ${e.startTime}–${e.endTime}`
-                            : e.status;
-                      const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
-                      return (
-                        <ListRow
-                          key={e.id}
-                          title={
-                            <span>
-                              {datumAT(e.date)}
-                              {e.customerName && ` · ${e.customerName}`}
+                    offen={wocheOffen(week, rows, index)}
+                    onUmschalten={() =>
+                      setUmgeklappt((u) => ({ ...u, [week]: !wocheOffen(week, rows, index) }))
+                    }
+                    steuert={`woche-${week.replace(/\W+/g, '-')}`}
+                  >
+                    <List>
+                      {rows.map((e) => {
+                        // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
+                        const timeLabel =
+                          e.status === 'Anwesend'
+                            ? e.startTime && e.endTime
+                              ? `${e.startTime}–${e.endTime}`
+                              : null
+                            : e.status === 'Zeitausgleich' && e.startTime && e.endTime
+                              ? `Zeitausgleich ${e.startTime}–${e.endTime}`
+                              : e.status;
+                        const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
+                        return (
+                          <ListRow
+                            key={e.id}
+                            title={
+                              <span>
+                                {datumAT(e.date)}
+                                {e.customerName && ` · ${e.customerName}`}
+                              </span>
+                            }
+                            subtitle={
+                              <>
+                                {subtitle}
+                                {e.lastEditedBy && (
+                                  <span className="mt-1 block text-xs text-ink-muted">
+                                    Bearbeitet von {e.lastEditedBy}
+                                  </span>
+                                )}
+                              </>
+                            }
+                          >
+                            {doppelteTage.has(e.date) && (
+                              <Warnung stufe="dringend">doppelt gebucht</Warnung>
+                            )}
+                            {e.source === 'voice' && <Marke>KI</Marke>}
+                            <Zeitmarker eintrag={e} />
+                            <span className="font-medium text-ink">
+                              {fmtMin(calcWorkMin(e))}
                             </span>
-                          }
-                          subtitle={
-                            <>
-                              {subtitle}
-                              {e.lastEditedBy && (
-                                <span className="mt-1 block text-xs text-ink-muted">
-                                  Bearbeitet von {e.lastEditedBy}
-                                </span>
-                              )}
-                            </>
-                          }
-                        >
-                          {doppelteTage.has(e.date) && (
-                            <Warnung stufe="dringend">doppelt gebucht</Warnung>
-                          )}
-                          {e.source === 'voice' && <Marke>KI</Marke>}
-                          <Zeitmarker eintrag={e} />
-                          <span className="font-medium text-ink">
-                            {fmtMin(calcWorkMin(e))}
-                          </span>
-                          {/* Verrechnete Einträge sind Grundlage einer
-                              verschickten Rechnung und bleiben gesperrt. */}
-                          {e.isBilled ? (
-                            <Marke>verrechnet</Marke>
-                          ) : e.krankmeldungId ? (
-                            // Ein Tag einer Krankmeldung wird nur über sie
-                            // geändert — Ende ändern oder löschen.
-                            <Button variant="ghost" onClick={() => setMeldung(e.krankmeldungId!)}>
-                              Krankmeldung
-                            </Button>
-                          ) : e.vacationId ? (
-                            // Ein Tag aus einem genehmigten Antrag ändert sich
-                            // nur über den Antrag.
-                            <AntragKnopf eintrag={e} />
-                          ) : e.status === 'Zeitausgleich' && !(user && canEditTime(user.role)) ? (
-                            // Einen gebuchten Zeitausgleich ändert nur das Büro —
-                            // die Datenbank lehnt es sonst ab. Zwei Knöpfe, die
-                            // nur eine Fehlermeldung bringen, stehen hier nicht
-                            // (Prüflauf 25.09.2026, P1-26).
-                            <Marke>vom Büro gebucht</Marke>
-                          ) : (
-                            <>
-                              <Button variant="ghost" onClick={() => setEditing(e)}>
-                                Bearbeiten
+                            {/* Verrechnete Einträge sind Grundlage einer
+                                verschickten Rechnung und bleiben gesperrt. */}
+                            {e.isBilled ? (
+                              <Marke>verrechnet</Marke>
+                            ) : e.krankmeldungId ? (
+                              // Ein Tag einer Krankmeldung wird nur über sie
+                              // geändert — Ende ändern oder löschen.
+                              <Button variant="ghost" onClick={() => setMeldung(e.krankmeldungId!)}>
+                                Krankmeldung
                               </Button>
-                              <Button variant="ghost" onClick={() => setToDelete(e)}>
-                                Löschen
-                              </Button>
-                            </>
-                          )}
-                        </ListRow>
-                      );
-                    })}
-                  </List>
+                            ) : e.vacationId ? (
+                              // Ein Tag aus einem genehmigten Antrag ändert sich
+                              // nur über den Antrag.
+                              <AntragKnopf eintrag={e} />
+                            ) : e.status === 'Zeitausgleich' && !(user && canEditTime(user.role)) ? (
+                              // Einen gebuchten Zeitausgleich ändert nur das Büro —
+                              // die Datenbank lehnt es sonst ab. Zwei Knöpfe, die
+                              // nur eine Fehlermeldung bringen, stehen hier nicht
+                              // (Prüflauf 25.09.2026, P1-26).
+                              <Marke>vom Büro gebucht</Marke>
+                            ) : (
+                              <>
+                                <Button variant="ghost" onClick={() => setEditing(e)}>
+                                  Bearbeiten
+                                </Button>
+                                <Button variant="ghost" onClick={() => setToDelete(e)}>
+                                  Löschen
+                                </Button>
+                              </>
+                            )}
+                          </ListRow>
+                        );
+                      })}
+                    </List>
+                  </Abschnitt>
                 </div>
               );
             })}
