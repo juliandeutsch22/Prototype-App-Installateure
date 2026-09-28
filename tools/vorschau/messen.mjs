@@ -39,6 +39,7 @@ const HARMLOS = [
   (b) => b.el.includes('input') && b.el.includes('file'),
   (b) => b.art === 'abgeschnitten' && b.el.includes('truncate'),
   (b) => b.el.includes('th.sticky'),
+  (b) => b.leiste,
 ];
 
 const browser = await chromium.launch({
@@ -90,7 +91,10 @@ for (const [pfad, rolle] of ROUTEN) {
           }
           if (el.scrollWidth > el.clientWidth + 2 && el.clientWidth > 0 && !/(auto|scroll)/.test(cs.overflowX)) {
             const kuerzt = cs.textOverflow === 'ellipsis';
-            raus.push({ art: kuerzt ? 'abgeschnitten' : 'laeuft ueber', px: el.scrollWidth - el.clientWidth, el: nenn(el) });
+            // Die Aktionsleiste reicht in einer Karte absichtlich bis an deren
+            // Kanten (negativer Rand = Polsterung des Kartenkörpers, 16 px).
+            const leiste = !!el.querySelector(':scope > .aktionsleiste') && el.scrollWidth - el.clientWidth <= 17;
+            raus.push({ art: kuerzt ? 'abgeschnitten' : 'laeuft ueber', px: el.scrollWidth - el.clientWidth, el: nenn(el), leiste });
           }
         }
         return { raus, seitenUeberlauf: document.documentElement.scrollWidth > VW + 1 };
