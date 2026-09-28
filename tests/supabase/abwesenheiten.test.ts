@@ -142,7 +142,7 @@ describe('Krankmeldung', () => {
 
   it('lehnt eine zweite Meldung über dieselben Tage ab', async () => {
     const { error } = await krank(monteur, { von: '2099-11-19', bis: '2099-11-20' });
-    expect(error?.message).toMatch(/Überschneidet sich mit der Krankmeldung vom 16\.11\.2026/);
+    expect(error?.message).toMatch(/Überschneidet sich mit der Krankmeldung vom 16\.11\.2099/);
   });
 
   it('für jemand anderen meldet nur das Büro', async () => {
