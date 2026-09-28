@@ -189,8 +189,8 @@ export default function SupportzugangView() {
               niemand. Wer nichts tut, gibt das Leserecht — die harmlosere
               Antwort ist die Vorgabe.
             */}
-            <fieldset className="rounded border border-line bg-surface-2 p-4">
-              <legend className="section-label px-1">Wie weit?</legend>
+            <fieldset>
+              <legend className="section-label mb-1">Wie weit?</legend>
               <div className="flex flex-col gap-2">
                 <label className="flex min-h-touch items-start gap-3 py-1">
                   <input

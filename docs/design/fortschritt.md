@@ -69,7 +69,7 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 | 6 · Listen | erledigt | 6a `85f403c` (#165), 6b `c8e3a73` (#166) |
 | 7 · Akten zweispaltig | erledigt | `e3861f4` (#167) |
 | 8 · Einsatzplanung und Wochenplan | erledigt | `0c42416` (#168) |
-| 9 · Einstellungen, Rest, Abgleich | 9a erledigt (siehe PR „Designlinie 3, Schritt 9a“), 9b offen | |
+| 9 · Einstellungen, Rest, Abgleich | erledigt | 9a `10da891` (#169), 9b siehe PR „Designlinie 3, Schritt 9b“ |
 
 **Schritt 1 im Einzelnen.** Rundungen 12/10/8 px; die Bausteine aus
 `linie.md` § 6 in `src/index.css`; `PageHeader`, `Card` (neu `buendig`),
@@ -330,10 +330,41 @@ Mit Absicht **nicht** geändert:
   Vorschau fehlt das deutsche Trennwörterbuch; `hyphens: auto` mit
   `lang="de"` steht seit dem Prüflauf vom 24.09. am Dokument.
 
-**Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
-Ansichten – `projects/BaustellenUebersicht.tsx` und
-`accounting/ProjectSummary.tsx` (Legende `rounded-pill border`); farbige
-Warnkarten (Nachtlauf, Wartungen, fehlende Buchungen) → `Hinweiszeile`.
+**Schritt 9b — Einstellungen, Reiter, Abgleich.** Alle Reiterleisten
+(Einstellungen, Material, Lager, Anforderungen, Urlaub) markieren den
+gewählten Reiter wie die Linie es vorgibt: Unterstrich im festen Petrol,
+Schrift halbfett in Tinte (statt Türkis und fett). Die Einstellungs-Reiter
+laufen jetzt auch am Tablet seitlich statt in drei Zeilen umzubrechen; erst
+am Schreibtisch brechen sie um. In den Einstellungen sind die getönten
+Kästen (Beispielrechnung der Zuschläge, Anzahlungs-Schalter, Urlaubsjahr,
+Stichtag, „Wie weit?“ beim Supportzugang) durch Linien ersetzt; Lauf- und
+Push-Zustand stehen als ruhige Zeile, eine Abweichung als Hinweiszeile.
+Anmeldung: Fehler und Bestätigung als Hinweiszeile. **Abgleich:** die
+Vorschau misst jetzt alle 36 Routen (die Startseite aus drei Rollen; neu: Nummernkreise, Personal,
+Kontenrahmen, Supportzugang, Impressum, Datenschutz) auf vier Breiten —
+**0 Befunde**. Die 8 px, um die die Tastfläche eines „i“ am Zeilenende
+übersteht, erkennt die Messung am „i“ selbst, nicht an einem Klassennamen
+(Gegenprobe: mit 12 px meldet sie wieder). Mit Absicht **nicht** wie im
+Entwurf:
+
+- **Keine Zusammenlegung zu „einer Karte je Reiter“** und keine klebende
+  Aktionsleiste in den Einstellungen: die Karten gliedern lange Seiten
+  bereits in Themen, und eine Leiste, die bei selten geänderten
+  Einstellungen dauernd am unteren Rand klebt, wäre Lärm. Gespeichert wird
+  wie bisher mit dem Knopf unter den Karten.
+- **Support- und Verbindungsband** bleiben farbig: sie melden einen
+  Zustand der ganzen App (fremder Einblick, keine Verbindung), der nicht
+  übersehen werden darf.
+- **Rechtstexte** (Impressum, Datenschutz) bleiben unverändert, auch der
+  Hinweis-Rahmen darin — sie werden noch überarbeitet.
+- Dialoge, Blätter und Meldungen (`ConfirmDialog`, `BottomSheet`, `Toast`)
+  nutzen die Rundungen bereits über die Tokens; geändert ist nur der Fehler
+  im Bestätigungsdialog (9a).
+
+**Merkposten für die Ansichts-Schritte** (alle erledigt): umrandete Pillen
+in `projects/BaustellenUebersicht.tsx` und `accounting/ProjectSummary.tsx`
+(9a); farbige Warnkarten (Nachtlauf, Wartungen, fehlende Buchungen) →
+`Hinweiszeile` (Schritt 2).
 
 **Unterschrift quer.** Unter jedem Unterschriftsfeld steht unter 1024 px
 „Groß unterschreiben“: dieselbe Zeichenfläche bildschirmfüllend, im

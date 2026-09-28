@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { ladeLauf } from '@/lib/db/laeufe';
 import { pushBeurteilen, type Lauf } from '@shared/laufStatus';
+import Hinweiszeile from '@/components/Hinweiszeile';
 
 /**
  * Ob die Push-Meldungen ankommen.
@@ -48,19 +49,12 @@ export default function PushStatus() {
   if (!geladen) return null;
 
   const u = pushBeurteilen(lauf);
-  const farbe =
-    u.stand === 'ueberfaellig'
-      ? 'border border-line bg-surface-2 text-warning'
-      : 'border-line text-ink-muted';
-
+  if (u.stand !== 'ueberfaellig') return <p className="text-sm text-ink-muted">{u.text}</p>;
+  // `status`, nicht `alert` — dieselbe Überlegung wie in `LaufStatus`:
+  // wer hier steht, sieht ohnehin hin.
   return (
-    <p
-      className={`rounded-sm border px-3 py-2 text-sm ${farbe}`}
-      // `status`, nicht `alert` — dieselbe Überlegung wie in `LaufStatus`:
-      // wer hier steht, sieht ohnehin hin.
-      role={u.stand === 'ueberfaellig' ? 'status' : undefined}
-    >
-      {u.text}
-    </p>
+    <Hinweiszeile stufe="warn" role="status">
+      <p>{u.text}</p>
+    </Hinweiszeile>
   );
 }

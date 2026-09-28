@@ -71,13 +71,15 @@ export default function Unterreiter({
         <nav
           ref={leiste}
           /*
-            AM TELEFON SEITLICH, AB DEM TABLET UMBRECHEN. Seit Nummernkreise
-            und Personal eigene Unterseiten sind, hat „Einstellungen" zehn
-            Reiter; bei 1280 px ragten zwei davon aus dem Bild. Am Schreibtisch
-            zeigt eine zweite Zeile alle — am Telefon wären es vier Zeilen,
-            dort läuft die Leiste wie die übrigen der App seitlich.
+            AM TELEFON UND TABLET SEITLICH, AM SCHREIBTISCH UMBRECHEN. Seit
+            Nummernkreise und Personal eigene Unterseiten sind, hat
+            „Einstellungen" neun Reiter; bei 1280 px ragten zwei davon aus dem
+            Bild. Am Schreibtisch zeigt eine zweite Zeile alle. Bei 834 px
+            wären es drei Zeilen Reiter über der Seite — dort läuft die Leiste
+            wie am Telefon und wie die übrigen der App seitlich, der gewählte
+            Reiter bleibt im Bild.
           */
-          className="mb-4 reiterleiste flex gap-1 overflow-x-auto border-b border-line sm:flex-wrap sm:overflow-visible"
+          className="mb-4 reiterleiste flex gap-1 overflow-x-auto border-b border-line lg:flex-wrap lg:overflow-visible"
           aria-label="Bereiche"
         >
           {sichtbar.map((s) => (
@@ -88,8 +90,9 @@ export default function Unterreiter({
                 [
                   'min-h-touch whitespace-nowrap border-b-2 px-3 py-2 text-sm transition',
                   // Dieselbe Markierung wie bei den Reitern in Material,
-                  // Lager und Anforderungen: Kante UNTEN, Text fett, beides im
-                  // festen Türkis der Oberfläche.
+                  // Lager, Anforderungen und Urlaub: Kante UNTEN im festen
+                  // Petrol des Produkts, Text halbfett in Tinte (Designlinie
+                  // „Fassung 3", wie die Filter-Textreiter).
                   //
                   // Bewusst NICHT in `--accent`: das ist die Farbe des
                   // Mandanten, und dieser Betrieb hat dort sein Logo-Rot
@@ -97,7 +100,7 @@ export default function Unterreiter({
                   // der einzige rote Punkt auf einer türkisen Seite — eine
                   // Markierung ist Oberfläche, keine Handlung.
                   isActive
-                    ? 'border-b-accent-deep font-bold text-accent-deep'
+                    ? 'border-b-brand-fixed font-semibold text-ink-deep'
                     : 'border-b-transparent font-medium text-ink-muted hover:text-ink',
                 ].join(' ')
               }

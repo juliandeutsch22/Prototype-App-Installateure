@@ -814,7 +814,7 @@ export default function VacationsView() {
               onClick={() => setReiter(r.key)}
               className={`flex min-h-touch shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm transition sm:px-4 ${
                 reiter === r.key
-                  ? 'border-b-accent-deep font-bold text-accent-deep'
+                  ? 'border-b-brand-fixed font-semibold text-ink-deep'
                   : 'border-b-transparent font-medium text-ink-muted hover:text-ink'
               }`}
             >

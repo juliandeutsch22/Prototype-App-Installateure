@@ -1,6 +1,6 @@
 # Offene Punkte
 
-Stand 26.09.2026. Alles, was bewusst nicht umgesetzt ist, an einem Ort:
+Stand 28.09.2026. Alles, was bewusst nicht umgesetzt ist, an einem Ort:
 aus dem Design-Durchgang (`docs/design/fortschritt.md`), aus dem Prüflauf
 mit vier unabhängigen Prüfern (`docs/pruefung-2026-09-25.md`) und aus den
 Lücken, die die Prüfer neben den Fehlern gemeldet haben.
@@ -36,7 +36,6 @@ wandert er hier heraus und in die jeweilige Doku.
 | B8 | **DSGVO-Auskunft (Art. 15) und Löschung (Art. 17) je Person** fehlen; `betrieb_auszug` betrifft nur den ganzen Betrieb und ist auf 8 MB begrenzt | Neue Funktionen | Eigener Auftrag |
 | B9 | **Betragsformatierer**: acht `fmtEUR`-Kopien | `tests/unit/eurozeichen.test.ts` setzt sie voraus und darf nicht abgeschwächt werden | Zusammenlegen und die Prüfung im selben Auftrag auf den einen Formatierer umstellen |
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
-| B11 | **Design-Phasen 2 und 3** (gemeinsame Bausteine, Tabellen am Desktop, Monteur-Start, zweispaltige Akten) | Verändern die Grundgestaltung; der erste Durchgang wurde zurückgenommen | Entwurf „Fassung 3“ liegt vor: Vorgabe `docs/design/linie.md`, Arbeitsplan `docs/design/umsetzung.md` (neun Schritte, je ein PR) |
 
 ## C. Absicherungen und Tests, die fehlen
 
@@ -54,8 +53,13 @@ wandert er hier heraus und in die jeweilige Doku.
 | C10 | Fehlt der Hash eines Scheins (der AFTER-Trigger schluckt Fehler), wird die Prüfsumme nie nachgetragen; das PDF sagt dauerhaft „wird ergänzt“ | Nachtragen im Nachtlauf |
 | C11 | Vorschau-Werkzeug: Stubs für Scheinentwurf, Rechnungssuche, Datanorm-Import und Ausgangsfach fehlten; `messen.mjs` und README nannten `section-label` | **Erledigt** (26.09.2026): Werkzeug eingecheckt (`tools/vorschau/`, `npm run vorschau`), feste Formen in `stubs-erzeugen.mjs` und `tools/vorschau/fest/`, Ausnahme auf `titel-karte` |
 | C12 | `npm test` führt die Datenbanktests nicht aus; grün sagt nichts über Zeilenregeln und Trigger | Bleibt so (Stack nur in der CI); im Handbuch benannt |
+| C13 | Der Durchklick „Benutzername“ ist der erste im Lauf und wartet 20 s auf das Startpasswort; beim kalten Start der Anlege-Funktion reichte das einmal nicht (#169, beim zweiten Lauf grün) | Die Funktion vor den Durchklicks einmal aufwärmen oder dem ersten Anlegen mehr Zeit geben |
 
 ## Erledigt seit dem Prüflauf
+
+**Design „Fassung 3“ (früher B11)** ist in neun Schritten umgesetzt
+(#160–#170); was mit Absicht anders als im Entwurf ist, steht mit Grund in
+`docs/design/fortschritt.md`.
 
 Alle übrigen Befunde des Prüflaufs (P1–P4) sind behoben und in
 `docs/pruefung-2026-09-25.md` beschrieben; die Commits tragen die

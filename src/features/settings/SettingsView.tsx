@@ -409,7 +409,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
           {/* Sofort sehen, was die Sätze bedeuten — Prozentwerte allein sind
               im Kundengespräch wenig greifbar. */}
-          <div className="mt-4 overflow-x-auto rounded-sm border border-line bg-surface-2 p-3">
+          <div className="mt-4 overflow-x-auto border-t border-line pt-3">
             <table className="w-full text-sm">
               <caption className="mb-2 text-left section-label">
                 So wird ein Monteur verrechnet
@@ -515,7 +515,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             das er jedes Mal überliest. Deshalb steht der Haken hier und ist
             ab Werk aus.
           */}
-          <div className="mt-4 rounded-sm border border-line bg-surface-2 p-4">
+          <div className="mt-4 border-t border-line pt-4">
             <CheckboxField
               id="rechnungsarten"
               label="Wir stellen Anzahlungs-, Teil- und Schlussrechnungen"
@@ -672,7 +672,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             fest am 1. Jänner — für jeden Betrieb mit einem anderen
             Urlaubsjahr rechnete die App still falsch.
           */}
-          <div className="mb-4 flex flex-wrap items-end gap-3 rounded border border-line bg-surface-2 p-4">
+          <div className="mb-4 flex flex-wrap items-end gap-3 border-b border-line pb-4">
             <SelectField
               id="urlaubsjahr-tag"
               label="Urlaubsjahr beginnt am"
@@ -754,7 +754,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           </fieldset>
 
           {uebertrag === 'stichtag' && (
-            <div className="mt-4 flex flex-wrap items-end gap-3 rounded border border-line bg-surface-2 p-4">
+            <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-line pt-4">
               <SelectField
                 id="stichtag-tag"
                 label="Verfällt am"

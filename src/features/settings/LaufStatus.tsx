@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { ladeLauf } from '@/lib/db/laeufe';
 import { beurteile, type Lauf, type NachtLaufArt } from '@shared/laufStatus';
+import Hinweiszeile from '@/components/Hinweiszeile';
 
 /**
  * Was ein nächtlicher Lauf zuletzt getan hat.
@@ -65,28 +66,8 @@ export default function LaufStatus({
   if (!geladen) return null;
 
   const u = beurteile(lauf, Date.now());
-  const farbe =
-    u.stand === 'gut'
-      ? 'border-line text-ink-muted'
-      : 'border border-line bg-surface-2 text-warning';
-
-  return (
-    <p
-      className={`rounded-sm border px-3 py-2 text-sm ${farbe}`}
-      /*
-        `status`, nicht `alert`.
-
-        `alert` unterbricht den Vorleser mitten im Satz. Das ist richtig für
-        die Meldung auf der Startseite, die jemanden von etwas anderem
-        wegholen soll — hier steht der Nutzer bereits auf der Seite und sieht
-        genau darauf. Eine stehende Zustandszeile berichtet, sie unterbricht
-        nicht.
-
-        Nebenbei stand dadurch zweimal `alert` auf derselben Seite, sobald ein
-        Fehler dazukam; ein bestehender Test hat das gemeldet.
-      */
-      role={u.stand === 'gut' ? undefined : 'status'}
-    >
+  const inhalt = (
+    <>
       {u.text}
       {lauf?.kennzahl != null && lauf.kennzahl > 0 && u.stand === 'gut' && (
         <>
@@ -135,6 +116,26 @@ export default function LaufStatus({
       {lauf?.erfolg === false && lauf.meldung && (
         <span className="mt-1 block">Letzter Versuch: {lauf.meldung}</span>
       )}
-    </p>
+    </>
+  );
+
+  if (u.stand === 'gut') return <p className="text-sm text-ink-muted">{inhalt}</p>;
+  // Die Abweichung als Hinweiszeile (Designlinie „Fassung 3"), nicht als Kasten.
+  /*
+    `status`, nicht `alert`.
+
+    `alert` unterbricht den Vorleser mitten im Satz. Das ist richtig für
+    die Meldung auf der Startseite, die jemanden von etwas anderem
+    wegholen soll — hier steht der Nutzer bereits auf der Seite und sieht
+    genau darauf. Eine stehende Zustandszeile berichtet, sie unterbricht
+    nicht.
+
+    Nebenbei stand dadurch zweimal `alert` auf derselben Seite, sobald ein
+    Fehler dazukam; ein bestehender Test hat das gemeldet.
+  */
+  return (
+    <Hinweiszeile stufe="warn" role="status">
+      <p>{inhalt}</p>
+    </Hinweiszeile>
   );
 }
