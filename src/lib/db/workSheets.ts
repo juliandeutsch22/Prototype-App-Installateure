@@ -42,8 +42,9 @@ export function listSignedWorkSheetsInRange(
   return pg.listSignedWorkSheetsInRange(companyId, von, bis, max);
 }
 
+/** Ohne `max` alle — siehe `pg.listWorkSheetsForProject`. */
 export function listWorkSheetsForProject(
-  companyId: string, projectNumber: string, max = 100,
+  companyId: string, projectNumber: string, max?: number,
 ): Promise<WithId<WorkSheet>[]> {
   return pg.listWorkSheetsForProject(companyId, projectNumber, max);
 }

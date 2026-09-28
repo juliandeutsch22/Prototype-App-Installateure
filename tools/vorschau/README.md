@@ -7,6 +7,7 @@ Datenschicht. Kein Firebase, kein Supabase, keine Anmeldung.
 npm run vorschau                 # Server auf http://localhost:5199/tools/vorschau/
 npm run vorschau:messen          # misst alle Routen auf drei Breiten (Server muss laufen)
 npm run vorschau:fotos -- fotos  # Bilder je Route × Rolle × Breite nach ./fotos/ (optional Filter als 2. Argument)
+npm run pruefen:links            # jeder Link je Rolle gegen deren Rechte (startet die Vorschau selbst; läuft in der CI)
 ```
 
 Chromium: Standard ist der Pfad der Build-Umgebung; sonst `CHROMIUM_PFAD=…`

@@ -36,6 +36,7 @@ unterscheidet vier Stufen:
 |---|---|
 | **Datenbank** | Läuft gegen eine echte Postgres-Instanz (`npm run supabase:test`). Prüft Zeilenschutz, Datenbankfunktionen, Trigger, tatsächliches Verhalten. Belastbar. |
 | **Browser** | Der Weg im echten Chromium gegen den laufenden Stapel (`npm run durchklick`). Fünf Wege, nicht mehr — siehe unten. |
+| **Links** | Seit 28.09.2026 geht `npm run pruefen:links` je Rolle durch die Vorschau und hält jeden Link gegen die Rechte der Rolle (`canAccess`, wie Menü und Wächter) — ein Link auf „Kein Zugriff“ oder ins Leere macht die CI rot. Nicht erfasst: Knöpfe, die erst beim Klick weiterleiten. |
 | **Rechnung** | Reine Funktionstests der Formeln. Sagen, dass die Mathematik stimmt — nicht, dass die App läuft. |
 | **Ansicht** | Rendern und Klicken, **aber jeder Datenbankzugriff ist ersetzt**. Findet Bedienfehler, keine Datenfehler. |
 | **—** | Nicht automatisch geprüft. |
@@ -161,6 +162,7 @@ Gutschriftbeleg mit Nummer (M12, mit der Steuerberatung klären) und ob der
 | Art | Anzahl | Aussagekraft |
 |---|---|---|
 | **Gegen eine echte Postgres-Datenbank** (`npm run supabase:test`) | **740** | **Am höchsten — Zeilenschutz, Datenbankfunktionen, Trigger und Nebenläufigkeit, wie sie produktiv laufen** |
+| **Links je Rolle** (`npm run pruefen:links`, Vorschau mit Beispieldaten) | **6** | **Hoch für Rechte in der Oberfläche: jede Rolle, jeder Link, auch in Akten und Unterreitern** |
 | **Im echten Browser** (`npm run durchklick`) | **4** | **Hoch für die Naht: vier ganze Wege, gegen den laufenden Stapel. Findet, was kein Ansichtstest sieht** |
 | **Statischer Abgleich** (Navigation ↔ Routen 35, Abfragegrenzen 52, Exportumfang 12, Ausgangsfach-Naht 4, Pflichtfelder 3, Bau-Umgebung 3, Datenschicht-Vertrag 2) | **111** | **Hoch — fängt Widersprüche zwischen Listen, die dasselbe behaupten** |
 | **Service Worker in einer Sandbox** | **20** | **Hoch — der echte Quelltext, nicht ein Nachbau** |
