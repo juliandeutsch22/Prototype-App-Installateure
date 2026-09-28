@@ -66,8 +66,8 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 | 3 · Zeiterfassung | erledigt | `041a12a` (#162) |
 | 4 · Handwerksschein | erledigt | `f1e2e40` (#163) |
 | 5 · Urlaub und Material anfordern | erledigt | `06c2ad5` (#164) |
-| 6 · Listen | erledigt | 6a `85f403c` (#165), 6b siehe PR „Designlinie 3, Schritt 6b“ |
-| 7 · Akten zweispaltig | offen | |
+| 6 · Listen | erledigt | 6a `85f403c` (#165), 6b `c8e3a73` (#166) |
+| 7 · Akten zweispaltig | erledigt | siehe PR „Designlinie 3, Schritt 7“ |
 | 8 · Einsatzplanung und Wochenplan | offen | |
 | 9 · Einstellungen, Rest, Abgleich | offen | |
 
@@ -234,6 +234,37 @@ Abstände der Linie. Mit Absicht **nicht** wie im Entwurf:
   nach der Rückmeldung vom 26.09. (#157) neu gestaltet.
 - Die Gruppenprüfung der Anforderungen liest die Überschrift jetzt ohne
   „·“ (Strukturtest, Reihenfolge und Anzahl unverändert geprüft).
+
+**Schritt 7 im Einzelnen.** Neu `Aktenspalten` (`src/components/`): die
+Karten einer Akte werden einmal angelegt und je nach Breite angeordnet —
+am Telefon untereinander in der Reihenfolge von bisher, ab 1024 px in
+`.zwei-spalten` (7 : 5). Gezeichnet wird jede Karte genau einmal. Bleibt
+eine Seite leer (Benutzerakte ohne Recht auf „Zugang“), bleibt die Akte
+einspaltig statt neben einer leeren Spalte. Baustellen-, Kunden-,
+Angebots- und Benutzerakte sind umgestellt; getönte Kästen in den Akten
+(Eilhinweis ohne Projektleitung, namensgleiche Baustellen ohne Kunde, das
+neue Startpasswort) sind Hinweiszeilen, das Zeitkonto im Benutzerformular
+ist mit einer Linie abgesetzt statt getönt. Die Vorschau misst jetzt auch
+die vier Akten. Mit Absicht **nicht** wie im Entwurf:
+
+- **Das Formular steht links, nicht rechts.** Wo die Stammdaten ein
+  Bearbeitungsformular sind (Baustelle, Kunde, Benutzer), stehen sie in der
+  breiten Spalte: dort bleiben die Felder zu zweit nebeneinander. Rechts
+  wären sie keine 200 px breit gewesen und das Formular doppelt so lang
+  (gemessen und fotografiert). Rechts stehen Stunden, Pläne und „Weiter“
+  (Baustelle), Baustellen, Rechnungen und Angebote (Kunde), Angaben und
+  „Weiter“ (Angebot), Zugang (Benutzer).
+- **Karten bleiben Karten**, statt zu Abschnitten einer einzigen Karte
+  zusammenzuwachsen: jede lädt und scheitert für sich (`TeilFehler`), und
+  die Prüfungen finden sie über ihre Überschrift.
+- **Keine neue Meta-Zeile und kein Zeilenmenü im Seitenkopf**: die Köpfe
+  tragen schon Rückweg, Nummer und Stand; Texte bleiben unverändert.
+- Die Messung meldete in den Akten Textfelder, deren **Wert** länger ist als
+  das Feld (der lange Name der Eigentümergemeinschaft). Das ist kein
+  Überlauf, sondern das Verhalten jedes Textfelds; `messen.mjs` filtert
+  genau das (ein Feld, das aus der Seite ragt, meldet sie weiter). Damit
+  entfällt auch der Befund auf `/settings/firma`, der für Schritt 9 notiert
+  war — es war derselbe.
 
 **Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
 Ansichten – `projects/BaustellenUebersicht.tsx` und

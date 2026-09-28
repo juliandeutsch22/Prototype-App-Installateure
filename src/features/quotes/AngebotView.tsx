@@ -11,6 +11,7 @@ import { discountLabel } from '@/features/invoices/totals';
 import type { Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import Aktenspalten from '@/components/Aktenspalten';
 import Button from '@/components/Button';
 import PageHeader from '@/components/PageHeader';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -194,8 +195,122 @@ export default function AngebotView() {
   const offen = q.status === 'Entwurf' || q.status === 'Versendet';
   const abgelaufen = offen && q.validUntil < todayStr();
 
+  /*
+    DIE KARTEN DES ANGEBOTS — einmal angelegt, von `Aktenspalten` angeordnet:
+    am Telefon in der gewohnten Reihenfolge, am Schreibtisch links, was
+    angeboten wird (Positionen, Anmerkungen), rechts die Angaben und was
+    als Nächstes zu tun ist.
+  */
+  const angaben = (
+    <Card title="Angaben">
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+        <Angabe wort="Kunde">
+          {q.customerId ? (
+            <Link to={`/customers/${q.customerId}`} className="link inline-flex min-h-touch items-center">
+              {q.customerName}
+            </Link>
+          ) : (
+            q.customerName
+          )}
+        </Angabe>
+        <Angabe wort="Ort der Leistung">{q.address}</Angabe>
+        <Angabe wort="Angebotsdatum">{fmtDatum(q.quoteDate)}</Angabe>
+        <Angabe wort="Gültig bis">{fmtDatum(q.validUntil)}</Angabe>
+        <Angabe wort="Kalkulierte Arbeitszeit">
+          {/* Intern: steht nicht auf dem PDF, wird beim Annehmen zum Budget. */}
+          <span>{fmtMenge(q.kalkulierteStunden)} h</span>
+        </Angabe>
+        <Angabe wort="Baustelle">
+          {q.projectNumber ? (
+            q.projectId && baustellenSichtbar ? (
+              <Link to={`/admin-projects/${q.projectId}`} className="link inline-flex min-h-touch items-center">
+                {q.projectNumber}
+              </Link>
+            ) : (
+              <span>{q.projectNumber}</span>
+            )
+          ) : null}
+        </Angabe>
+      </dl>
+    </Card>
+  );
+  const positionen = (
+    <Card title={`Positionen (${q.positions.length})`}>
+      <ul className="divide-y divide-line">
+        {q.positions.map((p, i) => (
+          <li key={i} className="flex items-start justify-between gap-3 py-2">
+            <div className="min-w-0">
+              <p className="text-sm text-ink">{p.label}</p>
+              <p className="text-xs text-ink-muted">
+                {fmtMenge(p.qty)} {p.unit} × {fmtEUR(p.unitPrice)}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm text-ink">{fmtEUR(p.netto)}</span>
+          </li>
+        ))}
+      </ul>
+      <dl className="mt-3 space-y-1 border-t border-ink pt-3 text-sm">
+        {(q.discountAmount ?? 0) > 0 && q.discount && (
+          <>
+            <Summe wort="Zwischensumme">{fmtEUR(q.subtotalNetto)}</Summe>
+            <Summe wort={discountLabel(q.discount)}>- {fmtEUR(q.discountAmount ?? 0)}</Summe>
+          </>
+        )}
+        <Summe wort="Netto">{fmtEUR(q.totalNetto)}</Summe>
+        <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{fmtEUR(q.totalVat)}</Summe>
+        <Summe wort="Brutto" fett>{fmtEUR(q.totalBrutto)}</Summe>
+      </dl>
+    </Card>
+  );
+  const anmerkungen = q.notes?.trim() ? (
+    <Card title="Anmerkungen">
+      <p className="whitespace-pre-line text-sm text-ink">{q.notes}</p>
+    </Card>
+  ) : null;
+  const weiterKarte = darfAendern && offen ? (
+    <Card title="Weiter">
+      <div className="flex flex-wrap gap-2">
+        {q.status === 'Entwurf' && (
+          <>
+            {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
+            <Link
+              to={`/quotes?bearbeiten=${q.id}`}
+              className="link inline-flex min-h-touch items-center px-4 text-sm"
+            >
+              Bearbeiten
+            </Link>
+            <Button
+              variant="ghost"
+              loading={busy}
+              onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
+            >
+              Als versendet markieren
+            </Button>
+          </>
+        )}
+        <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(true)}>
+          Annehmen → Baustelle
+        </Button>
+        <Button
+          variant="ghost"
+          loading={busy}
+          onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
+        >
+          Abgelehnt
+        </Button>
+        {/* Löschen nur im Entwurf: alles Versendete bleibt nachvollziehbar. */}
+        {q.status === 'Entwurf' && (
+          <Button variant="ghost" onClick={() => setLoeschenFragen(true)}>
+            Löschen
+          </Button>
+        )}
+      </div>
+    </Card>
+  ) : null;
+
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
+    <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title={`Angebot ${q.quoteNumber}`}
         subtitle={
@@ -225,111 +340,11 @@ export default function AngebotView() {
       )}
       {fehler && <ErrorState message={fehler} />}
 
-      <Card title="Angaben">
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-          <Angabe wort="Kunde">
-            {q.customerId ? (
-              <Link to={`/customers/${q.customerId}`} className="link inline-flex min-h-touch items-center">
-                {q.customerName}
-              </Link>
-            ) : (
-              q.customerName
-            )}
-          </Angabe>
-          <Angabe wort="Ort der Leistung">{q.address}</Angabe>
-          <Angabe wort="Angebotsdatum">{fmtDatum(q.quoteDate)}</Angabe>
-          <Angabe wort="Gültig bis">{fmtDatum(q.validUntil)}</Angabe>
-          <Angabe wort="Kalkulierte Arbeitszeit">
-            {/* Intern: steht nicht auf dem PDF, wird beim Annehmen zum Budget. */}
-            <span>{fmtMenge(q.kalkulierteStunden)} h</span>
-          </Angabe>
-          <Angabe wort="Baustelle">
-            {q.projectNumber ? (
-              q.projectId && baustellenSichtbar ? (
-                <Link to={`/admin-projects/${q.projectId}`} className="link inline-flex min-h-touch items-center">
-                  {q.projectNumber}
-                </Link>
-              ) : (
-                <span>{q.projectNumber}</span>
-              )
-            ) : null}
-          </Angabe>
-        </dl>
-      </Card>
-
-      <Card title={`Positionen (${q.positions.length})`}>
-        <ul className="divide-y divide-line">
-          {q.positions.map((p, i) => (
-            <li key={i} className="flex items-start justify-between gap-3 py-2">
-              <div className="min-w-0">
-                <p className="text-sm text-ink">{p.label}</p>
-                <p className="text-xs text-ink-muted">
-                  {fmtMenge(p.qty)} {p.unit} × {fmtEUR(p.unitPrice)}
-                </p>
-              </div>
-              <span className="shrink-0 text-sm text-ink">{fmtEUR(p.netto)}</span>
-            </li>
-          ))}
-        </ul>
-        <dl className="mt-3 space-y-1 border-t border-ink pt-3 text-sm">
-          {(q.discountAmount ?? 0) > 0 && q.discount && (
-            <>
-              <Summe wort="Zwischensumme">{fmtEUR(q.subtotalNetto)}</Summe>
-              <Summe wort={discountLabel(q.discount)}>- {fmtEUR(q.discountAmount ?? 0)}</Summe>
-            </>
-          )}
-          <Summe wort="Netto">{fmtEUR(q.totalNetto)}</Summe>
-          <Summe wort={`USt. ${Math.round(q.vatRate * 100)}%`}>{fmtEUR(q.totalVat)}</Summe>
-          <Summe wort="Brutto" fett>{fmtEUR(q.totalBrutto)}</Summe>
-        </dl>
-      </Card>
-
-      {q.notes?.trim() && (
-        <Card title="Anmerkungen">
-          <p className="whitespace-pre-line text-sm text-ink">{q.notes}</p>
-        </Card>
-      )}
-
-      {darfAendern && offen && (
-        <Card title="Weiter">
-          <div className="flex flex-wrap gap-2">
-            {q.status === 'Entwurf' && (
-              <>
-                {/* Nur der Entwurf: was beim Kunden liegt, ändert sich nicht mehr. */}
-                <Link
-                  to={`/quotes?bearbeiten=${q.id}`}
-                  className="link inline-flex min-h-touch items-center px-4 text-sm"
-                >
-                  Bearbeiten
-                </Link>
-                <Button
-                  variant="ghost"
-                  loading={busy}
-                  onClick={() => void status(q, 'Versendet', 'Als versendet markiert')}
-                >
-                  Als versendet markieren
-                </Button>
-              </>
-            )}
-            <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(true)}>
-              Annehmen → Baustelle
-            </Button>
-            <Button
-              variant="ghost"
-              loading={busy}
-              onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
-            >
-              Abgelehnt
-            </Button>
-            {/* Löschen nur im Entwurf: alles Versendete bleibt nachvollziehbar. */}
-            {q.status === 'Entwurf' && (
-              <Button variant="ghost" onClick={() => setLoeschenFragen(true)}>
-                Löschen
-              </Button>
-            )}
-          </div>
-        </Card>
-      )}
+      <Aktenspalten
+        telefon={[angaben, positionen, anmerkungen, weiterKarte]}
+        links={[positionen, anmerkungen]}
+        rechts={[angaben, weiterKarte]}
+      />
 
       {/* Erst fragen, dann anlegen (Launch-Check, M8) — wie in der Liste. */}
       <ConfirmDialog
