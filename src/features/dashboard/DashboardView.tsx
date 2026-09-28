@@ -36,6 +36,7 @@ import {
 import { canAccess } from '@/app/navigation';
 import type { Assignment, EinsatzMaterial, MaterialOrder, Project, RuestPosition } from '@/types';
 import Card from '@/components/Card';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import Metric, { MetricRow } from '@/components/Metric';
 import { Marke, Warnung, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
@@ -521,8 +522,18 @@ export default function DashboardView() {
     };
   })();
 
+  /* Ob die Spalten der Leitung überhaupt etwas tragen — sonst kein leerer Behälter. */
+  const linksDa =
+    (leitung && !!data.heuteBetrieb?.length) ||
+    (leitung && !!data.aktiveBaustellen?.length) ||
+    !!data.projectAlerts?.length;
+  const rechtsDa = (materialAn && !!data.openOrders?.length) || !!data.team?.length;
+
   return (
-    <div className="space-y-6">
+    // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am
+    // Schreibtisch — Hinweiszeilen und Karten gehören enger zusammen als
+    // die 24 px, die für eine Seite aus lauter Kästen gedacht waren.
+    <div className="space-y-3 lg:space-y-5">
       {/*
         DER TAG IST DIE UEBERSCHRIFT, NICHT DIE BEGRUESSUNG.
 
@@ -596,21 +607,24 @@ export default function DashboardView() {
         braucht den Hinweis nicht.
       */}
       {mitZeitkonto && data.hatEintritt === false && (
-        <div className="rounded border border-line bg-surface-2 p-4 text-info">
-          <p className="font-semibold">Kein Eintrittsdatum hinterlegt</p>
-          <p className="mt-1 text-sm">
-            Ohne Eintrittsdatum lässt sich nicht sagen, welche Tage fehlen und wie der Saldo
-            steht. Die Geschäftsführung kann es in der Benutzerverwaltung nachtragen.
+        <Hinweiszeile>
+          <p>
+            <b>Kein Eintrittsdatum hinterlegt</b> — Ohne Eintrittsdatum lässt sich nicht sagen,
+            welche Tage fehlen und wie der Saldo steht. Die Geschäftsführung kann es in der
+            Benutzerverwaltung nachtragen.
           </p>
-        </div>
+        </Hinweiszeile>
       )}
 
       {offeneTage.length > 0 && (
-        <div className="rounded border border-line bg-surface-2 p-4 text-warning" role="alert">
-          <p className="font-semibold">
-            {offeneTage.length === 1 ? 'Ein Tag ohne Buchung' : `${offeneTage.length} Tage ohne Buchung`}
-          </p>
-          <p className="mt-1 text-sm">
+        /* Eine Zeile über den Karten, kein farbiger Kasten (Designlinie
+           „Fassung 3"): das Dreieck trägt die Farbe, der Satz den Inhalt. */
+        <Hinweiszeile stufe="warn" role="alert">
+          <p>
+            <b>
+              {offeneTage.length === 1 ? 'Ein Tag ohne Buchung' : `${offeneTage.length} Tage ohne Buchung`}
+            </b>
+            {' — '}
             {offeneTage.slice(-5).map(fmtTag).join(', ')}
             {offeneTage.length > 5 && ` und ${offeneTage.length - 5} weitere`}.{' '}
             {/* Tastfläche 48 px ohne neue Zeilenhöhe: senkrechtes Polster an
@@ -620,7 +634,7 @@ export default function DashboardView() {
               Jetzt nachtragen
             </Link>
           </p>
-        </div>
+        </Hinweiszeile>
       )}
 
       {/*
@@ -642,18 +656,27 @@ export default function DashboardView() {
               </Link>
             ) : undefined
           }
+          buendig
         >
-          <div className="space-y-4">
+          {/*
+            JEDE BAUSTELLE EIN ABSCHNITT DER KARTE, KEIN KASTEN DARIN
+            (Designlinie „Fassung 3", keine Karte in der Karte). Alle
+            Baustellen behalten dabei ihre Knöpfe: der Entwurf zeigt die
+            zweite nur als Zeile, aber „Zeit erfassen" mit der Baustelle
+            vorbelegt ist genau der Weg, den ein Monteur mit zwei Einsätzen am
+            Nachmittag braucht.
+          */}
+          <div className="divide-y divide-line">
             {data.heuteEigene.map((e) => (
-              <div key={e.id} className="rounded-sm border border-line p-3">
-                <p className="flex flex-wrap items-center gap-2 text-lg font-bold text-ink">
+              <div key={e.id} className="px-4 py-4">
+                <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-ink-deep">
                   {e.customerName}
                   {e.asHelper && <Marke>Helfer</Marke>}
                 </p>
-                <p className="text-sm text-ink-muted">{e.projectNumber}</p>
-                {e.comment && (
-                  <p className="mt-2 rounded-sm bg-surface-2 p-2 text-sm text-ink">{e.comment}</p>
-                )}
+                <p className="text-meta text-ink-muted">{e.projectNumber}</p>
+                {/* Die Notiz des Büros bleibt in Tinte, nicht gedämpft: sie
+                    sagt, was heute zu tun ist („Verteiler, Vormittag"). */}
+                {e.comment && <p className="mt-1 text-sm text-ink">{e.comment}</p>}
                 <KontaktZeile
                   adresse={e.address}
                   nummer={e.contactPhone}
@@ -679,11 +702,14 @@ export default function DashboardView() {
                   anzubieten spart den Umweg ueber einen eigenen Bereich, in
                   dem die Baustelle noch einmal gesucht werden muesste.
                 */}
-                <div className="mt-3 flex flex-wrap gap-2">
+                {/* Zwei gleich breite Knöpfe über die ganze Breite: mit dem
+                    Daumen besser zu treffen als zwei schmale am linken Rand.
+                    Steht nur einer da, nimmt er die ganze Zeile. */}
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap [&>:only-child]:col-span-2">
                   <Link
                     to="/time"
                     state={{ projectNumber: e.projectNumber, asHelper: !!e.asHelper }}
-                    className="flex min-h-touch items-center rounded bg-brand px-4 py-2 text-sm font-semibold text-brand-fg shadow-sm"
+                    className="flex min-h-touch items-center justify-center rounded bg-brand px-2 py-2 text-center sm:px-5 text-fliess font-semibold text-brand-fg shadow-sm"
                   >
                     Zeit erfassen
                   </Link>
@@ -691,7 +717,7 @@ export default function DashboardView() {
                   {scheineAn && user && canWriteWorkSheet(user.role) && (
                     <Link
                       to={`/worksheet?projekt=${encodeURIComponent(e.projectNumber)}`}
-                      className="flex min-h-touch items-center rounded border border-line px-4 py-2 text-sm font-semibold text-ink"
+                      className="flex min-h-touch items-center justify-center rounded border border-line bg-surface px-2 py-2 text-center sm:px-5 text-fliess font-medium text-ink-deep shadow-sm"
                     >
                       Schein schreiben
                     </Link>
@@ -700,46 +726,6 @@ export default function DashboardView() {
               </div>
             ))}
           </div>
-        </Card>
-      )}
-
-      {/*
-        Die heutige Einteilung des Betriebs — die Frage, mit der die Leitung
-        in den Tag geht: wer ist wo? Beantwortete die Startseite bisher gar
-        nicht.
-      */}
-      {leitung && data.heuteBetrieb && data.heuteBetrieb.length > 0 && (
-        <Card
-          title="Heute im Einsatz"
-          action={
-            <Link to="/assignments" className="link-weiter text-sm">
-              Zur Einsatzplanung
-            </Link>
-          }
-        >
-          <ul className="divide-y divide-line">
-            {data.heuteBetrieb.map((b) => (
-              <li key={b.projectNumber} className="py-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-semibold text-ink">
-                    {b.customerName}{' '}
-                    <span className="text-sm font-normal text-ink-muted">
-                      ({b.projectNumber})
-                    </span>
-                  </span>
-                  <Marke>
-                    {b.namen.length} {b.namen.length === 1 ? 'Person' : 'Personen'}
-                    {b.helfer > 0 && `, davon ${b.helfer} Helfer`}
-                  </Marke>
-                </div>
-                <p className="mt-1 text-sm text-ink-muted">{b.namen.join(', ')}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
-                  <AdresseLink adresse={b.address} />
-                  <TelefonLink nummer={b.contactPhone} name={b.contactName} />
-                </div>
-              </li>
-            ))}
-          </ul>
         </Card>
       )}
 
@@ -773,187 +759,247 @@ export default function DashboardView() {
         )}
 
       {/*
-        Alle laufenden Baustellen. Das Radar darunter zeigt, was aus dem Ruder
-        laeuft; diese Karte beantwortet die schlichtere Frage „was haben wir
-        gerade?", fuer die man bisher in die Verwaltung wechseln musste.
+        AM SCHREIBTISCH ZWEI SPALTEN (Designlinie „Fassung 3", Büro-Start):
+        links, wo gearbeitet wird — Einsatz und Baustellen —, rechts, was
+        wartet — Material und Team. Am Telefon stehen beide Spalten
+        untereinander in derselben Reihenfolge wie bisher.
       */}
-      {/*
-        WIE VIELE ZEILEN DIE STARTSEITE VERTRÄGT.
-
-        Diese Karte zeigte ALLE laufenden Baustellen. Bei zwanzig Stück geht
-        das — der Kommentar unten spricht genau davon —, bei achtzig nicht
-        mehr: dann steht die längste und harmloseste Liste der Seite vor den
-        kurzen, wichtigen darunter (Baustellen am Limit, Material,
-        Mannschaft). Die Startseite wird dadurch nicht falsch, aber ihre
-        Reihenfolge kippt, und das ist ihr einziger Zweck.
-
-        ZWÖLF, nicht fünf: die Karte beantwortet die Frage „welche Baustellen
-        haben wir gerade?", und dafür braucht es mehr als einen Ausschnitt.
-        Der Rest steht als Zahl da, mit dem Weg dorthin — dasselbe Muster wie
-        bei den offenen Anforderungen und den Tagen ohne Buchung.
-      */}
-      {leitung && data.aktiveBaustellen && data.aktiveBaustellen.length > 0 && (
-        <Card
-          title={`Aktive Baustellen (${data.aktiveBaustellen.length})`}
-          action={
-            <Link to="/admin-projects" className="link-weiter text-sm">
-              Baustellen verwalten
-            </Link>
-          }
-        >
-          <ul className="divide-y divide-line">
-            {data.aktiveBaustellen.slice(0, BAUSTELLEN_AUF_STARTSEITE).map((pr) => (
-              <li key={pr.id} className="py-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-medium text-ink">
-                    {pr.customerName}{' '}
-                    <span className="text-sm font-normal text-ink-muted">
-                      ({pr.projectNumber})
-                    </span>
-                  </span>
-                  {pr.estimatedHours ? (
-                    <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke>
-                  ) : null}
-                </div>
-                {/*
-                  Kompakt gehalten: die Karte zeigt ALLE laufenden Baustellen,
-                  und bei zwanzig Stueck entscheidet die Zeilenhoehe darueber,
-                  ob die Liste noch zu ueberblicken ist. Die Adresse bleibt
-                  einzeilig und wird abgeschnitten — sie ist hier der
-                  Anfasser zur Karte, nicht der vorzulesende Text.
-                */}
-                <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 text-sm">
-                  <AdresseLink adresse={pr.address} className="min-w-0 max-w-full [&>span]:truncate" />
-                  <TelefonLink nummer={pr.contactPhone} name={pr.contactName} />
-                </div>
-              </li>
-            ))}
-          </ul>
-          {data.aktiveBaustellen.length > BAUSTELLEN_AUF_STARTSEITE && (
-            <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted">
-              und {data.aktiveBaustellen.length - BAUSTELLEN_AUF_STARTSEITE} weitere — alle unter{' '}
-              <Link to="/admin-projects" className="link-weiter">
-                Baustellen
-              </Link>
-              .
-            </p>
-          )}
-        </Card>
-      )}
-
-      {/* Projekt-Radar: nur was aus dem Ruder läuft. */}
-      {data.projectAlerts && data.projectAlerts.length > 0 && (
-        <Card
-          title="Baustellen am Limit"
-          action={
-            <Link to="/accounting" className="link-weiter text-sm">
-              Zur Auswertung
-            </Link>
-          }
-        >
-          <ul className="divide-y divide-line">
-            {data.projectAlerts.slice(0, WARNUNGEN_AUF_STARTSEITE).map((pr) => (
-              <li
-                key={pr.projectNumber}
-                className="flex min-h-touch items-center justify-between gap-3 py-2"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium text-ink">{pr.customerName}</span>
-                  <span className="block text-xs text-ink-muted">
-                    {fmtStd(pr.usedMin)} von {fmtStunden(pr.estimatedHours)} h · {pr.projectNumber}
-                  </span>
-                </span>
-                <Warnung stufe={pr.over ? 'dringend' : 'achtung'}>
-                  {pr.over ? 'überschritten' : `${pr.pct} %`}
-                </Warnung>
-              </li>
-            ))}
-          </ul>
+      {(linksDa || rechtsDa) && (
+        <div className="zwei-spalten">
+          <div className="spalte">
           {/*
-            Die Liste ist nach Auslastung sortiert, die schlimmsten stehen
-            oben. Acht davon sind eine Arbeitsliste; vierzig sind eine
-            Tapete, die niemand mehr liest — und dann geht auch die eine
-            unter, die wirklich brennt.
+            Die heutige Einteilung des Betriebs — die Frage, mit der die Leitung
+            in den Tag geht: wer ist wo? Beantwortete die Startseite bisher gar
+            nicht.
           */}
-          {data.projectAlerts.length > WARNUNGEN_AUF_STARTSEITE && (
-            <p className="mt-3 border-t border-line pt-3 text-sm text-ink-muted">
-              und {data.projectAlerts.length - WARNUNGEN_AUF_STARTSEITE} weitere —{' '}
-              <Link to="/accounting" className="link-weiter">
-                zur Auswertung
-              </Link>
-              .
-            </p>
+          {leitung && data.heuteBetrieb && data.heuteBetrieb.length > 0 && (
+            <Card
+              title="Heute im Einsatz"
+              action={
+                <Link to="/assignments" className="link-weiter text-sm">
+                  Zur Einsatzplanung
+                </Link>
+              }
+              buendig
+            >
+              <ul className="divide-y divide-line">
+                {data.heuteBetrieb.map((b) => (
+                  <li key={b.projectNumber} className="px-4 py-3">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-medium text-ink-deep">
+                        {b.customerName}{' '}
+                        <span className="text-sm font-normal text-ink-muted">
+                          ({b.projectNumber})
+                        </span>
+                      </span>
+                      <Marke>
+                        {b.namen.length} {b.namen.length === 1 ? 'Person' : 'Personen'}
+                        {b.helfer > 0 && `, davon ${b.helfer} Helfer`}
+                      </Marke>
+                    </div>
+                    <p className="mt-0.5 text-meta text-ink-muted">{b.namen.join(', ')}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 text-sm">
+                      <AdresseLink adresse={b.address} />
+                      <TelefonLink nummer={b.contactPhone} name={b.contactName} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           )}
-        </Card>
-      )}
 
-      {/* Offene Materialanforderungen — als Liste, weil eine Zahl nicht sagt,
-          was der Monteur auf der Baustelle braucht. */}
-      {materialAn && data.openOrders && data.openOrders.length > 0 && (
-        <Card
-          title={`Material angefordert (${data.openOrders.length})`}
-          action={
-            <Link to="/material/anforderungen" className="link-weiter text-sm">
-              Bearbeiten
-            </Link>
-          }
-        >
-          <ul className="divide-y divide-line">
-            {data.openOrders.slice(0, 5).map((o) => (
-              <li key={o.id} className="flex min-h-touch items-center justify-between gap-3 py-2">
-                <span className="min-w-0">
-                  <span className="block truncate text-ink">
-                    {o.quantity}× {o.materialName}
-                  </span>
-                  <span className="block truncate text-xs text-ink-muted">
-                    {[o.userName, o.projectNumber].filter(Boolean).join(' · ')}
-                  </span>
-                </span>
-                <StatusBadge status={o.status} />
-              </li>
-            ))}
-          </ul>
-          {data.openOrders.length > 5 && (
-            <p className="mt-2 text-sm text-ink-muted">
-              und {data.openOrders.length - 5} weitere
-            </p>
+          {/*
+            Alle laufenden Baustellen. Das Radar darunter zeigt, was aus dem Ruder
+            laeuft; diese Karte beantwortet die schlichtere Frage „was haben wir
+            gerade?", fuer die man bisher in die Verwaltung wechseln musste.
+          */}
+          {/*
+            WIE VIELE ZEILEN DIE STARTSEITE VERTRÄGT.
+
+            Diese Karte zeigte ALLE laufenden Baustellen. Bei zwanzig Stück geht
+            das — der Kommentar unten spricht genau davon —, bei achtzig nicht
+            mehr: dann steht die längste und harmloseste Liste der Seite vor den
+            kurzen, wichtigen darunter (Baustellen am Limit, Material,
+            Mannschaft). Die Startseite wird dadurch nicht falsch, aber ihre
+            Reihenfolge kippt, und das ist ihr einziger Zweck.
+
+            ZWÖLF, nicht fünf: die Karte beantwortet die Frage „welche Baustellen
+            haben wir gerade?", und dafür braucht es mehr als einen Ausschnitt.
+            Der Rest steht als Zahl da, mit dem Weg dorthin — dasselbe Muster wie
+            bei den offenen Anforderungen und den Tagen ohne Buchung.
+          */}
+          {leitung && data.aktiveBaustellen && data.aktiveBaustellen.length > 0 && (
+            <Card
+              title={`Aktive Baustellen (${data.aktiveBaustellen.length})`}
+              action={
+                <Link to="/admin-projects" className="link-weiter text-sm">
+                  Baustellen verwalten
+                </Link>
+              }
+              buendig
+            >
+              <ul className="divide-y divide-line">
+                {data.aktiveBaustellen.slice(0, BAUSTELLEN_AUF_STARTSEITE).map((pr) => (
+                  <li key={pr.id} className="px-4 py-3">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="font-medium text-ink-deep">
+                        {pr.customerName}{' '}
+                        <span className="text-sm font-normal text-ink-muted">
+                          ({pr.projectNumber})
+                        </span>
+                      </span>
+                      {pr.estimatedHours ? (
+                        <Marke>{fmtStunden(pr.estimatedHours)} h Budget</Marke>
+                      ) : null}
+                    </div>
+                    {/*
+                      Kompakt gehalten: die Karte zeigt ALLE laufenden Baustellen,
+                      und bei zwanzig Stueck entscheidet die Zeilenhoehe darueber,
+                      ob die Liste noch zu ueberblicken ist. Die Adresse bleibt
+                      einzeilig und wird abgeschnitten — sie ist hier der
+                      Anfasser zur Karte, nicht der vorzulesende Text.
+                    */}
+                    <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 text-sm">
+                      <AdresseLink adresse={pr.address} className="min-w-0 max-w-full [&>span]:truncate" />
+                      <TelefonLink nummer={pr.contactPhone} name={pr.contactName} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {data.aktiveBaustellen.length > BAUSTELLEN_AUF_STARTSEITE && (
+                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
+                  und {data.aktiveBaustellen.length - BAUSTELLEN_AUF_STARTSEITE} weitere — alle unter{' '}
+                  <Link to="/admin-projects" className="link-weiter">
+                    Baustellen
+                  </Link>
+                  .
+                </p>
+              )}
+            </Card>
           )}
-        </Card>
-      )}
 
-      {/*
-        Team: wer hat noch nicht gebucht. Kein Saldo mehr — der beantwortete
-        die Frage nicht, die jemand mit dieser Liste vor sich hat, und kostete
-        jeden Zeiteintrag des Betriebs.
-      */}
-      {data.team && data.team.length > 0 && (
-        <Card
-          title="Team — offene Zeiten"
-          action={
-            <Link to="/accounting" className="link-weiter text-sm">
-              Zur Monatsauswertung
-            </Link>
-          }
-        >
-          <ul className="divide-y divide-line">
-            {data.team.map((t) => (
-              <li key={t.uid} className="flex min-h-touch items-center justify-between gap-3 py-2">
-                <span className="min-w-0 truncate text-ink">{t.name}</span>
-                {!t.hatKonfig ? (
-                  <Marke>kein Startdatum</Marke>
-                ) : t.fehlendeTage > 0 ? (
-                  <Warnung>{tageWort(t.fehlendeTage)} offen</Warnung>
-                ) : (
-                  <Zustand stand="gut">vollständig</Zustand>
-                )}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-ink-muted">
-            Geprüft werden die letzten {LUECKEN_TAGE} Tage bis gestern. Der Stundensaldo steht im
-            Zeitkonto des Mitarbeiters.
-          </p>
-        </Card>
+          {/* Projekt-Radar: nur was aus dem Ruder läuft. */}
+          {data.projectAlerts && data.projectAlerts.length > 0 && (
+            <Card
+              title="Baustellen am Limit"
+              action={
+                <Link to="/accounting" className="link-weiter text-sm">
+                  Zur Auswertung
+                </Link>
+              }
+              buendig
+            >
+              <ul className="divide-y divide-line">
+                {data.projectAlerts.slice(0, WARNUNGEN_AUF_STARTSEITE).map((pr) => (
+                  <li
+                    key={pr.projectNumber}
+                    className="flex min-h-touch items-center justify-between gap-3 px-4 py-2.5"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium text-ink-deep">{pr.customerName}</span>
+                      <span className="block text-meta text-ink-muted">
+                        {fmtStd(pr.usedMin)} von {fmtStunden(pr.estimatedHours)} h · {pr.projectNumber}
+                      </span>
+                    </span>
+                    <Warnung stufe={pr.over ? 'dringend' : 'achtung'}>
+                      {pr.over ? 'überschritten' : `${pr.pct} %`}
+                    </Warnung>
+                  </li>
+                ))}
+              </ul>
+              {/*
+                Die Liste ist nach Auslastung sortiert, die schlimmsten stehen
+                oben. Acht davon sind eine Arbeitsliste; vierzig sind eine
+                Tapete, die niemand mehr liest — und dann geht auch die eine
+                unter, die wirklich brennt.
+              */}
+              {data.projectAlerts.length > WARNUNGEN_AUF_STARTSEITE && (
+                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
+                  und {data.projectAlerts.length - WARNUNGEN_AUF_STARTSEITE} weitere —{' '}
+                  <Link to="/accounting" className="link-weiter">
+                    zur Auswertung
+                  </Link>
+                  .
+                </p>
+              )}
+            </Card>
+          )}
+          </div>
+          <div className="spalte">
+          {/* Offene Materialanforderungen — als Liste, weil eine Zahl nicht sagt,
+              was der Monteur auf der Baustelle braucht. */}
+          {materialAn && data.openOrders && data.openOrders.length > 0 && (
+            <Card
+              title={`Material angefordert (${data.openOrders.length})`}
+              action={
+                <Link to="/material/anforderungen" className="link-weiter text-sm">
+                  Bearbeiten
+                </Link>
+              }
+              buendig
+            >
+              <ul className="divide-y divide-line">
+                {data.openOrders.slice(0, 5).map((o) => (
+                  <li key={o.id} className="flex min-h-touch items-center justify-between gap-3 px-4 py-2.5">
+                    <span className="min-w-0">
+                      {/* Umbrechen statt kürzen: in der schmaleren rechten Spalte
+                          fiel sonst genau das weg, was bestellt ist („Stange 5 m, hart"). */}
+                      <span className="block font-medium text-ink-deep">
+                        {o.quantity}× {o.materialName}
+                      </span>
+                      <span className="block text-meta text-ink-muted">
+                        {[o.userName, o.projectNumber].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    <StatusBadge status={o.status} />
+                  </li>
+                ))}
+              </ul>
+              {data.openOrders.length > 5 && (
+                <p className="border-t border-line px-4 py-3 text-sm text-ink-muted">
+                  und {data.openOrders.length - 5} weitere
+                </p>
+              )}
+            </Card>
+          )}
+
+          {/*
+            Team: wer hat noch nicht gebucht. Kein Saldo mehr — der beantwortete
+            die Frage nicht, die jemand mit dieser Liste vor sich hat, und kostete
+            jeden Zeiteintrag des Betriebs.
+          */}
+          {data.team && data.team.length > 0 && (
+            <Card
+              title="Team — offene Zeiten"
+              action={
+                <Link to="/accounting" className="link-weiter text-sm">
+                  Zur Monatsauswertung
+                </Link>
+              }
+              buendig
+            >
+              <ul className="divide-y divide-line">
+                {data.team.map((t) => (
+                  <li key={t.uid} className="flex min-h-touch items-center justify-between gap-3 px-4 py-2.5">
+                    <span className="min-w-0 truncate font-medium text-ink-deep">{t.name}</span>
+                    {!t.hatKonfig ? (
+                      <Marke>kein Startdatum</Marke>
+                    ) : t.fehlendeTage > 0 ? (
+                      <Warnung>{tageWort(t.fehlendeTage)} offen</Warnung>
+                    ) : (
+                      <Zustand stand="gut">vollständig</Zustand>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="border-t border-line px-4 py-3 text-xs text-ink-muted">
+                Geprüft werden die letzten {LUECKEN_TAGE} Tage bis gestern. Der Stundensaldo steht im
+                Zeitkonto des Mitarbeiters.
+              </p>
+            </Card>
+          )}
+          </div>
+        </div>
       )}
 
       {nochAmLaden && (
@@ -974,13 +1020,13 @@ export default function DashboardView() {
         darf sie hier nicht zulassen.
       */}
       {nichtGeladen.length > 0 && (
-        <Card>
-          <p role="status" className="text-sm text-warning">
+        <Hinweiszeile stufe="warn" role="status">
+          <p>
             <strong>Nicht geladen: {nichtGeladen.join(' · ')}.</strong> Was hier fehlt, heisst
             nicht, dass nichts ansteht — bitte die Seite neu laden. Die Reiter oben zeigen den
             vollständigen Stand.
           </p>
-        </Card>
+        </Hinweiszeile>
       )}
 
       {nothingToShow && (
