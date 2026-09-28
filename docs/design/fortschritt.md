@@ -62,8 +62,8 @@ plus Wort. Festgehalten in `linie.md` § 3, § 6, § 7 und Regel 4.
 | Schritt | Status | Commit |
 |---|---|---|
 | 1 · Bausteine | erledigt | `ccea9a4` (#160) |
-| 2 · Monteur- und Büro-Start | erledigt | siehe PR „Designlinie 3, Schritt 2“ |
-| 3 · Zeiterfassung | offen | |
+| 2 · Monteur- und Büro-Start | erledigt | `91d017b` (#161) |
+| 3 · Zeiterfassung | erledigt | siehe PR „Designlinie 3, Schritt 3“ |
 | 4 · Handwerksschein | offen | |
 | 5 · Urlaub und Material anfordern | offen | |
 | 6 · Listen | offen | |
@@ -127,6 +127,33 @@ Mit Absicht **nicht** wie im Entwurf:
   Meta-Zeile — sie sagt, was heute zu tun ist.
 - Adresse und Telefon behalten ihre Form (`KontaktZeile`, auch anderswo
   benutzt).
+
+**Schritt 3 im Einzelnen.** Das Buchungsformular hat unten die
+**Aktionsleiste** (am Telefon klebend über der Reiterleiste, „Abbrechen“
+schmal links, die Hauptaktion breit rechts). Dafür schneidet die Karte ihre
+Ecken jetzt mit `overflow: clip` statt `hidden` (`.karte`): `hidden` machte
+sie zum Rollbereich, und darin klebte nichts. Sperr-, Konflikt-, Feiertags-
+und Befundhinweise stehen als Hinweiszeilen; die Erläuterungen zu Krank,
+Urlaub und Zeitausgleich ohne getönten Kasten; „Wie zuletzt“ als weisser
+Nebenknopf statt türkiser Fläche; „Weitere Angaben“ mit leisem „optional“.
+„Meine Einträge“ ist eine bündige Karte mit einem Abschnitt je Woche
+(Summe rechts). Der Pflichtstern verschiebt die Beschriftung nicht mehr.
+Mit Absicht **nicht** wie im Entwurf:
+
+- **Von · Bis · Pause** stehen erst ab 640 px zu dritt in einer Reihe. Auf
+  375 px schnitt das Uhrzeitfeld des Browsers die Zeit ab („07:0“,
+  gemessen); am Telefon also Von und Bis nebeneinander, Pause darunter.
+- **Datum und Status** bleiben am Telefon untereinander — das Datumsfeld
+  braucht die Breite.
+- **Die Arbeitszeit** steht weiter als Zeile über der Leiste, nicht als
+  Summe darin: sie trägt bei Auffälligkeiten den ganzen Satz („Endzeit liegt
+  vor der Startzeit …“), und der gehört neben die Felder.
+- **Wochen statt Monate** als Abschnitte in „Meine Einträge“: die Wochen
+  tragen ihre Stundensumme, die Monatsgliederung hätte sie verloren.
+- **Keine Tabelle am Schreibtisch.** Eine zweite Darstellung derselben Liste
+  hiesse jeden Knopf zweimal im Baum — mit den Tests und für Vorlesehilfen.
+  Die Zeilen tragen am Schreibtisch; eine gemeinsame Lösung für Tabellen
+  kommt mit Schritt 6.
 
 **Merkposten für die Ansichts-Schritte:** umrandete Pillen direkt in
 Ansichten – `projects/BaustellenUebersicht.tsx` und

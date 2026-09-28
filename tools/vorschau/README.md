@@ -51,6 +51,7 @@ Falschmeldungen der Messung, die keine Fehler sind:
 | natives `input[type=file]` läuft über | Die Überbreite liegt im Schatten-DOM des Steuerelements |
 | `h2.titel-karte` läuft 8 px über | Die negativen Ränder, die dem „i" seine 44 px Tastfläche geben |
 | Elemente mit `truncate` | Die kürzen absichtlich mit Auslassungspunkten |
+| Formular mit `.aktionsleiste` läuft 16 px über | Die Leiste reicht in einer Karte absichtlich bis an deren Kanten; die Karte schneidet dort ab (wird herausgefiltert) |
 
 ## Aufbau
 
