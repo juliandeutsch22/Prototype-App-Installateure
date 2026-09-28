@@ -66,12 +66,14 @@ export default function Card({
     <section id={id} className={`panel overflow-hidden ${className}`}>
       {title && (
         <header className="karte-kopf flex-wrap">
-          {/* Titel und Aktion brechen auf schmalen Schirmen untereinander,
-              statt dass breite Aktionen (mehrere Knöpfe) den Titel
-              überlagern. Ein Link als Kartenaktion („Zur Einsatzplanung")
-              bekommt dieselbe Tasthöhe wie ein Knopf: 20 px Text sind mit dem
-              Daumen kaum zu treffen (Prüflauf 24.09.2026, D6). */}
-          <div className="flex w-full flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 [&>a]:inline-flex [&>a]:min-h-touch [&>a]:items-center">
+          {/* Titel links, Aktion rechts in EINER Zeile — auch am Telefon,
+              wo ein kurzer Link („Mein Einsatzplan ›") sonst allein unter dem
+              Titel stand. Ist die Aktion zu breit (mehrere Knöpfe), bricht
+              sie in die nächste Zeile um, statt den Titel zu überlagern. Ein
+              Link als Kartenaktion bekommt dieselbe Tasthöhe wie ein Knopf:
+              20 px Text sind mit dem Daumen kaum zu treffen (Prüflauf
+              24.09.2026, D6). */}
+          <div className="flex w-full flex-wrap items-center justify-between gap-x-3 gap-y-1 [&>a]:inline-flex [&>a]:min-h-touch [&>a]:items-center">
             {/* Das „i" gehört zum Titel, nicht zu den Aktionen — deshalb
                 steht es in derselben Zeile links. */}
             <h2 className="titel-karte">

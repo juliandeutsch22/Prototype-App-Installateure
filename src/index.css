@@ -698,6 +698,8 @@ textarea {
   .kennzahl { padding: 0.75rem 1rem; border-right: 1px solid var(--border); min-width: 0; }
   .kennzahl:nth-child(2n) { border-right: 0; }
   .kennzahl:nth-child(n+3) { border-top: 1px solid var(--border); }
+  /* Eine einzelne Kennzahl nimmt die ganze Leiste, statt eine leere Hälfte neben sich zu lassen. */
+  .kennzahl:only-child { grid-column: 1 / -1; border-right: 0; }
   /* Am Schreibtisch EINE Reihe mit so vielen Spalten, wie es Kennzahlen gibt
      (in der App höchstens vier) — vier feste Spalten liessen eine Leiste mit
      zwei Werten zur Hälfte leer stehen. */
