@@ -143,7 +143,7 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
       startY: y,
       head: [['Mitarbeiter', 'Von', 'Bis', 'Pause', 'Stunden', 'Tätigkeit']],
       body: schein.zeiten.map((z) => [
-        z.mitarbeiter + (z.helfer ? ' (Helfer)' : ''),
+        (z.mitarbeiter ?? '') + (z.helfer ? ' (Helfer)' : ''),
         z.von ?? '—',
         z.bis ?? '—',
         z.pauseMin ? `${z.pauseMin} min` : '—',

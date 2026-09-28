@@ -44,18 +44,20 @@ wandert er hier heraus und in die jeweilige Doku.
 | C1 | Kein Test prüft, dass Links und Knöpfe einer Ansicht nur auf Routen zeigen, die die Rolle betreten darf (drei solche Fehler kamen im Prüflauf) | Automatische Prüfung wie `links.mjs` des Prüfers in den Durchklick aufnehmen |
 | C2 | Keine serverseitige Prüfung, dass `user_id`/`uuid[]`-Werte zum Betrieb gehören (`einsatz_speichern`, `projects.assigned_employees`, `project_managers`, Büro-Buchungen) | Fremdschlüssel prüfen nur die Existenz; Betriebsprüfung ergänzen |
 | C3 | `listWorkSheetsForProject` holt höchstens 100 Scheine ohne Sortierung und nur zur exakten Nummer (keine Altschreibweise „PR-“) | Blättern wie bei den Zeiten, Nummern angleichen |
-| C4 | BMD-Spaltennamen („Sollkonto;Habenkonto;…“) sind nicht gegen eine Importdefinition geprüft | Mit der Kanzlei eine Beispieldatei abgleichen |
-| C5 | Gesamtsaldo (`calcOverallSaldo`) und Monatsauswertung (`calcMonthStats`) zählen Krank- und Urlaubstage unterschiedlich; folgenlos, solange nur die Datenbankfunktionen sie schreiben | Gleichheitsprüfung als Test |
-| C6 | Kein Sprunglink „Zum Inhalt“; nach einem Seitenwechsel bleibt der Fokus nicht auf dem neuen Inhalt | Sprunglink und Fokus auf `<main>` |
-| C7 | `WorkSheetView` stürzt als ganze Ansicht ab, wenn eine Entwurfszeile kein `mitarbeiter` trägt (Altdaten) | Absicherung mit leerem Namen |
+| C4 | BMD-Spaltennamen („Sollkonto;Habenkonto;…“) sind nicht gegen eine Importdefinition geprüft | **Dokumentiert** (28.09.2026) in `FUNKTIONEN.md` und am Kopf in `bmdExport.ts`; der Abgleich selbst braucht eine Beispieldatei der Kanzlei |
 | C8 | Vormerkungen des Ausgangsfachs mit alter Baustellennummer landen nach einer Umnummerierung verwaist | Beim Nachsenden über `angezeigteNummer`/Umnummerierungs-Tabelle auflösen |
-| C9 | Offline-Buchung funktioniert nur, weil postgrest-js GET-Anfragen 7 s wiederholt und so die 3-s-Frist greift; bei `navigator.onLine === false` sollte die Vorprüfung direkt übersprungen werden | Kein Test auf Ansichtsebene mit echtem Offline |
 | C10 | Fehlt der Hash eines Scheins (der AFTER-Trigger schluckt Fehler), wird die Prüfsumme nie nachgetragen; das PDF sagt dauerhaft „wird ergänzt“ | Nachtragen im Nachtlauf |
 | C11 | Vorschau-Werkzeug: Stubs für Scheinentwurf, Rechnungssuche, Datanorm-Import und Ausgangsfach fehlten; `messen.mjs` und README nannten `section-label` | **Erledigt** (26.09.2026): Werkzeug eingecheckt (`tools/vorschau/`, `npm run vorschau`), feste Formen in `stubs-erzeugen.mjs` und `tools/vorschau/fest/`, Ausnahme auf `titel-karte` |
 | C12 | `npm test` führt die Datenbanktests nicht aus; grün sagt nichts über Zeilenregeln und Trigger | Bleibt so (Stack nur in der CI); im Handbuch benannt |
-| C13 | Der Durchklick „Benutzername“ ist der erste im Lauf und wartet 20 s auf das Startpasswort; beim kalten Start der Anlege-Funktion reichte das einmal nicht (#169, beim zweiten Lauf grün) | Die Funktion vor den Durchklicks einmal aufwärmen oder dem ersten Anlegen mehr Zeit geben |
 
 ## Erledigt seit dem Prüflauf
+
+**C-Punkte, erledigt am 28.09.2026:** C5 (Gesamtsaldo = Summe der
+Monatssalden, `tests/unit/saldoGleichMonate.test.ts`), C6 (Sprunglink „Zum
+Inhalt“, Fokus nach Seitenwechsel auf dem Inhalt), C7 (Schein ohne Namen in
+einer Zeile stürzt nicht mehr ab), C9 (offline keine Doppelbuchungsprüfung,
+`tests/unit/zeitOhneEmpfang.test.ts`), C13 (Durchklick weckt die
+Edge Functions vorab). Jeder mit Gegenprobe.
 
 **Design „Fassung 3“ (früher B11)** ist in neun Schritten umgesetzt
 (#160–#170); was mit Absicht anders als im Entwurf ist, steht mit Grund in

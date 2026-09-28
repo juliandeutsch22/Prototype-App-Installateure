@@ -505,6 +505,20 @@ describe('Handwerksschein', () => {
       expect(screen.getByDisplayValue('Absperrventil klemmt')).toBeInTheDocument();
     });
 
+    it('öffnet auch einen Entwurf mit einer Zeile ohne Namen (Altdaten, C7)', async () => {
+      // Vorher stürzte die ganze Ansicht an `mitarbeiter.trim()` ab.
+      entwurf = {
+        ...gespeichert,
+        zeiten: [
+          { datum: heute, mitarbeiter: 'Max Mustermann', minuten: 300 },
+          { datum: heute, minuten: 60 } as unknown as WorkSheet['zeiten'][number],
+        ],
+      };
+      zeichne('/worksheet?entwurf=e1');
+      expect(await screen.findByText(/Verbautes Material \(1\)/)).toBeInTheDocument();
+      expect(screen.queryByText(/Das hat nicht geklappt/)).toBeNull();
+    });
+
     it('ändert den bestehenden Schein, statt einen zweiten anzulegen', async () => {
       /*
         DER TEURE FEHLER, den das verhindert: zwei Belege über dieselbe

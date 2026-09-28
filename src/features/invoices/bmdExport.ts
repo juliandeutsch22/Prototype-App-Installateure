@@ -55,6 +55,13 @@ export interface BmdErgebnis {
   fehlend: string[];
 }
 
+/*
+  DIE SPALTENNAMEN SIND UNGEPRÜFT (offene Punkte C4). Es gab keine
+  Importdefinition, gegen die sie hätten geprüft werden können; BMD liest
+  eine CSV über eine Definition, die in der Kanzlei angelegt wird. Vor dem
+  ersten Import eine Beispieldatei mit der Kanzlei abgleichen — ändert sie
+  einen Namen, dann hier, und `tests/unit/bmdExport.test.ts` zieht mit.
+*/
 const KOPF = [
   'Sollkonto', 'Habenkonto', 'Belegdatum', 'Belegnummer', 'Buchungstext', 'Betrag', 'Steuercode',
 ];
