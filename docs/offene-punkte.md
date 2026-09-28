@@ -42,11 +42,8 @@ wandert er hier heraus und in die jeweilige Doku.
 | # | Punkt | Vorschlag |
 |---|---|---|
 | C1 | Kein Test prüft, dass Links und Knöpfe einer Ansicht nur auf Routen zeigen, die die Rolle betreten darf (drei solche Fehler kamen im Prüflauf) | Automatische Prüfung wie `links.mjs` des Prüfers in den Durchklick aufnehmen |
-| C2 | Keine serverseitige Prüfung, dass `user_id`/`uuid[]`-Werte zum Betrieb gehören (`einsatz_speichern`, `projects.assigned_employees`, `project_managers`, Büro-Buchungen) | Fremdschlüssel prüfen nur die Existenz; Betriebsprüfung ergänzen |
 | C3 | `listWorkSheetsForProject` holt höchstens 100 Scheine ohne Sortierung und nur zur exakten Nummer (keine Altschreibweise „PR-“) | Blättern wie bei den Zeiten, Nummern angleichen |
 | C4 | BMD-Spaltennamen („Sollkonto;Habenkonto;…“) sind nicht gegen eine Importdefinition geprüft | **Dokumentiert** (28.09.2026) in `FUNKTIONEN.md` und am Kopf in `bmdExport.ts`; der Abgleich selbst braucht eine Beispieldatei der Kanzlei |
-| C8 | Vormerkungen des Ausgangsfachs mit alter Baustellennummer landen nach einer Umnummerierung verwaist | Beim Nachsenden über `angezeigteNummer`/Umnummerierungs-Tabelle auflösen |
-| C10 | Fehlt der Hash eines Scheins (der AFTER-Trigger schluckt Fehler), wird die Prüfsumme nie nachgetragen; das PDF sagt dauerhaft „wird ergänzt“ | Nachtragen im Nachtlauf |
 | C11 | Vorschau-Werkzeug: Stubs für Scheinentwurf, Rechnungssuche, Datanorm-Import und Ausgangsfach fehlten; `messen.mjs` und README nannten `section-label` | **Erledigt** (26.09.2026): Werkzeug eingecheckt (`tools/vorschau/`, `npm run vorschau`), feste Formen in `stubs-erzeugen.mjs` und `tools/vorschau/fest/`, Ausnahme auf `titel-karte` |
 | C12 | `npm test` führt die Datenbanktests nicht aus; grün sagt nichts über Zeilenregeln und Trigger | Bleibt so (Stack nur in der CI); im Handbuch benannt |
 
@@ -58,6 +55,15 @@ Inhalt“, Fokus nach Seitenwechsel auf dem Inhalt), C7 (Schein ohne Namen in
 einer Zeile stürzt nicht mehr ab), C9 (offline keine Doppelbuchungsprüfung,
 `tests/unit/zeitOhneEmpfang.test.ts`), C13 (Durchklick weckt die
 Edge Functions vorab). Jeder mit Gegenprobe.
+
+**Ebenfalls am 28.09.2026, in der Datenbank:** C2 (eingeteilt, zugeordnet
+und gebucht werden nur Personen des eigenen Betriebs — Auslöser an
+Einsätzen, Rüstlisten, Zeitbuchungen und Baustellen,
+`tests/supabase/personenImBetrieb.test.ts`), C8 (eine alte Baustellennummer
+findet nach dem Umnummern ihre Baustelle, `baustelle_alte_nummern`,
+`tests/supabase/alteBaustellennummer.test.ts`), C10 (fehlende Prüfsummen
+trägt ein Nachtlauf nach, `tests/supabase/pruefsummeNachtragen.test.ts`).
+Jeder mit Gegenprobe.
 
 **Design „Fassung 3“ (früher B11)** ist in neun Schritten umgesetzt
 (#160–#170); was mit Absicht anders als im Entwurf ist, steht mit Grund in
