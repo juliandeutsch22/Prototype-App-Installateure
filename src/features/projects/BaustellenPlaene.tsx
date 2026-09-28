@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import { dokumentHochladen, dokumentLoeschen, dateiPruefen } from '@/lib/db/baustellenDokumente';
 import type { BaustellenDokument } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -125,11 +126,13 @@ export default function BaustellenPlaene({
       )}
 
       {fehler.length > 0 && (
-        <ul className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-danger" role="alert">
-          {fehler.map((f) => (
-            <li key={f}>{f}</li>
-          ))}
-        </ul>
+        <Hinweiszeile stufe="fehl" role="alert">
+          <ul>
+            {fehler.map((f) => (
+              <li key={f}>{f}</li>
+            ))}
+          </ul>
+        </Hinweiszeile>
       )}
 
       {darfAendern && (

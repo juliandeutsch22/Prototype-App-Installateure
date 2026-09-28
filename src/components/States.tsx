@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import Button from './Button';
+import Hinweiszeile from './Hinweiszeile';
 
 /** Ladezustand — sichtbar, kein stiller Abbruch. */
 export function LoadingState({ label = 'Wird geladen …' }: { label?: string }) {
@@ -64,19 +66,20 @@ export function SkeletonMetrics({ count = 3 }: { count?: number }) {
 
 /** Fehlerzustand: erklärt, was war und was zu tun ist. */
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  // Als Hinweiszeile, nicht als roter Kasten (Designlinie „Fassung 3"): das
+  // rote Symbol sagt „Fehler", der Satz sagt, was war.
   return (
-    <div className="rounded border border-line bg-surface-2 p-4 text-danger" role="alert">
-      <p className="font-semibold">Das hat nicht geklappt</p>
-      <p className="mt-1 text-sm">{message}</p>
+    <Hinweiszeile stufe="fehl" role="alert">
+      <p>
+        <b>Das hat nicht geklappt</b>
+      </p>
+      <p className="mt-0.5">{message}</p>
       {onRetry && (
-        <button
-          onClick={onRetry}
-          className="mt-3 min-h-touch rounded bg-danger px-3 py-2 text-sm font-semibold text-white transition active:scale-[0.98]"
-        >
+        <Button variant="secondary" groesse="klein" className="mt-2" onClick={onRetry}>
           Erneut versuchen
-        </button>
+        </Button>
       )}
-    </div>
+    </Hinweiszeile>
   );
 }
 
@@ -98,14 +101,16 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
  */
 export function TeilFehler({ was, onRetry }: { was: string; onRetry?: () => void }) {
   return (
-    <p className="rounded border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="alert">
-      {was} konnte nicht geladen werden.{' '}
-      {onRetry && (
-        <button onClick={onRetry} className="link-hinweis min-h-touch">
-          Erneut versuchen
-        </button>
-      )}
-    </p>
+    <Hinweiszeile stufe="warn" role="alert">
+      <p>
+        {was} konnte nicht geladen werden.{' '}
+        {onRetry && (
+          <button onClick={onRetry} className="link-hinweis min-h-touch">
+            Erneut versuchen
+          </button>
+        )}
+      </p>
+    </Hinweiszeile>
   );
 }
 

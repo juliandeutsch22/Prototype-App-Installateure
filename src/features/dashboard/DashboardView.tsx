@@ -860,7 +860,7 @@ export default function DashboardView() {
                       Anfasser zur Karte, nicht der vorzulesende Text.
                     */}
                     <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 text-sm">
-                      <AdresseLink adresse={pr.address} className="min-w-0 max-w-full [&>span]:truncate" />
+                      <AdresseLink adresse={pr.address} className="min-w-0 max-w-full" kuerzen />
                       <TelefonLink nummer={pr.contactPhone} name={pr.contactName} />
                     </div>
                   </li>

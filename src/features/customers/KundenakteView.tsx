@@ -20,6 +20,7 @@ import { todayStr } from '@/lib/time';
 import type { Customer, Invoice, Project, Quote, Wartung } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import Aktenspalten from '@/components/Aktenspalten';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { InputField, FormGrid, CheckboxField } from '@/components/Field';
@@ -720,23 +721,26 @@ function StammdatenFormular({
       {fehler && <p role="alert" className="text-sm text-danger">{fehler}</p>}
 
       {/*
-        DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — und er steht IN der
-        Karte, nicht fest am unteren Rand. Dort sitzt am Telefon bereits die
-        Tableiste; zwei Balken übereinander wären eine Falle statt einer
-        Hilfe.
+        DER BALKEN ERSCHEINT ERST BEI EINER ÄNDERUNG — als Aktionsleiste
+        (Designlinie „Fassung 3"), wie am Buchungsformular: am Telefon klebt
+        sie ÜBER der Reiterleiste statt darauf, am Schreibtisch steht sie
+        rechtsbündig unter dem Formular. So ist „Speichern" nach einer
+        Änderung weit oben im Formular zu erreichen, ohne ans Ende zu rollen.
       */}
       {geaendert && (
-        <div className="flex flex-wrap items-center gap-3 rounded border border-brand-fixed/40 bg-info-bg p-3">
-          <span className="text-sm text-ink">Es gibt ungespeicherte Änderungen.</span>
-          <div className="ml-auto flex gap-2">
+        <Aktionsleiste
+          summe={{ name: 'Es gibt ungespeicherte Änderungen.', wert: null }}
+          links={
             <Button variant="ghost" onClick={onVerwerfen} disabled={speichert}>
               Verwerfen
             </Button>
+          }
+          rechts={
             <Button onClick={onSpeichern} loading={speichert}>
               Speichern
             </Button>
-          </div>
-        </div>
+          }
+        />
       )}
     </div>
   );

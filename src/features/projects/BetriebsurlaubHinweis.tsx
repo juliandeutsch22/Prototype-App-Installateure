@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import type { Betriebsurlaub } from '@/types';
 import { listBetriebsurlaubeImZeitraum } from '@/lib/db/abwesenheiten';
 
@@ -46,10 +47,12 @@ export default function BetriebsurlaubHinweis({
 
   if (treffer.length === 0) return null;
   return (
-    <p className="rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning" role="status">
-      Im Zeitraum liegt Betriebsurlaub:{' '}
-      {treffer.map((b) => `${b.bezeichnung} (${tag(b.von)}–${tag(b.bis)})`).join(', ')}. Terminieren
-      geht trotzdem.
-    </p>
+    <Hinweiszeile stufe="warn" role="status">
+      <p>
+        Im Zeitraum liegt Betriebsurlaub:{' '}
+        {treffer.map((b) => `${b.bezeichnung} (${tag(b.von)}–${tag(b.bis)})`).join(', ')}.
+        Terminieren geht trotzdem.
+      </p>
+    </Hinweiszeile>
   );
 }
