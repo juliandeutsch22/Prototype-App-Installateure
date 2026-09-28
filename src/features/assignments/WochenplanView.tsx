@@ -391,14 +391,21 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
               fester Spaltenbreite greift das `truncate` in den Zellen; was
               darunter nicht passt, rollt in dieser Hülle, nicht die Seite
               (Prüflauf 25.09.2026, P4-01).
+
+              ENG GENUG FÜR DIE GANZE WOCHE bei 834 px (Designlinie „Fassung
+              3"): Namensspalte 112 px, Samstag und Sonntag je 48 px, die
+              Werktage teilen den Rest. Ab 1024 px ist die Namensspalte 144 px breit, ab 1280 px
+              160 px, das Wochenende so breit wie die Werktage. Ein langer
+              Kundenname wird gekürzt — die Baustellennummer darunter und
+              der Tipp in die Tagesplanung sagen, welche es ist.
             */}
             <table
               aria-label="Wochenplan als Tabelle"
-              className="w-full min-w-[44rem] table-fixed border-separate border-spacing-0 text-sm"
+              className="w-full min-w-[30rem] table-fixed border-separate border-spacing-0 text-meta"
             >
               <thead>
                 <tr>
-                  <th className="sticky left-0 z-10 w-36 bg-surface p-2 text-left align-bottom">
+                  <th className="sticky left-0 z-10 w-28 bg-surface p-2 text-left align-bottom lg:w-36 xl:w-40">
                     <span className="section-label">Mitarbeiter</span>
                   </th>
                   {tage.map((tag) => {
@@ -410,9 +417,11 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     return (
                       <th
                         key={tag}
-                        className={`border-b border-line p-2 text-center font-normal ${
-                          feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''
-                        }`}
+                        // Samstag und Sonntag schmäler, bis Platz ist: meist leer, und
+                        // so bleiben den Werktagen bei 834 px rund 64 px statt 47.
+                        className={`border-b border-line px-1 py-2 text-center font-normal ${
+                          wochenende ? 'w-12 xl:w-auto' : ''
+                        } ${feiertag ? 'bg-warning-bg' : wochenende || zu ? 'bg-surface-2' : ''}`}
                       >
                         {nurLesen ? (
                           <span className="block px-1 py-1">
@@ -464,7 +473,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                   <tr key={u.uid}>
                     <th
                       scope="row"
-                      className="sticky left-0 z-10 max-w-[9rem] truncate border-b border-line bg-surface p-2 text-left font-medium text-ink"
+                      className="sticky left-0 z-10 max-w-[7rem] truncate border-b lg:max-w-[9rem] xl:max-w-[10rem] border-line bg-surface p-2 text-left font-medium text-ink"
                     >
                       {u.name}
                     </th>
@@ -487,7 +496,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                             Zelle steht: vormittags eingeteilt, nachmittags ZA.
                           */}
                           {z?.abwesendText && !z.imUrlaub && (
-                            <span className="mb-1 block text-center text-xs text-info">{z.abwesendText}</span>
+                            <span className="mb-1 block text-center text-xs text-ink-muted">{z.abwesendText}</span>
                           )}
                           {zuPerson && (!z || z.baustellen.length === 0) ? (
                             /*
@@ -501,7 +510,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                               Betriebsurlaub
                             </span>
                           ) : z?.imUrlaub ? (
-                            <span className="block rounded-sm border border-line bg-surface-2 px-2 py-1 text-center text-xs text-info">
+                            <span className="block rounded-sm bg-surface-2 px-2 py-1 text-center text-xs text-ink-muted">
                               {z.abwesendText}
                             </span>
                           ) : leer && nurLesen ? (
@@ -528,13 +537,12 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                 nurLesen ? (
                                   <span
                                     key={b.nummer}
-                                    className={`block rounded-sm px-2 py-1 text-left text-xs ${
-                                      b.helfer ? 'bg-warning-bg text-warning' : 'bg-info-bg text-info'
-                                    }`}
+                                    title={`${b.name} · ${b.nummer}`}
+                                    className="block rounded-sm border border-line bg-surface-2 px-1.5 py-1 text-left text-xs"
                                   >
-                                    <span className="block truncate font-medium">{b.name}</span>
-                                    <span className="block truncate">{b.nummer}</span>
-                                    {b.helfer && <span className="block">als Helfer</span>}
+                                    <span className="block truncate font-medium text-ink">{b.name}</span>
+                                    <span className="block truncate text-ink-muted">{b.nummer}</span>
+                                    {b.helfer && <span className="block truncate text-ink-muted">als Helfer</span>}
                                   </span>
                                 ) : (
                                 <button
@@ -544,15 +552,15 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                   // Mit Nummer: zwei Baustellen desselben Kunden am selben Tag
                                   // hießen für die Vorlesehilfe sonst gleich.
                                   aria-label={`${b.name} (${b.nummer}) am ${tagKurz(tag).datum} bearbeiten`}
-                                  className={`min-h-touch w-full rounded-sm px-2 py-1 text-left text-xs ${
-                                    b.helfer
-                                      ? 'bg-warning-bg text-warning'
-                                      : 'bg-info-bg text-info'
-                                  }`}
+                                  // Gekürzt in der engen Zelle — der volle Name beim Überfahren.
+                                  title={`${b.name} · ${b.nummer}`}
+                                  // Neutral wie jede Karte (Designlinie „Fassung 3"): ob
+                                  // jemand als Helfer mitgeht, steht als Wort da, nicht als Farbe.
+                                  className="min-h-touch w-full rounded-sm border border-line bg-surface-2 px-1.5 py-1 text-left text-xs"
                                 >
-                                  <span className="block truncate font-medium">{b.name}</span>
-                                  <span className="block truncate">{b.nummer}</span>
-                                  {b.helfer && <span className="block">als Helfer</span>}
+                                  <span className="block truncate font-medium text-ink">{b.name}</span>
+                                  <span className="block truncate text-ink-muted">{b.nummer}</span>
+                                  {b.helfer && <span className="block truncate text-ink-muted">als Helfer</span>}
                                 </button>
                                 ),
                               )}
@@ -580,7 +588,9 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             keine Spalte, und „2 frei" ohne Namen zwingt zurück in die
             Tagesplanung, nur um nachzusehen.
           */}
-          <section aria-label="Wochenplan als Liste" className="space-y-3 md:hidden">
+          {/* Die Tage stehen durch Linien getrennt von Kante zu Kante, nicht als
+              Kästen in der Karte (Designlinie „Fassung 3": keine Karte in Karte). */}
+          <section aria-label="Wochenplan als Liste" className="-mx-4 -mb-4 md:hidden">
             {tage.map((tag) => {
               const { wochentag, datum } = tagKurz(tag);
               const t = proTag.get(tag);
@@ -589,11 +599,11 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
               return (
                 <div
                   key={tag}
-                  className={`rounded-sm border ${
-                    tag === heute ? 'border-brand' : 'border-line'
-                  } ${feiertag ? 'bg-warning-bg' : wochenende || zuAm.has(tag) ? 'bg-surface-2' : ''}`}
+                  className={`border-t border-line ${
+                    feiertag ? 'bg-warning-bg' : wochenende || zuAm.has(tag) ? 'bg-surface-2' : ''
+                  }`}
                 >
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-3 py-2">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 px-4 pb-1 pt-3">
                     <span className="font-semibold text-ink">
                       {wochentag}, {datum}
                       {tag === heute && <span className="ml-2 text-sm text-brand">heute</span>}
@@ -607,18 +617,18 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                     )}
                   </div>
 
-                  <div className="space-y-2 p-3">
+                  <div className="space-y-2 px-4 pb-3">
                     {t && t.baustellen.length > 0 ? (
                       t.baustellen.map((b) =>
                         nurLesen ? (
                           <div
                             key={b.nummer}
-                            className="rounded-sm border border-line bg-surface-2 px-3 py-2"
+                            className="rounded-sm border border-line bg-surface px-3 py-2"
                           >
-                            <span className="block font-medium text-info">
-                              {b.name} <span className="font-normal">· {b.nummer}</span>
+                            <span className="block font-medium text-ink">
+                              {b.name} <span className="font-normal text-ink-muted">· {b.nummer}</span>
                             </span>
-                            <span className="block text-sm text-info">
+                            <span className="block text-sm text-ink-muted">
                               {b.namen
                                 .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
                                 .join(', ')}
@@ -630,12 +640,12 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                           type="button"
                           onClick={() => zurTagesplanung(tag, b.nummer)}
                           aria-label={`${b.name} (${b.nummer}) am ${datum} bearbeiten`}
-                          className="min-h-touch w-full rounded-sm border border-line bg-surface-2 px-3 py-2 text-left"
+                          className="min-h-touch w-full rounded-sm border border-line bg-surface px-3 py-2 text-left"
                         >
-                          <span className="block font-medium text-info">
-                              {b.name} <span className="font-normal">· {b.nummer}</span>
-                            </span>
-                          <span className="block text-sm text-info">
+                          <span className="block font-medium text-ink">
+                            {b.name} <span className="font-normal text-ink-muted">· {b.nummer}</span>
+                          </span>
+                          <span className="block text-sm text-ink-muted">
                             {b.namen
                               .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
                               .join(', ')}

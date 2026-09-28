@@ -77,6 +77,18 @@ export const einsaetze = [
   { id: 'a2', companyId: 'perl', date: HEUTE, projectNumber: 'B-2026-0148', userId: 'u2', userName: 'Anton Berger-Steinmetz', asHelper: true },
 ];
 
+/** Eine Rüstliste für den Einsatz von heute — halb eingeladen, damit beide Zustände zu sehen sind. */
+export const ruestlisten = [
+  {
+    id: 'r1', companyId: 'perl', date: HEUTE, projectNumber: 'B-2026-0147', uids: ['u1'],
+    positionen: [
+      { id: 'p1', materialId: 'm1', name: 'Kupferrohr 22 mm, Stange 5 m, hart', menge: 6, einheit: 'Stk' },
+      { id: 'p2', name: 'Leihgerät Rohrkamera', menge: 1 },
+    ],
+    geladen: { p1: { von: 'Max Mustermann', am: Date.now() - 3600000 } },
+  },
+];
+
 export const angebote = [
   { id: 'q1', companyId: 'perl', quoteNumber: 'A-2026-0088', customerId: 'k1', customerName: 'Wohnungseigentümergemeinschaft Hauptstraße 112–118', address: 'Hauptstraße 112–118, 2700 Wiener Neustadt', quoteDate: '2026-09-01', validUntil: '2026-10-01', status: 'Versendet', positions: [{ label: 'Heizungstausch inkl. Verteiler und hydraulischem Abgleich', qty: 1, unit: 'pausch', unitPrice: 18400, netto: 18400 }], subtotalNetto: 18400, totalNetto: 18400, totalVat: 3680, totalBrutto: 22080, vatRate: 0.2, kalkulierteStunden: 240 },
   { id: 'q2', companyId: 'perl', quoteNumber: 'A-2026-0089', customerId: 'k3', customerName: 'Familie Huber', quoteDate: '2026-09-10', validUntil: '2026-10-10', status: 'Entwurf', positions: [], subtotalNetto: 0, totalNetto: 0, totalVat: 0, totalBrutto: 0, vatRate: 0.2, kalkulierteStunden: 0 },
