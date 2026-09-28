@@ -20,6 +20,7 @@
     "stack": "./scripts/stack.sh",
     "vorschau": "node tools/vorschau/stubs-erzeugen.mjs && vite --config vite.vorschau.config.ts",
     "vorschau:messen": "node tools/vorschau/messen.mjs",
+    "pruefen:links": "playwright test -c playwright.links.config.ts",
     "vorschau:fotos": "node tools/vorschau/fotos.mjs",
     "presupabase:test": "npm run gemeinsames"
   },

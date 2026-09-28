@@ -41,8 +41,6 @@ wandert er hier heraus und in die jeweilige Doku.
 
 | # | Punkt | Vorschlag |
 |---|---|---|
-| C1 | Kein Test prüft, dass Links und Knöpfe einer Ansicht nur auf Routen zeigen, die die Rolle betreten darf (drei solche Fehler kamen im Prüflauf) | Automatische Prüfung wie `links.mjs` des Prüfers in den Durchklick aufnehmen |
-| C3 | `listWorkSheetsForProject` holt höchstens 100 Scheine ohne Sortierung und nur zur exakten Nummer (keine Altschreibweise „PR-“) | Blättern wie bei den Zeiten, Nummern angleichen |
 | C4 | BMD-Spaltennamen („Sollkonto;Habenkonto;…“) sind nicht gegen eine Importdefinition geprüft | **Dokumentiert** (28.09.2026) in `FUNKTIONEN.md` und am Kopf in `bmdExport.ts`; der Abgleich selbst braucht eine Beispieldatei der Kanzlei |
 | C11 | Vorschau-Werkzeug: Stubs für Scheinentwurf, Rechnungssuche, Datanorm-Import und Ausgangsfach fehlten; `messen.mjs` und README nannten `section-label` | **Erledigt** (26.09.2026): Werkzeug eingecheckt (`tools/vorschau/`, `npm run vorschau`), feste Formen in `stubs-erzeugen.mjs` und `tools/vorschau/fest/`, Ausnahme auf `titel-karte` |
 | C12 | `npm test` führt die Datenbanktests nicht aus; grün sagt nichts über Zeilenregeln und Trigger | Bleibt so (Stack nur in der CI); im Handbuch benannt |
@@ -64,6 +62,13 @@ findet nach dem Umnummern ihre Baustelle, `baustelle_alte_nummern`,
 `tests/supabase/alteBaustellennummer.test.ts`), C10 (fehlende Prüfsummen
 trägt ein Nachtlauf nach, `tests/supabase/pruefsummeNachtragen.test.ts`).
 Jeder mit Gegenprobe.
+
+**Und:** C1 (jeder Link führt dorthin, wo die Rolle hin darf — `npm run
+pruefen:links` geht je Rolle durch die Vorschau und läuft in der CI; Regel
+in `tests/links/linkziel.ts`, selbst geprüft in `tests/unit/linkziel.test.ts`.
+Nicht erfasst: Knöpfe, die erst beim Klick weiterleiten), C3 (die Scheine
+einer Baustelle kommen alle, neueste zuerst und in jeder Schreibweise der
+Nummer, wie Rechnungen und Zeiten; `tests/supabase/scheineDerBaustelle.test.ts`).
 
 **Design „Fassung 3“ (früher B11)** ist in neun Schritten umgesetzt
 (#160–#170); was mit Absicht anders als im Entwurf ist, steht mit Grund in

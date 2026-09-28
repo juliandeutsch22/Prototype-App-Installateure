@@ -158,6 +158,8 @@ npm run stack          # Supabase lokal hochfahren, Migrationen einspielen
 npm run supabase:test  # 728 Tests gegen eine ECHTE Postgres-Datenbank
 
 npm run durchklick     # vier Wege im echten Browser (Playwright)
+
+npm run pruefen:links  # jeder Link je Rolle, gegen die Vorschau (Playwright)
 ```
 
 **Vor jedem Commit:** `npm run typecheck && npm run lint && npm test`. Wer am

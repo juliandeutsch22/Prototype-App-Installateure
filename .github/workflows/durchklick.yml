@@ -25,7 +25,10 @@ on:
       - 'shared/**'
       - 'supabase/**'
       - 'tests/durchklick/**'
+      - 'tests/links/**'
+      - 'tools/vorschau/**'
       - 'playwright.config.ts'
+      - 'playwright.links.config.ts'
       - '.github/workflows/durchklick.yml'
   workflow_dispatch:
 
@@ -79,6 +82,11 @@ jobs:
 
       - name: Durchklick
         run: npm run durchklick
+
+      # Jeder Link führt dorthin, wo die Rolle hin darf (offene Punkte C1).
+      # Läuft gegen die Vorschau mit Beispieldaten, nicht gegen den Stapel.
+      - name: Links je Rolle
+        run: npm run pruefen:links
 
       # Bilder und Spuren NUR BEI ROT. Sie sind der Unterschied zwischen
       # „irgendein Knopf fehlte" und einer Antwort in zwei Minuten.

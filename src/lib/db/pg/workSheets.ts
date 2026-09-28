@@ -186,14 +186,31 @@ export async function listSignedWorkSheetsInRange(
   return zusammensetzen(koepfe, companyId);
 }
 
-/** Die Scheine EINER Baustelle. */
+/**
+ * Die Scheine EINER Baustelle — neueste zuerst.
+ *
+ * OHNE GRENZE, wenn keine verlangt ist (offene Punkte C3). Rechnung und
+ * Nachkalkulation lesen hier ALLE Scheine der Baustelle; vorher hörte die
+ * Abfrage bei hundert auf, und der hunderterste Schein fehlte still — sein
+ * Material auf der Rechnung, seine Stunden im Abgleich. Die Suche übergibt
+ * ihre eigene Grenze und sagt, wenn sie erreicht ist.
+ *
+ * IN JEDER SCHREIBWEISE der Nummer, wie `listInvoicesForProject` und
+ * `listEntriesForProjects`: mit und ohne das „PR-" aus Altbeständen. Fände
+ * diese Abfrage einen Schein nicht, den jene auf einer Rechnung sehen, wäre
+ * der Abgleich schief.
+ */
 export async function listWorkSheetsForProject(
   companyId: string,
   projectNumber: string,
-  max = 100,
+  max?: number,
 ) {
+  const blank = (projectNumber ?? '').trim().replace(/^PR-/i, '');
+  if (!blank) return [];
+  const formen = [...new Set([projectNumber.trim(), blank, `PR-${blank}`])];
   const koepfe = await abfragen<KopfZeile>(SCHEINE, companyId, {
-    wo: [{ art: 'gleich', feld: 'projectNumber', wert: projectNumber }],
+    wo: [{ art: 'in', feld: 'projectNumber', werte: formen }],
+    sortiere: { feld: 'datum', absteigend: true },
     grenze: max,
   });
   return zusammensetzen(koepfe, companyId);
