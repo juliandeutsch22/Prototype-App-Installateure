@@ -19,6 +19,8 @@ import type { Material, Project, WorkSheet, WorkSheetZeit } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Hinweiszeile from '@/components/Hinweiszeile';
+import Aktionsleiste from '@/components/Aktionsleiste';
 import { Marke } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import SignaturePad, { type SignaturePadHandle } from '@/components/SignaturePad';
@@ -1156,18 +1158,26 @@ export default function WorkSheetView() {
             gesagt, sonst rechnet jemand später damit.
           */}
           {projekt?.billingMode === 'Pauschal' && (
-            <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-info">
-              Pauschalbaustelle: Der Schein dokumentiert die geleistete Arbeit, die Stunden sind
-              aber keine Grundlage für eine Nachverrechnung.
-            </p>
+            <div className="mt-2">
+              <Hinweiszeile>
+                <p>
+                  Pauschalbaustelle: Der Schein dokumentiert die geleistete Arbeit, die Stunden
+                  sind aber keine Grundlage für eine Nachverrechnung.
+                </p>
+              </Hinweiszeile>
+            </div>
           )}
           {bestehende.length > 0 && (
-            <p className="mt-2 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-              Für diesen Tag gibt es bereits {bestehende.length}{' '}
-              {bestehende.length === 1 ? 'Schein' : 'Scheine'}. Ein zweiter ist möglich, etwa für
-              einen getrennt beauftragten Zusatz — doppelt bestätigen sollte man dieselben Stunden
-              aber nicht.
-            </p>
+            <div className="mt-2">
+              <Hinweiszeile stufe="warn">
+                <p>
+                  Für diesen Tag gibt es bereits {bestehende.length}{' '}
+                  {bestehende.length === 1 ? 'Schein' : 'Scheine'}. Ein zweiter ist möglich, etwa
+                  für einen getrennt beauftragten Zusatz — doppelt bestätigen sollte man dieselben
+                  Stunden aber nicht.
+                </p>
+              </Hinweiszeile>
+            </div>
           )}
         </Card>
 
@@ -1183,8 +1193,10 @@ export default function WorkSheetView() {
             {laden ? (
               <LoadingState />
             ) : vorfuellFehler ? (
-              <div className="rounded-sm border border-line bg-surface-2 px-3 py-2">
-                <p className="text-sm text-warning">{vorfuellFehler}</p>
+              <div>
+                <Hinweiszeile stufe="warn">
+                  <p>{vorfuellFehler}</p>
+                </Hinweiszeile>
                 <div className="mt-2">
                   <Button variant="secondary" onClick={() => setVersuch((v) => v + 1)}>
                     Erneut versuchen
@@ -1633,15 +1645,19 @@ export default function WorkSheetView() {
                 vorher dastehen, denn danach ist er eingefroren.
               */}
               {vorfuellFehler && (
-                <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-warning">
-                  <strong>Ohne Stunden.</strong> Sie konnten nicht geladen werden, und eingefroren
-                  wird genau das, was hier steht. Für einen Beleg über die Arbeitszeit bitte bei den
-                  Zeiten erneut versuchen; als reine Bestätigung der Anwesenheit mit einer Notiz ist
-                  der Schein auch so gültig. Das Material ist davon nicht betroffen — es wird hier
-                  ohnehin von Hand eingetragen.
-                </p>
+                <div className="mt-4">
+                  <Hinweiszeile stufe="warn">
+                    <p>
+                      <strong>Ohne Stunden.</strong> Sie konnten nicht geladen werden, und
+                      eingefroren wird genau das, was hier steht. Für einen Beleg über die
+                      Arbeitszeit bitte bei den Zeiten erneut versuchen; als reine Bestätigung der
+                      Anwesenheit mit einer Notiz ist der Schein auch so gültig. Das Material ist
+                      davon nicht betroffen — es wird hier ohnehin von Hand eingetragen.
+                    </p>
+                  </Hinweiszeile>
+                </div>
               )}
-              <p className="mt-4 rounded-sm border border-line bg-surface-2 px-3 py-2 text-sm text-ink-muted">
+              <p className="mt-4 text-sm text-ink-muted">
                 Nach dem Unterschreiben ist der Schein <strong>eingefroren</strong>. Korrigiert wird
                 über Storno und neuen Schein.
               </p>
@@ -1657,37 +1673,41 @@ export default function WorkSheetView() {
                 </>
               )}
               {nichtUebernommen.length > 0 && (
-                <p className="mt-2 text-sm text-warning" role="alert">
-                  <strong>Noch nicht auf dem Schein:</strong> {nichtUebernommen.join(' und ')}.
-                  Bitte übernehmen oder das Feld leeren — unterschrieben wird nur, was in den
-                  Listen steht.
-                  {/* In der Schrittfolge steht das Feld in einem anderen
-                      Schritt: der Weg dorthin gehört an die Meldung. */}
-                  {!eineSeite && (offeneZeit || offenesMaterial) && (
-                    // Eine eigene Zeile: 48 px hohe Knöpfe mitten im Satz
-                    // rissen den Zeilenabstand auf.
-                    <span className="mt-1 flex flex-wrap gap-x-4">
-                      {offeneZeit && (
-                        <button
-                          type="button"
-                          className="link-hinweis min-h-touch"
-                          onClick={() => springe(1)}
-                        >
-                          Zu den Zeiten
-                        </button>
+                <div className="mt-2">
+                  <Hinweiszeile stufe="warn" role="alert">
+                    <div>
+                      <strong>Noch nicht auf dem Schein:</strong> {nichtUebernommen.join(' und ')}.
+                      Bitte übernehmen oder das Feld leeren — unterschrieben wird nur, was in den
+                      Listen steht.
+                      {/* In der Schrittfolge steht das Feld in einem anderen
+                          Schritt: der Weg dorthin gehört an die Meldung. */}
+                      {!eineSeite && (offeneZeit || offenesMaterial) && (
+                        // Eine eigene Zeile: 48 px hohe Knöpfe mitten im Satz
+                        // rissen den Zeilenabstand auf.
+                        <span className="mt-1 flex flex-wrap gap-x-4">
+                          {offeneZeit && (
+                            <button
+                              type="button"
+                              className="link-hinweis min-h-touch"
+                              onClick={() => springe(1)}
+                            >
+                              Zu den Zeiten
+                            </button>
+                          )}
+                          {offenesMaterial && (
+                            <button
+                              type="button"
+                              className="link-hinweis min-h-touch"
+                              onClick={() => springe(2)}
+                            >
+                              Zum Material
+                            </button>
+                          )}
+                        </span>
                       )}
-                      {offenesMaterial && (
-                        <button
-                          type="button"
-                          className="link-hinweis min-h-touch"
-                          onClick={() => springe(2)}
-                        >
-                          Zum Material
-                        </button>
-                      )}
-                    </span>
-                  )}
-                </p>
+                    </div>
+                  </Hinweiszeile>
+                </div>
               )}
               {!bereit && projectNumber && (
                 <p className="mt-2 text-sm text-ink-muted">
@@ -1721,21 +1741,27 @@ export default function WorkSheetView() {
           {!eineSeite && (
             <div className="space-y-3">
               {error && <ErrorState message={error} />}
-              <div className="flex flex-wrap gap-2">
-                {schritt > 1 && (
-                  <Button variant="secondary" onClick={() => springe((schritt - 1) as Schritt)}>
-                    Zurück
-                  </Button>
-                )}
-                {naechster ? (
-                  <Button className="flex-1 sm:flex-none" onClick={() => springe(naechster.nr)}>
-                    Weiter: {naechster.name}
-                  </Button>
-                ) : (
-                  unterschreibenKnopf('flex-1 sm:flex-none')
-                )}
-                {entwurfKnopf('w-full sm:ml-auto sm:w-auto')}
-              </div>
+              {/* Der Entwurf ist eine Nebenhandlung für jeden Schritt; er
+                  steht über der Leiste, damit diese am Telefon schmal bleibt. */}
+              {entwurfKnopf('w-full sm:w-auto')}
+              {/* Zurück schmal links, Weiter breit rechts — am Telefon klebend
+                  über der Reiterleiste (Designlinie „Fassung 3"). */}
+              <Aktionsleiste
+                links={
+                  schritt > 1 ? (
+                    <Button variant="secondary" onClick={() => springe((schritt - 1) as Schritt)}>
+                      Zurück
+                    </Button>
+                  ) : undefined
+                }
+                rechts={
+                  naechster ? (
+                    <Button onClick={() => springe(naechster.nr)}>Weiter: {naechster.name}</Button>
+                  ) : (
+                    unterschreibenKnopf('')
+                  )
+                }
+              />
             </div>
           )}
         </>
