@@ -95,8 +95,16 @@ describe('Mit Schalter', () => {
 
   it('zeigt keinem Betrieb die Abwesenheiten eines anderen', async () => {
     await schalter(true);
-    const { data } = await abwesend(fremd);
-    expect(data).toEqual([]);
+    const { data, error } = await abwesend(fremd);
+    expect(error).toBeNull();
+    /*
+      Nur Betrieb B. Seit A5 (28.09.2026) steht der Schalter ab Werk an —
+      auch in B, und dort sieht die Mitarbeiterin ihren eigenen Urlaub. Aus
+      A kommt nichts: kein Urlaub der Kollegin, keine Zeile überhaupt.
+    */
+    const wer = (data as { user_id: string }[]).map((z) => z.user_id);
+    expect(wer).not.toContain(kollegin.uid);
+    expect(wer.every((u) => u === fremd.uid)).toBe(true);
   });
 
   it('gibt dem Support nichts — auch nicht mit Freigabe', async () => {

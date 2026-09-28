@@ -258,13 +258,14 @@ describe('Betriebsurlaub', () => {
 });
 
 describe('Wochenplan — wer den Grund sieht', () => {
+  // In der Woche der Krankmeldung oben — 2099, siehe dort (A4).
   const woche = (k: Konto) =>
-    k.client.rpc('wochenplan_abwesend', { p_von: '2026-11-16', p_bis: '2026-11-22' });
+    k.client.rpc('wochenplan_abwesend', { p_von: '2099-11-16', p_bis: '2099-11-22' });
 
   beforeAll(async () => {
     await admin.from('companies').update({ wochenplan_fuer_alle: true }).eq('id', BETRIEB);
     const id = await antrag(kollegin, {
-      von: '2026-11-18', bis: '2026-11-18', art: 'Zeitausgleich', za_von: '13:00', za_bis: '17:00', za_stunden: 4,
+      von: '2099-11-18', bis: '2099-11-18', art: 'Zeitausgleich', za_von: '13:00', za_bis: '17:00', za_stunden: 4,
     });
     await entscheiden(id, 'Genehmigt');
   });

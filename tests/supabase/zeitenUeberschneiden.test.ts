@@ -93,17 +93,17 @@ describe('Ein ganztägiger Eintrag steht allein am Tag', () => {
     expect(meldung).toBeNull();
 
     const selbst = await monteur.client.from('time_entries')
-      .insert(zeit(monteur, '2026-11-16', '07:00', '12:00', 'PR-2026-0002'));
+      .insert(zeit(monteur, '2099-11-16', '07:00', '12:00', 'PR-2026-0002'));
     expect(selbst.error?.message).toMatch(/ganzen Tag/);
     const buero = await buch.client.from('time_entries')
-      .insert(zeit(monteur, '2026-11-16', '13:00', '16:00', 'PR-2026-0002'));
+      .insert(zeit(monteur, '2099-11-16', '13:00', '16:00', 'PR-2026-0002'));
     expect(buero.error?.message).toMatch(/ganzen Tag/);
   });
 
   it('auch nicht, indem eine Buchung auf den Tag verschoben wird', async () => {
-    const b = zeit(monteur, '2026-11-18', '07:00', '12:00', 'PR-2026-0002');
+    const b = zeit(monteur, '2099-11-18', '07:00', '12:00', 'PR-2026-0002');
     expect((await monteur.client.from('time_entries').insert(b)).error).toBeNull();
-    const verschoben = await monteur.client.from('time_entries').update({ date: '2026-11-16' }).eq('id', b.id);
+    const verschoben = await monteur.client.from('time_entries').update({ date: '2099-11-16' }).eq('id', b.id);
     expect(verschoben.error?.message).toMatch(/ganzen Tag/);
   });
 
@@ -122,6 +122,6 @@ describe('Ein ganztägiger Eintrag steht allein am Tag', () => {
 
   it('der Kollege arbeitet an meinem Krankentag natürlich weiter', async () => {
     expect((await kollege.client.from('time_entries')
-      .insert(zeit(kollege, '2026-11-16', '07:00', '16:00', 'PR-2026-0002'))).error).toBeNull();
+      .insert(zeit(kollege, '2099-11-16', '07:00', '16:00', 'PR-2026-0002'))).error).toBeNull();
   });
 });
