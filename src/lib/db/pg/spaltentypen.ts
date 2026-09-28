@@ -37,6 +37,12 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
     eine Frage statt einer Auskunft.
   */
   ausleitung_dateien: { gesichert_am: 'zeitpunkt' },
+  /*
+    Die App liest diese Tabelle nicht selbst — `baustelle_aufloesen` schlägt
+    dort nach (offene Punkte C8). Sie steht hier aus demselben Grund wie
+    `ausleitung_dateien`: die Karte bildet das Schema ab.
+  */
+  baustelle_alte_nummern: { geaendert_am: 'zeitpunkt' },
   betriebsanlagen: { angelegt_am: 'zeitpunkt' },
   betriebsurlaube: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   buchungskonten: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
