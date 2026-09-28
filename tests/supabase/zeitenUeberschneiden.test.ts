@@ -86,8 +86,9 @@ describe('Ein ganztägiger Eintrag steht allein am Tag', () => {
     buchung(k, datum, { status: 'Zeitausgleich', start_time: von, end_time: bis, break_duration: 0 });
 
   it('keine Arbeitszeit an einem Krankentag — weder vom Monteur noch vom Büro', async () => {
+    // 2099: eine eigene Krankmeldung reicht nur 14 Tage zurück (A4) — ein festes Datum von heute veraltet.
     const { error: meldung } = await monteur.client.rpc('krankmeldung_speichern', {
-      p_id: null, p_user: null, p_von: '2026-11-16', p_bis: '2026-11-16', p_notiz: null,
+      p_id: null, p_user: null, p_von: '2099-11-16', p_bis: '2099-11-16', p_notiz: null,
     });
     expect(meldung).toBeNull();
 

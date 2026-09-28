@@ -13,14 +13,18 @@ wandert er hier heraus und in die jeweilige Doku.
 
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
-| A1 | **BMD-Stapel: Umbuchung der Anzahlung** wird brutto mit dem Erlös-Steuercode ausgegeben; die Umsatzsteuer erscheint damit doppelt (P2-06) | Buchungslogik; wie die Kanzlei es haben will, entscheidet die Kanzlei | Mit der Kanzlei klären, dann netto ohne Steuercode oder mit Gegenbuchung der Steuer |
-| A2 | **0 % USt ohne Hinweis auf die Steuerbefreiung** (§ 11 Abs 1 Z 3 lit e UStG) (P2-11) | Der Befreiungsgrund ist je Fall verschieden (Kleinunternehmer, Ausfuhr …); ein pauschaler Satz wäre falsch. Braucht ein neues Feld | Feld „Steuerbefreiung“ an der Rechnung, Pflicht bei 0 % ohne Reverse Charge, wird gedruckt |
-| A3 | **DATANORM-Preiskennzeichen** vermutlich vertauscht (0 = Liste, 1 = Netto; laut Norm eher 1 = Brutto, 2 = Netto) (P2-17) | Verdacht, nicht belegt | Mit einer echten Datei des Großhändlers prüfen; Abgleich außerdem je Lieferant statt nur über die Artikelnummer |
-| A4 | **Rückwirkende Krankmeldung ohne Grenze** (bis 480 Arbeitstage) (P1-28) | Betriebsentscheidung | Grenze festlegen, z. B. über X Tage nur für das Büro |
-| A5 | **„Wochenplan für alle“** wirkt nur in der Oberfläche; die Datenbank lässt jeden Mitarbeiter die ganze Einsatzplanung lesen (P3-25) | Möglicherweise gewollt | Entscheiden; wenn nicht gewollt, Leseregel an den Schalter koppeln |
-| A6 | **Interne Kommentare** der eigenen Zeitbuchung werden als „Tätigkeit“ auf den Kundenbeleg vorbelegt (P1-27, Rest) | Seit dem Prüflauf nur noch eigene Buchungen; ob überhaupt, ist eine Frage an den Betrieb | Feld in der Zeitmaske als „erscheint auf dem Schein“ kennzeichnen oder nicht vorbelegen |
-| A7 | **Abdunkler hinter Dialogen** sind halbtransparent (Gestaltungsverbot „keine Alpha-Flächen“) | Deckend würden sie den Kontext hinter dem Dialog verbergen | So lassen; als bewusste Ausnahme dokumentiert |
-| A8 | **Datenschutzerklärung siezt** (12 Stellen) | Rechtstext, inhaltlich nicht verändert | So lassen oder vom Juristen umformulieren lassen |
+| A3 | **DATANORM-Preiskennzeichen** vermutlich vertauscht (0 = Liste, 1 = Netto; laut Norm eher 1 = Brutto, 2 = Netto) (P2-17) | Verdacht, nicht belegt — eine echte Datei des Großhändlers kommt vom Betrieb (28.09.2026) | Mit einer echten Datei des Großhändlers prüfen; Abgleich außerdem je Lieferant statt nur über die Artikelnummer |
+| A8 | **Datenschutzerklärung siezt** (12 Stellen) | Rechtstext, inhaltlich nicht verändert — bleibt vorerst so, der Betrieb überarbeitet die Rechtstexte selbst (28.09.2026) | So lassen oder vom Juristen umformulieren lassen |
+
+**Entschieden und umgesetzt am 28.09.2026:** A1 (die Umbuchung der Anzahlung
+geht, wie sie gebucht wurde — netto ohne Steuercode, wenn das Anzahlungskonto
+einen trägt; die Steuer steht nicht mehr doppelt in der Voranmeldung. Den
+ersten Stapel trotzdem mit der Kanzlei abgleichen), A2 (Grund der
+Steuerbefreiung bei 0 % ohne Reverse Charge: Pflicht, gedruckt, eingefroren),
+A4 (eine eigene Krankmeldung reicht 14 Tage zurück, davor trägt das Büro
+ein), A5 (Wochenplan für alle ab Werk an; der Schalter bleibt), A6 (das
+Kommentarfeld sagt, dass es am Schein vorgeschlagen wird), A7 (bleibt als
+bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 
 ## B. Größerer Umbau, eigener Auftrag
 

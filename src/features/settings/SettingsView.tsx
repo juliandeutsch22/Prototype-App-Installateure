@@ -67,6 +67,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   const { user, company, reloadCompany } = useAuth();
   const toast = useToast();
   const [rates, setRates] = useState<InvoiceRates>(INVOICE_DEFAULTS);
+  /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
+  const [steuerbefreiungVorgabe, setSteuerbefreiungVorgabe] = useState('');
   /**
    * Interne Kostensätze — was eine Stunde den BETRIEB kostet.
    *
@@ -135,6 +137,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
+    setSteuerbefreiungVorgabe(company?.steuerbefreiungVorgabe ?? '');
     if (company?.costRates) {
       setCostRates({
         fach: String(company.costRates.fach).replace('.', ','),
@@ -325,6 +328,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       await updateCompany(user.companyId, {
         rates,
         rechnungsarten,
+        steuerbefreiungVorgabe: steuerbefreiungVorgabe.trim(),
         ...(kostenGesetzt
           ? { costRates: { fach: num(costRates.fach, 0), helper: num(costRates.helper, 0) } }
           : {}),
@@ -467,6 +471,20 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               */}
               <option value="0">0 %</option>
             </SelectField>
+            {/*
+              NUR BEI 0 %: dann braucht jede Rechnung den Grund der Befreiung
+              (A2), und ein Kleinunternehmer soll ihn nicht jedes Mal tippen.
+              Die Rechnungsmaske schlägt ihn vor; ändern lässt er sich dort.
+            */}
+            {rates.vatRate === 0 && (
+              <InputField
+                id="r-befreiung"
+                label="Grund der Steuerbefreiung (Vorschlag)"
+                placeholder="z. B. Kleinunternehmer, § 6 Abs 1 Z 27 UStG"
+                value={steuerbefreiungVorgabe}
+                onChange={(e) => setSteuerbefreiungVorgabe(e.target.value)}
+              />
+            )}
             <InputField
               id="r-due"
               label="Zahlungsziel (Tage)"

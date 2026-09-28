@@ -2702,3 +2702,59 @@ describe('Rechnungsliste am Schreibtisch', () => {
     expect(await screen.findByRole('menuitem', { name: /Zahlungserinnerung erzeugen/ })).toBeInTheDocument();
   });
 });
+
+/**
+ * 0 % ohne Reverse Charge — der Grund der Befreiung steht auf der Rechnung
+ * (§ 11 Abs 1 Z 3 lit e UStG, offene Punkte A2).
+ */
+describe('Rechnung ohne Umsatzsteuer', () => {
+  const firma = authWert.company as typeof authWert.company & { steuerbefreiungVorgabe?: string };
+
+  afterEach(() => {
+    firma.steuerbefreiungVorgabe = undefined;
+  });
+
+  async function mitNullProzent() {
+    zeige();
+    await userEvent.selectOptions(await screen.findByRole('combobox', { name: /Baustelle/ }), '2026-042');
+    await userEvent.selectOptions(screen.getByLabelText('USt-Satz'), '0');
+    await userEvent.click(screen.getByRole('button', { name: 'Positionen zusammenstellen' }));
+    return screen.findByRole('button', { name: /Rechnung erstellen/ });
+  }
+
+  it('verlangt den Grund — und schreibt ihn in Rechnung und PDF', async () => {
+    const knopf = await mitNullProzent();
+    expect(knopf).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/Grund der Steuerbefreiung/), 'Kleinunternehmer, § 6 Abs 1 Z 27 UStG');
+    await waitFor(() => expect(knopf).toBeEnabled());
+    await userEvent.click(knopf);
+
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({
+      vatRate: 0, reverseCharge: false, steuerbefreiung: 'Kleinunternehmer, § 6 Abs 1 Z 27 UStG',
+    });
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({ steuerbefreiung: 'Kleinunternehmer, § 6 Abs 1 Z 27 UStG' });
+  });
+
+  it('schlägt den Grund aus den Einstellungen vor', async () => {
+    firma.steuerbefreiungVorgabe = 'Kleinunternehmer, § 6 Abs 1 Z 27 UStG';
+    const knopf = await mitNullProzent();
+    expect(screen.getByLabelText(/Grund der Steuerbefreiung/)).toHaveValue('Kleinunternehmer, § 6 Abs 1 Z 27 UStG');
+    expect(knopf).toBeEnabled();
+  });
+
+  it('Gegenprobe: mit 20 % gibt es das Feld nicht, und nichts wird mitgeschrieben', async () => {
+    const knopf = await bisZurVorschau();
+    expect(screen.queryByLabelText(/Grund der Steuerbefreiung/)).not.toBeInTheDocument();
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0].steuerbefreiung).toBeUndefined();
+  });
+
+  it('Gegenprobe: bei Reverse Charge steht der Pflichtsatz, nicht der Grund', async () => {
+    await bisZurVorschau();
+    await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
+    expect(screen.queryByLabelText(/Grund der Steuerbefreiung/)).not.toBeInTheDocument();
+  });
+});

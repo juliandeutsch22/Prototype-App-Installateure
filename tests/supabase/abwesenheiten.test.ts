@@ -110,31 +110,38 @@ describe('Zeitausgleich', () => {
 });
 
 describe('Krankmeldung', () => {
+  /*
+    DIE EIGENE MELDUNG DES MONTEURS LIEGT IM JAHR 2099: eine eigene
+    Krankmeldung reicht höchstens 14 Tage zurück (A4). Ein festes Datum
+    von heute wäre in drei Wochen „zu alt" und dieser Test rot, ohne dass
+    sich etwas geändert hätte. 2099 hat denselben Kalender wie 2026, und
+    die Woche vom 16.11. hat keinen Feiertag.
+  */
   it('meldet sich der Monteur selbst — nur Arbeitstage, gebuchte Tage bleiben', async () => {
     // Montag gearbeitet und dann heimgegangen: der Tag bleibt, wie er ist.
-    await admin.from('time_entries').insert(buchung(monteur, '2026-11-16'));
-    const { data, error } = await krank(monteur, { von: '2026-11-16', bis: '2026-11-22' });
+    await admin.from('time_entries').insert(buchung(monteur, '2099-11-16'));
+    const { data, error } = await krank(monteur, { von: '2099-11-16', bis: '2099-11-22' });
     expect(error).toBeNull();
     expect(data).toMatchObject({ angelegt: 4, entfernt: 0, uebersprungen: 1 });
-    const tage = await eintraege(monteur, '2026-11-16', '2026-11-22');
+    const tage = await eintraege(monteur, '2099-11-16', '2099-11-22');
     expect(tage.map((e) => [e.date, e.status])).toEqual([
-      ['2026-11-16', 'Anwesend'],
-      ['2026-11-17', 'Krank'], ['2026-11-18', 'Krank'], ['2026-11-19', 'Krank'], ['2026-11-20', 'Krank'],
+      ['2099-11-16', 'Anwesend'],
+      ['2099-11-17', 'Krank'], ['2099-11-18', 'Krank'], ['2099-11-19', 'Krank'], ['2099-11-20', 'Krank'],
     ]);
   });
 
   it('„wieder gesund ab Donnerstag" räumt die Tage danach weg, „doch länger" legt nach', async () => {
     const { data: m } = await admin.from('krankmeldungen').select('id').eq('user_id', monteur.uid).single();
-    const kuerzer = await krank(monteur, { id: m!.id, von: '2026-11-16', bis: '2026-11-18' });
+    const kuerzer = await krank(monteur, { id: m!.id, von: '2099-11-16', bis: '2099-11-18' });
     expect(kuerzer.data).toMatchObject({ entfernt: 2, angelegt: 0 });
-    const laenger = await krank(monteur, { id: m!.id, von: '2026-11-16', bis: '2026-11-19' });
+    const laenger = await krank(monteur, { id: m!.id, von: '2099-11-16', bis: '2099-11-19' });
     expect(laenger.data).toMatchObject({ entfernt: 0, angelegt: 1 });
-    expect((await eintraege(monteur, '2026-11-17', '2026-11-20')).map((e) => e.date))
-      .toEqual(['2026-11-17', '2026-11-18', '2026-11-19']);
+    expect((await eintraege(monteur, '2099-11-17', '2099-11-20')).map((e) => e.date))
+      .toEqual(['2099-11-17', '2099-11-18', '2099-11-19']);
   });
 
   it('lehnt eine zweite Meldung über dieselben Tage ab', async () => {
-    const { error } = await krank(monteur, { von: '2026-11-19', bis: '2026-11-20' });
+    const { error } = await krank(monteur, { von: '2099-11-19', bis: '2099-11-20' });
     expect(error?.message).toMatch(/Überschneidet sich mit der Krankmeldung vom 16\.11\.2026/);
   });
 

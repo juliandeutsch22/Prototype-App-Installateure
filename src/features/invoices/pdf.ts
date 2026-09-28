@@ -84,6 +84,8 @@ export function generateInvoicePdf(opts: {
   vatRate?: number;
   /** Bauleistung mit Übergang der Steuerschuld (§ 19 Abs 1a UStG). */
   reverseCharge?: boolean;
+  /** Grund der Steuerbefreiung bei 0 % ohne Reverse Charge — wird gedruckt. */
+  steuerbefreiung?: string;
   /** UID des Leistungsempfängers — bei Reverse Charge Pflicht. */
   customerVatId?: string;
   /**
@@ -225,8 +227,15 @@ export function generateInvoicePdf(opts: {
     warum auf der Rechnung keine Steuer steht, und der gehört dorthin, wo der
     Kunde nach dem Betrag sucht.
   */
-  if (rc) {
-    const hinweis = doc.splitTextToSize(RC_HINWEIS, breite) as string[];
+  /*
+    Ohne Steuer, aber ohne Übergang der Steuerschuld: dann steht hier, WARUM
+    keine Steuer auf der Rechnung ist (§ 11 Abs 1 Z 3 lit e UStG) — an
+    derselben Stelle und aus demselben Grund wie der Pflichtsatz davor.
+  */
+  const befreiung = rc ? '' : (opts.steuerbefreiung ?? '').trim();
+  const steuerHinweis = rc ? RC_HINWEIS : befreiung;
+  if (steuerHinweis) {
+    const hinweis = doc.splitTextToSize(steuerHinweis, breite) as string[];
     y = platzFuer(doc, y + 8, hinweis.length * 5);
     doc.setFont('helvetica', 'bold').text(hinweis, RAND, y);
     doc.setFont('helvetica', 'normal');

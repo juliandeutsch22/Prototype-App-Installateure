@@ -72,9 +72,11 @@ describe('Krank nur über die Krankmeldung', () => {
   });
 
   it('ändert und löscht einen Tag einer Krankmeldung nur über die Meldung', async () => {
-    const { data, error } = await krank(monteur, { von: '2026-10-05', bis: '2026-10-07' });
+    // 2099 statt 2026: eine eigene Meldung reicht nur 14 Tage zurück (A4),
+    // ein festes Datum von heute wäre bald zu alt. Gleicher Kalender, keine Feiertage.
+    const { data, error } = await krank(monteur, { von: '2099-10-05', bis: '2099-10-07' });
     expect(error).toBeNull();
-    const tage = await eintraege(monteur.uid, '2026-10-05', '2026-10-07');
+    const tage = await eintraege(monteur.uid, '2099-10-05', '2099-10-07');
     expect(tage.map((t) => t.status)).toEqual(['Krank', 'Krank', 'Krank']);
 
     for (const k of [monteur, buch]) {
@@ -84,14 +86,14 @@ describe('Krank nur über die Krankmeldung', () => {
       const geloescht = await k.client.from('time_entries').delete().eq('id', tage[1].id);
       expect(geloescht.error?.message).toMatch(/gehört zu einer Krankmeldung/);
     }
-    expect(await eintraege(monteur.uid, '2026-10-05', '2026-10-07')).toHaveLength(3);
+    expect(await eintraege(monteur.uid, '2099-10-05', '2099-10-07')).toHaveLength(3);
 
     // Über die Meldung geht es: „wieder gesund ab Mittwoch".
     const ende = await monteur.client.rpc('krankmeldung_speichern', {
-      p_id: (data as { id: string }).id, p_user: null, p_von: '2026-10-05', p_bis: '2026-10-06', p_notiz: null,
+      p_id: (data as { id: string }).id, p_user: null, p_von: '2099-10-05', p_bis: '2099-10-06', p_notiz: null,
     });
     expect(ende.error).toBeNull();
-    expect(await eintraege(monteur.uid, '2026-10-05', '2026-10-07')).toHaveLength(2);
+    expect(await eintraege(monteur.uid, '2099-10-05', '2099-10-07')).toHaveLength(2);
   });
 
   it('niemand hängt einen eigenen Eintrag an eine fremde Meldung — der würde mit ihr gelöscht', async () => {

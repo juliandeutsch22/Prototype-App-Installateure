@@ -156,6 +156,25 @@ export function buildBmdCsv(
 
   const zeilen: BmdZeile[] = [];
 
+  /*
+    WIE DIE ANZAHLUNG IN DEN ERLÖS WANDERT — so, wie sie gebucht wurde
+    (offene Punkte A1, Prüflauf P2-06).
+
+    Trägt das Anzahlungskonto einen Steuercode, hat BMD die Umsatzsteuer der
+    Anzahlung schon beim Buchen der Anzahlungsrechnung abgespalten: auf dem
+    Konto steht das NETTO. Die Umbuchung schiebt dann genau das hinüber —
+    netto und ohne Steuercode. Bisher ging sie brutto mit dem Steuercode des
+    Erlöskontos, und BMD rechnete die Steuer der Anzahlung ein zweites Mal
+    heraus: in der Voranmeldung stand sie doppelt.
+
+    Ohne Steuercode am Anzahlungskonto steht dort das Brutto, und die Steuer
+    ist noch nicht gebucht; dann entsteht sie beim Umbuchen, wie bisher.
+  */
+  const umbuchung = (v: { netto: number; brutto: number }, erloesCode: string | null | undefined) =>
+    anzahlung?.steuercode
+      ? { betrag: v.netto, steuercode: '' }
+      : { betrag: v.brutto, steuercode: erloesCode ?? '' };
+
   for (const i of imZeitraum) {
     const gegen = gegenkonto(i);
     const storniert = i.paymentStatus === 'Storniert';
@@ -201,8 +220,7 @@ export function buildBmdCsv(
           belegdatum: datum(i.invoiceDate),
           belegnummer: i.invoiceNumber,
           buchungstext: `Anzahlung ${v.invoiceNumber} verrechnet`,
-          betrag: v.brutto,
-          steuercode: gegen.steuercode ?? '',
+          ...umbuchung(v, gegen.steuercode),
         });
       }
     }
@@ -247,8 +265,7 @@ export function buildBmdCsv(
             belegdatum: datum(tag),
             belegnummer: i.invoiceNumber,
             buchungstext: `Storno: Anzahlung ${v.invoiceNumber} verrechnet`,
-            betrag: v.brutto,
-            steuercode: gegen.steuercode ?? '',
+            ...umbuchung(v, gegen.steuercode),
           });
         }
       }

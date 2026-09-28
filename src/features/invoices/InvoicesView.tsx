@@ -255,6 +255,8 @@ export default function InvoicesView() {
   const [mahnFrist, setMahnFrist] = useState('');
   const [reverseCharge, setReverseCharge] = useState(false);
   const [kundenUid, setKundenUid] = useState('');
+  /** Grund der Steuerbefreiung — nur bei 0 % ohne Reverse Charge (A2). */
+  const [steuerbefreiung, setSteuerbefreiung] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   /**
    * Der zuletzt EINGESETZTE Vorschlag. Nur daran ist erkennbar, ob jemand die
@@ -316,6 +318,7 @@ export default function InvoicesView() {
 
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
+    setSteuerbefreiung(company?.steuerbefreiungVorgabe ?? '');
   }, [company]);
 
   useEffect(() => {
@@ -671,6 +674,13 @@ export default function InvoicesView() {
    */
   const rcPruefung = pruefeReverseCharge(reverseCharge, kundenUid, company?.vatId);
   /*
+    OHNE STEUER UND OHNE ÜBERGANG: der Grund gehört auf den Beleg (§ 11 Abs 1
+    Z 3 lit e UStG, offene Punkte A2). Er sperrt den Knopf wie die fehlende
+    UID bei Reverse Charge — die Datenbank weist ihn ohnehin ab.
+  */
+  const brauchtBefreiung = satz === 0 && !reverseCharge;
+  const befreiungFehlt = brauchtBefreiung && !steuerbefreiung.trim();
+  /*
     Die BETRAGSABHÄNGIGE Pflicht — eine andere Bestimmung als der Übergang der
     Steuerschuld, mit einer anderen Folge: sie kostet den KUNDEN den
     Vorsteuerabzug, nicht den Betrieb seine Steuer.
@@ -999,6 +1009,7 @@ export default function InvoicesView() {
           nicht und hilft dem Empfänger beim Zuordnen.
         */
         customerVatId: kundenUid.trim(),
+        steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
         subtotalNetto: preview.subtotalNetto,
         // null statt undefined: „kein Rabatt" soll als bewusster Wert in der
         // Zeile stehen, nicht als fehlendes Feld.
@@ -1072,6 +1083,7 @@ export default function InvoicesView() {
           nicht und hilft dem Empfänger beim Zuordnen.
         */
         customerVatId: kundenUid.trim(),
+        steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
       });
 
       setPreview(null);
@@ -1225,6 +1237,7 @@ export default function InvoicesView() {
       */
       reverseCharge: inv.reverseCharge,
       customerVatId: inv.customerVatId,
+      steuerbefreiung: inv.steuerbefreiung,
       // Aus dem Dokument — Altbestand hat ihn nicht und bleibt, wie er war.
       leistungsort: inv.leistungsort,
       art: inv.art,
@@ -2513,6 +2526,22 @@ export default function InvoicesView() {
               )}
             </div>
 
+            {brauchtBefreiung && (
+              <div>
+                <InputField
+                  id="steuerbefreiung"
+                  label="Grund der Steuerbefreiung"
+                  placeholder="z. B. Kleinunternehmer, § 6 Abs 1 Z 27 UStG"
+                  value={steuerbefreiung}
+                  onChange={(e) => setSteuerbefreiung(e.target.value)}
+                  pflicht
+                />
+                <p className="mt-1 text-sm text-ink-muted">
+                  Ohne Umsatzsteuer steht auf der Rechnung, warum — Pflicht nach § 11 UStG.
+                </p>
+              </div>
+            )}
+
             <p className="text-sm text-ink-muted">
               {preview.linkedEntries.length}{' '}
               {preview.linkedEntries.length === 1 ? 'Zeiteintrag wird' : 'Zeiteinträge werden'} als
@@ -2565,7 +2594,8 @@ export default function InvoicesView() {
                 onClick={confirmInvoice}
                 loading={busy}
                 disabled={
-                  numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || !!summen?.gutschrift
+                  numberTaken || !invoiceNumber || !rcPruefung.vollstaendig || befreiungFehlt
+                  || !!summen?.gutschrift
                   || !company?.addressLine?.trim() || leer
                 }
                 className="w-full sm:w-auto">
