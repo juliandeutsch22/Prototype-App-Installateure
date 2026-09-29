@@ -30,6 +30,6 @@ describe('app.arbeitsminuten über die Zeitumstellung', () => {
     // Die Sicht ruft die Fassung mit Tag — sonst hülfe die Funktion der
     // Lohnverrechnung nichts.
     const { rows } = await db.query<{ def: string }>("select pg_get_viewdef('public.monthly_stats') as def");
-    expect(rows[0].def).toMatch(/arbeitsminuten\([^)]*t\.date\)/);
+    expect(rows[0].def).toMatch(/arbeitsminuten\([^)]*,\s*(t\.)?date\)/);
   });
 });
