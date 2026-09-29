@@ -27,6 +27,18 @@ export function listOwnVacations(companyId: string, uid: string, max = 60) {
   });
 }
 
+/**
+ * Ein Antrag — für den Tag im Zeitkonto, der zu ihm gehört. `null`, wenn es
+ * ihn nicht (mehr) gibt oder er nicht gelesen werden darf.
+ */
+export async function getVacation(companyId: string, id: string) {
+  const treffer = await abfragen<Vacation>(URLAUB, companyId, {
+    wo: [{ art: 'gleich', feld: 'id', wert: id }],
+    grenze: 1,
+  });
+  return treffer[0] ?? null;
+}
+
 /** Die offenen Anträge des Betriebs — die Arbeitsliste der Genehmigenden. */
 export function listOpenVacations(companyId: string, max = 100) {
   return abfragen<Vacation>(URLAUB, companyId, {

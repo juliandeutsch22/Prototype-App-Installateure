@@ -7,6 +7,11 @@ import ProblemMelden from '@/components/ProblemMelden';
 
 interface Props {
   children: ReactNode;
+  /**
+   * Vor der Anmeldung: „Problem melden" geht an den Support des Betriebs und
+   * braucht deshalb eine Anmeldung — dort stünde ein Knopf, der nur scheitert.
+   */
+  ohneMelden?: boolean;
 }
 interface State {
   error: Error | null;
@@ -128,17 +133,19 @@ export default class ErrorBoundary extends Component<Props, State> {
             </button>
           </div>
           {/* Hier entsteht die Frage „wem sage ich das?" — die Antwort steht daneben. */}
-          <ProblemMelden
-            ausloeser={(oeffnen) => (
-              <button
-                type="button"
-                onClick={oeffnen}
-                className="link mt-3 min-h-touch text-sm"
-              >
-                Problem melden
-              </button>
-            )}
-          />
+          {!this.props.ohneMelden && (
+            <ProblemMelden
+              ausloeser={(oeffnen) => (
+                <button
+                  type="button"
+                  onClick={oeffnen}
+                  className="link mt-3 min-h-touch text-sm"
+                >
+                  Problem melden
+                </button>
+              )}
+            />
+          )}
           <details className="mt-4 text-xs text-ink-muted">
             <summary className="cursor-pointer">Technische Details</summary>
             <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">

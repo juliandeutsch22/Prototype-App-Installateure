@@ -29,6 +29,10 @@ on:
       - 'tools/vorschau/**'
       - 'playwright.config.ts'
       - 'playwright.links.config.ts'
+      # Ein Bibliotheks-Update ändert keine Zeile in src/ und kann trotzdem
+      # jeden Weg brechen (React Router, jsPDF) — genau dann muss er laufen.
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/durchklick.yml'
   workflow_dispatch:
 
