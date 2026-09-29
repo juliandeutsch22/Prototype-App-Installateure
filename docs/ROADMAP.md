@@ -4190,6 +4190,11 @@ Regeln, die heute alle gleich behandelt werden:
 > die nach der bestehenden Entscheidung ohnehin auf keiner Mahnung steht.**
 > Was bleibt, ist das Kennzeichen am Kunden: ein Feld, drei Wirkungen.
 >
+> **NACHTRAG 29.09. — die Mahnspesen sind getrennt:** Firmen- und
+> Privatkunden haben eigene Sätze je Stufe, an Firmenkunden wahlweise die
+> Pauschale nach § 458 UGB. Unternehmer ist, wer eine UID hat — ein eigenes
+> Kennzeichen am Kunden gibt es weiterhin nicht.
+>
 > **NACHTRAG 29.09. — Verzugszinsen werden jetzt gerechnet** (offene Punkte
 > B7, so entschieden): der Basiszinssatz steht mit seinem Halbjahr in den
 > Einstellungen statt in einer Tabelle, Unternehmer ist ein Kunde mit UID.

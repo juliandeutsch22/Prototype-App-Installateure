@@ -7,6 +7,7 @@ import {
   MAHNSTUFEN,
   verzugszinsen,
   halbjahresbeginn,
+  mahnkosten,
 } from '@/features/invoices/mahnung';
 import type { Invoice } from '@/types';
 
@@ -194,5 +195,32 @@ describe('Verzugszinsen (B7)', () => {
     expect(halbjahresbeginn('2026-06-30')).toBe('2026-01-01');
     expect(halbjahresbeginn('2026-07-01')).toBe('2026-07-01');
     expect(halbjahresbeginn('2026-12-31')).toBe('2026-07-01');
+  });
+});
+
+describe('Mahnkosten je Kundenart', () => {
+  it('ohne eigene Sätze für Privatkunden gelten die gemeinsamen — die Trennung ändert nichts still', () => {
+    const saetze = { mahnspesen: [0, 10, 20] };
+    expect(mahnkosten(2, saetze, false)).toEqual({ spesen: 10, pauschale: 0 });
+    expect(mahnkosten(2, saetze, true)).toEqual({ spesen: 10, pauschale: 0 });
+  });
+
+  it('eigene Sätze für Privatkunden gelten nur für sie', () => {
+    const saetze = { mahnspesen: [0, 10, 20], mahnspesenVerbraucher: [0, 3, 5] };
+    expect(mahnkosten(2, saetze, false)).toEqual({ spesen: 3, pauschale: 0 });
+    expect(mahnkosten(2, saetze, true)).toEqual({ spesen: 10, pauschale: 0 });
+  });
+
+  it('die Pauschale nach § 458 UGB ersetzt bei Firmenkunden die Spesen — ab der Mahnung', () => {
+    const saetze = { mahnspesen: [5, 10, 20], mahnspesenVerbraucher: [0, 3, 5], pauschale458: true };
+    expect(mahnkosten(1, saetze, true)).toEqual({ spesen: 0, pauschale: 0 });
+    expect(mahnkosten(2, saetze, true)).toEqual({ spesen: 0, pauschale: 40 });
+    expect(mahnkosten(3, saetze, true)).toEqual({ spesen: 0, pauschale: 40 });
+    // Privatkunden bekommen nie die Pauschale.
+    expect(mahnkosten(2, saetze, false)).toEqual({ spesen: 3, pauschale: 0 });
+  });
+
+  it('ohne Einstellungen kostet eine Mahnung nichts', () => {
+    expect(mahnkosten(3, undefined, true)).toEqual({ spesen: 0, pauschale: 0 });
   });
 });

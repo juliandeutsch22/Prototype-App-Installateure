@@ -41,7 +41,7 @@ describe('Rechtsseiten', () => {
     }
     expect(screen.getByText(/Österreichischen Datenschutzbehörde/)).toBeInTheDocument();
     expect(screen.getByText(/Fehlerprotokoll nach 90 Tagen/)).toBeInTheDocument();
-    expect(screen.getByText(/geht mit Ihrem Namen und Ihrer E-Mail-Adresse an den\s+Senklot-Support/)).toBeInTheDocument();
+    expect(screen.getByText(/geht mit deinem Namen und deiner E-Mail-Adresse an den\s+Senklot-Support/)).toBeInTheDocument();
   });
 
   it('verlinkt beide Seiten', () => {

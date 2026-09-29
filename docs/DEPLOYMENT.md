@@ -42,7 +42,8 @@ Unterauftragsverarbeiter stehen bleibt.
    den örtlichen Stack festhält (`tests/unit/anmeldeEinstellungen.test.ts`) —
    die Datei selbst erreicht das Projekt nicht: **Registrieren aus**
    („Allow new users to sign up"), **Mindestlänge 8** und **„Secure password
-   change" an** (seit 28.09.2026, offene Punkte B5). Ist eine Sitzung älter
+   change" an** (seit 28.09.2026, offene Punkte B5; im Projekt
+   `installateur-demo` eingeschaltet am 29.09.2026). Ist eine Sitzung älter
    als ein Tag, meldet die App beim Passwortändern mit dem eben geprüften
    aktuellen Passwort frisch an; einen Einmalcode per Mail braucht es nicht.
 

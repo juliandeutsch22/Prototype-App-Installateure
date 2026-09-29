@@ -35,8 +35,8 @@ import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import { verrechneteScheine } from './materialPositionen';
 import {
   darfMahnen,
+  mahnkosten,
   naechsteStufe,
-  spesenFuer,
   TEXTE,
   FRIST_TAGE,
   verzugszinsen,
@@ -1152,13 +1152,17 @@ export default function InvoicesView() {
    * damit beide dieselbe Zahl tragen. Unternehmer ist, wer eine UID hat: auf
    * der Rechnung oder im Kundenstamm.
    */
+  function istUnternehmer(inv: Invoice) {
+    return !!(inv.customerVatId?.trim() || kundeDerRechnung(inv)?.vatId?.trim());
+  }
+
   function zinsenFuer(inv: Invoice, stufe: Mahnstufe, datum: string) {
     return verzugszinsen({
       stufe,
       rest: zahlstand(inv).rest,
       faellig: inv.dueDate,
       bis: datum,
-      unternehmer: !!(inv.customerVatId?.trim() || kundeDerRechnung(inv)?.vatId?.trim()),
+      unternehmer: istUnternehmer(inv),
       basiszinssatz: company?.rates?.basiszinssatz,
       basiszinssatzAb: company?.rates?.basiszinssatzAb,
     });
@@ -1180,7 +1184,10 @@ export default function InvoicesView() {
     setError(null);
     try {
       const heute = todayStr();
-      const spesen = spesenFuer(stufe, company.rates?.mahnspesen);
+      const unternehmer = istUnternehmer(inv);
+      const kosten = mahnkosten(stufe, company.rates, unternehmer);
+      // Festgehalten wird, was die Mahnung an Kosten verlangt — Spesen oder Pauschale.
+      const spesen = kosten.spesen + kosten.pauschale;
       const { buildMahnungPdf, mahnungDateiname } = await import('./mahnungPdf');
       /*
         DIE MAHNUNG GEHT AN DIE ANSCHRIFT DES KUNDEN (P2-02) — heute, aus dem
@@ -1198,6 +1205,7 @@ export default function InvoicesView() {
         adresse: kunde?.address?.trim() || inv.address,
         kundenUid: inv.customerVatId,
         zinsen: zinsenFuer(inv, stufe, heute),
+        unternehmer,
       });
       /*
         DERSELBE WEG WIE BEIM HANDWERKSSCHEIN, nicht ein zweiter.
@@ -1320,8 +1328,9 @@ export default function InvoicesView() {
    * Datenstand, der auseinanderlaufen könnte.
    */
   const lauf = useMemo(
-    () => mahnlauf(offeneRechnungen, todayStr(), company?.rates?.mahnspesen),
-    [offeneRechnungen, company?.rates?.mahnspesen],
+    () => mahnlauf(offeneRechnungen, todayStr(), company?.rates, istUnternehmer),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- istUnternehmer liest Kunden und Baustellen
+    [offeneRechnungen, company?.rates, kunden, projects],
   );
 
   /**

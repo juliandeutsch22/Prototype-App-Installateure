@@ -13,9 +13,23 @@ wandert er hier heraus und in die jeweilige Doku.
 
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
-| A3 | **DATANORM-Preiskennzeichen** vermutlich vertauscht (0 = Liste, 1 = Netto; laut Norm eher 1 = Brutto, 2 = Netto) (P2-17) | Verdacht, nicht belegt — eine echte Datei des Großhändlers kommt vom Betrieb (28.09.2026) | Mit einer echten Datei des Großhändlers prüfen; Abgleich außerdem je Lieferant statt nur über die Artikelnummer |
-| A8 | **Datenschutzerklärung siezt** (12 Stellen) | Rechtstext, inhaltlich nicht verändert — bleibt vorerst so, der Betrieb überarbeitet die Rechtstexte selbst (28.09.2026) | So lassen oder vom Juristen umformulieren lassen |
-| A9 | **Was nach Ablauf der sieben Jahre geschieht** — mit Belegen und Zeitaufzeichnungen einer Person, die die Löschung verlangt hat (B8). Die Löschung entfernt heute, was nicht aufbewahrt werden muss, und nennt für den Rest das Fristende; nach Ablauf löscht sie noch nichts | Vor 2031 läuft in diesem Bestand keine Frist ab. Offen ist, ob danach gelöscht oder anonymisiert wird — und was mit dem Namen einer Person auf den Belegen **anderer** geschieht (Schein des Kunden, genehmigter Urlaub, erfasste Zahlung). Laufende Verfahren verlängern die Frist (§ 132 Abs. 1 BAO) | Mit dem Steuerberater entscheiden; dann denselben Aufruf um den zweiten Schritt erweitern |
+| A9 | **Was nach Ablauf der sieben Jahre geschieht** — mit Belegen und Zeitaufzeichnungen einer Person, die die Löschung verlangt hat (B8). Die Löschung entfernt heute, was nicht aufbewahrt werden muss, und nennt für den Rest das Fristende; nach Ablauf löscht sie noch nichts | Vor 2031 läuft in diesem Bestand keine Frist ab. Offen ist, ob danach gelöscht oder anonymisiert wird — und was mit dem Namen einer Person auf den Belegen **anderer** geschieht (Schein des Kunden, genehmigter Urlaub, erfasste Zahlung). Laufende Verfahren verlängern die Frist (§ 132 Abs. 1 BAO) | **Beim Betrieb** (29.09.2026: wie empfohlen): mit dem Steuerberater entscheiden; dann denselben Aufruf um den zweiten Schritt erweitern |
+
+**Entschieden und umgesetzt am 29.09.2026:** A3 (das DATANORM-Preiskennzeichen
+folgt der Norm: 1 = Listenpreis, 2 = Nettopreis, alles andere unbekannt. Der
+Leser nahm „1" als Netto und übernahm damit Listenpreise als Einkaufspreise —
+auch aus der Testdatei des Betriebs. Die Migration
+`20260929170000_datanorm_preiskennzeichen.sql` rechnet so übernommene Preise
+nach: Listenpreis abzüglich Rabattsatz, ohne Satz leer; von Hand geänderte
+Einkaufspreise bleiben. `tests/supabase/datanormPreiskennzeichen.test.ts`,
+`tests/unit/datanorm.test.ts`), A8 (die Datenschutzerklärung duzt wie die
+ganze App und nennt Auskunft und Löschung über die App), und die
+**Mahnspesen je Kundenart**: Firmenkunden (mit UID) und Privatkunden haben
+eigene Sätze je Stufe — ohne eigene Sätze für Privatkunden gelten die
+gemeinsamen weiter —, und an Firmenkunden lässt sich statt der Spesen die
+Pauschale von 40 € nach § 458 UGB verrechnen, ab der Mahnung
+(`mahnung.ts:mahnkosten`, `tests/unit/mahnung.test.ts`). Und: „Secure password
+change" (B5) ist in der Produktion eingeschaltet.
 
 **Entschieden und umgesetzt am 28.09.2026:** A1 (die Umbuchung der Anzahlung
 geht, wie sie gebucht wurde — netto ohne Steuercode, wenn das Anzahlungskonto
@@ -145,7 +159,7 @@ Planen braucht.
 die älter als ein Tag ist, meldet beim Passwortändern mit dem eben geprüften
 Passwort frisch an; im örtlichen Stack an und gegen eine gealterte Sitzung
 geprüft, `tests/supabase/anmeldung.test.ts`. **In der Produktion schaltet
-ihn das Dashboard** — Schritt 1.4 in `docs/DEPLOYMENT.md`), B4 (kein Einblick ohne Eintrag im Protokoll —
+ihn das Dashboard** — Schritt 1.4 in `docs/DEPLOYMENT.md`; eingeschaltet seit 29.09.2026), B4 (kein Einblick ohne Eintrag im Protokoll —
 von der Datenbank erzwungen, auch an der App vorbei; die App meldet dazu
 wieder jeden Bereich, bevor er lädt, was seit dem Umbau auf die echte App
 (#136) entfallen war; `tests/supabase/supportzugang.test.ts`,

@@ -51,13 +51,15 @@ describe('DATANORM lesen', () => {
     */
     const e = liesDatanorm(
       [
-        'A;N;A1;0;Eckventil;;0;0;Stk;2350;10;0',
-        'A;N;A2;0;Kugelhahn;;1;0;Stk;2350;10;0',
+        'A;N;A1;0;Eckventil;;1;0;Stk;2350;10;0',
+        'A;N;A2;0;Kugelhahn;;2;0;Stk;2350;10;0',
         'A;N;A3;0;Rohr;;7;0;Stk;2350;10;0',
         'A;N;A4;0;Bogen;;;0;Stk;2350;10;0',
+        // Bis 29.09.2026 las die App „0" als Liste und „1" als Netto — gegen die Norm (A3).
+        'A;N;A5;0;Muffe;;0;0;Stk;2350;10;0',
       ].join('\n'),
     );
-    expect(e.artikel.map((a) => a.preisArt)).toEqual(['liste', 'netto', 'unbekannt', 'unbekannt']);
+    expect(e.artikel.map((a) => a.preisArt)).toEqual(['liste', 'netto', 'unbekannt', 'unbekannt', 'unbekannt']);
   });
 
   it('nimmt einen Löschsatz ohne Bezeichnung an — er nennt nur die Nummer', () => {

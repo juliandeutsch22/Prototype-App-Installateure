@@ -9,6 +9,10 @@ import { BETREIBER, VERARBEITER } from './betreiber';
  * verschwinden. Die rechtliche Einordnung (Rechtsgrundlagen, Drittland) ist
  * der Teil, den jemand mit Rechtskenntnis freigeben muss — deshalb das Band
  * „Entwurf" in `RechtSeite`.
+ *
+ * GEDUZT, WIE DIE GANZE APP (offene Punkte A8, entschieden 29.09.2026). Eine
+ * Seite, die als einzige siezt, klingt nach Fremdtext — und ist schwerer zu
+ * lesen für die, um deren Daten es geht.
  */
 export default function DatenschutzView() {
   return (
@@ -18,8 +22,8 @@ export default function DatenschutzView() {
           Senklot ist eine Arbeitsanwendung, die ein Installationsbetrieb für sich und seine
           Mitarbeiter einsetzt. <strong>Verantwortlich</strong> für die Daten, die darin geführt
           werden — Mitarbeiter, Arbeitszeiten, Kunden, Belege —, ist dieser Betrieb (Art. 4 Z 7
-          DSGVO). Fragen zu diesen Daten und Anträge auf Auskunft oder Löschung richten Sie an ihn,
-          in der Regel an Ihren Arbeitgeber.
+          DSGVO). Fragen zu diesen Daten und Anträge auf Auskunft oder Löschung richtest du an ihn,
+          in der Regel an deinen Arbeitgeber.
         </p>
         <p>
           Der Betreiber von Senklot verarbeitet die Daten im Auftrag des Betriebs
@@ -30,10 +34,10 @@ export default function DatenschutzView() {
 
       <Abschnitt titel="Welche Daten die App verarbeitet">
         <ul className="list-disc space-y-1 pl-5">
-          <li>Ihr Konto: Name, E-Mail-Adresse oder Benutzername, Rolle im Betrieb.</li>
+          <li>Dein Konto: Name, E-Mail-Adresse oder Benutzername, Rolle im Betrieb.</li>
           <li>
             Arbeitszeiten, Einsätze, Urlaube, Zeitausgleich und Krankenstände. Krankenstände sind
-            Gesundheitsdaten (Art. 9 DSGVO): sehen können sie nur Sie selbst und die Personen im
+            Gesundheitsdaten (Art. 9 DSGVO): sehen können sie nur du selbst und die Personen im
             Betrieb, deren Rolle es verlangt; nach einer Diagnose fragt die App nicht.
           </li>
           <li>
@@ -41,11 +45,11 @@ export default function DatenschutzView() {
             zu Baustellen.
           </li>
           <li>Kunden, Angebote, Rechnungen und Zahlungen des Betriebs.</li>
-          <li>Wenn Sie Push-Meldungen erlauben: eine Kennung Ihres Geräts.</li>
+          <li>Wenn du Push-Meldungen erlaubst: eine Kennung deines Geräts.</li>
           <li>
             Ein Fehlerprotokoll: stürzt die App ab, werden Fehlermeldung, Ansicht, Fassung der App
-            und Gerätetyp festgehalten — ohne Inhalte, Namen oder Kennungen. Was Sie unter
-            „Problem melden" selbst schreiben, geht mit Ihrem Namen und Ihrer E-Mail-Adresse an den
+            und Gerätetyp festgehalten — ohne Inhalte, Namen oder Kennungen. Was du unter
+            „Problem melden" selbst schreibst, geht mit deinem Namen und deiner E-Mail-Adresse an den
             Senklot-Support, damit er nachfragen kann. Beides liest nur der Support, nicht der
             Betrieb.
           </li>
@@ -67,7 +71,7 @@ export default function DatenschutzView() {
         </p>
       </Abschnitt>
 
-      <Abschnitt titel="Auf Ihrem Gerät">
+      <Abschnitt titel="Auf deinem Gerät">
         <p>
           Die App speichert im Browser, was sie zum Arbeiten braucht: die Anmeldung, einen
           Zwischenstand für die Arbeit ohne Empfang und Buchungen, die noch nicht gesendet werden
@@ -98,18 +102,21 @@ export default function DatenschutzView() {
       <Abschnitt titel="Wie lange">
         <p>
           Solange der Betrieb die Daten führt und gesetzliche Aufbewahrungsfristen es verlangen
-          (etwa sieben Jahre für Buchhaltungsbelege nach § 132 BAO). Sicherungen werden nach 30
+          (etwa sieben Jahre für Buchhaltungsbelege und Arbeitszeitaufzeichnungen nach § 132 BAO).
+          Verlangst du die Löschung, entfernt der Betrieb sofort, was keiner Aufbewahrung
+          unterliegt; der Rest bleibt gesperrt, bis die Frist abgelaufen ist. Sicherungen werden nach 30
           Tagen gelöscht, das Fehlerprotokoll nach 90 Tagen. Endet die Nutzung durch den Betrieb,
           werden seine Daten nach Rückgabe gelöscht, wie im Auftragsverarbeitungsvertrag vereinbart.
         </p>
       </Abschnitt>
 
-      <Abschnitt titel="Ihre Rechte">
+      <Abschnitt titel="Deine Rechte">
         <p>
-          Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung,
-          Datenübertragbarkeit und Widerspruch. Wenden Sie sich dafür an den Betrieb, für den Sie
-          die App nutzen. Beschwerden können Sie bei der Österreichischen Datenschutzbehörde
-          einbringen: Barichgasse 40–42, 1030 Wien, dsb@dsb.gv.at.
+          Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung,
+          Datenübertragbarkeit und Widerspruch. Wende dich dafür an den Betrieb, für den du die
+          App nutzt — die Auskunft kann er dir als Datei aus der App geben. Beschwerden kannst du
+          bei der Österreichischen Datenschutzbehörde einbringen: Barichgasse 40–42, 1030 Wien,
+          dsb@dsb.gv.at.
         </p>
       </Abschnitt>
     </RechtSeite>

@@ -1,5 +1,5 @@
 import type { Invoice } from '@/types';
-import { darfMahnen, naechsteStufe, spesenFuer, type Mahnstufe } from './mahnung';
+import { darfMahnen, mahnkosten, naechsteStufe, type Mahnstufe, type MahnkostenSaetze } from './mahnung';
 import { offenerRest } from './zahlstand';
 
 /**
@@ -37,7 +37,7 @@ export interface MahnZeile {
    * Forderung da, die er selbst falsch beziffert hat.
    */
   offen: number;
-  /** Was der Betrieb für diese Stufe verrechnet — 0, wenn nichts hinterlegt. */
+  /** Was der Betrieb für diese Stufe verrechnet (Spesen oder Pauschale) — 0, wenn nichts hinterlegt. */
   spesen: number;
 }
 
@@ -85,7 +85,9 @@ function tageZwischen(vonIso: string, bisIso: string): number {
 export function mahnlauf(
   invoices: Array<Invoice & { id: string }>,
   heute: string,
-  spesenSaetze: number[] | undefined,
+  saetze: MahnkostenSaetze | undefined,
+  /** Wer als Unternehmer gilt — ohne Angabe: wer auf der Rechnung eine UID trägt. */
+  istUnternehmer: (inv: Invoice) => boolean = (inv) => !!inv.customerVatId?.trim(),
 ): Mahnlauf {
   const zeilen: MahnZeile[] = [];
   const ausgereizt: Array<Invoice & { id: string }> = [];
@@ -115,7 +117,7 @@ export function mahnlauf(
       stufe,
       tageUeberfaellig: inv.dueDate ? tageZwischen(inv.dueDate, heute) : 0,
       offen: offenerRest(inv),
-      spesen: spesenFuer(stufe, spesenSaetze),
+      spesen: (({ spesen, pauschale }) => spesen + pauschale)(mahnkosten(stufe, saetze, istUnternehmer(inv))),
     });
   }
 
