@@ -9,9 +9,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const eintragen = vi.fn();
+const vorAnmeldung = vi.fn();
+let mitSitzung = true;
 vi.mock('@/lib/db/fehlerprotokoll', () => ({
+  angemeldet: async () => mitSitzung,
   fehlerEintragen: (...a: unknown[]) => eintragen(...a),
+  fehlerVorAnmeldungEintragen: (...a: unknown[]) => vorAnmeldung(...a),
 }));
+
+/** Ob angemeldet ist, fragt der Melder asynchron — erst danach wird geschrieben. */
+const abwarten = () => new Promise((fertig) => setTimeout(fertig, 0));
 
 import {
   bereinige,
@@ -27,6 +34,9 @@ import {
 beforeEach(() => {
   eintragen.mockReset();
   eintragen.mockResolvedValue(undefined);
+  vorAnmeldung.mockReset();
+  vorAnmeldung.mockResolvedValue(undefined);
+  mitSitzung = true;
   _zuruecksetzen();
   window.history.replaceState(null, '', '/');
 });
@@ -66,9 +76,10 @@ describe('Putzen', () => {
 });
 
 describe('Erfassen', () => {
-  it('schreibt einen Absturz mit Ansicht, Fassung, Gerät und Komponentenstapel', () => {
+  it('schreibt einen Absturz mit Ansicht, Fassung, Gerät und Komponentenstapel', async () => {
     window.history.replaceState(null, '', '/customers/3f1c2a9e-1b2c-4d5e-8f90-123456789abc?suche=Huber');
     fehlerErfassen('absturz', new TypeError('x is not a function'), '\n    at Kundenakte');
+    await abwarten();
     expect(eintragen).toHaveBeenCalledTimes(1);
     const e = eintragen.mock.calls[0][0];
     expect(e).toMatchObject({ art: 'absturz', nachricht: 'TypeError: x is not a function', pfad: '/customers/:id' });
@@ -77,30 +88,51 @@ describe('Erfassen', () => {
     expect(e.geraet).toBeTruthy();
   });
 
-  it('schreibt denselben Fehler nur einmal in zehn Minuten, und höchstens 20 je Seite', () => {
+  it('schreibt denselben Fehler nur einmal in zehn Minuten, und höchstens 20 je Seite', async () => {
     fehlerErfassen('fehler', new Error('immer derselbe'));
     fehlerErfassen('fehler', new Error('immer derselbe'));
+    await abwarten();
     expect(eintragen).toHaveBeenCalledTimes(1);
     for (let i = 0; i < 40; i++) fehlerErfassen('fehler', new Error(`Nummer ${'x'.repeat(i)}`));
+    await abwarten();
     expect(eintragen).toHaveBeenCalledTimes(20);
   });
 
-  it('schreibt nichts ohne Netz und nichts bei Rauschen', () => {
+  it('schreibt nichts ohne Netz und nichts bei Rauschen', async () => {
     const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
     fehlerErfassen('fehler', new Error('ohne Netz'));
     online.mockRestore();
     fehlerErfassen('fehler', new TypeError('Failed to fetch'));
+    await abwarten();
     expect(eintragen).not.toHaveBeenCalled();
+    expect(vorAnmeldung).not.toHaveBeenCalled();
   });
 
   it('wirft nie — auch nicht, wenn das Schreiben scheitert', async () => {
     eintragen.mockRejectedValue(new Error('RLS'));
     expect(() => fehlerErfassen('fehler', new Error('boom'))).not.toThrow();
     expect(() => fehlerErfassen('fehler', { seltsam: true })).not.toThrow();
-    await Promise.resolve();
+    await abwarten();
   });
 
-  it('fängt Fehler, die an React vorbeigehen — auch unbehandelte Versprechen', () => {
+  it('vor der Anmeldung geht derselbe Eintrag ins eigene Protokoll, nicht in das des Betriebs', async () => {
+    mitSitzung = false;
+    window.history.replaceState(null, '', '/login');
+    fehlerErfassen('absturz', new TypeError('Anmeldung kaputt'));
+    await abwarten();
+    expect(eintragen).not.toHaveBeenCalled();
+    expect(vorAnmeldung).toHaveBeenCalledTimes(1);
+    expect(vorAnmeldung.mock.calls[0][0]).toMatchObject({ art: 'absturz', nachricht: 'TypeError: Anmeldung kaputt', pfad: '/login' });
+  });
+
+  it('auch dort wirft es nie, wenn das Schreiben scheitert', async () => {
+    mitSitzung = false;
+    vorAnmeldung.mockRejectedValue(new Error('zu viele'));
+    expect(() => fehlerErfassen('fehler', new Error('boom'))).not.toThrow();
+    await abwarten();
+  });
+
+  it('fängt Fehler, die an React vorbeigehen — auch unbehandelte Versprechen', async () => {
     const weg = fehlerBeobachten();
     window.dispatchEvent(new ErrorEvent('error', { error: new Error('im Klick'), message: 'im Klick' }));
     const ablehnung = new Event('unhandledrejection') as Event & { reason?: unknown };
@@ -109,6 +141,7 @@ describe('Erfassen', () => {
     const ab = vi.spyOn(window, 'removeEventListener');
     weg();
     expect(ab.mock.calls.map((c) => c[0])).toEqual(['error', 'unhandledrejection']);
+    await abwarten();
     expect(eintragen.mock.calls.map((c) => c[0].nachricht)).toEqual(['im Klick', 'nicht aufgefangen']);
   });
 });
@@ -116,6 +149,7 @@ describe('Erfassen', () => {
 describe('Problem melden', () => {
   it('schickt Beschreibung und den Fehler von eben mit — wohin, entscheidet die Datenbank', async () => {
     fehlerErfassen('absturz', new Error('eben passiert'));
+    await abwarten();
     expect(letzterFehler()).toBe('eben passiert');
     await problemMelden('  Speichern ging nicht  ');
     expect(eintragen).toHaveBeenLastCalledWith(expect.objectContaining({

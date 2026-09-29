@@ -17,7 +17,12 @@
  * stehen in dieser App Namen: „Huber" gibt es bereits), E-Mail-Adressen und
  * lange Ziffernfolgen (Telefon, IBAN).
  */
-import { fehlerEintragen, type NeuerFehlerEintrag } from '@/lib/db/fehlerprotokoll';
+import {
+  angemeldet,
+  fehlerEintragen,
+  fehlerVorAnmeldungEintragen,
+  type NeuerFehlerEintrag,
+} from '@/lib/db/fehlerprotokoll';
 import { istNachladeFehler } from '@/lib/nachladen';
 import { FASSUNG } from '@/lib/fassung';
 
@@ -124,7 +129,15 @@ export function fehlerErfassen(art: 'absturz' | 'fehler', grund: unknown, zusatz
     // Der Stapel trägt Dateinamen und Zeilennummern des Bundles, keine
     // Inhalte; der Komponentenstapel nur Namen von Bausteinen.
     const stapel = [f.stapel, zusatz].filter(Boolean).join('\n').slice(0, 4000) || null;
-    void fehlerEintragen({ art, nachricht, stapel, ...umgebung() }).catch(() => undefined);
+    const eintrag = { art, nachricht, stapel, ...umgebung() };
+    /*
+      VOR DER ANMELDUNG GEHT ES IN EIN EIGENES PROTOKOLL. Das des Betriebs
+      nimmt nur Mitglieder an; ein Absturz der Anmeldeseite verschwand
+      bisher still — ausgerechnet bei dem, der nicht hineinkommt.
+    */
+    void angemeldet()
+      .then((ja) => (ja ? fehlerEintragen(eintrag) : fehlerVorAnmeldungEintragen(eintrag)))
+      .catch(() => undefined);
   } catch {
     /* siehe oben: nie werfen */
   }

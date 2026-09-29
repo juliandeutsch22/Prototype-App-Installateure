@@ -30,6 +30,10 @@ export function listOwnVacations(
   return pg.listOwnVacations(companyId, uid, max);
 }
 
+export function getVacation(companyId: string, id: string): Promise<WithId<Vacation> | null> {
+  return pg.getVacation(companyId, id);
+}
+
 export function listOpenVacations(
   companyId: string, max = 100,
 ): Promise<WithId<Vacation>[]> {

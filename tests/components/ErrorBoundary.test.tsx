@@ -190,4 +190,18 @@ describe('Ins Fehlerprotokoll', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Senden' }));
     await waitFor(() => expect(gemeldet).toHaveBeenCalledWith('Beim Öffnen der Zeiterfassung'));
   });
+
+  it('vor der Anmeldung: festgehalten wird trotzdem, aber ohne „Problem melden"', () => {
+    // Die Meldung geht an den Support des Betriebs und braucht eine
+    // Anmeldung — auf der Anmeldeseite wäre es ein Knopf, der nur scheitert.
+    const fehler = new Error('Anmeldeseite kaputt');
+    render(
+      <ErrorBoundary ohneMelden>
+        <Wirft fehler={fehler} />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText('Da ist etwas schiefgelaufen')).toBeInTheDocument();
+    expect(erfasst).toHaveBeenCalledWith('absturz', fehler, expect.any(String));
+    expect(screen.queryByRole('button', { name: 'Problem melden' })).toBeNull();
+  });
 });

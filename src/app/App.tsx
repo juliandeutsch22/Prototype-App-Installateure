@@ -208,25 +208,31 @@ function AppInhalt() {
         <Route
           path="/login"
           element={
-            <Suspense fallback={<LoadingState label="Anmeldung wird geladen …" />}>
-              <LoginPage />
-            </Suspense>
+            <ErrorBoundary ohneMelden>
+              <Suspense fallback={<LoadingState label="Anmeldung wird geladen …" />}>
+                <LoginPage />
+              </Suspense>
+            </ErrorBoundary>
           }
         />
         <Route
           path="/impressum"
           element={
-            <Suspense fallback={<LoadingState label="Wird geladen …" />}>
-              <ImpressumView />
-            </Suspense>
+            <ErrorBoundary ohneMelden>
+              <Suspense fallback={<LoadingState label="Wird geladen …" />}>
+                <ImpressumView />
+              </Suspense>
+            </ErrorBoundary>
           }
         />
         <Route
           path="/datenschutz"
           element={
-            <Suspense fallback={<LoadingState label="Wird geladen …" />}>
-              <DatenschutzView />
-            </Suspense>
+            <ErrorBoundary ohneMelden>
+              <Suspense fallback={<LoadingState label="Wird geladen …" />}>
+                <DatenschutzView />
+              </Suspense>
+            </ErrorBoundary>
           }
         />
         <Route

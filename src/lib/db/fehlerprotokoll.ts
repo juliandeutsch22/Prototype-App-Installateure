@@ -5,7 +5,9 @@
  * man sieht, was die App mit diesen Daten tut.
  */
 export {
+  angemeldet,
   fehlerEintragen,
+  fehlerVorAnmeldungEintragen,
   plattformFehler,
 } from './pg/fehlerprotokoll';
 export type { NeuerFehlerEintrag, PlattformFehler } from './pg/fehlerprotokoll';

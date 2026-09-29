@@ -37,6 +37,39 @@ export async function fehlerEintragen(e: NeuerFehlerEintrag, client?: SupabaseCl
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Einen Absturz VOR DER ANMELDUNG festhalten — ohne Betrieb, ohne Person.
+ *
+ * Nur über die Datenbankfunktion: schreiben darf hier jeder im Netz, und die
+ * Funktion kürzt, filtert Wiederholungen und begrenzt die Menge je Stunde
+ * (`20260929190000_fehler_vor_anmeldung.sql`).
+ */
+export async function fehlerVorAnmeldungEintragen(
+  e: Omit<NeuerFehlerEintrag, 'beschreibung' | 'art'> & { art: 'absturz' | 'fehler' },
+  client?: SupabaseClient,
+): Promise<void> {
+  const { error } = await derClient(client).rpc('fehler_vor_anmeldung_eintragen', {
+    p_art: e.art,
+    p_nachricht: e.nachricht ?? '',
+    p_stapel: e.stapel ?? null,
+    p_pfad: e.pfad ?? null,
+    p_fassung: e.fassung ?? null,
+    p_geraet: e.geraet ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Ob gerade jemand angemeldet ist — entscheidet, wohin ein Absturz geht.
+ *
+ * Aus der gespeicherten Sitzung, ohne Anfrage an den Server: im Fehlerfall
+ * ist das Netz womöglich der Grund.
+ */
+export async function angemeldet(client?: SupabaseClient): Promise<boolean> {
+  const { data } = await derClient(client).auth.getSession();
+  return !!data.session;
+}
+
 /** Was die Plattform sieht: Technik aus allen Betrieben ohne Person, Meldungen mit Absender. */
 export interface PlattformFehler {
   id: string;
