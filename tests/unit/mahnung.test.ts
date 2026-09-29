@@ -5,6 +5,8 @@ import {
   spesenFuer,
   TEXTE,
   MAHNSTUFEN,
+  verzugszinsen,
+  halbjahresbeginn,
 } from '@/features/invoices/mahnung';
 import type { Invoice } from '@/types';
 
@@ -128,5 +130,69 @@ describe('Mahnspesen', () => {
     // Ein negativer Betrag auf einer Mahnung wäre eine Gutschrift.
     expect(spesenFuer(1, [-5])).toBe(0);
     expect(spesenFuer(1, [Number.NaN])).toBe(0);
+  });
+});
+
+describe('Verzugszinsen (B7)', () => {
+  const basis = {
+    stufe: 2 as const,
+    rest: 1200,
+    faellig: '2026-09-03',
+    bis: '2026-10-03',
+    unternehmer: false,
+  };
+
+  it('an Verbraucher 4 % im Jahr, vom Zahlungsziel bis zum Mahntag', () => {
+    // 1.200 € × 4 % × 30/365 = 3,945… → 3,95 €
+    expect(verzugszinsen(basis)).toEqual({
+      art: 'berechnet', satz: 4, tage: 30, betrag: 3.95, grundlage: '§ 1000 ABGB',
+    });
+  });
+
+  it('an Unternehmer 9,2 Punkte über dem Basiszinssatz des Halbjahres', () => {
+    const z = verzugszinsen({ ...basis, unternehmer: true, basiszinssatz: 1.53, basiszinssatzAb: '2026-07-01' });
+    // 1.200 € × 10,73 % × 30/365 = 10,583… → 10,58 €
+    expect(z).toEqual({ art: 'berechnet', satz: 10.73, tage: 30, betrag: 10.58, grundlage: '§ 456 UGB' });
+  });
+
+  it('reicht der Verzug ins Vorhalbjahr, wird erst ab dem eingetragenen gerechnet', () => {
+    // Fällig 03.06., Mahnung 03.10.: der Satz ab 01.07. ist bekannt, der davor nicht.
+    // 01.07.–03.10. sind 95 Tage: 1.200 € × 10,73 % × 95/365 = 33,51 €.
+    const z = verzugszinsen({
+      ...basis, faellig: '2026-06-03', unternehmer: true, basiszinssatz: 1.53, basiszinssatzAb: '2026-07-01',
+    });
+    expect(z).toEqual({ art: 'berechnet', satz: 10.73, tage: 95, betrag: 33.51, grundlage: '§ 456 UGB', ab: '2026-07-01' });
+    // An Verbraucher gilt 4 % durchgehend — ohne Kürzung.
+    expect(verzugszinsen({ ...basis, faellig: '2026-06-03' })).toMatchObject({ tage: 122 });
+  });
+
+  it('ein negativer Basiszinssatz senkt den Satz, statt zu verschwinden', () => {
+    const z = verzugszinsen({ ...basis, unternehmer: true, basiszinssatz: -0.62, basiszinssatzAb: '2026-07-01' });
+    expect(z).toMatchObject({ art: 'berechnet', satz: 8.58 });
+  });
+
+  it('ohne Basiszinssatz für das Halbjahr der Mahnung rechnet sie an Unternehmer nichts — und sagt es', () => {
+    expect(verzugszinsen({ ...basis, unternehmer: true })).toEqual({ art: 'fehlt' });
+    // Der Satz des Vorhalbjahres ist veraltet …
+    expect(verzugszinsen({ ...basis, unternehmer: true, basiszinssatz: 1.53, basiszinssatzAb: '2026-01-01' }))
+      .toEqual({ art: 'fehlt' });
+    // … und einer, der erst ab dem nächsten gilt, noch nicht gültig.
+    expect(verzugszinsen({ ...basis, unternehmer: true, basiszinssatz: 1.53, basiszinssatzAb: '2027-01-01' }))
+      .toEqual({ art: 'fehlt' });
+    // Ohne Stand zählt die Zahl nicht.
+    expect(verzugszinsen({ ...basis, unternehmer: true, basiszinssatz: 1.53 })).toEqual({ art: 'fehlt' });
+  });
+
+  it('nicht auf der Zahlungserinnerung, nicht ohne Rest, nicht vor dem Ziel', () => {
+    expect(verzugszinsen({ ...basis, stufe: 1 })).toEqual({ art: 'keine' });
+    expect(verzugszinsen({ ...basis, rest: 0 })).toEqual({ art: 'keine' });
+    expect(verzugszinsen({ ...basis, bis: '2026-09-03' })).toEqual({ art: 'keine' });
+    expect(verzugszinsen({ ...basis, faellig: undefined })).toEqual({ art: 'keine' });
+  });
+
+  it('der Halbjahresbeginn', () => {
+    expect(halbjahresbeginn('2026-06-30')).toBe('2026-01-01');
+    expect(halbjahresbeginn('2026-07-01')).toBe('2026-07-01');
+    expect(halbjahresbeginn('2026-12-31')).toBe('2026-07-01');
   });
 });

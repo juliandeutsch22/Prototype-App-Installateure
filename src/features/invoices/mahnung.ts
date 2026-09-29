@@ -18,16 +18,10 @@ import { offenerRest } from './zahlstand';
  *   2  MAHNUNG — benennt den Verzug.
  *   3  LETZTE MAHNUNG — kündigt an, dass es aus der Hand gegeben wird.
  *
- * WAS HIER BEWUSST NICHT GERECHNET WIRD: VERZUGSZINSEN.
- *
- * Sie stehen im Gesetz — 4 % für Verbraucher (§ 1000 ABGB), zwischen
- * Unternehmern 9,2 Prozentpunkte über dem BASISZINSSATZ (§ 456 UGB). Der
- * Basiszinssatz ändert sich halbjährlich. Ihn hier einzutragen hiesse, eine
- * Zahl zu hinterlegen, die still veraltet und danach auf jeder Mahnung falsch
- * steht — und eine falsch berechnete Zinsforderung ist schlechter als keine.
- *
- * Die Mahnspesen dagegen legt der Betrieb selbst fest; sie stehen in den
- * Einstellungen und sind je Stufe eine schlichte Zahl.
+ * VERZUGSZINSEN stehen seit 29.09.2026 ab der zweiten Stufe auf dem Beleg
+ * (offene Punkte B7) — siehe {@link verzugszinsen}. Die Mahnspesen legt der
+ * Betrieb selbst fest; sie stehen in den Einstellungen und sind je Stufe eine
+ * schlichte Zahl.
  */
 
 export const MAHNSTUFEN = [1, 2, 3] as const;
@@ -201,3 +195,93 @@ export function spesenFuer(stufe: Mahnstufe, spesen: number[] | undefined): numb
 
 /** Vorschlag für die neue Frist: eine Woche. Änderbar in der Oberfläche. */
 export const FRIST_TAGE = 7;
+
+/** Verzugszinsen gegenüber Verbrauchern, % im Jahr (§ 1000 Abs 1 ABGB). */
+export const ZINS_VERBRAUCHER = 4;
+/** Zwischen Unternehmern: Prozentpunkte über dem Basiszinssatz (§ 456 UGB). */
+export const ZINS_AUFSCHLAG_UNTERNEHMER = 9.2;
+
+/** Der 1. Jänner oder 1. Juli, mit dem das Halbjahr eines Tages beginnt. */
+export function halbjahresbeginn(isoTag: string): string {
+  return `${isoTag.slice(0, 4)}-${Number(isoTag.slice(5, 7)) <= 6 ? '01' : '07'}-01`;
+}
+
+export type Verzugszinsen =
+  | { art: 'keine' }
+  /** Ein Unternehmer, aber kein Basiszinssatz für das laufende Halbjahr. */
+  | { art: 'fehlt' }
+  | {
+      art: 'berechnet';
+      /** % im Jahr. */
+      satz: number;
+      tage: number;
+      betrag: number;
+      grundlage: '§ 1000 ABGB' | '§ 456 UGB';
+      /** Gesetzt, wenn erst ab diesem Tag gerechnet wird (siehe unten). */
+      ab?: string;
+    };
+
+/**
+ * Die gesetzlichen Verzugszinsen einer Mahnung (offene Punkte B7).
+ *
+ * AB DER ZWEITEN STUFE. Die Zahlungserinnerung geht davon aus, dass die
+ * Rechnung übersehen wurde — eine Zinsforderung darin widerspräche ihrem
+ * eigenen Ton. Geschuldet sind die Zinsen trotzdem ab dem ersten Tag nach
+ * dem Zahlungsziel; die Mahnung rechnet deshalb vom Ziel bis zu ihrem Datum.
+ *
+ * UNTERNEHMER IST, WER EINE UID HAT. Die App weiss sonst nicht, ob ein Kunde
+ * ein Geschäft betreibt. Ohne UID gilt der Verbrauchersatz — der niedrigere;
+ * zu wenig zu fordern schadet dem Betrieb weniger als zu viel.
+ *
+ * DER BASISZINSSATZ GILT NUR MIT SEINEM HALBJAHR. Er ändert sich zum 1.1. und
+ * 1.7. (maßgebend ist der am letzten Tag des Vorhalbjahres, § 456 UGB). Eine
+ * Zahl ohne Stand veraltete still und stünde danach auf jeder Mahnung falsch;
+ * eine falsche Zinsforderung ist schlechter als keine. Deshalb rechnet er nur,
+ * wenn er für das Halbjahr der Mahnung eingetragen ist — sonst `fehlt`, und
+ * die Oberfläche sagt es. Reicht der Verzug in ein früheres Halbjahr zurück,
+ * ist dessen Satz unbekannt: gerechnet wird dann erst ab Beginn des
+ * eingetragenen (`ab`), und der Beleg sagt es. Weniger zu fordern ist
+ * zulässig, mehr nicht.
+ *
+ * NICHT GESPEICHERT. Die Zinsen stehen auf dem Beleg und in der Summe, die er
+ * fordert, aber nicht im Zahlungsstand der Rechnung: sie sind keine Leistung,
+ * und eine Zahlung darauf ist eine Zahlung über den Rechnungsbetrag hinaus.
+ */
+export function verzugszinsen(o: {
+  stufe: Mahnstufe;
+  rest: number;
+  faellig?: string;
+  bis: string;
+  unternehmer: boolean;
+  basiszinssatz?: number | null;
+  basiszinssatzAb?: string | null;
+}): Verzugszinsen {
+  if (o.stufe < 2 || !(o.rest >= 0.01) || !o.faellig) return { art: 'keine' };
+  const von = Date.parse(`${o.faellig}T00:00:00Z`);
+  const bis = Date.parse(`${o.bis}T00:00:00Z`);
+  if (Number.isNaN(von) || Number.isNaN(bis)) return { art: 'keine' };
+  const tage = Math.round((bis - von) / 86_400_000);
+  if (tage <= 0) return { art: 'keine' };
+
+  if (!o.unternehmer) {
+    return mitBetrag(o.rest, ZINS_VERBRAUCHER, tage, '§ 1000 ABGB');
+  }
+  const ab = o.basiszinssatzAb ?? '';
+  const gilt = typeof o.basiszinssatz === 'number' && Number.isFinite(o.basiszinssatz)
+    && ab >= halbjahresbeginn(o.bis) && ab <= o.bis;
+  if (!gilt) return { art: 'fehlt' };
+  const satz = Math.round((o.basiszinssatz! + ZINS_AUFSCHLAG_UNTERNEHMER) * 100) / 100;
+  if (ab <= o.faellig) return mitBetrag(o.rest, satz, tage, '§ 456 UGB');
+  // Der Tag `ab` zählt mit: gerechnet wird vom Vortag an, wie sonst vom Zahlungsziel.
+  const abTage = Math.round((bis - Date.parse(`${ab}T00:00:00Z`)) / 86_400_000) + 1;
+  const z = mitBetrag(o.rest, satz, abTage, '§ 456 UGB');
+  return z.art === 'berechnet' ? { ...z, ab } : z;
+}
+
+function mitBetrag(
+  rest: number, satz: number, tage: number, grundlage: '§ 1000 ABGB' | '§ 456 UGB',
+): Verzugszinsen {
+  const betrag = Math.round(rest * (satz / 100) * (tage / 365) * 100) / 100;
+  if (betrag <= 0) return { art: 'keine' };
+  return { art: 'berechnet', satz, tage, betrag, grundlage };
+}

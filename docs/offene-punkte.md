@@ -31,7 +31,6 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
-| B7 | **Skonto und Verzugszinsen** fehlen (Teil 1, die Stornorechnung, ist erledigt; eine Teilgutschrift gibt es bewusst nicht) | Neue Funktionen | Teil 2 |
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
 
 ## C. Absicherungen und Tests, die fehlen
@@ -108,6 +107,21 @@ zählt sie mit. Ist sie ausgestellt, lässt sich der Storno nicht mehr
 aufheben. Eine Teilgutschrift gibt es bewusst nicht (so entschieden): ein
 Nachlass geht über Storno und neue Rechnung;
 `tests/supabase/stornorechnung.test.ts`, `tests/unit/stornoPdf.test.ts`.
+Teil 2: **Verzugszinsen** — ab der Mahnung (nicht auf der
+Zahlungserinnerung) stehen sie mit Satz, Tagen und Grundlage auf dem Beleg und
+zählen zum offenen Betrag: an Verbraucher 4 % (§ 1000 ABGB), an Kunden mit UID
+9,2 Punkte über dem Basiszinssatz (§ 456 UGB). Der Basiszinssatz steht mit
+seinem Halbjahr in den Einstellungen und gilt nur für dieses; fehlt er, geht
+die Mahnung an Unternehmer ohne Zinsen hinaus und der Dialog sagt es. Reicht
+der Verzug ins Vorhalbjahr, wird erst ab dem eingetragenen gerechnet — nie zu
+viel. Und **Skonto** — Prozent und Frist aus den Einstellungen (ab Werk keines),
+eingefroren an der Rechnung, mit Betrag auf dem PDF; nur auf Rechnung und
+Schlussrechnung. Zahlt der Kunde in der Frist abzüglich Skonto, gleicht ein
+Haken beim Erfassen den Rest aus (ein Zahlungseingang der Art „Skonto", in
+einem Zug mit der Zahlung; nicht mehr als zugesagt, nicht mehr als offen). Das
+Ausgangsbuch führt ihn getrennt vom Geld; ein Storno verlangt, dass der
+Skonto-Eintrag vorher gelöscht wird. `tests/unit/mahnung.test.ts`,
+`tests/unit/skonto.test.ts`, `tests/supabase/skonto.test.ts`.
 
 **Aus B, am 29.09.2026:** B1, Teil 1 (Kostensätze in `betrieb_kostensaetze`,
 Einkaufspreise in `material_einkaufspreise` — lesen und schreiben nur

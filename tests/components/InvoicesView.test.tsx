@@ -209,8 +209,10 @@ let bisherigeZahlungen: Array<Record<string, unknown>> = [];
 vi.mock('@/lib/db/zahlungen', () => ({
   listZahlungen: (...a: unknown[]) => listZahlungen(...(a as [])),
   createZahlung: (...a: unknown[]) => createZahlung(...(a as [string, Record<string, unknown>])),
+  createZahlungMitSkonto: (...a: unknown[]) => createZahlungMitSkonto(...(a as [])),
   deleteZahlung: vi.fn(async () => undefined),
 }));
+const createZahlungMitSkonto = vi.fn(async () => undefined);
 
 vi.mock('@/lib/db/projects', () => ({
   listActiveProjects: vi.fn(async () => [PROJEKT]),
@@ -941,6 +943,35 @@ describe('Eine überfällige Rechnung mahnen', () => {
 
     await waitFor(() => expect(mahnung).toHaveBeenCalled());
     expect(mahnung.mock.calls[0][1]).toMatchObject({ frist: '2026-09-30' });
+  });
+
+  it('ab der Mahnung stehen Verzugszinsen im Dialog und auf dem Beleg — dieselbe Zahl (B7)', async () => {
+    // Verbraucher, 17 Tage seit dem Ziel: 1.200 € × 4 % × 17/365 = 2,24 €.
+    rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 1 }];
+    await menue();
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mahnung erzeugen' }));
+    expect(await screen.findByText(/Verzugszinsen € 2,24/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Erzeugen' }));
+    await waitFor(() => expect(mahnungPdf).toHaveBeenCalled());
+    expect((mahnungPdf.mock.calls[0] as unknown[])[0]).toMatchObject({
+      zinsen: { art: 'berechnet', satz: 4, tage: 17, betrag: 2.24 },
+    });
+  });
+
+  it('sagt es, wenn an einen Unternehmer der Basiszinssatz fehlt — statt still ohne Zinsen', async () => {
+    rechnungen = [{ ...UEBERFAELLIG, mahnstufe: 1, customerVatId: 'ATU99999999' }];
+    await menue();
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Mahnung erzeugen' }));
+    expect(await screen.findByText(/fehlt der\s+Basiszinssatz/)).toBeInTheDocument();
+    expect(screen.queryByText(/stehen auf dem Beleg/)).not.toBeInTheDocument();
+  });
+
+  it('die Zahlungserinnerung trägt keine Zinsen', async () => {
+    rechnungen = [UEBERFAELLIG];
+    await menue();
+    await userEvent.click(await screen.findByRole('menuitem', { name: /erzeugen/ }));
+    await screen.findByLabelText('Neue Frist');
+    expect(screen.queryByText(/Verzugszinsen/)).not.toBeInTheDocument();
   });
 
   it('zeigt in der Liste, was schon gemahnt wurde', async () => {
@@ -1798,6 +1829,53 @@ describe('Zahlungen erfassen', () => {
       betrag: 400,
       art: 'Überweisung',
     });
+  });
+
+  it('gleicht in der Frist den Rest als Skonto aus — nur mit Haken (B7)', async () => {
+    // Zugesagt 2 % bis 08.09. (Systemzeit 01.09.): 1.176 € überwiesen, 24 € Skonto.
+    rechnungen = [offeneRechnung({ skontoProzent: 2, skontoBis: '2026-09-08' })];
+    createZahlungMitSkonto.mockClear();
+    createZahlung.mockClear();
+    zeige();
+    await screen.findByText(/RE-2026-0042/);
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+    expect(await screen.findByText(/Zugesagt: 2 %\s+Skonto \(€ 24,00\)/)).toBeInTheDocument();
+
+    const betrag = await screen.findByLabelText(/^Betrag/);
+    // Der volle Betrag lässt nichts auszugleichen.
+    expect(screen.queryByLabelText(/als Skonto ausgleichen/)).not.toBeInTheDocument();
+    await userEvent.clear(betrag);
+    await userEvent.type(betrag, '1176');
+    await userEvent.click(await screen.findByLabelText('Den Rest von € 24,00 als Skonto ausgleichen'));
+    await userEvent.click(screen.getByRole('button', { name: 'Zahlung eintragen' }));
+
+    await waitFor(() => expect(createZahlungMitSkonto).toHaveBeenCalled());
+    expect(createZahlungMitSkonto.mock.calls[0]).toEqual([
+      'perl', expect.objectContaining({ betrag: 1176, art: 'Überweisung' }), 24,
+    ]);
+    expect(createZahlung).not.toHaveBeenCalled();
+  });
+
+  it('ohne Haken bleibt es eine gewöhnliche Teilzahlung', async () => {
+    rechnungen = [offeneRechnung({ skontoProzent: 2, skontoBis: '2026-09-08' })];
+    createZahlungMitSkonto.mockClear();
+    createZahlung.mockClear();
+    zeige();
+    await screen.findByText(/RE-2026-0042/);
+    await userEvent.click(
+      await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-0042/ }),
+    );
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Zahlung erfassen' }));
+    const betrag = await screen.findByLabelText(/^Betrag/);
+    await userEvent.clear(betrag);
+    await userEvent.type(betrag, '1176');
+    await screen.findByLabelText(/als Skonto ausgleichen/);
+    await userEvent.click(screen.getByRole('button', { name: 'Zahlung eintragen' }));
+    await waitFor(() => expect(createZahlung).toHaveBeenCalled());
+    expect(createZahlungMitSkonto).not.toHaveBeenCalled();
   });
 
   it('rechnet den Kopf nach einer Teilzahlung neu (Launch-Check, M14)', async () => {
@@ -2756,5 +2834,32 @@ describe('Rechnung ohne Umsatzsteuer', () => {
     await bisZurVorschau();
     await userEvent.click(screen.getByRole('checkbox', { name: /Bauleistung/ }));
     expect(screen.queryByLabelText(/Grund der Steuerbefreiung/)).not.toBeInTheDocument();
+  });
+});
+
+/** Skonto aus den Einstellungen kommt auf Rechnung und PDF (offene Punkte B7). */
+describe('Skonto beim Anlegen', () => {
+  const firma = authWert.company as unknown as { rates?: Record<string, unknown> };
+  afterEach(() => {
+    firma.rates = undefined;
+  });
+
+  it('sagt zu, was eingestellt ist — Frist ab heute, höchstens bis zum Zahlungsziel', async () => {
+    // Systemzeit 01.09.2026; Zahlungsziel 14 Tage, Skonto 3 % in 10 Tagen → bis 11.09.
+    firma.rates = { fach: 65, helper: 45, nightSurcharge: 0.5, emergencySurcharge: 1, vatRate: 0.2, dueDays: 14,
+      skontoProzent: 3, skontoTage: 10 };
+    const knopf = await bisZurVorschau();
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ skontoProzent: 3, skontoBis: '2026-09-11' });
+    await waitFor(() => expect(pdfAusgabe).toHaveBeenCalled());
+    expect(pdfAusgabe.mock.calls[0][0]).toMatchObject({ skonto: { skontoProzent: 3, skontoBis: '2026-09-11' } });
+  });
+
+  it('Gegenprobe: ohne Einstellung sagt die Rechnung nichts zu', async () => {
+    const knopf = await bisZurVorschau();
+    await userEvent.click(knopf);
+    await waitFor(() => expect(lege).toHaveBeenCalled());
+    expect(lege.mock.calls[0][0]).toMatchObject({ skontoProzent: null, skontoBis: null });
   });
 });

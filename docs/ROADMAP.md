@@ -4160,6 +4160,9 @@ scheitert die naheliegende Umsetzung:
   Gewährleistung fällig. Ohne Wiedervorlage merkt ihn niemand an, und 3 %
   jeder Baustelle bleiben beim Kunden liegen. Die Erinnerung ist der
   eigentliche Wert.
+- **NACHTRAG 29.09. — Skonto ist gebaut** (offene Punkte B7): Bedingung an
+  der Rechnung, Abzug als Zahlungseingang der Art „Skonto". Der Rücklass
+  wartet weiter.
 - **Fertig heisst:** eine Rechnung mit 5 % Deckungsrücklass weist volle 20 %
   USt aus, der Mahnlauf mahnt den Rücklass nicht, und drei Jahre später steht
   er als fälliger Posten auf der Startseite.
@@ -4186,6 +4189,11 @@ Regeln, die heute alle gleich behandelt werden:
 > eine Tabelle `(gueltigAb, satz)` und eine Halbjahreslogik, **für eine Zahl,
 > die nach der bestehenden Entscheidung ohnehin auf keiner Mahnung steht.**
 > Was bleibt, ist das Kennzeichen am Kunden: ein Feld, drei Wirkungen.
+>
+> **NACHTRAG 29.09. — Verzugszinsen werden jetzt gerechnet** (offene Punkte
+> B7, so entschieden): der Basiszinssatz steht mit seinem Halbjahr in den
+> Einstellungen statt in einer Tabelle, Unternehmer ist ein Kunde mit UID.
+> Reicht der Verzug ins Vorhalbjahr, wird erst ab dem eingetragenen gerechnet.
 
 #### 10.5 UID prüfen — und warum VIES die Frage nicht beantwortet — **WARTET**
 

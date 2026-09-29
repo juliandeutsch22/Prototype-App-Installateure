@@ -19,8 +19,9 @@ import {
   scheineAufRechnung,
   RECHNUNG_TREFFER,
 } from '@/lib/db/invoices';
-import { listZahlungen, createZahlung, deleteZahlung } from '@/lib/db/zahlungen';
+import { listZahlungen, createZahlung, createZahlungMitSkonto, deleteZahlung } from '@/lib/db/zahlungen';
 import { istUeberfaellig, zahlstand } from './zahlstand';
+import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listCustomers } from '@/lib/db/customers';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
@@ -32,7 +33,15 @@ import { listWorkSheetsForProject, listRecentWorkSheets } from '@/lib/db/workShe
 import { listMaterials } from '@/lib/db/materials';
 import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import { verrechneteScheine } from './materialPositionen';
-import { darfMahnen, naechsteStufe, spesenFuer, TEXTE, FRIST_TAGE } from './mahnung';
+import {
+  darfMahnen,
+  naechsteStufe,
+  spesenFuer,
+  TEXTE,
+  FRIST_TAGE,
+  verzugszinsen,
+  type Mahnstufe,
+} from './mahnung';
 import { postenNeuLaden } from '@/app/offenePosten';
 import { mahnlauf } from './mahnlauf';
 import {
@@ -179,6 +188,7 @@ export default function InvoicesView() {
   const [zDatum, setZDatum] = useState(todayStr());
   const [zBetrag, setZBetrag] = useState('');
   const [zArt, setZArt] = useState<Zahlungseingang['art']>('Überweisung');
+  const [zSkonto, setZSkonto] = useState(false);
   const [zHinweis, setZHinweis] = useState('');
   const [zLoeschen, setZLoeschen] = useState<string | null>(null);
   const [zFehler, setZFehler] = useState<string | null>(null);
@@ -567,6 +577,7 @@ export default function InvoicesView() {
     setZDatum(todayStr());
     setZArt('Überweisung');
     setZHinweis('');
+    setZSkonto(false);
     const rest = zahlstand(inv).rest;
     setZBetrag(rest > 0 ? String(rest) : '');
     try {
@@ -592,6 +603,25 @@ export default function InvoicesView() {
       : zahlungFuer
     : null;
 
+  /*
+    DER SKONTO WIRD ANGEBOTEN, NICHT GEBUCHT. Passt die Zahlung zur Zusage —
+    in der Frist, und der Rest nicht mehr als der Skonto —, steht ein Haken
+    da; gesetzt wird er bewusst. Die Skonto-Summe kommt aus derselben Liste
+    wie der Kopf.
+  */
+  const skontoAngebot = zahlungsStand && zArt !== 'Skonto'
+    ? skontoZumAusgleich(
+      {
+        ...zahlungsStand,
+        skontoBetrag: zahlungen
+          ? Math.round(zahlungen.filter((z) => z.art === 'Skonto').reduce((s, z) => s + z.betrag, 0) * 100) / 100
+          : zahlungsStand.skontoBetrag,
+      },
+      zDatum,
+      Number(zBetrag.replace(',', '.')),
+    )
+    : null;
+
   const zahlungSpeichern = async () => {
     if (!zahlungFuer || !user) return;
     const betrag = Number(zBetrag.replace(',', '.'));
@@ -599,7 +629,7 @@ export default function InvoicesView() {
       setZFehler('Ein Betrag von null ist kein Zahlungseingang.');
       return;
     }
-    await createZahlung(zahlungFuer.companyId, {
+    const zahlung = {
       invoiceId: zahlungFuer.id,
       datum: zDatum,
       betrag: Math.round(betrag * 100) / 100,
@@ -607,10 +637,16 @@ export default function InvoicesView() {
       hinweis: zHinweis.trim() || undefined,
       erfasstVon: user.uid,
       erfasstVonName: user.name,
-    });
+    };
+    if (zSkonto && skontoAngebot) {
+      await createZahlungMitSkonto(zahlungFuer.companyId, zahlung, skontoAngebot);
+    } else {
+      await createZahlung(zahlungFuer.companyId, zahlung);
+    }
     setZahlungen(await listZahlungen(zahlungFuer.companyId, zahlungFuer.id));
     setZBetrag('');
     setZHinweis('');
+    setZSkonto(false);
     setZFehler(null);
     toast.success('Zahlung erfasst');
   };
@@ -938,6 +974,13 @@ export default function InvoicesView() {
       const due = new Date();
       due.setDate(due.getDate() + rates.dueDays);
       const dueDate = localDateStr(due);
+      const skonto = skontoBedingung({
+        prozent: rates.skontoProzent,
+        tage: rates.skontoTage,
+        rechnungsdatum: invoiceDate,
+        zahlungsziel: dueDate,
+        art,
+      });
 
       /**
        * Nummer JETZT verbindlich ziehen, nicht schon beim Aufbau der Vorschau.
@@ -1016,6 +1059,8 @@ export default function InvoicesView() {
         gesamtNetto: abzuege.length > 0 ? summen.gesamtNetto : undefined,
         gesamtVat: abzuege.length > 0 ? summen.gesamtVat : undefined,
         gesamtBrutto: abzuege.length > 0 ? summen.gesamtBrutto : undefined,
+        skontoProzent: skonto?.skontoProzent ?? null,
+        skontoBis: skonto?.skontoBis ?? null,
         paymentStatus: 'Offen',
         // Leerstring statt undefined: ein leeres Feld sagt ehrlich
         // „nicht angegeben".
@@ -1067,6 +1112,7 @@ export default function InvoicesView() {
         */
         customerVatId: kundenUid.trim(),
         steuerbefreiung: brauchtBefreiung ? steuerbefreiung.trim() : undefined,
+        skonto,
       });
 
       setPreview(null);
@@ -1096,6 +1142,28 @@ export default function InvoicesView() {
     }
   }
 
+  /** Der Kunde einer Rechnung im Stamm — über die Baustelle, sonst über den Namen. */
+  function kundeDerRechnung(inv: Invoice) {
+    return kundeZu(projects.find((p) => p.projectNumber === inv.projectNumber)?.customerId, inv.customerName);
+  }
+
+  /**
+   * Die Verzugszinsen einer Mahnung — einmal gerechnet für Dialog und Beleg,
+   * damit beide dieselbe Zahl tragen. Unternehmer ist, wer eine UID hat: auf
+   * der Rechnung oder im Kundenstamm.
+   */
+  function zinsenFuer(inv: Invoice, stufe: Mahnstufe, datum: string) {
+    return verzugszinsen({
+      stufe,
+      rest: zahlstand(inv).rest,
+      faellig: inv.dueDate,
+      bis: datum,
+      unternehmer: !!(inv.customerVatId?.trim() || kundeDerRechnung(inv)?.vatId?.trim()),
+      basiszinssatz: company?.rates?.basiszinssatz,
+      basiszinssatzAb: company?.rates?.basiszinssatzAb,
+    });
+  }
+
   /**
    * Eine Mahnung erzeugen und festhalten.
    *
@@ -1120,10 +1188,7 @@ export default function InvoicesView() {
         umgezogener Kunde bekäme sonst die Mahnung an die alte. Ohne Kunden
         im Stamm bleibt die Anschrift der Rechnung.
       */
-      const kunde = kundeZu(
-        projects.find((p) => p.projectNumber === inv.projectNumber)?.customerId,
-        inv.customerName,
-      );
+      const kunde = kundeDerRechnung(inv);
       const blob = await buildMahnungPdf({
         company,
         invoice: inv,
@@ -1132,6 +1197,7 @@ export default function InvoicesView() {
         frist,
         adresse: kunde?.address?.trim() || inv.address,
         kundenUid: inv.customerVatId,
+        zinsen: zinsenFuer(inv, stufe, heute),
       });
       /*
         DERSELBE WEG WIE BEIM HANDWERKSSCHEIN, nicht ein zweiter.
@@ -1239,6 +1305,9 @@ export default function InvoicesView() {
       leistungsort: inv.leistungsort,
       art: inv.art,
       vorrechnungen: inv.vorrechnungen,
+      skonto: inv.skontoProzent && inv.skontoBis
+        ? { skontoProzent: inv.skontoProzent, skontoBis: inv.skontoBis }
+        : null,
     });
     toast.success('PDF erneut erzeugt');
   }
@@ -1929,6 +1998,14 @@ export default function InvoicesView() {
               <InputField id="r-due" label="Zahlungsziel (Tage)" type="number" min="0"
                 value={String(rates.dueDays)}
                 onChange={(e) => setRates({ ...rates, dueDays: Number(e.target.value) || 0 })} />
+              <InputField id="r-skonto" label="Skonto %" type="number" min="0" max="99" step="0.5"
+                placeholder="leer = keines"
+                value={rates.skontoProzent ? String(rates.skontoProzent) : ''}
+                onChange={(e) => setRates({ ...rates, skontoProzent: Number(e.target.value) || undefined })} />
+              <InputField id="r-skonto-tage" label="Skontofrist (Tage)" type="number" min="0"
+                placeholder="leer = keines"
+                value={rates.skontoTage ? String(rates.skontoTage) : ''}
+                onChange={(e) => setRates({ ...rates, skontoTage: Number(e.target.value) || undefined })} />
               {/*
                 „0 % (Reverse Charge)" STAND HIER UND WAR EINE FALLE.
 
@@ -3083,9 +3160,25 @@ export default function InvoicesView() {
             label="Hinweis"
             value={zHinweis}
             onChange={(e) => setZHinweis(e.target.value)}
-            placeholder="z. B. Skonto gezogen"
+            placeholder="z. B. Kontoauszug 14"
           />
         </FormGrid>
+        {zahlungFuer?.skontoProzent && zahlungFuer.skontoBis && (
+          <p className="mt-2 text-sm text-ink-muted">
+            Zugesagt: {zahlungFuer.skontoProzent.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %
+            Skonto ({euro(zugesagterSkonto(zahlungFuer))}) bei Zahlung bis {datumAT(zahlungFuer.skontoBis)}.
+          </p>
+        )}
+        {skontoAngebot != null && (
+          <div className="mt-2">
+            <CheckboxField
+              id="z-skonto"
+              label={`Den Rest von ${euro(skontoAngebot)} als Skonto ausgleichen`}
+              checked={zSkonto}
+              onChange={(e) => setZSkonto(e.target.checked)}
+            />
+          </div>
+        )}
         <InfoHint about="den Betrag">
           Vorausgefüllt steht der offene Rest, weil er fast immer stimmt. Bei einer Teilzahlung
           wird er überschrieben; ein negativer Betrag ist eine Rückzahlung an den Kunden.
@@ -3190,6 +3283,29 @@ export default function InvoicesView() {
           value={mahnFrist}
           onChange={(e) => setMahnFrist(e.target.value)}
         />
+        {mahnFuer && naechsteStufe(mahnFuer) && (() => {
+          const z = zinsenFuer(mahnFuer, naechsteStufe(mahnFuer)!, todayStr());
+          if (z.art === 'berechnet') {
+            return (
+              <p className="mt-3 text-sm text-ink-muted">
+                Verzugszinsen {euro(z.betrag)} ({z.satz.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %
+                p. a., {z.tage} Tage{z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
+                Beleg.{z.ab ? ' Für die Zeit davor ist kein Basiszinssatz eingetragen.' : ''}
+              </p>
+            );
+          }
+          if (z.art === 'fehlt') {
+            // Kein stiller Wegfall: wer mahnt, soll wissen, dass die Zinsen fehlen und warum.
+            return (
+              <p className="mt-3 text-sm text-warning">
+                Der Kunde hat eine UID — für Verzugszinsen unter Unternehmern fehlt der
+                Basiszinssatz des laufenden Halbjahres (Einstellungen → Sätze und Kosten → Rechnungsvorgaben). Die Mahnung
+                geht ohne Zinsen hinaus.
+              </p>
+            );
+          }
+          return null;
+        })()}
       </ConfirmDialog>
     </div>
   );

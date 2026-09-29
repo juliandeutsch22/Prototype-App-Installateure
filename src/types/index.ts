@@ -225,6 +225,19 @@ export interface InvoiceRates {
    * Nicht gesetzt heisst null — dann steht auf der Mahnung keine Spesenzeile.
    */
   mahnspesen?: number[];
+  /**
+   * Basiszinssatz der OeNB in % (darf negativ sein) — nur für Verzugszinsen
+   * zwischen Unternehmern (§ 456 UGB). Gilt nur zusammen mit
+   * `basiszinssatzAb`, dem Beginn seines Halbjahres; siehe `verzugszinsen`.
+   */
+  basiszinssatz?: number;
+  basiszinssatzAb?: string;
+  /**
+   * Skonto, das neue Rechnungen zusagen: Prozent und Frist in Tagen ab
+   * Rechnungsdatum. Beides leer heisst kein Skonto — die Vorgabe ab Werk.
+   */
+  skontoProzent?: number;
+  skontoTage?: number;
 }
 
 /** users/{docId} — Auth-Verknüpfung über `uid`, nicht Doc-ID. */
@@ -1238,6 +1251,11 @@ export interface Invoice {
    */
   stornoNummer?: string | null;
   stornoAm?: number | null;
+  /** Zugesagtes Skonto in % und bis wann (eingefroren mit der Rechnung). */
+  skontoProzent?: number | null;
+  skontoBis?: string | null;
+  /** Summe der Skonto-Einträge — abgeleitet wie `bezahltBetrag`, darin enthalten. */
+  skontoBetrag?: number;
   /**
    * MAHNWESEN — wie oft und wann gemahnt wurde.
    *
@@ -1289,7 +1307,7 @@ export interface Zahlungseingang {
    * überzahlte Rechnung für immer überzahlt.
    */
   betrag: number;
-  art: 'Überweisung' | 'Bar' | 'Karte' | 'Sonstiges';
+  art: 'Überweisung' | 'Bar' | 'Karte' | 'Sonstiges' | 'Skonto';
   /** Freitext: „Skonto gezogen", „Teilzahlung laut Vereinbarung". */
   hinweis?: string;
   /** Wer ihn erfasst hat — eine Zahl ohne Herkunft lässt sich nicht klären. */

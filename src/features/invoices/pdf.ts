@@ -39,6 +39,7 @@ import type { Company, Project, RechnungsArt, Vorrechnung } from '@/types';
 import { INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { mitAbzug } from './vorrechnungen';
 import { calcWorkMin } from '@/lib/time';
+import { zugesagterSkonto } from './skonto';
 import { euroBetrag } from '@/lib/betrag';
 
 /** Minuten als Dezimalstunden mit Komma ("7,50"). */
@@ -101,6 +102,8 @@ export function generateInvoicePdf(opts: {
    * Zahlen damit nicht auseinanderlaufen lassen.
    */
   vorrechnungen?: Vorrechnung[];
+  /** Das zugesagte Skonto, wie es an der Rechnung steht — oder nichts. */
+  skonto?: { skontoProzent: number; skontoBis: string } | null;
 }) {
   const { company, project, invoiceNumber, invoiceDate, dueDate, assembled } = opts;
   const vatRate = opts.vatRate ?? INVOICE_DEFAULTS.vatRate;
@@ -209,7 +212,13 @@ export function generateInvoicePdf(opts: {
     // Gesamtleistung: was schon bezahlt ist, wird nicht noch einmal gefordert.
     `Bitte überweisen Sie ${euroBetrag(forderung)} € bis ${fmtDatum(dueDate)}` +
       (company.iban ? ` auf IBAN ${company.iban}${company.bic ? ` / BIC ${company.bic}` : ''}` : '') +
-      '.',
+      '.' +
+      // Das Skonto als Betrag, nicht nur als Prozentsatz — sonst rechnet jeder Kunde anders.
+      (opts.skonto
+        ? ` Bei Zahlung bis ${fmtDatum(opts.skonto.skontoBis)} abzüglich ` +
+          `${opts.skonto.skontoProzent.toLocaleString('de-AT', { maximumFractionDigits: 2 })} % Skonto: ` +
+          `${euroBetrag(forderung - zugesagterSkonto({ totalBrutto: forderung, skontoProzent: opts.skonto.skontoProzent }))} €.`
+        : ''),
     breite,
   ) as string[];
   y = platzFuer(doc, y, zahlung.length * 5 + 5);
