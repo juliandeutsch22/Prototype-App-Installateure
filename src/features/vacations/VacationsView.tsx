@@ -1178,11 +1178,17 @@ export default function VacationsView() {
                       Wer entschieden hat und warum. „Abgelehnt" allein ist
                       keine Auskunft, sondern eine Kränkung.
                     */}
-                    {v.entschiedenVonName && (
+                    {v.betriebsurlaubId && v.status === 'Genehmigt' ? (
                       <span className="mt-1 block text-xs text-ink-muted">
-                        {v.status} von {v.entschiedenVonName}
-                        {v.grund ? ` — ${v.grund}` : ''}
+                        Betriebsurlaub{v.entschiedenVonName ? ` · eingetragen von ${v.entschiedenVonName}` : ''}
                       </span>
+                    ) : (
+                      v.entschiedenVonName && (
+                        <span className="mt-1 block text-xs text-ink-muted">
+                          {v.status} von {v.entschiedenVonName}
+                          {v.grund ? ` — ${v.grund}` : ''}
+                        </span>
+                      )
                     )}
                     {v.status === 'Beantragt' && (
                       <span className="mt-1 block text-xs text-ink-muted">
@@ -1202,7 +1208,14 @@ export default function VacationsView() {
                     Zurückziehen
                   </Button>
                 )}
-                {v.status === 'Genehmigt' && darfEntscheiden && (
+                {/*
+                  EIN BETRIEBSURLAUB WIRD NICHT FÜR EINE PERSON ZURÜCKGENOMMEN
+                  (Rückmeldung vom 29.09.2026). Beantragt hat ihn niemand, und
+                  einzeln storniert stünde die Person im Wochenplan weiter als
+                  „Betriebsurlaub" da. Wer arbeiten soll, wird beim Anlegen
+                  ausgenommen — geändert wird im Reiter „Betriebsurlaub".
+                */}
+                {v.status === 'Genehmigt' && darfEntscheiden && !v.betriebsurlaubId && (
                   <Button
                     variant="ghost"
                     loading={arbeitet === v.id}

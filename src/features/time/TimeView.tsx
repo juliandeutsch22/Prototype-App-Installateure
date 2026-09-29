@@ -58,6 +58,16 @@ function weekKey(d: Date): string {
   return `KW ${week} / ${year}`;
 }
 
+/** Der Sonntag der laufenden Woche als 'JJJJ-MM-TT' — was danach liegt, kommt erst. */
+function wochenende(heute: Date): string {
+  const d = new Date(heute.getFullYear(), heute.getMonth(), heute.getDate());
+  d.setDate(d.getDate() + ((7 - d.getDay()) % 7));
+  return localDateStr(d);
+}
+
+/** Schlüssel des Abschnitts „Kommende Wochen" beim Auf- und Zuklappen — keine KW. */
+const KOMMEND = 'kommend';
+
 /**
  * Zeiterfassung — der vertikale Schnitt: Mitarbeiter erfasst -> Datenbank ->
  * hier live sichtbar, inkl. portiertem Saldo.
@@ -345,9 +355,24 @@ export default function TimeView() {
     [entries],
   );
 
-  // Nach Woche gruppieren, neueste zuerst.
-  const byWeek = useMemo(() => {
-    const sorted = [...entries].sort((a, b) => b.date.localeCompare(a.date));
+  /*
+    WAS NACH DIESER WOCHE LIEGT, STEHT FÜR SICH (Rückmeldung vom 29.09.2026).
+    Die Liste lädt ein Jahr voraus, damit genehmigter Urlaub und Betriebs-
+    urlaub zu sehen sind. Nach Wochen absteigend sortiert, stand der Urlaub
+    im Jänner damit ganz oben, und die laufende Woche — die, in der gebucht
+    wird — rutschte darunter. Jetzt bündelt ein zugeklappter Abschnitt alles
+    Kommende, in zeitlicher Reihenfolge: der nächste Tag zuerst. Künftige
+    Tage DIESER Woche bleiben in ihr; sie gehören zu dem, was gerade läuft.
+  */
+  const { kommend, byWeek } = useMemo(() => {
+    const grenze = wochenende(new Date());
+    const kommend = entries
+      .filter((e) => e.date > grenze)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    // Nach Woche gruppieren, neueste zuerst.
+    const sorted = entries
+      .filter((e) => e.date <= grenze)
+      .sort((a, b) => b.date.localeCompare(a.date));
     const groups = new Map<string, WithId<TimeEntry>[]>();
     for (const e of sorted) {
       const key = weekKey(new Date(`${e.date}T00:00:00`));
@@ -355,7 +380,7 @@ export default function TimeView() {
       list.push(e);
       groups.set(key, list);
     }
-    return [...groups.entries()];
+    return { kommend, byWeek: [...groups.entries()] };
   }, [entries]);
 
   /*
@@ -369,6 +394,10 @@ export default function TimeView() {
   const [umgeklappt, setUmgeklappt] = useState<Record<string, boolean>>({});
   const wocheOffen = (woche: string, rows: WithId<TimeEntry>[], index: number) =>
     umgeklappt[woche] ?? (index === 0 || rows.some((e) => doppelteTage.has(e.date)));
+  // Das Kommende ist zu — ausser es gibt sonst nichts zu sehen, oder darin
+  // ist doppelt gebucht.
+  const kommendOffen =
+    umgeklappt[KOMMEND] ?? (byWeek.length === 0 || kommend.some((e) => doppelteTage.has(e.date)));
 
   /**
    * Die eigenen Zuschlagsstunden im angezeigten Fenster.
@@ -415,6 +444,80 @@ export default function TimeView() {
   );
 
   if (!user) return null;
+
+  /** Eine Buchung als Zeile — in den Wochen wie unter „Kommende Wochen". */
+  const zeile = (e: WithId<TimeEntry>) => {
+    // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
+    const timeLabel =
+      e.status === 'Anwesend'
+        ? e.startTime && e.endTime
+          ? `${e.startTime}–${e.endTime}`
+          : null
+        : e.status === 'Zeitausgleich' && e.startTime && e.endTime
+          ? `Zeitausgleich ${e.startTime}–${e.endTime}`
+          : e.status;
+    const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
+    return (
+      <ListRow
+        key={e.id}
+        title={
+          <span>
+            {datumAT(e.date)}
+            {e.customerName && ` · ${e.customerName}`}
+          </span>
+        }
+        subtitle={
+          <>
+            {subtitle}
+            {e.lastEditedBy && (
+              <span className="mt-1 block text-xs text-ink-muted">
+                Bearbeitet von {e.lastEditedBy}
+              </span>
+            )}
+          </>
+        }
+      >
+        {doppelteTage.has(e.date) && (
+          <Warnung stufe="dringend">doppelt gebucht</Warnung>
+        )}
+        {e.source === 'voice' && <Marke>KI</Marke>}
+        <Zeitmarker eintrag={e} />
+        <span className="font-medium text-ink">
+          {fmtMin(calcWorkMin(e))}
+        </span>
+        {/* Verrechnete Einträge sind Grundlage einer
+            verschickten Rechnung und bleiben gesperrt. */}
+        {e.isBilled ? (
+          <Marke>verrechnet</Marke>
+        ) : e.krankmeldungId ? (
+          // Ein Tag einer Krankmeldung wird nur über sie
+          // geändert — Ende ändern oder löschen.
+          <Button variant="ghost" onClick={() => setMeldung(e.krankmeldungId!)}>
+            Krankmeldung
+          </Button>
+        ) : e.vacationId ? (
+          // Ein Tag aus einem genehmigten Antrag ändert sich
+          // nur über den Antrag.
+          <AntragKnopf eintrag={e} />
+        ) : e.status === 'Zeitausgleich' && !(user && canEditTime(user.role)) ? (
+          // Einen gebuchten Zeitausgleich ändert nur das Büro —
+          // die Datenbank lehnt es sonst ab. Zwei Knöpfe, die
+          // nur eine Fehlermeldung bringen, stehen hier nicht
+          // (Prüflauf 25.09.2026, P1-26).
+          <Marke>vom Büro gebucht</Marke>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={() => setEditing(e)}>
+              Bearbeiten
+            </Button>
+            <Button variant="ghost" onClick={() => setToDelete(e)}>
+              Löschen
+            </Button>
+          </>
+        )}
+      </ListRow>
+    );
+  };
 
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
@@ -702,6 +805,22 @@ export default function TimeView() {
           </div>
         ) : (
           <div>
+            {kommend.length > 0 && (
+              <Abschnitt
+                titel="Kommende Wochen"
+                anzahl={kommend.length === 1 ? '1 Eintrag' : `${kommend.length} Einträge`}
+                link={
+                  <span className="whitespace-nowrap text-sm text-ink-muted">
+                    bis {datumAT(kommend[kommend.length - 1].date)}
+                  </span>
+                }
+                offen={kommendOffen}
+                onUmschalten={() => setUmgeklappt((u) => ({ ...u, [KOMMEND]: !kommendOffen }))}
+                steuert="woche-kommend"
+              >
+                <List>{kommend.map(zeile)}</List>
+              </Abschnitt>
+            )}
             {byWeek.map(([week, rows], index) => {
               const weekMin = rows.reduce((sum, e) => sum + calcWorkMin(e), 0);
               return (
@@ -719,78 +838,7 @@ export default function TimeView() {
                     steuert={`woche-${week.replace(/\W+/g, '-')}`}
                   >
                     <List>
-                      {rows.map((e) => {
-                        // Sprach-/Stundeneinträge haben keine Start-/Endzeit -> nicht "undefined–undefined" zeigen.
-                        const timeLabel =
-                          e.status === 'Anwesend'
-                            ? e.startTime && e.endTime
-                              ? `${e.startTime}–${e.endTime}`
-                              : null
-                            : e.status === 'Zeitausgleich' && e.startTime && e.endTime
-                              ? `Zeitausgleich ${e.startTime}–${e.endTime}`
-                              : e.status;
-                        const subtitle = [timeLabel, e.comment].filter(Boolean).join(' · ');
-                        return (
-                          <ListRow
-                            key={e.id}
-                            title={
-                              <span>
-                                {datumAT(e.date)}
-                                {e.customerName && ` · ${e.customerName}`}
-                              </span>
-                            }
-                            subtitle={
-                              <>
-                                {subtitle}
-                                {e.lastEditedBy && (
-                                  <span className="mt-1 block text-xs text-ink-muted">
-                                    Bearbeitet von {e.lastEditedBy}
-                                  </span>
-                                )}
-                              </>
-                            }
-                          >
-                            {doppelteTage.has(e.date) && (
-                              <Warnung stufe="dringend">doppelt gebucht</Warnung>
-                            )}
-                            {e.source === 'voice' && <Marke>KI</Marke>}
-                            <Zeitmarker eintrag={e} />
-                            <span className="font-medium text-ink">
-                              {fmtMin(calcWorkMin(e))}
-                            </span>
-                            {/* Verrechnete Einträge sind Grundlage einer
-                                verschickten Rechnung und bleiben gesperrt. */}
-                            {e.isBilled ? (
-                              <Marke>verrechnet</Marke>
-                            ) : e.krankmeldungId ? (
-                              // Ein Tag einer Krankmeldung wird nur über sie
-                              // geändert — Ende ändern oder löschen.
-                              <Button variant="ghost" onClick={() => setMeldung(e.krankmeldungId!)}>
-                                Krankmeldung
-                              </Button>
-                            ) : e.vacationId ? (
-                              // Ein Tag aus einem genehmigten Antrag ändert sich
-                              // nur über den Antrag.
-                              <AntragKnopf eintrag={e} />
-                            ) : e.status === 'Zeitausgleich' && !(user && canEditTime(user.role)) ? (
-                              // Einen gebuchten Zeitausgleich ändert nur das Büro —
-                              // die Datenbank lehnt es sonst ab. Zwei Knöpfe, die
-                              // nur eine Fehlermeldung bringen, stehen hier nicht
-                              // (Prüflauf 25.09.2026, P1-26).
-                              <Marke>vom Büro gebucht</Marke>
-                            ) : (
-                              <>
-                                <Button variant="ghost" onClick={() => setEditing(e)}>
-                                  Bearbeiten
-                                </Button>
-                                <Button variant="ghost" onClick={() => setToDelete(e)}>
-                                  Löschen
-                                </Button>
-                              </>
-                            )}
-                          </ListRow>
-                        );
-                      })}
+                      {rows.map(zeile)}
                     </List>
                   </Abschnitt>
                 </div>
