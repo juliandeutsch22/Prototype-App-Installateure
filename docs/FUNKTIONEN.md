@@ -97,9 +97,9 @@ unterscheidet vier Stufen:
 | **Navigation** | Wer wohin darf, steht **nur** in `navigation.ts`; `RequireNav` liest Rolle und Modul aus demselben Eintrag, aus dem der Reiter gebaut wird. **Abzeichen für offene Posten** an drei Einträgen (Urlaub, Anforderungen, Rechnungen), aus EINER Abfrage `offene_posten()` **Seit 24.09.2026 (Prüflauf L1, L3):** die Verwaltung hat „Anforderungen“ statt „Material anfordern“ in der unteren Leiste; „Willkommen“ nach einem Startpasswort hat „Abmelden“. | Statisch (29), Ansicht (14), Datenbank (13), Zähler (5), Posten (7) | Gezählt wird serverseitig und rollengerecht: wer einen Posten nicht entscheiden darf, bekommt ihn gar nicht erst gezählt |
 | **Monatsbilanzen** | Verdichtete Zeitkonten als **Sicht** `monthly_stats` — sie rechnet bei der Abfrage | Rechnung (8), Datenbank (23: Einstellungen, darin die Monatszahlen) | **Es gibt nichts mehr nachzuziehen.** Bis zum Umzug war es eine abgelegte Zahl mit Trigger und Nachtlauf; beide sind weg, und mit ihnen die Sorte Fehler, bei der die abgelegte Zahl und die Rohdaten auseinanderlaufen |
 | **Offline-Betrieb und Live-Verbindung** | Ausgangsfach (`lib/sync/`) für Zeit und Materialanforderung, Hinweis beim Speichern ohne Verbindung; **ein schmales Band über dem Inhalt**, wenn kein Netz da ist ODER die Live-Verbindung abgerissen ist und nicht wiederkommt | Rechnung (7), Verbindungszustand (7), Band (8), Wiederaufbau (9) | Das Band ist ein **Vorbehalt und kein Fehler**: `role="status"`, gelb, mit „Neu laden" daneben, und die Daten bleiben stehen. Es nimmt sich selbst zurück — der alte Hinweis konnte das nicht und blieb nach einem Tab-Wechsel bis zum Neuladen stehen. Der Zustand liegt an EINER Stelle, weil alle Abonnements an derselben WebSocket-Verbindung hängen; eine Ansicht kann ihn damit nicht vergessen. Alle vier Abonnement-Wege bauen die Verbindung wieder auf (fünf Stufen bis 15 s) und zählen im Hintergrund gar nicht erst mit. Im echten Browser mit gekapptem Socket nachgemessen: Band nach 38 s, vorher nach 0,2 s |
-| **Startgeschwindigkeit** | Ansichten einzeln nachladbar, Service Worker hält die App-Hülle vor, Frist auf jedem Start-Zugriff | Rechnung (27: Frist, Service Worker und Fehlergrenze gegen den echten Quelltext) | **Auf keinem echten iPhone gemessen** — die Ursachen sind aus dem Code belegt, die Wirkung ist es nicht |
+| **Startgeschwindigkeit** | Ansichten einzeln nachladbar, Service Worker hält die App-Hülle vor, Frist auf jedem Start-Zugriff | Rechnung (27: Frist, Service Worker und Fehlergrenze gegen den echten Quelltext) | **Am echten Gerät bestätigt** (29.09.2026): der Betrieb hat die App auf dem iPhone getestet, auch auf einem älteren Modell — der Start ist schnell. Gemessen in Zahlen ist er nicht |
 | **Fassungswechsel** | Der Worker behält die alten Bausteine, bis die neue Fassung übernommen wird; ein fehlgeschlagenes Nachladen lädt einmal von selbst neu | Rechnung (11 Sandbox + 9 Fehlergrenze) | Nicht auf einem echten Gerät über einen echten Deploy gefahren |
-| **Meldungen (Push)** | Wer wird wann benachrichtigt; ausgelöst vom Trigger `material_orders_push`, zugestellt von der Edge Function `push-melden` | Rechnung (25), Datenbank (14 Auslöser und Empfängerkreis + 6 Wächter) | Die Zustellung selbst ist ungetestet — die Edge Function hat nie ein Test ausgeführt, siehe unten |
+| **Meldungen (Push)** | Wer wird wann benachrichtigt; ausgelöst vom Trigger `material_orders_push`, zugestellt von der Edge Function `push-melden` | Rechnung (25), Datenbank (14 Auslöser und Empfängerkreis + 6 Wächter) | `push-melden` läuft in den Prüfungen gegen den örtlichen Stapel; den echten Versand über Firebase Cloud Messaging hat der Betrieb am 29.09.2026 auf dem iPhone bestätigt — die Meldungen kommen an |
 
 ## Launch-Check (25.09.2026)
 
@@ -528,7 +528,7 @@ Konstruktion nicht sehen:
 | Projektleitung: fünf Reiter mit „Kein Zugriff" | drei Listen behaupteten dasselbe und waren auseinandergelaufen (`navigation.ts`, `RequireRole`, `permissions.ts`) | **Ja** — der Abgleich Navigation ↔ Routen. Und die Doppelung selbst ist weg: `RequireNav` liest aus derselben Liste. |
 | Leeres Auswahlfeld beim Schein | verschluckter Fehler | **Teilweise** — die Datenbanktests finden eine Abfrage, die am Zeilenschutz scheitert; eine schlicht leere Menge finden sie nicht. |
 | „Lädt ewig" (Schein) | Serveraufruf ohne Frist | **Ja** — die Frist liegt in `lib/frist.ts` und ist geprüft |
-| „iPhone lädt gar nicht" | Start hing an zwei Abfragen ohne Zeitgrenze; kein Vorhalten der App-Hülle | **Teilweise** — Frist und Service Worker sind geprüft, die Wirkung auf einem echten Gerät ist es nicht |
+| „iPhone lädt gar nicht" | Start hing an zwei Abfragen ohne Zeitgrenze; kein Vorhalten der App-Hülle | **Ja** — Frist und Service Worker sind geprüft, und der Betrieb bestätigt am 29.09.2026 den schnellen Start auf dem iPhone, auch auf einem älteren Modell |
 | Unterschrift ohne Wirkung | `canvas.width` löscht die Fläche | **Ja, seit dem Durchklick** — „Schein unterschreiben" läuft in einem echten Chromium. Auf einem echten iPhone bleibt es die Bestätigung des Betriebs vom 07.09.2026. |
 
 **Der Nebenläufigkeitstest verdient seinen Platz, und das ist nachgemessen.**
@@ -545,23 +545,22 @@ Klicks meldeten Erfolg.
 
 ## Was am Prüfnetz noch fehlt
 
-1. **Die vier Edge Functions laufen ungetestet.** Was sie tun, ist geprüft —
-   aber an der Datenbank, nicht an der Function: `betrieb-anlegen` und
-   `mitarbeiter-anlegen` an der Datenbankfunktion darunter, die Ausleitung an
-   ihren Entscheidungen (welcher Pfad, was darf gelöscht werden, wie sieht
-   eine Zeile aus), die Push-Meldung am Auslöser und am Empfängerkreis. Das
-   Lesen und Schreiben der Function selbst hat nie ein Test ausgeführt. Das
-   ist die grösste verbliebene Lücke.
+1. **Die Gegenstellen draussen.** Alle fünf Edge Functions laufen seit
+   23.09.2026 in den Prüfungen gegen den örtlichen Stapel, mit ihren
+   Abweisungen. Kein Test erreicht das echte Sicherungsziel ausser Haus. Den
+   echten Push-Versand hat der Betrieb am 29.09.2026 auf dem iPhone
+   bestätigt.
 
 2. **Ein zweiter Betrieb in der echten Auslieferung.** Die Mandantentrennung
    ist gegen eine echte Datenbank geprüft, einschliesslich zweier Betriebe
    nebeneinander. Was fehlt, ist der Betrieb, der tatsächlich bei jemand
    anderem läuft.
 
-3. **Ein echtes Telefon.** Der Durchklick läuft in Chromium; Chromium ist
-   nicht Safari, und ein Laptopfenster ist kein iPhone. Die Unterschrift ist
-   im Mechanismus nachgewiesen und vom Betrieb einmal bestätigt — automatisch
-   abgesichert gegen Rückfall ist sie auf iOS nicht.
+3. **Ein echtes Telefon, automatisch.** Der Durchklick läuft in Chromium;
+   Chromium ist nicht Safari. Von Hand bestätigt hat der Betrieb auf
+   iPhones die Unterschrift (07.09.2026), den schnellen Start und die
+   Push-Meldungen (29.09.2026) — automatisch gegen Rückfall abgesichert ist
+   auf iOS nichts davon.
 
 4. **Nebenläufigkeit ausserhalb des Lagerabzugs.** Zwei gleichzeitige
    Rechnungsläufe auf derselben Baustelle etwa. Der Nummernkreis ist
