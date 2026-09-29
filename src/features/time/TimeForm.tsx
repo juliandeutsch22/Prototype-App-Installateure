@@ -651,7 +651,7 @@ export default function TimeForm({
         <Hinweiszeile stufe="warn" role="alert">
           <p>
             Dieser Tag gehört zu einem genehmigten Antrag und ändert sich nur über ihn: auf der Seite
-            Urlaub den Antrag zurücknehmen.
+            Urlaub den Antrag zurücknehmen, beim Betriebsurlaub im Reiter „Betriebsurlaub".
           </p>
         </Hinweiszeile>
       )}

@@ -761,3 +761,71 @@ describe('Zeiterfassung — Wochen zum Aufklappen', () => {
     expect(await screen.findAllByText('18.08.2026')).toHaveLength(2);
   });
 });
+
+/*
+  KOMMENDES STEHT FÜR SICH (Rückmeldung vom 29.09.2026). Die Liste lädt ein
+  Jahr voraus; eingetragener Urlaub im Jänner stand deshalb ganz oben, und
+  die laufende Woche kam erst darunter. Die Uhr steht auf Dienstag, den
+  01.09.2026 — die laufende Woche reicht bis Sonntag, den 06.09.
+*/
+describe('Zeiterfassung — kommende Wochen', () => {
+  const urlaub = (id: string, date: string) =>
+    eintrag({ id, date, status: 'Urlaub', startTime: undefined, endTime: undefined });
+
+  it('bündelt alles nach dieser Woche zugeklappt — die laufende Woche bleibt offen', async () => {
+    eintraege = [
+      urlaub('jaenner', '2027-01-04'),
+      urlaub('okt', '2026-10-05'),
+      eintrag({ id: 'heute', date: '2026-09-01', startTime: '07:00', endTime: '15:00' }),
+      // Freitag dieser Woche: noch nicht da, gehört aber zur laufenden Woche.
+      urlaub('freitag', '2026-09-04'),
+    ];
+    zeige();
+
+    expect(await screen.findByText('01.09.2026')).toBeInTheDocument();
+    expect(screen.getByText('04.09.2026')).toBeInTheDocument();
+    expect(screen.queryByText('05.10.2026')).toBeNull();
+    expect(screen.queryByText('04.01.2027')).toBeNull();
+
+    const kopf = screen.getByRole('button', { name: /Kommende Wochen/ });
+    expect(kopf).toHaveAttribute('aria-expanded', 'false');
+    expect(kopf).toHaveTextContent('2 Einträge');
+    expect(kopf).toHaveTextContent('bis 04.01.2027');
+
+    // Der Abschnitt steht über der laufenden Woche.
+    const knoepfe = screen.getAllByRole('button', { expanded: true }).concat(kopf);
+    const woche = knoepfe.find((k) => /KW 36 \/ 2026/.test(k.textContent ?? ''))!;
+    expect(woche).toHaveAttribute('aria-expanded', 'true');
+    expect(kopf.compareDocumentPosition(woche) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // Aufgeklappt: der nächste Tag zuerst.
+    await userEvent.click(kopf);
+    const oktober = screen.getByText('05.10.2026');
+    const jaenner = screen.getByText('04.01.2027');
+    expect(oktober.compareDocumentPosition(jaenner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('ohne Kommendes gibt es den Abschnitt nicht', async () => {
+    eintraege = [eintrag({ id: 'heute', date: '2026-09-01', startTime: '07:00', endTime: '15:00' })];
+    zeige();
+    expect(await screen.findByText('01.09.2026')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Kommende Wochen/ })).toBeNull();
+  });
+
+  it('steht nur Kommendes da, ist es offen', async () => {
+    eintraege = [urlaub('okt', '2026-10-05')];
+    zeige();
+    expect(await screen.findByText('05.10.2026')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Kommende Wochen/ })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('öffnet sich von selbst, wenn darin doppelt gebucht ist', async () => {
+    eintraege = [
+      eintrag({ id: 'heute', date: '2026-09-01', startTime: '07:00', endTime: '15:00' }),
+      urlaub('d1', '2026-10-05'),
+      eintrag({ id: 'd2', date: '2026-10-05', startTime: '07:00', endTime: '15:00' }),
+    ];
+    zeige();
+    expect(await screen.findAllByText('05.10.2026')).toHaveLength(2);
+  });
+});

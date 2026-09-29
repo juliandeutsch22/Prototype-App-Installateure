@@ -577,6 +577,40 @@ describe('Einen eigenen Antrag zurückziehen', () => {
   });
 });
 
+/*
+  BETRIEBSURLAUB IST KEIN ANTRAG (Rückmeldung vom 29.09.2026). Er stand
+  unter „Meine Anträge" als „Genehmigt von …" mit „Zurücknehmen" daneben —
+  für eine Person zurückgenommen, stünde sie im Wochenplan weiter als
+  Betriebsurlaub da. Geändert wird er im Reiter „Betriebsurlaub"; die
+  Datenbank lehnt das Zurücknehmen ebenfalls ab.
+*/
+describe('Betriebsurlaub unter „Meine Anträge"', () => {
+  beforeEach(() => {
+    rolle = { ...rolle, uid: 'chef', name: 'Julian Deutsch', role: 'Geschäftsführung', docId: 'chef' };
+    antraege.push(
+      {
+        id: 'v-bu', companyId: 'perl', userId: 'chef', userName: 'Julian Deutsch',
+        von: '2026-12-24', bis: '2027-01-08', tage: 9, status: 'Genehmigt',
+        notiz: 'Weihnachten', entschiedenVonName: 'Elias Pierer', betriebsurlaubId: 'bu1',
+      },
+      {
+        id: 'v-selbst', companyId: 'perl', userId: 'chef', userName: 'Julian Deutsch',
+        von: '2026-08-03', bis: '2026-08-07', tage: 5, status: 'Genehmigt',
+        entschiedenVonName: 'Herr Bauer',
+      },
+    );
+  });
+
+  it('nennt ihn Betriebsurlaub und bietet kein Zurücknehmen an — der eigene Urlaub schon', async () => {
+    zeichne();
+    expect(await screen.findByText('Betriebsurlaub · eingetragen von Elias Pierer')).toBeInTheDocument();
+    expect(screen.queryByText(/Genehmigt von Elias Pierer/)).not.toBeInTheDocument();
+    // Gegenprobe: der beantragte Urlaub daneben lässt sich zurücknehmen.
+    expect(screen.getByText('Genehmigt von Herr Bauer')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Zurücknehmen' })).toHaveLength(1);
+  });
+});
+
 /**
  * ZEITAUSGLEICH UND KRANKMELDUNG über dieselbe Maske.
  *
