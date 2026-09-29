@@ -318,7 +318,7 @@ export default function BenutzerakteView() {
   ) : null;
 
   const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
-    <Datenauskunft art="mitarbeiter" id={p.uid} />
+    <Datenauskunft art="mitarbeiter" id={p.uid} onGeloescht={() => setVersuch((v) => v + 1)} />
   ) : null;
 
   return (

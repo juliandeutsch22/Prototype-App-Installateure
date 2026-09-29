@@ -11,6 +11,17 @@ export function zeigtAuskunft(role: Role | undefined, imEinblick: boolean): bool
   return !!role && isTopLevel(role) && !imEinblick;
 }
 
+/** Die Namen dessen, was die Löschung sofort entfernt — Schlüssel wie in `person_loeschen`. */
+export const SOFORT_GELOESCHT: Record<string, string> = {
+  einstellungen: 'Einstellungen und Push-Adressen',
+  fehlerprotokoll: 'Einträge im Fehlerprotokoll',
+  einsaetze: 'Einsätze',
+  ruestlisten: 'Zuteilungen auf Rüstlisten',
+  baustellen: 'Zuordnungen an Baustellen',
+  wartungen: 'Wartungen',
+  kontaktdaten: 'Kontaktdaten (Ansprechpartner, Telefon, E-Mail, Notizen)',
+};
+
 /** Ein Dateiname, den jedes Betriebssystem nimmt — ohne Schrägstriche und Doppelpunkte. */
 export function auskunftDateiname(person: string, erstelltAm: string): string {
   const name = person.trim().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'person';

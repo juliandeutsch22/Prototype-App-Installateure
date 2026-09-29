@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
 import {
@@ -72,6 +72,7 @@ const LAEDT = { zustand: 'laedt' } as const;
 export default function KundenakteView() {
   const { id } = useParams<{ id: string }>();
   const { user, company, einblick } = useAuth();
+  const navigate = useNavigate();
   const toast = useToast();
   const wartungAn = useModul('wartung');
   const angeboteAn = useModul('angebote');
@@ -541,7 +542,12 @@ export default function KundenakteView() {
     </Card>
   ) : null;
   const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
-    <Datenauskunft art="kunde" id={k.id} />
+    <Datenauskunft
+      art="kunde"
+      id={k.id}
+      // Ging der Kunde ganz, gibt es diese Akte nicht mehr.
+      onGeloescht={(ganz) => (ganz ? navigate('/customers') : setVersuch((v) => v + 1))}
+    />
   ) : null;
 
   return (

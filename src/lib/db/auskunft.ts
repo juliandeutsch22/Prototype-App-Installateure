@@ -6,5 +6,6 @@
  */
 import * as pg from './pg/auskunft';
 
-export type { Auskunft, AuskunftArt } from './pg/auskunft';
+export type { Auskunft, AuskunftArt, LoeschBericht } from './pg/auskunft';
 export const personAuskunft = pg.personAuskunft;
+export const personLoeschen = pg.personLoeschen;
