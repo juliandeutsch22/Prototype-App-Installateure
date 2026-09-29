@@ -1,6 +1,6 @@
 # Offene Punkte
 
-Stand 28.09.2026. Alles, was bewusst nicht umgesetzt ist, an einem Ort:
+Stand 29.09.2026. Alles, was bewusst nicht umgesetzt ist, an einem Ort:
 aus dem Design-Durchgang (`docs/design/fortschritt.md`), aus dem Prüflauf
 mit vier unabhängigen Prüfern (`docs/pruefung-2026-09-25.md`) und aus den
 Lücken, die die Prüfer neben den Fehlern gemeldet haben.
@@ -30,7 +30,6 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
-| B2 | **Supportsitzung „mitarbeiten“**: alle Funktionen, die den Betrieb aus dem Token holen, scheitern für das Plattformkonto (P3-14) | Umbau aller betroffenen Funktionen (Einsatz, Rüstliste, Schein, Rechnung, Nummern, Angebot, Urlaub, Betriebsurlaub …) | Einblicksbetrieb als Parameter mit `support_schreibt(betrieb)`-Prüfung; bis dahin sagt die Supportleiste ehrlich, was nicht geht |
 | B7 | **Gutschrift, Skonto, Verzugszinsen** fehlen; ein Storno ist nur eine Statusänderung ohne Beleg für den Kunden | Neue Funktionen | Eigener Auftrag |
 | B8 | **DSGVO-Auskunft (Art. 15) und Löschung (Art. 17) je Person** fehlen; `betrieb_auszug` betrifft nur den ganzen Betrieb und ist auf 8 MB begrenzt | Neue Funktionen | Eigener Auftrag |
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
@@ -70,7 +69,15 @@ Nummer, wie Rechnungen und Zeiten; `tests/supabase/scheineDerBaustelle.test.ts`)
 
 **Ebenfalls am 29.09.2026:** B3 (der Support arbeitet in einem Betrieb zur
 Zeit — es gilt der zuletzt begonnene Einblick; eine Rolle aus „Mitarbeiten"
-in A öffnet in B nichts mehr; `tests/supabase/supportzugang.test.ts`).
+in A öffnet in B nichts mehr; `tests/supabase/supportzugang.test.ts`), B2 (der Support mit „Mitarbeiten" erledigt auch, was die App über den
+Server schickt: Einsatz, Rüstliste, Angebot, Angebots- und Baustellennummer,
+Kunden- und Katalogübernahme — im Betrieb des aktuellen Einblicks,
+`app.arbeitsbetrieb()`; `tests/supabase/supportArbeitetMit.test.ts`).
+**Bewusst zu:** alles, was Zeitbuchungen, Urlaube oder Scheinfotos berührt —
+Scheine, Rechnungen und Stornos, Baustellennummer ändern, Urlaub,
+Krankmeldungen, Betriebsurlaub —, dazu eine Rechnungsnummer (sie würde nie
+eine Rechnung und wäre ein Loch in der Folge) und die Datensicherung. Die
+Supportleiste nennt genau diese.
 
 **Aus B, am 29.09.2026:** B1, Teil 1 (Kostensätze in `betrieb_kostensaetze`,
 Einkaufspreise in `material_einkaufspreise` — lesen und schreiben nur

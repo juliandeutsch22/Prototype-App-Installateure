@@ -204,9 +204,10 @@ export async function saveEinsatzMaterial(
 ): Promise<void> {
   /*
     Der Betrieb steht im Anmeldekontext, die Datenbankfunktion holt ihn sich
-    dort (`app.betrieb()`). Der Parameter bleibt trotzdem in der Signatur: sie
-    ist der Vertrag mit den Ansichten (`tests/unit/datenschichtVertrag.test.ts`),
-    und ihn zu ändern wäre eine Änderung an jeder Aufrufstelle für nichts.
+    dort (`app.arbeitsbetrieb()` — beim Support der Betrieb des Einblicks).
+    Der Parameter bleibt trotzdem in der Signatur: sie ist der Vertrag mit
+    den Ansichten (`tests/unit/datenschichtVertrag.test.ts`), und ihn zu
+    ändern wäre eine Änderung an jeder Aufrufstelle für nichts.
   */
   void companyId;
 
@@ -250,9 +251,10 @@ export async function ladenUmschalten(
 ): Promise<void> {
   /*
     Der Betrieb steht im Anmeldekontext, die Datenbankfunktion holt ihn sich
-    dort (`app.betrieb()`). Der Parameter bleibt trotzdem in der Signatur: sie
-    ist der Vertrag mit den Ansichten (`tests/unit/datenschichtVertrag.test.ts`),
-    und ihn zu ändern wäre eine Änderung an jeder Aufrufstelle für nichts.
+    dort (`app.arbeitsbetrieb()` — beim Support der Betrieb des Einblicks).
+    Der Parameter bleibt trotzdem in der Signatur: sie ist der Vertrag mit
+    den Ansichten (`tests/unit/datenschichtVertrag.test.ts`), und ihn zu
+    ändern wäre eine Änderung an jeder Aufrufstelle für nichts.
   */
   void companyId;
 
