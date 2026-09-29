@@ -30,7 +30,6 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
-| B1 | **Zeitkonten für alle Rollen lesbar** (`users.initial_*`, `vacations.saldo_bei_antrag`) (P3-12, Rest) | Kostensätze, Einkaufspreise und Preislisten sind seit 29.09.2026 geschützt (siehe unten); die Kontospalten hängen an Zeilen, die andere Rollen lesen müssen (Namen der Kollegen, Urlaube für die Planung) | `users` und `vacations` für andere Rollen über Sichten ohne Kontospalten, oder die Spalten in eigene Tabellen mit Einlass wie bei den Einkaufspreisen |
 | B2 | **Supportsitzung „mitarbeiten“**: alle Funktionen, die den Betrieb aus dem Token holen, scheitern für das Plattformkonto (P3-14) | Umbau aller betroffenen Funktionen (Einsatz, Rüstliste, Schein, Rechnung, Nummern, Angebot, Urlaub, Betriebsurlaub …) | Einblicksbetrieb als Parameter mit `support_schreibt(betrieb)`-Prüfung; bis dahin sagt die Supportleiste ehrlich, was nicht geht |
 | B3 | **Support mit „mitarbeiten“ in Betrieb A** liest in Betrieb B (mit Lesefreigabe) auch, was dort nur die Spitze liest, z. B. Angebote (P3-02, Rest) | Die Rollenfunktionen kennen keinen Betrieb; Schreiben in B ist gesperrt | Rollenfunktionen betriebsbezogen machen |
 | B7 | **Gutschrift, Skonto, Verzugszinsen** fehlen; ein Storno ist nur eine Statusänderung ohne Beleg für den Kunden | Neue Funktionen | Eigener Auftrag |
@@ -76,7 +75,17 @@ Geschäftsführung und Administration; `material_prices` liest nur, wer
 einkauft, also Verwaltung und Führung. Die alten Spalten `companies.cost_rates`
 und `materials.einkaufspreis` bleiben als **Einlass**: was dort ankommt — alte
 App, Datanorm, alte Sicherung —, legt die Datenbank um, die Spalte bleibt
-leer. Kein zweiter Deploy nötig; `tests/supabase/einkaufGeschuetzt.test.ts`).
+leer. Kein zweiter Deploy nötig; `tests/supabase/einkaufGeschuetzt.test.ts`)
+und Teil 2 (die Anfangsstände der Zeitkonten, `initial_overtime` und
+`initial_vacation_days`, in `zeitkonto_anfang` — lesen, wer die Urlaube der
+Person liest: sie selbst, Führung, Buchhaltung und Spitze, wer Urlaub
+entscheidet; die Kollegen sehen weiter die Namen, aber keine Kontostände.
+Einlass je Spalte, damit „kein Anfangsurlaub" als bewusstes Leeren ankommt;
+`tests/supabase/zeitkontoAnfang.test.ts`). **Bewusst geblieben:**
+`vacations.saldo_bei_antrag` steht an der Urlaubszeile, und die lesen ohnehin
+nur dieselben Rollen; wer genehmigt, braucht den Stand. Eine Projektleitung
+ohne Genehmigungsrecht sieht ihn mit — wie den Urlaub selbst, den sie zum
+Planen braucht.
 
 **Aus B, am 28.09.2026:** B5 (`secure_password_change` an: eine Sitzung,
 die älter als ein Tag ist, meldet beim Passwortändern mit dem eben geprüften

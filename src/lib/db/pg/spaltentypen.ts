@@ -86,4 +86,5 @@ export const SPALTENTYPEN: Record<string, Record<string, Spaltenart>> = {
   zahlungseingaenge: { created_at: 'zeitpunkt', updated_at: 'zeitpunkt' },
   work_sheet_photos: { geraet_zeit: 'zeitpunkt' },
   work_sheets: { created_at: 'zeitpunkt', unterschrieben_am: 'zeitpunkt', updated_at: 'zeitpunkt' },
+  zeitkonto_anfang: { updated_at: 'zeitpunkt' },
 };

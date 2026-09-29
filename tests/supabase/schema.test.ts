@@ -216,6 +216,9 @@ describe('Interne Hilfsfunktionen', () => {
       // Einlass der alten Spalten für Kostensätze und Einkaufspreise (B1).
       'app.kostensaetze_einlass()',
       'app.einkaufspreis_einlass()',
+      'app.zeitkonto_einlass_anlegen()',
+      'app.zeitkonto_einlass_ueberstunden()',
+      'app.zeitkonto_einlass_urlaub()',
     ];
     const offen: string[] = [];
     for (const f of intern) {
