@@ -15,6 +15,20 @@ wandert er hier heraus und in die jeweilige Doku.
 |---|---|---|---|
 | A9 | **Was nach Ablauf der sieben Jahre geschieht** — mit Belegen und Zeitaufzeichnungen einer Person, die die Löschung verlangt hat (B8). Die Löschung entfernt heute, was nicht aufbewahrt werden muss, und nennt für den Rest das Fristende; nach Ablauf löscht sie noch nichts | Vor 2031 läuft in diesem Bestand keine Frist ab. Offen ist, ob danach gelöscht oder anonymisiert wird — und was mit dem Namen einer Person auf den Belegen **anderer** geschieht (Schein des Kunden, genehmigter Urlaub, erfasste Zahlung). Laufende Verfahren verlängern die Frist (§ 132 Abs. 1 BAO) | **Beim Betrieb** (29.09.2026: wie empfohlen): mit dem Steuerberater entscheiden; dann denselben Aufruf um den zweiten Schritt erweitern |
 
+**Sicherheitsupdate der Bibliotheken (29.09.2026):** `npm audit --omit=dev`
+meldet 0 Befunde (vorher 16, davon einer kritisch). jsPDF 2 → 4 und
+jsPDF-AutoTable 3 → 5: alle sieben Belegarten — Rechnung, Storno, Mahnung,
+Angebot, Schein, Bestellung, Stundennachweis — vorher und nachher im Browser
+erzeugt und Seite für Seite gerendert, elf Seiten pixelgleich. React Router
+6 → 7 (die Umleitungslücke ist nur in 7 behoben; alle Links der App sind
+absolut, die geänderte Auflösung relativer Pfade trifft keinen), acht
+Durchklick-Wege grün. `undici` über `overrides` angehoben, siehe
+`UEBERGABE.md`. Die unbenutzte Abhängigkeit `@firebase/rules-unit-testing`
+(aus der Firestore-Zeit) ist entfernt. **Offen:** Vite 5 und Vitest 1 tragen
+Befunde, die nur den lokalen Entwicklungsserver und den Testlauf betreffen,
+nicht die ausgelieferte App; ihr Sprung (Vite 8, Vitest 5) ist ein eigener
+Auftrag.
+
 **Entschieden und umgesetzt am 29.09.2026:** A3 (das DATANORM-Preiskennzeichen
 folgt der Norm: 1 = Listenpreis, 2 = Nettopreis, alles andere unbekannt. Der
 Leser nahm „1" als Netto und übernahm damit Listenpreise als Einkaufspreise —
