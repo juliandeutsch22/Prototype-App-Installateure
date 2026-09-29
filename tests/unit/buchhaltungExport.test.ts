@@ -89,6 +89,26 @@ describe('Rechnungsausgangsbuch', () => {
       expect(felder[kopf.indexOf('Stornogrund')]).toBe('Falscher Kunde');
     });
 
+    it('mit Stornorechnung (B7) trägt die Gegenzeile deren Nummer und nennt die Rechnung', () => {
+      const mit = { ...spaet, stornoNummer: 'RE-2026-0009' };
+      const e = buildInvoiceCsv([mit], kunden, '2026-09-01', '2026-09-30');
+      const zeile = e.csv.split('\n').find((z) => z.includes(';Gegenbuchung;'))!;
+      const kopf = e.csv.split('\n')[0].split(';');
+      const felder = zeile.split(';');
+      expect(felder[kopf.indexOf('Rechnungsnummer')]).toBe('RE-2026-0009');
+      expect(felder[kopf.indexOf('Stornogrund')]).toBe('Stornorechnung zu RE-2026-0002 — Falscher Kunde');
+    });
+
+    it('ihre Nummer schliesst den Kreis — sie ist keine Lücke', () => {
+      const vorher = { ...re('RE-2026-0008', 100), invoiceDate: '2026-09-02' };
+      const danach = { ...re('RE-2026-0010', 100), invoiceDate: '2026-09-05' };
+      const mit = { ...spaet, stornoNummer: 'RE-2026-0009' };
+      expect(buildInvoiceCsv([vorher, mit, danach], kunden, '2026-09-01', '2026-09-30').luecken).toEqual([]);
+      // Die Gegenprobe: ohne Stornorechnung fehlt die 0009 tatsächlich.
+      expect(buildInvoiceCsv([vorher, spaet, danach], kunden, '2026-09-01', '2026-09-30').luecken)
+        .toEqual(['RE-2026-0009']);
+    });
+
     it('im selben Zeitraum heben sich Rechnung und Storno auf', () => {
       const gleich = { ...spaet, invoiceDate: '2026-09-01' };
       const e = buildInvoiceCsv([gleich], kunden, '2026-09-01', '2026-09-30');

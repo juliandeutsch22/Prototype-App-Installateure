@@ -106,6 +106,10 @@ export function reactivateInvoice(inv: WithId<Invoice>): Promise<void> {
   return pg.reactivateInvoice(inv);
 }
 
+export function stornorechnungAusstellen(inv: WithId<Invoice>, praefix: string): Promise<string> {
+  return pg.stornorechnungAusstellen(inv, praefix);
+}
+
 export function mahnungFesthalten(
   id: string,
   daten: {

@@ -255,6 +255,16 @@ describe('Stornierte Rechnungen', () => {
     });
   });
 
+  it('mit Stornorechnung (B7) ist sie der Beleg der Stornobuchung', () => {
+    const e = bauen([storno({ stornoNummer: 'RE-2026-0007' })]);
+    expect(e.zeilen[1]).toMatchObject({
+      belegnummer: 'RE-2026-0007', belegdatum: '20.04.2026', betrag: 1200,
+      buchungstext: 'Stornorechnung RE-2026-0007 zu RE-2026-0001 — Falsche Baustelle',
+    });
+    // Die Rechnung selbst bleibt unter ihrer eigenen Nummer.
+    expect(e.zeilen[0]).toMatchObject({ belegnummer: 'RE-2026-0001' });
+  });
+
   it('bucht den Storno auch, wenn die Rechnung aus einem früheren Monat stammt', () => {
     // Sonst fiele die Gegenbuchung durch jedes Raster: die Rechnung liegt im
     // März, der Storno im April, und in keinem der beiden Monate stünde er.

@@ -336,7 +336,8 @@ export async function sucheRechnungen(
   begriff: string,
   max = RECHNUNG_TREFFER,
 ): Promise<WithId<Invoice>[]> {
-  const oder = oderUeberSpalten(['invoice_number', 'customer_name', 'project_number'], begriff);
+  // Auch nach der Nummer einer Stornorechnung: sie steht an der stornierten Rechnung.
+  const oder = oderUeberSpalten(['invoice_number', 'storno_nummer', 'customer_name', 'project_number'], begriff);
   if (!oder) return [];
   const koepfe = await abfragen<KopfZeile>(RECHNUNGEN, companyId, {
     oder,
@@ -560,6 +561,25 @@ export async function cancelInvoice(inv: WithId<Invoice>, note: string): Promise
 export async function reactivateInvoice(inv: WithId<Invoice>): Promise<void> {
   const { error } = await derClient().rpc('rechnung_storno_aufheben', { p_id: inv.id });
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Die Stornorechnung ausstellen — oder, war sie es schon, ihre Nummer holen.
+ *
+ * Die Nummer kommt aus dem Rechnungskreis und aus dem Jahr des Stornos; die
+ * Datenbank vergibt sie (`stornorechnung_ausstellen`). Danach lässt sich der
+ * Storno nicht mehr aufheben.
+ */
+export async function stornorechnungAusstellen(
+  inv: WithId<Invoice>,
+  praefix: string,
+): Promise<string> {
+  const { data, error } = await derClient().rpc('stornorechnung_ausstellen', {
+    p_id: inv.id,
+    p_praefix: praefix,
+  });
+  if (error) throw new Error(error.message);
+  return String((data as { storno_nummer: string }).storno_nummer);
 }
 
 /**

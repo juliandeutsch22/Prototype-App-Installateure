@@ -238,8 +238,9 @@ export function buildBmdCsv(
           soll: habenKonto.konto,
           haben: debitoren.konto,
           belegdatum: datum(tag),
-          belegnummer: i.invoiceNumber,
-          buchungstext: `Storno ${i.invoiceNumber}${i.cancellationNote ? ` — ${i.cancellationNote}` : ''}`,
+          // Mit Stornorechnung (B7) ist sie der Beleg der Stornobuchung.
+          belegnummer: i.stornoNummer ?? i.invoiceNumber,
+          buchungstext: `${i.stornoNummer ? `Stornorechnung ${i.stornoNummer} zu` : 'Storno'} ${i.invoiceNumber}${i.cancellationNote ? ` — ${i.cancellationNote}` : ''}`,
           betrag: i.totalBrutto ?? 0,
           steuercode: habenKonto.steuercode ?? '',
         });
@@ -263,7 +264,7 @@ export function buildBmdCsv(
             soll: gegen.konto,
             haben: anzahlung.konto,
             belegdatum: datum(tag),
-            belegnummer: i.invoiceNumber,
+            belegnummer: i.stornoNummer ?? i.invoiceNumber,
             buchungstext: `Storno: Anzahlung ${v.invoiceNumber} verrechnet`,
             ...umbuchung(v, gegen.steuercode),
           });

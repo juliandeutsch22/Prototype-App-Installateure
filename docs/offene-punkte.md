@@ -31,7 +31,7 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
-| B7 | **Gutschrift, Skonto, Verzugszinsen** fehlen; ein Storno ist nur eine Statusänderung ohne Beleg für den Kunden | Neue Funktionen | Eigener Auftrag |
+| B7 | **Skonto und Verzugszinsen** fehlen (Teil 1, die Stornorechnung, ist erledigt; eine Teilgutschrift gibt es bewusst nicht) | Neue Funktionen | Teil 2 |
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
 
 ## C. Absicherungen und Tests, die fehlen
@@ -97,6 +97,17 @@ Art das Fristende. Eine Person der Belegschaft muss zuerst deaktiviert sein;
 gelöscht wird nur über die Kennung, ein Beleg nur über den Namen hält den
 Kunden aber gesperrt; `tests/supabase/personLoeschen.test.ts`. Was nach
 Fristablauf geschieht, ist A9.
+Und B7, Teil 1: die **Stornorechnung** — zu einer stornierten Rechnung stellt
+die Buchhaltung einen Beleg für den Kunden aus, mit eigener Nummer aus dem
+Rechnungskreis und dem Tag des Stornos als Datum
+(`public.stornorechnung_ausstellen`). Die Nummer hängt an der stornierten
+Rechnung, nicht an einer zweiten Rechnung mit negativen Beträgen — offene
+Posten, Mahnlauf und Nachkalkulation bleiben unberührt; BMD-Stapel und
+Ausgangsbuch führen die Gegenbuchung unter ihrer Nummer, die Lückenprüfung
+zählt sie mit. Ist sie ausgestellt, lässt sich der Storno nicht mehr
+aufheben. Eine Teilgutschrift gibt es bewusst nicht (so entschieden): ein
+Nachlass geht über Storno und neue Rechnung;
+`tests/supabase/stornorechnung.test.ts`, `tests/unit/stornoPdf.test.ts`.
 
 **Aus B, am 29.09.2026:** B1, Teil 1 (Kostensätze in `betrieb_kostensaetze`,
 Einkaufspreise in `material_einkaufspreise` — lesen und schreiben nur

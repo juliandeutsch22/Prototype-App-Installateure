@@ -10,11 +10,24 @@ import { belegNummer, hoechsteLfdImJahr, lfdNummerVon, PRAEFIX_VORGABE } from '.
  * lassen will). Getrennt vom Datenbankzugriff ist sie ohne Emulator prüfbar.
  */
 
+/** Was eine Rechnung zum Kreis beiträgt: ihre Nummer, dazu die ihrer Stornorechnung. */
+type MitKreis = Pick<Invoice, 'invoiceNumber'> & Partial<Pick<Invoice, 'stornoNummer'>>;
+
+/**
+ * Alle Nummern des Kreises. Eine Stornorechnung (B7) zieht ihre Nummer aus
+ * demselben Kreis und steht an der stornierten Rechnung — so zählt auch die
+ * Datenbank (`app.hoechste_lfd`). Ohne sie zeigte der Vorschlag eine Nummer,
+ * die schon vergeben ist.
+ */
+export function kreisNummern(existing: MitKreis[]): string[] {
+  return existing.flatMap((i) => (i.stornoNummer ? [i.invoiceNumber, i.stornoNummer] : [i.invoiceNumber]));
+}
+
 /** Höchste bereits vergebene laufende Nummer, 0 wenn noch keine existiert. */
-export function highestInvoiceSeq(existing: Pick<Invoice, 'invoiceNumber'>[]): number {
+export function highestInvoiceSeq(existing: MitKreis[]): number {
   let max = 0;
-  for (const inv of existing) {
-    const seq = invoiceSeqOf(inv.invoiceNumber ?? '');
+  for (const nummer of kreisNummern(existing)) {
+    const seq = invoiceSeqOf(nummer ?? '');
     if (seq != null) max = Math.max(max, seq);
   }
   return max;
@@ -66,7 +79,7 @@ export function formatInvoiceNumber(
  * abrechnet.
  */
 export function nextInvoiceNumber(
-  existing: Pick<Invoice, 'invoiceNumber'>[],
+  existing: MitKreis[],
   praefix = PRAEFIX_VORGABE.rechnung,
 ): string {
   /*
@@ -76,19 +89,21 @@ export function nextInvoiceNumber(
     Feld, als die Rechnung danach trägt.
   */
   const jahr = new Date().getFullYear();
-  const max = hoechsteLfdImJahr(existing.map((i) => i.invoiceNumber), jahr);
+  const max = hoechsteLfdImJahr(kreisNummern(existing), jahr);
   return formatInvoiceNumber(max > 0 ? max + 1 : 1001, jahr, praefix);
 }
 
-/** Prüft, ob eine Nummer bereits vergeben ist (Stornos zählen mit). */
+/** Prüft, ob eine Nummer bereits vergeben ist (Stornos und Stornorechnungen zählen mit). */
 export function isInvoiceNumberTaken(
-  existing: Pick<Invoice, 'invoiceNumber'>[] & { id?: string }[],
+  existing: MitKreis[] & { id?: string }[],
   number: string,
   exceptId?: string,
 ) {
   const n = number.trim().toLowerCase();
   return existing.some(
-    (i) => i.invoiceNumber?.toLowerCase() === n && (i as { id?: string }).id !== exceptId,
+    (i) =>
+      (i.invoiceNumber?.toLowerCase() === n || i.stornoNummer?.toLowerCase() === n) &&
+      (i as { id?: string }).id !== exceptId,
   );
 }
 
