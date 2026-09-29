@@ -226,6 +226,14 @@ export interface InvoiceRates {
    */
   mahnspesen?: number[];
   /**
+   * Mahnspesen je Stufe an PRIVATKUNDEN (ohne UID). Nicht gesetzt heisst: es
+   * gelten `mahnspesen` — so verrechnet ein Betrieb, der seine Spesen vor der
+   * Trennung eingetragen hat, unverändert weiter. Siehe `mahnkosten`.
+   */
+  mahnspesenVerbraucher?: number[];
+  /** An Firmenkunden die Pauschale nach § 458 UGB statt der Spesen je Stufe. */
+  pauschale458?: boolean;
+  /**
    * Basiszinssatz der OeNB in % (darf negativ sein) — nur für Verzugszinsen
    * zwischen Unternehmern (§ 456 UGB). Gilt nur zusammen mit
    * `basiszinssatzAb`, dem Beginn seines Halbjahres; siehe `verzugszinsen`.

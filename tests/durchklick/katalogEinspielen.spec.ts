@@ -21,13 +21,13 @@ import { anmelden, keineFehlermeldung } from './helfer';
 const DATEI = [
   'V;20092026;HTI Grosshandel;EUR',
   // Listenpreis 100,00 €, Rabattgruppe 10 — daraus werden mit 40 % 60,00 €.
-  'A;N;DN-1;0;Eckventil 1/2 Zoll;verchromt;0;0;Stk;10000;10;0',
+  'A;N;DN-1;0;Eckventil 1/2 Zoll;verchromt;1;0;Stk;10000;10;0',
   // Nettopreis: schon der Einkaufspreis, der Rabattsatz wirkt hier NICHT.
-  'A;N;DN-2;0;Kugelhahn;messing;1;0;Stk;1890;10;0',
+  'A;N;DN-2;0;Kugelhahn;messing;2;0;Stk;1890;10;0',
   // Preiseinheit 2 heisst „je 100 Stück": 23,50 € / 100 = 0,235 € Liste.
-  'A;N;DN-3;0;Dichtring;;0;2;Stk;2350;10;0',
+  'A;N;DN-3;0;Dichtring;;1;2;Stk;2350;10;0',
   // Diese Zeile ist kaputt und muss es bleiben — sie darf nicht in den Stamm.
-  'A;N;DN-4;0;Kaputt;;0;0;Stk;PST;10;0',
+  'A;N;DN-4;0;Kaputt;;1;0;Stk;PST;10;0',
 ].join('\n');
 
 test('Katalog einspielen: erst der Probelauf, dann die Übernahme', async ({ page }) => {

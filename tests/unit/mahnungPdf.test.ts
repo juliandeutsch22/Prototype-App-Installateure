@@ -173,6 +173,28 @@ describe('Verzugszinsen (B7)', () => {
   });
 });
 
+describe('Mahnkosten je Kundenart', () => {
+  it('an Firmenkunden steht die Pauschale nach § 458 UGB statt der Spesen', async () => {
+    const s = await text({
+      stufe: 2,
+      unternehmer: true,
+      company: { ...firma, rates: { ...firma.rates!, pauschale458: true } },
+    });
+    expect(s).toContain('Pauschale für Betreibungskosten');
+    expect(s).not.toContain('Mahnspesen');
+    expect(s).toMatch(betrag('1.240,00'));
+  });
+
+  it('an Privatkunden gelten deren eigene Spesen', async () => {
+    const s = await text({
+      stufe: 2,
+      company: { ...firma, rates: { ...firma.rates!, mahnspesenVerbraucher: [0, 3, 5], pauschale458: true } },
+    });
+    expect(s).not.toContain('Pauschale');
+    expect(s).toMatch(betrag('1.203,00'));
+  });
+});
+
 describe('Nach einer Teilzahlung', () => {
   /*
     GEFUNDEN BEIM NEUGESTALTEN DER BELEGE: die Zeile „Bereits bezahlt" trug

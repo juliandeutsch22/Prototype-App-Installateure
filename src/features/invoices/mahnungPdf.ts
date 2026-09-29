@@ -10,7 +10,7 @@ import {
   TINTE,
   titel,
 } from '@/lib/belegLayout';
-import { TEXTE, spesenFuer, type Mahnstufe, type Verzugszinsen } from './mahnung';
+import { TEXTE, mahnkosten, type Mahnstufe, type Verzugszinsen } from './mahnung';
 import { zahlstand } from './zahlstand';
 import type { Company, Invoice } from '@/types';
 import { euroBetrag } from '@/lib/betrag';
@@ -65,6 +65,8 @@ export interface MahnungOptionen {
    * tragen.
    */
   zinsen?: Verzugszinsen;
+  /** Firmenkunde (mit UID)? Bestimmt, welche Mahnkosten gelten — siehe `mahnkosten`. */
+  unternehmer?: boolean;
 }
 
 export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
@@ -104,7 +106,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
     bis wann. Im Satz versteckt muss er sie zusammenklauben; als Block stehen
     sie da.
   */
-  const spesen = spesenFuer(o.stufe, o.company.rates?.mahnspesen);
+  const { spesen, pauschale } = mahnkosten(o.stufe, o.company.rates, !!o.unternehmer);
   const stand = zahlstand(o.invoice);
   const zeilen: [string, string][] = [
     ['Rechnungsdatum', fmtDatum(o.invoice.invoiceDate)],
@@ -126,6 +128,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
     zeilen.push(['Bereits bezahlt', `- ${euroBetrag(stand.bezahlt)} €`]);
   }
   if (spesen > 0) zeilen.push(['Mahnspesen', `${euroBetrag(spesen)} €`]);
+  if (pauschale > 0) zeilen.push(['Pauschale für Betreibungskosten (§ 458 UGB)', `${euroBetrag(pauschale)} €`]);
   const zinsen = o.zinsen?.art === 'berechnet' ? o.zinsen : null;
   if (zinsen) {
     // Satz, Tage und Grundlage stehen dabei: sonst ist die Zahl nicht nachzurechnen.
@@ -147,7 +150,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
   doc.setDrawColor(...TINTE).setLineWidth(0.35).line(rand, y - 3.5, betragX, y - 3.5);
   doc.setFont('helvetica', 'bold');
   doc.text('Offener Betrag', rand, y + 1);
-  doc.text(`${euroBetrag(stand.rest + spesen + (zinsen?.betrag ?? 0))} €`, betragX, y + 1, { align: 'right' });
+  doc.text(`${euroBetrag(stand.rest + spesen + pauschale + (zinsen?.betrag ?? 0))} €`, betragX, y + 1, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   y += 12;
 

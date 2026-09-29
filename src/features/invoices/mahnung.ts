@@ -1,4 +1,4 @@
-import type { Invoice } from '@/types';
+import type { Invoice, InvoiceRates } from '@/types';
 import { offenerRest } from './zahlstand';
 
 /**
@@ -191,6 +191,42 @@ function tagePlus(isoTag: string, n: number): string | null {
 export function spesenFuer(stufe: Mahnstufe, spesen: number[] | undefined): number {
   const wert = spesen?.[stufe - 1];
   return typeof wert === 'number' && wert > 0 ? wert : 0;
+}
+
+/** Die Einstellungen, aus denen die Mahnkosten einer Rechnung kommen. */
+export type MahnkostenSaetze = Pick<InvoiceRates, 'mahnspesen' | 'mahnspesenVerbraucher' | 'pauschale458'>;
+
+/** Pauschale für Betreibungskosten zwischen Unternehmern (§ 458 UGB). */
+export const PAUSCHALE_458 = 40;
+
+/**
+ * Was eine Mahnung an Kosten verlangt — je nachdem, an wen sie geht.
+ *
+ * FIRMEN- UND PRIVATKUNDEN GETRENNT, weil das Gesetz sie trennt. Gegenüber
+ * einem Verbraucher sind Mahnkosten nur zu ersetzen, soweit sie angemessen
+ * und zweckmässig sind (§ 1333 Abs 2 ABGB); eine hohe Pauschale je Brief hält
+ * dort oft nicht. Zwischen Unternehmern steht dem Betrieb ab dem Verzug eine
+ * Pauschale von 40 € zu (§ 458 UGB), die die Mahnkosten bis zu dieser Höhe
+ * abdeckt — deshalb ENTWEDER die Pauschale ODER die Spesen je Stufe, nicht
+ * beides. Unternehmer ist, wie bei den Verzugszinsen, wer eine UID hat.
+ *
+ * OHNE EIGENE SÄTZE FÜR PRIVATKUNDEN gelten die bisherigen: ein Betrieb, der
+ * seine Spesen vor der Trennung eingetragen hat, verrechnet unverändert
+ * weiter, bis er etwas anderes einträgt.
+ *
+ * Die Pauschale steht ab der Mahnung, nicht auf der Zahlungserinnerung — aus
+ * demselben Grund wie die Zinsen.
+ */
+export function mahnkosten(
+  stufe: Mahnstufe,
+  saetze: MahnkostenSaetze | undefined,
+  unternehmer: boolean,
+): { spesen: number; pauschale: number } {
+  if (unternehmer && saetze?.pauschale458) {
+    return { spesen: 0, pauschale: stufe >= 2 ? PAUSCHALE_458 : 0 };
+  }
+  const liste = unternehmer ? saetze?.mahnspesen : (saetze?.mahnspesenVerbraucher ?? saetze?.mahnspesen);
+  return { spesen: spesenFuer(stufe, liste), pauschale: 0 };
 }
 
 /** Vorschlag für die neue Frist: eine Woche. Änderbar in der Oberfläche. */

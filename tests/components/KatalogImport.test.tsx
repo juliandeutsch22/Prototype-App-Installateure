@@ -71,11 +71,11 @@ function datei(inhalt: string, name = 'katalog.001'): File {
 
 const SAUBER = [
   'V;20092026;HTI Grosshandel;EUR',
-  'A;N;A1;0;Eckventil 1/2 Zoll;verchromt;0;0;Stk;2350;10;0',
-  'A;N;A2;0;Kugelhahn;messing;0;0;Stk;1890;10;0',
-  'A;N;A3;0;Kupferrohr;15 mm;1;0;m;450;20;0',
-  'A;N;A4;0;Bogen;90 Grad;0;0;Stk;320;10;0',
-  'A;N;A5;0;Muffe;;0;0;Stk;210;10;0',
+  'A;N;A1;0;Eckventil 1/2 Zoll;verchromt;1;0;Stk;2350;10;0',
+  'A;N;A2;0;Kugelhahn;messing;1;0;Stk;1890;10;0',
+  'A;N;A3;0;Kupferrohr;15 mm;2;0;m;450;20;0',
+  'A;N;A4;0;Bogen;90 Grad;1;0;Stk;320;10;0',
+  'A;N;A5;0;Muffe;;1;0;Stk;210;10;0',
 ].join('\n');
 
 /** Dieselbe Datei, aber mit einer Stelle zu viel — alles verschiebt sich. */

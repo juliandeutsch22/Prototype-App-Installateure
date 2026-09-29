@@ -102,14 +102,19 @@ export interface DatanormErgebnis {
 const PREISEINHEIT: Record<string, number> = { '0': 1, '1': 10, '2': 100, '3': 1000 };
 
 /**
- * Das Preiskennzeichen der Norm: 0 = Listenpreis, 1 = Nettopreis.
+ * Das Preiskennzeichen der Norm: 1 = Bruttopreis (Listenpreis), 2 = Nettopreis.
  *
- * Weitere Kennzeichen kommen vor, ihre Bedeutung ist aber je nach Ausgabe der
- * Norm verschieden. Sie werden deshalb „unbekannt" — und ein unbekannter
- * Preis wird im Probelauf gezeigt, statt als Einkaufspreis übernommen zu
- * werden. Raten hiesse: mal den Listenpreis als Einkauf zu buchen.
+ * BIS 29.09.2026 STAND HIER 0 = Liste, 1 = Netto — und damit las die App den
+ * Normalfall einer Grosshändlerdatei („1") als Nettopreis und übernahm den
+ * Listenpreis als Einkaufspreis (offene Punkte A3, Prüflauf P2-17). Die
+ * Migration `20260929170000_datanorm_preiskennzeichen.sql` rechnet die so
+ * übernommenen Einkaufspreise nach.
+ *
+ * Alles andere — auch „0" — ist „unbekannt": der Preis wird im Probelauf
+ * gezeigt, statt als Einkaufspreis übernommen zu werden. Raten hiesse: mal den
+ * Listenpreis als Einkauf zu buchen.
  */
-const PREISART: Record<string, PreisArt> = { '0': 'liste', '1': 'netto' };
+const PREISART: Record<string, PreisArt> = { '1': 'liste', '2': 'netto' };
 
 const VERARBEITUNG: Record<string, Verarbeitung> = {
   N: 'neu',

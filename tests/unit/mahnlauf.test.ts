@@ -155,7 +155,7 @@ describe('Die Summen', () => {
         rechnung({ id: '2', totalBrutto: 300.5, mahnstufe: 1 }),
       ],
       HEUTE,
-      [5, 10, 20],
+      { mahnspesen: [5, 10, 20] },
     );
     expect(l.summeOffen).toBe(1500.5);
     // Stufe 1 → 5 €, Stufe 2 → 10 €.
@@ -186,6 +186,20 @@ describe('Die Summen', () => {
     );
     expect(l.zeilen).toHaveLength(0);
     expect(l.ausgereizt).toHaveLength(0);
+  });
+
+  it('zählt die Kosten je Kundenart: Pauschale an Firmen, eigene Spesen an Privat', () => {
+    const l = mahnlauf(
+      [
+        rechnung({ id: 'firma', mahnstufe: 1, customerVatId: 'ATU12345678' }),
+        rechnung({ id: 'privat', mahnstufe: 1 }),
+      ],
+      HEUTE,
+      { mahnspesen: [5, 10, 20], mahnspesenVerbraucher: [0, 3, 5], pauschale458: true },
+    );
+    const spesen = Object.fromEntries(l.zeilen.map((z) => [z.rechnung.id, z.spesen]));
+    expect(spesen).toEqual({ firma: 40, privat: 3 });
+    expect(l.summeSpesen).toBe(43);
   });
 
   it('rechnet ohne hinterlegte Spesen mit null, nicht mit einer Vorgabe', () => {

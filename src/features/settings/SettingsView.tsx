@@ -572,23 +572,57 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               verrechnen auch dort etwas, und ihnen das Feld vorzuenthalten
               wäre eine Entscheidung, die uns nicht zusteht.
             */}
-            {(['Zahlungserinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => (
-              <InputField
-                key={wort}
-                id={`r-mahn-${i}`}
-                label={`Mahnspesen ${wort} (€)`}
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="leer = keine"
-                value={rates.mahnspesen?.[i] ? String(rates.mahnspesen[i]) : ''}
-                onChange={(e) => {
-                  const werte = [...(rates.mahnspesen ?? [0, 0, 0])];
-                  werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
-                  setRates({ ...rates, mahnspesen: werte });
-                }}
-              />
-            ))}
+            {/*
+              FIRMEN- UND PRIVATKUNDEN GETRENNT (siehe `mahnkosten`). Die Zeile
+              für Privatkunden zeigt die gemeinsamen Werte, solange keine
+              eigenen eingetragen sind — so ändert die Trennung für niemanden
+              still etwas. Die Pauschale nach § 458 UGB ersetzt bei
+              Firmenkunden die Spesen je Stufe; beides zusammen wäre zu viel.
+            */}
+            <CheckboxField
+              id="r-pauschale458"
+              label="Firmenkunden: Pauschale 40 € nach § 458 UGB statt Spesen"
+              checked={!!rates.pauschale458}
+              onChange={(e) => setRates({ ...rates, pauschale458: e.target.checked || undefined })}
+            />
+            {!rates.pauschale458 &&
+              (['Erinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => (
+                <InputField
+                  key={`firma-${wort}`}
+                  id={`r-mahn-${i}`}
+                  label={`${wort} · Firmenkunden (€)`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="leer = keine"
+                  value={rates.mahnspesen?.[i] ? String(rates.mahnspesen[i]) : ''}
+                  onChange={(e) => {
+                    const werte = [...(rates.mahnspesen ?? [0, 0, 0])];
+                    werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
+                    setRates({ ...rates, mahnspesen: werte });
+                  }}
+                />
+              ))}
+            {(['Erinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => {
+              const privat = rates.mahnspesenVerbraucher ?? rates.mahnspesen;
+              return (
+                <InputField
+                  key={`privat-${wort}`}
+                  id={`r-mahn-privat-${i}`}
+                  label={`${wort} · Privatkunden (€)`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="leer = keine"
+                  value={privat?.[i] ? String(privat[i]) : ''}
+                  onChange={(e) => {
+                    const werte = [...(privat ?? [0, 0, 0])];
+                    werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
+                    setRates({ ...rates, mahnspesenVerbraucher: werte });
+                  }}
+                />
+              );
+            })}
             {/*
               DER BASISZINSSATZ MIT SEINEM HALBJAHR, nicht allein. Eine Zahl
               ohne Stand veraltete still; so rechnet die Mahnung nur, solange
@@ -624,9 +658,16 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
             </SelectField>
           </FormGrid>
           <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
-            Skonto steht mit Betrag und Frist auf der Rechnung; ab der Mahnung stehen
-            gesetzliche Verzugszinsen auf dem Beleg.
-            <InfoHint about="Skonto und Verzugszinsen">
+            Mahnspesen gelten je Kundenart; Skonto steht mit Betrag und Frist auf der
+            Rechnung; ab der Mahnung stehen gesetzliche Verzugszinsen auf dem Beleg.
+            <InfoHint about="Mahnspesen, Skonto und Verzugszinsen">
+              <strong>Mahnspesen</strong> gelten je Stufe, getrennt nach Firmenkunden (mit UID)
+              und Privatkunden. An Privatkunden sind nur angemessene, tatsächlich entstandene
+              Mahnkosten zu ersetzen (§ 1333 Abs 2 ABGB) — hohe Pauschalen halten dort oft nicht. An
+              Firmenkunden steht ab dem Verzug eine Pauschale von 40 € zu (§ 458 UGB); sie deckt
+              die Mahnkosten bis zu dieser Höhe ab und steht ab der Mahnung auf dem Beleg.
+              <br />
+              <br />
               <strong>Skonto</strong> gilt für Rechnungen und Schlussrechnungen, nicht für
               Anzahlungen; die Frist endet spätestens mit dem Zahlungsziel. Zahlt der Kunde in der
               Frist den Betrag abzüglich Skonto, gleicht ein Haken beim Erfassen der Zahlung den
