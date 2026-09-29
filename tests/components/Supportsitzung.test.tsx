@@ -5,11 +5,12 @@ import Supportsitzung from '@/components/Supportsitzung';
 /**
  * Das Band, das der SUPPORT in einem fremden Betrieb sieht.
  *
- * PRÜFLAUF 25.09.2026 (P3-14). Die Oberfläche zeigt dem Support die Knöpfe
- * eines Administrators — aber was die App über eine Datenbankfunktion
- * erledigt, holt den Betrieb aus dem Anmeldekonto, und ein Plattformkonto hat
- * keinen. Solche Knöpfe scheitern. Das Band sagt es, bevor jemand es am
- * Telefon mit dem Kunden ausprobiert.
+ * PRÜFLAUF 25.09.2026 (P3-14), offene Punkte B2. Die Oberfläche zeigt dem
+ * Support die Knöpfe eines Administrators. Was Zeitbuchungen, Urlaube oder
+ * Scheinfotos berührt, bleibt ihm verschlossen, und die Datensicherung nimmt
+ * nur der Betrieb selbst mit — diese Knöpfe scheitern. Das Band sagt es,
+ * bevor jemand es am Telefon mit dem Kunden ausprobiert; was seit B2 geht,
+ * nennt es nicht mehr.
  */
 
 let einblick: Record<string, unknown> | null = null;
@@ -34,7 +35,13 @@ describe('Das Band der Supportsitzung', () => {
     const band = screen.getByRole('status');
     expect(band).toHaveTextContent('MITARBEITEN in Perl Installationen');
     expect(band).toHaveTextContent('deine Änderungen treffen echte Daten dieses Betriebs');
-    expect(band).toHaveTextContent(/Was über den Server läuft .* geht im Einblick nicht/);
+    expect(band).toHaveTextContent(
+      'Rechnungen und Stornos, Scheine, Baustellennummer ändern, Urlaub, Krankmeldungen, Betriebsurlaub und Datensicherung gehen im Einblick nicht.',
+    );
+    // Seit B2 gehen sie — das Band darf sie nicht mehr als Grenze nennen.
+    for (const geht of ['Einsätze', 'Angebote', 'Nummern']) {
+      expect(band).not.toHaveTextContent(geht);
+    }
   });
 
   it('bleibt bei „ansehen" bei dem einen Satz', () => {
@@ -42,7 +49,7 @@ describe('Das Band der Supportsitzung', () => {
     render(<Supportsitzung />);
     const band = screen.getByRole('status');
     expect(band).toHaveTextContent('nur lesend. Änderungen weist die Datenbank ab.');
-    expect(band).not.toHaveTextContent(/geht im Einblick nicht/);
+    expect(band).not.toHaveTextContent(/gehen im Einblick nicht/);
   });
 
   it('fehlt ohne Einblick ganz', () => {

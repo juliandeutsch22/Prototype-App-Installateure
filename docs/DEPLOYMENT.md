@@ -304,6 +304,16 @@ andere und genau daraus der Fehler entsteht, der weh tut.
   „Mitarbeiten" und in B „Ansehen" hatte, in B auch, was dort nur die Spitze
   liest (etwa Angebote): die Rollenfunktionen kennen keinen Betrieb, und eine
   Rolle aus A galt auch in B.
+- **Was Zeiten, Urlaube oder Scheinfotos berührt — auch nicht über den
+  Server.** Scheine, Rechnungen und Stornos, Baustellennummer ändern, Urlaub,
+  Krankmeldungen und Betriebsurlaub scheitern im Einblick; dazu die
+  Rechnungsnummer (sie würde nie eine Rechnung und wäre ein Loch in der
+  lückenlosen Folge) und die Datensicherung (sie nimmt nur der Betrieb selbst
+  mit). Das rote Band nennt genau diese. Was die App sonst über den Server
+  erledigt — Einsatz, Rüstliste, Angebot, Angebots- und Baustellennummer,
+  Kunden- und Katalogübernahme —, geht mit „Mitarbeiten" seit 29.09.2026
+  (offene Punkte B2) im Betrieb des aktuellen Einblicks
+  (`app.arbeitsbetrieb()`).
 - **Sich selbst freigeben.** Der gewöhnliche Weg ist für ein Plattformkonto
   gesperrt.
 

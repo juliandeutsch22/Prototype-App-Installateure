@@ -42,16 +42,17 @@ export default function Supportsitzung() {
           ? ' — deine Änderungen treffen echte Daten dieses Betriebs.'
           : ' — nur lesend. Änderungen weist die Datenbank ab.'}
         {/*
-          EHRLICH ÜBER DIE GRENZE (Prüflauf 25.09.2026, P3-14). Die Oberfläche
-          zeigt dem Support die Knöpfe eines Administrators. Was die App aber
-          über eine Datenbankfunktion erledigt, holt den Betrieb aus dem
-          Anmeldekonto — und ein Plattformkonto hat keinen. Diese Knöpfe
-          scheitern also; das soll hier stehen, bevor jemand es am Telefon
-          ausprobiert. Direkte Änderungen (Kunden, Baustellen, Stammdaten)
-          gehen.
+          EHRLICH ÜBER DIE GRENZE (Prüflauf 25.09.2026, P3-14; offene Punkte
+          B2). Die Oberfläche zeigt dem Support die Knöpfe eines
+          Administrators. Einsatz, Rüstliste, Angebot, Nummern, Kunden- und
+          Katalogübernahme gehen seit dem 29.09.2026 auch über den Server
+          (`app.arbeitsbetrieb`). Was Zeitbuchungen, Urlaube oder Scheinfotos
+          berührt, bleibt dem Support verschlossen, und die Datensicherung
+          nimmt nur der Betrieb selbst mit — diese Knöpfe scheitern. Das soll
+          hier stehen, bevor jemand es am Telefon ausprobiert.
         */}
         {schreibt &&
-          ' Was über den Server läuft — Nummern, Rechnungen und Stornos, Angebote, Scheine, Einsätze, Urlaub und Krankmeldungen — geht im Einblick nicht.'}
+          ' Rechnungen und Stornos, Scheine, Baustellennummer ändern, Urlaub, Krankmeldungen, Betriebsurlaub und Datensicherung gehen im Einblick nicht.'}
       </span>
       <Button variant="secondary" onClick={einblickBeenden}>
         Einblick beenden
