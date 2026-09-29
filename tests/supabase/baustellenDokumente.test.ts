@@ -10,7 +10,7 @@
  * der beiden steht, ist keine — das hat die Lücke bei den Scheinfotos gezeigt.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { admin, betriebAnlegen, konto, plattformkonto, type Konto } from './helfer';
+import { admin, betriebAnlegen, einblickBeginnen, konto, plattformkonto, type Konto } from './helfer';
 import * as dok from '@/lib/db/pg/baustellenDokumente';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 
@@ -166,11 +166,12 @@ describe('Wer die Pläne sieht', () => {
   });
 
   it('NICHT der Support — auch nicht mit Freigabe', async () => {
-    const { error } = await chef.client.from('support_freigaben').insert({
+    const { data: f, error } = await chef.client.from('support_freigaben').insert({
       company_id: BETRIEB, gewaehrt_von: chef.uid, grund: 'Rechnung prüfen',
       gilt_bis: new Date(Date.now() + 3_600_000).toISOString(),
-    });
+    }).select('id').single();
     expect(error).toBeNull();
+    await einblickBeginnen(plattform, BETRIEB, (f as { id: string }).id);
     expect(await sieht(plattform, pfad)).toEqual({ zeile: false, datei: false });
     // Die Gegenprobe, dass die Freigabe wirkt: Baustellen sieht er.
     const { data } = await plattform.client.from('projects').select('id').eq('company_id', BETRIEB);

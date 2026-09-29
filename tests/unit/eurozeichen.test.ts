@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { euro, euroBetrag, euroGerundet, euroPreis } from '@/lib/betrag';
 
 /**
  * „€ 22 104,60 €" — das Zeichen stand zweimal da.
@@ -9,66 +10,62 @@ import { execSync } from 'node:child_process';
  * „€ 22 104,60 € offen"; sechs Stellen in `InvoicesView` hängten ein zweites
  * Eurozeichen an einen Betrag, der es schon trug.
  *
- * DER GRUND IST DER NAME, NICHT DIE UNACHTSAMKEIT. `fmtEUR` gibt es in ACHT
- * Dateien:
- *
- *   MIT vorangestelltem €   InvoicesView, QuotesView, KundenakteView,
- *                           NachkalkulationView, DashboardView
- *   OHNE                    pdf.ts, mahnungPdf.ts, SettingsView
- *
- * Zwei gleichnamige Funktionen mit verschiedenem Verhalten sind eine Falle:
- * wer aus der Nachbardatei abschreibt, schreibt die falsche Hälfte ab. Auf
- * einen Betrag geschaut fällt das nie auf — nur auf den Beleg.
- *
- * WARUM DIE ACHT KOPIEN NICHT ZU EINER WERDEN. Das wäre die gründlichere
- * Antwort und ein Eingriff in acht Ansichten, von denen zwei PDFs erzeugen
- * und je eigene Nachkommastellen führen (die Startseite rundet auf ganze
- * Euro). Diese Prüfung kostet nichts und fängt genau den Fehler, der
- * aufgetreten ist. Wird zusammengelegt, fällt sie ersatzlos weg.
+ * DER GRUND WAR DER NAME. `fmtEUR` gab es in elf Dateien, mal mit
+ * vorangestelltem Zeichen, mal ohne. Seit dem 28.09.2026 (offene Punkte B9)
+ * steht der Formatierer an EINER Stelle, `src/lib/betrag.ts`, und jede Form
+ * hat ihren eigenen Namen: `euro` (mit Zeichen), `euroBetrag` (nur die Zahl),
+ * `euroGerundet` (mit Zeichen, ganze Euro), `euroPreis` (mit Zeichen, bis vier
+ * Nachkommastellen). Diese Prüfung hält beides fest:
+ * dass keine Kopie zurückkommt, und dass kein Aufruf ein zweites Zeichen setzt.
  */
 
-/** Jede Datei, die ein eigenes `fmtEUR` hat. */
-function dateienMitEigenemFmtEUR(): string[] {
-  const roh = execSync(
-    'grep -rl "const fmtEUR" --include=*.ts --include=*.tsx src/',
-    { encoding: 'utf8' },
-  );
+function quellen(): string[] {
+  const roh = execSync('grep -rl "" --include=*.ts --include=*.tsx src/', { encoding: 'utf8' });
   return roh.split('\n').filter(Boolean);
 }
 
-/** Stellt diese Fassung das Zeichen voran? */
-function stelltVoran(quelle: string): boolean {
-  const start = quelle.indexOf('const fmtEUR');
-  return /`€ \$\{/.test(quelle.slice(start, start + 220));
-}
+describe('Die vier Formen', () => {
+  it('euro stellt das Zeichen voran', () => {
+    expect(euro(22104.6)).toMatch(/^€ 22.104,60$/);
+  });
+  it('euroBetrag ist nur die Zahl', () => {
+    expect(euroBetrag(60)).toBe('60,00');
+  });
+  it('euroGerundet rundet auf ganze Euro', () => {
+    expect(euroGerundet(1234.56)).toMatch(/^€ 1.235$/);
+  });
+  it('euroPreis zeigt bis zu vier Nachkommastellen, mindestens zwei', () => {
+    expect(euroPreis(0.4375)).toBe('€ 0,4375');
+    expect(euroPreis(12.5)).toBe('€ 12,50');
+  });
+});
 
 describe('Das Eurozeichen steht genau einmal da', () => {
-  const dateien = dateienMitEigenemFmtEUR();
+  const dateien = quellen();
 
-  it('es gibt die acht Kopien überhaupt noch — sonst prüft das hier nichts', () => {
-    /*
-      DER WÄCHTER ÜBER DEN WÄCHTER. Würden die Kopien zusammengelegt, fände
-      die Prüfung unten nichts mehr und meldete fröhlich grün. Diese Zeile
-      fällt dann und sagt, dass die Prüfung ihre Grundlage verloren hat.
-    */
-    expect(dateien.length).toBeGreaterThanOrEqual(5);
+  it('es gibt keine eigene Kopie des Formatierers mehr', () => {
+    // Unter altem Namen, unter kurzem Namen und als Währungsformat von Hand.
+    const kopie = /(const|function)\s+(fmtEUR|eur)\b|currency:\s*'EUR'/;
+    const kopien = dateien.filter((p) => p !== 'src/lib/betrag.ts' && kopie.test(readFileSync(p, 'utf8')));
+    expect(kopien).toEqual([]);
   });
 
-  it.each(dateienMitEigenemFmtEUR())(
-    'in %s hängt keine Aufrufstelle ein zweites Zeichen an',
+  it('die Prüfung hat etwas zu prüfen — sonst meldete sie grün ins Leere', () => {
+    const mitAufruf = dateien.filter((p) => /\beuro(Gerundet|Preis)?\(/.test(readFileSync(p, 'utf8')));
+    expect(mitAufruf.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it.each(quellen().filter((p) => p !== 'src/lib/betrag.ts'))(
+    'in %s setzt kein Aufruf ein zweites Zeichen',
     (pfad) => {
       const quelle = readFileSync(pfad, 'utf8');
-      if (!stelltVoran(quelle)) return; // Dort GEHÖRT das Zeichen hinten hin.
-
       /*
-        Gesucht wird `fmtEUR(...)` mit einem € unmittelbar danach — in JSX
-        (`{fmtEUR(x)} €`) wie im Textbaustein (`${fmtEUR(x)} €`). Beides kam
-        vor.
+        Dahinter — in JSX (`{euro(x)} €`) wie im Textbaustein (`${euro(x)} €`),
+        beides kam vor — und davor (`€ ${euro(x)}`).
       */
-      const doppelt = [...quelle.matchAll(/fmtEUR\([^)]*\)[}`]?\s*€/g)]
-        .map((m) => m[0]);
-
-      expect(doppelt, `„${doppelt[0]}" in ${pfad}`).toEqual([]);
+      const dahinter = [...quelle.matchAll(/\beuro(?:Gerundet|Preis)?\([^)]*\)[}`]?\s*€/g)].map((m) => m[0]);
+      const davor = [...quelle.matchAll(/€\s*[{$]*\{?\s*euro(?:Gerundet|Preis)?\(/g)].map((m) => m[0]);
+      expect([...dahinter, ...davor], `„${dahinter[0] ?? davor[0]}" in ${pfad}`).toEqual([]);
     },
   );
 });

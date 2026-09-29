@@ -83,12 +83,14 @@ describe('Zeilenschutz', () => {
            select 1 from information_schema.columns col
             where col.table_schema = 'public' and col.table_name = p.tablename
               and col.column_name = 'company_id')
-         -- Drei Namen gelten, und alle drei nehmen die company_id DER ZEILE
+         -- Vier Namen gelten, und alle vier nehmen die company_id DER ZEILE
          -- entgegen: app.darf (der Regelfall), app.betriebsmitglied (die
          -- strengere Haelfte davon, ohne den Supportzweig -- sie steht dort,
          -- wo eine Regel auf app.darf zurueckfragen wuerde und sich im Kreis
-         -- drehte) und app.support_liest (der Supportzweig allein, gebunden
-         -- an eine gueltige Freigabe DIESES Betriebs).
+         -- drehte), app.support_liest (der Supportzweig allein, gebunden
+         -- an eine gueltige Freigabe DIESES Betriebs) und app.freigabe_gilt
+         -- (der erste Protokolleintrag eines Einblicks, B4: die genannte
+         -- Freigabe muss gelten UND diesem Betrieb gehoeren).
          --
          -- Was hier NICHT stehen darf, ist app.ist_plattform(): das prueft
          -- das Konto und nicht die Zeile -- und waere damit genau die offene
@@ -96,6 +98,7 @@ describe('Zeilenschutz', () => {
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.darf%'
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.betriebsmitglied%'
          and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.support_liest%'
+         and (coalesce(p.qual, '') || ' ' || coalesce(p.with_check, '')) not like '%app.freigabe_gilt%'
        order by 1, 2
     `);
     expect(offen.map((r) => `${r.tabelle}.${r.richtlinie}`)).toEqual([]);

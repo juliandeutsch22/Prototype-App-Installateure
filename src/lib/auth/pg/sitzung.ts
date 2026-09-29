@@ -111,9 +111,10 @@ export async function passwortSetzen(neu: string, aktuell?: string): Promise<voi
     Besitzer auszusperren. Nach einem Rücksetzlink oder Startpasswort fragt
     die Maske nicht — dort gibt es kein altes, das man kennen könnte.
   */
+  let adresse: string | undefined;
   if (aktuell !== undefined) {
     const { data } = await supabaseClient().auth.getSession();
-    const adresse = data.session?.user?.email;
+    adresse = data.session?.user?.email;
     if (!adresse) throw new Error('Nicht angemeldet.');
     const pruefer = pruefClient();
     const { error } = await pruefer.auth.signInWithPassword({ email: adresse, password: aktuell });
@@ -128,10 +129,33 @@ export async function passwortSetzen(neu: string, aktuell?: string): Promise<voi
     await pruefer.auth.signOut({ scope: 'local' }).catch(() => undefined);
   }
   // Mit dem eigenen Passwort ist das Startpasswort des Büros erledigt.
-  const { error } = await supabaseClient().auth.updateUser({
-    password: neu, data: { startpasswort: false },
-  });
+  const aendern = () =>
+    supabaseClient().auth.updateUser({ password: neu, data: { startpasswort: false } });
+  let { error } = await aendern();
+  /*
+    EINE SITZUNG, DIE ÄLTER ALS EIN TAG IST, DARF DAS PASSWORT NICHT MEHR
+    ÄNDERN (`secure_password_change`, offene Punkte B5). Der Dienst verlangte
+    dann einen Einmalcode per Mail — den ein Benutzernamen-Konto nie bekommt.
+    Wer das aktuelle Passwort eben richtig eingegeben hat, meldet sich
+    stattdessen damit frisch an; erst dann wird geändert. Die Prüfung oben
+    bleibt davor: ein falsches Passwort berührt die laufende Sitzung nie.
+  */
+  if (error && erneutAnmelden(error)) {
+    if (adresse === undefined || aktuell === undefined) {
+      throw new Error(
+        'Die Anmeldung liegt über einen Tag zurück. Bitte abmelden und neu anmelden — danach lässt sich das Passwort setzen.',
+      );
+    }
+    const frisch = await supabaseClient().auth.signInWithPassword({ email: adresse, password: aktuell });
+    if (frisch.error) throw new Error(frisch.error.message);
+    ({ error } = await aendern());
+  }
   if (error) throw new Error(error.message);
+}
+
+/** Verlangt der Dienst vor dem Ändern eine frische Anmeldung? */
+function erneutAnmelden(fehler: { message: string; code?: string }): boolean {
+  return fehler.code === 'reauthentication_needed' || /requires reauthentication/i.test(fehler.message);
 }
 
 /**

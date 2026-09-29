@@ -115,6 +115,19 @@ export async function plattformkonto(marke: string): Promise<Konto> {
 }
 
 /**
+ * Einen Einblick beginnen, wie die App es tut: mit dem ersten Eintrag im
+ * Protokoll. Seit B4 öffnet eine Freigabe ohne ihn nichts.
+ */
+export async function einblickBeginnen(
+  plattform: Konto, betrieb: string, freigabe: string, bereich = 'Betrieb',
+): Promise<void> {
+  const { error } = await plattform.client.from('support_zugriffe').insert({
+    company_id: betrieb, freigabe_id: freigabe, bereich,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/**
  * Ein Konto wirklich deaktivieren — so, wie es die Verwaltung tut.
  *
  * Der Trigger an der Belegschaft zieht daraus alles Weitere: die Ansprüche,

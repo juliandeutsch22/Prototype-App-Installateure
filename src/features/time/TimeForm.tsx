@@ -345,8 +345,8 @@ export default function TimeForm({
    * müssen.
    */
   const bild = useMemo(
-    () => zeitbild(startTime, endTime, breakDuration),
-    [startTime, endTime, breakDuration],
+    () => zeitbild(startTime, endTime, breakDuration, date),
+    [startTime, endTime, breakDuration, date],
   );
 
   async function handleSubmit(e: FormEvent) {

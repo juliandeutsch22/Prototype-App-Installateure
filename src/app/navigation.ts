@@ -387,3 +387,16 @@ export function hinweisZahl(item: NavItem, posten: OffenePosten | undefined): nu
 export function hinweisSumme(items: NavItem[], posten: OffenePosten | undefined): number {
   return items.reduce((s, i) => s + hinweisZahl(i, posten), 0);
 }
+
+/**
+ * Welcher Bereich hinter einem Pfad steht — der Name aus dem Menü, so wie
+ * ihn der Betrieb kennt. Akten und Unterseiten zählen zu ihrer Liste
+ * (`/customers/k1` → „Kunden"), der einzelne Schein zu den Scheinen.
+ */
+export function bereichVon(pfad: string): string {
+  if (pfad === '/worksheet' || pfad.startsWith('/worksheet/')) return 'Handwerksscheine';
+  const treffer = NAV
+    .filter((i) => i.path === pfad || (i.path !== '/' && pfad.startsWith(`${i.path}/`)))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+  return treffer?.label ?? NAV.find((i) => i.path === '/')!.label;
+}

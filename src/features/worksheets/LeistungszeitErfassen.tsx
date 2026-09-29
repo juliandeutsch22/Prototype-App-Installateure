@@ -52,11 +52,14 @@ export const NACHFRAGE_AB_MINUTEN = 14 * 60;
 
 export default function LeistungszeitErfassen({
   eigenerName,
+  datum,
   onHinzufuegen,
   onOffen,
 }: {
   /** Vorschlag für das Namensfeld — meist steht der Monteur selbst dort. */
   eigenerName: string;
+  /** Der Tag des Scheins — damit die Nacht der Zeitumstellung richtig zählt (B6). */
+  datum?: string;
   onHinzufuegen: (zeile: WorkSheetZeit) => void;
   /**
    * Meldet eine eingetippte, aber noch nicht übernommene Spanne („07:00–15:30")
@@ -91,6 +94,7 @@ export default function LeistungszeitErfassen({
     startTime: form.von || undefined,
     endTime: form.bis || undefined,
     breakDuration: pause,
+    date: datum,
   });
 
   function hinzufuegen() {

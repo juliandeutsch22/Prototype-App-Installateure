@@ -3,6 +3,7 @@ import type autoTableFn from 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 import type { Company } from '@/types';
 import { firmenZeilen, logoZeichnen } from './pdfBriefkopf';
+import { euroBetrag } from '@/lib/betrag';
 
 /**
  * Das Layout der Belege, die an den Kunden gehen — Rechnung,
@@ -217,9 +218,6 @@ export function fmtMenge(n: number): string {
   return new Intl.NumberFormat('de-AT', { maximumFractionDigits: 3 }).format(n);
 }
 
-const fmtEUR = (n: number) =>
-  new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-
 /** Eine Zeile der Positionstabelle — Rechnung und Angebot haben dieselbe. */
 export interface BelegPosition {
   label: string;
@@ -253,8 +251,8 @@ export function positionsTabelle(
       p.label,
       fmtMenge(p.qty),
       p.unit,
-      fmtEUR(p.unitPrice),
-      fmtEUR(p.netto),
+      euroBetrag(p.unitPrice),
+      euroBetrag(p.netto),
     ]),
     foot: o.fuss,
     columnStyles: {

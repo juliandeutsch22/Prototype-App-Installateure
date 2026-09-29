@@ -33,6 +33,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import { euro } from '@/lib/betrag';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -54,9 +55,6 @@ import { datumAT } from '@/lib/datum';
  * von der Baustelle oder der Rechnung lässt sich später darauf verlinken,
  * auf ein Aufklappen nicht.
  */
-
-const fmtEUR = (n: number) =>
-  `€ ${new Intl.NumberFormat('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}`;
 
 const fmtDatum = (iso?: string) =>
   datumAT(iso) || '—';
@@ -499,7 +497,7 @@ export default function KundenakteView() {
                 </span>
               </span>
               <span className="whitespace-nowrap text-sm text-ink-muted">
-                {fmtEUR(r.totalBrutto)} brutto · {r.paymentStatus}
+                {euro(r.totalBrutto)} brutto · {r.paymentStatus}
               </span>
             </li>
           ))}
@@ -532,7 +530,7 @@ export default function KundenakteView() {
                 <span className="truncate">{q.quoteNumber}</span>
               </Link>
               <span className="text-sm text-ink-muted">
-                {fmtEUR(q.totalNetto)} netto · {q.status}
+                {euro(q.totalNetto)} netto · {q.status}
               </span>
             </li>
           ))}

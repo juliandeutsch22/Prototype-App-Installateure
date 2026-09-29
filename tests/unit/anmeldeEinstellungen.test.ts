@@ -12,11 +12,11 @@ import { resolve } from 'node:path';
  * Anmeldung, die es draussen nicht gibt; ein Fehler, der nur mit offener
  * Registrierung funktioniert, fiele hier nie auf.
  *
- * `secure_password_change` bleibt bewusst aus: die App ändert ein Passwort
- * mit `updateUser` in der laufenden Sitzung und prüft das alte vorher selbst
- * (`lib/auth/pg/sitzung.ts`). Mit dem Schalter verlangte der Dienst bei einer
- * Sitzung, die älter als ein Tag ist, eine erneute Anmeldung samt Einmalcode —
- * und das Ändern scheiterte.
+ * `secure_password_change` ist seit dem 28.09.2026 an (offene Punkte B5).
+ * Bei einer Sitzung, die älter als ein Tag ist, verlangt der Dienst vor dem
+ * Ändern eine frische Anmeldung; die App holt sie mit dem eben geprüften
+ * aktuellen Passwort nach (`lib/auth/pg/sitzung.ts`), statt einen Einmalcode
+ * per Mail zu schicken, den ein Benutzernamen-Konto nie bekäme.
  */
 const toml = readFileSync(resolve(__dirname, '../../supabase/config.toml'), 'utf8');
 
@@ -39,6 +39,10 @@ describe('Die Anmeldung im örtlichen Stack', () => {
     // [auth.email] enable_signup ist in der CLI GOTRUE_EXTERNAL_EMAIL_ENABLED:
     // aus, und niemand kann sich mehr anmelden („Email logins are disabled“).
     expect(wert('auth.email', 'enable_signup')).toBe('true');
+  });
+
+  it('verlangt für eine Passwortänderung eine frische Anmeldung', () => {
+    expect(wert('auth.email', 'secure_password_change')).toBe('true');
   });
 
   it('verlangt acht Zeichen, wie die App', () => {

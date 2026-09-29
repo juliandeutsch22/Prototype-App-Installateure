@@ -397,6 +397,9 @@ dem Feld — Format, Prüfsumme und PDF unberührt.
    („Wächter über den Wächter“), und die Prüfung darf nicht abgeschwächt
    werden. Vorschlag: zusammenlegen und die Prüfung im selben Auftrag auf
    den einen Formatierer umstellen.
+   **Erledigt am 28.09.2026** (offene Punkte B9): `src/lib/betrag.ts` mit
+   `euro`, `euroBetrag`, `euroGerundet` und `euroPreis`; die Prüfung ist im
+   selben Schritt umgestellt und verbietet jede neue Kopie.
 5. **Abdunkler hinter Dialogen** (`bg-ink/40` in `ConfirmDialog.tsx`,
    `BottomSheet.tsx`, `ExportDialog.tsx`) sind die einzigen halbtransparenten
    Flächen. Deckend würden sie den Kontext hinter dem Dialog verbergen — das
@@ -540,7 +543,7 @@ Dashboard, BaustellenUebersicht. Einzelstelle
 `invoices/pdf.ts`, `summenZeilen.ts`, `mahnungPdf.ts`, `lib/belegLayout.ts`,
 `bmdExport.ts` — diese bleiben unberührt (PDF/Export).
 Die Prüfung `tests/unit/eurozeichen.test.ts` setzt voraus, dass es diese
-Kopien gibt („der Wächter über den Wächter“).
+Kopien gibt („der Wächter über den Wächter“). *(Stand der Bestandsaufnahme; seit 28.09.2026 gibt es sie nicht mehr — `src/lib/betrag.ts`.)*
 
 ### 0.4 Bausteine und Varianten
 

@@ -1252,6 +1252,7 @@ export default function WorkSheetView() {
             <div className="mt-4">
               <LeistungszeitErfassen
                 eigenerName={user?.name ?? ''}
+                datum={datum}
                 onHinzufuegen={(zeile) =>
                   setZeiten((z) => {
                     selbstErfasstRef.current = new Set(selbstErfasstRef.current).add(z.length);

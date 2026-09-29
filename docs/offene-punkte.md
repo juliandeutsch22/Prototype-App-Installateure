@@ -33,12 +33,8 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 | B1 | **Kostensätze, Einkaufspreise, Zeitkonten für alle Rollen lesbar** (`companies.cost_rates`, `material_prices`, `users.initial_*`, `vacations.saldo_bei_antrag`) (P3-12) | Umbau auf Sichten oder Spaltenrechte; die Datenbank schützt nur das Schreiben | Kostensätze und Einkaufspreise in eigene Tabellen/Sichten mit Leseregel für die Spitze; `users` und `vacations` für andere Rollen über Sichten ohne Kontospalten |
 | B2 | **Supportsitzung „mitarbeiten“**: alle Funktionen, die den Betrieb aus dem Token holen, scheitern für das Plattformkonto (P3-14) | Umbau aller betroffenen Funktionen (Einsatz, Rüstliste, Schein, Rechnung, Nummern, Angebot, Urlaub, Betriebsurlaub …) | Einblicksbetrieb als Parameter mit `support_schreibt(betrieb)`-Prüfung; bis dahin sagt die Supportleiste ehrlich, was nicht geht |
 | B3 | **Support mit „mitarbeiten“ in Betrieb A** liest in Betrieb B (mit Lesefreigabe) auch, was dort nur die Spitze liest, z. B. Angebote (P3-02, Rest) | Die Rollenfunktionen kennen keinen Betrieb; Schreiben in B ist gesperrt | Rollenfunktionen betriebsbezogen machen |
-| B4 | **Supportprotokoll** wird nur vom Browser des Supports geschrieben (P3-15) | Kein serverseitiger Einstiegspunkt; wer über die API liest, hinterlässt keinen Eintrag | RPC „Einblick starten“, die protokolliert; Grenze steht in `docs/DEPLOYMENT.md` |
-| B5 | **`secure_password_change`** (P3-22, Teil) | Die Passwortänderung in der App (`updateUser` in laufender Sitzung) würde eine Reauthentifizierung verlangen | Mit Nonce/Reauthentifizierung umsetzen |
-| B6 | **Nachtschicht über die Zeitumstellung** rechnet ±1 h falsch (Spannen auf dem 1.1.1970) (P1-25) | Rechnung in App (`shared/arbeitszeit.ts`) und Datenbank (`app.arbeitsminuten`) | Mit dem echten Datum in Europe/Vienna rechnen |
 | B7 | **Gutschrift, Skonto, Verzugszinsen** fehlen; ein Storno ist nur eine Statusänderung ohne Beleg für den Kunden | Neue Funktionen | Eigener Auftrag |
 | B8 | **DSGVO-Auskunft (Art. 15) und Löschung (Art. 17) je Person** fehlen; `betrieb_auszug` betrifft nur den ganzen Betrieb und ist auf 8 MB begrenzt | Neue Funktionen | Eigener Auftrag |
-| B9 | **Betragsformatierer**: acht `fmtEUR`-Kopien | `tests/unit/eurozeichen.test.ts` setzt sie voraus und darf nicht abgeschwächt werden | Zusammenlegen und die Prüfung im selben Auftrag auf den einen Formatierer umstellen |
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
 
 ## C. Absicherungen und Tests, die fehlen
@@ -73,6 +69,21 @@ in `tests/links/linkziel.ts`, selbst geprüft in `tests/unit/linkziel.test.ts`.
 Nicht erfasst: Knöpfe, die erst beim Klick weiterleiten), C3 (die Scheine
 einer Baustelle kommen alle, neueste zuerst und in jeder Schreibweise der
 Nummer, wie Rechnungen und Zeiten; `tests/supabase/scheineDerBaustelle.test.ts`).
+
+**Aus B, am 28.09.2026:** B5 (`secure_password_change` an: eine Sitzung,
+die älter als ein Tag ist, meldet beim Passwortändern mit dem eben geprüften
+Passwort frisch an; im örtlichen Stack an und gegen eine gealterte Sitzung
+geprüft, `tests/supabase/anmeldung.test.ts`. **In der Produktion schaltet
+ihn das Dashboard** — Schritt 1.4 in `docs/DEPLOYMENT.md`), B4 (kein Einblick ohne Eintrag im Protokoll —
+von der Datenbank erzwungen, auch an der App vorbei; die App meldet dazu
+wieder jeden Bereich, bevor er lädt, was seit dem Umbau auf die echte App
+(#136) entfallen war; `tests/supabase/supportzugang.test.ts`,
+`tests/components/EinblickProtokoll.test.tsx`), B6 (die Nacht der Zeitumstellung zählt richtig —
+App und Datenbank rechnen mit dem Tag in Wiener Zeit und kommen auf
+dieselbe Minute; 17 Fälle in `tests/faelle/zeitumstellung.ts`, gegen beide
+geprüft), B9 (ein Betragsformatierer, `src/lib/betrag.ts`, mit einem Namen
+je Form; `tests/unit/eurozeichen.test.ts` hält fest, dass keine Kopie
+zurückkommt und kein Aufruf ein zweites Zeichen setzt).
 
 **Design „Fassung 3“ (früher B11)** ist in neun Schritten umgesetzt
 (#160–#170); was mit Absicht anders als im Entwurf ist, steht mit Grund in

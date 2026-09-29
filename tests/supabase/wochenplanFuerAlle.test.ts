@@ -6,7 +6,7 @@
  * nichts. Und die Urlaubstabelle selbst bleibt für fremde Zeilen zu.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { admin, betriebAnlegen, konto, plattformkonto, type Konto } from './helfer';
+import { admin, betriebAnlegen, einblickBeginnen, konto, plattformkonto, type Konto } from './helfer';
 
 const BETRIEB = 'woche-a';
 const ANDERER = 'woche-b';
@@ -109,11 +109,13 @@ describe('Mit Schalter', () => {
 
   it('gibt dem Support nichts — auch nicht mit Freigabe', async () => {
     await schalter(true);
-    const { error } = await chef.client.from('support_freigaben').insert({
+    const { data: f, error } = await chef.client.from('support_freigaben').insert({
       company_id: BETRIEB, gewaehrt_von: chef.uid, grund: 'Rechnung prüfen',
       gilt_bis: new Date(Date.now() + 3_600_000).toISOString(),
-    });
+    }).select('id').single();
     expect(error).toBeNull();
+    // Begonnen, wie in der App — sonst hielte schon der fehlende Eintrag zu (B4).
+    await einblickBeginnen(plattform, BETRIEB, (f as { id: string }).id);
     const { data } = await abwesend(plattform);
     expect(data ?? []).toEqual([]);
   });

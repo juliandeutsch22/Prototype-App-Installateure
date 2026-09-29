@@ -38,6 +38,13 @@ Unterauftragsverarbeiter stehen bleibt.
    Projekt nach sieben Tagen ohne Zugriff — über Weihnachten steht die App.
 3. Unter *Project Settings → API* liegen die drei Werte, die gleich gebraucht
    werden: **Project URL**, **anon key**, **service_role key**.
+4. Unter *Authentication* so einstellen, wie `supabase/config.toml` es für
+   den örtlichen Stack festhält (`tests/unit/anmeldeEinstellungen.test.ts`) —
+   die Datei selbst erreicht das Projekt nicht: **Registrieren aus**
+   („Allow new users to sign up"), **Mindestlänge 8** und **„Secure password
+   change" an** (seit 28.09.2026, offene Punkte B5). Ist eine Sitzung älter
+   als ein Tag, meldet die App beim Passwortändern mit dem eben geprüften
+   aktuellen Passwort frisch an; einen Einmalcode per Mail braucht es nicht.
 
 > **Der `service_role`-Schlüssel gehört nirgendwo hin, wo ein Browser ihn
 > sieht.** Er hebelt den Zeilenschutz vollständig aus. Er wird an genau zwei
@@ -263,14 +270,15 @@ andere und genau daraus der Fehler entsteht, der weh tut.
    gewährt" — mit Grund, Stufe und Frist. „Öffnen" setzt ihn **in die echte
    App** dieses Betriebs.
 4. **Jeder geöffnete Bereich wird protokolliert**, und zwar *bevor* er geladen
-   wird: scheitert die Meldung, beginnt der Einblick gar nicht.
-   *Die Grenze dieser Zusage, benannt (Prüflauf 25.09.2026, P3-15):* den
-   Eintrag schreibt die App, nicht die Datenbank. Wer mit einem
-   Plattformkonto an der App vorbei direkt über die Schnittstelle liest,
-   hinterlässt keinen — die Freigabe selbst (Grund, Stufe, Frist, Widerruf)
-   steht trotzdem im Protokoll des Betriebs. Serverseitig erzwingen liesse es
-   sich nur, wenn jede Leseregel erst nach einem Eintrag öffnete; das ist
-   nicht gebaut.
+   wird: scheitert die Meldung, bleibt der Bereich zu.
+   *Seit 28.09.2026 erzwingt die Datenbank den Anfang* (offene Punkte B4,
+   Prüflauf P3-15): eine Freigabe öffnet nichts, solange dieses
+   Plattformkonto für sie keinen Eintrag in `support_zugriffe` hat — auch
+   nicht, wer an der App vorbei direkt über die Schnittstelle liest. Eine neue
+   Freigabe verlangt einen neuen Eintrag; der eines anderen Plattformkontos
+   öffnet nichts. Welche Bereiche danach geöffnet werden, meldet die App
+   (`src/components/EinblickProtokoll.tsx`); wer an ihr vorbei liest, steht
+   deshalb mit dem Beginn im Protokoll, aber nicht mit jedem Bereich.
 5. **Der Betrieb beendet** — ein Klick, sofort wirksam — oder die Frist
    läuft ab. Beides nimmt das Leserecht in derselben Sekunde weg.
 

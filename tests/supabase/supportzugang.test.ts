@@ -8,9 +8,14 @@
  * Plattformkonto OHNE Freigabe wirklich nichts — und zwar auch dann nicht,
  * wenn eine Freigabe für einen ANDEREN Betrieb gilt, wenn sie abgelaufen ist
  * oder wenn sie widerrufen wurde?
+ *
+ * SEIT B4 (28.09.2026) GEHÖRT DER BEGINN DAZU. Eine Freigabe öffnet erst,
+ * wenn dieses Plattformkonto für sie einen Eintrag im Protokoll hat — so,
+ * wie die App ihn beim Öffnen schreibt. `freigeben` beginnt deshalb gleich
+ * mit, wo nicht ausdrücklich anders verlangt.
  */
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { admin, betriebAnlegen, konto, plattformkonto, type Konto } from './helfer';
+import { admin, betriebAnlegen, einblickBeginnen, konto, plattformkonto, type Konto } from './helfer';
 import { clientEinreichen } from '@/lib/db/pg/kern';
 
 const BETRIEB = 'sup-a';
@@ -48,8 +53,8 @@ afterEach(async () => {
 
 const inStunden = (n: number) => new Date(Date.now() + n * 3_600_000).toISOString();
 
-/** Eine Freigabe, wie der Betrieb sie gibt. */
-async function freigeben(stunden = 4, wer: Konto = chefin, betrieb = BETRIEB) {
+/** Eine Freigabe, wie der Betrieb sie gibt — und der Einblick, wie der Support ihn beginnt. */
+async function freigeben(stunden = 4, wer: Konto = chefin, betrieb = BETRIEB, beginnen = true) {
   const { data, error } = await wer.client
     .from('support_freigaben')
     .insert({
@@ -61,7 +66,9 @@ async function freigeben(stunden = 4, wer: Konto = chefin, betrieb = BETRIEB) {
     .select('id')
     .single();
   if (error) throw new Error(error.message);
-  return (data as { id: string }).id;
+  const id = (data as { id: string }).id;
+  if (beginnen) await einblickBeginnen(plattform, betrieb, id);
+  return id;
 }
 
 /** Was das Plattformkonto in diesem Betrieb sieht. */
@@ -116,11 +123,15 @@ describe('Mit Freigabe sieht sie — und nur so lange', () => {
       gültigen gemacht: nachträglich verlängern oder verkürzen lässt sich eine
       Freigabe nirgends, auch nicht so.
     */
-    const { error } = await admin.from('support_freigaben').insert({
+    const { data, error } = await admin.from('support_freigaben').insert({
       company_id: BETRIEB, gewaehrt_von: chefin.uid, grund: 'gestern',
       gilt_bis: new Date(Date.now() - 1000).toISOString(),
-    });
+    }).select('id').single();
     expect(error).toBeNull();
+    // Begonnen war sie — so prüft hier allein die Frist.
+    await admin.from('support_zugriffe').insert({
+      company_id: BETRIEB, freigabe_id: (data as { id: string }).id, admin_uid: plattform.uid, bereich: 'Betrieb',
+    });
     expect(await siehtKunden()).toBe(0);
   });
 });
@@ -306,6 +317,9 @@ describe('Der Notzugang', () => {
     });
     expect(error).toBeNull();
     expect(data).toBeTruthy();
+    // Auch der Notzugang öffnet erst nach dem Eintrag.
+    expect(await siehtKunden()).toBe(0);
+    await einblickBeginnen(plattform, BETRIEB, data as string);
     expect(await siehtKunden()).toBe(1);
 
     const { data: zeile } = await chefin.client
@@ -317,6 +331,8 @@ describe('Der Notzugang', () => {
     const { data: id } = await plattform.client.rpc('support_notzugang', {
       p_company: BETRIEB, p_grund: 'Ausgesperrt', p_stunden: 4,
     });
+    await einblickBeginnen(plattform, BETRIEB, id as string);
+    expect(await siehtKunden()).toBe(1);
     await chefin.client.from('support_freigaben')
       .update({ widerrufen_am: new Date().toISOString(), widerrufen_von: chefin.uid })
       .eq('id', id);
@@ -348,7 +364,7 @@ describe('Der Notzugang', () => {
 
 describe('Das Protokoll', () => {
   it('hält fest, wer wann welchen Bereich geöffnet hat — und der Betrieb liest es', async () => {
-    const id = await freigeben();
+    const id = await freigeben(4, chefin, BETRIEB, false);
     const melden = await plattform.client.from('support_zugriffe').insert({
       company_id: BETRIEB, freigabe_id: id, admin_uid: plattform.uid, bereich: 'Rechnungen',
     });
@@ -365,7 +381,7 @@ describe('Das Protokoll', () => {
       beantwortet die Frage nicht, für die es da ist — und zwar gerade dann
       nicht, wenn sie gestellt wird.
     */
-    const id = await freigeben();
+    const id = await freigeben(4, chefin, BETRIEB, false);
     await plattform.client.from('support_zugriffe').insert({
       company_id: BETRIEB, freigabe_id: id, admin_uid: plattform.uid, bereich: 'Rechnungen',
     });
@@ -383,7 +399,7 @@ describe('Das Protokoll', () => {
   });
 
   it('lässt sich ohne gültige Freigabe nicht beschreiben', async () => {
-    const id = await freigeben();
+    const id = await freigeben(4, chefin, BETRIEB, false);
     await admin.from('support_freigaben')
       .update({ widerrufen_am: new Date().toISOString() }).eq('id', id);
     const melden = await plattform.client.from('support_zugriffe').insert({
@@ -543,7 +559,7 @@ describe('Was in einem Zugang angesehen wurde', () => {
   }
 
   it('zählt je Bereich, statt jeden Aufruf einzeln zu nennen', async () => {
-    const f = await freigeben();
+    const f = await freigeben(4, chefin, BETRIEB, false);
     await oeffnen(f, 'Rechnungen');
     await oeffnen(f, 'Rechnungen');
     await oeffnen(f, 'Rechnungen');
@@ -569,7 +585,7 @@ describe('Was in einem Zugang angesehen wurde', () => {
       angesehen wurde. Eine Gesamtzahl über alles beantwortet seine Frage
       nicht.
     */
-    const erster = await freigeben();
+    const erster = await freigeben(4, chefin, BETRIEB, false);
     await oeffnen(erster, 'Rechnungen');
     await plattform.client.from('support_zugriffe').select('id').limit(1);
     const { error: wf } = await chefin.client
@@ -578,7 +594,7 @@ describe('Was in einem Zugang angesehen wurde', () => {
       .eq('id', erster);
     expect(wf).toBeNull();
 
-    const zweiter = await freigeben();
+    const zweiter = await freigeben(4, chefin, BETRIEB, false);
     await oeffnen(zweiter, 'Benutzer');
     await oeffnen(zweiter, 'Benutzer');
 
@@ -596,7 +612,7 @@ describe('Was in einem Zugang angesehen wurde', () => {
     // Die Funktion laeuft mit den Rechten des Aufrufers: der Zeilenschutz auf
     // `support_zugriffe` bleibt in Kraft. Ohne diese Pruefung waere eine
     // `security definer`-Fassung ein Fenster in fremde Protokolle.
-    const f = await freigeben();
+    const f = await freigeben(4, chefin, BETRIEB, false);
     await oeffnen(f, 'Rechnungen');
 
     const { data } = await anderChef.client.rpc('support_bereiche', { p_company: BETRIEB });
@@ -615,7 +631,7 @@ describe('Die Stufe „mitarbeiten"', () => {
     darf durch die neue Tür NICHT hindurch, und eine Schreibfreigabe darf
     nicht mehr aufmachen als den einen Betrieb, für den sie gilt.
   */
-  async function freigebenMit(stufe: string, stunden = 4, betrieb = BETRIEB, wer: Konto = chefin) {
+  async function freigebenMit(stufe: string, stunden = 4, betrieb = BETRIEB, wer: Konto = chefin, beginnen = true) {
     const { data, error } = await wer.client
       .from('support_freigaben')
       .insert({
@@ -628,7 +644,9 @@ describe('Die Stufe „mitarbeiten"', () => {
       .select('id')
       .single();
     if (error) throw new Error(error.message);
-    return (data as { id: string }).id;
+    const id = (data as { id: string }).id;
+    if (beginnen) await einblickBeginnen(plattform, betrieb, id);
+    return id;
   }
 
   /**
@@ -729,10 +747,11 @@ describe('Die Stufe „mitarbeiten"', () => {
   it('lässt einen Notzugang nicht schreiben', async () => {
     // Er läuft ohne Zustimmung. Schreibrechte ohne Zustimmung wären genau der
     // Generalschlüssel, den dieser ganze Bau vermeiden soll.
-    const { error } = await plattform.client.rpc('support_notzugang', {
+    const { data: id, error } = await plattform.client.rpc('support_notzugang', {
       p_company: BETRIEB, p_grund: 'Letzter Administrator ausgesperrt', p_stunden: 4,
     });
     expect(error).toBeNull();
+    await einblickBeginnen(plattform, BETRIEB, id as string);
     const { erreicht } = await kundeUmbenennen();
     expect(erreicht).toBe(false);
   });
@@ -799,10 +818,11 @@ describe('Die Stufe „mitarbeiten"', () => {
   */
   it('schreibt mit Schreibfreigabe in A und Notzugang in B nichts in B — auch nicht am Betrieb selbst', async () => {
     await freigebenMit('mitarbeiten', 4, BETRIEB);
-    const { error: not } = await plattform.client.rpc('support_notzugang', {
+    const { data: notId, error: not } = await plattform.client.rpc('support_notzugang', {
       p_company: ANDERER, p_grund: 'Anderer Betrieb ausgesperrt', p_stunden: 4,
     });
     expect(not).toBeNull();
+    await einblickBeginnen(plattform, ANDERER, notId as string);
 
     await plattform.client.from('companies')
       .update({ iban: 'AT00 0000 0000 0000 0000', bank_name: 'Vom Support' }).eq('id', ANDERER);
@@ -810,6 +830,13 @@ describe('Die Stufe „mitarbeiten"', () => {
     expect(b).toEqual({ iban: null, bank_name: null });
 
     expect((await kundeUmbenennen(ANDERER)).erreicht).toBe(false);
+  });
+
+  it('schreibt erst nach dem Eintrag im Protokoll (B4)', async () => {
+    const id = await freigebenMit('mitarbeiten', 4, BETRIEB, chefin, false);
+    expect((await kundeUmbenennen()).erreicht).toBe(false);
+    await einblickBeginnen(plattform, BETRIEB, id);
+    expect((await kundeUmbenennen()).erreicht).toBe(true);
   });
 
   it('am eigenen Betrieb der Freigabe ändert „mitarbeiten" die Stammdaten weiter', async () => {
@@ -820,5 +847,54 @@ describe('Die Stufe „mitarbeiten"', () => {
     const { data } = await admin.from('companies').select('bank_name').eq('id', BETRIEB).single();
     expect(data).toEqual({ bank_name: 'Richtiggestellt vom Support' });
     await admin.from('companies').update({ bank_name: null }).eq('id', BETRIEB);
+  });
+});
+
+describe('Erst der Eintrag, dann der Einblick (offene Punkte B4)', () => {
+  /*
+    PRÜFLAUF 25.09.2026 (P3-15). Den Eintrag schrieb nur die App; wer mit
+    einem Plattformkonto an ihr vorbei über die Schnittstelle las, las mit
+    jeder gültigen Freigabe — und hinterliess nichts. Jetzt verlangt die
+    Datenbank den Eintrag, bevor sie etwas herausgibt.
+  */
+  it('eine Freigabe allein öffnet nichts — erst der Eintrag', async () => {
+    const id = await freigeben(4, chefin, BETRIEB, false);
+    expect(await siehtKunden()).toBe(0);
+    await einblickBeginnen(plattform, BETRIEB, id);
+    expect(await siehtKunden()).toBe(1);
+
+    const { data } = await chefin.client
+      .from('support_zugriffe').select('bereich, admin_uid').eq('company_id', BETRIEB);
+    expect(data).toEqual([{ bereich: 'Betrieb', admin_uid: plattform.uid }]);
+  });
+
+  it('ein Eintrag gilt nur für seine Freigabe — eine neue beginnt neu', async () => {
+    const alt = await freigeben();
+    await chefin.client.from('support_freigaben')
+      .update({ widerrufen_am: new Date().toISOString(), widerrufen_von: chefin.uid })
+      .eq('id', alt);
+    const neu = await freigeben(4, chefin, BETRIEB, false);
+    expect(await siehtKunden()).toBe(0);
+    await einblickBeginnen(plattform, BETRIEB, neu);
+    expect(await siehtKunden()).toBe(1);
+  });
+
+  it('ein Eintrag mit der Freigabe eines anderen Betriebs wird abgewiesen', async () => {
+    const fremd = await freigeben(4, anderChef, ANDERER, false);
+    const { error } = await plattform.client.from('support_zugriffe').insert({
+      company_id: BETRIEB, freigabe_id: fremd, bereich: 'Betrieb',
+    });
+    expect(error).not.toBeNull();
+    expect(await siehtKunden(BETRIEB)).toBe(0);
+  });
+
+  it('der Eintrag eines anderen Plattformkontos öffnet nichts', async () => {
+    const zweites = await plattformkonto('supplatt2');
+    const id = await freigeben(4, chefin, BETRIEB, false);
+    await einblickBeginnen(zweites, BETRIEB, id);
+    expect(await siehtKunden()).toBe(0);
+    // Die Gegenprobe: dem, der begonnen hat, öffnet er.
+    const { data } = await zweites.client.from('customers').select('id').eq('company_id', BETRIEB);
+    expect(data ?? []).toHaveLength(1);
   });
 });

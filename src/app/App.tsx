@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import MarkenBand from '@/components/MarkenBand';
+import EinblickProtokoll from '@/components/EinblickProtokoll';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import { beiPasswortRuecksetzung, startpasswortOffen } from '@/lib/auth/sitzung';
@@ -244,7 +245,9 @@ function AppInhalt() {
                     während der Inhalt nachlädt.
                   */}
                   <Suspense fallback={<LoadingState label="Wird geladen …" />}>
-                    <AppRoutes />
+                    <EinblickProtokoll>
+                      <AppRoutes />
+                    </EinblickProtokoll>
                   </Suspense>
                 </ErrorBoundary>
               </Layout>
