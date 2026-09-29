@@ -527,9 +527,12 @@ unter „Der Weg zum Start in Österreich". Die Reihenfolge dort, kurz:
    20.09.2026.** Die Schlussrechnung zieht die Anzahlungen samt Steuer ab
    (§ 11 Abs 12 UStG). `total_*` ist die Restforderung, `gesamt_*` die volle
    Leistung; abgezogen wird nur, was keine Belege verbraucht hat.
-3. **Was von Stufe 10 noch offen ist** — Skonto und Verzugszinsen (beide
-   hängen am Zahlungseingang und sind damit jetzt baubar), der Rücklass, die
-   Gutschrift und die innergemeinschaftliche Leistung.
+3. **Was von Stufe 10 noch offen ist** — der Rücklass und die
+   innergemeinschaftliche Leistung. Skonto, Verzugszinsen und die
+   Stornorechnung sind seit 29.09.2026 gebaut; eine Teilgutschrift bewusst
+   nicht. **Wiederkehrend:** zum 1. Jänner und 1. Juli den Basiszinssatz der
+   OeNB in den Einstellungen eintragen — ohne ihn gehen Mahnungen an
+   Unternehmer ohne Zinsen hinaus (der Mahndialog sagt es).
 4. **Arbeitszeit: Gleitzeit oder Durchrechnung** — nur, wenn der Betrieb eine
    entsprechende Vereinbarung hat. Die Frage ist gestellt und noch offen.
 5. **Registrierkasse** — erst zu klären, ob der Betrieb überhaupt

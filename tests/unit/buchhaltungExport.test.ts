@@ -263,6 +263,8 @@ describe('Der Leistungszeitraum im Journal', () => {
         verschiebt jede Zuordnung danach.
       */
       'Rechnungsart',
+      // Skonto (B7) — ebenfalls am Ende, aus demselben Grund.
+      'Skonto',
     ]);
     const felder = zeile.split(';');
     expect(felder[2]).toBe('03.12.2026');
@@ -285,8 +287,21 @@ describe('Der Leistungszeitraum im Journal', () => {
       [], '2026-01-01', '2026-12-31',
     );
     const [, erste, zweite] = r.csv.split('\n');
-    expect(erste.split(';').pop()).toBe('anzahlung');
-    expect(zweite.split(';').pop()).toBe('einzel');
+    expect(erste.split(';').slice(-2)[0]).toBe('anzahlung');
+    expect(zweite.split(';').slice(-2)[0]).toBe('einzel');
+  });
+
+  it('führt einen Skonto getrennt vom Geld, das gekommen ist (B7)', () => {
+    // 1.000 € Rechnung, 980 € überwiesen, 20 € Skonto: bezahlt 980, Rest 0, Skonto 20.
+    const r = buildInvoiceCsv(
+      [{ ...re('RE-2026-0001', 1000), totalBrutto: 1000, bezahltBetrag: 1000, skontoBetrag: 20, paymentStatus: 'Bezahlt' }],
+      [], '2026-01-01', '2026-12-31',
+    );
+    const [kopf, zeile] = r.csv.split('\n');
+    const spalte = (name: string) => zeile.split(';')[kopf.split(';').indexOf(name)];
+    expect(spalte('Bezahlt')).toBe('980,00');
+    expect(spalte('Offener Rest')).toBe('0,00');
+    expect(spalte('Skonto')).toBe('20,00');
   });
 
   /*

@@ -148,6 +148,31 @@ describe('Mahnspesen', () => {
   });
 });
 
+describe('Verzugszinsen (B7)', () => {
+  const zinsen = { art: 'berechnet', satz: 10.73, tage: 30, betrag: 10.58, grundlage: '§ 456 UGB' } as const;
+
+  it('stehen mit Satz, Tagen und Grundlage da und zählen zum offenen Betrag', async () => {
+    // 1.200 € + 5 € Spesen + 10,58 € Zinsen = 1.215,58 €
+    const s = await text({ stufe: 2, zinsen });
+    expect(s).toContain('Verzugszinsen 10,73 % p. a., 30 Tage');
+    expect(s).toMatch(betrag('10,58'));
+    expect(s).toMatch(betrag('1.215,58'));
+  });
+
+  it('sagt, ab wann gerechnet wird, wenn der Satz davor fehlt', async () => {
+    const s = await text({ stufe: 2, zinsen: { ...zinsen, ab: '2026-07-01' } });
+    expect(s).toContain('30 Tage ab 01.07.2026');
+  });
+
+  it('bleiben weg, wenn keine berechnet sind — auch wenn sie fehlen', async () => {
+    for (const z of [undefined, { art: 'keine' } as const, { art: 'fehlt' } as const]) {
+      const s = await text({ stufe: 2, zinsen: z });
+      expect(s).not.toContain('Verzugszinsen');
+      expect(s).toMatch(betrag('1.205,00'));
+    }
+  });
+});
+
 describe('Nach einer Teilzahlung', () => {
   /*
     GEFUNDEN BEIM NEUGESTALTEN DER BELEGE: die Zeile „Bereits bezahlt" trug

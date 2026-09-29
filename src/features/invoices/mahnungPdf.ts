@@ -10,7 +10,7 @@ import {
   TINTE,
   titel,
 } from '@/lib/belegLayout';
-import { TEXTE, spesenFuer, type Mahnstufe } from './mahnung';
+import { TEXTE, spesenFuer, type Mahnstufe, type Verzugszinsen } from './mahnung';
 import { zahlstand } from './zahlstand';
 import type { Company, Invoice } from '@/types';
 import { euroBetrag } from '@/lib/betrag';
@@ -28,8 +28,9 @@ import { euroBetrag } from '@/lib/betrag';
  * Suchen weiss, worum es geht.
  *
  * KEINE UMSATZSTEUER. Eine Mahnung ist keine Leistung; sie fordert nur, was
- * die Rechnung bereits ausgewiesen hat. Auch die Mahnspesen sind kein Entgelt
- * für eine Leistung, sondern Schadenersatz — sie tragen deshalb keine Steuer.
+ * die Rechnung bereits ausgewiesen hat. Auch Mahnspesen und Verzugszinsen
+ * sind kein Entgelt für eine Leistung, sondern Schadenersatz — sie tragen
+ * deshalb keine Steuer.
  * Stünde hier eine, schuldete der Betrieb sie kraft Rechnungslegung.
  *
  * jsPDF wird dynamisch geladen — wie beim Handwerksschein: die Bibliothek
@@ -58,6 +59,12 @@ export interface MahnungOptionen {
   adresse?: string;
   /** UID des Kunden, falls bekannt. */
   kundenUid?: string;
+  /**
+   * Die Verzugszinsen, wie sie der Dialog vorher angezeigt hat — gerechnet
+   * von `verzugszinsen`, nicht hier, damit Dialog und Beleg dieselbe Zahl
+   * tragen.
+   */
+  zinsen?: Verzugszinsen;
 }
 
 export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
@@ -119,6 +126,15 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
     zeilen.push(['Bereits bezahlt', `- ${euroBetrag(stand.bezahlt)} €`]);
   }
   if (spesen > 0) zeilen.push(['Mahnspesen', `${euroBetrag(spesen)} €`]);
+  const zinsen = o.zinsen?.art === 'berechnet' ? o.zinsen : null;
+  if (zinsen) {
+    // Satz, Tage und Grundlage stehen dabei: sonst ist die Zahl nicht nachzurechnen.
+    zeilen.push([
+      `Verzugszinsen ${zinsen.satz.toLocaleString('de-AT', { maximumFractionDigits: 2 })} % p. a., ${zinsen.tage} Tage` +
+        `${zinsen.ab ? ` ab ${fmtDatum(zinsen.ab)}` : ''} (${zinsen.grundlage})`,
+      `${euroBetrag(zinsen.betrag)} €`,
+    ]);
+  }
 
   // Beträge rechtsbündig untereinander, damit man sie nachrechnen kann.
   const betragX = rand + 110;
@@ -131,7 +147,7 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
   doc.setDrawColor(...TINTE).setLineWidth(0.35).line(rand, y - 3.5, betragX, y - 3.5);
   doc.setFont('helvetica', 'bold');
   doc.text('Offener Betrag', rand, y + 1);
-  doc.text(`${euroBetrag(stand.rest + spesen)} €`, betragX, y + 1, { align: 'right' });
+  doc.text(`${euroBetrag(stand.rest + spesen + (zinsen?.betrag ?? 0))} €`, betragX, y + 1, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   y += 12;
 

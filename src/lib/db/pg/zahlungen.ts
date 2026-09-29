@@ -7,7 +7,8 @@
  * Stelle, die es darf. Zwei Wege zu derselben Zahl wären zwei Wahrheiten.
  */
 import type { Zahlungseingang } from '@/types';
-import { abfragen, anlegen, aendern, loeschen, type WithId } from './kern';
+import { abfragen, anlegen, aendern, loeschen, derClient, type WithId } from './kern';
+import { objektAlsZeile } from './felder';
 
 const ZAHLUNGEN = 'zahlungseingaenge';
 
@@ -51,6 +52,23 @@ export type NeueZahlung = Omit<
 
 export function createZahlung(companyId: string, z: NeueZahlung): Promise<string> {
   return anlegen(ZAHLUNGEN, companyId, z);
+}
+
+/**
+ * Eine Zahlung und den Skonto, der den Rest ausgleicht — in EINEM Aufruf.
+ *
+ * Ein Insert mit zwei Zeilen ist eine Transaktion: weist die Datenbank den
+ * Skonto ab (`app.skonto_passt`), ist auch die Zahlung nicht gebucht. Zwei
+ * Aufrufe hinterliessen sonst eine Zahlung ohne Ausgleich, und die Rechnung
+ * stünde mit zwei Prozent Rest im Mahnlauf.
+ */
+export async function createZahlungMitSkonto(
+  companyId: string, z: NeueZahlung, skonto: number,
+): Promise<void> {
+  const zeilen = [z, { ...z, betrag: skonto, art: 'Skonto' as const, hinweis: undefined }]
+    .map((d) => ({ ...objektAlsZeile(ZAHLUNGEN, d), company_id: companyId }));
+  const { error } = await derClient().from(ZAHLUNGEN).insert(zeilen);
+  if (error) throw new Error(error.message);
 }
 
 export function updateZahlung(id: string, daten: Partial<NeueZahlung>): Promise<void> {

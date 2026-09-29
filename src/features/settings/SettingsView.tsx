@@ -17,6 +17,8 @@ import { useToast } from '@/components/Toast';
 import { ErrorState } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { euroBetrag } from '@/lib/betrag';
+import { halbjahresbeginn } from '@/features/invoices/mahnung';
+import { todayStr } from '@/lib/time';
 
 /** Zahl aus einem Eingabefeld — akzeptiert Komma wie Punkt. */
 function num(v: string, fallback: number): number {
@@ -61,6 +63,18 @@ const KOPF: Record<EinstellungsTeil, { titel: string; unter: string }> = {
   nummern: { titel: 'Nummernkreise', unter: 'Vorsätze für Rechnungen, Angebote, Baustellen und Kennzeichen' },
   personal: { titel: 'Personal', unter: 'Urlaubsjahr, Genehmigung und Wochenplan' },
 };
+
+/**
+ * Die Halbjahresanfänge zur Wahl: das laufende und das nächste Halbjahr —
+ * der neue Satz steht Ende Dezember und Ende Juni fest und wird oft vorher
+ * eingetragen. Ein älterer Stand bleibt sichtbar, damit das Feld nicht lügt.
+ */
+function halbjahreZurWahl(gespeichert?: string): string[] {
+  const jetzt = halbjahresbeginn(todayStr());
+  const jahr = Number(jetzt.slice(0, 4));
+  const naechstes = jetzt.endsWith('-01-01') ? `${jahr}-07-01` : `${jahr + 1}-01-01`;
+  return [...new Set([gespeichert, jetzt, naechstes].filter((x): x is string => !!x))].sort();
+}
 
 export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsTeil }) {
   const { user, company, reloadCompany } = useAuth();
@@ -516,6 +530,37 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
               onChange={(e) => setRates({ ...rates, dueDays: num(e.target.value, 14) })}
             />
             {/*
+              SKONTO OHNE VORGABE, wie die Mahnspesen: ob ein Betrieb Skonto
+              gibt, ist seine Entscheidung. Leer heisst keines — dann sieht
+              jede Rechnung aus wie bisher.
+            */}
+            <InputField
+              id="r-skonto"
+              label="Skonto (%)"
+              type="number"
+              min="0"
+              max="99"
+              step="0.5"
+              placeholder="leer = keines"
+              value={rates.skontoProzent ? String(rates.skontoProzent) : ''}
+              onChange={(e) => {
+                const wert = Number(e.target.value.replace(',', '.'));
+                setRates({ ...rates, skontoProzent: wert > 0 && wert < 100 ? wert : undefined });
+              }}
+            />
+            <InputField
+              id="r-skonto-tage"
+              label="Skontofrist (Tage)"
+              type="number"
+              min="0"
+              placeholder="leer = keines"
+              value={rates.skontoTage ? String(rates.skontoTage) : ''}
+              onChange={(e) => {
+                const wert = Math.floor(Number(e.target.value));
+                setRates({ ...rates, skontoTage: wert > 0 ? wert : undefined });
+              }}
+            />
+            {/*
               MAHNSPESEN JE STUFE — ohne Vorgabe.
 
               Was ein Betrieb verrechnen darf, hängt am Aufwand und am
@@ -544,7 +589,61 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 }}
               />
             ))}
+            {/*
+              DER BASISZINSSATZ MIT SEINEM HALBJAHR, nicht allein. Eine Zahl
+              ohne Stand veraltete still; so rechnet die Mahnung nur, solange
+              das Halbjahr stimmt, und sagt es sonst (siehe `verzugszinsen`).
+              Zur Wahl stehen nur Halbjahresanfänge — ein anderes Datum gibt
+              es für diesen Satz nicht.
+            */}
+            <InputField
+              id="r-basiszins"
+              label="Basiszinssatz (%)"
+              type="number"
+              step="0.01"
+              placeholder="leer = keine Zinsen an Unternehmer"
+              value={rates.basiszinssatz ?? ''}
+              onChange={(e) => {
+                const roh = e.target.value.replace(',', '.').trim();
+                const wert = roh === '' ? NaN : Number(roh);
+                setRates({ ...rates, basiszinssatz: Number.isFinite(wert) ? wert : undefined });
+              }}
+            />
+            <SelectField
+              id="r-basiszins-ab"
+              label="Basiszinssatz gilt ab"
+              value={rates.basiszinssatzAb ?? ''}
+              onChange={(e) => setRates({ ...rates, basiszinssatzAb: e.target.value || undefined })}
+            >
+              <option value="">—</option>
+              {halbjahreZurWahl(rates.basiszinssatzAb).map((ab) => (
+                <option key={ab} value={ab}>
+                  {`${ab.slice(8, 10)}.${ab.slice(5, 7)}.${ab.slice(0, 4)}`}
+                </option>
+              ))}
+            </SelectField>
           </FormGrid>
+          <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
+            Skonto steht mit Betrag und Frist auf der Rechnung; ab der Mahnung stehen
+            gesetzliche Verzugszinsen auf dem Beleg.
+            <InfoHint about="Skonto und Verzugszinsen">
+              <strong>Skonto</strong> gilt für Rechnungen und Schlussrechnungen, nicht für
+              Anzahlungen; die Frist endet spätestens mit dem Zahlungsziel. Zahlt der Kunde in der
+              Frist den Betrag abzüglich Skonto, gleicht ein Haken beim Erfassen der Zahlung den
+              Rest aus. Die Umsatzsteuer darauf berichtigt die Kanzlei beim Buchen der Zahlung.
+              <br />
+              <br />
+              <strong>Verzugszinsen:</strong> Gerechnet wird vom Zahlungsziel bis zum Tag der Mahnung, auf den offenen Betrag. An
+              Verbraucher 4 % im Jahr (§ 1000 ABGB), an Unternehmer 9,2 Prozentpunkte über dem
+              Basiszinssatz (§ 456 UGB). Als Unternehmer gilt ein Kunde mit UID.
+              <br />
+              <br />
+              Den Basiszinssatz veröffentlicht die Oesterreichische Nationalbank; er ändert sich
+              zum 1. Jänner und 1. Juli. Er gilt hier nur für das eingetragene Halbjahr — danach
+              rechnet die Mahnung an Unternehmer keine Zinsen, bis der neue Satz eingetragen ist,
+              und sagt das beim Erzeugen.
+            </InfoHint>
+          </p>
 
           {/*
             ANZAHLUNGEN SIND NICHT FÜR JEDEN BETRIEB EIN THEMA.

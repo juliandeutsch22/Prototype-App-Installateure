@@ -126,6 +126,12 @@ const KOPF = [
     dass abgezogen wurde.
   */
   'Rechnungsart',
+  /*
+    SKONTO ALS EIGENE SPALTE, am Ende (B7). „Bezahlt" ist Geld, das gekommen
+    ist; der Skonto gleicht den Rest aus, ist aber keines. Die Kanzlei
+    braucht ihn getrennt — die Umsatzsteuer darauf wird berichtigt.
+  */
+  'Skonto',
 ];
 
 export interface RechnungsExport {
@@ -219,6 +225,7 @@ export function buildInvoiceCsv(
             ? `Stornorechnung zu ${i.invoiceNumber}${i.cancellationNote ? ` — ${i.cancellationNote}` : ''}`
             : (i.cancellationNote ?? ''),
           i.art ?? 'einzel',
+          '',
         ]),
       );
       summeNetto -= i.totalNetto ?? 0;
@@ -244,12 +251,13 @@ export function buildInvoiceCsv(
         i.reverseCharge ? 'ja' : 'nein',
         num(i.totalBrutto),
         i.paymentStatus,
-        num(zahlstand(i).bezahlt),
+        num(zahlstand(i).bezahlt - (i.skontoBetrag ?? 0)),
         num(zahlstand(i).rest),
         storniert ? 'ja' : 'nein',
         i.cancellationNote ?? '',
         // Altbestand trägt keine Art — er ist durchwegs eine Einzelrechnung.
         i.art ?? 'einzel',
+        i.skontoBetrag ? num(i.skontoBetrag) : '',
       ]),
     );
     /**

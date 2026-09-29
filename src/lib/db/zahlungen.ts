@@ -10,5 +10,6 @@ export type { NeueZahlung } from './pg/zahlungen';
 export const listZahlungen = pg.listZahlungen;
 export const listZahlungenImZeitraum = pg.listZahlungenImZeitraum;
 export const createZahlung = pg.createZahlung;
+export const createZahlungMitSkonto = pg.createZahlungMitSkonto;
 export const updateZahlung = pg.updateZahlung;
 export const deleteZahlung = pg.deleteZahlung;
