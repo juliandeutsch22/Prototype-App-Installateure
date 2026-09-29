@@ -15,6 +15,7 @@ wandert er hier heraus und in die jeweilige Doku.
 |---|---|---|---|
 | A3 | **DATANORM-Preiskennzeichen** vermutlich vertauscht (0 = Liste, 1 = Netto; laut Norm eher 1 = Brutto, 2 = Netto) (P2-17) | Verdacht, nicht belegt — eine echte Datei des Großhändlers kommt vom Betrieb (28.09.2026) | Mit einer echten Datei des Großhändlers prüfen; Abgleich außerdem je Lieferant statt nur über die Artikelnummer |
 | A8 | **Datenschutzerklärung siezt** (12 Stellen) | Rechtstext, inhaltlich nicht verändert — bleibt vorerst so, der Betrieb überarbeitet die Rechtstexte selbst (28.09.2026) | So lassen oder vom Juristen umformulieren lassen |
+| A9 | **Was nach Ablauf der sieben Jahre geschieht** — mit Belegen und Zeitaufzeichnungen einer Person, die die Löschung verlangt hat (B8). Die Löschung entfernt heute, was nicht aufbewahrt werden muss, und nennt für den Rest das Fristende; nach Ablauf löscht sie noch nichts | Vor 2031 läuft in diesem Bestand keine Frist ab. Offen ist, ob danach gelöscht oder anonymisiert wird — und was mit dem Namen einer Person auf den Belegen **anderer** geschieht (Schein des Kunden, genehmigter Urlaub, erfasste Zahlung). Laufende Verfahren verlängern die Frist (§ 132 Abs. 1 BAO) | Mit dem Steuerberater entscheiden; dann denselben Aufruf um den zweiten Schritt erweitern |
 
 **Entschieden und umgesetzt am 28.09.2026:** A1 (die Umbuchung der Anzahlung
 geht, wie sie gebucht wurde — netto ohne Steuercode, wenn das Anzahlungskonto
@@ -31,7 +32,6 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
 | B7 | **Gutschrift, Skonto, Verzugszinsen** fehlen; ein Storno ist nur eine Statusänderung ohne Beleg für den Kunden | Neue Funktionen | Eigener Auftrag |
-| B8 | **DSGVO-Löschung (Art. 17) je Person** fehlt. Die Auskunft (Art. 15) gibt es seit 29.09.2026 (siehe unten) | Aufbewahrungspflichten (§ 132 BAO, sieben Jahre) stehen gegen sofortiges Löschen; was wann gehen darf, muss je Tabelle entschieden sein | Löschen, was nicht aufbewahrt werden muss; der Rest gesperrt bis zum Fristende, danach anonymisiert — mit Probelauf |
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
 
 ## C. Absicherungen und Tests, die fehlen
@@ -86,7 +86,17 @@ Kunden fehlen Monteurkennungen und Monteurunterschrift), Push-Adressen nur
 als Zahl; ältere Zeilen ohne Kundenkennung werden über den Namen gefunden,
 und die Datei sagt das. Kein Support, keine Buchhaltung, nicht die Person
 selbst — die Geschäftsführung gibt sie weiter;
-`tests/supabase/datenauskunft.test.ts`, `tests/components/Datenauskunft.test.tsx`.
+`tests/supabase/datenauskunft.test.ts`, `tests/components/Datenauskunft.test.tsx`. Teil 2: die **Löschung je Person** (Art. 17), in derselben Karte
+„Datenschutz" und mit Probelauf (`public.person_loeschen`). Sofort geht, was
+keiner Aufbewahrung unterliegt — bei der Belegschaft Einstellungen,
+Push-Adressen, Fehlerprotokoll und die Einsatzplanung, beim Kunden Wartungen
+und Kontaktdaten; ein Kunde ohne Belege geht ganz. Was § 132 BAO sieben Jahre
+verlangt (Zeiten, Urlaube, Krankmeldungen, Monatsbilanzen, Rechnungen,
+Scheine, Angebote, Baustellen), bleibt gesperrt, und der Probelauf nennt je
+Art das Fristende. Eine Person der Belegschaft muss zuerst deaktiviert sein;
+gelöscht wird nur über die Kennung, ein Beleg nur über den Namen hält den
+Kunden aber gesperrt; `tests/supabase/personLoeschen.test.ts`. Was nach
+Fristablauf geschieht, ist A9.
 
 **Aus B, am 29.09.2026:** B1, Teil 1 (Kostensätze in `betrieb_kostensaetze`,
 Einkaufspreise in `material_einkaufspreise` — lesen und schreiben nur

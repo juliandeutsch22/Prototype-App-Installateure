@@ -221,6 +221,8 @@ describe('Interne Hilfsfunktionen', () => {
       'app.zeitkonto_einlass_urlaub()',
       // Welcher Einblick gerade gilt (B3) — nur für die Supportfunktionen.
       'app.einblick_aktuell()',
+      // Ende der Aufbewahrung (B8) — nur die Löschung rechnet damit.
+      'app.aufbewahrt_bis(date)',
     ];
     const offen: string[] = [];
     for (const f of intern) {
