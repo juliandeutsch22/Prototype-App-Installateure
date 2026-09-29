@@ -13,6 +13,7 @@ import {
   updateInvoiceStatus,
   cancelInvoice,
   reactivateInvoice,
+  stornorechnungAusstellen,
   mahnungFesthalten,
   sucheRechnungen,
   scheineAufRechnung,
@@ -148,6 +149,8 @@ export default function InvoicesView() {
   const [toCancel, setToCancel] = useState<WithId<Invoice> | null>(null);
   /** Welcher Storno gerade aufgehoben werden soll — erst nach der Rückfrage. */
   const [aufheben, setAufheben] = useState<WithId<Invoice> | null>(null);
+  /** Zu welchem Storno die Stornorechnung erst ausgestellt werden soll — nach der Rückfrage. */
+  const [stornoBeleg, setStornoBeleg] = useState<WithId<Invoice> | null>(null);
   const [cancelNote, setCancelNote] = useState('');
   const [statusFilter, setStatusFilter] = useState<'alle' | Invoice['paymentStatus']>('alle');
   const schreibtisch = useSchreibtisch();
@@ -1157,6 +1160,20 @@ export default function InvoicesView() {
     }
   }
 
+  /**
+   * Die Stornorechnung als PDF — beim ersten Mal wird sie ausgestellt, danach
+   * nur neu gedruckt. Wirft, damit der Dialog beim Fehler offen bleibt.
+   */
+  async function stornorechnungDrucken(inv: WithId<Invoice>) {
+    if (!company) return;
+    const nummer = inv.stornoNummer ?? (await stornorechnungAusstellen(inv, vorsaetze.rechnung));
+    const { buildStornoPdf, stornoDateiname } = await import('./stornoPdf');
+    const blob = await buildStornoPdf({ company, invoice: inv, nummer });
+    const { shareOrDownloadPdf } = await import('@/features/worksheets/worksheetPdf');
+    await shareOrDownloadPdf(blob, stornoDateiname(nummer));
+    if (!inv.stornoNummer) toast.success(`Stornorechnung ${nummer} ausgestellt`);
+  }
+
   /** Eine bereits erstellte Rechnung erneut als PDF ausgeben. */
   async function redownload(inv: WithId<Invoice>) {
     if (!company) return;
@@ -1454,6 +1471,11 @@ export default function InvoicesView() {
           Storno: {inv.cancellationNote}
         </span>
       )}
+      {inv.stornoNummer && (
+        <span className="mt-1 block text-xs text-ink-muted">
+          Stornorechnung {inv.stornoNummer}
+        </span>
+      )}
     </>
   );
   const rechnungMenue = (inv: (typeof visible)[number]) => (
@@ -1549,7 +1571,21 @@ export default function InvoicesView() {
                 der Weg eine neue Rechnung. Die Datenbank zieht
                 dieselbe Grenze.
               */
-              ...(inv.cancelledAt && localDateStr(new Date(inv.cancelledAt)) === todayStr()
+              /*
+                DIE STORNORECHNUNG (B7): der Beleg für den Kunden. Beim
+                ersten Mal mit Rückfrage — sie bekommt eine Nummer aus
+                dem Rechnungskreis, und danach bleibt der Storno.
+              */
+              inv.stornoNummer
+                ? {
+                    label: 'Stornorechnung (PDF)',
+                    onSelect: () =>
+                      void stornorechnungDrucken(inv).catch((err: unknown) =>
+                        toast.error(grundAus(err, 'Die Stornorechnung konnte nicht erstellt werden.')),
+                      ),
+                  }
+                : { label: 'Stornorechnung ausstellen …', onSelect: () => setStornoBeleg(inv) },
+              ...(!inv.stornoNummer && inv.cancelledAt && localDateStr(new Date(inv.cancelledAt)) === todayStr()
                 ? [{ label: 'Storno aufheben', onSelect: () => setAufheben(inv) }]
                 : []),
               /*
@@ -2945,6 +2981,24 @@ export default function InvoicesView() {
           } catch (err) {
             toast.error(grundAus(err, 'Der Storno konnte nicht aufgehoben werden.'));
           }
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!stornoBeleg}
+        title="Stornorechnung ausstellen?"
+        message={
+          stornoBeleg
+            ? `Sie bekommt die nächste Nummer aus dem Rechnungskreis und das Datum des Stornos. Danach lässt sich der Storno von ${stornoBeleg.invoiceNumber} nicht mehr aufheben.`
+            : ''
+        }
+        confirmLabel="Ausstellen"
+        confirmTone="primary"
+        onCancel={() => setStornoBeleg(null)}
+        onConfirm={async () => {
+          if (!stornoBeleg) return;
+          await stornorechnungDrucken(stornoBeleg);
+          setStornoBeleg(null);
         }}
       />
 

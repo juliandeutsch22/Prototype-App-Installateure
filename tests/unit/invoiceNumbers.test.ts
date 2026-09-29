@@ -47,6 +47,13 @@ describe('Vorschlag fuer die naechste Nummer', () => {
     expect(nextInvoiceNumber([inv(`RE-${J - 1}-1500`)])).toBe(formatInvoiceNumber(1001));
     expect(nextInvoiceNumber([inv(`RE-${J - 1}-1500`), inv(`R-${J}-1003`)])).toBe(formatInvoiceNumber(1004));
   });
+  it('zählt die Nummer einer Stornorechnung mit (B7) — sie kommt aus demselben Kreis', () => {
+    const mitStorno = [{ invoiceNumber: `RE-${J}-1003`, stornoNummer: `RE-${J}-1004` }];
+    expect(nextInvoiceNumber(mitStorno)).toBe(formatInvoiceNumber(1005));
+    expect(highestInvoiceSeq(mitStorno)).toBe(1004);
+    // Die Gegenprobe: ohne sie wäre die 1004 frei.
+    expect(nextInvoiceNumber([inv(`RE-${J}-1003`)])).toBe(formatInvoiceNumber(1004));
+  });
 });
 
 describe('Nummernvergabe im Zaehler', () => {
@@ -98,6 +105,11 @@ describe('Vergebene Nummern erkennen', () => {
     const list = [{ id: 'a', invoiceNumber: 'RE-2026-1001' }];
     expect(isInvoiceNumberTaken(list, 're-2026-1001')).toBe(true);
     expect(isInvoiceNumberTaken(list, 'RE-2026-1002')).toBe(false);
+  });
+
+  it('erkennt auch die Nummer einer Stornorechnung als vergeben', () => {
+    const list = [{ id: 'a', invoiceNumber: 'RE-2026-1001', stornoNummer: 'RE-2026-1002' }];
+    expect(isInvoiceNumberTaken(list, 'RE-2026-1002')).toBe(true);
   });
 
   it('blendet die gerade bearbeitete Rechnung aus', () => {

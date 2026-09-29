@@ -197,7 +197,8 @@ export function buildInvoiceCsv(
       */
       zeilen.push(
         row([
-          i.invoiceNumber,
+          // Mit Stornorechnung (B7) ist sie der Beleg dieser Zeile; der Grund nennt die Rechnung.
+          i.stornoNummer ?? i.invoiceNumber,
           fmtDate(tagVon(i.cancelledAt!)),
           i.leistungVon ? fmtDate(i.leistungVon) : '',
           i.leistungBis ? fmtDate(i.leistungBis) : '',
@@ -214,7 +215,9 @@ export function buildInvoiceCsv(
           '',
           '',
           'Gegenbuchung',
-          i.cancellationNote ?? '',
+          i.stornoNummer
+            ? `Stornorechnung zu ${i.invoiceNumber}${i.cancellationNote ? ` — ${i.cancellationNote}` : ''}`
+            : (i.cancellationNote ?? ''),
           i.art ?? 'einzel',
         ]),
       );
@@ -290,7 +293,16 @@ export function buildInvoiceCsv(
     anzahl: imZeitraum.length,
     summeNetto: Math.round(summeNetto * 100) / 100,
     summeBrutto: Math.round(summeBrutto * 100) / 100,
-    luecken: findeLuecken(imZeitraum),
+    /*
+      DIE STORNORECHNUNGEN DES ZEITRAUMS zählen zum Kreis (B7): ihre Nummer
+      kommt aus ihm. Ohne sie stünde jede als Lücke da.
+    */
+    luecken: findeLuecken([
+      ...imZeitraum,
+      ...invoices
+        .filter((i) => i.stornoNummer && storniertIm(i))
+        .map((i) => ({ invoiceNumber: i.stornoNummer! })),
+    ]),
     gegenbuchungen: eintraege.filter((e) => e.storno).length,
   };
 }
@@ -303,7 +315,7 @@ export function buildInvoiceCsv(
  * geklärt, BEVOR der Export in die Kanzlei geht. Die Prüfung läuft nur
  * innerhalb eines Jahres, weil der Kreis jährlich neu beginnt.
  */
-export function findeLuecken(invoices: Invoice[]): string[] {
+export function findeLuecken(invoices: Pick<Invoice, 'invoiceNumber'>[]): string[] {
   /*
     VORSATZ UND JAHR AUS DER NUMMER SELBST. Hier stand „RE-" fest und das
     Jahr als zweites Stück zwischen Bindestrichen — bei einem Betrieb ohne

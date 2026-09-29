@@ -1231,6 +1231,14 @@ export interface Invoice {
   cancellationNote?: string | null;
   cancelledAt?: number | null;
   /**
+   * DIE STORNORECHNUNG (offene Punkte B7): ihre Nummer aus dem Rechnungskreis
+   * und wann sie ausgestellt wurde. Leer, solange keine ausgestellt ist — bis
+   * dahin lässt sich ein Storno am selben Tag noch aufheben, danach nicht
+   * mehr. Vergeben nur von `stornorechnung_ausstellen`.
+   */
+  stornoNummer?: string | null;
+  stornoAm?: number | null;
+  /**
    * MAHNWESEN — wie oft und wann gemahnt wurde.
    *
    * Vorher gab es nur den Status „Überfällig". Er wurde beim Öffnen der Liste
