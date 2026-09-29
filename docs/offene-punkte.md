@@ -31,7 +31,6 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
 | B2 | **Supportsitzung „mitarbeiten“**: alle Funktionen, die den Betrieb aus dem Token holen, scheitern für das Plattformkonto (P3-14) | Umbau aller betroffenen Funktionen (Einsatz, Rüstliste, Schein, Rechnung, Nummern, Angebot, Urlaub, Betriebsurlaub …) | Einblicksbetrieb als Parameter mit `support_schreibt(betrieb)`-Prüfung; bis dahin sagt die Supportleiste ehrlich, was nicht geht |
-| B3 | **Support mit „mitarbeiten“ in Betrieb A** liest in Betrieb B (mit Lesefreigabe) auch, was dort nur die Spitze liest, z. B. Angebote (P3-02, Rest) | Die Rollenfunktionen kennen keinen Betrieb; Schreiben in B ist gesperrt | Rollenfunktionen betriebsbezogen machen |
 | B7 | **Gutschrift, Skonto, Verzugszinsen** fehlen; ein Storno ist nur eine Statusänderung ohne Beleg für den Kunden | Neue Funktionen | Eigener Auftrag |
 | B8 | **DSGVO-Auskunft (Art. 15) und Löschung (Art. 17) je Person** fehlen; `betrieb_auszug` betrifft nur den ganzen Betrieb und ist auf 8 MB begrenzt | Neue Funktionen | Eigener Auftrag |
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
@@ -68,6 +67,10 @@ in `tests/links/linkziel.ts`, selbst geprüft in `tests/unit/linkziel.test.ts`.
 Nicht erfasst: Knöpfe, die erst beim Klick weiterleiten), C3 (die Scheine
 einer Baustelle kommen alle, neueste zuerst und in jeder Schreibweise der
 Nummer, wie Rechnungen und Zeiten; `tests/supabase/scheineDerBaustelle.test.ts`).
+
+**Ebenfalls am 29.09.2026:** B3 (der Support arbeitet in einem Betrieb zur
+Zeit — es gilt der zuletzt begonnene Einblick; eine Rolle aus „Mitarbeiten"
+in A öffnet in B nichts mehr; `tests/supabase/supportzugang.test.ts`).
 
 **Aus B, am 29.09.2026:** B1, Teil 1 (Kostensätze in `betrieb_kostensaetze`,
 Einkaufspreise in `material_einkaufspreise` — lesen und schreiben nur

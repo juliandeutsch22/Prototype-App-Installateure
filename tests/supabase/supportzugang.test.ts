@@ -898,3 +898,62 @@ describe('Erst der Eintrag, dann der Einblick (offene Punkte B4)', () => {
     expect(data ?? []).toHaveLength(1);
   });
 });
+
+describe('Ein Betrieb zur Zeit (offene Punkte B3)', () => {
+  /*
+    PRÜFLAUF 25.09.2026 (P3-02, Rest). Die Rollenfunktionen kennen keinen
+    Betrieb. Mit „mitarbeiten" in A und „ansehen" in B sagten sie für B
+    „Spitze" — und die Plattform las in B, was dort nur die Führung liest.
+    Jetzt gilt der zuletzt begonnene Einblick, und nur er.
+  */
+  const angebot = (betrieb: string) => ({
+    company_id: betrieb, quote_number: `AN-${crypto.randomUUID().slice(0, 6)}`,
+    customer_name: 'Kunde', quote_date: '2026-09-01', valid_until: '2026-10-01',
+    status: 'Entwurf', vat_rate: 20,
+  });
+  const siehtAngebote = async (betrieb: string) => {
+    const { data } = await plattform.client.from('quotes').select('id').eq('company_id', betrieb);
+    return (data ?? []).length;
+  };
+
+  it('„mitarbeiten" in A öffnet in B nicht, was dort nur die Führung liest', async () => {
+    await admin.from('quotes').insert([angebot(BETRIEB), angebot(ANDERER)]);
+    const a = await freigebenMit3('mitarbeiten', BETRIEB, chefin);
+    // Die Gegenprobe: in A liest sie als Mitarbeitende die Angebote.
+    expect(await siehtAngebote(BETRIEB)).toBe(1);
+
+    await freigebenMit3('ansehen', ANDERER, anderChef);
+    expect(await siehtKunden(ANDERER)).toBe(1);
+    expect(await siehtAngebote(ANDERER)).toBe(0);
+    // Und A ist zu, solange B der jüngste Einblick ist.
+    expect(await siehtKunden(BETRIEB)).toBe(0);
+
+    // Zurück nach A: neu beginnen, und A gilt wieder — B nicht.
+    await einblickBeginnen(plattform, BETRIEB, a);
+    expect(await siehtAngebote(BETRIEB)).toBe(1);
+    expect(await siehtKunden(ANDERER)).toBe(0);
+
+    await admin.from('quotes').delete().in('company_id', [BETRIEB, ANDERER]);
+  });
+
+  it('ein widerrufener jüngster Einblick gibt den davor frei, der noch gilt', async () => {
+    const a = await freigebenMit3('ansehen', BETRIEB, chefin);
+    const b = await freigebenMit3('ansehen', ANDERER, anderChef);
+    await anderChef.client.from('support_freigaben')
+      .update({ widerrufen_am: new Date().toISOString(), widerrufen_von: anderChef.uid }).eq('id', b);
+    expect(await siehtKunden(ANDERER)).toBe(0);
+    expect(await siehtKunden(BETRIEB)).toBe(1);
+    void a;
+  });
+
+  async function freigebenMit3(stufe: string, betrieb: string, wer: Konto) {
+    const { data, error } = await wer.client.from('support_freigaben').insert({
+      company_id: betrieb, gewaehrt_von: wer.uid, grund: 'Ein Betrieb zur Zeit',
+      gilt_bis: inStunden(4), stufe,
+    }).select('id').single();
+    if (error) throw new Error(error.message);
+    const id = (data as { id: string }).id;
+    await einblickBeginnen(plattform, betrieb, id);
+    return id;
+  }
+});
