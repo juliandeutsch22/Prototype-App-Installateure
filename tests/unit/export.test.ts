@@ -27,12 +27,12 @@ const entry = (over: Partial<TimeEntry> = {}): TimeEntry =>
   }) as TimeEntry;
 
 function makeRow(entries: TimeEntry[], u = user()): UserWithEntries {
-  return { user: u, monthEntries: entries, stats: calcMonthStats(u, entries, entries, 2025, 5) };
+  return { user: u, monthEntries: entries, stats: calcMonthStats(u, entries, entries, 2025, 5, true) };
 }
 
 describe('CSV-Aufbau', () => {
   it('setzt Kopfzeile, Detailzeile und Zusammenfassung', () => {
-    const csv = buildMonthCsv([makeRow([entry()])], 2025, 5);
+    const csv = buildMonthCsv([makeRow([entry()])], 2025, 5, true);
     const lines = csv.split('\n');
     expect(lines[0]).toContain('Mitarbeiter;Datum;Status');
     expect(lines[1]).toContain('Max Mustermann;02.06.2025;Anwesend');
@@ -42,12 +42,12 @@ describe('CSV-Aufbau', () => {
 
   it('rechnet Arbeitszeit als Dezimalstunden mit Komma', () => {
     // 07:00–16:30 minus 30 min Pause = 9,00 h
-    const csv = buildMonthCsv([makeRow([entry()])], 2025, 5);
+    const csv = buildMonthCsv([makeRow([entry()])], 2025, 5, true);
     expect(csv.split('\n')[1]).toContain(';9,00;');
   });
 
   it('addiert die Wegzeit nur in der Spalte Gesamtzeit', () => {
-    const csv = buildMonthCsv([makeRow([entry({ travelTime: 30 })])], 2025, 5);
+    const csv = buildMonthCsv([makeRow([entry({ travelTime: 30 })])], 2025, 5, true);
     const [kopf, erste] = csv.split('\n');
     // Über die Kopfzeile, nicht vom Ende her gezählt: hinter der Gesamtzeit
     // stehen inzwischen die Zuschlagskennzeichen, und ein Test, der die
@@ -64,7 +64,7 @@ describe('CSV-Aufbau', () => {
     const csv = buildMonthCsv(
       [makeRow([entry({ customerName: 'Müller; Sohn', comment: 'sagte "ok"' })])],
       2025,
-      5,
+      5, true,
     );
     const line = csv.split('\n')[1];
     expect(line).toContain('"Müller; Sohn"');
@@ -83,14 +83,14 @@ describe('CSV-Aufbau', () => {
         ]),
       ],
       2025,
-      5,
+      5, true,
     );
     const projLine = csv.split('\n').find((l) => l.startsWith('2025-001;'));
     expect(projLine).toBe('2025-001;9,00'); // nur der Fachkraft-Eintrag
   });
 
   it('gibt für Krank/Urlaub keine Arbeitszeit aus', () => {
-    const csv = buildMonthCsv([makeRow([entry({ status: 'Krank', hours: 8 })])], 2025, 5);
+    const csv = buildMonthCsv([makeRow([entry({ status: 'Krank', hours: 8 })])], 2025, 5, true);
     expect(csv.split('\n')[1]).toContain(';0,00;0,00');
   });
 });
@@ -98,7 +98,7 @@ describe('CSV-Aufbau', () => {
 describe('Mitarbeiter-CSV', () => {
   it('enthält Kopfdaten und den Summenblock', () => {
     const e = [entry()];
-    const csv = buildUserCsv(user(), e, calcMonthStats(user(), e, e, 2025, 5), 2025, 5);
+    const csv = buildUserCsv(user(), e, calcMonthStats(user(), e, e, 2025, 5, true), 2025, 5, true);
     expect(csv).toContain('Zeiterfassung: Max Mustermann');
     expect(csv).toContain('Monat: Juni 2025');
     expect(csv).toContain('Wochensoll: 40 h');

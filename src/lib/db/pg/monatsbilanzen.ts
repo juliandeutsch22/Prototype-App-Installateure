@@ -26,6 +26,8 @@ export interface Monatsbilanz {
   anwesendMin: number;
   krankTage: number;
   urlaubTage: number;
+  /** Krank- und Urlaubstage am 24. oder 31. Dezember — siehe `tagesAnteil`. */
+  abwesendHalbtage: number;
   tage: string[];
 }
 
@@ -75,6 +77,7 @@ export async function listBilanzen(
     anwesendMin: Number(r.anwesendMin ?? 0),
     krankTage: Number(r.krankTage ?? 0),
     urlaubTage: Number(r.urlaubTage ?? 0),
+    abwesendHalbtage: Number(r.abwesendHalbtage ?? 0),
     tage: r.tage ?? [],
   }));
 }

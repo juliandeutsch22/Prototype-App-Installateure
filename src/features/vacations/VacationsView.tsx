@@ -24,6 +24,9 @@ import {
   JAHRESBEGINN_VORGABE,
   fmtMin,
   fmtDauer,
+  dezemberHalbtage,
+  tageGewicht,
+  tageZahl,
   type SaldoResult,
 } from '@/lib/time';
 import type { AppUser, Betriebsurlaub, Krankmeldung, Vacation } from '@/types';
@@ -70,10 +73,14 @@ const hhmm = (t?: string | null) => (t ?? '').slice(0, 5);
  * Was ein ZA-Antrag kostet, in Worten — für die Listen.
  *
  * „ZA – 04:00 Std (13:00–17:00)" oder „ZA – 2 Tage (16:00 Std)". Beim Urlaub
- * bleibt es bei den Arbeitstagen, wie bisher.
+ * die Urlaubstage, die er verbraucht — „4,5 Urlaubstage", wenn der 24. oder
+ * 31. Dezember darin liegt.
  */
 function umfang(v: Vacation): string {
-  if (!istZa(v)) return `${v.tage} ${v.tage === 1 ? 'Arbeitstag' : 'Arbeitstage'}`;
+  if (!istZa(v)) {
+    const n = Number(v.tage);
+    return `${tageZahl(n)} ${n === 1 ? 'Urlaubstag' : 'Urlaubstage'}`;
+  }
   const stunden = v.zaStunden != null ? fmtDauer(Math.round(Number(v.zaStunden) * 60)) : '';
   if (v.zaVon && v.zaBis) return `ZA – ${stunden} (${hhmm(v.zaVon)}–${hhmm(v.zaBis)})`;
   return `ZA – ${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}${stunden ? ` (${stunden})` : ''}`;
@@ -126,6 +133,7 @@ const STAND: Record<Vacation['status'], Stand> = {
  */
 export default function VacationsView() {
   const { user, company } = useAuth();
+  const halbeTage = dezemberHalbtage(company);
   const toast = useToast();
 
   /**
@@ -258,6 +266,8 @@ export default function VacationsView() {
     () => (profil ? urlaubsTage(profil, von, bis) : []),
     [profil, von, bis],
   );
+  /** Was sie vom Anspruch verbrauchen — der 24. und 31.12. je einen halben. */
+  const urlaubsWert = tageGewicht(tage, halbeTage);
 
   /**
    * Was in diesem Jahr zur Verfügung steht und was davon schon weg ist.
@@ -418,7 +428,7 @@ export default function VacationsView() {
     if (art !== 'Zeitausgleich' || !profil) return;
     let weg = false;
     setGuthaben('laedt');
-    zeitguthabenLaden(profil)
+    zeitguthabenLaden(profil, halbeTage)
       .then((g) => {
         if (!weg) setGuthaben(g);
       })
@@ -428,7 +438,7 @@ export default function VacationsView() {
     return () => {
       weg = true;
     };
-  }, [art, profil]);
+  }, [art, profil, halbeTage]);
 
   /** Der Tag, an dem der stundenweise ZA liegt, muss ein Arbeitstag sein. */
   const zaTage = useMemo(
@@ -441,7 +451,7 @@ export default function VacationsView() {
   /** Was der Zeitausgleich an Zeitguthaben kostet, in Minuten. */
   const zaMin = zaStundenweise
     ? Math.max(0, spanne(zaVon, zaBis))
-    : Math.round(zaTage.length * tagessollMin);
+    : Math.round(tageGewicht(zaTage, halbeTage) * tagessollMin);
 
   /**
    * Womit sich der gewählte Zeitraum überschneidet — schon in der Vorschau.
@@ -510,7 +520,7 @@ export default function VacationsView() {
         userName: user.name,
         von,
         bis,
-        tage: tage.length,
+        tage: urlaubsWert,
         status: 'Beantragt',
         art: 'Urlaub',
         notiz: notiz.trim(),
@@ -975,15 +985,20 @@ export default function VacationsView() {
                 <strong>
                   {tage.length} {tage.length === 1 ? 'Arbeitstag' : 'Arbeitstage'}
                 </strong>
-                <span className="ml-1">in diesem Zeitraum</span>
                 <span className="ml-1">
-                  — danach bleiben {tageText(restImAntragsjahr - tage.length)}
+                  in diesem Zeitraum
+                  {urlaubsWert !== tage.length && `, als Urlaub ${tageText(urlaubsWert)}`}
+                </span>
+                <span className="ml-1">
+                  — danach bleiben {tageText(restImAntragsjahr - urlaubsWert)}
                   {antragsJahr !== jahr ? ` im Urlaubsjahr ${antragsJahr}` : ''}.
                 </span>
                 <InfoHint about="Arbeitstage">
                   Gezählt werden nur die Tage, an denen dieser Mitarbeiter ohnehin arbeiten würde.
                   Wochenenden, gesetzliche Feiertage und freie Wochentage bei Teilzeit fallen heraus:
                   Wer eine Woche mit Feiertag nimmt, verbraucht vier Tage, nicht fünf.
+                  {halbeTage &&
+                    ' Der 24. und der 31. Dezember zählen nach dem Kollektivvertrag je einen halben Urlaubstag.'}
                 </InfoHint>
               </>
             )}
@@ -1096,7 +1111,7 @@ export default function VacationsView() {
                     subtitle={
                       <>
                         <span className="block">
-                          {zeitraum(v)} · {istZa(v) ? umfang(v) : `${v.tage} ${v.tage === 1 ? 'Tag' : 'Tage'}`}
+                          {zeitraum(v)} · {istZa(v) ? umfang(v) : tageText(Number(v.tage))}
                         </span>
                         {v.notiz && <span className="mt-1 block">{v.notiz}</span>}
                         {!istZa(v) && restZeile(v)}

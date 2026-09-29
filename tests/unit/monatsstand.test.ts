@@ -60,7 +60,7 @@ function werktageBisGestern(): number {
 describe('Monatsstand auf der Startseite', () => {
   it('belastet keine Tage, die noch nicht waren', () => {
     const user = { ...monteur, appStartDate: monatsStart() };
-    const { saldoH } = calcOverallSaldo(user, []);
+    const { saldoH } = calcOverallSaldo(user, [], true);
     // Ohne Buchung ist der Saldo negativ — aber hoechstens um die Werktage,
     // die bereits vorbei sind. Am Ersten ist das null.
     const maximalesMinus = werktageBisGestern() * 8;
@@ -72,7 +72,7 @@ describe('Monatsstand auf der Startseite', () => {
     const heute = new Date();
     if (heute.getDate() !== 1) return; // nur am Ersten aussagekraeftig
     const user = { ...monteur, appStartDate: monatsStart() };
-    expect(calcOverallSaldo(user, []).saldoH).toBe(0);
+    expect(calcOverallSaldo(user, [], true).saldoH).toBe(0);
   });
 
   /**
@@ -89,12 +89,12 @@ describe('Monatsstand auf der Startseite', () => {
   it('stimmt mit dem laufenden Monatsstand ueberein', () => {
     const heute = new Date();
     const user = { ...monteur, appStartDate: monatsStart() };
-    const stats = calcMonthStats(user, [], [], heute.getFullYear(), heute.getMonth());
+    const stats = calcMonthStats(user, [], [], heute.getFullYear(), heute.getMonth(), true);
 
     // Solltage bis gestern — dieselbe Zahl wie im Saldo.
     expect(stats.requiredDays).toBe(werktageBisGestern());
     // Und damit derselbe Saldo wie ueber calcOverallSaldo.
-    expect(stats.saldoMin / 60).toBeCloseTo(calcOverallSaldo(user, []).saldoH, 2);
+    expect(stats.saldoMin / 60).toBeCloseTo(calcOverallSaldo(user, [], true).saldoH, 2);
     // Der laufende Monat ist als solcher erkennbar.
     expect(stats.istLaufend).toBe(true);
   });
@@ -109,7 +109,7 @@ describe('Monatsstand auf der Startseite', () => {
     const vormonat = new Date(heute.getFullYear(), heute.getMonth() - 1, 1);
     const user = { ...monteur, appStartDate: localDateStr(vormonat) };
     const stats = calcMonthStats(
-      user, [], [], vormonat.getFullYear(), vormonat.getMonth(),
+      user, [], [], vormonat.getFullYear(), vormonat.getMonth(), true,
     );
 
     // Alle Werktage des Vormonats, ohne Feiertage.
@@ -139,8 +139,8 @@ describe('Monatsstand auf der Startseite', () => {
       breakDuration: 30,
       travelTime: 0,
     } as TimeEntry;
-    const ohne = calcOverallSaldo(user, []).saldoH;
-    const mit = calcOverallSaldo(user, [eintrag]).saldoH;
+    const ohne = calcOverallSaldo(user, [], true).saldoH;
+    const mit = calcOverallSaldo(user, [eintrag], true).saldoH;
     // Die Buchung verbessert den Stand um 8,5 h — unabhaengig davon, welcher
     // Tag heute ist. Faellt der Erste auf ein Wochenende, zaehlt sie als
     // reines Plus, sonst gegen das Tagessoll.

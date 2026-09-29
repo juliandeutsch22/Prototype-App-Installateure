@@ -160,6 +160,12 @@ export interface Company {
    * ist abwesend — ohne Grund. Ab Werk aus.
    */
   wochenplanFuerAlle?: boolean;
+  /**
+   * 24. und 31. Dezember als halbe Tage (Kollektivvertrag Metallgewerbe):
+   * Soll bis 12 Uhr, beide Urlaubstage zusammen einer, Arbeit danach mit
+   * 100 % Zuschlag ausgewiesen. Ab Werk an; siehe `tagesAnteil`.
+   */
+  dezemberHalbtage?: boolean;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';

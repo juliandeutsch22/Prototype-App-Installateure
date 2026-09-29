@@ -12,6 +12,7 @@ import {
   fmtMin,
   fmtDauer,
   calcOverallSaldo,
+  dezemberHalbtage,
   saldoAusBilanzen,
   getISOWeek,
   localDateStr,
@@ -73,7 +74,8 @@ const KOMMEND = 'kommend';
  * hier live sichtbar, inkl. portiertem Saldo.
  */
 export default function TimeView() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
+  const halbeTage = dezemberHalbtage(company);
   const toast = useToast();
   /** Die angezeigte Liste — nur das Fenster, nicht die ganze Geschichte. */
   const [entries, setEntries] = useState<WithId<TimeEntry>[]>([]);
@@ -301,9 +303,9 @@ export default function TimeView() {
   const saldo = useMemo(() => {
     if (!profile) return null;
     return bilanzen
-      ? saldoAusBilanzen(profile, bilanzen, laufendeEintraege, eintrittsEintraege)
-      : calcOverallSaldo(profile, saldoEintraege);
-  }, [profile, bilanzen, laufendeEintraege, saldoEintraege, eintrittsEintraege]);
+      ? saldoAusBilanzen(profile, bilanzen, laufendeEintraege, halbeTage, eintrittsEintraege)
+      : calcOverallSaldo(profile, saldoEintraege, halbeTage);
+  }, [profile, bilanzen, laufendeEintraege, saldoEintraege, eintrittsEintraege, halbeTage]);
 
   /**
    * Belegte Tage aus dem geladenen Fenster — die SOFORTIGE Antwort auf die
@@ -414,7 +416,7 @@ export default function TimeView() {
    * Ein gespeicherter Wert liefe irgendwann auseinander; hier kann er das
    * nicht.
    */
-  const zuschlag = useMemo(() => zuschlagszeit(entries), [entries]);
+  const zuschlag = useMemo(() => zuschlagszeit(entries, halbeTage), [entries, halbeTage]);
 
   /**
    * Summe der TATSÄCHLICH aktuellen Kalenderwoche. Vorher wurde die neueste
@@ -729,16 +731,18 @@ export default function TimeView() {
 
           Der Wert ist die VEREINIGUNG, nicht die Summe: Nacht und Notdienst
           schliessen einander nicht aus, der Rohrbruch um zwei Uhr früh ist
-          beides. Addiert stünde er doppelt da. Die Aufschlüsselung steht im
-          Beipacktext, dort auch die Überschneidung.
+          beides. Addiert stünde er doppelt da. Dasselbe gilt für den
+          Nachmittag des 24. und 31. Dezember (`gesamtMin`). Die
+          Aufschlüsselung steht im Beipacktext, dort auch die Überschneidung.
         */}
         {hatZuschlaege(zuschlag) && (
           <Metric
             label="Zuschlag"
-            value={fmtMin(zuschlag.nachtMin + zuschlag.notdienstMin - zuschlag.beidesMin)}
+            value={fmtMin(zuschlag.gesamtMin)}
             hint={
               `Nacht ${fmtMin(zuschlag.nachtMin)} · Notdienst ${fmtMin(zuschlag.notdienstMin)}` +
               (zuschlag.beidesMin > 0 ? ` · ${fmtMin(zuschlag.beidesMin)} beides` : '') +
+              (zuschlag.dezemberMin > 0 ? ` · 24./31.12. ab 12 Uhr ${fmtMin(zuschlag.dezemberMin)}` : '') +
               ` · letzte ${monate} Monate`
             }
           />

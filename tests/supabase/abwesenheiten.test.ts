@@ -200,8 +200,11 @@ describe('Betriebsurlaub', () => {
     await admin.from('time_entries').insert(buchung(kollegin, '2026-12-29'));
     const { data, error } = await anlegen(buch, true);
     expect(error).toBeNull();
-    // Fünf aktive Konten; der Ausgeschiedene nicht.
-    expect(data).toMatchObject({ mitarbeiter: 5, tage: 5 * 4 - 1, uebersprungen: 1 });
+    // Fünf aktive Konten; der Ausgeschiedene nicht. Gemeldet werden
+    // Urlaubstage: je vier gebuchte, der 31.12. davon ein halber
+    // (Kollektivvertrag, ab Werk an) — 3,5 je Person, bei der Kollegin einer
+    // weniger.
+    expect(data).toMatchObject({ mitarbeiter: 5, tage: 5 * 3.5 - 1, uebersprungen: 1 });
 
     expect((await eintraege(monteur, '2026-12-28', '2026-12-31')).map((e) => e.status))
       .toEqual(['Urlaub', 'Urlaub', 'Urlaub', 'Urlaub']);
@@ -210,7 +213,7 @@ describe('Betriebsurlaub', () => {
     const { data: v } = await admin.from('vacations')
       .select('tage, status, art').eq('user_id', kollegin.uid).not('betriebsurlaub_id', 'is', null).single();
     // Der übersprungene Tag zählt nicht in den Resturlaub.
-    expect(v).toMatchObject({ tage: 3, status: 'Genehmigt', art: 'Urlaub' });
+    expect(v).toMatchObject({ tage: 2.5, status: 'Genehmigt', art: 'Urlaub' });
   });
 
   it('lehnt einen zweiten Betriebsurlaub über dieselben Tage ab', async () => {
@@ -241,7 +244,7 @@ describe('Betriebsurlaub', () => {
 
     const { data, error } = await buch.client.rpc('betriebsurlaub_loeschen', { p_id: b!.id });
     expect(error).toBeNull();
-    expect(data).toMatchObject({ tage: 19, mitarbeiter: 5 });
+    expect(data).toMatchObject({ tage: 16.5, mitarbeiter: 5 });
     expect(await eintraege(monteur, '2026-12-28', '2026-12-31')).toEqual([]);
     expect((await eintraege(kollegin, '2026-12-28', '2026-12-31')).map((e) => e.status)).toEqual(['Anwesend']);
     const { count } = await admin.from('vacations').select('id', { count: 'exact', head: true })

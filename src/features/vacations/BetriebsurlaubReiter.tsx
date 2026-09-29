@@ -7,7 +7,7 @@ import {
   betriebsurlaubLoeschen,
   listBetriebsurlaubeAb,
 } from '@/lib/db/abwesenheiten';
-import { localDateStr, todayStr } from '@/lib/time';
+import { localDateStr, tageZahl, todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -115,7 +115,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
       });
       toast.success(
         abbuchen
-          ? `Betriebsurlaub angelegt — ${r.tage} ${r.tage === 1 ? 'Urlaubstag' : 'Urlaubstage'} für ${r.mitarbeiter} Mitarbeiter gebucht${r.uebersprungen ? `, ${r.uebersprungen} übersprungen (dort war schon gebucht)` : ''}`
+          ? `Betriebsurlaub angelegt — ${tageZahl(r.tage)} ${r.tage === 1 ? 'Urlaubstag' : 'Urlaubstage'} für ${r.mitarbeiter} Mitarbeiter gebucht${r.uebersprungen ? `, ${r.uebersprungen} übersprungen (dort war schon gebucht)` : ''}`
           : 'Betriebsurlaub angelegt — die Planung ist gesperrt, gebucht wurde nichts',
       );
       setAusgenommen([]);
@@ -131,7 +131,7 @@ export default function BetriebsurlaubReiter({ companyId, meinName }: { companyI
       const r = await betriebsurlaubLoeschen(b.id);
       toast.success(
         r.tage
-          ? `Betriebsurlaub gelöscht — ${r.tage} Urlaubstage bei ${r.mitarbeiter} Mitarbeitern zurückgenommen`
+          ? `Betriebsurlaub gelöscht — ${tageZahl(r.tage)} ${r.tage === 1 ? 'Urlaubstag' : 'Urlaubstage'} bei ${r.mitarbeiter} Mitarbeitern zurückgenommen`
           : 'Betriebsurlaub gelöscht',
       );
       setStand((n) => n + 1);

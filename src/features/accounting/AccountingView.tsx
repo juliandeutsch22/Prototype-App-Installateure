@@ -20,6 +20,9 @@ import {
   type CompletenessStatus,
   uebertragsRegel,
   tageWort,
+  tageZahl,
+  dezemberHalbtage,
+  tagesAnteil,
 } from '@/lib/time';
 import type { WithId } from '@/lib/db/core';
 import type { AppUser, Project, TimeEntry } from '@/types';
@@ -238,6 +241,7 @@ export default function AccountingView() {
   }, [user, fruehesterStart, year]);
 
   const urlaubsRegel = useMemo(() => uebertragsRegel(company), [company]);
+  const halbeTage = dezemberHalbtage(company);
 
   // Deaktivierte Mitarbeiter fallen aus der Auswertung (Legacy:5407).
   const relevant = useMemo(
@@ -258,16 +262,16 @@ export default function AccountingView() {
         return {
           user: u,
           monthEntries,
-          stats: calcMonthStats(u, monthEntries, yearEntries, year, month, {
+          stats: calcMonthStats(u, monthEntries, yearEntries, year, month, halbeTage, {
             verlauf: urlaubVerlauf
               .filter((e) => e.userId === u.uid)
-              .map((e) => ({ von: e.date, tage: 1 })),
+              .map((e) => ({ von: e.date, tage: tagesAnteil(e.date, halbeTage) })),
             regel: urlaubsRegel,
           }),
           completeness: calcCompleteness(u, monthEntries, year, month),
         };
       }),
-    [relevant, entries, monthPrefix, year, month, urlaubVerlauf, urlaubsRegel],
+    [relevant, entries, monthPrefix, year, month, urlaubVerlauf, urlaubsRegel, halbeTage],
   );
 
   /**
@@ -293,7 +297,7 @@ export default function AccountingView() {
   function exportMonthCsv() {
     // Bewusst alleRows: der Monatsexport ist ein Abschluss und darf nicht
     // davon abhaengen, was gerade im Suchfeld steht.
-    downloadCsv(buildMonthCsv(alleRows, year, month), monthCsvFilename(year, month));
+    downloadCsv(buildMonthCsv(alleRows, year, month, halbeTage), monthCsvFilename(year, month));
     toast.success('Monats-CSV heruntergeladen');
   }
 
@@ -304,7 +308,7 @@ export default function AccountingView() {
       return;
     }
     downloadCsv(
-      buildUserCsv(u, r.monthEntries, r.stats, year, month),
+      buildUserCsv(u, r.monthEntries, r.stats, year, month, halbeTage),
       userCsvFilename(u, year, month),
     );
     toast.success(`CSV für ${u.name} heruntergeladen`);
@@ -669,7 +673,7 @@ export default function AccountingView() {
                         </div>
                         <p className="mt-3 text-sm text-ink-muted sm:mt-0 sm:shrink-0 sm:text-right">
                           <b className="font-semibold text-ink">{stats.krankDays}</b> Tage krank ·{' '}
-                          <b className="font-semibold text-ink">{stats.urlaubDays}</b> Tage Urlaub ·{' '}
+                          <b className="font-semibold text-ink">{tageZahl(stats.urlaubDays)}</b> Tage Urlaub ·{' '}
                           {stats.zaMin > 0 && (
                             <>
                               <b className="font-semibold text-ink">{fmtDauer(stats.zaMin)}</b> ZA ·{' '}
@@ -680,7 +684,7 @@ export default function AccountingView() {
                               stats.urlaubRest < 5 ? 'text-warning' : 'text-ink'
                             }`}
                           >
-                            {stats.urlaubRest}
+                            {tageZahl(stats.urlaubRest)}
                           </b>{' '}
                           Tage Resturlaub
                         </p>
@@ -698,7 +702,7 @@ export default function AccountingView() {
                       <p className="mt-3 text-xs text-ink-muted">
                         Tagessoll {fmtDauer(Math.round(stats.dailyTargetH * 60))} ·
                         Wochenstunden {fmtDauer(Math.round(stats.weeklyTarget * 60))} ·{' '}
-                        {stats.requiredDays === 1 ? '1 Solltag' : `${stats.requiredDays} Solltage`}
+                        {stats.requiredDays === 1 ? '1 Solltag' : `${tageZahl(stats.requiredDays)} Solltage`}
                         {stats.holidaysInMonth > 0 &&
                           ` · ${stats.holidaysInMonth === 1 ? '1 Feiertag' : `${stats.holidaysInMonth} Feiertage`}`}
                         {stats.hasConfig && stats.istLaufend && (

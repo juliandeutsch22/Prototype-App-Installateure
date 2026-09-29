@@ -89,7 +89,7 @@ function summeDerMonate(user: AppUser, eintraege: TimeEntry[], eintritt: Date, h
   for (let j = eintritt.getFullYear(), m = eintritt.getMonth(); ; ) {
     const praefix = `${j}-${String(m + 1).padStart(2, '0')}`;
     const imMonat = eintraege.filter((e) => e.date.startsWith(praefix));
-    summe += calcMonthStats(user, imMonat, [], j, m).saldoMin;
+    summe += calcMonthStats(user, imMonat, [], j, m, true).saldoMin;
     if (j === heute.getFullYear() && m === heute.getMonth()) break;
     m += 1;
     if (m === 12) { m = 0; j += 1; }
@@ -100,7 +100,7 @@ function summeDerMonate(user: AppUser, eintraege: TimeEntry[], eintritt: Date, h
 describe('Gesamtsaldo und Monatsauswertung ergeben dieselbe Zeit (C5)', () => {
   it.each([2, 3, 7, 11, 19, 42, 77, 101, 256, 999])('stimmt für Zufallsfall %i überein', (saat) => {
     const { user, eintraege, eintritt, heute } = baueFall(saat);
-    const gesamt = calcOverallSaldo(user, eintraege);
+    const gesamt = calcOverallSaldo(user, eintraege, true);
     const monate = summeDerMonate(user, eintraege, eintritt, heute);
     // `saldoH` ist auf zwei Stellen gerundet — eine Minute Toleranz.
     expect(Math.abs(gesamt.saldoH * 60 - monate)).toBeLessThanOrEqual(1);

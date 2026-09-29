@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { zuschlagszeit, hatZuschlaege, kennzeichen } from '@/features/accounting/zuschlaege';
+import {
+  zuschlagszeit, hatZuschlaege, kennzeichen, LEERE_ZUSCHLAEGE,
+} from '@/features/accounting/zuschlaege';
 import { buildMonthCsv, buildUserCsv } from '@/features/accounting/export';
 import { calcMonthStats } from '@/lib/time';
 import type { AppUser, TimeEntry } from '@/types';
@@ -37,7 +39,7 @@ describe('Zuschlagsstunden', () => {
       entry({ isNightWork: true }),
       entry({ isEmergency: true }),
       entry(),
-    ]);
+    ], true);
     expect(z.nachtMin).toBe(240);
     expect(z.notdienstMin).toBe(240);
     expect(z.beidesMin).toBe(0);
@@ -49,7 +51,7 @@ describe('Zuschlagsstunden', () => {
     — und sähe es der Datei nicht an.
   */
   it('weist die Stunden aus, die beide Kennzeichen tragen', () => {
-    const z = zuschlagszeit([entry({ isNightWork: true, isEmergency: true })]);
+    const z = zuschlagszeit([entry({ isNightWork: true, isEmergency: true })], true);
     expect(z.nachtMin).toBe(240);
     expect(z.notdienstMin).toBe(240);
     expect(z.beidesMin).toBe(240);
@@ -65,14 +67,15 @@ describe('Zuschlagsstunden', () => {
       entry({ status: 'Krank', isNightWork: true }),
       entry({ status: 'Urlaub', isEmergency: true }),
       entry({ startTime: '08:00', endTime: '08:00', isNightWork: true }),
-    ]);
-    expect(z).toEqual({ nachtMin: 0, notdienstMin: 0, beidesMin: 0 });
+    ], true);
+    expect(z).toEqual(LEERE_ZUSCHLAEGE);
   });
 
   it('sagt, ob überhaupt etwas auszuweisen ist', () => {
-    expect(hatZuschlaege({ nachtMin: 0, notdienstMin: 0, beidesMin: 0 })).toBe(false);
-    expect(hatZuschlaege({ nachtMin: 60, notdienstMin: 0, beidesMin: 0 })).toBe(true);
-    expect(hatZuschlaege({ nachtMin: 0, notdienstMin: 60, beidesMin: 0 })).toBe(true);
+    expect(hatZuschlaege(LEERE_ZUSCHLAEGE)).toBe(false);
+    expect(hatZuschlaege({ ...LEERE_ZUSCHLAEGE, nachtMin: 60 })).toBe(true);
+    expect(hatZuschlaege({ ...LEERE_ZUSCHLAEGE, notdienstMin: 60 })).toBe(true);
+    expect(hatZuschlaege({ ...LEERE_ZUSCHLAEGE, dezemberMin: 60 })).toBe(true);
   });
 
   it('schreibt „Ja" statt eines Kreuzes', () => {
@@ -91,11 +94,11 @@ describe('Zuschläge in den Ausleitungen', () => {
   const zeile = () => ({
     user: user(),
     monthEntries: eintraege,
-    stats: calcMonthStats(user(), eintraege, eintraege, 2025, 5),
+    stats: calcMonthStats(user(), eintraege, eintraege, 2025, 5, true),
   });
 
   it('führt die Kennzeichen in der Monats-CSV mit', () => {
-    const csv = buildMonthCsv([zeile()], 2025, 5);
+    const csv = buildMonthCsv([zeile()], 2025, 5, true);
     const zeilen = csv.split('\n');
     expect(zeilen[0]).toContain('Nacht;Notdienst');
     // Erster Eintrag: nur Nacht — das Notdienstfeld bleibt leer.
@@ -104,7 +107,7 @@ describe('Zuschläge in den Ausleitungen', () => {
   });
 
   it('summiert sie je Mitarbeiter, samt Überschneidung', () => {
-    const csv = buildMonthCsv([zeile()], 2025, 5);
+    const csv = buildMonthCsv([zeile()], 2025, 5, true);
     expect(csv).toContain('Nacht(Std);Notdienst(Std);davon beides(Std);Zeitausgleich(Std)');
     // 8 h Nacht (beide Einträge), 4 h Notdienst, davon 4 h beides.
     expect(csv).toContain('8,00;4,00;4,00');
@@ -118,7 +121,7 @@ describe('Zuschläge in den Ausleitungen', () => {
   */
   it('weist sie in der Mitarbeiter-CSV auch dann aus, wenn keine anfielen', () => {
     const ohne = [entry()];
-    const csv = buildUserCsv(user(), ohne, calcMonthStats(user(), ohne, ohne, 2025, 5), 2025, 5);
+    const csv = buildUserCsv(user(), ohne, calcMonthStats(user(), ohne, ohne, 2025, 5, true), 2025, 5, true);
     expect(csv).toContain('Nachtstunden;0,00 h');
     expect(csv).toContain('Notdienststunden;0,00 h');
     expect(csv).toContain('davon beides;0,00 h');
@@ -128,9 +131,9 @@ describe('Zuschläge in den Ausleitungen', () => {
     const csv = buildUserCsv(
       user(),
       eintraege,
-      calcMonthStats(user(), eintraege, eintraege, 2025, 5),
+      calcMonthStats(user(), eintraege, eintraege, 2025, 5, true),
       2025,
-      5,
+      5, true,
     );
     expect(csv).toContain('Arbeitszeit(Std);Nacht;Notdienst;Kommentar');
     expect(csv).toContain('Nachtstunden;8,00 h');

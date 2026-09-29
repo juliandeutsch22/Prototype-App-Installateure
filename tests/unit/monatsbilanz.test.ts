@@ -116,8 +116,8 @@ describe('Monatsbilanzen liefern denselben Saldo wie die Einzelbuchungen', () =>
       // noch, und der Trigger braucht einen Augenblick.
       const laufend = eintraege.filter((e) => monatVon(e.date) === aktuell);
 
-      const direkt = calcOverallSaldo(user, eintraege);
-      const verdichtet = saldoAusBilanzen(user, bilanzen, laufend);
+      const direkt = calcOverallSaldo(user, eintraege, true);
+      const verdichtet = saldoAusBilanzen(user, bilanzen, laufend, true);
 
       expect(verdichtet.saldoH).toBeCloseTo(direkt.saldoH, 2);
       expect(verdichtet.daysWithoutEntry).toBe(direkt.daysWithoutEntry);
@@ -143,8 +143,8 @@ describe('Monatsbilanzen liefern denselben Saldo wie die Einzelbuchungen', () =>
     const laufend = eintraege.filter((e) => monatVon(e.date) === aktuell);
 
     const geaendert: AppUser = { ...user, weeklyTargetHours: 32, workDays: [1, 2, 3, 4] };
-    expect(saldoAusBilanzen(geaendert, bilanzen, laufend).saldoH).toBeCloseTo(
-      calcOverallSaldo(geaendert, eintraege).saldoH,
+    expect(saldoAusBilanzen(geaendert, bilanzen, laufend, true).saldoH).toBeCloseTo(
+      calcOverallSaldo(geaendert, eintraege, true).saldoH,
       2,
     );
   });
@@ -275,8 +275,8 @@ describe('Der Eintrittsmonat (Prüflauf 25.09.2026, P1-15)', () => {
       (e) => monatVon(e.date) === monatVon(eintritt) && e.date >= eintritt,
     );
 
-    const direkt = calcOverallSaldo(user, alle);
-    const verdichtet = saldoAusBilanzen(user, bilanzen, laufend, eintrittsmonat);
+    const direkt = calcOverallSaldo(user, alle, true);
+    const verdichtet = saldoAusBilanzen(user, bilanzen, laufend, true, eintrittsmonat);
     expect(verdichtet.saldoH).toBeCloseTo(direkt.saldoH, 2);
     expect(verdichtet.daysWithoutEntry).toBe(direkt.daysWithoutEntry);
   });
@@ -304,9 +304,9 @@ describe('Der Eintrittsmonat (Prüflauf 25.09.2026, P1-15)', () => {
     const bilanzen = verdichte(alle);
     const eintrittsmonat = alle.filter((e) => e.date >= eintritt);
 
-    const direkt = calcOverallSaldo(user, alle);
-    expect(saldoAusBilanzen(user, bilanzen, [], eintrittsmonat).saldoH).toBeCloseTo(direkt.saldoH, 2);
+    const direkt = calcOverallSaldo(user, alle, true);
+    expect(saldoAusBilanzen(user, bilanzen, [], true, eintrittsmonat).saldoH).toBeCloseTo(direkt.saldoH, 2);
     // Ohne die Einträge des Eintrittsmonats zählte die Probeschicht mit.
-    expect(saldoAusBilanzen(user, bilanzen, []).saldoH).toBeCloseTo(direkt.saldoH + 12, 2);
+    expect(saldoAusBilanzen(user, bilanzen, [], true).saldoH).toBeCloseTo(direkt.saldoH + 12, 2);
   });
 });

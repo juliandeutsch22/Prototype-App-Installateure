@@ -216,7 +216,8 @@ describe('Wochenplan für alle', () => {
     const nutzer = userEvent.setup();
     zeige('personal');
     await nutzer.click(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)'));
-    await nutzer.click(screen.getByRole('button', { name: 'Speichern' }));
+    const karte = feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').closest('section')!;
+    await nutzer.click(within(karte).getByRole('button', { name: 'Speichern' }));
 
     expect(updateCompany).toHaveBeenCalledTimes(1);
     expect(updateCompany.mock.calls[0]).toEqual(['perl', { wochenplanFuerAlle: true }]);
@@ -227,6 +228,32 @@ describe('Wochenplan für alle', () => {
     firma = { id: 'perl', name: 'Perl Installationen', wochenplanFuerAlle: true };
     zeige('personal');
     expect(feld('Alle Mitarbeiter sehen den Wochenplan (nur lesen)').checked).toBe(true);
+  });
+});
+
+describe('24. und 31. Dezember', () => {
+  const HALB = '24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)';
+
+  it('ist ab Werk an — der Kollektivvertrag gilt, bis der Betrieb etwas anderes sagt', () => {
+    zeige('personal');
+    expect(feld(HALB).checked).toBe(true);
+  });
+
+  it('schreibt beim Abschalten nur diesen Schalter', async () => {
+    const nutzer = userEvent.setup();
+    zeige('personal');
+    await nutzer.click(feld(HALB));
+    await nutzer.click(within(feld(HALB).closest('section')!).getByRole('button', { name: 'Speichern' }));
+
+    expect(updateCompany).toHaveBeenCalledTimes(1);
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', { dezemberHalbtage: false }]);
+    expect(reloadCompany).toHaveBeenCalled();
+  });
+
+  it('Gegenprobe: zeigt einen abgeschalteten Betrieb als abgeschaltet', () => {
+    firma = { id: 'perl', name: 'Perl Installationen', dezemberHalbtage: false };
+    zeige('personal');
+    expect(feld(HALB).checked).toBe(false);
   });
 });
 
@@ -249,7 +276,10 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
 
     zeige('personal');
     expect(screen.getByRole('heading', { level: 1, name: 'Personal' })).toBeInTheDocument();
-    for (const t of ['Urlaubsjahr und Übertrag', 'Wer Urlaub genehmigt', 'Wochenplan für alle', 'Monatsbilanzen']) {
+    for (const t of [
+      'Urlaubsjahr und Übertrag', 'Wer Urlaub genehmigt', 'Wochenplan für alle', '24. und 31. Dezember',
+      'Monatsbilanzen',
+    ]) {
       expect(screen.getByText(t)).toBeInTheDocument();
     }
     expect(screen.queryByText('Nummernkreise und Fuhrpark')).toBeNull();

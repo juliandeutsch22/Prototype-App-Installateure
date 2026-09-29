@@ -53,7 +53,7 @@ afterAll(() => {
 
 describe('Soll bisher', () => {
   it('zieht nur die Krank- und Urlaubstage ab, die im Soll stecken', () => {
-    const s = calcMonthStats(monteur, eintraege, eintraege, 2026, 8);
+    const s = calcMonthStats(monteur, eintraege, eintraege, 2026, 8, true);
     // 17 Pflichttage, davon zwei krank (22., 23.) — nicht die künftigen,
     // nicht der Samstag.
     expect(s.requiredDays).toBe(15);
@@ -74,11 +74,11 @@ describe('Saldo', () => {
   */
   it('schreibt nichts aus der Zukunft gut — und den heutigen Krankentag erst morgen', () => {
     // Gutgeschrieben: 22. und 23. — zwei Tage. Soll: 17 Tage.
-    expect(calcOverallSaldo(monteur, eintraege).saldoH).toBe((2 - 17) * 8);
+    expect(calcOverallSaldo(monteur, eintraege, true).saldoH).toBe((2 - 17) * 8);
   });
 
   it('rechnet aus den Monatsbilanzen dasselbe', () => {
-    expect(saldoAusBilanzen(monteur, [], eintraege).saldoH).toBe((2 - 17) * 8);
+    expect(saldoAusBilanzen(monteur, [], eintraege, true).saldoH).toBe((2 - 17) * 8);
   });
 
   it('zählt heute gearbeitete Zeit weiterhin sofort', () => {
@@ -91,8 +91,8 @@ describe('Saldo', () => {
     } as TimeEntry;
     const ohneKrankHeute = eintraege.filter((e) => e.date !== '2026-09-24');
     const mit = [...ohneKrankHeute, heuteGearbeitet];
-    expect(calcOverallSaldo(monteur, mit).saldoH).toBe((2 - 17) * 8 + 4);
-    expect(saldoAusBilanzen(monteur, [], mit).saldoH).toBe((2 - 17) * 8 + 4);
+    expect(calcOverallSaldo(monteur, mit, true).saldoH).toBe((2 - 17) * 8 + 4);
+    expect(saldoAusBilanzen(monteur, [], mit, true).saldoH).toBe((2 - 17) * 8 + 4);
   });
 });
 
