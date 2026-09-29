@@ -34,6 +34,8 @@ import { ErrorState, EmptyState, SkeletonList, TeilFehler } from '@/components/S
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
+import Datenauskunft from '@/features/recht/Datenauskunft';
+import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 
 /**
  * Die Akte eines Kunden — alles, was der Betrieb über ihn weiss.
@@ -69,7 +71,7 @@ const LAEDT = { zustand: 'laedt' } as const;
 
 export default function KundenakteView() {
   const { id } = useParams<{ id: string }>();
-  const { user, company } = useAuth();
+  const { user, company, einblick } = useAuth();
   const toast = useToast();
   const wartungAn = useModul('wartung');
   const angeboteAn = useModul('angebote');
@@ -538,6 +540,9 @@ export default function KundenakteView() {
       )}
     </Card>
   ) : null;
+  const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
+    <Datenauskunft art="kunde" id={k.id} />
+  ) : null;
 
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
@@ -558,8 +563,8 @@ export default function KundenakteView() {
       />
 
       <Aktenspalten
-        telefon={[stammdaten, baustellenKarte, wartungKarte, rechnungKarte, angebotKarte]}
-        links={[stammdaten, wartungKarte]}
+        telefon={[stammdaten, baustellenKarte, wartungKarte, rechnungKarte, angebotKarte, auskunft]}
+        links={[stammdaten, wartungKarte, auskunft]}
         rechts={[baustellenKarte, rechnungKarte, angebotKarte]}
       />
     </div>

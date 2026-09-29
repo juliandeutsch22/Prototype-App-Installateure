@@ -26,6 +26,8 @@ import {
 } from './benutzerEntwurf';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import Datenauskunft from '@/features/recht/Datenauskunft';
+import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 
 /**
  * Die Akte eines Benutzers — und die Stelle, an der sie bearbeitet wird.
@@ -55,7 +57,7 @@ const tageText = (tage: number[]) =>
 
 export default function BenutzerakteView() {
   const { uid } = useParams<{ uid: string }>();
-  const { user } = useAuth();
+  const { user, einblick } = useAuth();
   const toast = useToast();
 
   const [person, setPerson] = useState<Teil<AppUser | null>>(LAEDT);
@@ -315,6 +317,10 @@ export default function BenutzerakteView() {
     </Card>
   ) : null;
 
+  const auskunft = zeigtAuskunft(user?.role, !!einblick) ? (
+    <Datenauskunft art="mitarbeiter" id={p.uid} />
+  ) : null;
+
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
@@ -329,7 +335,11 @@ export default function BenutzerakteView() {
         }
       />
 
-      <Aktenspalten telefon={[stammdaten, zugang]} links={[stammdaten]} rechts={[zugang]} />
+      <Aktenspalten
+        telefon={[stammdaten, zugang, auskunft]}
+        links={[stammdaten]}
+        rechts={[zugang, auskunft]}
+      />
 
       <ConfirmDialog
         open={neuesPasswortFragen}
