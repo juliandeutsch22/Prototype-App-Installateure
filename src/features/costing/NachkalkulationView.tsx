@@ -9,6 +9,7 @@ import { rechneBaustelle, margenTon, type Nachkalkulation } from './nachkalkulat
 import { materialkosten, KEINE_MATERIALKOSTEN } from './materialkosten';
 import { listWorkSheetsForProject } from '@/lib/db/workSheets';
 import { listMaterials } from '@/lib/db/materials';
+import { einkaufspreise, kostensaetze, type Kostensaetze } from '@/lib/db/kosten';
 import { katalogAbgeschnitten } from '@/lib/listengrenzen';
 import type { Material, Project, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -51,7 +52,7 @@ function angebotDerBaustelle(angebote: WithId<Quote>[]): WithId<Quote> | undefin
  * Nur für die Geschäftsführung: hier stehen Margen.
  */
 export default function NachkalkulationView() {
-  const { user, company } = useAuth();
+  const { user } = useAuth();
   const [projekte, setProjekte] = useState<WithId<Project>[]>([]);
   /*
     Der Materialstamm, einmal geladen: er trägt die Einkaufspreise. Ohne ihn
@@ -71,16 +72,26 @@ export default function NachkalkulationView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const kosten = company?.costRates;
+  /*
+    Kostensätze und Einkaufspreise liegen seit dem 29.09.2026 in eigenen
+    Tabellen, die nur die Spitze liest (offene Punkte B1) — nicht mehr am
+    Betrieb und am Artikel, die jeder lesen kann.
+  */
+  const [kosten, setKosten] = useState<Kostensaetze | null>(null);
 
   useEffect(() => {
     if (!user) return;
     setLoading(true);
     Promise.all([
       listRecentProjects(user.companyId, 300),
-      listMaterials(user.companyId),
+      listMaterials(user.companyId).then(async (m) => {
+        const preise = await einkaufspreise(user.companyId, m.map((x) => x.id));
+        return m.map((x) => ({ ...x, einkaufspreis: preise.get(x.id) }));
+      }),
+      kostensaetze(user.companyId),
     ])
-      .then(([p, m]) => {
+      .then(([p, m, k]) => {
+        setKosten(k);
         setProjekte(p);
         if (
           !selbstGewaehlt.current &&

@@ -99,6 +99,11 @@ export interface Company {
    * Bewusst ein einziger Mischsatz je Qualifikation statt echter Personalkosten
    * je Mitarbeiter: die Gehälter einzelner Monteure gehören nicht in eine
    * Baustellenauswertung, die die Projektleitung ansieht.
+   *
+   * NUR ZUM SCHREIBEN (seit 29.09.2026, offene Punkte B1): die Datenbank legt
+   * das Feld in `betrieb_kostensaetze` um, die nur die Spitze liest, und es
+   * kommt mit dem Betrieb immer leer zurück. Gelesen wird über
+   * `lib/db/kosten.ts`.
    */
   costRates?: {
     /** Kosten je Facharbeiterstunde. */
@@ -664,8 +669,10 @@ export interface Material {
    * ÄNDERN DARF IHN NUR DIE GESCHÄFTSFÜHRUNG, nicht die Verwaltung, die den
    * Katalog sonst pflegt: er ist Margendaten. Die Grenze steht in
    * `app.materialfelder_geschuetzt` und läuft zwischen den FELDERN, nicht
-   * zwischen den Rollen. Was sie NICHT kann, ist das Lesen verhindern — der
-   * Zeilenschutz gibt eine Zeile ganz oder gar nicht heraus.
+   * zwischen den Rollen. Seit dem 29.09.2026 gilt das auch fürs LESEN
+   * (offene Punkte B1): die Datenbank legt das Feld in
+   * `material_einkaufspreise` um, die nur die Spitze liest; mit dem Artikel
+   * kommt es immer leer zurück. Gelesen wird über `lib/db/kosten.ts`.
    *
    * NICHT GESETZT heisst „nicht hinterlegt", nicht „kostet nichts". Die
    * Nachkalkulation nennt solche Artikel beim Namen, statt sie mit null

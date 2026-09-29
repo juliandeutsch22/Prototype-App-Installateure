@@ -68,6 +68,11 @@ async function einspielen(
   return { lauf, bericht: await dn.uebernehmen(lauf) };
 }
 
+/*
+  Der Artikel, wie die Spitze ihn sieht: seit B1 (29.09.2026) liegt der
+  Einkaufspreis in `material_einkaufspreise`, die Spalte am Artikel ist nur
+  noch Einlass und bleibt leer — das wird hier jedes Mal mitgeprüft.
+*/
 const stamm = async (artikelnummer: string) => {
   const { data } = await admin
     .from('materials')
@@ -75,7 +80,16 @@ const stamm = async (artikelnummer: string) => {
     .eq('company_id', BETRIEB)
     .eq('article_number', artikelnummer)
     .maybeSingle();
-  return data as Record<string, unknown> | null;
+  if (!data) return null;
+  const zeile = data as Record<string, unknown>;
+  expect(zeile.einkaufspreis).toBeNull();
+  const { data: preis } = await admin
+    .from('material_einkaufspreise').select('einkaufspreis').eq('material_id', zeile.id as string)
+    .maybeSingle();
+  return {
+    ...zeile,
+    einkaufspreis: (preis as { einkaufspreis: number | null } | null)?.einkaufspreis ?? null,
+  } as Record<string, unknown>;
 };
 
 describe('Wer einspielen darf', () => {

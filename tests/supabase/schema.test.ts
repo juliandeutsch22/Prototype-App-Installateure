@@ -213,6 +213,9 @@ describe('Interne Hilfsfunktionen', () => {
       'app.alte_nummer_merken()',
       // Rückwirkende eigene Krankmeldung (A4).
       'app.krank_rueckwirkend_pruefen()',
+      // Einlass der alten Spalten für Kostensätze und Einkaufspreise (B1).
+      'app.kostensaetze_einlass()',
+      'app.einkaufspreis_einlass()',
     ];
     const offen: string[] = [];
     for (const f of intern) {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { updateCompany, naechsteNummern, type NaechsteNummern } from '@/lib/db/company';
+import { kostensaetze } from '@/lib/db/kosten';
 import { praefixeVon, praefixPutzen, praefixFehler, belegNummer, PRAEFIX_MAX } from '@/lib/praefixe';
 import { listUsers } from '@/lib/db/users';
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
@@ -136,12 +137,6 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   useEffect(() => {
     if (company?.rates) setRates({ ...INVOICE_DEFAULTS, ...company.rates });
     setSteuerbefreiungVorgabe(company?.steuerbefreiungVorgabe ?? '');
-    if (company?.costRates) {
-      setCostRates({
-        fach: String(company.costRates.fach).replace('.', ','),
-        helper: String(company.costRates.helper).replace('.', ','),
-      });
-    }
     setGenehmiger(company?.vacationApprovers ?? []);
     // Der Betrieb kommt womöglich erst nach dem ersten Zeichnen an; ohne
     // diese Zeile stünden hier die Vorgaben statt der gespeicherten Vorsätze.
@@ -308,6 +303,34 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     }
   }
 
+  /*
+    DIE KOSTENSÄTZE KOMMEN NICHT MIT DEM BETRIEB. Sie liegen seit dem
+    29.09.2026 in einer eigenen Tabelle, die nur die Spitze liest (offene
+    Punkte B1). Gespeichert wird weiter über `costRates` am Betrieb — die
+    Datenbank legt es dort in derselben Anweisung um.
+  */
+  const companyId = user?.companyId;
+  const [kostenStand, setKostenStand] = useState(0);
+  useEffect(() => {
+    if (!companyId) return;
+    let weg = false;
+    kostensaetze(companyId)
+      .then((k) => {
+        if (weg || !k) return;
+        setCostRates({
+          fach: String(k.fach).replace('.', ','),
+          helper: String(k.helper).replace('.', ','),
+        });
+      })
+      // Nicht still leer lassen: leere Felder sähen aus wie „nie hinterlegt".
+      .catch((err) => {
+        if (!weg) setError({ wo: 'saetze', text: grundAus(err, 'Die Kostensätze konnten nicht geladen werden.') });
+      });
+    return () => {
+      weg = true;
+    };
+  }, [companyId, kostenStand]);
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (!user) return;
@@ -332,6 +355,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           : {}),
       });
       await reloadCompany();
+      if (kostenGesetzt) setKostenStand((n) => n + 1);
       toast.success('Sätze gespeichert');
     } catch (err) {
       setError({ wo: 'saetze', text: grundAus(err, 'Die Einstellungen konnten nicht gespeichert werden.') });

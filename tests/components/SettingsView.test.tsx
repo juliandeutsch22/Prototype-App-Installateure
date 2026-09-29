@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/Toast';
 import type { Company } from '@/types';
@@ -36,6 +36,13 @@ vi.mock('@/lib/db/company', () => ({
   naechsteNummern: () => naechsteNummern(),
 }));
 vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
+/*
+  Die Kostensätze kommen seit dem 29.09.2026 nicht mit dem Betrieb, sondern
+  aus einer eigenen Tabelle, die nur die Spitze liest (offene Punkte B1).
+*/
+let gespeicherteKosten: { fach: number; helper: number } | null = null;
+const kostensaetze = vi.fn(async () => gespeicherteKosten);
+vi.mock('@/lib/db/kosten', () => ({ kostensaetze: () => kostensaetze() }));
 
 let firma: Partial<Company> = { id: 'perl', name: 'Perl Installationen' };
 
@@ -77,6 +84,8 @@ const feld = (label: string) => screen.getByLabelText(label) as HTMLInputElement
 beforeEach(() => {
   updateCompany.mockClear();
   firma = { id: 'perl', name: 'Perl Installationen' };
+  gespeicherteKosten = null;
+  kostensaetze.mockClear();
 });
 
 describe('Interne Kostensätze', () => {
@@ -111,6 +120,8 @@ describe('Interne Kostensätze', () => {
     expect(updateCompany.mock.calls[0][1]).toMatchObject({
       costRates: { fach: 38.5, helper: 24 },
     });
+    // Danach neu gelesen — aus der Tabelle, in die die Datenbank sie gelegt hat.
+    await waitFor(() => expect(kostensaetze).toHaveBeenCalledTimes(2));
   });
 
   it('schreibt sie NICHT, wenn nur einer der beiden dasteht', async () => {
@@ -127,10 +138,16 @@ describe('Interne Kostensätze', () => {
   });
 
   it('zeigt hinterlegte Sätze wieder an, mit Komma', async () => {
-    firma = { ...firma, costRates: { fach: 38.5, helper: 24 } };
+    gespeicherteKosten = { fach: 38.5, helper: 24 };
     zeige();
-    expect(feld('Kosten Facharbeiterstunde (€)').value).toBe('38,5');
+    await waitFor(() => expect(feld('Kosten Facharbeiterstunde (€)').value).toBe('38,5'));
     expect(feld('Kosten Helferstunde (€)').value).toBe('24');
+  });
+
+  it('sagt es, wenn die Kostensätze nicht geladen werden konnten — statt leerer Felder', async () => {
+    kostensaetze.mockRejectedValueOnce(new Error('Keine Verbindung.'));
+    zeige();
+    expect(await screen.findByText(/Keine Verbindung/)).toBeInTheDocument();
   });
 
   it('rechnet den Deckungsbeitrag erst, wenn er etwas aussagt', async () => {
@@ -140,10 +157,10 @@ describe('Interne Kostensätze', () => {
         fach: 60, helper: 40, nightSurcharge: 0.5, emergencySurcharge: 1,
         vatRate: 0.2, dueDays: 14,
       },
-      costRates: { fach: 38.5, helper: 24 },
     };
+    gespeicherteKosten = { fach: 38.5, helper: 24 };
     zeige();
-    expect(screen.getByText(/Deckungsbeitrag je Facharbeiterstunde/)).toBeInTheDocument();
+    expect(await screen.findByText(/Deckungsbeitrag je Facharbeiterstunde/)).toBeInTheDocument();
     expect(screen.queryByText(/Noch nicht hinterlegt/)).not.toBeInTheDocument();
     // 60 − 38,50 — mit Eurozeichen, wie jede Geldangabe (Prüflauf
     // 25.09.2026, P4-11: hier stand „21,50" ohne Einheit).

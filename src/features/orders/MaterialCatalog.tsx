@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
 import { isTopLevel } from '@/lib/permissions';
 import {
@@ -9,6 +9,7 @@ import {
   LOW_STOCK_THRESHOLD,
 } from '@/lib/db/materials';
 import { KATALOG_GRENZE } from '@/lib/listengrenzen';
+import { einkaufspreise } from '@/lib/db/kosten';
 import type { WithId } from '@/lib/db/core';
 import type { Material } from '@/types';
 import Card from '@/components/Card';
@@ -64,8 +65,9 @@ const empty = {
  * systematisch zu hoch war. Dass die Verwaltung diesen Katalog pflegt und den
  * Einkaufspreis trotzdem nicht setzen darf, ist kein Widerspruch: die Grenze
  * läuft zwischen den FELDERN, nicht zwischen den Ansichten, und steht hart im
- * Trigger `materials_felder`. Was sie nicht kann, ist das Lesen verhindern —
- * der Zeilenschutz gibt eine Zeile ganz oder gar nicht heraus.
+ * Trigger `materials_felder`. Seit dem 29.09.2026 gilt dasselbe fürs LESEN:
+ * der Preis liegt in `material_einkaufspreise`, die nur die Spitze liest
+ * (offene Punkte B1), und wird beim Öffnen eines Artikels eigens geholt.
  */
 /**
  * @param zuBearbeiten Ein Artikel, der beim Öffnen sofort im Formular stehen
@@ -96,6 +98,13 @@ export default function MaterialCatalog({
     Mitgeschickt wird er deshalb nur, wenn jemand ihn hier geändert hat.
   */
   const [stockBeimOeffnen, setStockBeimOeffnen] = useState<string | null>(null);
+  /*
+    DER EINKAUFSPREIS KOMMT NICHT MIT DEM ARTIKEL (offene Punkte B1). Solange
+    er nicht geholt ist, geht er beim Speichern NICHT mit: das leere Feld
+    schriebe sonst 0 über den hinterlegten Preis.
+  */
+  const [ekStand, setEkStand] = useState<'da' | 'laedt' | 'fehlt'>('da');
+  const offenerArtikel = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [toDelete, setToDelete] = useState<WithId<Material> | null>(null);
@@ -153,6 +162,21 @@ export default function MaterialCatalog({
 
   function startEdit(m: WithId<Material>) {
     setEditId(m.id);
+    offenerArtikel.current = m.id;
+    if (darfKosten && user) {
+      setEkStand('laedt');
+      einkaufspreise(user.companyId, [m.id]).then(
+        (preise) => {
+          if (offenerArtikel.current !== m.id) return;
+          const ek = preise.get(m.id);
+          setForm((f) => ({ ...f, einkaufspreis: ek != null ? String(ek) : '' }));
+          setEkStand('da');
+        },
+        () => {
+          if (offenerArtikel.current === m.id) setEkStand('fehlt');
+        },
+      );
+    }
     setStockBeimOeffnen(String(m.stock ?? 0));
     setForm({
       name: m.name,
@@ -161,11 +185,13 @@ export default function MaterialCatalog({
       articleNumber: m.articleNumber ?? '',
       unit: m.unit ?? 'Stk',
       verkaufspreis: m.verkaufspreis != null ? String(m.verkaufspreis) : '',
-      einkaufspreis: m.einkaufspreis != null ? String(m.einkaufspreis) : '',
+      einkaufspreis: '',
     });
   }
   function reset() {
     setEditId(null);
+    offenerArtikel.current = null;
+    setEkStand('da');
     setStockBeimOeffnen(null);
     setForm(empty);
   }
@@ -203,7 +229,7 @@ export default function MaterialCatalog({
           gescheitert wäre dann ihr GANZES Speichern, der Knopf täte nichts,
           und niemand wüsste warum. Sie schickt das Feld deshalb nicht mit.
         */
-        ...(darfKosten
+        ...(darfKosten && ekStand === 'da'
           ? { einkaufspreis: ek === '' ? 0 : Math.max(0, Number(ek) || 0) }
           : {}),
       };
@@ -285,22 +311,28 @@ export default function MaterialCatalog({
               Der EINKAUFSPREIS steht nur der Geschäftsführung offen: er ist
               die Grundlage der Nachkalkulation, also Margendaten. SETZEN kann
               ihn nur sie — das verweigert die Datenbank allen anderen
-              (Trigger `materials_felder`). LESEN kann ihn dagegen jeder im
-              Betrieb, der den Katalog liest, auch die Projektleitung: der
-              Zeilenschutz gibt eine Zeile ganz oder gar nicht heraus. Hier
-              wird das Feld nur nicht angeboten; eine Lesegrenze ist das nicht.
+              (Trigger `materials_felder`), und seit dem 29.09.2026 LESEN auch
+              nur sie (`material_einkaufspreise`, offene Punkte B1).
             */}
             {darfKosten && (
-              <InputField
-                id="mek"
-                label="Einkaufspreis netto je Einheit (€)"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="leer = nicht gepflegt"
-                value={form.einkaufspreis}
-                onChange={(e) => setForm({ ...form, einkaufspreis: e.target.value })}
-              />
+              <div className="flex flex-col gap-1.5">
+                <InputField
+                  id="mek"
+                  label="Einkaufspreis netto je Einheit (€)"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder={ekStand === 'laedt' ? 'wird geladen …' : 'leer = nicht gepflegt'}
+                  disabled={ekStand !== 'da'}
+                  value={form.einkaufspreis}
+                  onChange={(e) => setForm({ ...form, einkaufspreis: e.target.value })}
+                />
+                {ekStand === 'fehlt' && (
+                  <p className="text-sm text-ink-muted">
+                    Der Einkaufspreis konnte nicht geladen werden — er bleibt beim Speichern, wie er ist.
+                  </p>
+                )}
+              </div>
             )}
           </FormGrid>
           <Pflichthinweis />

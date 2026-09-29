@@ -15,7 +15,7 @@ export const firma = {
   iban: 'AT12 3456 7890 1234 5678', bic: 'GIBAATWWXXX', bankName: 'Erste Bank',
   vatId: 'ATU12345678', companyRegister: 'FN 123456a',
   rates: { fach: 78, helper: 52, vatRate: 0.2, anfahrt: 45, nacht: 0.5, notdienst: 1 },
-  costRates: { fach: 46, helper: 31 }, modules: {}, urlaubUebertrag: 'verjaehrung',
+  modules: {}, urlaubUebertrag: 'verjaehrung',
 };
 
 export const benutzer = [
