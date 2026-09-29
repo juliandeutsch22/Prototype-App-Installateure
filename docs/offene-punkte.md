@@ -31,7 +31,7 @@ bewusste Ausnahme, dokumentiert in `docs/design/linie.md`).
 | # | Punkt | Warum offen | Vorschlag |
 |---|---|---|---|
 | B7 | **Gutschrift, Skonto, Verzugszinsen** fehlen; ein Storno ist nur eine Statusänderung ohne Beleg für den Kunden | Neue Funktionen | Eigener Auftrag |
-| B8 | **DSGVO-Auskunft (Art. 15) und Löschung (Art. 17) je Person** fehlen; `betrieb_auszug` betrifft nur den ganzen Betrieb und ist auf 8 MB begrenzt | Neue Funktionen | Eigener Auftrag |
+| B8 | **DSGVO-Löschung (Art. 17) je Person** fehlt. Die Auskunft (Art. 15) gibt es seit 29.09.2026 (siehe unten) | Aufbewahrungspflichten (§ 132 BAO, sieben Jahre) stehen gegen sofortiges Löschen; was wann gehen darf, muss je Tabelle entschieden sein | Löschen, was nicht aufbewahrt werden muss; der Rest gesperrt bis zum Fristende, danach anonymisiert — mit Probelauf |
 | B10 | **„Pro Element genau eine Klasse“** gilt nur für die Bausteine; das übrige Markup ist Tailwind | Umschreiben wäre eine Formatierungswelle über rund 56 000 Zeilen | Ansicht für Ansicht, wenn sie ohnehin angefasst wird |
 
 ## C. Absicherungen und Tests, die fehlen
@@ -77,7 +77,16 @@ Kunden- und Katalogübernahme — im Betrieb des aktuellen Einblicks,
 Scheine, Rechnungen und Stornos, Baustellennummer ändern, Urlaub,
 Krankmeldungen, Betriebsurlaub —, dazu eine Rechnungsnummer (sie würde nie
 eine Rechnung und wäre ein Loch in der Folge) und die Datensicherung. Die
-Supportleiste nennt genau diese.
+Supportleiste nennt genau diese. Und B8, Teil 1: die **Datenauskunft je
+Person** (Art. 15) — in der Benutzer- und der Kundenakte lädt die
+Geschäftsführung eine Datei mit allem, was zu dieser Person gespeichert ist
+(`public.person_auskunft`). Daten anderer Personen bleiben draußen (bei der
+Belegschaft steht, was sie für andere bearbeitet hat, nur als Anzahl; beim
+Kunden fehlen Monteurkennungen und Monteurunterschrift), Push-Adressen nur
+als Zahl; ältere Zeilen ohne Kundenkennung werden über den Namen gefunden,
+und die Datei sagt das. Kein Support, keine Buchhaltung, nicht die Person
+selbst — die Geschäftsführung gibt sie weiter;
+`tests/supabase/datenauskunft.test.ts`, `tests/components/Datenauskunft.test.tsx`.
 
 **Aus B, am 29.09.2026:** B1, Teil 1 (Kostensätze in `betrieb_kostensaetze`,
 Einkaufspreise in `material_einkaufspreise` — lesen und schreiben nur
