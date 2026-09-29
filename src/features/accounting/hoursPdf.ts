@@ -2,7 +2,9 @@ import jsPDF from 'jspdf';
 import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import autoTable from 'jspdf-autotable';
 import type { AppUser, Company, TimeEntry } from '@/types';
-import { calcWorkMin, zeitausgleichMin } from '@/lib/time';
+import {
+  calcWorkMin, dezemberHalbtage, tageGewicht, tagesAnteil, tageZahl, zeitausgleichMin,
+} from '@/lib/time';
 import { BRAND_RGB, fmtDate, hours } from './export';
 import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
 import { zuschlagszeit, hatZuschlaege } from './zuschlaege';
@@ -135,15 +137,23 @@ export function generateHoursPdf(opts: {
   doc.setFontSize(10).setFont('helvetica', 'bold').setTextColor(...TINTE);
   doc.text(`Gesamtstunden: ${hours(totalMin)} h`, margin, y + 6);
 
+  const halbeTage = dezemberHalbtage(company);
   const krank = sorted.filter((e) => e.status === 'Krank').length;
-  const urlaub = sorted.filter((e) => e.status === 'Urlaub').length;
+  // Urlaub in dem, was er verbraucht: der 24. und 31.12. je einen halben Tag.
+  const urlaub = tageGewicht(
+    sorted.filter((e) => e.status === 'Urlaub').map((e) => e.date),
+    halbeTage,
+  );
   const tagessoll =
     (Number(user.weeklyTargetHours ?? 40) || 40) / (user.workDays?.length ? user.workDays.length : 5);
-  const zaMin = sorted.reduce((s, e) => s + zeitausgleichMin(e, tagessoll), 0);
+  const zaMin = sorted.reduce(
+    (s, e) => s + zeitausgleichMin(e, tagessoll * tagesAnteil(e.date, halbeTage)),
+    0,
+  );
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRAU);
   const abwesend = [
     krank ? `Krankenstandstage: ${krank}` : '',
-    urlaub ? `Urlaubstage: ${urlaub}` : '',
+    urlaub ? `Urlaubstage: ${tageZahl(urlaub)}` : '',
     zaMin ? `Zeitausgleich (ZA): ${hours(zaMin)} h` : '',
   ].filter(Boolean);
   if (abwesend.length) doc.text(abwesend.join('    '), margin, y + 12);
@@ -160,12 +170,13 @@ export function generateHoursPdf(opts: {
     Zierrat — anders als in der CSV, die die Lohnverrechnung maschinell
     liest und wo eine fehlende Spalte etwas anderes bedeutet als eine leere.
   */
-  const z = zuschlagszeit(sorted);
+  const z = zuschlagszeit(sorted, halbeTage);
   if (hatZuschlaege(z)) {
     const teile = [`Nacht: ${hours(z.nachtMin)} h`, `Notdienst: ${hours(z.notdienstMin)} h`];
     // Nacht und Notdienst schliessen einander nicht aus — ohne diesen
     // Zusatz addierte der Leser die beiden Zahlen und zählte doppelt.
     if (z.beidesMin > 0) teile.push(`davon beides: ${hours(z.beidesMin)} h`);
+    if (z.dezemberMin > 0) teile.push(`24./31.12. ab 12 Uhr: ${hours(z.dezemberMin)} h`);
     doc.text(
       `Zuschlagsstunden (N = Nacht, ND = Notdienst) — ${teile.join(' · ')}`,
       margin,

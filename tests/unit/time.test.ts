@@ -96,11 +96,11 @@ describe('calcOverallSaldo', () => {
     id: 'u', companyId: 'c', uid: 'u', name: 'Max', email: 'm@x.at', role: 'Mitarbeiter',
   };
   it('ohne Startdatum: nur Initialsaldo, hasConfig=false', () => {
-    const r = calcOverallSaldo({ ...base, initialOvertime: 5 }, []);
+    const r = calcOverallSaldo({ ...base, initialOvertime: 5 }, [], true);
     expect(r).toEqual({ saldoH: 5, hasConfig: false, daysWithoutEntry: 0 });
   });
   it('für GF/Admin (kein Soll/Ist): saldoH 0, hasConfig=false', () => {
-    const r = calcOverallSaldo({ ...base, role: 'Geschäftsführung', appStartDate: '2026-01-01' }, []);
+    const r = calcOverallSaldo({ ...base, role: 'Geschäftsführung', appStartDate: '2026-01-01' }, [], true);
     expect(r).toEqual({ saldoH: 0, hasConfig: false, daysWithoutEntry: 0 });
   });
 
@@ -112,7 +112,7 @@ describe('calcOverallSaldo', () => {
     start.setDate(start.getDate() - 30);
     const iso = localDateStr(start);
 
-    const r = calcOverallSaldo({ ...base, appStartDate: iso }, []);
+    const r = calcOverallSaldo({ ...base, appStartDate: iso }, [], true);
     expect(r.hasConfig).toBe(true);
     expect(r.saldoH).toBeLessThan(0);
     // Rund 30 Kalendertage, davon etwa 20 Werktage — die genaue Zahl hängt
@@ -133,7 +133,7 @@ describe('calcOverallSaldo', () => {
         status: 'Anwesend', startTime: '07:00', endTime: '16:00', breakDuration: 60,
       } as TimeEntry);
     }
-    const r = calcOverallSaldo({ ...base, appStartDate: iso }, entries);
+    const r = calcOverallSaldo({ ...base, appStartDate: iso }, entries, true);
     expect(r.daysWithoutEntry).toBe(0);
   });
 
@@ -145,7 +145,7 @@ describe('calcOverallSaldo', () => {
     const iso = localDateStr(start);
     const r = calcOverallSaldo({ ...base, appStartDate: iso }, [
       { id: 'e', companyId: 'c', userId: 'u', date: iso, status: 'Krank' } as TimeEntry,
-    ]);
+    ], true);
     expect(r.daysWithoutEntry).toBe(0);
   });
 });
@@ -168,7 +168,7 @@ describe('calcMonthStats — Eintritt mitten im Zeitraum', () => {
     // Eintritt am 16.06.2025. Vorher war der Mitarbeiter nicht im Betrieb;
     // fuer diese Tage darf ihm kein Soll angelastet werden.
     const s = calcMonthStats(
-      staff({ appStartDate: '2025-06-16' }), [], [], JUNE.year, JUNE.month,
+      staff({ appStartDate: '2025-06-16' }), [], [], JUNE.year, JUNE.month, true,
     );
     // 16.6. bis 30.6.: 11 Werktage Mo-Fr, davon Fronleichnam (19.6.) ->
     // 10 Solltage statt der 19 des ganzen Monats.
@@ -181,7 +181,7 @@ describe('calcMonthStats — Eintritt mitten im Zeitraum', () => {
     // Der eigentliche Aerger: wer im Juni eintritt, sah fuer Jaenner bis Mai
     // je ein volles Monatsminus - fuer Zeit, in der er nicht angestellt war.
     const s = calcMonthStats(
-      staff({ appStartDate: '2025-06-16' }), [], [], 2025, 2, // Maerz
+      staff({ appStartDate: '2025-06-16' }), [], [], 2025, 2, true, // Maerz
     );
     expect(s.workdaysInMonth).toBe(0);
     expect(s.sollMin).toBe(0);
@@ -202,7 +202,7 @@ describe('calcMonthStats — Eintritt mitten im Zeitraum', () => {
      * einer Zahl — sonst sieht die Luecke wie ein gepflegter Datensatz aus.
      */
     const s = calcMonthStats(
-      staff({ appStartDate: null }), [], [], JUNE.year, JUNE.month,
+      staff({ appStartDate: null }), [], [], JUNE.year, JUNE.month, true,
     );
     expect(s.workdaysInMonth).toBe(0);
     expect(s.sollMin).toBe(0);
@@ -212,7 +212,7 @@ describe('calcMonthStats — Eintritt mitten im Zeitraum', () => {
 
 describe('calcMonthStats', () => {
   it('zieht Feiertage vom Monatssoll ab', () => {
-    const s = calcMonthStats(staff(), [], [], JUNE.year, JUNE.month);
+    const s = calcMonthStats(staff(), [], [], JUNE.year, JUNE.month, true);
     expect(s.workdaysInMonth).toBe(19);
     expect(s.holidaysInMonth).toBe(2);
     expect(s.dailyTargetH).toBe(8); // 40 h / 5 Arbeitstage
@@ -224,7 +224,7 @@ describe('calcMonthStats', () => {
       entry({ date: '2025-06-02', status: 'Krank' }),
       entry({ date: '2025-06-03', status: 'Urlaub' }),
     ];
-    const s = calcMonthStats(staff(), month, month, JUNE.year, JUNE.month);
+    const s = calcMonthStats(staff(), month, month, JUNE.year, JUNE.month, true);
     expect(s.krankDays).toBe(1);
     expect(s.urlaubDays).toBe(1);
     expect(s.requiredDays).toBe(17); // 19 − 1 − 1
@@ -243,7 +243,7 @@ describe('calcMonthStats', () => {
       entry({ date: '2025-06-03', status: 'Anwesend', startTime: '07:00', endTime: '11:00', breakDuration: 0 }),
       entry({ date: '2025-06-03', status: 'Zeitausgleich', startTime: '13:00', endTime: '17:00' }),
     ];
-    const s = calcMonthStats(staff(), month, month, JUNE.year, JUNE.month);
+    const s = calcMonthStats(staff(), month, month, JUNE.year, JUNE.month, true);
     expect(s.requiredDays).toBe(19);
     expect(s.istMin).toBe(4 * 60);
     expect(s.zaMin).toBe(8 * 60 + 4 * 60);
@@ -255,7 +255,7 @@ describe('calcMonthStats', () => {
       entry({ date: '2025-03-10', status: 'Urlaub' }),
       entry({ date: '2025-06-03', status: 'Urlaub' }),
     ];
-    const s = calcMonthStats(staff(), [year[1]], year, JUNE.year, JUNE.month);
+    const s = calcMonthStats(staff(), [year[1]], year, JUNE.year, JUNE.month, true);
     expect(s.yearlyUrlaubDays).toBe(2);
     expect(s.urlaubRest).toBe(23); // 25 − 2
   });
@@ -264,7 +264,7 @@ describe('calcMonthStats', () => {
     // 4-Tage-Woche mit 32 h: 8,0 h/Tag — NICHT 32/5 = 6,4 h.
     // Sonst sähen Mitarbeiter und Buchhaltung verschiedene Salden.
     const teilzeit = staff({ workDays: [1, 2, 3, 4], weeklyTargetHours: 32 });
-    const s = calcMonthStats(teilzeit, [], [], JUNE.year, JUNE.month);
+    const s = calcMonthStats(teilzeit, [], [], JUNE.year, JUNE.month, true);
     expect(s.dailyTargetH).toBe(8);
     expect(s.workdaysInMonth).toBeLessThan(19);
   });

@@ -207,7 +207,7 @@ describe('Durchstich 6: mehrere Baustellen an einem Tag', () => {
       genau eine Stunde Plus — NICHT drei Tage Soll gegen 9 h.
     */
     const saldo = calcOverallSaldo(
-      { ...mitarbeiter, appStartDate: '2026-09-01' } as AppUser, alle,
+      { ...mitarbeiter, appStartDate: '2026-09-01' } as AppUser, alle, true,
     );
     expect(saldo.saldoH).toBeCloseTo(1, 5);
     expect(saldo.daysWithoutEntry).toBe(0);

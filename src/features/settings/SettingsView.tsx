@@ -127,6 +127,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   const [rechnungsarten, setRechnungsarten] = useState(false);
   const [wochenplanFuerAlle, setWochenplanFuerAlle] = useState(false);
   const [wochenplanSpeichert, setWochenplanSpeichert] = useState(false);
+  const [dezemberHalbtage, setDezemberHalbtage] = useState(true);
+  const [dezemberSpeichert, setDezemberSpeichert] = useState(false);
   const [uebertrag, setUebertrag] = useState<'verjaehrung' | 'stichtag'>('verjaehrung');
   const [stichtagMonat, setStichtagMonat] = useState('03');
   const [stichtagTag, setStichtagTag] = useState('31');
@@ -157,6 +159,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     setVorsaetze(praefixeVon(company));
     setRechnungsarten(company?.rechnungsarten ?? false);
     setWochenplanFuerAlle(company?.wochenplanFuerAlle ?? false);
+    setDezemberHalbtage(company?.dezemberHalbtage !== false);
     const beginn = company?.urlaubJahresbeginn ?? '01-01';
     setBeginnMonat(beginn.slice(0, 2));
     setBeginnTag(beginn.slice(3, 5));
@@ -292,6 +295,25 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       setError({ wo: 'wochenplan', text: grundAus(err, 'Die Einstellung zum Wochenplan konnte nicht gespeichert werden.') });
     } finally {
       setWochenplanSpeichert(false);
+    }
+  }
+
+  async function dezemberSpeichern() {
+    if (!user) return;
+    setDezemberSpeichert(true);
+    setError(null);
+    try {
+      await updateCompany(user.companyId, { dezemberHalbtage });
+      await reloadCompany();
+      toast.success(
+        dezemberHalbtage
+          ? '24. und 31. Dezember zählen als halbe Tage'
+          : '24. und 31. Dezember zählen als ganze Tage',
+      );
+    } catch (err) {
+      setError({ wo: 'dezember', text: grundAus(err, 'Die Einstellung zum 24. und 31. Dezember konnte nicht gespeichert werden.') });
+    } finally {
+      setDezemberSpeichert(false);
     }
   }
 
@@ -1159,6 +1181,40 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           </Button>
         </div>
         {fehlerBei('wochenplan')}
+      </Card>
+      )}
+
+      {/*
+        24. UND 31. DEZEMBER — ab Werk nach dem Kollektivvertrag. Die
+        Einzelheiten stehen im „i"; auf der Karte nur, was der Schalter tut.
+      */}
+      {teil === 'personal' && (
+      <Card
+        title="24. und 31. Dezember"
+        hint={
+          <>
+            Kollektivvertrag Metallgewerbe (gilt auch für Sanitär, Heizung und Lüftung): an beiden
+            Tagen endet die Normalarbeitszeit um 12 Uhr. Eingeschaltet zählt jeder der beiden Tage
+            im Soll als halber Tag, Urlaub an beiden zusammen als ein Urlaubstag (an einem allein
+            als halber), ebenso Krankenstand und ganztägiger Zeitausgleich. Arbeit nach 12 Uhr
+            steht als eigene Zuschlagsspalte (100 %) in der Lohn-CSV und im Stundennachweis.
+            Umschalten rechnet Zeitkonto und Resturlaub rückwirkend neu, auch für bereits
+            genehmigte Urlaube.
+          </>
+        }
+      >
+        <CheckboxField
+          id="dezemberHalbtage"
+          label="24. und 31. Dezember als halbe Tage rechnen (Normalarbeitszeit bis 12 Uhr)"
+          checked={dezemberHalbtage}
+          onChange={(e) => setDezemberHalbtage(e.target.checked)}
+        />
+        <div className="mt-4">
+          <Button type="button" loading={dezemberSpeichert} onClick={dezemberSpeichern}>
+            Speichern
+          </Button>
+        </div>
+        {fehlerBei('dezember')}
       </Card>
       )}
 

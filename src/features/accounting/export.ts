@@ -42,6 +42,16 @@ export function hours(min: number): string {
   return num(min / 60);
 }
 
+/**
+ * Eine Anzahl Tage für die CSV: ganze wie bisher („3"), sonst mit Komma
+ * („4,5"). Halbe gibt es seit dem 24./31. Dezember, Bruchteile beim
+ * anteiligen Anspruch — „4.5" mit Punkt liest ein österreichisches Excel als
+ * Datum oder Text, und keine Summe ginge auf.
+ */
+function tage(n: number): string {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100).replace('.', ',');
+}
+
 /** 'YYYY-MM-DD' -> '27.08.2026'. */
 export function fmtDate(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString('de-AT', {
@@ -99,7 +109,12 @@ export interface UserWithEntries {
  * je Mitarbeiter. Die drei Blöcke stehen bewusst in EINER Datei — so wie es
  * die Lohnverrechnung gewohnt ist.
  */
-export function buildMonthCsv(rows: UserWithEntries[], year: number, month: number): string {
+export function buildMonthCsv(
+  rows: UserWithEntries[],
+  year: number,
+  month: number,
+  halbeTage: boolean,
+): string {
   const lines: string[] = [];
 
   lines.push(
@@ -152,13 +167,17 @@ export function buildMonthCsv(rows: UserWithEntries[], year: number, month: numb
       // die die Spalten nach ihrer Stelle liest, bekäme sonst verschobene
       // Zahlen.
       'Zeitausgleich(Std)',
+      // Kollektivvertrag: am 24./31.12. nach 12 Uhr 100 % Zuschlag. Steht
+      // immer da, auch mit null — sonst hiesse eine fehlende Spalte etwas
+      // anderes als eine leere.
+      '24./31.12. ab 12 Uhr(Std)',
     ]),
   );
   for (const { user, monthEntries, stats } of [...rows].sort((a, b) => a.user.name.localeCompare(b.user.name, 'de'))) {
     // „davon beides" ist keine Zierde: der Rohrbruch um zwei Uhr früh trägt
     // beide Kennzeichen. Wer Nacht und Notdienst addiert, zählt diese
     // Stunden doppelt — und sähe es der Datei nicht an.
-    const z = zuschlagszeit(monthEntries);
+    const z = zuschlagszeit(monthEntries, halbeTage);
     lines.push(
       row([
         user.name,
@@ -166,12 +185,13 @@ export function buildMonthCsv(rows: UserWithEntries[], year: number, month: numb
         hours(stats.sollMin),
         hours(stats.saldoMin),
         stats.krankDays,
-        stats.urlaubDays,
-        stats.urlaubRest,
+        tage(stats.urlaubDays),
+        tage(stats.urlaubRest),
         hours(z.nachtMin),
         hours(z.notdienstMin),
         hours(z.beidesMin),
         hours(stats.zaMin),
+        hours(z.dezemberMin),
       ]),
     );
   }
@@ -213,6 +233,7 @@ export function buildUserCsv(
   stats: MonthStats,
   year: number,
   month: number,
+  halbeTage: boolean,
 ): string {
   const lines: string[] = [];
   lines.push(row([`Zeiterfassung: ${user.name}`]));
@@ -252,9 +273,9 @@ export function buildUserCsv(
   lines.push(row(['Soll', `${hours(stats.sollMin)} h`]));
   lines.push(row(['Saldo', `${hours(stats.saldoMin)} h`]));
   lines.push(row(['Krank', `${stats.krankDays} Tage`]));
-  lines.push(row(['Urlaub (Monat)', `${stats.urlaubDays} Tage`]));
-  lines.push(row([`Urlaub ${year} gesamt`, `${stats.yearlyUrlaubDays} Tage`]));
-  lines.push(row(['Resturlaub', `${stats.urlaubRest} Tage`]));
+  lines.push(row(['Urlaub (Monat)', `${tage(stats.urlaubDays)} Tage`]));
+  lines.push(row([`Urlaub ${year} gesamt`, `${tage(stats.yearlyUrlaubDays)} Tage`]));
+  lines.push(row(['Resturlaub', `${tage(stats.urlaubRest)} Tage`]));
   lines.push(row(['Zeitausgleich', `${hours(stats.zaMin)} h`]));
 
   /*
@@ -263,11 +284,12 @@ export function buildUserCsv(
     die unterscheidet sich von „diese Datei kennt das Thema nicht", was
     vorher der Fall war und niemandem auffiel.
   */
-  const z = zuschlagszeit(monthEntries);
+  const z = zuschlagszeit(monthEntries, halbeTage);
   lines.push('');
   lines.push(row(['Nachtstunden', `${hours(z.nachtMin)} h`]));
   lines.push(row(['Notdienststunden', `${hours(z.notdienstMin)} h`]));
   lines.push(row(['davon beides', `${hours(z.beidesMin)} h`]));
+  lines.push(row(['24./31.12. ab 12 Uhr', `${hours(z.dezemberMin)} h`]));
 
   return lines.join('\n');
 }

@@ -157,3 +157,31 @@ export function urlaubsTage(
   if (Number.isNaN(von.getTime()) || Number.isNaN(bis.getTime()) || bis < von) return [];
   return werktageImZeitraum(workDays && workDays.length ? workDays : [1, 2, 3, 4, 5], von, bis);
 }
+
+/**
+ * Welchen Teil eines Arbeitstags ein Datum wiegt — 1 oder ½.
+ *
+ * KOLLEKTIVVERTRAG METALLGEWERBE, Abschnitt VI Punkt 23 (gilt auch für die
+ * Innung der Sanitär-, Heizungs- und Lüftungstechniker): am 24. und
+ * 31. Dezember endet die Normalarbeitszeit um 12 Uhr, und Urlaub an beiden
+ * Tagen zusammen zählt als EIN Urlaubstag. Beides folgt aus demselben
+ * Gewicht: der Tag ist ein halber — im Soll, in der Gutschrift für Krank und
+ * Urlaub, beim ganztägigen Zeitausgleich und beim Urlaubsverbrauch.
+ *
+ * Der Vertrag spricht nur von beiden Tagen ZUSAMMEN. Nimmt jemand nur einen
+ * davon, zählt er hier einen halben Urlaubstag — anders ginge die Rechnung
+ * nicht auf, denn das Soll dieses Tages ist ebenfalls ein halbes.
+ *
+ * `halbeTage` ist die Einstellung des Betriebs (ab Werk an): ein Betrieb
+ * ohne diesen Kollektivvertrag rechnet volle Tage.
+ */
+export function tagesAnteil(iso: string, halbeTage: boolean): number {
+  if (!halbeTage) return 1;
+  const tag = iso.slice(5, 10);
+  return tag === '12-24' || tag === '12-31' ? 0.5 : 1;
+}
+
+/** Die Summe der Anteile — wie viele Arbeitstage eine Liste von Tagen wiegt. */
+export function tageGewicht(tage: readonly string[], halbeTage: boolean): number {
+  return tage.reduce((summe, t) => summe + tagesAnteil(t, halbeTage), 0);
+}

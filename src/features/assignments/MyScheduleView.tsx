@@ -14,7 +14,7 @@ import PlaeneListe from '@/features/projects/PlaeneListe';
 import { planeVon, usePlaene } from '@/features/projects/usePlaene';
 import type { Assignment, Project, Vacation, EinsatzMaterial } from '@/types';
 import type { WithId } from '@/lib/db/core';
-import { todayStr } from '@/lib/time';
+import { tageWort, todayStr } from '@/lib/time';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
@@ -449,7 +449,7 @@ export default function MyScheduleView() {
                       </span>
                       <span className="flex items-center gap-2">
                         <span className="text-xs text-ink-muted">
-                          {v.tage} {v.tage === 1 ? 'Tag' : 'Tage'}
+                          {tageWort(Number(v.tage))}
                         </span>
                         <Zustand stand={v.status === 'Genehmigt' ? 'gut' : 'achtung'}>
                           {v.status}

@@ -87,7 +87,7 @@ describe('Der Stundenexport', () => {
       comment: '=1+1',
     } as unknown as TimeEntry;
     const csv = buildMonthCsv(
-      [{ user: u, monthEntries: [e], stats: calcMonthStats(u, [e], [e], 2025, 5) }], 2025, 5,
+      [{ user: u, monthEntries: [e], stats: calcMonthStats(u, [e], [e], 2025, 5, true) }], 2025, 5, true,
     );
     expect(csv).toContain("'=1+1");
     expect(csv).not.toMatch(/;=1\+1/);

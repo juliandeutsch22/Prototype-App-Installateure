@@ -10,7 +10,7 @@ import {
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
-import { todayStr, getAustrianHolidayName, fmtMin } from '@/lib/time';
+import { todayStr, getAustrianHolidayName, fmtMin, tageWort } from '@/lib/time';
 import { zeitbild, zeitSatz, ueberwiegendNacht } from './zeitPlausibilitaet';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
 import { istAussendienst, canExtendTimeEntry, canEditTime } from '@/lib/permissions';
@@ -410,7 +410,7 @@ export default function TimeForm({
           notiz: comment.trim(),
           name: user.name,
         });
-        const tage = r.tage === 1 ? '1 Tag' : `${r.tage} Tage`;
+        const tage = tageWort(r.tage);
         const uebersprungen =
           r.uebersprungen > 0 ? `, ${r.uebersprungen} schon gebucht und übersprungen` : '';
         toast.success(

@@ -1,5 +1,5 @@
 import type { TimeEntry } from '@/types';
-import { calcWorkMin } from '@/lib/time';
+import { calcWorkMin, tagesAnteil } from '@/lib/time';
 
 /**
  * Nacht- und Notdienststunden für die Lohnverrechnung.
@@ -40,9 +40,53 @@ export interface Zuschlagszeit {
    * daneben, statt sich auf eine Fussnote zu verlassen.
    */
   beidesMin: number;
+  /**
+   * Arbeitsminuten nach 12 Uhr am 24. und 31. Dezember — nur, wenn der
+   * Betrieb diese Tage als halbe rechnet (Kollektivvertrag Metallgewerbe:
+   * danach geleistete Überstunden mit 100 % Zuschlag). Kann sich mit Nacht
+   * und Notdienst überschneiden; welcher Zuschlag dann gilt, entscheidet
+   * die Lohnverrechnung nach dem Vertrag.
+   */
+  dezemberMin: number;
+  /**
+   * Minuten mit IRGENDEINEM Zuschlag, jede nur einmal gezählt — für die
+   * Kachel in der Zeiterfassung, die eine Zahl zeigt und nicht drei.
+   */
+  gesamtMin: number;
 }
 
-export const LEERE_ZUSCHLAEGE: Zuschlagszeit = { nachtMin: 0, notdienstMin: 0, beidesMin: 0 };
+export const LEERE_ZUSCHLAEGE: Zuschlagszeit = {
+  nachtMin: 0, notdienstMin: 0, beidesMin: 0, dezemberMin: 0, gesamtMin: 0,
+};
+
+/** Die Normalarbeitszeit am 24. und 31. Dezember endet um 12 Uhr. */
+const MITTAG_MIN = 12 * 60;
+
+/**
+ * Wie viele Arbeitsminuten eines Eintrags am 24./31.12. nach 12 Uhr liegen.
+ *
+ * DIE PAUSE GEHT ZUERST VOM NACHMITTAG AB. Wo sie lag, steht in keinem
+ * Eintrag; nach sechs Stunden ist sie aber fällig (§ 11 AZG), und wer über
+ * Mittag hinaus arbeitet, macht sie in aller Regel dort. Der Vormittag bleibt
+ * damit, was er nach dem Vertrag ist: Normalarbeitszeit.
+ *
+ * Ein Eintrag über Mitternacht zählt nur bis 24 Uhr — danach ist der 25. bzw.
+ * der 1., ein Feiertag, und der hat seine eigene Regel. Ohne Von/Bis ist
+ * nicht bekannt, wann gearbeitet wurde: dann null, und die Zeile steht mit
+ * ihren Stunden in den Detailzeilen.
+ */
+export function dezemberNachmittagMin(e: TimeEntry, halbeTage: boolean): number {
+  if (e.status !== 'Anwesend' || tagesAnteil(e.date, halbeTage) === 1) return 0;
+  if (!e.startTime || !e.endTime) return 0;
+  const [h1, m1] = e.startTime.split(':').map(Number);
+  const [h2, m2] = e.endTime.split(':').map(Number);
+  const beginn = h1 * 60 + m1;
+  let ende = h2 * 60 + m2;
+  if (ende <= beginn) ende += 24 * 60;
+  const nachmittag = Math.max(0, Math.min(ende, 24 * 60) - Math.max(beginn, MITTAG_MIN));
+  const pause = Number(e.breakDuration ?? 0) || 0;
+  return Math.max(0, Math.min(nachmittag - pause, calcWorkMin(e)));
+}
 
 /**
  * Zuschlagsstunden eines Zeitraums.
@@ -53,10 +97,12 @@ export const LEERE_ZUSCHLAEGE: Zuschlagszeit = { nachtMin: 0, notdienstMin: 0, b
  * hier ergäbe dieselbe Zahl, bis sie es eines Tages nicht mehr täte, und
  * bemerkt würde es an einem Lohnzettel.
  */
-export function zuschlagszeit(eintraege: TimeEntry[]): Zuschlagszeit {
+export function zuschlagszeit(eintraege: TimeEntry[], halbeTage: boolean): Zuschlagszeit {
   let nachtMin = 0;
   let notdienstMin = 0;
   let beidesMin = 0;
+  let dezemberMin = 0;
+  let gesamtMin = 0;
 
   for (const e of eintraege) {
     if (e.status !== 'Anwesend') continue;
@@ -65,14 +111,19 @@ export function zuschlagszeit(eintraege: TimeEntry[]): Zuschlagszeit {
     if (e.isNightWork) nachtMin += min;
     if (e.isEmergency) notdienstMin += min;
     if (e.isNightWork && e.isEmergency) beidesMin += min;
+    const dezember = dezemberNachmittagMin(e, halbeTage);
+    dezemberMin += dezember;
+    // Ein gekennzeichneter Eintrag trägt seinen Zuschlag ganz; der
+    // Dezember-Nachmittag steckt dann schon darin.
+    gesamtMin += e.isNightWork || e.isEmergency ? min : dezember;
   }
 
-  return { nachtMin, notdienstMin, beidesMin };
+  return { nachtMin, notdienstMin, beidesMin, dezemberMin, gesamtMin };
 }
 
 /** Ob überhaupt etwas auszuweisen ist — sonst bleibt der Block weg. */
 export function hatZuschlaege(z: Zuschlagszeit): boolean {
-  return z.nachtMin > 0 || z.notdienstMin > 0;
+  return z.nachtMin > 0 || z.notdienstMin > 0 || z.dezemberMin > 0;
 }
 
 /**

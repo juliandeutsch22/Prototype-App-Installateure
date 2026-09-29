@@ -14,8 +14,8 @@ import {
  * Einträgen seit dem Eintritt. Der laufende Monat kommt immer aus den
  * Einträgen — dort hinkt die Bilanz sonst der letzten Buchung hinterher.
  */
-export async function zeitguthabenLaden(profil: AppUser): Promise<SaldoResult> {
-  if (!profil.appStartDate) return calcOverallSaldo(profil, []);
+export async function zeitguthabenLaden(profil: AppUser, halbeTage: boolean): Promise<SaldoResult> {
+  if (!profil.appStartDate) return calcOverallSaldo(profil, [], halbeTage);
   const eintritt = profil.appStartDate;
   const marker = await bilanzMarker(profil.companyId, profil.uid).catch(() => null);
   if (marker && marker.vollstaendigAb <= monatVon(eintritt)) {
@@ -28,7 +28,11 @@ export async function zeitguthabenLaden(profil: AppUser): Promise<SaldoResult> {
       // davor (Prüflauf 25.09.2026, P1-15).
       listOwnEntriesInRange(profil.companyId, profil.uid, eintritt, monatsLetzter(eintritt)),
     ]);
-    return saldoAusBilanzen(profil, bilanzen, laufend, eintrittsmonat);
+    return saldoAusBilanzen(profil, bilanzen, laufend, halbeTage, eintrittsmonat);
   }
-  return calcOverallSaldo(profil, await listOwnEntriesSince(profil.companyId, profil.uid, eintritt));
+  return calcOverallSaldo(
+    profil,
+    await listOwnEntriesSince(profil.companyId, profil.uid, eintritt),
+    halbeTage,
+  );
 }

@@ -118,7 +118,7 @@ describe('Durchstich 1: gebuchte Zeit kommt in der Auswertung an', () => {
 
     // Soll je Tag: 40 h auf fünf Tage = 8 h. Gebucht 8,5 h — eine halbe
     // Stunde Plus je Tag.
-    const saldo = calcOverallSaldo(mitarbeiter, seine as TimeEntry[]);
+    const saldo = calcOverallSaldo(mitarbeiter, seine as TimeEntry[], true);
     expect(saldo.hasConfig).toBe(true);
     expect(saldo.saldoH).toBeCloseTo(1.5, 5);
   }, 120_000);
@@ -192,7 +192,7 @@ describe('Durchstich 2: genehmigter Urlaub landet im Zeitkonto', () => {
       Zeiteinträge zöge der Saldo fünfmal das Tagessoll ab — vierzig Stunden.
     */
     const eigene = await zeiten.listOwnEntriesSince(BETRIEB, monteur.uid, '2026-07-01');
-    const saldo = calcOverallSaldo(neuling, eigene as TimeEntry[]);
+    const saldo = calcOverallSaldo(neuling, eigene as TimeEntry[], true);
     expect(saldo.saldoH).toBeCloseTo(0, 5);
 
     expect(offeneWerktage(

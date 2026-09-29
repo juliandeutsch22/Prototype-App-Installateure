@@ -1,4 +1,5 @@
 import { calcWorkMin, type Zeitangaben } from './arbeitszeit';
+import { tagesAnteil } from './feiertage';
 
 /**
  * Die Monatsbilanz — reine Rechnung, ohne Firebase.
@@ -50,6 +51,12 @@ export interface Monatsbilanz {
   /** ANZAHL der Urlaubstage. */
   urlaubTage: number;
   /**
+   * Wie viele der Krank- und Urlaubstage auf einen 24. oder 31. Dezember
+   * fallen — ebenfalls nur gezählt. Ob sie halb wiegen, entscheidet die
+   * Einstellung des Betriebs erst bei der Anzeige (`tagesAnteil`).
+   */
+  abwesendHalbtage: number;
+  /**
    * Die Daten mit Buchung, aufsteigend.
    *
    * Nötig für die Lückenrechnung: „an welchen Werktagen fehlt eine Buchung?"
@@ -79,6 +86,7 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
   let anwesendMin = 0;
   let krankTage = 0;
   let urlaubTage = 0;
+  let abwesendHalbtage = 0;
   const tage = new Set<string>();
 
   for (const e of eintraege) {
@@ -87,6 +95,9 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
     if (e.status === 'Krank') krankTage++;
     else if (e.status === 'Urlaub') urlaubTage++;
     else anwesendMin += calcWorkMin(e);
+    if ((e.status === 'Krank' || e.status === 'Urlaub') && tagesAnteil(e.date, true) < 1) {
+      abwesendHalbtage++;
+    }
   }
 
   return {
@@ -94,6 +105,7 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
     anwesendMin,
     krankTage,
     urlaubTage,
+    abwesendHalbtage,
     tage: [...tage].sort(),
   };
 }

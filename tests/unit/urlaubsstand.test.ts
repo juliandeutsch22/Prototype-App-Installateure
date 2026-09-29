@@ -171,7 +171,7 @@ describe('Die Monatszahlen der Buchhaltung nehmen dieselbe Regel', () => {
       [],
       [eintrag('2026-10-05'), eintrag('2026-10-06')],
       2026,
-      9,
+      9, true,
     );
     expect(stats.urlaubRest).toBe(5);
     expect(stats.urlaubsAnspruch).toBe(7);
@@ -190,7 +190,7 @@ describe('Die Monatszahlen der Buchhaltung nehmen dieselbe Regel', () => {
       [],
       [eintrag('2026-03-02'), eintrag('2026-10-05')],
       2026,
-      9,
+      9, true,
     );
     expect(stats.yearlyUrlaubDays).toBe(2);
     // Gegen den Anspruch zählt nur der Tag NACH dem Umstieg.
@@ -206,7 +206,7 @@ describe('Die Monatszahlen der Buchhaltung nehmen dieselbe Regel', () => {
       [],
       [eintrag('2026-10-05')],
       2026,
-      9,
+      9, true,
     );
     expect(stats.urlaubRest).toBe(24);
     expect(stats.urlaubAusAnfangsbestand).toBe(false);

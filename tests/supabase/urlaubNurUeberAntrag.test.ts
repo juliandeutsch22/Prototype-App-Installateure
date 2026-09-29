@@ -217,6 +217,12 @@ describe('Übernahme des Altbestands', () => {
     // Die Migration noch einmal — sie ist darauf gebaut, dass das geht.
     await db.query(readFileSync(
       join(__dirname, '../../supabase/migrations/20260924190000_urlaub_nur_ueber_antrag.sql'), 'utf8'));
+    // Sie setzt dabei `urlaub_eintragen` und `urlaub_entscheiden` auf ihre
+    // alte Fassung zurück; die spätere Migration stellt den heutigen Stand
+    // wieder her — sonst rechneten die Prüfungen danach mit ganzen Tagen am
+    // 24./31.12., je nachdem, in welcher Reihenfolge sie laufen.
+    await db.query(readFileSync(
+      join(__dirname, '../../supabase/migrations/20260929200000_dezember_halbtage.sql'), 'utf8'));
 
     const tage = await eintraege(alt.uid, '2027-04-01', '2027-04-30');
     expect(tage.every((t) => t.vacation_id !== null)).toBe(true);

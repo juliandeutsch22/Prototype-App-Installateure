@@ -17,6 +17,8 @@ import {
   isAustrianHoliday,
   isWeekend,
   localDateStr,
+  tageGewicht,
+  tagesAnteil,
   urlaubsTage as urlaubsTageShared,
   werktageImZeitraum,
 } from '@shared/feiertage';
@@ -35,8 +37,21 @@ export {
   isAustrianHoliday,
   isWeekend,
   localDateStr,
+  tageGewicht,
+  tagesAnteil,
   werktageImZeitraum,
 };
+
+/**
+ * Rechnet dieser Betrieb den 24. und 31. Dezember als halbe Tage?
+ *
+ * Ab Werk ja (Kollektivvertrag Metallgewerbe, siehe `tagesAnteil`). Nur ein
+ * ausdrückliches „nein" schaltet es ab — ein noch nicht geladener Betrieb
+ * rechnet wie die Datenbank, deren Spalte ebenfalls mit `true` beginnt.
+ */
+export function dezemberHalbtage(company: Pick<Company, 'dezemberHalbtage'> | null | undefined): boolean {
+  return company?.dezemberHalbtage !== false;
+}
 
 /** Arbeitstage zwischen zwei ISO-Daten — mit den Arbeitstagen des Nutzers. */
 export function urlaubsTage(
@@ -458,7 +473,18 @@ export { calcWorkMin };
  * die vierte macht es dann wieder falsch.
  */
 export function tageWort(n: number): string {
-  return n === 1 ? '1 Tag' : `${n} Tage`;
+  return n === 1 ? '1 Tag' : `${tageZahl(n)} Tage`;
+}
+
+/**
+ * Eine Anzahl Tage als Zahl, österreichisch geschrieben: „20,5".
+ *
+ * Seit der 24. und 31. Dezember halb zählen, gibt es halbe Solltage und
+ * halbe Urlaubstage — ohne Formatierung stünde „20.5" da, mit Punkt, zwei
+ * Zeilen unter „8,00 h".
+ */
+export function tageZahl(n: number): string {
+  return n.toLocaleString('de-AT', { maximumFractionDigits: 2 });
 }
 
 /** Minuten -> 'HH:MM'. */
@@ -546,7 +572,11 @@ function ganztagGutschreiben(e: Pick<TimeEntry, 'status' | 'date'>, heuteIso: st
  * kein Feiertag ist -> dailyH. Ist: Anwesend = gearbeitet, Krank/Urlaub =
  * voller Solltag. saldoH = initial + (Ist − Soll)/60.
  */
-export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResult {
+export function calcOverallSaldo(
+  user: AppUser,
+  entries: TimeEntry[],
+  halbeTage: boolean,
+): SaldoResult {
   if (!fuehrtZeitkonto(user)) {
     return { saldoH: 0, hasConfig: false, daysWithoutEntry: 0 };
   }
@@ -572,7 +602,7 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
     if (e.date < user.appStartDate || e.date > heuteIso) continue;
     bookedDates.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (ganztagGutschreiben(e, heuteIso)) istMin += dailyH * 60;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * dailyH * 60;
   }
 
   /**
@@ -584,7 +614,7 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
    * Genau das war passiert.
    */
   const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
-  const sollMin = pflicht.length * dailyH * 60;
+  const sollMin = tageGewicht(pflicht, halbeTage) * dailyH * 60;
   const daysWithoutEntry = pflicht.filter((d) => !bookedDates.has(d)).length;
 
   const saldoH = Math.round((initial + (istMin - sollMin) / 60) * 100) / 100;
@@ -621,8 +651,16 @@ export function calcOverallSaldo(user: AppUser, entries: TimeEntry[]): SaldoResu
  */
 export function saldoAusBilanzen(
   user: AppUser,
-  bilanzen: Array<{ monat: string; anwesendMin: number; krankTage: number; urlaubTage: number; tage: string[] }>,
+  bilanzen: Array<{
+    monat: string;
+    anwesendMin: number;
+    krankTage: number;
+    urlaubTage: number;
+    abwesendHalbtage: number;
+    tage: string[];
+  }>,
   laufenderMonat: TimeEntry[],
+  halbeTage: boolean,
   eintrittsmonat?: TimeEntry[],
 ): SaldoResult {
   if (!fuehrtZeitkonto(user)) {
@@ -654,7 +692,10 @@ export function saldoAusBilanzen(
     istMin += b.anwesendMin;
     // Krank und Urlaub zählen als Tagessoll — bewertet ERST hier, mit der
     // aktuellen Konfiguration. Gespeichert ist nur die Anzahl.
-    istMin += (b.krankTage + b.urlaubTage) * dailyH * 60;
+    // Ein Krank- oder Urlaubstag am 24./31.12. schreibt nur einen halben
+    // gut — so viel Soll hatte der Tag.
+    const halbe = halbeTage ? b.abwesendHalbtage * 0.5 : 0;
+    istMin += (b.krankTage + b.urlaubTage - halbe) * dailyH * 60;
     for (const t of b.tage) {
       if (t >= user.appStartDate) gebucht.add(t);
     }
@@ -672,11 +713,11 @@ export function saldoAusBilanzen(
     if (e.date < user.appStartDate || e.date > heuteIso) continue;
     gebucht.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (ganztagGutschreiben(e, heuteIso)) istMin += dailyH * 60;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * dailyH * 60;
   }
 
   const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
-  const sollMin = pflicht.length * dailyH * 60;
+  const sollMin = tageGewicht(pflicht, halbeTage) * dailyH * 60;
   const daysWithoutEntry = pflicht.filter((d) => !gebucht.has(d)).length;
 
   const saldoH = Math.round((initial + (istMin - sollMin) / 60) * 100) / 100;
@@ -706,6 +747,7 @@ export interface MonthStats {
   dailyTargetH: number;
   workdaysInMonth: number;
   holidaysInMonth: number;
+  /** Solltage — am 24./31.12. halbe, die Zahl kann also auf ,5 enden. */
   requiredDays: number;
   istMin: number;
   sollMin: number;
@@ -751,6 +793,7 @@ export function calcMonthStats(
   yearEntries: TimeEntry[],
   year: number,
   month: number,
+  halbeTage: boolean,
   urlaub: UrlaubsQuelle = {},
 ): MonthStats {
   const weeklyTarget = Number(user.weeklyTargetHours ?? 40) || 40;
@@ -782,8 +825,13 @@ export function calcMonthStats(
   const workdaysInMonth = pflichtImMonat.length;
   const holidaysInMonth = feiertageImZeitraum(user, monatsStart, monatsEnde);
 
+  // Krankenstand zählt die Lohnverrechnung in Tagen, wie sie im Kalender
+  // stehen; Urlaub in dem, was er vom Anspruch verbraucht (24./31.12. halb).
   const krankDays = monthEntries.filter((e) => e.status === 'Krank').length;
-  const urlaubDays = monthEntries.filter((e) => e.status === 'Urlaub').length;
+  const urlaubDays = tageGewicht(
+    monthEntries.filter((e) => e.status === 'Urlaub').map((e) => e.date),
+    halbeTage,
+  );
   /*
     VOM SOLL GEHT NUR AB, WAS AUCH IM SOLL STECKT. Die Pflichttage reichen im
     laufenden Monat bis gestern; die Krank- und Urlaubstage des ganzen Monats
@@ -793,15 +841,23 @@ export function calcMonthStats(
     Grund zählt ein Krank-Tag an einem freien Tag nicht.
   */
   const imSoll = new Set(pflichtImMonat);
-  const abwesendImSoll = new Set(
-    monthEntries
-      .filter((e) => (e.status === 'Krank' || e.status === 'Urlaub') && imSoll.has(e.date))
-      .map((e) => e.date),
-  ).size;
+  const abwesendImSoll = tageGewicht(
+    [
+      ...new Set(
+        monthEntries
+          .filter((e) => (e.status === 'Krank' || e.status === 'Urlaub') && imSoll.has(e.date))
+          .map((e) => e.date),
+      ),
+    ],
+    halbeTage,
+  );
   const istMin = monthEntries.reduce((s, e) => s + calcWorkMin(e), 0);
-  const zaMin = monthEntries.reduce((s, e) => s + zeitausgleichMin(e, dailyTargetH), 0);
+  const zaMin = monthEntries.reduce(
+    (s, e) => s + zeitausgleichMin(e, dailyTargetH * tagesAnteil(e.date, halbeTage)),
+    0,
+  );
 
-  const requiredDays = Math.max(0, workdaysInMonth - abwesendImSoll);
+  const requiredDays = Math.max(0, tageGewicht(pflichtImMonat, halbeTage) - abwesendImSoll);
   const sollMin = Math.round(requiredDays * dailyTargetH * 60);
 
   /*
@@ -818,7 +874,10 @@ export function calcMonthStats(
     App"), kein Anspruch. Die beiden Zahlen dürfen sich im Startjahr
     unterscheiden, und genau deshalb sind es zwei.
   */
-  const yearlyUrlaubDays = yearEntries.filter((e) => e.status === 'Urlaub').length;
+  const yearlyUrlaubDays = tageGewicht(
+    yearEntries.filter((e) => e.status === 'Urlaub').map((e) => e.date),
+    halbeTage,
+  );
   /*
     DER VERLAUF, NICHT DAS JAHR. Der Anspruch dieses Jahres hängt am Rest des
     Vorjahres; mit nur den Einträgen des angezeigten Jahres wäre der Übertrag
@@ -827,7 +886,9 @@ export function calcMonthStats(
     kennt, und es ist genau das Verhalten von vorher.
   */
   const verlauf = urlaub.verlauf
-    ?? yearEntries.filter((e) => e.status === 'Urlaub').map((e) => ({ von: e.date, tage: 1 }));
+    ?? yearEntries
+      .filter((e) => e.status === 'Urlaub')
+      .map((e) => ({ von: e.date, tage: tagesAnteil(e.date, halbeTage) }));
   /*
     DER URLAUBSSTAND AM MONATSENDE, nicht „im Kalenderjahr".
 

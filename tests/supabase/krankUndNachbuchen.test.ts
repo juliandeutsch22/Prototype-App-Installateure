@@ -190,7 +190,9 @@ describe('Betriebsurlaub für später Eingetretene', () => {
     expect(await gebucht(uid)).toEqual(['2026-12-28', '2026-12-29', '2026-12-30', '2026-12-31']);
     const { data: v } = await admin.from('vacations')
       .select('tage, status, von, bis, notiz').eq('user_id', uid).single();
-    expect(v).toMatchObject({ tage: 4, status: 'Genehmigt', von: '2026-12-28', notiz: 'Weihnachten' });
+    // Vier gebuchte Tage, als Urlaub 3,5: der 31.12. zählt nach dem
+    // Kollektivvertrag halb (Einstellung ab Werk an).
+    expect(v).toMatchObject({ tage: 3.5, status: 'Genehmigt', von: '2026-12-28', notiz: 'Weihnachten' });
   });
 
   it('ab dem Starttag — was davor liegt, gehört nicht zu ihm', async () => {
