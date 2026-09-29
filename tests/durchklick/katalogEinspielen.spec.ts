@@ -55,9 +55,20 @@ test('Katalog einspielen: erst der Probelauf, dann die Übernahme', async ({ pag
   await expect(page.getByRole('heading', { name: 'Übernommen' })).toBeVisible({ timeout: 30_000 });
   await keineFehlermeldung(page);
 
-  const { data: stamm } = await admin
-    .from('materials').select('article_number, name, unit, einkaufspreis, ausgelaufen')
+  /*
+    Der Einkaufspreis liegt seit B1 (29.09.2026) in `material_einkaufspreise`;
+    die Spalte am Artikel ist nur Einlass und bleibt leer.
+  */
+  const { data: artikel } = await admin
+    .from('materials').select('id, article_number, name, unit, einkaufspreis, ausgelaufen')
     .eq('company_id', BETRIEB).like('article_number', 'DN-%').order('article_number');
+  const artikelZeilen = (artikel ?? []) as Array<{ id: string; einkaufspreis: number | null }>;
+  expect(artikelZeilen.map((z) => z.einkaufspreis)).toEqual([null, null, null]);
+  const { data: einkauf } = await admin
+    .from('material_einkaufspreise').select('material_id, einkaufspreis')
+    .in('material_id', artikelZeilen.map((z) => z.id));
+  const preisVon = new Map((einkauf ?? []).map((p) => [p.material_id as string, p.einkaufspreis as number]));
+  const stamm = (artikel ?? []).map(({ id, ...rest }) => ({ ...rest, einkaufspreis: preisVon.get(id as string) ?? null }));
   expect(stamm).toEqual([
     { article_number: 'DN-1', name: 'Eckventil 1/2 Zoll verchromt', unit: 'Stk', einkaufspreis: 60, ausgelaufen: false },
     { article_number: 'DN-2', name: 'Kugelhahn messing', unit: 'Stk', einkaufspreis: 18.9, ausgelaufen: false },

@@ -65,6 +65,10 @@ const FEST = {
     "export const nextInvoiceNumber = () => 'RE-2026-0234';\n" +
     'export const isInvoiceNumberTaken = () => false;\n',
   konten: 'export const buchungskonten = () => A([]);\n',
+  // Seit B1 (29.09.2026) nicht mehr am Betrieb und am Artikel.
+  kosten:
+    'export const kostensaetze = () => A({ fach: 46, helper: 31 });\n' +
+    'export const einkaufspreise = () => A(new Map<string, number>());\n',
 };
 
 const KOPF = `import * as D from '../daten';

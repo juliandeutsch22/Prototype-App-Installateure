@@ -29,6 +29,38 @@ import {
 
 const BELEGSCHAFT = 'users';
 
+/*
+  DIE ANFANGSSTÄNDE LIEGEN NEBENAN (seit 29.09.2026, offene Punkte B1).
+
+  `initialOvertime` und `initialVacationDays` stehen in `zeitkonto_anfang`,
+  die nur liest, wer auch die Urlaube der Person liest. Hier werden sie zum
+  Benutzer gelegt, damit keine Ansicht etwas davon merkt. Wer sie nicht
+  lesen darf, bekommt die Felder leer — für die Kollegen im Einsatzplan ist
+  das richtig so.
+
+  Geschrieben wird weiter über die Spalten in `users`; die Datenbank legt
+  sie um (Einlass). SCHEITERT das Lesen, scheitert die ganze Abfrage: ein
+  Formular, das stattdessen leere Felder zeigte, schriebe beim Speichern 0
+  über den hinterlegten Stand.
+*/
+type Anfang = { userId: string; initialOvertime: number | null; initialVacationDays: number | null };
+
+async function anfaenge(companyId: string, ids: readonly string[]): Promise<Map<string, Anfang>> {
+  if (ids.length === 0) return new Map();
+  const zeilen = await abfragen<Anfang>('zeitkonto_anfang', companyId, {
+    wo: [{ art: 'in', feld: 'userId', werte: [...ids] }],
+  });
+  return new Map(zeilen.map((z) => [z.userId, z]));
+}
+
+function mitAnfang(zeile: WithId<Zeile>, anfang: Anfang | undefined): WithId<Zeile> {
+  return {
+    ...zeile,
+    initialOvertime: anfang?.initialOvertime != null ? Number(anfang.initialOvertime) : undefined,
+    initialVacationDays: anfang?.initialVacationDays != null ? Number(anfang.initialVacationDays) : undefined,
+  };
+}
+
 type Zeile = Omit<AppUser, 'uid'>;
 
 function alsBenutzer(zeile: WithId<Zeile>): AppUser {
@@ -52,7 +84,8 @@ function alsBenutzer(zeile: WithId<Zeile>): AppUser {
 
 export async function listUsers(companyId: string): Promise<AppUser[]> {
   const zeilen = await abfragen<Zeile>(BELEGSCHAFT, companyId);
-  return zeilen.map(alsBenutzer);
+  const anfang = await anfaenge(companyId, zeilen.map((z) => z.id));
+  return zeilen.map((z) => alsBenutzer(mitAnfang(z, anfang.get(z.id))));
 }
 
 /**
@@ -68,7 +101,9 @@ export async function getUserByUid(companyId: string, uid: string): Promise<AppU
     .from(BELEGSCHAFT).select('*').eq('id', uid).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  return alsBenutzer(zeileAlsObjekt<WithId<Zeile>>(BELEGSCHAFT, data as Record<string, unknown>));
+  const zeile = zeileAlsObjekt<WithId<Zeile>>(BELEGSCHAFT, data as Record<string, unknown>);
+  const anfang = await anfaenge((data as { company_id: string }).company_id, [uid]);
+  return alsBenutzer(mitAnfang(zeile, anfang.get(uid)));
 }
 
 /** Stammdaten eines bestehenden Nutzers ändern. */

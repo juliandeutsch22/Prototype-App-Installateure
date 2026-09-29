@@ -66,6 +66,12 @@ vi.mock('@/lib/db/materials', () => ({
 }));
 
 /*
+  Der Einkaufspreis kommt seit dem 29.09.2026 NICHT mit dem Artikel, sondern
+  aus einer eigenen Tabelle, die nur die Spitze liest (offene Punkte B1).
+*/
+let preisLaden: () => Promise<Map<string, number>> = async () => new Map();
+vi.mock('@/lib/db/kosten', () => ({ einkaufspreise: () => preisLaden() }));
+/*
   STABILE OBJEKTE, KEINE FRISCHEN LITERALE. Gäbe der Mock bei jedem Aufruf ein
   neues Objekt zurück, liefe der Effekt, der an `user` hängt, endlos — der
   Testlauf hängt dann ohne Fehlermeldung.
@@ -93,6 +99,7 @@ beforeEach(() => {
   anlegen.mockResolvedValue('m1');
   aendern.mockReset();
   aendern.mockResolvedValue(undefined);
+  preisLaden = async () => new Map();
 });
 
 describe('Der Einkaufspreis', () => {
@@ -153,6 +160,53 @@ describe('Der Einkaufspreis', () => {
     await waitFor(() => expect(aendern).toHaveBeenCalled());
     const daten = aendern.mock.calls[0][1] as Record<string, unknown>;
     expect(Object.keys(daten)).not.toContain('einkaufspreis');
+  });
+});
+
+describe('Der Einkaufspreis beim Bearbeiten durch die Geschäftsführung (B1)', () => {
+  /*
+    DIE FALLE NACH DEM UMZUG. Der Artikel trägt den Preis nicht mehr; das
+    Formular stünde leer da, und Speichern schriebe 0 über 3,50.
+  */
+  const artikel = () => [{ id: 'm1', companyId: 'perl', name: 'Eckventil', stock: 4 } as WithId<Material>];
+
+  it('holt den hinterlegten Preis und schreibt ihn unverändert zurück', async () => {
+    angemeldet = CHEF;
+    materialien = artikel();
+    preisLaden = async () => new Map([['m1', 3.5]]);
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    await waitFor(() => expect((screen.getByLabelText(/Einkaufspreis/) as HTMLInputElement).value).toBe('3.5'));
+    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(aendern).toHaveBeenCalled());
+    expect(aendern.mock.calls[0][1]).toMatchObject({ einkaufspreis: 3.5 });
+  });
+
+  it('schickt ihn nicht mit, solange er noch lädt', async () => {
+    angemeldet = CHEF;
+    materialien = artikel();
+    preisLaden = () => new Promise(() => undefined);
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    expect(screen.getByLabelText(/Einkaufspreis/)).toBeDisabled();
+    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(aendern).toHaveBeenCalled());
+    expect(Object.keys(aendern.mock.calls[0][1] as Record<string, unknown>)).not.toContain('einkaufspreis');
+  });
+
+  it('sagt es, wenn er nicht geladen werden konnte — und lässt ihn beim Speichern stehen', async () => {
+    angemeldet = CHEF;
+    materialien = artikel();
+    preisLaden = async () => { throw new Error('Keine Verbindung.'); };
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
+    expect(await screen.findByText(/konnte nicht geladen werden/)).toBeInTheDocument();
+    await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
+    await waitFor(() => expect(aendern).toHaveBeenCalled());
+    expect(Object.keys(aendern.mock.calls[0][1] as Record<string, unknown>)).not.toContain('einkaufspreis');
   });
 });
 

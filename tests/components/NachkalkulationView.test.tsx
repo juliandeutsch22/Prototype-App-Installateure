@@ -24,8 +24,14 @@ let firma: Partial<Company> = {
   id: 'perl',
   name: 'Perl Installationen',
   rates: RATES,
-  costRates: { fach: 40, helper: 25 },
 };
+
+/*
+  Seit dem 29.09.2026 NICHT am Betrieb und am Artikel, sondern in eigenen
+  Tabellen, die nur die Spitze liest (offene Punkte B1). Der Katalog kommt
+  deshalb OHNE Einkaufspreis an; nur der Weg über `einkaufspreise` bringt ihn.
+*/
+let kosten: { fach: number; helper: number } | null = { fach: 40, helper: 25 };
 
 const projekt = (nr: string, status: Project['status'] = 'Abgeschlossen'): Project & { id: string } =>
   ({
@@ -118,7 +124,17 @@ vi.mock('@/lib/db/quotes', () => ({
 let katalog: Material[] = [];
 let scheine: Array<WorkSheet & { id: string }> = [];
 const listWorkSheetsForProject = vi.fn(async () => scheine);
-vi.mock('@/lib/db/materials', () => ({ listMaterials: vi.fn(async () => katalog) }));
+vi.mock('@/lib/db/materials', () => ({
+  listMaterials: vi.fn(async () => katalog.map((m) => ({ ...m, einkaufspreis: undefined }))),
+}));
+vi.mock('@/lib/db/kosten', () => ({
+  kostensaetze: vi.fn(async () => kosten),
+  einkaufspreise: vi.fn(async (_c: string, ids: readonly string[]) => new Map(
+    katalog
+      .filter((m) => ids.includes(m.id!) && m.einkaufspreis != null)
+      .map((m) => [m.id!, m.einkaufspreis!] as const),
+  )),
+}));
 vi.mock('@/lib/db/workSheets', () => ({
   listWorkSheetsForProject: () => listWorkSheetsForProject(),
 }));
@@ -162,8 +178,8 @@ beforeEach(() => {
     id: 'perl',
     name: 'Perl Installationen',
     rates: RATES,
-    costRates: { fach: 40, helper: 25 },
   };
+  kosten = { fach: 40, helper: 25 };
   projekte = [];
   katalog = [];
   scheine = [];
@@ -183,7 +199,7 @@ describe('Ohne interne Kostensätze', () => {
       glatt null — und das sähe aus wie ein Ergebnis. Deshalb wird nicht
       gerechnet, sondern gesagt, was fehlt.
     */
-    firma = { ...firma, costRates: undefined };
+    kosten = null;
     projekte = [projekt('2026-001')];
     zeige();
 
@@ -195,7 +211,7 @@ describe('Ohne interne Kostensätze', () => {
   it('nennt den Weg dorthin vollständig', async () => {
     // „In den Einstellungen hinterlegen" hat aus dem Betrieb die Rückmeldung
     // ausgelöst, es gäbe kein solches Feld. Jetzt steht der ganze Pfad da.
-    firma = { ...firma, costRates: undefined };
+    kosten = null;
     zeige();
     const link = await screen.findByRole('link', { name: /Interne Kostensätze/ });
     expect(link.getAttribute('href')).toBe('/settings/saetze');
