@@ -298,11 +298,12 @@ andere und genau daraus der Fehler entsteht, der weh tut.
   „Mitarbeiten" gewährt hat. Bis zum Prüflauf vom 25.09.2026 fehlte er an
   `companies`; mit „Mitarbeiten" in A und „Ansehen" in B liessen sich die
   Bankdaten von B ändern.
-- **Was dabei offen bleibt, sei benannt:** die Rollenfunktionen kennen keinen
-  Betrieb. Wer in A „Mitarbeiten" hat und in B „Ansehen", sieht in B auch,
-  was dort nur die Spitze liest (etwa Angebote) — nicht mehr, als „Ansehen"
-  oben ohnehin verspricht, und nie Zeitbuchungen, Urlaube, Krankmeldungen
-  oder Scheinfotos.
+- **In zwei Betrieben zugleich arbeiten.** Es gilt der zuletzt begonnene
+  Einblick (seit 29.09.2026, offene Punkte B3). Wer von A nach B wechselt,
+  ist in B, und A ist zu, bis er dort wieder beginnt. Vorher sah, wer in A
+  „Mitarbeiten" und in B „Ansehen" hatte, in B auch, was dort nur die Spitze
+  liest (etwa Angebote): die Rollenfunktionen kennen keinen Betrieb, und eine
+  Rolle aus A galt auch in B.
 - **Sich selbst freigeben.** Der gewöhnliche Weg ist für ein Plattformkonto
   gesperrt.
 

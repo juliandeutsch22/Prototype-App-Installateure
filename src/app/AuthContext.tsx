@@ -224,7 +224,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const offen = await offeneFreigaben();
             const wieder = offen.find((f) => f.id === gemerkt);
             if (wieder) {
-              const comp = await getCompany(wieder.company_id);
+              /*
+                NEU BEGINNEN, WENN ER NICHT MEHR GILT. Es gilt der zuletzt
+                begonnene Einblick (offene Punkte B3); war in einem anderen
+                Fenster inzwischen ein anderer Betrieb offen, ist dieser hier
+                zu — und jede Ansicht bliebe leer, ohne zu sagen warum. Nur
+                dann ein neuer Eintrag: dieser Weg läuft bei jeder
+                Token-Erneuerung, und stündlich „Betrieb" wäre Rauschen im
+                Protokoll des Betriebs.
+              */
+              let comp = await getCompany(wieder.company_id);
+              if (!comp) {
+                await zugriffMelden(wieder.company_id, wieder.id, 'Betrieb');
+                comp = await getCompany(wieder.company_id);
+              }
               setEinblickFirma(comp);
               if (comp) applyBranding(comp);
               setEinblick(wieder);

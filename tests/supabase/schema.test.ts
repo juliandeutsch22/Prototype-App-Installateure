@@ -219,6 +219,8 @@ describe('Interne Hilfsfunktionen', () => {
       'app.zeitkonto_einlass_anlegen()',
       'app.zeitkonto_einlass_ueberstunden()',
       'app.zeitkonto_einlass_urlaub()',
+      // Welcher Einblick gerade gilt (B3) — nur für die Supportfunktionen.
+      'app.einblick_aktuell()',
     ];
     const offen: string[] = [];
     for (const f of intern) {
