@@ -21,9 +21,11 @@ import { MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import {
-  alsEntwurf, alsProfil, gleich, mitKundenFreigabe, mitZeitkontoWahl, WEEKDAYS,
+  alsEntwurf, alsProfil, entwurfFehler, gleich, mitKundenFreigabe, mitZeitkontoWahl,
+  tagessollNachTagen, urlaubsfeldName, WEEKDAYS,
   type BenutzerEntwurf,
 } from './benutzerEntwurf';
+import TagessollFelder from './TagessollFelder';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import Datenauskunft from '@/features/recht/Datenauskunft';
@@ -118,6 +120,11 @@ export default function BenutzerakteView() {
       setSpeicherFehler('Ohne Namen geht es nicht — er steht auf jeder Buchung und jedem Schein.');
       return;
     }
+    const falsch = entwurfFehler(entwurf);
+    if (falsch) {
+      setSpeicherFehler(falsch);
+      return;
+    }
     setSpeichert(true);
     setSpeicherFehler(null);
     try {
@@ -152,6 +159,7 @@ export default function BenutzerakteView() {
       workDays: entwurf.workDays.includes(d)
         ? entwurf.workDays.filter((x) => x !== d)
         : [...entwurf.workDays, d].sort(),
+      tagessoll: tagessollNachTagen(entwurf, d),
     });
   }
 
@@ -403,11 +411,14 @@ function StammdatenLesen({ p }: { p: AppUser }) {
       <Angabe wort="Urlaubstage pro Jahr">
         {p.yearlyVacationDays != null ? <span>{p.yearlyVacationDays}</span> : null}
       </Angabe>
+      {/* Zwei Daten seit dem 30.09.2026 (M6): wann die Person angefangen hat,
+          und ab wann Senklot ihr Zeitkonto rechnet. */}
+      <Angabe wort="Eintrittsdatum">{fmtDatum(p.eintritt ?? p.appStartDate)}</Angabe>
       <Angabe wort="Saldo-Startdatum">{fmtDatum(p.appStartDate)}</Angabe>
       <Angabe wort="Start-Saldo (Stunden)">
         {p.initialOvertime != null ? <span>{p.initialOvertime}</span> : null}
       </Angabe>
-      <Angabe wort="Resturlaub beim Umstieg">
+      <Angabe wort={urlaubsfeldName(p)}>
         {p.initialVacationDays != null ? (
           <span>{p.initialVacationDays}</span>
         ) : (
@@ -417,6 +428,13 @@ function StammdatenLesen({ p }: { p: AppUser }) {
         )}
       </Angabe>
       <Angabe wort="Arbeitstage">{tageText(p.workDays ?? [])}</Angabe>
+      {p.tagessoll && Object.keys(p.tagessoll).length > 0 && (
+        <Angabe wort="Tagessoll je Wochentag">
+          {WEEKDAYS.filter((d) => p.tagessoll?.[String(d.value)] != null)
+            .map((d) => `${d.label} ${String(p.tagessoll?.[String(d.value)]).replace('.', ',')} Std.`)
+            .join(' · ')}
+        </Angabe>
+      )}
     </dl>
   );
 }
@@ -539,6 +557,8 @@ function StammdatenFormular({
           <InputField
             id="b-stunden" label="Wochenstunden" type="number" step="0.5" min="0"
             value={entwurf.weeklyTargetHours}
+            // Mit eigenem Tagessoll sind die Wochenstunden dessen Summe (M5).
+            disabled={Object.keys(entwurf.tagessoll).length > 0}
             onChange={(e) => setze('weeklyTargetHours', e.target.value)}
           />
           <InputField
@@ -547,7 +567,13 @@ function StammdatenFormular({
             onChange={(e) => setze('yearlyVacationDays', e.target.value)}
           />
           <InputField
-            id="b-start" label="Saldo-Startdatum" type="date"
+            id="b-eintritt" label="Eintrittsdatum (im Betrieb seit)" type="date"
+            value={entwurf.eintritt}
+            max={entwurf.appStartDate || undefined}
+            onChange={(e) => setze('eintritt', e.target.value)}
+          />
+          <InputField
+            id="b-start" label="Saldo-Startdatum (ab hier rechnet das Zeitkonto)" type="date"
             value={entwurf.appStartDate}
             onChange={(e) => setze('appStartDate', e.target.value)}
           />
@@ -560,7 +586,7 @@ function StammdatenFormular({
               eines Neueintritts ist selten ein halber Tag. */}
           <InputField
             id="b-resturlaub"
-            label="Resturlaub beim Umstieg (Tage)"
+            label={`${urlaubsfeldName(entwurf)} (Tage)`}
             type="number"
             step="0.01"
             placeholder="leer = voller Jahresanspruch"
@@ -579,7 +605,7 @@ function StammdatenFormular({
               die App in jedem vollen Jahr.
             </p>
             <p className="mt-2">
-              <strong>Resturlaub beim Umstieg</strong> gilt nur für das Jahr, in dem der Saldo
+              <strong>{urlaubsfeldName(entwurf)}</strong> gilt nur für das Jahr, in dem der Saldo
               startet. Wer im September umsteigt und schon 18 von 25 Tagen genommen hat, trägt
               hier <span>7</span> ein — sonst zeigt die App weiterhin 25, weil
               die Tage davor in keiner Buchung stehen.
@@ -606,6 +632,7 @@ function StammdatenFormular({
           <p className="mt-1 text-sm text-ink-muted">
             Bestimmt das Tagessoll: Wochenstunden geteilt durch Arbeitstage.
           </p>
+          <TagessollFelder form={entwurf} setForm={setEntwurf} />
         </fieldset>
       </div>
 

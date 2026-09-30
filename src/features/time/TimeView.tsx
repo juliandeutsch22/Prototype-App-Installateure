@@ -12,6 +12,7 @@ import {
   fmtMin,
   fmtDauer,
   calcOverallSaldo,
+  hatTagessoll,
   dezemberHalbtage,
   saldoAusBilanzen,
   getISOWeek,
@@ -257,16 +258,20 @@ export default function TimeView() {
     };
   }, [user]);
 
+  const eigenesSollSchluessel = hatTagessoll(profile);
   useEffect(() => {
     if (!user || !profile?.appStartDate) return;
     let verworfen = false;
     const eintritt = profile.appStartDate;
+    const eigenesSoll = eigenesSollSchluessel;
 
     (async () => {
       const marker = await bilanzMarker(user.companyId, user.uid).catch(() => null);
       // Der Marker muss den Eintrittsmonat MITABDECKEN. Deckt er erst einen
       // späteren ab, fehlt der Anfang — und damit wäre der Saldo zu niedrig.
-      const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt);
+      // Mit eigenem Tagessoll je Wochentag (M5) reichen die Bilanzen nicht: sie zählen
+      // Krank- und Urlaubstage, sagen aber nicht, auf welchen Wochentag sie fielen.
+      const brauchbar = !!marker && marker.vollstaendigAb <= monatVon(eintritt) && !eigenesSoll;
 
       if (brauchbar) {
         /*
@@ -298,7 +303,7 @@ export default function TimeView() {
     // Der INHALT der Einträge als Auslöser, nicht das Array: nach dem Buchen
     // oder Löschen muss der Saldo neu gerechnet werden, nach einem bloßen
     // Schnappschuss ohne Änderung nicht.
-  }, [user, profile?.appStartDate, eintraegeSchluessel]);
+  }, [user, profile?.appStartDate, eintraegeSchluessel, eigenesSollSchluessel]);
 
   const saldo = useMemo(() => {
     if (!profile) return null;

@@ -602,6 +602,50 @@ export function monatsLetzter(iso: string): string {
   return localDateStr(new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0));
 }
 
+/** Trägt die Person ein eigenes Tagessoll je Wochentag (M5)? */
+export function hatTagessoll(user: Pick<AppUser, 'tagessoll'> | null | undefined): boolean {
+  return !!user?.tagessoll && Object.keys(user.tagessoll).length > 0;
+}
+
+/**
+ * DAS TAGESSOLL EINES TAGES, in Stunden (Testbericht 30.09.2026, M5).
+ *
+ * Vorgabe wie bisher: Wochenstunden durch Arbeitstage. Wer ein eigenes Soll
+ * je Wochentag trägt (etwa einen kurzen Freitag), bekommt für diesen Tag das
+ * eigene. Das Gewicht des 24./31.12. kommt NICHT hier dazu, sondern beim
+ * Aufrufer (`tagesAnteil`) — wie beim gleichmässigen Soll auch.
+ */
+export function tagessollStunden(
+  user: Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'>,
+  iso: string,
+): number {
+  const eigen = user.tagessoll?.[String(new Date(`${iso}T00:00:00`).getDay())];
+  if (typeof eigen === 'number' && Number.isFinite(eigen)) return eigen;
+  const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
+  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+  return weeklyH / workDays.length;
+}
+
+/**
+ * Das Soll über eine Reihe von Tagen, in Minuten.
+ *
+ * OHNE EIGENES TAGESSOLL GENAU DIE BISHERIGE RECHNUNG (Tage × Tagessoll), mit
+ * eigenem die Summe je Tag. Getrennt, damit sich für alle, die nichts
+ * einstellen, nicht einmal die Rundung einer Kommastelle ändert.
+ */
+function sollMinuten(
+  user: Pick<AppUser, 'weeklyTargetHours' | 'workDays' | 'tagessoll'>,
+  tage: readonly string[],
+  halbeTage: boolean,
+): number {
+  if (!hatTagessoll(user)) {
+    const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
+    const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
+    return tageGewicht(tage, halbeTage) * (weeklyH / workDays.length) * 60;
+  }
+  return tage.reduce((s, t) => s + tagesAnteil(t, halbeTage) * tagessollStunden(user, t) * 60, 0);
+}
+
 /**
  * Wird ein ganztägiger Krank- oder Urlaubstag als Solltag gutgeschrieben?
  *
@@ -634,10 +678,6 @@ export function calcOverallSaldo(
   const initial = Number(user.initialOvertime ?? 0) || 0;
   if (!user.appStartDate) return { saldoH: initial, hasConfig: false, daysWithoutEntry: 0 };
 
-  const weeklyH = Number(user.weeklyTargetHours ?? 40) || 40;
-  const workDays = user.workDays && user.workDays.length ? user.workDays : [1, 2, 3, 4, 5];
-  const dailyH = weeklyH / workDays.length;
-
   // Ist
   let istMin = 0;
   const bookedDates = new Set<string>();
@@ -652,7 +692,7 @@ export function calcOverallSaldo(
     if (e.date < user.appStartDate || e.date > heuteIso) continue;
     bookedDates.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * dailyH * 60;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * tagessollStunden(user, e.date) * 60;
   }
 
   /**
@@ -664,7 +704,7 @@ export function calcOverallSaldo(
    * Genau das war passiert.
    */
   const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
-  const sollMin = tageGewicht(pflicht, halbeTage) * dailyH * 60;
+  const sollMin = sollMinuten(user, pflicht, halbeTage);
   const daysWithoutEntry = pflicht.filter((d) => !bookedDates.has(d)).length;
 
   const saldoH = Math.round((initial + (istMin - sollMin) / 60) * 100) / 100;
@@ -763,11 +803,11 @@ export function saldoAusBilanzen(
     if (e.date < user.appStartDate || e.date > heuteIso) continue;
     gebucht.add(e.date);
     if (e.status === 'Anwesend') istMin += calcWorkMin(e);
-    else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * dailyH * 60;
+    else if (ganztagGutschreiben(e, heuteIso)) istMin += tagesAnteil(e.date, halbeTage) * tagessollStunden(user, e.date) * 60;
   }
 
   const pflicht = pflichtTage(user, new Date(`${user.appStartDate}T00:00:00`), new Date());
-  const sollMin = tageGewicht(pflicht, halbeTage) * dailyH * 60;
+  const sollMin = sollMinuten(user, pflicht, halbeTage);
   const daysWithoutEntry = pflicht.filter((d) => !gebucht.has(d)).length;
 
   const saldoH = Math.round((initial + (istMin - sollMin) / 60) * 100) / 100;
@@ -837,7 +877,7 @@ export interface MonthStats {
 export function calcMonthStats(
   user: Pick<
     AppUser,
-    'weeklyTargetHours' | 'yearlyVacationDays' | 'workDays' | 'appStartDate' | 'initialVacationDays'
+    'weeklyTargetHours' | 'yearlyVacationDays' | 'workDays' | 'appStartDate' | 'initialVacationDays' | 'tagessoll'
   >,
   monthEntries: TimeEntry[],
   yearEntries: TimeEntry[],
@@ -903,12 +943,32 @@ export function calcMonthStats(
   );
   const istMin = monthEntries.reduce((s, e) => s + calcWorkMin(e), 0);
   const zaMin = monthEntries.reduce(
-    (s, e) => s + zeitausgleichMin(e, dailyTargetH * tagesAnteil(e.date, halbeTage)),
+    (s, e) => s + zeitausgleichMin(e, tagessollStunden(user, e.date) * tagesAnteil(e.date, halbeTage)),
     0,
   );
 
   const requiredDays = Math.max(0, tageGewicht(pflichtImMonat, halbeTage) - abwesendImSoll);
-  const sollMin = Math.round(requiredDays * dailyTargetH * 60);
+  /*
+    MIT EIGENEM TAGESSOLL (M5) je Tag: das Soll der Pflichttage minus das der
+    Krank- und Urlaubstage darin. Ohne bleibt die bisherige Rechnung.
+  */
+  const sollMin = hatTagessoll(user)
+    ? Math.round(
+        Math.max(
+          0,
+          sollMinuten(user, pflichtImMonat, halbeTage) -
+            sollMinuten(
+              user,
+              [...new Set(
+                monthEntries
+                  .filter((e) => (e.status === 'Krank' || e.status === 'Urlaub') && imSoll.has(e.date))
+                  .map((e) => e.date),
+              )],
+              halbeTage,
+            ),
+        ),
+      )
+    : Math.round(requiredDays * dailyTargetH * 60);
 
   /*
     DER RESTURLAUB KOMMT AUS `urlaubsStand` UND WIRD HIER NICHT GERECHNET.

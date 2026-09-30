@@ -24,6 +24,10 @@ export interface UserProfileInput {
   yearlyVacationDays?: number;
   workDays?: number[];
   appStartDate?: string | null;
+  /** Echter Eintritt in den Betrieb — getrennt vom Saldo-Start (M6). */
+  eintritt?: string | null;
+  /** Stunden je Wochentag, `null` = gleichmässig (M5). */
+  tagessoll?: Record<string, number> | null;
   initialOvertime?: number;
   /** Resturlaub am Startdatum. `null` = nicht angegeben (voller Jahresanspruch). */
   initialVacationDays?: number | null;

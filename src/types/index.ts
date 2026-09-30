@@ -276,6 +276,19 @@ export interface AppUser {
   initialVacationDays?: number | null;
   appStartDate?: string | null; // 'YYYY-MM-DD' ab dem Soll/Ist gilt
   workDays?: number[]; // 0=So..6=Sa, default [1,2,3,4,5]
+  /**
+   * Der Tag, an dem die Person im Betrieb angefangen hat (Testbericht
+   * 30.09.2026, M6) — getrennt vom Saldo-Startdatum, ab dem das Zeitkonto in
+   * der App rechnet. Bei einem Neueintritt sind beide gleich. Vor ihm lässt
+   * sich nicht buchen (M7).
+   */
+  eintritt?: string | null;
+  /**
+   * Optional: Stunden je Wochentag, Schlüssel wie `workDays` ("0" = Sonntag
+   * … "6" = Samstag), etwa ein kurzer Freitag (M5). Ohne Angabe gilt
+   * Wochenstunden durch Arbeitstage — siehe `tagessollStunden`.
+   */
+  tagessoll?: Record<string, number> | null;
   /** Freigabe „Kunden pflegen“ — wirkt für Verwaltung und Buchhaltung (siehe `darfKundenPflegen`). */
   kundenPflegen?: boolean;
   /** Nur Geschäftsführung: führt ein Zeitkonto (siehe `fuehrtZeitkonto`). */
@@ -294,6 +307,9 @@ export interface CurrentUser {
   /** Aus der eigenen Zeile in `users`; die Grenze zieht die Datenbank. */
   kundenPflegen?: boolean;
   fuehrtZeitkonto?: boolean;
+  /** Eintritt und Saldo-Start — die Buchungsmaske warnt davor (M7). */
+  eintritt?: string | null;
+  appStartDate?: string | null;
 }
 
 /**

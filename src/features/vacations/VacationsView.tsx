@@ -27,6 +27,8 @@ import {
   fmtDauer,
   dezemberHalbtage,
   tageGewicht,
+  tagesAnteil,
+  tagessollStunden,
   tageZahl,
   type SaldoResult,
 } from '@/lib/time';
@@ -455,13 +457,12 @@ export default function VacationsView() {
     () => (profil ? urlaubsTage(profil, von, zaStundenweise ? von : bis) : []),
     [profil, von, bis, zaStundenweise],
   );
-  const tagessollMin = profil
-    ? ((Number(profil.weeklyTargetHours ?? 40) || 40) / (profil.workDays?.length || 5)) * 60
-    : 0;
-  /** Was der Zeitausgleich an Zeitguthaben kostet, in Minuten. */
+  /** Was der Zeitausgleich an Zeitguthaben kostet, in Minuten — je Tag dessen Soll (M5). */
   const zaMin = zaStundenweise
     ? Math.max(0, spanne(zaVon, zaBis))
-    : Math.round(tageGewicht(zaTage, halbeTage) * tagessollMin);
+    : profil
+      ? Math.round(zaTage.reduce((s, t) => s + tagesAnteil(t, halbeTage) * tagessollStunden(profil, t) * 60, 0))
+      : 0;
 
   /**
    * Womit sich der gewählte Zeitraum überschneidet — schon in der Vorschau.

@@ -118,7 +118,29 @@ describe('Die Stammdaten in der Akte', () => {
     expect(
       screen.queryByRole('button', { name: /Zeitkonto-Einstellungen anzeigen/ }),
     ).not.toBeInTheDocument();
+    // Ohne eigenes Eintrittsdatum ist es ein Neueintritt: das Feld heisst wie in der Anlage (M6).
+    expect(screen.getByRole('spinbutton', { name: /Urlaub im ersten Jahr/ })).toBeInTheDocument();
+  });
+
+  it('zeigt Eintritt und Saldo-Start getrennt und benennt den Urlaub wie die Anlage (M6)', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', eintritt: '2015-03-01', appStartDate: '2026-10-01' });
+    zeige();
+    await screen.findByRole('textbox', { name: /^Name/ });
+    expect(screen.getByLabelText(/Eintrittsdatum/)).toHaveValue('2015-03-01');
+    expect(screen.getByLabelText(/Saldo-Startdatum/)).toHaveValue('2026-10-01');
     expect(screen.getByRole('spinbutton', { name: /Resturlaub beim Umstieg/ })).toBeInTheDocument();
+  });
+
+  it('speichert keinen Eintritt nach dem Saldo-Start (M6)', async () => {
+    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', eintritt: '2026-01-01', appStartDate: '2026-01-01' });
+    zeige();
+    const eintritt = await screen.findByLabelText(/Eintrittsdatum/);
+    await userEvent.clear(eintritt);
+    await userEvent.type(eintritt, '2026-02-01');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+
+    expect(profilAendern).not.toHaveBeenCalled();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Eintrittsdatum liegt nach dem Saldo-Start/);
   });
 
   it('zeigt die Speicherleiste erst bei einer echten Änderung', async () => {
@@ -161,7 +183,9 @@ describe('Die Stammdaten in der Akte', () => {
   it('macht aus einem leeren Resturlaub `null` und nicht 0', async () => {
     // „Nicht angegeben" heisst voller Jahresanspruch. Auf 0 gerundet hiesse
     // es „dieses Jahr keinen Tag mehr" und schickte jeden Antrag ins Minus.
-    gefunden = person({ uid: 'u2', name: 'Erna Beispiel', initialVacationDays: 7 });
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', initialVacationDays: 7, eintritt: '2015-03-01',
+    });
     zeige();
     await userEvent.clear(await screen.findByRole('spinbutton', { name: /Resturlaub beim Umstieg/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));

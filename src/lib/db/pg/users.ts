@@ -124,7 +124,7 @@ export function updateUserProfile(uid: string, p: Partial<UserProfileInput>): Pr
   const daten: Record<string, unknown> = {};
   for (const feld of [
     'name', 'role', 'active', 'weeklyTargetHours', 'yearlyVacationDays',
-    'workDays', 'appStartDate', 'initialOvertime', 'initialVacationDays',
+    'workDays', 'appStartDate', 'eintritt', 'tagessoll', 'initialOvertime', 'initialVacationDays',
     'kundenPflegen', 'fuehrtZeitkonto',
   ] as const) {
     daten[feld] = p[feld];
@@ -156,6 +156,9 @@ export async function createUserDoc(
       yearlyVacationDays: p.yearlyVacationDays ?? DEFAULT_VACATION_DAYS,
       workDays: p.workDays ?? DEFAULT_WORK_DAYS,
       appStartDate: p.appStartDate ?? null,
+      // Ohne eigene Angabe: der Saldo-Start — bei einem Neueintritt dasselbe (M6).
+      eintritt: p.eintritt ?? p.appStartDate ?? null,
+      tagessoll: p.tagessoll ?? null,
       initialOvertime: p.initialOvertime ?? 0,
       /*
         `?? null` und NICHT `?? DEFAULT_VACATION_DAYS`: „nicht angegeben" ist
