@@ -283,6 +283,8 @@ function profilAus(
     docId: uid,
     kundenPflegen: zeile.kunden_pflegen === true,
     fuehrtZeitkonto: zeile.fuehrt_zeitkonto === true,
+    eintritt: (zeile.eintritt as string | null) ?? null,
+    appStartDate: (zeile.app_start_date as string | null) ?? null,
   };
 }
 

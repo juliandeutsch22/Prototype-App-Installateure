@@ -18,8 +18,10 @@ import InfoHint from '@/components/InfoHint';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { anlegeFehler } from './anlegeFehler';
+import TagessollFelder from './TagessollFelder';
 import {
-  WEEKDAYS, leererEntwurf, alsProfil, aliquoterAnspruch, zahlOderVorgabe,
+  WEEKDAYS, leererEntwurf, alsProfil, aliquoterAnspruch, zahlOderVorgabe, entwurfFehler,
+  tagessollNachTagen,
   type BenutzerEntwurf, type Eintrittsart,
 } from './benutzerEntwurf';
 import { DEFAULT_VACATION_DAYS } from '@/lib/db/benutzerVorgaben';
@@ -143,6 +145,7 @@ export default function UserMgmtView() {
       workDays: f.workDays.includes(d)
         ? f.workDays.filter((x) => x !== d)
         : [...f.workDays, d].sort(),
+      tagessoll: tagessollNachTagen(f, d),
     }));
   }
 
@@ -157,6 +160,25 @@ export default function UserMgmtView() {
       verschiedene Wochenstunden für denselben Menschen.
     */
     const profile = alsProfil(form);
+    /*
+      BEIM UMSTIEG IST DER RESTURLAUB PFLICHT (Testbericht 30.09.2026, M4).
+      Leer hiess „voller Jahresanspruch" — beim Umstieg mitten im Jahr fast
+      nie richtig, und niemand merkte es, bis ein Antrag durchging, der nicht
+      hätte durchgehen dürfen.
+    */
+    if (eintritt === 'bestand' && form.initialVacationDays.trim() === '') {
+      setError('Bitte den Resturlaub beim Umstieg angeben — auch 0 oder der volle Jahresanspruch ist eine Angabe.');
+      setSaving(false);
+      return;
+    }
+    // Bei einem Neueintritt sind Eintritt und Saldo-Start derselbe Tag (M6).
+    profile.eintritt = eintritt === 'neu' ? form.appStartDate || null : form.eintritt || null;
+    const falsch = entwurfFehler({ ...form, eintritt: profile.eintritt ?? '' });
+    if (falsch) {
+      setError(falsch);
+      setSaving(false);
+      return;
+    }
     if (anmeldung === 'benutzername') {
       // Dieselbe Prüfung wie in der Edge Function — hier nur früher gesagt.
       const warum = benutzernameFehler(benutzername);
@@ -402,6 +424,21 @@ export default function UserMgmtView() {
                 nicht diese App.
               </p>
             )}
+            {eintritt === 'bestand' && (
+              <div className="mt-3 max-w-xs">
+                <InputField
+                  id="uvacinit"
+                  label="Resturlaub beim Umstieg (Tage)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  pflicht
+                  required
+                  value={form.initialVacationDays}
+                  onChange={(e) => setForm({ ...form, initialVacationDays: e.target.value })}
+                />
+              </div>
+            )}
           </fieldset>
 
           <button
@@ -417,6 +454,7 @@ export default function UserMgmtView() {
               <FormGrid>
                 <InputField id="uhours" label="Wochenstunden" type="number" step="0.5" min="0"
                   value={form.weeklyTargetHours}
+                  disabled={Object.keys(form.tagessoll).length > 0}
                   onChange={(e) => setForm({ ...form, weeklyTargetHours: e.target.value })} />
                 <InputField id="uvac" label="Urlaubstage pro Jahr" type="number" min="0"
                   value={form.yearlyVacationDays}
@@ -433,9 +471,24 @@ export default function UserMgmtView() {
                         : {}),
                     }));
                   }} />
+                {/*
+                  EINTRITT UND SALDO-START GETRENNT (Testbericht 30.09.2026,
+                  M6). Beim Umstieg ist der Eintritt oft Jahre her; ohne eigenes
+                  Feld stand danach nur noch der Tag des Umstiegs in der Akte.
+                */}
+                {eintritt === 'bestand' && (
+                  <InputField
+                    id="ueintritt"
+                    label="Eintrittsdatum (im Betrieb seit)"
+                    type="date"
+                    value={form.eintritt}
+                    max={form.appStartDate || undefined}
+                    onChange={(e) => setForm({ ...form, eintritt: e.target.value })}
+                  />
+                )}
                 <InputField
                   id="ustart"
-                  label={eintritt === 'neu' ? 'Eintrittsdatum' : 'Saldo-Startdatum'}
+                  label={eintritt === 'neu' ? 'Eintrittsdatum' : 'Saldo-Startdatum (ab hier rechnet das Zeitkonto)'}
                   type="date"
                   value={form.appStartDate}
                   onChange={(e) => {
@@ -466,18 +519,16 @@ export default function UserMgmtView() {
                   es nicht; wer ihn öffnete, bekam eine Maske, die den von ihr
                   selbst vorgeschlagenen Wert abwies.
                 */}
-                <InputField
-                  id="uvacinit"
-                  label={
-                    eintritt === 'neu'
-                      ? 'Urlaub im ersten Jahr (Tage)'
-                      : 'Resturlaub beim Umstieg (Tage)'
-                  }
-                  type="number"
-                  step="0.01"
-                  placeholder={eintritt === 'neu' ? '' : 'leer = voller Jahresanspruch'}
-                  value={form.initialVacationDays}
-                  onChange={(e) => setForm({ ...form, initialVacationDays: e.target.value })} />
+                {/* Beim Umstieg steht der Resturlaub oben als Pflichtfeld (M4). */}
+                {eintritt === 'neu' && (
+                  <InputField
+                    id="uvacinit"
+                    label="Urlaub im ersten Jahr (Tage)"
+                    type="number"
+                    step="0.01"
+                    value={form.initialVacationDays}
+                    onChange={(e) => setForm({ ...form, initialVacationDays: e.target.value })} />
+                )}
               </FormGrid>
               {/* Zwei Urlaubsfelder nebeneinander brauchen einen Satz dazu —
                   „pro Jahr" und „beim Umstieg" sehen sonst aus wie dasselbe. */}
@@ -495,8 +546,9 @@ export default function UserMgmtView() {
                     weiterhin 25, weil die Tage davor in keiner Buchung stehen.
                   </p>
                   <p className="mt-2">
-                    Leer lassen, wenn der Anspruch am Startdatum unangetastet war. Dann bleibt es
-                    beim vollen Jahresanspruch.
+                    War der Anspruch am Startdatum unangetastet, den vollen Jahresanspruch
+                    eintragen. Beim Umstieg ist das Feld Pflicht: leer hiess früher „voller
+                    Anspruch", und das stimmte selten.
                   </p>
                 </InfoHint>
               </div>
@@ -517,6 +569,7 @@ export default function UserMgmtView() {
                 <p className="mt-1 text-sm text-ink-muted">
                   Bestimmt das Tagessoll: Wochenstunden geteilt durch Arbeitstage.
                 </p>
+                <TagessollFelder form={form} setForm={setForm} />
               </fieldset>
             </div>
           )}

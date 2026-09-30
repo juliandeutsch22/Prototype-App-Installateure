@@ -117,9 +117,16 @@ export interface BenutzerEntwurf {
   weeklyTargetHours: string;
   yearlyVacationDays: string;
   appStartDate: string;
+  /** Eintritt in den Betrieb (M6) — bei einem Neueintritt gleich dem Saldo-Start. */
+  eintritt: string;
   initialOvertime: string;
   initialVacationDays: string;
   workDays: number[];
+  /**
+   * Eigenes Tagessoll je Wochentag in Stunden (M5), Schlüssel wie `workDays`.
+   * Leer heisst gleichmässig: Wochenstunden durch Arbeitstage.
+   */
+  tagessoll: Record<string, string>;
   /** Freigabe „Kunden pflegen“ — nur für Verwaltung und Buchhaltung angeboten. */
   kundenPflegen: boolean;
   /** Nur für die Geschäftsführung angeboten. */
@@ -141,6 +148,7 @@ export function leererEntwurf(): BenutzerEntwurf {
     yearlyVacationDays: String(DEFAULT_VACATION_DAYS),
     // Ohne Startdatum bliebe der Saldo dauerhaft „nicht konfiguriert".
     appStartDate: todayStr(),
+    eintritt: todayStr(),
     initialOvertime: '0',
     /*
       LEER UND NICHT VORBELEGT. Beim Überstundensaldo ist 0 die richtige
@@ -150,6 +158,7 @@ export function leererEntwurf(): BenutzerEntwurf {
     */
     initialVacationDays: '',
     workDays: DEFAULT_WORK_DAYS,
+    tagessoll: {},
     kundenPflegen: false,
     fuehrtZeitkonto: false,
   };
@@ -164,27 +173,91 @@ export function alsEntwurf(u: AppUser): BenutzerEntwurf {
     weeklyTargetHours: String(u.weeklyTargetHours ?? DEFAULT_WEEKLY_HOURS),
     yearlyVacationDays: String(u.yearlyVacationDays ?? DEFAULT_VACATION_DAYS),
     appStartDate: u.appStartDate ?? todayStr(),
+    eintritt: u.eintritt ?? u.appStartDate ?? todayStr(),
     initialOvertime: String(u.initialOvertime ?? 0),
     initialVacationDays:
       u.initialVacationDays === null || u.initialVacationDays === undefined
         ? ''
         : String(u.initialVacationDays),
     workDays: u.workDays ?? DEFAULT_WORK_DAYS,
+    tagessoll: Object.fromEntries(
+      Object.entries(u.tagessoll ?? {}).map(([tag, h]) => [tag, String(h).replace('.', ',')]),
+    ),
     kundenPflegen: u.kundenPflegen === true,
     fuehrtZeitkonto: u.fuehrtZeitkonto === true,
   };
 }
 
+/**
+ * Das eigene Tagessoll als Zahlen — nur für die gewählten Arbeitstage und nur,
+ * wenn für JEDEN davon eine Zahl dasteht. Ein halb ausgefülltes Soll wäre eine
+ * Woche, deren Summe niemand angegeben hat.
+ */
+export function tagessollAusEntwurf(e: Pick<BenutzerEntwurf, 'tagessoll' | 'workDays'>): Record<string, number> | null {
+  const tage = e.workDays.length ? e.workDays : DEFAULT_WORK_DAYS;
+  const werte = tage.map((t) => [String(t), Number((e.tagessoll[String(t)] ?? '').replace(',', '.'))] as const);
+  if (werte.some(([t]) => (e.tagessoll[t] ?? '').trim() === '')) return null;
+  if (werte.some(([, h]) => !Number.isFinite(h) || h < 0 || h > 24)) return null;
+  return Object.fromEntries(werte);
+}
+
+/**
+ * Ein Arbeitstag kommt dazu oder fällt weg: das eigene Tagessoll folgt — ein
+ * weggefallener Tag verliert sein Feld, ein neuer bekommt ein leeres, damit
+ * ihn jemand ausfüllt. Ohne eigenes Tagessoll bleibt es leer.
+ */
+export function tagessollNachTagen(f: Pick<BenutzerEntwurf, 'tagessoll' | 'workDays'>, tag: number): Record<string, string> {
+  if (Object.keys(f.tagessoll).length === 0) return f.tagessoll;
+  const neu = { ...f.tagessoll };
+  if (f.workDays.includes(tag)) delete neu[String(tag)];
+  else neu[String(tag)] = '';
+  return neu;
+}
+
+/**
+ * Was Anlage und Akte gleich prüfen, bevor gespeichert wird (Testbericht
+ * 30.09.2026, M5 und M6). `null` heisst: in Ordnung.
+ */
+export function entwurfFehler(e: Pick<BenutzerEntwurf, 'tagessoll' | 'workDays' | 'eintritt' | 'appStartDate'>): string | null {
+  if (Object.keys(e.tagessoll).length > 0 && !tagessollAusEntwurf(e)) {
+    return 'Bitte für jeden Arbeitstag ein Tagessoll zwischen 0 und 24 Stunden angeben.';
+  }
+  // ISO-Daten lassen sich als Text vergleichen.
+  if (e.eintritt && e.appStartDate && e.eintritt > e.appStartDate) {
+    return 'Das Eintrittsdatum liegt nach dem Saldo-Start — vor dem Eintritt kann das Zeitkonto nicht rechnen.';
+  }
+  return null;
+}
+
+/**
+ * Wie das Urlaubsfeld heisst — in Anlage und Akte gleich (M6): bei einem
+ * Neueintritt (Eintritt = Saldo-Start) ist es der Urlaub im ersten Jahr, bei
+ * einem Umstieg der Resturlaub, der beim Umstieg noch offen war.
+ */
+export function urlaubsfeldName(e: { eintritt?: string | null; appStartDate?: string | null }): string {
+  const neu = !e.eintritt || !e.appStartDate || e.eintritt === e.appStartDate;
+  return neu ? 'Urlaub im ersten Jahr' : 'Resturlaub beim Umstieg';
+}
+
 /** Aus dem Entwurf wird das, was in die Datenbank geht. */
 export function alsProfil(e: BenutzerEntwurf): UserProfileInput {
+  const tagessoll = Object.keys(e.tagessoll).length > 0 ? tagessollAusEntwurf(e) : null;
   return {
     name: e.name,
     email: e.email,
     role: e.role,
     active: e.active,
-    weeklyTargetHours: zahlOderVorgabe(e.weeklyTargetHours, DEFAULT_WEEKLY_HOURS),
+    /*
+      MIT EIGENEM TAGESSOLL SIND DIE WOCHENSTUNDEN SEINE SUMME — sonst stünde
+      „von 38:30“ über einer Woche, die in Wahrheit 36 Stunden hat.
+    */
+    weeklyTargetHours: tagessoll
+      ? Math.round(Object.values(tagessoll).reduce((a, b) => a + b, 0) * 100) / 100
+      : zahlOderVorgabe(e.weeklyTargetHours, DEFAULT_WEEKLY_HOURS),
     yearlyVacationDays: zahlOderVorgabe(e.yearlyVacationDays, DEFAULT_VACATION_DAYS),
     appStartDate: e.appStartDate || null,
+    eintritt: e.eintritt || e.appStartDate || null,
+    tagessoll,
     initialOvertime: zahlOderVorgabe(e.initialOvertime, 0),
     initialVacationDays: zahlOderNull(e.initialVacationDays),
     // Eine leere Auswahl wäre ein Tagessoll von „Wochenstunden durch null".
@@ -210,6 +283,10 @@ export function gleich(a: BenutzerEntwurf, b: BenutzerEntwurf): boolean {
   return (Object.keys(a) as (keyof BenutzerEntwurf)[]).every((f) => {
     const x = a[f];
     const y = b[f];
+    if (f === 'tagessoll') {
+      const ordnen = (o: unknown) => JSON.stringify(Object.entries(o as Record<string, string>).sort());
+      return ordnen(x) === ordnen(y);
+    }
     if (Array.isArray(x) && Array.isArray(y)) {
       if (x.length !== y.length) return false;
       const links = [...x].sort();

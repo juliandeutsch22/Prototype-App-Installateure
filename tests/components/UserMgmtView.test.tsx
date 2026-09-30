@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -94,8 +94,16 @@ function zeige() {
  * Benutzerliste bei 932 px — eineinhalb Bildschirme unter der Kante. Ein
  * Benutzer wird ein paarmal im Jahr angelegt und dauernd nachgesehen.
  */
-async function formOeffnen() {
+async function formOeffnen(resturlaub: string | null = '25') {
   await userEvent.click(await screen.findByRole('button', { name: 'Neuer Benutzer' }));
+  /*
+    BEIM UMSTIEG IST DER RESTURLAUB PFLICHT (Testbericht 30.09.2026, M4) —
+    die Vorgabe des Formulars ist der Umstieg. Wer das Pflichtfeld selbst
+    prüfen will, übergibt `null`.
+  */
+  if (resturlaub !== null) {
+    await userEvent.type(await screen.findByLabelText(/Resturlaub beim Umstieg/), resturlaub);
+  }
 }
 
 beforeEach(() => {
@@ -353,15 +361,31 @@ describe('Neueintritt oder Bestand', () => {
       .toBe(true);
   });
 
-  it('legt einen Bestandsmitarbeiter an wie bisher: Resturlaub bleibt leer', async () => {
+  /*
+    Testbericht 30.09.2026, M4: hier stand „legt einen Bestandsmitarbeiter an
+    wie bisher: Resturlaub bleibt leer“ — und leer hiess voller Jahresanspruch.
+    Beim Umstieg mitten im Jahr stimmte das fast nie.
+  */
+  it('verlangt beim Umstieg den Resturlaub — leer geht nicht mehr', async () => {
     zeige();
-    await formOeffnen();
+    await formOeffnen(null);
+    await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Berta Bestand');
+    await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'berta@perl.at');
+    expect(screen.getByLabelText(/Resturlaub beim Umstieg/)).toBeRequired();
+    // Am Browser vorbei abgeschickt: die Maske sagt es selbst.
+    fireEvent.submit(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }).closest('form')!);
+    expect(await screen.findByText(/Bitte den Resturlaub beim Umstieg angeben/)).toBeInTheDocument();
+    expect(anlegen).not.toHaveBeenCalled();
+  });
+
+  it('nimmt den Resturlaub beim Umstieg mit, auch 0', async () => {
+    zeige();
+    await formOeffnen('0');
     await userEvent.type(await screen.findByRole('textbox', { name: /^Name/ }), 'Berta Bestand');
     await userEvent.type(screen.getByRole('textbox', { name: /Mail/ }), 'berta@perl.at');
     await userEvent.click(screen.getByRole('button', { name: /Anlegen|Benutzer anlegen/ }));
-
     await waitFor(() => expect(anlegen).toHaveBeenCalled());
-    expect(anlegen.mock.calls[0][1]).toMatchObject({ initialVacationDays: null });
+    expect(anlegen.mock.calls[0][1]).toMatchObject({ initialVacationDays: 0 });
   });
 
   it('schlägt beim Neueintritt den aliquoten Anspruch vor und zeigt die Rechnung', async () => {

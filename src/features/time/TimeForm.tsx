@@ -19,6 +19,7 @@ import BaustellenSelect from '@/components/BaustellenSelect';
 import Icon from '@/components/Icon';
 import Button from '@/components/Button';
 import Hinweiszeile from '@/components/Hinweiszeile';
+import { eintrittsHinweis } from './eintrittsHinweis';
 import Aktionsleiste from '@/components/Aktionsleiste';
 import { ErrorState } from '@/components/States';
 import InfoHint from '@/components/InfoHint';
@@ -306,6 +307,10 @@ export default function TimeForm({
    * Pflicht (siehe `submit`).
    */
   const besitzerUid = targetUid || entry?.userId || (staff ? '' : user?.uid);
+  // Wem der Tag gehört, entscheidet über Eintritt und Saldo-Start (M7).
+  const besitzer = staff?.find((u) => u.uid === besitzerUid) ?? (besitzerUid === user?.uid ? user : null);
+  // Eine alte Buchung, deren Tag bleibt, lässt auch die Datenbank ändern.
+  const vorEintritt = isEdit && entry?.date === date ? null : eintrittsHinweis(besitzer, date);
   useEffect(() => {
     if (!user || !besitzerUid || !date) return;
     let verworfen = false;
@@ -364,6 +369,10 @@ export default function TimeForm({
 
     if (konflikt) {
       setError(konflikt);
+      return;
+    }
+    if (vorEintritt?.sperrt) {
+      setError(vorEintritt.text);
       return;
     }
     if (status === 'Zeitausgleich' && zaStundenweise && !(endTime > startTime)) {
@@ -757,6 +766,11 @@ export default function TimeForm({
       {konflikt && (angefasst || isEdit) && (
         <Hinweiszeile stufe="warn" role="alert">
           <p>{konflikt}</p>
+        </Hinweiszeile>
+      )}
+      {vorEintritt && (
+        <Hinweiszeile stufe="warn" role={vorEintritt.sperrt ? 'alert' : undefined}>
+          <p>{vorEintritt.text}</p>
         </Hinweiszeile>
       )}
       {holidayName && (

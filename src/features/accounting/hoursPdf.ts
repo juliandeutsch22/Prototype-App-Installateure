@@ -3,7 +3,7 @@ import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import autoTable from 'jspdf-autotable';
 import type { AppUser, Company, TimeEntry } from '@/types';
 import {
-  calcWorkMin, dezemberHalbtage, tageGewicht, tagesAnteil, tageZahl, zeitausgleichMin,
+  calcWorkMin, dezemberHalbtage, tageGewicht, tagesAnteil, tagessollStunden, tageZahl, zeitausgleichMin,
 } from '@/lib/time';
 import { BRAND_RGB, fmtDate, hours } from './export';
 import { FLAECHE, GRAU, TINTE } from '@/lib/belegLayout';
@@ -144,10 +144,9 @@ export function generateHoursPdf(opts: {
     sorted.filter((e) => e.status === 'Urlaub').map((e) => e.date),
     halbeTage,
   );
-  const tagessoll =
-    (Number(user.weeklyTargetHours ?? 40) || 40) / (user.workDays?.length ? user.workDays.length : 5);
+  // Das Soll DIESES Tages — mit eigenem Tagessoll je Wochentag (M5) ein anderes.
   const zaMin = sorted.reduce(
-    (s, e) => s + zeitausgleichMin(e, tagessoll * tagesAnteil(e.date, halbeTage)),
+    (s, e) => s + zeitausgleichMin(e, tagessollStunden(user, e.date) * tagesAnteil(e.date, halbeTage)),
     0,
   );
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRAU);

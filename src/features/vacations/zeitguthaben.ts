@@ -2,7 +2,7 @@ import type { AppUser } from '@/types';
 import { bilanzMarker, listBilanzen, monatVon } from '@/lib/db/monatsbilanzen';
 import { listOwnEntriesInRange, listOwnEntriesSince } from '@/lib/db/timeEntries';
 import {
-  calcOverallSaldo, localDateStr, monatsLetzter, saldoAusBilanzen, type SaldoResult,
+  calcOverallSaldo, hatTagessoll, localDateStr, monatsLetzter, saldoAusBilanzen, type SaldoResult,
 } from '@/lib/time';
 
 /**
@@ -18,7 +18,8 @@ export async function zeitguthabenLaden(profil: AppUser, halbeTage: boolean): Pr
   if (!profil.appStartDate) return calcOverallSaldo(profil, [], halbeTage);
   const eintritt = profil.appStartDate;
   const marker = await bilanzMarker(profil.companyId, profil.uid).catch(() => null);
-  if (marker && marker.vollstaendigAb <= monatVon(eintritt)) {
+  // Mit eigenem Tagessoll je Wochentag (M5) reichen die Bilanzen nicht — siehe TimeView.
+  if (marker && marker.vollstaendigAb <= monatVon(eintritt) && !hatTagessoll(profil)) {
     const jetzt = new Date();
     const monatsErster = localDateStr(new Date(jetzt.getFullYear(), jetzt.getMonth(), 1));
     const [bilanzen, laufend, eintrittsmonat] = await Promise.all([
