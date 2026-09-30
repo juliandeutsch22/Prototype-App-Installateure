@@ -21,6 +21,7 @@ import {
   sucheRechnungen,
   scheineAufRechnung,
   RECHNUNG_TREFFER,
+  listInvoicesByIds,
 } from '@/lib/db/invoices';
 import { listZahlungen, listZahlungenImZeitraum, createZahlung, createZahlungMitSkonto, deleteZahlung } from '@/lib/db/zahlungen';
 import { istUeberfaellig, zahlstand } from './zahlstand';
@@ -28,7 +29,7 @@ import { skontoBedingung, skontoZumAusgleich, zugesagterSkonto } from './skonto'
 import { listActiveProjects } from '@/lib/db/projects';
 import { listCustomers, updateCustomer } from '@/lib/db/customers';
 import { buildInvoiceCsv, invoiceCsvFilename } from './buchhaltungExport';
-import { buildBmdCsv, bmdCsvFilename } from './bmdExport';
+import { buildBmdCsv, bmdCsvFilename, buildBmdZahlungenCsv, bmdZahlungenFilename } from './bmdExport';
 import { buchungskonten, type Buchungskonto } from '@/lib/db/konten';
 import { downloadCsv } from '@/features/accounting/export';
 import { listEntriesForProjects } from '@/lib/db/timeEntries';
@@ -161,6 +162,15 @@ export default function InvoicesView() {
     leere Datei, die wie ein Erfolg aussah.
   */
   const [exportZeilen, setExportZeilen] = useState<WithId<Invoice>[] | null>(null);
+  /**
+   * Zahlungen des Zeitraums samt ihren Rechnungen — für den eigenen
+   * Zahlungsstapel (Testbericht 30.09.2026, H7 vorgebaut). `null`: nicht
+   * geladen; der Rechnungsstapel hängt nicht davon ab.
+   */
+  const [exportZahlungen, setExportZahlungen] = useState<{
+    zahlungen: Zahlungseingang[];
+    rechnungen: WithId<Invoice>[];
+  } | null>(null);
   /** Schlussrechnungen ohne Abzug ihrer Anzahlung — geholt mit dem Zeitraum (K2). */
   const [ohneAbzug, setOhneAbzug] = useState<SchlussOhneAbzug[]>([]);
   /*
@@ -1620,6 +1630,21 @@ export default function InvoicesView() {
       ]);
       setExportZeilen(zeilen);
       setOhneAbzug(fehlAbzug);
+      /*
+        DIE ZAHLUNGEN LAUFEN NEBENHER. Schlägt ihr Laden fehl, fehlt nur der
+        Zahlungsstapel — Journal und Rechnungsstapel stehen trotzdem.
+      */
+      try {
+        const zahl = await listZahlungenImZeitraum(user.companyId, exportVon, exportBis);
+        const bekannt = new Set(zeilen.map((r) => r.id));
+        const fehlen = [...new Set(zahl.map((z) => z.invoiceId).filter((id) => !bekannt.has(id)))];
+        const weitere = fehlen.length > 0
+          ? await Promise.resolve().then(() => listInvoicesByIds(user.companyId, fehlen))
+          : [];
+        setExportZahlungen({ zahlungen: zahl, rechnungen: [...zeilen, ...weitere] });
+      } catch {
+        setExportZahlungen(null);
+      }
     } catch {
       setExportZeilen(null);
       setExportFehler(
@@ -3206,6 +3231,7 @@ export default function InvoicesView() {
               // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
               // im Feld, ist die gefährlichste Anzeige von allen.
               setExportZeilen(null);
+              setExportZahlungen(null);
             }}
           />
           <InputField
@@ -3218,6 +3244,7 @@ export default function InvoicesView() {
               // Eine Zusammenstellung, die zu einem anderen Zeitraum gehört als der
               // im Feld, ist die gefährlichste Anzeige von allen.
               setExportZeilen(null);
+              setExportZahlungen(null);
             }}
           />
         </FormGrid>
@@ -3320,7 +3347,19 @@ export default function InvoicesView() {
                   weiter bekommen, als wäre nichts gewesen.
                 */}
                 {konten.length > 0 && (() => {
-                  const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis);
+                  const debitorVon = (inv: Invoice) => kundeDerRechnung(inv)?.kundennummer;
+                  const b = buildBmdCsv(exportZeilen, konten, exportVon, exportBis, debitorVon);
+                  /*
+                    DER ZAHLUNGSSTAPEL ERSCHEINT NUR, WENN EIN BANK- ODER
+                    SKONTOKONTO HINTERLEGT IST (H7 vorgebaut). Wer die Bank
+                    von der Kanzlei buchen lässt, sieht ihn gar nicht — und
+                    kann ihn nicht versehentlich doppelt einspielen.
+                  */
+                  const zs = exportZahlungen && konten.some((k) => k.zweck === 'bank' || k.zweck === 'skonto')
+                    ? buildBmdZahlungenCsv(
+                      exportZahlungen.zahlungen, exportZahlungen.rechnungen, konten, exportVon, exportBis, debitorVon,
+                    )
+                    : null;
                   return (
                     <>
                       <Button
@@ -3344,6 +3383,27 @@ export default function InvoicesView() {
                         Import von deiner Kanzlei geprüft</strong> — die Konten stehen in den
                         Einstellungen und stammen von dort, nicht aus dieser App.
                       </InfoHint>
+                      {zs && (
+                        <Button
+                          variant="secondary"
+                          disabled={zs.fehlend.length > 0 || zs.zeilen.length === 0}
+                          onClick={() => {
+                            downloadCsv(zs.csv, bmdZahlungenFilename(exportVon, exportBis));
+                            toast.success(`Zahlungsstapel erzeugt — ${zs.zeilen.length} Zeilen`);
+                          }}
+                        >
+                          Zahlungsstapel für BMD
+                        </Button>
+                      )}
+                      {zs && zs.fehlend.length > 0 && (
+                        <div className="mt-2 basis-full">
+                          <Hinweiszeile stufe="warn">
+                            <p>
+                              <strong>Für den Zahlungsstapel fehlt:</strong> {zs.fehlend.join('; ')}.
+                            </p>
+                          </Hinweiszeile>
+                        </div>
+                      )}
                       {b.fehlend.length > 0 && (
                         <div className="mt-2 basis-full">
                           <Hinweiszeile stufe="warn">

@@ -46,6 +46,11 @@ export function listInvoicesInRange(
   return pg.listInvoicesInRange(companyId, von, bis);
 }
 
+/** Bestimmte Rechnungen nach Kennung — für den Zahlungsstapel (H7 vorgebaut). */
+export function listInvoicesByIds(companyId: string, ids: string[]): Promise<WithId<Invoice>[]> {
+  return pg.listInvoicesByIds(companyId, ids);
+}
+
 export function listInvoicesForProject(
   companyId: string, projectNumber: string,
 ): Promise<WithId<Invoice>[]> {

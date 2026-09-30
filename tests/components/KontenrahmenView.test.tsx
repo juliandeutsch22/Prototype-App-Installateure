@@ -190,3 +190,24 @@ describe('Was gar nicht erst gespeichert wird', () => {
     expect(speichern()).toBeEnabled();
   });
 });
+
+// Testbericht 30.09.2026, H7 vorgebaut — Bank- und Skontokonto für den Zahlungsstapel.
+describe('Bank und Skonto', () => {
+  it('legt Bank- und Skontokonto an, wenn sie eingetragen sind', async () => {
+    zeige();
+    await userEvent.type(await screen.findByLabelText('Bankkonto'), '2810');
+    await userEvent.type(screen.getByLabelText('Gewährte Skonti (Erlösschmälerung)'), '4420');
+    await userEvent.click(speichern());
+    await waitFor(() => expect(gespeichert.length).toBe(2));
+    expect(gespeichert).toContainEqual({ art: 'anlegen', zweck: 'bank', ustSatz: null, konto: '2810', steuercode: null });
+    expect(gespeichert).toContainEqual({ art: 'anlegen', zweck: 'skonto', ustSatz: null, konto: '4420', steuercode: null });
+  });
+
+  it('Gegenprobe: leer bleibt leer — kein Konto ohne Nummer', async () => {
+    zeige();
+    await userEvent.type(await screen.findByLabelText('Forderungen (Debitorensammelkonto)'), '2000');
+    await userEvent.click(speichern());
+    await waitFor(() => expect(gespeichert.length).toBe(1));
+    expect(gespeichert.some((g) => g.zweck === 'bank' || g.zweck === 'skonto')).toBe(false);
+  });
+});
