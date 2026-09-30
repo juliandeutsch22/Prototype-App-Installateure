@@ -1,5 +1,6 @@
 import type { Material, InvoiceDiscount, InvoiceRates, TimeEntry, WorkSheet } from '@/types';
 import { calcWorkMin } from '@/lib/time';
+import { NACHTZEIT_VORGABE, nachtArbeitMin, type Nachtzeit } from '@/lib/lohnregeln';
 import { calcTotals, cent, positionNetto, type InvoicePosition } from './totals';
 import { leistungszeitraum, materialPositionen } from './materialPositionen';
 
@@ -86,8 +87,8 @@ interface Bucket {
   minutes: number;
 }
 
-function bucketKey(e: TimeEntry): string {
-  return `${e.isHelper ? 'h' : 'f'}|${e.isNightWork ? 'n' : '-'}|${e.isEmergency ? 'e' : '-'}`;
+function bucketKey(e: TimeEntry, nacht: boolean): string {
+  return `${e.isHelper ? 'h' : 'f'}|${nacht ? 'n' : '-'}|${e.isEmergency ? 'e' : '-'}`;
 }
 
 /** Beschriftung der Position, damit der Kunde den Aufschlag nachvollziehen kann. */
@@ -130,6 +131,8 @@ export function assembleInvoice(
     katalog: Material[];
     bereitsVerrechnet?: ReadonlySet<string>;
   },
+  /** Die Nachtzeit des Betriebs (M35); ohne Angabe 22–6 Uhr. */
+  nacht: Nachtzeit = NACHTZEIT_VORGABE,
 ): AssembledInvoice {
   const pn = norm(projectNumber);
 
@@ -141,15 +144,24 @@ export function assembleInvoice(
   for (const e of eligibleEntries) {
     const min = calcWorkMin(e);
     if (min <= 0) continue;
-    const key = bucketKey(e);
-    const cur = buckets.get(key) ?? {
-      helper: !!e.isHelper,
-      night: !!e.isNightWork,
-      emergency: !!e.isEmergency,
-      minutes: 0,
-    };
-    cur.minutes += min;
-    buckets.set(key, cur);
+    /*
+      STUNDENGENAU SEIT DEM 30.09.2026 (M35): nur die Minuten in der
+      Nachtzeit gehen in die Position mit Nachtzuschlag, der Rest in die ohne.
+      Vorher trug das Kennzeichen den ganzen Eintrag.
+    */
+    const nachtTeil = nachtArbeitMin(e, nacht);
+    for (const [imNacht, minuten] of [[true, nachtTeil], [false, min - nachtTeil]] as const) {
+      if (minuten <= 0) continue;
+      const key = bucketKey(e, imNacht);
+      const cur = buckets.get(key) ?? {
+        helper: !!e.isHelper,
+        night: imNacht,
+        emergency: !!e.isEmergency,
+        minutes: 0,
+      };
+      cur.minutes += minuten;
+      buckets.set(key, cur);
+    }
   }
 
   const positions: InvoicePosition[] = [];

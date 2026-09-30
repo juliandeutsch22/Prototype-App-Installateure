@@ -78,16 +78,23 @@ describe('Positionen', () => {
   });
 });
 
+/**
+ * Ein Einsatz ganz in der Nachtzeit: 21:30–06:00 mit 30 Minuten Pause sind
+ * acht Nachtstunden. Seit M35 trägt das Kennzeichen nur die Stunden in der
+ * Nachtzeit; ein Tageseinsatz mit Haken hätte hier keine.
+ */
+const NACHT = { isNightWork: true, startTime: '21:30', endTime: '06:00' } as const;
+
 describe('Zuschläge', () => {
   it('schlägt Nachtarbeit auf den Stundensatz auf', () => {
-    const res = assembleInvoice('2025-001', [entry({ isNightWork: true })]);
+    const res = assembleInvoice('2025-001', [entry({ ...NACHT })]);
     expect(res.positions).toHaveLength(1);
     expect(res.positions[0].unitPrice).toBe(65 * 1.5);
     expect(res.positions[0].label).toContain('Nachtarbeit +50 %');
   });
 
   it('addiert Nacht- und Notdienstzuschlag', () => {
-    const res = assembleInvoice('2025-001', [entry({ isNightWork: true, isEmergency: true })]);
+    const res = assembleInvoice('2025-001', [entry({ ...NACHT, isEmergency: true })]);
     // 65 * (1 + 0.5 + 1) = 162.50 — die Zuschläge addieren sich auf den
     // Grundsatz, sie multiplizieren sich NICHT (das ergäbe 195,00).
     expect(res.positions[0].unitPrice).toBe(162.5);
@@ -98,9 +105,9 @@ describe('Zuschläge', () => {
   it('weist jede Kombination als eigene Position aus', () => {
     const res = assembleInvoice('2025-001', [
       entry({ id: 'e1' }),
-      entry({ id: 'e2', date: '2025-06-03', isNightWork: true }),
+      entry({ id: 'e2', date: '2025-06-03', ...NACHT }),
       entry({ id: 'e3', date: '2025-06-04', isEmergency: true }),
-      entry({ id: 'e4', date: '2025-06-05', isHelper: true, isNightWork: true }),
+      entry({ id: 'e4', date: '2025-06-05', isHelper: true, ...NACHT }),
     ]);
     expect(res.positions).toHaveLength(4);
     // Feste Reihenfolge: Facharbeiter vor Helfer, Grundleistung vor Zuschlag.

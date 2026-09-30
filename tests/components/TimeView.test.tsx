@@ -568,7 +568,7 @@ describe('Offene Nachtragungen', () => {
 describe('Zuschlagsstunden', () => {
   it('zeigt sie als eigene Kachel, aufgeschlüsselt im Beipacktext', async () => {
     eintraege = [
-      eintrag({ id: 'n1', isNightWork: true }),
+      eintrag({ id: 'n1', isNightWork: true, startTime: '22:00', endTime: '06:00' }),
       eintrag({ id: 'n2', date: '2026-09-02', isEmergency: true }),
     ];
     zeige();
@@ -583,7 +583,8 @@ describe('Zuschlagsstunden', () => {
     sähe der Kachel an, warum sie mehr zeigt, als der Mann gearbeitet hat.
   */
   it('zählt die Stunde mit beiden Kennzeichen nur einmal', async () => {
-    eintraege = [eintrag({ id: 'n1', isNightWork: true, isEmergency: true })];
+    // Ganz in der Nachtzeit — seit M35 zählt nur die (Testbericht 30.09.2026).
+    eintraege = [eintrag({ id: 'n1', isNightWork: true, isEmergency: true, startTime: '22:00', endTime: '06:00' })];
     zeige();
 
     const kachel = (await screen.findByText('Zuschlag')).parentElement;

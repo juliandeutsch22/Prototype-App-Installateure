@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
   subscribeOwnEntriesInRange,
   listOwnEntriesSince,
@@ -421,7 +422,8 @@ export default function TimeView() {
    * Ein gespeicherter Wert liefe irgendwann auseinander; hier kann er das
    * nicht.
    */
-  const zuschlag = useMemo(() => zuschlagszeit(entries, halbeTage), [entries, halbeTage]);
+  const nacht = useMemo(() => nachtzeitVon(company), [company]);
+  const zuschlag = useMemo(() => zuschlagszeit(entries, halbeTage, nacht), [entries, halbeTage, nacht]);
 
   /**
    * Summe der TATSÄCHLICH aktuellen Kalenderwoche. Vorher wurde die neueste

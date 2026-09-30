@@ -26,6 +26,9 @@ const user = (over: Partial<AppUser> = {}): AppUser =>
     workDays: [1, 2, 3, 4, 5], appStartDate: '2025-01-01', initialOvertime: 0, ...over,
   }) as AppUser;
 
+/** Seit M35 zählt nur die Zeit in der Nachtzeit — die Nachteinträge liegen deshalb dort. */
+const NACHT = { isNightWork: true, startTime: '22:00', endTime: '02:00' } as const;
+
 const entry = (over: Partial<TimeEntry> = {}): TimeEntry =>
   ({
     id: 'e1', companyId: 'c', date: '2025-06-02', status: 'Anwesend', userId: 'u1',
@@ -36,7 +39,7 @@ const entry = (over: Partial<TimeEntry> = {}): TimeEntry =>
 describe('Zuschlagsstunden', () => {
   it('zählt Nacht und Notdienst getrennt', () => {
     const z = zuschlagszeit([
-      entry({ isNightWork: true }),
+      entry({ ...NACHT }),
       entry({ isEmergency: true }),
       entry(),
     ], true);
@@ -51,7 +54,7 @@ describe('Zuschlagsstunden', () => {
     — und sähe es der Datei nicht an.
   */
   it('weist die Stunden aus, die beide Kennzeichen tragen', () => {
-    const z = zuschlagszeit([entry({ isNightWork: true, isEmergency: true })], true);
+    const z = zuschlagszeit([entry({ ...NACHT, isEmergency: true })], true);
     expect(z.nachtMin).toBe(240);
     expect(z.notdienstMin).toBe(240);
     expect(z.beidesMin).toBe(240);
@@ -88,8 +91,8 @@ describe('Zuschlagsstunden', () => {
 
 describe('Zuschläge in den Ausleitungen', () => {
   const eintraege = [
-    entry({ isNightWork: true }),
-    entry({ id: 'e2', date: '2025-06-03', isNightWork: true, isEmergency: true }),
+    entry({ ...NACHT }),
+    entry({ id: 'e2', date: '2025-06-03', ...NACHT, isEmergency: true }),
   ];
   const zeile = () => ({
     user: user(),

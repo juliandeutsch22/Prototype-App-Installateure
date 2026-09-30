@@ -174,9 +174,10 @@ describe('Arbeit nach 12 Uhr', () => {
   });
 
   it('zählt eine Nachtschicht nicht doppelt in die Summe', () => {
-    const z = zuschlagszeit([am24({ startTime: '13:00', endTime: '15:00', isNightWork: true })], true);
+    // 21:00–23:00: zwei Stunden nach 12 Uhr, eine davon in der Nachtzeit (M35).
+    const z = zuschlagszeit([am24({ startTime: '21:00', endTime: '23:00', breakDuration: 0, isNightWork: true })], true);
     expect(z.dezemberMin).toBe(120);
-    expect(z.nachtMin).toBe(120);
+    expect(z.nachtMin).toBe(60);
     expect(z.gesamtMin).toBe(120);
   });
 

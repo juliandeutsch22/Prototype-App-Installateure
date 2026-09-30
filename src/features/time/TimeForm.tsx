@@ -11,7 +11,8 @@ import { buchungKonflikt } from '@/lib/tagesbuchungen';
 import { krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
 import { todayStr, getAustrianHolidayName, fmtMin, tageWort } from '@/lib/time';
-import { zeitbild, zeitSatz, ueberwiegendNacht } from './zeitPlausibilitaet';
+import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
+import { nachtMinutenIn, nachtzeitText, nachtzeitVon } from '@/lib/lohnregeln';
 import { bearbeitungsvermerk } from './bearbeitungsvermerk';
 import { istAussendienst, canExtendTimeEntry, canEditTime } from '@/lib/permissions';
 import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
@@ -139,6 +140,9 @@ export default function TimeForm({
   );
   const [startTime, setStartTime] = useState(entry?.startTime || vorbelegung?.startTime || '07:00');
   const [endTime, setEndTime] = useState(entry?.endTime || vorbelegung?.endTime || '16:00');
+  // Die Nachtzeit des Betriebs (M35) und wie viel der Spanne hineinfällt.
+  const nacht = nachtzeitVon(company);
+  const nachtImEintrag = nachtMinutenIn(startTime, endTime, nacht);
   const [breakDuration, setBreakDuration] = useState(
     String(entry?.breakDuration ?? vorbelegung?.breakDuration ?? 30),
   );
@@ -928,19 +932,17 @@ export default function TimeForm({
 
           {/*
             EIN HINWEIS, KEIN AUTOMATISCHER HAKEN. Ob Nachtarbeit verrechnet
-            wird, bleibt eine bewusste Angabe (siehe `nachtMinuten`). Gezeigt
-            nur, wo es den Haken überhaupt gibt, ab einer Stunde in der
-            Nacht — eine Buchung bis 22:10 ist kein Nachteinsatz — und nur,
-            wenn die Nacht überwiegt (siehe `ueberwiegendNacht`).
+            wird, bleibt eine bewusste Angabe. SEIT DEM 30.09.2026 (M35) trägt
+            das Kennzeichen nur die Stunden in der Nachtzeit des Betriebs —
+            deshalb der Vorschlag, sobald Zeit hineinfällt, mit ihrem Umfang.
+            Vorher kam er erst bei überwiegender Nacht: bei 20:00–23:30 gar
+            nicht, weil das Kennzeichen damals die ganze Buchung zählte.
           */}
-          {canHaveProject && !isNightWork && ueberwiegendNacht(startTime, endTime) && (
+          {canHaveProject && !isNightWork && nachtImEintrag > 0 && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
-              {/* Das Kennzeichen zählt die ganze Buchung als Nacht — deshalb
-                  nur bei überwiegender Nachtzeit, und es steht dabei
-                  (Prüflauf 25.09.2026, P1-19). */}
               <span>
-                Die Zeit reicht in die Nacht (22–6 Uhr), zum größeren Teil. „Nachtarbeit" gilt
-                für die ganze Buchung.
+                {fmtMin(nachtImEintrag)} Std. liegen in der Nachtzeit ({nachtzeitText(nacht)}).
+                Der Nachtzuschlag gilt nur für diese Stunden.
               </span>
               <button
                 type="button"
