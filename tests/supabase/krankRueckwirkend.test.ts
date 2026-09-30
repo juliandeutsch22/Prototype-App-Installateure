@@ -71,7 +71,8 @@ describe('Das Büro', () => {
   it('eine eigene, noch nicht begonnene Meldung lässt sich nicht weiter als 14 Tage zurückverlegen', async () => {
     const { data, error } = await krank(monteur, { von: tag(21), bis: tag(27) });
     expect(error).toBeNull();
-    const zurueck = await krank(monteur, { id: (data as { id: string }).id, von: tag(-30), bis: tag(27) });
+    // Ein Zeitraum ohne Überschneidung mit den Meldungen oben — sonst greift zuerst die Überschneidungsregel.
+    const zurueck = await krank(monteur, { id: (data as { id: string }).id, von: tag(-30), bis: tag(-24) });
     expect(zurueck.error?.code).toBe('42501');
     expect(zurueck.error?.message).toMatch(/14 Tage zurück/);
   });
