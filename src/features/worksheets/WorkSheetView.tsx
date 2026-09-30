@@ -1613,6 +1613,8 @@ export default function WorkSheetView() {
                     id="wsmname"
                     label="Monteur (Name in Druckbuchstaben)"
                     value={monteurName}
+                    // Vorbelegt: beim Hineintippen ersetzen statt anhängen (Testbericht 30.09.2026, G2).
+                    onFocus={(e) => e.currentTarget.select()}
                     onChange={(e) => setMonteurName(e.target.value)}
                   />
                   <div className="mt-2">

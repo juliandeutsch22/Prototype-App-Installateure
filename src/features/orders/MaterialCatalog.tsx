@@ -39,7 +39,12 @@ const empty = {
   category: '',
   stock: '0',
   articleNumber: '',
-  unit: 'Stk',
+  /*
+    LEER MIT „Stk“ ALS PLATZHALTER (Testbericht 30.09.2026, G2). Als echter
+    Wert wurde beim Tippen „StkStk“ daraus; gespeichert wird ohne Angabe
+    weiter „Stk“.
+  */
+  unit: '',
   verkaufspreis: '',
   einkaufspreis: '',
 };

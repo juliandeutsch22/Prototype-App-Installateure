@@ -2322,6 +2322,8 @@ export default function InvoicesView() {
                         aria-label={`Einheit Position ${i + 1}`}
                         className="min-h-touch w-20 rounded border border-line bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/30"
                         value={p.unit}
+                        // Vorbelegt: beim Hineintippen ersetzen statt anhängen (Testbericht 30.09.2026, G2).
+                        onFocus={(e) => e.currentTarget.select()}
                         onChange={(e) => setPos(i, { unit: e.target.value })}
                       />
                     </td>
