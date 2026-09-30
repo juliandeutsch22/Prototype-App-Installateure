@@ -103,7 +103,7 @@ vi.mock('@/lib/db/baustellenDokumente', async () => {
 });
 
 /** Angebote zur Baustelle — gesucht über ihre Kennung. */
-let angebote: { id: string; quoteNumber: string }[] = [];
+let angebote: { id: string; quoteNumber: string; status?: string; totalNetto?: number; quoteDate?: string }[] = [];
 let angeboteScheitern = false;
 const listQuotesForProject = vi.fn<(a0: string, a1: string) => Promise<typeof angebote>>(async () => {
   if (angeboteScheitern) throw new Error('kaputt');
@@ -487,6 +487,26 @@ describe('Das Angebot hinter der Baustelle', () => {
     await screen.findByText('Stundenauswertung');
     expect(listQuotesForProject).not.toHaveBeenCalled();
     expect(screen.queryByRole('link', { name: /Angebot AN/ })).toBeNull();
+  });
+
+  it('sagt bei Pauschal, woher der Preis kommt: aus dem angenommenen Angebot (M14)', async () => {
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Angenommen', totalNetto: 7500.5, quoteDate: '2026-09-01' }];
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Pauschal');
+    expect(await screen.findByText(/legt das angenommene Angebot AN-2026-0007 fest/)).toBeInTheDocument();
+  });
+
+  it('ohne angenommenes Angebot: sagt, dass der Preis in der Rechnung eingetragen wird (M14)', async () => {
+    angebote = [{ id: 'q7', quoteNumber: 'AN-2026-0007', status: 'Versendet', totalNetto: 100 }];
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Pauschal');
+    expect(await screen.findByText(/Pauschal ohne angenommenes Angebot/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: bei Regie kein Hinweis zum Pauschalpreis', async () => {
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText(/Abrechnung/), 'Regie');
+    expect(screen.queryByText(/Pauschalpreis|Pauschal ohne/)).toBeNull();
   });
 
   it('sagt es, wenn das Angebot nicht geladen werden konnte', async () => {

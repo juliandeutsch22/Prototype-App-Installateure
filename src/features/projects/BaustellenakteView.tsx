@@ -9,6 +9,8 @@ import BaustellenPlaene from './BaustellenPlaene';
 import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
 import { listQuotesForProject } from '@/lib/db/quotes';
+import { pauschalAngebot } from '@/features/invoices/pauschale';
+import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
 import { isGF } from '@/lib/permissions';
 import { useModul } from '@/lib/useModule';
@@ -350,6 +352,8 @@ export default function BaustellenakteView() {
           fehler={speicherFehler}
           onSpeichern={() => void stammdatenSpeichern()}
           onVerwerfen={() => setEntwurf(alsEntwurf(b))}
+          angebote={angebote}
+          angeboteSichtbar={angeboteSichtbar}
         />
       ) : (
         <StammdatenLesen b={b} namen={namen} />
@@ -508,6 +512,9 @@ interface FormularProps {
   fehler: string | null;
   onSpeichern: () => void;
   onVerwerfen: () => void;
+  /** Für den Hinweis, woher der Pauschalpreis kommt (M14). */
+  angebote: Quote[];
+  angeboteSichtbar: boolean;
 }
 
 /**
@@ -519,7 +526,7 @@ interface FormularProps {
  */
 function StammdatenFormular({
   entwurf, setEntwurf, kunden, staff, leads,
-  geaendert, speichert, fehler, onSpeichern, onVerwerfen,
+  geaendert, speichert, fehler, onSpeichern, onVerwerfen, angebote, angeboteSichtbar,
 }: FormularProps) {
   const setze = <F extends keyof BaustellenEntwurf>(feld: F, wert: BaustellenEntwurf[F]) =>
     setEntwurf({ ...entwurf, [feld]: wert });
@@ -592,6 +599,7 @@ function StammdatenFormular({
           <option value="Regie">Regie</option>
           <option value="Pauschal">Pauschal</option>
         </SelectField>
+        {entwurf.billingMode === 'Pauschal' && <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} />}
         <ZahlFeld
           id="b-budget" label="Stundenbudget (kalkuliert)"
           placeholder="z. B. 40" value={entwurf.estimatedHours}
@@ -707,6 +715,32 @@ function Angabe({ wort, children }: { wort: string; children: React.ReactNode })
       <dd className="mt-0.5 text-sm text-ink">
         {children || <span className="text-ink-muted">nicht hinterlegt</span>}
       </dd>
+    </div>
+  );
+}
+
+/**
+ * WOHER DER PREIS EINER PAUSCHALBAUSTELLE KOMMT (Testbericht 30.09.2026, M14).
+ *
+ * Die Akte hat bewusst KEIN Preisfeld: eine Baustelle liest jeder im Betrieb,
+ * auch der Monteur — ein Preis dort wäre für alle lesbar, während Angebote
+ * Büro und Leitung vorbehalten sind. Der Preis steht im angenommenen Angebot;
+ * ohne Angebot trägt ihn die Rechnung ein. Das sagt dieser Hinweis, statt die
+ * Frage offen zu lassen.
+ */
+function PauschalHinweis({ angebote, sichtbar }: { angebote: Quote[]; sichtbar: boolean }) {
+  const angebot = sichtbar ? pauschalAngebot(angebote) : null;
+  return (
+    <div className="sm:col-span-2">
+      <Hinweiszeile stufe={sichtbar && !angebot ? 'warn' : undefined}>
+        <p>
+          {angebot
+            ? `Den Pauschalpreis legt das angenommene Angebot ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto). Die Rechnung übernimmt dessen Positionen.`
+            : sichtbar
+              ? 'Pauschal ohne angenommenes Angebot: der vereinbarte Preis steht noch nirgends. Die Rechnung setzt eine Zeile „Pauschale gemäß Vereinbarung“ mit 0,00 € an — dort den Betrag eintragen. Oder ein Angebot anlegen und annehmen, dann übernimmt die Rechnung dessen Positionen.'
+              : 'Den Pauschalpreis legt das angenommene Angebot fest; ohne Angebot trägt ihn das Büro in der Rechnung ein.'}
+        </p>
+      </Hinweiszeile>
     </div>
   );
 }
