@@ -111,3 +111,17 @@ export function benutzernameFehler(roh: string): string | null {
   if (name.includes('..')) return 'Zwei Punkte hintereinander gehen nicht.';
   return null;
 }
+
+/**
+ * Ist das eine brauchbare E-Mail-Adresse — mit Domain-Endung? (Testbericht
+ * 30.09.2026, G12). „petra@perl“ wurde vorher angenommen; zugestellt würde
+ * dorthin nie etwas, und die Willkommensmail ginge still verloren.
+ *
+ * Dieselbe Prüfung im Browser und in `mitarbeiter-anlegen`. Die Kunstadresse
+ * eines Benutzernamens (`…@benutzer.senklot.invalid`) besteht sie.
+ */
+export function mailAdresseFehler(email: string): string | null {
+  return /^[^\s@]+@[^\s@]+\.[^\s@.]{2,}$/.test(email.trim())
+    ? null
+    : 'Bitte eine vollständige E-Mail-Adresse angeben, etwa petra@perl.at.';
+}

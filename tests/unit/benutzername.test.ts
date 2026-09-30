@@ -61,3 +61,35 @@ describe('Welche Namen gehen', () => {
     expect(benutzernameFehler(n)).toMatch(grund);
   });
 });
+
+describe('E-Mail mit Domain-Endung (Testbericht 30.09.2026, G12)', () => {
+  it('nimmt eine vollständige Adresse und die Kunstadresse eines Benutzernamens', async () => {
+    const { mailAdresseFehler, kunstadresse } = await import('@shared/benutzername');
+    expect(mailAdresseFehler('petra@perl.at')).toBeNull();
+    expect(mailAdresseFehler(kunstadresse('petra.huber'))).toBeNull();
+  });
+
+  it('weist eine Adresse ohne Endung ab', async () => {
+    const { mailAdresseFehler } = await import('@shared/benutzername');
+    expect(mailAdresseFehler('petra@perl')).toMatch(/vollständige E-Mail-Adresse/);
+    expect(mailAdresseFehler('petra@perl.a')).not.toBeNull();
+    expect(mailAdresseFehler('petra perl.at')).not.toBeNull();
+  });
+});
+
+describe('Startpasswort ohne festes Muster (Testbericht 30.09.2026, G12)', () => {
+  it('endet nicht immer gleich und hat Gross-, Kleinbuchstaben und Ziffern', async () => {
+    const { generatePassword } = await import('@/lib/auth/provisionUser');
+    const pw = Array.from({ length: 40 }, () => generatePassword());
+    // Vorher endete jedes auf „A1!“.
+    expect(new Set(pw.map((p) => p.slice(-3))).size).toBeGreaterThan(30);
+    for (const p of pw) {
+      expect(p).toHaveLength(14);
+      expect(p).toMatch(/[a-z]/);
+      expect(p).toMatch(/[A-Z]/);
+      expect(p).toMatch(/[2-9]/);
+      // Keine verwechselbaren Zeichen — es wird am Telefon durchgegeben.
+      expect(p).not.toMatch(/[01lIO]/);
+    }
+  });
+});

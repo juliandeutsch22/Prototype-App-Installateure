@@ -97,7 +97,7 @@ describe('Anlegen mit Benutzername', () => {
     expect(daten.error).toMatch(/Zwei Punkte/);
   }, 120_000);
 
-  it('sagt „schon vergeben" — auch wenn der Name einem anderen Betrieb gehört', async () => {
+  it('sagt allgemein „nicht vergeben" — auch wenn der Name einem anderen Betrieb gehört', async () => {
     const name = frischerName();
     expect((await rufe(ANLEGEN, chefin.token, {
       email: kunstadresse(name), passwort: 'Anfang-2026!',
@@ -107,7 +107,9 @@ describe('Anlegen mit Benutzername', () => {
       email: kunstadresse(name), passwort: 'Anfang-2026!',
     });
     expect(status).toBe(409);
-    expect(daten.error).toMatch(/gibt es schon/);
+    // Allgemein gehalten (G12): kein „gibt es schon“, kein Betrieb.
+    expect(daten.error).toMatch(/kann Senklot nicht vergeben/);
+    expect(daten.error).not.toMatch(/gibt es schon/);
     // Mehr als den Namen selbst verrät die Meldung nicht.
     expect(daten.error).not.toMatch(new RegExp(BETRIEB));
   }, 120_000);
