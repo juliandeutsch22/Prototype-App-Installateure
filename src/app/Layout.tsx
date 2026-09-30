@@ -25,6 +25,7 @@ import ProblemMelden from '@/components/ProblemMelden';
 import RechtLinks from '@/components/RechtLinks';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { offeneVormerkungen } from '@/lib/db/pg/ohneEmpfang';
+import { rolleAnzeige } from '@/lib/rolleAnzeige';
 
 /**
  * Der aktive Eintrag wird über die KANTE markiert, nicht über eine volle
@@ -95,7 +96,7 @@ function ZeilenHinweis(
 
 /** App-Shell: Desktop-Sidebar; mobil Top-Bar + Icon-Tab-Bar (4 + „Mehr"-Drawer). */
 export default function Layout({ children }: { children: ReactNode }) {
-  const { user, company, signOut } = useAuth();
+  const { user, company, signOut, einblick } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const [profilOpen, setProfilOpen] = useState(false);
   const ort = useLocation();
@@ -252,7 +253,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <button
           type="button"
           onClick={() => setProfilOpen(true)}
-          aria-label={`Angemeldet als ${user.name}, ${user.role} — Profil öffnen`}
+          aria-label={`Angemeldet als ${user.name}, ${rolleAnzeige(user.role, einblick)} — Profil öffnen`}
           className="flex min-h-touch min-w-touch items-center justify-center rounded-full"
         >
           <Avatar name={user.name} size={32} />
@@ -303,7 +304,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Avatar name={user.name} />
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-white">{user.name}</p>
-              <p className="truncate text-xs text-white/70">{user.role}</p>
+              <p className="truncate text-xs text-white/70">{rolleAnzeige(user.role, einblick)}</p>
             </div>
           </div>
           <ProblemMelden
@@ -528,7 +529,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <Avatar name={user.name} size={48} />
           <div className="min-w-0">
             <p className="truncate text-base font-bold text-ink">{user.name}</p>
-            <p className="truncate text-sm text-ink-muted">{user.role}</p>
+            <p className="truncate text-sm text-ink-muted">{rolleAnzeige(user.role, einblick)}</p>
             <p className="truncate text-sm text-ink-muted">{kontoAnzeige(user.email)}</p>
           </div>
         </div>

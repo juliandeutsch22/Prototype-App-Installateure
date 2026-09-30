@@ -108,6 +108,25 @@ export function betriebFehler(b: Partial<NeuerBetrieb>): string | null {
   return null;
 }
 
+/**
+ * Eine Kennung aus dem Namen vorschlagen (Testbericht 30.09.2026, G21):
+ * „Perl Installationen GmbH“ → „perl-installationen-gmbh“. Umlaute werden
+ * ausgeschrieben, alles andere wird zum Bindestrich; sie beginnt mit einem
+ * Buchstaben und hat höchstens 30 Zeichen. Ein Vorschlag, keine Vorschrift:
+ * wer die Kennung selbst tippt, behält seine.
+ */
+export function kennungVorschlag(name: string): string {
+  const t = name
+    .toLowerCase()
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^[^a-z]+/, '')
+    .slice(0, 30)
+    .replace(/-+$/, '');
+  return t;
+}
+
 /** Die Eingabe in die Form bringen, in der sie gespeichert wird. */
 export function betriebNormalisiert(b: NeuerBetrieb): NeuerBetrieb {
   return {

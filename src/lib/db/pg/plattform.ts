@@ -43,3 +43,32 @@ export async function betriebAnlegen(daten: {
   }
   return data as BetriebAngelegt;
 }
+
+/** Ein Betrieb in der Liste der Plattform — ohne Inhalte (Testbericht 30.09.2026, M43). */
+export interface PlattformBetrieb {
+  kennung: string;
+  name: string;
+  angelegtAm: string;
+  /** Aktive Konten mit Administration oder Geschäftsführung. */
+  leitungskonten: number;
+  /** Wie viele davon eine E-Mail haben — ohne sie gibt es kein „Passwort vergessen“. */
+  leitungMitMail: number;
+  /** Bis wann ein Notzugang offen ist — sonst `null`. */
+  notzugangBis: string | null;
+}
+
+export async function plattformBetriebe(): Promise<PlattformBetrieb[]> {
+  const { data, error } = await derClient().rpc('plattform_betriebe');
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as {
+    kennung: string; name: string; angelegt_am: string; leitungskonten: number;
+    leitung_mit_mail: number; notzugang_bis: string | null;
+  }[]).map((z) => ({
+    kennung: z.kennung,
+    name: z.name,
+    angelegtAm: z.angelegt_am,
+    leitungskonten: Number(z.leitungskonten),
+    leitungMitMail: Number(z.leitung_mit_mail),
+    notzugangBis: z.notzugang_bis,
+  }));
+}

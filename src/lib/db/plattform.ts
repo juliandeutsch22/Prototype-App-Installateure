@@ -15,3 +15,10 @@ export function betriebAnlegen(daten: {
 }): Promise<pg.BetriebAngelegt> {
   return pg.betriebAnlegen(daten);
 }
+
+export type { PlattformBetrieb } from './pg/plattform';
+
+/** Die Liste der Betriebe — Name, Kennung, Leitungskonten, ohne Inhalte (M43). */
+export function plattformBetriebe(): Promise<pg.PlattformBetrieb[]> {
+  return pg.plattformBetriebe();
+}

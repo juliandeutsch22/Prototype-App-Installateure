@@ -31,7 +31,7 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
             {gemeldet.map((m) => (
               <li key={m.id} className="space-y-1 py-3 first:pt-0 last:pb-0">
                 <p className="text-sm text-ink-muted">
-                  {m.createdAt ? zeit(m.createdAt) : ''}
+                  {m.createdAt ? `gemeldet am ${zeit(m.createdAt)}` : ''}
                   {m.betrieb && ` · ${m.betrieb}`}
                   {m.wer && ` · ${m.wer}`}
                   {m.pfad && ` · ${m.pfad}`}
@@ -58,7 +58,7 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
                 <div className="flex flex-wrap items-center gap-2">
                   {g.art === 'absturz' ? <Warnung>Absturz</Warnung> : <Marke>Fehler</Marke>}
                   <span className="text-sm text-ink-muted">
-                    {g.anzahl}× · zuletzt {zeit(g.zuletzt)}
+                    {g.anzahl}× · zuletzt am {zeit(g.zuletzt)}
                     {g.betroffen > 1 && ` · ${g.betroffen} betroffen`}
                   </span>
                 </div>
@@ -70,7 +70,7 @@ export default function FehlerListe({ zeilen }: { zeilen: ProtokollZeile[] }) {
                 <details className="text-xs text-ink-muted">
                   <summary className="cursor-pointer">Technische Details</summary>
                   <p className="mt-2 break-words">
-                    Erstmals {zeit(g.zuerst)}
+                    Erstmals am {zeit(g.zuerst)}
                     {g.beispiel.betrieb && ` · ${g.beispiel.betrieb}`}
                     {g.beispiel.wer && ` · zuletzt bei ${g.beispiel.wer}`}
                   </p>
