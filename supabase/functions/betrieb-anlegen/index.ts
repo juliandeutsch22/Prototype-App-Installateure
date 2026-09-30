@@ -35,6 +35,7 @@ import {
   alleDienstSchluessel, dienstKopfzeilen, SCHLUESSEL_FEHLT,
 } from '../_shared/dienstSchluessel.ts';
 import { mitCors } from '../_eigen/cors.ts';
+import { generatePassword } from '../_shared/startpasswort.ts';
 
 const URL_BASIS = Deno.env.get('SUPABASE_URL')!;
 /*
@@ -133,21 +134,38 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     landet — und sie stünde eines Morgens im falschen Betrieb, ohne dass
     jemand etwas geändert hätte. Ein Konto gehört zu einem Betrieb.
   */
+  /*
+    MIT BENUTZERNAMEN (Testbericht 30.09.2026, P1): die Kunstadresse gilt als
+    bestätigt, das Startpasswort wird HIER erzeugt und einmal zurückgegeben,
+    beim ersten Anmelden verlangt die App ein eigenes (`startpasswort`). Einen
+    Rücksetzlink gibt es für eine Kunstadresse nicht.
+  */
+  const mitBenutzername = betrieb.anmeldung === 'benutzername';
+  const startpasswort = mitBenutzername ? generatePassword(14) : null;
   const kontoAntwort = await fetch(`${URL_BASIS}/auth/v1/admin/users`, {
     method: 'POST',
     headers: alsDienst,
-    body: JSON.stringify({
-      email: betrieb.adminEmail,
-      email_confirm: false,
-      user_metadata: { name: betrieb.adminName },
-      /*
-        EIN ZUFALLSPASSWORT, DAS NIEMAND ERFÄHRT. Ein Konto ganz ohne Passwort
-        hat keinen Passwort-Anbieter, und für ein solches lässt sich kein
-        Rücksetzlink erzeugen — der erste Administrator käme nie hinein.
-        Gesetzt wird es gleich darauf von ihm selbst.
-      */
-      password: `${crypto.randomUUID()}-Aa1!`,
-    }),
+    body: JSON.stringify(
+      mitBenutzername
+        ? {
+            email: betrieb.adminEmail,
+            email_confirm: true,
+            user_metadata: { name: betrieb.adminName, startpasswort: true },
+            password: startpasswort,
+          }
+        : {
+            email: betrieb.adminEmail,
+            email_confirm: false,
+            user_metadata: { name: betrieb.adminName },
+            /*
+              EIN ZUFALLSPASSWORT, DAS NIEMAND ERFÄHRT. Ein Konto ganz ohne
+              Passwort hat keinen Passwort-Anbieter, und für ein solches lässt
+              sich kein Rücksetzlink erzeugen — der erste Administrator käme
+              nie hinein. Gesetzt wird es gleich darauf von ihm selbst.
+            */
+            password: `${crypto.randomUUID()}-Aa1!`,
+          },
+    ),
   });
   const konto = await kontoAntwort.json();
 
@@ -156,7 +174,9 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     const schonDa = kontoAntwort.status === 422 || /already|registered|exists/i.test(text);
     return fehler(
       schonDa
-        ? `Zu ${betrieb.adminEmail} gibt es schon ein Konto. Ein Konto gehört zu genau einem Betrieb — bitte eine andere Adresse verwenden.`
+        ? (mitBenutzername
+          ? `Den Benutzernamen „${betrieb.adminBenutzername}" kann Senklot nicht vergeben — bitte einen anderen wählen.`
+          : `Zu ${betrieb.adminEmail} gibt es schon ein Konto. Ein Konto gehört zu genau einem Betrieb — bitte eine andere Adresse verwenden.`)
         : (text || 'Das Konto liess sich nicht anlegen.'),
       schonDa ? 409 : 500,
     );
@@ -205,6 +225,16 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
     diese Angabe nahm der Dienst seine „Site URL" — und die stand auf
     `localhost`.
   */
+  if (mitBenutzername) {
+    return antwort({
+      companyId: betrieb.companyId,
+      ersterAdminUid: konto.id,
+      passwortLink: '',
+      startpasswort,
+      benutzername: betrieb.adminBenutzername,
+    });
+  }
+
   const ziel = ruecksprungAdresse(Deno.env.get('APP_URL'), req.headers.get('Origin'));
   const linkAntwort = await fetch(`${URL_BASIS}/auth/v1/admin/generate_link`, {
     method: 'POST',

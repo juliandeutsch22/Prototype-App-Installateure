@@ -82,7 +82,7 @@ describe('Die Plattformseite', () => {
     expect(knopf).toBeDisabled();
 
     // Vor der ersten Eingabe die Anleitung statt einer Rüge (Prüflauf, D19).
-    expect(screen.getByText(/Alle vier Felder ausfüllen/)).toBeInTheDocument();
+    expect(screen.getByText(/Alle Felder ausfüllen/)).toBeInTheDocument();
     expect(screen.queryByText(/braucht einen Namen/)).toBeNull();
 
     // Der Reihe nach: die Meldung nennt immer den ERSTEN offenen Punkt, sonst
@@ -206,5 +206,38 @@ describe('Die Plattformseite — Betriebe und Kennung (M43, G21)', () => {
     zeige();
     expect(await screen.findByText('Noch kein Betrieb angelegt.')).toBeInTheDocument();
     expect(screen.getByLabelText(/Kennung des Betriebs/)).toBeInTheDocument();
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, P1 — der erste Administrator mit Benutzername:
+  Warnung vor dem Anlegen, Startpasswort einmal danach.
+*/
+describe('Die Plattformseite — erster Administrator mit Benutzername (P1)', () => {
+  it('warnt, schickt den Benutzernamen und zeigt das Startpasswort einmal', async () => {
+    const nutzer = userEvent.setup();
+    anlegen.mockResolvedValue({ companyId: 'perl', ersterAdminUid: 'u1', passwortLink: '', startpasswort: 'Kx7mPq2wRt9aBc', benutzername: 'petra.perl' });
+    zeige();
+    await nutzer.type(screen.getByLabelText(/Name des Betriebs/), 'Perl Installationen');
+    await nutzer.type(screen.getByLabelText(/Erster Administrator/), 'Petra Perl');
+    await nutzer.selectOptions(screen.getByLabelText('Anmeldung mit'), 'benutzername');
+    expect(screen.getByText(/nur über den Senklot-Support/)).toBeInTheDocument();
+    await nutzer.type(screen.getByLabelText(/^Benutzername/), 'petra.perl');
+    await nutzer.click(screen.getByRole('button', { name: 'Betrieb anlegen' }));
+
+    await waitFor(() => expect(anlegen).toHaveBeenCalled());
+    expect(anlegen.mock.calls[0][0]).toMatchObject({ anmeldung: 'benutzername', adminBenutzername: 'petra.perl' });
+    expect(await screen.findByText('Kx7mPq2wRt9aBc')).toBeInTheDocument();
+    expect(screen.getByText(/Das Startpasswort steht nur jetzt hier/)).toBeInTheDocument();
+  });
+
+  it('Gegenprobe: ein unbrauchbarer Benutzername sperrt das Anlegen', async () => {
+    const nutzer = userEvent.setup();
+    zeige();
+    await nutzer.type(screen.getByLabelText(/Name des Betriebs/), 'Perl Installationen');
+    await nutzer.type(screen.getByLabelText(/Erster Administrator/), 'Petra Perl');
+    await nutzer.selectOptions(screen.getByLabelText('Anmeldung mit'), 'benutzername');
+    await nutzer.type(screen.getByLabelText(/^Benutzername/), 'Petra Perl');
+    expect(screen.getByRole('button', { name: 'Betrieb anlegen' })).toBeDisabled();
   });
 });

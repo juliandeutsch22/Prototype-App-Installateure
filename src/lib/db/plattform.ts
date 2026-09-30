@@ -7,12 +7,11 @@
  * Anmeldedienst und nicht in einer Tabelle.
  */
 import * as pg from './pg/plattform';
+import type { NeuerBetrieb } from '@shared/plattform';
 
 export type { BetriebAngelegt } from './pg/plattform';
 
-export function betriebAnlegen(daten: {
-  name: string; companyId: string; adminEmail: string; adminName: string;
-}): Promise<pg.BetriebAngelegt> {
+export function betriebAnlegen(daten: NeuerBetrieb): Promise<pg.BetriebAngelegt> {
   return pg.betriebAnlegen(daten);
 }
 

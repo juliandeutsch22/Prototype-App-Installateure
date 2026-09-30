@@ -3,7 +3,8 @@ import MarkenBand from '@/components/MarkenBand';
 import { useAuth } from '@/app/AuthContext';
 import { betriebAnlegen, plattformBetriebe, type PlattformBetrieb } from '@/lib/db/plattform';
 import { notzugang, offeneFreigaben, type OffeneFreigabe } from '@/lib/db/support';
-import { betriebFehler, kennungVorschlag, type NeuerBetrieb } from '@shared/plattform';
+import { betriebFehler, kennungVorschlag, WARNUNG_OHNE_MAIL, type NeuerBetrieb } from '@shared/plattform';
+import Hinweiszeile from '@/components/Hinweiszeile';
 import Button from '@/components/Button';
 import Card from '@/components/Card';
 import { InputField, SelectField, FormGrid } from '@/components/Field';
@@ -55,13 +56,16 @@ const datumKurz = (iso: string) => new Date(iso).toLocaleDateString('de-AT', { d
 const zeitKurz = (iso: string) =>
   new Date(iso).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
-const LEER: NeuerBetrieb = { name: '', companyId: '', adminEmail: '', adminName: '' };
+const LEER: NeuerBetrieb = { name: '', companyId: '', adminEmail: '', adminName: '', anmeldung: 'email', adminBenutzername: '' };
 
 interface Angelegt {
   companyId: string;
   name: string;
   passwortLink: string;
   adminEmail: string;
+  /** Mit Benutzername (P1): Name und Startpasswort, nur jetzt zu sehen. */
+  benutzername?: string;
+  startpasswort?: string | null;
 }
 
 export default function PlattformView() {
@@ -165,6 +169,8 @@ export default function PlattformView() {
           name: form.name.trim(),
           passwortLink: data.passwortLink,
           adminEmail: form.adminEmail.trim().toLowerCase(),
+          benutzername: data.benutzername,
+          startpasswort: data.startpasswort,
         },
         ...bisher,
       ]);
@@ -249,17 +255,45 @@ export default function PlattformView() {
               required
               pflicht
             />
-            <InputField
-              id="b-adminmail"
-              label="Dessen E-Mail"
-              type="email"
-              placeholder="name@betrieb.at"
-              value={form.adminEmail}
-              onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
-              required
-              pflicht
-            />
+            <SelectField
+              id="b-anmeldung"
+              label="Anmeldung mit"
+              value={form.anmeldung ?? 'email'}
+              onChange={(e) => setForm({ ...form, anmeldung: e.target.value as 'email' | 'benutzername' })}
+            >
+              <option value="email">E-Mail</option>
+              <option value="benutzername">Benutzername</option>
+            </SelectField>
+            {form.anmeldung === 'benutzername' ? (
+              <InputField
+                id="b-adminname-login"
+                label="Benutzername"
+                placeholder="z. B. petra.perl"
+                autoComplete="off"
+                value={form.adminBenutzername ?? ''}
+                onChange={(e) => setForm({ ...form, adminBenutzername: e.target.value })}
+                required
+                pflicht
+              />
+            ) : (
+              <InputField
+                id="b-adminmail"
+                label="Dessen E-Mail"
+                type="email"
+                placeholder="name@betrieb.at"
+                value={form.adminEmail}
+                onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
+                required
+                pflicht
+              />
+            )}
           </FormGrid>
+          {/* P1: ohne E-Mail gibt es kein „Passwort vergessen“ — das steht da, bevor angelegt wird. */}
+          {form.anmeldung === 'benutzername' && (
+            <Hinweiszeile stufe="warn">
+              <p>{WARNUNG_OHNE_MAIL}</p>
+            </Hinweiszeile>
+          )}
 
           {fehler && <ErrorState message={fehler} />}
 
@@ -275,9 +309,9 @@ export default function PlattformView() {
           */}
           {eingabeFehler && !fehler && (
             <p className="text-sm text-ink-muted">
-              {Object.values(form).some((v) => String(v ?? '').trim() !== '')
+              {[form.name, form.companyId, form.adminName, form.adminEmail, form.adminBenutzername].some((v) => String(v ?? '').trim() !== '')
                 ? eingabeFehler
-                : 'Alle vier Felder ausfüllen — dann lässt sich der Betrieb anlegen.'}
+                : 'Alle Felder ausfüllen — dann lässt sich der Betrieb anlegen.'}
             </p>
           )}
 
@@ -485,18 +519,35 @@ export default function PlattformView() {
                 <p className="font-semibold text-ink">
                   {b.name} <span className="text-ink-muted">({b.companyId})</span>
                 </p>
-                <p className="mt-1 text-sm text-ink-muted">
-                  Erster Administrator: {b.adminEmail}
-                </p>
-                <p className="mt-2 break-all text-sm">
-                  <a href={b.passwortLink} className="link">
-                    {b.passwortLink}
-                  </a>
-                </p>
-                <p className="mt-1 text-xs text-warning">
-                  Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort. Er
-                  steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
-                </p>
+                {b.startpasswort ? (
+                  <>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      Erster Administrator: Benutzername <strong className="text-ink">{b.benutzername}</strong>
+                    </p>
+                    <p className="mt-2 text-sm">
+                      Startpasswort: <span className="font-mono text-base text-ink">{b.startpasswort}</span>
+                    </p>
+                    <p className="mt-1 text-xs text-warning">
+                      Benutzername und Startpasswort an den Administrator weitergeben. Beim ersten
+                      Anmelden vergibt er ein eigenes. Das Startpasswort steht nur jetzt hier.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      Erster Administrator: {b.adminEmail}
+                    </p>
+                    <p className="mt-2 break-all text-sm">
+                      <a href={b.passwortLink} className="link">
+                        {b.passwortLink}
+                      </a>
+                    </p>
+                    <p className="mt-1 text-xs text-warning">
+                      Diesen Link an den Administrator weitergeben — er setzt damit sein Passwort. Er
+                      steht nur jetzt hier; danach hilft nur noch „Passwort vergessen?".
+                    </p>
+                  </>
+                )}
               </li>
             ))}
           </ul>

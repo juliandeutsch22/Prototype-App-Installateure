@@ -8,6 +8,7 @@
  * damit in einer Transaktion.
  */
 import { derClient } from './kern';
+import type { NeuerBetrieb } from '@shared/plattform';
 
 export interface BetriebAngelegt {
   companyId: string;
@@ -20,11 +21,15 @@ export interface BetriebAngelegt {
    * weiteren Auftragsverarbeitungsvertrag.
    */
   passwortLink: string;
+  /**
+   * Mit Benutzername (P1): das Startpasswort, einmal hier und nirgends
+   * gespeichert. Beim ersten Anmelden verlangt die App ein eigenes.
+   */
+  startpasswort?: string | null;
+  benutzername?: string;
 }
 
-export async function betriebAnlegen(daten: {
-  name: string; companyId: string; adminEmail: string; adminName: string;
-}): Promise<BetriebAngelegt> {
+export async function betriebAnlegen(daten: NeuerBetrieb): Promise<BetriebAngelegt> {
   const { data, error } = await derClient().functions.invoke('betrieb-anlegen', {
     body: daten,
   });
