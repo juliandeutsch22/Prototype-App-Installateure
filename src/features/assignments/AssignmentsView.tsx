@@ -469,6 +469,15 @@ export default function AssignmentsView() {
    */
   async function anforderungAnlegen(position: RuestPosition, fehlmenge: number) {
     if (!user) return;
+    /*
+      WER ABHOLT, STEHT AUF DER ANFORDERUNG (Testbericht 30.09.2026, G31):
+      der eingeteilte Monteur, nicht der Planer. Ein Facharbeiter vor einem
+      Helfer; ist noch niemand eingeteilt, bleibt es der Planer. Wer sie
+      angelegt hat, steht in der Notiz.
+    */
+    const eingeteilt = staff.filter((u) => picks[u.uid]?.on);
+    const abholer =
+      eingeteilt.find((u) => !picks[u.uid]?.asHelper) ?? eingeteilt[0] ?? { uid: user.uid, name: user.name };
     setAnforderungLaeuft(true);
     setRuestFehler(null);
     try {
@@ -477,11 +486,14 @@ export default function AssignmentsView() {
         materialName: position.name,
         quantity: fehlmenge,
         projectNumber,
-        note: `Für den Einsatz am ${fmtDay(date)}`,
+        note:
+          abholer.uid === user.uid
+            ? `Für den Einsatz am ${fmtDay(date)}`
+            : `Für den Einsatz am ${fmtDay(date)} · angelegt von ${user.name}`,
         status: 'Offen',
         transactionType: 'order',
-        userId: user.uid,
-        userName: user.name,
+        userId: abholer.uid,
+        userName: abholer.name,
       });
       toast.success('Anforderung angelegt');
     } catch {

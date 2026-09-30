@@ -544,6 +544,38 @@ describe('Einsatzplanung — Rüstliste', () => {
     });
   });
 
+  /* Testbericht 30.09.2026, G31 — wer abholt, steht auf der Anforderung. */
+  async function unterdeckungAnfordern() {
+    await userEvent.type(
+      await screen.findByRole('searchbox', { name: /Artikel aus dem Lager/ }),
+      'Mischbatterie',
+    );
+    await userEvent.click(await screen.findByRole('button', { name: /Mischbatterie auf die Rüstliste/ }));
+    const menge = screen.getByRole('textbox', { name: 'Menge' });
+    await userEvent.clear(menge);
+    await userEvent.type(menge, '3');
+    await userEvent.click(await screen.findByRole('button', { name: /Anforderung über 2 anlegen/ }));
+    await waitFor(() => expect(anforderungAnlegen).toHaveBeenCalled());
+    return anforderungAnlegen.mock.calls[0][1] as { userId: string; userName: string; note: string };
+  }
+
+  it('legt die Anforderung auf den eingeteilten Monteur an, nicht auf den Planer (G31)', async () => {
+    zeige();
+    await baustelleWaehlen();
+    await userEvent.click(screen.getByRole('checkbox', { name: /^Max Mustermann/ }));
+    const a = await unterdeckungAnfordern();
+    expect(a).toMatchObject({ userId: 'u1', userName: 'Max Mustermann' });
+    expect(a.note).toMatch(/angelegt von Planer/);
+  });
+
+  it('Gegenprobe: ist noch niemand eingeteilt, bleibt es der Planer', async () => {
+    zeige();
+    await baustelleWaehlen();
+    const a = await unterdeckungAnfordern();
+    expect(a).toMatchObject({ userId: 'pl', userName: 'Planer' });
+    expect(a.note).not.toMatch(/angelegt von/);
+  });
+
   it('meldet KEINE Unterdeckung bei einer freien Zeile', async () => {
     // Eine freie Zeile („Leihgerät Kernbohrer") hat keinen Lagerstand.
     // „0 von 1 vorhanden" wäre dort eine Falschaussage statt einer Warnung.
