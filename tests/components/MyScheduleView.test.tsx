@@ -37,8 +37,11 @@ vi.mock('@/lib/db/assignments', () => ({
 vi.mock('@/lib/db/projects', () => ({
   listProjectsByNumbers: vi.fn(async () => BAUSTELLEN),
 }));
+/** Abwesenheiten, wie sie der Wochenplan liest (M33). */
+const abwesend: { wert: { userId: string; von: string; bis: string; grund: string | null; zeiten: string | null }[] } = { wert: [] };
 vi.mock('@/lib/db/vacations', () => ({
   listOwnVacations: vi.fn(async () => [] as Vacation[]),
+  listAbwesendInRange: vi.fn(async () => abwesend.wert),
 }));
 vi.mock('@/lib/db/einsatzMaterial', () => ({
   listEinsatzMaterialForDate: vi.fn(async (_c: string, tag: string) => {
@@ -84,6 +87,7 @@ beforeEach(() => {
   geholt.tage = [];
   for (const k of Object.keys(listen)) delete listen[k];
   plaene.wert = [];
+  abwesend.wert = [];
 });
 
 afterEach(() => {
@@ -167,5 +171,29 @@ describe('Mein Einsatzplan — die Pläne der Baustelle', () => {
     zeichne();
     await screen.findAllByText(/Familie Huber/);
     expect(screen.queryByText('Pläne und Dokumente')).toBeNull();
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, M33 — wer krank ist, hat an dem Tag keinen
+  „nächsten Einsatz“.
+*/
+describe('Mein Einsatzplan — Abwesenheit (M33)', () => {
+  function naechsteKarte() {
+    return screen.getByText('Nächste Einsätze').closest('section')!;
+  }
+
+  it('blendet den Einsatz an einem Kranktag aus und sagt es', async () => {
+    abwesend.wert = [{ userId: 'm1', von: MORGEN, bis: MORGEN, grund: 'Krank', zeiten: null }];
+    zeichne();
+    expect(await screen.findByText(/liegt an einem Tag, an dem du abwesend bist/)).toBeInTheDocument();
+    expect(within(naechsteKarte()).queryByText(/Gemeinde Neudorf|B-002/)).toBeNull();
+  });
+
+  it('Gegenprobe: stundenweise weg — der Einsatz bleibt', async () => {
+    abwesend.wert = [{ userId: 'm1', von: MORGEN, bis: MORGEN, grund: 'ZA', zeiten: '13:00–17:00' }];
+    zeichne();
+    expect((await within(await screen.findByText('Nächste Einsätze').then((t) => t.closest('section')!)).findAllByText(/Gemeinde Neudorf|B-002/)).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/an dem du abwesend bist/)).toBeNull();
   });
 });

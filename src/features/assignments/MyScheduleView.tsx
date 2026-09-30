@@ -6,7 +6,7 @@ import {
   listUpcomingAssignments,
 } from '@/lib/db/assignments';
 import { listProjectsByNumbers } from '@/lib/db/projects';
-import { listOwnVacations } from '@/lib/db/vacations';
+import { listAbwesendInRange, listOwnVacations, type Abwesenheit } from '@/lib/db/vacations';
 import { useModul } from '@/lib/useModule';
 import { listEinsatzMaterialForDate } from '@/lib/db/einsatzMaterial';
 import RuestlisteAbhaken from './RuestlisteAbhaken';
@@ -22,6 +22,7 @@ import { Marke, Zustand } from '@/components/Badge';
 import PageHeader from '@/components/PageHeader';
 import MonthCalendar from '@/components/MonthCalendar';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
+import { ganztagsWeg } from './besetzung';
 
 /** 'YYYY-MM-DD' -> 'Mo., 15.06.2026'. */
 function fmtDay(iso: string): string {
@@ -63,6 +64,8 @@ export default function MyScheduleView() {
 
   /** Die anstehenden Einsätze — „alle geplanten", unabhängig vom Kalender. */
   const [naechste, setNaechste] = useState<Assignment[]>([]);
+  /** Eigene Abwesenheiten im Zeitraum der nächsten Einsätze — Urlaub, ZA, Krank (M33). */
+  const [abwesend, setAbwesend] = useState<Abwesenheit[]>([]);
 
   /**
    * Die eigenen Urlaubsanträge — beantragte MIT eingeschlossen.
@@ -115,6 +118,37 @@ export default function MyScheduleView() {
       .then(setUrlaube)
       .catch(() => setUrlaube([]));
   }, [user]);
+
+  /*
+    WER AN DEM TAG GANZTAGS WEG IST, HAT DORT KEINEN „NÄCHSTEN EINSATZ“
+    (Testbericht 30.09.2026, M33). Vorher stand der Einsatz trotz
+    Krankmeldung oben in der Liste. Gefragt wird dieselbe Stelle wie im
+    Wochenplan; scheitert sie, bleibt die Liste wie bisher.
+  */
+  useEffect(() => {
+    if (!user || naechste.length === 0) {
+      setAbwesend([]);
+      return;
+    }
+    const bis = naechste.reduce((m, a) => (a.date > m ? a.date : m), naechste[0].date);
+    let weg = false;
+    Promise.resolve()
+      .then(() => listAbwesendInRange(todayStr(), bis))
+      .then((l) => {
+        if (!weg) setAbwesend(l.filter((a) => a.userId === user.uid));
+      })
+      .catch(() => {
+        if (!weg) setAbwesend([]);
+      });
+    return () => {
+      weg = true;
+    };
+  }, [user, naechste]);
+  const anstehend = useMemo(
+    () => naechste.filter((a) => !user || !ganztagsWeg(abwesend, user.uid, a.date)),
+    [naechste, abwesend, user],
+  );
+  const ausgeblendet = naechste.length - anstehend.length;
 
   /**
    * Baustellen-Stammdaten nur zu den Nummern, die tatsächlich vorkommen.
@@ -394,11 +428,11 @@ export default function MyScheduleView() {
               stünde nichts an.
             */}
             <Card title="Nächste Einsätze" className="mt-3 lg:mt-5">
-              {naechste.length === 0 ? (
+              {anstehend.length === 0 ? (
                 <EmptyState>Zurzeit ist nichts eingeplant.</EmptyState>
               ) : (
                 <ul className="divide-y divide-line">
-                  {naechste.slice(0, 15).map((a) => {
+                  {anstehend.slice(0, 15).map((a) => {
                     const proj = projects.find((p) => p.projectNumber === a.projectNumber);
                     return (
                       <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
@@ -417,9 +451,16 @@ export default function MyScheduleView() {
                   })}
                 </ul>
               )}
-              {naechste.length > 15 && (
+              {anstehend.length > 15 && (
                 <p className="mt-2 text-sm text-ink-muted">
-                  und {naechste.length - 15} weitere — im Kalender links nachschlagen.
+                  und {anstehend.length - 15} weitere — im Kalender links nachschlagen.
+                </p>
+              )}
+              {ausgeblendet > 0 && (
+                <p className="mt-2 text-sm text-ink-muted">
+                  {ausgeblendet === 1
+                    ? 'Ein Einsatz liegt an einem Tag, an dem du abwesend bist — das Büro plant ihn neu.'
+                    : `${ausgeblendet} Einsätze liegen an Tagen, an denen du abwesend bist — das Büro plant sie neu.`}
                 </p>
               )}
             </Card>

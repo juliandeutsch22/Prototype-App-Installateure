@@ -225,7 +225,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     const m = new Map<
       string,
       {
-        baustellen: { nummer: string; name: string; namen: string[]; helfer: string[] }[];
+        baustellen: { nummer: string; name: string; namen: string[]; helfer: string[]; fehlen: string[] }[];
         frei: string[];
         urlaub: string[];
       }
@@ -233,7 +233,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
     for (const tag of tage) {
       const nachNummer = new Map<
         string,
-        { nummer: string; name: string; namen: string[]; helfer: string[] }
+        { nummer: string; name: string; namen: string[]; helfer: string[]; fehlen: string[] }
       >();
       const frei: string[] = [];
       const urlaub: string[] = [];
@@ -244,7 +244,19 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
         if (z?.abwesendText) {
           urlaub.push(z.abwesendText === 'abwesend' ? u.name : `${u.name} (${z.abwesendText})`);
         }
-        if (z?.imUrlaub) continue;
+        /*
+          EINGETEILT UND GANZTAGS WEG (Testbericht 30.09.2026, M33): der
+          Einsatz verschwindet nicht, er steht mit „fehlt“ da. Vorher fiel er
+          hier weg, und die Baustelle sah aus, als wäre nichts geplant.
+        */
+        if (z?.imUrlaub) {
+          for (const b of z.baustellen) {
+            const e = nachNummer.get(b.nummer) ?? { nummer: b.nummer, name: b.name, namen: [], helfer: [], fehlen: [] };
+            e.fehlen.push(z.abwesendText && z.abwesendText !== 'abwesend' ? `${u.name} (${z.abwesendText})` : u.name);
+            nachNummer.set(b.nummer, e);
+          }
+          continue;
+        }
         if (!z || z.baustellen.length === 0) {
           // Am Betriebsurlaub ist niemand „frei" — ausser wer ausgenommen ist.
           if (!zuFuer(u.uid, tag)) frei.push(u.name);
@@ -256,6 +268,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             name: b.name,
             namen: [],
             helfer: [],
+            fehlen: [],
           };
           e.namen.push(u.name);
           if (b.helfer) e.helfer.push(u.name);
@@ -318,7 +331,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             <>
               Zeigt, wer an welchem Tag auf welcher Baustelle eingeteilt ist. Geplant wird im
               Büro; bei Fragen zur Einteilung bitte dort melden. Wer abwesend ist, steht ohne
-              Grund da.
+              Grund da. Der Plan zeigt Einsätze, nicht gebuchte Zeiten.
             </>
           ) : (
           <>
@@ -327,7 +340,8 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
             <br />
             <br />
             Gezählt als frei ist, wer an diesem Tag auf keiner Baustelle steht und keinen
-            genehmigten Urlaub hat. Wochenende und Feiertage sind hinterlegt, aber nicht
+            genehmigten Urlaub hat. Der Wochenplan zeigt Einsätze, nicht gebuchte Zeiten: wer ohne
+            Einsatz Stunden bucht, steht hier trotzdem als frei. Wochenende und Feiertage sind hinterlegt, aber nicht
             ausgenommen — an einem Notdienst wird auch sonntags gearbeitet.
           </>
           )
@@ -512,8 +526,20 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                               Betriebsurlaub
                             </span>
                           ) : z?.imUrlaub ? (
-                            <span className="block rounded-sm bg-surface-2 px-2 py-1 text-center text-xs text-ink-muted">
-                              {z.abwesendText}
+                            <span className="flex flex-col gap-1">
+                              <span className="block rounded-sm bg-surface-2 px-2 py-1 text-center text-xs text-ink-muted">
+                                {z.abwesendText}
+                              </span>
+                              {/* M33: der Einsatz, den die Abwesenheit trifft, bleibt sichtbar. */}
+                              {z.baustellen.map((b) => (
+                                <span
+                                  key={b.nummer}
+                                  title={`${b.name} · ${b.nummer} — eingeteilt, fehlt`}
+                                  className="block truncate rounded-sm border border-danger px-1.5 py-1 text-left text-xs text-danger"
+                                >
+                                  fehlt: {b.nummer}
+                                </span>
+                              ))}
                             </span>
                           ) : leer && nurLesen ? (
                             <span className="block text-center text-xs text-ink-muted" aria-label="nicht eingeteilt">
@@ -635,6 +661,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                                 .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
                                 .join(', ')}
                             </span>
+                            <FehltZeile namen={b.namen} fehlen={b.fehlen} />
                           </div>
                         ) : (
                         <button
@@ -652,6 +679,7 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
                               .map((n) => (b.helfer.includes(n) ? `${n} (Helfer)` : n))
                               .join(', ')}
                           </span>
+                          <FehltZeile namen={b.namen} fehlen={b.fehlen} />
                         </button>
                         ),
                       )
@@ -692,5 +720,18 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
         )}
       </Card>
     </div>
+  );
+}
+
+/**
+ * Wer auf dieser Baustelle eingeteilt ist und fehlt — und ob damit niemand
+ * mehr da ist (M33).
+ */
+function FehltZeile({ namen, fehlen }: { namen: string[]; fehlen: string[] }) {
+  if (fehlen.length === 0) return null;
+  return (
+    <span className="block text-sm font-medium text-danger">
+      {namen.length === 0 ? 'Unbesetzt — ' : ''}fehlt: {fehlen.join(', ')}
+    </span>
   );
 }
