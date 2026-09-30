@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import { updateCompany } from '@/lib/db/company';
 import { MODULE, aktiveModule, zieheMit, modul, type ModulId } from '@/lib/module';
 import Card from '@/components/Card';
@@ -53,6 +54,8 @@ export default function ModulesView() {
     if (aktiv.size !== gespeichert.size) return true;
     return [...aktiv].some((m) => !gespeichert.has(m));
   }, [aktiv, gespeichert]);
+  // Wer mit ungespeicherten Änderungen weggeht, wird gefragt (Testbericht 30.09.2026, M1).
+  const warnung = useUngespeichertWarnung(geaendert);
 
   function umschalten(id: ModulId, an: boolean) {
     if (!an) {
@@ -85,6 +88,7 @@ export default function ModulesView() {
 
   return (
     <div className="space-y-6">
+      {warnung}
       <PageHeader
         title="Module"
         subtitle="Welche Bereiche dieser Betrieb benutzt"

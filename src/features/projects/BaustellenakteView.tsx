@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import { useUngespeichertWarnung } from '@/lib/ungespeichert';
 import BetriebsurlaubHinweis from './BetriebsurlaubHinweis';
 import { baustelleUmnummern, listProjectsByIds, updateProject } from '@/lib/db/projects';
 import { alsEntwurf, gleich, type BaustellenEntwurf } from './baustellenEntwurf';
@@ -173,6 +174,8 @@ export default function BaustellenakteView() {
   }, [daten]);
 
   const geaendert = entwurf !== null && daten !== null && !gleich(entwurf, alsEntwurf(daten));
+  // Wer mit ungespeicherten Änderungen weggeht, wird gefragt (Testbericht 30.09.2026, M1).
+  const warnung = useUngespeichertWarnung(geaendert);
 
   /**
    * Zur Wahl stehende Monteure. Wer bereits zugeordnet IST, bleibt sichtbar —
@@ -413,6 +416,7 @@ export default function BaustellenakteView() {
   return (
     // Abstände der Designlinie „Fassung 3": 12 px am Telefon, 20 px am Schreibtisch.
     <div className="space-y-3 lg:space-y-5">
+      {warnung}
       <PageHeader
         title={b.customerName}
         subtitle={

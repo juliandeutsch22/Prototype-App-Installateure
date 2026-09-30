@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Company } from '@/types';
 
@@ -45,9 +46,12 @@ const { default: ModulesView } = await import('@/features/modules/ModulesView');
 
 function zeige() {
   return render(
-    <ToastProvider>
-      <ModulesView />
-    </ToastProvider>,
+    // Im Router wie in der App: die Warnung vor ungespeicherten Änderungen (M1) navigiert.
+    <MemoryRouter>
+      <ToastProvider>
+        <ModulesView />
+      </ToastProvider>
+    </MemoryRouter>,
   );
 }
 
