@@ -206,6 +206,11 @@ export default function InvoicesView() {
   const [zArt, setZArt] = useState<Zahlungseingang['art']>('Überweisung');
   const [zSkonto, setZSkonto] = useState(false);
   const [zHinweis, setZHinweis] = useState('');
+  /**
+   * Eingang vom Kunden oder Rückzahlung an ihn (Testbericht 30.09.2026, M21).
+   * Die Rückzahlung wird positiv eingetragen und negativ gebucht.
+   */
+  const [zRichtung, setZRichtung] = useState<'eingang' | 'rueckzahlung'>('eingang');
   const [zLoeschen, setZLoeschen] = useState<string | null>(null);
   const [zFehler, setZFehler] = useState<string | null>(null);
   /*
@@ -626,8 +631,20 @@ export default function InvoicesView() {
     setZArt('Überweisung');
     setZHinweis('');
     setZSkonto(false);
-    const rest = zahlstand(inv).rest;
-    setZBetrag(rest > 0 ? String(rest) : '');
+    const { rest, guthaben } = zahlstand(inv);
+    /*
+      EIN GUTHABEN WILL ZURÜCK (M21). Steht eines offen, ist die Rückzahlung
+      vorgewählt und der Betrag eingesetzt — das war der Fall aus dem Bericht:
+      200 € auf der stornierten RE-2026-1500, und kein Weg, sie zu buchen.
+    */
+    if (guthaben > 0) {
+      setZRichtung('rueckzahlung');
+      setZBetrag(zahlAlsText(guthaben));
+      setZHinweis('Rückzahlung des Guthabens');
+    } else {
+      setZRichtung('eingang');
+      setZBetrag(rest > 0 ? String(rest) : '');
+    }
     try {
       setZahlungen(await listZahlungen(inv.companyId, inv.id));
     } catch {
@@ -657,7 +674,8 @@ export default function InvoicesView() {
     da; gesetzt wird er bewusst. Die Skonto-Summe kommt aus derselben Liste
     wie der Kopf.
   */
-  const skontoAngebot = zahlungsStand && zArt !== 'Skonto'
+  const zGuthaben = zahlungsStand ? zahlstand(zahlungsStand).guthaben : 0;
+  const skontoAngebot = zahlungsStand && zArt !== 'Skonto' && zRichtung === 'eingang'
     ? skontoZumAusgleich(
       {
         ...zahlungsStand,
@@ -672,16 +690,27 @@ export default function InvoicesView() {
 
   const zahlungSpeichern = async () => {
     if (!zahlungFuer || !user) return;
-    const gelesen = leseZahl(zBetrag, { negativ: true });
+    const rueck = zRichtung === 'rueckzahlung';
+    const gelesen = leseZahl(zBetrag, { negativ: !rueck });
     if (gelesen.fehler) {
       setZFehler(gelesen.fehler);
       return;
     }
-    const betrag = gelesen.wert ?? 0;
-    if (!Number.isFinite(betrag) || betrag === 0) {
-      setZFehler('Ein Betrag von null ist kein Zahlungseingang.');
+    const eingetragen = gelesen.wert ?? 0;
+    if (!Number.isFinite(eingetragen) || eingetragen === 0) {
+      setZFehler(rueck ? 'Eine Rückzahlung über null ist keine.' : 'Ein Betrag von null ist kein Zahlungseingang.');
       return;
     }
+    /*
+      ZURÜCK GEHT HÖCHSTENS DAS GUTHABEN (M21). Danach ist es erledigt; mehr
+      zurückzuzahlen hiesse, eine neue Forderung des Kunden zu erfinden. Wer
+      eine Rücklastschrift buchen will, trägt sie als Eingang mit Minus ein.
+    */
+    if (rueck && Math.round(eingetragen * 100) > Math.round(zGuthaben * 100)) {
+      setZFehler(`Zurückzuzahlen sind höchstens ${euro(zGuthaben)} — das Guthaben des Kunden.`);
+      return;
+    }
+    const betrag = rueck ? -eingetragen : eingetragen;
     const zahlung = {
       invoiceId: zahlungFuer.id,
       datum: zDatum,
@@ -701,7 +730,8 @@ export default function InvoicesView() {
     setZHinweis('');
     setZSkonto(false);
     setZFehler(null);
-    toast.success('Zahlung erfasst');
+    setZRichtung('eingang');
+    toast.success(rueck ? 'Rückzahlung gebucht' : 'Zahlung erfasst');
   };
 
   const numberTaken = invoiceNumber !== '' && isInvoiceNumberTaken(invoices, invoiceNumber);
@@ -1746,11 +1776,13 @@ export default function InvoicesView() {
             weiteren Zahlung Guthaben des Kunden. Der Dialog sagt es noch
             einmal, bevor eingetragen wird.
           */
-          label: inv.paymentStatus === 'Storniert'
-            ? 'Zahlung erfassen (wird Guthaben) …'
-            : inv.paymentStatus === 'Bezahlt' || inv.paymentStatus === 'Überzahlt'
-              ? 'Weitere Zahlung erfassen …'
-              : 'Zahlung erfassen',
+          label: zahlstand(inv).guthaben > 0
+            ? 'Guthaben zurückzahlen …'
+            : inv.paymentStatus === 'Storniert'
+              ? 'Zahlung erfassen (wird Guthaben) …'
+              : inv.paymentStatus === 'Bezahlt' || inv.paymentStatus === 'Überzahlt'
+                ? 'Weitere Zahlung erfassen …'
+                : 'Zahlung erfassen',
           onSelect: () => void zahlungOeffnen(inv),
         },
         ...(inv.paymentStatus !== 'Storniert'
@@ -3426,12 +3458,12 @@ export default function InvoicesView() {
                 : ` · offen ${euro(zahlstand(zahlungsStand!).rest)}`)
             : ''
         }
-        confirmLabel="Zahlung eintragen"
+        confirmLabel={zRichtung === 'rueckzahlung' ? 'Rückzahlung buchen' : 'Zahlung eintragen'}
         confirmTone="primary"
         onCancel={() => setZahlungFuer(null)}
         onConfirm={zahlungSpeichern}
       >
-        {zahlungFuer && (zahlungFuer.paymentStatus === 'Storniert'
+        {zahlungFuer && zRichtung === 'eingang' && (zahlungFuer.paymentStatus === 'Storniert'
           || zahlungFuer.paymentStatus === 'Bezahlt' || zahlungFuer.paymentStatus === 'Überzahlt') && (
           <div className="mb-3">
             <Hinweiszeile stufe="warn">
@@ -3441,6 +3473,25 @@ export default function InvoicesView() {
                   : 'Diese Rechnung ist schon bezahlt. Eine weitere Zahlung wird zum Guthaben des Kunden.'}
               </p>
             </Hinweiszeile>
+          </div>
+        )}
+        {(zGuthaben > 0 || zRichtung === 'rueckzahlung') && (
+          <div className="mb-3">
+            <SelectField
+              id="z-richtung"
+              label="Richtung"
+              value={zRichtung}
+              onChange={(e) => {
+                const neu = e.target.value as 'eingang' | 'rueckzahlung';
+                setZRichtung(neu);
+                setZSkonto(false);
+                setZFehler(null);
+                if (neu === 'rueckzahlung') setZBetrag(zahlAlsText(zGuthaben));
+              }}
+            >
+              <option value="eingang">Zahlungseingang vom Kunden</option>
+              <option value="rueckzahlung">Rückzahlung an den Kunden (Zahlungsausgang)</option>
+            </SelectField>
           </div>
         )}
         <FormGrid cols={2}>
@@ -3455,8 +3506,8 @@ export default function InvoicesView() {
           />
           <ZahlFeld
             id="z-betrag"
-            label="Betrag (€)"
-            negativ
+            label={zRichtung === 'rueckzahlung' ? 'Zurückgezahlt (€)' : 'Betrag (€)'}
+            negativ={zRichtung === 'eingang'}
             value={zBetrag}
             onChange={(text) => setZBetrag(text)}
             required
@@ -3498,7 +3549,8 @@ export default function InvoicesView() {
         )}
         <InfoHint about="den Betrag">
           Vorausgefüllt steht der offene Rest, weil er fast immer stimmt. Bei einer Teilzahlung
-          wird er überschrieben; ein negativer Betrag ist eine Rückzahlung an den Kunden.
+          wird er überschrieben. Ein Guthaben des Kunden wird als Rückzahlung gebucht; ein
+          negativer Eingang ist eine Rücklastschrift.
         </InfoHint>
 
         {zFehler && <p className="mt-3 text-sm text-danger">{zFehler}</p>}
@@ -3514,7 +3566,7 @@ export default function InvoicesView() {
               {zahlungen.map((z) => (
                 <ListRow
                   key={z.id}
-                  title={<span>{euro(z.betrag)}</span>}
+                  title={<span>{z.betrag < 0 ? `Rückzahlung ${euro(-z.betrag)}` : euro(z.betrag)}</span>}
                   subtitle={
                     <span>
                       {datumAT(z.datum)} · {z.art}

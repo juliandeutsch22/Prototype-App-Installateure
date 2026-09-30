@@ -245,3 +245,44 @@ describe('Wer an Zahlungen darf', () => {
     expect(error!.message).toMatch(/anderen Betrieb/);
   }, 30_000);
 });
+
+/*
+  TESTBERICHT 30.09.2026, M21 — ein Guthaben lässt sich zurückzahlen, und
+  danach ist es erledigt. Zurück geht höchstens, was eingegangen ist.
+*/
+describe('Rückzahlung eines Guthabens', () => {
+  it('erledigt das Guthaben der stornierten Rechnung — der Fall RE-2026-1500', async () => {
+    const id = await rechnung();
+    await rechnungen.cancelInvoice(nurKennung(id), 'Storno');
+    await zahlungen.createZahlung(BETRIEB, {
+      invoiceId: id, datum: '2026-05-25', betrag: 200, art: 'Überweisung',
+    });
+    await zahlungen.createZahlung(BETRIEB, {
+      invoiceId: id, datum: '2026-05-28', betrag: -200, art: 'Überweisung', hinweis: 'Rückzahlung des Guthabens',
+    });
+    expect(await stand(id)).toEqual({ status: 'Storniert', bezahlt: 0 });
+  }, 60_000);
+
+  it('nimmt keine Rückzahlung über das Eingegangene hinaus', async () => {
+    const id = await rechnung();
+    await rechnungen.cancelInvoice(nurKennung(id), 'Storno');
+    await zahlungen.createZahlung(BETRIEB, {
+      invoiceId: id, datum: '2026-05-25', betrag: 200, art: 'Überweisung',
+    });
+    await expect(zahlungen.createZahlung(BETRIEB, {
+      invoiceId: id, datum: '2026-05-28', betrag: -250, art: 'Überweisung',
+    })).rejects.toThrow(/höchstens, was eingegangen ist: 200/);
+    expect(await stand(id)).toEqual({ status: 'Storniert', bezahlt: 200 });
+  }, 60_000);
+
+  it('Gegenprobe: eine Rücklastschrift bis zum Eingegangenen bleibt möglich', async () => {
+    const id = await rechnung();
+    await zahlungen.createZahlung(BETRIEB, {
+      invoiceId: id, datum: '2026-05-10', betrag: 1000, art: 'Überweisung',
+    });
+    await zahlungen.createZahlung(BETRIEB, {
+      invoiceId: id, datum: '2026-05-12', betrag: -1000, art: 'Sonstiges', hinweis: 'Rücklastschrift',
+    });
+    expect(await stand(id)).toEqual({ status: 'Offen', bezahlt: 0 });
+  }, 60_000);
+});

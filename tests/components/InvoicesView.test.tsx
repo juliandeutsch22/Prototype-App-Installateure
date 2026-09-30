@@ -3158,6 +3158,49 @@ describe('Paket 5a — die Rechnungsliste', () => {
     expect(screen.getAllByText('Stornorechnung').length).toBeGreaterThan(0);
   });
 
+  /*
+    TESTBERICHT 30.09.2026, M21 — „200 € zurückzuzahlen“ bei RE-2026-1500
+    liess sich nicht als Rückzahlung buchen.
+  */
+  it('bucht das Guthaben als Rückzahlung — vorgewählt und eingesetzt', async () => {
+    createZahlung.mockClear();
+    erfassteZahlungen = [];
+    rechnungen = [
+      { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504,
+        bezahltBetrag: 200 },
+    ] as unknown as (Invoice & { id: string })[];
+    bisherigeZahlungen = [{ id: 'z1', invoiceId: 's', datum: '2026-09-10', betrag: 200, art: 'Überweisung' }];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1500/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Guthaben zurückzahlen …' }));
+    expect(await screen.findByLabelText('Richtung')).toHaveValue('rueckzahlung');
+    expect(screen.getByLabelText(/^Zurückgezahlt/)).toHaveValue('200');
+    expect(screen.queryByText(/Eine Zahlung hierauf wird zum Guthaben/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Rückzahlung buchen' }));
+    await waitFor(() => expect(createZahlung).toHaveBeenCalled());
+    expect(erfassteZahlungen[0]).toMatchObject({ invoiceId: 's', betrag: -200, hinweis: 'Rückzahlung des Guthabens' });
+  });
+
+  it('Gegenprobe: mehr als das Guthaben geht nicht zurück', async () => {
+    createZahlung.mockClear();
+    rechnungen = [
+      { id: 's', invoiceNumber: 'RE-2026-1500', projectNumber: '2026-042', customerName: 'Max',
+        invoiceDate: '2026-09-01', dueDate: '2026-09-15', paymentStatus: 'Storniert', totalBrutto: 504,
+        bezahltBetrag: 200 },
+    ] as unknown as (Invoice & { id: string })[];
+    bisherigeZahlungen = [{ id: 'z1', invoiceId: 's', datum: '2026-09-10', betrag: 200, art: 'Überweisung' }];
+    zeige();
+    await userEvent.click(await screen.findByRole('button', { name: /Weitere Aktionen für Rechnung RE-2026-1500/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Guthaben zurückzahlen …' }));
+    const feld = await screen.findByLabelText(/^Zurückgezahlt/);
+    await userEvent.clear(feld);
+    await userEvent.type(feld, '250');
+    await userEvent.click(screen.getByRole('button', { name: 'Rückzahlung buchen' }));
+    expect(await screen.findByText(/höchstens € 200,00/)).toBeInTheDocument();
+    expect(createZahlung).not.toHaveBeenCalled();
+  });
+
   it('sagt bei einer bezahlten Rechnung, dass eine weitere Zahlung Guthaben wird (G15)', async () => {
     rechnungen = [
       { id: 'b', invoiceNumber: 'RE-2026-1003', projectNumber: '2026-001', customerName: 'Max',
