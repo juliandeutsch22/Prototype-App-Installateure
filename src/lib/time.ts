@@ -657,7 +657,16 @@ function sollMinuten(
  * Saldo sehen.
  */
 function ganztagGutschreiben(e: Pick<TimeEntry, 'status' | 'date'>, heuteIso: string): boolean {
-  return (e.status === 'Krank' || e.status === 'Urlaub') && e.date < heuteIso;
+  return istGanztagsGutschrift(e.status) && e.date < heuteIso;
+}
+
+/**
+ * Die Tagesstatus, die das Tagessoll erfüllen: Krank, Urlaub und seit dem
+ * 30.09.2026 die Berufsschule (Testbericht 4.1). Eine Stelle für alle
+ * Rechnungen — Saldo, Monatssoll, Monatsbilanz.
+ */
+export function istGanztagsGutschrift(status: TimeEntry['status']): boolean {
+  return status === 'Krank' || status === 'Urlaub' || status === 'Berufsschule';
 }
 
 /**
@@ -747,6 +756,8 @@ export function saldoAusBilanzen(
     krankTage: number;
     urlaubTage: number;
     abwesendHalbtage: number;
+    /** Seit 30.09.2026 (4.1); ältere Bilanzen kennen die Spalte nicht. */
+    berufsschuleTage?: number;
     tage: string[];
   }>,
   laufenderMonat: TimeEntry[],
@@ -785,7 +796,7 @@ export function saldoAusBilanzen(
     // Ein Krank- oder Urlaubstag am 24./31.12. schreibt nur einen halben
     // gut — so viel Soll hatte der Tag.
     const halbe = halbeTage ? b.abwesendHalbtage * 0.5 : 0;
-    istMin += (b.krankTage + b.urlaubTage - halbe) * dailyH * 60;
+    istMin += (b.krankTage + b.urlaubTage + (b.berufsschuleTage ?? 0) - halbe) * dailyH * 60;
     for (const t of b.tage) {
       if (t >= user.appStartDate) gebucht.add(t);
     }
@@ -850,6 +861,12 @@ export interface MonthStats {
    * schon, weil ein ZA-Tag Soll ohne Ist ist.
    */
   zaMin: number;
+  /**
+   * Berufsschule im Monat (4.1): Tage, und Stunden zum Tagessoll — für die
+   * Lohn-CSV. Im Saldo stecken sie schon: ein Berufsschultag erfüllt das Soll.
+   */
+  berufsschuleDays: number;
+  berufsschuleMin: number;
   yearlyUrlaubDays: number;
   /** Tage, die in diesem Jahr zur Verfügung stehen — siehe `urlaubsStand`. */
   urlaubsAnspruch: number;
@@ -935,7 +952,7 @@ export function calcMonthStats(
     [
       ...new Set(
         monthEntries
-          .filter((e) => (e.status === 'Krank' || e.status === 'Urlaub') && imSoll.has(e.date))
+          .filter((e) => istGanztagsGutschrift(e.status) && imSoll.has(e.date))
           .map((e) => e.date),
       ),
     ],
@@ -945,6 +962,11 @@ export function calcMonthStats(
   const zaMin = monthEntries.reduce(
     (s, e) => s + zeitausgleichMin(e, tagessollStunden(user, e.date) * tagesAnteil(e.date, halbeTage)),
     0,
+  );
+  const schultage = monthEntries.filter((e) => e.status === 'Berufsschule');
+  const berufsschuleDays = schultage.length;
+  const berufsschuleMin = Math.round(
+    schultage.reduce((s, e) => s + tagessollStunden(user, e.date) * tagesAnteil(e.date, halbeTage) * 60, 0),
   );
 
   const requiredDays = Math.max(0, tageGewicht(pflichtImMonat, halbeTage) - abwesendImSoll);
@@ -961,7 +983,7 @@ export function calcMonthStats(
               user,
               [...new Set(
                 monthEntries
-                  .filter((e) => (e.status === 'Krank' || e.status === 'Urlaub') && imSoll.has(e.date))
+                  .filter((e) => istGanztagsGutschrift(e.status) && imSoll.has(e.date))
                   .map((e) => e.date),
               )],
               halbeTage,
@@ -1034,6 +1056,8 @@ export function calcMonthStats(
     krankDays,
     urlaubDays,
     zaMin,
+    berufsschuleDays,
+    berufsschuleMin,
     yearlyUrlaubDays,
     urlaubRest: stand.rest,
     urlaubsAnspruch: stand.anspruch,

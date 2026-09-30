@@ -58,7 +58,8 @@ function baueFall(saat: number) {
     const w = r();
     if (pflicht.has(datum)) {
       if (w < 0.12) continue; // Lücke
-      const status = w < 0.18 ? 'Krank' : w < 0.25 ? 'Urlaub' : w < 0.29 ? 'Zeitausgleich' : 'Anwesend';
+      // Berufsschule (4.1) erfüllt das Soll wie Krank und Urlaub — auf beiden Wegen.
+      const status = w < 0.18 ? 'Krank' : w < 0.25 ? 'Urlaub' : w < 0.29 ? 'Zeitausgleich' : w < 0.33 ? 'Berufsschule' : 'Anwesend';
       eintraege.push(eintrag(datum, status, r));
     } else if (w < 0.1) {
       // Ein Notdienst am freien Tag oder am Feiertag.

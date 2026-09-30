@@ -28,6 +28,8 @@ export interface Monatsbilanz {
   urlaubTage: number;
   /** Krank- und Urlaubstage am 24. oder 31. Dezember — siehe `tagesAnteil`. */
   abwesendHalbtage: number;
+  /** Berufsschultage (4.1) — erfüllen das Tagessoll wie Krank und Urlaub. */
+  berufsschuleTage: number;
   tage: string[];
 }
 
@@ -78,6 +80,7 @@ export async function listBilanzen(
     krankTage: Number(r.krankTage ?? 0),
     urlaubTage: Number(r.urlaubTage ?? 0),
     abwesendHalbtage: Number(r.abwesendHalbtage ?? 0),
+    berufsschuleTage: Number(r.berufsschuleTage ?? 0),
     tage: r.tage ?? [],
   }));
 }

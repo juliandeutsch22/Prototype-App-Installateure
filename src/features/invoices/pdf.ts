@@ -19,6 +19,7 @@ import { summenZeilen } from './summenZeilen';
 import { RC_HINWEIS } from './reverseCharge';
 
 // Hier weiterhin erreichbar — die Prüfungen und das Angebot lesen sie so.
+
 export { summenZeilen };
 
 /**
@@ -35,12 +36,26 @@ function fmtDatum(iso: string): string {
     year: 'numeric',
   });
 }
-import type { Company, Project, RechnungsArt, Vorrechnung } from '@/types';
+import type { Company, Project, RechnungsArt, TimeEntry, Vorrechnung } from '@/types';
 import { INVOICE_DEFAULTS, type AssembledInvoice } from './assemble';
 import { mitAbzug } from './vorrechnungen';
 import { calcWorkMin } from '@/lib/time';
+import { istLehrlingssatz, satzklasse } from '@/lib/einstufung';
 import { zugesagterSkonto } from './skonto';
 import { euroBetrag } from '@/lib/betrag';
+
+/**
+ * Die Spalte „Typ“ im Leistungsnachweis — seit dem 30.09.2026 aus dem Satz
+ * der Buchung (Testbericht 4.1). Das Lehrjahr steht an der Rechnungszeile;
+ * hier genügt „Lehrling“.
+ */
+function typAufDemNachweis(e: Pick<TimeEntry, 'satz' | 'isHelper'>): string {
+  const k = satzklasse(e);
+  if (k === 'helfer') return 'Helfer';
+  if (k === 'obermonteur') return 'Obermonteur';
+  if (istLehrlingssatz(k)) return 'Lehrling';
+  return 'Fachkraft';
+}
 
 /** Minuten als Dezimalstunden mit Komma ("7,50"). */
 const fmtHours = (min: number) => (min / 60).toFixed(2).replace('.', ',');
@@ -280,7 +295,7 @@ export function generateInvoicePdf(opts: {
       body: detail.map((e) => [
         fmtDate(e.date),
         e.userName ?? '',
-        e.isHelper ? 'Helfer' : 'Fachkraft',
+        typAufDemNachweis(e),
         // Ganz, nicht auf 60 Zeichen gekappt: die Tabelle bricht jetzt um,
         // und ein abgeschnittener Satz belegt nichts.
         // Die Notiz der Buchung, sonst die Tätigkeit aus dem Schein (G17).

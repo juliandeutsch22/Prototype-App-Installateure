@@ -28,8 +28,11 @@ import {
   type BenutzerEntwurf,
 } from './benutzerEntwurf';
 import TagessollFelder from './TagessollFelder';
+import EinstufungFelder from './EinstufungFelder';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import { todayStr } from '@/lib/time';
+import { einstufungText, lehrzeitEnde } from '@/lib/einstufung';
 import Datenauskunft from '@/features/recht/Datenauskunft';
 import { zeigtAuskunft } from '@/features/recht/auskunftDatei';
 import ZahlFeld from '@/components/ZahlFeld';
@@ -425,6 +428,18 @@ function StammdatenLesen({ p }: { p: AppUser }) {
           ? <Zustand stand="ruht">inaktiv</Zustand>
           : <Zustand stand="gut">aktiv</Zustand>}
       </Angabe>
+      <Angabe wort="Einstufung">
+        {p.einstufung ? (
+          <span>
+            {einstufungText(p, todayStr())}
+            {p.einstufung === 'lehrling' && p.lehrbeginn && p.lehrzeitMonate
+              ? ` · Lehrbeginn ${fmtDatum(p.lehrbeginn)}, Lehrzeit bis ${fmtDatum(lehrzeitEnde(p.lehrbeginn, p.lehrzeitMonate))}`
+              : ''}
+          </span>
+        ) : (
+          <span className="text-ink-muted">nicht festgelegt — zählt wie Facharbeiter</span>
+        )}
+      </Angabe>
       <Angabe wort="Wochenstunden">
         {p.weeklyTargetHours != null ? <span>{p.weeklyTargetHours}</span> : null}
       </Angabe>
@@ -521,6 +536,8 @@ function StammdatenFormular({
           <option value="inaktiv">Deaktiviert</option>
         </SelectField>
       </FormGrid>
+
+      <EinstufungFelder form={entwurf} setForm={setEntwurf} idPrefix="b" />
 
       {/*
         NUR DORT, WO DER HAKEN ETWAS BEDEUTET. Die Leitung pflegt Kunden

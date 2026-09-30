@@ -126,6 +126,7 @@ export function updateUserProfile(uid: string, p: Partial<UserProfileInput>): Pr
     'name', 'role', 'active', 'weeklyTargetHours', 'yearlyVacationDays',
     'workDays', 'appStartDate', 'eintritt', 'tagessoll', 'initialOvertime', 'initialVacationDays',
     'kundenPflegen', 'fuehrtZeitkonto', 'katalogEinspielen', 'einkaufSehen', 'rechnungenLesen',
+    'einstufung', 'lehrbeginn', 'lehrzeitMonate',
   ] as const) {
     daten[feld] = p[feld];
   }
@@ -167,6 +168,9 @@ export async function createUserDoc(
         bewusste Angabe und wäre nur zufällig richtig.
       */
       initialVacationDays: p.initialVacationDays ?? null,
+      einstufung: p.einstufung ?? null,
+      lehrbeginn: p.lehrbeginn ?? null,
+      lehrzeitMonate: p.lehrzeitMonate ?? null,
     }),
     id: uid,
     company_id: companyId,

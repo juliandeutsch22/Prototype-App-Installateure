@@ -13,6 +13,8 @@
  *  - `timeEntries` haben start/end/Pause; "hours" wird daraus berechnet.
  *    Sprach-Einträge dürfen zusätzlich `hours` direkt setzen.
  */
+import type { Einstufung, Satzklasse, Stufensaetze } from '@/lib/einstufung';
+
 
 export type Role =
   | 'Mitarbeiter'
@@ -116,6 +118,8 @@ export interface Company {
     fach: number;
     /** Kosten je Helferstunde. */
     helper: number;
+    /** Kosten je Stufe (4.1); leer wie bei den Verrechnungssätzen. */
+    stufen?: Stufensaetze;
   };
   /**
    * Wer Urlaubsanträge entscheiden darf — uids, zusätzlich zur Leitung.
@@ -235,8 +239,8 @@ export interface InvoiceRates {
   /** Monteur / Facharbeiter, €/h */
   fach: number;
   /**
-   * Helfer, €/h. Gilt für Einsätze, die im Zeiteintrag als Helferarbeit
-   * gekennzeichnet sind — nicht für eine Person dauerhaft.
+   * Helfer, €/h. Gilt für Personen mit der Einstufung Helfer und für
+   * Buchungen mit dem Haken „als Helfer“ (Ausnahme, geht vor).
    */
   helper: number;
   /** Zuschlag für Nachtarbeit, Anteil (0.5 = +50 %). */
@@ -247,6 +251,12 @@ export interface InvoiceRates {
   vatRate: number;
   /** Zahlungsziel in Tagen. */
   dueDays: number;
+  /**
+   * Sätze je Stufe (4.1): Obermonteur und Lehrjahre, €/h. Ohne feste
+   * Vorgabe — leer heisst beim Obermonteur Facharbeiter-, beim Lehrling
+   * Helfersatz (siehe `verrechnungssatz`).
+   */
+  stufen?: Stufensaetze;
   /**
    * Mahnspesen je Stufe, in Euro — [Erinnerung, Mahnung, letzte Mahnung].
    *
@@ -319,6 +329,14 @@ export interface AppUser {
    * Wochenstunden durch Arbeitstage — siehe `tagessollStunden`.
    */
   tagessoll?: Record<string, number> | null;
+  /**
+   * Einstufung (Testbericht 30.09.2026, 4.1): bestimmt den Satz der Stunden,
+   * nicht die Rechte. Ohne Angabe zählt die Person wie ein Facharbeiter.
+   */
+  einstufung?: Einstufung | null;
+  /** Nur beim Lehrling: Lehrbeginn und Lehrzeit in Monaten — daraus das Lehrjahr. */
+  lehrbeginn?: string | null;
+  lehrzeitMonate?: number | null;
   /** Freigabe „Kunden pflegen“ — wirkt für Verwaltung und Buchhaltung (siehe `darfKundenPflegen`). */
   kundenPflegen?: boolean;
   /** Freigaben seit 30.09.2026 (M37, M38) — wirken nur in der passenden Rolle. */
@@ -348,6 +366,8 @@ export interface CurrentUser {
   /** Eintritt und Saldo-Start — die Buchungsmaske warnt davor (M7). */
   eintritt?: string | null;
   appStartDate?: string | null;
+  /** Die eigene Einstufung — die Maske bietet „Berufsschule“ nur Lehrlingen an (4.1). */
+  einstufung?: Einstufung | null;
 }
 
 /**
@@ -1024,6 +1044,12 @@ export interface TimeEntry {
   vehiclePlate?: string;
   comment?: string;
   isHelper?: boolean;
+  /**
+   * Der Satz aus der Einstufung der Person am Tag der Buchung — gesetzt von
+   * der Datenbank, nie von der Maske (4.1). Leer bei Buchungen von vor der
+   * Einstufung: sie zählen wie bisher. Siehe `satzklasse`.
+   */
+  satz?: Satzklasse | null;
   userId: string; // uid
   userName?: string;
   source?: EntrySource;
@@ -1045,7 +1071,12 @@ export interface TimeEntry {
   krankmeldungId?: string;
 }
 
-export type TagesStatus = 'Anwesend' | 'Krank' | 'Urlaub' | 'Zeitausgleich';
+/**
+ * `Berufsschule` (4.1): erfüllt das Tagessoll wie ein Urlaubstag, ist nicht
+ * verrechenbar und nur bei Lehrlingen möglich; eingetragen über
+ * `berufsschule_speichern`, auch als Zeitraum (Blocklehrgang).
+ */
+export type TagesStatus = 'Anwesend' | 'Krank' | 'Urlaub' | 'Zeitausgleich' | 'Berufsschule';
 
 /**
  * vacations/{id} — ein Urlaubsantrag.

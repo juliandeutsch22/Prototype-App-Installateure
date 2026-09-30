@@ -61,6 +61,7 @@ function istGanztags(e: Tagesbuchung): boolean {
   return (
     e.status === 'Krank' ||
     e.status === 'Urlaub' ||
+    e.status === 'Berufsschule' ||
     (e.status === 'Zeitausgleich' && !(e.startTime && e.endTime))
   );
 }

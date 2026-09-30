@@ -8,7 +8,7 @@ import {
   DuplicateEntryError,
 } from '@/lib/db/timeEntries';
 import { buchungKonflikt } from '@/lib/tagesbuchungen';
-import { krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
+import { berufsschuleEintragen, krankmeldungSpeichern, urlaubEintragen } from '@/lib/db/abwesenheiten';
 import { ergebnisText } from '@/features/vacations/abwesenheitText';
 import { todayStr, getAustrianHolidayName, fmtMin, tageWort } from '@/lib/time';
 import { zeitbild, zeitSatz } from './zeitPlausibilitaet';
@@ -153,6 +153,7 @@ export default function TimeForm({
   const [krankBis, setKrankBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   /** Urlaub bis (einschließlich) — das Büro trägt ihn als genehmigten Antrag ein. */
   const [urlaubBis, setUrlaubBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
+  const [schuleBis, setSchuleBis] = useState(entry?.date ?? vorbelegung?.date ?? todayStr());
   const [isHelper, setIsHelper] = useState(entry?.isHelper ?? asHelperVorschlag ?? false);
   const [helperName, setHelperName] = useState(entry?.helperName ?? '');
   // Zuschläge werden bewusst gesetzt, nicht aus der Uhrzeit geraten: ob ein
@@ -255,6 +256,16 @@ export default function TimeForm({
   const urlaubWaehlbar =
     (!isEdit && !!user && canEditTime(user.role)) || entry?.status === 'Urlaub';
   const alsUrlaubEintrag = !isEdit && status === 'Urlaub';
+  /*
+    BERUFSSCHULE NUR FÜR LEHRLINGE (Testbericht 4.1) — für wen gebucht wird,
+    entscheidet: bucht das Büro für jemanden, dessen Einstufung, sonst die
+    eigene. Eingetragen wird über die Datenbank, auch als Zeitraum
+    (Blocklehrgang); einen Berufsschultag baut niemand um, er wird gelöscht
+    und neu eingetragen.
+  */
+  const fuerLehrling = staff ? target?.einstufung === 'lehrling' : user?.einstufung === 'lehrling';
+  const schuleWaehlbar = !isEdit && fuerLehrling;
+  const alsBerufsschule = !isEdit && status === 'Berufsschule';
 
   /**
    * Die Baustellen laedt `BaustellenSelect` selbst — samt Lade-, Fehler- und
@@ -404,6 +415,10 @@ export default function TimeForm({
       setError('„Urlaub bis“ liegt vor dem Datum.');
       return;
     }
+    if (alsBerufsschule && schuleBis < date) {
+      setError('„Berufsschule bis“ liegt vor dem Datum.');
+      return;
+    }
     if (staff && !isEdit && !targetUid) {
       setError('Bitte einen Mitarbeiter auswählen.');
       return;
@@ -444,6 +459,29 @@ export default function TimeForm({
         setError(
           grundAus(err, 'Der Urlaub konnte nicht eingetragen werden.'),
         );
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    if (alsBerufsschule) {
+      try {
+        const r = await berufsschuleEintragen({
+          userId: target?.uid ?? null,
+          von: date,
+          bis: schuleBis,
+          notiz: comment.trim(),
+        });
+        const uebersprungen =
+          r.uebersprungen > 0 ? `, ${r.uebersprungen} schon gebucht und übersprungen` : '';
+        toast.success(
+          `Berufsschule${target ? ` für ${target.name}` : ''} eingetragen — ${tageWort(r.angelegt)}${uebersprungen}`,
+        );
+        setComment('');
+        setStatus('Anwesend');
+        onSaved();
+      } catch (err) {
+        setError(grundAus(err, 'Die Berufsschule konnte nicht eingetragen werden.'));
       } finally {
         setSaving(false);
       }
@@ -744,6 +782,7 @@ export default function TimeForm({
             // Das Krank- und das Urlaubsende mitziehen, solange es davor läge.
             if (krankBis < e.target.value) setKrankBis(e.target.value);
             if (urlaubBis < e.target.value) setUrlaubBis(e.target.value);
+            if (schuleBis < e.target.value) setSchuleBis(e.target.value);
           }}
           required
           pflicht
@@ -758,6 +797,7 @@ export default function TimeForm({
           {krankWaehlbar && <option value="Krank">Krank</option>}
           {urlaubWaehlbar && <option value="Urlaub">Urlaub</option>}
           {zaWaehlbar && <option value="Zeitausgleich">Zeitausgleich</option>}
+          {(schuleWaehlbar || status === 'Berufsschule') && <option value="Berufsschule">Berufsschule</option>}
         </SelectField>
       </FormGrid>
 
@@ -819,7 +859,26 @@ export default function TimeForm({
           />
         </div>
       )}
-      {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && !alsUrlaubEintrag && (
+      {alsBerufsschule && (
+        <div className="space-y-3 text-sm text-ink-muted">
+          <p>
+            Die Arbeitstage bis zum Ende stehen als „Berufsschule“ im Zeitkonto: sie erfüllen das
+            Tagessoll und gehen auf keine Rechnung. Für einen Blocklehrgang das letzte Datum
+            eintragen; schon gebuchte Tage bleiben.
+          </p>
+          <InputField
+            id="schuleBis"
+            label="Berufsschule bis"
+            type="date"
+            value={schuleBis}
+            min={date}
+            onChange={(e) => setSchuleBis(e.target.value)}
+            required
+            pflicht
+          />
+        </div>
+      )}
+      {!showWorkFields && status !== 'Zeitausgleich' && !alsKrankmeldung && !alsUrlaubEintrag && !alsBerufsschule && (
         <p className="text-sm text-ink-muted">
           {status}: Es werden keine Arbeitszeiten erfasst. Der Tag wird als voller
           Solltag gutgeschrieben.
@@ -1121,7 +1180,9 @@ export default function TimeForm({
                 ? 'Krank melden'
                 : alsUrlaubEintrag
                   ? 'Urlaub eintragen'
-                  : 'Zeit buchen'}
+                  : alsBerufsschule
+                    ? 'Berufsschule eintragen'
+                    : 'Zeit buchen'}
           </Button>
         }
       />

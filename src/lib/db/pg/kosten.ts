@@ -13,20 +13,34 @@
  * dasselbe wie „nicht hinterlegt".
  */
 import { abfragen } from './kern';
+import type { Stufensaetze } from '@/lib/einstufung';
 
 export interface Kostensaetze {
   fach: number;
   helper: number;
+  /** Kosten je Stufe (Testbericht 4.1) — nur, was eingetragen ist. */
+  stufen?: Stufensaetze;
+}
+
+/** Nur Zahlen durchlassen: ein leeres Feld heisst „wie Facharbeiter bzw. Helfer“. */
+function stufenAus(roh: unknown): Stufensaetze | undefined {
+  if (!roh || typeof roh !== 'object') return undefined;
+  const raus: Stufensaetze = {};
+  for (const [k, v] of Object.entries(roh as Record<string, unknown>)) {
+    if (typeof v === 'number' && Number.isFinite(v)) raus[k as keyof Stufensaetze] = v;
+  }
+  return Object.keys(raus).length ? raus : undefined;
 }
 
 export async function kostensaetze(companyId: string): Promise<Kostensaetze | null> {
-  const [zeile] = await abfragen<{ fach: number | null; helper: number | null }>(
+  const [zeile] = await abfragen<{ fach: number | null; helper: number | null; stufen?: unknown }>(
     'betrieb_kostensaetze',
     companyId,
     { grenze: 1 },
   );
   if (!zeile || zeile.fach == null || zeile.helper == null) return null;
-  return { fach: Number(zeile.fach), helper: Number(zeile.helper) };
+  const stufen = stufenAus(zeile.stufen);
+  return { fach: Number(zeile.fach), helper: Number(zeile.helper), ...(stufen ? { stufen } : {}) };
 }
 
 /** Die Einkaufspreise genau dieser Artikel, nach Kennung. */

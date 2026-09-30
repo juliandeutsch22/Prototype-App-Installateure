@@ -19,6 +19,7 @@ import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { anlegeFehler } from './anlegeFehler';
 import TagessollFelder from './TagessollFelder';
+import EinstufungFelder from './EinstufungFelder';
 import {
   WEEKDAYS, leererEntwurf, alsProfil, aliquoterAnspruch, zahlOderVorgabe, entwurfFehler,
   tagessollNachTagen,
@@ -354,6 +355,9 @@ export default function UserMgmtView() {
               <option value="inaktiv">Deaktiviert</option>
             </SelectField>
           </FormGrid>
+
+          {/* Die Einstufung bestimmt den Satz der Stunden, nicht die Rechte (4.1). */}
+          <EinstufungFelder form={form} setForm={setForm} idPrefix="u" />
 
           {/* Zeitkonto-Details sind vorbelegt — für den Normalfall reicht oben. */}
           {/*

@@ -209,6 +209,47 @@ describe('Die Stammdaten in der Akte', () => {
   });
 });
 
+describe('Die Einstufung (Testbericht 4.1)', () => {
+  it('legt einen Lehrling mit Lehrbeginn und Lehrzeit an und zeigt das Lehrjahr', async () => {
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'lehrling');
+    // Die Lehrzeit ist mit dem Üblichen vorbelegt, der Lehrbeginn nicht.
+    expect(screen.getByLabelText('Lehrzeit')).toHaveValue('36');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    expect(profilAendern).not.toHaveBeenCalled();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Lehrbeginn/);
+
+    await userEvent.type(screen.getByLabelText(/^Lehrbeginn/), '2025-09-01');
+    expect(screen.getByText(/Heute im/)).toHaveTextContent(/Lehrjahr · Lehrzeit bis 31.08.2028/);
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ einstufung: 'lehrling', lehrbeginn: '2025-09-01', lehrzeitMonate: 36 }),
+    );
+  });
+
+  it('ohne Lehrling fallen Lehrbeginn und Lehrzeit weg', async () => {
+    gefunden = person({
+      uid: 'u2', name: 'Erna Beispiel', einstufung: 'lehrling', lehrbeginn: '2023-09-01', lehrzeitMonate: 36,
+    });
+    zeige();
+    await userEvent.selectOptions(await screen.findByLabelText('Einstufung'), 'facharbeiter');
+    expect(screen.queryByLabelText(/^Lehrbeginn/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(profilAendern).toHaveBeenCalled());
+    expect(profilAendern.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ einstufung: 'facharbeiter', lehrbeginn: null, lehrzeitMonate: null }),
+    );
+  });
+
+  it('zeigt „nicht festgelegt“, solange keine Einstufung gesetzt ist', async () => {
+    zeige();
+    await screen.findByRole('textbox', { name: /^Name/ });
+    expect(screen.getByLabelText('Einstufung')).toHaveValue('');
+    expect(screen.getAllByText(/zählt wie Facharbeiter/).length).toBeGreaterThan(0);
+  });
+});
+
 describe('Wen die Akte nicht ändern lässt', () => {
   it('zeigt einem Geschäftsführer einen Administrator nur zum Lesen', async () => {
     /*

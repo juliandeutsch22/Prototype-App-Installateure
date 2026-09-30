@@ -56,6 +56,8 @@ export interface Monatsbilanz {
    * Einstellung des Betriebs erst bei der Anzeige (`tagesAnteil`).
    */
   abwesendHalbtage: number;
+  /** ANZAHL der Berufsschultage (seit 30.09.2026) — sie erfüllen das Tagessoll wie Krank und Urlaub. */
+  berufsschuleTage: number;
   /**
    * Die Daten mit Buchung, aufsteigend.
    *
@@ -87,6 +89,7 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
   let krankTage = 0;
   let urlaubTage = 0;
   let abwesendHalbtage = 0;
+  let berufsschuleTage = 0;
   const tage = new Set<string>();
 
   for (const e of eintraege) {
@@ -94,8 +97,9 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
     tage.add(e.date);
     if (e.status === 'Krank') krankTage++;
     else if (e.status === 'Urlaub') urlaubTage++;
+    else if (e.status === 'Berufsschule') berufsschuleTage++;
     else anwesendMin += calcWorkMin(e);
-    if ((e.status === 'Krank' || e.status === 'Urlaub') && tagesAnteil(e.date, true) < 1) {
+    if ((e.status === 'Krank' || e.status === 'Urlaub' || e.status === 'Berufsschule') && tagesAnteil(e.date, true) < 1) {
       abwesendHalbtage++;
     }
   }
@@ -106,6 +110,7 @@ export function bilanzAusEintraegen(monat: string, eintraege: EintragDoc[]): Mon
     krankTage,
     urlaubTage,
     abwesendHalbtage,
+    berufsschuleTage,
     tage: [...tage].sort(),
   };
 }
