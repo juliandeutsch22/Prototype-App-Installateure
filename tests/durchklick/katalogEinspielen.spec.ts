@@ -19,7 +19,7 @@ import { anmelden, keineFehlermeldung } from './helfer';
  */
 
 const DATEI = [
-  'V;20092026;HTI Grosshandel;EUR',
+  'V;20092026;HTI Großhandel;EUR',
   // Listenpreis 100,00 €, Rabattgruppe 10 — daraus werden mit 40 % 60,00 €.
   'A;N;DN-1;0;Eckventil 1/2 Zoll;verchromt;1;0;Stk;10000;10;0',
   // Nettopreis: schon der Einkaufspreis, der Rabattsatz wirkt hier NICHT.
@@ -36,14 +36,14 @@ test('Katalog einspielen: erst der Probelauf, dann die Übernahme', async ({ pag
   await page.goto('/lager');
   await page.getByRole('tab', { name: 'Katalog einspielen' }).click();
 
-  await page.getByLabel('Name des Lieferanten').fill('HTI Grosshandel');
+  await page.getByLabel('Name des Lieferanten').fill('HTI Großhandel');
   await page.getByLabel('DATANORM-Datei').setInputFiles({
     name: 'katalog.001', mimeType: 'text/plain', buffer: Buffer.from(DATEI, 'utf-8'),
   });
 
   // Der Probelauf steht, und die kaputte Zeile steht mit Nummer und Grund da.
   await expect(page.getByRole('heading', { name: 'Probelauf' })).toBeVisible();
-  await expect(page.getByText('Zeile 5: Preisfeld „PST" ist keine Zahl.')).toBeVisible();
+  await expect(page.getByText('Zeile 5: Preisfeld „PST“ ist keine Zahl.')).toBeVisible();
 
   // NOCH IST NICHTS GESCHRIEBEN.
   const { data: vorher } = await admin

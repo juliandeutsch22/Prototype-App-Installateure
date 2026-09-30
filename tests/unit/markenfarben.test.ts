@@ -56,7 +56,7 @@ describe('Keine fremden Farben mehr im Quelltext', () => {
     ['#111827 (Unterschrift)', /#111827/i],
     ['Bootstrap-Grau #212529/#6c757d/#ced4da', /\[33,\s*37,\s*41\]|\[108,\s*117,\s*125\]|\[206,\s*212,\s*218\]/],
     ['eigener Abdunkler statt bg-ink/40', /bg-\[rgba\(/],
-    ['Schriftgrösse ausserhalb der Skala', /text-\[(0\.\d+rem|\d+px)\]/],
+    ['Schriftgrösse außerhalb der Skala', /text-\[(0\.\d+rem|\d+px)\]/],
     ['zweite Farbe für Hauptaktionen', /variant="accent"/],
   ])('%s', (_name, muster) => {
     const treffer = quellen.filter(([, text]) => muster.test(text)).map(([p]) => p);

@@ -67,7 +67,7 @@ describe('Das Urteil für die Oberfläche', () => {
     expect(u.text).toContain('4.5:1');
   });
 
-  it('sagt bei Unsinn, dass es keine Farbe ist — statt „gut lesbar"', () => {
+  it('sagt bei Unsinn, dass es keine Farbe ist — statt „gut lesbar“', () => {
     const u = urteil('blau', '#ffffff');
     expect(u.reicht).toBe(false);
     expect(u.verhaeltnis).toBeNull();

@@ -57,16 +57,16 @@ Urlaub als Antrag mit Genehmigung ist ERLEDIGT, siehe unten.
 **Was bewusst NICHT das Ziel ist:** Funktionsgleichstand mit einer dreißig
 Jahre alten Handwerkersoftware. Deren Büroseite ist mächtig, und ihre Monteure
 tragen trotzdem wieder Zettel ins Auto. Auf der Funktionsliste ist das Rennen
-nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar"
+nicht zu gewinnen, auf „der Mann im Keller mit Handschuhen kommt damit klar“
 schon.
 
 ## Erledigt: ein Erscheinungsbild statt einer Sammlung von Einzelfällen
 
 Die Oberfläche war nicht hässlich, sie war UNEINIG. Marineblau mit rotem
-Akzent aus dem alten Prototyp, daneben ein blaues „info", das dem Markenblau
+Akzent aus dem alten Prototyp, daneben ein blaues „info“, das dem Markenblau
 so nahe kam, dass ein Hinweiskasten und ein aktiver Reiter dieselbe Farbe
-trugen. Die Reiter in „Material" unterstrichen sich im Akzent, die Reiter in
-„Einstellungen" in der Marke — zwei Regeln für dieselbe Sache. Und: Karten,
+trugen. Die Reiter in „Material“ unterstrichen sich im Akzent, die Reiter in
+„Einstellungen“ in der Marke — zwei Regeln für dieselbe Sache. Und: Karten,
 Kästen und Leisten hatten jede ihre eigene Kante.
 
 ### Was jetzt gilt
@@ -105,7 +105,7 @@ setzen.**
 
 ### Zwei Dinge, die dabei zwingend mitgehen mussten
 
-- **Die Aufnahmetaste ist rot.** Sie war „Akzent", und der Akzent war rot.
+- **Die Aufnahmetaste ist rot.** Sie war „Akzent“, und der Akzent war rot.
   Seit der Akzent im Türkis der Marke liegt, wären Ruhe und Aufnahme zwei
   Türkistöne gewesen, und der Zustand hinge allein am Quadrat in der Mitte.
 - **Der Avatar trägt die leuchtende Kante, nicht den Akzent.** Auf der nun
@@ -132,14 +132,14 @@ Kalender der nächste rote Punkt gewesen.
 
 **Zu viele Verläufe.** Auf jedem Knopf, auf jeder Karte, auf dem Seitengrund.
 Nebeneinander war das kein Rang mehr, sondern Unruhe. Jetzt: Verlauf nur auf
-den grossen dunklen Trägerflächen und auf der Markenkante, alles andere
+den großen dunklen Trägerflächen und auf der Markenkante, alles andere
 einfarbig.
 
 **Der Avatar.** Ein Verlauf auf 32 px ist kein Verlauf, sondern ein Fleck mit
 zwei Farben. Jetzt ein Ton.
 
 **Die Kästchen.** Sie sahen aus wie aus einer anderen App, und das stimmte
-auch: `accent-color` färbt den Haken und sonst nichts — Grösse, Rundung und
+auch: `accent-color` färbt den Haken und sonst nichts — Größe, Rundung und
 Rahmen blieben die des Betriebssystems, neben Feldern mit 14 px Rundung. Ein
 eigenes `.checkbox` mit `appearance: none` und einem Haken als SVG. Es bleibt
 ein echtes `<input type="checkbox">`; Tastatur und Vorlesehilfe merken
@@ -196,11 +196,11 @@ ruhendes Dienstverhältnis, die Chefin selbst) bekam **vierzig**. Danach
 produziert jeder Monat rund 170 Minusstunden, ohne dass irgendwo eine Meldung
 erschienen wäre. Dasselbe bei null Urlaubstagen, aus denen fünfundzwanzig
 wurden. Der Rückfall bei einem LEER gelassenen Feld ist richtig und bleibt —
-leer heißt „nicht entschieden", und ein Zeitkonto ohne Sollstunden rechnet gar
+leer heißt „nicht entschieden“, und ein Zeitkonto ohne Sollstunden rechnet gar
 nicht. Nur die Null ist eine Entscheidung.
 
-**Der zweite: der Bestätigungsknopf beim Sperren hieß „Löschen".** In Rot,
-unter der Frage „Benutzer deaktivieren?" — in einer Ansicht, die per
+**Der zweite: der Bestätigungsknopf beim Sperren hieß „Löschen“.** In Rot,
+unter der Frage „Benutzer deaktivieren?“ — in einer Ansicht, die per
 Entscheidung **nie** etwas löscht, weil sonst Zeiteinträge, Bestellungen und
 Einsätze verwaisen. Der Kommentar zwei Zeilen darüber sagt das ausdrücklich.
 Derselbe fehlende `confirmLabel` wie beim Materialabholen; das ist jetzt
@@ -247,7 +247,7 @@ diese Konstellation hatte beim Material zugeschlagen.
   `role` sind also da. Kein Problem.
 
 **Der vierte war echt.** Die Regel für `timeEntries` und `materialOrders`
-lautete sinngemäß „der Eigentümer darf seinen eigenen Beleg ändern" — ohne
+lautete sinngemäß „der Eigentümer darf seinen eigenen Beleg ändern“ — ohne
 Einschränkung, welches FELD. Damit konnte ein Monteur an seinem eigenen
 Zeiteintrag `isBilled: true` setzen.
 
@@ -329,7 +329,7 @@ sie war falsch. Nachgesehen statt angenommen.)
 festgehalten: der erste Probestand lud die Stylesheets nicht und zeigte den
 Fehler deshalb aus dem falschen Grund; und Vite lieferte aus dem
 Zwischenspeicher, sodass zwei Läufe für zwei verschiedene Codestände
-identische Zahlen ergaben. Ohne Neustart hätte ich „behoben" gemeldet, ohne
+identische Zahlen ergaben. Ohne Neustart hätte ich „behoben“ gemeldet, ohne
 etwas gemessen zu haben.
 
 **Was offen bleibt:** geprüft ist das in Chromium mit Fingereingabe, nicht in
@@ -349,9 +349,9 @@ Ansicht: anfordern (`OrderView`), bearbeiten (`AdminOrdersView`), Bestand
 führen (`StockView`). Drei Ansichten, ein Weg — vom Monteur im Keller bis zum
 Regal. 44 neue Ansichtstests, 9 auf die Retoure.
 
-**DER FUND: „Abgeholt" hat seit dem Sicherheits-Durchgang nichts mehr getan.**
+**DER FUND: „Abgeholt“ hat seit dem Sicherheits-Durchgang nichts mehr getan.**
 Dort wurde der Materialstamm auf Verwaltung und Leitung eingegrenzt, mit dem
-Satz „gebucht wird ohnehin nur unter Material → Lager". Der Satz war falsch.
+Satz „gebucht wird ohnehin nur unter Material → Lager“. Der Satz war falsch.
 Der Monteur bewegt den Bestand an zwei Stellen selbst — beim Abholen und bei
 einer Retoure —, und beides läuft in einer Transaktion, die Anforderung UND
 Bestand schreibt. Scheitert der Bestandsteil, scheitert alles: die Anforderung
@@ -362,7 +362,7 @@ Bezeichnung und Preis bleiben bei der Verwaltung. Mit `hasOnly`, nicht
 ändern. Genau dafür gibt es jetzt einen eigenen Regeltest.
 
 Bitter daran ist nicht der Fehler, sondern dass mein damaliger Regeltest ihn
-MITGESCHRIEBEN hat. Er prüfte „der Monteur ändert den Bestand nicht" und war
+MITGESCHRIEBEN hat. Er prüfte „der Monteur ändert den Bestand nicht“ und war
 grün — er hielt eine Annahme fest, die ich nie am Ablauf geprüft hatte. Ein
 Test schützt nur die Grenze, die man tatsächlich meint.
 
@@ -371,12 +371,12 @@ Test schützt nur die Grenze, die man tatsächlich meint.
 - **Die Retoure war nicht atomar.** Erst der Beleg, dann in einem zweiten
   Vorgang die Gutschrift. Scheiterte der zweite, stand der Beleg schon da, mit
   `processed: true`, und der Bestand war nicht erhöht. Die Ansicht meldete
-  „Die Retoure konnte nicht erfasst werden" — was nicht stimmte. Wer es noch
+  „Die Retoure konnte nicht erfasst werden“ — was nicht stimmte. Wer es noch
   einmal versuchte, legte einen ZWEITEN Beleg an. Beides läuft jetzt in einer
   Transaktion: entweder beides oder nichts.
-- **Der Bestätigungsknopf beim Abholen hiess „Löschen".** Der Dialog bekam
+- **Der Bestätigungsknopf beim Abholen hieß „Löschen“.** Der Dialog bekam
   kein `confirmLabel` und nahm seine Vorgabe — in Rot, unter der Frage
-  „Material abgeholt?". Wer das liest, tippt nicht darauf.
+  „Material abgeholt?“. Wer das liest, tippt nicht darauf.
 
 Geprüft: 565 ohne Emulator (53 neu), 137 dagegen (6 neu). Jeder neue Test ist
 gegen den alten Stand laufen gelassen worden und fällt dort durch; bei zwei
@@ -391,7 +391,7 @@ nachgeschärft, bis sie den alten Stand wirklich durchfallen lassen.
 
 Alle drei aus derselben Sitzung auf dem iPhone, und alle drei berechtigt.
 
-### 1. „Die App lädt gar nicht mehr" — und mein eigener Fehler daran
+### 1. „Die App lädt gar nicht mehr“ — und mein eigener Fehler daran
 
 Auf dem Schirm stand: **`'text/html' is not a valid JavaScript MIME type.`**
 
@@ -410,7 +410,7 @@ Daraus folgten zwei Fehler, beide meine:
   App neu startete. Genau das hat der Betrieb beschrieben.
 - **Die Selbstheilung lief nicht an.** Die Erkennung von Nachladefehlern kannte
   vier Formulierungen, aber nicht die von Safari. Der Monteur bekam deshalb
-  die Fehlertafel mit „Erneut versuchen" — dem Knopf, von dem am Vormittag
+  die Fehlertafel mit „Erneut versuchen“ — dem Knopf, von dem am Vormittag
   festgehalten wurde, dass er hier per Konstruktion nichts ausrichten kann.
 
 Jetzt drei Lagen übereinander: der Worker erkennt eine Startseite, die als
@@ -419,7 +419,7 @@ sauberen Fehlschlag; die Erkennung kennt die Formulierungen aller drei
 Browser; und `vite:preloadError` greift schon, bevor React überhaupt etwas
 sieht. Der zugehörige Test enthält die gemeldete Meldung wörtlich.
 
-### 2. „Das Erfassen einer Zeitbuchung hat lange gedauert"
+### 2. „Das Erfassen einer Zeitbuchung hat lange gedauert“
 
 Drei Kosten lagen hintereinander, und keine davon war sichtbar:
 
@@ -439,16 +439,16 @@ Drei Kosten lagen hintereinander, und keine davon war sichtbar:
   einmal nach der Bestätigung des Servers —, mit gleichem Inhalt, aber neuem
   Array. Der Effekt hing an der Array-Identität. Jetzt am Inhalt.
 
-### 3. „Nach der Erfassung kam die Meldung, dass keine Mitarbeiter existieren"
+### 3. „Nach der Erfassung kam die Meldung, dass keine Mitarbeiter existieren“
 
 Die Meldung war richtig und trotzdem irreführend. Geschäftsführung,
 Projektleitung und Administration führen kein Zeitkonto (`shouldShowOvertime`)
 und erscheinen in der Mitarbeiterübersicht deshalb nie — auch nicht mit
 eigenen Buchungen. Wer als Geschäftsführung eine Zeit bucht und danach dorthin
-sieht, liest „keine aktiven Mitarbeiter" und hält es für einen Fehler.
+sieht, liest „keine aktiven Mitarbeiter“ und hält es für einen Fehler.
 
 Die Ansicht unterscheidet jetzt zwei Lagen mit zwei verschiedenen nächsten
-Schritten: „noch keine Benutzer angelegt" und „kein Konto führt ein
+Schritten: „noch keine Benutzer angelegt“ und „kein Konto führt ein
 Zeitkonto — Leitung erscheint hier nicht, Monteure legst du unter
 Benutzerverwaltung an".
 
@@ -482,18 +482,18 @@ Was jetzt festgehalten ist, in der Reihenfolge, in der es wehtäte:
   Lohnzettel. Dazu: ein verrechneter Eintrag ist gegen Bearbeiten und
   Löschen gesperrt.
 - **Einsatzplanung: dass nichts still verschwindet.** Speichern ist ein
-  „alles weg, dann alles neu" für Tag und Baustelle. Der Test hält fest, dass
+  „alles weg, dann alles neu“ für Tag und Baustelle. Der Test hält fest, dass
   eine vorhandene Planung ins Formular kommt (sonst löschte eine Änderung am
   Kommentar die ganze Mannschaft) und dass ein leer geräumtes Formular nicht
   speichert, sondern sagt, wo das Löschen wirklich steht.
 - **Baustellen: der Kundenname kommt aus dem Stammsatz**, und ein leeres
-  Stundenbudget bleibt leer statt 0 — „kein Budget" und „Budget null" sind
+  Stundenbudget bleibt leer statt 0 — „kein Budget“ und „Budget null“ sind
   zwei verschiedene Aussagen, und die zweite meldete jede Baustelle sofort
   als überzogen.
 
 **Zwei Tests haben beim Schreiben eine eigene Fehlannahme aufgedeckt.** Die
 Einsatzplanung übernimmt eine bestehende Planung bereits ins Formular — der
-Test war ursprünglich als „speichert mit leerer Auswahl alles weg" angelegt
+Test war ursprünglich als „speichert mit leerer Auswahl alles weg“ angelegt
 und musste umgeschrieben werden, weil die Ansicht das schon verhindert. Und
 die Bilanz-Rückfallprüfung ist gegen eine absichtlich verdrehte Bedingung
 laufen gelassen worden: sie schlägt fehl, wie sie soll.
@@ -506,7 +506,7 @@ echter Browser ab — das ist jetzt die größte verbliebene Lücke.
 ## Erledigt: die Daten liegen nachts nicht mehr nur an einer Stelle
 
 Der Punkt stand seit Längerem oben auf der Liste und war der einzige, der
-nicht nur die App betrifft, sondern den Betrieb: alles lag ausschliesslich in
+nicht nur die App betrifft, sondern den Betrieb: alles lag ausschließlich in
 Firestore. Fällt das Projekt aus, wird der Zugang gesperrt oder löscht jemand
 versehentlich eine Sammlung, sind Rechnungen, Zeitkonten und Kundenstamm nicht
 greifbar.
@@ -519,7 +519,7 @@ abgelaufenen Tages festhält und nicht einen, der gerade umgerechnet wird.
 `ausleitung/{companyId}/{JJJJ-MM-TT}.jsonl`, eine Zeile je Dokument mit ihrer
 Sammlung. So lässt er sich schreiben und wieder einlesen, ohne ihn je
 vollständig im Speicher zu halten — bei 15.660 Zeiteinträgen der Unterschied
-zwischen „läuft" und „bricht ohne Meldung ab". Aus demselben Grund wartet der
+zwischen „läuft“ und „bricht ohne Meldung ab“. Aus demselben Grund wartet der
 Schreibvorgang auf `drain`, statt blind weiterzuschreiben.
 
 **Ein Stand je Tag, nicht je Lauf.** Läuft die Ausleitung zweimal an einem
@@ -531,7 +531,7 @@ von zwei Dateien die vollständige ist.
 aber wenn die Ausleitung wochenlang scheitert, wären irgendwann alle Stände
 älter als die Frist, und ein Aufräumen nach reinem Alter löschte den letzten
 vorhandenen. Ausgerechnet dann, wenn ohnehin niemand hinsieht. Ebenso wird
-nie etwas angefasst, das nicht wie ein Stand heisst.
+nie etwas angefasst, das nicht wie ein Stand heißt.
 
 **Und ein Knopf dafür.** Unter Einstellungen → Datensicherung, nur für
 Geschäftsführung und Administration: derselbe Lauf sofort, mit der Angabe wie
@@ -543,7 +543,7 @@ schon, aufgerufen hat sie nur nie jemand.
 
 **Wie ehrlich das ist.** Ohne die Repository-Variable `AUSLEITUNG_BUCKET`
 landet der Stand im Standard-Bucket DESSELBEN Google-Projekts. Gegen einen
-Fehlgriff hilft das sofort; gegen „der Zugang zum Projekt ist weg" nicht.
+Fehlgriff hilft das sofort; gegen „der Zugang zum Projekt ist weg“ nicht.
 Diese eine Zeile Konfiguration ist der Rest des Weges, und sie braucht eine
 Entscheidung darüber, wohin. Der Functions-Deploy warnt, solange sie fehlt,
 und prüft vorab, ob der Speicherort überhaupt erreichbar ist — nach demselben
@@ -560,15 +560,15 @@ Ausgangspunkt war keine Fehlermeldung aus dem Betrieb, sondern ein Durchgang
 durch `firestore.rules`, die Workflows und die vier Ansichten ohne Test. Das
 Muster war jedes Mal dasselbe: ein Kommentar beschrieb eine enge Grenze, und
 die Regel darunter war weiter. Genau der Fall, der bei `users` schon einmal
-aufgefallen war — dort stand „nur GF/Admin" über einer Regel, die
+aufgefallen war — dort stand „nur GF/Admin“ über einer Regel, die
 `isLeadership()` zuliess.
 
-**1. Deaktivieren war eine Anzeigeeinstellung.** `active` wurde ausschliesslich
+**1. Deaktivieren war eine Anzeigeeinstellung.** `active` wurde ausschließlich
 in `AuthContext.loadProfile` geprüft. Die Regeln kannten das Feld an keiner
 Stelle, und `syncUserClaims` setzte die Claims unabhängig davon. Wer ausschied
-und auf „inaktiv" gestellt wurde, behielt ein gültiges Firebase-Konto mit
+und auf „inaktiv“ gestellt wurde, behielt ein gültiges Firebase-Konto mit
 gültigen Claims: mit seinem Passwort und dem Firestore-SDK kam er unverändert
-an alle Kunden, Baustellen, Scheine und seine Zeiteinträge. Die App liess ihn
+an alle Kunden, Baustellen, Scheine und seine Zeiteinträge. Die App ließ ihn
 nur nicht mehr hinein.
 
 Jetzt drei Riegel, weil jeder für sich eine Lücke lässt: das Auth-Konto wird
@@ -592,7 +592,7 @@ Verwaltung oder Leitung.
 
 > **NACHTRAG 02.09.2026: der letzte Satz war falsch, und die Regel dazu war
 > zu eng.** Der Monteur bewegt den Bestand an zwei Stellen seines Alltags,
-> beide aus der App und unter seiner eigenen Anmeldung: „Abgeholt" bei einer
+> beide aus der App und unter seiner eigenen Anmeldung: „Abgeholt“ bei einer
 > abholbereiten Anforderung zieht ab, eine Retoure in Originalverpackung
 > schreibt gut. Mit der Regel oben scheiterte diese Transaktion — und weil sie
 > Anforderung und Bestand zusammen schreibt, blieb auch die Anforderung offen.
@@ -604,7 +604,7 @@ Verwaltung oder Leitung.
 > Irrtum mitgeschrieben, weil er dieselbe falsche Annahme prüfte.
 
 **4. Rechnungen waren frei löschbar**, auch offene und bezahlte. Die
-Oberfläche bietet „Löschen" ausschliesslich beim Storno an, ein
+Oberfläche bietet „Löschen“ ausschließlich beim Storno an, ein
 unterschriebener Handwerksschein lässt sich gar nicht löschen, und der Zähler
 auch nicht. Ausgerechnet beim Beleg fürs Finanzamt war die Grenze die
 weichste. *Offen bleibt die Produktfrage,* ob ein Storno überhaupt löschbar
@@ -613,7 +613,7 @@ Auftraggeber, nicht die Regel.
 
 **5. Der Angebotszähler durfte sinken.** Für Angebote stand dort nur
 `lastSeq > 0` — also jeder Wert, auch ein kleinerer, auch mitten im Jahr.
-„Nummernkreise nur steigend" galt damit für Angebote gar nicht, und zwei
+„Nummernkreise nur steigend“ galt damit für Angebote gar nicht, und zwei
 Kunden konnten dieselbe Nummer bekommen. Der Neubeginn hängt jetzt am
 Jahreswechsel und ist auf genau 1 festgelegt; der Rechnungskreis läuft
 unverändert monoton weiter.
@@ -628,7 +628,7 @@ lief durch und gab eine wohlgeformte Datei zurück.
 Die Liste ist jetzt vollständig, wird seitenweise gelesen (ein `.get()` über
 drei Jahre Zeiteinträge hält alles gleichzeitig im Speicher) und bricht mit
 einer verständlichen Meldung ab, statt an der 10-MB-Grenze eines Callable
-stumm zu scheitern. Push-Tokens bleiben bewusst draussen. Ein statischer
+stumm zu scheitern. Push-Tokens bleiben bewusst draußen. Ein statischer
 Abgleich gegen `firestore.rules` meldet künftig jede vergessene Sammlung.
 
 ### Was daneben noch herauskam
@@ -643,7 +643,7 @@ tiefer im Deploy — und dort fällt sie niemandem auf. Bisher ist es
 Glück gewesen: jeder `shared/`-Commit hat zufällig auch `functions/` berührt.
 
 **Der nächtliche Bilanzlauf fragte `where('active', '!=', false)`.** Firestore
-liefert bei `!=` ausschliesslich Dokumente, die das Feld überhaupt haben.
+liefert bei `!=` ausschließlich Dokumente, die das Feld überhaupt haben.
 Übernommene Altbestände ohne `active` fielen still heraus und bekamen nie eine
 Bilanz — ihr Saldo im Zeitkonto stünde dauerhaft daneben.
 
@@ -660,16 +660,16 @@ weder im Speicher noch auf dem Server, denn Hosting kennt nach einem Deploy
 nur die neuen Namen.
 
 Seit dem Code-Splitting lädt jede der 26 Ansichten erst beim Öffnen nach. Wer
-auf „Später" getippt hat und danach den Schein aufmacht, bekam statt der
+auf „Später“ getippt hat und danach den Schein aufmacht, bekam statt der
 Ansicht eine Fehlermeldung — ausgelöst von der Vorkehrung, die den Deploy
 sicherer machen sollte.
 
-Und die Fehlergrenze konnte nicht helfen. Ihr erster Knopf heisst „Erneut
+Und die Fehlergrenze konnte nicht helfen. Ihr erster Knopf heißt „Erneut
 versuchen" und setzt den Zustand zurück; React merkt sich aber das abgelehnte
 Versprechen eines `lazy`-Imports und scheitert sofort wieder, ohne das Netz
 zu fragen. Der Knopf **kann** nicht wirken.
 
-Jetzt räumt der Worker erst beim Übernehmen auf, „Jetzt laden" wartet
+Jetzt räumt der Worker erst beim Übernehmen auf, „Jetzt laden“ wartet
 höchstens zwei Sekunden auf seine Bestätigung und lädt sonst trotzdem neu, und
 die Fehlergrenze erkennt einen Nachladefehler und lädt einmal von selbst neu —
 gesperrt für zehn Sekunden gegen die Schleife.
@@ -683,19 +683,19 @@ iPhone steht aus, wie die Startgeschwindigkeit selbst.
 lebte in genau den vier Ansichten weiter, die keinen Test haben. Am
 deutlichsten in der Zeiterfassung: schlug das Laden des eigenen
 Stammdatenblatts fehl, blieb `profile` null, der Saldo rechnete nicht, und die
-Kachel zeigte „Kein Startdatum konfiguriert" — ein Einrichtungsfehler, den
+Kachel zeigte „Kein Startdatum konfiguriert“ — ein Einrichtungsfehler, den
 niemand beheben kann, angezeigt für ein Netzproblem.
 
 Am folgenreichsten in Material und Lager: dort war der Fehlerweg der **Abos**
 `() => undefined`. Scheiterte die Abfrage an den Regeln, blieb die Liste
 dauerhaft leer — derselbe verschluckte Fehler, der beim Handwerksschein schon
-einmal als „leeres Auswahlfeld" gemeldet wurde.
+einmal als „leeres Auswahlfeld“ gemeldet wurde.
 
 Neu ist `TeilFehler`: ein Hinweis **neben** dem Inhalt, nicht an seiner
 Stelle. `ErrorState` wäre hier falsch — fällt die Kundenliste aus, ist die
 Rechnungsliste deswegen nicht weg.
 
-## Erledigt: „auf dem iPhone lädt es manchmal gar nicht"
+## Erledigt: „auf dem iPhone lädt es manchmal gar nicht“
 
 Am Schreibtisch lud die App normal, mit kurzer Verzögerung. Als
 Startbildschirm-App auf dem iPhone dauerte es teilweise sehr lange — oder sie
@@ -748,9 +748,9 @@ onAuthStateChanged → await getDoc(users/{uid}) → await getCompany(…) → e
 Zwei volle Netzrunden, bevor ein Pixel erschien. Und entscheidend:
 **Firestore-Abfragen haben keine Zeitgrenze.** Sie werfen keinen Fehler und
 brechen nicht ab — sie warten. Kam keine Antwort, stand die App unbegrenzt auf
-„Anmeldung wird geprüft …".
+„Anmeldung wird geprüft …“.
 
-Das ist dieselbe Bauweise, die beim Handwerksschein das „lädt ewig"
+Das ist dieselbe Bauweise, die beim Handwerksschein das „lädt ewig“
 verursacht hat. Dort steht seither eine Frist; hier stand keine, und zwar am
 Anfang **jeder** Sitzung.
 
@@ -802,7 +802,7 @@ Benutzer sie auch nach einem Deploy weiter. Drei Vorkehrungen:
 1. **`index.html` wird bei jedem Aufruf zusätzlich im Hintergrund geholt und
    mit dem gespeicherten Stand verglichen.** Sie ist die einzige Datei, deren
    Name gleich bleibt; ändert sich ihr Inhalt, gab es einen Deploy. Dann
-   fliegen die alten Bausteine weg und die App bietet „Jetzt laden" an — sie
+   fliegen die alten Bausteine weg und die App bietet „Jetzt laden“ an — sie
    lädt **nicht** von selbst neu, weil der Monteur mitten in einem Formular
    stehen kann.
 2. **Fremdes bleibt unangetastet.** Firestore, Auth und die Cloud Functions
@@ -826,8 +826,8 @@ Service Worker gegen den echten Quelltext.
 
 Die Geschäftsführung sah achtzehn Reiter. Nicht weil es achtzehn Themen gäbe,
 sondern weil jede neue Ansicht automatisch einen eigenen Reiter bekam — auch
-dann, wenn sie zu einem bereits vorhandenen Thema gehörte. „Anforderungen" und
-„Lager" sind kein eigenes Thema; sie sind zwei Blicke auf Material.
+dann, wenn sie zu einem bereits vorhandenen Thema gehörte. „Anforderungen“ und
+„Lager“ sind kein eigenes Thema; sie sind zwei Blicke auf Material.
 
 ### Zwei Reiter fassen jetzt sechs Ansichten
 
@@ -846,7 +846,7 @@ Navigation, sondern Zierrat.
 
 Die Einstellungen stehen jetzt **jeder** Rolle offen, weil die
 Meldungseinstellungen jedem gehören; was enger ist, steht als Rollenliste an
-der Unterseite. Der Monteur hatte vorher „Benachrichtigungen" als einzigen
+der Unterseite. Der Monteur hatte vorher „Benachrichtigungen“ als einzigen
 einstellungsartigen Reiter — jetzt heißt der Reiter, wonach er aussieht.
 
 **Die alten Adressen leiten weiter.** Das ist nicht Kosmetik: in bereits
@@ -855,7 +855,7 @@ liegen auf den Telefonen. Wer eine davon antippt, wäre sonst wortlos auf der
 Startseite gelandet und hätte dann die Anforderung gesucht, die ihn hergerufen
 hatte.
 
-### Was dabei herauskam: fünf Reiter, die „Kein Zugriff" sagten
+### Was dabei herauskam: fünf Reiter, die „Kein Zugriff“ sagten
 
 Beim Zusammenfassen fiel auf, dass **wer wohin darf, dreimal geschrieben
 stand**: als `roles` in `navigation.ts`, als `RequireRole` an der Route, und
@@ -864,7 +864,7 @@ behaupten, laufen auseinander — sie waren es an sieben Stellen.
 
 Für die Projektleitung hieß das: Baustellen, Einsatzplanung, Anforderungen,
 Benutzerverwaltung und Einstellungen standen in ihrer Seitenleiste, und jeder
-Klick endete in „Kein Zugriff". Sie hatte nichts falsch gemacht, sah aber
+Klick endete in „Kein Zugriff“. Sie hatte nichts falsch gemacht, sah aber
 danach aus.
 
 **Die Doppelung ist weg statt abgeglichen.** `RequireNav` liest Rolle und
@@ -891,11 +891,11 @@ benutzte sie nicht, und der Wächter hatte die Bedingung nachgebaut. Ein Test,
 der eine Funktion prüft, die niemand aufruft, prüft nichts — der Wächter ruft
 sie jetzt.
 
-### Stehender Text wieder hinter das „i"
+### Stehender Text wieder hinter das „i“
 
 In den neueren Ansichten war der Beipacktext zurückgekehrt: Erklärungen, die
 beim ersten Mal helfen und ab dem zweiten Mal Platz kosten. Zurück hinter das
-„i" gewandert sind die Erklärung der Arbeitstage im Urlaubsantrag, die Folgen
+„i“ gewandert sind die Erklärung der Arbeitstage im Urlaubsantrag, die Folgen
 einer Genehmigung, die Herkunft des Stundenbudgets im Angebot, die Übernahme
 der Altbestände in der Kundenakte und die Auswahl in der Nachkalkulation.
 
@@ -946,7 +946,7 @@ aussperrt und ihn deshalb nie wieder umlegen kann.
    Startseite sähe wie ein Fehler aus.
 2. **Abhängigkeiten übersehen.** Die Nachkalkulation braucht den Erlös, und
    der kommt aus den Rechnungen. Ohne sie meldete sie für jede Baustelle
-   „keine Aussage" — eine Ansicht, die nur mitteilt, dass sie nichts
+   „keine Aussage“ — eine Ansicht, die nur mitteilt, dass sie nichts
    mitteilen kann. Sie geht deshalb mit aus, und das Panel sagt es **vorher**
    (`zieheMit()`), nicht hinterher.
 3. **Schalter anbieten, die nichts bewirken.** Die KI-Erfassung braucht
@@ -968,8 +968,8 @@ lassen — sonst hinge das Speichern der Einstellungsseite an der Reihenfolge.
 
 Sie nahm bisher die **ersten vier** Einträge der Rollenliste. Das war keine
 Entscheidung, sondern ein Nebeneffekt der Reihenfolge: die Buchhaltung hatte
-unten „Urlaub" stehen und die Rechnungen — worin sie den ganzen Tag arbeitet
-— unter „Mehr". Jetzt ist je Rolle festgelegt, was untenhin gehört; für den
+unten „Urlaub“ stehen und die Rechnungen — worin sie den ganzen Tag arbeitet
+— unter „Mehr“. Jetzt ist je Rolle festgelegt, was untenhin gehört; für den
 Monteur **Start, Zeit, Plan, Material**. Fällt ein Eintrag wegen eines
 abgeschalteten Moduls weg, rückt der nächste nach, damit keine Lücke
 entsteht.
@@ -1001,7 +1001,7 @@ woran man ist.
 **Die Genehmigung schreibt die Tage ins Zeitkonto.** Das ist kein Beiwerk,
 sondern der Punkt: ohne die Zeiteinträge wäre ein genehmigter Urlaub für die
 Stundenrechnung unsichtbar. Der Saldo zöge für jeden Urlaubstag das Tagessoll
-ab, und die Startseite meldete zwei Wochen lang „Zeit fehlt" — der Mitarbeiter
+ab, und die Startseite meldete zwei Wochen lang „Zeit fehlt“ — der Mitarbeiter
 müsste seinen genehmigten Urlaub also ein zweites Mal von Hand eintragen. Die
 Einträge tragen die `vacationId`, damit eine Rücknahme genau sie wieder
 entfernt und keinen von Hand gebuchten Urlaubstag mit erwischt. Tage, an denen
@@ -1012,12 +1012,12 @@ Arbeitsleistung darf eine Genehmigung nicht stillschweigend wegwerfen.
 `werktageImZeitraum` ist jetzt die gemeinsame Grundlage von zwei Rechnungen,
 die dieselbe Frage stellen: welche Tage zählen. Liefen sie auseinander, bekäme
 jemand für eine Woche mit Feiertag fünf Tage abgezogen und hätte trotzdem einen
-Tag als „nicht gebucht" offen. Die Woche um den Nationalfeiertag kostet vier
+Tag als „nicht gebucht“ offen. Die Woche um den Nationalfeiertag kostet vier
 Urlaubstage, nicht fünf.
 
 **Die harte Grenze steht in `firestore.rules`, nicht in der Oberfläche.** Ein
-Monteur, der seinen Antrag per Konsole auf „Genehmigt" setzt, verschafft sich
-bezahlte Tage — deshalb: anlegen nur für sich selbst und nur als „Beantragt",
+Monteur, der seinen Antrag per Konsole auf „Genehmigt“ setzt, verschafft sich
+bezahlte Tage — deshalb: anlegen nur für sich selbst und nur als „Beantragt“,
 ändern nur solange offen und ohne den Status anzufassen, entscheiden nur
 Buchhaltung, Geschäftsführung, Administration. Entschiedene Anträge werden
 nicht gelöscht; sie sind der Nachweis, dass entschieden wurde.
@@ -1077,7 +1077,7 @@ bemerkt würde es an einem Urlaubskonto, das nicht aufgeht.
 ## Erledigt: der Schein am Telefon — Warten ohne Ende, Unterschrift ohne Wirkung
 
 Direkt nach dem Ausrollen aus dem Betrieb gemeldet: der Schein ließ sich
-anlegen, „lädt ewig", und das Unterschriftsfeld tat nichts. Zwei Fehler,
+anlegen, „lädt ewig“, und das Unterschriftsfeld tat nichts. Zwei Fehler,
 derselbe Bautyp wie oben — etwas hatte keine Grenze und keinen Ausweg.
 
 **Das ewige Laden.** Die Vorausfüllung läuft über eine Cloud Function. Ein
@@ -1130,10 +1130,10 @@ verschiedene Lagen identisch aus:
 
 | Lage | Was der Benutzer sah | Was er hätte sehen müssen |
 |---|---|---|
-| lädt noch | leeres Feld | „lädt …" |
+| lädt noch | leeres Feld | „lädt …“ |
 | Abfrage schlug fehl | leeres Feld | die Fehlermeldung und ein zweiter Versuch |
 | keine *laufende* Baustelle | leeres Feld | der Gesamtbestand, mit Hinweis |
-| gar keine Baustelle | leeres Feld | „noch keine angelegt", plus der Weg dorthin |
+| gar keine Baustelle | leeres Feld | „noch keine angelegt“, plus der Weg dorthin |
 
 Ein leeres Auswahlfeld ist keine Antwort. Es ist die Abwesenheit einer
 Antwort, und der Benutzer kann daraus nichts ableiten — auch nicht, ob er
@@ -1155,12 +1155,12 @@ selbst etwas falsch gemacht hat.
   Namen des Kunden tragen, aber auf keinen Kundendatensatz zeigen. Genau der
   gemeldete Fall: ein von Hand angelegter Kunde, dessen Baustelle älter ist
   als die Kundenstammdaten. Die Akte zeigt sie als Vorschlag mit einem Knopf
-  „Zuordnen" — sie nur anzuzeigen wäre wieder halb gewesen.
+  „Zuordnen“ — sie nur anzuzeigen wäre wieder halb gewesen.
   Der Namensabgleich ist exakt; das steht auch so in der Oberfläche, mit dem
   Verweis auf die Übernahme, die nach vereinheitlichtem Schlüssel gruppiert.
 
 **Und der Grund, warum die Lücke überhaupt entstand:** der Schein war ein
-eigener Bereich ohne Anschluss. Seine erste Frage — „welche Baustelle?" —
+eigener Bereich ohne Anschluss. Seine erste Frage — „welche Baustelle?“ —
 richtete sich an einen Monteur, der gerade von genau dieser Baustelle kommt.
 Jetzt stehen seine Einsätze des Tages oben als Knöpfe, bei einem einzigen wird
 vorausgewählt (bei zweien bewusst nicht: eine falsche Vorauswahl ist schlimmer
@@ -1187,8 +1187,8 @@ BAUSTELLENadresse und der Ansprechpartner VOR ORT. Eine Hausverwaltung hat
 zwanzig Baustellen, und der Monteur fährt nicht zur Rechnungsadresse. Die
 Feldbeschriftungen sagen das jetzt auch.
 
-- **Doppelgänger werden abgefangen.** „Hausverwaltung Nord" und
-  „hausverwaltung NORD " sind derselbe Kunde; das Anlegen weist darauf hin,
+- **Doppelgänger werden abgefangen.** „Hausverwaltung Nord“ und
+  „hausverwaltung NORD “ sind derselbe Kunde; das Anlegen weist darauf hin,
   statt einen zweiten, halb gefüllten Datensatz zu erzeugen.
 - **Umbenennen zieht die Baustellen nach**, in EINEM Batch. Die Baustellen
   tragen den Kundennamen als Kopie, damit ihre Listen nicht zusätzlich die
@@ -1200,7 +1200,7 @@ Feldbeschriftungen sagen das jetzt auch.
 - **Übernahme der Altbestände mit Vorschau**, nicht als stiller
   Hintergrundlauf: die Geschäftsführung sieht, wie viele Kunden aus wie vielen
   Baustellen entstehen, bevor etwas geschrieben wird. Genau dort fällt auf,
-  dass „Huber" und „Fam. Huber" derselbe Kunde sind.
+  dass „Huber“ und „Fam. Huber“ derselbe Kunde sind.
 - Adresse und Telefonnummer sind auch hier Handgriffe, keine Textfelder.
 
 Geprüft: fünf Komponententests plus der vollständige Durchlauf im Browser
@@ -1227,8 +1227,8 @@ wurde, ist die belastbare Zahl. Erst wenn noch nicht abgerechnet ist, tritt
 das angenommene Angebot an seine Stelle, und die Ansicht schreibt dazu „noch
 nicht verrechnet". Stornierte Rechnungen zählen nicht.
 
-**Ohne bekannten Erlös steht „keine Aussage", nicht null Prozent.** Eine Null
-läse sich wie „nichts verdient" und wäre eine Behauptung über eine Baustelle,
+**Ohne bekannten Erlös steht „keine Aussage“, nicht null Prozent.** Eine Null
+läse sich wie „nichts verdient“ und wäre eine Behauptung über eine Baustelle,
 über die nichts bekannt ist.
 
 **Die Grenze steht unter den Zahlen, nicht im Kleingedruckten:** Es ist ein
@@ -1257,22 +1257,22 @@ die Zeit gebucht hat — bei einer Reparatur zwischendurch hat er vorher gar
 nichts erfasst.
 
 **Er konnte auf dem Schein auch nichts eintragen.** Die Zeilen kamen
-ausschliesslich aus der Zeiterfassung; war dort nichts gebucht, stand auf dem
-Beleg „Für diesen Tag ist auf dieser Baustelle keine Zeit gebucht" — und der
+ausschließlich aus der Zeiterfassung; war dort nichts gebucht, stand auf dem
+Beleg „Für diesen Tag ist auf dieser Baustelle keine Zeit gebucht“ — und der
 Kunde unterschrieb einen Zettel, der nur Material dokumentierte.
 
 ### Das war nicht nur unschön, es kostete Geld
 
 **Die Rechnung rechnet ihre Stunden aus den ZEITEINTRÄGEN, nicht vom Schein.**
 Der Schein liefert nur das Material. Eine Stunde, die nie gebucht wird, wird
-also nie verrechnet — nicht „später korrigiert", sondern nie. Und es fehlt
+also nie verrechnet — nicht „später korrigiert“, sondern nie. Und es fehlt
 zugleich die Arbeitszeitaufzeichnung, die der Betrieb nach § 26 AZG führen
 muss.
 
 ### Ein glücklicher Umstand hat den Zuschnitt vereinfacht
 
-`calcWorkMin` lässt die Wegzeit ausdrücklich draussen — `travelTime` zählt
-nicht zur Arbeitszeit. Die „Zeit beim Kunden ohne Anfahrt" ist damit **genau
+`calcWorkMin` lässt die Wegzeit ausdrücklich draußen — `travelTime` zählt
+nicht zur Arbeitszeit. Die „Zeit beim Kunden ohne Anfahrt“ ist damit **genau
 dieselbe Größe**, die die Rechnung später abrechnet. Schein und Rechnung sagen
 dasselbe; die Diskrepanz, vor der sonst zu warnen gewesen wäre, gibt es nicht.
 
@@ -1280,7 +1280,7 @@ dasselbe; die Diskrepanz, vor der sonst zu warnen gewesen wäre, gibt es nicht.
 
 In der Zeiterfassung steht ganz oben, welche unterschriebenen Scheine noch
 ohne Zeiteintrag sind, mit einem Griff ins Formular — Datum, Baustelle, Von,
-Bis und Pause vorbelegt. Es gibt **kein Feld „noch nachzutragen"**, das jemand
+Bis und Pause vorbelegt. Es gibt **kein Feld „noch nachzutragen“**, das jemand
 setzen und wieder löschen müsste: der Hinweis ergibt sich aus dem Vergleich
 und verschwindet von selbst.
 
@@ -1291,24 +1291,24 @@ Arbeitstags. Ein automatisch erzeugter Eintrag wäre eine zu niedrige
 Arbeitszeitaufzeichnung, die vollständig aussieht — und niemand sähe je wieder
 hin.
 
-**Die Minuten werden nicht verglichen.** Der Arbeitstag ist regelmässig länger
+**Die Minuten werden nicht verglichen.** Der Arbeitstag ist regelmäßig länger
 als die Zeit beim Kunden; ein Wächter, der jede Abweichung meldet, schlüge
 ständig zu Recht an und würde nach einer Woche weggeklickt. Verglichen wird
 nur, OB für Tag und Baustelle etwas gebucht ist.
 
 **Vierzehn Tage lang.** Länger würde zur Dauerliste — wer den Tag auf eine
 andere Baustelle gebucht hat, behielte den Hinweis für immer. Den langen
-Schwanz fängt das Büro über „nicht verrechnete Leistung".
+Schwanz fängt das Büro über „nicht verrechnete Leistung“.
 
 ### Was der Test gefunden hat, und es war kein Testfehler
 
-Meine erste Fassung wies „Bis vor Von" als Vertipper zurück. Das wäre falsch
+Meine erste Fassung wies „Bis vor Von“ als Vertipper zurück. Das wäre falsch
 gewesen: `calcWorkMin` behandelt eine Endzeit vor der Startzeit als Einsatz
 **über Mitternacht** — Bereitschaft und Notdienst gibt es in diesem Gewerbe,
 und 22:00–06:00 muss acht Stunden ergeben, nicht null. Die Sperre hätte die
 Notdienstnacht unbezahlt gelassen.
 
-Der Preis der richtigen Formel: aus dem Vertipper „11:00 bis 08:00" werden
+Der Preis der richtigen Formel: aus dem Vertipper „11:00 bis 08:00“ werden
 stillschweigend einundzwanzig Stunden, auf einem Zettel, den der Kunde gleich
 unterschreibt. Deshalb wird ab vierzehn Stunden **nachgefragt statt gesperrt**
 — eine durchgemachte Nacht gibt es wirklich, aber sie gehört bestätigt.
@@ -1319,7 +1319,7 @@ Der Schein gilt für die ganze Mannschaft, aber ein Monteur darf die
 Zeiteinträge seiner Kollegen weder lesen noch schreiben — dort stehen Kranken-
 und Urlaubstage (Art. 9 DSGVO). Der Hinweis betrifft deshalb nur seine EIGENE
 Zeit. Die Liste fürs Büro stand hier als offene Lücke; sie ist inzwischen
-gebaut, siehe „Stunden ohne Buchung" weiter unten.
+gebaut, siehe „Stunden ohne Buchung“ weiter unten.
 
 Geprüft: 14 Rechen-Tests, 19 in der Zeiterfassung, 7 am Schein, 3 am
 Formular — und 15 absichtlich kaputte Fassungen, die alle aufgefallen sind.
@@ -1329,7 +1329,7 @@ bewirkt, prüfte zunächst niemand, weil dort ein Doppelgänger stand.
 ## Erledigt: Der Ansichten-Durchgang (08.09.2026)
 
 Zwei Durchgänge über zwei verschiedene Dimensionen, weil ein Durchgang über
-EINE Form alles findet ausser dem, was anders gebaut ist:
+EINE Form alles findet außer dem, was anders gebaut ist:
 
 1. **die Datenschicht** — alle 47 Abfragen auf Grenzen, Live-Abos und
    verschluckte Fehler,
@@ -1345,10 +1345,10 @@ irgendwo etwas stand — die Baustelle von vor drei Jahren war in der
 Verwaltung schlicht nicht auffindbar, und nichts unterschied das von „gibt es
 nicht".
 
-**Warum „Sichtbare Grenzen" das übersehen hat:** die Ansicht verwendet ein
+**Warum „Sichtbare Grenzen“ das übersehen hat:** die Ansicht verwendet ein
 LIVE-ABO. Der Durchgang damals suchte nach einmal ladenden Listen, und diese
 passte nicht ins Muster. Ein Durchgang, der nach einer Form sucht, findet
-alles ausser dem, was anders gebaut ist.
+alles außer dem, was anders gebaut ist.
 
 Buchen war nie betroffen — die Baustellenauswahl hängt an
 `listActiveProjects` und kennt keine Grenze. Betroffen war die Verwaltung,
@@ -1360,10 +1360,10 @@ also genau die Stelle, an der jemand gezielt nachschlägt.
 
 | Karte | Was sie dann sagte |
 | --- | --- |
-| Mahnlauf | rechnete über eine leere Liste und verschwand — sieht aus wie „nichts zu mahnen", ist aber „ich weiss es nicht" |
+| Mahnlauf | rechnete über eine leere Liste und verschwand — sieht aus wie „nichts zu mahnen“, ist aber „ich weiß es nicht“ |
 | Nicht verrechnete Leistung | meldete Scheine als unverrechnet, die längst auf einer offenen Rechnung stehen — eine falsche Anschuldigung, der jemand nachgeht |
 
-Der Kommentar daneben rechtfertigte das Schweigen mit „Zusatzangabe". Für die
+Der Kommentar daneben rechtfertigte das Schweigen mit „Zusatzangabe“. Für die
 Scheine stimmt das; für die Forderungen nicht — sie sind die Grundlage.
 
 Jetzt steht eine Zeile über beiden Karten, und beide ziehen sich zurück. Eine
@@ -1410,10 +1410,10 @@ einem Fünf-Mann-Betrieb sind 500 Kunden über zehn Jahre.
 
 **`listActiveProjects` hat gar keine Grenze** und hängt an sieben Stellen,
 darunter die Baustellenauswahl jedes Monteurs. Begrenzt ist sie nur durch
-Disziplin beim Abschliessen von Baustellen — nicht durch Code.
+Disziplin beim Abschließen von Baustellen — nicht durch Code.
 
 Für alle drei gilt derselbe ehrliche Auslöser wie bei der Suche: **wenn
-„Weitere laden" regelmässig erscheint**, nicht eine geratene Zahl.
+„Weitere laden“ regelmäßig erscheint**, nicht eine geratene Zahl.
 
 ## Erledigt: Zwei Betriebe arbeiten nebeneinander (08.09.2026)
 
@@ -1423,7 +1423,7 @@ Beim Nachsehen stellte sich heraus, dass sie die falsche Frage beantworten.
 
 **Regeltests fragen: darf diese Rolle DIESES DOKUMENT?** Das ist richtig für
 einen Zugriff und unvollständig für eine AUSWERTUNG. Wo über viele Dokumente
-summiert wird — Zeitkonto, Nummernkreis, Mahnlauf, „Stunden ohne Buchung" —
+summiert wird — Zeitkonto, Nummernkreis, Mahnlauf, „Stunden ohne Buchung“ —
 entscheidet nicht die Regel, sondern ob die ABFRAGE ihren Mandantenfilter
 mitführt. Fehlt er, liefert die Datenbank willig fremde Zeilen, und die Regel
 hat nichts dagegen: sie prüft nur, was zurückkommt, und zurück kommt ja etwas,
@@ -1437,10 +1437,10 @@ Bis hierher kam `andere-firma` in den Durchstichen genau zweimal vor, beide
 Male als einzelnes fremdes Dokument, an dem eine Regel scheitert. Zwei
 Betriebe, die gleichzeitig ARBEITEN, gab es nicht.
 
-### Was „Durchstich 8" prüft
+### Was „Durchstich 8“ prüft
 
 Zwei Betriebe, **derselbe Tag, dieselbe Baustellennummer** — der harte Fall,
-und der realistische: „B-2026-0001" vergibt jeder Betrieb, der bei eins
+und der realistische: „B-2026-0001“ vergibt jeder Betrieb, der bei eins
 anfängt.
 
 | Geprüft | Warum gerade das |
@@ -1499,20 +1499,20 @@ entstehen.
 Ein Beleg, den die REGEL ablehnt — hier ein Zeiteintrag einer fremden Firma.
 Ein Stapel fällt daran ganz; zwei getrennte Schreibvorgänge hätten die
 Rechnung längst geändert, bevor der zweite scheitert. Genau diesen Unterschied
-misst „Durchstich 7" gegen den Emulator, und die Probe bestätigt es: mit der
+misst „Durchstich 7“ gegen den Emulator, und die Probe bestätigt es: mit der
 alten Fassung fällt exakt dieser Test.
 
 ## Erledigt: Rechnung gegen unterschriebenen Schein (08.09.2026)
 
 Die Rechnung nimmt alle unverrechneten Stunden der Baustelle. Der Kunde hat
 aber einen Schein über die Zeit **bei ihm** in der Hand — ohne Anfahrt, ohne
-Vorbereitung in der Werkstatt, ohne den zweiten Weg zum Grosshändler.
+Vorbereitung in der Werkstatt, ohne den zweiten Weg zum Großhändler.
 
 Beides darf auseinandergehen, und zwar völlig zu Recht: vorgefertigt wird auf
 die Baustelle gebucht, und das ist geleistete Arbeit. **Nur sagte es
 niemandem**, wenn die Rechnung deutlich über dem liegt, was auf dem Papier in
 der Kundenmappe steht — und die Reklamation kommt erst, wenn sie schon
-draussen ist.
+draußen ist.
 
 In der Vorschau steht jetzt eine Zeile: „Ein Schein bestätigt 04:00,
 verrechnet werden 08:00". Ruhig, solange es passt; als Warnung, sobald die
@@ -1543,7 +1543,7 @@ Datei erfährt, hält man für ganz.
 
 Die Ausleitung schreibt jetzt `zielExtern` in ihren Laufstatus, und die
 Sicherungsansicht sagt es unter der Zustandszeile. Nicht gelb — es ist eine
-Einrichtungsgrenze, kein Fehler; gelb neben einem „lief durch" hiesse, da sei
+Einrichtungsgrenze, kein Fehler; gelb neben einem „lief durch“ hiesse, da sei
 etwas kaputt. Und nur bei `false`: ein Lauf aus einer älteren Fassung, die das
 Feld nicht schreibt, ist kein Befund.
 
@@ -1582,7 +1582,7 @@ und wer sie doch meint, sieht die Scheine des Monats, in dem sie liegt.
 
 **`2026-13` ist kein Monat** und fällt auf die Baustellenlesart durch. Als
 Zeitraum gedeutet käme eine Abfrage heraus, die nie etwas findet — und das
-sähe aus wie „gibt es nicht".
+sähe aus wie „gibt es nicht“.
 
 **Das Serverergebnis wird nicht noch einmal gefiltert.** Sonst fiele ein
 Treffer weg, dessen Nummer anders geschrieben ist (`PR-2026-042`) — also
@@ -1593,7 +1593,7 @@ weiter, verschwindet es. Stehen zu bleiben hiesse, Scheine unter einem
 Suchbegriff zu zeigen, zu dem sie nicht passen.
 
 **Ein Fehler wird gemeldet, nicht als leeres Ergebnis ausgegeben.** Wer sucht,
-wartet auf eine Antwort; „nichts gefunden" wäre die falsche, wenn gar nicht
+wartet auf eine Antwort; „nichts gefunden“ wäre die falsche, wenn gar nicht
 gesucht wurde.
 
 Obergrenze 150 wie bei der tiefen Prüfung, aus demselben Grund (rund 70 KB je
@@ -1631,7 +1631,7 @@ die Lohnausleitung ein — sichtbar waren sie damit aber nur, wenn das Büro ein
 CSV zog. Der Mann selbst sah in seinem Zeitkonto nichts davon und konnte nicht
 prüfen, ob überhaupt gezählt wird, was er gearbeitet hat.
 
-Jetzt eine Kachel „Zuschlag" neben Saldo und Wochensumme, mit der
+Jetzt eine Kachel „Zuschlag“ neben Saldo und Wochensumme, mit der
 Aufschlüsselung im Beipacktext: „Nacht 08:00 · Notdienst 08:00 · 04:00 beides
 · letzte 3 Monate".
 
@@ -1647,7 +1647,7 @@ bleiben unberührt: Saldo, Soll und Ist ändern sich durch diese Erweiterung
 nicht.
 
 **Die Kachel bleibt weg, wenn keine Zuschlagsstunden anfielen.** Bei den
-allermeisten stünde dort dauerhaft „0:00" und nähme auf dem Telefon die
+allermeisten stünde dort dauerhaft „0:00“ und nähme auf dem Telefon die
 Breite, die Saldo und Wochensumme brauchen.
 
 ## Nachgesehen, nicht gebaut: Archiv für alte Scheine (08.09.2026)
@@ -1665,7 +1665,7 @@ und Tempo nichts: die alten werden schon heute nicht geladen.
 Ein Archiv-Kennzeichen brächte also keine Beschleunigung, kostete aber ein
 Feld, das jemand pflegen muss, einen zweiten Abfrageweg — und **eine neue Art,
 wie ein Schein still aus der Liste verschwindet**. Genau diese Fehlerform
-haben wir in „Sichtbare Grenzen" überall herausgenommen.
+haben wir in „Sichtbare Grenzen“ überall herausgenommen.
 
 Es rührt auch nicht an das, was wirklich wiegt: fünfzig Scheine sind 3,5 MB
 **wegen der Unterschriftsbilder im Dokument**, und die wiegen gleich viel,
@@ -1680,7 +1680,7 @@ Lösung ist eine serverseitige Suche nach Baustelle, Kunde oder Zeitraum — das
 halbe Werkzeug steht mit `listSignedWorkSheetsInRange` bereits.
 
 **Aufbewahrung und Löschung nach Fristablauf** (§ 132 BAO, sieben Jahre) ist
-die einzige Form von „Archiv", die sich verteidigen liesse — eine rechtliche
+die einzige Form von „Archiv“, die sich verteidigen liesse — eine rechtliche
 Frage, keine Geschwindigkeitsfrage, und nicht dringend. Zu beachten:
 `allow delete: if false` — Scheine lassen sich derzeit bewusst gar nicht
 löschen.
@@ -1729,15 +1729,15 @@ sieht dabei vollständig aus — die Gesamtstunden stimmen ja.
 - **Mitarbeiter-CSV**: dieselben Kennzeichen je Zeile, dazu ein Summenblock,
   der **immer** dasteht — auch mit null Stunden. Die Datei wird maschinell
   gelesen, und eine fehlende Spalte bedeutet dort etwas anderes als eine
-  leere, nämlich „diese Auswertung kennt das Thema nicht".
-- **Stundennachweis (PDF)**: eine schmale Spalte „Zuschlag" mit `N`, `ND` oder
+  leere, nämlich „diese Auswertung kennt das Thema nicht“.
+- **Stundennachweis (PDF)**: eine schmale Spalte „Zuschlag“ mit `N`, `ND` oder
   `N+ND`, und darunter die Summen samt Legende — hier nur, wenn welche
   angefallen sind; auf einem Nachweis ohne Zuschlagsstunden wäre die Zeile
   Zierrat.
 
-### „davon beides" ist keine Zierde
+### „davon beides“ ist keine Zierde
 
-Nacht und Notdienst schliessen einander nicht aus: der Rohrbruch um zwei Uhr
+Nacht und Notdienst schließen einander nicht aus: der Rohrbruch um zwei Uhr
 früh ist beides. Wer die zwei Zahlen addiert, zählt diese Stunden doppelt —
 und niemand sähe es der Datei an. Die Überschneidung steht deshalb als eigene
 Spalte daneben, statt sich auf eine Fussnote zu verlassen.
@@ -1787,7 +1787,7 @@ nicht gibt, wäre schlimmer als kein Verweis.
 Nachgezogen an der eigenen Einschränkung von heute Vormittag: „Stunden ohne
 Buchung" verglich nur die **geladenen fünfzig** Scheine der Anzeigeliste. Das
 stand ehrlich in der Karte, war aber halb — gerade der Schein von vor vier
-Monaten ist der teure, und der lag ausserhalb.
+Monaten ist der teure, und der lag außerhalb.
 
 Neu: `listSignedWorkSheetsInRange` holt gezielt die unterschriebenen Scheine
 eines gewählten Zeitraums (30 Tage, 90 Tage, 1 Jahr), samt Index
@@ -1799,16 +1799,16 @@ Dokument, rund 70 KB je Stück. Ein Jahr wären schnell zwanzig Megabyte. Als
 bewusster Griff am Bürorechner ist das vertretbar, als stiller Nebeneffekt
 beim Öffnen eines Reiters nicht. Die Obergrenze liegt bei 150 Scheinen und
 steht sichtbar da, sobald sie erreicht ist — dieselbe Regel wie überall seit
-„Sichtbare Grenzen".
+„Sichtbare Grenzen“.
 
 Über der Liste steht jedes Mal, **worauf sich das Ergebnis stützt**. Ohne das
-hiesse „nichts offen" mal „im letzten Monat" und mal „im letzten Jahr", ohne
+hiesse „nichts offen“ mal „im letzten Monat“ und mal „im letzten Jahr“, ohne
 dass es jemand unterscheiden könnte.
 
 ### Eine Abkehr von der ersten Fassung
 
 Die Karte verschwindet nicht mehr, wenn nichts offen ist. Vorher war sie ein
-reiner Befund, und ein leerer Kasten „alles gebucht" wäre Rauschen gewesen.
+reiner Befund, und ein leerer Kasten „alles gebucht“ wäre Rauschen gewesen.
 Jetzt trägt sie eine **Handlung**: weiter zurück prüfen. Verschwände sie bei
 null Befunden, gäbe es keinen Weg mehr zu der Prüfung, die den alten Schein
 überhaupt erst findet. Ohne Befund bleibt sie knapp.
@@ -1818,7 +1818,7 @@ null Befunden, gäbe es keinen Weg mehr zu der Prüfung, die den alten Schein
 Aus dem Betrieb kam die Frage, ob es hilft, überall nur die ersten x Einträge
 zu laden und einen Reiter erst beim Aufrufen. **Beides ist längst gebaut:**
 jede Ansicht steckt in `lazy(() => import(...))` — 30 Chunks statt einem —,
-und jede Liste hat seit „Sichtbare Grenzen" eine Obergrenze, die sie auch
+und jede Liste hat seit „Sichtbare Grenzen“ eine Obergrenze, die sie auch
 ansagt.
 
 Der verbleibende Hebel ist nicht die ANZAHL, sondern das GEWICHT: die
@@ -1841,7 +1841,7 @@ nach Art. 9 DSGVO. Die Firestore-Regel lässt einen Monteur deshalb nur an die
 eigenen Einträge (`resource.data.userId == request.auth.uid || isBuchOrTop()`),
 und das ist richtig so.
 
-Trägt er auf dem Schein die Zeile „Kollege Huber, 07:00–15:30" ein, sieht die
+Trägt er auf dem Schein die Zeile „Kollege Huber, 07:00–15:30“ ein, sieht die
 danach niemand wieder: **er** sieht fremde Buchungen nicht, **Huber** sieht den
 Schein nicht, den ein anderer geschrieben hat. Die Stunde steht unterschrieben
 beim Kunden — und wird nie gebucht. Also nie verrechnet (die Rechnung nimmt
@@ -1865,11 +1865,11 @@ der häufige Fall.
 
 - **Keine Buchung gefunden** — an diesem Tag ist für diese Person gar keine
   Anwesenheit erfasst. Die Stunden fehlen vollständig. Nur diese zählen in die
-  Summe „steht unterschrieben beim Kunden und in keiner Zeiterfassung".
+  Summe „steht unterschrieben beim Kunden und in keiner Zeiterfassung“.
 - **Auf eine andere Baustelle gebucht** — es gibt eine Buchung, sie hängt am
   falschen Auftrag. Die Arbeitszeit ist aufgezeichnet, falsch ist nur die
   Zuordnung; die entscheidet aber, wem die Stunde verrechnet wird. Das kommt
-  regelmässig vor, wenn jemand den ganzen Tag auf die Hauptbaustelle bucht.
+  regelmäßig vor, wenn jemand den ganzen Tag auf die Hauptbaustelle bucht.
 
 Beides in eine Zahl zu werfen machte die Summe unbrauchbar.
 
@@ -1887,14 +1887,14 @@ wenig aufgezeichnet; der Widerspruch gehört gesehen, nicht überdeckt.
 ### Die eine Grenze, die offen benannt ist
 
 Der Schein trägt den Namen als **Text**, wie ihn der Monteur auf der Baustelle
-tippt; der Zeiteintrag trägt ihn aus dem Benutzerkonto. Gross- und
-Kleinschreibung und doppelte Leerzeichen werden ausgeglichen — „F. Huber"
-findet „Franz Huber" aber nicht. Geraten wird hier nicht. Die Ansicht sagt
-deshalb **„keine Buchung gefunden"**, nicht „nicht gebucht".
+tippt; der Zeiteintrag trägt ihn aus dem Benutzerkonto. Groß- und
+Kleinschreibung und doppelte Leerzeichen werden ausgeglichen — „F. Huber“
+findet „Franz Huber“ aber nicht. Geraten wird hier nicht. Die Ansicht sagt
+deshalb **„keine Buchung gefunden“**, nicht „nicht gebucht“.
 
 Nach unten zwei Tage Karenz (gebucht wird am Ende des Arbeitstags, oft erst am
 Morgen darauf), nach oben **keine** Grenze — anders als beim Nachtrag des
-Monteurs. Der soll an das erinnert werden, was er noch weiss; das Büro muss
+Monteurs. Der soll an das erinnert werden, was er noch weiß; das Büro muss
 auch den Schein von vor drei Monaten finden, denn genau der ist der teure.
 
 Geprüft: 15 Rechen-Tests, 7 in der Ansicht — und 18 absichtlich kaputte
@@ -1911,10 +1911,10 @@ Zeilen graues Kleingedrucktes. Beides las sich wie eine **Fehlermeldung zu
 genau diesem Feld** — und das ausgerechnet an der Stelle, an der ein Kunde
 gerade unterschreiben soll.
 
-Jetzt: eine **eigene Karte** mit Zähler im Titel („Fotos (2/8)"), ein echter
-Knopf statt des Links, dessen Beschriftung dem Stand folgt („Foto aufnehmen" /
-„Weiteres Foto" / „Höchstens 8 Fotos"), ein Satz sichtbarer Text — und der
-ganze Rest im „i": wozu Bilder gut sind, dass sie am Gerät auf 1600 px
+Jetzt: eine **eigene Karte** mit Zähler im Titel („Fotos (2/8)“), ein echter
+Knopf statt des Links, dessen Beschriftung dem Stand folgt („Foto aufnehmen“ /
+„Weiteres Foto“ / „Höchstens 8 Fotos“), ein Satz sichtbarer Text — und der
+ganze Rest im „i“: wozu Bilder gut sind, dass sie am Gerät auf 1600 px
 verkleinert werden, dass sie über ihren Inhalts-Hash in die Prüfsumme eingehen
 und deshalb nach dem Unterschreiben unveränderlich sind, dass Storage ohne Netz
 nichts vorhält, und was man nicht fotografieren soll.
@@ -1931,7 +1931,7 @@ heraus als Geschwindigkeit.
 ### Serverseitig wird nichts langsamer
 
 Die Antwortzeit von Firestore hängt an der ERGEBNISgrösse, nicht an der
-Sammlungsgrösse. „Die letzten fünfzig Rechnungen" ist bei hunderttausend
+Sammlungsgrösse. „Die letzten fünfzig Rechnungen“ ist bei hunderttausend
 genauso schnell wie bei hundert — solange ein Index da ist. Deshalb gibt es
 den Index-Abgleich als Test, und deshalb ist Archivieren hier keine Antwort,
 sondern SQL-Denken.
@@ -1940,7 +1940,7 @@ sondern SQL-Denken.
 
 Ohne lokale Indizes durchsucht das SDK bei jeder Abfrage den
 zwischengespeicherten Bestand der Sammlung, und der wächst mit jedem Monat.
-Das ist die Bremse, die man für „zu viel Offline-Speicher" hält.
+Das ist die Bremse, die man für „zu viel Offline-Speicher“ hält.
 
 Die naheliegende Antwort — den Speicher kleiner machen — wäre die falsche:
 sie nähme dem Monteur im Keller die Daten weg und liesse die Abfrage trotzdem
@@ -1964,7 +1964,7 @@ sagte es.
 Am teuersten war es beim **Buchhaltungs-Export**: er filterte die geladene
 Rechnungsliste nach Datum, und die reicht voreingestellt fünfzig Rechnungen
 zurück. Ein Export für einen älteren Monat lieferte damit eine LEERE Datei —
-eine, die wie ein erfolgreicher Export aussah, mit „0 Rechnungen" und ohne
+eine, die wie ein erfolgreicher Export aussah, mit „0 Rechnungen“ und ohne
 einen Hinweis. Schlimmer noch meldete die Lückenprüfung im Nummernkreis
 Lücken, die keine sind, weil die fehlenden Nummern nicht geladen waren. Ein
 Befund, den es nicht gibt, kostet in einer Kanzlei einen halben Tag.
@@ -1977,11 +1977,11 @@ ausgerechnet die ältesten Forderungen nicht. Die fallen als erste heraus.
 
 1. **Jede Liste ist eine Arbeitsliste, kein Archiv.** Begrenzt wird nach
    Zustand oder Zeitraum, nicht nach Stückzahl. Eine Grenze von 500 ist
-   willkürlich und läuft irgendwann über; „was offen ist" läuft nie über.
+   willkürlich und läuft irgendwann über; „was offen ist“ läuft nie über.
 2. **Wo eine Grenze bleibt, muss sie sichtbar sein.** Dafür gibt es jetzt
    `components/Nachladen` — „200 von möglicherweise mehr geladen. Die Suche
    geht nur über diese." Der zweite Satz ist der wichtigere: ohne ihn sucht
-   jemand einen alten Kunden, findet nichts und schliesst daraus, es gebe ihn
+   jemand einen alten Kunden, findet nichts und schließt daraus, es gebe ihn
    nicht.
 3. **Auswertungen rechnen nicht über das, was zufällig geladen ist,** sondern
    holen ihren Zeitraum selbst.
@@ -1993,14 +1993,14 @@ Unterschriftsbilder), Buchhaltungs-Export, Mahnlauf, unverrechnete Leistung.
 > **Der Abfragegrenzen-Test hat sofort angeschlagen**, als die neue
 > Zeitraum-Abfrage dazukam — zu Recht: er kannte `invoiceDate` noch nicht.
 > Und der Index-Abgleich verlangte den passenden Index, bevor die Abfrage in
-> Produktion mit „The query requires an index" gescheitert wäre. Beide Tests
+> Produktion mit „The query requires an index“ gescheitert wäre. Beide Tests
 > haben genau das getan, wofür sie gebaut wurden.
 
 ### Was NICHT umgesetzt wurde, und warum
 
 Die serverseitige Präfix-Suche für Kunden, Baustellen und Wartungen. Sie
 bräuchte ein normalisiertes Feld (`nameLower`) auf JEDEM Datensatz, auch auf
-allen bestehenden — Firestore kann nicht ohne Rücksicht auf Gross- und
+allen bestehenden — Firestore kann nicht ohne Rücksicht auf Groß- und
 Kleinschreibung suchen. Bis zur Nachbefüllung fände die Suche die alten
 Kunden NICHT.
 
@@ -2009,7 +2009,7 @@ einer neuen Stelle. Mit dem sichtbaren Nachladen ist die Gefahr weg; wer einen
 alten Kunden sucht und nicht findet, liest jetzt, dass die Liste an ihrer
 Grenze steht. **Wieder aufgreifen, wenn ein Betrieb über etwa tausend Kunden
 kommt** — dann lohnt die Nachbefüllung, und sie gehört mit einem sichtbaren
-Fortschritt und einer Prüfung „wie viele haben das Feld noch nicht" gebaut.
+Fortschritt und einer Prüfung „wie viele haben das Feld noch nicht“ gebaut.
 
 ## Erledigt: Handwerksschein Stufe 2 und 4 (08.09.2026)
 
@@ -2028,7 +2028,7 @@ der unterschreiben will.
 
 Was die App stattdessen tut: sie sagt VOR dem Unterschreiben, wenn ein Bild
 noch nicht oben ist. Das Bild bleibt im Formular liegen, mit einem Knopf zum
-Nachreichen; erst der zweite Griff auf „Unterschreiben" geht ohne es hinaus.
+Nachreichen; erst der zweite Griff auf „Unterschreiben“ geht ohne es hinaus.
 Ein Bild, das dabei still verschwindet, wäre die schlechteste aller Antworten.
 
 **Die Beweiskraft hängt an einem Umweg.** Die Prüfsumme des Scheins sieht nur
@@ -2065,7 +2065,7 @@ Weiteres, das dazugehört:
 > dazu, sonst liesse sich der Nachweis beim Storno stillschweigend
 > umschreiben. Dabei fiel eine ältere Schwäche auf: die Regel las `notizen`
 > und `unterschriften` direkt, und ein Zugriff auf ein FEHLENDES Feld bricht
-> in Firestore-Regeln ab — ein unterschriebener Schein ohne Notiz liess sich
+> in Firestore-Regeln ab — ein unterschriebener Schein ohne Notiz ließ sich
 > also nie stornieren, ohne dass irgendetwas gesagt hätte, warum. Jetzt steht
 > überall `get` mit Standardwert.
 
@@ -2086,7 +2086,7 @@ Knopf, der die Baustelle oben auswählt. Von Hand abzutippen war genau die
 Reibung, die dazu führt, dass es liegen bleibt.
 
 **Erst ab vier Wochen.** Ein Schein von vorgestern gehört nicht gemeldet —
-zwischen Einsatz und Rechnung liegt regelmässig ein Monatsabschluss, und eine
+zwischen Einsatz und Rechnung liegt regelmäßig ein Monatsabschluss, und eine
 Liste, die das anmahnt, sieht sich nach zwei Wochen niemand mehr an.
 
 **Ein Storno gibt die Scheine wieder frei.** Wer eine Rechnung storniert,
@@ -2128,12 +2128,12 @@ das, wofür sie da ist: dass zwei gleichzeitige Zugriffe sich nicht in die
 Quere kommen.
 
 Der Fall ist keine Theorie. Verwaltung und Projektleitung arbeiten dieselbe
-Anforderungsliste ab, oft am selben Vormittag. Klicken beide „Erledigt", ginge
+Anforderungsliste ab, oft am selben Vormittag. Klicken beide „Erledigt“, ginge
 der Bestand ohne Absicherung zweimal herunter — und **niemandem fiele es auf**,
 weil beide Klicks Erfolg melden.
 
 Sieben Durchstiche gegen den Emulator: Abzug, zweimal nacheinander, zweimal
-gleichzeitig, Stopp bei null statt Minus, kein Abzug bei „Abholbereit",
+gleichzeitig, Stopp bei null statt Minus, kein Abzug bei „Abholbereit“,
 Retoure in neuem Zustand zurückgebucht, beschädigte Ware nicht.
 
 > **Der gleichzeitige Fall verdient seinen eigenen Test.** Ersetzt man die
@@ -2191,8 +2191,8 @@ Das Mahnen gab es schon — als Menüpunkt an der einzelnen Rechnung. Die Stufen
 stimmten, die Belege stimmten. **Nur kam niemand dorthin.**
 
 Wer wissen wollte, was zu mahnen ist, filterte die Rechnungsliste auf
-„Überfällig", ging sie von oben nach unten durch, öffnete an jeder Zeile das
-Menü und prüfte im Kopf, ob die dritte Mahnung schon draussen war. Genau daran
+„Überfällig“, ging sie von oben nach unten durch, öffnete an jeder Zeile das
+Menü und prüfte im Kopf, ob die dritte Mahnung schon draußen war. Genau daran
 bleibt Mahnwesen in kleinen Betrieben liegen: nicht das Schreiben ist die
 Arbeit, das ZUSAMMENSTELLEN ist es — und das lässt sich immer verschieben.
 
@@ -2212,7 +2212,7 @@ Entscheidung. Auch ein Stapel-PDF gibt es nicht: zwölf gleichzeitige
 Downloads sind im Browser keine Erleichterung.
 
 **Nach der dritten Mahnung hört die App auf.** Diese Forderungen stehen
-getrennt als „braucht eine Entscheidung" da, mit Nummer und Kundennamen.
+getrennt als „braucht eine Entscheidung“ da, mit Nummer und Kundennamen.
 Fielen sie stillschweigend aus dem Lauf, wären ausgerechnet die ältesten
 Forderungen die unsichtbarsten. Was folgt — Anwalt, Inkasso oder abschreiben —
 entscheidet ein Mensch.
@@ -2239,8 +2239,8 @@ heraus einer sein sollte.
 
 **Schlimmer als die Tipparbeit war, dass die Liste den Fortschritt nicht
 kannte.** Wer sie am Montag durchgeht und drei Baustellen anlegt, sieht am
-Dienstag dieselben drei Zeilen im selben Rot: „fällig" hiess sowohl „noch
-nichts passiert" als auch „steht längst im Einsatzplan". Beim zweiten
+Dienstag dieselben drei Zeilen im selben Rot: „fällig“ hieß sowohl „noch
+nichts passiert" als auch „steht längst im Einsatzplan“. Beim zweiten
 Durchgang entsteht die Baustelle ein zweites Mal.
 
 Jetzt steht an jeder anstehenden Wartung ein Knopf. Die Baustelle entsteht mit
@@ -2268,14 +2268,14 @@ und Rechnungen hängen an der Nummer, nicht an der Dokument-ID.
 **Was NICHT passiert, und das gehört gesagt:** es wird niemand eingeteilt und
 niemand angerufen. Der Termin mit dem Kunden ist ein Gespräch, kein
 Datenbankfeld. Die Abrechnungsart bleibt ebenfalls offen — was im
-Wartungsvertrag steht, weiss diese App nicht, und eine Vorbelegung stünde auf
+Wartungsvertrag steht, weiß diese App nicht, und eine Vorbelegung stünde auf
 jedem Handwerksschein dieser Baustelle.
 
 Geprüft: 15 Rechen-Tests, 13 in der Ansicht, 1 auf der Nutzlast — und 15
 absichtlich kaputte Fassungen, die alle aufgefallen sind. Eine davon fiel
 zunächst nicht auf (die eingeplante Baustelle blieb nach dem Erledigen
 stehen), weil der Mutationslauf die Datei mit dem passenden Test gar nicht
-mitlaufen liess; das war ein Fehler im Prüflauf, nicht im Test.
+mitlaufen ließ; das war ein Fehler im Prüflauf, nicht im Test.
 
 ## Erledigt: Material in der Nachkalkulation (07.09.2026)
 
@@ -2289,7 +2289,7 @@ es als Einschränkung darunterstand, machte die Zahl nicht richtig.
 was nachweislich verbaut wurde, vom Kunden bestätigt. Die Materialanforderung
 wäre die falsche Quelle: sie sagt, was bestellt wurde, nicht was auf dieser
 Baustelle geblieben ist. Gezählt werden alle Scheine der Baustelle, auch die
-schon verrechneten — für die Frage „hat sie etwas verdient" zählt alles
+schon verrechneten — für die Frage „hat sie etwas verdient“ zählt alles
 Verbaute, unabhängig davon, auf welcher Rechnung es gelandet ist.
 
 **Die Preise kommen aus einem neuen Feld `einkaufspreis` im Materialstamm.**
@@ -2331,7 +2331,7 @@ die Budget-Ampel maß gegen eine Zahl ohne Herkunft.
 mit.** Die Nummer bleibt zuordenbar: aus `AN-2026-0007` wird `B-2026-0007`.
 Erst damit bedeutet die Ampel etwas.
 
-**Der Haken „zählt als Arbeitszeit" ist wichtiger, als er aussieht.** Eine
+**Der Haken „zählt als Arbeitszeit“ ist wichtiger, als er aussieht.** Eine
 Anfahrtspauschale wird oft in Stunden angesetzt und ist trotzdem keine
 Arbeitszeit. Würde man einfach alle Stunden-Zeilen summieren, bekäme die
 Baustelle ein zu hohes Budget und die Ampel bliebe grün, während der Auftrag
@@ -2428,7 +2428,7 @@ Prüfsumme bewiese nichts. Die Kanonisierung schreibt die Felder in fester
 Reihenfolge auf, statt das Dokument zu serialisieren: sonst hinge der Wert an
 der zufälligen Feldreihenfolge und ein Neuberechnen ergäbe eine Abweichung,
 obwohl sich nichts geändert hat. Getrennt wird mit einem Zeichen, das in
-Freitext nicht vorkommt — mit einem Semikolon wäre eine Tätigkeit „A;B" von
+Freitext nicht vorkommt — mit einem Semikolon wäre eine Tätigkeit „A;B“ von
 zwei Feldern nicht zu unterscheiden. Elf Tests halten das fest, darunter sieben,
 die je EINE Änderung am Inhalt vornehmen und eine andere Prüfsumme erwarten.
 
@@ -2469,7 +2469,7 @@ Vorgeschlagen waren Schreibgeschwindigkeit und Druckverlauf. Drei Gründe
 dagegen:
 
 - **Technisch großteils Fiktion.** `PointerEvent.pressure` liefert auf
-  kapazitiven Touchscreens ohne Stift konstant 1.0 oder 0. Ein „Druckverlauf"
+  kapazitiven Touchscreens ohne Stift konstant 1.0 oder 0. Ein „Druckverlauf“
   entsteht auf einem normalen Tablet nicht — das Feld sähe aus wie Beweis und
   wäre keiner.
 - **Rechtlich teuer.** Zur Identifizierung erhobene Handschrift-Dynamik ist
@@ -2477,7 +2477,7 @@ dagegen:
   Datenschutz-Folgenabschätzung. Beim Kunden an der Tür kaum wirksam
   einzuholen — und bei Ablehnung dürfte er nicht unterschreiben.
 - **Nutzen gering.** Der Streitfall ist praktisch nie „die Unterschrift ist
-  gefälscht", sondern „so viele Stunden waren das nicht". Dagegen hilft der
+  gefälscht", sondern „so viele Stunden waren das nicht“. Dagegen hilft der
   eingefrorene INHALT, nicht die Strichdynamik.
 
 Unterschriftsbild plus Audit-Trail ergeben eine einfache elektronische
@@ -2485,12 +2485,12 @@ Signatur, und die genügt für Rapport- und Arbeitsscheine.
 
 ### Zwei Begriffe, präzisiert
 
-- **„Zeitstempel":** ein qualifizierter Zeitstempel nach eIDAS kommt von einem
+- **„Zeitstempel“:** ein qualifizierter Zeitstempel nach eIDAS kommt von einem
   Vertrauensdiensteanbieter und kostet. `serverTimestamp()` ist das nicht und
   wird hier auch nicht so genannt. Was wirklich schützt und fast nichts
   kostet: der **Hash des eingefrorenen Inhalts**. Damit lässt sich beweisen,
   dass das vorgelegte PDF genau das ist, was unterschrieben wurde.
-- **„PDF/A":** verlangt eingebettete Schriften, XMP-Metadaten und einen
+- **„PDF/A“:** verlangt eingebettete Schriften, XMP-Metadaten und einen
   OutputIntent — mit jsPDF im Browser nicht seriös herstellbar. Es wird ein
   normales PDF erzeugt und auch so genannt.
 
@@ -2555,7 +2555,7 @@ Das ist die Hälfte, an der im Handwerk das Geld hängen bleibt.
 ## Erledigt: der Resturlaub stimmt ab dem ersten Tag (15.09.2026)
 
 **Gemeldet als Frage, gefunden als Fehler.** Der Resturlaub wurde gerechnet
-als „Jahresanspruch minus Urlaubstage, die IN DER APP stehen". Vor dem
+als „Jahresanspruch minus Urlaubstage, die IN DER APP stehen“. Vor dem
 Startdatum gibt es dort keine.
 
 Ein Betrieb steigt im September um, Petra hat von ihren 25 Tagen schon 18
@@ -2580,8 +2580,8 @@ die im Büro ohnehin auf der Liste steht. Daraus:
 **Nur ab dem Startdatum gezählt**, weil der Anfangsbestand alles davor schon
 abdeckt: ein nachgetragener Urlaubstag von vorher wäre sonst zweimal weg.
 
-**`null` ist nicht `0`.** „Nicht angegeben" heisst voller Jahresanspruch,
-„null Tage" heisst aufgebraucht. Die erste Fassung der Prüfzeile verwechselte
+**`null` ist nicht `0`.** „Nicht angegeben“ heißt voller Jahresanspruch,
+„null Tage“ heißt aufgebraucht. Die erste Fassung der Prüfzeile verwechselte
 beides — `Number(null)` ist `0` und damit endlich —, und jeder Betrieb ohne
 ausgefülltes Feld hätte im Umstiegsjahr überall einen Anspruch von 0 gesehen.
 Gefunden hat das die Prüfung, nicht der Kopf.
@@ -2600,7 +2600,7 @@ dazu bisher nur ein Satz, dass die beiden übereinstimmen MÜSSEN.
 
 ### Der Übertrag — nachgereicht am 15.09.2026
 
-Stand hier zuerst als „nicht gebaut". Der Resturlaub sprang am 1. Jänner auf
+Stand hier zuerst als „nicht gebaut“. Der Resturlaub sprang am 1. Jänner auf
 den vollen Jahresanspruch zurück; was übrig war, verschwand. In Österreich
 verfällt nicht verbrauchter Urlaub aber nicht am Jahresende — er verjährt
 erst zwei Jahre nach dem Jahr, in dem er entstand (§ 4 Abs 5 UrlG). Diese
@@ -2615,7 +2615,7 @@ Genehmigenden, gezogen vom Zeilenschutz:
 | `verjaehrung` (Vorgabe) | Rest wird übertragen, verjährt nach zwei Jahren |
 | `stichtag` | Rest wird übertragen, verfällt an `urlaub_stichtag` ('MM-DD') |
 
-**Die Vorgabe ist das Gesetz, nicht das bisherige Verhalten.** „Kein Übertrag"
+**Die Vorgabe ist das Gesetz, nicht das bisherige Verhalten.** „Kein Übertrag“
 als dritte Wahl anzubieten hiesse, einen Fehler zur Einstellung zu erklären.
 
 **Gerechnet wird in Jahrgängen**, weil ein blosser Saldo nicht sagen kann,
@@ -2630,7 +2630,7 @@ Bedingungen wirklich ausprobiert wurden:
 * `stichtag` OHNE Datum ging durch. `urlaub_stichtag ~ '...'` ergibt bei
   `null` nicht `false`, sondern `null` — und eine Prüfbedingung, die `null`
   ergibt, gilt in SQL als erfüllt. Die Regel wäre ohne Zeitpunkt gespeichert
-  worden und stillschweigend zu „verfällt nie" geworden.
+  worden und stillschweigend zu „verfällt nie“ geworden.
 * `'02-31'` ging durch. Ein Verfallstag, den es nicht gibt, tritt nie ein —
   derselbe stille Ausfall. Jetzt prüft die Bedingung die Tage je Monat; der
   29. Februar steht bewusst nicht zur Wahl.
@@ -2656,7 +2656,7 @@ Platz, jedes Mal.
 ### Was jetzt gilt
 
 Die Stammdatenkarte ist das Formular. Kein Umschalten in einen
-„Bearbeiten-Modus": wer ändern darf, tippt direkt; wer nicht darf, sieht
+„Bearbeiten-Modus“: wer ändern darf, tippt direkt; wer nicht darf, sieht
 dieselben Felder als Liste.
 
 | | |
@@ -2699,8 +2699,8 @@ zu speichern.
 Der Angebotsblock der Akte rief `listQuotesForCustomer(companyId, kundeName)`
 auf — die Abfrage filtert aber auf `customerId`, und `quotes.customer_id` ist
 eine `uuid`. **Unter Postgres scheiterte sie an jedem Kunden**, und die Akte
-meldete „die Angebote konnten nicht geladen werden". Unter Firestore kam
-einfach nichts zurück, was wie „noch kein Angebot" aussah. Der Abschnitt hat
+meldete „die Angebote konnten nicht geladen werden“. Unter Firestore kam
+einfach nichts zurück, was wie „noch kein Angebot“ aussah. Der Abschnitt hat
 also nie funktioniert; der Umzug hat aus einer stillen Leere eine sichtbare
 Meldung gemacht. Jetzt wird die Kennung übergeben, und eine Prüfung hält das
 Argument fest.
@@ -2711,7 +2711,7 @@ Baustelle, Benutzer und Einsatz tragen dasselbe Muster — aber ob es trägt,
 zeigt sich am ersten Fall, nicht an vier gleichzeitig gebauten. Baustelle
 folgt als nächstes; das Gerüst steht dann.
 
-**Der Einsatz bleibt bewusst aussen vor.** Er wird in der Planung bearbeitet,
+**Der Einsatz bleibt bewusst außen vor.** Er wird in der Planung bearbeitet,
 wo er neben den anderen Einsätzen desselben Tages steht — eine eigene Akte
 nähme ihm genau diesen Zusammenhang.
 
@@ -2730,8 +2730,8 @@ schon einmal aufgelöst wurde — eine Ansicht in der Verkleidung einer Zeile.
 anderen. Darunter die Stundenauswertung, die vorher aufklappte, und die
 Verweise auf Kundenakte und Handwerksschein.
 
-Aus „Übersicht" und „Bearbeiten" in der Listenzeile wird **ein** Verweis:
-„Akte". Das Formular über der Liste **legt nur noch an**.
+Aus „Übersicht“ und „Bearbeiten“ in der Listenzeile wird **ein** Verweis:
+„Akte“. Das Formular über der Liste **legt nur noch an**.
 
 **Die Adresse trägt die Kennung, nicht die Projektnummer.** Dafür gibt es
 `listProjectsByIds` neu in beiden Datenschichten. Begründen wollte ich das
@@ -2742,7 +2742,7 @@ Zahlendreher korrigiert, führte ein Lesezeichen auf die Akte ins Leere. Die
 Prüfung zeigt genau das: anlegen, umnummerieren, über die Kennung weiterhin
 da, über die alte Nummer weg.
 
-**Der Pfad heisst `/admin-projects/:id` und nicht `/projects/:id`.** Das war
+**Der Pfad heißt `/admin-projects/:id` und nicht `/projects/:id`.** Das war
 mein erster Entwurf, und `navigation-routen.test.ts` hat ihn zurückgewiesen:
 ein Wächter für `/admin-projects` und eine Route `/projects/:id` sind zwei
 unverbundene Zeichenketten, und niemand sieht ihnen an, dass sie
@@ -2759,9 +2759,9 @@ eines Angebots. Wer sie korrigieren musste, konnte es nicht; jede von Hand
 angelegte Baustelle galt stillschweigend als Regie. Sie steht jetzt in der
 Akte.
 
-**Eine Baustelle ohne Datumsangaben liess sich gar nicht anlegen.** Ein leeres
+**Eine Baustelle ohne Datumsangaben ließ sich gar nicht anlegen.** Ein leeres
 Datumsfeld liefert `''`, und Postgres nimmt das für eine `date`-Spalte nicht
-an („invalid input syntax for type date"). Die Maske meldete „Die Baustelle
+an („invalid input syntax for type date“). Die Maske meldete „Die Baustelle
 konnte nicht gespeichert werden." — bei einem kurzfristigen Auftrag ohne
 geplanten Beginn also immer. **Das war schon im Betrieb**, seit dem Umstieg
 auf Postgres; unter Firestore ging `''` klaglos durch.
@@ -2786,15 +2786,15 @@ Der dritte und letzte Schritt des Plans. `/user-mgmt/:uid` nach demselben
 Zuschnitt wie Kunde und Baustelle.
 
 **Was vorher war.** Wer ein Zeitkonto korrigieren wollte, klickte in der Liste
-auf „Bearbeiten", wurde nach ganz oben in das ANLEGE-Formular gescrollt und
-musste dort erst noch „Zeitkonto-Einstellungen anzeigen" aufklappen — genau
+auf „Bearbeiten“, wurde nach ganz oben in das ANLEGE-Formular gescrollt und
+musste dort erst noch „Zeitkonto-Einstellungen anzeigen“ aufklappen — genau
 die Felder, deretwegen er gekommen war. Danach stand er wieder in einer Liste
 von fünfundzwanzig Namen. Passwort-Mail und Sperren lagen zusätzlich in einem
 Zeilenmenü, also an einer dritten Stelle.
 
 ### Was jetzt gilt
 
-Aus drei Wegen wird einer: „Akte". Darin die Stammdaten als Formular, die
+Aus drei Wegen wird einer: „Akte“. Darin die Stammdaten als Formular, die
 Zeitkonto-Felder **offen** statt aufklappbar, und der Zugang (Passwort-Mail,
 Sperren) als eigene Karte.
 
@@ -2804,7 +2804,7 @@ stimmen meistens; in der Akte sind sie der Grund, warum jemand die Seite
 öffnet.
 
 **Auch ein Administrator, den die aufrufende Rolle nicht ändern darf, hat
-jetzt eine Akte.** Vorher stand in seiner Zeile „nur durch Administrator" —
+jetzt eine Akte.** Vorher stand in seiner Zeile „nur durch Administrator“ —
 ohne Weg zur Person. Ansehen darf man sie; die Akte sagt dort, warum nichts zu
 ändern ist. Ändern nicht, sonst könnte die Geschäftsführung den letzten
 Superuser deaktivieren und käme nie mehr an die Rollenvergabe.
@@ -2813,15 +2813,15 @@ Superuser deaktivieren und käme nie mehr an die Rollenvergabe.
 
 Die Umrechnung zwischen Formularfeld und Datensatz steht jetzt in
 `features/users/benutzerEntwurf.ts` — vorher in `UserMgmtView`. Die Akte
-schreibt dieselben Felder; zwei Auslegungen von „leer" wären zwei verschiedene
+schreibt dieselben Felder; zwei Auslegungen von „leer“ wären zwei verschiedene
 Wochenstunden für denselben Menschen, und die Zahl steht auf dem Lohnzettel.
 
 Mit umgezogen ist die Feinheit, die dort schon einmal teuer war: `Number(x) ||
 VORGABE` macht aus einer **eingetippten Null** die Vorgabe. Wer null
 Wochenstunden hat — geringfügig, ruhendes Dienstverhältnis, die Chefin
 selbst — bekäme vierzig, und jeder Monat produzierte danach rund 170
-Minusstunden. Dasselbe beim Resturlaub, wo „nicht angegeben" (voller
-Jahresanspruch) und „null Tage" (aufgebraucht) zwei verschiedene Aussagen
+Minusstunden. Dasselbe beim Resturlaub, wo „nicht angegeben“ (voller
+Jahresanspruch) und „null Tage“ (aufgebraucht) zwei verschiedene Aussagen
 sind.
 
 ### Die Zusicherungen sind nicht weggefallen, sie sind umgezogen
@@ -2879,7 +2879,7 @@ sitzen, bringt ihnen nichts; zu sehen, WESSEN Betrieb das ist, schon —
 spätestens, wenn jemand für zwei Firmen arbeitet.
 
 **Warum die Produktmarke trotzdem vorkommt.** Wenn ein Monteur anruft und
-sagt „die App tut nicht", ist „Senklot" das Wort, mit dem er sucht und mit
+sagt „die App tut nicht“, ist „Senklot“ das Wort, mit dem er sucht und mit
 dem das Büro den Support anspricht. Sie steht deshalb am Fuss, hinter dem
 Abmelden — dort konkurriert sie mit nichts. **Gedämpft, aber nicht blass:**
 `white/60` gegen die dunkle Fläche sind rund 4,9:1. Eine Beschriftung, die
@@ -2891,10 +2891,10 @@ Logo sagt etwas Falsches. Und solange der Betrieb noch lädt, steht dort gar
 nichts — einen Namen zu raten wäre ausgerechnet beim Wechsel zwischen zwei
 Mandanten das Falsche.
 
-### Was das für Perl heisst
+### Was das für Perl heißt
 
 **Steht in den Firmendaten kein Logo, zeigt die Seitenleiste ab jetzt
-„Perl Installationen" als Schriftzug statt des Bildes.** Das ist die
+„Perl Installationen“ als Schriftzug statt des Bildes.** Das ist die
 richtige Anzeige — und zugleich der Hinweis auf eine Lücke, die es schon
 vorher gab: dasselbe Logo fehlt dann nämlich auch auf Rechnung, Stundenbericht
 und Handwerksschein, weil die ihre Grafik aus `companies.logoUrl` holen und
@@ -2911,13 +2911,13 @@ Die letzte Lücke, bei der ein Ausfall **unwiederbringlich** gewesen wäre. Die
 nächtliche Ausleitung schrieb bisher in den Speicher desselben Supabase-
 Projekts, in dem auch die Daten liegen. Gegen einen Fehlgriff, eine kaputte
 Migration oder eine versehentlich geleerte Tabelle half das sofort — gegen
-„der Zugang zum Projekt ist weg" gar nicht.
+„der Zugang zum Projekt ist weg“ gar nicht.
 
 ### Was jetzt gilt
 
-Der Stand geht **zuerst** in den eigenen Speicher und **danach** ausser Haus,
+Der Stand geht **zuerst** in den eigenen Speicher und **danach** außer Haus,
 in einen S3-kompatiblen Eimer bei einem anderen Anbieter. Die Reihenfolge ist
-Absicht: scheitert der Weg nach draussen, liegt der Stand wenigstens drinnen.
+Absicht: scheitert der Weg nach draußen, liegt der Stand wenigstens drinnen.
 Andersherum stünde man am Ende mit gar nichts da.
 
 Fünf Secrets, alle oder keines — Endpunkt, Region, Eimer, Schlüssel,
@@ -2926,19 +2926,19 @@ Geheimnis. Die Einzelheiten stehen in der README.
 **DAS DIENSTKONTO DARF NUR ANLEGEN.** Nicht lesen, nicht löschen, nicht
 überschreiben. Wer morgen dieses Projekt übernimmt, hat damit einen
 Schlüssel, mit dem er die abgelegten Stände **nicht vernichten kann** — das
-ist der halbe Zweck einer Sicherung ausser Haus, und ein Schlüssel mit
+ist der halbe Zweck einer Sicherung außer Haus, und ein Schlüssel mit
 Vollzugriff hätte ihn weggenommen. Weil nicht überschrieben werden darf,
-trägt der Pfad draussen die Uhrzeit; drinnen liegt weiterhin ein Stand je Tag.
+trägt der Pfad draußen die Uhrzeit; drinnen liegt weiterhin ein Stand je Tag.
 
 ### Drei Entscheidungen, die im Code begründet stehen
 
 **`AUSLEITUNG_ZIEL_EXTERN` ist ersatzlos weg.** Die Variable setzte **nur die
 Meldung** in der Überwachung und bewegte keine Datei: eingeschaltet legte sie
-den ehrlichen Hinweis still, ohne dass etwas ausser Haus lag — das Gegenteil
+den ehrlichen Hinweis still, ohne dass etwas außer Haus lag — das Gegenteil
 dessen, wofür die Anzeige gebaut wurde. Gemeldet wird jetzt der tatsächliche
 Versuch.
 
-**Ein Fehlschlag nach draussen ist ein Fehlschlag.** Ihn als Erfolg mit
+**Ein Fehlschlag nach draußen ist ein Fehlschlag.** Ihn als Erfolg mit
 Fussnote zu melden wäre die bequeme Fassung und die falsche: genau das
 Ausbleiben der Sicherung ist der stille Ausfall, gegen den das Ganze gebaut
 ist. Ist gar kein Ziel eingerichtet, ist das etwas anderes — eine benannte
@@ -2946,7 +2946,7 @@ Lücke, kein Fehler, und der Lauf gilt als erfolgreich.
 
 **Halb eingerichtet gilt als Fehler**, mit dem Namen des fehlenden Feldes und
 Status 503. Wer vier von fünf Feldern setzt, würde sonst als „nicht
-eingerichtet" behandelt: die App meldete brav „liegt im selben Projekt", und
+eingerichtet" behandelt: die App meldete brav „liegt im selben Projekt“, und
 niemand käme auf die Idee, nach dem fünften zu suchen.
 
 ### Die Signatur — und warum sie selbst geschrieben ist
@@ -2954,7 +2954,7 @@ niemand käme auf die Idee, nach dem fünften zu suchen.
 Die S3-Schnittstelle verlangt eine SigV4-Signatur. Ein SDK dafür wäre ein
 Paket von einigen hundert Kilobyte für dreissig Zeilen Rechnung, die sich
 exakt nachprüfen lässt — und es müsste in Deno UND im Node-Testlauf laufen.
-Stattdessen `shared/s3Signatur.ts`, das nichts importiert ausser Web Crypto.
+Stattdessen `shared/s3Signatur.ts`, das nichts importiert außer Web Crypto.
 
 **Geprüft wird gegen die veröffentlichten Testvektoren von AWS**
 (`aws-sig-v4-test-suite`, Fall `get-vanilla`): bekannter Schlüssel, bekannte
@@ -2964,7 +2964,7 @@ Schlüsselableitung, Signatur. Eine falsch gerechnete Signatur ergibt sonst
 ein 403 ohne einen Hinweis darauf, welcher der acht Schritte danebenlag.
 
 > Die erste Fassung dieser Prüfung war zu schwach: sie verglich nur die FORM
-> („sieht aus wie eine Signatur"). Damit die Kopfzeile exakt vergleichbar
+> („sieht aus wie eine Signatur“). Damit die Kopfzeile exakt vergleichbar
 > wurde, legt der Signierer jetzt nichts mehr von sich aus dazu — er
 > signiert, was man ihm gibt. Der Inhaltshash kommt vom Aufrufer, der ihn
 > ohnehin braucht.
@@ -2977,10 +2977,10 @@ Cloudflare R2, Wasabi oder Hetzner. Bei einer Sicherung ist das keine
 Kleinigkeit — sie soll den Anbieter überleben, gegen dessen Ausfall sie
 gebaut ist.
 
-### Was hier NICHT geprüft ist, und was das heisst
+### Was hier NICHT geprüft ist, und was das heißt
 
 Geprüft sind Signatur, Adresse, Kopfzeilen, die Pfadform und die
-Unterscheidung „kein Ziel / halbes Ziel / Ziel". **Nicht geprüft ist, ob der
+Unterscheidung „kein Ziel / halbes Ziel / Ziel“. **Nicht geprüft ist, ob der
 echte Eimer den Aufruf annimmt** — das kann keine Prüfung hier beantworten,
 sondern nur der Eimer selbst. Deshalb trägt die Fehlermeldung die Antwort des
 Zielspeichers im Klartext mit: zwischen abgelaufenem Schlüssel, falschem
@@ -3008,7 +3008,7 @@ das Muster überhaupt noch Importe findet.
 
 ## Erledigt: der Rücklauf — und damit ist es wirklich eine Sicherung (16.09.2026)
 
-**Erst am 16.09. um 09:21 ist zum ersten Mal ein Stand wirklich ausser Haus
+**Erst am 16.09. um 09:21 ist zum ersten Mal ein Stand wirklich außer Haus
 gelandet** (`senklot-sicherung/ausleitung/perl/2026-09-16/092128.jsonl`,
 10 Zeilen). Damit war die halbe Strecke gewonnen — und die andere Hälfte
 offen: niemand wusste, ob die abgelegten Dateien überhaupt etwas taugen.
@@ -3034,7 +3034,7 @@ zeigte jede Zeiteintragung, jeder Schein und jede Zuordnung ins Leere.
 
 **Die Passwörter kommen nicht zurück.** Sie stehen als Hash in `auth.users`
 und damit nicht in der Sicherung. Jeder wiederhergestellte Zugang braucht
-einmal „Passwort vergessen" — keine Lücke, sondern die Folge davon, dass eine
+einmal „Passwort vergessen“ — keine Lücke, sondern die Folge davon, dass eine
 Sicherung keine Passwörter mitnimmt.
 
 ### Drei Entscheidungen
@@ -3075,11 +3075,11 @@ gewesen, weil sie einer Datei glaubt statt der Datenbank. Sie ist weg.
 
 **Der Rücklauf spielt in ein Projekt mit fertigem Schema.** Er setzt voraus,
 dass die Migrationen dort schon gelaufen sind — er baut keine Datenbank, er
-füllt eine. Für den Ernstfall heisst das: erst ein frisches Supabase-Projekt
+füllt eine. Für den Ernstfall heißt das: erst ein frisches Supabase-Projekt
 mit `supabase db push`, dann der Rücklauf.
 
 **Die Fotos holt der Rücklauf nicht zurück.** Sie liegen seit dem
-16.09.2026 ausser Haus (siehe unten), aber das Dienstkonto dort darf nur
+16.09.2026 außer Haus (siehe unten), aber das Dienstkonto dort darf nur
 anlegen — mit seinem Schlüssel lässt sich nichts herunterladen. Wer
 wiederherstellt, holt die Dateien mit seinem eigenen Zugang aus dem Eimer und
 legt sie unter demselben Objektnamen in den Speicher des neuen Projekts. Das
@@ -3092,13 +3092,13 @@ Ernstfall entdeckt.
 
 **Die Ausleitung schrieb Tabellenzeilen — und die Fotos am Handwerksschein
 sind keine.** Die Zeile in `work_sheet_photos` nennt nur einen Pfad; das Bild
-selbst lag ausschliesslich im Speicher dieses Projekts. Ein Schein wäre nach
+selbst lag ausschließlich im Speicher dieses Projekts. Ein Schein wäre nach
 einem Wiederanlauf zurückgekommen und seine Beweisfotos nicht — und genau die
 sind der Grund, warum es den Schein gibt. Ein Kunde, der eine Leistung
 bestreitet, lässt sich mit dem Verweis auf eine nicht mehr vorhandene Datei
 nicht überzeugen.
 
-**Nur ausser Haus, und das ist keine Sparsamkeit.** Die Bilder liegen bereits
+**Nur außer Haus, und das ist keine Sparsamkeit.** Die Bilder liegen bereits
 im Speicher dieses Projekts; sie in den Eimer nebenan zu kopieren verdoppelte
 den Platz und schützte gegen nichts — fällt das Projekt aus, fällt beides aus.
 Ohne eingerichteten Zielspeicher geschieht deshalb gar nichts, und das ist
@@ -3108,10 +3108,10 @@ eine benannte Lücke und keine ausgelassene Arbeit.
 Das Dienstkonto dort darf anlegen und sonst nichts — nicht lesen, nicht
 auflisten, nicht löschen. Das ist der Sinn der Übung: wer den Schlüssel
 erbeutet, kann die Sicherung nicht vernichten. Der Preis steht in
-`ausleitung_dateien`: die Frage „liegt diese Datei schon draussen?"
+`ausleitung_dateien`: die Frage „liegt diese Datei schon draußen?“
 beantwortet nur die eigene Datenbank. Die Tabelle trägt `company_id` und geht
-damit selbst mit in die Sicherung — ein wiederhergestellter Betrieb weiss
-also, was bereits draussen liegt.
+damit selbst mit in die Sicherung — ein wiederhergestellter Betrieb weiß
+also, was bereits draußen liegt.
 
 **Gefragt wird der SPEICHER, nicht die Zeilen.** Ginge die Liste über
 `work_sheet_photos`, fiele jede Datei heraus, deren Zeile fehlt — und genau
@@ -3142,7 +3142,7 @@ rechnete die Signatur über etwas anderes als der Server über die empfangene
 Adresse: ein 403 ohne Begründung, das nach einem falschen Schlüssel aussieht.
 Der Pfadteil des Endpunkts geht jetzt mit ein.
 
-**Und damit liess sich der Transport endlich wirklich prüfen.** Bis hierher
+**Und damit ließ sich der Transport endlich wirklich prüfen.** Bis hierher
 war die Signatur nur gegen die veröffentlichten AWS-Testvektoren gerechnet —
 das ist viel, aber es ist Papier. Der Supabase-Speicher selbst spricht die
 S3-Schnittstelle; `tests/supabase/ausleitungDateien.test.ts` schiebt ein Bild
@@ -3155,7 +3155,7 @@ Signatur abweist. Ohne das zweite wäre das erste wertlos.
 **Die Reihenfolge IN der Edge Function ist nicht integrierend geprüft.** Jede
 Schnittstelle, die sie anspricht, ist es — die Liste, das Herunterladen, der
 signierte PUT, der Vermerk. Was fehlt, ist der Zielspeicher in der Umgebung
-der Function selbst; der liegt ausserhalb, und im lokalen Stapel gibt es ihn
+der Function selbst; der liegt außerhalb, und im lokalen Stapel gibt es ihn
 nicht. Diese letzte Handbreit beantwortet der Knopf in den Einstellungen.
 
 ---
@@ -3208,7 +3208,7 @@ hängen ohnehin an derselben WebSocket-Verbindung. Gemeldet wird ein
 Vorbehalt, kein Fehler, und er nimmt sich selbst zurück; eine Ansicht kann
 das gar nicht mehr vergessen. Angezeigt wird er als schmales Band über dem
 Inhalt, in derselben Form wie der Hinweis bei fehlendem Empfang —
-`role="status"`, gelb, mit „Neu laden" daneben. Die Daten bleiben stehen.
+`role="status"`, gelb, mit „Neu laden“ daneben. Die Daten bleiben stehen.
 
 **Und der Wiederaufbau gilt jetzt für alle vier Abonnement-Wege.** Es gab ihn
 nur in `abonnieren`. Die Einstellungen, die Rechnungen und die Rüstliste
@@ -3226,7 +3226,7 @@ Fehler.
 
 ## Erledigt: Der Bilanzlauf, den es nicht gibt (16.09.2026)
 
-**Auf der Startseite stand dauerhaft „Ein nächtlicher Lauf steht aus".** Für
+**Auf der Startseite stand dauerhaft „Ein nächtlicher Lauf steht aus“.** Für
 Geschäftsführung und Administration, jeden Tag, mit einem Weg zu den
 Monatsbilanzen — auf eine Karte, die selbst erklärt, dass dort nichts
 anzustossen ist.
@@ -3246,11 +3246,11 @@ Tages die ausgefallene SICHERUNG. Genau das war der Grund, sie überhaupt zu
 bauen.
 
 Gefunden hat sie kein Test, sondern der Betrieb — ein Fund für Aufgabe O2
-(„weitere Firestore↔Postgres-Bedeutungsreste"). Welche Läufe es gibt,
+(„weitere Firestore↔Postgres-Bedeutungsreste“). Welche Läufe es gibt,
 entscheidet jetzt die Datenquelle, und beide Zweige sind geprüft. Mit Stufe 9
 fällt die Fallunterscheidung weg.
 
-### Nebenbei: „1 Tage fehlen"
+### Nebenbei: „1 Tage fehlen“
 
 In der Mitarbeiterübersicht stand die Zahl mit der falschen Form daneben. Es
 ist eine Kleinigkeit und trotzdem keine: wer eine Zahl anzeigt, die mit dem
@@ -3264,10 +3264,10 @@ drei Stellen, an einer davon richtig; jetzt steht sie als `tageWort` an einer.
 
 **Eine Form erledigte fünf Aufgaben, und dadurch keine davon gut.** Die
 gefüllte Pille mit acht Farbtönen trug Status, Rolle, Eigenschaft, Zahl mit
-Urteil und neutrale Notiz. Gelb hiess damit gleichzeitig „Helfer" (eine
-Tatsache), „Krank" (ein Status), „knapp" (ein Engpass) und „bitte prüfen"
-(eine Aufforderung) — eine Farbe, die vier Dinge heisst, heisst nichts. Und
-alles wog gleich viel: „40 h Budget" schrie so laut wie „über Budget".
+Urteil und neutrale Notiz. Gelb hieß damit gleichzeitig „Helfer“ (eine
+Tatsache), „Krank“ (ein Status), „knapp“ (ein Engpass) und „bitte prüfen“
+(eine Aufforderung) — eine Farbe, die vier Dinge heißt, heißt nichts. Und
+alles wog gleich viel: „40 h Budget“ schrie so laut wie „über Budget“.
 
 **Jetzt entscheidet die Aufgabe über die Form:**
 
@@ -3281,19 +3281,19 @@ Dass die gefüllte Pille jetzt nur noch eines bedeutet, ist die eigentliche
 Wirkung. Fünfzig Fundstellen in dreissig Ansichten sind einzeln eingeordnet
 worden; der Übersetzer hat dazu gezwungen, weil der alte Standard-Export weg
 ist. **Die Rollen haben ihre sechs Farben verloren** — eine Legende, die
-niemand auswendig lernt, und „Buchhaltung" sagt, was „Gelb" nicht sagt.
+niemand auswendig lernt, und „Buchhaltung“ sagt, was „Gelb“ nicht sagt.
 
 Ein paar Entscheidungen, die dabei fielen und die nicht offensichtlich sind:
 
-- **„Überfällig" ist ein Zustand, keine Warnung.** Der Status sagt, WO etwas
-  steht; was zu tun ist, steht daneben („3 Tage" am Mahnlauf). Stünde beides
+- **„Überfällig“ ist ein Zustand, keine Warnung.** Der Status sagt, WO etwas
+  steht; was zu tun ist, steht daneben („3 Tage“ am Mahnlauf). Stünde beides
   als Pille da, riefe die Zeile zweimal dasselbe.
-- **„Abgelehnt" und „Storniert" sind nicht mehr rot.** Entschieden ist
+- **„Abgelehnt“ und „Storniert“ sind nicht mehr rot.** Entschieden ist
   entschieden; Rot schickte jemanden auf eine Liste, an der er nichts ändern
   kann.
-- **„Notdienst" war rot** — die Farbe für „hier ist etwas kaputt" — und ist
+- **„Notdienst“ war rot** — die Farbe für „hier ist etwas kaputt“ — und ist
   eine Angabe zur Abrechnung.
-- **„Heute" am eigenen Einsatzplan war rot** und ist der Einsatz, der gerade
+- **„Heute“ am eigenen Einsatzplan war rot** und ist der Einsatz, der gerade
   läuft.
 
 ### Gelb und Rot gehörten nicht zu dieser App — gemessen
@@ -3314,7 +3314,7 @@ schwerer als die dringende.
 
 **Der Kontrast steigt dabei, er sinkt nicht** — eine Farbe, die hübscher und
 schlechter lesbar ist, wäre in dieser App die falsche Richtung, denn
-gearbeitet wird draussen. `tests/unit/warnfarben.test.ts` hält beides fest:
+gearbeitet wird draußen. `tests/unit/warnfarben.test.ts` hält beides fest:
 das Sättigungsband und die Lesbarkeit.
 
 ---
@@ -3338,11 +3338,11 @@ Aufgenommen ist nur, was **drei Bedingungen zugleich** erfüllt:
 
 | Menüpunkt | Zahl | Wer sie sieht |
 | --- | --- | --- |
-| **Urlaub** | Anträge im Zustand „Beantragt" | wer laut Einstellung entscheidet |
-| **Anforderungen** | Materialanforderungen „Offen" | Büro und Leitung |
+| **Urlaub** | Anträge im Zustand „Beantragt“ | wer laut Einstellung entscheidet |
+| **Anforderungen** | Materialanforderungen „Offen“ | Büro und Leitung |
 | **Rechnungen** | Rechnungen, bei denen heute eine Mahnung fällig wäre | Buchhaltung und Spitze |
 
-**„Nicht eingetragene Zeiten" steht bewusst NICHT dabei**, obwohl danach
+**„Nicht eingetragene Zeiten“ steht bewusst NICHT dabei**, obwohl danach
 gefragt war. Sie sind am Monatsende bei jedem offen, und niemand kann sie
 wegentscheiden — das Abzeichen wäre dauerhaft an und hätte die beiden anderen
 mit entwertet.
@@ -3374,8 +3374,8 @@ die Fläche selbst 4,0:1 gegen die Leiste), auf den hellen Blättern von unten
 
 **Null ist kein Abzeichen**, und diese Entscheidung steht an genau einer
 Stelle. Sie stand zwischendurch an vieren — nachgemessen fiel eine Mutation,
-die den Zähler bei null zeichnen liess, dadurch nur in EINER Prüfung auf, weil
-die Hülle sie vorher abfing. Vier Wächter für eine Regel heisst, dass drei
+die den Zähler bei null zeichnen ließ, dadurch nur in EINER Prüfung auf, weil
+die Hülle sie vorher abfing. Vier Wächter für eine Regel heißt, dass drei
 davon nie geprüfte Behauptungen sind.
 
 ### Zwei Lücken, die erst dadurch sichtbar wurden
@@ -3385,7 +3385,7 @@ der Betrieb fest, WER genehmigt — auch eine Bürokraft oder ein Vorarbeiter.
 Die Leserichtlinie kannte weiter nur Leitung und Buchhaltung: eine eingetragene
 Genehmigende aus der Verwaltung bekam das Recht zu entscheiden und eine LEERE
 Liste dazu. Ohne Abzeichen fällt das nicht auf, weil eine leere Liste auch
-heisst „gerade nichts da". Mit Abzeichen wäre es eine Lüge gewesen: null, wo
+heißt „gerade nichts da“. Mit Abzeichen wäre es eine Lüge gewesen: null, wo
 drei warten.
 
 **Der Mahnlauf ignorierte die Frist, die der Betrieb selbst gesetzt hat.**
@@ -3393,7 +3393,7 @@ Siehe `docs/FUNKTIONEN.md`, Abschnitt Mahnwesen. Ohne diese Korrektur wäre das
 Abzeichen dauerhaft an gewesen — jede unbezahlte überfällige Rechnung hätte
 bis zur dritten Mahnung jeden Tag darin gestanden.
 
-### Nebenbei: der Knopf „Mehr" war falsch markiert
+### Nebenbei: der Knopf „Mehr“ war falsch markiert
 
 Er las die Adresse aus `location` des Fensters statt aus dem Router. Die ändert
 sich zwar, löst aber kein Neuzeichnen aus — der Knopf blieb also so markiert
@@ -3432,7 +3432,7 @@ Maske eine Nummer aus dem Zähler gezogen, verbrauchte jedes Abbrechen eine.
 
 ### Drei Entscheidungen, die im Code begründet stehen
 
-**`null` heisst „nicht festgelegt", leer heisst „ausdrücklich keiner".** Ohne
+**`null` heißt „nicht festgelegt“, leer heißt „ausdrücklich keiner“.** Ohne
 diesen Unterschied käme ein Betrieb seinen Vorsatz nie los — jede leere Eingabe
 fiele auf die Vorgabe zurück. Deshalb steht in der Spalte auch kein `default`:
 eine Vorgabe dort wäre dieselbe Aussage wie ein fest verdrahteter Wert, nur an
@@ -3445,7 +3445,7 @@ time_entries where vehicle_plate like 'WZ-%')` statt `where company_id =
 'perl'`; eine Betriebskennung im Quelltext wäre genau der behobene Fehler.
 
 **Vier Spalten und kein JSON-Feld**, obwohl `rates` und `modules` daneben JSON
-sind. Deren Begründung („Einstellungen, nach denen niemand filtert") trifft
+sind. Deren Begründung („Einstellungen, nach denen niemand filtert“) trifft
 auch hier zu; was dazukommt, ist die harte Formprüfung. Der Wert landet im
 Dateinamen des Rechnungs-PDFs und in der CSV für den Steuerberater, und ein
 `check` auf einer typisierten Spalte ist die einzige Sperre, an der auch ein
@@ -3522,7 +3522,7 @@ der Liste und das gescheiterte Anlegen — angezeigt wurde er aber nur **im
 Formular**. Solange das immer offen stand, fiel das nicht auf. Zugeklappt wäre
 ein Ladefehler unsichtbar geworden: die Liste bliebe leer, und niemand erführe,
 warum. Gefunden hat das `UserMgmtView.test.tsx`; der Fehler steht jetzt
-ausserhalb des Formulars, wo er hingehört.
+außerhalb des Formulars, wo er hingehört.
 
 ---
 
@@ -3539,7 +3539,7 @@ Sachen**, von denen nur eine überhaupt ein Umbruch war.
 
 ### 1. Ein Eurozeichen zu viel — und der Grund dafür trägt weiter
 
-Auf der Mahnlauf-Karte stand **„€ 22 104,60 € offen"**. Sechs Stellen in
+Auf der Mahnlauf-Karte stand **„€ 22 104,60 € offen“**. Sechs Stellen in
 `InvoicesView` hängten ein zweites Zeichen an einen Betrag, der es schon trug.
 
 Der Grund ist nicht Unachtsamkeit, sondern **der Name**: `fmtEUR` gibt es in
@@ -3557,13 +3557,13 @@ damit ihre Grundlage verliert.
 ### 2. Das ✕ stand allein in der zweiten Zeile
 
 In der Baustellenliste lagen rechts **fünf** Elemente: Budget-Marke, Zustand,
-„Schein", „Akte" und das ✕. Das letzte passte nicht mehr und rutschte allein
+„Schein“, „Akte“ und das ✕. Das letzte passte nicht mehr und rutschte allein
 nach unten — **ausgerechnet die einzige unumkehrbare Aktion stand damit am
 auffälligsten da.**
 
 Nur das ✕ ins Zeilenmenü zu verschieben half nicht: nachgemessen rutschte
 danach das Menü selbst. **Fünf passen auf 375 px nicht, gleich welches zuletzt
-kommt.** Also geht „Schein nachtragen" mit — es ist der Ausnahmefall, der
+kommt.** Also geht „Schein nachtragen“ mit — es ist der Ausnahmefall, der
 Monteur hat den Schein vor Ort vergessen, und als eigener Verweis stand er
 gleichauf mit der Akte, die man täglich braucht.
 
@@ -3582,16 +3582,16 @@ darf sie nur noch **zwischen** den Feldern brechen.
 Die Kennzahlen-Leiste zeigt drei Karten in zwei Spalten; die dritte steht
 allein. Ein `col-span-2` auf die letzte war der naheliegende Griff — **gemessen
 änderte er nichts** (die Karte ist ohnehin so breit), und drei Spalten
-schneiden „€ 22 104,60" ab. Also blieb die Klasse draussen und ein Kommentar
+schneiden „€ 22 104,60“ ab. Also blieb die Klasse draußen und ein Kommentar
 drin: eine Klasse, die etwas behauptet, was sie nicht tut, ist schlimmer als
 keine.
 
 ### Das Plus
 
-Vor „Neuer Kunde", „Neue Baustelle", „Neues Angebot", „Neuer Benutzer" und
-„Neue Wartung" steht jetzt ein Pluszeichen — zwei Striche, das einzige Zeichen
-der Sammlung, das kein Gegenstand ist. Es ist `aria-hidden`; der Knopf heisst
-weiter „Neuer Kunde", und die über zwanzig Tests, die ihn über genau diesen
+Vor „Neuer Kunde“, „Neue Baustelle“, „Neues Angebot“, „Neuer Benutzer“ und
+„Neue Wartung“ steht jetzt ein Pluszeichen — zwei Striche, das einzige Zeichen
+der Sammlung, das kein Gegenstand ist. Es ist `aria-hidden`; der Knopf heißt
+weiter „Neuer Kunde“, und die über zwanzig Tests, die ihn über genau diesen
 Namen finden, sind der Wächter dafür.
 
 ---
@@ -3667,8 +3667,8 @@ und Nachkalkulation. Erst die Schlussrechnung stornieren, dann die Anzahlung.
 
 ### Auf dem Beleg
 
-Die Überschrift sagt, was der Beleg ist — „Anzahlungsrechnung" statt
-„Rechnung". Eine Anzahlung trägt keinen Leistungszeitraum, weil es keinen
+Die Überschrift sagt, was der Beleg ist — „Anzahlungsrechnung“ statt
+„Rechnung“. Eine Anzahlung trägt keinen Leistungszeitraum, weil es keinen
 gibt; statt eines erfundenen Datums steht dort, worauf die Zahlung geht. Die
 Schlussrechnung weist die Gesamtleistung aus, darunter jede abgezogene
 Vorrechnung einzeln mit Nummer, Datum, Entgelt und Steuer, darunter die
@@ -3684,7 +3684,7 @@ Wächter fällt gegen absichtlich kaputten Code** — geprüft wurde das Stück 
 Stück, indem die Bedingung entfernt und der Lauf wiederholt wurde.
 
 **Der Durchklick hat sofort einen alten Fehler gefunden:** eine Rechnung ohne
-Leistungszeitraum liess sich gar nicht anlegen — `""` ist kein Datum, und
+Leistungszeitraum ließ sich gar nicht anlegen — `""` ist kein Datum, und
 Postgres wies sie ab. Sie scheiterte dabei an der schlechtesten Stelle:
 nachdem die Nummer verbindlich gezogen und die Belege gesperrt waren. Zurück
 blieben eine verbrauchte Nummer und Zeiteinträge, die auf eine Rechnung
@@ -3702,7 +3702,7 @@ mit der Anzahlung deutlicher geworden.
 
 ## Erledigt: Der Zahlungseingang — die Wurzel von Stufe 10 (19.09.2026)
 
-Bis hierher war „Bezahlt" ein Haken. Kein Datum, kein Betrag, keine
+Bis hierher war „Bezahlt“ ein Haken. Kein Datum, kein Betrag, keine
 Teilzahlung. Das ist mehr als eine fehlende Angabe: **der Mahnlauf rechnete
 mit dem Bruttobetrag.** Wer auf eine Rechnung über 1.000 € vierhundert
 überweist, wurde über 1.000 € gemahnt — und eine zu hohe Mahnung bestreitet
@@ -3722,15 +3722,15 @@ sondern ein Vertipper.
 ### Der Stand wird abgeleitet, nicht gesetzt
 
 `app.zahlstand_setzen` rechnet aus den Eingängen: **Offen → Teilbezahlt →
-Bezahlt → Überzahlt**, und „Storniert" bleibt „Storniert". Dazu zwei neue
-Zustände, beide eine Tatsache und keine Stimmung: „Teilbezahlt" ist weder
-offen noch bezahlt, und „Überzahlt" ist der Fall, den man nicht sehen will und
+Bezahlt → Überzahlt**, und „Storniert“ bleibt „Storniert“. Dazu zwei neue
+Zustände, beide eine Tatsache und keine Stimmung: „Teilbezahlt“ ist weder
+offen noch bezahlt, und „Überzahlt“ ist der Fall, den man nicht sehen will und
 deshalb sehen muss — es steht eine Rückzahlung aus.
 
 **Der Haken verschwindet in der DATENBANK, nicht nur in der Oberfläche.**
-`app.rechnung_eingefroren` weist einen Schreibversuch auf „Bezahlt",
-„Teilbezahlt" oder „Überzahlt" ab, ebenso jede Änderung am bezahlten Betrag.
-Was der Aufrufer weiterhin darf: „Offen" und „Überfällig" (das hängt am Datum,
+`app.rechnung_eingefroren` weist einen Schreibversuch auf „Bezahlt“,
+„Teilbezahlt“ oder „Überzahlt“ ab, ebenso jede Änderung am bezahlten Betrag.
+Was der Aufrufer weiterhin darf: „Offen“ und „Überfällig“ (das hängt am Datum,
 nicht am Geld) und den Storno. Stünde die Grenze nur in der Ansicht, wäre sie
 beim nächsten Formular wieder weg — und danach behaupteten zwei Quellen
 denselben Stand.
@@ -3738,15 +3738,15 @@ denselben Stand.
 ### Drei Fallen, die dabei zugeschnappt sind
 
 1. **Der Altbestand.** Rechnungen aus der Zeit vor der Tabelle tragen
-   „Bezahlt" und einen bezahlten Betrag von null. Der Mahnlauf rechnet ab
+   „Bezahlt“ und einen bezahlten Betrag von null. Der Mahnlauf rechnet ab
    jetzt mit dem Rest — ohne Nachtrag hätte der erste Lauf **den gesamten
    Altbestand gemahnt.** Die Migration trägt die Summe nach; zusätzlich
-   verlangt `darfMahnen`, dass Status UND Zahl „offen" sagen. Eine Regel, die
+   verlangt `darfMahnen`, dass Status UND Zahl „offen“ sagen. Eine Regel, die
    nur mit geglückter Migration richtig ist, ist keine Regel, sondern eine
    Annahme. **Zahlungseingänge erfindet die Migration dabei nicht** — ein
-   Eingang trägt ein Datum, und das weiss hier niemand.
+   Eingang trägt ein Datum, und das weiß hier niemand.
 2. **Die Mahnung auf eine angezahlte Rechnung.** `mahnungFesthalten` schrieb
-   „Überfällig" mit. Bei einer teilbezahlten Rechnung weist die Datenbank das
+   „Überfällig“ mit. Bei einer teilbezahlten Rechnung weist die Datenbank das
    jetzt ab — die Mahnung wäre erzeugt und nirgends festgehalten worden.
    Gefunden hat es der Datenbanklauf, nicht das Nachdenken.
 3. **`get diagnostics` liest die LETZTE Anweisung.** Beim Umbau von
@@ -3757,16 +3757,16 @@ denselben Stand.
 
 ### Was noch mitkam
 
-- **Der Buchhaltungs-Export** führt „Bezahlt" und „Offener Rest" als eigene
+- **Der Buchhaltungs-Export** führt „Bezahlt“ und „Offener Rest“ als eigene
   Spalten. Zwei und nicht eine: bei einer stornierten Rechnung mit Zahlung ist
   der Rest null UND der bezahlte Betrag positiv — dort liegt ein Guthaben.
 - **Dabei gefunden:** die Summenzeile des Exports stand unter den falschen
-  Spalten (Netto unter „UID-Nummer", Brutto unter „USt-Satz %"). Sie richtet
+  Spalten (Netto unter „UID-Nummer“, Brutto unter „USt-Satz %“). Sie richtet
   sich jetzt nach der Kopfzeile aus, nicht nach abgezählten Strichen.
 - Die Kennzahlen der Rechnungsansicht und die Forderungen auf der Startseite
-  rechnen mit dem Rest; „Bezahlt" ist dort die Summe des tatsächlich
+  rechnen mit dem Rest; „Bezahlt“ ist dort die Summe des tatsächlich
   eingegangenen Geldes, auch aus Teilzahlungen.
-- Die Mahnung nennt „Bereits bezahlt" als eigene Zeile und fordert den Rest.
+- Die Mahnung nennt „Bereits bezahlt“ als eigene Zeile und fordert den Rest.
   Nur den Rest zu nennen sähe aus wie eine Mahnung über eine andere Rechnung;
   nur das Brutto wäre falsch.
 
@@ -3775,7 +3775,7 @@ denselben Stand.
 11 neue Datenbankprüfungen, davon sechs, die gegen absichtlich kaputte
 Datenbank fallen (Ableitung, beide Riegel, der Wächter über den Betrieb, das
 Storno-Aufheben). Vier Ansichtstests, alle vier gegen kaputten Code geprüft.
-Der Durchklick „Rechnung stellen" geht jetzt bis zur Teilzahlung durch — Zeit
+Der Durchklick „Rechnung stellen“ geht jetzt bis zur Teilzahlung durch — Zeit
 buchen, abrechnen, Geld erfassen, und der Stand steht in der Datenbank.
 
 **Offen aus 10.1:** Skonto und Verzugszinsen rechnen weiterhin nicht. Beide
@@ -3868,7 +3868,7 @@ gewechselt hat.
 
 `FUNKTIONEN.md` trug seit dem 16.09.2026 einen Vorbehalt ganz oben: die Datei
 sei in der Firestore-Zeit geschrieben und werde **mit Stufe 9** umgeschrieben.
-Das ist eingelöst — samt der Spalte „Geprüft wodurch", deren Zahlen jetzt aus
+Das ist eingelöst — samt der Spalte „Geprüft wodurch“, deren Zahlen jetzt aus
 dem Prüflauf vom 19.09.2026 stammen und nicht aus dem Gedächtnis.
 
 ### Zwei Sätze, die seit dem Umzug nicht mehr stimmten
@@ -3914,17 +3914,17 @@ Liste sehen im Licht des Quelltextes anders aus:
 
 | Punkt | Wirklichkeit im Code |
 | --- | --- |
-| „Warnt erst ab 14 Stunden" | **Die Zeiterfassung warnt ab 12 h** (`LANGER_TAG_MIN`, § 9 AZG). Die 14 h sind die Rückfrage an der *Leistungszeit des Handwerksscheins* — eine andere Zahl mit einem anderen Zweck. Offen sind 60 h/Woche und die 11 h Ruhezeit. |
-| „Nummernkreise pro Jahr bzw. Präfix wählbar" | **Erledigt am 18.09.** `number_counters` zählt je Jahr, vier Vorsätze sind einstellbar. Offen bleibt das Briefpapier. |
-| „UID muss über 10.000 € auf der Rechnung stehen" | **Erledigt.** Offen ist das *Prüfen* der UID — und dafür ist VIES nicht das Werkzeug (siehe A4). |
-| „Änderungsprotokoll der Zeiteinträge" | Es gibt `lastEditedBy/At` — den **letzten** Bearbeiter, keine Historie. Der vorletzte Stand ist unwiederbringlich weg. |
-| „Wegzeit als Lohnart" | Die Wegzeit **wird erfasst und exportiert** (beide CSVs). Offen ist ihre *Bewertung* nach KV. |
+| „Warnt erst ab 14 Stunden“ | **Die Zeiterfassung warnt ab 12 h** (`LANGER_TAG_MIN`, § 9 AZG). Die 14 h sind die Rückfrage an der *Leistungszeit des Handwerksscheins* — eine andere Zahl mit einem anderen Zweck. Offen sind 60 h/Woche und die 11 h Ruhezeit. |
+| „Nummernkreise pro Jahr bzw. Präfix wählbar“ | **Erledigt am 18.09.** `number_counters` zählt je Jahr, vier Vorsätze sind einstellbar. Offen bleibt das Briefpapier. |
+| „UID muss über 10.000 € auf der Rechnung stehen“ | **Erledigt.** Offen ist das *Prüfen* der UID — und dafür ist VIES nicht das Werkzeug (siehe A4). |
+| „Änderungsprotokoll der Zeiteinträge“ | Es gibt `lastEditedBy/At` — den **letzten** Bearbeiter, keine Historie. Der vorletzte Stand ist unwiederbringlich weg. |
+| „Wegzeit als Lohnart“ | Die Wegzeit **wird erfasst und exportiert** (beide CSVs). Offen ist ihre *Bewertung* nach KV. |
 
 **Und ein Befund, der in der Liste fehlt und sie zugleich ordnet:**
 
 > ### Es gibt keinen Zahlungseingang.
 >
-> `paymentStatus` kennt „Bezahlt", aber **kein Datum und keinen Betrag**. Den
+> `paymentStatus` kennt „Bezahlt“, aber **kein Datum und keinen Betrag**. Den
 > Haken setzt ein Mensch. Damit fehlt die Grundlage für vier Punkte der Liste
 > auf einmal: **Skonto** braucht den Zahlungstag, **Anzahlungen** brauchen
 > Teilbeträge, **Verzugszinsen** brauchen die Dauer des Verzugs, und die
@@ -3947,7 +3947,7 @@ Absatz gibt:
 | --- | --- | --- |
 | **Modul** (an/aus) | Was ein Betrieb gar nicht hat | E-Rechnung, Wartungsprotokolle, Dokumentenablage |
 | **Einstellung** (ein Wert) | Was jeder hat, aber anders | Urlaubsjahr, Zahlungsarten, Mahnspesen, Vorsätze |
-| **Fest** | Wo „anders" schlicht „falsch" heisst | Die Zwölfstundengrenze, die USt auf den Rücklass, die Steuerschuld kraft Rechnungslegung |
+| **Fest** | Wo „anders“ schlicht „falsch“ heißt | Die Zwölfstundengrenze, die USt auf den Rücklass, die Steuerschuld kraft Rechnungslegung |
 
 Die Zwölfstundengrenze ist **kein Geschmack, sondern § 9 AZG**. Sie
 einstellbar zu machen hiesse, einem Betrieb anzubieten, sie falsch zu setzen —
@@ -3973,7 +3973,7 @@ irgendwann brauchen könnte — nicht, was Perl am Montag braucht. Eine Liste
 ohne Ende erzeugt zwangsläufig das Gefühl, nie fertig zu werden, und sie
 verleitet dazu, gegen eine Liste zu bauen statt gegen einen Betrieb.
 
-**Was „fertig" ab jetzt heisst** — eine Zahl, kein Gefühl:
+**Was „fertig“ ab jetzt heißt** — eine Zahl, kein Gefühl:
 
 > Perl rechnet einen vollen Monat über Senklot ab und braucht Excel kein
 > einziges Mal.
@@ -4002,14 +4002,14 @@ Umfang, das ist der Start selbst.
 ### Stufe 16 — Die Schnittstellen zum Umfeld — **TEILWEISE FERTIG**
 
 Ein Installateurbetrieb steht nicht allein da. Er kauft bei einem
-Grosshändler ein und gibt seine Belege einem Steuerberater. Beide sprechen
+Großhändler ein und gibt seine Belege einem Steuerberater. Beide sprechen
 ein Format, und solange Senklot keines davon spricht, tippt das Büro ab.
 
-**16.1 DATANORM — der Artikelkatalog des Grosshändlers — FERTIG (20.09.2026)**
+**16.1 DATANORM — der Artikelkatalog des Großhändlers — FERTIG (20.09.2026)**
 
 DIE WICHTIGSTE DER DREI, weil der Materialstamm bis heute von Hand gepflegt
 wird. Ein Installateur führt aber nicht dreissig Artikel, sondern die
-Preisliste seines Grosshändlers — Zehntausende. Ohne Katalog steht auf jeder
+Preisliste seines Großhändlers — Zehntausende. Ohne Katalog steht auf jeder
 Rechnung Material mit 0,00 €, und die Nachkalkulation weist einen
 Deckungsbeitrag aus, der um die Materialkosten zu hoch ist. Genau die Lücke,
 die `materialLuecken` bisher nur BENANNT hat.
@@ -4022,7 +4022,7 @@ kurz: nichts wird geraten, nichts wird gelöscht, und ein Listenpreis wird
 ohne hinterlegten Rabattsatz nicht zum Einkaufspreis.
 
 **OFFEN BLEIBT DIE PROBE AN ECHTEN DATEN.** Geprüft ist der Leser gegen die
-Norm, nicht gegen eine Datei von Perls Grosshändler. Die Beispieldatei, mit
+Norm, nicht gegen eine Datei von Perls Großhändler. Die Beispieldatei, mit
 der die Arbeit begann, passte NICHT zur Norm — sie führte vor der
 Artikelnummer noch eine Katalognummer. Dafür gibt es jetzt eine Erkennung,
 die die Übernahme sperrt; ob sie beim ersten echten Katalog anschlägt oder
@@ -4082,7 +4082,7 @@ fiel auf, dass der Tag, an dem der Urlaubsanspruch ENTSTEHT, fest der
 Urlaubsjahr anders, rechnet die App still falsch. Das ist kein Feature,
 sondern ein stiller Fehler, und deshalb steht es im aktiven Teil (U3/U4).
 Die Grenze dabei: das **Arbeitsjahr je Mitarbeiter** (Jahrestag des Eintritts)
-wird NICHT gebaut — dort bedeutet „das Jahr" für jede Person etwas anderes,
+wird NICHT gebaut — dort bedeutet „das Jahr“ für jede Person etwas anderes,
 und die Jahresauswertung verlöre ihren Sinn. Das ist als Grenze benannt und
 nicht halb umgesetzt.
 
@@ -4101,7 +4101,7 @@ woraufliegt**. Drei Ketten:
    ist doppelte Arbeit für einen Zweig, der nie wieder läuft.
 3. **Betriebsbereitschaft → zweiter Betrieb → Abo.** Eine eigene Domain
    nachträglich zu wechseln, nachdem der erste Monteur die App auf den
-   Startbildschirm gelegt hat, heisst: er behält die alte.
+   Startbildschirm gelegt hat, heißt: er behält die alte.
 
 ---
 
@@ -4122,7 +4122,7 @@ zeigt. Wer danach ausliefert, richtet das falsche Projekt ein.
 
 ### Stufe 10 — Rechnung, wie Österreich sie verlangt
 
-Die grösste **funktionale** Lücke, nicht die grösste rechtliche: ein Betrieb,
+Die größte **funktionale** Lücke, nicht die größte rechtliche: ein Betrieb,
 der Baustellen abwickelt und keine Teilrechnung stellen kann, kann die App für
 Baustellen nicht verwenden.
 
@@ -4134,12 +4134,12 @@ Normalfall, und ein Betrag am Beleg könnte nur den letzten festhalten.
 
 - `paymentStatus` wird **abgeleitet** statt gesetzt: offen / teilbezahlt /
   bezahlt / überzahlt. Der Haken von Hand verschwindet.
-- Die Ansicht „offene Posten" und der Mahnlauf rechnen ab dann mit
+- Die Ansicht „offene Posten“ und der Mahnlauf rechnen ab dann mit
   **Restbetrag**, nicht mit Brutto.
 - **Die Falle:** eine stornierte Rechnung mit Zahlungseingang. Das Geld ist
   da, die Forderung nicht mehr — das muss als Guthaben stehenbleiben und darf
   nicht verschwinden.
-- **Fertig heisst:** eine Rechnung über 1.000 €, auf die 400 € eingehen,
+- **Fertig heißt:** eine Rechnung über 1.000 €, auf die 400 € eingehen,
   erscheint im Mahnlauf mit 600 € und nicht mit 1.000 €.
 
 #### 10.2 Anzahlungs-, Teil- und Schlussrechnung — **ERLEDIGT am 20.09.2026**, siehe oben
@@ -4157,17 +4157,17 @@ Normalfall, und ein Betrag am Beleg könnte nur den letzten festhalten.
   Rechnungsbeträge. Mit Anzahlung *und* Schlussrechnung stünde derselbe Erlös
   zweimal da und die Baustelle sähe doppelt so gut aus, wie sie ist. Der
   Deckungsbeitrag ist die Zahl, wegen der jemand diese Ansicht öffnet.
-- **Fertig heisst:** eine Baustelle mit 3.000 € Anzahlung und 10.000 €
+- **Fertig heißt:** eine Baustelle mit 3.000 € Anzahlung und 10.000 €
   Gesamtleistung zeigt in der Nachkalkulation 10.000 € Erlös, die
   Schlussrechnung fordert 7.000 €, und die Summe der offenen Posten ist zu
-  keinem Zeitpunkt grösser als die Gesamtleistung.
+  keinem Zeitpunkt größer als die Gesamtleistung.
 
 #### 10.3 Haft- und Deckungsrücklass, Skonto — **WARTET** (erst auf Anforderung)
 
 Alle drei mindern **den Zahlungsbetrag, nicht das Entgelt**. Genau daran
 scheitert die naheliegende Umsetzung:
 
-- Ein Rücklass als „Rabatt" gebucht würde die **Umsatzsteuer kürzen** — und
+- Ein Rücklass als „Rabatt“ gebucht würde die **Umsatzsteuer kürzen** — und
   die ist auf den vollen Betrag geschuldet. Das ist kein Schönheitsfehler,
   das ist eine falsche UVA.
 - Skonto mindert das Entgelt **erst, wenn es gezogen wird** (§ 16 UStG). Auf
@@ -4178,9 +4178,9 @@ scheitert die naheliegende Umsetzung:
   jeder Baustelle bleiben beim Kunden liegen. Die Erinnerung ist der
   eigentliche Wert.
 - **NACHTRAG 29.09. — Skonto ist gebaut** (offene Punkte B7): Bedingung an
-  der Rechnung, Abzug als Zahlungseingang der Art „Skonto". Der Rücklass
+  der Rechnung, Abzug als Zahlungseingang der Art „Skonto“. Der Rücklass
   wartet weiter.
-- **Fertig heisst:** eine Rechnung mit 5 % Deckungsrücklass weist volle 20 %
+- **Fertig heißt:** eine Rechnung mit 5 % Deckungsrücklass weist volle 20 %
   USt aus, der Mahnlauf mahnt den Rücklass nicht, und drei Jahre später steht
   er als fälliger Posten auf der Startseite.
 
@@ -4224,8 +4224,8 @@ Zwei verschiedene Dinge, die leicht verwechselt werden:
 - **Ist die UID gültig?** Das beantwortet VIES.
   **NACHTRAG 19.09. — wird trotzdem nicht gebaut.** Eine frühere Fassung
   empfahl die Abfrage; zu Ende gedacht kostet sie eine Edge Function, einen
-  Zwischenspeicher, drei Zustände in der Oberfläche („nicht geprüft" muss von
-  „geprüft und ungültig" unterscheidbar bleiben) und einen Ausfallweg, weil
+  Zwischenspeicher, drei Zustände in der Oberfläche („nicht geprüft“ muss von
+  „geprüft und ungültig“ unterscheidbar bleiben) und einen Ausfallweg, weil
   VIES regelmäßig nicht antwortet — für fünf Eingaben im Jahr, und ohne die
   entscheidende Frage zu beantworten. Gebaut wird stattdessen eine
   **Formatprüfung** (ATU plus acht Stellen plus Prüfziffer): zwanzig Zeilen,
@@ -4240,7 +4240,7 @@ Zwei verschiedene Dinge, die leicht verwechselt werden:
 
 `auftragsreferenz` (Bestellnummer des Kunden) und `lieferantennummer`. Beide
 sind in **ebInterface** Pflicht- bzw. Schlüsselfelder. Sie jetzt mitzunehmen
-kostet eine Migration; sie später nachzurüsten heisst, durch alle bestehenden
+kostet eine Migration; sie später nachzurüsten heißt, durch alle bestehenden
 Rechnungen zu wandern.
 
 ---
@@ -4258,7 +4258,7 @@ zwei Arbeitstagen (§ 12 AZG) und die **36 h Wochenruhe** (§ 3 ARG).
   nicht eine zweite Rechnung daneben.
 - **Und der wichtigere Teil:** die Warnung gehört **ins Büro**, nicht nur in
   die Maske des Monteurs. Das Arbeitsinspektorat fragt den Arbeitgeber. Also
-  eine Liste „Grenzwerte überschritten" in der Mitarbeiterübersicht, je Fall
+  eine Liste „Grenzwerte überschritten“ in der Mitarbeiterübersicht, je Fall
   mit **Begründungsfeld** — Notdienst und Gefahr in Verzug sind zulässige
   Ausnahmen, aber nur begründet.
 
@@ -4303,7 +4303,7 @@ einem Lohnzettel landet, ist schlimmer als keine.
 - **Kilometergeld** braucht ein Feld, das es nicht gibt: gefahrene Kilometer.
 - **Taggeld** braucht Abwesenheitsdauer (aus Von/Bis ableitbar) und die
   Reiseart; die Regel selbst gehört in die Betriebseinstellungen.
-- **Durchrechnung und Gleitzeit bleiben draussen.** Sie schreiben die
+- **Durchrechnung und Gleitzeit bleiben draußen.** Sie schreiben die
   Saldenrechnung neu — Durchrechnungszeitraum, Übertragsgrenzen, Verfall. Das
   an den heutigen Monatssaldo anzuflanschen wäre genau die halbe Sache, die
   hier nichts verloren hat. Eigene Stufe, wenn ein Betrieb danach fragt.
@@ -4317,7 +4317,7 @@ Nichts davon sieht ein Monteur. Alles davon merkt man erst, wenn es fehlt.
 | Punkt | Was wirklich zu tun ist | Warum es blockiert |
 | --- | --- | --- |
 | **Eigene Domain** | Domain + Absenderdomain, *vor* dem ersten Startbildschirm-Symbol | Ein späterer Wechsel lässt jede installierte App auf der alten Adresse stehen |
-| **SMTP mit SPF/DKIM/DMARC** | Eigener Versender | Der Supabase-Standardversand ist stark gedrosselt — und „Passwort vergessen" ist nach **jedem** Rücklauf für **jeden** Zugang Pflicht |
+| **SMTP mit SPF/DKIM/DMARC** | Eigener Versender | Der Supabase-Standardversand ist stark gedrosselt — und „Passwort vergessen“ ist nach **jedem** Rücklauf für **jeden** Zugang Pflicht |
 | **Tarif, Region, PITR** | Pro-Tarif, EU-Region nachweisbar, kein Pausieren | Der kostenlose Tarif **pausiert nach sieben Tagen ohne Zugriff**. Über Weihnachten steht die App |
 | **2FA** | TOTP für Leitung, Verwaltung, Buchhaltung | Nur wirksam, wenn der **Zeilenschutz** die Stufe prüft (`aal2`), nicht das Formular. Sonst ist es Zierde |
 | **Migrations-Probelauf** | **NACHTRAG 19.09.:** kein zweites Projekt, sondern ein Skript — Kopie des Produktivbestands, Migration darüber, Testlauf. Ein Staging-Projekt verdoppelt Konfiguration und Migrationstanz; das Risiko liegt aber nicht im Code (2 766 Prüfungen, davon 725 gegen eine echte Datenbank), sondern in Migrationen gegen ECHTE DATEN — und genau die hat ein leeres Staging-Projekt nicht | Heute läuft jede Migration zuerst beim Kunden |
@@ -4378,7 +4378,7 @@ Mobilfunknetz. Drei Geräte, eine Stunde, ein geschriebenes Ergebnis.
   übernommene Rechnungen bekommen eine **eigene Herkunft** und ziehen **keine
   Nummer aus dem laufenden Kreis** — sonst reisst der Import genau die Lücke
   in die Nummerierung, die niemand erklären will.
-- **Briefpapier.** Ränder und ein Schalter „Kopf und Fuss weglassen" für
+- **Briefpapier.** Ränder und ein Schalter „Kopf und Fuss weglassen“ für
   vorgedrucktes Papier. Kleine Sache, und das Erste, was ein Betrieb sieht.
 
 ---
@@ -4427,7 +4427,7 @@ In dieser Reihenfolge, nach Nutzen je Aufwand:
 
 | Frage | Warum sie jetzt fällt |
 | --- | --- |
-| **Wird über Senklot bar oder mit Karte vor Ort kassiert?** | Wenn ja, braucht es eine RKSV-Lösung: Signatureinheit, DEP, Startbeleg, FinanzOnline. Das ist eine eigene Stufe in der Grössenordnung von Stufe 10. Wenn nein, baue ich die **Sperre**: eine Zahlungsart, die Barzahlung ausschliesst, und ein PDF, das nie wie ein Barbeleg aussieht. Beides ist sauber — nur „nicht daran denken" ist es nicht, denn die Belegerteilungspflicht (§ 132a BAO) gilt ab dem ersten Euro bar |
+| **Wird über Senklot bar oder mit Karte vor Ort kassiert?** | Wenn ja, braucht es eine RKSV-Lösung: Signatureinheit, DEP, Startbeleg, FinanzOnline. Das ist eine eigene Stufe in der Grössenordnung von Stufe 10. Wenn nein, baue ich die **Sperre**: eine Zahlungsart, die Barzahlung ausschliesst, und ein PDF, das nie wie ein Barbeleg aussieht. Beides ist sauber — nur „nicht daran denken“ ist es nicht, denn die Belegerteilungspflicht (§ 132a BAO) gilt ab dem ersten Euro bar |
 | **Rechnet Perl an den Bund oder an Gemeinden?** | Nur dann ist ebInterface/Peppol ein Startthema. Die beiden Felder aus 10.6 nehme ich so oder so mit |
 | **Urlaubsjahr: Kalenderjahr oder Arbeitsjahr?** | Bestimmt, ob 11.3 eine Einstellung oder eine Umstellung wird |
 | **Gilt bei Perl Normalarbeitszeit, Gleitzeit oder Durchrechnung?** | Entscheidet, ob die Saldenrechnung bleiben kann, wie sie ist |
@@ -4457,8 +4457,8 @@ Mögliche Wege je nach System: **Datanorm** (Dateiformat für
 Artikelstammdaten, im Handwerk verbreitet), **IDS-Connect** (Online-Anbindung
 an den SHK-Großhandel) oder schlicht ein CSV-Import.
 
-*(Der Materialkatalog hat inzwischen einen eigenen Navigationspunkt „Lager" —
-er hing vorher als vierter Reiter unter „Bestellungen", wo ihn niemand
+*(Der Materialkatalog hat inzwischen einen eigenen Navigationspunkt „Lager“ —
+er hing vorher als vierter Reiter unter „Bestellungen“, wo ihn niemand
 vermutet. Die Systemfrage bleibt davon unberührt.)*
 
 ---
@@ -4476,7 +4476,7 @@ deshalb wandern sie hierher statt still zu verschwinden:
 - **Offline-Betrieb** — Firestore-Persistenz mit
   `persistentMultipleTabManager`, Rückmeldung beim Speichern ohne Empfang
 - **Navigation** — das Lager hat einen eigenen Punkt statt eines versteckten
-  vierten Reiters unter „Bestellungen"; „wie zuletzt" in der Zeiterfassung
+  vierten Reiters unter „Bestellungen“; „wie zuletzt“ in der Zeiterfassung
 
 ## Später
 
@@ -4485,7 +4485,7 @@ deshalb wandern sie hierher statt still zu verschwinden:
   ein dritter Abrechnungstopf.
 - ~~**Exporte um Zuschläge erweitern**~~: erledigt am 08.09.2026 — Nacht und
   Notdienst stehen jetzt in beiden CSVs und im Stundennachweis, samt der
-  Überschneidung „davon beides". Siehe oben.
+  Überschneidung „davon beides“. Siehe oben.
 - **Mehrmandantenfähigkeit praktisch erproben**: technisch vorhanden und
   durch Rules-Tests belegt, aber noch nie mit einem zweiten echten Betrieb
   gelaufen.
@@ -4519,7 +4519,7 @@ nach 29,7 Sekunden; nach der Begrenzung nach 3,6.
 Jede Abfrage braucht jetzt eine von drei Grenzen:
 
 1. **einen Zeitraum** — `where('date', '>=', …)`
-2. **eine feste Obergrenze** — `limit(n)`, mit „Ältere laden" in der Ansicht
+2. **eine feste Obergrenze** — `limit(n)`, mit „Ältere laden“ in der Ansicht
 3. **einen Gleichheitsfilter auf eine kleine Menge** — Status, Baustellennummer
 
 | Abfrage | vorher | jetzt |
@@ -4597,7 +4597,7 @@ Zwei unbegrenzte Abfragen waren die Ursache, beide sind jetzt begrenzt:
 - **Team-Block**: las jeden Zeiteintrag seit dem fruehesten Eintritt, weil
   der Saldo seit Eintritt laeuft. Zeigt jetzt den LAUFENDEN MONAT — rund 440
   Dokumente, und das bleibt so, auch in zehn Jahren. Der Monat beantwortet
-  ausserdem die Frage besser, die hier gestellt wird: wer hat noch nicht
+  außerdem die Frage besser, die hier gestellt wird: wer hat noch nicht
   gebucht?
 - **Projekt-Radar**: las ebenfalls alle Eintraege des Betriebs. Laedt jetzt
   nur die Eintraege der Baustellen MIT Budget. Abgeschlossene Baustellen

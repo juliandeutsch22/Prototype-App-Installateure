@@ -153,7 +153,7 @@ describe('M6 — Eintritt und Saldo-Start', () => {
     expect(entwurfFehler({ ...e, eintritt: '2015-03-01' })).toBeNull();
   });
 
-  it('das Urlaubsfeld heisst in Anlage und Akte gleich', () => {
+  it('das Urlaubsfeld heißt in Anlage und Akte gleich', () => {
     expect(urlaubsfeldName({ eintritt: '2026-10-01', appStartDate: '2026-10-01' }))
       .toBe('Urlaub im ersten Jahr');
     expect(urlaubsfeldName({ eintritt: '2015-03-01', appStartDate: '2026-10-01' }))

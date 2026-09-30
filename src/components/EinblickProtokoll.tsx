@@ -53,7 +53,7 @@ export default function EinblickProtokoll({ children }: { children: ReactNode })
   if (fehler) {
     return (
       <ErrorState
-        message={`Der Zugriff auf „${bereich}" liess sich nicht protokollieren, deshalb bleibt er zu. ${fehler}`}
+        message={`Der Zugriff auf „${bereich}“ ließ sich nicht protokollieren, deshalb bleibt er zu. ${fehler}`}
         onRetry={() => setVersuch((v) => v + 1)}
       />
     );

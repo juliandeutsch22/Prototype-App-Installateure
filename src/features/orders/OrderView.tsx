@@ -64,7 +64,7 @@ function cartKey(companyId: string, uid: string) {
   return `senklot.warenkorb:${companyId}:${uid}`;
 }
 
-/** Material bestellen, eigene Bestellungen verfolgen, Retouren erfassen. */
+/** Material anfordern, eigene Anforderungen verfolgen, Retouren erfassen. */
 /** Wie viele eigene Anforderungen geladen werden — angesehen wird das Laufende. */
 const EIGENE_ANFORDERUNGEN = 100;
 
@@ -666,7 +666,7 @@ export default function OrderView() {
                       */
                       o.beschaffung === 'einkauf' && !o.geliefertAm
                         ? o.bestelltAm
-                          ? 'beim Grosshändler bestellt'
+                          ? 'beim Großhändler bestellt'
                           : 'nicht im Lager — wird bestellt'
                         : '',
                     ].filter(Boolean).join(' · ')}

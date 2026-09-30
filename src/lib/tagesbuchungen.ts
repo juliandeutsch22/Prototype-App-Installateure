@@ -108,11 +108,11 @@ export function buchungKonflikt(
 
   const ganztags = vorhandene.find(istGanztags);
   if (ganztags) {
-    return `Für diesen Tag ist bereits „${ganztags.status}" eingetragen. ${ganztags.status} gilt für den ganzen Tag — zum Ändern bitte den bestehenden Eintrag bearbeiten.`;
+    return `Für diesen Tag ist bereits „${ganztags.status}“ eingetragen. ${ganztags.status} gilt für den ganzen Tag — zum Ändern bitte den bestehenden Eintrag bearbeiten.`;
   }
 
   if (istGanztags(neu)) {
-    return `Für diesen Tag sind bereits Zeiten gebucht. „${neu.status}" gilt für den ganzen Tag — dafür müssen die gebuchten Zeiten zuerst gelöscht werden.`;
+    return `Für diesen Tag sind bereits Zeiten gebucht. „${neu.status}“ gilt für den ganzen Tag — dafür müssen die gebuchten Zeiten zuerst gelöscht werden.`;
   }
 
   /*

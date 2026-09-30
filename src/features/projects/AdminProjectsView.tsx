@@ -638,8 +638,8 @@ export default function AdminProjectsView() {
             {nurVomServer > 0 && (
               <p className="mt-1 text-xs text-ink">
                 {nurVomServer === 1
-                  ? 'Eine Baustelle ausserhalb der geladenen Liste gefunden.'
-                  : `${nurVomServer} Baustellen ausserhalb der geladenen Liste gefunden.`}
+                  ? 'Eine Baustelle außerhalb der geladenen Liste gefunden.'
+                  : `${nurVomServer} Baustellen außerhalb der geladenen Liste gefunden.`}
               </p>
             )}
           </div>
@@ -653,7 +653,7 @@ export default function AdminProjectsView() {
             {projects.length === 0
               ? 'Noch keine Baustellen angelegt.'
               : suche
-                ? `Keine Baustelle passt zu „${suche}".`
+                ? `Keine Baustelle passt zu „${suche}“.`
                 : 'Keine Baustelle in dieser Auswahl.'}
           </EmptyState>
         ) : (
@@ -797,7 +797,7 @@ export default function AdminProjectsView() {
           } catch (e) {
             toast.error(
               /foreign key|violates|verweis/i.test((e as Error).message)
-                ? `${weg.projectNumber} lässt sich nicht löschen — an ihr hängen schon Buchungen, Scheine, Rechnungen oder Pläne. Setze sie stattdessen auf „Abgeschlossen".`
+                ? `${weg.projectNumber} lässt sich nicht löschen — an ihr hängen schon Buchungen, Scheine, Rechnungen oder Pläne. Setze sie stattdessen auf „Abgeschlossen“.`
                 : `${weg.projectNumber} konnte nicht gelöscht werden.`,
             );
           }

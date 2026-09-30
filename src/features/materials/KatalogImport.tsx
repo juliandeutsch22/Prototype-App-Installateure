@@ -221,7 +221,7 @@ export default function KatalogImport() {
           title="Katalog einspielen"
           hint={
             <>
-              DATANORM ist das Austauschformat, in dem Grosshändler ihre Preislisten liefern —
+              DATANORM ist das Austauschformat, in dem Großhändler ihre Preislisten liefern —
               meist als Datei mit der Endung <code>.001</code>. Eingelesen wird sie hier{' '}
               <strong>zuerst nur angesehen</strong>: du bekommst einen Bericht darüber, was
               erkannt wurde und was nicht, und entscheidest danach, ob übernommen wird. Bis dahin
@@ -251,7 +251,7 @@ export default function KatalogImport() {
                   <InputField
                     id="dn-neu"
                     label="Name des Lieferanten"
-                    placeholder="z. B. HTI Grosshandel"
+                    placeholder="z. B. HTI Großhandel"
                     value={neuerName}
                     onChange={(e) => setNeuerName(e.target.value)}
                     pflicht
@@ -259,7 +259,7 @@ export default function KatalogImport() {
                 </div>
                 <InfoHint about="den Lieferanten">
                   Der Preis eines Artikels gehört zum Lieferanten, nicht zum Artikel: derselbe
-                  Kugelhahn kostet bei zwei Grosshändlern zwei verschiedene Beträge. Deshalb
+                  Kugelhahn kostet bei zwei Großhändlern zwei verschiedene Beträge. Deshalb
                   gehört jeder Katalog zu genau einem Lieferanten.
                 </InfoHint>
               </div>
@@ -295,7 +295,7 @@ export default function KatalogImport() {
               <>
                 Noch ist nichts geschrieben. Gelesen wurde die Datei als{' '}
                 <strong>{datei.zeichensatz}</strong> — stehen in den Bezeichnungen unten falsche
-                Umlaute, liegt es daran. „Nur Listenpreis" heisst: der Preis in der Datei ist der
+                Umlaute, liegt es daran. „Nur Listenpreis“ heißt: der Preis in der Datei ist der
                 Preis <em>vor</em> dem ausgehandelten Rabatt; ohne hinterlegten Rabattsatz
                 entsteht daraus kein Einkaufspreis.
               </>
@@ -326,7 +326,7 @@ export default function KatalogImport() {
             <Card title="Die Felder stehen anders als erwartet">
               <p className="text-sm">{warnung}</p>
               <p className="mt-3 text-sm text-ink-muted">
-                Die Zeilen unten zeigen, woran es liegt. Schick deinem Grosshändler die
+                Die Zeilen unten zeigen, woran es liegt. Schick deinem Großhändler die
                 Rückmeldung, welche DATANORM-Fassung er liefert.
               </p>
             </Card>
@@ -341,7 +341,7 @@ export default function KatalogImport() {
               hint={
                 <>
                   Die Datei liefert die Rabatt<em>gruppe</em>, nicht den Satz — wie hoch dein Rabatt
-                  ist, hast du mit deinem Grosshändler ausgehandelt, und das steht in keiner Norm.
+                  ist, hast du mit deinem Großhändler ausgehandelt, und das steht in keiner Norm.
                   Was du hier einträgst, bleibt gespeichert und gilt auch für den nächsten Katalog.
                   Eine Gruppe ohne Satz ist kein Fehler: die Artikel kommen in den Katalog, nur
                   eben ohne Einkaufspreis.
@@ -373,7 +373,7 @@ export default function KatalogImport() {
                 <>
                   Diese Zeilen werden <strong>nicht</strong> übernommen. Die Originalzeile steht
                   neben dem Grund, damit erkennbar ist, ob es an der Datei liegt oder daran, dass
-                  dein Grosshändler die Norm anders auslegt.
+                  dein Großhändler die Norm anders auslegt.
                 </>
               }
             >

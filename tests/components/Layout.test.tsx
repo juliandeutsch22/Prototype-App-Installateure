@@ -179,7 +179,7 @@ describe('Die Abzeichen für offene Posten', () => {
     expect(zeile('Rechnungen')).not.toHaveTextContent(/\d/);
   });
 
-  it('bringt am Telefon zusammen, was der Knopf „Mehr" verdeckt', async () => {
+  it('bringt am Telefon zusammen, was der Knopf „Mehr“ verdeckt', async () => {
     /*
       „Mehr" verbirgt bis zu zwölf Bereiche. Ohne diese Summe läge eine
       Meldung hinter einem Knopf, den man nur öffnet, wenn man ohnehin schon
@@ -202,14 +202,14 @@ describe('Die Abzeichen für offene Posten', () => {
     expect(mehr).not.toHaveTextContent('12');
   });
 
-  it('heißt „Mehr" — mit der Zahl, wenn eine da ist (P4-08)', async () => {
+  it('heißt „Mehr“ — mit der Zahl, wenn eine da ist (P4-08)', async () => {
     ladenMock.mockResolvedValue(zahlen(1, 0, 0));
     zeige();
     expect(await screen.findByRole('button', { name: 'Mehr, 1 offener Posten' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Weitere Bereiche' })).not.toBeInTheDocument();
   });
 
-  it('heißt ohne offene Posten schlicht „Mehr" (P4-08)', async () => {
+  it('heißt ohne offene Posten schlicht „Mehr“ (P4-08)', async () => {
     ladenMock.mockResolvedValue(zahlen());
     zeige();
     expect(await screen.findByRole('button', { name: 'Mehr' })).toBeInTheDocument();
@@ -233,7 +233,7 @@ describe('Die Abzeichen für offene Posten', () => {
 });
 
 describe('Hilfe und Rechtliches in der Hülle', () => {
-  it('bietet „Problem melden" und die Rechtsseiten in Seitenleiste und Profilblatt', async () => {
+  it('bietet „Problem melden“ und die Rechtsseiten in Seitenleiste und Profilblatt', async () => {
     const nutzer = userEvent.setup();
     zeige();
     // Seitenleiste

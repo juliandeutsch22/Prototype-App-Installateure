@@ -80,7 +80,7 @@ describe('Was auf die Liste gehört', () => {
     expect(g.unterwegs).toHaveLength(1);
   });
 
-  it('gruppiert je Grosshändler — ohne Grosshändler zuletzt', () => {
+  it('gruppiert je Großhändler — ohne Großhändler zuletzt', () => {
     const gruppen = einkaufsliste(
       [a({ supplierId: null }), a({ supplierId: 'holter' }), a({ supplierId: 'frauenthal' })],
       new Map(),

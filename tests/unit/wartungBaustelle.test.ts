@@ -37,7 +37,7 @@ describe('Die Prüfung auf eine freie Nummer', () => {
     expect(nummerFrei('2026-014', ['2026-014'])).toBe(false);
   });
 
-  it('lässt sich von Leerraum und Grossschreibung nicht täuschen', () => {
+  it('lässt sich von Leerraum und Großschreibung nicht täuschen', () => {
     expect(nummerFrei(' w-2026-3 ', ['W-2026-3'])).toBe(false);
   });
 

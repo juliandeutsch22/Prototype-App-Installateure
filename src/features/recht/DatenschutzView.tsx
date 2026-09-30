@@ -49,7 +49,7 @@ export default function DatenschutzView() {
           <li>
             Ein Fehlerprotokoll: stürzt die App ab, werden Fehlermeldung, Ansicht, Fassung der App
             und Gerätetyp festgehalten — ohne Inhalte, Namen oder Kennungen. Was du unter
-            „Problem melden" selbst schreibst, geht mit deinem Namen und deiner E-Mail-Adresse an den
+            „Problem melden“ selbst schreibst, geht mit deinem Namen und deiner E-Mail-Adresse an den
             Senklot-Support, damit er nachfragen kann. Beides liest nur der Support, nicht der
             Betrieb.
           </li>

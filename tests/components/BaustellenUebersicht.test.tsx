@@ -126,7 +126,7 @@ describe('Baustellenübersicht', () => {
     expect(screen.queryByText(/%$/)).not.toBeInTheDocument();
   });
 
-  it('unterscheidet „noch keine Stunde" von einem Fehler', async () => {
+  it('unterscheidet „noch keine Stunde“ von einem Fehler', async () => {
     zeige();
     expect(
       await screen.findByText('Auf diese Baustelle ist noch keine Stunde gebucht.'),

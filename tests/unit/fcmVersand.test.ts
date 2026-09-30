@@ -116,7 +116,7 @@ describe('Die Fehlercodes von HTTP v1', () => {
     `invalid-argument` ausdrücklich aussen vor — derselbe Code kommt auch bei
     einer fehlerhaften Nachricht, und die beträfe ALLE Empfänger auf einmal.
   */
-  it('ein abgemeldetes Gerät heisst weiterhin so, wie `toteTokens` es kennt', () => {
+  it('ein abgemeldetes Gerät heißt weiterhin so, wie `toteTokens` es kennt', () => {
     expect(alsSdkCode({ details: [{ errorCode: 'UNREGISTERED' }] }))
       .toBe('messaging/registration-token-not-registered');
   });

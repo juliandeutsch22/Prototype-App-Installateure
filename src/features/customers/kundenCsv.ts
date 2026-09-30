@@ -174,7 +174,7 @@ export function pruefeKunden(zeilen: string[][]): KundenProbelauf {
   });
   if (!spalten.some((f) => f === 'firma' || f === 'name' || f === 'nachname')) {
     throw new Error(
-      'In der ersten Zeile steht keine Spalte für den Namen — erwartet wird etwa „Name", „Firma" oder „Nachname".',
+      'In der ersten Zeile steht keine Spalte für den Namen — erwartet wird etwa „Name“, „Firma“ oder „Nachname“.',
     );
   }
 
@@ -219,21 +219,21 @@ export function pruefeKunden(zeilen: string[][]): KundenProbelauf {
 
     const email = eins('email');
     if (email && !EMAIL.test(email)) {
-      falsch(`E-Mail-Adresse „${email}" ist ungültig`);
+      falsch(`E-Mail-Adresse „${email}“ ist ungültig`);
       return;
     }
     const uidRoh = eins('uid');
     const uid = uidRoh?.replace(/\s/g, '').toUpperCase();
     const uidFalsch = uid ? uidFehler(uid) : null;
     if (uidFalsch) {
-      falsch(`„${uidRoh}": ${uidFalsch}`);
+      falsch(`„${uidRoh}“: ${uidFalsch}`);
       return;
     }
 
     const schluessel = namensSchluessel(name);
     const erste = gesehen.get(schluessel);
     if (erste !== undefined) {
-      falsch(`„${name}" steht schon in Zeile ${erste}`);
+      falsch(`„${name}“ steht schon in Zeile ${erste}`);
       return;
     }
     gesehen.set(schluessel, nr);

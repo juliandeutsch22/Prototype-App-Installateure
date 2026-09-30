@@ -95,7 +95,7 @@ describe('Scheinstunden ohne Buchung', () => {
     und eine Liste, die zu Unrecht anschlägt, wird nach einer Woche nicht
     mehr gelesen.
   */
-  it('nimmt Gross- und Kleinschreibung und doppelte Leerzeichen nicht krumm', () => {
+  it('nimmt Groß- und Kleinschreibung und doppelte Leerzeichen nicht krumm', () => {
     const befunde = scheineOhneBuchung(
       [schein('s1', '2026-09-01', { zeiten: [zeit('  franz   HUBER ')] })],
       [eintrag('2026-09-01', 'Franz Huber')],
@@ -111,7 +111,7 @@ describe('Scheinstunden ohne Buchung', () => {
     die entscheidet, wem die Stunde verrechnet wird. Das ist ein anderer
     Befund als „gar nicht gebucht" und muss sich davon unterscheiden lassen.
   */
-  it('unterscheidet „gar nicht gebucht" von „auf eine andere Baustelle gebucht"', () => {
+  it('unterscheidet „gar nicht gebucht“ von „auf eine andere Baustelle gebucht“', () => {
     const befunde = scheineOhneBuchung(
       [schein('s1', '2026-09-01')],
       [eintrag('2026-09-01', 'Max Perl', '2026-001')],

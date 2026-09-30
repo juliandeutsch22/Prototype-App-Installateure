@@ -96,7 +96,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   if (!UUID.test(uid)) return fehler('Wessen Passwort, steht nicht in der Anfrage.', 400);
   if (passwort.length < 8) return fehler('Das Startpasswort ist zu kurz.', 400);
   if (uid === aufrufer) {
-    return fehler('Das eigene Passwort bitte unter „Mein Konto" ändern.', 400);
+    return fehler('Das eigene Passwort bitte unter „Mein Konto“ ändern.', 400);
   }
 
   /*
@@ -126,7 +126,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   if (!istBenutzerkonto(String(konto.email ?? ''))) {
     return fehler(
       'Dieser Benutzer meldet sich mit seiner E-Mail-Adresse an. '
-        + 'Ein neues Passwort setzt er über „Passwort-Mail senden" selbst.',
+        + 'Ein neues Passwort setzt er über „Passwort-Mail senden“ selbst.',
       409,
     );
   }
@@ -142,7 +142,7 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
   });
   if (!setzen.ok) {
     const f = await setzen.json().catch(() => ({}));
-    return fehler(String(f?.msg ?? f?.message ?? 'Das Passwort liess sich nicht setzen.'), 500);
+    return fehler(String(f?.msg ?? f?.message ?? 'Das Passwort ließ sich nicht setzen.'), 500);
   }
   return antwort({ ok: true });
 }));

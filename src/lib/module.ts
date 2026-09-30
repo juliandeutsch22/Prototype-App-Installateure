@@ -78,7 +78,7 @@ export const MODULE: Modul[] = [
     name: 'Material und Lager',
     zweck: 'Anforderungen vom Monteur, Bearbeitung im Büro, Lagerstand.',
     standard: true,
-    betrifft: ['Material bestellen', 'Anforderungen', 'Lager'],
+    betrifft: ['Material anfordern', 'Anforderungen', 'Lager'],
   },
   {
     id: 'urlaub',
@@ -111,7 +111,7 @@ export const MODULE: Modul[] = [
   {
     id: 'nachkalkulation',
     name: 'Nachkalkulation',
-    zweck: 'Erlös gegen Personalkosten — hat die Baustelle Geld verdient?',
+    zweck: 'Erlös gegen Personal- und Materialkosten — hat die Baustelle Geld verdient?',
     standard: true,
     abhaengigVon: ['rechnungen'],
     betrifft: ['Nachkalkulation'],

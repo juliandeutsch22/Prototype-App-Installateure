@@ -84,7 +84,7 @@ describe('Pläne hochladen', () => {
     await vi.waitFor(() => expect(dokumentHochladen).toHaveBeenCalledTimes(1));
   });
 
-  it('lädt nach „Abbrechen" nichts hoch', async () => {
+  it('lädt nach „Abbrechen“ nichts hoch', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await nutzer.upload(screen.getByLabelText('Pläne oder Bilder auswählen'), datei('Rechnung 1002.pdf'));

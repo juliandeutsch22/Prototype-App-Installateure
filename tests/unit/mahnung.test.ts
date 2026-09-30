@@ -130,7 +130,7 @@ describe('Mahnspesen', () => {
     expect(spesenFuer(3, [0, 5, 15])).toBe(15);
   });
 
-  it('behandeln Unsinn wie „nicht gesetzt"', () => {
+  it('behandeln Unsinn wie „nicht gesetzt“', () => {
     // Ein negativer Betrag auf einer Mahnung wäre eine Gutschrift.
     expect(spesenFuer(1, [-5])).toBe(0);
     expect(spesenFuer(1, [Number.NaN])).toBe(0);

@@ -369,7 +369,7 @@ describe('Angebot kalkulieren', () => {
     expect(screen.getByText(/Kalkulierte Arbeitszeit/)).toHaveTextContent('16 h');
   });
 
-  it('eine neue Position zählt erst als Arbeitszeit, wenn „h" eingetragen ist (Launch-Check, M7)', async () => {
+  it('eine neue Position zählt erst als Arbeitszeit, wenn „h“ eingetragen ist (Launch-Check, M7)', async () => {
     const nutzer = userEvent.setup();
     zeichne();
     await formOeffnen();

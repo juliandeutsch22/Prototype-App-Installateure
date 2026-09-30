@@ -315,7 +315,7 @@ describe('Mit Kostensätzen', () => {
     expect(await screen.findByText(/Zwischenstand — es kommen noch Stunden dazu/)).toBeInTheDocument();
   });
 
-  it('bleibt bei „Abgeschlossen", sobald es eine abgeschlossene gibt', async () => {
+  it('bleibt bei „Abgeschlossen“, sobald es eine abgeschlossene gibt', async () => {
     projekte = [projekt('2026-001'), projekt('2026-003', 'Aktiv')];
     zeige();
     await screen.findByText('Ergebnis je Baustelle');

@@ -360,7 +360,7 @@ export default function CustomersView() {
       />
 
       {darfAendern && formOffen && (
-        <Card title={bearbeitet ? `„${bearbeitet.name}" bearbeiten` : 'Neuen Kunden anlegen'}>
+        <Card title={bearbeitet ? `„${bearbeitet.name}“ bearbeiten` : 'Neuen Kunden anlegen'}>
           <form onSubmit={speichern} className="space-y-4">
             <InputField
               id="kname"
@@ -561,8 +561,8 @@ export default function CustomersView() {
               Schrecken ohne Grund.
             */}
             {suche.trim()
-              ? `Kein Kunde passt zu „${suche}".`
-              : 'Noch keine Kunden. Über „Bestehende Baustellen übernehmen" lassen sich die vorhandenen anlegen.'}
+              ? `Kein Kunde passt zu „${suche}“.`
+              : 'Noch keine Kunden. Über „Bestehende Baustellen übernehmen“ lassen sich die vorhandenen anlegen.'}
           </EmptyState>
         ) : (
           <List>
@@ -693,7 +693,7 @@ export default function CustomersView() {
         title="Kunde löschen?"
         message={
           toDelete
-            ? `„${toDelete.name}" wird entfernt. Das geht nur, solange dem Kunden keine Baustelle zugeordnet ist.`
+            ? `„${toDelete.name}“ wird entfernt. Das geht nur, solange dem Kunden keine Baustelle zugeordnet ist.`
             : ''
         }
         onCancel={() => setToDelete(null)}

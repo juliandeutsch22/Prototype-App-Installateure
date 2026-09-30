@@ -45,7 +45,7 @@ describe('Eine Zahl aus einem Formularfeld', () => {
     expect(zahlOderVorgabe('0', 25)).toBe(0);
   });
 
-  it('unterscheidet „nicht angegeben" von null', () => {
+  it('unterscheidet „nicht angegeben“ von null', () => {
     // Beim Resturlaub ist das der Unterschied zwischen „voller
     // Jahresanspruch" und „dieses Jahr keinen Tag mehr".
     expect(zahlOderNull('')).toBeNull();
@@ -64,7 +64,7 @@ describe('Aus einem Benutzer wird ein Entwurf', () => {
     expect(e.workDays).toEqual([1, 2, 3, 4, 5]);
   });
 
-  it('macht aus „kein Resturlaub angegeben" ein leeres Feld', () => {
+  it('macht aus „kein Resturlaub angegeben“ ein leeres Feld', () => {
     expect(alsEntwurf(PERSON).initialVacationDays).toBe('');
     expect(alsEntwurf({ ...PERSON, initialVacationDays: 7 }).initialVacationDays).toBe('7');
   });

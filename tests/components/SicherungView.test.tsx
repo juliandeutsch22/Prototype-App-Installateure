@@ -212,7 +212,7 @@ describe('Der Zustand der nächtlichen Sicherung', () => {
     expect(await screen.findByText(/lief zuletzt vor 3 Tagen durch/)).toBeInTheDocument();
   });
 
-  it('sagt „noch nie", wenn nichts festgehalten ist — statt zu schweigen', async () => {
+  it('sagt „noch nie“, wenn nichts festgehalten ist — statt zu schweigen', async () => {
     /*
       Der gefährlichste Fall: ein Betrieb ohne Aufzeichnung sieht genauso aus
       wie einer, bei dem nie etwas lief. Beides heisst, dass es keine
@@ -243,12 +243,12 @@ describe('Wo der Stand liegt', () => {
     ).toBeInTheDocument();
   });
 
-  it('sagt es auch, wenn ein Ziel ausserhalb gesetzt ist (Launch-Check 25.09.2026)', async () => {
+  it('sagt es auch, wenn ein Ziel außerhalb gesetzt ist (Launch-Check 25.09.2026)', async () => {
     letzterLauf = { zuletztErfolg: Date.now() - 6 * 3_600_000, zielExtern: true };
     zeige();
     await screen.findByText(/lief zuletzt vor 6 Stunden durch/);
     expect(screen.queryByText(/im selben Projekt wie die Daten/)).not.toBeInTheDocument();
-    expect(screen.getByText(/Der Stand liegt ausser Haus/)).toBeInTheDocument();
+    expect(screen.getByText(/Der Stand liegt außer Haus/)).toBeInTheDocument();
   });
 
   /*
@@ -261,7 +261,7 @@ describe('Wo der Stand liegt', () => {
     zeige();
     await screen.findByText(/lief zuletzt vor 6 Stunden durch/);
     expect(screen.queryByText(/im selben Projekt wie die Daten/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/ausser Haus/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/außer Haus/)).not.toBeInTheDocument();
   });
 
   /*

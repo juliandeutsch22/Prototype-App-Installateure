@@ -72,7 +72,7 @@ describe('Der Bereich steht im Protokoll, bevor er lädt', () => {
   it('lässt den Bereich zu, wenn die Meldung scheitert — und versucht es auf Wunsch neu', async () => {
     zugriffMelden.mockRejectedValueOnce(new Error('Keine Verbindung.')).mockResolvedValue(undefined);
     zeige();
-    expect(await screen.findByText(/liess sich nicht protokollieren/)).toBeInTheDocument();
+    expect(await screen.findByText(/ließ sich nicht protokollieren/)).toBeInTheDocument();
     expect(screen.queryByText(/Rechnungsliste/)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Erneut versuchen' }));
     await waitFor(() => expect(screen.getByText(/Rechnungsliste/)).toBeInTheDocument());

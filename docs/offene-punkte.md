@@ -33,7 +33,7 @@ genommen: er ändert das Bündeln selbst, und dafür gibt es keinen Befund.
 
 **Entschieden und umgesetzt am 29.09.2026:** A3 (das DATANORM-Preiskennzeichen
 folgt der Norm: 1 = Listenpreis, 2 = Nettopreis, alles andere unbekannt. Der
-Leser nahm „1" als Netto und übernahm damit Listenpreise als Einkaufspreise —
+Leser nahm „1“ als Netto und übernahm damit Listenpreise als Einkaufspreise —
 auch aus der Testdatei des Betriebs. Die Migration
 `20260929170000_datanorm_preiskennzeichen.sql` rechnet so übernommene Preise
 nach: Listenpreis abzüglich Rabattsatz, ohne Satz leer; von Hand geänderte
@@ -97,8 +97,8 @@ einer Baustelle kommen alle, neueste zuerst und in jeder Schreibweise der
 Nummer, wie Rechnungen und Zeiten; `tests/supabase/scheineDerBaustelle.test.ts`).
 
 **Ebenfalls am 29.09.2026:** B3 (der Support arbeitet in einem Betrieb zur
-Zeit — es gilt der zuletzt begonnene Einblick; eine Rolle aus „Mitarbeiten"
-in A öffnet in B nichts mehr; `tests/supabase/supportzugang.test.ts`), B2 (der Support mit „Mitarbeiten" erledigt auch, was die App über den
+Zeit — es gilt der zuletzt begonnene Einblick; eine Rolle aus „Mitarbeiten“
+in A öffnet in B nichts mehr; `tests/supabase/supportzugang.test.ts`), B2 (der Support mit „Mitarbeiten“ erledigt auch, was die App über den
 Server schickt: Einsatz, Rüstliste, Angebot, Angebots- und Baustellennummer,
 Kunden- und Katalogübernahme — im Betrieb des aktuellen Einblicks,
 `app.arbeitsbetrieb()`; `tests/supabase/supportArbeitetMit.test.ts`).
@@ -116,7 +116,7 @@ als Zahl; ältere Zeilen ohne Kundenkennung werden über den Namen gefunden,
 und die Datei sagt das. Kein Support, keine Buchhaltung, nicht die Person
 selbst — die Geschäftsführung gibt sie weiter;
 `tests/supabase/datenauskunft.test.ts`, `tests/components/Datenauskunft.test.tsx`. Teil 2: die **Löschung je Person** (Art. 17), in derselben Karte
-„Datenschutz" und mit Probelauf (`public.person_loeschen`). Sofort geht, was
+„Datenschutz“ und mit Probelauf (`public.person_loeschen`). Sofort geht, was
 keiner Aufbewahrung unterliegt — bei der Belegschaft Einstellungen,
 Push-Adressen, Fehlerprotokoll und die Einsatzplanung, beim Kunden Wartungen
 und Kontaktdaten; ein Kunde ohne Belege geht ganz. Was § 132 BAO sieben Jahre
@@ -147,7 +147,7 @@ der Verzug ins Vorhalbjahr, wird erst ab dem eingetragenen gerechnet — nie zu
 viel. Und **Skonto** — Prozent und Frist aus den Einstellungen (ab Werk keines),
 eingefroren an der Rechnung, mit Betrag auf dem PDF; nur auf Rechnung und
 Schlussrechnung. Zahlt der Kunde in der Frist abzüglich Skonto, gleicht ein
-Haken beim Erfassen den Rest aus (ein Zahlungseingang der Art „Skonto", in
+Haken beim Erfassen den Rest aus (ein Zahlungseingang der Art „Skonto“, in
 einem Zug mit der Zahlung; nicht mehr als zugesagt, nicht mehr als offen). Das
 Ausgangsbuch führt ihn getrennt vom Geld; ein Storno verlangt, dass der
 Skonto-Eintrag vorher gelöscht wird. `tests/unit/mahnung.test.ts`,
@@ -164,7 +164,7 @@ und Teil 2 (die Anfangsstände der Zeitkonten, `initial_overtime` und
 `initial_vacation_days`, in `zeitkonto_anfang` — lesen, wer die Urlaube der
 Person liest: sie selbst, Führung, Buchhaltung und Spitze, wer Urlaub
 entscheidet; die Kollegen sehen weiter die Namen, aber keine Kontostände.
-Einlass je Spalte, damit „kein Anfangsurlaub" als bewusstes Leeren ankommt;
+Einlass je Spalte, damit „kein Anfangsurlaub“ als bewusstes Leeren ankommt;
 `tests/supabase/zeitkontoAnfang.test.ts`). **Bewusst geblieben:**
 `vacations.saldo_bei_antrag` steht an der Urlaubszeile, und die lesen ohnehin
 nur dieselben Rollen; wer genehmigt, braucht den Stand. Eine Projektleitung

@@ -509,7 +509,7 @@ export default function AccountingView() {
                 ? 'Noch keine Benutzer angelegt.'
                 : 'Kein Konto erscheint in dieser Auswertung. Hier steht, wer ein Zeitkonto führt: Monteure, Verwaltung, Buchhaltung und Projektleitung, die Geschäftsführung nur, wenn es in ihrer Benutzerakte eingeschaltet ist. Die Administration steht hier nie.'
               : suche
-                ? `Kein Mitarbeiter passt zu „${suche}".`
+                ? `Kein Mitarbeiter passt zu „${suche}“.`
                 : 'Alle Zeitkonten sind vollständig.'}
           </EmptyState>
         ) : (

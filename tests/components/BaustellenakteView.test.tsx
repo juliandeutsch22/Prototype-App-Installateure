@@ -446,7 +446,7 @@ describe('Was die Akte sonst noch zeigt', () => {
     );
   });
 
-  it('gibt den Links unter „Weiter" die volle Tastfläche (Prüflauf 25.09.2026, P4-09)', async () => {
+  it('gibt den Links unter „Weiter“ die volle Tastfläche (Prüflauf 25.09.2026, P4-09)', async () => {
     // Alleinstehende Links waren nur so hoch wie ihre Zeile (24 px).
     zeige();
     expect((await screen.findByRole('link', { name: 'Zur Kundenakte' })).className)
@@ -477,7 +477,7 @@ describe('Was die Akte sonst noch zeigt', () => {
     expect(screen.queryByRole('link', { name: /Handwerksschein/ })).not.toBeInTheDocument();
   });
 
-  it('unterscheidet „gibt es nicht" von „konnte nicht laden"', async () => {
+  it('unterscheidet „gibt es nicht“ von „konnte nicht laden“', async () => {
     // Wer einem alten Lesezeichen folgt, soll das erfahren und nicht auf
     // einen Ladefehler schliessen.
     baustellen = [];

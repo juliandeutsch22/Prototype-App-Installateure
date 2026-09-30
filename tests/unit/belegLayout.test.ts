@@ -115,7 +115,7 @@ describe('Der Tabellenstil', () => {
 });
 
 describe('Die Rechnung im neuen Layout', () => {
-  it('schreibt Mengen deutsch: 8,5 statt „8.5"', () => {
+  it('schreibt Mengen deutsch: 8,5 statt „8.5“', () => {
     rechnung();
     const zeile = (tabellen[0].body as string[][])[0];
     expect(zeile[1]).toBe('8,5');
@@ -127,7 +127,7 @@ describe('Die Rechnung im neuen Layout', () => {
     expect(zeile[3]).toBe(KOMMENTAR);
   });
 
-  it('trägt Bank und UID in der Fusszeile JEDER Seite', () => {
+  it('trägt Bank und UID in der Fußzeile JEDER Seite', () => {
     const seiten = rechnung().internal.pages.filter(Boolean);
     expect(seiten).toHaveLength(2);
     for (const s of seiten) {
@@ -140,7 +140,7 @@ describe('Die Rechnung im neuen Layout', () => {
     }
   });
 
-  it('setzt den Ort unter die Strasse, wie im Kuvertfenster', () => {
+  it('setzt den Ort unter die Straße, wie im Kuvertfenster', () => {
     const text = rechnung().internal.pages.filter(Boolean)[0].join('\n');
     expect(text).toContain('(Gartengasse 12) Tj');
     expect(text).toContain('(2700 Wiener Neustadt) Tj');

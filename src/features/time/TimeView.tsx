@@ -598,8 +598,8 @@ export default function TimeView() {
               <br />
               <br />
               <strong>Vergessen kostet doppelt.</strong> Die Stunde wird nie verrechnet — nicht
-              „später korrigiert", sondern nie —, und in deinem Zeitkonto fehlt sie ebenfalls.
-              Der Betrieb muss die Arbeitszeit ausserdem aufzeichnen (§ 26 AZG); ein Schein
+              „später korrigiert“, sondern nie —, und in deinem Zeitkonto fehlt sie ebenfalls.
+              Der Betrieb muss die Arbeitszeit außerdem aufzeichnen (§ 26 AZG); ein Schein
               erfüllt das nicht.
               <br />
               <br />
@@ -613,12 +613,12 @@ export default function TimeView() {
               <strong>Was der Knopf tut.</strong> Er öffnet das Formular mit Datum, Baustelle,
               Von, Bis und Pause vom Schein. Ergänzen musst du{' '}
               <strong>Anfahrt, Fahrzeug (Kennzeichen)</strong> und die Haken für Nacht,
-              Notdienst und Helfer — unter „Weitere Angaben".
+              Notdienst und Helfer — unter „Weitere Angaben“.
               <br />
               <br />
               <strong>Der Hinweis verschwindet von selbst</strong>, sobald für diesen Tag und
               diese Baustelle ein Eintrag steht. Die Minuten werden nicht verglichen: dein
-              Arbeitstag ist regelmässig länger als die Zeit beim Kunden, und das ist richtig
+              Arbeitstag ist regelmäßig länger als die Zeit beim Kunden, und das ist richtig
               so. Erinnert wird {NACHTRAG_TAGE} Tage lang — was älter ist, klärt das Büro.
             </InfoHint>
           </p>

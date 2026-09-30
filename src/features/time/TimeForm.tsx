@@ -380,7 +380,7 @@ export default function TimeForm({
       return;
     }
     if (status === 'Zeitausgleich' && zaStundenweise && !(endTime > startTime)) {
-      setError('Beim Zeitausgleich muss „Frei bis" nach „Frei von" liegen.');
+      setError('Beim Zeitausgleich muss „Frei bis“ nach „Frei von“ liegen.');
       return;
     }
 
@@ -397,11 +397,11 @@ export default function TimeForm({
       return;
     }
     if (alsKrankmeldung && krankBis < date) {
-      setError('„Krank bis" liegt vor dem Datum.');
+      setError('„Krank bis“ liegt vor dem Datum.');
       return;
     }
     if (alsUrlaubEintrag && urlaubBis < date) {
-      setError('„Urlaub bis" liegt vor dem Datum.');
+      setError('„Urlaub bis“ liegt vor dem Datum.');
       return;
     }
     if (staff && !isEdit && !targetUid) {
@@ -672,7 +672,7 @@ export default function TimeForm({
         <Hinweiszeile stufe="warn" role="alert">
           <p>
             Dieser Tag gehört zu einer Krankmeldung und wird nur über sie geändert: in der Liste auf
-            „Krankmeldung" tippen und dort das Ende ändern oder die Meldung löschen.
+            „Krankmeldung“ tippen und dort das Ende ändern oder die Meldung löschen.
           </p>
         </Hinweiszeile>
       )}
@@ -680,7 +680,7 @@ export default function TimeForm({
         <Hinweiszeile stufe="warn" role="alert">
           <p>
             Dieser Tag gehört zu einem genehmigten Antrag und ändert sich nur über ihn: auf der Seite
-            Urlaub den Antrag zurücknehmen, beim Betriebsurlaub im Reiter „Betriebsurlaub".
+            Urlaub den Antrag zurücknehmen, beim Betriebsurlaub im Reiter „Betriebsurlaub“.
           </p>
         </Hinweiszeile>
       )}
@@ -785,7 +785,7 @@ export default function TimeForm({
       {alsKrankmeldung && (
         <div className="space-y-3 text-sm text-ink-muted">
           <p>
-            Wird als Krankmeldung erfasst: die Arbeitstage bis zum Ende stehen als „Krank" im
+            Wird als Krankmeldung erfasst: die Arbeitstage bis zum Ende stehen als „Krank“ im
             Zeitkonto, das Büro sieht die Meldung. Ist das Ende noch offen, das voraussichtliche
             eintragen — ändern geht später über die Meldung.
           </p>
@@ -805,7 +805,7 @@ export default function TimeForm({
         <div className="space-y-3 text-sm text-ink-muted">
           <p>
             Wird als genehmigter Urlaub eingetragen: die freien Arbeitstage bis zum Ende stehen als
-            „Urlaub" im Zeitkonto und zählen beim Resturlaub. Schon gebuchte Tage bleiben.
+            „Urlaub“ im Zeitkonto und zählen beim Resturlaub. Schon gebuchte Tage bleiben.
           </p>
           <InputField
             id="urlaubBis"

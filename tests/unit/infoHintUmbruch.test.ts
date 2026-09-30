@@ -62,7 +62,7 @@ function funde(datei: string): string[] {
   return raus;
 }
 
-describe('„i" in einer Zeile', () => {
+describe('„i“ in einer Zeile', () => {
   it('steht nie in einer Flex-Zeile ohne Umbruch', () => {
     expect(dateien('src').flatMap(funde)).toEqual([]);
   });

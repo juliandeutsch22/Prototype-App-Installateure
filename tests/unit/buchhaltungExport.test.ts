@@ -99,7 +99,7 @@ describe('Rechnungsausgangsbuch', () => {
       expect(felder[kopf.indexOf('Stornogrund')]).toBe('Stornorechnung zu RE-2026-0002 — Falscher Kunde');
     });
 
-    it('ihre Nummer schliesst den Kreis — sie ist keine Lücke', () => {
+    it('ihre Nummer schließt den Kreis — sie ist keine Lücke', () => {
       const vorher = { ...re('RE-2026-0008', 100), invoiceDate: '2026-09-02' };
       const danach = { ...re('RE-2026-0010', 100), invoiceDate: '2026-09-05' };
       const mit = { ...spaet, stornoNummer: 'RE-2026-0009' };
@@ -271,7 +271,7 @@ describe('Der Leistungszeitraum im Journal', () => {
     expect(felder[3]).toBe('19.12.2026');
   });
 
-  it('sagt, was für ein Beleg es ist — und nennt Altbestand „einzel"', () => {
+  it('sagt, was für ein Beleg es ist — und nennt Altbestand „einzel“', () => {
     /*
       „Netto" einer Schlussrechnung ist das Restentgelt nach Abzug der
       Anzahlungen. Das ist steuerlich richtig und nur erklärbar, wenn

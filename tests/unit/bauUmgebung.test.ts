@@ -90,7 +90,7 @@ describe('Der Bau der ausgelieferten App', () => {
     const inhalt = readFileSync(WORKFLOW, 'utf8');
     const schritte = inhalt.split(/^ {6}- (?:name|uses):/m);
     const pruefung = schritte.find((t) => t.includes('Zugangsdaten vollständig?')) ?? '';
-    expect(pruefung, 'Der Schritt „Zugangsdaten vollständig?" fehlt').not.toEqual('');
+    expect(pruefung, 'Der Schritt „Zugangsdaten vollständig?“ fehlt').not.toEqual('');
 
     // Die Schritte, die ohne ihr Geheimnis nicht einmal anfangen können.
     const unverzichtbar = schritte.filter(

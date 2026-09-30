@@ -111,7 +111,7 @@ export default function KundenImport({ onUebernommen }: { onUebernommen: () => v
         hint={
           <>
             Für den Umstieg: eine CSV-Datei aus dem bisherigen Programm oder aus Excel („Speichern
-            unter" → „CSV (Trennzeichen-getrennt)"). Die erste Zeile nennt die Spalten; erkannt
+            unter" → „CSV (Trennzeichen-getrennt)“). Die erste Zeile nennt die Spalten; erkannt
             werden etwa Firma, Vorname, Nachname, Straße, PLZ, Ort, Telefon, E-Mail, UID und Notiz.
             Eingelesen wird die Datei <strong>zuerst nur angesehen</strong> — übernommen wird erst
             auf Bestätigung, und Kunden, die es schon gibt, werden nicht doppelt angelegt.

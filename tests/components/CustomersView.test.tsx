@@ -250,7 +250,7 @@ describe('Kundenverwaltung', () => {
     );
   });
 
-  it('trägt Bearbeiten und Löschen im „⋯", wie die Baustellen (Launch-Check 25.09.2026)', async () => {
+  it('trägt Bearbeiten und Löschen im „⋯“, wie die Baustellen (Launch-Check 25.09.2026)', async () => {
     // jsdom kennt kein Scrollen; die Ansicht springt beim Bearbeiten nach oben.
     window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
     zeichne();

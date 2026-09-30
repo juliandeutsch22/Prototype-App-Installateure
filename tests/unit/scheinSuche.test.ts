@@ -58,7 +58,7 @@ describe('Was der Suchbegriff meint', () => {
     Normalisierung fände die Abfrage genau die alten Scheine nicht, um die es
     bei dieser Suche geht.
   */
-  it('nimmt das alte „PR-" weg', () => {
+  it('nimmt das alte „PR-“ weg', () => {
     expect(deuteSuche('PR-2026-042')).toEqual({ art: 'baustelle', nummer: '2026-042' });
     expect(deuteSuche('pr-2026-042')).toEqual({ art: 'baustelle', nummer: '2026-042' });
   });
@@ -76,7 +76,7 @@ describe('Was der Suchbegriff meint', () => {
   */
   it('sagt beim Namen, dass der Server nach Kundenname oder Notiz sucht', () => {
     const hinweis = suchHinweis(deuteSuche('Huber'));
-    expect(hinweis).toBe('Auf dem Server nach Kundenname oder Notiz „Huber" suchen');
+    expect(hinweis).toBe('Auf dem Server nach Kundenname oder Notiz „Huber“ suchen');
     expect(hinweis).not.toMatch(/nur im geladenen Bestand/);
   });
 

@@ -196,7 +196,7 @@ describe('Lager — was ist wirklich frei?', () => {
     expect(within(zeilen[1]).getByText('Abflussrohr')).toBeInTheDocument();
   });
 
-  it('sagt „fehlen" statt eines negativen „frei" (Launch-Check, K2)', async () => {
+  it('sagt „fehlen“ statt eines negativen „frei“ (Launch-Check, K2)', async () => {
     materialien = [material({ id: 'm1', stock: 74 })];
     anforderungen = [anforderung({ id: 'o1', materialId: 'm1', quantity: 999 })];
     zeige();
@@ -282,7 +282,7 @@ describe('Lager — Wareneingang', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('bleibt bei einem Fehlschlag offen und sagt es — statt „eingebucht" zu melden', async () => {
+  it('bleibt bei einem Fehlschlag offen und sagt es — statt „eingebucht“ zu melden', async () => {
     materialien = [material({ id: 'm1', stock: 20 })];
     bestandAendern.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     zeige();
@@ -336,7 +336,7 @@ describe('Lager — Inventur und Bewegungen', () => {
 });
 
 describe('Lager — wenn ein Ladevorgang scheitert', () => {
-  it('nennt die fehlenden Anforderungen, statt „nichts reserviert" zu zeigen', async () => {
+  it('nennt die fehlenden Anforderungen, statt „nichts reserviert“ zu zeigen', async () => {
     /**
      * Der Fehlerweg war einmal `() => undefined`. Scheiterte die Abfrage,
      * blieb die Liste leer und die Ansicht meldete null Reservierungen — die

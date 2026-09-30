@@ -168,7 +168,7 @@ export default function PersonPicker({
                 {/* Warum die Liste leer ist, muss dabeistehen: sonst sieht ein
                     gesetzter Filter aus wie „niemand vorhanden". */}
                 {q.trim()
-                  ? `Kein Name passt zu „${q}".`
+                  ? `Kein Name passt zu „${q}“.`
                   : 'Niemand ist an diesem Tag frei. Der Filter blendet die Belegten aus.'}
               </p>
             ) : (

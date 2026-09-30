@@ -78,14 +78,14 @@ beforeEach(() => {
 });
 
 describe('Baustelle beim Buchen', () => {
-  it('bucht „Anwesend" nicht ohne Baustelle, auch wenn kein Auswahlfeld prüft', async () => {
+  it('bucht „Anwesend“ nicht ohne Baustelle, auch wenn kein Auswahlfeld prüft', async () => {
     zeichne();
     fireEvent.click(screen.getByRole('button', { name: /buchen|speichern/i }));
     expect(await screen.findByText('Bitte eine Baustelle wählen.')).toBeInTheDocument();
     expect(buchen).not.toHaveBeenCalled();
   });
 
-  it('übernimmt mit „Wie zuletzt" auch den Kundennamen', async () => {
+  it('übernimmt mit „Wie zuletzt“ auch den Kundennamen', async () => {
     zeichne(letzter);
     fireEvent.click(screen.getByRole('button', { name: /Wie zuletzt/ }));
     fireEvent.click(screen.getByRole('button', { name: /buchen|speichern/i }));

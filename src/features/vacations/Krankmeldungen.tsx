@@ -164,7 +164,7 @@ export function KrankmeldungListe({
         confirmLabel="Löschen"
         message={
           loeschen
-            ? `${mitNamen ? `${loeschen.userName}, ` : ''}${zeitraumText(loeschen.von, loeschen.bis)} — die Meldung und die Krank-Tage, die sie eingetragen hat, verschwinden aus dem Zeitkonto. Gedacht für eine irrtümliche Meldung; ist jemand früher gesund, bitte „Ende ändern".`
+            ? `${mitNamen ? `${loeschen.userName}, ` : ''}${zeitraumText(loeschen.von, loeschen.bis)} — die Meldung und die Krank-Tage, die sie eingetragen hat, verschwinden aus dem Zeitkonto. Gedacht für eine irrtümliche Meldung; ist jemand früher gesund, bitte „Ende ändern“.`
             : ''
         }
         onCancel={() => setLoeschen(null)}
@@ -219,7 +219,7 @@ export function KrankmeldungKarte({
   return (
     <Card
       title="Krankmeldung"
-      action={<Button variant="ghost" onClick={onSchliessen}>Schliessen</Button>}
+      action={<Button variant="ghost" onClick={onSchliessen}>Schließen</Button>}
     >
       {meldung === 'laedt' ? (
         <SkeletonList rows={1} />
@@ -324,7 +324,7 @@ export function KrankenstaendeReiter({ companyId, meinName }: { companyId: strin
         title="Krankmeldung erfassen"
         hint={
           <>
-            Für jemanden, der sich telefonisch krank meldet. Eingetragen wird „Krank" an den
+            Für jemanden, der sich telefonisch krank meldet. Eingetragen wird „Krank“ an den
             Arbeitstagen des Zeitraums; Tage, an denen schon gearbeitet oder Urlaub gebucht ist,
             bleiben, wie sie sind. Eine Diagnose gehört nicht in die Anmerkung — Krankenstände sind
             Gesundheitsdaten und nur für die Person selbst und das Büro sichtbar.

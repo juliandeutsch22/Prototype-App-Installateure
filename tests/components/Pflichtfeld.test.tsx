@@ -31,7 +31,7 @@ describe('Ein Pflichtfeld', () => {
     mitraten, in der App wie im Test. Genau daran sind beim Einbau fünfzehn
     bestehende Tests hängengeblieben.
   */
-  it('heisst trotzdem nur „Von"', () => {
+  it('heißt trotzdem nur „Von“', () => {
     render(<InputField id="a" label="Von" pflicht />);
     expect(screen.getByLabelText('Von')).toBeInTheDocument();
     expect(screen.queryByLabelText('Von *')).toBeNull();

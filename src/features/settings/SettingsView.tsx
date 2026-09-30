@@ -8,6 +8,7 @@ import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { isTopLevel } from '@/lib/permissions';
 import type { AppUser, InvoiceRates } from '@/types';
 import Card from '@/components/Card';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import Hinweiszeile from '@/components/Hinweiszeile';
 import LohnregelnKarte from './LohnregelnKarte';
 import BasiszinsVerlauf from './BasiszinsVerlauf';
@@ -75,6 +76,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   const { user, company, reloadCompany } = useAuth();
   const toast = useToast();
   const [rates, setRates] = useState<InvoiceRates>(INVOICE_DEFAULTS);
+  const [zuruecksetzenFragen, setZuruecksetzenFragen] = useState(false);
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   const [steuerbefreiungVorgabe, setSteuerbefreiungVorgabe] = useState('');
   /**
@@ -703,15 +705,33 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           <Button type="submit" loading={saving} className="w-full sm:w-auto">
             Sätze speichern
           </Button>
+          {/*
+            ERST FRAGEN, DANN SAGEN, WAS PASSIERT IST (Testbericht 30.09.2026,
+            G11): der Knopf setzte die Felder still zurück, und niemand sah,
+            dass das noch nicht gespeichert war.
+          */}
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setRates(INVOICE_DEFAULTS)}
+            onClick={() => setZuruecksetzenFragen(true)}
             className="w-full sm:w-auto"
           >
             Auf Standardwerte zurücksetzen
           </Button>
         </div>
+        <ConfirmDialog
+          open={zuruecksetzenFragen}
+          title="Auf Standardwerte zurücksetzen?"
+          message="Stundensätze, Zuschläge und Rechnungsvorgaben dieser Seite stehen danach auf den Werten ab Werk. Gespeichert wird erst mit „Sätze speichern“."
+          confirmLabel="Zurücksetzen"
+          confirmTone="primary"
+          onCancel={() => setZuruecksetzenFragen(false)}
+          onConfirm={() => {
+            setRates(INVOICE_DEFAULTS);
+            setZuruecksetzenFragen(false);
+            toast.info('Standardwerte eingesetzt — noch nicht gespeichert');
+          }}
+        />
       </form>
       )}
 
@@ -969,7 +989,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
 
           <p className="mt-4 text-sm text-ink-muted">
             Großbuchstaben, Ziffern, Bindestrich, höchstens {PRAEFIX_MAX} Zeichen. Leer heißt
-            „kein Vorsatz" — dann zählt der Kreis als
+            „kein Vorsatz“ — dann zählt der Kreis als
             <span> {belegNummer('', new Date().getFullYear(), 1001)}</span>.
           </p>
 
@@ -1058,9 +1078,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
         title="Wochenplan und Einsatzplan"
         hint={
           <>
-            Eingeschaltet finden alle Mitarbeiter unter „Mein Einsatzplan" eine zweite Seite
-            „Team-Woche": wer an welchem Tag auf welcher Baustelle ist. Zu ändern gibt es dort
-            nichts. Wer Urlaub hat, steht als „abwesend" da — ohne Grund und ohne Antragsstand.
+            Eingeschaltet finden alle Mitarbeiter unter „Mein Einsatzplan“ eine zweite Seite
+            „Team-Woche“: wer an welchem Tag auf welcher Baustelle ist. Zu ändern gibt es dort
+            nichts. Wer Urlaub hat, steht als „abwesend“ da — ohne Grund und ohne Antragsstand.
             Die Projektleitung lässt sich zusätzlich wie ein Monteur einteilen; sie sieht dann
             „Mein Einsatzplan“.
           </>

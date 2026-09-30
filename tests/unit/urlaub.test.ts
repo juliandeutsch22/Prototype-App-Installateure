@@ -114,7 +114,7 @@ describe('Wer Urlaub entscheiden darf', () => {
     expect(darfUrlaubEntscheiden('Buchhaltung', 'buch', ['buero'])).toBe(false);
   });
 
-  it('laesst einen Monteur nie entscheiden — ausser er steht drauf', () => {
+  it('laesst einen Monteur nie entscheiden — außer er steht drauf', () => {
     expect(darfUrlaubEntscheiden('Mitarbeiter', 'm1', undefined)).toBe(false);
     expect(darfUrlaubEntscheiden('Mitarbeiter', 'm1', ['jemand'])).toBe(false);
     // Ein Vorarbeiter, den die Geschaeftsfuehrung ausdruecklich eintraegt.

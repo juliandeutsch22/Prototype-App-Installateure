@@ -103,7 +103,7 @@ describe('Zeitausgleich — was gebucht wird', () => {
     });
   });
 
-  it('lehnt „bis vor von" ab, statt es zu buchen', async () => {
+  it('lehnt „bis vor von“ ab, statt es zu buchen', async () => {
     zeichne();
     await userEvent.selectOptions(screen.getByLabelText('Status'), 'Zeitausgleich');
     await userEvent.click(screen.getByLabelText('Nur einige Stunden'));
@@ -111,7 +111,7 @@ describe('Zeitausgleich — was gebucht wird', () => {
     await userEvent.clear(bis);
     await userEvent.type(bis, '06:00');
     await userEvent.click(screen.getByRole('button', { name: 'Zeit buchen' }));
-    expect(await screen.findByText(/„Frei bis" nach „Frei von"/)).toBeInTheDocument();
+    expect(await screen.findByText(/„Frei bis“ nach „Frei von“/)).toBeInTheDocument();
     expect(anlegen).not.toHaveBeenCalled();
   });
 });

@@ -135,7 +135,7 @@ describe('Meine Baustellen', () => {
     ).toBeInTheDocument();
   });
 
-  it('unterscheidet einen Ladefehler von „keine Baustellen"', async () => {
+  it('unterscheidet einen Ladefehler von „keine Baustellen“', async () => {
     /*
       Beide sehen im Code gleich aus und heissen das Gegenteil. Wer die
       Störung als Aussage liest, fährt nirgendwo hin.

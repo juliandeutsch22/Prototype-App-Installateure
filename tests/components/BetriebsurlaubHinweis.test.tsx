@@ -22,7 +22,7 @@ describe('Betriebsurlaub beim Baustellendatum', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Weihnachten (28.12.–31.12.)');
   });
 
-  it('schweigt ausserhalb', async () => {
+  it('schweigt außerhalb', async () => {
     render(<BetriebsurlaubHinweis companyId="perl" von="2026-11-02" bis="2026-11-20" />);
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByRole('status')).toBeNull();

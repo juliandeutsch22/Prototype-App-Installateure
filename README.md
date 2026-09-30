@@ -104,7 +104,7 @@ In der App legt die Geschäftsführung oder die Administration Mitarbeiter unter
 
 Vorher rief die App `auth.signUp` — aus dem Browser, mit dem **öffentlichen**
 Schlüssel. Das verlangt im Projekt unter *Authentication → Sign In / Providers
-→ Email* den Schalter **„Allow new users to sign up"**, und der gehört
+→ Email* den Schalter **„Allow new users to sign up“**, und der gehört
 **ausgeschaltet**: der öffentliche Schlüssel steht im ausgelieferten
 JavaScript, und eingeschaltet könnte sich jeder, der ihn dort abliest, selbst
 ein Konto anlegen.
@@ -171,7 +171,7 @@ durch war. Jetzt gilt:
 | `**` | `no-cache` | Einstieg (`index.html`), Manifest, Service Worker: bei jedem Aufruf gegenprüfen |
 | `/assets/**` | `public, max-age=31536000, immutable` | Vite hängt einen Hash an jeden Dateinamen — eine geänderte Datei heißt anders und kann nie veraltet ausgeliefert werden |
 
-`no-cache` heißt nicht „gar nicht speichern", sondern „vor Benutzung
+`no-cache` heißt nicht „gar nicht speichern“, sondern „vor Benutzung
 rückfragen"; unverändert antwortet der Server mit 304 und schickt keine Daten.
 
 Die Reihenfolge ist nicht beliebig: **die letzte passende Regel gewinnt.**
@@ -190,8 +190,8 @@ unten.
   `tests/supabase/schema.test.ts` fragt die Datenbank danach, statt eine Liste
   zu pflegen — eine neue Tabelle ist damit automatisch geprüft oder fällt
   durch.
-- **Eine Zeile, die man nicht sehen darf, ist nicht „verboten", sondern nicht
-  vorhanden.** Fehlender und fremder Datensatz sehen von aussen gleich aus.
+- **Eine Zeile, die man nicht sehen darf, ist nicht „verboten“, sondern nicht
+  vorhanden.** Fehlender und fremder Datensatz sehen von außen gleich aus.
 
 ```bash
 npm run stack && npm run supabase:test

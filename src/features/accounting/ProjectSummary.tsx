@@ -340,7 +340,7 @@ export default function ProjectSummary({
                                 </span>
                               </td>
                               <td className="py-1 pr-3 text-ink-muted">
-                                {e.comment ? `„${e.comment}"` : '–'}
+                                {e.comment ? `„${e.comment}“` : '–'}
                               </td>
                               <td className="py-1 text-right">
                                 {fmtMin(calcWorkMin(e))}

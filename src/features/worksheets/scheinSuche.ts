@@ -75,6 +75,6 @@ export function suchHinweis(absicht: Suchabsicht): string {
     case 'zeitraum':
       return `Auf dem Server nach Scheinen aus ${absicht.text} suchen`;
     default:
-      return `Auf dem Server nach Kundenname oder Notiz „${absicht.text}" suchen`;
+      return `Auf dem Server nach Kundenname oder Notiz „${absicht.text}“ suchen`;
   }
 }

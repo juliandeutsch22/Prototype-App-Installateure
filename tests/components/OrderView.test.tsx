@@ -165,7 +165,7 @@ describe('Material anfordern — der Warenkorb', () => {
     });
   });
 
-  it('lässt die Namensspalte bei „Nicht im Katalog?" schrumpfen (P4-02)', async () => {
+  it('lässt die Namensspalte bei „Nicht im Katalog?“ schrumpfen (P4-02)', async () => {
     /*
       Prüflauf 25.09.2026, P4-02: `grid-cols-[1fr_5rem]` — `1fr` heißt
       `minmax(auto,1fr)` und gibt nicht unter die Eigenbreite des
@@ -433,7 +433,7 @@ describe('Material anfordern — Retoure', () => {
     expect(retoure).not.toHaveBeenCalled();
   });
 
-  it('gibt Zustand und Menge weiter — nur „neu" wird gutgeschrieben', async () => {
+  it('gibt Zustand und Menge weiter — nur „neu“ wird gutgeschrieben', async () => {
     zeige();
     await userEvent.click(screen.getByRole('tab', { name: 'Retoure' }));
     await userEvent.type(await screen.findByRole('searchbox', { name: /^Material/ }), 'KR15');
@@ -487,7 +487,7 @@ describe('Material anfordern — gescheiterte Ladevorgänge', () => {
 });
 
 describe('Material anfordern — die eigene Verfolgung', () => {
-  it('bietet „Abgeholt" bei JEDER eigenen offenen Anforderung an', async () => {
+  it('bietet „Abgeholt“ bei JEDER eigenen offenen Anforderung an', async () => {
     /**
      * AUS DEM BETRIEB GEWUENSCHT, und die Begruendung ueberzeugt: der Status
      * ist eine Absichtserklaerung der Verwaltung, kein Tatsachenbericht. Wer
@@ -522,7 +522,7 @@ describe('Material anfordern — die eigene Verfolgung', () => {
     zeige();
     await userEvent.click(screen.getByRole('tab', { name: /Meine Bestellungen/ }));
     expect(await screen.findByText('nicht im Lager — wird bestellt')).toBeInTheDocument();
-    expect(screen.getByText('beim Grosshändler bestellt')).toBeInTheDocument();
+    expect(screen.getByText('beim Großhändler bestellt')).toBeInTheDocument();
     // Geliefert: kein Hinweis mehr — es liegt im Lager.
     expect(screen.getAllByText(/bestellt/)).toHaveLength(2);
   });

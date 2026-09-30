@@ -812,7 +812,7 @@ export default function AssignmentsView() {
                 <Hinweiszeile stufe="warn" role="alert">
                   <p>
                     <strong>Noch nicht auf der Rüstliste:</strong> {offeneRuestzeile}. Bitte
-                    „Hinzufügen" oder das Feld leeren.
+                    „Hinzufügen“ oder das Feld leeren.
                   </p>
                 </Hinweiszeile>
               </div>

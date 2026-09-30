@@ -65,7 +65,7 @@ describe('Zuschlagsstunden', () => {
     nichts beizutragen. Stünden sie mit drin, wäre die Zuschlagssumme höher
     als die Ist-Zeit — eine Zahl, die niemand erklären kann.
   */
-  it('lässt Abwesenheiten und leere Zeilen draussen', () => {
+  it('lässt Abwesenheiten und leere Zeilen draußen', () => {
     const z = zuschlagszeit([
       entry({ status: 'Krank', isNightWork: true }),
       entry({ status: 'Urlaub', isEmergency: true }),
@@ -81,7 +81,7 @@ describe('Zuschlagsstunden', () => {
     expect(hatZuschlaege({ ...LEERE_ZUSCHLAEGE, dezemberMin: 60 })).toBe(true);
   });
 
-  it('schreibt „Ja" statt eines Kreuzes', () => {
+  it('schreibt „Ja“ statt eines Kreuzes', () => {
     // Ausgedruckt auf einem Schreibtisch ist ein „x" ein Fleck.
     expect(kennzeichen(true)).toBe('Ja');
     expect(kennzeichen(false)).toBe('');

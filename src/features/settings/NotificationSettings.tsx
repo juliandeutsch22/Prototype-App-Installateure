@@ -32,7 +32,7 @@ const PUSH_TEXT: Record<PushState, { text: string; ton: 'ok' | 'hinweis' | 'aus'
   'ios-installation-noetig': {
     text:
       'Auf dem iPhone gibt es Benachrichtigungen nur, wenn die App zum Home-Bildschirm ' +
-      'hinzugefügt wurde: in Safari auf „Teilen" und dann „Zum Home-Bildschirm".',
+      'hinzugefügt wurde: in Safari auf „Teilen“ und dann „Zum Home-Bildschirm“.',
     ton: 'hinweis',
   },
   'nicht-konfiguriert': {
@@ -270,7 +270,7 @@ export default function NotificationSettings() {
       {user && isGF(user.role) && (
         <Card
           title="Kommen die Meldungen an?"
-          hint="Stündlich nachgesehen: von den Meldungen, die angestossen wurden, wie viele haben den Versand nicht verlassen. Keine Frist — Push läuft, wenn es etwas zu melden gibt, und ein ruhiger Tag ist kein Befund."
+          hint="Stündlich nachgesehen: von den Meldungen, die angestoßen wurden, wie viele haben den Versand nicht verlassen. Keine Frist — Push läuft, wenn es etwas zu melden gibt, und ein ruhiger Tag ist kein Befund."
         >
           <PushStatus />
         </Card>

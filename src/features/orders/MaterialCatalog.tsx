@@ -301,13 +301,13 @@ export default function MaterialCatalog({
                 ))}
               </datalist>
               <p className="mt-1 flex flex-wrap items-center gap-1 text-xs text-ink-muted">
-                Das Wort hinter der Zahl — „100 Stk", „30 m".
+                Das Wort hinter der Zahl — „100 Stk“, „30 m“.
                 <InfoHint about="die Einheit">
                   Sie beschriftet nur die Menge: im Katalog, im Lager und beim Wareneingang.
                   Auf Rechnungen und Angeboten wirkt sie nicht — dort trägt jede Position ihre
-                  eigene Einheit. <strong>Eine Abmessung gehört nicht hierher</strong>: aus „20cm"
-                  wird im Bestand „100 20cm frei". Die Größe gehört in die Bezeichnung
-                  („Kupferrohr 20 cm") oder in die Artikelnummer.
+                  eigene Einheit. <strong>Eine Abmessung gehört nicht hierher</strong>: aus „20cm“
+                  wird im Bestand „100 20cm frei“. Die Größe gehört in die Bezeichnung
+                  („Kupferrohr 20 cm“) oder in die Artikelnummer.
                 </InfoHint>
               </p>
             </div>
@@ -405,7 +405,7 @@ export default function MaterialCatalog({
             >
               {materials.length === 0
                 ? 'Noch kein Material im Katalog. Was der Monteur anfordern kann, muss hier stehen.'
-                : `Kein Material passt zu „${search}".`}
+                : `Kein Material passt zu „${search}“.`}
             </EmptyState>
           ) : (
             <List>
@@ -461,7 +461,7 @@ export default function MaterialCatalog({
         title="Material löschen?"
         message={
           toDelete
-            ? `„${toDelete.name}" wird aus dem Katalog entfernt. Bereits erfasste Bestellungen bleiben erhalten.`
+            ? `„${toDelete.name}“ wird aus dem Katalog entfernt. Bereits erfasste Bestellungen bleiben erhalten.`
             : ''
         }
         onCancel={() => setToDelete(null)}

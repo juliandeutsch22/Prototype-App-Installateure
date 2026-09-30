@@ -373,7 +373,7 @@ export default function AdminOrdersView() {
           ) : rows.length === 0 ? (
             <EmptyState>
               {suche
-                ? `Nichts passt zu „${suche}".`
+                ? `Nichts passt zu „${suche}“.`
                 : tab === 'retouren'
                   ? 'Keine Retouren erfasst.'
                   : tab === 'archiv'
@@ -477,7 +477,7 @@ export default function AdminOrdersView() {
                           items={[
                             ...(o.transactionType !== 'return' && busyId !== o.id
                               ? ORDER_STATUS_FLOW.filter((st) => st !== o.status).map((st) => ({
-                                  label: `Auf „${st}" setzen`,
+                                  label: `Auf „${st}“ setzen`,
                                   onSelect: () => {
                                     if (st === 'Erledigt') setToComplete(o);
                                     else void setStatus(o, st);
@@ -524,7 +524,7 @@ export default function AdminOrdersView() {
         confirmTone="primary"
         message={
           einkaufFragen
-            ? `„${einkaufFragen.o.materialName}" ×${einkaufFragen.o.quantity} ist nicht im Lager und wird beim Grosshändler bestellt.`
+            ? `„${einkaufFragen.o.materialName}“ ×${einkaufFragen.o.quantity} ist nicht im Lager und wird beim Großhändler bestellt.`
             : ''
         }
         onCancel={() => setEinkaufFragen(null)}
@@ -544,7 +544,7 @@ export default function AdminOrdersView() {
         {einkaufFragen && (
           <SelectField
             id="einkauf-bei"
-            label="Grosshändler"
+            label="Großhändler"
             value={einkaufFragen.bei}
             onChange={(e) => setEinkaufFragen({ ...einkaufFragen, bei: e.target.value })}
           >
@@ -576,7 +576,7 @@ export default function AdminOrdersView() {
       <ConfirmDialog
         open={!!toDelete}
         title="Eintrag löschen?"
-        message={toDelete ? `„${toDelete.materialName}" ×${toDelete.quantity} wird entfernt.` : ''}
+        message={toDelete ? `„${toDelete.materialName}“ ×${toDelete.quantity} wird entfernt.` : ''}
         onCancel={() => setToDelete(null)}
         onConfirm={async () => {
           if (toDelete) {

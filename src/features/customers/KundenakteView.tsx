@@ -445,7 +445,7 @@ export default function KundenakteView() {
         namensgleich.length === 0 && (
           <p className="mt-2 text-xs text-ink-muted">
             Gesucht wurde nach exakt „{k.name}". Bei abweichender Schreibweise hilft
-            „Bestehende Baustellen übernehmen" in der Kundenliste.
+            „Bestehende Baustellen übernehmen“ in der Kundenliste.
           </p>
         )}
     </Card>

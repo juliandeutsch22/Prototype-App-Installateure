@@ -135,7 +135,8 @@ export default function UserMgmtView() {
     () => ({
       total: users.length,
       active: users.filter((u) => u.active !== false).length,
-      field: users.filter((u) => u.role === 'Mitarbeiter').length,
+      // Draußen sind Monteure und Projektleitung (G32) — nicht nur die Rolle Mitarbeiter.
+      field: users.filter((u) => u.role === 'Mitarbeiter' || u.role === 'Projektleiter').length,
     }),
     [users],
   );
@@ -328,7 +329,7 @@ export default function UserMgmtView() {
                   Ohne E-Mail: das Startpasswort gibst du persönlich weiter.
                   <InfoHint about="Benutzername">
                     Erlaubt sind Kleinbuchstaben a–z, Ziffern, Punkt, Bindestrich und
-                    Unterstrich, 3 bis 40 Zeichen — also „ue" statt „ü". Der Name gilt über
+                    Unterstrich, 3 bis 40 Zeichen — also „ue“ statt „ü“. Der Name gilt über
                     alle Betriebe in Senklot; ist er schon vergeben, einfach einen anderen
                     wählen. Ein vergessenes Passwort lässt sich nicht per Mail zurücksetzen:
                     Geschäftsführung oder Administration vergeben in der Benutzerakte ein
@@ -550,7 +551,7 @@ export default function UserMgmtView() {
                   </p>
                   <p className="mt-2">
                     War der Anspruch am Startdatum unangetastet, den vollen Jahresanspruch
-                    eintragen. Beim Umstieg ist das Feld Pflicht: leer hiess früher „voller
+                    eintragen. Beim Umstieg ist das Feld Pflicht: leer hieß früher „voller
                     Anspruch", und das stimmte selten.
                   </p>
                 </InfoHint>
@@ -643,7 +644,7 @@ export default function UserMgmtView() {
           </EmptyState>
         ) : gefiltert.length === 0 ? (
           <EmptyState>
-            {suche ? `Niemand passt zu „${suche}".` : 'Kein Benutzer in dieser Auswahl.'}
+            {suche ? `Niemand passt zu „${suche}“.` : 'Kein Benutzer in dieser Auswahl.'}
           </EmptyState>
         ) : (
           <div>

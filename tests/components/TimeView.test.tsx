@@ -288,7 +288,7 @@ describe('Zeiterfassung — wenn etwas nicht lädt', () => {
   });
 });
 
-describe('Zeiterfassung — die Kachel „Diese Woche"', () => {
+describe('Zeiterfassung — die Kachel „Diese Woche“', () => {
   it('summiert die TATSÄCHLICHE Kalenderwoche, nicht die letzte mit Buchungen', async () => {
     /**
      * Ein gemeldeter Fehler von früher: genommen wurde die neueste Woche MIT
@@ -509,7 +509,7 @@ describe('Offene Nachtragungen', () => {
     expect(formular.textContent).toContain('"endTime":"11:00"');
   });
 
-  it('sagt im „i", was noch zu ergänzen ist', async () => {
+  it('sagt im „i“, was noch zu ergänzen ist', async () => {
     /*
       Anfahrt und Fahrzeug (Kennzeichen) kennt der Schein nicht — und genau
       deshalb wird der Eintrag NICHT automatisch erzeugt. Stünde das nirgends,
@@ -697,7 +697,7 @@ describe('Zeiterfassung — vom Büro gebuchter Zeitausgleich (Prüflauf 25.09.2
   });
 });
 
-describe('Zeiterfassung — „Zu meinen Einträgen" (Prüflauf 25.09.2026, P4-16)', () => {
+describe('Zeiterfassung — „Zu meinen Einträgen“ (Prüflauf 25.09.2026, P4-16)', () => {
   it('rollt nicht nur hin, sondern nimmt den Fokus mit', async () => {
     /*
       Vorher rollte nur das Bild. Tastatur und Vorlesehilfe blieben oben am

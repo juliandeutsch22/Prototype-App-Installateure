@@ -62,7 +62,7 @@ beforeEach(() => {
 });
 
 describe('Speichern', () => {
-  it('schreibt eine geleerte Angabe als leer, nicht als „unverändert"', async () => {
+  it('schreibt eine geleerte Angabe als leer, nicht als „unverändert“', async () => {
     /*
       DER TEURE FALL. Liesse die Ansicht das Feld einfach weg, bliebe die alte
       UID-Nummer im Firmendokument stehen — und damit auf jeder Rechnung, die

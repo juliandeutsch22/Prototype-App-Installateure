@@ -203,7 +203,7 @@ export default function NachkalkulationView() {
     <div className="space-y-3 lg:space-y-5">
       <PageHeader
         title="Nachkalkulation"
-        subtitle="Erlös gegen Personalkosten — je Baustelle"
+        subtitle="Erlös gegen Personal- und Materialkosten — je Baustelle"
       />
 
       {/*
@@ -221,7 +221,7 @@ export default function NachkalkulationView() {
         <Hinweiszeile stufe="warn">
           <p>
             Der Materialstamm wurde nur bis zur Obergrenze geladen ({katalog.length} Artikel).
-            Artikel darüber hinaus erscheinen unten als „ohne Einkaufspreis", obwohl einer
+            Artikel darüber hinaus erscheinen unten als „ohne Einkaufspreis“, obwohl einer
             hinterlegt sein kann — der Deckungsbeitrag ist dann zu hoch ausgewiesen.
           </p>
         </Hinweiszeile>

@@ -167,7 +167,7 @@ describe('Die Stammdaten für alle, die nur lesen', () => {
     expect(notiz.className).toContain('whitespace-pre-line');
   });
 
-  it('sagt „nicht hinterlegt", statt die Zeile wegzulassen', async () => {
+  it('sagt „nicht hinterlegt“, statt die Zeile wegzulassen', async () => {
     /*
       Eine Akte ohne UID sähe sonst genauso aus wie eine, in der das Feld gar
       nicht vorgesehen ist — und niemand käme auf die Idee, sie nachzutragen.
@@ -249,7 +249,7 @@ describe('Baustellen', () => {
     expect(screen.queryByRole('button', { name: 'Zuordnen' })).toBeNull();
   });
 
-  it('unterscheidet einen Ladefehler von „keine Baustelle"', async () => {
+  it('unterscheidet einen Ladefehler von „keine Baustelle“', async () => {
     // Umgezogen. „Konnte nicht geladen werden" und „es gibt keine" sind
     // verschiedene Aussagen; sie gleich aussehen zu lassen war der Grund,
     // warum der Fehler so lange unbemerkt blieb.
@@ -384,7 +384,7 @@ describe('Die Stammdaten bearbeiten — in der Akte statt woanders', () => {
     expect(updateCustomer).not.toHaveBeenCalled();
   });
 
-  it('stellt mit „Verwerfen" den gespeicherten Stand wieder her', async () => {
+  it('stellt mit „Verwerfen“ den gespeicherten Stand wieder her', async () => {
     const bediener = userEvent.setup();
     zeige();
     const feld = await screen.findByLabelText('UID-Nummer');

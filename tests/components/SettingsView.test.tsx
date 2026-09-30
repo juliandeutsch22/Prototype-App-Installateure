@@ -310,7 +310,7 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
     expect(screen.getByText(`Nächste: B-${jahr}-0005`)).toBeInTheDocument();
   });
 
-  it('sagt ausdrücklich „z. B.", wenn die nächste Nummer nicht geladen werden kann', async () => {
+  it('sagt ausdrücklich „z. B.“, wenn die nächste Nummer nicht geladen werden kann', async () => {
     naechsteNummern.mockRejectedValueOnce(new Error('offline'));
     zeige('nummern');
     const jahr = new Date().getFullYear();
@@ -412,5 +412,18 @@ describe('Rechnungsvorgaben (Reiter der Buchhaltung)', () => {
     };
     zeige('rechnung');
     expect(await screen.findByText(/Für das laufende Halbjahr .* ist kein Satz eingetragen/)).toBeInTheDocument();
+  });
+});
+
+// Testbericht 30.09.2026, G11 — Zurücksetzen fragt nach und sagt, was passiert ist.
+describe('Auf Standardwerte zurücksetzen', () => {
+  it('fragt erst und meldet dann „noch nicht gespeichert“', async () => {
+    const nutzer = userEvent.setup();
+    zeige('saetze');
+    await nutzer.click(await screen.findByRole('button', { name: 'Auf Standardwerte zurücksetzen' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(/Gespeichert wird erst mit „Sätze speichern“/);
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Zurücksetzen' }));
+    expect(await screen.findByText(/Standardwerte eingesetzt — noch nicht gespeichert/)).toBeInTheDocument();
   });
 });

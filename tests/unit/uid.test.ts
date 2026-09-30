@@ -36,7 +36,7 @@ describe('uidFehler', () => {
     }
   });
 
-  it('Gegenprobe: ausserhalb der EU gilt nur die grobe Form, leer ist kein Fehler', () => {
+  it('Gegenprobe: außerhalb der EU gilt nur die grobe Form, leer ist kein Fehler', () => {
     expect(uidFehler('CHE-123.456.789')).toBeNull();
     expect(uidFehler('NO123456789MVA')).toBeNull();
     expect(uidFehler('')).toBeNull();
@@ -46,7 +46,7 @@ describe('uidFehler', () => {
 });
 
 describe('uidNormalisieren', () => {
-  it('Grossbuchstaben ohne Leerzeichen, Punkte und Bindestriche', () => {
+  it('Großbuchstaben ohne Leerzeichen, Punkte und Bindestriche', () => {
     expect(uidNormalisieren(' atu 1234.5678 ')).toBe('ATU12345678');
     expect(uidNormalisieren('CHE-123.456.789')).toBe('CHE123456789');
   });

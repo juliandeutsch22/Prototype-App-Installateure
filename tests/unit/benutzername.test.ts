@@ -44,7 +44,7 @@ describe('Die Kunstadresse', () => {
 
 describe('Welche Namen gehen', () => {
   it.each(['manfred', 'manfred.huber', 'm_huber', 'hans-2', 'abc', 'a'.repeat(40)])(
-    '„%s" geht', (n) => expect(benutzernameFehler(n)).toBeNull(),
+    '„%s“ geht', (n) => expect(benutzernameFehler(n)).toBeNull(),
   );
 
   it.each([
@@ -57,7 +57,7 @@ describe('Welche Namen gehen', () => {
     ['.max', /beginnen und enden/],
     ['max-', /beginnen und enden/],
     ['max..huber', /Zwei Punkte/],
-  ])('„%s" geht nicht', (n, grund) => {
+  ])('„%s“ geht nicht', (n, grund) => {
     expect(benutzernameFehler(n)).toMatch(grund);
   });
 });
@@ -78,7 +78,7 @@ describe('E-Mail mit Domain-Endung (Testbericht 30.09.2026, G12)', () => {
 });
 
 describe('Startpasswort ohne festes Muster (Testbericht 30.09.2026, G12)', () => {
-  it('endet nicht immer gleich und hat Gross-, Kleinbuchstaben und Ziffern', async () => {
+  it('endet nicht immer gleich und hat Groß-, Kleinbuchstaben und Ziffern', async () => {
     const { generatePassword } = await import('@/lib/auth/provisionUser');
     const pw = Array.from({ length: 40 }, () => generatePassword());
     // Vorher endete jedes auf „A1!“.

@@ -42,7 +42,7 @@ describe('Bestätigungsdialog', () => {
     expect(screen.getByRole('button', { name: 'Dahinter', hidden: true })).not.toHaveFocus();
   });
 
-  it('schliesst nicht, solange die Aktion läuft — weder mit Escape noch daneben', async () => {
+  it('schließt nicht, solange die Aktion läuft — weder mit Escape noch daneben', async () => {
     let fertig: () => void = () => undefined;
     const onConfirm = vi.fn(() => new Promise<void>((r) => (fertig = r)));
     const onCancel = vi.fn();
@@ -137,7 +137,7 @@ describe('Export-Dialog der Mitarbeiterübersicht', () => {
   });
 });
 
-describe('Blatt „Groß unterschreiben"', () => {
+describe('Blatt „Groß unterschreiben“', () => {
   function canvasStellen() {
     HTMLCanvasElement.prototype.getContext = (() => ({
       setTransform: vi.fn(), scale: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(),
@@ -162,7 +162,7 @@ describe('Blatt „Groß unterschreiben"', () => {
     expect(fertig).toHaveFocus();
   });
 
-  it('gibt den Fokus an das Feld, wenn „Groß unterschreiben" ausgeblendet ist (P4-14)', async () => {
+  it('gibt den Fokus an das Feld, wenn „Groß unterschreiben“ ausgeblendet ist (P4-14)', async () => {
     canvasStellen();
     render(<SignaturePad titel="Unterschrift Kunde" onChange={vi.fn()} />);
     await userEvent.click(screen.getByRole('button', { name: 'Groß unterschreiben' }));

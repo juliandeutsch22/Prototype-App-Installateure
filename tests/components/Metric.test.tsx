@@ -93,7 +93,7 @@ describe('Die Kennzahlen-Leiste', () => {
     }
   });
 
-  it('färbt nur „Überfällig" rot und schreibt nie fett', () => {
+  it('färbt nur „Überfällig“ rot und schreibt nie fett', () => {
     render(
       <MetricRow>
         <Metric label="Offen" value="€ 1,00" tone="brand" />

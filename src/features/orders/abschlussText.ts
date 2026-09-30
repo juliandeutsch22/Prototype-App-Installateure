@@ -13,11 +13,11 @@ import type { MaterialOrder } from '@/types';
 export function abschlussText(
   o: Pick<MaterialOrder, 'materialName' | 'quantity' | 'beschaffung' | 'geliefertAm'>,
 ): string {
-  const was = `„${o.materialName}" ×${o.quantity}`;
+  const was = `„${o.materialName}“ ×${o.quantity}`;
   if (o.beschaffung === 'einkauf' && !o.geliefertAm) {
     return (
-      `${was} ist beim Grosshändler bestellt, aber noch nicht als geliefert gebucht. ` +
-      'Abschliessen heisst: die Ware ist da und abgeholt — sie verschwindet aus der ' +
+      `${was} ist beim Großhändler bestellt, aber noch nicht als geliefert gebucht. ` +
+      'Abschließen heißt: die Ware ist da und abgeholt — sie verschwindet aus der ' +
       'Einkaufsliste, der Lagerbestand bleibt gleich. Ist sie noch unterwegs, bitte abwarten.'
     );
   }

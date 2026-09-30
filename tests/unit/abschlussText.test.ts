@@ -14,7 +14,7 @@ const basis = { materialName: 'Eckventil', quantity: 5 };
 describe('abschlussText', () => {
   it('aus dem Lager: wird abgezogen', () => {
     expect(abschlussText({ ...basis, beschaffung: 'lager' })).toBe(
-      '„Eckventil" ×5 wird als erledigt gebucht und vom Lagerbestand abgezogen.',
+      '„Eckventil“ ×5 wird als erledigt gebucht und vom Lagerbestand abgezogen.',
     );
   });
 

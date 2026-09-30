@@ -30,7 +30,7 @@ describe('Ist ein Ziel eingerichtet?', () => {
     });
   });
 
-  it('sagt „keines", wenn gar nichts gesetzt ist', () => {
+  it('sagt „keines“, wenn gar nichts gesetzt ist', () => {
     // Der Normalfall vor der Einrichtung — und ausdrücklich KEIN Fehler.
     expect(zielAusUmgebung({})).toBeNull();
     expect(zielAusUmgebung({ ANDERES: 'x' })).toBeNull();
@@ -85,7 +85,7 @@ describe('Der Pfad im Zielspeicher', () => {
   });
 });
 
-describe('Der Aufruf, mit dem der Stand ausser Haus geht', () => {
+describe('Der Aufruf, mit dem der Stand außer Haus geht', () => {
   const ZIEL = {
     endpunkt: 'https://storage.googleapis.com',
     region: 'auto',
@@ -182,7 +182,7 @@ describe('Der Pfad einer DATEI im Zielspeicher', () => {
   });
 });
 
-describe('Eine Datei geht ausser Haus', () => {
+describe('Eine Datei geht außer Haus', () => {
   const ZIEL = {
     endpunkt: 'https://storage.googleapis.com',
     region: 'auto',

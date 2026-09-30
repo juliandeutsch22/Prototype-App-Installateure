@@ -177,7 +177,7 @@ describe('Ins Fehlerprotokoll', () => {
     expect(erfasst).toHaveBeenCalledWith('absturz', fehler, expect.stringContaining('Wirft'));
   });
 
-  it('bietet auf der Tafel „Problem melden" an — und die Meldung geht ab', async () => {
+  it('bietet auf der Tafel „Problem melden“ an — und die Meldung geht ab', async () => {
     gemeldet.mockResolvedValue(undefined);
     const nutzer = userEvent.setup();
     render(
@@ -191,7 +191,7 @@ describe('Ins Fehlerprotokoll', () => {
     await waitFor(() => expect(gemeldet).toHaveBeenCalledWith('Beim Öffnen der Zeiterfassung'));
   });
 
-  it('vor der Anmeldung: festgehalten wird trotzdem, aber ohne „Problem melden"', () => {
+  it('vor der Anmeldung: festgehalten wird trotzdem, aber ohne „Problem melden“', () => {
     // Die Meldung geht an den Support des Betriebs und braucht eine
     // Anmeldung — auf der Anmeldeseite wäre es ein Knopf, der nur scheitert.
     const fehler = new Error('Anmeldeseite kaputt');

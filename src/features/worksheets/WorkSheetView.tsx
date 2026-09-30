@@ -371,7 +371,7 @@ export default function WorkSheetView() {
         }
         if (schein.status === 'Verworfen') {
           setEntwurfFehler(
-            'Dieser Entwurf ist verworfen. In der Liste der Handwerksscheine lässt er sich unter „verworfene Entwürfe anzeigen" wieder aufnehmen.',
+            'Dieser Entwurf ist verworfen. In der Liste der Handwerksscheine lässt er sich unter „verworfene Entwürfe anzeigen“ wieder aufnehmen.',
           );
           return;
         }
@@ -628,8 +628,8 @@ export default function WorkSheetView() {
   const [offeneZeit, setOffeneZeit] = useState<string | null>(null);
   const [offenesMaterial, setOffenesMaterial] = useState<string | null>(null);
   const nichtUebernommen = [
-    offeneZeit && `die Zeit ${offeneZeit} („Zeile hinzufügen")`,
-    offenesMaterial && `das Material ${offenesMaterial} („Hinzufügen")`,
+    offeneZeit && `die Zeit ${offeneZeit} („Zeile hinzufügen“)`,
+    offenesMaterial && `das Material ${offenesMaterial} („Hinzufügen“)`,
   ].filter(Boolean);
 
   /**
@@ -679,7 +679,7 @@ export default function WorkSheetView() {
         }
       }
     } catch {
-      toast.error('Das Bild liess sich auf diesem Gerät nicht verarbeiten.');
+      toast.error('Das Bild ließ sich auf diesem Gerät nicht verarbeiten.');
     } finally {
       setFotoLaeuft(false);
     }
@@ -797,7 +797,7 @@ export default function WorkSheetView() {
       setOhneFotosBestaetigt(true);
       setError(
         `${offen.length} ${offen.length === 1 ? 'Foto ist' : 'Fotos sind'} noch nicht ` +
-          'hochgeladen und würden fehlen. Nochmal auf „Nochmal versuchen" tippen — oder ' +
+          'hochgeladen und würden fehlen. Nochmal auf „Nochmal versuchen“ tippen — oder ' +
           'gleich noch einmal unterschreiben, dann geht der Schein ohne sie hinaus.',
       );
       return;
@@ -1341,8 +1341,8 @@ export default function WorkSheetView() {
                     später auf dieselbe Baustelle kommen, lesen ihn.
                     <br />
                     <br />
-                    Angaben zur <strong>Gesundheit</strong> gehören deshalb nicht hierher: „war krank",
-                    „darf nicht heben", „Rücken". Solche Daten sind nach Art. 9 DSGVO besonders
+                    Angaben zur <strong>Gesundheit</strong> gehören deshalb nicht hierher: „war krank“,
+                    „darf nicht heben“, „Rücken“. Solche Daten sind nach Art. 9 DSGVO besonders
                     geschützt, und die App hält sie sonst überall getrennt — Kranken- und Urlaubstage
                     stehen in der Zeiterfassung, die kein Kollege einsehen kann. Eine Notiz hier hebt
                     diese Trennung auf.
@@ -1725,7 +1725,7 @@ export default function WorkSheetView() {
                         !kundeGesetzt && 'Unterschrift Kunde',
                         kundeName.trim().length < 2 && 'Name des Kunden',
                         ohneMenge.length > 0 &&
-                          `Menge bei ${ohneMenge.map((m) => `„${m.name}"`).join(', ')}`,
+                          `Menge bei ${ohneMenge.map((m) => `„${m.name}“`).join(', ')}`,
                       ]
                         .filter(Boolean)
                         .join(', ')}`}

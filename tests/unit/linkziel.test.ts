@@ -56,7 +56,7 @@ describe('Ob die Rolle dorthin darf', () => {
     expect(!u.ok && u.grund).toMatch(/unbekannter Pfad/);
   });
 
-  it('„/" deckt keine Unterseite zu', () => {
+  it('„/“ deckt keine Unterseite zu', () => {
     // Sonst wäre jeder Tippfehler über die Startseite „erlaubt".
     expect(darfZiel('Mitarbeiter', '/gibtsnicht').ok).toBe(false);
   });

@@ -160,9 +160,9 @@ Deno.serve(mitCors(async (req: Request): Promise<Response> => {
           trotzdem nicht; das ist alles, was die Maske wissen muss.
         */
         ? (benutzername
-          ? `Den Benutzernamen „${benutzername}" kann Senklot nicht vergeben — bitte einen anderen wählen.`
+          ? `Den Benutzernamen „${benutzername}“ kann Senklot nicht vergeben — bitte einen anderen wählen.`
           : `Mit ${email} lässt sich kein Konto anlegen — bitte eine andere Adresse verwenden.`)
-        : (text || 'Das Konto liess sich nicht anlegen.'),
+        : (text || 'Das Konto ließ sich nicht anlegen.'),
       schonDa ? 409 : 500,
     );
   }

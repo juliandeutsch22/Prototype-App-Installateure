@@ -32,7 +32,7 @@ describe('Zeilenmenue', () => {
     expect(eintraege).toEqual(['Passwort-Mail senden', 'Deaktivieren']);
   });
 
-  it('fuehrt die gewaehlte Aktion aus und schliesst danach', async () => {
+  it('fuehrt die gewaehlte Aktion aus und schließt danach', async () => {
     const senden = vi.fn();
     render(<RowMenu about="Max Mustermann" items={aktionen(senden)} />);
     await userEvent.click(screen.getByRole('button', { name: /Weitere Aktionen/ }));
@@ -41,7 +41,7 @@ describe('Zeilenmenue', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
-  it('schliesst mit Escape, ohne etwas auszuloesen', async () => {
+  it('schließt mit Escape, ohne etwas auszuloesen', async () => {
     const senden = vi.fn();
     const sperren = vi.fn();
     render(<RowMenu about="Max Mustermann" items={aktionen(senden, sperren)} />);
@@ -52,7 +52,7 @@ describe('Zeilenmenue', () => {
     expect(sperren).not.toHaveBeenCalled();
   });
 
-  it('schliesst bei einem Klick daneben', async () => {
+  it('schließt bei einem Klick daneben', async () => {
     render(
       <div>
         <RowMenu about="Max Mustermann" items={aktionen()} />
@@ -122,7 +122,7 @@ describe('Zeilenmenue', () => {
     expect(screen.getByRole('button', { name: /Weitere Aktionen/ })).toHaveFocus();
   });
 
-  it('schliesst mit Tab und gibt den Fokus an „⋯" zurück', async () => {
+  it('schließt mit Tab und gibt den Fokus an „⋯“ zurück', async () => {
     render(<RowMenu about="Max Mustermann" items={aktionen()} />);
     const knopf = screen.getByRole('button', { name: /Weitere Aktionen/ });
     await userEvent.click(knopf);
@@ -132,7 +132,7 @@ describe('Zeilenmenue', () => {
     expect(knopf).toHaveFocus();
   });
 
-  it('gibt den Fokus auch nach Escape an „⋯" zurück', async () => {
+  it('gibt den Fokus auch nach Escape an „⋯“ zurück', async () => {
     render(<RowMenu about="Max Mustermann" items={aktionen()} />);
     const knopf = screen.getByRole('button', { name: /Weitere Aktionen/ });
     await userEvent.click(knopf);

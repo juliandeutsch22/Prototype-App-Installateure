@@ -27,7 +27,7 @@ describe('mengeFehler', () => {
     expect(mengeFehler(1.2345, 'm')).toMatch(/drei Nachkommastellen/);
   });
 
-  it('Schreibweisen: gross, klein, mit Leerzeichen', () => {
+  it('Schreibweisen: groß, klein, mit Leerzeichen', () => {
     expect(mengeMitKomma(' M ')).toBe(true);
     expect(mengeMitKomma('KG')).toBe(true);
     expect(mengeMitKomma('Stk')).toBe(false);

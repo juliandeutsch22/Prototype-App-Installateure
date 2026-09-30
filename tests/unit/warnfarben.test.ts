@@ -73,7 +73,7 @@ describe('Die Warnflächen gehören zur Familie', () => {
   });
 });
 
-describe('Ruhiger heisst nicht blasser', () => {
+describe('Ruhiger heißt nicht blasser', () => {
   it('der Text trägt auf seiner eigenen Fläche', () => {
     // Vor dem Abstimmen: 4,51 und 5,30. Danach muss es MEHR sein, nicht
     // weniger — sonst ist die schönere Farbe die schlechtere.

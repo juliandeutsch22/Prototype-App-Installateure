@@ -131,7 +131,7 @@ export default function KontenrahmenView() {
   const einwand = useMemo(() => {
     for (const s of saetze) {
       if (s.konto.trim() === '') continue;
-      if (alsAnteil(s.satz) === null) return `„${s.satz}" ist kein Steuersatz zwischen 0 und 100.`;
+      if (alsAnteil(s.satz) === null) return `„${s.satz}“ ist kein Steuersatz zwischen 0 und 100.`;
     }
     const doppelt = saetze
       .filter((s) => s.konto.trim() !== '')
@@ -274,7 +274,7 @@ export default function KontenrahmenView() {
             <InfoHint about="das Debitorensammelkonto">
               Jede Rechnung wird im <strong>Soll</strong> auf dieses eine Konto gebucht. Eigene
               Kontonummern je Kunde führt Senklot nicht — die offene-Posten-Verwaltung bleibt
-              damit bei der Kanzlei. Für einen Betrieb dieser Grösse ist das der übliche Weg;
+              damit bei der Kanzlei. Für einen Betrieb dieser Größe ist das der übliche Weg;
               wenn deine Kanzlei je Kunde ein Konto will, sag es uns.
             </InfoHint>
           </div>

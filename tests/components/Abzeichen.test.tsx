@@ -131,7 +131,7 @@ describe('Die Warnung — Punkt und Wort, keine Pille', () => {
 });
 
 describe('Der Status eines Geschäftsobjekts', () => {
-  it('ist ein Zustand und keine Warnung — auch „Überfällig"', () => {
+  it('ist ein Zustand und keine Warnung — auch „Überfällig“', () => {
     /*
       DER STATUS SAGT, WO ETWAS STEHT, NICHT WAS ZU TUN IST. Was zu tun ist,
       steht daneben: „3 Tage" am Mahnlauf, „12 Tage" an der unverrechneten
@@ -212,7 +212,7 @@ describe('Der Zähler — die Zahl am Menüpunkt', () => {
     expect(container.querySelector('[aria-hidden="true"]')!.textContent).toBe('3');
   });
 
-  it('bricht bei grossen Zahlen nicht die Zeile auf', () => {
+  it('bricht bei großen Zahlen nicht die Zeile auf', () => {
     // Ein Betrieb, der die Anforderungen ein Jahr liegen lässt, soll keine
     // vierstellige Pille in der Navigation bekommen.
     render(<Zaehler anzahl={128} was="offene Materialanforderungen" />);

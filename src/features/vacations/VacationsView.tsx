@@ -481,7 +481,7 @@ export default function VacationsView() {
       (b) => b.von <= bisTag && b.bis >= von && !(b.ausgenommen ?? []).includes(user.uid),
     );
     if (zu) {
-      return `Überschneidet sich mit dem Betriebsurlaub „${zu.bezeichnung}" (${zeitraum(zu)}) — diese Tage sind schon geregelt. Bitte nur die Tage davor oder danach beantragen.`;
+      return `Überschneidet sich mit dem Betriebsurlaub „${zu.bezeichnung}“ (${zeitraum(zu)}) — diese Tage sind schon geregelt. Bitte nur die Tage davor oder danach beantragen.`;
     }
     const antrag = eigene.find(
       (v) => (v.status === 'Beantragt' || v.status === 'Genehmigt') && v.von <= bisTag && v.bis >= von,
@@ -565,7 +565,7 @@ export default function VacationsView() {
       return;
     }
     if (zaStundenweise && spanne(zaVon, zaBis) <= 0) {
-      setError('„Frei bis" muss nach „Frei von" liegen.');
+      setError('„Frei bis“ muss nach „Frei von“ liegen.');
       return;
     }
     if (ueberschneidung) {
@@ -1078,7 +1078,7 @@ export default function VacationsView() {
 
           {art === 'Krank' && (
             <p className="text-sm text-ink-muted">
-              Eine Krankmeldung braucht keine Genehmigung: die Tage stehen sofort als „Krank" im
+              Eine Krankmeldung braucht keine Genehmigung: die Tage stehen sofort als „Krank“ im
               Zeitkonto, und das Büro sieht die Meldung. Ist das Ende noch offen, das
               voraussichtliche eintragen — ändern geht jederzeit.
             </p>

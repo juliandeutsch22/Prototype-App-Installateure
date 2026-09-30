@@ -91,7 +91,7 @@ describe('Info-Hinweis', () => {
     expect(screen.getByText('Formularfelder')).toBeInTheDocument();
   });
 
-  it('zeigt in einer Karte ohne Hinweis auch kein „i"', () => {
+  it('zeigt in einer Karte ohne Hinweis auch kein „i“', () => {
     render(
       <Card title="Zuschläge">
         <p>Formularfelder</p>

@@ -55,7 +55,7 @@ export const VERARBEITER: { wer: string; wofuer: string; wo: string }[] = [
     wo: 'Google LLC in den USA als Mutterunternehmen',
   },
   {
-    wer: OFFEN('Anbieter der Sicherung ausser Haus'),
+    wer: OFFEN('Anbieter der Sicherung außer Haus'),
     wofuer: 'nächtliche Sicherung des gesamten Bestands eines Betriebs, 30 Tage aufbewahrt',
     wo: OFFEN('Standort'),
   },
