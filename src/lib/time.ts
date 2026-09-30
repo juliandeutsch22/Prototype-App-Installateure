@@ -188,6 +188,56 @@ export interface UrlaubsPosten {
   tage: number;
 }
 
+/**
+ * EIN ANTRAG, VERTEILT AUF DIE URLAUBSJAHRE, IN DIE SEINE TAGE FALLEN
+ * (Testbericht 30.09.2026, H3).
+ *
+ * Ein Betriebsurlaub vom 24.12. bis 10.01. hat seine Tage in zwei Jahren.
+ * Als ein Posten mit dem Beginn als Datum zählte er ganz zum alten Jahr: die
+ * Urlaubsseite zog alle 8 Tage 2026 ab, Lohn-CSV und Mitarbeiterübersicht —
+ * die je gebuchtem Tag zählen — richtig nur 4. Zwei Zahlen für dieselbe
+ * Frage, und bei einem Eintritt im November ein negativer Rest.
+ *
+ * DIE FESTGEHALTENE TAGESZAHL BLEIBT DIE SUMME. Sie ist beim Genehmigen
+ * gerechnet und soll sich nicht ändern, wenn später die Arbeitstage der
+ * Person anders gesetzt werden (siehe `Vacation.tage`). Verteilt wird
+ * deshalb so: jedes spätere Jahr bekommt die Tage, die heute in ihm liegen;
+ * das Jahr des Beginns bekommt den Rest. Liegt ein Antrag in einem Jahr,
+ * kommt genau ein Posten heraus, wie bisher.
+ */
+export function antragNachUrlaubsjahr(
+  antrag: { von: string; bis?: string | null; tage: number },
+  workDays: number[] | undefined,
+  halbeTage: boolean,
+  beginn: string = JAHRESBEGINN_VORGABE,
+): UrlaubsPosten[] {
+  const tage = Number(antrag.tage) || 0;
+  const bis = antrag.bis || antrag.von;
+  const erstesJahr = urlaubsJahrVon(antrag.von, beginn);
+  if (urlaubsJahrVon(bis, beginn) === erstesJahr) return [{ von: antrag.von, tage }];
+
+  const spaeter = new Map<number, { von: string; tage: number }>();
+  for (const t of urlaubsTageShared(workDays, antrag.von, bis)) {
+    const j = urlaubsJahrVon(t, beginn);
+    if (j === erstesJahr) continue;
+    const bisher = spaeter.get(j);
+    const anteil = tagesAnteil(t, halbeTage);
+    if (bisher) bisher.tage += anteil;
+    else spaeter.set(j, { von: t, tage: anteil });
+  }
+  const teile = [...spaeter.values()];
+  const spaeterSumme = teile.reduce((s, p) => s + p.tage, 0);
+  /*
+    Mehr Tage in den späteren Jahren als der Antrag insgesamt hat, gibt es
+    nur, wenn die Arbeitstage seither mehr geworden sind. Dann wird im
+    Verhältnis gekürzt — die Summe bleibt die genehmigte.
+  */
+  const faktor = spaeterSumme > tage && spaeterSumme > 0 ? tage / spaeterSumme : 1;
+  const gekuerzt = teile.map((p) => ({ von: p.von, tage: Math.round(p.tage * faktor * 100) / 100 }));
+  const rest = Math.round((tage - gekuerzt.reduce((s, p) => s + p.tage, 0)) * 100) / 100;
+  return [{ von: antrag.von, tage: rest }, ...gekuerzt].filter((p) => p.tage > 0);
+}
+
 /** Ein Urlaubsjahrgang: was in einem Jahr entstanden und davon noch offen ist. */
 interface Jahrgang {
   jahr: number;

@@ -1632,7 +1632,7 @@ describe('Rechnung gegen Schein', () => {
     alleScheine = [mitZeiten([420])];
     await bisZurVorschau();
 
-    expect(screen.getByText(/Ein Schein bestätigt/)).toBeInTheDocument();
+    expect(screen.getByText(/Ein noch nicht verrechneter Schein bestätigt/)).toBeInTheDocument();
     expect(screen.getByText(/07:00/)).toBeInTheDocument();
     expect(screen.getByText(/08:00/)).toBeInTheDocument();
   });
@@ -1699,8 +1699,16 @@ describe('Rechnung gegen Schein', () => {
     ];
     await bisZurVorschau();
 
-    expect(screen.getByText(/Ein Schein bestätigt/)).toBeInTheDocument();
     expect(screen.queryByText(/weniger, als auf noch nicht verrechneten/)).not.toBeInTheDocument();
+    /*
+      Testbericht 30.09.2026, H2: der verrechnete Schein zählt auch für die
+      Richtung „bestätigt“ nicht mehr — vorher stand hier „Ein Schein
+      bestätigt 16:00, verrechnet werden 08:00“. Die acht gebuchten Stunden
+      haben keinen offenen Schein, und genau das steht jetzt da.
+    */
+    expect(screen.queryByText(/Schein bestätigt|Scheine bestätigen/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Gebucht, aber ohne unterschriebenen Schein/)).toBeInTheDocument();
+    expect(screen.getByText(/20\.08\. · Max · Facharbeiter/)).toBeInTheDocument();
   });
 
   /*

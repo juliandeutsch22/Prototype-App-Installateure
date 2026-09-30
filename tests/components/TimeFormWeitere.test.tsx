@@ -105,6 +105,19 @@ describe('Weitere Angaben', () => {
     expect(daten).toMatchObject({ vehiclePlate: 'WZ-123AB', isNightWork: true, projectNumber: 'B-1' });
   });
 
+  it('der Notdienst geht nach dem Buchen nicht in die nächste Buchung mit (Testbericht 30.09.2026, G18)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await nutzer.type(screen.getByLabelText('Baustelle'), 'B-1');
+    await nutzer.click(zeile());
+    await nutzer.click(screen.getByLabelText('Notdienst / Störungseinsatz'));
+    await nutzer.click(screen.getByRole('button', { name: 'Zeit buchen' }));
+    expect(createTimeEntryOhneEmpfang.mock.calls[0][1]).toMatchObject({ isEmergency: true });
+
+    // Die Maske bleibt für die nächste Buchung stehen — ohne den Zuschlag.
+    expect(screen.getByLabelText('Notdienst / Störungseinsatz')).not.toBeChecked();
+  });
+
   it('starten offen, wenn der letzte Eintrag solche Angaben trug', () => {
     zeichne({
       lastEntry: {

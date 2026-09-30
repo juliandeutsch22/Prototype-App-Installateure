@@ -19,6 +19,7 @@ import {
   todayStr,
   urlaubsTage,
   urlaubsStand,
+  antragNachUrlaubsjahr,
   uebertragsRegel,
   urlaubsJahrVon,
   JAHRESBEGINN_VORGABE,
@@ -293,6 +294,20 @@ export default function VacationsView() {
   */
   const regel = useMemo(() => uebertragsRegel(company), [company]);
   const jahr = urlaubsJahrVon(todayStr(), regel.jahresbeginn);
+  /*
+    DIE GENEHMIGTEN URLAUBE, JE URLAUBSJAHR VERTEILT (Testbericht 30.09.2026,
+    H3). Ein Betriebsurlaub vom 24.12. bis 10.01. zählte sonst ganz zum alten
+    Jahr — Lohn-CSV und Mitarbeiterübersicht, die je gebuchtem Tag zählen,
+    sagten eine andere Zahl.
+  */
+  const genehmigtePosten = useMemo(
+    () =>
+      eigene
+        // Zeitausgleich geht vom Zeitguthaben ab, nicht vom Urlaub.
+        .filter((v) => v.status === 'Genehmigt' && !istZa(v))
+        .flatMap((v) => antragNachUrlaubsjahr(v, profil?.workDays, halbeTage, regel.jahresbeginn)),
+    [eigene, profil?.workDays, halbeTage, regel.jahresbeginn],
+  );
   const stand = useMemo(
     () =>
       urlaubsStand(
@@ -304,13 +319,10 @@ export default function VacationsView() {
           immer null, und die Zahl wäre wieder die falsche — nur an einer
           anderen Stelle als vorher.
         */
-        eigene
-          // Zeitausgleich geht vom Zeitguthaben ab, nicht vom Urlaub.
-          .filter((v) => v.status === 'Genehmigt' && !istZa(v))
-          .map((v) => ({ von: v.von, tage: v.tage })),
+        genehmigtePosten,
         regel,
       ),
-    [eigene, jahr, profil, regel],
+    [genehmigtePosten, jahr, profil, regel],
   );
   const genommen = stand.genommen;
   const anspruch = stand.anspruch;
@@ -335,15 +347,8 @@ export default function VacationsView() {
     () =>
       antragsJahr === jahr || !profil
         ? stand.rest
-        : urlaubsStand(
-            profil,
-            antragsJahr,
-            eigene
-              .filter((v) => v.status === 'Genehmigt' && !istZa(v))
-              .map((v) => ({ von: v.von, tage: v.tage })),
-            regel,
-          ).rest,
-    [antragsJahr, jahr, profil, stand.rest, eigene, regel],
+        : urlaubsStand(profil, antragsJahr, genehmigtePosten, regel).rest,
+    [antragsJahr, jahr, profil, stand.rest, genehmigtePosten, regel],
   );
 
   /**
@@ -355,7 +360,7 @@ export default function VacationsView() {
    * ohnehin — Profil und Urlaube der Belegschaft.
    */
   const [antragsteller, setAntragsteller] = useState<
-    Record<string, { profil: AppUser; genehmigt: { von: string; tage: number }[] } | 'fehler'>
+    Record<string, { profil: AppUser; genehmigt: WithId<Vacation>[] } | 'fehler'>
   >({});
   useEffect(() => {
     if (!user || !darfEntscheiden) return;
@@ -374,9 +379,7 @@ export default function VacationsView() {
             uid,
             {
               profil: p,
-              genehmigt: urlaube
-                .filter((v) => v.status === 'Genehmigt' && !istZa(v))
-                .map((v) => ({ von: v.von, tage: v.tage })),
+              genehmigt: urlaube.filter((v) => v.status === 'Genehmigt' && !istZa(v)),
             },
           ] as const;
         } catch {
@@ -400,8 +403,15 @@ export default function VacationsView() {
         <span className="mt-1 block text-xs text-ink-muted">Resturlaub konnte nicht ermittelt werden.</span>
       );
     }
-    const rest = urlaubsStand(a.profil, urlaubsJahrVon(v.von, regel.jahresbeginn), a.genehmigt, regel).rest;
-    const danach = rest - (Number(v.tage) || 0);
+    const verteilen = (x: { von: string; bis?: string | null; tage: number }) =>
+      antragNachUrlaubsjahr(x, a.profil.workDays, halbeTage, regel.jahresbeginn);
+    const antragsjahr = urlaubsJahrVon(v.von, regel.jahresbeginn);
+    const rest = urlaubsStand(a.profil, antragsjahr, a.genehmigt.flatMap(verteilen), regel).rest;
+    /* Abgezogen wird, was von diesem Antrag in sein erstes Urlaubsjahr fällt. */
+    const imJahr = verteilen(v)
+      .filter((p) => urlaubsJahrVon(p.von, regel.jahresbeginn) === antragsjahr)
+      .reduce((s, p) => s + p.tage, 0);
+    const danach = rest - imJahr;
     return (
       <span className={`mt-1 block text-xs ${danach < 0 ? 'font-medium text-warning' : 'text-ink-muted'}`}>
         Resturlaub: {tageText(rest)} — nach Genehmigung {tageText(danach)}

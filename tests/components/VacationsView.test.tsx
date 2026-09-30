@@ -764,6 +764,18 @@ describe('Resturlaub', () => {
     expect(await screen.findByText(/Resturlaub: 5 Tage — nach Genehmigung 2 Tage/)).toBeInTheDocument();
   });
 
+  it('zählt einen Betriebsurlaub über Silvester nur mit seinen Tagen im alten Jahr (Testbericht 30.09.2026, H3)', async () => {
+    // 24.12.2026–10.01.2027: 8 Urlaubstage, davon 4 im Jahr 2027. Vorher
+    // zog die Seite alle 8 im Jahr 2026 ab: „9 von 25", Resturlaub 16.
+    antraege.push(
+      urlaub('g', '2026-07-03', 1, 'Genehmigt'),
+      { ...urlaub('bu', '2026-12-24', 8, 'Genehmigt'), bis: '2027-01-10' },
+    );
+    zeichne();
+    expect(await screen.findByText('5 von 25 genehmigt')).toBeInTheDocument();
+    expect(screen.getByText('20 Tage')).toBeInTheDocument();
+  });
+
   it('warnt den Genehmigenden, wenn der Resturlaub nicht reicht', async () => {
     rolle = { ...rolle, uid: 'chef', name: 'Chefin', role: 'Geschäftsführung', docId: 'chef' };
     antraege.push(urlaub('g', '2026-03-02', 24, 'Genehmigt'), urlaub('b', '2026-11-02', 3, 'Beantragt'));

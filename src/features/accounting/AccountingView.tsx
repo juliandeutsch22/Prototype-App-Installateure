@@ -36,6 +36,7 @@ import PageHeader from '@/components/PageHeader';
 import Icon from '@/components/Icon';
 import ExportDialog from './ExportDialog';
 import ProjectSummary from './ProjectSummary';
+import Gesamtsaldo from './Gesamtsaldo';
 import TimeForm from '@/features/time/TimeForm';
 import { KrankmeldungKarte } from '@/features/vacations/Krankmeldungen';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -657,6 +658,7 @@ export default function AccountingView() {
                                 {fmtMin(stats.istMin)} von {fmtMin(stats.sollMin)} Soll
                                 {stats.istLaufend && ' bisher'}
                               </p>
+                              <Gesamtsaldo profil={u} halbeTage={halbeTage} />
                             </>
                           ) : (
                             /*

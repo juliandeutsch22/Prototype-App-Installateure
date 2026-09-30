@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   scheineOhneBuchung,
   minutenOhneBuchung,
+  nochNichtGeprueft,
   OFFEN_AB_TAGEN,
 } from '@/features/worksheets/fehlendeZeitbuchung';
 import type { TimeEntry, WorkSheet, WorkSheetZeit } from '@/types';
@@ -266,5 +267,33 @@ describe('Scheinstunden ohne Buchung', () => {
       HEUTE,
     );
     expect(befunde).toEqual([]);
+  });
+});
+
+/*
+  Testbericht 30.09.2026, H2: „Stunden ohne Buchung“ meldete „alles gebucht“,
+  obwohl der Schein des Admins keine Zeitbuchung hatte — Vermutung des
+  Berichts: Personen ohne Zeitkonto werden nicht geprüft. Nachgemessen: die
+  Prüfung kennt keine Rollen. Der Schein war vom selben Tag, und Scheine
+  werden erst ab zwei Tagen gemeldet. Das steht jetzt dabei.
+*/
+describe('Scheine der Administration und junge Scheine (Testbericht 30.09.2026, H2)', () => {
+  it('prüft auch die Zeile einer Person ohne Zeitkonto', () => {
+    const befunde = scheineOhneBuchung(
+      [schein('sa', '2026-09-04', { zeiten: [zeit('Julian Deutsch', 270)] })],
+      [],
+      HEUTE,
+    );
+    expect(befunde[0].zeilen).toEqual([{ name: 'Julian Deutsch', minuten: 270, art: 'keine' }]);
+  });
+
+  it('zählt, was noch zu jung für die Prüfung ist — statt „alles gebucht“ zu behaupten', () => {
+    const scheine = [
+      schein('heute', HEUTE, { zeiten: [zeit('Julian Deutsch', 270)] }),
+      schein('ohne-zeit', HEUTE, { zeiten: [] }),
+      schein('alt', '2026-09-01'),
+    ];
+    expect(scheineOhneBuchung(scheine, [], HEUTE).map((b) => b.schein.id)).toEqual(['alt']);
+    expect(nochNichtGeprueft(scheine, HEUTE)).toBe(1);
   });
 });

@@ -141,9 +141,16 @@ describe('Zeit für einen Mitarbeiter erfassen', () => {
       angemeldeten Benutzer richtig und die Warnung gemeint.
     */
     zeichne();
+    await waitFor(() => expect(eintraegeAmTag).toHaveBeenCalledWith('perl', CHEFIN));
 
+    /*
+      Testbericht 30.09.2026, G18: nicht schon vor jeder Eingabe — die Maske
+      ist mit heute und 07:00–16:00 vorbelegt. Nach der ersten Änderung steht
+      die Warnung da.
+    */
+    expect(screen.queryByText(/Für diesen Tag ist bereits gebucht/)).not.toBeInTheDocument();
+    await userEvent.setup().selectOptions(screen.getByLabelText('Status'), 'Anwesend');
     expect(await screen.findByText(/Für diesen Tag ist bereits gebucht/)).toBeInTheDocument();
-    expect(eintraegeAmTag).toHaveBeenCalledWith('perl', CHEFIN);
   });
 });
 

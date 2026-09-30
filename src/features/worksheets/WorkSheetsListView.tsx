@@ -15,7 +15,12 @@ import { buildWorkSheetPdf, shareOrDownloadPdf } from './worksheetPdf';
 import Fotostreifen from './Fotostreifen';
 import Nachladen from '@/components/Nachladen';
 import { listEntriesInRange } from '@/lib/db/timeEntries';
-import { scheineOhneBuchung, minutenOhneBuchung, OFFEN_AB_TAGEN } from './fehlendeZeitbuchung';
+import {
+  scheineOhneBuchung,
+  minutenOhneBuchung,
+  nochNichtGeprueft,
+  OFFEN_AB_TAGEN,
+} from './fehlendeZeitbuchung';
 import { deuteSuche, suchHinweis } from './scheinSuche';
 import { isGF, canWriteWorkSheet, canEditTime } from '@/lib/permissions';
 import { fmtDauer, tageWort, todayStr } from '@/lib/time';
@@ -241,6 +246,12 @@ export default function WorkSheetsListView() {
   const ohneBuchung = useMemo(
     () => (darfZeitenSehen ? scheineOhneBuchung(pruefBasis, buchungen, todayStr()) : []),
     [darfZeitenSehen, pruefBasis, buchungen],
+  );
+
+  /** Unterschriebene Scheine der letzten Tage — noch nicht geprüft (H2). */
+  const zuJung = useMemo(
+    () => (darfZeitenSehen ? nochNichtGeprueft(pruefBasis, todayStr()) : 0),
+    [darfZeitenSehen, pruefBasis],
   );
 
   const verworfene = useMemo(
@@ -473,6 +484,10 @@ export default function WorkSheetsListView() {
                 </strong>
               </>
             )}
+            {zuJung > 0 &&
+              ` ${zuJung === 1 ? 'Ein Schein' : `${zuJung} Scheine`} der letzten ${OFFEN_AB_TAGEN} Tage ${
+                zuJung === 1 ? 'ist' : 'sind'
+              } noch nicht dabei — gebucht wird oft erst am Morgen darauf.`}
           </p>
 
           {/*
@@ -508,7 +523,7 @@ export default function WorkSheetsListView() {
 
           {ohneBuchung.length === 0 && (
             <EmptyState>
-              Zu jeder Stunde auf diesen Scheinen gibt es eine Buchung in der Zeiterfassung.
+              Zu jeder Stunde auf den geprüften Scheinen gibt es eine Buchung in der Zeiterfassung.
             </EmptyState>
           )}
 

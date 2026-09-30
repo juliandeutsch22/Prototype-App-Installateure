@@ -117,6 +117,12 @@ const authWert = {
 };
 vi.mock('@/app/AuthContext', () => ({ useAuth: () => authWert }));
 
+/** Der Gesamtsaldo seit Eintritt — dieselbe Ladefunktion wie in der Zeiterfassung. */
+const zeitguthabenLaden = vi.fn(async () => ({ saldoH: 12.5, hasConfig: true, daysWithoutEntry: 0 }));
+vi.mock('@/features/vacations/zeitguthaben', () => ({
+  zeitguthabenLaden: (...a: unknown[]) => zeitguthabenLaden(...(a as [])),
+}));
+
 
 beforeEach(() => {
   benutzer = [monteur];
@@ -445,5 +451,26 @@ describe('Mitarbeiteruebersicht — Abwesenheiten im Soll', () => {
     const tabelle = screen.getByRole('table');
     expect(within(tabelle).getByRole('button', { name: 'Urlaubsantrag' })).toBeInTheDocument();
     expect(within(tabelle).getAllByRole('button', { name: 'Bearbeiten' })).toHaveLength(9);
+  });
+});
+
+describe('Gesamtsaldo neben dem Monatssaldo (Testbericht 30.09.2026, M8)', () => {
+  it('zeigt den Stand seit Eintritt und den Start-Saldo darin', async () => {
+    benutzer = [{ ...monteur, initialOvertime: 5 }];
+    await oeffneMitarbeiter();
+    const zeile = await screen.findByTestId('gesamtsaldo');
+    expect(zeile).toHaveTextContent('Gesamtsaldo seit 17.08.2026: +12:30 · darin Start-Saldo +05:00');
+    expect(zeitguthabenLaden).toHaveBeenCalledWith(expect.objectContaining({ uid: 'u1' }), expect.any(Boolean));
+  });
+
+  it('lädt erst beim Aufklappen', async () => {
+    zeitguthabenLaden.mockClear();
+    render(
+      <ToastProvider>
+        <AccountingView />
+      </ToastProvider>,
+    );
+    await screen.findByRole('button', { name: /Neu Eingestellt/ });
+    expect(zeitguthabenLaden).not.toHaveBeenCalled();
   });
 });

@@ -1454,7 +1454,7 @@ export default function InvoicesView() {
           )
         : {
             verrechnetMin: 0, bestaetigtMin: 0, scheine: 0, mehrMin: 0, auffaellig: false,
-            wenigerMin: 0, zuWenig: false, fehlend: [],
+            wenigerMin: 0, zuWenig: false, fehlend: [], ohneSchein: [],
           },
     [preview, projectNumber, scheineAllerBaustellen, offeneLeistung],
   );
@@ -2150,17 +2150,22 @@ export default function InvoicesView() {
 
             GEKAPPT WIRD NICHTS. Die Zahl steht da, entschieden wird im Büro.
           */}
-          {abgleich.scheine > 0 && (
+          {(abgleich.scheine > 0 || abgleich.ohneSchein.length > 0) && (
             <div className="mb-3">
               <Hinweiszeile
                 stufe={
-                  abgleich.auffaellig || abgleich.zuWenig || abgleich.fehlend.length > 0
+                  abgleich.auffaellig || abgleich.zuWenig || abgleich.fehlend.length > 0 ||
+                  abgleich.ohneSchein.length > 0
                     ? 'warn'
                     : undefined
                 }
               >
                 <p>
-                  {abgleich.scheine === 1 ? 'Ein Schein bestätigt' : `${abgleich.scheine} Scheine bestätigen`}{' '}
+                  {abgleich.scheine > 0 && (
+                  <>
+                  {abgleich.scheine === 1
+                    ? 'Ein noch nicht verrechneter Schein bestätigt'
+                    : `${abgleich.scheine} noch nicht verrechnete Scheine bestätigen`}{' '}
                   <strong>{fmtDauer(abgleich.bestaetigtMin)}</strong>, verrechnet werden{' '}
                   <strong>{fmtDauer(abgleich.verrechnetMin)}</strong>
                   {abgleich.auffaellig ? (
@@ -2208,6 +2213,24 @@ export default function InvoicesView() {
                         Meist ist die Zeit noch nicht oder zum anderen Satz gebucht. Nachbuchen oder
                         berichtigen, dann die Positionen neu zusammenstellen.
                       </span>
+                    </span>
+                  )}
+                  </>
+                  )}
+                  {/*
+                    GEBUCHT, ABER OHNE UNTERSCHRIEBENEN SCHEIN (Testbericht
+                    30.09.2026, H2) — je Person, Tag und Satz. Verrechnet
+                    werden darf das; der Kunde hat es nur nirgends bestätigt.
+                  */}
+                  {abgleich.ohneSchein.length > 0 && (
+                    <span className={`block ${abgleich.scheine > 0 ? 'mt-2' : ''}`}>
+                      Gebucht, aber ohne unterschriebenen Schein:
+                      {abgleich.ohneSchein.map((o) => (
+                        <span key={`${o.datum}|${o.name}|${o.helfer}`} className="block">
+                          {o.datum.slice(8, 10)}.{o.datum.slice(5, 7)}. · {o.name} ·{' '}
+                          {o.helfer ? 'Helfer' : 'Facharbeiter'}: <strong>{fmtDauer(o.verrechnetMin)}</strong>
+                        </span>
+                      ))}
                     </span>
                   )}
                 </p>
