@@ -62,6 +62,8 @@ test('Benutzername: anlegen, erstes Anmelden, eigenes Passwort, vergessen, neues
   await buero.getByLabel('Anmeldung mit').selectOption('benutzername');
   // Grossgeschrieben getippt — gespeichert wird klein.
   await buero.getByRole('textbox', { name: /Benutzername/ }).fill(name.toUpperCase());
+  // Beim Umstieg ist der Resturlaub seit dem 30.09.2026 Pflicht (Testbericht M4).
+  await buero.getByLabel(/Resturlaub beim Umstieg/).fill('25');
   await buero.getByRole('button', { name: 'Benutzer anlegen' }).click();
   const start1 = await startpasswortLesen(buero);
   await expect(buero.getByText(name, { exact: true }).first()).toBeVisible();
