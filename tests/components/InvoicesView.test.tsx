@@ -2433,6 +2433,24 @@ describe('Pauschalbaustelle', () => {
     expect(screen.getByText(/ohne angenommenes Angebot/)).toBeInTheDocument();
   });
 
+  /*
+    TESTBERICHT 30.09.2026, M16 — Einheitspreis nach Aufmaß: Positionen und
+    Preise aus dem Angebot, die Mengen nach Aufmaß.
+  */
+  it('Einheitspreis: Positionen und Preise aus dem Angebot, Mengen nach Aufmaß', async () => {
+    PROJEKT.billingMode = 'Einheitspreis';
+    angebote = [ANGEBOT];
+    scheine = [SCHEIN];
+    katalog = KATALOG;
+    await bisZurVorschau();
+    expect(screen.getByDisplayValue('Heizkörper tauschen')).toBeInTheDocument();
+    expect(screen.getByText(/Einheitspreisbaustelle: Positionen und Einheitspreise kommen aus dem Angebot AN-2026-0003/)).toBeInTheDocument();
+    expect(screen.getByText(/Mengen bitte nach Aufmaß eintragen/)).toBeInTheDocument();
+    // Die Stunden und das Material des Scheins stehen nicht als eigene Zeile da.
+    expect(screen.queryByDisplayValue('Eckventil 1/2 Zoll')).toBeNull();
+    expect(screen.queryByText(/Pauschalbaustelle/)).toBeNull();
+  });
+
   it('eine Regiebaustelle rechnet weiter die Stunden', async () => {
     PROJEKT.billingMode = 'Regie';
     angebote = [ANGEBOT];

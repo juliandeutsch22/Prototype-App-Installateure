@@ -14,7 +14,7 @@ import { calcTotals, cent, positionNetto, type InvoicePosition } from '@/feature
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { todayStr, localDateStr, fmtStunden } from '@/lib/time';
 import { isGF } from '@/lib/permissions';
-import type { Customer, InvoiceDiscount, Quote } from '@/types';
+import type { Abrechnungsart, Customer, InvoiceDiscount, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import KundenGrenze from '@/components/AuswahlGrenze';
@@ -37,6 +37,7 @@ import { euro } from '@/lib/betrag';
 import { leseZahl, zahlAlsText, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
+import AbrechnungWahl from './AbrechnungWahl';
 
 /**
  * Zahl aus einem Eingabefeld — über die zentrale Lesung (M15). „7.500,50“
@@ -135,6 +136,8 @@ export default function QuotesView() {
   const [toDelete, setToDelete] = useState<WithId<Quote> | null>(null);
   /** Welches Angebot gerade angenommen werden soll — erst nach der Rückfrage. */
   const [annehmenFragen, setAnnehmenFragen] = useState<WithId<Quote> | null>(null);
+  /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
+  const [abrechnung, setAbrechnung] = useState<Abrechnungsart>('Pauschal');
 
   // Formular
   const [customerId, setCustomerId] = useState('');
@@ -428,7 +431,7 @@ export default function QuotesView() {
     setBusy(true);
     setError(null);
     try {
-      toast.success(annahmeMeldung(await angebotAnnehmen(user.companyId, q, vorsaetze.baustelle)));
+      toast.success(annahmeMeldung(await angebotAnnehmen(user.companyId, q, vorsaetze.baustelle, abrechnung)));
       await laden();
     } catch (err) {
       setError(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));
@@ -770,7 +773,7 @@ export default function QuotesView() {
                 )}
                 {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
                   <>
-                    <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(q)}>
+                    <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(q); }}>
                       Annehmen → Baustelle
                     </Button>
                     <Button
@@ -809,7 +812,7 @@ export default function QuotesView() {
         title="Angebot annehmen?"
         message={
           annehmenFragen
-            ? `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Pauschalbaustelle mit der nächsten Baustellennummer.`
+            ? `${annehmenFragen.quoteNumber} wird angenommen, und für ${annehmenFragen.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`
             : ''
         }
         confirmLabel="Annehmen"
@@ -820,7 +823,9 @@ export default function QuotesView() {
           setAnnehmenFragen(null);
           if (q) await annehmen(q);
         }}
-      />
+      >
+        <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={!!toDelete}

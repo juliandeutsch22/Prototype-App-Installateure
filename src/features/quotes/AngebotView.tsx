@@ -8,7 +8,7 @@ import { isGF } from '@/lib/permissions';
 import { praefixeVon } from '@/lib/praefixe';
 import { todayStr } from '@/lib/time';
 import { discountLabel } from '@/features/invoices/totals';
-import type { Customer, Quote } from '@/types';
+import type { Abrechnungsart, Customer, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import Card from '@/components/Card';
 import Aktenspalten from '@/components/Aktenspalten';
@@ -21,6 +21,7 @@ import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/S
 import { angebotAnnehmen, annahmeMeldung } from './angebotAnnehmen';
 import { downloadAngebotPdf } from './angebotPdf';
 import { STAND } from './stand';
+import AbrechnungWahl from './AbrechnungWahl';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
@@ -59,6 +60,8 @@ export default function AngebotView() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [loeschenFragen, setLoeschenFragen] = useState(false);
   const [annehmenFragen, setAnnehmenFragen] = useState(false);
+  /** Die Abrechnung der Baustelle, die beim Annehmen entsteht (M16). */
+  const [abrechnung, setAbrechnung] = useState<Abrechnungsart>('Pauschal');
   /** Die Fassungen rundherum (M17): woraus dieses Angebot entstand, was daraus wurde. */
   const [vorgaenger, setVorgaenger] = useState<WithId<Quote> | null>(null);
   const [fassungen, setFassungen] = useState<WithId<Quote>[]>([]);
@@ -160,7 +163,7 @@ export default function AngebotView() {
     setBusy(true);
     setFehler(null);
     try {
-      toast.success(annahmeMeldung(await angebotAnnehmen(companyId, q, praefixeVon(company).baustelle)));
+      toast.success(annahmeMeldung(await angebotAnnehmen(companyId, q, praefixeVon(company).baustelle, abrechnung)));
       setVersuch((v) => v + 1);
     } catch (err) {
       setFehler(grundAus(err, 'Die Baustelle konnte nicht angelegt werden.'));
@@ -339,7 +342,7 @@ export default function AngebotView() {
         )}
         {offen && (
           <>
-            <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(true)}>
+            <Button variant="ghost" loading={busy} onClick={() => { setAbrechnung('Pauschal'); setAnnehmenFragen(true); }}>
               Annehmen → Baustelle
             </Button>
             <Button
@@ -423,7 +426,7 @@ export default function AngebotView() {
       <ConfirmDialog
         open={annehmenFragen}
         title="Angebot annehmen?"
-        message={`${q.quoteNumber} wird angenommen, und für ${q.customerName} entsteht eine Pauschalbaustelle mit der nächsten Baustellennummer.`}
+        message={`${q.quoteNumber} wird angenommen, und für ${q.customerName} entsteht eine Baustelle mit der nächsten Baustellennummer.`}
         confirmLabel="Annehmen"
         confirmTone="primary"
         onCancel={() => setAnnehmenFragen(false)}
@@ -431,7 +434,9 @@ export default function AngebotView() {
           setAnnehmenFragen(false);
           await annehmen(q);
         }}
-      />
+      >
+        <AbrechnungWahl wert={abrechnung} onWert={setAbrechnung} />
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={loeschenFragen}

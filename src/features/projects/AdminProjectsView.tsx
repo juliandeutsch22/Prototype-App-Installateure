@@ -15,7 +15,7 @@ import { listCustomers } from '@/lib/db/customers';
 import { useModul } from '@/lib/useModule';
 import type { WithId } from '@/lib/db/core';
 import { byNewest } from '@/lib/timestamps';
-import type { Project, AppUser, Customer } from '@/types';
+import type { Abrechnungsart, Project, AppUser, Customer } from '@/types';
 import Card from '@/components/Card';
 import KundenGrenze from '@/components/AuswahlGrenze';
 import Nachladen from '@/components/Nachladen';
@@ -37,6 +37,7 @@ import { fmtStunden } from '@/lib/time';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 import { baustellenTitel } from '@/lib/baustellenTitel';
+import { ABRECHNUNGSARTEN } from '@/lib/abrechnung';
 import { stammdatenFehler, stundenbudgetAus } from './baustellenEntwurf';
 
 const empty = {
@@ -48,7 +49,7 @@ const empty = {
   address: '',
   status: 'Aktiv' as Project['status'],
   /** Wie in der Akte (G5): leer heisst „nicht festgelegt", gilt als Regie. */
-  billingMode: '' as '' | 'Regie' | 'Pauschal',
+  billingMode: '' as '' | Abrechnungsart,
   /** Kalkuliertes Stundenbudget — Grundlage der Ampel in der Projektauswertung. */
   estimatedHours: '',
   description: '',
@@ -528,8 +529,9 @@ export default function AdminProjectsView() {
             <SelectField id="pabrechnung" label="Abrechnung" value={form.billingMode}
               onChange={(e) => setForm({ ...form, billingMode: e.target.value as typeof form.billingMode })}>
               <option value="">— nicht festgelegt (gilt als Regie) —</option>
-              <option value="Regie">Regie</option>
-              <option value="Pauschal">Pauschal</option>
+              {ABRECHNUNGSARTEN.map((a) => (
+                <option key={a.wert} value={a.wert}>{a.text}</option>
+              ))}
             </SelectField>
             <ZahlFeld id="phours" label="Stundenbudget (kalkuliert)"
               placeholder="z. B. 40" value={form.estimatedHours}

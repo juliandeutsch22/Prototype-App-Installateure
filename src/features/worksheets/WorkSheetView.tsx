@@ -45,6 +45,7 @@ import {
 } from './fotos';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
+import { abrechnungText, stundenSindGrundlage } from '@/lib/abrechnung';
 
 /**
  * Handwerksschein erstellen, unterschreiben lassen, einfrieren.
@@ -1151,7 +1152,7 @@ export default function WorkSheetView() {
               </span>
               {/* Regie oder Pauschal ist eine Tatsache über die Baustelle, keine
                   Bewertung — vorher hiess Pauschal grau und Regie türkis. */}
-              <Marke>{projekt.billingMode ?? 'Regie'}</Marke>
+              <Marke>{abrechnungText(projekt.billingMode)}</Marke>
             </div>
           )}
           {/*
@@ -1159,12 +1160,13 @@ export default function WorkSheetView() {
             wurde — die Stunden sind dort keine Rechnungsgrundlage. Das gehört
             gesagt, sonst rechnet jemand später damit.
           */}
-          {projekt?.billingMode === 'Pauschal' && (
+          {projekt && !stundenSindGrundlage(projekt.billingMode) && (
             <div className="mt-2">
               <Hinweiszeile>
                 <p>
-                  Pauschalbaustelle: Der Schein dokumentiert die geleistete Arbeit, die Stunden
-                  sind aber keine Grundlage für eine Nachverrechnung.
+                  {projekt.billingMode === 'Einheitspreis'
+                    ? 'Einheitspreisbaustelle: Der Schein dokumentiert die geleistete Arbeit. Verrechnet wird nach Aufmaß, nicht nach den Stunden.'
+                    : 'Pauschalbaustelle: Der Schein dokumentiert die geleistete Arbeit, die Stunden sind aber keine Grundlage für eine Nachverrechnung.'}
                 </p>
               </Hinweiszeile>
             </div>

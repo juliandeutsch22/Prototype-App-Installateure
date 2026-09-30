@@ -3,6 +3,7 @@ import { fmtMin } from '@/lib/time';
 import { firmenZeilen, logoZeichnen } from '@/lib/pdfBriefkopf';
 import { GRAU, ROT, TABELLENSTIL, TINTE, fmtMenge } from '@/lib/belegLayout';
 import { datumAT } from '@/lib/datum';
+import { abrechnungText } from '@/lib/abrechnung';
 
 /*
   DER SCHEIN GEHT AN DEN KUNDEN — also dieselben Tabellen wie Rechnung und
@@ -129,7 +130,7 @@ export async function buildWorkSheetPdf(schein: WorkSheet, betrieb: Betrieb): Pr
     ['Kunde', schein.customerName],
     ['Baustelle', `${schein.projectNumber}${schein.address ? ` · ${schein.address}` : ''}`],
     ['Leistungsdatum', datumAT(schein.datum)],
-    ['Abrechnung', schein.abrechnung],
+    ['Abrechnung', abrechnungText(schein.abrechnung)],
   ];
   for (const [k, v] of kopf) {
     doc.setFont('helvetica', 'bold').text(`${k}:`, rand, y);

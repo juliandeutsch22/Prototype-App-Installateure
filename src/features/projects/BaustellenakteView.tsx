@@ -10,6 +10,7 @@ import { listUsers } from '@/lib/db/users';
 import { listCustomers } from '@/lib/db/customers';
 import { listQuotesForProject } from '@/lib/db/quotes';
 import { pauschalAngebot } from '@/features/invoices/pauschale';
+import { ABRECHNUNGSARTEN, abrechnungText } from '@/lib/abrechnung';
 import { euro } from '@/lib/betrag';
 import { canAccess } from '@/app/navigation';
 import { isGF } from '@/lib/permissions';
@@ -483,7 +484,7 @@ function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> 
         <Angabe wort="Baustellenadresse">
           {b.address ? <AdresseLink adresse={b.address} /> : null}
         </Angabe>
-        <Angabe wort="Abrechnung">{b.billingMode}</Angabe>
+        <Angabe wort="Abrechnung">{b.billingMode ? abrechnungText(b.billingMode) : null}</Angabe>
         <Angabe wort="Ansprechpartner vor Ort">{b.contactName}</Angabe>
         <Angabe wort="Telefon vor Ort">
           {b.contactPhone ? <TelefonLink nummer={b.contactPhone} name={b.contactName} /> : null}
@@ -610,10 +611,13 @@ function StammdatenFormular({
           onChange={(e) => setze('billingMode', e.target.value as BaustellenEntwurf['billingMode'])}
         >
           <option value="">— nicht festgelegt (gilt als Regie) —</option>
-          <option value="Regie">Regie</option>
-          <option value="Pauschal">Pauschal</option>
+          {ABRECHNUNGSARTEN.map((a) => (
+            <option key={a.wert} value={a.wert}>{a.text}</option>
+          ))}
         </SelectField>
-        {entwurf.billingMode === 'Pauschal' && <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} />}
+        {(entwurf.billingMode === 'Pauschal' || entwurf.billingMode === 'Einheitspreis') && (
+          <PauschalHinweis angebote={angebote} sichtbar={angeboteSichtbar} art={entwurf.billingMode} />
+        )}
         <ZahlFeld
           id="b-budget" label="Stundenbudget (kalkuliert)"
           placeholder="z. B. 40" value={entwurf.estimatedHours}
@@ -735,18 +739,32 @@ function Angabe({ wort, children }: { wort: string; children: React.ReactNode })
  * ohne Angebot trägt ihn die Rechnung ein. Das sagt dieser Hinweis, statt die
  * Frage offen zu lassen.
  */
-function PauschalHinweis({ angebote, sichtbar }: { angebote: Quote[]; sichtbar: boolean }) {
+function PauschalHinweis({
+  angebote,
+  sichtbar,
+  art,
+}: {
+  angebote: Quote[];
+  sichtbar: boolean;
+  art: 'Pauschal' | 'Einheitspreis';
+}) {
   const angebot = sichtbar ? pauschalAngebot(angebote) : null;
+  const text =
+    art === 'Einheitspreis'
+      ? angebot
+        ? `Die Einheitspreise kommen aus dem angenommenen Angebot ${angebot.quoteNumber}. Die Rechnung übernimmt dessen Positionen; die Mengen trägt man nach Aufmaß ein.`
+        : sichtbar
+          ? 'Einheitspreis ohne angenommenes Angebot: die Preise stehen noch nirgends. Die Rechnung setzt eine leere Zeile an — dort Positionen, Mengen nach Aufmaß und Preise eintragen. Oder ein Angebot anlegen und annehmen.'
+          : 'Die Einheitspreise legt das angenommene Angebot fest; die Mengen kommen aus dem Aufmaß.'
+      : angebot
+        ? `Den Pauschalpreis legt das angenommene Angebot ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto). Die Rechnung übernimmt dessen Positionen.`
+        : sichtbar
+          ? 'Pauschal ohne angenommenes Angebot: der vereinbarte Preis steht noch nirgends. Die Rechnung setzt eine Zeile „Pauschale gemäß Vereinbarung“ mit 0,00 € an — dort den Betrag eintragen. Oder ein Angebot anlegen und annehmen, dann übernimmt die Rechnung dessen Positionen.'
+          : 'Den Pauschalpreis legt das angenommene Angebot fest; ohne Angebot trägt ihn das Büro in der Rechnung ein.';
   return (
     <div className="sm:col-span-2">
       <Hinweiszeile stufe={sichtbar && !angebot ? 'warn' : undefined}>
-        <p>
-          {angebot
-            ? `Den Pauschalpreis legt das angenommene Angebot ${angebot.quoteNumber} fest (${euro(angebot.totalNetto)} netto). Die Rechnung übernimmt dessen Positionen.`
-            : sichtbar
-              ? 'Pauschal ohne angenommenes Angebot: der vereinbarte Preis steht noch nirgends. Die Rechnung setzt eine Zeile „Pauschale gemäß Vereinbarung“ mit 0,00 € an — dort den Betrag eintragen. Oder ein Angebot anlegen und annehmen, dann übernimmt die Rechnung dessen Positionen.'
-              : 'Den Pauschalpreis legt das angenommene Angebot fest; ohne Angebot trägt ihn das Büro in der Rechnung ein.'}
-        </p>
+        <p>{text}</p>
       </Hinweiszeile>
     </div>
   );

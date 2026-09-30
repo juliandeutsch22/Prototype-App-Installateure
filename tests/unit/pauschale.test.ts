@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from '@/features/invoices/pauschale';
+import { einheitspreisVorschau, pauschalAngebot, pauschaleVerrechnetMit, pauschalVorschau } from '@/features/invoices/pauschale';
 import type { AssembledInvoice } from '@/features/invoices/assemble';
 import type { Invoice, Quote } from '@/types';
 
@@ -78,5 +78,49 @@ describe('Welches Angebot, und ist es schon verrechnet?', () => {
     expect(pauschaleVerrechnetMit([r(undefined)], '2026-0002')).toBe('RE-undefined-Offen');
     expect(pauschaleVerrechnetMit([r('schluss')], 'PR-2026-0002')).toBe('RE-schluss-Offen');
     expect(pauschaleVerrechnetMit([r('einzel', 'Offen', 'PR-2026-0009')], 'PR-2026-0002')).toBeNull();
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, M16 — Einheitspreis nach Aufmaß: Positionen und
+  Einheitspreise aus dem Angebot, Mengen nach Aufmaß.
+*/
+describe('einheitspreisVorschau', () => {
+  const AUFMASS = angebot({
+    positions: [
+      { label: 'Rohrleitung DN 20', qty: 40, unit: 'm', unitPrice: 18.5, netto: 740 },
+      { label: 'Heizkörper', qty: 3, unit: 'Stk', unitPrice: 200, netto: 600 },
+    ],
+  });
+
+  it('Positionen und Einheitspreise aus dem Angebot, vorbelegt mit seinen Mengen — die Belege sind enthalten', () => {
+    const v = einheitspreisVorschau('schluss', BELEGE, AUFMASS, 0.2);
+    expect(v.positions.map((p) => [p.label, p.qty, p.unitPrice])).toEqual([
+      ['Rohrleitung DN 20', 40, 18.5],
+      ['Heizkörper', 3, 200],
+    ]);
+    expect(v.totalNetto).toBe(1340);
+    expect(v.linkedEntries).toEqual(['z1']);
+    expect(v.materialOhnePreis).toEqual([]);
+  });
+
+  it('eine Teilrechnung beginnt bei Menge null und verbraucht keine Belege', () => {
+    const v = einheitspreisVorschau('teil', BELEGE, AUFMASS, 0.2);
+    expect(v.positions.map((p) => p.qty)).toEqual([0, 0]);
+    expect(v.positions[0].unitPrice).toBe(18.5);
+    expect(v.totalNetto).toBe(0);
+    expect(v.linkedEntries).toEqual([]);
+    expect(v.linkedWorkSheets).toEqual([]);
+  });
+
+  it('ohne Angebot eine leere Zeile nach Aufmaß', () => {
+    const v = einheitspreisVorschau('einzel', BELEGE, null, 0.2);
+    expect(v.positions).toEqual([{ label: 'Leistung nach Aufmaß', qty: 0, unit: '', unitPrice: 0, netto: 0 }]);
+  });
+
+  it('Gegenprobe: die Pauschale bleibt ein Festpreis — Mengen des Angebots, kein Aufmaß', () => {
+    const v = pauschalVorschau('teil', BELEGE, AUFMASS, 0.2);
+    expect(v.positions).toHaveLength(1);
+    expect(v.positions[0].label).toMatch(/Teilbetrag der Pauschale/);
   });
 });

@@ -674,3 +674,32 @@ describe('Neue Fassung eines versendeten Angebots (M17)', () => {
     expect(screen.queryByRole('button', { name: 'Neue Fassung' })).toBeNull();
   });
 });
+
+/*
+  TESTBERICHT 30.09.2026, M16 — die Abrechnungsart wird beim Annehmen
+  gewählt: Pauschal (wie bisher, Vorgabe), Regie oder Einheitspreis.
+*/
+describe('Abrechnungsart beim Annehmen (M16)', () => {
+  it('legt die Baustelle mit der gewählten Abrechnung an', async () => {
+    const nutzer = userEvent.setup();
+    versendetesAngebot();
+    zeichne();
+    await nutzer.click(await screen.findByRole('button', { name: 'Annehmen → Baustelle' }));
+    const dialog = await screen.findByRole('dialog');
+    await nutzer.selectOptions(within(dialog).getByLabelText('Abrechnung der Baustelle'), 'Einheitspreis');
+    expect(within(dialog).getByText(/Mengen kommen aus dem Aufmaß/)).toBeInTheDocument();
+    await nutzer.click(within(dialog).getByRole('button', { name: 'Annehmen' }));
+    await waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(createProject.mock.calls[0][1]).toMatchObject({ billingMode: 'Einheitspreis' });
+  });
+
+  it('Gegenprobe: ohne Wahl bleibt es Pauschal, wie bisher', async () => {
+    const nutzer = userEvent.setup();
+    versendetesAngebot();
+    zeichne();
+    await screen.findByRole('button', { name: 'Annehmen → Baustelle' });
+    await annehmenBestaetigt(nutzer);
+    await waitFor(() => expect(createProject).toHaveBeenCalled());
+    expect(createProject.mock.calls[0][1]).toMatchObject({ billingMode: 'Pauschal' });
+  });
+});

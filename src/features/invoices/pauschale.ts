@@ -104,3 +104,43 @@ export function pauschalVorschau(
     materialOhnePreis: [],
   };
 }
+
+/**
+ * Die Vorschau einer EINHEITSPREIS-Baustelle (Testbericht 30.09.2026, M16).
+ *
+ * Positionen und Einheitspreise kommen aus dem angenommenen Angebot, die
+ * MENGEN aus dem Aufmaß. Vorbelegt sind die Mengen des Angebots — bei einer
+ * Teilrechnung null, denn dort zählt, was bisher gemessen wurde; die Null ist
+ * rot und damit eine offene Entscheidung, keine Zahl. Wie bei der Pauschale
+ * sind Stunden und Material der Scheine enthalten und werden nicht einzeln
+ * verrechnet; eine Teilrechnung verbraucht keine Belege und wird in der
+ * Schlussrechnung abgezogen.
+ *
+ * Ohne Angebot steht eine leere Zeile da — Positionen, Mengen und Preise
+ * trägt dann das Büro ein.
+ */
+export function einheitspreisVorschau(
+  art: RechnungsArt,
+  belege: AssembledInvoice,
+  angebot: Quote | null,
+  vatRate: number,
+): AssembledInvoice {
+  const teil = art === 'teil';
+  const positionen: InvoicePosition[] = angebot
+    ? angebot.positions.map((p) => {
+        const qty = teil ? 0 : p.qty;
+        return { label: p.label, qty, unit: p.unit, unitPrice: p.unitPrice, netto: positionNetto(qty, p.unitPrice) };
+      })
+    : [{ label: 'Leistung nach Aufmaß', qty: 0, unit: '', unitPrice: 0, netto: 0 }];
+  const discount = angebot?.discount ?? null;
+  return {
+    ...belege,
+    positions: positionen,
+    discount,
+    ...calcTotals(positionen, vatRate, discount),
+    materialOhnePreis: [],
+    ...(teil
+      ? { linkedEntries: [], linkedOrders: [], linkedWorkSheets: [], entries: [] }
+      : {}),
+  };
+}
