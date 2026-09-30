@@ -14,7 +14,7 @@ import { calcTotals, cent, positionNetto, type InvoicePosition } from '@/feature
 import { INVOICE_DEFAULTS } from '@/features/invoices/assemble';
 import { todayStr, localDateStr, fmtStunden } from '@/lib/time';
 import { isGF } from '@/lib/permissions';
-import type { Customer, Quote } from '@/types';
+import type { Customer, InvoiceDiscount, Quote } from '@/types';
 import type { WithId } from '@/lib/db/core';
 import InfoHint from '@/components/InfoHint';
 import KundenGrenze from '@/components/AuswahlGrenze';
@@ -34,7 +34,7 @@ import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
 import { grundAus } from '@/lib/fehlerGrund';
 import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
-import { leseZahl, zahlOder } from '@/lib/zahl';
+import { leseZahl, zahlAlsText, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
 import AdresseFeld from '@/components/AdresseFeld';
 
@@ -153,6 +153,14 @@ export default function QuotesView() {
    * Grenze steht in `angebot_speichern`.
    */
   const [bearbeitet, setBearbeitet] = useState<WithId<Quote> | null>(null);
+  /**
+   * Das Angebot, das als NEUE FASSUNG überarbeitet wird (Testbericht
+   * 30.09.2026, M17) — oder `null`. Es selbst bleibt, wie es beim Kunden
+   * liegt; gespeichert wird ein neuer Entwurf, der darauf verweist.
+   */
+  const [fassungVon, setFassungVon] = useState<WithId<Quote> | null>(null);
+  /** Der Rabatt eines übernommenen Angebots (neue Fassung oder Kopie). */
+  const [rabattVorlage, setRabattVorlage] = useState<InvoiceDiscount | null>(null);
   /** Gespeicherte Stunden eines alten Angebots, dessen Haken abgeleitet wurden. */
   const [stundenVorher, setStundenVorher] = useState<number | null>(null);
   const [suchParameter, setSuchParameter] = useSearchParams();
@@ -210,7 +218,7 @@ export default function QuotesView() {
   );
 
   // Ein Rabatt, den der Entwurf schon trägt, bleibt beim Bearbeiten stehen.
-  const rabatt = bearbeitet?.discount ?? null;
+  const rabatt = bearbeitet ? (bearbeitet.discount ?? null) : rabattVorlage;
   const summen = useMemo(() => calcTotals(positionen, vatRate, rabatt), [positionen, vatRate, rabatt]);
 
   /**
@@ -243,14 +251,15 @@ export default function QuotesView() {
     setNotes('');
     setZeilen([{ ...LEERE_ZEILE }]);
     setBearbeitet(null);
+    setFassungVon(null);
+    setRabattVorlage(null);
     setStundenVorher(null);
   }
 
-  /** Einen Entwurf ins Formular holen. */
-  function bearbeiten(q: WithId<Quote>) {
+  /** Kunde, Anschrift, Anmerkungen und Positionen eines Angebots ins Formular. */
+  function formularAus(q: WithId<Quote>) {
     setCustomerId(q.customerId ?? '');
     setAddress(q.address ?? '');
-    setValidUntil(q.validUntil);
     setNotes(q.notes ?? '');
     /*
       DER HAKEN „ARBEITSZEIT" STEHT ERST SEIT DEM 24.09. AN DER POSITION.
@@ -264,18 +273,42 @@ export default function QuotesView() {
       q.positions.length
         ? q.positions.map((p) => ({
             label: p.label,
-            qty: String(p.qty).replace('.', ','),
+            qty: zahlAlsText(p.qty),
             unit: p.unit,
-            unitPrice: String(p.unitPrice).replace('.', ','),
+            unitPrice: zahlAlsText(p.unitPrice),
             istArbeitszeit: p.istArbeitszeit ?? zaehltAlsArbeitszeit(p.unit, p.label),
             hakenVonHand: p.istArbeitszeit !== undefined,
           }))
         : [{ ...LEERE_ZEILE }],
     );
-    setBearbeitet(q);
     setError(null);
     setFormOffen(true);
     window.scrollTo?.({ top: 0 });
+  }
+
+  /** Einen Entwurf ins Formular holen. */
+  function bearbeiten(q: WithId<Quote>) {
+    formularAus(q);
+    setValidUntil(q.validUntil);
+    setFassungVon(null);
+    setRabattVorlage(null);
+    setBearbeitet(q);
+  }
+
+  /**
+   * Ein Angebot als Vorlage für ein neues (M17): als NEUE FASSUNG mit
+   * Verweis auf das alte, oder als unabhängige KOPIE. Das alte bleibt
+   * unverändert; das neue bekommt eine eigene Nummer, ein neues Datum und
+   * eine neue Gültigkeit.
+   */
+  function alsVorlage(q: WithId<Quote>, fassung: boolean) {
+    formularAus(q);
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    setValidUntil(localDateStr(d));
+    setBearbeitet(null);
+    setFassungVon(fassung ? q : null);
+    setRabattVorlage(q.discount ?? null);
   }
 
   /*
@@ -284,13 +317,19 @@ export default function QuotesView() {
     danach weg, sonst öffnete jedes Neuladen die Maske wieder.
   */
   const zuBearbeiten = suchParameter.get('bearbeiten');
+  const zuFassen = suchParameter.get('neueFassung');
+  const zuKopieren = suchParameter.get('kopie');
   useEffect(() => {
-    if (!zuBearbeiten || loading) return;
-    const q = angebote.find((a) => a.id === zuBearbeiten);
-    if (q && q.status === 'Entwurf' && darfAendern) bearbeiten(q);
+    if ((!zuBearbeiten && !zuFassen && !zuKopieren) || loading) return;
+    const q = angebote.find((a) => a.id === (zuBearbeiten ?? zuFassen ?? zuKopieren));
+    if (q && darfAendern) {
+      if (zuBearbeiten && q.status === 'Entwurf') bearbeiten(q);
+      else if (zuFassen && q.status !== 'Entwurf') alsVorlage(q, true);
+      else if (zuKopieren) alsVorlage(q, false);
+    }
     setSuchParameter({}, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zuBearbeiten, loading, angebote]);
+  }, [zuBearbeiten, zuFassen, zuKopieren, loading, angebote]);
 
   async function aenderungenSpeichern() {
     if (!bearbeitet || !kunde || positionen.length === 0) return;
@@ -341,15 +380,19 @@ export default function QuotesView() {
         validUntil,
         status: 'Entwurf',
         positions: positionen,
-        discount: null,
+        // Neu: ohne Rabatt; als Fassung oder Kopie der des Vorbilds.
+        discount: rabatt,
         // `calcTotals` liefert `discountAmount` mit — dieselbe Rechnung wie
         // bei der Rechnung selbst, damit beide nie auseinanderlaufen.
         ...summen,
         vatRate,
         kalkulierteStunden,
         notes,
+        ...(fassungVon ? { vorgaengerId: fassungVon.id } : {}),
       });
-      toast.success(`Angebot ${nummer} angelegt`);
+      toast.success(
+        fassungVon ? `Angebot ${nummer} als neue Fassung von ${fassungVon.quoteNumber} angelegt` : `Angebot ${nummer} angelegt`,
+      );
       formularLeeren();
       setFormOffen(false);
       await laden();
@@ -418,7 +461,25 @@ export default function QuotesView() {
       {error && !formOffen && <ErrorState message={error} />}
 
       {darfAendern && formOffen && (
-        <Card title={bearbeitet ? `Angebot ${bearbeitet.quoteNumber} bearbeiten` : 'Neues Angebot'}>
+        <Card
+          title={
+            bearbeitet
+              ? `Angebot ${bearbeitet.quoteNumber} bearbeiten`
+              : fassungVon
+                ? `Neue Fassung von ${fassungVon.quoteNumber}`
+                : 'Neues Angebot'
+          }
+        >
+          {fassungVon && (
+            <div className="mb-4">
+              <Hinweiszeile>
+                <p>
+                  {fassungVon.quoteNumber} bleibt, wie es beim Kunden liegt. Diese Fassung bekommt eine eigene
+                  Nummer und verweist darauf.
+                </p>
+              </Hinweiszeile>
+            </div>
+          )}
           <FormGrid>
             <SelectField
               id="anqk"
@@ -700,6 +761,12 @@ export default function QuotesView() {
                       Versendet
                     </Button>
                   </>
+                )}
+                {/* M17: was beim Kunden liegt, wird als neue Fassung überarbeitet. */}
+                {darfAendern && (q.status === 'Versendet' || q.status === 'Abgelehnt') && (
+                  <Button variant="ghost" disabled={busy} onClick={() => alsVorlage(q, true)}>
+                    Neue Fassung
+                  </Button>
                 )}
                 {darfAendern && (q.status === 'Versendet' || q.status === 'Entwurf') && (
                   <>

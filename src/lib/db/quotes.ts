@@ -32,6 +32,11 @@ export function listQuotesForProject(companyId: string, projectId: string): Prom
   return pg.listQuotesForProject(companyId, projectId);
 }
 
+/** Die neuen Fassungen eines Angebots (M17). */
+export function listFassungen(companyId: string, vorgaengerId: string): Promise<WithId<Quote>[]> {
+  return pg.listFassungen(companyId, vorgaengerId);
+}
+
 export function createQuote(companyId: string, q: NewQuote): Promise<string> {
   return pg.createQuote(companyId, q);
 }

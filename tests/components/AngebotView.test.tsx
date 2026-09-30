@@ -50,8 +50,12 @@ const deleteQuote = vi.fn<(a0: string) => Promise<void>>(async () => undefined);
 const pdf = vi.fn<(a0: unknown) => Promise<void>>(async () => undefined);
 const annehmen = vi.fn(async () => ({ projectNumber: 'B-2026-0007', abgeleitet: 'B-2026-0007' }));
 
+/** Die Fassungen rundherum (M17). */
+let fassungen: (Quote & { id: string })[] = [];
+const VORGAENGER = { ...ANGEBOT, id: '99999999-2222-3333-4444-555555555555', quoteNumber: 'AN-2026-0003' };
 vi.mock('@/lib/db/quotes', () => ({
-  getQuote: vi.fn(async () => angebot),
+  getQuote: vi.fn(async (_c: string, qid: string) => (qid === VORGAENGER.id ? VORGAENGER : angebot)),
+  listFassungen: vi.fn(async () => fassungen),
   updateQuote: (id: string, d: unknown) => updateQuote(id, d),
   deleteQuote: (id: string) => deleteQuote(id),
 }));
@@ -108,6 +112,7 @@ function zeige(id = ANGEBOT.id) {
 
 beforeEach(() => {
   angebot = { ...ANGEBOT };
+  fassungen = [];
   kundeScheitert = false;
   rolle.wert = 'Geschäftsführung';
   updateQuote.mockClear();
@@ -240,5 +245,36 @@ describe('Weiter mit dem Angebot', () => {
     await screen.findByText(/Positionen/);
     expect(screen.queryByRole('button', { name: /Annehmen/ })).toBeNull();
     expect(screen.getByRole('button', { name: /PDF herunterladen/ })).toBeEnabled();
+  });
+});
+
+/*
+  TESTBERICHT 30.09.2026, M17 — überarbeiten ohne zu ändern: neue Fassung
+  oder Kopie, und die Fassungen verweisen aufeinander.
+*/
+describe('Fassungen eines Angebots (M17)', () => {
+  it('bietet beim versendeten Angebot „Neue Fassung“ und „Als Kopie anlegen“ an', async () => {
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Neue Fassung' })).toHaveAttribute(
+      'href', `/quotes?neueFassung=${ANGEBOT.id}`,
+    );
+    expect(screen.getByRole('link', { name: 'Als Kopie anlegen' })).toHaveAttribute(
+      'href', `/quotes?kopie=${ANGEBOT.id}`,
+    );
+  });
+
+  it('Gegenprobe: ein Entwurf wird bearbeitet, nicht neu gefasst', async () => {
+    angebot = { ...ANGEBOT, status: 'Entwurf' };
+    zeige();
+    expect(await screen.findByRole('link', { name: 'Bearbeiten' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Neue Fassung' })).toBeNull();
+  });
+
+  it('verweist auf den Vorgänger und auf spätere Fassungen', async () => {
+    angebot = { ...ANGEBOT, vorgaengerId: VORGAENGER.id };
+    fassungen = [{ ...ANGEBOT, id: '88888888-2222-3333-4444-555555555555', quoteNumber: 'AN-2026-0009', status: 'Entwurf' }];
+    zeige();
+    expect(await screen.findByRole('link', { name: 'AN-2026-0003' })).toHaveAttribute('href', `/quotes/${VORGAENGER.id}`);
+    expect(screen.getByRole('link', { name: 'AN-2026-0009 (Entwurf)' })).toBeInTheDocument();
   });
 });

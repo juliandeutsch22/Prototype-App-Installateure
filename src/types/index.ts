@@ -469,6 +469,12 @@ export interface Quote {
    * der Baustellennummer, die Nummer am Angebot nicht.
    */
   projectId?: string;
+  /**
+   * Die Fassung, die dieses Angebot überarbeitet (Testbericht 30.09.2026,
+   * M17). Ein versendetes Angebot ändert sich nicht; überarbeitet wird es als
+   * neuer Entwurf mit eigener Nummer, der hierher verweist.
+   */
+  vorgaengerId?: string;
   createdAt?: number;
   updatedAt?: number;
 }

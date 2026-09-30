@@ -101,6 +101,15 @@ export async function getQuote(companyId: string, id: string): Promise<WithId<Qu
   return (await zusammensetzen(koepfe, companyId))[0] ?? null;
 }
 
+/** Die neuen Fassungen eines Angebots (M17) — wer es überarbeitet hat. */
+export async function listFassungen(companyId: string, vorgaengerId: string) {
+  const koepfe = await abfragen<KopfZeile>(ANGEBOTE, companyId, {
+    wo: [{ art: 'gleich', feld: 'vorgaengerId', wert: vorgaengerId }],
+    grenze: 20,
+  });
+  return zusammensetzen(koepfe, companyId);
+}
+
 /**
  * Die Angebote, aus denen eine Baustelle entstanden ist.
  *

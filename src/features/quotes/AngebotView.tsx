@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { canAccess } from '@/app/navigation';
-import { deleteQuote, getQuote, updateQuote } from '@/lib/db/quotes';
+import { deleteQuote, getQuote, listFassungen, updateQuote } from '@/lib/db/quotes';
 import { listCustomersByIds } from '@/lib/db/customers';
 import { isGF } from '@/lib/permissions';
 import { praefixeVon } from '@/lib/praefixe';
@@ -59,6 +59,9 @@ export default function AngebotView() {
   const [fehler, setFehler] = useState<string | null>(null);
   const [loeschenFragen, setLoeschenFragen] = useState(false);
   const [annehmenFragen, setAnnehmenFragen] = useState(false);
+  /** Die Fassungen rundherum (M17): woraus dieses Angebot entstand, was daraus wurde. */
+  const [vorgaenger, setVorgaenger] = useState<WithId<Quote> | null>(null);
+  const [fassungen, setFassungen] = useState<WithId<Quote>[]>([]);
 
   const companyId = user?.companyId;
   const darfAendern = user ? isGF(user.role) : false;
@@ -80,6 +83,36 @@ export default function AngebotView() {
       weg = true;
     };
   }, [companyId, id, versuch]);
+
+  /*
+    DIE FASSUNGEN LADEN FÜR SICH (M17). Scheitern sie, fehlt nur der Verweis;
+    das Angebot selbst bleibt lesbar.
+  */
+  const vorgaengerId = angebot.zustand === 'bereit' ? angebot.daten?.vorgaengerId : undefined;
+  useEffect(() => {
+    if (!companyId || !id || angebot.zustand !== 'bereit') return;
+    let weg = false;
+    void (async () => {
+      try {
+        const [vor, nach] = await Promise.all([
+          vorgaengerId ? getQuote(companyId, vorgaengerId) : Promise.resolve(null),
+          listFassungen(companyId, id),
+        ]);
+        if (!weg) {
+          setVorgaenger(vor);
+          setFassungen(nach);
+        }
+      } catch {
+        if (!weg) {
+          setVorgaenger(null);
+          setFassungen([]);
+        }
+      }
+    })();
+    return () => {
+      weg = true;
+    };
+  }, [companyId, id, vorgaengerId, angebot.zustand]);
 
   /*
     DER KUNDE LÄDT FÜR SICH — er liefert nur die Anschrift fürs PDF. Scheitert
@@ -218,6 +251,24 @@ export default function AngebotView() {
           {/* Intern: steht nicht auf dem PDF, wird beim Annehmen zum Budget. */}
           <span>{fmtMenge(q.kalkulierteStunden)} h</span>
         </Angabe>
+        {vorgaenger && (
+          <Angabe wort="Neue Fassung von">
+            <Link to={`/quotes/${vorgaenger.id}`} className="link inline-flex min-h-touch items-center">
+              {vorgaenger.quoteNumber}
+            </Link>
+          </Angabe>
+        )}
+        {fassungen.length > 0 && (
+          <Angabe wort="Überarbeitet als">
+            <span className="flex flex-wrap gap-x-3">
+              {fassungen.map((f) => (
+                <Link key={f.id} to={`/quotes/${f.id}`} className="link inline-flex min-h-touch items-center">
+                  {f.quoteNumber} ({f.status})
+                </Link>
+              ))}
+            </span>
+          </Angabe>
+        )}
         <Angabe wort="Baustelle">
           {q.projectNumber ? (
             q.projectId && baustellenSichtbar ? (
@@ -265,7 +316,7 @@ export default function AngebotView() {
       <p className="whitespace-pre-line text-sm text-ink">{q.notes}</p>
     </Card>
   ) : null;
-  const weiterKarte = darfAendern && offen ? (
+  const weiterKarte = darfAendern ? (
     <Card title="Weiter">
       <div className="flex flex-wrap gap-2">
         {q.status === 'Entwurf' && (
@@ -286,16 +337,40 @@ export default function AngebotView() {
             </Button>
           </>
         )}
-        <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(true)}>
-          Annehmen → Baustelle
-        </Button>
-        <Button
-          variant="ghost"
-          loading={busy}
-          onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
+        {offen && (
+          <>
+            <Button variant="ghost" loading={busy} onClick={() => setAnnehmenFragen(true)}>
+              Annehmen → Baustelle
+            </Button>
+            <Button
+              variant="ghost"
+              loading={busy}
+              onClick={() => void status(q, 'Abgelehnt', 'Als abgelehnt vermerkt')}
+            >
+              Abgelehnt
+            </Button>
+          </>
+        )}
+        {/*
+          ÜBERARBEITEN, OHNE ZU ÄNDERN (M17). Was beim Kunden liegt, bleibt;
+          die neue Fassung ist ein eigener Entwurf mit eigener Nummer. Die
+          Kopie ist dasselbe ohne Verweis — etwa als Vorlage für einen
+          ähnlichen Auftrag.
+        */}
+        {(q.status === 'Versendet' || q.status === 'Abgelehnt') && (
+          <Link
+            to={`/quotes?neueFassung=${q.id}`}
+            className="link inline-flex min-h-touch items-center px-4 text-sm"
+          >
+            Neue Fassung
+          </Link>
+        )}
+        <Link
+          to={`/quotes?kopie=${q.id}`}
+          className="link inline-flex min-h-touch items-center px-4 text-sm"
         >
-          Abgelehnt
-        </Button>
+          Als Kopie anlegen
+        </Link>
         {/* Löschen nur im Entwurf: alles Versendete bleibt nachvollziehbar. */}
         {q.status === 'Entwurf' && (
           <Button variant="ghost" onClick={() => setLoeschenFragen(true)}>
