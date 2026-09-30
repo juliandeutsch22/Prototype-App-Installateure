@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
@@ -44,7 +44,7 @@ const BELEGSCHAFT: AppUser[] = [
 
 const KUNDEN: (Customer & { id: string })[] = [
   { id: 'k1', companyId: 'perl', name: 'Hausverwaltung Nord' },
-  { id: 'k2', companyId: 'perl', name: 'Bäckerei Süd' },
+  { id: 'k2', companyId: 'perl', name: 'Bäckerei Süd', address: 'Marktplatz 7, 2700 Wiener Neustadt' },
 ];
 
 let baustellen: (Project & { id: string })[] = [BAUSTELLE];
@@ -279,6 +279,29 @@ describe('Die Stammdaten für alle, die ändern dürfen', () => {
       'b1',
       expect.objectContaining({ estimatedHours: undefined }),
     );
+  });
+
+  it('speichert die Bezeichnung (G4)', async () => {
+    zeige();
+    await userEvent.type(await screen.findByLabelText(/Bezeichnung/), 'Bad 2. OG');
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() =>
+      expect(updateProject).toHaveBeenCalledWith('b1', expect.objectContaining({ bezeichnung: 'Bad 2. OG' })),
+    );
+  });
+
+  it('schlägt beim Kundenwechsel dessen Anschrift nur vor, wenn das Feld leer ist (G5)', async () => {
+    zeige();
+    const adresse = await screen.findByLabelText(/Baustellenadresse/);
+    // Gegenprobe zuerst: eine eigene Baustellenadresse bleibt stehen.
+    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k2');
+    expect(adresse).toHaveValue('Ringstraße 3, 2700 Wiener Neustadt');
+    // Geleert und neu gewählt: jetzt kommt der Vorschlag.
+    await userEvent.clear(adresse);
+    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k1');
+    await userEvent.selectOptions(screen.getByLabelText(/^Kunde/), 'k2');
+    expect(adresse).toHaveValue('Marktplatz 7, 2700 Wiener Neustadt');
+    expect(screen.getByText(/Vom Kunden übernommen/)).toBeInTheDocument();
   });
 
   it('speichert kein Ende vor dem Beginn (Testbericht 30.09.2026, M13)', async () => {

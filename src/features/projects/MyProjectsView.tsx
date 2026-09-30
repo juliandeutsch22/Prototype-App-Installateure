@@ -14,6 +14,7 @@ import { Marke } from '@/components/Badge';
 import { LoadingState, ErrorState, EmptyState, TeilFehler } from '@/components/States';
 import PlaeneListe from './PlaeneListe';
 import { planeVon, usePlaene } from './usePlaene';
+import { baustellenTitel } from '@/lib/baustellenTitel';
 
 /** 'YYYY-MM-DD' -> '27.08.2026'; leer bleibt leer. */
 function fmt(d?: string): string {
@@ -104,7 +105,7 @@ export default function MyProjectsView() {
           {active.map((p) => (
             <Card
               key={p.id}
-              title={p.customerName}
+              title={baustellenTitel(p)}
               action={<StatusBadge status={p.status} />}
             >
               <p className="text-sm text-ink-muted">{p.projectNumber}</p>

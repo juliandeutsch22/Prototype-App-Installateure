@@ -48,6 +48,7 @@ import { LoadingState } from '@/components/States';
 import { byNewest } from '@/lib/timestamps';
 import { istUeberfaellig, offenerRest } from '@/features/invoices/zahlstand';
 import { euroGerundet } from '@/lib/betrag';
+import { baustellenTitel } from '@/lib/baustellenTitel';
 
 /**
  * 'YYYY-MM-DD' -> 'Mo., 01.09.'
@@ -282,7 +283,8 @@ export default function DashboardView() {
               id: a.id,
               date: a.date,
               projectNumber: a.projectNumber,
-              customerName: pr?.customerName ?? `Baustelle ${a.projectNumber}`,
+              // Angezeigter Titel: Bezeichnung und Kunde (G4).
+              customerName: pr ? baustellenTitel(pr) : `Baustelle ${a.projectNumber}`,
               address: pr?.address,
               contactName: pr?.contactName,
               contactPhone: pr?.contactPhone,
@@ -356,7 +358,8 @@ export default function DashboardView() {
               const pr = projects.find((x) => x.projectNumber === pn);
               return {
                 projectNumber: pn,
-                customerName: pr?.customerName ?? `Baustelle ${pn}`,
+                // Angezeigter Titel: Bezeichnung und Kunde (G4).
+                customerName: pr ? baustellenTitel(pr) : `Baustelle ${pn}`,
                 address: pr?.address,
                 contactPhone: pr?.contactPhone,
                 contactName: pr?.contactName,
@@ -841,7 +844,7 @@ export default function DashboardView() {
                   <li key={pr.id} className="px-4 py-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <span className="font-medium text-ink-deep">
-                        {pr.customerName}{' '}
+                        {baustellenTitel(pr)}{' '}
                         <span className="text-sm font-normal text-ink-muted">
                           ({pr.projectNumber})
                         </span>
@@ -894,7 +897,7 @@ export default function DashboardView() {
                     className="flex min-h-touch items-center justify-between gap-3 px-4 py-2.5"
                   >
                     <span className="min-w-0">
-                      <span className="block truncate font-medium text-ink-deep">{pr.customerName}</span>
+                      <span className="block truncate font-medium text-ink-deep">{baustellenTitel(pr)}</span>
                       <span className="block text-meta text-ink-muted">
                         {fmtStd(pr.usedMin)} von {fmtStunden(pr.estimatedHours)} h · {pr.projectNumber}
                       </span>

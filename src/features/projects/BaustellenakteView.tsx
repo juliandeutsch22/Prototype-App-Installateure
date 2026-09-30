@@ -27,7 +27,9 @@ import PageHeader from '@/components/PageHeader';
 import PersonPicker from '@/components/PersonPicker';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import KundenGrenze from '@/components/AuswahlGrenze';
-import { InputField, SelectField, FormGrid } from '@/components/Field';
+import { InputField, SelectField, TextareaField, FormGrid } from '@/components/Field';
+import AdresseFeld from '@/components/AdresseFeld';
+import { baustellenTitel } from '@/lib/baustellenTitel';
 import { AdresseLink, TelefonLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList, TeilFehler } from '@/components/States';
@@ -255,6 +257,7 @@ export default function BaustellenakteView() {
       await updateProject(id, {
         customerId: entwurf.customerId || undefined,
         customerName: entwurf.customerName,
+        bezeichnung: entwurf.bezeichnung.trim(),
         address: entwurf.address,
         status: entwurf.status,
         // Leer heisst „nicht festgelegt" — der Schein rechnet dann mit Regie,
@@ -427,7 +430,7 @@ export default function BaustellenakteView() {
     <div className="space-y-3 lg:space-y-5">
       {warnung}
       <PageHeader
-        title={b.customerName}
+        title={baustellenTitel(b)}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Link to="/admin-projects" className="link inline-flex min-h-touch items-center">← Zur Baustellenliste</Link>
@@ -476,6 +479,7 @@ function StammdatenLesen({ b, namen }: { b: Project; namen: Map<string, string> 
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         <Angabe wort="Projektnummer"><span>{b.projectNumber}</span></Angabe>
         <Angabe wort="Kunde">{b.customerName}</Angabe>
+        {b.bezeichnung?.trim() && <Angabe wort="Bezeichnung">{b.bezeichnung}</Angabe>}
         <Angabe wort="Baustellenadresse">
           {b.address ? <AdresseLink adresse={b.address} /> : null}
         </Angabe>
@@ -548,10 +552,14 @@ function StammdatenFormular({
           id="b-kunde" label="Kunde" pflicht value={entwurf.customerId}
           onChange={(e) => {
             const k = kunden.find((x) => x.id === e.target.value);
+            const vorher = kunden.find((x) => x.id === entwurf.customerId)?.address;
             setEntwurf({
               ...entwurf,
               customerId: e.target.value,
               customerName: k?.name ?? entwurf.customerName,
+              // G5: die Anschrift des Kunden als Vorschlag — nur in ein leeres
+              // Feld oder statt des unveränderten Vorschlags des vorigen Kunden.
+              address: !entwurf.address || entwurf.address === vorher ? (k?.address ?? '') : entwurf.address,
             });
           }}
         >
@@ -572,8 +580,14 @@ function StammdatenFormular({
         {/* Ausdrücklich die BAUSTELLENadresse: die Rechnungsadresse steht beim
             Kunden, und eine Hausverwaltung hat zwanzig Baustellen. */}
         <InputField
+          id="b-bezeichnung" label="Bezeichnung (freiwillig)" placeholder="z. B. Bad 2. OG"
+          maxLength={120} value={entwurf.bezeichnung}
+          onChange={(e) => setze('bezeichnung', e.target.value)}
+        />
+        <AdresseFeld
           id="b-adresse" label="Baustellenadresse" value={entwurf.address}
-          onChange={(e) => setze('address', e.target.value)}
+          vorschlag={kunden.find((k) => k.id === entwurf.customerId)?.address}
+          onChange={(t) => setze('address', t)}
         />
         <SelectField
           id="b-status" label="Status" value={entwurf.status}
@@ -625,18 +639,11 @@ function StammdatenFormular({
       </FormGrid>
       <BetriebsurlaubHinweis companyId={companyId} von={entwurf.startDate} bis={entwurf.endDate} />
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="b-beschreibung" className="text-sm font-medium text-ink">
-          Beschreibung / Auftragsumfang
-        </label>
-        <textarea
-          id="b-beschreibung"
-          rows={3}
-          className="min-h-touch rounded border border-line bg-surface px-3 py-2 text-base text-ink placeholder:text-ink-placeholder focus:border-brand focus:ring-1 focus:ring-brand"
-          value={entwurf.description}
-          onChange={(e) => setze('description', e.target.value)}
-        />
-      </div>
+      <TextareaField
+        id="b-beschreibung" label="Beschreibung / Auftragsumfang"
+        value={entwurf.description}
+        onChange={(e) => setze('description', e.target.value)}
+      />
 
       <PersonPicker
         legend="Zugeordnete Mitarbeiter"

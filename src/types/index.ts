@@ -682,6 +682,11 @@ export interface Project {
    * belegt derselbe Schein nur, DASS gearbeitet wurde.
    */
   billingMode?: 'Regie' | 'Pauschal';
+  /**
+   * Freiwilliger Name der Baustelle („Bad 2. OG“) — steht im Titel vor dem
+   * Kunden (Testbericht 30.09.2026, G4). Ohne ihn ist der Titel der Kunde.
+   */
+  bezeichnung?: string;
   estimatedHours?: number;
   startDate?: string;
   endDate?: string;

@@ -36,6 +36,7 @@ import { datumAT } from '@/lib/datum';
 import { euro } from '@/lib/betrag';
 import { leseZahl, zahlOder } from '@/lib/zahl';
 import ZahlFeld from '@/components/ZahlFeld';
+import AdresseFeld from '@/components/AdresseFeld';
 
 /**
  * Zahl aus einem Eingabefeld — über die zentrale Lesung (M15). „7.500,50“
@@ -424,9 +425,12 @@ export default function QuotesView() {
               label="Kunde"
               value={customerId}
               onChange={(e) => {
+                const vorher = kunden.find((x) => x.id === customerId)?.address;
                 setCustomerId(e.target.value);
                 const k = kunden.find((x) => x.id === e.target.value);
-                if (k?.address && !address) setAddress(k.address);
+                // Vorschlag, nicht Überschreiben: nur ein leeres Feld oder der
+                // unveränderte Vorschlag des vorigen Kunden wird ersetzt (G3).
+                if (!address || address === vorher) setAddress(k?.address ?? '');
               }}
               required
               pflicht
@@ -448,11 +452,12 @@ export default function QuotesView() {
             />
           </FormGrid>
           <div className="mt-4">
-            <InputField
+            <AdresseFeld
               id="anqadr"
               label="Ort der Leistung"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              onChange={setAddress}
+              vorschlag={kunden.find((k) => k.id === customerId)?.address}
             />
           </div>
 

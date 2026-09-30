@@ -57,3 +57,21 @@ describe('Ende vor Beginn (M13)', () => {
     expect(error).toBeNull();
   });
 });
+
+// Testbericht 30.09.2026, G4 — die freiwillige Bezeichnung der Baustelle.
+describe('Bezeichnung der Baustelle (G4)', () => {
+  it('lässt sich speichern und bleibt leer, wenn niemand sie setzt', async () => {
+    const mit = await chefin.client.from('projects')
+      .insert({ ...baustelle('G4-1', null, null), bezeichnung: 'Bad 2. OG' }).select('bezeichnung').single();
+    expect(mit.error).toBeNull();
+    expect(mit.data?.bezeichnung).toBe('Bad 2. OG');
+    const ohne = await chefin.client.from('projects').insert(baustelle('G4-2', null, null)).select('bezeichnung').single();
+    expect(ohne.data?.bezeichnung).toBeNull();
+  });
+
+  it('höchstens 120 Zeichen', async () => {
+    const { error } = await chefin.client.from('projects')
+      .insert({ ...baustelle('G4-3', null, null), bezeichnung: 'x'.repeat(121) });
+    expect(error?.code).toBe('23514');
+  });
+});

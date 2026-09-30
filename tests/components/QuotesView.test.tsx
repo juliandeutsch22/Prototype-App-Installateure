@@ -249,6 +249,28 @@ describe('Angebot kalkulieren', () => {
     expect(q.totalBrutto).toBe(1200);
   });
 
+  it('ersetzt die vorgeschlagene Kundenanschrift beim Tippen, statt anzuhängen (G3)', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    const ort = screen.getByLabelText('Ort der Leistung');
+    expect(ort).toHaveValue('Rathausplatz 1');
+    await nutzer.type(ort, 'Schulgasse 4');
+    expect(ort).toHaveValue('Schulgasse 4');
+  });
+
+  it('Gegenprobe: wer die Anschrift ergänzt statt ersetzt, kann das — nach dem ersten Tippen hängt es an', async () => {
+    const nutzer = userEvent.setup();
+    zeichne();
+    await formOeffnen();
+    await nutzer.selectOptions(screen.getByLabelText('Kunde'), 'k1');
+    const ort = screen.getByLabelText('Ort der Leistung');
+    await nutzer.type(ort, 'Schulgasse 4');
+    await nutzer.type(ort, ', Turnsaal');
+    expect(ort).toHaveValue('Schulgasse 4, Turnsaal');
+  });
+
   it('liest „7.500,50“ als 7.500,50 € — nicht als 0 (Testbericht 30.09.2026, M15)', async () => {
     const nutzer = userEvent.setup();
     zeichne();

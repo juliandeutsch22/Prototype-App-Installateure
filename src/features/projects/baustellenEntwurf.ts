@@ -22,6 +22,8 @@ export interface BaustellenEntwurf {
   projectNumber: string;
   customerId: string;
   customerName: string;
+  /** Freiwilliger Name der Baustelle (G4). */
+  bezeichnung: string;
   address: string;
   status: Project['status'];
   billingMode: '' | 'Regie' | 'Pauschal';
@@ -40,6 +42,7 @@ export function alsEntwurf(p: Project): BaustellenEntwurf {
     projectNumber: p.projectNumber ?? '',
     customerId: p.customerId ?? '',
     customerName: p.customerName ?? '',
+    bezeichnung: p.bezeichnung ?? '',
     address: p.address ?? '',
     status: p.status,
     billingMode: p.billingMode ?? '',
