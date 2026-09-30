@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { ToastProvider } from '@/components/Toast';
 import type { Material, MaterialOrder } from '@/types';
 import type { WithId } from '@/lib/db/core';
@@ -95,12 +96,21 @@ vi.mock('@/features/materials/KatalogImport', () => ({
   default: () => <div>Katalog einspielen (Inhalt)</div>,
 }));
 
-function zeige() {
+function zeige(adresse = '/lager') {
   return render(
-    <ToastProvider>
-      <StockView />
-    </ToastProvider>,
+    <MemoryRouter initialEntries={[adresse]}>
+      <ToastProvider>
+        <StockView />
+        <Adresse />
+      </ToastProvider>
+    </MemoryRouter>,
   );
+}
+
+/** Zeigt die aktuelle Adresse — damit ein Test den Reiter darin sieht. */
+function Adresse() {
+  const ort = useLocation();
+  return <output data-testid="adresse">{ort.pathname + ort.search}</output>;
 }
 
 beforeEach(() => {
@@ -330,5 +340,25 @@ describe('Wer den Katalog einspielen darf', () => {
     authWert = ADMIN;
     zeige();
     expect(await screen.findByRole('tab', { name: 'Katalog einspielen' })).toBeInTheDocument();
+  });
+});
+
+// Testbericht 30.09.2026, G8 — der Reiter im Lager steht in der Adresse.
+describe('Reiter in der Adresse', () => {
+  it('ein Klick auf „Katalog“ schreibt ?reiter=katalog', async () => {
+    zeige();
+    await userEvent.click(await screen.findByRole('tab', { name: 'Katalog' }));
+    expect(screen.getByTestId('adresse')).toHaveTextContent('/lager?reiter=katalog');
+    expect(screen.getByRole('tab', { name: 'Katalog' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('die Adresse öffnet den Reiter — und Unbekanntes landet beim Bestand', async () => {
+    zeige('/lager?reiter=katalog');
+    expect(await screen.findByRole('tab', { name: 'Katalog' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('Gegenprobe: ein unbekannter Reiter gilt als Bestand', async () => {
+    zeige('/lager?reiter=irgendwas');
+    expect(await screen.findByRole('tab', { name: 'Bestand' })).toHaveAttribute('aria-selected', 'true');
   });
 });

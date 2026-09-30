@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
 import { darfKatalogEinspielen } from '@/lib/permissions';
 import {
@@ -34,6 +35,9 @@ const KatalogImport = lazy(() => import('@/features/materials/KatalogImport'));
 
 type Tab = 'bestand' | 'katalog' | 'import';
 
+const darfEinspielenFuer = (user: Parameters<typeof darfKatalogEinspielen>[0] | null | undefined) =>
+  user ? darfKatalogEinspielen(user) : false;
+
 /**
  * Lager — eigener Bereich statt versteckter vierter Reiter unter
  * „Bestellungen".
@@ -55,7 +59,23 @@ const ANFORDERUNGEN_JE_SEITE = 200;
 export default function StockView() {
   const { user } = useAuth();
   const toast = useToast();
-  const [tab, setTab] = useState<Tab>('bestand');
+  /*
+    DER REITER STEHT IN DER ADRESSE (Testbericht 30.09.2026, G8): „Zurück“,
+    Neuladen und ein geteilter Link landen auf demselben Reiter. Vorher
+    blieb die Adresse /lager, und ein Neuladen im Katalog sprang auf den
+    Bestand zurück. Ein unbekannter oder nicht erlaubter Wert gilt als Bestand.
+  */
+  const [params, setParams] = useSearchParams();
+  const gewuenscht = params.get('reiter');
+  const tab: Tab = gewuenscht === 'katalog' || (gewuenscht === 'import' && darfEinspielenFuer(user))
+    ? gewuenscht
+    : 'bestand';
+  const setTab = (t: Tab) => {
+    const neu = new URLSearchParams(params);
+    if (t === 'bestand') neu.delete('reiter');
+    else neu.set('reiter', t);
+    setParams(neu);
+  };
   // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
   const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
   // Die Leitung — oder die Verwaltung mit Freigabe „Katalog einspielen“ (M37).

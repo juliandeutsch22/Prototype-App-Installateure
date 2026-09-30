@@ -23,7 +23,7 @@ import InfoHint from '@/components/InfoHint';
 import Nachladen from '@/components/Nachladen';
 import { useToast } from '@/components/Toast';
 import { ErrorState, EmptyState, SkeletonList } from '@/components/States';
-import { leseZahl, zahlOder } from '@/lib/zahl';
+import { leseZahl, preisAlsText, zahlOder } from '@/lib/zahl';
 import { grundAus } from '@/lib/fehlerGrund';
 import ZahlFeld from '@/components/ZahlFeld';
 
@@ -182,7 +182,7 @@ export default function MaterialCatalog({
         (preise) => {
           if (offenerArtikel.current !== m.id) return;
           const ek = preise.get(m.id);
-          setForm((f) => ({ ...f, einkaufspreis: ek != null ? String(ek) : '' }));
+          setForm((f) => ({ ...f, einkaufspreis: ek != null ? preisAlsText(ek) : '' }));
           setEkStand('da');
         },
         () => {
@@ -197,7 +197,7 @@ export default function MaterialCatalog({
       stock: String(m.stock ?? 0),
       articleNumber: m.articleNumber ?? '',
       unit: m.unit ?? 'Stk',
-      verkaufspreis: m.verkaufspreis != null ? String(m.verkaufspreis) : '',
+      verkaufspreis: m.verkaufspreis != null ? preisAlsText(m.verkaufspreis) : '',
       einkaufspreis: '',
     });
   }

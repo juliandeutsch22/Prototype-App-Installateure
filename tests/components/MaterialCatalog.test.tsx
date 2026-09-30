@@ -177,7 +177,7 @@ describe('Der Einkaufspreis beim Bearbeiten durch die Geschäftsführung (B1)', 
     const nutzer = userEvent.setup();
     zeige();
     await nutzer.click((await screen.findAllByRole('button', { name: 'Bearbeiten' }))[0]);
-    await waitFor(() => expect((screen.getByLabelText(/Einkaufspreis/) as HTMLInputElement).value).toBe('3.5'));
+    await waitFor(() => expect((screen.getByLabelText(/Einkaufspreis/) as HTMLInputElement).value).toBe('3,50'));
     await nutzer.click(screen.getByRole('button', { name: 'Änderungen speichern' }));
     await waitFor(() => expect(aendern).toHaveBeenCalled());
     expect(aendern.mock.calls[0][1]).toMatchObject({ einkaufspreis: 3.5 });

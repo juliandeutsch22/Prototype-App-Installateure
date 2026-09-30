@@ -104,6 +104,20 @@ export function zahlAlsText(n: number | null | undefined): string {
 }
 
 /**
+ * Ein Preis im Feld: mindestens zwei Nachkommastellen, „4,20“ statt „4,2“
+ * (Testbericht 30.09.2026, G8). Mehr Stellen, wo der Katalog sie hat —
+ * DATANORM kennt Preise auf den Zehntelcent; die bleiben, statt gerundet zu
+ * werden. Drei Stellen bekommen wie bei `zahlAlsText` eine Null dazu, damit
+ * „1,125“ nicht als Tausendertrennung gelesen wird.
+ */
+export function preisAlsText(n: number | null | undefined): string {
+  if (n === null || n === undefined || !Number.isFinite(n)) return '';
+  const nachkomma = (String(n).split('.')[1] ?? '').length;
+  const text = n.toFixed(Math.min(Math.max(2, nachkomma), 6)).replace('.', ',');
+  return /,\d{3}$/.test(text) ? `${text}0` : text;
+}
+
+/**
  * Vor dem Speichern: steht in einem Zahlenfeld dieses Bereichs etwas, das
  * sich nicht lesen lässt? Dann die Meldung (mit der Beschriftung des Feldes),
  * sonst `null`. Die Felder melden sich zwar selbst, halten aber bis zur
