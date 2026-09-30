@@ -225,8 +225,19 @@ describe('Wochenplan für alle', () => {
     await nutzer.click(within(karte).getByRole('button', { name: 'Speichern' }));
 
     expect(updateCompany).toHaveBeenCalledTimes(1);
-    expect(updateCompany.mock.calls[0]).toEqual(['perl', { wochenplanFuerAlle: true }]);
+    // Seit 30.09.2026 schreibt die Karte auch den Schalter für die Projektleitung (M38) — unverändert aus.
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', { wochenplanFuerAlle: true, projektleitungImEinsatzplan: false }]);
     expect(reloadCompany).toHaveBeenCalled();
+  });
+
+  it('die Projektleitung im Einsatzplan ist ab Werk aus und lässt sich einschalten (M38)', async () => {
+    const nutzer = userEvent.setup();
+    zeige('personal');
+    const schalter = feld('Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“');
+    expect(schalter.checked).toBe(false);
+    await nutzer.click(schalter);
+    await nutzer.click(within(schalter.closest('section')!).getByRole('button', { name: 'Speichern' }));
+    expect(updateCompany.mock.calls[0]).toEqual(['perl', { wochenplanFuerAlle: false, projektleitungImEinsatzplan: true }]);
   });
 
   it('zeigt den eingeschalteten Zustand des Betriebs', async () => {
@@ -269,7 +280,7 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
     expect(screen.getByText('Stundensätze')).toBeInTheDocument();
     expect(screen.queryByText('Nummernkreise und Fuhrpark')).toBeNull();
     expect(screen.queryByText('Urlaubsjahr und Übertrag')).toBeNull();
-    expect(screen.queryByText('Wochenplan für alle')).toBeNull();
+    expect(screen.queryByText('Wochenplan und Einsatzplan')).toBeNull();
     unmount();
 
     const n = zeige('nummern');
@@ -282,7 +293,7 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
     zeige('personal');
     expect(screen.getByRole('heading', { level: 1, name: 'Personal' })).toBeInTheDocument();
     for (const t of [
-      'Urlaubsjahr und Übertrag', 'Wer Urlaub genehmigt', 'Wochenplan für alle', '24. und 31. Dezember',
+      'Urlaubsjahr und Übertrag', 'Wer Urlaub genehmigt', 'Wochenplan und Einsatzplan', '24. und 31. Dezember',
       'Monatsbilanzen',
     ]) {
       expect(screen.getByText(t)).toBeInTheDocument();
@@ -315,7 +326,7 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
     await nutzer.click(screen.getByRole('button', { name: 'Genehmigende speichern' }));
     const karte = screen.getByText('Wer Urlaub genehmigt').closest('section') as HTMLElement;
     expect(await within(karte).findByText(/Dafür fehlt die Berechtigung/)).toBeInTheDocument();
-    const wochenplan = screen.getByText('Wochenplan für alle').closest('section') as HTMLElement;
+    const wochenplan = screen.getByText('Wochenplan und Einsatzplan').closest('section') as HTMLElement;
     expect(within(wochenplan).queryByText(/Dafür fehlt die Berechtigung/)).toBeNull();
   });
 });

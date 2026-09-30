@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import { einplanbar } from '@/lib/permissions';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
@@ -73,7 +74,7 @@ function abwesendText(a: Pick<Abwesenheit, 'grund' | 'zeiten'>): string {
  * nie, dort steht „abwesend".
  */
 export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolean }) {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const navigate = useNavigate();
 
   const [montag, setMontag] = useState(() => montagDer(todayStr()));
@@ -175,9 +176,10 @@ export default function WochenplanView({ nurLesen = false }: { nurLesen?: boolea
   const staff = useMemo(
     () =>
       users
-        .filter((u) => u.role === 'Mitarbeiter' && u.active !== false)
+        // Seit 30.09.2026 auf Wunsch des Betriebs auch die Projektleitung (M38).
+        .filter((u) => einplanbar(u, company))
         .sort((a, b) => a.name.localeCompare(b.name, 'de')),
-    [users],
+    [users, company],
   );
 
   /** uid -> Tag -> was dort steht. */

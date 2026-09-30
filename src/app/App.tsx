@@ -66,7 +66,7 @@ const MyProjectsView = lazy(() => import('@/features/projects/MyProjectsView'));
 const AssignmentsView = lazy(() => import('@/features/assignments/AssignmentsView'));
 const MyScheduleView = lazy(() => import('@/features/assignments/MyScheduleView'));
 const WochenplanView = lazy(() => import('@/features/assignments/WochenplanView'));
-const InvoicesView = lazy(() => import('@/features/invoices/InvoicesView'));
+const RechnungenSeite = lazy(() => import('@/features/invoices/RechnungenSeite'));
 const AccountingView = lazy(() => import('@/features/accounting/AccountingView'));
 const UserMgmtView = lazy(() => import('@/features/users/UserMgmtView'));
 const BenutzerakteView = lazy(() => import('@/features/users/BenutzerakteView'));
@@ -473,7 +473,7 @@ function AppRoutes() {
       />
 
       {/* Buchhaltung */}
-      <Route path="/invoices" element={<RequireNav path="/invoices"><InvoicesView /></RequireNav>} />
+      <Route path="/invoices" element={<RequireNav path="/invoices"><RechnungenSeite /></RequireNav>} />
       <Route
         path="/accounting"
         element={<RequireNav path="/accounting"><AccountingView /></RequireNav>}

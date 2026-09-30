@@ -28,7 +28,7 @@ import RowMenu from '@/components/RowMenu';
 import { praefixeVon, belegNummer, hoechsteLfdImJahr } from '@/lib/praefixe';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { List, ListRow } from '@/components/ListRow';
-import { InputField, SelectField, FormGrid, Pflichthinweis } from '@/components/Field';
+import { InputField, SelectField, FormGrid, Pflichthinweis, CheckboxField } from '@/components/Field';
 import PersonPicker from '@/components/PersonPicker';
 import { useToast } from '@/components/Toast';
 import { grundAus } from '@/lib/fehlerGrund';
@@ -119,6 +119,13 @@ export default function AdminProjectsView() {
     gesuchteBaustelle ? 'alle' : 'offen',
   );
   const [suche, setSuche] = useState(gesuchteBaustelle);
+  /*
+    NUR MEINE BAUSTELLEN (Testbericht 30.09.2026, M38): für die
+    Projektleitung die, in deren Leitung oder Team sie steht. Ab Werk aus —
+    sie soll nicht plötzlich Baustellen vermissen, die sie bisher sah.
+  */
+  const istProjektleitung = user?.role === 'Projektleiter';
+  const [nurMeine, setNurMeine] = useState(false);
 
   /**
    * Auf eine Baustelle gehören Monteure, nicht Büro und nicht Leitung.
@@ -364,12 +371,16 @@ export default function AdminProjectsView() {
   }, [user, suche]);
 
   const visible = useMemo(() => {
+    const meine = nurMeine && user
+      ? sorted.filter((p) =>
+          (p.projectManagers ?? []).includes(user.uid) || (p.assignedEmployees ?? []).includes(user.uid))
+      : sorted;
     const nachStatus =
       filter === 'alle'
-        ? sorted
+        ? meine
         : filter === 'archiv'
-          ? sorted.filter((p) => p.status === 'Abgeschlossen')
-          : sorted.filter((p) => p.status !== 'Abgeschlossen');
+          ? meine.filter((p) => p.status === 'Abgeschlossen')
+          : meine.filter((p) => p.status !== 'Abgeschlossen');
     // Suche ueber Kunde, Nummer und Adresse: bei sechzig Baustellen ist die
     // Liste sonst nur noch scrollbar, nicht mehr benutzbar.
     const q = suche.trim().toLowerCase();
@@ -388,7 +399,7 @@ export default function AdminProjectsView() {
     */
     const bekannt = new Set(oertlich.map((p) => p.id));
     return [...oertlich, ...serverTreffer.filter((p) => !bekannt.has(p.id))];
-  }, [sorted, filter, suche, serverTreffer]);
+  }, [sorted, filter, suche, serverTreffer, nurMeine, user]);
 
   /** Wie viele Treffer NUR vom Server kamen — das ist die Aussage, nicht die Summe. */
   const nurVomServer = useMemo(() => {
@@ -561,6 +572,16 @@ export default function AdminProjectsView() {
         }
         buendig
       >
+        {istProjektleitung && (
+          <div className="px-4 pt-3">
+            <CheckboxField
+              id="pmeine"
+              label="Nur meine Baustellen"
+              checked={nurMeine}
+              onChange={(e) => setNurMeine(e.target.checked)}
+            />
+          </div>
+        )}
         {/* Bündig: Suche gepolstert, Baustellen als Zeilen von Kante zu Kante. */}
         {projects.length >= 8 && (
           <div className="p-4">

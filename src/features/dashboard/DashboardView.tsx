@@ -33,7 +33,7 @@ import {
   isMitarbeiter,
   canWriteWorkSheet,
 } from '@/lib/permissions';
-import { canAccess } from '@/app/navigation';
+import { canAccess, zusatzrechte } from '@/app/navigation';
 import type { Assignment, EinsatzMaterial, MaterialOrder, Project, RuestPosition } from '@/types';
 import Card from '@/components/Card';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -648,7 +648,7 @@ export default function DashboardView() {
             // Nur, wer den Einsatzplan hat (nur Monteure) — eingeteilt werden
             // auch andere, und die landeten auf „Kein Zugriff" (Prüflauf
             // 25.09.2026, P4-15).
-            user && canAccess(user.role, '/my-schedule', company?.modules) ? (
+            user && canAccess(user.role, '/my-schedule', company?.modules, zusatzrechte(user, company)) ? (
               <Link to="/my-schedule" className="link-weiter text-sm">
                 Mein Einsatzplan
               </Link>

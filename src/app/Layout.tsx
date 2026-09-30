@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { kontoAnzeige } from '@shared/benutzername';
 import {
-  navGroupsForRole, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, type NavItem,
+  navGroupsForRole, tabBarForRole, hinweisZahl, hinweisSumme, hinweisWort, zusatzrechte, type NavItem,
 } from './navigation';
 import { useOffenePosten, postenNeuLaden } from './offenePosten';
 import type { OffenePosten } from '@/lib/db/offenePosten';
@@ -194,8 +194,8 @@ export default function Layout({ children }: { children: ReactNode }) {
    * der Reihenfolge, kein Entschluss. Bei der Buchhaltung lagen die
    * Rechnungen deshalb unter „Mehr". Siehe `tabBarForRole`.
    */
-  const groups = navGroupsForRole(user.role, company?.modules);
-  const { unten: primary, mehr } = tabBarForRole(user.role, company?.modules);
+  const groups = navGroupsForRole(user.role, company?.modules, zusatzrechte(user, company));
+  const { unten: primary, mehr } = tabBarForRole(user.role, company?.modules, zusatzrechte(user, company));
   const hasMore = mehr.length > 0;
   const mehrSumme = hinweisSumme(mehr, posten);
   /*
