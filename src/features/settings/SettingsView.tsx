@@ -128,6 +128,8 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
    */
   const [rechnungsarten, setRechnungsarten] = useState(false);
   const [wochenplanFuerAlle, setWochenplanFuerAlle] = useState(false);
+  /** Die Projektleitung im Einsatzplan (M38) — ab Werk aus. */
+  const [plImPlan, setPlImPlan] = useState(false);
   const [wochenplanSpeichert, setWochenplanSpeichert] = useState(false);
   const [dezemberHalbtage, setDezemberHalbtage] = useState(true);
   const [dezemberSpeichert, setDezemberSpeichert] = useState(false);
@@ -161,6 +163,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     setVorsaetze(praefixeVon(company));
     setRechnungsarten(company?.rechnungsarten ?? false);
     setWochenplanFuerAlle(company?.wochenplanFuerAlle ?? false);
+    setPlImPlan(company?.projektleitungImEinsatzplan === true);
     setDezemberHalbtage(company?.dezemberHalbtage !== false);
     const beginn = company?.urlaubJahresbeginn ?? '01-01';
     setBeginnMonat(beginn.slice(0, 2));
@@ -290,7 +293,7 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     setWochenplanSpeichert(true);
     setError(null);
     try {
-      await updateCompany(user.companyId, { wochenplanFuerAlle });
+      await updateCompany(user.companyId, { wochenplanFuerAlle, projektleitungImEinsatzplan: plImPlan });
       await reloadCompany();
       toast.success(wochenplanFuerAlle ? 'Wochenplan für alle sichtbar' : 'Wochenplan nur fürs Büro');
     } catch (err) {
@@ -1053,12 +1056,14 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       */}
       {teil === 'personal' && (
       <Card
-        title="Wochenplan für alle"
+        title="Wochenplan und Einsatzplan"
         hint={
           <>
             Eingeschaltet finden alle Mitarbeiter unter „Mein Einsatzplan" eine zweite Seite
             „Team-Woche": wer an welchem Tag auf welcher Baustelle ist. Zu ändern gibt es dort
             nichts. Wer Urlaub hat, steht als „abwesend" da — ohne Grund und ohne Antragsstand.
+            Die Projektleitung lässt sich zusätzlich wie ein Monteur einteilen; sie sieht dann
+            „Mein Einsatzplan“.
           </>
         }
       >
@@ -1067,6 +1072,12 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
           label="Alle Mitarbeiter sehen den Wochenplan (nur lesen)"
           checked={wochenplanFuerAlle}
           onChange={(e) => setWochenplanFuerAlle(e.target.checked)}
+        />
+        <CheckboxField
+          id="projektleitungImEinsatzplan"
+          label="Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“"
+          checked={plImPlan}
+          onChange={(e) => setPlImPlan(e.target.checked)}
         />
         <div className="mt-4">
           <Button type="button" loading={wochenplanSpeichert} onClick={wochenplanSpeichern}>

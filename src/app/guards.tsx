@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext';
 import { LoadingState } from '@/components/States';
 import { aktiveModule, modul, type ModulId } from '@/lib/module';
 import { isAdmin } from '@/lib/permissions';
-import { NAV, canAccess } from './navigation';
+import { NAV, canAccess, zusatzrechte } from './navigation';
 import type { Role } from '@/types';
 
 /** Schützt Routen: ohne Anmeldung -> Login. */
@@ -111,7 +111,7 @@ export function RequireNav({ path, children }: { path: string; children: ReactNo
   // DIESELBE Frage, die auch die Navigation stellt, bevor sie einen Eintrag
   // zeigt — buchstäblich dieselbe Funktion. Stünde hier eine zweite
   // Bedingung, wären wir wieder da, wo wir hergekommen sind.
-  if (canAccess(user.role, path, company?.modules)) return <>{children}</>;
+  if (canAccess(user.role, path, company?.modules, zusatzrechte(user, company))) return <>{children}</>;
 
   // Ab hier ist nur noch die Frage, WELCHE Auskunft die richtige ist: liegt
   // es an der Rolle oder an einer Einstellung des Betriebs? „Kein Zugriff"

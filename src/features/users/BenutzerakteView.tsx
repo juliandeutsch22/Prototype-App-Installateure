@@ -21,7 +21,8 @@ import { MailLink } from '@/components/Kontakt';
 import { useToast } from '@/components/Toast';
 import { EmptyState, ErrorState, SkeletonList } from '@/components/States';
 import {
-  alsEntwurf, alsProfil, entwurfFehler, gleich, mitKundenFreigabe, mitZeitkontoWahl,
+  alsEntwurf, alsProfil, entwurfFehler, gleich, mitKundenFreigabe, mitLagerFreigaben,
+  mitRechnungsFreigabe, mitZeitkontoWahl,
   tagessollNachTagen, urlaubsfeldName, WEEKDAYS,
   type BenutzerEntwurf,
 } from './benutzerEntwurf';
@@ -402,6 +403,15 @@ function StammdatenLesen({ p }: { p: AppUser }) {
       {mitKundenFreigabe(p.role) && (
         <Angabe wort="Kunden pflegen">{p.kundenPflegen ? 'ja' : 'nein'}</Angabe>
       )}
+      {mitLagerFreigaben(p.role) && (
+        <>
+          <Angabe wort="Katalog einspielen">{p.katalogEinspielen ? 'ja' : 'nein'}</Angabe>
+          <Angabe wort="Einkaufspreise sehen">{p.einkaufSehen || p.katalogEinspielen ? 'ja' : 'nein'}</Angabe>
+        </>
+      )}
+      {mitRechnungsFreigabe(p.role) && (
+        <Angabe wort="Rechnungen lesen">{p.rechnungenLesen ? 'ja' : 'nein'}</Angabe>
+      )}
       {mitZeitkontoWahl(p.role) && (
         <Angabe wort="Zeitkonto">{p.fuehrtZeitkonto ? 'ja' : 'nein'}</Angabe>
       )}
@@ -525,6 +535,44 @@ function StammdatenFormular({
           <InfoHint about="Kunden anlegen und ändern">
             Kunden anlegen, bearbeiten, löschen und aus einer Datei übernehmen. Baustellen einem
             Kunden zuordnen bleibt bei der Leitung, die Kunden ohnehin pflegen darf.
+          </InfoHint>
+        </div>
+      )}
+      {/*
+        FREIGABEN STATT NEUER ROLLEN (Testbericht 30.09.2026, M37, M38). Der
+        Lagerist ist Verwaltung; die Projektleitung liest auf Wunsch die
+        Rechnungen ihrer Baustellen. Die Grenze zieht die Datenbank.
+      */}
+      {mitLagerFreigaben(entwurf.role) && (
+        <div className="space-y-1">
+          <CheckboxField
+            id="b-katalog"
+            label="Darf den Katalog einspielen (DATANORM, mit Einkaufspreisen)"
+            checked={entwurf.katalogEinspielen}
+            onChange={(e) => setze('katalogEinspielen', e.target.checked)}
+          />
+          <CheckboxField
+            id="b-einkauf"
+            label="Darf Einkaufspreise sehen"
+            checked={entwurf.einkaufSehen || entwurf.katalogEinspielen}
+            disabled={entwurf.katalogEinspielen}
+            onChange={(e) => setze('einkaufSehen', e.target.checked)}
+          />
+        </div>
+      )}
+      {mitRechnungsFreigabe(entwurf.role) && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <CheckboxField
+              id="b-rechnungen"
+              label="Darf die Rechnungen seiner Baustellen lesen"
+              checked={entwurf.rechnungenLesen}
+              onChange={(e) => setze('rechnungenLesen', e.target.checked)}
+            />
+          </div>
+          <InfoHint about="Rechnungen lesen">
+            Nur die Rechnungen der Baustellen, in deren Leitung die Person steht — lesen, nicht
+            anlegen oder ändern.
           </InfoHint>
         </div>
       )}

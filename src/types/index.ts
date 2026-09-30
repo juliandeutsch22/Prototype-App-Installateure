@@ -182,6 +182,8 @@ export interface Company {
   ueberstundenGrenze?: 'tagessoll' | 'zehn';
   /** Bei `tagesgrenze`: Arbeit an Sonn- und Feiertagen als Überstunden 100 %. */
   ueberstundenHundertSonnFeiertag?: boolean;
+  /** Die Projektleitung ist im Einsatzplan einteilbar und sieht „Mein Einsatzplan“ (M38). Ab Werk aus. */
+  projektleitungImEinsatzplan?: boolean;
   /** Vorschlag für den Grund der Steuerbefreiung auf Rechnungen mit 0 % (A2). */
   steuerbefreiungVorgabe?: string;
   urlaubUebertrag?: 'verjaehrung' | 'stichtag';
@@ -307,6 +309,10 @@ export interface AppUser {
   tagessoll?: Record<string, number> | null;
   /** Freigabe „Kunden pflegen“ — wirkt für Verwaltung und Buchhaltung (siehe `darfKundenPflegen`). */
   kundenPflegen?: boolean;
+  /** Freigaben seit 30.09.2026 (M37, M38) — wirken nur in der passenden Rolle. */
+  katalogEinspielen?: boolean;
+  einkaufSehen?: boolean;
+  rechnungenLesen?: boolean;
   /** Nur Geschäftsführung: führt ein Zeitkonto (siehe `fuehrtZeitkonto`). */
   fuehrtZeitkonto?: boolean;
   createdAt?: number;
@@ -322,6 +328,10 @@ export interface CurrentUser {
   docId: string;
   /** Aus der eigenen Zeile in `users`; die Grenze zieht die Datenbank. */
   kundenPflegen?: boolean;
+  /** Freigaben seit 30.09.2026 (M37, M38) — wirken nur in der passenden Rolle. */
+  katalogEinspielen?: boolean;
+  einkaufSehen?: boolean;
+  rechnungenLesen?: boolean;
   fuehrtZeitkonto?: boolean;
   /** Eintritt und Saldo-Start — die Buchungsmaske warnt davor (M7). */
   eintritt?: string | null;

@@ -36,6 +36,34 @@ export interface NavItem {
    * hier nichts stehen, was die Datenbank gar nicht zaehlt.
    */
   hinweis?: keyof OffenePosten;
+  /**
+   * Eine weitere Rolle, die den Eintrag nur mit Freigabe oder Betriebs-
+   * einstellung bekommt (Testbericht 30.09.2026, M38): die Projektleitung
+   * mit „Rechnungen lesen“, oder im Einsatzplan, wenn der Betrieb es
+   * einschaltet. Die Grenze zieht die Datenbank.
+   */
+  zusatz?: { rolle: Role; wenn: keyof Zusatzrechte };
+}
+
+/** Was über die Rolle hinaus einen Eintrag öffnet — aus der eigenen Zeile und dem Betrieb. */
+export interface Zusatzrechte {
+  rechnungenLesen?: boolean;
+  projektleitungImEinsatzplan?: boolean;
+}
+
+export function zusatzrechte(
+  user: { rechnungenLesen?: boolean } | null | undefined,
+  company: { projektleitungImEinsatzplan?: boolean } | null | undefined,
+): Zusatzrechte {
+  return {
+    rechnungenLesen: user?.rechnungenLesen === true,
+    projektleitungImEinsatzplan: company?.projektleitungImEinsatzplan === true,
+  };
+}
+
+function eintragFuer(item: NavItem, role: Role, zusatz?: Zusatzrechte): boolean {
+  return item.roles.includes(role)
+    || (!!item.zusatz && item.zusatz.rolle === role && !!zusatz?.[item.zusatz.wenn]);
 }
 
 /**
@@ -84,7 +112,7 @@ export const NAV: NavItem[] = [
   { path: '/material', label: 'Material anfordern', short: 'Material', icon: 'package', roles: ['Mitarbeiter', 'Verwaltung', ...LEAD], group: 'Außendienst', modul: 'material' },
   // Nur REINE Mitarbeiter — Admin/GF sehen alle Baustellen über die
   // Verwaltungssicht (Legacy:1979 "nicht Admin, der sieht alle in Projekte").
-  { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Außendienst', modul: 'einsatzplanung' },
+  { path: '/my-schedule', label: 'Mein Einsatzplan', short: 'Plan', icon: 'calendar', roles: ['Mitarbeiter'], group: 'Außendienst', modul: 'einsatzplanung', zusatz: { rolle: 'Projektleiter', wenn: 'projektleitungImEinsatzplan' } },
   { path: '/my-projects', label: 'Meine Baustellen', short: 'Baustellen', icon: 'building', roles: ['Mitarbeiter'], group: 'Außendienst' },
   // Urlaub sieht JEDE Rolle: auch Buchhaltung und Verwaltung nehmen Urlaub,
   // und beantragen muessen ihn alle. Wer entscheiden darf, sieht in derselben
@@ -127,7 +155,7 @@ export const NAV: NavItem[] = [
   // Rechnungen OHNE Projektleitung — so steht es auch in den Richtlinien, und
   // dort ist es die Wahrheit. Der Eintrag zeigte sie ihr trotzdem an; wer
   // klickte, landete in „Kein Zugriff".
-  { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung', modul: 'rechnungen', hinweis: 'mahnungen' },
+  { path: '/invoices', label: 'Rechnungen', short: 'Rechnungen', icon: 'receipt', roles: ['Buchhaltung', ...TOP], group: 'Buchhaltung', modul: 'rechnungen', hinweis: 'mahnungen', zusatz: { rolle: 'Projektleiter', wenn: 'rechnungenLesen' } },
   // Zeitkonten: bewusst OHNE Projektleitung. Ueberstunden, Krankenstaende und
   // Urlaub eines Monteurs gehen sie nichts an — Krankenstaende sind zudem
   // Gesundheitsdaten nach Art. 9 DSGVO.
@@ -266,9 +294,13 @@ export function unterseitenFuer(
  * Modul sagt, ob der Betrieb es überhaupt benutzt. Ein Eintrag ohne `modul`
  * gehört zum Kern und ist immer dabei.
  */
-export function navForRole(role: Role, module?: Record<string, boolean>): NavItem[] {
+export function navForRole(
+  role: Role,
+  module?: Record<string, boolean>,
+  zusatz?: Zusatzrechte,
+): NavItem[] {
   const an = aktiveModule(module);
-  return NAV.filter((item) => item.roles.includes(role) && (!item.modul || an.has(item.modul)));
+  return NAV.filter((item) => eintragFuer(item, role, zusatz) && (!item.modul || an.has(item.modul)));
 }
 
 /**
@@ -305,8 +337,9 @@ const LEISTE: Record<Role, string[]> = {
 export function tabBarForRole(
   role: Role,
   module?: Record<string, boolean>,
+  zusatz?: Zusatzrechte,
 ): { unten: NavItem[]; mehr: NavItem[] } {
-  const sichtbar = navForRole(role, module);
+  const sichtbar = navForRole(role, module, zusatz);
   const wunsch = LEISTE[role] ?? [];
   const unten = wunsch
     .map((p) => sichtbar.find((i) => i.path === p))
@@ -328,8 +361,9 @@ export const NAV_GROUPS = ['Allgemein', 'Außendienst', 'Verwaltung', 'Buchhaltu
 export function navGroupsForRole(
   role: Role,
   module?: Record<string, boolean>,
+  zusatz?: Zusatzrechte,
 ): { group: string; items: NavItem[] }[] {
-  const visible = navForRole(role, module);
+  const visible = navForRole(role, module, zusatz);
   return NAV_GROUPS.map((group) => ({
     group,
     items: visible.filter((i) => i.group === group),
@@ -343,9 +377,14 @@ export function navGroupsForRole(
  * käme man per URL weiterhin in einen Bereich, den der Betrieb abgeschaltet
  * hat. Unsichtbar ist nicht dasselbe wie zu.
  */
-export function canAccess(role: Role, path: string, module?: Record<string, boolean>): boolean {
+export function canAccess(
+  role: Role,
+  path: string,
+  module?: Record<string, boolean>,
+  zusatz?: Zusatzrechte,
+): boolean {
   const item = NAV.find((i) => i.path === path);
-  if (!item || !item.roles.includes(role)) return false;
+  if (!item || !eintragFuer(item, role, zusatz)) return false;
   return !item.modul || aktiveModule(module).has(item.modul);
 }
 

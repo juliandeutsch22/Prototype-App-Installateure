@@ -33,6 +33,9 @@ export interface UserProfileInput {
   initialVacationDays?: number | null;
   /** Freigabe „Kunden pflegen“ (Verwaltung, Buchhaltung). */
   kundenPflegen?: boolean;
+  katalogEinspielen?: boolean;
+  einkaufSehen?: boolean;
+  rechnungenLesen?: boolean;
   /** Nur Geschäftsführung: führt ein Zeitkonto. */
   fuehrtZeitkonto?: boolean;
 }

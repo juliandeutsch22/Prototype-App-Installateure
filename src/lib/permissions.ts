@@ -191,3 +191,35 @@ export const fuehrtZeitkonto = (p: { role: Role; fuehrtZeitkonto?: boolean }) =>
 export const darfKundenPflegen = (p: { role: Role; kundenPflegen?: boolean }) =>
   isGF(p.role)
   || ((p.role === 'Verwaltung' || p.role === 'Buchhaltung') && p.kundenPflegen === true);
+
+/**
+ * DIE FREIGABEN FÜR LAGER UND PROJEKTLEITUNG (Testbericht 30.09.2026, M37,
+ * M38; entschieden am 30.09.): keine neuen Rollen, sondern Haken in der
+ * Benutzerakte. Die Grenze ziehen `app.darf_katalog_einspielen()`,
+ * `app.darf_einkauf_sehen()` und `app.darf_rechnungen_lesen()`; das hier
+ * entscheidet nur, welche Wege erscheinen.
+ */
+export const darfKatalogEinspielen = (p: { role: Role; katalogEinspielen?: boolean }) =>
+  isTopLevel(p.role) || (p.role === 'Verwaltung' && p.katalogEinspielen === true);
+
+/** Wer einspielen darf, sieht auch die Einkaufspreise, die er einspielt. */
+export const darfEinkaufSehen = (p: { role: Role; einkaufSehen?: boolean; katalogEinspielen?: boolean }) =>
+  isTopLevel(p.role)
+  || (p.role === 'Verwaltung' && (p.einkaufSehen === true || p.katalogEinspielen === true));
+
+/** Nur die Projektleitung, und nur die Rechnungen ihrer Baustellen (die Datenbank grenzt ein). */
+export const darfRechnungenLesen = (p: { role: Role; rechnungenLesen?: boolean }) =>
+  p.role === 'Projektleiter' && p.rechnungenLesen === true;
+
+/**
+ * Wer im Einsatzplan eingeteilt wird: der Außendienst — und die
+ * Projektleitung, wenn der Betrieb es einschaltet (Testbericht 30.09.2026,
+ * M38; ab Werk aus). Buchhaltung und Verwaltung fahren nicht raus.
+ */
+export const einplanbar = (
+  u: { role: Role; active?: boolean },
+  company: { projektleitungImEinsatzplan?: boolean } | null | undefined,
+) =>
+  u.active !== false
+  && (u.role === 'Mitarbeiter'
+    || (u.role === 'Projektleiter' && company?.projektleitungImEinsatzplan === true));

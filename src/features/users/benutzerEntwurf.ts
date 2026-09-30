@@ -140,12 +140,21 @@ export interface BenutzerEntwurf {
   tagessoll: Record<string, string>;
   /** Freigabe „Kunden pflegen“ — nur für Verwaltung und Buchhaltung angeboten. */
   kundenPflegen: boolean;
+  /** Freigaben für den Lageristen (Verwaltung, M37). */
+  katalogEinspielen: boolean;
+  einkaufSehen: boolean;
+  /** Freigabe für die Projektleitung (M38). */
+  rechnungenLesen: boolean;
   /** Nur für die Geschäftsführung angeboten. */
   fuehrtZeitkonto: boolean;
 }
 
 /** Für welche Rollen der Haken „Kunden pflegen“ etwas bedeutet. */
 export const mitKundenFreigabe = (r: Role) => r === 'Verwaltung' || r === 'Buchhaltung';
+/** „Katalog einspielen“ und „Einkaufspreise sehen“ — nur für die Verwaltung angeboten (M37). */
+export const mitLagerFreigaben = (r: Role) => r === 'Verwaltung';
+/** „Rechnungen lesen“ — nur für die Projektleitung angeboten (M38). */
+export const mitRechnungsFreigabe = (r: Role) => r === 'Projektleiter';
 /** Für welche Rolle das Zeitkonto wählbar ist — die anderen legt die Rolle fest. */
 export const mitZeitkontoWahl = (r: Role) => r === 'Geschäftsführung';
 
@@ -171,6 +180,9 @@ export function leererEntwurf(): BenutzerEntwurf {
     workDays: DEFAULT_WORK_DAYS,
     tagessoll: {},
     kundenPflegen: false,
+    katalogEinspielen: false,
+    einkaufSehen: false,
+    rechnungenLesen: false,
     fuehrtZeitkonto: false,
   };
 }
@@ -195,6 +207,9 @@ export function alsEntwurf(u: AppUser): BenutzerEntwurf {
       Object.entries(u.tagessoll ?? {}).map(([tag, h]) => [tag, String(h).replace('.', ',')]),
     ),
     kundenPflegen: u.kundenPflegen === true,
+    katalogEinspielen: u.katalogEinspielen === true,
+    einkaufSehen: u.einkaufSehen === true,
+    rechnungenLesen: u.rechnungenLesen === true,
     fuehrtZeitkonto: u.fuehrtZeitkonto === true,
   };
 }
@@ -279,6 +294,9 @@ export function alsProfil(e: BenutzerEntwurf): UserProfileInput {
       Wechsel zurück plötzlich wieder da, ohne dass jemand sie erteilt hätte.
     */
     kundenPflegen: mitKundenFreigabe(e.role) && e.kundenPflegen,
+    katalogEinspielen: mitLagerFreigaben(e.role) && e.katalogEinspielen,
+    einkaufSehen: mitLagerFreigaben(e.role) && e.einkaufSehen,
+    rechnungenLesen: mitRechnungsFreigabe(e.role) && e.rechnungenLesen,
     fuehrtZeitkonto: mitZeitkontoWahl(e.role) && e.fuehrtZeitkonto,
   };
 }

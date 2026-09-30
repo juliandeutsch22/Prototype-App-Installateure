@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { darfKatalogEinspielen } from '@/lib/permissions';
 import {
   subscribeMaterials,
   adjustStock,
@@ -55,7 +56,8 @@ export default function StockView() {
   const [tab, setTab] = useState<Tab>('bestand');
   // Am Telefon läuft die Reiterleiste seitlich: der gewählte Reiter bleibt im Bild.
   const reiterleiste = useReiterImBild<HTMLDivElement>(tab);
-  const darfEinspielen = user?.role === 'Geschäftsführung' || user?.role === 'Administrator';
+  // Die Leitung — oder die Verwaltung mit Freigabe „Katalog einspielen“ (M37).
+  const darfEinspielen = user ? darfKatalogEinspielen(user) : false;
   const [materials, setMaterials] = useState<WithId<Material>[]>([]);
   const [orders, setOrders] = useState<WithId<MaterialOrder>[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import { einplanbar } from '@/lib/permissions';
 import { listActiveProjects } from '@/lib/db/projects';
 import { listUsers } from '@/lib/db/users';
 import { listAbwesendInRange, type Abwesenheit } from '@/lib/db/vacations';
@@ -64,7 +65,7 @@ interface Pick {
  * eingeteilt?" — und diese Frage beantwortet nur das Monatsraster.
  */
 export default function AssignmentsView() {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const toast = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -235,9 +236,10 @@ export default function AssignmentsView() {
   const staff = useMemo(
     () =>
       users
-        .filter((u) => u.role === 'Mitarbeiter' && u.active !== false)
+        // Seit 30.09.2026 auf Wunsch des Betriebs auch die Projektleitung (M38).
+        .filter((u) => einplanbar(u, company))
         .sort((a, b) => a.name.localeCompare(b.name, 'de')),
-    [users],
+    [users, company],
   );
 
   /**
