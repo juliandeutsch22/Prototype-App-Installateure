@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import MarkenBand from '@/components/MarkenBand';
 import { useAuth } from '@/app/AuthContext';
-import { betriebAnlegen, plattformBetriebe, type PlattformBetrieb } from '@/lib/db/plattform';
+import { betriebAnlegenMitAnmeldung, plattformBetriebe, type PlattformBetrieb } from '@/lib/db/plattform';
 import { notzugang, offeneFreigaben, type OffeneFreigabe } from '@/lib/db/support';
 import { betriebFehler, kennungVorschlag, WARNUNG_OHNE_MAIL, type NeuerBetrieb } from '@shared/plattform';
 import Hinweiszeile from '@/components/Hinweiszeile';
@@ -13,6 +13,7 @@ import { Marke, Warnung } from '@/components/Badge';
 import PasswortAendern from '@/features/auth/PasswortAendern';
 import { plattformFehler, type PlattformFehler } from '@/lib/db/fehlerprotokoll';
 import FehlerListe from './FehlerListe';
+import NotzugangPasswort from './NotzugangPasswort';
 
 /**
  * Die einzige Seite des globalen Administrators.
@@ -105,6 +106,8 @@ export default function PlattformView() {
   const [offen, setOffen] = useState<OffeneFreigabe[]>([]);
   const [notForm, setNotForm] = useState({ companyId: '', grund: '', stunden: '4' });
   const [notLaeuft, setNotLaeuft] = useState(false);
+  /** Für welchen Betrieb im Notzugang das Passwortformular offen ist (P2). */
+  const [passwortFuer, setPasswortFuer] = useState<string | null>(null);
   const [notFehler, setNotFehler] = useState<string | null>(null);
 
   async function freigabenLaden() {
@@ -162,7 +165,7 @@ export default function PlattformView() {
     setFehler(null);
     setLaeuft(true);
     try {
-      const data = await betriebAnlegen(form);
+      const data = await betriebAnlegenMitAnmeldung(form);
       setAngelegt((bisher) => [
         {
           companyId: data.companyId,
@@ -357,6 +360,20 @@ export default function PlattformView() {
                 <Button variant="secondary" onClick={() => einblickStarten(f)}>
                   Öffnen
                 </Button>
+                {/* P2: nur im Notzugang — ein ausgesperrter Betrieb bekommt wieder ein Passwort. */}
+                {f.notzugang && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setPasswortFuer((x) => (x === f.company_id ? null : f.company_id))}
+                  >
+                    Passwort neu setzen
+                  </Button>
+                )}
+                {f.notzugang && passwortFuer === f.company_id && (
+                  <div className="basis-full">
+                    <NotzugangPasswort kennung={f.company_id} name={f.name} />
+                  </div>
+                )}
               </li>
             ))}
           </ul>

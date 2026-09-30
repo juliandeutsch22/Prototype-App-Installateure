@@ -19,6 +19,7 @@ const anlegen = vi.fn();
 let betriebe: unknown[] = [];
 vi.mock('@/lib/db/plattform', () => ({
   betriebAnlegen: (daten: unknown) => anlegen(daten),
+  betriebAnlegenMitAnmeldung: (daten: unknown) => anlegen(daten),
   plattformBetriebe: vi.fn(async () => betriebe),
 }));
 

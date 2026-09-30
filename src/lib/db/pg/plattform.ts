@@ -77,3 +77,33 @@ export async function plattformBetriebe(): Promise<PlattformBetrieb[]> {
     notzugangBis: z.notzugang_bis,
   }));
 }
+
+/** Ein Leitungskonto mit Benutzername, solange ein Notzugang offen ist (P2). */
+export interface Leitungskonto {
+  uid: string;
+  name: string;
+  rolle: string;
+  benutzername: string;
+}
+
+export async function leitungskontenImNotzugang(kennung: string): Promise<Leitungskonto[]> {
+  const { data, error } = await derClient().rpc('plattform_leitungskonten', { p_company: kennung });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Leitungskonto[];
+}
+
+/**
+ * Ein neues Startpasswort über den Notzugang (P2) — mit Grund und
+ * Identitätsprüfung. Zurück kommt das Startpasswort, einmal.
+ */
+export async function notzugangPasswort(eingabe: {
+  uid: string; grund: string; rueckruf: string; identitaetBestaetigt: boolean;
+}): Promise<string> {
+  const { data, error } = await derClient().functions.invoke('notzugang-passwort', { body: eingabe });
+  if (error) {
+    const rumpf = await (error as { context?: Response }).context?.json?.()
+      .catch(() => undefined);
+    throw new Error(rumpf?.error ?? error.message);
+  }
+  return String((data as { startpasswort?: string })?.startpasswort ?? '');
+}
