@@ -47,7 +47,7 @@ beforeAll(async () => {
     { company_id: BETRIEB, project_number: 'R3-1', customer_id: eigenerKunde, customer_name: 'Familie Eigen',
       status: 'Aktiv', assigned_employees: [monteur.uid] },
     { company_id: BETRIEB, project_number: 'R3-2', customer_id: fremderKunde, customer_name: 'Firma Fremd',
-      status: 'Aktiv' },
+      status: 'Aktiv', assigned_employees: [] },
   ]);
   if (p.error) throw new Error(p.error.message);
 }, 120_000);

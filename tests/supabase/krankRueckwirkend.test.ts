@@ -55,18 +55,24 @@ describe('Das Büro', () => {
     alteMeldung = (data as { id: string }).id;
   });
 
-  it('Gegenprobe: der Monteur verlängert diese alte Meldung selbst — ihr Beginn bewegt sich nicht', async () => {
-    const { error } = await krank(monteur, { id: alteMeldung, von: tag(-60), bis: tag(-50) });
-    expect(error).toBeNull();
+  /*
+    SEIT DEM TESTBERICHT VOM 30.09.2026 (H8): eine vom Büro erfasste Meldung
+    sieht der Monteur nur an — verlängern, verschieben oder löschen tut das
+    Büro. Hier stand bis dahin, dass er sie selbst verlängert (A4, 28.09.);
+    die jüngere Entscheidung geht vor.
+  */
+  it('der Monteur verlängert diese Meldung nicht selbst — das Büro schon', async () => {
+    const selbst = await krank(monteur, { id: alteMeldung, von: tag(-60), bis: tag(-50) });
+    expect(selbst.error?.message).toMatch(/hat das Büro erfasst/);
+    const buero = await krank(buch, { id: alteMeldung, von: tag(-60), bis: tag(-50) });
+    expect(buero.error).toBeNull();
   });
 
-  it('den Beginn weiter nach vorne verlegen darf er nicht', async () => {
-    const { error } = await krank(monteur, { id: alteMeldung, von: tag(-67), bis: tag(-50) });
-    expect(error?.code).toBe('42501');
-  });
-
-  it('nach hinten schon — das verkürzt nur', async () => {
-    const { error } = await krank(monteur, { id: alteMeldung, von: tag(-57), bis: tag(-50) });
+  it('eine eigene, noch nicht begonnene Meldung lässt sich nicht weiter als 14 Tage zurückverlegen', async () => {
+    const { data, error } = await krank(monteur, { von: tag(21), bis: tag(27) });
     expect(error).toBeNull();
+    const zurueck = await krank(monteur, { id: (data as { id: string }).id, von: tag(-30), bis: tag(27) });
+    expect(zurueck.error?.code).toBe('42501');
+    expect(zurueck.error?.message).toMatch(/14 Tage zurück/);
   });
 });
