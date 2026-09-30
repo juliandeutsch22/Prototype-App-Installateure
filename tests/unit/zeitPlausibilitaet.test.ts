@@ -89,37 +89,3 @@ describe('Der erklärende Satz', () => {
     expect(zeitSatz(zeitbild('07:00', '16:00', '600')!)).toMatch(/keine Arbeitszeit/);
   });
 });
-
-describe('nachtMinuten — was zwischen 22 und 6 Uhr liegt', () => {
-  it('zählt über Mitternacht', async () => {
-    const { nachtMinuten } = await import('@/features/time/zeitPlausibilitaet');
-    expect(nachtMinuten('20:00', '02:00')).toBe(4 * 60);
-    expect(nachtMinuten('22:00', '06:00')).toBe(8 * 60);
-    expect(nachtMinuten('04:00', '08:00')).toBe(2 * 60);
-    expect(nachtMinuten('07:00', '16:00')).toBe(0);
-    // Beginn gleich Ende ist keine Spanne, ein leeres Feld auch nicht.
-    expect(nachtMinuten('07:00', '07:00')).toBe(0);
-    expect(nachtMinuten('', '02:00')).toBe(0);
-  });
-});
-
-describe('ueberwiegendNacht — wann „Nachtarbeit" vorgeschlagen wird (Prüflauf 25.09.2026, P1-19)', () => {
-  /*
-    Das Kennzeichen zählt die GANZE Buchung als Nacht. Vorgeschlagen wird es
-    deshalb nur, wenn die Nacht überwiegt — nicht schon ab einer Stunde nach
-    22 Uhr.
-  */
-  it('schlägt die überwiegende Nacht vor', async () => {
-    const { ueberwiegendNacht } = await import('@/features/time/zeitPlausibilitaet');
-    expect(ueberwiegendNacht('20:00', '02:00')).toBe(true);
-    expect(ueberwiegendNacht('22:00', '06:00')).toBe(true);
-  });
-
-  it('schweigt, wenn nur ein kleiner Teil in der Nacht liegt', async () => {
-    const { ueberwiegendNacht } = await import('@/features/time/zeitPlausibilitaet');
-    // 90 von 450 Minuten — vorher kam der Vorschlag, und mit ihm 7,5 Stunden Nacht.
-    expect(ueberwiegendNacht('16:00', '23:30')).toBe(false);
-    expect(ueberwiegendNacht('07:00', '16:00')).toBe(false);
-    expect(ueberwiegendNacht('21:30', '22:15')).toBe(false);
-  });
-});

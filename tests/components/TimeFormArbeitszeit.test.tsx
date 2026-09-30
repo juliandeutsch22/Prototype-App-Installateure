@@ -152,33 +152,33 @@ describe('Nachtarbeit — ein Hinweis, kein automatischer Haken (Launch-Check M2
     setze('Von', '20:00');
     setze('Bis', '02:00');
     const knopf = screen.getByRole('button', { name: 'Nachtarbeit ankreuzen' });
-    expect(screen.getByText(/reicht in die Nacht/)).toBeInTheDocument();
+    expect(screen.getByText(/liegen in der Nachtzeit/)).toBeInTheDocument();
     fireEvent.click(knopf);
     // Gesetzt steht sie in der Zeile „Weitere Angaben", und der Hinweis geht.
     expect(screen.getByRole('button', { name: /Weitere Angaben/ }).textContent).toMatch(/Nachtarbeit/);
     expect(screen.queryByRole('button', { name: 'Nachtarbeit ankreuzen' })).not.toBeInTheDocument();
   });
 
-  it('schweigt am gewöhnlichen Tag und bei einer Viertelstunde nach 22 Uhr', () => {
+  it('schweigt am gewöhnlichen Tag', () => {
     zeichne();
-    expect(screen.queryByText(/reicht in die Nacht/)).not.toBeInTheDocument();
-    setze('Bis', '22:15');
-    expect(screen.queryByText(/reicht in die Nacht/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/liegen in der Nachtzeit/)).not.toBeInTheDocument();
   });
 });
 
-describe('Nachtarbeit — nur bei überwiegender Nacht, und mit Umfang (Prüflauf 25.09.2026, P1-19)', () => {
-  it('sagt, dass das Kennzeichen für die ganze Buchung gilt', () => {
+/*
+  SEIT DEM TESTBERICHT VOM 30.09.2026 (M35) trägt das Kennzeichen nur die
+  Stunden in der Nachtzeit. Der Vorschlag kommt deshalb, sobald Zeit
+  hineinfällt, und nennt ihren Umfang. Vorher (Prüflauf 25.09.2026, P1-19)
+  kam er nur bei überwiegender Nacht, weil das Kennzeichen damals die ganze
+  Buchung zählte — bei 20:00–23:30 gar nicht.
+*/
+describe('Nachtarbeit — stundengenau (Testbericht 30.09.2026, M35)', () => {
+  it('schlägt sie bei 20:00–23:30 vor und nennt die anderthalb Nachtstunden', () => {
     zeichne();
     setze('Von', '20:00');
-    setze('Bis', '02:00');
-    expect(screen.getByText(/gilt für die ganze Buchung/)).toBeInTheDocument();
-  });
-
-  it('schlägt es bei 16:00–23:30 nicht vor — sonst zählten 7,5 Stunden als Nacht', () => {
-    zeichne();
-    setze('Von', '16:00');
     setze('Bis', '23:30');
-    expect(screen.queryByRole('button', { name: 'Nachtarbeit ankreuzen' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nachtarbeit ankreuzen' })).toBeInTheDocument();
+    expect(screen.getByText(/01:30 Std\. liegen in der Nachtzeit \(22–6 Uhr\)/)).toBeInTheDocument();
+    expect(screen.getByText(/gilt nur für diese Stunden/)).toBeInTheDocument();
   });
 });

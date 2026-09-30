@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/app/AuthContext';
+import { nachtzeitVon, ueberstundenRegelVon } from '@/lib/lohnregeln';
 import { listUsers } from '@/lib/db/users';
 import { listProjectsByNumbers } from '@/lib/db/projects';
 import {
@@ -243,6 +244,8 @@ export default function AccountingView() {
 
   const urlaubsRegel = useMemo(() => uebertragsRegel(company), [company]);
   const halbeTage = dezemberHalbtage(company);
+  // Nachtzeit und Überstundenmodell des Betriebs (Paket 2c) für die Ausleitung.
+  const lohn = { nacht: nachtzeitVon(company), ueberstunden: ueberstundenRegelVon(company) };
 
   // Deaktivierte Mitarbeiter fallen aus der Auswertung (Legacy:5407).
   const relevant = useMemo(
@@ -298,7 +301,7 @@ export default function AccountingView() {
   function exportMonthCsv() {
     // Bewusst alleRows: der Monatsexport ist ein Abschluss und darf nicht
     // davon abhaengen, was gerade im Suchfeld steht.
-    downloadCsv(buildMonthCsv(alleRows, year, month, halbeTage), monthCsvFilename(year, month));
+    downloadCsv(buildMonthCsv(alleRows, year, month, halbeTage, lohn), monthCsvFilename(year, month));
     toast.success('Monats-CSV heruntergeladen');
   }
 
@@ -309,7 +312,7 @@ export default function AccountingView() {
       return;
     }
     downloadCsv(
-      buildUserCsv(u, r.monthEntries, r.stats, year, month, halbeTage),
+      buildUserCsv(u, r.monthEntries, r.stats, year, month, halbeTage, lohn),
       userCsvFilename(u, year, month),
     );
     toast.success(`CSV für ${u.name} heruntergeladen`);

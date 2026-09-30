@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/app/AuthContext';
+import { nachtzeitVon } from '@/lib/lohnregeln';
 import {
   subscribeRecentInvoices,
   listInvoicesInRange,
@@ -856,7 +857,7 @@ export default function InvoicesView() {
         // Ein STORNIERTER Beleg zaehlt dabei nicht — sein Material ist wieder
         // offen.
         bereitsVerrechnet: verrechneteScheine(derBaustelle),
-      });
+      }, nachtzeitVon(company));
       /*
         PAUSCHALBAUSTELLE: das Angebot ist die Rechnung, nicht die Stunden
         (Launch-Check, K3 — siehe `pauschale.ts`). Auch ohne eine einzige

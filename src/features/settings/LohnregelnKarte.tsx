@@ -1,0 +1,123 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/app/AuthContext';
+import { updateCompany } from '@/lib/db/company';
+import Card from '@/components/Card';
+import Button from '@/components/Button';
+import { InputField, SelectField, CheckboxField, FormGrid } from '@/components/Field';
+import { useToast } from '@/components/Toast';
+import { grundAus } from '@/lib/fehlerGrund';
+import { ueberstundenRegelVon } from '@/lib/lohnregeln';
+
+/**
+ * NACHTZEIT UND ÜBERSTUNDEN (Testbericht 30.09.2026, Paket 2c: M35 und das
+ * Überstundenmodell).
+ *
+ * Beides je Betrieb, ab Werk wie bisher: Nachtzeit 22–6 Uhr, Überstunden
+ * über das Zeitkonto. Ausgewiesen werden Stunden, nie Geld. Nach der Lesart
+ * des Kollektivvertrags Metallgewerbe; mit der WKO noch abzugleichen.
+ */
+export default function LohnregelnKarte() {
+  const { user, company, reloadCompany } = useAuth();
+  const toast = useToast();
+  const [nachtVon, setNachtVon] = useState('22:00');
+  const [nachtBis, setNachtBis] = useState('06:00');
+  const [modell, setModell] = useState<'zeitkonto' | 'tagesgrenze'>('zeitkonto');
+  const [grenze, setGrenze] = useState<'tagessoll' | 'zehn'>('tagessoll');
+  const [hundert, setHundert] = useState(false);
+  const [speichert, setSpeichert] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
+
+  useEffect(() => {
+    setNachtVon(company?.nachtVon ?? '22:00');
+    setNachtBis(company?.nachtBis ?? '06:00');
+    const regel = ueberstundenRegelVon(company);
+    setModell(regel.modell);
+    setGrenze(regel.grenze);
+    setHundert(regel.hundertSonnFeiertag);
+  }, [company]);
+
+  async function speichern() {
+    if (!user) return;
+    setFehler(null);
+    if (!/^\d{2}:\d{2}$/.test(nachtVon) || !/^\d{2}:\d{2}$/.test(nachtBis) || nachtVon === nachtBis) {
+      setFehler('Bitte Beginn und Ende der Nachtzeit angeben — zwei verschiedene Uhrzeiten.');
+      return;
+    }
+    setSpeichert(true);
+    try {
+      await updateCompany(user.companyId, {
+        nachtVon,
+        nachtBis,
+        ueberstundenModell: modell,
+        ueberstundenGrenze: grenze,
+        ueberstundenHundertSonnFeiertag: hundert,
+      });
+      await reloadCompany();
+      toast.success('Nachtzeit und Überstunden gespeichert');
+    } catch (err) {
+      setFehler(grundAus(err, 'Nachtzeit und Überstunden konnten nicht gespeichert werden.'));
+    } finally {
+      setSpeichert(false);
+    }
+  }
+
+  return (
+    <Card
+      title="Nachtzeit und Überstunden"
+      hint={
+        <>
+          Der Nachtzuschlag gilt nur für die Stunden in der Nachtzeit, in Rechnung, Lohn-CSV und
+          Stundennachweis. Beim Zeitkonto (Gleitzeit) sammeln sich Mehrstunden im Saldo. Bei der
+          Tagesgrenze stehen die Stunden über der Grenze eines Tages als Überstunden mit 50 % in
+          Lohn-CSV und Stundennachweis; an Tagen ohne Soll zählt jede Stunde. Ausgewiesen werden
+          Stunden, nie Beträge.
+        </>
+      }
+    >
+      <FormGrid>
+        <InputField
+          id="nachtVon" label="Nachtzeit von" type="time"
+          value={nachtVon} onChange={(e) => setNachtVon(e.target.value)}
+        />
+        <InputField
+          id="nachtBis" label="Nachtzeit bis" type="time"
+          value={nachtBis} onChange={(e) => setNachtBis(e.target.value)}
+        />
+        <SelectField
+          id="ueberstundenModell" label="Überstunden"
+          value={modell}
+          onChange={(e) => setModell(e.target.value as 'zeitkonto' | 'tagesgrenze')}
+        >
+          <option value="zeitkonto">Zeitkonto (Gleitzeit mit Saldo)</option>
+          <option value="tagesgrenze">Tagesgrenze (Überstunden je Tag)</option>
+        </SelectField>
+        {modell === 'tagesgrenze' && (
+          <SelectField
+            id="ueberstundenGrenze" label="Überstunden ab"
+            value={grenze}
+            onChange={(e) => setGrenze(e.target.value as 'tagessoll' | 'zehn')}
+          >
+            <option value="tagessoll">über dem Tagessoll der Person</option>
+            <option value="zehn">über 10 Stunden (bei Gleitzeit)</option>
+          </SelectField>
+        )}
+      </FormGrid>
+      {modell === 'tagesgrenze' && (
+        <div className="mt-3">
+          <CheckboxField
+            id="ueberstundenHundert"
+            label="Arbeit an Sonn- und Feiertagen als Überstunden mit 100 %"
+            checked={hundert}
+            onChange={(e) => setHundert(e.target.checked)}
+          />
+        </div>
+      )}
+      <div className="mt-4">
+        <Button type="button" loading={speichert} onClick={speichern}>
+          Speichern
+        </Button>
+      </div>
+      {fehler && <p role="alert" className="mt-2 text-sm text-danger">{fehler}</p>}
+    </Card>
+  );
+}

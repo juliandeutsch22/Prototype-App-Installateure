@@ -1,5 +1,6 @@
 import type { TimeEntry } from '@/types';
 import { calcWorkMin, tagesAnteil } from '@/lib/time';
+import { NACHTZEIT_VORGABE, nachtArbeitMin, type Nachtzeit } from '@/lib/lohnregeln';
 
 /**
  * Nacht- und Notdienststunden für die Lohnverrechnung.
@@ -26,7 +27,10 @@ import { calcWorkMin, tagesAnteil } from '@/lib/time';
  */
 
 export interface Zuschlagszeit {
-  /** Arbeitsminuten an Einsätzen mit Kennzeichen „Nacht". */
+  /**
+   * Arbeitsminuten IN DER NACHTZEIT an Einsätzen mit Kennzeichen „Nacht"
+   * (seit 30.09.2026 stundengenau, M35 — vorher der ganze Eintrag).
+   */
   nachtMin: number;
   /** Arbeitsminuten an Einsätzen mit Kennzeichen „Notdienst". */
   notdienstMin: number;
@@ -97,7 +101,11 @@ export function dezemberNachmittagMin(e: TimeEntry, halbeTage: boolean): number 
  * hier ergäbe dieselbe Zahl, bis sie es eines Tages nicht mehr täte, und
  * bemerkt würde es an einem Lohnzettel.
  */
-export function zuschlagszeit(eintraege: TimeEntry[], halbeTage: boolean): Zuschlagszeit {
+export function zuschlagszeit(
+  eintraege: TimeEntry[],
+  halbeTage: boolean,
+  nacht: Nachtzeit = NACHTZEIT_VORGABE,
+): Zuschlagszeit {
   let nachtMin = 0;
   let notdienstMin = 0;
   let beidesMin = 0;
@@ -108,14 +116,18 @@ export function zuschlagszeit(eintraege: TimeEntry[], halbeTage: boolean): Zusch
     if (e.status !== 'Anwesend') continue;
     const min = calcWorkMin(e);
     if (min <= 0) continue;
-    if (e.isNightWork) nachtMin += min;
+    const nachtTeil = nachtArbeitMin(e, nacht);
+    nachtMin += nachtTeil;
     if (e.isEmergency) notdienstMin += min;
-    if (e.isNightWork && e.isEmergency) beidesMin += min;
+    if (e.isEmergency) beidesMin += nachtTeil;
     const dezember = dezemberNachmittagMin(e, halbeTage);
     dezemberMin += dezember;
-    // Ein gekennzeichneter Eintrag trägt seinen Zuschlag ganz; der
-    // Dezember-Nachmittag steckt dann schon darin.
-    gesamtMin += e.isNightWork || e.isEmergency ? min : dezember;
+    /*
+      Ein Notdienst trägt seinen Zuschlag ganz; sonst die Nachtstunden und
+      der Dezember-Nachmittag — beide höchstens so viel wie der Eintrag
+      (eine Nacht am 24.12. nach 22 Uhr steckt in beiden).
+    */
+    gesamtMin += e.isEmergency ? min : Math.min(min, nachtTeil + dezember);
   }
 
   return { nachtMin, notdienstMin, beidesMin, dezemberMin, gesamtMin };

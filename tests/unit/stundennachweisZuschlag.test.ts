@@ -80,7 +80,8 @@ describe('Zuschlagsstunden im Stundennachweis', () => {
     const text = befehle(nachweis([eintrag({ isNightWork: true })]));
     expect(text).toContain('Zuschlagsstunden');
     expect(text).toContain('N = Nacht, ND = Notdienst');
-    expect(text).toContain('Nacht: 4,00 h');
+    // Seit M35 steht die Nachtzeit des Betriebs dabei.
+    expect(text).toContain('Nacht \\(22 bis 6 Uhr\\): 4,00 h');
   });
 
   /*
