@@ -199,6 +199,13 @@ export const UNTER: Record<string, Unterseite[]> = {
     // hat sie niemand vermutet; gefragt wurde stattdessen, wo das Feld
     // überhaupt sei.
     { pfad: 'saetze', label: 'Sätze und Kosten', roles: TOP },
+    /*
+      DIE RECHNUNGSVORGABEN DER BUCHHALTUNG (Testbericht 30.09.2026, H10):
+      Zahlungsziel, Skonto, Mahnspesen, Basiszinssatz — ohne die Stunden- und
+      Kostensätze daneben. Die Leitung pflegt dieselben Werte weiter unter
+      „Sätze und Kosten“ und braucht den Reiter nicht.
+    */
+    { pfad: 'rechnung', label: 'Rechnungsvorgaben', roles: ['Buchhaltung'] },
     // Bis zum 24.09.2026 standen beide auf „Sätze und Kosten" — dort sucht
     // niemand Rechnungsvorsätze oder den Urlaubsübertrag (Prüflauf, D10).
     { pfad: 'nummern', label: 'Nummernkreise', roles: TOP },

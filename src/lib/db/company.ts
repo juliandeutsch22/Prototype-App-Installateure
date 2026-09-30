@@ -39,3 +39,10 @@ export type { NaechsteNummern } from './pg/company';
 export function naechsteNummern(jahr: number): Promise<pg.NaechsteNummern> {
   return pg.naechsteNummern(jahr);
 }
+
+export type { Rechnungsvorgaben } from './pg/company';
+
+/** Nur die Rechnungsvorgaben speichern — darf auch die Buchhaltung (Testbericht H10). */
+export function rechnungsvorgabenSpeichern(vorgaben: pg.Rechnungsvorgaben): Promise<void> {
+  return pg.rechnungsvorgabenSpeichern(vorgaben);
+}

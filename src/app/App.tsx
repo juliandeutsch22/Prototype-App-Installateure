@@ -459,6 +459,7 @@ function AppRoutes() {
                 meldungen: <NotificationSettings />,
                 firma: <FirmendatenView />,
                 saetze: <SettingsView teil="saetze" />,
+                rechnung: <SettingsView teil="rechnung" />,
                 nummern: <SettingsView teil="nummern" />,
                 personal: <SettingsView teil="personal" />,
                 konten: <KontenrahmenView />,

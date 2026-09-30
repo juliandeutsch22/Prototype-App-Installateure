@@ -7,7 +7,7 @@
  * (Geschäftsführung/Administration) und, feldweise, der Trigger
  * `app.firmeneinstellungen_geschuetzt`.
  */
-import type { Company } from '@/types';
+import type { Company, InvoiceRates } from '@/types';
 import { derClient } from './kern';
 import { objektAlsZeile, zeileAlsObjekt } from './felder';
 
@@ -83,4 +83,41 @@ export async function naechsteNummern(jahr: number): Promise<NaechsteNummern> {
     angebot: je.get('quotes') ?? 1,
     baustelle: je.get('projects') ?? 1,
   };
+}
+
+/** Die Schlüssel in `rates`, die die Buchhaltung pflegt (Testbericht H10). */
+export type Rechnungsvorgaben = Partial<
+  Pick<
+    InvoiceRates,
+    | 'dueDays'
+    | 'skontoProzent'
+    | 'skontoTage'
+    | 'mahnspesen'
+    | 'mahnspesenVerbraucher'
+    | 'pauschale458'
+    | 'basiszinssatz'
+    | 'basiszinssatzAb'
+  >
+>;
+
+/**
+ * Nur die Rechnungsvorgaben speichern — Zahlungsziel, Skonto, Mahnspesen,
+ * Basiszinssatz (Testbericht 30.09.2026, H10).
+ *
+ * Über eine eigene Funktion der Datenbank, nicht über `updateCompany`: die
+ * Firma ändert nur die Spitze, und die Buchhaltung soll an genau diese acht
+ * Werte und an keine Stunden- oder Kostensätze. `undefined` wird als `null`
+ * geschickt und nimmt den Wert heraus (etwa „kein Skonto“).
+ */
+export async function rechnungsvorgabenSpeichern(vorgaben: Rechnungsvorgaben): Promise<void> {
+  const p_vorgaben = Object.fromEntries(
+    (
+      [
+        'dueDays', 'skontoProzent', 'skontoTage', 'mahnspesen',
+        'mahnspesenVerbraucher', 'pauschale458', 'basiszinssatz', 'basiszinssatzAb',
+      ] as const
+    ).map((k) => [k, vorgaben[k] ?? null]),
+  );
+  const { error } = await derClient().rpc('rechnungsvorgaben_speichern', { p_vorgaben });
+  if (error) throw new Error(error.message);
 }

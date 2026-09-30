@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '@/app/AuthContext';
-import { updateCompany, naechsteNummern, type NaechsteNummern } from '@/lib/db/company';
+import { updateCompany, naechsteNummern, rechnungsvorgabenSpeichern, type NaechsteNummern } from '@/lib/db/company';
 import { kostensaetze } from '@/lib/db/kosten';
 import { praefixeVon, praefixPutzen, praefixFehler, belegNummer, PRAEFIX_MAX } from '@/lib/praefixe';
 import { listUsers } from '@/lib/db/users';
@@ -56,10 +56,11 @@ const MONATE = [
  * „Einstellungen" (Prüflauf, D10). Die Karten sind geblieben, wie sie waren;
  * sie stehen jetzt dort, wo man sie sucht.
  */
-export type EinstellungsTeil = 'saetze' | 'nummern' | 'personal';
+export type EinstellungsTeil = 'saetze' | 'rechnung' | 'nummern' | 'personal';
 
 const KOPF: Record<EinstellungsTeil, { titel: string; unter: string }> = {
   saetze: { titel: 'Sätze und Kosten', unter: 'Stundensätze, Zuschläge, Rechnungsvorgaben und Kostensätze' },
+  rechnung: { titel: 'Rechnungsvorgaben', unter: 'Zahlungsziel, Skonto, Mahnspesen und Basiszinssatz' },
   nummern: { titel: 'Nummernkreise', unter: 'Vorsätze für Rechnungen, Angebote, Baustellen und Kennzeichen' },
   personal: { titel: 'Personal', unter: 'Urlaubsjahr, Genehmigung und Wochenplan' },
 };
@@ -348,7 +349,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   const companyId = user?.companyId;
   const [kostenStand, setKostenStand] = useState(0);
   useEffect(() => {
-    if (!companyId) return;
+    // Nur auf „Sätze und Kosten“: die Kostensätze liest nur die Spitze, und
+    // die Buchhaltung auf ihrem Reiter bekäme sonst eine Fehlermeldung.
+    if (!companyId || teil !== 'saetze') return;
     let weg = false;
     kostensaetze(companyId)
       .then((k) => {
@@ -365,7 +368,37 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
     return () => {
       weg = true;
     };
-  }, [companyId, kostenStand]);
+  }, [companyId, kostenStand, teil]);
+
+  /**
+   * Nur die Rechnungsvorgaben — der Reiter der Buchhaltung (Testbericht
+   * 30.09.2026, H10). Über die eigene Funktion der Datenbank, die an nichts
+   * anderes als diese Werte herankommt.
+   */
+  async function vorgabenSpeichern(e: FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await rechnungsvorgabenSpeichern({
+        dueDays: rates.dueDays,
+        skontoProzent: rates.skontoProzent,
+        skontoTage: rates.skontoTage,
+        mahnspesen: rates.mahnspesen,
+        mahnspesenVerbraucher: rates.mahnspesenVerbraucher,
+        pauschale458: rates.pauschale458,
+        basiszinssatz: rates.basiszinssatz,
+        basiszinssatzAb: rates.basiszinssatzAb,
+      });
+      await reloadCompany();
+      toast.success('Rechnungsvorgaben gespeichert');
+    } catch (err) {
+      setError({ wo: 'rechnung', text: grundAus(err, 'Die Rechnungsvorgaben konnten nicht gespeichert werden.') });
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -411,6 +444,26 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
   return (
     <div className="space-y-6">
       <PageHeader title={KOPF[teil].titel} subtitle={KOPF[teil].unter} />
+
+      {teil === 'rechnung' && (
+        <form onSubmit={vorgabenSpeichern} className="space-y-6">
+          <Card
+            title="Rechnungsvorgaben"
+            hint="Diese Werte sind die Vorgabe für neue Rechnungen und Mahnungen. Stunden- und Kostensätze pflegt die Leitung unter „Sätze und Kosten“."
+          >
+            <FormGrid>
+              <RechnungsvorgabenFelder rates={rates} setRates={setRates} />
+            </FormGrid>
+            <RechnungsvorgabenHinweis />
+          </Card>
+          {fehlerBei('rechnung')}
+          <div className="flex justify-end">
+            <Button type="submit" loading={saving}>
+              Rechnungsvorgaben speichern
+            </Button>
+          </div>
+        </form>
+      )}
 
       {teil === 'saetze' && (
       <form onSubmit={submit} className="space-y-6">
@@ -543,170 +596,9 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
                 onChange={(e) => setSteuerbefreiungVorgabe(e.target.value)}
               />
             )}
-            <InputField
-              id="r-due"
-              label="Zahlungsziel (Tage)"
-              type="number"
-              min="0"
-              value={String(rates.dueDays)}
-              onChange={(e) => setRates({ ...rates, dueDays: num(e.target.value, 14) })}
-            />
-            {/*
-              SKONTO OHNE VORGABE, wie die Mahnspesen: ob ein Betrieb Skonto
-              gibt, ist seine Entscheidung. Leer heisst keines — dann sieht
-              jede Rechnung aus wie bisher.
-            */}
-            <InputField
-              id="r-skonto"
-              label="Skonto (%)"
-              type="number"
-              min="0"
-              max="99"
-              step="0.5"
-              placeholder="leer = keines"
-              value={rates.skontoProzent ? String(rates.skontoProzent) : ''}
-              onChange={(e) => {
-                const wert = Number(e.target.value.replace(',', '.'));
-                setRates({ ...rates, skontoProzent: wert > 0 && wert < 100 ? wert : undefined });
-              }}
-            />
-            <InputField
-              id="r-skonto-tage"
-              label="Skontofrist (Tage)"
-              type="number"
-              min="0"
-              placeholder="leer = keines"
-              value={rates.skontoTage ? String(rates.skontoTage) : ''}
-              onChange={(e) => {
-                const wert = Math.floor(Number(e.target.value));
-                setRates({ ...rates, skontoTage: wert > 0 ? wert : undefined });
-              }}
-            />
-            {/*
-              MAHNSPESEN JE STUFE — ohne Vorgabe.
-
-              Was ein Betrieb verrechnen darf, hängt am Aufwand und am
-              Vertrag; eine voreingestellte Zahl sähe aus wie eine Auskunft
-              darüber. Leer heisst null, und dann steht auf der Mahnung keine
-              Spesenzeile.
-
-              Die Zahlungserinnerung steht bewusst mit dabei: manche Betriebe
-              verrechnen auch dort etwas, und ihnen das Feld vorzuenthalten
-              wäre eine Entscheidung, die uns nicht zusteht.
-            */}
-            {/*
-              FIRMEN- UND PRIVATKUNDEN GETRENNT (siehe `mahnkosten`). Die Zeile
-              für Privatkunden zeigt die gemeinsamen Werte, solange keine
-              eigenen eingetragen sind — so ändert die Trennung für niemanden
-              still etwas. Die Pauschale nach § 458 UGB ersetzt bei
-              Firmenkunden die Spesen je Stufe; beides zusammen wäre zu viel.
-            */}
-            <CheckboxField
-              id="r-pauschale458"
-              label="Firmenkunden: Pauschale 40 € nach § 458 UGB statt Spesen"
-              checked={!!rates.pauschale458}
-              onChange={(e) => setRates({ ...rates, pauschale458: e.target.checked || undefined })}
-            />
-            {!rates.pauschale458 &&
-              (['Erinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => (
-                <InputField
-                  key={`firma-${wort}`}
-                  id={`r-mahn-${i}`}
-                  label={`${wort} · Firmenkunden (€)`}
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="leer = keine"
-                  value={rates.mahnspesen?.[i] ? String(rates.mahnspesen[i]) : ''}
-                  onChange={(e) => {
-                    const werte = [...(rates.mahnspesen ?? [0, 0, 0])];
-                    werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
-                    setRates({ ...rates, mahnspesen: werte });
-                  }}
-                />
-              ))}
-            {(['Erinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => {
-              const privat = rates.mahnspesenVerbraucher ?? rates.mahnspesen;
-              return (
-                <InputField
-                  key={`privat-${wort}`}
-                  id={`r-mahn-privat-${i}`}
-                  label={`${wort} · Privatkunden (€)`}
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="leer = keine"
-                  value={privat?.[i] ? String(privat[i]) : ''}
-                  onChange={(e) => {
-                    const werte = [...(privat ?? [0, 0, 0])];
-                    werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
-                    setRates({ ...rates, mahnspesenVerbraucher: werte });
-                  }}
-                />
-              );
-            })}
-            {/*
-              DER BASISZINSSATZ MIT SEINEM HALBJAHR, nicht allein. Eine Zahl
-              ohne Stand veraltete still; so rechnet die Mahnung nur, solange
-              das Halbjahr stimmt, und sagt es sonst (siehe `verzugszinsen`).
-              Zur Wahl stehen nur Halbjahresanfänge — ein anderes Datum gibt
-              es für diesen Satz nicht.
-            */}
-            <InputField
-              id="r-basiszins"
-              label="Basiszinssatz (%)"
-              type="number"
-              step="0.01"
-              placeholder="leer = keine Zinsen an Unternehmer"
-              value={rates.basiszinssatz ?? ''}
-              onChange={(e) => {
-                const roh = e.target.value.replace(',', '.').trim();
-                const wert = roh === '' ? NaN : Number(roh);
-                setRates({ ...rates, basiszinssatz: Number.isFinite(wert) ? wert : undefined });
-              }}
-            />
-            <SelectField
-              id="r-basiszins-ab"
-              label="Basiszinssatz gilt ab"
-              value={rates.basiszinssatzAb ?? ''}
-              onChange={(e) => setRates({ ...rates, basiszinssatzAb: e.target.value || undefined })}
-            >
-              <option value="">—</option>
-              {halbjahreZurWahl(rates.basiszinssatzAb).map((ab) => (
-                <option key={ab} value={ab}>
-                  {`${ab.slice(8, 10)}.${ab.slice(5, 7)}.${ab.slice(0, 4)}`}
-                </option>
-              ))}
-            </SelectField>
+            <RechnungsvorgabenFelder rates={rates} setRates={setRates} />
           </FormGrid>
-          <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
-            Mahnspesen gelten je Kundenart; Skonto steht mit Betrag und Frist auf der
-            Rechnung; ab der Mahnung stehen gesetzliche Verzugszinsen auf dem Beleg.
-            <InfoHint about="Mahnspesen, Skonto und Verzugszinsen">
-              <strong>Mahnspesen</strong> gelten je Stufe, getrennt nach Firmenkunden (mit UID)
-              und Privatkunden. An Privatkunden sind nur angemessene, tatsächlich entstandene
-              Mahnkosten zu ersetzen (§ 1333 Abs 2 ABGB) — hohe Pauschalen halten dort oft nicht. An
-              Firmenkunden steht ab dem Verzug eine Pauschale von 40 € zu (§ 458 UGB); sie deckt
-              die Mahnkosten bis zu dieser Höhe ab und steht ab der Mahnung auf dem Beleg.
-              <br />
-              <br />
-              <strong>Skonto</strong> gilt für Rechnungen und Schlussrechnungen, nicht für
-              Anzahlungen; die Frist endet spätestens mit dem Zahlungsziel. Zahlt der Kunde in der
-              Frist den Betrag abzüglich Skonto, gleicht ein Haken beim Erfassen der Zahlung den
-              Rest aus. Die Umsatzsteuer darauf berichtigt die Kanzlei beim Buchen der Zahlung.
-              <br />
-              <br />
-              <strong>Verzugszinsen:</strong> Gerechnet wird vom Zahlungsziel bis zum Tag der Mahnung, auf den offenen Betrag. An
-              Verbraucher 4 % im Jahr (§ 1000 ABGB), an Unternehmer 9,2 Prozentpunkte über dem
-              Basiszinssatz (§ 456 UGB). Als Unternehmer gilt ein Kunde mit UID.
-              <br />
-              <br />
-              Den Basiszinssatz veröffentlicht die Oesterreichische Nationalbank; er ändert sich
-              zum 1. Jänner und 1. Juli. Er gilt hier nur für das eingetragene Halbjahr — danach
-              rechnet die Mahnung an Unternehmer keine Zinsen, bis der neue Satz eingetragen ist,
-              und sagt das beim Erzeugen.
-            </InfoHint>
-          </p>
+          <RechnungsvorgabenHinweis />
 
           {/*
             ANZAHLUNGEN SIND NICHT FÜR JEDEN BETRIEB EIN THEMA.
@@ -1228,5 +1120,195 @@ export default function SettingsView({ teil = 'saetze' }: { teil?: EinstellungsT
       </Card>
       )}
     </div>
+  );
+}
+
+/**
+ * DIE RECHNUNGSVORGABEN — Zahlungsziel, Skonto, Mahnspesen, Basiszinssatz.
+ *
+ * Als eigener Baustein, weil sie an zwei Stellen stehen (Testbericht
+ * 30.09.2026, H10): für die Leitung wie bisher unter „Sätze und Kosten“, für
+ * die Buchhaltung auf einem eigenen Reiter ohne Stunden- und Kostensätze.
+ * Laut Handbuch pflegt sie diese Werte; ohne Basiszinssatz gingen Mahnungen
+ * an Unternehmer ohne Zinsen hinaus.
+ */
+function RechnungsvorgabenFelder({
+  rates,
+  setRates,
+}: {
+  rates: InvoiceRates;
+  setRates: (r: InvoiceRates) => void;
+}) {
+  return (
+    <>
+      <InputField
+        id="r-due"
+        label="Zahlungsziel (Tage)"
+        type="number"
+        min="0"
+        value={String(rates.dueDays)}
+        onChange={(e) => setRates({ ...rates, dueDays: num(e.target.value, 14) })}
+      />
+      {/*
+        SKONTO OHNE VORGABE, wie die Mahnspesen: ob ein Betrieb Skonto
+        gibt, ist seine Entscheidung. Leer heisst keines — dann sieht
+        jede Rechnung aus wie bisher.
+      */}
+      <InputField
+        id="r-skonto"
+        label="Skonto (%)"
+        type="number"
+        min="0"
+        max="99"
+        step="0.5"
+        placeholder="leer = keines"
+        value={rates.skontoProzent ? String(rates.skontoProzent) : ''}
+        onChange={(e) => {
+          const wert = Number(e.target.value.replace(',', '.'));
+          setRates({ ...rates, skontoProzent: wert > 0 && wert < 100 ? wert : undefined });
+        }}
+      />
+      <InputField
+        id="r-skonto-tage"
+        label="Skontofrist (Tage)"
+        type="number"
+        min="0"
+        placeholder="leer = keines"
+        value={rates.skontoTage ? String(rates.skontoTage) : ''}
+        onChange={(e) => {
+          const wert = Math.floor(Number(e.target.value));
+          setRates({ ...rates, skontoTage: wert > 0 ? wert : undefined });
+        }}
+      />
+      {/*
+        MAHNSPESEN JE STUFE — ohne Vorgabe.
+
+        Was ein Betrieb verrechnen darf, hängt am Aufwand und am
+        Vertrag; eine voreingestellte Zahl sähe aus wie eine Auskunft
+        darüber. Leer heisst null, und dann steht auf der Mahnung keine
+        Spesenzeile.
+
+        Die Zahlungserinnerung steht bewusst mit dabei: manche Betriebe
+        verrechnen auch dort etwas, und ihnen das Feld vorzuenthalten
+        wäre eine Entscheidung, die uns nicht zusteht.
+      */}
+      {/*
+        FIRMEN- UND PRIVATKUNDEN GETRENNT (siehe `mahnkosten`). Die Zeile
+        für Privatkunden zeigt die gemeinsamen Werte, solange keine
+        eigenen eingetragen sind — so ändert die Trennung für niemanden
+        still etwas. Die Pauschale nach § 458 UGB ersetzt bei
+        Firmenkunden die Spesen je Stufe; beides zusammen wäre zu viel.
+      */}
+      <CheckboxField
+        id="r-pauschale458"
+        label="Firmenkunden: Pauschale 40 € nach § 458 UGB statt Spesen"
+        checked={!!rates.pauschale458}
+        onChange={(e) => setRates({ ...rates, pauschale458: e.target.checked || undefined })}
+      />
+      {!rates.pauschale458 &&
+        (['Erinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => (
+          <InputField
+            key={`firma-${wort}`}
+            id={`r-mahn-${i}`}
+            label={`${wort} · Firmenkunden (€)`}
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="leer = keine"
+            value={rates.mahnspesen?.[i] ? String(rates.mahnspesen[i]) : ''}
+            onChange={(e) => {
+              const werte = [...(rates.mahnspesen ?? [0, 0, 0])];
+              werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
+              setRates({ ...rates, mahnspesen: werte });
+            }}
+          />
+        ))}
+      {(['Erinnerung', 'Mahnung', 'Letzte Mahnung'] as const).map((wort, i) => {
+        const privat = rates.mahnspesenVerbraucher ?? rates.mahnspesen;
+        return (
+          <InputField
+            key={`privat-${wort}`}
+            id={`r-mahn-privat-${i}`}
+            label={`${wort} · Privatkunden (€)`}
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="leer = keine"
+            value={privat?.[i] ? String(privat[i]) : ''}
+            onChange={(e) => {
+              const werte = [...(privat ?? [0, 0, 0])];
+              werte[i] = Math.max(0, Number(e.target.value.replace(',', '.')) || 0);
+              setRates({ ...rates, mahnspesenVerbraucher: werte });
+            }}
+          />
+        );
+      })}
+      {/*
+        DER BASISZINSSATZ MIT SEINEM HALBJAHR, nicht allein. Eine Zahl
+        ohne Stand veraltete still; so rechnet die Mahnung nur, solange
+        das Halbjahr stimmt, und sagt es sonst (siehe `verzugszinsen`).
+        Zur Wahl stehen nur Halbjahresanfänge — ein anderes Datum gibt
+        es für diesen Satz nicht.
+      */}
+      <InputField
+        id="r-basiszins"
+        label="Basiszinssatz (%)"
+        type="number"
+        step="0.01"
+        placeholder="leer = keine Zinsen an Unternehmer"
+        value={rates.basiszinssatz ?? ''}
+        onChange={(e) => {
+          const roh = e.target.value.replace(',', '.').trim();
+          const wert = roh === '' ? NaN : Number(roh);
+          setRates({ ...rates, basiszinssatz: Number.isFinite(wert) ? wert : undefined });
+        }}
+      />
+      <SelectField
+        id="r-basiszins-ab"
+        label="Basiszinssatz gilt ab"
+        value={rates.basiszinssatzAb ?? ''}
+        onChange={(e) => setRates({ ...rates, basiszinssatzAb: e.target.value || undefined })}
+      >
+        <option value="">—</option>
+        {halbjahreZurWahl(rates.basiszinssatzAb).map((ab) => (
+          <option key={ab} value={ab}>
+            {`${ab.slice(8, 10)}.${ab.slice(5, 7)}.${ab.slice(0, 4)}`}
+          </option>
+        ))}
+      </SelectField>
+    </>
+  );
+}
+
+function RechnungsvorgabenHinweis() {
+  return (
+    <p className="mt-2 flex flex-wrap items-center gap-1 text-sm text-ink-muted">
+      Mahnspesen gelten je Kundenart; Skonto steht mit Betrag und Frist auf der
+      Rechnung; ab der Mahnung stehen gesetzliche Verzugszinsen auf dem Beleg.
+      <InfoHint about="Mahnspesen, Skonto und Verzugszinsen">
+        <strong>Mahnspesen</strong> gelten je Stufe, getrennt nach Firmenkunden (mit UID)
+        und Privatkunden. An Privatkunden sind nur angemessene, tatsächlich entstandene
+        Mahnkosten zu ersetzen (§ 1333 Abs 2 ABGB) — hohe Pauschalen halten dort oft nicht. An
+        Firmenkunden steht ab dem Verzug eine Pauschale von 40 € zu (§ 458 UGB); sie deckt
+        die Mahnkosten bis zu dieser Höhe ab und steht ab der Mahnung auf dem Beleg.
+        <br />
+        <br />
+        <strong>Skonto</strong> gilt für Rechnungen und Schlussrechnungen, nicht für
+        Anzahlungen; die Frist endet spätestens mit dem Zahlungsziel. Zahlt der Kunde in der
+        Frist den Betrag abzüglich Skonto, gleicht ein Haken beim Erfassen der Zahlung den
+        Rest aus. Die Umsatzsteuer darauf berichtigt die Kanzlei beim Buchen der Zahlung.
+        <br />
+        <br />
+        <strong>Verzugszinsen:</strong> Gerechnet wird vom Zahlungsziel bis zum Tag der Mahnung, auf den offenen Betrag. An
+        Verbraucher 4 % im Jahr (§ 1000 ABGB), an Unternehmer 9,2 Prozentpunkte über dem
+        Basiszinssatz (§ 456 UGB). Als Unternehmer gilt ein Kunde mit UID.
+        <br />
+        <br />
+        Den Basiszinssatz veröffentlicht die Oesterreichische Nationalbank; er ändert sich
+        zum 1. Jänner und 1. Juli. Er gilt hier nur für das eingetragene Halbjahr — danach
+        rechnet die Mahnung an Unternehmer keine Zinsen, bis der neue Satz eingetragen ist,
+        und sagt das beim Erzeugen.
+      </InfoHint>
+    </p>
   );
 }

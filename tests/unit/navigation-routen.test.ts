@@ -223,7 +223,7 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
     ]);
   });
 
-  it('gibt der Buchhaltung den KONTENRAHMEN und sonst nichts aus den Einstellungen', () => {
+  it('gibt der Buchhaltung Rechnungsvorgaben und KONTENRAHMEN und sonst nichts aus den Einstellungen', () => {
     /*
       SIE IST DIE ROLLE, DIE MIT DER KANZLEI SPRICHT. Welche Konten der
       Betrieb bebucht, klärt sie dort — dafür jedes Mal die Chefin zu holen,
@@ -232,9 +232,14 @@ describe('Unterreiter — mehrere Ansichten unter einem Eintrag', () => {
       Die Sätze und Kostensätze bleiben ihr trotzdem verschlossen: dort stehen
       die internen Kostensätze, also die Margendaten des Betriebs. Und die
       Sicherung erst recht nicht.
+
+      SEIT 30.09.2026 DAZU DIE RECHNUNGSVORGABEN (Testbericht H10): Zahlungs-
+      ziel, Skonto, Mahnspesen und Basiszinssatz auf einem eigenen Reiter —
+      ohne die Stunden- und Kostensätze, die daneben stehen.
     */
     expect(unterseitenFuer('/settings', 'Buchhaltung').map((s) => s.pfad)).toEqual([
       'meldungen',
+      'rechnung',
       'konten',
     ]);
   });

@@ -31,9 +31,13 @@ const updateCompany = vi.fn<(a0: string, a1: Record<string, unknown>) => Promise
 );
 /** Was der Zähler als Nächstes vergäbe (Launch-Check, K6). */
 const naechsteNummern = vi.fn(async () => ({ rechnung: 1002, angebot: 4, baustelle: 5 }));
+const rechnungsvorgabenSpeichern = vi.fn<(a0: Record<string, unknown>) => Promise<void>>(
+  async () => undefined,
+);
 vi.mock('@/lib/db/company', () => ({
   updateCompany: (id: string, daten: Record<string, unknown>) => updateCompany(id, daten),
   naechsteNummern: () => naechsteNummern(),
+  rechnungsvorgabenSpeichern: (v: Record<string, unknown>) => rechnungsvorgabenSpeichern(v),
 }));
 vi.mock('@/lib/db/users', () => ({ listUsers: vi.fn(async () => []) }));
 /*
@@ -71,7 +75,7 @@ vi.mock('@/app/AuthContext', () => ({
 
 const { default: SettingsView } = await import('@/features/settings/SettingsView');
 
-function zeige(teil: 'saetze' | 'nummern' | 'personal' = 'saetze') {
+function zeige(teil: 'saetze' | 'rechnung' | 'nummern' | 'personal' = 'saetze') {
   return render(
     <ToastProvider>
       <SettingsView teil={teil} />
@@ -83,6 +87,7 @@ const feld = (label: string) => screen.getByLabelText(label) as HTMLInputElement
 
 beforeEach(() => {
   updateCompany.mockClear();
+  rechnungsvorgabenSpeichern.mockClear();
   firma = { id: 'perl', name: 'Perl Installationen' };
   gespeicherteKosten = null;
   kostensaetze.mockClear();
@@ -312,5 +317,37 @@ describe('Drei Unterseiten statt einer (Prüflauf 24.09.2026, D10)', () => {
     expect(await within(karte).findByText(/Dafür fehlt die Berechtigung/)).toBeInTheDocument();
     const wochenplan = screen.getByText('Wochenplan für alle').closest('section') as HTMLElement;
     expect(within(wochenplan).queryByText(/Dafür fehlt die Berechtigung/)).toBeNull();
+  });
+});
+
+/*
+  Testbericht 30.09.2026, H10: die Buchhaltung pflegt Zahlungsziel, Skonto,
+  Mahnspesen und Basiszinssatz — auf einem eigenen Reiter, ohne Stunden- und
+  Kostensätze. Gespeichert wird über die eigene Funktion der Datenbank.
+*/
+describe('Rechnungsvorgaben (Reiter der Buchhaltung)', () => {
+  it('zeigt nur die Vorgaben — keine Stunden-, Zuschlags- oder Kostensätze', async () => {
+    firma = { id: 'perl', name: 'Perl Installationen', rates: { dueDays: 21, skontoProzent: 2, skontoTage: 10 } as Company['rates'] };
+    zeige('rechnung');
+    expect(await screen.findByLabelText('Zahlungsziel (Tage)')).toHaveValue(21);
+    expect(screen.getByLabelText('Basiszinssatz (%)')).toBeInTheDocument();
+    expect(screen.queryByText('Stundensätze')).not.toBeInTheDocument();
+    expect(screen.queryByText('Interne Kostensätze')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Umsatzsteuer')).not.toBeInTheDocument();
+    // Die Kostensätze liest nur die Spitze — hier wird gar nicht erst gefragt.
+    expect(kostensaetze).not.toHaveBeenCalled();
+  });
+
+  it('speichert über die eigene Funktion und nicht über den ganzen Betrieb', async () => {
+    const nutzer = userEvent.setup();
+    zeige('rechnung');
+    const ziel = await screen.findByLabelText('Zahlungsziel (Tage)');
+    await nutzer.clear(ziel);
+    await nutzer.type(ziel, '30');
+    await nutzer.click(screen.getByRole('button', { name: 'Rechnungsvorgaben speichern' }));
+    await waitFor(() => expect(rechnungsvorgabenSpeichern).toHaveBeenCalled());
+    expect(rechnungsvorgabenSpeichern.mock.calls[0][0]).toMatchObject({ dueDays: 30 });
+    expect(Object.keys(rechnungsvorgabenSpeichern.mock.calls[0][0])).not.toContain('fach');
+    expect(updateCompany).not.toHaveBeenCalled();
   });
 });
