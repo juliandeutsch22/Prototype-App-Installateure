@@ -8,6 +8,10 @@ Aufwand. Was den Produktivbetrieb blockiert, steht oben.
 > worauf man sich verlassen kann*, findet das in
 > **[docs/FUNKTIONEN.md](./FUNKTIONEN.md)** — inklusive der Lücken.
 
+> **Aktueller Umsetzungsplan:** [PLAN-TESTBERICHT-2026-09-30.md](./PLAN-TESTBERICHT-2026-09-30.md)
+> — die Befunde des Testberichts vom 30.09.2026, mit dem Code abgeglichen
+> und in Pakete bzw. PRs geordnet.
+
 ---
 
 ## Fahrplan: was die App zu einer vollständigen Betriebslösung fehlt
