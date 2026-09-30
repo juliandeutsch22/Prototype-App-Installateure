@@ -785,6 +785,7 @@ export default function TimeView() {
           id={meldung}
           meinName={user.name}
           mitNamen={false}
+          buero={!!user && canEditTime(user.role)}
           // Die Einträge kommen live nach; die Karte hat ihren Dienst getan.
           onGeaendert={() => setMeldung(null)}
           onSchliessen={() => setMeldung(null)}

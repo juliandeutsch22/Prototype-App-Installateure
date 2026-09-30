@@ -1260,6 +1260,7 @@ export default function VacationsView() {
           <KrankmeldungListe
             meldungen={eigeneKrank}
             mitNamen={false}
+            buero={!!user && canEditTime(user.role)}
             meinName={user.name}
             onGeaendert={() =>
               void listEigeneKrankmeldungen(user.companyId, user.uid)

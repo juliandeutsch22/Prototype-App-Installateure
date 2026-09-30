@@ -152,7 +152,9 @@ describe('Ein deaktiviertes Konto kommt nicht mehr herein', () => {
     */
     const { uid, email } = await neuesKonto('sofort');
     await admin.from('users').insert({
-      id: uid, company_id: BETRIEB, name: 'Sofort', email, role: 'Mitarbeiter',
+      // Verwaltung, nicht Mitarbeiter: die Kundentabelle ist hier nur die Probe,
+      // und Monteure lesen sie seit dem Testbericht vom 30.09.2026 (H8) nicht mehr.
+      id: uid, company_id: BETRIEB, name: 'Sofort', email, role: 'Verwaltung',
     });
     await admin.from('customers').insert({ company_id: BETRIEB, name: 'Kunde' });
 
@@ -238,7 +240,9 @@ describe('Was sich am Konto ändert, gilt sofort', () => {
   it('wessen Zeile gelöscht wird, kommt sofort an nichts mehr — und nicht mehr herein', async () => {
     const { uid, email } = await neuesKonto('geloescht');
     await admin.from('users').insert({
-      id: uid, company_id: BETRIEB, name: 'Gelöscht', email, role: 'Mitarbeiter',
+      // Verwaltung, nicht Mitarbeiter: die Kundentabelle ist hier nur die Probe,
+      // und Monteure lesen sie seit dem Testbericht vom 30.09.2026 (H8) nicht mehr.
+      id: uid, company_id: BETRIEB, name: 'Gelöscht', email, role: 'Verwaltung',
     });
     await admin.from('customers').insert({ company_id: BETRIEB, name: 'Kunde für die Löschprobe' });
     const c = createClient(API, ANON, { auth: { persistSession: false } });

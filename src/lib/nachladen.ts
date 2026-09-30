@@ -12,7 +12,7 @@
 import { huelleErneuernUndNeuLaden } from './sw';
 
 /** Merker gegen eine Schleife aus Neuladen und Scheitern. */
-const NEULADE_MERKER = 'perl:nachladefehler';
+const NEULADE_MERKER = 'senklot:nachladefehler';
 
 /**
  * Wie lange ein Neuladen als „gerade erst versucht" gilt.

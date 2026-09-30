@@ -18,6 +18,7 @@ import {
   profilMerken,
   InactiveUserError,
 } from '@/lib/auth/sitzung';
+import { benutzerSpurenLoeschen } from '@/lib/speicher';
 import { getCompany } from '@/lib/db/company';
 import { applyBranding } from '@/lib/tenant';
 import { mitFristOder } from '@/lib/frist';
@@ -49,7 +50,7 @@ const START_FRIST_MS = 8000;
  * Das ist reine Beschleunigung, keine Quelle der Wahrheit: stimmt der Wert
  * nicht mit dem Profil überein, wird die richtige Firma nachgeladen.
  */
-const FIRMA_MERKER = 'perl.letzteFirma';
+const FIRMA_MERKER = 'senklot.letzteFirma';
 
 /**
  * Welcher Einblick gerade läuft — nur die Kennung der Freigabe.
@@ -396,7 +397,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         new Promise((weiter) => setTimeout(weiter, 4000)),
       ]);
     }
-    return abmeldenNaht();
+    await abmeldenNaht();
+    /*
+      WAS DEM NUTZER GEHÖRT, GEHT MIT (Testbericht 30.09.2026, M9): Profil
+      und Firma im Zwischenspeicher, die zuletzt gewählte Firma, der
+      Warenkorb, ein laufender Einblick — auch die früherer Nutzer dieses
+      Geräts. Das Ausgangsfach bleibt: siehe `lib/speicher.ts`.
+    */
+    benutzerSpurenLoeschen();
   }, [user]);
 
   const resetPassword = useCallback((email: string) => passwortZuruecksetzen(email), []);

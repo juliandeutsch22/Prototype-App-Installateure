@@ -355,6 +355,7 @@ export default function BaustellenakteView() {
         projectId={b.id}
         darfAendern={darfAendern}
         meinName={user.name}
+        personen={users.map((u) => u.name)}
       />
     </Card>
   ) : null;

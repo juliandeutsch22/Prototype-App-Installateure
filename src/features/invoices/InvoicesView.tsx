@@ -3367,7 +3367,7 @@ export default function InvoicesView() {
             return (
               <p className="mt-3 text-sm text-warning">
                 Der Kunde hat eine UID — für Verzugszinsen unter Unternehmern fehlt der
-                Basiszinssatz des laufenden Halbjahres (Einstellungen → Sätze und Kosten → Rechnungsvorgaben). Die Mahnung
+                Basiszinssatz des laufenden Halbjahres (Einstellungen → Rechnungsvorgaben, für die Leitung unter Sätze und Kosten). Die Mahnung
                 geht ohne Zinsen hinaus.
               </p>
             );

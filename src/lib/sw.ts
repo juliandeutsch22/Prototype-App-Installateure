@@ -99,7 +99,7 @@ export function serviceWorkerAnmelden(beiNeuerFassung: () => void): void {
 const KALTSTART_FENSTER_MS = 12_000;
 
 /** Merker gegen eine Schleife aus stillem Übernehmen und Neuladen. */
-const STILL_MERKER = 'perl:stillUebernommen';
+const STILL_MERKER = 'senklot:stillUebernommen';
 
 /**
  * Darf JETZT noch still übernommen werden?
@@ -126,7 +126,7 @@ export function darfStillUebernehmen(gestartet: number, angefasst: boolean): boo
 const WORKER_FRIST_MS = 2500;
 
 /** Merker: die neue Fassung läuft, die alten Bausteine dürfen weg. */
-const AUFRAEUM_MERKER = 'perl:aufraeumen';
+const AUFRAEUM_MERKER = 'senklot:aufraeumen';
 
 /**
  * Eine Nachricht an den Worker schicken und auf seine Antwort warten.

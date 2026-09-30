@@ -76,7 +76,7 @@ describe('Auf die neue Fassung wechseln', () => {
     // Sonst blieben die alten Bausteine mit jedem Deploy liegen, und der
     // Speicher der Startbildschirm-App waechst ohne Grenze.
     await neueFassungUebernehmen();
-    expect(sessionStorage.getItem('perl:aufraeumen')).toBe('1');
+    expect(sessionStorage.getItem('senklot:aufraeumen')).toBe('1');
   });
 
   it('haelt fest, VON WELCHER Fassung aus gewechselt wurde', async () => {

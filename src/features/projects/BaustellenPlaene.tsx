@@ -10,20 +10,7 @@ import { useToast } from '@/components/Toast';
 import { EmptyState, SkeletonList, TeilFehler } from '@/components/States';
 import PlaeneListe from './PlaeneListe';
 import { planeVon, usePlaene } from './usePlaene';
-
-/**
- * Dateinamen, die nach einem Beleg des Büros klingen, nicht nach einem Plan.
- *
- * Im Launch-Check (25.09.2026, R1) lag ein Stundennachweis bei den Plänen —
- * sichtbar für jeden Monteur der Baustelle, mit den Stunden der Kollegen.
- * Ein Dateiname beweist nichts; er ist aber der einzige Anhaltspunkt vor dem
- * Hochladen, und gefragt wird nur, nicht verboten.
- */
-const BUEROBELEG = /stunden|rechnung|lohn|gehalt|abrechnung|angebot|kalkulation|zeitkonto|saldo|krank|urlaub/i;
-
-function klingtNachBueroBeleg(dateiname: string): boolean {
-  return BUEROBELEG.test(dateiname);
-}
+import { klingtNachBueroBeleg } from './bueroBeleg';
 
 /**
  * Pläne und Dokumente in der Baustellenakte — hochladen, ansehen, löschen.
@@ -39,11 +26,14 @@ export default function BaustellenPlaene({
   projectId,
   darfAendern,
   meinName,
+  personen = [],
 }: {
   companyId: string;
   projectId: string;
   darfAendern: boolean;
   meinName: string;
+  /** Namen der Belegschaft — ein Dateiname mit einem davon wird nachgefragt (H8). */
+  personen?: readonly string[];
 }) {
   const toast = useToast();
   const { stand, neuLaden } = usePlaene(companyId, [projectId]);
@@ -151,7 +141,7 @@ export default function BaustellenPlaene({
               // werden kann — sonst feuert das Feld nicht.
               e.target.value = '';
               if (dateien.length === 0) return;
-              if (dateien.some((d) => klingtNachBueroBeleg(d.name))) setRueckfrage(dateien);
+              if (dateien.some((d) => klingtNachBueroBeleg(d.name, personen))) setRueckfrage(dateien);
               else void hochladen(dateien);
             }}
           />
@@ -176,9 +166,9 @@ export default function BaustellenPlaene({
         message={
           rueckfrage
             ? `${rueckfrage
-                .filter((d) => klingtNachBueroBeleg(d.name))
+                .filter((d) => klingtNachBueroBeleg(d.name, personen))
                 .map((d) => d.name)
-                .join(', ')} klingt nach einem Beleg aus dem Büro. Alles hier sehen auch die Monteure dieser Baustelle.`
+                .join(', ')} klingt nach einem Beleg aus dem Büro oder nach Daten einer Person. Alles hier sehen auch die Monteure dieser Baustelle.`
             : ''
         }
         confirmLabel="Trotzdem hinzufügen"
