@@ -43,6 +43,7 @@ import {
   TEXTE,
   FRIST_TAGE,
   verzugszinsen,
+  zinssatzText,
   type Mahnstufe,
 } from './mahnung';
 import { postenNeuLaden } from '@/app/offenePosten';
@@ -1297,6 +1298,7 @@ export default function InvoicesView() {
       unternehmer: istUnternehmer(inv),
       basiszinssatz: company?.rates?.basiszinssatz,
       basiszinssatzAb: company?.rates?.basiszinssatzAb,
+      basiszinssaetze: company?.rates?.basiszinssaetze,
     });
   }
 
@@ -3657,8 +3659,8 @@ export default function InvoicesView() {
           if (z.art === 'berechnet') {
             return (
               <p className="mt-3 text-sm text-ink-muted">
-                Verzugszinsen {euro(z.betrag)} ({z.satz.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %
-                p. a., {z.tage} Tage{z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
+                Verzugszinsen {euro(z.betrag)} ({zinssatzText(z, datumAT)}, {z.tage} Tage
+                {z.ab ? ` ab ${datumAT(z.ab)}` : ''}, {z.grundlage}) stehen auf dem
                 Beleg.{z.ab ? ' Für die Zeit davor ist kein Basiszinssatz eingetragen.' : ''}
               </p>
             );

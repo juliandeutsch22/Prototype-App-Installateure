@@ -271,6 +271,12 @@ export interface InvoiceRates {
   basiszinssatz?: number;
   basiszinssatzAb?: string;
   /**
+   * Der Verlauf der Basiszinssätze, je Halbjahr einer (Testbericht
+   * 30.09.2026, G30) — für ältere, noch offene Forderungen. Ersetzt beim
+   * nächsten Speichern den einzelnen Satz darüber.
+   */
+  basiszinssaetze?: { ab: string; satz: number }[];
+  /**
    * Skonto, das neue Rechnungen zusagen: Prozent und Frist in Tagen ab
    * Rechnungsdatum. Beides leer heisst kein Skonto — die Vorgabe ab Werk.
    */

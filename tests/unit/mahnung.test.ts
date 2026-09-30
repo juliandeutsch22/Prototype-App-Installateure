@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
+  basiszinsVerlauf,
+  halbjahreZurWahl,
+  zinssatzText,
   darfMahnen,
   naechsteStufe,
   spesenFuer,
@@ -182,6 +185,65 @@ describe('Verzugszinsen (B7)', () => {
       .toEqual({ art: 'fehlt' });
     // Ohne Stand zählt die Zahl nicht.
     expect(verzugszinsen({ ...basis, unternehmer: true, basiszinssatz: 1.53 })).toEqual({ art: 'fehlt' });
+  });
+
+  /*
+    TESTBERICHT 30.09.2026, G30 — der Verlauf je Halbjahr. Für eine ältere
+    Forderung zählt jeder Tag mit dem Satz seines Halbjahres.
+  */
+  it('rechnet über zwei Halbjahre mit dem jeweiligen Satz', () => {
+    // 04.06.–30.06.: 27 Tage × 11,2 %; 01.07.–03.10.: 95 Tage × 10,73 %.
+    // 1.200 × (0,112 × 27 + 0,1073 × 95) / 365 = 9,94 + 33,51 = 43,45 €
+    const z = verzugszinsen({
+      ...basis, faellig: '2026-06-03', unternehmer: true,
+      basiszinssaetze: [{ ab: '2026-01-01', satz: 2 }, { ab: '2026-07-01', satz: 1.53 }],
+    });
+    expect(z).toEqual({
+      art: 'berechnet', satz: 10.73, tage: 122, betrag: 43.45, grundlage: '§ 456 UGB',
+      abschnitte: [
+        { von: '2026-06-04', bis: '2026-06-30', satz: 11.2, tage: 27 },
+        { von: '2026-07-01', bis: '2026-10-03', satz: 10.73, tage: 95 },
+      ],
+    });
+  });
+
+  it('nimmt den alten Einzelsatz in den Verlauf und die Liste vor ihn', () => {
+    expect(basiszinsVerlauf({
+      basiszinssatz: 1.53, basiszinssatzAb: '2026-07-01',
+      basiszinssaetze: [{ ab: '2026-01-01', satz: 2 }, { ab: '2026-07-01', satz: 1.6 }],
+    })).toEqual([{ ab: '2026-01-01', satz: 2 }, { ab: '2026-07-01', satz: 1.6 }]);
+  });
+
+  it('Gegenprobe: eine Lücke davor kürzt, und gleiche Sätze bleiben eine Zeile', () => {
+    const luecke = verzugszinsen({
+      ...basis, faellig: '2025-11-03', unternehmer: true,
+      basiszinssaetze: [{ ab: '2025-07-01', satz: 2 }, { ab: '2026-07-01', satz: 1.53 }],
+    });
+    // 01.01.–30.06.2026 fehlt: gerechnet wird erst ab 01.07.2026.
+    expect(luecke).toMatchObject({ art: 'berechnet', ab: '2026-07-01', tage: 95 });
+    expect(luecke).not.toHaveProperty('abschnitte');
+
+    const gleich = verzugszinsen({
+      ...basis, faellig: '2026-06-03', unternehmer: true,
+      basiszinssaetze: [{ ab: '2026-01-01', satz: 1.53 }, { ab: '2026-07-01', satz: 1.53 }],
+    });
+    expect(gleich).toEqual({ art: 'berechnet', satz: 10.73, tage: 122, betrag: 43.04, grundlage: '§ 456 UGB' });
+  });
+
+  it('nennt den Satz je Halbjahr im Text', () => {
+    const z = verzugszinsen({
+      ...basis, faellig: '2026-06-03', unternehmer: true,
+      basiszinssaetze: [{ ab: '2026-01-01', satz: 2 }, { ab: '2026-07-01', satz: 1.53 }],
+    });
+    if (z.art !== 'berechnet') throw new Error('erwartet berechnet');
+    expect(zinssatzText(z, (d) => d)).toBe('11,2 % vom 2026-06-04 bis 2026-06-30, 10,73 % vom 2026-07-01 bis 2026-10-03 p. a.');
+  });
+
+  it('bietet Halbjahre bis fünfzehn Jahre zurück und das nächste an', () => {
+    const wahl = halbjahreZurWahl('2026-09-30');
+    expect(wahl[0]).toBe('2027-01-01');
+    expect(wahl).toContain('2011-01-01');
+    expect(wahl).not.toContain('2027-07-01');
   });
 
   it('nicht auf der Zahlungserinnerung, nicht ohne Rest, nicht vor dem Ziel', () => {

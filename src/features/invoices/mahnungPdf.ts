@@ -130,7 +130,23 @@ export async function buildMahnungPdf(o: MahnungOptionen): Promise<Blob> {
   if (spesen > 0) zeilen.push(['Mahnspesen', `${euroBetrag(spesen)} €`]);
   if (pauschale > 0) zeilen.push(['Pauschale für Betreibungskosten (§ 458 UGB)', `${euroBetrag(pauschale)} €`]);
   const zinsen = o.zinsen?.art === 'berechnet' ? o.zinsen : null;
-  if (zinsen) {
+  if (zinsen && zinsen.abschnitte) {
+    /*
+      ÜBER MEHRERE HALBJAHRE (Testbericht 30.09.2026, G30): eine Zeile mit
+      Tagen und Betrag, darunter je Halbjahr Satz und Zeitraum — sonst ist
+      die Zahl nicht nachzurechnen, und in eine Zeile passt es nicht.
+    */
+    zeilen.push([
+      `Verzugszinsen, ${zinsen.tage} Tage${zinsen.ab ? ` ab ${fmtDatum(zinsen.ab)}` : ''} (${zinsen.grundlage})`,
+      `${euroBetrag(zinsen.betrag)} €`,
+    ]);
+    for (const a of zinsen.abschnitte) {
+      zeilen.push([
+        `    ${a.satz.toLocaleString('de-AT', { maximumFractionDigits: 2 })} % p. a. vom ${fmtDatum(a.von)} bis ${fmtDatum(a.bis)}, ${a.tage} Tage`,
+        '',
+      ]);
+    }
+  } else if (zinsen) {
     // Satz, Tage und Grundlage stehen dabei: sonst ist die Zahl nicht nachzurechnen.
     zeilen.push([
       `Verzugszinsen ${zinsen.satz.toLocaleString('de-AT', { maximumFractionDigits: 2 })} % p. a., ${zinsen.tage} Tage` +

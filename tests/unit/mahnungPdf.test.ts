@@ -164,6 +164,23 @@ describe('Verzugszinsen (B7)', () => {
     expect(s).toContain('30 Tage ab 01.07.2026');
   });
 
+  it('über zwei Halbjahre: eine Zeile je Satz und Zeitraum (G30)', async () => {
+    const s = await text({
+      stufe: 2,
+      zinsen: {
+        ...zinsen, satz: 10.73, tage: 122, betrag: 43.03,
+        abschnitte: [
+          { von: '2026-06-04', bis: '2026-06-30', satz: 11.2, tage: 27 },
+          { von: '2026-07-01', bis: '2026-10-03', satz: 10.73, tage: 95 },
+        ],
+      },
+    });
+    expect(s).toContain('Verzugszinsen, 122 Tage \\(§ 456 UGB\\)');
+    expect(s).toContain('11,2 % p. a. vom 04.06.2026 bis 30.06.2026, 27 Tage');
+    expect(s).toContain('10,73 % p. a. vom 01.07.2026 bis 03.10.2026, 95 Tage');
+    expect(s).toMatch(betrag('43,03'));
+  });
+
   it('bleiben weg, wenn keine berechnet sind — auch wenn sie fehlen', async () => {
     for (const z of [undefined, { art: 'keine' } as const, { art: 'fehlt' } as const]) {
       const s = await text({ stufe: 2, zinsen: z });

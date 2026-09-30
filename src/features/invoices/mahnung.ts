@@ -267,19 +267,64 @@ export function halbjahresbeginn(isoTag: string): string {
   return `${isoTag.slice(0, 4)}-${Number(isoTag.slice(5, 7)) <= 6 ? '01' : '07'}-01`;
 }
 
+/** Ein Basiszinssatz mit dem Halbjahr, für das er gilt (Testbericht 30.09.2026, G30). */
+export interface Basiszinssatz {
+  /** 1. Jänner oder 1. Juli. */
+  ab: string;
+  /** % — darf negativ sein. */
+  satz: number;
+}
+
+/**
+ * Der Verlauf der Basiszinssätze eines Betriebs — die Liste und, wo es sie
+ * noch gibt, der einzelne Satz aus der Zeit davor. Je Halbjahr einer; die
+ * Liste gewinnt.
+ */
+export function basiszinsVerlauf(rates?: {
+  basiszinssaetze?: Basiszinssatz[] | null;
+  basiszinssatz?: number | null;
+  basiszinssatzAb?: string | null;
+} | null): Basiszinssatz[] {
+  const je = new Map<string, number>();
+  if (typeof rates?.basiszinssatz === 'number' && Number.isFinite(rates.basiszinssatz)
+      && /^\d{4}-(01|07)-01$/.test(rates.basiszinssatzAb ?? '')) {
+    je.set(rates.basiszinssatzAb!, rates.basiszinssatz);
+  }
+  for (const b of rates?.basiszinssaetze ?? []) {
+    if (b && typeof b.satz === 'number' && Number.isFinite(b.satz) && /^\d{4}-(01|07)-01$/.test(b.ab)) {
+      je.set(b.ab, b.satz);
+    }
+  }
+  return [...je.entries()].map(([ab, satz]) => ({ ab, satz })).sort((a, b) => a.ab.localeCompare(b.ab));
+}
+
+/** Halbjahre zur Wahl: vom nächsten bis fünfzehn Jahre zurück, das jüngste zuerst (G30). */
+export function halbjahreZurWahl(heute: string): string[] {
+  const jetzt = halbjahresbeginn(heute);
+  const jahr = Number(jetzt.slice(0, 4));
+  const raus: string[] = [];
+  for (let j = jahr + 1; j >= jahr - 15; j -= 1) {
+    for (const hj of [`${j}-07-01`, `${j}-01-01`]) raus.push(hj);
+  }
+  const naechstes = jetzt.endsWith('-01-01') ? `${jahr}-07-01` : `${jahr + 1}-01-01`;
+  return raus.filter((hj) => hj <= naechstes);
+}
+
 export type Verzugszinsen =
   | { art: 'keine' }
   /** Ein Unternehmer, aber kein Basiszinssatz für das laufende Halbjahr. */
   | { art: 'fehlt' }
   | {
       art: 'berechnet';
-      /** % im Jahr. */
+      /** % im Jahr — bei mehreren Halbjahren der des letzten. */
       satz: number;
       tage: number;
       betrag: number;
       grundlage: '§ 1000 ABGB' | '§ 456 UGB';
       /** Gesetzt, wenn erst ab diesem Tag gerechnet wird (siehe unten). */
       ab?: string;
+      /** Nur wenn der Verzug über mehrere Halbjahre mit verschiedenen Sätzen reicht (G30). */
+      abschnitte?: { von: string; bis: string; satz: number; tage: number }[];
     };
 
 /**
@@ -290,19 +335,19 @@ export type Verzugszinsen =
  * eigenen Ton. Geschuldet sind die Zinsen trotzdem ab dem ersten Tag nach
  * dem Zahlungsziel; die Mahnung rechnet deshalb vom Ziel bis zu ihrem Datum.
  *
- * UNTERNEHMER IST, WER EINE UID HAT. Die App weiss sonst nicht, ob ein Kunde
- * ein Geschäft betreibt. Ohne UID gilt der Verbrauchersatz — der niedrigere;
- * zu wenig zu fordern schadet dem Betrieb weniger als zu viel.
+ * UNTERNEHMER IST, wer als Unternehmen im Kundenstamm steht oder eine UID
+ * hat (Testbericht 30.09.2026, M10). Sonst gilt der Verbrauchersatz — der
+ * niedrigere; zu wenig zu fordern schadet dem Betrieb weniger als zu viel.
  *
- * DER BASISZINSSATZ GILT NUR MIT SEINEM HALBJAHR. Er ändert sich zum 1.1. und
- * 1.7. (maßgebend ist der am letzten Tag des Vorhalbjahres, § 456 UGB). Eine
- * Zahl ohne Stand veraltete still und stünde danach auf jeder Mahnung falsch;
- * eine falsche Zinsforderung ist schlechter als keine. Deshalb rechnet er nur,
- * wenn er für das Halbjahr der Mahnung eingetragen ist — sonst `fehlt`, und
- * die Oberfläche sagt es. Reicht der Verzug in ein früheres Halbjahr zurück,
- * ist dessen Satz unbekannt: gerechnet wird dann erst ab Beginn des
- * eingetragenen (`ab`), und der Beleg sagt es. Weniger zu fordern ist
- * zulässig, mehr nicht.
+ * DER BASISZINSSATZ GILT JE HALBJAHR. Er ändert sich zum 1.1. und 1.7.
+ * (maßgebend ist der am letzten Tag des Vorhalbjahres, § 456 UGB). Seit dem
+ * Testbericht vom 30.09.2026 (G30) führt der Betrieb einen VERLAUF: jeder
+ * Tag des Verzugs wird mit dem Satz seines Halbjahres gerechnet. Fehlt der
+ * Satz für das Halbjahr der Mahnung, rechnet sie nichts — `fehlt`, und die
+ * Oberfläche sagt es; eine falsche Zinsforderung ist schlechter als keine.
+ * Fehlt ein früherer, wird erst ab dem ältesten lückenlos bekannten Halbjahr
+ * gerechnet (`ab`), und der Beleg sagt es. Weniger zu fordern ist zulässig,
+ * mehr nicht.
  *
  * NICHT GESPEICHERT. Die Zinsen stehen auf dem Beleg und in der Summe, die er
  * fordert, aber nicht im Zahlungsstand der Rechnung: sie sind keine Leistung,
@@ -316,6 +361,7 @@ export function verzugszinsen(o: {
   unternehmer: boolean;
   basiszinssatz?: number | null;
   basiszinssatzAb?: string | null;
+  basiszinssaetze?: Basiszinssatz[] | null;
 }): Verzugszinsen {
   if (o.stufe < 2 || !(o.rest >= 0.01) || !o.faellig) return { art: 'keine' };
   const von = Date.parse(`${o.faellig}T00:00:00Z`);
@@ -327,16 +373,63 @@ export function verzugszinsen(o: {
   if (!o.unternehmer) {
     return mitBetrag(o.rest, ZINS_VERBRAUCHER, tage, '§ 1000 ABGB');
   }
-  const ab = o.basiszinssatzAb ?? '';
-  const gilt = typeof o.basiszinssatz === 'number' && Number.isFinite(o.basiszinssatz)
-    && ab >= halbjahresbeginn(o.bis) && ab <= o.bis;
-  if (!gilt) return { art: 'fehlt' };
-  const satz = Math.round((o.basiszinssatz! + ZINS_AUFSCHLAG_UNTERNEHMER) * 100) / 100;
-  if (ab <= o.faellig) return mitBetrag(o.rest, satz, tage, '§ 456 UGB');
-  // Der Tag `ab` zählt mit: gerechnet wird vom Vortag an, wie sonst vom Zahlungsziel.
-  const abTage = Math.round((bis - Date.parse(`${ab}T00:00:00Z`)) / 86_400_000) + 1;
-  const z = mitBetrag(o.rest, satz, abTage, '§ 456 UGB');
-  return z.art === 'berechnet' ? { ...z, ab } : z;
+
+  const saetze = new Map(basiszinsVerlauf(o).map((b) => [b.ab, b.satz]));
+  /*
+    Die Halbjahre des Verzugs, vom letzten rückwärts: jeder Tag nach dem
+    Zahlungsziel bis zum Mahntag. Beim ersten ohne Satz ist Schluss.
+  */
+  const erster = tagNach(o.faellig);
+  const abschnitte: { von: string; bis: string; satz: number; tage: number }[] = [];
+  let ende = o.bis;
+  while (ende >= erster) {
+    const hj = halbjahresbeginn(ende);
+    const basis = saetze.get(hj);
+    if (basis === undefined) break;
+    const beginn = hj > erster ? hj : erster;
+    abschnitte.unshift({
+      von: beginn,
+      bis: ende,
+      satz: Math.round((basis + ZINS_AUFSCHLAG_UNTERNEHMER) * 100) / 100,
+      tage: tageZwischen(beginn, ende) + 1,
+    });
+    ende = tagVor(hj);
+  }
+  if (abschnitte.length === 0) return { art: 'fehlt' };
+
+  const gezaehlt = abschnitte.reduce((n, a) => n + a.tage, 0);
+  const betrag = Math.round(
+    abschnitte.reduce((s, a) => s + o.rest * (a.satz / 100) * (a.tage / 365), 0) * 100,
+  ) / 100;
+  if (betrag <= 0) return { art: 'keine' };
+  const satz = abschnitte[abschnitte.length - 1].satz;
+  const ergebnis: Verzugszinsen = { art: 'berechnet', satz, tage: gezaehlt, betrag, grundlage: '§ 456 UGB' };
+  if (abschnitte[0].von > erster) ergebnis.ab = abschnitte[0].von;
+  if (new Set(abschnitte.map((a) => a.satz)).size > 1) ergebnis.abschnitte = abschnitte;
+  return ergebnis;
+}
+
+/**
+ * Der Satz, wie Beleg und Dialog ihn nennen: einer, oder je Halbjahr einer.
+ * Ohne Bindestrich zwischen den Daten — das Briefpapier druckt ihn nicht.
+ */
+export function zinssatzText(
+  z: Extract<Verzugszinsen, { art: 'berechnet' }>,
+  datum: (iso: string) => string,
+): string {
+  const pz = (n: number) => `${n.toLocaleString('de-AT', { maximumFractionDigits: 2 })} %`;
+  if (!z.abschnitte) return `${pz(z.satz)} p. a.`;
+  return `${z.abschnitte.map((a) => `${pz(a.satz)} vom ${datum(a.von)} bis ${datum(a.bis)}`).join(', ')} p. a.`;
+}
+
+function tagNach(iso: string): string {
+  return new Date(Date.parse(`${iso}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+}
+function tagVor(iso: string): string {
+  return new Date(Date.parse(`${iso}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+}
+function tageZwischen(von: string, bis: string): number {
+  return Math.round((Date.parse(`${bis}T00:00:00Z`) - Date.parse(`${von}T00:00:00Z`)) / 86_400_000);
 }
 
 function mitBetrag(
